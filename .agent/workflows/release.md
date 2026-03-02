@@ -15,6 +15,10 @@ description: Release a new version of Echobird (bump version, tag, push — GitH
 
 3. Update version in `src-tauri/tauri.conf.json` → `"version": "x.x.x"`
 4. Update version in `package.json` → `"version": "x.x.x"`
+5. Update `docs/api/version/index.json`:
+   - `version` → new version
+   - `releaseDate` → today (YYYY-MM-DD)
+   - `releaseNotes` → brief summary of changes
 
 ## Commit & Tag
 

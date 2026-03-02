@@ -1,6 +1,6 @@
 {
-    "version": "1.1.0",
-    "releaseDate": "2026-02-23",
-    "releaseNotes": "i18n product name, system language auto-detect, splash locale persistence, brand migration to echobird.ai, GitHub org to edison7009, Logs & Debug always visible",
+    "version": "2.0.0",
+    "releaseDate": "2026-03-02",
+    "releaseNotes": "Complete rewrite from Electron/Node.js to Tauri + Rust. Agent session persistence, Remote LLM support, Skill Browser, Mother Agent, Plugin system.",
     "downloadUrl": "https://github.com/edison7009/Echobird/releases/latest"
 }
