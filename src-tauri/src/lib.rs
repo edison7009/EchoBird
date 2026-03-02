@@ -302,6 +302,11 @@ pub fn run() {
                 })
                 .build(app)?;
 
+            // Auto-open devtools for diagnostics (TEMPORARY — remove after debugging)
+            if let Some(main_win) = app.get_webview_window("main") {
+                main_win.open_devtools();
+            }
+
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
