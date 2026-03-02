@@ -1,0 +1,25 @@
+{
+    "name": "CodeBuddy CN",
+    "category": "IDE",
+    "apiProtocol": [
+        "openai"
+    ],
+    "docs": "https://www.codebuddy.cn/docs/ide/Features/models",
+    "command": "codebuddycn",
+    "configDir": "~/.codebuddy",
+    "configFile": "~/.codebuddy/models.json",
+    "requireConfigFile": false,
+    "detectByConfigDir": true,
+    "paths": {
+        "win32": [
+            "%LOCALAPPDATA%/Programs/CodeBuddy CN/CodeBuddy CN.exe"
+        ],
+        "darwin": [
+            "/Applications/CodeBuddy CN.app/Contents/MacOS/CodeBuddy CN"
+        ],
+        "linux": [
+            "/usr/local/bin/codebuddycn",
+            "/usr/bin/codebuddycn"
+        ]
+    }
+}

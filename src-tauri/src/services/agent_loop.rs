@@ -1,0 +1,560 @@
+// Agent Loop — the core ReAct loop (Reason → Act → Observe → Repeat)
+// Messages are streamed to the frontend via Tauri events.
+
+use serde::{Deserialize, Serialize};
+use serde_json::Value;
+use std::sync::Arc;
+use tokio::sync::{mpsc, Mutex};
+use tokio_util::sync::CancellationToken;
+use tauri::{AppHandle, Emitter};
+
+use crate::commands::ssh_commands::SSHPool;
+use super::llm_client::*;
+use super::agent_tools;
+
+// ── Constants ──
+
+const MAX_TOOL_LOOPS: usize = 25; // Prevent infinite execution
+
+// ── Types emitted to frontend ──
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(tag = "type")]
+pub enum AgentEvent {
+    #[serde(rename = "text_delta")]
+    TextDelta { text: String },
+    #[serde(rename = "thinking")]
+    Thinking { text: String },
+    #[serde(rename = "tool_call_start")]
+    ToolCallStart { id: String, name: String },
+    #[serde(rename = "tool_call_args")]
+    ToolCallArgs { id: String, args: String },
+    #[serde(rename = "tool_result")]
+    ToolResult { id: String, output: String, success: bool },
+    #[serde(rename = "done")]
+    Done { },
+    #[serde(rename = "error")]
+    Error { message: String },
+    #[serde(rename = "state")]
+    StateChange { state: String },
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AgentRequest {
+    pub message: String,
+    pub model_id: String,
+    pub base_url: String,
+    pub api_key: String,
+    pub model_name: String,
+    pub provider: String,         // "openai" or "anthropic"
+    pub proxy_url: Option<String>,
+    pub server_ids: Vec<String>,  // selected SSH servers
+    pub skills: Vec<String>,      // skill descriptions
+}
+
+// ── Session State (kept in memory for continuous operation) ──
+
+pub struct AgentSession {
+    pub id: String,
+    pub messages: Vec<Message>,
+    pub running: bool,
+    pub cancel_token: CancellationToken,
+}
+
+impl AgentSession {
+    pub fn new() -> Self {
+        Self {
+            id: uuid::Uuid::new_v4().to_string(),
+            messages: Vec::new(),
+            running: false,
+            cancel_token: CancellationToken::new(),
+        }
+    }
+
+    /// Cancel current operation and create a fresh token for next run
+    pub fn cancel(&mut self) {
+        self.cancel_token.cancel();
+        self.running = false;
+    }
+
+    /// Prepare for a new run
+    pub fn prepare_run(&mut self) {
+        if self.cancel_token.is_cancelled() {
+            self.cancel_token = CancellationToken::new();
+        }
+        self.running = true;
+    }
+}
+
+// Per-server session map (keyed by server_id: "local" or SSH server id)
+pub type SharedSessionMap = Arc<Mutex<std::collections::HashMap<String, AgentSession>>>;
+
+pub fn create_session_map() -> SharedSessionMap {
+    Arc::new(Mutex::new(std::collections::HashMap::new()))
+}
+
+// ── Session Persistence ──
+
+fn sessions_dir() -> std::path::PathBuf {
+    dirs::home_dir()
+        .unwrap_or_else(|| std::path::PathBuf::from("."))
+        .join(".echobird")
+        .join("config")
+        .join("agent_sessions")
+}
+
+fn session_file(server_key: &str) -> std::path::PathBuf {
+    // Sanitize server_key for filename
+    let safe_key = server_key.replace(['/', '\\', ':', '*', '?', '"', '<', '>', '|'], "_");
+    sessions_dir().join(format!("{}.json", safe_key))
+}
+
+/// Save a session's messages to disk
+pub fn save_session_to_disk(server_key: &str, messages: &[Message]) {
+    if let Err(e) = std::fs::create_dir_all(sessions_dir()) {
+        log::error!("[AgentSession] Failed to create sessions dir: {}", e);
+        return;
+    }
+    let path = session_file(server_key);
+    match serde_json::to_string_pretty(messages) {
+        Ok(json) => {
+            if let Err(e) = std::fs::write(&path, json) {
+                log::error!("[AgentSession] Failed to write session {}: {}", server_key, e);
+            }
+        }
+        Err(e) => log::error!("[AgentSession] Failed to serialize session {}: {}", server_key, e),
+    }
+}
+
+/// Load a session's messages from disk
+pub fn load_session_from_disk(server_key: &str) -> Vec<Message> {
+    let path = session_file(server_key);
+    if !path.exists() {
+        return Vec::new();
+    }
+    match std::fs::read_to_string(&path) {
+        Ok(json) => serde_json::from_str(&json).unwrap_or_default(),
+        Err(_) => Vec::new(),
+    }
+}
+
+// ── Main Agent Loop ──
+
+pub async fn run_agent(
+    app: AppHandle,
+    request: AgentRequest,
+    session_map: SharedSessionMap,
+    ssh_pool: SSHPool,
+) -> Result<(), String> {
+    // Derive server key from request
+    let server_key = request.server_ids.first()
+        .cloned()
+        .unwrap_or_else(|| "local".to_string());
+
+    // 1. Build LLM client
+    let provider = match request.provider.to_lowercase().as_str() {
+        "anthropic" => LlmProvider::Anthropic,
+        _ => LlmProvider::OpenAI,
+    };
+
+    let config = LlmConfig {
+        provider,
+        base_url: request.base_url.clone(),
+        api_key: super::model_manager::decrypt_key_for_use(&request.api_key),
+        model: request.model_name.clone(),
+        proxy_url: request.proxy_url.clone(),
+    };
+
+    let client = LlmClient::new(config)?;
+    let tools = agent_tools::get_tool_definitions();
+
+    // 2. Build system prompt
+    let system_prompt = build_system_prompt(&request, &ssh_pool).await;
+
+    // 3. Add user message to per-server session history
+    let cancel_token = {
+        let mut map = session_map.lock().await;
+        let sess = map.entry(server_key.clone()).or_insert_with(|| {
+            let mut s = AgentSession::new();
+            s.messages = load_session_from_disk(&server_key);
+            s
+        });
+        sess.prepare_run();
+        sess.messages.push(Message {
+            role: "user".into(),
+            content: MessageContent::Text(request.message.clone()),
+        });
+        sess.cancel_token.clone()
+    };
+
+    emit_event(&app, AgentEvent::StateChange { state: "processing".into() });
+
+    // 4. ReAct loop
+    let mut loop_count = 0;
+
+    loop {
+        loop_count += 1;
+        if loop_count > MAX_TOOL_LOOPS {
+            emit_event(&app, AgentEvent::Error {
+                message: format!("Reached maximum tool call limit ({})", MAX_TOOL_LOOPS),
+            });
+            break;
+        }
+
+        // Check cancellation
+        if cancel_token.is_cancelled() {
+            log::info!("[AgentLoop] Cancelled by user");
+            emit_event(&app, AgentEvent::Error { message: "Cancelled by user".into() });
+            break;
+        }
+
+        // Get current messages
+        let messages = {
+            let map = session_map.lock().await;
+            map.get(&server_key).map(|s| s.messages.clone()).unwrap_or_default()
+        };
+
+        // Call LLM
+        log::info!("[AgentLoop] Loop {}: calling LLM with {} messages", loop_count, messages.len());
+
+        let mut rx = match client.chat_stream(&messages, &tools, &system_prompt).await {
+            Ok(rx) => rx,
+            Err(e) => {
+                emit_event(&app, AgentEvent::Error { message: e });
+                break;
+            }
+        };
+
+        // Collect the response
+        let mut text_accumulator = String::new();
+        let mut tool_calls: Vec<ToolCall> = Vec::new();
+        let mut tool_args_map: std::collections::HashMap<String, String> = std::collections::HashMap::new();
+        let mut stop_reason = String::new();
+        let mut had_error = false;
+
+        while let Some(event) = rx.recv().await {
+            match event {
+                LlmEvent::TextDelta(text) => {
+                    text_accumulator.push_str(&text);
+                    emit_event(&app, AgentEvent::TextDelta { text });
+                }
+                LlmEvent::Thinking(text) => {
+                    emit_event(&app, AgentEvent::Thinking { text });
+                }
+                LlmEvent::ToolCallStart { id, name } => {
+                    emit_event(&app, AgentEvent::ToolCallStart { id: id.clone(), name: name.clone() });
+                    emit_event(&app, AgentEvent::StateChange { state: "tool_calling".into() });
+                    tool_args_map.insert(id.clone(), String::new());
+                    tool_calls.push(ToolCall { id, name, arguments: String::new() });
+                }
+                LlmEvent::ToolCallDelta { id, args_chunk } => {
+                    if let Some(args) = tool_args_map.get_mut(&id) {
+                        args.push_str(&args_chunk);
+                    }
+                    emit_event(&app, AgentEvent::ToolCallArgs { id, args: args_chunk });
+                }
+                LlmEvent::ToolCallEnd { id } => {
+                    // Finalize tool call arguments
+                    if let Some(final_args) = tool_args_map.get(&id) {
+                        if let Some(tc) = tool_calls.iter_mut().find(|t| t.id == id) {
+                            tc.arguments = final_args.clone();
+                        }
+                    }
+                }
+                LlmEvent::Done { stop_reason: reason } => {
+                    stop_reason = reason;
+                }
+                LlmEvent::Error(e) => {
+                    emit_event(&app, AgentEvent::Error { message: e });
+                    had_error = true;
+                    break;
+                }
+            }
+        }
+
+        if had_error {
+            // Remove the user message that caused the error from history
+            let mut map = session_map.lock().await;
+            if let Some(sess) = map.get_mut(&server_key) {
+                if let Some(last) = sess.messages.last() {
+                    if last.role == "user" {
+                        sess.messages.pop();
+                    }
+                }
+            }
+            break;
+        }
+
+        // 5. Store assistant response in history
+        {
+            let mut map = session_map.lock().await;
+            let sess = map.entry(server_key.clone()).or_insert_with(AgentSession::new);
+            if tool_calls.is_empty() {
+                // Pure text response
+                sess.messages.push(Message {
+                    role: "assistant".into(),
+                    content: MessageContent::Text(text_accumulator.clone()),
+                });
+            } else {
+                // Response with tool calls
+                let mut blocks: Vec<ContentBlock> = Vec::new();
+                if !text_accumulator.is_empty() {
+                    blocks.push(ContentBlock::Text { text: text_accumulator.clone() });
+                }
+                for tc in &tool_calls {
+                    let input: Value = serde_json::from_str(&tc.arguments).unwrap_or(Value::Object(Default::default()));
+                    blocks.push(ContentBlock::ToolUse {
+                        id: tc.id.clone(),
+                        name: tc.name.clone(),
+                        input,
+                    });
+                }
+                sess.messages.push(Message {
+                    role: "assistant".into(),
+                    content: MessageContent::Blocks(blocks),
+                });
+            }
+        }
+
+        // 6. If no tool calls, we're done
+        if tool_calls.is_empty() {
+            log::info!("[AgentLoop] LLM finished with no tool calls (reason: {})", stop_reason);
+            break;
+        }
+
+        // 7. Execute tool calls and feed results back
+        log::info!("[AgentLoop] Executing {} tool calls", tool_calls.len());
+        emit_event(&app, AgentEvent::StateChange { state: "executing".into() });
+
+        for tc in &tool_calls {
+            log::info!("[AgentLoop] Executing tool: {} ({})", tc.name, tc.id);
+
+            let result = agent_tools::execute_tool(&tc.name, &tc.arguments, &ssh_pool).await;
+
+            emit_event(&app, AgentEvent::ToolResult {
+                id: tc.id.clone(),
+                output: result.output.clone(),
+                success: result.success,
+            });
+
+            // Store tool result in message history
+            let mut map = session_map.lock().await;
+            let sess = map.entry(server_key.clone()).or_insert_with(AgentSession::new);
+            match provider {
+                LlmProvider::OpenAI => {
+                    // OpenAI uses role: "tool" with tool_call_id
+                    sess.messages.push(Message {
+                        role: "tool".into(),
+                        content: MessageContent::Blocks(vec![
+                            ContentBlock::ToolResult {
+                                tool_use_id: tc.id.clone(),
+                                content: result.output,
+                            }
+                        ]),
+                    });
+                }
+                LlmProvider::Anthropic => {
+                    // Anthropic uses role: "user" with tool_result blocks
+                    sess.messages.push(Message {
+                        role: "user".into(),
+                        content: MessageContent::Blocks(vec![
+                            ContentBlock::ToolResult {
+                                tool_use_id: tc.id.clone(),
+                                content: result.output,
+                            }
+                        ]),
+                    });
+                }
+            }
+        }
+
+        // Continue loop — feed tool results back to LLM
+        emit_event(&app, AgentEvent::StateChange { state: "processing".into() });
+    }
+
+    // 8. Done — save session to disk
+    {
+        let mut map = session_map.lock().await;
+        if let Some(sess) = map.get_mut(&server_key) {
+            sess.running = false;
+            save_session_to_disk(&server_key, &sess.messages);
+        }
+    }
+    emit_event(&app, AgentEvent::Done {});
+    emit_event(&app, AgentEvent::StateChange { state: "idle".into() });
+
+    Ok(())
+}
+
+// ── Helpers ──
+
+fn emit_event(app: &AppHandle, event: AgentEvent) {
+    if let Err(e) = app.emit("agent_event", &event) {
+        log::error!("[AgentLoop] Failed to emit event: {}", e);
+    }
+}
+
+async fn build_system_prompt(request: &AgentRequest, ssh_pool: &SSHPool) -> String {
+    let mut prompt = String::from(
+        "You are Mother Agent, the built-in deployment assistant of Echobird \
+        (known as \u{767e}\u{7075}\u{9e1f} in Simplified Chinese, \u{767e}\u{9748}\u{9ce5} in Traditional Chinese). \
+        Your purpose is to help users deploy AI agents on local machines or remote servers via SSH.\n\n\
+        ## Your Mission\n\
+        You specialize in one-click deployment of AI agents such as:\n\
+        - OpenClaw (open-source AI agent)\n\
+        - ZeroClaw (lightweight AI agent)\n\
+        - Other open-source AI agents that can run autonomously\n\n\
+        You ONLY deploy AI agents. You do NOT deploy IDEs, editors, or local tools.\n\n\
+        Users should NEVER have to manually fiddle with installation steps. \
+        You handle EVERYTHING automatically: detect the OS, install prerequisites \
+        (Node.js, Git, Rust, Python, Docker, etc.), download the target agent, \
+        configure it, and verify it works. The user just tells you WHAT agent to deploy \
+        and WHERE, and you deliver a working result.\n\n\
+        ## Rules\n\
+        - Work autonomously. Do NOT ask the user unnecessary questions.\n\
+        - Detect the OS and package manager first, then proceed.\n\
+        - Always verify each step succeeded before moving to the next.\n\
+        - If a command fails, diagnose and try alternative approaches automatically.\n\
+        - For destructive operations, explain briefly before executing.\n\
+        - Keep responses concise. Only show output when it reveals useful info.\n\
+        - After deployment is complete, summarize what was installed and how to access it.\n\
+        - **Windows targets**: Most AI agents are designed for Linux/macOS. \
+        If the target machine is Windows, recommend installing WSL2 (preferred) or Docker \
+        to provide a Linux environment, and explain why briefly.\n\n"
+    );
+
+    // Local platform info
+    prompt.push_str("## Local Machine\n");
+    prompt.push_str(&agent_tools::get_local_platform_info());
+    prompt.push_str("\n\n");
+
+    // SSH servers info
+    if !request.server_ids.is_empty() {
+        prompt.push_str("## Available SSH Servers\n");
+        let connections = ssh_pool.lock().await;
+        for sid in &request.server_ids {
+            if sid == "local" { continue; }
+            let status = if connections.contains_key(sid) { "connected" } else { "not connected" };
+            prompt.push_str(&format!("- {} ({}). Use server_id='{}' in shell_exec.\n", sid, status, sid));
+        }
+        prompt.push_str("\n");
+    }
+
+    // Skills
+    if !request.skills.is_empty() {
+        prompt.push_str("## Active Skills\n");
+        for skill in &request.skills {
+            prompt.push_str(&format!("- {}\n", skill));
+        }
+        prompt.push_str("\n");
+    }
+
+    // Agent Plugins
+    let plugins_info = agent_tools::get_plugins_info();
+    if !plugins_info.is_empty() {
+        prompt.push_str(&plugins_info);
+        prompt.push_str("\n\n## Remote Bridge Deployment Strategy\n\
+            When deploying a bridge to a remote server, DO NOT cross-compile locally.\n\
+            Instead, compile the bridge natively on the remote machine:\n\
+            1. SSH into the remote server\n\
+            2. Check if Rust is installed: `rustc --version`\n\
+            3. If not, install Rust: `curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y`\n\
+            4. Source the environment: `source $HOME/.cargo/env`\n\
+            5. Create the bridge project directory and write the source files using file_write\n\
+            6. Run `cargo build --release` on the remote machine\n\
+            7. The bridge binary will be at `target/release/echobird-bridge`\n\
+            8. Use bridge_chat to verify the bridge works\n\n\
+            This approach works on any platform and CPU architecture (x86, ARM, etc.).\n\n\
+            ## After Deployment\n\
+            Once the bridge is deployed and verified, tell the user:\n\
+            - Deployment is complete and the remote Agent is ready\n\
+            - They can switch to the **Channels** page to chat with the remote Agent directly\n\
+            - The remote server channel is already configured and ready to use\n\
+            - Keep responses brief and celebratory — the user should feel the process was seamless\n\n\
+            ## Deployment Workflows\n\n\
+            ### Install OpenClaw\n\
+            1. SSH → detect OS → install Node.js if needed\n\
+            2. Install OpenClaw: `npm install -g @anthropic-ai/claude-code` (or from source)\n\
+            3. Verify: `claude --version`\n\
+            4. Deploy bridge (compile on remote) → verify bridge works\n\
+            5. Tell user: \"OpenClaw is installed and the bridge is ready. \
+            Switch to the **Channels** page — your remote Agent channel is ready for chatting!\"\n\n\
+            ### Deploy Echobird LLM Server (Remote LLM Management API)\n\
+            When a user asks to deploy LLM Server to a remote machine:\n\
+            1. SSH → detect OS: `uname -s && uname -m`\n\
+            2. Check Rust: `rustc --version`\n\
+               - If not installed: `curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y`\n\
+               - Then: `source $HOME/.cargo/env`\n\
+            3. Create project directory: `mkdir -p ~/.echobird/llm-server/src`\n\
+            4. Write Cargo.toml using file_write (server_id, path='~/.echobird/llm-server/Cargo.toml'):\n\
+               - Package name: echobird-llm-server, edition 2021\n\
+               - Dependencies: tokio (full), serde (derive), serde_json, tiny_http 0.12,\n\
+                 reqwest (stream), futures-util, dirs 5, chrono, urlencoding\n\
+               - Unix dependency: libc\n\
+            5. Write src/main.rs using file_write — the LLM server source code.\n\
+               The source is available locally at `plugins/llm-server/src/main.rs`.\n\
+               Read it with file_read (local) and write it to remote with file_write.\n\
+            6. Build on remote: `cd ~/.echobird/llm-server && cargo build --release`\n\
+               - This takes 2-5 minutes on first build, be patient\n\
+               - If build fails, read the error output and fix (missing deps, etc.)\n\
+               - Verify binary exists: `ls -la ~/.echobird/llm-server/target/release/llm-server`\n\
+            7. Start the server:\n\
+               `cd ~/.echobird/llm-server && nohup ./target/release/llm-server 8090 > /tmp/llm-server.log 2>&1 &`\n\
+               - Wait 2 seconds: `sleep 2`\n\
+               - Check process: `pgrep -f llm-server` — must return a PID\n\
+               - If no PID, check log: `cat /tmp/llm-server.log` and diagnose\n\
+            8. **Run full API test suite** (test EVERY endpoint, fix any failures):\n\
+               ```\n\
+               echo '=== API Test Suite ==='\n\
+               echo '1. Status:' && curl -s http://localhost:8090/api/status\n\
+               echo '\\n2. GPU:' && curl -s http://localhost:8090/api/gpu\n\
+               echo '\\n3. Dirs:' && curl -s http://localhost:8090/api/dirs\n\
+               echo '\\n4. Engine:' && curl -s http://localhost:8090/api/engine/status\n\
+               echo '\\n5. Models:' && curl -s http://localhost:8090/api/models\n\
+               echo '\\n6. Logs:' && curl -s http://localhost:8090/api/logs\n\
+               echo '\\n=== All tests complete ==='\n\
+               ```\n\
+               - ALL 6 must return valid JSON\n\
+               - If any fail: check `/tmp/llm-server.log`, restart, and re-test\n\
+            9. Report to user with details:\n\
+               - \"✅ LLM Server deployed and running on port 8090\"\n\
+               - Show GPU info (name + VRAM)\n\
+               - Show number of models found\n\
+               - Show engine status\n\
+               - \"Switch to **Channels** page → click the model status bar → Remote LLM Panel\"\n\
+               - \"All 6 API endpoints verified ✅\"\n\n\
+            ### Model Download Sources\n\
+            When the user wants to download models, guide them to:\n\
+            - **HuggingFace** (global): `https://huggingface.co/` — the primary source\n\
+              - GGUF models: search for `<model-name>-GGUF` (e.g. `Qwen/Qwen2.5-Coder-1.5B-Instruct-GGUF`)\n\
+              - Use `huggingface-cli download` for automated download\n\
+            - **ModelScope** (China mirror): `https://modelscope.cn/` — faster for China users\n\
+              - Same models available, use `modelscope download` CLI\n\
+            - Popular models to recommend:\n\
+              - `Qwen2.5-Coder` (1.5B / 7B / 14B / 32B) — excellent for coding\n\
+              - `DeepSeek-R1` (1.5B / 7B / 14B / 32B / 70B) — strong reasoning\n\
+              - `Llama-3` (8B / 70B) — general purpose\n\
+            - llama-server: GGUF format required\n\
+            - vLLM / SGLang: HuggingFace format (safetensors) — no conversion needed\n\
+            - Match model size to available VRAM (e.g. 12GB VRAM → up to Q4 14B or Q8 7B)\n\n\
+            ### Runtime Installation (vLLM / SGLang)\n\
+            The `GET /api/engine/status` endpoint shows install status for all 3 runtimes.\n\
+            If user wants to switch runtime:\n\
+            1. Check: `curl -s http://localhost:8090/api/engine/status` — shows installed/not for each\n\
+            2. **vLLM install** (Linux + NVIDIA GPU only):\n\
+               - CUDA 12: `pip install vllm`\n\
+               - CUDA 11: `pip install vllm --extra-index-url https://download.pytorch.org/whl/cu118`\n\
+               - China mirror: add `-i https://pypi.tuna.tsinghua.edu.cn/simple`\n\
+            3. **SGLang install** (Linux + NVIDIA GPU only):\n\
+               - CUDA 12: `pip install 'sglang[all]'`\n\
+               - CUDA 11: `pip install 'sglang[all]' --extra-index-url https://download.pytorch.org/whl/cu118`\n\
+               - China mirror: add `-i https://pypi.tuna.tsinghua.edu.cn/simple`\n\
+            4. Verify install: `curl -s http://localhost:8090/api/engine/status` again\n\
+            5. Start with runtime: POST `/api/start` with `{\"runtime\":\"vllm\", \"modelPath\":\"...\", ...}`\n\
+            6. vLLM/SGLang use HuggingFace model paths (e.g. `Qwen/Qwen2.5-Coder-7B-Instruct`)\n\
+               NOT GGUF files — download with: `huggingface-cli download <model-name>`\n\n");
+    }
+
+    prompt
+}
+

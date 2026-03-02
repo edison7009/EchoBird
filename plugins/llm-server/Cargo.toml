@@ -1,0 +1,23 @@
+[package]
+name = "echobird-llm-server"
+version = "0.1.0"
+edition = "2021"
+description = "Remote LLM management HTTP server for Echobird"
+
+[[bin]]
+name = "llm-server"
+path = "src/main.rs"
+
+[dependencies]
+tokio = { version = "1", features = ["full"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tiny_http = "0.12"
+reqwest = { version = "0.12", features = ["stream"] }
+futures-util = "0.3"
+dirs = "5"
+chrono = "0.4"
+urlencoding = "2"
+
+[target.'cfg(unix)'.dependencies]
+libc = "0.2"

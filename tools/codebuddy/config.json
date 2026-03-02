@@ -1,0 +1,6 @@
+{
+    "docs": "https://www.codebuddy.ai/docs/ide/Features/models",
+    "configFile": "~/.codebuddy/models.json",
+    "format": "json",
+    "custom": true
+}

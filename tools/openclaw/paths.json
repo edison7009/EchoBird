@@ -1,0 +1,39 @@
+{
+    "name": "OpenClaw",
+    "category": "AgentOS",
+    "apiProtocol": [
+        "openai",
+        "anthropic"
+    ],
+    "docs": "https://docs.openclaw.ai",
+    "command": "openclaw",
+    "startCommand": "openclaw gateway",
+    "envVar": "OPENCLAW_PATH",
+    "configDir": "~/.openclaw",
+    "configFile": "~/.openclaw/openclaw.json",
+    "configFileAlt": "~/.openclaw/settings.json",
+    "requireConfigFile": true,
+    "detectByConfigDir": true,
+    "paths": {
+        "win32": [
+            "%APPDATA%/npm/openclaw.cmd",
+            "%LOCALAPPDATA%/OpenClaw/bin/openclaw.exe",
+            "%USERPROFILE%/scoop/shims/openclaw.exe"
+        ],
+        "darwin": [
+            "/usr/local/bin/openclaw",
+            "/opt/homebrew/bin/openclaw"
+        ],
+        "linux": [
+            "/usr/local/bin/openclaw",
+            "/usr/bin/openclaw"
+        ]
+    },
+    "skillsPath": {
+        "envVar": "OPENCLAW_SKILLS_PATH",
+        "win32": [
+            "%APPDATA%/npm/node_modules/openclaw/skills"
+        ],
+        "npmModule": "openclaw/skills"
+    }
+}

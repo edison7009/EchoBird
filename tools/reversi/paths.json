@@ -1,0 +1,41 @@
+{
+    "name": "Reversi",
+    "names": {
+        "zh-Hans": "黑白棋",
+        "zh-Hant": "黑白棋",
+        "ja": "リバーシ",
+        "ko": "리버시",
+        "fr": "Reversi",
+        "de": "Reversi",
+        "es": "Reversi",
+        "ru": "Реверси"
+    },
+    "category": "Game",
+    "version": "1.0",
+    "description": "AI Reversi - Test your model connection",
+    "apiProtocol": [
+        "openai",
+        "anthropic"
+    ],
+    "docs": "https://en.wikipedia.org/wiki/Reversi",
+    "command": "",
+    "configDir": "~/.echobird",
+    "configFile": "~/.echobird/reversi.json",
+    "requireConfigFile": false,
+    "paths": {},
+    "skillsPath": {
+        "win32": [
+            "~/.echobird/reversi-skills"
+        ],
+        "darwin": [
+            "~/.echobird/reversi-skills"
+        ],
+        "linux": [
+            "~/.echobird/reversi-skills"
+        ]
+    },
+    "alwaysInstalled": true,
+    "launchable": true,
+    "launchType": "html",
+    "launchFile": "game.html"
+}

@@ -1,0 +1,1139 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Echobird · The Nexus for Models, Agents & Vibe Coding.</title>
+    <meta name="description"
+        content="Switch AI models for OpenClaw, Claude Code, Cline, Continue, Roo Code, Codex and more. Visual one-click model switching hub for AI coding tools. Free & open source.">
+    <meta name="keywords"
+        content="switch models OpenClaw, switch models Claude Code, switch models Cline, change AI model, model switching, AI coding tools, OpenClaw model manager, Claude Code model switch, Cline model config, Continue model switch, Roo Code, Codex, Echobird, AI model hub">
+    <meta property="og:title" content="Echobird · Switch AI Models for OpenClaw, Claude Code, Cline & More">
+    <meta property="og:description"
+        content="Visual one-click model switching for all your AI coding tools. Free & open source.">
+    <meta property="og:image" content="./icon.png">
+    <link rel="icon" href="./icon.png" type="image/png">
+    <link
+        href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700;800&family=Inter:wght@300;400;500;600;700;800;900&family=Orbitron:wght@700&family=Noto+Sans+SC:wght@400;500;700&family=Noto+Sans+TC:wght@400;500;700&display=swap"
+        rel="stylesheet">
+    <style>
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0
+        }
+
+        :root {
+            --neon: #00FF9D;
+            --neon2: #00d4ff;
+            --neon-g: rgba(0, 255, 157, .35);
+            --bg: #050a0e;
+            --bg2: #0a1018;
+            --bg3: #0e1620;
+            --border: #1a2a3a;
+            --text: #c9d1d9;
+            --dim: #5a6a7a;
+            --white: #f0f6fc;
+            --mono: 'JetBrains Mono', monospace;
+            --sans: 'Inter', system-ui, sans-serif;
+        }
+
+        html {
+            scroll-behavior: smooth
+        }
+
+        body {
+            font-family: var(--sans);
+            background: var(--bg);
+            color: var(--text);
+            overflow-x: hidden
+        }
+
+        /* ── Matrix Rain Canvas ── */
+        #matrix {
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            opacity: .07;
+            pointer-events: none
+        }
+
+        /* ── Nav ── */
+        .nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+            padding: 0 32px;
+            height: 56px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: rgba(5, 10, 14, .8);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(26, 42, 58, .5)
+        }
+
+        .nav-logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none
+        }
+
+        .nav-logo img {
+            width: 28px;
+            height: 28px;
+            border-radius: 6px
+        }
+
+        .nav-logo span {
+            font-family: 'Orbitron', var(--mono);
+            font-weight: 700;
+            font-size: 16px;
+            color: var(--neon);
+            letter-spacing: 2px;
+            text-transform: uppercase
+        }
+
+        /* Chinese locale overrides — CJK chars don't have Orbitron glyphs */
+        .lang-zh {
+            --cjk: 'Noto Sans SC', 'Noto Sans TC', system-ui, sans-serif
+        }
+
+        .lang-zh .nav-logo span {
+            font-family: var(--cjk);
+            letter-spacing: 1px;
+            text-transform: none;
+            text-shadow: 0 0 8px var(--neon-g)
+        }
+
+        .nav-r {
+            display: flex;
+            align-items: center;
+            gap: 20px
+        }
+
+        .nav-r a {
+            color: var(--dim);
+            text-decoration: none;
+            font-size: 13px;
+            font-weight: 500;
+            transition: color .2s
+        }
+
+        .nav-r a:hover {
+            color: var(--neon)
+        }
+
+        .lang-sel {
+            background: var(--bg2);
+            color: var(--neon);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 3px 6px;
+            font-size: 12px;
+            font-family: var(--mono);
+            cursor: pointer;
+            outline: none
+        }
+
+        .lang-sel option {
+            background: var(--bg2);
+            color: var(--neon)
+        }
+
+        /* ── Hero ── */
+        .hero {
+            position: relative;
+            z-index: 1;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 100px 32px 60px;
+            max-width: 1200px;
+            margin: 0 auto;
+            gap: 48px
+        }
+
+        .hero-left {
+            flex: 0 0 420px;
+            text-align: left
+        }
+
+        .hero-right {
+            flex: 1;
+            min-width: 0;
+            position: relative
+        }
+
+        .hero-right {
+            overflow: hidden;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            box-shadow: 0 24px 80px rgba(0, 0, 0, .6), 0 0 40px rgba(0, 255, 157, .06);
+            line-height: 0;
+            height: fit-content
+        }
+
+        .hero-right img {
+            width: calc(100% + 8px);
+            margin: -4px;
+            display: block;
+            transition: transform .4s
+        }
+
+        .hero-right img:hover {
+            opacity: .95
+        }
+
+        .hero-glow {
+            position: absolute;
+            top: -200px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 800px;
+            height: 800px;
+            background: radial-gradient(circle, rgba(0, 255, 157, .12) 0%, rgba(0, 212, 255, .05) 30%, transparent 70%);
+            pointer-events: none;
+            z-index: -1
+        }
+
+        .hero-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            margin-bottom: 16px;
+            filter: drop-shadow(0 0 30px var(--neon-g));
+            animation: pulse 4s ease-in-out infinite
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                filter: drop-shadow(0 0 40px var(--neon-g))
+            }
+
+            50% {
+                filter: drop-shadow(0 0 60px rgba(0, 255, 157, .5))
+            }
+        }
+
+        .hero h1 {
+            font-family: 'Orbitron', var(--mono);
+            font-size: clamp(32px, 4vw, 48px);
+            font-weight: 700;
+            letter-spacing: 3px;
+            line-height: .95;
+            margin-bottom: 16px;
+            /* text-transform: uppercase; */
+            white-space: nowrap;
+            background: linear-gradient(135deg, var(--neon) 0%, var(--neon2) 50%, var(--neon) 100%);
+            background-size: 200% 200%;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: shimmer 8s ease-in-out infinite
+        }
+
+        .lang-zh .hero h1 {
+            font-family: var(--cjk);
+            letter-spacing: 1px;
+            text-transform: none
+        }
+
+        .lang-zh .hero-tagline,
+        .lang-zh .sec-title,
+        .lang-zh .sec-desc,
+        .lang-zh .bento-card h3,
+        .lang-zh .bento-card p,
+        .lang-zh .shot-label,
+        .lang-zh .dl-card h3,
+        .lang-zh .dl-card .sub,
+        .lang-zh .footer {
+            font-family: var(--cjk)
+        }
+
+        @keyframes shimmer {
+
+            0%,
+            100% {
+                background-position: 0% 50%
+            }
+
+            50% {
+                background-position: 100% 50%
+            }
+        }
+
+        .hero-tagline {
+            font-size: clamp(14px, 1.5vw, 17px);
+            font-weight: 300;
+            color: var(--dim);
+            margin-bottom: 28px;
+            max-width: 420px;
+            letter-spacing: -0.2px;
+            line-height: 1.5
+        }
+
+        .hero-tagline strong {
+            color: var(--white);
+            font-weight: 600
+        }
+
+        .hero-actions {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            justify-content: flex-start
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 11px 22px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all .25s;
+            border: none;
+            cursor: pointer;
+            font-family: var(--sans);
+            white-space: nowrap
+        }
+
+        .btn-g {
+            background: var(--neon);
+            color: var(--bg);
+            box-shadow: 0 0 30px var(--neon-g), inset 0 1px 0 rgba(255, 255, 255, .2)
+        }
+
+        .btn-g:hover {
+            box-shadow: 0 0 50px var(--neon-g)
+        }
+
+        .btn-o {
+            background: transparent;
+            color: var(--neon);
+            border: 1px solid rgba(0, 255, 157, .4)
+        }
+
+        .btn-o:hover {
+            background: rgba(0, 255, 157, .08);
+            border-color: var(--neon)
+        }
+
+        .hero-note {
+            margin-top: 16px;
+            font-size: 12px;
+            color: var(--dim)
+        }
+
+        .hero-note span {
+            color: var(--neon)
+        }
+
+        /* ── Sections shared ── */
+        .sec {
+            position: relative;
+            z-index: 1;
+            padding: 120px 0
+        }
+
+        .wrap {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 0 32px
+        }
+
+        .sec-head {
+            font-family: var(--mono);
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--neon);
+            /* text-transform: uppercase; */
+            letter-spacing: 2px;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px
+        }
+
+        .sec-head::before {
+            content: '❯';
+            font-size: 16px
+        }
+
+        .sec-title {
+            font-family: var(--sans);
+            font-size: clamp(32px, 5vw, 56px);
+            font-weight: 800;
+            letter-spacing: -2px;
+            line-height: 1.1;
+            color: var(--white);
+            margin-bottom: 20px
+        }
+
+        .sec-desc {
+            font-size: 18px;
+            color: var(--dim);
+            max-width: 560px;
+            line-height: 1.6;
+            margin-bottom: 48px
+        }
+
+        /* ── Features Bento Grid ── */
+        .bento {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px
+        }
+
+        .bento-card {
+            background: var(--bg2);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 32px;
+            transition: all .3s;
+            position: relative;
+            overflow: hidden
+        }
+
+        .bento-card::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: 16px;
+            opacity: 0;
+            transition: opacity .3s;
+            background: linear-gradient(135deg, rgba(0, 255, 157, .04), transparent 60%)
+        }
+
+        .bento-card:hover {
+            border-color: rgba(0, 255, 157, .4);
+            transform: translateY(-4px)
+        }
+
+        .bento-card:hover::after {
+            opacity: 1
+        }
+
+        .bento-card.big {
+            grid-column: span 2
+        }
+
+        .bento-icon {
+            font-size: 28px;
+            margin-bottom: 16px
+        }
+
+        .bento-card h3 {
+            font-family: var(--mono);
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--white);
+            margin-bottom: 8px;
+            letter-spacing: -0.3px
+        }
+
+        .bento-card p {
+            font-size: 14px;
+            color: var(--dim);
+            line-height: 1.5
+        }
+
+        /* ── Screenshots ── */
+        .shots {
+            display: grid;
+            gap: 48px
+        }
+
+        .shot {
+            position: relative
+        }
+
+        .shot-label {
+            font-family: var(--mono);
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--neon);
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px
+        }
+
+        .shot-label::before {
+            content: '❯';
+        }
+
+        .shot img {
+            width: 100%;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            box-shadow: 0 24px 80px rgba(0, 0, 0, .6);
+            transition: transform .4s
+        }
+
+        .shot img:hover {
+            transform: scale(1.01)
+        }
+
+        /* ── Download ── */
+        .dl-sec {
+            background: var(--bg2);
+            border-top: 1px solid var(--border);
+            border-bottom: 1px solid var(--border)
+        }
+
+        .dl-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px
+        }
+
+        .dl-card {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 32px;
+            text-align: center;
+            transition: all .3s
+        }
+
+        .dl-card:hover {
+            border-color: var(--neon);
+            box-shadow: 0 0 30px rgba(0, 255, 157, .08)
+        }
+
+        .dl-card .os {
+            font-size: 36px;
+            margin-bottom: 12px
+        }
+
+        .dl-card h3 {
+            font-family: var(--mono);
+            font-size: 16px;
+            color: var(--white);
+            margin-bottom: 4px
+        }
+
+        .dl-card .sub {
+            font-size: 12px;
+            color: var(--dim);
+            margin-bottom: 20px
+        }
+
+        /* ── Terminal ── */
+        .term {
+            max-width: 560px;
+            margin: 48px auto 0;
+            border-radius: 10px;
+            overflow: hidden;
+            border: 1px solid var(--border)
+        }
+
+        .term-bar {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 10px 16px;
+            background: var(--bg3);
+            border-bottom: 1px solid var(--border)
+        }
+
+        .term-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%
+        }
+
+        .term-dot.r {
+            background: #ff5f57
+        }
+
+        .term-dot.y {
+            background: #febc2e
+        }
+
+        .term-dot.g {
+            background: #28c840
+        }
+
+        .term-title {
+            margin-left: 8px;
+            font-family: var(--mono);
+            font-size: 11px;
+            color: var(--dim)
+        }
+
+        .term-body {
+            background: var(--bg2);
+            padding: 20px;
+            font-family: var(--mono);
+            font-size: 13px;
+            line-height: 2
+        }
+
+        .term-body .p {
+            color: var(--neon)
+        }
+
+        .term-body .c {
+            color: var(--dim)
+        }
+
+        /* ── Tools ── */
+        .tools-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: 12px
+        }
+
+        .tool-chip {
+            background: var(--bg2);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 16px;
+            text-align: center;
+            font-family: var(--mono);
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--white);
+            transition: all .3s
+        }
+
+        .tool-chip:hover {
+            border-color: var(--neon);
+            background: var(--bg3)
+        }
+
+        .tool-chip .proto {
+            font-size: 11px;
+            color: var(--dim);
+            font-weight: 400;
+            margin-top: 4px
+        }
+
+        /* ── Footer ── */
+        .footer {
+            position: relative;
+            z-index: 1;
+            padding: 80px 0 48px;
+            text-align: center;
+            border-top: 1px solid var(--border)
+        }
+
+        .footer-links {
+            display: flex;
+            gap: 24px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-bottom: 20px
+        }
+
+        .footer-links a {
+            color: var(--dim);
+            text-decoration: none;
+            font-size: 13px;
+            transition: color .2s
+        }
+
+        .footer-links a:hover {
+            color: var(--neon)
+        }
+
+        .footer p {
+            font-size: 12px;
+            color: var(--dim)
+        }
+
+        .footer p span {
+            color: var(--neon)
+        }
+
+        .footer .email {
+            display: block;
+            margin-top: 8px;
+            font-family: var(--mono);
+            font-size: 12px;
+            color: var(--neon);
+            text-decoration: none
+        }
+
+        /* ── Fade-in animation ── */
+        .fade {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: opacity .8s, transform .8s
+        }
+
+        .fade.in {
+            opacity: 1;
+            transform: translateY(0)
+        }
+
+        /* ── Responsive ── */
+        @media(max-width:900px) {
+            .hero {
+                flex-direction: column;
+                text-align: center;
+                padding-top: 100px;
+                padding-bottom: 40px;
+                gap: 32px;
+                min-height: auto
+            }
+
+            .hero-left {
+                flex: none;
+                width: 100%;
+                text-align: center
+            }
+
+            .hero h1 {
+                white-space: normal
+            }
+
+            .hero-actions {
+                justify-content: center
+            }
+
+            .hero-right {
+                max-width: 500px
+            }
+        }
+
+        @media(max-width:768px) {
+            .bento {
+                grid-template-columns: 1fr
+            }
+
+            .bento-card.big {
+                grid-column: span 1
+            }
+
+            .dl-grid {
+                grid-template-columns: 1fr
+            }
+
+            .nav-r a:not(.lang-sel) {
+                display: none
+            }
+
+            .tools-grid {
+                grid-template-columns: repeat(2, 1fr)
+            }
+
+            .hero h1 {
+                letter-spacing: -1px
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <canvas id="matrix"></canvas>
+
+    <!-- Nav -->
+    <div class="nav">
+        <a href="#" class="nav-logo"><img src="./icon.png" alt=""><span data-i18n="nav_logo">Echobird</span></a>
+        <div class="nav-r">
+            <a href="#features" data-i18n="nav_features">Features</a>
+            <a href="#screenshots" data-i18n="nav_screenshots">Screenshots</a>
+            <a href="#download" data-i18n="nav_download">Download</a>
+            <a href="https://github.com/edison7009/Echobird" target="_blank">GitHub</a>
+            <select class="lang-sel" id="lang-sel">
+                <option value="en">EN</option>
+                <option value="zh-CN">中文</option>
+                <option value="zh-TW">繁體</option>
+                <option value="ja">日本語</option>
+                <option value="ko">한국어</option>
+                <option value="es">ES</option>
+                <option value="fr">FR</option>
+                <option value="de">DE</option>
+                <option value="pt">PT</option>
+                <option value="ru">RU</option>
+                <option value="ar">عربي</option>
+            </select>
+        </div>
+    </div>
+
+    <!-- Hero -->
+    <section class="hero">
+        <div class="hero-glow"></div>
+        <div class="hero-left">
+            <img src="./icon.png" alt="Echobird" class="hero-icon">
+            <h1 data-i18n="hero_title">Echobird</h1>
+            <p class="hero-tagline" data-i18n="hero_tag">The Nexus for <strong>Models</strong>,
+                <strong>Agents</strong> & <strong>Vibe Coding</strong>.
+            </p>
+            <div class="hero-actions">
+                <a href="#download" class="btn btn-g" data-i18n="hero_dl">Download for Free</a>
+                <a href="https://github.com/edison7009/Echobird" target="_blank" class="btn btn-o">⭐ Star on
+                    GitHub</a>
+            </div>
+            <p class="hero-note" data-i18n="hero_note">A cyberpunk control panel for the AI era.</p>
+        </div>
+        <div class="hero-right">
+            <img src="./5.png" alt="Echobird App Manager">
+        </div>
+    </section>
+
+    <!-- Features -->
+    <section class="sec" id="features">
+        <div class="wrap">
+            <div class="sec-head" data-i18n="sec_features">FEATURES</div>
+            <h2 class="sec-title fade" data-i18n="features_title">Switch models.<br>Not config files.</h2>
+            <p class="sec-desc fade" data-i18n="features_desc">Echobird is a visual control panel for all your AI
+                coding tools. Point, click, switch.</p>
+            <div class="bento">
+                <div class="bento-card big fade">
+                    <div class="bento-icon">🎯</div>
+                    <h3 data-i18n="f1_t">One-Click Model Switching</h3>
+                    <p data-i18n="f1_d">Visually configure AI models for any supported tool. No more digging through
+                        JSON files or editing configs by hand.</p>
+                </div>
+                <div class="bento-card fade">
+                    <div class="bento-icon">🔀</div>
+                    <h3 data-i18n="f2_t">Dual Protocol</h3>
+                    <p data-i18n="f2_d">OpenAI & Anthropic API. Switch anytime.</p>
+                </div>
+                <div class="bento-card fade">
+                    <div class="bento-icon">🚇</div>
+                    <h3 data-i18n="f3_t">Smart Tunnel Proxy</h3>
+                    <p data-i18n="f3_d">Access geo-restricted APIs. No full VPN needed.</p>
+                </div>
+                <div class="bento-card big fade">
+                    <div class="bento-icon">🖥️</div>
+                    <h3 data-i18n="f4_t">Local Model Server</h3>
+                    <p data-i18n="f4_d">Run Qwen, DeepSeek, Llama and other open-source models locally via built-in
+                        llama.cpp server. Your data stays on your machine.</p>
+                </div>
+                <div class="bento-card fade">
+                    <div class="bento-icon">🧩</div>
+                    <h3 data-i18n="f5_t">Skill Browser</h3>
+                    <p data-i18n="f5_d">Discover and install AI skills across tools.</p>
+                </div>
+                <div class="bento-card fade">
+                    <div class="bento-icon">🎮</div>
+                    <h3 data-i18n="f6_t">Built-in AI Apps</h3>
+                    <p data-i18n="f6_d">Reversi, AI Translate. More coming.</p>
+                </div>
+                <div class="bento-card fade">
+                    <div class="bento-icon">🌍</div>
+                    <h3 data-i18n="f7_t">28 Languages</h3>
+                    <p data-i18n="f7_d">Full i18n for global developers.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Screenshots -->
+    <section class="sec" id="screenshots">
+        <div class="wrap">
+            <div class="sec-head" data-i18n="sec_ss">SCREENSHOTS</div>
+            <h2 class="sec-title fade" data-i18n="ss_title">See it in action.</h2>
+            <div class="shots">
+                <div class="shot fade">
+                    <div class="shot-label" data-i18n="ss1">Model Nexus · Manage all AI models in one place</div>
+                    <img src="./1.png" alt="Model Nexus" loading="lazy">
+                </div>
+                <div class="shot fade">
+                    <div class="shot-label" data-i18n="ss2">App Manager · One-click model switching for all tools</div>
+                    <img src="./2.png" alt="App Manager" loading="lazy">
+                </div>
+                <div class="shot fade">
+                    <div class="shot-label" data-i18n="ss3">Local Server · Run open-source models locally</div>
+                    <img src="./3.png" alt="Local Server" loading="lazy">
+                </div>
+                <div class="shot fade">
+                    <div class="shot-label" data-i18n="ss4">Skill Browser · Discover and install AI skills</div>
+                    <img src="./4.png" alt="Skill Browser" loading="lazy">
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Download -->
+    <section class="sec dl-sec" id="download">
+        <div class="wrap">
+            <div class="sec-head" data-i18n="sec_dl">DOWNLOAD</div>
+            <h2 class="sec-title fade" data-i18n="dl_title">Get started in seconds.</h2>
+            <p class="sec-desc fade" data-i18n="dl_desc">Download Echobird for your platform. Free, open source, MIT
+                licensed.</p>
+            <div class="dl-grid fade">
+                <div class="dl-card">
+                    <div class="os">🪟</div>
+                    <h3>Windows</h3>
+                    <div class="sub">Windows 10+, x64</div>
+                    <a href="https://github.com/edison7009/Echobird/releases/latest" class="btn btn-g"
+                        data-i18n="dl_btn">Download</a>
+                </div>
+                <div class="dl-card">
+                    <div class="os">🍎</div>
+                    <h3>macOS</h3>
+                    <div class="sub">macOS 11+, Universal</div>
+                    <a href="https://github.com/edison7009/Echobird/releases/latest" class="btn btn-g"
+                        data-i18n="dl_btn">Download</a>
+                </div>
+                <div class="dl-card">
+                    <div class="os">🐧</div>
+                    <h3>Linux</h3>
+                    <div class="sub">AppImage, x64</div>
+                    <a href="https://github.com/edison7009/Echobird/releases/latest" class="btn btn-g"
+                        data-i18n="dl_btn">Download</a>
+                </div>
+            </div>
+            <!-- Terminal -->
+            <div class="term fade">
+                <div class="term-bar">
+                    <div class="term-dot r"></div>
+                    <div class="term-dot y"></div>
+                    <div class="term-dot g"></div><span class="term-title">terminal</span>
+                </div>
+                <div class="term-body">
+                    <span class="c"># Linux quick start</span>
+                    <span class="p">$</span> chmod +x Echobird-*.AppImage
+                    <span class="p">$</span> ./Echobird-*.AppImage
+                    <span class="c"># Need FUSE?</span>
+                    <span class="p">$</span> sudo apt install libfuse2
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Tools -->
+    <section class="sec" id="tools">
+        <div class="wrap">
+            <div class="sec-head" data-i18n="sec_tools">WORKS WITH</div>
+            <h2 class="sec-title fade" data-i18n="tools_title">Your favorite tools.</h2>
+            <p class="sec-desc fade" data-i18n="tools_desc">Manage AI models across all your coding tools.</p>
+            <div class="tools-grid fade">
+                <div class="tool-chip">OpenClaw
+                    <div class="proto">OpenAI</div>
+                    <div class="proto">Anthropic</div>
+                </div>
+                <div class="tool-chip">Claude Code<div class="proto">Anthropic</div>
+                </div>
+                <div class="tool-chip">Cline<div class="proto">OpenAI</div>
+                </div>
+                <div class="tool-chip">Continue<div class="proto">OpenAI</div>
+                </div>
+                <div class="tool-chip">OpenCode<div class="proto">OpenAI</div>
+                </div>
+                <div class="tool-chip">Codex<div class="proto">OpenAI</div>
+                </div>
+                <div class="tool-chip">Roo Code<div class="proto">OpenAI</div>
+                </div>
+                <div class="tool-chip">ZeroClaw<div class="proto">OpenAI</div>
+                </div>
+                <div class="tool-chip">Aider
+                    <div class="proto">OpenAI</div>
+                    <div class="proto">Anthropic</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="wrap">
+            <div class="footer-links">
+                <a href="https://github.com/edison7009/Echobird" target="_blank">GitHub</a>
+                <a href="https://github.com/edison7009/Echobird/issues" target="_blank" data-i18n="ft_issues">Issues</a>
+                <a href="https://github.com/edison7009/Echobird/discussions" target="_blank"
+                    data-i18n="ft_discuss">Discussions</a>
+                <a href="mailto:hi@echobird.ai">📧 hi@echobird.ai</a>
+            </div>
+            <p>Made with <span>💚</span> by the Echobird Team · MIT License</p>
+            <a href="https://echobird.ai" target="_blank" class="email">echobird.ai</a>
+        </div>
+    </footer>
+
+    <script>
+        // ── Matrix Rain ──
+        (function () {
+            const c = document.getElementById('matrix'), x = c.getContext('2d');
+            let W, H, cols, drops;
+            const S = 20;
+            const chars = 'ﾊﾐﾋｰｳｼﾅﾓﾆｻﾜﾂｵﾘｱﾎﾃﾏｹﾒｴｶｷﾑﾕﾗｾﾈｽﾀﾇﾍ01';
+            function init() { W = c.width = innerWidth; H = c.height = innerHeight; cols = Math.floor(W / S); drops = Array(cols).fill(1) }
+            init(); addEventListener('resize', init);
+            setInterval(() => {
+                x.fillStyle = 'rgba(5,10,14,.04)'; x.fillRect(0, 0, W, H);
+                x.font = S + 'px monospace';
+                x.shadowColor = '#00FF9D'; x.shadowBlur = 3;
+                for (let i = 0; i < cols; i++) {
+                    const bright = Math.random() > .6;
+                    x.fillStyle = bright ? '#00FF9D' : 'rgba(0,255,157,.35)';
+                    x.fillText(chars[Math.floor(Math.random() * chars.length)], i * S, drops[i] * S);
+                    if (drops[i] * S > H && Math.random() > .975) drops[i] = 0;
+                    drops[i]++;
+                }
+                x.shadowBlur = 0;
+            }, 40);
+        })();
+
+        // ── Scroll fade-in ──
+        const obs = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); obs.unobserve(e.target) } }), { threshold: .15 });
+        document.querySelectorAll('.fade').forEach(el => obs.observe(el));
+
+        // ── i18n ──
+        const i18n = {
+            en: {
+                hero_title: 'Echobird', nav_logo: 'Echobird', page_title: 'Echobird · The Nexus for Models, Agents & Vibe Coding.', nav_features: 'Features', nav_screenshots: 'Screenshots', nav_download: 'Download',
+                hero_tag: 'The Nexus for <strong>Models</strong>, <strong>Agents</strong> & <strong>Vibe Coding</strong>.', hero_dl: 'Download for Free', hero_note: 'A cyberpunk control panel for the AI era.',
+                sec_features: 'FEATURES', features_title: 'Switch models.<br>Not config files.', features_desc: 'Echobird is a visual control panel for all your AI coding tools. Point, click, switch.',
+                f1_t: 'One-Click Model Switching', f1_d: 'Visually configure AI models for any supported tool. No more digging through JSON files or editing configs by hand.',
+                f2_t: 'Dual Protocol', f2_d: 'OpenAI & Anthropic API. Switch anytime.', f3_t: 'Smart Tunnel Proxy', f3_d: 'Access geo-restricted APIs. No full VPN needed.',
+                f4_t: 'Local Model Server', f4_d: 'Run Qwen, DeepSeek, Llama and other open-source models locally via built-in llama.cpp server. Your data stays on your machine.',
+                f5_t: 'Skill Browser', f5_d: 'Discover and install AI skills across tools.', f6_t: 'Built-in AI Apps', f6_d: 'Reversi, AI Translate. More coming.',
+                f7_t: '28 Languages', f7_d: 'Full i18n for global developers.',
+                sec_ss: 'SCREENSHOTS', ss_title: 'See it in action.', ss1: 'Model Nexus · Manage all AI models in one place', ss2: 'App Manager · One-click model switching for all tools', ss3: 'Local Server · Run open-source models locally', ss4: 'Skill Browser · Discover and install AI skills',
+                sec_dl: 'DOWNLOAD', dl_title: 'Get started in seconds.', dl_desc: 'Download Echobird for your platform. Free, open source, MIT licensed.', dl_btn: 'Download',
+                sec_tools: 'WORKS WITH', tools_title: 'Your favorite tools.', tools_desc: 'Manage AI models across all your coding tools.', ft_issues: 'Issues', ft_discuss: 'Discussions'
+            },
+            'zh-CN': {
+                hero_title: '百灵鸟', nav_logo: '百灵鸟', page_title: '百灵鸟 · 模型、智能体与 Vibe Coding 的中枢', nav_features: '功能', nav_screenshots: '截图', nav_download: '下载',
+                hero_tag: '<strong>模型</strong>、<strong>智能体</strong>与 <strong>Vibe Coding</strong> 的中枢。', hero_dl: '免费下载', hero_note: 'AI 时代的赛博朋克控制台。',
+                sec_features: '核心功能', features_title: '切换模型。<br>不是配置文件。', features_desc: '百灵鸟是所有 AI 编程工具的可视化控制面板。点一下，就切换。',
+                f1_t: '一键切换模型', f1_d: '可视化配置任何支持工具的 AI 模型。不再手动翻 JSON 文件。',
+                f2_t: '双协议支持', f2_d: 'OpenAI & Anthropic API，随时切换。', f3_t: '智能隧道代理', f3_d: '无需 VPN 即可访问受限 API。',
+                f4_t: '本地模型服务器', f4_d: '通过内置 llama.cpp 服务器本地运行 Qwen、DeepSeek、Llama 等开源模型。数据留在本地。',
+                f5_t: '技能浏览器', f5_d: '发现和安装 AI 技能。', f6_t: '内置 AI 应用', f6_d: 'Reversi、AI 翻译，更多即将到来。',
+                f7_t: '28 种语言', f7_d: '完整国际化支持。',
+                sec_ss: '截图', ss_title: '实际效果。', ss1: 'Model Nexus · 在一处管理所有 AI 模型', ss2: 'App Manager · 一键切换所有工具的模型', ss3: 'Local Server · 本地运行开源模型', ss4: 'Skill Browser · 发现和安装 AI 技能',
+                sec_dl: '下载', dl_title: '几秒上手。', dl_desc: '下载百灵鸟，免费开源，MIT 许可。', dl_btn: '下载',
+                sec_tools: '支持的工具', tools_title: '你喜欢的工具。', tools_desc: '统一管理所有编程工具的 AI 模型。', ft_issues: '问题反馈', ft_discuss: '讨论'
+            },
+            'zh-TW': {
+                hero_title: '百靈鳥', nav_logo: '百靈鳥', page_title: '百靈鳥 · 模型、智能體與 Vibe Coding 的中樞', nav_features: '功能', nav_screenshots: '截圖', nav_download: '下載',
+                hero_tag: '<strong>模型</strong>、<strong>智能體</strong>與 <strong>Vibe Coding</strong> 的中樞。', hero_dl: '免費下載', hero_note: 'AI 時代的賽博龐克控制台。',
+                sec_features: '核心功能', features_title: '切換模型。<br>不是設定檔。', features_desc: '百靈鳥是所有 AI 程式設計工具的視覺化控制面板。',
+                f1_t: '一鍵切換模型', f1_d: '視覺化設定任何支援工具的 AI 模型。', f2_t: '雙協議支援', f2_d: 'OpenAI & Anthropic API。', f3_t: '智慧隧道代理', f3_d: '無需 VPN 即可存取受限 API。',
+                f4_t: '本地模型伺服器', f4_d: '透過內建 llama.cpp 本地執行開源模型。', f5_t: '技能瀏覽器', f5_d: '發現和安裝 AI 技能。', f6_t: '內建 AI 應用', f6_d: 'Reversi、AI 翻譯。', f7_t: '28 種語言', f7_d: '完整國際化支援。',
+                sec_ss: '截圖', ss_title: '實際效果。', ss1: 'Model Nexus · 管理所有 AI 模型', ss2: 'App Manager · 一鍵切換模型', ss3: 'Local Server · 本地執行模型', ss4: 'Skill Browser · 發現和安裝技能',
+                sec_dl: '下載', dl_title: '幾秒上手。', dl_desc: '下載百靈鳥，免費開源。', dl_btn: '下載',
+                sec_tools: '支援的工具', tools_title: '你喜歡的工具。', tools_desc: '統一管理所有程式設計工具的 AI 模型。', ft_issues: '問題回報', ft_discuss: '討論'
+            },
+            ja: {
+                nav_features: '機能', nav_screenshots: 'スクリーンショット', nav_download: 'ダウンロード',
+                hero_tag: '<strong>モデル</strong>、<strong>エージェント</strong>、<strong>Vibe Coding</strong> のネクサス。', hero_dl: '無料ダウンロード', hero_note: 'AI時代のサイバーパンクコントロールパネル。',
+                sec_features: '機能', features_title: 'モデルを切り替え。<br>設定ファイルではなく。', features_desc: 'EchobirdはすべてのAIコーディングツールのビジュアルコントロール面板です。',
+                f1_t: '一鍵切替', f1_d: '設定ファイル編集不要。ビジュアルに切り替え。', f2_t: 'デュアルプロトコル', f2_d: 'OpenAI & Anthropic API。', f3_t: 'スマートプロキシ', f3_d: 'VPNなしでAPI制限を突破。',
+                f4_t: 'ローカルサーバー', f4_d: 'llama.cppでオープンソースモデルをローカル実行。', f5_t: 'スキルブラウザ', f5_d: 'AIスキルを発見・インストール。', f6_t: '内蔵AIアプリ', f6_d: 'Reversi、AI翻訳など。', f7_t: '28言語', f7_d: '完全国際化対応。',
+                sec_ss: 'スクリーンショット', ss_title: '実際の画面。', ss1: 'Model Nexus · 管理所 AI 模型', ss2: 'App Manager · 一鍵切替', ss3: 'Local Server · 本地執行模型', ss4: 'Skill Browser · 發現和安裝技。',
+                sec_dl: 'ダウンロード', dl_title: '数秒で開始。', dl_desc: '無料・オープンソース・MIT。', dl_btn: 'ダウンロード',
+                sec_tools: '対応ツール', tools_title: 'お気に入りのツール。', tools_desc: 'すべてのコーディングツールのAIモデルを一元管理。', ft_issues: 'バグ報告', ft_discuss: 'ディスカッション'
+            },
+            ko: {
+                nav_features: '기능', nav_screenshots: '스크린샷', nav_download: '다운로드',
+                hero_tag: '<strong>모델</strong>, <strong>에이전트</strong> & <strong>Vibe Coding</strong>의 넥서스.', hero_dl: '무료 다운로드', hero_note: 'AI 시대의 사이버펑크 컨트롤 패널.',
+                sec_features: '기능', features_title: '모델을 전환.<br>설정 파일이 아닌.', features_desc: 'Echobird는 모든 AI 코딩 도구의 비주얼 컨트롤 패널입니다.',
+                f1_t: '원클릭 전환', f1_d: '설정 파일 편집 없이 AI 모델을 시각적으로 전환.', f2_t: '듀얼 프로토콜', f2_d: 'OpenAI & Anthropic API.', f3_t: '스마트 프록시', f3_d: 'VPN 없이 API 접근.',
+                f4_t: '로컬 서버', f4_d: 'llama.cpp로 오픈소스 모델 로컬 실행.', f5_t: '스킬 브라우저', f5_d: 'AI 스킬 검색 및 설치.', f6_t: '내장 AI 앱', f6_d: 'Reversi, AI 번역 등', f7_t: '28개 언어', f7_d: '완전 국제화.',
+                sec_ss: '스크린샷', ss_title: '실제 화면.', ss1: 'Model Nexus · 관리 전 모델', ss2: 'App Manager · 원클릭 전환', ss3: 'Local Server · 로컬 실행', ss4: 'Skill Browser · 검색 및 설치',
+                sec_dl: '다운로드', dl_title: '초면 시작.', dl_desc: '무료, 오픈소스, MIT.', dl_btn: '다운로드',
+                sec_tools: '지원 도구', tools_title: '좋아하는 도구.', tools_desc: '모든 코딩 도구의 AI 모델을 통합 관리.', ft_issues: '버그 신고', ft_discuss: '토론'
+            },
+            es: {
+                nav_features: 'Funciones', nav_screenshots: 'Capturas', nav_download: 'Descargar',
+                hero_tag: 'El Nexo para <strong>Modelos</strong>, <strong>Agentes</strong> & <strong>Vibe Coding</strong>.', hero_dl: 'Descargar Gratis', hero_note: 'Un panel de control cyberpunk para la era de la IA.',
+                sec_features: 'FUNCIONES', features_title: 'Cambia modelos.<br>No archivos de config.', features_desc: 'Echobird es el panel de control visual para tus herramientas de IA.',
+                f1_t: 'Cambio con Un Clic', f1_d: 'Configura modelos de IA visualmente.', f2_t: 'Protocolo Dual', f2_d: 'OpenAI y Anthropic API.', f3_t: 'Proxy Túnel', f3_d: 'APIs restringidas sin VPN.',
+                f4_t: 'Servidor Local', f4_d: 'Ejecuta modelos open-source localmente.', f5_t: 'Explorador de Skills', f5_d: 'Descubre habilidades de IA.', f6_t: 'Apps de IA', f6_d: 'Reversi, AI Translate.', f7_t: '28 Idiomas', f7_d: 'Internacionalización completa.',
+                sec_ss: 'CAPTURAS', ss_title: 'En acción.', ss1: 'Model Nexus', ss2: 'App Manager', ss3: 'Local Server', ss4: 'Skill Browser',
+                sec_dl: 'DESCARGAR', dl_title: 'Comienza en segundos.', dl_desc: 'Gratis, open source, MIT.', dl_btn: 'Descargar',
+                sec_tools: 'COMPATIBLE CON', tools_title: 'Tus herramientas favoritas.', tools_desc: 'Gestiona modelos de IA en todas tus herramientas.', ft_issues: 'Reportar', ft_discuss: 'Discusiones'
+            },
+            fr: {
+                nav_features: 'Fonctions', nav_screenshots: 'Captures', nav_download: 'Télécharger',
+                hero_tag: 'Le Nexus pour <strong>Modèles</strong>, <strong>Agents</strong> & <strong>Vibe Coding</strong>.', hero_dl: 'Télécharger', hero_note: 'Un panneau de contrôle cyberpunk pour l\'ère de l\'IA.',
+                sec_features: 'FONCTIONS', features_title: 'Changez de modèle.<br>Pas de fichiers config.', features_desc: 'Echobird est le panneau de contrôle visuel pour vos outils IA.',
+                f1_t: 'Changement en Un Clic', f1_d: 'Configurez visuellement les modèles IA.', f2_t: 'Double Protocole', f2_d: 'OpenAI & Anthropic API.', f3_t: 'Proxy Tunnel', f3_d: 'APIs géo-restreintes sans VPN.',
+                f4_t: 'Serveur Local', f4_d: 'Exécutez des modèles open-source localement.', f5_t: 'Navigateur de Skills', f5_d: 'Découvrez des compétences IA.', f6_t: 'Apps IA', f6_d: 'Reversi, AI Translate.', f7_t: '28 Langues', f7_d: 'Internationalisation complète.',
+                sec_ss: 'CAPTURES', ss_title: 'En action.', ss1: 'Model Nexus', ss2: 'App Manager', ss3: 'Local Server', ss4: 'Skill Browser',
+                sec_dl: 'TÉLÉCHARGER', dl_title: 'Commencez en secondes.', dl_desc: 'Gratuit, open source, MIT.', dl_btn: 'Télécharger',
+                sec_tools: 'COMPATIBLE AVEC', tools_title: 'Vos outils favoris.', tools_desc: 'Gérez les modèles IA pour tous vos outils.', ft_issues: 'Signaler', ft_discuss: 'Discussions'
+            },
+            de: {
+                nav_features: 'Funktionen', nav_screenshots: 'Screenshots', nav_download: 'Download',
+                hero_tag: 'Der Nexus für <strong>Modelle</strong>, <strong>Agenten</strong> & <strong>Vibe Coding</strong>.', hero_dl: 'Kostenlos herunterladen', hero_note: 'Ein Cyberpunk-Kontrollpanel für das KI-Zeitalter.',
+                sec_features: 'FUNKTIONEN', features_title: 'Modelle wechseln.<br>Nicht Konfigdateien.', features_desc: 'Echobird ist das visuelle Kontrollpanel für deine KI-Tools.',
+                f1_t: 'Ein-Klick Wechsel', f1_d: 'KI-Modelle visuell konfigurieren.', f2_t: 'Dual-Protokoll', f2_d: 'OpenAI & Anthropic API.', f3_t: 'Tunnel-Proxy', f3_d: 'Geo-beschränkte APIs ohne VPN.',
+                f4_t: 'Lokaler Server', f4_d: 'Open-Source-Modelle lokal ausführen.', f5_t: 'Skill-Browser', f5_d: 'KI-Skills entdecken.', f6_t: 'KI-Apps', f6_d: 'Reversi, AI Translate.', f7_t: '28 Sprachen', f7_d: 'Volle Internationalisierung.',
+                sec_ss: 'SCREENSHOTS', ss_title: 'In Aktion.', ss1: 'Model Nexus', ss2: 'App Manager', ss3: 'Local Server', ss4: 'Skill Browser',
+                sec_dl: 'DOWNLOAD', dl_title: 'In Sekunden starten.', dl_desc: 'Kostenlos, Open Source, MIT.', dl_btn: 'Download',
+                sec_tools: 'KOMPATIBEL MIT', tools_title: 'Deine Lieblingstools.', tools_desc: 'KI-Modelle für alle deine Tools verwalten.', ft_issues: 'Bugs melden', ft_discuss: 'Diskussionen'
+            },
+            pt: {
+                nav_features: 'Recursos', nav_screenshots: 'Capturas', nav_download: 'Download',
+                hero_tag: 'O Nexus para <strong>Modelos</strong>, <strong>Agentes</strong> & <strong>Vibe Coding</strong>.', hero_dl: 'Download Grátis', hero_note: 'Um painel de controle cyberpunk para a era da IA.',
+                sec_features: 'RECURSOS', features_title: 'Troque modelos.<br>Não arquivos de config.', features_desc: 'Echobird é o painel de controle visual para suas ferramentas de IA.',
+                f1_t: 'Troca com Um Clique', f1_d: 'Configure modelos de IA visualmente.', f2_t: 'Protocolo Duplo', f2_d: 'OpenAI & Anthropic API.', f3_t: 'Proxy Túnel', f3_d: 'APIs restritas sem VPN.',
+                f4_t: 'Servidor Local', f4_d: 'Execute modelos open-source localmente.', f5_t: 'Navegador de Skills', f5_d: 'Descubra habilidades de IA.', f6_t: 'Apps de IA', f6_d: 'Reversi, AI Translate.', f7_t: '28 Idiomas', f7_d: 'Internacionalização completa.',
+                sec_ss: 'CAPTURAS', ss_title: 'Em ação.', ss1: 'Model Nexus', ss2: 'App Manager', ss3: 'Local Server', ss4: 'Skill Browser',
+                sec_dl: 'DOWNLOAD', dl_title: 'Comece em segundos.', dl_desc: 'Grátis, open source, MIT.', dl_btn: 'Download',
+                sec_tools: 'COMPATÍVEL COM', tools_title: 'Suas ferramentas favoritas.', tools_desc: 'Gerencie modelos de IA em todas as suas ferramentas.', ft_issues: 'Reportar', ft_discuss: 'Discussões'
+            },
+            ru: {
+                nav_features: 'Функции', nav_screenshots: 'Скриншоты', nav_download: 'Скачать',
+                hero_tag: 'Нексус для <strong>Моделей</strong>, <strong>Агентов</strong> & <strong>Vibe Coding</strong>.', hero_dl: 'Скачать бесплатно', hero_note: 'Киберпанк-панель управления для эпохи ИИ.',
+                sec_features: 'ФУНКЦИИ', features_title: 'Переключайте модели.<br>Не конфиги.', features_desc: 'Echobird — визуальный пульт управления для всех ваших ИИ-инструментов.',
+                f1_t: 'Переключение в Один Клик', f1_d: 'Визуально настраивайте ИИ-модели.', f2_t: 'Двойной Протокол', f2_d: 'OpenAI и Anthropic API.', f3_t: 'Туннельный Прокси', f3_d: 'Доступ к API без VPN.',
+                f4_t: 'Локальный Сервер', f4_d: 'Запускайте open-source модели локально.', f5_t: 'Браузер Навыков', f5_d: 'Находите ИИ-навыки.', f6_t: 'ИИ-Приложения', f6_d: 'Reversi, AI Translate.', f7_t: '28 Языков', f7_d: 'Полная интернационализация.',
+                sec_ss: 'СКРИНШОТЫ', ss_title: 'В действии.', ss1: 'Model Nexus', ss2: 'App Manager', ss3: 'Local Server', ss4: 'Skill Browser',
+                sec_dl: 'СКАЧАТЬ', dl_title: 'Начните за секунды.', dl_desc: 'Бесплатно, open source, MIT.', dl_btn: 'Скачать',
+                sec_tools: 'СОВМЕСТИМ С', tools_title: 'Ваши любимые инструменты.', tools_desc: 'Управляйте ИИ-моделями для всех ваших инструментов.', ft_issues: 'Баги', ft_discuss: 'Обсуждения'
+            },
+            ar: {
+                nav_features: 'الميزات', nav_screenshots: 'لقطات', nav_download: 'تحميل',
+                hero_tag: 'المحور لـ <strong>النماذج</strong>، <strong>الوكلاء</strong> & <strong>Vibe Coding</strong>.', hero_dl: 'تحميل مجاني', hero_note: 'لوحة تحكم الهاكر لعصر الذكاء الاصطناعي.',
+                sec_features: 'الميزات', features_title: 'بدّل النماذج.<br>ليس ملفات الإعدادات.', features_desc: 'Echobird هو لوحة تحكم مرئية لجميع أدوات البرمجة بالذكاء الاصطناعي.',
+                f1_t: 'تبديل بنقرة', f1_d: 'اضبط نماذج الذكاء الاصطناعي بصرياً.', f2_t: 'بروتوكول مزدوج', f2_d: 'OpenAI و Anthropic API.', f3_t: 'وكيل نفق', f3_d: 'APIs محظورة بدون VPN.',
+                f4_t: 'خادم محلي', f4_d: 'شغّل نماذج مفتوحة المصدر محلياً.', f5_t: 'متصفح المهارات', f5_d: 'اكتشف مهارات الذكاء الاصطناعي.', f6_t: 'تطبيقات ذكاء اصطناعي', f6_d: 'Reversi و AI Translate.', f7_t: '28 لغة', f7_d: 'دعم كامل للتدويل.',
+                sec_ss: 'لقطات', ss_title: 'قيد العمل.', ss1: 'Model Nexus', ss2: 'App Manager', ss3: 'Local Server', ss4: 'Skill Browser',
+                sec_dl: 'تحميل', dl_title: 'ابدأ في ثوانٍ.', dl_desc: 'مجاني، مفتوح المصدر، MIT.', dl_btn: 'تحميل',
+                sec_tools: 'متوافق مع', tools_title: 'أدواتك المفضلة.', tools_desc: 'أدر نماذج الذكاء الاصطناعي لجميع أدواتك.', ft_issues: 'أخطاء', ft_discuss: 'مناقشات'
+            }
+        };
+
+        // ── Apply language ──
+        function setLang(l) {
+            const t = i18n[l] || i18n.en;
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                const k = el.getAttribute('data-i18n');
+                if (t[k]) {
+                    if (t[k].includes('<')) { el.innerHTML = t[k] } else { el.textContent = t[k] }
+                }
+            });
+            document.documentElement.lang = l;
+            document.documentElement.dir = l === 'ar' ? 'rtl' : 'ltr';
+            document.title = (t.hero_title || 'Echobird') + ' \u00b7 ' + (t.hero_tag || '').replace(/<[^>]*>/g, '');
+            document.body.classList.toggle('lang-zh', l === 'zh-CN' || l === 'zh-TW');
+            localStorage.setItem('wc-lang', l);
+        }
+        document.addEventListener('DOMContentLoaded', () => {
+            const sel = document.getElementById('lang-sel');
+            function detect() {
+                const s = localStorage.getItem('wc-lang'); if (s && i18n[s]) return s;
+                const n = navigator.language || 'en';
+                if (n.startsWith('zh')) return n.includes('TW') || n.includes('Hant') ? 'zh-TW' : 'zh-CN';
+                return Object.keys(i18n).find(k => n.startsWith(k)) || 'en';
+            }
+            const lang = detect(); sel.value = lang; setLang(lang);
+            sel.addEventListener('change', () => setLang(sel.value));
+        });
+    </script>
+</body>
+
+</html>

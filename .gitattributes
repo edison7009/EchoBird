@@ -1,0 +1,44 @@
+# ── Line ending normalization ──
+# All text files: normalize to LF in repo, CRLF on Windows checkout
+* text=auto eol=crlf
+
+# Source code — always text
+*.ts    text eol=crlf
+*.tsx   text eol=crlf
+*.js    text eol=crlf
+*.jsx   text eol=crlf
+*.css   text eol=crlf
+*.html  text eol=crlf
+*.json  text eol=crlf
+*.md    text eol=crlf
+*.toml  text eol=crlf
+*.yaml  text eol=crlf
+*.yml   text eol=crlf
+*.rs    text eol=crlf
+*.lock  text eol=crlf
+
+# Binary files — never normalize
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.gif   binary
+*.ico   binary
+*.icns  binary
+*.bmp   binary
+*.svg   binary
+*.ttf   binary
+*.woff  binary
+*.woff2 binary
+*.eot   binary
+
+# ── Linguist: mark frontend as bundled UI assets ──
+# Core app logic lives in src-tauri/ (Rust)
+# Frontend React/TypeScript is the UI layer, not the application core
+
+src/**/*.tsx linguist-vendored
+src/**/*.ts linguist-vendored
+src/**/*.css linguist-vendored
+*.html linguist-vendored
+*.js linguist-vendored
+*.mjs linguist-vendored
+docs/** linguist-documentation

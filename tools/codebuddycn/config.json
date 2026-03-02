@@ -1,0 +1,6 @@
+{
+    "docs": "https://www.codebuddy.cn/docs/ide/Features/models",
+    "configFile": "~/.codebuddy/models.json",
+    "format": "json",
+    "custom": true
+}

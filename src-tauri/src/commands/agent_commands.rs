@@ -1,0 +1,134 @@
+// Agent Commands — Tauri IPC commands for the MotherAgent frontend
+
+use serde::{Deserialize, Serialize};
+use tauri::{AppHandle, State};
+use crate::commands::ssh_commands::SSHPool;
+use crate::services::agent_loop::{self, AgentRequest, SharedSessionMap};
+use crate::services::llm_client::MessageContent;
+
+/// Send a message to the agent. The agent will process asynchronously
+/// and emit `agent_event` events to the frontend.
+#[tauri::command]
+pub async fn agent_send_message(
+    app: AppHandle,
+    session_map: State<'_, SharedSessionMap>,
+    ssh_pool: State<'_, SSHPool>,
+    request: AgentRequest,
+) -> Result<String, String> {
+    let server_key = request.server_ids.first()
+        .cloned()
+        .unwrap_or_else(|| "local".to_string());
+
+    // Check if already running on this server
+    {
+        let map = session_map.lock().await;
+        if let Some(sess) = map.get(&server_key) {
+            if sess.running {
+                return Err("Agent is already processing a request".into());
+            }
+        }
+    }
+
+    let map_clone = session_map.inner().clone();
+    let pool_clone = ssh_pool.inner().clone();
+
+    // Get or create session ID
+    let session_id = {
+        let mut map = session_map.lock().await;
+        let sess = map.entry(server_key.clone()).or_insert_with(agent_loop::AgentSession::new);
+        sess.id.clone()
+    };
+
+    // Spawn agent as background task
+    tokio::spawn(async move {
+        if let Err(e) = agent_loop::run_agent(app, request, map_clone, pool_clone).await {
+            log::error!("[AgentCommand] Agent error: {}", e);
+        }
+    });
+
+    Ok(session_id)
+}
+
+/// Abort the current agent execution
+#[tauri::command]
+pub async fn agent_abort(
+    session_map: State<'_, SharedSessionMap>,
+    server_key: String,
+) -> Result<bool, String> {
+    let mut map = session_map.lock().await;
+    if let Some(sess) = map.get_mut(&server_key) {
+        if sess.running {
+            sess.cancel();
+            log::info!("[AgentCommand] Agent aborted for server: {}", server_key);
+            return Ok(true);
+        }
+    }
+    Ok(false)
+}
+
+/// Reset the agent session for a specific server (clear conversation history)
+#[tauri::command]
+pub async fn agent_reset(
+    session_map: State<'_, SharedSessionMap>,
+    server_key: String,
+) -> Result<String, String> {
+    let mut map = session_map.lock().await;
+    let sess = map.entry(server_key.clone()).or_insert_with(agent_loop::AgentSession::new);
+    *sess = agent_loop::AgentSession::new();
+    log::info!("[AgentCommand] Session reset for server {}: {}", server_key, sess.id);
+    Ok(sess.id.clone())
+}
+
+/// Get current agent session status for a specific server
+#[tauri::command]
+pub async fn agent_status(
+    session_map: State<'_, SharedSessionMap>,
+    server_key: String,
+) -> Result<AgentStatusResponse, String> {
+    let map = session_map.lock().await;
+    if let Some(sess) = map.get(&server_key) {
+        Ok(AgentStatusResponse {
+            session_id: sess.id.clone(),
+            running: sess.running,
+            message_count: sess.messages.len(),
+        })
+    } else {
+        Ok(AgentStatusResponse {
+            session_id: String::new(),
+            running: false,
+            message_count: 0,
+        })
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AgentStatusResponse {
+    pub session_id: String,
+    pub running: bool,
+    pub message_count: usize,
+}
+
+/// Load saved chat history for a specific server from disk
+#[tauri::command]
+pub async fn load_agent_history(
+    server_key: String,
+) -> Result<Vec<AgentHistoryMessage>, String> {
+    let messages = agent_loop::load_session_from_disk(&server_key);
+    // Convert internal Message to frontend-friendly format
+    let history: Vec<AgentHistoryMessage> = messages.iter().filter_map(|m| {
+        match &m.content {
+            MessageContent::Text(text) => Some(AgentHistoryMessage {
+                role: m.role.clone(),
+                text: text.clone(),
+            }),
+            _ => None, // Skip tool call/result blocks
+        }
+    }).collect();
+    Ok(history)
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AgentHistoryMessage {
+    pub role: String,
+    pub text: String,
+}

@@ -1,0 +1,31 @@
+{
+    "docs": "https://docs.anthropic.com/en/docs/claude-code/settings",
+    "configFile": "~/.claude/settings.json",
+    "format": "json",
+    "read": {
+        "model": [
+            "env.ANTHROPIC_MODEL"
+        ],
+        "baseUrl": [
+            "env.ANTHROPIC_BASE_URL"
+        ],
+        "apiKey": [
+            "env.ANTHROPIC_API_KEY"
+        ],
+        "proxyUrl": [
+            "env.HTTPS_PROXY",
+            "env.https_proxy"
+        ]
+    },
+    "write": {
+        "env.ANTHROPIC_MODEL": "model",
+        "env.ANTHROPIC_BASE_URL": "baseUrl",
+        "env.ANTHROPIC_API_KEY": "apiKey"
+    },
+    "writeProxy": {
+        "env.HTTPS_PROXY": "proxyUrl",
+        "env.HTTP_PROXY": "proxyUrl",
+        "env.https_proxy": "proxyUrl",
+        "env.http_proxy": "proxyUrl"
+    }
+}

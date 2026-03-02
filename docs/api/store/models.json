@@ -1,0 +1,255 @@
+[
+    {
+        "id": "qwen3-coder-30b-a3b",
+        "name": "Qwen3 Coder 30B-A3B",
+        "icon": "qwen",
+        "description": "Latest Qwen3 coding MoE, purpose-built for code agents",
+        "huggingfaceRepo": "unsloth/Qwen3-Coder-30B-A3B-Instruct-GGUF",
+        "variants": [
+            {
+                "quantization": "Q4_K_M",
+                "fileName": "Qwen3-Coder-30B-A3B-Instruct-Q4_K_M.gguf",
+                "fileSize": 18556689568,
+                "recommendedVRAM": "24 GB"
+            },
+            {
+                "quantization": "Q6_K",
+                "fileName": "Qwen3-Coder-30B-A3B-Instruct-Q6_K.gguf",
+                "fileSize": 25092535456,
+                "recommendedVRAM": "32 GB"
+            },
+            {
+                "quantization": "Q8_0",
+                "fileName": "Qwen3-Coder-30B-A3B-Instruct-Q8_0.gguf",
+                "fileSize": 32483935392,
+                "recommendedVRAM": "48 GB"
+            }
+        ]
+    },
+    {
+        "id": "qwen2.5-coder-32b",
+        "name": "Qwen2.5 Coder 32B",
+        "icon": "qwen",
+        "description": "Top-tier coding model, GPT-4o level code generation",
+        "huggingfaceRepo": "bartowski/Qwen2.5-Coder-32B-Instruct-GGUF",
+        "variants": [
+            {
+                "quantization": "Q4_K_M",
+                "fileName": "Qwen2.5-Coder-32B-Instruct-Q4_K_M.gguf",
+                "fileSize": 19851336672,
+                "recommendedVRAM": "24 GB"
+            },
+            {
+                "quantization": "Q6_K",
+                "fileName": "Qwen2.5-Coder-32B-Instruct-Q6_K.gguf",
+                "fileSize": 26886155232,
+                "recommendedVRAM": "32 GB"
+            },
+            {
+                "quantization": "Q8_0",
+                "fileName": "Qwen2.5-Coder-32B-Instruct-Q8_0.gguf",
+                "fileSize": 34820885184,
+                "recommendedVRAM": "48 GB"
+            }
+        ]
+    },
+    {
+        "id": "devstral-small-2505",
+        "name": "Devstral Small 24B",
+        "icon": "mistral",
+        "description": "Mistral agentic coding model, multi-file editing expert",
+        "huggingfaceRepo": "unsloth/Devstral-Small-2505-GGUF",
+        "variants": [
+            {
+                "quantization": "Q4_K_M",
+                "fileName": "Devstral-Small-2505-Q4_K_M.gguf",
+                "fileSize": 14333916224,
+                "recommendedVRAM": "16 GB"
+            },
+            {
+                "quantization": "Q6_K",
+                "fileName": "Devstral-Small-2505-Q6_K.gguf",
+                "fileSize": 19345945664,
+                "recommendedVRAM": "24 GB"
+            },
+            {
+                "quantization": "Q8_0",
+                "fileName": "Devstral-Small-2505-Q8_0.gguf",
+                "fileSize": 25054786624,
+                "recommendedVRAM": "32 GB"
+            }
+        ]
+    },
+    {
+        "id": "qwen2.5-coder-7b",
+        "name": "Qwen2.5 Coder 7B",
+        "icon": "qwen",
+        "description": "Strong coding model for mid-range GPUs, 40+ languages",
+        "huggingfaceRepo": "bartowski/Qwen2.5-Coder-7B-Instruct-GGUF",
+        "variants": [
+            {
+                "quantization": "Q4_K_M",
+                "fileName": "Qwen2.5-Coder-7B-Instruct-Q4_K_M.gguf",
+                "fileSize": 4683074336,
+                "recommendedVRAM": "6 GB"
+            },
+            {
+                "quantization": "Q6_K",
+                "fileName": "Qwen2.5-Coder-7B-Instruct-Q6_K.gguf",
+                "fileSize": 6254199584,
+                "recommendedVRAM": "8 GB"
+            },
+            {
+                "quantization": "Q8_0",
+                "fileName": "Qwen2.5-Coder-7B-Instruct-Q8_0.gguf",
+                "fileSize": 8098525984,
+                "recommendedVRAM": "10 GB"
+            }
+        ]
+    },
+    {
+        "id": "deepseek-r1-0528-8b",
+        "name": "DeepSeek R1 0528 8B",
+        "icon": "deepseek",
+        "description": "DeepSeek R1 latest, strong reasoning + code generation",
+        "huggingfaceRepo": "unsloth/DeepSeek-R1-0528-Qwen3-8B-GGUF",
+        "variants": [
+            {
+                "quantization": "Q4_K_M",
+                "fileName": "DeepSeek-R1-0528-Qwen3-8B-Q4_K_M.gguf",
+                "fileSize": 5027785216,
+                "recommendedVRAM": "6 GB"
+            },
+            {
+                "quantization": "Q6_K",
+                "fileName": "DeepSeek-R1-0528-Qwen3-8B-Q6_K.gguf",
+                "fileSize": 6725900800,
+                "recommendedVRAM": "8 GB"
+            },
+            {
+                "quantization": "Q8_0",
+                "fileName": "DeepSeek-R1-0528-Qwen3-8B-Q8_0.gguf",
+                "fileSize": 8709519872,
+                "recommendedVRAM": "10 GB"
+            }
+        ]
+    },
+    {
+        "id": "qwen3-8b",
+        "name": "Qwen3 8B",
+        "icon": "qwen",
+        "description": "Balanced reasoning + coding, hybrid thinking mode",
+        "huggingfaceRepo": "Qwen/Qwen3-8B-GGUF",
+        "modelScopeRepo": "Qwen/Qwen3-8B-GGUF",
+        "variants": [
+            {
+                "quantization": "Q4_K_M",
+                "fileName": "Qwen3-8B-Q4_K_M.gguf",
+                "fileSize": 5027783488,
+                "recommendedVRAM": "6 GB"
+            },
+            {
+                "quantization": "Q6_K",
+                "fileName": "Qwen3-8B-Q6_K.gguf",
+                "fileSize": 6725899040,
+                "recommendedVRAM": "8 GB"
+            },
+            {
+                "quantization": "Q8_0",
+                "fileName": "Qwen3-8B-Q8_0.gguf",
+                "fileSize": 8709518112,
+                "recommendedVRAM": "10 GB"
+            }
+        ]
+    },
+    {
+        "id": "qwen3-32b",
+        "name": "Qwen3 32B",
+        "icon": "qwen",
+        "description": "Powerful reasoning + coding for high-end GPUs",
+        "huggingfaceRepo": "unsloth/Qwen3-32B-GGUF",
+        "variants": [
+            {
+                "quantization": "Q4_K_M",
+                "fileName": "Qwen3-32B-Q4_K_M.gguf",
+                "fileSize": 19762150048,
+                "recommendedVRAM": "24 GB"
+            },
+            {
+                "quantization": "Q6_K",
+                "fileName": "Qwen3-32B-Q6_K.gguf",
+                "fileSize": 26883307168,
+                "recommendedVRAM": "32 GB"
+            },
+            {
+                "quantization": "Q8_0",
+                "fileName": "Qwen3-32B-Q8_0.gguf",
+                "fileSize": 34817719968,
+                "recommendedVRAM": "48 GB"
+            }
+        ]
+    },
+    {
+        "id": "glm-4.7-opus-4.5-distill",
+        "name": "GLM-4.7 Opus 4.5 Distill",
+        "icon": "glm",
+        "description": "Claude Opus 4.5 high-reasoning distill on GLM-4.7 30B",
+        "huggingfaceRepo": "TeichAI/GLM-4.7-Flash-Claude-Opus-4.5-High-Reasoning-Distill-GGUF",
+        "variants": [
+            {
+                "quantization": "Q4_K_M",
+                "fileName": "glm-4.7-flash-claude-4.5-opus.q4_k_m.gguf",
+                "fileSize": 18132721856,
+                "recommendedVRAM": "24 GB"
+            },
+            {
+                "quantization": "Q6_K",
+                "fileName": "glm-4.7-flash-claude-4.5-opus.q6_k.gguf",
+                "fileSize": 24614786240,
+                "recommendedVRAM": "32 GB"
+            },
+            {
+                "quantization": "Q8_0",
+                "fileName": "glm-4.7-flash-claude-4.5-opus.q8_0.gguf",
+                "fileSize": 31842799808,
+                "recommendedVRAM": "48 GB"
+            }
+        ]
+    },
+    {
+        "id": "nemotron-opus-4.5-distill",
+        "name": "Nemotron 8B Opus 4.5 Distill",
+        "icon": "nemotron",
+        "description": "Claude Opus 4.5 distill on NVIDIA Nemotron 8B orchestrator",
+        "huggingfaceRepo": "TeichAI/Nemotron-Orchestrator-8B-Claude-4.5-Opus-Distill-GGUF",
+        "variants": [
+            {
+                "quantization": "Q4_K_M",
+                "fileName": "orchestrator-8b-claude-4.5-opus-distill.q4_k_m.gguf",
+                "fileSize": 5027784608,
+                "recommendedVRAM": "6 GB"
+            },
+            {
+                "quantization": "Q8_0",
+                "fileName": "orchestrator-8b-claude-4.5-opus-distill.q8_0.gguf",
+                "fileSize": 8709519264,
+                "recommendedVRAM": "10 GB"
+            }
+        ]
+    },
+    {
+        "id": "qwen3-8b-sonnet-4-distill",
+        "name": "Qwen3 8B Sonnet 4 Distill",
+        "icon": "qwen",
+        "description": "Claude Sonnet 4 reasoning distill on Qwen3 8B",
+        "huggingfaceRepo": "Liontix/Qwen3-8B-Claude-Sonnet-4-Reasoning-Distill-GGUF",
+        "variants": [
+            {
+                "quantization": "Q4_K_M",
+                "fileName": "qwen3-8B-Claude-Sonnet-4-Reasoning-Distill_Q4_K_M.gguf",
+                "fileSize": 5027784064,
+                "recommendedVRAM": "6 GB"
+            }
+        ]
+    }
+]

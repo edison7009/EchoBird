@@ -1,0 +1,134 @@
+name: Build & Release
+
+on:
+  # Manual trigger
+  workflow_dispatch:
+  # Auto-trigger on tag push
+  push:
+    tags:
+      - 'v*'
+
+env:
+  NODE_VERSION: '20'
+  CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+  # llama.cpp version (update here when upgrading)
+  LLAMA_VERSION: 'b7981'
+  LLAMA_CUDA_VER: '13.1'
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          # Windows (NSIS installer)
+          - os: windows-latest
+            platform: win
+            target: nsis
+
+          # macOS ARM (DMG)
+          - os: macos-latest
+            platform: mac
+            target: dmg
+
+          # Linux x64 (AppImage)
+          - os: ubuntu-latest
+            platform: linux
+            target: AppImage
+
+    runs-on: ${{ matrix.os }}
+    name: Build (${{ matrix.platform }})
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: npm test
+
+      # llama-server is downloaded at runtime (see llamaDownloader.ts)
+
+      # Generate icons
+      - name: Generate icons
+        run: node scripts/generate-icons.mjs
+
+      # Build frontend & main process
+      - name: Build frontend & main process
+        run: |
+          npm run copy:config
+          npm run build:tools
+          npm run build:main
+          npx vite build
+
+      # Package with electron-builder
+      - name: Package with electron-builder
+        run: npx electron-builder --${{ matrix.platform }} ${{ matrix.target }}
+
+      # Upload build artifacts (for release job)
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Echobird-${{ matrix.platform }}
+          path: |
+            release/*Setup*.exe
+            release/*.dmg
+            release/*.AppImage
+            release/*.yml
+            release/*.blockmap
+          if-no-files-found: warn
+          retention-days: 30
+
+  # Create GitHub Release (tag push only)
+  release:
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    name: Create Release
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts/
+
+      - name: List artifacts
+        run: find artifacts/ -type f | head -50
+
+      - name: Delete existing release (if any)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release delete ${{ github.ref_name }} --yes || true
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create ${{ github.ref_name }} \
+            --title "Echobird ${{ github.ref_name }}" \
+            --generate-notes
+
+      - name: Upload release assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p upload
+          cp artifacts/Echobird-win/* upload/ 2>/dev/null || true
+          cp artifacts/Echobird-mac/* upload/ 2>/dev/null || true
+          cp artifacts/Echobird-linux/* upload/ 2>/dev/null || true
+          echo "Files to upload:"
+          ls -la upload/
+          gh release upload ${{ github.ref_name }} --clobber upload/*
+

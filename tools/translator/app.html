@@ -1,0 +1,770 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Translate</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, 'SF Pro Display', 'Segoe UI', sans-serif;
+            background: #0a0e17;
+            color: #e0e0e0;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            user-select: none;
+        }
+
+        /* 自定义标题栏 */
+        .titlebar {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            height: 32px;
+            -webkit-app-region: drag;
+            flex-shrink: 0;
+        }
+
+        .titlebar-btn {
+            -webkit-app-region: no-drag;
+            width: 40px;
+            height: 32px;
+            border: none;
+            background: transparent;
+            color: rgba(255, 255, 255, 0.4);
+            font-size: 11px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.15s, color 0.15s;
+        }
+
+        .titlebar-btn:hover {
+            background: rgba(255, 255, 255, 0.08);
+            color: #fff;
+        }
+
+        .titlebar-btn.close:hover {
+            background: #e81123;
+            color: #fff;
+        }
+
+        /* 主体 */
+        .main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 0 24px 20px;
+            overflow: hidden;
+            gap: 12px;
+        }
+
+        /* 顶部栏：语言选择 */
+        .toolbar {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-shrink: 0;
+        }
+
+        .lang-select {
+            position: relative;
+            min-width: 160px;
+            user-select: none;
+        }
+
+        .lang-select-trigger {
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            color: #e0e0e0;
+            padding: 8px 32px 8px 14px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: border-color 0.2s;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .lang-select-trigger:hover {
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .lang-select-trigger.open {
+            border-color: rgba(0, 255, 157, 0.4);
+        }
+
+        /* 下拉箭头 */
+        .lang-select-trigger::after {
+            content: '\25BE';
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.3);
+            pointer-events: none;
+        }
+
+        .lang-select-dropdown {
+            display: none;
+            position: absolute;
+            top: calc(100% + 4px);
+            left: 0;
+            min-width: 100%;
+            max-height: 320px;
+            overflow-y: auto;
+            background: #1a1f2e;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 8px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+            z-index: 100;
+            padding: 4px;
+        }
+
+        .lang-select-dropdown.show {
+            display: block;
+        }
+
+        .lang-select-dropdown::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .lang-select-dropdown::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 4px;
+        }
+
+        .lang-option {
+            padding: 8px 12px;
+            font-size: 13px;
+            color: #e0e0e0;
+            cursor: pointer;
+            border-radius: 6px;
+            transition: background 0.1s;
+            white-space: nowrap;
+        }
+
+        .lang-option:hover {
+            background: rgba(0, 255, 157, 0.1);
+        }
+
+        .lang-option.selected {
+            color: #00ff9d;
+            background: rgba(0, 255, 157, 0.08);
+        }
+
+        .swap-btn {
+            background: rgba(0, 255, 157, 0.1);
+            border: 1px solid rgba(0, 255, 157, 0.2);
+            border-radius: 50%;
+            width: 36px;
+            height: 36px;
+            color: #00ff9d;
+            font-size: 16px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+            flex-shrink: 0;
+        }
+
+        .swap-btn:hover {
+            background: rgba(0, 255, 157, 0.2);
+        }
+
+        .toolbar-spacer {
+            flex: 1;
+        }
+
+        .model-badge {
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.3);
+            background: rgba(255, 255, 255, 0.04);
+            padding: 4px 10px;
+            border-radius: 12px;
+            max-width: 200px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        /* 翻译区域 */
+        .translate-area {
+            flex: 1;
+            display: flex;
+            gap: 12px;
+            min-height: 0;
+        }
+
+        .pane {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 12px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .pane-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 16px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+            flex-shrink: 0;
+        }
+
+        .pane-label {
+            font-size: 11px;
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.35);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .pane-label.source {
+            color: rgba(0, 255, 157, 0.5);
+        }
+
+        .pane-action {
+            background: none;
+            border: none;
+            color: rgba(255, 255, 255, 0.3);
+            font-size: 12px;
+            cursor: pointer;
+            padding: 2px 8px;
+            border-radius: 4px;
+            transition: all 0.15s;
+        }
+
+        .pane-action:hover {
+            color: #00ff9d;
+            background: rgba(0, 255, 157, 0.1);
+        }
+
+        textarea {
+            flex: 1;
+            background: transparent;
+            border: none;
+            color: #e0e0e0;
+            font-size: 15px;
+            line-height: 1.7;
+            padding: 16px;
+            resize: none;
+            outline: none;
+            font-family: inherit;
+        }
+
+        textarea::placeholder {
+            color: rgba(255, 255, 255, 0.15);
+        }
+
+        .output-text {
+            flex: 1;
+            padding: 16px;
+            font-size: 15px;
+            line-height: 1.7;
+            overflow-y: auto;
+            color: #e0e0e0;
+            user-select: text;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        .output-text::-webkit-scrollbar {
+            width: 3px;
+        }
+
+        .output-text::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+        }
+
+        .output-text.streaming {
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        .output-text.empty {
+            color: rgba(255, 255, 255, 0.15);
+            font-style: italic;
+        }
+
+        /* 底部状态栏 */
+        .statusbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 4px;
+            flex-shrink: 0;
+        }
+
+        .char-count {
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.2);
+        }
+
+        .status-msg {
+            font-size: 11px;
+            color: rgba(0, 255, 157, 0.5);
+            transition: opacity 0.3s;
+        }
+
+        .status-msg.error {
+            color: #ff5555;
+        }
+
+        /* 翻译按钮 */
+        .translate-btn {
+            position: absolute;
+            bottom: 16px;
+            right: 16px;
+            background: linear-gradient(135deg, #00ff9d, #00cc7d);
+            border: none;
+            color: #0a0e17;
+            font-size: 12px;
+            font-weight: 700;
+            padding: 10px 24px;
+            border-radius: 20px;
+            cursor: pointer;
+            letter-spacing: 1px;
+            transition: all 0.2s;
+            box-shadow: 0 4px 16px rgba(0, 255, 157, 0.25);
+            z-index: 2;
+        }
+
+        .translate-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px rgba(0, 255, 157, 0.35);
+        }
+
+        .translate-btn:active {
+            transform: translateY(0);
+        }
+
+        .translate-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        /* 快捷键提示 */
+        .shortcut-hint {
+            font-size: 10px;
+            color: rgba(255, 255, 255, 0.15);
+            text-align: center;
+            flex-shrink: 0;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="titlebar">
+        <button class="titlebar-btn"
+            onclick="if(window.gameWindow){window.gameWindow.minimize()}else{console.warn('[Translator] gameWindow not available')}">&#x2014;</button>
+        <button class="titlebar-btn close"
+            onclick="if(window.gameWindow){window.gameWindow.close()}else{window.close()}">&#x2715;</button>
+    </div>
+
+    <div class="main">
+        <!-- 工具栏 -->
+        <div class="toolbar">
+            <div class="lang-select" id="srcLangWrap">
+                <div class="lang-select-trigger" id="srcLangTrigger"></div>
+                <div class="lang-select-dropdown" id="srcLangDropdown"></div>
+            </div>
+            <button class="swap-btn" id="swapBtn">⇄</button>
+            <div class="lang-select" id="tgtLangWrap">
+                <div class="lang-select-trigger" id="tgtLangTrigger"></div>
+                <div class="lang-select-dropdown" id="tgtLangDropdown"></div>
+            </div>
+            <div class="toolbar-spacer"></div>
+            <div class="model-badge" id="modelBadge">-</div>
+        </div>
+
+        <!-- 翻译区 -->
+        <div class="translate-area">
+            <!-- 源文本 -->
+            <div class="pane">
+                <div class="pane-header">
+                    <span class="pane-label source" id="srcLabel">SOURCE</span>
+                    <button class="pane-action" id="clearBtn">✕</button>
+                </div>
+                <textarea id="srcText" spellcheck="false"></textarea>
+                <button class="translate-btn" id="translateBtn"></button>
+            </div>
+
+            <!-- 翻译结果 -->
+            <div class="pane">
+                <div class="pane-header">
+                    <span class="pane-label" id="tgtLabel">TRANSLATION</span>
+                    <button class="pane-action" id="copyBtn">📋</button>
+                </div>
+                <div class="output-text empty" id="outputText"></div>
+            </div>
+        </div>
+
+        <!-- 底部状态 -->
+        <div class="statusbar">
+            <div class="char-count" id="charCount">0</div>
+            <div class="status-msg" id="statusMsg"></div>
+            <div class="shortcut-hint">Ctrl+Enter</div>
+        </div>
+    </div>
+
+    <script>
+        // --- 模型配置（从 URL hash 读取） ---
+        let MODEL = { baseUrl: '', anthropicUrl: '', apiKey: '', model: '', name: 'AI', protocol: 'openai' };
+        try {
+            const hash = location.hash;
+            if (hash.startsWith('#model=')) {
+                MODEL = JSON.parse(decodeURIComponent(hash.slice(7)));
+            }
+        } catch (e) { }
+
+        // 保存模型信息到配置文件
+        if (MODEL.model && window.gameConfig?.saveModelInfo) {
+            window.gameConfig.saveModelInfo({ model: MODEL.model, baseUrl: MODEL.baseUrl || '' });
+        }
+
+        // --- 多语言 UI ---
+        const LANGUAGES = [
+            { code: 'auto', en: 'Auto Detect' },
+            { code: 'en', en: 'English', native: 'English' },
+            { code: 'zh', en: 'Chinese (Simplified)', native: '简体中文' },
+            { code: 'zh-Hant', en: 'Chinese (Traditional)', native: '繁體中文' },
+            { code: 'ja', en: 'Japanese', native: '日本語' },
+            { code: 'ko', en: 'Korean', native: '한국어' },
+            { code: 'fr', en: 'French', native: 'Français' },
+            { code: 'de', en: 'German', native: 'Deutsch' },
+            { code: 'es', en: 'Spanish', native: 'Español' },
+            { code: 'pt', en: 'Portuguese', native: 'Português' },
+            { code: 'ru', en: 'Russian', native: 'Русский' },
+            { code: 'ar', en: 'Arabic', native: 'العربية' },
+            { code: 'hi', en: 'Hindi', native: 'हिन्दी' },
+            { code: 'bn', en: 'Bengali', native: 'বাংলা' },
+            { code: 'th', en: 'Thai', native: 'ไทย' },
+            { code: 'vi', en: 'Vietnamese', native: 'Tiếng Việt' },
+            { code: 'id', en: 'Indonesian', native: 'Bahasa Indonesia' },
+            { code: 'ms', en: 'Malay', native: 'Bahasa Melayu' },
+            { code: 'tr', en: 'Turkish', native: 'Türkçe' },
+            { code: 'it', en: 'Italian', native: 'Italiano' },
+            { code: 'nl', en: 'Dutch', native: 'Nederlands' },
+            { code: 'pl', en: 'Polish', native: 'Polski' },
+            { code: 'sv', en: 'Swedish', native: 'Svenska' },
+            { code: 'fi', en: 'Finnish', native: 'Suomi' },
+            { code: 'cs', en: 'Czech', native: 'Čeština' },
+            { code: 'hu', en: 'Hungarian', native: 'Magyar' },
+            { code: 'el', en: 'Greek', native: 'Ελληνικά' },
+            { code: 'he', en: 'Hebrew', native: 'עברית' },
+            { code: 'fa', en: 'Persian', native: 'فارسی' },
+        ];
+
+        // UI 文本
+        const I18N = {
+            en: { source: 'SOURCE', translation: 'TRANSLATION', translate: 'TRANSLATE', translating: 'TRANSLATING...', auto: 'Auto Detect', copied: 'Copied!', error: 'Translation failed', placeholder: 'Enter text to translate...', chars: 'chars' },
+            zh: { source: '原文', translation: '译文', translate: '翻译', translating: '翻译中...', auto: '自动检测', copied: '已复制！', error: '翻译失败', placeholder: '输入要翻译的文本...', chars: '字' },
+            'zh-Hant': { source: '原文', translation: '譯文', translate: '翻譯', translating: '翻譯中...', auto: '自動偵測', copied: '已複製！', error: '翻譯失敗', placeholder: '輸入要翻譯的文字...', chars: '字' },
+            ja: { source: '原文', translation: '翻訳', translate: '翻訳する', translating: '翻訳中...', auto: '自動検出', copied: 'コピー済み！', error: '翻訳失敗', placeholder: '翻訳するテキストを入力...', chars: '文字' },
+            ko: { source: '원문', translation: '번역', translate: '번역', translating: '번역 중...', auto: '자동 감지', copied: '복사됨!', error: '번역 실패', placeholder: '번역할 텍스트 입력...', chars: '자' },
+            fr: { source: 'SOURCE', translation: 'TRADUCTION', translate: 'TRADUIRE', translating: 'TRADUCTION...', auto: 'Détection auto', copied: 'Copié !', error: 'Échec de traduction', placeholder: 'Saisissez le texte à traduire...', chars: 'car.' },
+            de: { source: 'QUELLE', translation: 'ÜBERSETZUNG', translate: 'ÜBERSETZEN', translating: 'ÜBERSETZE...', auto: 'Automatisch', copied: 'Kopiert!', error: 'Übersetzung fehlgeschlagen', placeholder: 'Text zum Übersetzen eingeben...', chars: 'Zeichen' },
+            es: { source: 'ORIGEN', translation: 'TRADUCCIÓN', translate: 'TRADUCIR', translating: 'TRADUCIENDO...', auto: 'Auto detectar', copied: '¡Copiado!', error: 'Error de traducción', placeholder: 'Ingrese texto para traducir...', chars: 'car.' },
+            ru: { source: 'ОРИГИНАЛ', translation: 'ПЕРЕВОД', translate: 'ПЕРЕВЕСТИ', translating: 'ПЕРЕВОД...', auto: 'Автоопределение', copied: 'Скопировано!', error: 'Ошибка перевода', placeholder: 'Введите текст для перевода...', chars: 'символов' },
+        };
+
+        const rawLang = (navigator.language || 'en').toLowerCase();
+        const uiLang = rawLang.startsWith('zh-tw') || rawLang.startsWith('zh-hk') ? 'zh-Hant'
+            : rawLang.startsWith('zh') ? 'zh' : rawLang.split('-')[0];
+        const t = I18N[uiLang] || I18N.en;
+
+        // --- 自定义下拉菜单组件 ---
+        class LangDropdown {
+            constructor(wrapId, triggerId, dropdownId, langs, defaultVal) {
+                this.wrap = document.getElementById(wrapId);
+                this.trigger = document.getElementById(triggerId);
+                this.dropdown = document.getElementById(dropdownId);
+                this.value = defaultVal;
+                this.langs = langs;
+                this.build();
+                this.trigger.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    this.toggle();
+                });
+            }
+            build() {
+                this.dropdown.innerHTML = '';
+                this.langs.forEach(lang => {
+                    const div = document.createElement('div');
+                    div.className = 'lang-option' + (lang.code === this.value ? ' selected' : '');
+                    div.textContent = lang.code === 'auto' ? (t.auto || lang.en)
+                        : (lang.native ? `${lang.native} (${lang.en})` : lang.en);
+                    div.dataset.code = lang.code;
+                    div.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        this.select(lang.code);
+                        this.close();
+                    });
+                    this.dropdown.appendChild(div);
+                });
+                this.updateTrigger();
+            }
+            select(code) {
+                this.value = code;
+                this.dropdown.querySelectorAll('.lang-option').forEach(el => {
+                    el.classList.toggle('selected', el.dataset.code === code);
+                });
+                this.updateTrigger();
+            }
+            updateTrigger() {
+                const lang = this.langs.find(l => l.code === this.value);
+                if (!lang) return;
+                this.trigger.textContent = lang.code === 'auto' ? (t.auto || lang.en)
+                    : (lang.native || lang.en);
+            }
+            toggle() {
+                const isOpen = this.dropdown.classList.contains('show');
+                closeAllDropdowns();
+                if (!isOpen) {
+                    this.dropdown.classList.add('show');
+                    this.trigger.classList.add('open');
+                    // 滚动到当前选中项
+                    const sel = this.dropdown.querySelector('.selected');
+                    if (sel) sel.scrollIntoView({ block: 'nearest' });
+                }
+            }
+            close() {
+                this.dropdown.classList.remove('show');
+                this.trigger.classList.remove('open');
+            }
+        }
+
+        function closeAllDropdowns() {
+            document.querySelectorAll('.lang-select-dropdown').forEach(d => d.classList.remove('show'));
+            document.querySelectorAll('.lang-select-trigger').forEach(t => t.classList.remove('open'));
+        }
+        document.addEventListener('click', closeAllDropdowns);
+
+        // 初始化两个下拉
+        const srcLangDD = new LangDropdown('srcLangWrap', 'srcLangTrigger', 'srcLangDropdown',
+            LANGUAGES, 'auto');
+        const tgtLangDD = new LangDropdown('tgtLangWrap', 'tgtLangTrigger', 'tgtLangDropdown',
+            LANGUAGES.filter(l => l.code !== 'auto'),
+            uiLang === 'zh' ? 'en' : uiLang === 'zh-Hant' ? 'en' : uiLang === 'en' ? 'zh' : 'en');
+
+        // 兼容层：让后续代码用 .value 访问
+        const srcLangEl = srcLangDD;
+        const tgtLangEl = tgtLangDD;
+
+        const srcTextEl = document.getElementById('srcText');
+        const outputEl = document.getElementById('outputText');
+        const translateBtn = document.getElementById('translateBtn');
+
+        // UI 文本
+        document.getElementById('srcLabel').textContent = t.source;
+        document.getElementById('tgtLabel').textContent = t.translation;
+        translateBtn.textContent = t.translate;
+        srcTextEl.placeholder = t.placeholder;
+        outputEl.textContent = '';
+
+        // 模型信息
+        const provider = (() => {
+            try {
+                const h = new URL((MODEL.baseUrl || '').trim()).hostname;
+                const p = h.split('.');
+                return p.length >= 2 ? p[p.length - 2] : h;
+            } catch { return null; }
+        })();
+        document.getElementById('modelBadge').textContent =
+            (MODEL.name || MODEL.model || '-') + (provider ? ` (${provider})` : '');
+
+        // --- 字符计数 ---
+        srcTextEl.addEventListener('input', () => {
+            document.getElementById('charCount').textContent =
+                `${srcTextEl.value.length} ${t.chars || 'chars'}`;
+        });
+
+        // --- 清除按钮 ---
+        document.getElementById('clearBtn').addEventListener('click', () => {
+            srcTextEl.value = '';
+            outputEl.textContent = '';
+            outputEl.className = 'output-text empty';
+            document.getElementById('charCount').textContent = `0 ${t.chars || 'chars'}`;
+            document.getElementById('statusMsg').textContent = '';
+        });
+
+        // --- 复制按钮 ---
+        document.getElementById('copyBtn').addEventListener('click', () => {
+            const text = outputEl.textContent;
+            if (!text) return;
+            navigator.clipboard.writeText(text).then(() => {
+                const msg = document.getElementById('statusMsg');
+                msg.textContent = t.copied;
+                msg.className = 'status-msg';
+                setTimeout(() => { msg.textContent = ''; }, 2000);
+            });
+        });
+
+        // --- 交换语言 ---
+        document.getElementById('swapBtn').addEventListener('click', () => {
+            if (srcLangEl.value === 'auto') return;
+            const tmp = srcLangEl.value;
+            srcLangEl.select(tgtLangEl.value);
+            tgtLangEl.select(tmp);
+            // 同时交换文本
+            const srcVal = srcTextEl.value;
+            const tgtVal = outputEl.textContent;
+            if (tgtVal && !outputEl.classList.contains('empty')) {
+                srcTextEl.value = tgtVal;
+                outputEl.textContent = srcVal;
+                document.getElementById('charCount').textContent =
+                    `${srcTextEl.value.length} ${t.chars || 'chars'}`;
+            }
+        });
+
+        // --- 快捷键 Ctrl+Enter ---
+        srcTextEl.addEventListener('keydown', (e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                e.preventDefault();
+                doTranslate();
+            }
+        });
+
+        // --- 翻译按钮 ---
+        translateBtn.addEventListener('click', doTranslate);
+
+        let isTranslating = false;
+
+        async function doTranslate() {
+            const text = srcTextEl.value.trim();
+            if (!text || isTranslating) return;
+
+            isTranslating = true;
+            translateBtn.disabled = true;
+            translateBtn.textContent = t.translating;
+            outputEl.textContent = '';
+            outputEl.className = 'output-text streaming';
+            document.getElementById('statusMsg').textContent = '';
+
+            const srcLang = srcLangEl.value;
+            const tgtLang = tgtLangEl.value;
+
+            // 找目标语言的完整名称
+            const tgtLangInfo = LANGUAGES.find(l => l.code === tgtLang);
+            const tgtLangName = tgtLangInfo ? tgtLangInfo.en : tgtLang;
+            const srcLangName = srcLang === 'auto' ? '' : (LANGUAGES.find(l => l.code === srcLang)?.en || srcLang);
+
+            const srcHint = srcLang === 'auto' ? '' : ` from ${srcLangName}`;
+            const prompt = `Translate the following text${srcHint} to ${tgtLangName}. Output ONLY the translated text, nothing else. No explanations, no quotes, no prefixes.\n\n${text}`;
+
+            try {
+                let result = '';
+
+                if (MODEL.protocol === 'anthropic') {
+                    // Anthropic API
+                    let apiUrl = (MODEL.anthropicUrl || '').trim().replace(/\/+$/, '');
+                    if (!apiUrl.endsWith('/v1')) apiUrl += '/v1';
+                    const resp = await fetch(apiUrl + '/messages', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'x-api-key': MODEL.apiKey,
+                            'anthropic-version': '2023-06-01',
+                        },
+                        body: JSON.stringify({
+                            model: MODEL.model,
+                            messages: [{ role: 'user', content: prompt }],
+                            max_tokens: 4096,
+                        })
+                    });
+                    if (!resp.ok) throw new Error(`API ${resp.status}: ${resp.statusText}`);
+                    const data = await resp.json();
+                    result = data.content?.[0]?.text || '';
+                } else {
+                    // OpenAI API (streaming)
+                    let apiUrl = (MODEL.baseUrl || '').trim().replace(/\/+$/, '');
+                    if (!apiUrl.endsWith('/v1')) apiUrl += '/v1';
+                    const resp = await fetch(apiUrl + '/chat/completions', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': 'Bearer ' + MODEL.apiKey,
+                        },
+                        body: JSON.stringify({
+                            model: MODEL.model,
+                            messages: [{ role: 'user', content: prompt }],
+                            max_tokens: 4096,
+                            temperature: 0.3,
+                            stream: true,
+                        })
+                    });
+                    if (!resp.ok) throw new Error(`API ${resp.status}: ${resp.statusText}`);
+
+                    // 流式读取
+                    const reader = resp.body.getReader();
+                    const decoder = new TextDecoder();
+                    let buffer = '';
+
+                    while (true) {
+                        const { done, value } = await reader.read();
+                        if (done) break;
+                        buffer += decoder.decode(value, { stream: true });
+
+                        const lines = buffer.split('\n');
+                        buffer = lines.pop() || '';
+
+                        for (const line of lines) {
+                            const trimmed = line.trim();
+                            if (!trimmed.startsWith('data: ')) continue;
+                            const jsonStr = trimmed.slice(6);
+                            if (jsonStr === '[DONE]') continue;
+                            try {
+                                const chunk = JSON.parse(jsonStr);
+                                const delta = chunk.choices?.[0]?.delta?.content || '';
+                                if (delta) {
+                                    result += delta;
+                                    // 过滤 <think> 标签
+                                    const display = result.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
+                                    outputEl.textContent = display;
+                                }
+                            } catch { }
+                        }
+                    }
+                }
+
+                // 最终结果
+                const finalText = result.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
+                outputEl.textContent = finalText || '(empty response)';
+                outputEl.className = finalText ? 'output-text' : 'output-text empty';
+
+            } catch (e) {
+                outputEl.textContent = '';
+                outputEl.className = 'output-text empty';
+                const msg = document.getElementById('statusMsg');
+                msg.textContent = `${t.error}: ${e.message}`;
+                msg.className = 'status-msg error';
+            }
+
+            isTranslating = false;
+            translateBtn.disabled = false;
+            translateBtn.textContent = t.translate;
+        }
+    </script>
+</body>
+
+</html>

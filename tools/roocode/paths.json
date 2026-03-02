@@ -1,0 +1,26 @@
+{
+    "name": "Roo Code",
+    "category": "IDE",
+    "apiProtocol": [
+        "openai"
+    ],
+    "docs": "https://docs.roocode.com/",
+    "installUrl": "https://marketplace.visualstudio.com/items?itemName=RooVetGit.roo-cline",
+    "command": "",
+    "configDir": "~/.roo-code",
+    "configFile": "~/.roo-code/settings.json",
+    "requireConfigFile": false,
+    "detectByConfigDir": false,
+    "paths": {},
+    "extensionPaths": {
+        "win32": [
+            "%USERPROFILE%/.vscode/extensions/rooveterinaryinc.roo-cline-*"
+        ],
+        "darwin": [
+            "~/.vscode/extensions/rooveterinaryinc.roo-cline-*"
+        ],
+        "linux": [
+            "~/.vscode/extensions/rooveterinaryinc.roo-cline-*"
+        ]
+    }
+}

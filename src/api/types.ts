@@ -1,0 +1,227 @@
+// Shared types for Tauri IPC — replaces window.electron types from vite-env.d.ts
+
+// ─── Tool Types ───
+
+export interface DetectedTool {
+    id: string;
+    name: string;
+    category: string;
+    installed: boolean;
+    detectedPath?: string;
+    configPath?: string;
+    skillsPath?: string;
+    version?: string;
+    installedSkillsCount?: number;
+    activeModel?: string;
+    website?: string;
+    apiProtocol?: string[];
+    iconBase64?: string;
+    names?: Record<string, string>;
+    startCommand?: string;
+    launchFile?: string;
+}
+
+// UI-level tool type used by AppManager, MotherAgent, and App shell
+export interface LocalTool extends DetectedTool {
+    path?: string;
+    icon?: string;
+    skillsCount?: number;
+    [key: string]: any;
+}
+
+// ─── Model Types ───
+
+export interface SSNodeConfig {
+    name: string;
+    server: string;
+    port: number;
+    cipher: string;
+    password: string;
+}
+
+export interface ModelConfig {
+    internalId: string;
+    name: string;
+    modelId?: string;
+    baseUrl: string;
+    apiKey: string;
+    anthropicUrl?: string;
+    modelType?: 'CLOUD' | 'LOCAL' | 'TUNNEL' | 'DEMO';
+    proxyUrl?: string;
+    ssNode?: SSNodeConfig;
+    openaiTested?: boolean;
+    anthropicTested?: boolean;
+    openaiLatency?: number;
+    anthropicLatency?: number;
+}
+
+export interface ModelTestResult {
+    success: boolean;
+    latency: number;
+    response?: string;
+    error?: string;
+    protocol: 'openai' | 'anthropic';
+}
+
+export interface PingResult {
+    success: boolean;
+    latency: number;
+    url: string;
+    error?: string;
+}
+
+export interface ToggleEncryptionResult {
+    success: boolean;
+    apiKey: string;
+    encrypted: boolean;
+}
+
+// ─── Skill Types ───
+
+export interface SkillInfo {
+    id: string;
+    name: string;
+    author: string;
+    category: string;
+    installed: boolean;
+    brief?: string;
+    description?: string;
+}
+
+export interface InstalledSkillInfo {
+    id: string;
+    name: string;
+    path: string;
+    hasReadme: boolean;
+    description?: string;
+}
+
+// ─── Local LLM Types ───
+
+export interface LocalServerInfo {
+    running: boolean;
+    port: number;
+    modelName: string;
+    pid?: number;
+    apiKey: string;
+}
+
+export interface GgufFile {
+    fileName: string;
+    filePath: string;
+    fileSize: number;
+}
+
+export interface HfModelEntry {
+    modelName: string;
+    modelPath: string;
+    totalSize: number;
+}
+
+export interface ModelSettings {
+    modelsDirs: string[];
+    downloadDir?: string;
+    gpuName?: string;
+    gpuVramGb?: number;
+}
+
+// ─── Proxy Types ───
+
+export interface ProxyRule {
+    pattern: string;
+    enabled: boolean;
+}
+
+// ─── Tool Config Types ───
+
+export interface ToolModelInfo {
+    id: string;
+    name: string;
+    baseUrl: string;
+    apiKey: string;
+    model: string;
+    proxyUrl?: string;
+}
+
+export interface ApplyModelInput {
+    id: string;
+    name: string;
+    baseUrl: string;
+    apiKey: string;
+    model: string;
+    proxyUrl?: string;
+    protocol?: string;
+}
+
+// ─── App Log Types ───
+
+export interface AppLogEntry {
+    timestamp: string;
+    category: string;
+    message: string;
+}
+
+// ─── Channel Types ───
+
+export interface ChannelConfig {
+    id: number;
+    name: string;
+    protocol: string;
+    address: string;
+}
+
+// ─── App Settings Types ───
+
+export interface AppSettings {
+    locale?: string;
+    closeBehavior?: string;
+}
+
+// ─── Store Model Types ───
+
+export interface StoreModelVariant {
+    quantization: string;
+    fileName: string;
+    fileSize: number;
+    recommendedVRAM: string;
+}
+
+export interface StoreModel {
+    id: string;
+    name: string;
+    icon: string;
+    description: string;
+    huggingfaceRepo: string;
+    modelScopeRepo?: string;
+    variants: StoreModelVariant[];
+}
+
+// ─── Agent Types ───
+
+export interface AgentRequest {
+    message: string;
+    model_id: string;
+    base_url: string;
+    api_key: string;
+    model_name: string;
+    provider: string;
+    proxy_url?: string;
+    server_ids: string[];
+    skills: string[];
+}
+
+export type AgentEvent =
+    | { type: 'text_delta'; text: string }
+    | { type: 'thinking'; text: string }
+    | { type: 'tool_call_start'; id: string; name: string }
+    | { type: 'tool_call_args'; id: string; args: string }
+    | { type: 'tool_result'; id: string; output: string; success: boolean }
+    | { type: 'done' }
+    | { type: 'error'; message: string }
+    | { type: 'state'; state: string };
+
+export interface AgentStatusResponse {
+    session_id: string;
+    running: boolean;
+    message_count: number;
+}

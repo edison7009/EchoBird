@@ -1,0 +1,30 @@
+{
+    "name": "OpenCode",
+    "category": "CLI",
+    "apiProtocol": [
+        "openai"
+    ],
+    "docs": "https://opencode.ai/docs#install",
+    "command": "opencode",
+    "envVar": "OPENCODE_PATH",
+    "configDir": "~/.config/opencode",
+    "configFile": "~/.config/opencode/opencode.json",
+    "requireConfigFile": false,
+    "paths": {
+        "win32": [
+            "%APPDATA%/npm/opencode.cmd",
+            "%LOCALAPPDATA%/Programs/opencode/opencode.exe",
+            "%USERPROFILE%/scoop/shims/opencode.exe",
+            "%PROGRAMFILES%/opencode/opencode.exe",
+            "%USERPROFILE%/.bun/bin/opencode.exe"
+        ],
+        "darwin": [
+            "/usr/local/bin/opencode",
+            "/opt/homebrew/bin/opencode"
+        ],
+        "linux": [
+            "/usr/local/bin/opencode",
+            "/usr/bin/opencode"
+        ]
+    }
+}

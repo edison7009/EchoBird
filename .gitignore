@@ -1,0 +1,60 @@
+# Internal development docs (local only)
+internal-docs/
+
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+dist-electron/
+out/
+release/
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Editor
+.vscode/
+.idea/
+
+# System files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Dev scripts & test files
+dev.bat
+start.bat
+stop.bat
+clean-cache.bat
+test-*.mjs
+demo-*.mjs
+inspect-*.mjs
+verify-*.mjs
+ts-errors.txt
+tailwind.config.js
+postcss.config.js
+
+# Project specific
+.whichclaw.pid
+.electron-cache
+
+# llama-server binaries (downloaded during CI build)
+electron/tools/llama-server/bin/
+
+# Antigravity local cache
+.gemini/
+
+# Rust / Tauri build artifacts
+target/
+src-tauri/target/
+src-tauri/gen/
+
+# Plugin build artifacts
+plugins/*/target/
+plugins/*/bridge/target/
+tools/*/target/

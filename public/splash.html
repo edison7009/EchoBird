@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title>Echobird</title>
+    <style>
+        @font-face {
+            font-family: 'Orbitron';
+            src: url('fonts/Orbitron-Bold.ttf') format('truetype');
+            font-weight: 700;
+            font-display: block;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: #13151C;
+        }
+
+        body {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            -webkit-app-region: drag;
+            user-select: none;
+        }
+
+        .splash-card {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 22px;
+        }
+
+        .logo {
+            width: 72px;
+            height: 72px;
+        }
+
+        .title {
+            color: #00FF9D;
+            font-size: 20px;
+            font-weight: 700;
+            letter-spacing: 3px;
+            font-family: 'Orbitron', 'Segoe UI', sans-serif;
+        }
+
+        .loader {
+            display: flex;
+            gap: 10px;
+        }
+
+        .loader span {
+            width: 4px;
+            height: 4px;
+            border-radius: 1px;
+            background: #00FF9D;
+            opacity: 0.15;
+            animation: dot 2.4s ease infinite;
+        }
+
+        .loader span:nth-child(2) {
+            animation-delay: 0.5s;
+        }
+
+        .loader span:nth-child(3) {
+            animation-delay: 1.0s;
+        }
+
+
+        @keyframes dot {
+
+            0%,
+            100% {
+                opacity: 0.15;
+            }
+
+            50% {
+                opacity: 1;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="splash-card">
+        <img class="logo" src="ico.svg" alt="">
+        <div class="title" id="appTitle">Echobird</div>
+        <div class="loader">
+            <span></span>
+            <span></span>
+            <span></span>
+        </div>
+    </div>
+    <script>
+        try {
+            const locale = new URLSearchParams(location.search).get('locale') || 'en';
+            if (/^zh[-_]?(Hans|CN|SG)/i.test(locale)) document.getElementById('appTitle').textContent = '百灵鸟';
+            else if (/^zh/i.test(locale)) document.getElementById('appTitle').textContent = '百靈鳥';
+        } catch (e) { }
+    </script>
+</body>
+
+</html>

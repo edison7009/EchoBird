@@ -1,0 +1,18 @@
+{
+    "name": "TradingAgents",
+    "category": "AutoTrading",
+    "docs": "https://github.com/TauricResearch/TradingAgents",
+    "apiProtocol": [
+        "openai",
+        "anthropic"
+    ],
+    "installUrl": "https://github.com/TauricResearch/TradingAgents",
+    "command": "tradingagents",
+    "configDir": "~/.tradingagents",
+    "configFile": "~/.tradingagents/config.json",
+    "paths": {
+        "win32": [],
+        "darwin": [],
+        "linux": []
+    }
+}

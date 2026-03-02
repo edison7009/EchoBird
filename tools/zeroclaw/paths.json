@@ -1,0 +1,34 @@
+{
+    "name": "ZeroClaw",
+    "names": {
+        "zh-CN": "ZeroClaw",
+        "zh-TW": "ZeroClaw",
+        "ja": "ZeroClaw",
+        "ko": "ZeroClaw"
+    },
+    "category": "AgentOS",
+    "apiProtocol": [
+        "openai"
+    ],
+    "docs": "https://github.com/zeroclaw-labs/zeroclaw",
+    "installUrl": "https://github.com/zeroclaw-labs/zeroclaw#quick-start",
+    "command": "zeroclaw",
+    "configDir": "~/.zeroclaw",
+    "configFile": "~/.zeroclaw/config.toml",
+    "requireConfigFile": false,
+    "paths": {
+        "win32": [
+            "%USERPROFILE%/.cargo/bin/zeroclaw.exe"
+        ],
+        "darwin": [
+            "/usr/local/bin/zeroclaw",
+            "/opt/homebrew/bin/zeroclaw",
+            "~/.cargo/bin/zeroclaw"
+        ],
+        "linux": [
+            "/usr/local/bin/zeroclaw",
+            "/usr/bin/zeroclaw",
+            "~/.cargo/bin/zeroclaw"
+        ]
+    }
+}
