@@ -308,6 +308,20 @@ pub fn run() {
                 })
                 .build(app)?;
 
+            // Safety fallback: show main window after 1s even if appReady() never fires.
+            // This prevents a permanently invisible window if the frontend crashes.
+            let fallback_handle = app.handle().clone();
+            tokio::spawn(async move {
+                tokio::time::sleep(std::time::Duration::from_millis(1000)).await;
+                if let Some(win) = fallback_handle.get_webview_window("main") {
+                    if !win.is_visible().unwrap_or(true) {
+                        log::warn!("[Safety] appReady() not called after 1s — showing main window");
+                        let _ = win.show();
+                        let _ = win.set_focus();
+                    }
+                }
+            });
+
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
