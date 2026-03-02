@@ -35,6 +35,17 @@ pub async fn get_command_path(cmd: &str) -> Option<String> {
 
 /// Get command version by running `cmd --version`
 pub async fn get_version(cmd: &str) -> Option<String> {
+    #[cfg(windows)]
+    let output = {
+        use std::os::windows::process::CommandExt;
+        const CREATE_NO_WINDOW: u32 = 0x08000000;
+        Command::new(cmd)
+            .arg("--version")
+            .creation_flags(CREATE_NO_WINDOW)
+            .output()
+            .ok()?
+    };
+    #[cfg(not(windows))]
     let output = Command::new(cmd)
         .arg("--version")
         .output()

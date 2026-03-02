@@ -329,11 +329,22 @@ async fn find_skills_path(pc: &PathsConfig) -> Option<String> {
 
     // 3. npm global module
     if let Some(ref npm_module) = sp.npm_module {
-        if let Ok(output) = tokio::process::Command::new("npm")
+        #[cfg(windows)]
+        let npm_output = {
+            use std::os::windows::process::CommandExt;
+            const CREATE_NO_WINDOW: u32 = 0x08000000;
+            tokio::process::Command::new("npm")
+                .args(["root", "-g"])
+                .creation_flags(CREATE_NO_WINDOW)
+                .output()
+                .await
+        };
+        #[cfg(not(windows))]
+        let npm_output = tokio::process::Command::new("npm")
             .args(["root", "-g"])
             .output()
-            .await
-        {
+            .await;
+        if let Ok(output) = npm_output {
             let global_root = String::from_utf8_lossy(&output.stdout).trim().to_string();
             if !global_root.is_empty() {
                 let module_path: PathBuf = npm_module

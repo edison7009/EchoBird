@@ -223,13 +223,19 @@ pub fn run() {
         .manage(ssh_commands::create_ssh_pool())
         .manage(services::agent_loop::create_session_map())
         .setup(|app| {
-            if cfg!(debug_assertions) {
-                app.handle().plugin(
-                    tauri_plugin_log::Builder::default()
-                        .level(log::LevelFilter::Info)
-                        .build(),
-                )?;
-            }
+            // Enable file logging in all builds for diagnostics
+            app.handle().plugin(
+                tauri_plugin_log::Builder::default()
+                    .level(log::LevelFilter::Info)
+                    .targets([
+                        tauri_plugin_log::Target::new(
+                            tauri_plugin_log::TargetKind::LogDir {
+                                file_name: Some("echobird".to_string()),
+                            },
+                        ),
+                    ])
+                    .build(),
+            )?;
 
             // Register shell plugin (open external URLs, folders)
             app.handle().plugin(tauri_plugin_shell::init())?;

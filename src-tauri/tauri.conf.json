@@ -24,20 +24,7 @@
         "decorations": false,
         "transparent": true,
         "center": true,
-        "visible": false
-      },
-      {
-        "label": "splash",
-        "title": "Echobird",
-        "url": "splash.html",
-        "width": 260,
-        "height": 260,
-        "resizable": false,
-        "decorations": false,
-        "transparent": false,
-        "center": true,
-        "alwaysOnTop": true,
-        "skipTaskbar": true
+        "visible": true
       }
     ],
     "security": {
