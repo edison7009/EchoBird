@@ -1,0 +1,28 @@
+name: Sync Docs to Public Repo
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'docs/**'
+
+jobs:
+  sync-docs:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout private repo
+        uses: actions/checkout@v4
+
+      - name: Sync docs to public repo
+        uses: cpina/github-action-push-to-another-repository@main
+        env:
+          API_TOKEN_GITHUB: ${{ secrets.RELEASE_TOKEN }}
+        with:
+          source-directory: docs
+          destination-github-username: edison7009
+          destination-repository-name: Echobird-MotherAgent
+          target-directory: docs
+          destination-branch: main
+          commit-message: "docs: auto-sync from private repo (${{ github.sha }})"
+          user-email: actions@github.com
+          user-name: github-actions
