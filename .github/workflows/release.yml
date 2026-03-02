@@ -50,15 +50,45 @@ jobs:
       - name: Install frontend dependencies
         run: npm install
 
-      - name: Build and publish Tauri app
+      - name: Build Tauri app
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tagName: ${{ github.ref_name }}
-          releaseName: 'Echobird ${{ github.ref_name }}'
-          releaseBody: |
-            See the [CHANGELOG](https://github.com/edison7009/Echobird/blob/main/CHANGELOG.md) for details.
-          releaseDraft: true
-          prerelease: false
           args: ${{ matrix.args }}
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-${{ matrix.platform }}-${{ strategy.job-index }}
+          path: |
+            src-tauri/target/**/release/bundle/**/*.exe
+            src-tauri/target/**/release/bundle/**/*.msi
+            src-tauri/target/**/release/bundle/**/*.dmg
+            src-tauri/target/**/release/bundle/**/*.AppImage
+            src-tauri/target/**/release/bundle/**/*.deb
+            src-tauri/target/**/release/bundle/**/*.rpm
+          if-no-files-found: warn
+
+  publish-release:
+    needs: publish-tauri
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts/
+          merge-multiple: true
+
+      - name: Publish to Echobird-MotherAgent releases
+        uses: softprops/action-gh-release@v2
+        with:
+          repository: edison7009/Echobird-MotherAgent
+          tag_name: ${{ github.ref_name }}
+          name: Echobird ${{ github.ref_name }}
+          draft: true
+          generate_release_notes: true
+          files: artifacts/**/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
