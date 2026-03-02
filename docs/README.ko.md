@@ -5,8 +5,8 @@
 <h1 align="center">Echobird</h1>
 
 <p align="center">
-  모델, 에이전트 및 Vibe Coding의 허브。<br/>
-  <sub>AI 시대의 사이버펑크 컨트롤 패널 — Tauri + Rust로 구축.</sub>
+  모델, 에이전트, Vibe Coding 의 넥서스。<br/>
+  <sub>AI 시대의 사이버펑크 컨트롤 패널 — Tauri + Rust 기반.</sub>
 </p>
 
 <p align="center">
@@ -33,46 +33,95 @@
 
 ---
 
-## 🤖 MotherAgent — 핵심 기능
+## 🤖 MotherAgent — 모델을 배포. 에이전트를 실행.
 
-**MotherAgent**는 Echobird에 내장된 자율 AI 에이전트입니다:
+**MotherAgent**는 자율 AI 에이전트입니다 — 로컬 LLM 배포, 원격 모델 연결, OpenClaw 실행을 한 곳에서.
 
-- 🧠 **사고와 계획** — 복잡한 작업을 실행 가능한 단계로 분해
-- 🔧 **도구 사용** — Shell 명령 실행, 파일 읽기, 웹 브라우징
-- 🔄 **자기 수정** — 출력을 검토하고 오류 시 재시도
-- 💾 **지속적 메모리** — 앱 재시작 후에도 대화 기록 유지
-- ⚡ **모든 LLM 지원** — OpenAI, Anthropic 또는 로컬 모델 연결
+- 🖥️ **로컬 LLM 배포** — 내장 llama.cpp로 Qwen, DeepSeek, Llama 등을 원클릭 배포. 데이터는 내 기기를 떠나지 않습니다.
+- 🌐 **원격 LLM** — OpenAI, Anthropic, Google Gemini 또는 OpenAI 호환 엔드포인트에 즉시 연결.
+- 🦅 **OpenClaw 배포** — MotherAgent에서 직접 OpenClaw 에이전트를 실행·관리. 터미널 불필요.
+- 💾 **영구 세션** — 앱을 재시작해도 에이전트 대화가 유지됩니다. 중단한 곳에서 이어서.
+- ⚡ **모든 프로토콜** — OpenAI API & Anthropic API. 에이전트마다 프로토콜을 설정해 설정 변경 없이 전환.
 
 ---
 
-## ✨ Echobird란?
+## ✨ Echobird — 모델을 전환. 설정 파일이 아닌.
 
-Echobird는 AI 코딩 도구 전반에 걸쳐 **통합된 모델 관리 인터페이스**를 제공하는 데스크톱 앱입니다.
+Echobird는 모든 AI 코딩 도구의 **비주얼 컨트롤 패널**입니다. 포인트, 클릭, 전환.
 
-- 🎯 **원클릭 모델 전환** — 지원하는 모든 도구의 AI 모델을 시각적으로 전환
-- 🔀 **이중 프로토콜** — OpenAI & Anthropic API 지원
-- 🚇 **스마트 터널 프록시** — VPN 없이 제한된 API에 접근
-- 🧩 **스킬 브라우저** — AI 스킬 발견, 설치 및 관리
-- 🖥️ **로컬 LLM 서버** — llama.cpp로 오픈소스 모델 로컬 실행
-- 🌍 **28개 언어** — 완전한 국제화 지원
-- 🌃 **사이버펑크 UI** — 네온 그린 터미널 미학
+- 🎯 **원클릭 모델 전환** — 지원 도구의 AI 모델을 시각적으로 설정. JSON 파일 더 이상 없음.
+- 🔀 **듀얼 프로토콜** — OpenAI & Anthropic API. 언제든지 전환.
+- 🚇 **스마트 프록시** — VPN 없이 지역 제한 API 접근.
+- 🧩 **스킬 브라우저** — 여러 도구에서 AI 스킬을 발견·설치.
+- 🎮 **내장 AI 앱** — Reversi, AI 번역 등. 계속 추가 중.
+- 🌍 **28개 언어** — 전 세계 개발자를 위한 완전 국제화.
 
-## 🚀 빠른 시작
+---
+
+## 🖼️ 스크린샷
+
+### Model Nexus — 한 곳에서 모든 AI 모델 관리
+![Model Nexus](./1.png)
+
+### App Manager — 모든 코딩 도구의 모델을 원클릭 전환
+![App Manager](./2.png)
+
+### Local Server — llama.cpp로 오픈소스 모델 로컬 실행
+![Local Server](./3.png)
+
+### Skill Browser — AI 스킬 발견 및 설치
+![Skill Browser](./4.png)
+
+---
+
+## 🚀 다운로드
 
 | 플랫폼 | 다운로드 |
 |--------|---------|
-| Windows | [Echobird-x64-setup.exe](https://github.com/edison7009/Echobird-MotherAgent/releases/latest) |
-| macOS (Apple Silicon) | [Echobird_aarch64.dmg](https://github.com/edison7009/Echobird-MotherAgent/releases/latest) |
-| macOS (Intel) | [Echobird_x64.dmg](https://github.com/edison7009/Echobird-MotherAgent/releases/latest) |
-| Linux | [Echobird_amd64.AppImage](https://github.com/edison7009/Echobird-MotherAgent/releases/latest) |
+| 🪟 Windows | [Echobird-x64-setup.exe](https://github.com/edison7009/Echobird-MotherAgent/releases/latest) |
+| 🍎 macOS (Apple Silicon) | [Echobird_aarch64.dmg](https://github.com/edison7009/Echobird-MotherAgent/releases/latest) |
+| 🍎 macOS (Intel) | [Echobird_x64.dmg](https://github.com/edison7009/Echobird-MotherAgent/releases/latest) |
+| 🐧 Linux | [Echobird_amd64.AppImage](https://github.com/edison7009/Echobird-MotherAgent/releases/latest) |
 
-## 📄 라이선스
+**Linux 빠른 시작:**
+```bash
+chmod +x Echobird_*.AppImage
+./Echobird_*.AppImage
+# FUSE 오류? sudo apt install libfuse2
+```
 
-[MIT](../LICENSE)
+---
+
+## 🔧 지원 도구
+
+| 도구 | 프로토콜 |
+|------|---------|
+| OpenClaw | OpenAI / Anthropic |
+| Claude Code | Anthropic |
+| Cline | OpenAI |
+| Roo Code | OpenAI |
+| Continue | OpenAI |
+| OpenCode | OpenAI |
+| Codex | OpenAI |
+| Aider | OpenAI / Anthropic |
+| ZeroClaw | OpenAI |
+
+---
+
+## 🏗️ 기술 스택
+
+**Tauri 2** + **Rust** + **React** + **TypeScript** + **llama.cpp**
+
+---
+
+## 📬 문의
+
+- 📧 [hi@echobird.ai](mailto:hi@echobird.ai)
+- 🌐 [echobird.ai](https://echobird.ai)
 
 ---
 
 <p align="center">
-  Echobird 팀이 💚 을 담아 제작<br/>
-  <sub>🌐 <a href="https://echobird.ai">echobird.ai</a></sub>
+  Echobird 팀이 💚 으로 제작<br/>
+  <sub>⭐ <a href="https://github.com/edison7009/Echobird-MotherAgent">GitHub에서 스타 주기</a> — 더 많은 사람들이 발견할 수 있습니다!</sub>
 </p>

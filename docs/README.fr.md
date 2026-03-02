@@ -5,8 +5,8 @@
 <h1 align="center">Echobird</h1>
 
 <p align="center">
-  Le hub pour Modèles, Agents et Vibe Coding.<br/>
-  <sub>Console cyberpunk pour l'ère de l'IA — construit avec Tauri + Rust.</sub>
+  Le Nexus pour les Modèles, les Agents et le Vibe Coding.<br/>
+  <sub>Un panneau de contrôle cyberpunk pour l'ère de l'IA — construit avec Tauri + Rust.</sub>
 </p>
 
 <p align="center">
@@ -33,46 +33,95 @@
 
 ---
 
-## 🤖 MotherAgent — La Fonctionnalité Phare
+## 🤖 MotherAgent — Déployez des modèles. Lancez des agents.
 
-**MotherAgent** est l'agent IA autonome intégré à Echobird :
+**MotherAgent** est votre agent IA autonome — déployez des LLMs locaux, connectez des modèles distants et lancez OpenClaw depuis un seul endroit.
 
-- 🧠 **Réflexion et planification** — décompose les tâches complexes en étapes exécutables
-- 🔧 **Utilisation d'outils** — exécute des commandes Shell, lit des fichiers, navigue sur le web
-- 🔄 **Auto-correction** — révise sa propre sortie et réessaie en cas d'erreur
-- 💾 **Mémoire persistante** — l'historique des conversations survit aux redémarrages
-- ⚡ **Compatible avec tout LLM** — connectez OpenAI, Anthropic ou des modèles locaux
+- 🖥️ **Déploiement LLM Local** — Un clic pour déployer Qwen, DeepSeek, Llama via llama.cpp intégré. Vos données ne quittent jamais votre appareil.
+- 🌐 **LLM Distant** — Connectez OpenAI, Anthropic, Google Gemini ou tout endpoint OpenAI-compatible instantanément.
+- 🦅 **Déployer OpenClaw** — Lancez et gérez les agents OpenClaw directement depuis MotherAgent. Sans terminal.
+- 💾 **Sessions Persistantes** — Les conversations de l'agent survivent au redémarrage. Reprenez exactement où vous en étiez.
+- ⚡ **Tout Protocole** — OpenAI API et Anthropic API. Changez de protocole par agent sans toucher la config.
 
 ---
 
-## ✨ Qu'est-ce qu'Echobird ?
+## ✨ Echobird — Changez de modèle. Pas de fichiers config.
 
-Echobird est une application de bureau qui fournit une **interface unifiée et visuelle** pour gérer les modèles d'IA dans tous vos outils de programmation.
+Echobird est le **panneau de contrôle visuel** pour tous vos outils IA. Pointez, cliquez, changez.
 
-- 🎯 **Changement de modèle en un clic**
-- 🔀 **Double protocole** — OpenAI & Anthropic API
-- 🚇 **Proxy tunnel intelligent** — accès aux API restreintes sans VPN global
-- 🧩 **Navigateur de compétences** — découvrez et installez des compétences IA
-- 🖥️ **Serveur LLM local** — exécutez des modèles open-source localement via llama.cpp
-- 🌍 **28 langues** — support d'internationalisation complet
-- 🌃 **Interface cyberpunk** — esthétique terminal vert néon
+- 🎯 **Changement en Un Clic** — Configurez visuellement les modèles IA pour n'importe quel outil. Fini l'édition JSON.
+- 🔀 **Double Protocole** — OpenAI & Anthropic API. Changez à tout moment.
+- 🚇 **Proxy Tunnel** — APIs géo-restreintes sans VPN complet.
+- 🧩 **Navigateur de Skills** — Découvrez et installez des compétences IA sur plusieurs outils.
+- 🎮 **Apps IA** — Reversi, AI Translate. D'autres à venir.
+- 🌍 **28 Langues** — Internationalisation complète pour les développeurs du monde entier.
 
-## 🚀 Démarrage Rapide
+---
+
+## 🖼️ Captures d'Écran
+
+### Model Nexus — Gérez tous vos modèles IA en un endroit
+![Model Nexus](./1.png)
+
+### App Manager — Changement de modèle en un clic pour tous les outils
+![App Manager](./2.png)
+
+### Local Server — Exécutez des modèles open-source localement avec llama.cpp
+![Local Server](./3.png)
+
+### Skill Browser — Découvrez et installez des compétences IA
+![Skill Browser](./4.png)
+
+---
+
+## 🚀 Télécharger
 
 | Plateforme | Téléchargement |
-|------------|---------------|
-| Windows | [Echobird-x64-setup.exe](https://github.com/edison7009/Echobird-MotherAgent/releases/latest) |
-| macOS (Apple Silicon) | [Echobird_aarch64.dmg](https://github.com/edison7009/Echobird-MotherAgent/releases/latest) |
-| macOS (Intel) | [Echobird_x64.dmg](https://github.com/edison7009/Echobird-MotherAgent/releases/latest) |
-| Linux | [Echobird_amd64.AppImage](https://github.com/edison7009/Echobird-MotherAgent/releases/latest) |
+|-----------|----------------|
+| 🪟 Windows | [Echobird-x64-setup.exe](https://github.com/edison7009/Echobird-MotherAgent/releases/latest) |
+| 🍎 macOS (Apple Silicon) | [Echobird_aarch64.dmg](https://github.com/edison7009/Echobird-MotherAgent/releases/latest) |
+| 🍎 macOS (Intel) | [Echobird_x64.dmg](https://github.com/edison7009/Echobird-MotherAgent/releases/latest) |
+| 🐧 Linux | [Echobird_amd64.AppImage](https://github.com/edison7009/Echobird-MotherAgent/releases/latest) |
 
-## 📄 Licence
+**Démarrage rapide Linux :**
+```bash
+chmod +x Echobird_*.AppImage
+./Echobird_*.AppImage
+# Erreur FUSE ? sudo apt install libfuse2
+```
 
-[MIT](../LICENSE)
+---
+
+## 🔧 Compatible Avec
+
+| Outil | Protocole |
+|-------|----------|
+| OpenClaw | OpenAI / Anthropic |
+| Claude Code | Anthropic |
+| Cline | OpenAI |
+| Roo Code | OpenAI |
+| Continue | OpenAI |
+| OpenCode | OpenAI |
+| Codex | OpenAI |
+| Aider | OpenAI / Anthropic |
+| ZeroClaw | OpenAI |
+
+---
+
+## 🏗️ Stack Technique
+
+**Tauri 2** + **Rust** + **React** + **TypeScript** + **llama.cpp**
+
+---
+
+## 📬 Contact
+
+- 📧 [hi@echobird.ai](mailto:hi@echobird.ai)
+- 🌐 [echobird.ai](https://echobird.ai)
 
 ---
 
 <p align="center">
   Fait avec 💚 par l'équipe Echobird<br/>
-  <sub>🌐 <a href="https://echobird.ai">echobird.ai</a></sub>
+  <sub>⭐ <a href="https://github.com/edison7009/Echobird-MotherAgent">Étoilez sur GitHub</a> — ça aide les autres à découvrir le projet !</sub>
 </p>

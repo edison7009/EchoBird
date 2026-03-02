@@ -5,8 +5,8 @@
 <h1 align="center">Echobird</h1>
 
 <p align="center">
-  模型、智能體與 Vibe Coding 的樞紐。<br/>
-  <sub>賽博朋克風格的 AI 時代控制台 — 基於 Tauri + Rust 構建。</sub>
+  模型、智能體與 Vibe Coding 的中樞。<br/>
+  <sub>AI 時代的賽博龐克控制台 — 基於 Tauri + Rust 構建。</sub>
 </p>
 
 <p align="center">
@@ -33,57 +33,95 @@
 
 ---
 
-## 🤖 MotherAgent — 核心功能
+## 🤖 MotherAgent — 部署模型。執行智能體。
 
-**MotherAgent** 是 Echobird 內建的自主 AI 智能體。與簡單的聊天介面不同，MotherAgent 能夠：
+**MotherAgent** 是你的自主 AI 智能體 —— 部署本地 LLM、連接遠端模型、啟動 OpenClaw，一站搞定。
 
-- 🧠 **思考與規劃** — 將複雜任務分解為可執行的步驟
-- 🔧 **使用工具** — 執行 Shell 命令、讀取檔案、瀏覽網頁
-- 🔄 **自我修正** — 檢查自身輸出並在出錯時重試
-- 💾 **持久記憶** — 對話記錄在應用重啟後依然保留
-- ⚡ **支援任意 LLM** — 連接 OpenAI、Anthropic 或本地模型
-
-> MotherAgent 將任何 LLM 變成具備自主能力的程式設計夥伴。
+- 🖥️ **本地 LLM 部署** — 一鍵透過內建 llama.cpp 在本機部署 Qwen、DeepSeek、Llama 等開源模型。資料永不離開裝置。
+- 🌐 **遠端 LLM** — 即時接入 OpenAI、Anthropic、Google Gemini 或任意 OpenAI 相容端點。
+- 🦅 **部署 OpenClaw** — 直接從 MotherAgent 啟動和管理 OpenClaw 智能體。無需終端機。
+- 💾 **持久工作階段** — 智能體對話在應用程式重啟後依然保留，從上次進度繼續。
+- ⚡ **任意協議** — OpenAI API 與 Anthropic API，每個智能體獨立設定，零設定切換。
 
 ---
 
-## ✨ Echobird 是什麼？
+## ✨ Echobird — 切換模型。不是設定檔。
 
-Echobird 是一款桌面應用，為你的 AI 程式設計工具提供**可視化、統一的模型管理介面**。無需再手動翻配置檔案 — 點一下，就能切換。
+Echobird 是所有 AI 程式設計工具的**視覺化控制面板**。點一下，就切換。
 
-### 痛點
+- 🎯 **一鍵切換模型** — 視覺化設定任何支援工具的 AI 模型。不再手動翻 JSON 檔案。
+- 🔀 **雙協議支援** — OpenAI & Anthropic API，隨時切換。
+- 🚇 **智慧隧道代理** — 無需全域 VPN 即可存取受限 API。
+- 🧩 **技能瀏覽器** — 跨工具發現和安裝 AI 技能。
+- 🎮 **內建 AI 應用** — Reversi、AI 翻譯，更多即將到來。
+- 🌍 **28 種語言** — 面向全球開發者的完整國際化支援。
 
-- 😫 在 Claude Code 等工具中切換模型需要手動編輯配置檔案
-- 🔄 每個工具都有自己的模型配置格式
-- 🧩 沒有方便的方式跨工具管理技能和擴充功能
+---
 
-### 解決方案
+## 🖼️ 截圖
 
-- 🎯 **一鍵切換模型** — 可視化切換任何支援工具的 AI 模型
-- 🔀 **雙協議支援** — OpenAI & Anthropic API，隨時隨地切換
-- 🚇 **智慧隧道代理** — 無需全域 VPN 即可存取受限 API
-- 🧩 **技能瀏覽器** — 發現、安裝和管理 AI 技能
-- 🖥️ **本地模型伺服器** — 通過 llama.cpp 本地執行開源模型
-- 🔌 **遠端 LLM** — 連接遠端 LLM 伺服器
-- 🌍 **28 種語言** — 完整國際化支援
-- 🌃 **賽博朋克 UI** — 炫酷的霓虹綠終端美學
+### Model Nexus — 在一處管理所有 AI 模型
+![Model Nexus](./1.png)
 
-## 🚀 快速開始
+### App Manager — 一鍵為所有程式設計工具切換模型
+![App Manager](./2.png)
 
-| 平台 | 下載 |
+### Local Server — 透過 llama.cpp 本地執行開源模型
+![Local Server](./3.png)
+
+### Skill Browser — 發現和安裝 AI 技能
+![Skill Browser](./4.png)
+
+---
+
+## 🚀 下載
+
+| 平台 | 下載連結 |
+|------|---------|
+| 🪟 Windows | [Echobird-x64-setup.exe](https://github.com/edison7009/Echobird-MotherAgent/releases/latest) |
+| 🍎 macOS (Apple Silicon) | [Echobird_aarch64.dmg](https://github.com/edison7009/Echobird-MotherAgent/releases/latest) |
+| 🍎 macOS (Intel) | [Echobird_x64.dmg](https://github.com/edison7009/Echobird-MotherAgent/releases/latest) |
+| 🐧 Linux | [Echobird_amd64.AppImage](https://github.com/edison7009/Echobird-MotherAgent/releases/latest) |
+
+**Linux 快速啟動：**
+```bash
+chmod +x Echobird_*.AppImage
+./Echobird_*.AppImage
+# FUSE 錯誤？執行：sudo apt install libfuse2
+```
+
+---
+
+## 🔧 支援的工具
+
+| 工具 | 協議 |
 |------|------|
-| Windows | [Echobird-x64-setup.exe](https://github.com/edison7009/Echobird-MotherAgent/releases/latest) |
-| macOS (Apple Silicon) | [Echobird_aarch64.dmg](https://github.com/edison7009/Echobird-MotherAgent/releases/latest) |
-| macOS (Intel) | [Echobird_x64.dmg](https://github.com/edison7009/Echobird-MotherAgent/releases/latest) |
-| Linux | [Echobird_amd64.AppImage](https://github.com/edison7009/Echobird-MotherAgent/releases/latest) |
+| OpenClaw | OpenAI / Anthropic |
+| Claude Code | Anthropic |
+| Cline | OpenAI |
+| Roo Code | OpenAI |
+| Continue | OpenAI |
+| OpenCode | OpenAI |
+| Codex | OpenAI |
+| Aider | OpenAI / Anthropic |
+| ZeroClaw | OpenAI |
 
-## 📄 授權條款
+---
 
-[MIT](../LICENSE)
+## 🏗️ 技術棧
+
+**Tauri 2** + **Rust** + **React** + **TypeScript** + **llama.cpp**
+
+---
+
+## 📬 聯絡我們
+
+- 📧 [hi@echobird.ai](mailto:hi@echobird.ai)
+- 🌐 [echobird.ai](https://echobird.ai)
 
 ---
 
 <p align="center">
   由 Echobird 團隊用 💚 打造<br/>
-  <sub>🌐 <a href="https://echobird.ai">echobird.ai</a></sub>
+  <sub>⭐ <a href="https://github.com/edison7009/Echobird-MotherAgent">在 GitHub 上給個 Star</a> — 讓更多人發現這個專案！</sub>
 </p>

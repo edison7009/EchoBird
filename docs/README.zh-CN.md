@@ -5,8 +5,8 @@
 <h1 align="center">Echobird</h1>
 
 <p align="center">
-  模型、智能体与 Vibe Coding 的枢纽。<br/>
-  <sub>赛博朋克风格的 AI 时代控制台 — 基于 Tauri + Rust 构建。</sub>
+  模型、智能体与 Vibe Coding 的中枢。<br/>
+  <sub>AI 时代的赛博朋克控制台 — 基于 Tauri + Rust 构建。</sub>
 </p>
 
 <p align="center">
@@ -33,42 +33,30 @@
 
 ---
 
-## 🤖 MotherAgent — 核心功能
+## 🤖 MotherAgent — 部署模型。运行智能体。
 
-**MotherAgent** 是 Echobird 内置的自主 AI 智能体。与简单的聊天界面不同，MotherAgent 能够：
+**MotherAgent** 是你的自主 AI 智能体 —— 部署本地 LLM、连接远程模型、启动 OpenClaw，一站搞定。
 
-- 🧠 **思考与规划** — 将复杂任务分解为可执行的步骤
-- 🔧 **使用工具** — 执行 Shell 命令、读取文件、浏览网页
-- 🔄 **自我修正** — 检查自身输出并在出错时重试
-- 💾 **持久记忆** — 对话记录在应用重启后依然保留
-- ⚡ **支持任意 LLM** — 连接 OpenAI、Anthropic 或本地模型
-
-> MotherAgent 将任何 LLM 变成具备自主能力的编程伙伴。
+- 🖥️ **本地 LLM 部署** — 一键通过内置 llama.cpp 在本机部署 Qwen、DeepSeek、Llama 等开源模型。数据永不离开设备。
+- 🌐 **远程 LLM** — 即时接入 OpenAI、Anthropic、Google Gemini 或任意 OpenAI 兼容端点。
+- 🦅 **部署 OpenClaw** — 直接从 MotherAgent 启动和管理 OpenClaw 智能体。无需终端。
+- 💾 **持久会话** — 智能体对话在应用重启后依然保留，从上次进度继续。
+- ⚡ **任意协议** — OpenAI API 与 Anthropic API，每个智能体独立配置，零配置切换。
 
 ---
 
-## ✨ Echobird 是什么？
+## ✨ Echobird — 切换模型。不是配置文件。
 
-Echobird 是一款桌面应用，为你的 AI 编程工具提供**可视化、统一的模型管理界面**。无需再手动翻配置文件 — 点一下，就能切换。
+Echobird 是所有 AI 编程工具的**可视化控制面板**。点一下，就切换。
 
-### 痛点
+- 🎯 **一键切换模型** — 可视化配置任何支持工具的 AI 模型。不再手动翻 JSON 文件。
+- 🔀 **双协议支持** — OpenAI & Anthropic API，随时切换。
+- 🚇 **智能隧道代理** — 无需全局 VPN 即可访问受限 API。
+- 🧩 **技能浏览器** — 跨工具发现和安装 AI 技能。
+- 🎮 **内置 AI 应用** — Reversi、AI 翻译，更多即将到来。
+- 🌍 **28 种语言** — 面向全球开发者的完整国际化支持。
 
-- 😫 在 Claude Code 等工具中切换模型需要手动编辑配置文件
-- 🔄 每个工具都有自己的模型配置格式
-- 🧩 没有方便的方式跨工具管理技能和扩展
-
-### 解决方案
-
-Echobird 是你所有 AI 编程工具的**中央控制面板**：
-
-- 🎯 **一键切换模型** — 可视化切换任何支持工具的 AI 模型
-- 🔀 **双协议支持** — OpenAI & Anthropic API，随时随地切换
-- 🚇 **智能隧道代理** — 无需全局 VPN 即可访问受限 API
-- 🧩 **技能浏览器** — 发现、安装和管理 AI 技能
-- 🖥️ **本地模型服务器** — 通过 llama.cpp 本地运行开源模型（Qwen、DeepSeek、Llama）
-- 🔌 **远程 LLM** — 连接远程 LLM 服务器，部署你自己的智能体
-- 🌍 **28 种语言** — 完整国际化支持
-- 🌃 **赛博朋克 UI** — 炫酷的霓虹绿终端美学
+---
 
 ## 🖼️ 截图
 
@@ -84,67 +72,56 @@ Echobird 是你所有 AI 编程工具的**中央控制面板**：
 ### Skill Browser — 发现和安装 AI 技能
 ![Skill Browser](./4.png)
 
-## 🚀 快速开始
+---
 
-### 下载
+## 🚀 下载
 
-获取适合你平台的最新版本：
+| 平台 | 下载链接 |
+|------|---------|
+| 🪟 Windows | [Echobird-x64-setup.exe](https://github.com/edison7009/Echobird-MotherAgent/releases/latest) |
+| 🍎 macOS (Apple Silicon) | [Echobird_aarch64.dmg](https://github.com/edison7009/Echobird-MotherAgent/releases/latest) |
+| 🍎 macOS (Intel) | [Echobird_x64.dmg](https://github.com/edison7009/Echobird-MotherAgent/releases/latest) |
+| 🐧 Linux | [Echobird_amd64.AppImage](https://github.com/edison7009/Echobird-MotherAgent/releases/latest) |
 
-| 平台 | 下载 |
-|------|------|
-| Windows | [Echobird-x64-setup.exe](https://github.com/edison7009/Echobird-MotherAgent/releases/latest) |
-| macOS (Apple Silicon) | [Echobird_aarch64.dmg](https://github.com/edison7009/Echobird-MotherAgent/releases/latest) |
-| macOS (Intel) | [Echobird_x64.dmg](https://github.com/edison7009/Echobird-MotherAgent/releases/latest) |
-| Linux | [Echobird_amd64.AppImage](https://github.com/edison7009/Echobird-MotherAgent/releases/latest) |
-
-### Linux 说明
-
+**Linux 快速启动：**
 ```bash
 chmod +x Echobird_*.AppImage
 ./Echobird_*.AppImage
+# FUSE 报错？运行：sudo apt install libfuse2
 ```
 
-> 如果遇到 FUSE 错误：`sudo apt install libfuse2`
+---
 
 ## 🔧 支持的工具
 
-| 工具 | 状态 | 模型切换 | 协议 |
-|------|------|----------|------|
-| Claude Code | ✅ 已支持 | ✅ | Anthropic |
-| OpenClaw | ✅ 已支持 | ✅ | OpenAI / Anthropic |
-| Cline | ✅ 已支持 | ✅ | OpenAI |
-| Roo Code | ✅ 已支持 | ✅ | OpenAI |
-| Continue | ✅ 已支持 | ✅ | OpenAI |
-| OpenCode | ✅ 已支持 | ✅ | OpenAI |
-| Codex | ✅ 已支持 | ✅ | OpenAI |
-| Aider | ✅ 已支持 | ✅ | OpenAI / Anthropic |
-| ZeroClaw | ✅ 已支持 | ✅ | OpenAI |
+| 工具 | 协议 |
+|------|------|
+| OpenClaw | OpenAI / Anthropic |
+| Claude Code | Anthropic |
+| Cline | OpenAI |
+| Roo Code | OpenAI |
+| Continue | OpenAI |
+| OpenCode | OpenAI |
+| Codex | OpenAI |
+| Aider | OpenAI / Anthropic |
+| ZeroClaw | OpenAI |
+
+---
 
 ## 🏗️ 技术栈
 
-- **Tauri 2** — 跨平台桌面框架（Rust 后端）
-- **Rust** — 高性能原生后端
-- **React + TypeScript** — UI 框架
-- **Vanilla CSS** — 自定义赛博朋克设计系统
-- **Vite** — 构建工具
-- **llama.cpp** — 本地模型推理引擎
+**Tauri 2** + **Rust** + **React** + **TypeScript** + **llama.cpp**
+
+---
 
 ## 📬 联系我们
 
-- 📧 邮箱：[hi@echobird.ai](mailto:hi@echobird.ai)
-- 🌐 网站：[echobird.ai](https://echobird.ai)
-
-## ⭐ 支持
-
-如果 Echobird 对你有帮助，请在 GitHub 上给个 ⭐ — 让更多人发现这个项目！
-
-## 📄 许可证
-
-[MIT](../LICENSE)
+- 📧 [hi@echobird.ai](mailto:hi@echobird.ai)
+- 🌐 [echobird.ai](https://echobird.ai)
 
 ---
 
 <p align="center">
   由 Echobird 团队用 💚 打造<br/>
-  <sub>🌐 <a href="https://echobird.ai">echobird.ai</a></sub>
+  <sub>⭐ <a href="https://github.com/edison7009/Echobird-MotherAgent">在 GitHub 上给个 Star</a> — 让更多人发现这个项目！</sub>
 </p>
