@@ -9,7 +9,8 @@
     "build": "cargo tauri build",
     "preview": "vite preview",
     "test": "vitest run --passWithNoTests",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "copy:config": "echo no-op"
   },
   "dependencies": {
     "@tauri-apps/api": "^2.10.1",
