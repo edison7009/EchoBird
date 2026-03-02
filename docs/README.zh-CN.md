@@ -1,5 +1,5 @@
-﻿<p align="center">
-  <img src="../build/icon.png" alt="Echobird" width="120" />
+<p align="center">
+  <img src="./icon.png" alt="Echobird" width="120" />
 </p>
 
 <h1 align="center">Echobird</h1>

@@ -54,6 +54,9 @@ target/
 src-tauri/target/
 src-tauri/gen/
 
+# Local Cargo config (contains machine-specific paths)
+src-tauri/.cargo/config.toml
+
 # Plugin build artifacts
 plugins/*/target/
 plugins/*/bridge/target/

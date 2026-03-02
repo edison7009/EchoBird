@@ -28,7 +28,7 @@ git -C "d:\Echobird" push origin main
 
 // turbo
 ```powershell
-Copy-Item -Path "d:\Echobird\docs\*" -Destination "d:\Echobird-MotherAgent\" -Recurse -Force
+Copy-Item -Path "d:\Echobird\docs\*" -Destination "d:\Echobird-MotherAgent\docs\" -Recurse -Force
 git -C "d:\Echobird-MotherAgent" add -A
 git -C "d:\Echobird-MotherAgent" commit -m "docs: sync from private repo"
 git -C "d:\Echobird-MotherAgent" push origin main
@@ -40,6 +40,10 @@ Cloudflare Pages will automatically detect the push and redeploy the website (us
 
 ## Note on link paths
 
-- In `d:\Echobird\docs\README.*.md` language files: use `../README.md` for English link
-- In `d:\Echobird-MotherAgent\README.*.md` language files: use `./README.md` for English link
-- The sync command above handles copying; just remember to update both if editing README language files directly
+Both repos now have the same `docs/` directory structure. All paths are identical between private and public repos:
+
+- Language READMEs in `docs/` use `./icon.png`, `./1.png` etc. (relative to `docs/`)
+- Language READMEs use `../README.md` to link back to the English root README
+- The root `README.md` uses `docs/icon.png`, `docs/1.png` etc.
+- The sync command copies `docs/*` to `docs/` in both repos, so paths are always consistent.
+
