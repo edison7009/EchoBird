@@ -185,7 +185,7 @@ export function SkillBrowserProvider({ preloadedSkills, children }: SkillBrowser
         try {
             // 1. Read skill source index
             const indexRaw = await api.fetchSkillSource(SKILLS_INDEX_URL);
-            const index = JSON.parse(indexRaw) as { sources: { id: string; name: string; url: string }[] };
+            const index = JSON.parse(indexRaw.replace(/^\uFEFF/, '')) as { sources: { id: string; name: string; url: string }[] };
             const urls = index.sources.map(s => s.url);
 
             // 2. Fetch all sources in parallel
