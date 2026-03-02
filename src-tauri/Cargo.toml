@@ -61,3 +61,6 @@ reqwest-eventsource = "0.6"
 tokio-util = "0.7"
 uuid = { version = "1", features = ["v4"] }
 base64 = "0.22"
+
+[target.'cfg(unix)'.dependencies]
+libc = "0.2"

@@ -1334,15 +1334,24 @@ pub async fn download_llama_server(
 
         if file_name.ends_with(".zip") {
             // Windows: PowerShell Expand-Archive
-            let status = Command::new("powershell")
-                .args(["-NoProfile", "-Command",
-                    &format!("Expand-Archive -Path '{}' -DestinationPath '{}' -Force",
-                        temp_file.display(), extract_dir.display())])
-                .creation_flags(0x08000000) // CREATE_NO_WINDOW
-                .status()
-                .map_err(|e| format!("Extract failed: {}", e))?;
-            if !status.success() {
-                return Err(format!("PowerShell Expand-Archive failed for {}", file_name));
+            #[cfg(windows)]
+            {
+                use std::os::windows::process::CommandExt;
+                let status = Command::new("powershell")
+                    .args(["-NoProfile", "-Command",
+                        &format!("Expand-Archive -Path '{}' -DestinationPath '{}' -Force",
+                            temp_file.display(), extract_dir.display())])
+                    .creation_flags(0x08000000) // CREATE_NO_WINDOW
+                    .status()
+                    .map_err(|e| format!("Extract failed: {}", e))?;
+                if !status.success() {
+                    return Err(format!("PowerShell Expand-Archive failed for {}", file_name));
+                }
+            }
+            #[cfg(not(windows))]
+            {
+                // Non-Windows should not produce .zip files, but handle gracefully
+                return Err("ZIP extraction is only supported on Windows".to_string());
             }
         } else {
             // macOS/Linux: tar -xzf
