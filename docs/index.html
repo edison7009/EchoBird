@@ -100,7 +100,7 @@
             text-transform: uppercase
         }
 
-        /* Chinese locale overrides ï¿½?CJK chars don't have Orbitron glyphs */
+        /* Chinese locale overrides â CJK chars don't have Orbitron glyphs */
         .lang-zh {
             --cjk: 'Noto Sans SC', 'Noto Sans TC', system-ui, sans-serif
         }
@@ -368,7 +368,7 @@
         }
 
         .sec-head::before {
-            content: 'ï¿½?;
+            content: 'â¯';
             font-size: 16px
         }
 
@@ -472,7 +472,7 @@
         }
 
         .shot-label::before {
-            content: 'ï¿½?;
+            content: 'â¯';
         }
 
         .shot img {
@@ -778,7 +778,7 @@
             </p>
             <div class="hero-actions">
                 <a href="#download" class="btn btn-g" data-i18n="hero_dl">Download for Free</a>
-                <a href="https://github.com/edison7009/Echobird-MotherAgent" target="_blank" class="btn btn-o">â­ Star on GitHub</a>
+                <a href="https://github.com/edison7009/Echobird-MotherAgent" target="_blank" class="btn btn-o">&#9733; Star on GitHub</a>
             </div>
             <p class="hero-note" data-i18n="hero_note">A cyberpunk control panel for the AI era.</p>
         </div>
@@ -787,37 +787,38 @@
         </div>
     </section>
 
+    
     <!-- MotherAgent -->
     <section class="sec" id="motheragent" style="background:linear-gradient(180deg,var(--bg) 0%,var(--bg2) 50%,var(--bg) 100%);border-top:1px solid var(--border);border-bottom:1px solid var(--border)">
         <div class="wrap">
             <div class="sec-head">&#x1F916; MOTHERAGENT</div>
-            <h2 class="sec-title fade">Your autonomous<br>AI coding partner.</h2>
-            <p class="sec-desc fade">MotherAgent goes beyond chat &mdash; it thinks, plans, uses tools, and self-corrects to get things done.</p>
+            <h2 class="sec-title fade">Deploy models.<br>Run agents.</h2>
+            <p class="sec-desc fade">MotherAgent is your autonomous AI agent &mdash; deploy local LLMs, connect remote models, and launch OpenClaw, all from one place.</p>
             <div class="bento">
-                <div class="bento-card fade">
-                    <div class="bento-icon">&#x1F9E0;</div>
-                    <h3>Think &amp; Plan</h3>
-                    <p>Breaks down complex tasks into executable steps automatically.</p>
+                <div class="bento-card big fade">
+                    <div class="bento-icon">&#x1F5A5;&#xFE0F;</div>
+                    <h3>Local LLM Deployment</h3>
+                    <p>One-click deploy Qwen, DeepSeek, Llama and other open-source models on your own machine via built-in llama.cpp. Your data never leaves your device.</p>
                 </div>
                 <div class="bento-card fade">
-                    <div class="bento-icon">&#x1F527;</div>
-                    <h3>Use Tools</h3>
-                    <p>Runs shell commands, reads files, and browses the web to get things done.</p>
+                    <div class="bento-icon">&#x1F310;</div>
+                    <h3>Remote LLM</h3>
+                    <p>Connect OpenAI, Anthropic, Google Gemini, or any OpenAI-compatible remote API endpoint instantly.</p>
                 </div>
                 <div class="bento-card fade">
-                    <div class="bento-icon">&#x1F504;</div>
-                    <h3>Self-Correct</h3>
-                    <p>Reviews its own output and retries automatically on failure.</p>
+                    <div class="bento-icon">&#x1F985;</div>
+                    <h3>Deploy OpenClaw</h3>
+                    <p>Launch and manage OpenClaw agents directly from MotherAgent. Point, configure, and run &mdash; no terminal needed.</p>
                 </div>
                 <div class="bento-card fade">
                     <div class="bento-icon">&#x1F4BE;</div>
-                    <h3>Persistent Memory</h3>
-                    <p>Conversations survive app restarts. Pick up right where you left off.</p>
+                    <h3>Persistent Sessions</h3>
+                    <p>Agent conversations survive app restarts. Pick up exactly where you left off.</p>
                 </div>
-                <div class="bento-card big fade">
+                <div class="bento-card fade">
                     <div class="bento-icon">&#x26A1;</div>
-                    <h3>Any LLM</h3>
-                    <p>Connect OpenAI GPT-4, Anthropic Claude, Google Gemini, or your own local model via llama.cpp. MotherAgent works with whatever LLM you have.</p>
+                    <h3>Any Protocol</h3>
+                    <p>OpenAI API & Anthropic API. Switch protocols per agent with zero config changes.</p>
                 </div>
             </div>
         </div>
@@ -848,7 +849,7 @@
                     <p data-i18n="f3_d">Access geo-restricted APIs. No full VPN needed.</p>
                 </div>
                 <div class="bento-card big fade">
-                    <div class="bento-icon">ð¥ï¿½?/div>
+                    <div class="bento-icon">ð¥ï¸</div>
                     <h3 data-i18n="f4_t">Local Model Server</h3>
                     <p data-i18n="f4_d">Run Qwen, DeepSeek, Llama and other open-source models locally via built-in
                         llama.cpp server. Your data stays on your machine.</p>
@@ -1038,33 +1039,32 @@
                 sec_tools: 'WORKS WITH', tools_title: 'Your favorite tools.', tools_desc: 'Manage AI models across all your coding tools.', ft_issues: 'Issues', ft_discuss: 'Discussions'
             },
             'zh-CN': {
-                hero_title: 'Echobird', nav_logo: 'Echobird', page_title: 'Echobird · AI 模型管理', nav_features: '功能', nav_screenshots: '截图', nav_download: '下载',
-                hero_tag: '<strong>模型</strong>、<strong>智能体</strong> & <strong>Vibe Coding</strong> 的中枢。', hero_dl: '免费下载', hero_note: 'AI 时代的赛博朋克控制台。',
+                hero_title: 'Echobird', nav_logo: 'Echobird', page_title: 'Echobird', nav_features: '功能', nav_screenshots: '截图', nav_download: '下载',
+                hero_tag: '<strong>模型</strong>、<strong>智能体</strong> & <strong>Vibe Coding</strong> 的中枢。', hero_dl: '免费下载', hero_note: 'AI 时代的赛博龙克控制台。',
                 sec_features: '核心功能', features_title: '切换模型。<br>不是配置文件。', features_desc: 'Echobird 是所有 AI 编程工具的可视化控制面板。',
                 f1_t: '一键切换', f1_d: '可视化配置 AI 模型，无需手动编辑配置文件。',
-                f2_t: '双协议', f2_d: 'OpenAI & Anthropic API，随时切换。', f3_t: '智能隧道代理', f3_d: '无需 VPN 访问受限 API。',
-                f4_t: '本地模型', f4_d: '通过 llama.cpp 本地运行 Qwen、DeepSeek、Llama 等开源模型。',
-                f5_t: '技能浏览器', f5_d: '发现并安装 AI 技能。', f6_t: '内置 AI 应用', f6_d: 'Reversi、AI 翻译，更多即将推出。',
-                f7_t: '28 种语言', f7_d: '完整国际化支持。',
-                sec_ss: '截图', ss_title: '实际效果。', ss1: 'Model Nexus · 统一管理 AI 模型', ss2: 'App Manager · 一键切换模型', ss3: 'Local Server · 本地运行模型', ss4: 'Skill Browser · 发现和安装技能',
+                f2_t: '双协议', f2_d: 'OpenAI & Anthropic API，随时切换。', f3_t: '智能隆道代理', f3_d: '无需 VPN 访问受限 API。',
+                f4_t: '本地模型', f4_d: '通过 llama.cpp 本地运行开源模型。',
+                f5_t: '技能浏览器', f5_d: '发现并安装 AI 技能。', f6_t: '内置 AI 应用', f6_d: 'Reversi、AI 翻译。', f7_t: '28 种语言', f7_d: '完整国际化。',
+                sec_ss: '截图', ss_title: '实际效果。', ss1: 'Model Nexus', ss2: 'App Manager', ss3: 'Local Server', ss4: 'Skill Browser',
                 sec_dl: '下载', dl_title: '几秒上手。', dl_desc: '免费、开源、MIT 许可证。', dl_btn: '下载',
                 sec_tools: '支持工具', tools_title: '你喜欢的工具。', tools_desc: '统一管理所有编程工具的 AI 模型。', ft_issues: '问题反馈', ft_discuss: '讨论'
             },
             'zh-TW': {
-                hero_title: 'Echobird', nav_logo: 'Echobird', page_title: 'Echobird · AI 模型管理', nav_features: '功能', nav_screenshots: '截圖', nav_download: '下載',
+                hero_title: 'Echobird', nav_logo: 'Echobird', page_title: 'Echobird', nav_features: '功能', nav_screenshots: '截圖', nav_download: '下載',
                 hero_tag: '<strong>模型</strong>、<strong>智能體</strong> & <strong>Vibe Coding</strong> 的中樞。', hero_dl: '免費下載', hero_note: 'AI 時代的賽博龐克控制台。',
                 sec_features: '核心功能', features_title: '切換模型。<br>不是設定檔。', features_desc: 'Echobird 是所有 AI 程式工具的視覺化控制面板。',
-                f1_t: '一鍵切換', f1_d: '視覺化設定 AI 模型。', f2_t: '雙協議', f2_d: 'OpenAI & Anthropic API。', f3_t: '隧道代理', f3_d: '無需 VPN。',
+                f1_t: '一鍵切換', f1_d: '視覺化設定 AI 模型。', f2_t: '雙協議', f2_d: 'OpenAI & Anthropic API。', f3_t: '階道代理', f3_d: '無需 VPN。',
                 f4_t: '本地模型', f4_d: 'llama.cpp 本地執行開源模型。', f5_t: '技能瀏覽器', f5_d: '發現 AI 技能。', f6_t: '內建應用', f6_d: 'Reversi、AI 翻譯。', f7_t: '28 種語言', f7_d: '完整國際化。',
                 sec_ss: '截圖', ss_title: '實際效果。', ss1: 'Model Nexus', ss2: 'App Manager', ss3: 'Local Server', ss4: 'Skill Browser',
                 sec_dl: '下載', dl_title: '幾秒上手。', dl_desc: '免費、開源、MIT。', dl_btn: '下載',
-                sec_tools: '支援工具', tools_title: '你喜歡的工具。', tools_desc: '統一管理所有工具的 AI 模型。', ft_issues: '問題回報', ft_discuss: '討論'
+                sec_tools: '支援工具', tools_title: '你喜歡的工具。', tools_desc: '統一管理 AI 模型。', ft_issues: '問題回報', ft_discuss: '討論'
             },
             ja: {
                 nav_features: '機能', nav_screenshots: 'スクリーンショット', nav_download: 'ダウンロード',
                 hero_tag: '<strong>モデル</strong>、<strong>エージェント</strong> & <strong>Vibe Coding</strong> のネクサス。', hero_dl: '無料ダウンロード', hero_note: 'AI時代のサイバーパンクコントロールパネル。',
                 sec_features: '機能', features_title: 'モデルを切り替え。<br>設定ファイルではなく。', features_desc: 'EchobirdはすべてのAIコーディングツールのビジュアルコントロールパネル。',
-                f1_t: 'ワンクリック切替', f1_d: 'ビジュアルにAIモデルを設定。', f2_t: 'デュアルプロトコル', f2_d: 'OpenAI & Anthropic API。', f3_t: 'スマートプロキシ', f3_d: 'VPNなしでAPI制限を突破。',
+                f1_t: 'ワンクリック切替', f1_d: '設定ファイル不要。', f2_t: 'デュアルプロトコル', f2_d: 'OpenAI & Anthropic API。', f3_t: 'スマートプロキシ', f3_d: 'VPNなしでAPI制限を突破。',
                 f4_t: 'ローカルサーバー', f4_d: 'llama.cppでオープンソースモデルをローカル実行。', f5_t: 'スキルブラウザ', f5_d: 'AIスキルを発見・インストール。', f6_t: '内蔵AIアプリ', f6_d: 'Reversi、AI翻訳など。', f7_t: '28言語', f7_d: '完全国際化対応。',
                 sec_ss: 'スクリーンショット', ss_title: '実際の画面。', ss1: 'Model Nexus', ss2: 'App Manager', ss3: 'Local Server', ss4: 'Skill Browser',
                 sec_dl: 'ダウンロード', dl_title: '数秒で開始。', dl_desc: '無料・オープンソース・MIT。', dl_btn: 'ダウンロード',
@@ -1072,10 +1072,10 @@
             },
             ko: {
                 nav_features: '기능', nav_screenshots: '스크린샷', nav_download: '다운로드',
-                hero_tag: '<strong>모델</strong>, <strong>에이전트</strong> & <strong>Vibe Coding</strong>의 넥서스。', hero_dl: '무료 다운로드', hero_note: 'AI 시대의 사이버펑크 컨트롤 패널。',
-                sec_features: '기능', features_title: '모델을 전환。<br>설정 파일이 아닌。', features_desc: 'Echobird는 모든 AI 코딩 도구의 비주얼 컨트롤 패널。',
+                hero_tag: '<strong>모델</strong>, <strong>에이전트</strong> & <strong>Vibe Coding</strong>의 넥서스。', hero_dl: '무료 다운로드', hero_note: 'AI 시대의 사이버펝크 콘트롤 패널。',
+                sec_features: '기능', features_title: '모델을 전환。<br>설정 파일이 아닌。', features_desc: 'Echobird는 모든 AI 코딩 도구의 비주얼 콘트롤 패널。',
                 f1_t: '원클릭 전환', f1_d: 'AI 모델을 시각적으로 전환。', f2_t: '듀얼 프로토콜', f2_d: 'OpenAI & Anthropic API。', f3_t: '스마트 프록시', f3_d: 'VPN 없이 API 접근。',
-                f4_t: '로컬 서버', f4_d: 'llama.cpp로 오픈소스 모델 로컬 실행。', f5_t: '스킬 브라우저', f5_d: 'AI 스킬 검색 및 설치。', f6_t: '내장 AI 앱', f6_d: 'Reversi, AI 번역 등。', f7_t: '28개 언어', f7_d: '완전 국제화。',
+                f4_t: '로컈 서버', f4_d: 'llama.cpp로 오픈소스 모델 로컈 실행。', f5_t: '스킬 브라우저', f5_d: 'AI 스킬 검색 및 설치。', f6_t: '내장 AI 앱', f6_d: 'Reversi, AI 번역 등。', f7_t: '28개 언어', f7_d: '완전 국제화。',
                 sec_ss: '스크린샷', ss_title: '실제 화면。', ss1: 'Model Nexus', ss2: 'App Manager', ss3: 'Local Server', ss4: 'Skill Browser',
                 sec_dl: '다운로드', dl_title: '초면 시작。', dl_desc: '무료, 오픈소스, MIT。', dl_btn: '다운로드',
                 sec_tools: '지원 도구', tools_title: '좋아하는 도구。', tools_desc: '모든 코딩 도구의 AI 모델을 통합 관리。', ft_issues: '버그 신고', ft_discuss: '토론'
@@ -1123,7 +1123,7 @@
             ru: {
                 nav_features: 'Ð¤ÑÐ½ÐºÑÐ¸Ð¸', nav_screenshots: 'Ð¡ÐºÑÐ¸Ð½ÑÐ¾ÑÑ', nav_download: 'Ð¡ÐºÐ°ÑÐ°ÑÑ',
                 hero_tag: 'ÐÐµÐºÑÑÑ Ð´Ð»Ñ <strong>ÐÐ¾Ð´ÐµÐ»ÐµÐ¹</strong>, <strong>ÐÐ³ÐµÐ½ÑÐ¾Ð²</strong> & <strong>Vibe Coding</strong>.', hero_dl: 'Ð¡ÐºÐ°ÑÐ°ÑÑ Ð±ÐµÑÐ¿Ð»Ð°ÑÐ½Ð¾', hero_note: 'ÐÐ¸Ð±ÐµÑÐ¿Ð°Ð½Ðº-Ð¿Ð°Ð½ÐµÐ»Ñ ÑÐ¿ÑÐ°Ð²Ð»ÐµÐ½Ð¸Ñ Ð´Ð»Ñ ÑÐ¿Ð¾ÑÐ¸ ÐÐ.',
-                sec_features: 'Ð¤Ð£ÐÐÐ¦ÐÐ', features_title: 'ÐÐµÑÐµÐºÐ»ÑÑÐ°Ð¹ÑÐµ Ð¼Ð¾Ð´ÐµÐ»Ð¸.<br>ÐÐµ ÐºÐ¾Ð½ÑÐ¸Ð³Ð¸.', features_desc: 'Echobird ï¿½?Ð²Ð¸Ð·ÑÐ°Ð»ÑÐ½ÑÐ¹ Ð¿ÑÐ»ÑÑ ÑÐ¿ÑÐ°Ð²Ð»ÐµÐ½Ð¸Ñ Ð´Ð»Ñ Ð²ÑÐµÑ Ð²Ð°ÑÐ¸Ñ ÐÐ-Ð¸Ð½ÑÑÑÑÐ¼ÐµÐ½ÑÐ¾Ð².',
+                sec_features: 'Ð¤Ð£ÐÐÐ¦ÐÐ', features_title: 'ÐÐµÑÐµÐºÐ»ÑÑÐ°Ð¹ÑÐµ Ð¼Ð¾Ð´ÐµÐ»Ð¸.<br>ÐÐµ ÐºÐ¾Ð½ÑÐ¸Ð³Ð¸.', features_desc: 'Echobird â Ð²Ð¸Ð·ÑÐ°Ð»ÑÐ½ÑÐ¹ Ð¿ÑÐ»ÑÑ ÑÐ¿ÑÐ°Ð²Ð»ÐµÐ½Ð¸Ñ Ð´Ð»Ñ Ð²ÑÐµÑ Ð²Ð°ÑÐ¸Ñ ÐÐ-Ð¸Ð½ÑÑÑÑÐ¼ÐµÐ½ÑÐ¾Ð².',
                 f1_t: 'ÐÐµÑÐµÐºÐ»ÑÑÐµÐ½Ð¸Ðµ Ð² ÐÐ´Ð¸Ð½ ÐÐ»Ð¸Ðº', f1_d: 'ÐÐ¸Ð·ÑÐ°Ð»ÑÐ½Ð¾ Ð½Ð°ÑÑÑÐ°Ð¸Ð²Ð°Ð¹ÑÐµ ÐÐ-Ð¼Ð¾Ð´ÐµÐ»Ð¸.', f2_t: 'ÐÐ²Ð¾Ð¹Ð½Ð¾Ð¹ ÐÑÐ¾ÑÐ¾ÐºÐ¾Ð»', f2_d: 'OpenAI Ð¸ Anthropic API.', f3_t: 'Ð¢ÑÐ½Ð½ÐµÐ»ÑÐ½ÑÐ¹ ÐÑÐ¾ÐºÑÐ¸', f3_d: 'ÐÐ¾ÑÑÑÐ¿ Ðº API Ð±ÐµÐ· VPN.',
                 f4_t: 'ÐÐ¾ÐºÐ°Ð»ÑÐ½ÑÐ¹ Ð¡ÐµÑÐ²ÐµÑ', f4_d: 'ÐÐ°Ð¿ÑÑÐºÐ°Ð¹ÑÐµ open-source Ð¼Ð¾Ð´ÐµÐ»Ð¸ Ð»Ð¾ÐºÐ°Ð»ÑÐ½Ð¾.', f5_t: 'ÐÑÐ°ÑÐ·ÐµÑ ÐÐ°Ð²ÑÐºÐ¾Ð²', f5_d: 'ÐÐ°ÑÐ¾Ð´Ð¸ÑÐµ ÐÐ-Ð½Ð°Ð²ÑÐºÐ¸.', f6_t: 'ÐÐ-ÐÑÐ¸Ð»Ð¾Ð¶ÐµÐ½Ð¸Ñ', f6_d: 'Reversi, AI Translate.', f7_t: '28 Ð¯Ð·ÑÐºÐ¾Ð²', f7_d: 'ÐÐ¾Ð»Ð½Ð°Ñ Ð¸Ð½ÑÐµÑÐ½Ð°ÑÐ¸Ð¾Ð½Ð°Ð»Ð¸Ð·Ð°ÑÐ¸Ñ.',
                 sec_ss: 'Ð¡ÐÐ ÐÐÐ¨ÐÐ¢Ð«', ss_title: 'Ð Ð´ÐµÐ¹ÑÑÐ²Ð¸Ð¸.', ss1: 'Model Nexus', ss2: 'App Manager', ss3: 'Local Server', ss4: 'Skill Browser',
