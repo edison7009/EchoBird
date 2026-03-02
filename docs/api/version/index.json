@@ -1,4 +1,4 @@
-{
+﻿{
     "version": "2.0.0",
     "releaseDate": "2026-03-02",
     "releaseNotes": "Complete rewrite from Electron/Node.js to Tauri + Rust. Agent session persistence, Remote LLM support, Skill Browser, Mother Agent, Plugin system.",
