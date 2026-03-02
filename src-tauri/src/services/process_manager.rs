@@ -206,11 +206,12 @@ impl ProcessManager {
         {
             use std::os::windows::process::CommandExt;
             const CREATE_NEW_PROCESS_GROUP: u32 = 0x00000200;
+            const CREATE_NO_WINDOW: u32 = 0x08000000;
 
             // On Windows, `code` is actually `code.cmd` in PATH
             let output = Command::new("cmd")
                 .args(["/c", "code"])
-                .creation_flags(CREATE_NEW_PROCESS_GROUP)
+                .creation_flags(CREATE_NEW_PROCESS_GROUP | CREATE_NO_WINDOW)
                 .spawn()
                 .map_err(|e| format!("Failed to launch VS Code: {}. Is VS Code installed and in PATH?", e))?;
 
@@ -261,6 +262,7 @@ impl ProcessManager {
         {
             use std::os::windows::process::CommandExt;
             const CREATE_NEW_PROCESS_GROUP: u32 = 0x00000200;
+            const CREATE_NO_WINDOW: u32 = 0x08000000;
 
             let ps_cmd = format!(
                 "$process = Start-Process '{}' -PassThru; Write-Output $process.Id",
@@ -269,7 +271,7 @@ impl ProcessManager {
 
             let output = Command::new("powershell")
                 .args(["-Command", &ps_cmd])
-                .creation_flags(CREATE_NEW_PROCESS_GROUP)
+                .creation_flags(CREATE_NEW_PROCESS_GROUP | CREATE_NO_WINDOW)
                 .output()
                 .map_err(|e| format!("PowerShell error: {}", e))?;
 
@@ -341,9 +343,12 @@ impl ProcessManager {
 
         #[cfg(windows)]
         {
+            use std::os::windows::process::CommandExt;
+            const CREATE_NO_WINDOW: u32 = 0x08000000;
             // Windows: taskkill /T /F to kill process tree
             let output = Command::new("taskkill")
                 .args(["/pid", &info.pid.to_string(), "/T", "/F"])
+                .creation_flags(CREATE_NO_WINDOW)
                 .output()
                 .map_err(|e| format!("taskkill error: {}", e))?;
 
@@ -385,8 +390,11 @@ impl ProcessManager {
             if let Some(info) = self.processes.remove(tool_id) {
                 #[cfg(windows)]
                 {
+                    use std::os::windows::process::CommandExt;
+                    const CREATE_NO_WINDOW: u32 = 0x08000000;
                     let _ = Command::new("taskkill")
                         .args(["/pid", &info.pid.to_string(), "/T", "/F"])
+                        .creation_flags(CREATE_NO_WINDOW)
                         .output();
                 }
                 #[cfg(not(windows))]
@@ -403,8 +411,11 @@ impl ProcessManager {
         let mut exited = Vec::new();
 
         for (tool_id, info) in &self.processes {
+            use std::os::windows::process::CommandExt;
+            const CREATE_NO_WINDOW: u32 = 0x08000000;
             let output = Command::new("tasklist")
                 .args(["/FI", &format!("PID eq {}", info.pid), "/FO", "CSV", "/NH"])
+                .creation_flags(CREATE_NO_WINDOW)
                 .output();
 
             match output {
