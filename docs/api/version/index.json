@@ -1,6 +1,6 @@
 ﻿{
-    "version": "2.0.2",
+    "version": "2.0.3",
     "releaseDate": "2026-03-03",
-    "releaseNotes": "Fix tokio spawn panic on startup. Redirect build output to external directory. Docs and gitignore cleanup.",
+    "releaseNotes": "Fix white screen on installed build: include Tailwind/PostCSS config in CI.",
     "downloadUrl": "https://github.com/edison7009/Echobird-MotherAgent/releases/latest"
 }

@@ -36,8 +36,6 @@ demo-*.mjs
 inspect-*.mjs
 verify-*.mjs
 ts-errors.txt
-tailwind.config.js
-postcss.config.js
 
 # Project specific
 .whichclaw.pid
