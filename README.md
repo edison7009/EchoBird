@@ -37,7 +37,7 @@
 
 **MotherAgent** is your autonomous AI agent — deploy local LLMs, connect remote models, and launch OpenClaw, all from one place.
 
-- �️ **Local LLM Deployment** — One-click deploy Qwen, DeepSeek, Llama via built-in llama.cpp. Your data never leaves your device.
+- 🖥️ **Local LLM Deployment** — One-click deploy Qwen, DeepSeek, Llama via built-in llama.cpp. Your data never leaves your device.
 - 🌐 **Remote LLM** — Connect OpenAI, Anthropic, Google Gemini, or any OpenAI-compatible endpoint instantly.
 - 🦅 **Deploy OpenClaw** — Launch and manage OpenClaw agents directly from MotherAgent. No terminal needed.
 - 💾 **Persistent Sessions** — Agent conversations survive app restarts. Pick up exactly where you left off.
