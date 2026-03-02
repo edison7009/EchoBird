@@ -4,42 +4,57 @@ description: Release a new version of Echobird (bump version, tag, push — GitH
 
 # Release Workflow
 
-// turbo-all
+Echobird uses a dual-repo architecture:
+- **Private repo** `edison7009/Echobird` — source code + CI builds
+- **Public repo** `edison7009/Echobird-MotherAgent` — release binaries + website (Cloudflare Pages)
 
-## Pre-release Checklist
+---
 
-1. Make sure all changes are committed and `git status` is clean
-2. Run tests: `npm test` — all must pass
+## Step 1: Bump version numbers
 
-## Version Bump
+Update the version in **3 places**:
 
-3. Update version in `src-tauri/tauri.conf.json` → `"version": "x.x.x"`
-4. Update version in `package.json` → `"version": "x.x.x"`
-5. Update `docs/api/version/index.json`:
-   - `version` → new version
-   - `releaseDate` → today (YYYY-MM-DD)
-   - `releaseNotes` → brief summary of changes
+// turbo
 
-## Commit & Tag
+1. `package.json` → `"version": "X.Y.Z"`
+2. `src-tauri/tauri.conf.json` → `"version": "X.Y.Z"`
+3. `src-tauri/Cargo.toml` → `version = "X.Y.Z"`
+4. `docs/api/version/index.json` → `"version": "X.Y.Z"`
 
-5. Commit version bump:
+---
+
+## Step 2: Commit and push
+
 ```powershell
-git add src-tauri/tauri.conf.json package.json
-git commit -m "release: vX.X.X"
+git add package.json src-tauri/tauri.conf.json src-tauri/Cargo.toml docs/api/version/index.json
+git commit -m "chore: bump version to vX.Y.Z"
+git push origin main
 ```
 
-6. Create and push tag (this triggers GitHub Actions automatically):
+---
+
+## Step 3: Tag and trigger CI
+
 ```powershell
-git tag vX.X.X
-git push origin main --tags
+git tag vX.Y.Z
+git push origin vX.Y.Z
 ```
 
-## Post-release
+GitHub Actions will automatically:
+- Build for Windows, macOS (arm64 + x86_64), Linux
+- Upload artifacts to `Echobird-MotherAgent` as a **Draft Release**
 
-7. Monitor GitHub Actions: https://github.com/edison7009/Echobird/actions
-   - Builds: Windows (.msi/.exe), macOS arm64, macOS x86_64, Linux (.AppImage/.deb)
-   - Takes ~15–25 minutes
-8. Go to GitHub Releases page → the draft release will appear automatically
-9. Edit the release notes, then click **Publish release**
-10. Clean up: remove any `.yml` and `.blockmap` files from the release assets if present
+Check build progress: https://github.com/edison7009/Echobird/actions
 
+---
+
+## Step 4: Publish the release
+
+Once all 4 build jobs complete:
+
+1. Go to https://github.com/edison7009/Echobird-MotherAgent/releases
+2. Find the Draft Release for the new version
+3. Edit the release notes if needed
+4. Click **Publish release**
+
+Users can now download from the public repo Releases page.
