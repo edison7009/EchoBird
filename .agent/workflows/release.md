@@ -5,8 +5,10 @@ description: Release a new version of Echobird (bump version, tag, push — GitH
 # Release Workflow
 
 Echobird uses a dual-repo architecture:
-- **Private repo** `edison7009/Echobird` — source code + CI builds
-- **Public repo** `edison7009/Echobird-MotherAgent` — release binaries + website (Cloudflare Pages)
+- **Private repo** `edison7009/Echobird` — source code only
+- **Public repo** `edison7009/Echobird-MotherAgent` — CI builds (free!), release binaries, website (Cloudflare Pages)
+
+**Build flow:** Private repo push tag → triggers public repo → public repo checks out private code → builds → publishes release (free Actions minutes!)
 
 The website's version API (`/api/version/index.json`) is hosted on the public repo and read by the app for update detection. **Both repos must be updated on every release.**
 
@@ -42,11 +44,11 @@ git tag vX.Y.Z
 git push origin vX.Y.Z
 ```
 
-GitHub Actions will automatically:
-- Build for Windows, macOS (arm64 + x86_64), Linux
-- Upload artifacts to `Echobird-MotherAgent` as a **Draft Release**
+This triggers the chain:
+1. **Private repo** `release.yml` → sends `repository_dispatch` to public repo (takes seconds, almost zero cost)
+2. **Public repo** `release.yml` → checks out private repo code → builds for Windows, macOS (arm64 + x86_64), Linux → uploads as **Draft Release** (100% free!)
 
-Check build progress: https://github.com/edison7009/Echobird/actions
+Check build progress: https://github.com/edison7009/Echobird-MotherAgent/actions
 
 ---
 
@@ -76,3 +78,14 @@ Once all 4 build jobs complete:
 4. Click **Publish release**
 
 Users can now download from the public repo Releases page.
+
+---
+
+## Secrets setup (one-time)
+
+| Repo | Secret | Purpose |
+|---|---|---|
+| **Echobird** (private) | `RELEASE_TOKEN` | PAT with `repo` scope — used to trigger public repo dispatch |
+| **Echobird-MotherAgent** (public) | `PRIVATE_REPO_TOKEN` | PAT with `repo` scope — used to checkout private repo code for building |
+
+Both can use the same Personal Access Token if it has `repo` scope.
