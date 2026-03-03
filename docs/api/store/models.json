@@ -140,7 +140,6 @@
         "icon": "qwen",
         "description": "Balanced reasoning + coding, hybrid thinking mode",
         "huggingfaceRepo": "Qwen/Qwen3-8B-GGUF",
-        "modelScopeRepo": "Qwen/Qwen3-8B-GGUF",
         "variants": [
             {
                 "quantization": "Q4_K_M",
@@ -249,6 +248,270 @@
                 "fileName": "qwen3-8B-Claude-Sonnet-4-Reasoning-Distill_Q4_K_M.gguf",
                 "fileSize": 5027784064,
                 "recommendedVRAM": "6 GB"
+            }
+        ]
+    },
+    {
+        "id": "llama-3.3-70b",
+        "name": "Llama 3.3 70B",
+        "icon": "llama",
+        "description": "Meta's flagship — top-tier instruction following, reasoning & math",
+        "huggingfaceRepo": "bartowski/Llama-3.3-70B-Instruct-GGUF",
+        "variants": [
+            {
+                "quantization": "Q4_K_M",
+                "fileName": "Llama-3.3-70B-Instruct-Q4_K_M.gguf",
+                "fileSize": 43017658368,
+                "recommendedVRAM": "48 GB"
+            },
+            {
+                "quantization": "Q6_K",
+                "fileName": "Llama-3.3-70B-Instruct-Q6_K.gguf",
+                "fileSize": 58574823424,
+                "recommendedVRAM": "64 GB"
+            },
+            {
+                "quantization": "Q8_0",
+                "fileName": "Llama-3.3-70B-Instruct-Q8_0.gguf",
+                "fileSize": 75893268480,
+                "recommendedVRAM": "80 GB"
+            }
+        ]
+    },
+    {
+        "id": "llama-3.1-8b",
+        "name": "Llama 3.1 8B",
+        "icon": "llama",
+        "description": "Meta's entry-level powerhouse — fast, versatile, runs on 6 GB VRAM",
+        "huggingfaceRepo": "bartowski/Meta-Llama-3.1-8B-Instruct-GGUF",
+        "variants": [
+            {
+                "quantization": "Q4_K_M",
+                "fileName": "Meta-Llama-3.1-8B-Instruct-Q4_K_M.gguf",
+                "fileSize": 4919898144,
+                "recommendedVRAM": "6 GB"
+            },
+            {
+                "quantization": "Q6_K",
+                "fileName": "Meta-Llama-3.1-8B-Instruct-Q6_K.gguf",
+                "fileSize": 6325541888,
+                "recommendedVRAM": "8 GB"
+            },
+            {
+                "quantization": "Q8_0",
+                "fileName": "Meta-Llama-3.1-8B-Instruct-Q8_0.gguf",
+                "fileSize": 8539725824,
+                "recommendedVRAM": "10 GB"
+            }
+        ]
+    },
+    {
+        "id": "mistral-small-3.1-24b",
+        "name": "Mistral Small 3.1 24B",
+        "icon": "mistral",
+        "description": "128K context, exceptional multilingual & European-language support",
+        "huggingfaceRepo": "bartowski/Mistral-Small-3.1-24B-Instruct-2503-GGUF",
+        "variants": [
+            {
+                "quantization": "Q4_K_M",
+                "fileName": "Mistral-Small-3.1-24B-Instruct-2503-Q4_K_M.gguf",
+                "fileSize": 14292385792,
+                "recommendedVRAM": "16 GB"
+            },
+            {
+                "quantization": "Q6_K",
+                "fileName": "Mistral-Small-3.1-24B-Instruct-2503-Q6_K.gguf",
+                "fileSize": 19415261184,
+                "recommendedVRAM": "24 GB"
+            },
+            {
+                "quantization": "Q8_0",
+                "fileName": "Mistral-Small-3.1-24B-Instruct-2503-Q8_0.gguf",
+                "fileSize": 25091481600,
+                "recommendedVRAM": "32 GB"
+            }
+        ]
+    },
+    {
+        "id": "gemma-3-27b",
+        "name": "Gemma 3 27B",
+        "icon": "gemma",
+        "description": "Google's strongest Gemma — excels at reasoning, coding and science",
+        "huggingfaceRepo": "bartowski/gemma-3-27b-it-GGUF",
+        "variants": [
+            {
+                "quantization": "Q4_K_M",
+                "fileName": "gemma-3-27b-it-Q4_K_M.gguf",
+                "fileSize": 16348180480,
+                "recommendedVRAM": "24 GB"
+            },
+            {
+                "quantization": "Q6_K",
+                "fileName": "gemma-3-27b-it-Q6_K.gguf",
+                "fileSize": 22337085440,
+                "recommendedVRAM": "24 GB"
+            },
+            {
+                "quantization": "Q8_0",
+                "fileName": "gemma-3-27b-it-Q8_0.gguf",
+                "fileSize": 29031735296,
+                "recommendedVRAM": "32 GB"
+            }
+        ]
+    },
+    {
+        "id": "gemma-3-4b",
+        "name": "Gemma 3 4B",
+        "icon": "gemma",
+        "description": "Google's ultra-lightweight — strong quality at only 4 GB VRAM",
+        "huggingfaceRepo": "bartowski/gemma-3-4b-it-GGUF",
+        "variants": [
+            {
+                "quantization": "Q4_K_M",
+                "fileName": "gemma-3-4b-it-Q4_K_M.gguf",
+                "fileSize": 2490368000,
+                "recommendedVRAM": "4 GB"
+            },
+            {
+                "quantization": "Q6_K",
+                "fileName": "gemma-3-4b-it-Q6_K.gguf",
+                "fileSize": 3331964928,
+                "recommendedVRAM": "4 GB"
+            },
+            {
+                "quantization": "Q8_0",
+                "fileName": "gemma-3-4b-it-Q8_0.gguf",
+                "fileSize": 4309073920,
+                "recommendedVRAM": "6 GB"
+            }
+        ]
+    },
+    {
+        "id": "phi-4-14b",
+        "name": "Phi-4 14B",
+        "icon": "phi",
+        "description": "Microsoft's STEM model — exceptional math, science and code reasoning",
+        "huggingfaceRepo": "bartowski/phi-4-GGUF",
+        "variants": [
+            {
+                "quantization": "Q4_K_M",
+                "fileName": "phi-4-Q4_K_M.gguf",
+                "fileSize": 8748543072,
+                "recommendedVRAM": "10 GB"
+            },
+            {
+                "quantization": "Q6_K",
+                "fileName": "phi-4-Q6_K.gguf",
+                "fileSize": 11742363648,
+                "recommendedVRAM": "16 GB"
+            },
+            {
+                "quantization": "Q8_0",
+                "fileName": "phi-4-Q8_0.gguf",
+                "fileSize": 15296077824,
+                "recommendedVRAM": "16 GB"
+            }
+        ]
+    },
+    {
+        "id": "deepseek-r1-distill-qwen-32b",
+        "name": "DeepSeek R1 Distill 32B",
+        "icon": "deepseek",
+        "description": "R1 reasoning power distilled into 32B Qwen — strong logic & math",
+        "huggingfaceRepo": "bartowski/DeepSeek-R1-Distill-Qwen-32B-GGUF",
+        "variants": [
+            {
+                "quantization": "Q4_K_M",
+                "fileName": "DeepSeek-R1-Distill-Qwen-32B-Q4_K_M.gguf",
+                "fileSize": 19856900096,
+                "recommendedVRAM": "24 GB"
+            },
+            {
+                "quantization": "Q6_K",
+                "fileName": "DeepSeek-R1-Distill-Qwen-32B-Q6_K.gguf",
+                "fileSize": 26883307520,
+                "recommendedVRAM": "32 GB"
+            },
+            {
+                "quantization": "Q8_0",
+                "fileName": "DeepSeek-R1-Distill-Qwen-32B-Q8_0.gguf",
+                "fileSize": 34817719296,
+                "recommendedVRAM": "40 GB"
+            }
+        ]
+    },
+    {
+        "id": "qwq-32b",
+        "name": "QwQ 32B",
+        "icon": "qwen",
+        "description": "Qwen's thinking model — extended chain-of-thought, deep problem solving",
+        "huggingfaceRepo": "Qwen/QwQ-32B-GGUF",
+        "variants": [
+            {
+                "quantization": "Q4_K_M",
+                "fileName": "QwQ-32B-Q4_K_M.gguf",
+                "fileSize": 18864807936,
+                "recommendedVRAM": "24 GB"
+            },
+            {
+                "quantization": "Q6_K",
+                "fileName": "QwQ-32B-Q6_K.gguf",
+                "fileSize": 25647415296,
+                "recommendedVRAM": "32 GB"
+            },
+            {
+                "quantization": "Q8_0",
+                "fileName": "QwQ-32B-Q8_0.gguf",
+                "fileSize": 33180925952,
+                "recommendedVRAM": "40 GB"
+            }
+        ]
+    },
+    {
+        "id": "llama-4-scout-17b-16e",
+        "name": "Llama 4 Scout 17B-16E",
+        "icon": "llama",
+        "description": "Meta's newest MoE — 10M context, multimodal-capable, ideal for remote GPU",
+        "huggingfaceRepo": "unsloth/Llama-4-Scout-17B-16E-Instruct-GGUF",
+        "variants": [
+            {
+                "quantization": "IQ2_M",
+                "fileName": "Llama-4-Scout-17B-16E-Instruct-UD-IQ2_M.gguf",
+                "fileSize": 37127634944,
+                "recommendedVRAM": "48 GB"
+            },
+            {
+                "quantization": "Q4_K_XL",
+                "fileName": "Llama-4-Scout-17B-16E-Instruct-UD-Q4_K_XL.gguf",
+                "fileSize": 62814633984,
+                "recommendedVRAM": "80 GB"
+            }
+        ]
+    },
+    {
+        "id": "llama-3.3-nemotron-super-49b",
+        "name": "Llama 3.3 Nemotron Super 49B",
+        "icon": "nemotron",
+        "description": "NVIDIA ultra-efficient 49B — beats GPT-4o class on reasoning & instruction",
+        "huggingfaceRepo": "bartowski/Llama-3.3-Nemotron-Super-49B-v1-GGUF",
+        "variants": [
+            {
+                "quantization": "Q4_K_M",
+                "fileName": "Llama-3.3-Nemotron-Super-49B-v1-Q4_K_M.gguf",
+                "fileSize": 30151278592,
+                "recommendedVRAM": "40 GB"
+            },
+            {
+                "quantization": "Q6_K",
+                "fileName": "Llama-3.3-Nemotron-Super-49B-v1-Q6_K.gguf",
+                "fileSize": 40962572288,
+                "recommendedVRAM": "48 GB"
+            },
+            {
+                "quantization": "Q8_0",
+                "fileName": "Llama-3.3-Nemotron-Super-49B-v1-Q8_0.gguf",
+                "fileSize": 53020860416,
+                "recommendedVRAM": "64 GB"
             }
         ]
     }
