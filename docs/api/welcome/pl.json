@@ -1,0 +1,39 @@
+{
+    "intro": "Nawet jako początkujący w AI, [Echobird] pozwala Ci kierować własnym Agentem — od konfiguracji po pracę — przez zwykły czat.",
+    "providers": [
+        {
+            "name": "MiniMax",
+            "url": "https://platform.minimax.io/subscribe/coding-plan"
+        },
+        {
+            "name": "GLM",
+            "url": "https://z.ai/model-api"
+        },
+        {
+            "name": "Moonshot",
+            "url": "https://platform.moonshot.ai/"
+        }
+    ],
+    "steps": [
+        {
+            "step": "01",
+            "title": "Dodaj model AI",
+            "desc": "Uzyskaj klucz API od [MiniMax], [GLM], [Moonshot] lub innego dostawcy zgodnego z OpenAI i dodaj go w [Model Nexus]. Masz w domu wydajny komputer? Możesz też uruchomić lokalny model."
+        },
+        {
+            "step": "02",
+            "title": "Przygotuj maszynę",
+            "desc": "Twój Agent potrzebuje dedykowanego komputera. Stary domowy PC wystarczy — macOS umożliwia bardziej złożone zadania."
+        },
+        {
+            "step": "03",
+            "title": "Wdrożenie Agenta",
+            "desc": "W [Mother Agent] wybierz dodany model i postępuj zgodnie z procesem konfiguracji, aby wdrożyć AI Agenta na tej maszynie."
+        },
+        {
+            "step": "04",
+            "title": "Dodaj umiejętności i zacznij pracę",
+            "desc": "Przeglądaj [Skill Browser], aby zapisać potrzebne umiejętności. Następnie przejdź do [Channels] i rozmawiaj ze swoim Agentem — jak wysyłanie wiadomości do kolegi."
+        }
+    ]
+}

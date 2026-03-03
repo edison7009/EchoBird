@@ -1,0 +1,39 @@
+{
+    "intro": "Bahkan sebagai pemula AI, [Echobird] memungkinkan Anda mengendalikan Agent sendiri — dari pengaturan hingga pekerjaan — melalui obrolan sederhana.",
+    "providers": [
+        {
+            "name": "MiniMax",
+            "url": "https://platform.minimax.io/subscribe/coding-plan"
+        },
+        {
+            "name": "GLM",
+            "url": "https://z.ai/model-api"
+        },
+        {
+            "name": "Moonshot",
+            "url": "https://platform.moonshot.ai/"
+        }
+    ],
+    "steps": [
+        {
+            "step": "01",
+            "title": "Tambahkan Model AI",
+            "desc": "Dapatkan kunci API dari [MiniMax], [GLM], [Moonshot], atau penyedia apa pun yang kompatibel dengan OpenAI, lalu tambahkan di [Model Nexus]. Punya komputer mumpuni di rumah? Anda juga bisa menjalankan model lokal."
+        },
+        {
+            "step": "02",
+            "title": "Siapkan Mesin",
+            "desc": "Agent Anda memerlukan mesin khusus. Komputer lama di rumah pun bisa — macOS memungkinkan tugas yang lebih kompleks."
+        },
+        {
+            "step": "03",
+            "title": "Deploy Agent Anda",
+            "desc": "Di [Mother Agent], pilih model yang baru ditambahkan dan ikuti alur pengaturan untuk men-deploy AI Agent ke mesin tersebut."
+        },
+        {
+            "step": "04",
+            "title": "Tambahkan Keahlian dan Mulai Bekerja",
+            "desc": "Jelajahi [Skill Browser] untuk menyimpan keahlian yang Anda butuhkan. Lalu buka [Channels] dan chat dengan Agent Anda untuk menugaskan keahlian atau memulai rencana kerja — seperti mengirim pesan ke rekan kerja."
+        }
+    ]
+}

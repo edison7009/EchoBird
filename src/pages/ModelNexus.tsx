@@ -478,16 +478,14 @@ export function ModelNexusMain() {
 
 // ===== Right Panel (Debug Console) =====
 
-// Fallback welcome content (used when remote fetch fails)
+// Fallback welcome content (used when remote fetch fails or content is unavailable)
+// NOTE: keep this generic — no specific provider names here.
+// Providers are controlled exclusively via the remote JSON on echobird.ai.
 const WELCOME_FALLBACK = {
     intro: 'Even as an AI beginner, [Echobird] lets you command your own Agent — from setup to work — through simple chat.',
-    providers: [
-        { name: 'MiniMax', url: 'https://platform.minimaxi.com' },
-        { name: 'GLM', url: 'https://open.bigmodel.cn' },
-        { name: 'Moonshot', url: 'https://platform.moonshot.cn' },
-    ],
+    providers: [] as { name: string; url: string }[],
     steps: [
-        { step: '01', title: 'Add an AI Model', desc: 'Get an API key from MiniMax, GLM, or Moonshot AI and add it in [Model Nexus]. Got a capable machine at home? You can also run a local model instead.' },
+        { step: '01', title: 'Add an AI Model', desc: 'Get an API key from any supported AI provider and add it in [Model Nexus]. Got a capable machine at home? You can also run a local model instead.' },
         { step: '02', title: 'Prepare a Machine', desc: 'Your Agent needs a dedicated machine to run on. A spare home computer works great — macOS enables more complex tasks.' },
         { step: '03', title: 'Deploy Your Agent', desc: 'In [Mother Agent], select the model you just added and follow the setup flow to deploy your own AI Agent onto that machine.' },
         { step: '04', title: 'Add Skills & Get to Work', desc: 'Browse [Skill Browser] to bookmark the capabilities you want. Then head to [Channels] and chat with your Agent to assign skills or kick off a work plan — just like messaging a teammate.' },
@@ -531,7 +529,7 @@ function renderTokens(
             }
             const navKey = PAGE_TOKEN_MAP[token] as any;
             const label = navKey ? t(navKey) : token;
-            return <span key={i} className="text-cyber-accent font-bold">[{label}]</span>;
+            return <span key={i} className="text-cyber-accent font-bold">{label}</span>;
         }
         return <span key={i}>{part}</span>;
     });
@@ -548,29 +546,35 @@ export function ModelNexusPanel() {
         testInputRef, handleTestModel,
     } = useModelNexus();
 
-    const [welcomeContent, setWelcomeContent] = useState<typeof WELCOME_FALLBACK>(WELCOME_FALLBACK);
+    const [welcomeContent, setWelcomeContent] = useState<typeof WELCOME_FALLBACK | null>(null);
 
     useEffect(() => {
-        const SUPPORTED = ['en', 'zh-Hans', 'zh-Hant'];
-        const lang = SUPPORTED.includes(locale) ? locale : 'en';
-        fetch(`https://echobird.ai/api/welcome/${lang}.json`)
-            .then(r => r.json())
-            .then(data => {
+        const fetchWelcome = async () => {
+            try {
+                // Try locale-specific JSON, fall back to en if missing
+                let res = await fetch(`https://echobird.ai/api/welcome/${locale}.json`);
+                if (!res.ok) {
+                    res = await fetch('https://echobird.ai/api/welcome/en.json');
+                }
+                const data = await res.json();
                 if (data?.intro && Array.isArray(data?.steps)) {
                     setWelcomeContent({
                         intro: data.intro,
-                        providers: Array.isArray(data.providers) ? data.providers : WELCOME_FALLBACK.providers,
+                        providers: Array.isArray(data.providers) ? data.providers : [],
                         steps: data.steps,
                     });
                 }
-            })
-            .catch(() => { /* network unavailable, keep fallback */ });
+            } catch {
+                // True network failure — show t('model.selectToTest')
+            }
+        };
+        fetchWelcome();
     }, [locale]);
 
     return (
         <>
             <div className="px-4 pt-0.5 pb-3 text-sm flex items-center justify-between bg-transparent">
-                <span className="font-mono">{selectedModelData ? t('debug.console') : t('debug.gettingStarted')}</span>
+                <span className="font-mono">{selectedModelData ? t('debug.console') : welcomeContent ? t('debug.gettingStarted') : t('debug.console')}</span>
                 {selectedModelData && (
                     <span className="text-[10px] text-cyber-accent font-mono">
                         {selectedModelData.name}
@@ -605,7 +609,7 @@ export function ModelNexusPanel() {
                             <p className="text-cyber-accent">_ ready</p>
                         )}
                     </div>
-                ) : (
+                ) : welcomeContent ? (
                     <div className="space-y-5 py-2">
                         {(() => {
                             const providerMap = new Map(welcomeContent.providers.map(p => [p.name, p.url]));
@@ -629,6 +633,8 @@ export function ModelNexusPanel() {
                             );
                         })()}
                     </div>
+                ) : (
+                    <p className="text-cyber-text-secondary text-sm">{t('model.selectToTest')}</p>
                 )}
             </div>
             <div className="py-3">

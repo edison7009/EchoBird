@@ -1,0 +1,39 @@
+{
+    "intro": "גם אם אתם מתחילים בתחום ה-AI, [Echobird] מאפשר לכם לנהל את ה-Agent שלכם — מהגדרה ועד לעבודה — דרך שיחה פשוטה.",
+    "providers": [
+        {
+            "name": "MiniMax",
+            "url": "https://platform.minimax.io/subscribe/coding-plan"
+        },
+        {
+            "name": "GLM",
+            "url": "https://z.ai/model-api"
+        },
+        {
+            "name": "Moonshot",
+            "url": "https://platform.moonshot.ai/"
+        }
+    ],
+    "steps": [
+        {
+            "step": "01",
+            "title": "הוספת מודל AI",
+            "desc": "קבלו מפתח API מ-[MiniMax], [GLM], [Moonshot] או כל ספק תואם OpenAI אחר, והוסיפו אותו ב-[Model Nexus]. יש לכם מחשב חזק בבית? ניתן גם להריץ מודל מקומי."
+        },
+        {
+            "step": "02",
+            "title": "הכנת מכונה",
+            "desc": "ה-Agent שלכם צריך מחשב ייעודי. מחשב ביתי ישן יעשה את העבודה — macOS מאפשר משימות מורכבות יותר."
+        },
+        {
+            "step": "03",
+            "title": "פריסת ה-Agent שלכם",
+            "desc": "ב-[Mother Agent], בחרו את המודל שהוספתם ועקבו אחר תהליך ההגדרה כדי לפרוס את ה-AI Agent שלכם על אותה מכונה."
+        },
+        {
+            "step": "04",
+            "title": "הוסיפו כישורים והתחילו לעבוד",
+            "desc": "עיינו ב-[Skill Browser] כדי לשמור את הכישורים הרצויים. לאחר מכן עברו ל-[Channels] ושוחחו עם ה-Agent שלכם — כמו שליחת הודעה לעמית."
+        }
+    ]
+}

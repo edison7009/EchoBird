@@ -1,0 +1,39 @@
+{
+    "intro": "Zelfs als AI-beginner kun je met [Echobird] via een eenvoudige chat je eigen Agent aansturen — van setup tot werk.",
+    "providers": [
+        {
+            "name": "MiniMax",
+            "url": "https://platform.minimax.io/subscribe/coding-plan"
+        },
+        {
+            "name": "GLM",
+            "url": "https://z.ai/model-api"
+        },
+        {
+            "name": "Moonshot",
+            "url": "https://platform.moonshot.ai/"
+        }
+    ],
+    "steps": [
+        {
+            "step": "01",
+            "title": "Een AI-model toevoegen",
+            "desc": "Haal een API-sleutel op bij [MiniMax], [GLM], [Moonshot] of een andere OpenAI-compatibele aanbieder en voeg die toe in [Model Nexus]. Heb je thuis een krachtige computer? Je kunt ook een lokaal model draaien."
+        },
+        {
+            "step": "02",
+            "title": "Een machine voorbereiden",
+            "desc": "Je Agent heeft een eigen machine nodig. Een oude thuiscomputer werkt prima — macOS maakt complexere taken mogelijk."
+        },
+        {
+            "step": "03",
+            "title": "Je Agent deployen",
+            "desc": "Selecteer in [Mother Agent] het toegevoegde model en volg het installatieproces om je AI Agent op die machine te deployen."
+        },
+        {
+            "step": "04",
+            "title": "Skills toevoegen en aan de slag",
+            "desc": "Blader door [Skill Browser] om de gewenste vaardigheden op te slaan. Ga dan naar [Channels] en chat met je Agent om skills toe te wijzen of een werkplan te starten — alsof je een bericht naar een collega stuurt."
+        }
+    ]
+}

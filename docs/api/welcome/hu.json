@@ -1,0 +1,39 @@
+{
+    "intro": "Még ha AI-kezdő is vagy, az [Echobird] lehetővé teszi, hogy egyszerű csevegéssel irányítsd saját Agented — a beállítástól a munkáig.",
+    "providers": [
+        {
+            "name": "MiniMax",
+            "url": "https://platform.minimax.io/subscribe/coding-plan"
+        },
+        {
+            "name": "GLM",
+            "url": "https://z.ai/model-api"
+        },
+        {
+            "name": "Moonshot",
+            "url": "https://platform.moonshot.ai/"
+        }
+    ],
+    "steps": [
+        {
+            "step": "01",
+            "title": "AI-modell hozzáadása",
+            "desc": "Szerezz API-kulcsot a [MiniMax]-tól, [GLM]-től, [Moonshot]-tól vagy bármely OpenAI-kompatibilis szolgáltatótól, és add hozzá a [Model Nexus]-hoz. Van otthon erős géped? Helyi modellt is futtathatsz."
+        },
+        {
+            "step": "02",
+            "title": "Gép előkészítése",
+            "desc": "Az Agentnek szüksége van egy dedikált gépre. Egy régi otthoni számítógép is megteszi — macOS összetettebb feladatokat tesz lehetővé."
+        },
+        {
+            "step": "03",
+            "title": "Agented telepítése",
+            "desc": "A [Mother Agent]-ben válaszd ki a hozzáadott modellt, és kövesd a beállítási lépéseket az AI Agent telepítéséhez arra a gépre."
+        },
+        {
+            "step": "04",
+            "title": "Készségek hozzáadása és munkakezdés",
+            "desc": "Böngészd a [Skill Browser]-t a kívánt készségek mentéséhez. Majd menj a [Channels]-be, és chatelj az Agenteddel — mint egy kollégának üzensz."
+        }
+    ]
+}

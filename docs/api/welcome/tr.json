@@ -1,0 +1,39 @@
+{
+    "intro": "AI'ya yeni biri olsanız bile, [Echobird] sayesinde basit bir sohbet aracılığıyla kendi Agent'ınızı kurulumdan çalışmaya kadar yönetebilirsiniz.",
+    "providers": [
+        {
+            "name": "MiniMax",
+            "url": "https://platform.minimax.io/subscribe/coding-plan"
+        },
+        {
+            "name": "GLM",
+            "url": "https://z.ai/model-api"
+        },
+        {
+            "name": "Moonshot",
+            "url": "https://platform.moonshot.ai/"
+        }
+    ],
+    "steps": [
+        {
+            "step": "01",
+            "title": "AI Modeli Ekleyin",
+            "desc": "[MiniMax], [GLM], [Moonshot] veya OpenAI uyumlu herhangi bir sağlayıcıdan API anahtarı alıp [Model Nexus]'e ekleyin. Evde güçlü bir bilgisayar var mı? Yerel bir model de çalıştırabilirsiniz."
+        },
+        {
+            "step": "02",
+            "title": "Bir Makine Hazırlayın",
+            "desc": "Agent'ınızın çalışması için özel bir makineye ihtiyacı var. Eski bir ev bilgisayarı yeterli — macOS daha karmaşık görevleri mümkün kılar."
+        },
+        {
+            "step": "03",
+            "title": "Agent'ınızı Deploy Edin",
+            "desc": "[Mother Agent]'ta eklediğiniz modeli seçip kurulum adımlarını izleyerek AI Agent'ı o makineye deploy edin."
+        },
+        {
+            "step": "04",
+            "title": "Beceri Ekleyin ve İşe Başlayın",
+            "desc": "[Skill Browser]'da istediğiniz becerileri kaydedin. Ardından [Channels]'a geçin ve Agent'ınızla sohbet edin — bir iş arkadaşına mesaj atmak gibi."
+        }
+    ]
+}

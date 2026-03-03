@@ -1,0 +1,39 @@
+{
+    "intro": "Dù bạn mới bắt đầu với AI, [Echobird] cho phép bạn điều hành Agent của mình — từ cài đặt đến làm việc — thông qua cuộc trò chuyện đơn giản.",
+    "providers": [
+        {
+            "name": "MiniMax",
+            "url": "https://platform.minimax.io/subscribe/coding-plan"
+        },
+        {
+            "name": "GLM",
+            "url": "https://z.ai/model-api"
+        },
+        {
+            "name": "Moonshot",
+            "url": "https://platform.moonshot.ai/"
+        }
+    ],
+    "steps": [
+        {
+            "step": "01",
+            "title": "Thêm mô hình AI",
+            "desc": "Lấy khóa API từ [MiniMax], [GLM], [Moonshot] hoặc nhà cung cấp tương thích OpenAI bất kỳ, rồi thêm vào [Model Nexus]. Có máy tính mạnh ở nhà? Bạn cũng có thể chạy mô hình cục bộ."
+        },
+        {
+            "step": "02",
+            "title": "Chuẩn bị một máy tính",
+            "desc": "Agent của bạn cần một máy tính chuyên dụng. Máy cũ ở nhà cũng được — macOS cho phép xử lý các tác vụ phức tạp hơn."
+        },
+        {
+            "step": "03",
+            "title": "Triển khai Agent của bạn",
+            "desc": "Trong [Mother Agent], chọn mô hình vừa thêm và làm theo quy trình cài đặt để triển khai AI Agent lên máy đó."
+        },
+        {
+            "step": "04",
+            "title": "Thêm kỹ năng và bắt đầu làm việc",
+            "desc": "Duyệt [Skill Browser] để đánh dấu các kỹ năng cần thiết. Sau đó vào [Channels] và chat với Agent — như nhắn tin cho đồng nghiệp."
+        }
+    ]
+}

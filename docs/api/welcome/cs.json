@@ -1,0 +1,39 @@
+{
+    "intro": "I jako nováček v oblasti AI vám [Echobird] umožňuje řídit vlastního Agenta — od nastavení po práci — prostřednictvím jednoduchého chatu.",
+    "providers": [
+        {
+            "name": "MiniMax",
+            "url": "https://platform.minimax.io/subscribe/coding-plan"
+        },
+        {
+            "name": "GLM",
+            "url": "https://z.ai/model-api"
+        },
+        {
+            "name": "Moonshot",
+            "url": "https://platform.moonshot.ai/"
+        }
+    ],
+    "steps": [
+        {
+            "step": "01",
+            "title": "Přidat AI model",
+            "desc": "Získejte API klíč od [MiniMax], [GLM], [Moonshot] nebo jiného poskytovatele kompatibilního s OpenAI a přidejte ho do [Model Nexus]. Máte doma výkonný počítač? Můžete spustit i lokální model."
+        },
+        {
+            "step": "02",
+            "title": "Připravte počítač",
+            "desc": "Váš Agent potřebuje vyhrazený stroj. Starý domácí počítač postačí — macOS umožňuje složitější úkoly."
+        },
+        {
+            "step": "03",
+            "title": "Nasaďte svého Agenta",
+            "desc": "V [Mother Agent] vyberte přidaný model a postupujte podle průvodce nasazením AI Agenta na daný stroj."
+        },
+        {
+            "step": "04",
+            "title": "Přidejte dovednosti a začněte pracovat",
+            "desc": "Procházejte [Skill Browser] a ukládejte si potřebné dovednosti. Pak přejděte do [Channels] a chatujte se svým Agentem — jako byste psali kolegovi."
+        }
+    ]
+}

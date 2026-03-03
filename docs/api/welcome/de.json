@@ -1,0 +1,39 @@
+{
+    "intro": "Auch als KI-Einsteiger kannst du mit [Echobird] deinen eigenen Agenten — von der Einrichtung bis zur Arbeit — per einfachem Chat steuern.",
+    "providers": [
+        {
+            "name": "MiniMax",
+            "url": "https://platform.minimax.io/subscribe/coding-plan"
+        },
+        {
+            "name": "GLM",
+            "url": "https://z.ai/model-api"
+        },
+        {
+            "name": "Moonshot",
+            "url": "https://platform.moonshot.ai/"
+        }
+    ],
+    "steps": [
+        {
+            "step": "01",
+            "title": "KI-Modell hinzufügen",
+            "desc": "Hol dir einen API-Schlüssel von [MiniMax], [GLM], [Moonshot] oder einem anderen OpenAI-kompatiblen Anbieter und füge ihn in [Model Nexus] hinzu. Hast du zu Hause einen leistungsstarken Rechner? Du kannst auch ein lokales Modell nutzen."
+        },
+        {
+            "step": "02",
+            "title": "Maschine vorbereiten",
+            "desc": "Dein Agent benötigt einen dedizierten Rechner. Ein alter Heimcomputer reicht — macOS ermöglicht komplexere Aufgaben."
+        },
+        {
+            "step": "03",
+            "title": "Deinen Agenten deployen",
+            "desc": "Wähle in [Mother Agent] das hinzugefügte Modell und folge dem Setup-Prozess, um deinen AI-Agenten auf dem Rechner zu deployen."
+        },
+        {
+            "step": "04",
+            "title": "Skills hinzufügen und loslegen",
+            "desc": "Durchsuche [Skill Browser] nach benötigten Skills und speichere sie. Dann geh zu [Channels] und chatte mit deinem Agenten — wie eine Nachricht an einen Kollegen."
+        }
+    ]
+}
