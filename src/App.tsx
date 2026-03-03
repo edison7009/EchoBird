@@ -33,6 +33,14 @@ function CircuitFlowConnected() {
     return <CircuitFlow channels={pulses.length > 0 ? pulses : undefined} />;
 }
 
+/** Sidebar with live notification badges from GatewayContext */
+function SidebarConnected({ activePage, onPageChange, agentRunning }: { activePage: PageType; onPageChange: (p: PageType) => void; agentRunning: boolean }) {
+    const gw = useGatewayManager();
+    const channelsBadge = gw.hasAnyNewMessage() && activePage !== 'channels';
+    const motherBadge = agentRunning && activePage !== 'mother';
+    return <Sidebar activePage={activePage} onPageChange={onPageChange} agentRunning={agentRunning} channelsBadge={channelsBadge} motherBadge={motherBadge} />;
+}
+
 // Helper: h (hidden) vs shown class
 const page = (active: boolean) => active ? 'contents' : 'hidden';
 const pageBlock = (active: boolean) => active ? 'flex-1 flex flex-col overflow-hidden' : 'hidden';
@@ -105,7 +113,7 @@ function App() {
                                                 <div className="flex flex-1 overflow-hidden text-cyber-accent font-mono p-4 gap-4 grid-bg relative isolate">
                                                     <CircuitFlowConnected />
                                                     {/* Sidebar */}
-                                                    <Sidebar activePage={activePage} onPageChange={setActivePage} agentRunning={agentRunning} />
+                                                    <SidebarConnected activePage={activePage} onPageChange={setActivePage} agentRunning={agentRunning} />
 
                                                     {/* Main content wrapper */}
                                                     <div className="flex-1 flex flex-col overflow-hidden">

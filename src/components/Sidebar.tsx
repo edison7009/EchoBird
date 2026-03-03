@@ -14,9 +14,11 @@ interface SidebarProps {
     activePage: PageType;
     onPageChange: (page: PageType) => void;
     agentRunning?: boolean;
+    channelsBadge?: boolean;
+    motherBadge?: boolean;
 }
 
-export const Sidebar = ({ activePage, onPageChange, agentRunning = false }: SidebarProps) => {
+export const Sidebar = ({ activePage, onPageChange, agentRunning = false, channelsBadge = false, motherBadge = false }: SidebarProps) => {
     const { t } = useI18n();
     // Poll local model server status
     const [serverRunning, setServerRunning] = useState(false);
@@ -87,12 +89,14 @@ export const Sidebar = ({ activePage, onPageChange, agentRunning = false }: Side
                     active={activePage === 'mother'}
                     onClick={() => onPageChange('mother')}
                     color="blue"
+                    badge={motherBadge}
                 />
                 <NavItem
                     icon={<MessageSquare size={18} />}
                     label={t('nav.channels')}
                     active={activePage === 'channels'}
                     onClick={() => onPageChange('channels')}
+                    badge={channelsBadge}
                 />
             </div>
 
