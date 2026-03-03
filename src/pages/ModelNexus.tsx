@@ -628,7 +628,7 @@ export function ModelNexusPanel() {
                                             <div key={step} className={`flex gap-3 ${step === 'tip' ? 'mt-2 pt-3 border-t border-cyber-border/20' : ''}`}>
                                                 <span className="text-cyber-accent font-mono text-sm pt-0.5 flex-shrink-0 w-6">{step === 'tip' ? '💡' : step}</span>
                                                 <div>
-                                                    <div className={`text-sm font-bold mb-1 ${step === 'tip' ? 'text-cyber-text-secondary' : 'text-cyber-accent'}`}>{title}</div>
+                                                    <div className="text-cyber-accent text-sm font-bold mb-1">{title}</div>
                                                     <div className="text-cyber-text text-sm leading-loose">{renderTokens(desc, t, providerMap)}</div>
                                                 </div>
                                             </div>
