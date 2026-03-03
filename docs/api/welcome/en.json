@@ -15,7 +15,7 @@
         {
             "step": "02",
             "title": "Prepare a Machine",
-            "desc": "Your Agent needs a dedicated machine to run on. A spare home computer works great — macOS enables more complex tasks."
+            "desc": "Your Agent needs a dedicated machine to run on. A spare home computer works great. (macOS enables more complex tasks.)"
         },
         {
             "step": "03",

@@ -15,7 +15,7 @@
         {
             "step": "02",
             "title": "Bir Makine Hazırlayın",
-            "desc": "Agent'ınızın çalışması için özel bir makineye ihtiyacı var. Eski bir ev bilgisayarı yeterli — macOS daha karmaşık görevleri mümkün kılar."
+            "desc": "Agent'ınızın çalışması için özel bir makineye ihtiyacı var. Eski bir ev bilgisayarı yeterli. (macOS daha karmaşık görevleri mümkün kılar.)"
         },
         {
             "step": "03",

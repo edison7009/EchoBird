@@ -15,7 +15,7 @@
         {
             "step": "02",
             "title": "Förbered en maskin",
-            "desc": "Din Agent behöver en dedikerad dator. En gammal hemdator fungerar utmärkt — macOS möjliggör mer komplexa uppgifter."
+            "desc": "Din Agent behöver en dedikerad dator. En gammal hemdator fungerar utmärkt. (macOS möjliggör mer komplexa uppgifter.)"
         },
         {
             "step": "03",

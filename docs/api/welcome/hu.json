@@ -15,7 +15,7 @@
         {
             "step": "02",
             "title": "Gép előkészítése",
-            "desc": "Az Agentnek szüksége van egy dedikált gépre. Egy régi otthoni számítógép is megteszi — macOS összetettebb feladatokat tesz lehetővé."
+            "desc": "Az Agentnek szüksége van egy dedikált gépre. Egy régi otthoni számítógép is megteszi. (macOS összetettebb feladatokat tesz lehetővé.)"
         },
         {
             "step": "03",
