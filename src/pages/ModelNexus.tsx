@@ -2,6 +2,7 @@
 // Extracted from App.tsx with Provider pattern for shared state
 
 import { useState, useEffect, useRef, useCallback, createContext, useContext } from 'react';
+import { open as shellOpen } from '@tauri-apps/plugin-shell';
 import { X } from 'lucide-react';
 import { MiniSelect } from '../components/MiniSelect';
 import { ModelCard, ModelCardSkeleton, getModelIcon } from '../components';
@@ -330,6 +331,11 @@ export function ModelNexusMain() {
 
     // Stable handlers for model card interactions
     const handleCardClick = useCallback((model: typeof userModels[0]) => {
+        if (selectedModel === model.internalId) {
+            // Click again to deselect
+            setSelectedModel(null);
+            return;
+        }
         if (selectedModel) {
             setModelTerminals(prev => ({
                 ...prev,
@@ -472,8 +478,67 @@ export function ModelNexusMain() {
 
 // ===== Right Panel (Debug Console) =====
 
+// Fallback welcome content (used when remote fetch fails)
+const WELCOME_FALLBACK = {
+    intro: 'Even as an AI beginner, [Echobird] lets you command your own Agent — from setup to work — through simple chat.',
+    providers: [
+        { name: 'MiniMax', url: 'https://platform.minimaxi.com' },
+        { name: 'GLM', url: 'https://open.bigmodel.cn' },
+        { name: 'Moonshot', url: 'https://platform.moonshot.cn' },
+    ],
+    steps: [
+        { step: '01', title: 'Add an AI Model', desc: 'Get an API key from MiniMax, GLM, or Moonshot AI and add it in [Model Nexus]. Got a capable machine at home? You can also run a local model instead.' },
+        { step: '02', title: 'Prepare a Machine', desc: 'Your Agent needs a dedicated machine to run on. A spare home computer works great — macOS enables more complex tasks.' },
+        { step: '03', title: 'Deploy Your Agent', desc: 'In [Mother Agent], select the model you just added and follow the setup flow to deploy your own AI Agent onto that machine.' },
+        { step: '04', title: 'Add Skills & Get to Work', desc: 'Browse [Skill Browser] to bookmark the capabilities you want. Then head to [Channels] and chat with your Agent to assign skills or kick off a work plan — just like messaging a teammate.' },
+    ],
+};
+
+// Map bracket tokens like [Model Nexus] → i18n nav key
+const PAGE_TOKEN_MAP: Record<string, string> = {
+    'Echobird': 'app.name',
+    'Model Nexus': 'nav.modelNexus',
+    'Mother Agent': 'nav.motherAgent',
+    'Skill Browser': 'nav.skillBrowser',
+    'Channels': 'nav.channels',
+    'App Manager': 'nav.appManager',
+};
+
+// Render a string with [Token] markers:
+//   - nav tokens   → highlighted span with localized name
+//   - provider tokens → clickable inline button that opens a URL
+function renderTokens(
+    text: string,
+    t: (key: any) => string,
+    providerMap: Map<string, string>,
+): React.ReactNode[] {
+    const parts = text.split(/(\[[^\]]+\])/g);
+    return parts.map((part, i) => {
+        const match = part.match(/^\[([^\]]+)\]$/);
+        if (match) {
+            const token = match[1];
+            const url = providerMap.get(token);
+            if (url) {
+                return (
+                    <button
+                        key={i}
+                        onClick={() => shellOpen(url).catch(() => window.open(url, '_blank'))}
+                        className="inline text-cyber-accent font-bold underline decoration-dotted underline-offset-2 cursor-pointer hover:text-white transition-colors"
+                    >
+                        [{token}]
+                    </button>
+                );
+            }
+            const navKey = PAGE_TOKEN_MAP[token] as any;
+            const label = navKey ? t(navKey) : token;
+            return <span key={i} className="text-cyber-accent font-bold">[{label}]</span>;
+        }
+        return <span key={i}>{part}</span>;
+    });
+}
+
 export function ModelNexusPanel() {
-    const { t } = useI18n();
+    const { t, locale } = useI18n();
     const {
         selectedModelData, testOutput, isTesting, arrowIndex,
         testProtocol, setTestProtocol,
@@ -483,10 +548,29 @@ export function ModelNexusPanel() {
         testInputRef, handleTestModel,
     } = useModelNexus();
 
+    const [welcomeContent, setWelcomeContent] = useState<typeof WELCOME_FALLBACK>(WELCOME_FALLBACK);
+
+    useEffect(() => {
+        const SUPPORTED = ['en', 'zh-Hans', 'zh-Hant'];
+        const lang = SUPPORTED.includes(locale) ? locale : 'en';
+        fetch(`https://echobird.ai/api/welcome/${lang}.json`)
+            .then(r => r.json())
+            .then(data => {
+                if (data?.intro && Array.isArray(data?.steps)) {
+                    setWelcomeContent({
+                        intro: data.intro,
+                        providers: Array.isArray(data.providers) ? data.providers : WELCOME_FALLBACK.providers,
+                        steps: data.steps,
+                    });
+                }
+            })
+            .catch(() => { /* network unavailable, keep fallback */ });
+    }, [locale]);
+
     return (
         <>
             <div className="px-4 pt-0.5 pb-3 text-sm flex items-center justify-between bg-transparent">
-                <span className="font-mono">{t('debug.console')}</span>
+                <span className="font-mono">{selectedModelData ? t('debug.console') : t('debug.gettingStarted')}</span>
                 {selectedModelData && (
                     <span className="text-[10px] text-cyber-accent font-mono">
                         {selectedModelData.name}
@@ -522,9 +606,29 @@ export function ModelNexusPanel() {
                         )}
                     </div>
                 ) : (
-                    <p className="text-cyber-text-secondary text-center py-10">
-                        {t('model.selectToTest')}
-                    </p>
+                    <div className="space-y-5 py-2">
+                        {(() => {
+                            const providerMap = new Map(welcomeContent.providers.map(p => [p.name, p.url]));
+                            return (
+                                <>
+                                    <p className="text-cyber-accent text-sm leading-loose">
+                                        {renderTokens(welcomeContent.intro, t, providerMap)}
+                                    </p>
+                                    <div className="space-y-4">
+                                        {welcomeContent.steps.map(({ step, title, desc }) => (
+                                            <div key={step} className="flex gap-3">
+                                                <span className="text-cyber-accent font-mono text-sm pt-0.5 flex-shrink-0 w-6">{step}</span>
+                                                <div>
+                                                    <div className="text-cyber-accent text-sm font-bold mb-1">{title}</div>
+                                                    <div className="text-cyber-text text-sm leading-loose">{renderTokens(desc, t, providerMap)}</div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </>
+                            );
+                        })()}
+                    </div>
                 )}
             </div>
             <div className="py-3">
@@ -640,7 +744,7 @@ export function AddModelModal() {
                 <div className="px-5 pb-5">
                     <div className="space-y-4">
                         <div>
-                            <label className="block text-xs text-cyber-text-secondary mb-1">Name</label>
+                            <label className="block text-xs text-cyber-text-secondary mb-1">{t('model.name')}</label>
                             <input
                                 type="text"
                                 placeholder="e.g. OpenRouter Claude"
@@ -650,7 +754,7 @@ export function AddModelModal() {
                             />
                         </div>
                         <div>
-                            <label className="block text-xs text-cyber-text-secondary mb-1">Base URL (OpenAI API)</label>
+                            <label className="block text-xs text-cyber-text-secondary mb-1">{t('model.openaiUrl')}</label>
                             <input
                                 type="text"
                                 placeholder="https://x.x.com/v1  NOT => /chat/completions"
@@ -660,7 +764,7 @@ export function AddModelModal() {
                             />
                         </div>
                         <div>
-                            <label className="block text-xs text-cyber-text-secondary mb-1">Base URL (Anthropic API)</label>
+                            <label className="block text-xs text-cyber-text-secondary mb-1">{t('model.anthropicUrl')}</label>
                             <input
                                 type="text"
                                 placeholder="https://x.x.com/anthropic  NOT => /v1/messages"
@@ -670,7 +774,7 @@ export function AddModelModal() {
                             />
                         </div>
                         <div>
-                            <label className="block text-xs text-cyber-text-secondary mb-1">Model ID</label>
+                            <label className="block text-xs text-cyber-text-secondary mb-1">{t('model.modelId')}</label>
                             <input
                                 type="text"
                                 placeholder="e.g. anthropic/claude-opus-4.5"
@@ -680,7 +784,7 @@ export function AddModelModal() {
                             />
                         </div>
                         <div>
-                            <label className="block text-xs text-cyber-text-secondary mb-1">API Key</label>
+                            <label className="block text-xs text-cyber-text-secondary mb-1">{t('model.apiKey')}</label>
                             <div className="relative">
                                 <input
                                     type="text"
@@ -851,23 +955,31 @@ export function AddModelModal() {
                                     }
                                 }
 
-                                const modelData = {
-                                    name: newModelForm.name,
-                                    baseUrl: newModelForm.baseUrl,
-                                    anthropicUrl: newModelForm.anthropicUrl || undefined,
-                                    apiKey: newModelForm.apiKey,
-                                    modelId: newModelForm.modelId,
-                                    proxyUrl: proxyUrl,
-                                    ssNode: ssNode
-                                };
-
                                 if (editingModelId && api.updateModel) {
-                                    const updatedModel = await api.updateModel(editingModelId, modelData);
+                                    // Edit: always pass actual values (including empty string) — Rust handles clearing
+                                    const updatedModel = await api.updateModel(editingModelId, {
+                                        name: newModelForm.name,
+                                        baseUrl: newModelForm.baseUrl,
+                                        anthropicUrl: newModelForm.anthropicUrl,
+                                        apiKey: newModelForm.apiKey,
+                                        modelId: newModelForm.modelId,
+                                        proxyUrl: proxyUrl,
+                                        ssNode: ssNode,
+                                    });
                                     if (updatedModel) {
                                         setUserModels(prev => prev.map(m => m.internalId === editingModelId ? updatedModel : m));
                                     }
                                 } else {
-                                    const newModel = await api.addModel(modelData);
+                                    // Add: baseUrl required as string (empty string is valid)
+                                    const newModel = await api.addModel({
+                                        name: newModelForm.name,
+                                        baseUrl: newModelForm.baseUrl,
+                                        anthropicUrl: newModelForm.anthropicUrl || undefined,
+                                        apiKey: newModelForm.apiKey,
+                                        modelId: newModelForm.modelId,
+                                        proxyUrl: proxyUrl,
+                                        ssNode: ssNode,
+                                    });
                                     setUserModels(prev => [...prev, newModel]);
                                 }
 

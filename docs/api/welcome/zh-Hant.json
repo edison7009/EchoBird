@@ -18,7 +18,7 @@
         {
             "step": "01",
             "title": "新增 AI 模型",
-            "desc": "前往 MiniMax、GLM、Moonshot AI 等購買 API Key，然後在 [Model Nexus] 新增。如果你的電腦配置夠好，也可以在本地端執行模型。"
+            "desc": "前往 [MiniMax]、[GLM]、[Moonshot] 等購買 API Key，然後在 [Model Nexus] 新增。如果你的電腦配置夠好，也可以在本地端執行模型。"
         },
         {
             "step": "02",
