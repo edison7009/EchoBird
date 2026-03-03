@@ -127,6 +127,22 @@ pub fn get_tool_definitions() -> Vec<super::llm_client::ToolDef> {
                 "required": ["server_id", "message"]
             }),
         },
+        super::llm_client::ToolDef {
+            name: "web_fetch".into(),
+            description: "Fetch the content of a web page by URL. Returns the page text (HTML stripped). \
+                Use this to read documentation, check npm packages, or look up installation guides. \
+                Maximum response is 8000 characters.".into(),
+            parameters: json!({
+                "type": "object",
+                "properties": {
+                    "url": {
+                        "type": "string",
+                        "description": "The URL to fetch (must be https://)"
+                    }
+                },
+                "required": ["url"]
+            }),
+        },
     ]
 }
 
@@ -187,6 +203,13 @@ pub async fn execute_tool(
                 return ToolResult { success: false, output: "server_id and message are required".into() };
             }
             exec_bridge_chat(server_id, message, session_id, ssh_pool).await
+        }
+        "web_fetch" => {
+            let url = args["url"].as_str().unwrap_or("");
+            if url.is_empty() {
+                return ToolResult { success: false, output: "URL is required".into() };
+            }
+            exec_web_fetch(url).await
         }
         _ => ToolResult { success: false, output: format!("Unknown tool: {}", name) },
     }
@@ -580,4 +603,120 @@ pub fn get_plugins_info() -> String {
     info.push_str("\n  1. Use deploy_bridge to upload the bridge binary to the remote server");
     info.push_str("\n  2. Use bridge_chat to send messages through the bridge");
     info
+}
+
+// ── Web Fetch ──
+
+const WEB_FETCH_MAX_CHARS: usize = 8000;
+const WEB_FETCH_TIMEOUT_SECS: u64 = 15;
+
+async fn exec_web_fetch(url: &str) -> ToolResult {
+    // Only allow HTTPS
+    if !url.starts_with("https://") {
+        return ToolResult {
+            success: false,
+            output: "Only HTTPS URLs are allowed".into(),
+        };
+    }
+
+    let client = match reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(WEB_FETCH_TIMEOUT_SECS))
+        .build()
+    {
+        Ok(c) => c,
+        Err(e) => return ToolResult {
+            success: false,
+            output: format!("Failed to create HTTP client: {}", e),
+        },
+    };
+
+    let response = match client.get(url)
+        .header("User-Agent", "Echobird-MotherAgent/1.0")
+        .send()
+        .await
+    {
+        Ok(r) => r,
+        Err(e) => return ToolResult {
+            success: false,
+            output: format!("Request failed: {}", e),
+        },
+    };
+
+    let status = response.status();
+    if !status.is_success() {
+        return ToolResult {
+            success: false,
+            output: format!("HTTP {}: {}", status.as_u16(), status.canonical_reason().unwrap_or("Error")),
+        };
+    }
+
+    let body = match response.text().await {
+        Ok(t) => t,
+        Err(e) => return ToolResult {
+            success: false,
+            output: format!("Failed to read response: {}", e),
+        },
+    };
+
+    // Strip HTML tags (rough but effective for most pages)
+    let text = strip_html_tags(&body);
+
+    // Collapse whitespace
+    let text: String = text
+        .split_whitespace()
+        .collect::<Vec<&str>>()
+        .join(" ");
+
+    // Truncate to max chars
+    let truncated = if text.len() > WEB_FETCH_MAX_CHARS {
+        format!("{}...\n[Truncated: {} chars total]", &text[..WEB_FETCH_MAX_CHARS], text.len())
+    } else {
+        text
+    };
+
+    ToolResult {
+        success: true,
+        output: truncated,
+    }
+}
+
+fn strip_html_tags(html: &str) -> String {
+    let mut result = String::with_capacity(html.len());
+    let mut in_tag = false;
+    let mut in_script = false;
+    let lower = html.to_lowercase();
+    let chars: Vec<char> = html.chars().collect();
+    let lower_chars: Vec<char> = lower.chars().collect();
+
+    let mut i = 0;
+    while i < chars.len() {
+        if !in_tag && i + 7 < lower_chars.len() {
+            let window: String = lower_chars[i..i+7].iter().collect();
+            if window == "<script" {
+                in_script = true;
+            }
+        }
+        if in_script && i + 8 < lower_chars.len() {
+            let window: String = lower_chars[i..i+9].iter().collect();
+            if window == "</script>" {
+                in_script = false;
+                i += 9;
+                continue;
+            }
+        }
+        if in_script {
+            i += 1;
+            continue;
+        }
+        if chars[i] == '<' {
+            in_tag = true;
+        } else if chars[i] == '>' {
+            in_tag = false;
+            result.push(' ');
+        } else if !in_tag {
+            result.push(chars[i]);
+        }
+        i += 1;
+    }
+    result
 }
