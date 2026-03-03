@@ -1,0 +1,22 @@
+{
+    "hints": [
+        {
+            "action": "install",
+            "agent": "OpenClaw"
+        },
+        {
+            "action": "installSkills",
+            "agent": "OpenClaw"
+        },
+        {
+            "action": "deployLlm"
+        },
+        {
+            "action": "showSpecs"
+        },
+        {
+            "action": "uninstall",
+            "agent": "OpenClaw"
+        }
+    ]
+}

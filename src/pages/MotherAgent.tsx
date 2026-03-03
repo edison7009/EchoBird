@@ -416,6 +416,7 @@ export function MotherAgentMain() {
         sshServers, selectedServerId,
     } = useMotherAgent();
     const [publicIP, setPublicIP] = useState('...');
+    const [remoteHints, setRemoteHints] = useState<Array<{ action: string; agent?: string }>>([]);
     const [serverModel, setServerModel] = useState<string | null>(null);
     const chatInputRef = useRef<HTMLTextAreaElement>(null!);
     const fileInputRef = useRef<HTMLInputElement>(null!);
@@ -536,6 +537,11 @@ export function MotherAgentMain() {
             .then(r => r.text())
             .then(ip => setPublicIP(ip))
             .catch(() => setPublicIP('offline'));
+        // Load remote hint buttons
+        fetch('https://echobird.ai/api/mother/hints.json')
+            .then(r => r.json())
+            .then(data => setRemoteHints(data.hints || []))
+            .catch(() => { /* offline: no hints shown */ });
     }, []);
 
     // Poll Local Server status
@@ -596,24 +602,24 @@ export function MotherAgentMain() {
                                 </div>
                             </div>
                         </div>
-                        {/* Quick prompt hints — always visible, scrolls with content */}
-                        <div className="flex flex-wrap gap-2 mt-2 mb-1">
-                            {([
-                                ['mother.hintInstallOC', 'Install OpenClaw'],
-                                ['mother.hintInstallSkills', 'Install skills for OpenClaw'],
-                                ['mother.hintDeployLlm', 'Deploy Echobird LLM on remote'],
-                                ['mother.hintShowSpecs', 'Show server specs'],
-                                ['mother.hintUninstallOC', 'Uninstall OpenClaw completely'],
-                            ] as const).map(([key]) => (
-                                <button
-                                    key={key}
-                                    onClick={() => { if (!agentModel) return; setChatInput(t(key)); chatInputRef.current?.focus(); }}
-                                    className={`px-3 py-1 text-xs rounded-full border border-cyber-accent-secondary/20 text-cyber-accent-secondary/70 hover:bg-cyber-accent-secondary/10 hover:text-cyber-accent-secondary transition-all ${agentModel ? 'cursor-pointer' : 'opacity-30 cursor-not-allowed'}`}
-                                >
-                                    {t(key)}
-                                </button>
-                            ))}
-                        </div>
+                        {/* Quick prompt hints — loaded from remote, scrolls with content */}
+                        {remoteHints.length > 0 && (
+                            <div className="flex flex-wrap gap-2 mt-2 mb-1">
+                                {remoteHints.map((hint, i) => {
+                                    const i18nKey = `mother.hint${hint.action[0].toUpperCase()}${hint.action.slice(1)}` as any;
+                                    const label = t(i18nKey).replace('{agent}', hint.agent || '');
+                                    return (
+                                        <button
+                                            key={i}
+                                            onClick={() => { if (!agentModel) return; setChatInput(label); chatInputRef.current?.focus(); }}
+                                            className={`px-3 py-1 text-xs rounded-full border border-cyber-accent-secondary/20 text-cyber-accent-secondary/70 hover:bg-cyber-accent-secondary/10 hover:text-cyber-accent-secondary transition-all ${agentModel ? 'cursor-pointer' : 'opacity-30 cursor-not-allowed'}`}
+                                        >
+                                            {label}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        )}
                         <div className="text-cyber-accent-secondary/15 text-xs font-mono mt-1">{'─'.repeat(52)}</div>
                     </div>
 
