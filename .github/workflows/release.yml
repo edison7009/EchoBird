@@ -1,4 +1,4 @@
-name: Release
+name: Trigger Release
 
 on:
   push:
@@ -6,89 +6,13 @@ on:
       - 'v*'
 
 jobs:
-  publish-tauri:
-    permissions:
-      contents: write
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - platform: windows-latest
-            args: ''
-          - platform: macos-latest
-            args: '--target aarch64-apple-darwin'
-          - platform: macos-latest
-            args: '--target x86_64-apple-darwin'
-          - platform: ubuntu-22.04
-            args: ''
-
-    runs-on: ${{ matrix.platform }}
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-
-      - name: Install Rust stable
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
-
-      - name: Install Linux dependencies
-        if: matrix.platform == 'ubuntu-22.04'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            libwebkit2gtk-4.1-dev \
-            libappindicator3-dev \
-            librsvg2-dev \
-            patchelf
-
-      - name: Install frontend dependencies
-        run: npm install
-
-      - name: Build Tauri app
-        uses: tauri-apps/tauri-action@v0
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          args: ${{ matrix.args }}
-
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: release-${{ matrix.platform }}-${{ strategy.job-index }}
-          path: |
-            src-tauri/target/**/release/bundle/**/*.exe
-            src-tauri/target/**/release/bundle/**/*.msi
-            src-tauri/target/**/release/bundle/**/*.dmg
-            src-tauri/target/**/release/bundle/**/*.AppImage
-            src-tauri/target/**/release/bundle/**/*.deb
-            src-tauri/target/**/release/bundle/**/*.rpm
-          if-no-files-found: warn
-
-  publish-release:
-    needs: publish-tauri
+  trigger:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Download all artifacts
-        uses: actions/download-artifact@v4
-        with:
-          path: artifacts/
-          merge-multiple: true
-
-      - name: Publish to Echobird-MotherAgent releases
-        uses: softprops/action-gh-release@v2
-        with:
-          repository: edison7009/Echobird-MotherAgent
-          tag_name: ${{ github.ref_name }}
-          name: Echobird ${{ github.ref_name }}
-          draft: true
-          generate_release_notes: true
-          files: artifacts/**/*
-        env:
-          GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+      - name: Trigger build in public repo
+        run: |
+          curl -X POST \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: token ${{ secrets.RELEASE_TOKEN }}" \
+            https://api.github.com/repos/edison7009/Echobird-MotherAgent/dispatches \
+            -d '{"event_type":"trigger-release","client_payload":{"tag":"${{ github.ref_name }}","ref":"${{ github.ref }}"}}'
