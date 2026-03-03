@@ -3,7 +3,7 @@
     "providers": [
         {
             "name": "NVIDIA",
-            "url": "https://build.nvidia.com/models"
+            "url": "https://build.nvidia.com/models?utm_source=echobird.ai"
         }
     ],
     "steps": [
