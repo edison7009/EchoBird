@@ -1,10 +1,24 @@
 {
     "intro": "Even as an AI beginner, [Echobird] lets you command your own Agent — from setup to work — through simple chat.",
+    "providers": [
+        {
+            "name": "MiniMax",
+            "url": "https://platform.minimaxi.com"
+        },
+        {
+            "name": "GLM",
+            "url": "https://open.bigmodel.cn"
+        },
+        {
+            "name": "Moonshot",
+            "url": "https://platform.moonshot.cn"
+        }
+    ],
     "steps": [
         {
             "step": "01",
             "title": "Add an AI Model",
-            "desc": "The quickest way to start. Get an API key from MiniMax, GLM, Moonshot AI, Anthropic, or any OpenAI-compatible provider — then add it here in [Model Nexus]. Alternatively, if you have a capable machine at home, you can run a local model instead."
+            "desc": "Get an API key from MiniMax, GLM, Moonshot AI, or any OpenAI-compatible provider and add it in [Model Nexus]. Got a capable machine at home? You can also run a local model instead."
         },
         {
             "step": "02",

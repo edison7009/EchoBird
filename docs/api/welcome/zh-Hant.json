@@ -1,10 +1,24 @@
 {
     "intro": "即便你是 AI 新手，在 [Echobird] 的幫助下，你也可以透過簡單聊天的方式，從部署到使用，全程指揮你的 Agent。",
+    "providers": [
+        {
+            "name": "MiniMax",
+            "url": "https://platform.minimaxi.com"
+        },
+        {
+            "name": "GLM",
+            "url": "https://open.bigmodel.cn"
+        },
+        {
+            "name": "Moonshot",
+            "url": "https://platform.moonshot.cn"
+        }
+    ],
     "steps": [
         {
             "step": "01",
             "title": "新增 AI 模型",
-            "desc": "最快的入門方式。前往 MiniMax、GLM、Moonshot AI、Anthropic 等購買 API Key，然後在 [Model Nexus] 新增。如果你的電腦配置夠好，也可以在本地端執行模型。"
+            "desc": "前往 MiniMax、GLM、Moonshot AI 等購買 API Key，然後在 [Model Nexus] 新增。如果你的電腦配置夠好，也可以在本地端執行模型。"
         },
         {
             "step": "02",
