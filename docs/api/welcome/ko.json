@@ -30,7 +30,7 @@
         {
             "step": "tip",
             "title": "추천",
-            "desc": "더 강력한 성능을 원하시나요? [MiniMax], [GLM] 또는 [Moonshot]의 프리미엄 모델을 사용해 보세요."
+            "desc": "장기적으로 사용하려면 [MiniMax], [GLM] 또는 [Moonshot]의 Coding Plan을 권장합니다."
         }
     ],
     "providers_archived": [

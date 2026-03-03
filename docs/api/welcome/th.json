@@ -30,7 +30,7 @@
         {
             "step": "tip",
             "title": "เพิ่มเติม",
-            "desc": "ต้องการพลังมากขึ้น? ลองโมเดลพรีเมียมจาก [MiniMax], [GLM] หรือ [Moonshot]"
+            "desc": "สำหรับการใช้งานระยะยาว แนะนำ Coding Plan จาก [MiniMax], [GLM] หรือ [Moonshot]"
         }
     ],
     "providers_archived": [
