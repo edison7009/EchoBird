@@ -17,6 +17,10 @@
         {
             "action": "uninstall",
             "agent": "OpenClaw"
+        },
+        {
+            "action": "install",
+            "agent": "Claude Code"
         }
     ]
 }
