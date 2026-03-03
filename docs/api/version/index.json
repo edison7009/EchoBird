@@ -1,6 +1,6 @@
 {
-    "version": "2.0.4",
+    "version": "2.0.5",
     "releaseDate": "2026-03-03",
-    "releaseNotes": "Welcome guide with multi-language support (28 languages), inline provider links (MiniMax/GLM/Moonshot), smart locale-cascading fetch, and i18n token system for page names and app name.",
+    "releaseNotes": "Fix: translation keys missing in 2.0.4 (debug.gettingStarted, agent.noModels*), BOM removed from API JSON files (restores model store & skills loading), Local LLM font size restored.",
     "downloadUrl": "https://github.com/edison7009/Echobird-MotherAgent/releases/latest"
 }
