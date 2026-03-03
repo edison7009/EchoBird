@@ -13,18 +13,13 @@
         },
         {
             "step": "03",
-            "title": "Install Mother Agent",
-            "desc": "In [Mother Agent], select the model you just added and follow the setup flow to deploy your Agent."
+            "title": "Deploy Your Agent",
+            "desc": "In [Mother Agent], select the model you just added and follow the setup flow to deploy your own AI Agent onto that machine."
         },
         {
             "step": "04",
-            "title": "Add Skills",
-            "desc": "In [Skill Browser], equip your Agent with specific abilities — just like unlocking skills in a game."
-        },
-        {
-            "step": "05",
-            "title": "Command Your Agents",
-            "desc": "In [Channels], chat with and command one or more of your deployed Agents."
+            "title": "Add Skills & Get to Work",
+            "desc": "Browse [Skill Browser] to bookmark the capabilities you want. Then head to [Channels] and chat with your Agent to assign skills or kick off a work plan — just like messaging a teammate."
         }
     ]
 }

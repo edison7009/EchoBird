@@ -1,5 +1,5 @@
 {
-    "intro": "即便你是 AI 新手，在 Echobird 的帮助下，你也可以通过简单聊天的方式，从安装到使用，全程指挥你的 Agent。",
+    "intro": "即便你是 AI 新手，在 Echobird 的帮助下，你也可以通过简单聊天的方式，从部署到使用，全程指挥你的 Agent。",
     "steps": [
         {
             "step": "01",
@@ -13,18 +13,13 @@
         },
         {
             "step": "03",
-            "title": "安装 Mother Agent",
-            "desc": "在 [Mother Agent] 页面中，选择你刚刚添加的模型，然后按照流程部署你的 Agent。"
+            "title": "部署你的 Agent",
+            "desc": "在 [Mother Agent] 页面中，选择你刚刚添加的模型，按照流程将你的 AI Agent 部署到那台机器上。"
         },
         {
             "step": "04",
-            "title": "添加技能",
-            "desc": "在 [Skill Browser] 页面中，为你的 Agent 添加具体能力——就像玩游戏一样解锁技能。"
-        },
-        {
-            "step": "05",
-            "title": "指挥你的 Agent",
-            "desc": "在 [Channels] 页面中，通过聊天方式指挥一个或多个你部署的 Agent 工作。"
+            "title": "添加技能，开始工作",
+            "desc": "在 [Skill Browser] 中浏览并收藏你需要的技能，然后前往 [Channels]，通过聊天的方式给 Agent 分配技能或下达工作计划——就像给同事发消息一样。"
         }
     ]
 }
