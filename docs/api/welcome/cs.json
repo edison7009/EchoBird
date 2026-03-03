@@ -26,20 +26,25 @@
             "step": "04",
             "title": "Přidejte dovednosti a začněte pracovat",
             "desc": "Procházejte [Skill Browser] a ukládejte si potřebné dovednosti. Pak přejděte do [Channels] a chatujte se svým Agentem — jako byste psali kolegovi."
+        },
+        {
+            "step": "tip",
+            "title": "Extra",
+            "desc": "Chcete větší výkon? Vyzkoušejte prémiové modely od [MiniMax], [GLM] nebo [Moonshot]."
         }
     ],
     "providers_archived": [
         {
             "name": "MiniMax",
-            "url": "https://platform.minimax.io/subscribe/coding-plan"
+            "url": "https://platform.minimax.io/subscribe/coding-plan?utm_source=echobird.ai"
         },
         {
             "name": "GLM",
-            "url": "https://z.ai/model-api"
+            "url": "https://z.ai/model-api?utm_source=echobird.ai"
         },
         {
             "name": "Moonshot",
-            "url": "https://platform.moonshot.ai/"
+            "url": "https://platform.moonshot.ai/?utm_source=echobird.ai"
         }
     ]
 }

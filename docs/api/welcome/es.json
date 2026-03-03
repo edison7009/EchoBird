@@ -26,20 +26,25 @@
             "step": "04",
             "title": "Agregar habilidades y ponerse a trabajar",
             "desc": "Explora [Skill Browser] para guardar las habilidades que necesitas. Luego ve a [Channels] y chatea con tu Agent para asignar habilidades o iniciar un plan de trabajo — como enviar un mensaje a un compañero."
+        },
+        {
+            "step": "tip",
+            "title": "Extra",
+            "desc": "¿Quieres más potencia? Prueba modelos premium de [MiniMax], [GLM] o [Moonshot]."
         }
     ],
     "providers_archived": [
         {
             "name": "MiniMax",
-            "url": "https://platform.minimax.io/subscribe/coding-plan"
+            "url": "https://platform.minimax.io/subscribe/coding-plan?utm_source=echobird.ai"
         },
         {
             "name": "GLM",
-            "url": "https://z.ai/model-api"
+            "url": "https://z.ai/model-api?utm_source=echobird.ai"
         },
         {
             "name": "Moonshot",
-            "url": "https://platform.moonshot.ai/"
+            "url": "https://platform.moonshot.ai/?utm_source=echobird.ai"
         }
     ]
 }

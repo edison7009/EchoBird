@@ -26,20 +26,25 @@
             "step": "04",
             "title": "Добавить навыки и приступить к работе",
             "desc": "Просмотрите [Skill Browser] и сохраните нужные навыки. Затем перейдите в [Channels] и общайтесь с Агентом — как с сообщением коллеге."
+        },
+        {
+            "step": "tip",
+            "title": "Рекомендация",
+            "desc": "Нужна бо́льшая мощность? Попробуйте премиум-модели от [MiniMax], [GLM] или [Moonshot]."
         }
     ],
     "providers_archived": [
         {
             "name": "MiniMax",
-            "url": "https://platform.minimax.io/subscribe/coding-plan"
+            "url": "https://platform.minimax.io/subscribe/coding-plan?utm_source=echobird.ai"
         },
         {
             "name": "GLM",
-            "url": "https://z.ai/model-api"
+            "url": "https://z.ai/model-api?utm_source=echobird.ai"
         },
         {
             "name": "Moonshot",
-            "url": "https://platform.moonshot.ai/"
+            "url": "https://platform.moonshot.ai/?utm_source=echobird.ai"
         }
     ]
 }

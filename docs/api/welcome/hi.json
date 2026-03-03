@@ -26,20 +26,25 @@
             "step": "04",
             "title": "Skills जोड़ें और काम शुरू करें",
             "desc": "[Skill Browser] में ज़रूरी Skills bookmark करें। फिर [Channels] पर जाएं और Agent से चैट करके Skills assign करें या काम का प्लान दें — जैसे किसी सहकर्मी को संदेश भेजना।"
+        },
+        {
+            "step": "tip",
+            "title": "अतिरिक्त",
+            "desc": "अधिक शक्ति चाहिए? [MiniMax], [GLM] या [Moonshot] के प्रीमियम मॉडल आज़माएं।"
         }
     ],
     "providers_archived": [
         {
             "name": "MiniMax",
-            "url": "https://platform.minimax.io/subscribe/coding-plan"
+            "url": "https://platform.minimax.io/subscribe/coding-plan?utm_source=echobird.ai"
         },
         {
             "name": "GLM",
-            "url": "https://z.ai/model-api"
+            "url": "https://z.ai/model-api?utm_source=echobird.ai"
         },
         {
             "name": "Moonshot",
-            "url": "https://platform.moonshot.ai/"
+            "url": "https://platform.moonshot.ai/?utm_source=echobird.ai"
         }
     ]
 }

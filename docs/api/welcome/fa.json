@@ -26,20 +26,25 @@
             "step": "04",
             "title": "افزودن مهارت‌ها و شروع کار",
             "desc": "در [Skill Browser] مهارت‌های مورد نیاز را ذخیره کنید. سپس به [Channels] بروید و با Agent خود چت کنید — مثل پیام دادن به یک همکار."
+        },
+        {
+            "step": "tip",
+            "title": "پیشنهاد",
+            "desc": "قدرت بیشتر می‌خواهید؟ مدل‌های پریمیوم [MiniMax]، [GLM] یا [Moonshot] را امتحان کنید."
         }
     ],
     "providers_archived": [
         {
             "name": "MiniMax",
-            "url": "https://platform.minimax.io/subscribe/coding-plan"
+            "url": "https://platform.minimax.io/subscribe/coding-plan?utm_source=echobird.ai"
         },
         {
             "name": "GLM",
-            "url": "https://z.ai/model-api"
+            "url": "https://z.ai/model-api?utm_source=echobird.ai"
         },
         {
             "name": "Moonshot",
-            "url": "https://platform.moonshot.ai/"
+            "url": "https://platform.moonshot.ai/?utm_source=echobird.ai"
         }
     ]
 }

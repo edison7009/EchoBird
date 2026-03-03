@@ -26,20 +26,25 @@
             "step": "04",
             "title": "Skills toevoegen en aan de slag",
             "desc": "Blader door [Skill Browser] om de gewenste vaardigheden op te slaan. Ga dan naar [Channels] en chat met je Agent om skills toe te wijzen of een werkplan te starten — alsof je een bericht naar een collega stuurt."
+        },
+        {
+            "step": "tip",
+            "title": "Extra",
+            "desc": "Meer kracht nodig? Probeer premiummodellen van [MiniMax], [GLM] of [Moonshot]."
         }
     ],
     "providers_archived": [
         {
             "name": "MiniMax",
-            "url": "https://platform.minimax.io/subscribe/coding-plan"
+            "url": "https://platform.minimax.io/subscribe/coding-plan?utm_source=echobird.ai"
         },
         {
             "name": "GLM",
-            "url": "https://z.ai/model-api"
+            "url": "https://z.ai/model-api?utm_source=echobird.ai"
         },
         {
             "name": "Moonshot",
-            "url": "https://platform.moonshot.ai/"
+            "url": "https://platform.moonshot.ai/?utm_source=echobird.ai"
         }
     ]
 }

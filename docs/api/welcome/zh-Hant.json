@@ -26,20 +26,25 @@
             "step": "04",
             "title": "新增技能，開始工作",
             "desc": "在 [Skill Browser] 中瀏覽並收藏你需要的技能，然後前往 [Channels]，透過聊天方式給 Agent 分配技能或下達工作計劃——就像傳訊息給同事一樣。"
+        },
+        {
+            "step": "tip",
+            "title": "推薦",
+            "desc": "想要更強的效能？試試付費模型：[MiniMax]、[GLM] 或 [Moonshot]。"
         }
     ],
     "providers_archived": [
         {
             "name": "MiniMax",
-            "url": "https://platform.minimax.io/subscribe/coding-plan"
+            "url": "https://platform.minimax.io/subscribe/coding-plan?utm_source=echobird.ai"
         },
         {
             "name": "GLM",
-            "url": "https://z.ai/model-api"
+            "url": "https://z.ai/model-api?utm_source=echobird.ai"
         },
         {
             "name": "Moonshot",
-            "url": "https://platform.moonshot.ai/"
+            "url": "https://platform.moonshot.ai/?utm_source=echobird.ai"
         }
     ]
 }

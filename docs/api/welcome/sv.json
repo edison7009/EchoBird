@@ -26,20 +26,25 @@
             "step": "04",
             "title": "Lägg till färdigheter och börja arbeta",
             "desc": "Bläddra i [Skill Browser] och spara de färdigheter du behöver. Gå sedan till [Channels] och chatta med din Agent — som att skicka ett meddelande till en kollega."
+        },
+        {
+            "step": "tip",
+            "title": "Extra",
+            "desc": "Vill du ha mer kraft? Prova premium-modeller från [MiniMax], [GLM] eller [Moonshot]."
         }
     ],
     "providers_archived": [
         {
             "name": "MiniMax",
-            "url": "https://platform.minimax.io/subscribe/coding-plan"
+            "url": "https://platform.minimax.io/subscribe/coding-plan?utm_source=echobird.ai"
         },
         {
             "name": "GLM",
-            "url": "https://z.ai/model-api"
+            "url": "https://z.ai/model-api?utm_source=echobird.ai"
         },
         {
             "name": "Moonshot",
-            "url": "https://platform.moonshot.ai/"
+            "url": "https://platform.moonshot.ai/?utm_source=echobird.ai"
         }
     ]
 }

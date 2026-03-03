@@ -484,6 +484,7 @@ export function ModelNexusMain() {
 const WELCOME_FALLBACK = {
     intro: 'Even as an AI beginner, [Echobird] lets you command your own Agent — from setup to work — through simple chat.',
     providers: [] as { name: string; url: string }[],
+    providers_archived: [] as { name: string; url: string }[],
     steps: [
         { step: '01', title: 'Add an AI Model', desc: 'Get an API key from any supported AI provider and add it in [Model Nexus]. Got a capable machine at home? You can also run a local model instead.' },
         { step: '02', title: 'Prepare a Machine', desc: 'Your Agent needs a dedicated machine to run on. A spare home computer works great — macOS enables more complex tasks.' },
@@ -561,6 +562,7 @@ export function ModelNexusPanel() {
                     setWelcomeContent({
                         intro: data.intro,
                         providers: Array.isArray(data.providers) ? data.providers : [],
+                        providers_archived: Array.isArray(data.providers_archived) ? data.providers_archived : [],
                         steps: data.steps,
                     });
                 }
@@ -612,7 +614,10 @@ export function ModelNexusPanel() {
                 ) : welcomeContent ? (
                     <div className="space-y-5 py-2">
                         {(() => {
-                            const providerMap = new Map(welcomeContent.providers.map(p => [p.name, p.url]));
+                            const providerMap = new Map([
+                                ...welcomeContent.providers.map(p => [p.name, p.url] as [string, string]),
+                                ...(welcomeContent.providers_archived || []).map(p => [p.name, p.url] as [string, string]),
+                            ]);
                             return (
                                 <>
                                     <p className="text-cyber-accent text-sm leading-loose">
@@ -620,10 +625,10 @@ export function ModelNexusPanel() {
                                     </p>
                                     <div className="space-y-4">
                                         {welcomeContent.steps.map(({ step, title, desc }) => (
-                                            <div key={step} className="flex gap-3">
-                                                <span className="text-cyber-accent font-mono text-sm pt-0.5 flex-shrink-0 w-6">{step}</span>
+                                            <div key={step} className={`flex gap-3 ${step === 'tip' ? 'mt-2 pt-3 border-t border-cyber-border/20' : ''}`}>
+                                                <span className="text-cyber-accent font-mono text-sm pt-0.5 flex-shrink-0 w-6">{step === 'tip' ? '💡' : step}</span>
                                                 <div>
-                                                    <div className="text-cyber-accent text-sm font-bold mb-1">{title}</div>
+                                                    <div className={`text-sm font-bold mb-1 ${step === 'tip' ? 'text-cyber-text-secondary' : 'text-cyber-accent'}`}>{title}</div>
                                                     <div className="text-cyber-text text-sm leading-loose">{renderTokens(desc, t, providerMap)}</div>
                                                 </div>
                                             </div>

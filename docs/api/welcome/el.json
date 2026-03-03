@@ -26,20 +26,25 @@
             "step": "04",
             "title": "Προσθέστε δεξιότητες και ξεκινήστε",
             "desc": "Περιηγηθείτε στο [Skill Browser] για να αποθηκεύσετε δεξιότητες. Μετά πηγαίνετε στο [Channels] και συνομιλήστε με τον Agent σας — σαν να στέλνετε μήνυμα σε συνάδελφο."
+        },
+        {
+            "step": "tip",
+            "title": "Επιπλέον",
+            "desc": "Θέλετε περισσότερη ισχύ; Δοκιμάστε premium μοντέλα από [MiniMax], [GLM] ή [Moonshot]."
         }
     ],
     "providers_archived": [
         {
             "name": "MiniMax",
-            "url": "https://platform.minimax.io/subscribe/coding-plan"
+            "url": "https://platform.minimax.io/subscribe/coding-plan?utm_source=echobird.ai"
         },
         {
             "name": "GLM",
-            "url": "https://z.ai/model-api"
+            "url": "https://z.ai/model-api?utm_source=echobird.ai"
         },
         {
             "name": "Moonshot",
-            "url": "https://platform.moonshot.ai/"
+            "url": "https://platform.moonshot.ai/?utm_source=echobird.ai"
         }
     ]
 }

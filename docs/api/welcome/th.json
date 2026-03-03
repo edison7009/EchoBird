@@ -26,20 +26,25 @@
             "step": "04",
             "title": "เพิ่มทักษะและเริ่มทำงาน",
             "desc": "เรียกดูใน [Skill Browser] เพื่อบุ๊คมาร์คทักษะที่ต้องการ จากนั้นไปที่ [Channels] แล้วแชทกับ Agent ของคุณเพื่อมอบหมายทักษะหรือวางแผนงาน — เหมือนส่งข้อความให้เพื่อนร่วมงาน"
+        },
+        {
+            "step": "tip",
+            "title": "เพิ่มเติม",
+            "desc": "ต้องการพลังมากขึ้น? ลองโมเดลพรีเมียมจาก [MiniMax], [GLM] หรือ [Moonshot]"
         }
     ],
     "providers_archived": [
         {
             "name": "MiniMax",
-            "url": "https://platform.minimax.io/subscribe/coding-plan"
+            "url": "https://platform.minimax.io/subscribe/coding-plan?utm_source=echobird.ai"
         },
         {
             "name": "GLM",
-            "url": "https://z.ai/model-api"
+            "url": "https://z.ai/model-api?utm_source=echobird.ai"
         },
         {
             "name": "Moonshot",
-            "url": "https://platform.moonshot.ai/"
+            "url": "https://platform.moonshot.ai/?utm_source=echobird.ai"
         }
     ]
 }

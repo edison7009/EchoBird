@@ -26,20 +26,25 @@
             "step": "04",
             "title": "스킬 추가 및 업무 시작",
             "desc": "[Skill Browser]에서 원하는 스킬을 즐겨찾기에 추가한 뒤, [Channels]로 이동해 Agent에게 채팅으로 스킬을 배정하거나 작업 계획을 내려주세요 — 동료에게 메시지를 보내는 것처럼요."
+        },
+        {
+            "step": "tip",
+            "title": "추천",
+            "desc": "더 강력한 성능을 원하시나요? [MiniMax], [GLM] 또는 [Moonshot]의 프리미엄 모델을 사용해 보세요."
         }
     ],
     "providers_archived": [
         {
             "name": "MiniMax",
-            "url": "https://platform.minimax.io/subscribe/coding-plan"
+            "url": "https://platform.minimax.io/subscribe/coding-plan?utm_source=echobird.ai"
         },
         {
             "name": "GLM",
-            "url": "https://z.ai/model-api"
+            "url": "https://z.ai/model-api?utm_source=echobird.ai"
         },
         {
             "name": "Moonshot",
-            "url": "https://platform.moonshot.ai/"
+            "url": "https://platform.moonshot.ai/?utm_source=echobird.ai"
         }
     ]
 }

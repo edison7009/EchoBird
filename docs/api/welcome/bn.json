@@ -26,20 +26,25 @@
             "step": "04",
             "title": "দক্ষতা যোগ করুন এবং কাজ শুরু করুন",
             "desc": "[Skill Browser]-এ পছন্দের দক্ষতাগুলো বুকমার্ক করুন। তারপর [Channels]-এ গিয়ে Agent-এর সাথে চ্যাট করে দক্ষতা নির্ধারণ করুন বা কাজের পরিকল্পনা দিন।"
+        },
+        {
+            "step": "tip",
+            "title": "অতিরিক্ত",
+            "desc": "আরও শক্তি চান? [MiniMax], [GLM] বা [Moonshot] এর প্রিমিয়াম মডেল ব্যবহার করুন।"
         }
     ],
     "providers_archived": [
         {
             "name": "MiniMax",
-            "url": "https://platform.minimax.io/subscribe/coding-plan"
+            "url": "https://platform.minimax.io/subscribe/coding-plan?utm_source=echobird.ai"
         },
         {
             "name": "GLM",
-            "url": "https://z.ai/model-api"
+            "url": "https://z.ai/model-api?utm_source=echobird.ai"
         },
         {
             "name": "Moonshot",
-            "url": "https://platform.moonshot.ai/"
+            "url": "https://platform.moonshot.ai/?utm_source=echobird.ai"
         }
     ]
 }

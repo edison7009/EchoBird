@@ -26,20 +26,25 @@
             "step": "04",
             "title": "Tambahkan Keahlian dan Mulai Bekerja",
             "desc": "Jelajahi [Skill Browser] untuk menyimpan keahlian yang Anda butuhkan. Lalu buka [Channels] dan chat dengan Agent Anda untuk menugaskan keahlian atau memulai rencana kerja — seperti mengirim pesan ke rekan kerja."
+        },
+        {
+            "step": "tip",
+            "title": "Ekstra",
+            "desc": "Ingin lebih kuat? Coba model premium dari [MiniMax], [GLM] atau [Moonshot]."
         }
     ],
     "providers_archived": [
         {
             "name": "MiniMax",
-            "url": "https://platform.minimax.io/subscribe/coding-plan"
+            "url": "https://platform.minimax.io/subscribe/coding-plan?utm_source=echobird.ai"
         },
         {
             "name": "GLM",
-            "url": "https://z.ai/model-api"
+            "url": "https://z.ai/model-api?utm_source=echobird.ai"
         },
         {
             "name": "Moonshot",
-            "url": "https://platform.moonshot.ai/"
+            "url": "https://platform.moonshot.ai/?utm_source=echobird.ai"
         }
     ]
 }

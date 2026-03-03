@@ -26,20 +26,25 @@
             "step": "04",
             "title": "スキルを追加して作業開始",
             "desc": "[Skill Browser]で必要なスキルをブックマークし、[Channels]でAgentにチャットでスキルを割り当てたり作業計画を指示したりしましょう — チームメンバーにメッセージを送るような感覚で。"
+        },
+        {
+            "step": "tip",
+            "title": "おすすめ",
+            "desc": "もっとパワーが欲しいですか？[MiniMax]、[GLM]、[Moonshot] のプレミアムモデルをお試しください。"
         }
     ],
     "providers_archived": [
         {
             "name": "MiniMax",
-            "url": "https://platform.minimax.io/subscribe/coding-plan"
+            "url": "https://platform.minimax.io/subscribe/coding-plan?utm_source=echobird.ai"
         },
         {
             "name": "GLM",
-            "url": "https://z.ai/model-api"
+            "url": "https://z.ai/model-api?utm_source=echobird.ai"
         },
         {
             "name": "Moonshot",
-            "url": "https://platform.moonshot.ai/"
+            "url": "https://platform.moonshot.ai/?utm_source=echobird.ai"
         }
     ]
 }

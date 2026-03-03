@@ -26,20 +26,25 @@
             "step": "04",
             "title": "הוסיפו כישורים והתחילו לעבוד",
             "desc": "עיינו ב-[Skill Browser] כדי לשמור את הכישורים הרצויים. לאחר מכן עברו ל-[Channels] ושוחחו עם ה-Agent שלכם — כמו שליחת הודעה לעמית."
+        },
+        {
+            "step": "tip",
+            "title": "נוסף",
+            "desc": "רוצים יותר עוצמה? נסו מודלים פרימיום מ-[MiniMax], [GLM] או [Moonshot]."
         }
     ],
     "providers_archived": [
         {
             "name": "MiniMax",
-            "url": "https://platform.minimax.io/subscribe/coding-plan"
+            "url": "https://platform.minimax.io/subscribe/coding-plan?utm_source=echobird.ai"
         },
         {
             "name": "GLM",
-            "url": "https://z.ai/model-api"
+            "url": "https://z.ai/model-api?utm_source=echobird.ai"
         },
         {
             "name": "Moonshot",
-            "url": "https://platform.moonshot.ai/"
+            "url": "https://platform.moonshot.ai/?utm_source=echobird.ai"
         }
     ]
 }

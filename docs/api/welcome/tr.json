@@ -26,20 +26,25 @@
             "step": "04",
             "title": "Beceri Ekleyin ve İşe Başlayın",
             "desc": "[Skill Browser]'da istediğiniz becerileri kaydedin. Ardından [Channels]'a geçin ve Agent'ınızla sohbet edin — bir iş arkadaşına mesaj atmak gibi."
+        },
+        {
+            "step": "tip",
+            "title": "Ekstra",
+            "desc": "Daha fazla güç mü istiyorsunuz? [MiniMax], [GLM] veya [Moonshot] premium modellerini deneyin."
         }
     ],
     "providers_archived": [
         {
             "name": "MiniMax",
-            "url": "https://platform.minimax.io/subscribe/coding-plan"
+            "url": "https://platform.minimax.io/subscribe/coding-plan?utm_source=echobird.ai"
         },
         {
             "name": "GLM",
-            "url": "https://z.ai/model-api"
+            "url": "https://z.ai/model-api?utm_source=echobird.ai"
         },
         {
             "name": "Moonshot",
-            "url": "https://platform.moonshot.ai/"
+            "url": "https://platform.moonshot.ai/?utm_source=echobird.ai"
         }
     ]
 }

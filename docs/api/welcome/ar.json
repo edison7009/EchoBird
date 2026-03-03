@@ -26,20 +26,25 @@
             "step": "04",
             "title": "أضف مهارات وابدأ العمل",
             "desc": "تصفح [Skill Browser] لحفظ المهارات المطلوبة، ثم اذهب إلى [Channels] وتحدث مع وكيلك لتعيين المهارات أو إطلاق خطة عمل — مثل إرسال رسالة لزميل."
+        },
+        {
+            "step": "tip",
+            "title": "إضافي",
+            "desc": "تريد قوة أكبر؟ جرّب النماذج المدفوعة من [MiniMax] أو [GLM] أو [Moonshot]."
         }
     ],
     "providers_archived": [
         {
             "name": "MiniMax",
-            "url": "https://platform.minimax.io/subscribe/coding-plan"
+            "url": "https://platform.minimax.io/subscribe/coding-plan?utm_source=echobird.ai"
         },
         {
             "name": "GLM",
-            "url": "https://z.ai/model-api"
+            "url": "https://z.ai/model-api?utm_source=echobird.ai"
         },
         {
             "name": "Moonshot",
-            "url": "https://platform.moonshot.ai/"
+            "url": "https://platform.moonshot.ai/?utm_source=echobird.ai"
         }
     ]
 }

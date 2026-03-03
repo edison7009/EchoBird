@@ -26,20 +26,25 @@
             "step": "04",
             "title": "Tambah Kemahiran dan Mula Bekerja",
             "desc": "Layari [Skill Browser] untuk simpan kemahiran yang diperlukan. Kemudian pergi ke [Channels] dan berbual dengan Agent anda — seperti menghantar mesej kepada rakan sekerja."
+        },
+        {
+            "step": "tip",
+            "title": "Tambahan",
+            "desc": "Mahu lebih berkuasa? Cuba model premium daripada [MiniMax], [GLM] atau [Moonshot]."
         }
     ],
     "providers_archived": [
         {
             "name": "MiniMax",
-            "url": "https://platform.minimax.io/subscribe/coding-plan"
+            "url": "https://platform.minimax.io/subscribe/coding-plan?utm_source=echobird.ai"
         },
         {
             "name": "GLM",
-            "url": "https://z.ai/model-api"
+            "url": "https://z.ai/model-api?utm_source=echobird.ai"
         },
         {
             "name": "Moonshot",
-            "url": "https://platform.moonshot.ai/"
+            "url": "https://platform.moonshot.ai/?utm_source=echobird.ai"
         }
     ]
 }

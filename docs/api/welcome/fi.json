@@ -26,20 +26,25 @@
             "step": "04",
             "title": "Lisää taitoja ja aloita työskentely",
             "desc": "Selaa [Skill Browser] -sivua ja tallenna haluamasi taidot suosikkeihin. Siirry sitten [Channels] -sivulle ja chatta Agenttisi kanssa — aivan kuin viestittäisit työtoverille."
+        },
+        {
+            "step": "tip",
+            "title": "Extra",
+            "desc": "Haluatko enemmän tehoa? Kokeile premium-malleja: [MiniMax], [GLM] tai [Moonshot]."
         }
     ],
     "providers_archived": [
         {
             "name": "MiniMax",
-            "url": "https://platform.minimax.io/subscribe/coding-plan"
+            "url": "https://platform.minimax.io/subscribe/coding-plan?utm_source=echobird.ai"
         },
         {
             "name": "GLM",
-            "url": "https://z.ai/model-api"
+            "url": "https://z.ai/model-api?utm_source=echobird.ai"
         },
         {
             "name": "Moonshot",
-            "url": "https://platform.moonshot.ai/"
+            "url": "https://platform.moonshot.ai/?utm_source=echobird.ai"
         }
     ]
 }
