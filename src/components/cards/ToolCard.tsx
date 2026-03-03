@@ -11,6 +11,7 @@ export interface ToolCardProps {
     detectedPath?: string;
     configPath?: string;
     skillsCount?: number;
+    installedSkillsCount?: number; // from backend DetectedTool
     activeModel?: string;
     website?: string;
     iconBase64?: string;
@@ -19,7 +20,8 @@ export interface ToolCardProps {
     onClick?: () => void;
 }
 
-export const ToolCard = React.memo(({ id, name, version, installed, path, detectedPath, configPath, skillsCount = 0, activeModel, website, iconBase64, names, selected = false, onClick }: ToolCardProps) => {
+export const ToolCard = React.memo(({ id, name, version, installed, path, detectedPath, configPath, skillsCount, installedSkillsCount, activeModel, website, iconBase64, names, selected = false, onClick }: ToolCardProps) => {
+    const resolvedSkillsCount = skillsCount ?? installedSkillsCount ?? 0;
     const { t, locale } = useI18n();
     const displayName = (names && locale !== 'en' && names[locale]) || name;
     return (
@@ -46,7 +48,7 @@ export const ToolCard = React.memo(({ id, name, version, installed, path, detect
             <div className={`text-lg font-bold truncate pr-12 ${installed ? 'text-cyber-accent' : 'text-cyber-text-secondary'}`}>{displayName}</div>
             <div className={`text-xs space-y-1.5 mt-3 ${installed ? 'text-cyber-accent/60' : 'text-cyber-text-muted/70'}`}>
                 <div className="truncate">{t('tool.models')}: {installed ? (activeModel || '-') : '-'}</div>
-                <div className="truncate">{t('tool.skills')}: {installed ? `${skillsCount} ${t('tool.skillsInstalled')}` : '-'}</div>
+                <div className="truncate">{t('tool.skills')}: {installed ? `${resolvedSkillsCount} ${t('tool.skillsInstalled')}` : '-'}</div>
                 <div className="truncate">{t('tool.app')}: {installed ? (detectedPath || path || '-') : '-'}</div>
                 <div className="truncate">{t('tool.config')}: {installed ? (configPath || '-') : '-'}</div>
             </div>

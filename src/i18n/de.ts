@@ -2,24 +2,22 @@
 import { Translations } from './types';
 
 const de: Partial<Translations> = {
-    // Navigation    'app.name': 'Echobird',
+    // Navigation
+    'app.name': 'Echobird',
 
     'nav.modelNexus': 'Modellzentrum',
     'nav.skillBrowser': 'Skill-Browser',
     'nav.appManager': 'App-Verwaltung',
     'nav.localServer': 'Lokales LLM',
-    'nav.logsDebug': 'Protokolle',
     // Seitentitel
     'page.modelNexus': 'MODELLZENTRUM',
     'page.skillBrowser': 'SKILL-BROWSER',
     'page.appManager': 'APP-VERWALTUNG',
     'page.localServer': 'LOKALES LLM',
-    'page.logsDebug': 'PROTOKOLLE',
     // Einstellungen
     'settings.title': 'EINSTELLUNGEN',
     'settings.version': 'VERSION',
     'settings.language': 'SPRACHE',
-    'settings.logsDebug': 'PROTOKOLLE',
     'settings.updates': 'AKTUALISIERUNGEN',
     'settings.checkForUpdates': 'AUF UPDATES PRÜFEN',
     'settings.checking': 'Prüfe…',
@@ -92,6 +90,9 @@ const de: Partial<Translations> = {
     'agent.selectModelFor': 'Modell auswählen für',
     'agent.installedSkillsFor': 'Installierte Skills für',
     'agent.noSkills': 'Keine Skills installiert',
+    'agent.noModelsTitle': 'Kein Modell konfiguriert.',
+    'agent.noModelsHintPre': 'Gehe zu',
+    'agent.noModelsHintPost': 'um eines hinzuzufügen.',
     'agent.applyAndLaunch': 'Konfiguration anwenden & App starten',
     'agent.appliedVia': 'Über offizielle Konfigurationsdateien angewendet',
     // Lokaler Server
@@ -112,6 +113,7 @@ const de: Partial<Translations> = {
     'server.downloadFromStore': 'Modelle aus dem STORE herunterladen',
     // Debug
     'debug.console': 'DEBUG-KONSOLE',
+    'debug.gettingStarted': 'Erste Schritte',
     'debug.selectModelForAI': 'Modell für KI-Analyse auswählen',
     'debug.selectModelHint': 'Modell auswählen um KI-Loganalyse zu aktivieren',
     'debug.sendLogsToAI': 'LOGS AN KI SENDEN',
@@ -160,7 +162,6 @@ const de: Partial<Translations> = {
     'tool.app': 'App',
     'tool.config': 'Konfig',
     // Skills Extra
-    'skills.viewGithub': 'GITHUB ANZEIGEN',
     'skills.loading': 'Skills laden…',
     // VRAM Labels
     'vram.easy': 'Leicht',

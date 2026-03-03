@@ -10,8 +10,6 @@ use tokio::sync::Mutex;
 #[derive(Debug, Clone)]
 struct ProcessInfo {
     pid: u32,
-    #[cfg(windows)]
-    is_windows: bool,
 }
 
 /// Cooldown tracker (prevents rapid restarts)
@@ -167,10 +165,7 @@ impl ProcessManager {
                 Ok(child) => {
                     let pid = child.id();
                     log::info!("[ProcessManager] Tool {} started with PID: {}", tool_id, pid);
-                    self.processes.insert(tool_id.to_string(), ProcessInfo {
-                        pid,
-                        is_windows: true,
-                    });
+                    self.processes.insert(tool_id.to_string(), ProcessInfo { pid });
                     Ok(())
                 }
                 Err(e) => Err(format!("Spawn error: {}", e)),
@@ -217,10 +212,7 @@ impl ProcessManager {
 
             let pid = output.id();
             log::info!("[ProcessManager] VS Code launched for {} with PID: {}", tool_id, pid);
-            self.processes.insert(tool_id.to_string(), ProcessInfo {
-                pid,
-                is_windows: true,
-            });
+            self.processes.insert(tool_id.to_string(), ProcessInfo { pid });
             return Ok(());
         }
 
@@ -278,10 +270,7 @@ impl ProcessManager {
             let pid_str = String::from_utf8_lossy(&output.stdout).trim().to_string();
             if let Ok(pid) = pid_str.parse::<u32>() {
                 log::info!("[ProcessManager] GUI tool {} started with PID: {}", tool_id, pid);
-                self.processes.insert(tool_id.to_string(), ProcessInfo {
-                    pid,
-                    is_windows: true,
-                });
+                self.processes.insert(tool_id.to_string(), ProcessInfo { pid });
                 return Ok(());
             }
             Err(format!("Failed to launch GUI tool: {}", pid_str))

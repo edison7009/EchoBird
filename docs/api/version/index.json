@@ -1,6 +1,6 @@
 {
-    "version": "2.0.5",
+    "version": "2.0.6",
     "releaseDate": "2026-03-03",
-    "releaseNotes": "Fix: translation keys missing in 2.0.4 (debug.gettingStarted, agent.noModels*), BOM removed from API JSON files (restores model store & skills loading), Local LLM font size restored.",
+    "releaseNotes": "New: tip section in welcome guide (Coding Plan recommendations), model store refreshed with 20 latest models (Qwen3.5, GLM-5, MiniMax-M2.5, Opus/Sonnet 4.6 distills). Fix: i18n encoding for cs/sv/tr, welcome text parentheses. utm_source tracking on provider links.",
     "downloadUrl": "https://github.com/edison7009/Echobird-MotherAgent/releases/latest"
 }

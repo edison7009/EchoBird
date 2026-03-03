@@ -65,6 +65,8 @@ pub struct PathsConfig {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub skills_path: Option<SkillsPathConfig>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub default_skills_path: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub extension_paths: Option<PlatformPaths>,
     #[serde(default)]
     pub always_installed: bool,

@@ -9,18 +9,15 @@ const zhHant: Partial<Translations> = {
     'nav.skillBrowser': '技能瀏覽',
     'nav.appManager': '應用管理',
     'nav.localServer': '本地大模型',
-    'nav.logsDebug': '日誌與除錯',
     // Page titles
     'page.modelNexus': '模型中心',
     'page.skillBrowser': '技能瀏覽',
     'page.appManager': '應用管理',
     'page.localServer': '本地大模型',
-    'page.logsDebug': '日誌與除錯',
     // Settings
     'settings.title': '設定',
     'settings.version': '版本',
     'settings.language': '語言',
-    'settings.logsDebug': '日誌與除錯',
     'settings.updates': '更新',
     'settings.checkForUpdates': '檢查更新',
     'settings.checking': '檢查中…',
@@ -93,6 +90,9 @@ const zhHant: Partial<Translations> = {
     'agent.selectModelFor': '為以下工具選擇模型',
     'agent.installedSkillsFor': '已安裝的技能',
     'agent.noSkills': '未安裝技能',
+    'agent.noModelsTitle': '尚未配置模型。',
+    'agent.noModelsHintPre': '請前往',
+    'agent.noModelsHintPost': '新增模型。',
     'agent.applyAndLaunch': '套用設定並啟動應用',
     'agent.appliedVia': '透過官方設定檔套用',
     // Local Server
@@ -113,6 +113,7 @@ const zhHant: Partial<Translations> = {
     'server.downloadFromStore': '從商店下載模型',
     // Debug
     'debug.console': '除錯主控台',
+    'debug.gettingStarted': '新手入門',
     'debug.selectModelForAI': '選擇模型進行 AI 分析',
     'debug.selectModelHint': '選擇模型以啟用 AI 日誌分析',
     'debug.sendLogsToAI': '傳送日誌給 AI',
@@ -161,7 +162,6 @@ const zhHant: Partial<Translations> = {
     'tool.app': '應用',
     'tool.config': '設定',
     // Skills extra
-    'skills.viewGithub': '檢視 GITHUB',
     'skills.loading': '載入技能中…',
     // VRAM fitness labels
     'vram.easy': '輕鬆',

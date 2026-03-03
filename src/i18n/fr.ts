@@ -9,18 +9,15 @@ const fr: Partial<Translations> = {
     'nav.skillBrowser': 'Explorateur de skills',
     'nav.appManager': 'Gestionnaire d\'apps',
     'nav.localServer': 'LLM Local',
-    'nav.logsDebug': 'Journaux et débogage',
     // Titres de pages
     'page.modelNexus': 'CENTRE DE MODÈLES',
     'page.skillBrowser': 'EXPLORATEUR DE SKILLS',
     'page.appManager': 'GESTIONNAIRE D\'APPS',
     'page.localServer': 'LLM LOCAL',
-    'page.logsDebug': 'JOURNAUX ET DÉBOGAGE',
     // Paramètres
     'settings.title': 'PARAMÈTRES',
     'settings.version': 'VERSION',
     'settings.language': 'LANGUE',
-    'settings.logsDebug': 'JOURNAUX ET DÉBOGAGE',
     'settings.updates': 'MISES À JOUR',
     'settings.checkForUpdates': 'VÉRIFIER LES MISES À JOUR',
     'settings.checking': 'Vérification…',
@@ -93,6 +90,9 @@ const fr: Partial<Translations> = {
     'agent.selectModelFor': 'Sélectionner un modèle pour',
     'agent.installedSkillsFor': 'Skills installés pour',
     'agent.noSkills': 'Aucun skill installé',
+    'agent.noModelsTitle': 'Aucun modèle configuré.',
+    'agent.noModelsHintPre': 'Accédez à',
+    'agent.noModelsHintPost': 'pour en ajouter un.',
     'agent.applyAndLaunch': 'Appliquer la config & lancer l\'app',
     'agent.appliedVia': 'Appliqué via les fichiers de config officiels',
     // Serveur local
@@ -113,6 +113,7 @@ const fr: Partial<Translations> = {
     'server.downloadFromStore': 'Télécharger des modèles depuis la BOUTIQUE',
     // Debug
     'debug.console': 'CONSOLE DE DEBUG',
+    'debug.gettingStarted': 'Premiers pas',
     'debug.selectModelForAI': 'Sélectionner un modèle pour l\'analyse IA',
     'debug.selectModelHint': 'Sélectionner un modèle pour activer l\'analyse IA des logs',
     'debug.sendLogsToAI': 'ENVOYER LES LOGS À L\'IA',
@@ -161,7 +162,6 @@ const fr: Partial<Translations> = {
     'tool.app': 'Appli',
     'tool.config': 'Config',
     // Skills Extra
-    'skills.viewGithub': 'VOIR GITHUB',
     'skills.loading': 'Chargement des skills…',
     // VRAM Labels
     'vram.easy': 'Facile',

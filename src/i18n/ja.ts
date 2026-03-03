@@ -2,24 +2,22 @@
 import { Translations } from './types';
 
 const ja: Partial<Translations> = {
-    // ナビゲーション    'app.name': 'Echobird',
+    // ナビゲーション
+    'app.name': 'Echobird',
 
     'nav.modelNexus': 'モデルセンター',
     'nav.skillBrowser': 'スキル一覧',
     'nav.appManager': 'アプリ管理',
     'nav.localServer': '\u30ed\u30fc\u30ab\u30ebLLM',
-    'nav.logsDebug': 'ログとデバッグ',
     // ページタイトル
     'page.modelNexus': 'モデルセンター',
     'page.skillBrowser': 'スキル一覧',
     'page.appManager': 'アプリ管理',
     'page.localServer': '\u30ed\u30fc\u30ab\u30ebLLM',
-    'page.logsDebug': 'ログとデバッグ',
     // Settings
     'settings.title': '設定',
     'settings.version': 'バージョン',
     'settings.language': '言語',
-    'settings.logsDebug': 'ログとデバッグ',
     'settings.updates': 'アップデート',
     'settings.checkForUpdates': '更新を確認',
     'settings.checking': '確認中…',
@@ -92,6 +90,9 @@ const ja: Partial<Translations> = {
     'agent.selectModelFor': 'モデルを選択：',
     'agent.installedSkillsFor': 'インストール済スキル',
     'agent.noSkills': 'スキル未インストール',
+    'agent.noModelsTitle': 'モデルが設定されていません。',
+    'agent.noModelsHintPre': '',
+    'agent.noModelsHintPost': 'でモデルを追加してください。',
     'agent.applyAndLaunch': '設定を適用してアプリ起動',
     'agent.appliedVia': '公式設定ファイルで適用',
     // ローカルサーバー
@@ -112,6 +113,7 @@ const ja: Partial<Translations> = {
     'server.downloadFromStore': 'ストアからモデルをダウンロード',
     // デバッグ
     'debug.console': 'デバッグコンソール',
+    'debug.gettingStarted': 'はじめに',
     'debug.selectModelForAI': 'AI分析用モデルを選択',
     'debug.selectModelHint': 'AIログ分析を有効にするモデルを選択',
     'debug.sendLogsToAI': 'ログをAIに送信',
@@ -160,7 +162,6 @@ const ja: Partial<Translations> = {
     'tool.app': 'アプリ',
     'tool.config': '設定',
     // Skills 追加
-    'skills.viewGithub': 'GITHUB を表示',
     'skills.loading': 'スキル読込中…',
     // VRAM 適合ラベル
     'vram.easy': '余裕',

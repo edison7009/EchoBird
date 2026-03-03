@@ -209,7 +209,11 @@ export const ModelCard = React.memo(({
                 </div>
             )}
             <div className="text-xs text-cyber-text-secondary mb-1 tracking-widest uppercase font-mono min-h-[15px]">
-                {baseUrl ? (/localhost|127\.0\.0\.1/.test(baseUrl) ? t('model.local') : t('model.cloud')) : <span>&nbsp;</span>}
+                {(() => {
+                    const url = baseUrl || anthropicUrl;
+                    if (!url) return <span>&nbsp;</span>;
+                    return /localhost|127\.0\.0\.1/.test(url) ? t('model.local') : t('model.cloud');
+                })()}
             </div>
             <div className="text-lg font-bold mb-3 truncate h-7">{name || <span className="invisible">-</span>}</div>
             <div className="text-xs space-y-1.5 font-mono">
@@ -217,14 +221,14 @@ export const ModelCard = React.memo(({
                     <span className="text-cyber-accent/60">{t('model.label')}:</span>
                     <span className="truncate text-cyber-accent/60">{modelId || '-'}</span>
                 </div>
-                {baseUrl && (
-                    <div className="flex items-center gap-1 truncate">
-                        <span className="text-cyber-accent/60">{t('model.source')}:</span>
-                        <span className="truncate text-cyber-accent/40">{(() => {
-                            try { return new URL(baseUrl).hostname; } catch { return baseUrl; }
-                        })()}</span>
-                    </div>
-                )}
+                <div className="flex items-center gap-1 truncate">
+                    <span className="text-cyber-accent/60">{t('model.source')}:</span>
+                    <span className="truncate text-cyber-accent/40">{(() => {
+                        const url = baseUrl || anthropicUrl;
+                        if (!url) return '-';
+                        try { return new URL(url).hostname; } catch { return url; }
+                    })()}</span>
+                </div>
 
                 <div className="flex items-center gap-1">
                     <span className="text-cyber-accent/60">{t('model.latency')}:</span>
@@ -282,9 +286,7 @@ export const ModelCard = React.memo(({
                     </div>
                 )}
                 {protocols.length === 0 && (
-                    <span className="text-[9px] px-1.5 py-0.5 font-mono bg-cyber-text-muted/20 text-cyber-text-muted border border-cyber-text-muted/30">
-                        CHECKING...
-                    </span>
+                    <span className="h-4 block" />
                 )}
             </div>
             {/* Model icon bottom-right */}

@@ -467,7 +467,7 @@ pub fn update_model(internal_id: &str, updates: UpdateModelInput) -> Option<Mode
         models[index].model_type = detect_model_type(url);
     }
     if let Some(url) = updates.anthropic_url {
-        models[index].anthropic_url = Some(url);
+        models[index].anthropic_url = if url.is_empty() { None } else { Some(url) };
     }
     if let Some(key) = updates.api_key {
         models[index].api_key = key;

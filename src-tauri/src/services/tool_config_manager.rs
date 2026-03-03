@@ -298,24 +298,7 @@ fn read_generic_json(tool_id: &str) -> Option<ModelInfo> {
     })
 }
 
-fn delete_nested_value(obj: &mut serde_json::Value, path: &str) {
-    let parts: Vec<&str> = path.split('.').collect();
-    if parts.is_empty() { return; }
-    if parts.len() == 1 {
-        if let Some(map) = obj.as_object_mut() { map.remove(parts[0]); }
-        return;
-    }
-    let mut current = obj;
-    for part in &parts[..parts.len() - 1] {
-        current = match current.get_mut(*part) {
-            Some(v) => v,
-            None => return,
-        };
-    }
-    if let Some(map) = current.as_object_mut() {
-        map.remove(parts[parts.len() - 1]);
-    }
-}
+
 
 // ════════════════════════════════════════════════════════════════
 //  Type 2: Echobird relay JSON (Cline, RooCode, OpenClaw)
@@ -395,7 +378,7 @@ fn read_echobird_relay(tool_id: &str) -> Option<ModelInfo> {
 //  ~/.codebuddy/models.json  {models: [...], availableModels: [...]}
 // ════════════════════════════════════════════════════════════════
 
-fn apply_codebuddy(tool_id: &str, model_info: &ModelInfo) -> ApplyResult {
+fn apply_codebuddy(_tool_id: &str, model_info: &ModelInfo) -> ApplyResult {
     // CodeBuddy and CodeBuddyCN share the same config directory
     let config_dir = ".codebuddy";
     let config_path = dirs::home_dir().unwrap_or_default().join(config_dir).join("models.json");
@@ -439,7 +422,7 @@ fn apply_codebuddy(tool_id: &str, model_info: &ModelInfo) -> ApplyResult {
     }
 }
 
-fn read_codebuddy(tool_id: &str) -> Option<ModelInfo> {
+fn read_codebuddy(_tool_id: &str) -> Option<ModelInfo> {
     let config_dir = ".codebuddy";
     let config_path = dirs::home_dir()?.join(config_dir).join("models.json");
     let config = read_json_file(&config_path)?;

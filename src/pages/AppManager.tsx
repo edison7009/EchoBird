@@ -2,7 +2,7 @@
 // Extracted from App.tsx with Provider pattern for shared state
 
 import { useState, useEffect, useMemo, createContext, useContext } from 'react';
-import { Server as ServerIcon } from 'lucide-react';
+import { Server as ServerIcon, Box as BoxIcon } from 'lucide-react';
 import { ToolCard, getModelIcon } from '../components';
 import { useI18n } from '../hooks/useI18n';
 import * as api from '../api/tauri';
@@ -266,23 +266,41 @@ export const AppManagerMain: React.FC = () => {
             {/* Tool cards - Scrolling */}
             <div className="flex-1 overflow-y-auto">
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                    {detectedTools
-                        .filter(tool => activeToolCategory === 'ALL' || tool.category === activeToolCategory)
-                        .sort((a, b) => {
-                            // Installed first
-                            if (a.installed !== b.installed) return a.installed ? -1 : 1;
-                            // Same install status: sort by category
-                            const categoryOrder: Record<string, number> = { 'AgentOS': 0, 'IDE': 1, 'CLI': 2, 'AutoTrading': 3, 'Game': 4, 'Utility': 5 };
-                            return (categoryOrder[a.category || ''] ?? 99) - (categoryOrder[b.category || ''] ?? 99);
-                        })
-                        .map(tool => (
-                            <ToolCard
-                                key={tool.id}
-                                {...tool}
-                                selected={selectedTool === tool.id}
-                                onClick={() => setSelectedTool(tool.id)}
-                            />
-                        ))}
+                    {isScanning && detectedTools.length === 0 ? (
+                        // Skeleton cards while scanning
+                        <>
+                            {Array.from({ length: 6 }).map((_, i) => (
+                                <div key={i} className="p-5 border border-cyber-border rounded-card bg-black/80 flex flex-col animate-pulse">
+                                    <div className="absolute top-4 right-4 w-10 h-10 rounded-lg bg-cyber-border/30" />
+                                    <div className="h-5 w-2/3 bg-cyber-border/40 rounded mb-4" />
+                                    <div className="space-y-2">
+                                        <div className="h-3 w-4/5 bg-cyber-border/30 rounded" />
+                                        <div className="h-3 w-3/5 bg-cyber-border/30 rounded" />
+                                        <div className="h-3 w-4/5 bg-cyber-border/30 rounded" />
+                                        <div className="h-3 w-2/5 bg-cyber-border/30 rounded" />
+                                    </div>
+                                </div>
+                            ))}
+                        </>
+                    ) : (
+                        detectedTools
+                            .filter(tool => activeToolCategory === 'ALL' || tool.category === activeToolCategory)
+                            .sort((a, b) => {
+                                // Installed first
+                                if (a.installed !== b.installed) return a.installed ? -1 : 1;
+                                // Same install status: sort by category
+                                const categoryOrder: Record<string, number> = { 'AgentOS': 0, 'IDE': 1, 'CLI': 2, 'AutoTrading': 3, 'Game': 4, 'Utility': 5 };
+                                return (categoryOrder[a.category || ''] ?? 99) - (categoryOrder[b.category || ''] ?? 99);
+                            })
+                            .map(tool => (
+                                <ToolCard
+                                    key={tool.id}
+                                    {...tool}
+                                    selected={selectedTool === tool.id}
+                                    onClick={() => setSelectedTool(tool.id)}
+                                />
+                            ))
+                    )}
                 </div>
             </div>
         </div>
@@ -427,6 +445,14 @@ const ModelListSection: React.FC<ModelListSectionProps> = ({
             {cloudModels.length > 0 ? (
                 <div className="space-y-2">
                     {cloudModels.map(renderModelCard)}
+                </div>
+            ) : localModels.length === 0 ? (
+                <div className="py-10 flex flex-col items-center gap-3 text-center">
+                    <BoxIcon size={28} className="text-cyber-accent opacity-25" />
+                    <p className="text-[12px] text-cyber-text-secondary font-mono leading-relaxed">
+                        {t('agent.noModelsTitle')}<br />
+                        {t('agent.noModelsHintPre')} <span className="text-cyber-accent font-bold">{t('nav.modelNexus')}</span> {t('agent.noModelsHintPost')}
+                    </p>
                 </div>
             ) : null}
         </>

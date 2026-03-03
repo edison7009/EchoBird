@@ -1,4 +1,4 @@
-// i18n type definitions (separate file to avoid circular imports)
+﻿// i18n type definitions (separate file to avoid circular imports)
 
 // Translation key definitions
 export type TKey =
@@ -6,25 +6,26 @@ export type TKey =
     | 'app.name'
     // Navigation
     | 'nav.modelNexus' | 'nav.skillBrowser' | 'nav.appManager'
-    | 'nav.localServer' | 'nav.motherAgent' | 'nav.logsDebug'
+    | 'nav.localServer' | 'nav.motherAgent' | 'nav.channels'
     // Page titles
     | 'page.modelNexus' | 'page.skillBrowser' | 'page.appManager'
-    | 'page.localServer' | 'page.motherAgent' | 'page.logsDebug'
+    | 'page.localServer' | 'page.motherAgent' | 'page.channels'
     // Settings
-    | 'settings.title' | 'settings.version' | 'settings.language'
-    | 'settings.logsDebug' | 'settings.updates'
+    | 'settings.title' | 'settings.version' | 'settings.language' | 'settings.updates'
     | 'settings.checkForUpdates' | 'settings.checking'
     | 'settings.latestVersion' | 'settings.checkFailed'
+    | 'settings.closeBehavior' | 'settings.closeAsk' | 'settings.closeMinimize' | 'settings.closeQuit'
     // Buttons
     | 'btn.addModel' | 'btn.apply' | 'btn.scanAgain' | 'btn.refresh'
     | 'btn.save' | 'btn.cancel' | 'btn.delete' | 'btn.edit'
     | 'btn.install' | 'btn.uninstall' | 'btn.launchApp' | 'btn.loading'
     | 'btn.open' | 'btn.modifyOnly' | 'btn.start' | 'btn.stop'
     | 'btn.add' | 'btn.remove' | 'btn.saveModel' | 'btn.compute'
-    | 'btn.sendLogs'
+    | 'btn.sendLogs' | 'btn.select' | 'btn.copy' | 'btn.copied'
     // Status
     | 'status.running' | 'status.offline' | 'status.installed'
     | 'status.notInstalled' | 'status.scanning' | 'status.paused'
+    | 'status.complete' | 'status.failed'
     // Search
     | 'search.skills'
     // Model dialog
@@ -33,6 +34,9 @@ export type TKey =
     | 'model.editConfig' | 'model.proxyTunnel' | 'model.specificProxy'
     | 'model.deleteTitle' | 'model.deleteConfirm'
     | 'model.selectToTest' | 'model.escCancel' | 'model.enterSave'
+    // ModelCard labels
+    | 'model.label' | 'model.source' | 'model.latency' | 'model.debugTesting'
+    | 'model.cloud' | 'model.local' | 'model.tunnel'
     // Skills
     | 'skills.details' | 'skills.selectToView'
     | 'skills.author' | 'skills.category' | 'skills.description'
@@ -51,7 +55,15 @@ export type TKey =
     // App Manager
     | 'agent.myLocalModel' | 'agent.selectTool' | 'agent.selectModelFor'
     | 'agent.installedSkillsFor' | 'agent.noSkills'
+    | 'agent.noModelsTitle' | 'agent.noModelsHintPre' | 'agent.noModelsHintPost'
     | 'agent.applyAndLaunch' | 'agent.appliedVia'
+    | 'agent.modelsTab' | 'agent.skillsTab'
+    // Tool categories
+    | 'toolCat.all' | 'toolCat.agentOS' | 'toolCat.ide' | 'toolCat.cli'
+    | 'toolCat.autoTrading' | 'toolCat.game' | 'toolCat.utility'
+    // ToolCard labels
+    | 'tool.models' | 'tool.skills' | 'tool.skillsInstalled'
+    | 'tool.app' | 'tool.config'
     // Local Server
     | 'server.selectModel' | 'server.context' | 'server.port' | 'server.runtime'
     | 'server.removeDirectories' | 'server.removeDirectoryConfirm'
@@ -59,61 +71,37 @@ export type TKey =
     | 'server.selectFromPanel' | 'server.awaitingInit' | 'server.selectConfigStart'
     | 'server.local' | 'server.store'
     | 'server.selectModelDir' | 'server.downloadFromStore'
-    // Debug
-    | 'debug.console' | 'debug.selectModelForAI' | 'debug.selectModelHint'
-    | 'debug.sendLogsToAI' | 'debug.selectModelFirst'
-    // Download / Model Store
-    | 'download.location' | 'download.changePath' | 'download.selectNewDir'
-    | 'quant.light' | 'quant.standard' | 'quant.extended' | 'quant.large' | 'quant.maximum'
-    // Tool categories (Agent Worker page)
-    | 'toolCat.all' | 'toolCat.agentOS' | 'toolCat.ide' | 'toolCat.cli'
-    | 'toolCat.autoTrading' | 'toolCat.game' | 'toolCat.utility'
-    // Agent Worker tabs
-    | 'agent.modelsTab' | 'agent.skillsTab'
-    // ToolCard labels
-    | 'tool.models' | 'tool.skills' | 'tool.skillsInstalled'
-    | 'tool.app' | 'tool.config'
-    // Skills extra
-    | 'skills.viewGithub' | 'skills.loading'
-    // VRAM fitness labels
-    | 'vram.easy' | 'vram.good' | 'vram.tight' | 'vram.heavy'
-    // Download status
-    | 'status.complete' | 'status.failed'
-    | 'download.inQueue' | 'download.pause' | 'download.resume'
-    | 'download.cancel' | 'download.retry'
-    // Debug console
-    | 'debug.ready' | 'debug.analyzing' | 'debug.idle' | 'debug.errors'
-    // Local Server
     | 'server.gpuFull' | 'server.cpuOnly'
     | 'server.setupEngine' | 'server.downloading' | 'server.installing'
+    // Debug
+    | 'debug.console' | 'debug.gettingStarted' | 'debug.selectModelForAI' | 'debug.selectModelHint'
+    | 'debug.sendLogsToAI' | 'debug.selectModelFirst'
+    | 'debug.ready' | 'debug.analyzing' | 'debug.idle' | 'debug.errors'
+    // Download / Model Store
+    | 'download.location' | 'download.changePath' | 'download.selectNewDir'
+    | 'download.inQueue' | 'download.pause' | 'download.resume'
+    | 'download.cancel' | 'download.retry'
+    | 'quant.light' | 'quant.standard' | 'quant.extended' | 'quant.large' | 'quant.maximum'
     // ModelStore buttons
     | 'store.add' | 'store.del' | 'store.cancel' | 'store.remove'
     | 'store.ver' | 'store.ready'
-    // ModelCard labels
-    | 'model.label' | 'model.source' | 'model.latency' | 'model.debugTesting'
-    | 'model.cloud' | 'model.local' | 'model.tunnel'
-    // Copy button
-    | 'btn.copy' | 'btn.copied'
+    // VRAM fitness labels
+    | 'vram.easy' | 'vram.good' | 'vram.tight' | 'vram.heavy'
     // Common
     | 'common.noData' | 'common.confirm' | 'common.website'
-    | 'common.areYouSure'
-    // Close behavior confirmation
-    | 'close.title' | 'close.message' | 'close.minimize' | 'close.quit' | 'close.remember'
-    // Close behavior settings
-    | 'settings.closeBehavior' | 'settings.closeAsk' | 'settings.closeMinimize' | 'settings.closeQuit'
-    | 'btn.select'
+    | 'common.areYouSure' | 'common.showProcess'
     // API Key encryption status
     | 'key.encrypted' | 'key.destroyed'
-    // Main Console
-    | 'nav.channels' | 'page.channels'
+    // Close behavior confirmation
+    | 'close.title' | 'close.message' | 'close.minimize' | 'close.quit' | 'close.remember'
+    // Developer invite hint
+    | 'hint.devInvite'
     // Channels
     | 'channel.standby' | 'channel.linked' | 'channel.enterMessage' | 'channel.awaitingResponse'
     | 'channel.remoteLlm' | 'channel.llmPanel' | 'channel.deployFirst'
     | 'channel.failed' | 'channel.connecting' | 'channel.connectedTo'
     | 'channel.connectionFailed' | 'channel.transmitting' | 'channel.noModels'
     | 'channel.motherFlow'
-    // Developer invite hint
-    | 'hint.devInvite'
     // Mother Agent
     | 'mother.selectModel'
     | 'mother.deployHint' | 'mother.awaitingInit' | 'mother.flowHint'
@@ -128,7 +116,6 @@ export type TKey =
     | 'mother.cancel' | 'mother.addServerBtn'
     | 'mother.deleteServerTitle' | 'mother.deleteServerMsg'
     | 'mother.displayName' | 'mother.optional' | 'mother.displayNamePlaceholder'
-    | 'common.showProcess'
     // SSH Guide
     | 'ssh.cloudDesc' | 'ssh.usernameHint' | 'ssh.passwordHint' | 'ssh.ipHint' | 'ssh.portHint'
     | 'ssh.cloudUsername' | 'ssh.cloudPassword' | 'ssh.cloudIp'

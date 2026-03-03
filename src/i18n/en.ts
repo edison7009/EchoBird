@@ -10,19 +10,16 @@ const en: Translations = {
     'nav.appManager': 'App Manager',
     'nav.localServer': 'Local LLM',
     'nav.motherAgent': 'Mother Agent',
-    'nav.logsDebug': 'Logs & Debug',
     // Page titles
     'page.modelNexus': 'MODEL NEXUS',
     'page.skillBrowser': 'SKILLS BROWSER',
     'page.appManager': 'APP MANAGER',
     'page.localServer': 'LOCAL LLM',
     'page.motherAgent': 'Mother Agent',
-    'page.logsDebug': 'LOGS & DEBUG',
     // Settings
     'settings.title': 'SETTINGS',
     'settings.version': 'VERSION',
     'settings.language': 'LANGUAGE',
-    'settings.logsDebug': 'LOGS & DEBUG',
     'settings.updates': 'UPDATES',
     'settings.checkForUpdates': 'CHECK FOR UPDATES',
     'settings.checking': 'Checking...',
@@ -119,6 +116,9 @@ const en: Translations = {
     'agent.selectModelFor': 'Select a model for',
     'agent.installedSkillsFor': 'Installed skills for',
     'agent.noSkills': 'No skills installed',
+    'agent.noModelsTitle': 'No models configured.',
+    'agent.noModelsHintPre': 'Go to',
+    'agent.noModelsHintPost': 'to add one.',
     'agent.applyAndLaunch': 'Apply config & Launch app',
     'agent.appliedVia': 'Applied via official config files',
     // Local Server
@@ -139,6 +139,7 @@ const en: Translations = {
     'server.downloadFromStore': 'Download models from the STORE',
     // Debug
     'debug.console': 'DEBUG CONSOLE',
+    'debug.gettingStarted': 'GETTING STARTED',
     'debug.selectModelForAI': 'Select model for AI analysis',
     'debug.selectModelHint': 'Select a model to enable AI log analysis',
     'debug.sendLogsToAI': 'SEND LOGS TO AI',
@@ -187,7 +188,6 @@ const en: Translations = {
     'tool.app': 'App',
     'tool.config': 'Config',
     // Skills extra
-    'skills.viewGithub': 'VIEW GITHUB',
     // VRAM fitness labels
     'vram.easy': 'Easy',
     'vram.good': 'Good',

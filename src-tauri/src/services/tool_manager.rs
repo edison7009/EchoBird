@@ -331,7 +331,6 @@ async fn find_skills_path(pc: &PathsConfig) -> Option<String> {
     if let Some(ref npm_module) = sp.npm_module {
         #[cfg(windows)]
         let npm_output = {
-            use std::os::windows::process::CommandExt;
             const CREATE_NO_WINDOW: u32 = 0x08000000;
             tokio::process::Command::new("npm")
                 .args(["root", "-g"])
@@ -564,10 +563,21 @@ pub async fn scan_tools() -> Vec<DetectedTool> {
         let mut version = pc.version.clone();
 
         if installed {
-            // Find skills path
+            // Find skills path (from user directory via skillsPath config)
             if let Some(sp) = find_skills_path(pc).await {
                 skills_count = count_skills(&sp);
                 skills_path_str = Some(sp);
+            }
+            // Fallback: if no user skills path found, use defaultSkillsPath (relative to tool dir)
+            if skills_path_str.is_none() {
+                if let Some(ref rel_path) = pc.default_skills_path {
+                    let default_path = PathBuf::from(&def.tool_dir).join(rel_path);
+                    if default_path.exists() {
+                        let p = default_path.to_string_lossy().to_string();
+                        skills_count = count_skills(&p);
+                        skills_path_str = Some(p);
+                    }
+                }
             }
 
             // Get version from command

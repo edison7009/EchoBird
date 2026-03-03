@@ -35,7 +35,7 @@ pub async fn apply_model_to_tool(tool_id: String, model_info: ModelInfo) -> Resu
 pub async fn launch_game(
     app_handle: tauri::AppHandle,
     tool_id: String,
-    launch_file: String,
+    _launch_file: String,
     model_config: Option<serde_json::Value>,
 ) -> Result<serde_json::Value, String> {
     use tauri::Manager;

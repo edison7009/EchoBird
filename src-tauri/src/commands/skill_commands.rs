@@ -140,7 +140,7 @@ pub async fn fetch_skill_source(url: String) -> Result<String, String> {
 
     let response = client
         .get(&url)
-        .header("User-Agent", "Echobird/1.1.0")
+        .header("User-Agent", concat!("Echobird/", env!("CARGO_PKG_VERSION")))
         .send()
         .await
         .map_err(|e| format!("Failed to fetch {}: {}", url, e))?;

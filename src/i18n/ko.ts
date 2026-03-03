@@ -2,24 +2,22 @@
 import { Translations } from './types';
 
 const ko: Partial<Translations> = {
-    // 내비게이션    'app.name': 'Echobird',
+    // 내비게이션
+    'app.name': 'Echobird',
 
     'nav.modelNexus': '모델 센터',
     'nav.skillBrowser': '스킬 브라우저',
     'nav.appManager': '앱 관리',
     'nav.localServer': '\ub85c\uceec LLM',
-    'nav.logsDebug': '로그 & 디버그',
     // 페이지 제목
     'page.modelNexus': '모델 센터',
     'page.skillBrowser': '스킬 브라우저',
     'page.appManager': '앱 관리',
     'page.localServer': '\ub85c\uceec LLM',
-    'page.logsDebug': '로그 & 디버그',
     // 설정
     'settings.title': '설정',
     'settings.version': '버전',
     'settings.language': '언어',
-    'settings.logsDebug': '로그 & 디버그',
     'settings.updates': '업데이트',
     'settings.checkForUpdates': '업데이트 확인',
     'settings.checking': '확인 중…',
@@ -92,6 +90,9 @@ const ko: Partial<Translations> = {
     'agent.selectModelFor': '모델 선택:',
     'agent.installedSkillsFor': '설치된 스킬',
     'agent.noSkills': '설치된 스킬 없음',
+    'agent.noModelsTitle': '설정된 모델이 없습니다.',
+    'agent.noModelsHintPre': '',
+    'agent.noModelsHintPost': '에서 모델을 추가하세요.',
     'agent.applyAndLaunch': '설정 적용 후 앱 실행',
     'agent.appliedVia': '공식 설정 파일로 적용',
     // 로컬 서버
@@ -112,6 +113,7 @@ const ko: Partial<Translations> = {
     'server.downloadFromStore': '스토어에서 모델 다운로드',
     // 디버그
     'debug.console': '디버그 콘솔',
+    'debug.gettingStarted': '시작하기',
     'debug.selectModelForAI': 'AI 분석용 모델 선택',
     'debug.selectModelHint': 'AI 로그 분석을 위한 모델을 선택하세요',
     'debug.sendLogsToAI': '로그를 AI에 전송',
@@ -160,7 +162,6 @@ const ko: Partial<Translations> = {
     'tool.app': '앱',
     'tool.config': '설정',
     // Skills 추가
-    'skills.viewGithub': 'GITHUB 보기',
     'skills.loading': '스킬 로딩 중…',
     // VRAM 적합 라벨
     'vram.easy': '여유',
