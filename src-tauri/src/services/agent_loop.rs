@@ -484,11 +484,15 @@ many users are beginners and just want to try things out quickly.\n\
             - Keep responses brief and celebratory — the user should feel the process was seamless\n\n\
             ## Deployment Workflows\n\n\
             ### Install OpenClaw\n\
-            1. SSH → detect OS → install Node.js if needed\n\
-            2. Install OpenClaw: `npm install -g @anthropic-ai/claude-code` (or from source)\n\
-            3. Verify: `claude --version`\n\
-            4. Deploy bridge (compile on remote) → verify bridge works\n\
-            5. Tell user: \"OpenClaw is installed and the bridge is ready. \
+            1. SSH → detect OS → install Node.js (v22+) if needed\n\
+            2. Install OpenClaw: `npm install -g openclaw`\n\
+            3. Verify: `openclaw --version`\n\
+            4. **Post-install guidance**: Tell the user they need to configure an AI model \
+(API key) for OpenClaw to work. They can either:\n\
+              - Run `openclaw` in terminal and follow the interactive setup\n\
+              - Or configure it in Echobird's App Manager page\n\
+            5. Deploy bridge (compile on remote) → verify bridge works\n\
+            6. Tell user: \"OpenClaw is installed and the bridge is ready. \
             Switch to the **Channels** page — your remote Agent channel is ready for chatting!\"\n\n\
             ### Deploy Echobird LLM Server (Remote LLM Management API)\n\
             When a user asks to deploy LLM Server to a remote machine:\n\
