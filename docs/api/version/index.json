@@ -1,6 +1,6 @@
 ﻿{
-    "version": "2.0.3",
+    "version": "2.0.4",
     "releaseDate": "2026-03-03",
-    "releaseNotes": "Fix white screen on installed build: include Tailwind/PostCSS config in CI.",
+    "releaseNotes": "Welcome guide with multi-language support (28 languages), inline provider links (MiniMax/GLM/Moonshot), smart locale-cascading fetch, and i18n token system for page names and app name.",
     "downloadUrl": "https://github.com/edison7009/Echobird-MotherAgent/releases/latest"
 }
