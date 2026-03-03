@@ -285,71 +285,83 @@
         ]
     },
     {
-        "id": "glm-4.7-opus-4.6-distill",
-        "name": "GLM-4.7 Opus 4.6 Distill",
-        "icon": "glm",
-        "description": "Claude Opus 4.6 high-reasoning distill on GLM-4.7 30B — latest frontier knowledge",
-        "huggingfaceRepo": "TeichAI/GLM-4.7-Flash-Claude-Opus-4.6-High-Reasoning-Distill-GGUF",
+        "id": "qwen3.5-27b-opus-4.6-distill",
+        "name": "Qwen3.5 27B Opus 4.6 Distill",
+        "icon": "qwen",
+        "description": "Claude Opus 4.6 reasoning distill on Qwen3.5 27B — frontier logic on latest base",
+        "huggingfaceRepo": "TeichAI/Qwen3.5-27B-Claude-Opus-4.6-Distill-GGUF",
         "variants": [
             {
                 "quantization": "Q4_K_M",
-                "fileName": "glm-4.7-flash-claude-4.6-opus.q4_k_m.gguf",
-                "fileSize": 18132721856,
+                "fileName": "Qwen3.5-27B-Claude-Opus-4.6-Distill-Q4_K_M.gguf",
+                "fileSize": 16348180480,
                 "recommendedVRAM": "24 GB"
             },
             {
                 "quantization": "Q6_K",
-                "fileName": "glm-4.7-flash-claude-4.6-opus.q6_k.gguf",
-                "fileSize": 24614786240,
+                "fileName": "Qwen3.5-27B-Claude-Opus-4.6-Distill-Q6_K.gguf",
+                "fileSize": 22337085440,
+                "recommendedVRAM": "24 GB"
+            },
+            {
+                "quantization": "Q8_0",
+                "fileName": "Qwen3.5-27B-Claude-Opus-4.6-Distill-Q8_0.gguf",
+                "fileSize": 29031735296,
                 "recommendedVRAM": "32 GB"
-            },
-            {
-                "quantization": "Q8_0",
-                "fileName": "glm-4.7-flash-claude-4.6-opus.q8_0.gguf",
-                "fileSize": 31842799808,
-                "recommendedVRAM": "48 GB"
             }
         ]
     },
     {
-        "id": "nemotron-sonnet-4.6-distill",
-        "name": "Nemotron 8B Sonnet 4.6 Distill",
-        "icon": "nemotron",
-        "description": "Claude Sonnet 4.6 distill on NVIDIA Nemotron 8B — fast & capable, only 6 GB",
-        "huggingfaceRepo": "TeichAI/Nemotron-Orchestrator-8B-Claude-4.6-Sonnet-Distill-GGUF",
-        "variants": [
-            {
-                "quantization": "Q4_K_M",
-                "fileName": "orchestrator-8b-claude-4.6-sonnet-distill.q4_k_m.gguf",
-                "fileSize": 5027784608,
-                "recommendedVRAM": "6 GB"
-            },
-            {
-                "quantization": "Q8_0",
-                "fileName": "orchestrator-8b-claude-4.6-sonnet-distill.q8_0.gguf",
-                "fileSize": 8709519264,
-                "recommendedVRAM": "10 GB"
-            }
-        ]
-    },
-    {
-        "id": "qwen3-8b-opus-4.6-distill",
-        "name": "Qwen3 8B Opus 4.6 Distill",
+        "id": "qwen3.5-27b-sonnet-4.6-distill",
+        "name": "Qwen3.5 27B Sonnet 4.6 Distill",
         "icon": "qwen",
-        "description": "Claude Opus 4.6 reasoning distill on Qwen3 8B — frontier quality at 6 GB",
-        "huggingfaceRepo": "TeichAI/Qwen3-8B-Claude-Opus-4.6-Reasoning-Distill-GGUF",
+        "description": "Claude Sonnet 4.6 distill on Qwen3.5 27B — fast coding + reasoning, latest base",
+        "huggingfaceRepo": "TeichAI/Qwen3.5-27B-Claude-Sonnet-4.6-Distill-GGUF",
         "variants": [
             {
                 "quantization": "Q4_K_M",
-                "fileName": "qwen3-8B-Claude-Opus-4.6-Reasoning-Distill_Q4_K_M.gguf",
-                "fileSize": 5027784064,
-                "recommendedVRAM": "6 GB"
+                "fileName": "Qwen3.5-27B-Claude-Sonnet-4.6-Distill-Q4_K_M.gguf",
+                "fileSize": 16348180480,
+                "recommendedVRAM": "24 GB"
+            },
+            {
+                "quantization": "Q6_K",
+                "fileName": "Qwen3.5-27B-Claude-Sonnet-4.6-Distill-Q6_K.gguf",
+                "fileSize": 22337085440,
+                "recommendedVRAM": "24 GB"
             },
             {
                 "quantization": "Q8_0",
-                "fileName": "qwen3-8B-Claude-Opus-4.6-Reasoning-Distill_Q8_0.gguf",
-                "fileSize": 8709518112,
-                "recommendedVRAM": "10 GB"
+                "fileName": "Qwen3.5-27B-Claude-Sonnet-4.6-Distill-Q8_0.gguf",
+                "fileSize": 29031735296,
+                "recommendedVRAM": "32 GB"
+            }
+        ]
+    },
+    {
+        "id": "qwen3.5-4b-opus-4.6-distill",
+        "name": "Qwen3.5 4B Opus 4.6 Distill",
+        "icon": "qwen",
+        "description": "Claude Opus 4.6 reasoning on ultra-light Qwen3.5 4B — frontier quality at 4 GB",
+        "huggingfaceRepo": "TeichAI/Qwen3.5-4B-Claude-Opus-4.6-Reasoning-Distill-GGUF",
+        "variants": [
+            {
+                "quantization": "Q4_K_M",
+                "fileName": "Qwen3.5-4B-Claude-Opus-4.6-Reasoning-Distill-Q4_K_M.gguf",
+                "fileSize": 2684354560,
+                "recommendedVRAM": "4 GB"
+            },
+            {
+                "quantization": "Q6_K",
+                "fileName": "Qwen3.5-4B-Claude-Opus-4.6-Reasoning-Distill-Q6_K.gguf",
+                "fileSize": 3489660928,
+                "recommendedVRAM": "4 GB"
+            },
+            {
+                "quantization": "Q8_0",
+                "fileName": "Qwen3.5-4B-Claude-Opus-4.6-Reasoning-Distill-Q8_0.gguf",
+                "fileSize": 4509715456,
+                "recommendedVRAM": "6 GB"
             }
         ]
     },
