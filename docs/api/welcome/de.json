@@ -10,7 +10,7 @@
         {
             "step": "01",
             "title": "KI-Modell hinzufügen",
-            "desc": "Beantrage einen kostenlosen API-Schlüssel bei [NVIDIA] und füge ihn in [Model Nexus] hinzu. Hast du zu Hause einen leistungsstarken Rechner? Du kannst auch ein lokales Modell verwenden."
+            "desc": "Beantrage einen kostenlosen API-Schlüssel bei [NVIDIA] und füge ihn in [Model Nexus] hinzu. Hast du zu Hause einen leistungsstarken Rechner? (Du kannst auch ein lokales Modell verwenden.)"
         },
         {
             "step": "02",

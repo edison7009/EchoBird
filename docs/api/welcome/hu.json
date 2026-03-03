@@ -10,7 +10,7 @@
         {
             "step": "01",
             "title": "AI-modell hozzáadása",
-            "desc": "Igényelj ingyenes API-kulcsot az [NVIDIA]-tól, és add hozzá a [Model Nexus]-hoz. Van otthon erős géped? Helyi modellt is futtathatsz."
+            "desc": "Igényelj ingyenes API-kulcsot az [NVIDIA]-tól, és add hozzá a [Model Nexus]-hoz. Van otthon erős géped? (Helyi modellt is futtathatsz.)"
         },
         {
             "step": "02",

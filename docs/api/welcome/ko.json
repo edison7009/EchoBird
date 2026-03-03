@@ -10,7 +10,7 @@
         {
             "step": "01",
             "title": "AI 모델 추가",
-            "desc": "[NVIDIA]에서 무료 API 키를 신청하고 [Model Nexus]에 추가하세요. 집에 성능 좋은 PC가 있다면 로컬 모델도 실행할 수 있습니다."
+            "desc": "[NVIDIA]에서 무료 API 키를 신청하고 [Model Nexus]에 추가하세요. 집에 성능 좋은 PC가 있다면 (로컬 모델도 실행할 수 있습니다.)"
         },
         {
             "step": "02",

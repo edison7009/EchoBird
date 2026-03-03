@@ -10,7 +10,7 @@
         {
             "step": "01",
             "title": "Dodaj model AI",
-            "desc": "Uzyskaj bezpłatny klucz API od [NVIDIA] i dodaj go w [Model Nexus]. Masz w domu wydajny komputer? Możesz też uruchomić lokalny model."
+            "desc": "Uzyskaj bezpłatny klucz API od [NVIDIA] i dodaj go w [Model Nexus]. Masz w domu wydajny komputer? (Możesz też uruchomić lokalny model.)"
         },
         {
             "step": "02",

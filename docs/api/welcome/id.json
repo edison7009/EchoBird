@@ -10,7 +10,7 @@
         {
             "step": "01",
             "title": "Tambahkan Model AI",
-            "desc": "Ajukan kunci API gratis dari [NVIDIA] dan tambahkan di [Model Nexus]. Punya komputer mumpuni di rumah? Anda juga bisa menjalankan model lokal."
+            "desc": "Ajukan kunci API gratis dari [NVIDIA] dan tambahkan di [Model Nexus]. Punya komputer mumpuni di rumah? (Anda juga bisa menjalankan model lokal.)"
         },
         {
             "step": "02",

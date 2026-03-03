@@ -10,7 +10,7 @@
         {
             "step": "01",
             "title": "Přidat AI model",
-            "desc": "Požádejte o bezplatný API klíč od [NVIDIA] a přidejte ho do [Model Nexus]. Máte doma výkonný počítač? Můžete spustit i lokální model."
+            "desc": "Požádejte o bezplatný API klíč od [NVIDIA] a přidejte ho do [Model Nexus]. Máte doma výkonný počítač? (Můžete spustit i lokální model.)"
         },
         {
             "step": "02",

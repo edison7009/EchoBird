@@ -10,7 +10,7 @@
         {
             "step": "01",
             "title": "Lägg till en AI-modell",
-            "desc": "Ansök om en gratis API-nyckel från [NVIDIA] och lägg till den i [Model Nexus]. Har du en kraftfull dator hemma? Du kan även köra en lokal modell."
+            "desc": "Ansök om en gratis API-nyckel från [NVIDIA] och lägg till den i [Model Nexus]. Har du en kraftfull dator hemma? (Du kan även köra en lokal modell.)"
         },
         {
             "step": "02",

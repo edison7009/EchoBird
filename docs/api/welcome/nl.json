@@ -10,7 +10,7 @@
         {
             "step": "01",
             "title": "Een AI-model toevoegen",
-            "desc": "Vraag een gratis API-sleutel aan bij [NVIDIA] en voeg die toe in [Model Nexus]. Heb je thuis een krachtige computer? Je kunt ook een lokaal model draaien."
+            "desc": "Vraag een gratis API-sleutel aan bij [NVIDIA] en voeg die toe in [Model Nexus]. Heb je thuis een krachtige computer? (Je kunt ook een lokaal model draaien.)"
         },
         {
             "step": "02",

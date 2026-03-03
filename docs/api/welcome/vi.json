@@ -10,7 +10,7 @@
         {
             "step": "01",
             "title": "Thêm mô hình AI",
-            "desc": "Đăng ký khóa API miễn phí từ [NVIDIA] và thêm vào [Model Nexus]. Có máy tính mạnh ở nhà? Bạn cũng có thể chạy mô hình cục bộ."
+            "desc": "Đăng ký khóa API miễn phí từ [NVIDIA] và thêm vào [Model Nexus]. Có máy tính mạnh ở nhà? (Bạn cũng có thể chạy mô hình cục bộ.)"
         },
         {
             "step": "02",

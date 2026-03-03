@@ -10,7 +10,7 @@
         {
             "step": "01",
             "title": "Agregar un modelo de IA",
-            "desc": "Solicita una clave API gratuita de [NVIDIA] y agrégala en [Model Nexus]. ¿Tienes un equipo potente en casa? También puedes ejecutar un modelo local."
+            "desc": "Solicita una clave API gratuita de [NVIDIA] y agrégala en [Model Nexus]. ¿Tienes un equipo potente en casa? (También puedes ejecutar un modelo local.)"
         },
         {
             "step": "02",
