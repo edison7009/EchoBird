@@ -75,6 +75,8 @@ pub async fn agent_reset(
     let mut map = session_map.lock().await;
     let sess = map.entry(server_key.clone()).or_insert_with(agent_loop::AgentSession::new);
     *sess = agent_loop::AgentSession::new();
+    // Also clear persisted session file from disk
+    agent_loop::clear_session_from_disk(&server_key);
     log::info!("[AgentCommand] Session reset for server {}: {}", server_key, sess.id);
     Ok(sess.id.clone())
 }

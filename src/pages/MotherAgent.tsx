@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback, createContext, useContext } from 'react';
-import { Paperclip, ImageIcon, KeyRound, Send, X, ChevronDown, Zap, Square, Lock } from 'lucide-react';
+import { Paperclip, ImageIcon, KeyRound, Send, X, ChevronDown, Zap, Square, Lock, Trash2 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { MiniSelect } from '../components/MiniSelect';
@@ -114,6 +114,7 @@ interface MotherAgentCtx {
     removeSSHServer: (id: string) => void;
     selectedServerId: string;
     selectServer: (id: string) => void;
+    clearChat: () => void;
 }
 
 const MotherAgentContext = createContext<MotherAgentCtx | null>(null);
@@ -129,10 +130,11 @@ interface MotherAgentProviderProps {
     detectedTools: LocalTool[];
     onClearLogs: () => void;
     onAgentRunningChange?: (running: boolean) => void;
+    onNewMessage?: () => void;
     children: React.ReactNode;
 }
 
-export function MotherAgentProvider({ appLogs, detectedTools, onClearLogs, onAgentRunningChange, children }: MotherAgentProviderProps) {
+export function MotherAgentProvider({ appLogs, detectedTools, onClearLogs, onAgentRunningChange, onNewMessage, children }: MotherAgentProviderProps) {
     const [models, setModels] = useState<ModelConfig[]>([]);
     const [agentModel, setAgentModelRaw] = useState<string | null>(() => localStorage.getItem('echobird_agent_model'));
     const setAgentModel = useCallback((v: string | null) => {
@@ -271,6 +273,8 @@ export function MotherAgentProvider({ appLogs, detectedTools, onClearLogs, onAge
                         if (last && last.type === 'assistant') {
                             return [...prev.slice(0, -1), { ...last, text: last.text + event.text }];
                         }
+                        // First chunk of a new assistant message — notify parent
+                        onNewMessage?.();
                         return [...prev, { type: 'assistant', text: event.text }];
                     });
                     break;
@@ -395,6 +399,10 @@ export function MotherAgentProvider({ appLogs, detectedTools, onClearLogs, onAge
             pendingSkills, addPendingSkill, removePendingSkill,
             sshServers, addSSHServer, removeSSHServer,
             selectedServerId, selectServer,
+            clearChat: () => {
+                setChatOutput([]);
+                api.resetAgent(selectedServerId).catch(() => { });
+            },
         }}>
             {children}
         </MotherAgentContext.Provider>
@@ -414,6 +422,7 @@ export function MotherAgentMain() {
         detectedTools,
         pendingSkills, addPendingSkill, removePendingSkill,
         sshServers, selectedServerId,
+        clearChat,
     } = useMotherAgent();
     const [publicIP, setPublicIP] = useState('...');
     const [remoteHints, setRemoteHints] = useState<Array<{ action: string; agent?: string }>>([]);
@@ -877,6 +886,14 @@ export function MotherAgentMain() {
                             )}
                         </div>
                         <div className="flex items-center gap-2">
+                            <button
+                                onClick={() => { clearChat(); }}
+                                disabled={isProcessing || chatOutput.length === 0}
+                                className="p-1 text-cyber-accent-secondary/40 hover:text-red-400 transition-colors disabled:opacity-20"
+                                title="Clear chat"
+                            >
+                                <Trash2 size={15} />
+                            </button>
                             <button
                                 onClick={() => setShowProcess(prev => !prev)}
                                 disabled={!agentModel || isProcessing}

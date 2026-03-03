@@ -24,13 +24,11 @@ export const NavItem = React.memo(({ icon, label, active = false, onClick, color
                 }`}
             onClick={onClick}
         >
-            <div className="relative">
-                {icon}
-                {badge && !active && (
-                    <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-                )}
-            </div>
+            {icon}
             <span>{label}</span>
+            {badge && !active && (
+                <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse flex-shrink-0" />
+            )}
         </div>
     );
 });

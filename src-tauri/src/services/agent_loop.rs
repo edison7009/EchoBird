@@ -138,6 +138,18 @@ pub fn load_session_from_disk(server_key: &str) -> Vec<Message> {
     }
 }
 
+/// Clear a session's persisted file from disk
+pub fn clear_session_from_disk(server_key: &str) {
+    let path = session_file(server_key);
+    if path.exists() {
+        if let Err(e) = std::fs::remove_file(&path) {
+            log::error!("[AgentSession] Failed to delete session file {}: {}", server_key, e);
+        } else {
+            log::info!("[AgentSession] Session file deleted for {}", server_key);
+        }
+    }
+}
+
 // ── Main Agent Loop ──
 
 pub async fn run_agent(

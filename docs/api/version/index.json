@@ -1,6 +1,6 @@
 {
-    "version": "2.1.1",
+    "version": "2.1.2",
     "releaseDate": "2026-03-04",
-    "releaseNotes": "New: notification badges on sidebar for Mother Agent and Channels. Includes all v2.1.0 features: web_fetch, remote hints, correct OpenClaw install, model config guidance.",
+    "releaseNotes": "Fix: sidebar badges now based on real new messages, badge position moved to label side. New: clear chat button in Mother Agent with full disk persistence cleanup.",
     "downloadUrl": "https://github.com/edison7009/Echobird-MotherAgent/releases/latest"
 }

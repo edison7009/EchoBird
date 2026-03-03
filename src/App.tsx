@@ -34,11 +34,16 @@ function CircuitFlowConnected() {
 }
 
 /** Sidebar with live notification badges from GatewayContext */
-function SidebarConnected({ activePage, onPageChange, agentRunning }: { activePage: PageType; onPageChange: (p: PageType) => void; agentRunning: boolean }) {
+function SidebarConnected({ activePage, onPageChange, agentRunning, motherNewMessage, clearMotherBadge }: { activePage: PageType; onPageChange: (p: PageType) => void; agentRunning: boolean; motherNewMessage: boolean; clearMotherBadge: () => void }) {
     const gw = useGatewayManager();
     const channelsBadge = gw.hasAnyNewMessage() && activePage !== 'channels';
-    const motherBadge = agentRunning && activePage !== 'mother';
-    return <Sidebar activePage={activePage} onPageChange={onPageChange} agentRunning={agentRunning} channelsBadge={channelsBadge} motherBadge={motherBadge} />;
+    const motherBadge = motherNewMessage && activePage !== 'mother';
+    // Clear badge when switching to Mother Agent page
+    const handlePageChange = (p: PageType) => {
+        if (p === 'mother') clearMotherBadge();
+        onPageChange(p);
+    };
+    return <Sidebar activePage={activePage} onPageChange={handlePageChange} agentRunning={agentRunning} channelsBadge={channelsBadge} motherBadge={motherBadge} />;
 }
 
 // Helper: h (hidden) vs shown class
@@ -64,6 +69,8 @@ function App() {
 
     // Mother Agent running state
     const [agentRunning, setAgentRunning] = useState(false);
+    // Mother Agent new message badge
+    const [motherNewMessage, setMotherNewMessage] = useState(false);
 
     // Scan tools
     const doScanTools = useCallback(async () => {
@@ -101,7 +108,7 @@ function App() {
                 <DownloadProvider>
                     <GatewayProvider>
                         {/* All Providers always mounted — only CSS hidden changes */}
-                        <MotherAgentProvider appLogs={appLogs} detectedTools={detectedTools} onClearLogs={onClearLogs} onAgentRunningChange={setAgentRunning}>
+                        <MotherAgentProvider appLogs={appLogs} detectedTools={detectedTools} onClearLogs={onClearLogs} onAgentRunningChange={setAgentRunning} onNewMessage={() => setMotherNewMessage(true)}>
                             <ModelNexusProvider>
                                 <SkillBrowserProvider preloadedSkills={preloadedSkills}>
                                     <AppManagerProvider detectedTools={detectedTools} setDetectedTools={setDetectedTools} isScanning={isScanning} scanTools={doScanTools} modelProtocolSelection={modelProtocolSelection} setModelProtocolSelection={setModelProtocolSelection}>
@@ -113,7 +120,7 @@ function App() {
                                                 <div className="flex flex-1 overflow-hidden text-cyber-accent font-mono p-4 gap-4 grid-bg relative isolate">
                                                     <CircuitFlowConnected />
                                                     {/* Sidebar */}
-                                                    <SidebarConnected activePage={activePage} onPageChange={setActivePage} agentRunning={agentRunning} />
+                                                    <SidebarConnected activePage={activePage} onPageChange={setActivePage} agentRunning={agentRunning} motherNewMessage={motherNewMessage} clearMotherBadge={() => setMotherNewMessage(false)} />
 
                                                     {/* Main content wrapper */}
                                                     <div className="flex-1 flex flex-col overflow-hidden">
@@ -205,7 +212,7 @@ function App() {
                     </GatewayProvider>
                 </DownloadProvider>
             </ConfirmDialogProvider>
-        </ToastProvider>
+        </ToastProvider >
     );
 }
 
