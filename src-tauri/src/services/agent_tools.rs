@@ -205,6 +205,26 @@ async fn exec_shell(command: &str, server_id: &str, ssh_pool: &SSHPool) -> ToolR
 async fn exec_local_shell(command: &str) -> ToolResult {
     log::info!("[AgentTools] Local exec: {}", &command[..command.len().min(200)]);
 
+    // Safety check: block commands that could damage Echobird or user data
+    let cmd_lower = command.to_lowercase();
+    let blocked_patterns = [
+        ".echobird",         // Echobird config directory
+        "echobird.exe",      // Echobird process
+        "stop-process",      // PowerShell kill
+        "taskkill",          // Windows kill all
+        "format c:",         // Format drive
+        "rd /s /q c:\\",     // Delete system drive
+        "rm -rf /",          // Linux nuke
+    ];
+    for pattern in &blocked_patterns {
+        if cmd_lower.contains(pattern) {
+            log::warn!("[AgentTools] BLOCKED dangerous command: {}", &command[..command.len().min(200)]);
+            return ToolResult {
+                success: false,
+                output: format!("Command blocked: contains '{}'. This operation could damage Echobird or user data.", pattern),
+            };
+        }
+    }
     let cmd = command.to_string();
     let result = timeout(
         Duration::from_secs(EXEC_TIMEOUT_SECS),

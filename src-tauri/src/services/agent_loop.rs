@@ -420,7 +420,14 @@ async fn build_system_prompt(request: &AgentRequest, ssh_pool: &SSHPool) -> Stri
         - After deployment is complete, summarize what was installed and how to access it.\n\
         - **Windows targets**: Most AI agents are designed for Linux/macOS. \
         If the target machine is Windows, recommend installing WSL2 (preferred) or Docker \
-        to provide a Linux environment, and explain why briefly.\n\n"
+        to provide a Linux environment, and explain why briefly.\n\
+        - **CRITICAL SAFETY RULES** (NEVER violate these):\n\
+          - NEVER delete, remove, or modify the `~/.echobird/` directory or anything inside it. \
+            This directory contains Echobird's configuration, models, and user data.\n\
+          - NEVER kill or stop the Echobird process (echobird.exe / Echobird).\n\
+          - When uninstalling agents (e.g. OpenClaw), ONLY remove the agent itself \
+            (e.g. `npm uninstall -g @anthropic-ai/claude-code`). Do NOT touch Echobird's files.\n\
+          - NEVER run commands that delete user home directories or broad recursive deletions.\n\n"
     );
 
     // Local platform info
