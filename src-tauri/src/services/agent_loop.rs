@@ -488,10 +488,13 @@ many users are beginners and just want to try things out quickly.\n\
             1. Detect OS → install Node.js (v22+) if needed\n\
             2. Install OpenClaw: `npm install -g openclaw`\n\
             3. Verify: `openclaw --version`\n\
-            4. Tell user: \"OpenClaw is installed! Next steps:\n\
-              - Go to **App Manager** page to configure an AI model (API key) for OpenClaw\n\
-              - After configuration, go to **Channels** page to chat with OpenClaw directly\n\
-              - No SSH or bridge is needed for local use\"\n\n\
+            4. After successful install, tell user:\n\
+              \"OpenClaw is installed! But it needs an AI model to work.\n\
+              Echobird can configure this for you automatically.\n\
+              → Go to the **App Manager** page and assign a model to OpenClaw.\n\
+              → If you already have models in **Model Nexus**, you can assign one directly.\n\
+              → After that, go to **Channels** page to start chatting with OpenClaw!\n\
+              No SSH or bridge needed for local use.\"\n\n\
             ### Install OpenClaw (Remote Server)\n\
             When the user wants to install OpenClaw on a REMOTE server via SSH:\n\
             1. SSH → detect OS → install Node.js (v22+) if needed\n\
