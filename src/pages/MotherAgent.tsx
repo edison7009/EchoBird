@@ -596,26 +596,24 @@ export function MotherAgentMain() {
                                 </div>
                             </div>
                         </div>
-                        {/* Quick prompt hints */}
-                        {chatOutput.length === 0 && agentModel && (
-                            <div className="flex flex-wrap gap-2 mt-2 mb-1">
-                                {([
-                                    ['mother.hintInstallOC', 'Install OpenClaw'],
-                                    ['mother.hintInstallSkills', 'Install skills for OpenClaw'],
-                                    ['mother.hintDeployLlm', 'Deploy Echobird LLM on remote'],
-                                    ['mother.hintShowSpecs', 'Show server specs'],
-                                    ['mother.hintUninstallOC', 'Uninstall OpenClaw completely'],
-                                ] as const).map(([key]) => (
-                                    <button
-                                        key={key}
-                                        onClick={() => { setChatInput(t(key)); chatInputRef.current?.focus(); }}
-                                        className="px-3 py-1 text-xs rounded-full border border-cyber-accent-secondary/20 text-cyber-accent-secondary/70 hover:bg-cyber-accent-secondary/10 hover:text-cyber-accent-secondary transition-all cursor-pointer"
-                                    >
-                                        {t(key)}
-                                    </button>
-                                ))}
-                            </div>
-                        )}
+                        {/* Quick prompt hints — always visible, scrolls with content */}
+                        <div className="flex flex-wrap gap-2 mt-2 mb-1">
+                            {([
+                                ['mother.hintInstallOC', 'Install OpenClaw'],
+                                ['mother.hintInstallSkills', 'Install skills for OpenClaw'],
+                                ['mother.hintDeployLlm', 'Deploy Echobird LLM on remote'],
+                                ['mother.hintShowSpecs', 'Show server specs'],
+                                ['mother.hintUninstallOC', 'Uninstall OpenClaw completely'],
+                            ] as const).map(([key]) => (
+                                <button
+                                    key={key}
+                                    onClick={() => { if (!agentModel) return; setChatInput(t(key)); chatInputRef.current?.focus(); }}
+                                    className={`px-3 py-1 text-xs rounded-full border border-cyber-accent-secondary/20 text-cyber-accent-secondary/70 hover:bg-cyber-accent-secondary/10 hover:text-cyber-accent-secondary transition-all ${agentModel ? 'cursor-pointer' : 'opacity-30 cursor-not-allowed'}`}
+                                >
+                                    {t(key)}
+                                </button>
+                            ))}
+                        </div>
                         <div className="text-cyber-accent-secondary/15 text-xs font-mono mt-1">{'─'.repeat(52)}</div>
                     </div>
 
