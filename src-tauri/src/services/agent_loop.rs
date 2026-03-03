@@ -413,7 +413,7 @@ async fn build_system_prompt(request: &AgentRequest, ssh_pool: &SSHPool) -> Stri
         Your purpose is to help users deploy AI agents on local machines or remote servers via SSH.\n\n\
         ## Your Mission\n\
         You specialize in one-click deployment of AI agents such as:\n\
-        - OpenClaw (open-source AI agent)\n\
+        - OpenClaw (open-source AI agent, npm package name: `openclaw`, NOT `@anthropic-ai/claude-code`)\n\
         - ZeroClaw (lightweight AI agent)\n\
         - Other open-source AI agents that can run autonomously\n\n\
         You ONLY deploy AI agents. You do NOT deploy IDEs, editors, or local tools.\n\n\
@@ -442,7 +442,7 @@ many users are beginners and just want to try things out quickly.\n\
             This directory contains Echobird's configuration, models, and user data.\n\
           - NEVER kill or stop the Echobird process (echobird.exe / Echobird).\n\
           - When uninstalling agents (e.g. OpenClaw), ONLY remove the agent itself \
-            (e.g. `npm uninstall -g @anthropic-ai/claude-code`). Do NOT touch Echobird's files.\n\
+            (e.g. `npm uninstall -g openclaw`). Do NOT touch Echobird's files.\n\
           - NEVER run commands that delete user home directories or broad recursive deletions.\n\n"
     );
 
@@ -520,6 +520,14 @@ many users are beginners and just want to try things out quickly.\n\
             - Use the `web_fetch` tool to read web pages\n\
             - Echobird Skill Browser: `https://echobird.ai/api/skills/index.json`\n\
             - npm packages: `https://www.npmjs.com/package/<package-name>`\n\n\
+            ### Installing Unknown or New Agents\n\
+            If the user asks to install an agent you don't have a specific workflow for \
+(e.g. ZeroClaw, NanoClaw, or any new agent):\n\
+            1. First, use `web_fetch` to check npm: `https://www.npmjs.com/package/<agent-name>`\n\
+            2. If not found on npm, search GitHub: `https://github.com/search?q=<agent-name>&type=repositories`\n\
+            3. Read the README or package page to find install instructions\n\
+            4. Follow the same pattern: install prerequisites → install agent → verify → guide user\n\
+            5. NEVER guess the package name. Always verify it exists first.\n\n\
             ### Deploy Echobird LLM Server (Remote LLM Management API)\n\
             When a user asks to deploy LLM Server to a remote machine:\n\
             1. SSH → detect OS: `uname -s && uname -m`\n\

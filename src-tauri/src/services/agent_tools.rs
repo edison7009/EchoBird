@@ -253,17 +253,22 @@ async fn exec_local_shell(command: &str) -> ToolResult {
         Duration::from_secs(EXEC_TIMEOUT_SECS),
         tokio::task::spawn_blocking(move || {
             #[cfg(target_os = "windows")]
-            let output = Command::new("powershell")
-                .args([
-                    "-NoProfile",
-                    "-NonInteractive",
-                    "-Command",
-                    &format!(
-                        "[Console]::OutputEncoding = [System.Text.Encoding]::UTF8; $OutputEncoding = [System.Text.Encoding]::UTF8; {}",
-                        cmd
-                    ),
-                ])
-                .output();
+            let output = {
+                use std::os::windows::process::CommandExt;
+                const CREATE_NO_WINDOW: u32 = 0x08000000;
+                Command::new("powershell")
+                    .args([
+                        "-NoProfile",
+                        "-NonInteractive",
+                        "-Command",
+                        &format!(
+                            "[Console]::OutputEncoding = [System.Text.Encoding]::UTF8; $OutputEncoding = [System.Text.Encoding]::UTF8; {}",
+                            cmd
+                        ),
+                    ])
+                    .creation_flags(CREATE_NO_WINDOW)
+                    .output()
+            };
 
             #[cfg(not(target_os = "windows"))]
             let output = Command::new("sh")
