@@ -3,15 +3,15 @@
     "providers": [
         {
             "name": "MiniMax",
-            "url": "https://platform.minimaxi.com"
+            "url": "https://platform.minimax.io/subscribe/coding-plan"
         },
         {
             "name": "GLM",
-            "url": "https://open.bigmodel.cn"
+            "url": "https://z.ai/model-api"
         },
         {
             "name": "Moonshot",
-            "url": "https://platform.moonshot.cn"
+            "url": "https://platform.moonshot.ai/"
         }
     ],
     "steps": [
