@@ -729,7 +729,7 @@ export const LocalServerPanel: React.FC = () => {
                                 <>
                                     <button
                                         onClick={handleAddDir}
-                                        className="text-[10px] font-mono font-bold text-green-500/70 hover:text-green-400 transition-colors"
+                                        className="text-xs font-mono font-bold text-green-500/70 hover:text-green-400 transition-colors"
                                     >
                                         {t('store.add')}
                                     </button>
@@ -739,7 +739,7 @@ export const LocalServerPanel: React.FC = () => {
                                                 setIsDeleteMode(true);
                                                 setDeleteSelection(new Set());
                                             }}
-                                            className="text-[10px] font-mono font-bold text-red-500/50 hover:text-red-400 transition-colors ml-auto"
+                                            className="text-xs font-mono font-bold text-red-500/50 hover:text-red-400 transition-colors ml-auto"
                                         >
                                             {t('store.del')}
                                         </button>
@@ -752,14 +752,14 @@ export const LocalServerPanel: React.FC = () => {
                                             setIsDeleteMode(false);
                                             setDeleteSelection(new Set());
                                         }}
-                                        className="text-[10px] font-mono font-bold text-cyber-text-secondary hover:text-cyber-text transition-colors"
+                                        className="text-xs font-mono font-bold text-cyber-text-secondary hover:text-cyber-text transition-colors"
                                     >
                                         {t('store.cancel')}
                                     </button>
                                     <button
                                         onClick={handleRemoveDirs}
                                         disabled={deleteSelection.size === 0}
-                                        className={`text-[10px] font-mono font-bold transition-colors ml-auto ${deleteSelection.size > 0
+                                        className={`text-xs font-mono font-bold transition-colors ml-auto ${deleteSelection.size > 0
                                             ? 'text-red-400 hover:text-red-300'
                                             : 'text-cyber-text-secondary/50 cursor-not-allowed'
                                             }`}
@@ -910,7 +910,7 @@ export const LocalServerPanel: React.FC = () => {
                             <div className="text-center py-10">
                                 <HardDrive className="w-8 h-8 text-cyber-text-secondary mx-auto mb-3 opacity-50" />
                                 <p className="text-sm text-cyber-text-secondary">{t('server.selectModelDir')}</p>
-                                <p className="text-[10px] text-cyber-text-secondary mt-1 opacity-70">{t('server.downloadFromStore')}</p>
+                                <p className="text-xs text-cyber-text-secondary mt-1 opacity-70">{t('server.downloadFromStore')}</p>
                                 {localDirs.length > 0 && (
                                     <div className="mt-4 text-[10px] text-cyber-text-muted space-y-1">
                                         {localDirs.map((dir, i) => (
