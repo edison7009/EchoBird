@@ -1,0 +1,30 @@
+{
+    "intro": "即便你是 AI 新手，在 Echobird 的帮助下，你也可以通过简单聊天的方式，从安装到使用，全程指挥你的 Agent。",
+    "steps": [
+        {
+            "step": "01",
+            "title": "添加 AI 模型",
+            "desc": "最快的入门方式。前往 MiniMax、GLM、Moonshot AI、Anthropic 等购买 API Key，然后在 [Model Nexus] 添加。如果你的电脑配置足够好，也可以在本地运行模型。"
+        },
+        {
+            "step": "02",
+            "title": "准备一台机器",
+            "desc": "Agent 需要一台专用电脑来运行。家里的闲置机器就可以——macOS 能让 Agent 完成更复杂的任务。"
+        },
+        {
+            "step": "03",
+            "title": "安装 Mother Agent",
+            "desc": "在 [Mother Agent] 页面中，选择你刚刚添加的模型，然后按照流程部署你的 Agent。"
+        },
+        {
+            "step": "04",
+            "title": "添加技能",
+            "desc": "在 [Skill Browser] 页面中，为你的 Agent 添加具体能力——就像玩游戏一样解锁技能。"
+        },
+        {
+            "step": "05",
+            "title": "指挥你的 Agent",
+            "desc": "在 [Channels] 页面中，通过聊天方式指挥一个或多个你部署的 Agent 工作。"
+        }
+    ]
+}

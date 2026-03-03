@@ -1,0 +1,30 @@
+{
+    "intro": "Even as an AI beginner, Echobird lets you command your own Agent — from setup to work — through simple chat.",
+    "steps": [
+        {
+            "step": "01",
+            "title": "Add an AI Model",
+            "desc": "The quickest way to start. Get an API key from MiniMax, GLM, Moonshot AI, Anthropic, or any OpenAI-compatible provider — then add it here in [Model Nexus]. Alternatively, if you have a capable machine at home, you can run a local model instead."
+        },
+        {
+            "step": "02",
+            "title": "Prepare a Machine",
+            "desc": "Your Agent needs a dedicated machine to run on. A spare home computer works great — macOS enables more complex tasks."
+        },
+        {
+            "step": "03",
+            "title": "Install Mother Agent",
+            "desc": "In [Mother Agent], select the model you just added and follow the setup flow to deploy your Agent."
+        },
+        {
+            "step": "04",
+            "title": "Add Skills",
+            "desc": "In [Skill Browser], equip your Agent with specific abilities — just like unlocking skills in a game."
+        },
+        {
+            "step": "05",
+            "title": "Command Your Agents",
+            "desc": "In [Channels], chat with and command one or more of your deployed Agents."
+        }
+    ]
+}
