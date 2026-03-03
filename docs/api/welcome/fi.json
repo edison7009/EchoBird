@@ -2,23 +2,15 @@
     "intro": "Vaikka olisit AI-aloittelija, [Echobird] antaa sinulle mahdollisuuden ohjata omaa Agenttiasi — asennuksesta töihin — yksinkertaisen chatin kautta.",
     "providers": [
         {
-            "name": "MiniMax",
-            "url": "https://platform.minimax.io/subscribe/coding-plan"
-        },
-        {
-            "name": "GLM",
-            "url": "https://z.ai/model-api"
-        },
-        {
-            "name": "Moonshot",
-            "url": "https://platform.moonshot.ai/"
+            "name": "NVIDIA",
+            "url": "https://build.nvidia.com/models"
         }
     ],
     "steps": [
         {
             "step": "01",
             "title": "Lisää AI-malli",
-            "desc": "Hanki API-avain [MiniMax]-, [GLM]-, [Moonshot]- tai muulta OpenAI-yhteensopivalta palveluntarjoajalta ja lisää se [Model Nexus] -sivulle. Onko kotona tehokas kone? Voit myös ajaa paikallisen mallin."
+            "desc": "Hae ilmainen API-avain [NVIDIA]lta ja lisää se [Model Nexus]-sivulle. Onko kotona tehokas kone? Voit myös käyttää paikallista mallia."
         },
         {
             "step": "02",
@@ -34,6 +26,20 @@
             "step": "04",
             "title": "Lisää taitoja ja aloita työskentely",
             "desc": "Selaa [Skill Browser] -sivua ja tallenna haluamasi taidot suosikkeihin. Siirry sitten [Channels] -sivulle ja chatta Agenttisi kanssa — aivan kuin viestittäisit työtoverille."
+        }
+    ],
+    "providers_archived": [
+        {
+            "name": "MiniMax",
+            "url": "https://platform.minimax.io/subscribe/coding-plan"
+        },
+        {
+            "name": "GLM",
+            "url": "https://z.ai/model-api"
+        },
+        {
+            "name": "Moonshot",
+            "url": "https://platform.moonshot.ai/"
         }
     ]
 }

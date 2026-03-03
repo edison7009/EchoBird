@@ -2,23 +2,15 @@
     "intro": "Még ha AI-kezdő is vagy, az [Echobird] lehetővé teszi, hogy egyszerű csevegéssel irányítsd saját Agented — a beállítástól a munkáig.",
     "providers": [
         {
-            "name": "MiniMax",
-            "url": "https://platform.minimax.io/subscribe/coding-plan"
-        },
-        {
-            "name": "GLM",
-            "url": "https://z.ai/model-api"
-        },
-        {
-            "name": "Moonshot",
-            "url": "https://platform.moonshot.ai/"
+            "name": "NVIDIA",
+            "url": "https://build.nvidia.com/models"
         }
     ],
     "steps": [
         {
             "step": "01",
             "title": "AI-modell hozzáadása",
-            "desc": "Szerezz API-kulcsot a [MiniMax]-tól, [GLM]-től, [Moonshot]-tól vagy bármely OpenAI-kompatibilis szolgáltatótól, és add hozzá a [Model Nexus]-hoz. Van otthon erős géped? Helyi modellt is futtathatsz."
+            "desc": "Igényelj ingyenes API-kulcsot az [NVIDIA]-tól, és add hozzá a [Model Nexus]-hoz. Van otthon erős géped? Helyi modellt is futtathatsz."
         },
         {
             "step": "02",
@@ -34,6 +26,20 @@
             "step": "04",
             "title": "Készségek hozzáadása és munkakezdés",
             "desc": "Böngészd a [Skill Browser]-t a kívánt készségek mentéséhez. Majd menj a [Channels]-be, és chatelj az Agenteddel — mint egy kollégának üzensz."
+        }
+    ],
+    "providers_archived": [
+        {
+            "name": "MiniMax",
+            "url": "https://platform.minimax.io/subscribe/coding-plan"
+        },
+        {
+            "name": "GLM",
+            "url": "https://z.ai/model-api"
+        },
+        {
+            "name": "Moonshot",
+            "url": "https://platform.moonshot.ai/"
         }
     ]
 }

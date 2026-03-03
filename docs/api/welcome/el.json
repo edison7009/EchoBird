@@ -2,23 +2,15 @@
     "intro": "Ακόμα κι αν είστε αρχάριοι στην ΑΙ, το [Echobird] σας επιτρέπει να διευθύνετε τον δικό σας Agent — από τη ρύθμιση έως την εργασία — μέσω απλής συνομιλίας.",
     "providers": [
         {
-            "name": "MiniMax",
-            "url": "https://platform.minimax.io/subscribe/coding-plan"
-        },
-        {
-            "name": "GLM",
-            "url": "https://z.ai/model-api"
-        },
-        {
-            "name": "Moonshot",
-            "url": "https://platform.moonshot.ai/"
+            "name": "NVIDIA",
+            "url": "https://build.nvidia.com/models"
         }
     ],
     "steps": [
         {
             "step": "01",
             "title": "Προσθήκη μοντέλου AI",
-            "desc": "Αποκτήστε κλειδί API από [MiniMax], [GLM], [Moonshot] ή οποιοδήποτε άλλο πάροχο συμβατό με OpenAI και προσθέστε το στο [Model Nexus]. Έχετε ισχυρό υπολογιστή στο σπίτι; Μπορείτε επίσης να τρέξετε τοπικό μοντέλο."
+            "desc": "Υποβάλετε αίτηση για δωρεάν κλειδί API από την [NVIDIA] και προσθέστε το στο [Model Nexus]. Έχετε ισχυρό υπολογιστή στο σπίτι; Μπορείτε επίσης να χρησιμοποιήσετε τοπικό μοντέλο."
         },
         {
             "step": "02",
@@ -34,6 +26,20 @@
             "step": "04",
             "title": "Προσθέστε δεξιότητες και ξεκινήστε",
             "desc": "Περιηγηθείτε στο [Skill Browser] για να αποθηκεύσετε δεξιότητες. Μετά πηγαίνετε στο [Channels] και συνομιλήστε με τον Agent σας — σαν να στέλνετε μήνυμα σε συνάδελφο."
+        }
+    ],
+    "providers_archived": [
+        {
+            "name": "MiniMax",
+            "url": "https://platform.minimax.io/subscribe/coding-plan"
+        },
+        {
+            "name": "GLM",
+            "url": "https://z.ai/model-api"
+        },
+        {
+            "name": "Moonshot",
+            "url": "https://platform.moonshot.ai/"
         }
     ]
 }

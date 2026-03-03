@@ -2,23 +2,15 @@
     "intro": "Auch als KI-Einsteiger kannst du mit [Echobird] deinen eigenen Agenten — von der Einrichtung bis zur Arbeit — per einfachem Chat steuern.",
     "providers": [
         {
-            "name": "MiniMax",
-            "url": "https://platform.minimax.io/subscribe/coding-plan"
-        },
-        {
-            "name": "GLM",
-            "url": "https://z.ai/model-api"
-        },
-        {
-            "name": "Moonshot",
-            "url": "https://platform.moonshot.ai/"
+            "name": "NVIDIA",
+            "url": "https://build.nvidia.com/models"
         }
     ],
     "steps": [
         {
             "step": "01",
             "title": "KI-Modell hinzufügen",
-            "desc": "Hol dir einen API-Schlüssel von [MiniMax], [GLM], [Moonshot] oder einem anderen OpenAI-kompatiblen Anbieter und füge ihn in [Model Nexus] hinzu. Hast du zu Hause einen leistungsstarken Rechner? Du kannst auch ein lokales Modell nutzen."
+            "desc": "Beantrage einen kostenlosen API-Schlüssel bei [NVIDIA] und füge ihn in [Model Nexus] hinzu. Hast du zu Hause einen leistungsstarken Rechner? Du kannst auch ein lokales Modell verwenden."
         },
         {
             "step": "02",
@@ -34,6 +26,20 @@
             "step": "04",
             "title": "Skills hinzufügen und loslegen",
             "desc": "Durchsuche [Skill Browser] nach benötigten Skills und speichere sie. Dann geh zu [Channels] und chatte mit deinem Agenten — wie eine Nachricht an einen Kollegen."
+        }
+    ],
+    "providers_archived": [
+        {
+            "name": "MiniMax",
+            "url": "https://platform.minimax.io/subscribe/coding-plan"
+        },
+        {
+            "name": "GLM",
+            "url": "https://z.ai/model-api"
+        },
+        {
+            "name": "Moonshot",
+            "url": "https://platform.moonshot.ai/"
         }
     ]
 }

@@ -2,23 +2,15 @@
     "intro": "AI'ya yeni biri olsanız bile, [Echobird] sayesinde basit bir sohbet aracılığıyla kendi Agent'ınızı kurulumdan çalışmaya kadar yönetebilirsiniz.",
     "providers": [
         {
-            "name": "MiniMax",
-            "url": "https://platform.minimax.io/subscribe/coding-plan"
-        },
-        {
-            "name": "GLM",
-            "url": "https://z.ai/model-api"
-        },
-        {
-            "name": "Moonshot",
-            "url": "https://platform.moonshot.ai/"
+            "name": "NVIDIA",
+            "url": "https://build.nvidia.com/models"
         }
     ],
     "steps": [
         {
             "step": "01",
             "title": "AI Modeli Ekleyin",
-            "desc": "[MiniMax], [GLM], [Moonshot] veya OpenAI uyumlu herhangi bir sağlayıcıdan API anahtarı alıp [Model Nexus]'e ekleyin. Evde güçlü bir bilgisayar var mı? Yerel bir model de çalıştırabilirsiniz."
+            "desc": "[NVIDIA]'dan ücretsiz API anahtarı alıp [Model Nexus]'e ekleyin. Evde güçlü bir bilgisayar var mı? Yerel bir model de çalıştırabilirsiniz."
         },
         {
             "step": "02",
@@ -34,6 +26,20 @@
             "step": "04",
             "title": "Beceri Ekleyin ve İşe Başlayın",
             "desc": "[Skill Browser]'da istediğiniz becerileri kaydedin. Ardından [Channels]'a geçin ve Agent'ınızla sohbet edin — bir iş arkadaşına mesaj atmak gibi."
+        }
+    ],
+    "providers_archived": [
+        {
+            "name": "MiniMax",
+            "url": "https://platform.minimax.io/subscribe/coding-plan"
+        },
+        {
+            "name": "GLM",
+            "url": "https://z.ai/model-api"
+        },
+        {
+            "name": "Moonshot",
+            "url": "https://platform.moonshot.ai/"
         }
     ]
 }

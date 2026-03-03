@@ -2,23 +2,15 @@
     "intro": "AI 초보자라도 [Echobird]를 활용하면 간단한 채팅으로 Agent를 설정부터 업무까지 손쉽게 지휘할 수 있습니다.",
     "providers": [
         {
-            "name": "MiniMax",
-            "url": "https://platform.minimax.io/subscribe/coding-plan"
-        },
-        {
-            "name": "GLM",
-            "url": "https://z.ai/model-api"
-        },
-        {
-            "name": "Moonshot",
-            "url": "https://platform.moonshot.ai/"
+            "name": "NVIDIA",
+            "url": "https://build.nvidia.com/models"
         }
     ],
     "steps": [
         {
             "step": "01",
             "title": "AI 모델 추가",
-            "desc": "[MiniMax], [GLM], [Moonshot] 또는 OpenAI 호환 공급업체에서 API 키를 받아 [Model Nexus]에 추가하세요. 집에 성능 좋은 PC가 있다면 로컬 모델도 실행할 수 있습니다."
+            "desc": "[NVIDIA]에서 무료 API 키를 신청하고 [Model Nexus]에 추가하세요. 집에 성능 좋은 PC가 있다면 로컬 모델도 실행할 수 있습니다."
         },
         {
             "step": "02",
@@ -34,6 +26,20 @@
             "step": "04",
             "title": "스킬 추가 및 업무 시작",
             "desc": "[Skill Browser]에서 원하는 스킬을 즐겨찾기에 추가한 뒤, [Channels]로 이동해 Agent에게 채팅으로 스킬을 배정하거나 작업 계획을 내려주세요 — 동료에게 메시지를 보내는 것처럼요."
+        }
+    ],
+    "providers_archived": [
+        {
+            "name": "MiniMax",
+            "url": "https://platform.minimax.io/subscribe/coding-plan"
+        },
+        {
+            "name": "GLM",
+            "url": "https://z.ai/model-api"
+        },
+        {
+            "name": "Moonshot",
+            "url": "https://platform.moonshot.ai/"
         }
     ]
 }

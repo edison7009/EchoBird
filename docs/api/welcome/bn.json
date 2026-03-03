@@ -2,23 +2,15 @@
     "intro": "AI-তে নতুন হলেও, [Echobird]-এর সাহায্যে সহজ চ্যাটের মাধ্যমে সেটআপ থেকে কাজ পর্যন্ত আপনার Agent পরিচালনা করতে পারবেন।",
     "providers": [
         {
-            "name": "MiniMax",
-            "url": "https://platform.minimax.io/subscribe/coding-plan"
-        },
-        {
-            "name": "GLM",
-            "url": "https://z.ai/model-api"
-        },
-        {
-            "name": "Moonshot",
-            "url": "https://platform.moonshot.ai/"
+            "name": "NVIDIA",
+            "url": "https://build.nvidia.com/models"
         }
     ],
     "steps": [
         {
             "step": "01",
             "title": "AI মডেল যোগ করুন",
-            "desc": "[MiniMax], [GLM], [Moonshot] বা যেকোনো OpenAI-সামঞ্জস্যপূর্ণ প্রদানকারীর কাছ থেকে API কী নিন এবং [Model Nexus]-এ যোগ করুন। বাড়িতে শক্তিশালী কম্পিউটার আছে? স্থানীয় মডেলও চালাতে পারেন।"
+            "desc": "[NVIDIA] থেকে বিনামূল্যে API Key-এর জন্য আবেদন করুন এবং [Model Nexus]-এ যোগ করুন। বাড়িতে শক্তিশালী কম্পিউটার আছে? স্থানীয় মডেলও চালাতে পারেন।"
         },
         {
             "step": "02",
@@ -34,6 +26,20 @@
             "step": "04",
             "title": "দক্ষতা যোগ করুন এবং কাজ শুরু করুন",
             "desc": "[Skill Browser]-এ পছন্দের দক্ষতাগুলো বুকমার্ক করুন। তারপর [Channels]-এ গিয়ে Agent-এর সাথে চ্যাট করে দক্ষতা নির্ধারণ করুন বা কাজের পরিকল্পনা দিন।"
+        }
+    ],
+    "providers_archived": [
+        {
+            "name": "MiniMax",
+            "url": "https://platform.minimax.io/subscribe/coding-plan"
+        },
+        {
+            "name": "GLM",
+            "url": "https://z.ai/model-api"
+        },
+        {
+            "name": "Moonshot",
+            "url": "https://platform.moonshot.ai/"
         }
     ]
 }

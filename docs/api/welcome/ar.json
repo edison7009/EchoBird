@@ -2,23 +2,15 @@
     "intro": "حتى لو كنت مبتدئاً في الذكاء الاصطناعي، يتيح لك [Echobird] قيادة وكيلك الخاص — من الإعداد إلى العمل — عبر دردشة بسيطة.",
     "providers": [
         {
-            "name": "MiniMax",
-            "url": "https://platform.minimax.io/subscribe/coding-plan"
-        },
-        {
-            "name": "GLM",
-            "url": "https://z.ai/model-api"
-        },
-        {
-            "name": "Moonshot",
-            "url": "https://platform.moonshot.ai/"
+            "name": "NVIDIA",
+            "url": "https://build.nvidia.com/models"
         }
     ],
     "steps": [
         {
             "step": "01",
             "title": "إضافة نموذج AI",
-            "desc": "احصل على مفتاح API من [MiniMax] أو [GLM] أو [Moonshot] أو أي مزوّد متوافق مع OpenAI، ثم أضفه في [Model Nexus]. لديك جهاز قوي في المنزل؟ يمكنك أيضاً تشغيل نموذج محلي."
+            "desc": "تقدّم للحصول على مفتاح API مجاني من [NVIDIA] وأضفه في [Model Nexus]. لديك جهاز قوي في المنزل؟ يمكنك أيضاً تشغيل نموذج محلي."
         },
         {
             "step": "02",
@@ -34,6 +26,20 @@
             "step": "04",
             "title": "أضف مهارات وابدأ العمل",
             "desc": "تصفح [Skill Browser] لحفظ المهارات المطلوبة، ثم اذهب إلى [Channels] وتحدث مع وكيلك لتعيين المهارات أو إطلاق خطة عمل — مثل إرسال رسالة لزميل."
+        }
+    ],
+    "providers_archived": [
+        {
+            "name": "MiniMax",
+            "url": "https://platform.minimax.io/subscribe/coding-plan"
+        },
+        {
+            "name": "GLM",
+            "url": "https://z.ai/model-api"
+        },
+        {
+            "name": "Moonshot",
+            "url": "https://platform.moonshot.ai/"
         }
     ]
 }

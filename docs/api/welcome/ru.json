@@ -2,23 +2,15 @@
     "intro": "Даже если вы новичок в ИИ, [Echobird] позволяет управлять собственным Агентом — от настройки до работы — с помощью простого чата.",
     "providers": [
         {
-            "name": "MiniMax",
-            "url": "https://platform.minimax.io/subscribe/coding-plan"
-        },
-        {
-            "name": "GLM",
-            "url": "https://z.ai/model-api"
-        },
-        {
-            "name": "Moonshot",
-            "url": "https://platform.moonshot.ai/"
+            "name": "NVIDIA",
+            "url": "https://build.nvidia.com/models"
         }
     ],
     "steps": [
         {
             "step": "01",
             "title": "Добавить модель ИИ",
-            "desc": "Получите API-ключ у [MiniMax], [GLM], [Moonshot] или любого провайдера, совместимого с OpenAI, и добавьте его в [Model Nexus]. Есть дома мощный компьютер? Можно запустить и локальную модель."
+            "desc": "Получите бесплатный API-ключ от [NVIDIA] и добавьте его в [Model Nexus]. Есть дома мощный компьютер? Можно запустить и локальную модель."
         },
         {
             "step": "02",
@@ -34,6 +26,20 @@
             "step": "04",
             "title": "Добавить навыки и приступить к работе",
             "desc": "Просмотрите [Skill Browser] и сохраните нужные навыки. Затем перейдите в [Channels] и общайтесь с Агентом — как с сообщением коллеге."
+        }
+    ],
+    "providers_archived": [
+        {
+            "name": "MiniMax",
+            "url": "https://platform.minimax.io/subscribe/coding-plan"
+        },
+        {
+            "name": "GLM",
+            "url": "https://z.ai/model-api"
+        },
+        {
+            "name": "Moonshot",
+            "url": "https://platform.moonshot.ai/"
         }
     ]
 }

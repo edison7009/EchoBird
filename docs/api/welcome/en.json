@@ -2,23 +2,15 @@
     "intro": "Even as an AI beginner, [Echobird] lets you command your own Agent — from setup to work — through simple chat.",
     "providers": [
         {
-            "name": "MiniMax",
-            "url": "https://platform.minimax.io/subscribe/coding-plan"
-        },
-        {
-            "name": "GLM",
-            "url": "https://z.ai/model-api"
-        },
-        {
-            "name": "Moonshot",
-            "url": "https://platform.moonshot.ai/"
+            "name": "NVIDIA",
+            "url": "https://build.nvidia.com/models"
         }
     ],
     "steps": [
         {
             "step": "01",
             "title": "Add an AI Model",
-            "desc": "Get an API key from [MiniMax], [GLM], [Moonshot], or any OpenAI-compatible provider and add it in [Model Nexus]. Got a capable machine at home? You can also run a local model instead."
+            "desc": "Apply for a free API key from [NVIDIA] and add it in [Model Nexus]. Got a capable machine at home? You can also run a local model instead."
         },
         {
             "step": "02",
@@ -34,6 +26,20 @@
             "step": "04",
             "title": "Add Skills & Get to Work",
             "desc": "Browse [Skill Browser] to bookmark the capabilities you want. Then head to [Channels] and chat with your Agent to assign skills or kick off a work plan — just like messaging a teammate."
+        }
+    ],
+    "providers_archived": [
+        {
+            "name": "MiniMax",
+            "url": "https://platform.minimax.io/subscribe/coding-plan"
+        },
+        {
+            "name": "GLM",
+            "url": "https://z.ai/model-api"
+        },
+        {
+            "name": "Moonshot",
+            "url": "https://platform.moonshot.ai/"
         }
     ]
 }
