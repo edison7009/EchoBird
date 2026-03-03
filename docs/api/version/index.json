@@ -1,6 +1,6 @@
 {
-    "version": "2.0.7",
+    "version": "2.0.8",
     "releaseDate": "2026-03-04",
-    "releaseNotes": "Security: Mother Agent blocked from deleting .echobird config or killing Echobird process. UI: hint buttons always visible in Mother Agent. Includes all v2.0.6 changes.",
+    "releaseNotes": "Fix: PowerShell UTF-8 encoding for shell output. UX: interactive WSL/Windows choice for agent install, solid stop button.",
     "downloadUrl": "https://github.com/edison7009/Echobird-MotherAgent/releases/latest"
 }
