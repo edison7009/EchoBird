@@ -892,7 +892,7 @@ export function MotherAgentMain() {
                                     className="p-1 text-red-400/80 hover:text-red-400 transition-colors"
                                     title="Stop agent"
                                 >
-                                    <Square size={16} />
+                                    <Square size={16} fill="currentColor" />
                                 </button>
                             ) : (
                                 <button

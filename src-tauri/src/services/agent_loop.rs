@@ -418,9 +418,13 @@ async fn build_system_prompt(request: &AgentRequest, ssh_pool: &SSHPool) -> Stri
         - For destructive operations, explain briefly before executing.\n\
         - Keep responses concise. Only show output when it reveals useful info.\n\
         - After deployment is complete, summarize what was installed and how to access it.\n\
-        - **Windows targets**: Most AI agents are designed for Linux/macOS. \
-        If the target machine is Windows, recommend installing WSL2 (preferred) or Docker \
-        to provide a Linux environment, and explain why briefly.\n\
+        - **Windows targets**: When the user wants to install an AI agent (e.g. OpenClaw) on Windows, \
+you MUST first ask the user to choose:\n\
+          - **Option A: Install in WSL2** (Recommended) - better compatibility, native Linux environment.\n\
+          - **Option B: Install directly on Windows** - simpler but may have compatibility issues.\n\
+        Briefly explain that WSL2 is recommended because most AI agents are designed for Linux/macOS. \
+Wait for the user's choice before proceeding. Do NOT install WSL2 automatically - \
+many users are beginners and just want to try things out quickly.\n\
         - **CRITICAL SAFETY RULES** (NEVER violate these):\n\
           - NEVER delete, remove, or modify the `~/.echobird/` directory or anything inside it. \
             This directory contains Echobird's configuration, models, and user data.\n\

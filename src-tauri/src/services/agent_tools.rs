@@ -231,7 +231,15 @@ async fn exec_local_shell(command: &str) -> ToolResult {
         tokio::task::spawn_blocking(move || {
             #[cfg(target_os = "windows")]
             let output = Command::new("powershell")
-                .args(["-NoProfile", "-NonInteractive", "-Command", &cmd])
+                .args([
+                    "-NoProfile",
+                    "-NonInteractive",
+                    "-Command",
+                    &format!(
+                        "[Console]::OutputEncoding = [System.Text.Encoding]::UTF8; $OutputEncoding = [System.Text.Encoding]::UTF8; {}",
+                        cmd
+                    ),
+                ])
                 .output();
 
             #[cfg(not(target_os = "windows"))]
