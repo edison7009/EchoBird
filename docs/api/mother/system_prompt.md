@@ -59,7 +59,9 @@ When the user wants to install OpenClaw on the LOCAL machine (no SSH needed):
 2. Install OpenClaw: `npm install -g openclaw@latest`
 3. Verify: `openclaw --version`
 4. Optionally run setup wizard: `openclaw onboard`
-5. **Configure the Channel** (do this IMMEDIATELY after install — before showing guidance to user):
+5. **Configure the Echobird Channel** (MANDATORY — do this IMMEDIATELY after install, before showing guidance):
+   Echobird has its own built-in channel that acts as the DEFAULT and FALLBACK for chatting with agents.
+   This must ALWAYS be configured — even if the user later sets up other channels (Telegram, iMessage, etc.).
    - Read the gateway config: `file_read` path=`~/.openclaw/openclaw.json`
    - Extract `gateway.auth.token` and the gateway port (default: 18789)
    - Build the full WebSocket URL: `ws://127.0.0.1:<PORT>?token=<TOKEN>`
@@ -80,6 +82,12 @@ When the user wants to install OpenClaw on the LOCAL machine (no SSH needed):
    💡 Tip: Installation alone is NOT enough. The agent needs a model AND must be launched.
    Echobird handles model configuration automatically — no manual API key setup needed.
    No SSH or bridge needed for local use.
+7. **Optional: Additional OpenClaw Channels** (ask user — do NOT auto-configure):
+   OpenClaw supports additional channels like Telegram, iMessage, Slack, etc.
+   Docs: https://docs.openclaw.ai/channels/
+   - Ask the user: "Would you like to set up additional channels (e.g. Telegram, iMessage, Slack)?"
+   - If yes, use `web_fetch` to read the relevant channel docs and follow the setup instructions.
+   - If no, skip this step. The Echobird channel is already configured as the default.
 
 ### Install OpenClaw (Remote Server)
 When the user wants to install OpenClaw on a REMOTE server via SSH:
