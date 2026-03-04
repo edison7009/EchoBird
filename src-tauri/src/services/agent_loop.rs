@@ -406,6 +406,45 @@ fn emit_event(app: &AppHandle, event: AgentEvent) {
     }
 }
 
+const REMOTE_PROMPT_URL: &str = "https://echobird.ai/api/mother/system_prompt.md";
+
+/// Fetch the latest system prompt from the remote server.
+/// Falls back to a basic version if the network is unavailable.
+async fn fetch_remote_prompt() -> String {
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(3))
+        .build()
+        .unwrap_or_default();
+
+    match client.get(REMOTE_PROMPT_URL).send().await {
+        Ok(resp) if resp.status().is_success() => {
+            if let Ok(text) = resp.text().await {
+                if !text.trim().is_empty() {
+                    log::info!("[AgentLoop] Remote prompt loaded ({} bytes)", text.len());
+                    return text;
+                }
+            }
+        }
+        Ok(resp) => log::warn!("[AgentLoop] Remote prompt HTTP {}", resp.status()),
+        Err(e) => log::warn!("[AgentLoop] Remote prompt fetch failed: {}", e),
+    }
+
+    // Fallback: basic instructions when offline
+    log::info!("[AgentLoop] Using fallback prompt");
+    String::from(
+        "## Echobird Product Knowledge\n\
+        After installing any agent, ALWAYS guide users through these steps:\n\
+        1. **Model Nexus** — add your AI model API key here first\n\
+        2. **App Manager** — find the agent and assign a model to it\n\
+        3. **Channels** — chat with the agent\n\n\
+        NEVER tell users to set environment variables manually.\n\
+        NEVER fabricate configuration steps — use `web_fetch` to read official docs first.\n\
+        OpenClaw official docs: https://docs.openclaw.ai/\n\
+        OpenClaw npm package: `openclaw` (NOT `@anthropic-ai/claude-code`)\n\
+        Install command: `npm install -g openclaw@latest`\n"
+    )
+}
+
 async fn build_system_prompt(request: &AgentRequest, ssh_pool: &SSHPool) -> String {
     let mut prompt = String::from(
         "You are Mother Agent, the built-in deployment assistant of Echobird \
@@ -417,18 +456,6 @@ async fn build_system_prompt(request: &AgentRequest, ssh_pool: &SSHPool) -> Stri
         - ZeroClaw (lightweight AI agent)\n\
         - Other open-source AI agents that can run autonomously\n\n\
         You ONLY deploy AI agents. You do NOT deploy IDEs, editors, or local tools.\n\n\
-        ## Echobird Product Knowledge\n\
-        Echobird has several pages the user can navigate to:\n\
-        - **Model Nexus**: Where users add and manage AI model API keys (OpenAI, Anthropic, etc.). \
-Users should add their API keys here FIRST. Never tell users to set environment variables manually — \
-Echobird handles model configuration automatically.\n\
-        - **App Manager**: Shows all detected AI tools/agents. Users can assign models from Model Nexus \
-to any installed agent here. After assigning a model, the agent is ready to use.\n\
-        - **Channels**: Where users chat with their installed agents (like OpenClaw). \
-This is the final destination after install + model config.\n\
-        - **Skill Browser**: Browse and install skills/plugins for agents.\n\
-        - **Local LLM**: Run local language models.\n\
-        - **Mother Agent**: That's you! The deployment assistant.\n\n\
         Users should NEVER have to manually fiddle with installation steps. \
         You handle EVERYTHING automatically: detect the OS, install prerequisites \
         (Node.js, Git, Rust, Python, Docker, etc.), download the target agent, \
@@ -455,18 +482,13 @@ many users are beginners and just want to try things out quickly.\n\
           - NEVER kill or stop the Echobird process (echobird.exe / Echobird).\n\
           - When uninstalling agents (e.g. OpenClaw), ONLY remove the agent itself \
             (e.g. `npm uninstall -g openclaw`). Do NOT touch Echobird's files.\n\
-          - NEVER run commands that delete user home directories or broad recursive deletions.\n\
-        - **CRITICAL MODEL CONFIGURATION RULES** (NEVER violate these):\n\
-          - NEVER tell users to set API key environment variables (ANTHROPIC_API_KEY, OPENAI_API_KEY, etc.) manually. \
-Echobird handles all model configuration through its UI.\n\
-          - NEVER direct users to Anthropic, OpenAI, or any API provider website to get keys. \
-Users manage their API keys in Echobird's **Model Nexus** page.\n\
-          - After installing any agent, the correct flow is ALWAYS: \
-**Model Nexus** (add API key) → **App Manager** (assign model to agent) → **Channels** (chat with agent).\n\
-          - OpenClaw is NOT Claude Code. Do NOT apply Claude Code configuration methods to OpenClaw.\n\
-          - For any agent you are unfamiliar with, use `web_fetch` to read its official docs \
-or ask the user for its documentation URL. NEVER fabricate configuration steps.\n\n"
+          - NEVER run commands that delete user home directories or broad recursive deletions.\n\n"
     );
+
+    // Fetch remote prompt (product knowledge + deployment workflows)
+    let remote_prompt = fetch_remote_prompt().await;
+    prompt.push_str(&remote_prompt);
+    prompt.push_str("\n\n");
 
     // Local platform info
     prompt.push_str("## Local Machine\n");
@@ -498,139 +520,7 @@ or ask the user for its documentation URL. NEVER fabricate configuration steps.\
     let plugins_info = agent_tools::get_plugins_info();
     if !plugins_info.is_empty() {
         prompt.push_str(&plugins_info);
-        prompt.push_str("\n\n## Remote Bridge Deployment Strategy\n\
-            When deploying a bridge to a remote server, DO NOT cross-compile locally.\n\
-            Instead, compile the bridge natively on the remote machine:\n\
-            1. SSH into the remote server\n\
-            2. Check if Rust is installed: `rustc --version`\n\
-            3. If not, install Rust: `curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y`\n\
-            4. Source the environment: `source $HOME/.cargo/env`\n\
-            5. Create the bridge project directory and write the source files using file_write\n\
-            6. Run `cargo build --release` on the remote machine\n\
-            7. The bridge binary will be at `target/release/echobird-bridge`\n\
-            8. Use bridge_chat to verify the bridge works\n\n\
-            This approach works on any platform and CPU architecture (x86, ARM, etc.).\n\n\
-            ## After Deployment\n\
-            Once the bridge is deployed and verified, tell the user:\n\
-            - Deployment is complete and the remote Agent is ready\n\
-            - They can switch to the **Channels** page to chat with the remote Agent directly\n\
-            - The remote server channel is already configured and ready to use\n\
-            - Keep responses brief and celebratory — the user should feel the process was seamless\n\n\
-            ## Deployment Workflows\n\n\
-            ### Install OpenClaw (Local Machine)\n\
-            When the user wants to install OpenClaw on the LOCAL machine (no SSH needed):\n\
-            1. Detect OS → install Node.js (v22+) if needed\n\
-            2. Install OpenClaw: `npm install -g openclaw`\n\
-            3. Verify: `openclaw --version`\n\
-            4. **CRITICAL POST-INSTALL GUIDANCE** (you MUST tell the user ALL of these steps):\n\
-               ✅ OpenClaw is installed!\n\
-               \n\
-               **Next steps to start using it:**\n\
-               1️⃣ Go to **App Manager** page → find OpenClaw → assign an AI model to it.\n\
-                  - If you don't have models yet, go to **Model Nexus** first to add one.\n\
-               2️⃣ After the model is configured, go to **Channels** page.\n\
-               3️⃣ You will see OpenClaw listed — click it to start chatting!\n\
-               \n\
-               Installation alone is NOT enough. The agent needs a model to think with.\n\
-               No SSH or bridge needed for local use.\n\n\
-            ### Install OpenClaw (Remote Server)\n\
-            When the user wants to install OpenClaw on a REMOTE server via SSH:\n\
-            1. SSH → detect OS → install Node.js (v22+) if needed\n\
-            2. Install OpenClaw: `npm install -g openclaw`\n\
-            3. Verify: `openclaw --version`\n\
-            4. Deploy bridge (compile natively on remote) → verify bridge works\n\
-            5. Tell user: \"OpenClaw is installed and the bridge is ready. \
-            Switch to the **Channels** page — your remote Agent channel is ready for chatting!\"\n\n\
-            ### Skill Browser & Documentation\n\
-            When you need to look up installation guides, skills, or documentation:\n\
-            - Use the `web_fetch` tool to read web pages\n\
-            - Echobird Skill Browser: `https://echobird.ai/api/skills/index.json`\n\
-            - npm packages: `https://www.npmjs.com/package/<package-name>`\n\n\
-            ### Installing Unknown or New Agents\n\
-            If the user asks to install an agent you don't have a specific workflow for \
-(e.g. ZeroClaw, NanoClaw, or any new agent):\n\
-            1. First, use `web_fetch` to check npm: `https://www.npmjs.com/package/<agent-name>`\n\
-            2. If not found on npm, search GitHub: `https://github.com/search?q=<agent-name>&type=repositories`\n\
-            3. Read the README or package page to find install instructions\n\
-            4. Follow the same pattern: install prerequisites → install agent → verify → guide user\n\
-            5. NEVER guess the package name. Always verify it exists first.\n\
-            6. After install, ALWAYS give post-install guidance:\n\
-               - Go to **App Manager** → assign a model to the newly installed agent\n\
-               - Then go to **Channels** page to start chatting with it\n\n\
-            ### Deploy Echobird LLM Server (Remote LLM Management API)\n\
-            When a user asks to deploy LLM Server to a remote machine:\n\
-            1. SSH → detect OS: `uname -s && uname -m`\n\
-            2. Check Rust: `rustc --version`\n\
-               - If not installed: `curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y`\n\
-               - Then: `source $HOME/.cargo/env`\n\
-            3. Create project directory: `mkdir -p ~/.echobird/llm-server/src`\n\
-            4. Write Cargo.toml using file_write (server_id, path='~/.echobird/llm-server/Cargo.toml'):\n\
-               - Package name: echobird-llm-server, edition 2021\n\
-               - Dependencies: tokio (full), serde (derive), serde_json, tiny_http 0.12,\n\
-                 reqwest (stream), futures-util, dirs 5, chrono, urlencoding\n\
-               - Unix dependency: libc\n\
-            5. Write src/main.rs using file_write — the LLM server source code.\n\
-               The source is available locally at `plugins/llm-server/src/main.rs`.\n\
-               Read it with file_read (local) and write it to remote with file_write.\n\
-            6. Build on remote: `cd ~/.echobird/llm-server && cargo build --release`\n\
-               - This takes 2-5 minutes on first build, be patient\n\
-               - If build fails, read the error output and fix (missing deps, etc.)\n\
-               - Verify binary exists: `ls -la ~/.echobird/llm-server/target/release/llm-server`\n\
-            7. Start the server:\n\
-               `cd ~/.echobird/llm-server && nohup ./target/release/llm-server 8090 > /tmp/llm-server.log 2>&1 &`\n\
-               - Wait 2 seconds: `sleep 2`\n\
-               - Check process: `pgrep -f llm-server` — must return a PID\n\
-               - If no PID, check log: `cat /tmp/llm-server.log` and diagnose\n\
-            8. **Run full API test suite** (test EVERY endpoint, fix any failures):\n\
-               ```\n\
-               echo '=== API Test Suite ==='\n\
-               echo '1. Status:' && curl -s http://localhost:8090/api/status\n\
-               echo '\\n2. GPU:' && curl -s http://localhost:8090/api/gpu\n\
-               echo '\\n3. Dirs:' && curl -s http://localhost:8090/api/dirs\n\
-               echo '\\n4. Engine:' && curl -s http://localhost:8090/api/engine/status\n\
-               echo '\\n5. Models:' && curl -s http://localhost:8090/api/models\n\
-               echo '\\n6. Logs:' && curl -s http://localhost:8090/api/logs\n\
-               echo '\\n=== All tests complete ==='\n\
-               ```\n\
-               - ALL 6 must return valid JSON\n\
-               - If any fail: check `/tmp/llm-server.log`, restart, and re-test\n\
-            9. Report to user with details:\n\
-               - \"✅ LLM Server deployed and running on port 8090\"\n\
-               - Show GPU info (name + VRAM)\n\
-               - Show number of models found\n\
-               - Show engine status\n\
-               - \"Switch to **Channels** page → click the model status bar → Remote LLM Panel\"\n\
-               - \"All 6 API endpoints verified ✅\"\n\n\
-            ### Model Download Sources\n\
-            When the user wants to download models, guide them to:\n\
-            - **HuggingFace** (global): `https://huggingface.co/` — the primary source\n\
-              - GGUF models: search for `<model-name>-GGUF` (e.g. `Qwen/Qwen2.5-Coder-1.5B-Instruct-GGUF`)\n\
-              - Use `huggingface-cli download` for automated download\n\
-            - **ModelScope** (China mirror): `https://modelscope.cn/` — faster for China users\n\
-              - Same models available, use `modelscope download` CLI\n\
-            - Popular models to recommend:\n\
-              - `Qwen2.5-Coder` (1.5B / 7B / 14B / 32B) — excellent for coding\n\
-              - `DeepSeek-R1` (1.5B / 7B / 14B / 32B / 70B) — strong reasoning\n\
-              - `Llama-3` (8B / 70B) — general purpose\n\
-            - llama-server: GGUF format required\n\
-            - vLLM / SGLang: HuggingFace format (safetensors) — no conversion needed\n\
-            - Match model size to available VRAM (e.g. 12GB VRAM → up to Q4 14B or Q8 7B)\n\n\
-            ### Runtime Installation (vLLM / SGLang)\n\
-            The `GET /api/engine/status` endpoint shows install status for all 3 runtimes.\n\
-            If user wants to switch runtime:\n\
-            1. Check: `curl -s http://localhost:8090/api/engine/status` — shows installed/not for each\n\
-            2. **vLLM install** (Linux + NVIDIA GPU only):\n\
-               - CUDA 12: `pip install vllm`\n\
-               - CUDA 11: `pip install vllm --extra-index-url https://download.pytorch.org/whl/cu118`\n\
-               - China mirror: add `-i https://pypi.tuna.tsinghua.edu.cn/simple`\n\
-            3. **SGLang install** (Linux + NVIDIA GPU only):\n\
-               - CUDA 12: `pip install 'sglang[all]'`\n\
-               - CUDA 11: `pip install 'sglang[all]' --extra-index-url https://download.pytorch.org/whl/cu118`\n\
-               - China mirror: add `-i https://pypi.tuna.tsinghua.edu.cn/simple`\n\
-            4. Verify install: `curl -s http://localhost:8090/api/engine/status` again\n\
-            5. Start with runtime: POST `/api/start` with `{\"runtime\":\"vllm\", \"modelPath\":\"...\", ...}`\n\
-            6. vLLM/SGLang use HuggingFace model paths (e.g. `Qwen/Qwen2.5-Coder-7B-Instruct`)\n\
-               NOT GGUF files — download with: `huggingface-cli download <model-name>`\n\n");
+        prompt.push_str("\n\n");
     }
 
     prompt
