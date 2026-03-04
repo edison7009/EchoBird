@@ -408,7 +408,7 @@ const OPENCODE_MARKER: &str = "/* [Echobird-OpenCode-Patched] */";
 // OpenCode injection: CJS style, injected BEFORE `run()` is called.
 // Reads ~/.echobird/opencode.json for API key and base URL,
 // sets process.env so the spawned binary inherits them.
-// Also writes ~/.config/opencode/opencode.json with provider config.
+// Writes ~/.config/opencode/opencode.json with provider + model config.
 const OPENCODE_INJECT: &str = r#"
 /* [Echobird-OpenCode-Patched] */
 ;(function() { try {
@@ -417,7 +417,7 @@ const OPENCODE_INJECT: &str = r#"
     var _eb_c = JSON.parse(fs.readFileSync(_eb_p, "utf-8"));
     if (_eb_c.apiKey) process.env.OPENAI_API_KEY = _eb_c.apiKey;
     if (_eb_c.baseUrl) process.env.OPENAI_BASE_URL = _eb_c.baseUrl;
-    // Write provider config for OpenCode to pick up
+    // Write provider + model config for OpenCode to pick up
     var _eb_cfgDir = path.join(os.homedir(), ".config", "opencode");
     if (!fs.existsSync(_eb_cfgDir)) fs.mkdirSync(_eb_cfgDir, {recursive:true});
     var _eb_cfgPath = path.join(_eb_cfgDir, "opencode.json");
@@ -431,9 +431,18 @@ const OPENCODE_INJECT: &str = r#"
       options: { baseURL: _eb_c.baseUrl || "", apiKey: _eb_c.apiKey || "" },
       models: {}
     };
-    if (_eb_c.modelId) _eb_cfg.provider[_eb_provId].models[_eb_c.modelId] = {name: _eb_c.modelName || _eb_c.modelId};
+    if (_eb_c.modelId) {
+      _eb_cfg.provider[_eb_provId].models[_eb_c.modelId] = {name: _eb_c.modelName || _eb_c.modelId};
+      // Set model at top level — this is how OpenCode selects the default model
+      _eb_cfg.model = _eb_provId + "/" + _eb_c.modelId;
+      _eb_cfg.small_model = _eb_provId + "/" + _eb_c.modelId;
+    }
     fs.writeFileSync(_eb_cfgPath, JSON.stringify(_eb_cfg, null, 2), "utf-8");
-    console.log("[Echobird] OpenCode configured: provider=" + _eb_provId + " model=" + (_eb_c.modelId || "default"));
+    // Also set OPENCODE_CONFIG_CONTENT for runtime override (highest priority)
+    if (_eb_c.modelId) {
+      process.env.OPENCODE_CONFIG_CONTENT = JSON.stringify({model: _eb_provId + "/" + _eb_c.modelId, small_model: _eb_provId + "/" + _eb_c.modelId});
+    }
+    console.log("[Echobird] OpenCode configured: model=" + _eb_provId + "/" + (_eb_c.modelId || "default"));
   }
 } catch(_e) { console.warn("[Echobird] OpenCode inject error:", _e.message); } })();
 "#;
