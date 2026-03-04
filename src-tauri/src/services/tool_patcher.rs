@@ -401,6 +401,63 @@ pub fn patch_codex() {
     });
 }
 
+// ─── OpenCode Patcher ───
+
+const OPENCODE_MARKER: &str = "/* [Echobird-OpenCode-Patched] */";
+
+// OpenCode injection: CJS style, injected BEFORE `run()` is called.
+// Reads ~/.echobird/opencode.json for API key and base URL,
+// sets process.env so the spawned binary inherits them.
+// Also writes ~/.config/opencode/opencode.json with provider config.
+const OPENCODE_INJECT: &str = r#"
+/* [Echobird-OpenCode-Patched] */
+;(function() { try {
+  var _eb_p = path.join(os.homedir(), ".echobird", "opencode.json");
+  if (fs.existsSync(_eb_p)) {
+    var _eb_c = JSON.parse(fs.readFileSync(_eb_p, "utf-8"));
+    if (_eb_c.apiKey) process.env.OPENAI_API_KEY = _eb_c.apiKey;
+    if (_eb_c.baseUrl) process.env.OPENAI_BASE_URL = _eb_c.baseUrl;
+    // Write provider config for OpenCode to pick up
+    var _eb_cfgDir = path.join(os.homedir(), ".config", "opencode");
+    if (!fs.existsSync(_eb_cfgDir)) fs.mkdirSync(_eb_cfgDir, {recursive:true});
+    var _eb_cfgPath = path.join(_eb_cfgDir, "opencode.json");
+    var _eb_provId = "echobird";
+    var _eb_cfg = {"$schema":"https://opencode.ai/config.json","provider":{}};
+    try { if (fs.existsSync(_eb_cfgPath)) _eb_cfg = JSON.parse(fs.readFileSync(_eb_cfgPath,"utf-8")); } catch {}
+    if (!_eb_cfg.provider) _eb_cfg.provider = {};
+    _eb_cfg.provider[_eb_provId] = {
+      npm: "@ai-sdk/openai-compatible",
+      name: _eb_c.providerName || "Echobird",
+      options: { baseURL: _eb_c.baseUrl || "", apiKey: _eb_c.apiKey || "" },
+      models: {}
+    };
+    if (_eb_c.modelId) _eb_cfg.provider[_eb_provId].models[_eb_c.modelId] = {name: _eb_c.modelName || _eb_c.modelId};
+    fs.writeFileSync(_eb_cfgPath, JSON.stringify(_eb_cfg, null, 2), "utf-8");
+    console.log("[Echobird] OpenCode configured: provider=" + _eb_provId + " model=" + (_eb_c.modelId || "default"));
+  }
+} catch(_e) { console.warn("[Echobird] OpenCode inject error:", _e.message); } })();
+"#;
+
+/// Patch OpenCode CLI tool
+pub fn patch_opencode() {
+    let install_dir = match find_npm_global_module("opencode-ai") {
+        Some(d) => d,
+        None => { log::info!("[Patcher] OpenCode not found, skipping"); return; }
+    };
+
+    let entry = install_dir.join("bin").join("opencode");
+
+    patch_entry_file(&entry, &PatchConfig {
+        marker: OPENCODE_MARKER,
+        inject_code: OPENCODE_INJECT,
+        search_patterns: vec![
+            "const envPath = process.env.OPENCODE_BIN_PATH",
+            "function run(target) {",
+        ],
+        inject_after: false, // inject BEFORE these patterns
+    });
+}
+
 /// Dispatch patch by tool ID
 pub fn patch_tool(tool_id: &str) {
     match tool_id {
@@ -408,6 +465,8 @@ pub fn patch_tool(tool_id: &str) {
         "roocode" => patch_roocode(),
         "openclaw" => patch_openclaw(),
         "codex" => patch_codex(),
+        "opencode" => patch_opencode(),
         _ => log::debug!("[Patcher] No patch needed for tool: {}", tool_id),
     }
 }
+

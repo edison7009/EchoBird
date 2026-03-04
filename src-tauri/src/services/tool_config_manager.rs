@@ -447,55 +447,60 @@ fn read_codebuddy(_tool_id: &str) -> Option<ModelInfo> {
 // ════════════════════════════════════════════════════════════════
 
 fn apply_opencode(model_info: &ModelInfo) -> ApplyResult {
-    let config_path = dirs::home_dir().unwrap_or_default()
-        .join(".config").join("opencode").join("opencode.json");
+    // Write echobird relay JSON — the patched launcher reads this
+    let config_path = echobird_dir().join("opencode.json");
+    let model_id = model_info.model.as_deref()
+        .or(model_info.name.as_deref()).unwrap_or("");
 
-    let mut config = read_json_file(&config_path).unwrap_or_else(|| serde_json::json!({
-        "$schema": "https://opencode.ai/config.json", "provider": {}
-    }));
+    if model_id.is_empty() {
+        return ApplyResult {
+            success: false,
+            message: "Model ID is empty, cannot apply config".to_string(),
+        };
+    }
 
     let base_url = model_info.base_url.as_deref()
         .unwrap_or("https://api.openai.com/v1").trim_end_matches('/').to_string();
-    let provider_name = extract_domain_name(&base_url);
-    let model_id = model_info.model.as_deref().unwrap_or("unknown");
-    let model_display = model_info.name.as_deref().unwrap_or(model_id);
+    let provider_name = format!("{} (via Echobird)", extract_domain_name(&base_url));
 
-    // Clear all providers, only keep current
-    config["provider"] = serde_json::json!({});
-    config["provider"][&provider_name] = serde_json::json!({
-        "npm": "@ai-sdk/openai-compatible",
-        "name": format!("{} (via Echobird)", provider_name),
-        "options": { "baseURL": base_url, "apiKey": model_info.api_key.as_deref().unwrap_or("") },
-        "models": { (model_id): { "name": model_display } }
+    let config = serde_json::json!({
+        "apiKey": model_info.api_key.as_deref().unwrap_or(""),
+        "baseUrl": base_url,
+        "modelId": model_id,
+        "modelName": model_info.name.as_deref().unwrap_or(model_id),
+        "providerName": provider_name,
     });
 
     match write_json_file(&config_path, &config) {
-        Ok(_) => ApplyResult {
-            success: true,
-            message: format!("OpenCode updated: provider={}, model={}", provider_name, model_id),
-        },
+        Ok(_) => {
+            log::info!("[ToolConfigManager] OpenCode config written to {:?}", config_path);
+            crate::services::tool_patcher::patch_opencode();
+            ApplyResult {
+                success: true,
+                message: format!(
+                    "Model \"{}\" configured for OpenCode. Use /models in TUI to select echobird/{}.",
+                    model_info.name.as_deref().unwrap_or(model_id), model_id
+                ),
+            }
+        }
         Err(e) => ApplyResult { success: false, message: e },
     }
 }
 
 fn read_opencode() -> Option<ModelInfo> {
-    let config_path = dirs::home_dir()?.join(".config").join("opencode").join("opencode.json");
+    // Read from echobird relay JSON
+    let config_path = echobird_dir().join("opencode.json");
     let config = read_json_file(&config_path)?;
-    let providers = config.get("provider")?.as_object()?;
-    for (_provider_id, pdata) in providers {
-        if let Some(models) = pdata.get("models").and_then(|m| m.as_object()) {
-            if let Some((mid, mentry)) = models.iter().next() {
-                return Some(ModelInfo {
-                    name: mentry.get("name").and_then(|v| v.as_str()).map(|s| s.to_string()),
-                    model: Some(mid.to_string()),
-                    base_url: pdata.get("options").and_then(|o| o.get("baseURL")).and_then(|v| v.as_str()).map(|s| s.to_string()),
-                    api_key: pdata.get("options").and_then(|o| o.get("apiKey")).and_then(|v| v.as_str()).map(|s| s.to_string()),
-                    anthropic_url: None, proxy_url: None, protocol: None,
-                });
-            }
-        }
-    }
-    None
+    let model_id = config.get("modelId")?.as_str()?.to_string();
+    if model_id.is_empty() { return None; }
+
+    Some(ModelInfo {
+        name: config.get("modelName").and_then(|v| v.as_str()).map(|s| s.to_string()),
+        model: Some(model_id),
+        base_url: config.get("baseUrl").and_then(|v| v.as_str()).map(|s| s.to_string()),
+        api_key: config.get("apiKey").and_then(|v| v.as_str()).map(|s| s.to_string()),
+        anthropic_url: None, proxy_url: None, protocol: None,
+    })
 }
 
 // ════════════════════════════════════════════════════════════════
