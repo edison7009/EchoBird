@@ -275,6 +275,31 @@ export const Channels: React.FC = () => {
         loadData();
     }, []);
 
+    // Poll channels.json every 5s — detect when Mother Agent writes a new config
+    useEffect(() => {
+        const interval = setInterval(async () => {
+            try {
+                const saved = await api.getChannelConfig();
+                const savedLocal = saved.find(c => c.id === 1);
+                if (savedLocal?.address && savedLocal.address !== '127.0.0.1') {
+                    // Check if local channel address changed
+                    setChannels(prev => {
+                        const current = prev.find(c => c.id === 1);
+                        if (current && current.address !== savedLocal.address) {
+                            autoConnectRef.current = savedLocal.address;
+                            return prev.map(c => c.id === 1
+                                ? { ...c, address: savedLocal.address, protocol: savedLocal.protocol || 'ws://' }
+                                : c
+                            );
+                        }
+                        return prev;
+                    });
+                }
+            } catch { /* ignore */ }
+        }, 5000);
+        return () => clearInterval(interval);
+    }, []);
+
     // Save to config file on channel changes
     // Smart scroll: auto-follow unless user scrolls up
     const autoFollowRef = useRef(true);

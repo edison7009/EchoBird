@@ -1,6 +1,6 @@
 {
-    "version": "2.2.0",
+    "version": "2.2.1",
     "releaseDate": "2026-03-05",
-    "releaseNotes": "Channel auto-connect, Mother Agent prompt updates, isLocal fix. Version scheme reset to avoid semver string-sort issues.",
+    "releaseNotes": "Channel auto-detect: poll channels.json every 5s so Mother Agent config changes are picked up without page refresh.",
     "downloadUrl": "https://github.com/edison7009/Echobird-MotherAgent/releases/latest"
 }
