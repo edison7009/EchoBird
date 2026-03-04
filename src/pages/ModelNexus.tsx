@@ -762,7 +762,7 @@ export function AddModelModal() {
                             <label className="block text-xs text-cyber-text-secondary mb-1">{t('model.name')}</label>
                             <input
                                 type="text"
-                                placeholder="e.g. OpenRouter Claude"
+                                placeholder="e.g. My Model"
                                 value={newModelForm.name}
                                 onChange={e => setNewModelForm(prev => ({ ...prev, name: e.target.value }))}
                                 className="w-full bg-black border border-cyber-border px-2 py-1.5 text-xs text-cyber-text font-mono focus:border-cyber-accent focus:outline-none rounded-button"
@@ -772,9 +772,13 @@ export function AddModelModal() {
                             <label className="block text-xs text-cyber-text-secondary mb-1">{t('model.openaiUrl')}</label>
                             <input
                                 type="text"
-                                placeholder="https://x.x.com/v1  NOT => /chat/completions"
+                                placeholder="https://x.x.com/v1"
                                 value={newModelForm.baseUrl}
-                                onChange={e => setNewModelForm(prev => ({ ...prev, baseUrl: e.target.value }))}
+                                onChange={e => {
+                                    let v = e.target.value;
+                                    v = v.replace(/\/chat\/completions\/?$/i, '').replace(/\/v1\/chat\/completions\/?$/i, '/v1');
+                                    setNewModelForm(prev => ({ ...prev, baseUrl: v }));
+                                }}
                                 className="w-full bg-black border border-cyber-border px-2 py-1.5 text-xs text-cyber-text font-mono focus:border-cyber-accent focus:outline-none rounded-button"
                             />
                         </div>
@@ -782,9 +786,13 @@ export function AddModelModal() {
                             <label className="block text-xs text-cyber-text-secondary mb-1">{t('model.anthropicUrl')}</label>
                             <input
                                 type="text"
-                                placeholder="https://x.x.com/anthropic  NOT => /v1/messages"
+                                placeholder="https://x.x.com/anthropic"
                                 value={newModelForm.anthropicUrl}
-                                onChange={e => setNewModelForm(prev => ({ ...prev, anthropicUrl: e.target.value }))}
+                                onChange={e => {
+                                    let v = e.target.value;
+                                    v = v.replace(/\/v1\/messages\/?$/i, '').replace(/\/messages\/?$/i, '');
+                                    setNewModelForm(prev => ({ ...prev, anthropicUrl: v }));
+                                }}
                                 className="w-full bg-black border border-cyber-border px-2 py-1.5 text-xs text-cyber-text font-mono focus:border-cyber-accent focus:outline-none rounded-button"
                             />
                         </div>
@@ -792,7 +800,7 @@ export function AddModelModal() {
                             <label className="block text-xs text-cyber-text-secondary mb-1">{t('model.modelId')}</label>
                             <input
                                 type="text"
-                                placeholder="e.g. anthropic/claude-opus-4.5"
+                                placeholder="e.g. Qwen/Qwen-Coder"
                                 value={newModelForm.modelId}
                                 onChange={e => setNewModelForm(prev => ({ ...prev, modelId: e.target.value }))}
                                 className="w-full bg-black border border-cyber-border px-2 py-1.5 text-xs text-cyber-text font-mono focus:border-cyber-accent focus:outline-none rounded-button"

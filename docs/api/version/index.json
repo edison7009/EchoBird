@@ -1,6 +1,6 @@
 {
-    "version": "2.1.5",
+    "version": "2.1.6",
     "releaseDate": "2026-03-04",
-    "releaseNotes": "Remote system prompt architecture: Mother Agent instructions now load from echobird.ai, updates without releases. Fix key send button. OpenClaw detection fix.",
+    "releaseNotes": "UX: auto-strip API suffixes from URL fields, cleaner placeholders in Add Model dialog.",
     "downloadUrl": "https://github.com/edison7009/Echobird-MotherAgent/releases/latest"
 }
