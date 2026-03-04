@@ -1,4 +1,4 @@
-// Channels — OpenClaw Gateway SSH chat interface (global GatewayContext)
+// Channels — OpenClaw agent chat interface (bridge CLI + SSH)
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Send, CornerDownLeft, X, Square, Paperclip, Image as ImageIcon, Trash2, KeyRound, Zap } from 'lucide-react';
 import { MiniSelect } from '../components/MiniSelect';
@@ -221,6 +221,11 @@ export const Channels: React.FC = () => {
     // Process toggle (show/hide tool calls and thinking)
     const [showProcess, setShowProcess] = useState(true);
 
+    // Bridge mode state (for local channel without WebSocket)
+    const [bridgeMessages, setBridgeMessages] = useState<Array<{ role: string; content: string; meta?: { model?: string; tokens?: number; duration_ms?: number } }>>([]);
+    const [bridgeSessionId, setBridgeSessionId] = useState<string | undefined>();
+    const [bridgeLoading, setBridgeLoading] = useState(false);
+
     const inputRef = useRef<HTMLTextAreaElement>(null);
     const scrollRef = useRef<HTMLDivElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -229,16 +234,17 @@ export const Channels: React.FC = () => {
     // Global Gateway manager
     const manager = useGatewayManager();
 
-    // Current channel gateway connection
+    // Current channel gateway connection (for SSH channels)
     const gateway = useChannelGateway(activeId);
 
     const activeChannel = channels.find(c => c.id === activeId);
-    const isActiveConnected = gateway.status === 'connected';
+    // Local channel (id=1) uses bridge mode — always "connected"
+    const isBridgeMode = activeId === 1;
+    const isActiveConnected = isBridgeMode || gateway.status === 'connected';
     const isLocal = activeChannel?.address?.startsWith('127.0.0.1') || activeChannel?.address === 'localhost';
-    const messages = gateway.messages;
+    const messages = isBridgeMode ? bridgeMessages : gateway.messages;
 
     // Load SSH servers + channel config → populate channels
-    const autoConnectRef = useRef<string | null>(null);
     useEffect(() => {
         const loadData = async () => {
             try {
@@ -247,10 +253,8 @@ export const Channels: React.FC = () => {
                     api.getChannelConfig(),
                 ]);
 
-                // LOCAL channel — check if Mother Agent configured a gateway URL
-                const savedLocal = savedChannels.find(c => c.id === 1);
-                const localAddress = savedLocal?.address || '127.0.0.1';
-                const localChannel: Channel = { id: 1, name: '', address: localAddress, protocol: savedLocal?.protocol || 'ws://' };
+                // LOCAL channel — uses bridge mode (openclaw agent CLI)
+                const localChannel: Channel = { id: 1, name: '', address: '127.0.0.1', protocol: 'ws://' };
 
                 const sshChannels: Channel[] = (sshServers || []).map((srv, i) => ({
                     id: i + 2,
@@ -263,11 +267,6 @@ export const Channels: React.FC = () => {
                 const all = [localChannel, ...sshChannels];
                 setChannels(all);
                 setActiveId(all[0].id);
-
-                // Auto-connect local if gateway URL is configured (not just plain 127.0.0.1)
-                if (savedLocal?.address && savedLocal.address !== '127.0.0.1') {
-                    autoConnectRef.current = savedLocal.address;
-                }
             } catch (e) {
                 console.error('[Channels] Failed to load data:', e);
             }
@@ -275,30 +274,8 @@ export const Channels: React.FC = () => {
         loadData();
     }, []);
 
-    // Poll channels.json every 5s — detect when Mother Agent writes a new config
-    useEffect(() => {
-        const interval = setInterval(async () => {
-            try {
-                const saved = await api.getChannelConfig();
-                const savedLocal = saved.find(c => c.id === 1);
-                if (savedLocal?.address && savedLocal.address !== '127.0.0.1') {
-                    // Check if local channel address changed
-                    setChannels(prev => {
-                        const current = prev.find(c => c.id === 1);
-                        if (current && current.address !== savedLocal.address) {
-                            autoConnectRef.current = savedLocal.address;
-                            return prev.map(c => c.id === 1
-                                ? { ...c, address: savedLocal.address, protocol: savedLocal.protocol || 'ws://' }
-                                : c
-                            );
-                        }
-                        return prev;
-                    });
-                }
-            } catch { /* ignore */ }
-        }, 5000);
-        return () => clearInterval(interval);
-    }, []);
+    // Note: channels.json polling removed — local channel uses bridge mode,
+    // SSH channels are configured via server list
 
     // Save to config file on channel changes
     // Smart scroll: auto-follow unless user scrolls up
@@ -358,32 +335,29 @@ export const Channels: React.FC = () => {
         setActiveId(id);
     }, [activeId]);
 
-    // Connect to Gateway
+    // Connect to Gateway (SSH channels only — local uses bridge)
     const handleConnect = useCallback(async () => {
-        if (!activeChannel) return;
+        if (!activeChannel || isBridgeMode) return;
         const { tunnelUrl, token, password } = parseAddress(activeChannel);
         try {
             await gateway.connect({ url: tunnelUrl, token, password });
         } catch (e) {
             console.error('[Channels] Connection failed:', e);
         }
-    }, [activeChannel, gateway]);
-
-    // Auto-connect when channel config has a gateway URL
-    useEffect(() => {
-        if (autoConnectRef.current && activeChannel && gateway.status === 'disconnected') {
-            autoConnectRef.current = null; // only once
-            handleConnect();
-        }
-    }, [activeChannel, gateway.status, handleConnect]);
+    }, [activeChannel, gateway, isBridgeMode]);
     // Full reset: disconnect + clear messages + clear address
     const handleReset = useCallback(() => {
         if (!activeId) return;
-        gateway.reset();
+        if (isBridgeMode) {
+            setBridgeMessages([]);
+            setBridgeSessionId(undefined);
+        } else {
+            gateway.reset();
+        }
         setChannels(prev => prev.map(c =>
             c.id === activeId ? { ...c, address: '' } : c
         ));
-    }, [activeId, gateway]);
+    }, [activeId, gateway, isBridgeMode]);
 
 
     // Update channel address
@@ -566,7 +540,9 @@ export const Channels: React.FC = () => {
 
     // Send message
     const handleSend = useCallback(async () => {
-        if (!activeId || gateway.isLoading || !isActiveConnected) return;
+        if (!activeId || !isActiveConnected) return;
+        if (isBridgeMode && bridgeLoading) return;
+        if (!isBridgeMode && gateway.isLoading) return;
         if (!input.trim() && attachments.length === 0 && !selectedModel) return;
         let text = input.trim();
         // Append model config as text
@@ -578,14 +554,35 @@ export const Channels: React.FC = () => {
         setInput('');
         setAttachments([]);
         setSelectedModel(null);
-        await gateway.send(text, atts);
+
+        if (isBridgeMode) {
+            // Bridge mode: call openclaw agent CLI directly
+            setBridgeMessages(prev => [...prev, { role: 'user', content: text }]);
+            setBridgeLoading(true);
+            try {
+                const result = await api.bridgeChatLocal(text, bridgeSessionId);
+                if (result.session_id) setBridgeSessionId(result.session_id);
+                setBridgeMessages(prev => [...prev, {
+                    role: 'assistant',
+                    content: result.text,
+                    meta: { model: result.model, tokens: result.tokens, duration_ms: result.duration_ms },
+                }]);
+            } catch (e: any) {
+                setBridgeMessages(prev => [...prev, { role: 'system', content: `Error: ${e?.message || e}` }]);
+            } finally {
+                setBridgeLoading(false);
+            }
+        } else {
+            // SSH/WebSocket mode: use gateway
+            await gateway.send(text, atts);
+        }
         inputRef.current?.focus();
-    }, [activeId, input, attachments, selectedModel, gateway, isActiveConnected]);
+    }, [activeId, input, attachments, selectedModel, gateway, isActiveConnected, isBridgeMode, bridgeLoading, bridgeSessionId]);
 
     // Abort current request
     const handleAbort = useCallback(() => {
-        gateway.abort();
-    }, [gateway]);
+        if (!isBridgeMode) gateway.abort();
+    }, [gateway, isBridgeMode]);
 
     return (
         <div className="flex h-full gap-0 overflow-hidden">
@@ -595,8 +592,8 @@ export const Channels: React.FC = () => {
                     {channels.map(ch => {
                         const isActive = activeId === ch.id;
                         const chState = manager.getChannelState(ch.id);
-                        const isLinked = chState.status === 'connected';
-                        const isError = chState.status === 'error';
+                        const isLinked = ch.id === 1 || chState.status === 'connected'; // Bridge mode = always linked
+                        const isError = ch.id !== 1 && chState.status === 'error';
                         const hasNew = chState.hasNewMessage && !isActive;
 
                         return (
@@ -669,27 +666,42 @@ export const Channels: React.FC = () => {
                         ) : (
                             /* Connected / Connecting — terminal chat area */
                             <div className="relative flex-1 mx-4 mt-2">
-                                <div ref={chatContainerRef} onScroll={handleChatScroll} className="absolute inset-0 overflow-y-auto bg-cyber-terminal font-mono text-xs space-y-1 custom-scrollbar p-4 rounded-lg">
+                                <div ref={chatContainerRef} onScroll={handleChatScroll} className="absolute inset-0 overflow-y-auto bg-cyber-terminal font-mono text-sm space-y-1 custom-scrollbar p-4 rounded-lg">
                                     {/* System info */}
                                     <div className="space-y-1 select-none">
                                         <p className="text-cyber-accent">[SYS] {activeChannel.name || `Channel #${String(activeChannel.id).padStart(2, '0')}`}</p>
-                                        <p className="text-cyber-accent/80">SSH · {activeChannel.address}</p>
-                                        {gateway.status === 'connecting' && (
-                                            <p className="text-yellow-400">[SYS] {t('channel.connecting')}</p>
-                                        )}
-                                        {isActiveConnected && (
-                                            <p className="text-cyber-accent">[SYS] {t('channel.connectedTo')} · {activeChannel.address}</p>
-                                        )}
-                                        {gateway.status === 'error' && (
-                                            <p className="text-red-400">[SYS] {t('channel.connectionFailed')}</p>
+                                        {isBridgeMode ? (
+                                            <p className="text-cyber-accent/80">Echobird Bridge Protocol</p>
+                                        ) : (
+                                            <>
+                                                <p className="text-cyber-accent/80">SSH · {activeChannel.address}</p>
+                                                {gateway.status === 'connecting' && (
+                                                    <p className="text-yellow-400">[SYS] {t('channel.connecting')}</p>
+                                                )}
+                                                {isActiveConnected && (
+                                                    <p className="text-cyber-accent">[SYS] {t('channel.connectedTo')} · {activeChannel.address}</p>
+                                                )}
+                                                {gateway.status === 'error' && (
+                                                    <p className="text-red-400">[SYS] {t('channel.connectionFailed')}</p>
+                                                )}
+                                            </>
                                         )}
                                     </div>
 
                                     {messages.filter(msg => showProcess || (msg.role !== 'tool_call' && msg.role !== 'tool_result' && msg.role !== 'thinking')).map((msg, i) => (
-                                        <ChannelMessage key={i} role={msg.role} content={msg.content} toolName={msg.toolName} toolArgs={msg.toolArgs} toolSuccess={msg.toolSuccess} />
+                                        <div key={i}>
+                                            <ChannelMessage role={msg.role} content={msg.content} toolName={(msg as any).toolName} toolArgs={(msg as any).toolArgs} toolSuccess={(msg as any).toolSuccess} />
+                                            {msg.role === 'assistant' && (msg as any).meta && (
+                                                <p className="text-cyber-text-muted/40 text-xs font-mono mt-0.5 mb-1">
+                                                    {(msg as any).meta.model && <span>{(msg as any).meta.model}</span>}
+                                                    {(msg as any).meta.tokens && <span> · {(msg as any).meta.tokens.toLocaleString()} tokens</span>}
+                                                    {(msg as any).meta.duration_ms && <span> · {((msg as any).meta.duration_ms / 1000).toFixed(1)}s</span>}
+                                                </p>
+                                            )}
+                                        </div>
                                     ))}
 
-                                    {gateway.isLoading ? (
+                                    {(bridgeLoading || gateway.isLoading) ? (
                                         <p className="text-cyber-accent font-mono">[EXEC] <span className="inline-block w-8 text-left">{['>', '>>', '>>>', ''][arrowIndex]}</span> {t('channel.transmitting')}</p>
                                     ) : isActiveConnected && (
                                         <p className="text-cyber-accent">_ ready</p>

@@ -1,11 +1,11 @@
 // Echobird Bridge — remote Agent communication via stdin/stdout JSON
 //
 // Runs on the remote machine, receives JSON commands from Echobird via SSH,
-// invokes the Agent CLI (e.g. claude), and streams responses back as JSON lines.
+// invokes the Agent CLI (e.g. openclaw agent), and streams responses back as JSON lines.
 //
 // Protocol:
 //   stdin  → {"type":"chat","message":"...","session_id":"..."}
-//   stdout ← {"type":"text_delta","text":"..."}
+//   stdout ← {"type":"text","text":"...","session_id":"..."}
 //   stdout ← {"type":"done","session_id":"..."}
 
 use serde::{Deserialize, Serialize};
@@ -80,24 +80,26 @@ struct BridgeConfig {
 impl Default for BridgeConfig {
     fn default() -> Self {
         Self {
-            command: "claude".to_string(),
+            command: "openclaw".to_string(),
             args: vec![
-                "-p".to_string(),
-                "--output-format".to_string(),
-                "json".to_string(),
-                "--dangerously-skip-permissions".to_string(),
+                "agent".to_string(),
+                "--json".to_string(),
+                "--agent".to_string(),
+                "main".to_string(),
+                "--message".to_string(),
             ],
             resume_args: vec![
-                "-p".to_string(),
-                "--output-format".to_string(),
-                "json".to_string(),
-                "--dangerously-skip-permissions".to_string(),
-                "--resume".to_string(),
+                "agent".to_string(),
+                "--json".to_string(),
+                "--agent".to_string(),
+                "main".to_string(),
+                "--session-id".to_string(),
                 "{sessionId}".to_string(),
+                "--message".to_string(),
             ],
             session_arg: Some("--session-id".to_string()),
-            model_arg: Some("--model".to_string()),
-            system_prompt_arg: Some("--append-system-prompt".to_string()),
+            model_arg: None,
+            system_prompt_arg: None,
         }
     }
 }
@@ -154,7 +156,6 @@ fn handle_message(config: &BridgeConfig, msg: InboundMessage) {
             execute_chat(config, &message, Some(&session_id), model.as_deref(), None, true);
         }
         InboundMessage::Status {} => {
-            // Check if agent CLI is available
             let version = detect_agent(&config.command);
             send(&OutboundMessage::Status {
                 agent: "openclaw".to_string(),
@@ -163,7 +164,6 @@ fn handle_message(config: &BridgeConfig, msg: InboundMessage) {
             });
         }
         InboundMessage::Abort { .. } => {
-            // Can't abort a running subprocess easily, just acknowledge
             send(&OutboundMessage::Error {
                 message: "Abort received (current process will complete)".to_string(),
             });
@@ -179,7 +179,7 @@ fn execute_chat(
     message: &str,
     session_id: Option<&str>,
     model: Option<&str>,
-    system_prompt: Option<&str>,
+    _system_prompt: Option<&str>,
     is_resume: bool,
 ) {
     // Build command args
@@ -200,27 +200,29 @@ fn execute_chat(
         a
     };
 
-    // Add model if specified
+    // Add model if specified (openclaw uses provider/model format)
     if let (Some(m), Some(model_arg)) = (model, &config.model_arg) {
         args.push(model_arg.clone());
         args.push(m.to_string());
     }
 
-    // Add system prompt if specified (first message only)
-    if let (Some(sp), Some(sp_arg)) = (system_prompt, &config.system_prompt_arg) {
-        args.push(sp_arg.clone());
-        args.push(sp.to_string());
-    }
-
-    // Add message as last arg
+    // Add message as last arg (--message is already in args list)
     args.push(message.to_string());
 
     // Execute the CLI
     eprintln!("[bridge] Executing: {} {}", config.command, args.join(" "));
 
-    match Command::new(&config.command)
-        .args(&args)
-        .output()
+    // On Windows, .cmd scripts must be run through cmd.exe
+    // Pass args individually so Windows handles quoting automatically
+    let result = if cfg!(target_os = "windows") {
+        let mut cmd_args = vec!["/c".to_string(), config.command.clone()];
+        cmd_args.extend(args.iter().cloned());
+        Command::new("cmd.exe").args(&cmd_args).output()
+    } else {
+        Command::new(&config.command).args(&args).output()
+    };
+
+    match result
     {
         Ok(output) => {
             let stdout = String::from_utf8_lossy(&output.stdout).to_string();
@@ -230,8 +232,8 @@ fn execute_chat(
                 eprintln!("[bridge] stderr: {}", stderr);
             }
 
-            // Try to parse JSON output (claude --output-format json)
-            let (text, new_session_id) = parse_agent_output(&stdout);
+            // Parse OpenClaw agent --json output
+            let (text, new_session_id) = parse_openclaw_output(&stdout);
 
             send(&OutboundMessage::Text {
                 text,
@@ -250,48 +252,99 @@ fn execute_chat(
     }
 }
 
-/// Parse agent CLI JSON output, extracting response text and session ID
-fn parse_agent_output(stdout: &str) -> (String, Option<String>) {
-    // Try JSON parsing first
-    if let Ok(json) = serde_json::from_str::<serde_json::Value>(stdout) {
-        // Claude Code JSON output format
-        let text = json.get("result")
-            .or_else(|| json.get("text"))
-            .or_else(|| json.get("content"))
-            .and_then(|v| v.as_str())
-            .unwrap_or(stdout)
-            .to_string();
+/// Parse OpenClaw `agent --json` output
+///
+/// Format:
+/// ```json
+/// {
+///   "runId": "...",
+///   "status": "ok",
+///   "result": {
+///     "payloads": [{ "text": "response text", "mediaUrl": null }],
+///     "meta": {
+///       "agentMeta": { "sessionId": "..." }
+///     }
+///   }
+/// }
+/// ```
+fn parse_openclaw_output(stdout: &str) -> (String, Option<String>) {
+    // Find JSON in stdout (skip non-JSON lines like [Echobird] injection logs)
+    let json_str = find_json_object(stdout);
+    let json_str = match json_str {
+        Some(s) => s,
+        None => return (stdout.to_string(), None),
+    };
 
-        let session_id = json.get("session_id")
-            .or_else(|| json.get("conversation_id"))
-            .and_then(|v| v.as_str())
-            .map(String::from);
-
-        (text, session_id)
-    } else {
-        // Try JSONL (line-by-line)
-        let mut text = String::new();
-        let mut session_id = None;
-        for line in stdout.lines() {
-            if let Ok(json) = serde_json::from_str::<serde_json::Value>(line) {
-                if let Some(t) = json.get("content").or_else(|| json.get("text")).and_then(|v| v.as_str()) {
-                    text.push_str(t);
-                }
-                if session_id.is_none() {
-                    session_id = json.get("session_id")
-                        .or_else(|| json.get("thread_id"))
+    match serde_json::from_str::<serde_json::Value>(&json_str) {
+        Ok(json) => {
+            // Extract text from result.payloads[0].text
+            let text = json.get("result")
+                .and_then(|r| r.get("payloads"))
+                .and_then(|p| p.as_array())
+                .and_then(|arr| {
+                    // Concatenate all payload texts
+                    let texts: Vec<&str> = arr.iter()
+                        .filter_map(|p| p.get("text").and_then(|t| t.as_str()))
+                        .collect();
+                    if texts.is_empty() { None } else { Some(texts.join("\n")) }
+                })
+                .unwrap_or_else(|| {
+                    // Fallback: try result.text or top-level text
+                    json.get("result")
+                        .and_then(|r| r.get("text"))
+                        .or_else(|| json.get("text"))
                         .and_then(|v| v.as_str())
-                        .map(String::from);
-                }
+                        .unwrap_or(stdout)
+                        .to_string()
+                });
+
+            // Extract session ID from result.meta.agentMeta.sessionId
+            let session_id = json.get("result")
+                .and_then(|r| r.get("meta"))
+                .and_then(|m| m.get("agentMeta"))
+                .and_then(|am| am.get("sessionId"))
+                .and_then(|v| v.as_str())
+                .map(String::from);
+
+            // Check for error status
+            let status = json.get("status").and_then(|s| s.as_str()).unwrap_or("ok");
+            if status != "ok" {
+                let error_msg = json.get("error")
+                    .and_then(|e| e.as_str())
+                    .unwrap_or("Agent returned error status");
+                return (format!("Error: {}", error_msg), session_id);
             }
-        }
-        if text.is_empty() {
-            // Fallback: raw text
-            (stdout.to_string(), None)
-        } else {
+
             (text, session_id)
         }
+        Err(_) => {
+            // Fallback: raw text
+            (stdout.to_string(), None)
+        }
     }
+}
+
+/// Find the first JSON object in the output (skip non-JSON prefix lines)
+fn find_json_object(input: &str) -> Option<String> {
+    // Find the first '{' that starts a JSON object
+    if let Some(start) = input.find('{') {
+        // Find the matching closing '}'
+        let rest = &input[start..];
+        let mut depth = 0;
+        for (i, ch) in rest.char_indices() {
+            match ch {
+                '{' => depth += 1,
+                '}' => {
+                    depth -= 1;
+                    if depth == 0 {
+                        return Some(rest[..=i].to_string());
+                    }
+                }
+                _ => {}
+            }
+        }
+    }
+    None
 }
 
 /// Send a JSON message to stdout (one line)
@@ -304,8 +357,33 @@ fn send(msg: &OutboundMessage) {
 }
 
 /// Detect agent version
+/// Resolve a command name to its full path (handles .cmd/.bat on Windows)
+fn resolve_command(command: &str) -> String {
+    if cfg!(target_os = "windows") {
+        // Use where.exe to find the full path of .cmd/.bat scripts
+        if let Ok(output) = Command::new("where.exe").arg(command).output() {
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            // Take the first result line (full path)
+            if let Some(path) = stdout.lines().next() {
+                let path = path.trim();
+                if !path.is_empty() {
+                    eprintln!("[bridge] Resolved '{}' -> '{}'", command, path);
+                    return path.to_string();
+                }
+            }
+        }
+    }
+    command.to_string()
+}
+
+/// Detect agent version
 fn detect_agent(command: &str) -> String {
-    match Command::new(command).arg("--version").output() {
+    let result = if cfg!(target_os = "windows") {
+        Command::new("cmd.exe").args(["/c", command, "--version"]).output()
+    } else {
+        Command::new(command).arg("--version").output()
+    };
+    match result {
         Ok(output) => String::from_utf8_lossy(&output.stdout).trim().to_string(),
         Err(_) => "not found".to_string(),
     }
@@ -313,7 +391,6 @@ fn detect_agent(command: &str) -> String {
 
 /// Load config from plugin.json in same directory, or use defaults
 fn load_config() -> BridgeConfig {
-    // Try to load plugin.json from the same directory as the binary
     let exe_dir = std::env::current_exe()
         .ok()
         .and_then(|p| p.parent().map(|p| p.to_path_buf()));
@@ -355,6 +432,6 @@ fn load_config() -> BridgeConfig {
         }
     }
 
-    eprintln!("[bridge] Using default config (claude CLI)");
+    eprintln!("[bridge] Using default config (openclaw agent)");
     BridgeConfig::default()
 }

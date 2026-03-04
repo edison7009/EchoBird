@@ -164,7 +164,13 @@ export const LocalServerMain: React.FC = () => {
 
     // Engine detection
     const [engineStatus, setEngineStatus] = useState<EngineStatus>('checking');
-    const [downloadProgress, setDownloadProgress] = useState<number>(0);
+
+    // Get engine download progress from global DownloadContext (single source of truth)
+    const { downloads } = useDownload();
+    const engineDl = downloads.get('llama-server');
+    const downloadProgress = engineDl?.progress ?? 0;
+    const downloadedSize = engineDl?.downloaded ?? 0;
+    const totalSize = engineDl?.total ?? 0;
 
     // Auto-follow scroll
     const autoFollowRef = useRef(true);
@@ -193,35 +199,23 @@ export const LocalServerMain: React.FC = () => {
         check();
     }, []);
 
-    // Listen for engine download progress (fileName === 'llama-server')
+    // Sync engineStatus from DownloadContext (instead of duplicate listener)
     useEffect(() => {
-        let unlisten: (() => void) | undefined;
-        (async () => {
-            const { listen } = await import('@tauri-apps/api/event');
-            unlisten = await listen<{ file_name: string; progress: number; status: string }>('download-progress', (event) => {
-                if (event.payload.file_name !== 'llama-server') return;
-                const { progress, status } = event.payload;
-                if (status === 'downloading' || status === 'speed_test') {
-                    setEngineStatus('downloading');
-                    setDownloadProgress(progress);
-                } else if (status === 'completed') {
-                    setEngineStatus('ready');
-                    setDownloadProgress(100);
-                } else if (status === 'cancelled') {
-                    setEngineStatus('not-installed');
-                    setDownloadProgress(0);
-                } else if (status === 'error') {
-                    setEngineStatus('error');
-                }
-            });
-        })();
-        return () => { unlisten?.(); };
-    }, []);
+        if (!engineDl) return;
+        if (engineDl.status === 'downloading' || engineDl.status === 'speed_test') {
+            setEngineStatus('downloading');
+        } else if (engineDl.status === 'completed') {
+            setEngineStatus('ready');
+        } else if (engineDl.status === 'cancelled') {
+            setEngineStatus('not-installed');
+        } else if (engineDl.status === 'error') {
+            setEngineStatus('error');
+        }
+    }, [engineDl?.status]);
 
     // Download engine handler
     const handleDownloadEngine = async () => {
         setEngineStatus('downloading');
-        setDownloadProgress(0);
         try {
             await api.downloadLlamaServer();
             setEngineStatus('ready');
@@ -328,7 +322,12 @@ export const LocalServerMain: React.FC = () => {
                     />
                     <div className="relative py-3 flex items-center justify-center gap-2 font-bold text-base tracking-[0.3em] font-mono text-cyber-accent">
                         <Loader2 className="w-4 h-4 animate-spin" />
-                        {downloadProgress === 0 ? `${t('server.downloading')} 0%` : `${t('server.downloading')} ${downloadProgress}%`}
+                        {downloadProgress === 0
+                            ? `${t('server.downloading')} 0%`
+                            : totalSize > 0
+                                ? `${t('server.downloading')} ${downloadProgress}% · ${formatSize(downloadedSize)}/${formatSize(totalSize)}`
+                                : `${t('server.downloading')} ${downloadProgress}%`
+                        }
                     </div>
                 </div>
             );

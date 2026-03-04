@@ -8,26 +8,27 @@
         "win32": "bridge-win.exe"
     },
     "cli": {
-        "command": "claude",
-        "detectCommand": "claude --version",
+        "command": "openclaw",
+        "detectCommand": "openclaw --version",
         "args": [
-            "-p",
-            "--output-format",
-            "json",
-            "--dangerously-skip-permissions"
+            "agent",
+            "--json",
+            "--agent",
+            "main",
+            "--message"
         ],
         "resumeArgs": [
-            "-p",
-            "--output-format",
-            "json",
-            "--dangerously-skip-permissions",
-            "--resume",
-            "{sessionId}"
+            "agent",
+            "--json",
+            "--agent",
+            "main",
+            "--session-id",
+            "{sessionId}",
+            "--message"
         ],
         "sessionArg": "--session-id",
         "sessionMode": "always",
-        "modelArg": "--model",
-        "systemPromptArg": "--append-system-prompt",
-        "systemPromptWhen": "first"
+        "modelArg": null,
+        "systemPromptArg": null
     }
 }

@@ -1,6 +1,6 @@
 {
-    "version": "2.2.1",
+    "version": "2.2.2",
     "releaseDate": "2026-03-05",
-    "releaseNotes": "Channel auto-detect: poll channels.json every 5s so Mother Agent config changes are picked up without page refresh.",
+    "releaseNotes": "Echobird Bridge Protocol: unified agent communication via CLI bridge. Download progress sync fix. Channels UI font upgrade.",
     "downloadUrl": "https://github.com/edison7009/Echobird-MotherAgent/releases/latest"
 }

@@ -380,6 +380,7 @@ pub fn run() {
             process_commands::download_llama_server,
             channel_commands::get_channels,
             channel_commands::save_channels,
+            channel_commands::bridge_chat_local,
             settings_commands::get_settings,
             settings_commands::save_settings,
             skill_commands::load_skills_data,
