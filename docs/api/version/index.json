@@ -1,6 +1,6 @@
 {
-    "version": "2.1.8",
-    "releaseDate": "2026-03-04",
-    "releaseNotes": "Fix Codex launch via proxy (Priority 0 launcher, direct arg passing), App Manager model list auto-refresh, OpenClaw provider prefix rename.",
+    "version": "2.1.9",
+    "releaseDate": "2026-03-05",
+    "releaseNotes": "Fix CLI tool launch on Windows (cmd.exe /C for .cmd scripts), Mother Agent PowerShell UTF-8 encoding, OpenClaw gateway --allow-unconfigured.",
     "downloadUrl": "https://github.com/edison7009/Echobird-MotherAgent/releases/latest"
 }
