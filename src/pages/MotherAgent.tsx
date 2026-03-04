@@ -104,6 +104,7 @@ interface MotherAgentCtx {
     logsEndRef: React.RefObject<HTMLDivElement>;
     handleSendLogsToAI: () => void;
     handleChatSend: () => void;
+    sendMessage: (msg: string) => void;
     // pending skills (attached to next message)
     pendingSkills: PendingSkill[];
     addPendingSkill: (skill: PendingSkill) => void;
@@ -396,6 +397,7 @@ export function MotherAgentProvider({ appLogs, detectedTools, onClearLogs, onAge
             chatCursorPos, setChatCursorPos,
             chatInputRef, chatEndRef, logsEndRef,
             handleSendLogsToAI, handleChatSend,
+            sendMessage: handleChatSendInternal,
             pendingSkills, addPendingSkill, removePendingSkill,
             sshServers, addSSHServer, removeSSHServer,
             selectedServerId, selectServer,
@@ -419,6 +421,7 @@ export function MotherAgentMain() {
         chatOutput, isProcessing, agentModelData, agentState,
         chatEndRef,
         handleChatSend,
+        sendMessage,
         detectedTools,
         pendingSkills, addPendingSkill, removePendingSkill,
         sshServers, selectedServerId,
@@ -445,14 +448,15 @@ export function MotherAgentMain() {
                 if (!md) return `- ${pm.name}`;
                 return `- ${pm.name} (model: ${md.modelId || md.name}, baseUrl: ${md.baseUrl}, apiKey: ${md.apiKey})`;
             }).join('\n');
-            const fullMsg = chatInput.trim() + `\n\n[Attached models for deployment]\n${modelInfo}`;
-            setChatInput(fullMsg);
+            const userText = chatInput.trim();
+            const fullMsg = (userText ? userText + '\n\n' : '') + `[Attached models for deployment]\n${modelInfo}`;
             setPendingModels([]);
-            setTimeout(() => handleChatSend(), 0);
+            setChatInput('');
+            sendMessage(fullMsg);
         } else {
             handleChatSend();
         }
-    }, [pendingModels, models, chatInput, setChatInput, handleChatSend]);
+    }, [pendingModels, models, chatInput, setChatInput, handleChatSend, sendMessage]);
 
     // Skills popup state
     const [showSkillsPicker, setShowSkillsPicker] = useState(false);

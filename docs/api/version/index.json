@@ -1,6 +1,6 @@
 {
     "version": "2.1.4",
     "releaseDate": "2026-03-04",
-    "releaseNotes": "Fix: OpenClaw now detected in App Manager after install. Improved post-install guidance with model config and Channels steps. Auto-discover new agents via npm/GitHub.",
+    "releaseNotes": "Fix: key send button, OpenClaw detection in App Manager. Mother Agent now knows Echobird product pages and guides users through Model Nexus → App Manager → Channels flow. Strict rules against fabricating config steps.",
     "downloadUrl": "https://github.com/edison7009/Echobird-MotherAgent/releases/latest"
 }
