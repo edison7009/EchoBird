@@ -1,6 +1,6 @@
 {
-    "version": "2.1.9",
+    "version": "2.1.10",
     "releaseDate": "2026-03-05",
-    "releaseNotes": "Fix CLI tool launch on Windows (cmd.exe /C for .cmd scripts), Mother Agent PowerShell UTF-8 encoding, OpenClaw gateway --allow-unconfigured.",
+    "releaseNotes": "Channel auto-connect via channels.json, Mother Agent system prompt updates (Agent OS launch flow, remote model config, CLI local-only rule).",
     "downloadUrl": "https://github.com/edison7009/Echobird-MotherAgent/releases/latest"
 }
