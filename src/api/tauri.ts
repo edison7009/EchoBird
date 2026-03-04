@@ -510,6 +510,16 @@ export async function loadAgentHistory(serverKey: string): Promise<Array<{ role:
     return invoke('load_agent_history', { serverKey });
 }
 
+// ─── Channel Config ───
+
+export async function getChannelConfig(): Promise<ChannelConfig[]> {
+    return invoke('get_channels');
+}
+
+export async function saveChannelConfig(channels: ChannelConfig[]): Promise<void> {
+    return invoke('save_channels', { channels });
+}
+
 // ─── Window APIs (Tauri built-in) ───
 
 export { getCurrentWindow } from '@tauri-apps/api/window';

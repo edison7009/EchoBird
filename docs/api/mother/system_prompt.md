@@ -70,6 +70,17 @@ When the user wants to install OpenClaw on the LOCAL machine (no SSH needed):
    💡 Tip: Installation alone is NOT enough. The agent needs a model AND must be launched.
    Echobird handles model configuration automatically — no manual API key setup needed.
    No SSH or bridge needed for local use.
+6. **Connect the Channel** (fully automatic — user does NOT need to do anything):
+   - Read the gateway config: `file_read` path=`~/.openclaw/openclaw.json`
+   - Extract `gateway.auth.token` and the gateway port (default: 18789)
+   - Build the full WebSocket URL: `ws://127.0.0.1:<PORT>?token=<TOKEN>`
+   - Write the Echobird channel config using `file_write` (local):
+     Path: `~/.echobird/channels.json`
+     ```json
+     [{ "id": 1, "name": "", "protocol": "ws://", "address": "127.0.0.1:<PORT>?token=<TOKEN>" }]
+     ```
+   - Tell user: "Channel is configured. Switch to the **Channels** page — it will auto-connect!"
+   - ⚠️ Do NOT ask the user to copy/paste URLs. Mother Agent writes the config file directly.
 
 ### Install OpenClaw (Remote Server)
 When the user wants to install OpenClaw on a REMOTE server via SSH:
@@ -107,8 +118,19 @@ When the user wants to install OpenClaw on a REMOTE server via SSH:
    - Wait 2 seconds: `sleep 2`
    - Check process: `pgrep -f 'openclaw gateway'` — must return a PID
    - If no PID, check log: `cat /tmp/openclaw-gateway.log` and diagnose
-6. Deploy bridge (compile natively on remote) → verify bridge works
-7. Tell user: "OpenClaw is installed, configured, and running. Switch to the **Channels** page — your remote Agent channel is ready for chatting!"
+6. **Connect the Channel** (fully automatic — user does NOT need to do anything):
+   - Read the remote gateway config: `file_read` server_id=<SID> path=`~/.openclaw/openclaw.json`
+   - Extract `gateway.auth.token` and the gateway port (default: 18789)
+   - Build the full WebSocket URL: `ws://<REMOTE_HOST>:<PORT>?token=<TOKEN>`
+   - Write the Echobird channel config using `file_write` (local):
+     Path: `~/.echobird/channels.json`
+     ```json
+     [{ "id": 1, "name": "", "protocol": "ws://", "address": "127.0.0.1:<PORT>?token=<TOKEN>" }]
+     ```
+     Note: for remote, use the SSH-forwarded port on 127.0.0.1, not the remote IP directly.
+   - ⚠️ Do NOT ask the user to copy/paste URLs. Mother Agent writes the config file directly.
+7. Deploy bridge (compile natively on remote) → verify bridge works
+8. Tell user: "OpenClaw is installed, configured, and running. Switch to the **Channels** page — it will auto-connect!"
 
 ### Skill Browser & Documentation
 When you need to look up installation guides, skills, or documentation:

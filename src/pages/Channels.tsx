@@ -237,14 +237,20 @@ export const Channels: React.FC = () => {
     const isLocal = activeChannel?.address === '127.0.0.1' || activeChannel?.address === 'localhost';
     const messages = gateway.messages;
 
-    // Load SSH servers → populate channels
+    // Load SSH servers + channel config → populate channels
+    const autoConnectRef = useRef<string | null>(null);
     useEffect(() => {
         const loadData = async () => {
             try {
-                const sshServers = await api.loadSSHServers();
+                const [sshServers, savedChannels] = await Promise.all([
+                    api.loadSSHServers(),
+                    api.getChannelConfig(),
+                ]);
 
-                // LOCAL is always fixed — name is empty, rendered as i18n label
-                const localChannel: Channel = { id: 1, name: '', address: '127.0.0.1', protocol: 'ws://' };
+                // LOCAL channel — check if Mother Agent configured a gateway URL
+                const savedLocal = savedChannels.find(c => c.id === 1);
+                const localAddress = savedLocal?.address || '127.0.0.1';
+                const localChannel: Channel = { id: 1, name: '', address: localAddress, protocol: savedLocal?.protocol || 'ws://' };
 
                 const sshChannels: Channel[] = (sshServers || []).map((srv, i) => ({
                     id: i + 2,
@@ -257,8 +263,13 @@ export const Channels: React.FC = () => {
                 const all = [localChannel, ...sshChannels];
                 setChannels(all);
                 setActiveId(all[0].id);
+
+                // Auto-connect local if gateway URL is configured (not just plain 127.0.0.1)
+                if (savedLocal?.address && savedLocal.address !== '127.0.0.1') {
+                    autoConnectRef.current = savedLocal.address;
+                }
             } catch (e) {
-                console.error('[Channels] Failed to load SSH servers:', e);
+                console.error('[Channels] Failed to load data:', e);
             }
         };
         loadData();
@@ -333,6 +344,13 @@ export const Channels: React.FC = () => {
         }
     }, [activeChannel, gateway]);
 
+    // Auto-connect when channel config has a gateway URL
+    useEffect(() => {
+        if (autoConnectRef.current && activeChannel && gateway.status === 'disconnected') {
+            autoConnectRef.current = null; // only once
+            handleConnect();
+        }
+    }, [activeChannel, gateway.status, handleConnect]);
     // Full reset: disconnect + clear messages + clear address
     const handleReset = useCallback(() => {
         if (!activeId) return;
