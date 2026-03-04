@@ -663,13 +663,17 @@ fn apply_codex(model_info: &ModelInfo) -> ApplyResult {
     let provider = if is_openai { "openai".to_string() } else { extract_domain_name(&base_url) };
     let model_name = model_info.model.as_deref().or(model_info.name.as_deref()).unwrap_or("unknown");
 
+    // Only OpenAI native API uses "responses" wire format.
+    // Third-party APIs use default (chat completions) — no proxy needed.
+    let wire_api_line = if is_openai { "wire_api = \"responses\"\n" } else { "" };
+
     let toml_content = format!(
         "model = \"{model}\"\nmodel_provider = \"{prov}\"\nprofile = \"Echobird\"\n\n\
          [model_providers.{prov}]\nname = \"{prov} (via Echobird)\"\n\
          base_url = \"{url}\"\nenv_key = \"OPENAI_API_KEY\"\n\
-         wire_api = \"responses\"\nrequires_openai_auth = false\n\n\
+         {wire}requires_openai_auth = false\n\n\
          [profiles.Echobird]\nmodel = \"{model}\"\nmodel_provider = \"{prov}\"\n",
-        model = model_name, prov = provider, url = base_url,
+        model = model_name, prov = provider, url = base_url, wire = wire_api_line,
     );
 
     ensure_parent(&config_path);
