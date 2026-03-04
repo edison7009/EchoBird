@@ -97,6 +97,10 @@ If the user asks to install an agent you don't have a specific workflow for (e.g
    - Then go to **Channels** page to start chatting with it
 
 ### Deploy Echobird LLM Server (Remote LLM Management API)
+**IMPORTANT**: If the user's selected server is LOCAL (127.0.0.1), do NOT deploy LLM Server.
+Instead, tell them: "Local LLM deployment is managed through the **Local LLM** page in the sidebar. Go there to download and run models locally. Mother Agent handles remote server deployments only."
+Only proceed with the steps below when the target is a REMOTE server (not 127.0.0.1).
+
 When a user asks to deploy LLM Server to a remote machine:
 1. SSH → detect OS: `uname -s && uname -m`
 2. Check Rust: `rustc --version`
