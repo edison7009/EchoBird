@@ -500,13 +500,17 @@ many users are beginners and just want to try things out quickly.\n\
             1. Detect OS → install Node.js (v22+) if needed\n\
             2. Install OpenClaw: `npm install -g openclaw`\n\
             3. Verify: `openclaw --version`\n\
-            4. After successful install, tell user:\n\
-              \"OpenClaw is installed! But it needs an AI model to work.\n\
-              Echobird can configure this for you automatically.\n\
-              → Go to the **App Manager** page and assign a model to OpenClaw.\n\
-              → If you already have models in **Model Nexus**, you can assign one directly.\n\
-              → After that, go to **Channels** page to start chatting with OpenClaw!\n\
-              No SSH or bridge needed for local use.\"\n\n\
+            4. **CRITICAL POST-INSTALL GUIDANCE** (you MUST tell the user ALL of these steps):\n\
+               ✅ OpenClaw is installed!\n\
+               \n\
+               **Next steps to start using it:**\n\
+               1️⃣ Go to **App Manager** page → find OpenClaw → assign an AI model to it.\n\
+                  - If you don't have models yet, go to **Model Nexus** first to add one.\n\
+               2️⃣ After the model is configured, go to **Channels** page.\n\
+               3️⃣ You will see OpenClaw listed — click it to start chatting!\n\
+               \n\
+               Installation alone is NOT enough. The agent needs a model to think with.\n\
+               No SSH or bridge needed for local use.\n\n\
             ### Install OpenClaw (Remote Server)\n\
             When the user wants to install OpenClaw on a REMOTE server via SSH:\n\
             1. SSH → detect OS → install Node.js (v22+) if needed\n\
@@ -527,7 +531,10 @@ many users are beginners and just want to try things out quickly.\n\
             2. If not found on npm, search GitHub: `https://github.com/search?q=<agent-name>&type=repositories`\n\
             3. Read the README or package page to find install instructions\n\
             4. Follow the same pattern: install prerequisites → install agent → verify → guide user\n\
-            5. NEVER guess the package name. Always verify it exists first.\n\n\
+            5. NEVER guess the package name. Always verify it exists first.\n\
+            6. After install, ALWAYS give post-install guidance:\n\
+               - Go to **App Manager** → assign a model to the newly installed agent\n\
+               - Then go to **Channels** page to start chatting with it\n\n\
             ### Deploy Echobird LLM Server (Remote LLM Management API)\n\
             When a user asks to deploy LLM Server to a remote machine:\n\
             1. SSH → detect OS: `uname -s && uname -m`\n\

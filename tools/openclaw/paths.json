@@ -12,7 +12,7 @@
     "configDir": "~/.openclaw",
     "configFile": "~/.openclaw/openclaw.json",
     "configFileAlt": "~/.openclaw/settings.json",
-    "requireConfigFile": true,
+    "requireConfigFile": false,
     "detectByConfigDir": true,
     "paths": {
         "win32": [
