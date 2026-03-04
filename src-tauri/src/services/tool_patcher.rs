@@ -89,7 +89,7 @@ import { homedir as _wc_homedir } from "node:os";
     if (!ocConfig.agents.defaults.model) ocConfig.agents.defaults.model = {};
 
     for (const key of Object.keys(ocConfig.models.providers)) {
-      if (key.startsWith("wc_")) {
+      if (key.startsWith("eb_")) {
         delete ocConfig.models.providers[key];
       }
     }
@@ -109,11 +109,11 @@ import { homedir as _wc_homedir } from "node:os";
       }
     } catch {}
 
-    const wcProviderName = "wc_" + providerTag;
+    const ebProviderName = "eb_" + providerTag;
     let baseUrl = wcConfig.baseUrl || "https://api.openai.com/v1";
     if (baseUrl.endsWith("/")) baseUrl = baseUrl.slice(0, -1);
 
-    ocConfig.models.providers[wcProviderName] = {
+    ocConfig.models.providers[ebProviderName] = {
       baseUrl: baseUrl,
       apiKey: wcConfig.apiKey,
       api: apiType,
@@ -127,8 +127,8 @@ import { homedir as _wc_homedir } from "node:os";
         cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 }
       }]
     };
-    ocConfig.agents.defaults.model.primary = wcProviderName + "/" + wcConfig.modelId;
-    console.log("[Echobird] Injected " + apiType + " model: " + wcProviderName + "/" + wcConfig.modelId);
+    ocConfig.agents.defaults.model.primary = ebProviderName + "/" + wcConfig.modelId;
+    console.log("[Echobird] Injected " + apiType + " model: " + ebProviderName + "/" + wcConfig.modelId);
 
     _wc_writeFileSync(ocConfigPath, JSON.stringify(ocConfig, null, 2), "utf-8");
   } catch (err) {
