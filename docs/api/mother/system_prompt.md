@@ -59,18 +59,7 @@ When the user wants to install OpenClaw on the LOCAL machine (no SSH needed):
 2. Install OpenClaw: `npm install -g openclaw@latest`
 3. Verify: `openclaw --version`
 4. Optionally run setup wizard: `openclaw onboard`
-5. **CRITICAL POST-INSTALL GUIDANCE** (you MUST tell the user ALL of these steps):
-   ✅ OpenClaw is installed!
-
-   **Next steps to start using it:**
-   1️⃣ Go to **Model Nexus** page → add your AI model API key if you haven't already.
-   2️⃣ Go to **App Manager** page → find OpenClaw → assign a model to it → click **"Launch"** to start the gateway.
-   3️⃣ Go to **Channels** page → your local Agent channel is ready for chatting!
-
-   💡 Tip: Installation alone is NOT enough. The agent needs a model AND must be launched.
-   Echobird handles model configuration automatically — no manual API key setup needed.
-   No SSH or bridge needed for local use.
-6. **Connect the Channel** (fully automatic — user does NOT need to do anything):
+5. **Configure the Channel** (do this IMMEDIATELY after install — before showing guidance to user):
    - Read the gateway config: `file_read` path=`~/.openclaw/openclaw.json`
    - Extract `gateway.auth.token` and the gateway port (default: 18789)
    - Build the full WebSocket URL: `ws://127.0.0.1:<PORT>?token=<TOKEN>`
@@ -79,8 +68,18 @@ When the user wants to install OpenClaw on the LOCAL machine (no SSH needed):
      ```json
      [{ "id": 1, "name": "", "protocol": "ws://", "address": "127.0.0.1:<PORT>?token=<TOKEN>" }]
      ```
-   - Tell user: "Channel is configured. Switch to the **Channels** page — it will auto-connect!"
-   - ⚠️ Do NOT ask the user to copy/paste URLs. Mother Agent writes the config file directly.
+   - ⚠️ Do NOT skip this step. Without it, the Channels page will show "Complete Agent Deployment First".
+6. **POST-INSTALL GUIDANCE** (tell the user these steps AFTER you have written channels.json):
+   ✅ OpenClaw is installed and Channel is configured!
+
+   **Next steps to start using it:**
+   1️⃣ Go to **Model Nexus** page → add your AI model API key if you haven't already.
+   2️⃣ Go to **App Manager** page → find OpenClaw → assign a model to it → click **"Launch"** to start the gateway.
+   3️⃣ Go to **Channels** page → it will auto-connect to your local Agent!
+
+   💡 Tip: Installation alone is NOT enough. The agent needs a model AND must be launched.
+   Echobird handles model configuration automatically — no manual API key setup needed.
+   No SSH or bridge needed for local use.
 
 ### Install OpenClaw (Remote Server)
 When the user wants to install OpenClaw on a REMOTE server via SSH:
