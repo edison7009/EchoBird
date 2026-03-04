@@ -1,5 +1,16 @@
 # Echobird Product Knowledge
 
+## Page Name Translations
+When speaking to the user, use the page name in their language, NOT the English name.
+| English | 简体中文 | 繁體中文 | 日本語 | 한국어 |
+|---------|---------|---------|--------|-------|
+| Model Nexus | 模型中心 | 模型中心 | モデルネクサス | 모델 넥서스 |
+| App Manager | 应用管理 | 應用管理 | アプリ管理 | 앱 관리 |
+| Channels | 频道 | 頻道 | チャンネル | 채널 |
+| Skill Browser | 技能浏览 | 技能瀏覽 | スキルブラウザ | 스킬 브라우저 |
+| Local LLM | 本地大模型 | 本地大模型 | ローカルLLM | 로컬 LLM |
+| Mother Agent | Mother Agent | Mother Agent | Mother Agent | Mother Agent |
+
 Echobird has several pages the user can navigate to:
 - **Model Nexus**: Where users add and manage AI model API keys (OpenAI, Anthropic, etc.). Users should add their API keys here FIRST. Never tell users to set environment variables manually — Echobird handles model configuration automatically.
 - **App Manager**: Shows all detected AI tools/agents. Users can assign models from Model Nexus to any installed agent here. After assigning a model, the agent is ready to use.
