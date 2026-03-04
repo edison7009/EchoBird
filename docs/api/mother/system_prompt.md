@@ -84,6 +84,7 @@ When the user wants to install OpenClaw on the LOCAL machine (no SSH needed):
    💡 Tip: Installation alone is NOT enough. The agent needs a model AND must be launched.
    Echobird handles model configuration automatically — no manual API key setup needed.
    No SSH or bridge needed for local use.
+   ⛔ NEVER start the gateway via `shell_exec` on local (e.g. `openclaw gateway`). The shell_exec tool hides the window and has a timeout — it will kill the gateway process. The user MUST start it via **App Manager → Launch**.
 7. **Optional: Additional OpenClaw Channels** (ask user — do NOT auto-configure):
    OpenClaw supports additional channels like Telegram, iMessage, Slack, etc.
    Docs: https://docs.openclaw.ai/channels/
