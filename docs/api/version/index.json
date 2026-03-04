@@ -1,6 +1,6 @@
 {
-    "version": "2.1.11",
+    "version": "2.2.0",
     "releaseDate": "2026-03-05",
-    "releaseNotes": "Fix channel auto-connect: isLocal address matching supports port+token URLs, channel name display fix.",
+    "releaseNotes": "Channel auto-connect, Mother Agent prompt updates, isLocal fix. Version scheme reset to avoid semver string-sort issues.",
     "downloadUrl": "https://github.com/edison7009/Echobird-MotherAgent/releases/latest"
 }
