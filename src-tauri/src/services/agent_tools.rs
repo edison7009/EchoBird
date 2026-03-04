@@ -262,7 +262,7 @@ async fn exec_local_shell(command: &str) -> ToolResult {
                         "-NonInteractive",
                         "-Command",
                         &format!(
-                            "[Console]::OutputEncoding = [System.Text.Encoding]::UTF8; $OutputEncoding = [System.Text.Encoding]::UTF8; {}",
+                            "chcp 65001 > $null; [Console]::OutputEncoding = [System.Text.Encoding]::UTF8; $OutputEncoding = [System.Text.Encoding]::UTF8; {}",
                             cmd
                         ),
                     ])
