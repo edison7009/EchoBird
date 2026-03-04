@@ -111,7 +111,7 @@ function App() {
                         <MotherAgentProvider appLogs={appLogs} detectedTools={detectedTools} onClearLogs={onClearLogs} onAgentRunningChange={setAgentRunning} onNewMessage={() => setMotherNewMessage(true)}>
                             <ModelNexusProvider>
                                 <SkillBrowserProvider preloadedSkills={preloadedSkills}>
-                                    <AppManagerProvider detectedTools={detectedTools} setDetectedTools={setDetectedTools} isScanning={isScanning} scanTools={doScanTools} modelProtocolSelection={modelProtocolSelection} setModelProtocolSelection={setModelProtocolSelection}>
+                                    <AppManagerProvider detectedTools={detectedTools} setDetectedTools={setDetectedTools} isScanning={isScanning} scanTools={doScanTools} modelProtocolSelection={modelProtocolSelection} setModelProtocolSelection={setModelProtocolSelection} isActive={activePage === 'apps'}>
                                         <LocalServerProvider>
 
                                             <div className="flex flex-col h-screen w-full bg-cyber-bg">

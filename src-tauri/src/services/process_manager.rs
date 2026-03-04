@@ -73,19 +73,19 @@ impl ProcessManager {
             crate::services::tool_manager::is_vscode_extension(tool_id),
         );
 
+        // Priority 0: Codex launcher — MUST be checked before startCommand
+        // because paths.json provides startCommand="codex" which would bypass the proxy
+        if tool_id == "codex" {
+            if let Some(launcher) = Self::find_codex_launcher() {
+                log::info!("[ProcessManager] Found codex-launcher.cjs, launching via proxy: {:?}", launcher);
+                return self.start_codex_launcher(tool_id, &launcher);
+            }
+        }
+
         // Priority 1: If explicit command is given from frontend, use it
         if let Some(cmd) = start_command {
             log::info!("[ProcessManager] Starting tool: {} with explicit command: {}", tool_id, cmd);
             return self.start_cli_tool(tool_id, cmd);
-        }
-
-        // Priority 1.5: Codex launcher — dual-spoofing proxy (Responses→Chat)
-        if tool_id == "codex" {
-            if let Some(launcher) = Self::find_codex_launcher() {
-                log::info!("[ProcessManager] Found codex-launcher.cjs, launching via proxy: {:?}", launcher);
-                let cmd = format!("node \"{}\"", launcher.to_string_lossy());
-                return self.start_cli_tool(tool_id, &cmd);
-            }
         }
 
         // Priority 2: CLI tools with startCommand in paths.json (e.g. "openclaw gateway")
@@ -133,6 +133,48 @@ impl ProcessManager {
             return Some(launcher);
         }
         None
+    }
+    /// Start Codex via launcher script — bypasses start_cli_tool's split_whitespace
+    /// to avoid quoting issues with the file path argument
+    fn start_codex_launcher(&mut self, tool_id: &str, launcher: &std::path::Path) -> Result<(), String> {
+        let home = dirs::home_dir().unwrap_or_default();
+
+        let mut cmd = Command::new("node");
+        cmd.arg(launcher);  // Pass path directly — no string quoting needed
+        cmd.current_dir(&home);
+
+        // Read echobird config for env vars
+        let config_path = home.join(".echobird").join("codex.json");
+        if config_path.exists() {
+            if let Ok(content) = std::fs::read_to_string(&config_path) {
+                if let Ok(config) = serde_json::from_str::<serde_json::Value>(&content) {
+                    if let Some(key) = config.get("apiKey").and_then(|v| v.as_str()) {
+                        cmd.env("OPENAI_API_KEY", key);
+                    }
+                    if let Some(url) = config.get("baseUrl").and_then(|v| v.as_str()) {
+                        cmd.env("OPENAI_BASE_URL", url);
+                    }
+                }
+            }
+        }
+
+        #[cfg(windows)]
+        {
+            use std::os::windows::process::CommandExt;
+            const CREATE_NEW_PROCESS_GROUP: u32 = 0x00000200;
+            const CREATE_NEW_CONSOLE: u32 = 0x00000010;
+            cmd.creation_flags(CREATE_NEW_PROCESS_GROUP | CREATE_NEW_CONSOLE);
+        }
+
+        match cmd.spawn() {
+            Ok(child) => {
+                let pid = child.id();
+                log::info!("[ProcessManager] Codex launcher started with PID: {}", pid);
+                self.processes.insert(tool_id.to_string(), ProcessInfo { pid });
+                Ok(())
+            }
+            Err(e) => Err(format!("Failed to launch Codex via node: {}", e)),
+        }
     }
 
     /// Start a CLI tool via terminal

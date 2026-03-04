@@ -59,12 +59,14 @@ interface AppManagerProviderProps {
     scanTools: () => Promise<void>;
     modelProtocolSelection: Record<string, 'openai' | 'anthropic'>;
     setModelProtocolSelection: React.Dispatch<React.SetStateAction<Record<string, 'openai' | 'anthropic'>>>;
+    isActive?: boolean;
     children: React.ReactNode;
 }
 
 export const AppManagerProvider: React.FC<AppManagerProviderProps> = ({
     detectedTools, setDetectedTools, isScanning, scanTools,
     modelProtocolSelection, setModelProtocolSelection,
+    isActive,
     children,
 }) => {
     const { t } = useI18n();
@@ -75,7 +77,7 @@ export const AppManagerProvider: React.FC<AppManagerProviderProps> = ({
         if (api.getModels) {
             api.getModels().then(setUserModels).catch(e => console.error('Load models failed:', e));
         }
-    }, []);
+    }, [isActive]);
 
     // Internalized state
     const [selectedTool, setSelectedTool] = useState<string | null>(null);
