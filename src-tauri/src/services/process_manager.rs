@@ -152,13 +152,21 @@ impl ProcessManager {
             use std::os::windows::process::CommandExt;
 
             const CREATE_NEW_PROCESS_GROUP: u32 = 0x00000200;
+            const CREATE_NEW_CONSOLE: u32 = 0x00000010;
 
-            // Launch TUI tools in a visible terminal window using `cmd /c start`
-            let mut cmd = Command::new("cmd");
-            cmd.args(["/c", "start", "cmd", "/k", &full_command]);
+            // Parse command and spawn directly — Windows auto-creates a console window
+            let parts: Vec<&str> = full_command.split_whitespace().collect();
+            if parts.is_empty() {
+                return Err("Empty command".to_string());
+            }
+
+            let mut cmd = Command::new(parts[0]);
+            if parts.len() > 1 {
+                cmd.args(&parts[1..]);
+            }
             cmd.current_dir(&home);
 
-            // Set env vars
+            // Set env vars directly on the Command — they inherit properly
             if let Some(ref key) = api_key_env {
                 cmd.env("OPENAI_API_KEY", key);
             }
@@ -166,7 +174,9 @@ impl ProcessManager {
                 cmd.env("OPENAI_BASE_URL", url);
             }
 
-            cmd.creation_flags(CREATE_NEW_PROCESS_GROUP);
+            // CREATE_NEW_CONSOLE: visible terminal window for TUI tools
+            // CREATE_NEW_PROCESS_GROUP: independent process
+            cmd.creation_flags(CREATE_NEW_PROCESS_GROUP | CREATE_NEW_CONSOLE);
 
             match cmd.spawn() {
                 Ok(child) => {
