@@ -7,7 +7,7 @@
     ],
     "docs": "https://docs.openclaw.ai",
     "command": "openclaw",
-    "startCommand": "openclaw gateway",
+    "startCommand": "openclaw gateway --allow-unconfigured",
     "envVar": "OPENCLAW_PATH",
     "configDir": "~/.openclaw",
     "configFile": "~/.openclaw/openclaw.json",

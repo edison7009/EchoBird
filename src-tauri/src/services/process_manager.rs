@@ -215,16 +215,10 @@ impl ProcessManager {
             const CREATE_NEW_PROCESS_GROUP: u32 = 0x00000200;
             const CREATE_NEW_CONSOLE: u32 = 0x00000010;
 
-            // Parse command and spawn directly — Windows auto-creates a console window
-            let parts: Vec<&str> = full_command.split_whitespace().collect();
-            if parts.is_empty() {
-                return Err("Empty command".to_string());
-            }
-
-            let mut cmd = Command::new(parts[0]);
-            if parts.len() > 1 {
-                cmd.args(&parts[1..]);
-            }
+            // Use cmd.exe /C to run the command — this handles .cmd/.bat scripts
+            // (npm-installed tools like openclaw.cmd, codex.cmd, opencode.cmd)
+            let mut cmd = Command::new("cmd");
+            cmd.args(["/C", &full_command]);
             cmd.current_dir(&home);
 
             // Set env vars directly on the Command — they inherit properly

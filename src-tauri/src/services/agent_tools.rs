@@ -262,10 +262,11 @@ async fn exec_local_shell(command: &str) -> ToolResult {
                         "-NonInteractive",
                         "-Command",
                         &format!(
-                            "chcp 65001 > $null; [Console]::OutputEncoding = [System.Text.Encoding]::UTF8; $OutputEncoding = [System.Text.Encoding]::UTF8; {}",
+                            "[Console]::InputEncoding = [Console]::OutputEncoding = [System.Text.Encoding]::UTF8; {}",
                             cmd
                         ),
                     ])
+                    .env("PYTHONIOENCODING", "utf-8")
                     .creation_flags(CREATE_NO_WINDOW)
                     .output()
             };
