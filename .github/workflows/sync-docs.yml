@@ -22,7 +22,7 @@ jobs:
           destination-github-username: edison7009
           destination-repository-name: Echobird-MotherAgent
           target-directory: docs
-          destination-branch: main
+          target-branch: main
           commit-message: "docs: auto-sync from private repo (${{ github.sha }})"
           user-email: actions@github.com
           user-name: github-actions
