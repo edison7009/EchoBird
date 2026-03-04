@@ -138,51 +138,27 @@ import { homedir as _wc_homedir } from "node:os";
 
 "#;
 
-// Codex injection: ESM top-level await style
+// Codex injection: sync code after `const env = {...}` line
+// Codex v0.104+ is a Rust binary launcher, so we inject env vars into
+// the `env` object BEFORE it spawns the binary. No ESM imports needed
+// because codex.js already imports fs/path/os.
 const CODEX_INJECT: &str = r#"
 /* [Echobird-Codex-Patched] */
-import { readFileSync as _eb_rf, existsSync as _eb_ex } from "node:fs";
-import { join as _eb_j, dirname as _eb_dn } from "node:path";
-import { homedir as _eb_h } from "node:os";
-import { fileURLToPath as _eb_furl } from "node:url";
-await (async function _Echobird_codex() {
-  try {
-    const p = _eb_j(_eb_h(), ".echobird", "codex.json");
-    if (!_eb_ex(p)) return;
-    const c = JSON.parse(_eb_rf(p, "utf-8"));
-    if (!c.apiKey) return;
-
-    process.env.OPENAI_API_KEY = c.apiKey;
-    if (typeof env !== "undefined") env.OPENAI_API_KEY = c.apiKey;
-
-    const baseUrl = c.baseUrl || "";
-    const needsProxy = baseUrl && !baseUrl.includes("api.openai.com");
-
-    if (needsProxy) {
-      const proxyPath = _eb_j(_eb_dn(_eb_furl(import.meta.url)), "echobird-codex-proxy.mjs");
-      if (_eb_ex(proxyPath)) {
-        const proxyUrl = "file:///" + proxyPath.split("\\").join("/");
-        const { startCodexProxy } = await import(proxyUrl);
-        const port = await startCodexProxy(baseUrl, c.apiKey);
-        const proxyBaseUrl = "http://127.0.0.1:" + port + "/v1";
-        process.env.OPENAI_BASE_URL = proxyBaseUrl;
-        if (typeof env !== "undefined") env.OPENAI_BASE_URL = proxyBaseUrl;
-        console.log("[Echobird] Proxy active: Codex -> :" + port + " -> " + baseUrl);
-      } else {
-        process.env.OPENAI_BASE_URL = baseUrl;
-        if (typeof env !== "undefined") env.OPENAI_BASE_URL = baseUrl;
-        console.log("[Echobird] Proxy module not found, using direct URL: " + baseUrl);
-      }
-    } else {
-      console.log("[Echobird] Using OpenAI directly, no proxy needed");
+;(function() { try {
+  const _eb_p = path.join(process.env.HOME || process.env.USERPROFILE || "", ".echobird", "codex.json");
+  if (existsSync(_eb_p)) {
+    const _eb_c = JSON.parse(require("fs").readFileSync(_eb_p, "utf-8"));
+    if (_eb_c.apiKey) {
+      env.OPENAI_API_KEY = _eb_c.apiKey;
+      process.env.OPENAI_API_KEY = _eb_c.apiKey;
     }
-
-    console.log("[Echobird] Codex configured: model=" + (c.modelId || "default"));
-  } catch (err) {
-    console.warn("[Echobird] Config injection failed:", err.message);
+    if (_eb_c.baseUrl && !_eb_c.baseUrl.includes("api.openai.com")) {
+      env.OPENAI_BASE_URL = _eb_c.baseUrl;
+      process.env.OPENAI_BASE_URL = _eb_c.baseUrl;
+    }
+    console.log("[Echobird] Codex env injected: model=" + (_eb_c.modelId || "default"));
   }
-})();
-
+} catch(_e) { console.warn("[Echobird] Codex inject error:", _e.message); } })();
 "#;
 
 // ─── Installation Directories ───
@@ -412,22 +388,14 @@ pub fn patch_codex() {
 
     let entry = install_dir.join("bin").join("codex.js");
 
-    // Also copy proxy module if source exists
-    let tools_dir = crate::services::tool_manager::get_tools_dir();
-    let proxy_src = tools_dir.join("codex").join("codex-proxy.mjs");
-    let proxy_dst = install_dir.join("bin").join("echobird-codex-proxy.mjs");
-    if proxy_src.exists() {
-        let _ = fs::copy(&proxy_src, &proxy_dst);
-        log::info!("[Patcher] Proxy module copied to {:?}", proxy_dst);
-    }
-
+    // Codex v0.104+: inject AFTER the `const env = { ... };` line
+    // so we can set env.OPENAI_API_KEY before spawn()
     patch_entry_file(&entry, &PatchConfig {
         marker: CODEX_MARKER,
         inject_code: CODEX_INJECT,
         search_patterns: vec![
-            "await installProcessWarningFilter();",
-            "if (await tryImport(",
-            "const child = spawn(",
+            "env[packageManagerEnvVar] = \"1\";",
+            "const env = {",
         ],
         inject_after: true,
     });
