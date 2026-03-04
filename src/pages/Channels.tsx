@@ -234,7 +234,7 @@ export const Channels: React.FC = () => {
 
     const activeChannel = channels.find(c => c.id === activeId);
     const isActiveConnected = gateway.status === 'connected';
-    const isLocal = activeChannel?.address === '127.0.0.1' || activeChannel?.address === 'localhost';
+    const isLocal = activeChannel?.address?.startsWith('127.0.0.1') || activeChannel?.address === 'localhost';
     const messages = gateway.messages;
 
     // Load SSH servers + channel config → populate channels
@@ -597,7 +597,7 @@ export const Channels: React.FC = () => {
                                 {/* Name — read-only, edit via Mother Agent */}
                                 <div className="flex items-center gap-1 h-5">
                                     <span className={`text-sm font-bold whitespace-nowrap truncate ${isActive ? 'text-cyber-accent' : 'text-cyber-accent/90'}`}>
-                                        {ch.name || (ch.address === '127.0.0.1'
+                                        {ch.name || (ch.address?.startsWith('127.0.0.1') || ch.address === 'localhost'
                                             ? `${t('mother.local')} (127.0.0.1)`
                                             : ch.address)}
                                     </span>

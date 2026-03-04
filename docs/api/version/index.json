@@ -1,6 +1,6 @@
 {
-    "version": "2.1.10",
+    "version": "2.1.11",
     "releaseDate": "2026-03-05",
-    "releaseNotes": "Channel auto-connect via channels.json, Mother Agent system prompt updates (Agent OS launch flow, remote model config, CLI local-only rule).",
+    "releaseNotes": "Fix channel auto-connect: isLocal address matching supports port+token URLs, channel name display fix.",
     "downloadUrl": "https://github.com/edison7009/Echobird-MotherAgent/releases/latest"
 }
