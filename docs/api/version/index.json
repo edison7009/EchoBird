@@ -1,6 +1,6 @@
 {
-    "version": "2.1.7",
+    "version": "2.1.8",
     "releaseDate": "2026-03-04",
-    "releaseNotes": "Fix CLI tool launching (env inheritance), Codex dual-spoofing proxy for third-party APIs, OpenCode model selection, OpenClaw provider prefix rename.",
+    "releaseNotes": "Fix Codex launch via proxy (Priority 0 launcher, direct arg passing), App Manager model list auto-refresh, OpenClaw provider prefix rename.",
     "downloadUrl": "https://github.com/edison7009/Echobird-MotherAgent/releases/latest"
 }
