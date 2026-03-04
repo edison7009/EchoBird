@@ -122,44 +122,51 @@ impl ProcessManager {
         let echobird_dir = dirs::home_dir().unwrap_or_default().join(".echobird");
         let config_path = echobird_dir.join(format!("{}.json", tool_id));
 
+        // Read echobird config for env vars and model info
+        let mut api_key_env: Option<String> = None;
+        let mut base_url_env: Option<String> = None;
+        let mut model_id: Option<String> = None;
+        if config_path.exists() {
+            if let Ok(content) = std::fs::read_to_string(&config_path) {
+                if let Ok(config) = serde_json::from_str::<serde_json::Value>(&content) {
+                    api_key_env = config.get("apiKey").and_then(|v| v.as_str()).map(|s| s.to_string());
+                    base_url_env = config.get("baseUrl").and_then(|v| v.as_str()).map(|s| s.to_string());
+                    model_id = config.get("modelId").and_then(|v| v.as_str()).map(|s| s.to_string());
+                }
+            }
+        }
+
+        // Build the final command with tool-specific args
+        let mut full_command = command.to_string();
+
+        // OpenCode: append --model echobird/{modelId} to force model selection
+        if tool_id == "opencode" {
+            if let Some(ref mid) = model_id {
+                full_command = format!("{} --model echobird/{}", command, mid);
+            }
+        }
+
 
         #[cfg(windows)]
         {
             use std::os::windows::process::CommandExt;
 
-            // Windows creation flags
             const CREATE_NEW_PROCESS_GROUP: u32 = 0x00000200;
-            const CREATE_NO_WINDOW: u32 = 0x08000000;
 
-            // Parse command into parts
-            let parts: Vec<&str> = command.split_whitespace().collect();
-            if parts.is_empty() {
-                return Err("Empty command".to_string());
-            }
-
-            let mut cmd = Command::new(parts[0]);
-            if parts.len() > 1 {
-                cmd.args(&parts[1..]);
-            }
+            // Launch TUI tools in a visible terminal window using `cmd /c start`
+            let mut cmd = Command::new("cmd");
+            cmd.args(["/c", "start", "cmd", "/k", &full_command]);
             cmd.current_dir(&home);
 
-            // Set env vars directly on the Command
-            if config_path.exists() {
-                if let Ok(content) = std::fs::read_to_string(&config_path) {
-                    if let Ok(config) = serde_json::from_str::<serde_json::Value>(&content) {
-                        if let Some(api_key) = config.get("apiKey").and_then(|v| v.as_str()) {
-                            cmd.env("OPENAI_API_KEY", api_key);
-                        }
-                        if let Some(base_url) = config.get("baseUrl").and_then(|v| v.as_str()) {
-                            cmd.env("OPENAI_BASE_URL", base_url);
-                        }
-                    }
-                }
+            // Set env vars
+            if let Some(ref key) = api_key_env {
+                cmd.env("OPENAI_API_KEY", key);
+            }
+            if let Some(ref url) = base_url_env {
+                cmd.env("OPENAI_BASE_URL", url);
             }
 
-            // CREATE_NO_WINDOW: hide the console window
-            // CREATE_NEW_PROCESS_GROUP: independent process group
-            cmd.creation_flags(CREATE_NEW_PROCESS_GROUP | CREATE_NO_WINDOW);
+            cmd.creation_flags(CREATE_NEW_PROCESS_GROUP);
 
             match cmd.spawn() {
                 Ok(child) => {
@@ -175,15 +182,24 @@ impl ProcessManager {
 
         #[cfg(not(windows))]
         {
-            let parts: Vec<&str> = command.split_whitespace().collect();
+            let parts: Vec<&str> = full_command.split_whitespace().collect();
             if parts.is_empty() {
                 return Err("Empty command".to_string());
             }
 
-            let child = Command::new(parts[0])
-                .args(&parts[1..])
-                .current_dir(&home)
-                .spawn()
+            let mut cmd = Command::new(parts[0]);
+            if parts.len() > 1 {
+                cmd.args(&parts[1..]);
+            }
+            cmd.current_dir(&home);
+            if let Some(ref key) = api_key_env {
+                cmd.env("OPENAI_API_KEY", key);
+            }
+            if let Some(ref url) = base_url_env {
+                cmd.env("OPENAI_BASE_URL", url);
+            }
+
+            let child = cmd.spawn()
                 .map_err(|e| format!("Spawn error: {}", e))?;
 
             let pid = child.id();
