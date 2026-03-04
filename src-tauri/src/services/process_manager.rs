@@ -79,6 +79,15 @@ impl ProcessManager {
             return self.start_cli_tool(tool_id, cmd);
         }
 
+        // Priority 1.5: Codex launcher — dual-spoofing proxy (Responses→Chat)
+        if tool_id == "codex" {
+            if let Some(launcher) = Self::find_codex_launcher() {
+                log::info!("[ProcessManager] Found codex-launcher.cjs, launching via proxy: {:?}", launcher);
+                let cmd = format!("node \"{}\"", launcher.to_string_lossy());
+                return self.start_cli_tool(tool_id, &cmd);
+            }
+        }
+
         // Priority 2: CLI tools with startCommand in paths.json (e.g. "openclaw gateway")
         if let Some(command) = crate::services::tool_manager::get_tool_start_command(tool_id) {
             // Extract base command (first word) for existence check
@@ -114,6 +123,16 @@ impl ProcessManager {
         }
 
         Err(format!("No executable or command found for tool '{}'. The tool may be installed but not in PATH.", tool_id))
+    }
+
+    /// Find codex-launcher.cjs (dual-spoofing proxy)
+    fn find_codex_launcher() -> Option<std::path::PathBuf> {
+        let tools_dir = crate::services::tool_manager::get_tools_dir();
+        let launcher = tools_dir.join("codex").join("codex-launcher.cjs");
+        if launcher.exists() {
+            return Some(launcher);
+        }
+        None
     }
 
     /// Start a CLI tool via terminal
