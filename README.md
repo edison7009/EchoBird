@@ -37,9 +37,11 @@
 
 ## Why Echobird?
 
-Modern AI coding relies on CLI agents like **OpenClaw**, **Claude Code**, **OpenCode**, **ZeroClaw**, and **Codex** — but installing, configuring, and switching between them is painful. Each tool has its own config format, its own model settings, and its own deployment quirks.
+Even as an AI beginner, Echobird lets you command your own Agent — from setup to work — through simple chat. No terminal expertise, no config files, no deployment headaches.
 
-**Echobird gives you one desktop app to install, configure, and deploy them all.** Switch models, deploy LLMs, and control multiple agents — all with one click.
+Want to use **OpenClaw**, **Claude Code**, **ZeroClaw**, or **Codex**? One click to install. Want to run **Qwen**, **DeepSeek**, or **Llama** on your own machine? One click to deploy. Want to switch models or add skills? Point, click, done.
+
+**Echobird gives you one app to install agents, switch models, deploy LLMs, and control everything from one screen** — whether you're a developer or just getting started with AI.
 
 ---
 
