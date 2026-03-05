@@ -4,10 +4,10 @@
 
 <h1 align="center">Echobird</h1>
 
-<h3 align="center">The All-in-One Manager for OpenClaw, Claude Code, OpenCode, ZeroClaw & Codex</h3>
+<h3 align="center">One-click install OpenClaw, Claude Code, ZeroClaw & Codex. Switch models. Deploy LLMs.</h3>
 
 <p align="center">
-  One-click install agents. One-click switch models. One-click deploy LLMs.<br/>
+  One app to install agents, switch models, deploy local/remote LLMs, and control all agents from one Channels screen.<br/>
   <sub>A cross-platform desktop AI control panel — built with Tauri 2 + Rust.</sub>
 </p>
 
