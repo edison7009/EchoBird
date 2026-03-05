@@ -4,9 +4,11 @@
 
 <h1 align="center">Echobird</h1>
 
+<h3 align="center">Instala OpenClaw, Claude Code, ZeroClaw y Codex con un clic. Cambia modelos. Despliega LLMs.</h3>
+
 <p align="center">
-  El Nexo para Modelos, Agentes y Vibe Coding.<br/>
-  <sub>Un panel de control cyberpunk para la era de la IA — construido con Tauri + Rust.</sub>
+  Una app para instalar agentes, cambiar modelos, desplegar LLMs locales/remotos y controlar todos los agentes desde una pantalla Channels.<br/>
+  <sub>Panel de control de IA de escritorio multiplataforma — construido con Tauri 2 + Rust.</sub>
 </p>
 
 <p align="center">
@@ -33,43 +35,65 @@
 
 ---
 
-## 🤖 MotherAgent — Despliega modelos. Ejecuta agentes.
+## ¿Por qué Echobird?
 
-**MotherAgent** es tu agente IA autónomo — despliega LLMs locales, conecta modelos remotos y lanza OpenClaw desde un solo lugar.
+Incluso como principiante en IA, Echobird te permite controlar tu propio Agent — desde la instalación hasta el trabajo — a través de un simple chat. Sin experiencia en terminal, sin archivos de configuración, sin despliegues complicados.
 
-- 🖥️ **Despliegue LLM Local** — Un clic para desplegar Qwen, DeepSeek, Llama via llama.cpp integrado. Tus datos nunca salen del dispositivo.
-- 🌐 **LLM Remoto** — Conecta OpenAI, Anthropic, Google Gemini o cualquier endpoint OpenAI-compatible al instante.
-- 🦅 **Desplegar OpenClaw** — Lanza y gestiona agentes OpenClaw directamente desde MotherAgent. Sin terminal.
-- 💾 **Sesiones Persistentes** — Las conversaciones del agente sobreviven al reinicio. Continúa donde lo dejaste.
-- ⚡ **Cualquier Protocolo** — OpenAI API y Anthropic API. Cambia protocolo por agente sin tocar la config.
+¿Quieres usar **OpenClaw**, **Claude Code**, **ZeroClaw** o **Codex**? Un clic para instalar. ¿Quieres ejecutar **Qwen**, **DeepSeek** o **Llama** en tu propia máquina? Un clic para desplegar. ¿Cambiar modelos o añadir skills? Apunta, haz clic, listo.
+
+**Echobird te da una app para todo** — instalar agentes, cambiar modelos, desplegar LLMs y controlar todo desde una pantalla — seas desarrollador o recién empieces con la IA.
 
 ---
 
-## ✨ Echobird — Cambia modelos. No archivos de config.
+## ✨ Características
 
-Echobird es el **panel de control visual** para todas tus herramientas de IA. Apunta, haz clic, cambia.
+### 🚀 Instalación con Un Clic — OpenClaw, Claude Code, OpenCode, ZeroClaw y más
 
-- 🎯 **Cambio con Un Clic** — Configura modelos de IA visualmente para cualquier herramienta. Sin editar JSON.
-- 🔀 **Protocolo Dual** — OpenAI & Anthropic API. Cambia en cualquier momento.
-- 🚇 **Proxy Túnel** — APIs geo-restringidas sin VPN completa.
-- 🧩 **Explorador de Skills** — Descubre e instala habilidades de IA en múltiples herramientas.
-- 🎮 **Apps de IA** — Reversi, AI Translate. Más en camino.
-- 🌍 **28 Idiomas** — Internacionalización completa para desarrolladores globales.
+- **Detección e instalación automática** — Echobird detecta los agentes instalados y despliega los faltantes con un clic
+- **Herramientas plug-and-play** — Coloca un `plugin.json` en la carpeta tools y funciona. Sin cambios de código
+- **Lanzador integrado** — Inicia cualquier agente compatible sin tocar la terminal
+
+### 🔀 Cambio de Modelo con Un Clic — Cambia modelos en todos los agentes al instante
+
+- **Model Nexus visual** — Gestiona todos tus modelos de IA (OpenAI, Anthropic, Gemini, DeepSeek, Ollama o cualquier endpoint personalizado) en un panel
+- **Protocolo dual** — OpenAI API y Anthropic API. Cambia por agente sin cambios de configuración
+- **Aplicar con un clic** — Selecciona una tarjeta de modelo, actívala para cualquier agente. Sin editar JSON, TOML o `.env`
+
+### 💻 Despliegue de LLM con Un Clic — Ejecuta Qwen, DeepSeek, Llama, MiniMax local o remotamente
+
+- **LLM local** — Despliega modelos de código abierto con llama.cpp, vLLM o SGLang integrados. Tus datos nunca salen del dispositivo
+- **LLM remoto** — Despliega en cualquier servidor GPU vía SSH. Inicia Qwen 3.5, MiniMax M2.5, GLM-5 o cualquier modelo GGUF/HuggingFace con un clic
+- **Proxy unificado** — Expone automáticamente endpoints OpenAI (`/v1`) y Anthropic (`/anthropic`). Conecta cualquier agente al instante
+- **Detección inteligente de GPU** — Detecta GPUs NVIDIA y recomienda configuración óptima
+
+### 📡 Channels — Controla múltiples agentes desde una pantalla
+
+- **Canales multi-agente** — Ejecuta OpenClaw, ZeroClaw o cualquier agente compatible con Bridge en paralelo
+- **Local y remoto** — Agentes locales vía protocolo Bridge, remotos vía túneles SSH. Misma interfaz, misma experiencia
+- **Sesiones persistentes** — Las conversaciones del agente sobreviven al reinicio de la app. Continúa donde lo dejaste
+- **MotherAgent** — Tu agente de IA autónomo con tool calling, sistema de skills y flexibilidad total de modelos
+
+### 🧩 Más funciones integradas
+
+- 🌐 **Proxy túnel inteligente** — Accede a APIs geo-restringidas sin VPN completo
+- 🎯 **Explorador de Skills** — Descubre, traduce e instala skills de IA con un clic
+- 🎮 **Apps de IA integradas** — Reversi, AI Translate y más
+- 🌍 **28 idiomas** — Internacionalización completa del inglés al árabe
 
 ---
 
-## 🖼️ Capturas de Pantalla
+## 🖼️ Capturas de pantalla
 
-### Model Nexus — Gestiona todos tus modelos de IA en un lugar
+### Model Nexus — OpenAI, Anthropic, Gemini, DeepSeek, Ollama — todo en un panel
 ![Model Nexus](./1.png)
 
-### App Manager — Cambio de modelo con un clic para todas las herramientas
+### App Manager — Cambio de modelo con un clic para OpenClaw, Claude Code, Codex y más
 ![App Manager](./2.png)
 
-### Local Server — Ejecuta modelos open-source localmente con llama.cpp
+### LLM Local — Despliega Qwen, Llama, DeepSeek localmente con llama.cpp / vLLM / SGLang
 ![Local Server](./3.png)
 
-### Skill Browser — Descubre e instala habilidades de IA
+### Explorador de Skills — Traduce e instala Skills para OpenClaw, Claude Code y más con un clic
 ![Skill Browser](./4.png)
 
 ---
@@ -77,38 +101,48 @@ Echobird es el **panel de control visual** para todas tus herramientas de IA. Ap
 ## 🚀 Descargar
 
 | Plataforma | Descarga |
-|-----------|---------|
+|------------|----------|
 | 🪟 Windows | [Echobird-x64-setup.exe](https://github.com/edison7009/Echobird-MotherAgent/releases/latest) |
 | 🍎 macOS (Apple Silicon) | [Echobird_aarch64.dmg](https://github.com/edison7009/Echobird-MotherAgent/releases/latest) |
 | 🍎 macOS (Intel) | [Echobird_x64.dmg](https://github.com/edison7009/Echobird-MotherAgent/releases/latest) |
 | 🐧 Linux | [Echobird_amd64.AppImage](https://github.com/edison7009/Echobird-MotherAgent/releases/latest) |
 
-**Inicio rápido Linux:**
+**Inicio rápido en Linux:**
 ```bash
 chmod +x Echobird_*.AppImage
 ./Echobird_*.AppImage
-# ¿Error FUSE? sudo apt install libfuse2
+# ¿Necesitas FUSE? sudo apt install libfuse2
 ```
 
 ---
 
-## 🔧 Compatible Con
+## 🔧 Compatible con
 
-| Herramienta | Protocolo |
-|-------------|----------|
-| OpenClaw | OpenAI / Anthropic |
-| Claude Code | Anthropic |
-| Cline | OpenAI |
-| Roo Code | OpenAI |
-| Continue | OpenAI |
-| OpenCode | OpenAI |
-| Codex | OpenAI |
-| Aider | OpenAI / Anthropic |
-| ZeroClaw | OpenAI |
+### Agentes y herramientas de codificación
+
+| Herramienta | Protocolo | Instalación |
+|-------------|-----------|-------------|
+| OpenClaw | OpenAI / Anthropic | Un clic |
+| Claude Code | Anthropic | Un clic |
+| OpenCode | OpenAI | Un clic |
+| ZeroClaw | OpenAI | Un clic |
+| Codex | OpenAI | Un clic |
+| Cline | OpenAI | Config |
+| Roo Code | OpenAI | Config |
+| Continue | OpenAI | Config |
+| Aider | OpenAI / Anthropic | Config |
+
+### Runtimes de LLM local
+
+| Runtime | Modelos | Plataforma |
+|---------|---------|------------|
+| llama.cpp | Qwen 3.5, Llama 4, DeepSeek, MiniMax M2.5, GLM-5 (GGUF) | Windows / macOS / Linux |
+| vLLM | Cualquier modelo HuggingFace | Linux (CUDA) |
+| SGLang | Cualquier modelo HuggingFace | Linux (CUDA) |
 
 ---
 
-## 🏗️ Stack Tecnológico
+## 🏗️ Stack tecnológico
 
 **Tauri 2** + **Rust** + **React** + **TypeScript** + **llama.cpp**
 
@@ -122,6 +156,7 @@ chmod +x Echobird_*.AppImage
 ---
 
 <p align="center">
-  Hecho con 💚 por el equipo de Echobird<br/>
-  <sub>⭐ <a href="https://github.com/edison7009/Echobird-MotherAgent">Dale una estrella en GitHub</a> — ¡ayuda a que otros descubran el proyecto!</sub>
+  <em>Un panel de control cyberpunk para la era de la IA.</em><br/>
+  Hecho con 💚 por el equipo Echobird<br/>
+  <sub>⭐ <a href="https://github.com/edison7009/Echobird-MotherAgent">Star en GitHub</a> — ¡ayuda a que otros descubran el proyecto!</sub>
 </p>

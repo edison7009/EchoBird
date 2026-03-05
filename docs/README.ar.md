@@ -4,9 +4,11 @@
 
 <h1 align="center">Echobird</h1>
 
-<p align="center" dir="rtl">
-  مركز النماذج والوكلاء وVibe Coding.<br/>
-  <sub>لوحة تحكم سيبرانية لعصر الذكاء الاصطناعي — مبنية على Tauri + Rust.</sub>
+<h3 align="center">ثبّت OpenClaw وClaude Code وZeroClaw وCodex بنقرة واحدة. بدّل النماذج. انشر LLM.</h3>
+
+<p align="center">
+  تطبيق واحد لتثبيت الوكلاء، تبديل النماذج، نشر LLMs محلية/بعيدة، والتحكم بجميع الوكلاء من شاشة Channels واحدة.<br/>
+  <sub>لوحة تحكم ذكاء اصطناعي متعددة المنصات — مبنية بـ Tauri 2 + Rust.</sub>
 </p>
 
 <p align="center">
@@ -33,78 +35,110 @@
 
 ---
 
-## 🤖 MotherAgent — انشر النماذج. شغّل الوكلاء.
+## لماذا Echobird؟
 
-**MotherAgent** هو وكيلك الذكي المستقل — انشر LLMs محلية، وصّل نماذج بعيدة، وشغّل OpenClaw من مكان واحد.
+حتى لو كنت مبتدئاً في الذكاء الاصطناعي، يتيح لك Echobird التحكم بوكيلك الخاص — من التثبيت إلى العمل — عبر محادثة بسيطة. بدون خبرة في الطرفية، بدون ملفات إعدادات، بدون نشر معقد.
 
-- 🖥️ **نشر LLM المحلي** — نقرة واحدة لنشر Qwen وDeepSeek وLlama عبر llama.cpp المدمج. بياناتك لا تغادر جهازك.
-- 🌐 **LLM البعيد** — اتصل فوراً بـ OpenAI وAnthropic وGoogle Gemini أو أي API متوافق مع OpenAI.
-- 🦅 **نشر OpenClaw** — شغّل وأدر وكلاء OpenClaw مباشرةً من MotherAgent. لا حاجة للطرفية.
-- 💾 **جلسات دائمة** — محادثات الوكيل تبقى بعد إعادة التشغيل. استأنف من حيث توقفت.
-- ⚡ **أي بروتوكول** — OpenAI API وAnthropic API. غيّر البروتوكول لكل وكيل دون تغيير الإعدادات.
+تريد استخدام **OpenClaw** أو **Claude Code** أو **ZeroClaw** أو **Codex**؟ نقرة واحدة للتثبيت. تريد تشغيل **Qwen** أو **DeepSeek** أو **Llama** على جهازك؟ نقرة واحدة للنشر. تبديل النماذج أو إضافة مهارات؟ انقر وانتهى الأمر.
+
+**Echobird يمنحك تطبيقاً واحداً لكل شيء** — تثبيت الوكلاء، تبديل النماذج، نشر LLMs، والتحكم بكل شيء من شاشة واحدة — سواء كنت مطوراً أو مبتدئاً في الذكاء الاصطناعي.
 
 ---
 
-## ✨ Echobird — بدّل النماذج. ليس ملفات الإعدادات.
+## ✨ الميزات
 
-Echobird هو **لوحة التحكم المرئية** لجميع أدوات الذكاء الاصطناعي. أشر، اضغط، بدّل.
+### 🚀 تثبيت بنقرة واحدة — OpenClaw وClaude Code وOpenCode وZeroClaw والمزيد
 
-- 🎯 **تبديل بنقرة** — اضبط نماذج الذكاء الاصطناعي بصرياً. لا تحرير JSON بعد الآن.
-- 🔀 **بروتوكول مزدوج** — OpenAI وAnthropic API. بدّل في أي وقت.
-- 🚇 **وكيل نفق** — APIs محظورة بدون VPN كامل.
-- 🧩 **متصفح المهارات** — اكتشف وثبّت مهارات الذكاء الاصطناعي عبر أدوات متعددة.
-- 🎮 **تطبيقات ذكاء اصطناعي** — Reversi وAI Translate. المزيد قادم.
-- 🌍 **28 لغة** — دعم كامل للتدويل للمطورين حول العالم.
+- **كشف وتثبيت تلقائي** — Echobird يكتشف الوكلاء المثبتين وينشر المفقودين بنقرة واحدة
+- **أدوات جاهزة للاستخدام** — ضع `plugin.json` في مجلد tools ويعمل فوراً. بدون تغيير كود
+- **مُشغّل مدمج** — شغّل أي وكيل مدعوم بدون لمس الطرفية
+
+### 🔀 تبديل النموذج بنقرة واحدة — بدّل النماذج عبر جميع الوكلاء فوراً
+
+- **Model Nexus المرئي** — أدر جميع نماذج الذكاء الاصطناعي (OpenAI وAnthropic وGemini وDeepSeek وOllama أو أي نقطة نهاية مخصصة) في لوحة واحدة
+- **بروتوكول مزدوج** — OpenAI API وAnthropic API. بدّل لكل وكيل بدون تغيير إعدادات
+- **تطبيق بنقرة** — اختر بطاقة نموذج وفعّلها لأي وكيل. بدون تعديل JSON أو TOML أو `.env`
+
+### 💻 نشر LLM بنقرة واحدة — شغّل Qwen وDeepSeek وLlama وMiniMax محلياً أو عن بُعد
+
+- **LLM محلي** — انشر نماذج مفتوحة المصدر عبر llama.cpp أو vLLM أو SGLang المدمجة. بياناتك لا تغادر جهازك أبداً
+- **LLM بعيد** — انشر على أي خادم GPU عبر SSH. شغّل Qwen 3.5 أو MiniMax M2.5 أو GLM-5 أو أي نموذج GGUF/HuggingFace بنقرة
+- **وكيل موحد** — يكشف تلقائياً نقاط نهاية OpenAI (`/v1`) وAnthropic (`/anthropic`). اربط أي وكيل فوراً
+- **كشف GPU ذكي** — يكتشف تلقائياً NVIDIA GPUs ويوصي بالإعدادات المثلى
+
+### 📡 Channels — تحكم بعدة وكلاء من شاشة واحدة
+
+- **قنوات متعددة الوكلاء** — شغّل OpenClaw أو ZeroClaw أو أي وكيل متوافق مع Bridge بالتوازي
+- **محلي وبعيد** — الوكلاء المحليون عبر بروتوكول Bridge، البعيدون عبر أنفاق SSH. نفس الواجهة، نفس التجربة
+- **جلسات دائمة** — محادثات الوكيل تبقى بعد إعادة التشغيل. استأنف من حيث توقفت
+- **MotherAgent** — وكيلك المستقل للذكاء الاصطناعي مع tool calling ونظام مهارات ومرونة كاملة في النماذج
+
+### 🧩 المزيد من الميزات المدمجة
+
+- 🌐 **وكيل نفق ذكي** — ادخل إلى APIs المحظورة جغرافياً بدون VPN كامل
+- 🎯 **متصفح المهارات** — اكتشف وترجم وثبّت مهارات الذكاء الاصطناعي بنقرة
+- 🎮 **تطبيقات ذكاء اصطناعي مدمجة** — Reversi وAI Translate والمزيد
+- 🌍 **28 لغة** — دعم كامل للتدويل من الإنجليزية إلى العربية
 
 ---
 
 ## 🖼️ لقطات الشاشة
 
-### Model Nexus — إدارة جميع نماذج الذكاء الاصطناعي في مكان واحد
+### Model Nexus — OpenAI وAnthropic وGemini وDeepSeek وOllama — الكل في لوحة واحدة
 ![Model Nexus](./1.png)
 
-### App Manager — تبديل النموذج بنقرة واحدة لجميع الأدوات
+### App Manager — تبديل النموذج بنقرة لـ OpenClaw وClaude Code وCodex والمزيد
 ![App Manager](./2.png)
 
-### Local Server — تشغيل النماذج مفتوحة المصدر محلياً مع llama.cpp
+### LLM محلي — انشر Qwen وLlama وDeepSeek محلياً عبر llama.cpp / vLLM / SGLang
 ![Local Server](./3.png)
 
-### Skill Browser — اكتشاف وتثبيت مهارات الذكاء الاصطناعي
+### متصفح المهارات — ترجم وثبّت Skills لـ OpenClaw وClaude Code والمزيد بنقرة
 ![Skill Browser](./4.png)
 
 ---
 
-## 🚀 التحميل
+## 🚀 تحميل
 
-| المنصة | التحميل |
-|--------|--------|
+| المنصة | تحميل |
+|--------|-------|
 | 🪟 Windows | [Echobird-x64-setup.exe](https://github.com/edison7009/Echobird-MotherAgent/releases/latest) |
 | 🍎 macOS (Apple Silicon) | [Echobird_aarch64.dmg](https://github.com/edison7009/Echobird-MotherAgent/releases/latest) |
 | 🍎 macOS (Intel) | [Echobird_x64.dmg](https://github.com/edison7009/Echobird-MotherAgent/releases/latest) |
 | 🐧 Linux | [Echobird_amd64.AppImage](https://github.com/edison7009/Echobird-MotherAgent/releases/latest) |
 
-**بدء سريع على Linux:**
+**بدء سريع في Linux:**
 ```bash
 chmod +x Echobird_*.AppImage
 ./Echobird_*.AppImage
-# خطأ FUSE؟ sudo apt install libfuse2
+# تحتاج FUSE؟ sudo apt install libfuse2
 ```
 
 ---
 
 ## 🔧 متوافق مع
 
-| الأداة | البروتوكول |
-|--------|-----------|
-| OpenClaw | OpenAI / Anthropic |
-| Claude Code | Anthropic |
-| Cline | OpenAI |
-| Roo Code | OpenAI |
-| Continue | OpenAI |
-| OpenCode | OpenAI |
-| Codex | OpenAI |
-| Aider | OpenAI / Anthropic |
-| ZeroClaw | OpenAI |
+### الوكلاء وأدوات البرمجة
+
+| الأداة | البروتوكول | التثبيت |
+|--------|-----------|---------|
+| OpenClaw | OpenAI / Anthropic | نقرة واحدة |
+| Claude Code | Anthropic | نقرة واحدة |
+| OpenCode | OpenAI | نقرة واحدة |
+| ZeroClaw | OpenAI | نقرة واحدة |
+| Codex | OpenAI | نقرة واحدة |
+| Cline | OpenAI | إعدادات |
+| Roo Code | OpenAI | إعدادات |
+| Continue | OpenAI | إعدادات |
+| Aider | OpenAI / Anthropic | إعدادات |
+
+### بيئات تشغيل LLM المحلية
+
+| بيئة التشغيل | النماذج | المنصة |
+|-------------|---------|--------|
+| llama.cpp | Qwen 3.5, Llama 4, DeepSeek, MiniMax M2.5, GLM-5 (GGUF) | Windows / macOS / Linux |
+| vLLM | أي نموذج HuggingFace | Linux (CUDA) |
+| SGLang | أي نموذج HuggingFace | Linux (CUDA) |
 
 ---
 
@@ -114,7 +148,7 @@ chmod +x Echobird_*.AppImage
 
 ---
 
-## 📬 التواصل
+## 📬 تواصل
 
 - 📧 [hi@echobird.ai](mailto:hi@echobird.ai)
 - 🌐 [echobird.ai](https://echobird.ai)
@@ -122,6 +156,7 @@ chmod +x Echobird_*.AppImage
 ---
 
 <p align="center">
+  <em>لوحة تحكم سايبربانك لعصر الذكاء الاصطناعي.</em><br/>
   صُنع بـ 💚 من فريق Echobird<br/>
-  <sub>⭐ <a href="https://github.com/edison7009/Echobird-MotherAgent">أعطِ نجمة على GitHub</a> — يساعد الآخرين في اكتشاف المشروع!</sub>
+  <sub>⭐ <a href="https://github.com/edison7009/Echobird-MotherAgent">Star على GitHub</a> — ساعد الآخرين في اكتشاف المشروع!</sub>
 </p>
