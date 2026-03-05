@@ -192,10 +192,16 @@ fn execute_chat(
     } else {
         // New chat: use standard args
         let mut a = config.args.clone();
-        // Add session ID if provided
+        // Insert session ID BEFORE --message (which must be last, followed by the actual message text)
         if let (Some(sid), Some(session_arg)) = (session_id, &config.session_arg) {
-            a.push(session_arg.clone());
-            a.push(sid.to_string());
+            // --message is the last element in args; insert --session-id before it
+            let insert_pos = if a.last().map(|s| s.as_str()) == Some("--message") {
+                a.len() - 1
+            } else {
+                a.len()
+            };
+            a.insert(insert_pos, sid.to_string());
+            a.insert(insert_pos, session_arg.clone());
         }
         a
     };
@@ -254,19 +260,9 @@ fn execute_chat(
 
 /// Parse OpenClaw `agent --json` output
 ///
-/// Format:
-/// ```json
-/// {
-///   "runId": "...",
-///   "status": "ok",
-///   "result": {
-///     "payloads": [{ "text": "response text", "mediaUrl": null }],
-///     "meta": {
-///       "agentMeta": { "sessionId": "..." }
-///     }
-///   }
-/// }
-/// ```
+/// Supports two formats:
+/// 1. Wrapped: { "result": { "payloads": [...], "meta": { "agentMeta": { "sessionId": "..." } } } }
+/// 2. Direct:  { "payloads": [...], "meta": { "agentMeta": { "sessionId": "..." } } }
 fn parse_openclaw_output(stdout: &str) -> (String, Option<String>) {
     // Find JSON in stdout (skip non-JSON lines like [Echobird] injection logs)
     let json_str = find_json_object(stdout);
@@ -277,12 +273,14 @@ fn parse_openclaw_output(stdout: &str) -> (String, Option<String>) {
 
     match serde_json::from_str::<serde_json::Value>(&json_str) {
         Ok(json) => {
-            // Extract text from result.payloads[0].text
-            let text = json.get("result")
+            // Try both: result.payloads (wrapped) and top-level payloads (direct)
+            let payloads = json.get("result")
                 .and_then(|r| r.get("payloads"))
+                .or_else(|| json.get("payloads"));
+
+            let text = payloads
                 .and_then(|p| p.as_array())
                 .and_then(|arr| {
-                    // Concatenate all payload texts
                     let texts: Vec<&str> = arr.iter()
                         .filter_map(|p| p.get("text").and_then(|t| t.as_str()))
                         .collect();
@@ -298,9 +296,10 @@ fn parse_openclaw_output(stdout: &str) -> (String, Option<String>) {
                         .to_string()
                 });
 
-            // Extract session ID from result.meta.agentMeta.sessionId
+            // Extract session ID: try both nesting levels
             let session_id = json.get("result")
                 .and_then(|r| r.get("meta"))
+                .or_else(|| json.get("meta"))
                 .and_then(|m| m.get("agentMeta"))
                 .and_then(|am| am.get("sessionId"))
                 .and_then(|v| v.as_str())

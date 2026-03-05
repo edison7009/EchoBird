@@ -406,6 +406,18 @@ export async function getBridgePath(pluginId: string): Promise<string> {
     return invoke('get_bridge_path', { pluginId });
 }
 
+export async function bridgeStart(): Promise<{ status: string; error?: string; agentName?: string }> {
+    return invoke('bridge_start');
+}
+
+export async function bridgeStop(): Promise<void> {
+    return invoke('bridge_stop');
+}
+
+export async function bridgeStatus(): Promise<{ status: string; agentName?: string }> {
+    return invoke('bridge_status');
+}
+
 export async function bridgeChatLocal(message: string, sessionId?: string): Promise<{ text: string; session_id?: string; model?: string; tokens?: number; duration_ms?: number }> {
     return invoke('bridge_chat_local', { message, sessionId: sessionId ?? null });
 }

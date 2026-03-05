@@ -1,6 +1,6 @@
 {
-    "version": "2.2.3",
-    "releaseDate": "2026-03-05",
-    "releaseNotes": "CircuitFlow red ripple alarm effect: error pulses now emit expanding ring waves for visual alert.",
+    "version": "2.2.4",
+    "releaseDate": "2026-03-06",
+    "releaseNotes": "Channels: persistent Bridge connection with OpenClaw agent, cross-platform Gateway auto-launch with run detection, agent brand display, and marquee loading animation.",
     "downloadUrl": "https://github.com/edison7009/Echobird-MotherAgent/releases/latest"
 }

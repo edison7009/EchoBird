@@ -47,21 +47,39 @@ fn plugins_dir() -> PathBuf {
         .and_then(|p| p.parent().map(|p| p.to_path_buf()))
         .unwrap_or_else(|| PathBuf::from("."));
 
-    // Try multiple locations
-    let candidates = vec![
-        exe_dir.join("plugins"),
-        exe_dir.join("../plugins"),          // dev mode
-        exe_dir.join("../../plugins"),        // tauri dev
-        exe_dir.join("../../../plugins"),     // deep nesting
-        PathBuf::from("plugins"),             // CWD fallback
+    // Build candidates using proper parent traversal (works on Windows)
+    let mut candidates = vec![
+        exe_dir.join("plugins"),                                // release: next to exe
     ];
+
+    // Walk up from exe dir (handles debug/release nesting)
+    if let Some(p1) = exe_dir.parent() {
+        candidates.push(p1.join("plugins"));                    // one up
+        if let Some(p2) = p1.parent() {
+            candidates.push(p2.join("plugins"));                // two up (tauri dev)
+            if let Some(p3) = p2.parent() {
+                candidates.push(p3.join("plugins"));            // three up (src-tauri/target/debug → project root)
+            }
+        }
+    }
+
+    // Dev mode: use compile-time project path (handles custom build output dirs)
+    // CARGO_MANIFEST_DIR = src-tauri/, so parent = project root
+    let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    if let Some(project_root) = manifest_dir.parent() {
+        candidates.push(project_root.join("plugins"));
+    }
+
+    candidates.push(PathBuf::from("plugins"));                  // CWD fallback
 
     for candidate in &candidates {
         if candidate.exists() {
+            log::info!("[PluginManager] Found plugins dir: {:?}", candidate);
             return candidate.clone();
         }
     }
 
+    log::warn!("[PluginManager] No plugins dir found. Searched: {:?}", candidates);
     // Default (may not exist yet)
     candidates[0].clone()
 }

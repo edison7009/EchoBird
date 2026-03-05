@@ -225,6 +225,9 @@ export const Channels: React.FC = () => {
     const [bridgeMessages, setBridgeMessages] = useState<Array<{ role: string; content: string; meta?: { model?: string; tokens?: number; duration_ms?: number } }>>([]);
     const [bridgeSessionId, setBridgeSessionId] = useState<string | undefined>();
     const [bridgeLoading, setBridgeLoading] = useState(false);
+    // Real bridge status: "standby" | "connecting" | "connected" | "disconnected"
+    const [bridgeConnectionStatus, setBridgeConnectionStatus] = useState<string>('standby');
+    const [bridgeAgentName, setBridgeAgentName] = useState<string | undefined>();
 
     const inputRef = useRef<HTMLTextAreaElement>(null);
     const scrollRef = useRef<HTMLDivElement>(null);
@@ -238,9 +241,11 @@ export const Channels: React.FC = () => {
     const gateway = useChannelGateway(activeId);
 
     const activeChannel = channels.find(c => c.id === activeId);
-    // Local channel (id=1) uses bridge mode — always "connected"
+    // Local channel (id=1) uses bridge mode
     const isBridgeMode = activeId === 1;
-    const isActiveConnected = isBridgeMode || gateway.status === 'connected';
+    const isActiveConnected = (isBridgeMode && bridgeConnectionStatus === 'connected') || (!isBridgeMode && gateway.status === 'connected');
+    // Bridge standby = allow sending (will auto-start)
+    const canSendMessage = isBridgeMode ? (bridgeConnectionStatus === 'standby' || bridgeConnectionStatus === 'connected') : isActiveConnected;
     const isLocal = activeChannel?.address?.startsWith('127.0.0.1') || activeChannel?.address === 'localhost';
     const messages = isBridgeMode ? bridgeMessages : gateway.messages;
 
@@ -248,10 +253,29 @@ export const Channels: React.FC = () => {
     useEffect(() => {
         const loadData = async () => {
             try {
-                const [sshServers, savedChannels] = await Promise.all([
+                const [sshServers, savedChannels, bridgeState] = await Promise.all([
                     api.loadSSHServers(),
                     api.getChannelConfig(),
+                    api.bridgeStatus(),
                 ]);
+
+                // Set real bridge status
+                setBridgeConnectionStatus(bridgeState.status || 'standby');
+                if (bridgeState.agentName) setBridgeAgentName(bridgeState.agentName);
+
+                // Auto-connect: if bridge not running, try to start it
+                // (start_bridge_internal detects already-running gateway via port check)
+                if (bridgeState.status !== 'connected') {
+                    try {
+                        setBridgeConnectionStatus('connecting');
+                        const startResult = await api.bridgeStart();
+                        setBridgeConnectionStatus(startResult.status === 'connected' ? 'connected' : 'standby');
+                        if (startResult.agentName) setBridgeAgentName(startResult.agentName);
+                    } catch {
+                        // Agent not installed or not available — stay standby
+                        setBridgeConnectionStatus('standby');
+                    }
+                }
 
                 // LOCAL channel — uses bridge mode (openclaw agent CLI)
                 const localChannel: Channel = { id: 1, name: '', address: '127.0.0.1', protocol: 'ws://' };
@@ -311,12 +335,12 @@ export const Channels: React.FC = () => {
 
     // Loading animation
     useEffect(() => {
-        if (!gateway.isLoading) return;
+        if (!bridgeLoading && !gateway.isLoading) return;
         const timer = setInterval(() => {
             setArrowIndex(prev => (prev + 1) % 4);
         }, 200);
         return () => clearInterval(timer);
-    }, [gateway.isLoading]);
+    }, [bridgeLoading, gateway.isLoading]);
 
     // Focus input on connect
     useEffect(() => {
@@ -346,11 +370,18 @@ export const Channels: React.FC = () => {
         }
     }, [activeChannel, gateway, isBridgeMode]);
     // Full reset: disconnect + clear messages + clear address
-    const handleReset = useCallback(() => {
+    const handleReset = useCallback(async () => {
         if (!activeId) return;
         if (isBridgeMode) {
             setBridgeMessages([]);
             setBridgeSessionId(undefined);
+            // Stop bridge process
+            try {
+                await api.bridgeStop();
+            } catch (e) {
+                console.error('[Channels] Failed to stop bridge:', e);
+            }
+            setBridgeConnectionStatus('standby');
         } else {
             gateway.reset();
         }
@@ -540,7 +571,10 @@ export const Channels: React.FC = () => {
 
     // Send message
     const handleSend = useCallback(async () => {
-        if (!activeId || !isActiveConnected) return;
+        if (!activeId) return;
+        // Bridge mode: allow sending from standby (will auto-start) or connected
+        if (isBridgeMode && !canSendMessage) return;
+        if (!isBridgeMode && !isActiveConnected) return;
         if (isBridgeMode && bridgeLoading) return;
         if (!isBridgeMode && gateway.isLoading) return;
         if (!input.trim() && attachments.length === 0 && !selectedModel) return;
@@ -556,10 +590,24 @@ export const Channels: React.FC = () => {
         setSelectedModel(null);
 
         if (isBridgeMode) {
-            // Bridge mode: call openclaw agent CLI directly
+            // Bridge mode: auto-start if standby, then chat
             setBridgeMessages(prev => [...prev, { role: 'user', content: text }]);
             setBridgeLoading(true);
             try {
+                // Auto-start bridge if not connected
+                if (bridgeConnectionStatus !== 'connected') {
+                    setBridgeConnectionStatus('connecting');
+                    const startResult = await api.bridgeStart();
+                    if (startResult.status === 'connected') {
+                        setBridgeConnectionStatus('connected');
+                        if (startResult.agentName) setBridgeAgentName(startResult.agentName);
+                    } else {
+                        setBridgeConnectionStatus('disconnected');
+                        setBridgeMessages(prev => [...prev, { role: 'system', content: `Bridge start failed: ${startResult.error || 'Unknown error'}` }]);
+                        setBridgeLoading(false);
+                        return;
+                    }
+                }
                 const result = await api.bridgeChatLocal(text, bridgeSessionId);
                 if (result.session_id) setBridgeSessionId(result.session_id);
                 setBridgeMessages(prev => [...prev, {
@@ -569,6 +617,11 @@ export const Channels: React.FC = () => {
                 }]);
             } catch (e: any) {
                 setBridgeMessages(prev => [...prev, { role: 'system', content: `Error: ${e?.message || e}` }]);
+                // Check if bridge died
+                try {
+                    const s = await api.bridgeStatus();
+                    setBridgeConnectionStatus(s.status || 'disconnected');
+                } catch { setBridgeConnectionStatus('disconnected'); }
             } finally {
                 setBridgeLoading(false);
             }
@@ -577,7 +630,7 @@ export const Channels: React.FC = () => {
             await gateway.send(text, atts);
         }
         inputRef.current?.focus();
-    }, [activeId, input, attachments, selectedModel, gateway, isActiveConnected, isBridgeMode, bridgeLoading, bridgeSessionId]);
+    }, [activeId, input, attachments, selectedModel, gateway, isActiveConnected, canSendMessage, isBridgeMode, bridgeLoading, bridgeSessionId, bridgeConnectionStatus]);
 
     // Abort current request
     const handleAbort = useCallback(() => {
@@ -592,8 +645,11 @@ export const Channels: React.FC = () => {
                     {channels.map(ch => {
                         const isActive = activeId === ch.id;
                         const chState = manager.getChannelState(ch.id);
-                        const isLinked = ch.id === 1 || chState.status === 'connected'; // Bridge mode = always linked
-                        const isError = ch.id !== 1 && chState.status === 'error';
+                        // Bridge mode: use real bridgeConnectionStatus
+                        const isLinked = ch.id === 1 ? bridgeConnectionStatus === 'connected' : chState.status === 'connected';
+                        const isBridgeConnecting = ch.id === 1 && bridgeConnectionStatus === 'connecting';
+                        const isError = ch.id === 1 ? bridgeConnectionStatus === 'disconnected' : chState.status === 'error';
+                        const isStandby = ch.id === 1 ? bridgeConnectionStatus === 'standby' : !isLinked && !isError;
                         const hasNew = chState.hasNewMessage && !isActive;
 
                         return (
@@ -607,9 +663,9 @@ export const Channels: React.FC = () => {
                             >
                                 {/* Status */}
                                 <div className="flex items-center gap-1.5 mb-1.5">
-                                    <div className={`w-2 h-2 rounded-full ${isLinked ? 'bg-cyber-accent animate-pulse' : isError ? 'bg-red-400' : 'bg-cyber-text-muted/50'}`} />
-                                    <span className={`text-xs tracking-wide ${isLinked ? 'text-cyber-accent' : isError ? 'text-red-400' : 'text-cyber-text-muted/70'}`}>
-                                        [{isLinked ? t('channel.linked') : isError ? t('channel.failed') : t('channel.standby')}]
+                                    <div className={`w-2 h-2 rounded-full ${isLinked ? 'bg-cyber-accent animate-pulse' : isBridgeConnecting ? 'bg-yellow-400 animate-pulse' : isError ? 'bg-red-400' : 'bg-cyber-text-muted/50'}`} />
+                                    <span className={`text-xs tracking-wide ${isLinked ? 'text-cyber-accent' : isBridgeConnecting ? 'text-yellow-400' : isError ? 'text-red-400' : 'text-cyber-text-muted/70'}`}>
+                                        [{isLinked ? t('channel.linked') : isBridgeConnecting ? t('channel.connecting') : isError ? t('channel.failed') : t('channel.standby')}]
                                     </span>
                                     {/* Unread badge */}
                                     {hasNew && (
@@ -653,7 +709,7 @@ export const Channels: React.FC = () => {
                             </div>
                         )}
 
-                        {!isActiveConnected && gateway.status !== 'connecting' ? (
+                        {!isActiveConnected && !canSendMessage && gateway.status !== 'connecting' && bridgeConnectionStatus !== 'connecting' ? (
                             /* Awaiting deployment state — centered status */
                             <div className="flex-1 mx-4 mt-2 bg-cyber-terminal rounded-lg flex items-center justify-center">
                                 <div className="text-center font-mono space-y-4 select-none">
@@ -671,7 +727,7 @@ export const Channels: React.FC = () => {
                                     <div className="space-y-1 select-none">
                                         <p className="text-cyber-accent">[SYS] {activeChannel.name || `Channel #${String(activeChannel.id).padStart(2, '0')}`}</p>
                                         {isBridgeMode ? (
-                                            <p className="text-cyber-accent/80">Echobird Bridge Protocol</p>
+                                            <p className="text-cyber-accent/80">{bridgeAgentName ? `${bridgeAgentName} · ` : ''}Echobird Bridge Protocol</p>
                                         ) : (
                                             <>
                                                 <p className="text-cyber-accent/80">SSH · {activeChannel.address}</p>
@@ -772,8 +828,8 @@ export const Channels: React.FC = () => {
                                         }
                                     }}
                                     onPaste={handlePaste}
-                                    placeholder={gateway.isLoading ? t('channel.awaitingResponse') : t('channel.enterMessage')}
-                                    disabled={gateway.isLoading || !isActiveConnected}
+                                    placeholder={(bridgeLoading || gateway.isLoading) ? t('channel.awaitingResponse') : t('channel.enterMessage')}
+                                    disabled={(bridgeLoading || gateway.isLoading) || (!canSendMessage && !isActiveConnected)}
                                     rows={3}
                                     className="w-full bg-transparent px-4 py-2 text-sm text-cyber-text font-mono outline-none placeholder:text-cyber-text-muted/60 disabled:opacity-30 resize-none"
                                 />
