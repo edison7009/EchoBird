@@ -74,7 +74,7 @@ Modern AI coding relies on CLI agents like **OpenClaw**, **Claude Code**, **Open
 ### 🧩 More Built-in
 
 - 🌐 **Smart Tunnel Proxy** — Access geo-restricted APIs without a full VPN
-- 🎯 **Skill Browser** — One-click discover, translate, and manage all AI skills across agents
+- 🎯 **Skill Browser** — One-click discover, translate, and install AI skills across agents
 - 🎮 **Built-in AI Apps** — Reversi, AI Translate, and more
 - 🌍 **28 Languages** — Full i18n from English to Arabic
 
@@ -91,7 +91,7 @@ Modern AI coding relies on CLI agents like **OpenClaw**, **Claude Code**, **Open
 ### Local LLM — Deploy Qwen, Llama, DeepSeek locally via llama.cpp / vLLM / SGLang
 ![Local Server](docs/3.png)
 
-### Skill Browser — One-click translate & manage all Skills for OpenClaw, Claude Code & more
+### Skill Browser — One-click translate & install Skills for OpenClaw, Claude Code & more
 ![Skill Browser](docs/4.png)
 
 ---
