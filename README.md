@@ -39,7 +39,7 @@
 
 Modern AI coding relies on CLI agents like **OpenClaw**, **Claude Code**, **OpenCode**, **ZeroClaw**, and **Codex** — but installing, configuring, and switching between them is painful. Each tool has its own config format, its own model settings, and its own deployment quirks.
 
-**Echobird gives you one desktop app to manage them all.** Install agents, switch models, deploy LLMs, and control multiple agents — all with one click.
+**Echobird gives you one desktop app to install, configure, and deploy them all.** Switch models, deploy LLMs, and control multiple agents — all with one click.
 
 ---
 
@@ -129,7 +129,6 @@ chmod +x Echobird_*.AppImage
 | Roo Code | OpenAI | Config |
 | Continue | OpenAI | Config |
 | Aider | OpenAI / Anthropic | Config |
-| Gemini CLI | Google AI | Config |
 
 ### Local LLM Runtimes
 
