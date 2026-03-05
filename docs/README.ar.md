@@ -156,7 +156,7 @@ chmod +x Echobird_*.AppImage
 ---
 
 <p align="center">
-  <em>لوحة تحكم سايبربانك لعصر الذكاء الاصطناعي.</em><br/>
+  <em>آخر واجهة قبل عصر الذكاء الاصطناعي.</em><br/>
   صُنع بـ 💚 من فريق Echobird<br/>
   <sub>⭐ <a href="https://github.com/edison7009/Echobird-MotherAgent">Star على GitHub</a> — ساعد الآخرين في اكتشاف المشروع!</sub>
 </p>

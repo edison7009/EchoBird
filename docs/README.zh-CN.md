@@ -156,7 +156,7 @@ chmod +x Echobird_*.AppImage
 ---
 
 <p align="center">
-  <em>AI 时代的赛博朋克控制台。</em><br/>
+  <em>AI 时代前的最后一个界面。</em><br/>
   由 Echobird 团队用 💚 打造<br/>
   <sub>⭐ <a href="https://github.com/edison7009/Echobird-MotherAgent">在 GitHub 上给个 Star</a> — 让更多人发现这个项目！</sub>
 </p>

@@ -156,7 +156,7 @@ chmod +x Echobird_*.AppImage
 ---
 
 <p align="center">
-  <em>Киберпанк-панель управления для эпохи ИИ.</em><br/>
+  <em>Последний интерфейс перед эпохой ИИ.</em><br/>
   Сделано с 💚 командой Echobird<br/>
   <sub>⭐ <a href="https://github.com/edison7009/Echobird-MotherAgent">Star на GitHub</a> — помогите другим найти этот проект!</sub>
 </p>

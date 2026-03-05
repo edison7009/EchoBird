@@ -156,7 +156,7 @@ chmod +x Echobird_*.AppImage
 ---
 
 <p align="center">
-  <em>Un panel de control cyberpunk para la era de la IA.</em><br/>
+  <em>La última interfaz antes de la era de la IA.</em><br/>
   Hecho con 💚 por el equipo Echobird<br/>
   <sub>⭐ <a href="https://github.com/edison7009/Echobird-MotherAgent">Star en GitHub</a> — ¡ayuda a que otros descubran el proyecto!</sub>
 </p>

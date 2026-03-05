@@ -156,7 +156,7 @@ chmod +x Echobird_*.AppImage
 ---
 
 <p align="center">
-  <em>AI時代のサイバーパンクコントロールパネル。</em><br/>
+  <em>AI時代の前にある、最後のインターフェース。</em><br/>
   Echobird チームが 💚 を込めて開発<br/>
   <sub>⭐ <a href="https://github.com/edison7009/Echobird-MotherAgent">GitHubでStarを</a> — プロジェクトの発見に役立ちます！</sub>
 </p>
