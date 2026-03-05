@@ -1,6 +1,6 @@
 {
-    "version": "2.2.2",
+    "version": "2.2.3",
     "releaseDate": "2026-03-05",
-    "releaseNotes": "Echobird Bridge Protocol: unified agent communication via CLI bridge. Download progress sync fix. Channels UI font upgrade.",
+    "releaseNotes": "CircuitFlow red ripple alarm effect: error pulses now emit expanding ring waves for visual alert.",
     "downloadUrl": "https://github.com/edison7009/Echobird-MotherAgent/releases/latest"
 }

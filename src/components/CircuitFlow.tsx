@@ -135,7 +135,7 @@ export function CircuitFlow({ channels }: CircuitFlowProps = {}) {
             }
         };
 
-        const drawPulse = (p: Pulse) => {
+        const drawPulse = (p: Pulse, tick: number) => {
             const [r, g, b] = p.color;
             const tailX = p.x - p.dx * TRAIL;
             const tailY = p.y - p.dy * TRAIL;
@@ -158,11 +158,31 @@ export function CircuitFlow({ channels }: CircuitFlowProps = {}) {
             ctx.fillStyle = `rgba(${r},${g},${b},0.8)`;
             ctx.fill();
 
-            // Soft outer glow
-            ctx.beginPath();
-            ctx.arc(p.x, p.y, 6, 0, Math.PI * 2);
-            ctx.fillStyle = `rgba(${r},${g},${b},0.12)`;
-            ctx.fill();
+            if (p.color === COLOR_ERR) {
+                // Red pulse: ripple rings expanding outward (alarm effect)
+                const phase = (tick % 90) / 90; // slower cycle → longer visible
+                for (let ring = 0; ring < 3; ring++) {
+                    const ringPhase = (phase + ring * 0.33) % 1;
+                    const radius = 4 + ringPhase * 36; // 4→40px expanding
+                    const alpha = 0.45 * (1 - ringPhase); // brighter, fade as it expands
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, radius, 0, Math.PI * 2);
+                    ctx.strokeStyle = `rgba(${r},${g},${b},${alpha})`;
+                    ctx.lineWidth = 1.5;
+                    ctx.stroke();
+                }
+                // Larger soft outer glow for red
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, 16, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(${r},${g},${b},0.18)`;
+                ctx.fill();
+            } else {
+                // Green pulse: calm soft outer glow (original)
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, 6, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(${r},${g},${b},0.12)`;
+                ctx.fill();
+            }
         };
 
         const frame = (ts: number) => {
@@ -190,7 +210,7 @@ export function CircuitFlow({ channels }: CircuitFlowProps = {}) {
                     pulses.splice(i, 1);
                     continue;
                 }
-                drawPulse(p);
+                drawPulse(p, tick);
             }
         };
 
