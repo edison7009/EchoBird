@@ -4,9 +4,11 @@
 
 <h1 align="center">Echobird</h1>
 
+<h3 align="center">The All-in-One Manager for OpenClaw, Claude Code, OpenCode, ZeroClaw & Codex</h3>
+
 <p align="center">
-  The Nexus for <strong>Models</strong>, <strong>Agents</strong> &amp; <strong>Vibe Coding</strong>.<br/>
-  <sub>A cyberpunk control panel for the AI era — built with Tauri + Rust.</sub>
+  One-click install agents. One-click switch models. One-click deploy LLMs.<br/>
+  <sub>A cross-platform desktop AI control panel — built with Tauri 2 + Rust.</sub>
 </p>
 
 <p align="center">
@@ -33,43 +35,63 @@
 
 ---
 
-## 🤖 MotherAgent — Deploy models. Run agents.
+## Why Echobird?
 
-**MotherAgent** is your autonomous AI agent — deploy local LLMs, connect remote models, and launch OpenClaw, all from one place.
+Modern AI coding relies on CLI agents like **OpenClaw**, **Claude Code**, **OpenCode**, **ZeroClaw**, and **Codex** — but installing, configuring, and switching between them is painful. Each tool has its own config format, its own model settings, and its own deployment quirks.
 
-- 🖥️ **Local LLM Deployment** — One-click deploy Qwen, DeepSeek, Llama via built-in llama.cpp. Your data never leaves your device.
-- 🌐 **Remote LLM** — Connect OpenAI, Anthropic, Google Gemini, or any OpenAI-compatible endpoint instantly.
-- 🦅 **Deploy OpenClaw** — Launch and manage OpenClaw agents directly from MotherAgent. No terminal needed.
-- 💾 **Persistent Sessions** — Agent conversations survive app restarts. Pick up exactly where you left off.
-- ⚡ **Any Protocol** — OpenAI API & Anthropic API. Switch protocols per agent with zero config changes.
+**Echobird gives you one desktop app to manage them all.** Install agents, switch models, deploy LLMs, and control multiple agents — all with one click.
 
 ---
 
-## ✨ Echobird — Switch models. Not config files.
+## ✨ Features
 
-Echobird is a **visual control panel** for all your AI coding tools. Point, click, switch.
+### 🚀 One-Click Install — OpenClaw, Claude Code, OpenCode, ZeroClaw & more
 
-- 🎯 **One-Click Model Switching** — Visually configure AI models for any supported tool. No more digging through JSON files.
-- 🔀 **Dual Protocol** — OpenAI & Anthropic API. Switch anytime.
-- 🚇 **Smart Tunnel Proxy** — Access geo-restricted APIs. No full VPN needed.
-- 🧩 **Skill Browser** — Discover and install AI skills across tools.
-- 🎮 **Built-in AI Apps** — Reversi, AI Translate. More coming.
-- 🌍 **28 Languages** — Full i18n for a global audience.
+- **Auto-detect & install** — Echobird detects which agents are installed and lets you deploy missing ones in one click
+- **Plug-and-play tools** — Drop a `plugin.json` in the tools folder and it just works. No code changes needed
+- **Built-in launcher** — Start any supported agent without touching the terminal
+
+### 🔀 One-Click Model Switch — Switch models across all agents instantly
+
+- **Visual Model Nexus** — Manage all your AI models (OpenAI, Anthropic, Gemini, DeepSeek, Ollama, or any custom endpoint) in one panel
+- **Dual Protocol** — OpenAI API & Anthropic API. Switch protocols per agent with zero config changes
+- **One-click apply** — Select a model card, toggle it on for any agent. No more editing JSON, TOML, or `.env` files
+
+### 💻 One-Click Deploy LLM — Run Qwen, DeepSeek, Llama, MiniMax locally or remotely
+
+- **Local LLM** — Deploy open-source models via built-in llama.cpp, vLLM, or SGLang. Your data never leaves your device
+- **Remote LLM** — Deploy to any GPU server via SSH. One-click start Qwen 3.5, MiniMax M2.5, GLM-5, or any GGUF/HuggingFace model
+- **Unified Proxy** — Automatically exposes both OpenAI (`/v1`) and Anthropic (`/anthropic`) endpoints. Connect any agent instantly
+- **Smart GPU Detection** — Auto-detect NVIDIA GPUs and recommend optimal settings
+
+### 📡 Channels — Control multiple agents from one screen
+
+- **Multi-agent channels** — Run OpenClaw, ZeroClaw, or any Bridge-compatible agent side by side
+- **Local & Remote** — Local agents via Bridge Protocol, remote agents via SSH tunnels. Same interface, same experience
+- **Persistent Sessions** — Agent conversations survive app restarts. Pick up exactly where you left off
+- **MotherAgent** — Your autonomous AI agent with tool calling, skill system, and full model flexibility
+
+### 🧩 More Built-in
+
+- 🌐 **Smart Tunnel Proxy** — Access geo-restricted APIs without a full VPN
+- 🎯 **Skill Browser** — Discover and install AI skills from GitHub
+- 🎮 **Built-in AI Apps** — Reversi, AI Translate, and more
+- 🌍 **28 Languages** — Full i18n from English to Arabic
 
 ---
 
 ## 🖼️ Screenshots
 
-### Model Nexus — Manage all your AI models in one place
+### Model Nexus — OpenAI, Anthropic, Gemini, DeepSeek, Ollama — all in one panel
 ![Model Nexus](docs/1.png)
 
-### App Manager — One-click model switching for all coding tools
+### App Manager — One-click model switching for OpenClaw, Claude Code, Codex & more
 ![App Manager](docs/2.png)
 
-### Local Server — Run open-source models locally with llama.cpp
+### Local LLM — Deploy Qwen, Llama, DeepSeek locally via llama.cpp / vLLM / SGLang
 ![Local Server](docs/3.png)
 
-### Skill Browser — Discover and install AI skills
+### Skill Browser — Discover and install AI skills from GitHub
 ![Skill Browser](docs/4.png)
 
 ---
@@ -94,17 +116,28 @@ chmod +x Echobird_*.AppImage
 
 ## 🔧 Works With
 
-| Tool | Protocol |
-|------|----------|
-| OpenClaw | OpenAI / Anthropic |
-| Claude Code | Anthropic |
-| Cline | OpenAI |
-| Roo Code | OpenAI |
-| Continue | OpenAI |
-| OpenCode | OpenAI |
-| Codex | OpenAI |
-| Aider | OpenAI / Anthropic |
-| ZeroClaw | OpenAI |
+### Agents & Coding Tools
+
+| Tool | Protocol | Install |
+|------|----------|----------|
+| OpenClaw | OpenAI / Anthropic | One-click |
+| Claude Code | Anthropic | One-click |
+| OpenCode | OpenAI | One-click |
+| ZeroClaw | OpenAI | One-click |
+| Codex | OpenAI | One-click |
+| Cline | OpenAI | Config |
+| Roo Code | OpenAI | Config |
+| Continue | OpenAI | Config |
+| Aider | OpenAI / Anthropic | Config |
+| Gemini CLI | Google AI | Config |
+
+### Local LLM Runtimes
+
+| Runtime | Models | Platform |
+|---------|--------|----------|
+| llama.cpp | Qwen 3.5, Llama 4, DeepSeek, MiniMax M2.5, GLM-5 (GGUF) | Windows / macOS / Linux |
+| vLLM | Any HuggingFace model | Linux (CUDA) |
+| SGLang | Any HuggingFace model | Linux (CUDA) |
 
 ---
 
