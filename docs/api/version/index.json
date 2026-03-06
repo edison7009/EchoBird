@@ -1,6 +1,6 @@
 {
-    "version": "2.2.9",
+    "version": "2.3.0",
     "releaseDate": "2026-03-06",
-    "releaseNotes": "Mother Agent prompt improvements, processing animation.",
+    "releaseNotes": "SSH timeout fix, cancel button fix, i18n processing dots, Settings UI stability, Mother Agent prompt improvements.",
     "downloadUrl": "https://github.com/edison7009/Echobird-MotherAgent/releases/latest"
 }
