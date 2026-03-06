@@ -17,7 +17,7 @@ pub struct ToolResult {
     pub output: String,
 }
 
-const EXEC_TIMEOUT_SECS: u64 = 120;
+const EXEC_TIMEOUT_SECS: u64 = 600; // 10 min — needed for Rust install + cargo build on remote
 const MAX_OUTPUT_BYTES: usize = 32_000; // ~32KB cap to avoid flooding LLM context
 
 // ── Tool Definitions (sent to LLM) ──
