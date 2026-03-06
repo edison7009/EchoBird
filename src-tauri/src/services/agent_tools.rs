@@ -362,8 +362,9 @@ async fn exec_ssh_shell(command: &str, server_id: &str, ssh_pool: &SSHPool) -> T
         },
     };
 
-    match client.execute(command).await {
-        Ok(result) => {
+    // Timeout to prevent hanging forever on remote commands
+    match timeout(Duration::from_secs(EXEC_TIMEOUT_SECS), client.execute(command)).await {
+        Ok(Ok(result)) => {
             let mut output = result.stdout;
             if !result.stderr.is_empty() {
                 if !output.is_empty() { output.push_str("\n--- stderr ---\n"); }
@@ -382,9 +383,13 @@ async fn exec_ssh_shell(command: &str, server_id: &str, ssh_pool: &SSHPool) -> T
                 },
             }
         }
-        Err(e) => ToolResult {
+        Ok(Err(e)) => ToolResult {
             success: false,
             output: format!("SSH command failed: {}", e),
+        },
+        Err(_) => ToolResult {
+            success: false,
+            output: format!("SSH command timed out after {}s", EXEC_TIMEOUT_SECS),
         },
     }
 }

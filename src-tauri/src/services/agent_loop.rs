@@ -339,9 +339,29 @@ pub async fn run_agent(
         emit_event(&app, AgentEvent::StateChange { state: "executing".into() });
 
         for tc in &tool_calls {
+            // Check cancellation before each tool
+            if cancel_token.is_cancelled() {
+                log::info!("[AgentLoop] Cancelled during tool execution");
+                emit_event(&app, AgentEvent::Error { message: "Cancelled by user".into() });
+                break;
+            }
+
             log::info!("[AgentLoop] Executing tool: {} ({})", tc.name, tc.id);
 
-            let result = agent_tools::execute_tool(&tc.name, &tc.arguments, &ssh_pool).await;
+            // Race tool execution against cancel token
+            let result = tokio::select! {
+                r = agent_tools::execute_tool(&tc.name, &tc.arguments, &ssh_pool) => r,
+                _ = cancel_token.cancelled() => {
+                    log::info!("[AgentLoop] Tool cancelled by user: {}", tc.name);
+                    emit_event(&app, AgentEvent::ToolResult {
+                        id: tc.id.clone(),
+                        output: "Cancelled by user".into(),
+                        success: false,
+                    });
+                    emit_event(&app, AgentEvent::Error { message: "Cancelled by user".into() });
+                    break;
+                }
+            };
 
             emit_event(&app, AgentEvent::ToolResult {
                 id: tc.id.clone(),
@@ -378,6 +398,11 @@ pub async fn run_agent(
                     });
                 }
             }
+        }
+
+        // Check if cancelled during tool execution
+        if cancel_token.is_cancelled() {
+            break;
         }
 
         // Continue loop — feed tool results back to LLM
