@@ -261,7 +261,7 @@ const en: Translations = {
     'mother.hintInstall': 'Install {agent}',
     'mother.hintInstallSkills': 'Install skills for {agent}',
     'mother.hintDeployLlm': 'Deploy LLM on remote',
-    'mother.hintDeployBridge': 'Connect remote to Channels',
+    'mother.hintDeployBridge': '{agent} — Connect remote to Channels',
     'mother.hintShowSpecs': 'Show server specs',
     'mother.hintTroubleshoot': '{agent} not working? Help me fix it',
     'mother.hintUninstall': 'Uninstall {agent} completely',

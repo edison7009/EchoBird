@@ -235,7 +235,7 @@ const ms: Partial<Translations> = {
     'mother.hintInstall': 'Pasang {agent}',
     'mother.hintInstallSkills': 'Pasang kemahiran untuk {agent}',
     'mother.hintDeployLlm': 'Deploy LLM secara jauh',
-    'mother.hintDeployBridge': 'Sambungkan jauh ke Saluran',
+    'mother.hintDeployBridge': '{agent} — Sambungkan jauh ke Saluran',
     'mother.hintShowSpecs': 'Papar spesifikasi pelayan',
     'mother.hintTroubleshoot': '{agent} tak berfungsi, tolong betulkan',
     'mother.hintUninstall': 'Nyahpasang {agent} sepenuhnya',

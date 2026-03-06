@@ -233,7 +233,7 @@ const vi: Partial<Translations> = {
     'mother.hintInstall': 'Cài đặt {agent}',
     'mother.hintInstallSkills': 'Cài đặt kỹ năng cho {agent}',
     'mother.hintDeployLlm': 'Triển khai LLM từ xa',
-    'mother.hintDeployBridge': 'Kết nối từ xa vào Kênh',
+    'mother.hintDeployBridge': '{agent} — Kết nối từ xa vào Kênh',
     'mother.hintShowSpecs': 'Hiển thị thông số máy chủ',
     'mother.hintTroubleshoot': '{agent} không hoạt động, giúp tôi sửa',
     'mother.hintUninstall': 'Gỡ hoàn toàn {agent}',

@@ -233,7 +233,7 @@ const pl: Partial<Translations> = {
     'mother.hintInstall': 'Zainstaluj {agent}',
     'mother.hintInstallSkills': 'Zainstaluj umiejętności dla {agent}',
     'mother.hintDeployLlm': 'Wdróż LLM zdalnie',
-    'mother.hintDeployBridge': 'Połącz zdalne z Kanałami',
+    'mother.hintDeployBridge': '{agent} — Połącz zdalne z Kanałami',
     'mother.hintShowSpecs': 'Pokaż specyfikację serwera',
     'mother.hintTroubleshoot': '{agent} nie działa, pomóż mi to naprawić',
     'mother.hintUninstall': 'Całkowicie odinstaluj {agent}',

@@ -235,7 +235,7 @@ const id: Partial<Translations> = {
     'mother.hintInstall': 'Instal {agent}',
     'mother.hintInstallSkills': 'Instal skill untuk {agent}',
     'mother.hintDeployLlm': 'Deploy LLM di remote',
-    'mother.hintDeployBridge': 'Hubungkan remote ke Channel',
+    'mother.hintDeployBridge': '{agent} — Hubungkan remote ke Channel',
     'mother.hintShowSpecs': 'Tampilkan spesifikasi server',
     'mother.hintTroubleshoot': '{agent} tidak berfungsi, bantu saya perbaiki',
     'mother.hintUninstall': 'Hapus {agent} sepenuhnya',

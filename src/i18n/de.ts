@@ -261,7 +261,7 @@ const de: Partial<Translations> = {
     'mother.hintInstall': '{agent} installieren',
     'mother.hintInstallSkills': 'Skills für {agent} installieren',
     'mother.hintDeployLlm': 'LLM remote deployen',
-    'mother.hintDeployBridge': 'Remote mit Kanälen verbinden',
+    'mother.hintDeployBridge': '{agent} — Remote mit Kanälen verbinden',
     'mother.hintShowSpecs': 'Serverspezifikationen anzeigen',
     'mother.hintTroubleshoot': '{agent} funktioniert nicht, hilf mir',
     'mother.hintUninstall': '{agent} vollständig deinstallieren',

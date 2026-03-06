@@ -261,7 +261,7 @@ const ko: Partial<Translations> = {
     'mother.hintInstall': '{agent} 설치',
     'mother.hintInstallSkills': '{agent} 스킬 설치',
     'mother.hintDeployLlm': '원격에 LLM 배포',
-    'mother.hintDeployBridge': '원격을 채널에 연결',
+    'mother.hintDeployBridge': '{agent} 원격을 채널에 연결',
     'mother.hintShowSpecs': '서버 사양 확인',
     'mother.hintTroubleshoot': '{agent} 안 돼요, 고쳐주세요',
     'mother.hintUninstall': '{agent} 완전 제거',

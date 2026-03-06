@@ -261,7 +261,7 @@ const ja: Partial<Translations> = {
     'mother.hintInstall': '{agent} をインストール',
     'mother.hintInstallSkills': '{agent} のスキルをインストール',
     'mother.hintDeployLlm': 'リモートに LLM をデプロイ',
-    'mother.hintDeployBridge': 'リモートをチャンネルに接続',
+    'mother.hintDeployBridge': '{agent} リモートをチャンネルに接続',
     'mother.hintShowSpecs': 'サーバースペックを表示',
     'mother.hintTroubleshoot': '{agent} が動かない、直して',
     'mother.hintUninstall': '{agent} を完全にアンインストール',

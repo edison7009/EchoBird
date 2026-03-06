@@ -100,7 +100,7 @@ const fa: Partial<Translations> = {
     'mother.hintInstall': 'نصب {agent}',
     'mother.hintInstallSkills': 'نصب مهارت‌ها برای {agent}',
     'mother.hintDeployLlm': 'استقرار LLM از راه دور',
-    'mother.hintDeployBridge': 'اتصال از راه دور به کانال‌ها',
+    'mother.hintDeployBridge': '{agent} — اتصال از راه دور به کانال‌ها',
     'mother.hintShowSpecs': 'نمایش مشخصات سرور',
     'mother.hintTroubleshoot': '{agent} کار نمی‌کند، کمکم کن درستش کنم',
     'mother.hintUninstall': 'حذف کامل {agent}',

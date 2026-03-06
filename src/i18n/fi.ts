@@ -100,7 +100,7 @@ const fi: Partial<Translations> = {
     'mother.hintInstall': 'Asenna {agent}',
     'mother.hintInstallSkills': 'Asenna taidot {agent}ille',
     'mother.hintDeployLlm': 'Ota LLM käyttöön etänä',
-    'mother.hintDeployBridge': 'Yhdistä etä Kanaviin',
+    'mother.hintDeployBridge': '{agent} — Yhdistä etä Kanaviin',
     'mother.hintShowSpecs': 'Näytä palvelimen tiedot',
     'mother.hintTroubleshoot': '{agent} ei toimi, auta minua korjaamaan se',
     'mother.hintUninstall': 'Poista {agent} kokonaan',
