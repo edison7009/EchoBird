@@ -586,8 +586,8 @@ async fn exec_deploy_bridge(server_id: &str, plugin_id: &str, ssh_pool: &SSHPool
 
     // Create directory + download + make executable
     let deploy_cmd = format!(
-        "mkdir -p ~/echobird && curl -fSL --connect-timeout 30 --max-time 120 -o ~/echobird/{} '{}' && chmod +x ~/echobird/{}",
-        bridge_filename, download_url, bridge_filename
+        "mkdir -p ~/echobird && curl -fSL --connect-timeout 30 --max-time 120 -o ~/echobird/{} '{}' && chmod +x ~/echobird/{} && ln -sf ~/echobird/{} ~/echobird/echobird-bridge",
+        bridge_filename, download_url, bridge_filename, bridge_filename
     );
     let result = exec_ssh_shell(&deploy_cmd, server_id, ssh_pool).await;
 
@@ -604,8 +604,8 @@ async fn exec_deploy_bridge(server_id: &str, plugin_id: &str, ssh_pool: &SSHPool
         // Fallback: try the latest release URL if versioned URL failed
         let fallback_url = format!("https://github.com/edison7009/Echobird-MotherAgent/releases/latest/download/{}", bridge_filename);
         let fallback_cmd = format!(
-            "curl -fSL --connect-timeout 30 --max-time 120 -o ~/echobird/{} '{}' && chmod +x ~/echobird/{}",
-            bridge_filename, fallback_url, bridge_filename
+            "curl -fSL --connect-timeout 30 --max-time 120 -o ~/echobird/{} '{}' && chmod +x ~/echobird/{} && ln -sf ~/echobird/{} ~/echobird/echobird-bridge",
+            bridge_filename, fallback_url, bridge_filename, bridge_filename
         );
         let fallback_result = exec_ssh_shell(&fallback_cmd, server_id, ssh_pool).await;
 
