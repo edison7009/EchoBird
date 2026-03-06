@@ -203,24 +203,24 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
                             <span className="text-xs font-mono text-cyber-text-secondary tracking-wider">{t('settings.updates')}</span>
                         </div>
 
-                        <div className="min-h-[28px] flex items-center">
+                        <div className="h-9 flex items-center">
                             {updateStatus === 'idle' && (
                                 <button
                                     onClick={checkForUpdates}
-                                    className="w-full text-xs font-mono font-bold py-2 border border-cyber-accent/40 text-cyber-accent hover:bg-cyber-accent/10 transition-colors tracking-wider rounded-button"
+                                    className="w-full h-9 text-xs font-mono font-bold border border-cyber-accent/40 text-cyber-accent hover:bg-cyber-accent/10 transition-colors tracking-wider rounded-button"
                                 >
                                     {t('settings.checkForUpdates')}
                                 </button>
                             )}
 
                             {updateStatus === 'checking' && (
-                                <div className="w-full text-[10px] font-mono text-cyber-accent-secondary text-center py-1.5">
+                                <div className="w-full text-xs font-mono text-cyber-accent-secondary text-center">
                                     {t('settings.checking')}
                                 </div>
                             )}
 
                             {updateStatus === 'latest' && (
-                                <div className="w-full text-[10px] font-mono text-cyber-accent text-center py-1.5">
+                                <div className="w-full text-xs font-mono text-cyber-accent text-center">
                                     ✓ {t('settings.latestVersion')}
                                 </div>
                             )}
@@ -228,7 +228,7 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
                             {updateStatus === 'available' && (
                                 <button
                                     onClick={() => api.openExternal('https://echobird.ai/download')}
-                                    className="flex items-center justify-center gap-1.5 w-full text-[10px] font-mono py-1.5 border border-cyber-accent-secondary/30 text-cyber-accent-secondary hover:bg-cyber-accent-secondary/10 transition-colors tracking-wider rounded-button"
+                                    className="flex items-center justify-center gap-1.5 w-full h-9 text-xs font-mono border border-cyber-accent-secondary/30 text-cyber-accent-secondary hover:bg-cyber-accent-secondary/10 transition-colors tracking-wider rounded-button"
                                 >
                                     UPDATE TO v{latestVersion} <ExternalLink size={10} />
                                 </button>
@@ -237,7 +237,7 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
                             {updateStatus === 'error' && (
                                 <button
                                     onClick={checkForUpdates}
-                                    className="w-full text-[10px] font-mono py-1.5 border border-red-400/30 text-red-400 hover:bg-red-400/10 transition-colors tracking-wider rounded-button"
+                                    className="w-full h-9 text-xs font-mono border border-red-400/30 text-red-400 hover:bg-red-400/10 transition-colors tracking-wider rounded-button"
                                 >
                                     {t('settings.checkFailed')}
                                 </button>
