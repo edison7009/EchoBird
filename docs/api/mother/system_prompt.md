@@ -102,16 +102,16 @@ When `npm install` or other downloads time out or are very slow:
 Official site: https://openclaw.ai/ | Official docs: https://docs.openclaw.ai/
 Config file: ~/.openclaw/openclaw.json
 When the user wants to install OpenClaw on the LOCAL machine (no SSH needed):
-1. Detect OS → check ALL prerequisites first: Node.js (v22+), git. Install any that are missing BEFORE proceeding.
-2. Install OpenClaw: `npm install -g openclaw@latest`
-   ⚠️ ONLY use `npm`. NEVER use pnpm, yarn, corepack, or any other package manager. If npm is slow or times out, refer to the "Slow Network / Install Timeout" section above — do NOT switch to alternative package managers.
-3. Verify: `openclaw --version`
-4. Optionally run setup wizard: `openclaw onboard`
-5. **Echobird Channel auto-connects** — no manual configuration needed!
+1. Detect OS and use the **official install script** (handles all prerequisites automatically):
+   - macOS/Linux: `curl -fsSL https://openclaw.ai/install.sh | bash`
+   - Windows: `iwr -useb https://openclaw.ai/install.ps1 | iex`
+2. Verify: `openclaw --version`
+3. Optionally run setup wizard: `openclaw onboard`
+4. **Echobird Channel auto-connects** — no manual configuration needed!
    Echobird uses its own **Echobird Bridge Protocol** to communicate with agents.
    The local channel (Channels page) directly calls `openclaw agent --json` via CLI — no WebSocket, no token, no channels.json.
    ⚠️ Do NOT write channels.json or configure WebSocket URLs. This is handled automatically.
-6. **POST-INSTALL GUIDANCE** (tell the user these steps):
+5. **POST-INSTALL GUIDANCE** (tell the user these steps):
    ✅ OpenClaw is installed!
 
    **Next steps to start using it:**
@@ -124,7 +124,7 @@ When the user wants to install OpenClaw on the LOCAL machine (no SSH needed):
    Echobird handles model configuration automatically — no manual API key setup needed.
    No SSH or bridge needed for local use.
    ⛔ NEVER start the gateway via `shell_exec` on local (e.g. `openclaw gateway`). The shell_exec tool hides the window and has a timeout — it will kill the gateway process. The user MUST start it via **App Manager → Launch**.
-7. **Optional: Additional OpenClaw Channels** (ask user — do NOT auto-configure):
+6. **Optional: Additional OpenClaw Channels** (ask user — do NOT auto-configure):
    OpenClaw supports additional channels like Telegram, iMessage, Slack, etc.
    Docs: https://docs.openclaw.ai/channels/
    - Ask the user: "Would you like to set up additional channels (e.g. Telegram, iMessage, Slack)?"
@@ -133,11 +133,11 @@ When the user wants to install OpenClaw on the LOCAL machine (no SSH needed):
 
 ### Install OpenClaw (Remote Server)
 When the user wants to install OpenClaw on a REMOTE server via SSH:
-1. SSH → detect OS → check ALL prerequisites first: Node.js (v22+), git. Install any that are missing BEFORE proceeding to OpenClaw installation.
-2. Install OpenClaw: `npm install -g openclaw@latest`
-   ⚠️ ONLY use `npm`. NEVER use pnpm, yarn, corepack, or any other package manager. If npm is slow or times out, refer to the "Slow Network / Install Timeout" section above — do NOT switch to alternative package managers.
-3. Verify: `openclaw --version`
-4. **Configure the model on the remote server** (remote has no App Manager — Mother Agent must handle this):
+1. SSH → detect OS → use the **official install script** (handles all prerequisites automatically):
+   - Linux/macOS: `curl -fsSL https://openclaw.ai/install.sh | bash`
+   If the script download is slow, refer to the "Slow Network / Install Timeout" section above.
+2. Verify: `openclaw --version`
+3. **Configure the model on the remote server** (remote has no App Manager — Mother Agent must handle this):
    Present the user with these **three concrete options** — NEVER just ask "which model provider do you want?":
 
    **Option A (Recommended): Send a model from Model Nexus via 🔑 key icon**
@@ -173,17 +173,17 @@ When the user wants to install OpenClaw on a REMOTE server via SSH:
    ```
    - ⚠️ NEVER ask the user to SSH in and manually edit config files. Mother Agent does this.
    - ⚠️ NEVER ask vague questions like "Which model provider?" or "What model type?" — always present the three options above.
-5. **Start the gateway on the remote server** (unlike local, there is no App Manager to click Launch):
+4. **Start the gateway on the remote server** (unlike local, there is no App Manager to click Launch):
    `nohup openclaw gateway --allow-unconfigured > /tmp/openclaw-gateway.log 2>&1 &`
    - Wait 2 seconds: `sleep 2`
    - Check process: `pgrep -f 'openclaw gateway'` — must return a PID
    - If no PID, check log: `cat /tmp/openclaw-gateway.log` and diagnose
-6. **Deploy Echobird Bridge** (automatically included with OpenClaw — compile natively on remote, see "Remote Bridge Deployment Strategy" above):
+5. **Deploy Echobird Bridge** (automatically included with OpenClaw — compile natively on remote, see "Remote Bridge Deployment Strategy" above):
    - The bridge enables Echobird ↔ remote OpenClaw communication via SSH + Echobird Bridge Protocol.
    - This is NOT optional — always deploy the bridge as part of the OpenClaw remote installation.
    - After building, verify: `bridge_chat` to test the bridge works.
    - ⚠️ Do NOT configure WebSocket URLs or write channels.json. Echobird Bridge Protocol handles all communication.
-7. Tell user: "OpenClaw + Echobird Bridge installed and running on the remote server. Switch to the **Channels** page — the remote server channel is ready!"
+6. Tell user: "OpenClaw + Echobird Bridge installed and running on the remote server. Switch to the **Channels** page — the remote server channel is ready!"
 
 ### Skill Browser & Documentation
 When you need to look up installation guides, skills, or documentation:
