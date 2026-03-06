@@ -202,15 +202,20 @@ impl LlmClient {
                                                 let _ = tx.send(LlmEvent::ToolCallStart { id, name }).await;
                                             }
                                             if !args.is_empty() {
-                                                // Try to find entry by index, fallback to first entry
-                                                let entry = current_tool_calls.get_mut(&idx)
-                                                    .or_else(|| current_tool_calls.values_mut().next());
-                                                if let Some(entry) = entry {
-                                                    entry.2.push_str(&args);
-                                                    let _ = tx.send(LlmEvent::ToolCallDelta {
-                                                        id: entry.0.clone(),
-                                                        args_chunk: args,
-                                                    }).await;
+                                                // Find the right index: prefer exact match, fallback to first entry
+                                                let target_idx = if current_tool_calls.contains_key(&idx) {
+                                                    Some(idx)
+                                                } else {
+                                                    current_tool_calls.keys().next().copied()
+                                                };
+                                                if let Some(target_idx) = target_idx {
+                                                    if let Some(entry) = current_tool_calls.get_mut(&target_idx) {
+                                                        entry.2.push_str(&args);
+                                                        let _ = tx.send(LlmEvent::ToolCallDelta {
+                                                            id: entry.0.clone(),
+                                                            args_chunk: args,
+                                                        }).await;
+                                                    }
                                                 }
                                             }
                                         }
