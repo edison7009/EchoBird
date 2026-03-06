@@ -1,6 +1,6 @@
 {
-    "version": "2.3.0",
-    "releaseDate": "2026-03-06",
-    "releaseNotes": "SSH timeout fix, cancel button fix, i18n processing dots, Settings UI stability, Mother Agent prompt improvements.",
-    "downloadUrl": "https://github.com/edison7009/Echobird-MotherAgent/releases/latest"
+  "version": "2.3.1",
+  "releaseDate": "2026-03-06",
+  "releaseNotes": "Chunked SSH file transfer, deploy_plugin_source tool for one-click remote LLM deployment, SSH timeout increased to 600s, Connect remote to Channels hint button",
+  "downloadUrl": "https://github.com/edison7009/Echobird-MotherAgent/releases/latest"
 }
