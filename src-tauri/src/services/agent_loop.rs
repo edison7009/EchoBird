@@ -277,7 +277,12 @@ pub async fn run_agent(
                     stop_reason = reason;
                 }
                 LlmEvent::Error(e) => {
-                    emit_event(&app, AgentEvent::Error { message: e });
+                    let user_msg = if e.contains("400") || e.contains("Bad Request") {
+                        format!("{}\n\n⚠️ This model may not support tool/function calling, which Mother Agent requires. Please use a model with tool calling support (e.g. OpenAI, Anthropic, or compatible API providers).", e)
+                    } else {
+                        e
+                    };
+                    emit_event(&app, AgentEvent::Error { message: user_msg });
                     had_error = true;
                     break;
                 }
