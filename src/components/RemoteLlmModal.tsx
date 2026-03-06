@@ -12,6 +12,7 @@ interface RemoteLlmModalProps {
     isOpen: boolean;
     onClose: () => void;
     remoteHost?: string; // e.g. "eben@192.168.10.39"
+    displayName?: string; // e.g. "haohao" (alias)
 }
 
 // ─── Types + Helpers ───
@@ -77,6 +78,7 @@ export const RemoteLlmModal: React.FC<RemoteLlmModalProps> = ({
     isOpen,
     onClose,
     remoteHost = 'eben@192.168.10.39',
+    displayName,
 }) => {
     const { t } = useI18n();
     const remoteIp = remoteHost.split('@')[1] || remoteHost;
@@ -331,7 +333,9 @@ export const RemoteLlmModal: React.FC<RemoteLlmModalProps> = ({
                 {/* ===== Title Bar ===== */}
                 <div className="flex items-center justify-between px-6 py-3 border-b border-cyber-border/30 flex-shrink-0">
                     <div className="flex items-center gap-3 font-mono">
-                        <span className="text-cyber-accent font-bold text-lg tracking-wider">{remoteHost}</span>
+                        <span className="text-cyber-accent font-bold text-lg tracking-wider">
+                            {displayName ? `${displayName} (${remoteHost})` : remoteHost}
+                        </span>
                         {!apiReachable && (
                             <span className="text-xs text-red-400 font-mono">● {t('status.offline').toUpperCase()}</span>
                         )}

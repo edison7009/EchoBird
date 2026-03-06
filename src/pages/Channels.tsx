@@ -1,6 +1,6 @@
 // Channels — OpenClaw agent chat interface (bridge CLI + SSH)
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Send, CornerDownLeft, X, Square, Paperclip, Image as ImageIcon, Trash2, KeyRound, Zap } from 'lucide-react';
+import { Send, CornerDownLeft, X, Square, Paperclip, Image as ImageIcon, Trash2, KeyRound, Zap, Server, ChevronsDown } from 'lucide-react';
 import { MiniSelect } from '../components/MiniSelect';
 import { RemoteLlmModal } from '../components/RemoteLlmModal';
 import { getModelIcon } from '../components/cards/ModelCard';
@@ -221,19 +221,20 @@ export const Channels: React.FC = () => {
     // Process toggle (show/hide tool calls and thinking)
     const [showProcess, setShowProcess] = useState(true);
 
-    // Bridge mode state — per-channel message storage
+    // Bridge mode state — per-channel storage
     type BridgeMsg = { role: string; content: string; meta?: { model?: string; tokens?: number; duration_ms?: number } };
     const [allBridgeMessages, setAllBridgeMessages] = useState<Record<number, BridgeMsg[]>>({});
     const [allBridgeSessionIds, setAllBridgeSessionIds] = useState<Record<number, string>>({});
+    const [allBridgeStatus, setAllBridgeStatus] = useState<Record<number, string>>({});
+    const [allBridgeAgentNames, setAllBridgeAgentNames] = useState<Record<number, string>>({});
     const [bridgeLoading, setBridgeLoading] = useState(false);
-    // Real bridge status: "standby" | "connecting" | "connected" | "disconnected"
-    const [bridgeConnectionStatus, setBridgeConnectionStatus] = useState<string>('standby');
-    const [bridgeAgentName, setBridgeAgentName] = useState<string | undefined>();
 
-    // Per-channel message helpers
+    // Per-channel helpers
     const channelKey = activeId ?? 0;
     const bridgeMessages = allBridgeMessages[channelKey] || [];
     const bridgeSessionId = allBridgeSessionIds[channelKey];
+    const bridgeConnectionStatus = allBridgeStatus[channelKey] || 'standby';
+    const bridgeAgentName = allBridgeAgentNames[channelKey];
     const setBridgeMessages = (updater: BridgeMsg[] | ((prev: BridgeMsg[]) => BridgeMsg[])) => {
         setAllBridgeMessages(all => ({
             ...all,
@@ -246,6 +247,12 @@ export const Channels: React.FC = () => {
         } else {
             setAllBridgeSessionIds(all => ({ ...all, [channelKey]: sid }));
         }
+    };
+    const setBridgeConnectionStatus = (status: string) => {
+        setAllBridgeStatus(all => ({ ...all, [channelKey]: status }));
+    };
+    const setBridgeAgentName = (name: string | undefined) => {
+        if (name) setAllBridgeAgentNames(all => ({ ...all, [channelKey]: name }));
     };
 
     const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -278,10 +285,9 @@ export const Channels: React.FC = () => {
                 api.bridgeStatus(),
             ]);
 
-            // Set real bridge status — but don't auto-start gateway
-            // (gateway will auto-start when user sends first message)
-            setBridgeConnectionStatus(bridgeState.status || 'standby');
-            if (bridgeState.agentName) setBridgeAgentName(bridgeState.agentName);
+            // Set local bridge status (key=1) — don't use setBridgeConnectionStatus which depends on activeId
+            setAllBridgeStatus(all => ({ ...all, 1: bridgeState.status || 'standby' }));
+            if (bridgeState.agentName) setAllBridgeAgentNames(all => ({ ...all, 1: bridgeState.agentName! }));
 
             // LOCAL channel — uses bridge mode (openclaw agent CLI)
             const localChannel: Channel = { id: 1, name: '', address: '127.0.0.1', protocol: 'ws://' };
@@ -366,6 +372,27 @@ export const Channels: React.FC = () => {
 
     // Switch channel (view only, no disconnect)
     const [showRemoteLlm, setShowRemoteLlm] = useState(false);
+    const [remoteLlmReachable, setRemoteLlmReachable] = useState(false);
+    const [remoteLlmCollapsed, setRemoteLlmCollapsed] = useState(false);
+
+    // Check remote LLM API reachability — poll every 15s to detect deployment changes
+    useEffect(() => {
+        if (!activeChannel || isLocal) { setRemoteLlmReachable(false); return; }
+        const remoteIp = (activeChannel.address || '').split('@')[1] || activeChannel.address || '';
+        if (!remoteIp) return;
+        let cancelled = false;
+        const check = async () => {
+            try {
+                const res = await fetch(`http://${remoteIp}:8090/api/status`, { signal: AbortSignal.timeout(3000) });
+                if (!cancelled) setRemoteLlmReachable(res.ok);
+            } catch {
+                if (!cancelled) setRemoteLlmReachable(false);
+            }
+        };
+        check();
+        const interval = setInterval(check, 15000);
+        return () => { cancelled = true; clearInterval(interval); };
+    }, [activeId, activeChannel, isLocal]);
     const selectChannel = useCallback((id: number) => {
         if (id === activeId) return;
         setActiveId(id);
@@ -632,6 +659,7 @@ export const Channels: React.FC = () => {
                     return;
                 }
                 setBridgeConnectionStatus('connected');
+                setBridgeAgentName('OpenClaw'); // Default agent name for remote
                 const result = await api.bridgeChatRemote(serverId, text, bridgeSessionId);
                 if (result.session_id) setBridgeSessionId(result.session_id);
                 setBridgeMessages(prev => [...prev, {
@@ -667,11 +695,12 @@ export const Channels: React.FC = () => {
                     {channels.map(ch => {
                         const isActive = activeId === ch.id;
                         const chState = manager.getChannelState(ch.id);
-                        // Bridge mode: use real bridgeConnectionStatus
-                        const isLinked = ch.id === 1 ? bridgeConnectionStatus === 'connected' : chState.status === 'connected';
-                        const isBridgeConnecting = ch.id === 1 && bridgeConnectionStatus === 'connecting';
-                        const isError = ch.id === 1 ? bridgeConnectionStatus === 'disconnected' : chState.status === 'error';
-                        const isStandby = ch.id === 1 ? bridgeConnectionStatus === 'standby' : !isLinked && !isError;
+                        // Bridge mode: use per-channel bridgeStatus
+                        const chBridgeStatus = allBridgeStatus[ch.id] || 'standby';
+                        const isLinked = chBridgeStatus === 'connected';
+                        const isBridgeConnecting = chBridgeStatus === 'connecting';
+                        const isError = chBridgeStatus === 'disconnected';
+                        const isStandby = chBridgeStatus === 'standby';
                         const hasNew = chState.hasNewMessage && !isActive;
 
                         return (
@@ -710,25 +739,49 @@ export const Channels: React.FC = () => {
             </div>
 
             {/* ======== Right: Chat area ======== */}
-            <div className="flex-1 flex flex-col min-w-0">
+            <div className="flex-1 flex flex-col min-w-0 relative">
                 {activeChannel && (
                     <>
-                        {/* Remote LLM status bar — only for remote hosts (not LOCAL) when connected */}
-                        {isActiveConnected && !isLocal && (
+                        {/* Remote LLM status bar — collapsible, only for remote hosts */}
+                        {!isLocal && !remoteLlmCollapsed && (
                             <div
-                                className="mx-4 mt-2 px-4 py-3 rounded-card border border-cyber-accent/40 bg-black/40 cursor-pointer hover:border-cyber-accent/70 hover:bg-cyber-accent/5 transition-all group"
-                                onClick={() => setShowRemoteLlm(true)}
+                                className={`mx-4 mt-2 px-4 py-2.5 rounded-card border border-cyber-border/30 bg-black/80 shadow-cyber-card cursor-pointer transition-all duration-200 hover:border-cyber-accent hover:shadow-[0_0_12px_rgba(0,255,157,0.15)] group`}
+                                onClick={() => remoteLlmReachable ? setShowRemoteLlm(true) : setRemoteLlmCollapsed(true)}
                             >
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-2.5 font-mono text-sm">
-                                        <span className="text-cyber-text-secondary">{t('channel.remoteLlm')}</span>
-                                        <span className="text-cyber-accent text-xs uppercase tracking-wider">{t('status.running')}</span>
+                                        <Server size={14} className={remoteLlmReachable ? 'text-cyber-accent' : 'text-cyber-text-muted/50'} />
+                                        {remoteLlmReachable ? (
+                                            <span className="text-cyber-accent text-xs uppercase tracking-wider">{t('channel.remoteLlm')}: {t('status.running')}</span>
+                                        ) : (
+                                            <span className="text-cyber-text-muted/60 text-xs tracking-wider">Mother Agent → {t('mother.hintDeployLlm')}</span>
+                                        )}
                                     </div>
-                                    <span className="text-cyber-text-muted/50 text-xs font-mono group-hover:text-cyber-accent/80 transition-colors">
-                                        {t('channel.llmPanel')} →
-                                    </span>
+                                    <div className="flex items-center gap-2">
+                                        {remoteLlmReachable && (
+                                            <span className="text-cyber-text-muted/50 text-xs font-mono group-hover:text-cyber-accent/80 transition-colors">
+                                                {t('channel.llmPanel')} →
+                                            </span>
+                                        )}
+                                        <button
+                                            onClick={(e) => { e.stopPropagation(); setRemoteLlmCollapsed(true); }}
+                                            className="p-0.5 text-cyber-text-muted/40 hover:text-cyber-accent transition-colors"
+                                            title="Collapse"
+                                        >
+                                            <ChevronsDown size={14} />
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
+                        )}
+                        {/* Floating circular icon when bar is collapsed */}
+                        {!isLocal && remoteLlmCollapsed && (
+                            <button
+                                onClick={() => setRemoteLlmCollapsed(false)}
+                                className="group absolute top-4 right-6 z-10 w-10 h-10 rounded-full border border-cyber-border/30 bg-black/80 shadow-cyber-card flex items-center justify-center transition-all duration-200 hover:border-cyber-accent hover:shadow-[0_0_12px_rgba(0,255,157,0.15)]"
+                            >
+                                <Server size={16} className="text-cyber-text-muted/40 group-hover:text-cyber-accent transition-colors duration-200" />
+                            </button>
                         )}
 
                         {!isActiveConnected && !canSendMessage && gateway.status !== 'connecting' && bridgeConnectionStatus !== 'connecting' ? (
@@ -993,7 +1046,8 @@ export const Channels: React.FC = () => {
             <RemoteLlmModal
                 isOpen={showRemoteLlm}
                 onClose={() => setShowRemoteLlm(false)}
-                remoteHost={activeChannel?.name || activeChannel?.address || 'remote'}
+                remoteHost={activeChannel?.address || 'remote'}
+                displayName={activeChannel?.name}
             />
         </div >
     );

@@ -226,12 +226,14 @@ Only proceed with the steps below when the target is a REMOTE server (not 127.0.
 When a user asks to deploy LLM Server to a remote machine:
 1. Use the `deploy_plugin_source` tool with `plugin_id: "llm-server"` and the target `server_id`.
    This single tool call handles everything automatically:
-   - Checks/installs Rust on remote
-   - Reads the plugin source code locally (Cargo.toml + src/main.rs)
-   - Writes source files to remote via chunked SSH
-   - Runs `cargo build --release` on remote (2-5 min first build)
+   - Detects remote OS and CPU architecture (Linux/macOS, x86_64/aarch64)
+   - Downloads the correct pre-compiled binary from GitHub Releases (~30 seconds)
+   - Makes it executable
    - Starts the server on port 8090 (or custom port via `port` parameter)
    - Runs API health check
+
+   **No Rust installation, no cargo build, no source code transfer needed.**
+
 2. After successful deployment, run the full API test suite to verify:
    ```
    echo '=== API Test Suite ===' && \
