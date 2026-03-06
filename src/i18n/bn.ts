@@ -233,6 +233,7 @@ const bn: Partial<Translations> = {
     'mother.hintInstall': '{agent} ইনস্টল করুন',
     'mother.hintInstallSkills': '{agent} এর জন্য স্কিল ইনস্টল করুন',
     'mother.hintDeployLlm': 'দূরবর্তীতে LLM ডিপ্লয় করুন',
+    'mother.hintDeployBridge': 'রিমোটকে চ্যানেলে সংযুক্ত করুন',
     'mother.hintShowSpecs': 'সার্ভার স্পেক দেখুন',
     'mother.hintTroubleshoot': '{agent} কাজ করছে না, ঠিক করতে সাহায্য করো',
     'mother.hintUninstall': '{agent} সম্পূর্ণ আনইনস্টল করুন',

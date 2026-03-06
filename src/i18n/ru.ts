@@ -233,6 +233,7 @@ const ru: Partial<Translations> = {
     'mother.hintInstall': 'Установить {agent}',
     'mother.hintInstallSkills': 'Установить навыки для {agent}',
     'mother.hintDeployLlm': 'Развернуть LLM удалённо',
+    'mother.hintDeployBridge': 'Подключить удалённый к Каналам',
     'mother.hintShowSpecs': 'Показать характеристики сервера',
     'mother.hintTroubleshoot': '{agent} не работает, помоги починить',
     'mother.hintUninstall': 'Полностью удалить {agent}',

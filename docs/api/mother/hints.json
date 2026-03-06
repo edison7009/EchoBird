@@ -12,6 +12,9 @@
             "action": "deployLlm"
         },
         {
+            "action": "deployBridge"
+        },
+        {
             "action": "showSpecs"
         },
         {

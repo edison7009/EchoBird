@@ -233,6 +233,7 @@ const nl: Partial<Translations> = {
     'mother.hintInstall': '{agent} installeren',
     'mother.hintInstallSkills': 'Skills voor {agent} installeren',
     'mother.hintDeployLlm': 'LLM op afstand deployen',
+    'mother.hintDeployBridge': 'Verbind extern met Kanalen',
     'mother.hintShowSpecs': 'Serverspecificaties tonen',
     'mother.hintTroubleshoot': '{agent} werkt niet, help me',
     'mother.hintUninstall': '{agent} volledig verwijderen',

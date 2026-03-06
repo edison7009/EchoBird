@@ -233,6 +233,7 @@ const hu: Partial<Translations> = {
     'mother.hintInstall': '{agent} telepítése',
     'mother.hintInstallSkills': 'Képességek telepítése az {agent}-hoz',
     'mother.hintDeployLlm': 'LLM telepítése távolról',
+    'mother.hintDeployBridge': 'Távoli csatlakoztatása a Csatornákhoz',
     'mother.hintShowSpecs': 'Szerver specifikációk megjelenítése',
     'mother.hintTroubleshoot': '{agent} nem működik, segíts megjavítani',
     'mother.hintUninstall': '{agent} teljes eltávolítása',

@@ -235,6 +235,7 @@ const th: Partial<Translations> = {
     'mother.hintInstall': 'ติดตั้ง {agent}',
     'mother.hintInstallSkills': 'ติดตั้งทักษะสำหรับ {agent}',
     'mother.hintDeployLlm': 'ติดตั้ง LLM บนรีโมท',
+    'mother.hintDeployBridge': 'เชื่อมต่อรีโมทกับช่อง',
     'mother.hintShowSpecs': 'แสดงสเปคเซิร์ฟเวอร์',
     'mother.hintTroubleshoot': '{agent} ใช้ไม่ได้ ช่วยแก้ให้หน่อย',
     'mother.hintUninstall': 'ถอนการติดตั้ง {agent} ทั้งหมด',

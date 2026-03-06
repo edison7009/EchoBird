@@ -100,6 +100,7 @@ const el: Partial<Translations> = {
     'mother.hintInstall': 'Εγκατάσταση {agent}',
     'mother.hintInstallSkills': 'Εγκατάσταση δεξιοτήτων για {agent}',
     'mother.hintDeployLlm': 'Ανάπτυξη LLM απομακρυσμένα',
+    'mother.hintDeployBridge': 'Σύνδεση απομακρυσμένου στα Κανάλια',
     'mother.hintShowSpecs': 'Εμφάνιση προδιαγραφών διακομιστή',
     'mother.hintTroubleshoot': '{agent} δεν λειτουργεί, βοήθησέ με',
     'mother.hintUninstall': 'Πλήρης απεγκατάσταση {agent}',

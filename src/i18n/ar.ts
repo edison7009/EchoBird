@@ -233,6 +233,7 @@ const ar: Partial<Translations> = {
     'mother.hintInstall': 'تثبيت {agent}',
     'mother.hintInstallSkills': 'تثبيت مهارات {agent}',
     'mother.hintDeployLlm': 'نشر LLM على الخادم البعيد',
+    'mother.hintDeployBridge': 'ربط الخادم البعيد بالقنوات',
     'mother.hintShowSpecs': 'عرض مواصفات الخادم',
     'mother.hintTroubleshoot': '{agent} لا يعمل، ساعدني في إصلاحه',
     'mother.hintUninstall': 'إزالة {agent} بالكامل',
