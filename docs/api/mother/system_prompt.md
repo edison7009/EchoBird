@@ -136,13 +136,19 @@ This is required because SSH non-interactive sessions don't load `.bashrc` — w
    ```
    export PATH="$HOME/.npm-global/bin:$HOME/.local/bin:$HOME/.cargo/bin:$PATH" && source ~/.bashrc 2>/dev/null; which openclaw && openclaw --version
    ```
-   - If OpenClaw is found → **SKIP installation**, go directly to step 3 (configure model)
+   - If OpenClaw is found → **SKIP installation**, go to step 3
    - If not found → proceed with installation
 2. SSH → detect OS → use the **official install script** (handles all prerequisites automatically):
    - Linux/macOS: `curl -fsSL https://openclaw.ai/install.sh | bash`
    If the script download is slow, refer to the "Slow Network / Install Timeout" section above.
 3. Verify: `export PATH="$HOME/.npm-global/bin:$HOME/.local/bin:$PATH" && openclaw --version`
-4. **Configure the model on the remote server** (remote has no App Manager — Mother Agent must handle this):
+4. **Check if model is ALREADY configured** (MANDATORY before asking user to configure):
+   ```
+   cat ~/.openclaw/openclaw.json 2>/dev/null | head -20
+   ```
+   - If the file exists AND contains `"apiKey"` or `"baseUrl"` with non-empty values → **The model is already configured. SKIP configuration entirely** → go directly to bridge deployment (`deploy_bridge`) and tell the user to go to **Channels**.
+   - If the file is empty, missing, or has no valid model → proceed to step 5.
+5. **Configure the model on the remote server** (remote has no App Manager — Mother Agent must handle this):
    Present the user with these **three concrete options** — NEVER just ask "which model provider do you want?":
 
    **Option A (Recommended): Send a model from Model Nexus via 🔑 key icon**
