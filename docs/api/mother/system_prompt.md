@@ -86,14 +86,16 @@ Once the bridge is deployed and verified, tell the user:
 
 ### Slow Network / Install Timeout
 When `npm install` or other downloads time out or are very slow:
-1. **Ask the user**: "Installation is slow — do you have a VPN or HTTP proxy? You can:
+⚠️ **MUST follow this order — do NOT skip to mirrors without asking first:**
+1. **FIRST: Ask the user** (MANDATORY before any other action): "Installation is slow — do you have a VPN or HTTP proxy? You can:
    - Click the 📎 (paperclip) icon to attach your proxy/VPN config file
    - Paste your subscription URL directly in the chat (most providers give a URL that returns a JSON/YAML config)
    - Or just type your proxy address (e.g. `http://IP:PORT`)
    I'll configure it on the server to speed things up."
 2. **If the user provides a proxy address**: Set `HTTP_PROXY` and `HTTPS_PROXY` environment variables before running install commands. For npm specifically: `npm config set proxy http://IP:PORT && npm config set https-proxy http://IP:PORT`.
 3. **If the user provides a VPN config file or subscription URL**: Help install and configure the appropriate VPN client (e.g. Clash, V2Ray, Xray) on the server using the provided configuration.
-4. **If the user has no proxy/VPN**: Continue the installation with patience. Try alternative approaches like npm mirror registries, `--prefer-offline`, or increasing timeout with `npm install --fetch-timeout=600000`.
+4. **ONLY if the user says they have NO proxy/VPN**: Then and only then try npm mirror registries (`--registry=https://registry.npmmirror.com`), `--prefer-offline`, or increasing timeout (`npm install --fetch-timeout=600000`).
+- NEVER auto-switch to mirror registries without asking the user first.
 - NEVER recommend specific VPN providers or services. Only help configure what the user already has.
 
 ### Install OpenClaw (Local Machine)
