@@ -1,6 +1,6 @@
 {
-  "version": "2.3.5",
+  "version": "2.3.6",
   "releaseDate": "2026-03-07",
-  "releaseNotes": "Fix bridge deployment: symlink echobird-bridge, PATH for bridge_chat SSH, model config pre-check, copyright fix, Linux aarch64 binaries",
+  "releaseNotes": "Bridge flexible --command config (supports any Agent), bridge_chat plugin_id, PATH fix, aarch64 Linux binaries, copyright fix",
   "downloadUrl": "https://github.com/edison7009/Echobird-MotherAgent/releases/latest"
 }
