@@ -234,6 +234,7 @@ const vi: Partial<Translations> = {
     'mother.hintInstallSkills': 'Cài đặt kỹ năng cho {agent}',
     'mother.hintDeployLlm': 'Triển khai LLM từ xa',
     'mother.hintShowSpecs': 'Hiển thị thông số máy chủ',
+    'mother.hintTroubleshoot': 'Khắc phục {agent}',
     'mother.hintUninstall': 'Gỡ hoàn toàn {agent}',
     'mother.executing': 'Đang chạy công cụ...',
     'mother.callingTool': 'Đang gọi công cụ...',

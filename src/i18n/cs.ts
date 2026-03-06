@@ -234,6 +234,7 @@ const cs: Partial<Translations> = {
     'mother.hintInstallSkills': 'Nainstalovat dovednosti pro {agent}',
     'mother.hintDeployLlm': 'Nasadit LLM vzdáleně',
     'mother.hintShowSpecs': 'Zobrazit specifikace serveru',
+    'mother.hintTroubleshoot': 'Řešení problémů {agent}',
     'mother.hintUninstall': 'Kompletně odinstalovat {agent}',
     'mother.executing': 'Spouštění nástroje...',
     'mother.callingTool': 'Volání nástroje...',

@@ -15,6 +15,10 @@
             "action": "showSpecs"
         },
         {
+            "action": "troubleshoot",
+            "agent": "OpenClaw"
+        },
+        {
             "action": "uninstall",
             "agent": "OpenClaw"
         },

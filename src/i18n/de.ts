@@ -262,6 +262,7 @@ const de: Partial<Translations> = {
     'mother.hintInstallSkills': 'Skills für {agent} installieren',
     'mother.hintDeployLlm': 'LLM remote deployen',
     'mother.hintShowSpecs': 'Serverspezifikationen anzeigen',
+    'mother.hintTroubleshoot': '{agent} Fehlerbehebung',
     'mother.hintUninstall': '{agent} vollständig deinstallieren',
     'mother.executing': 'Werkzeug wird ausgeführt...',
     'mother.callingTool': 'Werkzeug wird aufgerufen...',

@@ -1,6 +1,6 @@
 {
-    "version": "2.2.4",
+    "version": "2.2.5",
     "releaseDate": "2026-03-06",
-    "releaseNotes": "Channels: persistent Bridge connection with OpenClaw agent, cross-platform Gateway auto-launch with run detection, agent brand display, and marquee loading animation.",
+    "releaseNotes": "Added Troubleshoot OpenClaw hint button in Mother Agent, fixed loading animation for Bridge mode, and CI release asset deduplication.",
     "downloadUrl": "https://github.com/edison7009/Echobird-MotherAgent/releases/latest"
 }

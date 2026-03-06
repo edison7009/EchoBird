@@ -101,6 +101,7 @@ const he: Partial<Translations> = {
     'mother.hintInstallSkills': 'התקן כישורים ל-{agent}',
     'mother.hintDeployLlm': 'פרוס LLM מרחוק',
     'mother.hintShowSpecs': 'הצג מפרט שרת',
+    'mother.hintTroubleshoot': 'פתרון בעיות {agent}',
     'mother.hintUninstall': 'הסר לחלוטין {agent}',
     'mother.executing': 'מריץ כלי...',
     'mother.callingTool': 'קורא לכלי...',

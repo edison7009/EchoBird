@@ -261,6 +261,7 @@ const zhHant: Partial<Translations> = {
     'mother.hintInstallSkills': '為 {agent} 安裝技能',
     'mother.hintDeployLlm': '在遠端部署大模型',
     'mother.hintShowSpecs': '查看伺服器規格',
+    'mother.hintTroubleshoot': '檢查修復 {agent}',
     'mother.hintUninstall': '完全移除 {agent}',
     'mother.executing': '正在執行工具...',
     'mother.callingTool': '正在呼叫工具...',

@@ -101,6 +101,7 @@ const fi: Partial<Translations> = {
     'mother.hintInstallSkills': 'Asenna taidot {agent}ille',
     'mother.hintDeployLlm': 'Ota LLM käyttöön etänä',
     'mother.hintShowSpecs': 'Näytä palvelimen tiedot',
+    'mother.hintTroubleshoot': 'Vianmääritys {agent}',
     'mother.hintUninstall': 'Poista {agent} kokonaan',
     'mother.executing': 'Suoritetaan työkalua...',
     'mother.callingTool': 'Kutsutaan työkalua...',

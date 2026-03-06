@@ -234,6 +234,7 @@ const bn: Partial<Translations> = {
     'mother.hintInstallSkills': '{agent} এর জন্য স্কিল ইনস্টল করুন',
     'mother.hintDeployLlm': 'দূরবর্তীতে LLM ডিপ্লয় করুন',
     'mother.hintShowSpecs': 'সার্ভার স্পেক দেখুন',
+    'mother.hintTroubleshoot': '{agent} সমস্যা সমাধান',
     'mother.hintUninstall': '{agent} সম্পূর্ণ আনইনস্টল করুন',
     'mother.executing': 'টুল চালানো হচ্ছে...',
     'mother.callingTool': 'টুল কল হচ্ছে...',

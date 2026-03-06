@@ -105,7 +105,7 @@ export type TKey =
     // Mother Agent
     | 'mother.selectModel'
     | 'mother.deployHint' | 'mother.awaitingInit' | 'mother.flowHint'
-    | 'mother.hintInstall' | 'mother.hintInstallSkills' | 'mother.hintDeployLlm' | 'mother.hintShowSpecs' | 'mother.hintUninstall'
+    | 'mother.hintInstall' | 'mother.hintInstallSkills' | 'mother.hintDeployLlm' | 'mother.hintShowSpecs' | 'mother.hintTroubleshoot' | 'mother.hintUninstall'
     | 'mother.executing' | 'mother.callingTool' | 'mother.processing'
     | 'mother.enterMessage' | 'mother.noModels' | 'mother.noFavorites'
     | 'mother.servers' | 'mother.sshGuide' | 'mother.local' | 'mother.noServer'

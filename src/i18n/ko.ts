@@ -262,6 +262,7 @@ const ko: Partial<Translations> = {
     'mother.hintInstallSkills': '{agent} 스킬 설치',
     'mother.hintDeployLlm': '원격에 LLM 배포',
     'mother.hintShowSpecs': '서버 사양 확인',
+    'mother.hintTroubleshoot': '{agent} 문제 해결',
     'mother.hintUninstall': '{agent} 완전 제거',
     'mother.executing': '도구 실행 중...',
     'mother.callingTool': '도구 호출 중...',
