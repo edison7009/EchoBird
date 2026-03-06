@@ -143,6 +143,20 @@ pub fn get_tool_definitions() -> Vec<super::llm_client::ToolDef> {
                 "required": ["url"]
             }),
         },
+        super::llm_client::ToolDef {
+            name: "get_sudo_password".into(),
+            description: "Get the saved SSH/sudo password for a remote server. Use this when you need to run sudo commands. Pipe it: echo '<password>' | sudo -S <command>".into(),
+            parameters: json!({
+                "type": "object",
+                "properties": {
+                    "server_id": {
+                        "type": "string",
+                        "description": "The server ID to get the password for"
+                    }
+                },
+                "required": ["server_id"]
+            }),
+        },
     ]
 }
 
@@ -210,6 +224,13 @@ pub async fn execute_tool(
                 return ToolResult { success: false, output: "URL is required".into() };
             }
             exec_web_fetch(url).await
+        }
+        "get_sudo_password" => {
+            let server_id = args["server_id"].as_str().unwrap_or("");
+            if server_id.is_empty() {
+                return ToolResult { success: false, output: "server_id is required".into() };
+            }
+            exec_get_sudo_password(server_id)
         }
         _ => ToolResult { success: false, output: format!("Unknown tool: {}", name) },
     }
@@ -364,6 +385,27 @@ async fn exec_ssh_shell(command: &str, server_id: &str, ssh_pool: &SSHPool) -> T
         Err(e) => ToolResult {
             success: false,
             output: format!("SSH command failed: {}", e),
+        },
+    }
+}
+
+fn exec_get_sudo_password(server_id: &str) -> ToolResult {
+    use crate::commands::ssh_commands::read_servers_from_disk;
+    use crate::services::model_manager;
+
+    let servers = read_servers_from_disk();
+    match servers.iter().find(|s| s.id == server_id) {
+        Some(server) => {
+            let plain = model_manager::decrypt_key_for_use(&server.password);
+            if plain.is_empty() {
+                ToolResult { success: false, output: "No password saved for this server.".into() }
+            } else {
+                ToolResult { success: true, output: plain }
+            }
+        }
+        None => ToolResult {
+            success: false,
+            output: format!("Server '{}' not found in saved servers.", server_id),
         },
     }
 }

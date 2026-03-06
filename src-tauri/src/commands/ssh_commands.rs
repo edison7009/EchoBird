@@ -53,7 +53,7 @@ fn ensure_config_dir() {
     let _ = std::fs::create_dir_all(&dir);
 }
 
-fn read_servers_from_disk() -> Vec<SSHServer> {
+pub fn read_servers_from_disk() -> Vec<SSHServer> {
     let path = ssh_config_path();
     if !path.exists() {
         return Vec::new();
