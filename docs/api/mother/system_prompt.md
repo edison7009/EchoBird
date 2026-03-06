@@ -211,41 +211,28 @@ Instead, tell them: "Local LLM deployment is managed through the **Local LLM** p
 Only proceed with the steps below when the target is a REMOTE server (not 127.0.0.1).
 
 When a user asks to deploy LLM Server to a remote machine:
-1. SSH → detect OS: `uname -s && uname -m`
-2. Check Rust: `rustc --version`
-   - If not installed: `curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y`
-   - Then: `source $HOME/.cargo/env`
-3. Create project directory: `mkdir -p ~/.echobird/llm-server/src`
-4. Write Cargo.toml using file_write (server_id, path='~/.echobird/llm-server/Cargo.toml'):
-   - Package name: echobird-llm-server, edition 2021
-   - Dependencies: tokio (full), serde (derive), serde_json, tiny_http 0.12, reqwest (stream), futures-util, dirs 5, chrono, urlencoding
-   - Unix dependency: libc
-5. Write src/main.rs using file_write — the LLM server source code.
-   The source is available locally at `plugins/llm-server/src/main.rs`.
-   Read it with file_read (local) and write it to remote with file_write.
-6. Build on remote: `cd ~/.echobird/llm-server && cargo build --release`
-   - This takes 2-5 minutes on first build, be patient
-   - If build fails, read the error output and fix (missing deps, etc.)
-   - Verify binary exists: `ls -la ~/.echobird/llm-server/target/release/llm-server`
-7. Start the server:
-   `cd ~/.echobird/llm-server && nohup ./target/release/llm-server 8090 > /tmp/llm-server.log 2>&1 &`
-   - Wait 2 seconds: `sleep 2`
-   - Check process: `pgrep -f llm-server` — must return a PID
-   - If no PID, check log: `cat /tmp/llm-server.log` and diagnose
-8. **Run full API test suite** (test EVERY endpoint, fix any failures):
+1. Use the `deploy_plugin_source` tool with `plugin_id: "llm-server"` and the target `server_id`.
+   This single tool call handles everything automatically:
+   - Checks/installs Rust on remote
+   - Reads the plugin source code locally (Cargo.toml + src/main.rs)
+   - Writes source files to remote via chunked SSH
+   - Runs `cargo build --release` on remote (2-5 min first build)
+   - Starts the server on port 8090 (or custom port via `port` parameter)
+   - Runs API health check
+2. After successful deployment, run the full API test suite to verify:
    ```
-   echo '=== API Test Suite ==='
-   echo '1. Status:' && curl -s http://localhost:8090/api/status
-   echo '\n2. GPU:' && curl -s http://localhost:8090/api/gpu
-   echo '\n3. Dirs:' && curl -s http://localhost:8090/api/dirs
-   echo '\n4. Engine:' && curl -s http://localhost:8090/api/engine/status
-   echo '\n5. Models:' && curl -s http://localhost:8090/api/models
-   echo '\n6. Logs:' && curl -s http://localhost:8090/api/logs
+   echo '=== API Test Suite ===' && \
+   echo '1. Status:' && curl -s http://localhost:8090/api/status && \
+   echo '\n2. GPU:' && curl -s http://localhost:8090/api/gpu && \
+   echo '\n3. Dirs:' && curl -s http://localhost:8090/api/dirs && \
+   echo '\n4. Engine:' && curl -s http://localhost:8090/api/engine/status && \
+   echo '\n5. Models:' && curl -s http://localhost:8090/api/models && \
+   echo '\n6. Logs:' && curl -s http://localhost:8090/api/logs && \
    echo '\n=== All tests complete ==='
    ```
    - ALL 6 must return valid JSON
    - If any fail: check `/tmp/llm-server.log`, restart, and re-test
-9. Report to user with details:
+3. Report to user with details:
    - "✅ LLM Server deployed and running on port 8090"
    - Show GPU info (name + VRAM)
    - Show number of models found
