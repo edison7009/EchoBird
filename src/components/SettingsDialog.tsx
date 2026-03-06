@@ -83,7 +83,7 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
     const checkForUpdates = useCallback(async () => {
         setUpdateStatus('checking');
         try {
-            const res = await fetch('https://echobird.ai/api/version/');
+            const res = await fetch('https://echobird.ai/api/version/index.json');
             if (!res.ok) { setUpdateStatus('error'); return; }
             const data = await res.json();
             if (data.version && data.version !== APP_VERSION) {
