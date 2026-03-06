@@ -448,10 +448,55 @@ async fn exec_file_write(path: &str, content: &str, server_id: &str, ssh_pool: &
             Err(e) => ToolResult { success: false, output: format!("Failed to write file: {}", e) },
         }
     } else {
-        // Write via SSH (using heredoc)
+        // Write via SSH (using heredoc), chunked for large files
         let escaped_content = content.replace('\\', "\\\\").replace('$', "\\$");
-        let cmd = format!("cat > {} << 'ECHOBIRD_EOF'\n{}\nECHOBIRD_EOF", shell_escape(path), escaped_content);
-        exec_ssh_shell(&cmd, server_id, ssh_pool).await
+        const CHUNK_THRESHOLD: usize = 16_000; // ~16KB
+
+        if escaped_content.len() <= CHUNK_THRESHOLD {
+            // Small file: single heredoc
+            let cmd = format!("mkdir -p \"$(dirname {})\" && cat > {} << 'ECHOBIRD_EOF'\n{}\nECHOBIRD_EOF", shell_escape(path), shell_escape(path), escaped_content);
+            exec_ssh_shell(&cmd, server_id, ssh_pool).await
+        } else {
+            // Large file: split into line-aligned chunks
+            let lines: Vec<&str> = escaped_content.lines().collect();
+            let mut chunks: Vec<String> = Vec::new();
+            let mut current = String::new();
+
+            for line in &lines {
+                if current.len() + line.len() + 1 > CHUNK_THRESHOLD && !current.is_empty() {
+                    chunks.push(current);
+                    current = String::new();
+                }
+                if !current.is_empty() {
+                    current.push('\n');
+                }
+                current.push_str(line);
+            }
+            if !current.is_empty() {
+                chunks.push(current);
+            }
+
+            // Ensure parent dir exists
+            let mkdir_cmd = format!("mkdir -p \"$(dirname {})\"", shell_escape(path));
+            let _ = exec_ssh_shell(&mkdir_cmd, server_id, ssh_pool).await;
+
+            for (i, chunk) in chunks.iter().enumerate() {
+                let redirect = if i == 0 { ">" } else { ">>" };
+                let cmd = format!("cat {} {} << 'ECHOBIRD_EOF'\n{}\nECHOBIRD_EOF", redirect, shell_escape(path), chunk);
+                let result = exec_ssh_shell(&cmd, server_id, ssh_pool).await;
+                if !result.success {
+                    return ToolResult {
+                        success: false,
+                        output: format!("Failed writing chunk {}/{}: {}", i + 1, chunks.len(), result.output),
+                    };
+                }
+            }
+
+            ToolResult {
+                success: true,
+                output: format!("Written {} bytes to {} ({} chunks)", content.len(), path, chunks.len()),
+            }
+        }
     }
 }
 
