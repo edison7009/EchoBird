@@ -629,7 +629,7 @@ export function SkillBrowserMain() {
                         <button
                             onClick={draftReset}
                             className="h-7 w-7 flex items-center justify-center text-base border border-cyber-border text-cyber-text-muted hover:border-cyber-warning hover:text-cyber-warning"
-                            title="Reset"
+
                         >
                             ↺
                         </button>

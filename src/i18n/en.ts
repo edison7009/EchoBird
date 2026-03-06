@@ -262,7 +262,7 @@ const en: Translations = {
     'mother.hintInstallSkills': 'Install skills for {agent}',
     'mother.hintDeployLlm': 'Deploy LLM on remote',
     'mother.hintShowSpecs': 'Show server specs',
-    'mother.hintTroubleshoot': 'Troubleshoot {agent}',
+    'mother.hintTroubleshoot': '{agent} not working? Help me fix it',
     'mother.hintUninstall': 'Uninstall {agent} completely',
     'mother.executing': 'Executing tool...',
     'mother.callingTool': 'Calling tool...',

@@ -101,7 +101,7 @@ const fa: Partial<Translations> = {
     'mother.hintInstallSkills': 'نصب مهارت‌ها برای {agent}',
     'mother.hintDeployLlm': 'استقرار LLM از راه دور',
     'mother.hintShowSpecs': 'نمایش مشخصات سرور',
-    'mother.hintTroubleshoot': 'عیب‌یابی {agent}',
+    'mother.hintTroubleshoot': '{agent} کار نمی‌کند، کمکم کن درستش کنم',
     'mother.hintUninstall': 'حذف کامل {agent}',
     'mother.executing': 'در حال اجرای ابزار...',
     'mother.callingTool': 'در حال فراخوانی ابزار...',

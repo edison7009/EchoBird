@@ -234,7 +234,7 @@ const it: Partial<Translations> = {
     'mother.hintInstallSkills': 'Installa skill per {agent}',
     'mother.hintDeployLlm': 'Distribuisci LLM da remoto',
     'mother.hintShowSpecs': 'Mostra specifiche del server',
-    'mother.hintTroubleshoot': 'Risolvere {agent}',
+    'mother.hintTroubleshoot': '{agent} non funziona, aiutami a risolverlo',
     'mother.hintUninstall': 'Disinstalla {agent} completamente',
     'mother.executing': 'Esecuzione strumento...',
     'mother.callingTool': 'Chiamata strumento...',

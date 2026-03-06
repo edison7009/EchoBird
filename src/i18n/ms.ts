@@ -236,7 +236,7 @@ const ms: Partial<Translations> = {
     'mother.hintInstallSkills': 'Pasang kemahiran untuk {agent}',
     'mother.hintDeployLlm': 'Deploy LLM secara jauh',
     'mother.hintShowSpecs': 'Papar spesifikasi pelayan',
-    'mother.hintTroubleshoot': 'Selesai masalah {agent}',
+    'mother.hintTroubleshoot': '{agent} tak berfungsi, tolong betulkan',
     'mother.hintUninstall': 'Nyahpasang {agent} sepenuhnya',
     'mother.executing': 'Menjalankan alat...',
     'mother.callingTool': 'Memanggil alat...',

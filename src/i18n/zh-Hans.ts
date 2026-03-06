@@ -248,7 +248,7 @@ const zhHans: Partial<Translations> = {
     'mother.hintInstallSkills': '为 {agent} 安装技能',
     'mother.hintDeployLlm': '在远程部署大模型',
     'mother.hintShowSpecs': '查看服务器配置',
-    'mother.hintTroubleshoot': '检查修复 {agent}',
+    'mother.hintTroubleshoot': '{agent} 不好使了，帮我修一下',
     'mother.hintUninstall': '完全卸载 {agent}',
     'mother.executing': '正在执行工具...',
     'mother.callingTool': '正在调用工具...',

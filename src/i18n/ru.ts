@@ -234,7 +234,7 @@ const ru: Partial<Translations> = {
     'mother.hintInstallSkills': 'Установить навыки для {agent}',
     'mother.hintDeployLlm': 'Развернуть LLM удалённо',
     'mother.hintShowSpecs': 'Показать характеристики сервера',
-    'mother.hintTroubleshoot': 'Диагностика {agent}',
+    'mother.hintTroubleshoot': '{agent} не работает, помоги починить',
     'mother.hintUninstall': 'Полностью удалить {agent}',
     'mother.executing': 'Выполнение инструмента...',
     'mother.callingTool': 'Вызов инструмента...',

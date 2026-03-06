@@ -234,7 +234,7 @@ const ar: Partial<Translations> = {
     'mother.hintInstallSkills': 'تثبيت مهارات {agent}',
     'mother.hintDeployLlm': 'نشر LLM على الخادم البعيد',
     'mother.hintShowSpecs': 'عرض مواصفات الخادم',
-    'mother.hintTroubleshoot': 'إصلاح {agent}',
+    'mother.hintTroubleshoot': '{agent} لا يعمل، ساعدني في إصلاحه',
     'mother.hintUninstall': 'إزالة {agent} بالكامل',
     'mother.executing': 'جارٍ تنفيذ الأداة...',
     'mother.callingTool': 'جارٍ استدعاء الأداة...',

@@ -894,7 +894,6 @@ export function MotherAgentMain() {
                                 onClick={() => { clearChat(); }}
                                 disabled={isProcessing || chatOutput.length === 0}
                                 className="p-1 text-cyber-accent-secondary/40 hover:text-red-400 transition-colors disabled:opacity-20"
-                                title="Clear chat"
                             >
                                 <Trash2 size={15} />
                             </button>
@@ -917,7 +916,6 @@ export function MotherAgentMain() {
                                 <button
                                     onClick={() => api.abortAgent(selectedServerId)}
                                     className="p-1 text-red-400/80 hover:text-red-400 transition-colors"
-                                    title="Stop agent"
                                 >
                                     <Square size={16} fill="currentColor" />
                                 </button>

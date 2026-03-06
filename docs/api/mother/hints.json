@@ -15,16 +15,16 @@
             "action": "showSpecs"
         },
         {
-            "action": "troubleshoot",
-            "agent": "OpenClaw"
-        },
-        {
             "action": "uninstall",
             "agent": "OpenClaw"
         },
         {
             "action": "install",
             "agent": "Claude Code"
+        },
+        {
+            "action": "troubleshoot",
+            "agent": "OpenClaw"
         }
     ]
 }

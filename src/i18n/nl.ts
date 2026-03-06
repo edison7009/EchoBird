@@ -234,7 +234,7 @@ const nl: Partial<Translations> = {
     'mother.hintInstallSkills': 'Skills voor {agent} installeren',
     'mother.hintDeployLlm': 'LLM op afstand deployen',
     'mother.hintShowSpecs': 'Serverspecificaties tonen',
-    'mother.hintTroubleshoot': '{agent} problemen oplossen',
+    'mother.hintTroubleshoot': '{agent} werkt niet, help me',
     'mother.hintUninstall': '{agent} volledig verwijderen',
     'mother.executing': 'Tool uitvoeren...',
     'mother.callingTool': 'Tool aanroepen...',

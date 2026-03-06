@@ -234,7 +234,7 @@ const tr: Partial<Translations> = {
     'mother.hintInstallSkills': '{agent} için beceri kur',
     'mother.hintDeployLlm': 'LLM\'yi uzaktan dağıt',
     'mother.hintShowSpecs': 'Sunucu özelliklerini göster',
-    'mother.hintTroubleshoot': '{agent} sorun gider',
+    'mother.hintTroubleshoot': '{agent} çalışmıyor, düzeltmeme yardım et',
     'mother.hintUninstall': '{agent}\'ı tamamen kaldır',
     'mother.executing': 'Araç çalıştırılıyor...',
     'mother.callingTool': 'Araç çağrılıyor...',

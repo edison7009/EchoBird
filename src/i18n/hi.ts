@@ -234,7 +234,7 @@ const hi: Partial<Translations> = {
     'mother.hintInstallSkills': '{agent} के लिए स्किल इंस्टॉल करें',
     'mother.hintDeployLlm': 'रिमोट पर LLM डिप्लॉय करें',
     'mother.hintShowSpecs': 'सर्वर स्पेक दिखाएं',
-    'mother.hintTroubleshoot': '{agent} समस्या निवारण',
+    'mother.hintTroubleshoot': '{agent} काम नहीं कर रहा, ठीक करने में मदद करो',
     'mother.hintUninstall': '{agent} पूरी तरह अनइंस्टॉल करें',
     'mother.executing': 'टूल चल रहा है...',
     'mother.callingTool': 'टूल कॉल हो रहा है...',

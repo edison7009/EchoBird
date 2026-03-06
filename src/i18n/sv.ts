@@ -101,7 +101,7 @@ const sv: Partial<Translations> = {
     'mother.hintInstallSkills': 'Installera färdigheter för {agent}',
     'mother.hintDeployLlm': 'Distribuera LLM på distans',
     'mother.hintShowSpecs': 'Visa serverspecifikationer',
-    'mother.hintTroubleshoot': 'Felsök {agent}',
+    'mother.hintTroubleshoot': '{agent} fungerar inte, hjälp mig fixa det',
     'mother.hintUninstall': 'Avinstallera {agent} helt',
     'mother.executing': 'Kör verktyg...',
     'mother.callingTool': 'Anropar verktyg...',

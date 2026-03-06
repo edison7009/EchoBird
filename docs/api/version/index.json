@@ -1,6 +1,6 @@
 {
-    "version": "2.2.5",
+    "version": "2.2.6",
     "releaseDate": "2026-03-06",
-    "releaseNotes": "Added Troubleshoot OpenClaw hint button in Mother Agent, fixed loading animation for Bridge mode, and CI release asset deduplication.",
+    "releaseNotes": "Improved troubleshoot hint wording, removed tooltip hover tips, CI release asset deduplication fix.",
     "downloadUrl": "https://github.com/edison7009/Echobird-MotherAgent/releases/latest"
 }
