@@ -250,53 +250,45 @@ export const Channels: React.FC = () => {
     const messages = isBridgeMode ? bridgeMessages : gateway.messages;
 
     // Load SSH servers + channel config → populate channels
-    useEffect(() => {
-        const loadData = async () => {
-            try {
-                const [sshServers, savedChannels, bridgeState] = await Promise.all([
-                    api.loadSSHServers(),
-                    api.getChannelConfig(),
-                    api.bridgeStatus(),
-                ]);
+    const loadChannelData = useCallback(async (preserveActiveId?: boolean) => {
+        try {
+            const [sshServers, savedChannels, bridgeState] = await Promise.all([
+                api.loadSSHServers(),
+                api.getChannelConfig(),
+                api.bridgeStatus(),
+            ]);
 
-                // Set real bridge status
-                setBridgeConnectionStatus(bridgeState.status || 'standby');
-                if (bridgeState.agentName) setBridgeAgentName(bridgeState.agentName);
+            // Set real bridge status — but don't auto-start gateway
+            // (gateway will auto-start when user sends first message)
+            setBridgeConnectionStatus(bridgeState.status || 'standby');
+            if (bridgeState.agentName) setBridgeAgentName(bridgeState.agentName);
 
-                // Auto-connect: if bridge not running, try to start it
-                // (start_bridge_internal detects already-running gateway via port check)
-                if (bridgeState.status !== 'connected') {
-                    try {
-                        setBridgeConnectionStatus('connecting');
-                        const startResult = await api.bridgeStart();
-                        setBridgeConnectionStatus(startResult.status === 'connected' ? 'connected' : 'standby');
-                        if (startResult.agentName) setBridgeAgentName(startResult.agentName);
-                    } catch {
-                        // Agent not installed or not available — stay standby
-                        setBridgeConnectionStatus('standby');
-                    }
-                }
+            // LOCAL channel — uses bridge mode (openclaw agent CLI)
+            const localChannel: Channel = { id: 1, name: '', address: '127.0.0.1', protocol: 'ws://' };
 
-                // LOCAL channel — uses bridge mode (openclaw agent CLI)
-                const localChannel: Channel = { id: 1, name: '', address: '127.0.0.1', protocol: 'ws://' };
+            const sshChannels: Channel[] = (sshServers || []).map((srv, i) => ({
+                id: i + 2,
+                name: srv.alias || `${srv.username}@${srv.host}`,
+                address: `${srv.username}@${srv.host}`,
+                protocol: 'ws://',
+                serverId: srv.id,
+            }));
 
-                const sshChannels: Channel[] = (sshServers || []).map((srv, i) => ({
-                    id: i + 2,
-                    name: srv.alias || `${srv.username}@${srv.host}`,
-                    address: `${srv.username}@${srv.host}`,
-                    protocol: 'ws://',
-                    serverId: srv.id,
-                }));
-
-                const all = [localChannel, ...sshChannels];
-                setChannels(all);
-                setActiveId(all[0].id);
-            } catch (e) {
-                console.error('[Channels] Failed to load data:', e);
-            }
-        };
-        loadData();
+            const all = [localChannel, ...sshChannels];
+            setChannels(all);
+            if (!preserveActiveId) setActiveId(all[0].id);
+        } catch (e) {
+            console.error('[Channels] Failed to load data:', e);
+        }
     }, []);
+
+    useEffect(() => {
+        loadChannelData();
+        // Refresh when SSH servers change (added/removed in Mother Agent)
+        const onServersChanged = () => loadChannelData(true);
+        window.addEventListener('ssh-servers-changed', onServersChanged);
+        return () => window.removeEventListener('ssh-servers-changed', onServersChanged);
+    }, [loadChannelData]);
 
     // Note: channels.json polling removed — local channel uses bridge mode,
     // SSH channels are configured via server list

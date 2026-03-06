@@ -208,6 +208,43 @@ pub async fn ssh_connect(
     }
 }
 
+/// Auto-connect to an SSH server by loading saved credentials from disk.
+/// Used by agent_tools when a server_id isn't in the pool.
+pub async fn auto_connect_ssh(pool: &SSHPool, server_id: &str) -> Result<(), String> {
+    use crate::services::model_manager;
+
+    // Check if already connected
+    {
+        let connections = pool.lock().await;
+        if connections.contains_key(server_id) {
+            return Ok(());
+        }
+    }
+
+    // Load credentials from disk
+    let servers = read_servers_from_disk();
+    let server = servers.iter().find(|s| s.id == server_id)
+        .ok_or_else(|| format!("SSH server '{}' not found in saved servers", server_id))?;
+
+    let plain_password = model_manager::decrypt_key_for_use(&server.password);
+    let auth = AuthMethod::with_password(&plain_password);
+    let check = ServerCheckMethod::NoCheck;
+
+    log::info!("[SSH] Auto-connecting to {}@{}:{}", server.username, server.host, server.port);
+
+    match Client::connect((server.host.as_str(), server.port), server.username.as_str(), auth, check).await {
+        Ok(client) => {
+            let mut connections = pool.lock().await;
+            connections.insert(server_id.to_string(), client);
+            log::info!("[SSH] Auto-connected: {}", server_id);
+            Ok(())
+        }
+        Err(e) => {
+            Err(format!("SSH auto-connect failed for '{}': {}", server_id, e))
+        }
+    }
+}
+
 /// Execute a command on a connected SSH server
 #[tauri::command]
 pub async fn ssh_execute(

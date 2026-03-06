@@ -497,14 +497,22 @@ many users are beginners and just want to try things out quickly.\n\
 
     // SSH servers info
     if !request.server_ids.is_empty() {
-        prompt.push_str("## Available SSH Servers\n");
-        let connections = ssh_pool.lock().await;
-        for sid in &request.server_ids {
-            if sid == "local" { continue; }
-            let status = if connections.contains_key(sid) { "connected" } else { "not connected" };
-            prompt.push_str(&format!("- {} ({}). Use server_id='{}' in shell_exec.\n", sid, status, sid));
+        let has_remote = request.server_ids.iter().any(|s| s != "local");
+        if has_remote {
+            prompt.push_str("## ACTIVE TARGET SERVER (CRITICAL)\n");
+            prompt.push_str("The user has selected a REMOTE server as their target. \
+                You MUST execute ALL shell_exec, file_read, and file_write calls \
+                with the server_id shown below. NEVER omit server_id — \
+                omitting it will run commands on the LOCAL machine instead of the remote server, \
+                which is WRONG and defeats the user's intent.\n\n");
+            let connections = ssh_pool.lock().await;
+            for sid in &request.server_ids {
+                if sid == "local" { continue; }
+                let status = if connections.contains_key(sid) { "connected" } else { "not connected" };
+                prompt.push_str(&format!(">>> TARGET: server_id='{}' ({}) <<<\n", sid, status));
+                prompt.push_str(&format!("Every tool call MUST include: \"server_id\": \"{}\"\n\n", sid));
+            }
         }
-        prompt.push_str("\n");
     }
 
     // Skills

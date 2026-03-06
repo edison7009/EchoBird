@@ -9,6 +9,19 @@ use std::io::{BufRead, BufReader, Write};
 use std::process::{Child, ChildStdin, ChildStdout, Command, Stdio};
 use std::sync::Mutex;
 
+/// Check if a port is already in use, with retry for race conditions.
+/// OpenClaw Gateway may register as a scheduled task and take a moment to bind.
+fn is_port_in_use(port: u16) -> bool {
+    let addr: std::net::SocketAddr = format!("127.0.0.1:{}", port).parse().unwrap();
+    // First attempt: 500ms timeout
+    if std::net::TcpStream::connect_timeout(&addr, std::time::Duration::from_millis(500)).is_ok() {
+        return true;
+    }
+    // Second attempt: wait a bit then retry (gateway may still be binding)
+    std::thread::sleep(std::time::Duration::from_millis(800));
+    std::net::TcpStream::connect_timeout(&addr, std::time::Duration::from_millis(500)).is_ok()
+}
+
 // ── Channel Config (persistence) ──
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -81,16 +94,17 @@ pub fn save_channels(channels: Vec<ChannelConfig>) -> Result<(), String> {
 // ── Bridge Lifecycle Commands ──
 
 /// Internal: start bridge (blocking — call from spawn_blocking)
-fn start_bridge_internal() -> Result<BridgeStartResult, String> {
+fn start_bridge_internal(plugin_id: &str) -> Result<BridgeStartResult, String> {
     // Find bridge binary via plugin manager
     let plugins = crate::services::plugin_manager::scan_plugins();
 
     let exe_path = std::env::current_exe().unwrap_or_default();
-    log::info!("[Bridge] exe path: {:?}, found {} plugins", exe_path, plugins.len());
+    log::info!("[Bridge] exe path: {:?}, found {} plugins, target: {}", exe_path, plugins.len(), plugin_id);
 
-    let plugin = plugins.iter().find(|p| p.id == "openclaw")
+    let plugin = plugins.iter().find(|p| p.id == plugin_id)
         .ok_or_else(|| format!(
-            "Plugin 'openclaw' not found. Exe: {:?}, scanned {} plugins: [{}]",
+            "Plugin '{}' not found. Exe: {:?}, scanned {} plugins: [{}]",
+            plugin_id,
             exe_path,
             plugins.len(),
             plugins.iter().map(|p| p.id.as_str()).collect::<Vec<_>>().join(", ")
@@ -107,10 +121,9 @@ fn start_bridge_internal() -> Result<BridgeStartResult, String> {
         let gateway_command = format!("{} gateway --allow-unconfigured", cli.command);
 
         // Check if gateway is already running by testing its port
-        let already_running = std::net::TcpStream::connect_timeout(
-            &"127.0.0.1:18789".parse().unwrap(),
-            std::time::Duration::from_millis(200),
-        ).is_ok();
+        // Use longer timeout + retry because the gateway may still be starting
+        // (e.g. when registered as a Windows scheduled task at boot)
+        let already_running = is_port_in_use(18789);
 
         if already_running {
             log::info!("[Bridge] OpenClaw Gateway already running on port 18789, skipping launch");
@@ -238,8 +251,9 @@ fn start_bridge_internal() -> Result<BridgeStartResult, String> {
 
 /// Start the Bridge binary as a persistent subprocess
 #[tauri::command]
-pub async fn bridge_start() -> Result<BridgeStartResult, String> {
-    tokio::task::spawn_blocking(|| {
+pub async fn bridge_start(plugin_id: Option<String>) -> Result<BridgeStartResult, String> {
+    let pid = plugin_id.unwrap_or_else(|| "openclaw".to_string());
+    tokio::task::spawn_blocking(move || {
         // Check if already running
         {
             let mut guard = BRIDGE_PROCESS.lock().map_err(|e| format!("Lock error: {}", e))?;
@@ -262,7 +276,7 @@ pub async fn bridge_start() -> Result<BridgeStartResult, String> {
             }
         }
 
-        start_bridge_internal()
+        start_bridge_internal(&pid)
     }).await.map_err(|e| format!("Task error: {}", e))?
 }
 
@@ -318,7 +332,7 @@ fn bridge_chat_sync(message: String, session_id: Option<String>) -> Result<Bridg
 
         if needs_start {
             log::info!("[BridgeChat] Bridge not running, auto-starting...");
-            let start_result = start_bridge_internal()?;
+            let start_result = start_bridge_internal("openclaw")?;
             if start_result.status != "connected" {
                 return Err(format!("Failed to start bridge: {:?}", start_result.error));
             }

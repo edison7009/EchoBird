@@ -186,12 +186,14 @@ export function MotherAgentProvider({ appLogs, detectedTools, onClearLogs, onAge
     const addSSHServer = useCallback(async (server: { id: string; host: string; port: string; username: string; password?: string; alias?: string }) => {
         setSSHServers(prev => [...prev, { id: server.id, host: server.host, port: server.port, username: server.username, alias: server.alias }]);
         await api.saveSSHServer(server.id, server.host, parseInt(server.port) || 22, server.username, server.password || '', server.alias).catch(() => { });
+        window.dispatchEvent(new Event('ssh-servers-changed'));
     }, []);
     const removeSSHServer = useCallback(async (id: string) => {
         setSSHServers(prev => prev.filter(s => s.id !== id));
         setSelectedServerId(prev => prev === id ? 'local' : prev);
         // Remove from backend
         await api.removeSSHServerFromDisk(id).catch(() => { });
+        window.dispatchEvent(new Event('ssh-servers-changed'));
     }, []);
 
     // Server selection (single-select)
@@ -1223,7 +1225,7 @@ export function MotherAgentPanel() {
                     /* ── SERVERS tab ── */
                     <div className="space-y-2">
                         {/* Server list */}
-                        {/* Local server �?always first */}
+                        {/* Local server — always first */}
                         <div
                             onClick={() => selectServer('local')}
                             className={`p-3 border rounded transition-all cursor-pointer select-none flex items-center ${selectedServerId === 'local'
@@ -1231,14 +1233,14 @@ export function MotherAgentPanel() {
                                 : 'border-cyber-border hover:border-cyber-accent-secondary/50'
                                 }`}
                         >
-                            <div className="flex-1 min-w-0">
-                                <div className="text-xs text-cyber-text-secondary mb-0.5 tracking-widest uppercase font-mono">{t('mother.local')}</div>
-                                <div className="text-sm font-bold truncate text-cyber-accent-secondary font-mono">127.0.0.1</div>
-                            </div>
-                            <div className="ml-3">
+                            <div className="mr-3">
                                 <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center transition-all ${selectedServerId === 'local' ? 'border-cyber-accent-secondary' : 'border-cyber-text-muted/30'}`}>
                                     {selectedServerId === 'local' && <div className="w-2 h-2 rounded-full bg-cyber-accent-secondary" />}
                                 </div>
+                            </div>
+                            <div className="flex-1 min-w-0">
+                                <div className="text-xs text-cyber-text-secondary mb-0.5 tracking-widest uppercase font-mono">{t('mother.local')}</div>
+                                <div className="text-sm font-bold truncate text-cyber-accent-secondary font-mono">127.0.0.1</div>
                             </div>
                         </div>
                         {/* SSH servers */}
@@ -1251,24 +1253,14 @@ export function MotherAgentPanel() {
                                     : 'border-cyber-border hover:border-cyber-accent-secondary/50'
                                     }`}
                             >
+                                <div className="mr-3">
+                                    <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center transition-all ${selectedServerId === server.id ? 'border-cyber-accent-secondary' : 'border-cyber-text-muted/30'}`}>
+                                        {selectedServerId === server.id && <div className="w-2 h-2 rounded-full bg-cyber-accent-secondary" />}
+                                    </div>
+                                </div>
                                 <div className="flex-1 min-w-0">
-                                    <div className="flex items-center gap-1.5 mb-0.5">
-                                        <button
-                                            onClick={async (e) => {
-                                                e.stopPropagation();
-                                                const ok = await confirm({
-                                                    title: t('mother.deleteServerTitle'),
-                                                    message: t('mother.deleteServerMsg'),
-                                                    confirmText: t('btn.delete'),
-                                                    cancelText: t('btn.cancel'),
-                                                    type: 'danger'
-                                                });
-                                                if (ok) removeSSHServer(server.id);
-                                            }}
-                                            className="text-xs font-mono text-cyber-text-muted/70 hover:text-red-500 transition-colors"
-                                        >
-                                            [{t('btn.delete')}]
-                                        </button>
+                                    <div className="flex items-center gap-1 mb-0.5">
+                                        <span className="text-xs text-cyber-text-secondary tracking-widest uppercase font-mono truncate flex-1 min-w-0">{server.alias || t('mother.local')}</span>
                                         <button
                                             onClick={async (e) => {
                                                 e.stopPropagation();
@@ -1290,17 +1282,28 @@ export function MotherAgentPanel() {
                                                 setSSHTestResult(null);
                                                 setShowSSHModal(true);
                                             }}
-                                            className="text-xs font-mono text-cyber-text-muted/70 hover:text-cyber-accent-secondary transition-colors"
+                                            className="text-xs font-mono text-cyber-text-muted/50 hover:text-cyber-accent-secondary transition-colors flex-shrink-0"
                                         >
                                             [{t('btn.edit')}]
                                         </button>
+                                        <button
+                                            onClick={async (e) => {
+                                                e.stopPropagation();
+                                                const ok = await confirm({
+                                                    title: t('mother.deleteServerTitle'),
+                                                    message: t('mother.deleteServerMsg'),
+                                                    confirmText: t('btn.delete'),
+                                                    cancelText: t('btn.cancel'),
+                                                    type: 'danger'
+                                                });
+                                                if (ok) removeSSHServer(server.id);
+                                            }}
+                                            className="text-xs font-mono text-cyber-text-muted/50 hover:text-red-500 transition-colors flex-shrink-0"
+                                        >
+                                            [{t('btn.delete')}]
+                                        </button>
                                     </div>
                                     <div className="text-sm font-bold truncate text-cyber-accent-secondary font-mono">{server.username ? `${server.username}@` : ''}{server.host}{server.port !== '22' ? `:${server.port}` : ''}</div>
-                                </div>
-                                <div className="ml-3">
-                                    <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center transition-all ${selectedServerId === server.id ? 'border-cyber-accent-secondary' : 'border-cyber-text-muted/30'}`}>
-                                        {selectedServerId === server.id && <div className="w-2 h-2 rounded-full bg-cyber-accent-secondary" />}
-                                    </div>
                                 </div>
                             </div>
                         ))}

@@ -406,8 +406,8 @@ export async function getBridgePath(pluginId: string): Promise<string> {
     return invoke('get_bridge_path', { pluginId });
 }
 
-export async function bridgeStart(): Promise<{ status: string; error?: string; agentName?: string }> {
-    return invoke('bridge_start');
+export async function bridgeStart(pluginId?: string): Promise<{ status: string; error?: string; agentName?: string }> {
+    return invoke('bridge_start', { pluginId });
 }
 
 export async function bridgeStop(): Promise<void> {

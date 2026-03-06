@@ -1,6 +1,6 @@
 {
-    "version": "2.2.6",
+    "version": "2.2.7",
     "releaseDate": "2026-03-06",
-    "releaseNotes": "Improved troubleshoot hint wording, removed tooltip hover tips, CI release asset deduplication fix.",
+    "releaseNotes": "Server list layout redesign, SSH auto-connect, Gateway double-launch fix, Channels live refresh.",
     "downloadUrl": "https://github.com/edison7009/Echobird-MotherAgent/releases/latest"
 }

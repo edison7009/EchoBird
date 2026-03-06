@@ -324,12 +324,20 @@ async fn exec_local_shell(command: &str) -> ToolResult {
 async fn exec_ssh_shell(command: &str, server_id: &str, ssh_pool: &SSHPool) -> ToolResult {
     log::info!("[AgentTools] SSH exec on {}: {}", server_id, &command[..command.len().min(200)]);
 
+    // Auto-connect if not in pool
+    if let Err(e) = crate::commands::ssh_commands::auto_connect_ssh(ssh_pool, server_id).await {
+        return ToolResult {
+            success: false,
+            output: format!("SSH auto-connect failed: {}", e),
+        };
+    }
+
     let connections = ssh_pool.lock().await;
     let client = match connections.get(server_id) {
         Some(c) => c,
         None => return ToolResult {
             success: false,
-            output: format!("SSH server '{}' not connected. Connect first via the panel.", server_id),
+            output: format!("SSH server '{}' not connected after auto-connect attempt.", server_id),
         },
     };
 
