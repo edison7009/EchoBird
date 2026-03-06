@@ -505,14 +505,16 @@ async fn exec_deploy_bridge(server_id: &str, plugin_id: &str, ssh_pool: &SSHPool
         },
     };
 
-    // Get local bridge binary path
-    let local_path = match crate::services::plugin_manager::get_bridge_path(plugin) {
-        Some(p) => p,
-        None => return ToolResult {
+    // Get the bridge binary for the REMOTE platform (not local)
+    let plugins_dir = crate::services::plugin_manager::plugins_dir();
+    let local_path = plugins_dir.join(&plugin.id).join(bridge_filename);
+    if !local_path.exists() {
+        return ToolResult {
             success: false,
-            output: format!("Bridge binary '{}' not found locally. Build it first.", bridge_filename),
-        },
-    };
+            output: format!("Bridge binary '{}' not found locally at '{}'. The binary for the remote platform may not be built yet.",
+                bridge_filename, local_path.display()),
+        };
+    }
 
     // Read and encode
     let file_data = match std::fs::read(&local_path) {

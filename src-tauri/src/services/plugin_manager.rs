@@ -40,7 +40,7 @@ pub struct CliConfig {
 
 // ── Plugin Scanner ──
 
-fn plugins_dir() -> PathBuf {
+pub fn plugins_dir() -> PathBuf {
     // Look for plugins/ in the app resource directory or next to the executable
     let exe_dir = std::env::current_exe()
         .ok()
