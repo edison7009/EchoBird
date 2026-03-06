@@ -542,113 +542,84 @@ fn shell_escape(s: &str) -> String {
 // ── Bridge Operations ──
 
 async fn exec_deploy_bridge(server_id: &str, plugin_id: &str, ssh_pool: &SSHPool) -> ToolResult {
-    log::info!("[AgentTools] Deploying bridge '{}' to server '{}'", plugin_id, server_id);
+    log::info!("[AgentTools] Deploying bridge '{}' to server '{}' via GitHub Release download", plugin_id, server_id);
 
-    // Find the plugin
-    let plugins = crate::services::plugin_manager::scan_plugins();
-    let plugin = match plugins.iter().find(|p| p.id == plugin_id) {
-        Some(p) => p,
-        None => return ToolResult {
-            success: false,
-            output: format!("Plugin '{}' not found. Available: {}",
-                plugin_id,
-                plugins.iter().map(|p| p.id.as_str()).collect::<Vec<_>>().join(", ")),
-        },
-    };
+    // Detect remote OS + architecture
+    let os_result = exec_ssh_shell("uname -s 2>/dev/null || echo windows", server_id, ssh_pool).await;
+    let arch_result = exec_ssh_shell("uname -m 2>/dev/null || echo x86_64", server_id, ssh_pool).await;
+    let os_name = os_result.output.trim().to_lowercase();
+    let arch = arch_result.output.trim().to_lowercase();
 
-    // Detect remote OS
-    let remote_os = exec_ssh_shell("uname -s 2>/dev/null || echo windows", server_id, ssh_pool).await;
-    let os_name = remote_os.output.trim().to_lowercase();
-
-    let bridge = match &plugin.bridge {
-        Some(b) => b,
-        None => return ToolResult {
-            success: false,
-            output: format!("Plugin '{}' has no bridge binaries configured", plugin_id),
-        },
-    };
-
+    // Map OS + arch to bridge binary filename
     let bridge_filename = if os_name.contains("linux") {
-        bridge.linux.as_deref()
-    } else if os_name.contains("darwin") {
-        bridge.darwin.as_deref()
-    } else {
-        bridge.win32.as_deref()
-    };
-
-    let bridge_filename = match bridge_filename {
-        Some(f) => f,
-        None => return ToolResult {
-            success: false,
-            output: format!("No bridge binary for remote OS '{}'", os_name),
-        },
-    };
-
-    // Get the bridge binary for the REMOTE platform (not local)
-    let plugins_dir = crate::services::plugin_manager::plugins_dir();
-    let local_path = plugins_dir.join(&plugin.id).join(bridge_filename);
-    if !local_path.exists() {
-        return ToolResult {
-            success: false,
-            output: format!("Bridge binary '{}' not found locally at '{}'. The binary for the remote platform may not be built yet.",
-                bridge_filename, local_path.display()),
-        };
-    }
-
-    // Read and encode
-    let file_data = match std::fs::read(&local_path) {
-        Ok(d) => d,
-        Err(e) => return ToolResult {
-            success: false,
-            output: format!("Failed to read bridge binary: {}", e),
-        },
-    };
-
-    let encoded = {
-        use base64::Engine;
-        base64::engine::general_purpose::STANDARD.encode(&file_data)
-    };
-
-    // Create directory + upload in chunks + decode + make executable
-    let _ = exec_ssh_shell("mkdir -p ~/echobird", server_id, ssh_pool).await;
-
-    let remote_b64 = format!("~/echobird/{}.b64", bridge_filename);
-    let remote_path = format!("~/echobird/{}", bridge_filename);
-
-    // Clear any previous partial upload
-    let _ = exec_ssh_shell(&format!("rm -f {} {}", remote_b64, remote_path), server_id, ssh_pool).await;
-
-    // Upload base64 data in chunks (64KB per chunk to stay within SSH limits)
-    const CHUNK_SIZE: usize = 65536;
-    let total_chunks = (encoded.len() + CHUNK_SIZE - 1) / CHUNK_SIZE;
-    log::info!("[AgentTools] Uploading bridge: {} bytes, {} chunks", file_data.len(), total_chunks);
-
-    for (i, chunk) in encoded.as_bytes().chunks(CHUNK_SIZE).enumerate() {
-        let chunk_str = std::str::from_utf8(chunk).unwrap_or("");
-        let append_cmd = format!("printf '%s' '{}' >> {}", chunk_str, remote_b64);
-        let result = exec_ssh_shell(&append_cmd, server_id, ssh_pool).await;
-        if !result.success {
-            return ToolResult {
-                success: false,
-                output: format!("Deploy failed at chunk {}/{}: {}", i + 1, total_chunks, result.output),
-            };
+        if arch.contains("aarch64") || arch.contains("arm64") {
+            "bridge-linux-aarch64"
+        } else {
+            "bridge-linux-x86_64"
         }
-    }
+    } else if os_name.contains("darwin") {
+        if arch.contains("arm64") || arch.contains("aarch64") {
+            "bridge-darwin-aarch64"
+        } else {
+            "bridge-darwin-x86_64"
+        }
+    } else {
+        "bridge-win.exe"
+    };
 
-    // Decode base64 on remote and make executable
-    let decode_cmd = format!("base64 -d {} > {} && chmod +x {} && rm -f {}",
-        remote_b64, remote_path, remote_path, remote_b64);
-    let result = exec_ssh_shell(&decode_cmd, server_id, ssh_pool).await;
+    log::info!("[AgentTools] Remote: os={}, arch={}, binary={}", os_name, arch, bridge_filename);
+
+    // Get the latest version from the public API
+    let version_url = "https://raw.githubusercontent.com/edison7009/Echobird-MotherAgent/main/docs/api/version/index.json";
+    let version_cmd = format!("curl -sL {} | grep -o '\"version\"[[:space:]]*:[[:space:]]*\"[^\"]*\"' | head -1 | grep -o 'v[0-9][^\"]*' || echo ''", version_url);
+    let version_result = exec_ssh_shell(&version_cmd, server_id, ssh_pool).await;
+    let version = version_result.output.trim().to_string();
+
+    // Build download URL — try latest tag from version API, fallback to "latest" release
+    let download_url = if version.starts_with('v') {
+        format!("https://github.com/edison7009/Echobird-MotherAgent/releases/download/{}/{}", version, bridge_filename)
+    } else {
+        format!("https://github.com/edison7009/Echobird-MotherAgent/releases/latest/download/{}", bridge_filename)
+    };
+
+    log::info!("[AgentTools] Downloading bridge from: {}", download_url);
+
+    // Create directory + download + make executable
+    let deploy_cmd = format!(
+        "mkdir -p ~/echobird && curl -fSL --connect-timeout 30 --max-time 120 -o ~/echobird/{} '{}' && chmod +x ~/echobird/{}",
+        bridge_filename, download_url, bridge_filename
+    );
+    let result = exec_ssh_shell(&deploy_cmd, server_id, ssh_pool).await;
 
     if result.success {
+        // Verify the download
+        let verify_cmd = format!("ls -la ~/echobird/{} && file ~/echobird/{}", bridge_filename, bridge_filename);
+        let verify = exec_ssh_shell(&verify_cmd, server_id, ssh_pool).await;
+
         ToolResult {
             success: true,
-            output: format!("Bridge deployed: {}:{} ({} bytes)", server_id, remote_path, file_data.len()),
+            output: format!("Bridge deployed via download: ~/echobird/{}\n{}", bridge_filename, verify.output),
         }
     } else {
-        ToolResult {
-            success: false,
-            output: format!("Deploy failed: {}", result.output),
+        // Fallback: try the latest release URL if versioned URL failed
+        let fallback_url = format!("https://github.com/edison7009/Echobird-MotherAgent/releases/latest/download/{}", bridge_filename);
+        let fallback_cmd = format!(
+            "curl -fSL --connect-timeout 30 --max-time 120 -o ~/echobird/{} '{}' && chmod +x ~/echobird/{}",
+            bridge_filename, fallback_url, bridge_filename
+        );
+        let fallback_result = exec_ssh_shell(&fallback_cmd, server_id, ssh_pool).await;
+
+        if fallback_result.success {
+            ToolResult {
+                success: true,
+                output: format!("Bridge deployed via fallback download: ~/echobird/{}", bridge_filename),
+            }
+        } else {
+            ToolResult {
+                success: false,
+                output: format!("Failed to download bridge binary '{}'. Primary URL: {} — Error: {}. Fallback also failed: {}",
+                    bridge_filename, download_url, result.output, fallback_result.output),
+            }
         }
     }
 }

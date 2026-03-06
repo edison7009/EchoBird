@@ -53,26 +53,14 @@ The bridge is a thin adapter between Echobird (via SSH) and the remote Agent CLI
 
 The bridge source code is **generic** — to support a new Agent, only the CLI command needs to change.
 
-### Reference Implementation
-A complete working bridge is available locally at `plugins/openclaw/bridge/src/main.rs`.
-**When deploying a bridge for ANY agent** (OpenClaw, ZeroClaw, PicoClaw, or any future agent):
-1. Use `file_read` (local) to read `plugins/openclaw/bridge/src/main.rs` as the reference template
-2. Also read `plugins/openclaw/bridge/Cargo.toml` for the project structure
-3. Adapt the CLI command in the source to match the target agent (e.g. change `openclaw agent` to the new agent's CLI)
-4. Write the adapted source files to the remote machine using `file_write`
+### Deployment — Just Use `deploy_bridge`
+Pre-compiled bridge binaries are available for all platforms. The `deploy_bridge` tool automatically:
+1. Detects the remote OS and CPU architecture (Linux/macOS, x86_64/aarch64)
+2. Downloads the correct binary from GitHub Releases (~400KB, takes ~30 seconds)
+3. Makes it executable
 
-### Deployment Steps
-DO NOT cross-compile locally. Compile natively on the remote machine:
-1. SSH into the remote server
-2. Check if Rust is installed: `rustc --version`
-3. If not, install Rust: `curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y`
-4. Source the environment: `source $HOME/.cargo/env`
-5. Create the bridge project directory on remote and write the adapted source files using `file_write`
-6. Run `cargo build --release` on the remote machine
-7. The bridge binary will be at `target/release/echobird-bridge`
-8. Use `bridge_chat` to verify the bridge works
-
-This approach works on any platform and CPU architecture (x86, ARM, etc.).
+**No Rust installation, no cargo build, no source code transfer needed.**
+After `deploy_bridge` succeeds, verify with `bridge_chat`.
 
 ## After Deployment
 
