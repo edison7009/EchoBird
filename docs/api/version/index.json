@@ -1,6 +1,6 @@
 {
-    "version": "2.2.7",
+    "version": "2.2.8",
     "releaseDate": "2026-03-06",
-    "releaseNotes": "Server list layout redesign, SSH auto-connect, Gateway double-launch fix, Channels live refresh.",
+    "releaseNotes": "Auto sudo password tool, Bridge Protocol self-deploy for any agent, sudo handling strategy.",
     "downloadUrl": "https://github.com/edison7009/Echobird-MotherAgent/releases/latest"
 }
