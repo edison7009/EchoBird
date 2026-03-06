@@ -203,6 +203,8 @@ pub async fn run_agent(
 
     // 4. ReAct loop
     let mut loop_count = 0;
+    let mut sse_retry_count = 0;
+    const MAX_SSE_RETRIES: u32 = 3;
 
     loop {
         loop_count += 1;
@@ -227,11 +229,21 @@ pub async fn run_agent(
         };
 
         // Call LLM
-        log::info!("[AgentLoop] Loop {}: calling LLM with {} messages", loop_count, messages.len());
+        log::info!("[AgentLoop] Loop {}: calling LLM with {} messages (SSE retry: {}/{})", loop_count, messages.len(), sse_retry_count, MAX_SSE_RETRIES);
 
         let mut rx = match client.chat_stream(&messages, &tools, &system_prompt).await {
             Ok(rx) => rx,
             Err(e) => {
+                if sse_retry_count < MAX_SSE_RETRIES {
+                    sse_retry_count += 1;
+                    log::warn!("[AgentLoop] chat_stream failed, retrying ({}/{}): {}", sse_retry_count, MAX_SSE_RETRIES, e);
+                    emit_event(&app, AgentEvent::TextDelta {
+                        text: format!("\n\n⚠️ Connection error, retrying ({}/{})...\n\n", sse_retry_count, MAX_SSE_RETRIES),
+                    });
+                    tokio::time::sleep(std::time::Duration::from_secs(2)).await;
+                    loop_count -= 1; // Don't count retries toward tool loop limit
+                    continue;
+                }
                 emit_event(&app, AgentEvent::Error { message: e });
                 break;
             }
@@ -243,6 +255,7 @@ pub async fn run_agent(
         let mut tool_args_map: std::collections::HashMap<String, String> = std::collections::HashMap::new();
         let mut stop_reason = String::new();
         let mut had_error = false;
+        let mut sse_error_msg = String::new();
 
         while let Some(event) = rx.recv().await {
             match event {
@@ -277,12 +290,15 @@ pub async fn run_agent(
                     stop_reason = reason;
                 }
                 LlmEvent::Error(e) => {
-                    let user_msg = if e.contains("400") || e.contains("Bad Request") {
-                        format!("{}\n\n⚠️ This model may not support tool/function calling, which Mother Agent requires. Please use a model with tool calling support (e.g. OpenAI, Anthropic, or compatible API providers).", e)
-                    } else {
-                        e
-                    };
-                    emit_event(&app, AgentEvent::Error { message: user_msg });
+                    // Non-retryable errors (model doesn't support tools)
+                    if e.contains("400") || e.contains("Bad Request") {
+                        let user_msg = format!("{}\n\n⚠️ This model may not support tool/function calling, which Mother Agent requires. Please use a model with tool calling support (e.g. OpenAI, Anthropic, or compatible API providers).", e);
+                        emit_event(&app, AgentEvent::Error { message: user_msg });
+                        had_error = true;
+                        break;
+                    }
+                    // Retryable SSE errors (stream ended, decode error, timeout)
+                    sse_error_msg = e;
                     had_error = true;
                     break;
                 }
@@ -290,6 +306,32 @@ pub async fn run_agent(
         }
 
         if had_error {
+            if !sse_error_msg.is_empty() && sse_retry_count < MAX_SSE_RETRIES {
+                // SSE stream error — retry
+                sse_retry_count += 1;
+                log::warn!("[AgentLoop] SSE stream error, retrying ({}/{}): {}", sse_retry_count, MAX_SSE_RETRIES, sse_error_msg);
+                emit_event(&app, AgentEvent::TextDelta {
+                    text: format!("\n\n⚠️ {} — retrying ({}/{})...\n\n", sse_error_msg, sse_retry_count, MAX_SSE_RETRIES),
+                });
+                // If we had partial text but no tool calls, save it to avoid losing progress
+                if !text_accumulator.is_empty() && tool_calls.is_empty() {
+                    let mut map = session_map.lock().await;
+                    let sess = map.entry(server_key.clone()).or_insert_with(AgentSession::new);
+                    sess.messages.push(Message {
+                        role: "assistant".into(),
+                        content: MessageContent::Text(text_accumulator.clone()),
+                    });
+                }
+                tokio::time::sleep(std::time::Duration::from_secs(2)).await;
+                loop_count -= 1; // Don't count retries toward tool loop limit
+                continue;
+            }
+            // Max retries exceeded or non-retryable error
+            if !sse_error_msg.is_empty() {
+                emit_event(&app, AgentEvent::Error {
+                    message: format!("{} (failed after {} retries)", sse_error_msg, MAX_SSE_RETRIES),
+                });
+            }
             // Remove the user message that caused the error from history
             let mut map = session_map.lock().await;
             if let Some(sess) = map.get_mut(&server_key) {
@@ -301,6 +343,9 @@ pub async fn run_agent(
             }
             break;
         }
+
+        // Reset SSE retry counter on successful stream completion
+        sse_retry_count = 0;
 
         // 5. Store assistant response in history
         {

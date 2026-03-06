@@ -133,11 +133,23 @@ When the user wants to install OpenClaw on the LOCAL machine (no SSH needed):
 
 ### Install OpenClaw (Remote Server)
 When the user wants to install OpenClaw on a REMOTE server via SSH:
-1. SSH → detect OS → use the **official install script** (handles all prerequisites automatically):
+⚠️ **CRITICAL**: Before ANY `which` or version check on remote, ALWAYS source the PATH first:
+```
+export PATH="$HOME/.npm-global/bin:$HOME/.local/bin:$HOME/.cargo/bin:$PATH" && source ~/.bashrc 2>/dev/null; source ~/.profile 2>/dev/null
+```
+This is required because SSH non-interactive sessions don't load `.bashrc` — without this, `which openclaw` will wrongly report "not found" even if OpenClaw is installed.
+
+1. **Pre-check** (MANDATORY — do NOT skip):
+   ```
+   export PATH="$HOME/.npm-global/bin:$HOME/.local/bin:$HOME/.cargo/bin:$PATH" && source ~/.bashrc 2>/dev/null; which openclaw && openclaw --version
+   ```
+   - If OpenClaw is found → **SKIP installation**, go directly to step 3 (configure model)
+   - If not found → proceed with installation
+2. SSH → detect OS → use the **official install script** (handles all prerequisites automatically):
    - Linux/macOS: `curl -fsSL https://openclaw.ai/install.sh | bash`
    If the script download is slow, refer to the "Slow Network / Install Timeout" section above.
-2. Verify: `openclaw --version`
-3. **Configure the model on the remote server** (remote has no App Manager — Mother Agent must handle this):
+3. Verify: `export PATH="$HOME/.npm-global/bin:$HOME/.local/bin:$PATH" && openclaw --version`
+4. **Configure the model on the remote server** (remote has no App Manager — Mother Agent must handle this):
    Present the user with these **three concrete options** — NEVER just ask "which model provider do you want?":
 
    **Option A (Recommended): Send a model from Model Nexus via 🔑 key icon**
