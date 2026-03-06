@@ -122,6 +122,10 @@ pub fn get_tool_definitions() -> Vec<super::llm_client::ToolDef> {
                     "session_id": {
                         "type": "string",
                         "description": "Optional session ID to resume a previous conversation"
+                    },
+                    "plugin_id": {
+                        "type": "string",
+                        "description": "Agent plugin ID (e.g. 'openclaw', 'zeroclaw'). Defaults to 'openclaw' if not specified."
                     }
                 },
                 "required": ["server_id", "message"]
@@ -238,10 +242,11 @@ pub async fn execute_tool(
             let server_id = args["server_id"].as_str().unwrap_or("");
             let message = args["message"].as_str().unwrap_or("");
             let session_id = args["session_id"].as_str();
+            let plugin_id = args["plugin_id"].as_str().unwrap_or("openclaw");
             if server_id.is_empty() || message.is_empty() {
                 return ToolResult { success: false, output: "server_id and message are required".into() };
             }
-            exec_bridge_chat(server_id, message, session_id, ssh_pool).await
+            exec_bridge_chat(server_id, message, session_id, plugin_id, ssh_pool).await
         }
         "web_fetch" => {
             let url = args["url"].as_str().unwrap_or("");
@@ -747,9 +752,18 @@ async fn exec_bridge_chat(
     server_id: &str,
     message: &str,
     session_id: Option<&str>,
+    plugin_id: &str,
     ssh_pool: &SSHPool,
 ) -> ToolResult {
-    log::info!("[AgentTools] Bridge chat on {}: {}", server_id, &message[..message.len().min(100)]);
+    log::info!("[AgentTools] Bridge chat on {} (plugin: {}): {}", server_id, plugin_id, &message[..message.len().min(100)]);
+
+    // Map plugin_id to agent CLI command
+    let agent_command = match plugin_id {
+        "openclaw" => "openclaw agent --json --agent main",
+        "zeroclaw" => "zeroclaw agent --json",
+        "nanoclaw" => "nanoclaw agent --json",
+        other => other, // allow custom commands
+    };
 
     // Build JSON input
     let input_json = if let Some(sid) = session_id {
@@ -763,7 +777,7 @@ async fn exec_bridge_chat(
     let escaped = input_str.replace('\'', "'\\''");
 
     // Pipe JSON into bridge via SSH (must set PATH for non-interactive SSH sessions)
-    let cmd = format!("export PATH=\"$HOME/.npm-global/bin:$HOME/.local/bin:$HOME/.cargo/bin:$PATH\" && echo '{}' | ~/echobird/echobird-bridge 2>/dev/null", escaped);
+    let cmd = format!("export PATH=\"$HOME/.npm-global/bin:$HOME/.local/bin:$HOME/.cargo/bin:$PATH\" && echo '{}' | ~/echobird/echobird-bridge --command '{}' 2>/dev/null", escaped, agent_command);
     let result = exec_ssh_shell(&cmd, server_id, ssh_pool).await;
 
     if !result.success {

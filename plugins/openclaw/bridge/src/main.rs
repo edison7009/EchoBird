@@ -111,7 +111,7 @@ fn main() {
 
     // Send ready status
     send(&OutboundMessage::Status {
-        agent: "openclaw".to_string(),
+        agent: config.command.split('/').last().unwrap_or(&config.command).to_string(),
         version: env!("CARGO_PKG_VERSION").to_string(),
         ready: true,
     });
@@ -158,7 +158,7 @@ fn handle_message(config: &BridgeConfig, msg: InboundMessage) {
         InboundMessage::Status {} => {
             let version = detect_agent(&config.command);
             send(&OutboundMessage::Status {
-                agent: "openclaw".to_string(),
+                agent: config.command.split('/').last().unwrap_or(&config.command).to_string(),
                 version,
                 ready: true,
             });
@@ -388,8 +388,41 @@ fn detect_agent(command: &str) -> String {
     }
 }
 
-/// Load config from plugin.json in same directory, or use defaults
+/// Load config: CLI args (--command) > plugin.json > defaults
 fn load_config() -> BridgeConfig {
+    // 1. Check CLI args: --command "zeroclaw agent --json"
+    let args: Vec<String> = std::env::args().collect();
+    for i in 0..args.len() {
+        if args[i] == "--command" {
+            if let Some(cmd_str) = args.get(i + 1) {
+                let parts: Vec<&str> = cmd_str.split_whitespace().collect();
+                if !parts.is_empty() {
+                    let command = parts[0].to_string();
+                    let cmd_args: Vec<String> = parts[1..].iter().map(|s| s.to_string()).collect();
+                    // Build a config with the provided command + args + --message at the end
+                    let mut chat_args = cmd_args.clone();
+                    if !chat_args.contains(&"--message".to_string()) {
+                        chat_args.push("--message".to_string());
+                    }
+                    let mut resume_args = cmd_args;
+                    resume_args.push("--session-id".to_string());
+                    resume_args.push("{sessionId}".to_string());
+                    resume_args.push("--message".to_string());
+                    eprintln!("[bridge] Using CLI config: {}", cmd_str);
+                    return BridgeConfig {
+                        command,
+                        args: chat_args,
+                        resume_args,
+                        session_arg: Some("--session-id".to_string()),
+                        model_arg: None,
+                        system_prompt_arg: None,
+                    };
+                }
+            }
+        }
+    }
+
+    // 2. Check plugin.json in same directory
     let exe_dir = std::env::current_exe()
         .ok()
         .and_then(|p| p.parent().map(|p| p.to_path_buf()));
@@ -431,6 +464,7 @@ fn load_config() -> BridgeConfig {
         }
     }
 
+    // 3. Default: openclaw
     eprintln!("[bridge] Using default config (openclaw agent)");
     BridgeConfig::default()
 }

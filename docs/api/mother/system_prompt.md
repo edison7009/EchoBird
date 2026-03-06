@@ -46,12 +46,12 @@ When installing an Agent OS on a remote server, the bridge is deployed automatic
 DO NOT ask "Would you like to install Echobird Bridge?" — just do it.
 
 ### Bridge Protocol Principles
-The bridge is a thin adapter between Echobird (via SSH) and the remote Agent CLI. It uses **stdin/stdout JSON lines**:
+The bridge is a **universal** adapter between Echobird (via SSH) and any remote Agent CLI. It uses **stdin/stdout JSON lines**:
 - **stdin** receives: `{"type":"chat","message":"...","session_id":"..."}`
-- The bridge invokes the Agent's CLI (e.g. `openclaw agent --json`)
+- The bridge invokes the Agent's CLI via `--command` (e.g. `--command "openclaw agent --json"`)
 - **stdout** emits: `{"type":"text","text":"...","session_id":"..."}` and `{"type":"done","session_id":"..."}`
 
-The bridge source code is **generic** — to support a new Agent, only the CLI command needs to change.
+The bridge binary is generic — the same binary works with **any Agent** (OpenClaw, ZeroClaw, NanoClaw, etc.). The `bridge_chat` tool automatically passes the correct `--command` based on the `plugin_id` parameter.
 
 ### Deployment — Just Use `deploy_bridge`
 Pre-compiled bridge binaries are available for all platforms. The `deploy_bridge` tool automatically:
