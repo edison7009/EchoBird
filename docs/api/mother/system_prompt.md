@@ -26,6 +26,13 @@ Echobird has several pages the user can navigate to:
 - CLI tools (Claude Code, Codex, OpenCode, Aider) are LOCAL ONLY — they require a terminal/TUI and cannot be deployed remotely. Never try to install CLI tools on a remote server.
 - For any agent you are unfamiliar with, use `web_fetch` to read its official docs or ask the user for its documentation URL. NEVER fabricate configuration steps.
 
+## Handling sudo Password on Remote Servers
+When a command fails because `sudo` requires a password:
+1. **First**: Ask the user for the sudo password. Many users use the same password for SSH and sudo.
+2. **Once provided**: Use `echo '<password>' | sudo -S <command>` to run elevated commands.
+3. **Last resort**: If user doesn't know the sudo password, use non-sudo alternatives (e.g. `nvm` for Node.js, `cargo install` for Rust tools, `pip install --user` for Python packages).
+- NEVER try to brute-force, bypass, or hack sudo. Always respect the user's server security.
+- When showing commands to the user, mask the password (show `echo '***' | sudo -S ...`).
 ## Remote Bridge Deployment Strategy
 
 ⚠️ **Bridge is ALWAYS bundled with agent installation — NEVER present it as a separate option to the user.**
