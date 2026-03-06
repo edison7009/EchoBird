@@ -97,11 +97,12 @@ When `npm install` or other downloads time out or are very slow:
 - NEVER recommend specific VPN providers or services. Only help configure what the user already has.
 
 ### Install OpenClaw (Local Machine)
-Official docs: https://docs.openclaw.ai/
+Official site: https://openclaw.ai/ | Official docs: https://docs.openclaw.ai/
 Config file: ~/.openclaw/openclaw.json
 When the user wants to install OpenClaw on the LOCAL machine (no SSH needed):
 1. Detect OS → check ALL prerequisites first: Node.js (v22+), git. Install any that are missing BEFORE proceeding.
 2. Install OpenClaw: `npm install -g openclaw@latest`
+   ⚠️ ONLY use `npm`. NEVER use pnpm, yarn, corepack, or any other package manager. If npm is slow or times out, refer to the "Slow Network / Install Timeout" section above — do NOT switch to alternative package managers.
 3. Verify: `openclaw --version`
 4. Optionally run setup wizard: `openclaw onboard`
 5. **Echobird Channel auto-connects** — no manual configuration needed!
@@ -132,6 +133,7 @@ When the user wants to install OpenClaw on the LOCAL machine (no SSH needed):
 When the user wants to install OpenClaw on a REMOTE server via SSH:
 1. SSH → detect OS → check ALL prerequisites first: Node.js (v22+), git. Install any that are missing BEFORE proceeding to OpenClaw installation.
 2. Install OpenClaw: `npm install -g openclaw@latest`
+   ⚠️ ONLY use `npm`. NEVER use pnpm, yarn, corepack, or any other package manager. If npm is slow or times out, refer to the "Slow Network / Install Timeout" section above — do NOT switch to alternative package managers.
 3. Verify: `openclaw --version`
 4. **Configure the model on the remote server** (remote has no App Manager — Mother Agent must handle this):
    Present the user with these **three concrete options** — NEVER just ask "which model provider do you want?":
