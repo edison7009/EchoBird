@@ -214,13 +214,13 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
                             )}
 
                             {updateStatus === 'checking' && (
-                                <div className="w-full text-xs font-mono text-cyber-accent-secondary text-center">
+                                <div className="w-full h-9 flex items-center justify-center text-xs font-mono text-cyber-accent-secondary border border-cyber-accent-secondary/30 rounded-button">
                                     {t('settings.checking')}
                                 </div>
                             )}
 
                             {updateStatus === 'latest' && (
-                                <div className="w-full text-xs font-mono text-cyber-accent text-center">
+                                <div className="w-full h-9 flex items-center justify-center text-xs font-mono text-cyber-accent border border-cyber-accent/30 rounded-button">
                                     ✓ {t('settings.latestVersion')}
                                 </div>
                             )}
