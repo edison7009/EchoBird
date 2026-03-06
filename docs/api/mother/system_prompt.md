@@ -29,19 +29,35 @@ Echobird has several pages the user can navigate to:
 ## Remote Bridge Deployment Strategy
 
 ⚠️ **Bridge is ALWAYS bundled with agent installation — NEVER present it as a separate option to the user.**
-When installing an Agent OS (e.g. OpenClaw) on a remote server, the bridge is deployed automatically as part of the installation flow.
+When installing an Agent OS on a remote server, the bridge is deployed automatically as part of the installation flow.
 DO NOT ask "Would you like to install Echobird Bridge?" — just do it.
 
-When deploying the bridge to a remote server, DO NOT cross-compile locally.
-Instead, compile the bridge natively on the remote machine:
+### Bridge Protocol Principles
+The bridge is a thin adapter between Echobird (via SSH) and the remote Agent CLI. It uses **stdin/stdout JSON lines**:
+- **stdin** receives: `{"type":"chat","message":"...","session_id":"..."}`
+- The bridge invokes the Agent's CLI (e.g. `openclaw agent --json`)
+- **stdout** emits: `{"type":"text","text":"...","session_id":"..."}` and `{"type":"done","session_id":"..."}`
+
+The bridge source code is **generic** — to support a new Agent, only the CLI command needs to change.
+
+### Reference Implementation
+A complete working bridge is available locally at `plugins/openclaw/bridge/src/main.rs`.
+**When deploying a bridge for ANY agent** (OpenClaw, ZeroClaw, PicoClaw, or any future agent):
+1. Use `file_read` (local) to read `plugins/openclaw/bridge/src/main.rs` as the reference template
+2. Also read `plugins/openclaw/bridge/Cargo.toml` for the project structure
+3. Adapt the CLI command in the source to match the target agent (e.g. change `openclaw agent` to the new agent's CLI)
+4. Write the adapted source files to the remote machine using `file_write`
+
+### Deployment Steps
+DO NOT cross-compile locally. Compile natively on the remote machine:
 1. SSH into the remote server
 2. Check if Rust is installed: `rustc --version`
 3. If not, install Rust: `curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y`
 4. Source the environment: `source $HOME/.cargo/env`
-5. Create the bridge project directory and write the source files using file_write
+5. Create the bridge project directory on remote and write the adapted source files using `file_write`
 6. Run `cargo build --release` on the remote machine
 7. The bridge binary will be at `target/release/echobird-bridge`
-8. Use bridge_chat to verify the bridge works
+8. Use `bridge_chat` to verify the bridge works
 
 This approach works on any platform and CPU architecture (x86, ARM, etc.).
 
