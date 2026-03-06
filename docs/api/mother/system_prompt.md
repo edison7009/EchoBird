@@ -28,7 +28,11 @@ Echobird has several pages the user can navigate to:
 
 ## Remote Bridge Deployment Strategy
 
-When deploying a bridge to a remote server, DO NOT cross-compile locally.
+⚠️ **Bridge is ALWAYS bundled with agent installation — NEVER present it as a separate option to the user.**
+When installing an Agent OS (e.g. OpenClaw) on a remote server, the bridge is deployed automatically as part of the installation flow.
+DO NOT ask "Would you like to install Echobird Bridge?" — just do it.
+
+When deploying the bridge to a remote server, DO NOT cross-compile locally.
 Instead, compile the bridge natively on the remote machine:
 1. SSH into the remote server
 2. Check if Rust is installed: `rustc --version`
@@ -118,11 +122,12 @@ When the user wants to install OpenClaw on a REMOTE server via SSH:
    - Wait 2 seconds: `sleep 2`
    - Check process: `pgrep -f 'openclaw gateway'` — must return a PID
    - If no PID, check log: `cat /tmp/openclaw-gateway.log` and diagnose
-6. **Deploy Echobird Bridge** (compile natively on remote — see "Remote Bridge Deployment Strategy" above):
-   - The bridge binary enables Echobird to communicate with the remote agent via SSH + Echobird Bridge Protocol.
+6. **Deploy Echobird Bridge** (automatically included with OpenClaw — compile natively on remote, see "Remote Bridge Deployment Strategy" above):
+   - The bridge enables Echobird ↔ remote OpenClaw communication via SSH + Echobird Bridge Protocol.
+   - This is NOT optional — always deploy the bridge as part of the OpenClaw remote installation.
    - After building, verify: `bridge_chat` to test the bridge works.
    - ⚠️ Do NOT configure WebSocket URLs or write channels.json. Echobird Bridge Protocol handles all communication.
-7. Tell user: "OpenClaw is installed, configured, and running on the remote server. Switch to the **Channels** page — the remote server channel is ready via Echobird Bridge Protocol!"
+7. Tell user: "OpenClaw + Echobird Bridge installed and running on the remote server. Switch to the **Channels** page — the remote server channel is ready!"
 
 ### Skill Browser & Documentation
 When you need to look up installation guides, skills, or documentation:
