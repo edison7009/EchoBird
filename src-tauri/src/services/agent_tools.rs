@@ -762,8 +762,8 @@ async fn exec_bridge_chat(
     // Escape for shell single quotes
     let escaped = input_str.replace('\'', "'\\''");
 
-    // Pipe JSON into bridge via SSH
-    let cmd = format!("echo '{}' | ~/echobird/echobird-bridge 2>/dev/null", escaped);
+    // Pipe JSON into bridge via SSH (must set PATH for non-interactive SSH sessions)
+    let cmd = format!("export PATH=\"$HOME/.npm-global/bin:$HOME/.local/bin:$HOME/.cargo/bin:$PATH\" && echo '{}' | ~/echobird/echobird-bridge 2>/dev/null", escaped);
     let result = exec_ssh_shell(&cmd, server_id, ssh_pool).await;
 
     if !result.success {

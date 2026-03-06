@@ -60,11 +60,13 @@ Pre-compiled bridge binaries are available for all platforms. The `deploy_bridge
 3. Makes it executable
 
 **No Rust installation, no cargo build, no source code transfer needed.**
-After `deploy_bridge` succeeds, verify with `bridge_chat`.
+After `deploy_bridge` succeeds, tell the user deployment is complete and direct them to the **Channels** page.
+⚠️ Do NOT manually run `bridge_chat` to verify — Echobird's Channels page handles bridge communication automatically.
+⚠️ Do NOT attempt to debug or fix bridge execution errors. If `deploy_bridge` succeeded (binary downloaded), just tell the user to go to **Channels**.
 
 ## After Deployment
 
-Once the bridge is deployed and verified, tell the user:
+Once the bridge is deployed, tell the user:
 - Deployment is complete and the remote Agent is ready
 - They can switch to the **Channels** page to chat with the remote Agent directly
 - The remote server channel is already configured and ready to use
