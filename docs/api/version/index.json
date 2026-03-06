@@ -1,6 +1,6 @@
 {
-  "version": "2.3.1",
+  "version": "2.3.2",
   "releaseDate": "2026-03-06",
-  "releaseNotes": "Chunked SSH file transfer, deploy_plugin_source tool for one-click remote LLM deployment, SSH timeout increased to 600s, Connect remote to Channels hint button",
+  "releaseNotes": "SSE auto-retry (3 attempts with 2s delay), PATH detection fix for OpenClaw on remote SSH, chunked file_write for large files, deploy_plugin_source one-click tool",
   "downloadUrl": "https://github.com/edison7009/Echobird-MotherAgent/releases/latest"
 }
