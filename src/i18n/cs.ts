@@ -232,7 +232,7 @@ const cs: Partial<Translations> = {
     'mother.flowHint': 'vybrat model → přidat server → nasadit',
     'mother.hintInstall': 'Nainstalovat {agent}',
     'mother.hintInstallSkills': 'Nainstalovat dovednosti pro {agent}',
-    'mother.hintDeployLlm': 'Nasadit LLM vzdáleně',
+    'mother.hintDeployLlm': 'Nasadit LLM vzdáleně (Kanály)',
     'mother.hintDeployBridge': '{agent} — Připojit vzdálené ke Kanálům',
     'mother.hintShowSpecs': 'Zobrazit specifikace serveru',
     'mother.hintTroubleshoot': '{agent} nefunguje, pomoz mi to opravit',

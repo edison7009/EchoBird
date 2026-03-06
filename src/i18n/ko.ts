@@ -260,7 +260,7 @@ const ko: Partial<Translations> = {
     'mother.flowHint': '모델 선택 → 서버 추가 → 배포',
     'mother.hintInstall': '{agent} 설치',
     'mother.hintInstallSkills': '{agent} 스킬 설치',
-    'mother.hintDeployLlm': '원격에 LLM 배포',
+    'mother.hintDeployLlm': '원격에 LLM 배포 (채널)',
     'mother.hintDeployBridge': '{agent} 원격을 채널에 연결',
     'mother.hintShowSpecs': '서버 사양 확인',
     'mother.hintTroubleshoot': '{agent} 안 돼요, 고쳐주세요',

@@ -232,7 +232,7 @@ const nl: Partial<Translations> = {
     'mother.flowHint': 'model kiezen → server toevoegen → deployen',
     'mother.hintInstall': '{agent} installeren',
     'mother.hintInstallSkills': 'Skills voor {agent} installeren',
-    'mother.hintDeployLlm': 'LLM op afstand deployen',
+    'mother.hintDeployLlm': 'LLM op afstand deployen (Kanalen)',
     'mother.hintDeployBridge': '{agent} — Verbind extern met Kanalen',
     'mother.hintShowSpecs': 'Serverspecificaties tonen',
     'mother.hintTroubleshoot': '{agent} werkt niet, help me',

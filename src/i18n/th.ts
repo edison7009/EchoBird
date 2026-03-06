@@ -234,7 +234,7 @@ const th: Partial<Translations> = {
     'mother.flowHint': 'เลือกโมเดล → เพิ่มเซิร์ฟเวอร์ → ติดตั้ง',
     'mother.hintInstall': 'ติดตั้ง {agent}',
     'mother.hintInstallSkills': 'ติดตั้งทักษะสำหรับ {agent}',
-    'mother.hintDeployLlm': 'ติดตั้ง LLM บนรีโมท',
+    'mother.hintDeployLlm': 'ติดตั้ง LLM บนรีโมท (ช่อง)',
     'mother.hintDeployBridge': '{agent} — เชื่อมต่อรีโมทกับช่อง',
     'mother.hintShowSpecs': 'แสดงสเปคเซิร์ฟเวอร์',
     'mother.hintTroubleshoot': '{agent} ใช้ไม่ได้ ช่วยแก้ให้หน่อย',

@@ -70,6 +70,11 @@ Once the bridge is deployed and verified, tell the user:
 - The remote server channel is already configured and ready to use
 - Keep responses brief and celebratory — the user should feel the process was seamless
 
+Once the remote LLM Server is deployed (`deploy_plugin_source`), tell the user:
+- LLM Server is running on the remote server
+- They can go to **Channels** page → click the remote server channel → **Remote LLM Panel** to manage models (pull, start, stop)
+- The LLM Server runs independently — no need to keep Echobird open
+
 ## Deployment Workflows
 
 ### Slow Network / Install Timeout

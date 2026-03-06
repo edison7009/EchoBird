@@ -232,7 +232,7 @@ const es: Partial<Translations> = {
     'mother.flowHint': 'seleccionar modelo → agregar servidor → desplegar',
     'mother.hintInstall': 'Instalar {agent}',
     'mother.hintInstallSkills': 'Instalar skills para {agent}',
-    'mother.hintDeployLlm': 'Desplegar LLM en remoto',
+    'mother.hintDeployLlm': 'Desplegar LLM en remoto (Canales)',
     'mother.hintDeployBridge': '{agent} — Conectar remoto a Canales',
     'mother.hintShowSpecs': 'Mostrar specs del servidor',
     'mother.hintTroubleshoot': '{agent} no funciona, ayúdame a arreglarlo',

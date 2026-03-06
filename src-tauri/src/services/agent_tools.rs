@@ -630,157 +630,115 @@ async fn exec_deploy_plugin_source(
     port: u16,
     ssh_pool: &SSHPool,
 ) -> ToolResult {
-    // 1. Read local plugin source files
-    let plugins_dir = crate::services::plugin_manager::plugins_dir();
-    let plugin_dir = plugins_dir.join(plugin_id);
-    let cargo_path = plugin_dir.join("Cargo.toml");
-    let main_path = plugin_dir.join("src").join("main.rs");
+    log::info!("[AgentTools] Deploying plugin '{}' to server '{}' via GitHub Release download", plugin_id, server_id);
 
-    let cargo_content = match std::fs::read_to_string(&cargo_path) {
-        Ok(c) => c,
-        Err(e) => return ToolResult {
-            success: false,
-            output: format!("Cannot read {}: {}", cargo_path.display(), e),
-        },
+    // 1. Detect remote OS + architecture
+    let os_result = exec_ssh_shell("uname -s 2>/dev/null || echo windows", server_id, ssh_pool).await;
+    let arch_result = exec_ssh_shell("uname -m 2>/dev/null || echo x86_64", server_id, ssh_pool).await;
+    let os_name = os_result.output.trim().to_lowercase();
+    let arch = arch_result.output.trim().to_lowercase();
+
+    // Map plugin_id to binary name pattern
+    let (_binary_name, binary_filename) = if os_name.contains("linux") {
+        if arch.contains("aarch64") || arch.contains("arm64") {
+            (format!("{}-linux-aarch64", plugin_id), format!("{}-linux-aarch64", plugin_id))
+        } else {
+            (format!("{}-linux-x86_64", plugin_id), format!("{}-linux-x86_64", plugin_id))
+        }
+    } else if os_name.contains("darwin") {
+        if arch.contains("arm64") || arch.contains("aarch64") {
+            (format!("{}-darwin-aarch64", plugin_id), format!("{}-darwin-aarch64", plugin_id))
+        } else {
+            (format!("{}-darwin-x86_64", plugin_id), format!("{}-darwin-x86_64", plugin_id))
+        }
+    } else {
+        (format!("{}-win.exe", plugin_id), format!("{}-win.exe", plugin_id))
     };
-    let main_content = match std::fs::read_to_string(&main_path) {
-        Ok(c) => c,
-        Err(e) => return ToolResult {
-            success: false,
-            output: format!("Cannot read {}: {}", main_path.display(), e),
-        },
+
+    log::info!("[AgentTools] Remote: os={}, arch={}, binary={}", os_name, arch, binary_filename);
+
+    let mut log_output = String::new();
+
+    // 2. Get version
+    let version_url = "https://raw.githubusercontent.com/edison7009/Echobird-MotherAgent/main/docs/api/version/index.json";
+    let version_cmd = format!("curl -sL {} | grep -o '\"version\"[[:space:]]*:[[:space:]]*\"[^\"]*\"' | head -1 | grep -o 'v[0-9][^\"]*' || echo ''", version_url);
+    let version_result = exec_ssh_shell(&version_cmd, server_id, ssh_pool).await;
+    let version = version_result.output.trim().to_string();
+
+    let download_url = if version.starts_with('v') {
+        format!("https://github.com/edison7009/Echobird-MotherAgent/releases/download/{}/{}", version, binary_filename)
+    } else {
+        format!("https://github.com/edison7009/Echobird-MotherAgent/releases/latest/download/{}", binary_filename)
     };
 
-    let remote_dir = format!("~/.echobird/{}", plugin_id);
-    let mut log = String::new();
+    log_output.push_str(&format!("[1/4] Downloading {} from GitHub Releases...\n", binary_filename));
 
-    // 2. Check/install Rust on remote
-    let rust_check = exec_ssh_shell("rustc --version 2>&1 || echo 'RUST_NOT_FOUND'", server_id, ssh_pool).await;
-    if rust_check.output.contains("RUST_NOT_FOUND") || !rust_check.success {
-        log.push_str("[1/6] Installing Rust...\n");
-        let install = exec_ssh_shell(
-            "curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y 2>&1 && source $HOME/.cargo/env && rustc --version",
-            server_id, ssh_pool
-        ).await;
-        if !install.success {
+    // 3. Download binary
+    let deploy_dir = "~/echobird";
+    let deploy_cmd = format!(
+        "mkdir -p {} && curl -fSL --connect-timeout 30 --max-time 120 -o {}/{} '{}' && chmod +x {}/{}",
+        deploy_dir, deploy_dir, binary_filename, download_url, deploy_dir, binary_filename
+    );
+    let result = exec_ssh_shell(&deploy_cmd, server_id, ssh_pool).await;
+
+    if !result.success {
+        // Fallback to latest release
+        let fallback_url = format!("https://github.com/edison7009/Echobird-MotherAgent/releases/latest/download/{}", binary_filename);
+        let fallback_cmd = format!(
+            "curl -fSL --connect-timeout 30 --max-time 120 -o {}/{} '{}' && chmod +x {}/{}",
+            deploy_dir, binary_filename, fallback_url, deploy_dir, binary_filename
+        );
+        let fallback = exec_ssh_shell(&fallback_cmd, server_id, ssh_pool).await;
+        if !fallback.success {
             return ToolResult {
                 success: false,
-                output: format!("Failed to install Rust: {}", install.output),
+                output: format!("Failed to download '{}'. URL: {} — Error: {}", binary_filename, download_url, result.output),
             };
         }
-        log.push_str(&format!("  Rust installed: {}\n", install.output.lines().last().unwrap_or("")));
-    } else {
-        log.push_str(&format!("[1/6] Rust OK: {}\n", rust_check.output.trim()));
     }
+    log_output.push_str("[2/4] Binary downloaded and ready\n");
 
-    // 3. Create project directory
-    let mkdir_result = exec_ssh_shell(
-        &format!("mkdir -p {}/src", remote_dir),
-        server_id, ssh_pool
-    ).await;
-    if !mkdir_result.success {
-        return ToolResult { success: false, output: format!("Failed to create dir: {}", mkdir_result.output) };
-    }
-    log.push_str("[2/6] Project directory created\n");
-
-    // 4. Write Cargo.toml (small, single command)
-    let cargo_write = exec_file_write(
-        &format!("{}/Cargo.toml", remote_dir),
-        &cargo_content,
-        server_id,
-        ssh_pool,
-    ).await;
-    if !cargo_write.success {
-        return ToolResult { success: false, output: format!("Failed to write Cargo.toml: {}", cargo_write.output) };
-    }
-    log.push_str("[3/6] Cargo.toml written\n");
-
-    // 5. Write src/main.rs (large, uses chunked heredoc)
-    let main_write = exec_file_write(
-        &format!("{}/src/main.rs", remote_dir),
-        &main_content,
-        server_id,
-        ssh_pool,
-    ).await;
-    if !main_write.success {
-        return ToolResult { success: false, output: format!("Failed to write main.rs: {}", main_write.output) };
-    }
-    log.push_str(&format!("[4/6] src/main.rs written ({} bytes, {})\n", main_content.len(), main_write.output));
-
-    // 6. Build on remote
-    log.push_str("[5/6] Building (cargo build --release)...\n");
-    let build_result = exec_ssh_shell(
-        &format!("source $HOME/.cargo/env 2>/dev/null; cd {} && cargo build --release 2>&1 | tail -5", remote_dir),
-        server_id, ssh_pool
-    ).await;
-    if !build_result.success {
-        return ToolResult {
-            success: false,
-            output: format!("{}Build failed:\n{}", log, build_result.output),
-        };
-    }
-    log.push_str(&format!("  Build output: {}\n", build_result.output.trim()));
-
-    // Determine binary name from plugin.json
-    let plugin_json_path = plugin_dir.join("plugin.json");
-    let _bin_name = if let Ok(pj) = std::fs::read_to_string(&plugin_json_path) {
-        if let Ok(v) = serde_json::from_str::<Value>(&pj) {
-            v["binary"]["linux"].as_str()
-                .or(v["name"].as_str())
-                .unwrap_or(plugin_id)
-                .to_string()
-        } else { plugin_id.to_string() }
-    } else { plugin_id.to_string() };
-
-    // Also try the [[bin]] name from Cargo.toml
-    let cargo_bin_name = cargo_content.lines()
-        .find(|l| l.starts_with("name = ") && !l.contains("echobird"))
-        .and_then(|l| l.split('"').nth(1))
-        .unwrap_or(plugin_id);
-
-    // 7. Stop any existing instance, then start
-    log.push_str("[6/6] Starting server...\n");
+    // 4. Stop any existing instance
+    log_output.push_str("[3/4] Starting server...\n");
     let _ = exec_ssh_shell(
-        &format!("pkill -f '{}/target/release/' 2>/dev/null; sleep 1", remote_dir),
+        &format!("pkill -f '{}/{}' 2>/dev/null; sleep 1", deploy_dir, binary_filename),
         server_id, ssh_pool
     ).await;
 
+    // 5. Start the server
     let start_result = exec_ssh_shell(
         &format!(
-            "cd {} && nohup ./target/release/{} {} > /tmp/{}.log 2>&1 & sleep 2 && pgrep -f 'target/release/{}' && echo 'STARTED_OK'",
-            remote_dir, cargo_bin_name, port, plugin_id, cargo_bin_name
+            "nohup {}/{} {} > /tmp/{}.log 2>&1 & sleep 2 && pgrep -f '{}' && echo 'STARTED_OK'",
+            deploy_dir, binary_filename, port, plugin_id, binary_filename
         ),
         server_id, ssh_pool
     ).await;
 
     if start_result.output.contains("STARTED_OK") {
-        log.push_str(&format!("  Server started on port {}\n", port));
+        log_output.push_str(&format!("[4/4] Server started on port {}\n", port));
 
         // Quick API health check
         let health = exec_ssh_shell(
             &format!("curl -s http://localhost:{}/api/status 2>&1 || echo 'API_NOT_READY'", port),
             server_id, ssh_pool
         ).await;
-        if health.output.contains("API_NOT_READY") {
-            log.push_str("  Warning: API not responding yet (may need a few more seconds)\n");
-        } else {
-            log.push_str(&format!("  API health check: {}\n", health.output.trim()));
+        if !health.output.contains("API_NOT_READY") {
+            log_output.push_str(&format!("  API health check: {}\n", health.output.trim()));
         }
 
         ToolResult {
             success: true,
             output: format!("{}Plugin '{}' deployed and running on port {}. \
-                User should go to Channels page → Remote LLM Panel to manage models.", log, plugin_id, port),
+                User should go to Channels page → Remote LLM Panel to manage models.", log_output, plugin_id, port),
         }
     } else {
-        // Check logs for why it failed
-        let log_output = exec_ssh_shell(
+        let log_check = exec_ssh_shell(
             &format!("cat /tmp/{}.log 2>/dev/null | tail -10", plugin_id),
             server_id, ssh_pool
         ).await;
         ToolResult {
             success: false,
-            output: format!("{}Server failed to start. Logs:\n{}", log, log_output.output),
+            output: format!("{}Server failed to start. Logs:\n{}", log_output, log_check.output),
         }
     }
 }

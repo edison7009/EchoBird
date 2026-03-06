@@ -246,7 +246,7 @@ const zhHans: Partial<Translations> = {
     'mother.flowHint': '选择模型 → 添加服务器 → 部署',
     'mother.hintInstall': '安装 {agent}',
     'mother.hintInstallSkills': '为 {agent} 安装技能',
-    'mother.hintDeployLlm': '在远程部署大模型',
+    'mother.hintDeployLlm': '在远程部署大模型 (频道)',
     'mother.hintDeployBridge': '{agent} 远程连接到频道',
     'mother.hintShowSpecs': '查看服务器配置',
     'mother.hintTroubleshoot': '{agent} 不好使了，帮我修一下',

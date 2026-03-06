@@ -259,7 +259,7 @@ const zhHant: Partial<Translations> = {
     'mother.flowHint': '選擇模型 → 新增伺服器 → 部署',
     'mother.hintInstall': '安裝 {agent}',
     'mother.hintInstallSkills': '為 {agent} 安裝技能',
-    'mother.hintDeployLlm': '在遠端部署大模型',
+    'mother.hintDeployLlm': '在遠端部署大模型 (頻道)',
     'mother.hintDeployBridge': '{agent} 遠端連接到頻道',
     'mother.hintShowSpecs': '查看伺服器規格',
     'mother.hintTroubleshoot': '{agent} 壞了，幫我修一下',

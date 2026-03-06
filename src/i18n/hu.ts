@@ -232,7 +232,7 @@ const hu: Partial<Translations> = {
     'mother.flowHint': 'modell kiválasztása → szerver hozzáadása → telepítés',
     'mother.hintInstall': '{agent} telepítése',
     'mother.hintInstallSkills': 'Képességek telepítése az {agent}-hoz',
-    'mother.hintDeployLlm': 'LLM telepítése távolról',
+    'mother.hintDeployLlm': 'LLM telepítése távolról (Csatornák)',
     'mother.hintDeployBridge': '{agent} — Távoli csatlakoztatása a Csatornákhoz',
     'mother.hintShowSpecs': 'Szerver specifikációk megjelenítése',
     'mother.hintTroubleshoot': '{agent} nem működik, segíts megjavítani',

@@ -232,7 +232,7 @@ const pl: Partial<Translations> = {
     'mother.flowHint': 'wybierz model → dodaj serwer → wdróż',
     'mother.hintInstall': 'Zainstaluj {agent}',
     'mother.hintInstallSkills': 'Zainstaluj umiejętności dla {agent}',
-    'mother.hintDeployLlm': 'Wdróż LLM zdalnie',
+    'mother.hintDeployLlm': 'Wdróż LLM zdalnie (Kanały)',
     'mother.hintDeployBridge': '{agent} — Połącz zdalne z Kanałami',
     'mother.hintShowSpecs': 'Pokaż specyfikację serwera',
     'mother.hintTroubleshoot': '{agent} nie działa, pomóż mi to naprawić',

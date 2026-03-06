@@ -232,7 +232,7 @@ const ar: Partial<Translations> = {
     'mother.flowHint': 'اختر نموذجاً → أضف خادماً → انشر',
     'mother.hintInstall': 'تثبيت {agent}',
     'mother.hintInstallSkills': 'تثبيت مهارات {agent}',
-    'mother.hintDeployLlm': 'نشر LLM على الخادم البعيد',
+    'mother.hintDeployLlm': 'نشر LLM على الخادم البعيد (القنوات)',
     'mother.hintDeployBridge': '{agent} — ربط الخادم البعيد بالقنوات',
     'mother.hintShowSpecs': 'عرض مواصفات الخادم',
     'mother.hintTroubleshoot': '{agent} لا يعمل، ساعدني في إصلاحه',

@@ -232,7 +232,7 @@ const ru: Partial<Translations> = {
     'mother.flowHint': 'выбрать модель → добавить сервер → развернуть',
     'mother.hintInstall': 'Установить {agent}',
     'mother.hintInstallSkills': 'Установить навыки для {agent}',
-    'mother.hintDeployLlm': 'Развернуть LLM удалённо',
+    'mother.hintDeployLlm': 'Развернуть LLM удалённо (Каналы)',
     'mother.hintDeployBridge': '{agent} — Подключить удалённый к Каналам',
     'mother.hintShowSpecs': 'Показать характеристики сервера',
     'mother.hintTroubleshoot': '{agent} не работает, помоги починить',

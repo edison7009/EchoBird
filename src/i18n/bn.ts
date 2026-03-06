@@ -232,7 +232,7 @@ const bn: Partial<Translations> = {
     'mother.flowHint': 'মডেল নির্বাচন → সার্ভার যোগ → ডিপ্লয়',
     'mother.hintInstall': '{agent} ইনস্টল করুন',
     'mother.hintInstallSkills': '{agent} এর জন্য স্কিল ইনস্টল করুন',
-    'mother.hintDeployLlm': 'দূরবর্তীতে LLM ডিপ্লয় করুন',
+    'mother.hintDeployLlm': 'দূরবর্তীতে LLM ডিপ্লয় করুন (চ্যানেল)',
     'mother.hintDeployBridge': '{agent} — রিমোটকে চ্যানেলে সংযুক্ত করুন',
     'mother.hintShowSpecs': 'সার্ভার স্পেক দেখুন',
     'mother.hintTroubleshoot': '{agent} কাজ করছে না, ঠিক করতে সাহায্য করো',

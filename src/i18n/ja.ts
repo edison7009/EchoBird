@@ -260,7 +260,7 @@ const ja: Partial<Translations> = {
     'mother.flowHint': 'モデル選択 → サーバー追加 → デプロイ',
     'mother.hintInstall': '{agent} をインストール',
     'mother.hintInstallSkills': '{agent} のスキルをインストール',
-    'mother.hintDeployLlm': 'リモートに LLM をデプロイ',
+    'mother.hintDeployLlm': 'リモートに LLM をデプロイ (チャンネル)',
     'mother.hintDeployBridge': '{agent} リモートをチャンネルに接続',
     'mother.hintShowSpecs': 'サーバースペックを表示',
     'mother.hintTroubleshoot': '{agent} が動かない、直して',

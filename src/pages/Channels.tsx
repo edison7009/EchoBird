@@ -704,11 +704,16 @@ export const Channels: React.FC = () => {
                         {!isActiveConnected && !canSendMessage && gateway.status !== 'connecting' && bridgeConnectionStatus !== 'connecting' ? (
                             /* Awaiting deployment state — centered status */
                             <div className="flex-1 mx-4 mt-2 bg-cyber-terminal rounded-lg flex items-center justify-center">
-                                <div className="text-center font-mono space-y-4 select-none">
+                                <div className="text-center font-mono space-y-3 select-none max-w-md">
                                     <p className="text-cyber-text-muted/70 text-base">&gt; {t('channel.deployFirst')}</p>
                                     <p className="text-sm text-cyber-text-muted/50">
                                         {t('channel.motherFlow')}
                                     </p>
+                                    {!isBridgeMode && (
+                                        <p className="text-xs text-cyber-accent-secondary/50 mt-2">
+                                            💡 {t('mother.hintDeployLlm')} · {t('mother.hintDeployBridge').replace('{agent}', 'OpenClaw')}
+                                        </p>
+                                    )}
                                 </div>
                             </div>
                         ) : (

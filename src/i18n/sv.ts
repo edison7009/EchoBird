@@ -99,7 +99,7 @@ const sv: Partial<Translations> = {
     'mother.flowHint': 'välj modell → lägg till server → distribuera',
     'mother.hintInstall': 'Installera {agent}',
     'mother.hintInstallSkills': 'Installera färdigheter för {agent}',
-    'mother.hintDeployLlm': 'Distribuera LLM på distans',
+    'mother.hintDeployLlm': 'Distribuera LLM på distans (Kanaler)',
     'mother.hintDeployBridge': '{agent} — Anslut fjärr till Kanaler',
     'mother.hintShowSpecs': 'Visa serverspecifikationer',
     'mother.hintTroubleshoot': '{agent} fungerar inte, hjälp mig fixa det',

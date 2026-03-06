@@ -99,7 +99,7 @@ const el: Partial<Translations> = {
     'mother.flowHint': 'επιλογή μοντέλου → προσθήκη διακομιστή → ανάπτυξη',
     'mother.hintInstall': 'Εγκατάσταση {agent}',
     'mother.hintInstallSkills': 'Εγκατάσταση δεξιοτήτων για {agent}',
-    'mother.hintDeployLlm': 'Ανάπτυξη LLM απομακρυσμένα',
+    'mother.hintDeployLlm': 'Ανάπτυξη LLM απομακρυσμένα (Κανάλια)',
     'mother.hintDeployBridge': '{agent} — Σύνδεση απομακρυσμένου στα Κανάλια',
     'mother.hintShowSpecs': 'Εμφάνιση προδιαγραφών διακομιστή',
     'mother.hintTroubleshoot': '{agent} δεν λειτουργεί, βοήθησέ με',

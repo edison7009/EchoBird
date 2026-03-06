@@ -234,7 +234,7 @@ const ms: Partial<Translations> = {
     'mother.flowHint': 'pilih model → tambah pelayan → deploy',
     'mother.hintInstall': 'Pasang {agent}',
     'mother.hintInstallSkills': 'Pasang kemahiran untuk {agent}',
-    'mother.hintDeployLlm': 'Deploy LLM secara jauh',
+    'mother.hintDeployLlm': 'Deploy LLM secara jauh (Saluran)',
     'mother.hintDeployBridge': '{agent} — Sambungkan jauh ke Saluran',
     'mother.hintShowSpecs': 'Papar spesifikasi pelayan',
     'mother.hintTroubleshoot': '{agent} tak berfungsi, tolong betulkan',

@@ -234,7 +234,7 @@ const id: Partial<Translations> = {
     'mother.flowHint': 'pilih model → tambah server → deploy',
     'mother.hintInstall': 'Instal {agent}',
     'mother.hintInstallSkills': 'Instal skill untuk {agent}',
-    'mother.hintDeployLlm': 'Deploy LLM di remote',
+    'mother.hintDeployLlm': 'Deploy LLM di remote (Saluran)',
     'mother.hintDeployBridge': '{agent} — Hubungkan remote ke Channel',
     'mother.hintShowSpecs': 'Tampilkan spesifikasi server',
     'mother.hintTroubleshoot': '{agent} tidak berfungsi, bantu saya perbaiki',

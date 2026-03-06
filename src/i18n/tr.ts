@@ -232,7 +232,7 @@ const tr: Partial<Translations> = {
     'mother.flowHint': 'model seç → sunucu ekle → dağıt',
     'mother.hintInstall': '{agent} kur',
     'mother.hintInstallSkills': '{agent} için beceri kur',
-    'mother.hintDeployLlm': 'LLM\'yi uzaktan dağıt',
+    'mother.hintDeployLlm': 'LLM\ (Kanallar)'yi uzaktan dağıt',
     'mother.hintDeployBridge': '{agent} — Uzaktan Kanallara bağla',
     'mother.hintShowSpecs': 'Sunucu özelliklerini göster',
     'mother.hintTroubleshoot': '{agent} çalışmıyor, düzeltmeme yardım et',

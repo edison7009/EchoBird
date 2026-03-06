@@ -99,7 +99,7 @@ const he: Partial<Translations> = {
     'mother.flowHint': 'בחר מודל → הוסף שרת → פרוס',
     'mother.hintInstall': 'התקן {agent}',
     'mother.hintInstallSkills': 'התקן כישורים ל-{agent}',
-    'mother.hintDeployLlm': 'פרוס LLM מרחוק',
+    'mother.hintDeployLlm': 'פרוס LLM מרחוק (ערוצים)',
     'mother.hintDeployBridge': '{agent} — חבר את השרת המרוחק לערוצים',
     'mother.hintShowSpecs': 'הצג מפרט שרת',
     'mother.hintTroubleshoot': '{agent} לא עובד, עזור לי לתקן',

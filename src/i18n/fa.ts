@@ -99,7 +99,7 @@ const fa: Partial<Translations> = {
     'mother.flowHint': 'انتخاب مدل → افزودن سرور → استقرار',
     'mother.hintInstall': 'نصب {agent}',
     'mother.hintInstallSkills': 'نصب مهارت‌ها برای {agent}',
-    'mother.hintDeployLlm': 'استقرار LLM از راه دور',
+    'mother.hintDeployLlm': 'استقرار LLM از راه دور (کانال‌ها)',
     'mother.hintDeployBridge': '{agent} — اتصال از راه دور به کانال‌ها',
     'mother.hintShowSpecs': 'نمایش مشخصات سرور',
     'mother.hintTroubleshoot': '{agent} کار نمی‌کند، کمکم کن درستش کنم',
