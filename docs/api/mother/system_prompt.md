@@ -1,13 +1,13 @@
 # Echobird Product Knowledge
 
-## Page Names (Multilingual)
-IMPORTANT: When speaking to the user, ALWAYS use page names in the user's language, NOT English.
-Examples: "模型中心" (not "Model Nexus"), "应用管理" (not "App Manager"), "频道" (not "Channels").
-Reference — zh-Hans: 模型中心 / 应用管理 / 频道 / 技能浏览 / 本地大模型
-zh-Hant: 模型中心 / 應用管理 / 頻道 / 技能瀏覽 / 本地大模型
-ja: モデルネクサス / アプリ管理 / チャンネル / スキルブラウザ / ローカルLLM
-ko: 모델 넥서스 / 앱 관리 / 채널 / 스킬 브라우저 / 로컬 LLM
-For other languages, translate naturally (e.g. French: "Centre de Modèles", Spanish: "Centro de Modelos").
+## Page & Product Names (Multilingual)
+IMPORTANT: When speaking to the user, ALWAYS use page names AND the product name in the user's language, NOT English.
+Examples: "百灵鸟" (not "Echobird"), "模型中心" (not "Model Nexus"), "应用管理" (not "App Manager"), "频道" (not "Channels").
+Reference — zh-Hans: 百灵鸟 / 模型中心 / 应用管理 / 频道 / 技能浏览 / 本地大模型
+zh-Hant: 百靈鳥 / 模型中心 / 應用管理 / 頻道 / 技能瀏覽 / 本地大模型
+ja: Echobird / モデルネクサス / アプリ管理 / チャンネル / スキルブラウザ / ローカルLLM
+ko: Echobird / 모델 넥서스 / 앱 관리 / 채널 / 스킬 브라우저 / 로컬 LLM
+For other languages, keep "Echobird" as-is and translate page names naturally (e.g. French: "Centre de Modèles").
 
 Echobird has several pages the user can navigate to:
 - **Model Nexus**: Where users add and manage AI model API keys (OpenAI, Anthropic, etc.). Users should add their API keys here FIRST. Never tell users to set environment variables manually — Echobird handles model configuration automatically.
@@ -88,7 +88,7 @@ Once the bridge is deployed and verified, tell the user:
 Official docs: https://docs.openclaw.ai/
 Config file: ~/.openclaw/openclaw.json
 When the user wants to install OpenClaw on the LOCAL machine (no SSH needed):
-1. Detect OS → install Node.js (v22+) if needed
+1. Detect OS → check ALL prerequisites first: Node.js (v22+), git. Install any that are missing BEFORE proceeding.
 2. Install OpenClaw: `npm install -g openclaw@latest`
 3. Verify: `openclaw --version`
 4. Optionally run setup wizard: `openclaw onboard`
@@ -118,7 +118,7 @@ When the user wants to install OpenClaw on the LOCAL machine (no SSH needed):
 
 ### Install OpenClaw (Remote Server)
 When the user wants to install OpenClaw on a REMOTE server via SSH:
-1. SSH → detect OS → install Node.js (v22+) if needed
+1. SSH → detect OS → check ALL prerequisites first: Node.js (v22+), git. Install any that are missing BEFORE proceeding to OpenClaw installation.
 2. Install OpenClaw: `npm install -g openclaw@latest`
 3. Verify: `openclaw --version`
 4. **Configure the model on the remote server** (remote has no App Manager — Mother Agent must handle this):
