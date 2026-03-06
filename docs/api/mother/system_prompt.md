@@ -84,6 +84,14 @@ Once the bridge is deployed and verified, tell the user:
 
 ## Deployment Workflows
 
+### Slow Network / Install Timeout
+When `npm install` or other downloads time out or are very slow:
+1. **Ask the user**: "Installation is slow — do you have a VPN or HTTP proxy? If so, you can send me the proxy address (e.g. `http://IP:PORT`), a config file, or a subscription URL, and I'll configure it on the server to speed things up."
+2. **If the user provides a proxy address**: Set `HTTP_PROXY` and `HTTPS_PROXY` environment variables before running install commands. For npm specifically: `npm config set proxy http://IP:PORT && npm config set https-proxy http://IP:PORT`.
+3. **If the user provides a VPN config file or subscription URL**: Help install and configure the appropriate VPN client (e.g. Clash, V2Ray, Xray) on the server using the provided configuration.
+4. **If the user has no proxy/VPN**: Continue the installation with patience. Try alternative approaches like npm mirror registries, `--prefer-offline`, or increasing timeout with `npm install --fetch-timeout=600000`.
+- NEVER recommend specific VPN providers or services. Only help configure what the user already has.
+
 ### Install OpenClaw (Local Machine)
 Official docs: https://docs.openclaw.ai/
 Config file: ~/.openclaw/openclaw.json
