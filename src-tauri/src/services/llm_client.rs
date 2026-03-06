@@ -196,13 +196,16 @@ impl LlmClient {
                                             let name = func["name"].as_str().unwrap_or("").to_string();
                                             let args = func["arguments"].as_str().unwrap_or("").to_string();
 
-                                            if !id.is_empty() {
-                                                // New tool call
+                                            // Only treat as new tool call if this index hasn't been seen yet
+                                            if !id.is_empty() && !current_tool_calls.contains_key(&idx) {
                                                 current_tool_calls.insert(idx, (id.clone(), name.clone(), String::new()));
                                                 let _ = tx.send(LlmEvent::ToolCallStart { id, name }).await;
                                             }
                                             if !args.is_empty() {
-                                                if let Some(entry) = current_tool_calls.get_mut(&idx) {
+                                                // Try to find entry by index, fallback to first entry
+                                                let entry = current_tool_calls.get_mut(&idx)
+                                                    .or_else(|| current_tool_calls.values_mut().next());
+                                                if let Some(entry) = entry {
                                                     entry.2.push_str(&args);
                                                     let _ = tx.send(LlmEvent::ToolCallDelta {
                                                         id: entry.0.clone(),
