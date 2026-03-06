@@ -1,6 +1,6 @@
 {
-  "version": "2.3.6",
+  "version": "2.3.7",
   "releaseDate": "2026-03-07",
-  "releaseNotes": "Bridge flexible --command config (supports any Agent), bridge_chat plugin_id, PATH fix, aarch64 Linux binaries, copyright fix",
+  "releaseNotes": "Remote channels now use SSH Bridge Protocol — all channels unified under Echobird Bridge. Bridge flexible --command, PATH fix, aarch64 Linux.",
   "downloadUrl": "https://github.com/edison7009/Echobird-MotherAgent/releases/latest"
 }

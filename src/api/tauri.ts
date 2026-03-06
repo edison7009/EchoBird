@@ -422,6 +422,10 @@ export async function bridgeChatLocal(message: string, sessionId?: string): Prom
     return invoke('bridge_chat_local', { message, sessionId: sessionId ?? null });
 }
 
+export async function bridgeChatRemote(serverId: string, message: string, sessionId?: string, pluginId?: string): Promise<{ text: string; session_id?: string; model?: string; tokens?: number; duration_ms?: number }> {
+    return invoke('bridge_chat_remote', { serverId, message, sessionId: sessionId ?? null, pluginId: pluginId ?? null });
+}
+
 // ─── Tool Config APIs ───
 
 export async function updateToolConfig(toolId: string, config: Record<string, unknown>): Promise<boolean> {

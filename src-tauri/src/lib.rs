@@ -384,6 +384,7 @@ pub fn run() {
             channel_commands::bridge_stop,
             channel_commands::bridge_status,
             channel_commands::bridge_chat_local,
+            channel_commands::bridge_chat_remote,
             settings_commands::get_settings,
             settings_commands::save_settings,
             skill_commands::load_skills_data,

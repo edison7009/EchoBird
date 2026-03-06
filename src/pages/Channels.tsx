@@ -241,13 +241,14 @@ export const Channels: React.FC = () => {
     const gateway = useChannelGateway(activeId);
 
     const activeChannel = channels.find(c => c.id === activeId);
-    // Local channel (id=1) uses bridge mode
-    const isBridgeMode = activeId === 1;
-    const isActiveConnected = (isBridgeMode && bridgeConnectionStatus === 'connected') || (!isBridgeMode && gateway.status === 'connected');
-    // Bridge standby = allow sending (will auto-start)
-    const canSendMessage = isBridgeMode ? (bridgeConnectionStatus === 'standby' || bridgeConnectionStatus === 'connected') : isActiveConnected;
+    // All channels use bridge mode (local = spawn, remote = SSH)
+    const isBridgeMode = true;
+    const isLocalChannel = activeId === 1;
+    const isActiveConnected = bridgeConnectionStatus === 'connected' || bridgeConnectionStatus === 'standby';
+    // Bridge standby = allow sending (will auto-start for local, SSH on-demand for remote)
+    const canSendMessage = bridgeConnectionStatus === 'standby' || bridgeConnectionStatus === 'connected';
     const isLocal = activeChannel?.address?.startsWith('127.0.0.1') || activeChannel?.address === 'localhost';
-    const messages = isBridgeMode ? bridgeMessages : gateway.messages;
+    const messages = bridgeMessages;
 
     // Load SSH servers + channel config → populate channels
     const loadChannelData = useCallback(async (preserveActiveId?: boolean) => {
@@ -327,12 +328,12 @@ export const Channels: React.FC = () => {
 
     // Loading animation
     useEffect(() => {
-        if (!bridgeLoading && !gateway.isLoading) return;
+        if (!bridgeLoading) return;
         const timer = setInterval(() => {
             setArrowIndex(prev => (prev + 1) % 4);
         }, 200);
         return () => clearInterval(timer);
-    }, [bridgeLoading, gateway.isLoading]);
+    }, [bridgeLoading]);
 
     // Focus input on connect
     useEffect(() => {
@@ -564,11 +565,8 @@ export const Channels: React.FC = () => {
     // Send message
     const handleSend = useCallback(async () => {
         if (!activeId) return;
-        // Bridge mode: allow sending from standby (will auto-start) or connected
-        if (isBridgeMode && !canSendMessage) return;
-        if (!isBridgeMode && !isActiveConnected) return;
-        if (isBridgeMode && bridgeLoading) return;
-        if (!isBridgeMode && gateway.isLoading) return;
+        if (!canSendMessage) return;
+        if (bridgeLoading) return;
         if (!input.trim() && attachments.length === 0 && !selectedModel) return;
         let text = input.trim();
         // Append model config as text
@@ -576,17 +574,16 @@ export const Channels: React.FC = () => {
             const modelText = formatModelText(selectedModel);
             text = text ? `${text}\n\n${modelText}` : modelText;
         }
-        const atts = attachments.length > 0 ? [...attachments] : undefined;
         setInput('');
         setAttachments([]);
         setSelectedModel(null);
 
-        if (isBridgeMode) {
-            // Bridge mode: auto-start if standby, then chat
-            setBridgeMessages(prev => [...prev, { role: 'user', content: text }]);
-            setBridgeLoading(true);
-            try {
-                // Auto-start bridge if not connected
+        // All channels use bridge protocol
+        setBridgeMessages(prev => [...prev, { role: 'user', content: text }]);
+        setBridgeLoading(true);
+        try {
+            if (isLocalChannel) {
+                // Local channel: auto-start bridge subprocess if needed
                 if (bridgeConnectionStatus !== 'connected') {
                     setBridgeConnectionStatus('connecting');
                     const startResult = await api.bridgeStart();
@@ -607,22 +604,36 @@ export const Channels: React.FC = () => {
                     content: result.text,
                     meta: { model: result.model, tokens: result.tokens, duration_ms: result.duration_ms },
                 }]);
-            } catch (e: any) {
-                setBridgeMessages(prev => [...prev, { role: 'system', content: `Error: ${e?.message || e}` }]);
-                // Check if bridge died
+            } else {
+                // Remote channel: SSH → bridge binary on remote server
+                const serverId = activeChannel?.serverId;
+                if (!serverId) {
+                    setBridgeMessages(prev => [...prev, { role: 'system', content: 'No server ID found for this channel' }]);
+                    setBridgeLoading(false);
+                    return;
+                }
+                setBridgeConnectionStatus('connected');
+                const result = await api.bridgeChatRemote(serverId, text, bridgeSessionId);
+                if (result.session_id) setBridgeSessionId(result.session_id);
+                setBridgeMessages(prev => [...prev, {
+                    role: 'assistant',
+                    content: result.text,
+                    meta: { model: result.model, tokens: result.tokens, duration_ms: result.duration_ms },
+                }]);
+            }
+        } catch (e: any) {
+            setBridgeMessages(prev => [...prev, { role: 'system', content: `Error: ${e?.message || e}` }]);
+            if (isLocalChannel) {
                 try {
                     const s = await api.bridgeStatus();
                     setBridgeConnectionStatus(s.status || 'disconnected');
                 } catch { setBridgeConnectionStatus('disconnected'); }
-            } finally {
-                setBridgeLoading(false);
             }
-        } else {
-            // SSH/WebSocket mode: use gateway
-            await gateway.send(text, atts);
+        } finally {
+            setBridgeLoading(false);
         }
         inputRef.current?.focus();
-    }, [activeId, input, attachments, selectedModel, gateway, isActiveConnected, canSendMessage, isBridgeMode, bridgeLoading, bridgeSessionId, bridgeConnectionStatus]);
+    }, [activeId, input, attachments, selectedModel, isActiveConnected, canSendMessage, isLocalChannel, bridgeLoading, bridgeSessionId, bridgeConnectionStatus, activeChannel]);
 
     // Abort current request
     const handleAbort = useCallback(() => {
@@ -754,7 +765,7 @@ export const Channels: React.FC = () => {
                                         </div>
                                     ))}
 
-                                    {(bridgeLoading || gateway.isLoading) ? (
+                                    {(bridgeLoading) ? (
                                         <p className="text-cyber-accent font-mono">[EXEC] <span className="inline-block w-8 text-left">{['>', '>>', '>>>', ''][arrowIndex]}</span> {t('channel.transmitting')}</p>
                                     ) : isActiveConnected && (
                                         <p className="text-cyber-accent">_ ready</p>
@@ -825,8 +836,8 @@ export const Channels: React.FC = () => {
                                         }
                                     }}
                                     onPaste={handlePaste}
-                                    placeholder={(bridgeLoading || gateway.isLoading) ? t('channel.awaitingResponse') : t('channel.enterMessage')}
-                                    disabled={(bridgeLoading || gateway.isLoading) || (!canSendMessage && !isActiveConnected)}
+                                    placeholder={(bridgeLoading) ? t('channel.awaitingResponse') : t('channel.enterMessage')}
+                                    disabled={(bridgeLoading) || (!canSendMessage && !isActiveConnected)}
                                     rows={3}
                                     className="w-full bg-transparent px-4 py-2 text-sm text-cyber-text font-mono outline-none placeholder:text-cyber-text-muted/60 disabled:opacity-30 resize-none"
                                 />
@@ -835,28 +846,28 @@ export const Channels: React.FC = () => {
                                     <div className="flex items-center gap-1 relative">
                                         <button
                                             onClick={() => fileInputRef.current?.click()}
-                                            disabled={gateway.isLoading || !isActiveConnected}
+                                            disabled={bridgeLoading || !isActiveConnected}
                                             className="p-1 text-cyber-accent/60 hover:text-cyber-accent transition-colors disabled:opacity-20"
                                         >
                                             <Paperclip size={15} />
                                         </button>
                                         <button
                                             onClick={() => imageInputRef.current?.click()}
-                                            disabled={gateway.isLoading || !isActiveConnected}
+                                            disabled={bridgeLoading || !isActiveConnected}
                                             className="p-1 text-cyber-accent/60 hover:text-cyber-accent transition-colors disabled:opacity-20"
                                         >
                                             <ImageIcon size={15} />
                                         </button>
                                         <button
                                             onClick={openModelPicker}
-                                            disabled={gateway.isLoading || !isActiveConnected}
+                                            disabled={bridgeLoading || !isActiveConnected}
                                             className={`p-1 transition-colors disabled:opacity-20 ${selectedModel ? 'text-cyber-accent' : 'text-cyber-accent/60 hover:text-cyber-accent'}`}
                                         >
                                             <KeyRound size={15} />
                                         </button>
                                         <button
                                             onClick={openSkillsPicker}
-                                            disabled={gateway.isLoading || !isActiveConnected}
+                                            disabled={bridgeLoading || !isActiveConnected}
                                             className={`p-1 transition-colors disabled:opacity-20 ${showSkillsPicker ? 'text-cyber-warning' : 'text-cyber-warning/40 hover:text-cyber-warning'}`}
                                         >
                                             <Zap size={15} />
@@ -927,13 +938,13 @@ export const Channels: React.FC = () => {
                                     <div className="flex items-center gap-1.5">
                                         <button
                                             onClick={() => setShowProcess(prev => !prev)}
-                                            disabled={gateway.isLoading || !isActiveConnected}
+                                            disabled={bridgeLoading || !isActiveConnected}
                                             className={`flex items-center gap-2 text-xs font-mono px-1.5 py-0.5 rounded border transition-colors disabled:opacity-20 ${showProcess ? 'border-cyber-accent/40 text-cyber-accent/80 bg-cyber-accent/5' : 'border-cyber-border/30 text-cyber-text-muted/40 hover:text-cyber-text-muted/60'}`}
                                         >
                                             <span className={`inline-block w-2 h-2 rounded-full border transition-colors ${showProcess ? 'bg-cyber-accent border-cyber-accent' : 'border-cyber-text-muted/40'}`} />
                                             {t('common.showProcess')}
                                         </button>
-                                        {gateway.isLoading ? (
+                                        {bridgeLoading ? (
                                             <button
                                                 onClick={handleAbort}
                                                 className="p-1 text-red-400 hover:text-red-300 transition-colors"

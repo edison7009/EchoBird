@@ -456,6 +456,111 @@ pub async fn bridge_chat_local(message: String, session_id: Option<String>) -> R
     }).await.map_err(|e| format!("Task error: {}", e))?
 }
 
+/// Tauri command: chat with remote Agent via SSH → echobird-bridge
+#[tauri::command]
+pub async fn bridge_chat_remote(
+    pool: tauri::State<'_, crate::commands::ssh_commands::SSHPool>,
+    server_id: String,
+    message: String,
+    session_id: Option<String>,
+    plugin_id: Option<String>,
+) -> Result<BridgeChatResult, String> {
+    let pool = pool.inner().clone();
+    let plugin = plugin_id.unwrap_or_else(|| "openclaw".to_string());
+
+    log::info!("[BridgeChatRemote] server={}, plugin={}, msg={}",
+        server_id, plugin, safe_truncate(&message, 50));
+
+    // Auto-connect SSH if needed
+    crate::commands::ssh_commands::auto_connect_ssh(&pool, &server_id).await
+        .map_err(|e| format!("SSH connection failed: {}", e))?;
+
+    // Map plugin_id to agent CLI command
+    let agent_command = match plugin.as_str() {
+        "openclaw" => "openclaw agent --json --agent main",
+        "zeroclaw" => "zeroclaw agent --json",
+        "nanoclaw" => "nanoclaw agent --json",
+        other => other,
+    };
+
+    // Build JSON input
+    let input_json = if let Some(ref sid) = session_id {
+        serde_json::json!({ "type": "chat", "message": message, "session_id": sid })
+    } else {
+        serde_json::json!({ "type": "chat", "message": message })
+    };
+
+    let input_str = serde_json::to_string(&input_json)
+        .map_err(|e| format!("JSON error: {}", e))?;
+    let escaped = input_str.replace('\'', "'\\''");
+
+    // Execute via SSH: pipe JSON into bridge binary with --command
+    let cmd = format!(
+        "export PATH=\"$HOME/.npm-global/bin:$HOME/.local/bin:$HOME/.cargo/bin:$PATH\" && echo '{}' | ~/echobird/echobird-bridge --command '{}' 2>/dev/null",
+        escaped, agent_command
+    );
+
+    let connections = pool.lock().await;
+    let client = connections.get(&server_id)
+        .ok_or_else(|| format!("SSH not connected: {}", server_id))?;
+
+    let result = match tokio::time::timeout(
+        std::time::Duration::from_secs(120),
+        client.execute(&cmd)
+    ).await {
+        Ok(Ok(r)) => r,
+        Ok(Err(e)) => return Err(format!("SSH exec failed: {}", e)),
+        Err(_) => return Err("Bridge chat timed out (120s)".to_string()),
+    };
+
+    drop(connections); // Release lock
+
+    if result.exit_status != 0 && result.stdout.is_empty() {
+        return Err(format!("Bridge execution failed (exit {}): {}", result.exit_status, result.stderr));
+    }
+
+    // Parse bridge JSON output
+    let mut response_text = String::new();
+    let mut new_session_id: Option<String> = None;
+
+    for line in result.stdout.lines() {
+        if let Ok(json) = serde_json::from_str::<serde_json::Value>(line) {
+            match json.get("type").and_then(|v| v.as_str()) {
+                Some("text") => {
+                    if let Some(text) = json.get("text").and_then(|v| v.as_str()) {
+                        response_text.push_str(text);
+                    }
+                    if let Some(sid) = json.get("session_id").and_then(|v| v.as_str()) {
+                        new_session_id = Some(sid.to_string());
+                    }
+                }
+                Some("done") => {
+                    if let Some(sid) = json.get("session_id").and_then(|v| v.as_str()) {
+                        new_session_id = Some(sid.to_string());
+                    }
+                }
+                Some("error") => {
+                    let msg = json.get("message").and_then(|v| v.as_str()).unwrap_or("Unknown error");
+                    return Err(format!("Bridge error: {}", msg));
+                }
+                _ => {}
+            }
+        }
+    }
+
+    if response_text.is_empty() && !result.stdout.is_empty() {
+        response_text = result.stdout.clone();
+    }
+
+    Ok(BridgeChatResult {
+        text: response_text,
+        session_id: new_session_id.or(session_id),
+        model: None,
+        tokens: None,
+        duration_ms: None,
+    })
+}
+
 // ── Result Types ──
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
