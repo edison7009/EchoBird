@@ -1,6 +1,6 @@
 {
-  "version": "2.3.4",
-  "releaseDate": "2026-03-06",
-  "releaseNotes": "Model config pre-check (skip if already configured), i18n deploy hints with channel names, deploy bridge/llm-server via GitHub Release download",
+  "version": "2.3.5",
+  "releaseDate": "2026-03-07",
+  "releaseNotes": "Fix bridge deployment: symlink echobird-bridge, PATH for bridge_chat SSH, model config pre-check, copyright fix, Linux aarch64 binaries",
   "downloadUrl": "https://github.com/edison7009/Echobird-MotherAgent/releases/latest"
 }
