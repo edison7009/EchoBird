@@ -233,6 +233,21 @@ pre {
   animation: arrow-appear-3 1s ease-out infinite;
 }
 
+/* Mother Agent processing dot pulse */
+@keyframes dotPulse {
+
+  0%,
+  100% {
+    opacity: 0.2;
+    transform: scale(0.8);
+  }
+
+  50% {
+    opacity: 1;
+    transform: scale(1.2);
+  }
+}
+
 /* DOS-style hard blink cursor */
 @keyframes blink {
 

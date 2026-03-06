@@ -1,6 +1,6 @@
 {
-    "version": "2.2.8",
+    "version": "2.2.9",
     "releaseDate": "2026-03-06",
-    "releaseNotes": "Auto sudo password tool, Bridge Protocol self-deploy for any agent, sudo handling strategy.",
+    "releaseNotes": "Mother Agent prompt improvements, processing animation.",
     "downloadUrl": "https://github.com/edison7009/Echobird-MotherAgent/releases/latest"
 }

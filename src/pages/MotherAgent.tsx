@@ -676,7 +676,21 @@ export function MotherAgentMain() {
                                 }
                             })}
                             {isProcessing && (
-                                <p className="text-cyber-accent-secondary font-mono">{agentState === 'executing' ? t('mother.executing') : agentState === 'tool_calling' ? t('mother.callingTool') : t('mother.processing')}</p>
+                                <p className="text-cyber-accent-secondary font-mono flex items-center gap-1">
+                                    {agentState === 'executing' ? t('mother.executing') : agentState === 'tool_calling' ? t('mother.callingTool') : t('mother.processing')}
+                                    <span className="inline-flex gap-[2px] ml-0.5">
+                                        {[0, 1, 2].map(i => (
+                                            <span
+                                                key={i}
+                                                className="inline-block w-1.5 h-1.5 rounded-full bg-cyber-accent-secondary"
+                                                style={{
+                                                    animation: 'dotPulse 1.2s ease-in-out infinite',
+                                                    animationDelay: `${i * 0.2}s`,
+                                                }}
+                                            />
+                                        ))}
+                                    </span>
+                                </p>
                             )}
                             <div ref={chatEndRef} />
                         </div>
