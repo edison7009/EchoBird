@@ -528,13 +528,36 @@ async fn exec_deploy_bridge(server_id: &str, plugin_id: &str, ssh_pool: &SSHPool
         base64::engine::general_purpose::STANDARD.encode(&file_data)
     };
 
-    // Create directory + upload + make executable
+    // Create directory + upload in chunks + decode + make executable
     let _ = exec_ssh_shell("mkdir -p ~/echobird", server_id, ssh_pool).await;
 
+    let remote_b64 = format!("~/echobird/{}.b64", bridge_filename);
     let remote_path = format!("~/echobird/{}", bridge_filename);
-    let upload_cmd = format!("printf '%s' '{}' | base64 -d > {} && chmod +x {}",
-        encoded, remote_path, remote_path);
-    let result = exec_ssh_shell(&upload_cmd, server_id, ssh_pool).await;
+
+    // Clear any previous partial upload
+    let _ = exec_ssh_shell(&format!("rm -f {} {}", remote_b64, remote_path), server_id, ssh_pool).await;
+
+    // Upload base64 data in chunks (64KB per chunk to stay within SSH limits)
+    const CHUNK_SIZE: usize = 65536;
+    let total_chunks = (encoded.len() + CHUNK_SIZE - 1) / CHUNK_SIZE;
+    log::info!("[AgentTools] Uploading bridge: {} bytes, {} chunks", file_data.len(), total_chunks);
+
+    for (i, chunk) in encoded.as_bytes().chunks(CHUNK_SIZE).enumerate() {
+        let chunk_str = std::str::from_utf8(chunk).unwrap_or("");
+        let append_cmd = format!("printf '%s' '{}' >> {}", chunk_str, remote_b64);
+        let result = exec_ssh_shell(&append_cmd, server_id, ssh_pool).await;
+        if !result.success {
+            return ToolResult {
+                success: false,
+                output: format!("Deploy failed at chunk {}/{}: {}", i + 1, total_chunks, result.output),
+            };
+        }
+    }
+
+    // Decode base64 on remote and make executable
+    let decode_cmd = format!("base64 -d {} > {} && chmod +x {} && rm -f {}",
+        remote_b64, remote_path, remote_path, remote_b64);
+    let result = exec_ssh_shell(&decode_cmd, server_id, ssh_pool).await;
 
     if result.success {
         ToolResult {
