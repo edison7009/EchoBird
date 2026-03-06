@@ -1,6 +1,6 @@
 {
-  "version": "2.3.3",
+  "version": "2.3.4",
   "releaseDate": "2026-03-06",
-  "releaseNotes": "Deploy bridge & LLM server via GitHub Release download (no Rust needed), SSE auto-retry, PATH detection, i18n deploy hints with channel names",
+  "releaseNotes": "Model config pre-check (skip if already configured), i18n deploy hints with channel names, deploy bridge/llm-server via GitHub Release download",
   "downloadUrl": "https://github.com/edison7009/Echobird-MotherAgent/releases/latest"
 }
