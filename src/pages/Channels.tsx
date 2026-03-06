@@ -221,13 +221,32 @@ export const Channels: React.FC = () => {
     // Process toggle (show/hide tool calls and thinking)
     const [showProcess, setShowProcess] = useState(true);
 
-    // Bridge mode state (for local channel without WebSocket)
-    const [bridgeMessages, setBridgeMessages] = useState<Array<{ role: string; content: string; meta?: { model?: string; tokens?: number; duration_ms?: number } }>>([]);
-    const [bridgeSessionId, setBridgeSessionId] = useState<string | undefined>();
+    // Bridge mode state — per-channel message storage
+    type BridgeMsg = { role: string; content: string; meta?: { model?: string; tokens?: number; duration_ms?: number } };
+    const [allBridgeMessages, setAllBridgeMessages] = useState<Record<number, BridgeMsg[]>>({});
+    const [allBridgeSessionIds, setAllBridgeSessionIds] = useState<Record<number, string>>({});
     const [bridgeLoading, setBridgeLoading] = useState(false);
     // Real bridge status: "standby" | "connecting" | "connected" | "disconnected"
     const [bridgeConnectionStatus, setBridgeConnectionStatus] = useState<string>('standby');
     const [bridgeAgentName, setBridgeAgentName] = useState<string | undefined>();
+
+    // Per-channel message helpers
+    const channelKey = activeId ?? 0;
+    const bridgeMessages = allBridgeMessages[channelKey] || [];
+    const bridgeSessionId = allBridgeSessionIds[channelKey];
+    const setBridgeMessages = (updater: BridgeMsg[] | ((prev: BridgeMsg[]) => BridgeMsg[])) => {
+        setAllBridgeMessages(all => ({
+            ...all,
+            [channelKey]: typeof updater === 'function' ? updater(all[channelKey] || []) : updater,
+        }));
+    };
+    const setBridgeSessionId = (sid: string | undefined) => {
+        if (sid === undefined) {
+            setAllBridgeSessionIds(all => { const next = { ...all }; delete next[channelKey]; return next; });
+        } else {
+            setAllBridgeSessionIds(all => ({ ...all, [channelKey]: sid }));
+        }
+    };
 
     const inputRef = useRef<HTMLTextAreaElement>(null);
     const scrollRef = useRef<HTMLDivElement>(null);
