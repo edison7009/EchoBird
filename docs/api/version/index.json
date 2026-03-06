@@ -1,6 +1,6 @@
 {
-  "version": "2.3.8",
+  "version": "2.3.9",
   "releaseDate": "2026-03-07",
-  "releaseNotes": "Per-channel bridge state isolation, collapsible Remote LLM status bar with model-card hover, deploy_plugin_source now downloads pre-compiled binaries (no Rust needed), 15s auto-detect remote LLM online.",
+  "releaseNotes": "Fix deploy_bridge/deploy_plugin_source download URL: use compile-time version instead of network fetch, always uses exact versioned URL.",
   "downloadUrl": "https://github.com/edison7009/Echobird-MotherAgent/releases/latest"
 }

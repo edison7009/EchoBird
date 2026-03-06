@@ -574,18 +574,9 @@ async fn exec_deploy_bridge(server_id: &str, plugin_id: &str, ssh_pool: &SSHPool
 
     log::info!("[AgentTools] Remote: os={}, arch={}, binary={}", os_name, arch, bridge_filename);
 
-    // Get the latest version from the public API
-    let version_url = "https://raw.githubusercontent.com/edison7009/Echobird-MotherAgent/main/docs/api/version/index.json";
-    let version_cmd = format!("curl -sL {} | grep -o '\"version\"[[:space:]]*:[[:space:]]*\"[^\"]*\"' | head -1 | grep -o 'v[0-9][^\"]*' || echo ''", version_url);
-    let version_result = exec_ssh_shell(&version_cmd, server_id, ssh_pool).await;
-    let version = version_result.output.trim().to_string();
-
-    // Build download URL — try latest tag from version API, fallback to "latest" release
-    let download_url = if version.starts_with('v') {
-        format!("https://github.com/edison7009/Echobird-MotherAgent/releases/download/{}/{}", version, bridge_filename)
-    } else {
-        format!("https://github.com/edison7009/Echobird-MotherAgent/releases/latest/download/{}", bridge_filename)
-    };
+    // Use app version from compile time — no network request needed
+    let version = format!("v{}", env!("CARGO_PKG_VERSION"));
+    let download_url = format!("https://github.com/edison7009/Echobird-MotherAgent/releases/download/{}/{}", version, bridge_filename);
 
     log::info!("[AgentTools] Downloading bridge from: {}", download_url);
 
@@ -664,17 +655,9 @@ async fn exec_deploy_plugin_source(
 
     let mut log_output = String::new();
 
-    // 2. Get version
-    let version_url = "https://raw.githubusercontent.com/edison7009/Echobird-MotherAgent/main/docs/api/version/index.json";
-    let version_cmd = format!("curl -sL {} | grep -o '\"version\"[[:space:]]*:[[:space:]]*\"[^\"]*\"' | head -1 | grep -o 'v[0-9][^\"]*' || echo ''", version_url);
-    let version_result = exec_ssh_shell(&version_cmd, server_id, ssh_pool).await;
-    let version = version_result.output.trim().to_string();
-
-    let download_url = if version.starts_with('v') {
-        format!("https://github.com/edison7009/Echobird-MotherAgent/releases/download/{}/{}", version, binary_filename)
-    } else {
-        format!("https://github.com/edison7009/Echobird-MotherAgent/releases/latest/download/{}", binary_filename)
-    };
+    // 2. Use app version from compile time — no network request needed
+    let version = format!("v{}", env!("CARGO_PKG_VERSION"));
+    let download_url = format!("https://github.com/edison7009/Echobird-MotherAgent/releases/download/{}/{}", version, binary_filename);
 
     log_output.push_str(&format!("[1/4] Downloading {} from GitHub Releases...\n", binary_filename));
 
