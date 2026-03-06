@@ -1,6 +1,6 @@
 {
-  "version": "2.3.2",
+  "version": "2.3.3",
   "releaseDate": "2026-03-06",
-  "releaseNotes": "SSE auto-retry (3 attempts with 2s delay), PATH detection fix for OpenClaw on remote SSH, chunked file_write for large files, deploy_plugin_source one-click tool",
+  "releaseNotes": "Deploy bridge & LLM server via GitHub Release download (no Rust needed), SSE auto-retry, PATH detection, i18n deploy hints with channel names",
   "downloadUrl": "https://github.com/edison7009/Echobird-MotherAgent/releases/latest"
 }
