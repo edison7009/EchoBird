@@ -228,9 +228,8 @@ impl LlmClient {
                                 for (_, (id, _, _)) in current_tool_calls.drain() {
                                     let _ = tx.send(LlmEvent::ToolCallEnd { id }).await;
                                 }
-                                if reason != "stop" {
-                                    let _ = tx.send(LlmEvent::Done { stop_reason: reason.to_string() }).await;
-                                }
+                                let _ = tx.send(LlmEvent::Done { stop_reason: reason.to_string() }).await;
+                                break; // Always break on finish_reason — some APIs don't send [DONE]
                             }
                         }
                     }

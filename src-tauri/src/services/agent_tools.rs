@@ -186,6 +186,38 @@ pub fn get_tool_definitions() -> Vec<super::llm_client::ToolDef> {
                 "required": ["server_id", "plugin_id"]
             }),
         },
+        super::llm_client::ToolDef {
+            name: "configure_openclaw".into(),
+            description: "Configure OpenClaw on a remote server with model API credentials. \
+                Writes the correct openclaw.json config file automatically. \
+                Use this instead of manually writing config files with file_write.".into(),
+            parameters: json!({
+                "type": "object",
+                "properties": {
+                    "server_id": {
+                        "type": "string",
+                        "description": "SSH server ID"
+                    },
+                    "base_url": {
+                        "type": "string",
+                        "description": "Model API base URL (e.g. https://api.minimaxi.com/v1)"
+                    },
+                    "api_key": {
+                        "type": "string",
+                        "description": "API key for the model provider"
+                    },
+                    "model_id": {
+                        "type": "string",
+                        "description": "Model ID (e.g. MiniMax-M2.5, gpt-4o, claude-sonnet-4-20250514)"
+                    },
+                    "provider_name": {
+                        "type": "string",
+                        "description": "Optional provider name (e.g. minimax, openai). Auto-detected from base_url if omitted."
+                    }
+                },
+                "required": ["server_id", "base_url", "api_key", "model_id"]
+            }),
+        },
     ]
 }
 
@@ -270,6 +302,17 @@ pub async fn execute_tool(
                 return ToolResult { success: false, output: "server_id and plugin_id are required".into() };
             }
             exec_deploy_plugin_source(server_id, plugin_id, port, ssh_pool).await
+        }
+        "configure_openclaw" => {
+            let server_id = args["server_id"].as_str().unwrap_or("");
+            let base_url = args["base_url"].as_str().unwrap_or("");
+            let api_key = args["api_key"].as_str().unwrap_or("");
+            let model_id = args["model_id"].as_str().unwrap_or("");
+            let provider_name = args["provider_name"].as_str().unwrap_or("");
+            if server_id.is_empty() || base_url.is_empty() || api_key.is_empty() || model_id.is_empty() {
+                return ToolResult { success: false, output: "server_id, base_url, api_key, and model_id are all required".into() };
+            }
+            exec_configure_openclaw(server_id, base_url, api_key, model_id, provider_name, ssh_pool).await
         }
         _ => ToolResult { success: false, output: format!("Unknown tool: {}", name) },
     }
@@ -617,6 +660,112 @@ async fn exec_deploy_bridge(server_id: &str, plugin_id: &str, ssh_pool: &SSHPool
                     bridge_filename, download_url, result.output, fallback_result.output),
             }
         }
+    }
+}
+
+async fn exec_configure_openclaw(
+    server_id: &str,
+    base_url: &str,
+    api_key: &str,
+    model_id: &str,
+    provider_name: &str,
+    ssh_pool: &SSHPool,
+) -> ToolResult {
+    log::info!("[AgentTools] Configuring OpenClaw on server '{}' with model '{}'", server_id, model_id);
+
+    // Auto-detect provider name from base URL if not provided
+    let provider = if !provider_name.is_empty() {
+        provider_name.to_string()
+    } else {
+        let url_lower = base_url.to_lowercase();
+        if url_lower.contains("openai") { "openai".to_string() }
+        else if url_lower.contains("anthropic") { "anthropic".to_string() }
+        else if url_lower.contains("minimax") { "minimax".to_string() }
+        else if url_lower.contains("deepseek") { "deepseek".to_string() }
+        else if url_lower.contains("google") || url_lower.contains("gemini") { "google".to_string() }
+        else if url_lower.contains("groq") { "groq".to_string() }
+        else if url_lower.contains("mistral") { "mistral".to_string() }
+        else if url_lower.contains("together") { "together".to_string() }
+        else if url_lower.contains("localhost") || url_lower.contains("127.0.0.1") { "local".to_string() }
+        else { "custom".to_string() }
+    };
+
+    // Determine API type based on URL
+    let api_type = if base_url.to_lowercase().contains("anthropic") {
+        "anthropic"
+    } else {
+        "openai-completions"
+    };
+
+    // Build the config JSON
+    let config = json!({
+        "models": {
+            "providers": {
+                &provider: {
+                    "baseUrl": base_url,
+                    "apiKey": api_key,
+                    "api": api_type,
+                    "auth": "api-key",
+                    "authHeader": true,
+                    "models": [{
+                        "id": model_id,
+                        "name": model_id,
+                        "contextWindow": 128000,
+                        "maxTokens": 8192,
+                        "cost": { "input": 0, "output": 0 }
+                    }]
+                }
+            }
+        },
+        "agents": {
+            "defaults": {
+                "model": {
+                    "primary": format!("{}/{}", provider, model_id)
+                }
+            }
+        }
+    });
+
+    let config_str = serde_json::to_string_pretty(&config).unwrap_or_default();
+
+    // Create directory and write config via SSH
+    let mkdir_cmd = "mkdir -p ~/.openclaw";
+    let mkdir_result = exec_ssh_shell(mkdir_cmd, server_id, ssh_pool).await;
+    if !mkdir_result.success {
+        return ToolResult {
+            success: false,
+            output: format!("Failed to create ~/.openclaw directory: {}", mkdir_result.output),
+        };
+    }
+
+    // Write config file using heredoc (reliable for multi-line JSON)
+    let write_cmd = format!(
+        "cat > ~/.openclaw/openclaw.json << 'ECHOBIRD_EOF'\n{}\nECHOBIRD_EOF",
+        config_str
+    );
+    let write_result = exec_ssh_shell(&write_cmd, server_id, ssh_pool).await;
+    if !write_result.success {
+        return ToolResult {
+            success: false,
+            output: format!("Failed to write openclaw.json: {}", write_result.output),
+        };
+    }
+
+    // Verify the file was written correctly
+    let verify_cmd = "cat ~/.openclaw/openclaw.json | head -5";
+    let verify_result = exec_ssh_shell(verify_cmd, server_id, ssh_pool).await;
+
+    ToolResult {
+        success: true,
+        output: format!(
+            "OpenClaw configured successfully!\n\
+            Provider: {}\n\
+            Model: {}/{}\n\
+            Base URL: {}\n\
+            Config file: ~/.openclaw/openclaw.json\n\
+            Verify: {}",
+            provider, provider, model_id, base_url, verify_result.output.trim()
+        ),
     }
 }
 

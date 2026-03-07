@@ -448,7 +448,11 @@ export function MotherAgentMain() {
             const modelInfo = pendingModels.map(pm => {
                 const md = models.find(m => m.internalId === pm.id);
                 if (!md) return `- ${pm.name}`;
-                return `- ${pm.name} (model: ${md.modelId || md.name}, baseUrl: ${md.baseUrl}, apiKey: ${md.apiKey})`;
+                const urls = [
+                    md.baseUrl ? `baseUrl: ${md.baseUrl}` : '',
+                    md.anthropicUrl ? `anthropicUrl: ${md.anthropicUrl}` : '',
+                ].filter(Boolean).join(', ');
+                return `- ${pm.name} (model: ${md.modelId || md.name}, ${urls}, apiKey: ${md.apiKey})`;
             }).join('\n');
             const userText = chatInput.trim();
             const fullMsg = (userText ? userText + '\n\n' : '') + `[Attached models for deployment]\n${modelInfo}`;

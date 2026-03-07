@@ -1,6 +1,6 @@
 {
-  "version": "2.4.0",
+  "version": "2.4.1",
   "releaseDate": "2026-03-07",
-  "releaseNotes": "Fix deploy URL with compile-time version. Limit LLM context to 30 messages. Lock server switching while Agent is processing. Add Stepfun provider icon.",
+  "releaseNotes": "Add configure_openclaw tool for reliable remote config. Fix SSE stream hang on tool_calls. Limit LLM context to 30 messages. Lock server switching while processing. Send both OpenAI/Anthropic URLs. Add Stepfun icon.",
   "downloadUrl": "https://github.com/edison7009/Echobird-MotherAgent/releases/latest"
 }

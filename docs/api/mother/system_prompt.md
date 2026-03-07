@@ -164,26 +164,17 @@ This is required because SSH non-interactive sessions don't load `.bashrc` — w
    **Option C: Provide API Key and Base URL directly**
    If the user already has an API key from another source, they can type it directly in the chat.
 
-   After receiving model info (from any option), write the OpenClaw config file on the remote server using `file_write`:
-   Path: `~/.openclaw/openclaw.json`
-   Template (replace `<PROVIDER_NAME>`, `<BASE_URL>`, `<API_KEY>`, `<MODEL_ID>` with actual values):
-   ```json
-   {
-     "models": {
-       "providers": {
-         "<PROVIDER_NAME>": {
-           "baseUrl": "<BASE_URL>",
-           "apiKey": "<API_KEY>",
-           "api": "openai-completions",
-           "auth": "api-key",
-           "authHeader": true,
-           "models": [{ "id": "<MODEL_ID>", "name": "<MODEL_ID>", "contextWindow": 128000, "maxTokens": 8192, "cost": { "input": 0, "output": 0 } }]
-         }
-       }
-     },
-     "agents": { "defaults": { "model": { "primary": "<PROVIDER_NAME>/<MODEL_ID>" } } }
-   }
+   After receiving model info (from any option), use the `configure_openclaw` tool to write the config:
    ```
+   configure_openclaw({
+     "server_id": "<SERVER_ID>",
+     "base_url": "<BASE_URL>",
+     "api_key": "<API_KEY>",
+     "model_id": "<MODEL_ID>"
+   })
+   ```
+   The tool automatically generates the correct `~/.openclaw/openclaw.json` format, detects the provider name from the URL, and verifies the file was written.
+   ⚠️ Do NOT use `file_write` to write openclaw.json manually — always use `configure_openclaw`.
    - ⚠️ NEVER ask the user to SSH in and manually edit config files. Mother Agent does this.
    - ⚠️ NEVER ask vague questions like "Which model provider?" or "What model type?" — always present the three options above.
 4. **Start the gateway on the remote server** (unlike local, there is no App Manager to click Launch):
