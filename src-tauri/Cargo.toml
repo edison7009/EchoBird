@@ -1,4 +1,4 @@
-﻿[package]
+[package]
 name = "echobird"
 version = "2.4.7"
 description = "The Nexus for Models, Agents & Vibe Coding"
