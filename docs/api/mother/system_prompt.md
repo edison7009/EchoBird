@@ -258,6 +258,9 @@ If you only delete the file, Echobird's Remote LLM Panel will still show it as "
    - Linux/macOS kill: `pkill -f llm-server || true`
    - Windows kill: `taskkill /F /IM llm-server-windows-x86_64.exe 2>nul || echo ok`
    - Verify stopped: `curl -s --connect-timeout 2 http://localhost:8090/api/status || echo "Server stopped"`
+
+   ⚠️ **`pkill`/`kill` exit-code note**: `pkill` returns exit code 1 when no matching process is found — this is **normal POSIX behavior, NOT an error**. Always append `|| true` so `shell_exec` doesn't treat it as a failure. Even if `shell_exec` still reports "SSH command failed", **do not stop** — immediately verify with `curl /api/status`. If the server is unreachable, the process is dead and you can proceed to file deletion.
+
 2. **Then delete the files** (match the platform):
    - Linux/macOS: `rm -f ~/echobird/llm-server-linux-* ~/echobird/llm-server-darwin-*`
    - Windows: `Remove-Item "$env:USERPROFILE\.echobird\llm-server-windows-*" -Force -ErrorAction SilentlyContinue`
