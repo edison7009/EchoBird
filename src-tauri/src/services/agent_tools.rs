@@ -650,11 +650,13 @@ async fn exec_deploy_bridge(server_id: &str, plugin_id: &str, ssh_pool: &SSHPool
 
     // Fetch latest version dynamically from version API (falls back to compile-time version)
     let version = fetch_latest_plugin_version().await;
-    let download_url = format!("https://github.com/edison7009/Echobird-MotherAgent/releases/download/{}/{}", version, bridge_filename);
+    // Primary: Cloudflare proxy dl.echobird.ai (bypasses China GFW)
+    let download_url = format!("https://dl.echobird.ai/{}/{}", version, bridge_filename);
+    // Fallback 1: GitHub versioned
+    let github_url = format!("https://github.com/edison7009/Echobird-MotherAgent/releases/download/{}/{}", version, bridge_filename);
 
     log::info!("[AgentTools] Downloading bridge from: {}", download_url);
 
-    // Create directory + download + make executable
     let deploy_cmd = format!(
         "mkdir -p ~/echobird && curl -fSL --connect-timeout 30 --max-time 120 -o ~/echobird/{} '{}' && chmod +x ~/echobird/{} && ln -sf ~/echobird/{} ~/echobird/echobird-bridge",
         bridge_filename, download_url, bridge_filename, bridge_filename
@@ -671,24 +673,38 @@ async fn exec_deploy_bridge(server_id: &str, plugin_id: &str, ssh_pool: &SSHPool
             output: format!("Bridge deployed via download: ~/echobird/{}\n{}", bridge_filename, verify.output),
         }
     } else {
-        // Fallback: try the latest release URL if versioned URL failed
-        let fallback_url = format!("https://github.com/edison7009/Echobird-MotherAgent/releases/latest/download/{}", bridge_filename);
-        let fallback_cmd = format!(
+        // Fallback 1: GitHub versioned release
+        let fallback_cmd1 = format!(
             "curl -fSL --connect-timeout 30 --max-time 120 -o ~/echobird/{} '{}' && chmod +x ~/echobird/{} && ln -sf ~/echobird/{} ~/echobird/echobird-bridge",
-            bridge_filename, fallback_url, bridge_filename, bridge_filename
+            bridge_filename, github_url, bridge_filename, bridge_filename
         );
-        let fallback_result = exec_ssh_shell(&fallback_cmd, server_id, ssh_pool).await;
+        let fallback1 = exec_ssh_shell(&fallback_cmd1, server_id, ssh_pool).await;
 
-        if fallback_result.success {
+        if fallback1.success {
             ToolResult {
                 success: true,
-                output: format!("Bridge deployed via fallback download: ~/echobird/{}", bridge_filename),
+                output: format!("Bridge deployed via GitHub fallback: ~/echobird/{}", bridge_filename),
             }
         } else {
-            ToolResult {
-                success: false,
-                output: format!("Failed to download bridge binary '{}'. Primary URL: {} — Error: {}. Fallback also failed: {}",
-                    bridge_filename, download_url, result.output, fallback_result.output),
+            // Fallback 2: GitHub latest
+            let latest_url = format!("https://github.com/edison7009/Echobird-MotherAgent/releases/latest/download/{}", bridge_filename);
+            let fallback_cmd2 = format!(
+                "curl -fSL --connect-timeout 30 --max-time 120 -o ~/echobird/{} '{}' && chmod +x ~/echobird/{} && ln -sf ~/echobird/{} ~/echobird/echobird-bridge",
+                bridge_filename, latest_url, bridge_filename, bridge_filename
+            );
+            let fallback2 = exec_ssh_shell(&fallback_cmd2, server_id, ssh_pool).await;
+
+            if fallback2.success {
+                ToolResult {
+                    success: true,
+                    output: format!("Bridge deployed via latest fallback: ~/echobird/{}", bridge_filename),
+                }
+            } else {
+                ToolResult {
+                    success: false,
+                    output: format!("Failed to download bridge binary '{}'. Tried:\n1. {}\n2. {}\n3. {}\nError: {}",
+                        bridge_filename, download_url, github_url, latest_url, fallback2.output),
+                }
             }
         }
     }
@@ -838,7 +854,7 @@ async fn exec_deploy_plugin_source(
     // 2. Fetch latest version dynamically from version API (falls back to compile-time version)
     let version = fetch_latest_plugin_version().await;
     // Primary: Cloudflare proxy (bypasses China GFW, no egress fees)
-    let primary_url = format!("https://dl.echobird.ai/releases/{}/{}", version, binary_filename);
+    let primary_url = format!("https://dl.echobird.ai/{}/{}", version, binary_filename);
     // Fallback: GitHub direct
     let github_url = format!("https://github.com/edison7009/Echobird-MotherAgent/releases/download/{}/{}", version, binary_filename);
 

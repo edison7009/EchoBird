@@ -1,5 +1,5 @@
 {
-  "version": "2.4.7",
+  "version": "2.4.8",
   "releaseDate": "2026-03-08",
-  "releaseNotes": "Add comprehensive GPU detection: NVIDIA (all models incl H100/H200/Tesla), AMD ROCm, Intel Arc/Gaudi, Apple Silicon, Moore Threads, Iluvatar CoreX, Cambricon, Biren, KunlunXin. Expose OS/arch/GPU info to UI for accurate runtime filtering."
+  "releaseNotes": "Fix plugin download URL: use dl.echobird.ai (Cloudflare) as primary for llm-server and bridge; remove extraneous /releases/ prefix. Bridge now has 3-tier fallback. Sync llm-server plugin version to match main app version."
 }
