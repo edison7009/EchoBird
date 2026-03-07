@@ -373,20 +373,29 @@ export const Channels: React.FC = () => {
     // Switch channel (view only, no disconnect)
     const [showRemoteLlm, setShowRemoteLlm] = useState(false);
     const [remoteLlmReachable, setRemoteLlmReachable] = useState(false);
+    const [remoteLlmRunning, setRemoteLlmRunning] = useState(false);
     const [remoteLlmCollapsed, setRemoteLlmCollapsed] = useState(false);
 
-    // Check remote LLM API reachability — poll every 15s to detect deployment changes
+    // Check remote LLM API reachability + running status — poll every 15s
     useEffect(() => {
-        if (!activeChannel || isLocal) { setRemoteLlmReachable(false); return; }
+        if (!activeChannel || isLocal) { setRemoteLlmReachable(false); setRemoteLlmRunning(false); return; }
         const remoteIp = (activeChannel.address || '').split('@')[1] || activeChannel.address || '';
         if (!remoteIp) return;
         let cancelled = false;
         const check = async () => {
             try {
                 const res = await fetch(`http://${remoteIp}:8090/api/status`, { signal: AbortSignal.timeout(3000) });
-                if (!cancelled) setRemoteLlmReachable(res.ok);
+                if (!cancelled) {
+                    setRemoteLlmReachable(res.ok);
+                    if (res.ok) {
+                        const data = await res.json().catch(() => ({}));
+                        setRemoteLlmRunning(!!data.running);
+                    } else {
+                        setRemoteLlmRunning(false);
+                    }
+                }
             } catch {
-                if (!cancelled) setRemoteLlmReachable(false);
+                if (!cancelled) { setRemoteLlmReachable(false); setRemoteLlmRunning(false); }
             }
         };
         check();
@@ -750,26 +759,31 @@ export const Channels: React.FC = () => {
                             >
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-2.5 font-mono text-sm">
-                                        <Server size={14} className={remoteLlmReachable ? 'text-cyber-accent' : 'text-cyber-text-muted/50'} />
+                                        <Server size={14} className={remoteLlmRunning ? 'text-cyber-accent' : remoteLlmReachable ? 'text-red-400' : 'text-cyber-text-muted/50'} />
                                         {remoteLlmReachable ? (
-                                            <span className="text-cyber-accent text-xs uppercase tracking-wider">{t('channel.remoteLlm')}: {t('status.running')}</span>
+                                            remoteLlmRunning ? (
+                                                <span className="text-cyber-accent text-xs uppercase tracking-wider">{t('channel.remoteLlm')} {t('status.running')}</span>
+                                            ) : (
+                                                <span className="text-red-400 text-xs uppercase tracking-wider">{t('channel.remoteLlm')} {t('status.offline')}</span>
+                                            )
                                         ) : (
                                             <span className="text-cyber-text-muted/60 text-xs tracking-wider">Mother Agent → {t('mother.hintDeployLlm')}</span>
                                         )}
                                     </div>
                                     <div className="flex items-center gap-2">
-                                        {remoteLlmReachable && (
+                                        {remoteLlmReachable ? (
                                             <span className="text-cyber-text-muted/50 text-xs font-mono group-hover:text-cyber-accent/80 transition-colors">
-                                                {t('channel.llmPanel')} →
+                                                {t('channel.llmPanel')}
                                             </span>
+                                        ) : (
+                                            <button
+                                                onClick={(e) => { e.stopPropagation(); setRemoteLlmCollapsed(true); }}
+                                                className="p-0.5 text-cyber-text-muted/40 hover:text-cyber-accent transition-colors"
+                                                title="Collapse"
+                                            >
+                                                <ChevronsDown size={14} />
+                                            </button>
                                         )}
-                                        <button
-                                            onClick={(e) => { e.stopPropagation(); setRemoteLlmCollapsed(true); }}
-                                            className="p-0.5 text-cyber-text-muted/40 hover:text-cyber-accent transition-colors"
-                                            title="Collapse"
-                                        >
-                                            <ChevronsDown size={14} />
-                                        </button>
                                     </div>
                                 </div>
                             </div>

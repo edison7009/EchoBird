@@ -127,13 +127,24 @@ impl LlmServer {
                 if direct.exists() {
                     return Some(direct);
                 }
-                // Search subdirectories
+                // Search subdirectories (up to 2 levels deep for tar.gz nested extraction)
                 if let Ok(entries) = std::fs::read_dir(&llama_bin_dir) {
                     for entry in entries.flatten() {
                         if entry.file_type().map(|t| t.is_dir()).unwrap_or(false) {
                             let candidate = entry.path().join(exe_name);
                             if candidate.exists() {
                                 return Some(candidate);
+                            }
+                            // Search one more level (e.g. llama-b7981-bin-ubuntu-x64/llama-b7981/)
+                            if let Ok(sub_entries) = std::fs::read_dir(entry.path()) {
+                                for sub_entry in sub_entries.flatten() {
+                                    if sub_entry.file_type().map(|t| t.is_dir()).unwrap_or(false) {
+                                        let candidate = sub_entry.path().join(exe_name);
+                                        if candidate.exists() {
+                                            return Some(candidate);
+                                        }
+                                    }
+                                }
                             }
                         }
                     }

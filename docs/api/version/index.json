@@ -1,6 +1,5 @@
 {
-  "version": "2.4.2",
+  "version": "2.4.3",
   "releaseDate": "2026-03-07",
-  "releaseNotes": "Runtime-aware model store (30 models, filter by llama.cpp/vLLM/SGLang). Fix engine install status not refreshing for SGLang/vLLM. Fix handleInstallEngine hardcoded to llama-server.",
-  "downloadUrl": "https://github.com/edison7009/Echobird-MotherAgent/releases/latest"
+  "releaseNotes": "Fix engine detection (2-level subdir search for tar.gz extraction). Remote LLM status bar: 3-state display (Running/Offline/Not Deployed). Fix collapse button logic. Remove duplicate arrows and double colon. Remove flashing offline badge from modal. Engine status parsing supports both formats."
 }

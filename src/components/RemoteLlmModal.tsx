@@ -162,8 +162,12 @@ export const RemoteLlmModal: React.FC<RemoteLlmModalProps> = ({
                 if (engineRes.status === 'fulfilled') {
                     const eng = engineRes.value || {};
                     const rs: Record<string, { installed: boolean; version?: string }> = {};
+                    // API returns { engines: [{ name, installed, version }] } array format
+                    const engines: any[] = eng.engines || [];
                     for (const key of ['llama-server', 'vllm', 'sglang']) {
-                        if (eng[key]) rs[key] = { installed: eng[key].installed, version: eng[key].version };
+                        const entry = engines.find((e: any) => e.name === key);
+                        if (entry) rs[key] = { installed: !!entry.installed, version: entry.version };
+                        else if (eng[key]) rs[key] = { installed: eng[key].installed, version: eng[key].version };
                     }
                     setRuntimeStatus(rs);
                 }
@@ -251,8 +255,11 @@ export const RemoteLlmModal: React.FC<RemoteLlmModalProps> = ({
                     {
                         const engineRes = await fetch(`${apiBase}/api/engine/status`).then(r => r.json()).catch(() => ({}));
                         const rs: Record<string, { installed: boolean; version?: string }> = {};
+                        const engines: any[] = engineRes.engines || [];
                         for (const key of ['llama-server', 'vllm', 'sglang']) {
-                            if (engineRes[key]) rs[key] = { installed: engineRes[key].installed, version: engineRes[key].version };
+                            const entry = engines.find((e: any) => e.name === key);
+                            if (entry) rs[key] = { installed: !!entry.installed, version: entry.version };
+                            else if (engineRes[key]) rs[key] = { installed: engineRes[key].installed, version: engineRes[key].version };
                         }
                         setRuntimeStatus(rs);
                     }
@@ -340,9 +347,6 @@ export const RemoteLlmModal: React.FC<RemoteLlmModalProps> = ({
                         <span className="text-cyber-accent font-bold text-lg tracking-wider">
                             {displayName ? `${displayName} (${remoteHost})` : remoteHost}
                         </span>
-                        {!apiReachable && (
-                            <span className="text-xs text-red-400 font-mono">● {t('status.offline').toUpperCase()}</span>
-                        )}
                     </div>
                     <button
                         onClick={onClose}
