@@ -587,6 +587,37 @@ fn shell_escape(s: &str) -> String {
     format!("\"{}\"", s)
 }
 
+/// Fetch the latest published plugin version from the version API.
+/// Falls back to the compile-time version if the network call fails.
+async fn fetch_latest_plugin_version() -> String {
+    let compile_ver = format!("v{}", env!("CARGO_PKG_VERSION"));
+    let client = match reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(8))
+        .build()
+    {
+        Ok(c) => c,
+        Err(_) => return compile_ver,
+    };
+    match client
+        .get("https://echobird.ai/api/version/index.json")
+        .header("User-Agent", "Echobird-MotherAgent/1.0")
+        .send()
+        .await
+    {
+        Ok(resp) if resp.status().is_success() => {
+            if let Ok(json) = resp.json::<serde_json::Value>().await {
+                if let Some(v) = json.get("version").and_then(|v| v.as_str()) {
+                    let ver = format!("v{}", v);
+                    log::info!("[AgentTools] Latest plugin version from API: {}", ver);
+                    return ver;
+                }
+            }
+            compile_ver
+        }
+        _ => compile_ver,
+    }
+}
+
 // ── Bridge Operations ──
 
 async fn exec_deploy_bridge(server_id: &str, plugin_id: &str, ssh_pool: &SSHPool) -> ToolResult {
@@ -617,8 +648,8 @@ async fn exec_deploy_bridge(server_id: &str, plugin_id: &str, ssh_pool: &SSHPool
 
     log::info!("[AgentTools] Remote: os={}, arch={}, binary={}", os_name, arch, bridge_filename);
 
-    // Use app version from compile time — no network request needed
-    let version = format!("v{}", env!("CARGO_PKG_VERSION"));
+    // Fetch latest version dynamically from version API (falls back to compile-time version)
+    let version = fetch_latest_plugin_version().await;
     let download_url = format!("https://github.com/edison7009/Echobird-MotherAgent/releases/download/{}/{}", version, bridge_filename);
 
     log::info!("[AgentTools] Downloading bridge from: {}", download_url);
@@ -804,8 +835,8 @@ async fn exec_deploy_plugin_source(
 
     let mut log_output = String::new();
 
-    // 2. Use app version from compile time — no network request needed
-    let version = format!("v{}", env!("CARGO_PKG_VERSION"));
+    // 2. Fetch latest version dynamically from version API (falls back to compile-time version)
+    let version = fetch_latest_plugin_version().await;
     // Primary: Cloudflare proxy (bypasses China GFW, no egress fees)
     let primary_url = format!("https://dl.echobird.ai/releases/{}/{}", version, binary_filename);
     // Fallback: GitHub direct
