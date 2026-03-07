@@ -447,6 +447,35 @@ pub struct SystemInfo {
     pub gpu_name: Option<String>,
     pub gpu_vram_gb: Option<f64>,
     pub has_gpu: bool,
+    pub has_nvidia_gpu: bool,
+    pub has_amd_gpu: bool,
+}
+
+/// Classify GPU vendor from (already-shortened) gpu_name string
+fn classify_gpu_vendor(name: &str) -> &'static str {
+    let n = name.to_lowercase();
+    if n.contains("rtx") || n.contains("gtx") || n.contains("tesla")
+        || n.contains("quadro") || n.contains("titan") || n.contains("nvidia")
+        || n.starts_with("a100") || n.starts_with("h100") || n.starts_with("v100")
+        || n.starts_with("a10") || n.starts_with("l4") || n.starts_with("l40")
+    {
+        "nvidia"
+    } else if n.starts_with("rx ") || n.contains(" rx ") || n.contains("radeon")
+        || n.contains("vega") || n.contains("rdna") || n.contains("amd")
+        || n.starts_with("mtt")    // Moore Threads
+        || n.starts_with("bi-")    // Iluvatar CoreX
+        || n.contains("mlu")       // Cambricon
+        || n.starts_with("br")     // Biren
+        || n.starts_with("k2") || n.starts_with("k3") // KunlunXin
+    {
+        "amd"
+    } else if n.contains("arc") || n.contains("intel") || n.contains("uhd")
+        || n.contains("iris")
+    {
+        "intel"
+    } else {
+        "other"
+    }
 }
 
 /// Get system information: OS, architecture, and GPU details
@@ -455,12 +484,15 @@ pub fn get_system_info() -> SystemInfo {
     let arch = std::env::consts::ARCH.to_string();
     let gpu = detect_gpu();
     let has_gpu = gpu.is_some();
+    let vendor = gpu.as_ref().map(|g| classify_gpu_vendor(&g.gpu_name)).unwrap_or("none");
     SystemInfo {
         os,
         arch,
         gpu_name: gpu.as_ref().map(|g| g.gpu_name.clone()),
         gpu_vram_gb: gpu.as_ref().map(|g| g.gpu_vram_gb),
         has_gpu,
+        has_nvidia_gpu: vendor == "nvidia",
+        has_amd_gpu: vendor == "amd",
     }
 }
 
@@ -495,7 +527,12 @@ fn detect_gpu_system() -> Option<GpuInfo> {
         return Some(info);
     }
 
-    // 2. Fallback to wmic (for non-NVIDIA GPUs)
+    // 2. Try AMD ROCm (rocm-smi, for AMD GPUs with ROCm driver on Windows)
+    if let Some(info) = detect_gpu_rocm() {
+        return Some(info);
+    }
+
+    // 3. Fallback to wmic (covers Intel, AMD without ROCm, and other GPUs)
     detect_gpu_wmic()
 }
 
@@ -812,6 +849,7 @@ fn detect_gpu_rocm() -> Option<GpuInfo> {
 }
 
 /// Parse VRAM total from lines like "Total Memory: 24576 MiB"
+#[cfg(not(windows))]
 fn parse_vram_mb_line(text: &str) -> Option<f64> {
     for line in text.lines() {
         let lower = line.to_lowercase();
@@ -826,6 +864,7 @@ fn parse_vram_mb_line(text: &str) -> Option<f64> {
 }
 
 /// Parse "Product Name : MTT S80" -> "MTT S80"
+#[cfg(not(windows))]
 fn parse_name_colon(text: &str) -> Option<String> {
     text.lines()
         .find(|l| {
@@ -1428,13 +1467,24 @@ fn llama_download_mirrors() -> Vec<String> {
     ]
 }
 
-/// Get platform-specific download file names
-fn get_llama_platform_files() -> Vec<String> {
+/// Get platform-specific download file names.
+/// On Windows: NVIDIA gets CUDA build; AMD/Intel/CPU-only gets AVX2 build.
+fn get_llama_platform_files(has_nvidia: bool) -> Vec<String> {
     match std::env::consts::OS {
-        "windows" => vec![
-            format!("llama-{}-bin-win-cuda-{}-x64.zip", LLAMA_VERSION, LLAMA_CUDA_VER),
-            format!("cudart-llama-bin-win-cuda-{}-x64.zip", LLAMA_CUDA_VER),
-        ],
+        "windows" => {
+            if has_nvidia {
+                // CUDA build — requires NVIDIA driver
+                vec![
+                    format!("llama-{}-bin-win-cuda-{}-x64.zip", LLAMA_VERSION, LLAMA_CUDA_VER),
+                    format!("cudart-llama-bin-win-cuda-{}-x64.zip", LLAMA_CUDA_VER),
+                ]
+            } else {
+                // AVX2 CPU-only build — works on AMD, Intel, any 2013+ x86_64 CPU
+                vec![
+                    format!("llama-{}-bin-win-avx2-x64.zip", LLAMA_VERSION),
+                ]
+            }
+        }
         "macos" => vec![
             format!("llama-{}-bin-macos-arm64.tar.gz", LLAMA_VERSION),
         ],
@@ -1496,7 +1546,14 @@ async fn test_mirror_speed(url: String, name: String) -> (String, String, f64) {
 pub async fn download_llama_server(
     app_handle: tauri::AppHandle,
 ) -> Result<String, String> {
-    let file_names = get_llama_platform_files();
+    // Detect GPU vendor to choose the correct build (CUDA vs AVX2 CPU-only)
+    let gpu_info = get_gpu_info();
+    let has_nvidia = gpu_info.as_ref()
+        .map(|g| classify_gpu_vendor(&g.gpu_name) == "nvidia")
+        .unwrap_or(false);
+    log::info!("[LlamaDownloader] GPU vendor: {}, has_nvidia={}",
+        gpu_info.as_ref().map(|g| g.gpu_name.as_str()).unwrap_or("none"), has_nvidia);
+    let file_names = get_llama_platform_files(has_nvidia);
     let bin_dir = llama_install_dir().join("bin");
     let temp_dir = llama_install_dir().join("temp");
     let mirrors = llama_download_mirrors();

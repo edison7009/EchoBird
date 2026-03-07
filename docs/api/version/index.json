@@ -1,5 +1,5 @@
 {
-  "version": "2.4.9",
+  "version": "2.5.0",
   "releaseDate": "2026-03-08",
-  "releaseNotes": "Fix dl.echobird.ai download URL: restore /releases/ prefix to match Cloudflare Worker routing (/releases/{version}/{file}). Plugin version now synced to main app version."
+  "releaseNotes": "GPU-aware engine download: NVIDIA GPUs get CUDA build, AMD/Intel/CPU-only users get AVX2 build. Fix AMD ROCm detection on Windows. COMPUTE dropdown now correctly shows GPU Full only for NVIDIA users."
 }
