@@ -8,7 +8,7 @@
 
 <p align="center">
   Um app para instalar agentes, trocar modelos, implantar LLMs locais/remotos e controlar todos os agentes de uma tela Channels.<br/>
-  <sub>Painel de controle de IA desktop multiplataforma �?construído com Tauri 2 + Rust.</sub>
+  <sub>Painel de controle de IA desktop multiplataforma — construído com Tauri 2 + Rust.</sub>
 </p>
 
 <p align="center">
@@ -21,10 +21,10 @@
 
 <p align="center">
   <a href="../README.md">English</a> ·
-  <a href="./README.zh-CN.md">简体中�?/a> ·
+  <a href="./README.zh-CN.md">简体中文</a> ·
   <a href="./README.zh-TW.md">繁體中文</a> ·
-  <a href="./README.ja.md">日本�?/a> ·
-  <a href="./README.ko.md">한국�?/a> ·
+  <a href="./README.ja.md">日本語</a> ·
+  <a href="./README.ko.md">한국어</a> ·
   <a href="./README.es.md">Español</a> ·
   <a href="./README.fr.md">Français</a> ·
   <a href="./README.de.md">Deutsch</a> ·
@@ -37,63 +37,63 @@
 
 ## Por que Echobird?
 
-Mesmo como iniciante em IA, o Echobird permite que você controle seu próprio Agent �?da instalação ao trabalho �?através de um simples chat. Sem experiência em terminal, sem arquivos de configuração, sem implantações complicadas.
+Mesmo como iniciante em IA, o Echobird permite que você controle seu próprio Agent — da instalação ao trabalho — através de um simples chat. Sem experiência em terminal, sem arquivos de configuração, sem implantações complicadas.
 
 Quer usar **OpenClaw**, **Claude Code**, **ZeroClaw** ou **Codex**? Um clique para instalar. Quer executar **Qwen**, **DeepSeek** ou **Llama** na sua própria máquina? Um clique para implantar. Trocar modelos ou adicionar skills? Aponte, clique, pronto.
 
-**Echobird oferece um app para tudo** �?instalar agentes, trocar modelos, implantar LLMs e controlar tudo de uma tela �?seja você desenvolvedor ou iniciante em IA.
+**Echobird oferece um app para tudo** — instalar agentes, trocar modelos, implantar LLMs e controlar tudo de uma tela — seja você desenvolvedor ou iniciante em IA.
 
 ---
 
-## �?Recursos
+## ✨ Recursos
 
-### 🚀 Instalação com Um Clique �?OpenClaw, Claude Code, OpenCode, ZeroClaw e mais
+### 🚀 Instalação com Um Clique — OpenClaw, Claude Code, OpenCode, ZeroClaw e mais
 
-- **Detecção e instalação automáticas** �?Echobird detecta agentes instalados e implanta os faltantes com um clique
-- **Ferramentas plug-and-play** �?Coloque um `plugin.json` na pasta tools e funciona. Sem alterações de código
-- **Lançador integrado** �?Inicie qualquer agente compatível sem tocar no terminal
+- **Detecção e instalação automáticas** — Echobird detecta agentes instalados e implanta os faltantes com um clique
+- **Ferramentas plug-and-play** — Coloque um `plugin.json` na pasta tools e funciona. Sem alterações de código
+- **Lançador integrado** — Inicie qualquer agente compatível sem tocar no terminal
 
-### 🔀 Troca de Modelo com Um Clique �?Troque modelos em todos os agentes instantaneamente
+### 🔀 Troca de Modelo com Um Clique — Troque modelos em todos os agentes instantaneamente
 
-- **Model Nexus visual** �?Gerencie todos os seus modelos de IA (OpenAI, Anthropic, Gemini, DeepSeek, Ollama ou qualquer endpoint personalizado) em um painel
-- **Protocolo duplo** �?OpenAI API e Anthropic API. Troque por agente sem alterações de configuração
-- **Aplicar com um clique** �?Selecione um cartão de modelo, ative para qualquer agente. Sem editar JSON, TOML ou `.env`
+- **Model Nexus visual** — Gerencie todos os seus modelos de IA (OpenAI, Anthropic, Gemini, DeepSeek, Ollama ou qualquer endpoint personalizado) em um painel
+- **Protocolo duplo** — OpenAI API e Anthropic API. Troque por agente sem alterações de configuração
+- **Aplicar com um clique** — Selecione um cartão de modelo, ative para qualquer agente. Sem editar JSON, TOML ou `.env`
 
-### 💻 Implantação de LLM com Um Clique �?Execute Qwen, DeepSeek, Llama, MiniMax local ou remotamente
+### 💻 Implantação de LLM com Um Clique — Execute Qwen, DeepSeek, Llama, MiniMax local ou remotamente
 
-- **LLM local** �?Implante modelos open-source com llama.cpp, vLLM ou SGLang integrados. Seus dados nunca saem do dispositivo
-- **LLM remoto** �?Implante em qualquer servidor GPU via SSH. Inicie Qwen 3.5, MiniMax M2.5, GLM-5 ou qualquer modelo GGUF/HuggingFace com um clique
-- **Proxy unificado** �?Expõe automaticamente endpoints OpenAI (`/v1`) e Anthropic (`/anthropic`). Conecte qualquer agente instantaneamente
-- **Detecção inteligente de GPU** �?Detecta GPUs NVIDIA e recomenda configurações ideais
+- **LLM local** — Implante modelos open-source com llama.cpp, vLLM ou SGLang integrados. Seus dados nunca saem do dispositivo
+- **LLM remoto** — Implante em qualquer servidor GPU via SSH. Inicie Qwen 3.5, MiniMax M2.5, GLM-5 ou qualquer modelo GGUF/HuggingFace com um clique
+- **Proxy unificado** — Expõe automaticamente endpoints OpenAI (`/v1`) e Anthropic (`/anthropic`). Conecte qualquer agente instantaneamente
+- **Detecção inteligente de GPU** — Detecta GPUs NVIDIA e recomenda configurações ideais
 
-### 📡 Channels �?Controle múltiplos agentes de uma tela
+### 📡 Channels — Controle múltiplos agentes de uma tela
 
-- **Canais multi-agente** �?Execute OpenClaw, ZeroClaw ou qualquer agente compatível com Bridge em paralelo
-- **Local e remoto** �?Agentes locais via protocolo Bridge, remotos via túneis SSH. Mesma interface, mesma experiência
-- **Sessões persistentes** �?Conversas do agente sobrevivem a reinicializações. Continue de onde parou
-- **MotherAgent** �?Seu agente de IA autônomo com tool calling, sistema de skills e flexibilidade total de modelos
+- **Canais multi-agente** — Execute OpenClaw, ZeroClaw ou qualquer agente compatível com Bridge em paralelo
+- **Local e remoto** — Agentes locais via protocolo Bridge, remotos via túneis SSH. Mesma interface, mesma experiência
+- **Sessões persistentes** — Conversas do agente sobrevivem a reinicializações. Continue de onde parou
+- **MotherAgent** — Seu agente de IA autônomo com tool calling, sistema de skills e flexibilidade total de modelos
 
 ### 🧩 Mais recursos integrados
 
-- 🌐 **Proxy túnel inteligente** �?Acesse APIs com restrição geográfica sem VPN completo
-- 🎯 **Navegador de Skills** �?Descubra, traduza e instale skills de IA com um clique
-- 🎮 **Apps de IA integrados** �?Reversi, AI Translate e mais
-- 🌍 **28 idiomas** �?Internacionalização completa do inglês ao árabe
+- 🌐 **Proxy túnel inteligente** — Acesse APIs com restrição geográfica sem VPN completo
+- 🎯 **Navegador de Skills** — Descubra, traduza e instale skills de IA com um clique
+- 🎮 **Apps de IA integrados** — Reversi, AI Translate e mais
+- 🌍 **28 idiomas** — Internacionalização completa do inglês ao árabe
 
 ---
 
-## 🖼�?Capturas de tela
+## 🖼️ Capturas de tela
 
-### Model Nexus �?OpenAI, Anthropic, Gemini, DeepSeek, Ollama �?tudo em um painel
+### Model Nexus — OpenAI, Anthropic, Gemini, DeepSeek, Ollama — tudo em um painel
 ![Model Nexus](./1.png)
 
-### App Manager �?Troca de modelo com um clique para OpenClaw, Claude Code, Codex e mais
+### App Manager — Troca de modelo com um clique para OpenClaw, Claude Code, Codex e mais
 ![App Manager](./2.png)
 
-### LLM Local �?Implante Qwen, Llama, DeepSeek localmente via llama.cpp / vLLM / SGLang
+### LLM Local — Implante Qwen, Llama, DeepSeek localmente via llama.cpp / vLLM / SGLang
 ![Local Server](./3.png)
 
-### Navegador de Skills �?Traduza e instale Skills para OpenClaw, Claude Code e mais com um clique
+### Navegador de Skills — Traduza e instale Skills para OpenClaw, Claude Code e mais com um clique
 ![Skill Browser](./4.png)
 
 ---
@@ -142,7 +142,7 @@ chmod +x Echobird_*.AppImage
 
 ---
 
-## 🏗�?Stack técnico
+## 🏗️ Stack técnico
 
 **Tauri 2** + **Rust** + **React** + **TypeScript** + **llama.cpp**
 
@@ -150,7 +150,7 @@ chmod +x Echobird_*.AppImage
 
 ## 📬 Contato
 
-- 📧 [hi@echobird.ai](mailto:hi@echobird.ai)
+- 📧 [hi@echobird.ai](mailto:hi@echobird.ai) (Bug Reports)
 - 🌐 [echobird.ai](https://echobird.ai)
 
 ---
@@ -158,5 +158,5 @@ chmod +x Echobird_*.AppImage
 <p align="center">
   <em>A última interface antes da era da IA.</em><br/>
   Feito com 💚 pelo time Echobird<br/>
-  <sub>�?<a href="https://github.com/edison7009/Echobird-MotherAgent">Star no GitHub</a> �?ajude outros a descobrir o projeto!</sub>
+  <sub>⭐ <a href="https://github.com/edison7009/Echobird-MotherAgent">Star no GitHub</a> — ajude outros a descobrir o projeto!</sub>
 </p>
