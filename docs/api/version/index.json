@@ -1,6 +1,6 @@
 {
-  "version": "2.3.10",
+  "version": "2.4.0",
   "releaseDate": "2026-03-07",
-  "releaseNotes": "Fix memory leak: limit LLM context to 30 messages. Lock server switching while Agent is processing. Add Stepfun provider icon.",
+  "releaseNotes": "Fix deploy URL with compile-time version. Limit LLM context to 30 messages. Lock server switching while Agent is processing. Add Stepfun provider icon.",
   "downloadUrl": "https://github.com/edison7009/Echobird-MotherAgent/releases/latest"
 }
