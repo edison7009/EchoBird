@@ -29,6 +29,7 @@ export const getModelIcon = (name: string, modelId?: string): string | null => {
         [['doubao', '豆包', 'bytedance'], 'bytedance'],
         [['xiaomi', '小米', 'mimo'], 'xiaomi'],
         [['nemotron', 'nvidia'], 'nemotron'],
+        [['stepfun', 'step', '阶跃'], 'stepfun'],
     ];
 
     for (const [keywords, icon] of iconMap) {

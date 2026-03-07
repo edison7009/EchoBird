@@ -15,6 +15,7 @@ use super::agent_tools;
 // ── Constants ──
 
 const MAX_TOOL_LOOPS: usize = 25; // Prevent infinite execution
+const MAX_CONTEXT_MESSAGES: usize = 30; // Limit messages sent to LLM to prevent token explosion
 
 // ── Types emitted to frontend ──
 
@@ -222,10 +223,16 @@ pub async fn run_agent(
             break;
         }
 
-        // Get current messages
+        // Get current messages (truncated to avoid token explosion)
         let messages = {
             let map = session_map.lock().await;
-            map.get(&server_key).map(|s| s.messages.clone()).unwrap_or_default()
+            let all = map.get(&server_key).map(|s| s.messages.clone()).unwrap_or_default();
+            // Keep only recent messages to limit API payload size
+            if all.len() > MAX_CONTEXT_MESSAGES {
+                all[all.len() - MAX_CONTEXT_MESSAGES..].to_vec()
+            } else {
+                all
+            }
         };
 
         // Call LLM

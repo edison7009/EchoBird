@@ -1,6 +1,6 @@
 {
-  "version": "2.3.9",
+  "version": "2.3.10",
   "releaseDate": "2026-03-07",
-  "releaseNotes": "Fix deploy_bridge/deploy_plugin_source download URL: use compile-time version instead of network fetch, always uses exact versioned URL.",
+  "releaseNotes": "Fix memory leak: limit LLM context to 30 messages. Lock server switching while Agent is processing. Add Stepfun provider icon.",
   "downloadUrl": "https://github.com/edison7009/Echobird-MotherAgent/releases/latest"
 }

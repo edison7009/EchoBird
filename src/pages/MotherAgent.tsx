@@ -975,7 +975,7 @@ export function MotherAgentModelSelector() {
 
 // ===== Right Panel (aside area) �?SERVERS / SKILLS =====
 export function MotherAgentPanel() {
-    const { setChatInput, chatInputRef, addPendingSkill, sshServers, addSSHServer, removeSSHServer, selectedServerId, selectServer } = useMotherAgent();
+    const { setChatInput, chatInputRef, addPendingSkill, sshServers, addSSHServer, removeSSHServer, selectedServerId, selectServer, isProcessing } = useMotherAgent();
     const confirm = useConfirm();
     const { t } = useI18n();
 
@@ -1241,8 +1241,8 @@ export function MotherAgentPanel() {
                         {/* Server list */}
                         {/* Local server — always first */}
                         <div
-                            onClick={() => selectServer('local')}
-                            className={`p-3 border rounded transition-all cursor-pointer select-none flex items-center ${selectedServerId === 'local'
+                            onClick={() => !isProcessing && selectServer('local')}
+                            className={`p-3 border rounded transition-all select-none flex items-center ${isProcessing && selectedServerId !== 'local' ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'} ${selectedServerId === 'local'
                                 ? 'border-cyber-accent-secondary bg-cyber-accent-secondary/5 shadow-[0_0_10px_rgba(0,212,255,0.15)]'
                                 : 'border-cyber-border hover:border-cyber-accent-secondary/50'
                                 }`}
@@ -1261,8 +1261,8 @@ export function MotherAgentPanel() {
                         {sshServers.map(server => (
                             <div
                                 key={server.id}
-                                onClick={() => selectServer(server.id)}
-                                className={`p-3 border rounded transition-all cursor-pointer select-none flex items-center ${selectedServerId === server.id
+                                onClick={() => !isProcessing && selectServer(server.id)}
+                                className={`p-3 border rounded transition-all select-none flex items-center ${isProcessing && selectedServerId !== server.id ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'} ${selectedServerId === server.id
                                     ? 'border-cyber-accent-secondary bg-cyber-accent-secondary/5 shadow-[0_0_10px_rgba(0,212,255,0.15)]'
                                     : 'border-cyber-border hover:border-cyber-accent-secondary/50'
                                     }`}
