@@ -193,6 +193,7 @@ export interface StoreModel {
     description: string;
     huggingfaceRepo: string;
     modelScopeRepo?: string;
+    runtimes?: string[];
     variants: StoreModelVariant[];
 }
 

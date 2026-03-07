@@ -974,8 +974,12 @@ export const LocalServerPanel: React.FC = () => {
                                                             <span className="text-[10px] text-cyan-400 flex-shrink-0">{t('store.ready')}</span>
                                                         )}
                                                     </div>
-                                                    <div className="text-[10px] text-cyber-text-secondary truncate leading-tight mt-1 opacity-70">
-                                                        {model.description}
+                                                    <div className="text-[10px] text-cyber-text-secondary truncate leading-tight mt-1 opacity-70 flex gap-1">
+                                                        {(model.runtimes || ['llama-server']).map(r => (
+                                                            <span key={r} className="px-1 rounded bg-cyber-surface/50">
+                                                                {r === 'llama-server' ? 'llama.cpp' : r}
+                                                            </span>
+                                                        ))}
                                                     </div>
                                                 </div>
                                             </div>

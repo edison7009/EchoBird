@@ -24,6 +24,11 @@
                 "fileSize": 36834074624,
                 "recommendedVRAM": "48 GB"
             }
+        ],
+        "runtimes": [
+            "llama-server",
+            "vllm",
+            "sglang"
         ]
     },
     {
@@ -51,6 +56,11 @@
                 "fileSize": 29031735296,
                 "recommendedVRAM": "32 GB"
             }
+        ],
+        "runtimes": [
+            "llama-server",
+            "vllm",
+            "sglang"
         ]
     },
     {
@@ -78,6 +88,11 @@
                 "fileSize": 4509715456,
                 "recommendedVRAM": "6 GB"
             }
+        ],
+        "runtimes": [
+            "llama-server",
+            "vllm",
+            "sglang"
         ]
     },
     {
@@ -99,6 +114,11 @@
                 "fileSize": 321955840000,
                 "recommendedVRAM": "340 GB"
             }
+        ],
+        "runtimes": [
+            "llama-server",
+            "vllm",
+            "sglang"
         ]
     },
     {
@@ -120,6 +140,11 @@
                 "fileSize": 100058742784,
                 "recommendedVRAM": "112 GB"
             }
+        ],
+        "runtimes": [
+            "llama-server",
+            "vllm",
+            "sglang"
         ]
     },
     {
@@ -147,6 +172,11 @@
                 "fileSize": 32483935392,
                 "recommendedVRAM": "48 GB"
             }
+        ],
+        "runtimes": [
+            "llama-server",
+            "vllm",
+            "sglang"
         ]
     },
     {
@@ -174,6 +204,11 @@
                 "fileSize": 25054786624,
                 "recommendedVRAM": "32 GB"
             }
+        ],
+        "runtimes": [
+            "llama-server",
+            "vllm",
+            "sglang"
         ]
     },
     {
@@ -201,6 +236,11 @@
                 "fileSize": 34820885184,
                 "recommendedVRAM": "48 GB"
             }
+        ],
+        "runtimes": [
+            "llama-server",
+            "vllm",
+            "sglang"
         ]
     },
     {
@@ -228,6 +268,11 @@
                 "fileSize": 8709519872,
                 "recommendedVRAM": "10 GB"
             }
+        ],
+        "runtimes": [
+            "llama-server",
+            "vllm",
+            "sglang"
         ]
     },
     {
@@ -255,6 +300,11 @@
                 "fileSize": 34817719968,
                 "recommendedVRAM": "48 GB"
             }
+        ],
+        "runtimes": [
+            "llama-server",
+            "vllm",
+            "sglang"
         ]
     },
     {
@@ -282,6 +332,11 @@
                 "fileSize": 8709518112,
                 "recommendedVRAM": "10 GB"
             }
+        ],
+        "runtimes": [
+            "llama-server",
+            "vllm",
+            "sglang"
         ]
     },
     {
@@ -309,6 +364,11 @@
                 "fileSize": 29031735296,
                 "recommendedVRAM": "32 GB"
             }
+        ],
+        "runtimes": [
+            "llama-server",
+            "vllm",
+            "sglang"
         ]
     },
     {
@@ -336,6 +396,11 @@
                 "fileSize": 29031735296,
                 "recommendedVRAM": "32 GB"
             }
+        ],
+        "runtimes": [
+            "llama-server",
+            "vllm",
+            "sglang"
         ]
     },
     {
@@ -363,6 +428,11 @@
                 "fileSize": 4509715456,
                 "recommendedVRAM": "6 GB"
             }
+        ],
+        "runtimes": [
+            "llama-server",
+            "vllm",
+            "sglang"
         ]
     },
     {
@@ -390,6 +460,11 @@
                 "fileSize": 33180925952,
                 "recommendedVRAM": "40 GB"
             }
+        ],
+        "runtimes": [
+            "llama-server",
+            "vllm",
+            "sglang"
         ]
     },
     {
@@ -417,6 +492,11 @@
                 "fileSize": 34817719296,
                 "recommendedVRAM": "40 GB"
             }
+        ],
+        "runtimes": [
+            "llama-server",
+            "vllm",
+            "sglang"
         ]
     },
     {
@@ -444,6 +524,11 @@
                 "fileSize": 25091481600,
                 "recommendedVRAM": "32 GB"
             }
+        ],
+        "runtimes": [
+            "llama-server",
+            "vllm",
+            "sglang"
         ]
     },
     {
@@ -471,6 +556,11 @@
                 "fileSize": 29031735296,
                 "recommendedVRAM": "32 GB"
             }
+        ],
+        "runtimes": [
+            "llama-server",
+            "vllm",
+            "sglang"
         ]
     },
     {
@@ -498,6 +588,11 @@
                 "fileSize": 15296077824,
                 "recommendedVRAM": "16 GB"
             }
+        ],
+        "runtimes": [
+            "llama-server",
+            "vllm",
+            "sglang"
         ]
     },
     {
@@ -524,6 +619,325 @@
                 "fileName": "Llama-3.3-Nemotron-Super-49B-v1-Q8_0.gguf",
                 "fileSize": 53020860416,
                 "recommendedVRAM": "64 GB"
+            }
+        ],
+        "runtimes": [
+            "llama-server",
+            "vllm",
+            "sglang"
+        ]
+    },
+    {
+        "id": "llama-3.1-8b",
+        "name": "Llama 3.1 8B",
+        "icon": "llama",
+        "runtimes": [
+            "llama-server",
+            "vllm",
+            "sglang"
+        ],
+        "description": "Meta open-weight workhorse — fast, versatile, great for agents",
+        "huggingfaceRepo": "bartowski/Meta-Llama-3.1-8B-Instruct-GGUF",
+        "variants": [
+            {
+                "quantization": "Q4_K_M",
+                "fileName": "Meta-Llama-3.1-8B-Instruct-Q4_K_M.gguf",
+                "fileSize": 4920000000,
+                "recommendedVRAM": "6 GB"
+            },
+            {
+                "quantization": "Q6_K",
+                "fileName": "Meta-Llama-3.1-8B-Instruct-Q6_K.gguf",
+                "fileSize": 6600000000,
+                "recommendedVRAM": "8 GB"
+            },
+            {
+                "quantization": "Q8_0",
+                "fileName": "Meta-Llama-3.1-8B-Instruct-Q8_0.gguf",
+                "fileSize": 8540000000,
+                "recommendedVRAM": "10 GB"
+            }
+        ]
+    },
+    {
+        "id": "llama-3.3-70b",
+        "name": "Llama 3.3 70B",
+        "icon": "llama",
+        "runtimes": [
+            "llama-server",
+            "vllm",
+            "sglang"
+        ],
+        "description": "Meta flagship 70B — GPT-4 class reasoning and coding",
+        "huggingfaceRepo": "bartowski/Llama-3.3-70B-Instruct-GGUF",
+        "variants": [
+            {
+                "quantization": "Q4_K_M",
+                "fileName": "Llama-3.3-70B-Instruct-Q4_K_M.gguf",
+                "fileSize": 42520000000,
+                "recommendedVRAM": "48 GB"
+            },
+            {
+                "quantization": "Q6_K",
+                "fileName": "Llama-3.3-70B-Instruct-Q6_K.gguf",
+                "fileSize": 57400000000,
+                "recommendedVRAM": "64 GB"
+            }
+        ]
+    },
+    {
+        "id": "codestral-25.01",
+        "name": "Codestral 25.01 22B",
+        "icon": "mistral",
+        "runtimes": [
+            "llama-server",
+            "vllm",
+            "sglang"
+        ],
+        "description": "Mistral dedicated coding model — FIM, multi-language expert",
+        "huggingfaceRepo": "bartowski/Codestral-25.01-GGUF",
+        "variants": [
+            {
+                "quantization": "Q4_K_M",
+                "fileName": "Codestral-25.01-Q4_K_M.gguf",
+                "fileSize": 13100000000,
+                "recommendedVRAM": "16 GB"
+            },
+            {
+                "quantization": "Q6_K",
+                "fileName": "Codestral-25.01-Q6_K.gguf",
+                "fileSize": 17600000000,
+                "recommendedVRAM": "24 GB"
+            },
+            {
+                "quantization": "Q8_0",
+                "fileName": "Codestral-25.01-Q8_0.gguf",
+                "fileSize": 22800000000,
+                "recommendedVRAM": "24 GB"
+            }
+        ]
+    },
+    {
+        "id": "yi-coder-9b",
+        "name": "Yi Coder 9B",
+        "icon": "yi",
+        "runtimes": [
+            "llama-server",
+            "vllm",
+            "sglang"
+        ],
+        "description": "01.AI coding specialist — strong code gen at 9B size",
+        "huggingfaceRepo": "bartowski/Yi-Coder-9B-Chat-GGUF",
+        "variants": [
+            {
+                "quantization": "Q4_K_M",
+                "fileName": "Yi-Coder-9B-Chat-Q4_K_M.gguf",
+                "fileSize": 5370000000,
+                "recommendedVRAM": "6 GB"
+            },
+            {
+                "quantization": "Q6_K",
+                "fileName": "Yi-Coder-9B-Chat-Q6_K.gguf",
+                "fileSize": 7160000000,
+                "recommendedVRAM": "8 GB"
+            },
+            {
+                "quantization": "Q8_0",
+                "fileName": "Yi-Coder-9B-Chat-Q8_0.gguf",
+                "fileSize": 9280000000,
+                "recommendedVRAM": "10 GB"
+            }
+        ]
+    },
+    {
+        "id": "internlm3-8b",
+        "name": "InternLM3 8B",
+        "icon": "internlm",
+        "runtimes": [
+            "llama-server",
+            "vllm",
+            "sglang"
+        ],
+        "description": "Shanghai AI Lab — excellent Chinese + English reasoning",
+        "huggingfaceRepo": "bartowski/internlm3-8b-instruct-GGUF",
+        "variants": [
+            {
+                "quantization": "Q4_K_M",
+                "fileName": "internlm3-8b-instruct-Q4_K_M.gguf",
+                "fileSize": 4920000000,
+                "recommendedVRAM": "6 GB"
+            },
+            {
+                "quantization": "Q6_K",
+                "fileName": "internlm3-8b-instruct-Q6_K.gguf",
+                "fileSize": 6600000000,
+                "recommendedVRAM": "8 GB"
+            },
+            {
+                "quantization": "Q8_0",
+                "fileName": "internlm3-8b-instruct-Q8_0.gguf",
+                "fileSize": 8540000000,
+                "recommendedVRAM": "10 GB"
+            }
+        ]
+    },
+    {
+        "id": "deepseek-coder-v2-lite-16b",
+        "name": "DeepSeek Coder V2 Lite 16B",
+        "icon": "deepseek",
+        "runtimes": [
+            "llama-server",
+            "vllm",
+            "sglang"
+        ],
+        "description": "DeepSeek MoE coder — 236B total, 21B active parameters",
+        "huggingfaceRepo": "bartowski/DeepSeek-Coder-V2-Lite-Instruct-GGUF",
+        "variants": [
+            {
+                "quantization": "Q4_K_M",
+                "fileName": "DeepSeek-Coder-V2-Lite-Instruct-Q4_K_M.gguf",
+                "fileSize": 8780000000,
+                "recommendedVRAM": "10 GB"
+            },
+            {
+                "quantization": "Q6_K",
+                "fileName": "DeepSeek-Coder-V2-Lite-Instruct-Q6_K.gguf",
+                "fileSize": 11800000000,
+                "recommendedVRAM": "16 GB"
+            },
+            {
+                "quantization": "Q8_0",
+                "fileName": "DeepSeek-Coder-V2-Lite-Instruct-Q8_0.gguf",
+                "fileSize": 15300000000,
+                "recommendedVRAM": "16 GB"
+            }
+        ]
+    },
+    {
+        "id": "gemma-3-12b",
+        "name": "Gemma 3 12B",
+        "icon": "gemma",
+        "runtimes": [
+            "llama-server",
+            "vllm",
+            "sglang"
+        ],
+        "description": "Google mid-size Gemma — great balance of speed and quality",
+        "huggingfaceRepo": "bartowski/gemma-3-12b-it-GGUF",
+        "variants": [
+            {
+                "quantization": "Q4_K_M",
+                "fileName": "gemma-3-12b-it-Q4_K_M.gguf",
+                "fileSize": 7700000000,
+                "recommendedVRAM": "10 GB"
+            },
+            {
+                "quantization": "Q6_K",
+                "fileName": "gemma-3-12b-it-Q6_K.gguf",
+                "fileSize": 10300000000,
+                "recommendedVRAM": "12 GB"
+            },
+            {
+                "quantization": "Q8_0",
+                "fileName": "gemma-3-12b-it-Q8_0.gguf",
+                "fileSize": 13400000000,
+                "recommendedVRAM": "16 GB"
+            }
+        ]
+    },
+    {
+        "id": "qwen3-coder-8b-a3b",
+        "name": "Qwen3 Coder 8B-A3B",
+        "icon": "qwen",
+        "runtimes": [
+            "llama-server",
+            "vllm",
+            "sglang"
+        ],
+        "description": "Qwen3 lightweight coding MoE — fast code agent at low VRAM",
+        "huggingfaceRepo": "unsloth/Qwen3-Coder-8B-A3B-Instruct-GGUF",
+        "variants": [
+            {
+                "quantization": "Q4_K_M",
+                "fileName": "Qwen3-Coder-8B-A3B-Instruct-Q4_K_M.gguf",
+                "fileSize": 4920000000,
+                "recommendedVRAM": "6 GB"
+            },
+            {
+                "quantization": "Q6_K",
+                "fileName": "Qwen3-Coder-8B-A3B-Instruct-Q6_K.gguf",
+                "fileSize": 6600000000,
+                "recommendedVRAM": "8 GB"
+            },
+            {
+                "quantization": "Q8_0",
+                "fileName": "Qwen3-Coder-8B-A3B-Instruct-Q8_0.gguf",
+                "fileSize": 8540000000,
+                "recommendedVRAM": "10 GB"
+            }
+        ]
+    },
+    {
+        "id": "phi-4-mini-3.8b",
+        "name": "Phi-4 Mini 3.8B",
+        "icon": "phi",
+        "runtimes": [
+            "llama-server",
+            "vllm",
+            "sglang"
+        ],
+        "description": "Microsoft ultra-light — impressive reasoning at just 3.8B",
+        "huggingfaceRepo": "bartowski/phi-4-mini-instruct-GGUF",
+        "variants": [
+            {
+                "quantization": "Q4_K_M",
+                "fileName": "phi-4-mini-instruct-Q4_K_M.gguf",
+                "fileSize": 2440000000,
+                "recommendedVRAM": "4 GB"
+            },
+            {
+                "quantization": "Q6_K",
+                "fileName": "phi-4-mini-instruct-Q6_K.gguf",
+                "fileSize": 3100000000,
+                "recommendedVRAM": "4 GB"
+            },
+            {
+                "quantization": "Q8_0",
+                "fileName": "phi-4-mini-instruct-Q8_0.gguf",
+                "fileSize": 4050000000,
+                "recommendedVRAM": "6 GB"
+            }
+        ]
+    },
+    {
+        "id": "glm-4-9b",
+        "name": "GLM-4 9B",
+        "icon": "glm",
+        "runtimes": [
+            "llama-server",
+            "vllm",
+            "sglang"
+        ],
+        "description": "Zhipu AI 9B — strong Chinese + English, tool use capable",
+        "huggingfaceRepo": "bartowski/glm-4-9b-chat-GGUF",
+        "variants": [
+            {
+                "quantization": "Q4_K_M",
+                "fileName": "glm-4-9b-chat-Q4_K_M.gguf",
+                "fileSize": 5370000000,
+                "recommendedVRAM": "6 GB"
+            },
+            {
+                "quantization": "Q6_K",
+                "fileName": "glm-4-9b-chat-Q6_K.gguf",
+                "fileSize": 7160000000,
+                "recommendedVRAM": "8 GB"
+            },
+            {
+                "quantization": "Q8_0",
+                "fileName": "glm-4-9b-chat-Q8_0.gguf",
+                "fileSize": 9280000000,
+                "recommendedVRAM": "10 GB"
             }
         ]
     }

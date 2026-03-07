@@ -219,12 +219,16 @@ export const RemoteLlmModal: React.FC<RemoteLlmModalProps> = ({
     // ── Remote engine install: triggers same download bar ──
     const handleInstallEngine = useCallback(async () => {
         try {
-            await fetch(`${apiBase}/api/engine/install`, { method: 'POST' });
-            setRemoteDownload({ fileName: 'llama-server', progress: 0, status: 'speed_test' });
+            await fetch(`${apiBase}/api/engine/install`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ runtime }),
+            });
+            setRemoteDownload({ fileName: runtime, progress: 0, status: 'speed_test' });
         } catch (e) {
             console.error('[RemoteLLM] Engine install failed:', e);
         }
-    }, [apiBase]);
+    }, [apiBase, runtime]);
 
     // ── Poll remote download status ──
     useEffect(() => {
@@ -243,8 +247,8 @@ export const RemoteLlmModal: React.FC<RemoteLlmModalProps> = ({
                     // Refresh model list
                     const modelsRes = await fetch(`${apiBase}/api/models`).then(r => r.json()).catch(() => []);
                     setLocalModels(groupModels(modelsRes || []));
-                    // Refresh engine status (in case llama-server was installed)
-                    if (res.fileName === 'llama-server') {
+                    // Refresh engine status after any download completes
+                    {
                         const engineRes = await fetch(`${apiBase}/api/engine/status`).then(r => r.json()).catch(() => ({}));
                         const rs: Record<string, { installed: boolean; version?: string }> = {};
                         for (const key of ['llama-server', 'vllm', 'sglang']) {
@@ -621,7 +625,7 @@ export const RemoteLlmModal: React.FC<RemoteLlmModalProps> = ({
                                             <Loader2 className="w-5 h-5 text-cyan-400 animate-spin" />
                                         </div>
                                     ) : storeModels.length > 0 ? (
-                                        storeModels.map(m => {
+                                        storeModels.filter(m => !m.runtimes || m.runtimes.includes(runtime)).map(m => {
                                             const isExpanded = expandedStoreId === m.id;
                                             const hasDownloaded = m.variants?.some(v => localModels.some(g => g.variants.some(lv => lv.fileName === v.fileName)));
                                             return (
@@ -650,8 +654,12 @@ export const RemoteLlmModal: React.FC<RemoteLlmModalProps> = ({
                                                                     <span className="text-[10px] text-cyan-400 flex-shrink-0">{t('store.ready')}</span>
                                                                 )}
                                                             </div>
-                                                            <div className="text-[10px] text-cyber-text-secondary truncate leading-tight mt-1 opacity-70">
-                                                                {m.description || `${m.variants?.length || 0} variants`}
+                                                            <div className="text-[10px] text-cyber-text-secondary truncate leading-tight mt-1 opacity-70 flex gap-1">
+                                                                {(m.runtimes || ['llama-server']).map(r => (
+                                                                    <span key={r} className={`px-1 rounded ${r === runtime ? 'bg-cyan-400/20 text-cyan-400' : 'bg-cyber-surface/50'}`}>
+                                                                        {r === 'llama-server' ? 'llama.cpp' : r}
+                                                                    </span>
+                                                                ))}
                                                             </div>
                                                         </div>
                                                     </div>

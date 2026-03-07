@@ -1,6 +1,6 @@
 {
-  "version": "2.4.1",
+  "version": "2.4.2",
   "releaseDate": "2026-03-07",
-  "releaseNotes": "Add configure_openclaw tool for reliable remote config. Fix SSE stream hang on tool_calls. Limit LLM context to 30 messages. Lock server switching while processing. Send both OpenAI/Anthropic URLs. Add Stepfun icon.",
+  "releaseNotes": "Runtime-aware model store (30 models, filter by llama.cpp/vLLM/SGLang). Fix engine install status not refreshing for SGLang/vLLM. Fix handleInstallEngine hardcoded to llama-server.",
   "downloadUrl": "https://github.com/edison7009/Echobird-MotherAgent/releases/latest"
 }
