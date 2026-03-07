@@ -1,5 +1,5 @@
 {
-  "version": "2.4.6",
+  "version": "2.4.7",
   "releaseDate": "2026-03-08",
-  "releaseNotes": "Fix: plugin deploy now fetches latest version dynamically from version API (no longer locked to compile-time version). Fix llm-server crash logging and ARM64 architecture detection. Add system info to engine status. Filter runtime options by OS and GPU availability."
+  "releaseNotes": "Add comprehensive GPU detection: NVIDIA (all models incl H100/H200/Tesla), AMD ROCm, Intel Arc/Gaudi, Apple Silicon, Moore Threads, Iluvatar CoreX, Cambricon, Biren, KunlunXin. Expose OS/arch/GPU info to UI for accurate runtime filtering."
 }

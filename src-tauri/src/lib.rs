@@ -378,6 +378,7 @@ pub fn run() {
             process_commands::pause_download,
             process_commands::cancel_download,
             process_commands::download_llama_server,
+            process_commands::get_system_info,
             channel_commands::get_channels,
             channel_commands::save_channels,
             channel_commands::bridge_start,

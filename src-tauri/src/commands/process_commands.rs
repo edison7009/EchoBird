@@ -1,7 +1,7 @@
 // Tauri Commands for process management and local LLM server
 
 use crate::services::process_manager;
-use crate::services::local_llm::{self, LocalServerInfo, ModelSettings, GgufFile, GpuInfo, HfModelEntry};
+use crate::services::local_llm::{self, LocalServerInfo, ModelSettings, GgufFile, GpuInfo, HfModelEntry, SystemInfo};
 
 // ─── Process Manager ───
 
@@ -185,4 +185,9 @@ pub fn cancel_download(app_handle: tauri::AppHandle, file_name: Option<String>) 
 #[tauri::command]
 pub async fn download_llama_server(app_handle: tauri::AppHandle) -> Result<String, String> {
     local_llm::download_llama_server(app_handle).await
+}
+
+#[tauri::command]
+pub fn get_system_info() -> SystemInfo {
+    local_llm::get_system_info()
 }

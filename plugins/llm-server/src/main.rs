@@ -436,7 +436,14 @@ fn get_models_dirs() -> Vec<String> {
 // ============================================================
 
 fn detect_gpu() -> Option<GpuInfo> {
-    let info = detect_gpu_nvidia_smi();
+    let info = detect_gpu_nvidia_smi()
+        .or_else(detect_gpu_rocm)        // AMD ROCm / Hygon DCU
+        .or_else(detect_gpu_intel_xpu)   // Intel Arc / Flex / Gaudi
+        .or_else(detect_gpu_mthreads)    // Moore Threads
+        .or_else(detect_gpu_iluvatar)    // Iluvatar CoreX
+        .or_else(detect_gpu_cambricon)   // Cambricon MLU
+        .or_else(detect_gpu_biren)       // Biren BR
+        .or_else(detect_gpu_kunlunxin);  // KunlunXin XPU
     if let Some(ref gpu) = info {
         let mut settings = load_model_settings();
         settings.gpu_name = Some(gpu.gpu_name.clone());
@@ -484,16 +491,186 @@ fn detect_gpu_nvidia_smi() -> Option<GpuInfo> {
     None
 }
 
+/// Moore Threads GPU detection via mthreads-gmi
+fn detect_gpu_mthreads() -> Option<GpuInfo> {
+    // Try mthreads-gmi (Moore Threads, e.g. MTT S80, MTT S3000)
+    let output = Command::new("mthreads-gmi")
+        .args(["-q", "--display=MEMORY"])
+        .output()
+        .ok()?;
+
+    if !output.status.success() {
+        return None;
+    }
+
+    // Also query name separately
+    let name_output = Command::new("mthreads-gmi")
+        .args(["-q", "--display=NAME"])
+        .output()
+        .ok()?;
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let name_stdout = String::from_utf8_lossy(&name_output.stdout);
+
+    // Parse total memory (MB)
+    let vram_gb = stdout.lines()
+        .find(|l| l.to_lowercase().contains("total") && l.contains("mb"))
+        .and_then(|l| l.split_whitespace().find(|s| s.parse::<f64>().is_ok()))
+        .and_then(|s| s.parse::<f64>().ok())
+        .map(|mb| (mb / 1024.0 * 10.0).round() / 10.0)
+        .filter(|&v| v > 0.0)?;
+
+    // Parse GPU name
+    let gpu_name = name_stdout.lines()
+        .find(|l| l.to_lowercase().contains("product name") || l.to_lowercase().contains("mtt"))
+        .and_then(|l| l.split(':').nth(1))
+        .map(|s| shorten_gpu_name(s.trim()))
+        .unwrap_or_else(|| "Moore Threads MTT".to_string());
+
+    Some(GpuInfo { gpu_name, gpu_vram_gb: vram_gb })
+}
+
 fn shorten_gpu_name(name: &str) -> String {
     name.replace("NVIDIA GeForce ", "")
+        .replace("NVIDIA RTX ", "RTX ")
+        .replace("NVIDIA Tesla ", "Tesla ")
         .replace("NVIDIA ", "")
+        .replace("AMD Radeon RX ", "RX ")
+        .replace("AMD Radeon PRO ", "Radeon PRO ")
         .replace("AMD Radeon ", "")
+        .replace("Intel(R) Arc ", "Arc ")
+        .replace("Intel(R) Data Center GPU ", "Intel DC-GPU ")
         .replace("Intel(R) ", "Intel ")
+        .replace("Apple ", "")
+        .replace("Moore Threads ", "")
+        .replace("Iluvatar CoreX ", "")
+        .replace("Cambricon ", "")
+        .replace("Biren ", "")
+        .replace("KunlunXin ", "")
         .replace("(TM)", "")
+        .replace("(R)", "")
         .replace("  ", " ")
         .trim()
         .to_string()
 }
+
+// AMD ROCm / Hygon DCU
+fn detect_gpu_rocm() -> Option<GpuInfo> {
+    let out = Command::new("rocm-smi")
+        .args(["--showmeminfo", "vram", "--showname", "--csv"])
+        .output().ok()?;
+    if !out.status.success() { return None; }
+    let s = String::from_utf8_lossy(&out.stdout);
+    for line in s.lines().skip(1) {
+        let p: Vec<&str> = line.split(',').map(|x| x.trim()).collect();
+        if p.len() >= 3 {
+            let mb: f64 = p[2].parse().unwrap_or(0.0);
+            if mb > 0.0 {
+                let gb = (mb / 1024.0 * 10.0).round() / 10.0;
+                return Some(GpuInfo { gpu_name: shorten_gpu_name(p[1]), gpu_vram_gb: gb });
+            }
+        }
+    }
+    None
+}
+
+// Intel Arc / Flex / Gaudi
+fn detect_gpu_intel_xpu() -> Option<GpuInfo> {
+    let out = Command::new("xpu-smi").args(["discovery", "-j"]).output().ok()?;
+    if !out.status.success() { return None; }
+    let json: serde_json::Value = serde_json::from_slice(&out.stdout).ok()?;
+    let dev = json.get("device_list")?.as_array()?.first()?;
+    let name = dev.get("device_name").and_then(|v| v.as_str()).unwrap_or("Intel GPU");
+    let mb = dev.get("memory_physical_size").and_then(|v| v.as_f64()).unwrap_or(0.0);
+    if mb > 0.0 {
+        let gb = (mb / 1024.0 * 10.0).round() / 10.0;
+        return Some(GpuInfo { gpu_name: shorten_gpu_name(name), gpu_vram_gb: gb });
+    }
+    None
+}
+
+// Iluvatar CoreX
+fn detect_gpu_iluvatar() -> Option<GpuInfo> {
+    let out = Command::new("ixsmi").args(["-q", "--display=MEMORY"]).output().ok()?;
+    if !out.status.success() { return None; }
+    let name_o = Command::new("ixsmi").args(["-q", "--display=NAME"]).output().ok()?;
+    let gb = parse_vram_mb_line(&String::from_utf8_lossy(&out.stdout))?;
+    let name = parse_name_colon(&String::from_utf8_lossy(&name_o.stdout))
+        .unwrap_or_else(|| "Iluvatar CoreX".to_string());
+    Some(GpuInfo { gpu_name: shorten_gpu_name(&name), gpu_vram_gb: gb })
+}
+
+// Cambricon MLU
+fn detect_gpu_cambricon() -> Option<GpuInfo> {
+    let out = Command::new("cnmon").args(["info", "-j"]).output().ok()?;
+    if !out.status.success() { return None; }
+    let json: serde_json::Value = serde_json::from_slice(&out.stdout).ok()?;
+    let dev = json.get("device")?.as_array()?.first()?;
+    let name = dev.get("Product Name").or_else(|| dev.get("name"))
+        .and_then(|v| v.as_str()).unwrap_or("Cambricon MLU");
+    let mb = dev.get("Memory Info").and_then(|m| m.get("Total"))
+        .and_then(|v| v.as_f64()).unwrap_or(0.0);
+    if mb > 0.0 {
+        let gb = (mb / 1024.0 * 10.0).round() / 10.0;
+        return Some(GpuInfo { gpu_name: shorten_gpu_name(name), gpu_vram_gb: gb });
+    }
+    None
+}
+
+// Biren BR
+fn detect_gpu_biren() -> Option<GpuInfo> {
+    let out = Command::new("brsmi").args(["-q", "--display=MEMORY"]).output().ok()?;
+    if !out.status.success() { return None; }
+    let name_o = Command::new("brsmi").args(["-q", "--display=NAME"]).output().ok()?;
+    let gb = parse_vram_mb_line(&String::from_utf8_lossy(&out.stdout))?;
+    let name = parse_name_colon(&String::from_utf8_lossy(&name_o.stdout))
+        .unwrap_or_else(|| "Biren BR".to_string());
+    Some(GpuInfo { gpu_name: shorten_gpu_name(&name), gpu_vram_gb: gb })
+}
+
+// KunlunXin XPU
+fn detect_gpu_kunlunxin() -> Option<GpuInfo> {
+    let out = Command::new("kunlunxin-smi")
+        .args(["--query-xpu=name,memory.total", "--format=csv,noheader,nounits"])
+        .output().ok()?;
+    if !out.status.success() { return None; }
+    let s = String::from_utf8_lossy(&out.stdout);
+    let line = s.lines().next()?.trim().to_string();
+    let p: Vec<&str> = line.split(',').map(|x| x.trim()).collect();
+    if p.len() >= 2 {
+        let mb: f64 = p[1].parse().unwrap_or(0.0);
+        if mb > 0.0 {
+            let gb = (mb / 1024.0 * 10.0).round() / 10.0;
+            return Some(GpuInfo { gpu_name: shorten_gpu_name(p[0]), gpu_vram_gb: gb });
+        }
+    }
+    None
+}
+
+fn parse_vram_mb_line(text: &str) -> Option<f64> {
+    for line in text.lines() {
+        let lower = line.to_lowercase();
+        if lower.contains("total") && (lower.contains("mib") || lower.contains("mb")) {
+            if let Some(n) = line.split_whitespace().find(|s| s.parse::<f64>().is_ok()) {
+                let mb: f64 = n.parse().ok()?;
+                if mb > 0.0 { return Some((mb / 1024.0 * 10.0).round() / 10.0); }
+            }
+        }
+    }
+    None
+}
+
+fn parse_name_colon(text: &str) -> Option<String> {
+    text.lines()
+        .find(|l| {
+            let lower = l.to_lowercase();
+            lower.contains("product name") || lower.contains("device name")
+        })
+        .and_then(|l| l.split(':').nth(1))
+        .map(|s| s.trim().to_string())
+        .filter(|s| !s.is_empty())
+}
+
 
 // ============================================================
 // Model Scanning (from local_llm.rs lines 517-552)
@@ -632,7 +809,26 @@ fn get_engine_status() -> serde_json::Value {
     // SGLang: Python package
     let sglang_ver = check_python_package("sglang");
 
+    // System info for UI (architecture + GPU)
+    let arch = detect_runtime_arch();
+    let gpu = get_gpu_info().or_else(detect_gpu);
+    let has_nvidia = gpu.as_ref().map(|g: &GpuInfo| {
+        let name = g.gpu_name.to_lowercase();
+        name.contains("nvidia") || name.contains("rtx") || name.contains("gtx") || name.contains("quadro")
+    }).unwrap_or(false);
+    let has_amd = gpu.as_ref().map(|g: &GpuInfo| {
+        g.gpu_name.to_lowercase().contains("amd") || g.gpu_name.to_lowercase().contains("radeon")
+    }).unwrap_or(false);
+
     serde_json::json!({
+        "systemInfo": {
+            "os": std::env::consts::OS,
+            "arch": arch,
+            "hasNvidiaGpu": has_nvidia,
+            "hasAmdGpu": has_amd,
+            "gpuName": gpu.as_ref().map(|g| &g.gpu_name),
+            "gpuVramGb": gpu.map(|g| g.gpu_vram_gb),
+        },
         "llama-server": {
             "installed": llama.is_some(),
             "path": llama.map(|p| p.to_string_lossy().to_string()),
@@ -645,6 +841,7 @@ fn get_engine_status() -> serde_json::Value {
             "installed": vllm_ver.is_some(),
             "version": vllm_ver,
             "linuxOnly": true,
+            "requiresGpu": true,
             "installCmd": {
                 "default": "pip install vllm",
                 "cuda11": "pip install vllm --extra-index-url https://download.pytorch.org/whl/cu118",
@@ -656,6 +853,7 @@ fn get_engine_status() -> serde_json::Value {
             "installed": sglang_ver.is_some(),
             "version": sglang_ver,
             "linuxOnly": true,
+            "requiresGpu": true,
             "installCmd": {
                 "default": "pip install 'sglang[all]'",
                 "cuda11": "pip install 'sglang[all]' --extra-index-url https://download.pytorch.org/whl/cu118",
@@ -999,6 +1197,21 @@ fn llama_download_mirrors() -> Vec<String> {
     ]
 }
 
+/// Detect runtime CPU architecture via `uname -m`.
+/// This is more reliable than std::env::consts::ARCH which reflects the
+/// compile-time target, not the actual host — important when the plugin binary
+/// is compiled for x86-64 but deployed on an ARM64 server.
+fn detect_runtime_arch() -> String {
+    if let Ok(out) = Command::new("uname").arg("-m").output() {
+        let s = String::from_utf8_lossy(&out.stdout).trim().to_string();
+        if !s.is_empty() {
+            return s;
+        }
+    }
+    // Fallback: compile-time arch
+    std::env::consts::ARCH.to_string()
+}
+
 /// Get platform-specific download file names (detects remote server's own OS)
 fn get_llama_platform_files() -> Vec<String> {
     match std::env::consts::OS {
@@ -1010,8 +1223,10 @@ fn get_llama_platform_files() -> Vec<String> {
             format!("llama-{}-bin-macos-arm64.tar.gz", LLAMA_VERSION),
         ],
         _ => {
-            let arch = std::env::consts::ARCH;
-            if arch == "aarch64" || arch == "arm" {
+            // Use runtime uname -m so ARM64 servers get the correct binary
+            // even if the plugin binary itself was compiled for x86-64
+            let arch = detect_runtime_arch();
+            if arch == "aarch64" || arch == "arm64" || arch.starts_with("arm") {
                 vec![format!("llama-{}-bin-ubuntu-arm64.tar.gz", LLAMA_VERSION)]
             } else {
                 vec![format!("llama-{}-bin-ubuntu-x64.tar.gz", LLAMA_VERSION)]

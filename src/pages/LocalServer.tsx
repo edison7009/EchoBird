@@ -9,6 +9,7 @@ import { useI18n } from '../hooks/useI18n';
 import { useConfirm } from '../components/ConfirmDialog';
 import { useDownload } from '../components/DownloadContext';
 import * as api from '../api/tauri';
+import type { SystemInfo } from '../api/tauri';
 import type { StoreModel, StoreModelVariant } from '../api/types';
 
 // ─── Types ───
@@ -147,8 +148,15 @@ export const LocalServerMain: React.FC = () => {
     // Rescan models when runtime changes (GGUF vs HuggingFace)
     useEffect(() => { rescanModels(runtime); }, [runtime, rescanModels]);
 
-    // OS detection: vLLM / SGLang only available on Linux
-    const isLinux = navigator.platform.startsWith('Linux');
+    // System info: OS / arch / GPU — used for runtime filtering and COMPUTE option
+    const [systemInfo, setSystemInfo] = useState<SystemInfo | null>(null);
+    useEffect(() => {
+        api.getSystemInfo().then(setSystemInfo).catch(() => { });
+    }, []);
+
+    // Runtime options: vLLM / SGLang only on Linux
+    const isLinux = systemInfo ? systemInfo.os === 'linux' : navigator.platform.startsWith('Linux');
+    const hasGpu = systemInfo ? (systemInfo.gpuName !== null) : true;
     const runtimeOptions = [
         { id: 'llama-server', label: 'llama.cpp' },
         ...(isLinux ? [
@@ -393,7 +401,7 @@ export const LocalServerMain: React.FC = () => {
                             onChange={(v) => setGpuLayers(Number(v))}
                             disabled={isRunning}
                             options={[
-                                { id: '-1', label: t('server.gpuFull') },
+                                ...(hasGpu ? [{ id: '-1', label: t('server.gpuFull') }] : []),
                                 { id: '0', label: t('server.cpuOnly') },
                             ]}
                             className="flex-1"
@@ -411,6 +419,8 @@ export const LocalServerMain: React.FC = () => {
                                 { id: '8192', label: '8K' },
                                 { id: '16384', label: '16K' },
                                 { id: '32768', label: '32K' },
+                                { id: '65536', label: '64K' },
+                                { id: '131072', label: '128K' },
                             ]}
                             className="flex-1"
                         />

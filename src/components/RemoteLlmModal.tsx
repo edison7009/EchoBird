@@ -91,6 +91,7 @@ export const RemoteLlmModal: React.FC<RemoteLlmModalProps> = ({
     const [runtime, setRuntime] = useState('llama-server');
     const [copied, setCopied] = useState('');
 
+
     // Tab state
     const [activeTab, setActiveTab] = useState<'local' | 'store'>('local');
     const [expandedGroup, setExpandedGroup] = useState<string | null>(null);
@@ -113,6 +114,9 @@ export const RemoteLlmModal: React.FC<RemoteLlmModalProps> = ({
         running: false, port: 0, modelName: '', pid: null, apiKey: '',
     });
     const [runtimeStatus, setRuntimeStatus] = useState<Record<string, { installed: boolean; version?: string }>>({});
+    const [remoteSystemInfo, setRemoteSystemInfo] = useState<{
+        os: string; arch: string; hasNvidiaGpu: boolean; hasAmdGpu: boolean; gpuName: string | null; gpuVramGb: number | null;
+    } | null>(null);
     const [remoteDirs, setRemoteDirs] = useState<string[]>([]);
     const [apiReachable, setApiReachable] = useState(false);
 
@@ -121,6 +125,13 @@ export const RemoteLlmModal: React.FC<RemoteLlmModalProps> = ({
     const isRunning = serverInfo.running;
     const currentRuntimeInstalled = runtimeStatus[runtime]?.installed ?? false;
     const engineStatus: 'ready' | 'not-installed' = currentRuntimeInstalled ? 'ready' : 'not-installed';
+    // Fallback API key: generated once when modal opens, used if server doesn't provide one
+    const [fallbackApiKey] = useState(() => {
+        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+        return 'ek-' + Array.from({ length: 32 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+    });
+    // Effective key: prefer server's key, fall back to generated one
+    const effectiveApiKey = serverInfo.apiKey || fallbackApiKey;
 
     const handleCopy = (path: string) => {
         const port = isRunning ? serverInfo.port : parseInt(serverPort);
@@ -146,7 +157,12 @@ export const RemoteLlmModal: React.FC<RemoteLlmModalProps> = ({
                 ]);
                 setApiReachable(true);
                 if (statusRes.status === 'fulfilled') setServerInfo(statusRes.value);
-                if (gpuRes.status === 'fulfilled' && gpuRes.value) setGpu(gpuRes.value);
+                if (gpuRes.status === 'fulfilled' && gpuRes.value) {
+                    setGpu(gpuRes.value);
+                } else {
+                    // No GPU detected — auto-switch to CPU Only to prevent crash
+                    setGpuLayers('0');
+                }
                 // Display GGUF or HF models based on runtime
                 if (isHfRuntime && hfModelsRes.status === 'fulfilled') {
                     const hfFiles = (hfModelsRes.value || []).map((m: any) => ({
@@ -170,6 +186,8 @@ export const RemoteLlmModal: React.FC<RemoteLlmModalProps> = ({
                         else if (eng[key]) rs[key] = { installed: eng[key].installed, version: eng[key].version };
                     }
                     setRuntimeStatus(rs);
+                    // Parse systemInfo from engine status
+                    if (eng.systemInfo) setRemoteSystemInfo(eng.systemInfo);
                 }
                 if (dirsRes.status === 'fulfilled') setRemoteDirs(dirsRes.value || []);
             } catch (e) {
@@ -180,9 +198,9 @@ export const RemoteLlmModal: React.FC<RemoteLlmModalProps> = ({
         fetchAll();
     }, [isOpen, apiBase, runtime]);
 
-    // ─── Poll status + logs when running ───
+    // ─── Poll status + logs whenever modal is open (mirrors LocalServer always-on poll) ───
     useEffect(() => {
-        if (!isOpen || !isRunning) return;
+        if (!isOpen) return;
         const id = setInterval(async () => {
             try {
                 const [statusRes, logsRes] = await Promise.allSettled([
@@ -194,7 +212,9 @@ export const RemoteLlmModal: React.FC<RemoteLlmModalProps> = ({
             } catch { /* silent */ }
         }, 3000);
         return () => clearInterval(id);
-    }, [isOpen, isRunning, apiBase]);
+    }, [isOpen, apiBase]);
+
+
 
     // ── Remote download: start ──
     const handleRemoteDownload = useCallback(async (repo: string, fileName: string) => {
@@ -282,7 +302,7 @@ export const RemoteLlmModal: React.FC<RemoteLlmModalProps> = ({
     const handleStart = async () => {
         if (!selectedVariant) return;
         try {
-            const res = await fetch(`${apiBase}/api/start`, {
+            await fetch(`${apiBase}/api/start`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -293,8 +313,8 @@ export const RemoteLlmModal: React.FC<RemoteLlmModalProps> = ({
                     runtime,
                 }),
             });
-            const data = await res.json();
-            if (data.running !== undefined) setServerInfo(data);
+            // Optimistically mark as running; the always-on poll will correct if it fails
+            setServerInfo(prev => ({ ...prev, running: true, port: parseInt(serverPort) }));
         } catch (e) {
             console.error('[RemoteLLM] Start failed:', e);
         }
@@ -308,6 +328,8 @@ export const RemoteLlmModal: React.FC<RemoteLlmModalProps> = ({
             console.error('[RemoteLLM] Stop failed:', e);
         }
     };
+
+
 
     // ─── Fetch store models on STORE tab ───
     useEffect(() => {
@@ -389,7 +411,7 @@ export const RemoteLlmModal: React.FC<RemoteLlmModalProps> = ({
                                         onChange={setGpuLayers}
                                         disabled={isRunning}
                                         options={[
-                                            { id: '-1', label: t('server.gpuFull') },
+                                            ...(gpu ? [{ id: '-1', label: t('server.gpuFull') }] : []),
                                             { id: '0', label: t('server.cpuOnly') },
                                         ]}
                                         className="flex-1"
@@ -406,6 +428,9 @@ export const RemoteLlmModal: React.FC<RemoteLlmModalProps> = ({
                                             { id: '4096', label: '4K' },
                                             { id: '8192', label: '8K' },
                                             { id: '16384', label: '16K' },
+                                            { id: '32768', label: '32K' },
+                                            { id: '65536', label: '64K' },
+                                            { id: '131072', label: '128K' },
                                         ]}
                                         className="flex-1"
                                     />
@@ -439,7 +464,13 @@ export const RemoteLlmModal: React.FC<RemoteLlmModalProps> = ({
                                             { id: 'llama-server', label: 'llama.cpp' },
                                             { id: 'vllm', label: 'vLLM' },
                                             { id: 'sglang', label: 'SGLang' },
-                                        ]}
+                                        ].filter(opt => {
+                                            // vLLM / SGLang: Linux only
+                                            if ((opt.id === 'vllm' || opt.id === 'sglang') && remoteSystemInfo && remoteSystemInfo.os !== 'linux') return false;
+                                            // Hide uninstalled once we have engine status data
+                                            if (Object.keys(runtimeStatus).length > 0 && !runtimeStatus[opt.id]?.installed) return false;
+                                            return true;
+                                        })}
                                         className="flex-1"
                                     />
                                 </div>
@@ -801,7 +832,7 @@ export const RemoteLlmModal: React.FC<RemoteLlmModalProps> = ({
                     <span className="text-cyber-border">|</span>
                     <div
                         className="flex items-center gap-1.5 cursor-pointer hover:text-cyber-accent transition-colors"
-                        onClick={() => { navigator.clipboard.writeText(serverInfo.apiKey || ''); setCopied('key'); setTimeout(() => setCopied(''), 2000); }}
+                        onClick={() => { navigator.clipboard.writeText(effectiveApiKey); setCopied('key'); setTimeout(() => setCopied(''), 2000); }}
                     >
                         <span className="text-cyber-text-secondary/80">API Key:</span>
                         <span className="text-cyber-accent">{copied === 'key' ? t('btn.copied') : t('btn.copy')}</span>

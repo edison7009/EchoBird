@@ -198,6 +198,19 @@ export async function getGpuInfo(): Promise<{ gpuName: string; gpuVramGb: number
     return invoke('get_gpu_info');
 }
 
+export interface SystemInfo {
+    os: string;         // "windows" | "macos" | "linux"
+    arch: string;       // "x86_64" | "aarch64"
+    hasNvidiaGpu: boolean;
+    hasAmdGpu?: boolean;
+    gpuName: string | null;
+    gpuVramGb: number | null;
+}
+
+export async function getSystemInfo(): Promise<SystemInfo> {
+    return invoke('get_system_info');
+}
+
 export async function setDownloadDir(): Promise<string> {
     return invoke('set_download_dir');
 }
