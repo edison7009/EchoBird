@@ -1,5 +1,5 @@
 {
-  "version": "2.4.4",
+  "version": "2.4.5",
   "releaseDate": "2026-03-07",
-  "releaseNotes": "Fix ARM (aarch64) engine download: llama-server now correctly downloads arm64 binary on ARM servers. Add LLM Server undeploy instructions to Mother Agent."
+  "releaseNotes": "Fix llm-server crash: capture stdout/stderr for crash diagnostics. Fix ARM64 server architecture detection using runtime uname -m. Add system info (OS/arch/GPU) to engine status API. Filter runtime options by OS and hardware compatibility. Fix local LLM crash detection via PID liveness check."
 }

@@ -1,6 +1,6 @@
 {
   "name": "echobird",
-  "version": "2.4.4",
+  "version": "2.4.5",
   "description": "AI Model & Skill Management Desktop Application",
   "author": "Echo Bird Team",
   "type": "module",
@@ -13,6 +13,7 @@
     "copy:config": "echo no-op"
   },
   "dependencies": {
+    "@fortawesome/fontawesome-free": "^7.2.0",
     "@tauri-apps/api": "^2.10.1",
     "@tauri-apps/plugin-shell": "^2.3.5",
     "js-yaml": "^4.1.1",
