@@ -651,7 +651,7 @@ async fn exec_deploy_bridge(server_id: &str, plugin_id: &str, ssh_pool: &SSHPool
     // Fetch latest version dynamically from version API (falls back to compile-time version)
     let version = fetch_latest_plugin_version().await;
     // Primary: Cloudflare proxy dl.echobird.ai (bypasses China GFW)
-    let download_url = format!("https://dl.echobird.ai/{}/{}", version, bridge_filename);
+    let download_url = format!("https://dl.echobird.ai/releases/{}/{}", version, bridge_filename);
     // Fallback 1: GitHub versioned
     let github_url = format!("https://github.com/edison7009/Echobird-MotherAgent/releases/download/{}/{}", version, bridge_filename);
 
@@ -854,7 +854,7 @@ async fn exec_deploy_plugin_source(
     // 2. Fetch latest version dynamically from version API (falls back to compile-time version)
     let version = fetch_latest_plugin_version().await;
     // Primary: Cloudflare proxy (bypasses China GFW, no egress fees)
-    let primary_url = format!("https://dl.echobird.ai/{}/{}", version, binary_filename);
+    let primary_url = format!("https://dl.echobird.ai/releases/{}/{}", version, binary_filename);
     // Fallback: GitHub direct
     let github_url = format!("https://github.com/edison7009/Echobird-MotherAgent/releases/download/{}/{}", version, binary_filename);
 
