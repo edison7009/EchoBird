@@ -922,22 +922,22 @@
                     <div class="os">🪟</div>
                     <h3>Windows</h3>
                     <div class="sub">Windows 10+, x64</div>
-                    <a href="https://github.com/edison7009/Echobird-MotherAgent/releases/latest" class="btn btn-g"
-                        data-i18n="dl_btn">Download</a>
+                    <a id="dl-win" href="https://github.com/edison7009/Echobird-MotherAgent/releases/latest"
+                        class="btn btn-g" data-i18n="dl_btn">Download</a>
                 </div>
                 <div class="dl-card">
                     <div class="os">🍎</div>
                     <h3>macOS</h3>
                     <div class="sub">macOS 11+, Universal</div>
-                    <a href="https://github.com/edison7009/Echobird-MotherAgent/releases/latest" class="btn btn-g"
-                        data-i18n="dl_btn">Download</a>
+                    <a id="dl-mac" href="https://github.com/edison7009/Echobird-MotherAgent/releases/latest"
+                        class="btn btn-g" data-i18n="dl_btn">Download</a>
                 </div>
                 <div class="dl-card">
                     <div class="os">🐧</div>
                     <h3>Linux</h3>
                     <div class="sub">AppImage, x64</div>
-                    <a href="https://github.com/edison7009/Echobird-MotherAgent/releases/latest" class="btn btn-g"
-                        data-i18n="dl_btn">Download</a>
+                    <a id="dl-linux" href="https://github.com/edison7009/Echobird-MotherAgent/releases/latest"
+                        class="btn btn-g" data-i18n="dl_btn">Download</a>
                 </div>
             </div>
             <!-- Terminal -->
@@ -1247,6 +1247,22 @@
             }
             const lang = detect(); sel.value = lang; setLang(lang);
             sel.addEventListener('change', () => setLang(sel.value));
+
+            // ── Auto-detect version and set direct download links ──
+            fetch('/api/version/index.json')
+                .then(r => r.json())
+                .then(v => {
+                    const ver = v.version; // e.g. "2.4.4"
+                    const base = 'https://dl.echobird.ai/releases/v' + ver;
+                    const gh = 'https://github.com/edison7009/Echobird-MotherAgent/releases/download/v' + ver;
+                    const w = document.getElementById('dl-win');
+                    const m = document.getElementById('dl-mac');
+                    const l = document.getElementById('dl-linux');
+                    if (w) w.href = base + '/Echobird_' + ver + '_x64-setup.exe';
+                    if (m) m.href = base + '/Echobird_' + ver + '_aarch64.dmg';
+                    if (l) l.href = base + '/Echobird_' + ver + '_amd64.AppImage';
+                })
+                .catch(() => { }); // fallback: keeps GitHub releases/latest links
         });
     </script>
 </body>
