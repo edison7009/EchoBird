@@ -8,7 +8,7 @@
 
 <p align="center">
   One app to install agents, switch models, deploy local/remote LLMs, and control all agents from one Channels screen.<br/>
-  <sub>A cross-platform desktop AI control panel — built with Tauri 2 + Rust.</sub>
+  <sub>A cross-platform desktop AI control panel �?built with Tauri 2 + Rust.</sub>
 </p>
 
 <p align="center">
@@ -21,10 +21,10 @@
 
 <p align="center">
   <strong>English</strong> ·
-  <a href="./docs/README.zh-CN.md">简体中文</a> ·
+  <a href="./docs/README.zh-CN.md">简体中�?/a> ·
   <a href="./docs/README.zh-TW.md">繁體中文</a> ·
-  <a href="./docs/README.ja.md">日本語</a> ·
-  <a href="./docs/README.ko.md">한국어</a> ·
+  <a href="./docs/README.ja.md">日本�?/a> ·
+  <a href="./docs/README.ko.md">한국�?/a> ·
   <a href="./docs/README.es.md">Español</a> ·
   <a href="./docs/README.fr.md">Français</a> ·
   <a href="./docs/README.de.md">Deutsch</a> ·
@@ -37,63 +37,63 @@
 
 ## Why Echobird?
 
-Even as an AI beginner, Echobird lets you command your own Agent — from setup to work — through simple chat. No terminal expertise, no config files, no deployment headaches.
+Even as an AI beginner, Echobird lets you command your own Agent �?from setup to work �?through simple chat. No terminal expertise, no config files, no deployment headaches.
 
 Want to use **OpenClaw**, **Claude Code**, **ZeroClaw**, or **Codex**? One click to install. Want to run **Qwen**, **DeepSeek**, or **Llama** on your own machine? One click to deploy. Want to switch models or add skills? Point, click, done.
 
-**Echobird gives you one app to install agents, switch models, deploy LLMs, and control everything from one screen** — whether you're a developer or just getting started with AI.
+**Echobird gives you one app to install agents, switch models, deploy LLMs, and control everything from one screen** �?whether you're a developer or just getting started with AI.
 
 ---
 
-## ✨ Features
+## �?Features
 
-### 🚀 One-Click Install — OpenClaw, Claude Code, OpenCode, ZeroClaw & more
+### 🚀 One-Click Install �?OpenClaw, Claude Code, OpenCode, ZeroClaw & more
 
-- **Auto-detect & install** — Echobird detects which agents are installed and lets you deploy missing ones in one click
-- **Plug-and-play tools** — Drop a `plugin.json` in the tools folder and it just works. No code changes needed
-- **Built-in launcher** — Start any supported agent without touching the terminal
+- **Auto-detect & install** �?Echobird detects which agents are installed and lets you deploy missing ones in one click
+- **Plug-and-play tools** �?Drop a `plugin.json` in the tools folder and it just works. No code changes needed
+- **Built-in launcher** �?Start any supported agent without touching the terminal
 
-### 🔀 One-Click Model Switch — Switch models across all agents instantly
+### 🔀 One-Click Model Switch �?Switch models across all agents instantly
 
-- **Visual Model Nexus** — Manage all your AI models (OpenAI, Anthropic, Gemini, DeepSeek, Ollama, or any custom endpoint) in one panel
-- **Dual Protocol** — OpenAI API & Anthropic API. Switch protocols per agent with zero config changes
-- **One-click apply** — Select a model card, toggle it on for any agent. No more editing JSON, TOML, or `.env` files
+- **Visual Model Nexus** �?Manage all your AI models (OpenAI, Anthropic, Gemini, DeepSeek, Ollama, or any custom endpoint) in one panel
+- **Dual Protocol** �?OpenAI API & Anthropic API. Switch protocols per agent with zero config changes
+- **One-click apply** �?Select a model card, toggle it on for any agent. No more editing JSON, TOML, or `.env` files
 
-### 💻 One-Click Deploy LLM — Run Qwen, DeepSeek, Llama, MiniMax locally or remotely
+### 💻 One-Click Deploy LLM �?Run Qwen, DeepSeek, Llama, MiniMax locally or remotely
 
-- **Local LLM** — Deploy open-source models via built-in llama.cpp, vLLM, or SGLang. Your data never leaves your device
-- **Remote LLM** — Deploy to any GPU server via SSH. One-click start Qwen 3.5, MiniMax M2.5, GLM-5, or any GGUF/HuggingFace model
-- **Unified Proxy** — Automatically exposes both OpenAI (`/v1`) and Anthropic (`/anthropic`) endpoints. Connect any agent instantly
-- **Smart GPU Detection** — Auto-detect NVIDIA GPUs and recommend optimal settings
+- **Local LLM** �?Deploy open-source models via built-in llama.cpp, vLLM, or SGLang. Your data never leaves your device
+- **Remote LLM** �?Deploy to any GPU server via SSH. One-click start Qwen 3.5, MiniMax M2.5, GLM-5, or any GGUF/HuggingFace model
+- **Unified Proxy** �?Automatically exposes both OpenAI (`/v1`) and Anthropic (`/anthropic`) endpoints. Connect any agent instantly
+- **Smart GPU Detection** �?Auto-detect NVIDIA GPUs and recommend optimal settings
 
-### 📡 Channels — Control multiple agents from one screen
+### 📡 Channels �?Control multiple agents from one screen
 
-- **Multi-agent channels** — Run OpenClaw, ZeroClaw, or any Bridge-compatible agent side by side
-- **Local & Remote** — Local agents via Bridge Protocol, remote agents via SSH tunnels. Same interface, same experience
-- **Persistent Sessions** — Agent conversations survive app restarts. Pick up exactly where you left off
-- **MotherAgent** — Your autonomous AI agent with tool calling, skill system, and full model flexibility
+- **Multi-agent channels** �?Run OpenClaw, ZeroClaw, or any Bridge-compatible agent side by side
+- **Local & Remote** �?Local agents via Bridge Protocol, remote agents via SSH tunnels. Same interface, same experience
+- **Persistent Sessions** �?Agent conversations survive app restarts. Pick up exactly where you left off
+- **MotherAgent** �?Your autonomous AI agent with tool calling, skill system, and full model flexibility
 
 ### 🧩 More Built-in
 
-- 🌐 **Smart Tunnel Proxy** — Access geo-restricted APIs without a full VPN
-- 🎯 **Skill Browser** — One-click discover, translate, and install AI skills across agents
-- 🎮 **Built-in AI Apps** — Reversi, AI Translate, and more
-- 🌍 **28 Languages** — Full i18n from English to Arabic
+- 🌐 **Smart Tunnel Proxy** �?Access geo-restricted APIs without a full VPN
+- 🎯 **Skill Browser** �?One-click discover, translate, and install AI skills across agents
+- 🎮 **Built-in AI Apps** �?Reversi, AI Translate, and more
+- 🌍 **28 Languages** �?Full i18n from English to Arabic
 
 ---
 
-## 🖼️ Screenshots
+## 🖼�?Screenshots
 
-### Model Nexus — OpenAI, Anthropic, Gemini, DeepSeek, Ollama — all in one panel
+### Model Nexus �?OpenAI, Anthropic, Gemini, DeepSeek, Ollama �?all in one panel
 ![Model Nexus](docs/1.png)
 
-### App Manager — One-click model switching for OpenClaw, Claude Code, Codex & more
+### App Manager �?One-click model switching for OpenClaw, Claude Code, Codex & more
 ![App Manager](docs/2.png)
 
-### Local LLM — Deploy Qwen, Llama, DeepSeek locally via llama.cpp / vLLM / SGLang
+### Local LLM �?Deploy Qwen, Llama, DeepSeek locally via llama.cpp / vLLM / SGLang
 ![Local Server](docs/3.png)
 
-### Skill Browser — One-click translate & install Skills for OpenClaw, Claude Code & more
+### Skill Browser �?One-click translate & install Skills for OpenClaw, Claude Code & more
 ![Skill Browser](docs/4.png)
 
 ---
@@ -142,7 +142,7 @@ chmod +x Echobird_*.AppImage
 
 ---
 
-## 🏗️ Tech Stack
+## 🏗�?Tech Stack
 
 **Tauri 2** + **Rust** + **React** + **TypeScript** + **llama.cpp**
 
@@ -158,5 +158,5 @@ chmod +x Echobird_*.AppImage
 <p align="center">
   <em>The last interface before the age of AI.</em><br/>
   Made with 💚 by the Echobird Team<br/>
-  <sub>⭐ <a href="https://github.com/edison7009/Echobird-MotherAgent">Star on GitHub</a> — it helps others discover the project!</sub>
+  <sub>�?<a href="https://github.com/edison7009/Echobird-MotherAgent">Star on GitHub</a> �?it helps others discover the project!</sub>
 </p>
