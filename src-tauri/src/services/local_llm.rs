@@ -1172,9 +1172,14 @@ fn get_llama_platform_files() -> Vec<String> {
         "macos" => vec![
             format!("llama-{}-bin-macos-arm64.tar.gz", LLAMA_VERSION),
         ],
-        _ => vec![
-            format!("llama-{}-bin-ubuntu-x64.tar.gz", LLAMA_VERSION),
-        ],
+        _ => {
+            let arch = std::env::consts::ARCH;
+            if arch == "aarch64" || arch == "arm" {
+                vec![format!("llama-{}-bin-ubuntu-arm64.tar.gz", LLAMA_VERSION)]
+            } else {
+                vec![format!("llama-{}-bin-ubuntu-x64.tar.gz", LLAMA_VERSION)]
+            }
+        }
     }
 }
 
