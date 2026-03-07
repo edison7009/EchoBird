@@ -1,5 +1,5 @@
 {
   "version": "2.4.6",
   "releaseDate": "2026-03-08",
-  "releaseNotes": "Fix llm-server crash: capture stdout/stderr for crash diagnostics. Fix ARM64 server architecture detection using runtime uname -m. Add system info (OS/arch/GPU) to engine status API. Filter runtime options by OS and hardware compatibility. Fix local LLM crash detection via PID liveness check."
+  "releaseNotes": "Fix: plugin deploy now fetches latest version dynamically from version API (no longer locked to compile-time version). Fix llm-server crash logging and ARM64 architecture detection. Add system info to engine status. Filter runtime options by OS and GPU availability."
 }
