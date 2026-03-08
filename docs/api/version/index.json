@@ -1,5 +1,5 @@
 {
-  "version": "2.5.4",
+  "version": "2.5.5",
   "releaseDate": "2026-03-08",
-  "releaseNotes": "Fix per-channel loading state isolation. Fix duplicate openclaw agent processes on remote bridge (pkill stale processes before each call). Auto-prefer Anthropic protocol for tool calling when anthropicUrl is configured. Extend remote bridge timeout to 5 min with working indicator."
+  "releaseNotes": "Triple protocol fallback for Mother Agent and Skills translation: prefer Anthropic when available (explicit URL or auto-derived /v1→/anthropic), auto-downgrade to OpenAI on 400. LlmClient now Clone-able for runtime protocol switching."
 }
