@@ -23,7 +23,7 @@ const en: Translations = {
     'settings.updates': 'UPDATES',
     'settings.checkForUpdates': 'CHECK FOR UPDATES',
     'settings.checking': 'Checking...',
-    'settings.latestVersion': "You're on the latest version",
+    'settings.latestVersion': 'Already on the latest version',
     'settings.checkFailed': 'Check failed — retry',
     // Buttons
     'btn.addModel': 'ADD MODEL',
