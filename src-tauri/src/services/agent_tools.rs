@@ -868,7 +868,7 @@ async fn exec_deploy_plugin_source(
     let download_cmd = |url: &str| format!(
         "mkdir -p {dir} && rm -rf {dir}/{bin} {dir}/{zip} && \
          curl -fSL --connect-timeout 15 --max-time 90 -o {dir}/{zip} '{url}' && \
-         unzip -o {dir}/{zip} -d {dir} && rm {dir}/{zip} && chmod +x {dir}/{bin}",
+         unzip -j -o {dir}/{zip} -d {dir} && rm {dir}/{zip} && chmod +x {dir}/{bin}",
         dir = deploy_dir, bin = binary_filename, zip = zip_filename, url = url
     );
 
