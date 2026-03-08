@@ -106,7 +106,7 @@ When the user wants to install OpenClaw on the LOCAL machine (no SSH needed):
 5. **POST-INSTALL GUIDANCE** (tell the user these steps):
    ✅ OpenClaw is installed!
 
-   **Next steps to start using it:**
+   **Next steps (translate page names per Language Rules above):**
    1️⃣ Go to **Model Nexus** page → add your AI model API key if you haven't already.
    2️⃣ Go to **App Manager** page → find OpenClaw → assign a model to it → click **"Launch"** to start the gateway.
    3️⃣ Go to **Channels** page → start chatting! The local channel auto-connects via Echobird Bridge Protocol.

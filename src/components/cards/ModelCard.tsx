@@ -256,7 +256,7 @@ export const ModelCard = React.memo(({
                 {protocols.includes('openai') && (
                     <div
                         className="flex items-center gap-1.5 select-none group cursor-pointer"
-                        onClick={() => onProtocolClick?.('openai')}
+                        onClick={(e) => { e.stopPropagation(); onProtocolClick?.('openai'); }}
                     >
                         <span className="text-cyber-accent/30 font-mono text-xs transition-colors group-hover:text-cyber-accent/60">[</span>
                         <span className={`${openaiTested

@@ -50,11 +50,13 @@ pub fn plugins_dir() -> PathBuf {
     // Build candidates using proper parent traversal (works on Windows)
     let mut candidates = vec![
         exe_dir.join("plugins"),                                // release: next to exe
+        exe_dir.join("_up_").join("plugins"),                  // Tauri NSIS: resources in _up_/
     ];
 
     // Walk up from exe dir (handles debug/release nesting)
     if let Some(p1) = exe_dir.parent() {
         candidates.push(p1.join("plugins"));                    // one up
+        candidates.push(p1.join("_up_").join("plugins"));      // one up + _up_
         if let Some(p2) = p1.parent() {
             candidates.push(p2.join("plugins"));                // two up (tauri dev)
             if let Some(p3) = p2.parent() {
