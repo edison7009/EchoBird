@@ -854,19 +854,22 @@ async fn exec_deploy_plugin_source(
     // 2. Fetch latest version dynamically from version API (falls back to compile-time version)
     let version = fetch_latest_plugin_version().await;
     // Primary: Cloudflare proxy (GFW-friendly)
-    let cloudflare_url = format!("https://dl.echobird.ai/releases/{}/{}", version, binary_filename);
+    let zip_filename = format!("{}.zip", binary_filename);
+    let cloudflare_url = format!("https://dl.echobird.ai/releases/{}/{}", version, zip_filename);
     // Fallback 1: GitHub versioned
-    let github_url = format!("https://github.com/edison7009/Echobird-MotherAgent/releases/download/{}/{}", version, binary_filename);
+    let github_url = format!("https://github.com/edison7009/Echobird-MotherAgent/releases/download/{}/{}", version, zip_filename);
     // Fallback 2: GitHub latest
-    let github_latest_url = format!("https://github.com/edison7009/Echobird-MotherAgent/releases/latest/download/{}", binary_filename);
+    let github_latest_url = format!("https://github.com/edison7009/Echobird-MotherAgent/releases/latest/download/{}", zip_filename);
 
-    log_output.push_str(&format!("[1/4] Downloading {} ...\n", binary_filename));
+    log_output.push_str(&format!("[1/4] Downloading {} ...\n", zip_filename));
 
-    // 3. Download binary — Cloudflare first, GitHub fallback
+    // 3. Download .zip then unzip — .zip extension ensures CDN/proxy handles it correctly
     let deploy_dir = "~/echobird";
     let download_cmd = |url: &str| format!(
-        "mkdir -p {} && rm -rf {}/{} && curl -fSL --connect-timeout 15 --max-time 90 -o {}/{} '{}' && chmod +x {}/{}",
-        deploy_dir, deploy_dir, binary_filename, deploy_dir, binary_filename, url, deploy_dir, binary_filename
+        "mkdir -p {dir} && rm -rf {dir}/{bin} {dir}/{zip} && \
+         curl -fSL --connect-timeout 15 --max-time 90 -o {dir}/{zip} '{url}' && \
+         unzip -o {dir}/{zip} -d {dir} && rm {dir}/{zip} && chmod +x {dir}/{bin}",
+        dir = deploy_dir, bin = binary_filename, zip = zip_filename, url = url
     );
 
     let result = exec_ssh_shell(&download_cmd(&cloudflare_url), server_id, ssh_pool).await;
