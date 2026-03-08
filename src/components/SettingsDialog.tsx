@@ -1,6 +1,6 @@
 // SettingsDialog — Global settings modal (gear button in title bar)
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { X, Globe, ExternalLink } from 'lucide-react';
+import { X, Globe, Download, ExternalLink } from 'lucide-react';
 import { MiniSelect } from './MiniSelect';
 import { useI18n } from '../hooks/useI18n';
 import * as api from '../api/tauri';
@@ -45,7 +45,6 @@ interface SettingsDialogProps {
     onClose: () => void;
     locale: string;
     onLocaleChange: (locale: string) => void;
-    updateAvailable?: string | null;
 }
 
 export const SettingsDialog: React.FC<SettingsDialogProps> = ({
@@ -53,10 +52,11 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
     onClose,
     locale,
     onLocaleChange,
-    updateAvailable = null,
 }) => {
     const { t } = useI18n();
     const [isAnimatingOut, setIsAnimatingOut] = useState(false);
+    const [updateStatus, setUpdateStatus] = useState<'idle' | 'checking' | 'latest' | 'available' | 'error'>('idle');
+    const [latestVersion, setLatestVersion] = useState<string | null>(null);
     const [closeBehavior, setCloseBehavior] = useState('ask');
     const dialogRef = useRef<HTMLDivElement>(null);
 
@@ -80,9 +80,27 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
     }, [isOpen, handleClose]);
 
     // Check for updates via public version API
+    const checkForUpdates = useCallback(async () => {
+        setUpdateStatus('checking');
+        try {
+            const res = await fetch('https://echobird.ai/api/version/index.json');
+            if (!res.ok) { setUpdateStatus('error'); return; }
+            const data = await res.json();
+            if (data.version && data.version !== APP_VERSION) {
+                setLatestVersion(data.version);
+                setUpdateStatus('available');
+            } else {
+                setUpdateStatus('latest');
+            }
+        } catch {
+            setUpdateStatus('error');
+        }
+    }, []);
+
     // Reset status and load settings when dialog opens
     useEffect(() => {
         if (isOpen) {
+            setUpdateStatus('idle');
             api.getSettings().then(s => {
                 setCloseBehavior(s.closeBehavior || 'ask');
             }).catch(() => { });
@@ -128,23 +146,14 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
                 {/* Content */}
                 <div className="px-5 pb-5 space-y-5">
 
-                    {/* Update */}
+                    {/* Version */}
                     <div className="flex items-center justify-between">
                         <span className="text-xs font-mono text-cyber-text-secondary tracking-wider">{t('settings.version')}</span>
                         <span className="text-xs font-mono text-cyber-accent">v{APP_VERSION}</span>
                     </div>
 
-                    {/* Update available row + divider (only when update exists) */}
-                    {updateAvailable && (<>
-                        <button
-                            onClick={() => api.openExternal('https://echobird.ai/')}
-                            className="flex items-center justify-between w-full h-9 px-3 text-xs font-mono border border-cyber-accent/40 text-cyber-accent hover:bg-cyber-accent/10 transition-colors tracking-wider rounded-button"
-                        >
-                            <span>v{APP_VERSION} → v{updateAvailable}</span>
-                            <span className="flex items-center gap-1">UPDATE <ExternalLink size={10} /></span>
-                        </button>
-                        <div className="h-px bg-cyber-border" />
-                    </>)}
+                    {/* Divider */}
+                    <div className="h-px bg-cyber-border" />
 
                     {/* Language */}
                     <div className="space-y-2">
@@ -182,6 +191,58 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
                                 { id: 'quit', label: t('settings.closeQuit') },
                             ]}
                         />
+                    </div>
+
+                    {/* Divider */}
+                    <div className="h-px bg-cyber-border" />
+
+                    {/* Update check */}
+                    <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                            <Download size={12} className="text-cyber-accent-secondary" />
+                            <span className="text-xs font-mono text-cyber-text-secondary tracking-wider">{t('settings.updates')}</span>
+                        </div>
+
+                        <div className="h-9 flex items-center">
+                            {updateStatus === 'idle' && (
+                                <button
+                                    onClick={checkForUpdates}
+                                    className="w-full h-9 text-xs font-mono font-bold border border-cyber-accent/40 text-cyber-accent hover:bg-cyber-accent/10 transition-colors tracking-wider rounded-button"
+                                >
+                                    {t('settings.checkForUpdates')}
+                                </button>
+                            )}
+
+                            {updateStatus === 'checking' && (
+                                <div className="w-full h-9 flex items-center justify-center text-xs font-mono text-cyber-accent-secondary border border-cyber-accent-secondary/30 rounded-button">
+                                    {t('settings.checking')}
+                                </div>
+                            )}
+
+                            {updateStatus === 'latest' && (
+                                <div className="w-full h-9 flex items-center justify-center text-xs font-mono text-cyber-accent border border-cyber-accent/30 rounded-button">
+                                    ✓ {t('settings.latestVersion')}
+                                </div>
+                            )}
+
+                            {updateStatus === 'available' && (
+                                <button
+                                    onClick={() => api.openExternal('https://echobird.ai/')}
+                                    className="flex items-center justify-center gap-1.5 w-full h-9 text-xs font-mono border border-cyber-accent-secondary/30 text-cyber-accent-secondary hover:bg-cyber-accent-secondary/10 transition-colors tracking-wider rounded-button"
+                                >
+                                    UPDATE TO v{latestVersion} <ExternalLink size={10} />
+                                </button>
+                            )}
+
+                            {updateStatus === 'error' && (
+                                <button
+                                    onClick={checkForUpdates}
+                                    className="w-full h-9 text-xs font-mono border border-red-400/30 text-red-400 hover:bg-red-400/10 transition-colors tracking-wider rounded-button"
+                                >
+                                    {t('settings.checkFailed')}
+                                </button>
+                            )}
+                        </div>
                     </div>
 
                     {/* Website link */}

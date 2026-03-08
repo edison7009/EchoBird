@@ -220,7 +220,6 @@ function App() {
                             onClose={() => setShowSettings(false)}
                             locale={locale}
                             onLocaleChange={setLocale}
-                            updateAvailable={updateAvailable}
                         />
                     </GatewayProvider>
                 </DownloadProvider>
