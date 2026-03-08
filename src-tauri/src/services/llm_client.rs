@@ -254,8 +254,14 @@ impl LlmClient {
         tools: &[ToolDef],
         system_prompt: &str,
     ) -> Result<mpsc::Receiver<LlmEvent>, String> {
-        let url = format!("{}/messages",
-            self.config.base_url.trim_end_matches('/'));
+        let base = self.config.base_url.trim_end_matches('/');
+        // Align with model_manager.rs: if URL already contains "/messages" use as-is,
+        // otherwise append "/v1/messages" (e.g. MiniMax: .../anthropic → .../anthropic/v1/messages)
+        let url = if base.contains("/messages") {
+            base.to_string()
+        } else {
+            format!("{}/v1/messages", base)
+        };
 
         // Build messages (Anthropic format)
         let msgs: Vec<Value> = messages.iter().map(|m| message_to_anthropic_json(m)).collect();

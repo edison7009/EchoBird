@@ -186,7 +186,9 @@ pub async fn llm_quick_chat(config: LlmQuickConfig, prompt: String) -> Result<St
 
     let is_anthropic = config.provider.to_lowercase() == "anthropic";
     let url = if is_anthropic {
-        format!("{}/messages", config.base_url.trim_end_matches('/'))
+        let base = config.base_url.trim_end_matches('/');
+        // Use /v1/messages (not /messages) to match model_manager.rs test behavior
+        if base.contains("/messages") { base.to_string() } else { format!("{}/v1/messages", base) }
     } else {
         format!("{}/chat/completions", config.base_url.trim_end_matches('/'))
     };
