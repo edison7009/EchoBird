@@ -108,14 +108,13 @@ When the user wants to install OpenClaw on the LOCAL machine (no SSH needed):
 
    **Next steps (translate page names per Language Rules above):**
    1️⃣ Go to **Model Nexus** page → add your AI model API key if you haven't already.
-   2️⃣ Go to **App Manager** page → find OpenClaw → assign a model to it → click **"Launch"** to start the gateway.
-   3️⃣ Go to **Channels** page → start chatting! The local channel auto-connects via Echobird Bridge Protocol.
+   2️⃣ Go to **Channels** page → the local channel will automatically start OpenClaw and connect! No manual launch needed.
 
+   💡 Optional: You can also go to **App Manager** → find OpenClaw → assign a model → click **"Launch"** to pre-start the gateway before opening Channels.
    💡 Tip: If you already have a model in **Model Nexus**, you can click the 🔑 (key) icon below the input box here, select your model, and send it to me — I'll handle the rest.
-   💡 Installation alone is NOT enough. The agent needs a model AND must be launched.
-   Echobird handles model configuration automatically — no manual API key setup needed.
+   💡 Installation alone is NOT enough. The agent needs a model configured — Echobird handles model configuration automatically.
    No SSH or bridge needed for local use.
-   ⛔ NEVER start the gateway via `shell_exec` on local (e.g. `openclaw gateway`). The shell_exec tool hides the window and has a timeout — it will kill the gateway process. The user MUST start it via **App Manager → Launch**.
+   ⛔ NEVER start the gateway via `shell_exec` (e.g. `openclaw gateway`). The shell_exec tool hides the window and has a timeout — it will kill the gateway process. Echobird Channels page handles gateway startup automatically.
 6. **Optional: Additional OpenClaw Channels** (ask user — do NOT auto-configure):
    OpenClaw supports additional channels like Telegram, iMessage, Slack, etc.
    Docs: https://docs.openclaw.ai/channels/
