@@ -863,8 +863,8 @@ async fn exec_deploy_plugin_source(
     // 3. Download binary — try Cloudflare first, then GitHub versioned, then GitHub latest
     let deploy_dir = "~/echobird";
     let download_cmd = |url: &str| format!(
-        "mkdir -p {} && curl -fSL --connect-timeout 30 --max-time 120 -o {}/{} '{}' && chmod +x {}/{}",
-        deploy_dir, deploy_dir, binary_filename, url, deploy_dir, binary_filename
+        "mkdir -p {} && rm -rf {}/{} && curl -fSL --connect-timeout 30 --max-time 120 -o {}/{} '{}' && chmod +x {}/{}",
+        deploy_dir, deploy_dir, binary_filename, deploy_dir, deploy_dir, binary_filename, url, deploy_dir, binary_filename
     );
 
     let result = exec_ssh_shell(&download_cmd(&primary_url), server_id, ssh_pool).await;
