@@ -860,7 +860,7 @@ async fn exec_deploy_plugin_source(
 
     log_output.push_str(&format!("[1/4] Downloading {} ...\n", binary_filename));
 
-    // 3. Download binary — try Cloudflare first, then GitHub latest (avoids in-progress CI), then versioned
+    // 3. Download binary — try Cloudflare first, then GitHub versioned, then GitHub latest
     let deploy_dir = "~/echobird";
     let download_cmd = |url: &str| format!(
         "mkdir -p {} && curl -fSL --connect-timeout 30 --max-time 120 -o {}/{} '{}' && chmod +x {}/{}",
@@ -869,16 +869,16 @@ async fn exec_deploy_plugin_source(
 
     let result = exec_ssh_shell(&download_cmd(&primary_url), server_id, ssh_pool).await;
     if !result.success {
-        log_output.push_str("  Cloudflare mirror failed, trying GitHub latest...\n");
-        let latest_url = format!("https://github.com/edison7009/Echobird-MotherAgent/releases/latest/download/{}", binary_filename);
-        let result2 = exec_ssh_shell(&download_cmd(&latest_url), server_id, ssh_pool).await;
+        log_output.push_str("  Cloudflare mirror failed, trying GitHub direct...\n");
+        let result2 = exec_ssh_shell(&download_cmd(&github_url), server_id, ssh_pool).await;
         if !result2.success {
-            log_output.push_str("  GitHub latest failed, trying versioned...\n");
-            let result3 = exec_ssh_shell(&download_cmd(&github_url), server_id, ssh_pool).await;
+            log_output.push_str("  GitHub versioned failed, trying GitHub latest...\n");
+            let latest_url = format!("https://github.com/edison7009/Echobird-MotherAgent/releases/latest/download/{}", binary_filename);
+            let result3 = exec_ssh_shell(&download_cmd(&latest_url), server_id, ssh_pool).await;
             if !result3.success {
                 return ToolResult {
                     success: false,
-                    output: format!("Failed to download '{}'. Tried:\n1. {}\n2. {}\n3. {}\nError: {}", binary_filename, primary_url, latest_url, github_url, result3.output),
+                    output: format!("Failed to download '{}'. Tried:\n1. {}\n2. {}\n3. {}\nError: {}", binary_filename, primary_url, github_url, latest_url, result3.output),
                 };
             }
         }
