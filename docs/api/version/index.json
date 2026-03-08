@@ -1,5 +1,5 @@
 {
-  "version": "2.5.3",
+  "version": "2.5.4",
   "releaseDate": "2026-03-08",
-  "releaseNotes": "Fix per-channel loading state isolation (one channel transmitting no longer shows loading on others). Extend remote bridge timeout from 120s to 5 minutes with working indicator. Fix system prompt: Channels page auto-starts gateway, page names now translate correctly in Chinese."
+  "releaseNotes": "Fix per-channel loading state isolation. Fix duplicate openclaw agent processes on remote bridge (pkill stale processes before each call). Auto-prefer Anthropic protocol for tool calling when anthropicUrl is configured. Extend remote bridge timeout to 5 min with working indicator."
 }
