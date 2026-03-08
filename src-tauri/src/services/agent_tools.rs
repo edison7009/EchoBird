@@ -853,32 +853,33 @@ async fn exec_deploy_plugin_source(
 
     // 2. Fetch latest version dynamically from version API (falls back to compile-time version)
     let version = fetch_latest_plugin_version().await;
-    // Primary: Cloudflare proxy (bypasses China GFW, no egress fees)
-    let primary_url = format!("https://dl.echobird.ai/releases/{}/{}", version, binary_filename);
-    // Fallback: GitHub direct
+    // Primary: GitHub Releases direct (most reliable for extensionless binaries)
     let github_url = format!("https://github.com/edison7009/Echobird-MotherAgent/releases/download/{}/{}", version, binary_filename);
+    // Fallback: GitHub latest (in case versioned tag not yet published)
+    let github_latest_url = format!("https://github.com/edison7009/Echobird-MotherAgent/releases/latest/download/{}", binary_filename);
+    // Last resort: Cloudflare proxy (GFW-friendly but unreliable for extensionless files)
+    let cloudflare_url = format!("https://dl.echobird.ai/releases/{}/{}", version, binary_filename);
 
     log_output.push_str(&format!("[1/4] Downloading {} ...\n", binary_filename));
 
-    // 3. Download binary — try Cloudflare first, then GitHub versioned, then GitHub latest
+    // 3. Download binary — faster timeouts so failures are detected quickly
     let deploy_dir = "~/echobird";
     let download_cmd = |url: &str| format!(
-        "mkdir -p {} && rm -rf {}/{} && curl -fSL --connect-timeout 30 --max-time 120 -o {}/{} '{}' && chmod +x {}/{}",
+        "mkdir -p {} && rm -rf {}/{} && curl -fSL --connect-timeout 15 --max-time 90 -o {}/{} '{}' && chmod +x {}/{}",
         deploy_dir, deploy_dir, binary_filename, deploy_dir, binary_filename, url, deploy_dir, binary_filename
     );
 
-    let result = exec_ssh_shell(&download_cmd(&primary_url), server_id, ssh_pool).await;
+    let result = exec_ssh_shell(&download_cmd(&github_url), server_id, ssh_pool).await;
     if !result.success {
-        log_output.push_str("  Cloudflare mirror failed, trying GitHub direct...\n");
-        let result2 = exec_ssh_shell(&download_cmd(&github_url), server_id, ssh_pool).await;
+        log_output.push_str("  GitHub versioned failed, trying GitHub latest...\n");
+        let result2 = exec_ssh_shell(&download_cmd(&github_latest_url), server_id, ssh_pool).await;
         if !result2.success {
-            log_output.push_str("  GitHub versioned failed, trying GitHub latest...\n");
-            let latest_url = format!("https://github.com/edison7009/Echobird-MotherAgent/releases/latest/download/{}", binary_filename);
-            let result3 = exec_ssh_shell(&download_cmd(&latest_url), server_id, ssh_pool).await;
+            log_output.push_str("  GitHub latest failed, trying Cloudflare mirror...\n");
+            let result3 = exec_ssh_shell(&download_cmd(&cloudflare_url), server_id, ssh_pool).await;
             if !result3.success {
                 return ToolResult {
                     success: false,
-                    output: format!("Failed to download '{}'. Tried:\n1. {}\n2. {}\n3. {}\nError: {}", binary_filename, primary_url, github_url, latest_url, result3.output),
+                    output: format!("Failed to download '{}'. Tried:\n1. {}\n2. {}\n3. {}\nError: {}", binary_filename, github_url, github_latest_url, cloudflare_url, result3.output),
                 };
             }
         }
