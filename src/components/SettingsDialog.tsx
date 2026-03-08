@@ -134,11 +134,8 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
                         <span className="text-xs font-mono text-cyber-accent">v{APP_VERSION}</span>
                     </div>
 
-                    {/* Divider */}
-                    <div className="h-px bg-cyber-border" />
-
-                    {/* Update available row */}
-                    {updateAvailable && (
+                    {/* Update available row + divider (only when update exists) */}
+                    {updateAvailable && (<>
                         <button
                             onClick={() => api.openExternal('https://echobird.ai/')}
                             className="flex items-center justify-between w-full h-9 px-3 text-xs font-mono border border-cyber-accent/40 text-cyber-accent hover:bg-cyber-accent/10 transition-colors tracking-wider rounded-button"
@@ -146,10 +143,8 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
                             <span>v{APP_VERSION} → v{updateAvailable}</span>
                             <span className="flex items-center gap-1">UPDATE <ExternalLink size={10} /></span>
                         </button>
-                    )}
-
-                    {/* Divider */}
-                    <div className="h-px bg-cyber-border" />
+                        <div className="h-px bg-cyber-border" />
+                    </>)}
 
                     {/* Language */}
                     <div className="space-y-2">
