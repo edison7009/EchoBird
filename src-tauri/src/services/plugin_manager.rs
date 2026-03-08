@@ -47,18 +47,20 @@ pub fn plugins_dir() -> PathBuf {
         .and_then(|p| p.parent().map(|p| p.to_path_buf()))
         .unwrap_or_else(|| PathBuf::from("."));
 
-    // Build candidates using proper parent traversal (works on Windows)
+    // Build candidates using proper parent traversal
     let mut candidates = vec![
         exe_dir.join("plugins"),                                // release: next to exe
-        exe_dir.join("_up_").join("plugins"),                  // Tauri NSIS: resources in _up_/
+        exe_dir.join("_up_").join("plugins"),                  // Tauri NSIS (Windows): resources in _up_/
     ];
 
-    // Walk up from exe dir (handles debug/release nesting)
+    // Walk up from exe dir (handles debug/release nesting, macOS app bundle, Linux AppImage)
     if let Some(p1) = exe_dir.parent() {
         candidates.push(p1.join("plugins"));                    // one up
         candidates.push(p1.join("_up_").join("plugins"));      // one up + _up_
+        candidates.push(p1.join("Resources").join("plugins")); // macOS .app: Contents/Resources/plugins
         if let Some(p2) = p1.parent() {
             candidates.push(p2.join("plugins"));                // two up (tauri dev)
+            candidates.push(p2.join("Resources").join("plugins")); // macOS: MacOS/../Resources/plugins
             if let Some(p3) = p2.parent() {
                 candidates.push(p3.join("plugins"));            // three up (src-tauri/target/debug → project root)
             }
