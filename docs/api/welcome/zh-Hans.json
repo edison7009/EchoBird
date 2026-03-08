@@ -36,15 +36,15 @@
     "providers_archived": [
         {
             "name": "MiniMax",
-            "url": "https://platform.minimax.io/subscribe/coding-plan?utm_source=echobird.ai"
+            "url": "https://platform.minimaxi.com/subscribe/coding-plan?utm_source=echobird.ai"
         },
         {
             "name": "GLM",
-            "url": "https://z.ai/model-api?utm_source=echobird.ai"
+            "url": "https://bigmodel.cn/glm-coding?utm_source=echobird.ai"
         },
         {
             "name": "Moonshot",
-            "url": "https://platform.moonshot.ai/?utm_source=echobird.ai"
+            "url": "https://platform.moonshot.cn/?utm_source=echobird.ai"
         }
     ]
 }
