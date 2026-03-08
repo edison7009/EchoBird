@@ -581,8 +581,11 @@ pub async fn test_model(internal_id: &str, prompt: &str, protocol: &str) -> Test
                 let latency = start.elapsed().as_millis() as f64;
                 if resp.status().is_success() {
                     let data: serde_json::Value = resp.json().await.unwrap_or_default();
+                    // Try Anthropic format first, fallback to OpenAI choices format
+                    // (some Anthropic-compatible endpoints like MiniMax return OpenAI-style JSON)
                     let content = data["content"][0]["text"]
                         .as_str()
+                        .or_else(|| data["choices"][0]["message"]["content"].as_str())
                         .unwrap_or("No response")
                         .to_string();
 

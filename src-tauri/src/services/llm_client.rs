@@ -301,6 +301,7 @@ impl LlmClient {
         tokio::spawn(async move {
             let mut current_tool_id = String::new();
             let mut current_tool_name = String::new();
+            let mut done_sent = false;
 
             while let Some(event) = es.next().await {
                 match event {
@@ -366,11 +367,19 @@ impl LlmClient {
                                             let _ = tx.send(LlmEvent::Done {
                                                 stop_reason: reason.to_string(),
                                             }).await;
+                                            done_sent = true;
                                         }
                                     }
                                 }
                                 "message_stop" => {
-                                    // Final event
+                                    // Safety net: emit Done if message_delta didn't already send it
+                                    // (some Anthropic-compatible endpoints skip message_delta)
+                                    if !done_sent {
+                                        let _ = tx.send(LlmEvent::Done {
+                                            stop_reason: "end_turn".into(),
+                                        }).await;
+                                    }
+                                    break; // Stream complete — exit cleanly without SSE error
                                 }
                                 "error" => {
                                     let err_msg = data["error"]["message"]
