@@ -1,5 +1,5 @@
 {
-  "version": "2.5.2",
+  "version": "2.5.3",
   "releaseDate": "2026-03-08",
-  "releaseNotes": "Fix local channel plugin not found in installed version: Tauri NSIS installs resources under _up_/ directory which was not searched. Fix OPENAI protocol tag click bubbling causing card deselect. Fix model list not refreshing immediately after add/delete."
+  "releaseNotes": "Fix per-channel loading state isolation (one channel transmitting no longer shows loading on others). Extend remote bridge timeout from 120s to 5 minutes with working indicator. Fix system prompt: Channels page auto-starts gateway, page names now translate correctly in Chinese."
 }
