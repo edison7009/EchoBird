@@ -295,5 +295,6 @@ const cs: Partial<Translations> = {
     'ssh.ishPassword': 'nastavit přes passwd',
     'ssh.ishIp': 'Nastavení → Wi-Fi → IP adresa',
     'common.showProcess': 'MYŠLENÍ·PROCES',
+    'mother.thinking': 'Přemýšlí...',
 };
 export default cs;

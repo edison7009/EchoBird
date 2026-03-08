@@ -297,5 +297,6 @@ const id: Partial<Translations> = {
     'ssh.ishPassword': 'atur via passwd',
     'ssh.ishIp': 'Pengaturan → Wi-Fi → Alamat IP',
     'common.showProcess': 'PIKIR·PROSES',
+    'mother.thinking': 'Sedang berpikir...',
 };
 export default id;

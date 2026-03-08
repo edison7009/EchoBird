@@ -162,5 +162,6 @@ const fi: Partial<Translations> = {
     'ssh.ishPassword': 'aseta passwd-komennolla',
     'ssh.ishIp': 'Asetukset → Wi-Fi → IP-osoite',
     'common.showProcess': 'AJATTELU·PROSESSI',
+    'mother.thinking': 'Miettii...',
 };
 export default fi;

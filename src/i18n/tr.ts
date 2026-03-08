@@ -295,5 +295,6 @@ const tr: Partial<Translations> = {
     'ssh.ishPassword': 'passwd ile ayarlayın',
     'ssh.ishIp': 'Ayarlar → Wi-Fi → IP Adresi',
     'common.showProcess': 'DÜŞÜNME·SÜREÇ',
+    'mother.thinking': 'Düşünüyor...',
 };
 export default tr;

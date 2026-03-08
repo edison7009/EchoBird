@@ -295,5 +295,6 @@ const hi: Partial<Translations> = {
     'ssh.ishPassword': 'passwd से सेट करें',
     'ssh.ishIp': 'सेटिंग्स → Wi-Fi → IP पता',
     'common.showProcess': 'सोच·प्रक्रिया',
+    'mother.thinking': 'सोच रहा है...',
 };
 export default hi;

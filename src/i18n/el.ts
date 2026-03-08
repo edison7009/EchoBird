@@ -162,5 +162,6 @@ const el: Partial<Translations> = {
     'ssh.ishPassword': 'ορίστε μέσω passwd',
     'ssh.ishIp': 'Ρυθμίσεις → Wi-Fi → Διεύθυνση IP',
     'common.showProcess': 'ΣΚΕΨΗ·ΔΙΑΔΙΚΑΣΙΑ',
+    'mother.thinking': 'Σκέφτεται...',
 };
 export default el;

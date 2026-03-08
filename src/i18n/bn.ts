@@ -295,5 +295,6 @@ const bn: Partial<Translations> = {
     'ssh.ishPassword': 'passwd দিয়ে সেট করুন',
     'ssh.ishIp': 'সেটিংস → Wi-Fi → IP ঠিকানা',
     'common.showProcess': 'চিন্তা·প্রক্রিয়া',
+    'mother.thinking': 'ভাবছে...',
 };
 export default bn;

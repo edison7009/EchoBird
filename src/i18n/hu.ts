@@ -295,5 +295,6 @@ const hu: Partial<Translations> = {
     'ssh.ishPassword': 'beállítás passwd-vel',
     'ssh.ishIp': 'Beállítások → Wi-Fi → IP-cím',
     'common.showProcess': 'GONDOLKODÁS·FOLYAMAT',
+    'mother.thinking': 'Gondolkodik...',
 };
 export default hu;

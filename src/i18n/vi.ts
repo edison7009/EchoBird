@@ -295,5 +295,6 @@ const vi: Partial<Translations> = {
     'ssh.ishPassword': 'đặt qua passwd',
     'ssh.ishIp': 'Cài đặt → Wi-Fi → Địa chỉ IP',
     'common.showProcess': 'SUY NGHĨ·QUÁ TRÌNH',
+    'mother.thinking': 'Đang suy nghĩ...',
 };
 export default vi;

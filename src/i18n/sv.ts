@@ -162,5 +162,6 @@ const sv: Partial<Translations> = {
     'ssh.ishPassword': 'ställ in via passwd',
     'ssh.ishIp': 'Inställningar → Wi-Fi → IP-adress',
     'common.showProcess': 'TÄNKANDE·PROCESS',
+    'mother.thinking': 'Tänker...',
 };
 export default sv;

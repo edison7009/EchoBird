@@ -297,5 +297,6 @@ const ms: Partial<Translations> = {
     'ssh.ishPassword': 'tetapkan melalui passwd',
     'ssh.ishIp': 'Tetapan → Wi-Fi → Alamat IP',
     'common.showProcess': 'FIKIR·PROSES',
+    'mother.thinking': 'Sedang berfikir...',
 };
 export default ms;

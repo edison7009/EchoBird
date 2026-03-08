@@ -162,5 +162,6 @@ const fa: Partial<Translations> = {
     'ssh.ishPassword': 'با passwd تنظیم کنید',
     'ssh.ishIp': 'تنظیمات → Wi-Fi → آدرس IP',
     'common.showProcess': 'تفکر·فرآیند',
+    'mother.thinking': 'در حال تفکر...',
 };
 export default fa;

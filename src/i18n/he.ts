@@ -162,5 +162,6 @@ const he: Partial<Translations> = {
     'ssh.ishPassword': 'הגדר דרך passwd',
     'ssh.ishIp': 'הגדרות → Wi-Fi → כתובת IP',
     'common.showProcess': 'חשיבה·תהליך',
+    'mother.thinking': 'חושב...',
 };
 export default he;

@@ -295,5 +295,6 @@ const nl: Partial<Translations> = {
     'ssh.ishPassword': 'instellen via passwd',
     'ssh.ishIp': 'Instellingen → Wi-Fi → IP-adres',
     'common.showProcess': 'DENKEN·PROCES',
+    'mother.thinking': 'Denken...',
 };
 export default nl;

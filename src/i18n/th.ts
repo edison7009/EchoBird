@@ -297,5 +297,6 @@ const th: Partial<Translations> = {
     'ssh.ishPassword': 'ตั้งค่าผ่าน passwd',
     'ssh.ishIp': 'การตั้งค่า → Wi-Fi → ที่อยู่ IP',
     'common.showProcess': 'คิด·กระบวนการ',
+    'mother.thinking': 'กำลังคิด...',
 };
 export default th;
