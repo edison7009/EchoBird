@@ -159,11 +159,13 @@ pub async fn fetch_skill_source(url: String) -> Result<String, String> {
 /// Accepts model config + prompt, returns response text.
 #[derive(Debug, Deserialize)]
 pub struct LlmQuickConfig {
-    pub provider: String,   // "openai" or "anthropic"
-    pub base_url: String,
+    pub provider: String,          // "openai" or "anthropic"
+    pub base_url: String,          // Primary URL (Anthropic when provider=anthropic)
     pub api_key: String,
     pub model: String,
     pub proxy_url: Option<String>,
+    /// OpenAI fallback URL — when Anthropic returns 400, retry with this URL
+    pub openai_fallback_url: Option<String>,
 }
 
 #[tauri::command]
@@ -218,10 +220,42 @@ pub async fn llm_quick_chat(config: LlmQuickConfig, prompt: String) -> Result<St
     let response = req.json(&body).send().await
         .map_err(|e| format!("LLM request failed: {}", e))?;
 
+    // Triple-fallback: if Anthropic returns 400, auto-downgrade to OpenAI
     if !response.status().is_success() {
         let status = response.status();
-        let body = response.text().await.unwrap_or_default();
-        return Err(format!("LLM API error {}: {}", status, &body[..body.len().min(200)]));
+        let err_body = response.text().await.unwrap_or_default();
+
+        if is_anthropic && (status == 400 || status == 422) {
+            if let Some(ref openai_url) = config.openai_fallback_url {
+                if !openai_url.is_empty() {
+                    log::warn!("[llm_quick_chat] Anthropic {} — downgrading to OpenAI: {}", status, openai_url);
+                    let openai_url = format!("{}/chat/completions", openai_url.trim_end_matches('/'));
+                    let openai_body = serde_json::json!({
+                        "model": config.model,
+                        "messages": [
+                            {"role": "system", "content": "You are a helpful translation and content assistant."},
+                            {"role": "user", "content": prompt}
+                        ]
+                    });
+                    let fb_resp = client.post(&openai_url)
+                        .header("Content-Type", "application/json")
+                        .header("Authorization", format!("Bearer {}", api_key))
+                        .json(&openai_body)
+                        .send().await
+                        .map_err(|e| format!("OpenAI fallback request failed: {}", e))?;
+
+                    if !fb_resp.status().is_success() {
+                        let s = fb_resp.status();
+                        let b = fb_resp.text().await.unwrap_or_default();
+                        return Err(format!("LLM API error (OpenAI fallback) {}: {}", s, &b[..b.len().min(200)]));
+                    }
+                    let fb_data: serde_json::Value = fb_resp.json().await
+                        .map_err(|e| format!("Failed to parse OpenAI fallback response: {}", e))?;
+                    return Ok(fb_data["choices"][0]["message"]["content"].as_str().unwrap_or("").to_string());
+                }
+            }
+        }
+        return Err(format!("LLM API error {}: {}", status, &err_body[..err_body.len().min(200)]));
     }
 
     let data: serde_json::Value = response.json().await

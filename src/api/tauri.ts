@@ -305,6 +305,8 @@ export interface LlmQuickConfig {
     api_key: string;
     model: string;
     proxy_url?: string;
+    /** OpenAI fallback URL: when Anthropic returns 400, backend retries with this URL */
+    openai_fallback_url?: string;
 }
 
 export async function llmQuickChat(config: LlmQuickConfig, prompt: string): Promise<string> {

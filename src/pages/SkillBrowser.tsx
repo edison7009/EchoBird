@@ -392,18 +392,31 @@ export function SkillBrowserSearch() {
 }
 
 // ===== Helper: get LLM config from first available model =====
+// Triple-fallback: Anthropic first (explicit or derived /v1→/anthropic), then OpenAI
 async function getLlmConfig(): Promise<LlmQuickConfig | null> {
     try {
         const models = await api.getModels();
         if (!models.length) return null;
         const m = models[0];
-        const isAnthropic = !m.baseUrl && !!m.anthropicUrl;
+
+        // Derive Anthropic URL from OpenAI URL when possible (/v1 → /anthropic)
+        const deriveAnthropicUrl = (base: string): string | null => {
+            if (!base) return null;
+            const stripped = base.trim().replace(/\/v1\/?$/, '');
+            if (stripped !== base.trim()) return `${stripped}/anthropic`;
+            return null;
+        };
+
+        const anthropicUrl = m.anthropicUrl || deriveAnthropicUrl(m.baseUrl || '') || null;
         return {
-            provider: isAnthropic ? 'anthropic' : 'openai',
-            base_url: isAnthropic ? (m.anthropicUrl || '') : m.baseUrl,
+            provider: anthropicUrl ? 'anthropic' : 'openai',
+            // When Anthropic is chosen, pass as primary base_url; OpenAI kept for fallback
+            base_url: anthropicUrl ? anthropicUrl : (m.baseUrl || ''),
             api_key: m.apiKey,
             model: m.modelId || m.name,
             proxy_url: m.proxyUrl,
+            // Pass OpenAI URL as fallback for backend to downgrade if Anthropic returns 400
+            openai_fallback_url: anthropicUrl ? (m.baseUrl || '') : undefined,
         };
     } catch { return null; }
 }
