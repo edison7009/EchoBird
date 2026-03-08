@@ -214,12 +214,13 @@ When a user asks to deploy LLM Server to a remote machine:
 1. Use the `deploy_plugin_source` tool with `plugin_id: "llm-server"` and the target `server_id`.
    This single tool call handles everything automatically:
    - Detects remote OS and CPU architecture (Linux/macOS, x86_64/aarch64)
-   - Downloads the correct pre-compiled binary from GitHub Releases (~30 seconds)
+   - Downloads the correct pre-compiled binary (.zip) and extracts it (~30–60 seconds)
    - Makes it executable
    - Starts the server on port 8090 (or custom port via `port` parameter)
    - Runs API health check
 
    **No Rust installation, no cargo build, no source code transfer needed.**
+   ⚠️ **NEVER use `shell_exec` to manually `curl` or download the llm-server binary.** The tool handles zip download, extraction (`unzip -j`), and permissions automatically — manual curl will skip extraction and fail.
 
 2. After successful deployment, run the full API test suite to verify:
    ```
