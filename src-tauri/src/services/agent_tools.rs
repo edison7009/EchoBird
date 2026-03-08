@@ -673,37 +673,37 @@ async fn exec_deploy_bridge(server_id: &str, plugin_id: &str, ssh_pool: &SSHPool
             output: format!("Bridge deployed via download: ~/echobird/{}\n{}", bridge_filename, verify.output),
         }
     } else {
-        // Fallback 1: GitHub versioned release
+        // Fallback 1: GitHub latest (avoids in-progress CI builds)
+        let latest_url = format!("https://github.com/edison7009/Echobird-MotherAgent/releases/latest/download/{}", bridge_filename);
         let fallback_cmd1 = format!(
             "curl -fSL --connect-timeout 30 --max-time 120 -o ~/echobird/{} '{}' && chmod +x ~/echobird/{} && ln -sf ~/echobird/{} ~/echobird/echobird-bridge",
-            bridge_filename, github_url, bridge_filename, bridge_filename
+            bridge_filename, latest_url, bridge_filename, bridge_filename
         );
         let fallback1 = exec_ssh_shell(&fallback_cmd1, server_id, ssh_pool).await;
 
         if fallback1.success {
             ToolResult {
                 success: true,
-                output: format!("Bridge deployed via GitHub fallback: ~/echobird/{}", bridge_filename),
+                output: format!("Bridge deployed via GitHub latest: ~/echobird/{}", bridge_filename),
             }
         } else {
-            // Fallback 2: GitHub latest
-            let latest_url = format!("https://github.com/edison7009/Echobird-MotherAgent/releases/latest/download/{}", bridge_filename);
+            // Fallback 2: GitHub versioned
             let fallback_cmd2 = format!(
                 "curl -fSL --connect-timeout 30 --max-time 120 -o ~/echobird/{} '{}' && chmod +x ~/echobird/{} && ln -sf ~/echobird/{} ~/echobird/echobird-bridge",
-                bridge_filename, latest_url, bridge_filename, bridge_filename
+                bridge_filename, github_url, bridge_filename, bridge_filename
             );
             let fallback2 = exec_ssh_shell(&fallback_cmd2, server_id, ssh_pool).await;
 
             if fallback2.success {
                 ToolResult {
                     success: true,
-                    output: format!("Bridge deployed via latest fallback: ~/echobird/{}", bridge_filename),
+                    output: format!("Bridge deployed via GitHub versioned: ~/echobird/{}", bridge_filename),
                 }
             } else {
                 ToolResult {
                     success: false,
                     output: format!("Failed to download bridge binary '{}'. Tried:\n1. {}\n2. {}\n3. {}\nError: {}",
-                        bridge_filename, download_url, github_url, latest_url, fallback2.output),
+                        bridge_filename, download_url, latest_url, github_url, fallback2.output),
                 }
             }
         }
@@ -860,7 +860,7 @@ async fn exec_deploy_plugin_source(
 
     log_output.push_str(&format!("[1/4] Downloading {} ...\n", binary_filename));
 
-    // 3. Download binary — try Cloudflare first, then GitHub, then GitHub latest
+    // 3. Download binary — try Cloudflare first, then GitHub latest (avoids in-progress CI), then versioned
     let deploy_dir = "~/echobird";
     let download_cmd = |url: &str| format!(
         "mkdir -p {} && curl -fSL --connect-timeout 30 --max-time 120 -o {}/{} '{}' && chmod +x {}/{}",
@@ -869,16 +869,16 @@ async fn exec_deploy_plugin_source(
 
     let result = exec_ssh_shell(&download_cmd(&primary_url), server_id, ssh_pool).await;
     if !result.success {
-        log_output.push_str("  Cloudflare mirror failed, trying GitHub direct...\n");
-        let result2 = exec_ssh_shell(&download_cmd(&github_url), server_id, ssh_pool).await;
+        log_output.push_str("  Cloudflare mirror failed, trying GitHub latest...\n");
+        let latest_url = format!("https://github.com/edison7009/Echobird-MotherAgent/releases/latest/download/{}", binary_filename);
+        let result2 = exec_ssh_shell(&download_cmd(&latest_url), server_id, ssh_pool).await;
         if !result2.success {
-            log_output.push_str("  GitHub versioned failed, trying GitHub latest...\n");
-            let latest_url = format!("https://github.com/edison7009/Echobird-MotherAgent/releases/latest/download/{}", binary_filename);
-            let result3 = exec_ssh_shell(&download_cmd(&latest_url), server_id, ssh_pool).await;
+            log_output.push_str("  GitHub latest failed, trying versioned...\n");
+            let result3 = exec_ssh_shell(&download_cmd(&github_url), server_id, ssh_pool).await;
             if !result3.success {
                 return ToolResult {
                     success: false,
-                    output: format!("Failed to download '{}'. Tried:\n1. {}\n2. {}\nError: {}", binary_filename, primary_url, github_url, result3.output),
+                    output: format!("Failed to download '{}'. Tried:\n1. {}\n2. {}\n3. {}\nError: {}", binary_filename, primary_url, latest_url, github_url, result3.output),
                 };
             }
         }
