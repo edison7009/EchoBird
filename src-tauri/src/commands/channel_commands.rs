@@ -2,6 +2,7 @@
 //
 // Local channel (id=1) uses Bridge binary (plugins/openclaw/bridge-win.exe)
 // as a persistent subprocess. Communication via stdin/stdout JSON (Echobird Bridge Protocol).
+// Bridge binary is auto-downloaded if not present (macOS/Linux installs).
 
 use crate::utils::platform::echobird_dir;
 use serde::{Deserialize, Serialize};
@@ -249,10 +250,142 @@ fn start_bridge_internal(plugin_id: &str) -> Result<BridgeStartResult, String> {
     })
 }
 
+/// Returns the platform+arch specific bridge binary filename for this machine.
+fn local_bridge_binary_name() -> &'static str {
+    match (std::env::consts::OS, std::env::consts::ARCH) {
+        ("linux", "aarch64") => "bridge-linux-aarch64",
+        ("linux", _)         => "bridge-linux-x86_64",
+        ("macos", "aarch64") => "bridge-darwin-aarch64",
+        ("macos", _)         => "bridge-darwin-x86_64",
+        _                    => "bridge-win.exe",
+    }
+}
+
+/// Auto-download the bridge binary if not already present.
+/// Tries dl.echobird.ai (Cloudflare, GFW-friendly) then GitHub Releases as fallback.
+/// This is mandatory — bridge is required for Channels to work.
+async fn download_bridge_if_missing(plugin_id: &str) -> Result<(), String> {
+    use crate::services::plugin_manager::{plugins_dir, scan_plugins, get_bridge_path};
+
+    // Check if already present
+    let plugins = scan_plugins();
+    if let Some(plugin) = plugins.iter().find(|p| p.id == plugin_id) {
+        if get_bridge_path(plugin).is_some() {
+            return Ok(()); // Already present
+        }
+    }
+
+    let binary_name = local_bridge_binary_name();
+    log::info!("[Bridge] Bridge binary '{}' not found — auto-downloading...", binary_name);
+
+    // Fetch latest version from version API
+    let version = {
+        let client = reqwest::Client::builder()
+            .timeout(std::time::Duration::from_secs(8))
+            .build()
+            .unwrap_or_default();
+        match client
+            .get("https://echobird.ai/api/version/index.json")
+            .header("User-Agent", "Echobird/1.0")
+            .send()
+            .await
+        {
+            Ok(r) if r.status().is_success() => {
+                if let Ok(json) = r.json::<serde_json::Value>().await {
+                    json.get("version")
+                        .and_then(|v| v.as_str())
+                        .map(|v| format!("v{}", v))
+                        .unwrap_or_else(|| format!("v{}", env!("CARGO_PKG_VERSION")))
+                } else {
+                    format!("v{}", env!("CARGO_PKG_VERSION"))
+                }
+            }
+            _ => format!("v{}", env!("CARGO_PKG_VERSION")),
+        }
+    };
+
+    // Destination path
+    let dest_dir = plugins_dir().join(plugin_id);
+    std::fs::create_dir_all(&dest_dir)
+        .map_err(|e| format!("Failed to create plugin dir: {}", e))?;
+    let dest_path = dest_dir.join(binary_name);
+
+    // Try primary (Cloudflare) then GitHub fallback
+    let primary_url  = format!("https://dl.echobird.ai/releases/{}/{}", version, binary_name);
+    let fallback_url = format!("https://github.com/edison7009/Echobird-MotherAgent/releases/download/{}/{}", version, binary_name);
+
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(120))
+        .build()
+        .map_err(|e| format!("HTTP client error: {}", e))?;
+
+    let mut last_error = String::new();
+    for url in &[primary_url.as_str(), fallback_url.as_str()] {
+        log::info!("[Bridge] Downloading from: {}", url);
+        match client.get(*url).send().await {
+            Ok(resp) if resp.status().is_success() => {
+                match resp.bytes().await {
+                    Ok(bytes) => {
+                        std::fs::write(&dest_path, &bytes)
+                            .map_err(|e| format!("Failed to write bridge binary: {}", e))?;
+                        log::info!("[Bridge] Downloaded {} bytes → {:?}", bytes.len(), dest_path);
+                        break;
+                    }
+                    Err(e) => { last_error = format!("Read error: {}", e); }
+                }
+            }
+            Ok(resp) => { last_error = format!("HTTP {}: {}", resp.status(), url); }
+            Err(e)   => { last_error = format!("Request error: {}", e); }
+        }
+    }
+
+    if !dest_path.exists() {
+        return Err(format!("Bridge download failed (tried {} and {}). Last error: {}",
+            primary_url, fallback_url, last_error));
+    }
+
+    // Set executable permissions on Unix
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        let _ = std::fs::set_permissions(&dest_path, std::fs::Permissions::from_mode(0o755));
+    }
+
+    // Create a copy/symlink using the name expected by plugin.json (e.g. "bridge-darwin")
+    // so get_bridge_path() can find it without arch suffix.
+    let plugins = scan_plugins();
+    if let Some(plugin) = plugins.iter().find(|p| p.id == plugin_id) {
+        if let Some(bridge) = &plugin.bridge {
+            let expected = if cfg!(target_os = "linux") { bridge.linux.as_deref() }
+                else if cfg!(target_os = "macos")       { bridge.darwin.as_deref() }
+                else                                     { bridge.win32.as_deref() };
+            if let Some(name) = expected {
+                let expected_path = dest_dir.join(name);
+                if !expected_path.exists() {
+                    #[cfg(unix)]
+                    { let _ = std::os::unix::fs::symlink(&dest_path, &expected_path); }
+                    #[cfg(windows)]
+                    { let _ = std::fs::copy(&dest_path, &expected_path); }
+                }
+            }
+        }
+    }
+
+    log::info!("[Bridge] Bridge binary ready: {:?}", dest_path);
+    Ok(())
+}
+
 /// Start the Bridge binary as a persistent subprocess
 #[tauri::command]
 pub async fn bridge_start(plugin_id: Option<String>) -> Result<BridgeStartResult, String> {
     let pid = plugin_id.unwrap_or_else(|| "openclaw".to_string());
+
+    // Always ensure bridge binary is present before starting
+    if let Err(e) = download_bridge_if_missing(&pid).await {
+        log::warn!("[Bridge] Auto-download failed: {}", e);
+        // Don't abort — maybe binary was manually placed, let start_bridge_internal handle it
+    }
+
     tokio::task::spawn_blocking(move || {
         // Check if already running
         {
