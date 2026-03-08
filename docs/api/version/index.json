@@ -1,5 +1,5 @@
 {
-  "version": "2.5.0",
+  "version": "2.5.1",
   "releaseDate": "2026-03-08",
-  "releaseNotes": "GPU-aware engine download: NVIDIA GPUs get CUDA build, AMD/Intel/CPU-only users get AVX2 build. Fix AMD ROCm detection on Windows. COMPUTE dropdown now correctly shows GPU Full only for NVIDIA users."
+  "releaseNotes": "Fix Mother Agent language rules: no longer outputs Chinese names when user speaks English or Japanese. Fix model list in Mother Agent not updating immediately after adding or deleting model cards."
 }

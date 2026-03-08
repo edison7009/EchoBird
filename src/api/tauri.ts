@@ -45,11 +45,15 @@ export async function addModel(input: {
     proxyUrl?: string;
     ssNode?: SSNodeConfig;
 }): Promise<ModelConfig> {
-    return invoke('add_model', { input });
+    const result = await invoke<ModelConfig>('add_model', { input });
+    window.dispatchEvent(new Event('models-changed'));
+    return result;
 }
 
 export async function deleteModel(internalId: string): Promise<boolean> {
-    return invoke('delete_model', { internalId });
+    const result = await invoke<boolean>('delete_model', { internalId });
+    window.dispatchEvent(new Event('models-changed'));
+    return result;
 }
 
 export async function updateModel(internalId: string, updates: {
@@ -61,7 +65,9 @@ export async function updateModel(internalId: string, updates: {
     proxyUrl?: string;
     ssNode?: SSNodeConfig;
 }): Promise<ModelConfig | null> {
-    return invoke('update_model', { internalId, updates });
+    const result = await invoke<ModelConfig | null>('update_model', { internalId, updates });
+    window.dispatchEvent(new Event('models-changed'));
+    return result;
 }
 
 export async function testModel(internalId: string, prompt: string, protocol: string = 'openai'): Promise<ModelTestResult> {

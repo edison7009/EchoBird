@@ -249,7 +249,11 @@ export function MotherAgentProvider({ appLogs, detectedTools, onClearLogs, onAge
     useEffect(() => {
         loadModels();
         window.addEventListener('focus', loadModels);
-        return () => window.removeEventListener('focus', loadModels);
+        window.addEventListener('models-changed', loadModels);
+        return () => {
+            window.removeEventListener('focus', loadModels);
+            window.removeEventListener('models-changed', loadModels);
+        };
     }, [loadModels]);
 
     const agentModelData = models.find(m => m.internalId === agentModel);
