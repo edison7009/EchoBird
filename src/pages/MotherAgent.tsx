@@ -136,6 +136,7 @@ interface MotherAgentProviderProps {
 }
 
 export function MotherAgentProvider({ appLogs, detectedTools, onClearLogs, onAgentRunningChange, onNewMessage, children }: MotherAgentProviderProps) {
+    const { locale } = useI18n();  // UI locale for agent response language hint
     const [models, setModels] = useState<ModelConfig[]>([]);
     const [agentModel, setAgentModelRaw] = useState<string | null>(() => localStorage.getItem('echobird_agent_model'));
     const setAgentModel = useCallback((v: string | null) => {
@@ -361,7 +362,6 @@ export function MotherAgentProvider({ appLogs, detectedTools, onClearLogs, onAge
         if (!agentModel || isProcessing || !message.trim()) return;
         const modelData = models.find(m => m.internalId === agentModel);
         if (!modelData) return;
-
         setIsProcessing(true);
         setChatOutput(prev => [...prev, { type: 'user', text: message.trim() }]);
 
@@ -393,12 +393,14 @@ export function MotherAgentProvider({ appLogs, detectedTools, onClearLogs, onAge
                 proxy_url: modelData.proxyUrl,
                 server_ids: selectedServerId === 'local' ? [] : [selectedServerId],
                 skills: pendingSkills.map(s => s.name),
+                locale: locale || undefined,
             });
         } catch (e) {
             setChatOutput(prev => [...prev, { type: 'error', text: String(e) }]);
             setIsProcessing(false);
         }
-    }, [agentModel, models, isProcessing, selectedServerId, pendingSkills]);
+    }, [agentModel, models, isProcessing, selectedServerId, pendingSkills, locale]);
+
 
     // Chat send (from input)
     const handleChatSend = useCallback(async () => {

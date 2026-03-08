@@ -212,6 +212,8 @@ export interface AgentRequest {
     proxy_url?: string;
     server_ids: string[];
     skills: string[];
+    /** UI locale code (e.g. "zh-Hans", "en"). Hints the agent's response language. */
+    locale?: string;
 }
 
 export type AgentEvent =

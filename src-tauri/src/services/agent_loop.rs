@@ -54,6 +54,8 @@ pub struct AgentRequest {
     pub proxy_url: Option<String>,
     pub server_ids: Vec<String>,  // selected SSH servers
     pub skills: Vec<String>,      // skill descriptions
+    /// UI locale (e.g. "zh-Hans", "en", "ja"). Used to hint the agent's response language.
+    pub locale: Option<String>,
 }
 
 // ── Session State (kept in memory for continuous operation) ──
@@ -574,7 +576,29 @@ async fn fetch_remote_prompt() -> String {
 }
 
 async fn build_system_prompt(request: &AgentRequest, ssh_pool: &SSHPool) -> String {
-    let mut prompt = String::from(
+    // Prepend locale hint so the agent responds in the user's preferred language
+    let locale_hint = if let Some(ref locale) = request.locale {
+        // Map locale code to readable language name for clarity
+        let lang_name = match locale.as_str() {
+            "zh" | "zh-Hans" => "Simplified Chinese (简体中文)",
+            "zh-Hant" => "Traditional Chinese (繁體中文)",
+            "ja" => "Japanese (日本語)",
+            "ko" => "Korean (한국어)",
+            "de" => "German (Deutsch)",
+            "fr" => "French (Français)",
+            "es" => "Spanish (Español)",
+            "pt" => "Portuguese (Português)",
+            "ru" => "Russian (Русский)",
+            "ar" => "Arabic (العربية)",
+            "en" | _ => "English",
+        };
+        format!("## User Language\nThe user's interface is set to **{}**. Respond in this language by default unless the user writes in a different language.\n\n", lang_name)
+    } else {
+        String::new()
+    };
+
+    let mut prompt = locale_hint;
+    prompt.push_str(
         "You are Mother Agent, the built-in deployment assistant of Echobird \
         (known as \u{767e}\u{7075}\u{9e1f} in Simplified Chinese, \u{767e}\u{9748}\u{9ce5} in Traditional Chinese). \
         Your purpose is to help users deploy AI agents on local machines or remote servers via SSH.\n\n\
