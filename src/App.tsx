@@ -34,7 +34,7 @@ function CircuitFlowConnected() {
 }
 
 /** Sidebar with live notification badges from GatewayContext */
-function SidebarConnected({ activePage, onPageChange, agentRunning, motherNewMessage, clearMotherBadge }: { activePage: PageType; onPageChange: (p: PageType) => void; agentRunning: boolean; motherNewMessage: boolean; clearMotherBadge: () => void }) {
+function SidebarConnected({ activePage, onPageChange, agentRunning, motherNewMessage, clearMotherBadge, updateAvailable, onSettingsClick }: { activePage: PageType; onPageChange: (p: PageType) => void; agentRunning: boolean; motherNewMessage: boolean; clearMotherBadge: () => void; updateAvailable: string | null; onSettingsClick: () => void }) {
     const gw = useGatewayManager();
     const channelsBadge = gw.hasAnyNewMessage() && activePage !== 'channels';
     const motherBadge = motherNewMessage && activePage !== 'mother';
@@ -43,7 +43,7 @@ function SidebarConnected({ activePage, onPageChange, agentRunning, motherNewMes
         if (p === 'mother') clearMotherBadge();
         onPageChange(p);
     };
-    return <Sidebar activePage={activePage} onPageChange={handlePageChange} agentRunning={agentRunning} channelsBadge={channelsBadge} motherBadge={motherBadge} />;
+    return <Sidebar activePage={activePage} onPageChange={handlePageChange} agentRunning={agentRunning} channelsBadge={channelsBadge} motherBadge={motherBadge} updateAvailable={updateAvailable} onSettingsClick={onSettingsClick} />;
 }
 
 // Helper: h (hidden) vs shown class
@@ -71,6 +71,8 @@ function App() {
     const [agentRunning, setAgentRunning] = useState(false);
     // Mother Agent new message badge
     const [motherNewMessage, setMotherNewMessage] = useState(false);
+    // Update available (null = none, string = new version number)
+    const [updateAvailable, setUpdateAvailable] = useState<string | null>(null);
 
     // Scan tools
     const doScanTools = useCallback(async () => {
@@ -93,6 +95,16 @@ function App() {
                     .catch(() => { /* cache miss is OK */ }),
             ]);
             api.appReady();
+            // Silent update check after app is ready
+            try {
+                const res = await fetch('https://echobird.ai/api/version/index.json');
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.version && data.version !== __APP_VERSION__) {
+                        setUpdateAvailable(data.version);
+                    }
+                }
+            } catch { /* network error — ignore silently */ }
         };
         preload();
     }, []);
@@ -120,7 +132,7 @@ function App() {
                                                 <div className="flex flex-1 overflow-hidden text-cyber-accent font-mono p-4 gap-4 grid-bg relative isolate">
                                                     <CircuitFlowConnected />
                                                     {/* Sidebar */}
-                                                    <SidebarConnected activePage={activePage} onPageChange={setActivePage} agentRunning={agentRunning} motherNewMessage={motherNewMessage} clearMotherBadge={() => setMotherNewMessage(false)} />
+                                                    <SidebarConnected activePage={activePage} onPageChange={setActivePage} agentRunning={agentRunning} motherNewMessage={motherNewMessage} clearMotherBadge={() => setMotherNewMessage(false)} updateAvailable={updateAvailable} onSettingsClick={() => setShowSettings(true)} />
 
                                                     {/* Main content wrapper */}
                                                     <div className="flex-1 flex flex-col overflow-hidden">
@@ -208,6 +220,7 @@ function App() {
                             onClose={() => setShowSettings(false)}
                             locale={locale}
                             onLocaleChange={setLocale}
+                            updateAvailable={updateAvailable}
                         />
                     </GatewayProvider>
                 </DownloadProvider>

@@ -16,9 +16,11 @@ interface SidebarProps {
     agentRunning?: boolean;
     channelsBadge?: boolean;
     motherBadge?: boolean;
+    updateAvailable?: string | null;
+    onSettingsClick?: () => void;
 }
 
-export const Sidebar = ({ activePage, onPageChange, agentRunning = false, channelsBadge = false, motherBadge = false }: SidebarProps) => {
+export const Sidebar = ({ activePage, onPageChange, agentRunning = false, channelsBadge = false, motherBadge = false, updateAvailable = null, onSettingsClick }: SidebarProps) => {
     const { t } = useI18n();
     // Poll local model server status
     const [serverRunning, setServerRunning] = useState(false);
@@ -39,7 +41,7 @@ export const Sidebar = ({ activePage, onPageChange, agentRunning = false, channe
 
     return (
         <nav className="w-64 flex flex-col px-6 pb-6">
-            <div className="mb-6 tracking-wide">
+            <div className="mb-6 tracking-wide flex items-center gap-2">
                 <span
                     className={activePage === 'skills' ? 'text-cyber-warning' : activePage === 'mother' ? 'text-cyber-accent-secondary' : 'text-cyber-accent'}
                     style={{
@@ -53,6 +55,15 @@ export const Sidebar = ({ activePage, onPageChange, agentRunning = false, channe
                 >
                     {t('app.name')}
                 </span>
+                {updateAvailable && (
+                    <button
+                        onClick={onSettingsClick}
+                        className="text-[9px] font-mono font-bold tracking-widest px-1.5 py-0.5 rounded border border-cyber-accent/50 text-cyber-accent bg-cyber-accent/10 hover:bg-cyber-accent/20 transition-colors animate-pulse"
+                        title={`v${updateAvailable} available`}
+                    >
+                        UPDATE
+                    </button>
+                )}
             </div>
             <div className="flex-1 space-y-6 text-sm">
                 <NavItem
