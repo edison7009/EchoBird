@@ -268,6 +268,7 @@ const en: Translations = {
     'mother.executing': 'Executing tool',
     'mother.callingTool': 'Calling tool',
     'mother.processing': 'Processing',
+    'mother.thinking': 'Thinking...',
     'mother.enterMessage': 'Enter message...',
     'mother.noModels': 'No models available',
     'mother.noFavorites': 'No favorites yet. Add in Skill Browser.',

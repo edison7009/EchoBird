@@ -676,7 +676,7 @@ export function MotherAgentMain() {
                                         return (
                                             <div key={i} className="text-xs border-l-2 border-cyan-500/20 pl-2 my-0.5 flex items-center gap-1">
                                                 <span className="text-cyan-400/40 font-mono">💭</span>
-                                                <span className="text-cyber-text-muted/40 italic">正在思考...</span>
+                                                <span className="text-cyber-text-muted/40 italic">{t('mother.thinking')}</span>
                                             </div>
                                         );
                                     case 'tool_call':
