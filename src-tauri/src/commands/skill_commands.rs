@@ -263,9 +263,14 @@ pub async fn llm_quick_chat(config: LlmQuickConfig, prompt: String) -> Result<St
     let data: serde_json::Value = response.json().await
         .map_err(|e| format!("Failed to parse LLM response: {}", e))?;
 
-    // Extract text from OpenAI or Anthropic format
+    // Extract text — try Anthropic format first, fallback to OpenAI choices format
+    // (some Anthropic-compatible endpoints return OpenAI-style JSON)
     let text = if is_anthropic {
-        data["content"][0]["text"].as_str().unwrap_or("").to_string()
+        data["content"][0]["text"]
+            .as_str()
+            .or_else(|| data["choices"][0]["message"]["content"].as_str())
+            .unwrap_or("")
+            .to_string()
     } else {
         data["choices"][0]["message"]["content"].as_str().unwrap_or("").to_string()
     };
