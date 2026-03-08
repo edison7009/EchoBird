@@ -366,15 +366,18 @@ export function MotherAgentProvider({ appLogs, detectedTools, onClearLogs, onAge
         setChatOutput(prev => [...prev, { type: 'user', text: message.trim() }]);
 
         try {
+            // Auto-select protocol: prefer Anthropic when anthropicUrl is configured —
+            // Anthropic tool calling is more reliable and avoids 400 errors with providers
+            // that expose both OpenAI-compatible and Anthropic-compatible endpoints
+            // (e.g. MiniMax, local LLM proxies).
+            const useAnthropic = !!modelData.anthropicUrl;
             await api.sendAgentMessage({
                 message: message.trim(),
                 model_id: modelData.internalId,
-                // Use correct URL for selected provider
-                base_url: modelData.baseUrl || modelData.anthropicUrl || '',
+                base_url: useAnthropic ? (modelData.anthropicUrl || '') : (modelData.baseUrl || ''),
                 api_key: modelData.apiKey,
                 model_name: modelData.modelId || modelData.name,
-                // Prefer OpenAI if baseUrl exists; only use anthropic when ONLY anthropicUrl is set
-                provider: (!modelData.baseUrl && modelData.anthropicUrl) ? 'anthropic' : 'openai',
+                provider: useAnthropic ? 'anthropic' : 'openai',
                 proxy_url: modelData.proxyUrl,
                 server_ids: selectedServerId === 'local' ? [] : [selectedServerId],
                 skills: pendingSkills.map(s => s.name),
