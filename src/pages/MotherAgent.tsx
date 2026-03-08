@@ -674,9 +674,9 @@ export function MotherAgentMain() {
                                         return <div key={i} className="break-words text-cyber-text-muted/80 channel-markdown"><ReactMarkdown remarkPlugins={[remarkGfm]} components={mdComponents}>{msg.text}</ReactMarkdown></div>;
                                     case 'thinking':
                                         return (
-                                            <div key={i} className="text-xs border-l-2 border-purple-400/30 pl-2 my-1 max-h-24 overflow-y-auto">
-                                                <span className="text-purple-400/60 font-mono">💭 </span>
-                                                <span className="text-purple-400/50 italic whitespace-pre-wrap">{msg.text.slice(0, 300)}{msg.text.length > 300 ? '...' : ''}</span>
+                                            <div key={i} className="text-xs border-l-2 border-cyan-500/20 pl-2 my-0.5 flex items-center gap-1">
+                                                <span className="text-cyan-400/40 font-mono">💭</span>
+                                                <span className="text-cyber-text-muted/40 italic">正在思考...</span>
                                             </div>
                                         );
                                     case 'tool_call':
