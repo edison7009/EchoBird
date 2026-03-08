@@ -41,9 +41,9 @@ export const Sidebar = ({ activePage, onPageChange, agentRunning = false, channe
 
     return (
         <nav className="w-64 flex flex-col px-6 pb-6">
-            <div className="mb-6 tracking-wide flex items-center gap-2">
+            <div className="mb-6 tracking-wide flex items-center gap-2 overflow-hidden">
                 <span
-                    className={activePage === 'skills' ? 'text-cyber-warning' : activePage === 'mother' ? 'text-cyber-accent-secondary' : 'text-cyber-accent'}
+                    className={`flex-shrink-0 ${activePage === 'skills' ? 'text-cyber-warning' : activePage === 'mother' ? 'text-cyber-accent-secondary' : 'text-cyber-accent'}`}
                     style={{
                         fontFamily: "'Orbitron', sans-serif",
                         fontWeight: 700,
@@ -58,10 +58,10 @@ export const Sidebar = ({ activePage, onPageChange, agentRunning = false, channe
                 {updateAvailable && (
                     <button
                         onClick={onSettingsClick}
-                        className="text-[9px] font-mono font-bold tracking-widest px-1.5 py-0.5 rounded border border-cyber-accent/50 text-cyber-accent bg-cyber-accent/10 hover:bg-cyber-accent/20 transition-colors animate-pulse"
+                        className="flex-shrink-0 inline-flex items-center justify-center h-[18px] px-1.5 text-[8px] font-mono font-bold tracking-widest rounded border border-cyber-accent/50 text-cyber-accent bg-cyber-accent/10 hover:bg-cyber-accent/20 transition-colors animate-pulse leading-none"
                         title={`v${updateAvailable} available`}
                     >
-                        UPDATE
+                        {t('settings.updates')}
                     </button>
                 )}
             </div>
