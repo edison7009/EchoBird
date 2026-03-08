@@ -627,9 +627,11 @@ pub async fn bridge_chat_remote(
         .map_err(|e| format!("JSON error: {}", e))?;
     let escaped = input_str.replace('\'', "'\\''");
 
-    // Execute via SSH: pipe JSON into bridge binary with --command
+    // Execute via SSH: pipe JSON into bridge binary with --command.
+    // First kill any stale echobird-bridge processes left over from a previous
+    // timed-out session — SSH disconnect does not always SIGHUP child processes.
     let cmd = format!(
-        "export PATH=\"$HOME/.npm-global/bin:$HOME/.local/bin:$HOME/.cargo/bin:$PATH\" && echo '{}' | ~/echobird/echobird-bridge --command '{}' 2>/dev/null",
+        "pkill -f 'echobird-bridge' 2>/dev/null; sleep 0.2; export PATH=\"$HOME/.npm-global/bin:$HOME/.local/bin:$HOME/.cargo/bin:$PATH\" && echo '{}' | ~/echobird/echobird-bridge --command '{}' 2>/dev/null",
         escaped, agent_command
     );
 
