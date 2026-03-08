@@ -58,8 +58,7 @@ export const Sidebar = ({ activePage, onPageChange, agentRunning = false, channe
                 {updateAvailable && (
                     <button
                         onClick={onSettingsClick}
-                        className="flex-shrink-0 text-[12px] font-mono text-cyber-accent hover:opacity-70 transition-opacity animate-pulse leading-none"
-                        title={`v${updateAvailable} available`}
+                        className="flex-shrink-0 text-[12px] font-mono text-red-400 hover:opacity-70 transition-opacity animate-pulse leading-none"
                     >
                         {t('settings.updates')}
                     </button>
