@@ -78,6 +78,7 @@ pub enum LlmEvent {
 
 // ── Client ──
 
+#[derive(Clone)]
 pub struct LlmClient {
     config: LlmConfig,
     http: reqwest::Client,

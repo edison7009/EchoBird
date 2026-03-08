@@ -44,10 +44,13 @@ pub enum AgentEvent {
 pub struct AgentRequest {
     pub message: String,
     pub model_id: String,
-    pub base_url: String,
+    pub base_url: String,        // OpenAI-compatible URL
     pub api_key: String,
     pub model_name: String,
-    pub provider: String,         // "openai" or "anthropic"
+    pub provider: String,        // initial preferred protocol: "openai" or "anthropic"
+    /// Optional Anthropic-compatible URL. When present the agent always tries Anthropic
+    /// first and falls back to OpenAI (`base_url`) on 400 / tool-unsupported errors.
+    pub anthropic_url: Option<String>,
     pub proxy_url: Option<String>,
     pub server_ids: Vec<String>,  // selected SSH servers
     pub skills: Vec<String>,      // skill descriptions
@@ -164,21 +167,46 @@ pub async fn run_agent(
         .cloned()
         .unwrap_or_else(|| "local".to_string());
 
-    // 1. Build LLM client
-    let provider = match request.provider.to_lowercase().as_str() {
-        "anthropic" => LlmProvider::Anthropic,
-        _ => LlmProvider::OpenAI,
+    // 1. Build LLM clients — triple fallback strategy:
+    //   a) Anthropic client (when anthropic_url is set)
+    //   b) On 400 / tool-unsupported → downgrade to OpenAI client
+    let decrypted_key = super::model_manager::decrypt_key_for_use(&request.api_key);
+
+    // Primary client: Anthropic if URL is available, otherwise OpenAI
+    let (mut active_provider, mut client) = if let Some(ref anth_url) = request.anthropic_url {
+        let cfg = LlmConfig {
+            provider: LlmProvider::Anthropic,
+            base_url: anth_url.clone(),
+            api_key: decrypted_key.clone(),
+            model: request.model_name.clone(),
+            proxy_url: request.proxy_url.clone(),
+        };
+        (LlmProvider::Anthropic, LlmClient::new(cfg)?)
+    } else {
+        let cfg = LlmConfig {
+            provider: LlmProvider::OpenAI,
+            base_url: request.base_url.clone(),
+            api_key: decrypted_key.clone(),
+            model: request.model_name.clone(),
+            proxy_url: request.proxy_url.clone(),
+        };
+        (LlmProvider::OpenAI, LlmClient::new(cfg)?)
     };
 
-    let config = LlmConfig {
-        provider,
-        base_url: request.base_url.clone(),
-        api_key: super::model_manager::decrypt_key_for_use(&request.api_key),
-        model: request.model_name.clone(),
-        proxy_url: request.proxy_url.clone(),
+    // Fallback OpenAI client — built only when needed
+    let openai_fallback: Option<LlmClient> = if request.anthropic_url.is_some() && !request.base_url.is_empty() {
+        let cfg = LlmConfig {
+            provider: LlmProvider::OpenAI,
+            base_url: request.base_url.clone(),
+            api_key: decrypted_key.clone(),
+            model: request.model_name.clone(),
+            proxy_url: request.proxy_url.clone(),
+        };
+        LlmClient::new(cfg).ok()
+    } else {
+        None
     };
-
-    let client = LlmClient::new(config)?;
+    let mut protocol_downgraded = false;
     let tools = agent_tools::get_tool_definitions();
 
     // 2. Build system prompt
@@ -297,8 +325,26 @@ pub async fn run_agent(
                     stop_reason = reason;
                 }
                 LlmEvent::Error(e) => {
-                    // Non-retryable errors (model doesn't support tools)
-                    if e.contains("400") || e.contains("Bad Request") {
+                    // 400 / Bad Request: tool calling not supported by current protocol.
+                    // Attempt protocol downgrade: Anthropic → OpenAI (triple fallback).
+                    if (e.contains("400") || e.contains("Bad Request")) && !protocol_downgraded {
+                        if active_provider == LlmProvider::Anthropic {
+                            if let Some(ref fallback) = openai_fallback {
+                                // Downgrade to OpenAI and retry transparently
+                                log::warn!("[AgentLoop] Anthropic 400 — downgrading to OpenAI fallback");
+                                emit_event(&app, AgentEvent::TextDelta {
+                                    text: "\n\n⚠️ Switching to OpenAI protocol (Anthropic returned 400)...\n\n".into(),
+                                });
+                                // Rebuild client as OpenAI
+                                client = fallback.clone();
+                                active_provider = LlmProvider::OpenAI;
+                                protocol_downgraded = true;
+                                had_error = false;
+                                loop_count -= 1; // Don't count this as a tool loop
+                                break; // Restart the stream with OpenAI
+                            }
+                        }
+                        // No fallback available or already downgraded — show error
                         let user_msg = format!("{}\n\n⚠️ This model may not support tool/function calling, which Mother Agent requires. Please use a model with tool calling support (e.g. OpenAI, Anthropic, or compatible API providers).", e);
                         emit_event(&app, AgentEvent::Error { message: user_msg });
                         had_error = true;
@@ -426,10 +472,10 @@ pub async fn run_agent(
                 success: result.success,
             });
 
-            // Store tool result in message history
+            // Store tool result in message history — use active_provider (may have downgraded)
             let mut map = session_map.lock().await;
             let sess = map.entry(server_key.clone()).or_insert_with(AgentSession::new);
-            match provider {
+            match active_provider {
                 LlmProvider::OpenAI => {
                     // OpenAI uses role: "tool" with tool_call_id
                     sess.messages.push(Message {

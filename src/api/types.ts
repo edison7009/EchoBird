@@ -202,10 +202,13 @@ export interface StoreModel {
 export interface AgentRequest {
     message: string;
     model_id: string;
-    base_url: string;
+    base_url: string;       // OpenAI-compatible URL (also used as final OpenAI fallback)
     api_key: string;
     model_name: string;
     provider: string;
+    /** Anthropic-compatible URL. When provided, backend tries Anthropic first,
+     *  falls back to OpenAI base_url on 400. */
+    anthropic_url?: string;
     proxy_url?: string;
     server_ids: string[];
     skills: string[];

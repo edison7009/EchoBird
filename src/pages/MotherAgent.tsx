@@ -366,18 +366,30 @@ export function MotherAgentProvider({ appLogs, detectedTools, onClearLogs, onAge
         setChatOutput(prev => [...prev, { type: 'user', text: message.trim() }]);
 
         try {
-            // Auto-select protocol: prefer Anthropic when anthropicUrl is configured —
-            // Anthropic tool calling is more reliable and avoids 400 errors with providers
-            // that expose both OpenAI-compatible and Anthropic-compatible endpoints
-            // (e.g. MiniMax, local LLM proxies).
-            const useAnthropic = !!modelData.anthropicUrl;
+            // Triple-fallback protocol strategy:
+            //   1. Has anthropicUrl  → use it directly as Anthropic
+            //   2. Only baseUrl      → derive Anthropic URL (/v1 → /anthropic) and try first
+            //   3. Backend gets 400  → auto-downgrade to OpenAI base_url
+            const deriveAnthropicUrl = (base: string): string | null => {
+                if (!base) return null;
+                // Replace trailing /v1 or /v1/ with /anthropic (works for local LLM proxy)
+                const stripped = base.trim().replace(/\/v1\/?$/, '');
+                // Only derive if the original URL had /v1 (to avoid random derivations)
+                if (stripped !== base.trim()) return `${stripped}/anthropic`;
+                return null;
+            };
+
+            const anthropicUrl = modelData.anthropicUrl || deriveAnthropicUrl(modelData.baseUrl || '');
             await api.sendAgentMessage({
                 message: message.trim(),
                 model_id: modelData.internalId,
-                base_url: useAnthropic ? (modelData.anthropicUrl || '') : (modelData.baseUrl || ''),
+                // Always pass OpenAI URL as base_url (OpenAI fallback)
+                base_url: modelData.baseUrl || '',
                 api_key: modelData.apiKey,
                 model_name: modelData.modelId || modelData.name,
-                provider: useAnthropic ? 'anthropic' : 'openai',
+                // Start with Anthropic when available; backend downgrades to OpenAI on 400
+                provider: anthropicUrl ? 'anthropic' : 'openai',
+                anthropic_url: anthropicUrl || undefined,
                 proxy_url: modelData.proxyUrl,
                 server_ids: selectedServerId === 'local' ? [] : [selectedServerId],
                 skills: pendingSkills.map(s => s.name),
