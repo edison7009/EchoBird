@@ -227,7 +227,7 @@ export const Channels: React.FC = () => {
     const [allBridgeSessionIds, setAllBridgeSessionIds] = useState<Record<number, string>>({});
     const [allBridgeStatus, setAllBridgeStatus] = useState<Record<number, string>>({});
     const [allBridgeAgentNames, setAllBridgeAgentNames] = useState<Record<number, string>>({});
-    const [bridgeLoading, setBridgeLoading] = useState(false);
+    const [allBridgeLoading, setAllBridgeLoading] = useState<Record<number, boolean>>({});
 
     // Per-channel helpers
     const channelKey = activeId ?? 0;
@@ -235,6 +235,9 @@ export const Channels: React.FC = () => {
     const bridgeSessionId = allBridgeSessionIds[channelKey];
     const bridgeConnectionStatus = allBridgeStatus[channelKey] || 'standby';
     const bridgeAgentName = allBridgeAgentNames[channelKey];
+    const bridgeLoading = allBridgeLoading[channelKey] || false;
+    const setBridgeLoading = (val: boolean) =>
+        setAllBridgeLoading(all => ({ ...all, [channelKey]: val }));
     const setBridgeMessages = (updater: BridgeMsg[] | ((prev: BridgeMsg[]) => BridgeMsg[])) => {
         setAllBridgeMessages(all => ({
             ...all,
