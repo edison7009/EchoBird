@@ -1,5 +1,5 @@
 {
-  "version": "2.5.5",
+  "version": "2.5.6",
   "releaseDate": "2026-03-08",
-  "releaseNotes": "Triple protocol fallback for Mother Agent and Skills translation: prefer Anthropic when available (explicit URL or auto-derived /v1→/anthropic), auto-downgrade to OpenAI on 400. LlmClient now Clone-able for runtime protocol switching."
+  "releaseNotes": "Fix llm-server: remote llama-server now stays running after START (Child handle retained, stdio redirected to /dev/null). Fix Moore Threads GPU detection: mthreads-gmi output now correctly parsed from table format."
 }

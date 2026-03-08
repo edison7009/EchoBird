@@ -89,6 +89,7 @@ struct ModelSettings {
 struct LlmServer {
     info: ServerInfo,
     logs: Vec<String>,
+    child: Option<std::process::Child>,
     child_pid: Option<u32>,
     proxy_shutdown: Option<watch::Sender<bool>>,
 }
@@ -100,6 +101,7 @@ impl LlmServer {
         Self {
             info: ServerInfo::default(),
             logs: Vec::new(),
+            child: None,
             child_pid: None,
             proxy_shutdown: None,
         }
@@ -209,8 +211,9 @@ impl LlmServer {
                 }
                 let c = Command::new("python3")
                     .args(&args)
-                    .stdout(std::process::Stdio::piped())
-                    .stderr(std::process::Stdio::piped())
+                    .stdin(std::process::Stdio::null())
+                    .stdout(std::process::Stdio::null())
+                    .stderr(std::process::Stdio::null())
                     .spawn()
                     .map_err(|e| format!("Failed to spawn vLLM: {}", e))?;
                 (c, false)
@@ -232,8 +235,9 @@ impl LlmServer {
                 }
                 let c = Command::new("python3")
                     .args(&args)
-                    .stdout(std::process::Stdio::piped())
-                    .stderr(std::process::Stdio::piped())
+                    .stdin(std::process::Stdio::null())
+                    .stdout(std::process::Stdio::null())
+                    .stderr(std::process::Stdio::null())
                     .spawn()
                     .map_err(|e| format!("Failed to spawn SGLang: {}", e))?;
                 (c, false)
@@ -260,10 +264,13 @@ impl LlmServer {
                     args.push(ctx.to_string());
                 }
                 eprintln!("[LLM] Starting: {:?} (api_key={}...)", exe, &api_key[..12]);
+                // Use Stdio::null() so the child process runs as a true background daemon.
+                // Stdio::piped() would cause the child to exit when the pipe is dropped.
                 let c = Command::new(&exe)
                     .args(&args)
-                    .stdout(std::process::Stdio::piped())
-                    .stderr(std::process::Stdio::piped())
+                    .stdin(std::process::Stdio::null())
+                    .stdout(std::process::Stdio::null())
+                    .stderr(std::process::Stdio::null())
                     .spawn()
                     .map_err(|e| format!("Failed to spawn llama-server: {}", e))?;
                 (c, true)
@@ -272,6 +279,9 @@ impl LlmServer {
 
         let pid = child.id();
         self.child_pid = Some(pid);
+        // Store the child handle to keep the process alive (dropping Child does not kill it
+        // on Unix, but closing piped stdio can cause the subprocess to exit on SIGPIPE).
+        self.child = Some(child);
         self.info = ServerInfo {
             running: true,
             port,
@@ -311,7 +321,13 @@ impl LlmServer {
             return Err("Server not running".to_string());
         }
 
-        if let Some(pid) = self.child_pid {
+        // Prefer killing via the Child handle for clean process management.
+        if let Some(mut child) = self.child.take() {
+            eprintln!("[LLM] Stopping server via child handle");
+            let _ = child.kill();
+            let _ = child.wait();
+        } else if let Some(pid) = self.child_pid {
+            // Fallback: kill by PID (legacy path, should not normally be reached)
             eprintln!("[LLM] Stopping server (PID: {})", pid);
 
             #[cfg(unix)]
@@ -493,9 +509,11 @@ fn detect_gpu_nvidia_smi() -> Option<GpuInfo> {
 
 /// Moore Threads GPU detection via mthreads-gmi
 fn detect_gpu_mthreads() -> Option<GpuInfo> {
-    // Try mthreads-gmi (Moore Threads, e.g. MTT S80, MTT S3000)
+    // mthreads-gmi default table output (no special flags needed):
+    //   ID | Name      | PCIe | %GPU Mem              | ...
+    //   0  | MTT S4000 | ...  | 0%  4MiB(49152MiB)    | ...
+    // Total VRAM is the number inside the trailing parentheses: (49152MiB)
     let output = Command::new("mthreads-gmi")
-        .args(["-q", "--display=MEMORY"])
         .output()
         .ok()?;
 
@@ -503,31 +521,101 @@ fn detect_gpu_mthreads() -> Option<GpuInfo> {
         return None;
     }
 
-    // Also query name separately
-    let name_output = Command::new("mthreads-gmi")
-        .args(["-q", "--display=NAME"])
-        .output()
-        .ok()?;
-
     let stdout = String::from_utf8_lossy(&output.stdout);
-    let name_stdout = String::from_utf8_lossy(&name_output.stdout);
 
-    // Parse total memory (MB)
-    let vram_gb = stdout.lines()
-        .find(|l| l.to_lowercase().contains("total") && l.contains("mb"))
-        .and_then(|l| l.split_whitespace().find(|s| s.parse::<f64>().is_ok()))
-        .and_then(|s| s.parse::<f64>().ok())
-        .map(|mb| (mb / 1024.0 * 10.0).round() / 10.0)
-        .filter(|&v| v > 0.0)?;
+    // Find the first data row (skip header lines that contain "ID" or "---")
+    let mut gpu_name = String::from("Moore Threads MTT");
+    let mut vram_gb: Option<f64> = None;
 
-    // Parse GPU name
-    let gpu_name = name_stdout.lines()
-        .find(|l| l.to_lowercase().contains("product name") || l.to_lowercase().contains("mtt"))
-        .and_then(|l| l.split(':').nth(1))
-        .map(|s| shorten_gpu_name(s.trim()))
-        .unwrap_or_else(|| "Moore Threads MTT".to_string());
+    for line in stdout.lines() {
+        let trimmed = line.trim();
+        // Skip header / separator lines
+        if trimmed.is_empty()
+            || trimmed.starts_with("ID")
+            || trimmed.starts_with('+')
+            || trimmed.starts_with('-')
+            || trimmed.starts_with('=')
+        {
+            continue;
+        }
 
-    Some(GpuInfo { gpu_name, gpu_vram_gb: vram_gb })
+        // The Name column is typically the second pipe-separated field:
+        //   | 0  | MTT S4000 | ... | 0% 4MiB(49152MiB) | ...
+        let cols: Vec<&str> = trimmed.split('|').map(|s| s.trim()).collect();
+        if cols.len() >= 3 {
+            // col[1] = ID, col[2] = Name
+            let name_col = cols[1];
+            // col[4] usually contains "%GPU Mem" like "0% 4MiB(49152MiB)"
+            // Find the column that contains "MiB(" pattern (total VRAM in parens)
+            let mem_col = cols.iter().find(|c| c.contains("MiB(") || c.contains("GiB("));
+
+            if let Some(mem_str) = mem_col {
+                // Extract the number inside the last set of parentheses: (49152MiB)
+                if let Some(start) = mem_str.rfind('(') {
+                    let inside = &mem_str[start + 1..];
+                    let end = inside.find(')').unwrap_or(inside.len());
+                    let token = inside[..end].trim();
+                    // token is like "49152MiB" or "48GiB"
+                    let (num_str, unit) = if token.ends_with("GiB") {
+                        (&token[..token.len() - 3], "GiB")
+                    } else if token.ends_with("MiB") {
+                        (&token[..token.len() - 3], "MiB")
+                    } else {
+                        (token, "MiB") // assume MiB
+                    };
+                    if let Ok(v) = num_str.trim().parse::<f64>() {
+                        if v > 0.0 {
+                            vram_gb = Some(if unit == "GiB" {
+                                (v * 10.0).round() / 10.0
+                            } else {
+                                (v / 1024.0 * 10.0).round() / 10.0
+                            });
+                        }
+                    }
+                }
+            }
+
+            // Extract GPU name from Name column (second data column)
+            let candidate = name_col.trim();
+            if !candidate.is_empty() && candidate != "Name" && candidate.to_uppercase().contains("MTT") {
+                gpu_name = shorten_gpu_name(candidate);
+            }
+
+            if vram_gb.is_some() {
+                break; // First GPU is enough
+            }
+        }
+    }
+
+    // Fallback: try mthreads-gmi -L for a simple listing like "GPU 0: MTT S4000 (UUID: ...)"
+    if vram_gb.is_none() {
+        let list_out = Command::new("mthreads-gmi").args(["-L"]).output().ok()?;
+        if list_out.status.success() {
+            let list_str = String::from_utf8_lossy(&list_out.stdout);
+            // Just confirms the tool is present; can't get VRAM from -L alone
+            for line in list_str.lines() {
+                if line.to_uppercase().contains("MTT") {
+                    if let Some(colon_pos) = line.find(':') {
+                        let after = line[colon_pos + 1..].trim();
+                        // Strip UUID part "(UUID: ...)"
+                        let name = if let Some(paren) = after.find('(') {
+                            after[..paren].trim()
+                        } else {
+                            after
+                        };
+                        if !name.is_empty() {
+                            gpu_name = shorten_gpu_name(name);
+                        }
+                    }
+                    // Can't get VRAM reliably from -L; return None so next method is tried
+                    break;
+                }
+            }
+        }
+        return None; // No VRAM info found
+    }
+
+    Some(GpuInfo { gpu_name, gpu_vram_gb: vram_gb? })
 }
 
 fn shorten_gpu_name(name: &str) -> String {
