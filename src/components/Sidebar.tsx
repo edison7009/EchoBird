@@ -113,7 +113,7 @@ export const Sidebar = ({ activePage, onPageChange, agentRunning = false, channe
             {isFullEdition && (
                 <div className="pt-4 text-[12px] text-cyber-text-secondary uppercase tracking-widest">
                     {t('nav.localServer')}: {serverRunning ? (
-                        <span className="text-cyber-accent">{t('status.running')}</span>
+                        <span className="text-cyber-accent">ONLINE</span>
                     ) : (
                         <span className="text-cyber-text-muted/70">{t('status.offline')}</span>
                     )}
@@ -122,7 +122,7 @@ export const Sidebar = ({ activePage, onPageChange, agentRunning = false, channe
 
             <div className="pt-1 text-[12px] text-cyber-text-secondary uppercase tracking-widest">
                 {t('nav.motherAgent')}: {agentRunning ? (
-                    <span className="text-cyber-accent">{t('status.running')}</span>
+                    <span className="text-cyber-accent">ONLINE</span>
                 ) : (
                     <span className="text-cyber-text-muted/70">{t('status.offline')}</span>
                 )}
