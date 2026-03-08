@@ -69,6 +69,16 @@ const ChannelMessage = React.memo(({ role, content, toolName, toolArgs, toolSucc
         return <p className="break-words whitespace-pre-wrap text-white">{`> ${content}`}</p>;
     }
     if (role === 'system') {
+        if (content === '__agent_working__') {
+            return (
+                <div className="flex items-center gap-2 text-cyber-text-muted/60 text-xs font-mono py-1">
+                    <span className="animate-pulse">●</span>
+                    <span className="animate-pulse" style={{ animationDelay: '0.2s' }}>●</span>
+                    <span className="animate-pulse" style={{ animationDelay: '0.4s' }}>●</span>
+                    <span className="ml-1 text-cyber-accent/50">Agent is working...</span>
+                </div>
+            );
+        }
         return <p className="break-words whitespace-pre-wrap text-red-400">{content}</p>;
     }
     if (role === 'tool_call') {
@@ -672,13 +682,38 @@ export const Channels: React.FC = () => {
                 }
                 setBridgeConnectionStatus('connected');
                 setBridgeAgentName('OpenClaw'); // Default agent name for remote
-                const result = await api.bridgeChatRemote(serverId, text, bridgeSessionId);
-                if (result.session_id) setBridgeSessionId(result.session_id);
-                setBridgeMessages(prev => [...prev, {
-                    role: 'assistant',
-                    content: result.text,
-                    meta: { model: result.model, tokens: result.tokens, duration_ms: result.duration_ms },
-                }]);
+
+                // After 30s, inject a "working" hint so the user knows the agent is running —
+                // not frozen. It disappears when the real reply arrives.
+                const WORKING_MARKER = '__agent_working__';
+                const workingTimer = setTimeout(() => {
+                    setBridgeMessages(prev => {
+                        if (prev.some(m => m.content === WORKING_MARKER)) return prev;
+                        return [...prev, { role: 'system', content: WORKING_MARKER }];
+                    });
+                }, 30_000);
+
+                try {
+                    const result = await api.bridgeChatRemote(serverId, text, bridgeSessionId);
+                    clearTimeout(workingTimer);
+                    // Remove the working hint before adding the real reply
+                    setBridgeMessages(prev => {
+                        const cleaned = prev.filter(m => m.content !== WORKING_MARKER);
+                        return [...cleaned, {
+                            role: 'assistant',
+                            content: result.text,
+                            meta: { model: result.model, tokens: result.tokens, duration_ms: result.duration_ms },
+                        }];
+                    });
+                    if (result.session_id) setBridgeSessionId(result.session_id);
+                } catch (remoteErr: any) {
+                    clearTimeout(workingTimer);
+                    setBridgeMessages(prev => {
+                        const cleaned = prev.filter(m => m.content !== WORKING_MARKER);
+                        return [...cleaned, { role: 'system', content: `Error: ${remoteErr?.message || remoteErr}` }];
+                    });
+                    return; // skip outer catch
+                }
             }
         } catch (e: any) {
             setBridgeMessages(prev => [...prev, { role: 'system', content: `Error: ${e?.message || e}` }]);

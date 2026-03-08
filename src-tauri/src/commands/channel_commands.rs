@@ -637,13 +637,15 @@ pub async fn bridge_chat_remote(
     let client = connections.get(&server_id)
         .ok_or_else(|| format!("SSH not connected: {}", server_id))?;
 
+    // Long timeout: remote agents may work for 10–30 minutes before responding.
+    // The UI shows a "working" animation the entire time, and the reply appears when SSH returns.
     let result = match tokio::time::timeout(
-        std::time::Duration::from_secs(120),
+        std::time::Duration::from_secs(1800), // 30 minutes — matches longest expected agent tasks
         client.execute(&cmd)
     ).await {
         Ok(Ok(r)) => r,
         Ok(Err(e)) => return Err(format!("SSH exec failed: {}", e)),
-        Err(_) => return Err("Bridge chat timed out (120s)".to_string()),
+        Err(_) => return Err("Bridge chat timed out (30 min). Agent may still be running on the server.".to_string()),
     };
 
     drop(connections); // Release lock
