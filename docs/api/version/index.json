@@ -1,5 +1,5 @@
 {
-  "version": "2.5.1",
+  "version": "2.5.2",
   "releaseDate": "2026-03-08",
-  "releaseNotes": "Fix Mother Agent language rules: no longer outputs Chinese names when user speaks English or Japanese. Fix model list in Mother Agent not updating immediately after adding or deleting model cards."
+  "releaseNotes": "Fix local channel plugin not found in installed version: Tauri NSIS installs resources under _up_/ directory which was not searched. Fix OPENAI protocol tag click bubbling causing card deselect. Fix model list not refreshing immediately after add/delete."
 }
