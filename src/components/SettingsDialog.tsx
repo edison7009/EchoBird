@@ -140,7 +140,7 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
                     {/* Update available row */}
                     {updateAvailable && (
                         <button
-                            onClick={() => api.openExternal('https://echobird.ai/download')}
+                            onClick={() => api.openExternal('https://echobird.ai/')}
                             className="flex items-center justify-between w-full h-9 px-3 text-xs font-mono border border-cyber-accent/40 text-cyber-accent hover:bg-cyber-accent/10 transition-colors tracking-wider rounded-button"
                         >
                             <span>v{APP_VERSION} → v{updateAvailable}</span>
