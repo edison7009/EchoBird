@@ -1,5 +1,5 @@
 {
-  "version": "2.5.6",
-  "releaseDate": "2026-03-08",
-  "releaseNotes": "Fix llm-server: remote llama-server now stays running after START (Child handle retained, stdio redirected to /dev/null). Fix Moore Threads GPU detection: mthreads-gmi output now correctly parsed from table format."
+  "version": "2.5.7",
+  "releaseDate": "2026-03-09",
+  "releaseNotes": "Sidebar: auto-detect new version on startup, shows UPDATE badge when available. Fix: llm-server deployment downloads .zip (fixes CDN extensionless file issue), unzips with -j flag to prevent path nesting. Fix: rm -rf before download prevents 'Is a directory' error on retry."
 }
