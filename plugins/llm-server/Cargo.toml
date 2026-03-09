@@ -1,4 +1,4 @@
-﻿[package]
+package]
 name = "echobird-llm-server"
 version = "2.5.9"
 edition = "2021"

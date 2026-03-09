@@ -1,4 +1,4 @@
-﻿{
+
     "$schema":  "https://schema.tauri.app/config/2",
     "productName":  "Echobird",
     "version":  "2.5.9",
