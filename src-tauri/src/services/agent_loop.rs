@@ -293,6 +293,7 @@ pub async fn run_agent(
         let mut stop_reason = String::new();
         let mut had_error = false;
         let mut sse_error_msg = String::new();
+        let mut just_downgraded = false;
 
         while let Some(event) = rx.recv().await {
             match event {
@@ -347,8 +348,9 @@ pub async fn run_agent(
                             active_provider = LlmProvider::OpenAI;
                             protocol_downgraded = true;
                             had_error = false;
+                            just_downgraded = true;
                             loop_count -= 1; // Don't count this as a tool loop
-                            break; // Restart the stream with OpenAI
+                            break; // Break inner while — outer loop will continue with OpenAI
                         }
                         // No OpenAI fallback available — show helpful error
                         let user_msg = format!("{}\n\n⚠️ This model does not support the Anthropic protocol. Please configure an OpenAI-compatible URL in Model Nexus.", e);
@@ -401,6 +403,13 @@ pub async fn run_agent(
                 }
             }
             break;
+        }
+
+        // If we just downgraded, retry the outer loop with the new OpenAI client
+        // without saving an empty response or breaking on "no tool calls"
+        if just_downgraded {
+            sse_retry_count = 0;
+            continue;
         }
 
         // Reset SSE retry counter on successful stream completion
