@@ -135,7 +135,7 @@ pub async fn apply_model_to_tool(tool_id: &str, model_info: ModelInfo) -> ApplyR
         "openclaw" => return apply_echobird_relay(tool_id, &model_info, false),
 
         // Type 3: Direct JSON overwrite (special format)
-        "codebuddy" | "codebuddycn" => return apply_codebuddy(tool_id, &model_info),
+        "codebuddy" | "codebuddycn" | "workbuddy" => return apply_codebuddy(tool_id, &model_info),
         "opencode" => return apply_opencode(&model_info),
 
         // Type 4: YAML
@@ -166,7 +166,7 @@ pub async fn apply_model_to_tool(tool_id: &str, model_info: ModelInfo) -> ApplyR
 pub async fn get_tool_model_info(tool_id: &str) -> Option<ModelInfo> {
     match tool_id {
         "cline" | "roocode" | "openclaw" => return read_echobird_relay(tool_id),
-        "codebuddy" | "codebuddycn" => return read_codebuddy(tool_id),
+        "codebuddy" | "codebuddycn" | "workbuddy" => return read_codebuddy(tool_id),
         "opencode" => return read_opencode(),
         "aider" => return read_aider(),
         "continue" => return read_continue_dev(),
@@ -378,9 +378,9 @@ fn read_echobird_relay(tool_id: &str) -> Option<ModelInfo> {
 //  ~/.codebuddy/models.json  {models: [...], availableModels: [...]}
 // ════════════════════════════════════════════════════════════════
 
-fn apply_codebuddy(_tool_id: &str, model_info: &ModelInfo) -> ApplyResult {
-    // CodeBuddy and CodeBuddyCN share the same config directory
-    let config_dir = ".codebuddy";
+fn apply_codebuddy(tool_id: &str, model_info: &ModelInfo) -> ApplyResult {
+    // CodeBuddy/CodeBuddyCN use ~/.codebuddy, WorkBuddy uses ~/.workbuddy
+    let config_dir = if tool_id == "workbuddy" { ".workbuddy" } else { ".codebuddy" };
     let config_path = dirs::home_dir().unwrap_or_default().join(config_dir).join("models.json");
 
     // URL must end with /chat/completions for CodeBuddy
@@ -422,8 +422,8 @@ fn apply_codebuddy(_tool_id: &str, model_info: &ModelInfo) -> ApplyResult {
     }
 }
 
-fn read_codebuddy(_tool_id: &str) -> Option<ModelInfo> {
-    let config_dir = ".codebuddy";
+fn read_codebuddy(tool_id: &str) -> Option<ModelInfo> {
+    let config_dir = if tool_id == "workbuddy" { ".workbuddy" } else { ".codebuddy" };
     let config_path = dirs::home_dir()?.join(config_dir).join("models.json");
     let config = read_json_file(&config_path)?;
     let models = config.get("models")?.as_array()?;

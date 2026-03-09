@@ -814,7 +814,7 @@ export const RemoteLlmModal: React.FC<RemoteLlmModalProps> = ({
                 )}
 
                 {/* ===== Bottom: API Endpoints ===== */}
-                <div className="flex items-center justify-center gap-4 px-6 py-2.5 border-t border-cyber-border/20 text-xs font-mono flex-shrink-0">
+                <div className="flex items-center gap-4 px-6 py-2.5 border-t border-cyber-border/20 text-xs font-mono flex-shrink-0">
                     <div
                         className="flex items-center gap-1.5 cursor-pointer hover:text-cyber-accent transition-colors"
                         onClick={() => handleCopy('/v1')}

@@ -474,7 +474,7 @@ export const LocalServerMain: React.FC = () => {
 
                 {/* Log area */}
                 <div className="relative flex-1">
-                    <div ref={logsContainerRef} onScroll={handleScroll} className="absolute inset-0 overflow-y-auto py-3 bg-cyber-terminal font-mono text-sm space-y-0.5 custom-scrollbar">
+                    <div ref={logsContainerRef} onScroll={handleScroll} className="absolute inset-0 overflow-y-auto py-3 bg-cyber-terminal font-mono text-sm space-y-0.5 custom-scrollbar rounded-lg">
                         {logs.length === 0 && (
                             <div className="flex items-center justify-center" style={{ minHeight: 'calc(100% - 24px)' }}>
                                 <div className="font-mono text-center space-y-3">
@@ -1077,7 +1077,7 @@ export const LocalServerBottom: React.FC = () => {
 
     return (
         <div className="flex-shrink-0 border-t border-cyber-border/30">
-            <div className="flex items-center justify-center gap-4 px-6 py-2 text-xs font-mono">
+            <div className="flex items-center gap-4 py-2 text-xs font-mono">
                 <div
                     className="flex items-center gap-1.5 cursor-pointer hover:text-cyber-accent transition-colors"
                     onClick={() => handleCopy('openai', `http://127.0.0.1:${serverPort}/v1`)}

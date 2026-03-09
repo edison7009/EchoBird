@@ -1,5 +1,1 @@
-{
-  "version": "2.6.3",
-  "releaseDate": "2026-03-09",
-  "releaseNotes": "Add WorkBuddy tool support (AgentOS category). Fix tool scan dev mode sync issue. Fix AppManager toolModelConfig initialization for WorkBuddy."
-}
+{"version": "2.6.4","releaseDate": "2026-03-09","releaseNotes": "Fix WorkBuddy model switching. Fix local/remote LLM bottom bar left alignment. Add rounded corners to local LLM terminal area."}
