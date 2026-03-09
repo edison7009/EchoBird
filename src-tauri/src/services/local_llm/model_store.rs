@@ -1,0 +1,609 @@
+// Model Store: fetch remote model list + download GGUF models + install llama-server engine
+
+use std::path::PathBuf;
+use std::process::Command;
+use std::sync::atomic::{AtomicBool, Ordering};
+use futures_util::StreamExt;
+use tauri::Emitter;
+
+use super::types::DownloadProgress;
+use super::settings::get_download_dir;
+use super::gpu::get_gpu_info;
+use super::server::LocalLlmServer;
+
+// ─── Global download state ───
+
+static DOWNLOAD_ABORT: AtomicBool = AtomicBool::new(false);
+static DOWNLOAD_PAUSED: AtomicBool = AtomicBool::new(false);
+static DOWNLOAD_FILE: std::sync::Mutex<Option<String>> = std::sync::Mutex::new(None);
+
+// ─── Fetch store models ───
+
+/// Fetch store models: remote → cache → empty fallback
+pub async fn fetch_store_models() -> Vec<serde_json::Value> {
+    let remote_url = "https://echobird.ai/api/store/models.json";
+    let cache_dir = dirs::home_dir()
+        .unwrap_or_default()
+        .join(".echobird")
+        .join("cache");
+    let cache_path = cache_dir.join("store-models.json");
+
+    // 1. Try remote
+    if let Ok(resp) = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(8))
+        .build()
+        .unwrap_or_default()
+        .get(remote_url)
+        .header("User-Agent", "Echobird/1.1")
+        .send()
+        .await
+    {
+        if resp.status().is_success() {
+            if let Ok(text) = resp.text().await {
+                if let Ok(models) = serde_json::from_str::<Vec<serde_json::Value>>(&text) {
+                    if !models.is_empty() {
+                        let _ = std::fs::create_dir_all(&cache_dir);
+                        let _ = std::fs::write(&cache_path, &text);
+                        log::info!("[ModelStore] Loaded {} models from remote", models.len());
+                        return models;
+                    }
+                }
+            }
+        }
+    }
+
+    // 2. Try cache
+    if let Ok(text) = std::fs::read_to_string(&cache_path) {
+        if let Ok(models) = serde_json::from_str::<Vec<serde_json::Value>>(&text) {
+            if !models.is_empty() {
+                log::info!("[ModelStore] Loaded {} models from cache", models.len());
+                return models;
+            }
+        }
+    }
+
+    log::warn!("[ModelStore] No models available from remote or cache");
+    vec![]
+}
+
+// ─── Model download (GGUF) ───
+
+#[derive(Debug, Clone)]
+struct DownloadSource {
+    name: String,
+    url: String,
+}
+
+fn build_download_sources(repo: &str, file_name: &str) -> Vec<DownloadSource> {
+    vec![
+        DownloadSource {
+            name: "HuggingFace".to_string(),
+            url: format!("https://huggingface.co/{}/resolve/main/{}", repo, file_name),
+        },
+        DownloadSource {
+            name: "HF-Mirror".to_string(),
+            url: format!("https://hf-mirror.com/{}/resolve/main/{}", repo, file_name),
+        },
+        DownloadSource {
+            name: "ModelScope".to_string(),
+            url: format!("https://modelscope.cn/models/{}/resolve/master/{}", repo, file_name),
+        },
+    ]
+}
+
+async fn test_source_speed(source: &DownloadSource) -> (String, f64) {
+    let test_duration = std::time::Duration::from_secs(5);
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(15))
+        .redirect(reqwest::redirect::Policy::limited(5))
+        .build()
+        .unwrap_or_default();
+
+    let start = std::time::Instant::now();
+    let mut bytes: u64 = 0;
+
+    if let Ok(resp) = client.get(&source.url).header("User-Agent", "Echobird/1.1").send().await {
+        if resp.status().is_success() {
+            let mut stream = resp.bytes_stream();
+            while let Some(chunk) = stream.next().await {
+                if start.elapsed() >= test_duration { break; }
+                if let Ok(data) = chunk { bytes += data.len() as u64; }
+            }
+        }
+    }
+
+    let elapsed = start.elapsed().as_secs_f64();
+    let speed = if elapsed > 0.0 { bytes as f64 / elapsed } else { 0.0 };
+    log::info!("[ModelStore] Speed test {}: {:.0} KB/s ({:.0} KB in {:.1}s)",
+        source.name, speed / 1024.0, bytes as f64 / 1024.0, elapsed);
+    (source.name.clone(), speed)
+}
+
+/// Download model file with speed test + resume + progress events
+pub async fn download_model(
+    app_handle: tauri::AppHandle,
+    repo: String,
+    file_name: String,
+) -> Result<String, String> {
+    let download_dir = get_download_dir();
+    let save_path = PathBuf::from(&download_dir).join(&file_name);
+    let temp_path = PathBuf::from(&download_dir).join(format!("{}.downloading", file_name));
+
+    DOWNLOAD_ABORT.store(false, Ordering::SeqCst);
+    DOWNLOAD_PAUSED.store(false, Ordering::SeqCst);
+    *DOWNLOAD_FILE.lock().unwrap() = Some(file_name.clone());
+
+    let _ = std::fs::create_dir_all(&download_dir);
+
+    let sources = build_download_sources(&repo, &file_name);
+
+    let _ = app_handle.emit("download-progress", DownloadProgress {
+        file_name: file_name.clone(), progress: 0, downloaded: 0, total: 0,
+        status: "speed_test".to_string(),
+    });
+
+    log::info!("[ModelStore] Speed testing {} sources for {}...", sources.len(), file_name);
+    let speed_results = futures_util::future::join_all(
+        sources.iter().map(|s| test_source_speed(s))
+    ).await;
+
+    let mut sorted: Vec<_> = speed_results.into_iter()
+        .filter(|(_, speed)| *speed > 0.0).collect();
+    sorted.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
+
+    if sorted.is_empty() {
+        let _ = app_handle.emit("download-progress", DownloadProgress {
+            file_name: file_name.clone(), progress: 0, downloaded: 0, total: 0,
+            status: "error".to_string(),
+        });
+        return Err("All download sources unreachable".to_string());
+    }
+
+    log::info!("[ModelStore] Fastest source: {} ({:.0} KB/s)", sorted[0].0, sorted[0].1 / 1024.0);
+
+    for (source_name, _) in &sorted {
+        let source = sources.iter().find(|s| &s.name == source_name).unwrap();
+        match try_download_from_source(&app_handle, source, &save_path, &temp_path, &file_name).await {
+            Ok(path) => {
+                *DOWNLOAD_FILE.lock().unwrap() = None;
+                return Ok(path);
+            }
+            Err(e) => {
+                log::warn!("[ModelStore] {} failed: {}", source_name, e);
+                if DOWNLOAD_ABORT.load(Ordering::SeqCst) {
+                    *DOWNLOAD_FILE.lock().unwrap() = None;
+                    return Err("Download cancelled".to_string());
+                }
+                if DOWNLOAD_PAUSED.load(Ordering::SeqCst) {
+                    return Err("Download paused".to_string());
+                }
+            }
+        }
+    }
+
+    *DOWNLOAD_FILE.lock().unwrap() = None;
+    let _ = app_handle.emit("download-progress", DownloadProgress {
+        file_name: file_name.clone(), progress: 0, downloaded: 0, total: 0,
+        status: "error".to_string(),
+    });
+    Err("All download sources failed".to_string())
+}
+
+async fn try_download_from_source(
+    app_handle: &tauri::AppHandle,
+    source: &DownloadSource,
+    save_path: &PathBuf,
+    temp_path: &PathBuf,
+    file_name: &str,
+) -> Result<String, String> {
+    let client = reqwest::Client::builder()
+        .redirect(reqwest::redirect::Policy::limited(10))
+        .build()
+        .map_err(|e| e.to_string())?;
+
+    let start_byte: u64 = if temp_path.exists() {
+        std::fs::metadata(temp_path).map(|m| m.len()).unwrap_or(0)
+    } else { 0 };
+
+    if start_byte > 0 {
+        log::info!("[ModelStore] [{}] Resume mode, {} bytes already downloaded", source.name, start_byte);
+    }
+
+    let mut request = client.get(&source.url).header("User-Agent", "Echobird/1.1");
+    if start_byte > 0 {
+        request = request.header("Range", format!("bytes={}-", start_byte));
+    }
+
+    let resp = request.send().await.map_err(|e| format!("[{}] {}", source.name, e))?;
+    let status = resp.status();
+    if status != reqwest::StatusCode::OK && status != reqwest::StatusCode::PARTIAL_CONTENT {
+        return Err(format!("[{}] HTTP {}", source.name, status.as_u16()));
+    }
+
+    let actual_start = if status == reqwest::StatusCode::OK && start_byte > 0 { 0u64 } else { start_byte };
+    let content_length = resp.content_length().unwrap_or(0);
+    let total_size = actual_start + content_length;
+
+    use std::io::Write;
+    let mut file = std::fs::OpenOptions::new()
+        .create(true).write(true)
+        .append(actual_start > 0).truncate(actual_start == 0)
+        .open(temp_path)
+        .map_err(|e| format!("File open error: {}", e))?;
+
+    let mut downloaded = actual_start;
+    let mut stream = resp.bytes_stream();
+    let mut last_emit = std::time::Instant::now();
+
+    while let Some(chunk) = stream.next().await {
+        if DOWNLOAD_ABORT.load(Ordering::SeqCst) {
+            return Err("Download cancelled".to_string());
+        }
+        if DOWNLOAD_PAUSED.load(Ordering::SeqCst) {
+            let _ = app_handle.emit("download-progress", DownloadProgress {
+                file_name: file_name.to_string(), progress: 0, downloaded, total: total_size,
+                status: "paused".to_string(),
+            });
+            return Err("Download paused".to_string());
+        }
+
+        let data = chunk.map_err(|e| format!("[{}] Stream error: {}", source.name, e))?;
+        file.write_all(&data).map_err(|e| format!("Write error: {}", e))?;
+        downloaded += data.len() as u64;
+
+        if last_emit.elapsed() >= std::time::Duration::from_millis(250) {
+            let progress = if total_size > 0 {
+                ((downloaded as f64 / total_size as f64) * 100.0) as u32
+            } else { 0 };
+            let _ = app_handle.emit("download-progress", DownloadProgress {
+                file_name: file_name.to_string(), progress, downloaded, total: total_size,
+                status: "downloading".to_string(),
+            });
+            last_emit = std::time::Instant::now();
+        }
+    }
+
+    if save_path.exists() { let _ = std::fs::remove_file(save_path); }
+    std::fs::rename(temp_path, save_path).map_err(|e| format!("Rename error: {}", e))?;
+
+    let _ = app_handle.emit("download-progress", DownloadProgress {
+        file_name: file_name.to_string(), progress: 100,
+        downloaded: total_size, total: total_size,
+        status: "completed".to_string(),
+    });
+
+    log::info!("[ModelStore] [{}] Download complete: {}", source.name, file_name);
+    Ok(save_path.to_string_lossy().to_string())
+}
+
+/// Pause current download
+pub fn pause_download() {
+    DOWNLOAD_PAUSED.store(true, Ordering::SeqCst);
+    log::info!("[ModelStore] Download paused");
+}
+
+/// Cancel download and delete temp file
+pub fn cancel_download(app_handle: &tauri::AppHandle, target_file_name: Option<String>) {
+    DOWNLOAD_ABORT.store(true, Ordering::SeqCst);
+
+    let file_name = target_file_name.or_else(|| DOWNLOAD_FILE.lock().unwrap().clone());
+
+    if let Some(name) = &file_name {
+        let download_dir = get_download_dir();
+        let temp_path = PathBuf::from(&download_dir).join(format!("{}.downloading", name));
+        if temp_path.exists() {
+            let _ = std::fs::remove_file(&temp_path);
+            log::info!("[ModelStore] Cleaned temp file: {}", temp_path.display());
+        }
+        let _ = app_handle.emit("download-progress", DownloadProgress {
+            file_name: name.clone(), progress: 0, downloaded: 0, total: 0,
+            status: "cancelled".to_string(),
+        });
+    }
+
+    *DOWNLOAD_FILE.lock().unwrap() = None;
+    log::info!("[ModelStore] Download cancelled");
+}
+
+// ─── Engine download: llama-server binary installer ───
+
+const LLAMA_VERSION: &str = "b7981";
+const LLAMA_CUDA_VER: &str = "13.1";
+
+fn llama_github_base() -> String {
+    format!("https://github.com/ggml-org/llama.cpp/releases/download/{}", LLAMA_VERSION)
+}
+
+fn llama_download_mirrors() -> Vec<String> {
+    let base = llama_github_base();
+    vec![
+        base.clone(),
+        format!("https://ghfast.top/{}", base),
+        format!("https://ghproxy.net/{}", base),
+        format!("https://ghproxy.homeboyc.cn/{}", base),
+        format!("https://github.ur1.fun/{}", base),
+        format!("https://gh-proxy.com/{}", base),
+        format!("https://mirror.ghproxy.com/{}", base),
+    ]
+}
+
+fn classify_gpu_vendor_for_download(name: &str) -> &'static str {
+    let n = name.to_lowercase();
+    if n.contains("rtx") || n.contains("gtx") || n.contains("tesla")
+        || n.contains("quadro") || n.contains("titan") || n.contains("nvidia")
+        || n.starts_with("a100") || n.starts_with("h100") || n.starts_with("v100")
+    { "nvidia" } else { "other" }
+}
+
+fn get_llama_platform_files(has_nvidia: bool) -> Vec<String> {
+    match std::env::consts::OS {
+        "windows" => {
+            if has_nvidia {
+                vec![
+                    format!("llama-{}-bin-win-cuda-{}-x64.zip", LLAMA_VERSION, LLAMA_CUDA_VER),
+                    format!("cudart-llama-bin-win-cuda-{}-x64.zip", LLAMA_CUDA_VER),
+                ]
+            } else {
+                vec![format!("llama-{}-bin-win-avx2-x64.zip", LLAMA_VERSION)]
+            }
+        }
+        "macos" => vec![format!("llama-{}-bin-macos-arm64.tar.gz", LLAMA_VERSION)],
+        _ => {
+            let arch = std::env::consts::ARCH;
+            if arch == "aarch64" || arch == "arm" {
+                vec![format!("llama-{}-bin-ubuntu-arm64.tar.gz", LLAMA_VERSION)]
+            } else {
+                vec![format!("llama-{}-bin-ubuntu-x64.tar.gz", LLAMA_VERSION)]
+            }
+        }
+    }
+}
+
+fn llama_install_dir() -> PathBuf {
+    crate::utils::platform::echobird_dir().join("llama-server")
+}
+
+async fn test_mirror_speed(url: String, name: String) -> (String, String, f64) {
+    let client = match reqwest::Client::builder()
+        .redirect(reqwest::redirect::Policy::limited(10))
+        .timeout(std::time::Duration::from_secs(10))
+        .build() {
+        Ok(c) => c,
+        Err(_) => return (name, url, 0.0),
+    };
+
+    let start = std::time::Instant::now();
+    let mut bytes: u64 = 0;
+
+    if let Ok(resp) = client.get(&url).header("User-Agent", "Echobird/1.1").send().await {
+        if resp.status().is_success() {
+            let mut stream = resp.bytes_stream();
+            while let Some(chunk) = stream.next().await {
+                if let Ok(data) = chunk { bytes += data.len() as u64; }
+                if start.elapsed() >= std::time::Duration::from_secs(5) { break; }
+            }
+        }
+    }
+
+    let elapsed = start.elapsed().as_secs_f64();
+    let speed = if elapsed > 0.0 { bytes as f64 / elapsed } else { 0.0 };
+    log::info!("[LlamaDownloader] Speed test {}: {:.0} KB/s ({} KB in {:.1}s)",
+        name, speed / 1024.0, bytes / 1024, elapsed);
+    (name, url, speed)
+}
+
+/// Download and install llama-server binary
+pub async fn download_llama_server(app_handle: tauri::AppHandle) -> Result<String, String> {
+    let gpu_info = get_gpu_info();
+    let has_nvidia = gpu_info.as_ref()
+        .map(|g| classify_gpu_vendor_for_download(&g.gpu_name) == "nvidia")
+        .unwrap_or(false);
+    log::info!("[LlamaDownloader] GPU vendor: {}, has_nvidia={}",
+        gpu_info.as_ref().map(|g| g.gpu_name.as_str()).unwrap_or("none"), has_nvidia);
+
+    let file_names = get_llama_platform_files(has_nvidia);
+    let bin_dir = llama_install_dir().join("bin");
+    let temp_dir = llama_install_dir().join("temp");
+    let mirrors = llama_download_mirrors();
+
+    DOWNLOAD_ABORT.store(false, Ordering::SeqCst);
+    DOWNLOAD_PAUSED.store(false, Ordering::SeqCst);
+    *DOWNLOAD_FILE.lock().unwrap() = Some("llama-server".to_string());
+
+    let _ = std::fs::create_dir_all(&bin_dir);
+    let _ = std::fs::create_dir_all(&temp_dir);
+
+    let total_files = file_names.len();
+    let mut completed_files = 0u32;
+
+    for file_name in &file_names {
+        if DOWNLOAD_ABORT.load(Ordering::SeqCst) {
+            let _ = std::fs::remove_dir_all(&temp_dir);
+            let _ = std::fs::remove_dir_all(&bin_dir);
+            *DOWNLOAD_FILE.lock().unwrap() = None;
+            return Err("Download cancelled".to_string());
+        }
+
+        let temp_file = temp_dir.join(file_name);
+
+        let _ = app_handle.emit("download-progress", DownloadProgress {
+            file_name: "llama-server".to_string(), progress: 0, downloaded: 0, total: 0,
+            status: "speed_test".to_string(),
+        });
+
+        log::info!("[LlamaDownloader] Speed testing {} mirrors for {}...", mirrors.len(), file_name);
+        let speed_results = futures_util::future::join_all(
+            mirrors.iter().enumerate().map(|(i, mirror)| {
+                let url = format!("{}/{}", mirror, file_name);
+                let name = if i == 0 {
+                    "GitHub".to_string()
+                } else {
+                    url::Url::parse(mirror)
+                        .map(|u| u.host_str().unwrap_or("unknown").to_string())
+                        .unwrap_or_else(|_| format!("Mirror-{}", i))
+                };
+                test_mirror_speed(url, name)
+            })
+        ).await;
+
+        let mut sorted: Vec<_> = speed_results.into_iter()
+            .filter(|(_, _, speed)| *speed > 0.0).collect();
+        sorted.sort_by(|a, b| b.2.partial_cmp(&a.2).unwrap_or(std::cmp::Ordering::Equal));
+
+        if sorted.is_empty() {
+            let _ = app_handle.emit("download-progress", DownloadProgress {
+                file_name: "llama-server".to_string(),
+                progress: 0, downloaded: 0, total: 0, status: "error".to_string(),
+            });
+            *DOWNLOAD_FILE.lock().unwrap() = None;
+            return Err("All download mirrors unreachable".to_string());
+        }
+
+        log::info!("[LlamaDownloader] Fastest: {} ({:.0} KB/s)", sorted[0].0, sorted[0].2 / 1024.0);
+
+        let mut download_ok = false;
+        for (mirror_name, mirror_url, _) in &sorted {
+            if DOWNLOAD_ABORT.load(Ordering::SeqCst) { break; }
+            log::info!("[LlamaDownloader] Downloading via {}: {}", mirror_name, mirror_url);
+            match download_engine_file(&app_handle, mirror_url, &temp_file, completed_files, total_files as u32).await {
+                Ok(_) => { download_ok = true; break; }
+                Err(e) => {
+                    log::warn!("[LlamaDownloader] {} failed: {}", mirror_name, e);
+                    let _ = std::fs::remove_file(&temp_file);
+                    if DOWNLOAD_ABORT.load(Ordering::SeqCst) { break; }
+                }
+            }
+        }
+
+        if DOWNLOAD_ABORT.load(Ordering::SeqCst) {
+            let _ = std::fs::remove_dir_all(&temp_dir);
+            let _ = std::fs::remove_dir_all(&bin_dir);
+            *DOWNLOAD_FILE.lock().unwrap() = None;
+            return Err("Download cancelled".to_string());
+        }
+
+        if !download_ok {
+            let _ = std::fs::remove_dir_all(&temp_dir);
+            let _ = app_handle.emit("download-progress", DownloadProgress {
+                file_name: "llama-server".to_string(),
+                progress: 0, downloaded: 0, total: 0, status: "error".to_string(),
+            });
+            *DOWNLOAD_FILE.lock().unwrap() = None;
+            return Err("All download mirrors failed".to_string());
+        }
+
+        // Extract
+        log::info!("[LlamaDownloader] Extracting: {}", file_name);
+        let extract_name = file_name.replace(".zip", "").replace(".tar.gz", "");
+        let extract_dir = bin_dir.join(&extract_name);
+        let _ = std::fs::create_dir_all(&extract_dir);
+
+        if file_name.ends_with(".zip") {
+            #[cfg(windows)]
+            {
+                use std::os::windows::process::CommandExt;
+                let status = Command::new("powershell")
+                    .args(["-NoProfile", "-Command",
+                        &format!("Expand-Archive -Path '{}' -DestinationPath '{}' -Force",
+                            temp_file.display(), extract_dir.display())])
+                    .creation_flags(0x08000000)
+                    .status()
+                    .map_err(|e| format!("Extract failed: {}", e))?;
+                if !status.success() {
+                    return Err(format!("PowerShell Expand-Archive failed for {}", file_name));
+                }
+            }
+            #[cfg(not(windows))]
+            return Err("ZIP extraction is only supported on Windows".to_string());
+        } else {
+            let status = Command::new("tar")
+                .args(["-xzf", &temp_file.to_string_lossy(), "-C", &extract_dir.to_string_lossy()])
+                .status()
+                .map_err(|e| format!("Extract failed: {}", e))?;
+            if !status.success() {
+                return Err(format!("tar extraction failed for {}", file_name));
+            }
+        }
+
+        let _ = std::fs::remove_file(&temp_file);
+        completed_files += 1;
+    }
+
+    #[cfg(not(windows))]
+    {
+        if let Some(exe_path) = LocalLlmServer::find_llama_server() {
+            use std::os::unix::fs::PermissionsExt;
+            let _ = std::fs::set_permissions(&exe_path, std::fs::Permissions::from_mode(0o755));
+            log::info!("[LlamaDownloader] Set executable permission: {}", exe_path.display());
+        }
+    }
+
+    let _ = std::fs::remove_dir_all(&temp_dir);
+    let _ = app_handle.emit("download-progress", DownloadProgress {
+        file_name: "llama-server".to_string(), progress: 100, downloaded: 0, total: 0,
+        status: "completed".to_string(),
+    });
+
+    *DOWNLOAD_FILE.lock().unwrap() = None;
+
+    let install_path = LocalLlmServer::find_llama_server()
+        .map(|p| p.to_string_lossy().to_string())
+        .unwrap_or_default();
+    log::info!("[LlamaDownloader] Installation complete: {}", install_path);
+    Ok(install_path)
+}
+
+async fn download_engine_file(
+    app_handle: &tauri::AppHandle,
+    url: &str,
+    dest: &PathBuf,
+    completed_files: u32,
+    total_files: u32,
+) -> Result<(), String> {
+    let client = reqwest::Client::builder()
+        .redirect(reqwest::redirect::Policy::limited(10))
+        .build()
+        .map_err(|e| e.to_string())?;
+
+    let resp = client.get(url).header("User-Agent", "Echobird/1.1")
+        .send().await.map_err(|e| e.to_string())?;
+
+    if !resp.status().is_success() {
+        return Err(format!("HTTP {}", resp.status().as_u16()));
+    }
+
+    let content_length = resp.content_length().unwrap_or(0);
+    use std::io::Write;
+    let mut file = std::fs::OpenOptions::new()
+        .create(true).write(true).truncate(true)
+        .open(dest)
+        .map_err(|e| format!("File open error: {}", e))?;
+
+    let mut downloaded: u64 = 0;
+    let mut stream = resp.bytes_stream();
+    let mut last_emit = std::time::Instant::now();
+
+    while let Some(chunk) = stream.next().await {
+        if DOWNLOAD_ABORT.load(Ordering::SeqCst) {
+            return Err("Download cancelled".to_string());
+        }
+        let data = chunk.map_err(|e| format!("Stream error: {}", e))?;
+        file.write_all(&data).map_err(|e| format!("Write error: {}", e))?;
+        downloaded += data.len() as u64;
+
+        if last_emit.elapsed() >= std::time::Duration::from_millis(250) {
+            let file_progress = if content_length > 0 {
+                (downloaded as f64 / content_length as f64) * 100.0
+            } else { 0.0 };
+            let overall = ((completed_files as f64 + file_progress / 100.0) / total_files as f64 * 100.0) as u32;
+            let _ = app_handle.emit("download-progress", DownloadProgress {
+                file_name: "llama-server".to_string(),
+                progress: overall, downloaded, total: content_length,
+                status: "downloading".to_string(),
+            });
+            last_emit = std::time::Instant::now();
+        }
+    }
+
+    Ok(())
+}

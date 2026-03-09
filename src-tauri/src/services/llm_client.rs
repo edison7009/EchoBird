@@ -97,7 +97,7 @@ impl LlmClient {
         }
 
         let http = builder
-            .timeout(std::time::Duration::from_secs(120))
+            .timeout(std::time::Duration::from_secs(600)) // 10 min: supports thinking models (DeepSeek-R1, etc.)
             .build()
             .map_err(|e| format!("Failed to build HTTP client: {}", e))?;
 
@@ -255,10 +255,15 @@ impl LlmClient {
         system_prompt: &str,
     ) -> Result<mpsc::Receiver<LlmEvent>, String> {
         let base = self.config.base_url.trim_end_matches('/');
-        // Align with model_manager.rs: if URL already contains "/messages" use as-is,
-        // otherwise append "/v1/messages" (e.g. MiniMax: .../anthropic → .../anthropic/v1/messages)
+        // URL resolution:
+        //   - already contains "/messages"  → use as-is
+        //   - ends with "/anthropic"         → local proxy path, append "/messages"
+        //   - otherwise                       → remote Anthropic-compatible, append "/v1/messages"
         let url = if base.contains("/messages") {
             base.to_string()
+        } else if base.ends_with("/anthropic") {
+            // Local unified proxy: /anthropic is the Anthropic endpoint
+            format!("{}/messages", base)
         } else {
             format!("{}/v1/messages", base)
         };

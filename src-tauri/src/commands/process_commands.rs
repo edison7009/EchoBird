@@ -37,7 +37,7 @@ pub async fn start_llm_server(
     runtime: Option<String>,
 ) -> Result<(), String> {
     let rt = runtime.as_deref().unwrap_or("llama-server");
-    let result = local_llm::start_server(&model_path, port, gpu_layers, context_size, rt).await;
+    let result = local_llm::start_server(&model_path, port, gpu_layers, context_size, rt, app_handle.clone()).await;
     if result.is_ok() {
         use tauri::Manager;
         let state = app_handle.state::<crate::TrayState>();

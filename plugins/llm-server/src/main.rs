@@ -930,24 +930,14 @@ fn get_engine_status() -> serde_json::Value {
             "version": vllm_ver,
             "linuxOnly": true,
             "requiresGpu": true,
-            "installCmd": {
-                "default": "pip install vllm",
-                "cuda11": "pip install vllm --extra-index-url https://download.pytorch.org/whl/cu118",
-                "cuda12": "pip install vllm",
-                "mirror_cn": "pip install vllm -i https://pypi.tuna.tsinghua.edu.cn/simple",
-            },
+            "installCmd": "pip3 install vllm",
         },
         "sglang": {
             "installed": sglang_ver.is_some(),
             "version": sglang_ver,
             "linuxOnly": true,
             "requiresGpu": true,
-            "installCmd": {
-                "default": "pip install 'sglang[all]'",
-                "cuda11": "pip install 'sglang[all]' --extra-index-url https://download.pytorch.org/whl/cu118",
-                "cuda12": "pip install 'sglang[all]'",
-                "mirror_cn": "pip install 'sglang[all]' -i https://pypi.tuna.tsinghua.edu.cn/simple",
-            },
+            "installCmd": "pip3 install sglang[all]",
         },
     })
 }
@@ -1428,8 +1418,103 @@ async fn download_engine_file(
     Ok(())
 }
 
-/// Install llama-server engine (background task)
-async fn install_engine_task(state: SharedDownload) {
+/// Install vLLM or SGLang via pip (background task)
+async fn install_python_runtime_task(state: SharedDownload, runtime: String) {
+    let pkg = if runtime == "vllm" { "vllm" } else { "sglang[all]" };
+    let display = if runtime == "vllm" { "vllm" } else { "sglang" };
+
+    {
+        let mut dl = state.lock().await;
+        dl.file_name = display.to_string();
+        dl.status = "installing".to_string();
+        dl.progress = 0;
+        dl.downloaded = 0;
+        dl.total = 0;
+    }
+
+    eprintln!("[PipInstall] Starting: pip3 install --upgrade {}", pkg);
+
+    // Try 1: official PyPI (Fastly CDN, works globally)
+    let result = tokio::task::spawn_blocking({
+        let pkg = pkg.to_string();
+        move || {
+            Command::new("pip3")
+                .args(["install", "--upgrade", &pkg])
+                .output()
+        }
+    }).await;
+
+    let success = match result {
+        Ok(Ok(output)) => {
+            eprintln!("[PipInstall] stdout: {}", String::from_utf8_lossy(&output.stdout));
+            eprintln!("[PipInstall] stderr: {}", String::from_utf8_lossy(&output.stderr));
+            output.status.success()
+        }
+        _ => false,
+    };
+
+    if success {
+        let mut dl = state.lock().await;
+        dl.status = "completed".to_string();
+        dl.progress = 100;
+        eprintln!("[PipInstall] {} installed successfully", display);
+        return;
+    }
+
+    eprintln!("[PipInstall] PyPI failed, retrying via Tsinghua mirror...");
+
+    // Try 2: Tsinghua mirror (confirmed 200 OK, reliable fallback)
+    {
+        let mut dl = state.lock().await;
+        dl.status = "installing".to_string();
+        dl.progress = 5;
+    }
+
+    let result2 = tokio::task::spawn_blocking({
+        let pkg = pkg.to_string();
+        move || {
+            Command::new("pip3")
+                .args([
+                    "install", "--upgrade", &pkg,
+                    "-i", "https://pypi.tuna.tsinghua.edu.cn/simple",
+                    "--trusted-host", "pypi.tuna.tsinghua.edu.cn",
+                ])
+                .output()
+        }
+    }).await;
+
+    let mut dl = state.lock().await;
+    match result2 {
+        Ok(Ok(output)) => {
+            eprintln!("[PipInstall] mirror stdout: {}", String::from_utf8_lossy(&output.stdout));
+            eprintln!("[PipInstall] mirror stderr: {}", String::from_utf8_lossy(&output.stderr));
+            if output.status.success() {
+                dl.status = "completed".to_string();
+                dl.progress = 100;
+                eprintln!("[PipInstall] {} installed via Tsinghua mirror", display);
+            } else {
+                dl.status = "error".to_string();
+                eprintln!("[PipInstall] All sources failed for {}", display);
+            }
+        }
+        _ => {
+            dl.status = "error".to_string();
+            eprintln!("[PipInstall] Failed to spawn pip3 for {}", display);
+        }
+    }
+}
+
+
+/// Install engine (background task) — runtime-aware
+
+async fn install_engine_task(state: SharedDownload, runtime: String) {
+    // ── vLLM / SGLang: pip install ──
+    if runtime == "vllm" || runtime == "sglang" {
+        install_python_runtime_task(state, runtime).await;
+        return;
+    }
+
+    // ── llama-server: binary download ──
     let file_names = get_llama_platform_files();
     let bin_dir = llama_install_dir().join("bin");
     let temp_dir = llama_install_dir().join("temp");
@@ -1709,7 +1794,7 @@ async fn handle_request(
             // Check if already downloading
             {
                 let dl = download_state.lock().await;
-                if dl.status == "downloading" || dl.status == "speed_test" {
+                if dl.status == "downloading" || dl.status == "speed_test" || dl.status == "installing" {
                     return (409, serde_json::json!({
                         "error": "A download is already in progress",
                         "fileName": dl.file_name
@@ -1719,8 +1804,14 @@ async fn handle_request(
 
             // Spawn background engine install task
             let dl_state = download_state.clone();
+            let body_json: serde_json::Value = serde_json::from_str(body)
+                .unwrap_or_else(|_| serde_json::json!({}));
+            let rt = body_json.get("runtime")
+                .and_then(|v| v.as_str())
+                .unwrap_or("llama-server")
+                .to_string();
             tokio::spawn(async move {
-                install_engine_task(dl_state).await;
+                install_engine_task(dl_state, rt).await;
             });
 
             (200, serde_json::json!({
@@ -1892,20 +1983,87 @@ async fn run_unified_proxy(
     Ok(())
 }
 
+/// Read the complete HTTP request (headers + full body) from a TCP stream.
+/// Bug 1 fix: a single read() call is NOT guaranteed to receive the entire body,
+/// especially for large Anthropic requests. We must read until Content-Length bytes.
+async fn read_full_http_request(stream: &mut tokio::net::TcpStream) -> Result<Vec<u8>, String> {
+    use tokio::io::AsyncReadExt;
+
+    let mut buf = Vec::with_capacity(65536);
+    let mut tmp = [0u8; 8192];
+
+    // Read until we have headers (double CRLF)
+    let header_end = loop {
+        let n = stream.read(&mut tmp).await.map_err(|e| format!("Read error: {}", e))?;
+        if n == 0 { break buf.len(); }
+        buf.extend_from_slice(&tmp[..n]);
+        if let Some(pos) = find_header_end(&buf) {
+            break pos;
+        }
+    };
+
+    // Parse Content-Length from headers
+    let header_str = String::from_utf8_lossy(&buf[..header_end]);
+    let content_length: usize = header_str.lines()
+        .find(|l| l.to_lowercase().starts_with("content-length:"))
+        .and_then(|l| l.splitn(2, ':').nth(1))
+        .and_then(|v| v.trim().parse().ok())
+        .unwrap_or(0);
+
+    // Read remaining body bytes
+    let body_start = header_end + 4; // skip \r\n\r\n
+    let body_received = if buf.len() > body_start { buf.len() - body_start } else { 0 };
+    let remaining = content_length.saturating_sub(body_received);
+
+    if remaining > 0 {
+        let mut more = vec![0u8; remaining];
+        let mut got = 0;
+        while got < remaining {
+            let n = stream.read(&mut more[got..]).await.map_err(|e| format!("Body read: {}", e))?;
+            if n == 0 { break; }
+            got += n;
+        }
+        buf.extend_from_slice(&more[..got]);
+    }
+
+    Ok(buf)
+}
+
+fn find_header_end(buf: &[u8]) -> Option<usize> {
+    buf.windows(4).position(|w| w == b"\r\n\r\n")
+}
+
+/// Extract API key from request headers (supports x-api-key and Authorization: Bearer)
+/// Bug 2 fix: forward the client's API key to llama-server internal port.
+fn extract_api_key_from_request(raw: &[u8]) -> Option<String> {
+    let header_str = String::from_utf8_lossy(raw);
+    for line in header_str.lines() {
+        let lower = line.to_lowercase();
+        if lower.starts_with("x-api-key:") {
+            let key = line["x-api-key:".len()..].trim().to_string();
+            if !key.is_empty() { return Some(key); }
+        } else if lower.starts_with("authorization:") {
+            let val = line["authorization:".len()..].trim();
+            if let Some(token) = val.strip_prefix("Bearer ").or_else(|| val.strip_prefix("bearer ")) {
+                let key = token.trim().to_string();
+                if !key.is_empty() { return Some(key); }
+            }
+        }
+    }
+    None
+}
+
 async fn handle_proxy_connection(
     mut stream: tokio::net::TcpStream,
     target_port: u16,
 ) -> Result<(), String> {
-    use tokio::io::{AsyncReadExt, AsyncWriteExt};
+    use tokio::io::AsyncWriteExt;
 
-    let mut buf = vec![0u8; 65536];
-    let n = stream.read(&mut buf).await
-        .map_err(|e| format!("Read error: {}", e))?;
-    if n == 0 { return Ok(()); }
+    // Bug 1 fix: read the complete HTTP request including full body
+    let raw = read_full_http_request(&mut stream).await?;
+    if raw.is_empty() { return Ok(()); }
 
-    let raw = &buf[..n];
-    let raw_str = String::from_utf8_lossy(raw);
-
+    let raw_str = String::from_utf8_lossy(&raw);
     let first_line = raw_str.lines().next().unwrap_or("");
     let parts: Vec<&str> = first_line.split_whitespace().collect();
     if parts.len() < 2 {
@@ -1929,9 +2087,9 @@ async fn handle_proxy_connection(
     }
 
     if path.starts_with("/anthropic") {
-        handle_anthropic_proxy(&mut stream, raw, target_port).await
+        handle_anthropic_proxy(&mut stream, &raw, target_port).await
     } else {
-        handle_passthrough(&mut stream, raw, target_port).await
+        handle_passthrough(&mut stream, &raw, target_port).await
     }
 }
 
@@ -1970,29 +2128,48 @@ async fn handle_anthropic_proxy(
 
     let raw_str = String::from_utf8_lossy(raw_request);
 
+    // Bug 2 fix: extract API key from client request headers
+    let api_key = extract_api_key_from_request(raw_request);
+
+    // Find body (after \r\n\r\n)
     let body_str = if let Some(pos) = raw_str.find("\r\n\r\n") {
         &raw_str[pos + 4..]
     } else {
         ""
     };
 
+    // Parse Anthropic request body
     let anthropic_req: serde_json::Value = serde_json::from_str(body_str)
         .unwrap_or_else(|_| serde_json::json!({}));
 
     let is_stream = anthropic_req.get("stream").and_then(|v| v.as_bool()).unwrap_or(false);
 
+    // Convert Anthropic request to OpenAI format
     let openai_req = anthropic_to_openai(&anthropic_req);
+
+    eprintln!("[Proxy] Anthropic->OpenAI: {} messages, stream={}",
+        openai_req.get("messages").and_then(|m| m.as_array()).map(|a| a.len()).unwrap_or(0),
+        is_stream
+    );
 
     let post_data = serde_json::to_string(&openai_req)
         .map_err(|e| format!("Serialize: {}", e))?;
 
+    // Bug 2 fix: forward API key to llama-server internal port
+    let auth_header = if let Some(ref key) = api_key {
+        format!("Authorization: Bearer {}\r\n", key)
+    } else {
+        String::new()
+    };
+
+    // Forward to llama-server /v1/chat/completions
     let http_req = format!(
         "POST /v1/chat/completions HTTP/1.1\r\n\
          Host: 127.0.0.1:{}\r\n\
          Content-Type: application/json\r\n\
-         Content-Length: {}\r\n\
+         {}Content-Length: {}\r\n\
          Connection: close\r\n\r\n{}",
-        target_port, post_data.len(), post_data
+        target_port, auth_header, post_data.len(), post_data
     );
 
     let mut target = tokio::net::TcpStream::connect(format!("127.0.0.1:{}", target_port)).await
@@ -2001,35 +2178,176 @@ async fn handle_anthropic_proxy(
     target.write_all(http_req.as_bytes()).await
         .map_err(|e| format!("Write to target: {}", e))?;
 
-    let mut resp_data = Vec::new();
-    let mut buf = vec![0u8; 8192];
-    loop {
-        let n = target.read(&mut buf).await
-            .map_err(|e| format!("Read from target: {}", e))?;
-        if n == 0 { break; }
-        resp_data.extend_from_slice(&buf[..n]);
-    }
-
-    let resp_str = String::from_utf8_lossy(&resp_data);
-
-    let resp_body = if let Some(pos) = resp_str.find("\r\n\r\n") {
-        &resp_str[pos + 4..]
-    } else {
-        &resp_str[..]
-    };
-
     if is_stream {
-        let anthropic_sse = openai_stream_to_anthropic_sse(resp_body);
-        let headers = "HTTP/1.1 200 OK\r\n\
-             Content-Type: text/event-stream\r\n\
-             Cache-Control: no-cache\r\n\
-             Connection: keep-alive\r\n\
-             Access-Control-Allow-Origin: *\r\n\r\n";
-        stream.write_all(headers.as_bytes()).await
-            .map_err(|e| format!("Write headers: {}", e))?;
-        stream.write_all(anthropic_sse.as_bytes()).await
-            .map_err(|e| format!("Write SSE: {}", e))?;
+        // 鈹€鈹€ TRUE STREAMING PATH 鈹€鈹€
+        // Read llama-server HTTP response headers first (byte-by-byte until \r\n\r\n)
+        let mut header_buf = Vec::new();
+        let mut single = [0u8; 1];
+        loop {
+            let n = target.read(&mut single).await
+                .map_err(|e| format!("Read header byte: {}", e))?;
+            if n == 0 { break; }
+            header_buf.push(single[0]);
+            if header_buf.ends_with(b"\r\n\r\n") { break; }
+            if header_buf.len() > 16384 { break; }
+        }
+
+        // Immediately send SSE response headers to the client
+        let sse_headers = "HTTP/1.1 200 OK\r\n\
+            Content-Type: text/event-stream\r\n\
+            Cache-Control: no-cache\r\n\
+            Connection: keep-alive\r\n\
+            Access-Control-Allow-Origin: *\r\n\r\n";
+        stream.write_all(sse_headers.as_bytes()).await
+            .map_err(|e| format!("Write SSE headers: {}", e))?;
+
+        // Emit Anthropic message_start event
+        let now_ms = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap_or_default().as_millis();
+        let msg_id = format!("msg_{}", now_ms);
+        let msg_start = serde_json::json!({
+            "type": "message_start",
+            "message": {
+                "id": msg_id,
+                "type": "message",
+                "role": "assistant",
+                "content": [],
+                "model": "local-model",
+                "stop_reason": null,
+                "stop_sequence": null,
+                "usage": {"input_tokens": 0, "output_tokens": 0}
+            }
+        });
+        let evt = format!("event: message_start\ndata: {}\n\n", msg_start);
+        stream.write_all(evt.as_bytes()).await
+            .map_err(|e| format!("Write message_start: {}", e))?;
+
+        // Emit Anthropic content_block_start event (text block)
+        let block_start = serde_json::json!({
+            "type": "content_block_start",
+            "index": 0,
+            "content_block": {"type": "text", "text": ""}
+        });
+        let evt = format!("event: content_block_start\ndata: {}\n\n", block_start);
+        stream.write_all(evt.as_bytes()).await
+            .map_err(|e| format!("Write content_block_start: {}", e))?;
+        stream.flush().await.ok();
+
+        // Stream body: read chunks, parse SSE lines, convert and forward
+        let mut partial = String::new();
+        let mut chunk_buf = vec![0u8; 8192];
+        let mut done = false;
+        while !done {
+            let n = target.read(&mut chunk_buf).await
+                .map_err(|e| format!("Read SSE chunk: {}", e))?;
+            if n == 0 { break; }
+
+            partial.push_str(&String::from_utf8_lossy(&chunk_buf[..n]));
+
+            loop {
+                if let Some(nl) = partial.find('\n') {
+                    let line = partial[..nl].trim_end_matches('\r').to_string();
+                    partial = partial[nl + 1..].to_string();
+
+                    if !line.starts_with("data: ") { continue; }
+                    let json_str = &line[6..];
+                    if json_str == "[DONE]" { done = true; break; }
+
+                    if let Ok(chunk) = serde_json::from_str::<serde_json::Value>(json_str) {
+                        let delta = chunk.get("choices")
+                            .and_then(|c| c.as_array())
+                            .and_then(|arr| arr.first())
+                            .and_then(|c| c.get("delta"));
+
+                        // Text content delta
+                        if let Some(text) = delta.and_then(|d| d.get("content")).and_then(|c| c.as_str()) {
+                            if !text.is_empty() {
+                                let ev = serde_json::json!({
+                                    "type": "content_block_delta",
+                                    "index": 0,
+                                    "delta": {"type": "text_delta", "text": text}
+                                });
+                                let evt = format!("event: content_block_delta\ndata: {}\n\n", ev);
+                                if stream.write_all(evt.as_bytes()).await.is_err() {
+                                    return Ok(());
+                                }
+                            }
+                        }
+
+                        // Tool call delta
+                        if let Some(tool_calls) = delta.and_then(|d| d.get("tool_calls")).and_then(|t| t.as_array()) {
+                            for tc in tool_calls {
+                                let idx = tc.get("index").and_then(|v| v.as_u64()).unwrap_or(0);
+                                if let Some(id) = tc.get("id").and_then(|v| v.as_str()) {
+                                    let name = tc.get("function").and_then(|f| f.get("name")).and_then(|v| v.as_str()).unwrap_or("");
+                                    if idx > 0 {
+                                        let stop = serde_json::json!({"type": "content_block_stop", "index": idx - 1});
+                                        let _ = stream.write_all(format!("event: content_block_stop\ndata: {}\n\n", stop).as_bytes()).await;
+                                    }
+                                    let start = serde_json::json!({
+                                        "type": "content_block_start",
+                                        "index": idx,
+                                        "content_block": {"type": "tool_use", "id": id, "name": name, "input": {}}
+                                    });
+                                    let _ = stream.write_all(format!("event: content_block_start\ndata: {}\n\n", start).as_bytes()).await;
+                                }
+                                if let Some(args) = tc.get("function").and_then(|f| f.get("arguments")).and_then(|v| v.as_str()) {
+                                    if !args.is_empty() {
+                                        let ev = serde_json::json!({
+                                            "type": "content_block_delta",
+                                            "index": idx,
+                                            "delta": {"type": "input_json_delta", "partial_json": args}
+                                        });
+                                        let _ = stream.write_all(format!("event: content_block_delta\ndata: {}\n\n", ev).as_bytes()).await;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    break;
+                }
+            }
+            stream.flush().await.ok();
+        }
+
+        // Emit Anthropic closing events
+        let block_stop = format!("event: content_block_stop\ndata: {}\n\n",
+            serde_json::json!({"type": "content_block_stop", "index": 0}));
+        stream.write_all(block_stop.as_bytes()).await.ok();
+
+        let msg_delta = format!("event: message_delta\ndata: {}\n\n",
+            serde_json::json!({
+                "type": "message_delta",
+                "delta": {"stop_reason": "end_turn", "stop_sequence": null},
+                "usage": {"output_tokens": 0}
+            }));
+        stream.write_all(msg_delta.as_bytes()).await.ok();
+
+        let msg_stop = format!("event: message_stop\ndata: {}\n\n",
+            serde_json::json!({"type": "message_stop"}));
+        stream.write_all(msg_stop.as_bytes()).await.ok();
+        stream.flush().await.ok();
+
     } else {
+        // 鈹€鈹€ NON-STREAMING PATH 鈹€鈹€
+        let mut resp_data = Vec::new();
+        let mut buf = vec![0u8; 8192];
+        loop {
+            let n = target.read(&mut buf).await
+                .map_err(|e| format!("Read from target: {}", e))?;
+            if n == 0 { break; }
+            resp_data.extend_from_slice(&buf[..n]);
+        }
+
+        let resp_str = String::from_utf8_lossy(&resp_data);
+        let resp_body = if let Some(pos) = resp_str.find("\r\n\r\n") {
+            &resp_str[pos + 4..]
+        } else {
+            &resp_str[..]
+        };
+
         match serde_json::from_str::<serde_json::Value>(resp_body) {
             Ok(openai_data) => {
                 let anthropic_resp = openai_to_anthropic(&openai_data);
@@ -2066,12 +2384,13 @@ async fn handle_anthropic_proxy(
 }
 
 // ============================================================
-// Format Conversion (from local_llm.rs lines 1587-1737)
+// Format Conversion
 // ============================================================
 
 fn anthropic_to_openai(body: &serde_json::Value) -> serde_json::Value {
     let mut messages = Vec::new();
 
+    // System message
     if let Some(system) = body.get("system") {
         let system_text = if let Some(s) = system.as_str() {
             s.to_string()
@@ -2088,56 +2407,171 @@ fn anthropic_to_openai(body: &serde_json::Value) -> serde_json::Value {
         }
     }
 
+    // Conversation messages 鈥?handle text, tool_use, and tool_result blocks
     if let Some(msgs) = body.get("messages").and_then(|m| m.as_array()) {
         for msg in msgs {
             let role = msg.get("role").and_then(|r| r.as_str()).unwrap_or("user");
-            let content = if let Some(s) = msg.get("content").and_then(|c| c.as_str()) {
-                s.to_string()
-            } else if let Some(arr) = msg.get("content").and_then(|c| c.as_array()) {
-                arr.iter()
-                    .filter(|b| b.get("type").and_then(|t| t.as_str()) == Some("text"))
-                    .filter_map(|b| b.get("text").and_then(|t| t.as_str()))
-                    .collect::<Vec<_>>()
-                    .join("")
-            } else {
-                String::new()
-            };
-            messages.push(serde_json::json!({"role": role, "content": content}));
+
+            match msg.get("content") {
+                Some(c) if c.is_string() => {
+                    messages.push(serde_json::json!({"role": role, "content": c.as_str().unwrap_or("")}));
+                }
+                Some(c) if c.is_array() => {
+                    let blocks = c.as_array().unwrap();
+
+                    let text_parts: Vec<&str> = blocks.iter()
+                        .filter(|b| b.get("type").and_then(|t| t.as_str()) == Some("text"))
+                        .filter_map(|b| b.get("text").and_then(|t| t.as_str()))
+                        .collect();
+
+                    let tool_use_blocks: Vec<&serde_json::Value> = blocks.iter()
+                        .filter(|b| b.get("type").and_then(|t| t.as_str()) == Some("tool_use"))
+                        .collect();
+
+                    let tool_result_blocks: Vec<&serde_json::Value> = blocks.iter()
+                        .filter(|b| b.get("type").and_then(|t| t.as_str()) == Some("tool_result"))
+                        .collect();
+
+                    if !tool_use_blocks.is_empty() {
+                        let tool_calls: Vec<serde_json::Value> = tool_use_blocks.iter().enumerate().map(|(i, tu)| {
+                            let id = tu.get("id").and_then(|v| v.as_str()).unwrap_or("call_0");
+                            let name = tu.get("name").and_then(|v| v.as_str()).unwrap_or("");
+                            let input = tu.get("input").cloned().unwrap_or(serde_json::json!({}));
+                            serde_json::json!({
+                                "id": id,
+                                "index": i,
+                                "type": "function",
+                                "function": {
+                                    "name": name,
+                                    "arguments": serde_json::to_string(&input).unwrap_or_else(|_| "{}".to_string())
+                                }
+                            })
+                        }).collect();
+                        let text_content = text_parts.join("");
+                        let mut assistant_msg = serde_json::json!({
+                            "role": "assistant",
+                            "tool_calls": tool_calls
+                        });
+                        if !text_content.is_empty() {
+                            assistant_msg["content"] = serde_json::json!(text_content);
+                        }
+                        messages.push(assistant_msg);
+                    } else if !tool_result_blocks.is_empty() {
+                        for tr in &tool_result_blocks {
+                            let tool_call_id = tr.get("tool_use_id").and_then(|v| v.as_str()).unwrap_or("");
+                            let result_content = if let Some(s) = tr.get("content").and_then(|c| c.as_str()) {
+                                s.to_string()
+                            } else if let Some(arr) = tr.get("content").and_then(|c| c.as_array()) {
+                                arr.iter()
+                                    .filter_map(|b| b.get("text").and_then(|t| t.as_str()))
+                                    .collect::<Vec<_>>()
+                                    .join("")
+                            } else {
+                                String::new()
+                            };
+                            messages.push(serde_json::json!({
+                                "role": "tool",
+                                "tool_call_id": tool_call_id,
+                                "content": result_content
+                            }));
+                        }
+                    } else {
+                        messages.push(serde_json::json!({"role": role, "content": text_parts.join("")}));
+                    }
+                }
+                _ => {
+                    messages.push(serde_json::json!({"role": role, "content": ""}));
+                }
+            }
         }
     }
 
-    serde_json::json!({
+    // Convert Anthropic tools 鈫?OpenAI tools
+    let mut req = serde_json::json!({
         "model": body.get("model").and_then(|m| m.as_str()).unwrap_or("local-model"),
         "messages": messages,
         "max_tokens": body.get("max_tokens").and_then(|v| v.as_u64()).unwrap_or(4096),
         "temperature": body.get("temperature").and_then(|v| v.as_f64()).unwrap_or(0.7),
-        "top_p": body.get("top_p").and_then(|v| v.as_f64()).unwrap_or(0.9),
         "stream": body.get("stream").and_then(|v| v.as_bool()).unwrap_or(false),
-    })
+    });
+
+    if let Some(tools) = body.get("tools").and_then(|t| t.as_array()) {
+        if !tools.is_empty() {
+            let openai_tools: Vec<serde_json::Value> = tools.iter().map(|t| {
+                serde_json::json!({
+                    "type": "function",
+                    "function": {
+                        "name": t.get("name").and_then(|v| v.as_str()).unwrap_or(""),
+                        "description": t.get("description").and_then(|v| v.as_str()).unwrap_or(""),
+                        "parameters": t.get("input_schema").cloned().unwrap_or(serde_json::json!({"type": "object", "properties": {}}))
+                    }
+                })
+            }).collect();
+            req["tools"] = serde_json::json!(openai_tools);
+            if let Some(tc) = body.get("tool_choice") {
+                req["tool_choice"] = tc.clone();
+            }
+        }
+    }
+
+    req
 }
 
+/// Convert OpenAI Chat Completions non-streaming response -> Anthropic Messages response
 fn openai_to_anthropic(data: &serde_json::Value) -> serde_json::Value {
-    let content_text = data.get("choices")
-        .and_then(|c| c.as_array())
-        .and_then(|arr| arr.first())
-        .and_then(|c| c.get("message"))
-        .and_then(|m| m.get("content"))
-        .and_then(|c| c.as_str())
-        .unwrap_or("");
-
     let model = data.get("model").and_then(|m| m.as_str()).unwrap_or("local-model");
+    let choice = data.get("choices").and_then(|c| c.as_array()).and_then(|a| a.first());
+    let message = choice.and_then(|c| c.get("message"));
+    let finish_reason = choice.and_then(|c| c.get("finish_reason")).and_then(|v| v.as_str()).unwrap_or("end_turn");
+
+    let mut content_blocks: Vec<serde_json::Value> = Vec::new();
+
+    // Text content
+    if let Some(text) = message.and_then(|m| m.get("content")).and_then(|c| c.as_str()) {
+        if !text.is_empty() {
+            content_blocks.push(serde_json::json!({"type": "text", "text": text}));
+        }
+    }
+
+    // Tool calls -> Anthropic tool_use blocks
+    if let Some(tool_calls) = message.and_then(|m| m.get("tool_calls")).and_then(|t| t.as_array()) {
+        for tc in tool_calls {
+            let id = tc.get("id").and_then(|v| v.as_str()).unwrap_or("call_0");
+            let name = tc.get("function").and_then(|f| f.get("name")).and_then(|v| v.as_str()).unwrap_or("");
+            let args_str = tc.get("function").and_then(|f| f.get("arguments")).and_then(|v| v.as_str()).unwrap_or("{}");
+            let input: serde_json::Value = serde_json::from_str(args_str).unwrap_or(serde_json::json!({}));
+            content_blocks.push(serde_json::json!({
+                "type": "tool_use",
+                "id": id,
+                "name": name,
+                "input": input
+            }));
+        }
+    }
+
+    if content_blocks.is_empty() {
+        content_blocks.push(serde_json::json!({"type": "text", "text": ""}));
+    }
+
+    // Map OpenAI finish_reason -> Anthropic stop_reason
+    let stop_reason = match finish_reason {
+        "tool_calls" => "tool_use",
+        "stop" | "end_turn" => "end_turn",
+        "length" => "max_tokens",
+        other => other,
+    };
+
     let now_ms = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
-        .unwrap_or_default()
-        .as_millis();
+        .unwrap_or_default().as_millis();
 
     serde_json::json!({
         "id": format!("msg_{}", now_ms),
         "type": "message",
         "role": "assistant",
-        "content": [{"type": "text", "text": content_text}],
+        "content": content_blocks,
         "model": model,
-        "stop_reason": "end_turn",
+        "stop_reason": stop_reason,
         "stop_sequence": null,
         "usage": {
             "input_tokens": data.get("usage").and_then(|u| u.get("prompt_tokens")).and_then(|v| v.as_u64()).unwrap_or(0),
@@ -2145,84 +2579,6 @@ fn openai_to_anthropic(data: &serde_json::Value) -> serde_json::Value {
         }
     })
 }
-
-fn openai_stream_to_anthropic_sse(sse_data: &str) -> String {
-    let now_ms = std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .unwrap_or_default()
-        .as_millis();
-    let msg_id = format!("msg_{}", now_ms);
-    let mut output = String::new();
-
-    // message_start
-    let msg_start = serde_json::json!({
-        "type": "message_start",
-        "message": {
-            "id": msg_id,
-            "type": "message",
-            "role": "assistant",
-            "content": [],
-            "model": "local-model",
-            "stop_reason": null,
-            "stop_sequence": null,
-            "usage": {"input_tokens": 0, "output_tokens": 0}
-        }
-    });
-    output.push_str(&format!("event: message_start\ndata: {}\n\n", msg_start));
-
-    // content_block_start
-    let block_start = serde_json::json!({
-        "type": "content_block_start",
-        "index": 0,
-        "content_block": {"type": "text", "text": ""}
-    });
-    output.push_str(&format!("event: content_block_start\ndata: {}\n\n", block_start));
-
-    for line in sse_data.lines() {
-        let trimmed = line.trim();
-        if !trimmed.starts_with("data: ") { continue; }
-        let json_str = &trimmed[6..];
-        if json_str == "[DONE]" { continue; }
-
-        if let Ok(chunk) = serde_json::from_str::<serde_json::Value>(json_str) {
-            if let Some(delta_content) = chunk.get("choices")
-                .and_then(|c| c.as_array())
-                .and_then(|arr| arr.first())
-                .and_then(|c| c.get("delta"))
-                .and_then(|d| d.get("content"))
-                .and_then(|c| c.as_str())
-            {
-                if !delta_content.is_empty() {
-                    let delta = serde_json::json!({
-                        "type": "content_block_delta",
-                        "index": 0,
-                        "delta": {"type": "text_delta", "text": delta_content}
-                    });
-                    output.push_str(&format!("event: content_block_delta\ndata: {}\n\n", delta));
-                }
-            }
-        }
-    }
-
-    // content_block_stop
-    output.push_str(&format!("event: content_block_stop\ndata: {}\n\n",
-        serde_json::json!({"type": "content_block_stop", "index": 0})));
-
-    // message_delta
-    output.push_str(&format!("event: message_delta\ndata: {}\n\n",
-        serde_json::json!({
-            "type": "message_delta",
-            "delta": {"stop_reason": "end_turn", "stop_sequence": null},
-            "usage": {"output_tokens": 0}
-        })));
-
-    // message_stop
-    output.push_str(&format!("event: message_stop\ndata: {}\n\n",
-        serde_json::json!({"type": "message_stop"})));
-
-    output
-}
-
 // ============================================================
 // Main Entry Point
 // ============================================================

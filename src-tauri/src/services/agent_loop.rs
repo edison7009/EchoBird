@@ -327,27 +327,31 @@ pub async fn run_agent(
                     stop_reason = reason;
                 }
                 LlmEvent::Error(e) => {
-                    // 400 / Bad Request: tool calling not supported by current protocol.
-                    // Attempt protocol downgrade: Anthropic → OpenAI (triple fallback).
-                    if (e.contains("400") || e.contains("Bad Request")) && !protocol_downgraded {
-                        if active_provider == LlmProvider::Anthropic {
-                            if let Some(ref fallback) = openai_fallback {
-                                // Downgrade to OpenAI and retry transparently
-                                log::warn!("[AgentLoop] Anthropic 400 — downgrading to OpenAI fallback");
-                                emit_event(&app, AgentEvent::TextDelta {
-                                    text: "\n\n⚠️ Switching to OpenAI protocol (Anthropic returned 400)...\n\n".into(),
-                                });
-                                // Rebuild client as OpenAI
-                                client = fallback.clone();
-                                active_provider = LlmProvider::OpenAI;
-                                protocol_downgraded = true;
-                                had_error = false;
-                                loop_count -= 1; // Don't count this as a tool loop
-                                break; // Restart the stream with OpenAI
-                            }
+                    // Protocol downgrade conditions:
+                    //   1. 400 / Bad Request — Anthropic tool calling not supported
+                    //   2. SSE connection error — endpoint unreachable or not Anthropic-compatible
+                    //      (e.g. local LLM proxy, third-party that only supports OpenAI)
+                    let should_downgrade = !protocol_downgraded
+                        && active_provider == LlmProvider::Anthropic
+                        && (e.contains("400")
+                            || e.contains("Bad Request")
+                            || e.contains("SSE error")
+                            || e.contains("error sending request")
+                            || e.contains("connection refused"));
+
+                    if should_downgrade {
+                        if let Some(ref fallback) = openai_fallback {
+                            // Silently downgrade to OpenAI and retry — no user-visible message
+                            log::warn!("[AgentLoop] Anthropic failed ({}), downgrading to OpenAI fallback", e);
+                            client = fallback.clone();
+                            active_provider = LlmProvider::OpenAI;
+                            protocol_downgraded = true;
+                            had_error = false;
+                            loop_count -= 1; // Don't count this as a tool loop
+                            break; // Restart the stream with OpenAI
                         }
-                        // No fallback available or already downgraded — show error
-                        let user_msg = format!("{}\n\n⚠️ This model may not support tool/function calling, which Mother Agent requires. Please use a model with tool calling support (e.g. OpenAI, Anthropic, or compatible API providers).", e);
+                        // No OpenAI fallback available — show helpful error
+                        let user_msg = format!("{}\n\n⚠️ This model does not support the Anthropic protocol. Please configure an OpenAI-compatible URL in Model Nexus.", e);
                         emit_event(&app, AgentEvent::Error { message: user_msg });
                         had_error = true;
                         break;

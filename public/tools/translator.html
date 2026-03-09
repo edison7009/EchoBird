@@ -431,7 +431,7 @@
         // --- 模型配置（从 URL hash 读取） ---
         let MODEL = window.__MODEL_CONFIG__ || { baseUrl: '', anthropicUrl: '', apiKey: '', model: '', name: 'AI', protocol: 'openai' }
 
-        
+
 
         // --- 多语言 UI ---
         const LANGUAGES = [
@@ -666,28 +666,60 @@
             try {
                 let result = '';
 
-                if (MODEL.protocol === 'anthropic') {
-                    // Anthropic API
+                                if (MODEL.protocol === 'anthropic') {
+                    // Anthropic API 鈥?smart URL, no double /v1
                     let apiUrl = (MODEL.anthropicUrl || '').trim().replace(/\/+$/, '');
-                    if (!apiUrl.endsWith('/v1')) apiUrl += '/v1';
-                    const resp = await fetch(apiUrl + '/messages', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'x-api-key': MODEL.apiKey,
-                            'anthropic-version': '2023-06-01',
-                        },
-                        body: JSON.stringify({
-                            model: MODEL.model,
-                            messages: [{ role: 'user', content: prompt }],
-                            max_tokens: 4096,
-                        })
-                    });
-                    if (!resp.ok) throw new Error(`API ${resp.status}: ${resp.statusText}`);
-                    const data = await resp.json();
-                    result = data.content?.[0]?.text || '';
-                } else {
-                    // OpenAI API (streaming)
+                    const messagesPath = apiUrl.includes('/v1') ? '/messages' : '/v1/messages';
+                    try {
+                        const resp = await fetch(apiUrl + messagesPath, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'x-api-key': MODEL.apiKey,
+                                'anthropic-version': '2023-06-01',
+                            },
+                            body: JSON.stringify({
+                                model: MODEL.model,
+                                messages: [{ role: 'user', content: prompt }],
+                                max_tokens: 4096,
+                            })
+                        });
+                        if (!resp.ok) throw new Error(`API ${resp.status}: ${resp.statusText}`);
+                        const data = await resp.json();
+                        result = data.content?.[0]?.text || '';
+                    } catch (anthropicErr) {
+                        // Fall back to OpenAI streaming
+                        console.warn('[Translator] Anthropic failed, falling back to OpenAI:', anthropicErr);
+                        let fbUrl = (MODEL.baseUrl || '').trim().replace(/\/+$/, '');
+                        if (!fbUrl.endsWith('/v1')) fbUrl += '/v1';
+                        const resp = await fetch(fbUrl + '/chat/completions', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + MODEL.apiKey },
+                            body: JSON.stringify({ model: MODEL.model, messages: [{ role: 'user', content: prompt }], max_tokens: 4096, temperature: 0.3, stream: true })
+                        });
+                        if (!resp.ok) throw new Error(`API ${resp.status}: ${resp.statusText}`);
+                        const reader = resp.body.getReader();
+                        const decoder = new TextDecoder();
+                        let buffer = '';
+                        while (true) {
+                            const { done, value } = await reader.read();
+                            if (done) break;
+                            buffer += decoder.decode(value, { stream: true });
+                            const lines = buffer.split('\n'); buffer = lines.pop() || '';
+                            for (const line of lines) {
+                                const trimmed = line.trim();
+                                if (!trimmed.startsWith('data: ')) continue;
+                                const jsonStr = trimmed.slice(6);
+                                if (jsonStr === '[DONE]') continue;
+                                try {
+                                    const chunk = JSON.parse(jsonStr);
+                                    const delta = chunk.choices?.[0]?.delta?.content || '';
+                                    if (delta) { result += delta; outputEl.textContent = result.replace(/<think>[\s\S]*?<\/think>/gi, '').trim(); }
+                                } catch { }
+                            }
+                        }
+                    }
+                } else { (streaming)
                     let apiUrl = (MODEL.baseUrl || '').trim().replace(/\/+$/, '');
                     if (!apiUrl.endsWith('/v1')) apiUrl += '/v1';
                     const resp = await fetch(apiUrl + '/chat/completions', {
@@ -737,6 +769,7 @@
                         }
                     }
                 }
+
 
                 // 最终结果
                 const finalText = result.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
