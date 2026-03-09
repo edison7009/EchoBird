@@ -17,12 +17,19 @@ pub async fn run_unified_proxy(
     listen_port: u16,
     target_port: u16,
     mut shutdown_rx: watch::Receiver<bool>,
+    app_handle: tauri::AppHandle,
 ) -> Result<(), String> {
+    use tauri::Emitter;
+
     let addr = format!("0.0.0.0:{}", listen_port);
     let listener = TcpListener::bind(&addr).await
         .map_err(|e| format!("Failed to bind proxy on {}: {}", addr, e))?;
 
-    log::info!("[Proxy] Unified proxy listening on port {}", listen_port);
+    // Binding succeeded — notify the frontend STDOUT panel
+    log::info!("[Proxy] Unified proxy bound to port {}", listen_port);
+    let _ = app_handle.emit("local-llm-stdout", format!("Unified Proxy started:"));
+    let _ = app_handle.emit("local-llm-stdout", format!("  OpenAI:    http://127.0.0.1:{}/v1", listen_port));
+    let _ = app_handle.emit("local-llm-stdout", format!("  Anthropic: http://127.0.0.1:{}/anthropic", listen_port));
 
     loop {
         tokio::select! {
@@ -34,10 +41,12 @@ pub async fn run_unified_proxy(
             }
             accept = listener.accept() => {
                 match accept {
-                    Ok((stream, _peer)) => {
+                    Ok((stream, peer)) => {
                         let tp = target_port;
+                        let h = app_handle.clone();
                         tokio::spawn(async move {
-                            if let Err(e) = handle_proxy_connection(stream, tp).await {
+                            log::debug!("[Proxy] New connection from {:?}", peer);
+                            if let Err(e) = handle_proxy_connection(stream, tp, h).await {
                                 log::warn!("[Proxy] Connection error: {}", e);
                             }
                         });
@@ -59,6 +68,7 @@ pub async fn run_unified_proxy(
 async fn handle_proxy_connection(
     mut stream: tokio::net::TcpStream,
     target_port: u16,
+    _app_handle: tauri::AppHandle,
 ) -> Result<(), String> {
     use tokio::io::AsyncWriteExt;
 
@@ -80,6 +90,8 @@ async fn handle_proxy_connection(
     let method = parts[0];
     let path = parts[1];
 
+    log::info!("[Proxy] {} {} → forwarding to :{}", method, path, target_port);
+
     // CORS preflight
     if method == "OPTIONS" {
         let resp = "HTTP/1.1 204 No Content\r\n\
@@ -97,6 +109,7 @@ async fn handle_proxy_connection(
         handle_passthrough(&mut stream, &raw, target_port).await
     }
 }
+
 
 // ─── Bug 1 Fix: Complete HTTP Request Reader ───
 
@@ -173,57 +186,38 @@ fn find_subsequence(haystack: &[u8], needle: &[u8]) -> Option<usize> {
     haystack.windows(needle.len()).position(|w| w == needle)
 }
 
-// ─── Bug 2 Fix: API Key Extraction ───
-
-/// Extract the API key from incoming request headers.
-/// Supports both `x-api-key: <key>` (Anthropic native) and
-/// `Authorization: Bearer <key>` (OpenAI-style).
-fn extract_api_key(raw_str: &str) -> Option<String> {
-    for line in raw_str.lines() {
-        let lower = line.to_lowercase();
-        if lower.starts_with("x-api-key:") {
-            let key = line.splitn(2, ':').nth(1)?.trim();
-            if !key.is_empty() { return Some(key.to_string()); }
-        }
-        if lower.starts_with("authorization:") {
-            let val = line.splitn(2, ':').nth(1)?.trim();
-            if let Some(stripped) = val.strip_prefix("Bearer ").or_else(|| val.strip_prefix("bearer ")) {
-                let key = stripped.trim();
-                if !key.is_empty() { return Some(key.to_string()); }
-            }
-        }
-    }
-    None
-}
 
 // ─── Passthrough (OpenAI path) ───
 
-/// Direct passthrough: forward request to llama-server as-is
+/// Direct passthrough: forward request to llama-server as-is.
+///
+/// Uses copy_bidirectional for full-duplex TCP pipe — this correctly handles
+/// SSE streaming responses where the connection stays open indefinitely.
+/// The old read() loop would return 0 on an idle-but-alive SSE stream, causing
+/// premature disconnection ("AI 断开连接" in third-party apps like Reversi).
 async fn handle_passthrough(
     stream: &mut tokio::net::TcpStream,
     raw_request: &[u8],
     target_port: u16,
 ) -> Result<(), String> {
-    use tokio::io::{AsyncReadExt, AsyncWriteExt};
+    use tokio::io::{AsyncWriteExt, copy_bidirectional};
     use tokio::net::TcpStream;
 
     let mut target = TcpStream::connect(format!("127.0.0.1:{}", target_port)).await
         .map_err(|e| format!("Connect to llama-server failed: {}", e))?;
 
+    // Send the full HTTP request to llama-server
     target.write_all(raw_request).await
         .map_err(|e| format!("Write to target: {}", e))?;
 
-    let mut resp_buf = vec![0u8; 8192];
-    loop {
-        let n = target.read(&mut resp_buf).await
-            .map_err(|e| format!("Read from target: {}", e))?;
-        if n == 0 { break; }
-        stream.write_all(&resp_buf[..n]).await
-            .map_err(|e| format!("Write to client: {}", e))?;
-    }
+    // Bidirectional pipe: handles chunked, SSE streaming, keep-alive, etc.
+    // Terminates naturally when either side closes the connection.
+    copy_bidirectional(stream, &mut target).await
+        .map_err(|e| format!("Proxy pipe error: {}", e))?;
 
     Ok(())
 }
+
 
 // ─── Anthropic Proxy ───
 
@@ -241,7 +235,8 @@ async fn handle_anthropic_proxy(
     let raw_str = String::from_utf8_lossy(raw_request);
 
     // Bug 2 Fix: extract API key from client to forward to llama-server
-    let api_key = extract_api_key(&raw_str);
+    // API key extraction no longer needed — llama-server runs without authentication
+    // extract_api_key(&raw_str);
 
     // Find body (after \r\n\r\n)
     let body_str = if let Some(pos) = raw_str.find("\r\n\r\n") {
@@ -269,17 +264,14 @@ async fn handle_anthropic_proxy(
 
     let target_url = format!("http://127.0.0.1:{}/v1/chat/completions", target_port);
 
-    let mut req_builder = reqwest::Client::builder()
+    let req_builder = reqwest::Client::builder()
         .timeout(std::time::Duration::from_secs(300))
         .build()
         .map_err(|e| format!("Build client: {}", e))?
         .post(&target_url)
         .header("Content-Type", "application/json");
 
-    // Bug 2 Fix: forward API key to llama-server's internal port
-    if let Some(key) = api_key {
-        req_builder = req_builder.header("Authorization", format!("Bearer {}", key));
-    }
+    // llama-server no longer requires api_key authentication (local-only, no auth needed)
 
     let response = req_builder
         .json(&openai_req)

@@ -1,4 +1,4 @@
-// Agent Loop — the core ReAct loop (Reason → Act → Observe → Repeat)
+﻿// Agent Loop — the core ReAct loop (Reason → Act → Observe → Repeat)
 // Messages are streamed to the frontend via Tauri events.
 
 use serde::{Deserialize, Serialize};
@@ -270,6 +270,13 @@ pub async fn run_agent(
 
         let mut rx = match client.chat_stream(&messages, &tools, &system_prompt).await {
             Ok(rx) => rx,
+            Err(ref e) if is_llm_server_down(e) => {
+                // Fatal: LLM server is unreachable — no point retrying
+                let msg = format_server_down_error(e);
+                log::error!("[AgentLoop] LLM server is down, aborting: {}", e);
+                emit_event(&app, AgentEvent::Error { message: msg });
+                break;
+            }
             Err(e) => {
                 if sse_retry_count < MAX_SSE_RETRIES {
                     sse_retry_count += 1;
@@ -294,75 +301,128 @@ pub async fn run_agent(
         let mut had_error = false;
         let mut sse_error_msg = String::new();
         let mut just_downgraded = false;
+        let mut received_any_token = false;
+        let mut wait_warnings = 0u32;
+        const FIRST_TOKEN_TIMEOUT_SECS: u64 = 60;
+        const INTER_TOKEN_TIMEOUT_SECS: u64 = 120;
+        const MAX_WAIT_WARNINGS: u32 = 2;
 
-        while let Some(event) = rx.recv().await {
-            match event {
-                LlmEvent::TextDelta(text) => {
-                    text_accumulator.push_str(&text);
-                    emit_event(&app, AgentEvent::TextDelta { text });
-                }
-                LlmEvent::Thinking(text) => {
-                    emit_event(&app, AgentEvent::Thinking { text });
-                }
-                LlmEvent::ToolCallStart { id, name } => {
-                    emit_event(&app, AgentEvent::ToolCallStart { id: id.clone(), name: name.clone() });
-                    emit_event(&app, AgentEvent::StateChange { state: "tool_calling".into() });
-                    tool_args_map.insert(id.clone(), String::new());
-                    tool_calls.push(ToolCall { id, name, arguments: String::new() });
-                }
-                LlmEvent::ToolCallDelta { id, args_chunk } => {
-                    if let Some(args) = tool_args_map.get_mut(&id) {
-                        args.push_str(&args_chunk);
+        loop {
+            // Per-event timeout — longer after first token (thinking models can be slow)
+            let timeout_secs = if received_any_token { INTER_TOKEN_TIMEOUT_SECS } else { FIRST_TOKEN_TIMEOUT_SECS };
+            let recv_result = tokio::time::timeout(
+                std::time::Duration::from_secs(timeout_secs),
+                rx.recv(),
+            ).await;
+
+            match recv_result {
+                // Timeout: no token received within the window
+                Err(_elapsed) => {
+                    wait_warnings += 1;
+                    if wait_warnings <= MAX_WAIT_WARNINGS {
+                        let hint = format!(
+                            "\n\u{23f3} Still waiting for model response... ({}/{})\n\
+                             If the local LLM is not responding, try restarting it.\n",
+                            wait_warnings, MAX_WAIT_WARNINGS
+                        );
+                        log::warn!("[AgentLoop] No token after {}s (warning {}/{})", timeout_secs, wait_warnings, MAX_WAIT_WARNINGS);
+                        emit_event(&app, AgentEvent::TextDelta { text: hint });
+                        continue; // Keep waiting
                     }
-                    emit_event(&app, AgentEvent::ToolCallArgs { id, args: args_chunk });
+                    // Max warnings reached — abort
+                    let timeout_msg = if received_any_token {
+                        format!("\u{26a0}\u{fe0f} Model stopped responding (no data for {}s).\nThe local LLM may have crashed. Please restart it.", INTER_TOKEN_TIMEOUT_SECS)
+                    } else {
+                        format!("\u{26a0}\u{fe0f} LLM did not respond within {}s.\nThe model may be overloaded or crashed. Please restart the LLM server.", FIRST_TOKEN_TIMEOUT_SECS * (MAX_WAIT_WARNINGS as u64 + 1))
+                    };
+                    log::error!("[AgentLoop] LLM response timed out");
+                    emit_event(&app, AgentEvent::Error { message: timeout_msg });
+                    had_error = true;
+                    sse_error_msg = String::new(); // Non-retryable
+                    break;
                 }
-                LlmEvent::ToolCallEnd { id } => {
-                    // Finalize tool call arguments
-                    if let Some(final_args) = tool_args_map.get(&id) {
-                        if let Some(tc) = tool_calls.iter_mut().find(|t| t.id == id) {
-                            tc.arguments = final_args.clone();
+
+                // Channel closed without Done event
+                Ok(None) => break,
+
+                // Got an event — process it
+                Ok(Some(event)) => match event {
+                    LlmEvent::TextDelta(text) => {
+                        received_any_token = true;
+                        wait_warnings = 0;
+                        text_accumulator.push_str(&text);
+                        emit_event(&app, AgentEvent::TextDelta { text });
+                    }
+                    LlmEvent::Thinking(text) => {
+                        received_any_token = true;
+                        emit_event(&app, AgentEvent::Thinking { text });
+                    }
+                    LlmEvent::ToolCallStart { id, name } => {
+                        received_any_token = true;
+                        emit_event(&app, AgentEvent::ToolCallStart { id: id.clone(), name: name.clone() });
+                        emit_event(&app, AgentEvent::StateChange { state: "tool_calling".into() });
+                        tool_args_map.insert(id.clone(), String::new());
+                        tool_calls.push(ToolCall { id, name, arguments: String::new() });
+                    }
+                    LlmEvent::ToolCallDelta { id, args_chunk } => {
+                        if let Some(args) = tool_args_map.get_mut(&id) {
+                            args.push_str(&args_chunk);
+                        }
+                        emit_event(&app, AgentEvent::ToolCallArgs { id, args: args_chunk });
+                    }
+                    LlmEvent::ToolCallEnd { id } => {
+                        if let Some(final_args) = tool_args_map.get(&id) {
+                            if let Some(tc) = tool_calls.iter_mut().find(|t| t.id == id) {
+                                tc.arguments = final_args.clone();
+                            }
                         }
                     }
-                }
-                LlmEvent::Done { stop_reason: reason } => {
-                    stop_reason = reason;
-                }
-                LlmEvent::Error(e) => {
-                    // Protocol downgrade conditions:
-                    //   1. 400 / Bad Request — Anthropic tool calling not supported
-                    //   2. SSE connection error — endpoint unreachable or not Anthropic-compatible
-                    //      (e.g. local LLM proxy, third-party that only supports OpenAI)
-                    let should_downgrade = !protocol_downgraded
-                        && active_provider == LlmProvider::Anthropic
-                        && (e.contains("400")
-                            || e.contains("Bad Request")
-                            || e.contains("SSE error")
-                            || e.contains("error sending request")
-                            || e.contains("connection refused"));
-
-                    if should_downgrade {
-                        if let Some(ref fallback) = openai_fallback {
-                            // Silently downgrade to OpenAI and retry — no user-visible message
-                            log::warn!("[AgentLoop] Anthropic failed ({}), downgrading to OpenAI fallback", e);
-                            client = fallback.clone();
-                            active_provider = LlmProvider::OpenAI;
-                            protocol_downgraded = true;
-                            had_error = false;
-                            just_downgraded = true;
-                            loop_count -= 1; // Don't count this as a tool loop
-                            break; // Break inner while — outer loop will continue with OpenAI
+                    LlmEvent::Done { stop_reason: reason } => {
+                        stop_reason = reason;
+                        break;
+                    }
+                    LlmEvent::Error(e) => {
+                        // Fatal: LLM server is down — abort immediately without retry
+                        if is_llm_server_down(&e) {
+                            let msg = format_server_down_error(&e);
+                            log::error!("[AgentLoop] LLM server went down during stream: {}", e);
+                            emit_event(&app, AgentEvent::Error { message: msg });
+                            had_error = true;
+                            sse_error_msg = String::new(); // Prevent retry
+                            break;
                         }
-                        // No OpenAI fallback available — show helpful error
-                        let user_msg = format!("{}\n\n⚠️ This model does not support the Anthropic protocol. Please configure an OpenAI-compatible URL in Model Nexus.", e);
-                        emit_event(&app, AgentEvent::Error { message: user_msg });
+                        // Protocol downgrade conditions:
+                        //   1. 400 / Bad Request — Anthropic tool calling not supported
+                        //   2. SSE connection error — endpoint unreachable or not Anthropic-compatible
+                        let should_downgrade = !protocol_downgraded
+                            && active_provider == LlmProvider::Anthropic
+                            && (e.contains("400")
+                                || e.contains("Bad Request")
+                                || e.contains("SSE error")
+                                || e.contains("error sending request"));
+
+                        if should_downgrade {
+                            if let Some(ref fallback) = openai_fallback {
+                                log::warn!("[AgentLoop] Anthropic failed ({}), downgrading to OpenAI fallback", e);
+                                client = fallback.clone();
+                                active_provider = LlmProvider::OpenAI;
+                                protocol_downgraded = true;
+                                had_error = false;
+                                just_downgraded = true;
+                                loop_count -= 1;
+                                break;
+                            }
+                            let user_msg = format!("{}\n\n\u{26a0}\u{fe0f} This model does not support the Anthropic protocol. Please configure an OpenAI-compatible URL in Model Nexus.", e);
+                            emit_event(&app, AgentEvent::Error { message: user_msg });
+                            had_error = true;
+                            break;
+                        }
+                        // Retryable SSE errors (stream ended, decode error, timeout)
+                        sse_error_msg = e;
                         had_error = true;
                         break;
                     }
-                    // Retryable SSE errors (stream ended, decode error, timeout)
-                    sse_error_msg = e;
-                    had_error = true;
-                    break;
-                }
+                },
             }
         }
 
@@ -699,3 +759,24 @@ many users are beginners and just want to try things out quickly.\n\
     prompt
 }
 
+
+// -- LLM Server Down Detection --
+
+/// Returns true if the error indicates the LLM server is completely unreachable.
+/// These are fatal connection errors -- no point retrying.
+fn is_llm_server_down(err: &str) -> bool {
+    let lower = err.to_lowercase();
+    lower.contains("connection refused")
+        || lower.contains("os error 111")    // Linux: connection refused
+        || lower.contains("os error 61")     // macOS: connection refused
+        || lower.contains("os error 10061")  // Windows: connection refused
+        || lower.contains("no connection could be made")
+        || lower.contains("failed to connect")
+        || lower.contains("tcp connect error")
+}
+
+/// Build a clear, user-friendly message when the LLM server is detected as down.
+fn format_server_down_error(err: &str) -> String {
+    log::error!("[AgentLoop] Local LLM server is offline: {}", err);
+    "⚠️ Local LLM server is offline (connection refused).\n     Please restart the local LLM server and try again.\n\n     In the sidebar: stop the LLM server, then start it again.".to_string()
+}

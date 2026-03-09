@@ -1064,7 +1064,7 @@ export const LocalServerPanel: React.FC = () => {
 
 export const LocalServerBottom: React.FC = () => {
     const { t } = useI18n();
-    const { serverRunning, serverPort, serverModelName, serverApiKey } = useLocalServer();
+    const { serverRunning, serverPort } = useLocalServer();
     const [copied, setCopied] = useState('');
 
     if (!serverRunning) return null;
@@ -1077,23 +1077,7 @@ export const LocalServerBottom: React.FC = () => {
 
     return (
         <div className="flex-shrink-0 border-t border-cyber-border/30">
-            <div className="flex items-center gap-4 px-6 py-2 text-xs font-mono">
-                <div
-                    className="flex items-center gap-1.5 cursor-pointer hover:text-cyber-accent transition-colors"
-                    onClick={() => handleCopy('model', serverModelName || 'local-server')}
-                >
-                    <span className="text-cyber-text-secondary/80">Model ID:</span>
-                    <span className="text-cyber-accent">{copied === 'model' ? t('btn.copied') : t('btn.copy')}</span>
-                </div>
-                <span className="text-cyber-border">|</span>
-                <div
-                    className="flex items-center gap-1.5 cursor-pointer hover:text-cyber-accent transition-colors"
-                    onClick={() => handleCopy('key', serverApiKey || 'not-needed')}
-                >
-                    <span className="text-cyber-text-secondary/80">API Key:</span>
-                    <span className="text-cyber-accent">{copied === 'key' ? t('btn.copied') : t('btn.copy')}</span>
-                </div>
-                <span className="text-cyber-border">|</span>
+            <div className="flex items-center justify-center gap-4 px-6 py-2 text-xs font-mono">
                 <div
                     className="flex items-center gap-1.5 cursor-pointer hover:text-cyber-accent transition-colors"
                     onClick={() => handleCopy('openai', `http://127.0.0.1:${serverPort}/v1`)}
@@ -1115,3 +1099,4 @@ export const LocalServerBottom: React.FC = () => {
         </div>
     );
 };
+

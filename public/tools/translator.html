@@ -431,9 +431,7 @@
         // --- 模型配置（从 URL hash 读取） ---
         let MODEL = window.__MODEL_CONFIG__ || { baseUrl: '', anthropicUrl: '', apiKey: '', model: '', name: 'AI', protocol: 'openai' }
 
-
-
-        // --- 多语言 UI ---
+  // --- 多语言 UI ---
         const LANGUAGES = [
             { code: 'auto', en: 'Auto Detect' },
             { code: 'en', en: 'English', native: 'English' },
@@ -719,7 +717,7 @@
                             }
                         }
                     }
-                } else { (streaming)
+                } else {
                     let apiUrl = (MODEL.baseUrl || '').trim().replace(/\/+$/, '');
                     if (!apiUrl.endsWith('/v1')) apiUrl += '/v1';
                     const resp = await fetch(apiUrl + '/chat/completions', {

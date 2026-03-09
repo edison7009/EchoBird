@@ -37,7 +37,6 @@ struct ServerInfo {
     port: u16,
     model_name: String,
     pid: Option<u32>,
-    api_key: String,
     runtime: String,
 }
 
@@ -48,7 +47,6 @@ impl Default for ServerInfo {
             port: 0,
             model_name: String::new(),
             pid: None,
-            api_key: String::new(),
             runtime: "llama-server".to_string(),
         }
     }
@@ -191,8 +189,6 @@ impl LlmServer {
             .map(|s| s.to_string_lossy().to_string())
             .unwrap_or_else(|| "Unknown Model".to_string());
 
-        let api_key = generate_session_api_key();
-
         let (child, needs_proxy) = match runtime {
             "vllm" => {
                 // vLLM: python3 -m vllm.entrypoints.openai.api_server
@@ -203,7 +199,6 @@ impl LlmServer {
                     "--model".to_string(), model_path.to_string(),
                     "--port".to_string(), port.to_string(),
                     "--host".to_string(), "0.0.0.0".to_string(),
-                    "--api-key".to_string(), api_key.clone(),
                 ];
                 if let Some(ctx) = context_size {
                     args.push("--max-model-len".to_string());
@@ -227,7 +222,6 @@ impl LlmServer {
                     "--model-path".to_string(), model_path.to_string(),
                     "--port".to_string(), port.to_string(),
                     "--host".to_string(), "0.0.0.0".to_string(),
-                    "--api-key".to_string(), api_key.clone(),
                 ];
                 if let Some(ctx) = context_size {
                     args.push("--context-length".to_string());
@@ -253,7 +247,6 @@ impl LlmServer {
                     "-m".to_string(), model_path.to_string(),
                     "--port".to_string(), internal_port.to_string(),
                     "--host".to_string(), "127.0.0.1".to_string(),
-                    "--api-key".to_string(), api_key.clone(),
                 ];
                 if let Some(layers) = gpu_layers {
                     args.push("-ngl".to_string());
@@ -263,7 +256,7 @@ impl LlmServer {
                     args.push("-c".to_string());
                     args.push(ctx.to_string());
                 }
-                eprintln!("[LLM] Starting: {:?} (api_key={}...)", exe, &api_key[..12]);
+                eprintln!("[LLM] Starting: {:?}", exe);
                 // Use Stdio::null() so the child process runs as a true background daemon.
                 // Stdio::piped() would cause the child to exit when the pipe is dropped.
                 let c = Command::new(&exe)
@@ -287,7 +280,6 @@ impl LlmServer {
             port,
             model_name,
             pid: Some(pid),
-            api_key,
             runtime: runtime.to_string(),
         };
 
@@ -376,30 +368,6 @@ impl LlmServer {
     }
 }
 
-// ============================================================
-// API Key Generation (from local_llm.rs lines 289-309)
-// ============================================================
-
-fn generate_session_api_key() -> String {
-    use std::collections::hash_map::DefaultHasher;
-    use std::hash::{Hash, Hasher};
-    use std::time::SystemTime;
-
-    let mut hasher = DefaultHasher::new();
-    SystemTime::now().duration_since(SystemTime::UNIX_EPOCH)
-        .unwrap_or_default()
-        .as_nanos()
-        .hash(&mut hasher);
-    std::process::id().hash(&mut hasher);
-    let h1 = hasher.finish();
-
-    let mut hasher2 = DefaultHasher::new();
-    h1.hash(&mut hasher2);
-    (h1 ^ 0xdeadbeef).hash(&mut hasher2);
-    let h2 = hasher2.finish();
-
-    format!("eb-sk-{:016x}{:016x}", h1, h2)
-}
 
 // ============================================================
 // Model Settings (from local_llm.rs lines 311-374)

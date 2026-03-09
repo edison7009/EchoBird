@@ -101,7 +101,25 @@ impl LocalLlmServer {
             .map(|s| s.to_string_lossy().to_string())
             .unwrap_or_else(|| "Unknown Model".to_string());
 
-        let api_key = generate_session_api_key();
+
+        // Pre-flight cleanup: kill any leftover llama-server processes from
+        // previous sessions that may be occupying the port. This prevents the
+        // "port already in use" and stale-api-key 401 issues.
+        self.add_log("Cleaning up any stale llama-server processes...");
+        #[cfg(windows)]
+        {
+            use std::os::windows::process::CommandExt;
+            let _ = Command::new("taskkill")
+                .args(["/F", "/IM", "llama-server.exe", "/T"])
+                .creation_flags(0x08000000)
+                .output();
+        }
+        #[cfg(not(windows))]
+        {
+            let _ = Command::new("pkill").args(["-f", "llama-server"]).output();
+        }
+        // Brief pause to let the OS release ports
+        tokio::time::sleep(std::time::Duration::from_millis(300)).await;
 
         let (child, needs_proxy) = match runtime {
             "vllm" => {
@@ -111,7 +129,6 @@ impl LocalLlmServer {
                     "--model".to_string(), model_path.to_string(),
                     "--port".to_string(), port.to_string(),
                     "--host".to_string(), "127.0.0.1".to_string(),
-                    "--api-key".to_string(), api_key.clone(),
                 ];
                 if let Some(ctx) = context_size {
                     args.push("--max-model-len".to_string());
@@ -132,7 +149,6 @@ impl LocalLlmServer {
                     "--model-path".to_string(), model_path.to_string(),
                     "--port".to_string(), port.to_string(),
                     "--host".to_string(), "127.0.0.1".to_string(),
-                    "--api-key".to_string(), api_key.clone(),
                 ];
                 if let Some(ctx) = context_size {
                     args.push("--context-length".to_string());
@@ -153,11 +169,13 @@ impl LocalLlmServer {
                 let internal_port = port + 100;
                 self.add_log(&format!("Starting llama-server on port {} with model: {}", port, model_name));
                 self.add_log(&format!("Internal port: {}, Proxy port: {}", internal_port, port));
+                // No --api-key for local LLM: the server is localhost-only,
+                // so authentication is unnecessary and causes 401 errors when
+                // clients use a key from a previous session.
                 let mut args = vec![
                     "-m".to_string(), model_path.to_string(),
                     "--port".to_string(), internal_port.to_string(),
                     "--host".to_string(), "127.0.0.1".to_string(),
-                    "--api-key".to_string(), api_key.clone(),
                 ];
                 if let Some(layers) = gpu_layers {
                     args.push("-ngl".to_string());
@@ -167,7 +185,7 @@ impl LocalLlmServer {
                     args.push("-c".to_string());
                     args.push(ctx.to_string());
                 }
-                log::info!("[LocalLLM] Starting: {:?} (api_key={})", exe, &api_key[..12]);
+                log::info!("[LocalLLM] Starting: {:?}", exe);
 
                 #[cfg(windows)]
                 let c = Command::new(&exe)
@@ -197,7 +215,7 @@ impl LocalLlmServer {
             port,
             model_name,
             pid: Some(pid),
-            api_key,
+            api_key: String::new(), // No auth for local LLM
             runtime: runtime.to_string(),
         };
 
@@ -213,14 +231,21 @@ impl LocalLlmServer {
             self.proxy_shutdown = Some(shutdown_tx);
             let proxy_port = port;
             let target_port = port + 100;
+            let proxy_app = app_handle.clone();
             tokio::spawn(async move {
-                if let Err(e) = run_unified_proxy(proxy_port, target_port, shutdown_rx).await {
-                    log::error!("[LocalLLM] Proxy error: {}", e);
+                // Small delay to let llama-server spin up its port
+                tokio::time::sleep(std::time::Duration::from_millis(200)).await;
+                match run_unified_proxy(proxy_port, target_port, shutdown_rx, proxy_app.clone()).await {
+                    Ok(()) => {
+                        log::info!("[LocalLLM] Proxy stopped cleanly");
+                    }
+                    Err(e) => {
+                        log::error!("[LocalLLM] Proxy error: {}", e);
+                        let _ = proxy_app.emit("local-llm-stdout",
+                            format!("[ERROR] Proxy failed to start: {}", e));
+                    }
                 }
             });
-            self.add_log("Unified Proxy started:");
-            self.add_log(&format!("  OpenAI:    http://127.0.0.1:{}/v1", port));
-            self.add_log(&format!("  Anthropic: http://127.0.0.1:{}/anthropic", port));
         } else {
             self.add_log(&format!("OpenAI API: http://127.0.0.1:{}/v1", port));
             self.add_log("(native OpenAI endpoint, no proxy needed)");
@@ -283,6 +308,10 @@ impl LocalLlmServer {
 ///
 /// This is the Bug 3 fix: without draining the pipe, the OS buffer fills up
 /// (~64 KB) and the child process blocks on write(), causing it to hang.
+///
+/// Crash detection: when the child exits unexpectedly, we update the server
+/// state to running=false and emit a warning to the frontend STDOUT, so the
+/// status indicator switches from green to stopped without requiring a restart.
 fn spawn_output_reader(mut child: std::process::Child, pid: u32, app_handle: tauri::AppHandle) {
     use std::io::{BufRead, BufReader};
 
@@ -325,33 +354,50 @@ fn spawn_output_reader(mut child: std::process::Child, pid: u32, app_handle: tau
         });
     }
 
-    // Reap the child on a separate thread to avoid zombie processes
+    // Crash watcher: reap the child and detect unexpected exits
+    let app = app_handle.clone();
     std::thread::spawn(move || {
-        let _ = child.wait();
+        let exit_status = child.wait();
+        log::info!("[LocalLLM] PID {} exited: {:?}", pid, exit_status);
+
+        // Detect crash (non-zero exit or wait error)
+        let crashed = match &exit_status {
+            Ok(status) => !status.success(),
+            Err(_) => true,
+        };
+
+        if crashed {
+            log::error!("[LocalLLM] PID {} crashed unexpectedly: {:?}", pid, exit_status);
+            let _ = app.emit("local-llm-stdout",
+                "\u{26a0}\u{fe0f} LLM server process crashed! Status updated to Stopped.");
+            let _ = app.emit("local-llm-stdout",
+                "   Click START to restart the LLM server.");
+        } else {
+            log::info!("[LocalLLM] PID {} exited cleanly", pid);
+        }
+
+        // Update the global server state — use tokio runtime that's already running
+        if let Ok(handle) = tokio::runtime::Handle::try_current() {
+            handle.spawn(async move {
+                let server = get_server().await;
+                let mut srv = server.lock().await;
+                // Only reset if we're still tracking this PID (not already stopped manually)
+                if srv.child_pid == Some(pid) {
+                    srv.info.running = false;
+                    srv.child_pid = None;
+                    if crashed {
+                        srv.add_log("\u{26a0}\u{fe0f} Process crashed — server stopped unexpectedly");
+                    }
+                    update_server_info_cache(&srv.info);
+                    log::info!("[LocalLLM] Server state reset after PID {} exit", pid);
+                }
+            });
+        } else {
+            log::error!("[LocalLLM] No tokio runtime available in crash watcher thread");
+        }
     });
 }
 
-/// Generate a random session API key (eb-sk-{hex})
-pub(super) fn generate_session_api_key() -> String {
-    use std::collections::hash_map::DefaultHasher;
-    use std::hash::{Hash, Hasher};
-    use std::time::SystemTime;
-
-    let mut hasher = DefaultHasher::new();
-    SystemTime::now().duration_since(SystemTime::UNIX_EPOCH)
-        .unwrap_or_default()
-        .as_nanos()
-        .hash(&mut hasher);
-    std::process::id().hash(&mut hasher);
-    let h1 = hasher.finish();
-
-    let mut hasher2 = DefaultHasher::new();
-    h1.hash(&mut hasher2);
-    (h1 ^ 0xdeadbeef).hash(&mut hasher2);
-    let h2 = hasher2.finish();
-
-    format!("eb-sk-{:016x}{:016x}", h1, h2)
-}
 
 // ─── Global singleton + public async API ───
 

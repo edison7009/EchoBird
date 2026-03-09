@@ -415,6 +415,29 @@ pub fn run() {
             ssh_commands::scan_plugins,
             ssh_commands::get_bridge_path,
         ])
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .build(tauri::generate_context!())
+        .expect("error while building tauri application")
+        .run(|_app_handle, event| {
+            if let tauri::RunEvent::Exit = event {
+                // Kill all llama-server processes on app exit.
+                // This prevents zombie processes from lingering and blocking ports
+                // on the next launch (which would cause 401 errors or port conflicts).
+                #[cfg(target_os = "windows")]
+                {
+                    use std::os::windows::process::CommandExt;
+                    let _ = std::process::Command::new("taskkill")
+                        .args(["/F", "/IM", "llama-server.exe", "/T"])
+                        .creation_flags(0x08000000) // CREATE_NO_WINDOW
+                        .spawn();
+                }
+                #[cfg(not(target_os = "windows"))]
+                {
+                    let _ = std::process::Command::new("pkill")
+                        .args(["-f", "llama-server"])
+                        .spawn();
+                }
+                log::info!("[App] Exit: killed all llama-server processes");
+            }
+        });
 }
+

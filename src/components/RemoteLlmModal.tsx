@@ -110,9 +110,9 @@ export const RemoteLlmModal: React.FC<RemoteLlmModalProps> = ({
     const [gpu, setGpu] = useState<{ gpuName: string; gpuVramGb: number } | null>(null);
     const [localModels, setLocalModels] = useState<ModelGroup[]>([]);
     const [logs, setLogs] = useState<string[]>([]);
-    const [serverInfo, setServerInfo] = useState<{ running: boolean; port: number; modelName: string; pid: number | null; apiKey: string }>({
-        running: false, port: 0, modelName: '', pid: null, apiKey: '',
-    });
+    const [serverInfo, setServerInfo] = useState<{ running: boolean; port: number; modelName: string; pid: number | null }>(
+        { running: false, port: 0, modelName: '', pid: null }
+    );
     const [runtimeStatus, setRuntimeStatus] = useState<Record<string, { installed: boolean; version?: string }>>({});
     const [remoteSystemInfo, setRemoteSystemInfo] = useState<{
         os: string; arch: string; hasNvidiaGpu: boolean; hasAmdGpu: boolean; gpuName: string | null; gpuVramGb: number | null;
@@ -125,13 +125,6 @@ export const RemoteLlmModal: React.FC<RemoteLlmModalProps> = ({
     const isRunning = serverInfo.running;
     const currentRuntimeInstalled = runtimeStatus[runtime]?.installed ?? false;
     const engineStatus: 'ready' | 'not-installed' = currentRuntimeInstalled ? 'ready' : 'not-installed';
-    // Fallback API key: generated once when modal opens, used if server doesn't provide one
-    const [fallbackApiKey] = useState(() => {
-        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-        return 'ek-' + Array.from({ length: 32 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
-    });
-    // Effective key: prefer server's key, fall back to generated one
-    const effectiveApiKey = serverInfo.apiKey || fallbackApiKey;
 
     const handleCopy = (path: string) => {
         const port = isRunning ? serverInfo.port : parseInt(serverPort);
@@ -323,7 +316,7 @@ export const RemoteLlmModal: React.FC<RemoteLlmModalProps> = ({
     const handleStop = async () => {
         try {
             await fetch(`${apiBase}/api/stop`, { method: 'POST' });
-            setServerInfo({ running: false, port: 0, modelName: '', pid: null, apiKey: '' });
+            setServerInfo(prev => ({ ...prev, running: false, port: 0, modelName: '', pid: null }));
         } catch (e) {
             console.error('[RemoteLLM] Stop failed:', e);
         }
@@ -821,23 +814,7 @@ export const RemoteLlmModal: React.FC<RemoteLlmModalProps> = ({
                 )}
 
                 {/* ===== Bottom: API Endpoints ===== */}
-                <div className="flex items-center gap-4 px-6 py-2.5 border-t border-cyber-border/20 text-xs font-mono flex-shrink-0">
-                    <div
-                        className="flex items-center gap-1.5 cursor-pointer hover:text-cyber-accent transition-colors"
-                        onClick={() => { navigator.clipboard.writeText(serverInfo.modelName || selectedVariant.split(/[/\\]/).pop()?.replace('.gguf', '') || ''); setCopied('model'); setTimeout(() => setCopied(''), 2000); }}
-                    >
-                        <span className="text-cyber-text-secondary/80">Model ID:</span>
-                        <span className="text-cyber-accent">{copied === 'model' ? t('btn.copied') : t('btn.copy')}</span>
-                    </div>
-                    <span className="text-cyber-border">|</span>
-                    <div
-                        className="flex items-center gap-1.5 cursor-pointer hover:text-cyber-accent transition-colors"
-                        onClick={() => { navigator.clipboard.writeText(effectiveApiKey); setCopied('key'); setTimeout(() => setCopied(''), 2000); }}
-                    >
-                        <span className="text-cyber-text-secondary/80">API Key:</span>
-                        <span className="text-cyber-accent">{copied === 'key' ? t('btn.copied') : t('btn.copy')}</span>
-                    </div>
-                    <span className="text-cyber-border">|</span>
+                <div className="flex items-center justify-center gap-4 px-6 py-2.5 border-t border-cyber-border/20 text-xs font-mono flex-shrink-0">
                     <div
                         className="flex items-center gap-1.5 cursor-pointer hover:text-cyber-accent transition-colors"
                         onClick={() => handleCopy('/v1')}
@@ -856,6 +833,7 @@ export const RemoteLlmModal: React.FC<RemoteLlmModalProps> = ({
                         <span className="text-cyber-accent ml-1">{copied === '/anthropic' ? t('btn.copied') : t('btn.copy')}</span>
                     </div>
                 </div>
+
             </div>
         </div>
     );
