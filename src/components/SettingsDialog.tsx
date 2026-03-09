@@ -8,6 +8,16 @@ import * as api from '../api/tauri';
 declare const __APP_VERSION__: string;
 const APP_VERSION = __APP_VERSION__;
 
+/** Returns true only if `remote` version is strictly greater than `local` (semver X.Y.Z) */
+function isNewerVersion(remote: string, local: string): boolean {
+    const parse = (v: string) => v.replace(/^v/, '').split('.').map(Number);
+    const [rMaj, rMin, rPat] = parse(remote);
+    const [lMaj, lMin, lPat] = parse(local);
+    if (rMaj !== lMaj) return rMaj > lMaj;
+    if (rMin !== lMin) return rMin > lMin;
+    return rPat > lPat;
+}
+
 // All supported locales
 const LOCALE_OPTIONS = [
     { id: 'en', label: 'English' },
@@ -86,7 +96,7 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
             const res = await fetch('https://echobird.ai/api/version/index.json');
             if (!res.ok) { setUpdateStatus('error'); return; }
             const data = await res.json();
-            if (data.version && data.version !== APP_VERSION) {
+            if (data.version && isNewerVersion(data.version, APP_VERSION)) {
                 setLatestVersion(data.version);
                 setUpdateStatus('available');
             } else {
