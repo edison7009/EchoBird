@@ -428,12 +428,16 @@ pub fn run() {
                     let _ = std::process::Command::new("taskkill")
                         .args(["/F", "/IM", "llama-server.exe", "/T"])
                         .creation_flags(0x08000000) // CREATE_NO_WINDOW
+                        .stdout(std::process::Stdio::null())
+                        .stderr(std::process::Stdio::null())
                         .spawn();
                 }
                 #[cfg(not(target_os = "windows"))]
                 {
                     let _ = std::process::Command::new("pkill")
                         .args(["-f", "llama-server"])
+                        .stdout(std::process::Stdio::null())
+                        .stderr(std::process::Stdio::null())
                         .spawn();
                 }
                 log::info!("[App] Exit: killed all llama-server processes");
