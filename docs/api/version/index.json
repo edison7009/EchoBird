@@ -1,5 +1,5 @@
 {
-  "version": "2.6.0",
+  "version": "2.6.1",
   "releaseDate": "2026-03-09",
   "releaseNotes": "Remove API key authentication for local and remote LLM deployments (fixes HTTP 401 errors). Auto-kill stale llama-server processes on start and app exit. Fix translator tool OpenAI streaming error. Clean up Model ID and API Key copy buttons from bottom bars. Fix UTF-8 BOM encoding issue in CI pipeline."
 }
