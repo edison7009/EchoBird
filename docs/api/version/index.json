@@ -1,5 +1,5 @@
 {
-  "version": "2.5.8",
+  "version": "2.5.9",
   "releaseDate": "2026-03-09",
-  "releaseNotes": "Fix plugin download: remove erroneous .zip wrapping, download bare binaries directly. Remove unnecessary zip step from CI. Cloudflare + GitHub fallback unchanged."
+  "releaseNotes": "Refactor local LLM service into modular architecture. Fix Anthropic proxy (complete request body read, API key forwarding). Fix LLM client Anthropic URL for local proxy and raise timeout to 600s for thinking models. Improve protocol downgrade logic in agent loop. Sync all proxy fixes to remote llm-server plugin. Add automatic vLLM/SGLang installation via pip with PyPI fallback."
 }
