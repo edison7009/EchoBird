@@ -16,14 +16,15 @@ The website's version API (`/api/version/index.json`) is hosted on the public re
 
 ## Step 1: Bump version numbers
 
-Update the version in **4 places**:
+Update the version in **5 places**:
 
 // turbo
 
 1. `package.json` → `"version": "X.Y.Z"`
 2. `src-tauri/tauri.conf.json` → `"version": "X.Y.Z"`
 3. `src-tauri/Cargo.toml` → `version = "X.Y.Z"`
-4. `docs/api/version/index.json` → `"version": "X.Y.Z"` (also update `releaseDate` and `releaseNotes`)
+4. `plugins/llm-server/Cargo.toml` → `version = "X.Y.Z"` (keeps plugin version in sync — shown in binary `--version` output)
+5. `docs/api/version/index.json` → `"version": "X.Y.Z"` (also update `releaseDate` and `releaseNotes`)
 
 ---
 
