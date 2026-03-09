@@ -265,6 +265,24 @@ If you only delete the file, Echobird's Remote LLM Panel will still show it as "
 
 **For redeploy** (e.g. version upgrade): Follow the undeploy steps above, then run `deploy_plugin_source` again as normal.
 
+**For complete removal** (user wants to fully wipe everything including the llama-server engine binary):
+Use this sequence to guarantee a clean state for reinstallation:
+```
+# 1. Kill ALL related processes (management daemon + any lingering llama-server)
+pkill -9 -f llm-server || true && pkill -9 -f llama-server || true
+
+# 2. Delete management daemon binary
+rm -f ~/echobird/llm-server-linux-* ~/echobird/llm-server-darwin-*
+
+# 3. Delete llama-server engine directory (the actual inference engine)
+rm -rf ~/.echobird/llama-server
+
+# 4. Verify: no processes, no engine directory
+pgrep -f llm-server || echo "(no llm-server processes)" && ls ~/.echobird/
+```
+After confirming clean state, report to user and offer to redeploy with `deploy_plugin_source`.
+
+
 ### Model Download Sources
 When the user wants to download models, guide them to:
 - **HuggingFace** (global): `https://huggingface.co/` — the primary source
