@@ -1,40 +1,40 @@
 {
-    "name":  "echobird",
-    "version":  "2.5.9",
-    "description":  "AI Model \u0026 Skill Management Desktop Application",
-    "author":  "Echo Bird Team",
-    "type":  "module",
-    "scripts":  {
-                    "dev":  "cargo tauri dev",
-                    "build":  "cargo tauri build",
-                    "preview":  "vite preview",
-                    "test":  "vitest run --passWithNoTests",
-                    "typecheck":  "tsc --noEmit",
-                    "copy:config":  "echo no-op"
-                },
-    "dependencies":  {
-                         "@fortawesome/fontawesome-free":  "^7.2.0",
-                         "@tauri-apps/api":  "^2.10.1",
-                         "@tauri-apps/plugin-shell":  "^2.3.5",
-                         "js-yaml":  "^4.1.1",
-                         "react-markdown":  "^10.1.0",
-                         "remark-gfm":  "^4.0.1"
-                     },
-    "devDependencies":  {
-                            "@types/js-yaml":  "^4.0.9",
-                            "@types/react":  "^18.3.3",
-                            "@types/react-dom":  "^18.3.0",
-                            "@vitejs/plugin-react":  "^4.3.1",
-                            "autoprefixer":  "^10.4.19",
-                            "lucide-react":  "^0.400.0",
-                            "png-to-ico":  "^3.0.1",
-                            "postcss":  "^8.4.38",
-                            "react":  "^18.3.1",
-                            "react-dom":  "^18.3.1",
-                            "sharp":  "^0.34.5",
-                            "tailwindcss":  "^3.4.4",
-                            "typescript":  "^5.5.3",
-                            "vite":  "^5.3.1",
-                            "vitest":  "^4.0.18"
-                        }
+    "name": "echobird",
+    "version": "2.6.2",
+    "description": "AI Model \u0026 Skill Management Desktop Application",
+    "author": "Echo Bird Team",
+    "type": "module",
+    "scripts": {
+        "dev": "cargo tauri dev",
+        "build": "cargo tauri build",
+        "preview": "vite preview",
+        "test": "vitest run --passWithNoTests",
+        "typecheck": "tsc --noEmit",
+        "copy:config": "echo no-op"
+    },
+    "dependencies": {
+        "@fortawesome/fontawesome-free": "^7.2.0",
+        "@tauri-apps/api": "^2.10.1",
+        "@tauri-apps/plugin-shell": "^2.3.5",
+        "js-yaml": "^4.1.1",
+        "react-markdown": "^10.1.0",
+        "remark-gfm": "^4.0.1"
+    },
+    "devDependencies": {
+        "@types/js-yaml": "^4.0.9",
+        "@types/react": "^18.3.3",
+        "@types/react-dom": "^18.3.0",
+        "@vitejs/plugin-react": "^4.3.1",
+        "autoprefixer": "^10.4.19",
+        "lucide-react": "^0.400.0",
+        "png-to-ico": "^3.0.1",
+        "postcss": "^8.4.38",
+        "react": "^18.3.1",
+        "react-dom": "^18.3.1",
+        "sharp": "^0.34.5",
+        "tailwindcss": "^3.4.4",
+        "typescript": "^5.5.3",
+        "vite": "^5.3.1",
+        "vitest": "^4.0.18"
+    }
 }
