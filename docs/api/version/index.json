@@ -1,5 +1,5 @@
 {
-  "version": "2.5.7",
+  "version": "2.5.8",
   "releaseDate": "2026-03-09",
-  "releaseNotes": "Sidebar: auto-detect new version on startup, shows UPDATE badge when available. Fix: llm-server deployment downloads .zip (fixes CDN extensionless file issue), unzips with -j flag to prevent path nesting. Fix: rm -rf before download prevents 'Is a directory' error on retry."
+  "releaseNotes": "Fix plugin download: remove erroneous .zip wrapping, download bare binaries directly. Remove unnecessary zip step from CI. Cloudflare + GitHub fallback unchanged."
 }

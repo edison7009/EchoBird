@@ -853,26 +853,25 @@ async fn exec_deploy_plugin_source(
 
     // 2. Fetch latest version dynamically from version API (falls back to compile-time version)
     let version = fetch_latest_plugin_version().await;
-    // Primary: Cloudflare proxy (GFW-friendly)
-    let zip_filename = format!("{}.zip", binary_filename);
-    let cloudflare_url = format!("https://dl.echobird.ai/releases/{}/{}", version, zip_filename);
+    // Primary: Cloudflare proxy (GFW-friendly) — bare binary, no zip
+    let primary_url = format!("https://dl.echobird.ai/releases/{}/{}", version, binary_filename);
     // Fallback 1: GitHub versioned
-    let github_url = format!("https://github.com/edison7009/Echobird-MotherAgent/releases/download/{}/{}", version, zip_filename);
+    let github_url = format!("https://github.com/edison7009/Echobird-MotherAgent/releases/download/{}/{}", version, binary_filename);
     // Fallback 2: GitHub latest
-    let github_latest_url = format!("https://github.com/edison7009/Echobird-MotherAgent/releases/latest/download/{}", zip_filename);
+    let github_latest_url = format!("https://github.com/edison7009/Echobird-MotherAgent/releases/latest/download/{}", binary_filename);
 
-    log_output.push_str(&format!("[1/4] Downloading {} ...\n", zip_filename));
+    log_output.push_str(&format!("[1/4] Downloading {} ...\n", binary_filename));
 
-    // 3. Download .zip then unzip — .zip extension ensures CDN/proxy handles it correctly
+    // 3. Download bare binary directly and chmod +x
     let deploy_dir = "~/echobird";
     let download_cmd = |url: &str| format!(
-        "mkdir -p {dir} && rm -rf {dir}/{bin} {dir}/{zip} && \
-         curl -fSL --connect-timeout 15 --max-time 90 -o {dir}/{zip} '{url}' && \
-         unzip -j -o {dir}/{zip} -d {dir} && rm {dir}/{zip} && chmod +x {dir}/{bin}",
-        dir = deploy_dir, bin = binary_filename, zip = zip_filename, url = url
+        "mkdir -p {dir} && rm -f {dir}/{bin} && \
+         curl -fSL --connect-timeout 15 --max-time 90 -o {dir}/{bin} '{url}' && \
+         chmod +x {dir}/{bin}",
+        dir = deploy_dir, bin = binary_filename, url = url
     );
 
-    let result = exec_ssh_shell(&download_cmd(&cloudflare_url), server_id, ssh_pool).await;
+    let result = exec_ssh_shell(&download_cmd(&primary_url), server_id, ssh_pool).await;
     if !result.success {
         log_output.push_str("  Cloudflare mirror failed, trying GitHub versioned...\n");
         let result2 = exec_ssh_shell(&download_cmd(&github_url), server_id, ssh_pool).await;
@@ -882,7 +881,7 @@ async fn exec_deploy_plugin_source(
             if !result3.success {
                 return ToolResult {
                     success: false,
-                    output: format!("Failed to download '{}'. Tried:\n1. {}\n2. {}\n3. {}\nError: {}", binary_filename, cloudflare_url, github_url, github_latest_url, result3.output),
+                    output: format!("Failed to download '{}'. Tried:\n1. {}\n2. {}\n3. {}\nError: {}", binary_filename, primary_url, github_url, github_latest_url, result3.output),
                 };
             }
         }

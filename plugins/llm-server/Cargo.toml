@@ -1,6 +1,6 @@
 [package]
 name = "echobird-llm-server"
-version = "2.4.9"
+version = "2.5.8"
 edition = "2021"
 description = "Remote LLM management HTTP server for Echobird"
 
