@@ -11,11 +11,11 @@
 *.html  text eol=crlf
 *.json  text eol=crlf
 *.md    text eol=crlf
-*.toml  text eol=crlf
+*.toml  text eol=lf
 *.yaml  text eol=crlf
 *.yml   text eol=crlf
-*.rs    text eol=crlf
-*.lock  text eol=crlf
+*.rs    text eol=lf
+*.lock  text eol=lf
 
 # Binary files — never normalize
 *.png   binary
