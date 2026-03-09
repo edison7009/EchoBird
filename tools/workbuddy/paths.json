@@ -1,0 +1,25 @@
+{
+    "name": "WorkBuddy",
+    "category": "AgentOS",
+    "apiProtocol": [
+        "openai"
+    ],
+    "docs": "https://www.codebuddy.cn/docs/workbuddy/",
+    "command": "workbuddy",
+    "configDir": "~/.workbuddy",
+    "configFile": "~/.workbuddy/models.json",
+    "requireConfigFile": false,
+    "detectByConfigDir": true,
+    "paths": {
+        "win32": [
+            "%LOCALAPPDATA%/Programs/WorkBuddy/WorkBuddy.exe"
+        ],
+        "darwin": [
+            "/Applications/WorkBuddy.app/Contents/MacOS/WorkBuddy"
+        ],
+        "linux": [
+            "/usr/local/bin/workbuddy",
+            "/usr/bin/workbuddy"
+        ]
+    }
+}

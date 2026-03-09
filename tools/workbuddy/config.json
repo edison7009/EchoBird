@@ -1,0 +1,6 @@
+{
+    "docs": "https://www.codebuddy.cn/docs/workbuddy/",
+    "configFile": "~/.workbuddy/models.json",
+    "format": "json",
+    "custom": true
+}

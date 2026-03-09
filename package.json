@@ -1,11 +1,12 @@
 {
     "name": "echobird",
-    "version": "2.6.2",
+    "version": "2.6.3",
     "description": "AI Model \u0026 Skill Management Desktop Application",
     "author": "Echo Bird Team",
     "type": "module",
     "scripts": {
-        "dev": "cargo tauri dev",
+        "tools:sync": "robocopy tools D:\\build-output\\debug\\_up_\\tools /E /XO /NFL /NDL || exit 0",
+        "dev": "npm run tools:sync && cargo tauri dev",
         "build": "cargo tauri build",
         "preview": "vite preview",
         "test": "vitest run --passWithNoTests",

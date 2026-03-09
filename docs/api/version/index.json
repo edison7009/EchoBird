@@ -1,5 +1,5 @@
 {
-  "version": "2.6.2",
+  "version": "2.6.3",
   "releaseDate": "2026-03-09",
-  "releaseNotes": "Remove API key authentication for local and remote LLM deployments (fixes HTTP 401 errors). Auto-kill stale llama-server processes on start and app exit. Fix translator tool OpenAI streaming error. Clean up Model ID and API Key copy buttons from bottom bars. Fix version file update bug caused by double-space JSON format."
+  "releaseNotes": "Add WorkBuddy tool support (AgentOS category). Fix tool scan dev mode sync issue. Fix AppManager toolModelConfig initialization for WorkBuddy."
 }
