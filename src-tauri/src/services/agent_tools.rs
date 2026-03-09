@@ -395,9 +395,9 @@ async fn exec_local_shell(command: &str) -> ToolResult {
                 if !combined.is_empty() { combined.push_str("\n--- stderr ---\n"); }
                 combined.push_str(&stderr);
             }
-            // Truncate if too long
+            // Truncate if too long — use safe_truncate to avoid panic at UTF-8 boundary
             if combined.len() > MAX_OUTPUT_BYTES {
-                combined.truncate(MAX_OUTPUT_BYTES);
+                safe_truncate(&mut combined, MAX_OUTPUT_BYTES);
                 combined.push_str("\n... [output truncated]");
             }
             ToolResult {
@@ -435,14 +435,20 @@ async fn exec_ssh_shell(command: &str, server_id: &str, ssh_pool: &SSHPool) -> T
         };
     }
 
-    let connections = ssh_pool.lock().await;
-    let client = match connections.get(server_id) {
-        Some(c) => c,
-        None => return ToolResult {
-            success: false,
-            output: format!("SSH server '{}' not connected after auto-connect attempt.", server_id),
-        },
-    };
+    // Clone the client out of the lock guard before executing.
+    // This releases the SSH pool mutex immediately so other operations
+    // (e.g. build_system_prompt reading the pool) are not blocked
+    // for the entire duration of the remote command (up to EXEC_TIMEOUT_SECS).
+    let client = {
+        let connections = ssh_pool.lock().await;
+        match connections.get(server_id) {
+            Some(c) => c.clone(),
+            None => return ToolResult {
+                success: false,
+                output: format!("SSH server '{}' not connected after auto-connect attempt.", server_id),
+            },
+        }
+    }; // lock released here
 
     // Timeout to prevent hanging forever on remote commands
     match timeout(Duration::from_secs(EXEC_TIMEOUT_SECS), client.execute(command)).await {
@@ -452,8 +458,9 @@ async fn exec_ssh_shell(command: &str, server_id: &str, ssh_pool: &SSHPool) -> T
                 if !output.is_empty() { output.push_str("\n--- stderr ---\n"); }
                 output.push_str(&result.stderr);
             }
+            // Truncate if too long — use safe_truncate to avoid panic at UTF-8 boundary
             if output.len() > MAX_OUTPUT_BYTES {
-                output.truncate(MAX_OUTPUT_BYTES);
+                safe_truncate(&mut output, MAX_OUTPUT_BYTES);
                 output.push_str("\n... [output truncated]");
             }
             ToolResult {
@@ -585,6 +592,20 @@ async fn exec_file_write(path: &str, content: &str, server_id: &str, ssh_pool: &
 fn shell_escape(s: &str) -> String {
     // Simple quoting: not shell_escape for now, just wrap in quotes
     format!("\"{}\"", s)
+}
+
+// Truncate a string to at most max_bytes bytes, respecting UTF-8 character boundaries.
+// Using String::truncate() directly can panic when the byte index falls mid-character.
+fn safe_truncate(s: &mut String, max_bytes: usize) {
+    if s.len() <= max_bytes {
+        return;
+    }
+    // Walk back from max_bytes until we hit a valid char boundary
+    let mut end = max_bytes;
+    while !s.is_char_boundary(end) && end > 0 {
+        end -= 1;
+    }
+    s.truncate(end);
 }
 
 /// Fetch the latest published plugin version from the version API.
