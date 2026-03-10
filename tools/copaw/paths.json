@@ -23,5 +23,16 @@
             "~/.local/bin/copaw",
             "/usr/local/bin/copaw"
         ]
+    },
+    "skillsPath": {
+        "win32": [
+            "~/.copaw/active_skills"
+        ],
+        "darwin": [
+            "~/.copaw/active_skills"
+        ],
+        "linux": [
+            "~/.copaw/active_skills"
+        ]
     }
 }
