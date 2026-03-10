@@ -500,131 +500,155 @@ fn detect_gpu_nvidia_smi() -> Option<GpuInfo> {
     None
 }
 
-/// Moore Threads GPU detection via mthreads-gmi
+/// Moore Threads GPU detection via mthreads-gmi or mthreads-smi
 fn detect_gpu_mthreads() -> Option<GpuInfo> {
-    // mthreads-gmi default table output (no special flags needed):
-    //   ID | Name      | PCIe | %GPU Mem              | ...
-    //   0  | MTT S4000 | ...  | 0%  4MiB(49152MiB)    | ...
-    // Total VRAM is the number inside the trailing parentheses: (49152MiB)
-    let output = Command::new("mthreads-gmi")
-        .output()
-        .ok()?;
-
-    if !output.status.success() {
-        return None;
-    }
-
-    let stdout = String::from_utf8_lossy(&output.stdout);
-
-    // Find the first data row (skip header lines that contain "ID" or "---")
     let mut gpu_name = String::from("Moore Threads MTT");
     let mut vram_gb: Option<f64> = None;
 
-    for line in stdout.lines() {
-        let trimmed = line.trim();
-        // Skip header / separator lines
-        if trimmed.is_empty()
-            || trimmed.starts_with("ID")
-            || trimmed.starts_with('+')
-            || trimmed.starts_with('-')
-            || trimmed.starts_with('=')
-        {
-            continue;
-        }
-
-        // The Name column is typically the second pipe-separated field:
-        //   | 0  | MTT S4000 | ... | 0% 4MiB(49152MiB) | ...
-        let cols: Vec<&str> = trimmed.split('|').map(|s| s.trim()).collect();
-        if cols.len() >= 3 {
-            // col[1] = ID, col[2] = Name
-            let name_col = cols[1];
-            // col[4] usually contains "%GPU Mem" like "0% 4MiB(49152MiB)"
-            // Find the column that contains "MiB(" pattern (total VRAM in parens)
-            let mem_col = cols.iter().find(|c| c.contains("MiB(") || c.contains("GiB("));
-
-            if let Some(mem_str) = mem_col {
-                // Extract the number inside the last set of parentheses: (49152MiB)
-                if let Some(start) = mem_str.rfind('(') {
-                    let inside = &mem_str[start + 1..];
-                    let end = inside.find(')').unwrap_or(inside.len());
-                    let token = inside[..end].trim();
-                    // token is like "49152MiB" or "48GiB"
-                    let (num_str, unit) = if token.ends_with("GiB") {
-                        (&token[..token.len() - 3], "GiB")
-                    } else if token.ends_with("MiB") {
-                        (&token[..token.len() - 3], "MiB")
-                    } else {
-                        (token, "MiB") // assume MiB
-                    };
-                    if let Ok(v) = num_str.trim().parse::<f64>() {
-                        if v > 0.0 {
-                            vram_gb = Some(if unit == "GiB" {
-                                (v * 10.0).round() / 10.0
+    // ── Attempt 1: mthreads-gmi (older distros / packages) ──
+    // mthreads-gmi default table output:
+    //   ID | Name      | PCIe | %GPU Mem              | ...
+    //   0  | MTT S4000 | ...  | 0%  4MiB(49152MiB)    | ...
+    if let Ok(output) = Command::new("mthreads-gmi").output() {
+        if output.status.success() {
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            for line in stdout.lines() {
+                let trimmed = line.trim();
+                if trimmed.is_empty()
+                    || trimmed.starts_with("ID")
+                    || trimmed.starts_with('+')
+                    || trimmed.starts_with('-')
+                    || trimmed.starts_with('=')
+                {
+                    continue;
+                }
+                let cols: Vec<&str> = trimmed.split('|').map(|s| s.trim()).collect();
+                if cols.len() >= 3 {
+                    let name_col = cols[1];
+                    let mem_col = cols.iter().find(|c| c.contains("MiB(") || c.contains("GiB("));
+                    if let Some(mem_str) = mem_col {
+                        if let Some(start) = mem_str.rfind('(') {
+                            let inside = &mem_str[start + 1..];
+                            let end = inside.find(')').unwrap_or(inside.len());
+                            let token = inside[..end].trim();
+                            let (num_str, unit) = if token.ends_with("GiB") {
+                                (&token[..token.len() - 3], "GiB")
+                            } else if token.ends_with("MiB") {
+                                (&token[..token.len() - 3], "MiB")
                             } else {
-                                (v / 1024.0 * 10.0).round() / 10.0
-                            });
+                                (token, "MiB")
+                            };
+                            if let Ok(v) = num_str.trim().parse::<f64>() {
+                                if v > 0.0 {
+                                    vram_gb = Some(if unit == "GiB" {
+                                        (v * 10.0).round() / 10.0
+                                    } else {
+                                        (v / 1024.0 * 10.0).round() / 10.0
+                                    });
+                                }
+                            }
+                        }
+                    }
+                    let candidate = name_col.trim();
+                    if !candidate.is_empty() && candidate != "Name" && candidate.to_uppercase().contains("MTT") {
+                        gpu_name = shorten_gpu_name(candidate);
+                    }
+                    if vram_gb.is_some() { break; }
+                }
+            }
+            // Fallback: try mthreads-gmi -L
+            if vram_gb.is_none() {
+                if let Ok(out) = Command::new("mthreads-gmi").args(["-L"]).output() {
+                    if out.status.success() {
+                        let s = String::from_utf8_lossy(&out.stdout);
+                        for line in s.lines() {
+                            if line.to_uppercase().contains("MTT") {
+                                if let Some(cp) = line.find(':') {
+                                    let after = line[cp + 1..].trim();
+                                    let name = if let Some(p) = after.find('(') { after[..p].trim() } else { after };
+                                    if !name.is_empty() { gpu_name = shorten_gpu_name(name); }
+                                }
+                                break;
+                            }
                         }
                     }
                 }
-            }
-
-            // Extract GPU name from Name column (second data column)
-            let candidate = name_col.trim();
-            if !candidate.is_empty() && candidate != "Name" && candidate.to_uppercase().contains("MTT") {
-                gpu_name = shorten_gpu_name(candidate);
-            }
-
-            if vram_gb.is_some() {
-                break; // First GPU is enough
             }
         }
     }
 
-    // Fallback: try mthreads-gmi -L for a simple listing like "GPU 0: MTT S4000 (UUID: ...)"
+    // ── Attempt 2: mthreads-smi (newer driver packages, v1.1.0+) ──
+    // Output format (key: value style):
+    //   cpu name:    M1000
+    //   total memory:    16384 MB    (or similar)
     if vram_gb.is_none() {
-        let list_out = Command::new("mthreads-gmi").args(["-L"]).output().ok();
-        if let Some(out) = list_out {
-            if out.status.success() {
-                let list_str = String::from_utf8_lossy(&out.stdout);
-                for line in list_str.lines() {
-                    if line.to_uppercase().contains("MTT") {
-                        if let Some(colon_pos) = line.find(':') {
-                            let after = line[colon_pos + 1..].trim();
-                            let name = if let Some(paren) = after.find('(') {
-                                after[..paren].trim()
-                            } else {
-                                after
-                            };
+        if let Ok(output) = Command::new("mthreads-smi").output() {
+            if output.status.success() {
+                let stdout = String::from_utf8_lossy(&output.stdout);
+                for line in stdout.lines() {
+                    let lower = line.to_lowercase();
+                    // GPU model name (labeled "cpu name" in mthreads-smi output)
+                    if (lower.contains("cpu name") || lower.contains("gpu name") || lower.contains("device name"))
+                        && gpu_name == "Moore Threads MTT"
+                    {
+                        if let Some(cp) = line.find(':') {
+                            let name = line[cp + 1..].trim();
                             if !name.is_empty() {
-                                gpu_name = shorten_gpu_name(name);
+                                // mthreads-smi reports the SoC name (e.g. "M1000")
+                                // Prefix "MTT" if it doesn't already contain it
+                                gpu_name = if name.to_uppercase().starts_with("MTT") || name.to_uppercase().starts_with("S") {
+                                    shorten_gpu_name(name)
+                                } else {
+                                    format!("MTT {}", name.trim())
+                                };
                             }
                         }
-                        break;
                     }
+                    // Memory: look for "total memory" or "memory total" lines
+                    if lower.contains("total") && (lower.contains("memory") || lower.contains("mem")) {
+                        // Extract the first number on the line
+                        let num = line.split_whitespace()
+                            .find(|s| s.parse::<f64>().is_ok())
+                            .and_then(|s| s.parse::<f64>().ok());
+                        if let Some(v) = num {
+                            if v > 0.0 {
+                                // Assume MB unless the line contains "GB"
+                                vram_gb = Some(if lower.contains("gb") {
+                                    (v * 10.0).round() / 10.0
+                                } else {
+                                    (v / 1024.0 * 10.0).round() / 10.0
+                                });
+                            }
+                        }
+                    }
+                }
+                // mthreads-smi ran successfully → GPU is present even if VRAM unparseable
+                if vram_gb.is_none() {
+                    vram_gb = Some(16.0); // M1000 default VRAM
                 }
             }
         }
+    }
 
-        // Device-file fallback: kernel driver loaded but mthreads-gmi not installed.
-        // /dev/mtgpu.0 exists whenever the npucore/mtgpu kernel module is active.
+    // ── Attempt 3: /dev/mtgpu.0 device-file fallback ──
+    // Kernel driver is loaded → GPU exists, but no mgmt tool available.
+    if vram_gb.is_none() {
         if std::path::Path::new("/dev/mtgpu.0").exists() {
-            // We know it's an MTT GPU but can't read VRAM without tools.
-            // Return a conservative 8 GB estimate so the UI shows the card.
             return Some(GpuInfo {
                 gpu_name: if gpu_name == "Moore Threads MTT" {
-                    "MTT M1000".to_string()   // M1000 is the most likely card on aarch64
+                    "MTT M1000".to_string()
                 } else {
                     gpu_name
                 },
-                gpu_vram_gb: 8.0,  // conservative estimate; actual M1000 has 12–16 GB
+                gpu_vram_gb: 16.0, // M1000 has 16 GB VRAM
             });
         }
-
-        return None; // No VRAM info and no device file found
+        return None;
     }
 
     Some(GpuInfo { gpu_name, gpu_vram_gb: vram_gb? })
 }
+
 
 fn shorten_gpu_name(name: &str) -> String {
     name.replace("NVIDIA GeForce ", "")
