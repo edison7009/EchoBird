@@ -1,0 +1,26 @@
+{
+    "name": "KiloCode",
+    "category": "IDE",
+    "apiProtocol": [
+        "openai"
+    ],
+    "docs": "https://kilo.ai/docs",
+    "installUrl": "https://marketplace.visualstudio.com/items?itemName=kilocode.kilo-code",
+    "command": "",
+    "configDir": "",
+    "configFile": "~/.echobird/kilocode.json",
+    "requireConfigFile": false,
+    "detectByConfigDir": false,
+    "paths": {},
+    "extensionPaths": {
+        "win32": [
+            "%USERPROFILE%/.vscode/extensions/kilocode.kilo-code-*"
+        ],
+        "darwin": [
+            "~/.vscode/extensions/kilocode.kilo-code-*"
+        ],
+        "linux": [
+            "~/.vscode/extensions/kilocode.kilo-code-*"
+        ]
+    }
+}

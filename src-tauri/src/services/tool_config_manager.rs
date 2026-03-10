@@ -137,6 +137,9 @@ pub async fn apply_model_to_tool(tool_id: &str, model_info: ModelInfo) -> ApplyR
         // EasyClaw: direct write to ~/.easyclaw/easyclaw.json (Electron GUI, same format as OpenClaw)
         "easyclaw" => return apply_easyclaw(&model_info),
 
+        // KiloCode VS Code extension (RooCode fork — same relay + patcher approach)
+        "kilocode" => return apply_echobird_relay(tool_id, &model_info, false),
+
         // Type 3: Direct JSON overwrite (special format)
         "codebuddy" | "codebuddycn" | "workbuddy" => return apply_codebuddy(tool_id, &model_info),
         "opencode" => return apply_opencode(&model_info),
@@ -170,6 +173,7 @@ pub async fn get_tool_model_info(tool_id: &str) -> Option<ModelInfo> {
     match tool_id {
         "cline" | "roocode" | "openclaw" => return read_echobird_relay(tool_id),
         "easyclaw" => return read_easyclaw(),
+        "kilocode" => return read_echobird_relay(tool_id),
         "codebuddy" | "codebuddycn" | "workbuddy" => return read_codebuddy(tool_id),
         "opencode" => return read_opencode(),
         "aider" => return read_aider(),
@@ -465,6 +469,7 @@ fn apply_echobird_relay(tool_id: &str, model_info: &ModelInfo, include_provider:
             crate::services::tool_patcher::patch_tool(tool_id);
             let tool_display = match tool_id {
                 "cline" => "Cline", "roocode" => "Roo Code", "openclaw" => "OpenClaw",
+                "kilocode" => "KiloCode",
                 _ => tool_id,
             };
             ApplyResult {

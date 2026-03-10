@@ -10,6 +10,7 @@ const ECHOBIRD_BACKUP_EXT: &str = ".echobird-backup";
 
 const CLINE_MARKER: &str = "/* [Echobird-Patched] */";
 const ROOCODE_MARKER: &str = "/* [Echobird-RooCode-Patched] */";
+const KILOCODE_MARKER: &str = "/* [Echobird-KiloCode-Patched] */";
 const OPENCLAW_MARKER: &str = "/* [Echobird-Patched] */";
 const CODEX_MARKER: &str = "/* [Echobird-Codex-Patched] */";
 
@@ -58,6 +59,28 @@ _ctx.secrets.store("openAiApiKey",_wc_cfg.apiKey);
 console.log("[Echobird] RooCode loaded: model="+_wc_cfg.modelId);
 }}
 }catch(_wc_err){console.warn("[Echobird] RooCode config error:",_wc_err.message);}}).call(this),
+"#;
+
+const KILOCODE_INJECT: &str = r#"
+/* [Echobird-KiloCode-Patched] */
+(function(){try{
+var _wc_fs=require("fs"),_wc_path=require("path"),_wc_os=require("os");
+var _wc_cfg_path=_wc_path.join(_wc_os.homedir(),".echobird","kilocode.json");
+if(_wc_fs.existsSync(_wc_cfg_path)){
+var _wc_cfg=JSON.parse(_wc_fs.readFileSync(_wc_cfg_path,"utf-8"));
+if(_wc_cfg.apiKey&&_wc_cfg.modelId){
+var _gs=this.stateCache,_sc=this.secretCache,_ctx=this.originalContext;
+_gs.apiProvider="openai";
+_gs.openAiModelId=_wc_cfg.modelId;
+if(_wc_cfg.baseUrl)_gs.openAiBaseUrl=_wc_cfg.baseUrl;
+_sc.openAiApiKey=_wc_cfg.apiKey;
+_ctx.globalState.update("apiProvider","openai");
+_ctx.globalState.update("openAiModelId",_wc_cfg.modelId);
+if(_wc_cfg.baseUrl)_ctx.globalState.update("openAiBaseUrl",_wc_cfg.baseUrl);
+_ctx.secrets.store("openAiApiKey",_wc_cfg.apiKey);
+console.log("[Echobird] KiloCode loaded: model="+_wc_cfg.modelId);
+}}
+}catch(_wc_err){console.warn("[Echobird] KiloCode config error:",_wc_err.message);}}).call(this),
 "#;
 
 // OpenClaw injection: ESM import style
@@ -360,6 +383,61 @@ pub fn patch_roocode() {
     }
 }
 
+/// Patch KiloCode VS Code extension (fork of RooCode — identical injection pattern)
+pub fn patch_kilocode() {
+    let ext_dir = match find_vscode_extension("kilocode.kilo-code-") {
+        Some(d) => d,
+        None => { log::info!("[Patcher] KiloCode extension not found, skipping"); return; }
+    };
+
+    let entry = ext_dir.join("dist").join("extension.js");
+
+    if !entry.exists() {
+        log::warn!("[Patcher] KiloCode extension.js not found: {:?}", entry);
+        return;
+    }
+
+    let backup = PathBuf::from(format!("{}{}", entry.display(), ECHOBIRD_BACKUP_EXT));
+    let mut content = match fs::read_to_string(&entry) {
+        Ok(c) => c,
+        Err(e) => { log::warn!("[Patcher] Failed to read kilocode: {}", e); return; }
+    };
+
+    if content.contains(KILOCODE_MARKER) {
+        if backup.exists() {
+            content = match fs::read_to_string(&backup) {
+                Ok(c) => c,
+                Err(_) => return,
+            };
+        } else { return; }
+    } else {
+        let _ = fs::copy(&entry, &backup);
+    }
+
+    // Same injection point as RooCode: _isInitialized=!0 near stateCache/secretCache
+    let pattern = "this._isInitialized=!0";
+    let mut target_idx = None;
+    let mut search_from = 0;
+    while let Some(idx) = content[search_from..].find(pattern) {
+        let abs_idx = search_from + idx;
+        let start = if abs_idx > 2000 { abs_idx - 2000 } else { 0 };
+        let nearby = &content[start..abs_idx];
+        if nearby.contains("stateCache") && nearby.contains("secretCache") {
+            target_idx = Some(abs_idx);
+            break;
+        }
+        search_from = abs_idx + pattern.len();
+    }
+
+    if let Some(idx) = target_idx {
+        let patched = format!("{}{}{}", &content[..idx], KILOCODE_INJECT, &content[idx..]);
+        let _ = fs::write(&entry, &patched);
+        log::info!("[Patcher] KiloCode patched successfully");
+    } else {
+        log::warn!("[Patcher] KiloCode injection point not found");
+    }
+}
+
 /// Patch OpenClaw CLI tool
 pub fn patch_openclaw() {
     let install_dir = match find_npm_global_module("openclaw") {
@@ -472,6 +550,7 @@ pub fn patch_tool(tool_id: &str) {
     match tool_id {
         "cline" => patch_cline(),
         "roocode" => patch_roocode(),
+        "kilocode" => patch_kilocode(),
         "openclaw" => patch_openclaw(),
         "codex" => patch_codex(),
         "opencode" => patch_opencode(),
