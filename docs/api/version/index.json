@@ -1,1 +1,1 @@
-{"version": "2.6.8","releaseDate": "2026-03-10","releaseNotes": "Fix stop button not working during LLM streaming. Add smart SSH timeout (short 60s, long 600s). Fix context overflow on large tool outputs."}
+{"version":"2.6.9","releaseDate":"2026-03-10","releaseNotes":"Fix Linux window drag, skills page loading, runtime GPU filter (local + remote deploy), CodeBuddy CN install detection, skills CDN mirror for China users"}
