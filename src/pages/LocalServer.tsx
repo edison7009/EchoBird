@@ -72,7 +72,7 @@ export const LocalServerProvider: React.FC<{ children: React.ReactNode }> = ({ c
             const dirs = await api.getModelsDirs();
             setModelsDirs(dirs);
             const allFiles: GgufFileEntry[] = [];
-            const isHfRuntime = runtime === 'vllm' || runtime === 'sglang';
+            const isHfRuntime = runtime === 'vllm' || runtime === 'sglang' || runtime === 'vllm-musa';
             for (const dir of dirs) {
                 if (isHfRuntime) {
                     // Scan HuggingFace model directories
@@ -164,6 +164,7 @@ export const LocalServerMain: React.FC = () => {
         ...(isLinux ? [
             { id: 'vllm', label: 'vLLM' },
             { id: 'sglang', label: 'SGLang' },
+            { id: 'vllm-musa', label: 'vLLM-MUSA' },
         ] : []),
     ];
 

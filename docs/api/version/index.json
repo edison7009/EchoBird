@@ -1,1 +1,5 @@
-{"version": "2.6.4","releaseDate": "2026-03-09","releaseNotes": "Fix WorkBuddy model switching. Fix local/remote LLM bottom bar left alignment. Add rounded corners to local LLM terminal area."}
+{
+    "version": "2.6.5",
+    "releaseDate": "2026-03-10",
+    "releaseNotes": "Add MooreThreads GPU (vLLM-MUSA) support for local and remote LLM deployment. Fix Mother Agent SSH tool deadlock and UTF-8 truncation bug."
+}

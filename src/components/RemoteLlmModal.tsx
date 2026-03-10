@@ -136,7 +136,7 @@ export const RemoteLlmModal: React.FC<RemoteLlmModalProps> = ({
     // ─── Fetch remote data on open ───
     useEffect(() => {
         if (!isOpen) return;
-        const isHfRuntime = runtime === 'vllm' || runtime === 'sglang';
+        const isHfRuntime = runtime === 'vllm' || runtime === 'sglang' || runtime === 'vllm-musa';
         const fetchAll = async () => {
             try {
                 const [statusRes, gpuRes, modelsRes, hfModelsRes, logsRes, engineRes, dirsRes] = await Promise.allSettled([
@@ -269,7 +269,7 @@ export const RemoteLlmModal: React.FC<RemoteLlmModalProps> = ({
                         const engineRes = await fetch(`${apiBase}/api/engine/status`).then(r => r.json()).catch(() => ({}));
                         const rs: Record<string, { installed: boolean; version?: string }> = {};
                         const engines: any[] = engineRes.engines || [];
-                        for (const key of ['llama-server', 'vllm', 'sglang']) {
+                        for (const key of ['llama-server', 'vllm', 'sglang', 'vllm-musa']) {
                             const entry = engines.find((e: any) => e.name === key);
                             if (entry) rs[key] = { installed: !!entry.installed, version: entry.version };
                             else if (engineRes[key]) rs[key] = { installed: engineRes[key].installed, version: engineRes[key].version };
@@ -457,9 +457,10 @@ export const RemoteLlmModal: React.FC<RemoteLlmModalProps> = ({
                                             { id: 'llama-server', label: 'llama.cpp' },
                                             { id: 'vllm', label: 'vLLM' },
                                             { id: 'sglang', label: 'SGLang' },
+                                            { id: 'vllm-musa', label: 'vLLM-MUSA' },
                                         ].filter(opt => {
-                                            // vLLM / SGLang: Linux only
-                                            if ((opt.id === 'vllm' || opt.id === 'sglang') && remoteSystemInfo && remoteSystemInfo.os !== 'linux') return false;
+                                            // vLLM / SGLang / vLLM-MUSA: Linux only
+                                            if ((opt.id === 'vllm' || opt.id === 'sglang' || opt.id === 'vllm-musa') && remoteSystemInfo && remoteSystemInfo.os !== 'linux') return false;
                                             // Hide uninstalled once we have engine status data
                                             if (Object.keys(runtimeStatus).length > 0 && !runtimeStatus[opt.id]?.installed) return false;
                                             return true;
@@ -473,8 +474,8 @@ export const RemoteLlmModal: React.FC<RemoteLlmModalProps> = ({
                             {engineStatus === 'not-installed' ? (
                                 <button
                                     onClick={handleInstallEngine}
-                                    disabled={remoteDownload.status === 'downloading' || remoteDownload.status === 'speed_test'}
-                                    className={`w-full py-3 font-bold text-base tracking-[0.3em] font-mono transition-all flex items-center justify-center gap-2 ${remoteDownload.status === 'downloading' || remoteDownload.status === 'speed_test'
+                                    disabled={remoteDownload.status === 'downloading' || remoteDownload.status === 'speed_test' || remoteDownload.status === 'installing'}
+                                    className={`w-full py-3 font-bold text-base tracking-[0.3em] font-mono transition-all flex items-center justify-center gap-2 ${remoteDownload.status === 'downloading' || remoteDownload.status === 'speed_test' || remoteDownload.status === 'installing'
                                         ? 'bg-cyber-surface/30 text-cyber-text-muted/50 border border-cyber-border/30 cursor-not-allowed'
                                         : 'bg-cyber-accent/10 text-cyber-accent border border-cyber-accent/50 hover:bg-cyber-accent/20 shadow-[0_0_15px_rgba(0,255,157,0.15)]'
                                         }`}
@@ -653,7 +654,13 @@ export const RemoteLlmModal: React.FC<RemoteLlmModalProps> = ({
                                             <Loader2 className="w-5 h-5 text-cyan-400 animate-spin" />
                                         </div>
                                     ) : storeModels.length > 0 ? (
-                                        storeModels.filter(m => !m.runtimes || m.runtimes.includes(runtime)).map(m => {
+                                        storeModels.filter(m => {
+                                            if (!m.runtimes) return true;
+                                            if (m.runtimes.includes(runtime)) return true;
+                                            // vLLM-MUSA is compatible with vLLM-format HF models
+                                            if (runtime === 'vllm-musa' && m.runtimes.includes('vllm')) return true;
+                                            return false;
+                                        }).map(m => {
                                             const isExpanded = expandedStoreId === m.id;
                                             const hasDownloaded = m.variants?.some(v => localModels.some(g => g.variants.some(lv => lv.fileName === v.fileName)));
                                             return (

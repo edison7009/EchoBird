@@ -213,6 +213,31 @@ impl LlmServer {
                     .map_err(|e| format!("Failed to spawn vLLM: {}", e))?;
                 (c, false)
             }
+            "vllm-musa" => {
+                // vLLM-MUSA: Moore Threads M1000 / MTT GPU backend
+                // Requires: MUSA driver + musa-sdk + vllm + vllm_musa whl installed
+                // Runtime flag --device musa routes to MUSA backend instead of CUDA
+                self.add_log(&format!("Starting vLLM-MUSA on port {} with model: {}", port, model_name));
+                let mut args = vec![
+                    "-m".to_string(), "vllm.entrypoints.openai.api_server".to_string(),
+                    "--model".to_string(), model_path.to_string(),
+                    "--port".to_string(), port.to_string(),
+                    "--host".to_string(), "0.0.0.0".to_string(),
+                    "--device".to_string(), "musa".to_string(),
+                ];
+                if let Some(ctx) = context_size {
+                    args.push("--max-model-len".to_string());
+                    args.push(ctx.to_string());
+                }
+                let c = Command::new("python3")
+                    .args(&args)
+                    .stdin(std::process::Stdio::null())
+                    .stdout(std::process::Stdio::null())
+                    .stderr(std::process::Stdio::null())
+                    .spawn()
+                    .map_err(|e| format!("Failed to spawn vLLM-MUSA: {}", e))?;
+                (c, false)
+            }
             "sglang" => {
                 // SGLang: python3 -m sglang.launch_server
                 // Natively exposes /v1/chat/completions, no proxy needed
@@ -557,30 +582,45 @@ fn detect_gpu_mthreads() -> Option<GpuInfo> {
 
     // Fallback: try mthreads-gmi -L for a simple listing like "GPU 0: MTT S4000 (UUID: ...)"
     if vram_gb.is_none() {
-        let list_out = Command::new("mthreads-gmi").args(["-L"]).output().ok()?;
-        if list_out.status.success() {
-            let list_str = String::from_utf8_lossy(&list_out.stdout);
-            // Just confirms the tool is present; can't get VRAM from -L alone
-            for line in list_str.lines() {
-                if line.to_uppercase().contains("MTT") {
-                    if let Some(colon_pos) = line.find(':') {
-                        let after = line[colon_pos + 1..].trim();
-                        // Strip UUID part "(UUID: ...)"
-                        let name = if let Some(paren) = after.find('(') {
-                            after[..paren].trim()
-                        } else {
-                            after
-                        };
-                        if !name.is_empty() {
-                            gpu_name = shorten_gpu_name(name);
+        let list_out = Command::new("mthreads-gmi").args(["-L"]).output().ok();
+        if let Some(out) = list_out {
+            if out.status.success() {
+                let list_str = String::from_utf8_lossy(&out.stdout);
+                for line in list_str.lines() {
+                    if line.to_uppercase().contains("MTT") {
+                        if let Some(colon_pos) = line.find(':') {
+                            let after = line[colon_pos + 1..].trim();
+                            let name = if let Some(paren) = after.find('(') {
+                                after[..paren].trim()
+                            } else {
+                                after
+                            };
+                            if !name.is_empty() {
+                                gpu_name = shorten_gpu_name(name);
+                            }
                         }
+                        break;
                     }
-                    // Can't get VRAM reliably from -L; return None so next method is tried
-                    break;
                 }
             }
         }
-        return None; // No VRAM info found
+
+        // Device-file fallback: kernel driver loaded but mthreads-gmi not installed.
+        // /dev/mtgpu.0 exists whenever the npucore/mtgpu kernel module is active.
+        if std::path::Path::new("/dev/mtgpu.0").exists() {
+            // We know it's an MTT GPU but can't read VRAM without tools.
+            // Return a conservative 8 GB estimate so the UI shows the card.
+            return Some(GpuInfo {
+                gpu_name: if gpu_name == "Moore Threads MTT" {
+                    "MTT M1000".to_string()   // M1000 is the most likely card on aarch64
+                } else {
+                    gpu_name
+                },
+                gpu_vram_gb: 8.0,  // conservative estimate; actual M1000 has 12–16 GB
+            });
+        }
+
+        return None; // No VRAM info and no device file found
     }
 
     Some(GpuInfo { gpu_name, gpu_vram_gb: vram_gb? })
@@ -1473,12 +1513,198 @@ async fn install_python_runtime_task(state: SharedDownload, runtime: String) {
 }
 
 
+/// Install vLLM-MUSA: download tarball → extract → pip install whl files (no sudo required)
+async fn install_vllm_musa_task(state: SharedDownload) {
+    const TARBALL: &str = "release_1.3.0.003-vllm_musa_1.3-torch_2.1.1.tar.gz";
+    const TARBALL_URL: &str = "https://mt-ai-data.tos-cn-shanghai.volces.com/vllm_musa/v1.3/release_M1000_1.3.0.003/release_1.3.0.003-vllm_musa_1.3-torch_2.1.1.tar.gz";
+    const TARBALL_URL_INTRANET: &str = "https://oss.mthreads.com/mt-ai-data/vllm_musa/v1.3/release_M1000_1.3.0.003/20260108/release_1.3.0.003-vllm_musa_1.3-torch_2.1.1.tar.gz";
+
+    let tmp_dir = dirs::home_dir()
+        .unwrap_or_default()
+        .join(".echobird")
+        .join("vllm-musa-install");
+    let _ = std::fs::create_dir_all(&tmp_dir);
+    let tarball_path = tmp_dir.join(TARBALL);
+    let extract_dir = tmp_dir.join("package");
+
+    DOWNLOAD_ABORT.store(false, Ordering::SeqCst);
+
+    // ── Phase 1: download tarball ──
+    {
+        let mut dl = state.lock().await;
+        dl.file_name = "vllm-musa".to_string();
+        dl.status = "speed_test".to_string();
+        dl.progress = 0;
+        dl.downloaded = 0;
+        dl.total = 0;
+    }
+
+    // Try public CDN first, then intranet mirror
+    let urls = [TARBALL_URL, TARBALL_URL_INTRANET];
+    let mut downloaded = false;
+    for url in &urls {
+        if DOWNLOAD_ABORT.load(Ordering::SeqCst) { break; }
+        eprintln!("[vLLM-MUSA] Downloading from: {}", url);
+        {
+            let mut dl = state.lock().await;
+            dl.status = "downloading".to_string();
+        }
+        match download_engine_file(&state, url, &tarball_path, 0, 1).await {
+            Ok(_) => { downloaded = true; break; }
+            Err(e) => {
+                eprintln!("[vLLM-MUSA] Download failed ({}): {}", url, e);
+                let _ = std::fs::remove_file(&tarball_path);
+            }
+        }
+    }
+
+    if DOWNLOAD_ABORT.load(Ordering::SeqCst) {
+        let mut dl = state.lock().await;
+        dl.status = "cancelled".to_string();
+        return;
+    }
+
+    if !downloaded {
+        let mut dl = state.lock().await;
+        dl.status = "error".to_string();
+        eprintln!("[vLLM-MUSA] All download sources failed");
+        return;
+    }
+
+    // ── Phase 2: extract ──
+    eprintln!("[vLLM-MUSA] Extracting tarball...");
+    {
+        let mut dl = state.lock().await;
+        dl.status = "installing".to_string();
+        dl.progress = 20;
+    }
+    let _ = std::fs::create_dir_all(&extract_dir);
+    let tar_status = Command::new("tar")
+        .args(["-xzf", &tarball_path.to_string_lossy(), "-C", &extract_dir.to_string_lossy(), "--strip-components=1"])
+        .status();
+    match tar_status {
+        Ok(s) if s.success() => eprintln!("[vLLM-MUSA] Extraction done"),
+        _ => {
+            eprintln!("[vLLM-MUSA] tar extraction failed");
+            let mut dl = state.lock().await;
+            dl.status = "error".to_string();
+            return;
+        }
+    }
+    let _ = std::fs::remove_file(&tarball_path);
+
+    // ── Phase 3: pip install whl files in dependency order ──
+    // Priority order: torch → torch_musa → torchaudio/torchvision → triton → vllm → vllm_musa
+    // Also install requirements.txt first if present
+    {
+        let mut dl = state.lock().await;
+        dl.progress = 30;
+    }
+
+    // Install requirements.txt if present
+    let req_path = extract_dir.join("requirements.txt");
+    if req_path.exists() {
+        eprintln!("[vLLM-MUSA] Installing requirements.txt...");
+        let _ = tokio::task::spawn_blocking({
+            let req = req_path.to_string_lossy().to_string();
+            move || {
+                Command::new("pip3")
+                    .args(["install", "-r", &req,
+                           "-i", "https://pypi.tuna.tsinghua.edu.cn/simple",
+                           "--trusted-host", "pypi.tuna.tsinghua.edu.cn"])
+                    .status()
+            }
+        }).await;
+    }
+
+    // Collect all whl files and sort by install priority
+    let whl_priority = |name: &str| -> u8 {
+        let n = name.to_lowercase();
+        if n.starts_with("torch-") { 1 }
+        else if n.starts_with("torch_musa") { 2 }
+        else if n.starts_with("torchaudio") { 3 }
+        else if n.starts_with("torchvision") { 4 }
+        else if n.starts_with("triton") { 5 }
+        else if n.starts_with("vllm-") || n.starts_with("vllm_") && !n.contains("musa") { 6 }
+        else if n.contains("musa") { 7 }
+        else { 8 }
+    };
+
+    let mut whl_files: Vec<std::path::PathBuf> = Vec::new();
+    if let Ok(entries) = std::fs::read_dir(&extract_dir) {
+        for entry in entries.flatten() {
+            let p = entry.path();
+            if p.extension().map(|e| e == "whl").unwrap_or(false) {
+                whl_files.push(p);
+            }
+        }
+    }
+    whl_files.sort_by_key(|p| {
+        whl_priority(&p.file_name().unwrap_or_default().to_string_lossy())
+    });
+
+    eprintln!("[vLLM-MUSA] Found {} whl files to install", whl_files.len());
+    let total_whl = whl_files.len().max(1) as u32;
+
+    for (i, whl) in whl_files.iter().enumerate() {
+        if DOWNLOAD_ABORT.load(Ordering::SeqCst) {
+            let mut dl = state.lock().await;
+            dl.status = "cancelled".to_string();
+            return;
+        }
+        let progress = 30 + ((i as u32 + 1) * 60 / total_whl);
+        {
+            let mut dl = state.lock().await;
+            dl.progress = progress;
+        }
+        eprintln!("[vLLM-MUSA] Installing ({}/{}) {}", i + 1, total_whl,
+            whl.file_name().unwrap_or_default().to_string_lossy());
+
+        let whl_path = whl.to_string_lossy().to_string();
+        let result = tokio::task::spawn_blocking(move || {
+            Command::new("pip3")
+                .args(["install", &whl_path, "--force-reinstall",
+                       "-i", "https://pypi.tuna.tsinghua.edu.cn/simple",
+                       "--trusted-host", "pypi.tuna.tsinghua.edu.cn"])
+                .output()
+        }).await;
+
+        match result {
+            Ok(Ok(out)) if out.status.success() => {
+                eprintln!("[vLLM-MUSA] OK: {}", whl.file_name().unwrap_or_default().to_string_lossy());
+            }
+            _ => {
+                eprintln!("[vLLM-MUSA] WARN: pip install may have failed for {}",
+                    whl.file_name().unwrap_or_default().to_string_lossy());
+                // Continue: some whl may have soft deps, keep going
+            }
+        }
+    }
+
+    // Cleanup
+    let _ = std::fs::remove_dir_all(&tmp_dir);
+
+    {
+        let mut dl = state.lock().await;
+        dl.status = "completed".to_string();
+        dl.progress = 100;
+        dl.file_name = "vllm-musa".to_string();
+    }
+    eprintln!("[vLLM-MUSA] Installation complete");
+}
+
 /// Install engine (background task) — runtime-aware
 
 async fn install_engine_task(state: SharedDownload, runtime: String) {
     // ── vLLM / SGLang: pip install ──
     if runtime == "vllm" || runtime == "sglang" {
         install_python_runtime_task(state, runtime).await;
+        return;
+    }
+
+    // ── vLLM-MUSA: download tarball + pip install whl (no sudo needed) ──
+    if runtime == "vllm-musa" {
+        install_vllm_musa_task(state).await;
         return;
     }
 
