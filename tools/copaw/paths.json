@@ -2,19 +2,18 @@
     "name": "CoPaw",
     "category": "AgentOS",
     "apiProtocol": [
-        "openai"
+        "openai",
+        "anthropic"
     ],
     "docs": "https://github.com/agentscope-ai/CoPaw",
     "website": "https://copaw.agentscope.io",
-    "command": "copaw",
     "configDir": "~/.copaw",
-    "configFile": "~/.copaw/copaw.json",
     "requireConfigFile": false,
     "detectByConfigDir": true,
     "paths": {
         "win32": [
-            "%LOCALAPPDATA%\\CoPaw\\CoPaw.exe",
-            "%LOCALAPPDATA%\\Programs\\CoPaw\\CoPaw.exe"
+            "%LOCALAPPDATA%\\CoPaw\\CoPaw Desktop.vbs",
+            "%LOCALAPPDATA%\\CoPaw\\Scripts\\copaw.exe"
         ],
         "darwin": [
             "/Applications/CoPaw.app/Contents/MacOS/CoPaw",
