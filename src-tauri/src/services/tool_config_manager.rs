@@ -134,6 +134,9 @@ pub async fn apply_model_to_tool(tool_id: &str, model_info: ModelInfo) -> ApplyR
         "roocode" => return apply_echobird_relay(tool_id, &model_info, false),
         "openclaw" => return apply_echobird_relay(tool_id, &model_info, false),
 
+        // EasyClaw: direct write to ~/.easyclaw/easyclaw.json (Electron GUI, same format as OpenClaw)
+        "easyclaw" => return apply_easyclaw(&model_info),
+
         // Type 3: Direct JSON overwrite (special format)
         "codebuddy" | "codebuddycn" | "workbuddy" => return apply_codebuddy(tool_id, &model_info),
         "opencode" => return apply_opencode(&model_info),
@@ -166,6 +169,7 @@ pub async fn apply_model_to_tool(tool_id: &str, model_info: ModelInfo) -> ApplyR
 pub async fn get_tool_model_info(tool_id: &str) -> Option<ModelInfo> {
     match tool_id {
         "cline" | "roocode" | "openclaw" => return read_echobird_relay(tool_id),
+        "easyclaw" => return read_easyclaw(),
         "codebuddy" | "codebuddycn" | "workbuddy" => return read_codebuddy(tool_id),
         "opencode" => return read_opencode(),
         "aider" => return read_aider(),
@@ -299,6 +303,115 @@ fn read_generic_json(tool_id: &str) -> Option<ModelInfo> {
 }
 
 
+
+// ════════════════════════════════════════════════════════════════
+//  EasyClaw: direct write to ~/.easyclaw/easyclaw.json
+//  Same provider format as OpenClaw (models.providers.eb_xxx)
+// ════════════════════════════════════════════════════════════════
+
+fn apply_easyclaw(model_info: &ModelInfo) -> ApplyResult {
+    let config_path = dirs::home_dir().unwrap_or_default().join(".easyclaw").join("easyclaw.json");
+
+    let model_id = model_info.model.as_deref()
+        .or(model_info.name.as_deref()).unwrap_or("");
+    if model_id.is_empty() {
+        return ApplyResult { success: false, message: "Model ID is empty".to_string() };
+    }
+
+    let base_url = model_info.base_url.as_deref()
+        .unwrap_or("https://api.openai.com/v1").trim_end_matches('/').to_string();
+    let api_key = model_info.api_key.as_deref().unwrap_or("");
+    let protocol = model_info.protocol.as_deref().unwrap_or("openai");
+    let api_type = if protocol == "anthropic" { "anthropic-messages" } else { "openai-completions" };
+
+    let provider_tag = format!("eb_{}", extract_domain_name(&base_url));
+
+    let mut config = read_json_file(&config_path).unwrap_or(serde_json::json!({}));
+
+    // Remove previous eb_ providers
+    if let Some(providers) = config.pointer_mut("/models/providers") {
+        if let Some(obj) = providers.as_object_mut() {
+            obj.retain(|k, _| !k.starts_with("eb_"));
+            obj.insert(provider_tag.clone(), serde_json::json!({
+                "baseUrl": base_url,
+                "apiKey": api_key,
+                "api": api_type,
+                "auth": "api-key",
+                "authHeader": true,
+                "models": [{
+                    "id": model_id,
+                    "name": model_info.name.as_deref().unwrap_or(model_id),
+                    "api": api_type,
+                    "contextWindow": 128000,
+                    "maxTokens": 8192
+                }]
+            }));
+        }
+    } else {
+        // Create the providers section if it doesn't exist
+        let providers = serde_json::json!({
+            provider_tag.clone(): {
+                "baseUrl": base_url,
+                "apiKey": api_key,
+                "api": api_type,
+                "auth": "api-key",
+                "authHeader": true,
+                "models": [{
+                    "id": model_id,
+                    "name": model_info.name.as_deref().unwrap_or(model_id),
+                    "api": api_type,
+                    "contextWindow": 128000,
+                    "maxTokens": 8192
+                }]
+            }
+        });
+        config["models"]["providers"] = providers;
+    }
+
+    // Set primary model
+    let primary = format!("{}/{}", provider_tag, model_id);
+    config["agents"]["defaults"]["model"]["primary"] = serde_json::Value::String(primary.clone());
+
+    match write_json_file(&config_path, &config) {
+        Ok(_) => {
+            log::info!("[ToolConfigManager] EasyClaw config written: {}", primary);
+            ApplyResult {
+                success: true,
+                message: format!(
+                    "Model \"{}\" configured for EasyClaw. Restart EasyClaw to apply.",
+                    model_info.name.as_deref().unwrap_or(model_id)
+                ),
+            }
+        }
+        Err(e) => ApplyResult { success: false, message: e },
+    }
+}
+
+fn read_easyclaw() -> Option<ModelInfo> {
+    let config_path = dirs::home_dir()?.join(".easyclaw").join("easyclaw.json");
+    let config = read_json_file(&config_path)?;
+
+    // Find active eb_ provider from primary model
+    let primary = config.pointer("/agents/defaults/model/primary")
+        .and_then(|v| v.as_str())?;
+    let provider_tag = primary.split('/').next()?;
+    if !provider_tag.starts_with("eb_") { return None; }
+    let model_id = primary.splitn(2, '/').nth(1).unwrap_or("").to_string();
+
+    let provider_path = format!("/models/providers/{}", provider_tag);
+    let provider = config.pointer(&provider_path)?;
+
+    Some(ModelInfo {
+        name: Some(model_id.clone()),
+        model: Some(model_id),
+        base_url: provider.get("baseUrl").and_then(|v| v.as_str()).map(|s| s.to_string()),
+        api_key: provider.get("apiKey").and_then(|v| v.as_str()).map(|s| s.to_string()),
+        anthropic_url: None, proxy_url: None,
+        protocol: provider.get("api").and_then(|v| v.as_str()).map(|api| {
+            if api.contains("anthropic") { "anthropic".to_string() } else { "openai".to_string() }
+        }),
+    })
+}
 
 // ════════════════════════════════════════════════════════════════
 //  Type 2: Echobird relay JSON (Cline, RooCode, OpenClaw)
