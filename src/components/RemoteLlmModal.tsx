@@ -173,7 +173,7 @@ export const RemoteLlmModal: React.FC<RemoteLlmModalProps> = ({
                     const rs: Record<string, { installed: boolean; version?: string }> = {};
                     // API returns { engines: [{ name, installed, version }] } array format
                     const engines: any[] = eng.engines || [];
-                    for (const key of ['llama-server', 'vllm', 'sglang']) {
+                    for (const key of ['llama-server', 'vllm', 'sglang', 'vllm-musa']) {
                         const entry = engines.find((e: any) => e.name === key);
                         if (entry) rs[key] = { installed: !!entry.installed, version: entry.version };
                         else if (eng[key]) rs[key] = { installed: eng[key].installed, version: eng[key].version };
@@ -459,10 +459,15 @@ export const RemoteLlmModal: React.FC<RemoteLlmModalProps> = ({
                                             { id: 'sglang', label: 'SGLang' },
                                             { id: 'vllm-musa', label: 'vLLM-MUSA' },
                                         ].filter(opt => {
-                                            // vLLM / SGLang / vLLM-MUSA: Linux only
+                                            // All GPU runtimes: Linux only
                                             if ((opt.id === 'vllm' || opt.id === 'sglang' || opt.id === 'vllm-musa') && remoteSystemInfo && remoteSystemInfo.os !== 'linux') return false;
-                                            // GPU-requiring runtimes: hide when no GPU detected on remote server
-                                            if ((opt.id === 'vllm' || opt.id === 'sglang' || opt.id === 'vllm-musa') && remoteSystemInfo && remoteSystemInfo.gpuName === null) return false;
+                                            // vLLM / SGLang: require NVIDIA or AMD GPU
+                                            if ((opt.id === 'vllm' || opt.id === 'sglang') && remoteSystemInfo && !remoteSystemInfo.hasNvidiaGpu && !remoteSystemInfo.hasAmdGpu) return false;
+                                            // vLLM-MUSA: require Moore Threads GPU (detected via gpuName containing 'mtt' or 'moore')
+                                            if (opt.id === 'vllm-musa' && remoteSystemInfo) {
+                                                const gpuName = (remoteSystemInfo.gpuName || '').toLowerCase();
+                                                if (!gpuName.includes('mtt') && !gpuName.includes('moore')) return false;
+                                            }
                                             // Hide uninstalled once we have engine status data
                                             if (Object.keys(runtimeStatus).length > 0 && !runtimeStatus[opt.id]?.installed) return false;
                                             return true;
