@@ -1,1 +1,1 @@
-{"version": "2.6.7","releaseDate": "2026-03-10","releaseNotes": "Fix Mother Agent context overflow (byte-based truncation). Add MooreThreads GPU (vLLM-MUSA) support."}
+{"version": "2.6.8","releaseDate": "2026-03-10","releaseNotes": "Fix stop button not working during LLM streaming. Add smart SSH timeout (short 60s, long 600s). Fix context overflow on large tool outputs."}
