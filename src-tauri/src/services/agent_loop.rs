@@ -813,7 +813,7 @@ many users are beginners and just want to try things out quickly.\n\
 
 /// Translate a raw SSE/HTTP error into a short, user-friendly hint.
 fn format_connection_error_hint(_raw: &str) -> &'static str {
-    "Please check the API URL, Model ID, Key, and ensure your token quota is sufficient."
+    "Please check the URL, Model ID, API Key, and ensure your token quota is sufficient."
 }
 
 // -- LLM Server Down Detection --
