@@ -1,1 +1,1 @@
-{"version":"2.7.0","releaseDate":"2026-03-10","releaseNotes":"Add EasyClaw tool support with model switching (direct write to ~/.easyclaw/easyclaw.json)"}
+{"version":"2.7.1","releaseDate":"2026-03-10","releaseNotes":"Fix Linux App Manager empty content, fix Skills shuffle order fixed across sessions, remove dead code warning"}
