@@ -9,7 +9,7 @@
     "configDir": "~/.codebuddy",
     "configFile": "~/.codebuddy/models.json",
     "requireConfigFile": false,
-    "detectByConfigDir": true,
+    "detectByConfigDir": false,
     "paths": {
         "win32": [
             "%LOCALAPPDATA%/Programs/CodeBuddy CN/CodeBuddy CN.exe"
