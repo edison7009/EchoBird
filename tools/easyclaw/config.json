@@ -1,0 +1,5 @@
+{
+    "configFile": "~/.easyclaw/easyclaw.json",
+    "format": "json",
+    "custom": true
+}

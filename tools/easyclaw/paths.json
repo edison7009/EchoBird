@@ -1,0 +1,38 @@
+{
+    "name": "EasyClaw",
+    "category": "AgentOS",
+    "apiProtocol": [
+        "openai",
+        "anthropic"
+    ],
+    "docs": "https://www.easyclaw.ai",
+    "configDir": "~/.easyclaw",
+    "configFile": "~/.easyclaw/easyclaw.json",
+    "requireConfigFile": false,
+    "detectByConfigDir": false,
+    "paths": {
+        "win32": [
+            "%LOCALAPPDATA%/Programs/easyclaw/easyclaw.exe",
+            "%ProgramFiles(x86)%/easyclaw/easyclaw.exe",
+            "%ProgramFiles%/easyclaw/easyclaw.exe"
+        ],
+        "darwin": [
+            "/Applications/EasyClaw.app/Contents/MacOS/EasyClaw"
+        ],
+        "linux": [
+            "/usr/local/bin/easyclaw",
+            "/usr/bin/easyclaw"
+        ]
+    },
+    "skillsPath": {
+        "win32": [
+            "%USERPROFILE%/.easyclaw/skills"
+        ],
+        "darwin": [
+            "~/.easyclaw/skills"
+        ],
+        "linux": [
+            "~/.easyclaw/skills"
+        ]
+    }
+}
