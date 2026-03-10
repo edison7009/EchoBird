@@ -451,7 +451,7 @@ pub async fn run_agent(
                 sse_retry_count += 1;
                 log::warn!("[AgentLoop] SSE stream error, retrying ({}/{}): {}", sse_retry_count, MAX_SSE_RETRIES, sse_error_msg);
                 emit_event(&app, AgentEvent::TextDelta {
-                    text: format!("\n\n⚠️ {} — retrying ({}/{})...\n\n", sse_error_msg, sse_retry_count, MAX_SSE_RETRIES),
+                    text: format!("\n\n⚠️ Connection error, retrying ({}/{})...\n", sse_retry_count, MAX_SSE_RETRIES),
                 });
                 // If we had partial text but no tool calls, save it to avoid losing progress
                 if !text_accumulator.is_empty() && tool_calls.is_empty() {
@@ -468,8 +468,9 @@ pub async fn run_agent(
             }
             // Max retries exceeded or non-retryable error
             if !sse_error_msg.is_empty() {
+                let hint = format_connection_error_hint(&sse_error_msg);
                 emit_event(&app, AgentEvent::Error {
-                    message: format!("{} (failed after {} retries)", sse_error_msg, MAX_SSE_RETRIES),
+                    message: format!("⚠️ Failed to connect to AI model after {} retries.\n\n💡 {}", MAX_SSE_RETRIES, hint),
                 });
             }
             // Remove the user message that caused the error from history
@@ -807,6 +808,25 @@ many users are beginners and just want to try things out quickly.\n\
     prompt
 }
 
+
+// -- Connection Error Hints --
+
+/// Translate a raw SSE/HTTP error into a short, user-friendly hint.
+fn format_connection_error_hint(raw: &str) -> &'static str {
+    if raw.contains("405") || raw.contains("Method Not Allowed") {
+        "Please check your Base URL in Model Nexus (e.g. remove any /chat/completions suffix)."
+    } else if raw.contains("401") || raw.contains("nauthorized") {
+        "API Key rejected. Please verify your API Key in Model Nexus."
+    } else if raw.contains("403") || raw.contains("orbidden") {
+        "Access denied. Please check your API Key permissions in Model Nexus."
+    } else if raw.contains("timeout") || raw.contains("timed out") {
+        "Request timed out. Check your network or the model provider's status."
+    } else if raw.contains("dns") || raw.contains("resolve") || raw.contains("No such host") {
+        "Cannot reach model provider. Check your network or API URL."
+    } else {
+        "Check your model configuration in Model Nexus."
+    }
+}
 
 // -- LLM Server Down Detection --
 
