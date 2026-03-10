@@ -1,1 +1,1 @@
-{"version": "2.7.5","releaseDate": "2026-03-10","releaseNotes": "Fix Linux app list empty (Tauri packages tools under _up_/tools in deb), fix refresh button focus outline on Linux WebKitGTK"}
+{"version": "2.7.6","releaseDate": "2026-03-11","releaseNotes": "i18n connection error messages in 28 languages, remote server target guard for shell_exec"}
