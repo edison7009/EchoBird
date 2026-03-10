@@ -402,22 +402,21 @@ export const LocalServerMain: React.FC = () => {
 
                 {/* Parameter row */}
                 <div className="grid grid-cols-4 gap-3">
-                    {/* Compute: only relevant for llama.cpp; HF runtimes manage GPU internally */}
-                    {runtime === 'llama-server' && (
-                        <div className="flex items-center gap-2">
-                            <label className="text-[11px] text-cyber-text-secondary font-mono font-bold flex-shrink-0">{t('server.compute')}</label>
-                            <MiniSelect
-                                value={String(gpuLayers)}
-                                onChange={(v) => setGpuLayers(Number(v))}
-                                disabled={isRunning}
-                                options={[
-                                    ...(hasNvidiaGpu ? [{ id: '-1', label: t('server.gpuFull') }] : []),
-                                    { id: '0', label: t('server.cpuOnly') },
-                                ]}
-                                className="flex-1"
-                            />
-                        </div>
-                    )}
+                    {/* Compute: locked to GPU Full when using HF runtimes (vLLM/SGLang manage GPU internally) */}
+                    <div className="flex items-center gap-2">
+                        <label className="text-[11px] text-cyber-text-secondary font-mono font-bold flex-shrink-0">{t('server.compute')}</label>
+                        <MiniSelect
+                            value={runtime !== 'llama-server' ? '-1' : String(gpuLayers)}
+                            onChange={(v) => setGpuLayers(Number(v))}
+                            disabled={isRunning || runtime !== 'llama-server'}
+                            options={[
+                                { id: '-1', label: `⚡ ${t('server.gpuFull')}` },
+                                ...(runtime === 'llama-server' ? [{ id: '0', label: t('server.cpuOnly') }] : []),
+                            ]}
+                            className="flex-1"
+                        />
+                    </div>
+
                     <div className="flex items-center gap-2">
                         <label className="text-[11px] text-cyber-text-secondary font-mono font-bold flex-shrink-0">{t('server.context')}</label>
                         <MiniSelect
