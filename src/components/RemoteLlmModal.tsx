@@ -486,7 +486,7 @@ export const RemoteLlmModal: React.FC<RemoteLlmModalProps> = ({
                                     return (
                                         <div className="w-full py-3 font-bold text-base tracking-[0.3em] font-mono flex items-center justify-center gap-2 bg-cyber-surface/30 text-cyber-accent/70 border border-cyber-accent/30">
                                             <Loader2 className="w-4 h-4 animate-spin" />
-                                            INSTALLING {runtime.toUpperCase()}…
+                                            {t('server.installing')}
                                         </div>
                                     );
                                 }
@@ -507,7 +507,7 @@ export const RemoteLlmModal: React.FC<RemoteLlmModalProps> = ({
                                             }}
                                             className="w-full py-3 font-bold text-base tracking-[0.3em] font-mono transition-all flex items-center justify-center gap-2 bg-cyber-accent/10 text-cyber-accent border border-cyber-accent/50 hover:bg-cyber-accent/20"
                                         >
-                                            ↻ REFRESH STATUS
+                                            ↻ {t('btn.refresh')}
                                         </button>
                                     );
                                 }
