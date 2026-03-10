@@ -372,6 +372,16 @@ fn apply_easyclaw(model_info: &ModelInfo) -> ApplyResult {
     let primary = format!("{}/{}", provider_tag, model_id);
     config["agents"]["defaults"]["model"]["primary"] = serde_json::Value::String(primary.clone());
 
+    // Add our model to agents.defaults.models so the UI picker shows it
+    if let Some(models_map) = config.pointer_mut("/agents/defaults/models") {
+        if let Some(obj) = models_map.as_object_mut() {
+            obj.retain(|k, _| !k.starts_with("eb_"));
+            obj.insert(primary.clone(), serde_json::json!({
+                "alias": model_info.name.as_deref().unwrap_or(model_id)
+            }));
+        }
+    }
+
     match write_json_file(&config_path, &config) {
         Ok(_) => {
             log::info!("[ToolConfigManager] EasyClaw config written: {}", primary);
