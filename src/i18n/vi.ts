@@ -294,6 +294,9 @@ const vi: Partial<Translations> = {
     'ssh.ishUsername': 'root',
     'ssh.ishPassword': 'đặt qua passwd',
     'ssh.ishIp': 'Cài đặt → Wi-Fi → Địa chỉ IP',
+    'mother.connectionRetrying': 'Lỗi kết nối, đang thử lại ({n}/{total})...',
+    'mother.connectionFailed': 'Không thể kết nối với mô hình AI sau {n} lần thử.',
+    'mother.connectionHint': 'Vui lòng kiểm tra URL, Model ID, API Key và đảm bảo hạn mức Token đủ.',
     'common.showProcess': 'SUY NGHĨ·QUÁ TRÌNH',
     'mother.thinking': 'Đang suy nghĩ...',
 };

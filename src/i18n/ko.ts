@@ -321,6 +321,9 @@ const ko: Partial<Translations> = {
     'ssh.ishUsername': 'root',
     'ssh.ishPassword': 'passwd로 설정',
     'ssh.ishIp': '설정 → Wi-Fi → IP 주소',
+    'mother.connectionRetrying': '연결 오류, 재시도 중 ({n}/{total})...',
+    'mother.connectionFailed': 'AI 모델 연결에 {n}회 실패했습니다.',
+    'mother.connectionHint': 'URL, Model ID, API Key를 확인하고 Token 할당량이 충분한지 확인하세요.',
     'common.showProcess': '사고 과정',
 };
 export default ko;

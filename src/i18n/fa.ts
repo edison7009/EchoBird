@@ -161,6 +161,9 @@ const fa: Partial<Translations> = {
     'ssh.ishUsername': 'root',
     'ssh.ishPassword': 'با passwd تنظیم کنید',
     'ssh.ishIp': 'تنظیمات → Wi-Fi → آدرس IP',
+    'mother.connectionRetrying': 'خطای اتصال، در حال تلاش مجدد ({n}/{total})...',
+    'mother.connectionFailed': 'اتصال به مدل هوش مصنوعی پس از {n} تلاش ناموفق بود.',
+    'mother.connectionHint': 'لطفاً URL، Model ID و API Key را بررسی کنید و مطمئن شوید سهمیه Token کافی دارید.',
     'common.showProcess': 'تفکر·فرآیند',
     'mother.thinking': 'در حال تفکر...',
 };

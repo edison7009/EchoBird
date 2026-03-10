@@ -126,6 +126,8 @@ export type TKey =
     | 'ssh.linuxNote'
     | 'ssh.linuxUsername' | 'ssh.linuxPassword' | 'ssh.linuxIp'
     | 'ssh.termuxUsername' | 'ssh.termuxPassword' | 'ssh.termuxIp'
-    | 'ssh.ishUsername' | 'ssh.ishPassword' | 'ssh.ishIp';
+    | 'ssh.ishUsername' | 'ssh.ishPassword' | 'ssh.ishIp'
+    // Mother Agent connection error messages
+    | 'mother.connectionRetrying' | 'mother.connectionFailed' | 'mother.connectionHint';
 
 export type Translations = Record<TKey, string>;

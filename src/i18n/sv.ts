@@ -161,6 +161,9 @@ const sv: Partial<Translations> = {
     'ssh.ishUsername': 'root',
     'ssh.ishPassword': 'ställ in via passwd',
     'ssh.ishIp': 'Inställningar → Wi-Fi → IP-adress',
+    'mother.connectionRetrying': 'Anslutningsfel, försöker igen ({n}/{total})...',
+    'mother.connectionFailed': 'Det gick inte att ansluta till AI-modellen efter {n} försök.',
+    'mother.connectionHint': 'Kontrollera URL, Model ID och API Key och se till att Token-gränsen är tillräcklig.',
     'common.showProcess': 'TÄNKANDE·PROCESS',
     'mother.thinking': 'Tänker...',
 };

@@ -294,6 +294,9 @@ const hu: Partial<Translations> = {
     'ssh.ishUsername': 'root',
     'ssh.ishPassword': 'beállítás passwd-vel',
     'ssh.ishIp': 'Beállítások → Wi-Fi → IP-cím',
+    'mother.connectionRetrying': 'Kapcsolódási hiba, újrapróbálkozás ({n}/{total})...',
+    'mother.connectionFailed': 'Nem sikerült csatlakozni az AI modellhez {n} kísérlet után.',
+    'mother.connectionHint': 'Kérjük, ellenőrizze az URL-t, a Model ID-t és az API Key-t, és győződjön meg arról, hogy a Token-kvóta elegendő.',
     'common.showProcess': 'GONDOLKODÁS·FOLYAMAT',
     'mother.thinking': 'Gondolkodik...',
 };

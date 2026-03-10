@@ -294,7 +294,10 @@ const es: Partial<Translations> = {
     'ssh.termuxIp': 'ejecutar ifconfig | grep inet',
     'ssh.ishUsername': 'root',
     'ssh.ishPassword': 'establecer con passwd',
-    'ssh.ishIp': 'Ajustes →Wi-Fi →Dirección IP',
+    'ssh.ishIp': 'Ajustes → Wi-Fi → Dirección IP',
+    'mother.connectionRetrying': 'Error de conexión, reintentando ({n}/{total})...',
+    'mother.connectionFailed': 'No se pudo conectar al modelo de IA tras {n} intentos.',
+    'mother.connectionHint': 'Por favor comprueba la URL, el Model ID y la API Key, y asegúrate de que tu cuota de tokens es suficiente.',
     'common.showProcess': 'PENSAR·PROCESO',
 };
 export default es;

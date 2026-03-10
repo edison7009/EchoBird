@@ -321,6 +321,9 @@ const ru: Partial<Translations> = {
     'ssh.ishUsername': 'root',
     'ssh.ishPassword': 'Задайте через passwd',
     'ssh.ishIp': 'Настройки → Wi-Fi → IP-адрес',
+    'mother.connectionRetrying': 'Ошибка подключения, повторная попытка ({n}/{total})...',
+    'mother.connectionFailed': 'Не удалось подключиться к модели ИИ после {n} попыток.',
+    'mother.connectionHint': 'Проверьте URL, Model ID, API Key и убедитесь, что лимит токенов достаточен.',
     'common.showProcess': 'Ход мыслей',
 };
 export default ru;

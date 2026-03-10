@@ -161,6 +161,9 @@ const el: Partial<Translations> = {
     'ssh.ishUsername': 'root',
     'ssh.ishPassword': 'ορίστε μέσω passwd',
     'ssh.ishIp': 'Ρυθμίσεις → Wi-Fi → Διεύθυνση IP',
+    'mother.connectionRetrying': 'Σφάλμα σύνδεσης, επανάληψη ({n}/{total})...',
+    'mother.connectionFailed': 'Αποτυχία σύνδεσης με το μοντέλο AI μετά από {n} προσπάθειες.',
+    'mother.connectionHint': 'Ελέγξτε το URL, το Model ID, το API Key και βεβαιωθείτε ότι η ποσόστωση Token είναι επαρκής.',
     'common.showProcess': 'ΣΚΕΨΗ·ΔΙΑΔΙΚΑΣΙΑ',
     'mother.thinking': 'Σκέφτεται...',
 };

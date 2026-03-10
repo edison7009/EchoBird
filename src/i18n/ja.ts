@@ -319,7 +319,10 @@ const ja: Partial<Translations> = {
     'ssh.termuxIp': 'ifconfig | grep inet を実行',
     'ssh.ishUsername': 'root',
     'ssh.ishPassword': 'passwd で設定',
-    'ssh.ishIp': '設定 → Wi-Fi → IP アドレス',
+    'ssh.ishIp': '設定 → Wi-Fi → IPアドレス',
+    'mother.connectionRetrying': '接続エラー、再試行中 ({n}/{total})...',
+    'mother.connectionFailed': 'AIモデルへの接続に {n} 回失敗しました。',
+    'mother.connectionHint': 'URL、Model ID、API Key を確認し、Tokenの残高が十分かご確認ください。',
     'common.showProcess': '思考·過程',
     'mother.thinking': '思考中...',
 };

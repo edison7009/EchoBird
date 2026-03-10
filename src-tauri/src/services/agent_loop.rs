@@ -451,7 +451,7 @@ pub async fn run_agent(
                 sse_retry_count += 1;
                 log::warn!("[AgentLoop] SSE stream error, retrying ({}/{}): {}", sse_retry_count, MAX_SSE_RETRIES, sse_error_msg);
                 emit_event(&app, AgentEvent::TextDelta {
-                    text: format!("\n\n⚠️ Connection error, retrying ({}/{})...\n", sse_retry_count, MAX_SSE_RETRIES),
+                    text: format!("\n\n__CONN_RETRY__:{}/{}\n", sse_retry_count, MAX_SSE_RETRIES),
                 });
                 // If we had partial text but no tool calls, save it to avoid losing progress
                 if !text_accumulator.is_empty() && tool_calls.is_empty() {
@@ -468,9 +468,8 @@ pub async fn run_agent(
             }
             // Max retries exceeded or non-retryable error
             if !sse_error_msg.is_empty() {
-                let hint = format_connection_error_hint(&sse_error_msg);
                 emit_event(&app, AgentEvent::Error {
-                    message: format!("Failed to connect to AI model after {} retries.\n{}", MAX_SSE_RETRIES, hint),
+                    message: format!("__CONN_FAILED__:{}\n__CONN_HINT__", MAX_SSE_RETRIES),
                 });
             }
             // Remove the user message that caused the error from history
@@ -808,13 +807,6 @@ many users are beginners and just want to try things out quickly.\n\
     prompt
 }
 
-
-// -- Connection Error Hints --
-
-/// Translate a raw SSE/HTTP error into a short, user-friendly hint.
-fn format_connection_error_hint(_raw: &str) -> &'static str {
-    "Please check the URL, Model ID, API Key, and ensure your token quota is sufficient."
-}
 
 // -- LLM Server Down Detection --
 

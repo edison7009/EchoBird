@@ -321,6 +321,9 @@ const zhHant: Partial<Translations> = {
     'ssh.ishUsername': 'root',
     'ssh.ishPassword': '透過 passwd 設定',
     'ssh.ishIp': '設定 → Wi-Fi → IP 位址',
+    'mother.connectionRetrying': '連接錯誤，正在重試 ({n}/{total})...',
+    'mother.connectionFailed': '連接 AI 模型失敗，已重試 {n} 次。',
+    'mother.connectionHint': '請檢查 URL、Model ID、API Key，並確認 Token 額度充足。',
     'common.showProcess': '思考·過程',
     'mother.thinking': '正在思考...',
 };

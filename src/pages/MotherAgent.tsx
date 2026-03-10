@@ -670,8 +670,15 @@ export function MotherAgentMain() {
                                 switch (msg.type) {
                                     case 'user':
                                         return <p key={i} className="break-words whitespace-pre-wrap text-white">&gt; {msg.text}</p>;
-                                    case 'assistant':
+                                    case 'assistant': {
+                                        // Intercept connection retry marker emitted by backend
+                                        const retryMatch = msg.text.match(/__CONN_RETRY__:(\d+)\/(\d+)/);
+                                        if (retryMatch) {
+                                            const label = `\n\n⚠️ ${t('mother.connectionRetrying').replace('{n}', retryMatch[1]).replace('{total}', retryMatch[2])}\n`;
+                                            return <p key={i} className="break-words whitespace-pre-wrap text-yellow-400/70 text-xs">{label.trim()}</p>;
+                                        }
                                         return <div key={i} className="break-words text-cyber-text-muted/80 channel-markdown"><ReactMarkdown remarkPlugins={[remarkGfm]} components={mdComponents}>{msg.text}</ReactMarkdown></div>;
+                                    }
                                     case 'thinking':
                                         return (
                                             <div key={i} className="text-xs border-l-2 border-cyan-500/20 pl-2 my-0.5 flex items-center gap-1">
@@ -692,8 +699,21 @@ export function MotherAgentMain() {
                                                 <pre className="whitespace-pre-wrap">{msg.output.slice(0, 500)}{msg.output.length > 500 ? '\n...' : ''}</pre>
                                             </div>
                                         );
-                                    case 'error':
+                                    case 'error': {
+                                        // Intercept connection failed marker emitted by backend
+                                        const failedMatch = msg.text.match(/__CONN_FAILED__:(\d+)/);
+                                        if (failedMatch) {
+                                            const line1 = t('mother.connectionFailed').replace('{n}', failedMatch[1]);
+                                            const line2 = t('mother.connectionHint');
+                                            return (
+                                                <div key={i} className="text-red-400 text-sm">
+                                                    <p>{line1}</p>
+                                                    <p className="text-red-400/70 text-xs mt-0.5">{line2}</p>
+                                                </div>
+                                            );
+                                        }
                                         return <p key={i} className="break-words whitespace-pre-wrap text-red-400">{msg.text}</p>;
+                                    }
                                     case 'state':
                                         return null; // State changes don't render as messages
                                     default:

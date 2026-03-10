@@ -321,7 +321,10 @@ const de: Partial<Translations> = {
     'ssh.termuxIp': 'ifconfig | grep inet ausführen',
     'ssh.ishUsername': 'root',
     'ssh.ishPassword': 'per passwd festlegen',
-    'ssh.ishIp': 'Einstellungen →WLAN →IP-Adresse',
+    'ssh.ishIp': 'Einstellungen → Wi-Fi → IP-Adresse',
+    'mother.connectionRetrying': 'Verbindungsfehler, erneuter Versuch ({n}/{total})...',
+    'mother.connectionFailed': 'Verbindung zum KI-Modell nach {n} Versuchen fehlgeschlagen.',
+    'mother.connectionHint': 'Bitte URL, Model-ID und API-Key prüfen und sicherstellen, dass ausreichend Token-Guthaben vorhanden ist.',
     'common.showProcess': 'DENKEN·PROZESS',
     'mother.thinking': 'Denkt nach...',
 };

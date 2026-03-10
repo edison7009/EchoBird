@@ -296,6 +296,9 @@ const th: Partial<Translations> = {
     'ssh.ishUsername': 'root',
     'ssh.ishPassword': 'ตั้งค่าผ่าน passwd',
     'ssh.ishIp': 'การตั้งค่า → Wi-Fi → ที่อยู่ IP',
+    'mother.connectionRetrying': 'เกิดข้อผิดพลาดในการเชื่อมต่อ กำลังลองใหม่ ({n}/{total})...',
+    'mother.connectionFailed': 'ไม่สามารถเชื่อมต่อกับโมเดล AI หลังจากลอง {n} ครั้ง',
+    'mother.connectionHint': 'กรุณาตรวจสอบ URL, Model ID, API Key และตรวจสอบว่า Token quota เพียงพอ',
     'common.showProcess': 'คิด·กระบวนการ',
     'mother.thinking': 'กำลังคิด...',
 };

@@ -161,6 +161,9 @@ const fi: Partial<Translations> = {
     'ssh.ishUsername': 'root',
     'ssh.ishPassword': 'aseta passwd-komennolla',
     'ssh.ishIp': 'Asetukset → Wi-Fi → IP-osoite',
+    'mother.connectionRetrying': 'Yhteysvirhe, yritetään uudelleen ({n}/{total})...',
+    'mother.connectionFailed': 'Yhteys tekoälymalliin epäonnistui {n} yrityksen jälkeen.',
+    'mother.connectionHint': 'Tarkista URL, Model ID ja API Key sekä varmista, että Token-kiintiösi on riittävä.',
     'common.showProcess': 'AJATTELU·PROSESSI',
     'mother.thinking': 'Miettii...',
 };

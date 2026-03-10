@@ -294,6 +294,9 @@ const bn: Partial<Translations> = {
     'ssh.ishUsername': 'root',
     'ssh.ishPassword': 'passwd দিয়ে সেট করুন',
     'ssh.ishIp': 'সেটিংস → Wi-Fi → IP ঠিকানা',
+    'mother.connectionRetrying': 'সংযোগ ত্রুটি, পুনরায় চেষ্টা করা হচ্ছে ({n}/{total})...',
+    'mother.connectionFailed': '{n} বার চেষ্টার পর AI মডেলের সাথে সংযোগ ব্যর্থ হয়েছে।',
+    'mother.connectionHint': 'URL, Model ID, API Key পরীক্ষা করুন এবং নিশ্চিত করুন যে Token কোটা পর্যাপ্ত।',
     'common.showProcess': 'চিন্তা·প্রক্রিয়া',
     'mother.thinking': 'ভাবছে...',
 };

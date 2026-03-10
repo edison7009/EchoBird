@@ -294,6 +294,9 @@ const tr: Partial<Translations> = {
     'ssh.ishUsername': 'root',
     'ssh.ishPassword': 'passwd ile ayarlayın',
     'ssh.ishIp': 'Ayarlar → Wi-Fi → IP Adresi',
+    'mother.connectionRetrying': 'Bağlantı hatası, yeniden deneniyor ({n}/{total})...',
+    'mother.connectionFailed': '{n} denemeden sonra AI modeline bağlanılamadı.',
+    'mother.connectionHint': 'Lütfen URL, Model ID ve API Key\'i kontrol edin ve Token kotanızın yeterli olduğundan emin olun.',
     'common.showProcess': 'DÜŞÜNME·SÜREÇ',
     'mother.thinking': 'Düşünüyor...',
 };

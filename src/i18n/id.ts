@@ -296,6 +296,9 @@ const id: Partial<Translations> = {
     'ssh.ishUsername': 'root',
     'ssh.ishPassword': 'atur via passwd',
     'ssh.ishIp': 'Pengaturan → Wi-Fi → Alamat IP',
+    'mother.connectionRetrying': 'Kesalahan koneksi, mencoba lagi ({n}/{total})...',
+    'mother.connectionFailed': 'Gagal terhubung ke model AI setelah {n} percobaan.',
+    'mother.connectionHint': 'Periksa URL, Model ID, API Key, dan pastikan kuota Token Anda mencukupi.',
     'common.showProcess': 'PIKIR·PROSES',
     'mother.thinking': 'Sedang berpikir...',
 };

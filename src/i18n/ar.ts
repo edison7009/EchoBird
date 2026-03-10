@@ -294,6 +294,9 @@ const ar: Partial<Translations> = {
     'ssh.ishUsername': 'root',
     'ssh.ishPassword': 'عيّنها عبر passwd',
     'ssh.ishIp': 'الإعدادات → Wi-Fi → عنوان IP',
+    'mother.connectionRetrying': 'خطأ في الاتصال، جارٍ إعادة المحاولة ({n}/{total})...',
+    'mother.connectionFailed': 'فشل الاتصال بنموذج الذكاء الاصطناعي بعد {n} محاولات.',
+    'mother.connectionHint': 'يرجى التحقق من الرابط ومعرّف النموذج ومفتاح API، والتأكد من كفاية حصة الرموز.',
     'common.showProcess': 'تفكير·معالجة',
     'mother.thinking': 'يفكر...',
 };

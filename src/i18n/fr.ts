@@ -322,7 +322,10 @@ const fr: Partial<Translations> = {
     'ssh.termuxIp': 'exécuter ifconfig | grep inet',
     'ssh.ishUsername': 'root',
     'ssh.ishPassword': 'définir via passwd',
-    'ssh.ishIp': 'Réglages →Wi-Fi →Adresse IP',
+    'ssh.ishIp': 'Réglages → Wi-Fi → Adresse IP',
+    'mother.connectionRetrying': 'Erreur de connexion, nouvelle tentative ({n}/{total})...',
+    'mother.connectionFailed': 'Échec de la connexion au modèle IA après {n} tentatives.',
+    'mother.connectionHint': 'Vérifiez l\'URL, le Model ID et l\'API Key, et assurez-vous que votre quota de tokens est suffisant.',
     'common.showProcess': 'PENSÉE·PROCESSUS',
 };
 export default fr;

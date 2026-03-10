@@ -294,6 +294,9 @@ const nl: Partial<Translations> = {
     'ssh.ishUsername': 'root',
     'ssh.ishPassword': 'instellen via passwd',
     'ssh.ishIp': 'Instellingen → Wi-Fi → IP-adres',
+    'mother.connectionRetrying': 'Verbindingsfout, opnieuw proberen ({n}/{total})...',
+    'mother.connectionFailed': 'Verbinding met AI-model mislukt na {n} pogingen.',
+    'mother.connectionHint': 'Controleer de URL, het Model ID en de API Key, en zorg dat uw Token-quotum voldoende is.',
     'common.showProcess': 'DENKEN·PROCES',
     'mother.thinking': 'Denken...',
 };

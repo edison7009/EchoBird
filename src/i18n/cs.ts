@@ -294,6 +294,9 @@ const cs: Partial<Translations> = {
     'ssh.ishUsername': 'root',
     'ssh.ishPassword': 'nastavit přes passwd',
     'ssh.ishIp': 'Nastavení → Wi-Fi → IP adresa',
+    'mother.connectionRetrying': 'Chyba připojení, opakuji pokus ({n}/{total})...',
+    'mother.connectionFailed': 'Připojení k modelu AI selhalo po {n} pokusech.',
+    'mother.connectionHint': 'Zkontrolujte URL, Model ID, API Key a ujistěte se, že máte dostatečný Token kredit.',
     'common.showProcess': 'MYŠLENÍ·PROCES',
     'mother.thinking': 'Přemýšlí...',
 };
