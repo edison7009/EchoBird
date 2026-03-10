@@ -824,7 +824,7 @@ fn format_connection_error_hint(raw: &str) -> &'static str {
     } else if raw.contains("dns") || raw.contains("resolve") || raw.contains("No such host") {
         "Cannot reach model provider. Check your network or API URL."
     } else {
-        "Check your model configuration in Model Nexus."
+        "Please verify your model configuration in Model Nexus — check the API URL, API Key, and ensure your token quota is sufficient."
     }
 }
 
