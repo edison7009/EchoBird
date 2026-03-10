@@ -471,8 +471,8 @@ export const RemoteLlmModal: React.FC<RemoteLlmModalProps> = ({
                                                 const gpuName = (remoteSystemInfo.gpuName || '').toLowerCase();
                                                 if (!gpuName.includes('mtt') && !gpuName.includes('moore')) return false;
                                             }
-                                            // Hide uninstalled once we have engine status data
-                                            if (Object.keys(runtimeStatus).length > 0 && !runtimeStatus[opt.id]?.installed) return false;
+                                            // Always show hardware-compatible runtimes regardless of install status
+                                            // (user needs to select a runtime to install it — filtering by installed creates a chicken-and-egg problem)
                                             return true;
                                         })}
                                         className="flex-1"
