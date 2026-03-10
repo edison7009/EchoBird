@@ -410,8 +410,10 @@ export const LocalServerMain: React.FC = () => {
                             onChange={(v) => setGpuLayers(Number(v))}
                             disabled={isRunning || runtime !== 'llama-server'}
                             options={[
-                                { id: '-1', label: t('server.gpuFull') },
-                                ...(runtime === 'llama-server' ? [{ id: '0', label: t('server.cpuOnly') }] : []),
+                                ...(runtime !== 'llama-server' || hasNvidiaGpu || hasAmdGpu
+                                    ? [{ id: '-1', label: t('server.gpuFull') }]
+                                    : []),
+                                { id: '0', label: t('server.cpuOnly') },
                             ]}
                             className="flex-1"
                         />

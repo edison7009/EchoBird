@@ -286,7 +286,7 @@ export const RemoteLlmModal: React.FC<RemoteLlmModalProps> = ({
     // ── Auto-clear download status after 5s (completed/error/cancelled) ──
     useEffect(() => {
         if (remoteDownload.status === 'completed' || remoteDownload.status === 'error' || remoteDownload.status === 'cancelled') {
-            const timer = setTimeout(() => setRemoteDownload({ fileName: '', progress: 0, status: 'idle' }), 5000);
+            const timer = setTimeout(() => setRemoteDownload({ fileName: '', progress: 0, status: 'idle' }), 30000);
             return () => clearTimeout(timer);
         }
     }, [remoteDownload.status]);
