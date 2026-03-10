@@ -470,7 +470,7 @@ pub async fn run_agent(
             if !sse_error_msg.is_empty() {
                 let hint = format_connection_error_hint(&sse_error_msg);
                 emit_event(&app, AgentEvent::Error {
-                    message: format!("⚠️ Failed to connect to AI model after {} retries.\n\n💡 {}", MAX_SSE_RETRIES, hint),
+                    message: format!("Failed to connect to AI model after {} retries.\n{}", MAX_SSE_RETRIES, hint),
                 });
             }
             // Remove the user message that caused the error from history
@@ -812,20 +812,8 @@ many users are beginners and just want to try things out quickly.\n\
 // -- Connection Error Hints --
 
 /// Translate a raw SSE/HTTP error into a short, user-friendly hint.
-fn format_connection_error_hint(raw: &str) -> &'static str {
-    if raw.contains("405") || raw.contains("Method Not Allowed") {
-        "Please check your Base URL in Model Nexus (e.g. remove any /chat/completions suffix)."
-    } else if raw.contains("401") || raw.contains("nauthorized") {
-        "API Key rejected. Please verify your API Key in Model Nexus."
-    } else if raw.contains("403") || raw.contains("orbidden") {
-        "Access denied. Please check your API Key permissions in Model Nexus."
-    } else if raw.contains("timeout") || raw.contains("timed out") {
-        "Request timed out. Check your network or the model provider's status."
-    } else if raw.contains("dns") || raw.contains("resolve") || raw.contains("No such host") {
-        "Cannot reach model provider. Check your network or API URL."
-    } else {
-        "Please verify your model configuration in Model Nexus — check the API URL, API Key, and ensure your token quota is sufficient."
-    }
+fn format_connection_error_hint(_raw: &str) -> &'static str {
+    "Please check the API URL, Key, and ensure your token quota is sufficient."
 }
 
 // -- LLM Server Down Detection --
