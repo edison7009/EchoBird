@@ -260,7 +260,7 @@ export const AppManagerMain: React.FC = () => {
                     <button
                         onClick={scanTools}
                         disabled={isScanning}
-                        className="text-[10px] border border-cyber-accent text-cyber-accent px-3 py-1 hover:bg-cyber-accent/10 transition-colors rounded disabled:opacity-50"
+                        className="text-[10px] border border-cyber-accent text-cyber-accent px-3 py-1 hover:bg-cyber-accent/10 transition-colors rounded disabled:opacity-50 outline-none"
                     >
                         {isScanning ? t('status.scanning') : t('btn.refresh')}
                     </button>

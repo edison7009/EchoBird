@@ -61,11 +61,40 @@ pub fn init_resource_dir(path: PathBuf) {
 /// In production: bundled with the app binary
 fn find_tools_dir() -> Option<PathBuf> {
     // 0. Tauri-native resource_dir (most reliable — set at startup via init_resource_dir)
+    //
+    // Tauri v2 bundles resources relative to src-tauri/ using "_up_" for "../" paths:
+    //   config: "../tools/"  →  resource_dir/_up_/tools/  (confirmed on Linux deb)
+    //   config: "tools"      →  resource_dir/tools/
+    //
+    // Reality (confirmed via dpkg -L echobird on Ubuntu):
+    //   binary: /usr/bin/echobird
+    //   tools:  /usr/lib/Echobird/_up_/tools/
+    //   resource_dir = /usr/lib/Echobird/
     if let Ok(guard) = RESOURCE_DIR.lock() {
         if let Some(ref res_dir) = *guard {
+            // Case 1: standard subdirectory
             let tools_dir = res_dir.join("tools");
-            if tools_dir.exists() {
+            if tools_dir.is_dir() {
+                log::info!("[ToolManager] Found tools dir (subdirectory): {:?}", tools_dir);
                 return Some(tools_dir);
+            }
+            // Case 2: Tauri encodes "../tools/" as _up_/tools/ inside resource_dir
+            let up_tools = res_dir.join("_up_").join("tools");
+            if up_tools.is_dir() {
+                log::info!("[ToolManager] Found tools dir (_up_/tools): {:?}", up_tools);
+                return Some(up_tools);
+            }
+            // Case 3: tool contents placed directly in resource_dir (rare)
+            if res_dir.is_dir() {
+                if let Ok(entries) = std::fs::read_dir(res_dir) {
+                    let has_tool = entries
+                        .filter_map(|e| e.ok())
+                        .any(|e| e.path().is_dir() && e.path().join("paths.json").exists());
+                    if has_tool {
+                        log::info!("[ToolManager] Found tools dir (resource_dir itself): {:?}", res_dir);
+                        return Some(res_dir.clone());
+                    }
+                }
             }
         }
     }

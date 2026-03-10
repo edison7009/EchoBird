@@ -93,9 +93,9 @@ html {
   overflow: hidden;
 }
 
-/* Disable focus outlines on all buttons */
-button:focus,
-button:focus-visible {
+/* Disable focus outlines globally (Linux WebKitGTK draws green system outlines) */
+*:focus,
+*:focus-visible {
   outline: none !important;
   box-shadow: none !important;
 }
