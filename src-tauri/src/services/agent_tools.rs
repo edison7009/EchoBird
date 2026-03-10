@@ -257,6 +257,7 @@ pub async fn execute_tool(
     name: &str,
     args_json: &str,
     ssh_pool: &SSHPool,
+    session_server_ids: &[String],
 ) -> ToolResult {
     let args: Value = match serde_json::from_str(args_json) {
         Ok(v) => v,
@@ -266,31 +267,58 @@ pub async fn execute_tool(
         },
     };
 
+    // Determine effective server_id: if model omitted it (or said "local") but the
+    // session targets a remote server, auto-redirect to that server.
+    // This prevents the model from accidentally running commands on the local machine.
+    let effective_remote: Option<&str> = session_server_ids
+        .iter()
+        .find(|s| s.as_str() != "local" && !s.is_empty())
+        .map(|s| s.as_str());
+
+    // Returns owned String to avoid lifetime issues with the closure.
+    let resolve_server_id = |raw: Option<&str>| -> String {
+        let sid = raw.unwrap_or("local");
+        if sid == "local" || sid.is_empty() {
+            if let Some(remote) = effective_remote {
+                log::warn!(
+                    "[AgentTools] GUARD: model omitted server_id (got '{}'), \
+                     auto-redirecting to session target '{}'",
+                    sid, remote
+                );
+                return remote.to_string();
+            }
+        }
+        sid.to_string()
+    };
+
     match name {
         "shell_exec" => {
             let command = args["command"].as_str().unwrap_or("");
-            let server_id = args["server_id"].as_str().unwrap_or("local");
+            let raw_sid = args["server_id"].as_str();
             if command.is_empty() {
                 return ToolResult { success: false, output: "Empty command".into() };
             }
-            exec_shell(command, server_id, ssh_pool).await
+            let server_id = resolve_server_id(raw_sid);
+            exec_shell(command, &server_id, ssh_pool).await
         }
         "file_read" => {
             let path = args["path"].as_str().unwrap_or("");
-            let server_id = args["server_id"].as_str().unwrap_or("local");
+            let raw_sid = args["server_id"].as_str();
             if path.is_empty() {
                 return ToolResult { success: false, output: "Empty path".into() };
             }
-            exec_file_read(path, server_id, ssh_pool).await
+            let server_id = resolve_server_id(raw_sid);
+            exec_file_read(path, &server_id, ssh_pool).await
         }
         "file_write" => {
             let path = args["path"].as_str().unwrap_or("");
             let content = args["content"].as_str().unwrap_or("");
-            let server_id = args["server_id"].as_str().unwrap_or("local");
+            let raw_sid = args["server_id"].as_str();
             if path.is_empty() {
                 return ToolResult { success: false, output: "Empty path".into() };
             }
-            exec_file_write(path, content, server_id, ssh_pool).await
+            let server_id = resolve_server_id(raw_sid);
+            exec_file_write(path, content, &server_id, ssh_pool).await
         }
         "deploy_bridge" => {
             let server_id = args["server_id"].as_str().unwrap_or("");

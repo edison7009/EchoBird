@@ -549,7 +549,7 @@ pub async fn run_agent(
 
             // Race tool execution against cancel token
             let (result, was_cancelled) = tokio::select! {
-                r = agent_tools::execute_tool(&tc.name, &tc.arguments, &ssh_pool) => (r, false),
+                r = agent_tools::execute_tool(&tc.name, &tc.arguments, &ssh_pool, &request.server_ids) => (r, false),
                 _ = cancel_token.cancelled() => {
                     log::info!("[AgentLoop] Tool cancelled by user: {}", tc.name);
                     emit_event(&app, AgentEvent::Error { message: "Cancelled by user".into() });
