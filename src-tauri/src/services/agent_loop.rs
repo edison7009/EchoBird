@@ -535,70 +535,99 @@ pub async fn run_agent(
         log::info!("[AgentLoop] Executing {} tool calls", tool_calls.len());
         emit_event(&app, AgentEvent::StateChange { state: "executing".into() });
 
+        // Track how many tools were saved, so we can complete the rest on cancel
+        let mut completed_count = 0usize;
+
         for tc in &tool_calls {
             // Check cancellation before each tool
             if cancel_token.is_cancelled() {
-                log::info!("[AgentLoop] Cancelled during tool execution");
-                emit_event(&app, AgentEvent::Error { message: "Cancelled by user".into() });
+                log::info!("[AgentLoop] Cancelled before tool: {}", tc.name);
                 break;
             }
 
             log::info!("[AgentLoop] Executing tool: {} ({})", tc.name, tc.id);
 
             // Race tool execution against cancel token
-            let result = tokio::select! {
-                r = agent_tools::execute_tool(&tc.name, &tc.arguments, &ssh_pool) => r,
+            let (result, was_cancelled) = tokio::select! {
+                r = agent_tools::execute_tool(&tc.name, &tc.arguments, &ssh_pool) => (r, false),
                 _ = cancel_token.cancelled() => {
                     log::info!("[AgentLoop] Tool cancelled by user: {}", tc.name);
-                    emit_event(&app, AgentEvent::ToolResult {
-                        id: tc.id.clone(),
-                        output: "Cancelled by user".into(),
-                        success: false,
-                    });
                     emit_event(&app, AgentEvent::Error { message: "Cancelled by user".into() });
-                    break;
+                    (agent_tools::ToolResult { output: "Cancelled by user".to_string(), success: false }, true)
                 }
             };
 
+            // Always emit ToolResult to frontend
             emit_event(&app, AgentEvent::ToolResult {
                 id: tc.id.clone(),
                 output: result.output.clone(),
                 success: result.success,
             });
 
-            // Store tool result in message history — use active_provider (may have downgraded)
-            let mut map = session_map.lock().await;
-            let sess = map.entry(server_key.clone()).or_insert_with(AgentSession::new);
-            match active_provider {
-                LlmProvider::OpenAI => {
-                    // OpenAI uses role: "tool" with tool_call_id
-                    sess.messages.push(Message {
-                        role: "tool".into(),
-                        content: MessageContent::Blocks(vec![
-                            ContentBlock::ToolResult {
-                                tool_use_id: tc.id.clone(),
-                                content: result.output,
-                            }
-                        ]),
-                    });
+            // Always save tool result to message history — even for cancelled tools.
+            // This keeps the conversation structure valid (every tool_call must have a tool_result).
+            {
+                let mut map = session_map.lock().await;
+                let sess = map.entry(server_key.clone()).or_insert_with(AgentSession::new);
+                match active_provider {
+                    LlmProvider::OpenAI => {
+                        sess.messages.push(Message {
+                            role: "tool".into(),
+                            content: MessageContent::Blocks(vec![
+                                ContentBlock::ToolResult {
+                                    tool_use_id: tc.id.clone(),
+                                    content: result.output,
+                                }
+                            ]),
+                        });
+                    }
+                    LlmProvider::Anthropic => {
+                        sess.messages.push(Message {
+                            role: "user".into(),
+                            content: MessageContent::Blocks(vec![
+                                ContentBlock::ToolResult {
+                                    tool_use_id: tc.id.clone(),
+                                    content: result.output,
+                                }
+                            ]),
+                        });
+                    }
                 }
-                LlmProvider::Anthropic => {
-                    // Anthropic uses role: "user" with tool_result blocks
-                    sess.messages.push(Message {
-                        role: "user".into(),
-                        content: MessageContent::Blocks(vec![
-                            ContentBlock::ToolResult {
-                                tool_use_id: tc.id.clone(),
-                                content: result.output,
-                            }
-                        ]),
-                    });
-                }
+            }
+            completed_count += 1;
+
+            if was_cancelled {
+                break;
             }
         }
 
-        // Check if cancelled during tool execution
+        // If cancelled mid-loop, add "Cancelled" results for any remaining (unexecuted) tool calls.
+        // This ensures the conversation history is always valid: every tool_call has a tool_result.
         if cancel_token.is_cancelled() {
+            if completed_count < tool_calls.len() {
+                let mut map = session_map.lock().await;
+                let sess = map.entry(server_key.clone()).or_insert_with(AgentSession::new);
+                for tc in tool_calls.iter().skip(completed_count) {
+                    let cancelled_result = ContentBlock::ToolResult {
+                        tool_use_id: tc.id.clone(),
+                        content: "Cancelled by user".to_string(),
+                    };
+                    match active_provider {
+                        LlmProvider::OpenAI => {
+                            sess.messages.push(Message {
+                                role: "tool".into(),
+                                content: MessageContent::Blocks(vec![cancelled_result]),
+                            });
+                        }
+                        LlmProvider::Anthropic => {
+                            sess.messages.push(Message {
+                                role: "user".into(),
+                                content: MessageContent::Blocks(vec![cancelled_result]),
+                            });
+                        }
+                    }
+                }
+            }
             break;
         }
 
