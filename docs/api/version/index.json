@@ -1,5 +1,1 @@
-{
-    "version": "2.7.4",
-    "releaseDate": "2026-03-10",
-    "releaseNotes": "Add KiloCode VS Code extension support, fix Linux/macOS tool list empty (use Tauri resource_dir), fix channel switch showing stale remote LLM status, update package homepage to echobird.ai"
-}
+{"version": "2.7.5","releaseDate": "2026-03-10","releaseNotes": "Fix Linux app list empty (Tauri packages tools under _up_/tools in deb), fix refresh button focus outline on Linux WebKitGTK"}
