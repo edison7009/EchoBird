@@ -1,5 +1,5 @@
 {
-    "version": "2.6.5",
+    "version": "2.6.6",
     "releaseDate": "2026-03-10",
     "releaseNotes": "Add MooreThreads GPU (vLLM-MUSA) support for local and remote LLM deployment. Fix Mother Agent SSH tool deadlock and UTF-8 truncation bug."
 }
