@@ -402,19 +402,22 @@ export const LocalServerMain: React.FC = () => {
 
                 {/* Parameter row */}
                 <div className="grid grid-cols-4 gap-3">
-                    <div className="flex items-center gap-2">
-                        <label className="text-[11px] text-cyber-text-secondary font-mono font-bold flex-shrink-0">{t('server.compute')}</label>
-                        <MiniSelect
-                            value={String(gpuLayers)}
-                            onChange={(v) => setGpuLayers(Number(v))}
-                            disabled={isRunning}
-                            options={[
-                                ...(hasNvidiaGpu ? [{ id: '-1', label: t('server.gpuFull') }] : []),
-                                { id: '0', label: t('server.cpuOnly') },
-                            ]}
-                            className="flex-1"
-                        />
-                    </div>
+                    {/* Compute: only relevant for llama.cpp; HF runtimes manage GPU internally */}
+                    {runtime === 'llama-server' && (
+                        <div className="flex items-center gap-2">
+                            <label className="text-[11px] text-cyber-text-secondary font-mono font-bold flex-shrink-0">{t('server.compute')}</label>
+                            <MiniSelect
+                                value={String(gpuLayers)}
+                                onChange={(v) => setGpuLayers(Number(v))}
+                                disabled={isRunning}
+                                options={[
+                                    ...(hasNvidiaGpu ? [{ id: '-1', label: t('server.gpuFull') }] : []),
+                                    { id: '0', label: t('server.cpuOnly') },
+                                ]}
+                                className="flex-1"
+                            />
+                        </div>
+                    )}
                     <div className="flex items-center gap-2">
                         <label className="text-[11px] text-cyber-text-secondary font-mono font-bold flex-shrink-0">{t('server.context')}</label>
                         <MiniSelect
