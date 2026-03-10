@@ -432,12 +432,23 @@ fn read_easyclaw() -> Option<ModelInfo> {
 }
 
 // ════════════════════════════════════════════════════════════════
-//  CoPaw: direct write to ~/.copaw/copaw.json
-//  Same models.providers format as OpenClaw / EasyClaw
+//  CoPaw: write to ~/.copaw.secret/providers/custom/eb_xxx.json
+//  + ~/.copaw.secret/providers/active_model.json
+//  Format: CoPaw ProviderInfo (JSON, pydantic model_dump)
 // ════════════════════════════════════════════════════════════════
 
+fn copaw_secret_dir() -> std::path::PathBuf {
+    // SECRET_DIR = ~/.copaw.secret (WORKING_DIR + ".secret")
+    let working_dir = dirs::home_dir().unwrap_or_default().join(".copaw");
+    let mut secret = working_dir.into_os_string();
+    secret.push(".secret");
+    std::path::PathBuf::from(secret)
+}
+
 fn apply_copaw(model_info: &ModelInfo) -> ApplyResult {
-    let config_path = dirs::home_dir().unwrap_or_default().join(".copaw").join("copaw.json");
+    let secret_dir = copaw_secret_dir();
+    let custom_dir = secret_dir.join("providers").join("custom");
+    let active_path = secret_dir.join("providers").join("active_model.json");
 
     let model_id = model_info.model.as_deref()
         .or(model_info.name.as_deref()).unwrap_or("");
@@ -449,98 +460,89 @@ fn apply_copaw(model_info: &ModelInfo) -> ApplyResult {
         .unwrap_or("https://api.openai.com/v1").trim_end_matches('/').to_string();
     let api_key = model_info.api_key.as_deref().unwrap_or("");
     let protocol = model_info.protocol.as_deref().unwrap_or("openai");
-    let api_type = if protocol == "anthropic" { "anthropic-messages" } else { "openai-completions" };
+    // CoPaw uses class names: "OpenAIChatModel" or "AnthropicChatModel"
+    let chat_model = if protocol == "anthropic" { "AnthropicChatModel" } else { "OpenAIChatModel" };
 
-    let provider_tag = format!("eb_{}", extract_domain_name(&base_url));
+    let provider_id = format!("eb_{}", extract_domain_name(&base_url));
+    let provider_name = format!("Echobird ({})", extract_domain_name(&base_url));
+    let display_name = model_info.name.as_deref().unwrap_or(model_id);
 
-    let mut config = read_json_file(&config_path).unwrap_or(serde_json::json!({}));
-
-    // Remove previous eb_ providers
-    if let Some(providers) = config.pointer_mut("/models/providers") {
-        if let Some(obj) = providers.as_object_mut() {
-            obj.retain(|k, _| !k.starts_with("eb_"));
-            obj.insert(provider_tag.clone(), serde_json::json!({
-                "baseUrl": base_url,
-                "apiKey": api_key,
-                "api": api_type,
-                "auth": "api-key",
-                "authHeader": true,
-                "models": [{
-                    "id": model_id,
-                    "name": model_info.name.as_deref().unwrap_or(model_id),
-                    "api": api_type,
-                    "contextWindow": 128000,
-                    "maxTokens": 8192
-                }]
-            }));
-        }
-    } else {
-        let providers = serde_json::json!({
-            provider_tag.clone(): {
-                "baseUrl": base_url,
-                "apiKey": api_key,
-                "api": api_type,
-                "auth": "api-key",
-                "authHeader": true,
-                "models": [{
-                    "id": model_id,
-                    "name": model_info.name.as_deref().unwrap_or(model_id),
-                    "api": api_type,
-                    "contextWindow": 128000,
-                    "maxTokens": 8192
-                }]
-            }
-        });
-        config["models"]["providers"] = providers;
+    // Ensure custom dir exists
+    if let Err(e) = fs::create_dir_all(&custom_dir) {
+        return ApplyResult { success: false, message: format!("Cannot create CoPaw dir: {}", e) };
     }
 
-    // Set primary model
-    let primary = format!("{}/{}", provider_tag, model_id);
-    config["agents"]["defaults"]["model"]["primary"] = serde_json::Value::String(primary.clone());
-
-    let display_name = model_info.name.as_deref().unwrap_or(model_id);
-    let alias = format!("{}.{}", extract_domain_name(&base_url), display_name);
-    config["agents"]["defaults"]["models"] = serde_json::json!({
-        primary.clone(): { "alias": alias }
-    });
-    config["agents"]["defaults"]["model"]["fallbacks"] = serde_json::json!([]);
-
-    match write_json_file(&config_path, &config) {
-        Ok(_) => {
-            log::info!("[ToolConfigManager] CoPaw config written: {}", primary);
-            ApplyResult {
-                success: true,
-                message: format!(
-                    "Model \"{}\" configured for CoPaw. Restart CoPaw to apply.",
-                    model_info.name.as_deref().unwrap_or(model_id)
-                ),
+    // Remove previous eb_ custom providers
+    if let Ok(entries) = fs::read_dir(&custom_dir) {
+        for entry in entries.flatten() {
+            let name = entry.file_name();
+            if name.to_string_lossy().starts_with("eb_") {
+                let _ = fs::remove_file(entry.path());
             }
         }
-        Err(e) => ApplyResult { success: false, message: e },
+    }
+
+    // Write new custom provider JSON (CoPaw ProviderInfo format)
+    let provider_json = serde_json::json!({
+        "id": provider_id,
+        "name": provider_name,
+        "base_url": base_url,
+        "api_key": api_key,
+        "chat_model": chat_model,
+        "models": [],
+        "extra_models": [{"id": model_id, "name": display_name}],
+        "api_key_prefix": "",
+        "is_local": false,
+        "freeze_url": false,
+        "require_api_key": true,
+        "is_custom": true
+    });
+
+    let provider_path = custom_dir.join(format!("{}.json", provider_id));
+    if let Err(e) = write_json_file(&provider_path, &provider_json) {
+        return ApplyResult { success: false, message: e };
+    }
+
+    // Write active_model.json
+    let active_json = serde_json::json!({
+        "provider_id": provider_id,
+        "model": model_id
+    });
+    if let Err(e) = write_json_file(&active_path, &active_json) {
+        return ApplyResult { success: false, message: format!("active_model.json error: {}", e) };
+    }
+
+    log::info!("[ToolConfigManager] CoPaw configured: {}/{}", provider_id, model_id);
+    ApplyResult {
+        success: true,
+        message: format!(
+            "Model \"{}\" configured for CoPaw. Restart CoPaw to apply.",
+            display_name
+        ),
     }
 }
 
 fn read_copaw() -> Option<ModelInfo> {
-    let config_path = dirs::home_dir()?.join(".copaw").join("copaw.json");
-    let config = read_json_file(&config_path)?;
+    let secret_dir = copaw_secret_dir();
+    let active_path = secret_dir.join("providers").join("active_model.json");
+    let active = read_json_file(&active_path)?;
 
-    let primary = config.pointer("/agents/defaults/model/primary")
-        .and_then(|v| v.as_str())?;
-    let provider_tag = primary.split('/').next()?;
-    if !provider_tag.starts_with("eb_") { return None; }
-    let model_id = primary.splitn(2, '/').nth(1).unwrap_or("").to_string();
+    let provider_id = active.get("provider_id")?.as_str()?;
+    if !provider_id.starts_with("eb_") { return None; }
+    let model_id = active.get("model")?.as_str()?.to_string();
 
-    let provider_path = format!("/models/providers/{}", provider_tag);
-    let provider = config.pointer(&provider_path)?;
+    let provider_path = secret_dir.join("providers").join("custom")
+        .join(format!("{}.json", provider_id));
+    let provider = read_json_file(&provider_path)?;
 
     Some(ModelInfo {
         name: Some(model_id.clone()),
         model: Some(model_id),
-        base_url: provider.get("baseUrl").and_then(|v| v.as_str()).map(|s| s.to_string()),
-        api_key: provider.get("apiKey").and_then(|v| v.as_str()).map(|s| s.to_string()),
+        base_url: provider.get("base_url").and_then(|v| v.as_str()).map(|s| s.to_string()),
+        api_key: provider.get("api_key").and_then(|v| v.as_str()).map(|s| s.to_string()),
         anthropic_url: None, proxy_url: None,
-        protocol: provider.get("api").and_then(|v| v.as_str()).map(|api| {
-            if api.contains("anthropic") { "anthropic".to_string() } else { "openai".to_string() }
+        protocol: provider.get("chat_model").and_then(|v| v.as_str()).map(|cm| {
+            if cm.contains("Anthropic") { "anthropic".to_string() } else { "openai".to_string() }
         }),
     })
 }
