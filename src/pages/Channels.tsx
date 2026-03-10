@@ -391,7 +391,10 @@ export const Channels: React.FC = () => {
 
     // Check remote LLM API reachability + running status — poll every 15s
     useEffect(() => {
-        if (!activeChannel || isLocal) { setRemoteLlmReachable(false); setRemoteLlmRunning(false); return; }
+        // Reset immediately on channel switch — prevents stale status from previous channel
+        setRemoteLlmReachable(false);
+        setRemoteLlmRunning(false);
+        if (!activeChannel || isLocal) return;
         const remoteIp = (activeChannel.address || '').split('@')[1] || activeChannel.address || '';
         if (!remoteIp) return;
         let cancelled = false;
