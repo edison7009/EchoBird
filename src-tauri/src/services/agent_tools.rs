@@ -17,8 +17,38 @@ pub struct ToolResult {
     pub output: String,
 }
 
-const EXEC_TIMEOUT_SECS: u64 = 600; // 10 min — needed for Rust install + cargo build on remote
-const MAX_OUTPUT_BYTES: usize = 8_000; // ~8KB per tool result to keep API payload manageable
+const EXEC_TIMEOUT_SECS: u64 = 60;       // Default: 60s for most commands (systemctl, pkill, ls, etc.)
+const EXEC_TIMEOUT_LONG_SECS: u64 = 600; // Long: 10 min for installs, builds, downloads
+const MAX_OUTPUT_BYTES: usize = 8_000;   // ~8KB per tool result to keep API payload manageable
+
+/// Return the appropriate timeout for a shell command.
+/// Long-running operations (package installs, builds, downloads) get 600s.
+/// Everything else gets 60s so users don't wait 10 min for a hung simple command.
+fn get_exec_timeout(command: &str) -> u64 {
+    let cmd = command.to_lowercase();
+    let long_patterns = [
+        "npm install", "npm ci", "npm run build",
+        "cargo install", "cargo build",
+        "pip install", "pip3 install",
+        "apt install", "apt-get install", "apt upgrade", "apt-get upgrade",
+        "brew install",
+        "curl", "wget",
+        "tar ", "unzip ",
+        "huggingface-cli", "modelscope",
+        "docker pull", "docker build",
+        "nohup",
+        "install.sh", "install.ps1",
+        "cargo check", "cargo test",
+        "yarn install", "yarn build",
+        "git clone",
+        "dpkg -i",
+    ];
+    if long_patterns.iter().any(|p| cmd.contains(p)) {
+        EXEC_TIMEOUT_LONG_SECS
+    } else {
+        EXEC_TIMEOUT_SECS
+    }
+}
 
 // ── Tool Definitions (sent to LLM) ──
 
@@ -352,8 +382,9 @@ async fn exec_local_shell(command: &str) -> ToolResult {
         }
     }
     let cmd = command.to_string();
+    let timeout_secs = get_exec_timeout(command);
     let result = timeout(
-        Duration::from_secs(EXEC_TIMEOUT_SECS),
+        Duration::from_secs(timeout_secs),
         tokio::task::spawn_blocking(move || {
             #[cfg(target_os = "windows")]
             let output = {
@@ -454,7 +485,8 @@ async fn exec_ssh_shell(command: &str, server_id: &str, ssh_pool: &SSHPool) -> T
     }; // lock released here
 
     // Timeout to prevent hanging forever on remote commands
-    match timeout(Duration::from_secs(EXEC_TIMEOUT_SECS), client.execute(command)).await {
+    let timeout_secs = get_exec_timeout(command);
+    match timeout(Duration::from_secs(timeout_secs), client.execute(command)).await {
         Ok(Ok(result)) => {
             let mut output = result.stdout;
             if !result.stderr.is_empty() {

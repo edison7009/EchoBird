@@ -320,10 +320,19 @@ pub async fn run_agent(
         loop {
             // Per-event timeout — longer after first token (thinking models can be slow)
             let timeout_secs = if received_any_token { INTER_TOKEN_TIMEOUT_SECS } else { FIRST_TOKEN_TIMEOUT_SECS };
-            let recv_result = tokio::time::timeout(
-                std::time::Duration::from_secs(timeout_secs),
-                rx.recv(),
-            ).await;
+            // Race: receive next LLM token OR user cancellation
+            let recv_result = tokio::select! {
+                result = tokio::time::timeout(
+                    std::time::Duration::from_secs(timeout_secs),
+                    rx.recv()
+                ) => result,
+                _ = cancel_token.cancelled() => {
+                    log::info!("[AgentLoop] Cancelled during LLM stream");
+                    emit_event(&app, AgentEvent::Error { message: "Cancelled by user".into() });
+                    had_error = true;
+                    break;
+                }
+            };
 
             match recv_result {
                 // Timeout: no token received within the window
