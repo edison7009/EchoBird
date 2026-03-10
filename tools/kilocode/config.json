@@ -1,0 +1,5 @@
+{
+    "configFile": "~/.echobird/kilocode.json",
+    "format": "json",
+    "custom": true
+}
