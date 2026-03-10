@@ -397,22 +397,20 @@ export const RemoteLlmModal: React.FC<RemoteLlmModalProps> = ({
 
                             {/* Parameter row */}
                             <div className="grid grid-cols-4 gap-3">
-                                {/* Compute: only relevant for llama.cpp; HF runtimes (vLLM/SGLang/vLLM-MUSA) manage GPU internally */}
-                                {runtime === 'llama-server' && (
-                                    <div className="flex items-center gap-2">
-                                        <label className="text-[11px] text-cyber-text-secondary font-mono font-bold flex-shrink-0">{t('server.compute')}</label>
-                                        <MiniSelect
-                                            value={gpuLayers}
-                                            onChange={setGpuLayers}
-                                            disabled={isRunning}
-                                            options={[
-                                                ...(gpu ? [{ id: '-1', label: t('server.gpuFull') }] : []),
-                                                { id: '0', label: t('server.cpuOnly') },
-                                            ]}
-                                            className="flex-1"
-                                        />
-                                    </div>
-                                )}
+                                {/* Compute: locked to GPU Full when using HF runtimes (vLLM/SGLang/vLLM-MUSA manage GPU internally) */}
+                                <div className="flex items-center gap-2">
+                                    <label className="text-[11px] text-cyber-text-secondary font-mono font-bold flex-shrink-0">{t('server.compute')}</label>
+                                    <MiniSelect
+                                        value={runtime !== 'llama-server' ? '-1' : gpuLayers}
+                                        onChange={setGpuLayers}
+                                        disabled={isRunning || runtime !== 'llama-server'}
+                                        options={[
+                                            { id: '-1', label: `⚡ ${t('server.gpuFull')}` },
+                                            ...(runtime === 'llama-server' ? [{ id: '0', label: t('server.cpuOnly') }] : []),
+                                        ]}
+                                        className="flex-1"
+                                    />
+                                </div>
                                 <div className="flex items-center gap-2">
                                     <label className="text-[11px] text-cyber-text-secondary font-mono font-bold flex-shrink-0">{t('server.context')}</label>
                                     <MiniSelect
