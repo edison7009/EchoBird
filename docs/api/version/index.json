@@ -1,1 +1,1 @@
-{"version":"2.6.9","releaseDate":"2026-03-10","releaseNotes":"Fix Linux window drag, skills page loading, runtime GPU filter (local + remote deploy), CodeBuddy CN install detection, skills CDN mirror for China users"}
+{"version":"2.7.0","releaseDate":"2026-03-10","releaseNotes":"Add EasyClaw tool support with model switching (direct write to ~/.easyclaw/easyclaw.json)"}
