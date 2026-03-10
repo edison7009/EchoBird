@@ -1,1 +1,5 @@
-{"version":"2.7.3","releaseDate":"2026-03-10","releaseNotes":"Fix remote LLM modal runtime dropdown always shows hardware-compatible runtimes (fix chicken-and-egg install issue), fix tool cancellation causing 400 Bad Request on next message, fix remote LLM modal GPU filter for Moore Threads vLLM-MUSA"}
+{
+    "version": "2.7.4",
+    "releaseDate": "2026-03-10",
+    "releaseNotes": "Add KiloCode VS Code extension support, fix Linux/macOS tool list empty (use Tauri resource_dir), fix channel switch showing stale remote LLM status, update package homepage to echobird.ai"
+}
