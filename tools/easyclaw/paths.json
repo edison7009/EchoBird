@@ -23,5 +23,16 @@
             "/usr/local/bin/easyclaw",
             "/usr/bin/easyclaw"
         ]
+    },
+    "skillsPath": {
+        "win32": [
+            "%USERPROFILE%/.easyclaw/skills"
+        ],
+        "darwin": [
+            "~/.easyclaw/skills"
+        ],
+        "linux": [
+            "~/.easyclaw/skills"
+        ]
     }
 }
