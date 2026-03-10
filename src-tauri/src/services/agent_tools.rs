@@ -631,20 +631,6 @@ fn shell_escape(s: &str) -> String {
     format!("\"{}\"", s)
 }
 
-// Truncate a string to at most max_bytes bytes, respecting UTF-8 character boundaries.
-// Using String::truncate() directly can panic when the byte index falls mid-character.
-fn safe_truncate(s: &mut String, max_bytes: usize) {
-    if s.len() <= max_bytes {
-        return;
-    }
-    // Walk back from max_bytes until we hit a valid char boundary
-    let mut end = max_bytes;
-    while !s.is_char_boundary(end) && end > 0 {
-        end -= 1;
-    }
-    s.truncate(end);
-}
-
 /// Fetch the latest published plugin version from the version API.
 /// Falls back to the compile-time version if the network call fails.
 async fn fetch_latest_plugin_version() -> String {
