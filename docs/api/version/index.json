@@ -1,1 +1,1 @@
-{"version": "2.7.6","releaseDate": "2026-03-11","releaseNotes": "i18n connection error messages in 28 languages, remote server target guard for shell_exec"}
+{"version":"2.7.7","releaseDate":"2026-03-11","releaseNotes":"CoPaw tool integration with model switching and skills support; fixed GPU compute dropdown hidden on GPU runtimes; improved engine install UX with installing spinner and refresh button; fixed vLLM-MUSA badge highlighting"}
