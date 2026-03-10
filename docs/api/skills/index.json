@@ -3,7 +3,8 @@
         {
             "id": "skill-1",
             "name": "Claude Skill Registry",
-            "url": "https://echobird.ai/api/skills/registry.json"
+            "url": "https://echobird.ai/api/skills/registry.json",
+            "upstream": "https://majiayu000.github.io/claude-skill-registry-core/search-index.json"
         }
     ]
 }
