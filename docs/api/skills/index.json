@@ -3,7 +3,7 @@
         {
             "id": "skill-1",
             "name": "Claude Skill Registry",
-            "url": "https://majiayu000.github.io/claude-skill-registry-core/search-index.json"
+            "url": "https://echobird.ai/api/skills/registry.json"
         }
     ]
 }

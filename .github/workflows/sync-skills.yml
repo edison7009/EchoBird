@@ -1,0 +1,33 @@
+name: Sync Skills Registry
+
+on:
+  schedule:
+    # Every Sunday at 02:00 UTC
+    - cron: '0 2 * * 0'
+  workflow_dispatch: # Allow manual trigger
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download skills registry
+        run: |
+          curl -fsSL \
+            "https://majiayu000.github.io/claude-skill-registry-core/search-index.json" \
+            -o docs/api/skills/registry.json
+          size=$(wc -c < docs/api/skills/registry.json)
+          echo "Downloaded ${size} bytes"
+
+      - name: Commit if changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add docs/api/skills/registry.json
+          if git diff --staged --quiet; then
+            echo "No changes, skipping commit"
+          else
+            git commit -m "chore: sync skills registry $(date -u +%Y-%m-%d)"
+            git push
+          fi
