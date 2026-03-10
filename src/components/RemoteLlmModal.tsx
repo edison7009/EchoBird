@@ -479,18 +479,47 @@ export const RemoteLlmModal: React.FC<RemoteLlmModalProps> = ({
                             </div>
 
                             {/* Start/Stop button */}
-                            {engineStatus === 'not-installed' ? (
-                                <button
-                                    onClick={handleInstallEngine}
-                                    disabled={remoteDownload.status === 'downloading' || remoteDownload.status === 'speed_test' || remoteDownload.status === 'installing'}
-                                    className={`w-full py-3 font-bold text-base tracking-[0.3em] font-mono transition-all flex items-center justify-center gap-2 ${remoteDownload.status === 'downloading' || remoteDownload.status === 'speed_test' || remoteDownload.status === 'installing'
-                                        ? 'bg-cyber-surface/30 text-cyber-text-muted/50 border border-cyber-border/30 cursor-not-allowed'
-                                        : 'bg-cyber-accent/10 text-cyber-accent border border-cyber-accent/50 hover:bg-cyber-accent/20 shadow-[0_0_15px_rgba(0,255,157,0.15)]'
-                                        }`}
-                                >
-                                    <Download className="w-4 h-4" /> {t('server.setupEngine')}
-                                </button>
-                            ) : (
+                            {engineStatus === 'not-installed' ? (() => {
+                                const isInstalling = remoteDownload.status === 'downloading' || remoteDownload.status === 'speed_test' || remoteDownload.status === 'installing';
+                                const isJustCompleted = remoteDownload.status === 'completed' && remoteDownload.fileName === runtime;
+                                if (isInstalling) {
+                                    return (
+                                        <div className="w-full py-3 font-bold text-base tracking-[0.3em] font-mono flex items-center justify-center gap-2 bg-cyber-surface/30 text-cyber-accent/70 border border-cyber-accent/30">
+                                            <Loader2 className="w-4 h-4 animate-spin" />
+                                            INSTALLING {runtime.toUpperCase()}…
+                                        </div>
+                                    );
+                                }
+                                if (isJustCompleted) {
+                                    return (
+                                        <button
+                                            onClick={async () => {
+                                                const engineRes = await fetch(`${apiBase}/api/engine/status`).then(r => r.json()).catch(() => ({}));
+                                                const rs: Record<string, { installed: boolean; version?: string }> = {};
+                                                const engines: any[] = engineRes.engines || [];
+                                                for (const key of ['llama-server', 'vllm', 'sglang', 'vllm-musa']) {
+                                                    const entry = engines.find((e: any) => e.name === key);
+                                                    if (entry) rs[key] = { installed: !!entry.installed, version: entry.version };
+                                                    else if (engineRes[key]) rs[key] = { installed: engineRes[key].installed, version: engineRes[key].version };
+                                                }
+                                                setRuntimeStatus(rs);
+                                                if (engineRes.systemInfo) setRemoteSystemInfo(engineRes.systemInfo);
+                                            }}
+                                            className="w-full py-3 font-bold text-base tracking-[0.3em] font-mono transition-all flex items-center justify-center gap-2 bg-cyber-accent/10 text-cyber-accent border border-cyber-accent/50 hover:bg-cyber-accent/20"
+                                        >
+                                            ↻ REFRESH STATUS
+                                        </button>
+                                    );
+                                }
+                                return (
+                                    <button
+                                        onClick={handleInstallEngine}
+                                        className="w-full py-3 font-bold text-base tracking-[0.3em] font-mono transition-all flex items-center justify-center gap-2 bg-cyber-accent/10 text-cyber-accent border border-cyber-accent/50 hover:bg-cyber-accent/20 shadow-[0_0_15px_rgba(0,255,157,0.15)]"
+                                    >
+                                        <Download className="w-4 h-4" /> {t('server.setupEngine')}
+                                    </button>
+                                );
+                            })() : (
                                 <button
                                     onClick={isRunning ? handleStop : handleStart}
                                     disabled={!isRunning && !selectedVariant}
