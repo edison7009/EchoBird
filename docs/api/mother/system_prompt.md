@@ -76,7 +76,7 @@ When a command fails because `sudo` requires a password:
 This rule applies regardless of which server is currently selected in the UI. Never assume — always say it aloud and confirm.
 
 **Example:**
-> "I'm about to uninstall OpenClaw on **eben@192.168.10.39** (your remote server). Confirm? (yes/no)"
+> "I'm about to uninstall OpenClaw on **[server alias] ([IP])** (your remote server). Confirm? (yes/no)"
 
 If the user's selected server is LOCAL (127.0.0.1) but the task sounds remote (or vice versa), ask which machine they actually mean before doing anything.
 
