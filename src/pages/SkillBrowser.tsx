@@ -153,11 +153,14 @@ export function SkillBrowserProvider({ preloadedSkills, children }: SkillBrowser
 
     const loadLocal = async () => {
         setIsLoading(true);
+        let gotLocalData = false;
         try {
             const data = await api.loadSkillsData();
             if (data.skills && data.skills.length > 0) {
                 setAllSkills(data.skills);
                 setLastUpdated(data.lastUpdated);
+                gotLocalData = true;
+                setIsLoading(false); // Unblock UI early — local cache ready
             }
             if (data.userCategories && data.userCategories.length > 0) {
                 // Merge user categories: convert legacy string[] to CategoryDef[]
@@ -175,10 +178,14 @@ export function SkillBrowserProvider({ preloadedSkills, children }: SkillBrowser
         } catch (err) {
             console.error('[SkillBrowser] Failed to load local cache:', err);
         } finally {
-            setIsLoading(false);
+            if (gotLocalData) {
+                // Already unblocked above
+            } else {
+                // No local cache — keep isLoading=true while remote fetch runs
+            }
         }
-        // Sync with all sources in background
-        fetchAllSources();
+        // Sync with remote in background; setIsLoading(false) when done if not already done
+        fetchAllSources().finally(() => { if (!gotLocalData) setIsLoading(false); });
     };
 
     const fetchAllSources = async () => {

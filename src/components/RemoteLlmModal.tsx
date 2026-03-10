@@ -461,6 +461,8 @@ export const RemoteLlmModal: React.FC<RemoteLlmModalProps> = ({
                                         ].filter(opt => {
                                             // vLLM / SGLang / vLLM-MUSA: Linux only
                                             if ((opt.id === 'vllm' || opt.id === 'sglang' || opt.id === 'vllm-musa') && remoteSystemInfo && remoteSystemInfo.os !== 'linux') return false;
+                                            // GPU-requiring runtimes: hide when no GPU detected on remote server
+                                            if ((opt.id === 'vllm' || opt.id === 'sglang' || opt.id === 'vllm-musa') && remoteSystemInfo && remoteSystemInfo.gpuName === null) return false;
                                             // Hide uninstalled once we have engine status data
                                             if (Object.keys(runtimeStatus).length > 0 && !runtimeStatus[opt.id]?.installed) return false;
                                             return true;

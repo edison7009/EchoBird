@@ -156,12 +156,14 @@ export const LocalServerMain: React.FC = () => {
 
     // Runtime options: vLLM / SGLang only on Linux
     const isLinux = systemInfo ? systemInfo.os === 'linux' : navigator.platform.startsWith('Linux');
-    const hasGpu = systemInfo ? (systemInfo.gpuName !== null) : true;
+    // Default false: conservative — don't show GPU runtimes until systemInfo confirms GPU
+    const hasGpu = systemInfo ? (systemInfo.gpuName !== null) : false;
     // Only NVIDIA GPUs can use GPU-Full mode (app downloads CUDA build for NVIDIA, AVX2 CPU build for others)
     const hasNvidiaGpu = systemInfo ? systemInfo.hasNvidiaGpu : false;
     const runtimeOptions = [
         { id: 'llama-server', label: 'llama.cpp' },
-        ...(isLinux ? [
+        // vLLM / SGLang / vLLM-MUSA only available on Linux WITH a GPU
+        ...(isLinux && hasGpu ? [
             { id: 'vllm', label: 'vLLM' },
             { id: 'sglang', label: 'SGLang' },
             { id: 'vllm-musa', label: 'vLLM-MUSA' },
