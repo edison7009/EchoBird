@@ -405,7 +405,7 @@ export const RemoteLlmModal: React.FC<RemoteLlmModalProps> = ({
                                         onChange={setGpuLayers}
                                         disabled={isRunning || runtime !== 'llama-server'}
                                         options={[
-                                            { id: '-1', label: `⚡ ${t('server.gpuFull')}` },
+                                            { id: '-1', label: t('server.gpuFull') },
                                             ...(runtime === 'llama-server' ? [{ id: '0', label: t('server.cpuOnly') }] : []),
                                         ]}
                                         className="flex-1"
