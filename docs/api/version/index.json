@@ -1,1 +1,1 @@
-{"version":"2.7.2","releaseDate":"2026-03-10","releaseNotes":"Fix Moore Threads GPU detection (mthreads-smi support, fix early return bug), fix vLLM-MUSA runtime display for Moore Threads servers, hide compute selector for HF runtimes (vLLM/SGLang/vLLM-MUSA)"}
+{"version":"2.7.3","releaseDate":"2026-03-10","releaseNotes":"Fix remote LLM modal runtime dropdown always shows hardware-compatible runtimes (fix chicken-and-egg install issue), fix tool cancellation causing 400 Bad Request on next message, fix remote LLM modal GPU filter for Moore Threads vLLM-MUSA"}
