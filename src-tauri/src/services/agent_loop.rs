@@ -15,7 +15,9 @@ use super::agent_tools;
 // ── Constants ──
 
 const MAX_TOOL_LOOPS: usize = 25; // Prevent infinite execution
-const MAX_CONTEXT_MESSAGES: usize = 30; // Limit messages sent to LLM to prevent token explosion
+// Byte-based context limit: keep recent messages whose total size fits within this budget.
+// 30-message count limit was not safe when tool results are large (e.g. 8KB each × 30 = 240KB+).
+const MAX_CONTEXT_BYTES: usize = 150_000; // ~150KB total payload to LLM
 
 // ── Types emitted to frontend ──
 
@@ -253,16 +255,24 @@ pub async fn run_agent(
             break;
         }
 
-        // Get current messages (truncated to avoid token explosion)
+        // Get current messages (byte-budget truncation: keep most-recent messages within 150KB)
         let messages = {
             let map = session_map.lock().await;
             let all = map.get(&server_key).map(|s| s.messages.clone()).unwrap_or_default();
-            // Keep only recent messages to limit API payload size
-            if all.len() > MAX_CONTEXT_MESSAGES {
-                all[all.len() - MAX_CONTEXT_MESSAGES..].to_vec()
-            } else {
-                all
+            // Walk backwards accumulating until budget is exceeded, then reverse
+            let mut budget = MAX_CONTEXT_BYTES;
+            let mut kept: Vec<_> = all.iter().rev().take_while(|m| {
+                let sz = serde_json::to_string(m).map(|s| s.len()).unwrap_or(256);
+                if sz > budget { return false; }
+                budget -= sz;
+                true
+            }).cloned().collect();
+            kept.reverse();
+            if kept.len() < all.len() {
+                log::info!("[AgentLoop] Context trimmed: {} → {} messages (byte budget {}KB)",
+                    all.len(), kept.len(), MAX_CONTEXT_BYTES / 1024);
             }
+            kept
         };
 
         // Call LLM

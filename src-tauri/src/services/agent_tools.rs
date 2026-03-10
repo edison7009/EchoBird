@@ -18,7 +18,7 @@ pub struct ToolResult {
 }
 
 const EXEC_TIMEOUT_SECS: u64 = 600; // 10 min — needed for Rust install + cargo build on remote
-const MAX_OUTPUT_BYTES: usize = 32_000; // ~32KB cap to avoid flooding LLM context
+const MAX_OUTPUT_BYTES: usize = 8_000; // ~8KB per tool result to keep API payload manageable
 
 // ── Tool Definitions (sent to LLM) ──
 
@@ -395,10 +395,13 @@ async fn exec_local_shell(command: &str) -> ToolResult {
                 if !combined.is_empty() { combined.push_str("\n--- stderr ---\n"); }
                 combined.push_str(&stderr);
             }
-            // Truncate if too long — use safe_truncate to avoid panic at UTF-8 boundary
+            // Truncate if too long — keep the TAIL (end of output has the result)
             if combined.len() > MAX_OUTPUT_BYTES {
-                safe_truncate(&mut combined, MAX_OUTPUT_BYTES);
-                combined.push_str("\n... [output truncated]");
+                let start = combined.len() - MAX_OUTPUT_BYTES;
+                // Advance to next UTF-8 boundary
+                let start = combined.ceil_char_boundary(start);
+                combined = format!("... [output truncated, showing last {}KB]\n{}",
+                    MAX_OUTPUT_BYTES / 1024, &combined[start..]);
             }
             ToolResult {
                 success: output.status.success(),
@@ -458,10 +461,12 @@ async fn exec_ssh_shell(command: &str, server_id: &str, ssh_pool: &SSHPool) -> T
                 if !output.is_empty() { output.push_str("\n--- stderr ---\n"); }
                 output.push_str(&result.stderr);
             }
-            // Truncate if too long — use safe_truncate to avoid panic at UTF-8 boundary
+            // Truncate if too long — keep the TAIL (end of output has the result)
             if output.len() > MAX_OUTPUT_BYTES {
-                safe_truncate(&mut output, MAX_OUTPUT_BYTES);
-                output.push_str("\n... [output truncated]");
+                let start = output.len() - MAX_OUTPUT_BYTES;
+                let start = output.ceil_char_boundary(start);
+                output = format!("... [output truncated, showing last {}KB]\n{}",
+                    MAX_OUTPUT_BYTES / 1024, &output[start..]);
             }
             ToolResult {
                 success: result.exit_status == 0,
