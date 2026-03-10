@@ -223,6 +223,14 @@ pub fn run() {
         .manage(ssh_commands::create_ssh_pool())
         .manage(services::agent_loop::create_session_map())
         .setup(|app| {
+            // Initialize resource_dir for correct tools/ path resolution on all platforms
+            // (especially Linux where exe is at /usr/bin but tools are at /usr/lib/com.echobird.ai/)
+            if let Ok(res_dir) = app.path().resource_dir() {
+                services::tool_manager::init_resource_dir(res_dir);
+            } else {
+                log::warn!("[Setup] Could not resolve resource_dir");
+            }
+
             // Enable file logging in all builds for diagnostics
             app.handle().plugin(
                 tauri_plugin_log::Builder::default()

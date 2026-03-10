@@ -37,26 +37,50 @@ pub fn expand_path(p: &str) -> PathBuf {
     PathBuf::from(result)
 }
 
+// ─── Tauri resource_dir (set at startup via init_resource_dir) ───
+
+use std::sync::Mutex as ResDirMutex;
+static RESOURCE_DIR: ResDirMutex<Option<PathBuf>> = ResDirMutex::new(None);
+
+/// Called once at app startup to store Tauri's resource_dir for correct platform paths.
+/// resource_dir() returns the right location on every OS:
+///   macOS  → <app>.app/Contents/Resources
+///   Windows → install dir
+///   Linux   → /usr/lib/com.echobird.ai  (deb)  or  $APPDIR/usr/lib/com.echobird.ai  (AppImage)
+pub fn init_resource_dir(path: PathBuf) {
+    if let Ok(mut guard) = RESOURCE_DIR.lock() {
+        log::info!("[ToolManager] resource_dir = {:?}", path);
+        *guard = Some(path);
+    }
+}
+
 // ─── Tool directory resolution ───
 
 /// Find the tools directory (tools/)
 /// In dev: relative to project root
 /// In production: bundled with the app binary
 fn find_tools_dir() -> Option<PathBuf> {
-    // 1. Try relative to current exe (production)
+    // 0. Tauri-native resource_dir (most reliable — set at startup via init_resource_dir)
+    if let Ok(guard) = RESOURCE_DIR.lock() {
+        if let Some(ref res_dir) = *guard {
+            let tools_dir = res_dir.join("tools");
+            if tools_dir.exists() {
+                return Some(tools_dir);
+            }
+        }
+    }
+
+    // 1. Try relative to current exe (production fallback)
     if let Ok(exe) = std::env::current_exe() {
         if let Some(exe_dir) = exe.parent() {
-            // Tauri bundles resources next to the binary
             let tools_dir = exe_dir.join("tools");
             if tools_dir.exists() {
                 return Some(tools_dir);
             }
-            // Tauri resources with "../tools/" config → _up_/tools/
             let up_tools = exe_dir.join("_up_").join("tools");
             if up_tools.exists() {
                 return Some(up_tools);
             }
-            // Also check one level up (macOS .app bundle)
             if let Some(parent) = exe_dir.parent() {
                 let tools_dir = parent.join("tools");
                 if tools_dir.exists() {
