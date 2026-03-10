@@ -66,7 +66,28 @@ fn find_tools_dir() -> Option<PathBuf> {
         }
     }
 
-    // 2. Try relative to CARGO_MANIFEST_DIR (dev mode)
+    // 2. Linux: Tauri bundles resources under /usr/lib/{identifier}/
+    //    - deb/rpm: /usr/lib/com.echobird.ai/tools/
+    //    - AppImage: $APPDIR/usr/lib/com.echobird.ai/tools/
+    #[cfg(target_os = "linux")]
+    {
+        // AppImage mounts at $APPDIR
+        if let Ok(appdir) = std::env::var("APPDIR") {
+            let tools_dir = PathBuf::from(&appdir).join("usr/lib/com.echobird.ai/tools");
+            if tools_dir.exists() {
+                return Some(tools_dir);
+            }
+        }
+        // deb/rpm install path
+        for prefix in &["/usr/lib/com.echobird.ai", "/usr/lib/echobird"] {
+            let tools_dir = PathBuf::from(prefix).join("tools");
+            if tools_dir.exists() {
+                return Some(tools_dir);
+            }
+        }
+    }
+
+    // 3. Try relative to CARGO_MANIFEST_DIR (dev mode)
     if let Ok(manifest_dir) = std::env::var("CARGO_MANIFEST_DIR") {
         let project_root = PathBuf::from(manifest_dir).parent().map(|p| p.to_path_buf());
         if let Some(root) = project_root {
@@ -77,7 +98,7 @@ fn find_tools_dir() -> Option<PathBuf> {
         }
     }
 
-    // 3. Try cwd-based lookup (fallback)
+    // 4. Try cwd-based lookup (fallback)
     let cwd_tools = PathBuf::from("tools");
     if cwd_tools.exists() {
         return Some(cwd_tools);
