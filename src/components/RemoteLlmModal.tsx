@@ -728,7 +728,7 @@ export const RemoteLlmModal: React.FC<RemoteLlmModalProps> = ({
                                                             </div>
                                                             <div className="text-[10px] text-cyber-text-secondary truncate leading-tight mt-1 opacity-70 flex gap-1">
                                                                 {(m.runtimes || ['llama-server']).map(r => (
-                                                                    <span key={r} className={`px-1 rounded ${r === runtime ? 'bg-cyan-400/20 text-cyan-400' : 'bg-cyber-surface/50'}`}>
+                                                                    <span key={r} className={`px-1 rounded ${(r === runtime || (runtime === 'vllm-musa' && r === 'vllm')) ? 'bg-cyan-400/20 text-cyan-400' : 'bg-cyber-surface/50'}`}>
                                                                         {r === 'llama-server' ? 'llama.cpp' : r}
                                                                     </span>
                                                                 ))}
