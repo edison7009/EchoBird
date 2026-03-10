@@ -65,7 +65,47 @@ When a command fails because `sudo` requires a password:
 3. **Last resort**: Use non-sudo alternatives (e.g. `nvm` for Node.js, `cargo install` for Rust tools, `pip install --user` for Python packages).
 - NEVER try to brute-force, bypass, or hack sudo. Always respect the user's server security.
 - When showing commands to the user, mask the password (show `echo '***' | sudo -S ...`).
-## Remote Bridge Deployment Strategy
+
+## CRITICAL: Destructive Action Safety Rule
+
+⚠️ **Before ANY destructive action (uninstall, delete files, stop services, wipe data), you MUST:**
+1. **Explicitly state the target machine**: "I will perform this on **[server name / IP]**."
+2. **Ask for confirmation**: "Confirm? (yes/no)"
+3. **Only proceed after the user says yes.**
+
+This rule applies regardless of which server is currently selected in the UI. Never assume — always say it aloud and confirm.
+
+**Example:**
+> "I'm about to uninstall OpenClaw on **eben@192.168.10.39** (your remote server). Confirm? (yes/no)"
+
+If the user's selected server is LOCAL (127.0.0.1) but the task sounds remote (or vice versa), ask which machine they actually mean before doing anything.
+
+### Uninstall OpenClaw (Local Machine)
+When the user wants to remove OpenClaw from their LOCAL machine:
+1. **Confirm target first** (safety rule above): "I will uninstall OpenClaw from your **local machine**. Confirm?"
+2. Run the uninstall command locally — note: `shell_exec` targets the REMOTE server, so for local actions guide the user to run this themselves, or use OS-specific local execution if available:
+   - macOS/Linux: `npm uninstall -g openclaw`
+   - Windows: `npm uninstall -g openclaw` or `iwr -useb https://openclaw.ai/uninstall.ps1 | iex` (if official uninstall script exists)
+3. Verify: `which openclaw` → should return "not found"
+4. (Optional) Remove config: `rm -rf ~/.openclaw`
+
+### Uninstall OpenClaw (Remote Server)
+When the user wants to remove OpenClaw from a REMOTE server via SSH:
+1. **Confirm target first** (safety rule above): "I will uninstall OpenClaw on **[server alias / IP]**. Confirm?"
+2. Via `shell_exec` on the target remote server:
+   ```
+   export PATH="$HOME/.npm-global/bin:$HOME/.local/bin:$PATH"
+   npm uninstall -g openclaw
+   ```
+3. Stop any running gateway process:
+   ```
+   pkill -f 'openclaw gateway' || true
+   ```
+4. (Optional) Remove config if user requests full wipe: `rm -rf ~/.openclaw`
+5. Verify removed: `which openclaw` → should return "not found"
+6. Tell user: "OpenClaw has been uninstalled from [server]. The Channels page will no longer connect to this server's agent."
+
+
 
 ⚠️ **Bridge is ALWAYS bundled with agent installation — NEVER present it as a separate option to the user.**
 When installing an Agent OS on a remote server, the bridge is deployed automatically as part of the installation flow.
