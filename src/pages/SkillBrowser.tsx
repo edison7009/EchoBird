@@ -12,6 +12,9 @@ import { useConfirm } from '../components/ConfirmDialog';
 
 const SKILLS_INDEX_URL = 'https://echobird.ai/api/skills/index.json';
 
+// Generated once per app launch — makes same-category order vary between sessions
+const SESSION_SEED = (Math.random() * 0xffffffff) | 0;
+
 // Category definition: display label + search keywords
 interface CategoryDef {
     label: string;
@@ -319,8 +322,10 @@ export function SkillBrowserProvider({ preloadedSkills, children }: SkillBrowser
 
         // Stable shuffle: use a seed derived from filter params so we only
         // re-shuffle when the filters actually change, not on every render.
+        // SESSION_SEED is generated once per app launch so the same category
+        // shows a different order on every session.
         const sorted = [...result];
-        let seed = 0;
+        let seed = SESSION_SEED;
         const seedStr = `${activeCategory}-${searchQuery}`;
         for (let i = 0; i < seedStr.length; i++) seed = ((seed << 5) - seed + seedStr.charCodeAt(i)) | 0;
         const seededRandom = (s: number) => {
