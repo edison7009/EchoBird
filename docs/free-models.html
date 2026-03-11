@@ -588,7 +588,16 @@
                 <button class="lang-btn" id="langBtn">🌐 EN</button>
                 <div class="lang-drop" id="langDrop">
                     <div class="lang-opt" data-lang="en">English</div>
-                    <div class="lang-opt" data-lang="zh">简体中文</div>
+                    <div class="lang-opt" data-lang="zh-CN">简体中文</div>
+                    <div class="lang-opt" data-lang="zh-TW">繁體中文</div>
+                    <div class="lang-opt" data-lang="ja">日本語</div>
+                    <div class="lang-opt" data-lang="ko">한국어</div>
+                    <div class="lang-opt" data-lang="es">Español</div>
+                    <div class="lang-opt" data-lang="fr">Français</div>
+                    <div class="lang-opt" data-lang="de">Deutsch</div>
+                    <div class="lang-opt" data-lang="pt">Português</div>
+                    <div class="lang-opt" data-lang="ru">Русский</div>
+                    <div class="lang-opt" data-lang="ar">عربي</div>
                 </div>
             </div>
         </div>
@@ -651,52 +660,122 @@
         // ── i18n ──
         const TRANSLATIONS = {
             en: {
-                nav_home: 'Home',
-                nav_free_models: "Today's Free Models",
-                hero_badge: '❯ FREE LLM APIS',
-                hero_title: "Today's Free Models",
-                hero_desc: 'Curated free-tier LLM API providers. All support OpenAI-compatible protocol.<br>Configure in EchoBird\'s App Manager for OpenClaw, OpenCode, and other AI tools.',
-                updated: 'Updated:',
-                loading: 'Fetching latest data...',
-                stat_providers: 'Providers',
-                stat_models: 'Free Models',
-                stat_compat: 'OpenAI Compatible',
-                col_model: 'Model',
-                col_id: 'Model ID',
-                col_ctx: 'Context',
-                col_limit: 'Free Limit',
-                col_status: 'Status',
-                base_url: 'Base URL:',
-                get_key: 'Get API Key →',
-                docs: 'Docs',
+                nav_home: 'Home', nav_free_models: "Today's Free Models",
+                hero_badge: '❯ FREE LLM APIS', hero_title: "Today's Free Models",
+                hero_desc: "Curated free-tier LLM API providers. All support OpenAI-compatible protocol.<br>Configure in EchoBird's App Manager for OpenClaw, OpenCode, and other AI tools.",
+                updated: 'Updated:', loading: 'Fetching latest data...',
+                stat_providers: 'Providers', stat_models: 'Free Models', stat_compat: 'OpenAI Compatible',
+                col_model: 'Model', col_id: 'Model ID', col_ctx: 'Context', col_limit: 'Free Limit', col_status: 'Status',
+                base_url: 'Base URL:', get_key: 'Get API Key ↗', docs: 'Docs',
             },
-            zh: {
-                nav_home: '主页',
-                nav_free_models: '今日免费模型',
-                hero_badge: '❯ 免费 LLM API',
-                hero_title: '今日免费模型',
+            'zh-CN': {
+                nav_home: '主页', nav_free_models: '今日免费模型',
+                hero_badge: '❯ 免费 LLM API', hero_title: '今日免费模型',
                 hero_desc: '精选免费 LLM API 服务商，全部兼容 OpenAI 协议。<br>可在 EchoBird 的应用管理界面，配置给 OpenClaw、OpenCode 等 AI 工具。',
-                updated: '更新时间:',
-                loading: '加载中...',
-                stat_providers: '服务商',
-                stat_models: '免费模型',
-                stat_compat: '兼容 OpenAI',
-                col_model: '模型',
-                col_id: '模型 ID',
-                col_ctx: '上下文',
-                col_limit: '免费限额',
-                col_status: '状态',
-                base_url: 'Base URL:',
-                get_key: '获取 API Key →',
-                docs: '文档',
-            }
+                updated: '更新时间:', loading: '加载中...',
+                stat_providers: '服务商', stat_models: '免费模型', stat_compat: '兼容 OpenAI',
+                col_model: '模型', col_id: '模型 ID', col_ctx: '上下文', col_limit: '免费限额', col_status: '状态',
+                base_url: 'Base URL:', get_key: '获取 API Key ⇗', docs: '文档',
+            },
+            'zh-TW': {
+                nav_home: '主頁', nav_free_models: '今日免費模型',
+                hero_badge: '❯ 免費 LLM API', hero_title: '今日免費模型',
+                hero_desc: '精選免費 LLM API 服務商，全部相容 OpenAI 協議。<br>可在 EchoBird 的應用管理介面，配置給 OpenClaw、OpenCode 等 AI 工具。',
+                updated: '更新時間:', loading: '載入中...',
+                stat_providers: '服務商', stat_models: '免費模型', stat_compat: '相容 OpenAI',
+                col_model: '模型', col_id: '模型 ID', col_ctx: '上下文', col_limit: '免費額度', col_status: '狀態',
+                base_url: 'Base URL:', get_key: '取得 API Key ⇗', docs: '文件',
+            },
+            ja: {
+                nav_home: 'ホーム', nav_free_models: '今日の無料モデル',
+                hero_badge: '❯ 無料 LLM API', hero_title: '今日の無料モデル',
+                hero_desc: '厳選した無料LLM APIプロバイダー。すべてOpenAI互換プロトコルに対応。<br>EchoBirdのApp ManagerでOpenClaw、OpenCodeなどのAIツールに設定可能。',
+                updated: '更新日:', loading: '読込中...',
+                stat_providers: 'プロバイダー', stat_models: '無料モデル', stat_compat: 'OpenAI互換',
+                col_model: 'モデル', col_id: 'モデルID', col_ctx: 'コンテキスト', col_limit: '無料枠', col_status: '状態',
+                base_url: 'Base URL:', get_key: 'APIキー取得 ⇗', docs: 'ドキュメント',
+            },
+            ko: {
+                nav_home: '홈', nav_free_models: '오늘의 무료 모델',
+                hero_badge: '❯ 무료 LLM API', hero_title: '오늘의 무료 모델',
+                hero_desc: '엄선된 무료 LLM API 제공업체. 모두 OpenAI 호환 프로토콜 지원.<br>EchoBird App Manager에서 OpenClaw, OpenCode 등의 AI 도구에 설정 가능.',
+                updated: '업데이트:', loading: '로딩 중...',
+                stat_providers: '제공업체', stat_models: '무료 모델', stat_compat: 'OpenAI 호환',
+                col_model: '모델', col_id: '모델 ID', col_ctx: '컨텍스트', col_limit: '무료 한도', col_status: '상태',
+                base_url: 'Base URL:', get_key: 'API 키 받기 ⇗', docs: '문서',
+            },
+            es: {
+                nav_home: 'Inicio', nav_free_models: 'Modelos Gratuitos Hoy',
+                hero_badge: '❯ APIs LLM GRATUITAS', hero_title: 'Modelos Gratuitos Hoy',
+                hero_desc: 'Proveedores de API LLM gratuitos seleccionados. Todos compatibles con el protocolo OpenAI.<br>Configúralos en EchoBird App Manager para OpenClaw, OpenCode y otras herramientas de IA.',
+                updated: 'Actualizado:', loading: 'Cargando...',
+                stat_providers: 'Proveedores', stat_models: 'Modelos Gratuitos', stat_compat: 'Compatible con OpenAI',
+                col_model: 'Modelo', col_id: 'ID del Modelo', col_ctx: 'Contexto', col_limit: 'Límite Gratuito', col_status: 'Estado',
+                base_url: 'Base URL:', get_key: 'Obtener API Key ⇗', docs: 'Docs',
+            },
+            fr: {
+                nav_home: 'Accueil', nav_free_models: "Modèles Gratuits d'Aujourd'hui",
+                hero_badge: '❯ APIs LLM GRATUITES', hero_title: "Modèles Gratuits d'Aujourd'hui",
+                hero_desc: "Fournisseurs d'API LLM gratuits sélectionnés. Tous compatibles avec le protocole OpenAI.<br>Configurez dans EchoBird App Manager pour OpenClaw, OpenCode et autres outils IA.",
+                updated: 'Mis à jour:', loading: 'Chargement...',
+                stat_providers: 'Fournisseurs', stat_models: 'Modèles Gratuits', stat_compat: 'Compatible OpenAI',
+                col_model: 'Modèle', col_id: 'ID du Modèle', col_ctx: 'Contexte', col_limit: 'Limite Gratuite', col_status: 'Statut',
+                base_url: 'Base URL:', get_key: 'Obtenir la clé API ⇗', docs: 'Docs',
+            },
+            de: {
+                nav_home: 'Home', nav_free_models: 'Heutige Gratis-Modelle',
+                hero_badge: '❯ KOSTENLOSE LLM APIS', hero_title: 'Heutige Gratis-Modelle',
+                hero_desc: 'Ausgewählte kostenlose LLM-API-Anbieter. Alle unterstützen das OpenAI-Protokoll.<br>Im EchoBird App Manager für OpenClaw, OpenCode und andere KI-Tools konfigurieren.',
+                updated: 'Aktualisiert:', loading: 'Lädt...',
+                stat_providers: 'Anbieter', stat_models: 'Gratis-Modelle', stat_compat: 'OpenAI-kompatibel',
+                col_model: 'Modell', col_id: 'Modell-ID', col_ctx: 'Kontext', col_limit: 'Gratis-Limit', col_status: 'Status',
+                base_url: 'Base URL:', get_key: 'API-Key holen ⇗', docs: 'Docs',
+            },
+            pt: {
+                nav_home: 'Início', nav_free_models: 'Modelos Gratuitos de Hoje',
+                hero_badge: '❯ APIs LLM GRATUITAS', hero_title: 'Modelos Gratuitos de Hoje',
+                hero_desc: 'Provedores de API LLM gratuitos selecionados. Todos suportam o protocolo OpenAI.<br>Configure no EchoBird App Manager para OpenClaw, OpenCode e outras ferramentas de IA.',
+                updated: 'Atualizado:', loading: 'Carregando...',
+                stat_providers: 'Provedores', stat_models: 'Modelos Gratuitos', stat_compat: 'Compatível com OpenAI',
+                col_model: 'Modelo', col_id: 'ID do Modelo', col_ctx: 'Contexto', col_limit: 'Limite Gratuito', col_status: 'Status',
+                base_url: 'Base URL:', get_key: 'Obter API Key ⇗', docs: 'Docs',
+            },
+            ru: {
+                nav_home: 'Главная', nav_free_models: 'Бесплатные модели сегодня',
+                hero_badge: '❯ БЕСПЛАТНЫЕ LLM API', hero_title: 'Бесплатные модели сегодня',
+                hero_desc: 'Отобранные бесплатные провайдеры LLM API. Все поддерживают протокол OpenAI.<br>Настройте в EchoBird App Manager для OpenClaw, OpenCode и других ИИ-инструментов.',
+                updated: 'Обновлено:', loading: 'Загрузка...',
+                stat_providers: 'Провайдеры', stat_models: 'Бесплатные модели', stat_compat: 'Совместимо с OpenAI',
+                col_model: 'Модель', col_id: 'ID модели', col_ctx: 'Контекст', col_limit: 'Бесплатный лимит', col_status: 'Статус',
+                base_url: 'Base URL:', get_key: 'Получить API Key ⇗', docs: 'Документация',
+            },
+            ar: {
+                nav_home: 'الرئيسية', nav_free_models: 'نماذج مجانية اليوم',
+                hero_badge: '❯ واجهات LLM مجانية', hero_title: 'نماذج مجانية اليوم',
+                hero_desc: 'مزودو واجهات LLM المجانية المختارة. جميعها تدعم بروتوكول OpenAI.<br>قم بالتهيئة في EchoBird App Manager لـ OpenClaw وOpenCode وأدوات الذكاء الاصطناعي الأخرى.',
+                updated: 'تحديث:', loading: 'جار التحميل...',
+                stat_providers: 'المزودون', stat_models: 'نماذج مجانية', stat_compat: 'متوافق مع OpenAI',
+                col_model: 'النموذج', col_id: 'معرّف النموذج', col_ctx: 'السياق', col_limit: 'الحد المجاني', col_status: 'الحالة',
+                base_url: 'Base URL:', get_key: 'الحصول على API Key ⇗', docs: 'المستندات',
+            },
         };
 
-        let currentLang = localStorage.getItem('fm_lang') ||
-            (navigator.language.startsWith('zh') ? 'zh' : 'en');
+        const LANG_LABELS = { en: 'EN', 'zh-CN': '简体', 'zh-TW': '繁體', ja: '日本語', ko: '한국어', es: 'ES', fr: 'FR', de: 'DE', pt: 'PT', ru: 'RU', ar: 'عربي' };
+
+        function detectLang() {
+            const saved = localStorage.getItem('fm_lang');
+            if (saved && TRANSLATIONS[saved]) return saved;
+            const nav = navigator.language || '';
+            if (nav.startsWith('zh-TW') || nav.startsWith('zh-Hant')) return 'zh-TW';
+            if (nav.startsWith('zh')) return 'zh-CN';
+            const short = nav.slice(0, 2);
+            return TRANSLATIONS[short] ? short : 'en';
+        }
+
+        let currentLang = detectLang();
         let cachedData = null;
 
-        function t(key) { return TRANSLATIONS[currentLang][key] || TRANSLATIONS.en[key] || key; }
+        function t(key) { return (TRANSLATIONS[currentLang] || TRANSLATIONS.en)[key] || TRANSLATIONS.en[key] || key; }
 
         function applyLang() {
             document.querySelectorAll('[data-i18n]').forEach(el => {
@@ -704,7 +783,6 @@
                 el.innerHTML = t(key);
             });
             if (t('hero_title')) document.title = t('hero_title');
-            const LANG_LABELS = { en: 'EN', zh: '简体' };
             document.getElementById('langBtn').textContent = '🌐 ' + (LANG_LABELS[currentLang] || currentLang.toUpperCase());
             document.querySelectorAll('.lang-opt').forEach(o => {
                 o.classList.toggle('active', o.dataset.lang === currentLang);
@@ -728,7 +806,6 @@
 
         // Apply on load
         applyLang();
-
 
         // ── Scroll fade ──
         const obs = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); obs.unobserve(e.target) } }), { threshold: .1 });
