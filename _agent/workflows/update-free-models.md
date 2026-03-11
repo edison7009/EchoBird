@@ -1,5 +1,5 @@
 ---
-description: Update free models list - check for new models and changed free limits across 8 providers
+description: Update free models list - check for new models and changed free limits across 15 providers
 ---
 
 # Update Free Models List
@@ -8,52 +8,64 @@ Periodically run this to keep `docs/api/free-models.json` up to date.
 
 ## Reference Sources
 
-- **Model IDs + providers**: https://github.com/vava-nessa/free-coding-models/blob/main/sources.js
-  - Actively maintained (87+ releases), covers NVIDIA/Groq/Cerebras/OpenRouter/Cloudflare etc.
-  - Each entry: `[model_id, display_name, tier, swe_score, context]`
-- **Free limits**: https://github.com/cheahjs/free-llm-api-resources (README, auto-updated daily)
+| What | URL |
+|---|---|
+| **Model IDs + tiers** | https://github.com/vava-nessa/free-coding-models/blob/main/sources.js |
+| **Free limits** | https://github.com/cheahjs/free-llm-api-resources |
+
+`sources.js` format: `[model_id, display_name, tier, swe_score, context]`  
+Only include **S+** (≥70% SWE-bench) and **S** (60–70%) tier models.
 
 ---
 
-## 8 Providers to Check
+## Provider Order (follow sources.js export sequence)
 
-| Provider | Base URL |
-|---|---|
-| Google AI Studio | `https://generativelanguage.googleapis.com/v1beta/openai` |
-| Groq | `https://api.groq.com/openai/v1` |
-| Cerebras | `https://api.cerebras.ai/v1` |
-| OpenRouter | `https://openrouter.ai/api/v1` |
-| Mistral AI | `https://api.mistral.ai/v1` |
-| Cohere | `https://api.cohere.ai/v1` |
-| Cloudflare Workers AI | `https://api.cloudflare.com/client/v4/accounts/{id}/ai/v1` |
-| NVIDIA NIM | `https://integrate.api.nvidia.com/v1` |
+| # | Provider | Base URL |
+|---|---|---|
+| 1 | NVIDIA NIM | `https://integrate.api.nvidia.com/v1` |
+| 2 | Groq | `https://api.groq.com/openai/v1` |
+| 3 | Cerebras | `https://api.cerebras.ai/v1` |
+| 4 | SambaNova | `https://api.sambanova.ai/v1` |
+| 5 | OpenRouter | `https://openrouter.ai/api/v1` |
+| 6 | Hugging Face | `https://router.huggingface.co/v1` |
+| 7 | Fireworks | `https://api.fireworks.ai/inference/v1` |
+| 8 | Hyperbolic | `https://api.hyperbolic.xyz/v1` |
+| 9 | Scaleway | `https://api.scaleway.ai/v1` |
+| 10 | ZAI | `https://api.z.ai/api/coding/paas/v4` |
+| 11 | SiliconFlow | `https://api.siliconflow.com/v1` |
+| 12 | Together AI | `https://api.together.xyz/v1` |
+| 13 | Cloudflare | `https://api.cloudflare.com/client/v4/accounts/{id}/ai/v1` |
+| 14 | Alibaba DashScope | `https://dashscope-intl.aliyuncs.com/compatible-mode/v1` |
+| 15 | iFlow | `https://apis.iflow.cn/v1` |
+
+> **Note:** Google AI Studio excluded — no S/S+ tier free models (Gemma is B/C tier only).
 
 ---
 
 ## Workflow Steps
 
-1. Open `sources.js` and scan for **new model IDs** per provider section  
+1. Open `sources.js` and go through each provider's export block in order  
    - URL: https://github.com/vava-nessa/free-coding-models/blob/main/sources.js  
-   - Each provider has its own export block (e.g. `export const groq = [...]`)  
-   - Copy model IDs exactly as listed (e.g. `meta-llama/llama-4-scout-17b-16e-preview`)
+   - Filter: only rows where tier is `'S+'` or `'S'`  
+   - Copy the `model_id` (first element) and `ctx` (fifth element) exactly
 
 2. Cross-check limits with cheahjs README  
    - URL: https://github.com/cheahjs/free-llm-api-resources  
    - Look for: changed RPM/RPD numbers, providers removed from free tier
 
 3. Update `docs/api/free-models.json`:
-   - Add new models with: `id`, `name`, `context`, `limit`, `"free": true`
-   - Update changed limits on existing models
-   - Remove models that are no longer free
+   - Keep provider order matching the table above
+   - Per model: `id`, `name`, `context` (convert `128k` → `131072`), `limit`, `"free": true`
+   - Remove models dropped below S tier
    - Update the top-level `"updated"` date field
 
-4. Commit and push — the page at `echobird.ai/free-models` updates automatically via GitHub Pages
+4. Commit and push — `echobird.ai/free-models` updates automatically via GitHub Pages
 
 ---
 
 ## Rules
 
-- **Only include providers with ongoing free tiers** — no one-time trial credits
-- **Per-model limits** where known (e.g., `"5 RPM / 20 req/day"`) — not just blanket provider limits
-- **Keep model list focused** — top 5–10 models per provider, prioritize highest tier (S+/S/A+)
-- Do NOT include: Together AI, Baseten, Novita, Nebius, AI21 (these are trial credits only)
+- **S+ and S tier only** — skip A+, A, A-, B+, B, C models
+- **No Google AI Studio** — Gemma models are B/C tier, not worth listing
+- **Per-model limits** where known — use cheahjs for accurate limit data
+- Trial-credit providers (Fireworks, Hyperbolic, Together, SambaNova) are OK to include, mark limit clearly
