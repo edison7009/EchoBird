@@ -394,28 +394,24 @@
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            width: 22px;
-            height: 22px;
             background: none;
-            border: 1px solid rgba(0, 255, 157, .2);
-            border-radius: 4px;
+            border: none;
             cursor: pointer;
             color: var(--dim);
-            font-size: 11px;
+            font-size: 15px;
             padding: 0;
             flex-shrink: 0;
-            transition: all .15s;
+            transition: color .15s;
             vertical-align: middle;
-            margin-left: 6px
+            margin-left: 6px;
+            line-height: 1
         }
 
         .copy-btn:hover {
-            border-color: var(--neon);
             color: var(--neon)
         }
 
         .copy-btn.copied {
-            border-color: var(--neon);
             color: var(--neon)
         }
 
