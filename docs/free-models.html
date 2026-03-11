@@ -389,6 +389,36 @@
             text-decoration: none
         }
 
+        /* ── Copy button ── */
+        .copy-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 22px;
+            height: 22px;
+            background: none;
+            border: 1px solid rgba(0, 255, 157, .2);
+            border-radius: 4px;
+            cursor: pointer;
+            color: var(--dim);
+            font-size: 11px;
+            padding: 0;
+            flex-shrink: 0;
+            transition: all .15s;
+            vertical-align: middle;
+            margin-left: 6px
+        }
+
+        .copy-btn:hover {
+            border-color: var(--neon);
+            color: var(--neon)
+        }
+
+        .copy-btn.copied {
+            border-color: var(--neon);
+            color: var(--neon)
+        }
+
         /* ── Loading / Error states ── */
         .loading {
             text-align: center;
@@ -547,7 +577,7 @@
                     <div>
                         <div class="provider-name">${p.name}</div>
                         <div class="base-url-block">
-                            Base URL: <code>${p.baseUrl}</code>
+                            Base URL: <code>${p.baseUrl}</code><button class="copy-btn" data-copy="${p.baseUrl}" title="Copy Base URL">⎘</button>
                         </div>
                     </div>
                     <div class="provider-meta">
@@ -570,7 +600,7 @@
                         ${p.models.map(m => `
                         <tr>
                             <td class="model-name">${m.name}</td>
-                            <td class="model-id">${m.id}</td>
+                            <td class="model-id">${m.id}<button class="copy-btn" data-copy="${m.id}" title="Copy Model ID">⎘</button></td>
                             <td><span class="context-badge">${fmtCtx(m.context)} ctx</span></td>
                             <td class="limit-text">${m.limit}</td>
                             <td><span class="free-dot"></span></td>
@@ -582,6 +612,19 @@
 
             // Trigger fade animations
             document.querySelectorAll('.fade').forEach(el => obs.observe(el));
+
+            // Bind copy buttons
+            document.getElementById('content').addEventListener('click', e => {
+                const btn = e.target.closest('.copy-btn');
+                if (!btn) return;
+                const text = btn.dataset.copy;
+                navigator.clipboard.writeText(text).then(() => {
+                    const orig = btn.textContent;
+                    btn.textContent = '✓';
+                    btn.classList.add('copied');
+                    setTimeout(() => { btn.textContent = orig; btn.classList.remove('copied'); }, 1500);
+                });
+            });
         }
 
         // ── Fetch data ──
