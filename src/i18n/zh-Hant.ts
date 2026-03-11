@@ -154,7 +154,6 @@ const zhHant: Partial<Translations> = {
     'agent.modelsTab': '模型',
     'agent.skillsTab': '技能',
     'agent.installViaMother': 'AI 自動安裝',
-    'agent.motherNotConfigured': '請先設定 Mother Agent',
     // ToolCard labels
     'tool.models': '模型',
     'tool.skills': '技能',

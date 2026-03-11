@@ -82,8 +82,8 @@ export const AppManagerProvider: React.FC<AppManagerProviderProps> = ({
         const configured = localStorage.getItem('echobird_agent_model');
         if (!configured) {
             await confirm({
-                title: t('mother.noModels'),
-                message: t('agent.motherNotConfigured'),
+                title: t('skills.noModelTitle'),
+                message: t('skills.noModelMsg'),
                 type: 'info',
                 confirmText: t('common.confirm'),
                 cancelText: '',
