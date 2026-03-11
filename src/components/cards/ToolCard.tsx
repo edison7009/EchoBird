@@ -16,19 +16,20 @@ export interface ToolCardProps {
     website?: string;
     iconBase64?: string;
     names?: Record<string, string>;  // i18n names
-    command?: string;                // CLI command (non-empty = installable via Mother Agent)
+    command?: string;                // CLI command (used by backend for detection)
+    hasRemoteInstall?: boolean;      // show AI Auto-Install button (driven by remote index.json)
     selected?: boolean;
     onClick?: () => void;
     onMotherAgentInstall?: () => void;
 }
 
-export const ToolCard = React.memo(({ id, name, version, installed, path, detectedPath, configPath, skillsCount, installedSkillsCount, activeModel, website, iconBase64, names, command, selected = false, onClick, onMotherAgentInstall }: ToolCardProps) => {
+export const ToolCard = React.memo(({ id, name, version, installed, path, detectedPath, configPath, skillsCount, installedSkillsCount, activeModel, website, iconBase64, names, command, hasRemoteInstall, selected = false, onClick, onMotherAgentInstall }: ToolCardProps) => {
     const resolvedSkillsCount = skillsCount ?? installedSkillsCount ?? 0;
     const { t, locale } = useI18n();
     const displayName = (names && locale !== 'en' && names[locale]) || name;
 
-    // Uninstalled CLI tool → show Mother Agent install button
-    const showMotherInstall = !installed && !!command;
+    // Show AI Auto-Install button based on remote index (not local command field)
+    const showMotherInstall = !installed && !!hasRemoteInstall;
 
     const handleCardClick = () => {
         if (showMotherInstall) {
