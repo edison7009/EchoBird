@@ -52,7 +52,7 @@ export const Sidebar = ({ activePage, onPageChange, agentRunning = false, channe
                         lineHeight: '16px',
                     }}
                 >
-                    {'EchoBird AI'}
+                    {'EchoBird.ai'}
                 </span>
                 {updateAvailable && (
                     <button
