@@ -4,44 +4,23 @@
         {
             "id": "google-ai-studio",
             "name": "Google AI Studio",
-            "url": "https://ai.google.dev/gemini-api/docs",
+            "url": "https://ai.google.dev/gemini-api/docs/models",
             "baseUrl": "https://generativelanguage.googleapis.com/v1beta/openai",
             "protocol": "openai",
             "getKeyUrl": "https://aistudio.google.com/app/apikey",
             "models": [
                 {
-                    "id": "gemini-2.5-flash-preview-04-17",
+                    "id": "gemini-2.5-flash",
                     "name": "Gemini 2.5 Flash",
                     "context": 1048576,
-                    "limit": "5 RPM / 20 req/day",
+                    "limit": "10 RPM / 500 req/day",
                     "free": true
                 },
                 {
-                    "id": "gemini-2.5-flash-lite-preview-06-17",
+                    "id": "gemini-2.5-flash-lite",
                     "name": "Gemini 2.5 Flash-Lite",
                     "context": 1048576,
-                    "limit": "10 RPM / 20 req/day",
-                    "free": true
-                },
-                {
-                    "id": "gemini-2.0-flash",
-                    "name": "Gemini 2.0 Flash",
-                    "context": 1048576,
-                    "limit": "15 RPM / 1M TPD",
-                    "free": true
-                },
-                {
-                    "id": "gemini-2.0-flash-lite",
-                    "name": "Gemini 2.0 Flash Lite",
-                    "context": 1048576,
-                    "limit": "30 RPM / 1.5M TPD",
-                    "free": true
-                },
-                {
-                    "id": "gemini-1.5-flash",
-                    "name": "Gemini 1.5 Flash",
-                    "context": 1048576,
-                    "limit": "15 RPM / 1M TPD",
+                    "limit": "30 RPM / 1500 req/day",
                     "free": true
                 },
                 {
@@ -57,20 +36,13 @@
                     "context": 131072,
                     "limit": "30 RPM / 14.4K req/day",
                     "free": true
-                },
-                {
-                    "id": "gemma-3-4b-it",
-                    "name": "Gemma 3 4B",
-                    "context": 131072,
-                    "limit": "30 RPM / 14.4K req/day",
-                    "free": true
                 }
             ]
         },
         {
             "id": "groq",
             "name": "Groq",
-            "url": "https://console.groq.com/docs/openai",
+            "url": "https://console.groq.com/docs/models",
             "baseUrl": "https://api.groq.com/openai/v1",
             "protocol": "openai",
             "getKeyUrl": "https://console.groq.com/keys",
@@ -92,7 +64,7 @@
                 {
                     "id": "meta-llama/llama-4-scout-17b-16e-instruct",
                     "name": "Llama 4 Scout 17B",
-                    "context": 512000,
+                    "context": 131072,
                     "limit": "30K TPM / 1K req/day",
                     "free": true
                 },
@@ -104,8 +76,8 @@
                     "free": true
                 },
                 {
-                    "id": "moonshotai/kimi-k2-instruct",
-                    "name": "Kimi K2 Instruct",
+                    "id": "moonshotai/kimi-k2-instruct-0905",
+                    "name": "Kimi K2",
                     "context": 131072,
                     "limit": "10K TPM / 1K req/day",
                     "free": true
@@ -116,20 +88,13 @@
                     "context": 131072,
                     "limit": "6K TPM / 1K req/day",
                     "free": true
-                },
-                {
-                    "id": "deepseek-r1-distill-llama-70b",
-                    "name": "DeepSeek R1 Distill 70B",
-                    "context": 131072,
-                    "limit": "6K TPM / 1K req/day",
-                    "free": true
                 }
             ]
         },
         {
             "id": "cerebras",
             "name": "Cerebras",
-            "url": "https://cloud.cerebras.ai/platform/",
+            "url": "https://inference-docs.cerebras.ai/models",
             "baseUrl": "https://api.cerebras.ai/v1",
             "protocol": "openai",
             "getKeyUrl": "https://cloud.cerebras.ai/",
@@ -137,21 +102,28 @@
                 {
                     "id": "llama3.1-8b",
                     "name": "Llama 3.1 8B",
-                    "context": 8192,
+                    "context": 32000,
                     "limit": "60K TPM / 1M tokens/day",
                     "free": true
                 },
                 {
-                    "id": "llama-3.3-70b",
-                    "name": "Llama 3.3 70B",
-                    "context": 8192,
+                    "id": "llama3.1-70b",
+                    "name": "Llama 3.1 70B",
+                    "context": 32000,
                     "limit": "60K TPM / 1M tokens/day",
                     "free": true
                 },
                 {
-                    "id": "openai/gpt-oss-120b",
+                    "id": "gpt-oss-120b",
                     "name": "GPT-OSS 120B",
-                    "context": 8192,
+                    "context": 128000,
+                    "limit": "60K TPM / 1M tokens/day",
+                    "free": true
+                },
+                {
+                    "id": "qwen-3-235b-a22b-instruct-2507",
+                    "name": "Qwen3 235B A22B",
+                    "context": 131072,
                     "limit": "60K TPM / 1M tokens/day",
                     "free": true
                 }
@@ -160,7 +132,7 @@
         {
             "id": "openrouter-free",
             "name": "OpenRouter (Free Tier)",
-            "url": "https://openrouter.ai/docs",
+            "url": "https://openrouter.ai/models?q=:free",
             "baseUrl": "https://openrouter.ai/api/v1",
             "protocol": "openai",
             "getKeyUrl": "https://openrouter.ai/settings/keys",
@@ -173,15 +145,15 @@
                     "free": true
                 },
                 {
-                    "id": "meta-llama/llama-3.3-70b-instruct:free",
-                    "name": "Llama 3.3 70B Instruct",
-                    "context": 131072,
+                    "id": "meta-llama/llama-4-scout:free",
+                    "name": "Llama 4 Scout",
+                    "context": 512000,
                     "limit": "20 RPM / 50 req/day",
                     "free": true
                 },
                 {
-                    "id": "mistralai/mistral-small-3.1-24b-instruct:free",
-                    "name": "Mistral Small 3.1 24B",
+                    "id": "meta-llama/llama-3.3-70b-instruct:free",
+                    "name": "Llama 3.3 70B",
                     "context": 131072,
                     "limit": "20 RPM / 50 req/day",
                     "free": true
@@ -199,20 +171,13 @@
                     "context": 131072,
                     "limit": "20 RPM / 50 req/day",
                     "free": true
-                },
-                {
-                    "id": "nousresearch/hermes-3-llama-3.1-405b:free",
-                    "name": "Hermes 3 Llama 3.1 405B",
-                    "context": 131072,
-                    "limit": "20 RPM / 50 req/day",
-                    "free": true
                 }
             ]
         },
         {
             "id": "mistral-ai",
             "name": "Mistral AI",
-            "url": "https://docs.mistral.ai",
+            "url": "https://docs.mistral.ai/getting-started/models/models_overview/",
             "baseUrl": "https://api.mistral.ai/v1",
             "protocol": "openai",
             "getKeyUrl": "https://console.mistral.ai/api-keys",
@@ -221,21 +186,21 @@
                     "id": "mistral-small-latest",
                     "name": "Mistral Small 3",
                     "context": 32768,
-                    "limit": "1 RPS / 500K TPM / 1B tokens/month",
+                    "limit": "1 RPS / 1B tokens/month",
                     "free": true
                 },
                 {
                     "id": "open-mistral-nemo",
                     "name": "Mistral Nemo",
                     "context": 131072,
-                    "limit": "1 RPS / 500K TPM / 1B tokens/month",
+                    "limit": "1 RPS / 1B tokens/month",
                     "free": true
                 },
                 {
                     "id": "codestral-mamba-latest",
                     "name": "Codestral Mamba",
                     "context": 262144,
-                    "limit": "1 RPS / 500K TPM / 1B tokens/month",
+                    "limit": "1 RPS / 1B tokens/month",
                     "free": true
                 }
             ]
@@ -243,7 +208,7 @@
         {
             "id": "cohere",
             "name": "Cohere",
-            "url": "https://docs.cohere.com",
+            "url": "https://docs.cohere.com/docs/models",
             "baseUrl": "https://api.cohere.ai/v1",
             "protocol": "openai",
             "getKeyUrl": "https://dashboard.cohere.com/api-keys",
@@ -252,21 +217,21 @@
                     "id": "command-r-plus-08-2024",
                     "name": "Command R+",
                     "context": 128000,
-                    "limit": "20 RPM / 1K req/month (shared)",
+                    "limit": "20 RPM / 1K req/month",
                     "free": true
                 },
                 {
                     "id": "command-r-08-2024",
                     "name": "Command R",
                     "context": 128000,
-                    "limit": "20 RPM / 1K req/month (shared)",
+                    "limit": "20 RPM / 1K req/month",
                     "free": true
                 },
                 {
                     "id": "command-r7b-12-2024",
                     "name": "Command R7B",
                     "context": 128000,
-                    "limit": "20 RPM / 1K req/month (shared)",
+                    "limit": "20 RPM / 1K req/month",
                     "free": true
                 }
             ]
@@ -274,14 +239,14 @@
         {
             "id": "nvidia-nim",
             "name": "NVIDIA NIM",
-            "url": "https://docs.api.nvidia.com",
+            "url": "https://build.nvidia.com/models",
             "baseUrl": "https://integrate.api.nvidia.com/v1",
             "protocol": "openai",
             "getKeyUrl": "https://build.nvidia.com/explore/discover",
             "models": [
                 {
                     "id": "meta/llama-3.3-70b-instruct",
-                    "name": "Llama 3.3 70B Instruct",
+                    "name": "Llama 3.3 70B",
                     "context": 128000,
                     "limit": "40 RPM",
                     "free": true
@@ -295,22 +260,15 @@
                 },
                 {
                     "id": "qwen/qwen2.5-72b-instruct",
-                    "name": "Qwen2.5 72B Instruct",
+                    "name": "Qwen2.5 72B",
                     "context": 131072,
                     "limit": "40 RPM",
                     "free": true
                 },
                 {
                     "id": "nvidia/llama-3.1-nemotron-70b-instruct",
-                    "name": "Nemotron 70B Instruct",
+                    "name": "Nemotron 70B",
                     "context": 131072,
-                    "limit": "40 RPM",
-                    "free": true
-                },
-                {
-                    "id": "mistralai/mistral-small-24b-instruct-2501",
-                    "name": "Mistral Small 24B",
-                    "context": 32768,
                     "limit": "40 RPM",
                     "free": true
                 },
@@ -326,7 +284,7 @@
         {
             "id": "cloudflare-workers-ai",
             "name": "Cloudflare Workers AI",
-            "url": "https://developers.cloudflare.com/workers-ai",
+            "url": "https://developers.cloudflare.com/workers-ai/models/",
             "baseUrl": "https://api.cloudflare.com/client/v4/accounts/{account_id}/ai/v1",
             "protocol": "openai",
             "getKeyUrl": "https://dash.cloudflare.com/profile/api-tokens",
