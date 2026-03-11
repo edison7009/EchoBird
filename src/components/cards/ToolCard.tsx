@@ -61,23 +61,22 @@ export const ToolCard = React.memo(({ id, name, version, installed, path, detect
             />
             <div className={`text-lg font-bold truncate pr-12 ${installed ? 'text-cyber-accent' : showMotherInstall ? 'text-cyber-text-secondary' : 'text-cyber-text-secondary'}`}>{displayName}</div>
 
-            {/* Mutually exclusive: install button OR 4 info rows */}
-            <div className="flex-1 mt-3 flex flex-col justify-center">
-                {showMotherInstall ? (
-                    <div className="flex items-center justify-center">
+            {/* 4 rows always rendered to hold card height; invisible for CLI-installable tools */}
+            <div className="relative mt-3">
+                <div className={`text-xs space-y-1.5 ${installed ? 'text-cyber-accent/60' : 'text-cyber-text-muted/70'} ${showMotherInstall ? 'invisible' : ''}`}>
+                    <div className="truncate">{t('tool.models')}: {installed ? (activeModel || '-') : '-'}</div>
+                    <div className="truncate">{t('tool.skills')}: {installed ? `${resolvedSkillsCount} ${t('tool.skillsInstalled')}` : '-'}</div>
+                    <div className="truncate">{t('tool.app')}: {installed ? (detectedPath || path || '-') : '-'}</div>
+                    <div className="truncate">{t('tool.config')}: {installed ? (configPath || '-') : '-'}</div>
+                </div>
+                {showMotherInstall && (
+                    <div className="absolute inset-0 flex items-center justify-center">
                         <button
                             onClick={(e) => { e.stopPropagation(); onMotherAgentInstall?.(); }}
                             className="py-1.5 px-5 text-xs font-bold rounded border border-cyber-accent-secondary bg-cyber-accent-secondary text-black hover:bg-cyber-accent-secondary/90 hover:shadow-[0_0_10px_rgba(0,212,255,0.35)] transition-all"
                         >
                             {t('agent.installViaMother')}
                         </button>
-                    </div>
-                ) : (
-                    <div className={`text-xs space-y-1.5 ${installed ? 'text-cyber-accent/60' : 'text-cyber-text-muted/70'}`}>
-                        <div className="truncate">{t('tool.models')}: {installed ? (activeModel || '-') : '-'}</div>
-                        <div className="truncate">{t('tool.skills')}: {installed ? `${resolvedSkillsCount} ${t('tool.skillsInstalled')}` : '-'}</div>
-                        <div className="truncate">{t('tool.app')}: {installed ? (detectedPath || path || '-') : '-'}</div>
-                        <div className="truncate">{t('tool.config')}: {installed ? (configPath || '-') : '-'}</div>
                     </div>
                 )}
             </div>
