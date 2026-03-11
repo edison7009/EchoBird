@@ -1,1 +1,1 @@
-{"version": "2.7.9","releaseDate": "2026-03-11","releaseNotes": "Fix Codex launch path error on Windows (strip \\\\?\\  prefix), unify EchoBird brand name, update nav logo font to JetBrains Mono"}
+{"version":"2.8.0","releaseDate":"2026-03-11","releaseNotes":"AI Auto-Install: click AI Auto-Install in App Manager to pre-fill Mother Agent with install commands. Install info is fetched on-demand from remote API (no app update needed to add new tools). System prompt optimized."}
