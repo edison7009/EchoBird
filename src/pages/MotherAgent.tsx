@@ -132,10 +132,11 @@ interface MotherAgentProviderProps {
     onClearLogs: () => void;
     onAgentRunningChange?: (running: boolean) => void;
     onNewMessage?: () => void;
+    initialMessage?: string;
     children: React.ReactNode;
 }
 
-export function MotherAgentProvider({ appLogs, detectedTools, onClearLogs, onAgentRunningChange, onNewMessage, children }: MotherAgentProviderProps) {
+export function MotherAgentProvider({ appLogs, detectedTools, onClearLogs, onAgentRunningChange, onNewMessage, initialMessage, children }: MotherAgentProviderProps) {
     const { locale } = useI18n();  // UI locale for agent response language hint
     const [models, setModels] = useState<ModelConfig[]>([]);
     const [agentModel, setAgentModelRaw] = useState<string | null>(() => localStorage.getItem('echobird_agent_model'));
@@ -156,6 +157,13 @@ export function MotherAgentProvider({ appLogs, detectedTools, onClearLogs, onAge
     const chatEndRef = useRef<HTMLDivElement>(null!);
     const chatInputRef = useRef<HTMLInputElement>(null!);
     const [pendingSkills, setPendingSkills] = useState<PendingSkill[]>([]);
+
+    // Pre-fill input when navigated from App Manager install button
+    useEffect(() => {
+        if (!initialMessage) return;
+        setChatInput(initialMessage);
+        setTimeout(() => chatInputRef.current?.focus(), 100);
+    }, [initialMessage]);
 
     const addPendingSkill = useCallback((skill: PendingSkill) => {
         setPendingSkills(prev => {

@@ -1,0 +1,10 @@
+{
+    "id": "openclaw",
+    "displayName": "OpenClaw",
+    "homepage": "https://openclaw.ai/",
+    "docs": "https://docs.openclaw.ai/",
+    "github": "https://github.com/openclaw/openclaw",
+    "install": {
+        "one-liner (macOS / Linux / Windows)": "curl -fsSL https://openclaw.ai/install.sh | bash"
+    }
+}

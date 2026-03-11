@@ -713,6 +713,7 @@ pub async fn scan_tools() -> Vec<DetectedTool> {
             launch_file: pc.launch_file.clone(),
             names: pc.names.clone(),
             start_command: pc.start_command.clone(),
+            command: if pc.command.is_empty() { None } else { Some(pc.command.clone()) },
         });
     }
 

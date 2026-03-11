@@ -326,5 +326,6 @@ const de: Partial<Translations> = {
     'mother.connectionHint': 'Bitte URL, Model-ID und API-Key prüfen und sicherstellen, dass ausreichend Token-Guthaben vorhanden ist.',
     'common.showProcess': 'DENKEN·PROZESS',
     'mother.thinking': 'Denkt nach...',
+    'agent.installViaMother': 'KI-Autoinstallation',
 };
 export default de;

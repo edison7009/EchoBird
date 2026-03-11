@@ -298,5 +298,6 @@ const nl: Partial<Translations> = {
     'mother.connectionHint': 'Controleer de URL, het Model ID en de API Key, en zorg dat uw Token-quotum voldoende is.',
     'common.showProcess': 'DENKEN·PROCES',
     'mother.thinking': 'Denken...',
+    'agent.installViaMother': 'AI auto-installatie',
 };
 export default nl;

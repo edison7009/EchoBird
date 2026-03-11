@@ -298,5 +298,6 @@ const es: Partial<Translations> = {
     'mother.connectionFailed': 'No se pudo conectar al modelo de IA tras {n} intentos.',
     'mother.connectionHint': 'Por favor comprueba la URL, el Model ID y la API Key, y asegúrate de que tu cuota de tokens es suficiente.',
     'common.showProcess': 'PENSAR·PROCESO',
+    'agent.installViaMother': 'Instalación automática IA',
 };
 export default es;

@@ -298,5 +298,6 @@ const bn: Partial<Translations> = {
     'mother.connectionHint': 'URL, Model ID, API Key পরীক্ষা করুন এবং নিশ্চিত করুন যে Token কোটা পর্যাপ্ত।',
     'common.showProcess': 'চিন্তা·প্রক্রিয়া',
     'mother.thinking': 'ভাবছে...',
+    'agent.installViaMother': 'AI অটো-ইনস্টল',
 };
 export default bn;

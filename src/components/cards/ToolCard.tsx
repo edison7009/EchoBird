@@ -16,24 +16,39 @@ export interface ToolCardProps {
     website?: string;
     iconBase64?: string;
     names?: Record<string, string>;  // i18n names
+    command?: string;                // CLI command (used by backend for detection)
+    hasRemoteInstall?: boolean;      // show AI Auto-Install button (driven by remote index.json)
     selected?: boolean;
     onClick?: () => void;
+    onMotherAgentInstall?: () => void;
 }
 
-export const ToolCard = React.memo(({ id, name, version, installed, path, detectedPath, configPath, skillsCount, installedSkillsCount, activeModel, website, iconBase64, names, selected = false, onClick }: ToolCardProps) => {
+export const ToolCard = React.memo(({ id, name, version, installed, path, detectedPath, configPath, skillsCount, installedSkillsCount, activeModel, website, iconBase64, names, command, hasRemoteInstall, selected = false, onClick, onMotherAgentInstall }: ToolCardProps) => {
     const resolvedSkillsCount = skillsCount ?? installedSkillsCount ?? 0;
     const { t, locale } = useI18n();
     const displayName = (names && locale !== 'en' && names[locale]) || name;
+
+    // Show AI Auto-Install button based on remote index (not local command field)
+    const showMotherInstall = !installed && !!hasRemoteInstall;
+
+    const handleCardClick = () => {
+        if (showMotherInstall) {
+            onMotherAgentInstall?.();
+        } else if (installed) {
+            onClick?.();
+        }
+    };
+
     return (
         <div
-            className={`p-5 border ${selected ? 'border-cyber-accent shadow-[0_0_10px_rgba(0,255,157,0.3)]' : 'border-cyber-border shadow-cyber-card'} relative overflow-hidden rounded-card ${installed ? 'cursor-pointer hover:bg-black/90' : 'cursor-default opacity-80'} transition-all bg-black/80 flex flex-col`}
-            onClick={installed ? onClick : undefined}
+            className={`p-5 min-h-[160px] border ${selected ? 'border-cyber-accent shadow-[0_0_10px_rgba(0,255,157,0.3)]' : 'border-cyber-border shadow-cyber-card'} relative overflow-hidden rounded-card ${installed || showMotherInstall ? 'cursor-pointer hover:bg-black/90' : 'cursor-default opacity-80'} transition-all bg-black/80 flex flex-col`}
+            onClick={handleCardClick}
         >
             {/* Tool icon top-right */}
             <img
                 src={`./icons/tools/${id}.svg`}
                 alt={name}
-                className={`absolute top-4 right-4 w-10 h-10 rounded-lg ${selected ? 'opacity-100' : installed ? 'opacity-60' : 'opacity-20'}`}
+                className={`absolute top-4 right-4 w-10 h-10 rounded-lg ${selected ? 'opacity-100' : installed ? 'opacity-60' : showMotherInstall ? 'opacity-30' : 'opacity-20'}`}
                 onError={(e) => {
                     const img = e.target as HTMLImageElement;
                     if (img.src.endsWith('.svg')) {
@@ -45,12 +60,26 @@ export const ToolCard = React.memo(({ id, name, version, installed, path, detect
                     }
                 }}
             />
-            <div className={`text-lg font-bold truncate pr-12 ${installed ? 'text-cyber-accent' : 'text-cyber-text-secondary'}`}>{displayName}</div>
-            <div className={`text-xs space-y-1.5 mt-3 ${installed ? 'text-cyber-accent/60' : 'text-cyber-text-muted/70'}`}>
-                <div className="truncate">{t('tool.models')}: {installed ? (activeModel || '-') : '-'}</div>
-                <div className="truncate">{t('tool.skills')}: {installed ? `${resolvedSkillsCount} ${t('tool.skillsInstalled')}` : '-'}</div>
-                <div className="truncate">{t('tool.app')}: {installed ? (detectedPath || path || '-') : '-'}</div>
-                <div className="truncate">{t('tool.config')}: {installed ? (configPath || '-') : '-'}</div>
+            <div className={`text-lg font-bold truncate pr-12 ${installed ? 'text-cyber-accent' : showMotherInstall ? 'text-cyber-text-secondary' : 'text-cyber-text-secondary'}`}>{displayName}</div>
+
+            {/* 4 rows always rendered to hold card height; invisible for CLI-installable tools */}
+            <div className="relative mt-3">
+                <div className={`text-xs space-y-1.5 ${installed ? 'text-cyber-accent/60' : 'text-cyber-text-muted/70'} ${showMotherInstall ? 'invisible' : ''}`}>
+                    <div className="truncate">{t('tool.models')}: {installed ? (activeModel || '-') : '-'}</div>
+                    <div className="truncate">{t('tool.skills')}: {installed ? `${resolvedSkillsCount} ${t('tool.skillsInstalled')}` : '-'}</div>
+                    <div className="truncate">{t('tool.app')}: {installed ? (detectedPath || path || '-') : '-'}</div>
+                    <div className="truncate">{t('tool.config')}: {installed ? (configPath || '-') : '-'}</div>
+                </div>
+                {showMotherInstall && (
+                    <div className="absolute inset-0 flex items-center justify-center">
+                        <button
+                            onClick={(e) => { e.stopPropagation(); onMotherAgentInstall?.(); }}
+                            className="py-1.5 px-5 text-xs font-bold rounded border border-cyber-accent-secondary bg-cyber-accent-secondary text-black hover:bg-cyber-accent-secondary/90 hover:shadow-[0_0_10px_rgba(0,212,255,0.35)] transition-all"
+                        >
+                            {t('agent.installViaMother')}
+                        </button>
+                    </div>
+                )}
             </div>
         </div>
     );

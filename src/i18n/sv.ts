@@ -165,5 +165,6 @@ const sv: Partial<Translations> = {
     'mother.connectionHint': 'Kontrollera URL, Model ID och API Key och se till att Token-gränsen är tillräcklig.',
     'common.showProcess': 'TÄNKANDE·PROCESS',
     'mother.thinking': 'Tänker...',
+    'agent.installViaMother': 'AI-autoinstallation',
 };
 export default sv;

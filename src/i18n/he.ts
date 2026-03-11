@@ -165,5 +165,6 @@ const he: Partial<Translations> = {
     'mother.connectionHint': 'אנא בדוק את ה-URL, Model ID ו-API Key, וודא שמכסת ה-Token מספיקה.',
     'common.showProcess': 'חשיבה·תהליך',
     'mother.thinking': 'חושב...',
+    'agent.installViaMother': 'התקנה אוטומטית בבינה מלאכותית',
 };
 export default he;

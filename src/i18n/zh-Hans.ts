@@ -166,6 +166,7 @@ const zhHans: Partial<Translations> = {
     // Agent Worker tabs
     'agent.modelsTab': '模型',
     'agent.skillsTab': '技能',
+    'agent.installViaMother': 'AI 自动安装',
     // ToolCard labels
     'tool.models': '模型',
     'tool.skills': '技能',

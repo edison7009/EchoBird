@@ -403,13 +403,17 @@ export function SkillBrowserSearch() {
     );
 }
 
-// ===== Helper: get LLM config from first available model =====
-// Triple-fallback: Anthropic first (explicit or derived /v1→/anthropic), then OpenAI
+// ===== Helper: get LLM config from Mother Agent selected model =====
+// Uses the model selected in Mother Agent (echobird_agent_model key).
+// Returns null if Mother Agent has no model selected.
 async function getLlmConfig(): Promise<LlmQuickConfig | null> {
     try {
+        const agentModelId = localStorage.getItem('echobird_agent_model');
+        if (!agentModelId) return null;
+
         const models = await api.getModels();
-        if (!models.length) return null;
-        const m = models[0];
+        const m = models.find(m => m.internalId === agentModelId);
+        if (!m) return null;
 
         // Derive Anthropic URL from OpenAI URL when possible (/v1 → /anthropic)
         const deriveAnthropicUrl = (base: string): string | null => {

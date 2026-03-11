@@ -1,9 +1,10 @@
 // App Manager Page — Tool detection, launch, model configuration
 // Extracted from App.tsx with Provider pattern for shared state
 
-import { useState, useEffect, useMemo, createContext, useContext } from 'react';
+import { useState, useEffect, useMemo, createContext, useContext, useCallback } from 'react';
 import { Server as ServerIcon, Box as BoxIcon } from 'lucide-react';
 import { ToolCard, getModelIcon } from '../components';
+import { useConfirm } from '../components/ConfirmDialog';
 import { useI18n } from '../hooks/useI18n';
 import * as api from '../api/tauri';
 import type { ModelConfig } from '../api/types';
@@ -38,6 +39,10 @@ interface AppManagerContextType {
     setModelProtocolSelection: React.Dispatch<React.SetStateAction<Record<string, 'openai' | 'anthropic'>>>;
     // Launch handler
     handleLaunch: () => Promise<void>;
+    // Navigation — internal handler: (toolId, toolName) => fetch install info → call prop
+    onGoToMother: (toolId: string, toolName: string) => void;
+    // Remote AI-installable tool IDs (from echobird.ai/api/tools/install/index.json)
+    aiInstallableIds: string[];
 }
 
 const AppManagerContext = createContext<AppManagerContextType | null>(null);
@@ -60,6 +65,7 @@ interface AppManagerProviderProps {
     modelProtocolSelection: Record<string, 'openai' | 'anthropic'>;
     setModelProtocolSelection: React.Dispatch<React.SetStateAction<Record<string, 'openai' | 'anthropic'>>>;
     isActive?: boolean;
+    onGoToMother?: (prefill: string) => void;
     children: React.ReactNode;
 }
 
@@ -67,9 +73,49 @@ export const AppManagerProvider: React.FC<AppManagerProviderProps> = ({
     detectedTools, setDetectedTools, isScanning, scanTools,
     modelProtocolSelection, setModelProtocolSelection,
     isActive,
+    onGoToMother = (_prefill: string) => { },
     children,
 }) => {
     const { t } = useI18n();
+    const confirm = useConfirm();
+
+    // Wrapped navigation: fetch remote install info, build prefill, check model configured
+    const handleGoToMother = useCallback(async (toolId: string, toolName: string) => {
+        const configured = localStorage.getItem('echobird_agent_model');
+        if (!configured) {
+            await confirm({
+                title: t('skills.noModelTitle'),
+                message: t('skills.noModelMsg'),
+                type: 'info',
+                confirmText: t('common.confirm'),
+                cancelText: '',
+            });
+            return;
+        }
+        // Fetch tool-specific install info from remote API (on-demand, not in system prompt)
+        let prefill = t('mother.hintInstall').replace('{agent}', toolName);
+        try {
+            const res = await fetch(`https://echobird.ai/api/tools/install/${toolId}.json`, { signal: AbortSignal.timeout(4000) });
+            if (res.ok) {
+                const data = await res.json();
+                const lines: string[] = [`Install ${toolName}`];
+                if (data.install && typeof data.install === 'object') {
+                    lines.push('');
+                    lines.push('Install commands (choose the one matching the user\'s system):');
+                    for (const [method, cmd] of Object.entries(data.install as Record<string, string>)) {
+                        lines.push(`  ${method}: ${cmd}`);
+                    }
+                }
+                const links: string[] = [];
+                if (data.homepage) links.push(`Site: ${data.homepage}`);
+                if (data.docs) links.push(`Docs: ${data.docs}`);
+                if (data.github) links.push(`GitHub: ${data.github}`);
+                if (links.length) { lines.push(''); lines.push(...links); }
+                prefill = lines.join('\n');
+            }
+        } catch { /* network error — use simple prefill */ }
+        onGoToMother(prefill);
+    }, [confirm, t, onGoToMother]);
 
     // Load models internally
     const [userModels, setUserModels] = useState<ModelConfig[]>([]);
@@ -77,6 +123,16 @@ export const AppManagerProvider: React.FC<AppManagerProviderProps> = ({
         if (api.getModels) {
             api.getModels().then(setUserModels).catch(e => console.error('Load models failed:', e));
         }
+    }, [isActive]);
+
+    // Remote AI-installable IDs: fetch from echobird.ai/api/tools/install/index.json on activate
+    const [aiInstallableIds, setAiInstallableIds] = useState<string[]>([]);
+    useEffect(() => {
+        if (!isActive) return;
+        fetch('https://echobird.ai/api/tools/install/index.json', { signal: AbortSignal.timeout(6000) })
+            .then(r => r.json())
+            .then(data => { if (Array.isArray(data?.ids)) setAiInstallableIds(data.ids); })
+            .catch(() => { /* network error — keep empty */ });
     }, [isActive]);
 
     // Internalized state
@@ -212,6 +268,8 @@ export const AppManagerProvider: React.FC<AppManagerProviderProps> = ({
                 isScanning, scanTools,
                 userModels, modelProtocolSelection, setModelProtocolSelection,
                 handleLaunch,
+                onGoToMother: handleGoToMother,
+                aiInstallableIds,
             }}
         >
             {children}
@@ -227,6 +285,8 @@ export const AppManagerMain: React.FC = () => {
         detectedTools, isScanning, scanTools,
         activeToolCategory, setActiveToolCategory,
         selectedTool, setSelectedTool,
+        onGoToMother,
+        aiInstallableIds,
     } = useAppManager();
 
     return (
@@ -289,9 +349,13 @@ export const AppManagerMain: React.FC = () => {
                         detectedTools
                             .filter(tool => activeToolCategory === 'ALL' || tool.category === activeToolCategory)
                             .sort((a, b) => {
-                                // Installed first
+                                // 1. Installed first
                                 if (a.installed !== b.installed) return a.installed ? -1 : 1;
-                                // Same install status: sort by category
+                                // 2. Within same install status: AI auto-installable (remote index) first
+                                const aHasRemote = aiInstallableIds.includes(a.id);
+                                const bHasRemote = aiInstallableIds.includes(b.id);
+                                if (aHasRemote !== bHasRemote) return aHasRemote ? -1 : 1;
+                                // 3. Then by category
                                 const categoryOrder: Record<string, number> = { 'AgentOS': 0, 'IDE': 1, 'CLI': 2, 'AutoTrading': 3, 'Game': 4, 'Utility': 5 };
                                 return (categoryOrder[a.category || ''] ?? 99) - (categoryOrder[b.category || ''] ?? 99);
                             })
@@ -301,6 +365,8 @@ export const AppManagerMain: React.FC = () => {
                                     {...tool}
                                     selected={selectedTool === tool.id}
                                     onClick={() => setSelectedTool(tool.id)}
+                                    hasRemoteInstall={aiInstallableIds.includes(tool.id)}
+                                    onMotherAgentInstall={() => onGoToMother(tool.id, tool.displayName || tool.name)}
                                 />
                             ))
                     )}

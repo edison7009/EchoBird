@@ -324,5 +324,6 @@ const ja: Partial<Translations> = {
     'mother.connectionHint': 'URL、Model ID、API Key を確認し、Tokenの残高が十分かご確認ください。',
     'common.showProcess': '思考·過程',
     'mother.thinking': '思考中...',
+    'agent.installViaMother': 'AI自動インストール',
 };
 export default ja;

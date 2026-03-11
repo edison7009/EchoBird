@@ -298,5 +298,6 @@ const ar: Partial<Translations> = {
     'mother.connectionHint': 'يرجى التحقق من الرابط ومعرّف النموذج ومفتاح API، والتأكد من كفاية حصة الرموز.',
     'common.showProcess': 'تفكير·معالجة',
     'mother.thinking': 'يفكر...',
+    'agent.installViaMother': 'تثبيت تلقائي بالذكاء الاصطناعي',
 };
 export default ar;

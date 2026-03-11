@@ -298,5 +298,6 @@ const pl: Partial<Translations> = {
     'mother.connectionHint': 'Sprawdź URL, Model ID i API Key oraz upewnij się, że limit tokenów jest wystarczający.',
     'common.showProcess': 'MYŚLENIE·PROCES',
     'mother.thinking': 'Myśli...',
+    'agent.installViaMother': 'Automatyczna instalacja AI',
 };
 export default pl;

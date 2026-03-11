@@ -19,6 +19,7 @@ export interface DetectedTool {
     names?: Record<string, string>;
     startCommand?: string;
     launchFile?: string;
+    command?: string;        // CLI install command (non-empty = installable via Mother Agent)
 }
 
 // UI-level tool type used by AppManager, MotherAgent, and App shell

@@ -56,6 +56,7 @@ export type TKey =
     | 'agent.noModelsTitle' | 'agent.noModelsHintPre' | 'agent.noModelsHintPost'
     | 'agent.applyAndLaunch' | 'agent.appliedVia'
     | 'agent.modelsTab' | 'agent.skillsTab'
+    | 'agent.installViaMother'
     // Tool categories
     | 'toolCat.all' | 'toolCat.agentOS' | 'toolCat.ide' | 'toolCat.cli'
     | 'toolCat.autoTrading' | 'toolCat.game' | 'toolCat.utility'

@@ -71,6 +71,8 @@ function App() {
     const [agentRunning, setAgentRunning] = useState(false);
     // Mother Agent new message badge
     const [motherNewMessage, setMotherNewMessage] = useState(false);
+    // Pre-fill message for Mother Agent (set when navigating from App Manager install)
+    const [motherPrefill, setMotherPrefill] = useState<string | undefined>(undefined);
     // Update available (null = none, string = new version number)
     const [updateAvailable, setUpdateAvailable] = useState<string | null>(null);
 
@@ -120,10 +122,10 @@ function App() {
                 <DownloadProvider>
                     <GatewayProvider>
                         {/* All Providers always mounted — only CSS hidden changes */}
-                        <MotherAgentProvider appLogs={appLogs} detectedTools={detectedTools} onClearLogs={onClearLogs} onAgentRunningChange={setAgentRunning} onNewMessage={() => setMotherNewMessage(true)}>
+                        <MotherAgentProvider appLogs={appLogs} detectedTools={detectedTools} onClearLogs={onClearLogs} onAgentRunningChange={setAgentRunning} onNewMessage={() => setMotherNewMessage(true)} initialMessage={motherPrefill}>
                             <ModelNexusProvider>
                                 <SkillBrowserProvider preloadedSkills={preloadedSkills}>
-                                    <AppManagerProvider detectedTools={detectedTools} setDetectedTools={setDetectedTools} isScanning={isScanning} scanTools={doScanTools} modelProtocolSelection={modelProtocolSelection} setModelProtocolSelection={setModelProtocolSelection} isActive={activePage === 'apps'}>
+                                    <AppManagerProvider detectedTools={detectedTools} setDetectedTools={setDetectedTools} isScanning={isScanning} scanTools={doScanTools} modelProtocolSelection={modelProtocolSelection} setModelProtocolSelection={setModelProtocolSelection} isActive={activePage === 'apps'} onGoToMother={(prefill) => { setMotherPrefill(prefill); setActivePage('mother'); }}>
                                         <LocalServerProvider>
 
                                             <div className="flex flex-col h-screen w-full bg-cyber-bg">

@@ -298,5 +298,6 @@ const vi: Partial<Translations> = {
     'mother.connectionHint': 'Vui lòng kiểm tra URL, Model ID, API Key và đảm bảo hạn mức Token đủ.',
     'common.showProcess': 'SUY NGHĨ·QUÁ TRÌNH',
     'mother.thinking': 'Đang suy nghĩ...',
+    'agent.installViaMother': 'Tự động cài đặt AI',
 };
 export default vi;

@@ -298,5 +298,6 @@ const hu: Partial<Translations> = {
     'mother.connectionHint': 'Kérjük, ellenőrizze az URL-t, a Model ID-t és az API Key-t, és győződjön meg arról, hogy a Token-kvóta elegendő.',
     'common.showProcess': 'GONDOLKODÁS·FOLYAMAT',
     'mother.thinking': 'Gondolkodik...',
+    'agent.installViaMother': 'AI auto-installálás',
 };
 export default hu;
