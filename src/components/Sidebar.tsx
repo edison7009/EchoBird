@@ -48,11 +48,11 @@ export const Sidebar = ({ activePage, onPageChange, agentRunning = false, channe
                         fontFamily: "'Orbitron', sans-serif",
                         fontWeight: 700,
                         letterSpacing: '3px',
-                        fontSize: '13px',
-                        lineHeight: '13px',
+                        fontSize: '16px',
+                        lineHeight: '16px',
                     }}
                 >
-                    {'EchoBird'}
+                    {'EchoBird AI'}
                 </span>
                 {updateAvailable && (
                     <button
