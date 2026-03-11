@@ -363,10 +363,33 @@
         }
 
         .model-table td {
-            padding: 14px 16px;
+            padding: 12px 16px;
             font-size: 12px;
             border-bottom: 1px solid rgba(0, 255, 157, .05);
             vertical-align: middle
+        }
+
+        /* col widths: Model | Model ID | Context | Limit | Status */
+        .model-table th:nth-child(1),
+        .model-table td:nth-child(1) {
+            width: 16%;
+            white-space: nowrap
+        }
+
+        .model-table th:nth-child(2),
+        .model-table td:nth-child(2) {
+            width: auto
+        }
+
+        .model-table th:nth-child(3),
+        .model-table td:nth-child(3),
+        .model-table th:nth-child(4),
+        .model-table td:nth-child(4),
+        .model-table th:nth-child(5),
+        .model-table td:nth-child(5) {
+            width: 120px;
+            white-space: nowrap;
+            text-align: center
         }
 
         .model-table tr:last-child td {
