@@ -313,9 +313,13 @@ export const AppManagerMain: React.FC = () => {
                         detectedTools
                             .filter(tool => activeToolCategory === 'ALL' || tool.category === activeToolCategory)
                             .sort((a, b) => {
-                                // Installed first
+                                // 1. Installed first
                                 if (a.installed !== b.installed) return a.installed ? -1 : 1;
-                                // Same install status: sort by category
+                                // 2. Within same install status: AI auto-install (has command) first
+                                const aHasCmd = !a.installed && !!a.command;
+                                const bHasCmd = !b.installed && !!b.command;
+                                if (aHasCmd !== bHasCmd) return aHasCmd ? -1 : 1;
+                                // 3. Then by category
                                 const categoryOrder: Record<string, number> = { 'AgentOS': 0, 'IDE': 1, 'CLI': 2, 'AutoTrading': 3, 'Game': 4, 'Utility': 5 };
                                 return (categoryOrder[a.category || ''] ?? 99) - (categoryOrder[b.category || ''] ?? 99);
                             })
