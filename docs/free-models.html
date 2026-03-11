@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Free LLM APIs · EchoBird</title>
+    <meta name="description"
+        content="Curated list of free LLM API providers. Use with EchoBird, OpenClaw, Claude Code, and any OpenAI-compatible tool.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&family=JetBrains+Mono:wght@400;600&family=Inter:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --bg: #050a0e;
+            --bg2: #080f14;
+            --bg3: #0d1821;
+            --neon: #00FF9D;
+            --neon2: #00d4ff;
+            --neon-g: rgba(0, 255, 157, .15);
+            --white: #e8f4f0;
+            --dim: #5a7a6a;
+            --border: rgba(0, 255, 157, .1);
+            --sans: 'Inter', system-ui, sans-serif;
+            --mono: 'JetBrains Mono', monospace;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--white);
+            font-family: var(--sans);
+            min-height: 100vh;
+            overflow-x: hidden
+        }
+
+        canvas#matrix {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+            opacity: .35
+        }
+
+        /* ── Nav ── */
+        .nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 32px;
+            background: rgba(5, 10, 14, .85);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--border)
+        }
+
+        .nav-logo {
+            font-family: 'Orbitron', var(--mono);
+            font-size: 16px;
+            color: var(--neon);
+            text-decoration: none;
+            letter-spacing: 2px
+        }
+
+        .nav-r {
+            display: flex;
+            align-items: center;
+            gap: 24px
+        }
+
+        .nav-r a {
+            color: var(--dim);
+            text-decoration: none;
+            font-size: 13px;
+            font-weight: 500;
+            transition: color .2s
+        }
+
+        .nav-r a:hover {
+            color: var(--neon)
+        }
+
+        /* ── Hero ── */
+        .page-hero {
+            position: relative;
+            z-index: 1;
+            padding: 140px 32px 80px;
+            text-align: center;
+            max-width: 800px;
+            margin: 0 auto
+        }
+
+        .page-hero .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-family: var(--mono);
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--neon);
+            letter-spacing: 2px;
+            margin-bottom: 24px;
+            padding: 6px 14px;
+            border: 1px solid rgba(0, 255, 157, .3);
+            border-radius: 20px;
+            background: rgba(0, 255, 157, .05)
+        }
+
+        .page-hero h1 {
+            font-family: 'Orbitron', var(--mono);
+            font-size: clamp(28px, 5vw, 48px);
+            font-weight: 700;
+            letter-spacing: 2px;
+            background: linear-gradient(135deg, var(--neon) 0%, var(--neon2) 60%, var(--neon) 100%);
+            background-size: 200% 200%;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: shimmer 6s ease-in-out infinite;
+            margin-bottom: 20px
+        }
+
+        @keyframes shimmer {
+
+            0%,
+            100% {
+                background-position: 0% 50%
+            }
+
+            50% {
+                background-position: 100% 50%
+            }
+        }
+
+        .page-hero p {
+            font-size: 16px;
+            color: var(--dim);
+            line-height: 1.7;
+            margin-bottom: 12px
+        }
+
+        .page-hero .updated {
+            font-family: var(--mono);
+            font-size: 12px;
+            color: rgba(0, 255, 157, .4)
+        }
+
+        /* ── Stats bar ── */
+        .stats {
+            position: relative;
+            z-index: 1;
+            display: flex;
+            justify-content: center;
+            gap: 40px;
+            padding: 0 32px 60px;
+            flex-wrap: wrap
+        }
+
+        .stat {
+            text-align: center
+        }
+
+        .stat .num {
+            font-family: 'Orbitron', var(--mono);
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--neon);
+            display: block
+        }
+
+        .stat .label {
+            font-size: 12px;
+            color: var(--dim);
+            margin-top: 4px
+        }
+
+        /* ── Wrap ── */
+        .wrap {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 0 32px;
+            position: relative;
+            z-index: 1
+        }
+
+        /* ── Provider section ── */
+        .provider-section {
+            margin-bottom: 56px
+        }
+
+        .provider-header {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 20px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--border)
+        }
+
+        .provider-name {
+            font-family: 'Orbitron', var(--mono);
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--white);
+            letter-spacing: 1px
+        }
+
+        .provider-meta {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-left: auto;
+            flex-wrap: wrap
+        }
+
+        .provider-meta a {
+            font-family: var(--mono);
+            font-size: 11px;
+            color: var(--neon);
+            text-decoration: none;
+            border: 1px solid rgba(0, 255, 157, .25);
+            padding: 4px 10px;
+            border-radius: 4px;
+            transition: all .2s;
+            white-space: nowrap
+        }
+
+        .provider-meta a:hover {
+            background: rgba(0, 255, 157, .08);
+            border-color: var(--neon)
+        }
+
+        .tag-protocol {
+            font-family: var(--mono);
+            font-size: 10px;
+            color: var(--neon2);
+            background: rgba(0, 212, 255, .08);
+            border: 1px solid rgba(0, 212, 255, .2);
+            padding: 3px 8px;
+            border-radius: 3px
+        }
+
+        /* ── Model table ── */
+        .model-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: var(--bg2);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            overflow: hidden
+        }
+
+        .model-table th {
+            text-align: left;
+            padding: 12px 16px;
+            font-family: var(--mono);
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--dim);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            background: var(--bg3);
+            border-bottom: 1px solid var(--border)
+        }
+
+        .model-table td {
+            padding: 14px 16px;
+            font-size: 13px;
+            border-bottom: 1px solid rgba(0, 255, 157, .05);
+            vertical-align: middle
+        }
+
+        .model-table tr:last-child td {
+            border-bottom: none
+        }
+
+        .model-table tr:hover td {
+            background: rgba(0, 255, 157, .03)
+        }
+
+        .model-id {
+            font-family: var(--mono);
+            font-size: 12px;
+            color: var(--neon);
+            font-weight: 600
+        }
+
+        .model-name {
+            color: var(--white);
+            font-weight: 500
+        }
+
+        .context-badge {
+            font-family: var(--mono);
+            font-size: 11px;
+            color: var(--neon2);
+            background: rgba(0, 212, 255, .06);
+            padding: 3px 8px;
+            border-radius: 4px;
+            white-space: nowrap
+        }
+
+        .limit-text {
+            font-family: var(--mono);
+            font-size: 11px;
+            color: var(--dim)
+        }
+
+        .free-dot {
+            display: inline-block;
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: var(--neon);
+            box-shadow: 0 0 8px var(--neon);
+            animation: pulse 2s ease-in-out infinite
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1
+            }
+
+            50% {
+                opacity: 0.4
+            }
+        }
+
+        /* ── Base URL display ── */
+        .base-url-block {
+            margin-top: 12px;
+            font-family: var(--mono);
+            font-size: 11px;
+            color: var(--dim);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap
+        }
+
+        .base-url-block code {
+            color: rgba(0, 255, 157, .6);
+            background: rgba(0, 255, 157, .05);
+            padding: 3px 8px;
+            border-radius: 4px;
+            border: 1px solid rgba(0, 255, 157, .1)
+        }
+
+        /* ── Footer ── */
+        .footer {
+            position: relative;
+            z-index: 1;
+            padding: 60px 0 40px;
+            text-align: center;
+            border-top: 1px solid var(--border);
+            margin-top: 80px
+        }
+
+        .footer p {
+            font-size: 12px;
+            color: var(--dim)
+        }
+
+        .footer a {
+            color: var(--neon);
+            text-decoration: none
+        }
+
+        /* ── Loading / Error states ── */
+        .loading {
+            text-align: center;
+            padding: 80px 32px;
+            font-family: var(--mono);
+            color: var(--dim)
+        }
+
+        .loading .spinner {
+            width: 32px;
+            height: 32px;
+            border: 2px solid var(--border);
+            border-top-color: var(--neon);
+            border-radius: 50%;
+            animation: spin .8s linear infinite;
+            margin: 0 auto 16px
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg)
+            }
+        }
+
+        .fade {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity .6s, transform .6s
+        }
+
+        .fade.in {
+            opacity: 1;
+            transform: translateY(0)
+        }
+
+        @media(max-width: 768px) {
+            .provider-header {
+                flex-direction: column;
+                align-items: flex-start
+            }
+
+            .provider-meta {
+                margin-left: 0
+            }
+
+            .model-table th:nth-child(3),
+            .model-table td:nth-child(3) {
+                display: none
+            }
+
+            .stats {
+                gap: 24px
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <canvas id="matrix"></canvas>
+
+    <!-- Nav -->
+    <div class="nav">
+        <a href="/" class="nav-logo">EchoBird AI</a>
+        <div class="nav-r">
+            <a href="/">Home</a>
+            <a href="https://github.com/edison7009/Echobird-MotherAgent" target="_blank">GitHub</a>
+        </div>
+    </div>
+
+    <!-- Hero -->
+    <div class="page-hero">
+        <div class="badge">❯ FREE LLM APIS</div>
+        <h1>Free Models</h1>
+        <p>Curated free-tier LLM API providers. All support OpenAI-compatible protocol.<br>
+            Plug any of these into EchoBird, OpenClaw, Claude Code, or any AI tool.</p>
+        <p class="updated" id="updated-date">Loading...</p>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats" id="stats"></div>
+
+    <!-- Content -->
+    <div class="wrap" id="content">
+        <div class="loading">
+            <div class="spinner"></div>
+            Fetching latest data...
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <p>Data hosted at <a href="/api/free-models.json">echobird.ai/api/free-models.json</a> ·
+            <a href="https://github.com/edison7009/Echobird-MotherAgent" target="_blank">Contribute on GitHub</a> ·
+            <a href="/">EchoBird</a>
+        </p>
+    </footer>
+
+    <script>
+        // ── Matrix Rain ──
+        (function () {
+            const c = document.getElementById('matrix'), x = c.getContext('2d');
+            let W, H, cols, drops;
+            const S = 20;
+            const chars = 'ﾊﾐﾋｰｳｼﾅﾓﾆｻﾜﾂｵﾘｱﾎﾃﾏｹﾒｴｶｷﾑﾕﾗｾﾈｽﾀﾇﾍ01';
+            function init() { W = c.width = innerWidth; H = c.height = innerHeight; cols = Math.floor(W / S); drops = Array(cols).fill(1) }
+            init(); addEventListener('resize', init);
+            setInterval(() => {
+                x.fillStyle = 'rgba(5,10,14,.05)'; x.fillRect(0, 0, W, H);
+                x.font = S + 'px monospace'; x.shadowColor = '#00FF9D'; x.shadowBlur = 3;
+                for (let i = 0; i < cols; i++) {
+                    const bright = Math.random() > .6;
+                    x.fillStyle = bright ? '#00FF9D' : 'rgba(0,255,157,.3)';
+                    x.fillText(chars[Math.floor(Math.random() * chars.length)], i * S, drops[i] * S);
+                    if (drops[i] * S > H && Math.random() > .975) drops[i] = 0;
+                    drops[i]++;
+                }
+                x.shadowBlur = 0;
+            }, 40);
+        })();
+
+        // ── Scroll fade ──
+        const obs = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); obs.unobserve(e.target) } }), { threshold: .1 });
+
+        // ── Format context window ──
+        function fmtCtx(n) {
+            if (n >= 1000000) return (n / 1000000).toFixed(0) + 'M';
+            if (n >= 1000) return (n / 1000).toFixed(0) + 'K';
+            return n;
+        }
+
+        // ── Render ──
+        function render(data) {
+            // Updated date
+            document.getElementById('updated-date').textContent = 'Updated: ' + data.updated;
+
+            // Stats
+            const totalModels = data.providers.reduce((s, p) => s + p.models.length, 0);
+            document.getElementById('stats').innerHTML = `
+            <div class="stat"><span class="num">${data.providers.length}</span><div class="label">Providers</div></div>
+            <div class="stat"><span class="num">${totalModels}</span><div class="label">Free Models</div></div>
+            <div class="stat"><span class="num">100%</span><div class="label">OpenAI Compatible</div></div>
+        `;
+
+            // Providers
+            const content = document.getElementById('content');
+            content.innerHTML = data.providers.map(p => `
+            <div class="provider-section fade">
+                <div class="provider-header">
+                    <div>
+                        <div class="provider-name">${p.name}</div>
+                        <div class="base-url-block">
+                            Base URL: <code>${p.baseUrl}</code>
+                        </div>
+                    </div>
+                    <div class="provider-meta">
+                        <span class="tag-protocol">${p.protocol.toUpperCase()}</span>
+                        <a href="${p.getKeyUrl}" target="_blank">Get API Key →</a>
+                        <a href="${p.url}" target="_blank">Docs</a>
+                    </div>
+                </div>
+                <table class="model-table">
+                    <thead>
+                        <tr>
+                            <th>Model</th>
+                            <th>Model ID</th>
+                            <th>Context</th>
+                            <th>Free Limit</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${p.models.map(m => `
+                        <tr>
+                            <td class="model-name">${m.name}</td>
+                            <td class="model-id">${m.id}</td>
+                            <td><span class="context-badge">${fmtCtx(m.context)} ctx</span></td>
+                            <td class="limit-text">${m.limit}</td>
+                            <td><span class="free-dot"></span></td>
+                        </tr>`).join('')}
+                    </tbody>
+                </table>
+            </div>
+        `).join('');
+
+            // Trigger fade animations
+            document.querySelectorAll('.fade').forEach(el => obs.observe(el));
+        }
+
+        // ── Fetch data ──
+        const DATA_URL = '/api/free-models.json';
+        fetch(DATA_URL + '?t=' + Date.now())
+            .then(r => { if (!r.ok) throw new Error(r.status); return r.json(); })
+            .then(render)
+            .catch(err => {
+                document.getElementById('content').innerHTML = `
+                <div class="loading">
+                    <p style="color:var(--neon)">Failed to load data</p>
+                    <p style="margin-top:8px;font-size:12px">${err}</p>
+                </div>`;
+            });
+    </script>
+</body>
+
+</html>

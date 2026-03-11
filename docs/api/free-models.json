@@ -1,0 +1,177 @@
+{
+    "updated": "2026-03-12",
+    "providers": [
+        {
+            "id": "google-gemini",
+            "name": "Google Gemini",
+            "url": "https://aistudio.google.com",
+            "baseUrl": "https://generativelanguage.googleapis.com/v1beta/openai",
+            "protocol": "openai",
+            "getKeyUrl": "https://aistudio.google.com/app/apikey",
+            "models": [
+                {
+                    "id": "gemini-2.0-flash",
+                    "name": "Gemini 2.0 Flash",
+                    "context": 1048576,
+                    "limit": "15 RPM / 1M TPD",
+                    "free": true
+                },
+                {
+                    "id": "gemini-2.0-flash-lite",
+                    "name": "Gemini 2.0 Flash Lite",
+                    "context": 1048576,
+                    "limit": "30 RPM / 1.5M TPD",
+                    "free": true
+                },
+                {
+                    "id": "gemini-1.5-flash",
+                    "name": "Gemini 1.5 Flash",
+                    "context": 1048576,
+                    "limit": "15 RPM / 1M TPD",
+                    "free": true
+                }
+            ]
+        },
+        {
+            "id": "groq",
+            "name": "Groq",
+            "url": "https://groq.com",
+            "baseUrl": "https://api.groq.com/openai/v1",
+            "protocol": "openai",
+            "getKeyUrl": "https://console.groq.com/keys",
+            "models": [
+                {
+                    "id": "llama-3.3-70b-versatile",
+                    "name": "Llama 3.3 70B",
+                    "context": 128000,
+                    "limit": "6000 TPM",
+                    "free": true
+                },
+                {
+                    "id": "llama-3.1-8b-instant",
+                    "name": "Llama 3.1 8B Instant",
+                    "context": 128000,
+                    "limit": "6000 TPM",
+                    "free": true
+                },
+                {
+                    "id": "mistral-saba-24b",
+                    "name": "Mistral Saba 24B",
+                    "context": 32768,
+                    "limit": "6000 TPM",
+                    "free": true
+                },
+                {
+                    "id": "deepseek-r1-distill-llama-70b",
+                    "name": "DeepSeek R1 Distill 70B",
+                    "context": 131072,
+                    "limit": "6000 TPM",
+                    "free": true
+                }
+            ]
+        },
+        {
+            "id": "openrouter-free",
+            "name": "OpenRouter (Free Tier)",
+            "url": "https://openrouter.ai",
+            "baseUrl": "https://openrouter.ai/api/v1",
+            "protocol": "openai",
+            "getKeyUrl": "https://openrouter.ai/settings/keys",
+            "models": [
+                {
+                    "id": "deepseek/deepseek-chat-v3-0324:free",
+                    "name": "DeepSeek V3 0324",
+                    "context": 131072,
+                    "limit": "20 RPM",
+                    "free": true
+                },
+                {
+                    "id": "google/gemma-3-27b-it:free",
+                    "name": "Gemma 3 27B",
+                    "context": 131072,
+                    "limit": "20 RPM",
+                    "free": true
+                },
+                {
+                    "id": "meta-llama/llama-4-scout:free",
+                    "name": "Llama 4 Scout",
+                    "context": 512000,
+                    "limit": "20 RPM",
+                    "free": true
+                },
+                {
+                    "id": "qwen/qwq-32b:free",
+                    "name": "QwQ 32B",
+                    "context": 131072,
+                    "limit": "20 RPM",
+                    "free": true
+                }
+            ]
+        },
+        {
+            "id": "cloudflare-workers-ai",
+            "name": "Cloudflare Workers AI",
+            "url": "https://developers.cloudflare.com/workers-ai",
+            "baseUrl": "https://api.cloudflare.com/client/v4/accounts/{account_id}/ai/v1",
+            "protocol": "openai",
+            "getKeyUrl": "https://dash.cloudflare.com/profile/api-tokens",
+            "models": [
+                {
+                    "id": "@cf/meta/llama-3.3-70b-instruct-fp8-fast",
+                    "name": "Llama 3.3 70B FP8",
+                    "context": 128000,
+                    "limit": "10k neurons/day free",
+                    "free": true
+                },
+                {
+                    "id": "@cf/deepseek-ai/deepseek-r1-distill-qwen-32b",
+                    "name": "DeepSeek R1 Distill 32B",
+                    "context": 32768,
+                    "limit": "10k neurons/day free",
+                    "free": true
+                }
+            ]
+        },
+        {
+            "id": "together-ai",
+            "name": "Together AI",
+            "url": "https://www.together.ai",
+            "baseUrl": "https://api.together.xyz/v1",
+            "protocol": "openai",
+            "getKeyUrl": "https://api.together.ai/settings/api-keys",
+            "models": [
+                {
+                    "id": "meta-llama/Llama-3.3-70B-Instruct-Turbo-Free",
+                    "name": "Llama 3.3 70B Turbo",
+                    "context": 8192,
+                    "limit": "$1 free credit",
+                    "free": true
+                },
+                {
+                    "id": "deepseek-ai/DeepSeek-R1-Distill-Llama-70B-free",
+                    "name": "DeepSeek R1 Distill 70B",
+                    "context": 32768,
+                    "limit": "$1 free credit",
+                    "free": true
+                }
+            ]
+        },
+        {
+            "id": "mistral-ai",
+            "name": "Mistral AI",
+            "url": "https://mistral.ai",
+            "baseUrl": "https://api.mistral.ai/v1",
+            "protocol": "openai",
+            "getKeyUrl": "https://console.mistral.ai/api-keys",
+            "models": [
+                {
+                    "id": "mistral-small-latest",
+                    "name": "Mistral Small",
+                    "context": 32768,
+                    "limit": "Free tier available",
+                    "free": true
+                }
+            ]
+        }
+    ]
+}
