@@ -39,8 +39,8 @@ interface AppManagerContextType {
     setModelProtocolSelection: React.Dispatch<React.SetStateAction<Record<string, 'openai' | 'anthropic'>>>;
     // Launch handler
     handleLaunch: () => Promise<void>;
-    // Navigation
-    onGoToMother: (toolName: string) => void;
+    // Navigation — internal handler: (toolId, toolName) => fetch install info → call prop
+    onGoToMother: (toolId: string, toolName: string) => void;
 }
 
 const AppManagerContext = createContext<AppManagerContextType | null>(null);
@@ -63,7 +63,7 @@ interface AppManagerProviderProps {
     modelProtocolSelection: Record<string, 'openai' | 'anthropic'>;
     setModelProtocolSelection: React.Dispatch<React.SetStateAction<Record<string, 'openai' | 'anthropic'>>>;
     isActive?: boolean;
-    onGoToMother?: (toolName: string) => void;
+    onGoToMother?: (prefill: string) => void;
     children: React.ReactNode;
 }
 
@@ -71,14 +71,14 @@ export const AppManagerProvider: React.FC<AppManagerProviderProps> = ({
     detectedTools, setDetectedTools, isScanning, scanTools,
     modelProtocolSelection, setModelProtocolSelection,
     isActive,
-    onGoToMother = (_toolName: string) => { },
+    onGoToMother = (_prefill: string) => { },
     children,
 }) => {
     const { t } = useI18n();
     const confirm = useConfirm();
 
-    // Wrapped navigation: check Mother Agent model configured before jumping
-    const handleGoToMother = useCallback(async (toolName: string) => {
+    // Wrapped navigation: fetch remote install info, build prefill, check model configured
+    const handleGoToMother = useCallback(async (toolId: string, toolName: string) => {
         const configured = localStorage.getItem('echobird_agent_model');
         if (!configured) {
             await confirm({
@@ -90,7 +90,29 @@ export const AppManagerProvider: React.FC<AppManagerProviderProps> = ({
             });
             return;
         }
-        onGoToMother(toolName);
+        // Fetch tool-specific install info from remote API (on-demand, not in system prompt)
+        let prefill = t('mother.hintInstall').replace('{agent}', toolName);
+        try {
+            const res = await fetch(`https://echobird.ai/api/tools/install/${toolId}.json`, { signal: AbortSignal.timeout(4000) });
+            if (res.ok) {
+                const data = await res.json();
+                const lines: string[] = [`Install ${toolName}`];
+                if (data.install && typeof data.install === 'object') {
+                    lines.push('');
+                    lines.push('Install commands (choose the one matching the user\'s system):');
+                    for (const [method, cmd] of Object.entries(data.install as Record<string, string>)) {
+                        lines.push(`  ${method}: ${cmd}`);
+                    }
+                }
+                const links: string[] = [];
+                if (data.homepage) links.push(`Site: ${data.homepage}`);
+                if (data.docs) links.push(`Docs: ${data.docs}`);
+                if (data.github) links.push(`GitHub: ${data.github}`);
+                if (links.length) { lines.push(''); lines.push(...links); }
+                prefill = lines.join('\n');
+            }
+        } catch { /* network error — use simple prefill */ }
+        onGoToMother(prefill);
     }, [confirm, t, onGoToMother]);
 
     // Load models internally
@@ -329,7 +351,7 @@ export const AppManagerMain: React.FC = () => {
                                     {...tool}
                                     selected={selectedTool === tool.id}
                                     onClick={() => setSelectedTool(tool.id)}
-                                    onMotherAgentInstall={() => onGoToMother(tool.displayName || tool.name)}
+                                    onMotherAgentInstall={() => onGoToMother(tool.id, tool.displayName || tool.name)}
                                 />
                             ))
                     )}

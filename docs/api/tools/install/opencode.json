@@ -1,0 +1,14 @@
+{
+    "id": "opencode",
+    "displayName": "OpenCode",
+    "homepage": "https://opencode.ai/",
+    "docs": "https://opencode.ai/docs",
+    "github": "https://github.com/anomalyco/opencode",
+    "install": {
+        "curl": "curl -fsSL https://opencode.ai/install | bash",
+        "npm": "npm i -g opencode-ai",
+        "bun": "bun add -g opencode-ai",
+        "brew": "brew install anomalyco/tap/opencode",
+        "paru": "paru -S opencode"
+    }
+}

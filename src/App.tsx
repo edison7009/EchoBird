@@ -125,7 +125,7 @@ function App() {
                         <MotherAgentProvider appLogs={appLogs} detectedTools={detectedTools} onClearLogs={onClearLogs} onAgentRunningChange={setAgentRunning} onNewMessage={() => setMotherNewMessage(true)} initialMessage={motherPrefill}>
                             <ModelNexusProvider>
                                 <SkillBrowserProvider preloadedSkills={preloadedSkills}>
-                                    <AppManagerProvider detectedTools={detectedTools} setDetectedTools={setDetectedTools} isScanning={isScanning} scanTools={doScanTools} modelProtocolSelection={modelProtocolSelection} setModelProtocolSelection={setModelProtocolSelection} isActive={activePage === 'apps'} onGoToMother={(toolName) => { setMotherPrefill(t('mother.hintInstall').replace('{agent}', toolName)); setActivePage('mother'); }}>
+                                    <AppManagerProvider detectedTools={detectedTools} setDetectedTools={setDetectedTools} isScanning={isScanning} scanTools={doScanTools} modelProtocolSelection={modelProtocolSelection} setModelProtocolSelection={setModelProtocolSelection} isActive={activePage === 'apps'} onGoToMother={(prefill) => { setMotherPrefill(prefill); setActivePage('mother'); }}>
                                         <LocalServerProvider>
 
                                             <div className="flex flex-col h-screen w-full bg-cyber-bg">
