@@ -98,7 +98,7 @@ export const AppManagerProvider: React.FC<AppManagerProviderProps> = ({
             const res = await fetch(`https://echobird.ai/api/tools/install/${toolId}.json`, { signal: AbortSignal.timeout(4000) });
             if (res.ok) {
                 const data = await res.json();
-                const lines: string[] = [`Install ${toolName}`];
+                const lines: string[] = [t('mother.hintInstall').replace('{agent}', toolName)];
                 if (data.install && typeof data.install === 'object') {
                     lines.push('');
                     lines.push('Install commands (choose the one matching the user\'s system):');
