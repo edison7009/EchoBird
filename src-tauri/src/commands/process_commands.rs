@@ -191,3 +191,13 @@ pub async fn download_llama_server(app_handle: tauri::AppHandle) -> Result<Strin
 pub fn get_system_info() -> SystemInfo {
     local_llm::get_system_info()
 }
+
+#[tauri::command]
+pub fn get_local_engine_status() -> serde_json::Value {
+    local_llm::get_local_engine_status()
+}
+
+#[tauri::command]
+pub async fn install_local_engine(app_handle: tauri::AppHandle, runtime: String) -> Result<(), String> {
+    local_llm::install_local_engine(app_handle, runtime).await
+}

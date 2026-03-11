@@ -1,9 +1,21 @@
 // Global download progress bar — bottom status bar
 // Ported from Electron v1.1.0
 import React from 'react';
-import { Download, X, Check, AlertTriangle, Pause, Play } from 'lucide-react';
+import { Download, Package, X, Check, AlertTriangle, Pause, Play } from 'lucide-react';
 import { useDownload, DownloadItem } from './DownloadContext';
 import { useI18n } from '../hooks/useI18n';
+
+// Map runtime/engine names to display labels
+const ENGINE_LABELS: Record<string, string> = {
+    'llama-server': 'llama.cpp',
+    'vllm': 'vLLM',
+    'sglang': 'SGLang',
+    'vllm-musa': 'vLLM-MUSA',
+};
+
+function getDisplayName(fileName: string): string {
+    return ENGINE_LABELS[fileName] ?? fileName;
+}
 
 // Format file size
 function formatSize(bytes: number): string {
@@ -34,43 +46,58 @@ const DownloadItemRow: React.FC<{
     onCancel?: (fileName?: string) => void;
 }> = ({ item, onPause, onResume, onCancel }) => {
     const { t } = useI18n();
-    const isActive = item.status === 'downloading' || item.status === 'speed_test';
+    const isInstalling = item.status === 'installing';
+    const isActive = item.status === 'downloading' || item.status === 'speed_test' || isInstalling;
     const isDone = item.status === 'completed';
     const isError = item.status === 'error';
     const isPaused = item.status === 'paused';
+    // Engine install: no real file size, just show progress
+    const hasSize = item.total > 0;
 
     return (
         <div className="flex items-center gap-3 h-full min-w-0">
             {/* Status icon */}
-            {isActive && <Download className="w-3.5 h-3.5 text-cyber-accent flex-shrink-0 animate-pulse" />}
+            {isInstalling && <Package className="w-3.5 h-3.5 text-cyan-400 flex-shrink-0 animate-pulse" />}
+            {isActive && !isInstalling && <Download className="w-3.5 h-3.5 text-cyber-accent flex-shrink-0 animate-pulse" />}
             {isPaused && <Pause className="w-3.5 h-3.5 text-yellow-400 flex-shrink-0" />}
             {isDone && <Check className="w-3.5 h-3.5 text-green-400 flex-shrink-0" />}
             {isError && <AlertTriangle className="w-3.5 h-3.5 text-red-400 flex-shrink-0" />}
 
-            {/* File name */}
-            <span className={`text-[11px] font-mono truncate min-w-0 ${isDone ? 'text-green-400' : isError ? 'text-red-400' : isPaused ? 'text-yellow-400' : 'text-cyber-text'
+            {/* Display name (resolved from runtime key if applicable) */}
+            <span className={`text-[11px] font-mono truncate min-w-0 ${isDone ? 'text-green-400' : isError ? 'text-red-400' : isPaused ? 'text-yellow-400'
+                    : isInstalling ? 'text-cyan-400' : 'text-cyber-text'
                 }`}>
-                {shortenFileName(item.fileName)}
+                {shortenFileName(getDisplayName(item.fileName))}
             </span>
 
-            {/* Progress bar (shown when downloading or paused) */}
+            {/* Progress bar (shown when downloading / installing / paused) */}
             {(isActive || isPaused) && (
                 <div className="flex items-center gap-2 flex-shrink-0">
                     {/* Progress bar track */}
                     <div className="w-24 h-1.5 bg-cyber-border/50 rounded-full overflow-hidden">
                         <div
-                            className={`h-full rounded-full transition-all duration-300 ${isPaused ? 'bg-yellow-400' : 'bg-cyber-accent'}`}
+                            className={`h-full rounded-full transition-all duration-300 ${isPaused ? 'bg-yellow-400' : isInstalling ? 'bg-cyan-400' : 'bg-cyber-accent'
+                                }`}
                             style={{ width: `${item.progress}%` }}
                         />
                     </div>
                     {/* Percentage */}
-                    <span className={`text-[10px] font-mono w-8 text-right ${isPaused ? 'text-yellow-400' : 'text-cyber-accent'}`}>
+                    <span className={`text-[10px] font-mono w-8 text-right ${isPaused ? 'text-yellow-400' : isInstalling ? 'text-cyan-400' : 'text-cyber-accent'
+                        }`}>
                         {item.progress}%
                     </span>
-                    {/* Downloaded / Total size */}
-                    <span className="text-[10px] font-mono text-cyber-text-secondary">
-                        {formatSize(item.downloaded)}/{formatSize(item.total)}
-                    </span>
+                    {/* File size: only shown for real file downloads, not engine installs */}
+                    {hasSize && !isInstalling && (
+                        <span className="text-[10px] font-mono text-cyber-text-secondary">
+                            {formatSize(item.downloaded)}/{formatSize(item.total)}
+                        </span>
+                    )}
+                    {/* Engine install: show installing label instead of sizes */}
+                    {isInstalling && (
+                        <span className="text-[10px] font-mono text-cyan-400/70">
+                            Installing…
+                        </span>
+                    )}
                 </div>
             )}
 
@@ -95,36 +122,38 @@ const DownloadItemRow: React.FC<{
                 </span>
             )}
 
-            {/* Action buttons */}
-            <div className="flex items-center gap-1 flex-shrink-0 ml-auto">
-                {/* Downloading: Pause button */}
-                {isActive && onPause && (
-                    <button
-                        onClick={onPause}
-                        className="text-cyber-text-secondary/50 hover:text-yellow-400 transition-colors"
-                    >
-                        <Pause className="w-3.5 h-3.5" />
-                    </button>
-                )}
-                {/* Paused: Resume button */}
-                {isPaused && onResume && (
-                    <button
-                        onClick={onResume}
-                        className="text-cyber-text-secondary/50 hover:text-green-400 transition-colors"
-                    >
-                        <Play className="w-3.5 h-3.5" />
-                    </button>
-                )}
-                {/* Downloading or paused: Cancel button */}
-                {(isActive || isPaused) && onCancel && (
-                    <button
-                        onClick={() => onCancel(item.fileName)}
-                        className="text-cyber-text-secondary/50 hover:text-red-400 transition-colors"
-                    >
-                        <X className="w-3.5 h-3.5" />
-                    </button>
-                )}
-            </div>
+            {/* Action buttons — not shown during engine install (pip cannot be paused) */}
+            {!isInstalling && (
+                <div className="flex items-center gap-1 flex-shrink-0 ml-auto">
+                    {/* Downloading: Pause button */}
+                    {isActive && onPause && (
+                        <button
+                            onClick={onPause}
+                            className="text-cyber-text-secondary/50 hover:text-yellow-400 transition-colors"
+                        >
+                            <Pause className="w-3.5 h-3.5" />
+                        </button>
+                    )}
+                    {/* Paused: Resume button */}
+                    {isPaused && onResume && (
+                        <button
+                            onClick={onResume}
+                            className="text-cyber-text-secondary/50 hover:text-green-400 transition-colors"
+                        >
+                            <Play className="w-3.5 h-3.5" />
+                        </button>
+                    )}
+                    {/* Downloading or paused: Cancel button */}
+                    {(isActive || isPaused) && onCancel && (
+                        <button
+                            onClick={() => onCancel(item.fileName)}
+                            className="text-cyber-text-secondary/50 hover:text-red-400 transition-colors"
+                        >
+                            <X className="w-3.5 h-3.5" />
+                        </button>
+                    )}
+                </div>
+            )}
         </div>
     );
 };
@@ -136,15 +165,18 @@ export const DownloadBar: React.FC = () => {
     // Completely hidden when no downloads
     if (downloads.size === 0) return null;
 
-    // Get all download items, sorted by status: downloading > paused > error > completed
+    // Get all download items, sorted by status: installing > downloading > paused > error > completed
     const items = Array.from(downloads.values()).sort((a, b) => {
-        const order: Record<string, number> = { downloading: 0, speed_test: 0, paused: 1, error: 2, completed: 3, cancelled: 4 };
+        const order: Record<string, number> = { installing: 0, downloading: 0, speed_test: 0, paused: 1, error: 2, completed: 3, cancelled: 4 };
         return (order[a.status] ?? 9) - (order[b.status] ?? 9);
     });
 
     // Show the first item (most important)
     const primary = items[0];
-    const queueCount = items.filter(i => i.status === 'downloading' || i.status === 'speed_test').length;
+    // Count active (downloading or installing)
+    const queueCount = items.filter(i =>
+        i.status === 'downloading' || i.status === 'speed_test' || i.status === 'installing'
+    ).length;
 
     // Resume download (use stored repo + fileName to re-call startDownload)
     const handleResume = () => {

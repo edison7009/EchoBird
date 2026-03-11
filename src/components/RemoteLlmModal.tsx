@@ -250,7 +250,7 @@ export const RemoteLlmModal: React.FC<RemoteLlmModalProps> = ({
     // ── Poll remote download status ──
     useEffect(() => {
         if (!isOpen) return;
-        const isActive = remoteDownload.status === 'downloading' || remoteDownload.status === 'speed_test';
+        const isActive = remoteDownload.status === 'downloading' || remoteDownload.status === 'speed_test' || remoteDownload.status === 'installing';
         if (!isActive) {
             if (downloadPollRef.current) { clearInterval(downloadPollRef.current); downloadPollRef.current = null; }
             return;

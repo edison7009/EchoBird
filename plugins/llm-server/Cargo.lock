@@ -134,7 +134,7 @@ dependencies = [
 
 [[package]]
 name = "echobird-llm-server"
-version = "2.5.9"
+version = "2.6.9"
 dependencies = [
  "chrono",
  "dirs",

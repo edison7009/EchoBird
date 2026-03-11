@@ -606,4 +606,206 @@ async fn download_engine_file(
     }
 
     Ok(())
+
+}
+
+// ─── Engine status detection ───
+
+fn check_python_package(package: &str) -> Option<String> {
+    let result = Command::new("pip3")
+        .args(["show", package])
+        .output();
+
+    if let Ok(out) = result {
+        if out.status.success() {
+            let stdout = String::from_utf8_lossy(&out.stdout);
+            for line in stdout.lines() {
+                if line.to_lowercase().starts_with("version:") {
+                    return Some(line[8..].trim().to_string());
+                }
+            }
+            return Some(String::new());
+        }
+    }
+    None
+}
+
+/// Get installation status for all supported local runtimes
+pub fn get_local_engine_status() -> serde_json::Value {
+    let llama_installed = LocalLlmServer::find_llama_server().is_some();
+
+    let vllm_version = check_python_package("vllm");
+    let sglang_version = check_python_package("sglang");
+    let vllm_musa_version = check_python_package("vllm-musa")
+        .or_else(|| check_python_package("vllm_musa"));
+
+    serde_json::json!({
+        "engines": [
+            {
+                "name": "llama-server",
+                "installed": llama_installed,
+                "version": LocalLlmServer::find_llama_server()
+                    .map(|p| p.to_string_lossy().to_string())
+                    .unwrap_or_default()
+            },
+            {
+                "name": "vllm",
+                "installed": vllm_version.is_some(),
+                "version": vllm_version.unwrap_or_default()
+            },
+            {
+                "name": "sglang",
+                "installed": sglang_version.is_some(),
+                "version": sglang_version.unwrap_or_default()
+            },
+            {
+                "name": "vllm-musa",
+                "installed": vllm_musa_version.is_some(),
+                "version": vllm_musa_version.unwrap_or_default()
+            }
+        ]
+    })
+}
+
+/// Install engine for local use. Routes by runtime:
+/// - llama-server: binary download (existing flow)
+/// - vllm / sglang: pip3 install
+/// - vllm-musa: pip3 install vllm-musa (Moore Threads build)
+pub async fn install_local_engine(app_handle: tauri::AppHandle, runtime: String) -> Result<(), String> {
+    match runtime.as_str() {
+        "llama-server" => {
+            // Reuse existing full download & extract logic
+            download_llama_server(app_handle).await.map(|_| ())
+        }
+        "vllm" => {
+            install_pip_engine(&app_handle, "vllm", &runtime).await
+        }
+        "sglang" => {
+            install_pip_engine(&app_handle, "sglang[all]", &runtime).await
+        }
+        "vllm-musa" => {
+            install_pip_engine(&app_handle, "vllm-musa", &runtime).await
+        }
+        other => {
+            Err(format!("Unknown runtime: {}", other))
+        }
+    }
+}
+
+/// Install a Python package via pip3, emitting download-progress events for UI
+async fn install_pip_engine(
+    app_handle: &tauri::AppHandle,
+    package: &str,
+    runtime: &str,
+) -> Result<(), String> {
+    let runtime = runtime.to_string();
+    let package = package.to_string();
+    let app = app_handle.clone();
+
+    // Emit: installing started
+    let _ = app.emit("download-progress", DownloadProgress {
+        file_name: runtime.clone(),
+        progress: 5,
+        downloaded: 0,
+        total: 0,
+        status: "installing".to_string(),
+    });
+
+    log::info!("[EngineInstaller] pip3 install {} for runtime '{}'", package, runtime);
+
+    // Pip install with PyPI mirrors (prefer China mirrors for faster access)
+    let result = tokio::task::spawn_blocking({
+        let package = package.clone();
+        let runtime = runtime.clone();
+        let app = app.clone();
+        move || {
+            // Try primary install
+            let status = Command::new("pip3")
+                .args([
+                    "install", &package,
+                    "--upgrade",
+                    "-i", "https://pypi.tuna.tsinghua.edu.cn/simple",
+                    "--trusted-host", "pypi.tuna.tsinghua.edu.cn",
+                ])
+                .stdout(std::process::Stdio::piped())
+                .stderr(std::process::Stdio::piped())
+                .spawn();
+
+            match status {
+                Ok(mut child) => {
+                    use std::io::{BufRead, BufReader};
+
+                    // Emit progress=30 once child spawned
+                    let _ = app.emit("download-progress", DownloadProgress {
+                        file_name: runtime.clone(),
+                        progress: 30,
+                        downloaded: 0,
+                        total: 0,
+                        status: "installing".to_string(),
+                    });
+
+                    // Stream stderr (pip outputs to stderr)
+                    if let Some(stderr) = child.stderr.take() {
+                        let reader = BufReader::new(stderr);
+                        for line in reader.lines().flatten() {
+                            log::info!("[pip3] {}", line);
+                        }
+                    }
+
+                    match child.wait() {
+                        Ok(status) if status.success() => Ok(()),
+                        Ok(status) => {
+                            // Fallback: retry with official PyPI
+                            log::warn!("[EngineInstaller] Tsinghua mirror failed ({}), retrying with official PyPI", status);
+                            let _ = app.emit("download-progress", DownloadProgress {
+                                file_name: runtime.clone(),
+                                progress: 50,
+                                downloaded: 0,
+                                total: 0,
+                                status: "installing".to_string(),
+                            });
+                            let result2 = Command::new("pip3")
+                                .args(["install", &package, "--upgrade"])
+                                .output();
+                            match result2 {
+                                Ok(out) if out.status.success() => Ok(()),
+                                Ok(out) => Err(format!(
+                                    "pip3 install failed:\n{}",
+                                    String::from_utf8_lossy(&out.stderr)
+                                )),
+                                Err(e) => Err(format!("pip3 not found: {}", e)),
+                            }
+                        }
+                        Err(e) => Err(format!("Failed to wait for pip3: {}", e)),
+                    }
+                }
+                Err(e) => Err(format!("pip3 not found or failed to spawn: {}", e)),
+            }
+        }
+    }).await.map_err(|e| format!("Task join error: {}", e))?;
+
+    match result {
+        Ok(()) => {
+            log::info!("[EngineInstaller] {} installed successfully", package);
+            let _ = app.emit("download-progress", DownloadProgress {
+                file_name: runtime.clone(),
+                progress: 100,
+                downloaded: 0,
+                total: 0,
+                status: "completed".to_string(),
+            });
+            Ok(())
+        }
+        Err(e) => {
+            log::error!("[EngineInstaller] {} install failed: {}", package, e);
+            let _ = app.emit("download-progress", DownloadProgress {
+                file_name: runtime.clone(),
+                progress: 0,
+                downloaded: 0,
+                total: 0,
+                status: "error".to_string(),
+            });
+            Err(e)
+        }
+    }
 }

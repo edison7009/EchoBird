@@ -34,6 +34,9 @@ interface LocalServerContextValue {
     rescanModels: (runtime?: string) => void;
     // Model dirs
     modelsDirs: string[];
+    // Current runtime (shared between Main and Panel)
+    runtime: string;
+    setRuntime: (v: string) => void;
     // Server runtime state (for bottom bar)
     serverRunning: boolean;
     setServerRunning: (v: boolean) => void;
@@ -60,19 +63,21 @@ export const LocalServerProvider: React.FC<{ children: React.ReactNode }> = ({ c
     const [ggufFiles, setGgufFiles] = useState<GgufFileEntry[]>([]);
     const [isScanning, setIsScanning] = useState(false);
     const [modelsDirs, setModelsDirs] = useState<string[]>([]);
+    // Shared runtime state — Panel reads this to filter store models
+    const [runtime, setRuntime] = useState('llama-server');
     // Server runtime state (shared with bottom bar)
     const [serverRunning, setServerRunning] = useState(false);
     const [serverPort, setServerPort] = useState(11434);
     const [serverModelName, setServerModelName] = useState('');
     const [serverApiKey, setServerApiKey] = useState('');
 
-    const rescanModels = useCallback(async (runtime?: string) => {
+    const rescanModels = useCallback(async (rt?: string) => {
         setIsScanning(true);
         try {
             const dirs = await api.getModelsDirs();
             setModelsDirs(dirs);
             const allFiles: GgufFileEntry[] = [];
-            const isHfRuntime = runtime === 'vllm' || runtime === 'sglang' || runtime === 'vllm-musa';
+            const isHfRuntime = rt === 'vllm' || rt === 'sglang' || rt === 'vllm-musa';
             for (const dir of dirs) {
                 if (isHfRuntime) {
                     // Scan HuggingFace model directories
@@ -111,6 +116,7 @@ export const LocalServerProvider: React.FC<{ children: React.ReactNode }> = ({ c
             selectedModelPath, setSelectedModelPath,
             ggufFiles, isScanning, rescanModels,
             modelsDirs,
+            runtime, setRuntime,
             serverRunning, setServerRunning,
             serverPort, setServerPort,
             serverModelName, setServerModelName,
@@ -137,13 +143,12 @@ function parseModelInfo(filePath: string) {
 
 export const LocalServerMain: React.FC = () => {
     const { t } = useI18n();
-    const { selectedModelPath, rescanModels, serverRunning: isRunning, setServerRunning: setIsRunning, serverPort, setServerPort: setServerPortCtx, serverModelName, setServerModelName, setServerApiKey } = useLocalServer();
+    const { selectedModelPath, rescanModels, serverRunning: isRunning, setServerRunning: setIsRunning, serverPort, setServerPort: setServerPortCtx, serverModelName, setServerModelName, setServerApiKey, runtime, setRuntime } = useLocalServer();
 
     // Configuration state
     const setServerPort = (v: number) => setServerPortCtx(v);
     const [gpuLayers, setGpuLayers] = useState<number>(-1);
     const [contextSize, setContextSize] = useState<number>(4096);
-    const [runtime, setRuntime] = useState('llama-server');
 
     // Rescan models when runtime changes (GGUF vs HuggingFace)
     useEffect(() => { rescanModels(runtime); }, [runtime, rescanModels]);
@@ -182,8 +187,9 @@ export const LocalServerMain: React.FC = () => {
     const [engineStatus, setEngineStatus] = useState<EngineStatus>('checking');
 
     // Get engine download progress from global DownloadContext (single source of truth)
+    // Key: use runtime name so progress matches the current engine being installed
     const { downloads } = useDownload();
-    const engineDl = downloads.get('llama-server');
+    const engineDl = downloads.get(runtime);
     const downloadProgress = engineDl?.progress ?? 0;
     const downloadedSize = engineDl?.downloaded ?? 0;
     const totalSize = engineDl?.total ?? 0;
@@ -201,24 +207,30 @@ export const LocalServerMain: React.FC = () => {
         }
     }, [selectedModelPath, modelInfo.name, modelInfo.quant, setServerModelName]);
 
-    // Check engine on mount
+    // Check engine on mount AND when runtime changes
     useEffect(() => {
         const check = async () => {
             setEngineStatus('checking');
             try {
-                const path = await api.findLlamaServer();
-                setEngineStatus(path ? 'ready' : 'not-installed');
+                if (runtime === 'llama-server') {
+                    const path = await api.findLlamaServer();
+                    setEngineStatus(path ? 'ready' : 'not-installed');
+                } else {
+                    const status = await api.getLocalEngineStatus();
+                    const entry = status.engines.find(e => e.name === runtime);
+                    setEngineStatus(entry?.installed ? 'ready' : 'not-installed');
+                }
             } catch {
                 setEngineStatus('error');
             }
         };
         check();
-    }, []);
+    }, [runtime]);
 
-    // Sync engineStatus from DownloadContext (instead of duplicate listener)
+    // Sync engineStatus from DownloadContext
     useEffect(() => {
         if (!engineDl) return;
-        if (engineDl.status === 'downloading' || engineDl.status === 'speed_test') {
+        if (engineDl.status === 'downloading' || engineDl.status === 'speed_test' || engineDl.status === 'installing') {
             setEngineStatus('downloading');
         } else if (engineDl.status === 'completed') {
             setEngineStatus('ready');
@@ -229,15 +241,15 @@ export const LocalServerMain: React.FC = () => {
         }
     }, [engineDl?.status]);
 
-    // Download engine handler
+    // Install engine handler — routes by runtime
     const handleDownloadEngine = async () => {
         setEngineStatus('downloading');
         try {
-            await api.downloadLlamaServer();
+            await api.installLocalEngine(runtime);
             setEngineStatus('ready');
         } catch (err: any) {
             setEngineStatus('error');
-            setLogs(prev => [...prev, `[Error] Engine download failed: ${err?.message || err}`]);
+            setLogs(prev => [...prev, `[Error] Engine install failed: ${err?.message || err}`]);
         }
     };
 
@@ -402,18 +414,22 @@ export const LocalServerMain: React.FC = () => {
 
                 {/* Parameter row */}
                 <div className="grid grid-cols-4 gap-3">
-                    {/* Compute: locked to GPU Full when using HF runtimes (vLLM/SGLang manage GPU internally) */}
+                    {/* Compute: GPU runtimes (vLLM/SGLang) manage GPU internally; llama-server with GPU locks to GPU-Full */}
                     <div className="flex items-center gap-2">
                         <label className="text-[11px] text-cyber-text-secondary font-mono font-bold flex-shrink-0">{t('server.compute')}</label>
                         <MiniSelect
                             value={runtime !== 'llama-server' ? '-1' : String(gpuLayers)}
                             onChange={(v) => setGpuLayers(Number(v))}
-                            disabled={isRunning || runtime !== 'llama-server'}
+                            disabled={isRunning || runtime !== 'llama-server' || hasNvidiaGpu || hasAmdGpu || isMooreThreadsGpu}
                             options={[
-                                ...(runtime !== 'llama-server' || hasNvidiaGpu || hasAmdGpu
+                                // GPU-Full always first; shown when any GPU present or non-llama runtime
+                                ...(runtime !== 'llama-server' || hasNvidiaGpu || hasAmdGpu || isMooreThreadsGpu
                                     ? [{ id: '-1', label: t('server.gpuFull') }]
                                     : []),
-                                { id: '0', label: t('server.cpuOnly') },
+                                // CPU-only only shown when no GPU detected and using llama-server
+                                ...(!hasNvidiaGpu && !hasAmdGpu && !isMooreThreadsGpu && runtime === 'llama-server'
+                                    ? [{ id: '0', label: t('server.cpuOnly') }]
+                                    : []),
                             ]}
                             className="flex-1"
                         />
@@ -563,7 +579,7 @@ function guessIconFromFileName(fileName: string): string | null {
 
 export const LocalServerPanel: React.FC = () => {
     const { t } = useI18n();
-    const { ggufFiles, isScanning, rescanModels, selectedModelPath, setSelectedModelPath, modelsDirs, serverRunning, serverPort, serverModelName } = useLocalServer();
+    const { ggufFiles, isScanning, rescanModels, selectedModelPath, setSelectedModelPath, modelsDirs, serverRunning, serverPort, serverModelName, runtime } = useLocalServer();
     const confirm = useConfirm();
 
     const [activeTab, setActiveTab] = useState<'local' | 'store'>('local');
@@ -671,6 +687,16 @@ export const LocalServerPanel: React.FC = () => {
         }
         return Object.values(map);
     })();
+
+    // Filter store models by current runtime
+    // vllm-musa is treated as 'vllm' for store purposes (same model format)
+    const storeRuntimeKey = runtime === 'vllm-musa' ? 'vllm' : runtime;
+    const filteredStoreModels = storeModels.filter(model => {
+        const modelRuntimes = model.runtimes || ['llama-server'];
+        // If model has no runtimes field, default to llama-server
+        return modelRuntimes.includes(storeRuntimeKey) ||
+            (storeRuntimeKey === 'vllm' && modelRuntimes.includes('vllm-musa'));
+    });
 
     // Check if a file exists locally
     const isDownloaded = (fileName: string) => ggufFiles.some(f => f.fileName === fileName);
@@ -963,7 +989,13 @@ export const LocalServerPanel: React.FC = () => {
                             </div>
                         ) : (
                             <div className="space-y-2">
-                                {storeModels.map(model => {
+                                {/* Runtime filter badge */}
+                                {storeRuntimeKey !== 'llama-server' && (
+                                    <div className="text-[10px] font-mono text-cyan-400/70 px-1 pb-1">
+                                        {storeRuntimeKey === 'vllm' ? 'vLLM / vLLM-MUSA' : storeRuntimeKey}
+                                    </div>
+                                )}
+                                {filteredStoreModels.map(model => {
                                     const isExpanded = expandedModelId === model.id;
                                     const hasDownloaded = model.variants.some(v => isDownloaded(v.fileName));
 
@@ -1063,6 +1095,11 @@ export const LocalServerPanel: React.FC = () => {
                                         </div>
                                     );
                                 })}
+                                {filteredStoreModels.length === 0 && !isLoadingStore && (
+                                    <div className="text-center py-8 text-cyber-text-secondary text-xs font-mono">
+                                        No models for {storeRuntimeKey === 'vllm' ? 'vLLM' : storeRuntimeKey} in store
+                                    </div>
+                                )}
                             </div>
                         )}
                     </>

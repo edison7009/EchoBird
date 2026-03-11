@@ -229,6 +229,24 @@ export async function downloadModel(repo: string, fileName: string): Promise<str
     return invoke('download_model', { repo, fileName });
 }
 
+export interface LocalEngineEntry {
+    name: string;
+    installed: boolean;
+    version: string;
+}
+
+export interface LocalEngineStatus {
+    engines: LocalEngineEntry[];
+}
+
+export async function getLocalEngineStatus(): Promise<LocalEngineStatus> {
+    return invoke('get_local_engine_status');
+}
+
+export async function installLocalEngine(runtime: string): Promise<void> {
+    return invoke('install_local_engine', { runtime });
+}
+
 export async function pauseDownload(): Promise<void> {
     return invoke('pause_download');
 }
@@ -244,7 +262,7 @@ export interface DownloadProgressEvent {
     progress: number;
     downloaded: number;
     total: number;
-    status: 'downloading' | 'completed' | 'error' | 'cancelled' | 'paused' | 'speed_test';
+    status: 'downloading' | 'completed' | 'error' | 'cancelled' | 'paused' | 'speed_test' | 'installing';
 }
 
 export function onDownloadProgress(callback: (data: DownloadProgressEvent) => void): Promise<UnlistenFn> {

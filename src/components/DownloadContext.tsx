@@ -10,7 +10,7 @@ export interface DownloadItem {
     progress: number;
     downloaded: number;
     total: number;
-    status: 'downloading' | 'completed' | 'error' | 'cancelled' | 'paused' | 'speed_test';
+    status: 'downloading' | 'completed' | 'error' | 'cancelled' | 'paused' | 'speed_test' | 'installing';
 }
 
 interface DownloadContextValue {

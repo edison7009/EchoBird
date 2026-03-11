@@ -45,4 +45,5 @@ pub use model_store::{
     fetch_store_models,
     download_model, pause_download, cancel_download,
     download_llama_server,
+    get_local_engine_status, install_local_engine,
 };
