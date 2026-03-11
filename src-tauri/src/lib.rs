@@ -83,21 +83,21 @@ fn create_tray_icon_rgba(color: &str) -> (Vec<u8>, u32, u32) {
 fn tray_t(locale: &str, key: &str) -> String {
     match (locale, key) {
         // English
-        ("en", "show") => "Show Echobird".into(),
+        ("en", "show") => "Show EchoBird".into(),
         ("en", "server") => "LOCAL SERVER".into(),
         ("en", "on") => "ON".into(),
         ("en", "off") => "OFF".into(),
         ("en", "quit") => "Quit".into(),
         ("en", "tooltip") => "Local Server".into(),
         // Simplified Chinese
-        ("zh-Hans", "show") => "\u{663E}\u{793A} \u{767E}\u{7075}\u{9E1F}".into(),
+        ("zh-Hans", "show") => "\u{663E}\u{793A} EchoBird".into(),
         ("zh-Hans", "server") => "\u{672C}\u{5730}\u{670D}\u{52A1}\u{5668}".into(),
         ("zh-Hans", "on") => "\u{5F00}\u{542F}".into(),
         ("zh-Hans", "off") => "\u{5173}\u{95ED}".into(),
         ("zh-Hans", "quit") => "\u{9000}\u{51FA}".into(),
         ("zh-Hans", "tooltip") => "\u{672C}\u{5730}\u{670D}\u{52A1}\u{5668}".into(),
         // Traditional Chinese
-        ("zh-Hant", "show") => "\u{986F}\u{793A} \u{767E}\u{9748}\u{9CE5}".into(),
+        ("zh-Hant", "show") => "\u{986F}\u{793A} EchoBird".into(),
         ("zh-Hant", "server") => "\u{672C}\u{4F3A}\u{670D}\u{5668}".into(),
         ("zh-Hant", "on") => "\u{958B}\u{555F}".into(),
         ("zh-Hant", "off") => "\u{95DC}\u{9589}".into(),
@@ -155,11 +155,7 @@ pub fn rebuild_tray_menu(app: &tauri::AppHandle) {
     };
 
     // Build menu items
-    let app_name = match locale.as_str() {
-        "zh-Hant" => "\u{767E}\u{9748}\u{9CE5}",
-        "zh-Hans" => "\u{767E}\u{7075}\u{9E1F}",
-        _ => "Echobird",
-    };
+    let app_name = "EchoBird";
     let version_item = MenuItemBuilder::with_id("version", format!("{} v{}", app_name, version))
         .enabled(false)
         .build(app)
@@ -254,7 +250,7 @@ pub fn run() {
 
             // Build initial tray menu (English default, server offline)
             let version = env!("CARGO_PKG_VERSION");
-            let version_item = MenuItemBuilder::with_id("version", format!("Echobird v{}", version))
+            let version_item = MenuItemBuilder::with_id("version", format!("EchoBird v{}", version))
                 .enabled(false)
                 .build(app)?;
             let show_item = MenuItemBuilder::with_id("show", tray_t("en", "show"))
@@ -277,7 +273,7 @@ pub fn run() {
             TrayIconBuilder::with_id("main-tray")
                 .icon(tray_icon)
                 .menu(&tray_menu)
-                .tooltip(format!("Echobird - {} {}", tray_t("en", "tooltip"), tray_t("en", "off")))
+                .tooltip(format!("EchoBird - {} {}", tray_t("en", "tooltip"), tray_t("en", "off")))
                 .on_menu_event(move |app_handle, event| {
                     match event.id().as_ref() {
                         "show" => {
