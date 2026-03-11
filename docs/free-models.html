@@ -206,7 +206,84 @@
 
         /* ── Provider section ── */
         .provider-section {
-            margin-bottom: 56px
+            margin-bottom: 56px;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity .4s ease
+        }
+
+        .provider-section.visible {
+            opacity: 1;
+            pointer-events: auto
+        }
+
+        /* ── Ping speed ── */
+        .ping-speed {
+            font-family: var(--mono);
+            font-size: 11px;
+            color: var(--neon);
+            margin-left: 10px;
+            opacity: .8
+        }
+
+        .ping-speed.slow {
+            color: #f0a500
+        }
+
+        /* ── Language selector ── */
+        .lang-wrap {
+            position: relative;
+            margin-left: 4px
+        }
+
+        .lang-btn {
+            background: none;
+            border: 1px solid var(--border);
+            color: var(--dim);
+            font-family: var(--mono);
+            font-size: 11px;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all .2s
+        }
+
+        .lang-btn:hover {
+            border-color: var(--neon);
+            color: var(--neon)
+        }
+
+        .lang-drop {
+            display: none;
+            position: absolute;
+            right: 0;
+            top: calc(100% + 6px);
+            background: var(--bg2);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            min-width: 100px;
+            z-index: 999;
+            overflow: hidden
+        }
+
+        .lang-drop.open {
+            display: block
+        }
+
+        .lang-opt {
+            padding: 9px 14px;
+            font-size: 13px;
+            cursor: pointer;
+            color: var(--white);
+            transition: background .15s
+        }
+
+        .lang-opt:hover {
+            background: rgba(0, 255, 157, .07)
+        }
+
+        .lang-opt.active {
+            color: var(--neon)
         }
 
         .provider-header {
@@ -480,20 +557,25 @@
     <div class="nav">
         <a href="/" class="nav-logo"><span>EchoBird.ai</span></a>
         <div class="nav-r">
-            <a href="/#features">Features</a>
-            <a href="/#screenshots">Screenshots</a>
-            <a href="/#download">Download</a>
-            <a href="/free-models" style="color:var(--neon)">Free Models</a>
+            <a href="/" data-i18n="nav_home">Home</a>
+            <a href="/free-models" style="color:var(--neon)" data-i18n="nav_free_models">Free Models</a>
             <a href="https://github.com/edison7009/Echobird-MotherAgent" target="_blank">GitHub</a>
+            <div class="lang-wrap">
+                <button class="lang-btn" id="langBtn">🌐 EN</button>
+                <div class="lang-drop" id="langDrop">
+                    <div class="lang-opt" data-lang="en">English</div>
+                    <div class="lang-opt" data-lang="zh">中文</div>
+                </div>
+            </div>
         </div>
     </div>
 
 
     <!-- Hero -->
     <div class="page-hero">
-        <div class="badge">❯ FREE LLM APIS</div>
-        <h1>Free Models</h1>
-        <p>Curated free-tier LLM API providers. All support OpenAI-compatible protocol.<br>
+        <div class="badge" data-i18n="hero_badge">❯ FREE LLM APIS</div>
+        <h1 data-i18n="hero_title">Free Models</h1>
+        <p data-i18n="hero_desc">Curated free-tier LLM API providers. All support OpenAI-compatible protocol.<br>
             Plug any of these into EchoBird, OpenClaw, Claude Code, or any AI tool.</p>
         <p class="updated" id="updated-date">Loading...</p>
     </div>
@@ -542,8 +624,89 @@
             }, 40);
         })();
 
+        // ── i18n ──
+        const TRANSLATIONS = {
+            en: {
+                nav_home: 'Home',
+                nav_free_models: 'Free Models',
+                hero_badge: '❯ FREE LLM APIS',
+                hero_title: 'Free Models',
+                hero_desc: 'Curated free-tier LLM API providers. All support OpenAI-compatible protocol.<br>Plug any of these into EchoBird, OpenClaw, Claude Code, or any AI tool.',
+                updated: 'Updated:',
+                loading: 'Fetching latest data...',
+                stat_providers: 'Providers',
+                stat_models: 'Free Models',
+                stat_compat: 'OpenAI Compatible',
+                col_model: 'Model',
+                col_id: 'Model ID',
+                col_ctx: 'Context',
+                col_limit: 'Free Limit',
+                col_status: 'Status',
+                base_url: 'Base URL:',
+                get_key: 'Get API Key →',
+                docs: 'Docs',
+            },
+            zh: {
+                nav_home: '主页',
+                nav_free_models: '免费模型',
+                hero_badge: '❯ 免费 LLM API',
+                hero_title: '免费模型',
+                hero_desc: '精选免费 LLM API 服务商，全部兼容 OpenAI 协议。<br>可直接用于 EchoBird、OpenClaw、Claude Code 等 AI 工具。',
+                updated: '更新时间:',
+                loading: '加载中...',
+                stat_providers: '服务商',
+                stat_models: '免费模型',
+                stat_compat: '兼容 OpenAI',
+                col_model: '模型',
+                col_id: '模型 ID',
+                col_ctx: '上下文',
+                col_limit: '免费限额',
+                col_status: '状态',
+                base_url: '接口地址:',
+                get_key: '获取 API 密钥 →',
+                docs: '文档',
+            }
+        };
+
+        let currentLang = localStorage.getItem('fm_lang') ||
+            (navigator.language.startsWith('zh') ? 'zh' : 'en');
+        let cachedData = null;
+
+        function t(key) { return TRANSLATIONS[currentLang][key] || TRANSLATIONS.en[key] || key; }
+
+        function applyLang() {
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                const key = el.dataset.i18n;
+                el.innerHTML = t(key);
+            });
+            document.getElementById('langBtn').textContent = '🌐 ' + currentLang.toUpperCase();
+            document.querySelectorAll('.lang-opt').forEach(o => {
+                o.classList.toggle('active', o.dataset.lang === currentLang);
+            });
+            if (cachedData) render(cachedData);
+        }
+
+        // Language dropdown logic
+        const langBtn = document.getElementById('langBtn');
+        const langDrop = document.getElementById('langDrop');
+        langBtn.addEventListener('click', e => { e.stopPropagation(); langDrop.classList.toggle('open'); });
+        document.addEventListener('click', () => langDrop.classList.remove('open'));
+        document.querySelectorAll('.lang-opt').forEach(opt => {
+            opt.addEventListener('click', () => {
+                currentLang = opt.dataset.lang;
+                localStorage.setItem('fm_lang', currentLang);
+                langDrop.classList.remove('open');
+                applyLang();
+            });
+        });
+
+        // Apply on load
+        applyLang();
+
+
         // ── Scroll fade ──
         const obs = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); obs.unobserve(e.target) } }), { threshold: .1 });
+
 
         // ── Format context window ──
         function fmtCtx(n) {
@@ -557,43 +720,44 @@
 
         // ── Render ──
         function render(data) {
+            cachedData = data;
             // Updated date
-            const today = new Date().toISOString().slice(0, 10);
-            document.getElementById('updated-date').textContent = 'Updated: ' + today;
+            const d = new Date(); const today = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+            document.getElementById('updated-date').textContent = t('updated') + ' ' + today;
 
             // Stats
             const totalModels = data.providers.reduce((s, p) => s + p.models.length, 0);
             document.getElementById('stats').innerHTML = `
-            <div class="stat"><span class="num">${data.providers.length}</span><div class="label">Providers</div></div>
-            <div class="stat"><span class="num">${totalModels}</span><div class="label">Free Models</div></div>
-            <div class="stat"><span class="num">100%</span><div class="label">OpenAI Compatible</div></div>
+            <div class="stat"><span class="num">${data.providers.length}</span><div class="label">${t('stat_providers')}</div></div>
+            <div class="stat"><span class="num">${totalModels}</span><div class="label">${t('stat_models')}</div></div>
+            <div class="stat"><span class="num">100%</span><div class="label">${t('stat_compat')}</div></div>
         `;
 
             // Providers
             const content = document.getElementById('content');
             content.innerHTML = data.providers.map(p => `
-            <div class="provider-section fade">
+            <div class="provider-section fade" data-provider="${p.id}">
                 <div class="provider-header">
                     <div>
                         <div class="provider-name">${p.name}</div>
                         <div class="base-url-block">
-                            Base URL: <code>${p.baseUrl}</code><button class="copy-btn" data-copy="${p.baseUrl}" title="Copy Base URL">${COPY_SVG}</button>
+                            ${t('base_url')} <code>${p.baseUrl}</code><button class="copy-btn" data-copy="${p.baseUrl}" title="Copy Base URL">${COPY_SVG}</button><span class="ping-speed" id="ping-${p.id}"></span>
                         </div>
                     </div>
                     <div class="provider-meta">
                         <span class="tag-protocol">${p.protocol.toUpperCase()}</span>
-                        <a href="${p.getKeyUrl}" target="_blank">Get API Key →</a>
-                        <a href="${p.url}" target="_blank">Docs</a>
+                        <a href="${p.getKeyUrl}" target="_blank">${t('get_key')}</a>
+                        <a href="${p.url}" target="_blank">${t('docs')}</a>
                     </div>
                 </div>
                 <table class="model-table">
                     <thead>
                         <tr>
-                            <th>Model</th>
-                            <th>Model ID</th>
-                            <th>Context</th>
-                            <th>Free Limit</th>
-                            <th>Status</th>
+                            <th>${t('col_model')}</th>
+                            <th>${t('col_id')}</th>
+                            <th>${t('col_ctx')}</th>
+                            <th>${t('col_limit')}</th>
+                            <th>${t('col_status')}</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -622,6 +786,36 @@
                     btn.innerHTML = CHECK_SVG;
                     btn.classList.add('copied');
                     setTimeout(() => { btn.innerHTML = COPY_SVG; btn.classList.remove('copied'); }, 1500);
+                });
+            });
+
+            // Auto-ping all base URLs
+            pingProviders(data);
+        }
+
+        async function pingOne(url) {
+            const t = performance.now();
+            try {
+                const ctrl = new AbortController();
+                const timer = setTimeout(() => ctrl.abort(), 5000);
+                await fetch(url, { method: 'HEAD', mode: 'no-cors', cache: 'no-store', signal: ctrl.signal });
+                clearTimeout(timer);
+                return Math.round(performance.now() - t);
+            } catch { return null; }
+        }
+
+        function pingProviders(data) {
+            data.providers.forEach(p => {
+                pingOne(p.baseUrl).then(ms => {
+                    const section = document.querySelector(`[data-provider="${p.id}"]`);
+                    if (!section) return;
+                    if (ms === null) return; // no response — stay hidden
+                    const speedEl = document.getElementById('ping-' + p.id);
+                    if (speedEl) {
+                        speedEl.textContent = ms + 'ms';
+                        if (ms > 1000) speedEl.classList.add('slow');
+                    }
+                    section.classList.add('visible');
                 });
             });
         }
