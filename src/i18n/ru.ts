@@ -324,5 +324,6 @@ const ru: Partial<Translations> = {
     'mother.connectionFailed': 'Не удалось подключиться к модели ИИ после {n} попыток.',
     'mother.connectionHint': 'Проверьте URL, Model ID, API Key и убедитесь, что лимит токенов достаточен.',
     'common.showProcess': 'Ход мыслей',
+    'agent.installViaMother': '\u0410\u0432\u0442\u043e-\u0443\u0441\u0442\u0430\u043d\u043e\u0432\u043a\u0430 AI',
 };
 export default ru;

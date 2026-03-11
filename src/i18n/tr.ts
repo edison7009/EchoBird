@@ -298,5 +298,6 @@ const tr: Partial<Translations> = {
     'mother.connectionHint': 'Lütfen URL, Model ID ve API Key\'i kontrol edin ve Token kotanızın yeterli olduğundan emin olun.',
     'common.showProcess': 'DÜŞÜNME·SÜREÇ',
     'mother.thinking': 'Düşünüyor...',
+    'agent.installViaMother': 'AI Otomatik Kurulum',
 };
 export default tr;

@@ -300,5 +300,6 @@ const id: Partial<Translations> = {
     'mother.connectionHint': 'Periksa URL, Model ID, API Key, dan pastikan kuota Token Anda mencukupi.',
     'common.showProcess': 'PIKIR·PROSES',
     'mother.thinking': 'Sedang berpikir...',
+    'agent.installViaMother': 'Instal Otomatis AI',
 };
 export default id;

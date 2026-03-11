@@ -165,5 +165,6 @@ const el: Partial<Translations> = {
     'mother.connectionHint': 'Ελέγξτε το URL, το Model ID, το API Key και βεβαιωθείτε ότι η ποσόστωση Token είναι επαρκής.',
     'common.showProcess': 'ΣΚΕΨΗ·ΔΙΑΔΙΚΑΣΙΑ',
     'mother.thinking': 'Σκέφτεται...',
+    'agent.installViaMother': 'Αυτόματη εγκατάσταση AI',
 };
 export default el;

@@ -165,5 +165,6 @@ const fa: Partial<Translations> = {
     'mother.connectionHint': 'لطفاً URL، Model ID و API Key را بررسی کنید و مطمئن شوید سهمیه Token کافی دارید.',
     'common.showProcess': 'تفکر·فرآیند',
     'mother.thinking': 'در حال تفکر...',
+    'agent.installViaMother': 'نصب خودکار هوش مصنوعی',
 };
 export default fa;

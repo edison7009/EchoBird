@@ -300,5 +300,6 @@ const ms: Partial<Translations> = {
     'mother.connectionHint': 'Sila semak URL, Model ID, API Key, dan pastikan kuota Token anda mencukupi.',
     'common.showProcess': 'FIKIR·PROSES',
     'mother.thinking': 'Sedang berfikir...',
+    'agent.installViaMother': 'Pasang Auto AI',
 };
 export default ms;

@@ -298,5 +298,6 @@ const hi: Partial<Translations> = {
     'mother.connectionHint': 'कृपया URL, Model ID, API Key जांचें और सुनिश्चित करें कि Token कोटा पर्याप्त है।',
     'common.showProcess': 'सोच·प्रक्रिया',
     'mother.thinking': 'सोच रहा है...',
+    'agent.installViaMother': 'AI ओटो-इंस्टॉल',
 };
 export default hi;

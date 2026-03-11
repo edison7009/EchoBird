@@ -298,5 +298,6 @@ const cs: Partial<Translations> = {
     'mother.connectionHint': 'Zkontrolujte URL, Model ID, API Key a ujistěte se, že máte dostatečný Token kredit.',
     'common.showProcess': 'MYŠLENÍ·PROCES',
     'mother.thinking': 'Přemýšlí...',
+    'agent.installViaMother': 'Automatická instalace AI',
 };
 export default cs;

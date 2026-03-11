@@ -300,5 +300,6 @@ const th: Partial<Translations> = {
     'mother.connectionHint': 'กรุณาตรวจสอบ URL, Model ID, API Key และตรวจสอบว่า Token quota เพียงพอ',
     'common.showProcess': 'คิด·กระบวนการ',
     'mother.thinking': 'กำลังคิด...',
+    'agent.installViaMother': 'AI ติดตั้งอัตโนมัติ',
 };
 export default th;

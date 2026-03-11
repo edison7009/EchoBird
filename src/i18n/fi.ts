@@ -165,5 +165,6 @@ const fi: Partial<Translations> = {
     'mother.connectionHint': 'Tarkista URL, Model ID ja API Key sekä varmista, että Token-kiintiösi on riittävä.',
     'common.showProcess': 'AJATTELU·PROSESSI',
     'mother.thinking': 'Miettii...',
+    'agent.installViaMother': 'AI-autoasennus',
 };
 export default fi;
