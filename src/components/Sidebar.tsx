@@ -45,10 +45,10 @@ export const Sidebar = ({ activePage, onPageChange, agentRunning = false, channe
                 <span
                     className={`flex-shrink-0 ${activePage === 'skills' ? 'text-cyber-warning' : activePage === 'mother' ? 'text-cyber-accent-secondary' : 'text-cyber-accent'}`}
                     style={{
-                        fontFamily: "'Orbitron', sans-serif",
-                        fontWeight: 700,
-                        letterSpacing: '3px',
-                        fontSize: '16px',
+                        fontFamily: "'JetBrains Mono', monospace",
+                        fontWeight: 500,
+                        letterSpacing: '0.5px',
+                        fontSize: '15px',
                         lineHeight: '16px',
                     }}
                 >
