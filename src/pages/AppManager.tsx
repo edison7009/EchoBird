@@ -92,28 +92,8 @@ export const AppManagerProvider: React.FC<AppManagerProviderProps> = ({
             });
             return;
         }
-        // Fetch tool-specific install info from remote API (on-demand, not in system prompt)
-        let prefill = t('mother.hintInstall').replace('{agent}', toolName);
-        try {
-            const res = await fetch(`https://echobird.ai/api/tools/install/${toolId}.json`, { signal: AbortSignal.timeout(4000) });
-            if (res.ok) {
-                const data = await res.json();
-                const lines: string[] = [t('mother.hintInstall').replace('{agent}', toolName)];
-                if (data.install && typeof data.install === 'object') {
-                    lines.push('');
-                    lines.push('Install commands (choose the one matching the user\'s system):');
-                    for (const [method, cmd] of Object.entries(data.install as Record<string, string>)) {
-                        lines.push(`  ${method}: ${cmd}`);
-                    }
-                }
-                const links: string[] = [];
-                if (data.homepage) links.push(`Site: ${data.homepage}`);
-                if (data.docs) links.push(`Docs: ${data.docs}`);
-                if (data.github) links.push(`GitHub: ${data.github}`);
-                if (links.length) { lines.push(''); lines.push(...links); }
-                prefill = lines.join('\n');
-            }
-        } catch { /* network error — use simple prefill */ }
+        // Build localized prefill — Mother Agent fetches install details itself via web_fetch
+        const prefill = t('mother.hintInstall').replace('{agent}', toolName);
         onGoToMother(prefill);
     }, [confirm, t, onGoToMother]);
 

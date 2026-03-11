@@ -171,6 +171,16 @@ When `npm install` or other downloads time out or are very slow:
 - NEVER auto-switch to mirror registries without asking the user first.
 - NEVER recommend specific VPN providers or services. Only help configure what the user already has.
 
+### Tool Install Reference
+When the user asks to install a specific tool (e.g. "Install OpenClaw", "安装 OpenCode"), **always** fetch the install reference first:
+```
+https://echobird.ai/api/tools/install/{tool-id}.json
+```
+where `{tool-id}` is the lowercase tool name (e.g. `openclaw`, `opencode`).
+
+The JSON contains: official install commands, homepage, docs URL, and GitHub link.
+Use these as the authoritative install instructions. If the URL returns 404 or fails, fall back to `web_fetch` on the tool's official site.
+
 ### Skill Browser & Documentation
 When you need to look up installation guides, skills, or documentation:
 - Use the `web_fetch` tool to read web pages
