@@ -1,0 +1,12 @@
+{
+    "id": "openclaw",
+    "displayName": "OpenClaw",
+    "homepage": "https://openclaw.ai/",
+    "docs": "https://docs.openclaw.ai/",
+    "github": "https://github.com/openclaw/openclaw",
+    "install": {
+        "curl (macOS/Linux)": "curl -fsSL https://openclaw.ai/install.sh | bash",
+        "powershell (Windows)": "iwr -useb https://openclaw.ai/install.ps1 | iex",
+        "npm": "npm install -g openclaw"
+    }
+}
