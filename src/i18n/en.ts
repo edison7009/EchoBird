@@ -179,7 +179,7 @@ const en: Translations = {
     // Agent Worker tabs
     'agent.modelsTab': 'MODELS',
     'agent.skillsTab': 'SKILLS',
-    'agent.installViaMother': 'Let Mother Agent Install',
+    'agent.installViaMother': 'AI Auto-Install',
     'agent.motherNotConfigured': 'Please configure Mother Agent first',
     // ToolCard labels
     'tool.models': 'Models',

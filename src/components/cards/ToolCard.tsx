@@ -63,14 +63,13 @@ export const ToolCard = React.memo(({ id, name, version, installed, path, detect
 
             {showMotherInstall ? (
                 /* Mother Agent install CTA */
-                <div className="mt-4 flex flex-col gap-2">
+                <div className="flex-1 flex items-center justify-center mt-4">
                     <button
                         onClick={(e) => { e.stopPropagation(); onMotherAgentInstall?.(); }}
-                        className="w-full py-2.5 px-3 text-sm font-bold rounded border border-cyber-accent-secondary bg-cyber-accent-secondary text-black hover:bg-cyber-accent-secondary/90 hover:shadow-[0_0_12px_rgba(0,212,255,0.35)] transition-all"
+                        className="py-1.5 px-5 text-xs font-bold rounded border border-cyber-accent-secondary bg-cyber-accent-secondary text-black hover:bg-cyber-accent-secondary/90 hover:shadow-[0_0_10px_rgba(0,212,255,0.35)] transition-all"
                     >
                         {t('agent.installViaMother')}
                     </button>
-                    <div className="text-[10px] text-cyber-text-muted/50 text-center font-mono">{command}</div>
                 </div>
             ) : (
                 /* Normal info rows */
