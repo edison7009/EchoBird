@@ -552,10 +552,14 @@
             return n;
         }
 
+        const COPY_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>`;
+        const CHECK_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`;
+
         // ── Render ──
         function render(data) {
             // Updated date
-            document.getElementById('updated-date').textContent = 'Updated: ' + data.updated;
+            const today = new Date().toISOString().slice(0, 10);
+            document.getElementById('updated-date').textContent = 'Updated: ' + today;
 
             // Stats
             const totalModels = data.providers.reduce((s, p) => s + p.models.length, 0);
@@ -573,7 +577,7 @@
                     <div>
                         <div class="provider-name">${p.name}</div>
                         <div class="base-url-block">
-                            Base URL: <code>${p.baseUrl}</code><button class="copy-btn" data-copy="${p.baseUrl}" title="Copy Base URL">⎘</button>
+                            Base URL: <code>${p.baseUrl}</code><button class="copy-btn" data-copy="${p.baseUrl}" title="Copy Base URL">${COPY_SVG}</button>
                         </div>
                     </div>
                     <div class="provider-meta">
@@ -596,7 +600,7 @@
                         ${p.models.map(m => `
                         <tr>
                             <td class="model-name">${m.name}</td>
-                            <td class="model-id">${m.id}<button class="copy-btn" data-copy="${m.id}" title="Copy Model ID">⎘</button></td>
+                            <td class="model-id">${m.id}<button class="copy-btn" data-copy="${m.id}" title="Copy Model ID">${COPY_SVG}</button></td>
                             <td><span class="context-badge">${fmtCtx(m.context)} ctx</span></td>
                             <td class="limit-text">${m.limit}</td>
                             <td><span class="free-dot"></span></td>
@@ -615,10 +619,9 @@
                 if (!btn) return;
                 const text = btn.dataset.copy;
                 navigator.clipboard.writeText(text).then(() => {
-                    const orig = btn.textContent;
-                    btn.textContent = '✓';
+                    btn.innerHTML = CHECK_SVG;
                     btn.classList.add('copied');
-                    setTimeout(() => { btn.textContent = orig; btn.classList.remove('copied'); }, 1500);
+                    setTimeout(() => { btn.innerHTML = COPY_SVG; btn.classList.remove('copied'); }, 1500);
                 });
             });
         }
