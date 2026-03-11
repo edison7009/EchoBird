@@ -2,15 +2,15 @@
     "intro": "Vaikka olisit AI-aloittelija, EchoBird antaa sinulle mahdollisuuden ohjata omaa Agenttiasi — asennuksesta töihin — yksinkertaisen chatin kautta.",
     "providers": [
         {
-            "name": "NVIDIA",
-            "url": "https://build.nvidia.com/models?utm_source=echobird.ai"
+            "name": "Tanaan ilmaiset mallit",
+            "url": "https://echobird.ai/free-models"
         }
     ],
     "steps": [
         {
             "step": "01",
             "title": "Lisää AI-malli",
-            "desc": "Hae ilmainen API-avain [NVIDIA]lta ja lisää se [Model Nexus]-sivulle. Onko kotona tehokas kone? (Voit myös käyttää paikallista mallia.)"
+            "desc": "Hae ilmainen API-avain [Tanaan ilmaiset mallit]lta ja lisää se [Model Nexus]-sivulle. Onko kotona tehokas kone? (Voit myös käyttää paikallista mallia.)"
         },
         {
             "step": "02",

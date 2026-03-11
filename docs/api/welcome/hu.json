@@ -2,15 +2,15 @@
     "intro": "Még ha AI-kezdő is vagy, az EchoBird lehetővé teszi, hogy egyszerű csevegéssel irányítsd saját Agented — a beállítástól a munkáig.",
     "providers": [
         {
-            "name": "NVIDIA",
-            "url": "https://build.nvidia.com/models?utm_source=echobird.ai"
+            "name": "A mai ingyenes modellek",
+            "url": "https://echobird.ai/free-models"
         }
     ],
     "steps": [
         {
             "step": "01",
             "title": "AI-modell hozzáadása",
-            "desc": "Igényelj ingyenes API-kulcsot az [NVIDIA]-tól, és add hozzá a [Model Nexus]-hoz. Van otthon erős géped? (Helyi modellt is futtathatsz.)"
+            "desc": "Igényelj ingyenes API-kulcsot az [A mai ingyenes modellek]-tól, és add hozzá a [Model Nexus]-hoz. Van otthon erős géped? (Helyi modellt is futtathatsz.)"
         },
         {
             "step": "02",

@@ -2,15 +2,15 @@
     "intro": "Zelfs als AI-beginner kun je met EchoBird via een eenvoudige chat je eigen Agent aansturen — van setup tot werk.",
     "providers": [
         {
-            "name": "NVIDIA",
-            "url": "https://build.nvidia.com/models?utm_source=echobird.ai"
+            "name": "Gratis modellen vandaag",
+            "url": "https://echobird.ai/free-models"
         }
     ],
     "steps": [
         {
             "step": "01",
             "title": "Een AI-model toevoegen",
-            "desc": "Vraag een gratis API-sleutel aan bij [NVIDIA] en voeg die toe in [Model Nexus]. Heb je thuis een krachtige computer? (Je kunt ook een lokaal model draaien.)"
+            "desc": "Vraag een gratis API-sleutel aan bij [Gratis modellen vandaag] en voeg die toe in [Model Nexus]. Heb je thuis een krachtige computer? (Je kunt ook een lokaal model draaien.)"
         },
         {
             "step": "02",

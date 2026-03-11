@@ -2,15 +2,15 @@
     "intro": "Dù bạn mới bắt đầu với AI, EchoBird cho phép bạn điều hành Agent của mình — từ cài đặt đến làm việc — thông qua cuộc trò chuyện đơn giản.",
     "providers": [
         {
-            "name": "NVIDIA",
-            "url": "https://build.nvidia.com/models?utm_source=echobird.ai"
+            "name": "Mo hinh mien phi hom nay",
+            "url": "https://echobird.ai/free-models"
         }
     ],
     "steps": [
         {
             "step": "01",
             "title": "Thêm mô hình AI",
-            "desc": "Đăng ký khóa API miễn phí từ [NVIDIA] và thêm vào [Model Nexus]. Có máy tính mạnh ở nhà? (Bạn cũng có thể chạy mô hình cục bộ.)"
+            "desc": "Đăng ký khóa API miễn phí từ [Mo hinh mien phi hom nay] và thêm vào [Model Nexus]. Có máy tính mạnh ở nhà? (Bạn cũng có thể chạy mô hình cục bộ.)"
         },
         {
             "step": "02",

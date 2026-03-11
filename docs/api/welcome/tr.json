@@ -2,15 +2,15 @@
     "intro": "AI'ya yeni biri olsanız bile, EchoBird sayesinde basit bir sohbet aracılığıyla kendi Agent'ınızı kurulumdan çalışmaya kadar yönetebilirsiniz.",
     "providers": [
         {
-            "name": "NVIDIA",
-            "url": "https://build.nvidia.com/models?utm_source=echobird.ai"
+            "name": "Bugunun ucretsiz modelleri",
+            "url": "https://echobird.ai/free-models"
         }
     ],
     "steps": [
         {
             "step": "01",
             "title": "AI Modeli Ekleyin",
-            "desc": "[NVIDIA]'dan ücretsiz API anahtarı alıp [Model Nexus]'e ekleyin. Evde güçlü bir bilgisayar var mı? (Yerel bir model de çalıştırabilirsiniz.)"
+            "desc": "[Bugunun ucretsiz modelleri]'dan ücretsiz API anahtarı alıp [Model Nexus]'e ekleyin. Evde güçlü bir bilgisayar var mı? (Yerel bir model de çalıştırabilirsiniz.)"
         },
         {
             "step": "02",

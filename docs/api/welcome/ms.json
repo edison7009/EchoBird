@@ -2,15 +2,15 @@
     "intro": "Walaupun baru dalam AI, EchoBird membolehkan anda mengarahkan Agent sendiri — dari persediaan hingga kerja — melalui sembang mudah.",
     "providers": [
         {
-            "name": "NVIDIA",
-            "url": "https://build.nvidia.com/models?utm_source=echobird.ai"
+            "name": "Model Percuma Hari Ini",
+            "url": "https://echobird.ai/free-models"
         }
     ],
     "steps": [
         {
             "step": "01",
             "title": "Tambah Model AI",
-            "desc": "Mohon kunci API percuma dari [NVIDIA] dan tambahkan di [Model Nexus]. Ada komputer berkuasa di rumah? (Anda juga boleh menjalankan model tempatan.)"
+            "desc": "Mohon kunci API percuma dari [Model Percuma Hari Ini] dan tambahkan di [Model Nexus]. Ada komputer berkuasa di rumah? (Anda juga boleh menjalankan model tempatan.)"
         },
         {
             "step": "02",

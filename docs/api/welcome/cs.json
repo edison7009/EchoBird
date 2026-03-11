@@ -2,15 +2,15 @@
     "intro": "I jako nováček v oblasti AI vám EchoBird umožňuje řídit vlastního Agenta — od nastavení po práci — prostřednictvím jednoduchého chatu.",
     "providers": [
         {
-            "name": "NVIDIA",
-            "url": "https://build.nvidia.com/models?utm_source=echobird.ai"
+            "name": "Dnesni bezplatne modely",
+            "url": "https://echobird.ai/free-models"
         }
     ],
     "steps": [
         {
             "step": "01",
             "title": "Přidat AI model",
-            "desc": "Požádejte o bezplatný API klíč od [NVIDIA] a přidejte ho do [Model Nexus]. Máte doma výkonný počítač? (Můžete spustit i lokální model.)"
+            "desc": "Požádejte o bezplatný API klíč od [Dnesni bezplatne modely] a přidejte ho do [Model Nexus]. Máte doma výkonný počítač? (Můžete spustit i lokální model.)"
         },
         {
             "step": "02",

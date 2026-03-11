@@ -2,15 +2,15 @@
     "intro": "גם אם אתם מתחילים בתחום ה-AI, EchoBird מאפשר לכם לנהל את ה-Agent שלכם — מהגדרה ועד לעבודה — דרך שיחה פשוטה.",
     "providers": [
         {
-            "name": "NVIDIA",
-            "url": "https://build.nvidia.com/models?utm_source=echobird.ai"
+            "name": "מודלים חינמיים של היום",
+            "url": "https://echobird.ai/free-models"
         }
     ],
     "steps": [
         {
             "step": "01",
             "title": "הוספת מודל AI",
-            "desc": "בקשו מפתח API חינמי מ-[NVIDIA] והוסיפו אותו ב-[Model Nexus]. יש לכם מחשב חזק בבית? (ניתן גם להריץ מודל מקומי.)"
+            "desc": "בקשו מפתח API חינמי מ-[מודלים חינמיים של היום] והוסיפו אותו ב-[Model Nexus]. יש לכם מחשב חזק בבית? (ניתן גם להריץ מודל מקומי.)"
         },
         {
             "step": "02",

@@ -2,15 +2,15 @@
     "intro": "Anche da principiante nell'IA, EchoBird ti permette di comandare il tuo Agent — dalla configurazione al lavoro — tramite una semplice chat.",
     "providers": [
         {
-            "name": "NVIDIA",
-            "url": "https://build.nvidia.com/models?utm_source=echobird.ai"
+            "name": "Modelli gratuiti di oggi",
+            "url": "https://echobird.ai/free-models"
         }
     ],
     "steps": [
         {
             "step": "01",
             "title": "Aggiungere un modello AI",
-            "desc": "Richiedi una chiave API gratuita da [NVIDIA] e aggiungila in [Model Nexus]. Hai un computer potente a casa? (Puoi anche eseguire un modello locale.)"
+            "desc": "Richiedi una chiave API gratuita da [Modelli gratuiti di oggi] e aggiungila in [Model Nexus]. Hai un computer potente a casa? (Puoi anche eseguire un modello locale.)"
         },
         {
             "step": "02",

@@ -2,15 +2,15 @@
     "intro": "即便你是 AI 新手，在 EchoBird 的帮助下，你也可以通过简单聊天的方式，从部署到使用，全程指挥你的 Agent。",
     "providers": [
         {
-            "name": "NVIDIA",
-            "url": "https://build.nvidia.com/models?utm_source=echobird.ai"
+            "name": "今日免费模型",
+            "url": "https://echobird.ai/free-models"
         }
     ],
     "steps": [
         {
             "step": "01",
             "title": "添加 AI 模型",
-            "desc": "前往 [NVIDIA] 申请免费的 API Key，然后在 [Model Nexus] 添加。（如果你的电脑配置足够好，也可以在本地运行模型。）"
+            "desc": "前往 [今日免费模型] 申请免费的 API Key，然后在 [Model Nexus] 添加。（如果你的电脑配置足够好，也可以在本地运行模型。）"
         },
         {
             "step": "02",

@@ -2,15 +2,15 @@
     "intro": "Även som AI-nybörjare låter EchoBird dig styra din egen Agent — från installation till arbete — via enkel chatt.",
     "providers": [
         {
-            "name": "NVIDIA",
-            "url": "https://build.nvidia.com/models?utm_source=echobird.ai"
+            "name": "Dagens gratis-modeller",
+            "url": "https://echobird.ai/free-models"
         }
     ],
     "steps": [
         {
             "step": "01",
             "title": "Lägg till en AI-modell",
-            "desc": "Ansök om en gratis API-nyckel från [NVIDIA] och lägg till den i [Model Nexus]. Har du en kraftfull dator hemma? (Du kan även köra en lokal modell.)"
+            "desc": "Ansök om en gratis API-nyckel från [Dagens gratis-modeller] och lägg till den i [Model Nexus]. Har du en kraftfull dator hemma? (Du kan även köra en lokal modell.)"
         },
         {
             "step": "02",

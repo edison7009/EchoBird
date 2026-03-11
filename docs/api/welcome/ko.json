@@ -2,15 +2,15 @@
     "intro": "AI 초보자라도 EchoBird를 활용하면 간단한 채팅으로 Agent를 설정부터 업무까지 손쉽게 지휘할 수 있습니다.",
     "providers": [
         {
-            "name": "NVIDIA",
-            "url": "https://build.nvidia.com/models?utm_source=echobird.ai"
+            "name": "오늘의 무료 모델",
+            "url": "https://echobird.ai/free-models"
         }
     ],
     "steps": [
         {
             "step": "01",
             "title": "AI 모델 추가",
-            "desc": "[NVIDIA]에서 무료 API 키를 신청하고 [Model Nexus]에 추가하세요. 집에 성능 좋은 PC가 있다면 (로컬 모델도 실행할 수 있습니다.)"
+            "desc": "[오늘의 무료 모델]에서 무료 API 키를 신청하고 [Model Nexus]에 추가하세요. 집에 성능 좋은 PC가 있다면 (로컬 모델도 실행할 수 있습니다.)"
         },
         {
             "step": "02",
