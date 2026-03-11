@@ -1,5 +1,6 @@
 {
     "updated": "2026-03-12",
+    "ref": "https://github.com/vava-nessa/free-coding-models/blob/main/sources.js",
     "providers": [
         {
             "id": "google-ai-studio",
@@ -20,7 +21,7 @@
                     "id": "gemini-2.5-flash-lite",
                     "name": "Gemini 2.5 Flash-Lite",
                     "context": 1048576,
-                    "limit": "30 RPM / 1500 req/day",
+                    "limit": "30 RPM / 1.5K req/day",
                     "free": true
                 },
                 {
@@ -36,6 +37,13 @@
                     "context": 131072,
                     "limit": "30 RPM / 14.4K req/day",
                     "free": true
+                },
+                {
+                    "id": "gemma-3-4b-it",
+                    "name": "Gemma 3 4B",
+                    "context": 131072,
+                    "limit": "30 RPM / 14.4K req/day",
+                    "free": true
                 }
             ]
         },
@@ -48,38 +56,31 @@
             "getKeyUrl": "https://console.groq.com/keys",
             "models": [
                 {
-                    "id": "llama-3.1-8b-instant",
-                    "name": "Llama 3.1 8B Instant",
-                    "context": 128000,
-                    "limit": "6K TPM / 14.4K req/day",
-                    "free": true
-                },
-                {
-                    "id": "llama-3.3-70b-versatile",
-                    "name": "Llama 3.3 70B",
-                    "context": 128000,
-                    "limit": "12K TPM / 1K req/day",
-                    "free": true
-                },
-                {
-                    "id": "meta-llama/llama-4-scout-17b-16e-instruct",
-                    "name": "Llama 4 Scout 17B",
-                    "context": 131072,
-                    "limit": "30K TPM / 1K req/day",
-                    "free": true
-                },
-                {
-                    "id": "meta-llama/llama-4-maverick-17b-128e-instruct",
+                    "id": "meta-llama/llama-4-maverick-17b-128e-preview",
                     "name": "Llama 4 Maverick 17B",
-                    "context": 131072,
+                    "context": 1048576,
                     "limit": "6K TPM / 1K req/day",
                     "free": true
                 },
                 {
-                    "id": "moonshotai/kimi-k2-instruct-0905",
-                    "name": "Kimi K2",
+                    "id": "meta-llama/llama-4-scout-17b-16e-preview",
+                    "name": "Llama 4 Scout 17B",
+                    "context": 10485760,
+                    "limit": "30K TPM / 1K req/day",
+                    "free": true
+                },
+                {
+                    "id": "moonshotai/kimi-k2-instruct",
+                    "name": "Kimi K2 Instruct",
                     "context": 131072,
                     "limit": "10K TPM / 1K req/day",
+                    "free": true
+                },
+                {
+                    "id": "openai/gpt-oss-120b",
+                    "name": "GPT-OSS 120B",
+                    "context": 131072,
+                    "limit": "8K TPM / 1K req/day",
                     "free": true
                 },
                 {
@@ -87,6 +88,41 @@
                     "name": "Qwen3 32B",
                     "context": 131072,
                     "limit": "6K TPM / 1K req/day",
+                    "free": true
+                },
+                {
+                    "id": "qwen-qwq-32b",
+                    "name": "QwQ 32B",
+                    "context": 131072,
+                    "limit": "6K TPM / 1K req/day",
+                    "free": true
+                },
+                {
+                    "id": "openai/gpt-oss-20b",
+                    "name": "GPT-OSS 20B",
+                    "context": 131072,
+                    "limit": "8K TPM / 1K req/day",
+                    "free": true
+                },
+                {
+                    "id": "llama-3.3-70b-versatile",
+                    "name": "Llama 3.3 70B",
+                    "context": 131072,
+                    "limit": "12K TPM / 1K req/day",
+                    "free": true
+                },
+                {
+                    "id": "deepseek-r1-distill-llama-70b",
+                    "name": "DeepSeek R1 Distill 70B",
+                    "context": 131072,
+                    "limit": "6K TPM / 1K req/day",
+                    "free": true
+                },
+                {
+                    "id": "llama-3.1-8b-instant",
+                    "name": "Llama 3.1 8B Instant",
+                    "context": 131072,
+                    "limit": "6K TPM / 14.4K req/day",
                     "free": true
                 }
             ]
@@ -100,31 +136,97 @@
             "getKeyUrl": "https://cloud.cerebras.ai/",
             "models": [
                 {
-                    "id": "llama3.1-8b",
-                    "name": "Llama 3.1 8B",
-                    "context": 32000,
-                    "limit": "60K TPM / 1M tokens/day",
-                    "free": true
-                },
-                {
-                    "id": "llama3.1-70b",
-                    "name": "Llama 3.1 70B",
-                    "context": 32000,
+                    "id": "qwen-3-235b-a22b-instruct-2507",
+                    "name": "Qwen3 235B A22B",
+                    "context": 131072,
                     "limit": "60K TPM / 1M tokens/day",
                     "free": true
                 },
                 {
                     "id": "gpt-oss-120b",
                     "name": "GPT-OSS 120B",
-                    "context": 128000,
+                    "context": 131072,
                     "limit": "60K TPM / 1M tokens/day",
                     "free": true
                 },
                 {
-                    "id": "qwen-3-235b-a22b-instruct-2507",
-                    "name": "Qwen3 235B A22B",
+                    "id": "zai-glm-4.7",
+                    "name": "GLM 4.7",
+                    "context": 204800,
+                    "limit": "60K TPM / 1M tokens/day",
+                    "free": true
+                },
+                {
+                    "id": "qwen-3-32b",
+                    "name": "Qwen3 32B",
                     "context": 131072,
                     "limit": "60K TPM / 1M tokens/day",
+                    "free": true
+                },
+                {
+                    "id": "llama-4-scout-17b-16e-instruct",
+                    "name": "Llama 4 Scout 17B",
+                    "context": 10485760,
+                    "limit": "60K TPM / 1M tokens/day",
+                    "free": true
+                },
+                {
+                    "id": "llama3.3-70b",
+                    "name": "Llama 3.3 70B",
+                    "context": 131072,
+                    "limit": "60K TPM / 1M tokens/day",
+                    "free": true
+                },
+                {
+                    "id": "llama3.1-8b",
+                    "name": "Llama 3.1 8B",
+                    "context": 32000,
+                    "limit": "60K TPM / 1M tokens/day",
+                    "free": true
+                }
+            ]
+        },
+        {
+            "id": "sambanova",
+            "name": "SambaNova",
+            "url": "https://cloud.sambanova.ai",
+            "baseUrl": "https://api.sambanova.ai/v1",
+            "protocol": "openai",
+            "getKeyUrl": "https://cloud.sambanova.ai/apis",
+            "models": [
+                {
+                    "id": "DeepSeek-V3.2",
+                    "name": "DeepSeek V3.2",
+                    "context": 8192,
+                    "limit": "$5 credits / 3 months",
+                    "free": true
+                },
+                {
+                    "id": "Llama-4-Maverick-17B-128E-Instruct",
+                    "name": "Llama 4 Maverick",
+                    "context": 1048576,
+                    "limit": "$5 credits / 3 months",
+                    "free": true
+                },
+                {
+                    "id": "gpt-oss-120b",
+                    "name": "GPT-OSS 120B",
+                    "context": 131072,
+                    "limit": "$5 credits / 3 months",
+                    "free": true
+                },
+                {
+                    "id": "Meta-Llama-3.3-70B-Instruct",
+                    "name": "Llama 3.3 70B",
+                    "context": 131072,
+                    "limit": "$5 credits / 3 months",
+                    "free": true
+                },
+                {
+                    "id": "Qwen3-32B",
+                    "name": "Qwen3 32B",
+                    "context": 131072,
+                    "limit": "$5 credits / 3 months",
                     "free": true
                 }
             ]
@@ -138,8 +240,15 @@
             "getKeyUrl": "https://openrouter.ai/settings/keys",
             "models": [
                 {
-                    "id": "google/gemma-3-27b-it:free",
-                    "name": "Gemma 3 27B",
+                    "id": "qwen/qwen3-coder:free",
+                    "name": "Qwen3 Coder 480B",
+                    "context": 262144,
+                    "limit": "20 RPM / 50 req/day",
+                    "free": true
+                },
+                {
+                    "id": "openai/gpt-oss-120b:free",
+                    "name": "GPT-OSS 120B",
                     "context": 131072,
                     "limit": "20 RPM / 50 req/day",
                     "free": true
@@ -147,7 +256,28 @@
                 {
                     "id": "meta-llama/llama-4-scout:free",
                     "name": "Llama 4 Scout",
-                    "context": 512000,
+                    "context": 10485760,
+                    "limit": "20 RPM / 50 req/day",
+                    "free": true
+                },
+                {
+                    "id": "qwen/qwen3-next-80b-a3b-instruct:free",
+                    "name": "Qwen3 80B Instruct",
+                    "context": 131072,
+                    "limit": "20 RPM / 50 req/day",
+                    "free": true
+                },
+                {
+                    "id": "openai/gpt-oss-20b:free",
+                    "name": "GPT-OSS 20B",
+                    "context": 131072,
+                    "limit": "20 RPM / 50 req/day",
+                    "free": true
+                },
+                {
+                    "id": "nvidia/nemotron-3-nano-30b-a3b:free",
+                    "name": "Nemotron Nano 30B",
+                    "context": 131072,
                     "limit": "20 RPM / 50 req/day",
                     "free": true
                 },
@@ -159,17 +289,308 @@
                     "free": true
                 },
                 {
-                    "id": "deepseek/deepseek-r1:free",
-                    "name": "DeepSeek R1",
-                    "context": 163840,
+                    "id": "mistralai/mistral-small-3.1-24b-instruct:free",
+                    "name": "Mistral Small 3.1",
+                    "context": 131072,
                     "limit": "20 RPM / 50 req/day",
                     "free": true
                 },
                 {
-                    "id": "qwen/qwq-32b:free",
-                    "name": "QwQ 32B",
+                    "id": "google/gemma-3-27b-it:free",
+                    "name": "Gemma 3 27B",
                     "context": 131072,
                     "limit": "20 RPM / 50 req/day",
+                    "free": true
+                }
+            ]
+        },
+        {
+            "id": "nvidia-nim",
+            "name": "NVIDIA NIM",
+            "url": "https://build.nvidia.com/models",
+            "baseUrl": "https://integrate.api.nvidia.com/v1",
+            "protocol": "openai",
+            "getKeyUrl": "https://build.nvidia.com/explore/discover",
+            "models": [
+                {
+                    "id": "moonshotai/kimi-k2-instruct",
+                    "name": "Kimi K2 Instruct",
+                    "context": 131072,
+                    "limit": "40 RPM",
+                    "free": true
+                },
+                {
+                    "id": "qwen/qwen3-235b-a22b",
+                    "name": "Qwen3 235B",
+                    "context": 131072,
+                    "limit": "40 RPM",
+                    "free": true
+                },
+                {
+                    "id": "openai/gpt-oss-120b",
+                    "name": "GPT-OSS 120B",
+                    "context": 131072,
+                    "limit": "40 RPM",
+                    "free": true
+                },
+                {
+                    "id": "meta/llama-4-maverick-17b-128e-instruct",
+                    "name": "Llama 4 Maverick",
+                    "context": 1048576,
+                    "limit": "40 RPM",
+                    "free": true
+                },
+                {
+                    "id": "meta/llama-4-scout-17b-16e-instruct",
+                    "name": "Llama 4 Scout",
+                    "context": 10485760,
+                    "limit": "40 RPM",
+                    "free": true
+                },
+                {
+                    "id": "nvidia/llama-3.3-nemotron-super-49b-v1.5",
+                    "name": "Nemotron Super 49B",
+                    "context": 131072,
+                    "limit": "40 RPM",
+                    "free": true
+                },
+                {
+                    "id": "deepseek-ai/deepseek-r1-distill-qwen-32b",
+                    "name": "DeepSeek R1 Distill",
+                    "context": 131072,
+                    "limit": "40 RPM",
+                    "free": true
+                },
+                {
+                    "id": "meta/llama-3.3-70b-instruct",
+                    "name": "Llama 3.3 70B",
+                    "context": 131072,
+                    "limit": "40 RPM",
+                    "free": true
+                },
+                {
+                    "id": "qwen/qwq-32b",
+                    "name": "QwQ 32B",
+                    "context": 131072,
+                    "limit": "40 RPM",
+                    "free": true
+                }
+            ]
+        },
+        {
+            "id": "scaleway",
+            "name": "Scaleway",
+            "url": "https://www.scaleway.com/en/docs/managed-services/llm-inference/",
+            "baseUrl": "https://api.scaleway.ai/v1",
+            "protocol": "openai",
+            "getKeyUrl": "https://console.scaleway.com/iam/api-keys",
+            "models": [
+                {
+                    "id": "devstral-2-123b-instruct-2512",
+                    "name": "Devstral 2 123B",
+                    "context": 262144,
+                    "limit": "1M tokens free",
+                    "free": true
+                },
+                {
+                    "id": "qwen3-235b-a22b-instruct-2507",
+                    "name": "Qwen3 235B A22B",
+                    "context": 131072,
+                    "limit": "1M tokens free",
+                    "free": true
+                },
+                {
+                    "id": "gpt-oss-120b",
+                    "name": "GPT-OSS 120B",
+                    "context": 131072,
+                    "limit": "1M tokens free",
+                    "free": true
+                },
+                {
+                    "id": "qwen3-coder-30b-a3b-instruct",
+                    "name": "Qwen3 Coder 30B",
+                    "context": 32768,
+                    "limit": "1M tokens free",
+                    "free": true
+                },
+                {
+                    "id": "llama-3.3-70b-instruct",
+                    "name": "Llama 3.3 70B",
+                    "context": 131072,
+                    "limit": "1M tokens free",
+                    "free": true
+                }
+            ]
+        },
+        {
+            "id": "zai",
+            "name": "ZAI (Z.ai)",
+            "url": "https://open.z.ai",
+            "baseUrl": "https://api.z.ai/api/coding/paas/v4",
+            "protocol": "openai",
+            "getKeyUrl": "https://open.z.ai",
+            "models": [
+                {
+                    "id": "zai/glm-5",
+                    "name": "GLM-5",
+                    "context": 131072,
+                    "limit": "Free",
+                    "free": true
+                },
+                {
+                    "id": "zai/glm-4.7",
+                    "name": "GLM-4.7",
+                    "context": 204800,
+                    "limit": "Free",
+                    "free": true
+                },
+                {
+                    "id": "zai/glm-4.5",
+                    "name": "GLM-4.5",
+                    "context": 131072,
+                    "limit": "Free",
+                    "free": true
+                },
+                {
+                    "id": "zai/glm-4.5-air",
+                    "name": "GLM-4.5 Air",
+                    "context": 131072,
+                    "limit": "Free",
+                    "free": true
+                }
+            ]
+        },
+        {
+            "id": "siliconflow",
+            "name": "SiliconFlow",
+            "url": "https://cloud.siliconflow.cn",
+            "baseUrl": "https://api.siliconflow.com/v1",
+            "protocol": "openai",
+            "getKeyUrl": "https://cloud.siliconflow.cn/account/ak",
+            "models": [
+                {
+                    "id": "Qwen/Qwen3-Coder-480B-A35B-Instruct",
+                    "name": "Qwen3 Coder 480B",
+                    "context": 262144,
+                    "limit": "Free quota",
+                    "free": true
+                },
+                {
+                    "id": "deepseek-ai/DeepSeek-V3.2",
+                    "name": "DeepSeek V3.2",
+                    "context": 131072,
+                    "limit": "Free quota",
+                    "free": true
+                },
+                {
+                    "id": "Qwen/Qwen3-235B-A22B",
+                    "name": "Qwen3 235B",
+                    "context": 131072,
+                    "limit": "Free quota",
+                    "free": true
+                },
+                {
+                    "id": "deepseek-ai/DeepSeek-R1",
+                    "name": "DeepSeek R1",
+                    "context": 131072,
+                    "limit": "Free quota",
+                    "free": true
+                },
+                {
+                    "id": "Qwen/Qwen2.5-Coder-32B-Instruct",
+                    "name": "Qwen2.5 Coder 32B",
+                    "context": 32768,
+                    "limit": "Free quota",
+                    "free": true
+                }
+            ]
+        },
+        {
+            "id": "iflow",
+            "name": "iFlow",
+            "url": "https://platform.iflow.cn",
+            "baseUrl": "https://apis.iflow.cn/v1",
+            "protocol": "openai",
+            "getKeyUrl": "https://platform.iflow.cn",
+            "models": [
+                {
+                    "id": "deepseek-v3.2",
+                    "name": "DeepSeek V3.2",
+                    "context": 131072,
+                    "limit": "Free (key expires 7 days)",
+                    "free": true
+                },
+                {
+                    "id": "qwen3-coder-plus",
+                    "name": "Qwen3 Coder Plus",
+                    "context": 262144,
+                    "limit": "Free (key expires 7 days)",
+                    "free": true
+                },
+                {
+                    "id": "qwen3-235b-a22b-instruct",
+                    "name": "Qwen3 235B",
+                    "context": 262144,
+                    "limit": "Free (key expires 7 days)",
+                    "free": true
+                },
+                {
+                    "id": "deepseek-r1",
+                    "name": "DeepSeek R1",
+                    "context": 131072,
+                    "limit": "Free (key expires 7 days)",
+                    "free": true
+                },
+                {
+                    "id": "kimi-k2-0905",
+                    "name": "Kimi K2 0905",
+                    "context": 262144,
+                    "limit": "Free (key expires 7 days)",
+                    "free": true
+                }
+            ]
+        },
+        {
+            "id": "alibaba-dashscope",
+            "name": "Alibaba DashScope",
+            "url": "https://modelstudio.console.alibabacloud.com",
+            "baseUrl": "https://dashscope-intl.aliyuncs.com/compatible-mode/v1",
+            "protocol": "openai",
+            "getKeyUrl": "https://modelstudio.console.alibabacloud.com",
+            "models": [
+                {
+                    "id": "qwen3-coder-plus",
+                    "name": "Qwen3 Coder Plus",
+                    "context": 262144,
+                    "limit": "1M tokens/model (90 days)",
+                    "free": true
+                },
+                {
+                    "id": "qwen3-coder-480b-a35b-instruct",
+                    "name": "Qwen3 Coder 480B",
+                    "context": 262144,
+                    "limit": "1M tokens/model (90 days)",
+                    "free": true
+                },
+                {
+                    "id": "qwen3-235b-a22b-instruct",
+                    "name": "Qwen3 235B",
+                    "context": 262144,
+                    "limit": "1M tokens/model (90 days)",
+                    "free": true
+                },
+                {
+                    "id": "qwen3-32b",
+                    "name": "Qwen3 32B",
+                    "context": 131072,
+                    "limit": "1M tokens/model (90 days)",
+                    "free": true
+                },
+                {
+                    "id": "qwen2.5-coder-32b-instruct",
+                    "name": "Qwen2.5 Coder 32B",
+                    "context": 32768,
+                    "limit": "1M tokens/model (90 days)",
                     "free": true
                 }
             ]
@@ -183,6 +604,13 @@
             "getKeyUrl": "https://console.mistral.ai/api-keys",
             "models": [
                 {
+                    "id": "codestral-latest",
+                    "name": "Codestral",
+                    "context": 262144,
+                    "limit": "30 RPM / 2K req/day",
+                    "free": true
+                },
+                {
                     "id": "mistral-small-latest",
                     "name": "Mistral Small 3",
                     "context": 32768,
@@ -193,13 +621,6 @@
                     "id": "open-mistral-nemo",
                     "name": "Mistral Nemo",
                     "context": 131072,
-                    "limit": "1 RPS / 1B tokens/month",
-                    "free": true
-                },
-                {
-                    "id": "codestral-mamba-latest",
-                    "name": "Codestral Mamba",
-                    "context": 262144,
                     "limit": "1 RPS / 1B tokens/month",
                     "free": true
                 }
@@ -237,51 +658,6 @@
             ]
         },
         {
-            "id": "nvidia-nim",
-            "name": "NVIDIA NIM",
-            "url": "https://build.nvidia.com/models",
-            "baseUrl": "https://integrate.api.nvidia.com/v1",
-            "protocol": "openai",
-            "getKeyUrl": "https://build.nvidia.com/explore/discover",
-            "models": [
-                {
-                    "id": "meta/llama-3.3-70b-instruct",
-                    "name": "Llama 3.3 70B",
-                    "context": 128000,
-                    "limit": "40 RPM",
-                    "free": true
-                },
-                {
-                    "id": "deepseek-ai/deepseek-r1",
-                    "name": "DeepSeek R1",
-                    "context": 163840,
-                    "limit": "40 RPM",
-                    "free": true
-                },
-                {
-                    "id": "qwen/qwen2.5-72b-instruct",
-                    "name": "Qwen2.5 72B",
-                    "context": 131072,
-                    "limit": "40 RPM",
-                    "free": true
-                },
-                {
-                    "id": "nvidia/llama-3.1-nemotron-70b-instruct",
-                    "name": "Nemotron 70B",
-                    "context": 131072,
-                    "limit": "40 RPM",
-                    "free": true
-                },
-                {
-                    "id": "google/gemma-3-27b-it",
-                    "name": "Gemma 3 27B",
-                    "context": 131072,
-                    "limit": "40 RPM",
-                    "free": true
-                }
-            ]
-        },
-        {
             "id": "cloudflare-workers-ai",
             "name": "Cloudflare Workers AI",
             "url": "https://developers.cloudflare.com/workers-ai/models/",
@@ -290,23 +666,37 @@
             "getKeyUrl": "https://dash.cloudflare.com/profile/api-tokens",
             "models": [
                 {
-                    "id": "@cf/meta/llama-3.3-70b-instruct-fp8-fast",
-                    "name": "Llama 3.3 70B FP8",
-                    "context": 128000,
+                    "id": "@cf/openai/gpt-oss-120b",
+                    "name": "GPT-OSS 120B",
+                    "context": 131072,
                     "limit": "10K neurons/day free",
                     "free": true
                 },
                 {
-                    "id": "@cf/deepseek-ai/deepseek-r1-distill-qwen-32b",
-                    "name": "DeepSeek R1 Distill 32B",
+                    "id": "@cf/qwen/qwen2.5-coder-32b-instruct",
+                    "name": "Qwen2.5 Coder 32B",
                     "context": 32768,
                     "limit": "10K neurons/day free",
                     "free": true
                 },
                 {
-                    "id": "@cf/meta/llama-3.2-11b-vision-instruct",
-                    "name": "Llama 3.2 11B Vision",
-                    "context": 128000,
+                    "id": "@cf/deepseek-ai/deepseek-r1-distill-qwen-32b",
+                    "name": "DeepSeek R1 Distill",
+                    "context": 32768,
+                    "limit": "10K neurons/day free",
+                    "free": true
+                },
+                {
+                    "id": "@cf/meta/llama-3.3-70b-instruct-fp8-fast",
+                    "name": "Llama 3.3 70B",
+                    "context": 131072,
+                    "limit": "10K neurons/day free",
+                    "free": true
+                },
+                {
+                    "id": "@cf/openai/gpt-oss-20b",
+                    "name": "GPT-OSS 20B",
+                    "context": 131072,
                     "limit": "10K neurons/day free",
                     "free": true
                 }
