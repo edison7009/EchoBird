@@ -1,1 +1,1 @@
-{"version":"2.7.8","releaseDate":"2026-03-11","releaseNotes":"Local LLM engine install for vLLM / SGLang / vLLM-MUSA, runtime-aware model store filter, GPU compute lock, DownloadBar install state support"}
+{"version": "2.7.9","releaseDate": "2026-03-11","releaseNotes": "Fix Codex launch path error on Windows (strip \\\\?\\  prefix), unify EchoBird brand name, update nav logo font to JetBrains Mono"}
