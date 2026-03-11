@@ -104,14 +104,14 @@ fn tray_t(locale: &str, key: &str) -> String {
         ("zh-Hant", "quit") => "\u{7D50}\u{675F}".into(),
         ("zh-Hant", "tooltip") => "\u{672C}\u{4F3A}\u{670D}\u{5668}".into(),
         // Japanese
-        ("ja", "show") => "Echobird \u{3092}\u{8868}\u{793A}".into(),
+        ("ja", "show") => "EchoBird \u{3092}\u{8868}\u{793A}".into(),
         ("ja", "server") => "\u{30ED}\u{30FC}\u{30AB}\u{30EB}\u{30B5}\u{30FC}\u{30D0}\u{30FC}".into(),
         ("ja", "on") => "\u{30AA}\u{30F3}".into(),
         ("ja", "off") => "\u{30AA}\u{30D5}".into(),
         ("ja", "quit") => "\u{7D42}\u{4E86}".into(),
         ("ja", "tooltip") => "\u{30ED}\u{30FC}\u{30AB}\u{30EB}\u{30B5}\u{30FC}\u{30D0}\u{30FC}".into(),
         // Korean
-        ("ko", "show") => "Echobird \u{D45C}\u{C2DC}".into(),
+        ("ko", "show") => "EchoBird \u{D45C}\u{C2DC}".into(),
         ("ko", "server") => "\u{B85C}\u{CEEC} \u{C11C}\u{BC84}".into(),
         ("ko", "on") => "\u{CF1C}\u{AE30}".into(),
         ("ko", "off") => "\u{B044}\u{AE30}".into(),
