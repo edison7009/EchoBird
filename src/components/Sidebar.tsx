@@ -50,7 +50,6 @@ export const Sidebar = ({ activePage, onPageChange, agentRunning = false, channe
                         letterSpacing: '3px',
                         fontSize: '13px',
                         lineHeight: '13px',
-                        textTransform: 'uppercase' as const,
                     }}
                 >
                     {'EchoBird'}
