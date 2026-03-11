@@ -1,0 +1,13 @@
+{
+    "id": "claudecode",
+    "displayName": "Claude Code",
+    "homepage": "https://claude.ai/code",
+    "docs": "https://code.claude.com/docs/en/overview",
+    "github": "https://github.com/anthropics/claude-code",
+    "install": {
+        "curl (macOS / Linux)": "curl -fsSL https://claude.ai/install.sh | bash",
+        "brew (macOS / Linux)": "brew install --cask claude-code",
+        "powershell (Windows)": "irm https://claude.ai/install.ps1 | iex",
+        "winget (Windows)": "winget install Anthropic.ClaudeCode"
+    }
+}
