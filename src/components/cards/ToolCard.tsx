@@ -61,8 +61,8 @@ export const ToolCard = React.memo(({ id, name, version, installed, path, detect
             />
             <div className={`text-lg font-bold truncate pr-12 ${installed ? 'text-cyber-accent' : showMotherInstall ? 'text-cyber-text-secondary' : 'text-cyber-text-secondary'}`}>{displayName}</div>
 
-            {/* Info rows — always shown (dashes when not installed) */}
-            <div className={`text-xs space-y-1.5 mt-3 ${installed ? 'text-cyber-accent/60' : 'text-cyber-text-muted/70'}`}>
+            {/* Info rows — always rendered to keep card height consistent */}
+            <div className={`text-xs space-y-1.5 mt-3 ${installed ? 'text-cyber-accent/60' : 'text-cyber-text-muted/70'} ${showMotherInstall ? 'invisible' : ''}`}>
                 <div className="truncate">{t('tool.models')}: {installed ? (activeModel || '-') : '-'}</div>
                 <div className="truncate">{t('tool.skills')}: {installed ? `${resolvedSkillsCount} ${t('tool.skillsInstalled')}` : '-'}</div>
                 <div className="truncate">{t('tool.app')}: {installed ? (detectedPath || path || '-') : '-'}</div>
