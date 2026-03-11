@@ -38,6 +38,8 @@ interface AppManagerContextType {
     setModelProtocolSelection: React.Dispatch<React.SetStateAction<Record<string, 'openai' | 'anthropic'>>>;
     // Launch handler
     handleLaunch: () => Promise<void>;
+    // Navigation
+    onGoToMother: () => void;
 }
 
 const AppManagerContext = createContext<AppManagerContextType | null>(null);
@@ -60,6 +62,7 @@ interface AppManagerProviderProps {
     modelProtocolSelection: Record<string, 'openai' | 'anthropic'>;
     setModelProtocolSelection: React.Dispatch<React.SetStateAction<Record<string, 'openai' | 'anthropic'>>>;
     isActive?: boolean;
+    onGoToMother?: () => void;
     children: React.ReactNode;
 }
 
@@ -67,6 +70,7 @@ export const AppManagerProvider: React.FC<AppManagerProviderProps> = ({
     detectedTools, setDetectedTools, isScanning, scanTools,
     modelProtocolSelection, setModelProtocolSelection,
     isActive,
+    onGoToMother = () => { },
     children,
 }) => {
     const { t } = useI18n();
@@ -212,6 +216,7 @@ export const AppManagerProvider: React.FC<AppManagerProviderProps> = ({
                 isScanning, scanTools,
                 userModels, modelProtocolSelection, setModelProtocolSelection,
                 handleLaunch,
+                onGoToMother,
             }}
         >
             {children}
@@ -227,6 +232,7 @@ export const AppManagerMain: React.FC = () => {
         detectedTools, isScanning, scanTools,
         activeToolCategory, setActiveToolCategory,
         selectedTool, setSelectedTool,
+        onGoToMother,
     } = useAppManager();
 
     return (
@@ -301,6 +307,7 @@ export const AppManagerMain: React.FC = () => {
                                     {...tool}
                                     selected={selectedTool === tool.id}
                                     onClick={() => setSelectedTool(tool.id)}
+                                    onMotherAgentInstall={onGoToMother}
                                 />
                             ))
                     )}

@@ -16,24 +16,38 @@ export interface ToolCardProps {
     website?: string;
     iconBase64?: string;
     names?: Record<string, string>;  // i18n names
+    command?: string;                // CLI command (non-empty = installable via Mother Agent)
     selected?: boolean;
     onClick?: () => void;
+    onMotherAgentInstall?: () => void;
 }
 
-export const ToolCard = React.memo(({ id, name, version, installed, path, detectedPath, configPath, skillsCount, installedSkillsCount, activeModel, website, iconBase64, names, selected = false, onClick }: ToolCardProps) => {
+export const ToolCard = React.memo(({ id, name, version, installed, path, detectedPath, configPath, skillsCount, installedSkillsCount, activeModel, website, iconBase64, names, command, selected = false, onClick, onMotherAgentInstall }: ToolCardProps) => {
     const resolvedSkillsCount = skillsCount ?? installedSkillsCount ?? 0;
     const { t, locale } = useI18n();
     const displayName = (names && locale !== 'en' && names[locale]) || name;
+
+    // Uninstalled CLI tool → show Mother Agent install button
+    const showMotherInstall = !installed && !!command;
+
+    const handleCardClick = () => {
+        if (showMotherInstall) {
+            onMotherAgentInstall?.();
+        } else if (installed) {
+            onClick?.();
+        }
+    };
+
     return (
         <div
-            className={`p-5 border ${selected ? 'border-cyber-accent shadow-[0_0_10px_rgba(0,255,157,0.3)]' : 'border-cyber-border shadow-cyber-card'} relative overflow-hidden rounded-card ${installed ? 'cursor-pointer hover:bg-black/90' : 'cursor-default opacity-80'} transition-all bg-black/80 flex flex-col`}
-            onClick={installed ? onClick : undefined}
+            className={`p-5 border ${selected ? 'border-cyber-accent shadow-[0_0_10px_rgba(0,255,157,0.3)]' : 'border-cyber-border shadow-cyber-card'} relative overflow-hidden rounded-card ${installed || showMotherInstall ? 'cursor-pointer hover:bg-black/90' : 'cursor-default opacity-80'} transition-all bg-black/80 flex flex-col`}
+            onClick={handleCardClick}
         >
             {/* Tool icon top-right */}
             <img
                 src={`./icons/tools/${id}.svg`}
                 alt={name}
-                className={`absolute top-4 right-4 w-10 h-10 rounded-lg ${selected ? 'opacity-100' : installed ? 'opacity-60' : 'opacity-20'}`}
+                className={`absolute top-4 right-4 w-10 h-10 rounded-lg ${selected ? 'opacity-100' : installed ? 'opacity-60' : showMotherInstall ? 'opacity-30' : 'opacity-20'}`}
                 onError={(e) => {
                     const img = e.target as HTMLImageElement;
                     if (img.src.endsWith('.svg')) {
@@ -45,13 +59,29 @@ export const ToolCard = React.memo(({ id, name, version, installed, path, detect
                     }
                 }}
             />
-            <div className={`text-lg font-bold truncate pr-12 ${installed ? 'text-cyber-accent' : 'text-cyber-text-secondary'}`}>{displayName}</div>
-            <div className={`text-xs space-y-1.5 mt-3 ${installed ? 'text-cyber-accent/60' : 'text-cyber-text-muted/70'}`}>
-                <div className="truncate">{t('tool.models')}: {installed ? (activeModel || '-') : '-'}</div>
-                <div className="truncate">{t('tool.skills')}: {installed ? `${resolvedSkillsCount} ${t('tool.skillsInstalled')}` : '-'}</div>
-                <div className="truncate">{t('tool.app')}: {installed ? (detectedPath || path || '-') : '-'}</div>
-                <div className="truncate">{t('tool.config')}: {installed ? (configPath || '-') : '-'}</div>
-            </div>
+            <div className={`text-lg font-bold truncate pr-12 ${installed ? 'text-cyber-accent' : showMotherInstall ? 'text-cyber-text-secondary' : 'text-cyber-text-secondary'}`}>{displayName}</div>
+
+            {showMotherInstall ? (
+                /* Mother Agent install CTA */
+                <div className="mt-4 flex flex-col gap-2">
+                    <button
+                        onClick={(e) => { e.stopPropagation(); onMotherAgentInstall?.(); }}
+                        className="w-full py-2 px-3 text-xs font-bold rounded border border-cyber-accent-secondary/50 text-cyber-accent-secondary bg-cyber-accent-secondary/5 hover:bg-cyber-accent-secondary/15 hover:border-cyber-accent-secondary transition-all flex items-center justify-center gap-2"
+                    >
+                        <span className="text-sm">🤖</span>
+                        {t('agent.installViaMother')}
+                    </button>
+                    <div className="text-[10px] text-cyber-text-muted/50 text-center font-mono">{command}</div>
+                </div>
+            ) : (
+                /* Normal info rows */
+                <div className={`text-xs space-y-1.5 mt-3 ${installed ? 'text-cyber-accent/60' : 'text-cyber-text-muted/70'}`}>
+                    <div className="truncate">{t('tool.models')}: {installed ? (activeModel || '-') : '-'}</div>
+                    <div className="truncate">{t('tool.skills')}: {installed ? `${resolvedSkillsCount} ${t('tool.skillsInstalled')}` : '-'}</div>
+                    <div className="truncate">{t('tool.app')}: {installed ? (detectedPath || path || '-') : '-'}</div>
+                    <div className="truncate">{t('tool.config')}: {installed ? (configPath || '-') : '-'}</div>
+                </div>
+            )}
         </div>
     );
 });
