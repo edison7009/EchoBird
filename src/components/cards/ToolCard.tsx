@@ -61,25 +61,26 @@ export const ToolCard = React.memo(({ id, name, version, installed, path, detect
             />
             <div className={`text-lg font-bold truncate pr-12 ${installed ? 'text-cyber-accent' : showMotherInstall ? 'text-cyber-text-secondary' : 'text-cyber-text-secondary'}`}>{displayName}</div>
 
-            {/* Info rows — always rendered to keep card height consistent */}
-            <div className={`text-xs space-y-1.5 mt-3 ${installed ? 'text-cyber-accent/60' : 'text-cyber-text-muted/70'} ${showMotherInstall ? 'invisible' : ''}`}>
-                <div className="truncate">{t('tool.models')}: {installed ? (activeModel || '-') : '-'}</div>
-                <div className="truncate">{t('tool.skills')}: {installed ? `${resolvedSkillsCount} ${t('tool.skillsInstalled')}` : '-'}</div>
-                <div className="truncate">{t('tool.app')}: {installed ? (detectedPath || path || '-') : '-'}</div>
-                <div className="truncate">{t('tool.config')}: {installed ? (configPath || '-') : '-'}</div>
-            </div>
-
-            {showMotherInstall && (
-                /* Mother Agent install CTA — appended below the 4 rows */
-                <div className="flex items-center justify-center mt-3">
-                    <button
-                        onClick={(e) => { e.stopPropagation(); onMotherAgentInstall?.(); }}
-                        className="py-1.5 px-5 text-xs font-bold rounded border border-cyber-accent-secondary bg-cyber-accent-secondary text-black hover:bg-cyber-accent-secondary/90 hover:shadow-[0_0_10px_rgba(0,212,255,0.35)] transition-all"
-                    >
-                        {t('agent.installViaMother')}
-                    </button>
+            {/* Info rows + install button share the same space */}
+            <div className="relative mt-3">
+                {/* 4 rows always rendered for consistent card height; invisible when CLI install mode */}
+                <div className={`text-xs space-y-1.5 ${installed ? 'text-cyber-accent/60' : 'text-cyber-text-muted/70'} ${showMotherInstall ? 'invisible' : ''}`}>
+                    <div className="truncate">{t('tool.models')}: {installed ? (activeModel || '-') : '-'}</div>
+                    <div className="truncate">{t('tool.skills')}: {installed ? `${resolvedSkillsCount} ${t('tool.skillsInstalled')}` : '-'}</div>
+                    <div className="truncate">{t('tool.app')}: {installed ? (detectedPath || path || '-') : '-'}</div>
+                    <div className="truncate">{t('tool.config')}: {installed ? (configPath || '-') : '-'}</div>
                 </div>
-            )}
+                {showMotherInstall && (
+                    <div className="absolute inset-0 flex items-center justify-center">
+                        <button
+                            onClick={(e) => { e.stopPropagation(); onMotherAgentInstall?.(); }}
+                            className="py-1.5 px-5 text-xs font-bold rounded border border-cyber-accent-secondary bg-cyber-accent-secondary text-black hover:bg-cyber-accent-secondary/90 hover:shadow-[0_0_10px_rgba(0,212,255,0.35)] transition-all"
+                        >
+                            {t('agent.installViaMother')}
+                        </button>
+                    </div>
+                )}
+            </div>
         </div>
     );
 });
