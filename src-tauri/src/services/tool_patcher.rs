@@ -169,7 +169,9 @@ const CODEX_INJECT: &str = r#"
 /* [Echobird-Codex-Patched] */
 ;(function() { try {
   const _eb_p = path.join(process.env.HOME || process.env.USERPROFILE || "", ".echobird", "codex.json");
-  if (existsSync(_eb_p)) {
+  // Guard: require() is not available in ESM modules (codex v0.107+ uses type:module)
+  // In that case env vars are already injected by the Echobird launcher process.
+  if (existsSync(_eb_p) && typeof require !== "undefined") {
     const _eb_c = JSON.parse(require("fs").readFileSync(_eb_p, "utf-8"));
     if (_eb_c.apiKey) {
       env.OPENAI_API_KEY = _eb_c.apiKey;

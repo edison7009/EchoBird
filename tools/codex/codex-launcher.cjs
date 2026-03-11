@@ -310,17 +310,43 @@ async function main() {
 
 function launchCodex(onExit) {
     const codexCmd = process.platform === "win32" ? "codex.cmd" : "codex";
-    const npmGlobal = process.platform === "win32"
-        ? path.join(process.env.APPDATA || "", "npm")
-        : "/usr/local/bin";
-    const codexPath = path.join(npmGlobal, codexCmd);
 
-    if (!fs.existsSync(codexPath)) {
-        console.error(`[Echobird] Codex not found: ${codexPath}`);
-        process.exit(1);
+    // Try to find codex via multiple strategies (in order):
+    // 1. Standard APPDATA/npm location (Windows default)
+    // 2. `where codex.cmd` / `which codex` — resolves across any drive or PATH entry
+    // 3. Just rely on PATH (let shell resolve it via shell: true)
+    let codexPath = null;
+
+    // Strategy 1: APPDATA/npm
+    if (process.platform === "win32") {
+        const appdata = process.env.APPDATA || process.env.LOCALAPPDATA || "";
+        if (appdata && appdata.length > 2) { // must be more than just "D:" bare drive
+            const candidate = path.join(appdata, "npm", codexCmd);
+            if (fs.existsSync(candidate)) codexPath = candidate;
+        }
+    } else {
+        const candidate = "/usr/local/bin/" + codexCmd;
+        if (fs.existsSync(candidate)) codexPath = candidate;
     }
 
-    console.log(`[Echobird] Launching Codex: ${codexPath}`);
+    // Strategy 2: use where/which to locate
+    if (!codexPath) {
+        try {
+            const { execFileSync } = require("child_process");
+            const findCmd = process.platform === "win32" ? "where" : "which";
+            const result = execFileSync(findCmd, [codexCmd], { encoding: "utf8", timeout: 3000 })
+                .trim().split(/\r?\n/)[0].trim();
+            if (result && fs.existsSync(result)) codexPath = result;
+        } catch { /* not found via where/which */ }
+    }
+
+    // Strategy 3: fallback – let shell resolve via PATH
+    if (!codexPath) {
+        codexPath = codexCmd; // shell: true will resolve it
+        console.log(`[Echobird] Codex path not found locally, relying on PATH: ${codexCmd}`);
+    } else {
+        console.log(`[Echobird] Launching Codex: ${codexPath}`);
+    }
 
     // Async spawn — keeps event loop alive for proxy server
     const child = spawn(codexPath, [], {
