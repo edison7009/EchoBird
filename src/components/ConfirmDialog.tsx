@@ -11,7 +11,7 @@ export interface ConfirmOptions {
     message?: string;
     confirmText?: string;
     cancelText?: string;
-    type?: 'danger' | 'warning' | 'normal';  // danger = red, warning = yellow, normal = green
+    type?: 'danger' | 'warning' | 'normal' | 'info';  // danger=red, warning=yellow, normal=green, info=blue (Mother Agent)
 }
 
 // Context type — single function returning Promise<boolean>
@@ -70,19 +70,24 @@ export const ConfirmDialogProvider: React.FC<{ children: React.ReactNode }> = ({
 
     const isDanger = options.type === 'danger';
     const isWarning = options.type === 'warning';
+    const isInfo = options.type === 'info';
 
     const accentClass = isDanger
         ? 'border-red-500/40 shadow-[0_0_20px_rgba(255,60,60,0.1)]'
         : isWarning
             ? 'border-cyber-warning/40 shadow-[0_0_20px_rgba(255,204,0,0.12)]'
-            : 'border-cyber-accent/40 shadow-[0_0_20px_rgba(0,255,157,0.1)]';
-    const lineClass = isDanger ? 'bg-red-500/60' : isWarning ? 'bg-cyber-warning/60' : 'bg-cyber-accent/60';
-    const titleClass = isDanger ? 'text-red-400' : isWarning ? 'text-cyber-warning' : 'text-cyber-accent';
+            : isInfo
+                ? 'border-cyber-accent-secondary/40 shadow-[0_0_20px_rgba(0,212,255,0.12)]'
+                : 'border-cyber-accent/40 shadow-[0_0_20px_rgba(0,255,157,0.1)]';
+    const lineClass = isDanger ? 'bg-red-500/60' : isWarning ? 'bg-cyber-warning/60' : isInfo ? 'bg-cyber-accent-secondary/60' : 'bg-cyber-accent/60';
+    const titleClass = isDanger ? 'text-red-400' : isWarning ? 'text-cyber-warning' : isInfo ? 'text-cyber-accent-secondary' : 'text-cyber-accent';
     const confirmClass = isDanger
         ? 'text-red-400 hover:bg-red-500/10 hover:text-red-300'
         : isWarning
             ? 'text-cyber-warning hover:bg-cyber-warning/10 hover:text-cyber-warning/80'
-            : 'text-cyber-accent hover:bg-cyber-accent/10';
+            : isInfo
+                ? 'text-cyber-accent-secondary hover:bg-cyber-accent-secondary/10'
+                : 'text-cyber-accent hover:bg-cyber-accent/10';
 
     return (
         <ConfirmContext.Provider value={{ confirm }}>
@@ -113,6 +118,9 @@ export const ConfirmDialogProvider: React.FC<{ children: React.ReactNode }> = ({
                         <div className="px-5 pt-4 pb-2 flex items-center gap-2">
                             {(isDanger || isWarning) && (
                                 <AlertTriangle className={`w-4 h-4 flex-shrink-0 ${isDanger ? 'text-red-400' : 'text-cyber-warning'}`} />
+                            )}
+                            {isInfo && (
+                                <svg className="w-4 h-4 flex-shrink-0 text-cyber-accent-secondary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" /></svg>
                             )}
                             <span className={`text-sm font-mono font-bold tracking-wider ${titleClass}`}>
                                 {options.title || t('common.confirm')}

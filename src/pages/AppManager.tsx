@@ -1,9 +1,10 @@
 // App Manager Page — Tool detection, launch, model configuration
 // Extracted from App.tsx with Provider pattern for shared state
 
-import { useState, useEffect, useMemo, createContext, useContext } from 'react';
+import { useState, useEffect, useMemo, createContext, useContext, useCallback } from 'react';
 import { Server as ServerIcon, Box as BoxIcon } from 'lucide-react';
 import { ToolCard, getModelIcon } from '../components';
+import { useConfirm } from '../components/ConfirmDialog';
 import { useI18n } from '../hooks/useI18n';
 import * as api from '../api/tauri';
 import type { ModelConfig } from '../api/types';
@@ -74,6 +75,23 @@ export const AppManagerProvider: React.FC<AppManagerProviderProps> = ({
     children,
 }) => {
     const { t } = useI18n();
+    const confirm = useConfirm();
+
+    // Wrapped navigation: check Mother Agent model configured before jumping
+    const handleGoToMother = useCallback(async () => {
+        const configured = localStorage.getItem('echobird_agent_model');
+        if (!configured) {
+            await confirm({
+                title: t('mother.noModels'),
+                message: t('agent.motherNotConfigured'),
+                type: 'info',
+                confirmText: t('common.confirm'),
+                cancelText: '',
+            });
+            return;
+        }
+        onGoToMother();
+    }, [confirm, t, onGoToMother]);
 
     // Load models internally
     const [userModels, setUserModels] = useState<ModelConfig[]>([]);
@@ -216,7 +234,7 @@ export const AppManagerProvider: React.FC<AppManagerProviderProps> = ({
                 isScanning, scanTools,
                 userModels, modelProtocolSelection, setModelProtocolSelection,
                 handleLaunch,
-                onGoToMother,
+                onGoToMother: handleGoToMother,
             }}
         >
             {children}
