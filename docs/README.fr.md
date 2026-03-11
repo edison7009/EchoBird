@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="./icon.png" alt="Echobird" width="120" />
+  <img src="./icon.png" alt="EchoBird" width="120" />
 </p>
 
-<h1 align="center">Echobird</h1>
+<h1 align="center">EchoBird</h1>
 
 <h3 align="center">Installez OpenClaw, Claude Code, ZeroClaw et Codex en un clic. Changez de modèle. Déployez des LLMs.</h3>
 
@@ -35,13 +35,13 @@
 
 ---
 
-## Pourquoi Echobird ?
+## Pourquoi EchoBird ?
 
-Même en tant que débutant en IA, Echobird vous permet de contrôler votre propre Agent — de l'installation au travail — par un simple chat. Pas besoin d'expérience en terminal, pas de fichiers de configuration, pas de déploiements compliqués.
+Même en tant que débutant en IA, EchoBird vous permet de contrôler votre propre Agent — de l'installation au travail — par un simple chat. Pas besoin d'expérience en terminal, pas de fichiers de configuration, pas de déploiements compliqués.
 
 Vous voulez utiliser **OpenClaw**, **Claude Code**, **ZeroClaw** ou **Codex** ? Un clic pour installer. Exécuter **Qwen**, **DeepSeek** ou **Llama** sur votre propre machine ? Un clic pour déployer. Changer de modèle ou ajouter des skills ? Pointez, cliquez, c'est fait.
 
-**Echobird vous offre une seule app pour tout** — installer des agents, changer de modèle, déployer des LLMs et tout contrôler depuis un écran — que vous soyez développeur ou débutant en IA.
+**EchoBird vous offre une seule app pour tout** — installer des agents, changer de modèle, déployer des LLMs et tout contrôler depuis un écran — que vous soyez développeur ou débutant en IA.
 
 ---
 
@@ -49,7 +49,7 @@ Vous voulez utiliser **OpenClaw**, **Claude Code**, **ZeroClaw** ou **Codex** ? 
 
 ### 🚀 Installation en Un Clic — OpenClaw, Claude Code, OpenCode, ZeroClaw et plus
 
-- **Détection et installation automatiques** — Echobird détecte les agents installés et déploie ceux manquants en un clic
+- **Détection et installation automatiques** — EchoBird détecte les agents installés et déploie ceux manquants en un clic
 - **Outils plug-and-play** — Déposez un `plugin.json` dans le dossier tools et ça marche. Aucun changement de code
 - **Lanceur intégré** — Démarrez tout agent compatible sans toucher au terminal
 
@@ -150,13 +150,13 @@ chmod +x Echobird_*.AppImage
 
 ## 📬 Contact
 
-- 📧 [hi@echobird.ai](mailto:hi@echobird.ai) (Bug Reports)
-- 🌐 [echobird.ai](https://echobird.ai)
+- 📧 [hi@EchoBird.ai](mailto:hi@EchoBird.ai) (Bug Reports)
+- 🌐 [EchoBird.ai](https://echobird.ai)
 
 ---
 
 <p align="center">
   <em>La dernière interface avant l'ère de l'IA.</em><br/>
-  Fait avec 💚 par l'équipe Echobird<br/>
+  Fait avec 💚 par l'équipe EchoBird<br/>
   <sub>⭐ <a href="https://github.com/edison7009/Echobird-MotherAgent">Star sur GitHub</a> — aidez d'autres à découvrir le projet !</sub>
 </p>

@@ -3,7 +3,6 @@ import { Translations } from './types';
 
 const fr: Partial<Translations> = {
     // Navigation
-    'app.name': 'Echobird',
 
     'nav.modelNexus': 'Centre de modèles',
     'nav.skillBrowser': 'Explorateur de skills',

@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="./icon.png" alt="Echobird" width="120" />
+  <img src="./icon.png" alt="EchoBird" width="120" />
 </p>
 
-<h1 align="center">Echobird</h1>
+<h1 align="center">EchoBird</h1>
 
 <h3 align="center">Instale OpenClaw, Claude Code, ZeroClaw e Codex com um clique. Troque modelos. Implante LLMs.</h3>
 
@@ -35,13 +35,13 @@
 
 ---
 
-## Por que Echobird?
+## Por que EchoBird?
 
-Mesmo como iniciante em IA, o Echobird permite que você controle seu próprio Agent — da instalação ao trabalho — através de um simples chat. Sem experiência em terminal, sem arquivos de configuração, sem implantações complicadas.
+Mesmo como iniciante em IA, o EchoBird permite que você controle seu próprio Agent — da instalação ao trabalho — através de um simples chat. Sem experiência em terminal, sem arquivos de configuração, sem implantações complicadas.
 
 Quer usar **OpenClaw**, **Claude Code**, **ZeroClaw** ou **Codex**? Um clique para instalar. Quer executar **Qwen**, **DeepSeek** ou **Llama** na sua própria máquina? Um clique para implantar. Trocar modelos ou adicionar skills? Aponte, clique, pronto.
 
-**Echobird oferece um app para tudo** — instalar agentes, trocar modelos, implantar LLMs e controlar tudo de uma tela — seja você desenvolvedor ou iniciante em IA.
+**EchoBird oferece um app para tudo** — instalar agentes, trocar modelos, implantar LLMs e controlar tudo de uma tela — seja você desenvolvedor ou iniciante em IA.
 
 ---
 
@@ -49,7 +49,7 @@ Quer usar **OpenClaw**, **Claude Code**, **ZeroClaw** ou **Codex**? Um clique pa
 
 ### 🚀 Instalação com Um Clique — OpenClaw, Claude Code, OpenCode, ZeroClaw e mais
 
-- **Detecção e instalação automáticas** — Echobird detecta agentes instalados e implanta os faltantes com um clique
+- **Detecção e instalação automáticas** — EchoBird detecta agentes instalados e implanta os faltantes com um clique
 - **Ferramentas plug-and-play** — Coloque um `plugin.json` na pasta tools e funciona. Sem alterações de código
 - **Lançador integrado** — Inicie qualquer agente compatível sem tocar no terminal
 
@@ -150,13 +150,13 @@ chmod +x Echobird_*.AppImage
 
 ## 📬 Contato
 
-- 📧 [hi@echobird.ai](mailto:hi@echobird.ai) (Bug Reports)
-- 🌐 [echobird.ai](https://echobird.ai)
+- 📧 [hi@EchoBird.ai](mailto:hi@EchoBird.ai) (Bug Reports)
+- 🌐 [EchoBird.ai](https://echobird.ai)
 
 ---
 
 <p align="center">
   <em>A última interface antes da era da IA.</em><br/>
-  Feito com 💚 pelo time Echobird<br/>
+  Feito com 💚 pelo time EchoBird<br/>
   <sub>⭐ <a href="https://github.com/edison7009/Echobird-MotherAgent">Star no GitHub</a> — ajude outros a descobrir o projeto!</sub>
 </p>

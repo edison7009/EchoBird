@@ -2,7 +2,6 @@
 import { Translations } from './types';
 
 const sv: Partial<Translations> = {
-    'app.name': 'Echobird',
     'nav.modelNexus': 'Modellcenter', 'nav.skillBrowser': 'Färdighetsbläddrare', 'nav.appManager': 'Apphanterare', 'nav.localServer': 'Lokal LLM', 'page.modelNexus': 'MODELLCENTER', 'page.skillBrowser': 'FÄRDIGHETSBLÄDDRARE', 'page.appManager': 'APPHANTERARE', 'page.localServer': 'LOKAL LLM', 'settings.title': 'INSTÄLLNINGAR', 'settings.version': 'VERSION', 'settings.language': 'SPRÅK', 'settings.updates': 'UPPDATERINGAR',
     'settings.checkForUpdates': 'SÖK EFTER UPPDATERINGAR', 'settings.checking': 'Kontrollerar…', 'settings.latestVersion': 'Du har den senaste versionen', 'settings.checkFailed': 'Kontroll misslyckades — försök igen',
     'btn.addModel': 'LÄGG TILL MODELL', 'btn.apply': 'TILLÄMPA', 'btn.scanAgain': 'SKANNA IGEN', 'btn.refresh': 'UPPDATERA', 'btn.save': 'SPARA', 'btn.cancel': 'AVBRYT', 'btn.delete': 'RADERA', 'btn.edit': 'REDIGERA',

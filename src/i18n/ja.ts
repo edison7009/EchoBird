@@ -3,7 +3,6 @@ import { Translations } from './types';
 
 const ja: Partial<Translations> = {
     // Navigation
-    'app.name': 'Echobird',
 
     'nav.modelNexus': 'モデルセンター',
     'nav.skillBrowser': 'スキル一覧',

@@ -3,8 +3,6 @@ import { Translations } from './types';
 
 const zhHant: Partial<Translations> = {
     // Navigation
-    'app.name': '百靈鳥',
-
     'nav.modelNexus': '模型中心',
     'nav.skillBrowser': '技能瀏覽',
     'nav.appManager': '應用管理',

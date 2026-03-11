@@ -14,7 +14,7 @@
         "windows": [
             {
                 "label": "main",
-                "title": "Echobird",
+                "title": "EchoBird",
                 "width": 1400,
                 "height": 900,
                 "minWidth": 960,
@@ -34,10 +34,10 @@
     "bundle": {
         "active": true,
         "targets": "all",
-        "publisher": "Echobird Team",
-        "copyright": "(c) 2025 Echobird Team",
+        "publisher": "EchoBird Team",
+        "copyright": "(c) 2025 EchoBird Team",
         "shortDescription": "The Nexus for Models, Agents \u0026 Vibe Coding",
-        "longDescription": "Echobird - The Nexus for Models, Agents \u0026 Vibe Coding. One hub to manage AI models, coding tools, and intelligent agents.",
+        "longDescription": "EchoBird - The Nexus for Models, Agents \u0026 Vibe Coding. One hub to manage AI models, coding tools, and intelligent agents.",
         "homepage": "https://echobird.ai/",
         "category": "DeveloperTool",
         "resources": [
@@ -56,7 +56,7 @@
                 "installerIcon": "icons/icon.ico",
                 "headerImage": "icons/nsis-header.bmp",
                 "sidebarImage": "icons/nsis-sidebar.bmp",
-                "startMenuFolder": "Echobird"
+                "startMenuFolder": "EchoBird"
             }
         }
     }

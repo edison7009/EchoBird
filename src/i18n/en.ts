@@ -2,8 +2,6 @@
 import { Translations } from './types';
 
 const en: Translations = {
-    // App
-    'app.name': 'Echobird',
     // Navigation
     'nav.modelNexus': 'Model Nexus',
     'nav.skillBrowser': 'Skill Browser',

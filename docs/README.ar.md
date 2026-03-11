@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="./icon.png" alt="Echobird" width="120" />
+  <img src="./icon.png" alt="EchoBird" width="120" />
 </p>
 
-<h1 align="center">Echobird</h1>
+<h1 align="center">EchoBird</h1>
 
 <h3 align="center">ثبّت OpenClaw وClaude Code وZeroClaw وCodex بنقرة واحدة. بدّل النماذج. انشر LLM.</h3>
 
@@ -35,13 +35,13 @@
 
 ---
 
-## لماذا Echobird؟
+## لماذا EchoBird؟
 
-حتى لو كنت مبتدئاً في الذكاء الاصطناعي، يتيح لك Echobird التحكم بوكيلك الخاص — من التثبيت إلى العمل — عبر محادثة بسيطة. بدون خبرة في الطرفية، بدون ملفات إعدادات، بدون نشر معقد.
+حتى لو كنت مبتدئاً في الذكاء الاصطناعي، يتيح لك EchoBird التحكم بوكيلك الخاص — من التثبيت إلى العمل — عبر محادثة بسيطة. بدون خبرة في الطرفية، بدون ملفات إعدادات، بدون نشر معقد.
 
 تريد استخدام **OpenClaw** أو **Claude Code** أو **ZeroClaw** أو **Codex**؟ نقرة واحدة للتثبيت. تريد تشغيل **Qwen** أو **DeepSeek** أو **Llama** على جهازك؟ نقرة واحدة للنشر. تبديل النماذج أو إضافة مهارات؟ انقر وانتهى الأمر.
 
-**Echobird يمنحك تطبيقاً واحداً لكل شيء** — تثبيت الوكلاء، تبديل النماذج، نشر LLMs، والتحكم بكل شيء من شاشة واحدة — سواء كنت مطوراً أو مبتدئاً في الذكاء الاصطناعي.
+**EchoBird يمنحك تطبيقاً واحداً لكل شيء** — تثبيت الوكلاء، تبديل النماذج، نشر LLMs، والتحكم بكل شيء من شاشة واحدة — سواء كنت مطوراً أو مبتدئاً في الذكاء الاصطناعي.
 
 ---
 
@@ -49,7 +49,7 @@
 
 ### 🚀 تثبيت بنقرة واحدة — OpenClaw وClaude Code وOpenCode وZeroClaw والمزيد
 
-- **كشف وتثبيت تلقائي** — Echobird يكتشف الوكلاء المثبتين وينشر المفقودين بنقرة واحدة
+- **كشف وتثبيت تلقائي** — EchoBird يكتشف الوكلاء المثبتين وينشر المفقودين بنقرة واحدة
 - **أدوات جاهزة للاستخدام** — ضع `plugin.json` في مجلد tools ويعمل فوراً. بدون تغيير كود
 - **مُشغّل مدمج** — شغّل أي وكيل مدعوم بدون لمس الطرفية
 
@@ -150,13 +150,13 @@ chmod +x Echobird_*.AppImage
 
 ## 📬 تواصل
 
-- 📧 [hi@echobird.ai](mailto:hi@echobird.ai) (Bug Reports)
-- 🌐 [echobird.ai](https://echobird.ai)
+- 📧 [hi@EchoBird.ai](mailto:hi@EchoBird.ai) (Bug Reports)
+- 🌐 [EchoBird.ai](https://echobird.ai)
 
 ---
 
 <p align="center">
   <em>آخر واجهة قبل عصر الذكاء الاصطناعي.</em><br/>
-  صُنع بـ 💚 من فريق Echobird<br/>
+  صُنع بـ 💚 من فريق EchoBird<br/>
   <sub>⭐ <a href="https://github.com/edison7009/Echobird-MotherAgent">Star على GitHub</a> — ساعد الآخرين في اكتشاف المشروع!</sub>
 </p>

@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="./icon.png" alt="Echobird" width="120" />
+  <img src="./icon.png" alt="EchoBird" width="120" />
 </p>
 
-<h1 align="center">Echobird</h1>
+<h1 align="center">EchoBird</h1>
 
 <h3 align="center">一鍵安裝 OpenClaw、Claude Code、ZeroClaw 和 Codex。切換模型。部署大模型。</h3>
 
@@ -35,13 +35,13 @@
 
 ---
 
-## 為什麼選擇 Echobird？
+## 為什麼選擇 EchoBird？
 
-即使你是 AI 新手，Echobird 也能讓你透過簡單的對話來掌控自己的 Agent —— 從安裝到工作，一氣呵成。不需要終端經驗，不需要編輯設定檔，不需要複雜的部署。
+即使你是 AI 新手，EchoBird 也能讓你透過簡單的對話來掌控自己的 Agent —— 從安裝到工作，一氣呵成。不需要終端經驗，不需要編輯設定檔，不需要複雜的部署。
 
 想用 **OpenClaw**、**Claude Code**、**ZeroClaw** 或 **Codex**？一鍵安裝。想在自己的電腦上執行 **Qwen**、**DeepSeek** 或 **Llama**？一鍵部署。想切換模型或新增技能？點一下就搞定。
 
-**Echobird 用一個應用搞定一切** —— 安裝智能體、切換模型、部署大模型、在一個頁面控制所有智能體 —— 無論你是開發者還是 AI 新手。
+**EchoBird 用一個應用搞定一切** —— 安裝智能體、切換模型、部署大模型、在一個頁面控制所有智能體 —— 無論你是開發者還是 AI 新手。
 
 ---
 
@@ -49,7 +49,7 @@
 
 ### 🚀 一鍵安裝 — OpenClaw、Claude Code、OpenCode、ZeroClaw 等
 
-- **自動偵測並安裝** — Echobird 自動偵測已安裝的智能體，缺少的一鍵即可部署
+- **自動偵測並安裝** — EchoBird 自動偵測已安裝的智能體，缺少的一鍵即可部署
 - **即插即用工具** — 把 `plugin.json` 放到 tools 資料夾就能用，無需改程式碼
 - **內建啟動器** — 無需終端機，直接啟動任何支援的智能體
 
@@ -150,13 +150,13 @@ chmod +x Echobird_*.AppImage
 
 ## 📬 聯絡我們
 
-- 📧 [hi@echobird.ai](mailto:hi@echobird.ai) (Bug Reports)
-- 🌐 [echobird.ai](https://echobird.ai)
+- 📧 [hi@EchoBird.ai](mailto:hi@EchoBird.ai) (Bug Reports)
+- 🌐 [EchoBird.ai](https://echobird.ai)
 
 ---
 
 <p align="center">
   <em>AI 時代前的最後一個介面。</em><br/>
-  由 Echobird 團隊用 💚 打造<br/>
+  由 EchoBird 團隊用 💚 打造<br/>
   <sub>⭐ <a href="https://github.com/edison7009/Echobird-MotherAgent">在 GitHub 上給個 Star</a> — 讓更多人發現這個專案！</sub>
 </p>

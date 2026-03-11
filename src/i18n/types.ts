@@ -2,8 +2,6 @@
 
 // Translation key definitions
 export type TKey =
-    // App
-    | 'app.name'
     // Navigation
     | 'nav.modelNexus' | 'nav.skillBrowser' | 'nav.appManager'
     | 'nav.localServer' | 'nav.motherAgent' | 'nav.channels'

@@ -2,7 +2,6 @@
 import { Translations } from './types';
 
 const fi: Partial<Translations> = {
-    'app.name': 'Echobird',
     'nav.modelNexus': 'Mallikeskus', 'nav.skillBrowser': 'Taitoselain', 'nav.appManager': 'Sovellushallinta', 'nav.localServer': 'Paikallinen LLM', 'page.modelNexus': 'MALLIKESKUS', 'page.skillBrowser': 'TAITOSELAIN', 'page.appManager': 'SOVELLUSHALLINTA', 'page.localServer': 'PAIKALLINEN LLM', 'settings.title': 'ASETUKSET', 'settings.version': 'VERSIO', 'settings.language': 'KIELI', 'settings.updates': 'PÄIVITYKSET',
     'settings.checkForUpdates': 'TARKISTA PÄIVITYKSET', 'settings.checking': 'Tarkistetaan…', 'settings.latestVersion': 'Sinulla on uusin versio', 'settings.checkFailed': 'Tarkistus epäonnistui — yritä uudelleen',
     'btn.addModel': 'LISÄÄ MALLI', 'btn.apply': 'KÄYTÄ', 'btn.scanAgain': 'SKANNAA UUDELLEEN', 'btn.refresh': 'PÄIVITÄ', 'btn.save': 'TALLENNA', 'btn.cancel': 'PERUUTA', 'btn.delete': 'POISTA', 'btn.edit': 'MUOKKAA',

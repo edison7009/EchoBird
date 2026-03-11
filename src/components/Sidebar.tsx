@@ -53,7 +53,7 @@ export const Sidebar = ({ activePage, onPageChange, agentRunning = false, channe
                         textTransform: 'uppercase' as const,
                     }}
                 >
-                    {t('app.name')}
+                    {'EchoBird'}
                 </span>
                 {updateAvailable && (
                     <button

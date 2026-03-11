@@ -2,7 +2,6 @@
 import { Translations } from './types';
 
 const fa: Partial<Translations> = {
-    'app.name': 'Echobird',
     'nav.modelNexus': 'مرکز مدل‌ها', 'nav.skillBrowser': 'مرورگر مهارت‌ها', 'nav.appManager': 'مدیریت برنامه‌ها', 'nav.localServer': 'LLM محلی', 'page.modelNexus': 'مرکز مدل‌ها', 'page.skillBrowser': 'مرورگر مهارت‌ها', 'page.appManager': 'مدیریت برنامه‌ها', 'page.localServer': 'LLM محلی', 'settings.title': 'تنظیمات', 'settings.version': 'نسخه', 'settings.language': 'زبان', 'settings.updates': 'به‌روزرسانی‌ها',
     'settings.checkForUpdates': 'بررسی به‌روزرسانی', 'settings.checking': 'در حال بررسی…', 'settings.latestVersion': 'شما آخرین نسخه را دارید', 'settings.checkFailed': 'بررسی ناموفق — تلاش مجدد',
     'btn.addModel': 'افزودن مدل', 'btn.apply': 'اعمال', 'btn.scanAgain': 'اسکن مجدد', 'btn.refresh': 'بازنشانی', 'btn.save': 'ذخیره', 'btn.cancel': 'لغو', 'btn.delete': 'حذف', 'btn.edit': 'ویرایش',

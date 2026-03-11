@@ -3,7 +3,6 @@ import { Translations } from './types';
 
 const ko: Partial<Translations> = {
     // Navigation
-    'app.name': 'Echobird',
 
     'nav.modelNexus': '모델 센터',
     'nav.skillBrowser': '스킬 브라우저',

@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="./icon.png" alt="Echobird" width="120" />
+  <img src="./icon.png" alt="EchoBird" width="120" />
 </p>
 
-<h1 align="center">Echobird</h1>
+<h1 align="center">EchoBird</h1>
 
 <h3 align="center">OpenClaw, Claude Code, ZeroClaw & Codex per Klick installieren. Modelle wechseln. LLMs deployen.</h3>
 
@@ -35,13 +35,13 @@
 
 ---
 
-## Warum Echobird?
+## Warum EchoBird?
 
-Selbst als KI-Anfänger lässt Echobird dich deinen eigenen Agent steuern — von der Einrichtung bis zur Arbeit — durch einfachen Chat. Keine Terminal-Erfahrung, keine Konfigurationsdateien, kein kompliziertes Deployment.
+Selbst als KI-Anfänger lässt EchoBird dich deinen eigenen Agent steuern — von der Einrichtung bis zur Arbeit — durch einfachen Chat. Keine Terminal-Erfahrung, keine Konfigurationsdateien, kein kompliziertes Deployment.
 
 Du willst **OpenClaw**, **Claude Code**, **ZeroClaw** oder **Codex** nutzen? Ein Klick zum Installieren. **Qwen**, **DeepSeek** oder **Llama** auf deinem eigenen Rechner ausführen? Ein Klick zum Deployen. Modelle wechseln oder Skills hinzufügen? Klick, fertig.
 
-**Echobird gibt dir eine App für alles** — Agents installieren, Modelle wechseln, LLMs deployen und alles von einem Bildschirm steuern — egal ob Entwickler oder KI-Einsteiger.
+**EchoBird gibt dir eine App für alles** — Agents installieren, Modelle wechseln, LLMs deployen und alles von einem Bildschirm steuern — egal ob Entwickler oder KI-Einsteiger.
 
 ---
 
@@ -49,7 +49,7 @@ Du willst **OpenClaw**, **Claude Code**, **ZeroClaw** oder **Codex** nutzen? Ein
 
 ### 🚀 Ein-Klick Installation — OpenClaw, Claude Code, OpenCode, ZeroClaw & mehr
 
-- **Automatische Erkennung & Installation** — Echobird erkennt installierte Agents und deployt fehlende mit einem Klick
+- **Automatische Erkennung & Installation** — EchoBird erkennt installierte Agents und deployt fehlende mit einem Klick
 - **Plug-and-Play Tools** — `plugin.json` in den Tools-Ordner legen und es funktioniert. Keine Code-Änderungen
 - **Eingebauter Launcher** — Starte jeden unterstützten Agent ohne Terminal
 
@@ -150,13 +150,13 @@ chmod +x Echobird_*.AppImage
 
 ## 📬 Kontakt
 
-- 📧 [hi@echobird.ai](mailto:hi@echobird.ai) (Bug Reports)
-- 🌐 [echobird.ai](https://echobird.ai)
+- 📧 [hi@EchoBird.ai](mailto:hi@EchoBird.ai) (Bug Reports)
+- 🌐 [EchoBird.ai](https://echobird.ai)
 
 ---
 
 <p align="center">
   <em>Das letzte Interface vor dem Zeitalter der KI.</em><br/>
-  Mit 💚 vom Echobird Team<br/>
+  Mit 💚 vom EchoBird Team<br/>
   <sub>⭐ <a href="https://github.com/edison7009/Echobird-MotherAgent">Star auf GitHub</a> — hilft anderen das Projekt zu entdecken!</sub>
 </p>

@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="./icon.png" alt="Echobird" width="120" />
+  <img src="./icon.png" alt="EchoBird" width="120" />
 </p>
 
-<h1 align="center">Echobird</h1>
+<h1 align="center">EchoBird</h1>
 
 <h3 align="center">원클릭으로 OpenClaw, Claude Code, ZeroClaw, Codex 설치. 모델 전환. LLM 배포.</h3>
 
@@ -35,13 +35,13 @@
 
 ---
 
-## 왜 Echobird인가?
+## 왜 EchoBird인가?
 
-AI 초보자라도 Echobird를 사용하면 간단한 채팅으로 자신만의 Agent를 제어할 수 있습니다 — 설치부터 작업까지. 터미널 경험도, 설정 파일 편집도, 복잡한 배포도 필요 없습니다.
+AI 초보자라도 EchoBird를 사용하면 간단한 채팅으로 자신만의 Agent를 제어할 수 있습니다 — 설치부터 작업까지. 터미널 경험도, 설정 파일 편집도, 복잡한 배포도 필요 없습니다.
 
 **OpenClaw**, **Claude Code**, **ZeroClaw**, **Codex**를 사용하고 싶으신가요? 원클릭으로 설치. 자신의 컴퓨터에서 **Qwen**, **DeepSeek**, **Llama**를 실행하고 싶으신가요? 원클릭으로 배포. 모델 전환이나 스킬 추가? 클릭 한 번이면 끝.
 
-**Echobird는 하나의 앱으로 모든 것을 해결합니다** — 에이전트 설치, 모델 전환, LLM 배포, 모든 에이전트를 하나의 화면에서 제어 — 개발자든 AI 초보자든.
+**EchoBird는 하나의 앱으로 모든 것을 해결합니다** — 에이전트 설치, 모델 전환, LLM 배포, 모든 에이전트를 하나의 화면에서 제어 — 개발자든 AI 초보자든.
 
 ---
 
@@ -49,7 +49,7 @@ AI 초보자라도 Echobird를 사용하면 간단한 채팅으로 자신만의 
 
 ### 🚀 원클릭 설치 — OpenClaw, Claude Code, OpenCode, ZeroClaw 등
 
-- **자동 감지 및 설치** — Echobird가 설치된 에이전트를 감지하고 누락된 것을 원클릭으로 배포
+- **자동 감지 및 설치** — EchoBird가 설치된 에이전트를 감지하고 누락된 것을 원클릭으로 배포
 - **플러그앤플레이** — `plugin.json`을 tools 폴더에 넣으면 바로 작동. 코드 변경 불필요
 - **내장 런처** — 터미널 없이 지원되는 모든 에이전트를 시작
 
@@ -150,13 +150,13 @@ chmod +x Echobird_*.AppImage
 
 ## 📬 문의
 
-- 📧 [hi@echobird.ai](mailto:hi@echobird.ai) (Bug Reports)
-- 🌐 [echobird.ai](https://echobird.ai)
+- 📧 [hi@EchoBird.ai](mailto:hi@EchoBird.ai) (Bug Reports)
+- 🌐 [EchoBird.ai](https://echobird.ai)
 
 ---
 
 <p align="center">
   <em>AI 시대의 사이버펑크 컨트롤 패널.</em><br/>
-  Echobird 팀이 💚으로 제작<br/>
+  EchoBird 팀이 💚으로 제작<br/>
   <sub>⭐ <a href="https://github.com/edison7009/Echobird-MotherAgent">GitHub에서 Star 주기</a> — 더 많은 사람들이 프로젝트를 발견할 수 있도록!</sub>
 </p>

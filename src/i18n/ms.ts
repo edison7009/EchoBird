@@ -2,7 +2,6 @@
 import { Translations } from './types';
 
 const ms: Partial<Translations> = {
-    'app.name': 'Echobird',
     'nav.modelNexus': 'Pusat Model',
     'nav.skillBrowser': 'Pelayar Skill',
     'nav.appManager': 'Pengurus Aplikasi',

@@ -862,7 +862,7 @@ export const Channels: React.FC = () => {
                                     <div className="space-y-1 select-none">
                                         <p className="text-cyber-accent">[SYS] {activeChannel.name || `Channel #${String(activeChannel.id).padStart(2, '0')}`}</p>
                                         {isBridgeMode ? (
-                                            <p className="text-cyber-accent/80">{bridgeAgentName ? `${bridgeAgentName} · ` : ''}Echobird Bridge Protocol</p>
+                                            <p className="text-cyber-accent/80">{bridgeAgentName ? `${bridgeAgentName} · ` : ''}EchoBird Bridge Protocol</p>
                                         ) : (
                                             <>
                                                 <p className="text-cyber-accent/80">SSH · {activeChannel.address}</p>

@@ -2,7 +2,6 @@
 import { Translations } from './types';
 
 const el: Partial<Translations> = {
-    'app.name': 'Echobird',
     'nav.modelNexus': 'Κέντρο Μοντέλων', 'nav.skillBrowser': 'Περιηγητής Δεξιοτήτων', 'nav.appManager': 'Διαχείριση Εφαρμογών', 'nav.localServer': 'Τοπικό LLM', 'page.modelNexus': 'ΚΕΝΤΡΟ ΜΟΝΤΕΛΩΝ', 'page.skillBrowser': 'ΠΕΡΙΗΓΗΤΗΣ ΔΕΞΙΟΤΗΤΩΝ', 'page.appManager': 'ΔΙΑΧΕΙΡΙΣΗ ΕΦΑΡΜΟΓΩΝ', 'page.localServer': 'ΤΟΠΙΚΟ LLM', 'settings.title': 'ΡΥΘΜΙΣΕΙΣ', 'settings.version': 'ΕΚΔΟΣΗ', 'settings.language': 'ΓΛΩΣΣΑ', 'settings.updates': 'ΕΝΗΜΕΡΩΣΕΙΣ',
     'settings.checkForUpdates': 'ΕΛΕΓΧΟΣ ΕΝΗΜΕΡΩΣΕΩΝ', 'settings.checking': 'Έλεγχος…', 'settings.latestVersion': 'Έχετε την τελευταία έκδοση', 'settings.checkFailed': 'Αποτυχία ελέγχου — δοκιμάστε ξανά',
     'btn.addModel': 'ΠΡΟΣΘΗΚΗ ΜΟΝΤΕΛΟΥ', 'btn.apply': 'ΕΦΑΡΜΟΓΗ', 'btn.scanAgain': 'ΣΑΡΩΣΗ ΞΑΝΑ', 'btn.refresh': 'ΑΝΑΝΕΩΣΗ', 'btn.save': 'ΑΠΟΘΗΚΕΥΣΗ', 'btn.cancel': 'ΑΚΥΡΩΣΗ', 'btn.delete': 'ΔΙΑΓΡΑΦΗ', 'btn.edit': 'ΕΠΕΞΕΡΓΑΣΙΑ',

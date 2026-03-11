@@ -307,7 +307,7 @@ class ChannelConnection {
                                     ...(options.password ? { password: options.password } : {}),
                                 },
                                 locale: navigator.language,
-                                userAgent: 'Echobird/1.0.0',
+                                userAgent: 'EchoBird/1.0.0',
                             },
                         }));
                     } catch { safeReject(new Error('Failed to send connect request')); }

@@ -2,7 +2,6 @@
 import { Translations } from './types';
 
 const he: Partial<Translations> = {
-    'app.name': 'Echobird',
     'nav.modelNexus': 'מרכז מודלים', 'nav.skillBrowser': 'דפדפן כישורים', 'nav.appManager': 'מנהל אפליקציות', 'nav.localServer': 'LLM מקומי', 'page.modelNexus': 'מרכז מודלים', 'page.skillBrowser': 'דפדפן כישורים', 'page.appManager': 'מנהל אפליקציות', 'page.localServer': 'LLM מקומי', 'settings.title': 'הגדרות', 'settings.version': 'גרסה', 'settings.language': 'שפה', 'settings.updates': 'עדכונים',
     'settings.checkForUpdates': 'בדוק עדכונים', 'settings.checking': 'בודק…', 'settings.latestVersion': 'הגרסה שלך עדכנית', 'settings.checkFailed': 'הבדיקה נכשלה — נסה שוב',
     'btn.addModel': 'הוסף מודל', 'btn.apply': 'החל', 'btn.scanAgain': 'סרוק שוב', 'btn.refresh': 'רענן', 'btn.save': 'שמור', 'btn.cancel': 'ביטול', 'btn.delete': 'מחק', 'btn.edit': 'ערוך',

@@ -482,7 +482,7 @@ export function ModelNexusMain() {
 // NOTE: keep this generic — no specific provider names here.
 // Providers are controlled exclusively via the remote JSON on echobird.ai.
 const WELCOME_FALLBACK = {
-    intro: 'Even as an AI beginner, [Echobird] lets you command your own Agent — from setup to work — through simple chat.',
+    intro: 'Even as an AI beginner, [EchoBird] lets you command your own Agent — from setup to work — through simple chat.',
     providers: [] as { name: string; url: string }[],
     providers_archived: [] as { name: string; url: string }[],
     steps: [
@@ -493,9 +493,9 @@ const WELCOME_FALLBACK = {
     ],
 };
 
-// Map bracket tokens like [Model Nexus] → i18n nav key
-const PAGE_TOKEN_MAP: Record<string, string> = {
-    'Echobird': 'app.name',
+// Map bracket tokens like [Model Nexus] → i18n nav key, or hardcoded string
+const PAGE_TOKEN_MAP: Record<string, string | null> = {
+    'EchoBird': null,
     'Model Nexus': 'nav.modelNexus',
     'Mother Agent': 'nav.motherAgent',
     'Skill Browser': 'nav.skillBrowser',
@@ -528,8 +528,8 @@ function renderTokens(
                     </button>
                 );
             }
-            const navKey = PAGE_TOKEN_MAP[token] as any;
-            const label = navKey ? t(navKey) : token;
+            const navKey = PAGE_TOKEN_MAP[token];
+            const label = navKey ? t(navKey as any) : token;
             return <span key={i} className="text-cyber-accent font-bold">{label}</span>;
         }
         return <span key={i}>{part}</span>;
