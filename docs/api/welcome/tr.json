@@ -1,5 +1,5 @@
 {
-    "intro": "AI'ya yeni biri olsanız bile, [Echobird] sayesinde basit bir sohbet aracılığıyla kendi Agent'ınızı kurulumdan çalışmaya kadar yönetebilirsiniz.",
+    "intro": "AI'ya yeni biri olsanız bile, EchoBird sayesinde basit bir sohbet aracılığıyla kendi Agent'ınızı kurulumdan çalışmaya kadar yönetebilirsiniz.",
     "providers": [
         {
             "name": "NVIDIA",

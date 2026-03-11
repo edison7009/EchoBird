@@ -1,5 +1,5 @@
 {
-    "intro": "即便你是 AI 新手，在 [Echobird] 的幫助下，你也可以透過簡單聊天的方式，從部署到使用，全程指揮你的 Agent。",
+    "intro": "即便你是 AI 新手，在 EchoBird 的幫助下，你也可以透過簡單聊天的方式，從部署到使用，全程指揮你的 Agent。",
     "providers": [
         {
             "name": "NVIDIA",

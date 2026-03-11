@@ -1,5 +1,5 @@
 {
-    "intro": "Nawet jako początkujący w AI, [Echobird] pozwala Ci kierować własnym Agentem — od konfiguracji po pracę — przez zwykły czat.",
+    "intro": "Nawet jako początkujący w AI, EchoBird pozwala Ci kierować własnym Agentem — od konfiguracji po pracę — przez zwykły czat.",
     "providers": [
         {
             "name": "NVIDIA",

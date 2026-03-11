@@ -1,5 +1,5 @@
 {
-    "intro": "Még ha AI-kezdő is vagy, az [Echobird] lehetővé teszi, hogy egyszerű csevegéssel irányítsd saját Agented — a beállítástól a munkáig.",
+    "intro": "Még ha AI-kezdő is vagy, az EchoBird lehetővé teszi, hogy egyszerű csevegéssel irányítsd saját Agented — a beállítástól a munkáig.",
     "providers": [
         {
             "name": "NVIDIA",

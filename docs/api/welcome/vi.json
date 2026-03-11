@@ -1,5 +1,5 @@
 {
-    "intro": "Dù bạn mới bắt đầu với AI, [Echobird] cho phép bạn điều hành Agent của mình — từ cài đặt đến làm việc — thông qua cuộc trò chuyện đơn giản.",
+    "intro": "Dù bạn mới bắt đầu với AI, EchoBird cho phép bạn điều hành Agent của mình — từ cài đặt đến làm việc — thông qua cuộc trò chuyện đơn giản.",
     "providers": [
         {
             "name": "NVIDIA",

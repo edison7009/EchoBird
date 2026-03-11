@@ -1,5 +1,5 @@
 {
-    "intro": "Même débutant en IA, [Echobird] vous permet de piloter votre propre Agent — de la configuration au travail — via une simple conversation.",
+    "intro": "Même débutant en IA, EchoBird vous permet de piloter votre propre Agent — de la configuration au travail — via une simple conversation.",
     "providers": [
         {
             "name": "NVIDIA",

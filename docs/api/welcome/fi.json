@@ -1,5 +1,5 @@
 {
-    "intro": "Vaikka olisit AI-aloittelija, [Echobird] antaa sinulle mahdollisuuden ohjata omaa Agenttiasi — asennuksesta töihin — yksinkertaisen chatin kautta.",
+    "intro": "Vaikka olisit AI-aloittelija, EchoBird antaa sinulle mahdollisuuden ohjata omaa Agenttiasi — asennuksesta töihin — yksinkertaisen chatin kautta.",
     "providers": [
         {
             "name": "NVIDIA",

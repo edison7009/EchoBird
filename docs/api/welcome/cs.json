@@ -1,5 +1,5 @@
 {
-    "intro": "I jako nováček v oblasti AI vám [Echobird] umožňuje řídit vlastního Agenta — od nastavení po práci — prostřednictvím jednoduchého chatu.",
+    "intro": "I jako nováček v oblasti AI vám EchoBird umožňuje řídit vlastního Agenta — od nastavení po práci — prostřednictvím jednoduchého chatu.",
     "providers": [
         {
             "name": "NVIDIA",
