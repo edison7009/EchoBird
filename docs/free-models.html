@@ -194,23 +194,34 @@
         }
 
         .stat .num.tick {
-            text-shadow: 0 0 18px var(--neon), 0 0 40px rgba(0, 255, 157, .4)
+            animation: num-glitch .45s ease;
         }
 
-        @keyframes num-roll {
+        @keyframes num-glitch {
             0% {
-                transform: translateY(60%);
-                opacity: 0
+                text-shadow: -4px 0 #0ff, 4px 0 var(--neon);
+                filter: brightness(1.8)
+            }
+
+            15% {
+                text-shadow: 4px 0 #f0f, -4px 0 var(--neon);
+                filter: brightness(2.5)
+            }
+
+            30% {
+                text-shadow: -2px 0 #0ff, 2px 0 #ff0;
+                filter: brightness(1.6)
+            }
+
+            55% {
+                text-shadow: 0 0 24px var(--neon), 0 0 48px var(--neon);
+                filter: brightness(1.2)
             }
 
             100% {
-                transform: translateY(0);
-                opacity: 1
+                text-shadow: 0 0 8px var(--neon);
+                filter: brightness(1)
             }
-        }
-
-        .stat .num.roll {
-            animation: num-roll .28s cubic-bezier(.22, .61, .36, 1)
         }
 
         .stat .label {
@@ -928,19 +939,24 @@
         function animateCount(id, to) {
             const el = document.getElementById(id);
             if (!el) return;
-            const from = parseInt(el.textContent) || 0;
-            if (from === to) return;
-            const dur = Math.min(400, 60 + (to - from) * 8);
-            const t0 = performance.now();
-            function step(now) {
-                const p = Math.min((now - t0) / dur, 1);
-                const eased = 1 - Math.pow(1 - p, 3);
-                el.textContent = Math.round(from + (to - from) * eased);
-                if (p < 1) { requestAnimationFrame(step); return; }
-                el.textContent = to;
-                el.classList.add('roll');
-                el.classList.add('tick');
-                setTimeout(() => { el.classList.remove('roll'); el.classList.remove('tick'); }, 350);
+            const prev = parseInt(el.textContent) || 0;
+            if (prev === to) return;
+            let frame = 0;
+            const scramble = 14; // ~230ms random phase
+            function step() {
+                frame++;
+                if (frame <= scramble) {
+                    // Matrix scramble: random value between prev and to
+                    el.textContent = Math.floor(Math.random() * (to - prev + 1)) + prev;
+                    el.style.color = frame % 3 === 0 ? '#fff' : '';
+                    requestAnimationFrame(step);
+                } else {
+                    el.textContent = to;
+                    el.style.color = '';
+                    el.classList.remove('roll');
+                    el.classList.add('tick');
+                    setTimeout(() => el.classList.remove('tick'), 500);
+                }
             }
             requestAnimationFrame(step);
         }
