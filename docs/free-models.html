@@ -187,7 +187,30 @@
             font-size: 28px;
             font-weight: 700;
             color: var(--neon);
-            display: block
+            display: block;
+            position: relative;
+            overflow: hidden;
+            transition: text-shadow .2s
+        }
+
+        .stat .num.tick {
+            text-shadow: 0 0 18px var(--neon), 0 0 40px rgba(0, 255, 157, .4)
+        }
+
+        @keyframes num-roll {
+            0% {
+                transform: translateY(60%);
+                opacity: 0
+            }
+
+            100% {
+                transform: translateY(0);
+                opacity: 1
+            }
+        }
+
+        .stat .num.roll {
+            animation: num-roll .28s cubic-bezier(.22, .61, .36, 1)
         }
 
         .stat .label {
@@ -866,10 +889,9 @@
             const d = new Date(); const today = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
             document.getElementById('updated-date').textContent = t('updated') + ' ' + today;
 
-            const totalModels = data.providers.reduce((s, p) => s + p.models.length, 0);
             document.getElementById('stats').innerHTML = `
-            <div class="stat"><span class="num">${data.providers.length}</span><div class="label">${t('stat_providers')}</div></div>
-            <div class="stat"><span class="num">${totalModels}</span><div class="label">${t('stat_models')}</div></div>
+            <div class="stat"><span class="num" id="stat-providers">0</span><div class="label">${t('stat_providers')}</div></div>
+            <div class="stat"><span class="num" id="stat-models">0</span><div class="label">${t('stat_models')}</div></div>
             <div class="stat"><span class="num">100%</span><div class="label">${t('stat_compat')}</div></div>
         `;
 
@@ -902,21 +924,46 @@
             } catch { return null; }
         }
 
+        // ── Animate counter ──
+        function animateCount(id, to) {
+            const el = document.getElementById(id);
+            if (!el) return;
+            const from = parseInt(el.textContent) || 0;
+            if (from === to) return;
+            const dur = Math.min(400, 60 + (to - from) * 8);
+            const t0 = performance.now();
+            function step(now) {
+                const p = Math.min((now - t0) / dur, 1);
+                const eased = 1 - Math.pow(1 - p, 3);
+                el.textContent = Math.round(from + (to - from) * eased);
+                if (p < 1) { requestAnimationFrame(step); return; }
+                el.textContent = to;
+                el.classList.add('roll');
+                el.classList.add('tick');
+                setTimeout(() => { el.classList.remove('roll'); el.classList.remove('tick'); }, 350);
+            }
+            requestAnimationFrame(step);
+        }
+
         function pingProviders(data) {
             const content = document.getElementById('content');
+            let liveProviders = 0, liveModels = 0;
             data.providers.forEach(p => {
                 pingOne(p.baseUrl).then(ms => {
-                    if (ms === null) return; // no response — don't show
+                    if (ms === null) return;
                     const el = buildProviderEl(p);
                     content.appendChild(el);
-                    // Show ping speed
                     const speedEl = el.querySelector('.ping-speed');
                     if (speedEl) {
                         speedEl.textContent = ms + 'ms';
                         if (ms > 1000) speedEl.classList.add('slow');
                     }
-                    // Trigger slide-up animation on next frame
                     requestAnimationFrame(() => requestAnimationFrame(() => el.classList.add('visible')));
+                    // Live stats
+                    liveProviders++;
+                    liveModels += p.models.length;
+                    animateCount('stat-providers', liveProviders);
+                    animateCount('stat-models', liveModels);
                 });
             });
         }
