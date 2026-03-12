@@ -1,4 +1,4 @@
-// Native tool patcher — replaces Node.js patch-*.cjs scripts
+﻿// Native tool patcher — replaces Node.js patch-*.cjs scripts
 // Pure Rust file operations: find install dir → backup → inject marker code → write back
 
 use std::fs;
@@ -25,7 +25,7 @@ if(_wc_fs.existsSync(_wc_cfg_path)){
 var _wc_cfg=JSON.parse(_wc_fs.readFileSync(_wc_cfg_path,"utf-8"));
 if(_wc_cfg.apiKey&&_wc_cfg.modelId){
 var _inst=t.instance,_gs=_inst.globalStateCache,_sc=_inst.secretsCache;
-var _mi={maxTokens:8192,contextWindow:128000,supportsImages:true,supportsPromptCache:false,inputPrice:0,outputPrice:0,description:"[Echobird] "+(_wc_cfg.modelName||_wc_cfg.modelId)};
+var _mi={maxTokens:8192,contextWindow:128000,supportsImages:true,supportsPromptCache:false,inputPrice:0,outputPrice:0,description:"[EchoBird] "+(_wc_cfg.modelName||_wc_cfg.modelId)};
 _gs.actModeApiProvider="openai";
 _gs.planModeApiProvider="openai";
 _gs.actModeOpenAiModelId=_wc_cfg.modelId;
@@ -34,9 +34,9 @@ if(_wc_cfg.baseUrl)_gs.openAiBaseUrl=_wc_cfg.baseUrl;
 _gs.actModeOpenAiModelInfo=_mi;
 _gs.planModeOpenAiModelInfo=_mi;
 _sc.openAiApiKey=_wc_cfg.apiKey;
-console.log("[Echobird] Loaded: openai-compat, model="+_wc_cfg.modelId);
+console.log("[EchoBird] Loaded: openai-compat, model="+_wc_cfg.modelId);
 }}
-}catch(_wc_err){console.warn("[Echobird] Failed to load config:",_wc_err.message);}})(),
+}catch(_wc_err){console.warn("[EchoBird] Failed to load config:",_wc_err.message);}})(),
 "#;
 
 const ROOCODE_INJECT: &str = r#"
@@ -56,9 +56,9 @@ _ctx.globalState.update("apiProvider","openai");
 _ctx.globalState.update("openAiModelId",_wc_cfg.modelId);
 if(_wc_cfg.baseUrl)_ctx.globalState.update("openAiBaseUrl",_wc_cfg.baseUrl);
 _ctx.secrets.store("openAiApiKey",_wc_cfg.apiKey);
-console.log("[Echobird] RooCode loaded: model="+_wc_cfg.modelId);
+console.log("[EchoBird] RooCode loaded: model="+_wc_cfg.modelId);
 }}
-}catch(_wc_err){console.warn("[Echobird] RooCode config error:",_wc_err.message);}}).call(this),
+}catch(_wc_err){console.warn("[EchoBird] RooCode config error:",_wc_err.message);}}).call(this),
 "#;
 
 const KILOCODE_INJECT: &str = r#"
@@ -78,9 +78,9 @@ _ctx.globalState.update("apiProvider","openai");
 _ctx.globalState.update("openAiModelId",_wc_cfg.modelId);
 if(_wc_cfg.baseUrl)_ctx.globalState.update("openAiBaseUrl",_wc_cfg.baseUrl);
 _ctx.secrets.store("openAiApiKey",_wc_cfg.apiKey);
-console.log("[Echobird] KiloCode loaded: model="+_wc_cfg.modelId);
+console.log("[EchoBird] KiloCode loaded: model="+_wc_cfg.modelId);
 }}
-}catch(_wc_err){console.warn("[Echobird] KiloCode config error:",_wc_err.message);}}).call(this),
+}catch(_wc_err){console.warn("[EchoBird] KiloCode config error:",_wc_err.message);}}).call(this),
 "#;
 
 // OpenClaw injection: ESM import style
@@ -153,11 +153,11 @@ import { homedir as _wc_homedir } from "node:os";
       }]
     };
     ocConfig.agents.defaults.model.primary = ebProviderName + "/" + wcConfig.modelId;
-    console.log("[Echobird] Injected " + apiType + " model: " + ebProviderName + "/" + wcConfig.modelId);
+    console.log("[EchoBird] Injected " + apiType + " model: " + ebProviderName + "/" + wcConfig.modelId);
 
     _wc_writeFileSync(ocConfigPath, JSON.stringify(ocConfig, null, 2), "utf-8");
   } catch (err) {
-    console.warn("[Echobird] Config injection failed:", err.message);
+    console.warn("[EchoBird] Config injection failed:", err.message);
   }
 })();
 
@@ -183,9 +183,9 @@ const CODEX_INJECT: &str = r#"
       env.OPENAI_BASE_URL = _eb_c.baseUrl;
       process.env.OPENAI_BASE_URL = _eb_c.baseUrl;
     }
-    console.log("[Echobird] Codex env injected: model=" + (_eb_c.modelId || "default"));
+    console.log("[EchoBird] Codex env injected: model=" + (_eb_c.modelId || "default"));
   }
-} catch(_e) { console.warn("[Echobird] Codex inject error:", _e.message); } })();
+} catch(_e) { console.warn("[EchoBird] Codex inject error:", _e.message); } })();
 "#;
 
 // ─── Installation Directories ───
@@ -524,9 +524,9 @@ const OPENCODE_INJECT: &str = r#"
     if (_eb_c.modelId) {
       process.env.OPENCODE_CONFIG_CONTENT = JSON.stringify({model: _eb_provId + "/" + _eb_c.modelId, small_model: _eb_provId + "/" + _eb_c.modelId});
     }
-    console.log("[Echobird] OpenCode configured: model=" + _eb_provId + "/" + (_eb_c.modelId || "default"));
+    console.log("[EchoBird] OpenCode configured: model=" + _eb_provId + "/" + (_eb_c.modelId || "default"));
   }
-} catch(_e) { console.warn("[Echobird] OpenCode inject error:", _e.message); } })();
+} catch(_e) { console.warn("[EchoBird] OpenCode inject error:", _e.message); } })();
 "#;
 
 /// Patch OpenCode CLI tool
