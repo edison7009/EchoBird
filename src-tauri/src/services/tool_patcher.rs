@@ -84,6 +84,8 @@ console.log("[Echobird] KiloCode loaded: model="+_wc_cfg.modelId);
 "#;
 
 // OpenClaw injection: ESM import style
+// Compatible with OpenClaw v2026.3.11+: removed deprecated auth/authHeader fields,
+// added required input/reasoning fields to model objects.
 const OPENCLAW_INJECT: &str = r#"
 /* [Echobird-Patched] */
 import { readFileSync as _wc_readFileSync, writeFileSync as _wc_writeFileSync, existsSync as _wc_existsSync, mkdirSync as _wc_mkdirSync } from "node:fs";
@@ -140,13 +142,13 @@ import { homedir as _wc_homedir } from "node:os";
       baseUrl: baseUrl,
       apiKey: wcConfig.apiKey,
       api: apiType,
-      auth: "api-key",
-      authHeader: true,
       models: [{
         id: wcConfig.modelId,
         name: wcConfig.modelName || wcConfig.modelId,
         contextWindow: 128000,
         maxTokens: 8192,
+        input: ["text"],
+        reasoning: false,
         cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 }
       }]
     };

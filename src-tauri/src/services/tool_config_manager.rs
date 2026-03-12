@@ -344,14 +344,14 @@ fn apply_easyclaw(model_info: &ModelInfo) -> ApplyResult {
                 "baseUrl": base_url,
                 "apiKey": api_key,
                 "api": api_type,
-                "auth": "api-key",
-                "authHeader": true,
                 "models": [{
                     "id": model_id,
                     "name": model_info.name.as_deref().unwrap_or(model_id),
-                    "api": api_type,
                     "contextWindow": 128000,
-                    "maxTokens": 8192
+                    "maxTokens": 8192,
+                    "input": ["text"],
+                    "reasoning": false,
+                    "cost": { "input": 0, "output": 0, "cacheRead": 0, "cacheWrite": 0 }
                 }]
             }));
         }
@@ -362,14 +362,14 @@ fn apply_easyclaw(model_info: &ModelInfo) -> ApplyResult {
                 "baseUrl": base_url,
                 "apiKey": api_key,
                 "api": api_type,
-                "auth": "api-key",
-                "authHeader": true,
                 "models": [{
                     "id": model_id,
                     "name": model_info.name.as_deref().unwrap_or(model_id),
-                    "api": api_type,
                     "contextWindow": 128000,
-                    "maxTokens": 8192
+                    "maxTokens": 8192,
+                    "input": ["text"],
+                    "reasoning": false,
+                    "cost": { "input": 0, "output": 0, "cacheRead": 0, "cacheWrite": 0 }
                 }]
             }
         });
