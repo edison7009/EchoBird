@@ -123,20 +123,58 @@
             color: var(--neon)
         }
 
-        .lang-sel {
-            background: var(--bg2);
+        .lang-wrap {
+            position: relative
+        }
+
+        .lang-btn {
+            background: rgba(0, 255, 157, .06);
             color: var(--neon);
-            border: 1px solid var(--border);
-            border-radius: 4px;
-            padding: 3px 6px;
+            border: 1px solid rgba(0, 255, 157, .25);
+            border-radius: 6px;
+            padding: 5px 10px;
             font-size: 12px;
             font-family: var(--mono);
             cursor: pointer;
-            outline: none
+            white-space: nowrap;
+            transition: border-color .2s, color .2s
         }
 
-        .lang-sel option {
+        .lang-btn:hover {
+            border-color: var(--neon)
+        }
+
+        .lang-drop {
+            display: none;
+            position: absolute;
+            right: 0;
+            top: calc(100% + 6px);
             background: var(--bg2);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            min-width: 110px;
+            z-index: 9999;
+            overflow: hidden
+        }
+
+        .lang-drop.open {
+            display: block
+        }
+
+        .lang-opt {
+            padding: 9px 14px;
+            font-size: 13px;
+            font-family: var(--mono);
+            cursor: pointer;
+            color: var(--white);
+            transition: background .15s
+        }
+
+        .lang-opt:hover {
+            background: rgba(0, 255, 157, .07)
+        }
+
+        .lang-opt.active {
             color: var(--neon)
         }
 
@@ -781,7 +819,7 @@
                 grid-template-columns: 1fr
             }
 
-            .nav-r a:not(.lang-sel) {
+            .nav-r a:not(.lang-btn) {
                 display: none
             }
 
@@ -809,19 +847,22 @@
             <a href="#download" data-i18n="nav_download">Download</a>
             <a href="/free-models" data-i18n="nav_free_models">Today's Free Models</a>
             <a href="https://github.com/edison7009/Echobird-MotherAgent" target="_blank">GitHub</a>
-            <select class="lang-sel" id="lang-sel">
-                <option value="en">EN</option>
-                <option value="zh-CN">中文</option>
-                <option value="zh-TW">繁體</option>
-                <option value="ja">日本語</option>
-                <option value="ko">한국어</option>
-                <option value="es">ES</option>
-                <option value="fr">FR</option>
-                <option value="de">DE</option>
-                <option value="pt">PT</option>
-                <option value="ru">RU</option>
-                <option value="ar">عربي</option>
-            </select>
+            <div class="lang-wrap">
+                <button class="lang-btn" id="langBtn">🌐 EN</button>
+                <div class="lang-drop" id="langDrop">
+                    <div class="lang-opt" data-lang="en">English</div>
+                    <div class="lang-opt" data-lang="zh-CN">简体中文</div>
+                    <div class="lang-opt" data-lang="zh-TW">繁體中文</div>
+                    <div class="lang-opt" data-lang="ja">日本語</div>
+                    <div class="lang-opt" data-lang="ko">한국어</div>
+                    <div class="lang-opt" data-lang="es">Español</div>
+                    <div class="lang-opt" data-lang="fr">Français</div>
+                    <div class="lang-opt" data-lang="de">Deutsch</div>
+                    <div class="lang-opt" data-lang="pt">Português</div>
+                    <div class="lang-opt" data-lang="ru">Русский</div>
+                    <div class="lang-opt" data-lang="ar">عربي</div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -1363,15 +1404,32 @@
             localStorage.setItem('wc-lang', l);
         }
         document.addEventListener('DOMContentLoaded', () => {
-            const sel = document.getElementById('lang-sel');
             function detect() {
                 const s = localStorage.getItem('wc-lang'); if (s && i18n[s]) return s;
                 const n = navigator.language || 'en';
                 if (n.startsWith('zh')) return n.includes('TW') || n.includes('Hant') ? 'zh-TW' : 'zh-CN';
                 return Object.keys(i18n).find(k => n.startsWith(k)) || 'en';
             }
-            const lang = detect(); sel.value = lang; setLang(lang);
-            sel.addEventListener('change', () => setLang(sel.value));
+            const LANG_LABELS = { en: 'EN', 'zh-CN': '简体', 'zh-TW': '繁體', ja: '日本語', ko: '한국어', es: 'ES', fr: 'FR', de: 'DE', pt: 'PT', ru: 'RU', ar: 'عربي' };
+            const langBtn = document.getElementById('langBtn');
+            const langDrop = document.getElementById('langDrop');
+
+            function applyDropdown(l) {
+                langBtn.textContent = '🌐 ' + (LANG_LABELS[l] || l.toUpperCase());
+                document.querySelectorAll('.lang-opt').forEach(o => o.classList.toggle('active', o.dataset.lang === l));
+            }
+
+            const lang = detect(); setLang(lang); applyDropdown(lang);
+
+            langBtn.addEventListener('click', e => { e.stopPropagation(); langDrop.classList.toggle('open'); });
+            document.addEventListener('click', () => langDrop.classList.remove('open'));
+            document.querySelectorAll('.lang-opt').forEach(opt => {
+                opt.addEventListener('click', () => {
+                    const l = opt.dataset.lang;
+                    setLang(l); applyDropdown(l);
+                    langDrop.classList.remove('open');
+                });
+            });
 
             // ── Auto-detect version and set direct download links ──
             fetch('/api/version/index.json')
