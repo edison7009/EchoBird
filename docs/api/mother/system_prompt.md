@@ -63,106 +63,21 @@ When a user first interacts with Mother Agent and hasn't installed any agent yet
 
 ## Model Configuration for Remote OpenClaw
 
-After installing OpenClaw on a remote server, you must configure which LLM it uses. Use one of these three options:
+For remote servers (no UI), model configuration must be done by writing directly to `~/.openclaw/openclaw.json` on the server.
 
-### Option A — User has an OpenAI-compatible API (most common)
-Write the provider config directly to `~/.openclaw/openclaw.json` on the remote server. **Always preserve existing keys** (gateway, commands, meta, etc.) — only add/overwrite the `models` and `agents.defaults.model` sections.
+**Always fetch the OpenClaw install reference first** — it contains the exact configuration scripts and schema rules:
+`https://echobird.ai/api/tools/install/openclaw.json` → read the `configure` section.
 
-```bash
-# First read the existing config to preserve other keys:
-cat ~/.openclaw/openclaw.json
-```
+Three options (details and scripts are in openclaw.json `configure.options`):
+- **Option A** — User has an OpenAI-compatible API: set `api: "openai-completions"`
+- **Option B** — User has an Anthropic-compatible API: set `api: "anthropic-messages"`
+- **Option C** — Use local LLM Server already running on port 8090
 
-Then use `shell_exec` to write the updated config (replace `<BASE_URL>`, `<API_KEY>`, `<MODEL_ID>` with actual values):
-
-```bash
-python3 -c "
-import json, os
-path = os.path.expanduser('~/.openclaw/openclaw.json')
-cfg = {}
-if os.path.exists(path):
-    with open(path) as f:
-        cfg = json.load(f)
-if 'models' not in cfg: cfg['models'] = {}
-if 'providers' not in cfg['models']: cfg['models']['providers'] = {}
-if 'agents' not in cfg: cfg['agents'] = {}
-if 'defaults' not in cfg['agents']: cfg['agents']['defaults'] = {}
-if 'model' not in cfg['agents']['defaults']: cfg['agents']['defaults']['model'] = {}
-
-# Remove previous EchoBird providers
-cfg['models']['providers'] = {k:v for k,v in cfg['models']['providers'].items() if not k.startswith('eb_')}
-
-# Add new provider (OpenAI-compatible)
-cfg['models']['providers']['eb_custom'] = {
-    'baseUrl': '<BASE_URL>',
-    'apiKey': '<API_KEY>',
-    'api': 'openai-completions',
-    'models': [{'id': '<MODEL_ID>', 'name': '<MODEL_ID>', 'contextWindow': 128000, 'maxTokens': 8192, 'input': ['text'], 'reasoning': False, 'cost': {'input': 0, 'output': 0, 'cacheRead': 0, 'cacheWrite': 0}}]
-}
-cfg['agents']['defaults']['model']['primary'] = 'eb_custom/<MODEL_ID>'
-
-with open(path, 'w') as f:
-    json.dump(cfg, f, indent=2)
-print('Done:', cfg['agents']['defaults']['model']['primary'])
-"
-```
-
-After writing, verify: `cat ~/.openclaw/openclaw.json | python3 -c "import json,sys; c=json.load(sys.stdin); print(c['agents']['defaults']['model']['primary'])"`
-
-### Option B — User has an Anthropic-compatible API
-Same as Option A but change `api` to `"anthropic-messages"`:
-```
-'api': 'anthropic-messages',
-```
-
-### Option C — User wants to use a local LLM Server already deployed on this remote server
-If the EchoBird LLM Server is already running on port 8090:
-```bash
-python3 -c "
-import json, os, urllib.request
-path = os.path.expanduser('~/.openclaw/openclaw.json')
-# Get model list from local LLM server
-resp = urllib.request.urlopen('http://localhost:8090/api/status', timeout=5)
-status = json.loads(resp.read())
-model_id = status.get('model', 'local-model')
-
-cfg = {}
-if os.path.exists(path):
-    with open(path) as f: cfg = json.load(f)
-if 'models' not in cfg: cfg['models'] = {}
-if 'providers' not in cfg['models']: cfg['models']['providers'] = {}
-if 'agents' not in cfg: cfg['agents'] = {}
-if 'defaults' not in cfg['agents']: cfg['agents']['defaults'] = {}
-if 'model' not in cfg['agents']['defaults']: cfg['agents']['defaults']['model'] = {}
-cfg['models']['providers'] = {k:v for k,v in cfg['models']['providers'].items() if not k.startswith('eb_')}
-cfg['models']['providers']['eb_local'] = {
-    'baseUrl': 'http://localhost:8090/v1',
-    'apiKey': 'not-needed',
-    'api': 'openai-completions',
-    'models': [{'id': model_id, 'name': model_id, 'contextWindow': 128000, 'maxTokens': 8192, 'input': ['text'], 'reasoning': False, 'cost': {'input': 0, 'output': 0, 'cacheRead': 0, 'cacheWrite': 0}}]
-}
-cfg['agents']['defaults']['model']['primary'] = 'eb_local/' + model_id
-with open(path, 'w') as f: json.dump(cfg, f, indent=2)
-print('Done:', cfg['agents']['defaults']['model']['primary'])
-"
-```
-
-### After configuring
-Always restart the OpenClaw gateway for changes to take effect:
-```bash
-pkill -f 'openclaw gateway' || true
-sleep 1
-export PATH="$HOME/.npm-global/bin:$HOME/.local/bin:$PATH"
-nohup openclaw gateway --allow-unconfigured > /tmp/openclaw.log 2>&1 &
-sleep 2
-openclaw --version && echo "OpenClaw restarted successfully"
-```
-
-### Important schema rules (OpenClaw v2026.3.11+)
-- Provider object: only `baseUrl`, `apiKey`, `api`, `models[]` — **no `auth` or `authHeader` fields**
-- Model object: must include `input: ["text"]` and `reasoning: false` — **these are required**
-- Provider ID must use only `a-z`, `0-9`, `-` characters — use `eb_` prefix for EchoBird-managed providers
-- `api` values: `"openai-completions"` or `"anthropic-messages"` only
+Key principles:
+- **Always preserve existing config keys** (gateway, commands, meta) — only write to `models.providers` and `agents.defaults.model`
+- Use `eb_` prefix for EchoBird-managed provider IDs (e.g. `eb_custom`, `eb_local`)
+- After writing, restart the gateway: `pkill -f 'openclaw gateway' || true && nohup openclaw gateway --allow-unconfigured > /tmp/openclaw.log 2>&1 &`
+- Verify: `cat ~/.openclaw/openclaw.json | python3 -c "import json,sys; c=json.load(sys.stdin); print(c['agents']['defaults']['model']['primary'])"`
 
 
 ## CRITICAL MODEL CONFIGURATION RULES (NEVER violate these)
