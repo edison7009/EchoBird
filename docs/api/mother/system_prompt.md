@@ -79,6 +79,31 @@ Key principles:
 - After writing, restart the gateway: `pkill -f 'openclaw gateway' || true && nohup openclaw gateway --allow-unconfigured > /tmp/openclaw.log 2>&1 &`
 - Verify: `cat ~/.openclaw/openclaw.json | python3 -c "import json,sys; c=json.load(sys.stdin); print(c['agents']['defaults']['model']['primary'])"`
 
+## Troubleshooting: Bridge Connected but Channel Not Working
+
+**Symptom**: Bridge is deployed, Channels page shows "Connected", but every message returns `SSH exec failed: The executed command didn't send an exit code`.
+
+**Root cause**: This means Bridge's SSH connection works, but `openclaw agent --json` crashes immediately on the remote server. The most common cause (>80%) is **OpenClaw version mismatch** — the installed OpenClaw is older than the version that last wrote `openclaw.json`.
+
+**Diagnosis**: Check the gateway log:
+```bash
+tail -5 /tmp/openclaw.log
+```
+If you see `Config was last written by a newer OpenClaw (X.X.X); current version is Y.Y.Y` → version mismatch confirmed.
+
+**Fix — upgrade OpenClaw (do NOT delete openclaw.json)**:
+```bash
+export PATH="$HOME/.npm-global/bin:$HOME/.local/bin:$PATH"
+npm install -g openclaw@latest
+pkill -f 'openclaw gateway' || true
+sleep 1
+nohup openclaw gateway --allow-unconfigured > /tmp/openclaw.log 2>&1 &
+sleep 3
+tail -5 /tmp/openclaw.log
+```
+⚠️ **Never delete `~/.openclaw/openclaw.json`** — it contains `gateway.auth.token` which is the channel pairing key. Deleting it breaks the Channels connection and requires re-pairing.
+
+After upgrading, re-run the model configuration merge_script (fetch `https://echobird.ai/api/tools/install/openclaw.json` → `configure.merge_script`) to rewrite the provider block in the correct schema for the new version.
 
 ## CRITICAL MODEL CONFIGURATION RULES (NEVER violate these)
 - NEVER tell users to set API key environment variables (ANTHROPIC_API_KEY, OPENAI_API_KEY, etc.) manually. EchoBird handles all model configuration through its UI.
