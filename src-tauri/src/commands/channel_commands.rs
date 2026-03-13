@@ -10,18 +10,68 @@ use std::io::{BufRead, BufReader, Write};
 use std::process::{Child, ChildStdin, ChildStdout, Command, Stdio};
 use std::sync::Mutex;
 
-/// Check if a port is already in use, with retry for race conditions.
-/// OpenClaw Gateway may register as a scheduled task and take a moment to bind.
+/// Check if a port is already in use (TCP connect check).
 fn is_port_in_use(port: u16) -> bool {
     let addr: std::net::SocketAddr = format!("127.0.0.1:{}", port).parse().unwrap();
-    // First attempt: 500ms timeout
     if std::net::TcpStream::connect_timeout(&addr, std::time::Duration::from_millis(500)).is_ok() {
         return true;
     }
-    // Second attempt: wait a bit then retry (gateway may still be binding)
-    std::thread::sleep(std::time::Duration::from_millis(800));
-    std::net::TcpStream::connect_timeout(&addr, std::time::Duration::from_millis(500)).is_ok()
+    // Also try localhost (resolves to ::1 on some systems)
+    let addr6: std::net::SocketAddr = format!("[::1]:{}", port).parse().unwrap();
+    if std::net::TcpStream::connect_timeout(&addr6, std::time::Duration::from_millis(300)).is_ok() {
+        return true;
+    }
+    false
 }
+
+/// Check if the OpenClaw gateway is already running — port check + process name fallback.
+/// Handles cases where gateway listens on IPv6-only or a different loopback interface.
+fn is_openclaw_gateway_running() -> bool {
+    // Primary: fast port check on both IPv4 and IPv6 loopback
+    if is_port_in_use(18789) {
+        return true;
+    }
+    // Retry once after a short wait (gateway may still be binding)
+    std::thread::sleep(std::time::Duration::from_millis(800));
+    if is_port_in_use(18789) {
+        return true;
+    }
+    // Secondary: process name check — catches cases where port detection fails
+    // (e.g. OpenClaw listening on a non-loopback interface, or IPv6-only)
+    #[cfg(target_os = "windows")]
+    {
+        // wmic covers Node-based CLI tools where the process is node.exe
+        if let Ok(out) = Command::new("wmic")
+            .args(["process", "where", "commandline like '%openclaw%gateway%'", "get", "processid", "/format:value"])
+            .output()
+        {
+            let text = String::from_utf8_lossy(&out.stdout);
+            if text.lines().any(|l| l.trim_start().starts_with("ProcessId=") && l.trim() != "ProcessId=") {
+                log::info!("[Bridge] OpenClaw gateway detected via process list (wmic)");
+                return true;
+            }
+        }
+        // Fallback: tasklist for native binary installs
+        if let Ok(out) = Command::new("tasklist").args(["/FO", "CSV", "/NH"]).output() {
+            let text = String::from_utf8_lossy(&out.stdout).to_lowercase();
+            if text.contains("openclaw") {
+                log::info!("[Bridge] OpenClaw process detected via tasklist");
+                return true;
+            }
+        }
+    }
+    #[cfg(not(target_os = "windows"))]
+    {
+        if let Ok(out) = Command::new("pgrep").args(["-f", "openclaw.*gateway"]).output() {
+            if out.status.success() && !out.stdout.is_empty() {
+                log::info!("[Bridge] OpenClaw gateway detected via pgrep");
+                return true;
+            }
+        }
+    }
+    false
+}
+
 
 // ── Channel Config (persistence) ──
 
@@ -121,10 +171,8 @@ fn start_bridge_internal(plugin_id: &str) -> Result<BridgeStartResult, String> {
     if let Some(cli) = &plugin.cli {
         let gateway_command = format!("{} gateway --allow-unconfigured", cli.command);
 
-        // Check if gateway is already running by testing its port
-        // Use longer timeout + retry because the gateway may still be starting
-        // (e.g. when registered as a Windows scheduled task at boot)
-        let already_running = is_port_in_use(18789);
+        // Check if gateway is already running — port check + process name fallback
+        let already_running = is_openclaw_gateway_running();
 
         if already_running {
             log::info!("[Bridge] OpenClaw Gateway already running on port 18789, skipping launch");
@@ -135,12 +183,12 @@ fn start_bridge_internal(plugin_id: &str) -> Result<BridgeStartResult, String> {
             {
                 use std::os::windows::process::CommandExt;
                 const CREATE_NEW_PROCESS_GROUP: u32 = 0x00000200;
-                const CREATE_NEW_CONSOLE: u32 = 0x00000010;
+                const CREATE_NO_WINDOW: u32 = 0x08000000; // Silent background — no visible console
                 let mut cmd = Command::new("cmd");
                 cmd.args(["/C", &gateway_command]);
-                cmd.creation_flags(CREATE_NEW_PROCESS_GROUP | CREATE_NEW_CONSOLE);
+                cmd.creation_flags(CREATE_NEW_PROCESS_GROUP | CREATE_NO_WINDOW);
                 match cmd.spawn() {
-                    Ok(_) => log::info!("[Bridge] OpenClaw Gateway launched (Windows)"),
+                    Ok(_) => log::info!("[Bridge] OpenClaw Gateway launched silently (Windows)"),
                     Err(e) => log::warn!("[Bridge] Could not launch Gateway: {}", e),
                 }
             }
