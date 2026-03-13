@@ -341,16 +341,28 @@ async fn detect_tool(pc: &PathsConfig) -> Option<String> {
         }
     }
 
-    // 5. Detect by config directory existence (GUI desktop apps)
+    // 5. Detect by config directory existence (GUI desktop apps without fixed install location)
+    // Guard: if platform paths are defined but NONE exist (step 3 already checked),
+    // the app was uninstalled — config dir alone is not a reliable signal.
     if pc.detect_by_config_dir && !pc.config_dir.is_empty() {
         let config_dir = expand_path(&pc.config_dir);
         if config_dir.exists() {
-            log::info!(
-                "[{}] Config directory found: {:?}, treated as installed",
-                pc.name,
-                config_dir
-            );
-            return Some(config_dir.to_string_lossy().to_string());
+            let platform_paths = get_platform_paths(&pc.paths);
+            if !platform_paths.is_empty() {
+                // Platform paths are defined but none were found in step 3 → app uninstalled
+                log::info!(
+                    "[{}] Config directory exists but no executable found — app likely uninstalled, skipping",
+                    pc.name
+                );
+            } else {
+                // No platform paths defined — config dir is the only detection signal (e.g. purely config-based tools)
+                log::info!(
+                    "[{}] Config directory found: {:?}, treated as installed",
+                    pc.name,
+                    config_dir
+                );
+                return Some(config_dir.to_string_lossy().to_string());
+            }
         }
     }
 
