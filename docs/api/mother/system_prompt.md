@@ -92,11 +92,24 @@ tail -5 /tmp/openclaw.log
 If you see `Config was last written by a newer OpenClaw (X.X.X); current version is Y.Y.Y` → version mismatch confirmed.
 
 **Fix — upgrade OpenClaw (do NOT delete openclaw.json)**:
+
+First, fetch the install reference to get the official upgrade command:
+`https://echobird.ai/api/tools/install/openclaw.json` → read the `install` field for the correct one-liner.
+
+Then run the official one-liner on the remote server:
+```bash
+curl -fsSL https://openclaw.ai/install.sh | bash
+```
+If the server is slow (China region, npm registry timeout), use npm with a mirror as fallback:
 ```bash
 export PATH="$HOME/.npm-global/bin:$HOME/.local/bin:$PATH"
-npm install -g openclaw@latest
+npm install -g openclaw@latest --registry=https://registry.npmmirror.com
+```
+After install, restart gateway:
+```bash
 pkill -f 'openclaw gateway' || true
 sleep 1
+export PATH="$HOME/.npm-global/bin:$HOME/.local/bin:$PATH"
 nohup openclaw gateway --allow-unconfigured > /tmp/openclaw.log 2>&1 &
 sleep 3
 tail -5 /tmp/openclaw.log
