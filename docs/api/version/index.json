@@ -1,1 +1,1 @@
-{"version":"2.8.4","releaseDate":"2026-03-13","releaseNotes":"Added QClaw tool support; fixed channel remote process accumulation; improved OpenClaw gateway detection; remote LLM panel defaults to collapsed; bridge auto-start no longer opens CLI window"}
+{"version":"2.8.5","releaseDate":"2026-03-14","releaseNotes":"Remove EasyClaw support (model override protection prevents external configuration)"}
