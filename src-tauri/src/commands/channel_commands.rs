@@ -678,8 +678,10 @@ pub async fn bridge_chat_remote(
     // Execute via SSH: pipe JSON into bridge binary with --command.
     // First kill any stale echobird-bridge processes left over from a previous
     // timed-out session — SSH disconnect does not always SIGHUP child processes.
+    // Also kill any orphaned 'openclaw agent --json' processes left by previous bridge sessions.
+    // Use precise pattern to avoid killing user's intentional 'openclaw gateway' process.
     let cmd = format!(
-        "pkill -f 'echobird-bridge' 2>/dev/null; sleep 0.2; export PATH=\"$HOME/.npm-global/bin:$HOME/.local/bin:$HOME/.cargo/bin:$PATH\" && echo '{}' | ~/echobird/echobird-bridge --command '{}' 2>/dev/null",
+        "pkill -f 'echobird-bridge' 2>/dev/null; pkill -f 'openclaw.*agent.*--json' 2>/dev/null; sleep 0.3; export PATH=\"$HOME/.npm-global/bin:$HOME/.local/bin:$HOME/.cargo/bin:$PATH\" && echo '{}' | ~/echobird/echobird-bridge --command '{}' 2>/dev/null",
         escaped, agent_command
     );
 
