@@ -1,4 +1,4 @@
-﻿// Agent Loop — the core ReAct loop (Reason → Act → Observe → Repeat)
+// Agent Loop — the core ReAct loop (Reason → Act → Observe → Repeat)
 // Messages are streamed to the frontend via Tauri events.
 
 use serde::{Deserialize, Serialize};
@@ -552,7 +552,6 @@ pub async fn run_agent(
                 r = agent_tools::execute_tool(&tc.name, &tc.arguments, &ssh_pool, &request.server_ids) => (r, false),
                 _ = cancel_token.cancelled() => {
                     log::info!("[AgentLoop] Tool cancelled by user: {}", tc.name);
-                    emit_event(&app, AgentEvent::Error { message: "Cancelled by user".into() });
                     (agent_tools::ToolResult { output: "Cancelled by user".to_string(), success: false }, true)
                 }
             };
