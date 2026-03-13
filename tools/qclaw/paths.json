@@ -1,0 +1,26 @@
+{
+    "name": "QClaw",
+    "category": "AgentOS",
+    "apiProtocol": [
+        "openai",
+        "anthropic"
+    ],
+    "docs": "https://qclaw.ai",
+    "configDir": "~/.qclaw",
+    "configFile": "~/.qclaw/openclaw.json",
+    "requireConfigFile": false,
+    "detectByConfigDir": true,
+    "paths": {
+        "win32": [
+            "%ProgramFiles%/QClaw/QClaw.exe",
+            "%LOCALAPPDATA%/Programs/QClaw/QClaw.exe"
+        ],
+        "darwin": [
+            "/Applications/QClaw.app/Contents/MacOS/QClaw"
+        ],
+        "linux": [
+            "/usr/local/bin/qclaw",
+            "/usr/bin/qclaw"
+        ]
+    }
+}

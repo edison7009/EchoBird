@@ -1,0 +1,6 @@
+{
+    "docs": "https://qclaw.ai",
+    "configFile": "~/.qclaw/openclaw.json",
+    "format": "json",
+    "custom": true
+}
