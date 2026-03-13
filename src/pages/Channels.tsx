@@ -387,23 +387,29 @@ export const Channels: React.FC = () => {
     const [showRemoteLlm, setShowRemoteLlm] = useState(false);
     const [remoteLlmReachable, setRemoteLlmReachable] = useState(false);
     const [remoteLlmRunning, setRemoteLlmRunning] = useState(false);
-    const [remoteLlmCollapsed, setRemoteLlmCollapsed] = useState(false);
+    const [remoteLlmCollapsed, setRemoteLlmCollapsed] = useState(true);
 
     // Check remote LLM API reachability + running status — poll every 15s
     useEffect(() => {
         // Reset immediately on channel switch — prevents stale status from previous channel
         setRemoteLlmReachable(false);
         setRemoteLlmRunning(false);
+        setRemoteLlmCollapsed(true); // Default collapsed; auto-expands only if deployed
         if (!activeChannel || isLocal) return;
         const remoteIp = (activeChannel.address || '').split('@')[1] || activeChannel.address || '';
         if (!remoteIp) return;
         let cancelled = false;
+        let didAutoExpand = false; // Expand once on first successful detection; ignore subsequent polls
         const check = async () => {
             try {
                 const res = await fetch(`http://${remoteIp}:8090/api/status`, { signal: AbortSignal.timeout(3000) });
                 if (!cancelled) {
                     setRemoteLlmReachable(res.ok);
                     if (res.ok) {
+                        if (!didAutoExpand) {
+                            setRemoteLlmCollapsed(false); // Auto-expand: LLM is deployed
+                            didAutoExpand = true;
+                        }
                         const data = await res.json().catch(() => ({}));
                         setRemoteLlmRunning(!!data.running);
                     } else {
