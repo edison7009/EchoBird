@@ -1,1 +1,1 @@
-{"version": "2.8.3","releaseDate": "2026-03-12","releaseNotes": "Fix OpenClaw v2026.3.11 provider schema compatibility — model switching now works correctly with the latest OpenClaw security update."}
+{"version":"2.8.4","releaseDate":"2026-03-13","releaseNotes":"Added QClaw tool support; fixed channel remote process accumulation; improved OpenClaw gateway detection; remote LLM panel defaults to collapsed; bridge auto-start no longer opens CLI window"}
