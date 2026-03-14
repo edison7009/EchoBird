@@ -60,14 +60,15 @@ function ReadonlyChips({ chips }: { chips: BubbleChip[] }) {
 
 // ── Animated streaming dots ───────────────────────────────────────────────────
 function InputDots({ dark }: { dark?: boolean }) {
+    const col = dark ? '#888' : '#DED9D2';
     return (
         <span className="inline-flex items-center gap-2">
-            <span className={`font-mono text-sm ${dark ? 'text-gray-400' : 'text-cyber-text-muted/50'}`}>输入中</span>
+            <span className="font-sans font-semibold text-sm" style={{ color: col }}>输入中</span>
             <span className="inline-flex gap-[3px]">
                 {[0,1,2].map(i => (
                     <span key={i}
-                        className={`inline-block w-1.5 h-1.5 rounded-full ${dark ? 'bg-gray-400' : 'bg-cyber-text-muted/50'}`}
-                        style={{ animation: 'dotPulse 1.2s ease-in-out infinite', animationDelay: `${i * 0.2}s` }}
+                        className="inline-block w-1.5 h-1.5 rounded-full"
+                        style={{ backgroundColor: col, animation: 'dotPulse 1.2s ease-in-out infinite', animationDelay: `${i * 0.2}s` }}
                     />
                 ))}
             </span>
