@@ -1,49 +1,48 @@
 // TerminalStatusBar — ticker tape pseudo-terminal strip
-// Text scrolls continuously from right to left (marquee) while AI is working.
-// Speed adjusts by text length so short tool names fly by fast, long text still readable.
+// Content scrolls continuously from left to left (doubling creates seamless loop).
+// No content → "思考中" dotPulse idle.
 
 interface TerminalStatusBarProps {
-    /** Name of the tool currently being called */
-    toolName?: string;
-    /** Intermediate assistant text (working text before final <chat> reply) */
-    textContent?: string;
-    /** Whether the strip is visible (controlled by showProcess toggle) */
-    isVisible: boolean;
-    /** Whether AI is currently processing */
-    isProcessing: boolean;
+    toolName?: string;       // tool currently being called
+    textContent?: string;    // intermediate assistant text (before <chat> reply)
+    isVisible: boolean;      // showProcess toggle
+    isProcessing: boolean;   // AI is running
 }
 
 export function TerminalStatusBar({ toolName, textContent, isVisible, isProcessing }: TerminalStatusBarProps) {
     if (!isVisible || !isProcessing) return null;
 
-    // Priority: tool name > working text
-    const hasContent = toolName || textContent;
     const label = toolName ? `⚡ ${toolName}` : textContent || '';
+    const hasContent = label.length > 0;
 
-    // Speed: shorter text = faster scroll (more thrilling), long text = readable
-    // base 4s for ~40 chars, scales up. Min 2s, max 8s.
-    const duration = hasContent
-        ? `${Math.min(8, Math.max(2, label.length * 0.1))}s`
-        : undefined;
+    // Speed: short text scrolls faster (more exciting), long text slower but readable
+    // 20 chars → ~2.5s, 80 chars → ~5s, capped 2-8s
+    const duration = `${Math.min(8, Math.max(2, label.length * 0.06 + 1.5)).toFixed(1)}s`;
+
+    const textColor = toolName ? '#5ecfff' : 'rgba(180,210,255,0.5)';
 
     return (
-        <div className="h-7 overflow-hidden relative flex items-center bg-cyber-terminal/50 border-t border-cyber-border/10 select-none">
+        <div className="h-7 flex items-center overflow-hidden bg-cyber-terminal/50 border-t border-cyber-border/10 select-none">
             {hasContent ? (
-                // Marquee: text scrolls right → left continuously
-                <span
-                    key={label}                    // remount = restart animation on new content
-                    className="marquee-text text-xs font-mono"
-                    style={{
-                        '--marquee-duration': duration,
-                        color: toolName ? 'rgba(var(--color-cyber-accent-secondary), 0.8)' : 'rgba(200,220,255,0.55)',
-                    } as React.CSSProperties}
-                >
-                    {label}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{label}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{label}
-                </span>
+                // Overflow container — clips the scrolling text
+                <div className="flex-1 overflow-hidden h-full flex items-center">
+                    {/* Doubled label for seamless -50% loop */}
+                    <span
+                        key={label}
+                        className="marquee-text text-xs font-mono"
+                        style={{
+                            '--marquee-duration': duration,
+                            color: textColor,
+                        } as React.CSSProperties}
+                    >
+                        {label}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                        {label}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                    </span>
+                </div>
             ) : (
-                // Idle: dotPulse animated dots
+                // Idle: "思考中" + dotPulse dots
                 <span className="inline-flex items-center gap-0.5 px-3">
-                    <span className="text-cyber-text-muted/50 text-xs font-mono mr-1">输入中</span>
+                    <span className="text-cyber-text-muted/50 text-xs font-mono mr-1">思考中</span>
                     {[0, 1, 2].map(i => (
                         <span
                             key={i}

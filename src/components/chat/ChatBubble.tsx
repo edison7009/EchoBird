@@ -142,7 +142,7 @@ export function ChatBubble({ role, content, variant, chips = [], isStreaming = f
             <div className="flex justify-start mb-4">
                 <div className="max-w-[75%] bg-cyber-bg/80 rounded-2xl rounded-tl-sm px-4 py-3 text-sm text-cyber-text leading-relaxed">
                     {(isStreaming && !finalText)
-                        ? <StreamingDots />
+                        ? <span className="text-cyber-text-muted/50 font-mono tracking-wider">输入中<span className="animate-pulse">...</span></span>
                         : <div className="break-words channel-markdown">
                             <ReactMarkdown remarkPlugins={[remarkGfm]} components={mdComponents}>{finalText}</ReactMarkdown>
                           </div>

@@ -264,10 +264,10 @@ pre {
   animation: slideFromRight 0.2s ease-out forwards;
 }
 
-/* TerminalStatusBar — ticker tape marquee (right → left continuous) */
+/* TerminalStatusBar — ticker tape marquee (continuous left scroll, seamless loop) */
 @keyframes marqueeFlow {
-  0%   { transform: translateX(60%); }
-  100% { transform: translateX(-100%); }
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
 }
 
 .marquee-text {
