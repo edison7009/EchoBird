@@ -152,7 +152,7 @@ export function ChatBubble({ role, content, variant, chips = [], isStreaming = f
     // ── User bubble (right) — solid color, dark text ──
     return (
         <div className="flex flex-col items-end mb-4">
-            <div className={`max-w-[75%] rounded-2xl rounded-tr-sm px-4 py-3 text-sm leading-relaxed whitespace-pre-wrap break-words font-medium ${USER_BUBBLE[variant]}`}>
+            <div className={`max-w-[75%] rounded-2xl rounded-tr-sm px-4 py-3 text-sm leading-relaxed whitespace-pre-wrap break-words font-sans font-semibold ${USER_BUBBLE[variant]}`}>
                 {content}
             </div>
             {chips.length > 0 && <ReadonlyChips chips={chips} />}
