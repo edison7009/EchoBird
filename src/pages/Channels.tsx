@@ -1,9 +1,9 @@
 // Channels — OpenClaw agent chat interface (bridge CLI + SSH)
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Send, CornerDownLeft, X, Square, Paperclip, Image as ImageIcon, Trash2, KeyRound, Zap, Server, ChevronsDown } from 'lucide-react';
+import { Send, CornerDownLeft, X, Square, Paperclip, Image as ImageIcon, Trash2, KeyRound, Zap, Server, ChevronsDown, ChevronLeft, ChevronRight } from 'lucide-react';
 import { MiniSelect } from '../components/MiniSelect';
-import { RemoteLlmModal } from '../components/RemoteLlmModal';
 import { getModelIcon } from '../components/cards/ModelCard';
+import { PendingChipsRow } from '../components/PendingChipsRow';
 import { useChannelGateway, useGatewayManager } from '../contexts/GatewayContext';
 import { useI18n } from '../hooks/useI18n';
 import * as api from '../api/tauri';
@@ -219,7 +219,7 @@ export const Channels: React.FC = () => {
     const [input, setInput] = useState('');
     const [arrowIndex, setArrowIndex] = useState(0);
     const [attachments, setAttachments] = useState<Attachment[]>([]);
-    const [selectedModel, setSelectedModel] = useState<ModelConfig | null>(null);
+    const [pendingModels, setPendingModels] = useState<Array<{ id: string; name: string; modelId?: string }>>([]);
     const [showModelPicker, setShowModelPicker] = useState(false);
     const [modelList, setModelList] = useState<ModelConfig[]>([]);
     const [remoteCopied, setRemoteCopied] = useState('');
@@ -228,6 +228,9 @@ export const Channels: React.FC = () => {
     const [showSkillsPicker, setShowSkillsPicker] = useState(false);
     const [skillsFavorites, setSkillsFavorites] = useState<Array<{ id: string; name: string; github: string }>>([]);
     const skillsPickerRef = useRef<HTMLDivElement>(null);
+    const [skillsPage, setSkillsPage] = useState(0);
+    const SKILLS_PER_PAGE_CH = 4;
+    const [pendingSkills, setPendingSkills] = useState<Array<{ id: string; name: string; github: string; branch: string }>>([]);
     // Process toggle (show/hide tool calls and thinking)
     const [showProcess, setShowProcess] = useState(true);
 
@@ -384,46 +387,6 @@ export const Channels: React.FC = () => {
     }, [activeId]);
 
     // Switch channel (view only, no disconnect)
-    const [showRemoteLlm, setShowRemoteLlm] = useState(false);
-    const [remoteLlmReachable, setRemoteLlmReachable] = useState(false);
-    const [remoteLlmRunning, setRemoteLlmRunning] = useState(false);
-    const [remoteLlmCollapsed, setRemoteLlmCollapsed] = useState(true);
-
-    // Check remote LLM API reachability + running status — poll every 15s
-    useEffect(() => {
-        // Reset immediately on channel switch — prevents stale status from previous channel
-        setRemoteLlmReachable(false);
-        setRemoteLlmRunning(false);
-        setRemoteLlmCollapsed(true); // Default collapsed; auto-expands only if deployed
-        if (!activeChannel || isLocal) return;
-        const remoteIp = (activeChannel.address || '').split('@')[1] || activeChannel.address || '';
-        if (!remoteIp) return;
-        let cancelled = false;
-        let didAutoExpand = false; // Expand once on first successful detection; ignore subsequent polls
-        const check = async () => {
-            try {
-                const res = await fetch(`http://${remoteIp}:8090/api/status`, { signal: AbortSignal.timeout(3000) });
-                if (!cancelled) {
-                    setRemoteLlmReachable(res.ok);
-                    if (res.ok) {
-                        if (!didAutoExpand) {
-                            setRemoteLlmCollapsed(false); // Auto-expand: LLM is deployed
-                            didAutoExpand = true;
-                        }
-                        const data = await res.json().catch(() => ({}));
-                        setRemoteLlmRunning(!!data.running);
-                    } else {
-                        setRemoteLlmRunning(false);
-                    }
-                }
-            } catch {
-                if (!cancelled) { setRemoteLlmReachable(false); setRemoteLlmRunning(false); }
-            }
-        };
-        check();
-        const interval = setInterval(check, 15000);
-        return () => { cancelled = true; clearInterval(interval); };
-    }, [activeId, activeChannel, isLocal]);
     const selectChannel = useCallback((id: number) => {
         if (id === activeId) return;
         setActiveId(id);
@@ -601,7 +564,7 @@ export const Channels: React.FC = () => {
                         const name = skillData
                             ? ((tr && tr.locale === locale && tr.n) ? tr.n : (skillData.n || skillData.name || id))
                             : id;
-                        return { id, name, github: skillData?.i || id };
+                        return { id, name, github: skillData?.i || id, branch: skillData?.b || 'main' };
                     });
                     setSkillsFavorites(skills);
                 } else {
@@ -609,6 +572,7 @@ export const Channels: React.FC = () => {
                 }
             } catch { setSkillsFavorites([]); }
         }
+        if (showSkillsPicker) setSkillsPage(0);
         setShowSkillsPicker(prev => !prev);
     }, [showSkillsPicker, locale]);
 
@@ -644,16 +608,35 @@ export const Channels: React.FC = () => {
         if (!activeId) return;
         if (!canSendMessage) return;
         if (bridgeLoading) return;
-        if (!input.trim() && attachments.length === 0 && !selectedModel) return;
+        if (!input.trim() && attachments.length === 0 && pendingModels.length === 0 && pendingSkills.length === 0) return;
         let text = input.trim();
-        // Append model config as text
-        if (selectedModel) {
-            const modelText = formatModelText(selectedModel);
-            text = text ? `${text}\n\n${modelText}` : modelText;
+        // Append model configs as text
+        if (pendingModels.length > 0) {
+            const modelInfo = pendingModels.map(pm => {
+                const md = modelList.find(m => m.internalId === pm.id);
+                if (!md) return `[MODEL CONFIG]\nName: ${pm.name}\n[/MODEL CONFIG]`;
+                const lines = ['[MODEL CONFIG]', `Name: ${md.name}`, `Model: ${md.modelId || 'N/A'}`, `Base URL: ${md.baseUrl}`];
+                if (md.anthropicUrl) lines.push(`Anthropic URL: ${md.anthropicUrl}`);
+                lines.push(`API Key: ${md.apiKey}`);
+                if (md.proxyUrl) lines.push(`Proxy URL: ${md.proxyUrl}`);
+                lines.push('[/MODEL CONFIG]');
+                return lines.join('\n');
+            }).join('\n\n');
+            text = text ? `${text}\n\n${modelInfo}` : modelInfo;
+            setPendingModels([]);
+        }
+        // Append pending skills as text
+        if (pendingSkills.length > 0) {
+            const skillInfo = pendingSkills.map(s => {
+                const ownerRepo = s.github.split('/').slice(0, 2).join('/');
+                return `- ${s.name}\n  Install: \`openclaw skill install ${ownerRepo}@${s.branch}\``;
+            }).join('\n');
+            const skillBlock = `[Attached skills]\n${skillInfo}`;
+            text = text ? `${text}\n\n${skillBlock}` : skillBlock;
+            setPendingSkills([]);
         }
         setInput('');
         setAttachments([]);
-        setSelectedModel(null);
 
         // All channels use bridge protocol
         setBridgeMessages(prev => [...prev, { role: 'user', content: text }]);
@@ -736,7 +719,7 @@ export const Channels: React.FC = () => {
             setBridgeLoading(false);
         }
         inputRef.current?.focus();
-    }, [activeId, input, attachments, selectedModel, isActiveConnected, canSendMessage, isLocalChannel, bridgeLoading, bridgeSessionId, bridgeConnectionStatus, activeChannel]);
+    }, [activeId, input, attachments, pendingModels, pendingSkills, isActiveConnected, canSendMessage, isLocalChannel, bridgeLoading, bridgeSessionId, bridgeConnectionStatus, activeChannel, modelList]);
 
     // Abort current request
     const handleAbort = useCallback(() => {
@@ -798,72 +781,20 @@ export const Channels: React.FC = () => {
             <div className="flex-1 flex flex-col min-w-0 relative">
                 {activeChannel && (
                     <>
-                        {/* Remote LLM status bar — collapsible, only for remote hosts */}
-                        {!isLocal && !remoteLlmCollapsed && (
-                            <div
-                                className={`mx-4 mt-2 px-4 py-2.5 rounded-card border border-cyber-border/30 bg-black/80 shadow-cyber-card cursor-pointer transition-all duration-200 hover:border-cyber-accent hover:shadow-[0_0_12px_rgba(0,255,157,0.15)] group`}
-                                onClick={() => remoteLlmReachable ? setShowRemoteLlm(true) : setRemoteLlmCollapsed(true)}
-                            >
-                                <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-2.5 font-mono text-sm">
-                                        <Server size={14} className={remoteLlmRunning ? 'text-cyber-accent' : remoteLlmReachable ? 'text-red-400' : 'text-cyber-text-muted/50'} />
-                                        {remoteLlmReachable ? (
-                                            remoteLlmRunning ? (
-                                                <span className="text-cyber-accent text-xs uppercase tracking-wider">{t('channel.remoteLlm')} {t('status.running')}</span>
-                                            ) : (
-                                                <span className="text-red-400 text-xs uppercase tracking-wider">{t('channel.remoteLlm')} {t('status.offline')}</span>
-                                            )
-                                        ) : (
-                                            <span className="text-cyber-text-muted/60 text-xs tracking-wider">Mother Agent → {t('mother.hintDeployLlm')}</span>
-                                        )}
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        {remoteLlmReachable ? (
-                                            <span className="text-cyber-text-muted/50 text-xs font-mono group-hover:text-cyber-accent/80 transition-colors">
-                                                {t('channel.llmPanel')}
-                                            </span>
-                                        ) : (
-                                            <button
-                                                onClick={(e) => { e.stopPropagation(); setRemoteLlmCollapsed(true); }}
-                                                className="p-0.5 text-cyber-text-muted/40 hover:text-cyber-accent transition-colors"
-                                                title="Collapse"
-                                            >
-                                                <ChevronsDown size={14} />
-                                            </button>
-                                        )}
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-                        {/* Floating circular icon when bar is collapsed */}
-                        {!isLocal && remoteLlmCollapsed && (
-                            <button
-                                onClick={() => setRemoteLlmCollapsed(false)}
-                                className="group absolute top-4 right-6 z-10 w-10 h-10 rounded-full border border-cyber-border/30 bg-black/80 shadow-cyber-card flex items-center justify-center transition-all duration-200 hover:border-cyber-accent hover:shadow-[0_0_12px_rgba(0,255,157,0.15)]"
-                            >
-                                <Server size={16} className="text-cyber-text-muted/40 group-hover:text-cyber-accent transition-colors duration-200" />
-                            </button>
-                        )}
 
                         {!isActiveConnected && !canSendMessage && gateway.status !== 'connecting' && bridgeConnectionStatus !== 'connecting' ? (
-                            /* Awaiting deployment state — centered status */
                             <div className="flex-1 mx-4 mt-2 bg-cyber-terminal rounded-lg flex items-center justify-center">
                                 <div className="text-center font-mono space-y-3 select-none max-w-md">
-                                    <p className="text-cyber-text-muted/70 text-base">&gt; {t('channel.deployFirst')}</p>
                                     <p className="text-sm text-cyber-text-muted/50">
                                         {t('channel.motherFlow')}
                                     </p>
-                                    {!isBridgeMode && (
-                                        <p className="text-xs text-cyber-accent-secondary/50 mt-2">
-                                            💡 {t('mother.hintDeployLlm')} · {t('mother.hintDeployBridge').replace('{agent}', 'OpenClaw')}
-                                        </p>
-                                    )}
                                 </div>
                             </div>
                         ) : (
                             /* Connected / Connecting — terminal chat area */
                             <div className="relative flex-1 mx-4 mt-2">
                                 <div ref={chatContainerRef} onScroll={handleChatScroll} className="absolute inset-0 overflow-y-auto bg-cyber-terminal font-mono text-sm space-y-1 custom-scrollbar p-4 rounded-lg">
+                                <div>
                                     {/* System info */}
                                     <div className="space-y-1 select-none">
                                         <p className="text-cyber-accent">[SYS] {activeChannel.name || `Channel #${String(activeChannel.id).padStart(2, '0')}`}</p>
@@ -905,6 +836,7 @@ export const Channels: React.FC = () => {
                                     )}
                                     <div ref={scrollRef} />
                                 </div>
+                            </div>
                                 {showScrollBtn && (
                                     <button
                                         onClick={scrollToBottom}
@@ -917,47 +849,15 @@ export const Channels: React.FC = () => {
                         {/* Input area */}
                         <div className="flex-shrink-0 mx-4 mt-3 mb-2">
                             <div className="bg-cyber-terminal rounded-lg">
-                                {/* Attachment preview */}
-                                {(attachments.length > 0 || selectedModel) && (
-                                    <div className="flex flex-wrap gap-2 px-3 pt-2">
-                                        {/* Model config card */}
-                                        {selectedModel && (
-                                            <div className="relative group flex items-center gap-1.5 bg-cyber-accent/5 border border-cyber-accent/30 rounded px-2 py-1 min-h-[2.5rem] text-xs font-mono text-cyber-accent">
-                                                {(() => {
-                                                    const icon = getModelIcon(selectedModel.name, selectedModel.modelId); return icon ? (
-                                                        <img src={icon} alt="" className="w-6 h-6" />
-                                                    ) : (
-                                                        <KeyRound size={16} className="text-cyber-accent/60" />
-                                                    );
-                                                })()}
-                                                <span className="max-w-[160px] truncate">{selectedModel.name}</span>
-                                                <button
-                                                    onClick={() => setSelectedModel(null)}
-                                                    className="ml-0.5 text-cyber-accent/40 hover:text-red-400 transition-colors"
-                                                >
-                                                    <X size={12} />
-                                                </button>
-                                            </div>
-                                        )}
-                                        {/* File/image attachments */}
-                                        {attachments.map((att, i) => (
-                                            <div key={i} className="relative group flex items-center gap-1.5 bg-cyber-bg/60 border border-cyber-border/30 rounded px-2 py-1 text-xs font-mono text-cyber-text-muted">
-                                                {att.type === 'image' && att.preview ? (
-                                                    <img src={att.preview} alt={att.name} className="w-8 h-8 object-cover rounded" />
-                                                ) : (
-                                                    <Paperclip size={12} className="text-cyber-accent/60" />
-                                                )}
-                                                <span className="max-w-[120px] truncate">{att.name}</span>
-                                                <button
-                                                    onClick={() => removeAttachment(i)}
-                                                    className="ml-0.5 text-cyber-text-muted/40 hover:text-red-400 transition-colors"
-                                                >
-                                                    <X size={12} />
-                                                </button>
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
+                                {/* Pending chips — shared component */}
+                                <PendingChipsRow
+                                    files={attachments.map((a, i) => ({ id: String(i), name: a.name, type: a.type as 'file'|'image', preview: a.preview }))}
+                                    onRemoveFile={id => removeAttachment(Number(id))}
+                                    models={pendingModels}
+                                    onRemoveModel={id => setPendingModels(prev => prev.filter(m => m.id !== id))}
+                                    skills={pendingSkills}
+                                    onRemoveSkill={id => setPendingSkills(prev => prev.filter(s => s.id !== id))}
+                                />
                                 <textarea
                                     ref={inputRef}
                                     value={input}
@@ -993,14 +893,14 @@ export const Channels: React.FC = () => {
                                         </button>
                                         <button
                                             onClick={openModelPicker}
-                                            disabled={bridgeLoading || !isActiveConnected}
-                                            className={`p-1 transition-colors disabled:opacity-20 ${selectedModel ? 'text-cyber-accent' : 'text-cyber-accent/60 hover:text-cyber-accent'}`}
+                                            disabled={bridgeLoading || !isActiveConnected || pendingModels.length >= 5}
+                                            className={`p-1 transition-colors disabled:opacity-20 ${pendingModels.length > 0 ? 'text-cyber-accent' : 'text-cyber-accent/60 hover:text-cyber-accent'}`}
                                         >
                                             <KeyRound size={15} />
                                         </button>
                                         <button
                                             onClick={openSkillsPicker}
-                                            disabled={bridgeLoading || !isActiveConnected}
+                                            disabled={bridgeLoading || !isActiveConnected || pendingSkills.length >= 5}
                                             className={`p-1 transition-colors disabled:opacity-20 ${showSkillsPicker ? 'text-cyber-warning' : 'text-cyber-warning/40 hover:text-cyber-warning'}`}
                                         >
                                             <Zap size={15} />
@@ -1014,25 +914,49 @@ export const Channels: React.FC = () => {
                                                 {skillsFavorites.length === 0 ? (
                                                     <div className="px-3 py-3 text-xs text-cyber-text-muted/50 font-mono text-center">{t('mother.noFavorites')}</div>
                                                 ) : (
-                                                    <div className="max-h-56 overflow-y-auto custom-scrollbar">
-                                                        {skillsFavorites.map(skill => (
-                                                            <button
-                                                                key={skill.id}
-                                                                onClick={() => {
-                                                                    setInput(prev => (prev ? prev + '\n' : '') + `Install skill: ${skill.name} (${skill.github})`);
-                                                                    setShowSkillsPicker(false);
-                                                                    inputRef.current?.focus();
-                                                                }}
-                                                                className="w-full text-left px-3 py-2 text-xs font-mono hover:bg-cyber-warning/10 transition-colors border-b border-cyber-border/10 last:border-b-0 flex items-center gap-2"
-                                                            >
-                                                                <Zap size={12} className="text-cyber-warning/60 flex-shrink-0" />
-                                                                <div className="min-w-0">
-                                                                    <div className="text-cyber-warning font-bold truncate">{skill.name}</div>
-                                                                    <div className="text-cyber-text-muted/50 truncate text-[10px]">.../{skill.github.split(/[\/\\]/).slice(-3).join('/')}</div>
-                                                                </div>
-                                                            </button>
-                                                        ))}
-                                                    </div>
+                                                    <>
+                                                        <div>
+                                                            {skillsFavorites.slice(skillsPage * SKILLS_PER_PAGE_CH, (skillsPage + 1) * SKILLS_PER_PAGE_CH).map(skill => (
+                                                                <button
+                                                                    key={skill.id}
+                                                                    onClick={() => {
+                                                                        setPendingSkills(prev => {
+                                                                            if (prev.some(s => s.id === skill.id) || prev.length >= 5) return prev;
+                                                                            return [...prev, { id: skill.id, name: skill.name, github: skill.github, branch: (skill as any).branch || 'main' }];
+                                                                        });
+                                                                        setShowSkillsPicker(false);
+                                                                        inputRef.current?.focus();
+                                                                    }}
+                                                                    className="w-full text-left px-3 py-2 text-xs font-mono hover:bg-cyber-warning/10 transition-colors border-b border-cyber-border/10 last:border-b-0 flex items-center gap-2"
+                                                                >
+                                                                    <Zap size={12} className="text-cyber-warning/60 flex-shrink-0" />
+                                                                    <div className="min-w-0">
+                                                                        <div className="text-cyber-warning font-bold truncate">{skill.name}</div>
+                                                                        <div className="text-cyber-text-muted/50 truncate text-[10px]">.../{skill.github.split(/[\/\\]/).slice(-3).join('/')}</div>
+                                                                    </div>
+                                                                </button>
+                                                            ))}
+                                                        </div>
+                                                        {Math.ceil(skillsFavorites.length / SKILLS_PER_PAGE_CH) > 1 && (
+                                                            <div className="flex items-center justify-between px-3 py-1.5 border-t border-cyber-border/20 text-[10px] font-mono text-cyber-text-muted/50">
+                                                                <button
+                                                                    onClick={() => setSkillsPage(p => Math.max(0, p - 1))}
+                                                                    disabled={skillsPage === 0}
+                                                                    className="hover:text-cyber-warning disabled:opacity-30 transition-colors"
+                                                                >
+                                                                    <ChevronLeft size={12} />
+                                                                </button>
+                                                                <span>{skillsPage + 1} / {Math.ceil(skillsFavorites.length / SKILLS_PER_PAGE_CH)}</span>
+                                                                <button
+                                                                    onClick={() => setSkillsPage(p => Math.min(Math.ceil(skillsFavorites.length / SKILLS_PER_PAGE_CH) - 1, p + 1))}
+                                                                    disabled={skillsPage >= Math.ceil(skillsFavorites.length / SKILLS_PER_PAGE_CH) - 1}
+                                                                    className="hover:text-cyber-warning disabled:opacity-30 transition-colors"
+                                                                >
+                                                                    <ChevronRight size={12} />
+                                                                </button>
+                                                            </div>
+                                                        )}
+                                                    </>
                                                 )}
                                             </div>
                                         )}
@@ -1048,7 +972,12 @@ export const Channels: React.FC = () => {
                                                     modelList.map(m => (
                                                         <button
                                                             key={m.internalId}
-                                                            onClick={() => { setSelectedModel(m); setShowModelPicker(false); }}
+                                                            onClick={() => {
+                                                                if (!pendingModels.some(pm => pm.id === m.internalId) && pendingModels.length < 5) {
+                                                                    setPendingModels(prev => [...prev, { id: m.internalId, name: m.name, modelId: m.modelId }]);
+                                                                }
+                                                                setShowModelPicker(false);
+                                                            }}
                                                             className="w-full text-left px-3 py-2 text-xs font-mono hover:bg-cyber-accent/10 transition-colors border-b border-cyber-border/10 last:border-b-0 flex items-center gap-2"
                                                         >
                                                             {(() => {
@@ -1087,7 +1016,7 @@ export const Channels: React.FC = () => {
                                         ) : (
                                             <button
                                                 onClick={handleSend}
-                                                disabled={(!input.trim() && attachments.length === 0 && !selectedModel) || !isActiveConnected}
+                                                disabled={(!input.trim() && attachments.length === 0 && pendingModels.length === 0 && pendingSkills.length === 0) || !isActiveConnected}
                                                 className="p-1 text-cyber-accent/60 hover:text-cyber-accent transition-colors disabled:opacity-15"
                                             >
                                                 <Send size={16} />
@@ -1104,12 +1033,7 @@ export const Channels: React.FC = () => {
                 )
                 }
             </div >
-            <RemoteLlmModal
-                isOpen={showRemoteLlm}
-                onClose={() => setShowRemoteLlm(false)}
-                remoteHost={activeChannel?.address || 'remote'}
-                displayName={activeChannel?.name}
-            />
+
         </div >
     );
 };

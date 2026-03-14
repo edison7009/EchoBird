@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef, useCallback, createContext, useContext } from 'react';
-import { Paperclip, ImageIcon, KeyRound, Send, X, ChevronDown, Zap, Square, Lock, Trash2 } from 'lucide-react';
+import { Paperclip, ImageIcon, KeyRound, Send, X, ChevronDown, Zap, Square, Lock, Trash2 , ChevronLeft, ChevronRight } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { MiniSelect } from '../components/MiniSelect';
 import { getModelIcon } from '../components/cards/ModelCard';
+import { PendingChipsRow } from '../components/PendingChipsRow';
 import { useI18n } from '../hooks/useI18n';
 import { useConfirm } from '../components/ConfirmDialog';
 import * as api from '../api/tauri';
@@ -79,6 +80,7 @@ interface PendingSkill {
     id: string;
     name: string;
     github: string;
+    branch?: string;
 }
 
 interface MotherAgentCtx {
@@ -167,7 +169,7 @@ export function MotherAgentProvider({ appLogs, detectedTools, onClearLogs, onAge
 
     const addPendingSkill = useCallback((skill: PendingSkill) => {
         setPendingSkills(prev => {
-            if (prev.some(s => s.id === skill.id)) return prev;
+            if (prev.some(s => s.id === skill.id) || prev.length >= 5) return prev;
             return [...prev, skill];
         });
     }, []);
@@ -471,27 +473,47 @@ export function MotherAgentMain() {
     const [pendingModels, setPendingModels] = useState<Array<{ id: string; name: string; modelId?: string }>>([]);
     const [pendingFiles, setPendingFiles] = useState<Array<{ id: string; name: string; type: 'file' | 'image'; preview?: string }>>([]);
 
-    // Wrap handleChatSend to append pending model info as text
+    // Wrap handleChatSend to append pending model/skill info as text
     const localSend = useCallback(() => {
-        if (pendingModels.length > 0) {
-            const modelInfo = pendingModels.map(pm => {
-                const md = models.find(m => m.internalId === pm.id);
-                if (!md) return `- ${pm.name}`;
-                const urls = [
-                    md.baseUrl ? `baseUrl: ${md.baseUrl}` : '',
-                    md.anthropicUrl ? `anthropicUrl: ${md.anthropicUrl}` : '',
-                ].filter(Boolean).join(', ');
-                return `- ${pm.name} (model: ${md.modelId || md.name}, ${urls}, apiKey: ${md.apiKey})`;
-            }).join('\n');
+        const hasModels = pendingModels.length > 0;
+        const hasSkills = pendingSkills.length > 0;
+
+        if (hasModels || hasSkills) {
+            const parts: string[] = [];
             const userText = chatInput.trim();
-            const fullMsg = (userText ? userText + '\n\n' : '') + `[Attached models for deployment]\n${modelInfo}`;
-            setPendingModels([]);
+            if (userText) parts.push(userText);
+
+            if (hasModels) {
+                const modelInfo = pendingModels.map(pm => {
+                    const md = models.find(m => m.internalId === pm.id);
+                    if (!md) return `- ${pm.name}`;
+                    const urls = [
+                        md.baseUrl ? `baseUrl: ${md.baseUrl}` : '',
+                        md.anthropicUrl ? `anthropicUrl: ${md.anthropicUrl}` : '',
+                    ].filter(Boolean).join(', ');
+                    return `- ${pm.name} (model: ${md.modelId || md.name}, ${urls}, apiKey: ${md.apiKey})`;
+                }).join('\n');
+                parts.push(`[Attached models for deployment]\n${modelInfo}`);
+                setPendingModels([]);
+            }
+
+            if (hasSkills) {
+                const skillInfo = pendingSkills.map(s => {
+                    const parts = s.github.split('/');
+                    const ownerRepo = parts.slice(0, 2).join('/');
+                    const branch = s.branch || 'main';
+                    return `- ${s.name}\n  Install: \`openclaw skill install ${ownerRepo}@${branch}\``;
+                }).join('\n');
+                parts.push(`[Attached skills]\n${skillInfo}`);
+                pendingSkills.forEach(s => removePendingSkill(s.id));
+            }
+
             setChatInput('');
-            sendMessage(fullMsg);
+            sendMessage(parts.join('\n\n'));
         } else {
             handleChatSend();
         }
-    }, [pendingModels, models, chatInput, setChatInput, handleChatSend, sendMessage]);
+    }, [pendingModels, pendingSkills, models, chatInput, setChatInput, handleChatSend, sendMessage, removePendingSkill]);
 
     // Skills popup state
     const [showSkillsPicker, setShowSkillsPicker] = useState(false);
@@ -523,7 +545,7 @@ export function MotherAgentMain() {
                             const fileName = parts[parts.length - 1].replace(/\.md$/i, '');
                             name = fileName === 'SKILL' ? (parts[parts.length - 2] || 'Unknown') : fileName;
                         }
-                        return { id, name, github: id };
+                        return { id, name, github: id, branch: skillData?.b || 'main' };
                     });
                     setSkillsFavorites(skills);
                 })
@@ -585,10 +607,10 @@ export function MotherAgentMain() {
             .then(r => r.text())
             .then(ip => setPublicIP(ip))
             .catch(() => setPublicIP('offline'));
-        // Load remote hint buttons
+        // Load remote quick-hint buttons (filter out deploy-LLM actions)
         fetch('https://echobird.ai/api/mother/hints.json')
             .then(r => r.json())
-            .then(data => setRemoteHints(data.hints || []))
+            .then(data => setRemoteHints((data.hints || []).filter((h: any) => h.action !== 'deployLlm' && h.action !== 'deployBridge')))
             .catch(() => { /* offline: no hints shown */ });
     }, []);
 
@@ -644,9 +666,6 @@ export function MotherAgentMain() {
                                 <div className="w-px h-12 bg-gradient-to-b from-transparent via-cyber-accent-secondary/30 to-transparent flex-shrink-0" />
                                 <div className="font-mono text-xs space-y-1">
                                     <div className="text-cyber-accent-secondary text-sm font-bold tracking-wide">Mother Agent <span className="text-cyber-text-muted/60 text-xs font-normal">v{__APP_VERSION__}</span></div>
-                                    <div className="text-cyber-text-muted/60">
-                                        {t('mother.deployHint')}
-                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -770,67 +789,15 @@ export function MotherAgentMain() {
             {/* Rich input area */}
             <div className="flex-shrink-0 mt-3 mb-2">
                 <div className="bg-cyber-terminal rounded-lg">
-                    {/* Pending attachments chips */}
-                    {(pendingFiles.length > 0 || pendingModels.length > 0 || pendingSkills.length > 0) && (
-                        <div className="flex flex-wrap gap-2 px-3 pt-2.5 pb-1">
-                            {pendingFiles.map(f => (
-                                <div
-                                    key={f.id}
-                                    className="relative group flex items-center gap-1.5 bg-cyber-bg/60 border border-cyber-border/30 rounded px-2 py-1 h-10 text-xs font-mono text-cyber-text-muted"
-                                >
-                                    {f.type === 'image' && f.preview ? (
-                                        <img src={f.preview} alt={f.name} className="w-6 h-6 object-cover rounded flex-shrink-0" />
-                                    ) : (
-                                        <Paperclip size={14} className="text-cyber-accent-secondary/60 flex-shrink-0" />
-                                    )}
-                                    <span className="max-w-[140px] truncate">{f.name}</span>
-                                    <button
-                                        onClick={() => setPendingFiles(prev => prev.filter(x => x.id !== f.id))}
-                                        className="ml-0.5 text-cyber-text-muted/40 hover:text-red-400 transition-colors"
-                                    >
-                                        <X size={12} />
-                                    </button>
-                                </div>
-                            ))}
-                            {pendingModels.map(m => {
-                                const icon = getModelIcon(m.name, m.modelId || '');
-                                return (
-                                    <div
-                                        key={m.id}
-                                        className="relative group flex items-center gap-1.5 bg-cyber-accent/5 border border-cyber-accent/30 rounded px-2 py-1 h-10 text-xs font-mono text-cyber-accent"
-                                    >
-                                        {icon ? (
-                                            <img src={icon} alt="" className="w-6 h-6 flex-shrink-0" />
-                                        ) : (
-                                            <KeyRound size={14} className="text-cyber-accent/60 flex-shrink-0" />
-                                        )}
-                                        <span className="max-w-[160px] truncate">{m.name}</span>
-                                        <button
-                                            onClick={() => setPendingModels(prev => prev.filter(x => x.id !== m.id))}
-                                            className="ml-0.5 text-cyber-accent/40 hover:text-red-400 transition-colors"
-                                        >
-                                            <X size={12} />
-                                        </button>
-                                    </div>
-                                );
-                            })}
-                            {pendingSkills.map(skill => (
-                                <div
-                                    key={skill.id}
-                                    className="relative group flex items-center gap-1.5 bg-cyber-warning/5 border border-cyber-warning/30 rounded px-2 py-1 h-10 text-xs font-mono text-cyber-warning"
-                                >
-                                    <Zap size={14} className="text-cyber-warning/60 flex-shrink-0" />
-                                    <span className="max-w-[120px] truncate">{skill.name}</span>
-                                    <button
-                                        onClick={() => removePendingSkill(skill.id)}
-                                        className="ml-0.5 text-cyber-warning/40 hover:text-red-400 transition-colors"
-                                    >
-                                        <X size={12} />
-                                    </button>
-                                </div>
-                            ))}
-                        </div>
-                    )}
+                    {/* Pending attachments chips — shared component */}
+                    <PendingChipsRow
+                        files={pendingFiles}
+                        onRemoveFile={id => setPendingFiles(prev => prev.filter(x => x.id !== id))}
+                        models={pendingModels}
+                        onRemoveModel={id => setPendingModels(prev => prev.filter(x => x.id !== id))}
+                        skills={pendingSkills}
+                        onRemoveSkill={removePendingSkill}
+                    />
                     <textarea
                         ref={chatInputRef}
                         value={chatInput}
@@ -865,7 +832,7 @@ export function MotherAgentMain() {
                             </button>
                             <button
                                 onClick={() => setShowModelPicker(prev => !prev)}
-                                disabled={!agentModel || isProcessing}
+                                disabled={!agentModel || isProcessing || pendingModels.length >= 5}
                                 className={`p-1 transition-colors disabled:opacity-20 ${showModelPicker ? 'text-cyber-accent-secondary' : 'text-cyber-accent-secondary/40 hover:text-cyber-accent-secondary'}`}
                             >
                                 <KeyRound size={15} />
@@ -883,16 +850,25 @@ export function MotherAgentMain() {
                                             <button
                                                 key={m.internalId}
                                                 onClick={() => {
-                                                    if (!pendingModels.some(pm => pm.id === m.internalId)) {
+                                                    if (!pendingModels.some(pm => pm.id === m.internalId) && pendingModels.length < 5) {
                                                         setPendingModels(prev => [...prev, { id: m.internalId, name: m.name, modelId: m.modelId }]);
                                                     }
                                                     setShowModelPicker(false);
                                                 }}
-                                                className={`w-full text-left px-3 py-2 text-xs font-mono hover:bg-cyber-accent-secondary/10 transition-colors border-b border-cyber-border/10 last:border-b-0 ${agentModel === m.internalId ? 'bg-cyber-accent-secondary/15 text-cyber-accent-secondary' : 'text-cyber-text'
-                                                    }`}
+                                                className="w-full text-left px-3 py-2 text-xs font-mono hover:bg-cyber-accent-secondary/10 transition-colors border-b border-cyber-border/10 last:border-b-0 flex items-center gap-2 text-cyber-text"
                                             >
-                                                <div className="font-bold truncate">{m.name}</div>
-                                                <div className="text-cyber-text-muted/50 truncate text-[10px]">{m.modelId || m.baseUrl}</div>
+                                                {(() => {
+                                                    const icon = getModelIcon(m.name, m.modelId || '');
+                                                    return icon ? (
+                                                        <img src={icon} alt="" className="w-5 h-5 flex-shrink-0" />
+                                                    ) : (
+                                                        <KeyRound size={14} className="text-cyber-accent-secondary/40 flex-shrink-0" />
+                                                    );
+                                                })()}
+                                                <div className="min-w-0">
+                                                    <div className="font-bold truncate">{m.name}</div>
+                                                    <div className="text-cyber-text-muted/50 truncate text-[10px]">{m.modelId || m.baseUrl}</div>
+                                                </div>
                                             </button>
                                         ))
                                     )}
@@ -900,7 +876,7 @@ export function MotherAgentMain() {
                             )}
                             <button
                                 onClick={openSkillsPicker}
-                                disabled={!agentModel || isProcessing}
+                                disabled={!agentModel || isProcessing || pendingSkills.length >= 5}
                                 className={`p-1 transition-colors disabled:opacity-20 ${showSkillsPicker ? 'text-cyber-warning' : 'text-cyber-warning/40 hover:text-cyber-warning'}`}
                             >
                                 <Zap size={15} />
@@ -941,7 +917,7 @@ export function MotherAgentMain() {
                                                         disabled={skillsPage === 0}
                                                         className="hover:text-cyber-warning disabled:opacity-30 transition-colors"
                                                     >
-                                                        &lt; PREV
+                                                        <ChevronLeft size={12} />
                                                     </button>
                                                     <span>{skillsPage + 1} / {Math.ceil(skillsFavorites.length / SKILLS_PER_PAGE)}</span>
                                                     <button
@@ -949,7 +925,7 @@ export function MotherAgentMain() {
                                                         disabled={skillsPage >= Math.ceil(skillsFavorites.length / SKILLS_PER_PAGE) - 1}
                                                         className="hover:text-cyber-warning disabled:opacity-30 transition-colors"
                                                     >
-                                                        NEXT &gt;
+                                                        <ChevronRight size={12} />
                                                     </button>
                                                 </div>
                                             )}
