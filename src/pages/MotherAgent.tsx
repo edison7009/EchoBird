@@ -5,6 +5,7 @@ import remarkGfm from 'remark-gfm';
 import { MiniSelect } from '../components/MiniSelect';
 import { getModelIcon } from '../components/cards/ModelCard';
 import { PendingChipsRow } from '../components/PendingChipsRow';
+import { ChatBubble, TerminalStatusBar } from '../components/chat';
 import { useI18n } from '../hooks/useI18n';
 import { useConfirm } from '../components/ConfirmDialog';
 import * as api from '../api/tauri';
@@ -656,7 +657,7 @@ export function MotherAgentMain() {
         <div className="flex flex-col h-full">
             {/* Chat conversation area */}
             <div className="relative flex-1">
-                <div ref={chatContainerRef} onScroll={handleScroll} className={`absolute inset-0 ${agentModel ? 'overflow-y-auto' : 'overflow-hidden'} bg-cyber-terminal font-mono text-sm space-y-0.5 custom-scrollbar p-4 rounded-lg`}>
+                <div ref={chatContainerRef} onScroll={handleScroll} className={`absolute inset-0 ${agentModel ? 'overflow-y-auto' : 'overflow-hidden'} custom-scrollbar p-4`}>
                     {/* Welcome banner */}
                     <div className="mb-3 select-none">
                         <div className="flex items-start justify-between gap-4 py-2">
@@ -690,79 +691,40 @@ export function MotherAgentMain() {
                         <div className="text-cyber-accent-secondary/15 text-xs font-mono mt-1">{'─'.repeat(52)}</div>
                     </div>
 
-                    {/* Chat messages */}
+                    {/* Chat messages — bubble UI */}
                     {agentModel ? (
-                        <div className="space-y-1">
-                            {chatOutput.filter(msg => showProcess || (msg.type !== 'tool_call' && msg.type !== 'tool_result' && msg.type !== 'thinking')).map((msg, i) => {
-                                switch (msg.type) {
-                                    case 'user':
-                                        return <p key={i} className="break-words whitespace-pre-wrap text-white">&gt; {msg.text}</p>;
-                                    case 'assistant': {
-                                        // Intercept connection retry marker emitted by backend
-                                        const retryMatch = msg.text.match(/__CONN_RETRY__:(\d+)\/(\d+)/);
-                                        if (retryMatch) {
-                                            const label = `\n\n⚠️ ${t('mother.connectionRetrying').replace('{n}', retryMatch[1]).replace('{total}', retryMatch[2])}\n`;
-                                            return <p key={i} className="break-words whitespace-pre-wrap text-yellow-400/70 text-xs">{label.trim()}</p>;
-                                        }
-                                        return <div key={i} className="break-words text-cyber-text-muted/80 channel-markdown"><ReactMarkdown remarkPlugins={[remarkGfm]} components={mdComponents}>{msg.text}</ReactMarkdown></div>;
-                                    }
-                                    case 'thinking':
-                                        return (
-                                            <div key={i} className="text-xs border-l-2 border-cyan-500/20 pl-2 my-0.5 flex items-center gap-1">
-                                                <span className="text-cyan-400/40 font-mono">💭</span>
-                                                <span className="text-cyber-text-muted/40 italic">{t('mother.thinking')}</span>
-                                            </div>
-                                        );
-                                    case 'tool_call':
-                                        return (
-                                            <div key={i} className="text-cyber-accent-secondary/70 font-mono text-xs border-l-2 border-cyber-accent-secondary/30 pl-2 my-1">
-                                                {msg.status === 'running' ? '⟳' : '✓'} <span className="text-cyber-accent-secondary">{msg.name}</span>
-                                                {msg.args && <span className="text-cyber-text-muted/50 ml-1">({msg.args.slice(0, 80)}{msg.args.length > 80 ? '...' : ''})</span>}
-                                            </div>
-                                        );
-                                    case 'tool_result':
-                                        return (
-                                            <div key={i} className={`font-mono text-xs border-l-2 pl-2 my-1 max-h-32 overflow-y-auto ${msg.success ? 'border-green-500/30 text-green-400/70' : 'border-red-500/30 text-red-400/70'}`}>
-                                                <pre className="whitespace-pre-wrap">{msg.output.slice(0, 500)}{msg.output.length > 500 ? '\n...' : ''}</pre>
-                                            </div>
-                                        );
-                                    case 'error': {
-                                        // Intercept connection failed marker emitted by backend
-                                        const failedMatch = msg.text.match(/__CONN_FAILED__:(\d+)/);
-                                        if (failedMatch) {
-                                            const line1 = t('mother.connectionFailed').replace('{n}', failedMatch[1]);
-                                            const line2 = t('mother.connectionHint');
-                                            return (
-                                                <div key={i} className="text-red-400 text-sm">
-                                                    <p>{line1}</p>
-                                                    <p className="text-red-400/70 text-xs mt-0.5">{line2}</p>
-                                                </div>
-                                            );
-                                        }
-                                        return <p key={i} className="break-words whitespace-pre-wrap text-red-400">{msg.text}</p>;
-                                    }
-                                    case 'state':
-                                        return null; // State changes don't render as messages
-                                    default:
-                                        return null;
+                        <div className="pt-2 pb-2">
+                            {chatOutput.map((msg, i) => {
+                                if (msg.type === 'state') return null;
+                                // tool_call / tool_result / thinking → only shown when showProcess on
+                                if (!showProcess && (msg.type === 'tool_call' || msg.type === 'tool_result' || msg.type === 'thinking')) return null;
+                                if (msg.type === 'tool_call' || msg.type === 'tool_result' || msg.type === 'thinking') return null; // always hidden in bubbles (shown in status bar)
+
+                                if (msg.type === 'user') {
+                                    return <ChatBubble key={i} role="user" content={msg.text} variant="mother" />;
                                 }
+                                if (msg.type === 'assistant') {
+                                    const retryMatch = msg.text.match(/__CONN_RETRY__:(\d+)\/(\d+)/);
+                                    if (retryMatch) {
+                                        const label = t('mother.connectionRetrying').replace('{n}', retryMatch[1]).replace('{total}', retryMatch[2]);
+                                        return <ChatBubble key={i} role="retry" content={label} variant="mother" />;
+                                    }
+                                    return <ChatBubble key={i} role="assistant" content={msg.text} variant="mother" />;
+                                }
+                                if (msg.type === 'error') {
+                                    const failedMatch = msg.text.match(/__CONN_FAILED__:(\d+)/);
+                                    if (failedMatch) {
+                                        return <ChatBubble key={i} role="error"
+                                            content={t('mother.connectionFailed').replace('{n}', failedMatch[1])}
+                                            subContent={t('mother.connectionHint')}
+                                            variant="mother" />;
+                                    }
+                                    return <ChatBubble key={i} role="error" content={msg.text} variant="mother" />;
+                                }
+                                return null;
                             })}
                             {isProcessing && (
-                                <p className="text-cyber-accent-secondary font-mono flex items-center gap-1">
-                                    {agentState === 'executing' ? t('mother.executing') : agentState === 'tool_calling' ? t('mother.callingTool') : t('mother.processing')}
-                                    <span className="inline-flex gap-[2px] ml-0.5">
-                                        {[0, 1, 2].map(i => (
-                                            <span
-                                                key={i}
-                                                className="inline-block w-1.5 h-1.5 rounded-full bg-cyber-accent-secondary"
-                                                style={{
-                                                    animation: 'dotPulse 1.2s ease-in-out infinite',
-                                                    animationDelay: `${i * 0.2}s`,
-                                                }}
-                                            />
-                                        ))}
-                                    </span>
-                                </p>
+                                <ChatBubble role="assistant" content="" variant="mother" isStreaming={true} />
                             )}
                             <div ref={chatEndRef} />
                         </div>
@@ -787,6 +749,11 @@ export function MotherAgentMain() {
             </div>
 
             {/* Rich input area */}
+            <TerminalStatusBar
+                isVisible={showProcess}
+                isProcessing={isProcessing}
+                toolName={chatOutput.slice().reverse().find(m => m.type === 'tool_call' && (m as any).status === 'running') ? (chatOutput.slice().reverse().find(m => m.type === 'tool_call' && (m as any).status === 'running') as any).name : undefined}
+            />
             <div className="flex-shrink-0 mt-3 mb-2">
                 <div className="bg-cyber-terminal rounded-lg">
                     {/* Pending attachments chips — shared component */}

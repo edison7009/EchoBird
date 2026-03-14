@@ -248,6 +248,22 @@ pre {
   }
 }
 
+/* TerminalStatusBar — tool call slides in from right */
+@keyframes slideFromRight {
+  from {
+    transform: translateX(60px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.animate-slide-from-right {
+  animation: slideFromRight 0.2s ease-out forwards;
+}
+
 /* DOS-style hard blink cursor */
 @keyframes blink {
 

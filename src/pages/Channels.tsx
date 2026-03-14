@@ -4,113 +4,14 @@ import { Send, CornerDownLeft, X, Square, Paperclip, Image as ImageIcon, Trash2,
 import { MiniSelect } from '../components/MiniSelect';
 import { getModelIcon } from '../components/cards/ModelCard';
 import { PendingChipsRow } from '../components/PendingChipsRow';
+import { ChatBubble, TerminalStatusBar } from '../components/chat';
 import { useChannelGateway, useGatewayManager } from '../contexts/GatewayContext';
 import { useI18n } from '../hooks/useI18n';
 import * as api from '../api/tauri';
 import type { ModelConfig } from '../api/types';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
 
-// Markdown components config (stable reference, no re-creation per render)
-const mdComponents = {
-    code: ({ className, children, ...props }: any) => {
-        const isInline = !className;
-        return isInline ? (
-            <code className="bg-cyber-accent/10 text-cyber-accent px-1.5 py-0.5 rounded text-[0.85em] font-mono" {...props}>{children}</code>
-        ) : (
-            <code className={`block bg-black/40 border border-cyber-border/30 rounded-lg p-3 pr-10 my-2 text-[0.85em] font-mono text-cyber-text-primary overflow-x-auto whitespace-pre ${className || ''}`} {...props}>{children}</code>
-        );
-    },
-    pre: ({ children }: any) => {
-        const codeText = String(children?.props?.children || '').replace(/\n$/, '');
-        const isBlock = children?.props?.className;
-        if (!isBlock) return <>{children}</>;
-        return (
-            <div className="relative group">
-                {children}
-                <button
-                    onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
-                        navigator.clipboard.writeText(codeText);
-                        const btn = e.currentTarget;
-                        const svg = btn.querySelector('svg');
-                        if (svg) svg.style.display = 'none';
-                        btn.insertAdjacentHTML('beforeend', '<span class="copy-ok" style="color:#00ff9d">✓</span>');
-                        setTimeout(() => {
-                            const ok = btn.querySelector('.copy-ok');
-                            if (ok) ok.remove();
-                            if (svg) svg.style.display = '';
-                        }, 1500);
-                    }}
-                    className="absolute top-2 right-2 w-6 h-6 flex items-center justify-center text-cyber-text-muted/40 hover:text-cyber-accent transition-colors"
-                ><svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="9" y="9" width="13" height="13" rx="2" /><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" /></svg></button>
-            </div>
-        );
-    },
-    a: ({ href, children }: any) => (
-        <a href={href} className="text-cyber-accent hover:underline" onClick={(e: React.MouseEvent) => { e.preventDefault(); api.openExternal(href); }}>{children}</a>
-    ),
-    strong: ({ children }: any) => <strong className="text-cyber-text-primary font-bold">{children}</strong>,
-    em: ({ children }: any) => <em className="text-cyber-accent/80">{children}</em>,
-    ul: ({ children }: any) => <ul className="list-disc list-inside my-1 space-y-0.5">{children}</ul>,
-    ol: ({ children }: any) => <ol className="list-decimal list-inside my-1 space-y-0.5">{children}</ol>,
-    h1: ({ children }: any) => <h1 className="text-lg font-bold text-cyber-text-primary mt-3 mb-1">{children}</h1>,
-    h2: ({ children }: any) => <h2 className="text-base font-bold text-cyber-text-primary mt-2 mb-1">{children}</h2>,
-    h3: ({ children }: any) => <h3 className="text-sm font-bold text-cyber-text-primary mt-2 mb-1">{children}</h3>,
-    blockquote: ({ children }: any) => <blockquote className="border-l-2 border-cyber-accent/40 pl-3 my-1 text-cyber-text-muted/60 italic">{children}</blockquote>,
-    hr: () => <hr className="border-cyber-border/30 my-2" />,
-    table: ({ children }: any) => <table className="border-collapse my-2 text-sm w-full">{children}</table>,
-    th: ({ children }: any) => <th className="border border-cyber-border/30 px-2 py-1 bg-cyber-accent/5 text-left font-bold">{children}</th>,
-    td: ({ children }: any) => <td className="border border-cyber-border/30 px-2 py-1">{children}</td>,
-};
 
-// Memoized message component — only re-renders when msg content/role changes
-const ChannelMessage = React.memo(({ role, content, toolName, toolArgs, toolSuccess }: { role: string; content: string; toolName?: string; toolArgs?: string; toolSuccess?: boolean }) => {
-    if (role === 'user') {
-        return <p className="break-words whitespace-pre-wrap text-white">{`> ${content}`}</p>;
-    }
-    if (role === 'system') {
-        if (content === '__agent_working__') {
-            return (
-                <div className="flex items-center gap-2 text-cyber-text-muted/60 text-xs font-mono py-1">
-                    <span className="animate-pulse">●</span>
-                    <span className="animate-pulse" style={{ animationDelay: '0.2s' }}>●</span>
-                    <span className="animate-pulse" style={{ animationDelay: '0.4s' }}>●</span>
-                    <span className="ml-1 text-cyber-accent/50">Agent is working...</span>
-                </div>
-            );
-        }
-        return <p className="break-words whitespace-pre-wrap text-red-400">{content}</p>;
-    }
-    if (role === 'tool_call') {
-        return (
-            <div className="text-cyber-accent/70 font-mono text-xs border-l-2 border-cyber-accent/30 pl-2 my-1">
-                ⟳ <span className="text-cyber-accent">{toolName || content}</span>
-                {toolArgs && <span className="text-cyber-text-muted/50 ml-1">({toolArgs.slice(0, 80)}{toolArgs.length > 80 ? '...' : ''})</span>}
-            </div>
-        );
-    }
-    if (role === 'tool_result') {
-        return (
-            <div className={`font-mono text-xs border-l-2 pl-2 my-1 max-h-32 overflow-y-auto ${toolSuccess !== false ? 'border-green-500/30 text-green-400/70' : 'border-red-500/30 text-red-400/70'}`}>
-                <pre className="whitespace-pre-wrap">{content.slice(0, 500)}{content.length > 500 ? '\n...' : ''}</pre>
-            </div>
-        );
-    }
-    if (role === 'thinking') {
-        return (
-            <div className="text-xs border-l-2 border-purple-400/30 pl-2 my-1 max-h-24 overflow-y-auto">
-                <span className="text-purple-400/60 font-mono">💭 </span>
-                <span className="text-purple-400/50 italic whitespace-pre-wrap">{content.slice(0, 300)}{content.length > 300 ? '...' : ''}</span>
-            </div>
-        );
-    }
-    return (
-        <div className="break-words text-cyber-text-muted/80 channel-markdown">
-            <ReactMarkdown remarkPlugins={[remarkGfm]} components={mdComponents}>{content}</ReactMarkdown>
-        </div>
-    );
-});
-ChannelMessage.displayName = 'ChannelMessage';
+
 
 // Connection protocols (display as SSH since connections go through SSH port forwarding)
 const PROTOCOLS = [
@@ -793,7 +694,7 @@ export const Channels: React.FC = () => {
                         ) : (
                             /* Connected / Connecting — terminal chat area */
                             <div className="relative flex-1 mx-4 mt-2">
-                                <div ref={chatContainerRef} onScroll={handleChatScroll} className="absolute inset-0 overflow-y-auto bg-cyber-terminal font-mono text-sm space-y-1 custom-scrollbar p-4 rounded-lg">
+                                <div ref={chatContainerRef} onScroll={handleChatScroll} className="absolute inset-0 overflow-y-auto custom-scrollbar p-4">
                                 <div>
                                     {/* System info */}
                                     <div className="space-y-1 select-none">
@@ -816,24 +717,18 @@ export const Channels: React.FC = () => {
                                         )}
                                     </div>
 
-                                    {messages.filter(msg => showProcess || (msg.role !== 'tool_call' && msg.role !== 'tool_result' && msg.role !== 'thinking')).map((msg, i) => (
-                                        <div key={i}>
-                                            <ChannelMessage role={msg.role} content={msg.content} toolName={(msg as any).toolName} toolArgs={(msg as any).toolArgs} toolSuccess={(msg as any).toolSuccess} />
-                                            {msg.role === 'assistant' && (msg as any).meta && (
-                                                <p className="text-cyber-text-muted/40 text-xs font-mono mt-0.5 mb-1">
-                                                    {(msg as any).meta.model && <span>{(msg as any).meta.model}</span>}
-                                                    {(msg as any).meta.tokens && <span> · {(msg as any).meta.tokens.toLocaleString()} tokens</span>}
-                                                    {(msg as any).meta.duration_ms && <span> · {((msg as any).meta.duration_ms / 1000).toFixed(1)}s</span>}
-                                                </p>
-                                            )}
-                                        </div>
-                                    ))}
-
-                                    {(bridgeLoading) ? (
-                                        <p className="text-cyber-accent font-mono">[EXEC] <span className="inline-block w-8 text-left">{['>', '>>', '>>>', ''][arrowIndex]}</span> {t('channel.transmitting')}</p>
-                                    ) : isActiveConnected && (
-                                        <p className="text-cyber-accent">_ ready</p>
-                                    )}
+                                    {/* Bubble messages */}
+                                    <div className="pt-2 pb-1">
+                                    {messages.map((msg, i) => {
+                                        // tool_call / result / thinking go to status bar only
+                                        if (msg.role === 'tool_call' || msg.role === 'tool_result' || msg.role === 'thinking') return null;
+                                        if (msg.role === 'system' && msg.content === '__agent_working__') return null;
+                                        if (msg.role === 'user') return <ChatBubble key={i} role="user" content={msg.content} variant="channels" />;
+                                        if (msg.role === 'system') return <ChatBubble key={i} role="error" content={msg.content} variant="channels" />;
+                                        return <ChatBubble key={i} role="assistant" content={msg.content} variant="channels" />;
+                                    })}
+                                    {bridgeLoading && <ChatBubble role="assistant" content="" variant="channels" isStreaming={true} />}
+                                    </div>
                                     <div ref={scrollRef} />
                                 </div>
                             </div>
@@ -847,6 +742,11 @@ export const Channels: React.FC = () => {
                         )}
 
                         {/* Input area */}
+                        <TerminalStatusBar
+                            isVisible={showProcess}
+                            isProcessing={bridgeLoading}
+                            toolName={messages.slice().reverse().find(m => m.role === 'tool_call') ? (messages.slice().reverse().find(m => m.role === 'tool_call') as any).toolName : undefined}
+                        />
                         <div className="flex-shrink-0 mx-4 mt-3 mb-2">
                             <div className="bg-cyber-terminal rounded-lg">
                                 {/* Pending chips — shared component */}
