@@ -631,7 +631,7 @@ export const Channels: React.FC = () => {
         <div className="flex h-full gap-0 overflow-hidden">
             {/* ======== Left: Channel list ======== */}
             <div className="w-56 flex-shrink-0 flex flex-col">
-                <div className="flex-1 overflow-y-auto pr-2 py-2 space-y-2 custom-scrollbar">
+                <div className="flex-1 overflow-y-auto slim-scroll pr-2 py-2 space-y-2 custom-scrollbar">
                     {channels.map(ch => {
                         const isActive = activeId === ch.id;
                         const chState = manager.getChannelState(ch.id);
@@ -694,7 +694,7 @@ export const Channels: React.FC = () => {
                         ) : (
                             /* Connected / Connecting — terminal chat area */
                             <div className="relative flex-1 mx-4 mt-2">
-                                <div ref={chatContainerRef} onScroll={handleChatScroll} className="absolute inset-0 overflow-y-auto custom-scrollbar p-4">
+                                <div ref={chatContainerRef} onScroll={handleChatScroll} className="absolute inset-0 overflow-y-auto slim-scroll custom-scrollbar p-4">
                                 <div>
                                     {/* System info */}
                                     <div className="space-y-1 select-none">
@@ -864,7 +864,7 @@ export const Channels: React.FC = () => {
                                         {showModelPicker && (
                                             <div
                                                 ref={modelPickerRef}
-                                                className="absolute bottom-full left-0 mb-2 w-64 max-h-48 overflow-y-auto bg-cyber-bg border border-cyber-border/60 rounded-lg shadow-lg z-50 custom-scrollbar"
+                                                className="absolute bottom-full left-0 mb-2 w-64 max-h-48 overflow-y-auto slim-scroll bg-cyber-bg border border-cyber-border/60 rounded-lg shadow-lg z-50 custom-scrollbar"
                                             >
                                                 {modelList.length === 0 ? (
                                                     <div className="px-3 py-2 text-xs text-cyber-text-muted/50 font-mono">{t('channel.noModels')}</div>

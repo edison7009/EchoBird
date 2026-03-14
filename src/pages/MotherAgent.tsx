@@ -836,7 +836,7 @@ export function MotherAgentMain() {
                             {showModelPicker && (
                                 <div
                                     ref={modelPickerRef}
-                                    className="absolute bottom-full left-0 mb-2 w-64 max-h-48 overflow-y-auto bg-cyber-bg border border-cyber-border/60 rounded-lg shadow-lg z-50 custom-scrollbar"
+                                    className="absolute bottom-full left-0 mb-2 w-64 max-h-48 overflow-y-auto slim-scroll bg-cyber-bg border border-cyber-border/60 rounded-lg shadow-lg z-50 custom-scrollbar"
                                 >
                                     {models.length === 0 ? (
                                         <div className="px-3 py-2 text-xs text-cyber-text-muted/50 font-mono">{t('mother.noModels')}</div>
@@ -886,7 +886,7 @@ export function MotherAgentMain() {
                                         <div className="px-3 py-3 text-xs text-cyber-text-muted/50 font-mono text-center">{t('mother.noFavorites')}</div>
                                     ) : (
                                         <>
-                                            <div className="max-h-56 overflow-y-auto custom-scrollbar">
+                                            <div className="max-h-56 overflow-y-auto slim-scroll custom-scrollbar">
                                                 {skillsFavorites.slice(skillsPage * SKILLS_PER_PAGE, (skillsPage + 1) * SKILLS_PER_PAGE).map(skill => (
                                                     <button
                                                         key={skill.id}
@@ -1258,7 +1258,7 @@ export function MotherAgentPanel() {
             }
 
             {/* Content */}
-            <div className="flex-1 p-2 overflow-y-auto">
+            <div className="flex-1 p-2 overflow-y-auto slim-scroll">
                 {panelTab === 'servers' ? (
                     /* ── SERVERS tab ── */
                     <div className="space-y-2">
