@@ -803,6 +803,18 @@ many users are beginners and just want to try things out quickly.\n\
         prompt.push_str("\n\n");
     }
 
+    // Chat protocol — instruct agent to wrap final reply in <chat> tags for bubble rendering
+    prompt.push_str(
+        "## UI Chat Protocol (MANDATORY)\n\
+        After completing all thinking, analysis, and tool calls, wrap your final reply to the user \
+        in <chat>...</chat> tags. This text becomes the chat bubble the user sees in the app.\n\
+        Rules:\n\
+        - Write the <chat> message like a friendly chat message — concise, clear, natural language.\n\
+        - Keep technical details (logs, commands, output) in your reasoning, NOT in <chat>.\n\
+        - ONE <chat> block per response, at the very end.\n\
+        - Example: <chat>Done! OpenClaw is installed and running. Use the Channels page to start chatting.</chat>\n\n"
+    );
+
     prompt
 }
 

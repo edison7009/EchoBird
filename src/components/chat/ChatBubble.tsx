@@ -128,13 +128,23 @@ export function ChatBubble({ role, content, variant, chips = [], isStreaming = f
 
     // ── AI bubble (left) ──
     if (role === 'assistant') {
+        // Priority 1: extract <chat>...</chat> — the AI's final user-facing reply
+        const chatMatch = content.match(/<chat>([\s\S]*?)<\/chat>/i);
+        // Priority 2: strip <think> blocks, show what remains
+        const finalText = chatMatch
+            ? chatMatch[1].trim()
+            : content
+                .replace(/<think>[\s\S]*?<\/think>/gi, '')   // complete think blocks
+                .replace(/<think>[\s\S]*/gi, '')              // unclosed think (still thinking)
+                .trim();
+
         return (
             <div className="flex justify-start mb-4">
                 <div className="max-w-[75%] bg-cyber-bg/80 rounded-2xl rounded-tl-sm px-4 py-3 text-sm text-cyber-text leading-relaxed">
-                    {isStreaming && !content
+                    {(isStreaming && !finalText)
                         ? <StreamingDots />
                         : <div className="break-words channel-markdown">
-                            <ReactMarkdown remarkPlugins={[remarkGfm]} components={mdComponents}>{content}</ReactMarkdown>
+                            <ReactMarkdown remarkPlugins={[remarkGfm]} components={mdComponents}>{finalText}</ReactMarkdown>
                           </div>
                     }
                 </div>
