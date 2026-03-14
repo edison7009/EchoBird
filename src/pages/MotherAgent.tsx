@@ -5,7 +5,7 @@ import remarkGfm from 'remark-gfm';
 import { MiniSelect } from '../components/MiniSelect';
 import { getModelIcon } from '../components/cards/ModelCard';
 import { PendingChipsRow } from '../components/PendingChipsRow';
-import { ChatBubble, TerminalStatusBar } from '../components/chat';
+import { ChatBubble } from '../components/chat';
 import { useI18n } from '../hooks/useI18n';
 import { useConfirm } from '../components/ConfirmDialog';
 import * as api from '../api/tauri';
@@ -518,7 +518,6 @@ export function MotherAgentMain() {
 
     // Skills popup state
     const [showSkillsPicker, setShowSkillsPicker] = useState(false);
-    const [showProcess, setShowProcess] = useState(true);
     const [skillsFavorites, setSkillsFavorites] = useState<Array<{ id: string; name: string; github: string }>>([]);
     const [skillsPage, setSkillsPage] = useState(0);
     const skillsPickerRef = useRef<HTMLDivElement>(null!);
@@ -751,38 +750,7 @@ export function MotherAgentMain() {
             </div>
 
             {/* Rich input area */}
-            <TerminalStatusBar
-                isVisible={showProcess}
-                isProcessing={isProcessing}
-                toolName={(() => {
-                    const tc = chatOutput.slice().reverse().find(m => m.type === 'tool_call' && (m as any).status === 'running');
-                    return tc ? (tc as any).name : undefined;
-                })()}
-                textContent={(() => {
-                    // Build a combined process log: all tool calls + all intermediate text
-                    // This creates the "fire hose" effect in the terminal marquee
-                    const parts: string[] = [];
-                    for (const msg of chatOutput) {
-                        if (msg.type === 'tool_call') {
-                            parts.push(`⚡ ${(msg as any).name}`);
-                        } else if (msg.type === 'assistant') {
-                            const hasChat = /<chat>[\s\S]*?<\/chat>/i.test((msg as any).text);
-                            if (!hasChat) {
-                                // Strip think blocks, collapse whitespace
-                                const raw = (msg as any).text
-                                    .replace(/<think>[\s\S]*/gi, '')
-                                    .replace(/<\/think>/gi, '')
-                                    .replace(/\n+/g, ' · ')
-                                    .trim();
-                                if (raw) parts.push(raw);
-                            }
-                        }
-                    }
-                    const full = parts.join('  │  ');
-                    return full.slice(-600) || undefined;  // last 600 chars for marquee
-                })()}
-            />
-            <div className="flex-shrink-0 mt-3 mb-2">
+<div className="flex-shrink-0 mt-3 mb-2">
                 <div className="bg-cyber-terminal rounded-lg">
                     {/* Pending attachments chips — shared component */}
                     <PendingChipsRow
@@ -936,14 +904,6 @@ export function MotherAgentMain() {
                                 className="p-1 text-cyber-accent-secondary/40 hover:text-red-400 transition-colors disabled:opacity-20"
                             >
                                 <Trash2 size={15} />
-                            </button>
-                            <button
-                                onClick={() => setShowProcess(prev => !prev)}
-                                disabled={!agentModel || isProcessing}
-                                className={`flex items-center gap-2 text-xs font-mono px-1.5 py-0.5 rounded border transition-colors disabled:opacity-20 ${showProcess ? 'border-cyber-accent-secondary/40 text-cyber-accent-secondary/80 bg-cyber-accent-secondary/5' : 'border-cyber-border/30 text-cyber-text-muted/40 hover:text-cyber-text-muted/60'}`}
-                            >
-                                <span className={`inline-block w-2 h-2 rounded-full border transition-colors ${showProcess ? 'bg-cyber-accent-secondary border-cyber-accent-secondary' : 'border-cyber-text-muted/40'}`} />
-                                {t('common.showProcess')}
                             </button>
                             <span className="text-xs font-mono text-cyber-accent-secondary/80 truncate max-w-[160px]">
                                 {(() => {

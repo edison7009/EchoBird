@@ -1,4 +1,4 @@
-﻿// i18n type definitions (separate file to avoid circular imports)
+// i18n type definitions (separate file to avoid circular imports)
 
 // Translation key definitions
 export type TKey =
@@ -71,7 +71,7 @@ export type TKey =
     | 'server.local' | 'server.store'
     | 'server.selectModelDir' | 'server.downloadFromStore'
     | 'server.gpuFull' | 'server.cpuOnly'
-    | 'server.setupEngine' | 'server.downloading' | 'server.installing'
+    | 'server.setupEngine' | 'server.downloading'
     // Debug
     | 'debug.console' | 'debug.gettingStarted' | 'debug.selectModelForAI' | 'debug.selectModelHint'
     | 'debug.sendLogsToAI' | 'debug.selectModelFirst'
@@ -97,14 +97,13 @@ export type TKey =
     | 'hint.devInvite'
     // Channels
     | 'channel.standby' | 'channel.linked' | 'channel.enterMessage' | 'channel.awaitingResponse'
-    | 'channel.remoteLlm' | 'channel.llmPanel' | 'channel.deployFirst'
     | 'channel.failed' | 'channel.connecting' | 'channel.connectedTo'
     | 'channel.connectionFailed' | 'channel.transmitting' | 'channel.noModels'
     | 'channel.motherFlow'
     // Mother Agent
     | 'mother.selectModel'
-    | 'mother.deployHint' | 'mother.awaitingInit' | 'mother.flowHint'
-    | 'mother.hintInstall' | 'mother.hintInstallSkills' | 'mother.hintDeployLlm' | 'mother.hintDeployBridge' | 'mother.hintShowSpecs' | 'mother.hintTroubleshoot' | 'mother.hintUninstall'
+    | 'mother.awaitingInit' | 'mother.flowHint'
+    | 'mother.hintInstall' | 'mother.hintInstallSkills' | 'mother.hintShowSpecs' | 'mother.hintTroubleshoot' | 'mother.hintUninstall'
     | 'mother.executing' | 'mother.callingTool' | 'mother.processing' | 'mother.thinking'
     | 'mother.enterMessage' | 'mother.noModels' | 'mother.noFavorites'
     | 'mother.servers' | 'mother.sshGuide' | 'mother.local' | 'mother.noServer'

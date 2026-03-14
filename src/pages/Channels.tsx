@@ -133,7 +133,6 @@ export const Channels: React.FC = () => {
     const SKILLS_PER_PAGE_CH = 4;
     const [pendingSkills, setPendingSkills] = useState<Array<{ id: string; name: string; github: string; branch: string }>>([]);
     // Process toggle (show/hide tool calls and thinking)
-    const [showProcess, setShowProcess] = useState(true);
 
     // Bridge mode state — per-channel storage
     type BridgeMsg = { role: string; content: string; meta?: { model?: string; tokens?: number; duration_ms?: number } };
@@ -742,12 +741,7 @@ export const Channels: React.FC = () => {
                         )}
 
                         {/* Input area */}
-                        <TerminalStatusBar
-                            isVisible={showProcess}
-                            isProcessing={bridgeLoading}
-                            toolName={messages.slice().reverse().find(m => m.role === 'tool_call') ? (messages.slice().reverse().find(m => m.role === 'tool_call') as any).toolName : undefined}
-                        />
-                        <div className="flex-shrink-0 mx-4 mt-3 mb-2">
+<div className="flex-shrink-0 mx-4 mt-3 mb-2">
                             <div className="bg-cyber-terminal rounded-lg">
                                 {/* Pending chips — shared component */}
                                 <PendingChipsRow
@@ -901,10 +895,7 @@ export const Channels: React.FC = () => {
                                         <button
                                             onClick={() => setShowProcess(prev => !prev)}
                                             disabled={bridgeLoading || !isActiveConnected}
-                                            className={`flex items-center gap-2 text-xs font-mono px-1.5 py-0.5 rounded border transition-colors disabled:opacity-20 ${showProcess ? 'border-cyber-accent/40 text-cyber-accent/80 bg-cyber-accent/5' : 'border-cyber-border/30 text-cyber-text-muted/40 hover:text-cyber-text-muted/60'}`}
                                         >
-                                            <span className={`inline-block w-2 h-2 rounded-full border transition-colors ${showProcess ? 'bg-cyber-accent border-cyber-accent' : 'border-cyber-text-muted/40'}`} />
-                                            {t('common.showProcess')}
                                         </button>
                                         {bridgeLoading ? (
                                             <button

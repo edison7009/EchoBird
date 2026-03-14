@@ -210,8 +210,7 @@ const en: Translations = {
     'server.cpuOnly': '🖥 CPU Only',
     'server.setupEngine': 'SETUP ENGINE',
     'server.downloading': 'DOWNLOADING',
-    'server.installing': 'INSTALLING...',
-    // ModelStore buttons
+        // ModelStore buttons
     'store.add': '[+ADD]',
     'store.del': '[-DEL]',
     'store.cancel': '[CANCEL]',
@@ -241,10 +240,7 @@ const en: Translations = {
     'channel.linked': 'LINKED',
     'channel.enterMessage': 'Enter message...',
     'channel.awaitingResponse': 'Awaiting response...',
-    'channel.remoteLlm': 'Remote LLM:',
-    'channel.llmPanel': 'LLM Panel →',
-    'channel.deployFirst': 'Complete Agent Deployment First',
-    'channel.failed': 'FAILED',
+                    'channel.failed': 'FAILED',
     'channel.connecting': 'Connecting...',
     'channel.connectedTo': 'Connected to Agent',
     'channel.connectionFailed': 'Connection failed',
@@ -254,20 +250,16 @@ const en: Translations = {
     'hint.devInvite': 'Develop AI apps or AI games — see \"Reversi\" and \"AI Translate\".',
     // Mother Agent
     'mother.selectModel': 'Select model...',
-    'mother.deployHint': 'Deploy any Agent via chat, e.g.:',
-    'mother.awaitingInit': '> awaiting_mother_agent_init...',
+        'mother.awaitingInit': '> awaiting_mother_agent_init...',
     'mother.flowHint': 'select model → add server → deploy',
     'mother.hintInstall': 'Install {agent}',
     'mother.hintInstallSkills': 'Install skills for {agent}',
-    'mother.hintDeployLlm': 'Deploy LLM on remote (Channels)',
-    'mother.hintDeployBridge': '{agent} — Connect remote to Channels',
-    'mother.hintShowSpecs': 'Show server specs',
+            'mother.hintShowSpecs': 'Show server specs',
     'mother.hintTroubleshoot': '{agent} not working? Help me fix it',
     'mother.hintUninstall': 'Uninstall {agent} completely',
     'mother.executing': 'Executing tool',
     'mother.callingTool': 'Calling tool',
     'mother.processing': 'Processing',
-    'mother.thinking': 'Thinking...',
     'mother.enterMessage': 'Enter message...',
     'mother.noModels': 'No models available',
     'mother.noFavorites': 'No favorites yet. Add in Skill Browser.',
@@ -285,7 +277,7 @@ const en: Translations = {
     'mother.passwordPlaceholder': 'SSH password or private key path',
     'mother.displayName': 'Display Name',
     'mother.optional': 'optional',
-    'mother.displayNamePlaceholder': 'e.g. Agent#03, LLM-Server#17',
+    'mother.displayNamePlaceholder': 'e.g. Agent#03, Server#17',
     'mother.encrypted': 'Encrypted globally — Password will self-destruct if environment changes',
     'mother.testing': 'TESTING...',
     'mother.testConnection': 'TEST CONNECTION',
@@ -294,7 +286,6 @@ const en: Translations = {
     'mother.deleteServerTitle': 'DELETE SERVER',
     'mother.deleteServerMsg': 'This server will be permanently removed. This action cannot be undone.',
     // Process toggle
-    'common.showProcess': 'THINK·PROCESS',
     // SSH Guide
     'ssh.cloudDesc': 'Most cloud providers provide SSH credentials when you create an instance.',
     'ssh.usernameHint': 'Username',
@@ -328,6 +319,7 @@ const en: Translations = {
     'mother.connectionRetrying': 'Connection error, retrying ({n}/{total})...',
     'mother.connectionFailed': 'Failed to connect to AI model after {n} retries.',
     'mother.connectionHint': 'Please check the URL, Model ID, API Key, and ensure your token quota is sufficient.',
+    'common.inputting': 'Typing...',
 };
 
 export { en };
