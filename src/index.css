@@ -264,6 +264,18 @@ pre {
   animation: slideFromRight 0.2s ease-out forwards;
 }
 
+/* TerminalStatusBar — ticker tape marquee (right → left continuous) */
+@keyframes marqueeFlow {
+  0%   { transform: translateX(60%); }
+  100% { transform: translateX(-100%); }
+}
+
+.marquee-text {
+  display: inline-block;
+  white-space: nowrap;
+  animation: marqueeFlow var(--marquee-duration, 6s) linear infinite;
+}
+
 /* DOS-style hard blink cursor */
 @keyframes blink {
 
