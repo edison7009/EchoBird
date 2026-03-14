@@ -696,9 +696,8 @@ export function MotherAgentMain() {
                         <div className="pt-2 pb-2">
                             {chatOutput.map((msg, i) => {
                                 if (msg.type === 'state') return null;
-                                // tool_call / tool_result / thinking → only shown when showProcess on
-                                if (!showProcess && (msg.type === 'tool_call' || msg.type === 'tool_result' || msg.type === 'thinking')) return null;
-                                if (msg.type === 'tool_call' || msg.type === 'tool_result' || msg.type === 'thinking') return null; // always hidden in bubbles (shown in status bar)
+                                // tool_call / tool_result / thinking → all go to TerminalStatusBar only
+                                if (msg.type === 'tool_call' || msg.type === 'tool_result' || msg.type === 'thinking') return null;
 
                                 if (msg.type === 'user') {
                                     return <ChatBubble key={i} role="user" content={msg.text} variant="mother" />;
@@ -709,6 +708,10 @@ export function MotherAgentMain() {
                                         const label = t('mother.connectionRetrying').replace('{n}', retryMatch[1]).replace('{total}', retryMatch[2]);
                                         return <ChatBubble key={i} role="retry" content={label} variant="mother" />;
                                     }
+                                    // Only render assistant bubble if <chat> is complete
+                                    // Intermediate text (no <chat> tag yet) goes to TerminalStatusBar
+                                    const hasChatTag = /<chat>[\s\S]*?<\/chat>/i.test(msg.text);
+                                    if (!hasChatTag) return null;
                                     return <ChatBubble key={i} role="assistant" content={msg.text} variant="mother" />;
                                 }
                                 if (msg.type === 'error') {
@@ -752,7 +755,23 @@ export function MotherAgentMain() {
             <TerminalStatusBar
                 isVisible={showProcess}
                 isProcessing={isProcessing}
-                toolName={chatOutput.slice().reverse().find(m => m.type === 'tool_call' && (m as any).status === 'running') ? (chatOutput.slice().reverse().find(m => m.type === 'tool_call' && (m as any).status === 'running') as any).name : undefined}
+                toolName={(() => {
+                    const tc = chatOutput.slice().reverse().find(m => m.type === 'tool_call' && (m as any).status === 'running');
+                    return tc ? (tc as any).name : undefined;
+                })()}
+                textContent={(() => {
+                    // Show last non-empty line of the intermediate assistant text (no <chat> tag yet)
+                    const last = chatOutput.slice().reverse().find(m =>
+                        m.type === 'assistant' && !/<chat>[\s\S]*?<\/chat>/i.test((m as any).text)
+                    );
+                    if (!last) return undefined;
+                    const raw = (last as any).text
+                        .replace(/<think>[\s\S]*/gi, '')
+                        .trim();
+                    const lines = raw.split('\n').map((l: string) => l.trim()).filter(Boolean);
+                    const lastLine = lines[lines.length - 1] || '';
+                    return lastLine.slice(-100) || undefined;
+                })()}
             />
             <div className="flex-shrink-0 mt-3 mb-2">
                 <div className="bg-cyber-terminal rounded-lg">
