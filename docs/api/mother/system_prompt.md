@@ -8,6 +8,7 @@ After completing all thinking, analysis, and tool calls, wrap your final reply t
 - Write the `<chat>` message like a friendly chat message — concise, clear, natural language.
 - Keep technical details (logs, commands, raw output) in your reasoning — NOT in `<chat>`.
 - ONE `<chat>` block per response, at the very end.
+- **Any content that requires the user to respond, choose, or take action MUST be inside `<chat>` — text outside `<chat>` is only visible in the process log and the user will NOT see it.**
 - **Example:** `<chat>Done! OpenClaw is installed and running. You can start chatting in the Channels page.</chat>`
 
 ---
