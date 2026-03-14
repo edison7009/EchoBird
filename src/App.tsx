@@ -131,7 +131,7 @@ function App() {
                                             <div className="flex flex-col h-screen w-full bg-cyber-bg">
                                                 {/* Title bar */}
                                                 <TitleBar onSettingsClick={() => setShowSettings(true)} />
-                                                <div className="flex flex-1 overflow-hidden text-cyber-accent font-mono p-4 gap-4 grid-bg relative isolate">
+                                                <div className="flex flex-1 overflow-hidden text-cyber-accent font-mono p-4 gap-0 grid-bg relative isolate">
                                                     <CircuitFlowConnected />
                                                     {/* Sidebar */}
                                                     <SidebarConnected activePage={activePage} onPageChange={setActivePage} agentRunning={agentRunning} motherNewMessage={motherNewMessage} clearMotherBadge={() => setMotherNewMessage(false)} updateAvailable={updateAvailable} onSettingsClick={() => setShowSettings(true)} />
