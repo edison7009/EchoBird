@@ -19,8 +19,8 @@ export interface ChatBubbleProps {
 
 // ── User bubble colors (solid fill, dark text — same as nav active state) ────
 const USER_BUBBLE = {
-    mother:   'bg-[#00D4FF] text-[#0a0f1a]',
-    channels: 'bg-[#00FF9D] text-[#0a0f1a]',
+    mother:   'bg-[#00D4FF] text-[#1C1C1E]',
+    channels: 'bg-[#00FF9D] text-[#1C1C1E]',
 } as const;
 
 // ── Strip common markdown symbols for plain-text display ─────────────────────
