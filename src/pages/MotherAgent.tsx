@@ -708,10 +708,9 @@ export function MotherAgentMain() {
                                         const label = t('mother.connectionRetrying').replace('{n}', retryMatch[1]).replace('{total}', retryMatch[2]);
                                         return <ChatBubble key={i} role="retry" content={label} variant="mother" />;
                                     }
-                                    // Only render assistant bubble if <chat> is complete
-                                    // Intermediate text (no <chat> tag yet) goes to TerminalStatusBar
-                                    const hasChatTag = /<chat>[\s\S]*?<\/chat>/i.test(msg.text);
-                                    if (!hasChatTag) return null;
+                                    // ChatBubble handles extraction: <chat> tag → shows only that,
+                                    // fallback → strips <think> blocks, shows remainder.
+                                    // Always render — ChatBubble returns empty string for pure <think> content.
                                     return <ChatBubble key={i} role="assistant" content={msg.text} variant="mother" />;
                                 }
                                 if (msg.type === 'error') {
@@ -755,7 +754,10 @@ export function MotherAgentMain() {
             <TerminalStatusBar
                 isVisible={showProcess}
                 isProcessing={isProcessing}
-                toolName={undefined}
+                toolName={(() => {
+                    const tc = chatOutput.slice().reverse().find(m => m.type === 'tool_call' && (m as any).status === 'running');
+                    return tc ? (tc as any).name : undefined;
+                })()}
                 textContent={(() => {
                     // Build a combined process log: all tool calls + all intermediate text
                     // This creates the "fire hose" effect in the terminal marquee
