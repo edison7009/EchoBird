@@ -44,8 +44,8 @@ export interface ChatBubbleProps {
 // ── Color tokens per variant ─────────────────────────────────────────────────
 
 const USER_BUBBLE = {
-    mother:   'bg-cyber-accent-secondary/15 text-cyber-accent-secondary',
-    channels: 'bg-cyber-accent/15 text-cyber-accent',
+    mother:   'bg-[#00D4FF] text-[#0a0f1a]',
+    channels: 'bg-[#00FF9D] text-[#0a0f1a]',
 } as const;
 
 // ── Streaming dots ────────────────────────────────────────────────────────────
@@ -140,13 +140,13 @@ export function ChatBubble({ role, content, variant, chips = [], isStreaming = f
 
         return (
             <div className="flex justify-start mb-4">
-                <div className="max-w-[75%] bg-cyber-bg/80 rounded-2xl rounded-tl-sm px-4 py-3 text-sm text-cyber-text leading-relaxed">
+                <div className="max-w-[75%] bg-white rounded-2xl rounded-tl-sm px-4 py-3 text-sm text-gray-900 leading-relaxed">
                     {(isStreaming && !finalText)
                         ? <span className="inline-flex items-center gap-2">
-                            <span className="text-cyber-text-muted/50 font-mono text-sm">输入中</span>
+                            <span className="text-gray-400 font-mono text-sm">输入中</span>
                             <span className="inline-flex gap-[3px]">
                                 {[0,1,2].map(i => (
-                                    <span key={i} className="inline-block w-1.5 h-1.5 rounded-full bg-cyber-text-muted/50"
+                                    <span key={i} className="inline-block w-1.5 h-1.5 rounded-full bg-gray-400"
                                         style={{ animation: 'dotPulse 1.2s ease-in-out infinite', animationDelay: `${i * 0.2}s` }}
                                     />
                                 ))}
