@@ -88,7 +88,7 @@ export type TKey =
     | 'vram.easy' | 'vram.good' | 'vram.tight' | 'vram.heavy'
     // Common
     | 'common.noData' | 'common.confirm' | 'common.website'
-    | 'common.areYouSure' | 'common.showProcess'
+    | 'common.areYouSure' | 'common.inputting'
     // API Key encryption status
     | 'key.encrypted' | 'key.destroyed'
     // Close behavior confirmation
@@ -104,7 +104,7 @@ export type TKey =
     | 'mother.selectModel'
     | 'mother.awaitingInit' | 'mother.flowHint'
     | 'mother.hintInstall' | 'mother.hintInstallSkills' | 'mother.hintShowSpecs' | 'mother.hintTroubleshoot' | 'mother.hintUninstall'
-    | 'mother.executing' | 'mother.callingTool' | 'mother.processing' | 'mother.thinking'
+    | 'mother.executing' | 'mother.callingTool' | 'mother.processing'
     | 'mother.enterMessage' | 'mother.noModels' | 'mother.noFavorites'
     | 'mother.servers' | 'mother.sshGuide' | 'mother.local' | 'mother.noServer'
     | 'mother.addServer' | 'mother.hostIp' | 'mother.port' | 'mother.username'

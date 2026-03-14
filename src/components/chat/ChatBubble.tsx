@@ -1,5 +1,6 @@
 // ChatBubble — social-style chat bubbles, NO markdown rendering
 // Left: AI (white bg, black text). Right: User (solid cyan/green).
+import { useI18n } from '../../hooks/useI18n';
 
 export type BubbleRole = 'user' | 'assistant' | 'system' | 'error' | 'working' | 'retry';
 
@@ -60,10 +61,11 @@ function ReadonlyChips({ chips }: { chips: BubbleChip[] }) {
 
 // ── Animated streaming dots ───────────────────────────────────────────────────
 function InputDots({ dark }: { dark?: boolean }) {
+    const { t } = useI18n();
     const col = dark ? '#888' : '#DED9D2';
     return (
         <span className="inline-flex items-center gap-2">
-            <span className="font-sans font-semibold text-sm" style={{ color: col }}>输入中</span>
+            <span className="font-sans font-semibold text-sm" style={{ color: col }}>{t('common.inputting')}</span>
             <span className="inline-flex gap-[3px]">
                 {[0,1,2].map(i => (
                     <span key={i}
