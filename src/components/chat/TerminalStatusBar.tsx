@@ -45,7 +45,16 @@ export function TerminalStatusBar({ toolName, textContent, isVisible, isProcessi
             <span ref={textRef} className="truncate animate-slide-from-right">
                 {displayText
                     ? <span className={toolName ? 'text-cyber-accent-secondary/80' : 'text-cyber-text-muted/60'}>{displayText}</span>
-                    : <span className="animate-pulse text-cyber-text-muted/40">思考中 ▋</span>
+                    : <span className="inline-flex items-center gap-0.5">
+                        <span className="text-cyber-text-muted/50 mr-1">输入中</span>
+                        {[0, 1, 2].map(i => (
+                            <span
+                                key={i}
+                                className="inline-block w-1 h-1 rounded-full bg-cyber-text-muted/40"
+                                style={{ animation: 'dotPulse 1.2s ease-in-out infinite', animationDelay: `${i * 0.2}s` }}
+                            />
+                        ))}
+                      </span>
                 }
             </span>
         </div>
