@@ -755,22 +755,29 @@ export function MotherAgentMain() {
             <TerminalStatusBar
                 isVisible={showProcess}
                 isProcessing={isProcessing}
-                toolName={(() => {
-                    const tc = chatOutput.slice().reverse().find(m => m.type === 'tool_call' && (m as any).status === 'running');
-                    return tc ? (tc as any).name : undefined;
-                })()}
+                toolName={undefined}
                 textContent={(() => {
-                    // Show last non-empty line of the intermediate assistant text (no <chat> tag yet)
-                    const last = chatOutput.slice().reverse().find(m =>
-                        m.type === 'assistant' && !/<chat>[\s\S]*?<\/chat>/i.test((m as any).text)
-                    );
-                    if (!last) return undefined;
-                    const raw = (last as any).text
-                        .replace(/<think>[\s\S]*/gi, '')
-                        .trim();
-                    const lines = raw.split('\n').map((l: string) => l.trim()).filter(Boolean);
-                    const lastLine = lines[lines.length - 1] || '';
-                    return lastLine.slice(-100) || undefined;
+                    // Build a combined process log: all tool calls + all intermediate text
+                    // This creates the "fire hose" effect in the terminal marquee
+                    const parts: string[] = [];
+                    for (const msg of chatOutput) {
+                        if (msg.type === 'tool_call') {
+                            parts.push(`⚡ ${(msg as any).name}`);
+                        } else if (msg.type === 'assistant') {
+                            const hasChat = /<chat>[\s\S]*?<\/chat>/i.test((msg as any).text);
+                            if (!hasChat) {
+                                // Strip think blocks, collapse whitespace
+                                const raw = (msg as any).text
+                                    .replace(/<think>[\s\S]*/gi, '')
+                                    .replace(/<\/think>/gi, '')
+                                    .replace(/\n+/g, ' · ')
+                                    .trim();
+                                if (raw) parts.push(raw);
+                            }
+                        }
+                    }
+                    const full = parts.join('  │  ');
+                    return full.slice(-600) || undefined;  // last 600 chars for marquee
                 })()}
             />
             <div className="flex-shrink-0 mt-3 mb-2">
