@@ -23,6 +23,21 @@ const USER_BUBBLE = {
     channels: 'bg-[#00FF9D] text-[#0a0f1a]',
 } as const;
 
+// ── Strip common markdown symbols for plain-text display ─────────────────────
+function stripMarkdown(text: string): string {
+    return text
+        .replace(/^#{1,6}\s+/gm, '')          // ## headers
+        .replace(/\*\*\*(.+?)\*\*\*/g, '$1')  // ***bold italic***
+        .replace(/\*\*(.+?)\*\*/g, '$1')       // **bold**
+        .replace(/\*(.+?)\*/g, '$1')           // *italic*
+        .replace(/`{3}[\s\S]*?`{3}/g, '')      // ```code blocks```
+        .replace(/`([^`]+)`/g, '$1')           // `inline code`
+        .replace(/^[-*]\s+/gm, '• ')           // - list → bullet
+        .replace(/^\d+\.\s+/gm, '')            // 1. ordered list → remove number
+        .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1') // [link](url) → link text
+        .trim();
+}
+
 // ── Chip styles ───────────────────────────────────────────────────────────────
 const CHIP_STYLES = {
     file:  'bg-white/20 border-white/30 text-[#0a0f1a]',
@@ -102,14 +117,15 @@ export function ChatBubble({ role, content, variant, chips = [], isStreaming = f
 
     // ── AI bubble (left) — white bg, black text, plain text ──
     if (role === 'assistant') {
-        // Priority: <chat> tag → else strip <think> → show remainder
+        // Priority: <chat> tag → else strip <think> → show remainder → strip markdown symbols
         const chatMatch = content.match(/<chat>([\s\S]*?)<\/chat>/i);
-        const finalText = chatMatch
+        const rawText = chatMatch
             ? chatMatch[1].trim()
             : content
                 .replace(/<think>[\s\S]*?<\/think>/gi, '')
                 .replace(/<think>[\s\S]*/gi, '')
                 .trim();
+        const finalText = stripMarkdown(rawText);
 
         return (
             <div className="flex justify-start mb-4">
