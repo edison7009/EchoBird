@@ -127,10 +127,13 @@ export function ChatBubble({ role, content, variant, chips = [], isStreaming = f
                 .trim();
         const finalText = stripMarkdown(rawText);
 
+        // Don't render an empty bubble shell
+        if (!finalText && !isStreaming) return null;
+
         return (
             <div className="flex justify-start mb-4">
                 <div
-                    className="max-w-[75%] rounded-2xl rounded-tl-sm px-4 py-3 text-sm leading-relaxed font-medium"
+                    className="max-w-[75%] rounded-2xl rounded-tl-sm px-4 py-3 text-sm leading-relaxed font-sans font-semibold"
                     style={{
                         background: '#1E2635',
                         color: '#DED9D2',
