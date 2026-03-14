@@ -892,11 +892,6 @@ export const Channels: React.FC = () => {
                                         )}
                                     </div>
                                     <div className="flex items-center gap-1.5">
-                                        <button
-                                            onClick={() => setShowProcess(prev => !prev)}
-                                            disabled={bridgeLoading || !isActiveConnected}
-                                        >
-                                        </button>
                                         {bridgeLoading ? (
                                             <button
                                                 onClick={handleAbort}
