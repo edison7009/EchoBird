@@ -138,7 +138,7 @@ export function ChatBubble({ role, content, variant, chips = [], isStreaming = f
                 <div
                     className="max-w-[75%] rounded-2xl rounded-tl-sm px-4 py-3 text-sm leading-relaxed font-sans font-semibold"
                     style={{
-                        background: '#1E2635',
+                        background: '#2A2A2A',
                         color: '#DED9D2',
                         boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.06), 0 2px 12px rgba(0,0,0,0.30), 0 0 0 1px rgba(255,255,255,0.05)',
                     }}
