@@ -130,9 +130,9 @@ export function ChatBubble({ role, content, variant, chips = [], isStreaming = f
         return (
             <div className="flex justify-start mb-4">
                 <div
-                    className="max-w-[75%] rounded-2xl rounded-tl-sm px-4 py-3 text-sm text-gray-900 leading-relaxed"
+                    className="max-w-[75%] rounded-2xl rounded-tl-sm px-4 py-3 text-sm text-gray-900 leading-relaxed font-medium"
                     style={{
-                        background: '#F8F4EF',
+                        background: '#DED9D2',
                         boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.06), 0 2px 12px rgba(0,0,0,0.10), 0 0 0 1px rgba(0,0,0,0.04)',
                     }}
                 >
