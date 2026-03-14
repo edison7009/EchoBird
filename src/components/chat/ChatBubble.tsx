@@ -130,14 +130,14 @@ export function ChatBubble({ role, content, variant, chips = [], isStreaming = f
         return (
             <div className="flex justify-start mb-4">
                 <div
-                    className="max-w-[75%] rounded-2xl rounded-tl-sm px-4 py-3 text-sm text-gray-900 leading-relaxed font-medium"
+                    className="max-w-[75%] rounded-2xl rounded-tl-sm px-4 py-3 text-sm text-white leading-relaxed font-medium"
                     style={{
-                        background: '#DED9D2',
-                        boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.06), 0 2px 12px rgba(0,0,0,0.10), 0 0 0 1px rgba(0,0,0,0.04)',
+                        background: '#1E2635',
+                        boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.06), 0 2px 12px rgba(0,0,0,0.30), 0 0 0 1px rgba(255,255,255,0.05)',
                     }}
                 >
                     {(isStreaming && !finalText)
-                        ? <InputDots dark />
+                        ? <InputDots />
                         : <p className="break-words whitespace-pre-wrap">{finalText}</p>
                     }
                 </div>
