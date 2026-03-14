@@ -772,7 +772,7 @@ export const Channels: React.FC = () => {
                                     placeholder={(bridgeLoading) ? t('channel.awaitingResponse') : t('channel.enterMessage')}
                                     disabled={(bridgeLoading) || (!canSendMessage && !isActiveConnected)}
                                     rows={3}
-                                    className="w-full bg-transparent px-4 py-2 text-sm text-cyber-text font-mono outline-none placeholder:text-cyber-text-muted/60 disabled:opacity-30 resize-none"
+                                    className="w-full bg-transparent px-4 py-2 text-sm text-white font-sans font-semibold outline-none placeholder:text-white/30 disabled:opacity-30 resize-none"
                                 />
                                 {/* Bottom toolbar */}
                                 <div className="flex items-center justify-between px-3 py-1.5 border-t border-cyber-border/20">
