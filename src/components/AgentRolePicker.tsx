@@ -63,7 +63,7 @@ export const AgentRolePicker: React.FC<AgentRolePickerProps> = ({
         <div className="fixed inset-0 z-50 flex items-center justify-center">
             <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
 
-            <div className="relative w-[80vw] max-h-[80vh] flex flex-col bg-cyber-bg border border-cyber-border rounded-card shadow-cyber-card overflow-hidden">
+            <div className="relative w-[90vw] max-h-[85vh] flex flex-col bg-cyber-bg border border-cyber-border rounded-card shadow-cyber-card overflow-hidden">
                 {/* Header */}
                 <div className="flex items-center justify-between px-5 py-3 border-b border-cyber-border/50 flex-shrink-0">
                     <span className="text-cyber-accent text-sm font-mono font-bold">
@@ -92,7 +92,7 @@ export const AgentRolePicker: React.FC<AgentRolePickerProps> = ({
                                     }`}
                                 >
                                     {/* Image — static, no zoom */}
-                                    <div className="aspect-[3/4] overflow-hidden bg-black/60">
+                                    <div className="aspect-video overflow-hidden bg-black/60">
                                         <img
                                             src={role.img}
                                             alt={role.name}
