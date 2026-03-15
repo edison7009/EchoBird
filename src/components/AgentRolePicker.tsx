@@ -1,28 +1,39 @@
 // AgentRolePicker — Simple role card selector modal
-// Vertical image cards with hover slide-up text effect
+// Vertical image cards with hover slide-up text effect + category filter
 import React, { useState } from 'react';
 import { X, Check } from 'lucide-react';
 
+// ── Categories ──
+const CATEGORIES = [
+    { id: 'all', label: 'All' },
+    { id: 'engineering', label: 'Engineering' },
+    { id: 'design', label: 'Design' },
+    { id: 'marketing', label: 'Marketing' },
+    { id: 'data', label: 'Data & AI' },
+    { id: 'product', label: 'Product' },
+    { id: 'testing', label: 'Testing' },
+];
+
 // ── 18 hardcoded roles with images from public/role/ ──
 const ROLES = [
-    { id: 'frontend-dev', name: 'Frontend Developer', desc: 'Modern web UI specialist', img: '/role/1119642287_IGDB-285x380.jpg' },
-    { id: 'backend-architect', name: 'Backend Architect', desc: 'Server-side systems expert', img: '/role/116747788-285x380.png' },
-    { id: 'ai-engineer', name: 'AI Engineer', desc: 'Machine learning implementation', img: '/role/1329153872_IGDB-285x380.jpg' },
-    { id: 'game-designer', name: 'Game Designer', desc: 'Game mechanics and systems', img: '/role/1435206302_IGDB-285x380.jpg' },
-    { id: 'security-expert', name: 'Security Expert', desc: 'Security and vulnerability analysis', img: '/role/1597660489_IGDB-285x380.jpg' },
-    { id: 'data-scientist', name: 'Data Scientist', desc: 'Data analysis and insights', img: '/role/1630982727_IGDB-285x380.jpg' },
-    { id: 'devops-master', name: 'DevOps Master', desc: 'CI/CD and infrastructure', img: '/role/21779-285x380.jpg' },
-    { id: 'ui-designer', name: 'UI Designer', desc: 'Visual interface design', img: '/role/29307_IGDB-285x380.jpg' },
-    { id: 'code-reviewer', name: 'Code Reviewer', desc: 'Code quality and review', img: '/role/509538_IGDB-285x380.jpg' },
-    { id: 'product-manager', name: 'Product Manager', desc: 'Product strategy and planning', img: '/role/509658-285x380.jpg' },
-    { id: 'creative-writer', name: 'Creative Writer', desc: 'Content and story creation', img: '/role/511224-285x380.jpg' },
-    { id: 'translator', name: 'Translator', desc: 'Multi-language translation', img: '/role/512864_IGDB-285x380.jpg' },
-    { id: 'seo-specialist', name: 'SEO Specialist', desc: 'Search optimization expert', img: '/role/513181_IGDB-285x380.jpg' },
-    { id: 'prompt-engineer', name: 'Prompt Engineer', desc: 'AI prompt optimization', img: '/role/515025-285x380.png' },
-    { id: 'api-tester', name: 'API Tester', desc: 'API testing and validation', img: '/role/516575-285x380.png' },
-    { id: 'sales-strategist', name: 'Sales Strategist', desc: 'Sales pipeline and deals', img: '/role/55453844_IGDB-285x380.jpg' },
-    { id: 'support-hero', name: 'Support Hero', desc: 'Customer support specialist', img: '/role/66082-285x380.jpg' },
-    { id: 'research-analyst', name: 'Research Analyst', desc: 'Deep research and analysis', img: '/role/66366_IGDB-285x380.jpg' },
+    { id: 'frontend-dev', name: 'Frontend Developer', desc: 'Modern web UI specialist', img: '/role/1119642287_IGDB-285x380.jpg', cat: 'engineering' },
+    { id: 'backend-architect', name: 'Backend Architect', desc: 'Server-side systems expert', img: '/role/116747788-285x380.png', cat: 'engineering' },
+    { id: 'ai-engineer', name: 'AI Engineer', desc: 'Machine learning implementation', img: '/role/1329153872_IGDB-285x380.jpg', cat: 'data' },
+    { id: 'game-designer', name: 'Game Designer', desc: 'Game mechanics and systems', img: '/role/1435206302_IGDB-285x380.jpg', cat: 'design' },
+    { id: 'security-expert', name: 'Security Expert', desc: 'Security and vulnerability analysis', img: '/role/1597660489_IGDB-285x380.jpg', cat: 'engineering' },
+    { id: 'data-scientist', name: 'Data Scientist', desc: 'Data analysis and insights', img: '/role/1630982727_IGDB-285x380.jpg', cat: 'data' },
+    { id: 'devops-master', name: 'DevOps Master', desc: 'CI/CD and infrastructure', img: '/role/21779-285x380.jpg', cat: 'engineering' },
+    { id: 'ui-designer', name: 'UI Designer', desc: 'Visual interface design', img: '/role/29307_IGDB-285x380.jpg', cat: 'design' },
+    { id: 'code-reviewer', name: 'Code Reviewer', desc: 'Code quality and review', img: '/role/509538_IGDB-285x380.jpg', cat: 'engineering' },
+    { id: 'product-manager', name: 'Product Manager', desc: 'Product strategy and planning', img: '/role/509658-285x380.jpg', cat: 'product' },
+    { id: 'creative-writer', name: 'Creative Writer', desc: 'Content and story creation', img: '/role/511224-285x380.jpg', cat: 'marketing' },
+    { id: 'translator', name: 'Translator', desc: 'Multi-language translation', img: '/role/512864_IGDB-285x380.jpg', cat: 'marketing' },
+    { id: 'seo-specialist', name: 'SEO Specialist', desc: 'Search optimization expert', img: '/role/513181_IGDB-285x380.jpg', cat: 'marketing' },
+    { id: 'prompt-engineer', name: 'Prompt Engineer', desc: 'AI prompt optimization', img: '/role/515025-285x380.png', cat: 'data' },
+    { id: 'api-tester', name: 'API Tester', desc: 'API testing and validation', img: '/role/516575-285x380.png', cat: 'testing' },
+    { id: 'sales-strategist', name: 'Sales Strategist', desc: 'Sales pipeline and deals', img: '/role/55453844_IGDB-285x380.jpg', cat: 'product' },
+    { id: 'support-hero', name: 'Support Hero', desc: 'Customer support specialist', img: '/role/66082-285x380.jpg', cat: 'product' },
+    { id: 'research-analyst', name: 'Research Analyst', desc: 'Deep research and analysis', img: '/role/66366_IGDB-285x380.jpg', cat: 'data' },
 ];
 
 // ── Component ──
@@ -43,6 +54,7 @@ export const AgentRolePicker: React.FC<AgentRolePickerProps> = ({
     agentName,
 }) => {
     const [localSelected, setLocalSelected] = useState<string | null>(selectedRole);
+    const [activeCat, setActiveCat] = useState('all');
 
     if (!isOpen) return null;
 
@@ -50,6 +62,8 @@ export const AgentRolePicker: React.FC<AgentRolePickerProps> = ({
         setLocalSelected(roleId);
         onSelectRole(roleId, roleName);
     };
+
+    const filteredRoles = activeCat === 'all' ? ROLES : ROLES.filter(r => r.cat === activeCat);
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
@@ -66,10 +80,27 @@ export const AgentRolePicker: React.FC<AgentRolePickerProps> = ({
                     </button>
                 </div>
 
+                {/* Category tabs */}
+                <div className="flex items-center gap-1.5 px-5 py-2.5 border-b border-cyber-border/30 flex-shrink-0 overflow-x-auto">
+                    {CATEGORIES.map(cat => (
+                        <button
+                            key={cat.id}
+                            onClick={() => setActiveCat(cat.id)}
+                            className={`px-3 py-1 rounded-md text-xs font-mono whitespace-nowrap transition-all ${
+                                activeCat === cat.id
+                                    ? 'bg-cyber-accent/15 text-cyber-accent border border-cyber-accent/40'
+                                    : 'text-cyber-text-muted/60 border border-transparent hover:text-cyber-accent/80 hover:bg-cyber-accent/5'
+                            }`}
+                        >
+                            {cat.label}
+                        </button>
+                    ))}
+                </div>
+
                 {/* Card grid */}
                 <div className="flex-1 overflow-y-auto slim-scroll custom-scrollbar p-4">
                     <div className="grid grid-cols-6 gap-3">
-                        {ROLES.map(role => {
+                        {filteredRoles.map(role => {
                             const isSelected = localSelected === role.id;
                             return (
                                 <div
@@ -90,7 +121,7 @@ export const AgentRolePicker: React.FC<AgentRolePickerProps> = ({
                                         />
                                     </div>
 
-                                    {/* ✓ badge — top right on selected */}
+                                    {/* ✓ badge */}
                                     {isSelected && (
                                         <div className="absolute top-2 right-2 w-7 h-7 rounded-lg flex items-center justify-center z-10 bg-cyber-accent ring-2 ring-black/40"
                                              style={{ boxShadow: '0 0 10px rgba(0,255,157,0.6), 0 2px 8px rgba(0,0,0,0.5)' }}>
@@ -106,7 +137,7 @@ export const AgentRolePicker: React.FC<AgentRolePickerProps> = ({
                                          }}
                                     />
 
-                                    {/* Text overlay — name fixed, desc expands on hover */}
+                                    {/* Text overlay */}
                                     <div className="absolute inset-x-0 bottom-0 px-3 pb-3 flex flex-col items-center"
                                          style={{ backfaceVisibility: 'hidden' }}>
                                         <div
