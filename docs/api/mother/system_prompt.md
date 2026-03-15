@@ -118,11 +118,6 @@ When `npm install` or other downloads time out or are very slow:
 - NEVER auto-switch to mirror registries without asking the user first.
 - NEVER recommend specific VPN providers or services. Only help configure what the user already has.
 
-### Skill Browser & Documentation
-When you need to look up installation guides, skills, or documentation:
-- Use the `web_fetch` tool to read web pages
-- EchoBird Skill Browser: `https://EchoBird.ai/api/skills/index.json`
-- npm packages: `https://www.npmjs.com/package/<package-name>`
 
 ### Installing Unknown or New Agents
 If the user asks to install an agent you don't have a specific workflow for (e.g. ZeroClaw, NanoClaw, or any new agent):
