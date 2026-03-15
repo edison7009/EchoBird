@@ -786,7 +786,7 @@ export function MotherAgentMain() {
 
             {/* Rich input area */}
 <div className="flex-shrink-0 mt-1 mb-1">
-                <div className="bg-cyber-terminal rounded-lg">
+                <div className="bg-cyber-terminal rounded-lg relative">
                     {/* Pending attachments chips — shared component */}
                     <PendingChipsRow
                         files={pendingFiles}
@@ -958,7 +958,7 @@ export function MotherAgentMain() {
                                 <button
                                     onClick={localSend}
                                     disabled={!chatInput.trim() || !agentModel}
-                                    className="w-6 h-6 rounded flex items-center justify-center bg-cyber-accent-secondary hover:brightness-110 transition-all disabled:opacity-20"
+                                    className="absolute bottom-2 right-2 w-6 h-6 rounded-lg flex items-center justify-center bg-cyber-accent-secondary hover:brightness-110 transition-all disabled:opacity-20"
                                 >
                                     <Send size={15} className="text-cyber-bg" />
                                 </button>

@@ -863,7 +863,7 @@ export const Channels: React.FC = () => {
 
                         {/* Input area */}
 <div className="flex-shrink-0 mx-4 mt-3 mb-2">
-                            <div className="bg-cyber-terminal rounded-lg">
+                            <div className="bg-cyber-terminal rounded-lg relative">
                                 {/* Pending chips — shared component */}
                                 <PendingChipsRow
                                     files={attachments.map((a, i) => ({ id: String(i), name: a.name, type: a.type as 'file'|'image', preview: a.preview }))}
@@ -1036,7 +1036,7 @@ export const Channels: React.FC = () => {
                                             <button
                                                 onClick={handleSend}
                                                 disabled={(!input.trim() && attachments.length === 0 && pendingModels.length === 0 && pendingSkills.length === 0) || !isActiveConnected}
-                                                className="w-6 h-6 rounded flex items-center justify-center bg-cyber-accent hover:brightness-110 transition-all disabled:opacity-20"
+                                                className="absolute bottom-2 right-2 w-6 h-6 rounded-lg flex items-center justify-center bg-cyber-accent hover:brightness-110 transition-all disabled:opacity-20"
                                             >
                                                 <Send size={15} className="text-cyber-bg" />
                                             </button>
