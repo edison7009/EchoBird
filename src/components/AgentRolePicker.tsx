@@ -1,5 +1,5 @@
 // AgentRolePicker — Simple role card selector modal
-// Vertical image cards like the reference screenshot
+// Vertical image cards with text overlay on bottom half
 import React from 'react';
 import { X } from 'lucide-react';
 
@@ -71,26 +71,50 @@ export const AgentRolePicker: React.FC<AgentRolePickerProps> = ({
                                 <div
                                     key={role.id}
                                     onClick={() => { onSelectRole(role.id, role.name); onClose(); }}
-                                    className={`border rounded-card cursor-pointer transition-all overflow-hidden ${
+                                    className={`relative border rounded-card cursor-pointer transition-all overflow-hidden group ${
                                         isSelected
                                             ? 'border-cyber-accent shadow-[0_0_12px_rgba(0,255,157,0.3)]'
                                             : 'border-cyber-border bg-black/80 shadow-cyber-card hover:border-cyber-accent/40 hover:shadow-[0_0_8px_rgba(0,255,157,0.1)]'
                                     }`}
                                 >
-                                    {/* Image — center crop */}
+                                    {/* Full card image */}
                                     <div className="aspect-[3/4] overflow-hidden bg-black/60">
                                         <img
                                             src={role.img}
                                             alt={role.name}
-                                            className="w-full h-full object-cover object-center"
+                                            className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-300"
                                         />
                                     </div>
-                                    {/* Info */}
-                                    <div className="p-2.5">
-                                        <div className={`text-xs font-mono font-bold truncate ${isSelected ? 'text-cyber-accent' : 'text-cyber-accent/80'}`}>
+
+                                    {/* Text overlay on bottom half */}
+                                    <div className="absolute inset-x-0 bottom-0 flex flex-col items-center justify-end px-3 pb-3 pt-16"
+                                         style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.6) 50%, transparent 100%)' }}>
+                                        {/* Name — centered, max 2 lines, text shadow for readability */}
+                                        <div
+                                            className="text-sm font-bold text-center leading-tight line-clamp-2"
+                                            style={{
+                                                color: isSelected ? '#00ff9d' : '#ffffff',
+                                                textShadow: '0 0 8px rgba(0,0,0,0.9), 0 0 16px rgba(0,0,0,0.7), 0 1px 3px rgba(0,0,0,1)',
+                                            }}
+                                        >
                                             {role.name}
                                         </div>
-                                        <div className="text-[10px] font-mono text-cyber-text-muted/40 mt-0.5 truncate">
+
+                                        {/* Divider */}
+                                        <div className="w-8 h-px my-1.5" style={{
+                                            background: isSelected
+                                                ? 'linear-gradient(90deg, transparent, #00ff9d, transparent)'
+                                                : 'linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent)',
+                                        }} />
+
+                                        {/* Description — centered, max 2 lines */}
+                                        <div
+                                            className="text-[11px] text-center leading-snug line-clamp-2"
+                                            style={{
+                                                color: isSelected ? 'rgba(0,255,157,0.7)' : 'rgba(255,255,255,0.6)',
+                                                textShadow: '0 0 6px rgba(0,0,0,0.9), 0 0 12px rgba(0,0,0,0.8), 0 1px 2px rgba(0,0,0,1)',
+                                            }}
+                                        >
                                             {role.desc}
                                         </div>
                                     </div>
