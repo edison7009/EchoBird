@@ -813,7 +813,7 @@ many users are beginners and just want to try things out quickly.\n\
         When the user asks to install any tool, ALWAYS fetch the install reference first:\n\
         https://echobird.ai/api/tools/install/{tool-id}.json (e.g. openclaw, opencode)\n\
         The JSON contains official install commands, homepage, docs URL, and GitHub link.\n\
-        Use these as authoritative install instructions. If 404, fall back to web_fetch on the tool's official site.\n\n\"
+        Use these as authoritative install instructions. If 404, fall back to web_fetch on the tool's official site.\n\n"
     );
 
     // Fetch remote prompt (product knowledge + deployment workflows)
