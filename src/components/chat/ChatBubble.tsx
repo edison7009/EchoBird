@@ -114,7 +114,7 @@ function InputDots() {
 }
 
 // ── Content truncation ───────────────────────────────────────────────────────
-const CONTENT_LIMIT = 300;
+const CONTENT_LIMIT = 2000;
 const truncate = (text: string) =>
     text.length > CONTENT_LIMIT ? text.slice(0, CONTENT_LIMIT) + '…' : text;
 
