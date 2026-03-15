@@ -8,13 +8,7 @@
             "action": "installSkills",
             "agent": "OpenClaw"
         },
-        {
-            "action": "deployLlm"
-        },
-        {
-            "action": "deployBridge",
-            "agent": "OpenClaw"
-        },
+
         {
             "action": "showSpecs"
         },

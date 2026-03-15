@@ -195,8 +195,7 @@ pub fn get_tool_definitions() -> Vec<super::llm_client::ToolDef> {
             name: "deploy_plugin_source".into(),
             description: "Deploy a plugin to a remote server by downloading a pre-compiled binary from GitHub Releases. \
                 Detects remote OS and CPU architecture, downloads the correct binary (~30 seconds), \
-                makes it executable, and starts the server on the specified port. \
-                Use this for llm-server or any plugin. No Rust installation or compilation needed. Returns download and start status.".into(),
+                makes it executable, and starts the server on the specified port. No compilation needed. Returns download and start status.".into(),
             parameters: json!({
                 "type": "object",
                 "properties": {
@@ -206,11 +205,11 @@ pub fn get_tool_definitions() -> Vec<super::llm_client::ToolDef> {
                     },
                     "plugin_id": {
                         "type": "string",
-                        "description": "Plugin ID (e.g. 'llm-server', 'openclaw')"
+                        "description": "Plugin ID (e.g. 'openclaw')"
                     },
                     "port": {
                         "type": "integer",
-                        "description": "Port for the plugin to listen on (default 8090 for llm-server)"
+                        "description": "Port for the plugin to listen on"
                     }
                 },
                 "required": ["server_id", "plugin_id"]

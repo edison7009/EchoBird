@@ -212,16 +212,29 @@ fn execute_chat(
         args.push(m.to_string());
     }
 
-    // Add message as last arg (--message is already in args list)
-    args.push(message.to_string());
+    // Add message as last arg (--message is already in args list).
+    // On Windows, cmd.exe treats a real newline as a command separator and truncates
+    // the argument at the first newline. Replace real newlines with the two-character
+    // literal \n so the full message is passed intact. The agent (openclaw) interprets \n.
+    #[cfg(target_os = "windows")]
+    let message_arg = message.replace("\r\n", "\\n").replace('\n', "\\n");
+    #[cfg(not(target_os = "windows"))]
+    let message_arg = message.to_string();
+    args.push(message_arg);
 
     // Execute the CLI
     eprintln!("[bridge] Executing: {} {}", config.command, args.join(" "));
 
-    // On Windows, .cmd scripts must be run through cmd.exe
-    // Pass args individually so Windows handles quoting automatically
+    // On Windows, .cmd scripts must be run through cmd.exe.
+    // Resolve the full .cmd path first, then pass each arg separately so that
+    // Rust's Windows argv encoding (CreateProcess) correctly quotes args that
+    // contain newlines or special characters — avoiding cmd.exe shell truncation.
     let result = if cfg!(target_os = "windows") {
-        let mut cmd_args = vec!["/c".to_string(), config.command.clone()];
+        let resolved = resolve_command(&config.command);
+        // Pass /c + full-path-to-.cmd as two separate args, then all message args.
+        // Rust's Command on Windows calls CreateProcess and quotes each element
+        // individually, so newlines in message are preserved correctly.
+        let mut cmd_args = vec!["/c".to_string(), resolved];
         cmd_args.extend(args.iter().cloned());
         Command::new("cmd.exe").args(&cmd_args).output()
     } else {
