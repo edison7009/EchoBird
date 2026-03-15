@@ -134,8 +134,9 @@ export function ChatBubble({ role, content, variant, chips = [], isStreaming = f
 
     // ── AI bubble (left) — white bg, black text, plain text ──
     if (role === 'assistant') {
-        // Priority: <chat> tag → else strip <think> → show remainder → strip markdown symbols
-        const chatMatch = content.match(/<chat>([\s\S]*?)(?:<\/chat>|$)/i);
+        // MotherAgent uses `<chat>` protocol. Channels receives clean text from the Agent OS plugin.
+        const chatMatch = variant === 'mother' ? content.match(/<chat>([\s\S]*?)(?:<\/chat>|$)/i) : null;
+        
         const rawText = chatMatch
             ? chatMatch[1].trim()
             : content
