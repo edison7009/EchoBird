@@ -129,35 +129,38 @@ export const AgentRolePicker: React.FC<AgentRolePickerProps> = ({
                                     />
 
                                     {/* Text overlay — slides up on hover */}
-                                    <div className="absolute inset-x-0 bottom-0 px-3 flex flex-col items-center transition-all duration-300 ease-out translate-y-[28px] group-hover:translate-y-0"
-                                         style={{ paddingBottom: '12px' }}>
+                                    <div className="absolute inset-x-0 bottom-0 px-3 flex flex-col items-center transition-transform duration-300 ease-out translate-y-[28px] group-hover:translate-y-0"
+                                         style={{ paddingBottom: '12px', willChange: 'transform', backfaceVisibility: 'hidden' }}>
                                         {/* Name — always partially visible */}
                                         <div
                                             className="text-sm font-bold text-center leading-tight line-clamp-2"
                                             style={{
                                                 color: isSelected ? '#00ff9d' : '#ffffff',
                                                 textShadow: '0 0 8px rgba(0,0,0,0.9), 0 0 16px rgba(0,0,0,0.7), 0 1px 3px rgba(0,0,0,1)',
+                                                backfaceVisibility: 'hidden',
                                             }}
                                         >
                                             {role.name}
                                         </div>
 
-                                        {/* Divider — hidden by default, revealed on hover */}
-                                        <div className="w-16 h-px my-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" style={{
-                                            background: isSelected
-                                                ? 'linear-gradient(90deg, transparent, #00ff9d, transparent)'
-                                                : 'linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent)',
-                                        }} />
-
-                                        {/* Description — hidden by default, revealed on hover */}
-                                        <div
-                                            className="text-[11px] text-center leading-snug line-clamp-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
-                                            style={{
-                                                color: isSelected ? 'rgba(0,255,157,0.7)' : 'rgba(255,255,255,0.6)',
-                                                textShadow: '0 0 6px rgba(0,0,0,0.9), 0 0 12px rgba(0,0,0,0.8), 0 1px 2px rgba(0,0,0,1)',
-                                            }}
-                                        >
-                                            {role.desc}
+                                        {/* Divider + Description — revealed together via translate */}
+                                        <div className="flex flex-col items-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 delay-100"
+                                             style={{ backfaceVisibility: 'hidden' }}>
+                                            <div className="w-16 h-px my-1.5" style={{
+                                                background: isSelected
+                                                    ? 'linear-gradient(90deg, transparent, #00ff9d, transparent)'
+                                                    : 'linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent)',
+                                            }} />
+                                            <div
+                                                className="text-[11px] text-center leading-snug line-clamp-2"
+                                                style={{
+                                                    color: isSelected ? 'rgba(0,255,157,0.7)' : 'rgba(255,255,255,0.6)',
+                                                    textShadow: '0 0 6px rgba(0,0,0,0.9), 0 0 12px rgba(0,0,0,0.8), 0 1px 2px rgba(0,0,0,1)',
+                                                    backfaceVisibility: 'hidden',
+                                                }}
+                                            >
+                                                {role.desc}
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
