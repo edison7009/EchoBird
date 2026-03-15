@@ -10,6 +10,7 @@ import { useI18n } from '../hooks/useI18n';
 import * as api from '../api/tauri';
 import { channelHistoryLoad, channelHistorySave, channelHistoryClear } from '../api/tauri';
 import { normalizeError, errorToKey } from '../utils/normalizeError';
+import { buildPendingMessage } from '../utils/buildPendingMessage';
 import type { ModelConfig } from '../api/types';
 
 
@@ -137,7 +138,7 @@ export const Channels: React.FC = () => {
     // Process toggle (show/hide tool calls and thinking)
 
     // Bridge mode state — per-channel storage
-    type BridgeMsg = { role: string; content: string; i18nKey?: string; meta?: { model?: string; tokens?: number; duration_ms?: number } };
+    type BridgeMsg = { role: string; content: string; i18nKey?: string; meta?: { model?: string; tokens?: number; duration_ms?: number }; chips?: import('../components/chat/ChatBubble').BubbleChip[] };
     const [allBridgeMessages, setAllBridgeMessages] = useState<Record<number, BridgeMsg[]>>({});
     const [allBridgeSessionIds, setAllBridgeSessionIds] = useState<Record<number, string>>({});
     const [allBridgeStatus, setAllBridgeStatus] = useState<Record<number, string>>({});
@@ -621,36 +622,28 @@ export const Channels: React.FC = () => {
         if (!canSendMessage) return;
         if (bridgeLoading) return;
         if (!input.trim() && attachments.length === 0 && pendingModels.length === 0 && pendingSkills.length === 0) return;
-        let text = input.trim();
-        // Append model configs as text
-        if (pendingModels.length > 0) {
-            const modelInfo = pendingModels.map(pm => {
-                const md = modelList.find(m => m.internalId === pm.id);
-                if (!md) return `[MODEL CONFIG]\nName: ${pm.name}\n[/MODEL CONFIG]`;
-                const lines = ['[MODEL CONFIG]', `Name: ${md.name}`, `Model: ${md.modelId || 'N/A'}`, `Base URL: ${md.baseUrl}`];
-                if (md.anthropicUrl) lines.push(`Anthropic URL: ${md.anthropicUrl}`);
-                lines.push(`API Key: ${md.apiKey}`);
-                if (md.proxyUrl) lines.push(`Proxy URL: ${md.proxyUrl}`);
-                lines.push('[/MODEL CONFIG]');
-                return lines.join('\n');
-            }).join('\n\n');
-            text = text ? `${text}\n\n${modelInfo}` : modelInfo;
-            setPendingModels([]);
-        }
-        // Append pending skills as text
-        if (pendingSkills.length > 0) {
-            const skillInfo = pendingSkills.map(s => {
-                const ownerRepo = s.github.split('/').slice(0, 2).join('/');
-                return `- ${s.name}\n  Install: \`openclaw skill install ${ownerRepo}@${s.branch}\``;
-            }).join('\n');
-            const skillBlock = `[Attached skills]\n${skillInfo}`;
-            text = text ? `${text}\n\n${skillBlock}` : skillBlock;
-            setPendingSkills([]);
-        }
+        // Build message text + chips using shared utility
+        const mdList = pendingModels.map(pm => {
+            const md = modelList.find(m => m.internalId === pm.id);
+            return {
+                id: pm.id, name: pm.name, modelId: pm.modelId,
+                baseUrl: md?.baseUrl, anthropicUrl: md?.anthropicUrl,
+                apiKey: md?.apiKey, proxyUrl: md?.proxyUrl,
+            };
+        });
+        const { messageText, chips } = buildPendingMessage(
+            input,
+            attachments.map((a, i) => ({ id: String(i), name: a.name, type: a.type as 'file' | 'image', preview: a.preview })),
+            mdList,
+            pendingSkills,
+        );
+        const text = messageText || input.trim();
+        setPendingModels([]);
+        setPendingSkills([]);
         setInput('');
         setAttachments([]);
-        // Always save user message to chat — preserved even if send fails
-        setBridgeMessages(prev => [...prev, { role: 'user', content: text }]);
+        // Save user message to chat with chips
+        setBridgeMessages(prev => [...prev, { role: 'user', content: text, chips } as any]);
 
         if (!canSendMessage) {
             // Blocked (e.g. still connecting) — show error so user knows, their message is still saved above
@@ -843,7 +836,7 @@ export const Channels: React.FC = () => {
                                         // tool_call / result / thinking go to status bar only
                                         if (msg.role === 'tool_call' || msg.role === 'tool_result' || msg.role === 'thinking') return null;
                                         if (msg.role === 'system' && msg.content === '__agent_working__') return null;
-                                        if (msg.role === 'user') return <ChatBubble key={i} role="user" content={msg.content} variant="channels" />;
+                                        if (msg.role === 'user') return <ChatBubble key={i} role="user" content={msg.content} variant="channels" chips={msg.chips} />;
                                         if (msg.role === 'system') {
                                             const text = msg.i18nKey ? t(msg.i18nKey as import('../i18n/types').TKey) : msg.content;
                                             const isCancelled = msg.i18nKey === 'error.userCancelled';

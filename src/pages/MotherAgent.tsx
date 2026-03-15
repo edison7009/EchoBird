@@ -7,6 +7,7 @@ import { getModelIcon } from '../components/cards/ModelCard';
 import { PendingChipsRow } from '../components/PendingChipsRow';
 import { ChatBubble, type BubbleChip } from '../components/chat';
 import { normalizeError, errorToKey } from '../utils/normalizeError';
+import { buildPendingMessage } from '../utils/buildPendingMessage';
 import { useI18n } from '../hooks/useI18n';
 import { useConfirm } from '../components/ConfirmDialog';
 import * as api from '../api/tauri';
@@ -507,62 +508,26 @@ export function MotherAgentMain() {
         const hasFiles  = pendingFiles.length > 0;
 
         if (hasModels || hasSkills || hasFiles) {
-            const parts: string[] = [];
-            const userText = chatInput.trim();
-            if (userText) parts.push(userText);
+            const mdList = pendingModels.map(pm => {
+                const md = models.find(m => m.internalId === pm.id);
+                return {
+                    id: pm.id, name: pm.name, modelId: pm.modelId,
+                    baseUrl: md?.baseUrl, anthropicUrl: md?.anthropicUrl,
+                    apiKey: md?.apiKey, proxyUrl: md?.proxyUrl,
+                };
+            });
+            const { messageText, chips } = buildPendingMessage(
+                chatInput,
+                pendingFiles,
+                mdList,
+                pendingSkills,
+            );
 
-            if (hasModels) {
-                const modelInfo = pendingModels.map(pm => {
-                    const md = models.find(m => m.internalId === pm.id);
-                    if (!md) return `- ${pm.name}`;
-                    const urls = [
-                        md.baseUrl ? `baseUrl: ${md.baseUrl}` : '',
-                        md.anthropicUrl ? `anthropicUrl: ${md.anthropicUrl}` : '',
-                    ].filter(Boolean).join(', ');
-                    return `- ${pm.name} (model: ${md.modelId || md.name}, ${urls}, apiKey: ${md.apiKey})`;
-                }).join('\n');
-                parts.push(`[Attached models for deployment]\n${modelInfo}`);
-                setPendingModels([]);
-            }
-
-            if (hasSkills) {
-                const skillInfo = pendingSkills.map(s => {
-                    const p = s.github.split('/');
-                    const ownerRepo = p.slice(0, 2).join('/');
-                    const branch = s.branch || 'main';
-                    return `- ${s.name}\n  Install: \`openclaw skill install ${ownerRepo}@${branch}\``;
-                }).join('\n');
-                parts.push(`[Attached skills]\n${skillInfo}`);
-                pendingSkills.forEach(s => removePendingSkill(s.id));
-            }
-
-            if (hasFiles) {
-                // Always send files — it's the agent/model's job to handle them.
-                // Images: embed as base64 data URL. Files: include filename.
-                const fileLines = pendingFiles.map(f => {
-                    if (f.type === 'image' && f.preview) {
-                        return `- [Image: ${f.name}]\n  data: ${f.preview}`;
-                    }
-                    return `- [File: ${f.name}]`;
-                }).join('\n');
-                parts.push(`[Attached files]\n${fileLines}`);
-                setPendingFiles([]);
-            }
-
-            // Build chip list for bubble display
-            const displayChips: import('../components/chat/ChatBubble').BubbleChip[] = [
-                ...pendingModels.map(pm => ({ type: 'model' as const, name: pm.name, modelId: pm.modelId || '' })),
-                ...pendingSkills.map(s => ({ type: 'skill' as const, name: s.name })),
-                ...pendingFiles.map(f => ({
-                    type: (f.type === 'image' ? 'image' : 'file') as 'image' | 'file',
-                    name: f.name,
-                    preview: f.preview,
-                })),
-            ];
-
+            setPendingModels([]);
+            pendingSkills.forEach(s => removePendingSkill(s.id));
+            setPendingFiles([]);
             setChatInput('');
-            // sendMessage = handleChatSendInternal; pass clean displayText+chips separately from the full AI message
-            sendMessage(parts.join('\n\n'), userText, displayChips);
+            sendMessage(messageText, chatInput.trim(), chips);
         } else {
             handleChatSend();
         }
