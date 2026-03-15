@@ -416,7 +416,9 @@ export function MotherAgentProvider({ appLogs, detectedTools, onClearLogs, onAge
                 locale: locale || undefined,
             });
         } catch (e) {
-            setChatOutput(prev => [...prev, { type: 'error', text: String(e) }]);
+            const key = errorToKey(String(e));
+            const type = key === 'error.userCancelled' ? 'cancelled' : 'error';
+            setChatOutput(prev => [...prev, { type, text: t(key) }]);
             setIsProcessing(false);
         }
     }, [agentModel, models, isProcessing, selectedServerId, pendingSkills, locale]);
