@@ -16,8 +16,8 @@ export const TitleBar: React.FC<TitleBarProps> = ({ onSettingsClick }) => {
     const [isResized, setIsResized] = useState(false);
 
     // Default window size (must match tauri.conf.json)
-    const DEFAULT_W = 1080;
-    const DEFAULT_H = 720;
+    const DEFAULT_W = 1400;
+    const DEFAULT_H = 900;
 
     useEffect(() => {
         const win = getCurrentWindow();
