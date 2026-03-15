@@ -1,6 +1,6 @@
 // Custom frameless window title bar
 import React, { useState, useEffect } from 'react';
-import { Settings, Minus, X } from 'lucide-react';
+import { Settings, Minus, Maximize2, Minimize2, X } from 'lucide-react';
 import { useI18n } from '../hooks/useI18n';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import * as api from '../api/tauri';
@@ -12,6 +12,21 @@ interface TitleBarProps {
 export const TitleBar: React.FC<TitleBarProps> = ({ onSettingsClick }) => {
     const { t } = useI18n();
     const handleMinimize = () => getCurrentWindow().minimize();
+    const [isMaximized, setIsMaximized] = useState(false);
+
+    useEffect(() => {
+        // Sync initial state and listen for resize/maximize events
+        getCurrentWindow().isMaximized().then(setIsMaximized).catch(() => {});
+        const unlisten = getCurrentWindow().onResized(() => {
+            getCurrentWindow().isMaximized().then(setIsMaximized).catch(() => {});
+        });
+        return () => { unlisten.then(fn => fn()).catch(() => {}); };
+    }, []);
+
+    const handleMaximize = () => {
+        if (isMaximized) getCurrentWindow().unmaximize();
+        else getCurrentWindow().maximize();
+    };
 
     // Close confirmation dialog state
     const [showCloseDialog, setShowCloseDialog] = useState(false);
@@ -94,6 +109,12 @@ export const TitleBar: React.FC<TitleBarProps> = ({ onSettingsClick }) => {
                         className="h-full px-4 flex items-center justify-center text-cyber-text-secondary hover:bg-cyber-accent/20 hover:text-cyber-accent transition-colors"
                     >
                         <Minus size={14} />
+                    </button>
+                    <button
+                        onClick={handleMaximize}
+                        className="h-full px-4 flex items-center justify-center text-cyber-text-secondary hover:bg-cyber-accent/20 hover:text-cyber-accent transition-colors"
+                    >
+                        {isMaximized ? <Minimize2 size={13} /> : <Maximize2 size={13} />}
                     </button>
                     <button
                         onClick={handleClose}

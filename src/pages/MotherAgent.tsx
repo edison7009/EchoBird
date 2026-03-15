@@ -926,7 +926,7 @@ export function MotherAgentMain() {
                             <button
                                 onClick={() => { clearChat(); }}
                                 disabled={isProcessing || chatOutput.length === 0}
-                                className="p-1 text-cyber-accent-secondary/40 hover:text-red-400 transition-colors disabled:opacity-20"
+                                className="p-1 text-cyber-accent-secondary/40 hover:text-cyber-accent-secondary transition-colors disabled:opacity-20"
                             >
                                 <Trash2 size={15} />
                             </button>

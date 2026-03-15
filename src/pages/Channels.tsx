@@ -893,15 +893,14 @@ export const Channels: React.FC = () => {
                                     </div>
                                     <div className="flex items-center gap-1.5">
                                         {/* Clear display — frontend only, bridge/context unaffected */}
-                                        {messages.length > 0 && (
-                                            <button
-                                                onClick={() => setBridgeMessages([])}
-                                                className="p-1 text-cyber-text-muted/30 hover:text-red-400/70 transition-colors"
-                                                title="Clear display"
-                                            >
-                                                <Trash2 size={14} />
-                                            </button>
-                                        )}
+                                        <button
+                                            onClick={() => setBridgeMessages([])}
+                                            disabled={messages.length === 0}
+                                            className="p-1 text-cyber-accent/40 hover:text-cyber-accent transition-colors disabled:opacity-20"
+                                            title="Clear display"
+                                        >
+                                            <Trash2 size={14} />
+                                        </button>
                                         {bridgeLoading ? (
                                             <button
                                                 onClick={handleAbort}
