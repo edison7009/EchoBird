@@ -158,5 +158,12 @@ const he: Partial<Translations> = {
     'mother.connectionHint': 'אנא בדוק את ה-URL, Model ID ו-API Key, וודא שמכסת ה-Token מספיקה.',
     'agent.installViaMother': 'התקנה אוטומטית בבינה מלאכותית',
     'common.inputting': 'מקליד',
+    // Error messages (user-friendly, non-technical)
+    'error.connectionTimeout': 'אין תגובה מהשרת. בדוק את החיבור.',
+    'error.serverUnreachable': 'לא ניתן להגיע לשרת. בדוק את הכתובת וההגדרות.',
+    'error.agentFailed': 'הסוכן נכשל בהפעלה. בדוק את החיבור.',
+    'error.noServerConfig': 'לא הוגדר שרת לערוץ זה.',
+    'error.noModelSelected': 'לא נבחר מודל. בחר מודל תחילה.',
+    'error.requestFailed': 'הבקשה נכשלה. נסה שנית.',
 };
 export default he;

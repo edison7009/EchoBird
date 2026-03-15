@@ -291,5 +291,12 @@ const hu: Partial<Translations> = {
     'mother.connectionHint': 'Kérjük, ellenőrizze az URL-t, a Model ID-t és az API Key-t, és győződjön meg arról, hogy a Token-kvóta elegendő.',
     'agent.installViaMother': 'AI auto-installálás',
     'common.inputting': 'Gépel',
+    // Error messages (user-friendly, non-technical)
+    'error.connectionTimeout': 'Nincs válasz a kiszolgálótól. Ellenőrizze a kapcsolatot.',
+    'error.serverUnreachable': 'A kiszolgáló nem érhető el. Ellenőrizze a címet és a beállításokat.',
+    'error.agentFailed': 'Az ügynök nem indult el. Ellenőrizze a kapcsolatot.',
+    'error.noServerConfig': 'Ehhez a csatornához nincs szerver konfigurálva.',
+    'error.noModelSelected': 'Nincs modell kiválasztva. Először válasszon modellt.',
+    'error.requestFailed': 'A kérés meghiúsult. Próbálja újra.',
 };
 export default hu;

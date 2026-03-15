@@ -320,6 +320,13 @@ const en: Translations = {
     'mother.connectionFailed': 'Failed to connect to AI model after {n} retries.',
     'mother.connectionHint': 'Please check the URL, Model ID, API Key, and ensure your token quota is sufficient.',
     'common.inputting': 'Typing',
+    // Error messages (user-friendly, non-technical)
+    'error.connectionTimeout': 'No response from server, please check your connection.',
+    'error.serverUnreachable': 'Cannot reach the server, please check the address and settings.',
+    'error.agentFailed': 'Agent failed to start, please check the connection.',
+    'error.noServerConfig': 'No server configured for this channel.',
+    'error.noModelSelected': 'No model selected, please select a model first.',
+    'error.requestFailed': 'Request failed, please try again.',
 };
 
 export { en };

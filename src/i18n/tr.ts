@@ -291,5 +291,12 @@ const tr: Partial<Translations> = {
     'mother.connectionHint': 'Lütfen URL, Model ID ve API Key\'i kontrol edin ve Token kotanızın yeterli olduğundan emin olun.',
     'agent.installViaMother': 'AI Otomatik Kurulum',
     'common.inputting': 'Yazıyor',
+    // Error messages (user-friendly, non-technical)
+    'error.connectionTimeout': 'Sunucudan yanıt yok. Bağlantıyı kontrol edin.',
+    'error.serverUnreachable': 'Sunucuya ulaşılamıyor. Adres ve ayarları kontrol edin.',
+    'error.agentFailed': 'Ajan başlatılamadı. Bağlantıyı kontrol edin.',
+    'error.noServerConfig': 'Bu kanal için sunucu yapılandırılmamış.',
+    'error.noModelSelected': 'Model seçilmedi. Lütfen önce bir model seçin.',
+    'error.requestFailed': 'İstek başarısız. Lütfen tekrar deneyin.',
 };
 export default tr;

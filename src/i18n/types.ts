@@ -126,6 +126,10 @@ export type TKey =
     | 'ssh.termuxUsername' | 'ssh.termuxPassword' | 'ssh.termuxIp'
     | 'ssh.ishUsername' | 'ssh.ishPassword' | 'ssh.ishIp'
     // Mother Agent connection error messages
-    | 'mother.connectionRetrying' | 'mother.connectionFailed' | 'mother.connectionHint';
+    | 'mother.connectionRetrying' | 'mother.connectionFailed' | 'mother.connectionHint'
+    // Error messages (user-friendly, non-technical)
+    | 'error.connectionTimeout' | 'error.serverUnreachable' | 'error.agentFailed'
+    | 'error.noServerConfig' | 'error.noModelSelected' | 'error.requestFailed'
+    | 'common.inputting';
 
 export type Translations = Record<TKey, string>;

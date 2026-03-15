@@ -158,5 +158,12 @@ const fi: Partial<Translations> = {
     'mother.connectionHint': 'Tarkista URL, Model ID ja API Key sekä varmista, että Token-kiintiösi on riittävä.',
     'agent.installViaMother': 'AI-autoasennus',
     'common.inputting': 'Kirjoittaa',
+    // Error messages (user-friendly, non-technical)
+    'error.connectionTimeout': 'Ei vastausta palvelimelta. Tarkista yhteys.',
+    'error.serverUnreachable': 'Palvelimeen ei saada yhteyttä. Tarkista osoite ja asetukset.',
+    'error.agentFailed': 'Agentti ei käynnistynyt. Tarkista yhteys.',
+    'error.noServerConfig': 'Tälle kanavalle ei ole määritetty palvelinta.',
+    'error.noModelSelected': 'Mallia ei ole valittu. Valitse ensin malli.',
+    'error.requestFailed': 'Pyyntö epäonnistui. Yritä uudelleen.',
 };
 export default fi;

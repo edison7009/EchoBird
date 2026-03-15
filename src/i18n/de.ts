@@ -319,5 +319,12 @@ const de: Partial<Translations> = {
     'mother.connectionHint': 'Bitte URL, Model-ID und API-Key prüfen und sicherstellen, dass ausreichend Token-Guthaben vorhanden ist.',
     'agent.installViaMother': 'KI-Autoinstallation',
     'common.inputting': 'Tippt',
+    // Error messages (user-friendly, non-technical)
+    'error.connectionTimeout': 'Keine Antwort vom Server. Bitte Verbindung prüfen.',
+    'error.serverUnreachable': 'Server nicht erreichbar. Bitte Adresse und Einstellungen prüfen.',
+    'error.agentFailed': 'Agent konnte nicht gestartet werden. Bitte Verbindung prüfen.',
+    'error.noServerConfig': 'Für diesen Kanal ist kein Server konfiguriert.',
+    'error.noModelSelected': 'Kein Modell ausgewählt. Bitte zuerst ein Modell wählen.',
+    'error.requestFailed': 'Anfrage fehlgeschlagen. Bitte erneut versuchen.',
 };
 export default de;

@@ -158,5 +158,12 @@ const el: Partial<Translations> = {
     'mother.connectionHint': 'Ελέγξτε το URL, το Model ID, το API Key και βεβαιωθείτε ότι η ποσόστωση Token είναι επαρκής.',
     'agent.installViaMother': 'Αυτόματη εγκατάσταση AI',
     'common.inputting': 'Πληκτρολόγηση',
+    // Error messages (user-friendly, non-technical)
+    'error.connectionTimeout': 'Δεν υπάρχει απόκριση από τον διακομιστή. Ελέγξτε τη σύνδεση.',
+    'error.serverUnreachable': 'Δεν είναι δυνατή η πρόσβαση στον διακομιστή. Ελέγξτε τη διεύθυνση και τις ρυθμίσεις.',
+    'error.agentFailed': 'Ο πράκτορας δεν εκκινήθηκε. Ελέγξτε τη σύνδεση.',
+    'error.noServerConfig': 'Δεν υπάρχει διακομιστής για αυτό το κανάλι.',
+    'error.noModelSelected': 'Δεν έχει επιλεγεί μοντέλο. Επιλέξτε πρώτα ένα.',
+    'error.requestFailed': 'Το αίτημα απέτυχε. Δοκιμάστε ξανά.',
 };
 export default el;

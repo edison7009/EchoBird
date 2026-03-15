@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback, createContext, useContext } from 'react';
-import { Paperclip, ImageIcon, KeyRound, Send, X, ChevronDown, Zap, Square, Lock, Trash2 , ChevronLeft, ChevronRight } from 'lucide-react';
+import { Paperclip, ImageIcon, KeyRound, Send, X, ChevronDown, Zap, Square, Lock, Trash2 , ChevronLeft, ChevronRight, ChevronsDown, Globe, Info, CheckCircle, HelpCircle, ChevronUp, Code, Search, X as XIcon, FileText, Sparkles, Plus, Bot, Database, Settings2 } from 'lucide-react';
+import { normalizeError } from '../utils/normalizeError';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { MiniSelect } from '../components/MiniSelect';
@@ -140,7 +141,7 @@ interface MotherAgentProviderProps {
 }
 
 export function MotherAgentProvider({ appLogs, detectedTools, onClearLogs, onAgentRunningChange, onNewMessage, initialMessage, children }: MotherAgentProviderProps) {
-    const { locale } = useI18n();  // UI locale for agent response language hint
+    const { t, locale } = useI18n();  // locale for agent hint; t for error messages
     const [models, setModels] = useState<ModelConfig[]>([]);
     const [agentModel, setAgentModelRaw] = useState<string | null>(() => localStorage.getItem('echobird_agent_model'));
     const setAgentModel = useCallback((v: string | null) => {
@@ -375,7 +376,7 @@ export function MotherAgentProvider({ appLogs, detectedTools, onClearLogs, onAge
         setChatOutput(prev => [...prev, { type: 'user', text: message.trim() }]);
         const modelData = models.find(m => m.internalId === agentModel);
         if (!modelData) {
-            setChatOutput(prev => [...prev, { type: 'error', text: 'No model data found — please re-select a model.' }]);
+            setChatOutput(prev => [...prev, { type: 'error', text: t('error.noModelSelected') }]);
             setIsProcessing(false);
             return;
         }

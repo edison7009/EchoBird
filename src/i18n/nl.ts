@@ -291,5 +291,12 @@ const nl: Partial<Translations> = {
     'mother.connectionHint': 'Controleer de URL, het Model ID en de API Key, en zorg dat uw Token-quotum voldoende is.',
     'agent.installViaMother': 'AI auto-installatie',
     'common.inputting': 'Aan het typen',
+    // Error messages (user-friendly, non-technical)
+    'error.connectionTimeout': 'Geen reactie van de server. Controleer de verbinding.',
+    'error.serverUnreachable': 'Kan de server niet bereiken. Controleer het adres en de instellingen.',
+    'error.agentFailed': 'Agent kon niet worden gestart. Controleer de verbinding.',
+    'error.noServerConfig': 'Er is geen server geconfigureerd voor dit kanaal.',
+    'error.noModelSelected': 'Geen model geselecteerd. Selecteer eerst een model.',
+    'error.requestFailed': 'Verzoek mislukt. Probeer het opnieuw.',
 };
 export default nl;

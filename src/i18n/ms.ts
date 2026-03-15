@@ -293,5 +293,12 @@ const ms: Partial<Translations> = {
     'mother.connectionHint': 'Sila semak URL, Model ID, API Key, dan pastikan kuota Token anda mencukupi.',
     'agent.installViaMother': 'Pasang Auto AI',
     'common.inputting': 'Sedang menaip',
+    // Error messages (user-friendly, non-technical)
+    'error.connectionTimeout': 'Tiada respons dari pelayan. Sila semak sambungan.',
+    'error.serverUnreachable': 'Tidak dapat menghubungi pelayan. Semak alamat dan tetapan.',
+    'error.agentFailed': 'Agen gagal dimulakan. Semak sambungan.',
+    'error.noServerConfig': 'Tiada pelayan dikonfigurasi untuk saluran ini.',
+    'error.noModelSelected': 'Tiada model dipilih. Pilih model dahulu.',
+    'error.requestFailed': 'Permintaan gagal. Cuba lagi.',
 };
 export default ms;

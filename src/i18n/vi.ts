@@ -291,5 +291,12 @@ const vi: Partial<Translations> = {
     'mother.connectionHint': 'Vui lòng kiểm tra URL, Model ID, API Key và đảm bảo hạn mức Token đủ.',
     'agent.installViaMother': 'Tự động cài đặt AI',
     'common.inputting': 'Đang nhập',
+    // Error messages (user-friendly, non-technical)
+    'error.connectionTimeout': 'Không có phản hồi từ máy chủ. Vui lòng kiểm tra kết nối.',
+    'error.serverUnreachable': 'Không thể kết nối đến máy chủ. Kiểm tra địa chỉ và cài đặt.',
+    'error.agentFailed': 'Agent khởi động thất bại. Kiểm tra kết nối.',
+    'error.noServerConfig': 'Kênh này chưa có máy chủ được cấu hình.',
+    'error.noModelSelected': 'Chưa chọn mô hình. Vui lòng chọn mô hình trước.',
+    'error.requestFailed': 'Yêu cầu thất bại. Vui lòng thử lại.',
 };
 export default vi;

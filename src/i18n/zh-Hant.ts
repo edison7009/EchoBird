@@ -317,5 +317,12 @@ const zhHant: Partial<Translations> = {
     'mother.connectionFailed': '連接 AI 模型失敗，已重試 {n} 次。',
     'mother.connectionHint': '請檢查 URL、Model ID、API Key，並確認 Token 額度充足。',
     'common.inputting': '輸入中',
+    // Error messages (user-friendly, non-technical)
+    'error.connectionTimeout': '伺服器沒有回應，請檢查網路連線。',
+    'error.serverUnreachable': '無法連接伺服器，請檢查地址和設定。',
+    'error.agentFailed': 'Agent 啟動失敗，請檢查連線。',
+    'error.noServerConfig': '此頻道未配置伺服器。',
+    'error.noModelSelected': '未選擇模型，請先選擇一個模型。',
+    'error.requestFailed': '請求失敗，請重試。',
 };
 export default zhHant;

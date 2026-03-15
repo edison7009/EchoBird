@@ -158,5 +158,12 @@ const fa: Partial<Translations> = {
     'mother.connectionHint': 'لطفاً URL، Model ID و API Key را بررسی کنید و مطمئن شوید سهمیه Token کافی دارید.',
     'agent.installViaMother': 'نصب خودکار هوش مصنوعی',
     'common.inputting': 'در حال تایپ',
+    // Error messages (user-friendly, non-technical)
+    'error.connectionTimeout': 'پاسخی از سرور دریافت نشد. اتصال را بررسی کنید.',
+    'error.serverUnreachable': 'برقراری ارتباط با سرور ممکن نیست. آدرس و تنظیمات را بررسی کنید.',
+    'error.agentFailed': 'راه‌اندازی عامل ناموفق بود. اتصال را بررسی کنید.',
+    'error.noServerConfig': 'هیچ سروری برای این کانال تنظیم نشده است.',
+    'error.noModelSelected': 'هیچ مدلی انتخاب نشده. ابتدا یک مدل انتخاب کنید.',
+    'error.requestFailed': 'درخواست ناموفق بود. دوباره تلاش کنید.',
 };
 export default fa;

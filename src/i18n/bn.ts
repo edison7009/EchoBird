@@ -291,5 +291,12 @@ const bn: Partial<Translations> = {
     'mother.connectionHint': 'URL, Model ID, API Key পরীক্ষা করুন এবং নিশ্চিত করুন যে Token কোটা পর্যাপ্ত।',
     'agent.installViaMother': 'AI অটো-ইনস্টল',
     'common.inputting': 'টাইপ করছে',
+    // Error messages (user-friendly, non-technical)
+    'error.connectionTimeout': 'সার্ভার থেকে কোনো সাড়া নেই। সংযোগ যাচাই করুন।',
+    'error.serverUnreachable': 'সার্ভারে পৌঁছানো যাচ্ছে না। ঠিকানা ও সেটিংস যাচাই করুন।',
+    'error.agentFailed': 'এজেন্ট চালু হয়নি। সংযোগ যাচাই করুন।',
+    'error.noServerConfig': 'এই চ্যানেলে কোনো সার্ভার কনফিগার করা নেই।',
+    'error.noModelSelected': 'কোনো মডেল নির্বাচন করা হয়নি। আগে একটি মডেল বেছে নিন।',
+    'error.requestFailed': 'অনুরোধ ব্যর্থ হয়েছে। আবার চেষ্টা করুন।',
 };
 export default bn;

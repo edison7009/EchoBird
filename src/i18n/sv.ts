@@ -158,5 +158,12 @@ const sv: Partial<Translations> = {
     'mother.connectionHint': 'Kontrollera URL, Model ID och API Key och se till att Token-gränsen är tillräcklig.',
     'agent.installViaMother': 'AI-autoinstallation',
     'common.inputting': 'Skriver',
+    // Error messages (user-friendly, non-technical)
+    'error.connectionTimeout': 'Inget svar från servern. Kontrollera anslutningen.',
+    'error.serverUnreachable': 'Kan inte nå servern. Kontrollera adressen och inställningarna.',
+    'error.agentFailed': 'Agenten misslyckades med att starta. Kontrollera anslutningen.',
+    'error.noServerConfig': 'Ingen server konfigurerad för den här kanalen.',
+    'error.noModelSelected': 'Ingen modell vald. Välj en modell först.',
+    'error.requestFailed': 'Förfrågan misslyckades. Försök igen.',
 };
 export default sv;

@@ -8,6 +8,7 @@ import { ChatBubble, TerminalStatusBar } from '../components/chat';
 import { useChannelGateway, useGatewayManager } from '../contexts/GatewayContext';
 import { useI18n } from '../hooks/useI18n';
 import * as api from '../api/tauri';
+import { normalizeError } from '../utils/normalizeError';
 import type { ModelConfig } from '../api/types';
 
 
@@ -572,7 +573,7 @@ export const Channels: React.FC = () => {
                         if (startResult.agentName) setBridgeAgentName(startResult.agentName);
                     } else {
                         setBridgeConnectionStatus('disconnected');
-                        setBridgeMessages(prev => [...prev, { role: 'system', content: `Bridge start failed: ${startResult.error || 'Unknown error'}` }]);
+                        setBridgeMessages(prev => [...prev, { role: 'system', content: normalizeError(`Bridge start failed: ${startResult.error || 'Unknown error'}`, t) }]);
                         setBridgeLoading(false);
                         return;
                     }
@@ -588,7 +589,7 @@ export const Channels: React.FC = () => {
                 // Remote channel: SSH → bridge binary on remote server
                 const serverId = activeChannel?.serverId;
                 if (!serverId) {
-                    setBridgeMessages(prev => [...prev, { role: 'system', content: 'No server ID found for this channel' }]);
+                    setBridgeMessages(prev => [...prev, { role: 'system', content: t('error.noServerConfig') }]);
                     setBridgeLoading(false);
                     return;
                 }
@@ -622,13 +623,13 @@ export const Channels: React.FC = () => {
                     clearTimeout(workingTimer);
                     setBridgeMessages(prev => {
                         const cleaned = prev.filter(m => m.content !== WORKING_MARKER);
-                        return [...cleaned, { role: 'system', content: `Error: ${remoteErr?.message || remoteErr}` }];
+                        return [...cleaned, { role: 'system', content: normalizeError(remoteErr?.message || remoteErr, t) }];
                     });
                     return; // skip outer catch
                 }
             }
         } catch (e: any) {
-            setBridgeMessages(prev => [...prev, { role: 'system', content: `Error: ${e?.message || e}` }]);
+            setBridgeMessages(prev => [...prev, { role: 'system', content: normalizeError(e?.message || e, t) }]);
             if (isLocalChannel) {
                 try {
                     const s = await api.bridgeStatus();

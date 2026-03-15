@@ -291,5 +291,12 @@ const hi: Partial<Translations> = {
     'mother.connectionHint': 'कृपया URL, Model ID, API Key जांचें और सुनिश्चित करें कि Token कोटा पर्याप्त है।',
     'agent.installViaMother': 'AI ओटो-इंस्टॉल',
     'common.inputting': 'टाइप कर रहा है',
+    // Error messages (user-friendly, non-technical)
+    'error.connectionTimeout': 'सर्वर से कोई प्रतिक्रिया नहीं। कनेक्शन जाँचें।',
+    'error.serverUnreachable': 'सर्वर से संपर्क नहीं हो सका। पता और सेटिंग्स जाँचें।',
+    'error.agentFailed': 'एजेंट शुरू नहीं हो सका। कनेक्शन जाँचें।',
+    'error.noServerConfig': 'इस चैनल के लिए कोई सर्वर कॉन्फ़िगर नहीं है।',
+    'error.noModelSelected': 'कोई मॉडल चयनित नहीं। पहले एक मॉडल चुनें।',
+    'error.requestFailed': 'अनुरोध विफल। पुनः प्रयास करें।',
 };
 export default hi;

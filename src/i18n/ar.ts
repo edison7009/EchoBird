@@ -291,5 +291,12 @@ const ar: Partial<Translations> = {
     'mother.connectionHint': 'يرجى التحقق من الرابط ومعرّف النموذج ومفتاح API، والتأكد من كفاية حصة الرموز.',
     'agent.installViaMother': 'تثبيت تلقائي بالذكاء الاصطناعي',
     'common.inputting': 'جارٍ الكتابة',
+    // Error messages (user-friendly, non-technical)
+    'error.connectionTimeout': 'لا يوجد رد من الخادم، تحقق من الاتصال.',
+    'error.serverUnreachable': 'تعذّر الوصول إلى الخادم، تحقق من العنوان والإعدادات.',
+    'error.agentFailed': 'فشل تشغيل الوكيل، تحقق من الاتصال.',
+    'error.noServerConfig': 'لم يتم تكوين خادم لهذه القناة.',
+    'error.noModelSelected': 'لم يتم اختيار نموذج، اختر نموذجًا أولاً.',
+    'error.requestFailed': 'الطلب فشل، يرجى المحاولة مجددًا.',
 };
 export default ar;

@@ -291,5 +291,12 @@ const cs: Partial<Translations> = {
     'mother.connectionHint': 'Zkontrolujte URL, Model ID, API Key a ujistěte se, že máte dostatečný Token kredit.',
     'agent.installViaMother': 'Automatická instalace AI',
     'common.inputting': 'Píše',
+    // Error messages (user-friendly, non-technical)
+    'error.connectionTimeout': 'Server nereaguje. Zkontrolujte připojení.',
+    'error.serverUnreachable': 'Server není dostupný. Zkontrolujte adresu a nastavení.',
+    'error.agentFailed': 'Agent se nepodařilo spustit. Zkontrolujte připojení.',
+    'error.noServerConfig': 'Pro tento kanál není nakonfigurován server.',
+    'error.noModelSelected': 'Nebyl vybrán žádný model. Nejprve vyberte model.',
+    'error.requestFailed': 'Požadavek selhal. Zkuste to znovu.',
 };
 export default cs;

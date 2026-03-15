@@ -317,5 +317,12 @@ const ja: Partial<Translations> = {
     'mother.connectionHint': 'URL、Model ID、API Key を確認し、Tokenの残高が十分かご確認ください。',
     'agent.installViaMother': 'AI自動インストール',
     'common.inputting': '入力中',
+    // Error messages (user-friendly, non-technical)
+    'error.connectionTimeout': 'サーバーから応答がありません。接続を確認してください。',
+    'error.serverUnreachable': 'サーバーに接続できません。アドレスと設定を確認してください。',
+    'error.agentFailed': 'エージェントの起動に失敗しました。接続を確認してください。',
+    'error.noServerConfig': 'このチャンネルにサーバーが設定されていません。',
+    'error.noModelSelected': 'モデルが選択されていません。先にモデルを選択してください。',
+    'error.requestFailed': 'リクエストに失敗しました。もう一度お試しください。',
 };
 export default ja;

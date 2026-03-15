@@ -291,5 +291,12 @@ const it: Partial<Translations> = {
     'mother.connectionHint': 'Verifica l\'URL, il Model ID e l\'API Key, e assicurati che la quota di token sia sufficiente.',
     'agent.installViaMother': 'Installazione automatica AI',
     'common.inputting': 'Sta scrivendo',
+    // Error messages (user-friendly, non-technical)
+    'error.connectionTimeout': 'Nessuna risposta dal server. Controlla la connessione.',
+    'error.serverUnreachable': 'Impossibile raggiungere il server. Controlla indirizzo e impostazioni.',
+    'error.agentFailed': 'L\'agente non è riuscito ad avviarsi. Controlla la connessione.',
+    'error.noServerConfig': 'Nessun server configurato per questo canale.',
+    'error.noModelSelected': 'Nessun modello selezionato. Selezionane uno prima.',
+    'error.requestFailed': 'Richiesta fallita. Riprova.',
 };
 export default it;

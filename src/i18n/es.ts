@@ -291,5 +291,12 @@ const es: Partial<Translations> = {
     'mother.connectionHint': 'Por favor comprueba la URL, el Model ID y la API Key, y asegúrate de que tu cuota de tokens es suficiente.',
     'agent.installViaMother': 'Instalación automática IA',
     'common.inputting': 'Escribiendo',
+    // Error messages (user-friendly, non-technical)
+    'error.connectionTimeout': 'Sin respuesta del servidor. Comprueba la conexión.',
+    'error.serverUnreachable': 'No se puede contactar con el servidor. Comprueba la dirección y la configuración.',
+    'error.agentFailed': 'El agente no pudo iniciarse. Comprueba la conexión.',
+    'error.noServerConfig': 'No hay servidor configurado para este canal.',
+    'error.noModelSelected': 'No hay modelo seleccionado. Selecciona uno primero.',
+    'error.requestFailed': 'Solicitud fallida. Inténtalo de nuevo.',
 };
 export default es;

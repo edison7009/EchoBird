@@ -293,5 +293,12 @@ const id: Partial<Translations> = {
     'mother.connectionHint': 'Periksa URL, Model ID, API Key, dan pastikan kuota Token Anda mencukupi.',
     'agent.installViaMother': 'Instal Otomatis AI',
     'common.inputting': 'Mengetik',
+    // Error messages (user-friendly, non-technical)
+    'error.connectionTimeout': 'Tidak ada respons dari server. Periksa koneksi.',
+    'error.serverUnreachable': 'Tidak dapat menghubungi server. Periksa alamat dan pengaturan.',
+    'error.agentFailed': 'Agen gagal dimulai. Periksa koneksi.',
+    'error.noServerConfig': 'Tidak ada server yang dikonfigurasi untuk saluran ini.',
+    'error.noModelSelected': 'Tidak ada model yang dipilih. Pilih model terlebih dahulu.',
+    'error.requestFailed': 'Permintaan gagal. Coba lagi.',
 };
 export default id;

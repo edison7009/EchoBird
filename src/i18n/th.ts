@@ -293,5 +293,12 @@ const th: Partial<Translations> = {
     'mother.connectionHint': 'กรุณาตรวจสอบ URL, Model ID, API Key และตรวจสอบว่า Token quota เพียงพอ',
     'agent.installViaMother': 'AI ติดตั้งอัตโนมัติ',
     'common.inputting': 'กำลังพิมพ์',
+    // Error messages (user-friendly, non-technical)
+    'error.connectionTimeout': 'ไม่มีการตอบสนองจากเซิร์ฟเวอร์ กรุณาตรวจสอบการเชื่อมต่อ',
+    'error.serverUnreachable': 'ไม่สามารถเข้าถึงเซิร์ฟเวอร์ได้ กรุณาตรวจสอบที่อยู่และการตั้งค่า',
+    'error.agentFailed': 'เอเจนต์ไม่สามารถเริ่มต้นได้ กรุณาตรวจสอบการเชื่อมต่อ',
+    'error.noServerConfig': 'ช่องนี้ยังไม่ได้กำหนดค่าเซิร์ฟเวอร์',
+    'error.noModelSelected': 'ยังไม่ได้เลือกโมเดล กรุณาเลือกโมเดลก่อน',
+    'error.requestFailed': 'คำขอล้มเหลว กรุณาลองอีกครั้ง',
 };
 export default th;

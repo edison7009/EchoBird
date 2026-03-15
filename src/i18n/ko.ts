@@ -317,5 +317,12 @@ const ko: Partial<Translations> = {
     'mother.connectionHint': 'URL, Model ID, API Key를 확인하고 Token 할당량이 충분한지 확인하세요.',
     'agent.installViaMother': 'AI 자동 설치',
     'common.inputting': '입력 중',
+    // Error messages (user-friendly, non-technical)
+    'error.connectionTimeout': '서버에서 응답이 없습니다. 연결을 확인하세요.',
+    'error.serverUnreachable': '서버에 연결할 수 없습니다. 주소와 설정을 확인하세요.',
+    'error.agentFailed': '에이전트 시작에 실패했습니다. 연결을 확인하세요.',
+    'error.noServerConfig': '이 채널에 서버가 설정되지 않았습니다.',
+    'error.noModelSelected': '모델이 선택되지 않았습니다. 먼저 모델을 선택하세요.',
+    'error.requestFailed': '요청에 실패했습니다. 다시 시도해 주세요.',
 };
 export default ko;

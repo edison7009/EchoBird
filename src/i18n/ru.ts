@@ -317,5 +317,12 @@ const ru: Partial<Translations> = {
     'mother.connectionHint': 'Проверьте URL, Model ID, API Key и убедитесь, что лимит токенов достаточен.',
     'agent.installViaMother': '\u0410\u0432\u0442\u043e-\u0443\u0441\u0442\u0430\u043d\u043e\u0432\u043a\u0430 AI',
     'common.inputting': 'Печатает',
+    // Error messages (user-friendly, non-technical)
+    'error.connectionTimeout': 'Нет ответа от сервера. Проверьте соединение.',
+    'error.serverUnreachable': 'Не удаётся подключиться к серверу. Проверьте адрес и настройки.',
+    'error.agentFailed': 'Агент не запустился. Проверьте соединение.',
+    'error.noServerConfig': 'Для этого канала сервер не настроен.',
+    'error.noModelSelected': 'Модель не выбрана. Сначала выберите модель.',
+    'error.requestFailed': 'Запрос не выполнен. Попробуйте снова.',
 };
 export default ru;

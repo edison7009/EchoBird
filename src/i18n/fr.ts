@@ -319,5 +319,12 @@ const fr: Partial<Translations> = {
     'mother.connectionHint': 'Vérifiez l\'URL, le Model ID et l\'API Key, et assurez-vous que votre quota de tokens est suffisant.',
     'agent.installViaMother': 'Installation IA automatique',
     'common.inputting': 'En train d\'écrire',
+    // Error messages (user-friendly, non-technical)
+    'error.connectionTimeout': 'Aucune réponse du serveur. Vérifiez votre connexion.',
+    'error.serverUnreachable': 'Impossible de joindre le serveur. Vérifiez l\'adresse et les paramètres.',
+    'error.agentFailed': 'Démarrage de l\'agent échoué. Vérifiez la connexion.',
+    'error.noServerConfig': 'Aucun serveur configuré pour ce canal.',
+    'error.noModelSelected': 'Aucun modèle sélectionné. Veuillez d\'abord choisir un modèle.',
+    'error.requestFailed': 'Requête échouée. Veuillez réessayer.',
 };
 export default fr;
