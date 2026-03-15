@@ -631,6 +631,12 @@ export function MotherAgentMain() {
     const chatContainerRef = useRef<HTMLDivElement>(null!);
     const autoFollowRef = useRef(true);
     const [showScrollBtn, setShowScrollBtn] = useState(false);
+    const PAGE_SIZE = 30;
+    const [displayCount, setDisplayCount] = useState(PAGE_SIZE);
+    const [showSkeleton, setShowSkeleton] = useState(false);
+
+    // Reset pagination when server changes
+    useEffect(() => { setDisplayCount(PAGE_SIZE); }, [selectedServerId]);
 
     const handleScroll = () => {
         const container = chatContainerRef.current;
@@ -638,6 +644,21 @@ export function MotherAgentMain() {
         const isAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 40;
         autoFollowRef.current = isAtBottom;
         setShowScrollBtn(!isAtBottom && chatOutput.length > 0);
+        // Lazy-load older messages when user scrolls to very top
+        if (container.scrollTop === 0 && displayCount < chatOutput.length) {
+            setShowSkeleton(true);
+            const prevScrollHeight = container.scrollHeight;
+            setTimeout(() => {
+                setShowSkeleton(false);
+                setDisplayCount(c => Math.min(c + PAGE_SIZE, chatOutput.length));
+                // Restore scroll position after prepend
+                requestAnimationFrame(() => {
+                    if (chatContainerRef.current) {
+                        chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight - prevScrollHeight;
+                    }
+                });
+            }, 300);
+        }
     };
 
     useEffect(() => {
@@ -693,7 +714,11 @@ export function MotherAgentMain() {
                     {/* Chat messages — bubble UI */}
                     {agentModel ? (
                         <div className="pt-2 pb-2">
-                            {chatOutput.map((msg, i) => {
+                            {/* Skeleton placeholders — shown briefly when lazy-loading older messages */}
+                            {showSkeleton && [0,1,2].map(i => (
+                                <ChatBubble key={`sk-${i}`} role="skeleton" content="" variant="mother" />
+                            ))}
+                            {chatOutput.slice(-displayCount).map((msg, i) => {
                                 if (msg.type === 'state') return null;
                                 // tool_call / tool_result / thinking → all go to TerminalStatusBar only
                                 if (msg.type === 'tool_call' || msg.type === 'tool_result' || msg.type === 'thinking') return null;

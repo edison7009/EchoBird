@@ -2,7 +2,7 @@
 // Left: AI (white bg, black text). Right: User (solid cyan/green).
 import { useI18n } from '../../hooks/useI18n';
 
-export type BubbleRole = 'user' | 'assistant' | 'system' | 'error' | 'working' | 'retry';
+export type BubbleRole = 'user' | 'assistant' | 'system' | 'error' | 'working' | 'retry' | 'skeleton';
 
 export interface BubbleChip {
     type: 'file' | 'model' | 'skill';
@@ -81,6 +81,19 @@ function InputDots() {
 // ── Main ChatBubble ───────────────────────────────────────────────────────────
 export function ChatBubble({ role, content, variant, chips = [], isStreaming = false, subContent }: ChatBubbleProps) {
     const { t } = useI18n();
+
+    // ── Skeleton: pulsing placeholder bars for lazy-load ──
+    if (role === 'skeleton') {
+        return (
+            <div className="flex justify-start mb-2">
+                <div className="max-w-[55%] rounded-xl px-4 py-3 space-y-2" style={{ background: '#2A2A2A' }}>
+                    {[80, 60, 40].map((w, i) => (
+                        <div key={i} className="h-3 rounded-full animate-pulse" style={{ width: `${w}%`, background: 'rgba(255,255,255,0.12)' }} />
+                    ))}
+                </div>
+            </div>
+        );
+    }
 
     // ── System: centered muted ──
     if (role === 'system') {
