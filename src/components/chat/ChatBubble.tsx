@@ -113,6 +113,11 @@ function InputDots() {
     );
 }
 
+// ── Content truncation ───────────────────────────────────────────────────────
+const CONTENT_LIMIT = 300;
+const truncate = (text: string) =>
+    text.length > CONTENT_LIMIT ? text.slice(0, CONTENT_LIMIT) + '…' : text;
+
 // ── Main ChatBubble ───────────────────────────────────────────────────────────
 export function ChatBubble({ role, content, variant, chips = [], isStreaming = false, subContent }: ChatBubbleProps) {
     const { t } = useI18n();
@@ -199,7 +204,7 @@ export function ChatBubble({ role, content, variant, chips = [], isStreaming = f
                     </svg>
                     {(isStreaming && !finalText)
                         ? <InputDots />
-                        : <p className="break-words whitespace-pre-wrap">{finalText}</p>
+                        : <p className="break-words whitespace-pre-wrap">{truncate(finalText)}</p>
                     }
                 </div>
             </div>
@@ -216,7 +221,7 @@ export function ChatBubble({ role, content, variant, chips = [], isStreaming = f
                     <svg width="8" height="14" viewBox="0 0 8 14" style={{ position:'absolute', right:'-5px', top:'10px', overflow:'visible' }}>
                         <path d="M0,2 C0,1 0.8,0.4 1.5,1 L6.5,6 C7.2,6.6 7.2,7.4 6.5,8 L1.5,13 C0.8,13.6 0,13 0,12 Z" fill={tailColor}/>
                     </svg>
-                    {content}
+                    {truncate(content)}
                 </div>
             </div>
             {chips.length > 0 && <ReadonlyChips chips={chips} />}
