@@ -942,7 +942,6 @@ export const Channels: React.FC = () => {
                                             onClick={() => setBridgeMessages([])}
                                             disabled={messages.length === 0}
                                             className="p-1 text-cyber-accent/40 hover:text-cyber-accent transition-colors disabled:opacity-20"
-                                            title="Clear display"
                                         >
                                             <RotateCcw size={14} />
                                         </button>
