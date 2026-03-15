@@ -92,7 +92,8 @@ export const AgentRolePicker: React.FC<AgentRolePickerProps> = ({
 
                                     {/* ✓ badge — top right on selected */}
                                     {isSelected && (
-                                        <div className="absolute top-2 right-2 w-7 h-7 rounded-lg flex items-center justify-center z-10 bg-cyber-accent shadow-[0_0_8px_rgba(0,255,157,0.5)]">
+                                        <div className="absolute top-2 right-2 w-7 h-7 rounded-lg flex items-center justify-center z-10 bg-cyber-accent ring-2 ring-black/40"
+                                             style={{ boxShadow: '0 0 10px rgba(0,255,157,0.6), 0 2px 8px rgba(0,0,0,0.5)' }}>
                                             <Check size={14} className="text-black" strokeWidth={3} />
                                         </div>
                                     )}
