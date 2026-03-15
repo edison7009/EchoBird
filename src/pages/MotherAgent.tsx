@@ -537,7 +537,7 @@ export function MotherAgentMain() {
 
             // Build chip list for bubble display
             const displayChips: import('../components/chat/ChatBubble').BubbleChip[] = [
-                ...pendingModels.map(pm => ({ type: 'model' as const, name: pm.name })),
+                ...pendingModels.map(pm => ({ type: 'model' as const, name: pm.name, modelId: pm.modelId || '' })),
                 ...pendingSkills.map(s => ({ type: 'skill' as const, name: s.name })),
             ];
 

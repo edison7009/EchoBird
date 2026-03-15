@@ -1,12 +1,18 @@
 // ChatBubble — social-style chat bubbles, NO markdown rendering
 // Left: AI (white bg, black text). Right: User (solid cyan/green).
+import { Paperclip, KeyRound, Zap, Image as ImageIcon } from 'lucide-react';
+import { getModelIcon } from '../cards/ModelCard';
 import { useI18n } from '../../hooks/useI18n';
 
 export type BubbleRole = 'user' | 'assistant' | 'system' | 'error' | 'working' | 'retry' | 'skeleton';
 
 export interface BubbleChip {
-    type: 'file' | 'model' | 'skill';
+    type: 'file' | 'image' | 'model' | 'skill';
     name: string;
+    /** For model chips: model provider name to look up icon */
+    modelId?: string;
+    /** For image chips: base64 preview data URL */
+    preview?: string;
 }
 
 export interface ChatBubbleProps {
@@ -39,22 +45,51 @@ function stripMarkdown(text: string): string {
         .trim();
 }
 
-// ── Chip styles ───────────────────────────────────────────────────────────────
-const CHIP_STYLES = {
-    file:  'bg-white/20 border-white/30 text-[#0a0f1a]',
-    model: 'bg-white/20 border-white/30 text-[#0a0f1a]',
-    skill: 'bg-white/20 border-white/30 text-[#0a0f1a]',
-} as const;
+// ── Icon-only readonly chips below user bubble ───────────────────────────────
+// Mirrors PendingChipsRow color semantics, but without text or remove button.
+const BASE_CHIP = 'flex items-center justify-center w-6 h-6 rounded border flex-shrink-0';
+const CHIP_MODEL = `${BASE_CHIP} bg-cyber-accent/10 border-cyber-accent/40`;
+const CHIP_SKILL = `${BASE_CHIP} bg-cyber-warning/10 border-cyber-warning/40`;
+const CHIP_FILE  = `${BASE_CHIP} bg-cyber-bg/60 border-cyber-text-muted/30`;
 
 function ReadonlyChips({ chips }: { chips: BubbleChip[] }) {
     if (!chips.length) return null;
     return (
-        <div className="flex flex-wrap gap-1.5 mt-1.5">
-            {chips.map((c, i) => (
-                <span key={i} className={`flex items-center gap-1 h-6 rounded px-2 text-[11px] font-mono border ${CHIP_STYLES[c.type]}`}>
-                    {c.name}
-                </span>
-            ))}
+        <div className="flex flex-wrap gap-1 mt-1.5">
+            {chips.map((c, i) => {
+                if (c.type === 'model') {
+                    const icon = getModelIcon(c.name, c.modelId || '');
+                    return (
+                        <span key={i} className={CHIP_MODEL} title={c.name}>
+                            {icon
+                                ? <img src={icon} alt="" className="w-4 h-4" />
+                                : <KeyRound size={12} className="text-cyber-accent" />}
+                        </span>
+                    );
+                }
+                if (c.type === 'skill') {
+                    return (
+                        <span key={i} className={CHIP_SKILL} title={c.name}>
+                            <Zap size={12} className="text-cyber-warning" />
+                        </span>
+                    );
+                }
+                if (c.type === 'image') {
+                    return (
+                        <span key={i} className={CHIP_FILE} title={c.name}>
+                            {c.preview
+                                ? <img src={c.preview} alt={c.name} className="w-4 h-4 object-cover rounded" />
+                                : <ImageIcon size={12} className="text-cyber-text-muted" />}
+                        </span>
+                    );
+                }
+                // file
+                return (
+                    <span key={i} className={CHIP_FILE} title={c.name}>
+                        <Paperclip size={12} className="text-cyber-text-muted" />
+                    </span>
+                );
+            })}
         </div>
     );
 }
