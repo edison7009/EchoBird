@@ -5,7 +5,7 @@ import remarkGfm from 'remark-gfm';
 import { MiniSelect } from '../components/MiniSelect';
 import { getModelIcon } from '../components/cards/ModelCard';
 import { PendingChipsRow } from '../components/PendingChipsRow';
-import { ChatBubble } from '../components/chat';
+import { ChatBubble, type BubbleChip } from '../components/chat';
 import { normalizeError, errorToKey } from '../utils/normalizeError';
 import { useI18n } from '../hooks/useI18n';
 import { useConfirm } from '../components/ConfirmDialog';
@@ -69,7 +69,7 @@ declare const __APP_VERSION__: string;
 // ===== Types =====
 
 export type ChatMessage =
-    | { type: 'user'; text: string }
+    | { type: 'user'; text: string; chips?: import('../components/chat/ChatBubble').BubbleChip[] }
     | { type: 'assistant'; text: string }
     | { type: 'thinking'; text: string }
     | { type: 'tool_call'; id: string; name: string; args: string; status: 'running' | 'done' }
@@ -109,7 +109,7 @@ interface MotherAgentCtx {
     logsEndRef: React.RefObject<HTMLDivElement>;
     handleSendLogsToAI: () => void;
     handleChatSend: () => void;
-    sendMessage: (msg: string) => void;
+    sendMessage: (msg: string, displayText?: string, chips?: import('../components/chat/ChatBubble').BubbleChip[]) => void;
     // pending skills (attached to next message)
     pendingSkills: PendingSkill[];
     addPendingSkill: (skill: PendingSkill) => void;
@@ -388,10 +388,11 @@ export function MotherAgentProvider({ appLogs, detectedTools, onClearLogs, onAge
     }, [agentModel, chatInput, appLogs, isProcessing]);
 
     // Internal send function
-    const handleChatSendInternal = useCallback(async (message: string) => {
+    const handleChatSendInternal = useCallback(async (message: string, displayText?: string, chips?: BubbleChip[]) => {
         if (!agentModel || isProcessing || !message.trim()) return;
         setIsProcessing(true);
-        setChatOutput(prev => [...prev, { type: 'user', text: message.trim() }]);
+        // Use display text + chips if provided (chip-send path), else full message text
+        setChatOutput(prev => [...prev, { type: 'user', text: (displayText ?? message).trim(), chips }]);
         const modelData = models.find(m => m.internalId === agentModel);
         if (!modelData) {
             setChatOutput(prev => [...prev, { type: 'error', text: '', i18nKey: 'error.noModelSelected' }]);
@@ -534,8 +535,15 @@ export function MotherAgentMain() {
                 pendingSkills.forEach(s => removePendingSkill(s.id));
             }
 
+            // Build chip list for bubble display
+            const displayChips: import('../components/chat/ChatBubble').BubbleChip[] = [
+                ...pendingModels.map(pm => ({ type: 'model' as const, name: pm.name })),
+                ...pendingSkills.map(s => ({ type: 'skill' as const, name: s.name })),
+            ];
+
             setChatInput('');
-            sendMessage(parts.join('\n\n'));
+            // sendMessage = handleChatSendInternal; pass clean displayText+chips separately from the full AI message
+            sendMessage(parts.join('\n\n'), userText, displayChips);
         } else {
             handleChatSend();
         }
@@ -737,7 +745,7 @@ export function MotherAgentMain() {
                                 if (msg.type === 'tool_call' || msg.type === 'tool_result' || msg.type === 'thinking') return null;
 
                                 if (msg.type === 'user') {
-                                    return <ChatBubble key={i} role="user" content={msg.text} variant="mother" />;
+                                    return <ChatBubble key={i} role="user" content={msg.text} variant="mother" chips={msg.chips} />;
                                 }
                                 if (msg.type === 'assistant') {
                                     const retryMatch = msg.text.match(/__CONN_RETRY__:(\d+)\/(\d+)/);
