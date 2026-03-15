@@ -763,24 +763,42 @@ export const Channels: React.FC = () => {
                                     : 'border-cyber-border shadow-cyber-card bg-black/80 hover:border-cyber-accent/30 hover:bg-black/90'
                                     }`}
                             >
-                                {/* Status */}
-                                <div className="flex items-center gap-1.5 mb-1.5">
-                                    <div className={`w-2 h-2 rounded-full ${isLinked ? 'bg-cyber-accent animate-pulse' : isBridgeConnecting ? 'bg-yellow-400 animate-pulse' : isError ? 'bg-red-400' : 'bg-cyber-text-muted/50'}`} />
-                                    <span className={`text-xs tracking-wide ${isLinked ? 'text-cyber-accent' : isBridgeConnecting ? 'text-yellow-400' : isError ? 'text-red-400' : 'text-cyber-text-muted/70'}`}>
-                                        [{isLinked ? t('channel.linked') : isBridgeConnecting ? t('channel.connecting') : isError ? t('channel.failed') : t('channel.standby')}]
-                                    </span>
-                                    {/* Unread badge */}
-                                    {hasNew && (
-                                        <span className="ml-auto w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-                                    )}
-                                </div>
-                                {/* Name — read-only, edit via Mother Agent */}
-                                <div className="flex items-center gap-1 h-5">
-                                    <span className={`text-sm font-bold whitespace-nowrap truncate ${isActive ? 'text-cyber-accent' : 'text-cyber-accent/90'}`}>
-                                        {ch.name || (ch.address?.startsWith('127.0.0.1') || ch.address === 'localhost'
-                                            ? `${t('mother.local')} (127.0.0.1)`
-                                            : ch.address)}
-                                    </span>
+                                <div className="flex items-center gap-2">
+                                    {/* Left: status + name */}
+                                    <div className="flex-1 min-w-0">
+                                        {/* Status */}
+                                        <div className="flex items-center gap-1.5 mb-1.5">
+                                            <div className={`w-2 h-2 rounded-full ${isLinked ? 'bg-cyber-accent animate-pulse' : isBridgeConnecting ? 'bg-yellow-400 animate-pulse' : isError ? 'bg-red-400' : 'bg-cyber-text-muted/50'}`} />
+                                            <span className={`text-xs tracking-wide ${isLinked ? 'text-cyber-accent' : isBridgeConnecting ? 'text-yellow-400' : isError ? 'text-red-400' : 'text-cyber-text-muted/70'}`}>
+                                                [{isLinked ? t('channel.linked') : isBridgeConnecting ? t('channel.connecting') : isError ? t('channel.failed') : t('channel.standby')}]
+                                            </span>
+                                            {hasNew && (
+                                                <span className="ml-auto w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+                                            )}
+                                        </div>
+                                        {/* Name */}
+                                        <div className="flex items-center gap-1 h-5">
+                                            <span className={`text-sm font-bold whitespace-nowrap truncate ${isActive ? 'text-cyber-accent' : 'text-cyber-accent/90'}`}>
+                                                {ch.name || (ch.address?.startsWith('127.0.0.1') || ch.address === 'localhost'
+                                                    ? `${t('mother.local')} (127.0.0.1)`
+                                                    : ch.address)}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    {/* Right: tool icon */}
+                                    {(() => {
+                                        const agentName = allBridgeAgentNames[ch.id];
+                                        const iconMap: Record<string, string> = {
+                                            'OpenClaw': '/icons/tools/openclaw.svg',
+                                            'Claude Code': '/icons/tools/claudecode.svg',
+                                            'OpenCode': '/icons/tools/opencode.svg',
+                                            'Zeroclaw': '/icons/tools/zeroclaw.png',
+                                        };
+                                        const icon = agentName ? iconMap[agentName] : '/icons/tools/openclaw.svg';
+                                        return icon ? (
+                                            <img src={icon} alt={agentName || ''} className="w-7 h-7 flex-shrink-0 opacity-70" />
+                                        ) : null;
+                                    })()}
                                 </div>
                             </div>
                         );
@@ -807,24 +825,30 @@ export const Channels: React.FC = () => {
                             <div className="relative flex-1 mx-4 mt-2">
                                 <div ref={chatContainerRef} onScroll={handleChatScroll} className="absolute inset-0 overflow-y-auto slim-scroll custom-scrollbar p-4">
                                 <div>
-                                    {/* System info */}
-                                    <div className="space-y-1 select-none">
-                                        <p className="text-cyber-accent">[SYS] {activeChannel.name || `Channel #${String(activeChannel.id).padStart(2, '0')}`}</p>
-                                        {isBridgeMode ? (
-                                            <p className="text-cyber-accent/80">{bridgeAgentName ? `${bridgeAgentName} · ` : ''}EchoBird Bridge Protocol</p>
-                                        ) : (
-                                            <>
-                                                <p className="text-cyber-accent/80">SSH · {activeChannel.address}</p>
-                                                {gateway.status === 'connecting' && (
-                                                    <p className="text-yellow-400">[SYS] {t('channel.connecting')}</p>
-                                                )}
-                                                {isActiveConnected && (
-                                                    <p className="text-cyber-accent">[SYS] {t('channel.connectedTo')} · {activeChannel.address}</p>
-                                                )}
-                                                {gateway.status === 'error' && (
-                                                    <p className="text-red-400">[SYS] {t('channel.connectionFailed')}</p>
-                                                )}
-                                            </>
+                                    {/* Agent tool tabs */}
+                                    <div className="flex items-center gap-2 select-none pb-2 mb-2 border-b border-cyber-border/20">
+                                        {(() => {
+                                            const agentName = bridgeAgentName || 'OpenClaw';
+                                            const iconMap: Record<string, string> = {
+                                                'OpenClaw': '/icons/tools/openclaw.svg',
+                                                'Claude Code': '/icons/tools/claudecode.svg',
+                                                'OpenCode': '/icons/tools/opencode.svg',
+                                                'Zeroclaw': '/icons/tools/zeroclaw.png',
+                                            };
+                                            const icon = iconMap[agentName] || '/icons/tools/openclaw.svg';
+                                            return (
+                                                <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-cyber-accent/15 border border-cyber-accent/40 text-cyber-accent text-xs font-mono">
+                                                    <img src={icon} alt={agentName} className="w-4 h-4" />
+                                                    <span>{agentName}</span>
+                                                </div>
+                                            );
+                                        })()}
+                                        {/* Status indicator */}
+                                        {bridgeConnectionStatus === 'connecting' && (
+                                            <span className="text-yellow-400 text-xs font-mono animate-pulse">{t('channel.connecting')}</span>
+                                        )}
+                                        {bridgeConnectionStatus === 'disconnected' && (
+                                            <span className="text-red-400 text-xs font-mono">{t('channel.connectionFailed')}</span>
                                         )}
                                     </div>
 
