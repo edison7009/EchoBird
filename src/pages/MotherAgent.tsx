@@ -500,12 +500,13 @@ export function MotherAgentMain() {
     const [pendingModels, setPendingModels] = useState<Array<{ id: string; name: string; modelId?: string }>>([]);
     const [pendingFiles, setPendingFiles] = useState<Array<{ id: string; name: string; type: 'file' | 'image'; preview?: string }>>([]);
 
-    // Wrap handleChatSend to append pending model/skill info as text
+    // Wrap handleChatSend to append pending model/skill/file info as text
     const localSend = useCallback(() => {
         const hasModels = pendingModels.length > 0;
         const hasSkills = pendingSkills.length > 0;
+        const hasFiles  = pendingFiles.length > 0;
 
-        if (hasModels || hasSkills) {
+        if (hasModels || hasSkills || hasFiles) {
             const parts: string[] = [];
             const userText = chatInput.trim();
             if (userText) parts.push(userText);
@@ -526,8 +527,8 @@ export function MotherAgentMain() {
 
             if (hasSkills) {
                 const skillInfo = pendingSkills.map(s => {
-                    const parts = s.github.split('/');
-                    const ownerRepo = parts.slice(0, 2).join('/');
+                    const p = s.github.split('/');
+                    const ownerRepo = p.slice(0, 2).join('/');
                     const branch = s.branch || 'main';
                     return `- ${s.name}\n  Install: \`openclaw skill install ${ownerRepo}@${branch}\``;
                 }).join('\n');
@@ -535,10 +536,28 @@ export function MotherAgentMain() {
                 pendingSkills.forEach(s => removePendingSkill(s.id));
             }
 
+            if (hasFiles) {
+                // Always send files — it's the agent/model's job to handle them.
+                // Images: embed as base64 data URL. Files: include filename.
+                const fileLines = pendingFiles.map(f => {
+                    if (f.type === 'image' && f.preview) {
+                        return `- [Image: ${f.name}]\n  data: ${f.preview}`;
+                    }
+                    return `- [File: ${f.name}]`;
+                }).join('\n');
+                parts.push(`[Attached files]\n${fileLines}`);
+                setPendingFiles([]);
+            }
+
             // Build chip list for bubble display
             const displayChips: import('../components/chat/ChatBubble').BubbleChip[] = [
                 ...pendingModels.map(pm => ({ type: 'model' as const, name: pm.name, modelId: pm.modelId || '' })),
                 ...pendingSkills.map(s => ({ type: 'skill' as const, name: s.name })),
+                ...pendingFiles.map(f => ({
+                    type: (f.type === 'image' ? 'image' : 'file') as 'image' | 'file',
+                    name: f.name,
+                    preview: f.preview,
+                })),
             ];
 
             setChatInput('');
@@ -547,7 +566,7 @@ export function MotherAgentMain() {
         } else {
             handleChatSend();
         }
-    }, [pendingModels, pendingSkills, models, chatInput, setChatInput, handleChatSend, sendMessage, removePendingSkill]);
+    }, [pendingModels, pendingSkills, pendingFiles, models, chatInput, setChatInput, handleChatSend, sendMessage, removePendingSkill]);
 
     // Skills popup state
     const [showSkillsPicker, setShowSkillsPicker] = useState(false);
