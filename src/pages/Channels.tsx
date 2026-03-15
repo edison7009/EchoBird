@@ -826,7 +826,7 @@ export const Channels: React.FC = () => {
                             /* Connected / Connecting — terminal chat area */
                             <div className="flex-1 flex flex-col mx-4 mt-2 min-h-0">
                                 {/* Fixed agent tool tab bar */}
-                                <div className="flex items-center gap-2 select-none py-2 flex-shrink-0">
+                                <div className="flex items-center gap-2 select-none pb-2 flex-shrink-0">
                                     {AGENT_LIST.map(agent => {
                                         const selectedAgent = allActiveAgents[channelKey] || 'OpenClaw';
                                         const isActive = selectedAgent === agent.name;
