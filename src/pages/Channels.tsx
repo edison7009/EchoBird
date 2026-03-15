@@ -769,7 +769,7 @@ export const Channels: React.FC = () => {
                                     className="w-full bg-transparent px-4 py-2 text-sm text-[#DED9D2] font-sans font-medium outline-none placeholder:text-[#DED9D2]/40 disabled:opacity-30 resize-none"
                                 />
                                 {/* Bottom toolbar */}
-                                <div className="flex items-center justify-between px-3 py-1.5 border-t border-cyber-border/20">
+                                <div className="flex items-center justify-between px-3 py-1.5">
                                     <div className="flex items-center gap-1 relative">
                                         <button
                                             onClick={() => fileInputRef.current?.click()}
