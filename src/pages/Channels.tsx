@@ -822,35 +822,40 @@ export const Channels: React.FC = () => {
                             </div>
                         ) : (
                             /* Connected / Connecting — terminal chat area */
-                            <div className="relative flex-1 mx-4 mt-2">
+                            <div className="flex-1 flex flex-col mx-4 mt-2 min-h-0">
+                                {/* Fixed agent tool tab bar */}
+                                <div className="flex items-center gap-2 select-none py-2 flex-shrink-0">
+                                    {[
+                                        { name: 'OpenClaw', icon: '/icons/tools/openclaw.svg' },
+                                        { name: 'Claude Code', icon: '/icons/tools/claudecode.svg' },
+                                        { name: 'OpenCode', icon: '/icons/tools/opencode.svg' },
+                                    ].map(agent => {
+                                        const isActive = (bridgeAgentName || 'OpenClaw') === agent.name;
+                                        return (
+                                            <div
+                                                key={agent.name}
+                                                className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-mono cursor-pointer transition-all ${
+                                                    isActive
+                                                        ? 'bg-cyber-accent/15 border border-cyber-accent/40 text-cyber-accent'
+                                                        : 'border border-cyber-border/30 text-cyber-text-muted/40 hover:text-cyber-text-muted/60 hover:border-cyber-border/50'
+                                                }`}
+                                            >
+                                                <img src={agent.icon} alt={agent.name} className={`w-4 h-4 ${isActive ? '' : 'opacity-30 grayscale'}`} />
+                                                <span>{agent.name}</span>
+                                            </div>
+                                        );
+                                    })}
+                                    {bridgeConnectionStatus === 'connecting' && (
+                                        <span className="text-yellow-400 text-xs font-mono animate-pulse ml-2">Connecting...</span>
+                                    )}
+                                    {bridgeConnectionStatus === 'disconnected' && (
+                                        <span className="text-red-400 text-xs font-mono ml-2">Connection failed</span>
+                                    )}
+                                </div>
+                                {/* Scrollable chat area */}
+                                <div className="relative flex-1 min-h-0">
                                 <div ref={chatContainerRef} onScroll={handleChatScroll} className="absolute inset-0 overflow-y-auto slim-scroll custom-scrollbar p-4">
                                 <div>
-                                    {/* Agent tool tabs */}
-                                    <div className="flex items-center gap-2 select-none pb-2 mb-2 border-b border-cyber-border/20">
-                                        {(() => {
-                                            const agentName = bridgeAgentName || 'OpenClaw';
-                                            const iconMap: Record<string, string> = {
-                                                'OpenClaw': '/icons/tools/openclaw.svg',
-                                                'Claude Code': '/icons/tools/claudecode.svg',
-                                                'OpenCode': '/icons/tools/opencode.svg',
-                                                'Zeroclaw': '/icons/tools/zeroclaw.png',
-                                            };
-                                            const icon = iconMap[agentName] || '/icons/tools/openclaw.svg';
-                                            return (
-                                                <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-cyber-accent/15 border border-cyber-accent/40 text-cyber-accent text-xs font-mono">
-                                                    <img src={icon} alt={agentName} className="w-4 h-4" />
-                                                    <span>{agentName}</span>
-                                                </div>
-                                            );
-                                        })()}
-                                        {/* Status indicator */}
-                                        {bridgeConnectionStatus === 'connecting' && (
-                                            <span className="text-yellow-400 text-xs font-mono animate-pulse">{t('channel.connecting')}</span>
-                                        )}
-                                        {bridgeConnectionStatus === 'disconnected' && (
-                                            <span className="text-red-400 text-xs font-mono">{t('channel.connectionFailed')}</span>
-                                        )}
-                                    </div>
 
                                     {/* Bubble messages */}
                                     <div className="pt-2 pb-1">
@@ -882,6 +887,7 @@ export const Channels: React.FC = () => {
                                         className="absolute bottom-3 right-3 w-7 h-7 flex items-center justify-center bg-cyber-bg/90 border border-cyber-border/50 rounded text-cyber-text-secondary hover:text-cyber-accent hover:border-cyber-accent/50 transition-colors z-10"
                                     ><svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 9l6 6 6-6" /></svg></button>
                                 )}
+                            </div>
                             </div>
                         )}
 
