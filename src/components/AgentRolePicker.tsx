@@ -135,7 +135,7 @@ export const AgentRolePicker: React.FC<AgentRolePickerProps> = ({
                                         <div
                                             className="text-sm font-bold text-center leading-tight line-clamp-2"
                                             style={{
-                                                color: isSelected ? '#00ff9d' : '#ffffff',
+                                                color: '#00ff9d',
                                                 textShadow: '0 0 8px rgba(0,0,0,0.9), 0 0 16px rgba(0,0,0,0.7), 0 1px 3px rgba(0,0,0,1)',
                                                 backfaceVisibility: 'hidden',
                                             }}
@@ -147,14 +147,12 @@ export const AgentRolePicker: React.FC<AgentRolePickerProps> = ({
                                         <div className="flex flex-col items-center overflow-hidden transition-all duration-300 ease-out max-h-0 group-hover:max-h-[60px] opacity-0 group-hover:opacity-100"
                                              style={{ backfaceVisibility: 'hidden' }}>
                                             <div className="w-16 h-px mt-1.5 mb-1" style={{
-                                                background: isSelected
-                                                    ? 'linear-gradient(90deg, transparent, #00ff9d, transparent)'
-                                                    : 'linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent)',
+                                                background: 'linear-gradient(90deg, transparent, #00ff9d, transparent)',
                                             }} />
                                             <div
                                                 className="text-[11px] text-center leading-snug line-clamp-2"
                                                 style={{
-                                                    color: isSelected ? 'rgba(0,255,157,0.7)' : 'rgba(255,255,255,0.6)',
+                                                    color: 'rgba(0,255,157,0.7)',
                                                     textShadow: '0 0 6px rgba(0,0,0,0.9), 0 0 12px rgba(0,0,0,0.8), 0 1px 2px rgba(0,0,0,1)',
                                                     backfaceVisibility: 'hidden',
                                                 }}
