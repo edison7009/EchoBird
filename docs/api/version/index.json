@@ -1,1 +1,1 @@
-{"version": "2.8.9","releaseDate": "2026-03-15","releaseNotes": "UI tweaks: red flash speed adjusted, smaller loading dots, and internal removals of deprecated llm-server implementation"}
+{"version":"2.9.0","releaseDate":"2026-03-16","releaseNotes":"v2.9.0: 频道历史持久化、泡泡 Chip 图标重设计、附件正确发送、内容截断保护"}
