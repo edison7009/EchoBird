@@ -157,6 +157,6 @@ const fa: Partial<Translations> = {
     'mother.connectionFailed': 'اتصال به مدل هوش مصنوعی پس از {n} تلاش ناموفق بود.',
     'mother.connectionHint': 'لطفاً URL، Model ID و API Key را بررسی کنید و مطمئن شوید سهمیه Token کافی دارید.',
     'agent.installViaMother': 'نصب خودکار هوش مصنوعی',
-    'common.inputting': 'در حال تایپ...',
+    'common.inputting': 'در حال تایپ',
 };
 export default fa;

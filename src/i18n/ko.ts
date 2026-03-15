@@ -316,6 +316,6 @@ const ko: Partial<Translations> = {
     'mother.connectionFailed': 'AI 모델 연결에 {n}회 실패했습니다.',
     'mother.connectionHint': 'URL, Model ID, API Key를 확인하고 Token 할당량이 충분한지 확인하세요.',
     'agent.installViaMother': 'AI 자동 설치',
-    'common.inputting': '입력 중...',
+    'common.inputting': '입력 중',
 };
 export default ko;

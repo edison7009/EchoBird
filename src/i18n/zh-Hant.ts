@@ -316,6 +316,6 @@ const zhHant: Partial<Translations> = {
     'mother.connectionRetrying': '連接錯誤，正在重試 ({n}/{total})...',
     'mother.connectionFailed': '連接 AI 模型失敗，已重試 {n} 次。',
     'mother.connectionHint': '請檢查 URL、Model ID、API Key，並確認 Token 額度充足。',
-    'common.inputting': '輸入中...',
+    'common.inputting': '輸入中',
 };
 export default zhHant;

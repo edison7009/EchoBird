@@ -290,6 +290,6 @@ const vi: Partial<Translations> = {
     'mother.connectionFailed': 'Không thể kết nối với mô hình AI sau {n} lần thử.',
     'mother.connectionHint': 'Vui lòng kiểm tra URL, Model ID, API Key và đảm bảo hạn mức Token đủ.',
     'agent.installViaMother': 'Tự động cài đặt AI',
-    'common.inputting': 'Đang nhập...',
+    'common.inputting': 'Đang nhập',
 };
 export default vi;

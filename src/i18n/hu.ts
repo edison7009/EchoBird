@@ -290,6 +290,6 @@ const hu: Partial<Translations> = {
     'mother.connectionFailed': 'Nem sikerült csatlakozni az AI modellhez {n} kísérlet után.',
     'mother.connectionHint': 'Kérjük, ellenőrizze az URL-t, a Model ID-t és az API Key-t, és győződjön meg arról, hogy a Token-kvóta elegendő.',
     'agent.installViaMother': 'AI auto-installálás',
-    'common.inputting': 'Gépel...',
+    'common.inputting': 'Gépel',
 };
 export default hu;

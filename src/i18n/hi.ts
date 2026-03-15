@@ -290,6 +290,6 @@ const hi: Partial<Translations> = {
     'mother.connectionFailed': '{n} प्रयासों के बाद AI मॉडल से कनेक्ट नहीं हो सका।',
     'mother.connectionHint': 'कृपया URL, Model ID, API Key जांचें और सुनिश्चित करें कि Token कोटा पर्याप्त है।',
     'agent.installViaMother': 'AI ओटो-इंस्टॉल',
-    'common.inputting': 'टाइप कर रहा है...',
+    'common.inputting': 'टाइप कर रहा है',
 };
 export default hi;

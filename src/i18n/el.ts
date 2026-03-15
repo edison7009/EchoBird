@@ -157,6 +157,6 @@ const el: Partial<Translations> = {
     'mother.connectionFailed': 'Αποτυχία σύνδεσης με το μοντέλο AI μετά από {n} προσπάθειες.',
     'mother.connectionHint': 'Ελέγξτε το URL, το Model ID, το API Key και βεβαιωθείτε ότι η ποσόστωση Token είναι επαρκής.',
     'agent.installViaMother': 'Αυτόματη εγκατάσταση AI',
-    'common.inputting': 'Πληκτρολόγηση...',
+    'common.inputting': 'Πληκτρολόγηση',
 };
 export default el;

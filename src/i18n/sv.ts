@@ -157,6 +157,6 @@ const sv: Partial<Translations> = {
     'mother.connectionFailed': 'Det gick inte att ansluta till AI-modellen efter {n} försök.',
     'mother.connectionHint': 'Kontrollera URL, Model ID och API Key och se till att Token-gränsen är tillräcklig.',
     'agent.installViaMother': 'AI-autoinstallation',
-    'common.inputting': 'Skriver...',
+    'common.inputting': 'Skriver',
 };
 export default sv;

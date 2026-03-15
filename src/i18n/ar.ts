@@ -290,6 +290,6 @@ const ar: Partial<Translations> = {
     'mother.connectionFailed': 'فشل الاتصال بنموذج الذكاء الاصطناعي بعد {n} محاولات.',
     'mother.connectionHint': 'يرجى التحقق من الرابط ومعرّف النموذج ومفتاح API، والتأكد من كفاية حصة الرموز.',
     'agent.installViaMother': 'تثبيت تلقائي بالذكاء الاصطناعي',
-    'common.inputting': 'جارٍ الكتابة...',
+    'common.inputting': 'جارٍ الكتابة',
 };
 export default ar;

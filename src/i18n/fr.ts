@@ -318,6 +318,6 @@ const fr: Partial<Translations> = {
     'mother.connectionFailed': 'Échec de la connexion au modèle IA après {n} tentatives.',
     'mother.connectionHint': 'Vérifiez l\'URL, le Model ID et l\'API Key, et assurez-vous que votre quota de tokens est suffisant.',
     'agent.installViaMother': 'Installation IA automatique',
-    'common.inputting': 'En train d\'écrire...',
+    'common.inputting': 'En train d\'écrire',
 };
 export default fr;

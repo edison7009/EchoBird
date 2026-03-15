@@ -305,6 +305,6 @@ const zhHans: Partial<Translations> = {
     'mother.connectionRetrying': '连接错误，正在重试 ({n}/{total})...',
     'mother.connectionFailed': '连接 AI 模型失败，已重试 {n} 次。',
     'mother.connectionHint': '请检查 URL、Model ID、API Key，并确认 Token 额度充足。',
-    'common.inputting': '输入中...',
+    'common.inputting': '输入中',
 };
 export default zhHans;

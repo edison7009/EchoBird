@@ -316,6 +316,6 @@ const ja: Partial<Translations> = {
     'mother.connectionFailed': 'AIモデルへの接続に {n} 回失敗しました。',
     'mother.connectionHint': 'URL、Model ID、API Key を確認し、Tokenの残高が十分かご確認ください。',
     'agent.installViaMother': 'AI自動インストール',
-    'common.inputting': '入力中...',
+    'common.inputting': '入力中',
 };
 export default ja;

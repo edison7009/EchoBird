@@ -290,6 +290,6 @@ const nl: Partial<Translations> = {
     'mother.connectionFailed': 'Verbinding met AI-model mislukt na {n} pogingen.',
     'mother.connectionHint': 'Controleer de URL, het Model ID en de API Key, en zorg dat uw Token-quotum voldoende is.',
     'agent.installViaMother': 'AI auto-installatie',
-    'common.inputting': 'Aan het typen...',
+    'common.inputting': 'Aan het typen',
 };
 export default nl;

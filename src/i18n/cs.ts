@@ -290,6 +290,6 @@ const cs: Partial<Translations> = {
     'mother.connectionFailed': 'Připojení k modelu AI selhalo po {n} pokusech.',
     'mother.connectionHint': 'Zkontrolujte URL, Model ID, API Key a ujistěte se, že máte dostatečný Token kredit.',
     'agent.installViaMother': 'Automatická instalace AI',
-    'common.inputting': 'Píše...',
+    'common.inputting': 'Píše',
 };
 export default cs;

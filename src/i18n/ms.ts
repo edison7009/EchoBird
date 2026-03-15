@@ -292,6 +292,6 @@ const ms: Partial<Translations> = {
     'mother.connectionFailed': 'Gagal menyambung ke model AI selepas {n} percubaan.',
     'mother.connectionHint': 'Sila semak URL, Model ID, API Key, dan pastikan kuota Token anda mencukupi.',
     'agent.installViaMother': 'Pasang Auto AI',
-    'common.inputting': 'Sedang menaip...',
+    'common.inputting': 'Sedang menaip',
 };
 export default ms;

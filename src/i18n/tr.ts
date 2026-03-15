@@ -290,6 +290,6 @@ const tr: Partial<Translations> = {
     'mother.connectionFailed': '{n} denemeden sonra AI modeline bağlanılamadı.',
     'mother.connectionHint': 'Lütfen URL, Model ID ve API Key\'i kontrol edin ve Token kotanızın yeterli olduğundan emin olun.',
     'agent.installViaMother': 'AI Otomatik Kurulum',
-    'common.inputting': 'Yazıyor...',
+    'common.inputting': 'Yazıyor',
 };
 export default tr;

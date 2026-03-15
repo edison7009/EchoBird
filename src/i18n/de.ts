@@ -318,6 +318,6 @@ const de: Partial<Translations> = {
     'mother.connectionFailed': 'Verbindung zum KI-Modell nach {n} Versuchen fehlgeschlagen.',
     'mother.connectionHint': 'Bitte URL, Model-ID und API-Key prüfen und sicherstellen, dass ausreichend Token-Guthaben vorhanden ist.',
     'agent.installViaMother': 'KI-Autoinstallation',
-    'common.inputting': 'Tippt...',
+    'common.inputting': 'Tippt',
 };
 export default de;

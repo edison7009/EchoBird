@@ -157,6 +157,6 @@ const he: Partial<Translations> = {
     'mother.connectionFailed': 'החיבור למודל ה-AI נכשל לאחר {n} ניסיונות.',
     'mother.connectionHint': 'אנא בדוק את ה-URL, Model ID ו-API Key, וודא שמכסת ה-Token מספיקה.',
     'agent.installViaMother': 'התקנה אוטומטית בבינה מלאכותית',
-    'common.inputting': 'מקליד...',
+    'common.inputting': 'מקליד',
 };
 export default he;

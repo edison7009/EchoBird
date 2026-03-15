@@ -157,6 +157,6 @@ const fi: Partial<Translations> = {
     'mother.connectionFailed': 'Yhteys tekoälymalliin epäonnistui {n} yrityksen jälkeen.',
     'mother.connectionHint': 'Tarkista URL, Model ID ja API Key sekä varmista, että Token-kiintiösi on riittävä.',
     'agent.installViaMother': 'AI-autoasennus',
-    'common.inputting': 'Kirjoittaa...',
+    'common.inputting': 'Kirjoittaa',
 };
 export default fi;

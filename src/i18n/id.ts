@@ -292,6 +292,6 @@ const id: Partial<Translations> = {
     'mother.connectionFailed': 'Gagal terhubung ke model AI setelah {n} percobaan.',
     'mother.connectionHint': 'Periksa URL, Model ID, API Key, dan pastikan kuota Token Anda mencukupi.',
     'agent.installViaMother': 'Instal Otomatis AI',
-    'common.inputting': 'Mengetik...',
+    'common.inputting': 'Mengetik',
 };
 export default id;

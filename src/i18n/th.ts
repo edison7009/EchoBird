@@ -292,6 +292,6 @@ const th: Partial<Translations> = {
     'mother.connectionFailed': 'ไม่สามารถเชื่อมต่อกับโมเดล AI หลังจากลอง {n} ครั้ง',
     'mother.connectionHint': 'กรุณาตรวจสอบ URL, Model ID, API Key และตรวจสอบว่า Token quota เพียงพอ',
     'agent.installViaMother': 'AI ติดตั้งอัตโนมัติ',
-    'common.inputting': 'กำลังพิมพ์...',
+    'common.inputting': 'กำลังพิมพ์',
 };
 export default th;
