@@ -92,7 +92,7 @@ export const AgentRolePicker: React.FC<AgentRolePickerProps> = ({
                                     }`}
                                 >
                                     {/* Image — static, no zoom */}
-                                    <div className="aspect-video overflow-hidden bg-black/60">
+                                    <div className="aspect-[9/16] overflow-hidden bg-black/60">
                                         <img
                                             src={role.img}
                                             alt={role.name}
