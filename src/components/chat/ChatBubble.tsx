@@ -35,9 +35,7 @@ function stripMarkdown(text: string): string {
         .replace(/`([^`]+)`/g, '$1')           // `inline code`
         .replace(/^[-*]\s+/gm, '• ')           // - list → bullet
         .replace(/^\d+\.\s+/gm, '')            // 1. ordered list → remove number
-        .replace(/<think>[\s\S]*?<\/think>/g, '') // Remove <think>...</think> blocks entirely
-        .replace(/<\/?think>/g, '')            // Remove standalone <think> or </think> tags
-        .replace(/<chat>/g, '')                // Remove <chat> tags
+        .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1') // [link](url) → link text
         .trim();
 }
 
@@ -137,7 +135,7 @@ export function ChatBubble({ role, content, variant, chips = [], isStreaming = f
     // ── AI bubble (left) — white bg, black text, plain text ──
     if (role === 'assistant') {
         // Priority: <chat> tag → else strip <think> → show remainder → strip markdown symbols
-        const chatMatch = content.match(/<chat>([\s\S]*?)<\/chat>/i);
+        const chatMatch = content.match(/<chat>([\s\S]*?)(?:<\/chat>|$)/i);
         const rawText = chatMatch
             ? chatMatch[1].trim()
             : content
