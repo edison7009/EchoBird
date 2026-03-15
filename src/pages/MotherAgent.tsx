@@ -154,6 +154,16 @@ export function MotherAgentProvider({ appLogs, detectedTools, onClearLogs, onAge
     const [chatOutput, setChatOutput] = useState<ChatMessage[]>([]);
     // Per-server chat history map
     const chatHistoryMap = useRef<Map<string, ChatMessage[]>>(new Map());
+    const prevErrCountRef = useRef(0);
+    // Fire window event when new error messages appear → CircuitFlow spawns red pulses
+    useEffect(() => {
+        const errCount = chatOutput.filter(m => m.type === 'error').length;
+        if (errCount > prevErrCountRef.current) {
+            window.dispatchEvent(new CustomEvent('chat-error', { detail: { count: errCount - prevErrCountRef.current } }));
+        }
+        prevErrCountRef.current = errCount;
+    }, [chatOutput]);
+
     const [isProcessing, setIsProcessing] = useState(false);
     const [agentState, setAgentState] = useState('idle');
     const [chatInputFocused, setChatInputFocused] = useState(false);

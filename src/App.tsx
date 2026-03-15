@@ -26,12 +26,6 @@ import { Channels } from './pages/Channels';
 
 declare const __APP_VERSION__: string;
 
-/** Reads channel statuses from GatewayManager → drives CircuitFlow pulse colors */
-function CircuitFlowConnected() {
-    const gw = useGatewayManager();
-    const pulses = gw.getChannelPulses();
-    return <CircuitFlow channels={pulses.length > 0 ? pulses : undefined} />;
-}
 
 /** Sidebar with live notification badges from GatewayContext */
 function SidebarConnected({ activePage, onPageChange, agentRunning, motherNewMessage, clearMotherBadge, updateAvailable, onSettingsClick }: { activePage: PageType; onPageChange: (p: PageType) => void; agentRunning: boolean; motherNewMessage: boolean; clearMotherBadge: () => void; updateAvailable: string | null; onSettingsClick: () => void }) {
@@ -75,6 +69,17 @@ function App() {
     const [motherPrefill, setMotherPrefill] = useState<string | undefined>(undefined);
     // Update available (null = none, string = new version number)
     const [updateAvailable, setUpdateAvailable] = useState<string | null>(null);
+    // Red dot flash counter — incremented by chat-error window events
+    const [flashCount, setFlashCount] = useState(0);
+
+    useEffect(() => {
+        const handler = (e: Event) => {
+            const count = (e as CustomEvent).detail?.count ?? 1;
+            setFlashCount(prev => prev + count);
+        };
+        window.addEventListener('chat-error', handler);
+        return () => window.removeEventListener('chat-error', handler);
+    }, []);
 
     // Scan tools
     const doScanTools = useCallback(async () => {
@@ -132,7 +137,7 @@ function App() {
                                                 {/* Title bar */}
                                                 <TitleBar onSettingsClick={() => setShowSettings(true)} />
                                                 <div className="flex flex-1 overflow-hidden text-cyber-accent font-mono p-4 gap-0 grid-bg relative isolate">
-                                                    <CircuitFlowConnected />
+                                                    <CircuitFlow flashCount={flashCount} />
                                                     {/* Sidebar */}
                                                     <SidebarConnected activePage={activePage} onPageChange={setActivePage} agentRunning={agentRunning} motherNewMessage={motherNewMessage} clearMotherBadge={() => setMotherNewMessage(false)} updateAvailable={updateAvailable} onSettingsClick={() => setShowSettings(true)} />
 

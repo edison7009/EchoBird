@@ -2,14 +2,12 @@ import { useEffect, useRef } from 'react';
 
 /**
  * Clean grid-line light pulse animation.
- * Glowing dots travel along the existing CSS grid lines (H/V only),
- * never crossing. Creates a calm, structured cyberpunk aesthetic.
+ * Glowing dots travel along CSS grid lines (H/V only).
  *
- * Health-aware mode:
- *   Pass `channels` prop with error count to drive red pulse spawning.
- *   - 0 errors → ambient green only (3–7 pulses)
- *   - 1–7 errors → matching red pulses added alongside green
- *   - 8+ errors → ALL pulses turn red (full-screen alarm)
+ * Flash-aware mode:
+ *   Pass `flashCount` to trigger one-shot red pulses — each error in the
+ *   chat spawns one red pulse that travels once then disappears.
+ *   Background stays ambient green otherwise.
  */
 
 const GRID = 40;
@@ -17,7 +15,6 @@ const COLOR_OK: [number, number, number] = [0, 255, 157];    // cyber-accent gre
 const COLOR_ERR: [number, number, number] = [255, 60, 60];   // error red
 const AMBIENT_MIN = 3;
 const AMBIENT_MAX = 7;
-const MAX_ERR_PULSES = 7;
 const SPAWN_EVERY = 30;
 const SPEED = 2.5;
 const TRAIL = 160;
@@ -25,19 +22,11 @@ const HEAD_R = 2.5;
 const TARGET_FPS = 30;
 const FRAME_MS = 1000 / TARGET_FPS;
 
-// ── Public interface ──────────────────────────────────────────
-export interface ChannelPulseStatus {
-    id: number;
-    status: 'ok' | 'error';
-}
-
 export interface CircuitFlowProps {
-    /** Channel status list — error channels drive red pulse count.
-     *  undefined/empty = default ambient mode (random green pulses). */
-    channels?: ChannelPulseStatus[];
+    /** Accumulated error flash count — each increment triggers one red pulse */
+    flashCount?: number;
 }
 
-// ── Internal types ────────────────────────────────────────────
 interface Pulse {
     x: number;
     y: number;
@@ -45,12 +34,23 @@ interface Pulse {
     dy: number;
     life: number;
     color: [number, number, number];
+    oneShot?: boolean; // red flash pulses — not replenished
 }
 
-export function CircuitFlow({ channels }: CircuitFlowProps = {}) {
+export function CircuitFlow({ flashCount = 0 }: CircuitFlowProps = {}) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
-    const channelsRef = useRef(channels);
-    channelsRef.current = channels;
+    // Queue of pending one-shot red pulses to spawn at next frame
+    const pendingRedRef = useRef(0);
+    const prevFlashRef = useRef(0);
+
+    // Detect new flashes
+    useEffect(() => {
+        const diff = flashCount - prevFlashRef.current;
+        if (diff > 0) {
+            pendingRedRef.current += diff;
+        }
+        prevFlashRef.current = flashCount;
+    }, [flashCount]);
 
     useEffect(() => {
         const canvas = canvasRef.current;
@@ -64,7 +64,6 @@ export function CircuitFlow({ channels }: CircuitFlowProps = {}) {
         let last = 0;
         let tick = 0;
 
-        // Random ambient target (3–7), recalculated occasionally
         let ambientTarget = AMBIENT_MIN + Math.floor(Math.random() * (AMBIENT_MAX - AMBIENT_MIN + 1));
 
         const resize = () => {
@@ -84,7 +83,7 @@ export function CircuitFlow({ channels }: CircuitFlowProps = {}) {
         ro.observe(canvas.parentElement!);
         resize();
 
-        const spawnPulse = (color: [number, number, number]) => {
+        const spawnPulse = (color: [number, number, number], oneShot = false) => {
             const horizontal = Math.random() < 0.5;
             if (horizontal) {
                 const rows = Math.floor(h / GRID);
@@ -93,7 +92,7 @@ export function CircuitFlow({ channels }: CircuitFlowProps = {}) {
                 pulses.push({
                     x: goRight ? -TRAIL : w + TRAIL,
                     y: row, dx: goRight ? 1 : -1, dy: 0,
-                    life: w + TRAIL * 2, color,
+                    life: w + TRAIL * 2, color, oneShot,
                 });
             } else {
                 const cols = Math.floor(w / GRID);
@@ -103,35 +102,23 @@ export function CircuitFlow({ channels }: CircuitFlowProps = {}) {
                     x: col,
                     y: goDown ? -TRAIL : h + TRAIL,
                     dx: 0, dy: goDown ? 1 : -1,
-                    life: h + TRAIL * 2, color,
+                    life: h + TRAIL * 2, color, oneShot,
                 });
             }
         };
 
-        /** Spawn logic — ambient green + error red based on channel health */
         const spawn = () => {
-            const chs = channelsRef.current;
-            const errorCount = chs ? chs.filter(c => c.status === 'error').length : 0;
-            const fullAlarm = errorCount >= MAX_ERR_PULSES; // 7+ errors → all 7 red
+            // One-shot red flashes — highest priority, spawn immediately
+            if (pendingRedRef.current > 0) {
+                spawnPulse(COLOR_ERR, true);
+                pendingRedRef.current--;
+                return; // one per frame tick to avoid burst
+            }
 
-            if (fullAlarm) {
-                // Full alarm: up to 7 red pulses, no green
-                if (pulses.length < MAX_ERR_PULSES) {
-                    spawnPulse(COLOR_ERR);
-                }
-            } else {
-                // Count current green/red pulses
-                const greenCount = pulses.filter(p => p.color === COLOR_OK).length;
-                const redCount = pulses.filter(p => p.color === COLOR_ERR).length;
-
-                // Spawn green ambient pulses (3–7)
-                if (greenCount < ambientTarget) {
-                    spawnPulse(COLOR_OK);
-                }
-                // Spawn red error pulses (match error count, max 7)
-                if (errorCount > 0 && redCount < Math.min(errorCount, MAX_ERR_PULSES)) {
-                    spawnPulse(COLOR_ERR);
-                }
+            // Ambient green pulses
+            const greenCount = pulses.filter(p => !p.oneShot).length;
+            if (greenCount < ambientTarget) {
+                spawnPulse(COLOR_OK);
             }
         };
 
@@ -159,25 +146,23 @@ export function CircuitFlow({ channels }: CircuitFlowProps = {}) {
             ctx.fill();
 
             if (p.color === COLOR_ERR) {
-                // Red pulse: ripple rings expanding outward (alarm effect)
-                const phase = (tick % 90) / 90; // slower cycle → longer visible
+                // Red pulse: ripple rings expanding outward
+                const phase = (tick % 90) / 90;
                 for (let ring = 0; ring < 3; ring++) {
                     const ringPhase = (phase + ring * 0.33) % 1;
-                    const radius = 4 + ringPhase * 36; // 4→40px expanding
-                    const alpha = 0.45 * (1 - ringPhase); // brighter, fade as it expands
+                    const radius = 4 + ringPhase * 36;
+                    const alpha = 0.45 * (1 - ringPhase);
                     ctx.beginPath();
                     ctx.arc(p.x, p.y, radius, 0, Math.PI * 2);
                     ctx.strokeStyle = `rgba(${r},${g},${b},${alpha})`;
                     ctx.lineWidth = 1.5;
                     ctx.stroke();
                 }
-                // Larger soft outer glow for red
                 ctx.beginPath();
                 ctx.arc(p.x, p.y, 16, 0, Math.PI * 2);
                 ctx.fillStyle = `rgba(${r},${g},${b},0.18)`;
                 ctx.fill();
             } else {
-                // Green pulse: calm soft outer glow (original)
                 ctx.beginPath();
                 ctx.arc(p.x, p.y, 6, 0, Math.PI * 2);
                 ctx.fillStyle = `rgba(${r},${g},${b},0.12)`;
@@ -193,12 +178,12 @@ export function CircuitFlow({ channels }: CircuitFlowProps = {}) {
 
             ctx.clearRect(0, 0, w, h);
 
-            // Occasionally shift ambient target (organic feel)
             if (tick % 300 === 0) {
                 ambientTarget = AMBIENT_MIN + Math.floor(Math.random() * (AMBIENT_MAX - AMBIENT_MIN + 1));
             }
 
-            if (tick % SPAWN_EVERY === 0) spawn();
+            // Spawn every SPAWN_EVERY ticks, OR immediately if pending red pulses
+            if (tick % SPAWN_EVERY === 0 || pendingRedRef.current > 0) spawn();
 
             for (let i = pulses.length - 1; i >= 0; i--) {
                 const p = pulses[i];
@@ -214,7 +199,6 @@ export function CircuitFlow({ channels }: CircuitFlowProps = {}) {
             }
         };
 
-        // Seed initial pulses
         for (let i = 0; i < 4; i++) spawn();
         rafId = requestAnimationFrame(frame);
 
