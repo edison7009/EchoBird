@@ -689,21 +689,10 @@ export function MotherAgentMain() {
             {/* Chat conversation area */}
             <div className="relative flex-1">
                 <div ref={chatContainerRef} onScroll={handleScroll} className={`absolute inset-0 ${agentModel ? 'overflow-y-auto slim-scroll' : 'overflow-hidden'} p-4`}>
-                    {/* Welcome banner */}
-                    <div className="mb-3 select-none">
-                        <div className="flex items-start justify-between gap-4 py-2">
-                            {/* Left: icon + title + IP + model */}
-                            <div className="flex items-center gap-4">
-                                <img src="./ico-blue.svg" alt="Mother Agent" className="w-14 h-14 flex-shrink-0 drop-shadow-[0_0_6px_rgba(0,212,255,0.3)]" />
-                                <div className="w-px h-12 bg-gradient-to-b from-transparent via-cyber-accent-secondary/30 to-transparent flex-shrink-0" />
-                                <div className="font-mono text-xs space-y-1">
-                                    <div className="text-cyber-accent-secondary text-sm font-bold tracking-wide">Mother Agent <span className="text-cyber-text-muted/60 text-xs font-normal">v{__APP_VERSION__}</span></div>
-                                </div>
-                            </div>
-                        </div>
-                        {/* Quick prompt hints — loaded from remote, scrolls with content */}
+                    {/* Quick prompt hints — scrolls with content */}
+                    <div className="mb-2 select-none">
                         {remoteHints.length > 0 && (
-                            <div className="flex flex-wrap gap-2 mt-2 mb-1">
+                            <div className="flex flex-wrap gap-2 py-2">
                                 {remoteHints.map((hint, i) => {
                                     const i18nKey = `mother.hint${hint.action[0].toUpperCase()}${hint.action.slice(1)}` as any;
                                     const label = t(i18nKey).replace('{agent}', hint.agent || '');
@@ -719,7 +708,6 @@ export function MotherAgentMain() {
                                 })}
                             </div>
                         )}
-                        <div className="text-cyber-accent-secondary/15 text-xs font-mono mt-1">{'─'.repeat(52)}</div>
                     </div>
 
                     {/* Chat messages — bubble UI */}
