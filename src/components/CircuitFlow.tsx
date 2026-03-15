@@ -77,7 +77,7 @@ export function CircuitFlow({ flashCount = 0 }: CircuitFlowProps = {}) {
 
         const spawnPulse = (color: [number, number, number], oneShot = false) => {
             if (w === 0 || h === 0) return;
-            const spd = oneShot ? SPEED * 2.5 : SPEED;
+            const spd = oneShot ? SPEED * 1.5 : SPEED;
             const horizontal = Math.random() < 0.5;
             if (horizontal) {
                 const rows = Math.floor(h / GRID);
