@@ -1,6 +1,6 @@
 // Channels — OpenClaw agent chat interface (bridge CLI + SSH)
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Send, CornerDownLeft, X, Square, Paperclip, Image as ImageIcon, RotateCcw, KeyRound, Zap, Server, ChevronsDown, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Send, CornerDownLeft, X, Square, Paperclip, Image as ImageIcon, RotateCcw, KeyRound, Zap, Server, ChevronsDown, ChevronLeft, ChevronRight, ArrowLeftRight } from 'lucide-react';
 import { MiniSelect } from '../components/MiniSelect';
 import { getModelIcon } from '../components/cards/ModelCard';
 import { PendingChipsRow } from '../components/PendingChipsRow';
@@ -144,6 +144,14 @@ export const Channels: React.FC = () => {
     const [allBridgeStatus, setAllBridgeStatus] = useState<Record<number, string>>({});
     const [allBridgeAgentNames, setAllBridgeAgentNames] = useState<Record<number, string>>({});
     const [allBridgeLoading, setAllBridgeLoading] = useState<Record<number, boolean>>({});
+    // Per-channel active agent selection (for tab switching demo)
+    const AGENT_LIST = [
+        { name: 'OpenClaw', icon: '/icons/tools/openclaw.svg' },
+        { name: 'Claude Code', icon: '/icons/tools/claudecode.svg' },
+        { name: 'OpenCode', icon: '/icons/tools/opencode.svg' },
+    ];
+    const [allActiveAgents, setAllActiveAgents] = useState<Record<number, string>>({});
+    const setActiveAgentFor = (chId: number, name: string) => setAllActiveAgents(prev => ({ ...prev, [chId]: name }));
 
     // Per-channel helpers
     const channelKey = activeId ?? 0;
@@ -785,19 +793,13 @@ export const Channels: React.FC = () => {
                                             </span>
                                         </div>
                                     </div>
-                                    {/* Right: tool icon */}
+                                    {/* Right: tool icon (synced with active agent tab) */}
                                     {(() => {
-                                        const agentName = allBridgeAgentNames[ch.id];
-                                        const iconMap: Record<string, string> = {
-                                            'OpenClaw': '/icons/tools/openclaw.svg',
-                                            'Claude Code': '/icons/tools/claudecode.svg',
-                                            'OpenCode': '/icons/tools/opencode.svg',
-                                            'Zeroclaw': '/icons/tools/zeroclaw.png',
-                                        };
-                                        const icon = agentName ? iconMap[agentName] : '/icons/tools/openclaw.svg';
-                                        return icon ? (
-                                            <img src={icon} alt={agentName || ''} className="w-7 h-7 flex-shrink-0 opacity-70" />
-                                        ) : null;
+                                        const selectedAgent = allActiveAgents[ch.id] || 'OpenClaw';
+                                        const agent = AGENT_LIST.find(a => a.name === selectedAgent) || AGENT_LIST[0];
+                                        return (
+                                            <img src={agent.icon} alt={agent.name} className="w-7 h-7 flex-shrink-0 opacity-70" />
+                                        );
                                     })()}
                                 </div>
                             </div>
@@ -825,23 +827,22 @@ export const Channels: React.FC = () => {
                             <div className="flex-1 flex flex-col mx-4 mt-2 min-h-0">
                                 {/* Fixed agent tool tab bar */}
                                 <div className="flex items-center gap-2 select-none py-2 flex-shrink-0">
-                                    {[
-                                        { name: 'OpenClaw', icon: '/icons/tools/openclaw.svg' },
-                                        { name: 'Claude Code', icon: '/icons/tools/claudecode.svg' },
-                                        { name: 'OpenCode', icon: '/icons/tools/opencode.svg' },
-                                    ].map(agent => {
-                                        const isActive = (bridgeAgentName || 'OpenClaw') === agent.name;
+                                    {AGENT_LIST.map(agent => {
+                                        const selectedAgent = allActiveAgents[channelKey] || 'OpenClaw';
+                                        const isActive = selectedAgent === agent.name;
                                         return (
                                             <div
                                                 key={agent.name}
-                                                className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-mono cursor-pointer transition-all ${
+                                                onClick={() => setActiveAgentFor(channelKey, agent.name)}
+                                                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-card text-xs font-mono cursor-pointer transition-all ${
                                                     isActive
-                                                        ? 'bg-cyber-accent/15 border border-cyber-accent/40 text-cyber-accent'
-                                                        : 'border border-cyber-border/30 text-cyber-text-muted/40 hover:text-cyber-text-muted/60 hover:border-cyber-border/50'
+                                                        ? 'border border-cyber-accent bg-cyber-accent/10 shadow-cyber-card text-cyber-accent'
+                                                        : 'border border-cyber-border shadow-cyber-card bg-black/80 text-cyber-text-muted/70 hover:border-cyber-accent/30 hover:bg-black/90'
                                                 }`}
                                             >
-                                                <img src={agent.icon} alt={agent.name} className={`w-4 h-4 ${isActive ? '' : 'opacity-30 grayscale'}`} />
+                                                <img src={agent.icon} alt={agent.name} className={`w-4 h-4 ${isActive ? '' : 'opacity-50 grayscale'}`} />
                                                 <span>{agent.name}</span>
+                                                <ArrowLeftRight size={10} className={isActive ? 'text-cyber-accent/60' : 'text-cyber-text-muted/30'} />
                                             </div>
                                         );
                                     })}
