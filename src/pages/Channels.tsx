@@ -765,7 +765,7 @@ export const Channels: React.FC = () => {
                                     onPaste={handlePaste}
                                     placeholder={(bridgeLoading) ? t('channel.awaitingResponse') : t('channel.enterMessage')}
                                     disabled={(bridgeLoading) || (!canSendMessage && !isActiveConnected)}
-                                    rows={3}
+                                    rows={2}
                                     className="w-full bg-transparent px-4 py-2 text-sm text-[#DED9D2] font-sans font-medium outline-none placeholder:text-[#DED9D2]/40 disabled:opacity-30 resize-none"
                                 />
                                 {/* Bottom toolbar */}
