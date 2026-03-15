@@ -35,7 +35,9 @@ function stripMarkdown(text: string): string {
         .replace(/`([^`]+)`/g, '$1')           // `inline code`
         .replace(/^[-*]\s+/gm, '• ')           // - list → bullet
         .replace(/^\d+\.\s+/gm, '')            // 1. ordered list → remove number
-        .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1') // [link](url) → link text
+        .replace(/<think>[\s\S]*?<\/think>/g, '') // Remove <think>...</think> blocks entirely
+        .replace(/<\/?think>/g, '')            // Remove standalone <think> or </think> tags
+        .replace(/<chat>/g, '')                // Remove <chat> tags
         .trim();
 }
 
