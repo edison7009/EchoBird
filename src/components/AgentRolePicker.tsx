@@ -50,7 +50,7 @@ export const AgentRolePicker: React.FC<AgentRolePickerProps> = ({
             <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
 
             {/* Modal */}
-            <div className="relative w-[800px] max-w-[90vw] max-h-[80vh] flex flex-col bg-cyber-bg border border-cyber-border rounded-card shadow-cyber-card overflow-hidden">
+            <div className="relative w-[80vw] max-h-[80vh] flex flex-col bg-cyber-bg border border-cyber-border rounded-card shadow-cyber-card overflow-hidden">
 
                 {/* Header */}
                 <div className="flex items-center justify-between px-5 py-3 border-b border-cyber-border/50 flex-shrink-0">
@@ -64,7 +64,7 @@ export const AgentRolePicker: React.FC<AgentRolePickerProps> = ({
 
                 {/* Card grid */}
                 <div className="flex-1 overflow-y-auto slim-scroll custom-scrollbar p-4">
-                    <div className="grid grid-cols-4 gap-3">
+                    <div className="grid grid-cols-6 gap-3">
                         {ROLES.map(role => {
                             const isSelected = selectedRole === role.id;
                             return (
@@ -77,12 +77,12 @@ export const AgentRolePicker: React.FC<AgentRolePickerProps> = ({
                                             : 'border-cyber-border bg-black/80 shadow-cyber-card hover:border-cyber-accent/40 hover:shadow-[0_0_8px_rgba(0,255,157,0.1)]'
                                     }`}
                                 >
-                                    {/* Image */}
-                                    <div className="aspect-[285/380] overflow-hidden bg-black/60">
+                                    {/* Image — center crop */}
+                                    <div className="aspect-[3/4] overflow-hidden bg-black/60">
                                         <img
                                             src={role.img}
                                             alt={role.name}
-                                            className="w-full h-full object-cover"
+                                            className="w-full h-full object-cover object-center"
                                         />
                                     </div>
                                     {/* Info */}
