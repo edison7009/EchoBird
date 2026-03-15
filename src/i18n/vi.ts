@@ -298,5 +298,6 @@ const vi: Partial<Translations> = {
     'error.noServerConfig': 'Kênh này chưa có máy chủ được cấu hình.',
     'error.noModelSelected': 'Chưa chọn mô hình. Vui lòng chọn mô hình trước.',
     'error.requestFailed': 'Yêu cầu thất bại. Vui lòng thử lại.',
+    'error.userCancelled': 'Đã huỷ.',
 };
 export default vi;

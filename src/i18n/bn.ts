@@ -298,5 +298,6 @@ const bn: Partial<Translations> = {
     'error.noServerConfig': 'এই চ্যানেলে কোনো সার্ভার কনফিগার করা নেই।',
     'error.noModelSelected': 'কোনো মডেল নির্বাচন করা হয়নি। আগে একটি মডেল বেছে নিন।',
     'error.requestFailed': 'অনুরোধ ব্যর্থ হয়েছে। আবার চেষ্টা করুন।',
+    'error.userCancelled': 'বাতিল করা হয়েছে।',
 };
 export default bn;

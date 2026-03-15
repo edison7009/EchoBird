@@ -324,5 +324,6 @@ const ja: Partial<Translations> = {
     'error.noServerConfig': 'このチャンネルにサーバーが設定されていません。',
     'error.noModelSelected': 'モデルが選択されていません。先にモデルを選択してください。',
     'error.requestFailed': 'リクエストに失敗しました。もう一度お試しください。',
+    'error.userCancelled': 'キャンセルしました。',
 };
 export default ja;

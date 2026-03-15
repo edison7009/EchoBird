@@ -298,5 +298,6 @@ const ar: Partial<Translations> = {
     'error.noServerConfig': 'لم يتم تكوين خادم لهذه القناة.',
     'error.noModelSelected': 'لم يتم اختيار نموذج، اختر نموذجًا أولاً.',
     'error.requestFailed': 'الطلب فشل، يرجى المحاولة مجددًا.',
+    'error.userCancelled': 'تم الإلغاء.',
 };
 export default ar;

@@ -324,5 +324,6 @@ const zhHant: Partial<Translations> = {
     'error.noServerConfig': '此頻道未配置伺服器。',
     'error.noModelSelected': '未選擇模型，請先選擇一個模型。',
     'error.requestFailed': '請求失敗，請重試。',
+    'error.userCancelled': '已取消。',
 };
 export default zhHant;

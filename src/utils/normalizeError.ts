@@ -7,6 +7,16 @@ import type { TKey } from '../i18n/types';
 export function errorToKey(msg: string): TKey {
     const lower = String(msg).toLowerCase();
 
+    // User-initiated cancel/abort — check first
+    if (
+        lower === 'aborted' ||
+        lower.includes('user abort') ||
+        lower.includes('cancelled') ||
+        lower.includes('canceled') ||
+        lower.includes('agent aborted') ||
+        lower.includes('abort')
+    ) return 'error.userCancelled';
+
     // Connection timeout / no response (includes Windows OS error 10060 and Chinese OS text)
     if (
         lower.includes('10060') ||

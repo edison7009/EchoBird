@@ -165,5 +165,6 @@ const fa: Partial<Translations> = {
     'error.noServerConfig': 'هیچ سروری برای این کانال تنظیم نشده است.',
     'error.noModelSelected': 'هیچ مدلی انتخاب نشده. ابتدا یک مدل انتخاب کنید.',
     'error.requestFailed': 'درخواست ناموفق بود. دوباره تلاش کنید.',
+    'error.userCancelled': 'لغو شد.',
 };
 export default fa;

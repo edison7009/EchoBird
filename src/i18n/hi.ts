@@ -298,5 +298,6 @@ const hi: Partial<Translations> = {
     'error.noServerConfig': 'इस चैनल के लिए कोई सर्वर कॉन्फ़िगर नहीं है।',
     'error.noModelSelected': 'कोई मॉडल चयनित नहीं। पहले एक मॉडल चुनें।',
     'error.requestFailed': 'अनुरोध विफल। पुनः प्रयास करें।',
+    'error.userCancelled': 'रद्द किया गया।',
 };
 export default hi;

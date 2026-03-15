@@ -327,6 +327,7 @@ const en: Translations = {
     'error.noServerConfig': 'No server configured for this channel.',
     'error.noModelSelected': 'No model selected, please select a model first.',
     'error.requestFailed': 'Request failed, please try again.',
+    'error.userCancelled': 'Cancelled.',
 };
 
 export { en };

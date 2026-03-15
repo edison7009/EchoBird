@@ -324,5 +324,6 @@ const ru: Partial<Translations> = {
     'error.noServerConfig': 'Для этого канала сервер не настроен.',
     'error.noModelSelected': 'Модель не выбрана. Сначала выберите модель.',
     'error.requestFailed': 'Запрос не выполнен. Попробуйте снова.',
+    'error.userCancelled': 'Отменено.',
 };
 export default ru;

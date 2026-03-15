@@ -300,5 +300,6 @@ const ms: Partial<Translations> = {
     'error.noServerConfig': 'Tiada pelayan dikonfigurasi untuk saluran ini.',
     'error.noModelSelected': 'Tiada model dipilih. Pilih model dahulu.',
     'error.requestFailed': 'Permintaan gagal. Cuba lagi.',
+    'error.userCancelled': 'Dibatalkan.',
 };
 export default ms;

@@ -300,5 +300,6 @@ const th: Partial<Translations> = {
     'error.noServerConfig': 'ช่องนี้ยังไม่ได้กำหนดค่าเซิร์ฟเวอร์',
     'error.noModelSelected': 'ยังไม่ได้เลือกโมเดล กรุณาเลือกโมเดลก่อน',
     'error.requestFailed': 'คำขอล้มเหลว กรุณาลองอีกครั้ง',
+    'error.userCancelled': 'ยกเลิกแล้ว',
 };
 export default th;

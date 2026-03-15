@@ -130,6 +130,7 @@ export type TKey =
     // Error messages (user-friendly, non-technical)
     | 'error.connectionTimeout' | 'error.serverUnreachable' | 'error.agentFailed'
     | 'error.noServerConfig' | 'error.noModelSelected' | 'error.requestFailed'
+    | 'error.userCancelled'
     | 'common.inputting';
 
 export type Translations = Record<TKey, string>;

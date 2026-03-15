@@ -298,5 +298,6 @@ const nl: Partial<Translations> = {
     'error.noServerConfig': 'Er is geen server geconfigureerd voor dit kanaal.',
     'error.noModelSelected': 'Geen model geselecteerd. Selecteer eerst een model.',
     'error.requestFailed': 'Verzoek mislukt. Probeer het opnieuw.',
+    'error.userCancelled': 'Geannuleerd.',
 };
 export default nl;

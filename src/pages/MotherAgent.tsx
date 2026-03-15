@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useRef, useCallback, createContext, useContext } from 'react';
 import { Paperclip, ImageIcon, KeyRound, Send, X, ChevronDown, Zap, Square, Lock, Trash2 , ChevronLeft, ChevronRight, ChevronsDown, Globe, Info, CheckCircle, HelpCircle, ChevronUp, Code, Search, X as XIcon, FileText, Sparkles, Plus, Bot, Database, Settings2 } from 'lucide-react';
-import { normalizeError } from '../utils/normalizeError';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { MiniSelect } from '../components/MiniSelect';
 import { getModelIcon } from '../components/cards/ModelCard';
 import { PendingChipsRow } from '../components/PendingChipsRow';
 import { ChatBubble } from '../components/chat';
+import { normalizeError, errorToKey } from '../utils/normalizeError';
 import { useI18n } from '../hooks/useI18n';
 import { useConfirm } from '../components/ConfirmDialog';
 import * as api from '../api/tauri';
@@ -75,6 +75,7 @@ export type ChatMessage =
     | { type: 'tool_call'; id: string; name: string; args: string; status: 'running' | 'done' }
     | { type: 'tool_result'; id: string; output: string; success: boolean }
     | { type: 'error'; text: string }
+    | { type: 'cancelled'; text: string }
     | { type: 'state'; state: string };
 
 // ===== Context (shared state between Main & Panel) =====
@@ -330,11 +331,14 @@ export function MotherAgentProvider({ appLogs, detectedTools, onClearLogs, onAge
                     setIsProcessing(false);
                     setAgentState('idle');
                     break;
-                case 'error':
-                    setChatOutput(prev => [...prev, { type: 'error', text: event.message }]);
+                case 'error': {
+                    const key = errorToKey(event.message);
+                    const type = key === 'error.userCancelled' ? 'cancelled' : 'error';
+                    setChatOutput(prev => [...prev, { type, text: t(key) }]);
                     setIsProcessing(false);
                     setAgentState('idle');
                     break;
+                }
                 case 'state':
                     setAgentState(event.state);
                     break;
@@ -741,6 +745,9 @@ export function MotherAgentMain() {
                                     // fallback → strips <think> blocks, shows remainder.
                                     // Always render — ChatBubble returns empty string for pure <think> content.
                                     return <ChatBubble key={i} role="assistant" content={msg.text} variant="mother" />;
+                                }
+                                if (msg.type === 'cancelled') {
+                                    return <div key={i} className="flex justify-center my-1"><span className="text-cyber-text-muted/35 text-xs font-mono">{msg.text}</span></div>;
                                 }
                                 if (msg.type === 'error') {
                                     const failedMatch = msg.text.match(/__CONN_FAILED__:(\d+)/);

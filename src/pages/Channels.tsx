@@ -747,7 +747,11 @@ export const Channels: React.FC = () => {
                                         if (msg.role === 'tool_call' || msg.role === 'tool_result' || msg.role === 'thinking') return null;
                                         if (msg.role === 'system' && msg.content === '__agent_working__') return null;
                                         if (msg.role === 'user') return <ChatBubble key={i} role="user" content={msg.content} variant="channels" />;
-                                        if (msg.role === 'system') return <ChatBubble key={i} role="error" content={msg.content} variant="channels" />;
+                                        if (msg.role === 'system') {
+                                            if (msg.content === t('error.userCancelled'))
+                                                return <div key={i} className="flex justify-center my-1"><span className="text-cyber-text-muted/35 text-xs font-mono">{msg.content}</span></div>;
+                                            return <ChatBubble key={i} role="error" content={msg.content} variant="channels" />;
+                                        }
                                         return <ChatBubble key={i} role="assistant" content={msg.content} variant="channels" />;
                                     })}
                                     {bridgeLoading && <ChatBubble role="assistant" content="" variant="channels" isStreaming={true} />}

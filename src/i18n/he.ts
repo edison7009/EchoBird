@@ -165,5 +165,6 @@ const he: Partial<Translations> = {
     'error.noServerConfig': 'לא הוגדר שרת לערוץ זה.',
     'error.noModelSelected': 'לא נבחר מודל. בחר מודל תחילה.',
     'error.requestFailed': 'הבקשה נכשלה. נסה שנית.',
+    'error.userCancelled': 'בוטל.',
 };
 export default he;

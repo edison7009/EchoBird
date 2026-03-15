@@ -165,5 +165,6 @@ const el: Partial<Translations> = {
     'error.noServerConfig': 'Δεν υπάρχει διακομιστής για αυτό το κανάλι.',
     'error.noModelSelected': 'Δεν έχει επιλεγεί μοντέλο. Επιλέξτε πρώτα ένα.',
     'error.requestFailed': 'Το αίτημα απέτυχε. Δοκιμάστε ξανά.',
+    'error.userCancelled': 'Ακυρώθηκε.',
 };
 export default el;

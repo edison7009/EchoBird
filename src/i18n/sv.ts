@@ -165,5 +165,6 @@ const sv: Partial<Translations> = {
     'error.noServerConfig': 'Ingen server konfigurerad för den här kanalen.',
     'error.noModelSelected': 'Ingen modell vald. Välj en modell först.',
     'error.requestFailed': 'Förfrågan misslyckades. Försök igen.',
+    'error.userCancelled': 'Avbröts.',
 };
 export default sv;

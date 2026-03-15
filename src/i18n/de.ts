@@ -326,5 +326,6 @@ const de: Partial<Translations> = {
     'error.noServerConfig': 'Für diesen Kanal ist kein Server konfiguriert.',
     'error.noModelSelected': 'Kein Modell ausgewählt. Bitte zuerst ein Modell wählen.',
     'error.requestFailed': 'Anfrage fehlgeschlagen. Bitte erneut versuchen.',
+    'error.userCancelled': 'Abgebrochen.',
 };
 export default de;

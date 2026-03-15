@@ -298,5 +298,6 @@ const tr: Partial<Translations> = {
     'error.noServerConfig': 'Bu kanal için sunucu yapılandırılmamış.',
     'error.noModelSelected': 'Model seçilmedi. Lütfen önce bir model seçin.',
     'error.requestFailed': 'İstek başarısız. Lütfen tekrar deneyin.',
+    'error.userCancelled': 'İptal edildi.',
 };
 export default tr;

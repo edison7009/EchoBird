@@ -298,5 +298,6 @@ const cs: Partial<Translations> = {
     'error.noServerConfig': 'Pro tento kanál není nakonfigurován server.',
     'error.noModelSelected': 'Nebyl vybrán žádný model. Nejprve vyberte model.',
     'error.requestFailed': 'Požadavek selhal. Zkuste to znovu.',
+    'error.userCancelled': 'Zrušeno.',
 };
 export default cs;

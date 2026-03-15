@@ -298,5 +298,6 @@ const hu: Partial<Translations> = {
     'error.noServerConfig': 'Ehhez a csatornához nincs szerver konfigurálva.',
     'error.noModelSelected': 'Nincs modell kiválasztva. Először válasszon modellt.',
     'error.requestFailed': 'A kérés meghiúsult. Próbálja újra.',
+    'error.userCancelled': 'Megszakítva.',
 };
 export default hu;

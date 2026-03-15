@@ -165,5 +165,6 @@ const fi: Partial<Translations> = {
     'error.noServerConfig': 'Tälle kanavalle ei ole määritetty palvelinta.',
     'error.noModelSelected': 'Mallia ei ole valittu. Valitse ensin malli.',
     'error.requestFailed': 'Pyyntö epäonnistui. Yritä uudelleen.',
+    'error.userCancelled': 'Peruutettu.',
 };
 export default fi;

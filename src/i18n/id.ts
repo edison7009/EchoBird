@@ -300,5 +300,6 @@ const id: Partial<Translations> = {
     'error.noServerConfig': 'Tidak ada server yang dikonfigurasi untuk saluran ini.',
     'error.noModelSelected': 'Tidak ada model yang dipilih. Pilih model terlebih dahulu.',
     'error.requestFailed': 'Permintaan gagal. Coba lagi.',
+    'error.userCancelled': 'Dibatalkan.',
 };
 export default id;

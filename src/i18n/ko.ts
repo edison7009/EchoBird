@@ -324,5 +324,6 @@ const ko: Partial<Translations> = {
     'error.noServerConfig': '이 채널에 서버가 설정되지 않았습니다.',
     'error.noModelSelected': '모델이 선택되지 않았습니다. 먼저 모델을 선택하세요.',
     'error.requestFailed': '요청에 실패했습니다. 다시 시도해 주세요.',
+    'error.userCancelled': '취소되었습니다.',
 };
 export default ko;
