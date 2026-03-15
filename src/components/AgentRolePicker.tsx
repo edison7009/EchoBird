@@ -128,10 +128,10 @@ export const AgentRolePicker: React.FC<AgentRolePickerProps> = ({
                                          }}
                                     />
 
-                                    {/* Text overlay — slides up on hover */}
-                                    <div className="absolute inset-x-0 bottom-0 px-3 flex flex-col items-center transition-transform duration-300 ease-out translate-y-[44px] group-hover:translate-y-0"
-                                         style={{ paddingBottom: '12px', willChange: 'transform', backfaceVisibility: 'hidden' }}>
-                                        {/* Name — always partially visible */}
+                                    {/* Text overlay — name fixed at bottom, desc expands on hover */}
+                                    <div className="absolute inset-x-0 bottom-0 px-3 pb-3 flex flex-col items-center"
+                                         style={{ willChange: 'auto', backfaceVisibility: 'hidden' }}>
+                                        {/* Name — always visible at bottom */}
                                         <div
                                             className="text-sm font-bold text-center leading-tight line-clamp-2"
                                             style={{
@@ -143,10 +143,10 @@ export const AgentRolePicker: React.FC<AgentRolePickerProps> = ({
                                             {role.name}
                                         </div>
 
-                                        {/* Divider + Description — revealed together via translate */}
-                                        <div className="flex flex-col items-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 delay-100"
+                                        {/* Divider + Description — collapsed by default, expands on hover */}
+                                        <div className="flex flex-col items-center overflow-hidden transition-all duration-300 ease-out max-h-0 group-hover:max-h-[60px] opacity-0 group-hover:opacity-100"
                                              style={{ backfaceVisibility: 'hidden' }}>
-                                            <div className="w-16 h-px my-1.5" style={{
+                                            <div className="w-16 h-px mt-1.5 mb-1" style={{
                                                 background: isSelected
                                                     ? 'linear-gradient(90deg, transparent, #00ff9d, transparent)'
                                                     : 'linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent)',
