@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Settings, Minus, Maximize2, Minimize2, X } from 'lucide-react';
 import { useI18n } from '../hooks/useI18n';
-import { getCurrentWindow } from '@tauri-apps/api/window';
+import { getCurrentWindow, LogicalSize } from '@tauri-apps/api/window';
 import * as api from '../api/tauri';
 
 interface TitleBarProps {
@@ -23,9 +23,16 @@ export const TitleBar: React.FC<TitleBarProps> = ({ onSettingsClick }) => {
         return () => { unlisten.then(fn => fn()).catch(() => {}); };
     }, []);
 
-    const handleMaximize = () => {
-        if (isMaximized) getCurrentWindow().unmaximize();
-        else getCurrentWindow().maximize();
+    const handleMaximize = async () => {
+        const win = getCurrentWindow();
+        if (isMaximized) {
+            // Always restore to default size (1400×900) + center
+            await win.unmaximize();
+            await win.setSize(new LogicalSize(1400, 900));
+            await win.center();
+        } else {
+            await win.maximize();
+        }
     };
 
     // Close confirmation dialog state
