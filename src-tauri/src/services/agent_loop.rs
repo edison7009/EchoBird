@@ -695,6 +695,8 @@ async fn fetch_remote_prompt() -> String {
         ## UI Chat Protocol (MANDATORY)\n\
         After completing all thinking and tool calls, wrap your final reply in <chat>...</chat> tags.\n\
         Write the <chat> message like a friendly chat — concise, natural language.\n\
+        Keep all technical details, logs, and tool execution outside of the <chat> block.\n\
+        Any content that requires the user to respond or choose MUST be inside <chat>.\n\
         ONE <chat> block per response, at the very end.\n"
     )
 }
