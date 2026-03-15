@@ -8,7 +8,7 @@ import { ChatBubble, TerminalStatusBar } from '../components/chat';
 import { useChannelGateway, useGatewayManager } from '../contexts/GatewayContext';
 import { useI18n } from '../hooks/useI18n';
 import * as api from '../api/tauri';
-import { normalizeError } from '../utils/normalizeError';
+import { normalizeError, errorToKey } from '../utils/normalizeError';
 import type { ModelConfig } from '../api/types';
 
 
@@ -136,7 +136,7 @@ export const Channels: React.FC = () => {
     // Process toggle (show/hide tool calls and thinking)
 
     // Bridge mode state — per-channel storage
-    type BridgeMsg = { role: string; content: string; meta?: { model?: string; tokens?: number; duration_ms?: number } };
+    type BridgeMsg = { role: string; content: string; i18nKey?: string; meta?: { model?: string; tokens?: number; duration_ms?: number } };
     const [allBridgeMessages, setAllBridgeMessages] = useState<Record<number, BridgeMsg[]>>({});
     const [allBridgeSessionIds, setAllBridgeSessionIds] = useState<Record<number, string>>({});
     const [allBridgeStatus, setAllBridgeStatus] = useState<Record<number, string>>({});
@@ -573,7 +573,7 @@ export const Channels: React.FC = () => {
                         if (startResult.agentName) setBridgeAgentName(startResult.agentName);
                     } else {
                         setBridgeConnectionStatus('disconnected');
-                        setBridgeMessages(prev => [...prev, { role: 'system', content: normalizeError(`Bridge start failed: ${startResult.error || 'Unknown error'}`, t) }]);
+                        setBridgeMessages(prev => [...prev, { role: 'system', content: '', i18nKey: errorToKey(`Bridge start failed: ${startResult.error || 'Unknown error'}`) }]);
                         setBridgeLoading(false);
                         return;
                     }
@@ -589,7 +589,7 @@ export const Channels: React.FC = () => {
                 // Remote channel: SSH → bridge binary on remote server
                 const serverId = activeChannel?.serverId;
                 if (!serverId) {
-                    setBridgeMessages(prev => [...prev, { role: 'system', content: t('error.noServerConfig') }]);
+                    setBridgeMessages(prev => [...prev, { role: 'system', content: '', i18nKey: 'error.noServerConfig' }]);
                     setBridgeLoading(false);
                     return;
                 }
@@ -623,13 +623,13 @@ export const Channels: React.FC = () => {
                     clearTimeout(workingTimer);
                     setBridgeMessages(prev => {
                         const cleaned = prev.filter(m => m.content !== WORKING_MARKER);
-                        return [...cleaned, { role: 'system', content: normalizeError(remoteErr?.message || remoteErr, t) }];
+                        return [...cleaned, { role: 'system', content: '', i18nKey: errorToKey(remoteErr?.message || String(remoteErr)) }];
                     });
                     return; // skip outer catch
                 }
             }
         } catch (e: any) {
-            setBridgeMessages(prev => [...prev, { role: 'system', content: normalizeError(e?.message || e, t) }]);
+            setBridgeMessages(prev => [...prev, { role: 'system', content: '', i18nKey: errorToKey(e?.message || String(e)) }]);
             if (isLocalChannel) {
                 try {
                     const s = await api.bridgeStatus();
@@ -748,9 +748,11 @@ export const Channels: React.FC = () => {
                                         if (msg.role === 'system' && msg.content === '__agent_working__') return null;
                                         if (msg.role === 'user') return <ChatBubble key={i} role="user" content={msg.content} variant="channels" />;
                                         if (msg.role === 'system') {
-                                            if (msg.content === t('error.userCancelled'))
-                                                return <div key={i} className="flex justify-center my-1"><span className="text-cyber-text-muted/35 text-xs font-mono">{msg.content}</span></div>;
-                                            return <ChatBubble key={i} role="error" content={msg.content} variant="channels" />;
+                                            const text = msg.i18nKey ? t(msg.i18nKey as import('../i18n/types').TKey) : msg.content;
+                                            const isCancelled = msg.i18nKey === 'error.userCancelled';
+                                            if (isCancelled)
+                                                return <div key={i} className="flex justify-center my-1"><span className="text-cyber-text-muted/35 text-xs font-mono">{text}</span></div>;
+                                            return <ChatBubble key={i} role="error" content={text} variant="channels" />;
                                         }
                                         return <ChatBubble key={i} role="assistant" content={msg.content} variant="channels" />;
                                     })}

@@ -74,8 +74,8 @@ export type ChatMessage =
     | { type: 'thinking'; text: string }
     | { type: 'tool_call'; id: string; name: string; args: string; status: 'running' | 'done' }
     | { type: 'tool_result'; id: string; output: string; success: boolean }
-    | { type: 'error'; text: string }
-    | { type: 'cancelled'; text: string }
+    | { type: 'error'; text: string; i18nKey?: string }
+    | { type: 'cancelled'; text: string; i18nKey?: string }
     | { type: 'state'; state: string };
 
 // ===== Context (shared state between Main & Panel) =====
@@ -334,7 +334,7 @@ export function MotherAgentProvider({ appLogs, detectedTools, onClearLogs, onAge
                 case 'error': {
                     const key = errorToKey(event.message);
                     const type = key === 'error.userCancelled' ? 'cancelled' : 'error';
-                    setChatOutput(prev => [...prev, { type, text: t(key) }]);
+                    setChatOutput(prev => [...prev, { type, text: '', i18nKey: key }]);
                     setIsProcessing(false);
                     setAgentState('idle');
                     break;
@@ -380,7 +380,7 @@ export function MotherAgentProvider({ appLogs, detectedTools, onClearLogs, onAge
         setChatOutput(prev => [...prev, { type: 'user', text: message.trim() }]);
         const modelData = models.find(m => m.internalId === agentModel);
         if (!modelData) {
-            setChatOutput(prev => [...prev, { type: 'error', text: t('error.noModelSelected') }]);
+            setChatOutput(prev => [...prev, { type: 'error', text: '', i18nKey: 'error.noModelSelected' }]);
             setIsProcessing(false);
             return;
         }
@@ -418,7 +418,7 @@ export function MotherAgentProvider({ appLogs, detectedTools, onClearLogs, onAge
         } catch (e) {
             const key = errorToKey(String(e));
             const type = key === 'error.userCancelled' ? 'cancelled' : 'error';
-            setChatOutput(prev => [...prev, { type, text: t(key) }]);
+            setChatOutput(prev => [...prev, { type, text: '', i18nKey: key }]);
             setIsProcessing(false);
         }
     }, [agentModel, models, isProcessing, selectedServerId, pendingSkills, locale]);
@@ -749,9 +749,11 @@ export function MotherAgentMain() {
                                     return <ChatBubble key={i} role="assistant" content={msg.text} variant="mother" />;
                                 }
                                 if (msg.type === 'cancelled') {
-                                    return <div key={i} className="flex justify-center my-1"><span className="text-cyber-text-muted/35 text-xs font-mono">{msg.text}</span></div>;
+                                    const text = msg.i18nKey ? t(msg.i18nKey as import('../i18n/types').TKey) : msg.text;
+                                    return <div key={i} className="flex justify-center my-1"><span className="text-cyber-text-muted/35 text-xs font-mono">{text}</span></div>;
                                 }
                                 if (msg.type === 'error') {
+                                    const text = msg.i18nKey ? t(msg.i18nKey as import('../i18n/types').TKey) : msg.text;
                                     const failedMatch = msg.text.match(/__CONN_FAILED__:(\d+)/);
                                     if (failedMatch) {
                                         return <ChatBubble key={i} role="error"
@@ -759,7 +761,7 @@ export function MotherAgentMain() {
                                             subContent={t('mother.connectionHint')}
                                             variant="mother" />;
                                     }
-                                    return <ChatBubble key={i} role="error" content={msg.text} variant="mother" />;
+                                    return <ChatBubble key={i} role="error" content={text} variant="mother" />;
                                 }
                                 return null;
                             })}
