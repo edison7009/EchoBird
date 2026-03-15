@@ -1,1 +1,1 @@
-{"version":"2.8.7","releaseDate":"2026-03-14","releaseNotes":"Removed remote LLM deployment feature. Cleaned up related UI, i18n keys, and system prompt references."}
+{"version": "2.8.9","releaseDate": "2026-03-15","releaseNotes": "UI tweaks: red flash speed adjusted, smaller loading dots, and internal removals of deprecated llm-server implementation"}
