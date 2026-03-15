@@ -69,7 +69,7 @@ function InputDots() {
             <span className="inline-flex gap-[3px]">
                 {[0,1,2].map(i => (
                     <span key={i}
-                        className="inline-block w-1.5 h-1.5 rounded-full"
+                        className="inline-block w-1 h-1 rounded-full"
                         style={{ backgroundColor: col, animation: 'dotPulse 1.2s ease-in-out infinite', animationDelay: `${i * 0.2}s` }}
                     />
                 ))}

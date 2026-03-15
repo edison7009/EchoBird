@@ -77,7 +77,7 @@ export function CircuitFlow({ flashCount = 0 }: CircuitFlowProps = {}) {
 
         const spawnPulse = (color: [number, number, number], oneShot = false) => {
             if (w === 0 || h === 0) return;
-            const spd = oneShot ? SPEED * 1.5 : SPEED;
+            const spd = oneShot ? SPEED * 1.2 : SPEED;
             const horizontal = Math.random() < 0.5;
             if (horizontal) {
                 const rows = Math.floor(h / GRID);
@@ -108,8 +108,8 @@ export function CircuitFlow({ flashCount = 0 }: CircuitFlowProps = {}) {
             if (p.color === COLOR_ERR) {
                 // Expanding ripple waves: radial-gradient filled circles, no stroke, soft glow edges
                 const phase = (t % 90) / 90;
-                for (let ring = 0; ring < 3; ring++) {
-                    const rp = (phase + ring * 0.33) % 1;
+                for (let ring = 0; ring < 2; ring++) {
+                    const rp = (phase + ring * 0.5) % 1;
                     const outerR = 5 + rp * 42;
                     const innerR = outerR * 0.5;
                     const alpha = 0.38 * (1 - rp);
