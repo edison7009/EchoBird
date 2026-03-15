@@ -13,9 +13,9 @@ import { useEffect, useRef } from 'react';
 const GRID = 40;
 const COLOR_OK: [number, number, number] = [0, 255, 157];
 const COLOR_ERR: [number, number, number] = [255, 60, 60];
-const AMBIENT_MAX = 3;
-const SPAWN_INTERVAL_MIN = 18;  // ticks (min ~0.6s at 30fps)
-const SPAWN_INTERVAL_MAX = 45;  // ticks (max ~1.5s)
+const AMBIENT_MAX = 4;             // safety cap (math already prevents overlap)
+const SPAWN_INTERVAL_MIN = 300;    // ticks (~10s at 30fps) — pulse lifetime is ~25-30s
+const SPAWN_INTERVAL_MAX = 500;    // ticks (~17s) — guaranteed no simultaneous appearance
 const SPEED = 2.5;
 const TRAIL = 160;
 const HEAD_R = 2.5;
@@ -146,9 +146,9 @@ export function CircuitFlow({ flashCount = 0 }: CircuitFlowProps = {}) {
             }
         };
 
-        // Seed: 2 staggered pulses, not all at once
+        // Seed: just 1 pulse at startup — next one spawns after 10-17s naturally
         spawnPulse(COLOR_OK);
-        nextSpawnTick = tick + 12; // second one spawns after ~0.4s
+        nextSpawnTick = tick + SPAWN_INTERVAL_MIN + Math.floor(Math.random() * (SPAWN_INTERVAL_MAX - SPAWN_INTERVAL_MIN));
 
         rafId = requestAnimationFrame(frame);
         return () => { cancelAnimationFrame(rafId); ro.disconnect(); };
