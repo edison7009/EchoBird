@@ -14,8 +14,8 @@ const GRID = 40;
 const COLOR_OK: [number, number, number] = [0, 255, 157];
 const COLOR_ERR: [number, number, number] = [255, 60, 60];
 const AMBIENT_MAX = 7;             // up to 7 pulses alive, always staggered
-const SPAWN_INTERVAL_MIN = 120;    // ticks (~4s at 30fps) — lifetime ~30s ÷ 7 = 4.3s
-const SPAWN_INTERVAL_MAX = 180;    // ticks (~6s) — ensures pulses never appear simultaneously
+const SPAWN_INTERVAL_MIN = 60;     // ticks (~2s at 30fps) — doubled density
+const SPAWN_INTERVAL_MAX = 90;     // ticks (~3s)
 const SPEED = 2.5;
 const TRAIL = 160;
 const HEAD_R = 2.5;

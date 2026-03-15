@@ -193,14 +193,19 @@ export const Channels: React.FC = () => {
     const isLocal = activeChannel?.address?.startsWith('127.0.0.1') || activeChannel?.address === 'localhost';
     const messages = bridgeMessages;
     const prevChErrRef = useRef(0);
-    // Fire window event when new error system messages appear → CircuitFlow red pulses
+    const prevChActiveIdRef = useRef<number | null>(null);
+    // Fire window event ONLY for genuinely new errors in the current channel session
     useEffect(() => {
         const errCount = messages.filter(m => m.role === 'system' && m.i18nKey !== 'error.userCancelled').length;
-        if (errCount > prevChErrRef.current) {
+        if (activeId !== prevChActiveIdRef.current) {
+            // Channel switched — sync ref without firing (existing errors are not new)
+            prevChErrRef.current = errCount;
+            prevChActiveIdRef.current = activeId;
+        } else if (errCount > prevChErrRef.current) {
             window.dispatchEvent(new CustomEvent('chat-error', { detail: { count: errCount - prevChErrRef.current } }));
+            prevChErrRef.current = errCount;
         }
-        prevChErrRef.current = errCount;
-    }, [messages]);
+    }, [messages, activeId]);
 
     // Load SSH servers + channel config → populate channels
     const loadChannelData = useCallback(async (preserveActiveId?: boolean) => {

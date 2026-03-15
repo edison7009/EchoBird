@@ -154,15 +154,6 @@ export function MotherAgentProvider({ appLogs, detectedTools, onClearLogs, onAge
     const [chatOutput, setChatOutput] = useState<ChatMessage[]>([]);
     // Per-server chat history map
     const chatHistoryMap = useRef<Map<string, ChatMessage[]>>(new Map());
-    const prevErrCountRef = useRef(0);
-    // Fire window event when new error messages appear → CircuitFlow spawns red pulses
-    useEffect(() => {
-        const errCount = chatOutput.filter(m => m.type === 'error').length;
-        if (errCount > prevErrCountRef.current) {
-            window.dispatchEvent(new CustomEvent('chat-error', { detail: { count: errCount - prevErrCountRef.current } }));
-        }
-        prevErrCountRef.current = errCount;
-    }, [chatOutput]);
 
     const [isProcessing, setIsProcessing] = useState(false);
     const [agentState, setAgentState] = useState('idle');
@@ -173,7 +164,6 @@ export function MotherAgentProvider({ appLogs, detectedTools, onClearLogs, onAge
     const chatInputRef = useRef<HTMLInputElement>(null!);
     const [pendingSkills, setPendingSkills] = useState<PendingSkill[]>([]);
 
-    // Pre-fill input when navigated from App Manager install button
     useEffect(() => {
         if (!initialMessage) return;
         setChatInput(initialMessage);
@@ -222,6 +212,20 @@ export function MotherAgentProvider({ appLogs, detectedTools, onClearLogs, onAge
 
     // Server selection (single-select)
     const [selectedServerId, setSelectedServerId] = useState('local');
+    // Red pulse trigger — only fires for genuinely NEW errors, resets on server switch
+    const prevErrCountRef = useRef(0);
+    const prevServerIdRef = useRef('');
+    useEffect(() => {
+        const errCount = chatOutput.filter(m => m.type === 'error').length;
+        if (selectedServerId !== prevServerIdRef.current) {
+            // Server switched — sync without firing
+            prevErrCountRef.current = errCount;
+            prevServerIdRef.current = selectedServerId;
+        } else if (errCount > prevErrCountRef.current) {
+            window.dispatchEvent(new CustomEvent('chat-error', { detail: { count: errCount - prevErrCountRef.current } }));
+            prevErrCountRef.current = errCount;
+        }
+    }, [chatOutput, selectedServerId]);
     const prevServerRef = useRef('local');
     const selectServer = useCallback(async (id: string) => {
         // Save current chat to history map
