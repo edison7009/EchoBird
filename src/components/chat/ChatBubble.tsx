@@ -65,7 +65,7 @@ function InputDots() {
     const col = '#F0EDE8';
     return (
         <span className="inline-flex items-center gap-2">
-            <span className="font-sans font-semibold text-base" style={{ color: col }}>{t('common.inputting')}</span>
+            <span className="font-sans font-medium text-sm" style={{ color: col }}>{t('common.inputting')}</span>
             <span className="inline-flex gap-[3px]">
                 {[0,1,2].map(i => (
                     <span key={i}

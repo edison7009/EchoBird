@@ -371,10 +371,14 @@ export function MotherAgentProvider({ appLogs, detectedTools, onClearLogs, onAge
     // Internal send function
     const handleChatSendInternal = useCallback(async (message: string) => {
         if (!agentModel || isProcessing || !message.trim()) return;
-        const modelData = models.find(m => m.internalId === agentModel);
-        if (!modelData) return;
         setIsProcessing(true);
         setChatOutput(prev => [...prev, { type: 'user', text: message.trim() }]);
+        const modelData = models.find(m => m.internalId === agentModel);
+        if (!modelData) {
+            setChatOutput(prev => [...prev, { type: 'error', text: 'No model data found — please re-select a model.' }]);
+            setIsProcessing(false);
+            return;
+        }
 
         try {
             // Triple-fallback protocol strategy:
