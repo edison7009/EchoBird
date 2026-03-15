@@ -104,18 +104,14 @@ export const AgentRolePicker: React.FC<AgentRolePickerProps> = ({
                                     {isSelected && (
                                         <button
                                             onClick={(e) => handlePlugClick(e, role.id, role.name)}
-                                            className={`absolute top-2 right-2 w-7 h-7 rounded-lg flex items-center justify-center transition-all z-10 ${
-                                                isConnected
-                                                    ? 'bg-cyber-accent shadow-[0_0_8px_rgba(0,255,157,0.5)]'
-                                                    : 'bg-cyber-accent hover:brightness-110 shadow-[0_0_6px_rgba(0,255,157,0.3)]'
-                                            }`}
+                                            className="absolute top-2 right-2 h-7 px-2.5 rounded-lg flex items-center justify-center gap-1 transition-all z-10 bg-cyber-accent hover:brightness-110 shadow-[0_0_6px_rgba(0,255,157,0.3)]"
                                         >
                                             {isConnecting ? (
-                                                <RefreshCw size={14} className="text-black animate-spin" />
+                                                <RefreshCw size={12} className="text-black animate-spin" />
                                             ) : isConnected ? (
-                                                <Check size={14} className="text-black" strokeWidth={3} />
+                                                <Check size={12} className="text-black" strokeWidth={3} />
                                             ) : (
-                                                <UserPlus size={14} className="text-black" strokeWidth={2.5} />
+                                                <span className="text-black text-[11px] font-bold font-mono">Chat</span>
                                             )}
                                         </button>
                                     )}
