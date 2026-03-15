@@ -62,7 +62,7 @@ function ReadonlyChips({ chips }: { chips: BubbleChip[] }) {
 // ── Animated streaming dots ───────────────────────────────────────────────────
 function InputDots({ dark }: { dark?: boolean }) {
     const { t } = useI18n();
-    const col = dark ? '#888' : '#DED9D2';
+    const col = dark ? '#888' : '#F0EDE8';
     return (
         <span className="inline-flex items-center gap-2">
             <span className="font-sans font-semibold text-sm" style={{ color: col }}>{t('common.inputting')}</span>
@@ -139,7 +139,7 @@ export function ChatBubble({ role, content, variant, chips = [], isStreaming = f
                     className="max-w-[75%] rounded-2xl rounded-tl-sm px-4 py-3 text-base leading-relaxed font-sans font-semibold"
                     style={{
                         background: '#2A2A2A',
-                        color: '#DED9D2',
+                        color: '#F0EDE8',
                         boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.06), 0 2px 12px rgba(0,0,0,0.30), 0 0 0 1px rgba(255,255,255,0.05)',
                     }}
                 >
