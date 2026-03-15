@@ -4,6 +4,7 @@ import { Send, CornerDownLeft, X, Square, Paperclip, Image as ImageIcon, RotateC
 import { MiniSelect } from '../components/MiniSelect';
 import { getModelIcon } from '../components/cards/ModelCard';
 import { PendingChipsRow } from '../components/PendingChipsRow';
+import { AgentRolePicker } from '../components/AgentRolePicker';
 import { ChatBubble, TerminalStatusBar } from '../components/chat';
 import { useChannelGateway, useGatewayManager } from '../contexts/GatewayContext';
 import { useI18n } from '../hooks/useI18n';
@@ -152,6 +153,9 @@ export const Channels: React.FC = () => {
     ];
     const [allActiveAgents, setAllActiveAgents] = useState<Record<number, string>>({});
     const setActiveAgentFor = (chId: number, name: string) => setAllActiveAgents(prev => ({ ...prev, [chId]: name }));
+    // Per-channel selected role
+    const [allSelectedRoles, setAllSelectedRoles] = useState<Record<number, { id: string; name: string }>>({});
+    const [showRolePicker, setShowRolePicker] = useState(false);
 
     // Per-channel helpers
     const channelKey = activeId ?? 0;
@@ -160,6 +164,7 @@ export const Channels: React.FC = () => {
     const bridgeConnectionStatus = allBridgeStatus[channelKey] || 'standby';
     const bridgeAgentName = allBridgeAgentNames[channelKey];
     const bridgeLoading = allBridgeLoading[channelKey] || false;
+    const selectedRoleForChannel = allSelectedRoles[channelKey] || null;
 
     // ─── Stable disk key derived from channel address (computed early from channels state) ───
     // e.g. activeId=1 → 'local', SSH → 'eben_192.168.10.39'
@@ -747,6 +752,7 @@ export const Channels: React.FC = () => {
     }, [gateway, isBridgeMode]);
 
     return (
+        <>
         <div className="flex h-full gap-0 overflow-hidden">
             {/* ======== Left: Channel list ======== */}
             <div className="w-56 flex-shrink-0 flex flex-col">
@@ -842,7 +848,15 @@ export const Channels: React.FC = () => {
                                             >
                                                 <img src={agent.icon} alt={agent.name} className={`w-4 h-4 ${isActive ? '' : 'opacity-50 grayscale'}`} />
                                                 <span>{agent.name}</span>
-                                                <ArrowLeftRight size={14} strokeWidth={2.5} className={isActive ? 'text-cyber-accent/60' : 'text-cyber-text-muted/30'} />
+                                                {selectedRoleForChannel && isActive && (
+                                                    <span className="text-[10px] text-cyber-accent/40">· {selectedRoleForChannel.name}</span>
+                                                )}
+                                                <ArrowLeftRight
+                                                    size={14}
+                                                    strokeWidth={2.5}
+                                                    className={isActive ? 'text-cyber-accent/60' : 'text-cyber-text-muted/30'}
+                                                    onClick={(e) => { e.stopPropagation(); setActiveAgentFor(channelKey, agent.name); setShowRolePicker(true); }}
+                                                />
                                             </div>
                                         );
                                     })}
@@ -1085,5 +1099,15 @@ export const Channels: React.FC = () => {
             </div >
 
         </div >
+
+            {/* Agent Role Picker Modal */}
+            <AgentRolePicker
+                isOpen={showRolePicker}
+                onClose={() => setShowRolePicker(false)}
+                selectedRole={selectedRoleForChannel?.id || null}
+                onSelectRole={(id, name) => setAllSelectedRoles(prev => ({ ...prev, [channelKey]: { id, name } }))}
+                agentName={allActiveAgents[channelKey] || 'OpenClaw'}
+            />
+        </>
     );
 };
