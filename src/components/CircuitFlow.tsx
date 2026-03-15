@@ -13,9 +13,9 @@ import { useEffect, useRef } from 'react';
 const GRID = 40;
 const COLOR_OK: [number, number, number] = [0, 255, 157];
 const COLOR_ERR: [number, number, number] = [255, 60, 60];
-const AMBIENT_MAX = 4;             // safety cap (math already prevents overlap)
-const SPAWN_INTERVAL_MIN = 300;    // ticks (~10s at 30fps) — pulse lifetime is ~25-30s
-const SPAWN_INTERVAL_MAX = 500;    // ticks (~17s) — guaranteed no simultaneous appearance
+const AMBIENT_MAX = 7;             // up to 7 pulses alive, always staggered
+const SPAWN_INTERVAL_MIN = 120;    // ticks (~4s at 30fps) — lifetime ~30s ÷ 7 = 4.3s
+const SPAWN_INTERVAL_MAX = 180;    // ticks (~6s) — ensures pulses never appear simultaneously
 const SPEED = 2.5;
 const TRAIL = 160;
 const HEAD_R = 2.5;
