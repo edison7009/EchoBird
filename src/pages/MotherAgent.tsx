@@ -774,7 +774,7 @@ export function MotherAgentMain() {
                         placeholder={agentModel ? t('mother.enterMessage') : t('mother.selectModel')}
                         disabled={!agentModel || isProcessing}
                         rows={3}
-                        className="w-full bg-transparent px-4 py-2 text-base text-[#DED9D2] font-sans font-semibold outline-none placeholder:text-[#DED9D2]/40 disabled:opacity-30 resize-none"
+                        className="w-full bg-transparent px-4 py-2 text-sm text-[#DED9D2] font-sans font-medium outline-none placeholder:text-[#DED9D2]/40 disabled:opacity-30 resize-none"
                     />
                     {/* Bottom toolbar */}
                     <div className="flex items-center justify-between px-3 py-1.5 border-t border-cyber-border/10">
