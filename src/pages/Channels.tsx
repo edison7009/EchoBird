@@ -842,7 +842,7 @@ export const Channels: React.FC = () => {
                                             >
                                                 <img src={agent.icon} alt={agent.name} className={`w-4 h-4 ${isActive ? '' : 'opacity-50 grayscale'}`} />
                                                 <span>{agent.name}</span>
-                                                <ArrowLeftRight size={10} className={isActive ? 'text-cyber-accent/60' : 'text-cyber-text-muted/30'} />
+                                                <ArrowLeftRight size={14} strokeWidth={2.5} className={isActive ? 'text-cyber-accent/60' : 'text-cyber-text-muted/30'} />
                                             </div>
                                         );
                                     })}
