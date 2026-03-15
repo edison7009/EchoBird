@@ -240,6 +240,12 @@ export const Channels: React.FC = () => {
     const autoFollowRef = useRef(true);
     const [showScrollBtn, setShowScrollBtn] = useState(false);
     const chatContainerRef = useRef<HTMLDivElement>(null);
+    const CH_PAGE_SIZE = 30;
+    const [chDisplayCount, setChDisplayCount] = useState(CH_PAGE_SIZE);
+    const [chShowSkeleton, setChShowSkeleton] = useState(false);
+
+    // Reset pagination when channel changes
+    useEffect(() => { setChDisplayCount(CH_PAGE_SIZE); }, [activeId]);
 
     const handleChatScroll = () => {
         const container = chatContainerRef.current;
@@ -247,6 +253,20 @@ export const Channels: React.FC = () => {
         const isAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 40;
         autoFollowRef.current = isAtBottom;
         setShowScrollBtn(!isAtBottom && messages.length > 0);
+        // Lazy-load older messages when user scrolls to very top
+        if (container.scrollTop === 0 && chDisplayCount < messages.length) {
+            setChShowSkeleton(true);
+            const prevScrollHeight = container.scrollHeight;
+            setTimeout(() => {
+                setChShowSkeleton(false);
+                setChDisplayCount(c => Math.min(c + CH_PAGE_SIZE, messages.length));
+                requestAnimationFrame(() => {
+                    if (chatContainerRef.current) {
+                        chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight - prevScrollHeight;
+                    }
+                });
+            }, 300);
+        }
     };
 
     useEffect(() => {
@@ -718,7 +738,10 @@ export const Channels: React.FC = () => {
 
                                     {/* Bubble messages */}
                                     <div className="pt-2 pb-1">
-                                    {messages.map((msg, i) => {
+                                    {chShowSkeleton && [0,1,2].map(i => (
+                                        <ChatBubble key={`sk-${i}`} role="skeleton" content="" variant="channels" />
+                                    ))}
+                                    {messages.slice(-chDisplayCount).map((msg, i) => {
                                         // tool_call / result / thinking go to status bar only
                                         if (msg.role === 'tool_call' || msg.role === 'tool_result' || msg.role === 'thinking') return null;
                                         if (msg.role === 'system' && msg.content === '__agent_working__') return null;
