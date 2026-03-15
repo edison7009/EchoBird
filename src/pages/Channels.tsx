@@ -637,13 +637,14 @@ export const Channels: React.FC = () => {
             mdList,
             pendingSkills,
         );
-        const text = messageText || input.trim();
+        const text = messageText || input.trim();   // full text → Agent
+        const displayText = input.trim();            // clean text → bubble & disk
         setPendingModels([]);
         setPendingSkills([]);
         setInput('');
         setAttachments([]);
-        // Save user message to chat with chips
-        setBridgeMessages(prev => [...prev, { role: 'user', content: text, chips } as any]);
+        // Bubble shows clean user text + chips; agent receives full text with attachments
+        setBridgeMessages(prev => [...prev, { role: 'user', content: displayText || '📎', chips } as any]);
 
         if (!canSendMessage) {
             // Blocked (e.g. still connecting) — show error so user knows, their message is still saved above
