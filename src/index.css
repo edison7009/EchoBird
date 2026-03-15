@@ -242,28 +242,12 @@ pre {
 }
 
 /* TerminalStatusBar — tool call slides in from right */
-/* Slim auto-hide scrollbar (WeChat dark style) */
+/* Hidden scrollbar — scroll-to-bottom button is used instead */
 .slim-scroll {
-  scrollbar-width: thin;
-  scrollbar-color: transparent transparent;
-  transition: scrollbar-color 0.3s;
-}
-.slim-scroll:hover {
-  scrollbar-color: rgba(255,255,255,0.18) transparent;
+  scrollbar-width: none;
 }
 .slim-scroll::-webkit-scrollbar {
-  width: 4px;
-}
-.slim-scroll::-webkit-scrollbar-track {
-  background: transparent;
-}
-.slim-scroll::-webkit-scrollbar-thumb {
-  background: transparent;
-  border-radius: 4px;
-  transition: background 0.3s;
-}
-.slim-scroll:hover::-webkit-scrollbar-thumb {
-  background: rgba(255,255,255,0.18);
+  display: none;
 }
 
 @keyframes slideFromRight {

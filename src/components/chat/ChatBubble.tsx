@@ -136,25 +136,18 @@ export function ChatBubble({ role, content, variant, chips = [], isStreaming = f
 
         return (
             <div className="flex justify-start mb-2">
-                {/* Tail nub pointing left (where avatar would be) */}
-                <div className="relative mt-[10px] mr-0 flex-shrink-0">
-                    <span
-                        className="block w-0 h-0"
-                        style={{
-                            borderTop: '6px solid transparent',
-                            borderBottom: '6px solid transparent',
-                            borderRight: '8px solid #2A2A2A',
-                        }}
-                    />
-                </div>
                 <div
-                    className="max-w-[62%] rounded-xl px-3 py-2 text-sm leading-snug font-sans font-medium"
+                    className="relative max-w-[62%] rounded-xl px-3 py-2 text-sm leading-snug font-sans font-medium"
                     style={{
                         background: '#2A2A2A',
                         color: '#F0EDE8',
                         boxShadow: '0 1px 4px rgba(0,0,0,0.25)',
                     }}
                 >
+                    {/* Rounded SVG tail — mostly inside bubble, tip sticks out 5px */}
+                    <svg width="8" height="14" viewBox="0 0 8 14" style={{ position:'absolute', left:'-5px', top:'10px', overflow:'visible' }}>
+                        <path d="M8,2 C8,1 7.2,0.4 6.5,1 L1.5,6 C0.8,6.6 0.8,7.4 1.5,8 L6.5,13 C7.2,13.6 8,13 8,12 Z" fill="#2A2A2A"/>
+                    </svg>
                     {(isStreaming && !finalText)
                         ? <InputDots />
                         : <p className="break-words whitespace-pre-wrap">{finalText}</p>
@@ -168,20 +161,13 @@ export function ChatBubble({ role, content, variant, chips = [], isStreaming = f
     const tailColor = variant === 'mother' ? '#00D4FF' : '#00FF9D';
     return (
         <div className="flex flex-col items-end mb-2">
-            <div className="flex items-start justify-end">
-                <div className={`max-w-[62%] rounded-xl px-3 py-2 text-sm leading-snug whitespace-pre-wrap break-words font-sans font-medium ${USER_BUBBLE[variant]}`}>
+            <div className="flex justify-end max-w-[62%]">
+                <div className={`relative flex-1 rounded-xl px-3 py-2 text-sm leading-snug whitespace-pre-wrap break-words font-sans font-medium ${USER_BUBBLE[variant]}`}>
+                    {/* Rounded SVG tail — mostly inside bubble, tip sticks out 5px right */}
+                    <svg width="8" height="14" viewBox="0 0 8 14" style={{ position:'absolute', right:'-5px', top:'10px', overflow:'visible' }}>
+                        <path d="M0,2 C0,1 0.8,0.4 1.5,1 L6.5,6 C7.2,6.6 7.2,7.4 6.5,8 L1.5,13 C0.8,13.6 0,13 0,12 Z" fill={tailColor}/>
+                    </svg>
                     {content}
-                </div>
-                {/* Tail nub pointing right */}
-                <div className="relative mt-[10px] ml-0 flex-shrink-0">
-                    <span
-                        className="block w-0 h-0"
-                        style={{
-                            borderTop: '6px solid transparent',
-                            borderBottom: '6px solid transparent',
-                            borderLeft: `8px solid ${tailColor}`,
-                        }}
-                    />
                 </div>
             </div>
             {chips.length > 0 && <ReadonlyChips chips={chips} />}
