@@ -59,27 +59,9 @@ function ReadonlyChips({ chips }: { chips: BubbleChip[] }) {
     );
 }
 
-// ── Animated streaming dots ───────────────────────────────────────────────────
-function InputDots({ dark }: { dark?: boolean }) {
-    const { t } = useI18n();
-    const col = dark ? '#888' : '#F0EDE8';
-    return (
-        <span className="inline-flex items-center gap-2">
-            <span className="font-sans font-semibold text-sm" style={{ color: col }}>{t('common.inputting')}</span>
-            <span className="inline-flex gap-[3px]">
-                {[0,1,2].map(i => (
-                    <span key={i}
-                        className="inline-block w-1.5 h-1.5 rounded-full"
-                        style={{ backgroundColor: col, animation: 'dotPulse 1.2s ease-in-out infinite', animationDelay: `${i * 0.2}s` }}
-                    />
-                ))}
-            </span>
-        </span>
-    );
-}
-
 // ── Main ChatBubble ───────────────────────────────────────────────────────────
 export function ChatBubble({ role, content, variant, chips = [], isStreaming = false, subContent }: ChatBubbleProps) {
+    const { t } = useI18n();
 
     // ── System: centered muted ──
     if (role === 'system') {
@@ -113,7 +95,7 @@ export function ChatBubble({ role, content, variant, chips = [], isStreaming = f
     if (role === 'working') {
         return (
             <div className="flex justify-center my-2">
-                <InputDots />
+                <span className="text-sm font-sans font-semibold" style={{ color: '#F0EDE8' }}>{t('common.inputting')}</span>
             </div>
         );
     }
@@ -144,7 +126,7 @@ export function ChatBubble({ role, content, variant, chips = [], isStreaming = f
                     }}
                 >
                     {(isStreaming && !finalText)
-                        ? <InputDots />
+                        ? <span>{t('common.inputting')}</span>
                         : <p className="break-words whitespace-pre-wrap">{finalText}</p>
                     }
                 </div>
