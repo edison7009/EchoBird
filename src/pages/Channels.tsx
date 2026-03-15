@@ -1,6 +1,6 @@
 // Channels — OpenClaw agent chat interface (bridge CLI + SSH)
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Send, CornerDownLeft, X, Square, Paperclip, Image as ImageIcon, RotateCcw, KeyRound, Zap, Server, ChevronsDown, ChevronLeft, ChevronRight, Pencil } from 'lucide-react';
+import { Send, CornerDownLeft, X, Square, Paperclip, Image as ImageIcon, RotateCcw, KeyRound, Zap, Server, ChevronsDown, ChevronLeft, ChevronRight, SquarePen } from 'lucide-react';
 import { MiniSelect } from '../components/MiniSelect';
 import { getModelIcon } from '../components/cards/ModelCard';
 import { PendingChipsRow } from '../components/PendingChipsRow';
@@ -848,7 +848,7 @@ export const Channels: React.FC = () => {
                                             >
                                                 <img src={agent.icon} alt={agent.name} className={`w-4 h-4 ${isActive ? '' : 'opacity-50 grayscale'}`} />
                                                 <span>{isActive && selectedRoleForChannel ? selectedRoleForChannel.name : agent.name}</span>
-                                                <Pencil
+                                                <SquarePen
                                                     size={12}
                                                     strokeWidth={2.5}
                                                     className={`cursor-pointer ${isActive ? 'text-cyber-accent/60' : 'text-cyber-text-muted/30'}`}
