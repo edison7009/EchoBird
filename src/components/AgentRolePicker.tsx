@@ -1,7 +1,7 @@
 // AgentRolePicker — Simple role card selector modal
 // Vertical image cards with text overlay on bottom half
-import React from 'react';
-import { X } from 'lucide-react';
+import React, { useState, useCallback } from 'react';
+import { X, Plug } from 'lucide-react';
 
 // ── 18 hardcoded roles with images from public/role/ ──
 const ROLES = [
@@ -42,6 +42,25 @@ export const AgentRolePicker: React.FC<AgentRolePickerProps> = ({
     onSelectRole,
     agentName,
 }) => {
+    // Local selection (click card = select, not confirm)
+    const [localSelected, setLocalSelected] = useState<string | null>(selectedRole);
+    // Connecting state: which role is currently "plugging in"
+    const [connecting, setConnecting] = useState<string | null>(null);
+    // Connected state: which role finished connecting
+    const [connected, setConnected] = useState<string | null>(selectedRole);
+
+    const handlePlugClick = useCallback((e: React.MouseEvent, roleId: string, roleName: string) => {
+        e.stopPropagation();
+        if (connecting) return; // already connecting, ignore
+        setConnecting(roleId);
+        // Simulate connection delay
+        setTimeout(() => {
+            setConnecting(null);
+            setConnected(roleId);
+            onSelectRole(roleId, roleName);
+        }, 1500);
+    }, [connecting, onSelectRole]);
+
     if (!isOpen) return null;
 
     return (
@@ -66,11 +85,13 @@ export const AgentRolePicker: React.FC<AgentRolePickerProps> = ({
                 <div className="flex-1 overflow-y-auto slim-scroll custom-scrollbar p-4">
                     <div className="grid grid-cols-6 gap-3">
                         {ROLES.map(role => {
-                            const isSelected = selectedRole === role.id;
+                            const isSelected = localSelected === role.id;
+                            const isConnecting = connecting === role.id;
+                            const isConnected = connected === role.id;
                             return (
                                 <div
                                     key={role.id}
-                                    onClick={() => { onSelectRole(role.id, role.name); onClose(); }}
+                                    onClick={() => setLocalSelected(role.id)}
                                     className={`relative border rounded-card cursor-pointer transition-all overflow-hidden group ${
                                         isSelected
                                             ? 'border-cyber-accent shadow-[0_0_12px_rgba(0,255,157,0.3)]'
@@ -86,10 +107,27 @@ export const AgentRolePicker: React.FC<AgentRolePickerProps> = ({
                                         />
                                     </div>
 
+                                    {/* Plug button — top right, only on selected card */}
+                                    {isSelected && (
+                                        <button
+                                            onClick={(e) => handlePlugClick(e, role.id, role.name)}
+                                            className={`absolute top-2 right-2 w-7 h-7 rounded-lg flex items-center justify-center transition-all z-10 ${
+                                                isConnected
+                                                    ? 'bg-cyber-accent shadow-[0_0_8px_rgba(0,255,157,0.5)]'
+                                                    : 'bg-cyber-accent hover:brightness-110 shadow-[0_0_6px_rgba(0,255,157,0.3)]'
+                                            }`}
+                                        >
+                                            <Plug
+                                                size={14}
+                                                className={`text-black ${isConnecting ? 'animate-spin' : ''}`}
+                                            />
+                                        </button>
+                                    )}
+
                                     {/* Text overlay on bottom half */}
                                     <div className="absolute inset-x-0 bottom-0 flex flex-col items-center justify-end px-3 pb-3 pt-16"
                                          style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.6) 50%, transparent 100%)' }}>
-                                        {/* Name — centered, max 2 lines, text shadow for readability */}
+                                        {/* Name */}
                                         <div
                                             className="text-sm font-bold text-center leading-tight line-clamp-2"
                                             style={{
@@ -101,13 +139,13 @@ export const AgentRolePicker: React.FC<AgentRolePickerProps> = ({
                                         </div>
 
                                         {/* Divider */}
-                                        <div className="w-8 h-px my-1.5" style={{
+                                        <div className="w-16 h-px my-1.5" style={{
                                             background: isSelected
                                                 ? 'linear-gradient(90deg, transparent, #00ff9d, transparent)'
                                                 : 'linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent)',
                                         }} />
 
-                                        {/* Description — centered, max 2 lines */}
+                                        {/* Description */}
                                         <div
                                             className="text-[11px] text-center leading-snug line-clamp-2"
                                             style={{
