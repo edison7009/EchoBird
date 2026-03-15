@@ -71,7 +71,7 @@ export const AgentRolePicker: React.FC<AgentRolePickerProps> = ({
 
             <div className="relative w-[90vw] h-[85vh] flex flex-col bg-cyber-bg border border-cyber-border rounded-card shadow-cyber-card overflow-hidden">
                 {/* Header */}
-                <div className="flex items-center justify-between px-5 py-3 border-b border-cyber-border/50 flex-shrink-0">
+                <div className="flex items-center justify-between px-5 py-3 flex-shrink-0">
                     <span className="text-cyber-accent text-sm font-mono font-bold">
                         Select Role · {agentName}
                     </span>
@@ -81,7 +81,7 @@ export const AgentRolePicker: React.FC<AgentRolePickerProps> = ({
                 </div>
 
                 {/* Category tabs */}
-                <div className="flex items-center gap-1.5 px-5 py-2.5 border-b border-cyber-border/30 flex-shrink-0 overflow-x-auto">
+                <div className="flex items-center gap-1.5 px-5 py-2.5 flex-shrink-0 overflow-x-auto">
                     {CATEGORIES.map(cat => (
                         <button
                             key={cat.id}
