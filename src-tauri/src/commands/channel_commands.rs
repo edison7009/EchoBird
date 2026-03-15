@@ -773,3 +773,44 @@ pub struct BridgeStatusResult {
     pub status: String,
     pub agent_name: Option<String>,
 }
+
+// ── Channel Chat History Commands ──────────────────────────────────────────────
+
+use crate::services::channel_history::{self, ChannelMessage};
+
+/// Load a paginated slice of messages for a channel.
+/// offset=0 → newest batch; offset=30 → next older batch.
+/// Messages returned in chronological order (oldest first within slice).
+#[tauri::command]
+pub async fn channel_history_load(
+    channel_key: String,
+    offset: usize,
+    limit: usize,
+) -> Result<ChannelHistoryResponse, String> {
+    let messages = channel_history::load_channel_history(&channel_key, offset, limit);
+    let total = channel_history::channel_history_count(&channel_key);
+    Ok(ChannelHistoryResponse { messages, total })
+}
+
+/// Save the full message list for a channel (replaces existing file).
+#[tauri::command]
+pub async fn channel_history_save(
+    channel_key: String,
+    messages: Vec<ChannelMessage>,
+) -> Result<(), String> {
+    channel_history::save_channel_history(&channel_key, messages);
+    Ok(())
+}
+
+/// Delete the channel history file.
+#[tauri::command]
+pub async fn channel_history_clear(channel_key: String) -> Result<(), String> {
+    channel_history::clear_channel_history(&channel_key);
+    Ok(())
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ChannelHistoryResponse {
+    pub messages: Vec<ChannelMessage>,
+    pub total: usize,
+}

@@ -11,3 +11,4 @@ pub mod llm_client;
 pub mod agent_tools;
 pub mod agent_loop;
 pub mod plugin_manager;
+pub mod channel_history;

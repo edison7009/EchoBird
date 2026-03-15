@@ -519,6 +519,33 @@ export async function saveChannels(channels: ChannelConfig[]): Promise<void> {
     return invoke('save_channels', { channels });
 }
 
+// ─── Channel Chat History APIs ───
+
+export interface ChannelHistoryMessage {
+    role: string;    // "user" | "assistant" | "system"
+    content: string;
+}
+
+export interface ChannelHistoryResponse {
+    messages: ChannelHistoryMessage[];
+    total: number;
+}
+
+/** Load a paginated slice. offset=0 → newest batch, offset=30 → next older. */
+export async function channelHistoryLoad(channelKey: string, offset: number, limit: number): Promise<ChannelHistoryResponse> {
+    return invoke('channel_history_load', { channelKey, offset, limit });
+}
+
+/** Save full message list (replaces file). Call debounced after each new message. */
+export async function channelHistorySave(channelKey: string, messages: ChannelHistoryMessage[]): Promise<void> {
+    return invoke('channel_history_save', { channelKey, messages });
+}
+
+/** Delete the channel history file. */
+export async function channelHistoryClear(channelKey: string): Promise<void> {
+    return invoke('channel_history_clear', { channelKey });
+}
+
 // ─── App Settings APIs ───
 
 export async function getSettings(): Promise<AppSettings> {

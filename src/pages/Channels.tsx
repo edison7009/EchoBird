@@ -8,6 +8,7 @@ import { ChatBubble, TerminalStatusBar } from '../components/chat';
 import { useChannelGateway, useGatewayManager } from '../contexts/GatewayContext';
 import { useI18n } from '../hooks/useI18n';
 import * as api from '../api/tauri';
+import { channelHistoryLoad, channelHistorySave, channelHistoryClear } from '../api/tauri';
 import { normalizeError, errorToKey } from '../utils/normalizeError';
 import type { ModelConfig } from '../api/types';
 
@@ -150,13 +151,40 @@ export const Channels: React.FC = () => {
     const bridgeConnectionStatus = allBridgeStatus[channelKey] || 'standby';
     const bridgeAgentName = allBridgeAgentNames[channelKey];
     const bridgeLoading = allBridgeLoading[channelKey] || false;
+
+    // ─── Stable disk key derived from channel address (computed early from channels state) ───
+    // e.g. activeId=1 → 'local', SSH → 'eben_192.168.10.39'
+    const _ch = channels.find(c => c.id === activeId);
+    const channelFileKey: string | null = activeId == null
+        ? null
+        : activeId === 1
+            ? 'local'
+            : _ch
+                ? (_ch.address || _ch.name || `ch_${activeId}`).replace(/[^a-zA-Z0-9._-]/g, '_')
+                : null;
+
+    // ─── disk total for this channel (used for lazy-load) ───
+    const [diskTotal, setDiskTotal] = useState<Record<string, number>>({});
+    const getDiskTotal = () => (channelFileKey ? (diskTotal[channelFileKey] ?? 0) : 0);
+    const setDiskTotalFor = (key: string, n: number) => setDiskTotal(prev => ({ ...prev, [key]: n }));
+    const saveDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
     const setBridgeLoading = (val: boolean) =>
         setAllBridgeLoading(all => ({ ...all, [channelKey]: val }));
     const setBridgeMessages = (updater: BridgeMsg[] | ((prev: BridgeMsg[]) => BridgeMsg[])) => {
-        setAllBridgeMessages(all => ({
-            ...all,
-            [channelKey]: typeof updater === 'function' ? updater(all[channelKey] || []) : updater,
-        }));
+        setAllBridgeMessages(all => {
+            const next = typeof updater === 'function' ? updater(all[channelKey] || []) : updater;
+            // Debounced save to disk (only user/assistant messages)
+            if (channelFileKey) {
+                const fk = channelFileKey;
+                const save = next.filter(m => m.role === 'user' || m.role === 'assistant');
+                if (saveDebounceRef.current) clearTimeout(saveDebounceRef.current);
+                saveDebounceRef.current = setTimeout(() => {
+                    channelHistorySave(fk, save.map(m => ({ role: m.role, content: m.content }))).catch(() => {});
+                }, 800);
+            }
+            return { ...all, [channelKey]: next };
+        });
     };
     const setBridgeSessionId = (sid: string | undefined) => {
         if (sid === undefined) {
@@ -171,6 +199,7 @@ export const Channels: React.FC = () => {
     const setBridgeAgentName = (name: string | undefined) => {
         if (name) setAllBridgeAgentNames(all => ({ ...all, [channelKey]: name }));
     };
+
 
     const inputRef = useRef<HTMLTextAreaElement>(null);
     const scrollRef = useRef<HTMLDivElement>(null);
@@ -262,14 +291,35 @@ export const Channels: React.FC = () => {
     // Reset pagination when channel changes
     useEffect(() => { setChDisplayCount(CH_PAGE_SIZE); }, [activeId]);
 
+    // Load history from disk when switching to a channel with no in-memory messages
+    useEffect(() => {
+        if (!channelFileKey || !activeId) return;
+        const key = channelKey;
+        if ((allBridgeMessages[key] || []).length > 0) return; // already have messages in memory
+        channelHistoryLoad(channelFileKey, 0, CH_PAGE_SIZE).then(result => {
+            if (result.total > 0) setDiskTotalFor(channelFileKey, result.total);
+            if (result.messages.length > 0) {
+                setAllBridgeMessages(all => ({
+                    ...all,
+                    [key]: result.messages.map(m => ({ role: m.role, content: m.content })),
+                }));
+                setChDisplayCount(CH_PAGE_SIZE);
+            }
+        }).catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [activeId, channelFileKey]);
+
     const handleChatScroll = () => {
         const container = chatContainerRef.current;
         if (!container) return;
         const isAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 40;
         autoFollowRef.current = isAtBottom;
         setShowScrollBtn(!isAtBottom && messages.length > 0);
-        // Lazy-load older messages when user scrolls to very top
-        if (container.scrollTop === 0 && chDisplayCount < messages.length) {
+
+        if (container.scrollTop !== 0) return; // not at top, nothing to do
+
+        // Phase 1: more in-memory messages to show
+        if (chDisplayCount < messages.length) {
             setChShowSkeleton(true);
             const prevScrollHeight = container.scrollHeight;
             setTimeout(() => {
@@ -281,7 +331,32 @@ export const Channels: React.FC = () => {
                     }
                 });
             }, 300);
+            return;
         }
+
+        // Phase 2: load older batch from disk when in-memory is exhausted
+        if (!channelFileKey) return;
+        const total = getDiskTotal();
+        const alreadyLoaded = messages.length; // how many we have in memory (= disk offset from end)
+        if (alreadyLoaded >= total) return; // nothing older on disk
+
+        setChShowSkeleton(true);
+        const prevScrollHeight = container.scrollHeight;
+        channelHistoryLoad(channelFileKey, alreadyLoaded, CH_PAGE_SIZE)
+            .then(result => {
+                setChShowSkeleton(false);
+                if (result.messages.length === 0) return;
+                const key = channelKey;
+                const older = result.messages.map(m => ({ role: m.role, content: m.content }));
+                setAllBridgeMessages(all => ({ ...all, [key]: [...older, ...(all[key] || [])] }));
+                setChDisplayCount(c => c + result.messages.length);
+                requestAnimationFrame(() => {
+                    if (chatContainerRef.current) {
+                        chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight - prevScrollHeight;
+                    }
+                });
+            })
+            .catch(() => { setChShowSkeleton(false); });
     };
 
     useEffect(() => {

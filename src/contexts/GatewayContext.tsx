@@ -2,6 +2,7 @@
 // Each channel has its own SSH tunnel connection, lifecycle follows App
 import { createContext, useContext, useCallback, useSyncExternalStore } from 'react';
 import type { ReactNode } from 'react';
+import { channelHistoryLoad, channelHistorySave, channelHistoryClear } from '../api/tauri';
 
 // ─── Types ───────────────────────────────────────────────────
 export interface GatewayMessage {
@@ -72,6 +73,12 @@ class ChannelConnection {
     private lastMsgHash = '';
     private lastMsgTime = 0;
 
+    // History persistence
+    channelKey = '';
+    private saveDebounce: ReturnType<typeof setTimeout> | null = null;
+    diskTotal = 0; // total messages stored on disk (for pagination)
+
+
     // Health check
     private healthTimer: ReturnType<typeof setInterval> | null = null;
     private remoteHost: string | null = null;
@@ -91,6 +98,14 @@ class ChannelConnection {
     private updateMessages(updater: (prev: GatewayMessage[]) => GatewayMessage[]) {
         this.state = { ...this.state, messages: updater(this.state.messages) };
         this.onChange();
+        // Debounced persist to disk
+        if (this.channelKey) {
+            if (this.saveDebounce) clearTimeout(this.saveDebounce);
+            this.saveDebounce = setTimeout(() => {
+                const msgs = this.state.messages.map(m => ({ role: m.role, content: m.content }));
+                channelHistorySave(this.channelKey, msgs).catch(() => {});
+            }, 500);
+        }
     }
 
     // RPC request
@@ -277,17 +292,23 @@ class ChannelConnection {
                                 this.startHealthCheck();
                                 ws.onmessage = (e) => this.handleMessage(e.data);
 
-                                // Fetch chat history
-                                try {
-                                    const history = await this.rpc('chat.history', { sessionKey: this.sessionKey });
-                                    if (history?.messages?.length) {
-                                        const historyMsgs: GatewayMessage[] = history.messages.map((m: any) => ({
-                                            role: m.role === 'user' ? 'user' as const : 'assistant' as const,
-                                            content: normalizeContent(m.content || m.text),
-                                        }));
-                                        this.update({ messages: historyMsgs });
-                                    }
-                                } catch { /* History fetch failure is non-blocking */ }
+                                // Do NOT fetch remote chat.history — only use local disk history.
+                                // Remote history may include messages from other tools the user
+                                // typed directly in OpenClaw, which are irrelevant here.
+                                // Local disk records only messages sent through EchoBird.
+                                if (this.channelKey) {
+                                    try {
+                                        const local = await channelHistoryLoad(this.channelKey, 0, 30);
+                                        this.diskTotal = local.total;
+                                        if (local.messages.length) {
+                                            const historyMsgs: GatewayMessage[] = local.messages.map(m => ({
+                                                role: (m.role === 'user' ? 'user' : 'assistant') as GatewayMessage['role'],
+                                                content: m.content,
+                                            }));
+                                            this.update({ messages: historyMsgs });
+                                        }
+                                    } catch { /* non-blocking */ }
+                                }
                                 safeResolve();
                             }
                         },
@@ -486,11 +507,14 @@ class ChannelConnection {
         if (this.healthTimer) { clearInterval(this.healthTimer); this.healthTimer = null; }
     }
 
-    // Reset: disconnect + clear all messages
+    // Reset: disconnect + clear all messages + clear disk history
     reset() {
+        if (this.saveDebounce) clearTimeout(this.saveDebounce);
         this.disconnect();
         this.updateMessages(() => []);
         this.update({ hasNewMessage: false });
+        if (this.channelKey) channelHistoryClear(this.channelKey).catch(() => {});
+        this.diskTotal = 0;
     }
 
     // Mark messages as read
@@ -560,8 +584,10 @@ class GatewayManager {
         return pulses;
     }
 
-    async connect(channelId: number, options: ConnectOptions) {
-        return this.getConnection(channelId).connect(options);
+    async connect(channelId: number, options: ConnectOptions, channelKey?: string) {
+        const conn = this.getConnection(channelId);
+        if (channelKey) conn.channelKey = channelKey;
+        return conn.connect(options);
     }
 
     async send(channelId: number, text: string, attachments?: Array<{ type: 'image' | 'file'; name: string; data: string }>) {
@@ -588,6 +614,21 @@ class GatewayManager {
         this.connections.get(channelId)?.destroy();
         this.connections.delete(channelId);
         this.notify();
+    }
+
+    getDiskTotal(channelId: number): number {
+        return this.connections.get(channelId)?.diskTotal ?? 0;
+    }
+
+    async loadOlderMessages(channelId: number, offset: number, limit: number) {
+        const conn = this.connections.get(channelId);
+        if (!conn?.channelKey) return [] as GatewayMessage[];
+        const result = await channelHistoryLoad(conn.channelKey, offset, limit);
+        conn.diskTotal = result.total;
+        return result.messages.map(m => ({
+            role: (m.role === 'user' ? 'user' : 'assistant') as GatewayMessage['role'],
+            content: m.content,
+        }));
     }
 }
 
@@ -624,9 +665,9 @@ export function useChannelGateway(channelId: number | null) {
         hasNewMessage: false,
     };
 
-    const connect = useCallback((options: ConnectOptions) => {
+    const connect = useCallback((options: ConnectOptions, channelKey?: string) => {
         if (!channelId) return Promise.resolve();
-        return manager.connect(channelId, options);
+        return manager.connect(channelId, options, channelKey);
     }, [manager, channelId]);
 
     const send = useCallback((text: string, attachments?: Array<{ type: 'image' | 'file'; name: string; data: string }>) => {
@@ -651,5 +692,12 @@ export function useChannelGateway(channelId: number | null) {
         if (channelId) manager.markRead(channelId);
     }, [manager, channelId]);
 
-    return { ...state, connect, send, abort, disconnect, reset, markRead };
+    const loadOlderMessages = useCallback((offset: number, limit: number) => {
+        if (!channelId) return Promise.resolve([] as GatewayMessage[]);
+        return manager.loadOlderMessages(channelId, offset, limit);
+    }, [manager, channelId]);
+
+    const diskTotal = channelId ? manager.getDiskTotal(channelId) : 0;
+
+    return { ...state, connect, send, abort, disconnect, reset, markRead, loadOlderMessages, diskTotal };
 }
