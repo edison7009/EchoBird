@@ -691,13 +691,7 @@ async fn fetch_remote_prompt() -> String {
         NEVER fabricate configuration steps — use `web_fetch` to read official docs first.\n\
         OpenClaw official docs: https://docs.openclaw.ai/\n\
         OpenClaw npm package: `openclaw` (NOT `@anthropic-ai/claude-code`)\n\
-        Install command: `npm install -g openclaw@latest`\n\n\
-        ## UI Chat Protocol (MANDATORY)\n\
-        After completing all thinking and tool calls, wrap your final reply in <chat>...</chat> tags.\n\
-        Write the <chat> message like a friendly chat — concise, natural language.\n\
-        Keep all technical details, logs, and tool execution outside of the <chat> block.\n\
-        Any content that requires the user to respond or choose MUST be inside <chat>.\n\
-        ONE <chat> block per response, at the very end.\n"
+        Install command: `npm install -g openclaw@latest`\n\n"
     )
 }
 
@@ -760,7 +754,13 @@ many users are beginners and just want to try things out quickly.\n\
           - NEVER kill or stop the Echobird process (echobird.exe / Echobird).\n\
           - When uninstalling agents (e.g. OpenClaw), ONLY remove the agent itself \
             (e.g. `npm uninstall -g openclaw`). Do NOT touch Echobird's files.\n\
-          - NEVER run commands that delete user home directories or broad recursive deletions.\n\n"
+          - NEVER run commands that delete user home directories or broad recursive deletions.\n\n\
+        ## UI Chat Protocol (MANDATORY)\n\
+        After completing all thinking, analysis, and tool calls, wrap your final reply to the user in `<chat>...</chat>` tags.\n\
+        - Write the `<chat>` message like a friendly chat message: concise, clear, natural language.\n\
+        - Keep ALL technical details, logs, raw command output, and tool execution inside your reasoning -- NOT in `<chat>`.\n\
+        - Any content that requires the user to respond, choose, or take action MUST be inside `<chat>`.\n\
+        - ONE `<chat>` block per response, at the very end.\n\n"
     );
 
     // Fetch remote prompt (product knowledge + deployment workflows)
