@@ -59,6 +59,25 @@ function ReadonlyChips({ chips }: { chips: BubbleChip[] }) {
     );
 }
 
+// ── Animated streaming indicator ─────────────────────────────────────────────
+function InputDots() {
+    const { t } = useI18n();
+    const col = '#F0EDE8';
+    return (
+        <span className="inline-flex items-center gap-2">
+            <span className="font-sans font-semibold text-base" style={{ color: col }}>{t('common.inputting')}</span>
+            <span className="inline-flex gap-[3px]">
+                {[0,1,2].map(i => (
+                    <span key={i}
+                        className="inline-block w-1.5 h-1.5 rounded-full"
+                        style={{ backgroundColor: col, animation: 'dotPulse 1.2s ease-in-out infinite', animationDelay: `${i * 0.2}s` }}
+                    />
+                ))}
+            </span>
+        </span>
+    );
+}
+
 // ── Main ChatBubble ───────────────────────────────────────────────────────────
 export function ChatBubble({ role, content, variant, chips = [], isStreaming = false, subContent }: ChatBubbleProps) {
     const { t } = useI18n();
@@ -95,7 +114,7 @@ export function ChatBubble({ role, content, variant, chips = [], isStreaming = f
     if (role === 'working') {
         return (
             <div className="flex justify-center my-2">
-                <span className="text-sm font-sans font-semibold" style={{ color: '#F0EDE8' }}>{t('common.inputting')}</span>
+                <InputDots />
             </div>
         );
     }
@@ -126,7 +145,7 @@ export function ChatBubble({ role, content, variant, chips = [], isStreaming = f
                     }}
                 >
                     {(isStreaming && !finalText)
-                        ? <span>{t('common.inputting')}</span>
+                        ? <InputDots />
                         : <p className="break-words whitespace-pre-wrap">{finalText}</p>
                     }
                 </div>
