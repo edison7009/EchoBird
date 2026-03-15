@@ -129,7 +129,7 @@ export const AgentRolePicker: React.FC<AgentRolePickerProps> = ({
                                     />
 
                                     {/* Text overlay — slides up on hover */}
-                                    <div className="absolute inset-x-0 bottom-0 px-3 flex flex-col items-center transition-transform duration-300 ease-out translate-y-[28px] group-hover:translate-y-0"
+                                    <div className="absolute inset-x-0 bottom-0 px-3 flex flex-col items-center transition-transform duration-300 ease-out translate-y-[44px] group-hover:translate-y-0"
                                          style={{ paddingBottom: '12px', willChange: 'transform', backfaceVisibility: 'hidden' }}>
                                         {/* Name — always partially visible */}
                                         <div
