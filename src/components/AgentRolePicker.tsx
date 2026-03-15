@@ -1,5 +1,5 @@
 // AgentRolePicker — Simple role card selector modal
-// Vertical image cards with text overlay on bottom half
+// Vertical image cards with hover slide-up text effect
 import React, { useState, useCallback } from 'react';
 import { X, RefreshCw, Check, UserPlus } from 'lucide-react';
 
@@ -42,18 +42,14 @@ export const AgentRolePicker: React.FC<AgentRolePickerProps> = ({
     onSelectRole,
     agentName,
 }) => {
-    // Local selection (click card = select, not confirm)
     const [localSelected, setLocalSelected] = useState<string | null>(selectedRole);
-    // Connecting state: which role is currently "plugging in"
     const [connecting, setConnecting] = useState<string | null>(null);
-    // Connected state: which role finished connecting
     const [connected, setConnected] = useState<string | null>(selectedRole);
 
     const handlePlugClick = useCallback((e: React.MouseEvent, roleId: string, roleName: string) => {
         e.stopPropagation();
-        if (connecting) return; // already connecting, ignore
+        if (connecting) return;
         setConnecting(roleId);
-        // Simulate connection delay
         setTimeout(() => {
             setConnecting(null);
             setConnected(roleId);
@@ -65,12 +61,9 @@ export const AgentRolePicker: React.FC<AgentRolePickerProps> = ({
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
-            {/* Backdrop */}
             <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
 
-            {/* Modal */}
             <div className="relative w-[80vw] max-h-[80vh] flex flex-col bg-cyber-bg border border-cyber-border rounded-card shadow-cyber-card overflow-hidden">
-
                 {/* Header */}
                 <div className="flex items-center justify-between px-5 py-3 border-b border-cyber-border/50 flex-shrink-0">
                     <span className="text-cyber-accent text-sm font-mono font-bold">
@@ -98,16 +91,16 @@ export const AgentRolePicker: React.FC<AgentRolePickerProps> = ({
                                             : 'border-cyber-border bg-black/80 shadow-cyber-card hover:border-cyber-accent/40 hover:shadow-[0_0_8px_rgba(0,255,157,0.1)]'
                                     }`}
                                 >
-                                    {/* Full card image */}
+                                    {/* Image — static, no zoom */}
                                     <div className="aspect-[3/4] overflow-hidden bg-black/60">
                                         <img
                                             src={role.img}
                                             alt={role.name}
-                                            className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-300"
+                                            className="w-full h-full object-cover object-center"
                                         />
                                     </div>
 
-                                    {/* Plug button — top right, only on selected card */}
+                                    {/* UserPlus button — top right */}
                                     {isSelected && (
                                         <button
                                             onClick={(e) => handlePlugClick(e, role.id, role.name)}
@@ -127,10 +120,18 @@ export const AgentRolePicker: React.FC<AgentRolePickerProps> = ({
                                         </button>
                                     )}
 
-                                    {/* Text overlay on bottom half */}
-                                    <div className="absolute inset-x-0 bottom-0 flex flex-col items-center justify-end px-3 pb-3 pt-16"
-                                         style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.6) 50%, transparent 100%)' }}>
-                                        {/* Name */}
+                                    {/* Gradient overlay — always visible for readability */}
+                                    <div className="absolute inset-x-0 bottom-0 pointer-events-none"
+                                         style={{
+                                             height: '60%',
+                                             background: 'linear-gradient(to top, rgba(0,0,0,0.88) 0%, rgba(0,0,0,0.5) 40%, transparent 100%)',
+                                         }}
+                                    />
+
+                                    {/* Text overlay — slides up on hover */}
+                                    <div className="absolute inset-x-0 bottom-0 px-3 flex flex-col items-center transition-all duration-300 ease-out translate-y-[28px] group-hover:translate-y-0"
+                                         style={{ paddingBottom: '12px' }}>
+                                        {/* Name — always partially visible */}
                                         <div
                                             className="text-sm font-bold text-center leading-tight line-clamp-2"
                                             style={{
@@ -141,16 +142,16 @@ export const AgentRolePicker: React.FC<AgentRolePickerProps> = ({
                                             {role.name}
                                         </div>
 
-                                        {/* Divider */}
-                                        <div className="w-16 h-px my-1.5" style={{
+                                        {/* Divider — hidden by default, revealed on hover */}
+                                        <div className="w-16 h-px my-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" style={{
                                             background: isSelected
                                                 ? 'linear-gradient(90deg, transparent, #00ff9d, transparent)'
                                                 : 'linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent)',
                                         }} />
 
-                                        {/* Description */}
+                                        {/* Description — hidden by default, revealed on hover */}
                                         <div
-                                            className="text-[11px] text-center leading-snug line-clamp-2"
+                                            className="text-[11px] text-center leading-snug line-clamp-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
                                             style={{
                                                 color: isSelected ? 'rgba(0,255,157,0.7)' : 'rgba(255,255,255,0.6)',
                                                 textShadow: '0 0 6px rgba(0,0,0,0.9), 0 0 12px rgba(0,0,0,0.8), 0 1px 2px rgba(0,0,0,1)',
