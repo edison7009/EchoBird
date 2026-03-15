@@ -135,13 +135,24 @@ export function ChatBubble({ role, content, variant, chips = [], isStreaming = f
         if (!finalText && !isStreaming) return null;
 
         return (
-            <div className="flex justify-start mb-4">
+            <div className="flex justify-start mb-2">
+                {/* Tail nub pointing left (where avatar would be) */}
+                <div className="relative mt-[10px] mr-0 flex-shrink-0">
+                    <span
+                        className="block w-0 h-0"
+                        style={{
+                            borderTop: '6px solid transparent',
+                            borderBottom: '6px solid transparent',
+                            borderRight: '8px solid #2A2A2A',
+                        }}
+                    />
+                </div>
                 <div
-                    className="max-w-[62%] rounded-2xl rounded-tl-sm px-4 py-3 text-sm leading-normal font-sans font-medium"
+                    className="max-w-[62%] rounded-xl px-3 py-2 text-sm leading-snug font-sans font-medium"
                     style={{
                         background: '#2A2A2A',
                         color: '#F0EDE8',
-                        boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.06), 0 2px 12px rgba(0,0,0,0.30), 0 0 0 1px rgba(255,255,255,0.05)',
+                        boxShadow: '0 1px 4px rgba(0,0,0,0.25)',
                     }}
                 >
                     {(isStreaming && !finalText)
@@ -154,10 +165,24 @@ export function ChatBubble({ role, content, variant, chips = [], isStreaming = f
     }
 
     // ── User bubble (right) — solid color, dark text ──
+    const tailColor = variant === 'mother' ? '#00D4FF' : '#00FF9D';
     return (
-        <div className="flex flex-col items-end mb-4">
-            <div className={`max-w-[75%] rounded-2xl rounded-tr-sm px-4 py-3 text-sm leading-relaxed whitespace-pre-wrap break-words font-sans font-medium ${USER_BUBBLE[variant]}`}>
-                {content}
+        <div className="flex flex-col items-end mb-2">
+            <div className="flex items-start justify-end">
+                <div className={`max-w-[62%] rounded-xl px-3 py-2 text-sm leading-snug whitespace-pre-wrap break-words font-sans font-medium ${USER_BUBBLE[variant]}`}>
+                    {content}
+                </div>
+                {/* Tail nub pointing right */}
+                <div className="relative mt-[10px] ml-0 flex-shrink-0">
+                    <span
+                        className="block w-0 h-0"
+                        style={{
+                            borderTop: '6px solid transparent',
+                            borderBottom: '6px solid transparent',
+                            borderLeft: `8px solid ${tailColor}`,
+                        }}
+                    />
+                </div>
             </div>
             {chips.length > 0 && <ReadonlyChips chips={chips} />}
         </div>
