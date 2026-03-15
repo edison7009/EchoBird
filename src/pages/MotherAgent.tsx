@@ -958,9 +958,9 @@ export function MotherAgentMain() {
                                 <button
                                     onClick={localSend}
                                     disabled={!chatInput.trim() || !agentModel}
-                                    className="p-1 text-cyber-accent-secondary/60 hover:text-cyber-accent-secondary transition-colors disabled:opacity-15"
+                                    className="w-8 h-8 rounded-full flex items-center justify-center bg-cyber-accent-secondary hover:brightness-110 transition-all disabled:opacity-20 disabled:hover:brightness-100"
                                 >
-                                    <Send size={16} />
+                                    <Send size={14} className="text-cyber-bg" />
                                 </button>
                             )}
                         </div>

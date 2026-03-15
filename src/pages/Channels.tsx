@@ -1036,9 +1036,9 @@ export const Channels: React.FC = () => {
                                             <button
                                                 onClick={handleSend}
                                                 disabled={(!input.trim() && attachments.length === 0 && pendingModels.length === 0 && pendingSkills.length === 0) || !isActiveConnected}
-                                                className="p-1 text-cyber-accent/60 hover:text-cyber-accent transition-colors disabled:opacity-15"
+                                                className="w-8 h-8 rounded-full flex items-center justify-center bg-cyber-accent hover:brightness-110 transition-all disabled:opacity-20 disabled:hover:brightness-100"
                                             >
-                                                <Send size={16} />
+                                                <Send size={14} className="text-cyber-bg" />
                                             </button>
                                         )}
                                     </div>
