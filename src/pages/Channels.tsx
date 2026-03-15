@@ -847,10 +847,7 @@ export const Channels: React.FC = () => {
                                                 }`}
                                             >
                                                 <img src={agent.icon} alt={agent.name} className={`w-4 h-4 ${isActive ? '' : 'opacity-50 grayscale'}`} />
-                                                <span>{agent.name}</span>
-                                                {selectedRoleForChannel && isActive && (
-                                                    <span className="text-[10px] text-cyber-accent/40">· {selectedRoleForChannel.name}</span>
-                                                )}
+                                                <span>{isActive && selectedRoleForChannel ? selectedRoleForChannel.name : agent.name}</span>
                                                 <ArrowLeftRight
                                                     size={14}
                                                     strokeWidth={2.5}
