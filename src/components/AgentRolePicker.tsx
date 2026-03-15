@@ -1,7 +1,7 @@
 // AgentRolePicker — Simple role card selector modal
 // Vertical image cards with hover slide-up text effect
-import React, { useState, useCallback } from 'react';
-import { X, RefreshCw, Check, UserPlus } from 'lucide-react';
+import React, { useState } from 'react';
+import { X, Check } from 'lucide-react';
 
 // ── 18 hardcoded roles with images from public/role/ ──
 const ROLES = [
@@ -43,21 +43,13 @@ export const AgentRolePicker: React.FC<AgentRolePickerProps> = ({
     agentName,
 }) => {
     const [localSelected, setLocalSelected] = useState<string | null>(selectedRole);
-    const [connecting, setConnecting] = useState<string | null>(null);
-    const [connected, setConnected] = useState<string | null>(selectedRole);
-
-    const handlePlugClick = useCallback((e: React.MouseEvent, roleId: string, roleName: string) => {
-        e.stopPropagation();
-        if (connecting) return;
-        setConnecting(roleId);
-        setTimeout(() => {
-            setConnecting(null);
-            setConnected(roleId);
-            onSelectRole(roleId, roleName);
-        }, 1500);
-    }, [connecting, onSelectRole]);
 
     if (!isOpen) return null;
+
+    const handleSelect = (roleId: string, roleName: string) => {
+        setLocalSelected(roleId);
+        onSelectRole(roleId, roleName);
+    };
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
@@ -79,19 +71,17 @@ export const AgentRolePicker: React.FC<AgentRolePickerProps> = ({
                     <div className="grid grid-cols-6 gap-3">
                         {ROLES.map(role => {
                             const isSelected = localSelected === role.id;
-                            const isConnecting = connecting === role.id;
-                            const isConnected = connected === role.id;
                             return (
                                 <div
                                     key={role.id}
-                                    onClick={() => setLocalSelected(role.id)}
+                                    onClick={() => handleSelect(role.id, role.name)}
                                     className={`relative border rounded-card cursor-pointer transition-all overflow-hidden group ${
                                         isSelected
                                             ? 'border-cyber-accent shadow-[0_0_12px_rgba(0,255,157,0.3)]'
                                             : 'border-cyber-border bg-black/80 shadow-cyber-card hover:border-cyber-accent/40 hover:shadow-[0_0_8px_rgba(0,255,157,0.1)]'
                                     }`}
                                 >
-                                    {/* Image — static, no zoom */}
+                                    {/* Image */}
                                     <div className="aspect-[5/8] overflow-hidden bg-black/60">
                                         <img
                                             src={role.img}
@@ -100,23 +90,14 @@ export const AgentRolePicker: React.FC<AgentRolePickerProps> = ({
                                         />
                                     </div>
 
-                                    {/* UserPlus button — top right */}
+                                    {/* ✓ badge — top right on selected */}
                                     {isSelected && (
-                                        <button
-                                            onClick={(e) => handlePlugClick(e, role.id, role.name)}
-                                            className="absolute top-2 right-2 h-7 px-2.5 rounded-lg flex items-center justify-center gap-1 transition-all z-10 bg-cyber-accent hover:brightness-110 shadow-[0_0_6px_rgba(0,255,157,0.3)]"
-                                        >
-                                            {isConnecting ? (
-                                                <RefreshCw size={12} className="text-black animate-spin" />
-                                            ) : isConnected ? (
-                                                <Check size={12} className="text-black" strokeWidth={3} />
-                                            ) : (
-                                                <span className="text-black text-[11px] font-bold font-mono">Chat</span>
-                                            )}
-                                        </button>
+                                        <div className="absolute top-2 right-2 w-7 h-7 rounded-lg flex items-center justify-center z-10 bg-cyber-accent shadow-[0_0_8px_rgba(0,255,157,0.5)]">
+                                            <Check size={14} className="text-black" strokeWidth={3} />
+                                        </div>
                                     )}
 
-                                    {/* Gradient overlay — always visible for readability */}
+                                    {/* Gradient overlay */}
                                     <div className="absolute inset-x-0 bottom-0 pointer-events-none"
                                          style={{
                                              height: '60%',
@@ -124,10 +105,9 @@ export const AgentRolePicker: React.FC<AgentRolePickerProps> = ({
                                          }}
                                     />
 
-                                    {/* Text overlay — name fixed at bottom, desc expands on hover */}
+                                    {/* Text overlay — name fixed, desc expands on hover */}
                                     <div className="absolute inset-x-0 bottom-0 px-3 pb-3 flex flex-col items-center"
-                                         style={{ willChange: 'auto', backfaceVisibility: 'hidden' }}>
-                                        {/* Name — always visible at bottom */}
+                                         style={{ backfaceVisibility: 'hidden' }}>
                                         <div
                                             className="text-sm font-bold text-center leading-tight line-clamp-2"
                                             style={{
@@ -139,7 +119,6 @@ export const AgentRolePicker: React.FC<AgentRolePickerProps> = ({
                                             {role.name}
                                         </div>
 
-                                        {/* Divider + Description — collapsed by default, expands on hover */}
                                         <div className="flex flex-col items-center overflow-hidden transition-all duration-300 ease-out max-h-0 group-hover:max-h-[60px] opacity-0 group-hover:opacity-100"
                                              style={{ backfaceVisibility: 'hidden' }}>
                                             <div className="w-16 h-px mt-1.5 mb-1" style={{
