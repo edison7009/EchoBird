@@ -1,7 +1,7 @@
 // AgentRolePicker — Simple role card selector modal
 // Vertical image cards with text overlay on bottom half
 import React, { useState, useCallback } from 'react';
-import { X, Plug } from 'lucide-react';
+import { X, Plug2, RefreshCw, Check } from 'lucide-react';
 
 // ── 18 hardcoded roles with images from public/role/ ──
 const ROLES = [
@@ -117,10 +117,13 @@ export const AgentRolePicker: React.FC<AgentRolePickerProps> = ({
                                                     : 'bg-cyber-accent hover:brightness-110 shadow-[0_0_6px_rgba(0,255,157,0.3)]'
                                             }`}
                                         >
-                                            <Plug
-                                                size={14}
-                                                className={`text-black ${isConnecting ? 'animate-spin' : ''}`}
-                                            />
+                                            {isConnecting ? (
+                                                <RefreshCw size={14} className="text-black animate-spin" />
+                                            ) : isConnected ? (
+                                                <Check size={14} className="text-black" strokeWidth={3} />
+                                            ) : (
+                                                <Plug2 size={14} className="text-black" />
+                                            )}
                                         </button>
                                     )}
 
