@@ -188,8 +188,8 @@ export const Channels: React.FC = () => {
     const isBridgeMode = true;
     const isLocalChannel = activeId === 1;
     const isActiveConnected = bridgeConnectionStatus === 'connected' || bridgeConnectionStatus === 'standby';
-    // Bridge standby = allow sending (will auto-start for local, SSH on-demand for remote)
-    const canSendMessage = bridgeConnectionStatus === 'standby' || bridgeConnectionStatus === 'connected';
+    // Bridge standby/disconnected = allow sending (local auto-restarts, remote reconnects per-send via SSH)
+    const canSendMessage = bridgeConnectionStatus !== 'connecting';
     const isLocal = activeChannel?.address?.startsWith('127.0.0.1') || activeChannel?.address === 'localhost';
     const messages = bridgeMessages;
 
@@ -558,9 +558,15 @@ export const Channels: React.FC = () => {
         }
         setInput('');
         setAttachments([]);
-
-        // All channels use bridge protocol
+        // Always save user message to chat — preserved even if send fails
         setBridgeMessages(prev => [...prev, { role: 'user', content: text }]);
+
+        if (!canSendMessage) {
+            // Blocked (e.g. still connecting) — show error so user knows, their message is still saved above
+            setBridgeMessages(prev => [...prev, { role: 'system', content: '', i18nKey: 'error.requestFailed' }]);
+            return;
+        }
+
         setBridgeLoading(true);
         try {
             if (isLocalChannel) {
