@@ -418,6 +418,8 @@ export const Channels: React.FC = () => {
         if (isBridgeMode) {
             setBridgeMessages([]);
             setBridgeSessionId(undefined);
+            setDiskTotalFor(channelFileKey ?? '', 0);
+            if (channelFileKey) channelHistoryClear(channelFileKey).catch(() => {});
             // Stop bridge process
             try {
                 await api.bridgeStop();
@@ -1019,7 +1021,11 @@ export const Channels: React.FC = () => {
                                     <div className="flex items-center gap-1.5">
                                         {/* Clear display — frontend only, bridge/context unaffected */}
                                         <button
-                                            onClick={() => setBridgeMessages([])}
+                                            onClick={() => {
+                                                setBridgeMessages([]);
+                                                setDiskTotalFor(channelFileKey ?? '', 0);
+                                                if (channelFileKey) channelHistoryClear(channelFileKey).catch(() => {});
+                                            }}
                                             disabled={messages.length === 0}
                                             className="p-1 text-cyber-accent/40 hover:text-cyber-accent transition-colors disabled:opacity-20"
                                         >
