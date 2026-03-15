@@ -31,6 +31,7 @@ interface Pulse {
     x: number; y: number;
     dx: number; dy: number;
     life: number;
+    speed: number;     // px per tick — red pulses travel faster
     color: [number, number, number];
     oneShot?: boolean;
 }
@@ -76,17 +77,18 @@ export function CircuitFlow({ flashCount = 0 }: CircuitFlowProps = {}) {
 
         const spawnPulse = (color: [number, number, number], oneShot = false) => {
             if (w === 0 || h === 0) return;
+            const spd = oneShot ? SPEED * 2.5 : SPEED;
             const horizontal = Math.random() < 0.5;
             if (horizontal) {
                 const rows = Math.floor(h / GRID);
                 const row = (Math.floor(Math.random() * rows) + 1) * GRID;
                 const goRight = Math.random() < 0.5;
-                pulses.push({ x: goRight ? -TRAIL : w + TRAIL, y: row, dx: goRight ? 1 : -1, dy: 0, life: w + TRAIL * 2, color, oneShot });
+                pulses.push({ x: goRight ? -TRAIL : w + TRAIL, y: row, dx: goRight ? 1 : -1, dy: 0, life: w + TRAIL * 2, speed: spd, color, oneShot });
             } else {
                 const cols = Math.floor(w / GRID);
                 const col = (Math.floor(Math.random() * cols) + 1) * GRID;
                 const goDown = Math.random() < 0.5;
-                pulses.push({ x: col, y: goDown ? -TRAIL : h + TRAIL, dx: 0, dy: goDown ? 1 : -1, life: h + TRAIL * 2, color, oneShot });
+                pulses.push({ x: col, y: goDown ? -TRAIL : h + TRAIL, dx: 0, dy: goDown ? 1 : -1, life: h + TRAIL * 2, speed: spd, color, oneShot });
             }
         };
 
@@ -104,14 +106,20 @@ export function CircuitFlow({ flashCount = 0 }: CircuitFlowProps = {}) {
             ctx.fillStyle = `rgba(${r},${g},${b},0.8)`; ctx.fill();
 
             if (p.color === COLOR_ERR) {
+                // Expanding ripple waves: radial-gradient filled circles, no stroke, soft glow edges
                 const phase = (t % 90) / 90;
                 for (let ring = 0; ring < 3; ring++) {
                     const rp = (phase + ring * 0.33) % 1;
-                    ctx.beginPath(); ctx.arc(p.x, p.y, 4 + rp * 36, 0, Math.PI * 2);
-                    ctx.strokeStyle = `rgba(${r},${g},${b},${0.45 * (1 - rp)})`; ctx.lineWidth = 1.5; ctx.stroke();
+                    const outerR = 5 + rp * 42;
+                    const innerR = outerR * 0.5;
+                    const alpha = 0.38 * (1 - rp);
+                    const wGrad = ctx.createRadialGradient(p.x, p.y, innerR, p.x, p.y, outerR);
+                    wGrad.addColorStop(0, `rgba(${r},${g},${b},0)`);
+                    wGrad.addColorStop(0.45, `rgba(${r},${g},${b},${alpha})`);
+                    wGrad.addColorStop(1, `rgba(${r},${g},${b},0)`);
+                    ctx.beginPath(); ctx.arc(p.x, p.y, outerR, 0, Math.PI * 2);
+                    ctx.fillStyle = wGrad; ctx.fill();
                 }
-                ctx.beginPath(); ctx.arc(p.x, p.y, 16, 0, Math.PI * 2);
-                ctx.fillStyle = `rgba(${r},${g},${b},0.18)`; ctx.fill();
             } else {
                 ctx.beginPath(); ctx.arc(p.x, p.y, 6, 0, Math.PI * 2);
                 ctx.fillStyle = `rgba(${r},${g},${b},0.12)`; ctx.fill();
@@ -140,7 +148,7 @@ export function CircuitFlow({ flashCount = 0 }: CircuitFlowProps = {}) {
 
             for (let i = pulses.length - 1; i >= 0; i--) {
                 const p = pulses[i];
-                p.x += p.dx * SPEED; p.y += p.dy * SPEED; p.life -= SPEED;
+                p.x += p.dx * p.speed; p.y += p.dy * p.speed; p.life -= p.speed;
                 if (p.life <= 0) { pulses.splice(i, 1); continue; }
                 drawPulse(p, tick);
             }
