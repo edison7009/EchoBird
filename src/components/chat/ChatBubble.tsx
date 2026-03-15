@@ -136,7 +136,7 @@ export function ChatBubble({ role, content, variant, chips = [], isStreaming = f
         return (
             <div className="flex justify-start mb-4">
                 <div
-                    className="max-w-[75%] rounded-2xl rounded-tl-sm px-4 py-3 text-sm leading-relaxed font-sans font-semibold"
+                    className="max-w-[75%] rounded-2xl rounded-tl-sm px-4 py-3 text-base leading-relaxed font-sans font-semibold"
                     style={{
                         background: '#2A2A2A',
                         color: '#DED9D2',
@@ -155,7 +155,7 @@ export function ChatBubble({ role, content, variant, chips = [], isStreaming = f
     // ── User bubble (right) — solid color, dark text ──
     return (
         <div className="flex flex-col items-end mb-4">
-            <div className={`max-w-[75%] rounded-2xl rounded-tr-sm px-4 py-3 text-sm leading-relaxed whitespace-pre-wrap break-words font-sans font-semibold ${USER_BUBBLE[variant]}`}>
+            <div className={`max-w-[75%] rounded-2xl rounded-tr-sm px-4 py-3 text-base leading-relaxed whitespace-pre-wrap break-words font-sans font-semibold ${USER_BUBBLE[variant]}`}>
                 {content}
             </div>
             {chips.length > 0 && <ReadonlyChips chips={chips} />}

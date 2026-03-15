@@ -131,11 +131,13 @@ pre {
 /* Thin stealth scrollbar — for chat/terminal areas */
 .custom-scrollbar {
   scrollbar-width: thin;
-  scrollbar-color: rgba(0, 255, 170, 0.15) transparent;
+  scrollbar-color: transparent transparent;
+}
+.custom-scrollbar:hover {
+  scrollbar-color: rgba(255,255,255,0.18) transparent;
 }
 
 .custom-scrollbar::-webkit-scrollbar {
-  display: block;
   width: 4px;
 }
 
@@ -144,12 +146,12 @@ pre {
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: rgba(0, 255, 170, 0.15);
-  border-radius: 2px;
+  background: transparent;
+  border-radius: 4px;
 }
 
-.custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 255, 170, 0.35);
+.custom-scrollbar:hover::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.18);
 }
 
 /* Grid background effect */
