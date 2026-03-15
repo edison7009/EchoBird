@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback, createContext, useContext } from 'react';
-import { Paperclip, ImageIcon, KeyRound, Send, X, ChevronDown, Zap, Square, Lock, Eraser, ChevronLeft, ChevronRight, ChevronsDown, Globe, Info, CheckCircle, HelpCircle, ChevronUp, Code, Search, X as XIcon, FileText, Sparkles, Plus, Bot, Database, Settings2 } from 'lucide-react';
+import { Paperclip, ImageIcon, KeyRound, Send, X, ChevronDown, Zap, Square, Lock, RotateCcw, ChevronLeft, ChevronRight, ChevronsDown, Globe, Info, CheckCircle, HelpCircle, ChevronUp, Code, Search, X as XIcon, FileText, Sparkles, Plus, Bot, Database, Settings2 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { MiniSelect } from '../components/MiniSelect';
@@ -944,7 +944,7 @@ export function MotherAgentMain() {
                                 disabled={isProcessing || chatOutput.length === 0}
                                 className="p-1 text-cyber-accent-secondary/40 hover:text-cyber-accent-secondary transition-colors disabled:opacity-20"
                             >
-                                <Eraser size={15} />
+                                <RotateCcw size={15} />
                             </button>
                             <span className="text-xs font-mono text-cyber-accent-secondary/80 truncate max-w-[160px]">
                                 {(() => {
