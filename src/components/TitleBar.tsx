@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Settings, Minus, Maximize2, Minimize2, X } from 'lucide-react';
 import { useI18n } from '../hooks/useI18n';
-import { getCurrentWindow, currentMonitor, LogicalSize, LogicalPosition } from '@tauri-apps/api/window';
+import { getCurrentWindow } from '@tauri-apps/api/window';
 import * as api from '../api/tauri';
 
 interface TitleBarProps {
@@ -13,58 +13,19 @@ export const TitleBar: React.FC<TitleBarProps> = ({ onSettingsClick }) => {
     const { t } = useI18n();
     const handleMinimize = () => getCurrentWindow().minimize();
     const [isMaximized, setIsMaximized] = useState(false);
-    const [isResized, setIsResized] = useState(false);
-
-    // Default window size (must match tauri.conf.json)
-    const DEFAULT_W = 1400;
-    const DEFAULT_H = 900;
 
     useEffect(() => {
-        const win = getCurrentWindow();
         // Sync initial state and listen for resize/maximize events
-        const syncState = async () => {
-            const maximized = await win.isMaximized().catch(() => false);
-            setIsMaximized(maximized);
-            if (!maximized) {
-                const factor = await win.scaleFactor().catch(() => 1.0);
-                const size = await win.innerSize().catch(() => null);
-                if (size) {
-                    const logicalW = Math.round(size.width / factor);
-                    const logicalH = Math.round(size.height / factor);
-                    setIsResized(Math.abs(logicalW - DEFAULT_W) > 10 || Math.abs(logicalH - DEFAULT_H) > 10);
-                }
-            } else {
-                setIsResized(false);
-            }
-        };
-        syncState();
-        const unlisten = win.onResized(() => syncState());
+        getCurrentWindow().isMaximized().then(setIsMaximized).catch(() => {});
+        const unlisten = getCurrentWindow().onResized(() => {
+            getCurrentWindow().isMaximized().then(setIsMaximized).catch(() => {});
+        });
         return () => { unlisten.then(fn => fn()).catch(() => {}); };
     }, []);
 
-    const handleMaximize = async () => {
-        const win = getCurrentWindow();
-        if (isMaximized) {
-            // Maximized → unmaximize (restore to previous size)
-            await win.unmaximize();
-        } else if (isResized) {
-            // Manually resized → restore to default size & center
-            await win.setSize(new LogicalSize(DEFAULT_W, DEFAULT_H));
-            // Center on screen
-            const monitor = await currentMonitor().catch(() => null);
-            if (monitor) {
-                const factor = monitor.scaleFactor;
-                const sw = monitor.size.width / factor;
-                const sh = monitor.size.height / factor;
-                await win.setPosition(new LogicalPosition(
-                    Math.round((sw - DEFAULT_W) / 2),
-                    Math.round((sh - DEFAULT_H) / 2),
-                ));
-            }
-        } else {
-            // Default size → maximize
-            await win.maximize();
-        }
+    const handleMaximize = () => {
+        if (isMaximized) getCurrentWindow().unmaximize();
+        else getCurrentWindow().maximize();
     };
 
     // Close confirmation dialog state
@@ -153,7 +114,7 @@ export const TitleBar: React.FC<TitleBarProps> = ({ onSettingsClick }) => {
                         onClick={handleMaximize}
                         className="h-full px-4 flex items-center justify-center text-cyber-text-secondary hover:bg-cyber-accent/20 hover:text-cyber-accent transition-colors"
                     >
-                        {(isMaximized || isResized) ? <Minimize2 size={13} /> : <Maximize2 size={13} />}
+                        {isMaximized ? <Minimize2 size={13} /> : <Maximize2 size={13} />}
                     </button>
                     <button
                         onClick={handleClose}
