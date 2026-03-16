@@ -499,7 +499,16 @@ export async function loadRoleContent(locale: string, filePath: string): Promise
     return invoke('load_role_content', { locale, filePath });
 }
 
-// ─── Tool Config APIs ───
+export interface AgentStatus {
+    id: string;
+    name: string;
+    installed: boolean;
+    path?: string;
+}
+
+export async function detectLocalAgents(): Promise<AgentStatus[]> {
+    return invoke('detect_local_agents');
+}
 
 export async function updateToolConfig(toolId: string, config: Record<string, unknown>): Promise<boolean> {
     return invoke('update_tool_config', { toolId, config });

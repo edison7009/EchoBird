@@ -5,7 +5,7 @@ import React, { useState, useEffect } from 'react';
 import { X, Check, Loader2 } from 'lucide-react';
 import { useI18n } from '../hooks/useI18n';
 import * as api from '../api/tauri';
-import type { RoleCategory, RoleEntry } from '../api/tauri';
+import type { RoleCategory, RoleEntry, AgentStatus } from '../api/tauri';
 
 // ── Agent tools ──
 const AGENT_TOOLS = [
@@ -41,11 +41,15 @@ export const AgentRolePicker: React.FC<AgentRolePickerProps> = ({
     const [roles, setRoles] = useState<RoleEntry[]>([]);
     const [allLabel, setAllLabel] = useState('All');
     const [loading, setLoading] = useState(false);
+    const [agentStatuses, setAgentStatuses] = useState<AgentStatus[]>([]);
+    const [detecting, setDetecting] = useState(false);
 
-    // Load roles when modal opens or locale changes
+    // Load roles + detect agents when modal opens
     useEffect(() => {
         if (!isOpen) return;
         let cancelled = false;
+
+        // Scan roles
         setLoading(true);
         api.scanRoles(locale).then(result => {
             if (cancelled) return;
@@ -57,6 +61,18 @@ export const AgentRolePicker: React.FC<AgentRolePickerProps> = ({
             if (cancelled) return;
             setLoading(false);
         });
+
+        // Detect installed agents (parallel)
+        setDetecting(true);
+        api.detectLocalAgents().then(statuses => {
+            if (cancelled) return;
+            setAgentStatuses(statuses);
+            setDetecting(false);
+        }).catch(() => {
+            if (cancelled) return;
+            setDetecting(false);
+        });
+
         return () => { cancelled = true; };
     }, [isOpen, locale]);
 
@@ -88,17 +104,22 @@ export const AgentRolePicker: React.FC<AgentRolePickerProps> = ({
                 <div className="flex items-center gap-2 px-5 pb-2.5 flex-shrink-0">
                     {AGENT_TOOLS.map(agent => {
                         const isActive = selectedAgent === agent.name;
+                        const status = agentStatuses.find(s => s.id === agent.id);
+                        const isInstalled = detecting ? true : (!status || status.installed);
                         return (
                             <div
                                 key={agent.name}
-                                onClick={() => onSelectAgent(agent.name)}
-                                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-card text-xs font-mono cursor-pointer transition-all ${
-                                    isActive
-                                        ? 'border border-cyber-accent bg-cyber-accent/10 shadow-cyber-card text-cyber-accent'
-                                        : 'border border-cyber-border shadow-cyber-card bg-black/80 text-cyber-text-muted/70 hover:border-cyber-accent/30 hover:bg-black/90'
+                                onClick={() => { if (isInstalled) onSelectAgent(agent.name); }}
+                                title={isInstalled ? agent.name : `${agent.name} — ${t('status.notInstalled')}`}
+                                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-card text-xs font-mono transition-all ${
+                                    !isInstalled
+                                        ? 'border border-cyber-border/30 bg-black/60 text-cyber-text-muted/30 cursor-not-allowed opacity-40'
+                                        : isActive
+                                            ? 'border border-cyber-accent bg-cyber-accent/10 shadow-cyber-card text-cyber-accent cursor-pointer'
+                                            : 'border border-cyber-border shadow-cyber-card bg-black/80 text-cyber-text-muted/70 hover:border-cyber-accent/30 hover:bg-black/90 cursor-pointer'
                                 }`}
                             >
-                                <img src={agent.icon} alt={agent.name} className={`w-4 h-4 ${isActive ? '' : 'opacity-50 grayscale'}`} />
+                                <img src={agent.icon} alt={agent.name} className={`w-4 h-4 ${isActive && isInstalled ? '' : 'opacity-50 grayscale'}`} />
                                 <span>{agent.name}</span>
                             </div>
                         );

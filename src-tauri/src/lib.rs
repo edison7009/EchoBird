@@ -426,6 +426,7 @@ pub fn run() {
             ssh_commands::get_bridge_path,
             role_commands::scan_roles,
             role_commands::load_role_content,
+            role_commands::detect_local_agents,
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")
