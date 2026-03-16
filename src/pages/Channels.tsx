@@ -738,6 +738,22 @@ export const Channels: React.FC = () => {
                 }, 30_000);
 
                 try {
+                    // Auto-install selected role on remote server before chatting
+                    const role = selectedRoleForChannel;
+                    if (role?.filePath) {
+                        const agentEntry = AGENT_LIST.find(a => a.name === selectedAgentName);
+                        const agentId = agentEntry?.id || 'openclaw';
+                        const isZh = locale.startsWith('zh');
+                        const roleUrl = isZh
+                            ? `https://raw.githubusercontent.com/jnMetaCode/agency-agents-zh/main/zh-Hans/${role.filePath}`
+                            : `https://raw.githubusercontent.com/msitarzewski/agency-agents/main/en/${role.filePath}`;
+                        try {
+                            await api.bridgeSetRoleRemote(serverId, agentId, role.id, roleUrl);
+                        } catch (e) {
+                            console.warn('[Bridge] set_role failed (non-fatal):', e);
+                        }
+                    }
+
                     const result = await api.bridgeChatRemote(serverId, text, bridgeSessionId);
                     clearTimeout(workingTimer);
                     // Remove the working hint before adding the real reply
