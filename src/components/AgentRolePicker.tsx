@@ -39,6 +39,7 @@ export const AgentRolePicker: React.FC<AgentRolePickerProps> = ({
     const [activeCat, setActiveCat] = useState('all');
     const [categories, setCategories] = useState<RoleCategory[]>([]);
     const [roles, setRoles] = useState<RoleEntry[]>([]);
+    const [allLabel, setAllLabel] = useState('All');
     const [loading, setLoading] = useState(false);
 
     // Load roles when modal opens or locale changes
@@ -50,6 +51,7 @@ export const AgentRolePicker: React.FC<AgentRolePickerProps> = ({
             if (cancelled) return;
             setCategories(result.categories);
             setRoles(result.roles);
+            setAllLabel(result.allLabel || 'All');
             setLoading(false);
         }).catch(() => {
             if (cancelled) return;
@@ -103,8 +105,8 @@ export const AgentRolePicker: React.FC<AgentRolePickerProps> = ({
                     })}
                 </div>
 
-                {/* Category tabs — dynamically loaded */}
-                <div className="flex items-center gap-1.5 px-5 py-2.5 flex-shrink-0 overflow-x-auto">
+                {/* Category tabs — dynamically loaded, auto-wrap */}
+                <div className="flex flex-wrap items-center gap-1.5 px-5 py-2.5 flex-shrink-0">
                     <button
                         onClick={() => setActiveCat('all')}
                         className={`px-3 py-1 rounded-md text-xs font-mono whitespace-nowrap transition-all ${
@@ -113,7 +115,7 @@ export const AgentRolePicker: React.FC<AgentRolePickerProps> = ({
                                 : 'text-cyber-text-muted/60 border border-transparent hover:text-cyber-accent/80 hover:bg-cyber-accent/5'
                         }`}
                     >
-                        All
+                        {allLabel}
                     </button>
                     {categories.map(cat => (
                         <button
@@ -183,7 +185,7 @@ export const AgentRolePicker: React.FC<AgentRolePickerProps> = ({
                                         <div className="absolute inset-x-0 bottom-0 px-3 pb-3 flex flex-col items-center"
                                              style={{ backfaceVisibility: 'hidden' }}>
                                             <div
-                                                className="text-base font-bold text-center leading-tight line-clamp-2"
+                                                className="text-sm font-bold text-center leading-tight line-clamp-1"
                                                 style={{
                                                     color: '#00ff9d',
                                                     textShadow: '0 0 8px rgba(0,0,0,0.9), 0 0 16px rgba(0,0,0,0.7), 0 1px 3px rgba(0,0,0,1)',

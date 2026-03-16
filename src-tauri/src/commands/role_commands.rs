@@ -1,45 +1,23 @@
 // Role scanner — reads agency-agents repos, parses YAML frontmatter
 // Supports locale-based directory selection (roles/en/, roles/zh-Hans/)
+// Category labels read from _categories.json — add new language = add file, zero code changes
 
 
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::path::PathBuf;
 
-// ── Category display names per locale ──
+// ── Category labels from _categories.json ──
 
-fn category_label(dir_name: &str, locale: &str) -> Option<String> {
-    let label = match (dir_name, locale) {
-        // English
-        ("engineering", "en") => "\u{1F4BB} Engineering",
-        ("design", "en") => "\u{1F3A8} Design",
-        ("marketing", "en") => "\u{1F4E2} Marketing",
-        ("paid-media", "en") => "\u{1F4B0} Paid Media",
-        ("sales", "en") => "\u{1F4BC} Sales",
-        ("product", "en") => "\u{1F4CA} Product",
-        ("project-management", "en") => "\u{1F3AC} Project Management",
-        ("testing", "en") => "\u{1F9EA} Testing",
-        ("support", "en") => "\u{1F6DF} Support",
-        ("spatial-computing", "en") => "\u{1F97D} Spatial Computing",
-        ("specialized", "en") => "\u{1F3AF} Specialized",
-        ("game-development", "en") => "\u{1F3AE} Game Development",
-        ("academic", "en") => "\u{1F4DA} Academic",
-        // Chinese
-        ("engineering", _) => "\u{1F6E0}\u{FE0F} \u{5DE5}\u{7A0B}\u{90E8}",
-        ("design", _) => "\u{1F3A8} \u{8BBE}\u{8BA1}\u{90E8}",
-        ("marketing", _) => "\u{1F4E2} \u{8425}\u{9500}\u{90E8}",
-        ("paid-media", _) => "\u{1F4B0} \u{4ED8}\u{8D39}\u{5A92}\u{4F53}\u{90E8}",
-        ("sales", _) => "\u{1F4BC} \u{9500}\u{552E}\u{90E8}",
-        ("product", _) => "\u{1F4E6} \u{4EA7}\u{54C1}\u{90E8}",
-        ("project-management", _) => "\u{1F4CB} \u{9879}\u{76EE}\u{7BA1}\u{7406}\u{90E8}",
-        ("testing", _) => "\u{1F9EA} \u{6D4B}\u{8BD5}\u{90E8}",
-        ("support", _) => "\u{1F91D} \u{652F}\u{6301}\u{90E8}",
-        ("spatial-computing", _) => "\u{1F97D} \u{7A7A}\u{95F4}\u{8BA1}\u{7B97}\u{90E8}",
-        ("specialized", _) => "\u{1F52C} \u{4E13}\u{9879}\u{90E8}",
-        ("game-development", _) => "\u{1F3AE} \u{6E38}\u{620F}\u{5F00}\u{53D1}\u{90E8}",
-        ("academic", _) => "\u{1F4DA} \u{5B66}\u{672F}\u{90E8}",
-        _ => return None,
-    };
-    Some(label.to_string())
+fn load_category_labels(locale_dir: &std::path::Path) -> HashMap<String, String> {
+    let path = locale_dir.join("_categories.json");
+    if let Ok(content) = std::fs::read_to_string(&path) {
+        if let Ok(map) = serde_json::from_str::<HashMap<String, String>>(&content) {
+            return map;
+        }
+    }
+    log::warn!("[Roles] _categories.json not found in {:?}, using directory names", locale_dir);
+    HashMap::new()
 }
 
 // ── Category sort order ──
@@ -69,7 +47,7 @@ fn category_order(dir_name: &str) -> u32 {
 #[serde(rename_all = "camelCase")]
 pub struct RoleCategory {
     pub id: String,        // directory name: "engineering"
-    pub label: String,     // display: "🛠️ 工程部"
+    pub label: String,     // display: "工程部"
     pub order: u32,
 }
 
@@ -92,6 +70,7 @@ pub struct RoleScanResult {
     pub categories: Vec<RoleCategory>,
     pub roles: Vec<RoleEntry>,
     pub locale: String,
+    pub all_label: String,     // "全部" / "All" — from _categories.json "all" key
 }
 
 // ── Frontmatter parser ──
@@ -210,8 +189,13 @@ pub fn scan_roles(locale: String) -> RoleScanResult {
             categories: vec![],
             roles: vec![],
             locale: dir_name.to_string(),
+            all_label: "All".to_string(),
         };
     }
+
+    // Load category labels from _categories.json
+    let cat_labels = load_category_labels(&locale_dir);
+    let all_label = cat_labels.get("all").cloned().unwrap_or_else(|| "All".to_string());
 
     let images = placeholder_images();
     let mut categories: Vec<RoleCategory> = Vec::new();
@@ -239,13 +223,13 @@ pub fn scan_roles(locale: String) -> RoleScanResult {
     for dir_entry in &dirs {
         let cat_name = dir_entry.file_name().to_string_lossy().to_string();
         
-        if let Some(label) = category_label(&cat_name, dir_name) {
-            categories.push(RoleCategory {
-                id: cat_name.clone(),
-                label,
-                order: category_order(&cat_name),
-            });
-        }
+        // Get label from _categories.json, fallback to directory name
+        let label = cat_labels.get(&cat_name).cloned().unwrap_or_else(|| cat_name.clone());
+        categories.push(RoleCategory {
+            id: cat_name.clone(),
+            label,
+            order: category_order(&cat_name),
+        });
 
         // Scan .md files in this category (including subdirectories for game-development)
         scan_md_files(&dir_entry.path(), &cat_name, &images, &mut img_idx, &mut roles, &locale_dir);
@@ -257,6 +241,7 @@ pub fn scan_roles(locale: String) -> RoleScanResult {
         categories,
         roles,
         locale: dir_name.to_string(),
+        all_label,
     }
 }
 

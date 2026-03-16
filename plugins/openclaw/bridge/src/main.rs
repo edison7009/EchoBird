@@ -10,6 +10,7 @@
 
 use serde::{Deserialize, Serialize};
 use std::io::{self, BufRead, Write};
+use std::path::PathBuf;
 use std::process::Command;
 
 // ── Types ──
@@ -38,6 +39,18 @@ enum InboundMessage {
     },
     #[serde(rename = "ping")]
     Ping {},
+    #[serde(rename = "detect_agents")]
+    DetectAgents {},
+    #[serde(rename = "set_role")]
+    SetRole {
+        agent_id: String,
+        role_id: String,
+        file_path: String,
+    },
+    #[serde(rename = "start_agent")]
+    StartAgent {
+        agent_id: String,
+    },
 }
 
 #[derive(Debug, Serialize)]
@@ -64,6 +77,32 @@ enum OutboundMessage {
     },
     #[serde(rename = "pong")]
     Pong {},
+    #[serde(rename = "agents_detected")]
+    AgentsDetected {
+        agents: Vec<AgentInfo>,
+    },
+    #[serde(rename = "role_set")]
+    RoleSet {
+        agent_id: String,
+        role_id: String,
+        installed: bool,
+        path: String,
+    },
+    #[serde(rename = "agent_started")]
+    AgentStarted {
+        agent_id: String,
+        success: bool,
+        message: String,
+    },
+}
+
+#[derive(Debug, Clone, Serialize)]
+struct AgentInfo {
+    id: String,
+    name: String,
+    installed: bool,
+    running: bool,
+    path: Option<String>,
 }
 
 // ── Config ──
@@ -170,6 +209,15 @@ fn handle_message(config: &BridgeConfig, msg: InboundMessage) {
         }
         InboundMessage::Ping {} => {
             send(&OutboundMessage::Pong {});
+        }
+        InboundMessage::DetectAgents {} => {
+            handle_detect_agents();
+        }
+        InboundMessage::SetRole { agent_id, role_id, file_path } => {
+            handle_set_role(&agent_id, &role_id, &file_path);
+        }
+        InboundMessage::StartAgent { agent_id } => {
+            handle_start_agent(&agent_id);
         }
     }
 }
@@ -357,6 +405,266 @@ fn find_json_object(input: &str) -> Option<String> {
         }
     }
     None
+}
+
+// ── Agent Detection ──
+
+/// Agents we know how to detect
+const KNOWN_AGENTS: &[(&str, &str, &str)] = &[
+    // (id, display_name, command_name)
+    ("claudecode", "Claude Code", "claude"),
+    ("opencode",   "OpenCode",    "opencode"),
+    ("openclaw",   "OpenClaw",    "openclaw"),
+    ("zeroclaw",   "ZeroClaw",    "zeroclaw"),
+];
+
+fn handle_detect_agents() {
+    let mut agents = Vec::new();
+
+    for &(id, name, cmd) in KNOWN_AGENTS {
+        let (installed, path) = check_installed(cmd);
+        let running = if installed { check_running(cmd) } else { false };
+
+        agents.push(AgentInfo {
+            id: id.to_string(),
+            name: name.to_string(),
+            installed,
+            running,
+            path,
+        });
+    }
+
+    eprintln!("[bridge] Detected agents: {:?}", agents.iter().map(|a| (&a.id, a.installed, a.running)).collect::<Vec<_>>());
+    send(&OutboundMessage::AgentsDetected { agents });
+}
+
+/// Check if a command is installed — returns (installed, optional_path)
+fn check_installed(cmd: &str) -> (bool, Option<String>) {
+    let result = if cfg!(target_os = "windows") {
+        Command::new("where.exe").arg(cmd).output()
+    } else {
+        Command::new("which").arg(cmd).output()
+    };
+
+    match result {
+        Ok(output) if output.status.success() => {
+            let path = String::from_utf8_lossy(&output.stdout)
+                .lines().next().unwrap_or("").trim().to_string();
+            if path.is_empty() { (false, None) } else { (true, Some(path)) }
+        }
+        _ => (false, None),
+    }
+}
+
+/// Check if a process is currently running
+fn check_running(cmd: &str) -> bool {
+    let result = if cfg!(target_os = "windows") {
+        // tasklist /FI "IMAGENAME eq claude.exe" /NH
+        let exe_name = format!("{}.exe", cmd);
+        Command::new("tasklist")
+            .args(["/FI", &format!("IMAGENAME eq {}", exe_name), "/NH"])
+            .output()
+    } else {
+        // pgrep -x <cmd>
+        Command::new("pgrep").args(["-x", cmd]).output()
+    };
+
+    match result {
+        Ok(output) => {
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            if cfg!(target_os = "windows") {
+                // tasklist returns "INFO: No tasks are running..." if not found
+                !stdout.contains("INFO:") && stdout.contains(cmd)
+            } else {
+                // pgrep returns exit code 0 if found
+                output.status.success()
+            }
+        }
+        Err(_) => false,
+    }
+}
+
+// ── Role Installation ──
+
+fn handle_set_role(agent_id: &str, role_id: &str, file_path: &str) {
+    // Find role source file
+    let roles_dir = bridge_roles_dir();
+    let source = roles_dir.join(file_path);
+
+    if !source.exists() {
+        send(&OutboundMessage::Error {
+            message: format!("Role file not found: {:?}", source),
+        });
+        return;
+    }
+
+    // Determine target path based on agent
+    let home = home_dir();
+    let target = match agent_id {
+        "claudecode" => home.join(".claude").join("agents").join(format!("{}.md", role_id)),
+        "opencode"   => home.join(".config").join("opencode").join("agents").join(format!("{}.md", role_id)),
+        "openclaw"   => home.join(".openclaw").join("agency-agents").join(role_id).join("SOUL.md"),
+        "zeroclaw"   => home.join(".zeroclaw").join("workspace").join("skills").join(role_id).join("SKILL.md"),
+        _ => {
+            send(&OutboundMessage::Error {
+                message: format!("Unknown agent: {}", agent_id),
+            });
+            return;
+        }
+    };
+
+    // Idempotent: skip if already installed
+    if target.exists() {
+        eprintln!("[bridge] Role {} already installed for {} at {:?}", role_id, agent_id, target);
+        send(&OutboundMessage::RoleSet {
+            agent_id: agent_id.to_string(),
+            role_id: role_id.to_string(),
+            installed: true,
+            path: target.to_string_lossy().to_string(),
+        });
+        return;
+    }
+
+    // Create parent directories
+    if let Some(parent) = target.parent() {
+        if let Err(e) = std::fs::create_dir_all(parent) {
+            send(&OutboundMessage::Error {
+                message: format!("Failed to create directory {:?}: {}", parent, e),
+            });
+            return;
+        }
+    }
+
+    // Copy role file
+    match std::fs::copy(&source, &target) {
+        Ok(_) => {
+            eprintln!("[bridge] Role {} installed for {} at {:?}", role_id, agent_id, target);
+            send(&OutboundMessage::RoleSet {
+                agent_id: agent_id.to_string(),
+                role_id: role_id.to_string(),
+                installed: true,
+                path: target.to_string_lossy().to_string(),
+            });
+        }
+        Err(e) => {
+            send(&OutboundMessage::Error {
+                message: format!("Failed to copy role file: {}", e),
+            });
+        }
+    }
+}
+
+// ── Agent Startup ──
+
+fn handle_start_agent(agent_id: &str) {
+    let cmd = match agent_id {
+        "claudecode" => "claude",
+        "opencode"   => "opencode",
+        "openclaw"   => "openclaw",
+        "zeroclaw"   => "zeroclaw",
+        _ => {
+            send(&OutboundMessage::AgentStarted {
+                agent_id: agent_id.to_string(),
+                success: false,
+                message: format!("Unknown agent: {}", agent_id),
+            });
+            return;
+        }
+    };
+
+    // Check if already running
+    if check_running(cmd) {
+        send(&OutboundMessage::AgentStarted {
+            agent_id: agent_id.to_string(),
+            success: true,
+            message: "Already running".to_string(),
+        });
+        return;
+    }
+
+    // Check if installed
+    let (installed, _) = check_installed(cmd);
+    if !installed {
+        send(&OutboundMessage::AgentStarted {
+            agent_id: agent_id.to_string(),
+            success: false,
+            message: format!("{} is not installed on this machine", cmd),
+        });
+        return;
+    }
+
+    // Start the agent (detached background process)
+    let result = if cfg!(target_os = "windows") {
+        Command::new("cmd.exe")
+            .args(["/c", "start", "/b", cmd])
+            .spawn()
+    } else {
+        Command::new(cmd)
+            .stdin(std::process::Stdio::null())
+            .stdout(std::process::Stdio::null())
+            .stderr(std::process::Stdio::null())
+            .spawn()
+    };
+
+    match result {
+        Ok(_) => {
+            eprintln!("[bridge] Started agent: {}", cmd);
+            send(&OutboundMessage::AgentStarted {
+                agent_id: agent_id.to_string(),
+                success: true,
+                message: format!("{} started successfully", cmd),
+            });
+        }
+        Err(e) => {
+            send(&OutboundMessage::AgentStarted {
+                agent_id: agent_id.to_string(),
+                success: false,
+                message: format!("Failed to start {}: {}", cmd, e),
+            });
+        }
+    }
+}
+
+// ── Helpers ──
+
+/// Get user home directory (cross-platform)
+fn home_dir() -> PathBuf {
+    #[cfg(target_os = "windows")]
+    {
+        std::env::var("USERPROFILE")
+            .map(PathBuf::from)
+            .unwrap_or_else(|_| PathBuf::from("C:\\Users\\default"))
+    }
+    #[cfg(not(target_os = "windows"))]
+    {
+        std::env::var("HOME")
+            .map(PathBuf::from)
+            .unwrap_or_else(|_| PathBuf::from("/root"))
+    }
+}
+
+/// Find the roles/ directory relative to the bridge binary
+fn bridge_roles_dir() -> PathBuf {
+    let exe_dir = std::env::current_exe()
+        .ok()
+        .and_then(|p| p.parent().map(|p| p.to_path_buf()))
+        .unwrap_or_else(|| PathBuf::from("."));
+
+    // Search: exe_dir/roles, exe_dir/../roles, exe_dir/../../roles
+    let candidates = [
+        exe_dir.join("roles"),
+        exe_dir.parent().map(|p| p.join("roles")).unwrap_or_default(),
+        exe_dir.parent().and_then(|p| p.parent()).map(|p| p.join("roles")).unwrap_or_default(),
+    ];
+
+    for c in &candidates {
+        if c.exists() {
+            return c.clone();
+        }
+    }
+
+    eprintln!("[bridge] Warning: roles/ directory not found near bridge binary");
+    exe_dir.join("roles")
 }
 
 /// Send a JSON message to stdout (one line)

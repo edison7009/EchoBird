@@ -488,6 +488,7 @@ export interface RoleScanResult {
     categories: RoleCategory[];
     roles: RoleEntry[];
     locale: string;
+    allLabel: string;
 }
 
 export async function scanRoles(locale: string): Promise<RoleScanResult> {
