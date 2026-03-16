@@ -41,24 +41,11 @@ pub struct RoleScanResult {
 
 fn placeholder_images() -> Vec<String> {
     vec![
-        "1119642287_IGDB-285x380.jpg".into(),
-        "116747788-285x380.png".into(),
-        "1329153872_IGDB-285x380.jpg".into(),
-        "1435206302_IGDB-285x380.jpg".into(),
-        "1597660489_IGDB-285x380.jpg".into(),
-        "1630982727_IGDB-285x380.jpg".into(),
-        "21779-285x380.jpg".into(),
-        "29307_IGDB-285x380.jpg".into(),
-        "509538_IGDB-285x380.jpg".into(),
-        "509658-285x380.jpg".into(),
-        "511224-285x380.jpg".into(),
-        "512864_IGDB-285x380.jpg".into(),
-        "513181_IGDB-285x380.jpg".into(),
-        "515025-285x380.png".into(),
-        "516575-285x380.png".into(),
-        "55453844_IGDB-285x380.jpg".into(),
-        "66082-285x380.jpg".into(),
-        "66366_IGDB-285x380.jpg".into(),
+        "1.jpg".into(), "2.jpg".into(), "3.jpg".into(), "4.jpg".into(),
+        "5.jpg".into(), "6.jpg".into(), "7.jpg".into(), "8.jpg".into(),
+        "9.png".into(), "10.png".into(), "11.jpg".into(), "12.png".into(),
+        "13.jpg".into(), "14.jpg".into(), "15.jpg".into(), "16.jpg".into(),
+        "17.jpg".into(),
     ]
 }
 
