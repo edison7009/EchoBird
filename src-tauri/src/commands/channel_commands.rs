@@ -98,6 +98,7 @@ static BRIDGE_PROCESS: Mutex<Option<BridgeProcess>> = Mutex::new(None);
 // ── Oneshot State (for cli-oneshot protocol — no persistent subprocess) ──
 
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 struct OneshotState {
     plugin_id: String,
     plugin_name: String,
