@@ -465,6 +465,28 @@ export async function bridgeChatRemote(serverId: string, message: string, sessio
     return invoke('bridge_chat_remote', { serverId, message, sessionId: sessionId ?? null, pluginId: pluginId ?? null });
 }
 
+// ─── Remote Bridge CLI Commands ───
+
+export interface RemoteAgentInfo {
+    id: string;
+    name: string;
+    installed: boolean;
+    running: boolean;
+    path?: string;
+}
+
+export async function bridgeDetectAgentsRemote(serverId: string): Promise<RemoteAgentInfo[]> {
+    return invoke('bridge_detect_agents_remote', { serverId });
+}
+
+export async function bridgeSetRoleRemote(serverId: string, agentId: string, roleId: string, url: string): Promise<unknown> {
+    return invoke('bridge_set_role_remote', { serverId, agentId, roleId, url });
+}
+
+export async function bridgeClearRoleRemote(serverId: string, agentId: string, roleId: string): Promise<unknown> {
+    return invoke('bridge_clear_role_remote', { serverId, agentId, roleId });
+}
+
 // ─── Role APIs ───
 
 export interface RoleCategory {
