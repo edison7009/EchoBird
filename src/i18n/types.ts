@@ -99,7 +99,7 @@ export type TKey =
     | 'channel.standby' | 'channel.linked' | 'channel.enterMessage' | 'channel.awaitingResponse'
     | 'channel.failed' | 'channel.connecting' | 'channel.connectedTo'
     | 'channel.connectionFailed' | 'channel.transmitting' | 'channel.noModels'
-    | 'channel.motherFlow'
+    | 'channel.motherFlow' | 'channel.selectRoleAgent'
     // Mother Agent
     | 'mother.selectModel'
     | 'mother.awaitingInit' | 'mother.flowHint'

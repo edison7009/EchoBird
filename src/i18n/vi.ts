@@ -194,6 +194,7 @@ const vi: Partial<Translations> = {
     'channel.transmitting': 'đang truyền...',
     'channel.noModels': 'Không có mô hình khả dụng',
     'channel.motherFlow': 'Mother Agent → Máy chủ → Agent',
+    'channel.selectRoleAgent': 'Ch\u1ecdn vai tr\u00f2 v\u00e0 t\u00e1c t\u1eed',
     'hint.devInvite': 'Phát triển ứng dụng hoặc trò chơi AI — tham khảo \"Reversi\" và \"AI Translate\".',
     'nav.motherAgent': 'Mother Agent',
     'page.motherAgent': 'Mother Agent',

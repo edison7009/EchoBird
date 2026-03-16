@@ -221,6 +221,7 @@ const zhHant: Partial<Translations> = {
     'channel.transmitting': '傳輸中…',
     'channel.noModels': '暫無可用模型',
     'channel.motherFlow': 'Mother Agent → 伺服器 → Agent',
+    'channel.selectRoleAgent': '\u9078\u64c7\u89d2\u8272\u548c Agent',
     'hint.devInvite': '開發 AI 應用或 AI 遊戲，參考「黑白棋」和「AI 翻譯」。',
     'nav.motherAgent': 'Mother Agent',
     'page.motherAgent': 'Mother Agent',

@@ -234,6 +234,7 @@ const zhHans: Partial<Translations> = {
     'channel.transmitting': '传输中…',
     'channel.noModels': '暂无可用模型',
     'channel.motherFlow': 'Mother Agent → 服务器 → Agent',
+    'channel.selectRoleAgent': '\u9009\u62e9\u89d2\u8272\u548c Agent',
     // Developer invite hint
     'hint.devInvite': '开发 AI 应用或 AI 游戏，参考「黑白棋」和「AI 翻译」。',
     // Mother Agent

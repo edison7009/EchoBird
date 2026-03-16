@@ -194,6 +194,7 @@ const nl: Partial<Translations> = {
     'channel.transmitting': 'verzenden...',
     'channel.noModels': 'Geen modellen beschikbaar',
     'channel.motherFlow': 'Mother Agent → Server → Agent',
+    'channel.selectRoleAgent': 'Selecteer rol en agent',
     'hint.devInvite': 'Ontwikkel AI-apps of AI-games — zie \"Reversi\" en \"AI Translate\".',
     'nav.motherAgent': 'Mother Agent',
     'page.motherAgent': 'Mother Agent',

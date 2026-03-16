@@ -194,6 +194,7 @@ const bn: Partial<Translations> = {
     'channel.transmitting': 'প্রেরণ হচ্ছে...',
     'channel.noModels': 'কোনো মডেল উপলব্ধ নেই',
     'channel.motherFlow': 'Mother Agent → সার্ভার → Agent',
+    'channel.selectRoleAgent': '\u09ad\u09c2\u09ae\u09bf\u0995\u09be \u098f\u09ac\u0982 \u098f\u099c\u09c7\u09a8\u09cd\u099f \u09a8\u09bf\u09b0\u09cd\u09ac\u09be\u099a\u09a8 \u0995\u09b0\u09c1\u09a8',
     'hint.devInvite': 'AI অ্যাপ বা AI গেম তৈরি করুন — \"Reversi\" ও \"AI Translate\" দেখুন।',
     'nav.motherAgent': 'Mother Agent',
     'page.motherAgent': 'Mother Agent',

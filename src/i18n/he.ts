@@ -61,6 +61,7 @@ const he: Partial<Translations> = {
     'channel.transmitting': 'משדר...',
     'channel.noModels': 'אין מודלים זמינים',
     'channel.motherFlow': 'Mother Agent → שרת → Agent',
+    'channel.selectRoleAgent': '\u05d1\u05d7\u05e8 \u05ea\u05e4\u05e7\u05d9\u05d3 \u05d5\u05e1\u05d5\u05db\u05df',
     'hint.devInvite': 'פתחו אפליקציות AI או משחקי AI — ראו \"Reversi\" ו-\"AI Translate\".',
     'nav.motherAgent': 'Mother Agent',
     'page.motherAgent': 'Mother Agent',
