@@ -66,6 +66,8 @@ fn placeholder_images() -> Vec<String> {
 
 fn roles_dir() -> PathBuf {
     let candidates = [
+        // Dev: src-tauri/../roles (Tauri CWD is src-tauri/)
+        PathBuf::from("../roles"),
         // Dev: workspace root
         PathBuf::from("roles"),
         // Tauri bundle: next to executable
