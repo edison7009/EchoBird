@@ -766,7 +766,7 @@ export function MotherAgentMain() {
                                 }
                                 return null;
                             })}
-                            {isProcessing && (
+                            {isProcessing && !(chatOutput.length > 0 && chatOutput[chatOutput.length - 1].type === 'assistant') && (
                                 <ChatBubble role="assistant" content="" variant="mother" isStreaming={true} />
                             )}
                             <div ref={chatEndRef} />

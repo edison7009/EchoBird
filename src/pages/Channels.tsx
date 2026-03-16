@@ -153,7 +153,9 @@ export const Channels: React.FC = () => {
         { id: 'zeroclaw', name: 'ZeroClaw', icon: '/icons/tools/zeroclaw.png' },
     ];
     const [allActiveAgents, setAllActiveAgents] = useState<Record<number, string>>({});
-    const setActiveAgentFor = (chId: number, name: string) => setAllActiveAgents(prev => ({ ...prev, [chId]: name }));
+    const setActiveAgentFor = (chId: number, name: string) => {
+        setAllActiveAgents(prev => ({ ...prev, [chId]: name }));
+    };
     // Per-channel selected role
     const [allSelectedRoles, setAllSelectedRoles] = useState<Record<number, { id: string; name: string; filePath: string }>>({});
     const [showRolePicker, setShowRolePicker] = useState(false);
@@ -166,6 +168,27 @@ export const Channels: React.FC = () => {
     const bridgeAgentName = allBridgeAgentNames[channelKey];
     const bridgeLoading = allBridgeLoading[channelKey] || false;
     const selectedRoleForChannel = allSelectedRoles[channelKey] || null;
+
+    // ─── Persist agent/role selection per channel ───
+    const channelFileKeyForPersist = channelKey === 0 ? null
+        : channelKey === 1 ? 'local'
+        : (channels.find(c => c.id === channelKey)?.address || `ch_${channelKey}`).replace(/[^a-zA-Z0-9._-]/g, '_');
+
+    // Load from localStorage on channel switch
+    useEffect(() => {
+        if (!channelFileKeyForPersist) return;
+        try {
+            const savedAgent = localStorage.getItem(`eb_ch_${channelFileKeyForPersist}_agent`);
+            if (savedAgent && !allActiveAgents[channelKey]) {
+                setAllActiveAgents(prev => ({ ...prev, [channelKey]: savedAgent }));
+            }
+            const savedRole = localStorage.getItem(`eb_ch_${channelFileKeyForPersist}_role`);
+            if (savedRole && !allSelectedRoles[channelKey]) {
+                const parsed = JSON.parse(savedRole);
+                setAllSelectedRoles(prev => ({ ...prev, [channelKey]: parsed }));
+            }
+        } catch { /* ignore parse errors */ }
+    }, [channelKey, channelFileKeyForPersist]); // eslint-disable-line react-hooks/exhaustive-deps
 
     // ─── Stable disk key derived from channel address (computed early from channels state) ───
     // e.g. activeId=1 → 'local', SSH → 'eben_192.168.10.39'
@@ -859,7 +882,7 @@ export const Channels: React.FC = () => {
                                         }
                                         return <ChatBubble key={i} role="assistant" content={msg.content} variant="channels" />;
                                     })}
-                                    {bridgeLoading && <ChatBubble role="assistant" content="" variant="channels" isStreaming={true} />}
+                                    {bridgeLoading && !(messages.length > 0 && messages[messages.length - 1].role === 'assistant') && <ChatBubble role="assistant" content="" variant="channels" isStreaming={true} />}
                                     </div>
                                     <div ref={scrollRef} />
                                 </div>
@@ -1096,9 +1119,23 @@ export const Channels: React.FC = () => {
                 isOpen={showRolePicker}
                 onClose={() => setShowRolePicker(false)}
                 selectedRole={selectedRoleForChannel?.id || null}
-                onSelectRole={(id, name, filePath) => setAllSelectedRoles(prev => ({ ...prev, [channelKey]: { id, name, filePath } }))}
+                onSelectRole={(id, name, filePath) => {
+                    setAllSelectedRoles(prev => ({ ...prev, [channelKey]: { id, name, filePath } }));
+                    if (channelFileKeyForPersist) {
+                        if (id) {
+                            localStorage.setItem(`eb_ch_${channelFileKeyForPersist}_role`, JSON.stringify({ id, name, filePath }));
+                        } else {
+                            localStorage.removeItem(`eb_ch_${channelFileKeyForPersist}_role`);
+                        }
+                    }
+                }}
                 selectedAgent={allActiveAgents[channelKey] || 'OpenClaw'}
-                onSelectAgent={(name) => setActiveAgentFor(channelKey, name)}
+                onSelectAgent={(name) => {
+                    setActiveAgentFor(channelKey, name);
+                    if (channelFileKeyForPersist) {
+                        localStorage.setItem(`eb_ch_${channelFileKeyForPersist}_agent`, name);
+                    }
+                }}
             />
         </>
     );
