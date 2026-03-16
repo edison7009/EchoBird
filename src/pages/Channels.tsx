@@ -875,7 +875,7 @@ export const Channels: React.FC = () => {
                         {(() => {
                             const selectedAgent = allActiveAgents[channelKey] || 'OpenClaw';
                             const agent = AGENT_LIST.find(a => a.name === selectedAgent) || AGENT_LIST[0];
-                            const displayName = selectedRoleForChannel ? selectedRoleForChannel.name : agent.name;
+                            const displayName = (selectedRoleForChannel && selectedRoleForChannel.id) ? selectedRoleForChannel.name : agent.name;
                             return (
                                 <div className="flex items-center gap-2 mx-4 mt-1 mb-0.5 select-none">
                                     <div
