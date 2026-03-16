@@ -52,35 +52,48 @@ fn placeholder_images() -> Vec<String> {
 // ── Roles directory resolution ──
 
 fn roles_dir() -> PathBuf {
-    let candidates = [
-        // Dev: src-tauri/../roles (Tauri CWD is src-tauri/)
-        PathBuf::from("../roles"),
-        // Dev: workspace root
-        PathBuf::from("roles"),
-        // Tauri bundle: next to executable
-        std::env::current_exe()
-            .unwrap_or_default()
-            .parent()
-            .unwrap_or(std::path::Path::new("."))
-            .join("roles"),
-        // macOS .app bundle
-        std::env::current_exe()
-            .unwrap_or_default()
-            .parent()
-            .unwrap_or(std::path::Path::new("."))
-            .parent()
-            .unwrap_or(std::path::Path::new("."))
-            .join("Resources")
-            .join("roles"),
+    let exe_dir = std::env::current_exe()
+        .ok()
+        .and_then(|p| p.parent().map(|p| p.to_path_buf()))
+        .unwrap_or_else(|| PathBuf::from("."));
+
+    let mut candidates = vec![
+        exe_dir.join("roles"),                                 // release: next to exe
+        exe_dir.join("_up_").join("roles"),                   // Tauri NSIS (Windows): resources in _up_/
     ];
+
+    // Walk up from exe dir (handles debug/release nesting, macOS app bundle, Linux AppImage)
+    if let Some(p1) = exe_dir.parent() {
+        candidates.push(p1.join("roles"));                     // one up
+        candidates.push(p1.join("_up_").join("roles"));       // one up + _up_
+        candidates.push(p1.join("Resources").join("roles"));  // macOS .app: Contents/Resources/roles
+        if let Some(p2) = p1.parent() {
+            candidates.push(p2.join("roles"));                 // two up (tauri dev)
+            candidates.push(p2.join("Resources").join("roles"));
+            if let Some(p3) = p2.parent() {
+                candidates.push(p3.join("roles"));             // three up (src-tauri/target/debug → project root)
+            }
+        }
+    }
+
+    // Dev mode: use compile-time project path (handles custom build output dirs)
+    // CARGO_MANIFEST_DIR = src-tauri/, so parent = project root
+    let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    if let Some(project_root) = manifest_dir.parent() {
+        candidates.push(project_root.join("roles"));
+    }
+
+    candidates.push(PathBuf::from("roles"));                   // CWD fallback
 
     for candidate in &candidates {
         if candidate.exists() {
+            log::info!("[Roles] Found roles dir: {:?}", candidate);
             return candidate.clone();
         }
     }
 
-    PathBuf::from("roles")
+    log::warn!("[Roles] No roles dir found. Searched: {:?}", candidates);
+    candidates[0].clone()
 }
 
 // ── Scan Command — reads JSON ──

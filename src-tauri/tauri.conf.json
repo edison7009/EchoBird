@@ -42,7 +42,8 @@
         "category": "DeveloperTool",
         "resources": [
             "../tools/",
-            "../plugins/"
+            "../plugins/",
+            "../roles/"
         ],
         "icon": [
             "icons/32x32.png",
