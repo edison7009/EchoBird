@@ -61,7 +61,7 @@ const el: Partial<Translations> = {
     'channel.transmitting': 'μετάδοση...',
     'channel.noModels': 'Δεν υπάρχουν διαθέσιμα μοντέλα',
     'channel.motherFlow': 'Mother Agent → Διακομιστής → Agent',
-    'channel.selectRoleAgent': '\u0395\u03c0\u03b9\u03bb\u03bf\u03b3\u03ae \u03c1\u03cc\u03bb\u03bf\u03c5 \u03ba\u03b1\u03b9 \u03b1\u03bd\u03c4\u03b9\u03c0\u03c1\u03bf\u03c3\u03ce\u03c0\u03bf\u03c5',
+    'channel.selectRoleAgent': '\u0395\u03c0\u03b9\u03bb\u03bf\u03b3\u03ae \u03c1\u03cc\u03bb\u03bf\u03c5 \u03ba\u03b1\u03b9 \u03b1\u03bd\u03c4\u03b9\u03c0\u03c1\u03bf\u03c3\u03ce\u03c0\u03bf\u03c5 CLI',
     'hint.devInvite': 'Αναπτύξτε AI εφαρμογές ή AI παιχνίδια — δείτε \"Reversi\" και \"AI Translate\".',
     'nav.motherAgent': 'Mother Agent',
     'page.motherAgent': 'Mother Agent',

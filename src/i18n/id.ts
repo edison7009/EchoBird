@@ -196,7 +196,7 @@ const id: Partial<Translations> = {
     'channel.transmitting': 'mengirim...',
     'channel.noModels': 'Tidak ada model tersedia',
     'channel.motherFlow': 'Mother Agent → Server → Agent',
-    'channel.selectRoleAgent': 'Pilih Peran dan Agen',
+    'channel.selectRoleAgent': 'Pilih Peran dan Agen CLI',
     'hint.devInvite': 'Kembangkan aplikasi atau game AI — lihat \"Reversi\" dan \"AI Translate\".',
     'nav.motherAgent': 'Mother Agent',
     'page.motherAgent': 'Mother Agent',

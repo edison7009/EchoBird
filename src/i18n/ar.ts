@@ -194,7 +194,7 @@ const ar: Partial<Translations> = {
     'channel.transmitting': 'جارٍ الإرسال...',
     'channel.noModels': 'لا توجد نماذج متاحة',
     'channel.motherFlow': 'Mother Agent → الخادم → Agent',
-    'channel.selectRoleAgent': '\u0627\u062e\u062a\u064a\u0627\u0631 \u0627\u0644\u062f\u0648\u0631 \u0648\u0627\u0644\u0648\u0643\u064a\u0644',
+    'channel.selectRoleAgent': '\u0627\u062e\u062a\u064a\u0627\u0631 \u0627\u0644\u062f\u0648\u0631 \u0648\u0627\u0644\u0648\u0643\u064a\u0644 CLI',
     'hint.devInvite': 'طوّر تطبيقات أو ألعاب ذكاء اصطناعي — راجع \"Reversi\" و \"AI Translate\".',
     'nav.motherAgent': 'Mother Agent',
     'page.motherAgent': 'Mother Agent',

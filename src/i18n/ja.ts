@@ -220,7 +220,7 @@ const ja: Partial<Translations> = {
     'channel.transmitting': '送信中...',
     'channel.noModels': '利用可能なモデルがありません',
     'channel.motherFlow': 'Mother Agent → サーバー → Agent',
-    'channel.selectRoleAgent': '\u30ed\u30fc\u30eb\u3068\u30a8\u30fc\u30b8\u30a7\u30f3\u30c8\u3092\u9078\u629e',
+    'channel.selectRoleAgent': '\u30ed\u30fc\u30eb\u3068\u30a8\u30fc\u30b8\u30a7\u30f3\u30c8\u3092\u9078\u629e CLI',
     'hint.devInvite': 'AI アプリや AI ゲームを開発 — 「リバーシ」と「AI 翻訳」を参考に',
     'nav.motherAgent': 'Mother Agent',
     'page.motherAgent': 'Mother Agent',

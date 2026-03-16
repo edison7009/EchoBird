@@ -220,7 +220,7 @@ const ru: Partial<Translations> = {
     'channel.transmitting': 'Передача...',
     'channel.noModels': 'Нет доступных моделей',
     'channel.motherFlow': 'Mother Agent → Сервер → Agent',
-    'channel.selectRoleAgent': '\u0412\u044b\u0431\u0440\u0430\u0442\u044c \u0440\u043e\u043b\u044c \u0438 \u0430\u0433\u0435\u043d\u0442\u0430',
+    'channel.selectRoleAgent': '\u0412\u044b\u0431\u0440\u0430\u0442\u044c \u0440\u043e\u043b\u044c \u0438 \u0430\u0433\u0435\u043d\u0442\u0430 CLI',
     'hint.devInvite': 'Разрабатывайте AI-приложения или AI-игры — см. «Реверси» и «AI Translate».',
     'nav.motherAgent': 'Mother Agent',
     'page.motherAgent': 'Mother Agent',

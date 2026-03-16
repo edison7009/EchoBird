@@ -220,7 +220,7 @@ const ko: Partial<Translations> = {
     'channel.transmitting': '전송 중...',
     'channel.noModels': '사용 가능한 모델 없음',
     'channel.motherFlow': 'Mother Agent → 서버 → Agent',
-    'channel.selectRoleAgent': '\u50ed\u54a0 \u48143 \u50640\u51060\u51204\u53944 \u49440\u53469',
+    'channel.selectRoleAgent': '\u50ed\u54a0 \u48143 \u50640\u51060\u51204\u53944 \u49440\u53469 CLI',
     'hint.devInvite': 'AI 앱 또는 AI 게임 개발 — \"리버시\"와 \"AI 번역\"을 참고하세요.',
     'nav.motherAgent': 'Mother Agent',
     'page.motherAgent': 'Mother Agent',

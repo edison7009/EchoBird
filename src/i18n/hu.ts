@@ -194,7 +194,7 @@ const hu: Partial<Translations> = {
     'channel.transmitting': 'átvitel...',
     'channel.noModels': 'Nincs elérhető modell',
     'channel.motherFlow': 'Mother Agent → Szerver → Agent',
-    'channel.selectRoleAgent': 'Szerepk\u00f6r \u00e9s \u00fcgyn\u00f6k kiv\u00e1laszt\u00e1sa',
+    'channel.selectRoleAgent': 'Szerepk\u00f6r \u00e9s \u00fcgyn\u00f6k kiv\u00e1laszt\u00e1sa CLI',
     'hint.devInvite': 'Fejlesszen AI alkalmazásokat vagy AI játékokat — lásd: \"Reversi\" és \"AI Translate\".',
     'nav.motherAgent': 'Mother Agent',
     'page.motherAgent': 'Mother Agent',

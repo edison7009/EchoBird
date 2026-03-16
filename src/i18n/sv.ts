@@ -61,7 +61,7 @@ const sv: Partial<Translations> = {
     'channel.transmitting': 'överför...',
     'channel.noModels': 'Inga modeller tillgängliga',
     'channel.motherFlow': 'Mother Agent → Server → Agent',
-    'channel.selectRoleAgent': 'V\u00e4lj roll och agent',
+    'channel.selectRoleAgent': 'V\u00e4lj roll och agent CLI',
     'hint.devInvite': 'Utveckla AI-appar eller AI-spel — se \"Reversi\" och \"AI Translate\".',
     'nav.motherAgent': 'Mother Agent',
     'page.motherAgent': 'Mother Agent',

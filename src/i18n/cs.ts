@@ -194,7 +194,7 @@ const cs: Partial<Translations> = {
     'channel.transmitting': 'přenos...',
     'channel.noModels': 'Žádné dostupné modely',
     'channel.motherFlow': 'Mother Agent → Server → Agent',
-    'channel.selectRoleAgent': 'Vybrat roli a agenta',
+    'channel.selectRoleAgent': 'Vybrat roli a agenta CLI',
     'hint.devInvite': 'Vyvíjejte AI aplikace nebo AI hry — viz \"Reversi\" a \"AI Translate\".',
     'nav.motherAgent': 'Mother Agent',
     'page.motherAgent': 'Mother Agent',

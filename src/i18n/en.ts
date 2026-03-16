@@ -247,7 +247,7 @@ const en: Translations = {
     'channel.transmitting': 'transmitting...',
     'channel.noModels': 'No models available',
     'channel.motherFlow': 'Mother Agent → Server → Agent',
-    'channel.selectRoleAgent': 'Select Role and Agent',
+    'channel.selectRoleAgent': 'Select Role and Agent CLI',
     'hint.devInvite': 'Develop AI apps or AI games — see \"Reversi\" and \"AI Translate\".',
     // Mother Agent
     'mother.selectModel': 'Select model...',

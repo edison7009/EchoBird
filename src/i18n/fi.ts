@@ -61,7 +61,7 @@ const fi: Partial<Translations> = {
     'channel.transmitting': 'lähetetään...',
     'channel.noModels': 'Ei saatavilla olevia malleja',
     'channel.motherFlow': 'Mother Agent → Palvelin → Agent',
-    'channel.selectRoleAgent': 'Valitse rooli ja agentti',
+    'channel.selectRoleAgent': 'Valitse rooli ja agentti CLI',
     'hint.devInvite': 'Kehitä tekoälysovelluksia tai -pelejä — katso \"Reversi\" ja \"AI Translate\".',
     'nav.motherAgent': 'Mother Agent',
     'page.motherAgent': 'Mother Agent',

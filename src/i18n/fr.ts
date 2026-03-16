@@ -222,7 +222,7 @@ const fr: Partial<Translations> = {
     'channel.transmitting': 'transmission...',
     'channel.noModels': 'Aucun modèle disponible',
     'channel.motherFlow': 'Mother Agent →Serveur →Agent',
-    'channel.selectRoleAgent': 'Sélectionner le rôle et l\'agent',
+    'channel.selectRoleAgent': 'Sélectionner le rôle et l\'Agent CLI',
     'hint.devInvite': 'Développez des apps ou jeux IA →voir \"Reversi\" et \"AI Translate\".',
     'nav.motherAgent': 'Mother Agent',
     'page.motherAgent': 'Mother Agent',

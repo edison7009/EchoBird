@@ -61,7 +61,7 @@ const fa: Partial<Translations> = {
     'channel.transmitting': 'در حال ارسال...',
     'channel.noModels': 'مدلی موجود نیست',
     'channel.motherFlow': 'Mother Agent → سرور → Agent',
-    'channel.selectRoleAgent': '\u0627\u0646\u062a\u062e\u0627\u0628 \u0646\u0642\u0634 \u0648 \u0639\u0627\u0645\u0644',
+    'channel.selectRoleAgent': '\u0627\u0646\u062a\u062e\u0627\u0628 \u0646\u0642\u0634 \u0648 \u0639\u0627\u0645\u0644 CLI',
     'hint.devInvite': 'برنامه‌ها یا بازی‌های هوش مصنوعی بسازید — به \"Reversi\" و \"AI Translate\" مراجعه کنید.',
     'nav.motherAgent': 'Mother Agent',
     'page.motherAgent': 'Mother Agent',

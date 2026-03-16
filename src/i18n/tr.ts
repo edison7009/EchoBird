@@ -194,7 +194,7 @@ const tr: Partial<Translations> = {
     'channel.transmitting': 'iletiliyor...',
     'channel.noModels': 'Kullanılabilir model yok',
     'channel.motherFlow': 'Mother Agent → Sunucu → Agent',
-    'channel.selectRoleAgent': 'Rol ve ajan\u0131 se\u00e7in',
+    'channel.selectRoleAgent': 'Rol ve ajan\u0131 se\u00e7in CLI',
     'hint.devInvite': 'AI uygulamaları veya AI oyunları geliştirin — \"Reversi\" ve \"AI Translate\"\'e bakın.',
     'nav.motherAgent': 'Mother Agent',
     'page.motherAgent': 'Mother Agent',

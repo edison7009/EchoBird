@@ -222,7 +222,7 @@ const de: Partial<Translations> = {
     'channel.transmitting': 'Übertragung...',
     'channel.noModels': 'Keine Modelle verfügbar',
     'channel.motherFlow': 'Mother Agent →Server →Agent',
-    'channel.selectRoleAgent': 'Rolle und Agent ausw\u00e4hlen',
+    'channel.selectRoleAgent': 'Rolle und Agent ausw\u00e4hlen CLI',
     'hint.devInvite': 'KI-Apps oder KI-Spiele entwickeln →siehe \"Reversi\" und \"AI Translate\".',
     'nav.motherAgent': 'Mother Agent',
     'page.motherAgent': 'Mother Agent',
