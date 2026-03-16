@@ -132,3 +132,48 @@ If the user asks to install an agent you don't have a specific workflow for (e.g
    - Go to **App Manager** → assign a model to the newly installed agent → click **"Launch"** to start it
    - For Agent OS tools: go to **Channels** page to start chatting
    - For CLI tools: the tool opens directly in a terminal window (no Channels needed)
+
+---
+
+## Echobird CLI Bridge
+
+The **Echobird CLI Bridge** is a lightweight binary (~400KB) that bridges EchoBird with remote Agent CLI tools. It is deployed alongside agent roles to remote servers via SSH.
+
+### Supported Agents
+
+The CLI Bridge can detect and work with these Agent CLI tools:
+
+| Agent | Command | Role Install Path | Detection |
+|---|---|---|---|
+| **Claude Code** | `claude` | `~/.claude/agents/{role}.md` | `which claude` / `where.exe claude` |
+| **OpenCode** | `opencode` | `~/.config/opencode/agents/{role}.md` | `which opencode` / `where.exe opencode` |
+| **OpenClaw** | `openclaw` | `~/.openclaw/agency-agents/{role}/SOUL.md` | `which openclaw` / `where.exe openclaw` |
+| **ZeroClaw** | `zeroclaw` | `~/.zeroclaw/workspace/skills/{role}/SKILL.md` | `which zeroclaw` / `where.exe zeroclaw` |
+
+### Bridge Commands
+
+The CLI Bridge accepts these JSON commands via stdin:
+
+| Command | Description |
+|---|---|
+| `{"type":"detect_agents"}` | Multi-platform detection of installed agents (returns installed + running status) |
+| `{"type":"set_role","agent_id":"...","role_id":"...","file_path":"..."}` | Copy role file to agent's native directory (idempotent — skips if already installed) |
+| `{"type":"start_agent","agent_id":"..."}` | Start agent process if not running (checks first to avoid duplicates) |
+| `{"type":"chat","message":"..."}` | Send message to the active agent CLI |
+
+### Role Installation Flow
+
+When a user selects a role in EchoBird:
+1. Bridge checks if the role file already exists in the agent's directory
+2. If not → copies from `roles/` to the agent's native path
+3. Role is **permanently installed** — no need to re-inject every message
+4. Subsequent messages only verify the file exists (no re-copy)
+
+### Auto-Activation
+
+When a user sends a message:
+1. Bridge checks if the target agent process is running (`pgrep`/`tasklist`)
+2. If not running → auto-starts the agent
+3. If already running → uses existing process
+4. Sends the message to the agent
+
