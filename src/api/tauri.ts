@@ -482,6 +482,7 @@ export interface RoleEntry {
     emoji?: string;
     filePath: string;
     img?: string;
+    fallbackImg?: string;
 }
 
 export interface RoleScanResult {

@@ -61,7 +61,8 @@ pub struct RoleEntry {
     pub color: Option<String>, // from frontmatter
     pub emoji: Option<String>, // from frontmatter
     pub file_path: String,     // relative: "engineering/engineering-frontend-developer.md"
-    pub img: Option<String>,   // placeholder image path
+    pub img: Option<String>,   // CDN image URL
+    pub fallback_img: Option<String>, // local placeholder fallback
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -147,7 +148,9 @@ fn roles_dir() -> PathBuf {
     PathBuf::from("roles")
 }
 
-// ── Placeholder images (cycle through available images) ──
+// ── Cover image CDN ──
+
+const ROLE_COVER_CDN: &str = "https://echobird.ai/docs/roles";
 
 fn placeholder_images() -> Vec<String> {
     vec![
@@ -298,7 +301,9 @@ fn scan_md_files(
             .to_string_lossy()
             .replace('\\', "/");
 
-        let img = format!("/role/{}", images[*img_idx % images.len()]);
+        // Image: try CDN first (category/role-id.jpg), fallback to placeholder
+        let cdn_img = format!("{}/{}/{}.jpg", ROLE_COVER_CDN, category, filename);
+        let fallback_img = format!("/role/{}", images[*img_idx % images.len()]);
         *img_idx += 1;
 
         roles.push(RoleEntry {
@@ -309,7 +314,8 @@ fn scan_md_files(
             color,
             emoji,
             file_path: rel_path,
-            img: Some(img),
+            img: Some(cdn_img),
+            fallback_img: Some(fallback_img),
         });
     }
 }

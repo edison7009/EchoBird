@@ -180,10 +180,6 @@ export const AgentRolePicker: React.FC<AgentRolePickerProps> = ({
                                 }`}
                             >
                                 <div className="aspect-[5/8] overflow-hidden bg-black/60 flex items-center justify-center">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-cyber-text-muted/20">
-                                        <circle cx="12" cy="12" r="10" />
-                                        <line x1="4.93" y1="4.93" x2="19.07" y2="19.07" />
-                                    </svg>
                                 </div>
                                 {localSelected === null && (
                                     <div className="absolute top-2 right-2 w-7 h-7 rounded-lg flex items-center justify-center z-10 bg-cyber-accent ring-2 ring-black/40"
@@ -204,12 +200,22 @@ export const AgentRolePicker: React.FC<AgentRolePickerProps> = ({
                                                 : 'border-cyber-border bg-black/80 shadow-cyber-card hover:border-cyber-accent/40 hover:shadow-[0_0_8px_rgba(0,255,157,0.1)]'
                                         }`}
                                     >
-                                        {/* Image */}
-                                        <div className="aspect-[5/8] overflow-hidden bg-black/60">
+                                        {/* Image with skeleton loading */}
+                                        <div className="aspect-[5/8] overflow-hidden bg-black/60 relative">
+                                            <div className="absolute inset-0 bg-gradient-to-br from-cyber-border/20 to-black/40 animate-pulse" />
                                             <img
-                                                src={role.img || '/role/66082-285x380.jpg'}
+                                                src={role.img || role.fallbackImg || '/role/66082-285x380.jpg'}
                                                 alt={role.name}
-                                                className="w-full h-full object-cover object-center"
+                                                className="w-full h-full object-cover object-center relative z-[1]"
+                                                loading="lazy"
+                                                onLoad={(e) => { (e.target as HTMLElement).style.opacity = '1'; }}
+                                                onError={(e) => {
+                                                    const el = e.target as HTMLImageElement;
+                                                    if (role.fallbackImg && el.src !== role.fallbackImg) {
+                                                        el.src = role.fallbackImg;
+                                                    }
+                                                }}
+                                                style={{ opacity: 0, transition: 'opacity 0.3s ease-in' }}
                                             />
                                         </div>
 
