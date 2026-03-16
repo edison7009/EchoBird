@@ -195,7 +195,12 @@ pub fn detect_local_agents() -> Vec<AgentStatus> {
 
 fn check_command_installed(cmd: &str) -> (bool, Option<String>) {
     let result = if cfg!(target_os = "windows") {
-        std::process::Command::new("where.exe").arg(cmd).output()
+        // CREATE_NO_WINDOW prevents CLI window from flashing open
+        use std::os::windows::process::CommandExt;
+        std::process::Command::new("where.exe")
+            .arg(cmd)
+            .creation_flags(0x08000000) // CREATE_NO_WINDOW
+            .output()
     } else {
         std::process::Command::new("which").arg(cmd).output()
     };
