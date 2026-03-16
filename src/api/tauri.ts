@@ -478,8 +478,6 @@ export interface RoleEntry {
     name: string;
     description: string;
     category: string;
-    color?: string;
-    emoji?: string;
     filePath: string;
     img?: string;
     fallbackImg?: string;

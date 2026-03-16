@@ -150,6 +150,7 @@ export const Channels: React.FC = () => {
         { name: 'OpenClaw', icon: '/icons/tools/openclaw.svg' },
         { name: 'Claude Code', icon: '/icons/tools/claudecode.svg' },
         { name: 'OpenCode', icon: '/icons/tools/opencode.svg' },
+        { name: 'ZeroClaw', icon: '/icons/tools/zeroclaw.png' },
     ];
     const [allActiveAgents, setAllActiveAgents] = useState<Record<number, string>>({});
     const setActiveAgentFor = (chId: number, name: string) => setAllActiveAgents(prev => ({ ...prev, [chId]: name }));
@@ -886,10 +887,10 @@ export const Channels: React.FC = () => {
                                         <span>{displayName}</span>
                                     </div>
                                     {bridgeConnectionStatus === 'connecting' && (
-                                        <span className="text-yellow-400 text-xs font-mono animate-pulse">Connecting...</span>
+                                        <span className="text-yellow-400 text-xs font-mono animate-pulse">{t('channel.connecting')}</span>
                                     )}
                                     {bridgeConnectionStatus === 'disconnected' && (
-                                        <span className="text-red-400 text-xs font-mono">Connection failed</span>
+                                        <span className="text-red-400 text-xs font-mono">{t('channel.connectionFailed')}</span>
                                     )}
                                 </div>
                             );

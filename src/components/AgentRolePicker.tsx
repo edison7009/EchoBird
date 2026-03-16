@@ -44,6 +44,11 @@ export const AgentRolePicker: React.FC<AgentRolePickerProps> = ({
     const [agentStatuses, setAgentStatuses] = useState<AgentStatus[]>([]);
     const [detecting, setDetecting] = useState(false);
 
+    // Sync localSelected when prop changes (e.g. switching channels)
+    useEffect(() => {
+        setLocalSelected(selectedRole);
+    }, [selectedRole]);
+
     // Load roles + detect agents when modal opens
     useEffect(() => {
         if (!isOpen) return;
@@ -166,7 +171,7 @@ export const AgentRolePicker: React.FC<AgentRolePickerProps> = ({
                         </div>
                     ) : filteredRoles.length === 0 ? (
                         <div className="flex items-center justify-center h-full text-cyber-text-muted/40 text-sm font-mono">
-                            No roles found
+                            {t('common.noData')}
                         </div>
                     ) : (
                         <div className="grid grid-cols-6 gap-3">
@@ -205,7 +210,7 @@ export const AgentRolePicker: React.FC<AgentRolePickerProps> = ({
                                         <div className="aspect-[5/8] overflow-hidden bg-black/60 relative">
                                             <div className="absolute inset-0 bg-gradient-to-br from-cyber-border/20 to-black/40 animate-pulse" />
                                             <img
-                                                src={role.img || role.fallbackImg || '/role/66082-285x380.jpg'}
+                                                src={role.img || role.fallbackImg}
                                                 alt={role.name}
                                                 className="w-full h-full object-cover object-center relative"
                                                 loading="lazy"
