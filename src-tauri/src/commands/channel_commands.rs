@@ -83,7 +83,7 @@ pub struct ChannelConfig {
     pub address: String,
 }
 
-// ── Bridge Process (persistent subprocess) ──
+// ── Bridge Process (persistent subprocess for stdio-json protocol) ──
 
 struct BridgeProcess {
     child: Child,
@@ -94,6 +94,24 @@ struct BridgeProcess {
 }
 
 static BRIDGE_PROCESS: Mutex<Option<BridgeProcess>> = Mutex::new(None);
+
+// ── Oneshot State (for cli-oneshot protocol — no persistent subprocess) ──
+
+#[derive(Debug, Clone)]
+struct OneshotState {
+    plugin_id: String,
+    plugin_name: String,
+    cli_command: String,
+    cli_args: Vec<String>,
+    resume_args: Option<Vec<String>>,
+    session_arg: Option<String>,
+    system_prompt_arg: Option<String>,
+    system_prompt_when: Option<String>,  // "new-session" | "always"
+    session_id: Option<String>,
+    prompt_injected: bool,  // track if system_prompt was already sent (for "new-session" mode)
+}
+
+static ONESHOT_STATE: Mutex<Option<OneshotState>> = Mutex::new(None);
 
 /// Truncate a string at a safe UTF-8 char boundary
 fn safe_truncate(s: &str, max_bytes: usize) -> &str {
@@ -428,10 +446,20 @@ async fn download_bridge_if_missing(plugin_id: &str) -> Result<(), String> {
 pub async fn bridge_start(plugin_id: Option<String>) -> Result<BridgeStartResult, String> {
     let pid = plugin_id.unwrap_or_else(|| "openclaw".to_string());
 
+    // Look up plugin config to determine protocol
+    let plugins = crate::services::plugin_manager::scan_plugins();
+    let plugin = plugins.iter().find(|p| p.id == pid);
+    let protocol = plugin.map(|p| p.protocol.as_str()).unwrap_or("stdio-json");
+
+    if protocol == "cli-oneshot" {
+        // CLI-oneshot: no persistent subprocess — just verify the CLI exists
+        return start_oneshot(&pid, &plugins).await;
+    }
+
+    // stdio-json: persistent subprocess (existing logic)
     // Always ensure bridge binary is present before starting
     if let Err(e) = download_bridge_if_missing(&pid).await {
         log::warn!("[Bridge] Auto-download failed: {}", e);
-        // Don't abort — maybe binary was manually placed, let start_bridge_internal handle it
     }
 
     tokio::task::spawn_blocking(move || {
@@ -441,15 +469,13 @@ pub async fn bridge_start(plugin_id: Option<String>) -> Result<BridgeStartResult
             if let Some(ref mut bp) = *guard {
                 match bp.child.try_wait() {
                     Ok(None) => {
-                        // Still running
                         return Ok(BridgeStartResult {
                             status: "connected".to_string(),
                             error: None,
-                            agent_name: bp.agent_name.clone(), // Populated agent_name
+                            agent_name: bp.agent_name.clone(),
                         });
                     }
                     _ => {
-                        // Process exited, clean up
                         log::info!("[Bridge] Previous process exited, restarting...");
                         *guard = None;
                     }
@@ -461,9 +487,73 @@ pub async fn bridge_start(plugin_id: Option<String>) -> Result<BridgeStartResult
     }).await.map_err(|e| format!("Task error: {}", e))?
 }
 
+/// Start a cli-oneshot agent: verify CLI exists, store config in ONESHOT_STATE
+async fn start_oneshot(
+    plugin_id: &str,
+    plugins: &[crate::services::plugin_manager::PluginConfig],
+) -> Result<BridgeStartResult, String> {
+    let plugin = plugins.iter().find(|p| p.id == plugin_id)
+        .ok_or_else(|| format!("Plugin '{}' not found", plugin_id))?;
+
+    let cli = plugin.cli.as_ref()
+        .ok_or_else(|| format!("Plugin '{}' has no CLI config", plugin_id))?;
+
+    // Check if CLI command exists
+    let detect_cmd = cli.detect_command.as_deref().unwrap_or(&cli.command);
+    let parts: Vec<&str> = detect_cmd.split_whitespace().collect();
+    let detect_result = tokio::task::spawn_blocking({
+        let cmd = parts[0].to_string();
+        let args: Vec<String> = parts[1..].iter().map(|s| s.to_string()).collect();
+        move || Command::new(&cmd).args(&args).output()
+    }).await.map_err(|e| format!("Task error: {}", e))?;
+
+    match detect_result {
+        Ok(output) if output.status.success() => {
+            let version = String::from_utf8_lossy(&output.stdout).trim().to_string();
+            log::info!("[Bridge] CLI-oneshot '{}' detected: {}", cli.command, version);
+        }
+        Ok(output) => {
+            log::warn!("[Bridge] CLI '{}' exited with {}: {}",
+                cli.command, output.status,
+                String::from_utf8_lossy(&output.stderr).trim());
+            // Don't fail — CLI might still work for chat
+        }
+        Err(e) => {
+            return Err(format!("CLI '{}' not found: {}. Please install it first.", cli.command, e));
+        }
+    }
+
+    // Store oneshot state
+    let state = OneshotState {
+        plugin_id: plugin_id.to_string(),
+        plugin_name: plugin.name.clone(),
+        cli_command: cli.command.clone(),
+        cli_args: cli.args.clone(),
+        resume_args: cli.resume_args.clone(),
+        session_arg: cli.session_arg.clone(),
+        system_prompt_arg: cli.system_prompt_arg.clone(),
+        system_prompt_when: cli.system_prompt_when.clone(),
+        session_id: None,
+        prompt_injected: false,
+    };
+
+    let mut guard = ONESHOT_STATE.lock().map_err(|e| format!("Lock error: {}", e))?;
+    *guard = Some(state);
+
+    Ok(BridgeStartResult {
+        status: "connected".to_string(),
+        error: None,
+        agent_name: Some(plugin.name.clone()),
+    })
+}
+
 /// Stop the Bridge subprocess
 #[tauri::command]
 pub async fn bridge_stop() -> Result<(), String> {
+    // Clear oneshot state too
+    if let Ok(mut guard) = ONESHOT_STATE.lock() {
+        *guard = None;
+    }
     tokio::task::spawn_blocking(|| {
         let mut guard = BRIDGE_PROCESS.lock().map_err(|e| format!("Lock error: {}", e))?;
         if let Some(mut bp) = guard.take() {
@@ -478,6 +568,17 @@ pub async fn bridge_stop() -> Result<(), String> {
 /// Get current bridge status
 #[tauri::command]
 pub fn bridge_status() -> BridgeStatusResult {
+    // Check oneshot state first
+    if let Ok(guard) = ONESHOT_STATE.lock() {
+        if let Some(ref state) = *guard {
+            return BridgeStatusResult {
+                status: "connected".to_string(),
+                agent_name: Some(state.plugin_name.clone()),
+            };
+        }
+    }
+
+    // Check persistent bridge process
     let mut guard = match BRIDGE_PROCESS.lock() {
         Ok(g) => g,
         Err(_) => return BridgeStatusResult { status: "standby".to_string(), agent_name: None },
@@ -629,12 +730,159 @@ fn bridge_chat_sync(message: String, session_id: Option<String>) -> Result<Bridg
     })
 }
 
-/// Tauri command: chat with Agent (async wrapper around blocking I/O)
+/// Tauri command: chat with Agent (async wrapper — dispatches by protocol)
 #[tauri::command]
-pub async fn bridge_chat_local(message: String, session_id: Option<String>) -> Result<BridgeChatResult, String> {
+pub async fn bridge_chat_local(
+    message: String,
+    session_id: Option<String>,
+    system_prompt: Option<String>,
+) -> Result<BridgeChatResult, String> {
+    // Check if we have an active oneshot agent
+    let is_oneshot = ONESHOT_STATE.lock()
+        .map(|g| g.is_some())
+        .unwrap_or(false);
+
+    if is_oneshot {
+        return bridge_chat_oneshot(message, session_id, system_prompt).await;
+    }
+
+    // stdio-json: existing persistent subprocess chat
     tokio::task::spawn_blocking(move || {
         bridge_chat_sync(message, session_id)
     }).await.map_err(|e| format!("Task error: {}", e))?
+}
+
+/// Chat via cli-oneshot protocol: invoke CLI directly per message
+async fn bridge_chat_oneshot(
+    message: String,
+    session_id: Option<String>,
+    system_prompt: Option<String>,
+) -> Result<BridgeChatResult, String> {
+    // Read state
+    let (state_clone, effective_sid) = {
+        let guard = ONESHOT_STATE.lock().map_err(|e| format!("Lock error: {}", e))?;
+        let state = guard.as_ref().ok_or("No oneshot agent active")?
+            .clone();
+        let sid = session_id.or_else(|| state.session_id.clone());
+        (state, sid)
+    };
+
+    // Build CLI args
+    let mut args: Vec<String> = if effective_sid.is_some() && state_clone.resume_args.is_some() {
+        // Resume existing session
+        let resume = state_clone.resume_args.as_ref().unwrap();
+        resume.iter().map(|a| {
+            if a == "{sessionId}" {
+                effective_sid.as_ref().unwrap().clone()
+            } else {
+                a.clone()
+            }
+        }).collect()
+    } else {
+        state_clone.cli_args.clone()
+    };
+
+    // Inject system prompt if configured
+    let should_inject = match state_clone.system_prompt_when.as_deref() {
+        Some("always") => true,
+        Some("new-session") => !state_clone.prompt_injected,
+        _ => false,
+    };
+
+    if should_inject {
+        if let Some(ref prompt_arg) = state_clone.system_prompt_arg {
+            if let Some(ref prompt) = system_prompt {
+                args.push(prompt_arg.clone());
+                args.push(prompt.clone());
+                log::info!("[BridgeOneshot] Injecting system_prompt ({} chars) via {}",
+                    prompt.len(), prompt_arg);
+            }
+        }
+    }
+
+    // Append the user message as the last argument
+    args.push(message.clone());
+
+    log::info!("[BridgeOneshot] {} {}",
+        state_clone.cli_command,
+        args.iter().map(|a| if a.len() > 30 { format!("{}...", &a[..30]) } else { a.clone() }).collect::<Vec<_>>().join(" "));
+
+    // Execute CLI (blocking with timeout)
+    let cmd_name = state_clone.cli_command.clone();
+    let cmd_args = args.clone();
+    let result = tokio::time::timeout(
+        std::time::Duration::from_secs(300), // 5 min timeout
+        tokio::task::spawn_blocking(move || {
+            Command::new(&cmd_name)
+                .args(&cmd_args)
+                .output()
+        })
+    ).await;
+
+    let output = match result {
+        Ok(Ok(Ok(output))) => output,
+        Ok(Ok(Err(e))) => return Err(format!("Failed to run '{}': {}", state_clone.cli_command, e)),
+        Ok(Err(e)) => return Err(format!("Task error: {}", e)),
+        Err(_) => return Err(format!("CLI '{}' timed out after 5 minutes", state_clone.cli_command)),
+    };
+
+    let stdout_text = String::from_utf8_lossy(&output.stdout).to_string();
+    let stderr_text = String::from_utf8_lossy(&output.stderr).to_string();
+
+    if !output.status.success() && stdout_text.is_empty() {
+        return Err(format!("CLI '{}' failed (exit {}): {}",
+            state_clone.cli_command, output.status, stderr_text));
+    }
+
+    log::info!("[BridgeOneshot] Response: {} chars, status: {}",
+        stdout_text.len(), output.status);
+
+    // Try to parse session_id from JSON output (some CLIs output JSON)
+    let mut new_session_id: Option<String> = None;
+    for line in stdout_text.lines() {
+        if let Ok(json) = serde_json::from_str::<serde_json::Value>(line) {
+            if let Some(sid) = json.get("session_id").and_then(|v| v.as_str()) {
+                new_session_id = Some(sid.to_string());
+            }
+        }
+    }
+
+    // Update oneshot state with session_id and prompt_injected flag
+    {
+        let mut guard = ONESHOT_STATE.lock().map_err(|e| format!("Lock error: {}", e))?;
+        if let Some(ref mut state) = *guard {
+            if let Some(ref sid) = new_session_id {
+                state.session_id = Some(sid.clone());
+            }
+            if should_inject && system_prompt.is_some() {
+                state.prompt_injected = true;
+            }
+        }
+    }
+
+    // For plain-text CLIs (like claude --print), the entire stdout IS the response
+    let response = if stdout_text.lines().all(|l| serde_json::from_str::<serde_json::Value>(l).is_err()) {
+        stdout_text.clone()
+    } else {
+        // JSON output — extract text fields
+        let mut text = String::new();
+        for line in stdout_text.lines() {
+            if let Ok(json) = serde_json::from_str::<serde_json::Value>(line) {
+                if let Some(t) = json.get("text").and_then(|v| v.as_str()) {
+                    text.push_str(t);
+                }
+            }
+        }
+        if text.is_empty() { stdout_text } else { text }
+    };
+
+    Ok(BridgeChatResult {
+        text: response,
+        session_id: new_session_id.or(effective_sid),
+        model: None,
+        tokens: None,
+        duration_ms: None,
+    })
 }
 
 /// Tauri command: chat with remote Agent via SSH → echobird-bridge

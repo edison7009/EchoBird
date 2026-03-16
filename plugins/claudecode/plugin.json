@@ -1,0 +1,15 @@
+{
+    "id": "claudecode",
+    "name": "Claude Code",
+    "protocol": "cli-oneshot",
+    "cli": {
+        "command": "claude",
+        "detectCommand": "claude --version",
+        "args": ["--print", "--output-format", "text"],
+        "resumeArgs": ["--print", "--continue", "{sessionId}"],
+        "sessionArg": "--session-id",
+        "sessionMode": "always",
+        "systemPromptArg": "--system-prompt",
+        "systemPromptWhen": "new-session"
+    }
+}
