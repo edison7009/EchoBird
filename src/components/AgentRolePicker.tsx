@@ -83,6 +83,11 @@ export const AgentRolePicker: React.FC<AgentRolePickerProps> = ({
         onSelectRole(role.id, role.name, role.filePath);
     };
 
+    const handleClear = () => {
+        setLocalSelected(null);
+        onSelectRole('', '', '');
+    };
+
     const filteredRoles = activeCat === 'all' ? roles : roles.filter(r => r.category === activeCat);
 
     return (
@@ -165,6 +170,28 @@ export const AgentRolePicker: React.FC<AgentRolePickerProps> = ({
                         </div>
                     ) : (
                         <div className="grid grid-cols-6 gap-3">
+                            {/* No-role (clear) card */}
+                            <div
+                                onClick={handleClear}
+                                className={`relative border rounded-card cursor-pointer transition-all overflow-hidden group ${
+                                    localSelected === null
+                                        ? 'border-cyber-accent shadow-[0_0_12px_rgba(0,255,157,0.3)]'
+                                        : 'border-cyber-border bg-black/80 shadow-cyber-card hover:border-cyber-accent/40 hover:shadow-[0_0_8px_rgba(0,255,157,0.1)]'
+                                }`}
+                            >
+                                <div className="aspect-[5/8] overflow-hidden bg-black/60 flex items-center justify-center">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-cyber-text-muted/20">
+                                        <circle cx="12" cy="12" r="10" />
+                                        <line x1="4.93" y1="4.93" x2="19.07" y2="19.07" />
+                                    </svg>
+                                </div>
+                                {localSelected === null && (
+                                    <div className="absolute top-2 right-2 w-7 h-7 rounded-lg flex items-center justify-center z-10 bg-cyber-accent ring-2 ring-black/40"
+                                         style={{ boxShadow: '0 0 10px rgba(0,255,157,0.6), 0 2px 8px rgba(0,0,0,0.5)' }}>
+                                        <Check size={14} className="text-black" strokeWidth={3} />
+                                    </div>
+                                )}
+                            </div>
                             {filteredRoles.map(role => {
                                 const isSelected = localSelected === role.id;
                                 return (

@@ -51,6 +51,11 @@ enum InboundMessage {
     StartAgent {
         agent_id: String,
     },
+    #[serde(rename = "clear_role")]
+    ClearRole {
+        agent_id: String,
+        role_id: String,
+    },
 }
 
 #[derive(Debug, Serialize)]
@@ -93,6 +98,12 @@ enum OutboundMessage {
         agent_id: String,
         success: bool,
         message: String,
+    },
+    #[serde(rename = "role_cleared")]
+    RoleCleared {
+        agent_id: String,
+        role_id: String,
+        success: bool,
     },
 }
 
@@ -218,6 +229,9 @@ fn handle_message(config: &BridgeConfig, msg: InboundMessage) {
         }
         InboundMessage::StartAgent { agent_id } => {
             handle_start_agent(&agent_id);
+        }
+        InboundMessage::ClearRole { agent_id, role_id } => {
+            handle_clear_role(&agent_id, &role_id);
         }
     }
 }
@@ -620,6 +634,57 @@ fn handle_start_agent(agent_id: &str) {
                 agent_id: agent_id.to_string(),
                 success: false,
                 message: format!("Failed to start {}: {}", cmd, e),
+            });
+        }
+    }
+}
+
+// ── Role Clearing ──
+
+fn handle_clear_role(agent_id: &str, role_id: &str) {
+    let home = home_dir();
+    let target = match agent_id {
+        "claudecode" => home.join(".claude").join("agents").join(format!("{}.md", role_id)),
+        "opencode"   => home.join(".config").join("opencode").join("agents").join(format!("{}.md", role_id)),
+        "openclaw"   => home.join(".openclaw").join("agency-agents").join(role_id),
+        "zeroclaw"   => home.join(".zeroclaw").join("workspace").join("skills").join(role_id),
+        _ => {
+            send(&OutboundMessage::Error {
+                message: format!("Unknown agent: {}", agent_id),
+            });
+            return;
+        }
+    };
+
+    if !target.exists() {
+        // Already cleared
+        send(&OutboundMessage::RoleCleared {
+            agent_id: agent_id.to_string(),
+            role_id: role_id.to_string(),
+            success: true,
+        });
+        return;
+    }
+
+    // Delete: file or directory (OpenClaw/ZeroClaw use subdirectories)
+    let result = if target.is_dir() {
+        std::fs::remove_dir_all(&target)
+    } else {
+        std::fs::remove_file(&target)
+    };
+
+    match result {
+        Ok(_) => {
+            eprintln!("[bridge] Role {} cleared for {}", role_id, agent_id);
+            send(&OutboundMessage::RoleCleared {
+                agent_id: agent_id.to_string(),
+                role_id: role_id.to_string(),
+                success: true,
+            });
+        }
+        Err(e) => {
+            send(&OutboundMessage::Error {
+                message: format!("Failed to clear role: {}", e),
             });
         }
     }
