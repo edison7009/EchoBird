@@ -169,10 +169,6 @@ export const AgentRolePicker: React.FC<AgentRolePickerProps> = ({
                         <div className="flex items-center justify-center h-full">
                             <Loader2 size={24} className="text-cyber-accent animate-spin" />
                         </div>
-                    ) : filteredRoles.length === 0 ? (
-                        <div className="flex items-center justify-center h-full text-cyber-text-muted/40 text-sm font-mono">
-                            {t('common.noData')}
-                        </div>
                     ) : (
                         <div className="grid grid-cols-6 gap-3">
                             {/* No-role (clear) card */}
