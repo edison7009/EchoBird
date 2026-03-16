@@ -9,7 +9,7 @@ const AGENT_TOOLS = [
     { id: 'openclaw', name: 'OpenClaw', icon: '/icons/tools/openclaw.svg' },
     { id: 'claudecode', name: 'Claude Code', icon: '/icons/tools/claudecode.svg' },
     { id: 'opencode', name: 'OpenCode', icon: '/icons/tools/opencode.svg' },
-    { id: 'zeroclaw', name: 'ZeroClaw', icon: '/icons/tools/zeroclaw.svg' },
+    { id: 'zeroclaw', name: 'ZeroClaw', icon: '/icons/tools/zeroclaw.png' },
 ];
 
 // ── Categories ──
