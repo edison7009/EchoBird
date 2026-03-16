@@ -12,10 +12,10 @@ description: Architecture reference for Bridge CLI vs EchoBird main app — two 
 |---|---|---|
 | **类型** | Tauri 桌面应用 (Rust + React) | 纯 Rust 命令行工具 |
 | **运行位置** | 用户本机 (Windows/macOS/Linux) | 远程服务器 (Linux 为主) |
-| **源码路径** | `src-tauri/` + `src/` | `plugins/openclaw/bridge/` |
+| **源码路径** | `src-tauri/` + `src/` | `bridge/` |
 | **编译产物** | EchoBird 安装包 (.exe/.dmg/.AppImage) | `bridge-*` 二进制 (~700KB) |
 | **CI 产物** | `EchoBird_x64-setup.exe` 等 | `bridge-darwin-aarch64`, `bridge-linux-x86_64`, `bridge-win.exe` 等 |
-| **Cargo.toml** | `src-tauri/Cargo.toml` | `plugins/openclaw/bridge/Cargo.toml` |
+| **Cargo.toml** | `src-tauri/Cargo.toml` | `bridge/Cargo.toml` |
 | **依赖** | tauri, serde, tokio, uuid 等 | serde, serde_json, ureq (极简) |
 
 ## 通信协议
@@ -52,7 +52,7 @@ description: Architecture reference for Bridge CLI vs EchoBird main app — two 
 
 ```powershell
 # 本地编译（开发测试）
-cd plugins/openclaw/bridge
+cd bridge
 cargo build --release
 # 产物：target/release/echobird-bridge(.exe)
 

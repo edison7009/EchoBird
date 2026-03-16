@@ -1,6 +1,6 @@
 // Channel commands — bridge process management + channel persistence
 //
-// Local channel (id=1) uses Bridge binary (plugins/openclaw/bridge-win.exe)
+// Local channel (id=1) uses Bridge binary (bridge/src/main.rs → echobird-bridge)
 // as a persistent subprocess. Communication via stdin/stdout JSON (Echobird Bridge Protocol).
 // Bridge binary is auto-downloaded if not present (macOS/Linux installs).
 
@@ -995,6 +995,193 @@ pub async fn bridge_chat_remote(
         tokens: None,
         duration_ms: None,
     })
+}
+
+// ── Remote Bridge CLI: Detect Agents ──
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RemoteAgentInfo {
+    pub id: String,
+    pub name: String,
+    pub installed: bool,
+    pub running: bool,
+    pub path: Option<String>,
+}
+
+#[tauri::command]
+pub async fn bridge_detect_agents_remote(
+    pool: tauri::State<'_, crate::commands::ssh_commands::SSHPool>,
+    server_id: String,
+) -> Result<Vec<RemoteAgentInfo>, String> {
+    let pool = pool.inner().clone();
+
+    log::info!("[BridgeDetectAgents] server={}", server_id);
+
+    crate::commands::ssh_commands::auto_connect_ssh(&pool, &server_id).await
+        .map_err(|e| format!("SSH connection failed: {}", e))?;
+
+    let input_json = serde_json::json!({ "type": "detect_agents" });
+    let input_str = serde_json::to_string(&input_json).map_err(|e| format!("JSON error: {}", e))?;
+    let escaped = input_str.replace('\'', "'\\''");
+
+    let cmd = format!(
+        "export PATH=\"$HOME/.npm-global/bin:$HOME/.local/bin:$HOME/.cargo/bin:$PATH\" && echo '{}' | ~/echobird/echobird-bridge 2>/dev/null",
+        escaped
+    );
+
+    let connections = pool.lock().await;
+    let client = connections.get(&server_id)
+        .ok_or_else(|| format!("SSH not connected: {}", server_id))?;
+
+    let result = match tokio::time::timeout(
+        std::time::Duration::from_secs(15),
+        client.execute(&cmd)
+    ).await {
+        Ok(Ok(r)) => r,
+        Ok(Err(e)) => return Err(format!("SSH exec failed: {}", e)),
+        Err(_) => return Err("Agent detection timed out".to_string()),
+    };
+
+    drop(connections);
+
+    // Parse Bridge CLI JSON output: look for {"type":"agents_detected","agents":[...]}
+    for line in result.stdout.lines() {
+        if let Ok(json) = serde_json::from_str::<serde_json::Value>(line) {
+            if json.get("type").and_then(|v| v.as_str()) == Some("agents_detected") {
+                if let Some(agents) = json.get("agents") {
+                    let agents: Vec<RemoteAgentInfo> = serde_json::from_value(agents.clone())
+                        .unwrap_or_default();
+                    return Ok(agents);
+                }
+            }
+        }
+    }
+
+    Err("No agent detection response from Bridge CLI".to_string())
+}
+
+// ── Remote Bridge CLI: Set Role ──
+
+#[tauri::command]
+pub async fn bridge_set_role_remote(
+    pool: tauri::State<'_, crate::commands::ssh_commands::SSHPool>,
+    server_id: String,
+    agent_id: String,
+    role_id: String,
+    url: String,
+) -> Result<serde_json::Value, String> {
+    let pool = pool.inner().clone();
+
+    log::info!("[BridgeSetRole] server={}, agent={}, role={}, url={}", server_id, agent_id, role_id, url);
+
+    crate::commands::ssh_commands::auto_connect_ssh(&pool, &server_id).await
+        .map_err(|e| format!("SSH connection failed: {}", e))?;
+
+    let input_json = serde_json::json!({
+        "type": "set_role",
+        "agent_id": agent_id,
+        "role_id": role_id,
+        "url": url
+    });
+    let input_str = serde_json::to_string(&input_json).map_err(|e| format!("JSON error: {}", e))?;
+    let escaped = input_str.replace('\'', "'\\''");
+
+    let cmd = format!(
+        "export PATH=\"$HOME/.npm-global/bin:$HOME/.local/bin:$HOME/.cargo/bin:$PATH\" && echo '{}' | ~/echobird/echobird-bridge 2>/dev/null",
+        escaped
+    );
+
+    let connections = pool.lock().await;
+    let client = connections.get(&server_id)
+        .ok_or_else(|| format!("SSH not connected: {}", server_id))?;
+
+    let result = match tokio::time::timeout(
+        std::time::Duration::from_secs(30),
+        client.execute(&cmd)
+    ).await {
+        Ok(Ok(r)) => r,
+        Ok(Err(e)) => return Err(format!("SSH exec failed: {}", e)),
+        Err(_) => return Err("Set role timed out".to_string()),
+    };
+
+    drop(connections);
+
+    // Parse response: look for role_set or error
+    for line in result.stdout.lines() {
+        if let Ok(json) = serde_json::from_str::<serde_json::Value>(line) {
+            match json.get("type").and_then(|v| v.as_str()) {
+                Some("role_set") => return Ok(json),
+                Some("error") => {
+                    let msg = json.get("message").and_then(|v| v.as_str()).unwrap_or("Unknown error");
+                    return Err(format!("Bridge error: {}", msg));
+                }
+                _ => {}
+            }
+        }
+    }
+
+    Err("No response from Bridge CLI for set_role".to_string())
+}
+
+// ── Remote Bridge CLI: Clear Role ──
+
+#[tauri::command]
+pub async fn bridge_clear_role_remote(
+    pool: tauri::State<'_, crate::commands::ssh_commands::SSHPool>,
+    server_id: String,
+    agent_id: String,
+    role_id: String,
+) -> Result<serde_json::Value, String> {
+    let pool = pool.inner().clone();
+
+    log::info!("[BridgeClearRole] server={}, agent={}, role={}", server_id, agent_id, role_id);
+
+    crate::commands::ssh_commands::auto_connect_ssh(&pool, &server_id).await
+        .map_err(|e| format!("SSH connection failed: {}", e))?;
+
+    let input_json = serde_json::json!({
+        "type": "clear_role",
+        "agent_id": agent_id,
+        "role_id": role_id
+    });
+    let input_str = serde_json::to_string(&input_json).map_err(|e| format!("JSON error: {}", e))?;
+    let escaped = input_str.replace('\'', "'\\''");
+
+    let cmd = format!(
+        "export PATH=\"$HOME/.npm-global/bin:$HOME/.local/bin:$HOME/.cargo/bin:$PATH\" && echo '{}' | ~/echobird/echobird-bridge 2>/dev/null",
+        escaped
+    );
+
+    let connections = pool.lock().await;
+    let client = connections.get(&server_id)
+        .ok_or_else(|| format!("SSH not connected: {}", server_id))?;
+
+    let result = match tokio::time::timeout(
+        std::time::Duration::from_secs(15),
+        client.execute(&cmd)
+    ).await {
+        Ok(Ok(r)) => r,
+        Ok(Err(e)) => return Err(format!("SSH exec failed: {}", e)),
+        Err(_) => return Err("Clear role timed out".to_string()),
+    };
+
+    drop(connections);
+
+    for line in result.stdout.lines() {
+        if let Ok(json) = serde_json::from_str::<serde_json::Value>(line) {
+            match json.get("type").and_then(|v| v.as_str()) {
+                Some("role_cleared") => return Ok(json),
+                Some("error") => {
+                    let msg = json.get("message").and_then(|v| v.as_str()).unwrap_or("Unknown error");
+                    return Err(format!("Bridge error: {}", msg));
+                }
+                _ => {}
+            }
+        }
+    }
+
+    Err("No response from Bridge CLI for clear_role".to_string())
 }
 
 // ── Result Types ──
