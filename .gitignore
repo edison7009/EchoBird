@@ -59,3 +59,5 @@ src-tauri/.cargo/config.toml
 plugins/*/target/
 plugins/*/bridge/target/
 tools/*/target/
+roles/en/
+roles/zh-Hans/

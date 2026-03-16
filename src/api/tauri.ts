@@ -465,6 +465,39 @@ export async function bridgeChatRemote(serverId: string, message: string, sessio
     return invoke('bridge_chat_remote', { serverId, message, sessionId: sessionId ?? null, pluginId: pluginId ?? null });
 }
 
+// ─── Role APIs ───
+
+export interface RoleCategory {
+    id: string;
+    label: string;
+    order: number;
+}
+
+export interface RoleEntry {
+    id: string;
+    name: string;
+    description: string;
+    category: string;
+    color?: string;
+    emoji?: string;
+    filePath: string;
+    img?: string;
+}
+
+export interface RoleScanResult {
+    categories: RoleCategory[];
+    roles: RoleEntry[];
+    locale: string;
+}
+
+export async function scanRoles(locale: string): Promise<RoleScanResult> {
+    return invoke('scan_roles', { locale });
+}
+
+export async function loadRoleContent(locale: string, filePath: string): Promise<string> {
+    return invoke('load_role_content', { locale, filePath });
+}
+
 // ─── Tool Config APIs ───
 
 export async function updateToolConfig(toolId: string, config: Record<string, unknown>): Promise<boolean> {

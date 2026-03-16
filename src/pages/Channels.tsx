@@ -154,7 +154,7 @@ export const Channels: React.FC = () => {
     const [allActiveAgents, setAllActiveAgents] = useState<Record<number, string>>({});
     const setActiveAgentFor = (chId: number, name: string) => setAllActiveAgents(prev => ({ ...prev, [chId]: name }));
     // Per-channel selected role
-    const [allSelectedRoles, setAllSelectedRoles] = useState<Record<number, { id: string; name: string }>>({});
+    const [allSelectedRoles, setAllSelectedRoles] = useState<Record<number, { id: string; name: string; filePath: string }>>({});
     const [showRolePicker, setShowRolePicker] = useState(false);
 
     // Per-channel helpers
@@ -1092,7 +1092,7 @@ export const Channels: React.FC = () => {
                 isOpen={showRolePicker}
                 onClose={() => setShowRolePicker(false)}
                 selectedRole={selectedRoleForChannel?.id || null}
-                onSelectRole={(id, name) => setAllSelectedRoles(prev => ({ ...prev, [channelKey]: { id, name } }))}
+                onSelectRole={(id, name, filePath) => setAllSelectedRoles(prev => ({ ...prev, [channelKey]: { id, name, filePath } }))}
                 selectedAgent={allActiveAgents[channelKey] || 'OpenClaw'}
                 onSelectAgent={(name) => setActiveAgentFor(channelKey, name)}
             />

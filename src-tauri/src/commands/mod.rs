@@ -8,3 +8,4 @@ pub mod settings_commands;
 pub mod skill_commands;
 pub mod ssh_commands;
 pub mod agent_commands;
+pub mod role_commands;

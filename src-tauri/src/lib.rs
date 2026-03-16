@@ -13,6 +13,7 @@ use commands::settings_commands;
 use commands::skill_commands;
 use commands::ssh_commands;
 use commands::agent_commands;
+use commands::role_commands;
 
 use std::sync::Mutex;
 use tauri::{Emitter, Manager};
@@ -423,6 +424,8 @@ pub fn run() {
             ssh_commands::ssh_upload_file,
             ssh_commands::scan_plugins,
             ssh_commands::get_bridge_path,
+            role_commands::scan_roles,
+            role_commands::load_role_content,
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")
