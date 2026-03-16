@@ -457,8 +457,8 @@ export async function bridgeStatus(): Promise<{ status: string; agentName?: stri
     return invoke('bridge_status');
 }
 
-export async function bridgeChatLocal(message: string, sessionId?: string): Promise<{ text: string; session_id?: string; model?: string; tokens?: number; duration_ms?: number }> {
-    return invoke('bridge_chat_local', { message, sessionId: sessionId ?? null });
+export async function bridgeChatLocal(message: string, sessionId?: string, systemPrompt?: string): Promise<{ text: string; session_id?: string; model?: string; tokens?: number; duration_ms?: number }> {
+    return invoke('bridge_chat_local', { message, sessionId: sessionId ?? null, systemPrompt: systemPrompt ?? null });
 }
 
 export async function bridgeChatRemote(serverId: string, message: string, sessionId?: string, pluginId?: string): Promise<{ text: string; session_id?: string; model?: string; tokens?: number; duration_ms?: number }> {

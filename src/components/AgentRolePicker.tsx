@@ -2,12 +2,14 @@
 // Vertical image cards with hover slide-up text effect + category filter + agent tool selector
 import React, { useState } from 'react';
 import { X, Check } from 'lucide-react';
+import { useI18n } from '../hooks/useI18n';
 
 // ── Agent tools ──
 const AGENT_TOOLS = [
-    { name: 'OpenClaw', icon: '/icons/tools/openclaw.svg' },
-    { name: 'Claude Code', icon: '/icons/tools/claudecode.svg' },
-    { name: 'OpenCode', icon: '/icons/tools/opencode.svg' },
+    { id: 'openclaw', name: 'OpenClaw', icon: '/icons/tools/openclaw.svg' },
+    { id: 'claudecode', name: 'Claude Code', icon: '/icons/tools/claudecode.svg' },
+    { id: 'opencode', name: 'OpenCode', icon: '/icons/tools/opencode.svg' },
+    { id: 'zeroclaw', name: 'ZeroClaw', icon: '/icons/tools/zeroclaw.svg' },
 ];
 
 // ── Categories ──
@@ -74,6 +76,8 @@ export const AgentRolePicker: React.FC<AgentRolePickerProps> = ({
 
     const filteredRoles = activeCat === 'all' ? ROLES : ROLES.filter(r => r.cat === activeCat);
 
+    const { t } = useI18n();
+
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
             <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
@@ -82,7 +86,7 @@ export const AgentRolePicker: React.FC<AgentRolePickerProps> = ({
                 {/* Header */}
                 <div className="flex items-center justify-between px-5 py-3 flex-shrink-0">
                     <span className="text-cyber-accent text-sm font-mono font-bold">
-                        Select Role and Agent
+                        {t('channel.selectRoleAgent')}
                     </span>
                     <button onClick={onClose} className="text-cyber-text-muted/50 hover:text-cyber-accent transition-colors">
                         <X size={16} />
