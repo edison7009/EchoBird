@@ -830,7 +830,7 @@ export const Channels: React.FC = () => {
                             </div>
                         ) : (
                             /* Connected / Connecting — terminal chat area */
-                            <div className="flex-1 flex flex-col mx-4 mt-2 min-h-0">
+                            <div className="flex-1 flex flex-col mx-4 min-h-0">
                                 {/* Scrollable chat area */}
                                 <div className="relative flex-1 min-h-0">
                                 <div ref={chatContainerRef} onScroll={handleChatScroll} className="absolute inset-0 overflow-y-auto slim-scroll custom-scrollbar p-4">
