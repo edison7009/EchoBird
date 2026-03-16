@@ -147,10 +147,10 @@ export const Channels: React.FC = () => {
     const [allBridgeLoading, setAllBridgeLoading] = useState<Record<number, boolean>>({});
     // Per-channel active agent selection (for tab switching demo)
     const AGENT_LIST = [
-        { name: 'OpenClaw', icon: '/icons/tools/openclaw.svg' },
-        { name: 'Claude Code', icon: '/icons/tools/claudecode.svg' },
-        { name: 'OpenCode', icon: '/icons/tools/opencode.svg' },
-        { name: 'ZeroClaw', icon: '/icons/tools/zeroclaw.png' },
+        { id: 'openclaw', name: 'OpenClaw', icon: '/icons/tools/openclaw.svg' },
+        { id: 'claudecode', name: 'Claude Code', icon: '/icons/tools/claudecode.svg' },
+        { id: 'opencode', name: 'OpenCode', icon: '/icons/tools/opencode.svg' },
+        { id: 'zeroclaw', name: 'ZeroClaw', icon: '/icons/tools/zeroclaw.png' },
     ];
     const [allActiveAgents, setAllActiveAgents] = useState<Record<number, string>>({});
     const setActiveAgentFor = (chId: number, name: string) => setAllActiveAgents(prev => ({ ...prev, [chId]: name }));
@@ -672,7 +672,9 @@ export const Channels: React.FC = () => {
                 // Local channel: auto-start bridge subprocess if needed
                 if (bridgeConnectionStatus !== 'connected') {
                     setBridgeConnectionStatus('connecting');
-                    const startResult = await api.bridgeStart();
+                    const selectedAgent = allActiveAgents[channelKey] || 'OpenClaw';
+                    const agentEntry = AGENT_LIST.find(a => a.name === selectedAgent);
+                    const startResult = await api.bridgeStart(agentEntry?.id);
                     if (startResult.status === 'connected') {
                         setBridgeConnectionStatus('connected');
                         if (startResult.agentName) setBridgeAgentName(startResult.agentName);
@@ -699,7 +701,8 @@ export const Channels: React.FC = () => {
                     return;
                 }
                 setBridgeConnectionStatus('connected');
-                setBridgeAgentName('OpenClaw'); // Default agent name for remote
+                const selectedAgentName = allActiveAgents[channelKey] || 'OpenClaw';
+                setBridgeAgentName(selectedAgentName);
 
                 // After 30s, inject a "working" hint so the user knows the agent is running —
                 // not frozen. It disappears when the real reply arrives.
@@ -745,7 +748,7 @@ export const Channels: React.FC = () => {
             setBridgeLoading(false);
         }
         inputRef.current?.focus();
-    }, [activeId, input, attachments, pendingModels, pendingSkills, isActiveConnected, canSendMessage, isLocalChannel, bridgeLoading, bridgeSessionId, bridgeConnectionStatus, activeChannel, modelList]);
+    }, [activeId, input, attachments, pendingModels, pendingSkills, isActiveConnected, canSendMessage, isLocalChannel, bridgeLoading, bridgeSessionId, bridgeConnectionStatus, activeChannel, modelList, allActiveAgents, channelKey]);
 
     // Abort current request
     const handleAbort = useCallback(() => {
