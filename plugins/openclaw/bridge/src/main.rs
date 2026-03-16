@@ -45,7 +45,7 @@ enum InboundMessage {
     SetRole {
         agent_id: String,
         role_id: String,
-        file_path: String,
+        url: String,
     },
     #[serde(rename = "start_agent")]
     StartAgent {
@@ -224,8 +224,8 @@ fn handle_message(config: &BridgeConfig, msg: InboundMessage) {
         InboundMessage::DetectAgents {} => {
             handle_detect_agents();
         }
-        InboundMessage::SetRole { agent_id, role_id, file_path } => {
-            handle_set_role(&agent_id, &role_id, &file_path);
+        InboundMessage::SetRole { agent_id, role_id, url } => {
+            handle_set_role(&agent_id, &role_id, &url);
         }
         InboundMessage::StartAgent { agent_id } => {
             handle_start_agent(&agent_id);
@@ -498,20 +498,9 @@ fn check_running(cmd: &str) -> bool {
     }
 }
 
-// ── Role Installation ──
+// ── Role Installation (URL-based download) ──
 
-fn handle_set_role(agent_id: &str, role_id: &str, file_path: &str) {
-    // Find role source file
-    let roles_dir = bridge_roles_dir();
-    let source = roles_dir.join(file_path);
-
-    if !source.exists() {
-        send(&OutboundMessage::Error {
-            message: format!("Role file not found: {:?}", source),
-        });
-        return;
-    }
-
+fn handle_set_role(agent_id: &str, role_id: &str, url: &str) {
     // Determine target path based on agent
     let home = home_dir();
     let target = match agent_id {
@@ -539,6 +528,26 @@ fn handle_set_role(agent_id: &str, role_id: &str, file_path: &str) {
         return;
     }
 
+    // Download role file from URL
+    eprintln!("[bridge] Downloading role from: {}", url);
+    let body = match ureq::get(url).call() {
+        Ok(resp) => match resp.into_string() {
+            Ok(s) => s,
+            Err(e) => {
+                send(&OutboundMessage::Error {
+                    message: format!("Failed to read response body: {}", e),
+                });
+                return;
+            }
+        },
+        Err(e) => {
+            send(&OutboundMessage::Error {
+                message: format!("Failed to download role from {}: {}", url, e),
+            });
+            return;
+        }
+    };
+
     // Create parent directories
     if let Some(parent) = target.parent() {
         if let Err(e) = std::fs::create_dir_all(parent) {
@@ -549,10 +558,10 @@ fn handle_set_role(agent_id: &str, role_id: &str, file_path: &str) {
         }
     }
 
-    // Copy role file
-    match std::fs::copy(&source, &target) {
+    // Write downloaded content to file
+    match std::fs::write(&target, &body) {
         Ok(_) => {
-            eprintln!("[bridge] Role {} installed for {} at {:?}", role_id, agent_id, target);
+            eprintln!("[bridge] Role {} installed for {} at {:?} ({} bytes)", role_id, agent_id, target, body.len());
             send(&OutboundMessage::RoleSet {
                 agent_id: agent_id.to_string(),
                 role_id: role_id.to_string(),
@@ -562,7 +571,7 @@ fn handle_set_role(agent_id: &str, role_id: &str, file_path: &str) {
         }
         Err(e) => {
             send(&OutboundMessage::Error {
-                message: format!("Failed to copy role file: {}", e),
+                message: format!("Failed to write role file: {}", e),
             });
         }
     }
@@ -708,29 +717,7 @@ fn home_dir() -> PathBuf {
     }
 }
 
-/// Find the roles/ directory relative to the bridge binary
-fn bridge_roles_dir() -> PathBuf {
-    let exe_dir = std::env::current_exe()
-        .ok()
-        .and_then(|p| p.parent().map(|p| p.to_path_buf()))
-        .unwrap_or_else(|| PathBuf::from("."));
-
-    // Search: exe_dir/roles, exe_dir/../roles, exe_dir/../../roles
-    let candidates = [
-        exe_dir.join("roles"),
-        exe_dir.parent().map(|p| p.join("roles")).unwrap_or_default(),
-        exe_dir.parent().and_then(|p| p.parent()).map(|p| p.join("roles")).unwrap_or_default(),
-    ];
-
-    for c in &candidates {
-        if c.exists() {
-            return c.clone();
-        }
-    }
-
-    eprintln!("[bridge] Warning: roles/ directory not found near bridge binary");
-    exe_dir.join("roles")
-}
+// bridge_roles_dir() removed — roles are now downloaded from URL, not copied from local files
 
 /// Send a JSON message to stdout (one line)
 fn send(msg: &OutboundMessage) {
