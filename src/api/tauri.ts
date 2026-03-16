@@ -487,6 +487,10 @@ export async function bridgeClearRoleRemote(serverId: string, agentId: string, r
     return invoke('bridge_clear_role_remote', { serverId, agentId, roleId });
 }
 
+export async function bridgeStartAgentRemote(serverId: string, agentId: string): Promise<unknown> {
+    return invoke('bridge_start_agent_remote', { serverId, agentId });
+}
+
 // ─── Role APIs ───
 
 export interface RoleCategory {

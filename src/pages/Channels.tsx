@@ -159,6 +159,8 @@ export const Channels: React.FC = () => {
     // Per-channel selected role
     const [allSelectedRoles, setAllSelectedRoles] = useState<Record<number, { id: string; name: string; filePath: string }>>({});
     const [showRolePicker, setShowRolePicker] = useState(false);
+    // Cache remote agent detection results per channel (avoid repeated SSH calls)
+    const remoteAgentCache = useRef<Record<number, any[]>>({});
 
     // Per-channel helpers
     const channelKey = activeId ?? 0;
@@ -738,11 +740,41 @@ export const Channels: React.FC = () => {
                 }, 30_000);
 
                 try {
-                    // Auto-install selected role on remote server before chatting
+                    const agentEntry = AGENT_LIST.find(a => a.name === selectedAgentName);
+                    const agentId = agentEntry?.id || 'openclaw';
+
+                    // ── Step 1: Detect if agent is installed on remote server ──
+                    // (cached per channel — only detect once, not every message)
+                    if (!remoteAgentCache.current[channelKey]) {
+                        const agents = await api.bridgeDetectAgentsRemote(serverId);
+                        remoteAgentCache.current[channelKey] = agents;
+                    }
+                    const cachedAgents = remoteAgentCache.current[channelKey];
+                    const agentInfo = cachedAgents?.find((a: any) => a.id === agentId);
+                    if (!agentInfo?.installed) {
+                        setBridgeMessages(prev => [...prev, {
+                            role: 'system',
+                            content: `Agent "${selectedAgentName}" is not installed on this server.`,
+                        }]);
+                        setBridgeLoading(false);
+                        clearTimeout(workingTimer);
+                        return;
+                    }
+
+                    // ── Step 2: Start agent if not running ──
+                    if (!agentInfo.running) {
+                        try {
+                            await api.bridgeStartAgentRemote(serverId, agentId);
+                            // Update cache: mark as running
+                            agentInfo.running = true;
+                        } catch (e) {
+                            console.warn('[Bridge] start_agent failed (non-fatal):', e);
+                        }
+                    }
+
+                    // ── Step 3: Set role if selected ──
                     const role = selectedRoleForChannel;
                     if (role?.filePath) {
-                        const agentEntry = AGENT_LIST.find(a => a.name === selectedAgentName);
-                        const agentId = agentEntry?.id || 'openclaw';
                         const isZh = locale.startsWith('zh');
                         const roleUrl = isZh
                             ? `https://raw.githubusercontent.com/jnMetaCode/agency-agents-zh/main/zh-Hans/${role.filePath}`
@@ -754,6 +786,7 @@ export const Channels: React.FC = () => {
                         }
                     }
 
+                    // ── Step 4: Send message to agent ──
                     const result = await api.bridgeChatRemote(serverId, text, bridgeSessionId);
                     clearTimeout(workingTimer);
                     // Remove the working hint before adding the real reply
