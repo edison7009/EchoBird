@@ -207,7 +207,7 @@ export const AgentRolePicker: React.FC<AgentRolePickerProps> = ({
                                             <img
                                                 src={role.img || role.fallbackImg || '/role/66082-285x380.jpg'}
                                                 alt={role.name}
-                                                className="w-full h-full object-cover object-center relative z-[1]"
+                                                className="w-full h-full object-cover object-center relative"
                                                 loading="lazy"
                                                 onLoad={(e) => { (e.target as HTMLElement).style.opacity = '1'; }}
                                                 onError={(e) => {
