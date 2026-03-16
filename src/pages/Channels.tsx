@@ -1,6 +1,6 @@
 // Channels — OpenClaw agent chat interface (bridge CLI + SSH)
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Send, CornerDownLeft, X, Square, Paperclip, Image as ImageIcon, RotateCcw, KeyRound, Zap, Server, ChevronsDown, ChevronLeft, ChevronRight, SquarePen } from 'lucide-react';
+import { Send, CornerDownLeft, X, Square, Paperclip, Image as ImageIcon, RotateCcw, KeyRound, Zap, Server, ChevronsDown, ChevronLeft, ChevronRight } from 'lucide-react';
 import { MiniSelect } from '../components/MiniSelect';
 import { getModelIcon } from '../components/cards/ModelCard';
 import { PendingChipsRow } from '../components/PendingChipsRow';
@@ -831,39 +831,6 @@ export const Channels: React.FC = () => {
                         ) : (
                             /* Connected / Connecting — terminal chat area */
                             <div className="flex-1 flex flex-col mx-4 mt-2 min-h-0">
-                                {/* Fixed agent tool tab bar */}
-                                <div className="flex items-center gap-2 select-none pb-2 flex-shrink-0">
-                                    {AGENT_LIST.map(agent => {
-                                        const selectedAgent = allActiveAgents[channelKey] || 'OpenClaw';
-                                        const isActive = selectedAgent === agent.name;
-                                        return (
-                                            <div
-                                                key={agent.name}
-                                                onClick={() => setActiveAgentFor(channelKey, agent.name)}
-                                                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-card text-xs font-mono cursor-pointer transition-all ${
-                                                    isActive
-                                                        ? 'border border-cyber-accent bg-cyber-accent/10 shadow-cyber-card text-cyber-accent'
-                                                        : 'border border-cyber-border shadow-cyber-card bg-black/80 text-cyber-text-muted/70 hover:border-cyber-accent/30 hover:bg-black/90'
-                                                }`}
-                                            >
-                                                <img src={agent.icon} alt={agent.name} className={`w-4 h-4 ${isActive ? '' : 'opacity-50 grayscale'}`} />
-                                                <span>{isActive && selectedRoleForChannel ? selectedRoleForChannel.name : agent.name}</span>
-                                                <SquarePen
-                                                    size={12}
-                                                    strokeWidth={2.5}
-                                                    className={`cursor-pointer ${isActive ? 'text-cyber-accent/60' : 'text-cyber-text-muted/30'}`}
-                                                    onClick={(e) => { e.stopPropagation(); setActiveAgentFor(channelKey, agent.name); setShowRolePicker(true); }}
-                                                />
-                                            </div>
-                                        );
-                                    })}
-                                    {bridgeConnectionStatus === 'connecting' && (
-                                        <span className="text-yellow-400 text-xs font-mono animate-pulse ml-2">Connecting...</span>
-                                    )}
-                                    {bridgeConnectionStatus === 'disconnected' && (
-                                        <span className="text-red-400 text-xs font-mono ml-2">Connection failed</span>
-                                    )}
-                                </div>
                                 {/* Scrollable chat area */}
                                 <div className="relative flex-1 min-h-0">
                                 <div ref={chatContainerRef} onScroll={handleChatScroll} className="absolute inset-0 overflow-y-auto slim-scroll custom-scrollbar p-4">
@@ -904,7 +871,30 @@ export const Channels: React.FC = () => {
                         )}
 
                         {/* Input area */}
-<div className="flex-shrink-0 mx-4 mt-3 mb-2">
+                        {/* Floating role card above input */}
+                        {(() => {
+                            const selectedAgent = allActiveAgents[channelKey] || 'OpenClaw';
+                            const agent = AGENT_LIST.find(a => a.name === selectedAgent) || AGENT_LIST[0];
+                            const displayName = selectedRoleForChannel ? selectedRoleForChannel.name : agent.name;
+                            return (
+                                <div className="flex items-center gap-2 mx-4 mt-1 mb-0.5 select-none">
+                                    <div
+                                        onClick={() => setShowRolePicker(true)}
+                                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-card text-xs font-mono cursor-pointer transition-all border border-cyber-accent bg-cyber-accent/10 shadow-cyber-card text-cyber-accent hover:brightness-110"
+                                    >
+                                        <img src={agent.icon} alt={agent.name} className="w-4 h-4" />
+                                        <span>{displayName}</span>
+                                    </div>
+                                    {bridgeConnectionStatus === 'connecting' && (
+                                        <span className="text-yellow-400 text-xs font-mono animate-pulse">Connecting...</span>
+                                    )}
+                                    {bridgeConnectionStatus === 'disconnected' && (
+                                        <span className="text-red-400 text-xs font-mono">Connection failed</span>
+                                    )}
+                                </div>
+                            );
+                        })()}
+<div className="flex-shrink-0 mx-4 mt-1 mb-2">
                             <div className="bg-cyber-terminal rounded-lg relative">
                                 {/* Pending chips — shared component */}
                                 <PendingChipsRow
@@ -1103,7 +1093,8 @@ export const Channels: React.FC = () => {
                 onClose={() => setShowRolePicker(false)}
                 selectedRole={selectedRoleForChannel?.id || null}
                 onSelectRole={(id, name) => setAllSelectedRoles(prev => ({ ...prev, [channelKey]: { id, name } }))}
-                agentName={allActiveAgents[channelKey] || 'OpenClaw'}
+                selectedAgent={allActiveAgents[channelKey] || 'OpenClaw'}
+                onSelectAgent={(name) => setActiveAgentFor(channelKey, name)}
             />
         </>
     );

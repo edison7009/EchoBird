@@ -1,7 +1,14 @@
-// AgentRolePicker — Simple role card selector modal
-// Vertical image cards with hover slide-up text effect + category filter
+// AgentRolePicker — Combined role + agent selector modal
+// Vertical image cards with hover slide-up text effect + category filter + agent tool selector
 import React, { useState } from 'react';
 import { X, Check } from 'lucide-react';
+
+// ── Agent tools ──
+const AGENT_TOOLS = [
+    { name: 'OpenClaw', icon: '/icons/tools/openclaw.svg' },
+    { name: 'Claude Code', icon: '/icons/tools/claudecode.svg' },
+    { name: 'OpenCode', icon: '/icons/tools/opencode.svg' },
+];
 
 // ── Categories ──
 const CATEGORIES = [
@@ -43,7 +50,8 @@ interface AgentRolePickerProps {
     onClose: () => void;
     selectedRole: string | null;
     onSelectRole: (roleId: string, roleName: string) => void;
-    agentName: string;
+    selectedAgent: string;
+    onSelectAgent: (agentName: string) => void;
 }
 
 export const AgentRolePicker: React.FC<AgentRolePickerProps> = ({
@@ -51,7 +59,8 @@ export const AgentRolePicker: React.FC<AgentRolePickerProps> = ({
     onClose,
     selectedRole,
     onSelectRole,
-    agentName,
+    selectedAgent,
+    onSelectAgent,
 }) => {
     const [localSelected, setLocalSelected] = useState<string | null>(selectedRole);
     const [activeCat, setActiveCat] = useState('all');
@@ -73,11 +82,32 @@ export const AgentRolePicker: React.FC<AgentRolePickerProps> = ({
                 {/* Header */}
                 <div className="flex items-center justify-between px-5 py-3 flex-shrink-0">
                     <span className="text-cyber-accent text-sm font-mono font-bold">
-                        Select Role · {agentName}
+                        Select Role and Agent
                     </span>
                     <button onClick={onClose} className="text-cyber-text-muted/50 hover:text-cyber-accent transition-colors">
                         <X size={16} />
                     </button>
+                </div>
+
+                {/* Agent tool selector */}
+                <div className="flex items-center gap-2 px-5 pb-2.5 flex-shrink-0">
+                    {AGENT_TOOLS.map(agent => {
+                        const isActive = selectedAgent === agent.name;
+                        return (
+                            <div
+                                key={agent.name}
+                                onClick={() => onSelectAgent(agent.name)}
+                                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-card text-xs font-mono cursor-pointer transition-all ${
+                                    isActive
+                                        ? 'border border-cyber-accent bg-cyber-accent/10 shadow-cyber-card text-cyber-accent'
+                                        : 'border border-cyber-border shadow-cyber-card bg-black/80 text-cyber-text-muted/70 hover:border-cyber-accent/30 hover:bg-black/90'
+                                }`}
+                            >
+                                <img src={agent.icon} alt={agent.name} className={`w-4 h-4 ${isActive ? '' : 'opacity-50 grayscale'}`} />
+                                <span>{agent.name}</span>
+                            </div>
+                        );
+                    })}
                 </div>
 
                 {/* Category tabs */}
