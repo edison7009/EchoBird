@@ -180,6 +180,7 @@ export const AgentRolePicker: React.FC<AgentRolePickerProps> = ({
                                 }`}
                             >
                                 <div className="aspect-[5/8] overflow-hidden bg-black/60 flex items-center justify-center">
+                                    <img src="/role/none.jpg" alt="" className="w-full h-full object-cover object-center" />
                                 </div>
                                 {localSelected === null && (
                                     <div className="absolute top-2 right-2 w-7 h-7 rounded-lg flex items-center justify-center z-10 bg-cyber-accent ring-2 ring-black/40"
