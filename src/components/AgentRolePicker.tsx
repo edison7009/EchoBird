@@ -248,6 +248,7 @@ export const AgentRolePicker: React.FC<AgentRolePickerProps> = ({
                                                     color: '#00ff9d',
                                                     textShadow: '0 0 8px rgba(0,0,0,0.9), 0 0 16px rgba(0,0,0,0.7), 0 1px 3px rgba(0,0,0,1)',
                                                     backfaceVisibility: 'hidden',
+                                                    wordBreak: 'keep-all',
                                                 }}
                                             >
                                                 {role.name}
