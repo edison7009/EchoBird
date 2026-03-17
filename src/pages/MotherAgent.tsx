@@ -676,7 +676,9 @@ export function MotherAgentMain() {
                                         return <ChatBubble key={i} role="retry" content={label} variant="mother" />;
                                     }
                                     const isLast = chatOutput.slice(-displayCount).slice(i + 1).every(m => m.type !== 'assistant');
-                                    return <ChatBubble key={i} role="assistant" content={msg.text} variant="mother" isStreaming={isProcessing && isLast} />;
+                                    const lastOutput = chatOutput[chatOutput.length - 1];
+                                    const isCurrentResponse = isLast && lastOutput?.type === 'assistant';
+                                    return <ChatBubble key={i} role="assistant" content={msg.text} variant="mother" isStreaming={isProcessing && isCurrentResponse} />;
                                 }
                                 if (msg.type === 'cancelled') {
                                     const text = msg.i18nKey ? t(msg.i18nKey as import('../i18n/types').TKey) : msg.text;
@@ -695,8 +697,8 @@ export function MotherAgentMain() {
                                 }
                                 return null;
                             })}
-                            {/* Typing indicator — only when processing and no assistant message exists yet */}
-                            {isProcessing && !chatOutput.some(m => m.type === 'assistant') && (
+                            {/* Typing indicator — show when processing and no new assistant response has started */}
+                            {isProcessing && (chatOutput.length === 0 || chatOutput[chatOutput.length - 1]?.type !== 'assistant') && (
                                 <ChatBubble role="assistant" content="" variant="mother" isStreaming={true} />
                             )}
                             <div ref={chatEndRef} />

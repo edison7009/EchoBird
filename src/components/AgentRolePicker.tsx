@@ -24,6 +24,8 @@ interface AgentRolePickerProps {
     onSelectRole: (roleId: string, roleName: string, filePath: string) => void;
     selectedAgent: string;
     onSelectAgent: (agentName: string) => void;
+    isRemote?: boolean;
+    remoteServerId?: string;
 }
 
 export const AgentRolePicker: React.FC<AgentRolePickerProps> = ({
@@ -33,6 +35,8 @@ export const AgentRolePicker: React.FC<AgentRolePickerProps> = ({
     onSelectRole,
     selectedAgent,
     onSelectAgent,
+    isRemote = false,
+    remoteServerId,
 }) => {
     const { t, locale } = useI18n();
     const [localSelected, setLocalSelected] = useState<string | null>(selectedRole);
@@ -67,16 +71,31 @@ export const AgentRolePicker: React.FC<AgentRolePickerProps> = ({
             setLoading(false);
         });
 
-        // Detect installed agents (parallel)
-        setDetecting(true);
-        api.detectLocalAgents().then(statuses => {
-            if (cancelled) return;
-            setAgentStatuses(statuses);
-            setDetecting(false);
-        }).catch(() => {
-            if (cancelled) return;
-            setDetecting(false);
-        });
+        // Detect installed agents (local or remote)
+        if (isRemote && remoteServerId) {
+            setDetecting(true);
+            api.bridgeDetectAgentsRemote(remoteServerId).then(remoteStatuses => {
+                if (cancelled) return;
+                const mapped: AgentStatus[] = remoteStatuses.map(r => ({ id: r.id, name: r.name, installed: r.installed }));
+                setAgentStatuses(mapped);
+                setDetecting(false);
+            }).catch(() => {
+                if (cancelled) return;
+                // Bridge not reachable — show all as available
+                setAgentStatuses([]);
+                setDetecting(false);
+            });
+        } else if (!isRemote) {
+            setDetecting(true);
+            api.detectLocalAgents().then(statuses => {
+                if (cancelled) return;
+                setAgentStatuses(statuses);
+                setDetecting(false);
+            }).catch(() => {
+                if (cancelled) return;
+                setDetecting(false);
+            });
+        }
 
         return () => { cancelled = true; };
     }, [isOpen, locale]);

@@ -9,9 +9,15 @@
 //   stdout ← {"type":"done","session_id":"..."}
 
 use serde::{Deserialize, Serialize};
+use std::cell::RefCell;
 use std::io::{self, BufRead, Write};
 use std::path::PathBuf;
 use std::process::Command;
+
+// Active role per agent — when set, chat uses --agent {role_id} instead of --agent main
+thread_local! {
+    static CURRENT_ROLE: RefCell<Option<String>> = RefCell::new(None);
+}
 
 // ── Types ──
 
@@ -246,15 +252,22 @@ fn execute_chat(
     is_resume: bool,
 ) {
     // Build command args
+    let active_role = CURRENT_ROLE.with(|r| r.borrow().clone());
     let mut args: Vec<String> = if is_resume {
         // Resume: use resume_args, replace {sessionId}
         let sid = session_id.unwrap_or("unknown");
         config.resume_args.iter()
-            .map(|a| a.replace("{sessionId}", sid))
+            .map(|a| {
+                let a = a.replace("{sessionId}", sid);
+                // Replace "main" with active role_id if set
+                if a == "main" { active_role.as_deref().unwrap_or("main").to_string() } else { a }
+            })
             .collect()
     } else {
-        // New chat: use standard args
-        let mut a = config.args.clone();
+        // New chat: use standard args, replace "main" with active role_id
+        let mut a: Vec<String> = config.args.iter().map(|arg| {
+            if arg == "main" { active_role.as_deref().unwrap_or("main").to_string() } else { arg.clone() }
+        }).collect();
         // Insert session ID BEFORE --message (which must be last, followed by the actual message text)
         if let (Some(sid), Some(session_arg)) = (session_id, &config.session_arg) {
             // --message is the last element in args; insert --session-id before it
@@ -520,6 +533,8 @@ fn handle_set_role(agent_id: &str, role_id: &str, url: &str) {
     // Idempotent: skip if already installed
     if target.exists() {
         eprintln!("[bridge] Role {} already installed for {} at {:?}", role_id, agent_id, target);
+        // Still activate the role even if file exists (may have been cleared in memory)
+        CURRENT_ROLE.with(|r| *r.borrow_mut() = Some(role_id.to_string()));
         send(&OutboundMessage::RoleSet {
             agent_id: agent_id.to_string(),
             role_id: role_id.to_string(),
@@ -563,6 +578,8 @@ fn handle_set_role(agent_id: &str, role_id: &str, url: &str) {
     match std::fs::write(&target, &body) {
         Ok(_) => {
             eprintln!("[bridge] Role {} installed for {} at {:?} ({} bytes)", role_id, agent_id, target, body.len());
+            // Activate this role so next chat uses --agent {role_id}
+            CURRENT_ROLE.with(|r| *r.borrow_mut() = Some(role_id.to_string()));
             send(&OutboundMessage::RoleSet {
                 agent_id: agent_id.to_string(),
                 role_id: role_id.to_string(),
@@ -686,6 +703,8 @@ fn handle_clear_role(agent_id: &str, role_id: &str) {
     match result {
         Ok(_) => {
             eprintln!("[bridge] Role {} cleared for {}", role_id, agent_id);
+            // Reset to default agent (main)
+            CURRENT_ROLE.with(|r| *r.borrow_mut() = None);
             send(&OutboundMessage::RoleCleared {
                 agent_id: agent_id.to_string(),
                 role_id: role_id.to_string(),

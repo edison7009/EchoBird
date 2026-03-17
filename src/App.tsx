@@ -119,7 +119,7 @@ function App() {
                 <DownloadProvider>
                     <GatewayProvider>
                         {/* All Providers always mounted — only CSS hidden changes */}
-                        <MotherAgentProvider appLogs={appLogs} detectedTools={detectedTools} onClearLogs={onClearLogs} onAgentRunningChange={setAgentRunning} onNewMessage={() => setMotherNewMessage(true)} initialMessage={motherPrefill}>
+                        <MotherAgentProvider appLogs={appLogs} detectedTools={detectedTools} onClearLogs={onClearLogs} onAgentRunningChange={setAgentRunning} onNewMessage={() => { if (activePage !== 'mother') setMotherNewMessage(true); }} initialMessage={motherPrefill}>
                             <ModelNexusProvider>
 
                                     <AppManagerProvider detectedTools={detectedTools} setDetectedTools={setDetectedTools} isScanning={isScanning} scanTools={doScanTools} modelProtocolSelection={modelProtocolSelection} setModelProtocolSelection={setModelProtocolSelection} isActive={activePage === 'apps'} onGoToMother={(prefill) => { setMotherPrefill(prefill); setActivePage('mother'); }}>

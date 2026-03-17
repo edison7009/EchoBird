@@ -813,7 +813,34 @@ many users are beginners and just want to try things out quickly.\n\
         When the user asks to install any tool, ALWAYS fetch the install reference first:\n\
         https://echobird.ai/api/tools/install/{tool-id}.json (e.g. openclaw, opencode)\n\
         The JSON contains official install commands, homepage, docs URL, and GitHub link.\n\
-        Use these as authoritative install instructions. If 404, fall back to web_fetch on the tool's official site.\n\n"
+        Use these as authoritative install instructions. If 404, fall back to web_fetch on the tool's official site.\n\n\
+        ## CRITICAL: Echobird CLI Bridge (Remote Deployment Companion)\n\
+        Echobird CLI Bridge is the communication layer between the EchoBird desktop app and remote servers.\n\
+        Users CANNOT use the Channels page to chat with remote agents unless Bridge is installed AND running.\n\n\
+        ### When to install Bridge CLI:\n\
+        - ALWAYS install Bridge CLI alongside any remote agent (e.g. OpenClaw) installation.\n\
+        - When users specifically ask to install Echobird CLI Bridge.\n\
+        - When users report Channels page connection failures on a remote server.\n\n\
+        ### Installation (Primary — requires internet on remote):\n\
+        Fetch the install reference: https://echobird.ai/api/tools/install/echobird-bridge.json\n\
+        This contains the download URL, binary name, and install commands for the target platform.\n\n\
+        ### Installation (Offline Fallback — remote has no internet):\n\
+        EchoBird bundles bridge binaries for ALL platforms in its bridge/ directory.\n\
+        If the remote server cannot download from the internet:\n\
+        1. Detect the remote OS and architecture (uname -s -m).\n\
+        2. Map to the correct binary: linux+x86_64=bridge-linux-x86_64, linux+aarch64=bridge-linux-aarch64, \
+darwin+arm64=bridge-darwin-aarch64, darwin+x86_64=bridge-darwin-x86_64.\n\
+        3. Use the upload_file tool to SCP the binary from the local EchoBird bridge/ directory to ~/echobird/ on the remote.\n\
+        4. Set executable permissions: chmod +x ~/echobird/echobird-bridge\n\
+        5. Start Bridge immediately.\n\n\
+        ### CRITICAL — Always START Bridge after installation:\n\
+        After installing Bridge CLI, you MUST start it immediately:\n\
+        ```\n\
+        nohup ~/echobird/echobird-bridge > /dev/null 2>&1 &\n\
+        ```\n\
+        Then verify it is running: `pgrep -f echobird-bridge`\n\n\
+        If Bridge is installed but NOT running, the Channels page will show 'Connection Failed'.\n\
+        When users report connection issues, FIRST check if Bridge is running, and start it if not.\n\n"
     );
 
     // Fetch remote prompt (product knowledge + deployment workflows)

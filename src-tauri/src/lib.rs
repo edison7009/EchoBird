@@ -395,6 +395,7 @@ pub fn run() {
             channel_commands::bridge_chat_remote,
             channel_commands::bridge_detect_agents_remote,
             channel_commands::bridge_set_role_remote,
+            channel_commands::bridge_set_role_local,
             channel_commands::bridge_clear_role_remote,
             channel_commands::bridge_start_agent_remote,
             channel_commands::channel_history_load,

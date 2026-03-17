@@ -733,6 +733,24 @@ const ChannelsInner: React.FC = () => {
                         return;
                     }
                 }
+
+                // Set role if selected (same protocol as remote)
+                const role = selectedRoleForChannel;
+                if (role?.filePath) {
+                    const isZh = locale.startsWith('zh');
+                    const roleUrl = isZh
+                        ? `https://echobird.ai/docs/roles/zh-Hans/${role.filePath}`
+                        : `https://echobird.ai/docs/roles/en/${role.filePath}`;
+                    const selectedAgent = allActiveAgents[channelKey] || 'OpenClaw';
+                    const agentEntry = AGENT_LIST.find(a => a.name === selectedAgent);
+                    const agentId = agentEntry?.id || 'openclaw';
+                    try {
+                        await api.bridgeSetRoleLocal(agentId, role.id, roleUrl);
+                    } catch (e) {
+                        console.warn('[Bridge] local set_role failed (non-fatal):', e);
+                    }
+                }
+
                 const result = await api.bridgeChatLocal(text, bridgeSessionId);
                 if (result.session_id) setBridgeSessionId(result.session_id);
                 setBridgeMessages(prev => [...prev, {
@@ -872,9 +890,10 @@ const ChannelsInner: React.FC = () => {
                             return <ChatBubble key={i} role="error" content={text} variant="channels" />;
                         }
                         const isLast = messages.slice(-chDisplayCount).slice(i + 1).every(m => m.role !== 'assistant');
-                        return <ChatBubble key={i} role="assistant" content={msg.content} variant="channels" isStreaming={bridgeLoading && isLast} />;
+                        const lastMsgIsUser = messages.length > 0 && messages[messages.length - 1].role === 'user';
+                        return <ChatBubble key={i} role="assistant" content={msg.content} variant="channels" isStreaming={bridgeLoading && isLast && !lastMsgIsUser} />;
                     })}
-                    {bridgeLoading && !messages.some(m => m.role === 'assistant') && <ChatBubble role="assistant" content="" variant="channels" isStreaming={true} />}
+                    {bridgeLoading && (messages.length === 0 || messages[messages.length - 1].role === 'user') && <ChatBubble role="assistant" content="" variant="channels" isStreaming={true} />}
                     </div>
                     <div ref={scrollRef} />
                 </div>

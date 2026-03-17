@@ -399,6 +399,10 @@ export async function bridgeDetectAgentsRemote(serverId: string): Promise<Remote
     return invoke('bridge_detect_agents_remote', { serverId });
 }
 
+export async function bridgeSetRoleLocal(agentId: string, roleId: string, url: string): Promise<unknown> {
+    return invoke('bridge_set_role_local', { agentId, roleId, url });
+}
+
 export async function bridgeSetRoleRemote(serverId: string, agentId: string, roleId: string, url: string): Promise<unknown> {
     return invoke('bridge_set_role_remote', { serverId, agentId, roleId, url });
 }

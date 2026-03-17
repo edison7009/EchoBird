@@ -332,7 +332,7 @@ fn local_bridge_binary_name() -> &'static str {
 /// Tries dl.echobird.ai (Cloudflare, GFW-friendly) then GitHub Releases as fallback.
 /// This is mandatory — bridge is required for Channels to work.
 async fn download_bridge_if_missing(plugin_id: &str) -> Result<(), String> {
-    use crate::services::plugin_manager::{plugins_dir, scan_plugins, get_bridge_path};
+    use crate::services::plugin_manager::{scan_plugins, get_bridge_path};
 
     // Check if already present
     let plugins = scan_plugins();
@@ -371,10 +371,10 @@ async fn download_bridge_if_missing(plugin_id: &str) -> Result<(), String> {
         }
     };
 
-    // Destination path
-    let dest_dir = plugins_dir().join(plugin_id);
+    // Destination path: use central bridge/ directory
+    let dest_dir = crate::services::plugin_manager::bridge_dir();
     std::fs::create_dir_all(&dest_dir)
-        .map_err(|e| format!("Failed to create plugin dir: {}", e))?;
+        .map_err(|e| format!("Failed to create bridge dir: {}", e))?;
     let dest_path = dest_dir.join(binary_name);
 
     // Try primary (Cloudflare) then GitHub fallback
@@ -750,6 +750,81 @@ pub async fn bridge_chat_local(
     // stdio-json: existing persistent subprocess chat
     tokio::task::spawn_blocking(move || {
         bridge_chat_sync(message, session_id)
+    }).await.map_err(|e| format!("Task error: {}", e))?
+}
+
+/// Set role on local bridge subprocess (stdio-json protocol)
+fn bridge_set_role_sync(agent_id: String, role_id: String, url: String) -> Result<serde_json::Value, String> {
+    log::info!("[BridgeSetRoleLocal] agent={}, role={}, url={}", agent_id, role_id, url);
+
+    // Auto-start bridge if not running
+    {
+        let guard = BRIDGE_PROCESS.lock().map_err(|e| format!("Lock error: {}", e))?;
+        let needs_start = guard.is_none();
+        drop(guard);
+
+        if needs_start {
+            log::info!("[BridgeSetRoleLocal] Bridge not running, auto-starting...");
+            let start_result = start_bridge_internal("openclaw")?;
+            if start_result.status != "connected" {
+                return Err(format!("Failed to start bridge: {:?}", start_result.error));
+            }
+        }
+    }
+
+    let mut guard = BRIDGE_PROCESS.lock().map_err(|e| format!("Lock error: {}", e))?;
+    let bp = guard.as_mut().ok_or_else(|| "Bridge not running".to_string())?;
+
+    let input_json = serde_json::json!({
+        "type": "set_role",
+        "agent_id": agent_id,
+        "role_id": role_id,
+        "url": url
+    });
+    let input_str = serde_json::to_string(&input_json)
+        .map_err(|e| format!("JSON error: {}", e))?;
+
+    writeln!(bp.stdin, "{}", input_str)
+        .map_err(|e| format!("Failed to write to bridge stdin: {}", e))?;
+    bp.stdin.flush()
+        .map_err(|e| format!("Failed to flush bridge stdin: {}", e))?;
+
+    log::info!("[BridgeSetRoleLocal] Sent: {}", safe_truncate(&input_str, 100));
+
+    // Read response: look for role_set or error
+    loop {
+        let mut line = String::new();
+        match bp.reader.read_line(&mut line) {
+            Ok(0) => return Err("Bridge EOF during set_role".to_string()),
+            Ok(_) => {
+                let trimmed = line.trim();
+                if trimmed.is_empty() { continue; }
+                if let Ok(json) = serde_json::from_str::<serde_json::Value>(trimmed) {
+                    match json.get("type").and_then(|v| v.as_str()) {
+                        Some("role_set") => return Ok(json),
+                        Some("error") => {
+                            let msg = json.get("message").and_then(|v| v.as_str()).unwrap_or("Unknown error");
+                            return Err(format!("Bridge error: {}", msg));
+                        }
+                        Some("done") => return Ok(json),
+                        _ => continue,
+                    }
+                }
+            }
+            Err(e) => return Err(format!("Read error: {}", e)),
+        }
+    }
+}
+
+/// Tauri command: set role on local bridge
+#[tauri::command]
+pub async fn bridge_set_role_local(
+    agent_id: String,
+    role_id: String,
+    url: String,
+) -> Result<serde_json::Value, String> {
+    tokio::task::spawn_blocking(move || {
+        bridge_set_role_sync(agent_id, role_id, url)
     }).await.map_err(|e| format!("Task error: {}", e))?
 }
 
