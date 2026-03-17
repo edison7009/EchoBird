@@ -196,5 +196,7 @@ const nl: Partial<Translations> = {
     'mother.hintShowSpecs': 'Server specificaties tonen',
     'mother.hintTroubleshoot': '{agent} werkt niet, help mij',
     'mother.hintUninstall': '{agent} volledig verwijderen',
+    'status.running': 'Actief',
+    'status.offline': 'Offline',
 };
 export default nl;

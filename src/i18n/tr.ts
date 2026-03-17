@@ -196,5 +196,7 @@ const tr: Partial<Translations> = {
     'mother.hintShowSpecs': 'Sunucu özelliklerini göster',
     'mother.hintTroubleshoot': '{agent} çalışmıyor, yardım edin',
     'mother.hintUninstall': '{agent} tamamen kaldır',
+    'status.running': 'Çalışıyor',
+    'status.offline': 'Çevrimdışı',
 };
 export default tr;

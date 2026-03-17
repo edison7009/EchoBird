@@ -204,5 +204,7 @@ const zhHans: Partial<Translations> = {
     'mother.hintShowSpecs': '查看服务器配置',
     'mother.hintTroubleshoot': '{agent} 不好用了，帮我修复',
     'mother.hintUninstall': '完全卸载 {agent}',
+    'status.running': '运行中',
+    'status.offline': '离线',
 };
 export default zhHans;

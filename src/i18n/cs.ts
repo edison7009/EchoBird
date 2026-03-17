@@ -196,5 +196,7 @@ const cs: Partial<Translations> = {
     'mother.hintShowSpecs': 'Zobrazit specifikace serveru',
     'mother.hintTroubleshoot': '{agent} nefunguje, pomozte',
     'mother.hintUninstall': 'Zcela odinstalovat {agent}',
+    'status.running': 'Spuštěno',
+    'status.offline': 'Offline',
 };
 export default cs;

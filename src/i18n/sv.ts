@@ -116,5 +116,7 @@ const sv: Partial<Translations> = {
     'mother.hintShowSpecs': 'Visa serverspecifikationer',
     'mother.hintTroubleshoot': '{agent} fungerar inte, hjälp mig',
     'mother.hintUninstall': 'Avinstallera {agent} helt',
+    'status.running': 'Körs',
+    'status.offline': 'Offline',
 };
 export default sv;

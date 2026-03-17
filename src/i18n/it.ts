@@ -199,5 +199,7 @@ const it: Partial<Translations> = {
     'mother.hintShowSpecs': 'Mostra specifiche server',
     'mother.hintTroubleshoot': '{agent} non funziona, aiutami',
     'mother.hintUninstall': 'Disinstallare {agent} completamente',
+    'status.running': 'In esecuzione',
+    'status.offline': 'Offline',
 };
 export default it;

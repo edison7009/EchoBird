@@ -196,5 +196,7 @@ const hu: Partial<Translations> = {
     'mother.hintShowSpecs': 'Szerver specifikációk',
     'mother.hintTroubleshoot': '{agent} nem működik, segíts',
     'mother.hintUninstall': '{agent} teljes eltávolítása',
+    'status.running': 'Fut',
+    'status.offline': 'Offline',
 };
 export default hu;

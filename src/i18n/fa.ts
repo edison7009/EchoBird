@@ -116,5 +116,7 @@ const fa: Partial<Translations> = {
     'mother.hintShowSpecs': 'نمایش مشخصات سرور',
     'mother.hintTroubleshoot': '{agent} کار نمی‌کند، کمک کنید',
     'mother.hintUninstall': 'حذف کامل {agent}',
+    'status.running': 'در حال اجرا',
+    'status.offline': 'آفلاین',
 };
 export default fa;

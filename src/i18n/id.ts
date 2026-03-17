@@ -198,5 +198,7 @@ const id: Partial<Translations> = {
     'mother.hintShowSpecs': 'Tampilkan spesifikasi server',
     'mother.hintTroubleshoot': '{agent} tidak berfungsi, bantu saya',
     'mother.hintUninstall': 'Hapus instalasi {agent} sepenuhnya',
+    'status.running': 'Berjalan',
+    'status.offline': 'Offline',
 };
 export default id;

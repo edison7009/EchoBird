@@ -217,5 +217,7 @@ const ja: Partial<Translations> = {
     'mother.hintShowSpecs': 'サーバースペックを表示',
     'mother.hintTroubleshoot': '{agent} が動かない？修正を手伝って',
     'mother.hintUninstall': '{agent} を完全にアンインストール',
+    'status.running': '実行中',
+    'status.offline': 'オフライン',
 };
 export default ja;

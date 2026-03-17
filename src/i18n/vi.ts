@@ -196,5 +196,7 @@ const vi: Partial<Translations> = {
     'mother.hintShowSpecs': 'Xem cấu hình máy chủ',
     'mother.hintTroubleshoot': '{agent} không hoạt động, giúp tôi',
     'mother.hintUninstall': 'Gỡ cài đặt {agent} hoàn toàn',
+    'status.running': 'Đang chạy',
+    'status.offline': 'Ngoại tuyến',
 };
 export default vi;

@@ -198,5 +198,7 @@ const ms: Partial<Translations> = {
     'mother.hintShowSpecs': 'Tunjukkan spesifikasi pelayan',
     'mother.hintTroubleshoot': '{agent} tidak berfungsi, tolong',
     'mother.hintUninstall': 'Nyahpasang {agent} sepenuhnya',
+    'status.running': 'Berjalan',
+    'status.offline': 'Luar talian',
 };
 export default ms;

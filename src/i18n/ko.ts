@@ -217,5 +217,7 @@ const ko: Partial<Translations> = {
     'mother.hintShowSpecs': '서버 스펙 보기',
     'mother.hintTroubleshoot': '{agent} 작동 안 함? 수정 도와주세요',
     'mother.hintUninstall': '{agent} 완전 삭제',
+    'status.running': '실행 중',
+    'status.offline': '오프라인',
 };
 export default ko;

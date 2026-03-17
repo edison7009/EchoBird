@@ -217,5 +217,7 @@ const ru: Partial<Translations> = {
     'mother.hintShowSpecs': 'Показать характеристики сервера',
     'mother.hintTroubleshoot': '{agent} не работает, помогите',
     'mother.hintUninstall': 'Полностью удалить {agent}',
+    'status.running': 'Запущено',
+    'status.offline': 'Не в сети',
 };
 export default ru;

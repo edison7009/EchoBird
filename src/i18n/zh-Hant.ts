@@ -218,5 +218,7 @@ const zhHant: Partial<Translations> = {
     'mother.hintShowSpecs': '查看伺服器配置',
     'mother.hintTroubleshoot': '{agent} 無法運作，幫我修復',
     'mother.hintUninstall': '完全解除安裝 {agent}',
+    'status.running': '執行中',
+    'status.offline': '離線',
 };
 export default zhHant;

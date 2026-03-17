@@ -198,5 +198,7 @@ const th: Partial<Translations> = {
     'mother.hintShowSpecs': 'แสดงสเปคเซิร์ฟเวอร์',
     'mother.hintTroubleshoot': '{agent} ไม่ทำงาน ช่วยแก้ไข',
     'mother.hintUninstall': 'ถอนการติดตั้ง {agent} ทั้งหมด',
+    'status.running': 'กำลังทำงาน',
+    'status.offline': 'ออฟไลน์',
 };
 export default th;

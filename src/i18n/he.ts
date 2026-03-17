@@ -116,5 +116,7 @@ const he: Partial<Translations> = {
     'mother.hintShowSpecs': 'הצג מפרטי שרת',
     'mother.hintTroubleshoot': '{agent} לא עובד, עזור לי',
     'mother.hintUninstall': 'הסר לחלוטין את {agent}',
+    'status.running': 'פועל',
+    'status.offline': 'לא מקוון',
 };
 export default he;

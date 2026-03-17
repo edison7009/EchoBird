@@ -116,5 +116,7 @@ const el: Partial<Translations> = {
     'mother.hintShowSpecs': 'Εμφάνιση προδιαγραφών',
     'mother.hintTroubleshoot': '{agent} δεν λειτουργεί, βοηθήστε',
     'mother.hintUninstall': 'Πλήρης απεγκατάσταση {agent}',
+    'status.running': 'Εκτελείται',
+    'status.offline': 'Εκτός σύνδεσης',
 };
 export default el;

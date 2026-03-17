@@ -196,5 +196,7 @@ const bn: Partial<Translations> = {
     'mother.hintShowSpecs': 'সার্ভার স্পেক দেখুন',
     'mother.hintTroubleshoot': '{agent} কাজ করছে না, সাহায্য করুন',
     'mother.hintUninstall': '{agent} সম্পূর্ণ আনইনস্টল করুন',
+    'status.running': 'চলছে',
+    'status.offline': 'অফলাইন',
 };
 export default bn;

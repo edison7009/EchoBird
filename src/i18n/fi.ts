@@ -116,5 +116,7 @@ const fi: Partial<Translations> = {
     'mother.hintShowSpecs': 'Näytä palvelimen tiedot',
     'mother.hintTroubleshoot': '{agent} ei toimi, auta',
     'mother.hintUninstall': 'Poista {agent} kokonaan',
+    'status.running': 'Käynnissä',
+    'status.offline': 'Offline',
 };
 export default fi;

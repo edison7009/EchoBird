@@ -196,5 +196,7 @@ const hi: Partial<Translations> = {
     'mother.hintShowSpecs': 'सर्वर स्पेक्स दिखाएं',
     'mother.hintTroubleshoot': '{agent} काम नहीं कर रहा, मदद करें',
     'mother.hintUninstall': '{agent} को पूरी तरह हटाएं',
+    'status.running': 'चल रहा है',
+    'status.offline': 'ऑफ़लाइन',
 };
 export default hi;
