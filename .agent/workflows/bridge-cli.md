@@ -55,8 +55,8 @@ User sends message to remote server
 ← {"type": "agents_detected", "agents": [{"id":"openclaw","installed":true,"running":true}]}
 
 // Set role (downloads role file and writes to agent's config directory)
-→ {"type": "set_role", "agent_id": "openclaw", "role_id": "ai-engineer", "url": "https://echobird.ai/docs/roles/en/ai-engineer.md"}
-← {"type": "role_set", "agent_id": "openclaw", "role_id": "ai-engineer", "installed": true, "path": "~/.openclaw/agency-agents/ai-engineer/SOUL.md"}
+→ {"type": "set_role", "agent_id": "openclaw", "role_id": "ai-engineer", "url": "https://raw.githubusercontent.com/edison7009/Echobird-MotherAgent/main/docs/roles/en/engineering/engineering-ai-engineer.md"}
+← {"type": "role_set", "agent_id": "openclaw", "role_id": "ai-engineer", "installed": true, "path": "~/.openclaw/workspace/SOUL.md"}
 
 // Chat
 → {"type": "chat", "message": "Hello", "session_id": "abc-123"}
@@ -78,15 +78,16 @@ Bridge does NOT inject roles as system prompts. It **downloads and writes role f
 
 | Agent | Role file path | Format |
 |-------|---------------|--------|
-| OpenClaw | `~/.openclaw/agency-agents/{role_id}/SOUL.md` | Markdown |
+| OpenClaw | `~/.openclaw/workspace/SOUL.md` (overwrites main agent) | Markdown |
 | Claude Code | `~/.claude/agents/{role_id}.md` | Markdown |
 | OpenCode | `~/.config/opencode/agents/{role_id}.md` | Markdown |
 | ZeroClaw | `~/.zeroclaw/workspace/skills/{role_id}/SKILL.md` | Markdown |
 
-Role URLs follow pattern: `https://echobird.ai/docs/roles/{lang}/{filePath}`
+Role URLs use **GitHub raw content** (NEVER the rendered website):
+- Pattern: `https://raw.githubusercontent.com/edison7009/Echobird-MotherAgent/main/docs/roles/{lang}/{filePath}`
 - `lang` = `en` or `zh-Hans` based on user locale
 - `filePath` = relative path from `roles-en.json`, e.g. `engineering/engineering-ai-engineer.md`
-- CDN-accelerated (GFW-friendly), backed by upstream repos:
+- Upstream repos:
   - EN: `msitarzewski/agency-agents`
   - ZH: `jnMetaCode/agency-agents-zh`
 
@@ -138,7 +139,7 @@ To add support for a new AI agent tool:
 
 4. **Add to AGENT_LIST** in frontend (`src/pages/Channels.tsx` or agent config)
 
-5. **Add role URL** on CDN: `https://echobird.ai/docs/roles/{lang}/{role_id}.md`
+5. **Add role URL** on CDN: `https://raw.githubusercontent.com/edison7009/Echobird-MotherAgent/main/docs/roles/{lang}/{role_id}.md`
 
 ## Offline Remote Deployment
 
@@ -161,7 +162,7 @@ The 5 binaries in `bridge/` are from the **last CI build**. If bridge source has
 
 1. Modify `bridge-src/src/main.rs` (e.g. add new agent support)
 2. Push to GitHub → CI cross-compiles all 5 targets automatically
-3. CI outputs go to `bridge/` (replacing old binaries)
+3. **CI builds bridge FIRST, copies to `bridge/`, THEN builds Tauri app** (order matters!)
 4. Next EchoBird release ships with the new binaries
 
 ### Workflow when bridge source has NOT changed
@@ -184,3 +185,45 @@ bridge-darwin-aarch64  ← aarch64-apple-darwin
 - Bridge version is tied to EchoBird version — recompile only when protocol changes.
 - Tauri bundles `bridge/` via `tauri.conf.json` → `resources`.
 - `bridge-src/` is NOT bundled — development and CI only.
+
+## Lessons Learned (v3.0.0 – v3.0.4)
+
+> Hard-won experience from debugging role deployment. **Read before adding any new agent.**
+
+### 1. CI Build Order: Bridge BEFORE Tauri
+
+Tauri bundles `bridge/` as resources during build. If bridge is compiled AFTER Tauri, the installer ships stale binaries. **Always: `cd bridge-src && cargo build` → copy to `bridge/` → THEN `tauri-action`.**
+
+### 2. Role URL Must Return Raw Markdown
+
+`echobird.ai/docs/roles/*.md` returns **rendered HTML** (Cloudflare Pages). Bridge writes this HTML as SOUL.md → agent gets confused. Always use `raw.githubusercontent.com` for raw markdown content.
+
+### 3. OpenClaw SOUL.md: Always Overwrite
+
+OpenClaw ships with a **default SOUL.md** in `~/.openclaw/workspace/`. If bridge checks `if file.exists() { skip }`, it will never deploy the user's role. For agents where roles share the same target file (like OpenClaw's SOUL.md), always overwrite.
+
+### 4. Session Must Reset on Role Change
+
+OpenClaw reads SOUL.md only at **session start**. Changing SOUL.md mid-session has no effect. After `set_role` succeeds, clear `bridgeSessionId` to force a new session. But only when the role actually changes — use `lastAppliedRoleRef` to track.
+
+### 5. Don't Create New Agents
+
+`openclaw agents add {role_id}` creates a new agent workspace but with **no model/API config**. Only the `main` agent has the user's configured models. Write SOUL.md to `~/.openclaw/workspace/SOUL.md` (main workspace) and keep `--agent main`.
+
+### 6. bridge-src/ Compiles, bridge/ Ships
+
+- `bridge-src/` = Rust source + Cargo.toml. CI compiles here.
+- `bridge/` = 5 compiled binaries. Tauri bundles these into the installer.
+- **CI copies compiled output from `bridge-src/target/` to `bridge/`** before Tauri build.
+- These binaries serve local channel communication AND offline LAN deployment.
+
+### 7. Per-Agent Role Path Differences
+
+| Agent | Strategy | Why |
+|-------|----------|-----|
+| OpenClaw | Overwrite `workspace/SOUL.md` | Single workspace, roles share same file |
+| Claude Code | Create `agents/{role_id}.md` | Per-role files, coexist |
+| OpenCode | Create `agents/{role_id}.md` | Per-role files, coexist |
+| ZeroClaw | Create `skills/{role_id}/SKILL.md` | Per-role directories, coexist |
+
+For agents with per-role files, idempotent skip (`if exists, skip download`) is safe. For agents with shared files (OpenClaw), always overwrite.

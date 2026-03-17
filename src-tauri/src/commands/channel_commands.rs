@@ -801,9 +801,13 @@ fn bridge_set_role_sync(agent_id: String, role_id: String, url: String) -> Resul
                 if trimmed.is_empty() { continue; }
                 if let Ok(json) = serde_json::from_str::<serde_json::Value>(trimmed) {
                     match json.get("type").and_then(|v| v.as_str()) {
-                        Some("role_set") => return Ok(json),
+                        Some("role_set") => {
+                            log::info!("[BridgeSetRoleLocal] SUCCESS: role_set received");
+                            return Ok(json);
+                        }
                         Some("error") => {
                             let msg = json.get("message").and_then(|v| v.as_str()).unwrap_or("Unknown error");
+                            log::error!("[BridgeSetRoleLocal] ERROR from bridge: {}", msg);
                             return Err(format!("Bridge error: {}", msg));
                         }
                         Some("done") => return Ok(json),

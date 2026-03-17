@@ -174,9 +174,8 @@ pub fn bridge_dir() -> PathBuf {
 }
 
 /// Get the bridge binary path for the current platform.
-/// Checks bridge/ directory first (with arch-specific names), then plugins/{id}/.
-pub fn get_bridge_path(plugin: &PluginConfig) -> Option<PathBuf> {
-    // 1. Check bridge/ directory with arch-specific binary name
+/// Uses central bridge/ directory only.
+pub fn get_bridge_path(_plugin: &PluginConfig) -> Option<PathBuf> {
     let arch_name = match (std::env::consts::OS, std::env::consts::ARCH) {
         ("linux", "aarch64") => "bridge-linux-aarch64",
         ("linux", _)         => "bridge-linux-x86_64",
@@ -186,27 +185,9 @@ pub fn get_bridge_path(plugin: &PluginConfig) -> Option<PathBuf> {
     };
     let bridge_dir_path = bridge_dir().join(arch_name);
     if bridge_dir_path.exists() {
-        log::info!("[PluginManager] Using bridge from bridge/: {:?}", bridge_dir_path);
-        return Some(bridge_dir_path);
-    }
-
-    // 2. Fallback: check plugins/{id}/ with plugin.json-defined name
-    let bridge = plugin.bridge.as_ref()?;
-    let filename = if cfg!(target_os = "linux") {
-        bridge.linux.as_ref()
-    } else if cfg!(target_os = "macos") {
-        bridge.darwin.as_ref()
-    } else if cfg!(target_os = "windows") {
-        bridge.win32.as_ref()
+        Some(bridge_dir_path)
     } else {
-        None
-    }?;
-
-    let dir = plugins_dir();
-    let path = dir.join(&plugin.id).join(filename);
-    if path.exists() {
-        Some(path)
-    } else {
+        log::error!("[PluginManager] Bridge binary NOT found at {:?}", bridge_dir_path);
         None
     }
 }

@@ -38,6 +38,8 @@ interface ChannelsCtx {
     setAllActiveAgents: React.Dispatch<React.SetStateAction<Record<number, string>>>;
     allBridgeLoading: Record<number, boolean>;
     setAllBridgeLoading: React.Dispatch<React.SetStateAction<Record<number, boolean>>>;
+    allSelectedRoles: Record<number, { id: string; name: string; filePath: string }>;
+    setAllSelectedRoles: React.Dispatch<React.SetStateAction<Record<number, { id: string; name: string; filePath: string }>>>;
 }
 const ChannelsContext = createContext<ChannelsCtx | null>(null);
 const useChannels = () => useContext(ChannelsContext)!;
@@ -49,8 +51,9 @@ export function ChannelsProvider({ children }: { children: React.ReactNode }) {
     const [allBridgeStatus, setAllBridgeStatus] = useState<Record<number, string>>({});
     const [allActiveAgents, setAllActiveAgents] = useState<Record<number, string>>({});
     const [allBridgeLoading, setAllBridgeLoading] = useState<Record<number, boolean>>({});
+    const [allSelectedRoles, setAllSelectedRoles] = useState<Record<number, { id: string; name: string; filePath: string }>>({});
     const selectChannel = useCallback((id: number) => { if (id !== activeId) setActiveId(id); }, [activeId]);
-    const ctx: ChannelsCtx = { channels, setChannels, activeId, setActiveId, selectChannel, allBridgeStatus, setAllBridgeStatus, allActiveAgents, setAllActiveAgents, allBridgeLoading, setAllBridgeLoading };
+    const ctx: ChannelsCtx = { channels, setChannels, activeId, setActiveId, selectChannel, allBridgeStatus, setAllBridgeStatus, allActiveAgents, setAllActiveAgents, allBridgeLoading, setAllBridgeLoading, allSelectedRoles, setAllSelectedRoles };
     return <ChannelsContext.Provider value={ctx}>{children}</ChannelsContext.Provider>;
 }
 
@@ -185,8 +188,10 @@ const ChannelsInner: React.FC = () => {
         setAllActiveAgents(prev => ({ ...prev, [chId]: name }));
     };
     // Per-channel selected role
-    const [allSelectedRoles, setAllSelectedRoles] = useState<Record<number, { id: string; name: string; filePath: string }>>({});
+    const { allSelectedRoles, setAllSelectedRoles } = useChannels();
     const [showRolePicker, setShowRolePicker] = useState(false);
+    // Track last applied role per channel to avoid redundant set_role calls
+    const lastAppliedRoleRef = useRef<Record<number, string>>({});
     // Cache remote agent detection results per channel (avoid repeated SSH calls)
     const remoteAgentCache = useRef<Record<number, any[]>>({});
 
@@ -734,18 +739,24 @@ const ChannelsInner: React.FC = () => {
                     }
                 }
 
-                // Set role if selected (same protocol as remote)
+                // Set role if selected AND changed since last apply
                 const role = selectedRoleForChannel;
-                if (role?.filePath) {
+                const lastApplied = lastAppliedRoleRef.current[channelKey];
+                if (role?.filePath && role.id !== lastApplied) {
                     const isZh = locale.startsWith('zh');
                     const roleUrl = isZh
-                        ? `https://echobird.ai/docs/roles/zh-Hans/${role.filePath}`
-                        : `https://echobird.ai/docs/roles/en/${role.filePath}`;
+                        ? `https://raw.githubusercontent.com/edison7009/Echobird-MotherAgent/main/docs/roles/zh-Hans/${role.filePath}`
+                        : `https://raw.githubusercontent.com/edison7009/Echobird-MotherAgent/main/docs/roles/en/${role.filePath}`;
                     const selectedAgent = allActiveAgents[channelKey] || 'OpenClaw';
                     const agentEntry = AGENT_LIST.find(a => a.name === selectedAgent);
                     const agentId = agentEntry?.id || 'openclaw';
+
                     try {
                         await api.bridgeSetRoleLocal(agentId, role.id, roleUrl);
+
+                        // Force new session so OpenClaw reads the updated SOUL.md
+                        setBridgeSessionId(undefined);
+                        lastAppliedRoleRef.current[channelKey] = role.id;
                     } catch (e) {
                         console.warn('[Bridge] local set_role failed (non-fatal):', e);
                     }
@@ -1001,7 +1012,7 @@ const ChannelsInner: React.FC = () => {
 
 // ===== ChannelsPanel — right-side channel list (rendered in aside) =====
 export function ChannelsPanel() {
-    const { channels, activeId, selectChannel, allBridgeStatus, allActiveAgents, allBridgeLoading } = useChannels();
+    const { channels, activeId, selectChannel, allBridgeStatus, allActiveAgents, allBridgeLoading, allSelectedRoles } = useChannels();
     const { t } = useI18n();
     const manager = useGatewayManager();
 
@@ -1052,6 +1063,9 @@ export function ChannelsPanel() {
                                             <span className={`text-xs tracking-wide ${isTyping ? 'text-cyber-accent' : isLinked ? 'text-cyber-accent' : isBridgeConnecting ? 'text-yellow-400' : isError ? 'text-red-400' : 'text-cyber-text-muted/70'}`}>
                                                 [{isTyping ? t('common.inputting') : isLinked ? t('channel.linked') : isBridgeConnecting ? t('channel.connecting') : isError ? t('channel.failed') : t('channel.standby')}]
                                             </span>
+                                            {allSelectedRoles[ch.id]?.name && (
+                                                <span className={`text-xs truncate ${isTyping ? 'text-cyber-accent' : isLinked ? 'text-cyber-accent' : isBridgeConnecting ? 'text-yellow-400' : isError ? 'text-red-400' : 'text-cyber-text-muted/70'}`}>{allSelectedRoles[ch.id].name}</span>
+                                            )}
                                         </div>
                                     </div>
                                 </div>

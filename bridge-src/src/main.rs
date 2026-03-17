@@ -252,22 +252,17 @@ fn execute_chat(
     is_resume: bool,
 ) {
     // Build command args
-    let active_role = CURRENT_ROLE.with(|r| r.borrow().clone());
     let mut args: Vec<String> = if is_resume {
         // Resume: use resume_args, replace {sessionId}
         let sid = session_id.unwrap_or("unknown");
         config.resume_args.iter()
             .map(|a| {
                 let a = a.replace("{sessionId}", sid);
-                // Replace "main" with active role_id if set
-                if a == "main" { active_role.as_deref().unwrap_or("main").to_string() } else { a }
+                if a == "main" { "main".to_string() } else { a }
             })
             .collect()
     } else {
-        // New chat: use standard args, replace "main" with active role_id
-        let mut a: Vec<String> = config.args.iter().map(|arg| {
-            if arg == "main" { active_role.as_deref().unwrap_or("main").to_string() } else { arg.clone() }
-        }).collect();
+        let mut a: Vec<String> = config.args.iter().map(|arg| arg.clone()).collect();
         // Insert session ID BEFORE --message (which must be last, followed by the actual message text)
         if let (Some(sid), Some(session_arg)) = (session_id, &config.session_arg) {
             // --message is the last element in args; insert --session-id before it
@@ -520,7 +515,7 @@ fn handle_set_role(agent_id: &str, role_id: &str, url: &str) {
     let target = match agent_id {
         "claudecode" => home.join(".claude").join("agents").join(format!("{}.md", role_id)),
         "opencode"   => home.join(".config").join("opencode").join("agents").join(format!("{}.md", role_id)),
-        "openclaw"   => home.join(".openclaw").join(format!("workspace-{}", role_id)).join("SOUL.md"),
+        "openclaw"   => home.join(".openclaw").join("workspace").join("SOUL.md"),
         "zeroclaw"   => home.join(".zeroclaw").join("workspace").join("skills").join(role_id).join("SKILL.md"),
         _ => {
             send(&OutboundMessage::Error {
@@ -530,24 +525,10 @@ fn handle_set_role(agent_id: &str, role_id: &str, url: &str) {
         }
     };
 
-    // Register agent with OpenClaw if needed (creates workspace + agent entry)
-    if agent_id == "openclaw" {
-        let add_result = if cfg!(target_os = "windows") {
-            Command::new("cmd.exe").args(["/c", "openclaw", "agents", "add", role_id]).output()
-        } else {
-            Command::new("openclaw").args(["agents", "add", role_id]).output()
-        };
-        match add_result {
-            Ok(output) => eprintln!("[bridge] openclaw agents add {}: {}", role_id, String::from_utf8_lossy(&output.stdout).trim()),
-            Err(e) => eprintln!("[bridge] openclaw agents add {} failed (non-fatal): {}", role_id, e),
-        }
-    }
-
-    // Idempotent: skip if already installed
-    if target.exists() {
+    // Idempotent: skip if already installed (only for agents with per-role file paths)
+    // OpenClaw always overwrites SOUL.md in main workspace, so never skip
+    if agent_id != "openclaw" && target.exists() {
         eprintln!("[bridge] Role {} already installed for {} at {:?}", role_id, agent_id, target);
-        // Still activate the role even if file exists (may have been cleared in memory)
-        CURRENT_ROLE.with(|r| *r.borrow_mut() = Some(role_id.to_string()));
         send(&OutboundMessage::RoleSet {
             agent_id: agent_id.to_string(),
             role_id: role_id.to_string(),
@@ -591,8 +572,6 @@ fn handle_set_role(agent_id: &str, role_id: &str, url: &str) {
     match std::fs::write(&target, &body) {
         Ok(_) => {
             eprintln!("[bridge] Role {} installed for {} at {:?} ({} bytes)", role_id, agent_id, target, body.len());
-            // Activate this role so next chat uses --agent {role_id}
-            CURRENT_ROLE.with(|r| *r.borrow_mut() = Some(role_id.to_string()));
             send(&OutboundMessage::RoleSet {
                 agent_id: agent_id.to_string(),
                 role_id: role_id.to_string(),
@@ -686,7 +665,7 @@ fn handle_clear_role(agent_id: &str, role_id: &str) {
     let target = match agent_id {
         "claudecode" => home.join(".claude").join("agents").join(format!("{}.md", role_id)),
         "opencode"   => home.join(".config").join("opencode").join("agents").join(format!("{}.md", role_id)),
-        "openclaw"   => home.join(".openclaw").join(format!("workspace-{}", role_id)),
+        "openclaw"   => home.join(".openclaw").join("workspace").join("SOUL.md"),
         "zeroclaw"   => home.join(".zeroclaw").join("workspace").join("skills").join(role_id),
         _ => {
             send(&OutboundMessage::Error {
@@ -716,8 +695,6 @@ fn handle_clear_role(agent_id: &str, role_id: &str) {
     match result {
         Ok(_) => {
             eprintln!("[bridge] Role {} cleared for {}", role_id, agent_id);
-            // Reset to default agent (main)
-            CURRENT_ROLE.with(|r| *r.borrow_mut() = None);
             send(&OutboundMessage::RoleCleared {
                 agent_id: agent_id.to_string(),
                 role_id: role_id.to_string(),
