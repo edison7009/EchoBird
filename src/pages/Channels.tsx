@@ -800,8 +800,8 @@ const ChannelsInner: React.FC = () => {
                     if (role?.filePath) {
                         const isZh = locale.startsWith('zh');
                         const roleUrl = isZh
-                            ? `https://raw.githubusercontent.com/jnMetaCode/agency-agents-zh/main/zh-Hans/${role.filePath}`
-                            : `https://raw.githubusercontent.com/msitarzewski/agency-agents/main/en/${role.filePath}`;
+                            ? `https://echobird.ai/docs/roles/zh-Hans/${role.filePath}`
+                            : `https://echobird.ai/docs/roles/en/${role.filePath}`;
                         try {
                             await api.bridgeSetRoleRemote(serverId, agentId, role.id, roleUrl);
                         } catch (e) {
