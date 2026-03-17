@@ -69,3 +69,17 @@ Only include **S+** (≥70% SWE-bench) and **S** (60–70%) tier models.
 - **No Google AI Studio** — Gemma models are B/C tier, not worth listing
 - **Per-model limits** where known — use cheahjs for accurate limit data
 - Trial-credit providers (Fireworks, Hyperbolic, Together, SambaNova) are OK to include, mark limit clearly
+
+---
+
+## Additional Manual Sources
+
+These providers are NOT in `sources.js` and must be checked manually:
+
+| Provider | Models Page | Limits Page | Base URL |
+|---|---|---|---|
+| **ModelScope** | https://modelscope.cn/models?filter=inference_type | https://modelscope.cn/docs/model-service/API-Inference/limits | `https://api-inference.modelscope.cn/v1` |
+
+- ModelScope: 2000 RPD shared pool, requires Alibaba Cloud account + real-name verification
+- Filter by "API-Inference" tag, only include S+/S tier models (GLM-5, DeepSeek V3.2, Qwen3.5, etc.)
+- Model IDs use `org/model-name` format (e.g. `ZhipuAI/GLM-5`)

@@ -233,6 +233,23 @@
                 { "id": "glm-4.6", "name": "GLM 4.6", "context": 204800, "limit": "Unlimited (key expires 7d)", "free": true },
                 { "id": "deepseek-v3", "name": "DeepSeek V3", "context": 131072, "limit": "Unlimited (key expires 7d)", "free": true }
             ]
+        },
+        {
+            "name": "ModelScope",
+            "url": "https://modelscope.cn",
+            "keyUrl": "https://modelscope.cn/my/myaccesstoken",
+            "docsUrl": "https://modelscope.cn/docs/model-service/API-Inference/intro",
+            "baseUrl": "https://api-inference.modelscope.cn/v1",
+            "protocol": "OpenAI",
+            "models": [
+                { "id": "Qwen/Qwen3.5-397B-A17B", "name": "Qwen3.5 400B", "context": 131072, "limit": "2K RPD", "free": true },
+                { "id": "deepseek-ai/DeepSeek-V3.2", "name": "DeepSeek V3.2", "context": 131072, "limit": "2K RPD", "free": true },
+                { "id": "ZhipuAI/GLM-5", "name": "GLM 5", "context": 131072, "limit": "2K RPD", "free": true },
+                { "id": "Shanghai_AI_Laboratory/Intern-S1-Pro", "name": "Intern S1 Pro", "context": 131072, "limit": "2K RPD", "free": true },
+                { "id": "ZhipuAI/GLM-4.7", "name": "GLM 4.7", "context": 204800, "limit": "2K RPD", "free": true },
+                { "id": "moonshotai/Kimi-K2.5", "name": "Kimi K2.5", "context": 131072, "limit": "2K RPD", "free": true },
+                { "id": "MiniMax/MiniMax-M2.5", "name": "MiniMax M2.5", "context": 204800, "limit": "2K RPD", "free": true }
+            ]
         }
     ]
 }
