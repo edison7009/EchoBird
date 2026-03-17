@@ -520,7 +520,7 @@ fn handle_set_role(agent_id: &str, role_id: &str, url: &str) {
     let target = match agent_id {
         "claudecode" => home.join(".claude").join("agents").join(format!("{}.md", role_id)),
         "opencode"   => home.join(".config").join("opencode").join("agents").join(format!("{}.md", role_id)),
-        "openclaw"   => home.join(".openclaw").join("agency-agents").join(role_id).join("SOUL.md"),
+        "openclaw"   => home.join(".openclaw").join(format!("workspace-{}", role_id)).join("SOUL.md"),
         "zeroclaw"   => home.join(".zeroclaw").join("workspace").join("skills").join(role_id).join("SKILL.md"),
         _ => {
             send(&OutboundMessage::Error {
@@ -529,6 +529,19 @@ fn handle_set_role(agent_id: &str, role_id: &str, url: &str) {
             return;
         }
     };
+
+    // Register agent with OpenClaw if needed (creates workspace + agent entry)
+    if agent_id == "openclaw" {
+        let add_result = if cfg!(target_os = "windows") {
+            Command::new("cmd.exe").args(["/c", "openclaw", "agents", "add", role_id]).output()
+        } else {
+            Command::new("openclaw").args(["agents", "add", role_id]).output()
+        };
+        match add_result {
+            Ok(output) => eprintln!("[bridge] openclaw agents add {}: {}", role_id, String::from_utf8_lossy(&output.stdout).trim()),
+            Err(e) => eprintln!("[bridge] openclaw agents add {} failed (non-fatal): {}", role_id, e),
+        }
+    }
 
     // Idempotent: skip if already installed
     if target.exists() {
@@ -673,7 +686,7 @@ fn handle_clear_role(agent_id: &str, role_id: &str) {
     let target = match agent_id {
         "claudecode" => home.join(".claude").join("agents").join(format!("{}.md", role_id)),
         "opencode"   => home.join(".config").join("opencode").join("agents").join(format!("{}.md", role_id)),
-        "openclaw"   => home.join(".openclaw").join("agency-agents").join(role_id),
+        "openclaw"   => home.join(".openclaw").join(format!("workspace-{}", role_id)),
         "zeroclaw"   => home.join(".zeroclaw").join("workspace").join("skills").join(role_id),
         _ => {
             send(&OutboundMessage::Error {
