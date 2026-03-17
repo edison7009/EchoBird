@@ -9,15 +9,9 @@
 //   stdout ← {"type":"done","session_id":"..."}
 
 use serde::{Deserialize, Serialize};
-use std::cell::RefCell;
 use std::io::{self, BufRead, Write};
 use std::path::PathBuf;
 use std::process::Command;
-
-// Active role per agent — when set, chat uses --agent {role_id} instead of --agent main
-thread_local! {
-    static CURRENT_ROLE: RefCell<Option<String>> = RefCell::new(None);
-}
 
 // ── Types ──
 
