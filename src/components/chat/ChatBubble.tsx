@@ -118,7 +118,7 @@ export function ChatBubble({ role, content, variant, chips = [], isStreaming = f
     // ── Skeleton: pulsing placeholder bars for lazy-load ──
     if (role === 'skeleton') {
         return (
-            <div className="flex justify-start mb-2">
+            <div className="flex justify-start mb-4">
                 <div className="max-w-[55%] rounded-xl px-4 py-3 space-y-2" style={{ background: '#2A2A2A' }}>
                     {[80, 60, 40].map((w, i) => (
                         <div key={i} className="h-3 rounded-full animate-pulse" style={{ width: `${w}%`, background: 'rgba(255,255,255,0.12)' }} />
@@ -182,7 +182,7 @@ export function ChatBubble({ role, content, variant, chips = [], isStreaming = f
         if (!finalText && !isStreaming) return null;
 
         return (
-            <div className="flex justify-start mb-2">
+            <div className="flex justify-start mb-4">
                 <div
                     className="relative max-w-[62%] rounded-xl px-3 py-2 text-sm leading-snug font-sans font-medium"
                     style={{
@@ -210,7 +210,7 @@ export function ChatBubble({ role, content, variant, chips = [], isStreaming = f
     // ── User bubble (right) — solid color, dark text ──
     const tailColor = variant === 'mother' ? '#00D4FF' : '#00FF9D';
     return (
-        <div className="flex flex-col items-end mb-2">
+        <div className="flex flex-col items-end mb-4">
             <div className="flex justify-end max-w-[62%]">
                 <div className={`relative flex-1 rounded-xl px-3 py-2 text-sm leading-snug whitespace-pre-wrap break-words font-sans font-medium ${USER_BUBBLE[variant]}`}>
                     {/* Rounded SVG tail — mostly inside bubble, tip sticks out 5px right */}
