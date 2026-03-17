@@ -1,1 +1,1 @@
-{"version":"3.0.2","releaseDate":"2026-03-18","releaseNotes":"v3.0.2: Bridge role switching (--agent {role_id}), unified bridge directories, channel typing indicator fix"}
+{"version":"3.0.3","releaseDate":"2026-03-18","releaseNotes":"v3.0.3: Fix OpenClaw role path to workspace-{agentId}/SOUL.md, add agent registration, bridge role switching"}
