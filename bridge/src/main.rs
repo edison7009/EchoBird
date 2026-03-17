@@ -35,6 +35,7 @@ enum InboundMessage {
     Status {},
     #[serde(rename = "abort")]
     Abort {
+        #[allow(dead_code)]
         session_id: Option<String>,
     },
     #[serde(rename = "ping")]
