@@ -1005,6 +1005,8 @@ const ChannelsInner: React.FC = () => {
                     setActiveAgentFor(channelKey, name);
                     if (channelFileKeyForPersist) { localStorage.setItem(`eb_ch_${channelFileKeyForPersist}_agent`, name); }
                 }}
+                isRemote={!isLocalChannel}
+                remoteServerId={activeChannel?.serverId}
             />
         </>
     );
