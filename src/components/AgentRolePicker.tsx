@@ -9,10 +9,10 @@ import type { RoleCategory, RoleEntry, AgentStatus } from '../api/tauri';
 
 // ── Agent tools ──
 const AGENT_TOOLS = [
-    { id: 'openclaw', name: 'OpenClaw', icon: '/icons/tools/openclaw.svg' },
-    { id: 'claudecode', name: 'Claude Code', icon: '/icons/tools/claudecode.svg' },
-    { id: 'opencode', name: 'OpenCode', icon: '/icons/tools/opencode.svg' },
-    { id: 'zeroclaw', name: 'ZeroClaw', icon: '/icons/tools/zeroclaw.png' },
+    { id: 'openclaw', name: 'OpenClaw', icon: '/icons/tools/openclaw.svg', enabled: true },
+    { id: 'claudecode', name: 'Claude Code', icon: '/icons/tools/claudecode.svg', enabled: false },
+    { id: 'opencode', name: 'OpenCode', icon: '/icons/tools/opencode.svg', enabled: false },
+    { id: 'zeroclaw', name: 'ZeroClaw', icon: '/icons/tools/zeroclaw.png', enabled: false },
 ];
 
 // ── Component ──
@@ -134,20 +134,21 @@ export const AgentRolePicker: React.FC<AgentRolePickerProps> = ({
                     {AGENT_TOOLS.map(agent => {
                         const isActive = selectedAgent === agent.name;
                         const status = agentStatuses.find(s => s.id === agent.id);
-                        const isInstalled = detecting ? true : (!status || status.installed);
+                        const isAvailable = agent.enabled && (detecting ? true : (!status || status.installed));
                         return (
                             <div
                                 key={agent.name}
-                                onClick={() => { if (isInstalled) onSelectAgent(agent.name); }}
+                                onClick={() => { if (isAvailable) onSelectAgent(agent.name); }}
+                                title={!agent.enabled ? 'Coming Soon' : ''}
                                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-card text-xs font-mono transition-all ${
-                                    !isInstalled
+                                    !isAvailable
                                         ? 'border border-cyber-border/30 bg-black/60 text-cyber-text-muted/30 cursor-not-allowed opacity-40'
                                         : isActive
                                             ? 'border border-cyber-accent bg-cyber-accent/10 shadow-cyber-card text-cyber-accent cursor-pointer'
                                             : 'border border-cyber-border shadow-cyber-card bg-black/80 text-cyber-text-muted/70 hover:border-cyber-accent/30 hover:bg-black/90 cursor-pointer'
                                 }`}
                             >
-                                <img src={agent.icon} alt={agent.name} className={`w-4 h-4 ${isActive && isInstalled ? '' : 'opacity-50 grayscale'}`} />
+                                <img src={agent.icon} alt={agent.name} className={`w-4 h-4 ${isActive && isAvailable ? '' : 'opacity-50 grayscale'}`} />
                                 <span>{agent.name}</span>
                             </div>
                         );
