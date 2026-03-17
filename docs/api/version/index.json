@@ -1,1 +1,1 @@
-{"version":"3.0.3","releaseDate":"2026-03-18","releaseNotes":"v3.0.3: Fix OpenClaw role path to workspace-{agentId}/SOUL.md, add agent registration, bridge role switching"}
+{"version":"3.0.4","releaseDate":"2026-03-18","releaseNotes":"v3.0.4: Fix role deployment (raw URL, SOUL.md overwrite, session reset), red dot notification, remote agent detection, chat bubble spacing, disable non-OpenClaw agents"}
