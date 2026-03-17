@@ -40,6 +40,8 @@ interface ChannelsCtx {
     setAllBridgeLoading: React.Dispatch<React.SetStateAction<Record<number, boolean>>>;
     allSelectedRoles: Record<number, { id: string; name: string; filePath: string }>;
     setAllSelectedRoles: React.Dispatch<React.SetStateAction<Record<number, { id: string; name: string; filePath: string }>>>;
+    allBridgeHasNew: Record<number, boolean>;
+    setAllBridgeHasNew: React.Dispatch<React.SetStateAction<Record<number, boolean>>>;
 }
 const ChannelsContext = createContext<ChannelsCtx | null>(null);
 const useChannels = () => useContext(ChannelsContext)!;
@@ -52,8 +54,12 @@ export function ChannelsProvider({ children }: { children: React.ReactNode }) {
     const [allActiveAgents, setAllActiveAgents] = useState<Record<number, string>>({});
     const [allBridgeLoading, setAllBridgeLoading] = useState<Record<number, boolean>>({});
     const [allSelectedRoles, setAllSelectedRoles] = useState<Record<number, { id: string; name: string; filePath: string }>>({});
-    const selectChannel = useCallback((id: number) => { if (id !== activeId) setActiveId(id); }, [activeId]);
-    const ctx: ChannelsCtx = { channels, setChannels, activeId, setActiveId, selectChannel, allBridgeStatus, setAllBridgeStatus, allActiveAgents, setAllActiveAgents, allBridgeLoading, setAllBridgeLoading, allSelectedRoles, setAllSelectedRoles };
+    const [allBridgeHasNew, setAllBridgeHasNew] = useState<Record<number, boolean>>({});
+    const selectChannel = useCallback((id: number) => {
+        if (id !== activeId) setActiveId(id);
+        setAllBridgeHasNew(prev => ({ ...prev, [id]: false }));
+    }, [activeId]);
+    const ctx: ChannelsCtx = { channels, setChannels, activeId, setActiveId, selectChannel, allBridgeStatus, setAllBridgeStatus, allActiveAgents, setAllActiveAgents, allBridgeLoading, setAllBridgeLoading, allSelectedRoles, setAllSelectedRoles, allBridgeHasNew, setAllBridgeHasNew };
     return <ChannelsContext.Provider value={ctx}>{children}</ChannelsContext.Provider>;
 }
 
@@ -188,7 +194,7 @@ const ChannelsInner: React.FC = () => {
         setAllActiveAgents(prev => ({ ...prev, [chId]: name }));
     };
     // Per-channel selected role
-    const { allSelectedRoles, setAllSelectedRoles } = useChannels();
+    const { allSelectedRoles, setAllSelectedRoles, setAllBridgeHasNew } = useChannels();
     const [showRolePicker, setShowRolePicker] = useState(false);
     // Track last applied role per channel to avoid redundant set_role calls
     const lastAppliedRoleRef = useRef<Record<number, string>>({});
@@ -769,6 +775,8 @@ const ChannelsInner: React.FC = () => {
                     content: result.text,
                     meta: { model: result.model, tokens: result.tokens, duration_ms: result.duration_ms },
                 }]);
+                // Mark channel as having new message (for red dot when user is on another channel)
+                setAllBridgeHasNew(prev => ({ ...prev, [channelKey]: true }));
             } else {
                 // Remote channel: SSH → bridge binary on remote server
                 const serverId = activeChannel?.serverId;
@@ -851,6 +859,7 @@ const ChannelsInner: React.FC = () => {
                         }];
                     });
                     if (result.session_id) setBridgeSessionId(result.session_id);
+                    setAllBridgeHasNew(prev => ({ ...prev, [channelKey]: true }));
                 } catch (remoteErr: any) {
                     clearTimeout(workingTimer);
                     setBridgeMessages(prev => {
@@ -1014,7 +1023,7 @@ const ChannelsInner: React.FC = () => {
 
 // ===== ChannelsPanel — right-side channel list (rendered in aside) =====
 export function ChannelsPanel() {
-    const { channels, activeId, selectChannel, allBridgeStatus, allActiveAgents, allBridgeLoading, allSelectedRoles } = useChannels();
+    const { channels, activeId, selectChannel, allBridgeStatus, allActiveAgents, allBridgeLoading, allSelectedRoles, allBridgeHasNew } = useChannels();
     const { t } = useI18n();
     const manager = useGatewayManager();
 
@@ -1036,7 +1045,7 @@ export function ChannelsPanel() {
                         const isBridgeConnecting = chBridgeStatus === 'connecting';
                         const isError = chBridgeStatus === 'disconnected';
                         const isTyping = allBridgeLoading[ch.id] || false;
-                        const hasNew = chState.hasNewMessage && !isActive;
+                        const hasNew = (chState.hasNewMessage || allBridgeHasNew[ch.id]) && !isActive;
 
                         return (
                             <div
