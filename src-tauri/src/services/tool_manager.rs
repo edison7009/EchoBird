@@ -464,33 +464,16 @@ fn count_skills(skills_path: &str) -> u32 {
         .unwrap_or(0)
 }
 
-/// Read the current active model from a tool's config
+/// Read the current active model from a tool's config.
+/// Delegates to tool_config_manager which has proper readers for every tool type
+/// (generic JSON, echobird relay, YAML, TOML, custom formats, etc.)
 async fn read_active_model(def: &ToolDefinition) -> Option<String> {
-    let cm = &def.config_mapping;
+    use crate::services::tool_config_manager;
 
-    // Only handle JSON format for generic read
-    if cm.format != "json" || cm.custom {
-        return None;
-    }
+    let info = tool_config_manager::get_tool_model_info(&def.id).await?;
 
-    let read_map = cm.read.as_ref()?;
-    let model_paths = read_map.model.as_ref()?;
-
-    let config_path = expand_path(&cm.config_file);
-    let content = fs::read_to_string(&config_path).ok()?;
-    let config: serde_json::Value = serde_json::from_str(&content).ok()?;
-
-    // Try each path in priority order
-    for json_path in model_paths {
-        if let Some(val) = get_nested_value(&config, json_path) {
-            if let Some(s) = val.as_str() {
-                if !s.is_empty() {
-                    return Some(s.to_string());
-                }
-            }
-        }
-    }
-    None
+    // Prefer model ID; fall back to display name
+    info.model.or(info.name)
 }
 
 /// Parse category string to ToolCategory enum

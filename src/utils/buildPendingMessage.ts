@@ -1,8 +1,8 @@
 /**
  * buildPendingMessage — shared utility for both MotherAgent and Channels pages.
  *
- * Takes pending attachments (files/images, models, skills) and produces:
- *  - `messageText`: the full text to send to the agent (includes base64 image data, model configs, skill installs)
+ * Takes pending attachments (files/images, models) and produces:
+ *  - `messageText`: the full text to send to the agent (includes base64 image data, model configs)
  *  - `chips`: compact readonly chip descriptors to display below the user bubble
  */
 
@@ -26,13 +26,6 @@ export interface PendingModel {
     proxyUrl?: string;
 }
 
-export interface PendingSkill {
-    id: string;
-    name: string;
-    github: string;
-    branch?: string;
-}
-
 export interface BuildResult {
     /** Full message text to send to agent */
     messageText: string;
@@ -44,7 +37,7 @@ export function buildPendingMessage(
     userInput: string,
     files: PendingFile[],
     models: PendingModel[],
-    skills: PendingSkill[],
+    _skills: unknown[] = [],
 ): BuildResult {
     const parts: string[] = [];
     if (userInput.trim()) parts.push(userInput.trim());
@@ -86,20 +79,6 @@ export function buildPendingMessage(
 
         for (const pm of models) {
             chips.push({ type: 'model', name: pm.name, modelId: pm.modelId });
-        }
-    }
-
-    // ── Skills ──────────────────────────────────────────────────────────────
-    if (skills.length > 0) {
-        const skillInfo = skills.map(s => {
-            const ownerRepo = s.github.split('/').slice(0, 2).join('/');
-            const branch = s.branch || 'main';
-            return `- ${s.name}\n  Install: \`openclaw skill install ${ownerRepo}@${branch}\``;
-        }).join('\n');
-        parts.push(`[Attached skills]\n${skillInfo}`);
-
-        for (const s of skills) {
-            chips.push({ type: 'skill', name: s.name });
         }
     }
 

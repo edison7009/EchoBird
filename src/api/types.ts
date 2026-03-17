@@ -9,9 +9,7 @@ export interface DetectedTool {
     installed: boolean;
     detectedPath?: string;
     configPath?: string;
-    skillsPath?: string;
-    version?: string;
-    installedSkillsCount?: number;
+
     activeModel?: string;
     website?: string;
     apiProtocol?: string[];
@@ -20,14 +18,14 @@ export interface DetectedTool {
     startCommand?: string;
     launchFile?: string;
     command?: string;        // CLI install command (non-empty = installable via Mother Agent)
+    version?: string;        // Tool version from paths.json
 }
 
 // UI-level tool type used by AppManager, MotherAgent, and App shell
 export interface LocalTool extends DetectedTool {
     path?: string;
     icon?: string;
-    skillsCount?: number;
-    [key: string]: any;
+
 }
 
 // ─── Model Types ───
@@ -75,26 +73,6 @@ export interface ToggleEncryptionResult {
     success: boolean;
     apiKey: string;
     encrypted: boolean;
-}
-
-// ─── Skill Types ───
-
-export interface SkillInfo {
-    id: string;
-    name: string;
-    author: string;
-    category: string;
-    installed: boolean;
-    brief?: string;
-    description?: string;
-}
-
-export interface InstalledSkillInfo {
-    id: string;
-    name: string;
-    path: string;
-    hasReadme: boolean;
-    description?: string;
 }
 
 // ─── Local LLM Types ───

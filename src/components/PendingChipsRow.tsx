@@ -1,4 +1,4 @@
-import { X, Paperclip, KeyRound, Zap } from 'lucide-react';
+import { X, Paperclip, KeyRound } from 'lucide-react';
 import { getModelIcon } from './cards/ModelCard';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -16,18 +16,11 @@ export interface PendingModel {
     modelId?: string;
 }
 
-export interface PendingSkill {
-    id: string;
-    name: string;
-}
-
 export interface PendingChipsRowProps {
     files: PendingFile[];
     onRemoveFile: (id: string) => void;
     models: PendingModel[];
     onRemoveModel: (id: string) => void;
-    skills: PendingSkill[];
-    onRemoveSkill: (id: string) => void;
 }
 
 // ─── Shared chip base class ──────────────────────────────────────────────────
@@ -38,22 +31,19 @@ const BASE = 'flex items-center gap-1.5 h-7 rounded px-2 text-xs font-mono borde
 const VARIANTS = {
     file:  `${BASE} bg-cyber-bg/80 border-cyber-text-muted/60 text-cyber-text-muted`,
     model: `${BASE} bg-cyber-accent/5 border-cyber-accent/30 text-cyber-accent`,
-    skill: `${BASE} bg-cyber-warning/10 border-cyber-warning/30 text-cyber-warning`,
 } as const;
 
 const REMOVE_BTN = 'ml-0.5 transition-colors hover:text-red-400';
 const REMOVE_BTN_FILE  = `${REMOVE_BTN} text-cyber-text-muted/40`;
 const REMOVE_BTN_MODEL = `${REMOVE_BTN} text-cyber-accent/40`;
-const REMOVE_BTN_SKILL = `${REMOVE_BTN} text-cyber-warning/40`;
 
 // ─── PendingChipsRow component ───────────────────────────────────────────────
 
 export function PendingChipsRow({
     files, onRemoveFile,
     models, onRemoveModel,
-    skills, onRemoveSkill,
 }: PendingChipsRowProps) {
-    const hasAny = files.length > 0 || models.length > 0 || skills.length > 0;
+    const hasAny = files.length > 0 || models.length > 0;
     if (!hasAny) return null;
 
     return (
@@ -89,17 +79,6 @@ export function PendingChipsRow({
                     </div>
                 );
             })}
-
-            {/* ── Skill chips ── */}
-            {skills.map(s => (
-                <div key={s.id} className={VARIANTS.skill}>
-                    <Zap size={11} className="flex-shrink-0" />
-                    <span className="max-w-[100px] truncate">{s.name}</span>
-                    <button onClick={() => onRemoveSkill(s.id)} className={REMOVE_BTN_SKILL}>
-                        <X size={11} />
-                    </button>
-                </div>
-            ))}
         </div>
     );
 }

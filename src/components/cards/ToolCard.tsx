@@ -10,8 +10,7 @@ export interface ToolCardProps {
     path?: string;
     detectedPath?: string;
     configPath?: string;
-    skillsCount?: number;
-    installedSkillsCount?: number; // from backend DetectedTool
+
     activeModel?: string;
     website?: string;
     iconBase64?: string;
@@ -23,8 +22,7 @@ export interface ToolCardProps {
     onMotherAgentInstall?: () => void;
 }
 
-export const ToolCard = React.memo(({ id, name, version, installed, path, detectedPath, configPath, skillsCount, installedSkillsCount, activeModel, website, iconBase64, names, command, hasRemoteInstall, selected = false, onClick, onMotherAgentInstall }: ToolCardProps) => {
-    const resolvedSkillsCount = skillsCount ?? installedSkillsCount ?? 0;
+export const ToolCard = React.memo(({ id, name, version, installed, path, detectedPath, configPath, activeModel, website, iconBase64, names, command, hasRemoteInstall, selected = false, onClick, onMotherAgentInstall }: ToolCardProps) => {
     const { t, locale } = useI18n();
     const displayName = (names && locale !== 'en' && names[locale]) || name;
 
@@ -66,9 +64,9 @@ export const ToolCard = React.memo(({ id, name, version, installed, path, detect
             <div className="relative mt-3">
                 <div className={`text-xs space-y-1.5 ${installed ? 'text-cyber-accent/60' : 'text-cyber-text-muted/70'} ${showMotherInstall ? 'invisible' : ''}`}>
                     <div className="truncate">{t('tool.models')}: {installed ? (activeModel || '-') : '-'}</div>
-                    <div className="truncate">{t('tool.skills')}: {installed ? `${resolvedSkillsCount} ${t('tool.skillsInstalled')}` : '-'}</div>
                     <div className="truncate">{t('tool.app')}: {installed ? (detectedPath || path || '-') : '-'}</div>
                     <div className="truncate">{t('tool.config')}: {installed ? (configPath || '-') : '-'}</div>
+                    <div className="truncate">{t('tool.version')}: {installed ? (version || '-') : '-'}</div>
                 </div>
                 {showMotherInstall && (
                     <div className="absolute inset-0 flex items-center justify-center">

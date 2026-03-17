@@ -1,6 +1,6 @@
 // Sidebar navigation component
 import { useState, useEffect } from 'react';
-import { Box, Zap, Cpu, Server, MessageSquare, Activity } from 'lucide-react';
+import { Box, Cpu, Server, MessageSquare, Activity } from 'lucide-react';
 import { NavItem } from './NavItem';
 import { useI18n } from '../hooks/useI18n';
 import * as api from '../api/tauri';
@@ -8,7 +8,7 @@ import * as api from '../api/tauri';
 declare const __APP_EDITION__: string;
 const isFullEdition = __APP_EDITION__ === 'full';
 
-export type PageType = 'models' | 'skills' | 'apps' | 'localLlm' | 'mother' | 'channels';
+export type PageType = 'models' | 'apps' | 'localLlm' | 'mother' | 'channels';
 
 interface SidebarProps {
     activePage: PageType;
@@ -43,7 +43,7 @@ export const Sidebar = ({ activePage, onPageChange, agentRunning = false, channe
         <nav className="w-64 flex flex-col px-6 pb-6">
             <div className="mb-6 tracking-wide flex items-center gap-2 overflow-hidden">
                 <span
-                    className={`flex-shrink-0 ${activePage === 'skills' ? 'text-cyber-warning' : activePage === 'mother' ? 'text-cyber-accent-secondary' : 'text-cyber-accent'}`}
+                    className={`flex-shrink-0 ${activePage === 'mother' ? 'text-cyber-accent-secondary' : 'text-cyber-accent'}`}
                     style={{
                         fontFamily: "'JetBrains Mono', monospace",
                         fontWeight: 500,
@@ -71,13 +71,6 @@ export const Sidebar = ({ activePage, onPageChange, agentRunning = false, channe
                     onClick={() => onPageChange('models')}
                 />
 
-                <NavItem
-                    icon={<Zap size={18} />}
-                    label={t('nav.skillBrowser')}
-                    active={activePage === 'skills'}
-                    onClick={() => onPageChange('skills')}
-                    color="warning"
-                />
                 <NavItem
                     icon={<Cpu size={18} />}
                     label={t('nav.appManager')}
@@ -119,13 +112,7 @@ export const Sidebar = ({ activePage, onPageChange, agentRunning = false, channe
                 </div>
             )}
 
-            <div className="pt-1 text-[12px] text-cyber-text-secondary uppercase tracking-widest">
-                {t('nav.motherAgent')}: {agentRunning ? (
-                    <span className="text-cyber-accent">{t('status.running')}</span>
-                ) : (
-                    <span className="text-cyber-text-muted/70">{t('status.offline')}</span>
-                )}
-            </div>
+
         </nav>
     );
 };

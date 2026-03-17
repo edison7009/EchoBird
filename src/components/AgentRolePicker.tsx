@@ -120,7 +120,6 @@ export const AgentRolePicker: React.FC<AgentRolePickerProps> = ({
                             <div
                                 key={agent.name}
                                 onClick={() => { if (isInstalled) onSelectAgent(agent.name); }}
-                                title={isInstalled ? agent.name : `${agent.name} — ${t('status.notInstalled')}`}
                                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-card text-xs font-mono transition-all ${
                                     !isInstalled
                                         ? 'border border-cyber-border/30 bg-black/60 text-cyber-text-muted/30 cursor-not-allowed opacity-40'

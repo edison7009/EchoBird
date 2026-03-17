@@ -1,5 +1,5 @@
 // Channels — OpenClaw agent chat interface (bridge CLI + SSH)
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, createContext, useContext } from 'react';
 import { Send, CornerDownLeft, X, Square, Paperclip, Image as ImageIcon, RotateCcw, KeyRound, Zap, Server, ChevronsDown, ChevronLeft, ChevronRight } from 'lucide-react';
 import { MiniSelect } from '../components/MiniSelect';
 import { getModelIcon } from '../components/cards/ModelCard';
@@ -16,6 +16,43 @@ import type { ModelConfig } from '../api/types';
 
 
 
+
+// Agent list (shared across Main and Panel)
+const AGENT_LIST = [
+    { id: 'openclaw', name: 'OpenClaw', icon: '/icons/tools/openclaw.svg' },
+    { id: 'claudecode', name: 'Claude Code', icon: '/icons/tools/claudecode.svg' },
+    { id: 'opencode', name: 'OpenCode', icon: '/icons/tools/opencode.svg' },
+    { id: 'zeroclaw', name: 'ZeroClaw', icon: '/icons/tools/zeroclaw.png' },
+];
+
+// ===== Context (shared state between ChannelsMain & ChannelsPanel) =====
+interface ChannelsCtx {
+    channels: Channel[];
+    setChannels: React.Dispatch<React.SetStateAction<Channel[]>>;
+    activeId: number | null;
+    setActiveId: React.Dispatch<React.SetStateAction<number | null>>;
+    selectChannel: (id: number) => void;
+    allBridgeStatus: Record<number, string>;
+    setAllBridgeStatus: React.Dispatch<React.SetStateAction<Record<number, string>>>;
+    allActiveAgents: Record<number, string>;
+    setAllActiveAgents: React.Dispatch<React.SetStateAction<Record<number, string>>>;
+    allBridgeLoading: Record<number, boolean>;
+    setAllBridgeLoading: React.Dispatch<React.SetStateAction<Record<number, boolean>>>;
+}
+const ChannelsContext = createContext<ChannelsCtx | null>(null);
+const useChannels = () => useContext(ChannelsContext)!;
+
+// ===== Provider =====
+export function ChannelsProvider({ children }: { children: React.ReactNode }) {
+    const [channels, setChannels] = useState<Channel[]>([]);
+    const [activeId, setActiveId] = useState<number | null>(null);
+    const [allBridgeStatus, setAllBridgeStatus] = useState<Record<number, string>>({});
+    const [allActiveAgents, setAllActiveAgents] = useState<Record<number, string>>({});
+    const [allBridgeLoading, setAllBridgeLoading] = useState<Record<number, boolean>>({});
+    const selectChannel = useCallback((id: number) => { if (id !== activeId) setActiveId(id); }, [activeId]);
+    const ctx: ChannelsCtx = { channels, setChannels, activeId, setActiveId, selectChannel, allBridgeStatus, setAllBridgeStatus, allActiveAgents, setAllActiveAgents, allBridgeLoading, setAllBridgeLoading };
+    return <ChannelsContext.Provider value={ctx}>{children}</ChannelsContext.Provider>;
+}
 
 // Connection protocols (display as SSH since connections go through SSH port forwarding)
 const PROTOCOLS = [
@@ -117,10 +154,9 @@ async function compressImageToDataURL(file: File): Promise<string> {
     });
 }
 
-export const Channels: React.FC = () => {
+const ChannelsInner: React.FC = () => {
     const { t, locale } = useI18n();
-    const [channels, setChannels] = useState<Channel[]>([]);
-    const [activeId, setActiveId] = useState<number | null>(null);
+    const { channels, setChannels, activeId, setActiveId, selectChannel, allBridgeStatus, setAllBridgeStatus, allActiveAgents, setAllActiveAgents, allBridgeLoading, setAllBridgeLoading } = useChannels();
     const [input, setInput] = useState('');
     const [arrowIndex, setArrowIndex] = useState(0);
     const [attachments, setAttachments] = useState<Attachment[]>([]);
@@ -142,17 +178,9 @@ export const Channels: React.FC = () => {
     type BridgeMsg = { role: string; content: string; i18nKey?: string; meta?: { model?: string; tokens?: number; duration_ms?: number }; chips?: import('../components/chat/ChatBubble').BubbleChip[] };
     const [allBridgeMessages, setAllBridgeMessages] = useState<Record<number, BridgeMsg[]>>({});
     const [allBridgeSessionIds, setAllBridgeSessionIds] = useState<Record<number, string>>({});
-    const [allBridgeStatus, setAllBridgeStatus] = useState<Record<number, string>>({});
     const [allBridgeAgentNames, setAllBridgeAgentNames] = useState<Record<number, string>>({});
-    const [allBridgeLoading, setAllBridgeLoading] = useState<Record<number, boolean>>({});
-    // Per-channel active agent selection (for tab switching demo)
-    const AGENT_LIST = [
-        { id: 'openclaw', name: 'OpenClaw', icon: '/icons/tools/openclaw.svg' },
-        { id: 'claudecode', name: 'Claude Code', icon: '/icons/tools/claudecode.svg' },
-        { id: 'opencode', name: 'OpenCode', icon: '/icons/tools/opencode.svg' },
-        { id: 'zeroclaw', name: 'ZeroClaw', icon: '/icons/tools/zeroclaw.png' },
-    ];
-    const [allActiveAgents, setAllActiveAgents] = useState<Record<number, string>>({});
+    // allBridgeLoading comes from context (ChannelsProvider)
+    // Per-channel active agent selection
     const setActiveAgentFor = (chId: number, name: string) => {
         setAllActiveAgents(prev => ({ ...prev, [chId]: name }));
     };
@@ -436,11 +464,6 @@ export const Channels: React.FC = () => {
         if (activeId) gateway.markRead();
     }, [activeId]);
 
-    // Switch channel (view only, no disconnect)
-    const selectChannel = useCallback((id: number) => {
-        if (id === activeId) return;
-        setActiveId(id);
-    }, [activeId]);
 
     // Connect to Gateway (SSH channels only — local uses bridge)
     const handleConnect = useCallback(async () => {
@@ -829,19 +852,158 @@ export const Channels: React.FC = () => {
 
     return (
         <>
-        <div className="flex h-full gap-0 overflow-hidden">
-            {/* ======== Left: Channel list ======== */}
-            <div className="w-56 flex-shrink-0 flex flex-col">
-                <div className="flex-1 overflow-y-auto slim-scroll pr-2 py-2 space-y-2 custom-scrollbar">
+        <div className="flex flex-col h-full">
+            {/* Chat area */}
+            <div className="relative flex-1">
+                <div ref={chatContainerRef} onScroll={handleChatScroll} className="absolute inset-0 overflow-y-auto slim-scroll custom-scrollbar p-4">
+                    <div className="pt-2 pb-1">
+                    {chShowSkeleton && [0,1,2].map(i => (
+                        <ChatBubble key={`sk-${i}`} role="skeleton" content="" variant="channels" />
+                    ))}
+                    {activeChannel && messages.slice(-chDisplayCount).map((msg, i) => {
+                        if (msg.role === 'tool_call' || msg.role === 'tool_result' || msg.role === 'thinking') return null;
+                        if (msg.role === 'system' && msg.content === '__agent_working__') return null;
+                        if (msg.role === 'user') return <ChatBubble key={i} role="user" content={msg.content} variant="channels" chips={msg.chips} />;
+                        if (msg.role === 'system') {
+                            const text = msg.i18nKey ? t(msg.i18nKey as import('../i18n/types').TKey) : msg.content;
+                            const isCancelled = msg.i18nKey === 'error.userCancelled';
+                            if (isCancelled)
+                                return <div key={i} className="flex justify-center my-1"><span className="text-cyber-text-muted/35 text-xs font-mono">{text}</span></div>;
+                            return <ChatBubble key={i} role="error" content={text} variant="channels" />;
+                        }
+                        const isLast = messages.slice(-chDisplayCount).slice(i + 1).every(m => m.role !== 'assistant');
+                        return <ChatBubble key={i} role="assistant" content={msg.content} variant="channels" isStreaming={bridgeLoading && isLast} />;
+                    })}
+                    {bridgeLoading && !messages.some(m => m.role === 'assistant') && <ChatBubble role="assistant" content="" variant="channels" isStreaming={true} />}
+                    </div>
+                    <div ref={scrollRef} />
+                </div>
+                {showScrollBtn && (
+                    <button onClick={scrollToBottom} className="absolute bottom-3 right-3 w-7 h-7 flex items-center justify-center bg-cyber-bg/90 border border-cyber-border/50 rounded text-cyber-text-secondary hover:text-cyber-accent hover:border-cyber-accent/50 transition-colors z-10">
+                        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 9l6 6 6-6" /></svg>
+                    </button>
+                )}
+            </div>
+
+            {/* Input area */}
+            {activeChannel && (
+                <>
+                {(() => {
+                    const selectedAgent = allActiveAgents[channelKey] || 'OpenClaw';
+                    const agent = AGENT_LIST.find(a => a.name === selectedAgent) || AGENT_LIST[0];
+                    const displayName = (selectedRoleForChannel && selectedRoleForChannel.id) ? selectedRoleForChannel.name : agent.name;
+                    return (
+                        <div className="flex items-center gap-2 mt-1 mb-0.5 select-none">
+                            <div onClick={() => setShowRolePicker(true)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-card text-xs font-mono cursor-pointer transition-all border border-cyber-accent bg-cyber-accent/10 shadow-cyber-card text-cyber-accent hover:brightness-110">
+                                <img src={agent.icon} alt={agent.name} className="w-4 h-4" />
+                                <span>{displayName}</span>
+                            </div>
+                            {bridgeConnectionStatus === 'connecting' && <span className="text-yellow-400 text-xs font-mono animate-pulse">{t('channel.connecting')}</span>}
+                            {bridgeConnectionStatus === 'disconnected' && <span className="text-red-400 text-xs font-mono">{t('channel.connectionFailed')}</span>}
+                        </div>
+                    );
+                })()}
+                <div className="flex-shrink-0 mt-1 mb-1">
+                    <div className="bg-cyber-terminal rounded-lg relative">
+                        <PendingChipsRow
+                            files={attachments.map((a, i) => ({ id: String(i), name: a.name, type: a.type as 'file'|'image', preview: a.preview }))}
+                            onRemoveFile={id => removeAttachment(Number(id))}
+                            models={pendingModels}
+                            onRemoveModel={id => setPendingModels(prev => prev.filter(m => m.id !== id))}
+                        />
+                        <textarea
+                            ref={inputRef}
+                            value={input}
+                            onChange={e => setInput(e.target.value)}
+                            onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
+                            onPaste={handlePaste}
+                            placeholder={bridgeLoading ? t('channel.awaitingResponse') : t('channel.enterMessage')}
+                            disabled={bridgeLoading || (!canSendMessage && !isActiveConnected)}
+                            rows={2}
+                            className="w-full bg-transparent px-4 py-2 text-sm text-[#DED9D2] font-sans font-medium outline-none placeholder:text-[#DED9D2]/40 disabled:opacity-30 resize-none"
+                        />
+                        <div className="flex items-center justify-between px-3 py-1.5">
+                            <div className="flex items-center gap-1 relative">
+                                <button onClick={() => fileInputRef.current?.click()} disabled={bridgeLoading || !isActiveConnected} className="p-1 text-cyber-accent/60 hover:text-cyber-accent transition-colors disabled:opacity-20"><Paperclip size={15} /></button>
+                                <button onClick={() => imageInputRef.current?.click()} disabled={bridgeLoading || !isActiveConnected} className="p-1 text-cyber-accent/60 hover:text-cyber-accent transition-colors disabled:opacity-20"><ImageIcon size={15} /></button>
+                                <button onClick={openModelPicker} disabled={bridgeLoading || !isActiveConnected || pendingModels.length >= 5} className={`p-1 transition-colors disabled:opacity-20 ${pendingModels.length > 0 ? 'text-cyber-accent' : 'text-cyber-accent/60 hover:text-cyber-accent'}`}><KeyRound size={15} /></button>
+                                {showModelPicker && (
+                                    <div ref={modelPickerRef} className="absolute bottom-full left-0 mb-2 w-64 max-h-48 overflow-y-auto slim-scroll bg-cyber-bg border border-cyber-border/60 rounded-lg shadow-lg z-50 custom-scrollbar">
+                                        {modelList.length === 0 ? (
+                                            <div className="px-3 py-2 text-xs text-cyber-text-muted/50 font-mono">{t('channel.noModels')}</div>
+                                        ) : (
+                                            modelList.map(m => (
+                                                <button key={m.internalId} onClick={() => { if (!pendingModels.some(pm => pm.id === m.internalId) && pendingModels.length < 5) { setPendingModels(prev => [...prev, { id: m.internalId, name: m.name, modelId: m.modelId }]); } setShowModelPicker(false); }} className="w-full text-left px-3 py-2 text-xs font-mono hover:bg-cyber-accent/10 transition-colors border-b border-cyber-border/10 last:border-b-0 flex items-center gap-2">
+                                                    {(() => { const icon = getModelIcon(m.name, m.modelId); return icon ? <img src={icon} alt="" className="w-5 h-5 flex-shrink-0" /> : <KeyRound size={14} className="text-cyber-accent/40 flex-shrink-0" />; })()}
+                                                    <div className="min-w-0"><div className="text-cyber-accent font-bold truncate">{m.name}</div><div className="text-cyber-text-muted/50 truncate">{m.modelId || m.baseUrl}</div></div>
+                                                </button>
+                                            ))
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                                <button onClick={() => { setBridgeMessages([]); setDiskTotalFor(channelFileKey ?? '', 0); if (channelFileKey) channelHistoryClear(channelFileKey).catch(() => {}); }} disabled={messages.length === 0} className="p-1 text-cyber-accent/40 hover:text-cyber-accent transition-colors disabled:opacity-20"><RotateCcw size={14} /></button>
+                                {bridgeLoading ? (
+                                    <button onClick={handleAbort} className="p-1 text-red-400 hover:text-red-300 transition-colors"><Square size={16} fill="currentColor" /></button>
+                                ) : (
+                                    <button onClick={handleSend} disabled={(!input.trim() && attachments.length === 0 && pendingModels.length === 0) || !isActiveConnected} className="w-6 h-6 rounded-lg flex items-center justify-center bg-cyber-accent hover:brightness-110 transition-all disabled:opacity-20"><Send size={15} className="text-cyber-bg" /></button>
+                                )}
+                            </div>
+                        </div>
+                        <input ref={fileInputRef} type="file" multiple className="hidden" onChange={handleFileSelect} />
+                        <input ref={imageInputRef} type="file" multiple accept="image/*" className="hidden" onChange={handleImageSelect} />
+                    </div>
+                </div>
+                </>
+            )}
+        </div>
+
+            <AgentRolePicker
+                isOpen={showRolePicker}
+                onClose={() => setShowRolePicker(false)}
+                selectedRole={selectedRoleForChannel?.id || null}
+                onSelectRole={(id, name, filePath) => {
+                    setAllSelectedRoles(prev => ({ ...prev, [channelKey]: { id, name, filePath } }));
+                    if (channelFileKeyForPersist) {
+                        if (id) { localStorage.setItem(`eb_ch_${channelFileKeyForPersist}_role`, JSON.stringify({ id, name, filePath })); }
+                        else { localStorage.removeItem(`eb_ch_${channelFileKeyForPersist}_role`); }
+                    }
+                }}
+                selectedAgent={allActiveAgents[channelKey] || 'OpenClaw'}
+                onSelectAgent={(name) => {
+                    setActiveAgentFor(channelKey, name);
+                    if (channelFileKeyForPersist) { localStorage.setItem(`eb_ch_${channelFileKeyForPersist}_agent`, name); }
+                }}
+            />
+        </>
+    );
+};
+
+// ===== ChannelsPanel — right-side channel list (rendered in aside) =====
+export function ChannelsPanel() {
+    const { channels, activeId, selectChannel, allBridgeStatus, allActiveAgents, allBridgeLoading } = useChannels();
+    const { t } = useI18n();
+    const manager = useGatewayManager();
+
+    return (
+        <>
+            {/* Header */}
+            <div className="p-2 bg-transparent">
+                <span className="text-xs font-bold tracking-wider text-cyber-accent font-mono">{t('mother.servers')}</span>
+            </div>
+
+            {/* Channel list */}
+            <div className="flex-1 p-2 overflow-y-auto slim-scroll">
+                <div className="space-y-2">
                     {channels.map(ch => {
                         const isActive = activeId === ch.id;
                         const chState = manager.getChannelState(ch.id);
-                        // Bridge mode: use per-channel bridgeStatus
                         const chBridgeStatus = allBridgeStatus[ch.id] || 'standby';
                         const isLinked = chBridgeStatus === 'connected';
                         const isBridgeConnecting = chBridgeStatus === 'connecting';
                         const isError = chBridgeStatus === 'disconnected';
-                        const isStandby = chBridgeStatus === 'standby';
+                        const isTyping = allBridgeLoading[ch.id] || false;
                         const hasNew = chState.hasNewMessage && !isActive;
 
                         return (
@@ -853,339 +1015,35 @@ export const Channels: React.FC = () => {
                                     : 'border-cyber-border shadow-cyber-card bg-black/80 hover:border-cyber-accent/30 hover:bg-black/90'
                                     }`}
                             >
-                                <div className="flex items-center gap-2">
-                                    {/* Left: status + name */}
-                                    <div className="flex-1 min-w-0">
-                                        {/* Status */}
-                                        <div className="flex items-center gap-1.5 mb-1.5">
-                                            <div className={`w-2 h-2 rounded-full ${isLinked ? 'bg-cyber-accent animate-pulse' : isBridgeConnecting ? 'bg-yellow-400 animate-pulse' : isError ? 'bg-red-400' : 'bg-cyber-text-muted/50'}`} />
-                                            <span className={`text-xs tracking-wide ${isLinked ? 'text-cyber-accent' : isBridgeConnecting ? 'text-yellow-400' : isError ? 'text-red-400' : 'text-cyber-text-muted/70'}`}>
-                                                [{isLinked ? t('channel.linked') : isBridgeConnecting ? t('channel.connecting') : isError ? t('channel.failed') : t('channel.standby')}]
-                                            </span>
-                                            {hasNew && (
-                                                <span className="ml-auto w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-                                            )}
-                                        </div>
-                                        {/* Name */}
-                                        <div className="flex items-center gap-1 h-5">
-                                            <span className={`text-sm font-bold whitespace-nowrap truncate ${isActive ? 'text-cyber-accent' : 'text-cyber-accent/90'}`}>
-                                                {ch.name || (ch.address?.startsWith('127.0.0.1') || ch.address === 'localhost'
-                                                    ? `${t('mother.local')} (127.0.0.1)`
-                                                    : ch.address)}
-                                            </span>
-                                        </div>
-                                    </div>
-                                    {/* Right: tool icon (synced with active agent tab) */}
+                                <div className="flex items-center gap-3">
                                     {(() => {
                                         const selectedAgent = allActiveAgents[ch.id] || 'OpenClaw';
                                         const agent = AGENT_LIST.find(a => a.name === selectedAgent) || AGENT_LIST[0];
-                                        return (
-                                            <img src={agent.icon} alt={agent.name} className="w-7 h-7 flex-shrink-0 opacity-70" />
-                                        );
+                                        return <img src={agent.icon} alt={agent.name} className="w-9 h-9 flex-shrink-0" />;
                                     })()}
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex items-center gap-1 mb-1">
+                                            <span className={`text-sm font-bold whitespace-nowrap truncate ${isActive ? 'text-cyber-accent' : 'text-cyber-accent/90'}`}>
+                                                {ch.name || (ch.address?.startsWith('127.0.0.1') || ch.address === 'localhost'
+                                                    ? `${t('mother.local')} (127.0.0.1)` : ch.address)}
+                                            </span>
+                                            <div className={`ml-auto w-2 h-2 rounded-full flex-shrink-0 ${hasNew ? 'bg-red-500 animate-pulse' : isLinked ? 'bg-cyber-accent animate-pulse' : isBridgeConnecting ? 'bg-yellow-400 animate-pulse' : isError ? 'bg-red-400' : 'bg-cyber-text-muted/50'}`} />
+                                        </div>
+                                        <div className="flex items-center gap-1.5">
+                                            <span className={`text-xs tracking-wide ${isTyping ? 'text-cyber-accent' : isLinked ? 'text-cyber-accent' : isBridgeConnecting ? 'text-yellow-400' : isError ? 'text-red-400' : 'text-cyber-text-muted/70'}`}>
+                                                [{isTyping ? t('common.inputting') : isLinked ? t('channel.linked') : isBridgeConnecting ? t('channel.connecting') : isError ? t('channel.failed') : t('channel.standby')}]
+                                            </span>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         );
                     })}
                 </div>
-
             </div>
-
-            {/* ======== Right: Chat area ======== */}
-            <div className="flex-1 flex flex-col min-w-0 relative">
-                {activeChannel && (
-                    <>
-
-                        {!isActiveConnected && !canSendMessage && gateway.status !== 'connecting' && bridgeConnectionStatus !== 'connecting' ? (
-                            <div className="flex-1 mx-4 mt-2 bg-cyber-terminal rounded-lg flex items-center justify-center">
-                                <div className="text-center font-mono space-y-3 select-none max-w-md">
-                                    <p className="text-sm text-cyber-text-muted/50">
-                                        {t('channel.motherFlow')}
-                                    </p>
-                                </div>
-                            </div>
-                        ) : (
-                            /* Connected / Connecting — terminal chat area */
-                            <div className="flex-1 flex flex-col mx-4 min-h-0">
-                                {/* Scrollable chat area */}
-                                <div className="relative flex-1 min-h-0">
-                                <div ref={chatContainerRef} onScroll={handleChatScroll} className="absolute inset-0 overflow-y-auto slim-scroll custom-scrollbar p-4">
-                                <div>
-
-                                    {/* Bubble messages */}
-                                    <div className="pt-2 pb-1">
-                                    {chShowSkeleton && [0,1,2].map(i => (
-                                        <ChatBubble key={`sk-${i}`} role="skeleton" content="" variant="channels" />
-                                    ))}
-                                    {messages.slice(-chDisplayCount).map((msg, i) => {
-                                        // tool_call / result / thinking go to status bar only
-                                        if (msg.role === 'tool_call' || msg.role === 'tool_result' || msg.role === 'thinking') return null;
-                                        if (msg.role === 'system' && msg.content === '__agent_working__') return null;
-                                        if (msg.role === 'user') return <ChatBubble key={i} role="user" content={msg.content} variant="channels" chips={msg.chips} />;
-                                        if (msg.role === 'system') {
-                                            const text = msg.i18nKey ? t(msg.i18nKey as import('../i18n/types').TKey) : msg.content;
-                                            const isCancelled = msg.i18nKey === 'error.userCancelled';
-                                            if (isCancelled)
-                                                return <div key={i} className="flex justify-center my-1"><span className="text-cyber-text-muted/35 text-xs font-mono">{text}</span></div>;
-                                            return <ChatBubble key={i} role="error" content={text} variant="channels" />;
-                                        }
-                                        return <ChatBubble key={i} role="assistant" content={msg.content} variant="channels" />;
-                                    })}
-                                    {bridgeLoading && !(messages.length > 0 && messages[messages.length - 1].role === 'assistant') && <ChatBubble role="assistant" content="" variant="channels" isStreaming={true} />}
-                                    </div>
-                                    <div ref={scrollRef} />
-                                </div>
-                            </div>
-                                {showScrollBtn && (
-                                    <button
-                                        onClick={scrollToBottom}
-                                        className="absolute bottom-3 right-3 w-7 h-7 flex items-center justify-center bg-cyber-bg/90 border border-cyber-border/50 rounded text-cyber-text-secondary hover:text-cyber-accent hover:border-cyber-accent/50 transition-colors z-10"
-                                    ><svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 9l6 6 6-6" /></svg></button>
-                                )}
-                            </div>
-                            </div>
-                        )}
-
-                        {/* Input area */}
-                        {/* Floating role card above input */}
-                        {(() => {
-                            const selectedAgent = allActiveAgents[channelKey] || 'OpenClaw';
-                            const agent = AGENT_LIST.find(a => a.name === selectedAgent) || AGENT_LIST[0];
-                            const displayName = (selectedRoleForChannel && selectedRoleForChannel.id) ? selectedRoleForChannel.name : agent.name;
-                            return (
-                                <div className="flex items-center gap-2 mx-4 mt-1 mb-0.5 select-none">
-                                    <div
-                                        onClick={() => setShowRolePicker(true)}
-                                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-card text-xs font-mono cursor-pointer transition-all border border-cyber-accent bg-cyber-accent/10 shadow-cyber-card text-cyber-accent hover:brightness-110"
-                                    >
-                                        <img src={agent.icon} alt={agent.name} className="w-4 h-4" />
-                                        <span>{displayName}</span>
-                                    </div>
-                                    {bridgeConnectionStatus === 'connecting' && (
-                                        <span className="text-yellow-400 text-xs font-mono animate-pulse">{t('channel.connecting')}</span>
-                                    )}
-                                    {bridgeConnectionStatus === 'disconnected' && (
-                                        <span className="text-red-400 text-xs font-mono">{t('channel.connectionFailed')}</span>
-                                    )}
-                                </div>
-                            );
-                        })()}
-<div className="flex-shrink-0 mx-4 mt-1 mb-2">
-                            <div className="bg-cyber-terminal rounded-lg relative">
-                                {/* Pending chips — shared component */}
-                                <PendingChipsRow
-                                    files={attachments.map((a, i) => ({ id: String(i), name: a.name, type: a.type as 'file'|'image', preview: a.preview }))}
-                                    onRemoveFile={id => removeAttachment(Number(id))}
-                                    models={pendingModels}
-                                    onRemoveModel={id => setPendingModels(prev => prev.filter(m => m.id !== id))}
-                                    skills={pendingSkills}
-                                    onRemoveSkill={id => setPendingSkills(prev => prev.filter(s => s.id !== id))}
-                                />
-                                <textarea
-                                    ref={inputRef}
-                                    value={input}
-                                    onChange={e => setInput(e.target.value)}
-                                    onKeyDown={e => {
-                                        if (e.key === 'Enter' && !e.shiftKey) {
-                                            e.preventDefault();
-                                            handleSend();
-                                        }
-                                    }}
-                                    onPaste={handlePaste}
-                                    placeholder={(bridgeLoading) ? t('channel.awaitingResponse') : t('channel.enterMessage')}
-                                    disabled={(bridgeLoading) || (!canSendMessage && !isActiveConnected)}
-                                    rows={2}
-                                    className="w-full bg-transparent px-4 py-2 text-sm text-[#DED9D2] font-sans font-medium outline-none placeholder:text-[#DED9D2]/40 disabled:opacity-30 resize-none"
-                                />
-                                {/* Bottom toolbar */}
-                                <div className="flex items-center justify-between px-3 py-1.5">
-                                    <div className="flex items-center gap-1 relative">
-                                        <button
-                                            onClick={() => fileInputRef.current?.click()}
-                                            disabled={bridgeLoading || !isActiveConnected}
-                                            className="p-1 text-cyber-accent/60 hover:text-cyber-accent transition-colors disabled:opacity-20"
-                                        >
-                                            <Paperclip size={15} />
-                                        </button>
-                                        <button
-                                            onClick={() => imageInputRef.current?.click()}
-                                            disabled={bridgeLoading || !isActiveConnected}
-                                            className="p-1 text-cyber-accent/60 hover:text-cyber-accent transition-colors disabled:opacity-20"
-                                        >
-                                            <ImageIcon size={15} />
-                                        </button>
-                                        <button
-                                            onClick={openModelPicker}
-                                            disabled={bridgeLoading || !isActiveConnected || pendingModels.length >= 5}
-                                            className={`p-1 transition-colors disabled:opacity-20 ${pendingModels.length > 0 ? 'text-cyber-accent' : 'text-cyber-accent/60 hover:text-cyber-accent'}`}
-                                        >
-                                            <KeyRound size={15} />
-                                        </button>
-                                        <button
-                                            onClick={openSkillsPicker}
-                                            disabled={bridgeLoading || !isActiveConnected || pendingSkills.length >= 5}
-                                            className={`p-1 transition-colors disabled:opacity-20 ${showSkillsPicker ? 'text-cyber-warning' : 'text-cyber-warning/40 hover:text-cyber-warning'}`}
-                                        >
-                                            <Zap size={15} />
-                                        </button>
-                                        {/* Skills picker popover */}
-                                        {showSkillsPicker && (
-                                            <div
-                                                ref={skillsPickerRef}
-                                                className="absolute bottom-full left-0 mb-2 w-72 bg-cyber-bg border border-cyber-border/60 rounded-lg shadow-lg z-50"
-                                            >
-                                                {skillsFavorites.length === 0 ? (
-                                                    <div className="px-3 py-3 text-xs text-cyber-text-muted/50 font-mono text-center">{t('mother.noFavorites')}</div>
-                                                ) : (
-                                                    <>
-                                                        <div>
-                                                            {skillsFavorites.slice(skillsPage * SKILLS_PER_PAGE_CH, (skillsPage + 1) * SKILLS_PER_PAGE_CH).map(skill => (
-                                                                <button
-                                                                    key={skill.id}
-                                                                    onClick={() => {
-                                                                        setPendingSkills(prev => {
-                                                                            if (prev.some(s => s.id === skill.id) || prev.length >= 5) return prev;
-                                                                            return [...prev, { id: skill.id, name: skill.name, github: skill.github, branch: (skill as any).branch || 'main' }];
-                                                                        });
-                                                                        setShowSkillsPicker(false);
-                                                                        inputRef.current?.focus();
-                                                                    }}
-                                                                    className="w-full text-left px-3 py-2 text-xs font-mono hover:bg-cyber-warning/10 transition-colors border-b border-cyber-border/10 last:border-b-0 flex items-center gap-2"
-                                                                >
-                                                                    <Zap size={12} className="text-cyber-warning/60 flex-shrink-0" />
-                                                                    <div className="min-w-0">
-                                                                        <div className="text-cyber-warning font-bold truncate">{skill.name}</div>
-                                                                        <div className="text-cyber-text-muted/50 truncate text-[10px]">.../{skill.github.split(/[\/\\]/).slice(-3).join('/')}</div>
-                                                                    </div>
-                                                                </button>
-                                                            ))}
-                                                        </div>
-                                                        {Math.ceil(skillsFavorites.length / SKILLS_PER_PAGE_CH) > 1 && (
-                                                            <div className="flex items-center justify-between px-3 py-1.5 border-t border-cyber-border/20 text-[10px] font-mono text-cyber-text-muted/50">
-                                                                <button
-                                                                    onClick={() => setSkillsPage(p => Math.max(0, p - 1))}
-                                                                    disabled={skillsPage === 0}
-                                                                    className="hover:text-cyber-warning disabled:opacity-30 transition-colors"
-                                                                >
-                                                                    <ChevronLeft size={12} />
-                                                                </button>
-                                                                <span>{skillsPage + 1} / {Math.ceil(skillsFavorites.length / SKILLS_PER_PAGE_CH)}</span>
-                                                                <button
-                                                                    onClick={() => setSkillsPage(p => Math.min(Math.ceil(skillsFavorites.length / SKILLS_PER_PAGE_CH) - 1, p + 1))}
-                                                                    disabled={skillsPage >= Math.ceil(skillsFavorites.length / SKILLS_PER_PAGE_CH) - 1}
-                                                                    className="hover:text-cyber-warning disabled:opacity-30 transition-colors"
-                                                                >
-                                                                    <ChevronRight size={12} />
-                                                                </button>
-                                                            </div>
-                                                        )}
-                                                    </>
-                                                )}
-                                            </div>
-                                        )}
-                                        {/* Model picker popover (upward) */}
-                                        {showModelPicker && (
-                                            <div
-                                                ref={modelPickerRef}
-                                                className="absolute bottom-full left-0 mb-2 w-64 max-h-48 overflow-y-auto slim-scroll bg-cyber-bg border border-cyber-border/60 rounded-lg shadow-lg z-50 custom-scrollbar"
-                                            >
-                                                {modelList.length === 0 ? (
-                                                    <div className="px-3 py-2 text-xs text-cyber-text-muted/50 font-mono">{t('channel.noModels')}</div>
-                                                ) : (
-                                                    modelList.map(m => (
-                                                        <button
-                                                            key={m.internalId}
-                                                            onClick={() => {
-                                                                if (!pendingModels.some(pm => pm.id === m.internalId) && pendingModels.length < 5) {
-                                                                    setPendingModels(prev => [...prev, { id: m.internalId, name: m.name, modelId: m.modelId }]);
-                                                                }
-                                                                setShowModelPicker(false);
-                                                            }}
-                                                            className="w-full text-left px-3 py-2 text-xs font-mono hover:bg-cyber-accent/10 transition-colors border-b border-cyber-border/10 last:border-b-0 flex items-center gap-2"
-                                                        >
-                                                            {(() => {
-                                                                const icon = getModelIcon(m.name, m.modelId); return icon ? (
-                                                                    <img src={icon} alt="" className="w-5 h-5 flex-shrink-0" />
-                                                                ) : (
-                                                                    <KeyRound size={14} className="text-cyber-accent/40 flex-shrink-0" />
-                                                                );
-                                                            })()}
-                                                            <div className="min-w-0">
-                                                                <div className="text-cyber-accent font-bold truncate">{m.name}</div>
-                                                                <div className="text-cyber-text-muted/50 truncate">{m.modelId || m.baseUrl}</div>
-                                                            </div>
-                                                        </button>
-                                                    ))
-                                                )}
-                                            </div>
-                                        )}
-                                    </div>
-                                    <div className="flex items-center gap-1.5">
-                                        {/* Clear display — frontend only, bridge/context unaffected */}
-                                        <button
-                                            onClick={() => {
-                                                setBridgeMessages([]);
-                                                setDiskTotalFor(channelFileKey ?? '', 0);
-                                                if (channelFileKey) channelHistoryClear(channelFileKey).catch(() => {});
-                                            }}
-                                            disabled={messages.length === 0}
-                                            className="p-1 text-cyber-accent/40 hover:text-cyber-accent transition-colors disabled:opacity-20"
-                                        >
-                                            <RotateCcw size={14} />
-                                        </button>
-                                        {bridgeLoading ? (
-                                            <button
-                                                onClick={handleAbort}
-                                                className="p-1 text-red-400 hover:text-red-300 transition-colors"
-                                            >
-                                                <Square size={16} fill="currentColor" />
-                                            </button>
-                                        ) : (
-                                            <button
-                                                onClick={handleSend}
-                                                disabled={(!input.trim() && attachments.length === 0 && pendingModels.length === 0 && pendingSkills.length === 0) || !isActiveConnected}
-                                                className="w-6 h-6 rounded-lg flex items-center justify-center bg-cyber-accent hover:brightness-110 transition-all disabled:opacity-20"
-                                            >
-                                                <Send size={15} className="text-cyber-bg" />
-                                            </button>
-                                        )}
-                                    </div>
-                                </div>
-                                {/* Hidden file inputs */}
-                                <input ref={fileInputRef} type="file" multiple className="hidden" onChange={handleFileSelect} />
-                                <input ref={imageInputRef} type="file" multiple accept="image/*" className="hidden" onChange={handleImageSelect} />
-                            </div>
-                        </div>
-                    </>
-                )
-                }
-            </div >
-
-        </div >
-
-            {/* Agent Role Picker Modal */}
-            <AgentRolePicker
-                isOpen={showRolePicker}
-                onClose={() => setShowRolePicker(false)}
-                selectedRole={selectedRoleForChannel?.id || null}
-                onSelectRole={(id, name, filePath) => {
-                    setAllSelectedRoles(prev => ({ ...prev, [channelKey]: { id, name, filePath } }));
-                    if (channelFileKeyForPersist) {
-                        if (id) {
-                            localStorage.setItem(`eb_ch_${channelFileKeyForPersist}_role`, JSON.stringify({ id, name, filePath }));
-                        } else {
-                            localStorage.removeItem(`eb_ch_${channelFileKeyForPersist}_role`);
-                        }
-                    }
-                }}
-                selectedAgent={allActiveAgents[channelKey] || 'OpenClaw'}
-                onSelectAgent={(name) => {
-                    setActiveAgentFor(channelKey, name);
-                    if (channelFileKeyForPersist) {
-                        localStorage.setItem(`eb_ch_${channelFileKeyForPersist}_agent`, name);
-                    }
-                }}
-            />
         </>
     );
-};
+}
+
+// ===== Exports =====
+export { ChannelsInner as ChannelsMain };

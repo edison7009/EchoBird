@@ -10,7 +10,7 @@ use commands::proxy_commands;
 use commands::process_commands;
 use commands::channel_commands;
 use commands::settings_commands;
-use commands::skill_commands;
+
 use commands::ssh_commands;
 use commands::agent_commands;
 use commands::role_commands;
@@ -341,7 +341,7 @@ pub fn run() {
             tool_commands::apply_model_to_tool,
             tool_commands::launch_game,
             tool_commands::open_folder,
-            tool_commands::get_tool_installed_skills,
+
             model_commands::get_models,
             model_commands::add_model,
             model_commands::delete_model,
@@ -402,14 +402,7 @@ pub fn run() {
             channel_commands::channel_history_clear,
             settings_commands::get_settings,
             settings_commands::save_settings,
-            skill_commands::load_skills_data,
-            skill_commands::save_skills_data,
-            skill_commands::load_skills_favorites,
-            skill_commands::save_skills_favorites,
-            skill_commands::fetch_skill_source,
-            skill_commands::llm_quick_chat,
-            skill_commands::load_skills_i18n,
-            skill_commands::save_skills_i18n,
+
             ssh_commands::ssh_connect,
             ssh_commands::ssh_execute,
             ssh_commands::ssh_disconnect,

@@ -13,16 +13,15 @@ import { CircuitFlow } from './components/CircuitFlow';
 import { GatewayProvider, useGatewayManager } from './contexts/GatewayContext';
 import { useI18n } from './hooks/useI18n';
 import * as api from './api/tauri';
-import type { SkillsData } from './api/tauri';
 import type { LocalTool, AppLogEntry } from './api/types';
 
 // Pages
 import { ModelNexusProvider, ModelNexusTitleActions, ModelNexusMain, ModelNexusPanel, AddModelModal } from './pages/ModelNexus';
-import { SkillBrowserProvider, SkillBrowserSearch, SkillBrowserMain, SkillBrowserPanel, SkillBrowserTranslateList } from './pages/SkillBrowser';
+
 import { AppManagerProvider, AppManagerMain, AppManagerPanel, AppManagerBottom, AppManagerErrorModal } from './pages/AppManager';
 import { LocalServerProvider, LocalServerMain, LocalServerPanel, LocalServerBottom } from './pages/LocalServer';
 import { MotherAgentProvider, MotherAgentMain, MotherAgentPanel, MotherAgentModelSelector } from './pages/MotherAgent';
-import { Channels } from './pages/Channels';
+import { ChannelsMain, ChannelsPanel, ChannelsProvider } from './pages/Channels';
 
 declare const __APP_VERSION__: string;
 
@@ -58,8 +57,7 @@ function App() {
     const [isScanning, setIsScanning] = useState(false);
     const [modelProtocolSelection, setModelProtocolSelection] = useState<Record<string, 'openai' | 'anthropic'>>({});
 
-    // Preloaded skills data (loaded during splash)
-    const [preloadedSkills, setPreloadedSkills] = useState<SkillsData | null>(null);
+
 
     // Mother Agent running state
     const [agentRunning, setAgentRunning] = useState(false);
@@ -91,16 +89,10 @@ function App() {
         setIsScanning(false);
     }, []);
 
-    // ── Splash preload: run scanTools + loadSkillsData in parallel,
-    //    then close splash only after both finish.
+    // ── Splash preload: run scanTools then mark app ready.
     useEffect(() => {
         const preload = async () => {
-            await Promise.all([
-                doScanTools(),
-                api.loadSkillsData()
-                    .then(data => { if (data.skills?.length > 0) setPreloadedSkills(data); })
-                    .catch(() => { /* cache miss is OK */ }),
-            ]);
+            await doScanTools();
             api.appReady();
             // Silent update check after app is ready
             try {
@@ -129,9 +121,10 @@ function App() {
                         {/* All Providers always mounted — only CSS hidden changes */}
                         <MotherAgentProvider appLogs={appLogs} detectedTools={detectedTools} onClearLogs={onClearLogs} onAgentRunningChange={setAgentRunning} onNewMessage={() => setMotherNewMessage(true)} initialMessage={motherPrefill}>
                             <ModelNexusProvider>
-                                <SkillBrowserProvider preloadedSkills={preloadedSkills}>
+
                                     <AppManagerProvider detectedTools={detectedTools} setDetectedTools={setDetectedTools} isScanning={isScanning} scanTools={doScanTools} modelProtocolSelection={modelProtocolSelection} setModelProtocolSelection={setModelProtocolSelection} isActive={activePage === 'apps'} onGoToMother={(prefill) => { setMotherPrefill(prefill); setActivePage('mother'); }}>
                                         <LocalServerProvider>
+                                            <ChannelsProvider>
 
                                             <div className="flex flex-col h-screen w-full bg-cyber-bg">
                                                 {/* Title bar */}
@@ -153,16 +146,16 @@ function App() {
                                                                     <h2 className="text-xl mb-3 flex-shrink-0 relative flex items-center cjk-title">
                                                                         <span className="truncate">
                                                                             {is('models') && t('page.modelNexus')}
-                                                                            {is('skills') && <span className="text-cyber-warning">{t('page.skillBrowser')}</span>}
+
                                                                             {is('apps') && t('page.appManager')}
                                                                             {is('localLlm') && t('page.localServer')}
                                                                             {is('mother') && <span className="text-cyber-accent-secondary">{t('page.motherAgent')}</span>}
                                                                             {is('channels') && t('page.channels')}
                                                                         </span>
                                                                         {/* Title actions — always mounted but hidden */}
-                                                                        <span className={page(is('skills'))}><SkillBrowserTranslateList /></span>
+
                                                                         <span className={page(is('models'))}><ModelNexusTitleActions /></span>
-                                                                        <span className={page(is('skills'))}><SkillBrowserSearch /></span>
+
                                                                         {is('mother') && (
                                                                             <div className="ml-auto flex-shrink-0">
                                                                                 <MotherAgentModelSelector />
@@ -172,10 +165,10 @@ function App() {
 
                                                                     {/* Page content — always mounted, CSS hidden */}
                                                                     <div className={pageScroll(is('models'))}><ModelNexusMain /></div>
-                                                                    <div className={pageBlock(is('skills'))}><SkillBrowserMain /></div>
+
                                                                     <div className={pageBlock(is('apps'))}><AppManagerMain /></div>
                                                                     <div className={pageBlock(is('localLlm'))}><LocalServerMain /></div>
-                                                                    <div className={pageScroll(is('channels'))}><Channels /></div>
+                                                                    <div className={`flex-1 flex flex-col overflow-hidden ${is('channels') ? '' : 'hidden'}`}><ChannelsMain /></div>
                                                                     {/* MotherAgent: always mounted, hidden via CSS to preserve chat state */}
                                                                     <div className={`flex-1 flex flex-col overflow-hidden ${is('mother') ? '' : 'hidden'}`}>
                                                                         <MotherAgentMain />
@@ -184,19 +177,20 @@ function App() {
                                                                 </section>
                                                             </main>
 
-                                                            {/* Right panel (hidden on channels page) */}
-                                                            {!is('channels') && (
-                                                                <aside className="w-80 flex flex-col">
+                                                            <aside className="w-80 flex flex-col">
                                                                     <div className={page(is('models'))}><ModelNexusPanel /></div>
-                                                                    <div className={page(is('skills'))}><SkillBrowserPanel /></div>
+
                                                                     <div className={page(is('apps'))}><AppManagerPanel /></div>
                                                                     <div className={page(is('localLlm'))}><LocalServerPanel /></div>
                                                                     {/* MotherAgent panel: always mounted, hidden via CSS */}
                                                                     <div className={!is('mother') ? 'hidden' : 'contents'}>
                                                                         <MotherAgentPanel />
                                                                     </div>
+                                                                    {/* Channels panel: always mounted, hidden via CSS */}
+                                                                    <div className={!is('channels') ? 'hidden' : 'contents'}>
+                                                                        <ChannelsPanel />
+                                                                    </div>
                                                                 </aside>
-                                                            )}
                                                         </div>
 
                                                         {/* Bottom bars — always mounted, CSS hidden */}
@@ -215,9 +209,10 @@ function App() {
                                             <AddModelModal />
                                             <AppManagerErrorModal />
 
+                                            </ChannelsProvider>
                                         </LocalServerProvider>
                                     </AppManagerProvider>
-                                </SkillBrowserProvider>
+
                             </ModelNexusProvider>
                         </MotherAgentProvider>
 

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback, createContext, useContext } from 'react';
-import { Paperclip, ImageIcon, KeyRound, Send, X, ChevronDown, Zap, Square, Lock, RotateCcw, ChevronLeft, ChevronRight, ChevronsDown, Globe, Info, CheckCircle, HelpCircle, ChevronUp, Code, Search, X as XIcon, FileText, Sparkles, Plus, Bot, Database, Settings2 } from 'lucide-react';
+import { Paperclip, ImageIcon, KeyRound, Send, X, ChevronDown, Square, Lock, RotateCcw, ChevronLeft, ChevronRight, ChevronsDown, Globe, Info, CheckCircle, HelpCircle, ChevronUp, Code, Search, X as XIcon, FileText, Sparkles, Plus, Bot, Database, Settings2 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { MiniSelect } from '../components/MiniSelect';
@@ -80,12 +80,6 @@ export type ChatMessage =
     | { type: 'state'; state: string };
 
 // ===== Context (shared state between Main & Panel) =====
-interface PendingSkill {
-    id: string;
-    name: string;
-    github: string;
-    branch?: string;
-}
 
 interface MotherAgentCtx {
     appLogs: AppLogEntry[];
@@ -111,10 +105,7 @@ interface MotherAgentCtx {
     handleSendLogsToAI: () => void;
     handleChatSend: () => void;
     sendMessage: (msg: string, displayText?: string, chips?: import('../components/chat/ChatBubble').BubbleChip[]) => void;
-    // pending skills (attached to next message)
-    pendingSkills: PendingSkill[];
-    addPendingSkill: (skill: PendingSkill) => void;
-    removePendingSkill: (id: string) => void;
+
     // ssh servers
     sshServers: Array<{ id: string; host: string; port: string; username: string; alias?: string }>;
     addSSHServer: (server: { id: string; host: string; port: string; username: string; password: string; alias?: string }) => void;
@@ -163,24 +154,12 @@ export function MotherAgentProvider({ appLogs, detectedTools, onClearLogs, onAge
     const logsEndRef = useRef<HTMLDivElement>(null!);
     const chatEndRef = useRef<HTMLDivElement>(null!);
     const chatInputRef = useRef<HTMLInputElement>(null!);
-    const [pendingSkills, setPendingSkills] = useState<PendingSkill[]>([]);
 
     useEffect(() => {
         if (!initialMessage) return;
         setChatInput(initialMessage);
         setTimeout(() => chatInputRef.current?.focus(), 100);
     }, [initialMessage]);
-
-    const addPendingSkill = useCallback((skill: PendingSkill) => {
-        setPendingSkills(prev => {
-            if (prev.some(s => s.id === skill.id) || prev.length >= 5) return prev;
-            return [...prev, skill];
-        });
-    }, []);
-
-    const removePendingSkill = useCallback((id: string) => {
-        setPendingSkills(prev => prev.filter(s => s.id !== id));
-    }, []);
 
     // SSH servers shared state (persisted via backend)
     const [sshServers, setSSHServers] = useState<Array<{ id: string; host: string; port: string; username: string; alias?: string }>>([]);
@@ -373,7 +352,7 @@ export function MotherAgentProvider({ appLogs, detectedTools, onClearLogs, onAge
 
     // Send logs to AI
     const handleSendLogsToAI = useCallback(async () => {
-        if (!agentModel || isProcessing) return;
+        if (isProcessing) return;
         const errorLogs = appLogs.filter(l => l.category === 'ERROR').slice(-10);
         const recentLogs = appLogs.slice(-20);
         const logsToSend = errorLogs.length > 0 ? errorLogs : recentLogs;
@@ -390,7 +369,7 @@ export function MotherAgentProvider({ appLogs, detectedTools, onClearLogs, onAge
 
     // Internal send function
     const handleChatSendInternal = useCallback(async (message: string, displayText?: string, chips?: BubbleChip[]) => {
-        if (!agentModel || isProcessing || !message.trim()) return;
+        if (isProcessing || !message.trim()) return;
         setIsProcessing(true);
         // Use display text + chips if provided (chip-send path), else full message text
         setChatOutput(prev => [...prev, { type: 'user', text: (displayText ?? message).trim(), chips }]);
@@ -428,7 +407,7 @@ export function MotherAgentProvider({ appLogs, detectedTools, onClearLogs, onAge
                 anthropic_url: anthropicUrl || undefined,
                 proxy_url: modelData.proxyUrl,
                 server_ids: selectedServerId === 'local' ? [] : [selectedServerId],
-                skills: pendingSkills.map(s => s.name),
+                skills: [],
                 locale: locale || undefined,
             });
         } catch (e) {
@@ -437,7 +416,7 @@ export function MotherAgentProvider({ appLogs, detectedTools, onClearLogs, onAge
             setChatOutput(prev => [...prev, { type, text: '', i18nKey: key }]);
             setIsProcessing(false);
         }
-    }, [agentModel, models, isProcessing, selectedServerId, pendingSkills, locale]);
+    }, [agentModel, models, isProcessing, selectedServerId, locale]);
 
 
     // Chat send (from input)
@@ -459,7 +438,7 @@ export function MotherAgentProvider({ appLogs, detectedTools, onClearLogs, onAge
             chatInputRef, chatEndRef, logsEndRef,
             handleSendLogsToAI, handleChatSend,
             sendMessage: handleChatSendInternal,
-            pendingSkills, addPendingSkill, removePendingSkill,
+
             sshServers, addSSHServer, removeSSHServer,
             selectedServerId, selectServer,
             clearChat: () => {
@@ -484,7 +463,7 @@ export function MotherAgentMain() {
         handleChatSend,
         sendMessage,
         detectedTools,
-        pendingSkills, addPendingSkill, removePendingSkill,
+
         sshServers, selectedServerId,
         clearChat,
     } = useMotherAgent();
@@ -501,13 +480,12 @@ export function MotherAgentMain() {
     const [pendingModels, setPendingModels] = useState<Array<{ id: string; name: string; modelId?: string }>>([]);
     const [pendingFiles, setPendingFiles] = useState<Array<{ id: string; name: string; type: 'file' | 'image'; preview?: string }>>([]);
 
-    // Wrap handleChatSend to append pending model/skill/file info as text
+    // Wrap handleChatSend to append pending model/file info as text
     const localSend = useCallback(() => {
         const hasModels = pendingModels.length > 0;
-        const hasSkills = pendingSkills.length > 0;
-        const hasFiles  = pendingFiles.length > 0;
+        const hasFiles = pendingFiles.length > 0;
 
-        if (hasModels || hasSkills || hasFiles) {
+        if (hasModels || hasFiles) {
             const mdList = pendingModels.map(pm => {
                 const md = models.find(m => m.internalId === pm.id);
                 return {
@@ -520,67 +498,19 @@ export function MotherAgentMain() {
                 chatInput,
                 pendingFiles,
                 mdList,
-                pendingSkills,
+                [],
             );
 
             setPendingModels([]);
-            pendingSkills.forEach(s => removePendingSkill(s.id));
             setPendingFiles([]);
             setChatInput('');
             sendMessage(messageText, chatInput.trim(), chips);
         } else {
             handleChatSend();
         }
-    }, [pendingModels, pendingSkills, pendingFiles, models, chatInput, setChatInput, handleChatSend, sendMessage, removePendingSkill]);
+    }, [pendingModels, pendingFiles, models, chatInput, setChatInput, handleChatSend, sendMessage]);
 
-    // Skills popup state
-    const [showSkillsPicker, setShowSkillsPicker] = useState(false);
-    const [skillsFavorites, setSkillsFavorites] = useState<Array<{ id: string; name: string; github: string }>>([]);
-    const [skillsPage, setSkillsPage] = useState(0);
-    const skillsPickerRef = useRef<HTMLDivElement>(null!);
-    const SKILLS_PER_PAGE = 6;
 
-    const openSkillsPicker = () => {
-        setShowSkillsPicker(prev => !prev);
-        if (!showSkillsPicker) {
-            setSkillsPage(0);
-            Promise.all([api.loadSkillsFavorites(), api.loadSkillsData(), api.loadSkillsI18n()])
-                .then(([favData, skillsData, i18nMap]) => {
-                    const favIds = favData.favorites || [];
-                    const allSkills = (skillsData?.skills || []) as any[];
-                    const skills = favIds.map(id => {
-                        // Try to find actual skill data
-                        const skillData = allSkills.find((s: any) => s.i === id);
-                        let name = '';
-                        if (skillData) {
-                            // Check i18n overlay first
-                            const tr = i18nMap[id];
-                            name = (tr && tr.locale === locale && tr.n) ? tr.n : (skillData.n || skillData.name || id);
-                        } else {
-                            // Fallback: parse from path
-                            const parts = id.split('/');
-                            const fileName = parts[parts.length - 1].replace(/\.md$/i, '');
-                            name = fileName === 'SKILL' ? (parts[parts.length - 2] || 'Unknown') : fileName;
-                        }
-                        return { id, name, github: id, branch: skillData?.b || 'main' };
-                    });
-                    setSkillsFavorites(skills);
-                })
-                .catch(() => setSkillsFavorites([]));
-        }
-    };
-
-    // Close skills picker on outside click
-    useEffect(() => {
-        if (!showSkillsPicker) return;
-        const handler = (e: MouseEvent) => {
-            if (skillsPickerRef.current && !skillsPickerRef.current.contains(e.target as Node)) {
-                setShowSkillsPicker(false);
-            }
-        };
-        document.addEventListener('mousedown', handler);
-        return () => document.removeEventListener('mousedown', handler);
-    }, [showSkillsPicker]);
 
     // Close model picker on outside click
     useEffect(() => {
@@ -701,7 +631,7 @@ export function MotherAgentMain() {
         <div className="flex flex-col h-full">
             {/* Chat conversation area */}
             <div className="relative flex-1">
-                <div ref={chatContainerRef} onScroll={handleScroll} className={`absolute inset-0 ${agentModel ? 'overflow-y-auto slim-scroll' : 'overflow-hidden'} p-4`}>
+                <div ref={chatContainerRef} onScroll={handleScroll} className="absolute inset-0 overflow-y-auto slim-scroll p-4">
                     {/* Quick prompt hints — scrolls with content */}
                     <div className="mb-2 select-none">
                         {remoteHints.length > 0 && (
@@ -709,11 +639,13 @@ export function MotherAgentMain() {
                                 {remoteHints.map((hint, i) => {
                                     const i18nKey = `mother.hint${hint.action[0].toUpperCase()}${hint.action.slice(1)}` as any;
                                     const label = t(i18nKey).replace('{agent}', hint.agent || '');
+                                    // Skip hints whose i18n key was removed (label equals raw key)
+                                    if (label === i18nKey) return null;
                                     return (
                                         <button
                                             key={i}
-                                            onClick={() => { if (!agentModel) return; setChatInput(label); chatInputRef.current?.focus(); }}
-                                            className={`px-3 py-1 text-xs rounded-full border border-cyber-accent-secondary/20 text-cyber-accent-secondary/70 hover:bg-cyber-accent-secondary/10 hover:text-cyber-accent-secondary transition-all ${agentModel ? 'cursor-pointer' : 'opacity-30 cursor-not-allowed'}`}
+                                            onClick={() => { setChatInput(label); chatInputRef.current?.focus(); }}
+                                            className="px-3 py-1 text-xs rounded-full border border-cyber-accent-secondary/20 text-cyber-accent-secondary/70 hover:bg-cyber-accent-secondary/10 hover:text-cyber-accent-secondary transition-all cursor-pointer"
                                         >
                                             {label}
                                         </button>
@@ -724,10 +656,9 @@ export function MotherAgentMain() {
                     </div>
 
                     {/* Chat messages — bubble UI */}
-                    {agentModel ? (
                         <div className="pt-2 pb-2">
                             {/* Skeleton placeholders — shown briefly when lazy-loading older messages */}
-                            {showSkeleton && [0,1,2].map(i => (
+                            {showSkeleton && [0, 1, 2].map(i => (
                                 <ChatBubble key={`sk-${i}`} role="skeleton" content="" variant="mother" />
                             ))}
                             {chatOutput.slice(-displayCount).map((msg, i) => {
@@ -744,10 +675,8 @@ export function MotherAgentMain() {
                                         const label = t('mother.connectionRetrying').replace('{n}', retryMatch[1]).replace('{total}', retryMatch[2]);
                                         return <ChatBubble key={i} role="retry" content={label} variant="mother" />;
                                     }
-                                    // ChatBubble handles extraction: <chat> tag → shows only that,
-                                    // fallback → strips <think> blocks, shows remainder.
-                                    // Always render — ChatBubble returns empty string for pure <think> content.
-                                    return <ChatBubble key={i} role="assistant" content={msg.text} variant="mother" />;
+                                    const isLast = chatOutput.slice(-displayCount).slice(i + 1).every(m => m.type !== 'assistant');
+                                    return <ChatBubble key={i} role="assistant" content={msg.text} variant="mother" isStreaming={isProcessing && isLast} />;
                                 }
                                 if (msg.type === 'cancelled') {
                                     const text = msg.i18nKey ? t(msg.i18nKey as import('../i18n/types').TKey) : msg.text;
@@ -766,19 +695,12 @@ export function MotherAgentMain() {
                                 }
                                 return null;
                             })}
-                            {isProcessing && !(chatOutput.length > 0 && chatOutput[chatOutput.length - 1].type === 'assistant') && (
+                            {/* Typing indicator — only when processing and no assistant message exists yet */}
+                            {isProcessing && !chatOutput.some(m => m.type === 'assistant') && (
                                 <ChatBubble role="assistant" content="" variant="mother" isStreaming={true} />
                             )}
                             <div ref={chatEndRef} />
                         </div>
-                    ) : (
-                        <div className="flex items-center justify-center" style={{ minHeight: 'calc(100% - 160px)' }}>
-                            <div className="font-mono text-center space-y-3 select-none">
-                                <div className="text-lg text-cyber-accent-secondary/40 tracking-wider">{t('mother.awaitingInit')}</div>
-                                <div className="text-base text-cyber-text-muted/50 tracking-wide">{t('mother.flowHint')}</div>
-                            </div>
-                        </div>
-                    )}
                 </div>
                 {/* Scroll to bottom button */}
                 {showScrollBtn && (
@@ -792,7 +714,7 @@ export function MotherAgentMain() {
             </div>
 
             {/* Rich input area */}
-<div className="flex-shrink-0 mt-1 mb-1">
+            <div className="flex-shrink-0 mt-1 mb-1">
                 <div className="bg-cyber-terminal rounded-lg relative">
                     {/* Pending attachments chips — shared component */}
                     <PendingChipsRow
@@ -800,8 +722,6 @@ export function MotherAgentMain() {
                         onRemoveFile={id => setPendingFiles(prev => prev.filter(x => x.id !== id))}
                         models={pendingModels}
                         onRemoveModel={id => setPendingModels(prev => prev.filter(x => x.id !== id))}
-                        skills={pendingSkills}
-                        onRemoveSkill={removePendingSkill}
                     />
                     <textarea
                         ref={chatInputRef}
@@ -813,8 +733,8 @@ export function MotherAgentMain() {
                                 if (!isProcessing) localSend();
                             }
                         }}
-                        placeholder={agentModel ? t('mother.enterMessage') : t('mother.selectModel')}
-                        disabled={!agentModel || isProcessing}
+                        placeholder={t('mother.enterMessage')}
+                        disabled={isProcessing}
                         rows={2}
                         className="w-full bg-transparent px-4 py-2 text-sm text-[#DED9D2] font-sans font-medium outline-none placeholder:text-[#DED9D2]/40 disabled:opacity-30 resize-none"
                     />
@@ -823,21 +743,21 @@ export function MotherAgentMain() {
                         <div className="flex items-center gap-1 relative">
                             <button
                                 onClick={() => fileInputRef.current?.click()}
-                                disabled={!agentModel || isProcessing}
+                                disabled={isProcessing}
                                 className="p-1 text-cyber-accent-secondary/40 hover:text-cyber-accent-secondary transition-colors disabled:opacity-20"
                             >
                                 <Paperclip size={15} />
                             </button>
                             <button
                                 onClick={() => imageInputRef.current?.click()}
-                                disabled={!agentModel || isProcessing}
+                                disabled={isProcessing}
                                 className="p-1 text-cyber-accent-secondary/40 hover:text-cyber-accent-secondary transition-colors disabled:opacity-20"
                             >
                                 <ImageIcon size={15} />
                             </button>
                             <button
                                 onClick={() => setShowModelPicker(prev => !prev)}
-                                disabled={!agentModel || isProcessing || pendingModels.length >= 5}
+                                disabled={isProcessing || pendingModels.length >= 5}
                                 className={`p-1 transition-colors disabled:opacity-20 ${showModelPicker ? 'text-cyber-accent-secondary' : 'text-cyber-accent-secondary/40 hover:text-cyber-accent-secondary'}`}
                             >
                                 <KeyRound size={15} />
@@ -879,65 +799,6 @@ export function MotherAgentMain() {
                                     )}
                                 </div>
                             )}
-                            <button
-                                onClick={openSkillsPicker}
-                                disabled={!agentModel || isProcessing || pendingSkills.length >= 5}
-                                className={`p-1 transition-colors disabled:opacity-20 ${showSkillsPicker ? 'text-cyber-warning' : 'text-cyber-warning/40 hover:text-cyber-warning'}`}
-                            >
-                                <Zap size={15} />
-                            </button>
-                            {/* Skills picker popover */}
-                            {showSkillsPicker && (
-                                <div
-                                    ref={skillsPickerRef}
-                                    className="absolute bottom-full left-0 mb-2 w-72 bg-cyber-bg border border-cyber-border/60 rounded-lg shadow-lg z-50"
-                                >
-                                    {skillsFavorites.length === 0 ? (
-                                        <div className="px-3 py-3 text-xs text-cyber-text-muted/50 font-mono text-center">{t('mother.noFavorites')}</div>
-                                    ) : (
-                                        <>
-                                            <div className="max-h-56 overflow-y-auto slim-scroll custom-scrollbar">
-                                                {skillsFavorites.slice(skillsPage * SKILLS_PER_PAGE, (skillsPage + 1) * SKILLS_PER_PAGE).map(skill => (
-                                                    <button
-                                                        key={skill.id}
-                                                        onClick={() => {
-                                                            addPendingSkill({ id: skill.id, name: skill.name, github: skill.github });
-                                                            setShowSkillsPicker(false);
-                                                        }}
-                                                        className="w-full text-left px-3 py-2 text-xs font-mono hover:bg-cyber-warning/10 transition-colors border-b border-cyber-border/10 last:border-b-0 flex items-center gap-2"
-                                                    >
-                                                        <Zap size={12} className="text-cyber-warning/60 flex-shrink-0" />
-                                                        <div className="min-w-0">
-                                                            <div className="text-cyber-warning font-bold truncate">{skill.name}</div>
-                                                            <div className="text-cyber-text-muted/50 truncate text-[10px]">.../{skill.github.split(/[\/\\]/).slice(-3).join('/')}</div>
-                                                        </div>
-                                                    </button>
-                                                ))}
-                                            </div>
-                                            {/* Pagination */}
-                                            {Math.ceil(skillsFavorites.length / SKILLS_PER_PAGE) > 1 && (
-                                                <div className="flex items-center justify-between px-3 py-1.5 border-t border-cyber-border/20 text-[10px] font-mono text-cyber-text-muted/50">
-                                                    <button
-                                                        onClick={() => setSkillsPage(p => Math.max(0, p - 1))}
-                                                        disabled={skillsPage === 0}
-                                                        className="hover:text-cyber-warning disabled:opacity-30 transition-colors"
-                                                    >
-                                                        <ChevronLeft size={12} />
-                                                    </button>
-                                                    <span>{skillsPage + 1} / {Math.ceil(skillsFavorites.length / SKILLS_PER_PAGE)}</span>
-                                                    <button
-                                                        onClick={() => setSkillsPage(p => Math.min(Math.ceil(skillsFavorites.length / SKILLS_PER_PAGE) - 1, p + 1))}
-                                                        disabled={skillsPage >= Math.ceil(skillsFavorites.length / SKILLS_PER_PAGE) - 1}
-                                                        className="hover:text-cyber-warning disabled:opacity-30 transition-colors"
-                                                    >
-                                                        <ChevronRight size={12} />
-                                                    </button>
-                                                </div>
-                                            )}
-                                        </>
-                                    )}
-                                </div>
-                            )}
                         </div>
                         <div className="flex items-center gap-2">
                             <button
@@ -964,7 +825,7 @@ export function MotherAgentMain() {
                             ) : (
                                 <button
                                     onClick={localSend}
-                                    disabled={!chatInput.trim() || !agentModel}
+                                    disabled={!chatInput.trim()}
                                     className="w-6 h-6 rounded-lg flex items-center justify-center bg-cyber-accent-secondary hover:brightness-110 transition-all disabled:opacity-20"
                                 >
                                     <Send size={15} className="text-cyber-bg" />
@@ -999,15 +860,13 @@ export function MotherAgentModelSelector() {
     );
 }
 
-// ===== Right Panel (aside area) �?SERVERS / SKILLS =====
+// ===== Right Panel (aside area) — SERVERS =====
 export function MotherAgentPanel() {
-    const { setChatInput, chatInputRef, addPendingSkill, sshServers, addSSHServer, removeSSHServer, selectedServerId, selectServer, isProcessing } = useMotherAgent();
+    const { setChatInput, chatInputRef, sshServers, addSSHServer, removeSSHServer, selectedServerId, selectServer, isProcessing } = useMotherAgent();
     const confirm = useConfirm();
     const { t } = useI18n();
 
     const [panelTab, setPanelTab] = useState<'servers' | 'guide'>('servers');
-    const [favoriteSkills, setFavoriteSkills] = useState<Array<{ id: string; name: string; desc: string; github: string; branch: string }>>([]);
-    const [skillsLoading, setSkillsLoading] = useState(false);
     const [showSSHModal, setShowSSHModal] = useState(false);
     const [sshForm, setSSHForm] = useState({ host: '', port: '22', username: '', password: '', alias: '', showPassword: false });
     const [sshTestResult, setSSHTestResult] = useState<{ success: boolean; message: string } | null>(null);

@@ -26,9 +26,6 @@ export async function applyModelToTool(toolId: string, modelInfo: ApplyModelInpu
     return invoke('apply_model_to_tool', { toolId, modelInfo });
 }
 
-export async function getToolInstalledSkills(toolId: string): Promise<Array<{ id: string; name: string; path: string }>> {
-    return invoke('get_tool_installed_skills', { toolId });
-}
 
 // ─── Model APIs ───
 
@@ -271,83 +268,6 @@ export function onDownloadProgress(callback: (data: DownloadProgressEvent) => vo
     });
 }
 
-// ─── Skill Registry APIs ───
-
-/** Single skill entry from claude-skill-registry search-index.json */
-export interface RegistrySkill {
-    n: string;   // name
-    d: string;   // description
-    c: string;   // category code
-    g: string[]; // tags
-    r: number;   // GitHub stars
-    i: string;   // GitHub path (e.g. "owner/repo/.claude/skills/name/SKILL.md")
-    b: string;   // branch
-}
-
-/** Local cache format for skills data */
-export interface SkillsData {
-    skills: RegistrySkill[];
-    userCategories?: string[];
-    sources?: string[];
-    lastUpdated?: string;
-}
-
-/** User favorites stored separately in skills_favorites.json */
-export interface SkillsFavorites {
-    favorites: string[];
-}
-
-export async function loadSkillsData(): Promise<SkillsData> {
-    return invoke('load_skills_data');
-}
-
-export async function saveSkillsData(data: SkillsData): Promise<void> {
-    return invoke('save_skills_data', { data });
-}
-
-export async function loadSkillsFavorites(): Promise<SkillsFavorites> {
-    return invoke('load_skills_favorites');
-}
-
-export async function saveSkillsFavorites(data: SkillsFavorites): Promise<void> {
-    return invoke('save_skills_favorites', { data });
-}
-
-export async function fetchSkillSource(url: string): Promise<string> {
-    return invoke('fetch_skill_source', { url });
-}
-
-export interface LlmQuickConfig {
-    provider: string;
-    base_url: string;
-    api_key: string;
-    model: string;
-    proxy_url?: string;
-    /** OpenAI fallback URL: when Anthropic returns 400, backend retries with this URL */
-    openai_fallback_url?: string;
-}
-
-export async function llmQuickChat(config: LlmQuickConfig, prompt: string): Promise<string> {
-    return invoke('llm_quick_chat', { config, prompt });
-}
-
-export interface SkillI18nEntry {
-    n?: string;
-    d?: string;
-    expanded_d?: string;
-    content?: string;
-    locale: string;
-}
-
-export type SkillsI18nMap = Record<string, SkillI18nEntry>;
-
-export async function loadSkillsI18n(): Promise<SkillsI18nMap> {
-    return invoke('load_skills_i18n');
-}
-
-export async function saveSkillsI18n(data: SkillsI18nMap): Promise<void> {
-    return invoke('save_skills_i18n', { data });
-}
 
 // ─── SSH APIs ───
 

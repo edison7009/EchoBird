@@ -1,13 +1,13 @@
 // ChatBubble — social-style chat bubbles, NO markdown rendering
 // Left: AI (white bg, black text). Right: User (solid cyan/green).
-import { Paperclip, KeyRound, Zap, Image as ImageIcon } from 'lucide-react';
+import { Paperclip, KeyRound, Image as ImageIcon } from 'lucide-react';
 import { getModelIcon } from '../cards/ModelCard';
 import { useI18n } from '../../hooks/useI18n';
 
 export type BubbleRole = 'user' | 'assistant' | 'system' | 'error' | 'working' | 'retry' | 'skeleton';
 
 export interface BubbleChip {
-    type: 'file' | 'image' | 'model' | 'skill';
+    type: 'file' | 'image' | 'model';
     name: string;
     /** For model chips: model provider name to look up icon */
     modelId?: string;
@@ -49,7 +49,6 @@ function stripMarkdown(text: string): string {
 // Mirrors PendingChipsRow color semantics, but without text or remove button.
 const BASE_CHIP = 'flex items-center justify-center w-6 h-6 rounded border flex-shrink-0';
 const CHIP_MODEL = `${BASE_CHIP} bg-cyber-accent/10 border-cyber-accent/40`;
-const CHIP_SKILL = `${BASE_CHIP} bg-cyber-warning/10 border-cyber-warning/40`;
 const CHIP_FILE  = `${BASE_CHIP} bg-cyber-bg/60 border-cyber-text-muted/30`;
 
 function ReadonlyChips({ chips }: { chips: BubbleChip[] }) {
@@ -67,13 +66,7 @@ function ReadonlyChips({ chips }: { chips: BubbleChip[] }) {
                         </span>
                     );
                 }
-                if (c.type === 'skill') {
-                    return (
-                        <span key={i} className={CHIP_SKILL} title={c.name}>
-                            <Zap size={12} className="text-cyber-warning" />
-                        </span>
-                    );
-                }
+
                 if (c.type === 'image') {
                     return (
                         <span key={i} className={CHIP_FILE} title={c.name}>
@@ -204,7 +197,10 @@ export function ChatBubble({ role, content, variant, chips = [], isStreaming = f
                     </svg>
                     {(isStreaming && !finalText)
                         ? <InputDots />
-                        : <p className="break-words whitespace-pre-wrap">{truncate(finalText)}</p>
+                        : <>
+                            <p className="break-words whitespace-pre-wrap">{truncate(finalText)}</p>
+                            {isStreaming && <div className="mt-1"><InputDots /></div>}
+                          </>
                     }
                 </div>
             </div>

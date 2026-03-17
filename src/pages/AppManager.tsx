@@ -79,23 +79,11 @@ export const AppManagerProvider: React.FC<AppManagerProviderProps> = ({
     const { t } = useI18n();
     const confirm = useConfirm();
 
-    // Wrapped navigation: fetch remote install info, build prefill, check model configured
+    // Wrapped navigation: build prefill and go to Mother Agent (model check happens there)
     const handleGoToMother = useCallback(async (toolId: string, toolName: string) => {
-        const configured = localStorage.getItem('echobird_agent_model');
-        if (!configured) {
-            await confirm({
-                title: t('skills.noModelTitle'),
-                message: t('skills.noModelMsg'),
-                type: 'info',
-                confirmText: t('common.confirm'),
-                cancelText: '',
-            });
-            return;
-        }
-        // Build localized prefill — Mother Agent fetches install details itself via web_fetch
         const prefill = t('mother.hintInstall').replace('{agent}', toolName);
         onGoToMother(prefill);
-    }, [confirm, t, onGoToMother]);
+    }, [t, onGoToMother]);
 
     // Load models internally
     const [userModels, setUserModels] = useState<ModelConfig[]>([]);
@@ -518,46 +506,17 @@ export const AppManagerPanel: React.FC = () => {
         modelProtocolSelection, setModelProtocolSelection,
     } = useAppManager();
 
-    const [panelTab, setPanelTab] = useState<'models' | 'skills'>('models');
-    const [installedSkills, setInstalledSkills] = useState<Array<{ id: string; name: string; path: string }>>([]);
-    const [skillsLoading, setSkillsLoading] = useState(false);
 
-    // Fetch installed skills when switching to skills tab or when selected tool changes
-    useEffect(() => {
-        if (panelTab === 'skills' && selectedToolData?.skillsPath) {
-            setSkillsLoading(true);
-            api.getToolInstalledSkills(selectedToolData.skillsPath)
-                .then(setInstalledSkills)
-                .catch(() => setInstalledSkills([]))
-                .finally(() => setSkillsLoading(false));
-        } else if (panelTab === 'skills') {
-            setInstalledSkills([]);
-        }
-    }, [panelTab, selectedTool, selectedToolData?.skillsPath]);
+
 
     return (
         <>
-            {/* Header with tabs */}
+            {/* Header */}
             <div className="p-2 flex items-center justify-between bg-transparent">
                 <div className="flex gap-1">
-                    <button
-                        onClick={() => setPanelTab('models')}
-                        className={`px-3 py-1.5 text-xs font-bold rounded transition-colors ${panelTab === 'models'
-                            ? 'bg-cyber-accent text-black'
-                            : 'text-cyber-text-secondary hover:text-cyber-text'
-                            }`}
-                    >
+                    <span className="px-3 py-1.5 text-xs font-bold text-cyber-accent">
                         {t('agent.modelsTab')}
-                    </button>
-                    <button
-                        onClick={() => setPanelTab('skills')}
-                        className={`px-3 py-1.5 text-xs font-bold rounded transition-colors ${panelTab === 'skills'
-                            ? 'bg-cyber-warning text-black'
-                            : 'text-cyber-text-secondary hover:text-cyber-text'
-                            }`}
-                    >
-                        {t('agent.skillsTab')}
-                    </button>
+                    </span>
                 </div>
                 {selectedToolData && (
                     <span className="text-[10px] text-cyber-accent">
@@ -566,83 +525,24 @@ export const AppManagerPanel: React.FC = () => {
                 )}
             </div>
 
-            {/* Content */}
             <div className="flex-1 p-2 overflow-y-auto">
-                {panelTab === 'models' ? (
-                    /* ── MODELS tab ── */
-                    selectedToolData ? (
-                        <>
-                            <div className="space-y-2">
-                                <ModelListSection
-                                    selectedToolData={selectedToolData}
-                                    userModels={userModels}
-                                    toolModelConfig={toolModelConfig}
-                                    selectedTool={selectedTool}
-                                    handleSelectModel={handleSelectModel}
-                                    modelProtocolSelection={modelProtocolSelection}
-                                    setModelProtocolSelection={setModelProtocolSelection}
-                                    t={t}
-                                />
-                            </div>
-                        </>
-                    ) : (
-                        <p className="text-cyber-text-secondary text-center py-10">
-                            {t('agent.selectTool')}
-                        </p>
-                    )
+                {selectedToolData ? (
+                    <div className="space-y-2">
+                        <ModelListSection
+                            selectedToolData={selectedToolData}
+                            userModels={userModels}
+                            toolModelConfig={toolModelConfig}
+                            selectedTool={selectedTool}
+                            handleSelectModel={handleSelectModel}
+                            modelProtocolSelection={modelProtocolSelection}
+                            setModelProtocolSelection={setModelProtocolSelection}
+                            t={t}
+                        />
+                    </div>
                 ) : (
-                    /* ── SKILLS tab ── */
-                    selectedToolData ? (
-                        <div className="space-y-2">
-                            <div className="text-xs text-cyber-text-secondary mb-3">
-                                {t('agent.installedSkillsFor')} {selectedToolData.name}:
-                            </div>
-                            {/* Skills path - click to open folder */}
-                            {selectedToolData.skillsPath && (
-                                <div
-                                    className="text-[10px] text-cyber-warning mb-2 p-2 bg-cyber-warning/10 rounded truncate cursor-pointer hover:bg-cyber-warning/20 transition-colors"
-                                    onClick={() => api.openFolder(selectedToolData.skillsPath!)}
-                                >
-                                    📁 {selectedToolData.skillsPath}
-                                </div>
-                            )}
-                            {skillsLoading ? (
-                                <div className="text-center py-8">
-                                    <div className="text-cyber-text-secondary text-sm">{t('skills.loading')}</div>
-                                </div>
-                            ) : installedSkills.length > 0 ? (
-                                installedSkills.map(skill => (
-                                    <div
-                                        key={skill.id}
-                                        className="p-3 border border-cyber-border rounded hover:border-cyber-warning/50 transition-all cursor-pointer select-none"
-                                    >
-                                        <div className="flex items-center justify-between gap-2">
-                                            <div className="flex-1 min-w-0">
-                                                <div className="text-sm font-bold truncate text-cyber-warning">{skill.name}</div>
-                                                <div className="text-[10px] text-cyber-text-secondary truncate">
-                                                    .../{skill.path.split(/[/\\]/).slice(-3).join('/')}
-                                                </div>
-                                            </div>
-                                            <button
-                                                onClick={() => api.openFolder(skill.path)}
-                                                className="px-3 py-1 text-[10px] font-bold rounded border border-cyber-warning text-cyber-warning hover:bg-cyber-warning/10 transition-colors"
-                                            >
-                                                {t('btn.open')}
-                                            </button>
-                                        </div>
-                                    </div>
-                                ))
-                            ) : (
-                                <div className="text-center py-8">
-                                    <div className="text-cyber-text-secondary text-sm">{t('agent.noSkills')}</div>
-                                </div>
-                            )}
-                        </div>
-                    ) : (
-                        <p className="text-cyber-text-secondary text-center py-10">
-                            {t('agent.selectTool')}
-                        </p>
-                    )
+                    <p className="text-cyber-text-secondary text-center py-10">
+                        {t('agent.selectTool')}
+                    </p>
                 )}
             </div>
         </>

@@ -39,8 +39,9 @@ pub async fn get_version(cmd: &str) -> Option<String> {
     let output = {
         use std::os::windows::process::CommandExt;
         const CREATE_NO_WINDOW: u32 = 0x08000000;
-        Command::new(cmd)
-            .arg("--version")
+        // Use cmd.exe /C to properly resolve .cmd batch wrappers (npm-installed tools)
+        Command::new("cmd")
+            .args(["/C", cmd, "--version"])
             .creation_flags(CREATE_NO_WINDOW)
             .output()
             .ok()?
@@ -51,17 +52,24 @@ pub async fn get_version(cmd: &str) -> Option<String> {
         .output()
         .ok()?;
 
-    if output.status.success() {
+    // Check both stdout and stderr — some tools print version to stderr
+    // Don't require success exit code — some tools return non-zero with --version
+    let combined = {
         let stdout = String::from_utf8_lossy(&output.stdout);
-        let version_line = stdout.lines().next()?;
-        // Extract version number pattern (digits.digits.digits)
-        let version = version_line
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        format!("{}\n{}", stdout, stderr)
+    };
+
+    // Scan all lines for a version pattern (digits.digits...)
+    for line in combined.lines() {
+        if let Some(ver) = line
             .split_whitespace()
-            .find(|s| s.chars().next().map_or(false, |c| c.is_ascii_digit()))?;
-        Some(version.trim().to_string())
-    } else {
-        None
+            .find(|s| s.chars().next().map_or(false, |c| c.is_ascii_digit()) && s.contains('.'))
+        {
+            return Some(ver.trim().to_string());
+        }
     }
+    None
 }
 
 /// Get user home directory
