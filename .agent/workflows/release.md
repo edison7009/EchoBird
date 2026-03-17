@@ -57,6 +57,9 @@ This triggers the chain:
 
 ⏳ **Wait for CI to finish before proceeding.** Check build progress: https://github.com/edison7009/Echobird-MotherAgent/actions
 
+> [!IMPORTANT]
+> **If `bridge-src/` was modified in this release:** After CI completes, download the 5 bridge binaries from the release artifacts and copy them to `bridge/`. This ensures subsequent releases (if bridge source is unchanged) ship the latest binaries for local + offline LAN deployment.
+
 > [!CAUTION]
 > **Never re-tag on CI failure.** If CI fails, bump to the next patch version (e.g. 2.6.0 → 2.6.1) and release fresh. Re-tagging causes CI to build from a stale commit, resulting in mismatched file names (e.g. title says v2.6.0 but files show 2.5.9).
 
