@@ -243,7 +243,7 @@ export const AgentRolePicker: React.FC<AgentRolePickerProps> = ({
                                         <div className="absolute inset-x-0 bottom-0 px-3 pb-3 flex flex-col items-center"
                                              style={{ backfaceVisibility: 'hidden' }}>
                                             <div
-                                                className="text-sm font-bold text-center leading-tight line-clamp-1"
+                                                className="text-sm font-bold text-center leading-tight line-clamp-2"
                                                 style={{
                                                     color: '#00ff9d',
                                                     textShadow: '0 0 8px rgba(0,0,0,0.9), 0 0 16px rgba(0,0,0,0.7), 0 1px 3px rgba(0,0,0,1)',
