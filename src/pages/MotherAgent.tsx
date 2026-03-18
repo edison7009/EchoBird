@@ -11,8 +11,10 @@ import { buildPendingMessage } from '../utils/buildPendingMessage';
 import { useI18n } from '../hooks/useI18n';
 import { useConfirm } from '../components/ConfirmDialog';
 import * as api from '../api/tauri';
-import { channelHistoryLoad, channelHistorySave, channelHistoryClear } from '../api/tauri';
+import { channelHistoryLoad } from '../api/tauri';
 import type { ModelConfig, LocalTool, AppLogEntry, AgentEvent } from '../api/types';
+import { useChatPersistence } from '../hooks/useChatPersistence';
+import type { DiskMsg } from '../hooks/useChatPersistence';
 
 // Markdown components config (Mother Agent blue theme)
 const mdComponents = {
@@ -213,7 +215,52 @@ export function MotherAgentProvider({ appLogs, detectedTools, onClearLogs, onAge
     }, [chatOutput, selectedServerId]);
     const prevServerRef = useRef('local');
     const agentChatKey = (id: string) => `agent_${id}`;
-    const saveDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    // Shared mapper: ChatMessage → disk format
+    const toDisk = useCallback((m: ChatMessage): DiskMsg | null => {
+        if (m.type === 'user') return { role: 'user', content: m.text };
+        if (m.type === 'assistant') return { role: 'assistant', content: m.text };
+        if (m.type === 'error') return { role: 'system', content: (m as any).i18nKey || m.text };
+        if (m.type === 'cancelled') return { role: 'system', content: (m as any).i18nKey || m.text };
+        return null; // skip thinking, tool_call, tool_result, state
+    }, []);
+
+    // Shared mapper: disk format → ChatMessage
+    const fromDisk = useCallback((m: DiskMsg): ChatMessage => {
+        if (m.role === 'system' && m.content.startsWith('error.')) {
+            return { type: 'error', text: '', i18nKey: m.content };
+        }
+        if (m.role === 'system') {
+            return { type: 'cancelled', text: m.content };
+        }
+        return {
+            type: m.role === 'user' ? 'user' : 'assistant',
+            text: m.content,
+        } as ChatMessage;
+    }, []);
+
+    const prependMessages = useCallback((older: ChatMessage[]) => {
+        setChatOutput(prev => [...older, ...prev]);
+    }, []);
+
+    const setMessagesFromDisk = useCallback((msgs: ChatMessage[]) => {
+        chatHistoryMap.current.set('local', msgs);
+        setChatOutput(msgs);
+    }, []);
+
+    const persistence = useChatPersistence<ChatMessage>({
+        diskKey: agentChatKey(selectedServerId),
+        messages: chatOutput,
+        prependMessages,
+        setMessages: setMessagesFromDisk,
+        toDisk,
+        fromDisk,
+        pageSize: MA_PAGE_SIZE,
+    });
+
+    // Load chat history from disk on mount
+    useEffect(() => { persistence.loadInitial(); }, []);
+
     const selectServer = useCallback(async (id: string) => {
         // Save current chat to history map
         chatHistoryMap.current.set(prevServerRef.current, chatOutput);
@@ -221,20 +268,9 @@ export function MotherAgentProvider({ appLogs, detectedTools, onClearLogs, onAge
         let history = chatHistoryMap.current.get(id);
         if (!history || history.length === 0) {
             try {
-                const result = await channelHistoryLoad(agentChatKey(id), 0, 500);
+                const result = await channelHistoryLoad(agentChatKey(id), 0, MA_PAGE_SIZE);
                 if (result.messages.length > 0) {
-                    history = result.messages.map(m => {
-                        if (m.role === 'system' && m.content.startsWith('error.')) {
-                            return { type: 'error' as const, text: '', i18nKey: m.content };
-                        }
-                        if (m.role === 'system') {
-                            return { type: 'cancelled' as const, text: m.content, i18nKey: m.content.startsWith('error.') ? m.content : undefined };
-                        }
-                        return {
-                            type: m.role === 'user' ? 'user' as const : 'assistant' as const,
-                            text: m.content,
-                        };
-                    });
+                    history = result.messages.map(m => fromDisk(m));
                     chatHistoryMap.current.set(id, history);
                 } else {
                     history = [];
@@ -244,50 +280,7 @@ export function MotherAgentProvider({ appLogs, detectedTools, onClearLogs, onAge
         setChatOutput(history);
         prevServerRef.current = id;
         setSelectedServerId(id);
-    }, [chatOutput]);
-
-    // Load chat history from disk on mount (only newest PAGE_SIZE)
-    const [maDiskTotal, setMaDiskTotal] = useState(0);
-    useEffect(() => {
-        channelHistoryLoad(agentChatKey('local'), 0, MA_PAGE_SIZE).then(result => {
-            if (result.total > 0) setMaDiskTotal(result.total);
-            if (result.messages.length > 0) {
-                const loaded: ChatMessage[] = result.messages.map(m => {
-                    if (m.role === 'system' && m.content.startsWith('error.')) {
-                        return { type: 'error' as const, text: '', i18nKey: m.content };
-                    }
-                    if (m.role === 'system') {
-                        return { type: 'cancelled' as const, text: m.content };
-                    }
-                    return {
-                        type: m.role === 'user' ? 'user' as const : 'assistant' as const,
-                        text: m.content,
-                    };
-                });
-                chatHistoryMap.current.set('local', loaded);
-                setChatOutput(loaded);
-            }
-        }).catch(() => { });
-    }, []);
-
-    // Persist user-visible chat to disk (debounced)
-    useEffect(() => {
-        if (chatOutput.length === 0) return;
-        const visible = chatOutput.filter(m =>
-            m.type === 'user' || m.type === 'assistant' || m.type === 'error' || m.type === 'cancelled'
-        );
-        if (visible.length > 0) {
-            if (saveDebounceRef.current) clearTimeout(saveDebounceRef.current);
-            const key = agentChatKey(selectedServerId);
-            saveDebounceRef.current = setTimeout(() => {
-                channelHistorySave(key, visible.map(m => ({
-                    role: m.type === 'user' ? 'user' : m.type === 'assistant' ? 'assistant' : 'system',
-                    content: (m.type === 'error' || m.type === 'cancelled')
-                        ? ((m as any).i18nKey || m.text) : m.text,
-                }))).catch(() => { });
-            }, 800);
-        }
-    }, [chatOutput, selectedServerId]);
+    }, [chatOutput, fromDisk]);
 
     // Load models from config — refresh on mount and on window focus
     const loadModels = useCallback(() => {
@@ -491,29 +484,13 @@ export function MotherAgentProvider({ appLogs, detectedTools, onClearLogs, onAge
             selectedServerId, selectServer,
             clearChat: () => {
                 setChatOutput([]);
-                setMaDiskTotal(0);
-                channelHistoryClear(agentChatKey(selectedServerId)).catch(() => { });
+                persistence.clearHistory();
                 api.resetAgent(selectedServerId).catch(() => { });
             },
-            maDiskTotal,
+            maDiskTotal: persistence.diskTotal,
             loadOlderChat: async () => {
-                const alreadyLoaded = chatOutput.length;
-                const result = await channelHistoryLoad(agentChatKey(selectedServerId), alreadyLoaded, MA_PAGE_SIZE);
-                if (result.messages.length === 0) return [];
-                const older: ChatMessage[] = result.messages.map(m => {
-                    if (m.role === 'system' && m.content.startsWith('error.')) {
-                        return { type: 'error' as const, text: '', i18nKey: m.content };
-                    }
-                    if (m.role === 'system') {
-                        return { type: 'cancelled' as const, text: m.content };
-                    }
-                    return {
-                        type: m.role === 'user' ? 'user' as const : 'assistant' as const,
-                        text: m.content,
-                    };
-                });
-                setChatOutput(prev => [...older, ...prev]);
-                return older;
+                const count = await persistence.loadOlderChat();
+                return count > 0 ? chatOutput.slice(0, count) : [];
             },
         }}>
             {children}
