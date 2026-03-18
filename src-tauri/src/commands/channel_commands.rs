@@ -1009,7 +1009,7 @@ pub async fn bridge_chat_remote(
     // Also kill any orphaned 'openclaw agent --json' processes left by previous bridge sessions.
     // Use precise pattern to avoid killing user's intentional 'openclaw gateway' process.
     let cmd = format!(
-        "pkill -f 'echobird-bridge' 2>/dev/null; pkill -f 'openclaw.*agent.*--json' 2>/dev/null; sleep 0.3; export PATH=\"$HOME/.npm-global/bin:$HOME/.local/bin:$HOME/.cargo/bin:$PATH\" && echo '{}' | ~/echobird/echobird-bridge --command '{}' 2>/dev/null",
+        "pkill -f 'echobird-bridge' 2>/dev/null; pkill -f 'openclaw.*agent.*--json' 2>/dev/null; sleep 0.3; export PATH=\"$HOME/.npm-global/bin:$HOME/.local/bin:$HOME/.cargo/bin:$PATH\" && echo '{}' | ~/echobird/echobird-bridge --command '{}' 2>/dev/null; exit 0",
         escaped, agent_command
     );
 
@@ -1021,7 +1021,7 @@ pub async fn bridge_chat_remote(
     // The UI shows a "working" animation while waiting.
     let result = match tokio::time::timeout(
         std::time::Duration::from_secs(300), // 5 minutes
-        client.execute(&cmd)
+        crate::commands::ssh_commands::execute_tolerant(client, &cmd)
     ).await {
         Ok(Ok(r)) => r,
         Ok(Err(e)) => return Err(format!("SSH exec failed: {}", e)),
@@ -1105,7 +1105,7 @@ pub async fn bridge_detect_agents_remote(
     let escaped = input_str.replace('\'', "'\\''");
 
     let cmd = format!(
-        "export PATH=\"$HOME/.npm-global/bin:$HOME/.local/bin:$HOME/.cargo/bin:$PATH\" && echo '{}' | ~/echobird/echobird-bridge 2>/dev/null",
+        "export PATH=\"$HOME/.npm-global/bin:$HOME/.local/bin:$HOME/.cargo/bin:$PATH\" && echo '{}' | ~/echobird/echobird-bridge 2>/dev/null; exit 0",
         escaped
     );
 
@@ -1115,7 +1115,7 @@ pub async fn bridge_detect_agents_remote(
 
     let result = match tokio::time::timeout(
         std::time::Duration::from_secs(15),
-        client.execute(&cmd)
+        crate::commands::ssh_commands::execute_tolerant(client, &cmd)
     ).await {
         Ok(Ok(r)) => r,
         Ok(Err(e)) => return Err(format!("SSH exec failed: {}", e)),
@@ -1167,7 +1167,7 @@ pub async fn bridge_set_role_remote(
     let escaped = input_str.replace('\'', "'\\''");
 
     let cmd = format!(
-        "export PATH=\"$HOME/.npm-global/bin:$HOME/.local/bin:$HOME/.cargo/bin:$PATH\" && echo '{}' | ~/echobird/echobird-bridge 2>/dev/null",
+        "export PATH=\"$HOME/.npm-global/bin:$HOME/.local/bin:$HOME/.cargo/bin:$PATH\" && echo '{}' | ~/echobird/echobird-bridge 2>/dev/null; exit 0",
         escaped
     );
 
@@ -1177,7 +1177,7 @@ pub async fn bridge_set_role_remote(
 
     let result = match tokio::time::timeout(
         std::time::Duration::from_secs(30),
-        client.execute(&cmd)
+        crate::commands::ssh_commands::execute_tolerant(client, &cmd)
     ).await {
         Ok(Ok(r)) => r,
         Ok(Err(e)) => return Err(format!("SSH exec failed: {}", e)),
@@ -1228,7 +1228,7 @@ pub async fn bridge_clear_role_remote(
     let escaped = input_str.replace('\'', "'\\''");
 
     let cmd = format!(
-        "export PATH=\"$HOME/.npm-global/bin:$HOME/.local/bin:$HOME/.cargo/bin:$PATH\" && echo '{}' | ~/echobird/echobird-bridge 2>/dev/null",
+        "export PATH=\"$HOME/.npm-global/bin:$HOME/.local/bin:$HOME/.cargo/bin:$PATH\" && echo '{}' | ~/echobird/echobird-bridge 2>/dev/null; exit 0",
         escaped
     );
 
@@ -1238,7 +1238,7 @@ pub async fn bridge_clear_role_remote(
 
     let result = match tokio::time::timeout(
         std::time::Duration::from_secs(15),
-        client.execute(&cmd)
+        crate::commands::ssh_commands::execute_tolerant(client, &cmd)
     ).await {
         Ok(Ok(r)) => r,
         Ok(Err(e)) => return Err(format!("SSH exec failed: {}", e)),
@@ -1286,7 +1286,7 @@ pub async fn bridge_start_agent_remote(
     let escaped = input_str.replace('\'', "'\\''");
 
     let cmd = format!(
-        "export PATH=\"$HOME/.npm-global/bin:$HOME/.local/bin:$HOME/.cargo/bin:$PATH\" && echo '{}' | ~/echobird/echobird-bridge 2>/dev/null",
+        "export PATH=\"$HOME/.npm-global/bin:$HOME/.local/bin:$HOME/.cargo/bin:$PATH\" && echo '{}' | ~/echobird/echobird-bridge 2>/dev/null; exit 0",
         escaped
     );
 
@@ -1296,7 +1296,7 @@ pub async fn bridge_start_agent_remote(
 
     let result = match tokio::time::timeout(
         std::time::Duration::from_secs(15),
-        client.execute(&cmd)
+        crate::commands::ssh_commands::execute_tolerant(client, &cmd)
     ).await {
         Ok(Ok(r)) => r,
         Ok(Err(e)) => return Err(format!("SSH exec failed: {}", e)),

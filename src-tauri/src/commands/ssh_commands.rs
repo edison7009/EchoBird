@@ -486,3 +486,52 @@ pub fn get_bridge_path(plugin_id: String) -> Result<String, String> {
         .map(|p| p.to_string_lossy().to_string())
         .ok_or_else(|| format!("No bridge binary found for '{}' on this platform", plugin_id))
 }
+
+/// Execute an SSH command that tolerates missing exit codes.
+/// Some commands (especially piped ones like `echo '...' | bridge`) don't always
+/// send an exit status through the SSH channel. The standard `client.execute()`
+/// discards all collected stdout/stderr and returns an error in that case.
+/// This helper uses `execute_io` with `default_exit_code: Some(0)` to avoid that.
+pub async fn execute_tolerant(
+    client: &async_ssh2_tokio::Client,
+    command: &str,
+) -> Result<async_ssh2_tokio::client::CommandExecutedResult, String> {
+    let (stdout_tx, mut stdout_rx) = tokio::sync::mpsc::channel::<Vec<u8>>(64);
+    let (stderr_tx, mut stderr_rx) = tokio::sync::mpsc::channel::<Vec<u8>>(64);
+
+    let exec_future = client.execute_io(
+        command,
+        stdout_tx,
+        Some(stderr_tx),
+        None,   // no stdin
+        false,  // no pty
+        Some(0), // default exit code if none received
+    );
+    tokio::pin!(exec_future);
+
+    let mut stdout_buf = Vec::new();
+    let mut stderr_buf = Vec::new();
+    let mut exit_code: Option<u32> = None;
+
+    loop {
+        tokio::select! {
+            result = &mut exec_future => {
+                match result {
+                    Ok(code) => { exit_code = Some(code); break; },
+                    Err(e) => return Err(format!("SSH exec error: {}", e)),
+                }
+            },
+            Some(data) = stdout_rx.recv() => { stdout_buf.extend_from_slice(&data); },
+            Some(data) = stderr_rx.recv() => { stderr_buf.extend_from_slice(&data); },
+        }
+    }
+    // Drain remaining data from channels
+    while let Ok(data) = stdout_rx.try_recv() { stdout_buf.extend_from_slice(&data); }
+    while let Ok(data) = stderr_rx.try_recv() { stderr_buf.extend_from_slice(&data); }
+
+    Ok(async_ssh2_tokio::client::CommandExecutedResult {
+        stdout: String::from_utf8_lossy(&stdout_buf).to_string(),
+        stderr: String::from_utf8_lossy(&stderr_buf).to_string(),
+        exit_status: exit_code.unwrap_or(0),
+    })
+}
