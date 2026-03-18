@@ -221,10 +221,14 @@ export function MotherAgentProvider({ appLogs, detectedTools, onClearLogs, onAge
     // Shared mapper: ChatMessage → disk format
     const toDisk = useCallback((m: ChatMessage): DiskMsg | null => {
         if (m.type === 'user') return { role: 'user', content: m.text };
-        if (m.type === 'assistant') return { role: 'assistant', content: m.text };
+        if (m.type === 'assistant') {
+            // Skip transient status messages — they're not real chat history
+            if (m.text.includes('__CONN_RETRY__') || m.text.includes('__CONN_FAILED__')) return null;
+            return { role: 'assistant', content: m.text };
+        }
         if (m.type === 'error') return { role: 'system', content: (m as any).i18nKey || m.text };
         if (m.type === 'cancelled') return { role: 'system', content: (m as any).i18nKey || m.text };
-        return null; // skip thinking, tool_call, tool_result, state
+        return null;
     }, []);
 
     // Shared mapper: disk format → ChatMessage
