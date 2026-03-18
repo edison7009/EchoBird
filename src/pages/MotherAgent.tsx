@@ -359,8 +359,10 @@ export function MotherAgentProvider({ appLogs, detectedTools, onClearLogs, onAge
                 case 'error': {
                     if (abortTimeoutRef.current) { clearTimeout(abortTimeoutRef.current); abortTimeoutRef.current = null; }
                     const key = errorToKey(event.message);
-                    const type = key === 'error.userCancelled' ? 'cancelled' : 'error';
-                    setChatOutput(prev => [...prev, { type, text: '', i18nKey: key }]);
+                    // Skip duplicate cancelled message — already added immediately in abortAgent()
+                    if (key !== 'error.userCancelled') {
+                        setChatOutput(prev => [...prev, { type: 'error', text: '', i18nKey: key }]);
+                    }
                     setIsProcessing(false);
                     setAgentState('idle');
                     break;
@@ -482,13 +484,14 @@ export function MotherAgentProvider({ appLogs, detectedTools, onClearLogs, onAge
             },
             abortAgent: () => {
                 api.abortAgent(selectedServerId).catch(() => { });
+                // Immediately show cancelled hint
+                setChatOutput(o => [...o, { type: 'cancelled', text: '', i18nKey: 'error.userCancelled' }]);
                 // Frontend safety net: force reset after 3s if backend doesn't respond
                 if (abortTimeoutRef.current) clearTimeout(abortTimeoutRef.current);
                 abortTimeoutRef.current = setTimeout(() => {
                     abortTimeoutRef.current = null;
                     setIsProcessing(prev => {
                         if (prev) {
-                            setChatOutput(o => [...o, { type: 'cancelled', text: '', i18nKey: 'error.userCancelled' }]);
                             setAgentState('idle');
                         }
                         return false;
