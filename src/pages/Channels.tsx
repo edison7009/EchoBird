@@ -817,7 +817,7 @@ const ChannelsInner: React.FC = () => {
                 {(() => {
                     const selectedAgent = allActiveAgents[channelKey] || 'OpenClaw';
                     const agent = AGENT_LIST.find(a => a.name === selectedAgent) || AGENT_LIST[0];
-                    const displayName = (selectedRoleForChannel && selectedRoleForChannel.id) ? selectedRoleForChannel.name : agent.name;
+                    const displayName = (selectedRoleForChannel && selectedRoleForChannel.id) ? selectedRoleForChannel.name : t('channel.selectRoleAgent');
                     return (
                         <div className="flex items-center gap-2 mt-1 mb-0.5 select-none">
                             <div onClick={() => setShowRolePicker(true)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-card text-xs font-mono cursor-pointer transition-all border border-cyber-accent bg-cyber-accent/10 shadow-cyber-card text-cyber-accent hover:brightness-110">
