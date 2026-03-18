@@ -272,6 +272,30 @@ pub fn get_tool_definitions() -> Vec<super::llm_client::ToolDef> {
                 "required": ["local_path", "remote_path", "server_id"]
             }),
         },
+        super::llm_client::ToolDef {
+            name: "download_file".into(),
+            description: "Download a file from a remote server to this local machine via SSH. \
+                Transfers the file using base64 encoding through the SSH channel (no SCP/SFTP needed). \
+                Use this to retrieve logs, config files, crash dumps, or any file from a remote server.".into(),
+            parameters: json!({
+                "type": "object",
+                "properties": {
+                    "remote_path": {
+                        "type": "string",
+                        "description": "Absolute path to the file on the remote server"
+                    },
+                    "local_path": {
+                        "type": "string",
+                        "description": "Absolute path on this local machine where the file should be saved"
+                    },
+                    "server_id": {
+                        "type": "string",
+                        "description": "SSH server ID to download from"
+                    }
+                },
+                "required": ["remote_path", "local_path", "server_id"]
+            }),
+        },
     ]
 }
 
@@ -404,6 +428,15 @@ pub async fn execute_tool(
                 return ToolResult { success: false, output: "local_path, remote_path, and server_id are all required".into() };
             }
             exec_upload_file(local_path, remote_path, server_id, ssh_pool).await
+        }
+        "download_file" => {
+            let remote_path = args["remote_path"].as_str().unwrap_or("");
+            let local_path = args["local_path"].as_str().unwrap_or("");
+            let server_id = args["server_id"].as_str().unwrap_or("");
+            if remote_path.is_empty() || local_path.is_empty() || server_id.is_empty() {
+                return ToolResult { success: false, output: "remote_path, local_path, and server_id are all required".into() };
+            }
+            exec_download_file(remote_path, local_path, server_id, ssh_pool).await
         }
         _ => ToolResult { success: false, output: format!("Unknown tool: {}", name) },
     }
@@ -1380,4 +1413,75 @@ async fn exec_upload_file(local_path: &str, remote_path: &str, server_id: &str, 
             file_size, chunks.len(), server_id, remote_path, verify.output),
     }
 }
+
+// ── Download File (remote → local via SSH base64) ──
+
+async fn exec_download_file(remote_path: &str, local_path: &str, server_id: &str, ssh_pool: &SSHPool) -> ToolResult {
+    log::info!("[AgentTools] Downloading file {}:{} → {}", server_id, remote_path, local_path);
+
+    // Check remote file exists and get size
+    let check = exec_ssh_shell(
+        &format!("test -f {} && stat -c %s {} 2>/dev/null || stat -f %z {} 2>/dev/null", remote_path, remote_path, remote_path),
+        server_id, ssh_pool
+    ).await;
+    if !check.success {
+        return ToolResult {
+            success: false,
+            output: format!("Remote file '{}' not found or not accessible", remote_path),
+        };
+    }
+
+    // Read remote file as base64
+    let b64_result = exec_ssh_shell(
+        &format!("base64 {} 2>/dev/null || openssl base64 -in {} 2>/dev/null", remote_path, remote_path),
+        server_id, ssh_pool
+    ).await;
+    if !b64_result.success || b64_result.output.trim().is_empty() {
+        return ToolResult {
+            success: false,
+            output: format!("Failed to read remote file as base64: {}", b64_result.output),
+        };
+    }
+
+    // Decode base64
+    let clean_b64: String = b64_result.output.chars().filter(|c| !c.is_whitespace()).collect();
+    let decoded = {
+        use base64::Engine;
+        match base64::engine::general_purpose::STANDARD.decode(&clean_b64) {
+            Ok(data) => data,
+            Err(e) => return ToolResult {
+                success: false,
+                output: format!("Base64 decode failed: {}", e),
+            },
+        }
+    };
+
+    let file_size = decoded.len();
+
+    // Ensure local directory exists
+    if let Some(parent) = std::path::Path::new(local_path).parent() {
+        if let Err(e) = std::fs::create_dir_all(parent) {
+            return ToolResult {
+                success: false,
+                output: format!("Failed to create local directory '{}': {}", parent.display(), e),
+            };
+        }
+    }
+
+    // Write to local file
+    match std::fs::write(local_path, &decoded) {
+        Ok(_) => {
+            log::info!("[AgentTools] Downloaded {} bytes to {}", file_size, local_path);
+            ToolResult {
+                success: true,
+                output: format!("Downloaded {} bytes from {}:{} → {}", file_size, server_id, remote_path, local_path),
+            }
+        }
+        Err(e) => ToolResult {
+            success: false,
+            output: format!("Failed to write local file '{}': {}", local_path, e),
+        },
+    }
+}
+
 
