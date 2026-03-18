@@ -859,98 +859,105 @@ async fn exec_configure_openclaw(
 ) -> ToolResult {
     log::info!("[AgentTools] Configuring OpenClaw on server '{}' with model '{}'", server_id, model_id);
 
-    // Auto-detect provider name from base URL if not provided
-    let provider = if !provider_name.is_empty() {
-        provider_name.to_string()
-    } else {
-        let url_lower = base_url.to_lowercase();
-        if url_lower.contains("openai") { "openai".to_string() }
-        else if url_lower.contains("anthropic") { "anthropic".to_string() }
-        else if url_lower.contains("minimax") { "minimax".to_string() }
-        else if url_lower.contains("deepseek") { "deepseek".to_string() }
-        else if url_lower.contains("google") || url_lower.contains("gemini") { "google".to_string() }
-        else if url_lower.contains("groq") { "groq".to_string() }
-        else if url_lower.contains("mistral") { "mistral".to_string() }
-        else if url_lower.contains("together") { "together".to_string() }
-        else if url_lower.contains("localhost") || url_lower.contains("127.0.0.1") { "local".to_string() }
-        else { "custom".to_string() }
-    };
-
-    // Determine API type based on URL
+    // Determine API type: if URL contains "anthropic" → anthropic-messages, else openai-completions
     let api_type = if base_url.to_lowercase().contains("anthropic") {
-        "anthropic"
+        "anthropic-messages"
     } else {
         "openai-completions"
     };
 
-    // Build the config JSON
-    let config = json!({
-        "models": {
-            "providers": {
-                &provider: {
-                    "baseUrl": base_url,
-                    "apiKey": api_key,
-                    "api": api_type,
-                    "auth": "api-key",
-                    "authHeader": true,
-                    "models": [{
-                        "id": model_id,
-                        "name": model_id,
-                        "contextWindow": 128000,
-                        "maxTokens": 8192,
-                        "cost": { "input": 0, "output": 0 }
-                    }]
-                }
-            }
-        },
-        "agents": {
-            "defaults": {
-                "model": {
-                    "primary": format!("{}/{}", provider, model_id)
-                }
-            }
-        }
-    });
+    // Auto-detect provider name from base URL if not provided
+    let provider = if !provider_name.is_empty() {
+        provider_name.to_string()
+    } else {
+        "eb_custom".to_string()
+    };
 
-    let config_str = serde_json::to_string_pretty(&config).unwrap_or_default();
+    // Use Python merge_script to safely merge into existing config (matches openclaw.json pattern).
+    // This preserves any existing providers and settings the user may have configured manually.
+    let merge_script = format!(
+        r#"python3 -c "
+import json, os
+path = os.path.expanduser('~/.openclaw/openclaw.json')
+cfg = {{}}
+if os.path.exists(path):
+    with open(path) as f: cfg = json.load(f)
 
-    // Create directory and write config via SSH
-    let mkdir_cmd = "mkdir -p ~/.openclaw";
-    let mkdir_result = exec_ssh_shell(mkdir_cmd, server_id, ssh_pool).await;
-    if !mkdir_result.success {
-        return ToolResult {
-            success: false,
-            output: format!("Failed to create ~/.openclaw directory: {}", mkdir_result.output),
-        };
-    }
+MODEL_ID   = '{model_id}'
+MODEL_NAME = '{model_id}'
+BASE_URL   = '{base_url}'
+API_TYPE   = '{api_type}'
+API_KEY    = '{api_key}'
+CTX        = 128000
+MAX_TOK    = 8192
+PROVIDER   = '{provider}'
+ENV_VAR    = 'EB_CUSTOM_API_KEY'
 
-    // Write config file using heredoc (reliable for multi-line JSON)
-    let write_cmd = format!(
-        "cat > ~/.openclaw/openclaw.json << 'ECHOBIRD_EOF'\n{}\nECHOBIRD_EOF",
-        config_str
+if 'env' not in cfg: cfg['env'] = {{}}
+cfg['env'][ENV_VAR] = API_KEY
+if 'models' not in cfg: cfg['models'] = {{}}
+if 'providers' not in cfg['models']: cfg['models']['providers'] = {{}}
+cfg['models']['mode'] = 'merge'
+# Remove old eb_ providers to avoid conflicts
+cfg['models']['providers'] = {{k:v for k,v in cfg['models']['providers'].items() if not k.startswith('eb_')}}
+cfg['models']['providers'][PROVIDER] = {{
+    'baseUrl': BASE_URL,
+    'apiKey': '${{' + ENV_VAR + '}}',
+    'api': API_TYPE,
+    'models': [{{
+        'id': MODEL_ID,
+        'name': MODEL_NAME,
+        'reasoning': False,
+        'input': ['text'],
+        'cost': {{'input': 0, 'output': 0, 'cacheRead': 0, 'cacheWrite': 0}},
+        'contextWindow': CTX,
+        'maxTokens': MAX_TOK
+    }}]
+}}
+if 'agents' not in cfg: cfg['agents'] = {{}}
+if 'defaults' not in cfg['agents']: cfg['agents']['defaults'] = {{}}
+if 'model' not in cfg['agents']['defaults']: cfg['agents']['defaults']['model'] = {{}}
+cfg['agents']['defaults']['model']['primary'] = PROVIDER + '/' + MODEL_ID
+if 'models' not in cfg['agents']['defaults']['model']: cfg['agents']['defaults']['model']['models'] = {{}}
+cfg['agents']['defaults']['model']['models'][PROVIDER + '/' + MODEL_ID] = {{'alias': MODEL_NAME}}
+os.makedirs(os.path.dirname(path), exist_ok=True)
+with open(path, 'w') as f: json.dump(cfg, f, indent=2)
+print('OK:', cfg['agents']['defaults']['model']['primary'])
+"
+"#,
+        model_id = model_id,
+        base_url = base_url,
+        api_type = api_type,
+        api_key = api_key,
+        provider = provider,
     );
-    let write_result = exec_ssh_shell(&write_cmd, server_id, ssh_pool).await;
-    if !write_result.success {
+
+    let result = exec_ssh_shell(&merge_script, server_id, ssh_pool).await;
+    if !result.success {
         return ToolResult {
             success: false,
-            output: format!("Failed to write openclaw.json: {}", write_result.output),
+            output: format!("Failed to configure OpenClaw: {}", result.output),
         };
     }
 
-    // Verify the file was written correctly
-    let verify_cmd = "cat ~/.openclaw/openclaw.json | head -5";
+    // Restart gateway to apply changes
+    let restart_cmd = "pkill -f 'openclaw gateway' 2>/dev/null; sleep 1; export PATH=\"$HOME/.npm-global/bin:$HOME/.local/bin:$PATH\" && nohup openclaw gateway --allow-unconfigured > /tmp/openclaw.log 2>&1 &";
+    let _ = exec_ssh_shell(restart_cmd, server_id, ssh_pool).await;
+
+    // Verify
+    let verify_cmd = "cat ~/.openclaw/openclaw.json | python3 -c \"import json,sys; c=json.load(sys.stdin); print(c['agents']['defaults']['model']['primary'])\"";
     let verify_result = exec_ssh_shell(verify_cmd, server_id, ssh_pool).await;
 
     ToolResult {
         success: true,
         output: format!(
             "OpenClaw configured successfully!\n\
-            Provider: {}\n\
             Model: {}/{}\n\
+            API type: {}\n\
             Base URL: {}\n\
-            Config file: ~/.openclaw/openclaw.json\n\
-            Verify: {}",
-            provider, provider, model_id, base_url, verify_result.output.trim()
+            Config: ~/.openclaw/openclaw.json\n\
+            Primary model: {}",
+            provider, model_id, api_type, base_url, verify_result.output.trim()
         ),
     }
 }
