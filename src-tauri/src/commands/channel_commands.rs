@@ -1004,12 +1004,8 @@ pub async fn bridge_chat_remote(
     let escaped = input_str.replace('\'', "'\\''");
 
     // Execute via SSH: pipe JSON into bridge binary with --command.
-    // First kill any stale echobird-bridge processes left over from a previous
-    // timed-out session — SSH disconnect does not always SIGHUP child processes.
-    // Also kill any orphaned 'openclaw agent --json' processes left by previous bridge sessions.
-    // Use precise pattern to avoid killing user's intentional 'openclaw gateway' process.
     let cmd = format!(
-        "pkill -f 'echobird-bridge' 2>/dev/null; pkill -f 'openclaw.*agent.*--json' 2>/dev/null; sleep 0.3; export PATH=\"$HOME/.npm-global/bin:$HOME/.local/bin:$HOME/.cargo/bin:$PATH\" && echo '{}' | ~/echobird/echobird-bridge --command '{}' 2>/dev/null; exit 0",
+        "export PATH=\"$HOME/.npm-global/bin:$HOME/.local/bin:$HOME/.cargo/bin:$PATH\" && echo '{}' | ~/echobird/echobird-bridge --command '{}'",
         escaped, agent_command
     );
 
@@ -1105,7 +1101,7 @@ pub async fn bridge_detect_agents_remote(
     let escaped = input_str.replace('\'', "'\\''");
 
     let cmd = format!(
-        "export PATH=\"$HOME/.npm-global/bin:$HOME/.local/bin:$HOME/.cargo/bin:$PATH\" && echo '{}' | ~/echobird/echobird-bridge 2>/dev/null; exit 0",
+        "export PATH=\"$HOME/.npm-global/bin:$HOME/.local/bin:$HOME/.cargo/bin:$PATH\" && echo '{}' | ~/echobird/echobird-bridge 2>/dev/null",
         escaped
     );
 
@@ -1124,6 +1120,10 @@ pub async fn bridge_detect_agents_remote(
 
     drop(connections);
 
+    log::info!("[BridgeDetectAgents] stdout={}", result.stdout);
+    log::info!("[BridgeDetectAgents] stderr={}", result.stderr);
+    log::info!("[BridgeDetectAgents] exit_status={}", result.exit_status);
+
     // Parse Bridge CLI JSON output: look for {"type":"agents_detected","agents":[...]}
     for line in result.stdout.lines() {
         if let Ok(json) = serde_json::from_str::<serde_json::Value>(line) {
@@ -1131,13 +1131,14 @@ pub async fn bridge_detect_agents_remote(
                 if let Some(agents) = json.get("agents") {
                     let agents: Vec<RemoteAgentInfo> = serde_json::from_value(agents.clone())
                         .unwrap_or_default();
+                    log::info!("[BridgeDetectAgents] detected {} agents", agents.len());
                     return Ok(agents);
                 }
             }
         }
     }
 
-    Err("No agent detection response from Bridge CLI".to_string())
+    Err(format!("No agent detection response from Bridge CLI. stdout={}, stderr={}", result.stdout, result.stderr))
 }
 
 // ── Remote Bridge CLI: Set Role ──
@@ -1167,7 +1168,7 @@ pub async fn bridge_set_role_remote(
     let escaped = input_str.replace('\'', "'\\''");
 
     let cmd = format!(
-        "export PATH=\"$HOME/.npm-global/bin:$HOME/.local/bin:$HOME/.cargo/bin:$PATH\" && echo '{}' | ~/echobird/echobird-bridge 2>/dev/null; exit 0",
+        "export PATH=\"$HOME/.npm-global/bin:$HOME/.local/bin:$HOME/.cargo/bin:$PATH\" && echo '{}' | ~/echobird/echobird-bridge 2>/dev/null",
         escaped
     );
 
@@ -1228,7 +1229,7 @@ pub async fn bridge_clear_role_remote(
     let escaped = input_str.replace('\'', "'\\''");
 
     let cmd = format!(
-        "export PATH=\"$HOME/.npm-global/bin:$HOME/.local/bin:$HOME/.cargo/bin:$PATH\" && echo '{}' | ~/echobird/echobird-bridge 2>/dev/null; exit 0",
+        "export PATH=\"$HOME/.npm-global/bin:$HOME/.local/bin:$HOME/.cargo/bin:$PATH\" && echo '{}' | ~/echobird/echobird-bridge 2>/dev/null",
         escaped
     );
 
@@ -1286,7 +1287,7 @@ pub async fn bridge_start_agent_remote(
     let escaped = input_str.replace('\'', "'\\''");
 
     let cmd = format!(
-        "export PATH=\"$HOME/.npm-global/bin:$HOME/.local/bin:$HOME/.cargo/bin:$PATH\" && echo '{}' | ~/echobird/echobird-bridge 2>/dev/null; exit 0",
+        "export PATH=\"$HOME/.npm-global/bin:$HOME/.local/bin:$HOME/.cargo/bin:$PATH\" && echo '{}' | ~/echobird/echobird-bridge 2>/dev/null",
         escaped
     );
 

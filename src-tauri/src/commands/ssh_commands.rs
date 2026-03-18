@@ -511,27 +511,37 @@ pub async fn execute_tolerant(
 
     let mut stdout_buf = Vec::new();
     let mut stderr_buf = Vec::new();
-    let mut exit_code: Option<u32> = None;
+    let mut exit_code: u32 = 0;
+    let mut exec_done = false;
 
     loop {
         tokio::select! {
-            result = &mut exec_future => {
+            result = &mut exec_future, if !exec_done => {
                 match result {
-                    Ok(code) => { exit_code = Some(code); break; },
+                    Ok(code) => { exit_code = code; exec_done = true; },
                     Err(e) => return Err(format!("SSH exec error: {}", e)),
                 }
             },
-            Some(data) = stdout_rx.recv() => { stdout_buf.extend_from_slice(&data); },
-            Some(data) = stderr_rx.recv() => { stderr_buf.extend_from_slice(&data); },
+            data = stdout_rx.recv() => {
+                match data {
+                    Some(d) => stdout_buf.extend_from_slice(&d),
+                    None => if exec_done { break; }, // channel closed + exec done = all done
+                }
+            },
+            data = stderr_rx.recv() => {
+                match data {
+                    Some(d) => stderr_buf.extend_from_slice(&d),
+                    None => {}, // stderr channel closed, keep going for stdout
+                }
+            },
         }
     }
-    // Drain remaining data from channels
-    while let Ok(data) = stdout_rx.try_recv() { stdout_buf.extend_from_slice(&data); }
+    // Final drain of stderr
     while let Ok(data) = stderr_rx.try_recv() { stderr_buf.extend_from_slice(&data); }
 
     Ok(async_ssh2_tokio::client::CommandExecutedResult {
         stdout: String::from_utf8_lossy(&stdout_buf).to_string(),
         stderr: String::from_utf8_lossy(&stderr_buf).to_string(),
-        exit_status: exit_code.unwrap_or(0),
+        exit_status: exit_code,
     })
 }
