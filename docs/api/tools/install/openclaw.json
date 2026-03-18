@@ -9,7 +9,8 @@
         "one-liner no-onboard (remote SSH — PREFERRED for remote servers)": "curl -fsSL https://openclaw.ai/install.sh | bash -s -- --no-onboard",
         "one-liner (Windows PowerShell)": "iwr -useb https://openclaw.ai/install.ps1 | iex",
         "npm (if Node.js already installed)": "npm install -g openclaw@latest && openclaw onboard --install-daemon",
-        "note": "For REMOTE servers via SSH, always use the --no-onboard variant to skip interactive onboarding. The installer script auto-installs Node.js if missing."
+        "npm China mirror (slow network fallback)": "npm install -g openclaw@latest --registry=https://registry.npmmirror.com",
+        "note": "For REMOTE servers via SSH, always use the --no-onboard variant to skip interactive onboarding. The installer script auto-installs Node.js if missing. If npm download is slow (especially in China mainland), use the China mirror variant."
     },
     "configure": {
         "note": "For LOCAL installations, EchoBird's App Manager handles model configuration automatically. This section is for REMOTE server deployments via Mother Agent (SSH).",
