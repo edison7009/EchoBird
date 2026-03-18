@@ -417,8 +417,6 @@ pub fn run() {
             agent_commands::agent_send_message,
             agent_commands::agent_abort,
             agent_commands::agent_reset,
-            agent_commands::agent_status,
-            agent_commands::load_agent_history,
             ssh_commands::ssh_upload_file,
             ssh_commands::scan_plugins,
             ssh_commands::get_bridge_path,

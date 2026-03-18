@@ -1,10 +1,8 @@
 // Agent Commands — Tauri IPC commands for the MotherAgent frontend
 
-use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Emitter, State};
 use crate::commands::ssh_commands::SSHPool;
 use crate::services::agent_loop::{self, AgentRequest, SharedSessionMap};
-use crate::services::llm_client::MessageContent;
 
 /// Send a message to the agent. The agent will process asynchronously
 /// and emit `agent_event` events to the frontend.
