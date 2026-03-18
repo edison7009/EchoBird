@@ -602,13 +602,13 @@ export function MotherAgentMain() {
             .then(r => r.text())
             .then(ip => setPublicIP(ip))
             .catch(() => setPublicIP('offline'));
-        // Load remote quick-hint buttons (filter out deploy-LLM actions)
+        // Load quick-hint buttons from remote config
         fetch('https://echobird.ai/api/mother/hints.json')
             .then(r => r.json())
             .then(data => {
-                const remote = (data.hints || []).filter((h: any) => h.action !== 'deployLlm' && h.action !== 'deployBridge');
+                const hints = data.hints || [];
                 // Always include local CLI Bridge install hint
-                setRemoteHints([{ action: 'install', agent: 'Echobird CLI Bridge' }, ...remote]);
+                setRemoteHints([{ action: 'install', agent: 'Echobird CLI Bridge' }, ...hints]);
             })
             .catch(() => {
                 // Offline: still show CLI Bridge hint
