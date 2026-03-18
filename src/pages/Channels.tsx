@@ -831,7 +831,7 @@ const ChannelsInner: React.FC = () => {
                             const text = msg.i18nKey ? t(msg.i18nKey as import('../i18n/types').TKey) : msg.content;
                             const isCancelled = msg.i18nKey === 'error.userCancelled';
                             if (isCancelled)
-                                return <div key={i} className="flex justify-center my-3"><span className="text-cyber-text-muted/35 text-xs font-mono">{text}</span></div>;
+                                return <div key={i} className="flex justify-center my-4"><span className="text-cyber-text-muted/35 text-xs font-mono">{text}</span></div>;
                             return <ChatBubble key={i} role="error" content={text} variant="channels" />;
                         }
                         const isLast = displayed.slice(i + 1).every(m => m.role !== 'assistant');

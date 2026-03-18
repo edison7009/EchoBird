@@ -762,7 +762,7 @@ export function MotherAgentMain() {
                                 }
                                 if (msg.type === 'cancelled') {
                                     const text = msg.i18nKey ? t(msg.i18nKey as import('../i18n/types').TKey) : msg.text;
-                                    return <div key={i} className="flex justify-center my-3"><span className="text-cyber-text-muted/35 text-xs font-mono">{text}</span></div>;
+                                    return <div key={i} className="flex justify-center my-4"><span className="text-cyber-text-muted/35 text-xs font-mono">{text}</span></div>;
                                 }
                                 if (msg.type === 'error') {
                                     const text = msg.i18nKey ? t(msg.i18nKey as import('../i18n/types').TKey) : msg.text;
