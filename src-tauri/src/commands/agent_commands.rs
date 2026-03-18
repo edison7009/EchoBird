@@ -1,7 +1,7 @@
 // Agent Commands — Tauri IPC commands for the MotherAgent frontend
 
 use serde::{Deserialize, Serialize};
-use tauri::{AppHandle, State};
+use tauri::{AppHandle, Emitter, State};
 use crate::commands::ssh_commands::SSHPool;
 use crate::services::agent_loop::{self, AgentRequest, SharedSessionMap};
 use crate::services::llm_client::MessageContent;
@@ -40,9 +40,18 @@ pub async fn agent_send_message(
     };
 
     // Spawn agent as background task
+    let app_clone = app.clone();
     tokio::spawn(async move {
         if let Err(e) = agent_loop::run_agent(app, request, map_clone, pool_clone).await {
             log::error!("[AgentCommand] Agent error: {}", e);
+            // Safety net: ensure frontend is never left stuck in isProcessing
+            let _ = app_clone.emit("agent_event", serde_json::json!({
+                "type": "error",
+                "message": e,
+            }));
+            let _ = app_clone.emit("agent_event", serde_json::json!({
+                "type": "done",
+            }));
         }
     });
 
