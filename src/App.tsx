@@ -10,7 +10,7 @@ import { DownloadBar } from './components/DownloadBar';
 import { TitleBar } from './components/TitleBar';
 import { SettingsDialog } from './components/SettingsDialog';
 import { CircuitFlow } from './components/CircuitFlow';
-import { GatewayProvider, useGatewayManager } from './contexts/GatewayContext';
+
 import { useI18n } from './hooks/useI18n';
 import * as api from './api/tauri';
 import type { LocalTool, AppLogEntry } from './api/types';
@@ -26,10 +26,8 @@ import { ChannelsMain, ChannelsPanel, ChannelsProvider } from './pages/Channels'
 declare const __APP_VERSION__: string;
 
 
-/** Sidebar with live notification badges from GatewayContext */
 function SidebarConnected({ activePage, onPageChange, agentRunning, motherNewMessage, clearMotherBadge, updateAvailable, onSettingsClick }: { activePage: PageType; onPageChange: (p: PageType) => void; agentRunning: boolean; motherNewMessage: boolean; clearMotherBadge: () => void; updateAvailable: string | null; onSettingsClick: () => void }) {
-    const gw = useGatewayManager();
-    const channelsBadge = gw.hasAnyNewMessage() && activePage !== 'channels';
+    const channelsBadge = false; // TODO: wire to bridge state
     const motherBadge = motherNewMessage && activePage !== 'mother';
     // Clear badge when switching to Mother Agent page
     const handlePageChange = (p: PageType) => {
@@ -117,8 +115,7 @@ function App() {
         <ToastProvider>
             <ConfirmDialogProvider>
                 <DownloadProvider>
-                    <GatewayProvider>
-                        {/* All Providers always mounted — only CSS hidden changes */}
+                    {/* All Providers always mounted — only CSS hidden changes */}
                         <MotherAgentProvider appLogs={appLogs} detectedTools={detectedTools} onClearLogs={onClearLogs} onAgentRunningChange={setAgentRunning} onNewMessage={() => { if (activePage !== 'mother') setMotherNewMessage(true); }} initialMessage={motherPrefill}>
                             <ModelNexusProvider>
 
@@ -223,7 +220,7 @@ function App() {
                             locale={locale}
                             onLocaleChange={setLocale}
                         />
-                    </GatewayProvider>
+
                 </DownloadProvider>
             </ConfirmDialogProvider>
         </ToastProvider >

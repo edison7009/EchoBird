@@ -6,7 +6,7 @@ import { getModelIcon } from '../components/cards/ModelCard';
 import { PendingChipsRow } from '../components/PendingChipsRow';
 import { AgentRolePicker } from '../components/AgentRolePicker';
 import { ChatBubble, TerminalStatusBar } from '../components/chat';
-import { useChannelGateway, useGatewayManager } from '../contexts/GatewayContext';
+
 import { useI18n } from '../hooks/useI18n';
 import * as api from '../api/tauri';
 import { normalizeError, errorToKey } from '../utils/normalizeError';
@@ -294,11 +294,7 @@ const ChannelsInner: React.FC = () => {
     const fileInputRef = useRef<HTMLInputElement>(null);
     const imageInputRef = useRef<HTMLInputElement>(null);
 
-    // Global Gateway manager
-    const manager = useGatewayManager();
 
-    // Current channel gateway connection (for SSH channels)
-    const gateway = useChannelGateway(activeId);
 
     const activeChannel = channels.find(c => c.id === activeId);
     // All channels use bridge mode (local = spawn, remote = SSH)
@@ -425,22 +421,10 @@ const ChannelsInner: React.FC = () => {
         if (isActiveConnected) inputRef.current?.focus();
     }, [isActiveConnected]);
 
-    // Mark read on channel switch
-    useEffect(() => {
-        if (activeId) gateway.markRead();
-    }, [activeId]);
 
 
-    // Connect to Gateway (SSH channels only — local uses bridge)
-    const handleConnect = useCallback(async () => {
-        if (!activeChannel || isBridgeMode) return;
-        const { tunnelUrl, token, password } = parseAddress(activeChannel);
-        try {
-            await gateway.connect({ url: tunnelUrl, token, password });
-        } catch (e) {
-            console.error('[Channels] Connection failed:', e);
-        }
-    }, [activeChannel, gateway, isBridgeMode]);
+
+
     // Full reset: disconnect + clear messages + clear address
     const handleReset = useCallback(async () => {
         if (!activeId) return;
@@ -455,13 +439,11 @@ const ChannelsInner: React.FC = () => {
                 console.error('[Channels] Failed to stop bridge:', e);
             }
             setBridgeConnectionStatus('standby');
-        } else {
-            gateway.reset();
         }
         setChannels(prev => prev.map(c =>
             c.id === activeId ? { ...c, address: '' } : c
         ));
-    }, [activeId, gateway, isBridgeMode]);
+    }, [activeId, isBridgeMode]);
 
 
     // Update channel address
@@ -478,13 +460,7 @@ const ChannelsInner: React.FC = () => {
         ));
     };
 
-    // Handle address input Enter key
-    const handleAddressKeyDown = useCallback((e: React.KeyboardEvent) => {
-        if (e.key === 'Enter' && gateway.status !== 'connected' && gateway.status !== 'connecting') {
-            e.preventDefault();
-            handleConnect();
-        }
-    }, [gateway.status, handleConnect]);
+
 
     // Handle paste image
     const handlePaste = useCallback((e: React.ClipboardEvent) => {
@@ -797,10 +773,8 @@ const ChannelsInner: React.FC = () => {
         inputRef.current?.focus();
     }, [activeId, input, attachments, pendingModels, isActiveConnected, canSendMessage, isLocalChannel, bridgeLoading, bridgeSessionId, bridgeConnectionStatus, activeChannel, modelList, allActiveAgents, channelKey]);
 
-    // Abort current request
-    const handleAbort = useCallback(() => {
-        if (!isBridgeMode) gateway.abort();
-    }, [gateway, isBridgeMode]);
+    // Abort current request (bridge mode — no-op for now)
+    const handleAbort = useCallback(() => {}, []);
 
     return (
         <>
@@ -938,7 +912,7 @@ const ChannelsInner: React.FC = () => {
 export function ChannelsPanel() {
     const { channels, activeId, selectChannel, allBridgeStatus, allActiveAgents, allBridgeLoading, allSelectedRoles, allBridgeHasNew } = useChannels();
     const { t } = useI18n();
-    const manager = useGatewayManager();
+
 
     return (
         <>
@@ -952,13 +926,13 @@ export function ChannelsPanel() {
                 <div className="space-y-2">
                     {channels.map(ch => {
                         const isActive = activeId === ch.id;
-                        const chState = manager.getChannelState(ch.id);
+
                         const chBridgeStatus = allBridgeStatus[ch.id] || 'standby';
                         const isLinked = chBridgeStatus === 'connected';
                         const isBridgeConnecting = chBridgeStatus === 'connecting';
                         const isError = chBridgeStatus === 'disconnected';
                         const isTyping = allBridgeLoading[ch.id] || false;
-                        const hasNew = (chState.hasNewMessage || allBridgeHasNew[ch.id]) && !isActive;
+                        const hasNew = allBridgeHasNew[ch.id] && !isActive;
 
                         return (
                             <div
