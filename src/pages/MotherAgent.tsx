@@ -339,32 +339,16 @@ export function MotherAgentProvider({ appLogs, detectedTools, onClearLogs, onAge
                     });
                     break;
                 case 'thinking':
-                    setChatOutput(prev => [...prev, { type: 'thinking', text: event.text }]);
+                    // Thinking text is handled by TerminalStatusBar via agentState,
+                    // not stored in chatOutput (it's not user-visible history)
                     break;
                 case 'tool_call_start':
-                    setChatOutput(prev => [...prev,
-                    { type: 'tool_call', id: event.id, name: event.name, args: '', status: 'running' as const }
-                    ]);
-                    break;
                 case 'tool_call_args':
-                    setChatOutput(prev => prev.map(m =>
-                        m.type === 'tool_call' && m.id === event.id
-                            ? { ...m, args: m.args + event.args }
-                            : m
-                    ));
+                    // Tool call progress is shown in TerminalStatusBar only,
+                    // not stored in chatOutput
                     break;
                 case 'tool_result':
-                    // Mark tool_call as done and add result
-                    setChatOutput(prev => {
-                        const updated = prev.map(m =>
-                            m.type === 'tool_call' && m.id === event.id
-                                ? { ...m, status: 'done' as const }
-                                : m
-                        );
-                        return [...updated,
-                        { type: 'tool_result' as const, id: event.id, output: event.output, success: event.success }
-                        ];
-                    });
+                    // Tool results are internal agent data, not user-visible chat
                     break;
                 case 'done':
                     setIsProcessing(false);
@@ -747,22 +731,7 @@ export function MotherAgentMain() {
                             {showSkeleton && [0, 1, 2].map(i => (
                                 <ChatBubble key={`sk-${i}`} role="skeleton" content="" variant="mother" />
                             ))}
-                            {(() => {
-                                // Only count visible messages toward displayCount limit
-                                // (tool_call, tool_result, thinking, state are hidden → don't consume quota)
-                                let visibleSeen = 0;
-                                const visibleTypes = new Set(['user', 'assistant', 'error', 'cancelled']);
-                                let startIdx = chatOutput.length;
-                                for (let j = chatOutput.length - 1; j >= 0; j--) {
-                                    if (visibleTypes.has(chatOutput[j].type)) visibleSeen++;
-                                    if (visibleSeen >= displayCount) { startIdx = j; break; }
-                                }
-                                const displayed = chatOutput.slice(startIdx);
-                                return displayed.map((msg, i) => {
-                                if (msg.type === 'state') return null;
-                                // tool_call / tool_result / thinking → all go to TerminalStatusBar only
-                                if (msg.type === 'tool_call' || msg.type === 'tool_result' || msg.type === 'thinking') return null;
-
+                            {chatOutput.slice(-displayCount).map((msg, i, arr) => {
                                 if (msg.type === 'user') {
                                     return <ChatBubble key={i} role="user" content={msg.text} variant="mother" chips={msg.chips} />;
                                 }
@@ -772,7 +741,7 @@ export function MotherAgentMain() {
                                         const label = t('mother.connectionRetrying').replace('{n}', retryMatch[1]).replace('{total}', retryMatch[2]);
                                         return <ChatBubble key={i} role="retry" content={label} variant="mother" />;
                                     }
-                                    const isLast = displayed.slice(i + 1).every(m => m.type !== 'assistant');
+                                    const isLast = arr.slice(i + 1).every(m => m.type !== 'assistant');
                                     const lastOutput = chatOutput[chatOutput.length - 1];
                                     const isCurrentResponse = isLast && lastOutput?.type === 'assistant';
                                     return <ChatBubble key={i} role="assistant" content={msg.text} variant="mother" isStreaming={isProcessing && isCurrentResponse} />;
@@ -793,8 +762,7 @@ export function MotherAgentMain() {
                                     return <ChatBubble key={i} role="error" content={text} variant="mother" />;
                                 }
                                 return null;
-                                });
-                            })()}
+                            })}
                             {/* Typing indicator — show when processing and no new assistant response has started */}
                             {isProcessing && (chatOutput.length === 0 || chatOutput[chatOutput.length - 1]?.type !== 'assistant') && (
                                 <ChatBubble role="assistant" content="" variant="mother" isStreaming={true} />
