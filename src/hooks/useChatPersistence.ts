@@ -76,6 +76,15 @@ export function useChatPersistence<T>(options: UseChatPersistenceOptions<T>): Us
     const fromDiskRef = useRef(fromDisk);
     fromDiskRef.current = fromDisk;
 
+    // ── Auto-grow displayCount to cover all in-memory messages ──────────────
+    // During active chat, new messages are added beyond the initial pageSize.
+    // This ensures they are always visible without requiring manual scroll-up.
+    useEffect(() => {
+        if (messages.length > displayCount) {
+            setDisplayCount(messages.length);
+        }
+    }, [messages.length, displayCount]);
+
     // ── Debounced save ──────────────────────────────────────────────────────
     useEffect(() => {
         if (!diskKey || messages.length === 0) return;
