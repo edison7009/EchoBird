@@ -131,7 +131,7 @@ export function ChatBubble({ role, content, variant, chips = [], isStreaming = f
     // ── System: centered muted ──
     if (role === 'system') {
         return (
-            <div className="flex justify-center my-1">
+            <div className="flex justify-center my-4">
                 <span className="text-cyber-text-muted/50 text-xs font-mono">{content}</span>
             </div>
         );
@@ -140,7 +140,7 @@ export function ChatBubble({ role, content, variant, chips = [], isStreaming = f
     // ── Error: centered red ──
     if (role === 'error') {
         return (
-            <div className="flex flex-col items-center gap-0.5 my-1">
+            <div className="flex flex-col items-center gap-0.5 my-4">
                 <span className="text-red-400 text-xs font-mono text-center">{content}</span>
                 {subContent && <span className="text-red-400/60 text-[11px] font-mono text-center">{subContent}</span>}
             </div>
@@ -150,7 +150,7 @@ export function ChatBubble({ role, content, variant, chips = [], isStreaming = f
     // ── Retry: centered yellow ──
     if (role === 'retry') {
         return (
-            <div className="flex justify-center my-1">
+            <div className="flex justify-center my-4">
                 <span className="text-yellow-400/70 text-xs font-mono text-center">{content}</span>
             </div>
         );
@@ -159,7 +159,7 @@ export function ChatBubble({ role, content, variant, chips = [], isStreaming = f
     // ── Working: centered dots ──
     if (role === 'working') {
         return (
-            <div className="flex justify-center my-2">
+            <div className="flex justify-center my-4">
                 <InputDots />
             </div>
         );
