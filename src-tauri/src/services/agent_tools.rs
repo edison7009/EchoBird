@@ -386,7 +386,7 @@ async fn exec_shell(command: &str, server_id: &str, ssh_pool: &SSHPool) -> ToolR
 }
 
 async fn exec_local_shell(command: &str) -> ToolResult {
-    log::info!("[AgentTools] Local exec: {}", &command[..command.len().min(200)]);
+    log::info!("[AgentTools] Local exec: {}", &command[..command.floor_char_boundary(200)]);
 
     // Safety check: block commands that could damage Echobird or user data
     let cmd_lower = command.to_lowercase();
@@ -401,7 +401,7 @@ async fn exec_local_shell(command: &str) -> ToolResult {
     ];
     for pattern in &blocked_patterns {
         if cmd_lower.contains(pattern) {
-            log::warn!("[AgentTools] BLOCKED dangerous command: {}", &command[..command.len().min(200)]);
+            log::warn!("[AgentTools] BLOCKED dangerous command: {}", &command[..command.floor_char_boundary(200)]);
             return ToolResult {
                 success: false,
                 output: format!("Command blocked: contains '{}'. This operation could damage Echobird or user data.", pattern),
@@ -486,7 +486,7 @@ async fn exec_local_shell(command: &str) -> ToolResult {
 }
 
 async fn exec_ssh_shell(command: &str, server_id: &str, ssh_pool: &SSHPool) -> ToolResult {
-    log::info!("[AgentTools] SSH exec on {}: {}", server_id, &command[..command.len().min(200)]);
+    log::info!("[AgentTools] SSH exec on {}: {}", server_id, &command[..command.floor_char_boundary(200)]);
 
     // Auto-connect if not in pool
     if let Err(e) = crate::commands::ssh_commands::auto_connect_ssh(ssh_pool, server_id).await {
@@ -575,7 +575,8 @@ async fn exec_file_read(path: &str, server_id: &str, ssh_pool: &SSHPool) -> Tool
         match tokio::fs::read_to_string(path).await {
             Ok(mut content) => {
                 if content.len() > MAX_OUTPUT_BYTES {
-                    content.truncate(MAX_OUTPUT_BYTES);
+                    let end = content.floor_char_boundary(MAX_OUTPUT_BYTES);
+                    content.truncate(end);
                     content.push_str("\n... [file truncated]");
                 }
                 ToolResult { success: true, output: content }

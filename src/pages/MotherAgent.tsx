@@ -118,6 +118,7 @@ interface MotherAgentCtx {
     selectedServerId: string;
     selectServer: (id: string) => void;
     clearChat: () => void;
+    abortAgent: () => void;
     maDiskTotal: number;
     loadOlderChat: () => Promise<ChatMessage[]>;
 }
@@ -490,6 +491,19 @@ export function MotherAgentProvider({ appLogs, detectedTools, onClearLogs, onAge
                 persistence.clearHistory();
                 api.resetAgent(selectedServerId).catch(() => { });
             },
+            abortAgent: () => {
+                api.abortAgent(selectedServerId).catch(() => { });
+                // Frontend safety net: force reset after 3s if backend doesn't respond
+                setTimeout(() => {
+                    setIsProcessing(prev => {
+                        if (prev) {
+                            setChatOutput(o => [...o, { type: 'cancelled', text: '', i18nKey: 'error.userCancelled' }]);
+                            setAgentState('idle');
+                        }
+                        return false;
+                    });
+                }, 3000);
+            },
             maDiskTotal: persistence.diskTotal,
             loadOlderChat: async () => {
                 const count = await persistence.loadOlderChat();
@@ -515,7 +529,7 @@ export function MotherAgentMain() {
         detectedTools,
 
         sshServers, selectedServerId,
-        clearChat,
+        clearChat, abortAgent,
         maDiskTotal, loadOlderChat,
     } = useMotherAgent();
     const [publicIP, setPublicIP] = useState('...');
@@ -903,7 +917,7 @@ export function MotherAgentMain() {
                             </span>
                             {isProcessing ? (
                                 <button
-                                    onClick={() => api.abortAgent(selectedServerId)}
+                                    onClick={() => abortAgent()}
                                     className="p-1 text-red-400/80 hover:text-red-400 transition-colors"
                                 >
                                     <Square size={16} fill="currentColor" />
