@@ -25,6 +25,7 @@ export interface DetectedTool {
 export interface LocalTool extends DetectedTool {
     path?: string;
     icon?: string;
+    displayName?: string;
 
 }
 
