@@ -78,12 +78,20 @@ export const AgentRolePicker: React.FC<AgentRolePickerProps> = ({
                 if (cancelled) return;
                 const mapped: AgentStatus[] = remoteStatuses.map(r => ({ id: r.id, name: r.name, installed: r.installed }));
                 setAgentStatuses(mapped);
+                // If no enabled agent is installed, clear stale role selection
+                const anyAvailable = AGENT_TOOLS.some(a => a.enabled && mapped.find(s => s.id === a.id)?.installed);
+                if (!anyAvailable) {
+                    setLocalSelected(null);
+                    onSelectRole('', '', '');
+                }
                 setDetecting(false);
             }).catch(() => {
                 if (cancelled) return;
-                // Bridge not reachable — mark ALL agents as not installed
+                // Bridge not reachable — mark ALL agents as not installed + clear role
                 const allNotInstalled: AgentStatus[] = AGENT_TOOLS.map(a => ({ id: a.id, name: a.name, installed: false }));
                 setAgentStatuses(allNotInstalled);
+                setLocalSelected(null);
+                onSelectRole('', '', '');
                 setDetecting(false);
             });
         } else if (!isRemote) {
