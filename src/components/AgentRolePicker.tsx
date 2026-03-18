@@ -81,8 +81,9 @@ export const AgentRolePicker: React.FC<AgentRolePickerProps> = ({
                 setDetecting(false);
             }).catch(() => {
                 if (cancelled) return;
-                // Bridge not reachable — show all as available
-                setAgentStatuses([]);
+                // Bridge not reachable — mark ALL agents as not installed
+                const allNotInstalled: AgentStatus[] = AGENT_TOOLS.map(a => ({ id: a.id, name: a.name, installed: false }));
+                setAgentStatuses(allNotInstalled);
                 setDetecting(false);
             });
         } else if (!isRemote) {
@@ -102,7 +103,13 @@ export const AgentRolePicker: React.FC<AgentRolePickerProps> = ({
 
     if (!isOpen) return null;
 
+    // Check if current agent is available
+    const currentAgentTool = AGENT_TOOLS.find(a => a.name === selectedAgent);
+    const currentAgentStatus = currentAgentTool ? agentStatuses.find(s => s.id === currentAgentTool.id) : null;
+    const currentAgentAvailable = currentAgentTool?.enabled && (detecting ? true : (!currentAgentStatus || currentAgentStatus.installed));
+
     const handleSelect = (role: RoleEntry) => {
+        if (!currentAgentAvailable) return; // Block role selection when agent not installed
         setLocalSelected(role.id);
         onSelectRole(role.id, role.name, role.filePath);
     };
@@ -215,10 +222,12 @@ export const AgentRolePicker: React.FC<AgentRolePickerProps> = ({
                                     <div
                                         key={role.id}
                                         onClick={() => handleSelect(role)}
-                                        className={`relative border rounded-card cursor-pointer transition-all overflow-hidden group ${
-                                            isSelected
-                                                ? 'border-cyber-accent shadow-[0_0_12px_rgba(0,255,157,0.3)]'
-                                                : 'border-cyber-border bg-black/80 shadow-cyber-card hover:border-cyber-accent/40 hover:shadow-[0_0_8px_rgba(0,255,157,0.1)]'
+                                        className={`relative border rounded-card transition-all overflow-hidden group ${
+                                            !currentAgentAvailable
+                                                ? 'border-cyber-border/30 bg-black/60 opacity-40 cursor-not-allowed'
+                                                : isSelected
+                                                    ? 'border-cyber-accent shadow-[0_0_12px_rgba(0,255,157,0.3)] cursor-pointer'
+                                                    : 'border-cyber-border bg-black/80 shadow-cyber-card hover:border-cyber-accent/40 hover:shadow-[0_0_8px_rgba(0,255,157,0.1)] cursor-pointer'
                                         }`}
                                     >
                                         {/* Image with skeleton loading */}
