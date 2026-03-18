@@ -162,6 +162,7 @@ export function MotherAgentProvider({ appLogs, detectedTools, onClearLogs, onAge
     const logsEndRef = useRef<HTMLDivElement>(null!);
     const chatEndRef = useRef<HTMLDivElement>(null!);
     const chatInputRef = useRef<HTMLInputElement>(null!);
+    const abortTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     useEffect(() => {
         if (!initialMessage) return;
@@ -351,10 +352,12 @@ export function MotherAgentProvider({ appLogs, detectedTools, onClearLogs, onAge
                     // Tool results are internal agent data, not user-visible chat
                     break;
                 case 'done':
+                    if (abortTimeoutRef.current) { clearTimeout(abortTimeoutRef.current); abortTimeoutRef.current = null; }
                     setIsProcessing(false);
                     setAgentState('idle');
                     break;
                 case 'error': {
+                    if (abortTimeoutRef.current) { clearTimeout(abortTimeoutRef.current); abortTimeoutRef.current = null; }
                     const key = errorToKey(event.message);
                     const type = key === 'error.userCancelled' ? 'cancelled' : 'error';
                     setChatOutput(prev => [...prev, { type, text: '', i18nKey: key }]);
@@ -382,6 +385,8 @@ export function MotherAgentProvider({ appLogs, detectedTools, onClearLogs, onAge
     // Send logs to AI
     const handleSendLogsToAI = useCallback(async () => {
         if (isProcessing) return;
+        // Clear any pending abort timeout from previous request
+        if (abortTimeoutRef.current) { clearTimeout(abortTimeoutRef.current); abortTimeoutRef.current = null; }
         const errorLogs = appLogs.filter(l => l.category === 'ERROR').slice(-10);
         const recentLogs = appLogs.slice(-20);
         const logsToSend = errorLogs.length > 0 ? errorLogs : recentLogs;
@@ -478,7 +483,9 @@ export function MotherAgentProvider({ appLogs, detectedTools, onClearLogs, onAge
             abortAgent: () => {
                 api.abortAgent(selectedServerId).catch(() => { });
                 // Frontend safety net: force reset after 3s if backend doesn't respond
-                setTimeout(() => {
+                if (abortTimeoutRef.current) clearTimeout(abortTimeoutRef.current);
+                abortTimeoutRef.current = setTimeout(() => {
+                    abortTimeoutRef.current = null;
                     setIsProcessing(prev => {
                         if (prev) {
                             setChatOutput(o => [...o, { type: 'cancelled', text: '', i18nKey: 'error.userCancelled' }]);
