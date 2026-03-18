@@ -208,18 +208,19 @@ export function MotherAgentProvider({ appLogs, detectedTools, onClearLogs, onAge
     }, [chatOutput, selectedServerId]);
     const prevServerRef = useRef('local');
     const selectServer = useCallback(async (id: string) => {
-        // Save current chat to history map
+        // Save current chat to history map + localStorage
         chatHistoryMap.current.set(prevServerRef.current, chatOutput);
-        // Load target server's chat history (from memory or disk)
+        // Load target server's chat from memory or localStorage
         let history = chatHistoryMap.current.get(id);
         if (!history || history.length === 0) {
             try {
-                const diskHistory = await api.loadAgentHistory(id);
-                history = diskHistory.map(h => ({
-                    type: h.role === 'user' ? 'user' as const : 'assistant' as const,
-                    text: h.text,
-                }));
-                chatHistoryMap.current.set(id, history);
+                const saved = localStorage.getItem(`echobird_chat_${id}`);
+                if (saved) {
+                    history = JSON.parse(saved) as ChatMessage[];
+                    chatHistoryMap.current.set(id, history);
+                } else {
+                    history = [];
+                }
             } catch { history = []; }
         }
         setChatOutput(history);
@@ -227,19 +228,30 @@ export function MotherAgentProvider({ appLogs, detectedTools, onClearLogs, onAge
         setSelectedServerId(id);
     }, [chatOutput]);
 
-    // Load chat history from disk on mount
+    // Load chat history from localStorage on mount
     useEffect(() => {
-        api.loadAgentHistory('local').then(diskHistory => {
-            if (diskHistory.length > 0) {
-                const loaded = diskHistory.map(h => ({
-                    type: h.role === 'user' ? 'user' as const : 'assistant' as const,
-                    text: h.text,
-                }));
-                chatHistoryMap.current.set('local', loaded);
-                setChatOutput(loaded);
+        try {
+            const saved = localStorage.getItem('echobird_chat_local');
+            if (saved) {
+                const loaded: ChatMessage[] = JSON.parse(saved);
+                if (loaded.length > 0) {
+                    chatHistoryMap.current.set('local', loaded);
+                    setChatOutput(loaded);
+                }
             }
-        }).catch(() => { });
+        } catch { /* ignore parse errors */ }
     }, []);
+
+    // Persist user-visible chat to localStorage whenever it changes
+    useEffect(() => {
+        if (chatOutput.length === 0) return;
+        const visible = chatOutput.filter(m =>
+            m.type === 'user' || m.type === 'assistant' || m.type === 'error' || m.type === 'cancelled'
+        );
+        if (visible.length > 0) {
+            localStorage.setItem(`echobird_chat_${selectedServerId}`, JSON.stringify(visible));
+        }
+    }, [chatOutput, selectedServerId]);
 
     // Load models from config — refresh on mount and on window focus
     const loadModels = useCallback(() => {
@@ -443,6 +455,7 @@ export function MotherAgentProvider({ appLogs, detectedTools, onClearLogs, onAge
             selectedServerId, selectServer,
             clearChat: () => {
                 setChatOutput([]);
+                localStorage.removeItem(`echobird_chat_${selectedServerId}`);
                 api.resetAgent(selectedServerId).catch(() => { });
             },
         }}>
