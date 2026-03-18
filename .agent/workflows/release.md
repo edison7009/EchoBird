@@ -27,7 +27,6 @@ Update the version in **4 places** (NOT `docs/api/version/index.json` yet):
 1. `package.json` → `"version": "X.Y.Z"`
 2. `src-tauri/tauri.conf.json` → `"version": "X.Y.Z"`
 3. `src-tauri/Cargo.toml` → `version = "X.Y.Z"`
-4. `plugins/llm-server/Cargo.toml` → `version = "X.Y.Z"` (keeps plugin version in sync — shown in binary `--version` output)
 
 > [!CAUTION]
 > **Always use `[System.IO.File]::WriteAllText(path, content, [System.Text.UTF8Encoding]::new($false))` to write files.** Never use `Set-Content -Encoding UTF8` — it adds a BOM that breaks `tauri-action` (JSON parse error).
@@ -37,7 +36,7 @@ Update the version in **4 places** (NOT `docs/api/version/index.json` yet):
 ## Step 2: Commit and push to private repo
 
 ```powershell
-git add package.json src-tauri/tauri.conf.json src-tauri/Cargo.toml plugins/llm-server/Cargo.toml
+git add package.json src-tauri/tauri.conf.json src-tauri/Cargo.toml
 git commit -m "chore: bump version to vX.Y.Z"
 git push origin main
 ```
