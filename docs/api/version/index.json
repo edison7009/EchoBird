@@ -1,1 +1,1 @@
-{"version":"3.0.5","releaseDate":"2026-03-18","releaseNotes":"v3.0.5: Shared chat persistence hook (useChatPersistence), disk pagination with skeleton loading, remove residual skills code, fix missing i18n keys, clean deploy-LLM remnants"}
+{"version":"3.0.6","releaseDate":"2026-03-18","releaseNotes":"v3.0.6: Fix UTF-8 panic on CJK commands, restore agent memory, prevent message loss, abort timeout race fix, unified chat spacing, dead code cleanup"}
