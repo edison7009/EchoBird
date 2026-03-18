@@ -945,9 +945,17 @@ export function ChannelsPanel() {
                             >
                                 <div className="flex items-center gap-3">
                                     {(() => {
-                                        const selectedAgent = allActiveAgents[ch.id] || 'OpenClaw';
-                                        const agent = AGENT_LIST.find(a => a.name === selectedAgent) || AGENT_LIST[0];
-                                        return <img src={agent.icon} alt={agent.name} className="w-9 h-9 flex-shrink-0" />;
+                                        const selectedAgent = allActiveAgents[ch.id];
+                                        const agent = selectedAgent ? AGENT_LIST.find(a => a.name === selectedAgent) : null;
+                                        const hasRole = !!allSelectedRoles[ch.id]?.id;
+                                        if (agent && hasRole) {
+                                            return <img src={agent.icon} alt={agent.name} className="w-9 h-9 flex-shrink-0" />;
+                                        }
+                                        return (
+                                            <div className="w-9 h-9 flex-shrink-0 rounded-full bg-cyber-border/30 flex items-center justify-center">
+                                                <span className="text-cyber-text-muted/40 text-lg font-bold">?</span>
+                                            </div>
+                                        );
                                     })()}
                                     <div className="flex-1 min-w-0">
                                         <div className="flex items-center gap-1 mb-1">
