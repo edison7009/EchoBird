@@ -175,13 +175,7 @@ const ChannelsInner: React.FC = () => {
     const [modelList, setModelList] = useState<ModelConfig[]>([]);
     const [remoteCopied, setRemoteCopied] = useState('');
     const modelPickerRef = useRef<HTMLDivElement>(null);
-    // Skills/favorites picker
-    const [showSkillsPicker, setShowSkillsPicker] = useState(false);
-    const [skillsFavorites, setSkillsFavorites] = useState<Array<{ id: string; name: string; github: string }>>([]);
-    const skillsPickerRef = useRef<HTMLDivElement>(null);
-    const [skillsPage, setSkillsPage] = useState(0);
-    const SKILLS_PER_PAGE_CH = 4;
-    const [pendingSkills, setPendingSkills] = useState<Array<{ id: string; name: string; github: string; branch: string }>>([]);
+
     // Process toggle (show/hide tool calls and thinking)
 
     // Bridge mode state — per-channel storage
@@ -594,45 +588,6 @@ const ChannelsInner: React.FC = () => {
         return () => document.removeEventListener('mousedown', handler);
     }, [showModelPicker]);
 
-    // Open skills picker (load favorites)
-    const openSkillsPicker = useCallback(async () => {
-        if (!showSkillsPicker) {
-            try {
-                const [favData, skillsData, i18nMap] = await Promise.all([
-                    api.loadSkillsFavorites(), api.loadSkillsData(), api.loadSkillsI18n()
-                ]);
-                const favIds = favData.favorites || [];
-                if (favIds.length > 0) {
-                    const allSkills = (skillsData?.skills || []) as any[];
-                    const skills = favIds.map((id: string) => {
-                        const skillData = allSkills.find((s: any) => s.i === id);
-                        const tr = i18nMap[id];
-                        const name = skillData
-                            ? ((tr && tr.locale === locale && tr.n) ? tr.n : (skillData.n || skillData.name || id))
-                            : id;
-                        return { id, name, github: skillData?.i || id, branch: skillData?.b || 'main' };
-                    });
-                    setSkillsFavorites(skills);
-                } else {
-                    setSkillsFavorites([]);
-                }
-            } catch { setSkillsFavorites([]); }
-        }
-        if (showSkillsPicker) setSkillsPage(0);
-        setShowSkillsPicker(prev => !prev);
-    }, [showSkillsPicker, locale]);
-
-    // Close skills picker on outside click
-    useEffect(() => {
-        if (!showSkillsPicker) return;
-        const handler = (e: MouseEvent) => {
-            if (skillsPickerRef.current && !skillsPickerRef.current.contains(e.target as Node)) {
-                setShowSkillsPicker(false);
-            }
-        };
-        document.addEventListener('mousedown', handler);
-        return () => document.removeEventListener('mousedown', handler);
-    }, [showSkillsPicker]);
 
     // Format model config as plain text for sending
     const formatModelText = (m: ModelConfig): string => {
@@ -654,7 +609,7 @@ const ChannelsInner: React.FC = () => {
         if (!activeId) return;
         if (!canSendMessage) return;
         if (bridgeLoading) return;
-        if (!input.trim() && attachments.length === 0 && pendingModels.length === 0 && pendingSkills.length === 0) return;
+        if (!input.trim() && attachments.length === 0 && pendingModels.length === 0) return;
         // Build message text + chips using shared utility
         const mdList = pendingModels.map(pm => {
             const md = modelList.find(m => m.internalId === pm.id);
@@ -668,12 +623,11 @@ const ChannelsInner: React.FC = () => {
             input,
             attachments.map((a, i) => ({ id: String(i), name: a.name, type: a.type as 'file' | 'image', preview: a.preview })),
             mdList,
-            pendingSkills,
+            [],
         );
-        const text = messageText || input.trim();   // full text → Agent
-        const displayText = input.trim();            // clean text → bubble & disk
+        const text = messageText || input.trim();   // full text -> Agent
+        const displayText = input.trim();            // clean text -> bubble & disk
         setPendingModels([]);
-        setPendingSkills([]);
         setInput('');
         setAttachments([]);
         // Bubble shows clean user text + chips; agent receives full text with attachments
@@ -841,7 +795,7 @@ const ChannelsInner: React.FC = () => {
             setBridgeLoading(false);
         }
         inputRef.current?.focus();
-    }, [activeId, input, attachments, pendingModels, pendingSkills, isActiveConnected, canSendMessage, isLocalChannel, bridgeLoading, bridgeSessionId, bridgeConnectionStatus, activeChannel, modelList, allActiveAgents, channelKey]);
+    }, [activeId, input, attachments, pendingModels, isActiveConnected, canSendMessage, isLocalChannel, bridgeLoading, bridgeSessionId, bridgeConnectionStatus, activeChannel, modelList, allActiveAgents, channelKey]);
 
     // Abort current request
     const handleAbort = useCallback(() => {
