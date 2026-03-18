@@ -11,6 +11,7 @@ import { buildPendingMessage } from '../utils/buildPendingMessage';
 import { useI18n } from '../hooks/useI18n';
 import { useConfirm } from '../components/ConfirmDialog';
 import * as api from '../api/tauri';
+import { channelHistoryLoad, channelHistorySave, channelHistoryClear } from '../api/tauri';
 import type { ModelConfig, LocalTool, AppLogEntry, AgentEvent } from '../api/types';
 
 // Markdown components config (Mother Agent blue theme)
@@ -207,16 +208,29 @@ export function MotherAgentProvider({ appLogs, detectedTools, onClearLogs, onAge
         }
     }, [chatOutput, selectedServerId]);
     const prevServerRef = useRef('local');
+    const agentChatKey = (id: string) => `agent_${id}`;
+    const saveDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const selectServer = useCallback(async (id: string) => {
-        // Save current chat to history map + localStorage
+        // Save current chat to history map
         chatHistoryMap.current.set(prevServerRef.current, chatOutput);
-        // Load target server's chat from memory or localStorage
+        // Load target server's chat from memory or disk
         let history = chatHistoryMap.current.get(id);
         if (!history || history.length === 0) {
             try {
-                const saved = localStorage.getItem(`echobird_chat_${id}`);
-                if (saved) {
-                    history = JSON.parse(saved) as ChatMessage[];
+                const result = await channelHistoryLoad(agentChatKey(id), 0, 500);
+                if (result.messages.length > 0) {
+                    history = result.messages.map(m => {
+                        if (m.role === 'system' && m.content.startsWith('error.')) {
+                            return { type: 'error' as const, text: '', i18nKey: m.content };
+                        }
+                        if (m.role === 'system') {
+                            return { type: 'cancelled' as const, text: m.content, i18nKey: m.content.startsWith('error.') ? m.content : undefined };
+                        }
+                        return {
+                            type: m.role === 'user' ? 'user' as const : 'assistant' as const,
+                            text: m.content,
+                        };
+                    });
                     chatHistoryMap.current.set(id, history);
                 } else {
                     history = [];
@@ -228,28 +242,44 @@ export function MotherAgentProvider({ appLogs, detectedTools, onClearLogs, onAge
         setSelectedServerId(id);
     }, [chatOutput]);
 
-    // Load chat history from localStorage on mount
+    // Load chat history from disk on mount
     useEffect(() => {
-        try {
-            const saved = localStorage.getItem('echobird_chat_local');
-            if (saved) {
-                const loaded: ChatMessage[] = JSON.parse(saved);
-                if (loaded.length > 0) {
-                    chatHistoryMap.current.set('local', loaded);
-                    setChatOutput(loaded);
-                }
+        channelHistoryLoad(agentChatKey('local'), 0, 500).then(result => {
+            if (result.messages.length > 0) {
+                const loaded: ChatMessage[] = result.messages.map(m => {
+                    if (m.role === 'system' && m.content.startsWith('error.')) {
+                        return { type: 'error' as const, text: '', i18nKey: m.content };
+                    }
+                    if (m.role === 'system') {
+                        return { type: 'cancelled' as const, text: m.content };
+                    }
+                    return {
+                        type: m.role === 'user' ? 'user' as const : 'assistant' as const,
+                        text: m.content,
+                    };
+                });
+                chatHistoryMap.current.set('local', loaded);
+                setChatOutput(loaded);
             }
-        } catch { /* ignore parse errors */ }
+        }).catch(() => { });
     }, []);
 
-    // Persist user-visible chat to localStorage whenever it changes
+    // Persist user-visible chat to disk (debounced)
     useEffect(() => {
         if (chatOutput.length === 0) return;
         const visible = chatOutput.filter(m =>
             m.type === 'user' || m.type === 'assistant' || m.type === 'error' || m.type === 'cancelled'
         );
         if (visible.length > 0) {
-            localStorage.setItem(`echobird_chat_${selectedServerId}`, JSON.stringify(visible));
+            if (saveDebounceRef.current) clearTimeout(saveDebounceRef.current);
+            const key = agentChatKey(selectedServerId);
+            saveDebounceRef.current = setTimeout(() => {
+                channelHistorySave(key, visible.map(m => ({
+                    role: m.type === 'user' ? 'user' : m.type === 'assistant' ? 'assistant' : 'system',
+                    content: (m.type === 'error' || m.type === 'cancelled')
+                        ? ((m as any).i18nKey || m.text) : m.text,
+                }))).catch(() => { });
+            }, 800);
         }
     }, [chatOutput, selectedServerId]);
 
@@ -455,7 +485,7 @@ export function MotherAgentProvider({ appLogs, detectedTools, onClearLogs, onAge
             selectedServerId, selectServer,
             clearChat: () => {
                 setChatOutput([]);
-                localStorage.removeItem(`echobird_chat_${selectedServerId}`);
+                channelHistoryClear(agentChatKey(selectedServerId)).catch(() => { });
                 api.resetAgent(selectedServerId).catch(() => { });
             },
         }}>
