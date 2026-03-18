@@ -75,12 +75,8 @@ declare const __APP_VERSION__: string;
 export type ChatMessage =
     | { type: 'user'; text: string; chips?: import('../components/chat/ChatBubble').BubbleChip[] }
     | { type: 'assistant'; text: string }
-    | { type: 'thinking'; text: string }
-    | { type: 'tool_call'; id: string; name: string; args: string; status: 'running' | 'done' }
-    | { type: 'tool_result'; id: string; output: string; success: boolean }
     | { type: 'error'; text: string; i18nKey?: string }
-    | { type: 'cancelled'; text: string; i18nKey?: string }
-    | { type: 'state'; state: string };
+    | { type: 'cancelled'; text: string; i18nKey?: string };
 
 const MA_PAGE_SIZE = 30;
 
