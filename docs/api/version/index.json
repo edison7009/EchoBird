@@ -1,1 +1,1 @@
-{"version":"3.0.7","releaseDate":"2026-03-18","releaseNotes":"Remove legacy WebSocket code, improve Channels page agent detection and role selection UX"}
+{"version":"3.0.8","releaseDate":"2026-03-19","releaseNotes":"New: upload_file and download_file tools for Mother Agent (SSH base64 transfer). Fix: cancel hint now shows immediately. Fix: removed legacy bird name from system prompt. Docs: updated add-agent workflow with install docs step."}
