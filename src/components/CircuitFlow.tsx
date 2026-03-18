@@ -39,7 +39,7 @@ interface Pulse {
 export function CircuitFlow({ flashCount = 0 }: CircuitFlowProps = {}) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const pendingRedRef = useRef(0);
-    const prevFlashRef = useRef(0);
+    const prevFlashRef = useRef(flashCount);
 
     useEffect(() => {
         const diff = flashCount - prevFlashRef.current;

@@ -305,20 +305,6 @@ const ChannelsInner: React.FC = () => {
     const canSendMessage = bridgeConnectionStatus !== 'connecting';
     const isLocal = activeChannel?.address?.startsWith('127.0.0.1') || activeChannel?.address === 'localhost';
     const messages = bridgeMessages;
-    const prevChErrRef = useRef(0);
-    const prevChActiveIdRef = useRef<number | null>(null);
-    // Fire window event ONLY for genuinely new errors in the current channel session
-    useEffect(() => {
-        const errCount = messages.filter(m => m.role === 'system' && m.i18nKey !== 'error.userCancelled').length;
-        if (activeId !== prevChActiveIdRef.current) {
-            // Channel switched — sync ref without firing (existing errors are not new)
-            prevChErrRef.current = errCount;
-            prevChActiveIdRef.current = activeId;
-        } else if (errCount > prevChErrRef.current) {
-            window.dispatchEvent(new CustomEvent('chat-error', { detail: { count: errCount - prevChErrRef.current } }));
-            prevChErrRef.current = errCount;
-        }
-    }, [messages, activeId]);
 
     // Load SSH servers + channel config → populate channels
     const loadChannelData = useCallback(async (preserveActiveId?: boolean) => {
@@ -752,6 +738,7 @@ const ChannelsInner: React.FC = () => {
                     setAllBridgeHasNew(prev => ({ ...prev, [channelKey]: true }));
                 } catch (remoteErr: any) {
                     clearTimeout(workingTimer);
+                    window.dispatchEvent(new CustomEvent('chat-error'));
                     setBridgeMessages(prev => {
                         const cleaned = prev.filter(m => m.content !== WORKING_MARKER);
                         return [...cleaned, { role: 'system', content: '', i18nKey: errorToKey(remoteErr?.message || String(remoteErr)) }];
@@ -760,6 +747,7 @@ const ChannelsInner: React.FC = () => {
                 }
             }
         } catch (e: any) {
+            window.dispatchEvent(new CustomEvent('chat-error'));
             setBridgeMessages(prev => [...prev, { role: 'system', content: '', i18nKey: errorToKey(e?.message || String(e)) }]);
             if (isLocalChannel) {
                 try {
@@ -796,11 +784,9 @@ const ChannelsInner: React.FC = () => {
                                 return <div key={i} className="flex justify-center my-4"><span className="text-cyber-text-muted/35 text-xs font-mono">{text}</span></div>;
                             return <ChatBubble key={i} role="error" content={text} variant="channels" />;
                         }
-                        const isLast = arr.slice(i + 1).every(m => m.role !== 'assistant');
-                        const lastMsgIsUser = messages.length > 0 && messages[messages.length - 1].role === 'user';
-                        return <ChatBubble key={i} role="assistant" content={msg.content} variant="channels" isStreaming={bridgeLoading && isLast && !lastMsgIsUser} />;
+                        return <ChatBubble key={i} role="assistant" content={msg.content} variant="channels" />;
                     })}
-                    {bridgeLoading && (messages.length === 0 || messages[messages.length - 1].role === 'user') && <ChatBubble role="assistant" content="" variant="channels" isStreaming={true} />}
+                    {bridgeLoading && <ChatBubble role="assistant" content="" variant="channels" isStreaming={true} />}
                     </div>
                     <div ref={scrollRef} />
                 </div>
@@ -956,7 +942,7 @@ export function ChannelsPanel() {
                                         const selectedAgent = allActiveAgents[ch.id];
                                         const agent = selectedAgent ? AGENT_LIST.find(a => a.name === selectedAgent) : null;
                                         const hasRole = !!allSelectedRoles[ch.id]?.id;
-                                        if (agent && hasRole) {
+                                        if (agent) {
                                             return <img src={agent.icon} alt={agent.name} className="w-9 h-9 flex-shrink-0" />;
                                         }
                                         return (
@@ -977,9 +963,9 @@ export function ChannelsPanel() {
                                             <span className={`text-xs tracking-wide ${isTyping ? 'text-cyber-accent' : isLinked ? 'text-cyber-accent' : isBridgeConnecting ? 'text-yellow-400' : isError ? 'text-red-400' : 'text-cyber-text-muted/70'}`}>
                                                 [{isTyping ? t('common.inputting') : isLinked ? t('channel.linked') : isBridgeConnecting ? t('channel.connecting') : isError ? t('channel.failed') : t('channel.standby')}]
                                             </span>
-                                            {allSelectedRoles[ch.id]?.name && (
-                                                <span className={`text-xs truncate ${isTyping ? 'text-cyber-accent' : isLinked ? 'text-cyber-accent' : isBridgeConnecting ? 'text-yellow-400' : isError ? 'text-red-400' : 'text-cyber-text-muted/70'}`}>{allSelectedRoles[ch.id].name}</span>
-                                            )}
+                                            <span className={`text-xs truncate ${isTyping ? 'text-cyber-accent' : isLinked ? 'text-cyber-accent' : isBridgeConnecting ? 'text-yellow-400' : isError ? 'text-red-400' : 'text-cyber-text-muted/70'}`}>
+                                                {allSelectedRoles[ch.id]?.name || allActiveAgents[ch.id] || ''}
+                                            </span>
                                         </div>
                                     </div>
                                 </div>

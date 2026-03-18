@@ -197,20 +197,7 @@ export function MotherAgentProvider({ appLogs, detectedTools, onClearLogs, onAge
 
     // Server selection (single-select)
     const [selectedServerId, setSelectedServerId] = useState('local');
-    // Red pulse trigger — only fires for genuinely NEW errors, resets on server switch
-    const prevErrCountRef = useRef(0);
-    const prevServerIdRef = useRef('');
-    useEffect(() => {
-        const errCount = chatOutput.filter(m => m.type === 'error').length;
-        if (selectedServerId !== prevServerIdRef.current) {
-            // Server switched — sync without firing
-            prevErrCountRef.current = errCount;
-            prevServerIdRef.current = selectedServerId;
-        } else if (errCount > prevErrCountRef.current) {
-            window.dispatchEvent(new CustomEvent('chat-error', { detail: { count: errCount - prevErrCountRef.current } }));
-            prevErrCountRef.current = errCount;
-        }
-    }, [chatOutput, selectedServerId]);
+
     const prevServerRef = useRef('local');
     const agentChatKey = (id: string) => `agent_${id}`;
 
@@ -361,6 +348,7 @@ export function MotherAgentProvider({ appLogs, detectedTools, onClearLogs, onAge
                     const key = errorToKey(event.message);
                     // Skip duplicate cancelled message — already added immediately in abortAgent()
                     if (key !== 'error.userCancelled') {
+                        window.dispatchEvent(new CustomEvent('chat-error'));
                         setChatOutput(prev => [...prev, { type: 'error', text: '', i18nKey: key }]);
                     }
                     setIsProcessing(false);
@@ -411,6 +399,7 @@ export function MotherAgentProvider({ appLogs, detectedTools, onClearLogs, onAge
         setChatOutput(prev => [...prev, { type: 'user', text: (displayText ?? message).trim(), chips }]);
         const modelData = models.find(m => m.internalId === agentModel);
         if (!modelData) {
+            window.dispatchEvent(new CustomEvent('chat-error'));
             setChatOutput(prev => [...prev, { type: 'error', text: '', i18nKey: 'error.noModelSelected' }]);
             setIsProcessing(false);
             return;
@@ -449,6 +438,7 @@ export function MotherAgentProvider({ appLogs, detectedTools, onClearLogs, onAge
         } catch (e) {
             const key = errorToKey(String(e));
             const type = key === 'error.userCancelled' ? 'cancelled' : 'error';
+            if (type === 'error') window.dispatchEvent(new CustomEvent('chat-error'));
             setChatOutput(prev => [...prev, { type, text: '', i18nKey: key }]);
             setIsProcessing(false);
         }
