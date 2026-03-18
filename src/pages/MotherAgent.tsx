@@ -80,6 +80,8 @@ export type ChatMessage =
     | { type: 'cancelled'; text: string; i18nKey?: string }
     | { type: 'state'; state: string };
 
+const MA_PAGE_SIZE = 30;
+
 // ===== Context (shared state between Main & Panel) =====
 
 interface MotherAgentCtx {
@@ -114,6 +116,8 @@ interface MotherAgentCtx {
     selectedServerId: string;
     selectServer: (id: string) => void;
     clearChat: () => void;
+    maDiskTotal: number;
+    loadOlderChat: () => Promise<ChatMessage[]>;
 }
 
 const MotherAgentContext = createContext<MotherAgentCtx | null>(null);
@@ -242,9 +246,11 @@ export function MotherAgentProvider({ appLogs, detectedTools, onClearLogs, onAge
         setSelectedServerId(id);
     }, [chatOutput]);
 
-    // Load chat history from disk on mount
+    // Load chat history from disk on mount (only newest PAGE_SIZE)
+    const [maDiskTotal, setMaDiskTotal] = useState(0);
     useEffect(() => {
-        channelHistoryLoad(agentChatKey('local'), 0, 500).then(result => {
+        channelHistoryLoad(agentChatKey('local'), 0, MA_PAGE_SIZE).then(result => {
+            if (result.total > 0) setMaDiskTotal(result.total);
             if (result.messages.length > 0) {
                 const loaded: ChatMessage[] = result.messages.map(m => {
                     if (m.role === 'system' && m.content.startsWith('error.')) {
@@ -485,8 +491,29 @@ export function MotherAgentProvider({ appLogs, detectedTools, onClearLogs, onAge
             selectedServerId, selectServer,
             clearChat: () => {
                 setChatOutput([]);
+                setMaDiskTotal(0);
                 channelHistoryClear(agentChatKey(selectedServerId)).catch(() => { });
                 api.resetAgent(selectedServerId).catch(() => { });
+            },
+            maDiskTotal,
+            loadOlderChat: async () => {
+                const alreadyLoaded = chatOutput.length;
+                const result = await channelHistoryLoad(agentChatKey(selectedServerId), alreadyLoaded, MA_PAGE_SIZE);
+                if (result.messages.length === 0) return [];
+                const older: ChatMessage[] = result.messages.map(m => {
+                    if (m.role === 'system' && m.content.startsWith('error.')) {
+                        return { type: 'error' as const, text: '', i18nKey: m.content };
+                    }
+                    if (m.role === 'system') {
+                        return { type: 'cancelled' as const, text: m.content };
+                    }
+                    return {
+                        type: m.role === 'user' ? 'user' as const : 'assistant' as const,
+                        text: m.content,
+                    };
+                });
+                setChatOutput(prev => [...older, ...prev]);
+                return older;
             },
         }}>
             {children}
@@ -509,6 +536,7 @@ export function MotherAgentMain() {
 
         sshServers, selectedServerId,
         clearChat,
+        maDiskTotal, loadOlderChat,
     } = useMotherAgent();
     const [publicIP, setPublicIP] = useState('...');
     const [remoteHints, setRemoteHints] = useState<Array<{ action: string; agent?: string }>>([]);
@@ -628,7 +656,7 @@ export function MotherAgentMain() {
     const chatContainerRef = useRef<HTMLDivElement>(null!);
     const autoFollowRef = useRef(true);
     const [showScrollBtn, setShowScrollBtn] = useState(false);
-    const PAGE_SIZE = 30;
+    const PAGE_SIZE = MA_PAGE_SIZE;
     const [displayCount, setDisplayCount] = useState(PAGE_SIZE);
     const [showSkeleton, setShowSkeleton] = useState(false);
 
@@ -641,21 +669,41 @@ export function MotherAgentMain() {
         const isAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 40;
         autoFollowRef.current = isAtBottom;
         setShowScrollBtn(!isAtBottom && chatOutput.length > 0);
-        // Lazy-load older messages when user scrolls to very top
-        if (container.scrollTop === 0 && displayCount < chatOutput.length) {
+
+        if (container.scrollTop !== 0) return;
+
+        // Phase 1: more in-memory messages to show
+        if (displayCount < chatOutput.length) {
             setShowSkeleton(true);
             const prevScrollHeight = container.scrollHeight;
             setTimeout(() => {
                 setShowSkeleton(false);
                 setDisplayCount(c => Math.min(c + PAGE_SIZE, chatOutput.length));
-                // Restore scroll position after prepend
                 requestAnimationFrame(() => {
                     if (chatContainerRef.current) {
                         chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight - prevScrollHeight;
                     }
                 });
             }, 300);
+            return;
         }
+
+        // Phase 2: load older batch from disk when in-memory is exhausted
+        const alreadyLoaded = chatOutput.length;
+        if (alreadyLoaded >= maDiskTotal) return;
+
+        setShowSkeleton(true);
+        const prevScrollHeight2 = container.scrollHeight;
+        loadOlderChat().then(older => {
+            setShowSkeleton(false);
+            if (older.length === 0) return;
+            setDisplayCount(c => c + older.length);
+            requestAnimationFrame(() => {
+                if (chatContainerRef.current) {
+                    chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight - prevScrollHeight2;
+                }
+            });
+        }).catch(() => { setShowSkeleton(false); });
     };
 
     useEffect(() => {
