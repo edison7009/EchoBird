@@ -1,6 +1,6 @@
 // Channels — OpenClaw agent chat interface (bridge CLI + SSH)
 import React, { useState, useEffect, useRef, useCallback, createContext, useContext } from 'react';
-import { Send, CornerDownLeft, X, Square, Paperclip, Image as ImageIcon, RotateCcw, KeyRound, Zap, Server, ChevronsDown, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Send, CornerDownLeft, X, Square, Paperclip, Image as ImageIcon, RotateCcw, KeyRound, Zap, Server, ChevronsDown, ChevronLeft, ChevronRight, AlertCircle } from 'lucide-react';
 import { MiniSelect } from '../components/MiniSelect';
 import { getModelIcon } from '../components/cards/ModelCard';
 import { PendingChipsRow } from '../components/PendingChipsRow';
@@ -817,12 +817,20 @@ const ChannelsInner: React.FC = () => {
                 {(() => {
                     const selectedAgent = allActiveAgents[channelKey] || 'OpenClaw';
                     const agent = AGENT_LIST.find(a => a.name === selectedAgent) || AGENT_LIST[0];
-                    const displayName = (selectedRoleForChannel && selectedRoleForChannel.id) ? selectedRoleForChannel.name : t('channel.selectRoleAgent');
+                    const hasRole = selectedRoleForChannel && selectedRoleForChannel.id;
                     return (
                         <div className="flex items-center gap-2 mt-1 mb-0.5 select-none">
-                            <div onClick={() => setShowRolePicker(true)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-card text-xs font-mono cursor-pointer transition-all border border-cyber-accent bg-cyber-accent/10 shadow-cyber-card text-cyber-accent hover:brightness-110">
-                                <img src={agent.icon} alt={agent.name} className="w-4 h-4" />
-                                <span>{displayName}</span>
+                            <div onClick={() => setShowRolePicker(true)} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-card text-xs font-mono cursor-pointer transition-all border shadow-cyber-card hover:brightness-110 ${
+                                hasRole
+                                    ? 'border-cyber-accent bg-cyber-accent/10 text-cyber-accent'
+                                    : 'border-cyber-text-muted/30 bg-black/40 text-cyber-text-muted/50'
+                            }`}>
+                                {hasRole ? (
+                                    <img src={agent.icon} alt={agent.name} className="w-4 h-4" />
+                                ) : (
+                                    <AlertCircle size={14} className="text-cyber-text-muted/40" />
+                                )}
+                                <span>{hasRole ? selectedRoleForChannel.name : t('channel.selectRoleAgent')}</span>
                             </div>
                             {bridgeConnectionStatus === 'connecting' && <span className="text-yellow-400 text-xs font-mono animate-pulse">{t('channel.connecting')}</span>}
                             {bridgeConnectionStatus === 'disconnected' && <span className="text-red-400 text-xs font-mono">{t('channel.connectionFailed')}</span>}
