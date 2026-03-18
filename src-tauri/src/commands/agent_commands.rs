@@ -35,7 +35,11 @@ pub async fn agent_send_message(
     // Get or create session ID
     let session_id = {
         let mut map = session_map.lock().await;
-        let sess = map.entry(server_key.clone()).or_insert_with(agent_loop::AgentSession::new);
+        let sess = map.entry(server_key.clone()).or_insert_with(|| {
+            let mut s = agent_loop::AgentSession::new();
+            s.messages = agent_loop::load_session_from_disk(&server_key);
+            s
+        });
         sess.id.clone()
     };
 
