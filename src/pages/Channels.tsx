@@ -812,7 +812,18 @@ const ChannelsInner: React.FC = () => {
                     {chPersistence.showSkeleton && [0,1,2].map(i => (
                         <ChatBubble key={`sk-${i}`} role="skeleton" content="" variant="channels" />
                     ))}
-                    {activeChannel && messages.slice(-chPersistence.displayCount).map((msg, i) => {
+                    {activeChannel && (() => {
+                        // Only count visible messages toward displayCount limit
+                        const hiddenRoles = new Set(['tool_call', 'tool_result', 'thinking']);
+                        let visibleSeen = 0;
+                        let startIdx = messages.length;
+                        for (let j = messages.length - 1; j >= 0; j--) {
+                            const r = messages[j].role;
+                            if (!hiddenRoles.has(r) && !(r === 'system' && messages[j].content === '__agent_working__')) visibleSeen++;
+                            if (visibleSeen >= chPersistence.displayCount) { startIdx = j; break; }
+                        }
+                        const displayed = messages.slice(startIdx);
+                        return displayed.map((msg, i) => {
                         if (msg.role === 'tool_call' || msg.role === 'tool_result' || msg.role === 'thinking') return null;
                         if (msg.role === 'system' && msg.content === '__agent_working__') return null;
                         if (msg.role === 'user') return <ChatBubble key={i} role="user" content={msg.content} variant="channels" chips={msg.chips} />;
@@ -820,13 +831,14 @@ const ChannelsInner: React.FC = () => {
                             const text = msg.i18nKey ? t(msg.i18nKey as import('../i18n/types').TKey) : msg.content;
                             const isCancelled = msg.i18nKey === 'error.userCancelled';
                             if (isCancelled)
-                                return <div key={i} className="flex justify-center my-1"><span className="text-cyber-text-muted/35 text-xs font-mono">{text}</span></div>;
+                                return <div key={i} className="flex justify-center my-3"><span className="text-cyber-text-muted/35 text-xs font-mono">{text}</span></div>;
                             return <ChatBubble key={i} role="error" content={text} variant="channels" />;
                         }
-                        const isLast = messages.slice(-chPersistence.displayCount).slice(i + 1).every(m => m.role !== 'assistant');
+                        const isLast = displayed.slice(i + 1).every(m => m.role !== 'assistant');
                         const lastMsgIsUser = messages.length > 0 && messages[messages.length - 1].role === 'user';
                         return <ChatBubble key={i} role="assistant" content={msg.content} variant="channels" isStreaming={bridgeLoading && isLast && !lastMsgIsUser} />;
-                    })}
+                        });
+                    })()}
                     {bridgeLoading && (messages.length === 0 || messages[messages.length - 1].role === 'user') && <ChatBubble role="assistant" content="" variant="channels" isStreaming={true} />}
                     </div>
                     <div ref={scrollRef} />
