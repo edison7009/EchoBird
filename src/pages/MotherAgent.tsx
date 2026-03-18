@@ -227,6 +227,9 @@ export function MotherAgentProvider({ appLogs, detectedTools, onClearLogs, onAge
 
     // Shared mapper: disk format → ChatMessage
     const fromDisk = useCallback((m: DiskMsg): ChatMessage => {
+        if (m.role === 'system' && m.content === 'error.userCancelled') {
+            return { type: 'cancelled', text: '', i18nKey: m.content };
+        }
         if (m.role === 'system' && m.content.startsWith('error.')) {
             return { type: 'error', text: '', i18nKey: m.content };
         }
