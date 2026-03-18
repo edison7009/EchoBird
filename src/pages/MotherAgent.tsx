@@ -6,7 +6,7 @@ import { MiniSelect } from '../components/MiniSelect';
 import { getModelIcon } from '../components/cards/ModelCard';
 import { PendingChipsRow } from '../components/PendingChipsRow';
 import { ChatBubble, type BubbleChip } from '../components/chat';
-import { normalizeError, errorToKey } from '../utils/normalizeError';
+import { errorToKey } from '../utils/normalizeError';
 import { buildPendingMessage } from '../utils/buildPendingMessage';
 import { useI18n } from '../hooks/useI18n';
 import { useConfirm } from '../components/ConfirmDialog';
