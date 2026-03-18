@@ -227,3 +227,16 @@ OpenClaw reads SOUL.md only at **session start**. Changing SOUL.md mid-session h
 | ZeroClaw | Create `skills/{role_id}/SKILL.md` | Per-role directories, coexist |
 
 For agents with per-role files, idempotent skip (`if exists, skip download`) is safe. For agents with shared files (OpenClaw), always overwrite.
+
+### 8. Role URL Path: No `/docs/` Prefix
+
+The website `echobird.ai` serves role files at `/roles/{lang}/{filePath}`, **NOT** `/docs/roles/...`.
+
+| URL | Result |
+|-----|--------|
+| `echobird.ai/roles/en/engineering/engineering-ai-engineer.md` | ✅ Raw markdown |
+| `echobird.ai/docs/roles/en/engineering/engineering-ai-engineer.md` | ❌ Website homepage HTML |
+
+The `docs/` directory exists in the Git repo (`d:\Echobird\docs\roles\...`), but Cloudflare Pages strips the `docs/` prefix when serving. Using the wrong URL causes Bridge to download HTML instead of markdown → SOUL.md gets corrupted or `set_role` times out.
+
+**Rule:** When constructing role URLs in code, always use `https://echobird.ai/roles/{lang}/{filePath}` — no `/docs/` prefix.

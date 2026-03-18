@@ -713,8 +713,8 @@ const ChannelsInner: React.FC = () => {
                     if (role?.filePath) {
                         const isZh = locale.startsWith('zh');
                         const roleUrl = isZh
-                            ? `https://echobird.ai/docs/roles/zh-Hans/${role.filePath}`
-                            : `https://echobird.ai/docs/roles/en/${role.filePath}`;
+                            ? `https://echobird.ai/roles/zh-Hans/${role.filePath}`
+                            : `https://echobird.ai/roles/en/${role.filePath}`;
                         try {
                             await api.bridgeSetRoleRemote(serverId, agentId, role.id, roleUrl);
                         } catch (e) {
@@ -807,16 +807,18 @@ const ChannelsInner: React.FC = () => {
                     return (
                         <div className="flex items-center gap-2 mt-1 mb-0.5 select-none">
                             <div onClick={() => setShowRolePicker(true)} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-card text-xs font-mono cursor-pointer transition-all border shadow-cyber-card hover:brightness-110 ${
-                                hasRole
+                                (hasRole || allActiveAgents[channelKey])
                                     ? 'border-cyber-accent bg-cyber-accent/10 text-cyber-accent'
                                     : 'border-cyber-text-muted/30 bg-black/40 text-cyber-text-muted/50'
                             }`}>
                                 {hasRole ? (
                                     <img src={agent.icon} alt={agent.name} className="w-4 h-4" />
+                                ) : allActiveAgents[channelKey] ? (
+                                    <img src={agent.icon} alt={agent.name} className="w-4 h-4" />
                                 ) : (
                                     <span className="text-cyber-text-muted/40 text-sm font-bold">?</span>
                                 )}
-                                <span>{hasRole ? selectedRoleForChannel.name : t('channel.selectRoleAgent')}</span>
+                                <span>{hasRole ? selectedRoleForChannel.name : allActiveAgents[channelKey] || t('channel.selectRoleAgent')}</span>
                             </div>
                             {bridgeConnectionStatus === 'connecting' && <span className="text-yellow-400 text-xs font-mono animate-pulse">{t('channel.connecting')}</span>}
                             {bridgeConnectionStatus === 'disconnected' && <span className="text-red-400 text-xs font-mono">{t('channel.connectionFailed')}</span>}
@@ -942,6 +944,9 @@ export function ChannelsPanel() {
                                         const selectedAgent = allActiveAgents[ch.id];
                                         const agent = selectedAgent ? AGENT_LIST.find(a => a.name === selectedAgent) : null;
                                         const hasRole = !!allSelectedRoles[ch.id]?.id;
+                                        if (agent && hasRole) {
+                                            return <img src={agent.icon} alt={agent.name} className="w-9 h-9 flex-shrink-0" />;
+                                        }
                                         if (agent) {
                                             return <img src={agent.icon} alt={agent.name} className="w-9 h-9 flex-shrink-0" />;
                                         }
@@ -963,9 +968,11 @@ export function ChannelsPanel() {
                                             <span className={`text-xs tracking-wide ${isTyping ? 'text-cyber-accent' : isLinked ? 'text-cyber-accent' : isBridgeConnecting ? 'text-yellow-400' : isError ? 'text-red-400' : 'text-cyber-text-muted/70'}`}>
                                                 [{isTyping ? t('common.inputting') : isLinked ? t('channel.linked') : isBridgeConnecting ? t('channel.connecting') : isError ? t('channel.failed') : t('channel.standby')}]
                                             </span>
-                                            <span className={`text-xs truncate ${isTyping ? 'text-cyber-accent' : isLinked ? 'text-cyber-accent' : isBridgeConnecting ? 'text-yellow-400' : isError ? 'text-red-400' : 'text-cyber-text-muted/70'}`}>
-                                                {allSelectedRoles[ch.id]?.name || allActiveAgents[ch.id] || ''}
-                                            </span>
+                                            {(allSelectedRoles[ch.id]?.name || allActiveAgents[ch.id]) && (
+                                                <span className={`text-xs truncate ${isTyping ? 'text-cyber-accent' : isLinked ? 'text-cyber-accent' : isBridgeConnecting ? 'text-yellow-400' : isError ? 'text-red-400' : 'text-cyber-text-muted/70'}`}>
+                                                    {allSelectedRoles[ch.id]?.name || allActiveAgents[ch.id]}
+                                                </span>
+                                            )}
                                         </div>
                                     </div>
                                 </div>
