@@ -213,12 +213,28 @@ pub async fn ssh_connect(
 pub async fn auto_connect_ssh(pool: &SSHPool, server_id: &str) -> Result<(), String> {
     use crate::services::model_manager;
 
-    // Check if already connected
+    // Check if already connected AND connection is still alive
     {
         let connections = pool.lock().await;
-        if connections.contains_key(server_id) {
-            return Ok(());
+        if let Some(client) = connections.get(server_id) {
+            // Health check: try a quick command to verify connection is alive
+            match tokio::time::timeout(
+                std::time::Duration::from_secs(3),
+                client.execute("echo ok")
+            ).await {
+                Ok(Ok(_)) => return Ok(()),  // Connection is alive
+                _ => {
+                    log::warn!("[SSH] Stale connection detected for '{}', will reconnect", server_id);
+                }
+            }
+        } else {
+            // No connection in pool at all
         }
+    }
+    // Remove stale connection before reconnecting
+    {
+        let mut connections = pool.lock().await;
+        connections.remove(server_id);
     }
 
     // Load credentials from disk
