@@ -205,9 +205,3 @@ export type AgentEvent =
     | { type: 'done' }
     | { type: 'error'; message: string }
     | { type: 'state'; state: string };
-
-export interface AgentStatusResponse {
-    session_id: string;
-    running: boolean;
-    message_count: number;
-}

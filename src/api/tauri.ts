@@ -8,7 +8,7 @@ import type {
     LocalServerInfo, GgufFile, HfModelEntry, ModelSettings,
     ToolModelInfo, ApplyModelInput, AppLogEntry,
     ChannelConfig, AppSettings, StoreModel,
-    AgentRequest, AgentEvent, AgentStatusResponse,
+    AgentRequest, AgentEvent,
 } from './types';
 import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 
@@ -576,16 +576,8 @@ export async function resetAgent(serverKey: string): Promise<string> {
     return invoke('agent_reset', { serverKey });
 }
 
-export async function getAgentStatus(serverKey: string): Promise<AgentStatusResponse> {
-    return invoke('agent_status', { serverKey });
-}
-
 export function listenAgentEvents(handler: (event: AgentEvent) => void): Promise<UnlistenFn> {
     return listen<AgentEvent>('agent_event', (e) => handler(e.payload));
-}
-
-export async function loadAgentHistory(serverKey: string): Promise<Array<{ role: string; text: string }>> {
-    return invoke('load_agent_history', { serverKey });
 }
 
 // ─── Channel Config ───
