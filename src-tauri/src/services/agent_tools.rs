@@ -247,6 +247,31 @@ pub fn get_tool_definitions() -> Vec<super::llm_client::ToolDef> {
                 "required": ["server_id", "base_url", "api_key", "model_id"]
             }),
         },
+        super::llm_client::ToolDef {
+            name: "upload_file".into(),
+            description: "Upload a local file to a remote server via SSH. \
+                Transfers the file using base64 encoding through the SSH channel (no SCP/SFTP needed). \
+                Supports large files (chunked transfer). The uploaded file is automatically made executable (chmod +x). \
+                Use this to deploy binaries, scripts, or any file from this machine to a remote server.".into(),
+            parameters: json!({
+                "type": "object",
+                "properties": {
+                    "local_path": {
+                        "type": "string",
+                        "description": "Absolute path to the local file to upload"
+                    },
+                    "remote_path": {
+                        "type": "string",
+                        "description": "Absolute path on the remote server where the file should be placed"
+                    },
+                    "server_id": {
+                        "type": "string",
+                        "description": "SSH server ID to upload to"
+                    }
+                },
+                "required": ["local_path", "remote_path", "server_id"]
+            }),
+        },
     ]
 }
 
@@ -370,6 +395,15 @@ pub async fn execute_tool(
                 return ToolResult { success: false, output: "server_id, base_url, api_key, and model_id are all required".into() };
             }
             exec_configure_openclaw(server_id, base_url, api_key, model_id, provider_name, ssh_pool).await
+        }
+        "upload_file" => {
+            let local_path = args["local_path"].as_str().unwrap_or("");
+            let remote_path = args["remote_path"].as_str().unwrap_or("");
+            let server_id = args["server_id"].as_str().unwrap_or("");
+            if local_path.is_empty() || remote_path.is_empty() || server_id.is_empty() {
+                return ToolResult { success: false, output: "local_path, remote_path, and server_id are all required".into() };
+            }
+            exec_upload_file(local_path, remote_path, server_id, ssh_pool).await
         }
         _ => ToolResult { success: false, output: format!("Unknown tool: {}", name) },
     }
@@ -1246,3 +1280,104 @@ fn strip_html_tags(html: &str) -> String {
     }
     result
 }
+
+// ── Upload File (local → remote via SSH base64) ──
+
+async fn exec_upload_file(local_path: &str, remote_path: &str, server_id: &str, ssh_pool: &SSHPool) -> ToolResult {
+    log::info!("[AgentTools] Uploading file {} → {}:{}", local_path, server_id, remote_path);
+
+    // Read local file
+    let file_data = match std::fs::read(local_path) {
+        Ok(data) => data,
+        Err(e) => return ToolResult {
+            success: false,
+            output: format!("Failed to read local file '{}': {}", local_path, e),
+        },
+    };
+
+    let file_size = file_data.len();
+    log::info!("[AgentTools] File size: {} bytes", file_size);
+
+    // Base64 encode
+    let encoded = {
+        use base64::Engine;
+        base64::engine::general_purpose::STANDARD.encode(&file_data)
+    };
+
+    // Ensure remote directory exists
+    let remote_dir = std::path::Path::new(remote_path)
+        .parent()
+        .map(|p| p.to_string_lossy().to_string())
+        .unwrap_or_else(|| ".".to_string());
+    let mkdir_result = exec_ssh_shell(&format!("mkdir -p {}", remote_dir), server_id, ssh_pool).await;
+    if !mkdir_result.success {
+        return ToolResult {
+            success: false,
+            output: format!("Failed to create remote directory '{}': {}", remote_dir, mkdir_result.output),
+        };
+    }
+
+    // Transfer via base64 in chunks (SSH channel has size limits)
+    let chunk_size = 65536; // 64KB base64 chunks
+    let chunks: Vec<&str> = encoded.as_bytes()
+        .chunks(chunk_size)
+        .map(|c| std::str::from_utf8(c).unwrap_or(""))
+        .collect();
+
+    if chunks.len() == 1 {
+        // Small file — single command
+        let cmd = format!("echo '{}' | base64 -d > {}", encoded, remote_path);
+        let result = exec_ssh_shell(&cmd, server_id, ssh_pool).await;
+        if !result.success {
+            return ToolResult {
+                success: false,
+                output: format!("Upload failed: {}", result.output),
+            };
+        }
+    } else {
+        // Large file — accumulate base64 text in chunks, then decode once
+        let first_cmd = format!("printf '%s' '{}' > {}.b64", chunks[0], remote_path);
+        let first_result = exec_ssh_shell(&first_cmd, server_id, ssh_pool).await;
+        if !first_result.success {
+            return ToolResult {
+                success: false,
+                output: format!("Upload chunk 0 failed: {}", first_result.output),
+            };
+        }
+
+        for (i, chunk) in chunks[1..].iter().enumerate() {
+            let cmd = format!("printf '%s' '{}' >> {}.b64", chunk, remote_path);
+            let chunk_result = exec_ssh_shell(&cmd, server_id, ssh_pool).await;
+            if !chunk_result.success {
+                return ToolResult {
+                    success: false,
+                    output: format!("Upload chunk {} failed: {}", i + 1, chunk_result.output),
+                };
+            }
+        }
+
+        // Decode the concatenated base64 in one shot
+        let decode_cmd = format!("base64 -d {}.b64 > {} && rm {}.b64",
+            remote_path, remote_path, remote_path);
+        let decode_result = exec_ssh_shell(&decode_cmd, server_id, ssh_pool).await;
+        if !decode_result.success {
+            return ToolResult {
+                success: false,
+                output: format!("Upload decode failed: {}", decode_result.output),
+            };
+        }
+    }
+
+    // Make executable (useful for binaries)
+    let _ = exec_ssh_shell(&format!("chmod +x {}", remote_path), server_id, ssh_pool).await;
+
+    // Verify
+    let verify = exec_ssh_shell(&format!("ls -la {}", remote_path), server_id, ssh_pool).await;
+
+    ToolResult {
+        success: true,
+        output: format!("Uploaded {} bytes ({} chunks) to {}:{}\n{}",
+            file_size, chunks.len(), server_id, remote_path, verify.output),
+    }
+}
+
