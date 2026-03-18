@@ -187,6 +187,55 @@ The URL is constructed in `Channels.tsx` in the `sendMessage` function. The role
 
 This logic is already in `Channels.tsx`. If your new agent also reads its config only at session start, the existing code handles it. If the agent reads config per-message, no session reset is needed.
 
+## Step 8: Add Mother Agent Install & Configure Docs
+
+File: `docs/api/tools/install/{id}.json`
+
+This file tells Mother Agent HOW to install and configure the agent on remote servers via SSH. Without this, Mother Agent cannot help users deploy the agent.
+
+### 8a. Create install JSON
+
+Use `docs/api/tools/install/openclaw.json` as the reference template:
+
+```json
+{
+    "id": "youragent",
+    "displayName": "Your Agent",
+    "homepage": "https://...",
+    "docs": "https://...",
+    "github": "https://...",
+    "install": {
+        "one-liner (macOS / Linux / WSL2)": "curl -fsSL https://... | bash",
+        "npm (if Node.js already installed)": "npm install -g youragent@latest",
+        "note": "Installation notes, special requirements, etc."
+    },
+    "configure": {
+        "note": "How to configure model API credentials on remote servers",
+        "steps": ["1. ...", "2. ...", "3. ..."],
+        "merge_script": "python3 -c \"...\"",
+        "after_configure": "restart command",
+        "verify": "verification command"
+    }
+}
+```
+
+**Key sections**:
+- `install` — All installation methods (one-liner, npm, manual). Include `--no-onboard` variant for SSH
+- `configure` — How to write API key / model config on the remote server. Include a `merge_script` that preserves existing config
+
+### 8b. Register in index.json
+
+Add the tool ID to `docs/api/tools/install/index.json`:
+
+```json
+{
+    "ids": ["claudecode", "openclaw", "opencode", "youragent"]
+}
+```
+
+> [!IMPORTANT]
+> The `configure` section is critical for remote deployment. Without it, Mother Agent can install the agent but cannot configure the API key, making it unusable. Reference `openclaw.json`'s `merge_script` and `field_mapping` for the pattern.
+
 ---
 
 ## Key Files Reference
@@ -199,6 +248,8 @@ This logic is already in `Channels.tsx`. If your new agent also reads its config
 | `src/components/AgentRolePicker.tsx` | Add to `AGENT_TOOLS[]`, set `enabled: true` |
 | `src/pages/Channels.tsx` | Add to `AGENT_LIST[]` |
 | `public/icons/tools/{id}.svg` | **[NEW]** Agent icon |
+| `docs/api/tools/install/{id}.json` | **[NEW]** Mother Agent install & configure docs |
+| `docs/api/tools/install/index.json` | Register new tool ID |
 
 ---
 
@@ -212,6 +263,8 @@ This logic is already in `Channels.tsx`. If your new agent also reads its config
 - [ ] Role switch forces new session (agent responds as new persona)
 - [ ] Red dot notification works when response arrives on non-active channel
 - [ ] Remote server detection works (if `bridgeDetectAgentsRemote` is implemented)
+- [ ] Mother Agent can install the agent on a remote server using install docs
+- [ ] Mother Agent can configure API key on a remote server using configure docs
 
 ---
 
@@ -225,3 +278,5 @@ This logic is already in `Channels.tsx`. If your new agent also reads its config
 6. **detectByConfigDir is not enough**: Must also check executable exists
 7. **UTF-8 no-BOM everywhere**: BOM breaks Tauri build. Use `/encoding` workflow
 8. **Commit immediately after fixing bugs**: Uncommitted changes get lost between sessions
+9. **Install docs are essential**: Without `docs/api/tools/install/{id}.json`, Mother Agent cannot deploy the agent remotely
+
