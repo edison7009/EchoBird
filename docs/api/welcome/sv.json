@@ -24,8 +24,8 @@
         },
         {
             "step": "04",
-            "title": "Lägg till färdigheter och börja arbeta",
-            "desc": "Bläddra i [Skill Browser] och spara de färdigheter du behöver. Gå sedan till [Channels] och chatta med din Agent — som att skicka ett meddelande till en kollega."
+            "title": "Börja arbeta",
+            "desc": "Gå till [Channels] och chatta med din Agent för att tilldela färdigheter eller starta en arbetsplan — som att skicka ett meddelande till en kollega."
         },
         {
             "step": "tip",

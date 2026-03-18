@@ -24,8 +24,8 @@
         },
         {
             "step": "04",
-            "title": "Lisää taitoja ja aloita työskentely",
-            "desc": "Selaa [Skill Browser] -sivua ja tallenna haluamasi taidot suosikkeihin. Siirry sitten [Channels] -sivulle ja chatta Agenttisi kanssa — aivan kuin viestittäisit työtoverille."
+            "title": "Aloita työskentely",
+            "desc": "Siirry [Channels] -sivulle ja chatta Agenttisi kanssa taitojen asettamiseksi tai työsuunnitelman käynnistämiseksi — aivan kuin viestittäisit työtoverille."
         },
         {
             "step": "tip",

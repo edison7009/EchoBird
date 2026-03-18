@@ -24,8 +24,8 @@
         },
         {
             "step": "04",
-            "title": "Skills hinzufügen und loslegen",
-            "desc": "Durchsuche [Skill Browser] nach benötigten Skills und speichere sie. Dann geh zu [Channels] und chatte mit deinem Agenten — wie eine Nachricht an einen Kollegen."
+            "title": "Loslegen",
+            "desc": "Geh zu [Channels] und chatte mit deinem Agenten, um Skills zuzuweisen oder einen Arbeitsplan zu starten — wie eine Nachricht an einen Kollegen."
         },
         {
             "step": "tip",
