@@ -256,10 +256,14 @@ const ChannelsInner: React.FC = () => {
             // Debounced save to disk (only user/assistant messages)
             if (channelFileKey) {
                 const fk = channelFileKey;
-                const save = next.filter(m => m.role === 'user' || m.role === 'assistant');
+                const save = next.filter(m => m.role === 'user' || m.role === 'assistant' || m.role === 'system');
                 if (saveDebounceRef.current) clearTimeout(saveDebounceRef.current);
                 saveDebounceRef.current = setTimeout(() => {
-                    channelHistorySave(fk, save.map(m => ({ role: m.role, content: m.content }))).catch(() => {});
+                    channelHistorySave(fk, save.map(m => ({
+                        role: m.role,
+                        // For system messages, persist i18nKey as content (backend only stores role+content)
+                        content: (m.role === 'system' && m.i18nKey) ? m.i18nKey : m.content,
+                    }))).catch(() => {});
                 }, 800);
             }
             return { ...all, [channelKey]: next };
@@ -380,7 +384,13 @@ const ChannelsInner: React.FC = () => {
             if (result.messages.length > 0) {
                 setAllBridgeMessages(all => ({
                     ...all,
-                    [key]: result.messages.map(m => ({ role: m.role, content: m.content })),
+                    [key]: result.messages.map(m => {
+                        // Restore i18nKey for system messages (was encoded as content on save)
+                        if (m.role === 'system' && m.content.startsWith('error.')) {
+                            return { role: m.role, content: '', i18nKey: m.content };
+                        }
+                        return { role: m.role, content: m.content };
+                    }),
                 }));
                 setChDisplayCount(CH_PAGE_SIZE);
             }
@@ -426,7 +436,12 @@ const ChannelsInner: React.FC = () => {
                 setChShowSkeleton(false);
                 if (result.messages.length === 0) return;
                 const key = channelKey;
-                const older = result.messages.map(m => ({ role: m.role, content: m.content }));
+                const older = result.messages.map(m => {
+                    if (m.role === 'system' && m.content.startsWith('error.')) {
+                        return { role: m.role, content: '', i18nKey: m.content };
+                    }
+                    return { role: m.role, content: m.content };
+                });
                 setAllBridgeMessages(all => ({ ...all, [key]: [...older, ...(all[key] || [])] }));
                 setChDisplayCount(c => c + result.messages.length);
                 requestAnimationFrame(() => {
