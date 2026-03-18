@@ -5,7 +5,8 @@
     "docs": "https://docs.openclaw.ai/",
     "github": "https://github.com/openclaw/openclaw",
     "install": {
-        "one-liner (macOS / Linux / Windows)": "curl -fsSL https://openclaw.ai/install.sh | bash"
+        "one-liner (macOS / Linux)": "curl -fsSL https://openclaw.ai/install.sh | bash",
+        "one-liner (Windows)": "powershell -c \"irm https://openclaw.ai/install.ps1 | iex\""
     },
     "configure": {
         "note": "For LOCAL installations, EchoBird's App Manager handles model configuration automatically. This section is for REMOTE server deployments via Mother Agent (SSH).",
