@@ -216,25 +216,6 @@
             ]
         },
         {
-            "name": "iFlow",
-            "url": "https://platform.iflow.cn",
-            "keyUrl": "https://platform.iflow.cn",
-            "docsUrl": "https://platform.iflow.cn/docs",
-            "baseUrl": "https://apis.iflow.cn/v1",
-            "protocol": "OpenAI",
-            "models": [
-                { "id": "TBStars2-200B-A13B", "name": "TBStars2 200B", "context": 131072, "limit": "Unlimited (key expires 7d)", "free": true },
-                { "id": "deepseek-v3.2", "name": "DeepSeek V3.2", "context": 131072, "limit": "Unlimited (key expires 7d)", "free": true },
-                { "id": "qwen3-coder-plus", "name": "Qwen3 Coder Plus", "context": 262144, "limit": "Unlimited (key expires 7d)", "free": true },
-                { "id": "qwen3-235b-a22b-instruct", "name": "Qwen3 235B", "context": 262144, "limit": "Unlimited (key expires 7d)", "free": true },
-                { "id": "deepseek-r1", "name": "DeepSeek R1", "context": 131072, "limit": "Unlimited (key expires 7d)", "free": true },
-                { "id": "kimi-k2", "name": "Kimi K2", "context": 131072, "limit": "Unlimited (key expires 7d)", "free": true },
-                { "id": "kimi-k2-0905", "name": "Kimi K2 0905", "context": 262144, "limit": "Unlimited (key expires 7d)", "free": true },
-                { "id": "glm-4.6", "name": "GLM 4.6", "context": 204800, "limit": "Unlimited (key expires 7d)", "free": true },
-                { "id": "deepseek-v3", "name": "DeepSeek V3", "context": 131072, "limit": "Unlimited (key expires 7d)", "free": true }
-            ]
-        },
-        {
             "name": "ModelScope",
             "url": "https://modelscope.cn",
             "keyUrl": "https://modelscope.cn/my/myaccesstoken",
