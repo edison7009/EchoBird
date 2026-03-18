@@ -1,1 +1,1 @@
-{"version":"3.0.6","releaseDate":"2026-03-18","releaseNotes":"v3.0.6: Fix UTF-8 panic on CJK commands, restore agent memory, prevent message loss, abort timeout race fix, unified chat spacing, dead code cleanup"}
+{"version":"3.0.7","releaseDate":"2026-03-18","releaseNotes":"Remove legacy WebSocket code, improve Channels page agent detection and role selection UX"}
