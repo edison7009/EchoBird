@@ -180,6 +180,10 @@ pub fn detect_local_agents() -> Vec<AgentStatus> {
         ("opencode",   "OpenCode",    "opencode"),
         ("openclaw",   "OpenClaw",    "openclaw"),
         ("zeroclaw",   "ZeroClaw",    "zeroclaw"),
+        ("nanobot",    "NanoBot",     "nanobot"),
+        ("picoclaw",   "PicoClaw",    "picoclaw"),
+        ("openfang",   "OpenFang",    "openfang"),
+        ("hermes",     "Hermes Agent","hermes"),
     ];
 
     agents.iter().map(|&(id, name, cmd)| {
