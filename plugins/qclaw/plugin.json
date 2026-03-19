@@ -1,0 +1,34 @@
+{
+    "id": "qclaw",
+    "name": "QClaw",
+    "protocol": "stdio-json",
+    "bridge": {
+        "linux": "bridge-linux",
+        "darwin": "bridge-darwin",
+        "win32": "bridge-win.exe"
+    },
+    "cli": {
+        "command": "qclaw",
+        "detectCommand": "qclaw --version",
+        "args": [
+            "agent",
+            "--json",
+            "--agent",
+            "main",
+            "--message"
+        ],
+        "resumeArgs": [
+            "agent",
+            "--json",
+            "--agent",
+            "main",
+            "--session-id",
+            "{sessionId}",
+            "--message"
+        ],
+        "sessionArg": "--session-id",
+        "sessionMode": "always",
+        "modelArg": null,
+        "systemPromptArg": null
+    }
+}

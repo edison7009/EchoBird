@@ -122,6 +122,7 @@ export const AppManagerProvider: React.FC<AppManagerProviderProps> = ({
         'nanobot': null,
         'picoclaw': null,
         'openfang': null,
+        'qclaw': null,
     });
 
     // Set tool model (single selection) - UI state update

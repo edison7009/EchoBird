@@ -6,12 +6,15 @@
         "anthropic"
     ],
     "docs": "https://qclaw.ai",
+    "command": "qclaw",
+    "startCommand": "qclaw gateway --allow-unconfigured",
     "configDir": "~/.qclaw",
     "configFile": "~/.qclaw/openclaw.json",
     "requireConfigFile": false,
     "detectByConfigDir": true,
     "paths": {
         "win32": [
+            "E:/QClaw/QClaw.exe",
             "%ProgramFiles%/QClaw/QClaw.exe",
             "%LOCALAPPDATA%/Programs/QClaw/QClaw.exe"
         ],

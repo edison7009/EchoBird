@@ -920,6 +920,99 @@ pub fn patch_openfang() {
     }
 }
 
+// ─── QClaw Patcher ───
+
+/// Patch QClaw by merging model config into ~/.qclaw/openclaw.json.
+/// QClaw uses the same OpenClaw JSON format with models.providers section.
+pub fn patch_qclaw() {
+    let home = match dirs::home_dir() {
+        Some(h) => h,
+        None => { log::warn!("[Patcher] Cannot determine home dir for QClaw"); return; }
+    };
+
+    let echobird_cfg = home.join(".echobird").join("qclaw.json");
+    if !echobird_cfg.exists() {
+        log::info!("[Patcher] QClaw config not found at {:?}, skipping", echobird_cfg);
+        return;
+    }
+
+    let content = match fs::read_to_string(&echobird_cfg) {
+        Ok(c) => c,
+        Err(e) => { log::warn!("[Patcher] Failed to read qclaw.json: {}", e); return; }
+    };
+
+    let json: serde_json::Value = match serde_json::from_str(&content) {
+        Ok(v) => v,
+        Err(e) => { log::warn!("[Patcher] Invalid qclaw.json: {}", e); return; }
+    };
+
+    let api_key = json.get("apiKey").and_then(|v| v.as_str()).unwrap_or("");
+    let base_url = json.get("baseUrl").and_then(|v| v.as_str()).unwrap_or("");
+    let model_id = json.get("modelId").and_then(|v| v.as_str()).unwrap_or("");
+
+    if api_key.is_empty() || model_id.is_empty() {
+        log::info!("[Patcher] QClaw config incomplete (missing apiKey/modelId), skipping");
+        return;
+    }
+
+    // Build provider URL with /v1 suffix
+    let mut provider_url = base_url.to_string();
+    if !provider_url.is_empty() && !provider_url.ends_with("/v1") {
+        if provider_url.ends_with('/') {
+            provider_url.push_str("v1");
+        } else {
+            provider_url.push_str("/v1");
+        }
+    }
+
+    // Read existing QClaw config (OpenClaw JSON format)
+    let qclaw_dir = home.join(".qclaw");
+    if !qclaw_dir.exists() {
+        let _ = fs::create_dir_all(&qclaw_dir);
+    }
+
+    let config_path = qclaw_dir.join("openclaw.json");
+    let mut config: serde_json::Value = if config_path.exists() {
+        match fs::read_to_string(&config_path) {
+            Ok(s) => serde_json::from_str(&s).unwrap_or_else(|_| serde_json::json!({})),
+            Err(_) => serde_json::json!({}),
+        }
+    } else {
+        serde_json::json!({})
+    };
+
+    // Merge model into models.providers.echobird
+    let provider_name = "echobird";
+    let models_obj = config.as_object_mut().unwrap()
+        .entry("models").or_insert_with(|| serde_json::json!({}));
+    models_obj.as_object_mut().unwrap()
+        .entry("mode").or_insert_with(|| serde_json::json!("merge"));
+    let providers = models_obj.as_object_mut().unwrap()
+        .entry("providers").or_insert_with(|| serde_json::json!({}));
+    providers.as_object_mut().unwrap().insert(provider_name.to_string(), serde_json::json!({
+        "baseUrl": provider_url,
+        "apiKey": api_key,
+        "api": "openai-completions",
+        "models": [{
+            "id": model_id,
+            "name": model_id
+        }]
+    }));
+
+    // Set default model
+    let agents = config.as_object_mut().unwrap()
+        .entry("agents").or_insert_with(|| serde_json::json!({}));
+    let defaults = agents.as_object_mut().unwrap()
+        .entry("defaults").or_insert_with(|| serde_json::json!({}));
+    defaults.as_object_mut().unwrap().insert("model".to_string(),
+        serde_json::json!({ "primary": format!("{}/{}", provider_name, model_id) }));
+
+    match fs::write(&config_path, serde_json::to_string_pretty(&config).unwrap_or_default()) {
+        Ok(_) => log::info!("[Patcher] QClaw config written: {:?} (model={}/{})", config_path, provider_name, model_id),
+        Err(e) => log::warn!("[Patcher] Failed to write QClaw config: {}", e),
+    }
+}
+
 /// Dispatch patch by tool ID
 pub fn patch_tool(tool_id: &str) {
     match tool_id {
@@ -933,6 +1026,7 @@ pub fn patch_tool(tool_id: &str) {
         "nanobot" => patch_nanobot(),
         "picoclaw" => patch_picoclaw(),
         "openfang" => patch_openfang(),
+        "qclaw" => patch_qclaw(),
         _ => log::debug!("[Patcher] No patch needed for tool: {}", tool_id),
     }
 }
