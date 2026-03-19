@@ -1,6 +1,6 @@
 {
     "name": "Hermes Agent",
-    "category": "CLI",
+    "category": "AgentOS",
     "apiProtocol": [
         "openai"
     ],
