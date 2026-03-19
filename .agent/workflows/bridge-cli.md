@@ -6,7 +6,7 @@ description: Architecture reference for Echobird CLI Bridge — how it works, di
 
 ## What is Bridge?
 
-Bridge is the **communication layer** between the EchoBird desktop app and AI agents (OpenClaw, Claude Code, OpenCode, ZeroClaw). It translates EchoBird's JSON protocol into CLI commands for each agent.
+Bridge is the **communication layer** between the EchoBird desktop app and AI agents (OpenClaw, Claude Code, OpenCode, ZeroClaw, NanoBot, PicoClaw, OpenFang, Hermes Agent). It translates EchoBird's JSON protocol into CLI commands for each agent.
 
 ## Two Directories — Why?
 
@@ -82,6 +82,9 @@ Bridge does NOT inject roles as system prompts. It **downloads and writes role f
 | Claude Code | `~/.claude/agents/{role_id}.md` | Markdown |
 | OpenCode | `~/.config/opencode/agents/{role_id}.md` | Markdown |
 | ZeroClaw | `~/.zeroclaw/workspace/skills/{role_id}/SKILL.md` | Markdown |
+| NanoBot | `~/.nanobot/workspace/AGENTS.md` (overwrites) | Markdown |
+| PicoClaw | `~/.picoclaw/workspace/AGENT.md` (overwrites) | Markdown |
+| Hermes Agent | `~/.hermes/SOUL.md` (overwrites) | Markdown |
 
 Role URLs use **GitHub raw content** (NEVER the rendered website):
 - Pattern: `https://raw.githubusercontent.com/edison7009/Echobird-MotherAgent/main/docs/roles/{lang}/{filePath}`
@@ -108,7 +111,7 @@ Role URLs use **GitHub raw content** (NEVER the rendered website):
 Each agent uses one of two protocols defined in `plugin.json`:
 
 - **`stdio-json`** (OpenClaw): Bridge runs as persistent subprocess, communicates via stdin/stdout JSON
-- **`cli-oneshot`** (Claude Code, OpenCode, ZeroClaw): Bridge invokes CLI once per message, no persistent process
+- **`cli-oneshot`** (Claude Code, OpenCode, ZeroClaw, NanoBot, PicoClaw, OpenFang, Hermes Agent): Bridge invokes CLI once per message, no persistent process
 
 ## Adding a New Agent
 
@@ -137,7 +140,7 @@ To add support for a new AI agent tool:
 
 3. **Recompile bridge** for all 5 platforms (CI does this)
 
-4. **Add to AGENT_LIST** in frontend (`src/pages/Channels.tsx` or agent config)
+4. **Agent list is now dynamic** — loaded from `plugins/` at runtime. No hardcoded AGENT_LIST needed.
 
 5. **Add role URL** on CDN: `https://raw.githubusercontent.com/edison7009/Echobird-MotherAgent/main/docs/roles/{lang}/{role_id}.md`
 
@@ -225,8 +228,11 @@ OpenClaw reads SOUL.md only at **session start**. Changing SOUL.md mid-session h
 | Claude Code | Create `agents/{role_id}.md` | Per-role files, coexist |
 | OpenCode | Create `agents/{role_id}.md` | Per-role files, coexist |
 | ZeroClaw | Create `skills/{role_id}/SKILL.md` | Per-role directories, coexist |
+| NanoBot | Overwrite `workspace/AGENTS.md` | Single workspace, roles share same file |
+| PicoClaw | Overwrite `workspace/AGENT.md` | Single workspace, mtime-tracked |
+| Hermes Agent | Overwrite `SOUL.md` | Auto-read on each `hermes chat` |
 
-For agents with per-role files, idempotent skip (`if exists, skip download`) is safe. For agents with shared files (OpenClaw), always overwrite.
+For agents with per-role files, idempotent skip (`if exists, skip download`) is safe. For agents with shared files (OpenClaw, NanoBot, PicoClaw, Hermes), always overwrite.
 
 ### 8. Role URL Path: No `/docs/` Prefix
 

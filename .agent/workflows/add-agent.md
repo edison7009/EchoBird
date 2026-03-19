@@ -218,17 +218,14 @@ Place the icon at `public/icons/tools/{agent-id}.svg` (or `.png`).
 
 ---
 
-## Step 5: Update Frontend -- AGENT_LIST in Channels.tsx
+## Step 5: Agent List (Now Dynamic)
 
-File: `src/pages/Channels.tsx`
+~~File: `src/pages/Channels.tsx`~~
 
-Find the `AGENT_LIST` constant and add:
+**No longer needed.** The agent list is dynamically loaded from `plugins/` directory at runtime. Any agent with a valid `plugin.json` is automatically available in Channels.
 
-```typescript
-{ id: 'claudecode', name: 'Claude Code' },
-```
-
-This list maps display names to plugin IDs for bridge communication.
+> [!NOTE]
+> Previously, agents needed to be added to a hardcoded `AGENT_LIST` in Channels.tsx. This was refactored to dynamic loading from plugin configs.
 
 ---
 
@@ -396,3 +393,11 @@ Add the tool ID to `docs/api/tools/install/index.json`:
 39. **Output uses lobster emoji delimiter**: PicoClaw outputs response twice -- once in the log line (with metadata), once clean after the lobster emoji. Use `rfind("lobster")` to extract only the clean response after the last occurrence.
 40. **`<think>` blocks in output**: Models like MiniMax output reasoning in `<think>...</think>` tags. Must strip these with `strip_think_tags()` after extracting the clean response.
 41. **Role download must be generic**: `download_role_file_direct()` was hardcoded to claudecode/zeroclaw. Use `_` catch-all branch with `format!(".{}", agent_id)` to support all agents dynamically. Also write AGENT.md to `~/.{agent_id}/workspace/AGENT.md` when the workspace exists.
+
+
+### Hermes Agent Specific (cli-oneshot, Python)
+42. **Hermes does NOT support native Windows**: Only Linux/macOS/WSL2. Set `""win32"": []` in paths.json. App Manager shows it with ""AI Auto-Install"" button on Windows.
+43. **Hermes uses `hermes chat -q` not `--message`**: The `-q` flag is for question input. Plugin uses `messageMode: ""last-arg""`.
+44. **SOUL.md auto-read per chat**: Unlike OpenClaw (reads only at session start), Hermes reads `~/.hermes/SOUL.md` on every `hermes chat` invocation. No session reset needed on role change.
+45. **Tauri `_up_/tools/` cache**: When adding new `tools/` directories during development, Tauri caches the resource copy at `D:\build-output\debug\_up_\tools\`. New tool directories must be manually copied there or the app rebuilt. This ONLY affects dev mode.
+46. **Version detection: strip ANSI + support v-prefix**: Tools like NanoBot output `v0.1.4.post5` (v-prefix) and PicoClaw outputs colored banners. `get_version()` in `platform.rs` must strip ANSI codes and handle v-prefixed version strings.
