@@ -615,7 +615,7 @@ const ChannelsInner: React.FC = () => {
                 // Local channel: auto-start bridge subprocess if needed
                 if (bridgeConnectionStatus !== 'connected') {
                     setBridgeConnectionStatus('connecting');
-                    const selectedAgent = allActiveAgents[channelKey] || 'OpenClaw';
+                    const selectedAgent = allActiveAgents[channelKey] || '';
                     const agentEntry = AGENT_LIST.find(a => a.name === selectedAgent);
                     const startResult = await api.bridgeStart(agentEntry?.id);
                     if (startResult.status === 'connected') {
@@ -637,9 +637,9 @@ const ChannelsInner: React.FC = () => {
                     const roleUrl = isZh
                         ? `https://raw.githubusercontent.com/edison7009/Echobird-MotherAgent/main/docs/roles/zh-Hans/${role.filePath}`
                         : `https://raw.githubusercontent.com/edison7009/Echobird-MotherAgent/main/docs/roles/en/${role.filePath}`;
-                    const selectedAgent = allActiveAgents[channelKey] || 'OpenClaw';
+                    const selectedAgent = allActiveAgents[channelKey] || '';
                     const agentEntry = AGENT_LIST.find(a => a.name === selectedAgent);
-                    const agentId = agentEntry?.id || 'openclaw';
+                    const agentId = agentEntry?.id || '';
                     const roleKey = `${agentId}:${role.id}`;
 
                     // Re-apply if role or agent changed
@@ -656,9 +656,9 @@ const ChannelsInner: React.FC = () => {
                     }
                 } else if (lastApplied) {
                     // User cleared role → reset agent to default mode
-                    const selectedAgent = allActiveAgents[channelKey] || 'OpenClaw';
+                    const selectedAgent = allActiveAgents[channelKey] || '';
                     const agentEntry = AGENT_LIST.find(a => a.name === selectedAgent);
-                    const agentId = agentEntry?.id || 'openclaw';
+                    const agentId = agentEntry?.id || '';
                     try {
                         await api.bridgeSetRoleLocal(agentId, '', '');
                         setBridgeSessionId(undefined);
@@ -686,7 +686,7 @@ const ChannelsInner: React.FC = () => {
                     return;
                 }
                 setBridgeConnectionStatus('connected');
-                const selectedAgentName = allActiveAgents[channelKey] || 'OpenClaw';
+                const selectedAgentName = allActiveAgents[channelKey] || '';
                 setBridgeAgentName(selectedAgentName);
 
                 // After 30s, inject a "working" hint so the user knows the agent is running —
@@ -701,7 +701,7 @@ const ChannelsInner: React.FC = () => {
 
                 try {
                     const agentEntry = AGENT_LIST.find(a => a.name === selectedAgentName);
-                    const agentId = agentEntry?.id || 'openclaw';
+                    const agentId = agentEntry?.id || '';
 
                     // ── Step 1: Detect if agent is installed on remote server ──
                     // (cached per channel — only detect once, not every message)
@@ -825,8 +825,8 @@ const ChannelsInner: React.FC = () => {
             {activeChannel && (
                 <>
                 {(() => {
-                    const selectedAgent = allActiveAgents[channelKey] || 'OpenClaw';
-                    const agent = AGENT_LIST.find(a => a.name === selectedAgent) || AGENT_LIST[0];
+                    const selectedAgent = allActiveAgents[channelKey] || '';
+                    const agent = selectedAgent ? AGENT_LIST.find(a => a.name === selectedAgent) : null;
                     const hasRole = selectedRoleForChannel && selectedRoleForChannel.id;
                     return (
                         <div className="flex items-center gap-2 mt-1 mb-0.5 select-none">
@@ -835,9 +835,9 @@ const ChannelsInner: React.FC = () => {
                                     ? 'border-cyber-accent bg-cyber-accent/10 text-cyber-accent'
                                     : 'border-cyber-text-muted/30 bg-black/40 text-cyber-text-muted/50'
                             }`}>
-                                {hasRole ? (
+                                {hasRole && agent ? (
                                     <img src={agent.icon} alt={agent.name} className="w-4 h-4" />
-                                ) : allActiveAgents[channelKey] ? (
+                                ) : allActiveAgents[channelKey] && agent ? (
                                     <img src={agent.icon} alt={agent.name} className="w-4 h-4" />
                                 ) : (
                                     <span className="text-cyber-text-muted/40 text-sm font-bold">?</span>
@@ -916,7 +916,7 @@ const ChannelsInner: React.FC = () => {
                         else { localStorage.removeItem(`eb_ch_${channelFileKeyForPersist}_role`); }
                     }
                 }}
-                selectedAgent={allActiveAgents[channelKey] || 'OpenClaw'}
+                selectedAgent={allActiveAgents[channelKey] || ''}
                 onSelectAgent={(name) => {
                     setActiveAgentFor(channelKey, name);
                     if (channelFileKeyForPersist) { localStorage.setItem(`eb_ch_${channelFileKeyForPersist}_agent`, name); }

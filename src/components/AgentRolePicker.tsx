@@ -101,6 +101,12 @@ export const AgentRolePicker: React.FC<AgentRolePickerProps> = ({
             api.detectLocalAgents().then(statuses => {
                 if (cancelled) return;
                 setAgentStatuses(statuses);
+                // If no enabled agent is installed locally, clear stale role selection
+                const anyAvailable = AGENT_TOOLS.some(a => a.enabled && statuses.find(s => s.id === a.id)?.installed);
+                if (!anyAvailable) {
+                    setLocalSelected(null);
+                    onSelectRole('', '', '');
+                }
                 setDetecting(false);
             }).catch(() => {
                 if (cancelled) return;
