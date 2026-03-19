@@ -20,7 +20,7 @@ The website's version API (`/api/version/index.json`) is hosted on the public re
 
 ## Step 1: Bump version numbers
 
-Update the version in **4 places** (NOT `docs/api/version/index.json` yet):
+Update the version in **3 places** (NOT `docs/api/version/index.json` yet):
 
 // turbo
 
