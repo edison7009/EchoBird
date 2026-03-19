@@ -381,56 +381,6 @@ fn read_echobird_relay(tool_id: &str) -> Option<ModelInfo> {
 
 
 // ════════════════════════════════════════════════════════════════
-//  Type 3a: CodeBuddy / CodeBuddyCN
-//  ~/.codebuddy/models.json  {models: [...], availableModels: [...]}
-// ════════════════════════════════════════════════════════════════
-
-fn apply_codebuddy(tool_id: &str, model_info: &ModelInfo) -> ApplyResult {
-    // CodeBuddy/CodeBuddyCN use ~/.codebuddy, WorkBuddy uses ~/.workbuddy
-    let config_dir = if tool_id == "workbuddy" { ".workbuddy" } else { ".codebuddy" };
-    let config_path = dirs::home_dir().unwrap_or_default().join(config_dir).join("models.json");
-
-    // URL must end with /chat/completions for CodeBuddy
-    let mut url = model_info.base_url.as_deref().unwrap_or("").to_string();
-    if !url.is_empty() && !url.ends_with("/chat/completions") {
-        if !url.ends_with('/') { url.push('/'); }
-        url.push_str("chat/completions");
-    }
-
-    let vendor = model_info.base_url.as_deref()
-        .map(|u| extract_domain_name(u)).unwrap_or_else(|| "unknown".to_string());
-
-    let model_id = model_info.model.as_deref()
-        .or(model_info.name.as_deref()).unwrap_or("Echobird-model");
-    let display_name = model_info.name.as_deref()
-        .or(model_info.model.as_deref()).unwrap_or("Echobird Model");
-
-    let config = serde_json::json!({
-        "models": [{
-            "id": model_id,
-            "name": display_name,
-            "vendor": vendor,
-            "apiKey": model_info.api_key.as_deref().unwrap_or(""),
-            "url": url,
-            "maxInputTokens": 200000,
-            "maxOutputTokens": 8192,
-            "supportsToolCall": true,
-            "supportsImages": true,
-        }],
-        "availableModels": [model_id]
-    });
-
-    match write_json_file(&config_path, &config) {
-        Ok(_) => ApplyResult {
-            success: true,
-            message: format!("Model \"{}\" applied to CodeBuddy. Config: {}", display_name, config_path.display()),
-        },
-        Err(e) => ApplyResult { success: false, message: e },
-    }
-}
-
-
-// ════════════════════════════════════════════════════════════════
 //  Type 3b: OpenCode
 //  ~/.config/opencode/opencode.json  {provider: {X: {npm, options, models}}}
 // ════════════════════════════════════════════════════════════════
