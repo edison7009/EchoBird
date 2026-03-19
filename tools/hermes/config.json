@@ -1,0 +1,5 @@
+{
+    "configFile": "~/.echobird/hermes.json",
+    "format": "json",
+    "custom": true
+}

@@ -1,0 +1,54 @@
+{
+    "id": "hermes",
+    "displayName": "Hermes Agent",
+    "homepage": "https://hermes-agent.nousresearch.com",
+    "docs": "https://hermes-agent.nousresearch.com/docs/",
+    "github": "https://github.com/NousResearch/hermes-agent",
+    "install": {
+        "one-liner (macOS / Linux)": "curl -fsSL https://raw.githubusercontent.com/NousResearch/hermes-agent/main/scripts/install.sh | bash",
+        "note": "Python-based agent by Nous Research. Requires Linux or macOS (WSL2 on Windows). After install, run 'hermes setup' to initialize or 'hermes model' to configure the LLM provider."
+    },
+    "configure": {
+        "note": "For LOCAL installations, EchoBird's App Manager handles model configuration automatically via ~/.echobird/hermes.json. This section is for REMOTE server deployments via Mother Agent (SSH).",
+        "config_file": "~/.hermes/.env",
+        "config_file_yaml": "~/.hermes/config.yaml",
+        "first_run": {
+            "description": "Hermes stores API keys in ~/.hermes/.env (dotenv format) and model settings in ~/.hermes/config.yaml (YAML). The .env file uses standard environment variable format.",
+            "required_fields": {
+                "OPENAI_BASE_URL": "(string) API endpoint URL with /v1 suffix, e.g. 'https://api.minimaxi.com/v1'",
+                "OPENAI_API_KEY": "(string) API key for the LLM provider",
+                "LLM_MODEL": "(string) Model name, e.g. 'MiniMax-M2.7', 'deepseek-chat'"
+            },
+            "example_env": "OPENAI_BASE_URL=https://api.minimaxi.com/v1\nOPENAI_API_KEY=sk-your-key-here\nLLM_MODEL=MiniMax-M2.7",
+            "common_mistakes": [
+                "WRONG: writing to config.yaml for API keys (secrets go in .env only)",
+                "RIGHT: writing OPENAI_BASE_URL, OPENAI_API_KEY, LLM_MODEL to ~/.hermes/.env",
+                "WRONG: OPENAI_BASE_URL without /v1 suffix (causes 404 errors)",
+                "RIGHT: OPENAI_BASE_URL=https://api.minimaxi.com/v1"
+            ]
+        },
+        "field_mapping": {
+            "description": "EchoBird sends model data in the '[Attached models for deployment]' block. Map to Hermes ~/.hermes/.env as follows:",
+            "attachment_model_field": "-> LLM_MODEL",
+            "attachment_baseUrl": "-> OPENAI_BASE_URL (append /v1 if needed)",
+            "attachment_apiKey": "-> OPENAI_API_KEY"
+        },
+        "steps": [
+            "1. Parse the '[Attached models for deployment]' block to extract: name, model (=modelId), baseUrl, apiKey.",
+            "2. Ensure baseUrl ends with /v1. If not, append /v1.",
+            "3. Run the merge_script below to update ~/.hermes/.env with the extracted values.",
+            "4. Verify: hermes --version (should print version info)"
+        ],
+        "merge_script": "python3 -c \"\nimport os, re\n\n# --- fill from '[Attached models for deployment]' block ---\nMODEL_ID   = '<attachment model field>'   # e.g. MiniMax-M2.7\nBASE_URL   = '<attachment baseUrl>'        # e.g. https://api.minimaxi.com\nAPI_KEY    = '<attachment apiKey>'\n# ----------------------------------------------------------\n\n# Ensure /v1 suffix\nif not BASE_URL.rstrip('/').endswith('/v1'):\n    BASE_URL = BASE_URL.rstrip('/') + '/v1'\n\nenv_path = os.path.expanduser('~/.hermes/.env')\n\n# Read existing .env\nlines = []\nif os.path.exists(env_path):\n    with open(env_path) as f:\n        lines = f.readlines()\n\n# Update or add keys\nupdates = {\n    'OPENAI_BASE_URL': BASE_URL,\n    'OPENAI_API_KEY': API_KEY,\n    'LLM_MODEL': MODEL_ID\n}\nfound = set()\nnew_lines = []\nfor line in lines:\n    key = line.split('=', 1)[0].strip()\n    if key in updates:\n        new_lines.append(f'{key}={updates[key]}\\n')\n        found.add(key)\n    else:\n        new_lines.append(line)\n\nfor key, val in updates.items():\n    if key not in found:\n        new_lines.append(f'{key}={val}\\n')\n\nwith open(env_path, 'w') as f:\n    f.writelines(new_lines)\n\nprint('Done:', MODEL_ID, '@', BASE_URL)\n\"",
+        "verify": "hermes --version"
+    },
+    "cli": {
+        "description": "Hermes uses interactive terminal CLI. Oneshot mode for Bridge integration TBD.",
+        "chat_command": "hermes",
+        "detect_command": "hermes --version",
+        "supported_flags": ["--model (model override)", "config set (set config values)"],
+        "role_mechanism": "Hermes uses SOUL.md at ~/.hermes/SOUL.md for agent identity. EchoBird writes role content here; Hermes auto-detects changes on next session.",
+        "output_format": "Interactive terminal UI. Non-interactive oneshot mode to be verified.",
+        "note": "Hermes is Python-based, by Nous Research. Supports OpenRouter (200+ models), MiniMax, Kimi, OpenAI, Anthropic, custom endpoints. No native Windows support (WSL2 required)."
+    }
+}

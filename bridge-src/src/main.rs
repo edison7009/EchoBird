@@ -494,6 +494,7 @@ const KNOWN_AGENTS: &[(&str, &str, &str)] = &[
     ("zeroclaw",   "ZeroClaw",    "zeroclaw"),
     ("nanobot",    "NanoBot",     "nanobot"),
     ("picoclaw",   "PicoClaw",    "picoclaw"),
+    ("hermes",     "Hermes Agent","hermes"),
 ];
 
 fn handle_detect_agents() {
@@ -574,6 +575,7 @@ fn handle_set_role(agent_id: &str, role_id: &str, url: &str) {
         "zeroclaw"   => home.join(".zeroclaw").join("workspace").join("skills").join(role_id).join("SKILL.md"),
         "nanobot"    => home.join(".nanobot").join("workspace").join("AGENTS.md"),
         "picoclaw"   => home.join(".picoclaw").join("workspace").join("AGENT.md"),
+        "hermes"     => home.join(".hermes").join("SOUL.md"),
         _ => {
             send(&OutboundMessage::Error {
                 message: format!("Unknown agent: {}", agent_id),
@@ -584,7 +586,7 @@ fn handle_set_role(agent_id: &str, role_id: &str, url: &str) {
 
     // Idempotent: skip if already installed (only for agents with per-role file paths)
     // OpenClaw always overwrites SOUL.md in main workspace, so never skip
-    if agent_id != "openclaw" && agent_id != "nanobot" && agent_id != "picoclaw" && target.exists() {
+    if agent_id != "openclaw" && agent_id != "nanobot" && agent_id != "picoclaw" && agent_id != "hermes" && target.exists() {
         eprintln!("[bridge] Role {} already installed for {} at {:?}", role_id, agent_id, target);
         // Store as active role for execute_chat --agent
         if let Ok(mut guard) = ACTIVE_ROLE.lock() {
@@ -662,6 +664,7 @@ fn handle_start_agent(agent_id: &str) {
         "zeroclaw"   => "zeroclaw",
         "nanobot"    => "nanobot",
         "picoclaw"   => "picoclaw",
+        "hermes"     => "hermes",
         _ => {
             send(&OutboundMessage::AgentStarted {
                 agent_id: agent_id.to_string(),
@@ -736,6 +739,7 @@ fn handle_clear_role(agent_id: &str, role_id: &str) {
         "zeroclaw"   => home.join(".zeroclaw").join("workspace").join("skills").join(role_id),
         "nanobot"    => home.join(".nanobot").join("workspace").join("AGENTS.md"),
         "picoclaw"   => home.join(".picoclaw").join("workspace").join("AGENT.md"),
+        "hermes"     => home.join(".hermes").join("SOUL.md"),
         _ => {
             send(&OutboundMessage::Error {
                 message: format!("Unknown agent: {}", agent_id),

@@ -14,6 +14,7 @@ const AGENT_TOOLS = [
     { id: 'zeroclaw', name: 'ZeroClaw', icon: '/icons/tools/zeroclaw.png', enabled: true },
     { id: 'nanobot', name: 'NanoBot', icon: '/icons/tools/nanobot.png', enabled: true },
     { id: 'picoclaw', name: 'PicoClaw', icon: '/icons/tools/picoclaw.png', enabled: true },
+    { id: 'hermes', name: 'Hermes Agent', icon: '/icons/tools/hermes.png', enabled: true },
 ];
 
 // ── Component ──

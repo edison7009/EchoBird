@@ -139,7 +139,6 @@ pub async fn apply_model_to_tool(tool_id: &str, model_info: ModelInfo) -> ApplyR
         "kilocode" => return apply_echobird_relay(tool_id, &model_info, false),
 
         // Type 3: Direct JSON overwrite (special format)
-        "codebuddy" | "codebuddycn" | "workbuddy" => return apply_codebuddy(tool_id, &model_info),
         "opencode" => return apply_opencode(&model_info),
 
         // Type 4: YAML

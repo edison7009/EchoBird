@@ -1,0 +1,30 @@
+{
+    "name": "Hermes Agent",
+    "category": "CLI",
+    "apiProtocol": [
+        "openai"
+    ],
+    "docs": "https://hermes-agent.nousresearch.com/docs/",
+    "website": "https://github.com/NousResearch/hermes-agent",
+    "command": "hermes",
+    "envVar": "HERMES_HOME",
+    "configDir": "~/.hermes",
+    "configFile": "~/.hermes/config.yaml",
+    "requireConfigFile": false,
+    "detectByConfigDir": true,
+    "paths": {
+        "win32": [],
+        "darwin": [
+            "/usr/local/bin/hermes",
+            "/opt/homebrew/bin/hermes"
+        ],
+        "linux": [
+            "/usr/local/bin/hermes",
+            "/usr/bin/hermes"
+        ]
+    },
+    "skillsPath": {
+        "darwin": ["~/.hermes/skills"],
+        "linux": ["~/.hermes/skills"]
+    }
+}
