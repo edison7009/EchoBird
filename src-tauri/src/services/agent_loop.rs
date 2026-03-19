@@ -820,20 +820,23 @@ many users are beginners and just want to try things out quickly.\n\
         - ALWAYS install Bridge CLI alongside any remote agent (e.g. OpenClaw) installation.\n\
         - When users specifically ask to install Echobird CLI Bridge.\n\
         - When users report Channels page connection failures on a remote server.\n\n\
-        ### Installation (Primary — requires internet on remote):\n\
-        Fetch the install reference: https://echobird.ai/api/tools/install/echobird-bridge.json\n\
-        This contains the download URL, binary name, and install commands for the target platform.\n\n\
+        ### Installation (Primary — use deploy_bridge tool):\n\
+        Call the deploy_bridge tool with the target server_id. This tool automatically:\n\
+        1. Detects the remote OS and architecture.\n\
+        2. Downloads the LATEST bridge binary from GitHub Releases (always the newest version).\n\
+        3. Sets executable permissions and creates the symlink.\n\
+        This is the PREFERRED method because it always gets the latest version.\n\n\
         ### Installation (Offline Fallback — remote has no internet):\n\
-        EchoBird bundles bridge binaries for ALL platforms in its bridge/ directory.\n\
-        If the remote server cannot download from the internet:\n\
+        ONLY if deploy_bridge fails (e.g. remote server has no internet access):\n\
+        EchoBird bundles bridge binaries for ALL platforms in its local bridge/ directory.\n\
         1. Detect the remote OS and architecture (uname -s -m).\n\
         2. Map to the correct binary: linux+x86_64=bridge-linux-x86_64, linux+aarch64=bridge-linux-aarch64, \
 darwin+arm64=bridge-darwin-aarch64, darwin+x86_64=bridge-darwin-x86_64.\n\
         3. Use the upload_file tool to SCP the binary from the local EchoBird bridge/ directory to ~/echobird/ on the remote.\n\
-        4. Set executable permissions: chmod +x ~/echobird/echobird-bridge\n\
-        5. Start Bridge immediately.\n\n\
+        4. Create symlink: ln -sf ~/echobird/{binary} ~/echobird/echobird-bridge\n\
+        5. Set executable permissions: chmod +x ~/echobird/echobird-bridge\n\n\
         ### CRITICAL — Always START Bridge after installation:\n\
-        After installing Bridge CLI, you MUST start it immediately:\n\
+        After installing Bridge CLI (by either method), you MUST start it immediately:\n\
         ```\n\
         nohup ~/echobird/echobird-bridge > /dev/null 2>&1 &\n\
         ```\n\
