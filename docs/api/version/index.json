@@ -1,1 +1,1 @@
-{"version":"3.1.0","releaseDate":"2026-03-19","releaseNotes":"Hermes Agent integration, version detection improvements (ANSI strip + v-prefix), detailed serde error logging in tool scanner"}
+{"version":"3.1.1","releaseDate":"2026-03-20","releaseNotes":"Fix agent detection display, chat bubble word-break, Hermes channel icon, Mother Agent bridge prompt"}
