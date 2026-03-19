@@ -42,6 +42,7 @@ function stripMarkdown(text: string): string {
         .replace(/^[-*]\s+/gm, '• ')           // - list → bullet
         .replace(/^\d+\.\s+/gm, '')            // 1. ordered list → remove number
         .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1') // [link](url) → link text
+        .replace(/\n{3,}/g, '\n\n')            // collapse 3+ consecutive newlines → 2
         .trim();
 }
 
@@ -198,7 +199,7 @@ export function ChatBubble({ role, content, variant, chips = [], isStreaming = f
                     {(isStreaming && !finalText)
                         ? <InputDots />
                         : <>
-                            <p className="break-words whitespace-pre-wrap">{truncate(finalText)}</p>
+                            <p className="whitespace-pre-line" style={{ overflowWrap: 'anywhere', wordBreak: 'break-word' }}>{truncate(finalText)}</p>
                             {isStreaming && <div className="mt-1"><InputDots /></div>}
                           </>
                     }
@@ -212,7 +213,7 @@ export function ChatBubble({ role, content, variant, chips = [], isStreaming = f
     return (
         <div className="flex flex-col items-end mb-4">
             <div className="flex justify-end max-w-[62%]">
-                <div className={`relative flex-1 rounded-xl px-3 py-2 text-sm leading-snug whitespace-pre-wrap break-words font-sans font-medium ${USER_BUBBLE[variant]}`}>
+                <div className={`relative flex-1 rounded-xl px-3 py-2 text-sm leading-snug whitespace-pre-line font-sans font-medium ${USER_BUBBLE[variant]}`} style={{ overflowWrap: 'anywhere', wordBreak: 'break-word' }}>
                     {/* Rounded SVG tail — mostly inside bubble, tip sticks out 5px right */}
                     <svg width="8" height="14" viewBox="0 0 8 14" style={{ position:'absolute', right:'-5px', top:'10px', overflow:'visible' }}>
                         <path d="M0,2 C0,1 0.8,0.4 1.5,1 L6.5,6 C7.2,6.6 7.2,7.4 6.5,8 L1.5,13 C0.8,13.6 0,13 0,12 Z" fill={tailColor}/>
