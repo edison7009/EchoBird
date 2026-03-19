@@ -1,1 +1,1 @@
-{"version":"3.1.1","releaseDate":"2026-03-20","releaseNotes":"Fix agent detection display, chat bubble word-break, Hermes channel icon, Mother Agent bridge prompt"}
+{"version":"3.1.2","releaseDate":"2026-03-20","releaseNotes":"Fix agent detection, chat bubble layout, CLI Agent rename, channels reset behavior"}
