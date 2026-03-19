@@ -1,1 +1,1 @@
-{"version":"3.0.9","releaseDate":"2026-03-19","releaseNotes":"Fix: red orb animation no longer triggers from historical errors. Fix: remote role URL path corrected (/roles/ not /docs/roles/). Fix: avatar states now show agent icon+name when tool selected without role. Fix: typing indicator displays as separate bubble. Fix: large avatar name color follows connection status."}
+{"version":"3.1.0","releaseDate":"2026-03-19","releaseNotes":"Hermes Agent integration, version detection improvements (ANSI strip + v-prefix), detailed serde error logging in tool scanner"}
