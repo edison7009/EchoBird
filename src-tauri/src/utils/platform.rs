@@ -57,7 +57,26 @@ pub async fn get_version(cmd: &str) -> Option<String> {
     let combined = {
         let stdout = String::from_utf8_lossy(&output.stdout);
         let stderr = String::from_utf8_lossy(&output.stderr);
-        format!("{}\n{}", stdout, stderr)
+        let raw = format!("{}\n{}", stdout, stderr);
+        // Strip ANSI escape codes (PicoClaw etc. output colored banners)
+        let mut stripped = String::with_capacity(raw.len());
+        let mut chars = raw.chars().peekable();
+        while let Some(ch) = chars.next() {
+            if ch == '\x1b' {
+                if chars.peek() == Some(&'[') {
+                    chars.next();
+                    while let Some(&c) = chars.peek() {
+                        chars.next();
+                        if c.is_ascii_alphabetic() { break; }
+                    }
+                    continue;
+                }
+                chars.next();
+                continue;
+            }
+            stripped.push(ch);
+        }
+        stripped
     };
 
     // Scan all lines for a version pattern (digits.digits... or v-prefixed)
