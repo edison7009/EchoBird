@@ -492,6 +492,8 @@ const KNOWN_AGENTS: &[(&str, &str, &str)] = &[
     ("opencode",   "OpenCode",    "opencode"),
     ("openclaw",   "OpenClaw",    "openclaw"),
     ("zeroclaw",   "ZeroClaw",    "zeroclaw"),
+    ("nanobot",    "NanoBot",     "nanobot"),
+    ("picoclaw",   "PicoClaw",    "picoclaw"),
 ];
 
 fn handle_detect_agents() {
@@ -570,6 +572,8 @@ fn handle_set_role(agent_id: &str, role_id: &str, url: &str) {
         "opencode"   => home.join(".config").join("opencode").join("agents").join(format!("{}.md", role_id)),
         "openclaw"   => home.join(".openclaw").join("workspace").join("SOUL.md"),
         "zeroclaw"   => home.join(".zeroclaw").join("workspace").join("skills").join(role_id).join("SKILL.md"),
+        "nanobot"    => home.join(".nanobot").join("workspace").join("AGENTS.md"),
+        "picoclaw"   => home.join(".picoclaw").join("workspace").join("AGENT.md"),
         _ => {
             send(&OutboundMessage::Error {
                 message: format!("Unknown agent: {}", agent_id),
@@ -580,7 +584,7 @@ fn handle_set_role(agent_id: &str, role_id: &str, url: &str) {
 
     // Idempotent: skip if already installed (only for agents with per-role file paths)
     // OpenClaw always overwrites SOUL.md in main workspace, so never skip
-    if agent_id != "openclaw" && target.exists() {
+    if agent_id != "openclaw" && agent_id != "nanobot" && agent_id != "picoclaw" && target.exists() {
         eprintln!("[bridge] Role {} already installed for {} at {:?}", role_id, agent_id, target);
         // Store as active role for execute_chat --agent
         if let Ok(mut guard) = ACTIVE_ROLE.lock() {
@@ -656,6 +660,8 @@ fn handle_start_agent(agent_id: &str) {
         "opencode"   => "opencode",
         "openclaw"   => "openclaw",
         "zeroclaw"   => "zeroclaw",
+        "nanobot"    => "nanobot",
+        "picoclaw"   => "picoclaw",
         _ => {
             send(&OutboundMessage::AgentStarted {
                 agent_id: agent_id.to_string(),
@@ -728,6 +734,8 @@ fn handle_clear_role(agent_id: &str, role_id: &str) {
         "opencode"   => home.join(".config").join("opencode").join("agents").join(format!("{}.md", role_id)),
         "openclaw"   => home.join(".openclaw").join("workspace").join("SOUL.md"),
         "zeroclaw"   => home.join(".zeroclaw").join("workspace").join("skills").join(role_id),
+        "nanobot"    => home.join(".nanobot").join("workspace").join("AGENTS.md"),
+        "picoclaw"   => home.join(".picoclaw").join("workspace").join("AGENT.md"),
         _ => {
             send(&OutboundMessage::Error {
                 message: format!("Unknown agent: {}", agent_id),
