@@ -149,7 +149,7 @@ const en: Translations = {
                     'channel.failed': 'FAILED',
     'channel.connecting': 'Connecting...',    'channel.connectionFailed': 'Connection failed',    'channel.noModels': 'No models available',
     'channel.motherFlow': 'Mother Agent → Server → Agent',
-    'channel.selectRoleAgent': 'Select Role and Agent CLI',
+    'channel.selectRoleAgent': 'Select Role and CLI Agent',
     'hint.devInvite': 'Develop AI apps or AI games — see \"Reversi\" and \"AI Translate\".',
     // Mother Agent
     'mother.selectModel': 'Select model...',    'mother.hintInstall': 'Install {agent}',    'mother.enterMessage': 'Enter message...',

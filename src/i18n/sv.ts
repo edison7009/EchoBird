@@ -42,7 +42,7 @@ const sv: Partial<Translations> = {
                     'channel.failed': 'MISSLYCKADES',
     'channel.connecting': 'Ansluter...',    'channel.connectionFailed': 'Anslutningen misslyckades',    'channel.noModels': 'Inga modeller tillgängliga',
     'channel.motherFlow': 'Mother Agent → Server → Agent',
-    'channel.selectRoleAgent': 'V\u00e4lj roll och agent CLI',
+    'channel.selectRoleAgent': 'V\u00e4lj roll och CLI Agent',
     'hint.devInvite': 'Utveckla AI-appar eller AI-spel — se \"Reversi\" och \"AI Translate\".',
     'nav.motherAgent': 'Mother Agent',
     'page.motherAgent': 'Mother Agent',    // Mother Agent

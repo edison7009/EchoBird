@@ -145,7 +145,7 @@ const zhHant: Partial<Translations> = {
                     'channel.failed': '失敗',
     'channel.connecting': '連線中…',    'channel.connectionFailed': '連線失敗',    'channel.noModels': '暫無可用模型',
     'channel.motherFlow': 'Mother Agent → 伺服器 → Agent',
-    'channel.selectRoleAgent': '\u9078\u64c7\u89d2\u8272\u548c Agent CLI',
+    'channel.selectRoleAgent': '\u9078\u64c7\u89d2\u8272\u548c CLI Agent',
     'hint.devInvite': '開發 AI 應用或 AI 遊戲，參考「黑白棋」和「AI 翻譯」。',
     'nav.motherAgent': 'Mother Agent',
     'page.motherAgent': 'Mother Agent',    // Mother Agent

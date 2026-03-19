@@ -122,7 +122,7 @@ const nl: Partial<Translations> = {
                     'channel.failed': 'MISLUKT',
     'channel.connecting': 'Verbinden...',    'channel.connectionFailed': 'Verbinding mislukt',    'channel.noModels': 'Geen modellen beschikbaar',
     'channel.motherFlow': 'Mother Agent → Server → Agent',
-    'channel.selectRoleAgent': 'Selecteer rol en agent CLI',
+    'channel.selectRoleAgent': 'Selecteer rol en CLI Agent',
     'hint.devInvite': 'Ontwikkel AI-apps of AI-games — zie \"Reversi\" en \"AI Translate\".',
     'nav.motherAgent': 'Mother Agent',
     'page.motherAgent': 'Mother Agent',    // Mother Agent

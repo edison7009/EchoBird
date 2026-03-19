@@ -122,7 +122,7 @@ const cs: Partial<Translations> = {
                     'channel.failed': 'SELHALO',
     'channel.connecting': 'Připojování...',    'channel.connectionFailed': 'Připojení selhalo',    'channel.noModels': 'Žádné dostupné modely',
     'channel.motherFlow': 'Mother Agent → Server → Agent',
-    'channel.selectRoleAgent': 'Vybrat roli a agenta CLI',
+    'channel.selectRoleAgent': 'Vybrat roli a CLI agenta',
     'hint.devInvite': 'Vyvíjejte AI aplikace nebo AI hry — viz \"Reversi\" a \"AI Translate\".',
     'nav.motherAgent': 'Mother Agent',
     'page.motherAgent': 'Mother Agent',    // Mother Agent

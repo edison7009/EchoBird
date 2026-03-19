@@ -42,7 +42,7 @@ const fi: Partial<Translations> = {
                     'channel.failed': 'EPÄONNISTUI',
     'channel.connecting': 'Yhdistetään...',    'channel.connectionFailed': 'Yhteys epäonnistui',    'channel.noModels': 'Ei saatavilla olevia malleja',
     'channel.motherFlow': 'Mother Agent → Palvelin → Agent',
-    'channel.selectRoleAgent': 'Valitse rooli ja agentti CLI',
+    'channel.selectRoleAgent': 'Valitse rooli ja CLI-agentti',
     'hint.devInvite': 'Kehitä tekoälysovelluksia tai -pelejä — katso \"Reversi\" ja \"AI Translate\".',
     'nav.motherAgent': 'Mother Agent',
     'page.motherAgent': 'Mother Agent',    // Mother Agent
