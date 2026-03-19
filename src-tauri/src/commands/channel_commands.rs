@@ -108,6 +108,8 @@ struct OneshotState {
     session_arg: Option<String>,
     system_prompt_arg: Option<String>,
     system_prompt_when: Option<String>,  // "new-session" | "always"
+    agent_arg: Option<String>,           // --agent flag for Claude Code
+    active_role_id: Option<String>,      // current role_id for --agent
     session_id: Option<String>,
     prompt_injected: bool,  // track if system_prompt was already sent (for "new-session" mode)
 }
@@ -125,6 +127,24 @@ fn safe_truncate(s: &str, max_bytes: usize) -> &str {
         end -= 1;
     }
     &s[..end]
+}
+
+/// Strip <think>...</think> blocks from LLM output.
+/// Many models (MiniMax, DeepSeek) include reasoning in these tags.
+fn strip_think_tags(s: &str) -> String {
+    let mut result = s.to_string();
+    // Remove all <think>...</think> blocks (greedy within each occurrence)
+    while let Some(start) = result.find("<think>") {
+        if let Some(end) = result[start..].find("</think>") {
+            let end_abs = start + end + "</think>".len();
+            result = format!("{}{}", &result[..start], &result[end_abs..]);
+        } else {
+            // Unclosed <think> — remove from <think> to end
+            result = result[..start].to_string();
+            break;
+        }
+    }
+    result.trim().to_string()
 }
 
 // ── Channel Persistence Commands ──
@@ -534,6 +554,8 @@ async fn start_oneshot(
         session_arg: cli.session_arg.clone(),
         system_prompt_arg: cli.system_prompt_arg.clone(),
         system_prompt_when: cli.system_prompt_when.clone(),
+        agent_arg: cli.agent_arg.clone(),
+        active_role_id: None,
         session_id: None,
         prompt_injected: false,
     };
@@ -827,9 +849,174 @@ pub async fn bridge_set_role_local(
     role_id: String,
     url: String,
 ) -> Result<serde_json::Value, String> {
+    // Empty role_id = clear role (return to default mode)
+    if role_id.is_empty() {
+        let is_oneshot = ONESHOT_STATE.lock()
+            .map(|g| g.is_some())
+            .unwrap_or(false);
+
+        if is_oneshot {
+            if let Ok(mut guard) = ONESHOT_STATE.lock() {
+                if let Some(ref mut state) = *guard {
+                    // Remove custom AGENT.md if it was written by role injection
+                    let home = if cfg!(target_os = "windows") {
+                        std::env::var("USERPROFILE").unwrap_or_default()
+                    } else {
+                        std::env::var("HOME").unwrap_or_default()
+                    };
+                    let agent_md = std::path::PathBuf::from(&home)
+                        .join(format!(".{}", state.cli_command))
+                        .join("workspace");
+                    // Remove AGENT.md or AGENTS.md (PicoClaw vs NanoBot)
+                    for name in &["AGENT.md", "AGENTS.md"] {
+                        let p = agent_md.join(name);
+                        if p.exists() {
+                            let _ = std::fs::remove_file(&p);
+                            log::info!("[BridgeSetRoleLocal] Removed {}: {:?}", name, p);
+                        }
+                    }
+
+                    state.active_role_id = None;
+                    state.session_id = None;
+                    state.prompt_injected = false;
+                    log::info!("[BridgeSetRoleLocal] Oneshot role cleared -> default mode");
+                }
+            }
+        } else {
+            // Send clear_role to Bridge subprocess
+            if let Ok(mut guard) = BRIDGE_PROCESS.lock() {
+                if let Some(ref mut bp) = *guard {
+                    let clear_json = serde_json::json!({
+                        "type": "clear_role",
+                        "agent_id": agent_id
+                    });
+                    let _ = writeln!(bp.stdin, "{}", clear_json.to_string());
+                    let _ = bp.stdin.flush();
+                    log::info!("[BridgeSetRoleLocal] Sent clear_role to Bridge for {}", agent_id);
+                }
+            }
+        }
+
+        return Ok(serde_json::json!({
+            "type": "role_cleared",
+            "agent_id": agent_id
+        }));
+    }
+
+    // For cli-oneshot agents, handle role directly without Bridge subprocess
+    let is_oneshot = ONESHOT_STATE.lock()
+        .map(|g| g.is_some())
+        .unwrap_or(false);
+
+    if is_oneshot {
+        // Store active_role_id for --system-prompt-file injection
+        if let Ok(mut guard) = ONESHOT_STATE.lock() {
+            if let Some(ref mut state) = *guard {
+                state.active_role_id = Some(role_id.clone());
+                state.session_id = None;
+                state.prompt_injected = false;
+                log::info!("[BridgeSetRoleLocal] Oneshot agent_role set to: {}", role_id);
+            }
+        }
+
+        // Download role file directly (no Bridge subprocess needed)
+        let role_id_c = role_id.clone();
+        let agent_id_c = agent_id.clone();
+        let url_c = url.clone();
+        return download_role_file_direct(&agent_id_c, &role_id_c, &url_c).await;
+    }
+
     tokio::task::spawn_blocking(move || {
         bridge_set_role_sync(agent_id, role_id, url)
     }).await.map_err(|e| format!("Task error: {}", e))?
+}
+
+/// Download role file directly for oneshot agents (no Bridge subprocess)
+async fn download_role_file_direct(agent_id: &str, role_id: &str, url: &str) -> Result<serde_json::Value, String> {
+    let home = if cfg!(target_os = "windows") {
+        std::env::var("USERPROFILE").unwrap_or_else(|_| "C:\\Users\\default".to_string())
+    } else {
+        std::env::var("HOME").unwrap_or_else(|_| "/root".to_string())
+    };
+
+    let (target, is_skill) = match agent_id {
+        "claudecode" => (std::path::PathBuf::from(&home)
+            .join(".claude").join("agents").join(format!("{}.md", role_id)), false),
+        // All cli-oneshot agents (ZeroClaw, PicoClaw, NanoBot, OpenFang, etc.)
+        // use the same skills directory pattern: ~/.{agent_id}/workspace/skills/{role_id}/SKILL.md
+        _ => (std::path::PathBuf::from(&home)
+            .join(format!(".{}", agent_id)).join("workspace").join("skills").join(role_id).join("SKILL.md"), true),
+    };
+
+    // Create parent directory
+    if let Some(parent) = target.parent() {
+        std::fs::create_dir_all(parent)
+            .map_err(|e| format!("Failed to create directory: {}", e))?;
+    }
+
+    // Download from URL using reqwest
+    log::info!("[BridgeOneshot] Downloading role {} from: {}", role_id, url);
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(30))
+        .build()
+        .map_err(|e| format!("HTTP client error: {}", e))?;
+
+    let resp = client.get(url)
+        .send()
+        .await
+        .map_err(|e| format!("Failed to download role: {}", e))?;
+
+    if !resp.status().is_success() {
+        return Err(format!("Role download failed: HTTP {}", resp.status()));
+    }
+
+    let body = resp.text()
+        .await
+        .map_err(|e| format!("Failed to read role body: {}", e))?;
+
+    // Write file
+    std::fs::write(&target, &body)
+        .map_err(|e| format!("Failed to write role file: {}", e))?;
+
+    // For skill-based agents, also write skill.toml manifest
+    if is_skill {
+        if let Some(skill_dir) = target.parent() {
+            let manifest = format!(
+                "name = \"{}\"\nversion = \"1.0.0\"\ndescription = \"EchoBird role: {}\"\n",
+                role_id, role_id
+            );
+            let manifest_path = skill_dir.join("skill.toml");
+            let _ = std::fs::write(&manifest_path, &manifest);
+            log::info!("[BridgeOneshot] skill.toml written at {:?}", manifest_path);
+        }
+
+        // For agents with workspace identity system (PicoClaw, NanoBot, etc.),
+        // also write AGENT(S).md so the agent uses this role as its system prompt.
+        // PicoClaw uses AGENT.md, NanoBot uses AGENTS.md — detect which exists.
+        let ws_path = std::path::PathBuf::from(&home)
+            .join(format!(".{}", agent_id)).join("workspace");
+        if ws_path.exists() {
+            // Detect the correct filename: AGENTS.md (NanoBot) or AGENT.md (PicoClaw)
+            let agent_md_name = if ws_path.join("AGENTS.md").exists() {
+                "AGENTS.md"
+            } else {
+                "AGENT.md"
+            };
+            let agent_md_path = ws_path.join(agent_md_name);
+            let _ = std::fs::write(&agent_md_path, &body);
+            log::info!("[BridgeOneshot] {} written at {:?} ({} bytes)", agent_md_name, agent_md_path, body.len());
+        }
+    }
+
+    log::info!("[BridgeOneshot] Role {} installed at {:?} ({} bytes)", role_id, target, body.len());
+
+    Ok(serde_json::json!({
+        "type": "role_set",
+        "agent_id": agent_id,
+        "role_id": role_id,
+        "installed": true,
+        "path": target.to_string_lossy()
+    }))
 }
 
 /// Chat via cli-oneshot protocol: invoke CLI directly per message
@@ -880,12 +1067,61 @@ async fn bridge_chat_oneshot(
         }
     }
 
-    // Append the user message as the last argument
-    args.push(message.clone());
+    // Inject role for this agent
+    let mut role_prepend: Option<String> = None;
+    if let Some(ref role_id) = state_clone.active_role_id {
+        let home = if cfg!(target_os = "windows") {
+            std::env::var("USERPROFILE").unwrap_or_else(|_| "C:\\Users\\default".to_string())
+        } else {
+            std::env::var("HOME").unwrap_or_else(|_| "/root".to_string())
+        };
+
+        if state_clone.cli_command.contains("claude") {
+            // Claude Code: use --system-prompt-file
+            let role_path = std::path::PathBuf::from(&home)
+                .join(".claude").join("agents").join(format!("{}.md", role_id));
+            if role_path.exists() {
+                args.push("--system-prompt-file".to_string());
+                args.push(role_path.to_string_lossy().to_string());
+                log::info!("[BridgeOneshot] Injecting role via --system-prompt-file: {:?}", role_path);
+            }
+        } else {
+            // Other agents (ZeroClaw, PicoClaw, NanoBot, OpenFang etc.):
+            // Read role file and prepend to message.
+            // Derive config dir from CLI command name (e.g. "picoclaw" → ~/.picoclaw/)
+            let agent_dir_name = format!(".{}", state_clone.cli_command);
+            let role_path = std::path::PathBuf::from(&home)
+                .join(&agent_dir_name).join("workspace").join("skills").join(role_id).join("SKILL.md");
+            if role_path.exists() {
+                if let Ok(content) = std::fs::read_to_string(&role_path) {
+                    role_prepend = Some(content);
+                    log::info!("[BridgeOneshot] Role content loaded: {} chars from {:?}", role_prepend.as_ref().unwrap().len(), role_path);
+                }
+            } else {
+                // Fallback: try ~/.zeroclaw/ for backward compat
+                let fallback = std::path::PathBuf::from(&home)
+                    .join(".zeroclaw").join("workspace").join("skills").join(role_id).join("SKILL.md");
+                if fallback.exists() {
+                    if let Ok(content) = std::fs::read_to_string(&fallback) {
+                        log::info!("[BridgeOneshot] Role content loaded (fallback): {} chars from {:?}", content.len(), fallback);
+                        role_prepend = Some(content);
+                    }
+                }
+            }
+        }
+    }
+
+    // Append the user message as the last argument (with role prepended if applicable)
+    if let Some(ref role_content) = role_prepend {
+        let combined = format!("[System Instructions]\n{}\n\n[User Message]\n{}", role_content, message);
+        args.push(combined);
+    } else {
+        args.push(message.clone());
+    }
 
     log::info!("[BridgeOneshot] {} {}",
         state_clone.cli_command,
-        args.iter().map(|a| if a.len() > 30 { format!("{}...", &a[..30]) } else { a.clone() }).collect::<Vec<_>>().join(" "));
+        args.iter().map(|a| if a.len() > 30 { format!("{}...", safe_truncate(a, 30)) } else { a.clone() }).collect::<Vec<_>>().join(" "));
 
     // Execute CLI (blocking with timeout)
     let cmd_name = state_clone.cli_command.clone();
@@ -940,20 +1176,101 @@ async fn bridge_chat_oneshot(
         }
     }
 
-    // For plain-text CLIs (like claude --print), the entire stdout IS the response
+    // For plain-text CLIs, clean the output: strip ANSI escape codes and filter log lines
     let response = if stdout_text.lines().all(|l| serde_json::from_str::<serde_json::Value>(l).is_err()) {
-        stdout_text.clone()
+        // Strip ANSI escape codes (e.g. \x1b[32m, \x1b[0m, \x1b[1;38;2;62;93;185m) without regex
+        let mut stripped = String::with_capacity(stdout_text.len());
+        let mut chars = stdout_text.chars().peekable();
+        while let Some(ch) = chars.next() {
+            if ch == '\x1b' {
+                // Skip \x1b[...X sequences (CSI: ends with letter a-zA-Z)
+                if chars.peek() == Some(&'[') {
+                    chars.next();
+                    while let Some(&c) = chars.peek() {
+                        chars.next();
+                        if c.is_ascii_alphabetic() { break; }
+                    }
+                    continue;
+                }
+                // Skip \x1b followed by a single char (e.g. \x1bM)
+                chars.next();
+                continue;
+            }
+            stripped.push(ch);
+        }
+
+        // Strategy 1: Agents with emoji delimiters (PicoClaw=🦞, NanoBot=🐈)
+        // Everything after the LAST emoji delimiter is the clean user response
+        let after_emoji = ["🦞", "🐈"].iter().find_map(|emoji| {
+            stripped.rfind(emoji).map(|pos| {
+                let start = pos + emoji.len();
+                stripped[start..].trim().to_string()
+            })
+        });
+
+        let cleaned = if let Some(emoji_response) = after_emoji {
+            emoji_response
+        } else {
+            // Strategy 2: Fallback line-by-line filter for other agents (ZeroClaw etc.)
+            stripped.lines()
+                .filter(|line| {
+                    let t: &str = line.trim();
+                    if t.is_empty() { return true; }
+                    // Skip structured log lines: "2026-03-19T00:49:33.606Z INFO ..."
+                    if t.len() > 20 && t.starts_with("20") && (t.contains(" INFO ") || t.contains(" WARN ") || t.contains(" DEBUG ") || t.contains(" ERROR ") || t.contains(" TRACE ")) {
+                        return false;
+                    }
+                    // Skip Go agent log lines: "14:29:33 INF agent ..."
+                    if t.len() > 10 && t.chars().next().map_or(false, |c| c.is_ascii_digit()) {
+                        let parts: Vec<&str> = t.splitn(3, ' ').collect();
+                        if parts.len() >= 2 {
+                            let time_part = parts[0];
+                            let level = parts[1];
+                            if time_part.len() >= 7 && time_part.chars().nth(2) == Some(':')
+                                && matches!(level, "INF" | "WRN" | "DBG" | "ERR" | "TRC" | "FTL" | "PNC") {
+                                return false;
+                            }
+                        }
+                    }
+                    // Skip ASCII art banner lines
+                    if t.contains('█') || t.contains('╗') || t.contains('╚') || t.contains('═') || t.contains('║')
+                        || t.contains('╔') || t.contains('╝') || t.contains('╣') || t.contains('╠') {
+                        return false;
+                    }
+                    if t.starts_with("[EchoBird]") { return false; }
+                    true
+                })
+                .collect::<Vec<_>>()
+                .join("\n")
+                .trim().to_string()
+        };
+        strip_think_tags(&cleaned)
     } else {
-        // JSON output — extract text fields
+        // JSON output — extract text from multiple possible formats
         let mut text = String::new();
         for line in stdout_text.lines() {
             if let Ok(json) = serde_json::from_str::<serde_json::Value>(line) {
+                // Format 1: OpenClaw streaming {"text": "..."}
                 if let Some(t) = json.get("text").and_then(|v| v.as_str()) {
                     text.push_str(t);
                 }
+                // Format 2: Claude Code {"result": "..."}  (simple string)
+                else if let Some(result) = json.get("result") {
+                    if let Some(s) = result.as_str() {
+                        text.push_str(s);
+                    }
+                    // Format 3: Claude Code {"result": {"content": [{"text": "..."}]}}
+                    else if let Some(content) = result.get("content").and_then(|c| c.as_array()) {
+                        for item in content {
+                            if let Some(t) = item.get("text").and_then(|v| v.as_str()) {
+                                text.push_str(t);
+                            }
+                        }
+                    }
+                }
             }
         }
-        if text.is_empty() { stdout_text } else { text }
+        if text.is_empty() { stdout_text } else { strip_think_tags(&text) }
     };
 
     Ok(BridgeChatResult {
@@ -987,8 +1304,9 @@ pub async fn bridge_chat_remote(
     // Map plugin_id to agent CLI command
     let agent_command = match plugin.as_str() {
         "openclaw" => "openclaw agent --json --agent main",
-        "zeroclaw" => "zeroclaw agent --json",
-        "nanoclaw" => "nanoclaw agent --json",
+        "zeroclaw" => "zeroclaw agent -m",
+        "nanobot" => "nanobot agent -m",
+        "picoclaw" => "picoclaw agent -m",
         other => other,
     };
 

@@ -1,0 +1,37 @@
+{
+    "name": "PicoClaw",
+    "names": {
+        "zh-CN": "PicoClaw",
+        "zh-TW": "PicoClaw",
+        "ja": "PicoClaw",
+        "ko": "PicoClaw"
+    },
+    "category": "AgentOS",
+    "apiProtocol": [
+        "openai"
+    ],
+    "docs": "https://github.com/sipeed/picoclaw",
+    "website": "https://picoclaw.io",
+    "installUrl": "https://github.com/sipeed/picoclaw#-install",
+    "command": "picoclaw",
+    "startCommand": "picoclaw gateway",
+    "configDir": "~/.picoclaw",
+    "configFile": "~/.picoclaw/config.json",
+    "requireConfigFile": false,
+    "paths": {
+        "win32": [
+            "%USERPROFILE%/.local/bin/picoclaw.exe",
+            "%USERPROFILE%/go/bin/picoclaw.exe"
+        ],
+        "darwin": [
+            "/usr/local/bin/picoclaw",
+            "/opt/homebrew/bin/picoclaw",
+            "~/go/bin/picoclaw"
+        ],
+        "linux": [
+            "/usr/local/bin/picoclaw",
+            "/usr/bin/picoclaw",
+            "~/go/bin/picoclaw"
+        ]
+    }
+}

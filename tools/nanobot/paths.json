@@ -1,0 +1,37 @@
+{
+    "name": "NanoBot",
+    "names": {
+        "zh-CN": "NanoBot",
+        "zh-TW": "NanoBot",
+        "ja": "NanoBot",
+        "ko": "NanoBot"
+    },
+    "category": "AgentOS",
+    "apiProtocol": [
+        "openai"
+    ],
+    "docs": "https://github.com/HKUDS/nanobot",
+    "website": "https://nanobot.sh",
+    "installUrl": "https://github.com/HKUDS/nanobot#-install",
+    "command": "nanobot",
+    "startCommand": "nanobot gateway",
+    "configDir": "~/.nanobot",
+    "configFile": "~/.nanobot/config.json",
+    "requireConfigFile": false,
+    "paths": {
+        "win32": [
+            "%USERPROFILE%/.local/bin/nanobot.exe",
+            "%USERPROFILE%/go/bin/nanobot.exe"
+        ],
+        "darwin": [
+            "/usr/local/bin/nanobot",
+            "/opt/homebrew/bin/nanobot",
+            "~/go/bin/nanobot"
+        ],
+        "linux": [
+            "/usr/local/bin/nanobot",
+            "/usr/bin/nanobot",
+            "~/go/bin/nanobot"
+        ]
+    }
+}

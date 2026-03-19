@@ -10,9 +10,10 @@ import type { RoleCategory, RoleEntry, AgentStatus } from '../api/tauri';
 // ── Agent tools ──
 const AGENT_TOOLS = [
     { id: 'openclaw', name: 'OpenClaw', icon: '/icons/tools/openclaw.svg', enabled: true },
-    { id: 'claudecode', name: 'Claude Code', icon: '/icons/tools/claudecode.svg', enabled: false },
-    { id: 'opencode', name: 'OpenCode', icon: '/icons/tools/opencode.svg', enabled: false },
-    { id: 'zeroclaw', name: 'ZeroClaw', icon: '/icons/tools/zeroclaw.png', enabled: false },
+    { id: 'claudecode', name: 'Claude Code', icon: '/icons/tools/claudecode.svg', enabled: true },
+    { id: 'zeroclaw', name: 'ZeroClaw', icon: '/icons/tools/zeroclaw.png', enabled: true },
+    { id: 'nanobot', name: 'NanoBot', icon: '/icons/tools/nanobot.png', enabled: true },
+    { id: 'picoclaw', name: 'PicoClaw', icon: '/icons/tools/picoclaw.png', enabled: true },
 ];
 
 // ── Component ──

@@ -1,0 +1,63 @@
+{
+    "id": "picoclaw",
+    "displayName": "PicoClaw",
+    "homepage": "https://picoclaw.io",
+    "docs": "https://github.com/sipeed/picoclaw",
+    "github": "https://github.com/sipeed/picoclaw",
+    "install": {
+        "one-liner (macOS / Linux)": "curl -fsSL https://raw.githubusercontent.com/sipeed/picoclaw/main/install.sh | bash",
+        "go install": "go install github.com/sipeed/picoclaw@latest",
+        "note": "Ultra-lightweight (<10MB RAM, <1s boot). Run 'picoclaw onboard' after install to initialize."
+    },
+    "configure": {
+        "note": "For LOCAL installations, EchoBird's App Manager handles model configuration automatically via ~/.echobird/picoclaw.json -> ~/.picoclaw/config.json. This section is for REMOTE server deployments via Mother Agent (SSH).",
+        "config_file": "~/.picoclaw/config.json",
+        "config_file_windows": "%USERPROFILE%\\.picoclaw\\config.json",
+        "first_run": {
+            "description": "PicoClaw uses model_list array format (NOT the deprecated providers object). The config requires: model_list (array of model entries) and agents.defaults.model (default model name).",
+            "required_fields": {
+                "model_list[].model": "(string) vendor/modelId format, e.g. 'minimax/MiniMax-M2.7'. Vendor is auto-detected from api_base domain.",
+                "model_list[].model_name": "(string) Display name, e.g. 'MiniMax-M2.7'",
+                "model_list[].api_key": "(string) API key for the LLM provider",
+                "model_list[].api_base": "(string) API endpoint URL, must end with /v1",
+                "agents.defaults.model": "(string) Bare model name (without vendor prefix), e.g. 'MiniMax-M2.7'"
+            },
+            "example_config": "{\n  \"agents\": {\n    \"defaults\": {\n      \"model\": \"deepseek-chat\"\n    }\n  },\n  \"model_list\": [\n    {\n      \"model_name\": \"deepseek-chat\",\n      \"model\": \"deepseek/deepseek-chat\",\n      \"api_key\": \"sk-your-key-here\",\n      \"api_base\": \"https://api.deepseek.com/v1\"\n    }\n  ]\n}",
+            "common_mistakes": [
+                "WRONG: using 'providers' object (deprecated, causes 'model not found in model_list' error)",
+                "RIGHT: using 'model_list' array with model_name, model, api_key, api_base fields",
+                "WRONG: model = 'MiniMax-M2.7' (missing vendor prefix)",
+                "RIGHT: model = 'minimax/MiniMax-M2.7' (vendor/model format)",
+                "WRONG: api_base without /v1 suffix (causes 404 errors)",
+                "RIGHT: api_base = 'https://api.minimaxi.com/v1'"
+            ]
+        },
+        "field_mapping": {
+            "description": "EchoBird sends model data in the '[Attached models for deployment]' block. Map to PicoClaw config.json as follows:",
+            "attachment_model_field": "-> model_list[0].model_name AND agents.defaults.model",
+            "attachment_baseUrl": "-> model_list[0].api_base (append /v1 if needed)",
+            "attachment_apiKey": "-> model_list[0].api_key",
+            "vendor_detection": "Extract vendor from baseUrl domain: api.deepseek.com -> 'deepseek', api.minimaxi.com -> 'minimax', api.openai.com -> 'openai'"
+        },
+        "steps": [
+            "1. Parse the '[Attached models for deployment]' block to extract: name, model (=modelId), baseUrl, apiKey.",
+            "2. Create ~/.picoclaw/ directory if it does not exist: mkdir -p ~/.picoclaw",
+            "3. Detect vendor from baseUrl domain (e.g. 'api.minimaxi.com' -> 'minimax').",
+            "4. Run the merge_script below with the extracted values.",
+            "5. Verify: picoclaw agent -m 'Hello, respond with OK' (should print a greeting and exit cleanly)"
+        ],
+        "merge_script": "python3 -c \"\nimport json, os, re\n\n# --- fill from '[Attached models for deployment]' block ---\nMODEL_ID   = '<attachment model field>'   # e.g. deepseek-chat\nBASE_URL   = '<attachment baseUrl>'        # e.g. https://api.deepseek.com\nAPI_KEY    = '<attachment apiKey>'\n# ----------------------------------------------------------\n\n# Ensure /v1 suffix\nif not BASE_URL.rstrip('/').endswith('/v1'):\n    BASE_URL = BASE_URL.rstrip('/') + '/v1'\n\n# Auto-detect vendor from domain\nm = re.search(r'api\\.([^.]+)\\.', BASE_URL)\nvendor = m.group(1) if m else 'custom'\n\npath = os.path.expanduser('~/.picoclaw/config.json')\nos.makedirs(os.path.dirname(path), exist_ok=True)\n\n# Read existing config or start fresh\ncfg = {}\nif os.path.exists(path):\n    with open(path) as f:\n        cfg = json.load(f)\n\n# Remove deprecated 'providers' key\ncfg.pop('providers', None)\n\n# Set model_list (replace any existing entry)\ncfg['model_list'] = [{\n    'model_name': MODEL_ID,\n    'model': f'{vendor}/{MODEL_ID}',\n    'api_key': API_KEY,\n    'api_base': BASE_URL\n}]\ncfg.setdefault('agents', {}).setdefault('defaults', {})['model'] = MODEL_ID\n\nwith open(path, 'w', encoding='utf-8') as f:\n    json.dump(cfg, f, indent=2)\n\nprint('Done:', MODEL_ID, '@', BASE_URL, f'(vendor={vendor})')\n\"",
+        "verify": "picoclaw agent -m 'Hello, respond with OK'"
+    },
+    "cli": {
+        "description": "PicoClaw uses cli-oneshot protocol for EchoBird integration. The agent itself runs persistently via 'picoclaw gateway'.",
+        "chat_command": "picoclaw agent -m \"<message>\"",
+        "detect_command": "picoclaw version",
+        "gateway_command": "picoclaw gateway",
+        "supported_flags": ["-m (message)", "--model (model override)", "-s (session key)", "-d (debug)"],
+        "unsupported_flags": ["--json", "--system-prompt-file"],
+        "role_mechanism": "PicoClaw uses AGENT.md file at ~/.picoclaw/workspace/AGENT.md for system prompt. EchoBird writes role content here; PicoClaw auto-detects changes via mtime tracking.",
+        "output_format": "Plain text with ANSI color codes and structured log lines. Clean response starts after the lobster emoji delimiter. EchoBird strips ANSI codes, filters log lines, removes <think> blocks, and extracts content after the delimiter.",
+        "note": "Output contains Go structured logs (HH:MM:SS INF/WRN), ASCII art banner, and <think> reasoning blocks. All are automatically filtered by EchoBird."
+    }
+}

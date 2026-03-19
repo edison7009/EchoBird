@@ -22,8 +22,9 @@ import type { DiskMsg } from '../hooks/useChatPersistence';
 const AGENT_LIST = [
     { id: 'openclaw', name: 'OpenClaw', icon: '/icons/tools/openclaw.svg' },
     { id: 'claudecode', name: 'Claude Code', icon: '/icons/tools/claudecode.svg' },
-    { id: 'opencode', name: 'OpenCode', icon: '/icons/tools/opencode.svg' },
     { id: 'zeroclaw', name: 'ZeroClaw', icon: '/icons/tools/zeroclaw.png' },
+    { id: 'nanobot', name: 'NanoBot', icon: '/icons/tools/nanobot.png' },
+    { id: 'picoclaw', name: 'PicoClaw', icon: '/icons/tools/picoclaw.png' },
 ];
 
 // ===== Context (shared state between ChannelsMain & ChannelsPanel) =====
@@ -624,7 +625,7 @@ const ChannelsInner: React.FC = () => {
                 // Set role if selected AND changed since last apply
                 const role = selectedRoleForChannel;
                 const lastApplied = lastAppliedRoleRef.current[channelKey];
-                if (role?.filePath && role.id !== lastApplied) {
+                if (role?.filePath) {
                     const isZh = locale.startsWith('zh');
                     const roleUrl = isZh
                         ? `https://raw.githubusercontent.com/edison7009/Echobird-MotherAgent/main/docs/roles/zh-Hans/${role.filePath}`
@@ -632,15 +633,31 @@ const ChannelsInner: React.FC = () => {
                     const selectedAgent = allActiveAgents[channelKey] || 'OpenClaw';
                     const agentEntry = AGENT_LIST.find(a => a.name === selectedAgent);
                     const agentId = agentEntry?.id || 'openclaw';
+                    const roleKey = `${agentId}:${role.id}`;
 
+                    // Re-apply if role or agent changed
+                    if (roleKey !== lastApplied) {
+                        try {
+                            await api.bridgeSetRoleLocal(agentId, role.id, roleUrl);
+
+                            // Force new session so agent reads the updated role
+                            setBridgeSessionId(undefined);
+                            lastAppliedRoleRef.current[channelKey] = roleKey;
+                        } catch (e) {
+                            console.warn('[Bridge] local set_role failed (non-fatal):', e);
+                        }
+                    }
+                } else if (lastApplied) {
+                    // User cleared role → reset agent to default mode
+                    const selectedAgent = allActiveAgents[channelKey] || 'OpenClaw';
+                    const agentEntry = AGENT_LIST.find(a => a.name === selectedAgent);
+                    const agentId = agentEntry?.id || 'openclaw';
                     try {
-                        await api.bridgeSetRoleLocal(agentId, role.id, roleUrl);
-
-                        // Force new session so OpenClaw reads the updated SOUL.md
+                        await api.bridgeSetRoleLocal(agentId, '', '');
                         setBridgeSessionId(undefined);
-                        lastAppliedRoleRef.current[channelKey] = role.id;
+                        lastAppliedRoleRef.current[channelKey] = '';
                     } catch (e) {
-                        console.warn('[Bridge] local set_role failed (non-fatal):', e);
+                        console.warn('[Bridge] clear_role failed (non-fatal):', e);
                     }
                 }
 

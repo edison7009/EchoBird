@@ -36,6 +36,7 @@ pub struct CliConfig {
     pub model_arg: Option<String>,
     pub system_prompt_arg: Option<String>,
     pub system_prompt_when: Option<String>,
+    pub agent_arg: Option<String>,
 }
 
 // ── Plugin Scanner ──

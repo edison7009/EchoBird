@@ -12,6 +12,10 @@ use serde::{Deserialize, Serialize};
 use std::io::{self, BufRead, Write};
 use std::path::PathBuf;
 use std::process::Command;
+use std::sync::Mutex;
+
+// ── Global state: current active role per agent ──
+static ACTIVE_ROLE: Mutex<Option<(String, String)>> = Mutex::new(None); // (agent_id, role_id)
 
 // ── Types ──
 
@@ -24,12 +28,14 @@ enum InboundMessage {
         session_id: Option<String>,
         model: Option<String>,
         system_prompt: Option<String>,
+        agent_name: Option<String>,
     },
     #[serde(rename = "resume")]
     Resume {
         message: String,
         session_id: String,
         model: Option<String>,
+        agent_name: Option<String>,
     },
     #[serde(rename = "status")]
     Status {},
@@ -126,6 +132,7 @@ struct BridgeConfig {
     session_arg: Option<String>,
     model_arg: Option<String>,
     system_prompt_arg: Option<String>,
+    agent_arg: Option<String>,
 }
 
 impl Default for BridgeConfig {
@@ -151,6 +158,7 @@ impl Default for BridgeConfig {
             session_arg: Some("--session-id".to_string()),
             model_arg: None,
             system_prompt_arg: None,
+            agent_arg: None,
         }
     }
 }
@@ -196,15 +204,17 @@ fn handle_message(config: &BridgeConfig, msg: InboundMessage) {
             session_id,
             model,
             system_prompt,
+            agent_name,
         } => {
-            execute_chat(config, &message, session_id.as_deref(), model.as_deref(), system_prompt.as_deref(), false);
+            execute_chat(config, &message, session_id.as_deref(), model.as_deref(), system_prompt.as_deref(), agent_name.as_deref(), false);
         }
         InboundMessage::Resume {
             message,
             session_id,
             model,
+            agent_name,
         } => {
-            execute_chat(config, &message, Some(&session_id), model.as_deref(), None, true);
+            execute_chat(config, &message, Some(&session_id), model.as_deref(), None, agent_name.as_deref(), true);
         }
         InboundMessage::Status {} => {
             let version = detect_agent(&config.command);
@@ -243,8 +253,14 @@ fn execute_chat(
     session_id: Option<&str>,
     model: Option<&str>,
     _system_prompt: Option<&str>,
+    agent_name: Option<&str>,
     is_resume: bool,
 ) {
+    // Determine effective agent_name: explicit parameter > stored from set_role
+    let stored_role = ACTIVE_ROLE.lock().ok().and_then(|g| g.clone());
+    let effective_agent = agent_name
+        .map(String::from)
+        .or_else(|| stored_role.map(|(_, role_id)| role_id));
     // Build command args
     let mut args: Vec<String> = if is_resume {
         // Resume: use resume_args, replace {sessionId}
@@ -275,6 +291,12 @@ fn execute_chat(
     if let (Some(m), Some(model_arg)) = (model, &config.model_arg) {
         args.push(model_arg.clone());
         args.push(m.to_string());
+    }
+
+    // Add agent name if specified (claude code uses --agent)
+    if let (Some(ref name), Some(agent_arg)) = (&effective_agent, &config.agent_arg) {
+        args.push(agent_arg.clone());
+        args.push(name.to_string());
     }
 
     // Add message as last arg (--message is already in args list).
@@ -316,8 +338,8 @@ fn execute_chat(
                 eprintln!("[bridge] stderr: {}", stderr);
             }
 
-            // Parse OpenClaw agent --json output
-            let (text, new_session_id) = parse_openclaw_output(&stdout);
+            // Parse agent JSON output (supports OpenClaw + Claude Code formats)
+            let (text, new_session_id) = parse_agent_output(&stdout);
 
             send(&OutboundMessage::Text {
                 text,
@@ -336,12 +358,14 @@ fn execute_chat(
     }
 }
 
-/// Parse OpenClaw `agent --json` output
+/// Parse agent CLI JSON output
 ///
-/// Supports two formats:
-/// 1. Wrapped: { "result": { "payloads": [...], "meta": { "agentMeta": { "sessionId": "..." } } } }
-/// 2. Direct:  { "payloads": [...], "meta": { "agentMeta": { "sessionId": "..." } } }
-fn parse_openclaw_output(stdout: &str) -> (String, Option<String>) {
+/// Supports multiple formats:
+/// 1. OpenClaw wrapped: { "result": { "payloads": [...], "meta": { "agentMeta": { "sessionId": "..." } } } }
+/// 2. OpenClaw direct:  { "payloads": [...], "meta": { "agentMeta": { "sessionId": "..." } } }
+/// 3. Claude Code:      { "result": "text...", "session_id": "..." }
+/// 4. Claude Code rich:  { "result": { "content": [{"type":"text","text":"..."}] }, "session_id": "..." }
+fn parse_agent_output(stdout: &str) -> (String, Option<String>) {
     // Find JSON in stdout (skip non-JSON lines like [Echobird] injection logs)
     let json_str = find_json_object(stdout);
     let json_str = match json_str {
@@ -351,45 +375,80 @@ fn parse_openclaw_output(stdout: &str) -> (String, Option<String>) {
 
     match serde_json::from_str::<serde_json::Value>(&json_str) {
         Ok(json) => {
-            // Try both: result.payloads (wrapped) and top-level payloads (direct)
+            // ── Try OpenClaw format first: result.payloads or top-level payloads ──
             let payloads = json.get("result")
                 .and_then(|r| r.get("payloads"))
                 .or_else(|| json.get("payloads"));
 
-            let text = payloads
-                .and_then(|p| p.as_array())
-                .and_then(|arr| {
-                    let texts: Vec<&str> = arr.iter()
-                        .filter_map(|p| p.get("text").and_then(|t| t.as_str()))
-                        .collect();
-                    if texts.is_empty() { None } else { Some(texts.join("\n")) }
-                })
-                .unwrap_or_else(|| {
-                    // Fallback: try result.text or top-level text
-                    json.get("result")
-                        .and_then(|r| r.get("text"))
-                        .or_else(|| json.get("text"))
-                        .and_then(|v| v.as_str())
-                        .unwrap_or(stdout)
-                        .to_string()
-                });
+            if let Some(payloads) = payloads {
+                let text = payloads
+                    .as_array()
+                    .and_then(|arr| {
+                        let texts: Vec<&str> = arr.iter()
+                            .filter_map(|p| p.get("text").and_then(|t| t.as_str()))
+                            .collect();
+                        if texts.is_empty() { None } else { Some(texts.join("\n")) }
+                    })
+                    .unwrap_or_else(|| stdout.to_string());
 
-            // Extract session ID: try both nesting levels
-            let session_id = json.get("result")
-                .and_then(|r| r.get("meta"))
-                .or_else(|| json.get("meta"))
-                .and_then(|m| m.get("agentMeta"))
-                .and_then(|am| am.get("sessionId"))
+                // Extract OpenClaw session ID
+                let session_id = json.get("result")
+                    .and_then(|r| r.get("meta"))
+                    .or_else(|| json.get("meta"))
+                    .and_then(|m| m.get("agentMeta"))
+                    .and_then(|am| am.get("sessionId"))
+                    .and_then(|v| v.as_str())
+                    .map(String::from);
+
+                // Check for error status
+                let status = json.get("status").and_then(|s| s.as_str()).unwrap_or("ok");
+                if status != "ok" {
+                    let error_msg = json.get("error")
+                        .and_then(|e| e.as_str())
+                        .unwrap_or("Agent returned error status");
+                    return (format!("Error: {}", error_msg), session_id);
+                }
+
+                return (text, session_id);
+            }
+
+            // ── Try Claude Code format: result as string or result.content[] ──
+            let session_id = json.get("session_id")
                 .and_then(|v| v.as_str())
                 .map(String::from);
 
-            // Check for error status
-            let status = json.get("status").and_then(|s| s.as_str()).unwrap_or("ok");
-            if status != "ok" {
-                let error_msg = json.get("error")
-                    .and_then(|e| e.as_str())
-                    .unwrap_or("Agent returned error status");
-                return (format!("Error: {}", error_msg), session_id);
+            let text = if let Some(result) = json.get("result") {
+                if let Some(s) = result.as_str() {
+                    // Simple string result
+                    s.to_string()
+                } else if let Some(content) = result.get("content").and_then(|c| c.as_array()) {
+                    // Rich content: [{"type":"text","text":"..."}]
+                    let texts: Vec<&str> = content.iter()
+                        .filter_map(|c| c.get("text").and_then(|t| t.as_str()))
+                        .collect();
+                    if texts.is_empty() {
+                        result.to_string()
+                    } else {
+                        texts.join("\n")
+                    }
+                } else {
+                    // Fallback: try result.text
+                    result.get("text")
+                        .and_then(|v| v.as_str())
+                        .unwrap_or(stdout)
+                        .to_string()
+                }
+            } else {
+                // No result field — raw fallback
+                json.get("text")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or(stdout)
+                    .to_string()
+            };
+
+            // Check for error
+            if let Some(true) = json.get("is_error").and_then(|v| v.as_bool()) {
+                return (format!("Error: {}", text), session_id);
             }
 
             (text, session_id)
@@ -523,6 +582,10 @@ fn handle_set_role(agent_id: &str, role_id: &str, url: &str) {
     // OpenClaw always overwrites SOUL.md in main workspace, so never skip
     if agent_id != "openclaw" && target.exists() {
         eprintln!("[bridge] Role {} already installed for {} at {:?}", role_id, agent_id, target);
+        // Store as active role for execute_chat --agent
+        if let Ok(mut guard) = ACTIVE_ROLE.lock() {
+            *guard = Some((agent_id.to_string(), role_id.to_string()));
+        }
         send(&OutboundMessage::RoleSet {
             agent_id: agent_id.to_string(),
             role_id: role_id.to_string(),
@@ -566,6 +629,10 @@ fn handle_set_role(agent_id: &str, role_id: &str, url: &str) {
     match std::fs::write(&target, &body) {
         Ok(_) => {
             eprintln!("[bridge] Role {} installed for {} at {:?} ({} bytes)", role_id, agent_id, target, body.len());
+            // Store as active role for execute_chat --agent
+            if let Ok(mut guard) = ACTIVE_ROLE.lock() {
+                *guard = Some((agent_id.to_string(), role_id.to_string()));
+            }
             send(&OutboundMessage::RoleSet {
                 agent_id: agent_id.to_string(),
                 role_id: role_id.to_string(),
@@ -689,6 +756,10 @@ fn handle_clear_role(agent_id: &str, role_id: &str) {
     match result {
         Ok(_) => {
             eprintln!("[bridge] Role {} cleared for {}", role_id, agent_id);
+            // Clear active role state
+            if let Ok(mut guard) = ACTIVE_ROLE.lock() {
+                *guard = None;
+            }
             send(&OutboundMessage::RoleCleared {
                 agent_id: agent_id.to_string(),
                 role_id: role_id.to_string(),
@@ -793,6 +864,7 @@ fn load_config() -> BridgeConfig {
                         session_arg: Some("--session-id".to_string()),
                         model_arg: None,
                         system_prompt_arg: None,
+                        agent_arg: None,
                     };
                 }
             }
@@ -832,6 +904,9 @@ fn load_config() -> BridgeConfig {
                     }
                     if let Some(arg) = cli.get("systemPromptArg").and_then(|v| v.as_str()) {
                         config.system_prompt_arg = Some(arg.to_string());
+                    }
+                    if let Some(arg) = cli.get("agentArg").and_then(|v| v.as_str()) {
+                        config.agent_arg = Some(arg.to_string());
                     }
 
                     eprintln!("[bridge] Loaded config from {:?}", plugin_json);

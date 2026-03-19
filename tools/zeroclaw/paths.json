@@ -13,6 +13,7 @@
     "docs": "https://github.com/zeroclaw-labs/zeroclaw",
     "installUrl": "https://github.com/zeroclaw-labs/zeroclaw#quick-start",
     "command": "zeroclaw",
+    "startCommand": "zeroclaw daemon",
     "configDir": "~/.zeroclaw",
     "configFile": "~/.zeroclaw/config.toml",
     "requireConfigFile": false,

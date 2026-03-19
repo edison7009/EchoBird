@@ -1,10 +1,10 @@
 {
-    "id": "zeroclaw",
-    "name": "ZeroClaw",
+    "id": "picoclaw",
+    "name": "PicoClaw",
     "protocol": "cli-oneshot",
     "cli": {
-        "command": "zeroclaw",
-        "detectCommand": "zeroclaw --version",
+        "command": "picoclaw",
+        "detectCommand": "picoclaw version",
         "args": [
             "agent",
             "-m"

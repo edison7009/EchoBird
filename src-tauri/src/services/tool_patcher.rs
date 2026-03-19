@@ -1,4 +1,4 @@
-﻿// Native tool patcher — replaces Node.js patch-*.cjs scripts
+// Native tool patcher — replaces Node.js patch-*.cjs scripts
 // Pure Rust file operations: find install dir → backup → inject marker code → write back
 
 use std::fs;
@@ -549,6 +549,377 @@ pub fn patch_opencode() {
     });
 }
 
+// ─── ZeroClaw Patcher ───
+
+/// Patch ZeroClaw by writing its native TOML config file.
+/// ZeroClaw is a Rust binary (not Node.js), so we write ~/.zeroclaw/config.toml
+/// directly from ~/.echobird/zeroclaw.json instead of injecting code.
+pub fn patch_zeroclaw() {
+    let home = match dirs::home_dir() {
+        Some(h) => h,
+        None => { log::warn!("[Patcher] Cannot determine home dir for ZeroClaw"); return; }
+    };
+
+    let echobird_cfg = home.join(".echobird").join("zeroclaw.json");
+    if !echobird_cfg.exists() {
+        log::info!("[Patcher] ZeroClaw config not found at {:?}, skipping", echobird_cfg);
+        return;
+    }
+
+    let content = match fs::read_to_string(&echobird_cfg) {
+        Ok(c) => c,
+        Err(e) => { log::warn!("[Patcher] Failed to read zeroclaw.json: {}", e); return; }
+    };
+
+    let json: serde_json::Value = match serde_json::from_str(&content) {
+        Ok(v) => v,
+        Err(e) => { log::warn!("[Patcher] Invalid zeroclaw.json: {}", e); return; }
+    };
+
+    let api_key = json.get("apiKey").and_then(|v| v.as_str()).unwrap_or("");
+    let base_url = json.get("baseUrl").and_then(|v| v.as_str()).unwrap_or("");
+    let model_id = json.get("modelId").and_then(|v| v.as_str()).unwrap_or("");
+
+    if api_key.is_empty() || model_id.is_empty() {
+        log::info!("[Patcher] ZeroClaw config incomplete (missing apiKey/modelId), skipping");
+        return;
+    }
+
+    // Build provider string: custom:baseUrl (ZeroClaw format)
+    let mut provider_url = base_url.to_string();
+    if !provider_url.is_empty() && !provider_url.ends_with("/v1") {
+        if provider_url.ends_with('/') {
+            provider_url.push_str("v1");
+        } else {
+            provider_url.push_str("/v1");
+        }
+    }
+    let provider = if provider_url.is_empty() {
+        "openai".to_string()
+    } else {
+        format!("custom:{}", provider_url)
+    };
+
+    // Write ~/.zeroclaw/config.toml
+    let zeroclaw_dir = home.join(".zeroclaw");
+    if !zeroclaw_dir.exists() {
+        let _ = fs::create_dir_all(&zeroclaw_dir);
+    }
+
+    let toml_content = format!(
+        "api_key = \"{}\"\ndefault_model = \"{}\"\ndefault_provider = \"{}\"\ndefault_temperature = 0.7\n",
+        api_key.replace('"', "\\\""),
+        model_id.replace('"', "\\\""),
+        provider.replace('"', "\\\""),
+    );
+
+    let config_path = zeroclaw_dir.join("config.toml");
+    match fs::write(&config_path, &toml_content) {
+        Ok(_) => log::info!("[Patcher] ZeroClaw config written: {:?} (model={})", config_path, model_id),
+        Err(e) => log::warn!("[Patcher] Failed to write ZeroClaw config: {}", e),
+    }
+}
+
+// ─── NanoBot Patcher ───
+
+/// Patch NanoBot by writing its JSON config file.
+/// NanoBot config: ~/.nanobot/config.json
+/// Format: { "providers": { "custom": { "apiKey": "...", "apiBase": "..." } }, "agents": { "defaults": { "model": "..." } } }
+pub fn patch_nanobot() {
+    let home = match dirs::home_dir() {
+        Some(h) => h,
+        None => { log::warn!("[Patcher] Cannot determine home dir for NanoBot"); return; }
+    };
+
+    let echobird_cfg = home.join(".echobird").join("nanobot.json");
+    if !echobird_cfg.exists() {
+        log::info!("[Patcher] NanoBot config not found at {:?}, skipping", echobird_cfg);
+        return;
+    }
+
+    let content = match fs::read_to_string(&echobird_cfg) {
+        Ok(c) => c,
+        Err(e) => { log::warn!("[Patcher] Failed to read nanobot.json: {}", e); return; }
+    };
+
+    let json: serde_json::Value = match serde_json::from_str(&content) {
+        Ok(v) => v,
+        Err(e) => { log::warn!("[Patcher] Invalid nanobot.json: {}", e); return; }
+    };
+
+    let api_key = json.get("apiKey").and_then(|v| v.as_str()).unwrap_or("");
+    let base_url = json.get("baseUrl").and_then(|v| v.as_str()).unwrap_or("");
+    let model_id = json.get("modelId").and_then(|v| v.as_str()).unwrap_or("");
+
+    if api_key.is_empty() || model_id.is_empty() {
+        log::info!("[Patcher] NanoBot config incomplete (missing apiKey/modelId), skipping");
+        return;
+    }
+
+    // Ensure /v1 suffix for OpenAI-compatible APIs
+    let mut api_base = base_url.to_string();
+    if !api_base.is_empty() && !api_base.ends_with("/v1") {
+        if api_base.ends_with('/') {
+            api_base.push_str("v1");
+        } else {
+            api_base.push_str("/v1");
+        }
+    }
+
+    // Build NanoBot config JSON
+    let config = serde_json::json!({
+        "providers": {
+            "custom": {
+                "apiKey": api_key,
+                "apiBase": api_base
+            }
+        },
+        "agents": {
+            "defaults": {
+                "model": model_id
+            }
+        }
+    });
+
+    let nanobot_dir = home.join(".nanobot");
+    if !nanobot_dir.exists() {
+        let _ = fs::create_dir_all(&nanobot_dir);
+    }
+
+    // Merge with existing config (preserve other settings)
+    let config_path = nanobot_dir.join("config.json");
+    let mut existing: serde_json::Value = if config_path.exists() {
+        fs::read_to_string(&config_path)
+            .ok()
+            .and_then(|c| serde_json::from_str(&c).ok())
+            .unwrap_or_else(|| serde_json::json!({}))
+    } else {
+        serde_json::json!({})
+    };
+
+    // Deep merge: providers.custom and agents.defaults
+    if let Some(obj) = existing.as_object_mut() {
+        if let Some(providers) = config.get("providers") {
+            obj.insert("providers".to_string(), providers.clone());
+        }
+        if let Some(agents) = config.get("agents") {
+            obj.insert("agents".to_string(), agents.clone());
+        }
+    }
+
+    match fs::write(&config_path, serde_json::to_string_pretty(&existing).unwrap_or_default()) {
+        Ok(_) => log::info!("[Patcher] NanoBot config written: {:?} (model={})", config_path, model_id),
+        Err(e) => log::warn!("[Patcher] Failed to write NanoBot config: {}", e),
+    }
+}
+
+// ─── PicoClaw Patcher ───
+
+/// Patch PicoClaw by writing its JSON config file.
+/// PicoClaw config: ~/.picoclaw/config.json (same format as NanoBot — Go rewrite)
+pub fn patch_picoclaw() {
+    let home = match dirs::home_dir() {
+        Some(h) => h,
+        None => { log::warn!("[Patcher] Cannot determine home dir for PicoClaw"); return; }
+    };
+
+    let echobird_cfg = home.join(".echobird").join("picoclaw.json");
+    if !echobird_cfg.exists() {
+        log::info!("[Patcher] PicoClaw config not found at {:?}, skipping", echobird_cfg);
+        return;
+    }
+
+    let content = match fs::read_to_string(&echobird_cfg) {
+        Ok(c) => c,
+        Err(e) => { log::warn!("[Patcher] Failed to read picoclaw.json: {}", e); return; }
+    };
+
+    let json: serde_json::Value = match serde_json::from_str(&content) {
+        Ok(v) => v,
+        Err(e) => { log::warn!("[Patcher] Invalid picoclaw.json: {}", e); return; }
+    };
+
+    let api_key = json.get("apiKey").and_then(|v| v.as_str()).unwrap_or("");
+    let base_url = json.get("baseUrl").and_then(|v| v.as_str()).unwrap_or("");
+    let model_id = json.get("modelId").and_then(|v| v.as_str()).unwrap_or("");
+
+    if api_key.is_empty() || model_id.is_empty() {
+        log::info!("[Patcher] PicoClaw config incomplete (missing apiKey/modelId), skipping");
+        return;
+    }
+
+    // PicoClaw uses model_list array format (not providers object)
+    // model field uses "vendor/model" format, agents.defaults.model uses bare model_name
+    // Detect vendor from baseUrl or default to "openai"
+    let vendor = if base_url.contains("minimaxi.com") || base_url.contains("minimax.") {
+        "minimax"
+    } else if base_url.contains("anthropic.com") {
+        "anthropic"
+    } else if base_url.contains("deepseek.com") {
+        "deepseek"
+    } else if base_url.contains("openrouter.ai") {
+        "openrouter"
+    } else if base_url.contains("groq.com") {
+        "groq"
+    } else {
+        "openai"
+    };
+
+    let mut model_entry = serde_json::json!({
+        "model_name": model_id,
+        "model": format!("{}/{}", vendor, model_id),
+        "api_key": api_key
+    });
+
+    // Add custom api_base if not using default vendor endpoint
+    if !base_url.is_empty() {
+        let mut api_base = base_url.to_string();
+        if !api_base.ends_with("/v1") {
+            if api_base.ends_with('/') {
+                api_base.push_str("v1");
+            } else {
+                api_base.push_str("/v1");
+            }
+        }
+        model_entry["api_base"] = serde_json::Value::String(api_base);
+    }
+
+    let picoclaw_dir = home.join(".picoclaw");
+    if !picoclaw_dir.exists() {
+        let _ = fs::create_dir_all(&picoclaw_dir);
+    }
+
+    // Merge: read existing config, update model_list entry and agents.defaults.model
+    let config_path = picoclaw_dir.join("config.json");
+    let mut existing: serde_json::Value = if config_path.exists() {
+        fs::read_to_string(&config_path)
+            .ok()
+            .and_then(|c| serde_json::from_str(&c).ok())
+            .unwrap_or_else(|| serde_json::json!({}))
+    } else {
+        serde_json::json!({})
+    };
+
+    // Update or add the model entry in model_list
+    let model_list = existing.get_mut("model_list")
+        .and_then(|v| v.as_array_mut());
+    if let Some(list) = model_list {
+        // Remove existing entry with same model_name
+        list.retain(|e| e.get("model_name").and_then(|n| n.as_str()) != Some(model_id));
+        list.push(model_entry);
+    } else {
+        existing["model_list"] = serde_json::json!([model_entry]);
+    }
+
+    // Set default model
+    existing["agents"]["defaults"]["model"] = serde_json::Value::String(model_id.to_string());
+
+    // Remove deprecated providers key if present
+    if let Some(obj) = existing.as_object_mut() {
+        obj.remove("providers");
+    }
+
+    match fs::write(&config_path, serde_json::to_string_pretty(&existing).unwrap_or_default()) {
+        Ok(_) => log::info!("[Patcher] PicoClaw config written: {:?} (model={})", config_path, model_id),
+        Err(e) => log::warn!("[Patcher] Failed to write PicoClaw config: {}", e),
+    }
+}
+
+// ─── OpenFang Patcher ───
+
+/// Patch OpenFang by writing its TOML config file.
+/// OpenFang config: ~/.openfang/config.toml
+/// Format: [default_model] section with provider, model, base_url, api_key_env
+/// OpenFang uses environment variable references for API keys (api_key_env),
+/// so we also set the env var OPENFANG_LLM_KEY.
+pub fn patch_openfang() {
+    let home = match dirs::home_dir() {
+        Some(h) => h,
+        None => { log::warn!("[Patcher] Cannot determine home dir for OpenFang"); return; }
+    };
+
+    let echobird_cfg = home.join(".echobird").join("openfang.json");
+    if !echobird_cfg.exists() {
+        log::info!("[Patcher] OpenFang config not found at {:?}, skipping", echobird_cfg);
+        return;
+    }
+
+    let content = match fs::read_to_string(&echobird_cfg) {
+        Ok(c) => c,
+        Err(e) => { log::warn!("[Patcher] Failed to read openfang.json: {}", e); return; }
+    };
+
+    let json: serde_json::Value = match serde_json::from_str(&content) {
+        Ok(v) => v,
+        Err(e) => { log::warn!("[Patcher] Invalid openfang.json: {}", e); return; }
+    };
+
+    let api_key = json.get("apiKey").and_then(|v| v.as_str()).unwrap_or("");
+    let base_url = json.get("baseUrl").and_then(|v| v.as_str()).unwrap_or("");
+    let model_id = json.get("modelId").and_then(|v| v.as_str()).unwrap_or("");
+
+    if api_key.is_empty() || model_id.is_empty() {
+        log::info!("[Patcher] OpenFang config incomplete (missing apiKey/modelId), skipping");
+        return;
+    }
+
+    // Build provider URL with /v1 suffix
+    let mut provider_url = base_url.to_string();
+    if !provider_url.is_empty() && !provider_url.ends_with("/v1") {
+        if provider_url.ends_with('/') {
+            provider_url.push_str("v1");
+        } else {
+            provider_url.push_str("/v1");
+        }
+    }
+
+    // Set the API key as an environment variable so OpenFang can read it
+    std::env::set_var("OPENFANG_LLM_KEY", api_key);
+
+    // Write TOML config using OpenFang's [default_model] format
+    let openfang_dir = home.join(".openfang");
+    if !openfang_dir.exists() {
+        let _ = fs::create_dir_all(&openfang_dir);
+    }
+
+    // Read existing config to preserve other settings (api_listen, memory, etc.)
+    let config_path = openfang_dir.join("config.toml");
+    let existing = fs::read_to_string(&config_path).unwrap_or_default();
+
+    // Build new config: keep lines before [default_model], replace that section
+    let mut new_config = String::new();
+    let mut skip_section = false;
+    for line in existing.lines() {
+        if line.starts_with("[default_model]") || line.starts_with("[llm]") {
+            skip_section = true;
+            continue;
+        }
+        if skip_section && (line.starts_with('[') || line.is_empty()) {
+            if line.starts_with('[') {
+                skip_section = false;
+                new_config.push_str(line);
+                new_config.push('\n');
+            }
+            continue;
+        }
+        if skip_section { continue; }
+        new_config.push_str(line);
+        new_config.push('\n');
+    }
+
+    // Append [default_model] section
+    new_config.push_str(&format!(
+        "\n[default_model]\nprovider = \"custom\"\nmodel = \"{}\"\nbase_url = \"{}\"\napi_key_env = \"OPENFANG_LLM_KEY\"\n",
+        model_id.replace('"', "\\\""),
+        provider_url.replace('"', "\\\""),
+    ));
+
+    match fs::write(&config_path, &new_config) {
+        Ok(_) => log::info!("[Patcher] OpenFang config written: {:?} (model={})", config_path, model_id),
+        Err(e) => log::warn!("[Patcher] Failed to write OpenFang config: {}", e),
+    }
+}
+
 /// Dispatch patch by tool ID
 pub fn patch_tool(tool_id: &str) {
     match tool_id {
@@ -558,6 +929,10 @@ pub fn patch_tool(tool_id: &str) {
         "openclaw" => patch_openclaw(),
         "codex" => patch_codex(),
         "opencode" => patch_opencode(),
+        "zeroclaw" => patch_zeroclaw(),
+        "nanobot" => patch_nanobot(),
+        "picoclaw" => patch_picoclaw(),
+        "openfang" => patch_openfang(),
         _ => log::debug!("[Patcher] No patch needed for tool: {}", tool_id),
     }
 }

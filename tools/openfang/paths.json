@@ -1,0 +1,38 @@
+{
+    "name": "OpenFang",
+    "names": {
+        "zh-CN": "OpenFang",
+        "zh-TW": "OpenFang",
+        "ja": "OpenFang",
+        "ko": "OpenFang"
+    },
+    "category": "AgentOS",
+    "apiProtocol": [
+        "openai",
+        "anthropic"
+    ],
+    "docs": "https://openfang.sh/docs",
+    "website": "https://www.openfang.sh",
+    "installUrl": "https://github.com/RightNow-AI/openfang#quick-start",
+    "command": "openfang",
+    "startCommand": "openfang start",
+    "configDir": "~/.openfang",
+    "configFile": "~/.openfang/config.toml",
+    "requireConfigFile": false,
+    "paths": {
+        "win32": [
+            "%USERPROFILE%/.cargo/bin/openfang.exe",
+            "%USERPROFILE%/.local/bin/openfang.exe"
+        ],
+        "darwin": [
+            "/usr/local/bin/openfang",
+            "/opt/homebrew/bin/openfang",
+            "~/.cargo/bin/openfang"
+        ],
+        "linux": [
+            "/usr/local/bin/openfang",
+            "/usr/bin/openfang",
+            "~/.cargo/bin/openfang"
+        ]
+    }
+}

@@ -1,0 +1,55 @@
+{
+    "id": "zeroclaw",
+    "displayName": "ZeroClaw",
+    "homepage": "https://www.zeroclawlabs.ai",
+    "docs": "https://www.zeroclawlabs.ai/docs",
+    "github": "https://github.com/zeroclawlabs/zeroclaw",
+    "install": {
+        "cargo (all platforms)": "cargo install zeroclaw",
+        "curl (macOS / Linux)": "curl -fsSL https://zeroclawlabs.ai/install.sh | bash",
+        "note": "ZeroClaw is a Rust binary installed via cargo. After install, verify with: zeroclaw --version"
+    },
+    "configure": {
+        "note": "For LOCAL installations, EchoBird's App Manager handles model configuration automatically via ~/.echobird/zeroclaw.json → ~/.zeroclaw/config.toml. This section is for REMOTE server deployments via Mother Agent (SSH).",
+        "config_file": "~/.zeroclaw/config.toml",
+        "config_file_windows": "%USERPROFILE%\\.zeroclaw\\config.toml",
+        "first_run": {
+            "description": "ZeroClaw requires a TOML config file at ~/.zeroclaw/config.toml. ALL four fields are required: api_key, default_model, default_provider, default_temperature. Missing any field will cause startup errors.",
+            "required_fields": {
+                "api_key": "(string) API key for the LLM provider",
+                "default_model": "(string) Model ID, e.g. 'MiniMax-M2.7', 'deepseek-chat'",
+                "default_provider": "(string) Provider URL with 'custom:' prefix, e.g. 'custom:https://api.deepseek.com/v1'. IMPORTANT: most OpenAI-compatible APIs need the /v1 suffix.",
+                "default_temperature": "(float) Temperature value, e.g. 0.7"
+            },
+            "example_config": "api_key = \"sk-your-key-here\"\ndefault_model = \"deepseek-chat\"\ndefault_provider = \"custom:https://api.deepseek.com/v1\"\ndefault_temperature = 0.7\n",
+            "common_mistakes": [
+                "WRONG: default_provider = 'custom:https://api.minimaxi.com' (missing /v1 → 404 error)",
+                "RIGHT: default_provider = 'custom:https://api.minimaxi.com/v1'",
+                "WRONG: omitting default_temperature (ZeroClaw will fail to start)",
+                "WRONG: using JSON format (ZeroClaw uses TOML, not JSON)"
+            ]
+        },
+        "field_mapping": {
+            "description": "EchoBird sends model data in the '[Attached models for deployment]' block. Map to ZeroClaw config.toml as follows:",
+            "attachment_model_field": "→ default_model",
+            "attachment_baseUrl": "→ default_provider (prefix with 'custom:' and append '/v1' if needed)",
+            "attachment_apiKey": "→ api_key"
+        },
+        "steps": [
+            "1. Parse the '[Attached models for deployment]' block to extract: name, model (=modelId), baseUrl, apiKey.",
+            "2. Create ~/.zeroclaw/ directory if it does not exist: mkdir -p ~/.zeroclaw",
+            "3. Run configure merge_script below with the extracted values.",
+            "4. Verify: zeroclaw agent -m 'say hello' (should print a greeting and exit cleanly)"
+        ],
+        "merge_script": "python3 -c \"\nimport os\n\n# --- fill from '[Attached models for deployment]' block ---\nMODEL_ID   = '<attachment model field>'   # e.g. deepseek-chat\nBASE_URL   = '<attachment baseUrl>'        # e.g. https://api.deepseek.com\nAPI_KEY    = '<attachment apiKey>'\n# ----------------------------------------------------------\n\n# Ensure /v1 suffix for OpenAI-compatible APIs\nif not BASE_URL.rstrip('/').endswith('/v1'):\n    BASE_URL = BASE_URL.rstrip('/') + '/v1'\n\npath = os.path.expanduser('~/.zeroclaw/config.toml')\nos.makedirs(os.path.dirname(path), exist_ok=True)\n\ntoml = f'''api_key = \\\"{API_KEY}\\\"\ndefault_model = \\\"{MODEL_ID}\\\"\ndefault_provider = \\\"custom:{BASE_URL}\\\"\ndefault_temperature = 0.7\n'''\n\nwith open(path, 'w', encoding='utf-8') as f:\n    f.write(toml)\n\nprint('Done:', MODEL_ID, '@', BASE_URL)\n\"",
+        "verify": "zeroclaw agent -m 'say hello'"
+    },
+    "cli": {
+        "description": "ZeroClaw uses cli-oneshot protocol. Each message is a fresh invocation.",
+        "chat_command": "zeroclaw agent -m \"<message>\"",
+        "detect_command": "zeroclaw --version",
+        "supported_flags": ["-m (message)", "-p (provider)", "--model (model ID)", "-t (temperature)"],
+        "unsupported_flags": ["--json", "--session-id", "--system-prompt-file"],
+        "note": "ZeroClaw does NOT support JSON output mode or session resumption. Output includes ANSI color codes and log lines that must be cleaned."
+    }
+}

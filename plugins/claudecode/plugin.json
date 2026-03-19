@@ -5,11 +5,26 @@
     "cli": {
         "command": "claude",
         "detectCommand": "claude --version",
-        "args": ["--print", "--output-format", "text"],
-        "resumeArgs": ["--print", "--continue", "{sessionId}"],
+        "args": [
+            "-p",
+            "--dangerously-skip-permissions",
+            "--output-format",
+            "json"
+        ],
+        "resumeArgs": [
+            "-p",
+            "--dangerously-skip-permissions",
+            "--output-format",
+            "json",
+            "--resume",
+            "{sessionId}"
+        ],
         "sessionArg": "--session-id",
         "sessionMode": "always",
+        "modelArg": "--model",
         "systemPromptArg": "--system-prompt",
-        "systemPromptWhen": "new-session"
+        "systemPromptWhen": "new-session",
+        "agentArg": "--agent",
+        "messageMode": "last-arg"
     }
 }

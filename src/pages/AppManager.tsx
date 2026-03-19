@@ -118,6 +118,10 @@ export const AppManagerProvider: React.FC<AppManagerProviderProps> = ({
         'opencode': null,
         'codex': null,
         'workbuddy': null,
+        'zeroclaw': null,
+        'nanobot': null,
+        'picoclaw': null,
+        'openfang': null,
     });
 
     // Set tool model (single selection) - UI state update
