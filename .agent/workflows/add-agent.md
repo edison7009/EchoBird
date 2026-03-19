@@ -218,14 +218,39 @@ Place the icon at `public/icons/tools/{agent-id}.svg` (or `.png`).
 
 ---
 
-## Step 5: Agent List (Now Dynamic)
+## Step 5: Agent Lists and Detection
 
-~~File: `src/pages/Channels.tsx`~~
+Three files contain hardcoded agent lists that MUST be updated when adding a new agent:
 
-**No longer needed.** The agent list is dynamically loaded from `plugins/` directory at runtime. Any agent with a valid `plugin.json` is automatically available in Channels.
+### 5a. Channels Page AGENT_LIST
+File: `src/pages/Channels.tsx`
 
-> [!NOTE]
-> Previously, agents needed to be added to a hardcoded `AGENT_LIST` in Channels.tsx. This was refactored to dynamic loading from plugin configs.
+Find the `AGENT_LIST` constant and add the new agent. This controls the channel avatar/icon display.
+
+```typescript
+{ id: 'youragent', name: 'Your Agent', icon: '/icons/tools/youragent.png' },
+```
+
+### 5b. AgentRolePicker AGENT_TOOLS
+File: `src/components/AgentRolePicker.tsx`
+
+Find the `AGENT_TOOLS` constant and add the new agent. This controls the role picker agent selector tabs.
+
+```typescript
+{ id: 'youragent', name: 'Your Agent', icon: '/icons/tools/youragent.png', enabled: true },
+```
+
+### 5c. Local Agent Detection
+File: `src-tauri/src/commands/role_commands.rs`
+
+Find the `agents` array in `detect_local_agents()` and add the new agent CLI command name.
+
+```rust
+("youragent", "Your Agent", "youragent"),  // the CLI command name
+```
+
+> [!CAUTION]
+> **Missing any of these 3 files will cause bugs:** missing from AGENT_LIST = wrong icon in Channels, missing from AGENT_TOOLS = agent tab won't appear in role picker, missing from detect_local_agents = agent shows as 'available' even when not installed.
 
 ---
 

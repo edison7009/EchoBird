@@ -25,6 +25,7 @@ const AGENT_LIST = [
     { id: 'zeroclaw', name: 'ZeroClaw', icon: '/icons/tools/zeroclaw.png' },
     { id: 'nanobot', name: 'NanoBot', icon: '/icons/tools/nanobot.png' },
     { id: 'picoclaw', name: 'PicoClaw', icon: '/icons/tools/picoclaw.png' },
+    { id: 'hermes', name: 'Hermes Agent', icon: '/icons/tools/hermes.png' },
 ];
 
 // ===== Context (shared state between ChannelsMain & ChannelsPanel) =====
