@@ -60,13 +60,21 @@ pub async fn get_version(cmd: &str) -> Option<String> {
         format!("{}\n{}", stdout, stderr)
     };
 
-    // Scan all lines for a version pattern (digits.digits...)
+    // Scan all lines for a version pattern (digits.digits... or v-prefixed)
     for line in combined.lines() {
+        // Strategy 1: find token starting with digit and containing '.' (e.g. "0.4.9")
         if let Some(ver) = line
             .split_whitespace()
             .find(|s| s.chars().next().map_or(false, |c| c.is_ascii_digit()) && s.contains('.'))
         {
             return Some(ver.trim().to_string());
+        }
+        // Strategy 2: find v-prefixed token (e.g. "v0.1.4.post5") → strip the 'v'
+        if let Some(ver) = line
+            .split_whitespace()
+            .find(|s| s.starts_with('v') && s.len() > 1 && s.chars().nth(1).map_or(false, |c| c.is_ascii_digit()) && s.contains('.'))
+        {
+            return Some(ver[1..].trim().to_string());
         }
     }
     None
