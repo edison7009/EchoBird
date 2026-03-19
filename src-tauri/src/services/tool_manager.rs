@@ -205,25 +205,31 @@ fn load_tool_definitions() -> Vec<ToolDefinition> {
         }
 
         // Parse paths.json
-        let paths_config: PathsConfig = match fs::read_to_string(&paths_file)
-            .ok()
-            .and_then(|c| serde_json::from_str(&c).ok())
-        {
-            Some(pc) => pc,
-            None => {
-                log::warn!("[ToolManager] Failed to parse {}/paths.json", tool_id);
+        let paths_config: PathsConfig = match fs::read_to_string(&paths_file) {
+            Ok(content) => match serde_json::from_str(&content) {
+                Ok(pc) => pc,
+                Err(e) => {
+                    log::warn!("[ToolManager] Failed to parse {}/paths.json: {}", tool_id, e);
+                    continue;
+                }
+            },
+            Err(e) => {
+                log::warn!("[ToolManager] Failed to read {}/paths.json: {}", tool_id, e);
                 continue;
             }
         };
 
         // Parse config.json
-        let config_mapping: ConfigMapping = match fs::read_to_string(&config_file)
-            .ok()
-            .and_then(|c| serde_json::from_str(&c).ok())
-        {
-            Some(cm) => cm,
-            None => {
-                log::warn!("[ToolManager] Failed to parse {}/config.json", tool_id);
+        let config_mapping: ConfigMapping = match fs::read_to_string(&config_file) {
+            Ok(content) => match serde_json::from_str(&content) {
+                Ok(cm) => cm,
+                Err(e) => {
+                    log::warn!("[ToolManager] Failed to parse {}/config.json: {}", tool_id, e);
+                    continue;
+                }
+            },
+            Err(e) => {
+                log::warn!("[ToolManager] Failed to read {}/config.json: {}", tool_id, e);
                 continue;
             }
         };
