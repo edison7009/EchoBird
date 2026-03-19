@@ -86,7 +86,7 @@ const de: Partial<Translations> = {
     'common.website': 'Webseite',
     'common.areYouSure': 'Sind Sie sicher?',    // Tool-Kategorien
     'toolCat.all': 'ALLE',
-    'toolCat.agentOS': 'AgentOS',
+    'toolCat.agentOS': 'CLI Agent',
     'toolCat.ide': 'IDE',
     'toolCat.cli': 'CLI',
     'toolCat.autoTrading': 'Auto-Trading',

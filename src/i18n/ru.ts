@@ -86,7 +86,7 @@ const ru: Partial<Translations> = {
     'common.website': 'Веб-сайт',
     'common.areYouSure': 'Вы уверены?',    // Tool Categories
     'toolCat.all': 'Все',
-    'toolCat.agentOS': 'AgentOS',
+    'toolCat.agentOS': 'CLI Agent',
     'toolCat.ide': 'IDE',
     'toolCat.cli': 'CLI',
     'toolCat.autoTrading': 'Автоторговля',

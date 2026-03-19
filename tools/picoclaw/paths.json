@@ -6,7 +6,7 @@
         "ja": "PicoClaw",
         "ko": "PicoClaw"
     },
-    "category": "AgentOS",
+    "category": "CLI Agent",
     "apiProtocol": [
         "openai"
     ],

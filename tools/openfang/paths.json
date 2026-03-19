@@ -6,7 +6,7 @@
         "ja": "OpenFang",
         "ko": "OpenFang"
     },
-    "category": "AgentOS",
+    "category": "CLI Agent",
     "apiProtocol": [
         "openai",
         "anthropic"

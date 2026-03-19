@@ -18,7 +18,7 @@ const fi: Partial<Translations> = {
     'model.label': 'MALLI', 'model.source': 'LÄHDE', 'model.latency': 'VIIVE', 'model.debugTesting': 'VIRHEENKORJAUSTESTI', 'model.cloud': 'PILVI', 'model.local': 'PAIKALLINEN', 'model.tunnel': 'TUNNELI',
     'btn.copy': '[KOPIOI]', 'btn.copied': '[✓]',
     'common.noData': 'Ei dataa', 'common.confirm': 'Vahvista', 'common.website': 'Verkkosivu', 'common.areYouSure': 'Oletko varma?',
-    'toolCat.all': 'KAIKKI', 'toolCat.agentOS': 'AgentOS', 'toolCat.ide': 'IDE', 'toolCat.cli': 'CLI', 'toolCat.autoTrading': 'Automaattikauppa', 'toolCat.game': 'Peli',
+    'toolCat.all': 'KAIKKI', 'toolCat.agentOS': 'CLI Agent', 'toolCat.ide': 'IDE', 'toolCat.cli': 'CLI', 'toolCat.autoTrading': 'Automaattikauppa', 'toolCat.game': 'Peli',
     'toolCat.utility': 'Apuohjelmat',
     'agent.modelsTab': 'MALLIT', 'tool.models': 'Mallit', 'tool.app': 'Sovellus', 'tool.config': 'Asetukset',
     'tool.version': 'Versio',

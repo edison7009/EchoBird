@@ -18,7 +18,7 @@ const sv: Partial<Translations> = {
     'model.label': 'MODELL', 'model.source': 'KÄLLA', 'model.latency': 'FÖRDRÖJNING', 'model.debugTesting': 'FELSÖKNINGSTEST', 'model.cloud': 'MOLN', 'model.local': 'LOKAL', 'model.tunnel': 'TUNNEL',
     'btn.copy': '[KOPIERA]', 'btn.copied': '[✓]',
     'common.noData': 'Ingen data', 'common.confirm': 'Bekräfta', 'common.website': 'Webbplats', 'common.areYouSure': 'Är du säker?',
-    'toolCat.all': 'ALLA', 'toolCat.agentOS': 'AgentOS', 'toolCat.ide': 'IDE', 'toolCat.cli': 'CLI', 'toolCat.autoTrading': 'Autohandel', 'toolCat.game': 'Spel',
+    'toolCat.all': 'ALLA', 'toolCat.agentOS': 'CLI Agent', 'toolCat.ide': 'IDE', 'toolCat.cli': 'CLI', 'toolCat.autoTrading': 'Autohandel', 'toolCat.game': 'Spel',
     'toolCat.utility': 'Verktyg',
     'agent.modelsTab': 'MODELLER', 'tool.models': 'Modeller', 'tool.app': 'App', 'tool.config': 'Konfig',
     'tool.version': 'Version',

@@ -90,7 +90,7 @@ const en: Translations = {
     'common.website': 'Website',
     'common.areYouSure': 'Are you sure?',    // Tool categories
     'toolCat.all': 'ALL',
-    'toolCat.agentOS': 'AgentOS',
+    'toolCat.agentOS': 'CLI Agent',
     'toolCat.ide': 'IDE',
     'toolCat.cli': 'CLI',
     'toolCat.autoTrading': 'AutoTrading',

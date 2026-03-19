@@ -18,7 +18,7 @@ const fa: Partial<Translations> = {
     'model.label': 'مدل', 'model.source': 'منبع', 'model.latency': 'تأخیر', 'model.debugTesting': 'آزمایش اشکال‌زدایی', 'model.cloud': 'ابری', 'model.local': 'محلی', 'model.tunnel': 'تونل',
     'btn.copy': '[کپی]', 'btn.copied': '[✓]',
     'common.noData': 'داده‌ای نیست', 'common.confirm': 'تأیید', 'common.website': 'وب‌سایت', 'common.areYouSure': 'آیا مطمئن هستید؟',
-    'toolCat.all': 'همه', 'toolCat.agentOS': 'AgentOS', 'toolCat.ide': 'IDE', 'toolCat.cli': 'CLI', 'toolCat.autoTrading': 'معاملات خودکار', 'toolCat.game': 'بازی',
+    'toolCat.all': 'همه', 'toolCat.agentOS': 'CLI Agent', 'toolCat.ide': 'IDE', 'toolCat.cli': 'CLI', 'toolCat.autoTrading': 'معاملات خودکار', 'toolCat.game': 'بازی',
     'toolCat.utility': 'ابزارها',
     'agent.modelsTab': 'مدل‌ها', 'tool.models': 'مدل‌ها', 'tool.app': 'برنامه', 'tool.config': 'تنظیمات',
     'tool.version': 'نسخه',

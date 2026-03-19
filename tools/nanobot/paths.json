@@ -6,7 +6,7 @@
         "ja": "NanoBot",
         "ko": "NanoBot"
     },
-    "category": "AgentOS",
+    "category": "CLI Agent",
     "apiProtocol": [
         "openai"
     ],

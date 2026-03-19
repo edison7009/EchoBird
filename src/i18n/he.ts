@@ -18,7 +18,7 @@ const he: Partial<Translations> = {
     'model.label': 'מודל', 'model.source': 'מקור', 'model.latency': 'השהייה', 'model.debugTesting': 'בדיקת ניפוי', 'model.cloud': 'ענן', 'model.local': 'מקומי', 'model.tunnel': 'מנהרה',
     'btn.copy': '[העתק]', 'btn.copied': '[✓]',
     'common.noData': 'אין נתונים', 'common.confirm': 'אישור', 'common.website': 'אתר', 'common.areYouSure': 'האם אתה בטוח?',
-    'toolCat.all': 'הכל', 'toolCat.agentOS': 'AgentOS', 'toolCat.ide': 'IDE', 'toolCat.cli': 'CLI', 'toolCat.autoTrading': 'מסחר אוטומטי', 'toolCat.game': 'משחק',
+    'toolCat.all': 'הכל', 'toolCat.agentOS': 'CLI Agent', 'toolCat.ide': 'IDE', 'toolCat.cli': 'CLI', 'toolCat.autoTrading': 'מסחר אוטומטי', 'toolCat.game': 'משחק',
     'toolCat.utility': 'כלים',
     'agent.modelsTab': 'מודלים', 'tool.models': 'מודלים', 'tool.app': 'אפליקציה', 'tool.config': 'הגדרות',
     'tool.version': 'גרסה',

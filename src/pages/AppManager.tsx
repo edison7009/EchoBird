@@ -53,7 +53,7 @@ const useAppManager = () => {
 };
 
 // Tool categories
-const toolCategories = ['ALL', 'AgentOS', 'IDE', 'CLI', 'AutoTrading', 'Game', 'Utility'] as const;
+const toolCategories = ['ALL', 'CLI Agent', 'IDE', 'CLI', 'AutoTrading', 'Game', 'Utility'] as const;
 
 // ===== Provider =====
 
@@ -278,7 +278,7 @@ export const AppManagerMain: React.FC = () => {
                         >
                             {(() => {
                                 const catMap: Record<string, string> = {
-                                    'ALL': 'toolCat.all', 'AgentOS': 'toolCat.agentOS',
+                                    'ALL': 'toolCat.all', 'CLI Agent': 'toolCat.agentOS',
                                     'IDE': 'toolCat.ide', 'CLI': 'toolCat.cli',
                                     'AutoTrading': 'toolCat.autoTrading', 'Game': 'toolCat.game',
                                     'Utility': 'toolCat.utility'
@@ -328,7 +328,7 @@ export const AppManagerMain: React.FC = () => {
                                 const bHasRemote = aiInstallableIds.includes(b.id);
                                 if (aHasRemote !== bHasRemote) return aHasRemote ? -1 : 1;
                                 // 3. Then by category
-                                const categoryOrder: Record<string, number> = { 'AgentOS': 0, 'IDE': 1, 'CLI': 2, 'AutoTrading': 3, 'Game': 4, 'Utility': 5 };
+                                const categoryOrder: Record<string, number> = { 'CLI Agent': 0, 'IDE': 1, 'CLI': 2, 'AutoTrading': 3, 'Game': 4, 'Utility': 5 };
                                 return (categoryOrder[a.category || ''] ?? 99) - (categoryOrder[b.category || ''] ?? 99);
                             })
                             .map(tool => (

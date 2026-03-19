@@ -86,7 +86,7 @@ const ja: Partial<Translations> = {
     'common.website': 'ウェブサイト',
     'common.areYouSure': '本当によろしいですか？',    // Tool Categories
     'toolCat.all': 'すべて',
-    'toolCat.agentOS': 'AgentOS',
+    'toolCat.agentOS': 'CLI Agent',
     'toolCat.ide': 'IDE',
     'toolCat.cli': 'CLI',
     'toolCat.autoTrading': '自動取引',

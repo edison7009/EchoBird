@@ -18,7 +18,7 @@ const el: Partial<Translations> = {
     'model.label': 'ΜΟΝΤΕΛΟ', 'model.source': 'ΠΗΓΗ', 'model.latency': 'ΚΑΘΥΣΤΕΡΗΣΗ', 'model.debugTesting': 'ΔΟΚΙΜΗ', 'model.cloud': 'ΝΕΦΟΣ', 'model.local': 'ΤΟΠΙΚΟ', 'model.tunnel': 'ΣΗΡΑΓΓΑ',
     'btn.copy': '[ΑΝΤΙΓΡΑΦΗ]', 'btn.copied': '[✓]',
     'common.noData': 'Χωρίς δεδομένα', 'common.confirm': 'Επιβεβαίωση', 'common.website': 'Ιστοσελίδα', 'common.areYouSure': 'Είστε σίγουροι;',
-    'toolCat.all': 'ΟΛΑ', 'toolCat.agentOS': 'AgentOS', 'toolCat.ide': 'IDE', 'toolCat.cli': 'CLI', 'toolCat.autoTrading': 'Αυτ. Συναλλαγές', 'toolCat.game': 'Παιχνίδι',
+    'toolCat.all': 'ΟΛΑ', 'toolCat.agentOS': 'CLI Agent', 'toolCat.ide': 'IDE', 'toolCat.cli': 'CLI', 'toolCat.autoTrading': 'Αυτ. Συναλλαγές', 'toolCat.game': 'Παιχνίδι',
     'toolCat.utility': 'Εργαλεία',
     'agent.modelsTab': 'ΜΟΝΤΕΛΑ', 'tool.models': 'Μοντέλα', 'tool.app': 'Εφαρμογή', 'tool.config': 'Ρυθμίσεις',
     'tool.version': 'Έκδοση',

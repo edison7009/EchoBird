@@ -86,7 +86,7 @@ const zhHant: Partial<Translations> = {
     'common.website': '官網',
     'common.areYouSure': '確定嗎？',    // 工具分類
     'toolCat.all': '全部',
-    'toolCat.agentOS': 'AgentOS',
+    'toolCat.agentOS': 'CLI Agent',
     'toolCat.ide': 'IDE',
     'toolCat.cli': 'CLI',
     'toolCat.autoTrading': '自動交易',

@@ -6,7 +6,7 @@
         "ja": "ZeroClaw",
         "ko": "ZeroClaw"
     },
-    "category": "AgentOS",
+    "category": "CLI Agent",
     "apiProtocol": [
         "openai"
     ],

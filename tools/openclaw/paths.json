@@ -1,6 +1,6 @@
 {
     "name": "OpenClaw",
-    "category": "AgentOS",
+    "category": "CLI Agent",
     "apiProtocol": [
         "openai",
         "anthropic"

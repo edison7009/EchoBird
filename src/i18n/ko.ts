@@ -86,7 +86,7 @@ const ko: Partial<Translations> = {
     'common.website': '웹사이트',
     'common.areYouSure': '정말 하시겠습니까?',    // Tool Categories
     'toolCat.all': '전체',
-    'toolCat.agentOS': 'AgentOS',
+    'toolCat.agentOS': 'CLI Agent',
     'toolCat.ide': 'IDE',
     'toolCat.cli': 'CLI',
     'toolCat.autoTrading': '자동 거래',
