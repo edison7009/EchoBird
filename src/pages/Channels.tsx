@@ -378,14 +378,20 @@ const ChannelsInner: React.FC = () => {
 
     useEffect(() => {
         if (autoFollowRef.current && scrollRef.current) {
-            scrollRef.current.scrollIntoView({ behavior: 'auto' });
+            requestAnimationFrame(() => {
+                scrollRef.current?.scrollIntoView({ behavior: 'auto' });
+            });
         }
     }, [messages]);
 
     useEffect(() => {
         autoFollowRef.current = true;
         setShowScrollBtn(false);
-        scrollRef.current?.scrollIntoView({ behavior: 'instant' as any });
+        // Delay scroll to after DOM updates from loadInitial()
+        const timer = setTimeout(() => {
+            scrollRef.current?.scrollIntoView({ behavior: 'instant' as any });
+        }, 50);
+        return () => clearTimeout(timer);
     }, [activeId]);
 
     const scrollToBottom = () => {

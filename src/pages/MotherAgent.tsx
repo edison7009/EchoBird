@@ -687,7 +687,9 @@ export function MotherAgentMain() {
 
     useEffect(() => {
         if (autoFollowRef.current && chatEndRef.current) {
-            chatEndRef.current.scrollIntoView({ behavior: 'auto' });
+            requestAnimationFrame(() => {
+                chatEndRef.current?.scrollIntoView({ behavior: 'auto' });
+            });
         }
     }, [chatOutput]);
 
