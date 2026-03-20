@@ -113,6 +113,12 @@ export const AgentRolePicker: React.FC<AgentRolePickerProps> = ({
                 setDetecting(false);
             }).catch(() => {
                 if (cancelled) return;
+                // Local detection error — mark all as not installed + clear selections
+                const allNotInstalled: AgentStatus[] = AGENT_TOOLS.map(a => ({ id: a.id, name: a.name, installed: false }));
+                setAgentStatuses(allNotInstalled);
+                setLocalSelected(null);
+                onSelectRole('', '', '');
+                onSelectAgent('');
                 setDetecting(false);
             });
         }
@@ -218,7 +224,7 @@ export const AgentRolePicker: React.FC<AgentRolePickerProps> = ({
                         <div className="grid grid-cols-6 gap-3">
                             {/* No-role (clear) card */}
                             <div
-                                onClick={handleClear}
+                                onClick={() => { if (currentAgentAvailable) handleClear(); }}
                                 className={`relative border rounded-card cursor-pointer transition-all overflow-hidden group ${
                                     localSelected === null
                                         ? 'border-cyber-accent shadow-[0_0_12px_rgba(0,255,157,0.3)]'
