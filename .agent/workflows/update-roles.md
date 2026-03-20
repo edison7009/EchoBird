@@ -4,71 +4,101 @@ description: Update role JSON files from upstream agency-agents repos (EN + ZH)
 
 # Update Roles Workflow
 
-Regenerates `roles/roles-en.json` and `roles/roles-zh-Hans.json` from two upstream GitHub repos.
+Updates role data from two upstream GitHub repos. This involves **4 deliverables**:
+
+1. `roles/roles-en.json` and `roles/roles-zh-Hans.json` — role catalog for the app
+2. `docs/roles/en/` and `docs/roles/zh-Hans/` — actual role MD files served by Cloudflare Pages
+3. `docs/roles/*.png` — role avatar images (one per role, sequential numbering)
+4. Sync `docs/` to public repo for Cloudflare deployment
 
 > [!IMPORTANT]
-> The `roles/` directory only contains 2 JSON files. No `.md` files or reference repos are stored locally.
-> Bridge CLI downloads `.md` files at runtime via raw GitHub URLs — no local copy needed.
+> The upstream repos have MDs directly under category directories (e.g. `engineering/xxx.md`), NOT under `en/` or `zh-Hans/` subdirectories.
 
 ## Source Repos
 
-| Language | Repo | Raw URL base |
+| Language | Repo | Bridge download URL pattern |
 |---|---|---|
-| English | `msitarzewski/agency-agents` | `https://raw.githubusercontent.com/msitarzewski/agency-agents/main/en/` |
-| 中文 | `jnMetaCode/agency-agents-zh` | `https://raw.githubusercontent.com/jnMetaCode/agency-agents-zh/main/zh-Hans/` |
+| English | `msitarzewski/agency-agents` | `https://raw.githubusercontent.com/msitarzewski/agency-agents/main/{filePath}` |
+| Chinese | `jnMetaCode/agency-agents-zh` | `https://raw.githubusercontent.com/jnMetaCode/agency-agents-zh/main/{filePath}` |
 
-## Step 1: Clone/update upstream repos to temp directories
+## Step 1: Clone/update upstream repos
 
 // turbo
 ```powershell
-# English
-if (Test-Path "D:\tmp\agency-agents") {
-    git -C "D:\tmp\agency-agents" pull
-} else {
-    git clone https://github.com/msitarzewski/agency-agents.git "D:\tmp\agency-agents"
-}
-
-# Chinese
-if (Test-Path "D:\tmp\agency-agents-zh") {
-    git -C "D:\tmp\agency-agents-zh" pull
-} else {
-    git clone https://github.com/jnMetaCode/agency-agents-zh.git "D:\tmp\agency-agents-zh"
-}
-
-# Show counts
-$enCount = (Get-ChildItem "D:\tmp\agency-agents\en" -Recurse -Filter *.md).Count
-$zhCount = (Get-ChildItem "D:\tmp\agency-agents-zh\zh-Hans" -Recurse -Filter *.md).Count
-Write-Host "EN: $enCount roles, ZH: $zhCount roles"
+if (Test-Path "D:\tmp\agency-agents") { git -C "D:\tmp\agency-agents" pull } else { git clone https://github.com/msitarzewski/agency-agents.git "D:\tmp\agency-agents" }
+if (Test-Path "D:\tmp\agency-agents-zh") { git -C "D:\tmp\agency-agents-zh" pull } else { git clone https://github.com/jnMetaCode/agency-agents-zh.git "D:\tmp\agency-agents-zh" }
 ```
 
 ## Step 2: Regenerate JSON files
 
-Scan the temp directories and rebuild the two JSON files:
-
-1. Scan each `D:\tmp\agency-agents\en\{category}\` and `D:\tmp\agency-agents-zh\zh-Hans\{category}\` directory
-2. Parse YAML frontmatter from each `.md` file to extract `name`, `description`
-3. Build the JSON structure with `categories`, `roles` (id, name, description, category, filePath, img)
-4. Image assignment: cycle through the 17 placeholder images using CDN URL `https://echobird.ai/docs/roles/{n}.jpg`
-5. Write to `roles/roles-en.json` and `roles/roles-zh-Hans.json`
-
-> [!IMPORTANT]
-> The `img` field uses CDN URLs like `https://echobird.ai/docs/roles/4.jpg`.
-> The `filePath` field is relative, e.g. `engineering/engineering-ai-engineer.md`.
-> Bridge CLI constructs the full raw GitHub URL at runtime:
-> - EN: `https://raw.githubusercontent.com/msitarzewski/agency-agents/main/en/{filePath}`
-> - ZH: `https://raw.githubusercontent.com/jnMetaCode/agency-agents-zh/main/zh-Hans/{filePath}`
-
-## Step 3: Compare and verify
+Use `C:\tmp\gen_roles.py` script. It:
+1. Scans category directories (skips `scripts/`, `strategy/`, `examples/`, `.github/`)
+2. Parses YAML frontmatter for `name` and `description`
+3. Assigns sequential image numbers (`https://echobird.ai/roles/{n}.png`) — one unique image per role, NO cycling
+4. Writes `roles/roles-en.json` and `roles/roles-zh-Hans.json`
 
 // turbo
 ```powershell
-git -C "D:\Echobird" diff --stat roles/roles-en.json roles/roles-zh-Hans.json
+python C:\tmp\gen_roles.py
 ```
 
-## Step 4: Commit
+> [!CAUTION]
+> Image numbering is **sequential per role** (1, 2, 3, ..., N). If new roles are added and the number exceeds existing images in `docs/roles/`, you must generate new images (see Step 4).
+
+## Step 3: Sync MD files to docs/
+
+Copy upstream MDs into `docs/roles/en/` and `docs/roles/zh-Hans/` for Cloudflare Pages serving.
 
 ```powershell
-git -C "D:\Echobird" add roles/roles-en.json roles/roles-zh-Hans.json
+$skipDirs = @('scripts','strategy','examples','.github','.git')
+$skipFiles = @('README.md','README.zh-TW.md','EXECUTIVE-BRIEF.md','QUICKSTART.md','CONTRIBUTING.md','nexus-strategy.md')
+
+# EN
+$enSrc = "D:\tmp\agency-agents"; $enDst = "D:\Echobird\docs\roles\en"
+Get-ChildItem $enSrc -Directory | Where-Object { $_.Name -notin $skipDirs } | ForEach-Object {
+    $dst = Join-Path $enDst $_.Name; if (!(Test-Path $dst)) { New-Item -ItemType Directory -Path $dst -Force | Out-Null }
+    Get-ChildItem $_.FullName -Filter *.md | Where-Object { $_.Name -notin $skipFiles } | ForEach-Object { Copy-Item $_.FullName (Join-Path $dst $_.Name) -Force }
+}
+
+# ZH
+$zhSrc = "D:\tmp\agency-agents-zh"; $zhDst = "D:\Echobird\docs\roles\zh-Hans"
+Get-ChildItem $zhSrc -Directory | Where-Object { $_.Name -notin $skipDirs } | ForEach-Object {
+    $dst = Join-Path $zhDst $_.Name; if (!(Test-Path $dst)) { New-Item -ItemType Directory -Path $dst -Force | Out-Null }
+    Get-ChildItem $_.FullName -Filter *.md | Where-Object { $_.Name -notin $skipFiles } | ForEach-Object { Copy-Item $_.FullName (Join-Path $dst $_.Name) -Force }
+}
+```
+
+## Step 4: Generate missing role images
+
+Check if new roles exceed existing image count. If so, generate new avatar images.
+
+```powershell
+$maxImg = (Get-ChildItem "D:\Echobird\docs\roles\*.png" | ForEach-Object { [int]($_.BaseName) } | Measure-Object -Maximum).Maximum
+$maxRole = [math]::Max(141, 165)  # update with actual counts from Step 2
+Write-Host "Max image: $maxImg, Max roles: $maxRole, Need new: $($maxRole -gt $maxImg)"
+```
+
+If new images needed: use `generate_image` tool to create role avatars, save as `docs/roles/{N}.png`.
+
+## Step 5: Compare and commit
+
+// turbo
+```powershell
+git -C "D:\Echobird" diff --stat roles/ docs/roles/
+```
+
+```powershell
+git -C "D:\Echobird" add roles/ docs/roles/
 git -C "D:\Echobird" commit -m "chore: update roles from upstream agency-agents repos"
 git -C "D:\Echobird" push origin main
+```
+
+## Step 6: Sync docs to public repo
+
+```powershell
+Copy-Item -Path "D:\Echobird\docs\*" -Destination "D:\Echobird-MotherAgent\docs\" -Recurse -Force
+git -C "D:\Echobird-MotherAgent" add -A
+git -C "D:\Echobird-MotherAgent" commit -m "docs: sync roles from private repo"
+git -C "D:\Echobird-MotherAgent" -c core.editor=true pull --rebase origin main
+git -C "D:\Echobird-MotherAgent" push origin main
 ```
