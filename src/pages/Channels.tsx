@@ -1,6 +1,6 @@
 // Channels — OpenClaw agent chat interface (bridge CLI + SSH)
 import React, { useState, useEffect, useRef, useCallback, createContext, useContext } from 'react';
-import { Send, CornerDownLeft, X, Square, Paperclip, Image as ImageIcon, RotateCcw, KeyRound, Zap, Server, ChevronsDown, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Send, CornerDownLeft, X, Square, Paperclip, Image as ImageIcon, RotateCcw, Zap, Server, ChevronsDown, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
 import { MiniSelect } from '../components/MiniSelect';
 import { getModelIcon } from '../components/cards/ModelCard';
 import { PendingChipsRow } from '../components/PendingChipsRow';
@@ -172,11 +172,8 @@ const ChannelsInner: React.FC = () => {
     const [input, setInput] = useState('');
     const [arrowIndex, setArrowIndex] = useState(0);
     const [attachments, setAttachments] = useState<Attachment[]>([]);
-    const [pendingModels, setPendingModels] = useState<Array<{ id: string; name: string; modelId?: string }>>([]);
-    const [showModelPicker, setShowModelPicker] = useState(false);
-    const [modelList, setModelList] = useState<ModelConfig[]>([]);
+
     const [remoteCopied, setRemoteCopied] = useState('');
-    const modelPickerRef = useRef<HTMLDivElement>(null);
 
     // Process toggle (show/hide tool calls and thinking)
 
@@ -532,66 +529,23 @@ const ChannelsInner: React.FC = () => {
     }, []);
 
     // Open model picker
-    const openModelPicker = useCallback(async () => {
-        try {
-            const models = await api.getModels();
-            setModelList(models || []);
-        } catch { setModelList([]); }
-        setShowModelPicker(prev => !prev);
-    }, []);
 
-    // Close model picker on outside click
-    useEffect(() => {
-        if (!showModelPicker) return;
-        const handler = (e: MouseEvent) => {
-            if (modelPickerRef.current && !modelPickerRef.current.contains(e.target as Node)) {
-                setShowModelPicker(false);
-            }
-        };
-        document.addEventListener('mousedown', handler);
-        return () => document.removeEventListener('mousedown', handler);
-    }, [showModelPicker]);
-
-
-    // Format model config as plain text for sending
-    const formatModelText = (m: ModelConfig): string => {
-        const lines = [
-            `[MODEL CONFIG]`,
-            `Name: ${m.name}`,
-            `Model: ${m.modelId || 'N/A'}`,
-            `Base URL: ${m.baseUrl}`,
-        ];
-        if (m.anthropicUrl) lines.push(`Anthropic URL: ${m.anthropicUrl}`);
-        lines.push(`API Key: ${m.apiKey}`);
-        if (m.proxyUrl) lines.push(`Proxy URL: ${m.proxyUrl}`);
-        lines.push(`[/MODEL CONFIG]`);
-        return lines.join('\n');
-    };
 
     // Send message
     const handleSend = useCallback(async () => {
         if (!activeId) return;
         if (!canSendMessage) return;
         if (bridgeLoading) return;
-        if (!input.trim() && attachments.length === 0 && pendingModels.length === 0) return;
+        if (!input.trim() && attachments.length === 0) return;
         // Build message text + chips using shared utility
-        const mdList = pendingModels.map(pm => {
-            const md = modelList.find(m => m.internalId === pm.id);
-            return {
-                id: pm.id, name: pm.name, modelId: pm.modelId,
-                baseUrl: md?.baseUrl, anthropicUrl: md?.anthropicUrl,
-                apiKey: md?.apiKey, proxyUrl: md?.proxyUrl,
-            };
-        });
         const { messageText, chips } = buildPendingMessage(
             input,
             attachments.map((a, i) => ({ id: String(i), name: a.name, type: a.type as 'file' | 'image', preview: a.preview })),
-            mdList,
+            [],
             [],
         );
         const text = messageText || input.trim();   // full text -> Agent
         const displayText = input.trim();            // clean text -> bubble & disk
-        setPendingModels([]);
         setInput('');
         setAttachments([]);
         // Bubble shows clean user text + chips; agent receives full text with attachments
@@ -782,7 +736,7 @@ const ChannelsInner: React.FC = () => {
             setBridgeLoading(false);
         }
         inputRef.current?.focus();
-    }, [activeId, input, attachments, pendingModels, isActiveConnected, canSendMessage, isLocalChannel, bridgeLoading, bridgeSessionId, bridgeConnectionStatus, activeChannel, modelList, allActiveAgents, channelKey]);
+    }, [activeId, input, attachments, isActiveConnected, canSendMessage, isLocalChannel, bridgeLoading, bridgeSessionId, bridgeConnectionStatus, activeChannel, allActiveAgents, channelKey]);
 
     // Abort current request (bridge mode — no-op for now)
     const handleAbort = useCallback(() => {}, []);
@@ -828,8 +782,6 @@ const ChannelsInner: React.FC = () => {
                         <PendingChipsRow
                             files={attachments.map((a, i) => ({ id: String(i), name: a.name, type: a.type as 'file'|'image', preview: a.preview }))}
                             onRemoveFile={id => removeAttachment(Number(id))}
-                            models={pendingModels}
-                            onRemoveModel={id => setPendingModels(prev => prev.filter(m => m.id !== id))}
                         />
                         <textarea
                             ref={inputRef}
@@ -846,28 +798,13 @@ const ChannelsInner: React.FC = () => {
                             <div className="flex items-center gap-1 relative">
                                 <button onClick={() => fileInputRef.current?.click()} disabled={bridgeLoading || !isActiveConnected} className="p-1 text-cyber-accent/60 hover:text-cyber-accent transition-colors disabled:opacity-20"><Paperclip size={15} /></button>
                                 <button onClick={() => imageInputRef.current?.click()} disabled={bridgeLoading || !isActiveConnected} className="p-1 text-cyber-accent/60 hover:text-cyber-accent transition-colors disabled:opacity-20"><ImageIcon size={15} /></button>
-                                <button onClick={openModelPicker} disabled={bridgeLoading || !isActiveConnected || pendingModels.length >= 5} className={`p-1 transition-colors disabled:opacity-20 ${pendingModels.length > 0 ? 'text-cyber-accent' : 'text-cyber-accent/60 hover:text-cyber-accent'}`}><KeyRound size={15} /></button>
-                                {showModelPicker && (
-                                    <div ref={modelPickerRef} className="absolute bottom-full left-0 mb-2 w-64 max-h-48 overflow-y-auto slim-scroll bg-cyber-bg border border-cyber-border/60 rounded-lg shadow-lg z-50 custom-scrollbar">
-                                        {modelList.length === 0 ? (
-                                            <div className="px-3 py-2 text-xs text-cyber-text-muted/50 font-mono">{t('channel.noModels')}</div>
-                                        ) : (
-                                            modelList.map(m => (
-                                                <button key={m.internalId} onClick={() => { if (!pendingModels.some(pm => pm.id === m.internalId) && pendingModels.length < 5) { setPendingModels(prev => [...prev, { id: m.internalId, name: m.name, modelId: m.modelId }]); } setShowModelPicker(false); }} className="w-full text-left px-3 py-2 text-xs font-mono hover:bg-cyber-accent/10 transition-colors border-b border-cyber-border/10 last:border-b-0 flex items-center gap-2">
-                                                    {(() => { const icon = getModelIcon(m.name, m.modelId); return icon ? <img src={icon} alt="" className="w-5 h-5 flex-shrink-0" /> : <KeyRound size={14} className="text-cyber-accent/40 flex-shrink-0" />; })()}
-                                                    <div className="min-w-0"><div className="text-cyber-accent font-bold truncate">{m.name}</div><div className="text-cyber-text-muted/50 truncate">{m.modelId || m.baseUrl}</div></div>
-                                                </button>
-                                            ))
-                                        )}
-                                    </div>
-                                )}
                             </div>
                             <div className="flex items-center gap-1.5">
                                 <button onClick={() => { setBridgeMessages([]); chPersistence.clearHistory(); }} disabled={messages.length === 0} className="p-1 text-cyber-accent/40 hover:text-cyber-accent transition-colors disabled:opacity-20"><RotateCcw size={14} /></button>
                                 {bridgeLoading ? (
                                     <button onClick={handleAbort} className="p-1 text-red-400 hover:text-red-300 transition-colors"><Square size={16} fill="currentColor" /></button>
                                 ) : (
-                                    <button onClick={handleSend} disabled={(!input.trim() && attachments.length === 0 && pendingModels.length === 0) || !isActiveConnected} className="w-6 h-6 rounded-lg flex items-center justify-center bg-cyber-accent hover:brightness-110 transition-all disabled:opacity-20"><Send size={15} className="text-cyber-bg" /></button>
+                                    <button onClick={handleSend} disabled={(!input.trim() && attachments.length === 0) || !isActiveConnected} className="w-6 h-6 rounded-lg flex items-center justify-center bg-cyber-accent hover:brightness-110 transition-all disabled:opacity-20"><Send size={15} className="text-cyber-bg" /></button>
                                 )}
                             </div>
                         </div>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback, createContext, useContext } from 'react';
-import { Paperclip, ImageIcon, KeyRound, Send, X, ChevronDown, Square, Lock, RotateCcw, ChevronLeft, ChevronRight, ChevronsDown, Globe, Info, CheckCircle, HelpCircle, ChevronUp, Code, Search, X as XIcon, FileText, Sparkles, Plus, Bot, Database, Settings2 } from 'lucide-react';
+import { Paperclip, ImageIcon, Send, X, ChevronDown, Square, Lock, RotateCcw, ChevronLeft, ChevronRight, ChevronsDown, Globe, Info, CheckCircle, HelpCircle, ChevronUp, Code, Search, X as XIcon, FileText, Sparkles, Plus, Bot, Database, Settings2 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { MiniSelect } from '../components/MiniSelect';
@@ -523,55 +523,32 @@ export function MotherAgentMain() {
     const fileInputRef = useRef<HTMLInputElement>(null!);
     const imageInputRef = useRef<HTMLInputElement>(null!);
 
-    // Model picker state
-    const [showModelPicker, setShowModelPicker] = useState(false);
-    const modelPickerRef = useRef<HTMLDivElement>(null!);
-    const [pendingModels, setPendingModels] = useState<Array<{ id: string; name: string; modelId?: string }>>([]);
+
     const [pendingFiles, setPendingFiles] = useState<Array<{ id: string; name: string; type: 'file' | 'image'; preview?: string }>>([]);
 
-    // Wrap handleChatSend to append pending model/file info as text
+    // Wrap handleChatSend to append pending file info as text
     const localSend = useCallback(() => {
-        const hasModels = pendingModels.length > 0;
         const hasFiles = pendingFiles.length > 0;
 
-        if (hasModels || hasFiles) {
-            const mdList = pendingModels.map(pm => {
-                const md = models.find(m => m.internalId === pm.id);
-                return {
-                    id: pm.id, name: pm.name, modelId: pm.modelId,
-                    baseUrl: md?.baseUrl, anthropicUrl: md?.anthropicUrl,
-                    apiKey: md?.apiKey, proxyUrl: md?.proxyUrl,
-                };
-            });
+        if (hasFiles) {
             const { messageText, chips } = buildPendingMessage(
                 chatInput,
                 pendingFiles,
-                mdList,
+                [],
                 [],
             );
 
-            setPendingModels([]);
             setPendingFiles([]);
             setChatInput('');
             sendMessage(messageText, chatInput.trim(), chips);
         } else {
             handleChatSend();
         }
-    }, [pendingModels, pendingFiles, models, chatInput, setChatInput, handleChatSend, sendMessage]);
+    }, [pendingFiles, chatInput, setChatInput, handleChatSend, sendMessage]);
 
 
 
-    // Close model picker on outside click
-    useEffect(() => {
-        if (!showModelPicker) return;
-        const handler = (e: MouseEvent) => {
-            if (modelPickerRef.current && !modelPickerRef.current.contains(e.target as Node)) {
-                setShowModelPicker(false);
-            }
-        };
-        document.addEventListener('mousedown', handler);
-        return () => document.removeEventListener('mousedown', handler);
-    }, [showModelPicker]);
+
 
     // File handling
     const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -790,8 +767,7 @@ export function MotherAgentMain() {
                     <PendingChipsRow
                         files={pendingFiles}
                         onRemoveFile={id => setPendingFiles(prev => prev.filter(x => x.id !== id))}
-                        models={pendingModels}
-                        onRemoveModel={id => setPendingModels(prev => prev.filter(x => x.id !== id))}
+
                     />
                     <textarea
                         ref={chatInputRef}
@@ -825,50 +801,7 @@ export function MotherAgentMain() {
                             >
                                 <ImageIcon size={15} />
                             </button>
-                            <button
-                                onClick={() => setShowModelPicker(prev => !prev)}
-                                disabled={isProcessing || pendingModels.length >= 5}
-                                className={`p-1 transition-colors disabled:opacity-20 ${showModelPicker ? 'text-cyber-accent-secondary' : 'text-cyber-accent-secondary/40 hover:text-cyber-accent-secondary'}`}
-                            >
-                                <KeyRound size={15} />
-                            </button>
-                            {/* Model picker popover */}
-                            {showModelPicker && (
-                                <div
-                                    ref={modelPickerRef}
-                                    className="absolute bottom-full left-0 mb-2 w-64 max-h-48 overflow-y-auto slim-scroll bg-cyber-bg border border-cyber-border/60 rounded-lg shadow-lg z-50 custom-scrollbar"
-                                >
-                                    {models.length === 0 ? (
-                                        <div className="px-3 py-2 text-xs text-cyber-text-muted/50 font-mono">{t('mother.noModels')}</div>
-                                    ) : (
-                                        models.map(m => (
-                                            <button
-                                                key={m.internalId}
-                                                onClick={() => {
-                                                    if (!pendingModels.some(pm => pm.id === m.internalId) && pendingModels.length < 5) {
-                                                        setPendingModels(prev => [...prev, { id: m.internalId, name: m.name, modelId: m.modelId }]);
-                                                    }
-                                                    setShowModelPicker(false);
-                                                }}
-                                                className="w-full text-left px-3 py-2 text-xs font-mono hover:bg-cyber-accent-secondary/10 transition-colors border-b border-cyber-border/10 last:border-b-0 flex items-center gap-2 text-cyber-text"
-                                            >
-                                                {(() => {
-                                                    const icon = getModelIcon(m.name, m.modelId || '');
-                                                    return icon ? (
-                                                        <img src={icon} alt="" className="w-5 h-5 flex-shrink-0" />
-                                                    ) : (
-                                                        <KeyRound size={14} className="text-cyber-accent-secondary/40 flex-shrink-0" />
-                                                    );
-                                                })()}
-                                                <div className="min-w-0">
-                                                    <div className="font-bold truncate">{m.name}</div>
-                                                    <div className="text-cyber-text-muted/50 truncate text-[10px]">{m.modelId || m.baseUrl}</div>
-                                                </div>
-                                            </button>
-                                        ))
-                                    )}
-                                </div>
-                            )}
+
                         </div>
                         <div className="flex items-center gap-2">
                             <button
