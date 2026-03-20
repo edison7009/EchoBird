@@ -193,6 +193,17 @@ pub fn get_bridge_path(_plugin: &PluginConfig) -> Option<PathBuf> {
     }
 }
 
+/// Get the full path to a plugin's plugin.json file
+pub fn get_plugin_json_path(plugin: &PluginConfig) -> Option<PathBuf> {
+    let path = plugins_dir().join(&plugin.id).join("plugin.json");
+    if path.exists() {
+        Some(path)
+    } else {
+        log::warn!("[PluginManager] plugin.json not found at {:?}", path);
+        None
+    }
+}
+
 /// Build CLI args for a new chat session
 pub fn build_chat_args(plugin: &PluginConfig, message: &str, session_id: Option<&str>) -> Vec<String> {
     let cli = match &plugin.cli {

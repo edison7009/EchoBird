@@ -844,10 +844,29 @@ fn detect_agent(command: &str) -> String {
     }
 }
 
-/// Load config: CLI args (--command) > plugin.json > defaults
+/// Load config: CLI args (--config / --command) > plugin.json > defaults
 fn load_config() -> BridgeConfig {
-    // 1. Check CLI args: --command "zeroclaw agent --json"
     let args: Vec<String> = std::env::args().collect();
+
+    // 1. Check CLI args: --config "/path/to/plugin.json"
+    for i in 0..args.len() {
+        if args[i] == "--config" {
+            if let Some(config_path) = args.get(i + 1) {
+                if let Ok(content) = std::fs::read_to_string(config_path) {
+                    if let Ok(json) = serde_json::from_str::<serde_json::Value>(&content) {
+                        if let Some(cli) = json.get("cli") {
+                            let config = parse_plugin_json(cli);
+                            eprintln!("[bridge] Loaded config from --config: {}", config_path);
+                            return config;
+                        }
+                    }
+                }
+                eprintln!("[bridge] WARN: --config '{}' not found or invalid", config_path);
+            }
+        }
+    }
+
+    // 2. Check CLI args: --command "zeroclaw agent --json"
     for i in 0..args.len() {
         if args[i] == "--command" {
             if let Some(cmd_str) = args.get(i + 1) {
@@ -879,7 +898,8 @@ fn load_config() -> BridgeConfig {
         }
     }
 
-    // 2. Check plugin.json in same directory
+
+    // 3. Check plugin.json in same directory as binary
     let exe_dir = std::env::current_exe()
         .ok()
         .and_then(|p| p.parent().map(|p| p.to_path_buf()));
@@ -889,34 +909,7 @@ fn load_config() -> BridgeConfig {
         if let Ok(content) = std::fs::read_to_string(&plugin_json) {
             if let Ok(json) = serde_json::from_str::<serde_json::Value>(&content) {
                 if let Some(cli) = json.get("cli") {
-                    let mut config = BridgeConfig::default();
-
-                    if let Some(cmd) = cli.get("command").and_then(|v| v.as_str()) {
-                        config.command = cmd.to_string();
-                    }
-                    if let Some(args) = cli.get("args").and_then(|v| v.as_array()) {
-                        config.args = args.iter()
-                            .filter_map(|a| a.as_str().map(String::from))
-                            .collect();
-                    }
-                    if let Some(args) = cli.get("resumeArgs").and_then(|v| v.as_array()) {
-                        config.resume_args = args.iter()
-                            .filter_map(|a| a.as_str().map(String::from))
-                            .collect();
-                    }
-                    if let Some(arg) = cli.get("sessionArg").and_then(|v| v.as_str()) {
-                        config.session_arg = Some(arg.to_string());
-                    }
-                    if let Some(arg) = cli.get("modelArg").and_then(|v| v.as_str()) {
-                        config.model_arg = Some(arg.to_string());
-                    }
-                    if let Some(arg) = cli.get("systemPromptArg").and_then(|v| v.as_str()) {
-                        config.system_prompt_arg = Some(arg.to_string());
-                    }
-                    if let Some(arg) = cli.get("agentArg").and_then(|v| v.as_str()) {
-                        config.agent_arg = Some(arg.to_string());
-                    }
-
+                    let config = parse_plugin_json(cli);
                     eprintln!("[bridge] Loaded config from {:?}", plugin_json);
                     return config;
                 }
@@ -924,7 +917,39 @@ fn load_config() -> BridgeConfig {
         }
     }
 
-    // 3. Default: openclaw
+    // 4. Default: openclaw
     eprintln!("[bridge] Using default config (openclaw agent)");
     BridgeConfig::default()
 }
+
+/// Parse plugin.json "cli" section into BridgeConfig
+fn parse_plugin_json(cli: &serde_json::Value) -> BridgeConfig {
+    let mut config = BridgeConfig::default();
+    if let Some(cmd) = cli.get("command").and_then(|v| v.as_str()) {
+        config.command = cmd.to_string();
+    }
+    if let Some(args) = cli.get("args").and_then(|v| v.as_array()) {
+        config.args = args.iter()
+            .filter_map(|a| a.as_str().map(String::from))
+            .collect();
+    }
+    if let Some(args) = cli.get("resumeArgs").and_then(|v| v.as_array()) {
+        config.resume_args = args.iter()
+            .filter_map(|a| a.as_str().map(String::from))
+            .collect();
+    }
+    if let Some(arg) = cli.get("sessionArg").and_then(|v| v.as_str()) {
+        config.session_arg = Some(arg.to_string());
+    }
+    if let Some(arg) = cli.get("modelArg").and_then(|v| v.as_str()) {
+        config.model_arg = Some(arg.to_string());
+    }
+    if let Some(arg) = cli.get("systemPromptArg").and_then(|v| v.as_str()) {
+        config.system_prompt_arg = Some(arg.to_string());
+    }
+    if let Some(arg) = cli.get("agentArg").and_then(|v| v.as_str()) {
+        config.agent_arg = Some(arg.to_string());
+    }
+    config
+}
+

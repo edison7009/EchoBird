@@ -95,27 +95,6 @@ struct BridgeProcess {
 
 static BRIDGE_PROCESS: Mutex<Option<BridgeProcess>> = Mutex::new(None);
 
-// ── Oneshot State (for cli-oneshot protocol — no persistent subprocess) ──
-
-#[derive(Debug, Clone)]
-#[allow(dead_code)]
-struct OneshotState {
-    plugin_id: String,
-    plugin_name: String,
-    cli_command: String,
-    cli_args: Vec<String>,
-    resume_args: Option<Vec<String>>,
-    session_arg: Option<String>,
-    system_prompt_arg: Option<String>,
-    system_prompt_when: Option<String>,  // "new-session" | "always"
-    agent_arg: Option<String>,           // --agent flag for Claude Code
-    active_role_id: Option<String>,      // current role_id for --agent
-    session_id: Option<String>,
-    prompt_injected: bool,  // track if system_prompt was already sent (for "new-session" mode)
-}
-
-static ONESHOT_STATE: Mutex<Option<OneshotState>> = Mutex::new(None);
-
 /// Truncate a string at a safe UTF-8 char boundary
 fn safe_truncate(s: &str, max_bytes: usize) -> &str {
     if s.len() <= max_bytes {
@@ -129,23 +108,6 @@ fn safe_truncate(s: &str, max_bytes: usize) -> &str {
     &s[..end]
 }
 
-/// Strip <think>...</think> blocks from LLM output.
-/// Many models (MiniMax, DeepSeek) include reasoning in these tags.
-fn strip_think_tags(s: &str) -> String {
-    let mut result = s.to_string();
-    // Remove all <think>...</think> blocks (greedy within each occurrence)
-    while let Some(start) = result.find("<think>") {
-        if let Some(end) = result[start..].find("</think>") {
-            let end_abs = start + end + "</think>".len();
-            result = format!("{}{}", &result[..start], &result[end_abs..]);
-        } else {
-            // Unclosed <think> — remove from <think> to end
-            result = result[..start].to_string();
-            break;
-        }
-    }
-    result.trim().to_string()
-}
 
 // ── Channel Persistence Commands ──
 
@@ -205,8 +167,9 @@ fn start_bridge_internal(plugin_id: &str) -> Result<BridgeStartResult, String> {
 
     log::info!("[Bridge] Starting bridge: {:?}", bridge_path);
 
-    // Launch OpenClaw Gateway in a visible terminal window (like App Manager's LAUNCH APP)
+    // Launch OpenClaw Gateway (only for openclaw plugin)
     // Skip if gateway is already running (check port 18789)
+    if plugin_id == "openclaw" {
     if let Some(cli) = &plugin.cli {
         let gateway_command = format!("{} gateway --allow-unconfigured", cli.command);
 
@@ -275,9 +238,17 @@ fn start_bridge_internal(plugin_id: &str) -> Result<BridgeStartResult, String> {
             std::thread::sleep(std::time::Duration::from_millis(500));
         }
     }
+    } // end: only openclaw launches Gateway
+
+    // Pass --config to Bridge so it loads the correct agent config
+    let plugin_json_path = crate::services::plugin_manager::get_plugin_json_path(plugin);
 
     // Spawn bridge process with piped stdin/stdout
     let mut cmd = Command::new(&bridge_path);
+    if let Some(ref config_path) = plugin_json_path {
+        cmd.arg("--config").arg(config_path.to_string_lossy().as_ref());
+        log::info!("[Bridge] Using config: {:?}", config_path);
+    }
     cmd.stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped());
@@ -476,29 +447,8 @@ pub async fn bridge_start(plugin_id: Option<String>) -> Result<BridgeStartResult
     // Look up plugin config to determine protocol
     let plugins = crate::services::plugin_manager::scan_plugins();
     let plugin = plugins.iter().find(|p| p.id == pid);
-    let protocol = plugin.map(|p| p.protocol.as_str()).unwrap_or("stdio-json");
+    let _protocol = plugin.map(|p| p.protocol.as_str()).unwrap_or("stdio-json");
 
-    if protocol == "cli-oneshot" {
-        // CLI-oneshot: no persistent subprocess — just verify the CLI exists
-        // Clear any existing stdio-json bridge process (cross-protocol switch)
-        if let Ok(mut guard) = BRIDGE_PROCESS.lock() {
-            if let Some(mut bp) = guard.take() {
-                let _ = bp.child.kill();
-                let _ = bp.child.wait();
-                log::info!("[Bridge] Killed stdio-json bridge (switching to cli-oneshot)");
-            }
-        }
-        return start_oneshot(&pid, &plugins).await;
-    }
-
-    // stdio-json: persistent subprocess (existing logic)
-    // Clear any existing cli-oneshot state (cross-protocol switch)
-    if let Ok(mut guard) = ONESHOT_STATE.lock() {
-        if guard.is_some() {
-            log::info!("[Bridge] Clearing cli-oneshot state (switching to stdio-json)");
-            *guard = None;
-        }
-    }
     // Always ensure bridge binary is present before starting
     if let Err(e) = download_bridge_if_missing(&pid).await {
         log::warn!("[Bridge] Auto-download failed: {}", e);
@@ -529,85 +479,9 @@ pub async fn bridge_start(plugin_id: Option<String>) -> Result<BridgeStartResult
     }).await.map_err(|e| format!("Task error: {}", e))?
 }
 
-/// Start a cli-oneshot agent: verify CLI exists, store config in ONESHOT_STATE
-async fn start_oneshot(
-    plugin_id: &str,
-    plugins: &[crate::services::plugin_manager::PluginConfig],
-) -> Result<BridgeStartResult, String> {
-    let plugin = plugins.iter().find(|p| p.id == plugin_id)
-        .ok_or_else(|| format!("Plugin '{}' not found", plugin_id))?;
-
-    let cli = plugin.cli.as_ref()
-        .ok_or_else(|| format!("Plugin '{}' has no CLI config", plugin_id))?;
-
-    // Check if CLI command exists
-    let detect_cmd = cli.detect_command.as_deref().unwrap_or(&cli.command);
-    let parts: Vec<&str> = detect_cmd.split_whitespace().collect();
-    let detect_result = tokio::task::spawn_blocking({
-        let cmd = parts[0].to_string();
-        let args: Vec<String> = parts[1..].iter().map(|s| s.to_string()).collect();
-        move || {
-            let mut c = Command::new(&cmd);
-            c.args(&args);
-            #[cfg(target_os = "windows")]
-            {
-                use std::os::windows::process::CommandExt;
-                const CREATE_NO_WINDOW: u32 = 0x08000000;
-                c.creation_flags(CREATE_NO_WINDOW);
-            }
-            c.output()
-        }
-    }).await.map_err(|e| format!("Task error: {}", e))?;
-
-    match detect_result {
-        Ok(output) if output.status.success() => {
-            let version = String::from_utf8_lossy(&output.stdout).trim().to_string();
-            log::info!("[Bridge] CLI-oneshot '{}' detected: {}", cli.command, version);
-        }
-        Ok(output) => {
-            log::warn!("[Bridge] CLI '{}' exited with {}: {}",
-                cli.command, output.status,
-                String::from_utf8_lossy(&output.stderr).trim());
-            // Don't fail — CLI might still work for chat
-        }
-        Err(e) => {
-            return Err(format!("CLI '{}' not found: {}. Please install it first.", cli.command, e));
-        }
-    }
-
-    // Store oneshot state
-    let state = OneshotState {
-        plugin_id: plugin_id.to_string(),
-        plugin_name: plugin.name.clone(),
-        cli_command: cli.command.clone(),
-        cli_args: cli.args.clone(),
-        resume_args: cli.resume_args.clone(),
-        session_arg: cli.session_arg.clone(),
-        system_prompt_arg: cli.system_prompt_arg.clone(),
-        system_prompt_when: cli.system_prompt_when.clone(),
-        agent_arg: cli.agent_arg.clone(),
-        active_role_id: None,
-        session_id: None,
-        prompt_injected: false,
-    };
-
-    let mut guard = ONESHOT_STATE.lock().map_err(|e| format!("Lock error: {}", e))?;
-    *guard = Some(state);
-
-    Ok(BridgeStartResult {
-        status: "connected".to_string(),
-        error: None,
-        agent_name: Some(plugin.name.clone()),
-    })
-}
-
 /// Stop the Bridge subprocess
 #[tauri::command]
 pub async fn bridge_stop() -> Result<(), String> {
-    // Clear oneshot state too
-    if let Ok(mut guard) = ONESHOT_STATE.lock() {
-        *guard = None;
-    }
     tokio::task::spawn_blocking(|| {
         let mut guard = BRIDGE_PROCESS.lock().map_err(|e| format!("Lock error: {}", e))?;
         if let Some(mut bp) = guard.take() {
@@ -622,16 +496,6 @@ pub async fn bridge_stop() -> Result<(), String> {
 /// Get current bridge status
 #[tauri::command]
 pub fn bridge_status() -> BridgeStatusResult {
-    // Check oneshot state first
-    if let Ok(guard) = ONESHOT_STATE.lock() {
-        if let Some(ref state) = *guard {
-            return BridgeStatusResult {
-                status: "connected".to_string(),
-                agent_name: Some(state.plugin_name.clone()),
-            };
-        }
-    }
-
     // Check persistent bridge process
     let mut guard = match BRIDGE_PROCESS.lock() {
         Ok(g) => g,
@@ -789,16 +653,8 @@ fn bridge_chat_sync(message: String, session_id: Option<String>) -> Result<Bridg
 pub async fn bridge_chat_local(
     message: String,
     session_id: Option<String>,
-    system_prompt: Option<String>,
+    _system_prompt: Option<String>,
 ) -> Result<BridgeChatResult, String> {
-    // Check if we have an active oneshot agent
-    let is_oneshot = ONESHOT_STATE.lock()
-        .map(|g| g.is_some())
-        .unwrap_or(false);
-
-    if is_oneshot {
-        return bridge_chat_oneshot(message, session_id, system_prompt).await;
-    }
 
     // stdio-json: existing persistent subprocess chat
     tokio::task::spawn_blocking(move || {
@@ -882,38 +738,7 @@ pub async fn bridge_set_role_local(
 ) -> Result<serde_json::Value, String> {
     // Empty role_id = clear role (return to default mode)
     if role_id.is_empty() {
-        let is_oneshot = ONESHOT_STATE.lock()
-            .map(|g| g.is_some())
-            .unwrap_or(false);
-
-        if is_oneshot {
-            if let Ok(mut guard) = ONESHOT_STATE.lock() {
-                if let Some(ref mut state) = *guard {
-                    // Remove custom AGENT.md if it was written by role injection
-                    let home = if cfg!(target_os = "windows") {
-                        std::env::var("USERPROFILE").unwrap_or_default()
-                    } else {
-                        std::env::var("HOME").unwrap_or_default()
-                    };
-                    let agent_md = std::path::PathBuf::from(&home)
-                        .join(format!(".{}", state.cli_command))
-                        .join("workspace");
-                    // Remove AGENT.md or AGENTS.md (PicoClaw vs NanoBot)
-                    for name in &["AGENT.md", "AGENTS.md"] {
-                        let p = agent_md.join(name);
-                        if p.exists() {
-                            let _ = std::fs::remove_file(&p);
-                            log::info!("[BridgeSetRoleLocal] Removed {}: {:?}", name, p);
-                        }
-                    }
-
-                    state.active_role_id = None;
-                    state.session_id = None;
-                    state.prompt_injected = false;
-                    log::info!("[BridgeSetRoleLocal] Oneshot role cleared -> default mode");
-                }
-            }
-        } else {
+        {
             // Send clear_role to Bridge subprocess
             if let Ok(mut guard) = BRIDGE_PROCESS.lock() {
                 if let Some(ref mut bp) = *guard {
@@ -934,405 +759,11 @@ pub async fn bridge_set_role_local(
         }));
     }
 
-    // For cli-oneshot agents, handle role directly without Bridge subprocess
-    let is_oneshot = ONESHOT_STATE.lock()
-        .map(|g| g.is_some())
-        .unwrap_or(false);
-
-    if is_oneshot {
-        // Store active_role_id for --system-prompt-file injection
-        if let Ok(mut guard) = ONESHOT_STATE.lock() {
-            if let Some(ref mut state) = *guard {
-                state.active_role_id = Some(role_id.clone());
-                state.session_id = None;
-                state.prompt_injected = false;
-                log::info!("[BridgeSetRoleLocal] Oneshot agent_role set to: {}", role_id);
-            }
-        }
-
-        // Download role file directly (no Bridge subprocess needed)
-        let role_id_c = role_id.clone();
-        let agent_id_c = agent_id.clone();
-        let url_c = url.clone();
-        let result = download_role_file_direct(&agent_id_c, &role_id_c, &url_c).await;
-
-        // If download failed, clear active_role_id so chat doesn't try to use a missing file
-        if result.is_err() {
-            if let Ok(mut guard) = ONESHOT_STATE.lock() {
-                if let Some(ref mut state) = *guard {
-                    state.active_role_id = None;
-                    log::warn!("[BridgeSetRoleLocal] Role download failed, cleared active_role_id");
-                }
-            }
-        }
-        return result;
-    }
-
     tokio::task::spawn_blocking(move || {
         bridge_set_role_sync(agent_id, role_id, url)
     }).await.map_err(|e| format!("Task error: {}", e))?
 }
 
-/// Download role file directly for oneshot agents (no Bridge subprocess)
-async fn download_role_file_direct(agent_id: &str, role_id: &str, url: &str) -> Result<serde_json::Value, String> {
-    let home = if cfg!(target_os = "windows") {
-        std::env::var("USERPROFILE").unwrap_or_else(|_| "C:\\Users\\default".to_string())
-    } else {
-        std::env::var("HOME").unwrap_or_else(|_| "/root".to_string())
-    };
-
-    let (target, is_skill) = match agent_id {
-        "claudecode" => (std::path::PathBuf::from(&home)
-            .join(".claude").join("agents").join(format!("{}.md", role_id)), false),
-        // All cli-oneshot agents (ZeroClaw, PicoClaw, NanoBot, OpenFang, etc.)
-        // use the same skills directory pattern: ~/.{agent_id}/workspace/skills/{role_id}/SKILL.md
-        _ => (std::path::PathBuf::from(&home)
-            .join(format!(".{}", agent_id)).join("workspace").join("skills").join(role_id).join("SKILL.md"), true),
-    };
-
-    // Create parent directory
-    if let Some(parent) = target.parent() {
-        std::fs::create_dir_all(parent)
-            .map_err(|e| format!("Failed to create directory: {}", e))?;
-    }
-
-    // Download from URL using reqwest
-    log::info!("[BridgeOneshot] Downloading role {} from: {}", role_id, url);
-    let client = reqwest::Client::builder()
-        .timeout(std::time::Duration::from_secs(30))
-        .build()
-        .map_err(|e| format!("HTTP client error: {}", e))?;
-
-    let resp = client.get(url)
-        .send()
-        .await
-        .map_err(|e| format!("Failed to download role: {}", e))?;
-
-    if !resp.status().is_success() {
-        return Err(format!("Role download failed: HTTP {}", resp.status()));
-    }
-
-    let body = resp.text()
-        .await
-        .map_err(|e| format!("Failed to read role body: {}", e))?;
-
-    // Write file
-    std::fs::write(&target, &body)
-        .map_err(|e| format!("Failed to write role file: {}", e))?;
-
-    // For skill-based agents, also write skill.toml manifest
-    if is_skill {
-        if let Some(skill_dir) = target.parent() {
-            let manifest = format!(
-                "name = \"{}\"\nversion = \"1.0.0\"\ndescription = \"EchoBird role: {}\"\n",
-                role_id, role_id
-            );
-            let manifest_path = skill_dir.join("skill.toml");
-            let _ = std::fs::write(&manifest_path, &manifest);
-            log::info!("[BridgeOneshot] skill.toml written at {:?}", manifest_path);
-        }
-
-        // For agents with workspace identity system (PicoClaw, NanoBot, etc.),
-        // also write AGENT(S).md so the agent uses this role as its system prompt.
-        // PicoClaw uses AGENT.md, NanoBot uses AGENTS.md — detect which exists.
-        let ws_path = std::path::PathBuf::from(&home)
-            .join(format!(".{}", agent_id)).join("workspace");
-        if ws_path.exists() {
-            // Detect the correct filename: AGENTS.md (NanoBot) or AGENT.md (PicoClaw)
-            let agent_md_name = if ws_path.join("AGENTS.md").exists() {
-                "AGENTS.md"
-            } else {
-                "AGENT.md"
-            };
-            let agent_md_path = ws_path.join(agent_md_name);
-            let _ = std::fs::write(&agent_md_path, &body);
-            log::info!("[BridgeOneshot] {} written at {:?} ({} bytes)", agent_md_name, agent_md_path, body.len());
-        }
-    }
-
-    log::info!("[BridgeOneshot] Role {} installed at {:?} ({} bytes)", role_id, target, body.len());
-
-    Ok(serde_json::json!({
-        "type": "role_set",
-        "agent_id": agent_id,
-        "role_id": role_id,
-        "installed": true,
-        "path": target.to_string_lossy()
-    }))
-}
-
-/// Chat via cli-oneshot protocol: invoke CLI directly per message
-async fn bridge_chat_oneshot(
-    message: String,
-    session_id: Option<String>,
-    system_prompt: Option<String>,
-) -> Result<BridgeChatResult, String> {
-    // Read state
-    let (state_clone, effective_sid) = {
-        let guard = ONESHOT_STATE.lock().map_err(|e| format!("Lock error: {}", e))?;
-        let state = guard.as_ref().ok_or("No oneshot agent active")?
-            .clone();
-        let sid = session_id.or_else(|| state.session_id.clone());
-        (state, sid)
-    };
-
-    // Build CLI args
-    // NOTE: Claude Code ignores --system-prompt-file when used with --resume,
-    // so when a role is active on Claude Code, always start a fresh session.
-    let skip_resume = state_clone.active_role_id.is_some()
-        && state_clone.cli_command.contains("claude");
-    let mut args: Vec<String> = if !skip_resume && effective_sid.is_some() && state_clone.resume_args.is_some() {
-        // Resume existing session
-        let resume = state_clone.resume_args.as_ref().unwrap();
-        resume.iter().map(|a| {
-            if a == "{sessionId}" {
-                effective_sid.as_ref().unwrap().clone()
-            } else {
-                a.clone()
-            }
-        }).collect()
-    } else {
-        state_clone.cli_args.clone()
-    };
-
-    // Inject system prompt if configured
-    let should_inject = match state_clone.system_prompt_when.as_deref() {
-        Some("always") => true,
-        Some("new-session") => !state_clone.prompt_injected,
-        _ => false,
-    };
-
-    if should_inject {
-        if let Some(ref prompt_arg) = state_clone.system_prompt_arg {
-            if let Some(ref prompt) = system_prompt {
-                args.push(prompt_arg.clone());
-                args.push(prompt.clone());
-                log::info!("[BridgeOneshot] Injecting system_prompt ({} chars) via {}",
-                    prompt.len(), prompt_arg);
-            }
-        }
-    }
-
-    // Inject role for this agent
-    let mut role_prepend: Option<String> = None;
-    if let Some(ref role_id) = state_clone.active_role_id {
-        let home = if cfg!(target_os = "windows") {
-            std::env::var("USERPROFILE").unwrap_or_else(|_| "C:\\Users\\default".to_string())
-        } else {
-            std::env::var("HOME").unwrap_or_else(|_| "/root".to_string())
-        };
-
-        if state_clone.cli_command.contains("claude") {
-            // Claude Code: use --system-prompt-file
-            let role_path = std::path::PathBuf::from(&home)
-                .join(".claude").join("agents").join(format!("{}.md", role_id));
-            if role_path.exists() {
-                args.push("--system-prompt-file".to_string());
-                args.push(role_path.to_string_lossy().to_string());
-                log::info!("[BridgeOneshot] Injecting role via --system-prompt-file: {:?}", role_path);
-            }
-        } else {
-            // Other agents (ZeroClaw, PicoClaw, NanoBot, OpenFang etc.):
-            // Read role file and prepend to message.
-            // Derive config dir from CLI command name (e.g. "picoclaw" → ~/.picoclaw/)
-            let agent_dir_name = format!(".{}", state_clone.cli_command);
-            let role_path = std::path::PathBuf::from(&home)
-                .join(&agent_dir_name).join("workspace").join("skills").join(role_id).join("SKILL.md");
-            if role_path.exists() {
-                if let Ok(content) = std::fs::read_to_string(&role_path) {
-                    role_prepend = Some(content);
-                    log::info!("[BridgeOneshot] Role content loaded: {} chars from {:?}", role_prepend.as_ref().unwrap().len(), role_path);
-                }
-            } else {
-                // Fallback: try ~/.zeroclaw/ for backward compat
-                let fallback = std::path::PathBuf::from(&home)
-                    .join(".zeroclaw").join("workspace").join("skills").join(role_id).join("SKILL.md");
-                if fallback.exists() {
-                    if let Ok(content) = std::fs::read_to_string(&fallback) {
-                        log::info!("[BridgeOneshot] Role content loaded (fallback): {} chars from {:?}", content.len(), fallback);
-                        role_prepend = Some(content);
-                    }
-                }
-            }
-        }
-    }
-
-    // Append the user message as the last argument (with role prepended if applicable)
-    if let Some(ref role_content) = role_prepend {
-        let combined = format!("[System Instructions]\n{}\n\n[User Message]\n{}", role_content, message);
-        args.push(combined);
-    } else {
-        args.push(message.clone());
-    }
-
-    log::info!("[BridgeOneshot] {} {}",
-        state_clone.cli_command,
-        args.iter().map(|a| if a.len() > 30 { format!("{}...", safe_truncate(a, 30)) } else { a.clone() }).collect::<Vec<_>>().join(" "));
-
-    // Execute CLI (blocking with timeout)
-    let cmd_name = state_clone.cli_command.clone();
-    let cmd_args = args.clone();
-    let result = tokio::time::timeout(
-        std::time::Duration::from_secs(300), // 5 min timeout
-        tokio::task::spawn_blocking(move || {
-            let mut cmd = Command::new(&cmd_name);
-            cmd.args(&cmd_args);
-            #[cfg(target_os = "windows")]
-            {
-                use std::os::windows::process::CommandExt;
-                const CREATE_NO_WINDOW: u32 = 0x08000000;
-                cmd.creation_flags(CREATE_NO_WINDOW);
-            }
-            cmd.output()
-        })
-    ).await;
-
-    let output = match result {
-        Ok(Ok(Ok(output))) => output,
-        Ok(Ok(Err(e))) => return Err(format!("Failed to run '{}': {}", state_clone.cli_command, e)),
-        Ok(Err(e)) => return Err(format!("Task error: {}", e)),
-        Err(_) => return Err(format!("CLI '{}' timed out after 5 minutes", state_clone.cli_command)),
-    };
-
-    let stdout_text = String::from_utf8_lossy(&output.stdout).to_string();
-    let stderr_text = String::from_utf8_lossy(&output.stderr).to_string();
-
-    if !output.status.success() && stdout_text.is_empty() {
-        return Err(format!("CLI '{}' failed (exit {}): {}",
-            state_clone.cli_command, output.status, stderr_text));
-    }
-
-    log::info!("[BridgeOneshot] Response: {} chars, status: {}",
-        stdout_text.len(), output.status);
-
-    // Try to parse session_id from JSON output (some CLIs output JSON)
-    let mut new_session_id: Option<String> = None;
-    for line in stdout_text.lines() {
-        if let Ok(json) = serde_json::from_str::<serde_json::Value>(line) {
-            if let Some(sid) = json.get("session_id").and_then(|v| v.as_str()) {
-                new_session_id = Some(sid.to_string());
-            }
-        }
-    }
-
-    // Update oneshot state with session_id and prompt_injected flag
-    {
-        let mut guard = ONESHOT_STATE.lock().map_err(|e| format!("Lock error: {}", e))?;
-        if let Some(ref mut state) = *guard {
-            if let Some(ref sid) = new_session_id {
-                state.session_id = Some(sid.clone());
-            }
-            if should_inject && system_prompt.is_some() {
-                state.prompt_injected = true;
-            }
-        }
-    }
-
-    // For plain-text CLIs, clean the output: strip ANSI escape codes and filter log lines
-    let response = if stdout_text.lines().all(|l| serde_json::from_str::<serde_json::Value>(l).is_err()) {
-        // Strip ANSI escape codes (e.g. \x1b[32m, \x1b[0m, \x1b[1;38;2;62;93;185m) without regex
-        let mut stripped = String::with_capacity(stdout_text.len());
-        let mut chars = stdout_text.chars().peekable();
-        while let Some(ch) = chars.next() {
-            if ch == '\x1b' {
-                // Skip \x1b[...X sequences (CSI: ends with letter a-zA-Z)
-                if chars.peek() == Some(&'[') {
-                    chars.next();
-                    while let Some(&c) = chars.peek() {
-                        chars.next();
-                        if c.is_ascii_alphabetic() { break; }
-                    }
-                    continue;
-                }
-                // Skip \x1b followed by a single char (e.g. \x1bM)
-                chars.next();
-                continue;
-            }
-            stripped.push(ch);
-        }
-
-        // Strategy 1: Agents with emoji delimiters (PicoClaw=🦞, NanoBot=🐈)
-        // Everything after the LAST emoji delimiter is the clean user response
-        let after_emoji = ["🦞", "🐈"].iter().find_map(|emoji| {
-            stripped.rfind(emoji).map(|pos| {
-                let start = pos + emoji.len();
-                stripped[start..].trim().to_string()
-            })
-        });
-
-        let cleaned = if let Some(emoji_response) = after_emoji {
-            emoji_response
-        } else {
-            // Strategy 2: Fallback line-by-line filter for other agents (ZeroClaw etc.)
-            stripped.lines()
-                .filter(|line| {
-                    let t: &str = line.trim();
-                    if t.is_empty() { return true; }
-                    // Skip structured log lines: "2026-03-19T00:49:33.606Z INFO ..."
-                    if t.len() > 20 && t.starts_with("20") && (t.contains(" INFO ") || t.contains(" WARN ") || t.contains(" DEBUG ") || t.contains(" ERROR ") || t.contains(" TRACE ")) {
-                        return false;
-                    }
-                    // Skip Go agent log lines: "14:29:33 INF agent ..."
-                    if t.len() > 10 && t.chars().next().map_or(false, |c| c.is_ascii_digit()) {
-                        let parts: Vec<&str> = t.splitn(3, ' ').collect();
-                        if parts.len() >= 2 {
-                            let time_part = parts[0];
-                            let level = parts[1];
-                            if time_part.len() >= 7 && time_part.chars().nth(2) == Some(':')
-                                && matches!(level, "INF" | "WRN" | "DBG" | "ERR" | "TRC" | "FTL" | "PNC") {
-                                return false;
-                            }
-                        }
-                    }
-                    // Skip ASCII art banner lines
-                    if t.contains('█') || t.contains('╗') || t.contains('╚') || t.contains('═') || t.contains('║')
-                        || t.contains('╔') || t.contains('╝') || t.contains('╣') || t.contains('╠') {
-                        return false;
-                    }
-                    if t.starts_with("[EchoBird]") { return false; }
-                    true
-                })
-                .collect::<Vec<_>>()
-                .join("\n")
-                .trim().to_string()
-        };
-        strip_think_tags(&cleaned)
-    } else {
-        // JSON output — extract text from multiple possible formats
-        let mut text = String::new();
-        for line in stdout_text.lines() {
-            if let Ok(json) = serde_json::from_str::<serde_json::Value>(line) {
-                // Format 1: OpenClaw streaming {"text": "..."}
-                if let Some(t) = json.get("text").and_then(|v| v.as_str()) {
-                    text.push_str(t);
-                }
-                // Format 2: Claude Code {"result": "..."}  (simple string)
-                else if let Some(result) = json.get("result") {
-                    if let Some(s) = result.as_str() {
-                        text.push_str(s);
-                    }
-                    // Format 3: Claude Code {"result": {"content": [{"text": "..."}]}}
-                    else if let Some(content) = result.get("content").and_then(|c| c.as_array()) {
-                        for item in content {
-                            if let Some(t) = item.get("text").and_then(|v| v.as_str()) {
-                                text.push_str(t);
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        if text.is_empty() { stdout_text } else { strip_think_tags(&text) }
-    };
-
-    Ok(BridgeChatResult {
-        text: response,
-        session_id: new_session_id.or(effective_sid),
-        model: None,
-        tokens: None,
-        duration_ms: None,
-    })
-}
 
 /// Tauri command: chat with remote Agent via SSH → echobird-bridge
 #[tauri::command]
