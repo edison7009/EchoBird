@@ -406,7 +406,7 @@ const ChannelsInner: React.FC = () => {
         const handler = () => { setBridgeMessages([]); chPersistence.clearHistory(); };
         window.addEventListener('clear-chat', handler);
         return () => window.removeEventListener('clear-chat', handler);
-    }, []);
+    }, [setBridgeMessages, chPersistence]);
 
     // Focus input on connect
     useEffect(() => {
