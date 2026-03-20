@@ -2,7 +2,7 @@
 // Vertical image cards with hover slide-up text effect + category filter + agent tool selector
 // Roles and categories loaded dynamically from CDN (echobird.ai/roles/)
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Check, Loader2 } from 'lucide-react';
+import { ArrowLeft, Check, Loader2, X } from 'lucide-react';
 import { useI18n } from '../hooks/useI18n';
 import * as api from '../api/tauri';
 import type { RoleCategory, RoleEntry, AgentStatus } from '../api/tauri';
@@ -156,9 +156,12 @@ export const AgentRolePicker: React.FC<AgentRolePickerProps> = ({
                     <button onClick={onClose} className="w-9 h-9 flex items-center justify-center rounded-lg text-cyber-accent hover:bg-cyber-accent/15 transition-colors">
                         <ArrowLeft size={18} />
                     </button>
-                    <h2 className="text-2xl cjk-title leading-8">
+                    <h2 className="text-2xl cjk-title leading-8 flex-1">
                         {t('channel.selectRoleAgent')}
                     </h2>
+                    <button onClick={onClose} className="w-9 h-9 flex items-center justify-center rounded-lg text-cyber-text-muted/40 hover:text-cyber-text hover:bg-white/10 transition-colors">
+                        <X size={18} />
+                    </button>
                 </div>
 
                 {/* Agent tool selector */}
