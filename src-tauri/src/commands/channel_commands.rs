@@ -91,6 +91,7 @@ struct BridgeProcess {
     reader: BufReader<ChildStdout>,
     session_id: Option<String>,
     agent_name: Option<String>,
+    plugin_id: String,
 }
 
 static BRIDGE_PROCESS: Mutex<Option<BridgeProcess>> = Mutex::new(None);
@@ -301,6 +302,7 @@ fn start_bridge_internal(plugin_id: &str) -> Result<BridgeStartResult, String> {
         reader,
         session_id: None,
         agent_name: agent_name.clone(),
+        plugin_id: plugin_id.to_string(),
     };
 
     let mut guard = BRIDGE_PROCESS.lock().map_err(|e| format!("Lock error: {}", e))?;
@@ -461,11 +463,20 @@ pub async fn bridge_start(plugin_id: Option<String>) -> Result<BridgeStartResult
             if let Some(ref mut bp) = *guard {
                 match bp.child.try_wait() {
                     Ok(None) => {
-                        return Ok(BridgeStartResult {
-                            status: "connected".to_string(),
-                            error: None,
-                            agent_name: bp.agent_name.clone(),
-                        });
+                        // Bridge running — check if it's the same agent
+                        if bp.plugin_id == pid {
+                            return Ok(BridgeStartResult {
+                                status: "connected".to_string(),
+                                error: None,
+                                agent_name: bp.agent_name.clone(),
+                            });
+                        } else {
+                            // Different agent — kill old bridge and restart
+                            log::info!("[Bridge] Agent switch: {} -> {}, restarting", bp.plugin_id, pid);
+                            let _ = bp.child.kill();
+                            let _ = bp.child.wait();
+                            *guard = None;
+                        }
                     }
                     _ => {
                         log::info!("[Bridge] Previous process exited, restarting...");
