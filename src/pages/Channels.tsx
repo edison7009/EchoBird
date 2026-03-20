@@ -797,8 +797,7 @@ const ChannelsInner: React.FC = () => {
         <>
         <div className="flex flex-col h-full">
             {/* Chat area */}
-            <div className="relative flex-1">
-                <div ref={chatContainerRef} onScroll={handleChatScroll} className="absolute inset-0 overflow-y-auto slim-scroll custom-scrollbar p-4">
+            <div ref={chatContainerRef} onScroll={handleChatScroll} className="flex-1 min-h-0 overflow-y-auto slim-scroll custom-scrollbar p-4 relative">
                     <div className="pt-2 pb-1">
                     {chPersistence.showSkeleton && [0,1,2].map(i => (
                         <ChatBubble key={`sk-${i}`} role="skeleton" content="" variant="channels" />
@@ -818,9 +817,8 @@ const ChannelsInner: React.FC = () => {
                     {bridgeLoading && <ChatBubble role="assistant" content="" variant="channels" isStreaming={true} />}
                     </div>
                     <div ref={scrollRef} />
-                </div>
                 {showScrollBtn && (
-                    <button onClick={scrollToBottom} className="absolute bottom-3 right-3 w-7 h-7 flex items-center justify-center bg-cyber-bg/90 border border-cyber-border/50 rounded text-cyber-text-secondary hover:text-cyber-accent hover:border-cyber-accent/50 transition-colors z-10">
+                    <button onClick={scrollToBottom} className="sticky bottom-3 float-right mr-1 w-7 h-7 flex items-center justify-center bg-cyber-bg/90 border border-cyber-border/50 rounded text-cyber-text-secondary hover:text-cyber-accent hover:border-cyber-accent/50 transition-colors z-10">
                         <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 9l6 6 6-6" /></svg>
                     </button>
                 )}

@@ -1089,59 +1089,32 @@ pub async fn bridge_chat_remote(
     let mut new_session_id: Option<String> = None;
 
     if protocol == "cli-oneshot" {
-        // cli-oneshot: stdout may contain welcome banners + actual response.
-        // Strategy: strip box-drawing frames (╭│╰), separator lines (────),
-        // Query echo, session info, and decorative lines. Keep only content.
+        // cli-oneshot with -Q flag: clean text output + optional "session_id: xxx" footer.
+        // Strip the session_id line and capture it for session management.
         let raw = result.stdout.clone();
-        let lines: Vec<&str> = raw.lines().collect();
+        let mut content_lines: Vec<&str> = Vec::new();
 
-        // Try to find the actual response content:
-        // Look for agent response marker (e.g. "⚕ Hermes") then collect until session footer
-        let mut in_response = false;
-        let mut response_lines: Vec<&str> = Vec::new();
-
-        for line in &lines {
+        for line in raw.lines() {
             let trimmed = line.trim();
-            // Skip empty lines before response starts
-            if trimmed.is_empty() && !in_response {
-                continue;
-            }
-            // Skip box-drawing banner lines (╭│╰)
-            if trimmed.starts_with('╭') || trimmed.starts_with('│') || trimmed.starts_with('╰') {
-                continue;
-            }
-            // Skip pure separator lines (─── only)
-            if !trimmed.is_empty() && trimmed.chars().all(|c| c == '─' || c == ' ' || c == '─') && trimmed.contains('─') && !trimmed.contains(|c: char| c.is_alphanumeric()) {
-                if in_response {
-                    // End of response section
-                    break;
+            // Capture and strip session_id footer
+            if trimmed.starts_with("session_id:") {
+                let sid = trimmed.trim_start_matches("session_id:").trim();
+                if !sid.is_empty() {
+                    new_session_id = Some(sid.to_string());
                 }
                 continue;
             }
-            // Skip "Query: ..." echo line
-            if trimmed.starts_with("Query:") {
+            // Also strip any leftover banner lines (safety net)
+            if trimmed.starts_with('╭') || trimmed.starts_with('│') || trimmed.starts_with('╰') {
                 continue;
             }
-            // Detect agent response marker (e.g. "⚕ Hermes", "─  ⚕")
-            if trimmed.contains('⚕') || trimmed.contains("Hermes") && trimmed.contains('─') {
-                in_response = true;
-                continue;
-            }
-            // Skip session footer lines
             if trimmed.starts_with("Resume this session") || trimmed.starts_with("Session:") || trimmed.starts_with("Duration:") || trimmed.starts_with("Messages:") {
-                break;
+                continue;
             }
-            // Collect everything else as response content
-            in_response = true;
-            response_lines.push(line);
+            content_lines.push(line);
         }
 
-        if response_lines.is_empty() {
-            // Fallback: return full output if parsing failed
-            response_text = raw.trim().to_string();
-        } else {
-            response_text = response_lines.join("\n").trim().to_string();
-        }
+        response_text = content_lines.join("\n").trim().to_string();
     } else {
         // stdio-json: parse Bridge JSON output
         for line in result.stdout.lines() {
