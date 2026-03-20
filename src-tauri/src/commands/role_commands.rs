@@ -1,7 +1,8 @@
-// Agent detection — local agent CLI availability checks
+// Agent detection — reuses tool_manager::scan_tools() for consistent detection
 // Role catalog is now loaded from CDN in the frontend (tauri.ts → echobird.ai/roles/)
 
 use serde::{Deserialize, Serialize};
+use crate::services::tool_manager;
 
 // ── Local Agent Detection ──
 
@@ -14,53 +15,32 @@ pub struct AgentStatus {
     pub path: Option<String>,
 }
 
-/// Detect which Agent CLI tools are installed on this machine
-#[tauri::command]
-pub fn detect_local_agents() -> Vec<AgentStatus> {
-    let agents = [
-        ("claudecode", "Claude Code", "claude"),
-        ("opencode",   "OpenCode",    "opencode"),
-        ("openclaw",   "OpenClaw",    "openclaw"),
-        ("zeroclaw",   "ZeroClaw",    "zeroclaw"),
-        ("nanobot",    "NanoBot",     "nanobot"),
-        ("picoclaw",   "PicoClaw",    "picoclaw"),
-        ("openfang",   "OpenFang",    "openfang"),
-        ("hermes",     "Hermes Agent","hermes"),
-    ];
+/// Agent CLI tool IDs that appear in the Channels page AgentRolePicker.
+/// These must match the tool directory names under tools/ (e.g. tools/claudecode/).
+const AGENT_TOOL_IDS: &[&str] = &[
+    "claudecode",
+    "openclaw",
+    "zeroclaw",
+    "nanobot",
+    "picoclaw",
+    "openfang",
+    "hermes",
+];
 
-    agents.iter().map(|&(id, name, cmd)| {
-        let (installed, path) = check_command_installed(cmd);
+/// Detect which Agent CLI tools are installed on this machine.
+/// Reuses scan_tools() from tool_manager for consistent detection logic
+/// (requireConfigFile, platform paths, config dir checks, etc.).
+#[tauri::command]
+pub async fn detect_local_agents() -> Vec<AgentStatus> {
+    let detected = tool_manager::scan_tools().await;
+
+    AGENT_TOOL_IDS.iter().map(|&agent_id| {
+        let tool = detected.iter().find(|t| t.id == agent_id);
         AgentStatus {
-            id: id.to_string(),
-            name: name.to_string(),
-            installed,
-            path,
+            id: agent_id.to_string(),
+            name: tool.map(|t| t.name.clone()).unwrap_or_else(|| agent_id.to_string()),
+            installed: tool.map(|t| t.installed).unwrap_or(false),
+            path: tool.and_then(|t| t.detected_path.clone()),
         }
     }).collect()
-}
-
-fn check_command_installed(cmd: &str) -> (bool, Option<String>) {
-    let result = {
-        #[cfg(target_os = "windows")]
-        {
-            use std::os::windows::process::CommandExt;
-            std::process::Command::new("where.exe")
-                .arg(cmd)
-                .creation_flags(0x08000000) // CREATE_NO_WINDOW
-                .output()
-        }
-        #[cfg(not(target_os = "windows"))]
-        {
-            std::process::Command::new("which").arg(cmd).output()
-        }
-    };
-
-    match result {
-        Ok(output) if output.status.success() => {
-            let path = String::from_utf8_lossy(&output.stdout)
-                .lines().next().unwrap_or("").trim().to_string();
-            if path.is_empty() { (false, None) } else { (true, Some(path)) }
-        }
-        _ => (false, None),
-    }
 }
