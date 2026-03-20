@@ -371,16 +371,17 @@ const ChannelsInner: React.FC = () => {
     const handleChatScroll = () => {
         const container = chatContainerRef.current;
         if (!container) return;
-        const isAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 40;
+        const isAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 80;
         autoFollowRef.current = isAtBottom;
         setShowScrollBtn(!isAtBottom && messages.length > 0);
         chPersistence.handleScrollPagination(container);
     };
 
     useEffect(() => {
-        if (autoFollowRef.current && scrollRef.current) {
+        if (autoFollowRef.current && chatContainerRef.current) {
             requestAnimationFrame(() => {
-                scrollRef.current?.scrollIntoView({ behavior: 'auto' });
+                const container = chatContainerRef.current;
+                if (container) container.scrollTop = container.scrollHeight;
             });
         }
     }, [messages]);
