@@ -30,12 +30,12 @@ export const ToolCard = React.memo(({ id, name, version, installed, path, detect
     const showMotherInstall = !installed && !!hasRemoteInstall;
 
     const handleCardClick = () => {
-        onClick?.();
+        if (installed) onClick?.();
     };
 
     return (
         <div
-            className={`p-5 min-h-[160px] border ${selected ? 'border-cyber-accent shadow-[0_0_10px_rgba(0,255,157,0.3)]' : 'border-cyber-border shadow-cyber-card'} relative overflow-hidden rounded-card cursor-pointer hover:bg-black/90 transition-all bg-black/80 flex flex-col`}
+            className={`p-5 min-h-[160px] border ${selected ? 'border-cyber-accent shadow-[0_0_10px_rgba(0,255,157,0.3)]' : 'border-cyber-border shadow-cyber-card'} relative overflow-hidden rounded-card ${installed ? 'cursor-pointer hover:bg-black/90' : 'cursor-default opacity-80'} transition-all bg-black/80 flex flex-col`}
             onClick={handleCardClick}
         >
             {/* Tool icon top-right */}
