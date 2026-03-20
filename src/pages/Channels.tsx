@@ -633,10 +633,7 @@ const ChannelsInner: React.FC = () => {
                 const role = selectedRoleForChannel;
                 const lastApplied = lastAppliedRoleRef.current[channelKey];
                 if (role?.filePath) {
-                    const isZh = locale.startsWith('zh');
-                    const roleUrl = isZh
-                        ? `https://echobird.ai/roles/zh-Hans/${role.filePath}`
-                        : `https://echobird.ai/roles/en/${role.filePath}`;
+                    const roleUrl = role.filePath;
                     const selectedAgent = allActiveAgents[channelKey] || '';
                     const agentEntry = AGENT_LIST.find(a => a.name === selectedAgent);
                     const agentId = agentEntry?.id || '';
@@ -732,10 +729,7 @@ const ChannelsInner: React.FC = () => {
                     // ── Step 3: Set role if selected ──
                     const role = selectedRoleForChannel;
                     if (role?.filePath) {
-                        const isZh = locale.startsWith('zh');
-                        const roleUrl = isZh
-                            ? `https://echobird.ai/roles/zh-Hans/${role.filePath}`
-                            : `https://echobird.ai/roles/en/${role.filePath}`;
+                        const roleUrl = role.filePath;
                         try {
                             await api.bridgeSetRoleRemote(serverId, agentId, role.id, roleUrl);
                         } catch (e) {
