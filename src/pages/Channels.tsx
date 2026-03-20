@@ -828,13 +828,13 @@ const ChannelsInner: React.FC = () => {
 
             {/* Input area */}
             {activeChannel && (
-                <>
+                <div className="flex-shrink-0 mt-1 mb-1">
                 {(() => {
                     const selectedAgent = allActiveAgents[channelKey] || '';
                     const agent = selectedAgent ? AGENT_LIST.find(a => a.name === selectedAgent) : null;
                     const hasRole = selectedRoleForChannel && selectedRoleForChannel.id;
                     return (
-                        <div className="flex items-center gap-2 mt-1 mb-0.5 select-none">
+                        <div className="flex items-center gap-2 mb-0.5 select-none">
                             <div onClick={() => setShowRolePicker(true)} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-card text-xs font-mono cursor-pointer transition-all border shadow-cyber-card hover:brightness-110 ${
                                 (hasRole || allActiveAgents[channelKey])
                                     ? 'border-cyber-accent bg-cyber-accent/10 text-cyber-accent'
@@ -854,7 +854,6 @@ const ChannelsInner: React.FC = () => {
                         </div>
                     );
                 })()}
-                <div className="flex-shrink-0 mt-1 mb-1">
                     <div className="bg-cyber-terminal rounded-lg relative">
                         <PendingChipsRow
                             files={attachments.map((a, i) => ({ id: String(i), name: a.name, type: a.type as 'file'|'image', preview: a.preview }))}
@@ -906,7 +905,6 @@ const ChannelsInner: React.FC = () => {
                         <input ref={imageInputRef} type="file" multiple accept="image/*" className="hidden" onChange={handleImageSelect} />
                     </div>
                 </div>
-                </>
             )}
         </div>
 
