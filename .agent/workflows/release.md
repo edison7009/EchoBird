@@ -20,13 +20,14 @@ The website's version API (`/api/version/index.json`) is hosted on the public re
 
 ## Step 1: Bump version numbers
 
-Update the version in **3 places** (NOT `docs/api/version/index.json` yet):
+Update the version in **4 places** (NOT `docs/api/version/index.json` yet):
 
 // turbo
 
 1. `package.json` → `"version": "X.Y.Z"`
 2. `src-tauri/tauri.conf.json` → `"version": "X.Y.Z"`
 3. `src-tauri/Cargo.toml` → `version = "X.Y.Z"`
+4. `bridge-src/Cargo.toml` → `version = "X.Y.Z"` (**MUST match main version** — remote auto-deploy uses this for version checking)
 
 > [!CAUTION]
 > **Always use `[System.IO.File]::WriteAllText(path, content, [System.Text.UTF8Encoding]::new($false))` to write files.** Never use `Set-Content -Encoding UTF8` — it adds a BOM that breaks `tauri-action` (JSON parse error).
@@ -36,7 +37,7 @@ Update the version in **3 places** (NOT `docs/api/version/index.json` yet):
 ## Step 2: Commit and push to private repo
 
 ```powershell
-git add package.json src-tauri/tauri.conf.json src-tauri/Cargo.toml
+git add package.json src-tauri/tauri.conf.json src-tauri/Cargo.toml bridge-src/Cargo.toml
 git commit -m "chore: bump version to vX.Y.Z"
 git push origin main
 ```

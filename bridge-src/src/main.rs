@@ -849,6 +849,12 @@ fn detect_agent(command: &str) -> String {
 fn load_config() -> BridgeConfig {
     let args: Vec<String> = std::env::args().collect();
 
+    // Handle --version flag (used by ensure_remote_bridge for version checking)
+    if args.iter().any(|a| a == "--version") {
+        println!("{}", env!("CARGO_PKG_VERSION"));
+        std::process::exit(0);
+    }
+
     // 1. Check CLI args: --config "/path/to/plugin.json"
     for i in 0..args.len() {
         if args[i] == "--config" {
