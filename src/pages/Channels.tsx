@@ -371,17 +371,16 @@ const ChannelsInner: React.FC = () => {
     const handleChatScroll = () => {
         const container = chatContainerRef.current;
         if (!container) return;
-        const isAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 80;
+        const isAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 40;
         autoFollowRef.current = isAtBottom;
         setShowScrollBtn(!isAtBottom && messages.length > 0);
         chPersistence.handleScrollPagination(container);
     };
 
     useEffect(() => {
-        if (autoFollowRef.current && chatContainerRef.current) {
+        if (autoFollowRef.current && scrollRef.current) {
             requestAnimationFrame(() => {
-                const container = chatContainerRef.current;
-                if (container) container.scrollTop = container.scrollHeight;
+                scrollRef.current?.scrollIntoView({ behavior: 'auto' });
             });
         }
     }, [messages]);
@@ -799,7 +798,7 @@ const ChannelsInner: React.FC = () => {
         <div className="flex flex-col h-full">
             {/* Chat area */}
             <div ref={chatContainerRef} onScroll={handleChatScroll} className="flex-1 min-h-0 overflow-y-auto slim-scroll custom-scrollbar p-4 relative">
-                    <div className="pt-2 pb-12">
+                    <div className="pt-2 pb-1">
                     {chPersistence.showSkeleton && [0,1,2].map(i => (
                         <ChatBubble key={`sk-${i}`} role="skeleton" content="" variant="channels" />
                     ))}
@@ -825,15 +824,14 @@ const ChannelsInner: React.FC = () => {
                 )}
             </div>
 
-            {/* Input area */}
-            {activeChannel && (
-                <div className="flex-shrink-0 mt-1 mb-1">
-                {(() => {
-                    const selectedAgent = allActiveAgents[channelKey] || '';
-                    const agent = selectedAgent ? AGENT_LIST.find(a => a.name === selectedAgent) : null;
-                    const hasRole = selectedRoleForChannel && selectedRoleForChannel.id;
-                    return (
-                        <div className="flex items-center gap-2 mb-0.5 select-none">
+            {/* Role selector bar — independent zone between chat and input */}
+            {activeChannel && (() => {
+                const selectedAgent = allActiveAgents[channelKey] || '';
+                const agent = selectedAgent ? AGENT_LIST.find(a => a.name === selectedAgent) : null;
+                const hasRole = selectedRoleForChannel && selectedRoleForChannel.id;
+                return (
+                    <div className="flex-shrink-0 px-4 py-1">
+                        <div className="flex items-center gap-2 select-none">
                             <div onClick={() => setShowRolePicker(true)} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-card text-xs font-mono cursor-pointer transition-all border shadow-cyber-card hover:brightness-110 ${
                                 (hasRole || allActiveAgents[channelKey])
                                     ? 'border-cyber-accent bg-cyber-accent/10 text-cyber-accent'
@@ -851,8 +849,13 @@ const ChannelsInner: React.FC = () => {
                             {bridgeConnectionStatus === 'connecting' && <span className="text-yellow-400 text-xs font-mono animate-pulse">{t('channel.connecting')}</span>}
                             {bridgeConnectionStatus === 'disconnected' && <span className="text-red-400 text-xs font-mono">{t('channel.connectionFailed')}</span>}
                         </div>
-                    );
-                })()}
+                    </div>
+                );
+            })()}
+
+            {/* Input area */}
+            {activeChannel && (
+                <div className="flex-shrink-0 mb-1 px-4">
                     <div className="bg-cyber-terminal rounded-lg relative">
                         <PendingChipsRow
                             files={attachments.map((a, i) => ({ id: String(i), name: a.name, type: a.type as 'file'|'image', preview: a.preview }))}
