@@ -599,9 +599,67 @@ fn bridge_chat_sync(message: String, session_id: Option<String>) -> Result<Bridg
         let mut line = String::new();
         match bp.reader.read_line(&mut line) {
             Ok(0) => {
-                // EOF — bridge process died
-                log::error!("[BridgeChat] Bridge process EOF");
-                break;
+                // EOF — bridge process died, attempt auto-recovery
+                log::error!("[BridgeChat] Bridge process EOF — attempting auto-recovery");
+                let plugin_id = bp.plugin_id.clone();
+                *guard = None; // Clear dead process
+                drop(guard);   // Release lock before restart
+
+                // Restart Bridge
+                log::info!("[BridgeChat] Restarting bridge (plugin: {})", plugin_id);
+                let restart = start_bridge_internal(&plugin_id);
+                match restart {
+                    Ok(ref r) if r.status == "connected" => {
+                        log::info!("[BridgeChat] Bridge restarted, retrying message...");
+                        // Retry: re-acquire lock and resend message
+                        let mut guard2 = BRIDGE_PROCESS.lock().map_err(|e| format!("Lock error: {}", e))?;
+                        let bp2 = guard2.as_mut().ok_or("Bridge not running after restart")?;
+                        let retry_json = serde_json::json!({"type": "chat", "message": message});
+                        let retry_str = serde_json::to_string(&retry_json).unwrap_or_default();
+                        let _ = writeln!(bp2.stdin, "{}", retry_str);
+                        let _ = bp2.stdin.flush();
+
+                        // Read retry response
+                        loop {
+                            let mut retry_line = String::new();
+                            match bp2.reader.read_line(&mut retry_line) {
+                                Ok(0) => return Err("Bridge crashed again after restart".to_string()),
+                                Ok(_) => {
+                                    let t = retry_line.trim();
+                                    if t.is_empty() { continue; }
+                                    if let Ok(j) = serde_json::from_str::<serde_json::Value>(t) {
+                                        match j.get("type").and_then(|v| v.as_str()) {
+                                            Some("text") => {
+                                                if let Some(txt) = j.get("text").and_then(|v| v.as_str()) {
+                                                    response_text.push_str(txt);
+                                                }
+                                                if let Some(sid) = j.get("session_id").and_then(|v| v.as_str()) {
+                                                    new_session_id = Some(sid.to_string());
+                                                }
+                                            }
+                                            Some("done") => {
+                                                if let Some(sid) = j.get("session_id").and_then(|v| v.as_str()) {
+                                                    new_session_id = Some(sid.to_string());
+                                                }
+                                                break;
+                                            }
+                                            Some("error") => {
+                                                let msg = j.get("message").and_then(|v| v.as_str()).unwrap_or("Unknown error");
+                                                return Err(format!("Bridge error after restart: {}", msg));
+                                            }
+                                            _ => continue,
+                                        }
+                                    }
+                                }
+                                Err(e) => return Err(format!("Read error after restart: {}", e)),
+                            }
+                        }
+                        // Store session after retry
+                        if let Some(ref sid) = new_session_id { bp2.session_id = Some(sid.clone()); }
+                        return Ok(BridgeChatResult { text: response_text, session_id: new_session_id, model, tokens, duration_ms });
+                    }
+                    _ => return Err("Bridge crashed and restart failed".to_string()),
+                }
             }
             Ok(_) => {
                 let trimmed = line.trim();
