@@ -1023,39 +1023,45 @@ pub async fn bridge_chat_remote(
         .map_err(|e| format!("Bridge auto-deploy failed: {}", e))?;
 
     // Map plugin_id to agent CLI command (dynamic from plugin.json)
-    let agent_command = {
-        let plugins = crate::services::plugin_manager::scan_plugins();
-        if let Some(p) = plugins.iter().find(|p| p.id == plugin) {
-            if let Some(ref cli) = p.cli {
-                // Build command from plugin config: "command args..."
-                let mut parts = vec![cli.command.clone()];
-                parts.extend(cli.args.iter().cloned());
-                parts.join(" ")
-            } else {
-                format!("{} agent --json", plugin)
-            }
+    let plugins = crate::services::plugin_manager::scan_plugins();
+    let plugin_config = plugins.iter().find(|p| p.id == plugin);
+    let protocol = plugin_config.map(|p| p.protocol.as_str()).unwrap_or("stdio-json");
+
+    let agent_command = if let Some(p) = plugin_config {
+        if let Some(ref cli) = p.cli {
+            let mut parts = vec![cli.command.clone()];
+            parts.extend(cli.args.iter().cloned());
+            parts.join(" ")
         } else {
-            // Fallback for unknown plugins
             format!("{} agent --json", plugin)
         }
-    };
-
-    // Build JSON input
-    let input_json = if let Some(ref sid) = session_id {
-        serde_json::json!({ "type": "chat", "message": message, "session_id": sid })
     } else {
-        serde_json::json!({ "type": "chat", "message": message })
+        format!("{} agent --json", plugin)
     };
 
-    let input_str = serde_json::to_string(&input_json)
-        .map_err(|e| format!("JSON error: {}", e))?;
-    let escaped = input_str.replace('\'', "'\\''");
-
-    // Execute via SSH: pipe JSON into bridge binary with --command.
-    let cmd = format!(
-        "export PATH=\"$HOME/.npm-global/bin:$HOME/.local/bin:$HOME/.cargo/bin:$PATH\" && echo '{}' | ~/echobird/echobird-bridge --command '{}'",
-        escaped, agent_command
-    );
+    // Route based on protocol
+    let cmd = if protocol == "cli-oneshot" {
+        // cli-oneshot: run command directly with message as last arg (no Bridge needed)
+        let escaped_msg = message.replace('\'', "'\\''");
+        format!(
+            "export PATH=\"$HOME/.npm-global/bin:$HOME/.local/bin:$HOME/.cargo/bin:$PATH\" && {} '{}'",
+            agent_command, escaped_msg
+        )
+    } else {
+        // stdio-json: pipe JSON into Bridge
+        let input_json = if let Some(ref sid) = session_id {
+            serde_json::json!({ "type": "chat", "message": message, "session_id": sid })
+        } else {
+            serde_json::json!({ "type": "chat", "message": message })
+        };
+        let input_str = serde_json::to_string(&input_json)
+            .map_err(|e| format!("JSON error: {}", e))?;
+        let escaped = input_str.replace('\'', "'\\''");
+        format!(
+            "export PATH=\"$HOME/.npm-global/bin:$HOME/.local/bin:$HOME/.cargo/bin:$PATH\" && echo '{}' | ~/echobird/echobird-bridge --command '{}'",
+            escaped, agent_command
+        )
+    };
 
     let connections = pool.lock().await;
     let client = connections.get(&server_id)
@@ -1078,31 +1084,37 @@ pub async fn bridge_chat_remote(
         return Err(format!("Bridge execution failed (exit {}): {}", result.exit_status, result.stderr));
     }
 
-    // Parse bridge JSON output
+    // Parse output based on protocol
     let mut response_text = String::new();
     let mut new_session_id: Option<String> = None;
 
-    for line in result.stdout.lines() {
-        if let Ok(json) = serde_json::from_str::<serde_json::Value>(line) {
-            match json.get("type").and_then(|v| v.as_str()) {
-                Some("text") => {
-                    if let Some(text) = json.get("text").and_then(|v| v.as_str()) {
-                        response_text.push_str(text);
+    if protocol == "cli-oneshot" {
+        // cli-oneshot: stdout is plain text response
+        response_text = result.stdout.trim().to_string();
+    } else {
+        // stdio-json: parse Bridge JSON output
+        for line in result.stdout.lines() {
+            if let Ok(json) = serde_json::from_str::<serde_json::Value>(line) {
+                match json.get("type").and_then(|v| v.as_str()) {
+                    Some("text") => {
+                        if let Some(text) = json.get("text").and_then(|v| v.as_str()) {
+                            response_text.push_str(text);
+                        }
+                        if let Some(sid) = json.get("session_id").and_then(|v| v.as_str()) {
+                            new_session_id = Some(sid.to_string());
+                        }
                     }
-                    if let Some(sid) = json.get("session_id").and_then(|v| v.as_str()) {
-                        new_session_id = Some(sid.to_string());
+                    Some("done") => {
+                        if let Some(sid) = json.get("session_id").and_then(|v| v.as_str()) {
+                            new_session_id = Some(sid.to_string());
+                        }
                     }
-                }
-                Some("done") => {
-                    if let Some(sid) = json.get("session_id").and_then(|v| v.as_str()) {
-                        new_session_id = Some(sid.to_string());
+                    Some("error") => {
+                        let msg = json.get("message").and_then(|v| v.as_str()).unwrap_or("Unknown error");
+                        return Err(format!("Bridge error: {}", msg));
                     }
+                    _ => {}
                 }
-                Some("error") => {
-                    let msg = json.get("message").and_then(|v| v.as_str()).unwrap_or("Unknown error");
-                    return Err(format!("Bridge error: {}", msg));
-                }
-                _ => {}
             }
         }
     }
