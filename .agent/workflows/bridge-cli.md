@@ -6,7 +6,7 @@ description: Architecture reference for Echobird CLI Bridge — how it works, di
 
 ## What is Bridge?
 
-Bridge is the **communication layer** between the EchoBird desktop app and AI agents (OpenClaw, Claude Code, OpenCode, ZeroClaw, NanoBot, PicoClaw, OpenFang, Hermes Agent). It translates EchoBird's JSON protocol into CLI commands for each agent.
+Bridge is the **communication layer** between the EchoBird desktop app and AI agents (OpenClaw, Claude Code, ZeroClaw, NanoBot, PicoClaw, Hermes Agent). It translates EchoBird's JSON protocol into CLI commands for each agent.
 
 ## Two Directories — Why?
 
@@ -80,7 +80,6 @@ Bridge does NOT inject roles as system prompts. It **downloads and writes role f
 |-------|---------------|--------|
 | OpenClaw | `~/.openclaw/workspace/SOUL.md` (overwrites main agent) | Markdown |
 | Claude Code | `~/.claude/agents/{role_id}.md` | Markdown |
-| OpenCode | `~/.config/opencode/agents/{role_id}.md` | Markdown |
 | ZeroClaw | `~/.zeroclaw/workspace/skills/{role_id}/SKILL.md` | Markdown |
 | NanoBot | `~/.nanobot/workspace/AGENTS.md` (overwrites) | Markdown |
 | PicoClaw | `~/.picoclaw/workspace/AGENT.md` (overwrites) | Markdown |
@@ -111,7 +110,7 @@ Role URLs use **GitHub raw content** (NEVER the rendered website):
 Each agent uses one of two protocols defined in `plugin.json`:
 
 - **`stdio-json`** (OpenClaw): Bridge runs as persistent subprocess, communicates via stdin/stdout JSON
-- **`cli-oneshot`** (Claude Code, OpenCode, ZeroClaw, NanoBot, PicoClaw, OpenFang, Hermes Agent): Bridge invokes CLI once per message, no persistent process
+- **`cli-oneshot`** (Claude Code, ZeroClaw, NanoBot, PicoClaw, Hermes Agent): Bridge invokes CLI once per message, no persistent process
 
 ## Adding a New Agent
 
@@ -226,7 +225,6 @@ OpenClaw reads SOUL.md only at **session start**. Changing SOUL.md mid-session h
 |-------|----------|-----|
 | OpenClaw | Overwrite `workspace/SOUL.md` | Single workspace, roles share same file |
 | Claude Code | Create `agents/{role_id}.md` | Per-role files, coexist |
-| OpenCode | Create `agents/{role_id}.md` | Per-role files, coexist |
 | ZeroClaw | Create `skills/{role_id}/SKILL.md` | Per-role directories, coexist |
 | NanoBot | Overwrite `workspace/AGENTS.md` | Single workspace, roles share same file |
 | PicoClaw | Overwrite `workspace/AGENT.md` | Single workspace, mtime-tracked |

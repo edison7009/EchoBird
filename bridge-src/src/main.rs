@@ -489,7 +489,6 @@ fn find_json_object(input: &str) -> Option<String> {
 const KNOWN_AGENTS: &[(&str, &str, &str)] = &[
     // (id, display_name, command_name)
     ("claudecode", "Claude Code", "claude"),
-    ("opencode",   "OpenCode",    "opencode"),
     ("openclaw",   "OpenClaw",    "openclaw"),
     ("zeroclaw",   "ZeroClaw",    "zeroclaw"),
     ("nanobot",    "NanoBot",     "nanobot"),
@@ -570,7 +569,6 @@ fn handle_set_role(agent_id: &str, role_id: &str, url: &str) {
     let home = home_dir();
     let target = match agent_id {
         "claudecode" => home.join(".claude").join("agents").join(format!("{}.md", role_id)),
-        "opencode"   => home.join(".config").join("opencode").join("agents").join(format!("{}.md", role_id)),
         "openclaw"   => home.join(".openclaw").join("workspace").join("SOUL.md"),
         "zeroclaw"   => home.join(".zeroclaw").join("workspace").join("skills").join(role_id).join("SKILL.md"),
         "nanobot"    => home.join(".nanobot").join("workspace").join("AGENTS.md"),
@@ -659,7 +657,6 @@ fn handle_set_role(agent_id: &str, role_id: &str, url: &str) {
 fn handle_start_agent(agent_id: &str) {
     let cmd = match agent_id {
         "claudecode" => "claude",
-        "opencode"   => "opencode",
         "openclaw"   => "openclaw",
         "zeroclaw"   => "zeroclaw",
         "nanobot"    => "nanobot",
@@ -734,7 +731,6 @@ fn handle_clear_role(agent_id: &str, role_id: &str) {
     let home = home_dir();
     let target = match agent_id {
         "claudecode" => home.join(".claude").join("agents").join(format!("{}.md", role_id)),
-        "opencode"   => home.join(".config").join("opencode").join("agents").join(format!("{}.md", role_id)),
         "openclaw"   => home.join(".openclaw").join("workspace").join("SOUL.md"),
         "zeroclaw"   => home.join(".zeroclaw").join("workspace").join("skills").join(role_id),
         "nanobot"    => home.join(".nanobot").join("workspace").join("AGENTS.md"),

@@ -635,8 +635,8 @@ const ChannelsInner: React.FC = () => {
                 if (role?.filePath) {
                     const isZh = locale.startsWith('zh');
                     const roleUrl = isZh
-                        ? `https://raw.githubusercontent.com/edison7009/Echobird-MotherAgent/main/docs/roles/zh-Hans/${role.filePath}`
-                        : `https://raw.githubusercontent.com/edison7009/Echobird-MotherAgent/main/docs/roles/en/${role.filePath}`;
+                        ? `https://echobird.ai/roles/zh-Hans/${role.filePath}`
+                        : `https://echobird.ai/roles/en/${role.filePath}`;
                     const selectedAgent = allActiveAgents[channelKey] || '';
                     const agentEntry = AGENT_LIST.find(a => a.name === selectedAgent);
                     const agentId = agentEntry?.id || '';
@@ -644,15 +644,12 @@ const ChannelsInner: React.FC = () => {
 
                     // Re-apply if role or agent changed
                     if (roleKey !== lastApplied) {
-                        try {
-                            await api.bridgeSetRoleLocal(agentId, role.id, roleUrl);
+                        // Let errors propagate to outer catch — shows as send failure
+                        await api.bridgeSetRoleLocal(agentId, role.id, roleUrl);
 
-                            // Force new session so agent reads the updated role
-                            setBridgeSessionId(undefined);
-                            lastAppliedRoleRef.current[channelKey] = roleKey;
-                        } catch (e) {
-                            console.warn('[Bridge] local set_role failed (non-fatal):', e);
-                        }
+                        // Force new session so agent reads the updated role
+                        setBridgeSessionId(undefined);
+                        lastAppliedRoleRef.current[channelKey] = roleKey;
                     }
                 } else if (lastApplied) {
                     // User cleared role → reset agent to default mode
@@ -918,8 +915,19 @@ const ChannelsInner: React.FC = () => {
                 }}
                 selectedAgent={allActiveAgents[channelKey] || ''}
                 onSelectAgent={(name) => {
+                    const previousAgent = allActiveAgents[channelKey] || '';
                     setActiveAgentFor(channelKey, name);
                     if (channelFileKeyForPersist) { localStorage.setItem(`eb_ch_${channelFileKeyForPersist}_agent`, name); }
+                    // Agent tool changed — reset bridge so next send re-initializes with the new agent
+                    if (previousAgent && previousAgent !== name) {
+                        setBridgeConnectionStatus('standby');
+                        setBridgeSessionId(undefined);
+                        lastAppliedRoleRef.current[channelKey] = '';
+                        // Invalidate remote agent detection cache so next send re-detects
+                        delete remoteAgentCache.current[channelKey];
+                        // Stop old bridge/oneshot process in background (fire-and-forget)
+                        api.bridgeStop().catch(() => {});
+                    }
                 }}
                 isRemote={!isLocalChannel}
                 remoteServerId={activeChannel?.serverId}
@@ -988,12 +996,12 @@ export function ChannelsPanel() {
                                             </span>
                                             <div className={`ml-auto w-2 h-2 rounded-full flex-shrink-0 ${hasNew ? 'bg-red-500 animate-pulse' : isLinked ? 'bg-cyber-accent animate-pulse' : isBridgeConnecting ? 'bg-yellow-400 animate-pulse' : isError ? 'bg-red-400' : 'bg-cyber-text-muted/50'}`} />
                                         </div>
-                                        <div className="flex items-center gap-1.5">
-                                            <span className={`text-xs tracking-wide ${isTyping ? 'text-cyber-accent' : isLinked ? 'text-cyber-accent' : isBridgeConnecting ? 'text-yellow-400' : isError ? 'text-red-400' : 'text-cyber-text-muted/70'}`}>
+                                        <div className="flex items-center gap-1.5 overflow-hidden">
+                                            <span className={`text-xs tracking-wide whitespace-nowrap flex-shrink-0 ${isTyping ? 'text-cyber-accent' : isLinked ? 'text-cyber-accent' : isBridgeConnecting ? 'text-yellow-400' : isError ? 'text-red-400' : 'text-cyber-text-muted/70'}`}>
                                                 [{isTyping ? t('common.inputting') : isLinked ? t('channel.linked') : isBridgeConnecting ? t('channel.connecting') : isError ? t('channel.failed') : t('channel.standby')}]
                                             </span>
                                             {(allSelectedRoles[ch.id]?.name || allActiveAgents[ch.id]) && (
-                                                <span className={`text-xs truncate ${isTyping ? 'text-cyber-accent' : isLinked ? 'text-cyber-accent' : isBridgeConnecting ? 'text-yellow-400' : isError ? 'text-red-400' : 'text-cyber-text-muted/70'}`}>
+                                                <span className={`text-xs min-w-0 truncate ${isTyping ? 'text-cyber-accent' : isLinked ? 'text-cyber-accent' : isBridgeConnecting ? 'text-yellow-400' : isError ? 'text-red-400' : 'text-cyber-text-muted/70'}`}>
                                                     {allSelectedRoles[ch.id]?.name || allActiveAgents[ch.id]}
                                                 </span>
                                             )}

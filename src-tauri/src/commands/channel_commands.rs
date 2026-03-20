@@ -277,11 +277,17 @@ fn start_bridge_internal(plugin_id: &str) -> Result<BridgeStartResult, String> {
     }
 
     // Spawn bridge process with piped stdin/stdout
-    let mut child = Command::new(&bridge_path)
-        .stdin(Stdio::piped())
+    let mut cmd = Command::new(&bridge_path);
+    cmd.stdin(Stdio::piped())
         .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
-        .spawn()
+        .stderr(Stdio::piped());
+    #[cfg(target_os = "windows")]
+    {
+        use std::os::windows::process::CommandExt;
+        const CREATE_NO_WINDOW: u32 = 0x08000000;
+        cmd.creation_flags(CREATE_NO_WINDOW);
+    }
+    let mut child = cmd.spawn()
         .map_err(|e| format!("Failed to spawn bridge: {}", e))?;
 
     let stdin = child.stdin.take()
@@ -474,10 +480,25 @@ pub async fn bridge_start(plugin_id: Option<String>) -> Result<BridgeStartResult
 
     if protocol == "cli-oneshot" {
         // CLI-oneshot: no persistent subprocess — just verify the CLI exists
+        // Clear any existing stdio-json bridge process (cross-protocol switch)
+        if let Ok(mut guard) = BRIDGE_PROCESS.lock() {
+            if let Some(mut bp) = guard.take() {
+                let _ = bp.child.kill();
+                let _ = bp.child.wait();
+                log::info!("[Bridge] Killed stdio-json bridge (switching to cli-oneshot)");
+            }
+        }
         return start_oneshot(&pid, &plugins).await;
     }
 
     // stdio-json: persistent subprocess (existing logic)
+    // Clear any existing cli-oneshot state (cross-protocol switch)
+    if let Ok(mut guard) = ONESHOT_STATE.lock() {
+        if guard.is_some() {
+            log::info!("[Bridge] Clearing cli-oneshot state (switching to stdio-json)");
+            *guard = None;
+        }
+    }
     // Always ensure bridge binary is present before starting
     if let Err(e) = download_bridge_if_missing(&pid).await {
         log::warn!("[Bridge] Auto-download failed: {}", e);
@@ -525,7 +546,17 @@ async fn start_oneshot(
     let detect_result = tokio::task::spawn_blocking({
         let cmd = parts[0].to_string();
         let args: Vec<String> = parts[1..].iter().map(|s| s.to_string()).collect();
-        move || Command::new(&cmd).args(&args).output()
+        move || {
+            let mut c = Command::new(&cmd);
+            c.args(&args);
+            #[cfg(target_os = "windows")]
+            {
+                use std::os::windows::process::CommandExt;
+                const CREATE_NO_WINDOW: u32 = 0x08000000;
+                c.creation_flags(CREATE_NO_WINDOW);
+            }
+            c.output()
+        }
     }).await.map_err(|e| format!("Task error: {}", e))?;
 
     match detect_result {
@@ -923,7 +954,18 @@ pub async fn bridge_set_role_local(
         let role_id_c = role_id.clone();
         let agent_id_c = agent_id.clone();
         let url_c = url.clone();
-        return download_role_file_direct(&agent_id_c, &role_id_c, &url_c).await;
+        let result = download_role_file_direct(&agent_id_c, &role_id_c, &url_c).await;
+
+        // If download failed, clear active_role_id so chat doesn't try to use a missing file
+        if result.is_err() {
+            if let Ok(mut guard) = ONESHOT_STATE.lock() {
+                if let Some(ref mut state) = *guard {
+                    state.active_role_id = None;
+                    log::warn!("[BridgeSetRoleLocal] Role download failed, cleared active_role_id");
+                }
+            }
+        }
+        return result;
     }
 
     tokio::task::spawn_blocking(move || {
@@ -1035,7 +1077,11 @@ async fn bridge_chat_oneshot(
     };
 
     // Build CLI args
-    let mut args: Vec<String> = if effective_sid.is_some() && state_clone.resume_args.is_some() {
+    // NOTE: Claude Code ignores --system-prompt-file when used with --resume,
+    // so when a role is active on Claude Code, always start a fresh session.
+    let skip_resume = state_clone.active_role_id.is_some()
+        && state_clone.cli_command.contains("claude");
+    let mut args: Vec<String> = if !skip_resume && effective_sid.is_some() && state_clone.resume_args.is_some() {
         // Resume existing session
         let resume = state_clone.resume_args.as_ref().unwrap();
         resume.iter().map(|a| {
@@ -1129,9 +1175,15 @@ async fn bridge_chat_oneshot(
     let result = tokio::time::timeout(
         std::time::Duration::from_secs(300), // 5 min timeout
         tokio::task::spawn_blocking(move || {
-            Command::new(&cmd_name)
-                .args(&cmd_args)
-                .output()
+            let mut cmd = Command::new(&cmd_name);
+            cmd.args(&cmd_args);
+            #[cfg(target_os = "windows")]
+            {
+                use std::os::windows::process::CommandExt;
+                const CREATE_NO_WINDOW: u32 = 0x08000000;
+                cmd.creation_flags(CREATE_NO_WINDOW);
+            }
+            cmd.output()
         })
     ).await;
 
