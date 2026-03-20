@@ -420,8 +420,6 @@ pub fn run() {
             ssh_commands::ssh_upload_file,
             ssh_commands::scan_plugins,
             ssh_commands::get_bridge_path,
-            role_commands::scan_roles,
-            role_commands::load_role_content,
             role_commands::detect_local_agents,
         ])
         .build(tauri::generate_context!())

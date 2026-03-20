@@ -505,10 +505,6 @@ export async function scanRoles(locale: string): Promise<RoleScanResult> {
     };
 }
 
-export async function loadRoleContent(locale: string, filePath: string): Promise<string> {
-    return invoke('load_role_content', { locale, filePath });
-}
-
 export interface AgentStatus {
     id: string;
     name: string;

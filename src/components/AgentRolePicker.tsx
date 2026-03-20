@@ -1,6 +1,6 @@
 // AgentRolePicker — Combined role + agent selector modal
 // Vertical image cards with hover slide-up text effect + category filter + agent tool selector
-// Roles and categories loaded dynamically from backend via scan_roles
+// Roles and categories loaded dynamically from CDN (echobird.ai/roles/)
 import React, { useState, useEffect } from 'react';
 import { X, Check, Loader2 } from 'lucide-react';
 import { useI18n } from '../hooks/useI18n';
