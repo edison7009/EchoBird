@@ -840,6 +840,163 @@ pub async fn bridge_set_role_local(
 }
 
 
+// ── Auto-Deploy Bridge to Remote ──
+
+/// Cache of server IDs that have been verified to have Bridge installed this session.
+/// Avoids re-checking on every message.
+static REMOTE_BRIDGE_VERIFIED: std::sync::LazyLock<std::sync::Mutex<std::collections::HashSet<String>>> =
+    std::sync::LazyLock::new(|| std::sync::Mutex::new(std::collections::HashSet::new()));
+
+/// Ensure the remote server has an up-to-date Bridge binary.
+/// If missing or outdated, upload from local bundle via base64 SSH transfer.
+async fn ensure_remote_bridge(
+    pool: &crate::commands::ssh_commands::SSHPool,
+    server_id: &str,
+) -> Result<(), String> {
+    // Skip if already verified this session
+    if let Ok(cache) = REMOTE_BRIDGE_VERIFIED.lock() {
+        if cache.contains(server_id) {
+            return Ok(());
+        }
+    }
+
+    log::info!("[Bridge] Checking remote bridge on server: {}", server_id);
+
+    let connections = pool.lock().await;
+    let client = connections.get(server_id)
+        .ok_or_else(|| format!("SSH not connected: {}", server_id))?;
+
+    // Check if bridge exists and get version
+    let check_result = client.execute(
+        "~/echobird/echobird-bridge --version 2>/dev/null || echo 'NOT_INSTALLED'"
+    ).await.map_err(|e| format!("SSH check failed: {}", e))?;
+
+    let remote_version = check_result.stdout.trim().to_string();
+    let local_version = env!("CARGO_PKG_VERSION");
+
+    if !remote_version.contains("NOT_INSTALLED") && remote_version.contains(local_version) {
+        // Bridge exists and version matches — cache and return
+        log::info!("[Bridge] Remote bridge OK (version: {})", remote_version);
+        if let Ok(mut cache) = REMOTE_BRIDGE_VERIFIED.lock() {
+            cache.insert(server_id.to_string());
+        }
+        return Ok(());
+    }
+
+    log::info!("[Bridge] Remote bridge needs deploy (remote: '{}', local: '{}')", remote_version, local_version);
+
+    // Detect remote OS + architecture
+    let os_result = client.execute("uname -s 2>/dev/null || echo windows")
+        .await.map_err(|e| format!("Failed to detect remote OS: {}", e))?;
+    let arch_result = client.execute("uname -m 2>/dev/null || echo x86_64")
+        .await.map_err(|e| format!("Failed to detect remote arch: {}", e))?;
+
+    let os_name = os_result.stdout.trim().to_lowercase();
+    let arch = arch_result.stdout.trim().to_lowercase();
+
+    // Map to local bridge binary filename
+    let bridge_filename = if os_name.contains("linux") {
+        if arch.contains("aarch64") || arch.contains("arm64") {
+            "bridge-linux-aarch64"
+        } else {
+            "bridge-linux-x86_64"
+        }
+    } else if os_name.contains("darwin") {
+        if arch.contains("arm64") || arch.contains("aarch64") {
+            "bridge-darwin-aarch64"
+        } else {
+            "bridge-darwin-x86_64"
+        }
+    } else {
+        "bridge-win.exe"
+    };
+
+    // Find local bridge binary path from bundle
+    let local_path = {
+        let plugins = crate::services::plugin_manager::plugins_dir();
+        let bridge_dir = plugins.parent().unwrap_or(&plugins).join("bridge");
+        let path = bridge_dir.join(bridge_filename);
+        if path.exists() { Some(path) } else { None }
+    };
+
+    let local_path = match local_path {
+        Some(p) => p,
+        None => {
+            log::warn!("[Bridge] Local bridge binary not found: {}", bridge_filename);
+            return Err(format!("Local bridge binary '{}' not found in bundle", bridge_filename));
+        }
+    };
+
+    log::info!("[Bridge] Uploading {} to remote ~/echobird/", bridge_filename);
+
+    // Release connection lock before upload (upload acquires its own lock)
+    drop(connections);
+
+    // Read local binary and upload via base64
+    let file_data = std::fs::read(&local_path)
+        .map_err(|e| format!("Failed to read local bridge binary: {}", e))?;
+
+    let encoded = {
+        use base64::Engine;
+        base64::engine::general_purpose::STANDARD.encode(&file_data)
+    };
+
+    // Re-acquire connection
+    let connections = pool.lock().await;
+    let client = connections.get(server_id)
+        .ok_or_else(|| format!("SSH not connected: {}", server_id))?;
+
+    // Create remote directory
+    let _ = client.execute("mkdir -p ~/echobird").await;
+
+    let remote_binary = format!("~/echobird/{}", bridge_filename);
+
+    // Upload via base64 chunks
+    let chunk_size = 65536;
+    let chunks: Vec<&str> = encoded.as_bytes()
+        .chunks(chunk_size)
+        .map(|c| std::str::from_utf8(c).unwrap_or(""))
+        .collect();
+
+    if chunks.len() == 1 {
+        let cmd = format!("echo '{}' | base64 -d > {}", encoded, remote_binary);
+        client.execute(&cmd).await
+            .map_err(|e| format!("Upload failed: {}", e))?;
+    } else {
+        // Multi-chunk upload
+        let first_cmd = format!("printf '%s' '{}' > {}.b64", chunks[0], remote_binary);
+        client.execute(&first_cmd).await
+            .map_err(|e| format!("Upload chunk 0 failed: {}", e))?;
+
+        for (i, chunk) in chunks[1..].iter().enumerate() {
+            let cmd = format!("printf '%s' '{}' >> {}.b64", chunk, remote_binary);
+            client.execute(&cmd).await
+                .map_err(|e| format!("Upload chunk {} failed: {}", i + 1, e))?;
+        }
+
+        let decode_cmd = format!("base64 -d {}.b64 > {} && rm {}.b64",
+            remote_binary, remote_binary, remote_binary);
+        client.execute(&decode_cmd).await
+            .map_err(|e| format!("Upload decode failed: {}", e))?;
+    }
+
+    // chmod +x and create symlink
+    let chmod_cmd = format!("chmod +x {} && ln -sf {} ~/echobird/echobird-bridge",
+        remote_binary, remote_binary);
+    client.execute(&chmod_cmd).await
+        .map_err(|e| format!("chmod failed: {}", e))?;
+
+    log::info!("[Bridge] Remote bridge deployed: {} ({} bytes)", bridge_filename, file_data.len());
+
+    // Cache as verified
+    if let Ok(mut cache) = REMOTE_BRIDGE_VERIFIED.lock() {
+        cache.insert(server_id.to_string());
+    }
+
+    Ok(())
+}
+
+
 /// Tauri command: chat with remote Agent via SSH → echobird-bridge
 #[tauri::command]
 pub async fn bridge_chat_remote(
@@ -858,6 +1015,10 @@ pub async fn bridge_chat_remote(
     // Auto-connect SSH if needed
     crate::commands::ssh_commands::auto_connect_ssh(&pool, &server_id).await
         .map_err(|e| format!("SSH connection failed: {}", e))?;
+
+    // Auto-deploy Bridge binary if missing or outdated
+    ensure_remote_bridge(&pool, &server_id).await
+        .map_err(|e| format!("Bridge auto-deploy failed: {}", e))?;
 
     // Map plugin_id to agent CLI command
     let agent_command = match plugin.as_str() {
@@ -1033,6 +1194,10 @@ pub async fn bridge_set_role_remote(
 
     crate::commands::ssh_commands::auto_connect_ssh(&pool, &server_id).await
         .map_err(|e| format!("SSH connection failed: {}", e))?;
+
+    // Auto-deploy Bridge binary if missing or outdated
+    ensure_remote_bridge(&pool, &server_id).await
+        .map_err(|e| format!("Bridge auto-deploy failed: {}", e))?;
 
     let input_json = serde_json::json!({
         "type": "set_role",
