@@ -85,10 +85,12 @@ Bridge does NOT inject roles as system prompts. It **downloads and writes role f
 | PicoClaw | `~/.picoclaw/workspace/AGENT.md` (overwrites) | Markdown |
 | Hermes Agent | `~/.hermes/SOUL.md` (overwrites) | Markdown |
 
-Role URLs use the **Echobird CDN** which serves raw markdown at the `/roles/` path:
-- Pattern: `https://echobird.ai/roles/{lang}/{filePath}`
-- `lang` = `en` or `zh-Hans` based on user locale
-- `filePath` = relative path from `roles-en.json`, e.g. `engineering/engineering-ai-engineer.md`
+Role URLs are stored as **full URLs** in each `roles-{lang}.json`:
+- `filePath` = complete URL, e.g. `https://echobird.ai/roles/en/engineering/engineering-ai-engineer.md`
+- `img` = complete URL, e.g. `https://echobird.ai/roles/en/engineering/engineering-ai-engineer.png`
+- Frontend uses `role.filePath` directly as the download URL — **no hardcoded language routing**
+- Adding a new language: just create `docs/roles/roles-{lang}.json` with full URLs — zero code changes
+- Locale → JSON mapping is automatic: `resolveLocaleFileName()` derives `roles-{prefix}.json` from locale, falls back to `roles-en.json`
 - Upstream repos:
   - EN: `msitarzewski/agency-agents`
   - ZH: `jnMetaCode/agency-agents-zh`
@@ -198,7 +200,7 @@ Tauri bundles `bridge/` as resources during build. If bridge is compiled AFTER T
 
 ### 2. Role URL Must Return Raw Markdown
 
-`echobird.ai/docs/roles/*.md` returns **rendered HTML** (Cloudflare Pages). Bridge writes this HTML as SOUL.md → agent gets confused. Always use `raw.githubusercontent.com` for raw markdown content.
+`echobird.ai/roles/*.md` returns raw markdown via Cloudflare Pages. Each role's `filePath` in the JSON is already the full download URL (e.g. `https://echobird.ai/roles/en/engineering/...`). The frontend passes this URL directly — no URL construction needed. If Cloudflare ever renders HTML for `.md` files, switch to `raw.githubusercontent.com`.
 
 ### 3. OpenClaw SOUL.md: Always Overwrite
 
@@ -232,15 +234,6 @@ OpenClaw reads SOUL.md only at **session start**. Changing SOUL.md mid-session h
 
 For agents with per-role files, idempotent skip (`if exists, skip download`) is safe. For agents with shared files (OpenClaw, NanoBot, PicoClaw, Hermes), always overwrite.
 
-### 8. Role URL Path: No `/docs/` Prefix
+### 8. Role filePath Is a Full URL
 
-The website `echobird.ai` serves role files at `/roles/{lang}/{filePath}`, **NOT** `/docs/roles/...`.
-
-| URL | Result |
-|-----|--------|
-| `echobird.ai/roles/en/engineering/engineering-ai-engineer.md` | ✅ Raw markdown |
-| `echobird.ai/docs/roles/en/engineering/engineering-ai-engineer.md` | ❌ Website homepage HTML |
-
-The `docs/` directory exists in the Git repo (`d:\Echobird\docs\roles\...`), but Cloudflare Pages strips the `docs/` prefix when serving. Using the wrong URL causes Bridge to download HTML instead of markdown → SOUL.md gets corrupted or `set_role` times out.
-
-**Rule:** When constructing role URLs in code, always use `https://echobird.ai/roles/{lang}/{filePath}` — no `/docs/` prefix.
+`filePath` in each `roles-{lang}.json` is a **complete URL** (e.g. `https://echobird.ai/roles/en/engineering/engineering-ai-engineer.md`). The frontend uses it directly: `const roleUrl = role.filePath;` — no URL construction, no language prefix logic. Adding a new language only requires creating a new `roles-{lang}.json` file with full URLs.
