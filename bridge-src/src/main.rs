@@ -294,39 +294,10 @@ fn execute_chat(
     }
 
     // Add agent name if specified (claude code uses --agent)
+    // Claude Code reads ~/.claude/agents/{name}.md automatically (upstream agency-agents pattern)
     if let (Some(ref name), Some(agent_arg)) = (&effective_agent, &config.agent_arg) {
         args.push(agent_arg.clone());
         args.push(name.to_string());
-    }
-
-    // Inject role file content as system prompt (only for new sessions, not resume)
-    if !is_resume {
-        if let Some(ref system_prompt_arg) = config.system_prompt_arg {
-            if let Some((ref agent_id, ref role_id)) = stored_role {
-                let home = home_dir();
-                let role_path = match agent_id.as_str() {
-                    "claudecode" => Some(home.join(".claude").join("agents").join(format!("{}.md", role_id))),
-                    "openclaw"   => Some(home.join(".openclaw").join("workspace").join("SOUL.md")),
-                    "zeroclaw"   => Some(home.join(".zeroclaw").join("workspace").join("skills").join(role_id).join("SKILL.md")),
-                    "nanobot"    => Some(home.join(".nanobot").join("workspace").join("AGENTS.md")),
-                    "picoclaw"   => Some(home.join(".picoclaw").join("workspace").join("AGENT.md")),
-                    "hermes"     => Some(home.join(".hermes").join("SOUL.md")),
-                    _ => None,
-                };
-                if let Some(path) = role_path {
-                    match std::fs::read_to_string(&path) {
-                        Ok(content) => {
-                            eprintln!("[bridge] Injecting role as system prompt ({} chars from {:?})", content.len(), path);
-                            args.push(system_prompt_arg.clone());
-                            args.push(content);
-                        }
-                        Err(e) => {
-                            eprintln!("[bridge] WARN: Could not read role file {:?}: {}", path, e);
-                        }
-                    }
-                }
-            }
-        }
     }
 
     // Add message as last arg (--message is already in args list).
