@@ -973,3 +973,141 @@ Portrait of a logistics professional tracking supply chain data. paper cut-out c
 === #163 === 提示词工程师 (Prompt Engineer) [specialized]
 Filename: 163.jpg
 Portrait of a prompt engineer crafting AI instructions at workstation. blueprint style, white lines on deep blue. Professional workplace setting, 1:1 aspect ratio, no text or letters in the image, no watermark. High quality, detailed. Subject centered in the middle of the image.
+
+---
+
+=== #164 === 钉钉集成开发工程师 (DingTalk Integration Developer) [engineering]
+Filename: 164.jpg
+Portrait of a developer working with office automation workflows. low-poly geometric art, muted earth tones. Professional workplace setting, 1:1 aspect ratio, no text or letters in the image, no watermark. High quality, detailed. Subject centered in the middle of the image.
+
+---
+
+=== #165 === 嵌入式 Linux 驱动工程师 (Embedded Linux Driver Engineer) [engineering]
+Filename: 165.jpg
+Portrait of a hardware engineer debugging circuit boards with oscilloscope. cyberpunk style with neon cyan and magenta accents. Professional workplace setting, 1:1 aspect ratio, no text or letters in the image, no watermark. High quality, detailed. Subject centered in the middle of the image.
+
+---
+
+=== #166 === FPGA/ASIC 数字设计工程师 (FPGA/ASIC Digital Design Engineer) [engineering]
+Filename: 166.jpg
+Portrait of a microchip designer reviewing silicon wafer architecture. vintage poster style, sepia and gold tones. Professional workplace setting, 1:1 aspect ratio, no text or letters in the image, no watermark. High quality, detailed. Subject centered in the middle of the image.
+
+---
+
+=== #167 === IoT 解决方案架构师 (IoT Solution Architect) [engineering]
+Filename: 167.jpg
+Portrait of a technical architect connecting smart device networks. minimalist silhouette, deep navy and gold. Professional workplace setting, 1:1 aspect ratio, no text or letters in the image, no watermark. High quality, detailed. Subject centered in the middle of the image.
+
+---
+
+=== #168 === 知识付费产品策划师 (Knowledge Commerce Strategist) [marketing]
+Filename: 168.jpg
+Portrait of a content strategist planning educational courses. pop art style, high contrast vibrant colors. Professional workplace setting, 1:1 aspect ratio, no text or letters in the image, no watermark. High quality, detailed. Subject centered in the middle of the image.
+
+---
+
+=== #169 === 微信视频号运营专家 (Weixin Channels Strategist) [marketing]
+Filename: 169.jpg
+Portrait of a video content creator reviewing short-form video metrics. gouache painting, warm sunset palette. Professional workplace setting, 1:1 aspect ratio, no text or letters in the image, no watermark. High quality, detailed. Subject centered in the middle of the image.
+
+---
+
+=== #170 === 嵌入式测试工程师 (Embedded QA Engineer) [testing]
+Filename: 170.jpg
+Portrait of a quality engineer testing hardware device reliability. charcoal sketch style with amber highlights. Professional workplace setting, 1:1 aspect ratio, no text or letters in the image, no watermark. High quality, detailed. Subject centered in the middle of the image.
+
+---
+
+=== #171 === 高考志愿报填专家 (Gaokao College Advisor) [specialized]
+Filename: 171.jpg
+Portrait of an academic advisor reviewing university ranking data. isometric illustration, vibrant gradient colors. Professional workplace setting, 1:1 aspect ratio, no text or letters in the image, no watermark. High quality, detailed. Subject centered in the middle of the image.
+
+---
+
+=== #172 === AI 合规政策专家 (AI Policy Writer) [specialized]
+Filename: 172.jpg
+Portrait of a legal expert reviewing AI ethics and compliance documents. oil painting style, rich warm tones. Professional workplace setting, 1:1 aspect ratio, no text or letters in the image, no watermark. High quality, detailed. Subject centered in the middle of the image.
+
+---
+
+=== #173 === 会议提效专家 (Meeting Efficiency Specialist) [specialized]
+Filename: 173.jpg
+Portrait of a productivity consultant managing corporate meeting schedules. watercolor illustration, soft pastel colors. Professional workplace setting, 1:1 aspect ratio, no text or letters in the image, no watermark. High quality, detailed. Subject centered in the middle of the image.
+
+---
+
+=== #174 === 动态定价策略师 (Pricing Optimizer) [specialized]
+Filename: 174.jpg
+Portrait of a pricing analyst monitoring market demand curves. digital painting / synthwave style, electric purple and blue. Professional workplace setting, 1:1 aspect ratio, no text or letters in the image, no watermark. High quality, detailed. Subject centered in the middle of the image.
+
+---
+
+=== #175 === 商业风险评估师 (Risk Assessor) [specialized]
+Filename: 175.jpg
+Portrait of a financial risk analyst reviewing corporate audit data. pencil portrait with subtle color wash. Professional workplace setting, 1:1 aspect ratio, no text or letters in the image, no watermark. High quality, detailed. Subject centered in the middle of the image.
+
+---
+
+=== #176 === 学习规划专家 (Study Planner) [academic]
+Filename: 176.jpg
+Portrait of an educator planning personalized student learning paths. pointillism style, vivid dots of color. Professional workplace setting, 1:1 aspect ratio, no text or letters in the image, no watermark. High quality, detailed. Subject centered in the middle of the image.
+
+---
+
+=== #177 === 财务预测分析师 (Financial Forecaster) [finance]
+Filename: 177.jpg
+Portrait of a financial analyst modeling revenue projections. woodblock print style, earthy brown tones. Professional workplace setting, 1:1 aspect ratio, no text or letters in the image, no watermark. High quality, detailed. Subject centered in the middle of the image.
+
+---
+
+=== #178 === 金融风控分析师 (Fraud Detector) [finance]
+Filename: 178.jpg
+Portrait of a fraud detection specialist monitoring transaction anomalies. mosaic tile art style, Mediterranean colors. Professional workplace setting, 1:1 aspect ratio, no text or letters in the image, no watermark. High quality, detailed. Subject centered in the middle of the image.
+
+---
+
+=== #179 === 发票管理专家 (Invoice Manager) [finance]
+Filename: 179.jpg
+Portrait of an accountant managing digital tax invoice portfolios. flat vector illustration, bold clean lines. Professional workplace setting, 1:1 aspect ratio, no text or letters in the image, no watermark. High quality, detailed. Subject centered in the middle of the image.
+
+---
+
+=== #180 === 绩效管理专家 (Performance Reviewer) [hr]
+Filename: 180.jpg
+Portrait of an HR professional reviewing employee performance KPIs. editorial illustration style, elegant muted palette. Professional workplace setting, 1:1 aspect ratio, no text or letters in the image, no watermark. High quality, detailed. Subject centered in the middle of the image.
+
+---
+
+=== #181 === 招聘专家 (Recruiter) [hr]
+Filename: 181.jpg
+Portrait of a recruiter interviewing candidates in a modern office. cinematic photography style, dramatic lighting. Professional workplace setting, 1:1 aspect ratio, no text or letters in the image, no watermark. High quality, detailed. Subject centered in the middle of the image.
+
+---
+
+=== #182 === 合同审查专家 (Contract Reviewer) [legal]
+Filename: 182.jpg
+Portrait of a legal expert reviewing commercial contract terms. art deco style, geometric gold and black. Professional workplace setting, 1:1 aspect ratio, no text or letters in the image, no watermark. High quality, detailed. Subject centered in the middle of the image.
+
+---
+
+=== #183 === 制度文件撰写专家 (Policy Writer) [legal]
+Filename: 183.jpg
+Portrait of a policy writer drafting corporate regulation documents. Japanese ukiyo-e inspired, soft ink wash. Professional workplace setting, 1:1 aspect ratio, no text or letters in the image, no watermark. High quality, detailed. Subject centered in the middle of the image.
+
+---
+
+=== #184 === 库存预测专家 (Inventory Forecaster) [supply-chain]
+Filename: 184.jpg
+Portrait of a logistics professional managing warehouse stock levels. Nordic design style, clean whites and forest green. Professional workplace setting, 1:1 aspect ratio, no text or letters in the image, no watermark. High quality, detailed. Subject centered in the middle of the image.
+
+---
+
+=== #185 === 物流路线优化师 (Route Optimizer) [supply-chain]
+Filename: 185.jpg
+Portrait of a logistics expert optimizing delivery truck routes. stained glass mosaic style, jewel tones. Professional workplace setting, 1:1 aspect ratio, no text or letters in the image, no watermark. High quality, detailed. Subject centered in the middle of the image.
+
+---
+
+=== #186 === 供应商评估专家 (Vendor Evaluator) [supply-chain]
+Filename: 186.jpg
+Portrait of a procurement specialist auditing potential factory partners. chiaroscuro style, dramatic dark background. Professional workplace setting, 1:1 aspect ratio, no text or letters in the image, no watermark. High quality, detailed. Subject centered in the middle of the image.

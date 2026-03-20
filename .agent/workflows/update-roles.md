@@ -1,4 +1,4 @@
-﻿---
+---
 description: Update role JSON files from upstream agency-agents repos (EN + ZH)
 ---
 
@@ -90,9 +90,12 @@ Get-ChildItem $zhSrc -Directory | Where-Object { $_.Name -notin $skipDirs } | Fo
 ## Step 4: Maintenance of Images
 
 If a new role is added upstream WITHOUT an image, or if you want to change an image:
-1. Add/Update `{role-name}.png` in the source directory next to the `.md` file.
-2. Run this workflow to sync and regenerate JSON.
-3. For shared roles, ensure the `.png` is identical in both `en` and `zh-Hans` folders to maintain consistency.
+1. Check **[role-prompts.txt](file:///D:/Echobird/docs/roles/role-prompts.txt)** for the corresponding artistic prompt.
+2. If the role is new and has no prompt yet, ask an AI assistant to generate a new prompt in a matching style and append it to `role-prompts.txt`.
+3. Use the prompt to generate the `{role-id}.png` file.
+4. Place the `.png` file in the source directory next to the `.md` file (or directly in `docs/roles/{locale}/{category}/{role-id}.png`).
+5. Run this workflow to sync and regenerate JSON.
+6. For shared roles, ensure the `.png` is identical in both `en` and `zh-Hans` folders.
 
 ## Step 5: Compare and commit
 
