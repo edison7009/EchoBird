@@ -1022,13 +1022,22 @@ pub async fn bridge_chat_remote(
     ensure_remote_bridge(&pool, &server_id).await
         .map_err(|e| format!("Bridge auto-deploy failed: {}", e))?;
 
-    // Map plugin_id to agent CLI command
-    let agent_command = match plugin.as_str() {
-        "openclaw" => "openclaw agent --json --agent main",
-        "zeroclaw" => "zeroclaw agent -m",
-        "nanobot" => "nanobot agent -m",
-        "picoclaw" => "picoclaw agent -m",
-        other => other,
+    // Map plugin_id to agent CLI command (dynamic from plugin.json)
+    let agent_command = {
+        let plugins = crate::services::plugin_manager::scan_plugins();
+        if let Some(p) = plugins.iter().find(|p| p.id == plugin) {
+            if let Some(ref cli) = p.cli {
+                // Build command from plugin config: "command args..."
+                let mut parts = vec![cli.command.clone()];
+                parts.extend(cli.args.iter().cloned());
+                parts.join(" ")
+            } else {
+                format!("{} agent --json", plugin)
+            }
+        } else {
+            // Fallback for unknown plugins
+            format!("{} agent --json", plugin)
+        }
     };
 
     // Build JSON input

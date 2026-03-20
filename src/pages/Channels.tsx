@@ -752,7 +752,7 @@ const ChannelsInner: React.FC = () => {
                     }
 
                     // ── Step 4: Send message to agent ──
-                    const result = await api.bridgeChatRemote(serverId, text, bridgeSessionId);
+                    const result = await api.bridgeChatRemote(serverId, text, bridgeSessionId, agentId);
                     clearTimeout(workingTimer);
                     // Remove the working hint before adding the real reply
                     setBridgeMessages(prev => {
