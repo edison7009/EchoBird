@@ -147,7 +147,10 @@ export const AgentRolePicker: React.FC<AgentRolePickerProps> = ({
     const filteredRoles = activeCat === 'all' ? roles : roles.filter(r => r.category === activeCat);
 
     return (
-        <div className="absolute inset-0 z-50 flex flex-col bg-cyber-bg overflow-hidden">
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+            <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
+
+            <div className="relative w-[100vw] h-[100vh] flex flex-col bg-cyber-bg overflow-hidden">
                 {/* Header — back button + large title */}
                 <div className="flex items-center gap-3 px-5 py-3 flex-shrink-0">
                     <button onClick={onClose} className="flex items-center gap-1.5 text-cyber-text-muted/60 hover:text-cyber-accent transition-colors text-xs font-mono">
@@ -327,6 +330,7 @@ export const AgentRolePicker: React.FC<AgentRolePickerProps> = ({
                         </div>
                     )}
                 </div>
+            </div>
         </div>
     );
 };
