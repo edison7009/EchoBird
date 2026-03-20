@@ -798,7 +798,7 @@ const ChannelsInner: React.FC = () => {
         <div className="flex flex-col h-full">
             {/* Chat area */}
             <div ref={chatContainerRef} onScroll={handleChatScroll} className="flex-1 min-h-0 overflow-y-auto slim-scroll custom-scrollbar p-4 relative">
-                    <div className="pt-2 pb-1">
+                    <div className="pt-2 pb-12">
                     {chPersistence.showSkeleton && [0,1,2].map(i => (
                         <ChatBubble key={`sk-${i}`} role="skeleton" content="" variant="channels" />
                     ))}
