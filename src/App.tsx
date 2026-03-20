@@ -159,7 +159,6 @@ function App() {
                                                                                 <button
                                                                                     onClick={() => window.dispatchEvent(new CustomEvent('clear-chat'))}
                                                                                     className="p-1.5 rounded-lg text-cyber-accent-secondary/40 hover:text-cyber-accent-secondary hover:bg-cyber-accent-secondary/10 transition-colors"
-                                                                                    title="Clear chat"
                                                                                 >
                                                                                     <RotateCcw size={14} />
                                                                                 </button>
@@ -171,7 +170,6 @@ function App() {
                                                                                 <button
                                                                                     onClick={() => window.dispatchEvent(new CustomEvent('clear-chat'))}
                                                                                     className="p-1.5 rounded-lg text-cyber-accent/40 hover:text-cyber-accent hover:bg-cyber-accent/10 transition-colors"
-                                                                                    title="Clear chat"
                                                                                 >
                                                                                     <RotateCcw size={14} />
                                                                                 </button>
