@@ -1,1 +1,1 @@
-{"version":"3.1.2","releaseDate":"2026-03-20","releaseNotes":"Fix agent detection, chat bubble layout, CLI Agent rename, channels reset behavior"}
+{"version":"3.1.3","releaseDate":"2026-03-20","releaseNotes":"Role switching fixes: Claude Code persistence, agent tool switching, cross-protocol cleanup, download error handling"}
