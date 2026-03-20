@@ -920,6 +920,121 @@ pub fn patch_openfang() {
     }
 }
 
+// ── Hermes Agent Patcher ───
+
+/// Patch Hermes Agent by writing its config files directly.
+/// Hermes config: ~/.hermes/.env (OPENAI_API_KEY, OPENAI_BASE_URL without /v1, LLM_MODEL)
+///                ~/.hermes/config.yaml (model, OPENAI_BASE_URL with /v1)
+/// Equivalent to running:
+///   hermes config set OPENAI_BASE_URL <url>
+///   hermes config set OPENAI_API_KEY <key>
+///   hermes config set model <model>
+pub fn patch_hermes() {
+    let home = match dirs::home_dir() {
+        Some(h) => h,
+        None => { log::warn!("[Patcher] Cannot determine home dir for Hermes"); return; }
+    };
+
+    let echobird_cfg = home.join(".echobird").join("hermes.json");
+    if !echobird_cfg.exists() {
+        log::info!("[Patcher] Hermes config not found at {:?}, skipping", echobird_cfg);
+        return;
+    }
+
+    let content = match fs::read_to_string(&echobird_cfg) {
+        Ok(c) => c,
+        Err(e) => { log::warn!("[Patcher] Failed to read hermes.json: {}", e); return; }
+    };
+
+    let json: serde_json::Value = match serde_json::from_str(&content) {
+        Ok(v) => v,
+        Err(e) => { log::warn!("[Patcher] Invalid hermes.json: {}", e); return; }
+    };
+
+    let api_key = json.get("apiKey").and_then(|v| v.as_str()).unwrap_or("");
+    let base_url = json.get("baseUrl").and_then(|v| v.as_str()).unwrap_or("");
+    let model_id = json.get("modelId").and_then(|v| v.as_str()).unwrap_or("");
+
+    if api_key.is_empty() || model_id.is_empty() {
+        log::info!("[Patcher] Hermes config incomplete (missing apiKey/modelId), skipping");
+        return;
+    }
+
+    // Base URL without /v1 (for .env) — Hermes handles /v1 internally
+    let base_url_raw = base_url.trim_end_matches('/').to_string();
+
+    // Base URL with /v1 (for config.yaml) — hermes config set adds /v1
+    let base_url_v1 = if !base_url_raw.is_empty() {
+        if base_url_raw.ends_with("/v1") {
+            base_url_raw.clone()
+        } else {
+            format!("{}/v1", base_url_raw)
+        }
+    } else {
+        String::new()
+    };
+
+    let hermes_dir = home.join(".hermes");
+    if !hermes_dir.exists() {
+        let _ = fs::create_dir_all(&hermes_dir);
+    }
+
+    // Write ~/.hermes/.env (secrets + base URL without /v1 + LLM_MODEL)
+    // Matches `hermes config set` behavior observed on real install.
+    let env_path = hermes_dir.join(".env");
+    let mut env_lines: Vec<String> = Vec::new();
+    if env_path.exists() {
+        if let Ok(existing) = fs::read_to_string(&env_path) {
+            for line in existing.lines() {
+                let trimmed = line.trim();
+                // Remove entries we'll re-add
+                if trimmed.starts_with("OPENAI_API_KEY=") && !trimmed.starts_with("OPENAI_API_KEY=sk-") {
+                    continue; // only remove if it's our injected key
+                }
+                if trimmed.starts_with("OPENAI_API_KEY=") || trimmed.starts_with("OPENAI_BASE_URL=") || trimmed.starts_with("LLM_MODEL=") {
+                    continue;
+                }
+                env_lines.push(line.to_string());
+            }
+        }
+    }
+    env_lines.push(format!("OPENAI_API_KEY={}", api_key));
+    env_lines.push(format!("LLM_MODEL={}", model_id));
+    if !base_url_raw.is_empty() {
+        env_lines.push(format!("OPENAI_BASE_URL={}", base_url_raw));
+    }
+
+    if let Err(e) = fs::write(&env_path, env_lines.join("\n") + "\n") {
+        log::warn!("[Patcher] Failed to write Hermes .env: {}", e);
+        return;
+    }
+
+    // Write model + OPENAI_BASE_URL to ~/.hermes/config.yaml
+    // Matches real format: both `model:` and `OPENAI_BASE_URL:` as top-level YAML keys.
+    let config_path = hermes_dir.join("config.yaml");
+    let mut yaml_lines: Vec<String> = Vec::new();
+    if config_path.exists() {
+        if let Ok(existing) = fs::read_to_string(&config_path) {
+            for line in existing.lines() {
+                let trimmed = line.trim();
+                if trimmed.starts_with("model:") || trimmed.starts_with("OPENAI_BASE_URL:") {
+                    continue; // Remove old entries
+                }
+                yaml_lines.push(line.to_string());
+            }
+        }
+    }
+    yaml_lines.push(format!("model: {}", model_id));
+    if !base_url_v1.is_empty() {
+        yaml_lines.push(format!("OPENAI_BASE_URL: {}", base_url_v1));
+    }
+
+    match fs::write(&config_path, yaml_lines.join("\n") + "\n") {
+        Ok(_) => log::info!("[Patcher] Hermes config written: model={}, base_url={}", model_id, base_url_v1),
+        Err(e) => log::warn!("[Patcher] Failed to write Hermes config.yaml: {}", e),
+    }
+}
+
 /// Dispatch patch by tool ID
 pub fn patch_tool(tool_id: &str) {
     match tool_id {
@@ -933,6 +1048,7 @@ pub fn patch_tool(tool_id: &str) {
         "nanobot" => patch_nanobot(),
         "picoclaw" => patch_picoclaw(),
         "openfang" => patch_openfang(),
+        "hermes" => patch_hermes(),
         _ => log::debug!("[Patcher] No patch needed for tool: {}", tool_id),
     }
 }
