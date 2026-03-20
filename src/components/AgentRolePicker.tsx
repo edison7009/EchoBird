@@ -153,8 +153,8 @@ export const AgentRolePicker: React.FC<AgentRolePickerProps> = ({
             <div className="relative w-[100vw] h-[100vh] flex flex-col bg-cyber-bg overflow-hidden">
                 {/* Header — back button + page-style title */}
                 <div className="flex items-center gap-3 px-5 py-3 flex-shrink-0">
-                    <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full border border-cyber-accent/60 text-cyber-accent hover:bg-cyber-accent/10 hover:border-cyber-accent transition-colors">
-                        <ArrowLeft size={18} />
+                    <button onClick={onClose} className="w-9 h-9 flex items-center justify-center rounded-lg text-cyber-accent hover:bg-cyber-accent/10 transition-colors">
+                        <ArrowLeft size={20} />
                     </button>
                     <h2 className="text-2xl cjk-title leading-8">
                         {t('channel.selectRoleAgent')}
