@@ -789,7 +789,7 @@ const ChannelsInner: React.FC = () => {
 
     return (
         <>
-        <div className="flex flex-col h-full">
+        <div className="flex flex-col h-full relative">
             {/* Chat area wrapper — relative for scroll button positioning */}
             <div className="relative flex-1 min-h-0">
                 <div ref={chatContainerRef} onScroll={handleChatScroll} className="h-full overflow-y-auto slim-scroll custom-scrollbar p-4">
@@ -876,7 +876,6 @@ const ChannelsInner: React.FC = () => {
                     </div>
                 </div>
             )}
-        </div>
 
             <AgentRolePicker
                 isOpen={showRolePicker}
@@ -903,6 +902,7 @@ const ChannelsInner: React.FC = () => {
                 isRemote={!isLocalChannel}
                 remoteServerId={activeChannel?.serverId}
             />
+        </div>
         </>
     );
 };

@@ -2,7 +2,7 @@
 // Vertical image cards with hover slide-up text effect + category filter + agent tool selector
 // Roles and categories loaded dynamically from CDN (echobird.ai/roles/)
 import React, { useState, useEffect } from 'react';
-import { X, Check, Loader2 } from 'lucide-react';
+import { ArrowLeft, Check, Loader2 } from 'lucide-react';
 import { useI18n } from '../hooks/useI18n';
 import * as api from '../api/tauri';
 import type { RoleCategory, RoleEntry, AgentStatus } from '../api/tauri';
@@ -147,18 +147,15 @@ export const AgentRolePicker: React.FC<AgentRolePickerProps> = ({
     const filteredRoles = activeCat === 'all' ? roles : roles.filter(r => r.category === activeCat);
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-            <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
-
-            <div className="relative w-[90vw] h-[85vh] flex flex-col bg-cyber-bg border border-cyber-border rounded-card shadow-cyber-card overflow-hidden">
-                {/* Header */}
-                <div className="flex items-center justify-between px-5 py-3 flex-shrink-0">
-                    <span className="text-cyber-accent text-sm font-mono font-bold">
+        <div className="absolute inset-0 z-50 flex flex-col bg-cyber-bg overflow-hidden">
+                {/* Header — back button + large title */}
+                <div className="flex items-center gap-3 px-5 py-3 flex-shrink-0">
+                    <button onClick={onClose} className="flex items-center gap-1.5 text-cyber-text-muted/60 hover:text-cyber-accent transition-colors text-xs font-mono">
+                        <ArrowLeft size={16} />
+                    </button>
+                    <span className="text-cyber-accent text-lg font-mono font-bold tracking-wide">
                         {t('channel.selectRoleAgent')}
                     </span>
-                    <button onClick={onClose} className="text-cyber-text-muted/50 hover:text-cyber-accent transition-colors">
-                        <X size={16} />
-                    </button>
                 </div>
 
                 {/* Agent tool selector */}
@@ -330,7 +327,6 @@ export const AgentRolePicker: React.FC<AgentRolePickerProps> = ({
                         </div>
                     )}
                 </div>
-            </div>
         </div>
     );
 };
