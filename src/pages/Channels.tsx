@@ -212,21 +212,8 @@ const ChannelsInner: React.FC = () => {
         : channelKey === 1 ? 'local'
         : (channels.find(c => c.id === channelKey)?.address || `ch_${channelKey}`).replace(/[^a-zA-Z0-9._-]/g, '_');
 
-    // Load from localStorage on channel switch
-    useEffect(() => {
-        if (!channelFileKeyForPersist) return;
-        try {
-            const savedAgent = localStorage.getItem(`eb_ch_${channelFileKeyForPersist}_agent`);
-            if (savedAgent && !allActiveAgents[channelKey]) {
-                setAllActiveAgents(prev => ({ ...prev, [channelKey]: savedAgent }));
-            }
-            const savedRole = localStorage.getItem(`eb_ch_${channelFileKeyForPersist}_role`);
-            if (savedRole && !allSelectedRoles[channelKey]) {
-                const parsed = JSON.parse(savedRole);
-                setAllSelectedRoles(prev => ({ ...prev, [channelKey]: parsed }));
-            }
-        } catch { /* ignore parse errors */ }
-    }, [channelKey, channelFileKeyForPersist]); // eslint-disable-line react-hooks/exhaustive-deps
+    // Agent/role selections are runtime-only — not persisted to localStorage.
+    // If server is offline on next visit, UI starts fresh with "?" state.
 
     // ─── Stable disk key derived from channel address (computed early from channels state) ───
     // e.g. activeId=1 → 'local', SSH → 'eben_192.168.10.39'
@@ -916,16 +903,11 @@ const ChannelsInner: React.FC = () => {
                 selectedRole={selectedRoleForChannel?.id || null}
                 onSelectRole={(id, name, filePath) => {
                     setAllSelectedRoles(prev => ({ ...prev, [channelKey]: { id, name, filePath } }));
-                    if (channelFileKeyForPersist) {
-                        if (id) { localStorage.setItem(`eb_ch_${channelFileKeyForPersist}_role`, JSON.stringify({ id, name, filePath })); }
-                        else { localStorage.removeItem(`eb_ch_${channelFileKeyForPersist}_role`); }
-                    }
                 }}
                 selectedAgent={allActiveAgents[channelKey] || ''}
                 onSelectAgent={(name) => {
                     const previousAgent = allActiveAgents[channelKey] || '';
                     setActiveAgentFor(channelKey, name);
-                    if (channelFileKeyForPersist) { localStorage.setItem(`eb_ch_${channelFileKeyForPersist}_agent`, name); }
                     // Agent tool changed — reset bridge so next send re-initializes with the new agent
                     if (previousAgent && previousAgent !== name) {
                         setBridgeConnectionStatus('standby');

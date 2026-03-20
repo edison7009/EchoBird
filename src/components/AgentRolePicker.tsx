@@ -85,6 +85,7 @@ export const AgentRolePicker: React.FC<AgentRolePickerProps> = ({
                 if (!anyAvailable) {
                     setLocalSelected(null);
                     onSelectRole('', '', '');
+                    onSelectAgent('');
                 }
                 setDetecting(false);
             }).catch(() => {
@@ -94,6 +95,7 @@ export const AgentRolePicker: React.FC<AgentRolePickerProps> = ({
                 setAgentStatuses(allNotInstalled);
                 setLocalSelected(null);
                 onSelectRole('', '', '');
+                onSelectAgent('');
                 setDetecting(false);
             });
         } else if (!isRemote) {
@@ -106,6 +108,7 @@ export const AgentRolePicker: React.FC<AgentRolePickerProps> = ({
                 if (!anyAvailable) {
                     setLocalSelected(null);
                     onSelectRole('', '', '');
+                    onSelectAgent('');
                 }
                 setDetecting(false);
             }).catch(() => {
@@ -122,7 +125,7 @@ export const AgentRolePicker: React.FC<AgentRolePickerProps> = ({
     // Check if current agent is available
     const currentAgentTool = AGENT_TOOLS.find(a => a.name === selectedAgent);
     const currentAgentStatus = currentAgentTool ? agentStatuses.find(s => s.id === currentAgentTool.id) : null;
-    const currentAgentAvailable = currentAgentTool?.enabled && (detecting ? true : (currentAgentStatus?.installed ?? false));
+    const currentAgentAvailable = currentAgentTool?.enabled && (detecting ? false : (currentAgentStatus?.installed ?? false));
 
     const handleSelect = (role: RoleEntry) => {
         if (!currentAgentAvailable) return; // Block role selection when agent not installed
@@ -157,7 +160,7 @@ export const AgentRolePicker: React.FC<AgentRolePickerProps> = ({
                     {AGENT_TOOLS.map(agent => {
                         const isActive = selectedAgent === agent.name;
                         const status = agentStatuses.find(s => s.id === agent.id);
-                        const isAvailable = agent.enabled && (detecting ? true : (status?.installed ?? false));
+                        const isAvailable = agent.enabled && (detecting ? false : (status?.installed ?? false));
                         return (
                             <div
                                 key={agent.name}
