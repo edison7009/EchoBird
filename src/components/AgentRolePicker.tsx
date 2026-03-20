@@ -162,7 +162,7 @@ export const AgentRolePicker: React.FC<AgentRolePickerProps> = ({
                 </div>
 
                 {/* Agent tool selector */}
-                <div className="flex items-center gap-2 px-5 pb-2.5 flex-shrink-0">
+                <div className="flex items-center gap-3 px-5 pt-2 pb-3 flex-shrink-0">
                     {AGENT_TOOLS.map(agent => {
                         const isActive = selectedAgent === agent.name;
                         const status = agentStatuses.find(s => s.id === agent.id);
@@ -172,7 +172,7 @@ export const AgentRolePicker: React.FC<AgentRolePickerProps> = ({
                                 key={agent.name}
                                 onClick={() => { if (isAvailable) onSelectAgent(agent.name); }}
                                 title={!agent.enabled ? 'Coming Soon' : ''}
-                                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-card text-xs font-mono transition-all ${
+                                className={`flex items-center gap-2 px-4 py-2 rounded-card text-sm font-mono transition-all ${
                                     !isAvailable
                                         ? 'border border-cyber-border/30 bg-black/60 text-cyber-text-muted/30 cursor-not-allowed opacity-40'
                                         : isActive
@@ -180,7 +180,7 @@ export const AgentRolePicker: React.FC<AgentRolePickerProps> = ({
                                             : 'border border-cyber-border shadow-cyber-card bg-black/80 text-cyber-text-muted/70 hover:border-cyber-accent/30 hover:bg-black/90 cursor-pointer'
                                 }`}
                             >
-                                <img src={agent.icon} alt={agent.name} className={`w-4 h-4 ${isActive && isAvailable ? '' : 'opacity-50 grayscale'}`} />
+                                <img src={agent.icon} alt={agent.name} className={`w-5 h-5 ${isActive && isAvailable ? '' : 'opacity-50 grayscale'}`} />
                                 <span>{agent.name}</span>
                             </div>
                         );
