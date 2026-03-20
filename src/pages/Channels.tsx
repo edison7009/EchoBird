@@ -1022,9 +1022,6 @@ export function ChannelsRoleSelector() {
                         : 'border-cyber-border hover:border-cyber-accent/50'
                 }`}
             >
-                {agent && (
-                    <img src={agent.icon} alt={agent.name} className="w-4 h-4 flex-shrink-0 mr-1.5" />
-                )}
                 <span className="truncate text-cyber-text">{label}</span>
                 <ChevronDown size={12} className="flex-shrink-0 ml-1 text-cyber-accent" />
             </button>
