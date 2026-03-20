@@ -810,7 +810,7 @@ const ChannelsInner: React.FC = () => {
                                 {bridgeLoading ? (
                                     <button onClick={handleAbort} className="p-1 text-red-400 hover:text-red-300 transition-colors"><Square size={16} fill="currentColor" /></button>
                                 ) : (
-                                    <button onClick={handleSend} disabled={(!input.trim() && attachments.length === 0) || !isActiveConnected} className="w-6 h-6 rounded-lg flex items-center justify-center bg-cyber-accent hover:brightness-110 transition-all disabled:opacity-20"><Send size={15} className="text-cyber-bg rotate-45" /></button>
+                                    <button onClick={handleSend} disabled={(!input.trim() && attachments.length === 0) || !isActiveConnected} className="w-6 h-6 rounded-lg flex items-center justify-center bg-cyber-accent hover:brightness-110 transition-all disabled:opacity-20"><Send size={15} className="text-cyber-bg rotate-45 translate-x-0.5" /></button>
                                 )}
                             </div>
                         </div>
