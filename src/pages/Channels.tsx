@@ -904,7 +904,7 @@ export function ChannelsPanel() {
                                             return <img src={agent.icon} alt={agent.name} className="w-9 h-9 flex-shrink-0" />;
                                         }
                                         return (
-                                            <div className="w-9 h-9 flex-shrink-0 rounded-full bg-cyber-border/30 flex items-center justify-center">
+                                            <div className="w-9 h-9 flex-shrink-0 rounded-lg bg-cyber-border/30 flex items-center justify-center">
                                                 <span className="text-cyber-text-muted/40 text-lg font-bold">?</span>
                                             </div>
                                         );
