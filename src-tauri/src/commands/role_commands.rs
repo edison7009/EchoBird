@@ -18,12 +18,11 @@ pub struct AgentStatus {
 /// Agent CLI tool IDs that appear in the Channels page AgentRolePicker.
 /// These must match the tool directory names under tools/ (e.g. tools/claudecode/).
 const AGENT_TOOL_IDS: &[&str] = &[
-    "claudecode",
     "openclaw",
+    "claudecode",
     "zeroclaw",
     "nanobot",
     "picoclaw",
-    "openfang",
     "hermes",
 ];
 
