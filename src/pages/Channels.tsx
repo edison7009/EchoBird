@@ -1,6 +1,6 @@
 // Channels — OpenClaw agent chat interface (bridge CLI + SSH)
 import React, { useState, useEffect, useRef, useCallback, createContext, useContext } from 'react';
-import { Send, CornerDownLeft, X, Square, Paperclip, Image as ImageIcon, RotateCcw, KeyRound, Zap, Server, ChevronsDown, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Send, CornerDownLeft, X, Square, Paperclip, Image as ImageIcon, RotateCcw, KeyRound, Zap, Server, ChevronsDown, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
 import { MiniSelect } from '../components/MiniSelect';
 import { getModelIcon } from '../components/cards/ModelCard';
 import { PendingChipsRow } from '../components/PendingChipsRow';
@@ -991,15 +991,15 @@ export function ChannelsPanel() {
 // ===== Exports =====
 export { ChannelsInner as ChannelsMain };
 
-// ===== ChannelsRoleSelector — title bar widget (like MotherAgentModelSelector) =====
+// ===== ChannelsRoleSelector — title bar widget (styled like MiniSelect) =====
 export function ChannelsRoleSelector() {
     const { channels, activeId, allActiveAgents, allSelectedRoles } = useChannels();
     const { t } = useI18n();
     const channelKey = activeId ?? '';
     const activeChannel = channels.find(c => c.id === activeId);
-    const selectedAgent = allActiveAgents[channelKey] || '';
+    const selectedAgent = (allActiveAgents as Record<string, string>)[channelKey] || '';
     const agent = selectedAgent ? AGENT_LIST.find(a => a.name === selectedAgent) : null;
-    const selectedRoleForChannel = allSelectedRoles[channelKey] || { id: '', name: '', filePath: '' };
+    const selectedRoleForChannel = (allSelectedRoles as Record<string, { id: string; name: string; filePath: string }>)[channelKey] || { id: '', name: '', filePath: '' };
     const hasRole = selectedRoleForChannel && selectedRoleForChannel.id;
 
     // Dispatch event to open AgentRolePicker in ChannelsMain
@@ -1007,22 +1007,27 @@ export function ChannelsRoleSelector() {
 
     if (!activeChannel) return null;
 
+    const label = hasRole
+        ? selectedRoleForChannel.name
+        : selectedAgent || t('channel.selectRoleAgent');
+
     return (
-        <div className="flex items-center gap-2 select-none">
-            <div onClick={openPicker} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-card text-xs font-mono cursor-pointer transition-all border shadow-cyber-card hover:brightness-110 ${
-                (hasRole || allActiveAgents[channelKey])
-                    ? 'border-cyber-accent bg-cyber-accent/10 text-cyber-accent'
-                    : 'border-cyber-text-muted/30 bg-black/40 text-cyber-text-muted/50'
-            }`}>
-                {hasRole && agent ? (
-                    <img src={agent.icon} alt={agent.name} className="w-4 h-4" />
-                ) : allActiveAgents[channelKey] && agent ? (
-                    <img src={agent.icon} alt={agent.name} className="w-4 h-4" />
-                ) : (
-                    <span className="text-cyber-text-muted/40 text-sm font-bold">?</span>
+        <div className="relative">
+            <button
+                type="button"
+                onClick={openPicker}
+                className={`w-full min-w-[90px] bg-black border px-3 py-1.5 outline-none cursor-pointer flex items-center justify-center transition-colors text-xs font-mono rounded-button ${
+                    (hasRole || selectedAgent)
+                        ? 'border-cyber-accent/40 hover:border-cyber-accent/70'
+                        : 'border-cyber-border hover:border-cyber-accent/50'
+                }`}
+            >
+                {agent && (
+                    <img src={agent.icon} alt={agent.name} className="w-4 h-4 flex-shrink-0 mr-1.5" />
                 )}
-                <span>{hasRole ? selectedRoleForChannel.name : allActiveAgents[channelKey] || t('channel.selectRoleAgent')}</span>
-            </div>
+                <span className="truncate text-cyber-text">{label}</span>
+                <ChevronDown size={12} className="flex-shrink-0 ml-1 text-cyber-accent" />
+            </button>
         </div>
     );
 }
