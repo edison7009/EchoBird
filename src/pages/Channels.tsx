@@ -564,6 +564,13 @@ const ChannelsInner: React.FC = () => {
             return;
         }
 
+        // Check if agent is selected
+        const selectedAgent = allActiveAgents[channelKey] || '';
+        if (!selectedAgent) {
+            setBridgeMessages(prev => [...prev, { role: 'system', content: '', i18nKey: 'error.agentFailed' }]);
+            return;
+        }
+
         setBridgeLoading(true);
         try {
             if (isLocalChannel) {
