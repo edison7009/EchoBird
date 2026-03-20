@@ -1089,8 +1089,59 @@ pub async fn bridge_chat_remote(
     let mut new_session_id: Option<String> = None;
 
     if protocol == "cli-oneshot" {
-        // cli-oneshot: stdout is plain text response
-        response_text = result.stdout.trim().to_string();
+        // cli-oneshot: stdout may contain welcome banners + actual response.
+        // Strategy: strip box-drawing frames (╭│╰), separator lines (────),
+        // Query echo, session info, and decorative lines. Keep only content.
+        let raw = result.stdout.clone();
+        let lines: Vec<&str> = raw.lines().collect();
+
+        // Try to find the actual response content:
+        // Look for agent response marker (e.g. "⚕ Hermes") then collect until session footer
+        let mut in_response = false;
+        let mut response_lines: Vec<&str> = Vec::new();
+
+        for line in &lines {
+            let trimmed = line.trim();
+            // Skip empty lines before response starts
+            if trimmed.is_empty() && !in_response {
+                continue;
+            }
+            // Skip box-drawing banner lines (╭│╰)
+            if trimmed.starts_with('╭') || trimmed.starts_with('│') || trimmed.starts_with('╰') {
+                continue;
+            }
+            // Skip pure separator lines (─── only)
+            if !trimmed.is_empty() && trimmed.chars().all(|c| c == '─' || c == ' ' || c == '─') && trimmed.contains('─') && !trimmed.contains(|c: char| c.is_alphanumeric()) {
+                if in_response {
+                    // End of response section
+                    break;
+                }
+                continue;
+            }
+            // Skip "Query: ..." echo line
+            if trimmed.starts_with("Query:") {
+                continue;
+            }
+            // Detect agent response marker (e.g. "⚕ Hermes", "─  ⚕")
+            if trimmed.contains('⚕') || trimmed.contains("Hermes") && trimmed.contains('─') {
+                in_response = true;
+                continue;
+            }
+            // Skip session footer lines
+            if trimmed.starts_with("Resume this session") || trimmed.starts_with("Session:") || trimmed.starts_with("Duration:") || trimmed.starts_with("Messages:") {
+                break;
+            }
+            // Collect everything else as response content
+            in_response = true;
+            response_lines.push(line);
+        }
+
+        if response_lines.is_empty() {
+            // Fallback: return full output if parsing failed
+            response_text = raw.trim().to_string();
+        } else {
+            response_text = response_lines.join("\n").trim().to_string();
+        }
     } else {
         // stdio-json: parse Bridge JSON output
         for line in result.stdout.lines() {
