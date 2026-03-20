@@ -102,3 +102,6 @@ git -C "D:\Echobird-MotherAgent" commit -m "docs: sync roles from private repo"
 git -C "D:\Echobird-MotherAgent" -c core.editor=true pull --rebase origin main
 git -C "D:\Echobird-MotherAgent" push origin main
 ```
+
+> [!NOTE]
+> This push only triggers **Cloudflare Pages** redeploy (1-2 min). It does **NOT** trigger CI build — CI only runs on `repository_dispatch` events (triggered by tag push from the private repo's `release.yml`).
