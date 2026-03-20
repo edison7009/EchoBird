@@ -867,8 +867,10 @@ async fn ensure_remote_bridge(
         .ok_or_else(|| format!("SSH not connected: {}", server_id))?;
 
     // Check if bridge exists and get version
+    // IMPORTANT: Old Bridge (pre-3.1.5) doesn't support --version and enters main loop,
+    // so we must use timeout + pipe empty stdin to prevent hanging
     let check_result = client.execute(
-        "~/echobird/echobird-bridge --version 2>/dev/null || echo 'NOT_INSTALLED'"
+        "echo '' | timeout 3 ~/echobird/echobird-bridge --version 2>/dev/null || echo 'NOT_INSTALLED'"
     ).await.map_err(|e| format!("SSH check failed: {}", e))?;
 
     let remote_version = check_result.stdout.trim().to_string();
