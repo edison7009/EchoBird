@@ -815,8 +815,8 @@ const ChannelsInner: React.FC = () => {
                         return <ChatBubble key={i} role="assistant" content={msg.content} variant="channels" />;
                     })}
                     {bridgeLoading && <ChatBubble role="assistant" content="" variant="channels" isStreaming={true} />}
-                    </div>
                     <div ref={scrollRef} />
+                    </div>
                 {showScrollBtn && (
                     <button onClick={scrollToBottom} className="sticky bottom-3 float-right mr-1 w-7 h-7 flex items-center justify-center bg-cyber-bg/90 border border-cyber-border/50 rounded text-cyber-text-secondary hover:text-cyber-accent hover:border-cyber-accent/50 transition-colors z-10">
                         <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 9l6 6 6-6" /></svg>
