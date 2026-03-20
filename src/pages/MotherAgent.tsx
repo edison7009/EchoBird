@@ -516,6 +516,14 @@ export function MotherAgentMain() {
         clearChat, abortAgent,
         maDiskTotal, loadOlderChat,
     } = useMotherAgent();
+
+    // Listen for clear-chat event from title bar
+    useEffect(() => {
+        const handler = () => clearChat();
+        window.addEventListener('clear-chat', handler);
+        return () => window.removeEventListener('clear-chat', handler);
+    }, [clearChat]);
+
     const [publicIP, setPublicIP] = useState('...');
     const [remoteHints, setRemoteHints] = useState<Array<{ action: string; agent?: string }>>([]);
     const [serverModel, setServerModel] = useState<string | null>(null);
@@ -804,13 +812,6 @@ export function MotherAgentMain() {
 
                         </div>
                         <div className="flex items-center gap-2">
-                            <button
-                                onClick={() => { clearChat(); }}
-                                disabled={isProcessing || chatOutput.length === 0}
-                                className="p-1 text-cyber-accent-secondary/40 hover:text-cyber-accent-secondary transition-colors disabled:opacity-20"
-                            >
-                                <RotateCcw size={15} />
-                            </button>
                             <span className="text-xs font-mono text-cyber-accent-secondary/80 truncate max-w-[160px]">
                                 {(() => {
                                     if (selectedServerId === 'local') return t('mother.local');

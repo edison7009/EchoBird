@@ -4,6 +4,7 @@
 // All Providers are always mounted; pages are shown/hidden via CSS to avoid remounting.
 
 import { useState, useEffect, useCallback } from 'react';
+import { RotateCcw } from 'lucide-react';
 import { Sidebar, PageType, ToastProvider, ConfirmDialogProvider } from './components';
 import { DownloadProvider } from './components/DownloadContext';
 import { DownloadBar } from './components/DownloadBar';
@@ -154,12 +155,26 @@ function App() {
                                                                         <span className={page(is('models'))}><ModelNexusTitleActions /></span>
 
                                                                         {is('mother') && (
-                                                                            <div className="ml-auto flex-shrink-0">
+                                                                            <div className="ml-auto flex-shrink-0 flex items-center gap-2">
+                                                                                <button
+                                                                                    onClick={() => window.dispatchEvent(new CustomEvent('clear-chat'))}
+                                                                                    className="p-1.5 rounded-lg text-cyber-accent-secondary/40 hover:text-cyber-accent-secondary hover:bg-cyber-accent-secondary/10 transition-colors"
+                                                                                    title="Clear chat"
+                                                                                >
+                                                                                    <RotateCcw size={14} />
+                                                                                </button>
                                                                                 <MotherAgentModelSelector />
                                                                             </div>
                                                                         )}
                                                                         {is('channels') && (
-                                                                            <div className="ml-auto flex-shrink-0">
+                                                                            <div className="ml-auto flex-shrink-0 flex items-center gap-2">
+                                                                                <button
+                                                                                    onClick={() => window.dispatchEvent(new CustomEvent('clear-chat'))}
+                                                                                    className="p-1.5 rounded-lg text-cyber-accent/40 hover:text-cyber-accent hover:bg-cyber-accent/10 transition-colors"
+                                                                                    title="Clear chat"
+                                                                                >
+                                                                                    <RotateCcw size={14} />
+                                                                                </button>
                                                                                 <ChannelsRoleSelector />
                                                                             </div>
                                                                         )}

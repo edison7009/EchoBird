@@ -401,6 +401,13 @@ const ChannelsInner: React.FC = () => {
         return () => window.removeEventListener('open-role-picker', handler);
     }, []);
 
+    // Listen for clear-chat event from title bar
+    useEffect(() => {
+        const handler = () => { setBridgeMessages([]); chPersistence.clearHistory(); };
+        window.addEventListener('clear-chat', handler);
+        return () => window.removeEventListener('clear-chat', handler);
+    }, []);
+
     // Focus input on connect
     useEffect(() => {
         if (isActiveConnected) inputRef.current?.focus();
@@ -800,7 +807,6 @@ const ChannelsInner: React.FC = () => {
                                 <button onClick={() => imageInputRef.current?.click()} disabled={bridgeLoading || !isActiveConnected} className="p-1 text-cyber-accent/60 hover:text-cyber-accent transition-colors disabled:opacity-20"><ImageIcon size={15} /></button>
                             </div>
                             <div className="flex items-center gap-1.5">
-                                <button onClick={() => { setBridgeMessages([]); chPersistence.clearHistory(); }} disabled={messages.length === 0} className="p-1 text-cyber-accent/40 hover:text-cyber-accent transition-colors disabled:opacity-20"><RotateCcw size={14} /></button>
                                 {bridgeLoading ? (
                                     <button onClick={handleAbort} className="p-1 text-red-400 hover:text-red-300 transition-colors"><Square size={16} fill="currentColor" /></button>
                                 ) : (
