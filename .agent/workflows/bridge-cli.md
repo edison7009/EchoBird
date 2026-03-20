@@ -26,12 +26,18 @@ bridge-src/      ← Rust source code + Cargo.toml + target/, used only for deve
 User sends message in Channels page
   → Channels.tsx calls bridgeSetRoleLocal() (if role selected)
   → Channels.tsx calls bridgeChatLocal(text, sessionId)
-  → Rust backend (channel_commands.rs) writes JSON to bridge subprocess stdin
-  → bridge-win.exe receives {"type":"set_role",...} or {"type":"chat",...}
-  → Bridge invokes: openclaw agent --json --agent main --message "..."
-  → Bridge parses OpenClaw JSON output → returns via stdout
+  → Rust backend writes JSON to Bridge subprocess stdin
+  → Bridge subprocess (started with --config plugins/{agent}/plugin.json)
+  → Bridge reads plugin.json to determine CLI command (openclaw/claude/zeroclaw/...)
+  → Bridge invokes: {agent CLI} {args} --message "..."
+  → Bridge parses output → returns JSON via stdout
   → Rust backend reads response → returns to frontend
 ```
+
+> **KEY PRINCIPLE**: Bridge is the **sole communication layer** for ALL agents,
+> both local and remote. The Tauri backend NEVER calls agent CLIs directly.
+> Adding a new agent only requires a new `plugins/{agent_id}/plugin.json`.
+
 
 ### Remote Channel Flow
 ```
