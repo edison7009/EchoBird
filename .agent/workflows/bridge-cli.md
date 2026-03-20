@@ -55,7 +55,7 @@ User sends message to remote server
 ← {"type": "agents_detected", "agents": [{"id":"openclaw","installed":true,"running":true}]}
 
 // Set role (downloads role file and writes to agent's config directory)
-→ {"type": "set_role", "agent_id": "openclaw", "role_id": "ai-engineer", "url": "https://raw.githubusercontent.com/edison7009/Echobird-MotherAgent/main/docs/roles/en/engineering/engineering-ai-engineer.md"}
+→ {"type": "set_role", "agent_id": "openclaw", "role_id": "ai-engineer", "url": "https://echobird.ai/roles/en/engineering/engineering-ai-engineer.md"}
 ← {"type": "role_set", "agent_id": "openclaw", "role_id": "ai-engineer", "installed": true, "path": "~/.openclaw/workspace/SOUL.md"}
 
 // Chat
@@ -85,8 +85,8 @@ Bridge does NOT inject roles as system prompts. It **downloads and writes role f
 | PicoClaw | `~/.picoclaw/workspace/AGENT.md` (overwrites) | Markdown |
 | Hermes Agent | `~/.hermes/SOUL.md` (overwrites) | Markdown |
 
-Role URLs use **GitHub raw content** (NEVER the rendered website):
-- Pattern: `https://raw.githubusercontent.com/edison7009/Echobird-MotherAgent/main/docs/roles/{lang}/{filePath}`
+Role URLs use the **Echobird CDN** which serves raw markdown at the `/roles/` path:
+- Pattern: `https://echobird.ai/roles/{lang}/{filePath}`
 - `lang` = `en` or `zh-Hans` based on user locale
 - `filePath` = relative path from `roles-en.json`, e.g. `engineering/engineering-ai-engineer.md`
 - Upstream repos:

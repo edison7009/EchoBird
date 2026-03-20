@@ -446,7 +446,8 @@ const ROLES_CACHE_KEY = 'eb_roles_cache';
 
 function resolveLocaleFileName(locale: string): string {
     if (locale.startsWith('zh')) return 'roles-zh-Hans.json';
-    // Future: add more languages here (e.g. ja, ko, fr, de)
+    if (locale.startsWith('ja')) return 'roles-ja.json';
+    // Future: add more languages here (e.g. ko, fr, de)
     return 'roles-en.json';
 }
 

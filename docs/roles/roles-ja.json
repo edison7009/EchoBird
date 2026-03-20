@@ -2,61 +2,61 @@
     "categories": [
         {
             "id": "engineering",
-            "name": "Engineering"
+            "name": "エンジニアリング"
         },
         {
             "id": "design",
-            "name": "Design"
+            "name": "デザイン"
         },
         {
             "id": "marketing",
-            "name": "Marketing"
+            "name": "マーケティング"
         },
         {
             "id": "product",
-            "name": "Product"
+            "name": "プロダクト"
         },
         {
             "id": "sales",
-            "name": "Sales"
+            "name": "セールス"
         },
         {
             "id": "project-management",
-            "name": "Project Management"
+            "name": "プロジェクト管理"
         },
         {
             "id": "testing",
-            "name": "Testing"
+            "name": "テスト"
         },
         {
             "id": "support",
-            "name": "Support"
+            "name": "サポート"
         },
         {
             "id": "game-development",
-            "name": "Game Development"
+            "name": "ゲーム開発"
         },
         {
             "id": "specialized",
-            "name": "Specialized"
+            "name": "専門分野"
         },
         {
             "id": "academic",
-            "name": "Academic"
+            "name": "アカデミック"
         },
         {
             "id": "paid-media",
-            "name": "Paid Media"
+            "name": "有料メディア"
         },
         {
             "id": "spatial-computing",
-            "name": "Spatial Computing"
+            "name": "空間コンピューティング"
         }
     ],
     "roles": [
         {
             "id": "engineering-ai-data-remediation-engineer",
-            "name": "AI Data Remediation Engineer",
+            "name": "AIデータ修復エンジニア",
             "description": "Specialist in self-healing data pipelines — uses air-gapped local SLMs and semantic clustering to automatically detect, classify, and fix data anomalies at scale. Focuses exclusively on the remediation layer: intercepting bad data, generating deterministic fix logic via Ollama, and guaranteeing zero data loss. Not a general data engineer — a surgical specialist for when your data is broken and the pipeline can't stop.",
             "category": "engineering",
             "filePath": "engineering/engineering-ai-data-remediation-engineer.md",
@@ -64,7 +64,7 @@
         },
         {
             "id": "engineering-ai-engineer",
-            "name": "AI Engineer",
+            "name": "AIエンジニア",
             "description": "Expert AI/ML engineer specializing in machine learning model development, deployment, and integration into production systems. Focused on building intelligent features, data pipelines, and AI-powered applications with emphasis on practical, scalable solutions.",
             "category": "engineering",
             "filePath": "engineering/engineering-ai-engineer.md",
@@ -72,7 +72,7 @@
         },
         {
             "id": "engineering-autonomous-optimization-architect",
-            "name": "Autonomous Optimization Architect",
+            "name": "自律最適化アーキテクト",
             "description": "Intelligent system governor that continuously shadow-tests APIs for performance while enforcing strict financial and security guardrails against runaway costs.",
             "category": "engineering",
             "filePath": "engineering/engineering-autonomous-optimization-architect.md",
@@ -80,7 +80,7 @@
         },
         {
             "id": "engineering-backend-architect",
-            "name": "Backend Architect",
+            "name": "バックエンドアーキテクト",
             "description": "Senior backend architect specializing in scalable system design, database architecture, API development, and cloud infrastructure. Builds robust, secure, performant server-side applications and microservices",
             "category": "engineering",
             "filePath": "engineering/engineering-backend-architect.md",
@@ -88,7 +88,7 @@
         },
         {
             "id": "engineering-code-reviewer",
-            "name": "Code Reviewer",
+            "name": "コードレビュアー",
             "description": "Expert code reviewer who provides constructive, actionable feedback focused on correctness, maintainability, security, and performance — not style preferences.",
             "category": "engineering",
             "filePath": "engineering/engineering-code-reviewer.md",
@@ -96,7 +96,7 @@
         },
         {
             "id": "engineering-data-engineer",
-            "name": "Data Engineer",
+            "name": "データエンジニア",
             "description": "Expert data engineer specializing in building reliable data pipelines, lakehouse architectures, and scalable data infrastructure. Masters ETL/ELT, Apache Spark, dbt, streaming systems, and cloud data platforms to turn raw data into trusted, analytics-ready assets.",
             "category": "engineering",
             "filePath": "engineering/engineering-data-engineer.md",
@@ -136,7 +136,7 @@
         },
         {
             "id": "engineering-frontend-developer",
-            "name": "Frontend Developer",
+            "name": "フロントエンド開発者",
             "description": "Expert frontend developer specializing in modern web technologies, React/Vue/Angular frameworks, UI implementation, and performance optimization",
             "category": "engineering",
             "filePath": "engineering/engineering-frontend-developer.md",
@@ -176,7 +176,7 @@
         },
         {
             "id": "engineering-security-engineer",
-            "name": "Security Engineer",
+            "name": "セキュリティエンジニア",
             "description": "Expert application security engineer specializing in threat modeling, vulnerability assessment, secure code review, and security architecture design for modern web and cloud-native applications.",
             "category": "engineering",
             "filePath": "engineering/engineering-security-engineer.md",
@@ -216,7 +216,7 @@
         },
         {
             "id": "engineering-technical-writer",
-            "name": "Technical Writer",
+            "name": "テクニカルライター",
             "description": "Expert technical writer specializing in developer documentation, API references, README files, and tutorials. Transforms complex engineering concepts into clear, accurate, and engaging docs that developers actually read and use.",
             "category": "engineering",
             "filePath": "engineering/engineering-technical-writer.md",
@@ -264,7 +264,7 @@
         },
         {
             "id": "design-ui-designer",
-            "name": "UI Designer",
+            "name": "UIデザイナー",
             "description": "Expert UI designer specializing in visual design systems, component libraries, and pixel-perfect interface creation. Creates beautiful, consistent, accessible user interfaces that enhance UX and reflect brand identity",
             "category": "design",
             "filePath": "design/design-ui-designer.md",
@@ -384,7 +384,7 @@
         },
         {
             "id": "marketing-growth-hacker",
-            "name": "Growth Hacker",
+            "name": "グロースハッカー",
             "description": "Expert growth strategist specializing in rapid user acquisition through data-driven experimentation. Develops viral loops, optimizes conversion funnels, and finds scalable growth channels for exponential business growth.",
             "category": "marketing",
             "filePath": "marketing/marketing-growth-hacker.md",
@@ -448,7 +448,7 @@
         },
         {
             "id": "marketing-seo-specialist",
-            "name": "SEO Specialist",
+            "name": "SEOスペシャリスト",
             "description": "Expert search engine optimization strategist specializing in technical SEO, content optimization, link authority building, and organic search growth. Drives sustainable traffic through data-driven search strategies.",
             "category": "marketing",
             "filePath": "marketing/marketing-seo-specialist.md",
@@ -536,7 +536,7 @@
         },
         {
             "id": "product-manager",
-            "name": "Product Manager",
+            "name": "プロダクトマネージャー",
             "description": "Holistic product leader who owns the full product lifecycle — from discovery and strategy through roadmap, stakeholder alignment, go-to-market, and outcome measurement. Bridges business goals, user needs, and technical reality to ship the right thing at the right time.",
             "category": "product",
             "filePath": "product/product-manager.md",
@@ -592,7 +592,7 @@
         },
         {
             "id": "sales-engineer",
-            "name": "Sales Engineer",
+            "name": "セールスエンジニア",
             "description": "Senior pre-sales engineer specializing in technical discovery, demo engineering, POC scoping, competitive battlecards, and bridging product capabilities to business outcomes. Wins the technical decision so the deal can close.",
             "category": "sales",
             "filePath": "sales/sales-engineer.md",
@@ -792,7 +792,7 @@
         },
         {
             "id": "game-designer",
-            "name": "Game Designer",
+            "name": "ゲームデザイナー",
             "description": "Systems and mechanics architect - Masters GDD authorship, player psychology, economy balancing, and gameplay loop design across all engines and genres",
             "category": "game-development",
             "filePath": "game-development/game-designer.md",
@@ -800,7 +800,7 @@
         },
         {
             "id": "level-designer",
-            "name": "Level Designer",
+            "name": "レベルデザイナー",
             "description": "Spatial storytelling and flow specialist - Masters layout theory, pacing architecture, encounter design, and environmental narrative across all game engines",
             "category": "game-development",
             "filePath": "game-development/level-designer.md",
@@ -816,7 +816,7 @@
         },
         {
             "id": "technical-artist",
-            "name": "Technical Artist",
+            "name": "テクニカルアーティスト",
             "description": "Art-to-engine pipeline specialist - Masters shaders, VFX systems, LOD pipelines, performance budgeting, and cross-engine asset optimization",
             "category": "game-development",
             "filePath": "game-development/technical-artist.md",
