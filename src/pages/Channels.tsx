@@ -728,12 +728,26 @@ const ChannelsInner: React.FC = () => {
 
                     // ── Step 3: Set role if selected ──
                     const role = selectedRoleForChannel;
+                    const lastApplied = lastAppliedRoleRef.current[channelKey];
                     if (role?.filePath) {
                         const roleUrl = role.filePath;
+                        const roleKey = `${agentId}:${role.id}`;
+                        if (roleKey !== lastApplied) {
+                            try {
+                                await api.bridgeSetRoleRemote(serverId, agentId, role.id, roleUrl);
+                                lastAppliedRoleRef.current[channelKey] = roleKey;
+                            } catch (e) {
+                                console.warn('[Bridge] set_role failed (non-fatal):', e);
+                            }
+                        }
+                    } else if (lastApplied) {
+                        // User cleared role → reset agent to default mode
                         try {
-                            await api.bridgeSetRoleRemote(serverId, agentId, role.id, roleUrl);
+                            await api.bridgeClearRoleRemote(serverId, agentId, '');
+                            setBridgeSessionId(undefined);
+                            lastAppliedRoleRef.current[channelKey] = '';
                         } catch (e) {
-                            console.warn('[Bridge] set_role failed (non-fatal):', e);
+                            console.warn('[Bridge] clear_role failed (non-fatal):', e);
                         }
                     }
 
