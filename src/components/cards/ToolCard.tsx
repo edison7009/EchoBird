@@ -68,7 +68,7 @@ export const ToolCard = React.memo(({ id, name, version, installed, path, detect
                     <div className="absolute inset-0 flex items-center justify-center">
                         <button
                             onClick={(e) => { e.stopPropagation(); onMotherAgentInstall?.(); }}
-                            className="py-1.5 px-5 text-xs font-bold rounded border border-cyber-accent/60 bg-cyber-accent/10 text-cyber-accent hover:bg-cyber-accent/20 hover:border-cyber-accent hover:shadow-[0_0_10px_rgba(0,255,157,0.2)] transition-all"
+                            className="py-1.5 px-5 text-xs font-bold rounded bg-white/8 text-cyber-text-secondary hover:bg-white/15 hover:text-cyber-text transition-all"
                         >
                             {t('agent.installViaMother')}
                         </button>
