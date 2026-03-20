@@ -30,16 +30,12 @@ export const ToolCard = React.memo(({ id, name, version, installed, path, detect
     const showMotherInstall = !installed && !!hasRemoteInstall;
 
     const handleCardClick = () => {
-        if (showMotherInstall) {
-            onMotherAgentInstall?.();
-        } else if (installed) {
-            onClick?.();
-        }
+        onClick?.();
     };
 
     return (
         <div
-            className={`p-5 min-h-[160px] border ${selected ? 'border-cyber-accent shadow-[0_0_10px_rgba(0,255,157,0.3)]' : 'border-cyber-border shadow-cyber-card'} relative overflow-hidden rounded-card ${installed || showMotherInstall ? 'cursor-pointer hover:bg-black/90' : 'cursor-default opacity-80'} transition-all bg-black/80 flex flex-col`}
+            className={`p-5 min-h-[160px] border ${selected ? 'border-cyber-accent shadow-[0_0_10px_rgba(0,255,157,0.3)]' : 'border-cyber-border shadow-cyber-card'} relative overflow-hidden rounded-card cursor-pointer hover:bg-black/90 transition-all bg-black/80 flex flex-col`}
             onClick={handleCardClick}
         >
             {/* Tool icon top-right */}
@@ -72,7 +68,7 @@ export const ToolCard = React.memo(({ id, name, version, installed, path, detect
                     <div className="absolute inset-0 flex items-center justify-center">
                         <button
                             onClick={(e) => { e.stopPropagation(); onMotherAgentInstall?.(); }}
-                            className="py-1.5 px-5 text-xs font-bold rounded border border-cyber-accent-secondary bg-cyber-accent-secondary text-black hover:bg-cyber-accent-secondary/90 hover:shadow-[0_0_10px_rgba(0,212,255,0.35)] transition-all"
+                            className="py-1.5 px-5 text-xs font-bold rounded border border-cyber-accent/60 bg-cyber-accent/10 text-cyber-accent hover:bg-cyber-accent/20 hover:border-cyber-accent hover:shadow-[0_0_10px_rgba(0,255,157,0.2)] transition-all"
                         >
                             {t('agent.installViaMother')}
                         </button>
