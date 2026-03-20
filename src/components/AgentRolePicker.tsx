@@ -156,7 +156,7 @@ export const AgentRolePicker: React.FC<AgentRolePickerProps> = ({
                     <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full border border-cyber-accent/60 text-cyber-accent hover:bg-cyber-accent/10 hover:border-cyber-accent transition-colors">
                         <ArrowLeft size={18} />
                     </button>
-                    <h2 className="text-xl cjk-title">
+                    <h2 className="text-2xl cjk-title leading-8">
                         {t('channel.selectRoleAgent')}
                     </h2>
                 </div>
@@ -221,7 +221,7 @@ export const AgentRolePicker: React.FC<AgentRolePickerProps> = ({
                             <Loader2 size={24} className="text-cyber-accent animate-spin" />
                         </div>
                     ) : (
-                        <div className="grid grid-cols-6 gap-3">
+                        <div className="grid grid-cols-6 gap-5">
                             {/* No-role (clear) card */}
                             <div
                                 onClick={() => { if (currentAgentAvailable) handleClear(); }}
