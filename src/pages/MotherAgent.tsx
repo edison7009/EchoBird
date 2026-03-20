@@ -832,7 +832,7 @@ export function MotherAgentMain() {
                                     disabled={!chatInput.trim()}
                                     className="w-6 h-6 rounded-lg flex items-center justify-center bg-cyber-accent-secondary hover:brightness-110 transition-all disabled:opacity-20"
                                 >
-                                    <Send size={15} className="text-cyber-bg rotate-45" />
+                                    <Send size={15} className="text-cyber-bg rotate-45 -translate-x-px" />
                                 </button>
                             )}
                         </div>
