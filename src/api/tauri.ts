@@ -445,9 +445,12 @@ const ROLES_CDN_BASE = 'https://echobird.ai/roles';
 const ROLES_CACHE_KEY = 'eb_roles_cache';
 
 function resolveLocaleFileName(locale: string): string {
+    // Chinese uses zh-Hans (special case)
     if (locale.startsWith('zh')) return 'roles-zh-Hans.json';
-    if (locale.startsWith('ja')) return 'roles-ja.json';
-    // Future: add more languages here (e.g. ko, fr, de)
+    // All other languages: derive from locale prefix (e.g. ja → roles-ja.json)
+    // If the file doesn't exist on CDN, scanRoles() falls back to roles-en.json
+    const prefix = locale.split('-')[0];
+    if (prefix && prefix !== 'en') return `roles-${prefix}.json`;
     return 'roles-en.json';
 }
 
