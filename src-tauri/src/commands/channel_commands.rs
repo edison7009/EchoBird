@@ -252,7 +252,7 @@ fn start_bridge_internal(plugin_id: &str) -> Result<BridgeStartResult, String> {
     }
     cmd.stdin(Stdio::piped())
         .stdout(Stdio::piped())
-        .stderr(Stdio::piped());
+        .stderr(Stdio::null()); // MUST be null — piped stderr causes deadlock if not read
     #[cfg(target_os = "windows")]
     {
         use std::os::windows::process::CommandExt;
