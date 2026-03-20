@@ -250,9 +250,13 @@ fn start_bridge_internal(plugin_id: &str) -> Result<BridgeStartResult, String> {
         cmd.arg("--config").arg(config_path.to_string_lossy().as_ref());
         log::info!("[Bridge] Using config: {:?}", config_path);
     }
+    // Redirect Bridge stderr to log file for diagnosis
+    let stderr_file = std::fs::File::create(std::env::temp_dir().join("echobird_bridge_debug.log"))
+        .map(Stdio::from)
+        .unwrap_or(Stdio::null());
     cmd.stdin(Stdio::piped())
         .stdout(Stdio::piped())
-        .stderr(Stdio::null()); // MUST be null — piped stderr causes deadlock if not read
+        .stderr(stderr_file);
     #[cfg(target_os = "windows")]
     {
         use std::os::windows::process::CommandExt;
@@ -558,9 +562,11 @@ fn bridge_chat_sync(message: String, session_id: Option<String>) -> Result<Bridg
     let effective_sid = session_id.or_else(|| bp.session_id.clone());
 
     // Build JSON input for bridge protocol
+    // If we have a session_id from a previous message, use "resume" to continue the session
+    // (Bridge translates "resume" → --resume {sessionId} for Claude Code)
     let input_json = if let Some(ref sid) = effective_sid {
         serde_json::json!({
-            "type": "chat",
+            "type": "resume",
             "message": message,
             "session_id": sid
         })
