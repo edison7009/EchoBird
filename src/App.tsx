@@ -21,7 +21,7 @@ import { ModelNexusProvider, ModelNexusTitleActions, ModelNexusMain, ModelNexusP
 import { AppManagerProvider, AppManagerMain, AppManagerPanel, AppManagerBottom, AppManagerErrorModal } from './pages/AppManager';
 import { LocalServerProvider, LocalServerMain, LocalServerPanel, LocalServerBottom } from './pages/LocalServer';
 import { MotherAgentProvider, MotherAgentMain, MotherAgentPanel, MotherAgentModelSelector } from './pages/MotherAgent';
-import { ChannelsMain, ChannelsPanel, ChannelsProvider } from './pages/Channels';
+import { ChannelsMain, ChannelsPanel, ChannelsProvider, ChannelsRoleSelector } from './pages/Channels';
 
 declare const __APP_VERSION__: string;
 
@@ -156,6 +156,11 @@ function App() {
                                                                         {is('mother') && (
                                                                             <div className="ml-auto flex-shrink-0">
                                                                                 <MotherAgentModelSelector />
+                                                                            </div>
+                                                                        )}
+                                                                        {is('channels') && (
+                                                                            <div className="ml-auto flex-shrink-0">
+                                                                                <ChannelsRoleSelector />
                                                                             </div>
                                                                         )}
                                                                     </h2>
