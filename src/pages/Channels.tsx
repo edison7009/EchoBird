@@ -823,7 +823,7 @@ const ChannelsInner: React.FC = () => {
 
             {/* Input area */}
             {activeChannel && (
-                <div className="flex-shrink-0 mb-1 px-4">
+                <div className="flex-shrink-0 mt-1 mb-1">
                     <div className="bg-cyber-terminal rounded-lg relative">
                         <PendingChipsRow
                             files={attachments.map((a, i) => ({ id: String(i), name: a.name, type: a.type as 'file'|'image', preview: a.preview }))}
