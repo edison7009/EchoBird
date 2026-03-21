@@ -2,7 +2,7 @@
   <img src="docs/5.png" alt="Echobird — One-click AI agent deployment" width="100%" />
 </p>
 
-<h1 align="center">Echobird</h1>
+<h1 align="center">EchoBird</h1>
 
 <h3 align="center">One-click install OpenClaw, Claude Code, ZeroClaw & Codex. Switch models. Deploy LLMs.</h3>
 
