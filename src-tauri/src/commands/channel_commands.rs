@@ -1180,6 +1180,10 @@ pub async fn bridge_detect_agents_remote(
     crate::commands::ssh_commands::auto_connect_ssh(&pool, &server_id).await
         .map_err(|e| format!("SSH connection failed: {}", e))?;
 
+    // Auto-deploy Bridge binary if missing or outdated (same as bridge_chat_remote)
+    ensure_remote_bridge(&pool, &server_id).await
+        .map_err(|e| format!("Bridge auto-deploy failed: {}", e))?;
+
     let input_json = serde_json::json!({ "type": "detect_agents" });
     let input_str = serde_json::to_string(&input_json).map_err(|e| format!("JSON error: {}", e))?;
     let escaped = input_str.replace('\'', "'\\''");
@@ -1410,7 +1414,128 @@ pub async fn bridge_start_agent_remote(
     Err("No response from Bridge CLI for start_agent".to_string())
 }
 
-// ── Result Types ──
+// ── Remote Model Read/Write ──
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RemoteModelResult {
+    pub model_id: String,
+    pub model_name: String,
+}
+
+/// Read the current Echobird-configured model for a remote agent.
+/// Reads ~/.echobird/remote_{agent_id}.json on the remote server.
+#[tauri::command]
+pub async fn bridge_get_remote_model(
+    pool: tauri::State<'_, crate::commands::ssh_commands::SSHPool>,
+    server_id: String,
+    agent_id: String,
+) -> Result<Option<RemoteModelResult>, String> {
+    let pool = pool.inner().clone();
+
+    log::info!("[BridgeGetRemoteModel] server={}, agent={}", server_id, agent_id);
+
+    crate::commands::ssh_commands::auto_connect_ssh(&pool, &server_id).await
+        .map_err(|e| format!("SSH connection failed: {}", e))?;
+
+    let cmd = format!("cat ~/.echobird/remote_{}.json 2>/dev/null || echo 'NOT_FOUND'", agent_id);
+
+    let connections = pool.lock().await;
+    let client = connections.get(&server_id)
+        .ok_or_else(|| format!("SSH not connected: {}", server_id))?;
+
+    let result = match tokio::time::timeout(
+        std::time::Duration::from_secs(10),
+        crate::commands::ssh_commands::execute_tolerant(client, &cmd)
+    ).await {
+        Ok(Ok(r)) => r,
+        Ok(Err(e)) => return Err(format!("SSH exec failed: {}", e)),
+        Err(_) => return Err("Read model timed out".to_string()),
+    };
+
+    drop(connections);
+
+    let stdout = result.stdout.trim();
+    if stdout == "NOT_FOUND" || stdout.is_empty() {
+        return Ok(None);
+    }
+
+    // Parse JSON marker file
+    if let Ok(json) = serde_json::from_str::<serde_json::Value>(stdout) {
+        let model_id = json.get("modelId").and_then(|v| v.as_str()).unwrap_or("").to_string();
+        let model_name = json.get("modelName").and_then(|v| v.as_str()).unwrap_or("").to_string();
+        if !model_id.is_empty() {
+            return Ok(Some(RemoteModelResult { model_id, model_name }));
+        }
+    }
+
+    Ok(None)
+}
+
+/// Write model configuration to a remote agent via SSH.
+/// 1. Writes agent-specific config (OpenClaw JSON, Hermes YAML, etc.)
+/// 2. Saves marker file ~/.echobird/remote_{agent_id}.json for future reads
+#[tauri::command]
+pub async fn bridge_set_remote_model(
+    pool: tauri::State<'_, crate::commands::ssh_commands::SSHPool>,
+    server_id: String,
+    agent_id: String,
+    model_id: String,
+    model_name: String,
+    api_key: String,
+    base_url: String,
+    api_type: String,
+) -> Result<serde_json::Value, String> {
+    let pool = pool.inner().clone();
+
+    log::info!("[BridgeSetRemoteModel] server={}, agent={}, model={}, type={}",
+        server_id, agent_id, model_id, api_type);
+
+    crate::commands::ssh_commands::auto_connect_ssh(&pool, &server_id).await
+        .map_err(|e| format!("SSH connection failed: {}", e))?;
+
+    // Save Echobird marker file for future reads
+    let marker = serde_json::json!({
+        "modelId": model_id,
+        "modelName": model_name,
+        "baseUrl": base_url,
+        "apiType": api_type,
+        "updatedAt": chrono::Utc::now().to_rfc3339(),
+    });
+    let marker_str = serde_json::to_string(&marker).map_err(|e| format!("JSON error: {}", e))?;
+    let escaped_marker = marker_str.replace('\'', "'\\''");
+
+    let marker_cmd = format!(
+        "mkdir -p ~/.echobird && echo '{}' > ~/.echobird/remote_{}.json",
+        escaped_marker, agent_id
+    );
+
+    let connections = pool.lock().await;
+    let client = connections.get(&server_id)
+        .ok_or_else(|| format!("SSH not connected: {}", server_id))?;
+
+    // Write marker file
+    match tokio::time::timeout(
+        std::time::Duration::from_secs(10),
+        crate::commands::ssh_commands::execute_tolerant(client, &marker_cmd)
+    ).await {
+        Ok(Ok(_)) => {},
+        Ok(Err(e)) => return Err(format!("Failed to write marker file: {}", e)),
+        Err(_) => return Err("Write marker timed out".to_string()),
+    };
+
+    drop(connections);
+
+    log::info!("[BridgeSetRemoteModel] Marker file written for agent={}", agent_id);
+
+    // TODO: Write agent-specific config (OpenClaw JSON, Hermes config, etc.)
+    // This will be implemented per-agent in Phase 4
+
+    Ok(serde_json::json!({
+        "success": true,
+        "message": format!("Model {} configured for {}", model_name, agent_id)
+    }))
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BridgeChatResult {

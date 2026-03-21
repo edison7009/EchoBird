@@ -415,6 +415,25 @@ export async function bridgeStartAgentRemote(serverId: string, agentId: string):
     return invoke('bridge_start_agent_remote', { serverId, agentId });
 }
 
+// Remote model read/write
+
+export interface RemoteModelResult {
+    modelId: string;
+    modelName: string;
+}
+
+export async function bridgeGetRemoteModel(serverId: string, agentId: string): Promise<RemoteModelResult | null> {
+    return invoke('bridge_get_remote_model', { serverId, agentId });
+}
+
+export async function bridgeSetRemoteModel(
+    serverId: string, agentId: string,
+    modelId: string, modelName: string,
+    apiKey: string, baseUrl: string, apiType: string,
+): Promise<{ success: boolean; message: string }> {
+    return invoke('bridge_set_remote_model', { serverId, agentId, modelId, modelName, apiKey, baseUrl, apiType });
+}
+
 // ─── Role APIs ───
 
 export interface RoleCategory {

@@ -4,6 +4,7 @@ import { Send, CornerDownLeft, X, Square, Paperclip, Image as ImageIcon, RotateC
 import { MiniSelect } from '../components/MiniSelect';
 import { getModelIcon } from '../components/cards/ModelCard';
 import { PendingChipsRow } from '../components/PendingChipsRow';
+import { RemoteModelSelector, type ModelOption } from '../components/RemoteModelSelector';
 import { AgentRolePicker } from '../components/AgentRolePicker';
 import { ChatBubble, TerminalStatusBar } from '../components/chat';
 
@@ -195,6 +196,11 @@ const ChannelsInner: React.FC = () => {
     // Cache remote agent detection results per channel (avoid repeated SSH calls)
     const remoteAgentCache = useRef<Record<number, any[]>>({});
 
+    // ── Remote model selector state (per-channel) ──
+    const [allRemoteModels, setAllRemoteModels] = useState<Record<number, { id: string; name: string } | null>>({});
+    const [allRemoteModelLoading, setAllRemoteModelLoading] = useState<Record<number, boolean>>({});
+    const [channelModelList, setChannelModelList] = useState<ModelOption[]>([]);
+
     // Per-channel helpers
     const channelKey = activeId ?? 0;
     const bridgeMessages = allBridgeMessages[channelKey] || [];
@@ -288,7 +294,9 @@ const ChannelsInner: React.FC = () => {
     const isLocalChannel = activeId === 1;
     const isActiveConnected = bridgeConnectionStatus === 'connected' || bridgeConnectionStatus === 'standby';
     // Bridge standby/disconnected = allow sending (local auto-restarts, remote reconnects per-send via SSH)
-    const canSendMessage = bridgeConnectionStatus !== 'connecting';
+    const remoteModelLoading = allRemoteModelLoading[channelKey] || false;
+    const remoteModel = allRemoteModels[channelKey] || null;
+    const canSendMessage = bridgeConnectionStatus !== 'connecting' && !remoteModelLoading;
     const isLocal = activeChannel?.address?.startsWith('127.0.0.1') || activeChannel?.address === 'localhost';
     const messages = bridgeMessages;
 
@@ -535,7 +543,71 @@ const ChannelsInner: React.FC = () => {
         setAttachments(prev => prev.filter((_, i) => i !== index));
     }, []);
 
-    // Open model picker
+    // ── Remote model: load model list + read current model when agent changes ──
+    const selectedAgentForChannel = allActiveAgents[channelKey] || '';
+    useEffect(() => {
+        if (isLocalChannel || !selectedAgentForChannel) {
+            // Local channel or no agent → no model selector
+            return;
+        }
+        // Load available models from Model Nexus
+        api.getModels().then(models => {
+            setChannelModelList(models.map(m => ({ id: m.internalId, name: m.name })));
+        }).catch(() => {});
+
+        // Read remote model (Echobird data)
+        const agentEntry = AGENT_LIST.find(a => a.name === selectedAgentForChannel);
+        if (!agentEntry || !activeChannel?.serverId) return;
+        setAllRemoteModelLoading(prev => ({ ...prev, [channelKey]: true }));
+        api.bridgeGetRemoteModel(String(activeChannel.serverId), agentEntry.id)
+            .then(result => {
+                if (result?.modelId) {
+                    setAllRemoteModels(prev => ({ ...prev, [channelKey]: { id: result.modelId, name: result.modelName || result.modelId } }));
+                } else {
+                    setAllRemoteModels(prev => ({ ...prev, [channelKey]: null }));
+                }
+            })
+            .catch(() => {
+                setAllRemoteModels(prev => ({ ...prev, [channelKey]: null }));
+            })
+            .finally(() => {
+                setAllRemoteModelLoading(prev => ({ ...prev, [channelKey]: false }));
+            });
+    }, [selectedAgentForChannel, channelKey, isLocalChannel]);
+
+    // Handle remote model switch
+    const handleRemoteModelSelect = useCallback(async (modelId: string) => {
+        const agentEntry = AGENT_LIST.find(a => a.name === selectedAgentForChannel);
+        if (!agentEntry || !activeChannel?.serverId) return;
+
+        const previousModel = allRemoteModels[channelKey] || null;
+        setAllRemoteModelLoading(prev => ({ ...prev, [channelKey]: true }));
+
+        try {
+            // Find full model config for API key + base URL
+            const models = await api.getModels();
+            const selected = models.find(m => m.internalId === modelId);
+            if (!selected) throw new Error('Model not found');
+
+            await api.bridgeSetRemoteModel(
+                String(activeChannel.serverId),
+                agentEntry.id,
+                selected.internalId,
+                selected.name,
+                selected.apiKey || '',
+                selected.baseUrl || '',
+                selected.anthropicUrl ? 'anthropic' : 'openai',
+            );
+            setAllRemoteModels(prev => ({ ...prev, [channelKey]: { id: selected.internalId, name: selected.name } }));
+        } catch (e) {
+            // Rollback to previous model
+            setAllRemoteModels(prev => ({ ...prev, [channelKey]: previousModel }));
+            setBridgeMessages(prev => [...prev, { role: 'system', content: '', i18nKey: 'error.requestFailed' }]);
+        } finally {
+            setAllRemoteModelLoading(prev => ({ ...prev, [channelKey]: false }));
+        }
+    }, [selectedAgentForChannel, channelKey, activeChannel, allRemoteModels]);
+
 
 
     // Send message
@@ -568,6 +640,12 @@ const ChannelsInner: React.FC = () => {
         const selectedAgent = allActiveAgents[channelKey] || '';
         if (!selectedAgent) {
             setBridgeMessages(prev => [...prev, { role: 'system', content: '', i18nKey: 'error.agentFailed' }]);
+            return;
+        }
+
+        // Check if model is selected for remote channels
+        if (!isLocalChannel && !remoteModel) {
+            setBridgeMessages(prev => [...prev, { role: 'system', content: '', i18nKey: 'error.noModelSelected' }]);
             return;
         }
 
@@ -814,10 +892,20 @@ const ChannelsInner: React.FC = () => {
                                 <button onClick={() => imageInputRef.current?.click()} disabled={bridgeLoading || !isActiveConnected} className="p-1 text-cyber-accent/60 hover:text-cyber-accent transition-colors disabled:opacity-20"><ImageIcon size={15} /></button>
                             </div>
                             <div className="flex items-center gap-1.5">
+                                {/* Remote model selector — left of send button, remote channels only */}
+                                {!isLocalChannel && selectedAgentForChannel && (
+                                    <RemoteModelSelector
+                                        models={channelModelList}
+                                        currentModelId={remoteModel?.id || null}
+                                        loading={remoteModelLoading}
+                                        onSelect={handleRemoteModelSelect}
+                                        placeholder={t('mother.selectModel')}
+                                    />
+                                )}
                                 {bridgeLoading ? (
                                     <button onClick={handleAbort} className="p-1 text-red-400 hover:text-red-300 transition-colors"><Square size={16} fill="currentColor" /></button>
                                 ) : (
-                                    <button onClick={handleSend} disabled={(!input.trim() && attachments.length === 0) || !isActiveConnected} className="w-6 h-6 rounded-lg flex items-center justify-center bg-cyber-accent hover:brightness-110 transition-all disabled:opacity-20"><Send size={15} className="text-cyber-bg rotate-45 -translate-x-[2px]" /></button>
+                                    <button onClick={handleSend} disabled={(!input.trim() && attachments.length === 0) || !isActiveConnected || remoteModelLoading} className="w-6 h-6 rounded-lg flex items-center justify-center bg-cyber-accent hover:brightness-110 transition-all disabled:opacity-20"><Send size={15} className="text-cyber-bg rotate-45 -translate-x-[2px]" /></button>
                                 )}
                             </div>
                         </div>
