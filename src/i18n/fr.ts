@@ -190,7 +190,7 @@ const fr: Partial<Translations> = {
     'common.inputting': 'En train d\'écrire',
     'error.connectionTimeout': 'Aucune réponse du serveur. Vérifiez votre connexion.',
     'error.serverUnreachable': 'Impossible de joindre le serveur. Vérifiez l\'adresse et les paramètres.',
-    'error.agentFailed': 'Agent échoué.'agent échoué. Vérifiez la connexion.',
+    'error.agentFailed': 'Agent échoué.',
     'error.noServerConfig': 'Aucun serveur configuré pour ce canal.',
     'error.noModelSelected': 'Aucun modèle sélectionné. Veuillez d\'abord choisir un modèle.',
     'error.requestFailed': 'Requête échouée. Veuillez réessayer.',

@@ -190,7 +190,7 @@ const it: Partial<Translations> = {
     'common.inputting': 'Sta scrivendo',
     'error.connectionTimeout': 'Nessuna risposta dal server. Controlla la connessione.',
     'error.serverUnreachable': 'Impossibile raggiungere il server. Controlla indirizzo e impostazioni.',
-    'error.agentFailed': 'Agent fallito.'agente non è riuscito ad avviarsi. Controlla la connessione.',
+    'error.agentFailed': 'Agent fallito.',
     'error.noServerConfig': 'Nessun server configurato per questo canale.',
     'error.noModelSelected': 'Nessun modello selezionato. Selezionane uno prima.',
     'error.requestFailed': 'Richiesta fallita. Riprova.',
