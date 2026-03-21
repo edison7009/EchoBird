@@ -1108,6 +1108,9 @@ export function MotherAgentPanel() {
                                         alias: sshForm.alias.trim() || undefined,
                                     };
                                     await addSSHServer(newServer);
+                                    // Silently deploy Bridge in background (fire-and-forget)
+                                    // By the time user opens Picker, Bridge is already installed
+                                    api.bridgeDetectAgentsRemote(newServer.id).catch(() => {});
                                     setSSHForm({ host: '', port: '22', username: '', password: '', alias: '', showPassword: false });
                                     setSSHTestResult(null);
                                     setShowSSHModal(false);
