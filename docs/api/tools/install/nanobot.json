@@ -5,9 +5,11 @@
     "docs": "https://github.com/HKUDS/nanobot",
     "github": "https://github.com/HKUDS/nanobot",
     "install": {
-        "one-liner (macOS / Linux)": "curl -fsSL https://raw.githubusercontent.com/HKUDS/nanobot/main/install.sh | bash",
-        "WARNING": "Do NOT use 'pip install nanobot' — the PyPI 'nanobot' package is a DIFFERENT project (robot navigation framework). Always use the curl installer above.",
-        "note": "Python-based agent. After install, run 'nanobot onboard' to initialize config at ~/.nanobot/config.json"
+        "pip (stable)": "pip install nanobot-ai",
+        "uv (stable, fast)": "uv tool install nanobot-ai",
+        "from source (latest)": "git clone https://github.com/HKUDS/nanobot.git && cd nanobot && pip install -e .",
+        "WARNING": "The PyPI package is 'nanobot-ai', NOT 'nanobot'. The 'nanobot' package on PyPI is a completely different project (robot navigation framework).",
+        "note": "Python-based agent. After install, verify with: nanobot --version"
     },
     "cli": {
         "description": "NanoBot uses cli-oneshot protocol for EchoBird integration. The agent itself runs persistently via 'nanobot gateway'.",
