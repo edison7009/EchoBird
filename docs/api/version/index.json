@@ -1,1 +1,1 @@
-{"version":"3.1.3","releaseDate":"2026-03-20","releaseNotes":"Role switching fixes: Claude Code persistence, agent tool switching, cross-protocol cleanup, download error handling"}
+{"version":"3.1.7","releaseDate":"2026-03-22","releaseNotes":"v3.1.7: Verified all agent install commands against official repos; removed legacy deploy_bridge and configure_openclaw tools; streamlined Mother Agent (no manual Bridge/model config)"}
