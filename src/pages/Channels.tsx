@@ -552,7 +552,11 @@ const ChannelsInner: React.FC = () => {
         }
         // Load available models from Model Nexus
         api.getModels().then(models => {
-            setChannelModelList(models.map(m => ({ id: m.internalId, name: m.name })));
+            setChannelModelList(models.map(m => ({
+                id: m.internalId,
+                name: m.name,
+                icon: getModelIcon(m.name, m.modelId),
+            })));
         }).catch(() => {});
 
         // Read remote model (Echobird data)

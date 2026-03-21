@@ -6,6 +6,7 @@ import { ChevronDown, Loader2, Check } from 'lucide-react';
 export interface ModelOption {
     id: string;
     name: string;
+    icon?: string | null;  // icon path from getModelIcon()
 }
 
 interface RemoteModelSelectorProps {
@@ -50,15 +51,16 @@ export const RemoteModelSelector: React.FC<RemoteModelSelectorProps> = ({
 
     const currentModel = models.find(m => m.id === currentModelId);
     const displayText = currentModel?.name || placeholder;
+    const displayIcon = currentModel?.icon;
 
     return (
         <div ref={containerRef} className="relative">
-            {/* Trigger button — text + arrow, no bg/border */}
+            {/* Trigger button — icon + text + arrow, no bg/border */}
             <button
                 type="button"
                 onClick={() => !loading && setIsOpen(!isOpen)}
                 disabled={loading}
-                className="flex items-center gap-1 px-2 py-1 text-xs font-mono text-cyber-accent transition-colors rounded
+                className="flex items-center gap-1.5 px-2 py-1 text-xs font-mono text-cyber-accent transition-colors rounded
                     hover:bg-white/8 active:bg-white/12
                     disabled:cursor-default"
             >
@@ -66,7 +68,15 @@ export const RemoteModelSelector: React.FC<RemoteModelSelectorProps> = ({
                     <Loader2 size={12} className="animate-spin text-cyber-accent/70" />
                 ) : (
                     <>
-                        <span className="truncate max-w-[160px]">{displayText}</span>
+                        {displayIcon && (
+                            <img
+                                src={displayIcon}
+                                alt=""
+                                className="w-3.5 h-3.5 flex-shrink-0"
+                                onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                            />
+                        )}
+                        <span className="truncate max-w-[140px]">{displayText}</span>
                         <ChevronDown
                             size={11}
                             className={`flex-shrink-0 opacity-60 transition-transform ${isOpen ? 'rotate-180' : ''}`}
@@ -91,15 +101,23 @@ export const RemoteModelSelector: React.FC<RemoteModelSelectorProps> = ({
                                 }
                                 setIsOpen(false);
                             }}
-                            className={`flex items-center justify-between px-3 py-2 cursor-pointer text-xs font-mono transition-colors
+                            className={`flex items-center gap-2 px-3 py-2 cursor-pointer text-xs font-mono transition-colors
                                 ${model.id === currentModelId
                                     ? 'text-cyber-accent bg-cyber-accent/10'
                                     : 'text-cyber-text hover:bg-white/8 hover:text-cyber-accent'
                                 }`}
                         >
-                            <span className="truncate">{model.name}</span>
+                            {model.icon && (
+                                <img
+                                    src={model.icon}
+                                    alt=""
+                                    className="w-4 h-4 flex-shrink-0"
+                                    onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                                />
+                            )}
+                            <span className="truncate flex-1">{model.name}</span>
                             {model.id === currentModelId && (
-                                <Check size={12} className="flex-shrink-0 ml-2 text-cyber-accent" />
+                                <Check size={12} className="flex-shrink-0 ml-1 text-cyber-accent" />
                             )}
                         </div>
                     ))}
