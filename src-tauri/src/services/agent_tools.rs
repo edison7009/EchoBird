@@ -114,29 +114,9 @@ pub fn get_tool_definitions() -> Vec<super::llm_client::ToolDef> {
             }),
         },
         super::llm_client::ToolDef {
-            name: "deploy_bridge".into(),
-            description: "Deploy the Echobird bridge binary to a remote SSH server. \
-                This uploads the bridge program and makes it executable. \
-                The bridge enables direct communication with the Agent (e.g. OpenClaw) on the remote machine.".into(),
-            parameters: json!({
-                "type": "object",
-                "properties": {
-                    "server_id": {
-                        "type": "string",
-                        "description": "SSH server ID to deploy to"
-                    },
-                    "plugin_id": {
-                        "type": "string",
-                        "description": "Plugin ID (e.g. 'openclaw')"
-                    }
-                },
-                "required": ["server_id", "plugin_id"]
-            }),
-        },
-        super::llm_client::ToolDef {
             name: "bridge_chat".into(),
-            description: "Send a message to a remote Agent through the deployed bridge. \
-                The bridge must be deployed first using deploy_bridge. \
+            description: "Send a message to a remote Agent through the bridge. \
+                The bridge is automatically deployed by EchoBird. \
                 Returns the Agent's response text.".into(),
             parameters: json!({
                 "type": "object",
@@ -213,38 +193,6 @@ pub fn get_tool_definitions() -> Vec<super::llm_client::ToolDef> {
                     }
                 },
                 "required": ["server_id", "plugin_id"]
-            }),
-        },
-        super::llm_client::ToolDef {
-            name: "configure_openclaw".into(),
-            description: "Configure OpenClaw on a remote server with model API credentials. \
-                Writes the correct openclaw.json config file automatically. \
-                Use this instead of manually writing config files with file_write.".into(),
-            parameters: json!({
-                "type": "object",
-                "properties": {
-                    "server_id": {
-                        "type": "string",
-                        "description": "SSH server ID"
-                    },
-                    "base_url": {
-                        "type": "string",
-                        "description": "Model API base URL (e.g. https://api.minimaxi.com/v1)"
-                    },
-                    "api_key": {
-                        "type": "string",
-                        "description": "API key for the model provider"
-                    },
-                    "model_id": {
-                        "type": "string",
-                        "description": "Model ID (e.g. MiniMax-M2.5, gpt-4o, claude-sonnet-4-20250514)"
-                    },
-                    "provider_name": {
-                        "type": "string",
-                        "description": "Optional provider name (e.g. minimax, openai). Auto-detected from base_url if omitted."
-                    }
-                },
-                "required": ["server_id", "base_url", "api_key", "model_id"]
             }),
         },
         super::llm_client::ToolDef {
@@ -368,14 +316,6 @@ pub async fn execute_tool(
             let server_id = resolve_server_id(raw_sid);
             exec_file_write(path, content, &server_id, ssh_pool).await
         }
-        "deploy_bridge" => {
-            let server_id = args["server_id"].as_str().unwrap_or("");
-            let plugin_id = args["plugin_id"].as_str().unwrap_or("openclaw");
-            if server_id.is_empty() {
-                return ToolResult { success: false, output: "server_id is required".into() };
-            }
-            exec_deploy_bridge(server_id, plugin_id, ssh_pool).await
-        }
         "bridge_chat" => {
             let server_id = args["server_id"].as_str().unwrap_or("");
             let message = args["message"].as_str().unwrap_or("");
@@ -408,17 +348,6 @@ pub async fn execute_tool(
                 return ToolResult { success: false, output: "server_id and plugin_id are required".into() };
             }
             exec_deploy_plugin_source(server_id, plugin_id, port, ssh_pool).await
-        }
-        "configure_openclaw" => {
-            let server_id = args["server_id"].as_str().unwrap_or("");
-            let base_url = args["base_url"].as_str().unwrap_or("");
-            let api_key = args["api_key"].as_str().unwrap_or("");
-            let model_id = args["model_id"].as_str().unwrap_or("");
-            let provider_name = args["provider_name"].as_str().unwrap_or("");
-            if server_id.is_empty() || base_url.is_empty() || api_key.is_empty() || model_id.is_empty() {
-                return ToolResult { success: false, output: "server_id, base_url, api_key, and model_id are all required".into() };
-            }
-            exec_configure_openclaw(server_id, base_url, api_key, model_id, provider_name, ssh_pool).await
         }
         "upload_file" => {
             let local_path = args["local_path"].as_str().unwrap_or("");
@@ -754,211 +683,6 @@ async fn fetch_latest_plugin_version() -> String {
             compile_ver
         }
         _ => compile_ver,
-    }
-}
-
-// ── Bridge Operations ──
-
-async fn exec_deploy_bridge(server_id: &str, plugin_id: &str, ssh_pool: &SSHPool) -> ToolResult {
-    log::info!("[AgentTools] Deploying bridge '{}' to server '{}' via GitHub Release download", plugin_id, server_id);
-
-    // Detect remote OS + architecture
-    let os_result = exec_ssh_shell("uname -s 2>/dev/null || echo windows", server_id, ssh_pool).await;
-    let arch_result = exec_ssh_shell("uname -m 2>/dev/null || echo x86_64", server_id, ssh_pool).await;
-    let os_name = os_result.output.trim().to_lowercase();
-    let arch = arch_result.output.trim().to_lowercase();
-
-    // Map OS + arch to bridge binary filename
-    let bridge_filename = if os_name.contains("linux") {
-        if arch.contains("aarch64") || arch.contains("arm64") {
-            "bridge-linux-aarch64"
-        } else {
-            "bridge-linux-x86_64"
-        }
-    } else if os_name.contains("darwin") {
-        if arch.contains("arm64") || arch.contains("aarch64") {
-            "bridge-darwin-aarch64"
-        } else {
-            "bridge-darwin-x86_64"
-        }
-    } else {
-        "bridge-win.exe"
-    };
-
-    log::info!("[AgentTools] Remote: os={}, arch={}, binary={}", os_name, arch, bridge_filename);
-
-    // Fetch latest version dynamically from version API (falls back to compile-time version)
-    let version = fetch_latest_plugin_version().await;
-    // Primary: Cloudflare proxy dl.echobird.ai (bypasses China GFW)
-    let download_url = format!("https://dl.echobird.ai/releases/{}/{}", version, bridge_filename);
-    // Fallback 1: GitHub versioned
-    let github_url = format!("https://github.com/edison7009/Echobird-MotherAgent/releases/download/{}/{}", version, bridge_filename);
-
-    log::info!("[AgentTools] Downloading bridge from: {}", download_url);
-
-    let deploy_cmd = format!(
-        "mkdir -p ~/echobird && curl -fSL --connect-timeout 30 --max-time 120 -o ~/echobird/{} '{}' && chmod +x ~/echobird/{} && ln -sf ~/echobird/{} ~/echobird/echobird-bridge",
-        bridge_filename, download_url, bridge_filename, bridge_filename
-    );
-    let result = exec_ssh_shell(&deploy_cmd, server_id, ssh_pool).await;
-
-    if result.success {
-        // Verify the download
-        let verify_cmd = format!("ls -la ~/echobird/{} && file ~/echobird/{}", bridge_filename, bridge_filename);
-        let verify = exec_ssh_shell(&verify_cmd, server_id, ssh_pool).await;
-
-        ToolResult {
-            success: true,
-            output: format!("Bridge deployed via download: ~/echobird/{}\n{}", bridge_filename, verify.output),
-        }
-    } else {
-        // Fallback 1: GitHub latest (avoids in-progress CI builds)
-        let latest_url = format!("https://github.com/edison7009/Echobird-MotherAgent/releases/latest/download/{}", bridge_filename);
-        let fallback_cmd1 = format!(
-            "curl -fSL --connect-timeout 30 --max-time 120 -o ~/echobird/{} '{}' && chmod +x ~/echobird/{} && ln -sf ~/echobird/{} ~/echobird/echobird-bridge",
-            bridge_filename, latest_url, bridge_filename, bridge_filename
-        );
-        let fallback1 = exec_ssh_shell(&fallback_cmd1, server_id, ssh_pool).await;
-
-        if fallback1.success {
-            ToolResult {
-                success: true,
-                output: format!("Bridge deployed via GitHub latest: ~/echobird/{}", bridge_filename),
-            }
-        } else {
-            // Fallback 2: GitHub versioned
-            let fallback_cmd2 = format!(
-                "curl -fSL --connect-timeout 30 --max-time 120 -o ~/echobird/{} '{}' && chmod +x ~/echobird/{} && ln -sf ~/echobird/{} ~/echobird/echobird-bridge",
-                bridge_filename, github_url, bridge_filename, bridge_filename
-            );
-            let fallback2 = exec_ssh_shell(&fallback_cmd2, server_id, ssh_pool).await;
-
-            if fallback2.success {
-                ToolResult {
-                    success: true,
-                    output: format!("Bridge deployed via GitHub versioned: ~/echobird/{}", bridge_filename),
-                }
-            } else {
-                ToolResult {
-                    success: false,
-                    output: format!("Failed to download bridge binary '{}'. Tried:\n1. {}\n2. {}\n3. {}\nError: {}",
-                        bridge_filename, download_url, latest_url, github_url, fallback2.output),
-                }
-            }
-        }
-    }
-}
-
-async fn exec_configure_openclaw(
-    server_id: &str,
-    base_url: &str,
-    api_key: &str,
-    model_id: &str,
-    provider_name: &str,
-    ssh_pool: &SSHPool,
-) -> ToolResult {
-    log::info!("[AgentTools] Configuring OpenClaw on server '{}' with model '{}'", server_id, model_id);
-
-    // Determine API type: if URL contains "anthropic" → anthropic-messages, else openai-completions
-    let api_type = if base_url.to_lowercase().contains("anthropic") {
-        "anthropic-messages"
-    } else {
-        "openai-completions"
-    };
-
-    // Auto-detect provider name from base URL if not provided
-    let provider = if !provider_name.is_empty() {
-        provider_name.to_string()
-    } else {
-        "eb_custom".to_string()
-    };
-
-    // Use Python merge_script to safely merge into existing config (matches openclaw.json pattern).
-    // This preserves any existing providers and settings the user may have configured manually.
-    let merge_script = format!(
-        r#"python3 -c "
-import json, os
-path = os.path.expanduser('~/.openclaw/openclaw.json')
-cfg = {{}}
-if os.path.exists(path):
-    with open(path) as f: cfg = json.load(f)
-
-MODEL_ID   = '{model_id}'
-MODEL_NAME = '{model_id}'
-BASE_URL   = '{base_url}'
-API_TYPE   = '{api_type}'
-API_KEY    = '{api_key}'
-CTX        = 128000
-MAX_TOK    = 8192
-PROVIDER   = '{provider}'
-ENV_VAR    = 'EB_CUSTOM_API_KEY'
-
-if 'env' not in cfg: cfg['env'] = {{}}
-cfg['env'][ENV_VAR] = API_KEY
-if 'models' not in cfg: cfg['models'] = {{}}
-if 'providers' not in cfg['models']: cfg['models']['providers'] = {{}}
-cfg['models']['mode'] = 'merge'
-# Remove old eb_ providers to avoid conflicts
-cfg['models']['providers'] = {{k:v for k,v in cfg['models']['providers'].items() if not k.startswith('eb_')}}
-cfg['models']['providers'][PROVIDER] = {{
-    'baseUrl': BASE_URL,
-    'apiKey': '${{' + ENV_VAR + '}}',
-    'api': API_TYPE,
-    'models': [{{
-        'id': MODEL_ID,
-        'name': MODEL_NAME,
-        'reasoning': False,
-        'input': ['text'],
-        'cost': {{'input': 0, 'output': 0, 'cacheRead': 0, 'cacheWrite': 0}},
-        'contextWindow': CTX,
-        'maxTokens': MAX_TOK
-    }}]
-}}
-if 'agents' not in cfg: cfg['agents'] = {{}}
-if 'defaults' not in cfg['agents']: cfg['agents']['defaults'] = {{}}
-if 'model' not in cfg['agents']['defaults']: cfg['agents']['defaults']['model'] = {{}}
-cfg['agents']['defaults']['model']['primary'] = PROVIDER + '/' + MODEL_ID
-if 'models' not in cfg['agents']['defaults']['model']: cfg['agents']['defaults']['model']['models'] = {{}}
-cfg['agents']['defaults']['model']['models'][PROVIDER + '/' + MODEL_ID] = {{'alias': MODEL_NAME}}
-os.makedirs(os.path.dirname(path), exist_ok=True)
-with open(path, 'w') as f: json.dump(cfg, f, indent=2)
-print('OK:', cfg['agents']['defaults']['model']['primary'])
-"
-"#,
-        model_id = model_id,
-        base_url = base_url,
-        api_type = api_type,
-        api_key = api_key,
-        provider = provider,
-    );
-
-    let result = exec_ssh_shell(&merge_script, server_id, ssh_pool).await;
-    if !result.success {
-        return ToolResult {
-            success: false,
-            output: format!("Failed to configure OpenClaw: {}", result.output),
-        };
-    }
-
-    // Restart gateway to apply changes
-    let restart_cmd = "pkill -f 'openclaw gateway' 2>/dev/null; sleep 1; export PATH=\"$HOME/.npm-global/bin:$HOME/.local/bin:$PATH\" && nohup openclaw gateway --allow-unconfigured > /tmp/openclaw.log 2>&1 &";
-    let _ = exec_ssh_shell(restart_cmd, server_id, ssh_pool).await;
-
-    // Verify
-    let verify_cmd = "cat ~/.openclaw/openclaw.json | python3 -c \"import json,sys; c=json.load(sys.stdin); print(c['agents']['defaults']['model']['primary'])\"";
-    let verify_result = exec_ssh_shell(verify_cmd, server_id, ssh_pool).await;
-
-    ToolResult {
-        success: true,
-        output: format!(
-            "OpenClaw configured successfully!\n\
-            Model: {}/{}\n\
-            API type: {}\n\
-            Base URL: {}\n\
-            Config: ~/.openclaw/openclaw.json\n\
-            Primary model: {}",
-            provider, model_id, api_type, base_url, verify_result.output.trim()
-        ),
     }
 }
 

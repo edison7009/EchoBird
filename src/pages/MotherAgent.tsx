@@ -1155,7 +1155,7 @@ export function MotherAgentPanel() {
                                     };
                                     await addSSHServer(newServer);
                                     // Silently deploy Bridge in background (fire-and-forget)
-                                    // By the time user opens Picker, Bridge is already installed
+                                    // Bridge is automatically deployed by EchoBird
                                     api.bridgeDetectAgentsRemote(newServer.id).catch(() => {});
                                     setSSHForm({ host: '', port: '22', username: '', password: '', alias: '', showPassword: false });
                                     setSSHTestResult(null);
