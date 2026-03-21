@@ -913,6 +913,37 @@ async fn ensure_remote_bridge(
         "bridge-win.exe"
     };
 
+    // ── Strategy 1: CDN download (faster — server downloads directly) ──
+    let cdn_url = format!(
+        "https://dl.echobird.ai/releases/v{}/{}",
+        local_version, bridge_filename
+    );
+    let remote_binary = format!("~/echobird/{}", bridge_filename);
+
+    log::info!("[Bridge] Trying CDN download: {}", cdn_url);
+
+    // Try wget first, then curl as fallback
+    let cdn_cmd = format!(
+        "mkdir -p ~/echobird && (wget -q -O {remote} '{url}' 2>/dev/null || curl -fsSL -o {remote} '{url}' 2>/dev/null) && chmod +x {remote} && ln -sf {remote} ~/echobird/echobird-bridge && echo 'CDN_OK'",
+        remote = remote_binary,
+        url = cdn_url,
+    );
+    let cdn_result = client.execute(&cdn_cmd).await;
+
+    if let Ok(res) = &cdn_result {
+        if res.stdout.trim().contains("CDN_OK") {
+            log::info!("[Bridge] Remote bridge deployed via CDN: {}", bridge_filename);
+            if let Ok(mut cache) = REMOTE_BRIDGE_VERIFIED.lock() {
+                cache.insert(server_id.to_string());
+            }
+            return Ok(());
+        }
+    }
+
+    log::info!("[Bridge] CDN download failed, falling back to SSH upload");
+
+    // ── Strategy 2: SSH base64 upload (fallback) ──
+
     // Find local bridge binary path from bundle
     let local_path = {
         let plugins = crate::services::plugin_manager::plugins_dir();
@@ -950,8 +981,6 @@ async fn ensure_remote_bridge(
 
     // Create remote directory
     let _ = client.execute("mkdir -p ~/echobird").await;
-
-    let remote_binary = format!("~/echobird/{}", bridge_filename);
 
     // Upload via base64 chunks
     let chunk_size = 65536;
