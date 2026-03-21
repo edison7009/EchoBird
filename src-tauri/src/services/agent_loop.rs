@@ -786,11 +786,11 @@ many users are beginners and just want to try things out quickly.\n\
         ## CRITICAL MODEL CONFIGURATION RULES\n\
         - NEVER tell users to set API key environment variables (ANTHROPIC_API_KEY, OPENAI_API_KEY, etc.) manually.\n\
         - NEVER direct users to Anthropic/OpenAI websites to get keys. Users manage keys in EchoBird's Model Nexus page.\n\
-        - After installing any Agent OS: Model Nexus -> Channels (chat with agent).\n\
-        - After installing any CLI tool: Model Nexus (add API key) -> App Manager (assign model + Launch) -> terminal opens.\n\
+        - NEVER manually write model config files (config.json, config.yaml, etc.) for agents. EchoBird handles this automatically.\n\
+        - After installing any Agent OS: go to Channels page -> select a remote server -> pick the agent -> switch model from the model selector at the bottom. Model configuration is fully automatic.\n\
         - OpenClaw is NOT Claude Code. Do NOT apply Claude Code configuration methods to OpenClaw.\n\
         - CLI tools (Claude Code, Codex, OpenCode, Aider) are LOCAL ONLY -- cannot be deployed remotely.\n\
-        - For unknown agents, use web_fetch on official docs. NEVER fabricate configuration steps.\n\n\
+        - For unknown agents, use web_fetch on official docs. NEVER fabricate configuration steps.\n\n\\
         ## Handling sudo Password on Remote Servers\n\
         When a command fails because sudo requires a password:\n\
         1. Use the get_sudo_password tool to retrieve the saved SSH password. Then run: echo '<password>' | sudo -S <command>.\n\
@@ -813,36 +813,11 @@ many users are beginners and just want to try things out quickly.\n\
         https://echobird.ai/api/tools/install/{tool-id}.json (e.g. openclaw, opencode)\n\
         The JSON contains official install commands, homepage, docs URL, and GitHub link.\n\
         Use these as authoritative install instructions. If 404, fall back to web_fetch on the tool's official site.\n\n\
-        ## CRITICAL: Echobird CLI Bridge (Remote Deployment Companion)\n\
-        Echobird CLI Bridge is the communication layer between the EchoBird desktop app and remote servers.\n\
-        Users CANNOT use the Channels page to chat with remote agents unless Bridge is installed AND running.\n\n\
-        ### When to install Bridge CLI:\n\
-        - ALWAYS install Bridge CLI alongside any remote agent (e.g. OpenClaw) installation.\n\
-        - When users specifically ask to install Echobird CLI Bridge.\n\
-        - When users report Channels page connection failures on a remote server.\n\n\
-        ### Installation (Primary — use deploy_bridge tool):\n\
-        Call the deploy_bridge tool with the target server_id. This tool automatically:\n\
-        1. Detects the remote OS and architecture.\n\
-        2. Downloads the LATEST bridge binary from GitHub Releases (always the newest version).\n\
-        3. Sets executable permissions and creates the symlink.\n\
-        This is the PREFERRED method because it always gets the latest version.\n\n\
-        ### Installation (Offline Fallback — remote has no internet):\n\
-        ONLY if deploy_bridge fails (e.g. remote server has no internet access):\n\
-        EchoBird bundles bridge binaries for ALL platforms in its local bridge/ directory.\n\
-        1. Detect the remote OS and architecture (uname -s -m).\n\
-        2. Map to the correct binary: linux+x86_64=bridge-linux-x86_64, linux+aarch64=bridge-linux-aarch64, \
-darwin+arm64=bridge-darwin-aarch64, darwin+x86_64=bridge-darwin-x86_64.\n\
-        3. Use the upload_file tool to SCP the binary from the local EchoBird bridge/ directory to ~/echobird/ on the remote.\n\
-        4. Create symlink: ln -sf ~/echobird/{binary} ~/echobird/echobird-bridge\n\
-        5. Set executable permissions: chmod +x ~/echobird/echobird-bridge\n\n\
-        ### CRITICAL — Always START Bridge after installation:\n\
-        After installing Bridge CLI (by either method), you MUST start it immediately:\n\
-        ```\n\
-        nohup ~/echobird/echobird-bridge > /dev/null 2>&1 &\n\
-        ```\n\
-        Then verify it is running: `pgrep -f echobird-bridge`\n\n\
-        If Bridge is installed but NOT running, the Channels page will show 'Connection Failed'.\n\
-        When users report connection issues, FIRST check if Bridge is running, and start it if not.\n\n"
+        ## Echobird CLI Bridge (Automatically Managed)\n\
+        Bridge is the communication layer between EchoBird and remote agents.\n\
+        EchoBird automatically deploys, updates, and manages Bridge on remote servers.\n\
+        You do NOT need to install, start, or manage Bridge manually.\n\
+        If users report Channels connection issues, suggest they click 'Test Connection' in the server settings which will automatically repair Bridge.\n\n"
     );
 
     // Fetch remote prompt (product knowledge + deployment workflows)
