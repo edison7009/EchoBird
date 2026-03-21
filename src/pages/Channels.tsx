@@ -723,7 +723,8 @@ const ChannelsInner: React.FC = () => {
                     setBridgeLoading(false);
                     return;
                 }
-                setBridgeConnectionStatus('connected');
+                // Don't set 'connected' yet — wait until Step 4 succeeds
+                setBridgeConnectionStatus('connecting');
                 const selectedAgentName = allActiveAgents[channelKey] || '';
                 setBridgeAgentName(selectedAgentName);
 
@@ -750,6 +751,7 @@ const ChannelsInner: React.FC = () => {
                     const cachedAgents = remoteAgentCache.current[channelKey];
                     const agentInfo = cachedAgents?.find((a: any) => a.id === agentId);
                     if (!agentInfo?.installed) {
+                        setBridgeConnectionStatus('standby');
                         setBridgeMessages(prev => [...prev, {
                             role: 'system',
                             content: `Agent "${selectedAgentName}" is not installed on this server.`,
@@ -798,6 +800,8 @@ const ChannelsInner: React.FC = () => {
                     // ── Step 4: Send message to agent ──
                     const result = await api.bridgeChatRemote(serverId, text, bridgeSessionId, agentId);
                     clearTimeout(workingTimer);
+                    // Success → now mark as connected
+                    setBridgeConnectionStatus('connected');
                     // Remove the working hint before adding the real reply
                     setBridgeMessages(prev => {
                         const cleaned = prev.filter(m => m.content !== WORKING_MARKER);
@@ -811,7 +815,9 @@ const ChannelsInner: React.FC = () => {
                     setAllBridgeHasNew(prev => ({ ...prev, [channelKey]: true }));
                 } catch (remoteErr: any) {
                     clearTimeout(workingTimer);
+                    // Error → reset all transient state back to initial
                     setBridgeConnectionStatus('standby');
+                    setBridgeAgentName(undefined);
                     window.dispatchEvent(new CustomEvent('chat-error'));
                     setBridgeMessages(prev => {
                         const cleaned = prev.filter(m => m.content !== WORKING_MARKER);
@@ -931,18 +937,21 @@ const ChannelsInner: React.FC = () => {
                 onSelectAgent={(name) => {
                     const previousAgent = allActiveAgents[channelKey] || '';
                     setActiveAgentFor(channelKey, name);
-                    // Clear remote model when agent changes or is cleared
+                    // Any agent change (switch or clear) → full reset to initial state
                     if (previousAgent !== name) {
+                        // Clear remote model + model list (avoids stale flash)
                         setAllRemoteModels(prev => ({ ...prev, [channelKey]: null }));
-                    }
-                    // Agent tool changed — reset bridge so next send re-initializes with the new agent
-                    if (previousAgent && previousAgent !== name) {
+                        setChannelModelList([]);
+                        // Reset bridge state
                         setBridgeConnectionStatus('standby');
                         setBridgeSessionId(undefined);
+                        setBridgeAgentName(undefined);
                         lastAppliedRoleRef.current[channelKey] = '';
-                        // Invalidate remote agent detection cache so next send re-detects
+                        // Invalidate remote agent detection cache
                         delete remoteAgentCache.current[channelKey];
-                        // Stop old bridge/oneshot process in background (fire-and-forget)
+                    }
+                    // Agent switched (not just cleared) → stop old process
+                    if (previousAgent && previousAgent !== name) {
                         api.bridgeStop().catch(() => {});
                     }
                 }}
