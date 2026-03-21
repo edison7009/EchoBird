@@ -126,7 +126,7 @@ const hu: Partial<Translations> = {
     'hint.devInvite': 'Fejlesszen AI alkalmazásokat vagy AI játékokat — lásd: \"Reversi\" és \"AI Translate\".',
     'nav.motherAgent': 'Mother Agent',
     'page.motherAgent': 'Mother Agent',    // Mother Agent
-    'mother.selectModel': 'Válasszon modellt...',    'mother.hintInstall': '{agent} telepítése',    'mother.enterMessage': 'Üzenet írása...',
+    'mother.selectModel': 'Válasszon modellt',    'mother.hintInstall': '{agent} telepítése',    'mother.enterMessage': 'Üzenet írása...',
     'mother.noModels': 'Nincs elérhető modell',    'mother.servers': 'SZERVEREK',
     'mother.sshGuide': 'Beállítási útmutató',
     'mother.local': 'HELYI',
@@ -186,7 +186,7 @@ const hu: Partial<Translations> = {
     // Error messages (user-friendly, non-technical)
     'error.connectionTimeout': 'Nincs válasz a kiszolgálótól. Ellenőrizze a kapcsolatot.',
     'error.serverUnreachable': 'A kiszolgáló nem érhető el. Ellenőrizze a címet és a beállításokat.',
-    'error.agentFailed': 'Az ügynök nem indult el. Ellenőrizze a kapcsolatot.',
+    'error.agentFailed': 'Agent sikertelen.',
     'error.noServerConfig': 'Ehhez a csatornához nincs szerver konfigurálva.',
     'error.noModelSelected': 'Nincs modell kiválasztva. Először válasszon modellt.',
     'error.requestFailed': 'A kérés meghiúsult. Próbálja újra.',

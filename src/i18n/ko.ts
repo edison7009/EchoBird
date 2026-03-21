@@ -147,7 +147,7 @@ const ko: Partial<Translations> = {
     'hint.devInvite': 'AI 앱 또는 AI 게임 개발 — \"리버시\"와 \"AI 번역\"을 참고하세요.',
     'nav.motherAgent': 'Mother Agent',
     'page.motherAgent': 'Mother Agent',    // Mother Agent
-    'mother.selectModel': '모델 선택...',    'mother.hintInstall': '{agent} 설치',    'mother.enterMessage': '메시지 입력...',
+    'mother.selectModel': '모델 선택',    'mother.hintInstall': '{agent} 설치',    'mother.enterMessage': '메시지 입력...',
     'mother.noModels': '사용 가능한 모델 없음',    'mother.servers': '서버',
     'mother.sshGuide': '설정 가이드',
     'mother.local': '로컬',
@@ -207,7 +207,7 @@ const ko: Partial<Translations> = {
     // Error messages (user-friendly, non-technical)
     'error.connectionTimeout': '서버에서 응답이 없습니다. 연결을 확인하세요.',
     'error.serverUnreachable': '서버에 연결할 수 없습니다. 주소와 설정을 확인하세요.',
-    'error.agentFailed': '에이전트 시작에 실패했습니다. 연결을 확인하세요.',
+    'error.agentFailed': 'Agent 실패.',
     'error.noServerConfig': '이 채널에 서버가 설정되지 않았습니다.',
     'error.noModelSelected': '모델이 선택되지 않았습니다. 먼저 모델을 선택하세요.',
     'error.requestFailed': '요청에 실패했습니다. 다시 시도해 주세요.',

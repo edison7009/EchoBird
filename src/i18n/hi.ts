@@ -126,7 +126,7 @@ const hi: Partial<Translations> = {
     'hint.devInvite': 'AI ऐप्स या AI गेम्स विकसित करें — \"Reversi\" और \"AI Translate\" देखें।',
     'nav.motherAgent': 'Mother Agent',
     'page.motherAgent': 'Mother Agent',    // Mother Agent
-    'mother.selectModel': 'मॉडल चुनें...',    'mother.hintInstall': '{agent} इंस्टॉल करें',    'mother.enterMessage': 'संदेश दर्ज करें...',
+    'mother.selectModel': 'मॉडल चुनें',    'mother.hintInstall': '{agent} इंस्टॉल करें',    'mother.enterMessage': 'संदेश दर्ज करें...',
     'mother.noModels': 'कोई मॉडल उपलब्ध नहीं',    'mother.servers': 'सर्वर',
     'mother.sshGuide': 'सेटअप गाइड',
     'mother.local': 'लोकल',
@@ -186,7 +186,7 @@ const hi: Partial<Translations> = {
     // Error messages (user-friendly, non-technical)
     'error.connectionTimeout': 'सर्वर से कोई प्रतिक्रिया नहीं। कनेक्शन जाँचें।',
     'error.serverUnreachable': 'सर्वर से संपर्क नहीं हो सका। पता और सेटिंग्स जाँचें।',
-    'error.agentFailed': 'एजेंट शुरू नहीं हो सका। कनेक्शन जाँचें।',
+    'error.agentFailed': 'Agent विफल.',
     'error.noServerConfig': 'इस चैनल के लिए कोई सर्वर कॉन्फ़िगर नहीं है।',
     'error.noModelSelected': 'कोई मॉडल चयनित नहीं। पहले एक मॉडल चुनें।',
     'error.requestFailed': 'अनुरोध विफल। पुनः प्रयास करें।',

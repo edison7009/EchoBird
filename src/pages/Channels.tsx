@@ -545,18 +545,50 @@ const ChannelsInner: React.FC = () => {
 
     // ── Remote model: load model list + read current model when agent changes ──
     const selectedAgentForChannel = allActiveAgents[channelKey] || '';
+
+    // Helper: re-read current model from config, map API model ID back to internalId
+    const refreshCurrentModel = useCallback(() => {
+        const agentEntry = AGENT_LIST.find(a => a.name === selectedAgentForChannel);
+        if (!agentEntry) return;
+        const readPromise = isLocalChannel
+            ? api.bridgeGetLocalModel(agentEntry.id)
+            : activeChannel?.serverId
+                ? api.bridgeGetRemoteModel(String(activeChannel.serverId), agentEntry.id)
+                : Promise.resolve(null);
+        Promise.all([readPromise, api.getModels()])
+            .then(([result, models]) => {
+                if (result?.modelId) {
+                    // Map API model ID back to internalId for selector match
+                    const match = models.find(m => m.modelId === result.modelId || m.name === result.modelId);
+                    const displayId = match?.internalId || result.modelId;
+                    const displayName = match?.name || result.modelName || result.modelId;
+                    setAllRemoteModels(prev => ({ ...prev, [channelKey]: { id: displayId, name: displayName } }));
+                }
+            })
+            .catch(() => {});
+    }, [selectedAgentForChannel, channelKey, isLocalChannel, activeChannel]);
+
     useEffect(() => {
         if (!selectedAgentForChannel) return;
-        // Load available models from Model Nexus (same for local and remote)
+        // Load available models from Model Nexus, filtered by agent protocol support
         api.getModels().then(models => {
-            setChannelModelList(models.map(m => ({
+            // Agents that only support Anthropic protocol
+            const anthropicOnlyAgents = ['claudecode'];
+            const agentEntry = AGENT_LIST.find((a: any) => a.name === selectedAgentForChannel);
+            const isAnthropicOnly = agentEntry && anthropicOnlyAgents.includes(agentEntry.id);
+
+            const filtered = isAnthropicOnly
+                ? models.filter(m => !!m.anthropicUrl)  // Only models with anthropicUrl
+                : models;                                // All models
+
+            setChannelModelList(filtered.map(m => ({
                 id: m.internalId,
                 name: m.name,
                 icon: getModelIcon(m.name, m.modelId),
             })));
         }).catch(() => {});
 
-        // Read current model (local or remote)
+        // Read current model (local or remote), map API model ID back to internalId
         const agentEntry = AGENT_LIST.find(a => a.name === selectedAgentForChannel);
         if (!agentEntry) return;
         setAllRemoteModelLoading(prev => ({ ...prev, [channelKey]: true }));
@@ -567,10 +599,13 @@ const ChannelsInner: React.FC = () => {
                 ? api.bridgeGetRemoteModel(String(activeChannel.serverId), agentEntry.id)
                 : Promise.resolve(null);
 
-        readPromise
-            .then(result => {
+        Promise.all([readPromise, api.getModels()])
+            .then(([result, models]) => {
                 if (result?.modelId) {
-                    setAllRemoteModels(prev => ({ ...prev, [channelKey]: { id: result.modelId, name: result.modelName || result.modelId } }));
+                    const match = models.find(m => m.modelId === result.modelId || m.name === result.modelId);
+                    const displayId = match?.internalId || result.modelId;
+                    const displayName = match?.name || result.modelName || result.modelId;
+                    setAllRemoteModels(prev => ({ ...prev, [channelKey]: { id: displayId, name: displayName } }));
                 } else {
                     setAllRemoteModels(prev => ({ ...prev, [channelKey]: null }));
                 }
@@ -582,6 +617,14 @@ const ChannelsInner: React.FC = () => {
                 setAllRemoteModelLoading(prev => ({ ...prev, [channelKey]: false }));
             });
     }, [selectedAgentForChannel, channelKey, isLocalChannel]);
+
+    // Re-read model when user returns from other pages (e.g. App Manager changed the model)
+    useEffect(() => {
+        if (!selectedAgentForChannel) return;
+        const handleFocus = () => refreshCurrentModel();
+        window.addEventListener('focus', handleFocus);
+        return () => window.removeEventListener('focus', handleFocus);
+    }, [selectedAgentForChannel, refreshCurrentModel]);
 
     // Handle remote model switch
     const handleModelSelect = useCallback(async (modelId: string) => {
@@ -597,25 +640,32 @@ const ChannelsInner: React.FC = () => {
             const selected = models.find(m => m.internalId === modelId);
             if (!selected) throw new Error('Model not found');
 
+            // Use API model ID (modelId) for the actual model identifier, not internalId
+            const apiModelId = selected.modelId || selected.name;
+            // Use correct base URL for the protocol
+            const isAnthropic = !!selected.anthropicUrl;
+            const effectiveBaseUrl = isAnthropic ? (selected.anthropicUrl || '') : (selected.baseUrl || '');
+            const effectiveProtocol = isAnthropic ? 'anthropic' : 'openai';
+
             if (isLocalChannel) {
                 await api.bridgeSetLocalModel(
                     agentEntry.id,
-                    selected.internalId,
+                    apiModelId,
                     selected.name,
                     selected.apiKey || '',
-                    selected.baseUrl || '',
-                    selected.anthropicUrl ? 'anthropic' : 'openai',
+                    effectiveBaseUrl,
+                    effectiveProtocol,
                 );
             } else {
                 if (!activeChannel?.serverId) throw new Error('No server ID');
                 await api.bridgeSetRemoteModel(
                     String(activeChannel.serverId),
                     agentEntry.id,
-                    selected.internalId,
+                    apiModelId,
                     selected.name,
                     selected.apiKey || '',
-                    selected.baseUrl || '',
-                    selected.anthropicUrl ? 'anthropic' : 'openai',
+                    effectiveBaseUrl,
+                    effectiveProtocol,
                 );
             }
             setAllRemoteModels(prev => ({ ...prev, [channelKey]: { id: selected.internalId, name: selected.name } }));

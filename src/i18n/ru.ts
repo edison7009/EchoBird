@@ -147,7 +147,7 @@ const ru: Partial<Translations> = {
     'hint.devInvite': 'Разрабатывайте AI-приложения или AI-игры — см. «Реверси» и «AI Translate».',
     'nav.motherAgent': 'Mother Agent',
     'page.motherAgent': 'Mother Agent',    // Mother Agent
-    'mother.selectModel': 'Выбрать модель...',    'mother.hintInstall': 'Установить {agent}',    'mother.enterMessage': 'Введите сообщение...',
+    'mother.selectModel': 'Выбрать модель',    'mother.hintInstall': 'Установить {agent}',    'mother.enterMessage': 'Введите сообщение...',
     'mother.noModels': 'Нет доступных моделей',    'mother.servers': 'СЕРВЕРЫ',
     'mother.sshGuide': 'Руководство по настройке',
     'mother.local': 'ЛОКАЛЬНЫЙ',
@@ -207,7 +207,7 @@ const ru: Partial<Translations> = {
     // Error messages (user-friendly, non-technical)
     'error.connectionTimeout': 'Нет ответа от сервера. Проверьте соединение.',
     'error.serverUnreachable': 'Не удаётся подключиться к серверу. Проверьте адрес и настройки.',
-    'error.agentFailed': 'Агент не запустился. Проверьте соединение.',
+    'error.agentFailed': 'Agent не запущен.',
     'error.noServerConfig': 'Для этого канала сервер не настроен.',
     'error.noModelSelected': 'Модель не выбрана. Сначала выберите модель.',
     'error.requestFailed': 'Запрос не выполнен. Попробуйте снова.',

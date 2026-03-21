@@ -46,7 +46,7 @@ const el: Partial<Translations> = {
     'hint.devInvite': 'Αναπτύξτε AI εφαρμογές ή AI παιχνίδια — δείτε \"Reversi\" και \"AI Translate\".',
     'nav.motherAgent': 'Mother Agent',
     'page.motherAgent': 'Mother Agent',    // Mother Agent
-    'mother.selectModel': 'Επιλέξτε μοντέλο...',    'mother.hintInstall': 'Εγκατάσταση {agent}',    'mother.enterMessage': 'Εισάγετε μήνυμα...',
+    'mother.selectModel': 'Επιλέξτε μοντέλο',    'mother.hintInstall': 'Εγκατάσταση {agent}',    'mother.enterMessage': 'Εισάγετε μήνυμα...',
     'mother.noModels': 'Δεν υπάρχουν διαθέσιμα μοντέλα',    'mother.servers': 'ΔΙΑΚΟΜΙΣΤΕΣ',
     'mother.sshGuide': 'Οδηγός ρύθμισης',
     'mother.local': 'ΤΟΠΙΚΟ',
@@ -106,7 +106,7 @@ const el: Partial<Translations> = {
     // Error messages (user-friendly, non-technical)
     'error.connectionTimeout': 'Δεν υπάρχει απόκριση από τον διακομιστή. Ελέγξτε τη σύνδεση.',
     'error.serverUnreachable': 'Δεν είναι δυνατή η πρόσβαση στον διακομιστή. Ελέγξτε τη διεύθυνση και τις ρυθμίσεις.',
-    'error.agentFailed': 'Ο πράκτορας δεν εκκινήθηκε. Ελέγξτε τη σύνδεση.',
+    'error.agentFailed': 'Agent απέτυχε.',
     'error.noServerConfig': 'Δεν υπάρχει διακομιστής για αυτό το κανάλι.',
     'error.noModelSelected': 'Δεν έχει επιλεγεί μοντέλο. Επιλέξτε πρώτα ένα.',
     'error.requestFailed': 'Το αίτημα απέτυχε. Δοκιμάστε ξανά.',

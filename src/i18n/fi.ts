@@ -46,7 +46,7 @@ const fi: Partial<Translations> = {
     'hint.devInvite': 'Kehitä tekoälysovelluksia tai -pelejä — katso \"Reversi\" ja \"AI Translate\".',
     'nav.motherAgent': 'Mother Agent',
     'page.motherAgent': 'Mother Agent',    // Mother Agent
-    'mother.selectModel': 'Valitse malli...',    'mother.hintInstall': 'Asenna {agent}',    'mother.enterMessage': 'Kirjoita viesti...',
+    'mother.selectModel': 'Valitse malli',    'mother.hintInstall': 'Asenna {agent}',    'mother.enterMessage': 'Kirjoita viesti...',
     'mother.noModels': 'Ei malleja saatavilla',    'mother.servers': 'PALVELIMET',
     'mother.sshGuide': 'Asennusopas',
     'mother.local': 'PAIKALLINEN',
@@ -106,7 +106,7 @@ const fi: Partial<Translations> = {
     // Error messages (user-friendly, non-technical)
     'error.connectionTimeout': 'Ei vastausta palvelimelta. Tarkista yhteys.',
     'error.serverUnreachable': 'Palvelimeen ei saada yhteyttä. Tarkista osoite ja asetukset.',
-    'error.agentFailed': 'Agentti ei käynnistynyt. Tarkista yhteys.',
+    'error.agentFailed': 'Agent epäonnistui.',
     'error.noServerConfig': 'Tälle kanavalle ei ole määritetty palvelinta.',
     'error.noModelSelected': 'Mallia ei ole valittu. Valitse ensin malli.',
     'error.requestFailed': 'Pyyntö epäonnistui. Yritä uudelleen.',

@@ -126,7 +126,7 @@ const ar: Partial<Translations> = {
     'hint.devInvite': 'طوّر تطبيقات أو ألعاب ذكاء اصطناعي — راجع \"Reversi\" و \"AI Translate\".',
     'nav.motherAgent': 'Mother Agent',
     'page.motherAgent': 'Mother Agent',    // Mother Agent
-    'mother.selectModel': 'اختر نموذجاً...',    'mother.hintInstall': 'تثبيت {agent}',    'mother.enterMessage': 'أدخل رسالة...',
+    'mother.selectModel': 'اختر نموذجاً',    'mother.hintInstall': 'تثبيت {agent}',    'mother.enterMessage': 'أدخل رسالة...',
     'mother.noModels': 'لا توجد نماذج متاحة',    'mother.servers': 'الخوادم',
     'mother.sshGuide': 'دليل الإعداد',
     'mother.local': 'محلي',
@@ -186,7 +186,7 @@ const ar: Partial<Translations> = {
     // Error messages (user-friendly, non-technical)
     'error.connectionTimeout': 'لا يوجد رد من الخادم، تحقق من الاتصال.',
     'error.serverUnreachable': 'تعذّر الوصول إلى الخادم، تحقق من العنوان والإعدادات.',
-    'error.agentFailed': 'فشل تشغيل الوكيل، تحقق من الاتصال.',
+    'error.agentFailed': 'فشل Agent.',
     'error.noServerConfig': 'لم يتم تكوين خادم لهذه القناة.',
     'error.noModelSelected': 'لم يتم اختيار نموذج، اختر نموذجًا أولاً.',
     'error.requestFailed': 'الطلب فشل، يرجى المحاولة مجددًا.',

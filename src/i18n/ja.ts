@@ -147,7 +147,7 @@ const ja: Partial<Translations> = {
     'hint.devInvite': 'AI アプリや AI ゲームを開発 — 「リバーシ」と「AI 翻訳」を参考に',
     'nav.motherAgent': 'Mother Agent',
     'page.motherAgent': 'Mother Agent',    // Mother Agent
-    'mother.selectModel': 'モデルを選択...',    'mother.hintInstall': '{agent} をインストール',    'mother.enterMessage': 'メッセージを入力...',
+    'mother.selectModel': 'モデルを選択',    'mother.hintInstall': '{agent} をインストール',    'mother.enterMessage': 'メッセージを入力...',
     'mother.noModels': '利用可能なモデルがありません',    'mother.servers': 'サーバー',
     'mother.sshGuide': 'セットアップガイド',
     'mother.local': 'ローカル',
@@ -207,7 +207,7 @@ const ja: Partial<Translations> = {
     // Error messages (user-friendly, non-technical)
     'error.connectionTimeout': 'サーバーから応答がありません。接続を確認してください。',
     'error.serverUnreachable': 'サーバーに接続できません。アドレスと設定を確認してください。',
-    'error.agentFailed': 'エージェントの起動に失敗しました。接続を確認してください。',
+    'error.agentFailed': 'Agent 失敗。',
     'error.noServerConfig': 'このチャンネルにサーバーが設定されていません。',
     'error.noModelSelected': 'モデルが選択されていません。先にモデルを選択してください。',
     'error.requestFailed': 'リクエストに失敗しました。もう一度お試しください。',

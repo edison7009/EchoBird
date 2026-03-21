@@ -128,7 +128,7 @@ const ms: Partial<Translations> = {
     'hint.devInvite': 'Bangunkan aplikasi atau permainan AI — rujuk \"Reversi\" dan \"AI Translate\".',
     'nav.motherAgent': 'Mother Agent',
     'page.motherAgent': 'Mother Agent',    // Mother Agent
-    'mother.selectModel': 'Pilih model...',    'mother.hintInstall': 'Pasang {agent}',    'mother.enterMessage': 'Masukkan mesej...',
+    'mother.selectModel': 'Pilih model',    'mother.hintInstall': 'Pasang {agent}',    'mother.enterMessage': 'Masukkan mesej...',
     'mother.noModels': 'Tiada model tersedia',    'mother.servers': 'PELAYAN',
     'mother.sshGuide': 'Panduan Persediaan',
     'mother.local': 'TEMPATAN',
@@ -188,7 +188,7 @@ const ms: Partial<Translations> = {
     // Error messages (user-friendly, non-technical)
     'error.connectionTimeout': 'Tiada respons dari pelayan. Sila semak sambungan.',
     'error.serverUnreachable': 'Tidak dapat menghubungi pelayan. Semak alamat dan tetapan.',
-    'error.agentFailed': 'Agen gagal dimulakan. Semak sambungan.',
+    'error.agentFailed': 'Agent gagal.',
     'error.noServerConfig': 'Tiada pelayan dikonfigurasi untuk saluran ini.',
     'error.noModelSelected': 'Tiada model dipilih. Pilih model dahulu.',
     'error.requestFailed': 'Permintaan gagal. Cuba lagi.',

@@ -126,7 +126,7 @@ const cs: Partial<Translations> = {
     'hint.devInvite': 'Vyvíjejte AI aplikace nebo AI hry — viz \"Reversi\" a \"AI Translate\".',
     'nav.motherAgent': 'Mother Agent',
     'page.motherAgent': 'Mother Agent',    // Mother Agent
-    'mother.selectModel': 'Vyberte model...',    'mother.hintInstall': 'Nainstalovat {agent}',    'mother.enterMessage': 'Zadejte zprávu...',
+    'mother.selectModel': 'Vyberte model',    'mother.hintInstall': 'Nainstalovat {agent}',    'mother.enterMessage': 'Zadejte zprávu...',
     'mother.noModels': 'Žádné dostupné modely',    'mother.servers': 'SERVERY',
     'mother.sshGuide': 'Průvodce nastavením',
     'mother.local': 'MÍSTNÍ',
@@ -186,7 +186,7 @@ const cs: Partial<Translations> = {
     // Error messages (user-friendly, non-technical)
     'error.connectionTimeout': 'Server nereaguje. Zkontrolujte připojení.',
     'error.serverUnreachable': 'Server není dostupný. Zkontrolujte adresu a nastavení.',
-    'error.agentFailed': 'Agent se nepodařilo spustit. Zkontrolujte připojení.',
+    'error.agentFailed': 'Agent selhal.',
     'error.noServerConfig': 'Pro tento kanál není nakonfigurován server.',
     'error.noModelSelected': 'Nebyl vybrán žádný model. Nejprve vyberte model.',
     'error.requestFailed': 'Požadavek selhal. Zkuste to znovu.',

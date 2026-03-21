@@ -126,7 +126,7 @@ const bn: Partial<Translations> = {
     'hint.devInvite': 'AI অ্যাপ বা AI গেম তৈরি করুন — \"Reversi\" ও \"AI Translate\" দেখুন।',
     'nav.motherAgent': 'Mother Agent',
     'page.motherAgent': 'Mother Agent',    // Mother Agent
-    'mother.selectModel': 'মডেল নির্বাচন করুন...',    'mother.hintInstall': '{agent} ইনস্টল করুন',    'mother.enterMessage': 'বার্তা লিখুন...',
+    'mother.selectModel': 'মডেল নির্বাচন করুন',    'mother.hintInstall': '{agent} ইনস্টল করুন',    'mother.enterMessage': 'বার্তা লিখুন...',
     'mother.noModels': 'কোনো মডেল পাওয়া যায়নি',    'mother.servers': 'সার্ভার',
     'mother.sshGuide': 'সেটআপ গাইড',
     'mother.local': 'লোকাল',
@@ -186,7 +186,7 @@ const bn: Partial<Translations> = {
     // Error messages (user-friendly, non-technical)
     'error.connectionTimeout': 'সার্ভার থেকে কোনো সাড়া নেই। সংযোগ যাচাই করুন।',
     'error.serverUnreachable': 'সার্ভারে পৌঁছানো যাচ্ছে না। ঠিকানা ও সেটিংস যাচাই করুন।',
-    'error.agentFailed': 'এজেন্ট চালু হয়নি। সংযোগ যাচাই করুন।',
+    'error.agentFailed': 'Agent ব্যর্থ.',
     'error.noServerConfig': 'এই চ্যানেলে কোনো সার্ভার কনফিগার করা নেই।',
     'error.noModelSelected': 'কোনো মডেল নির্বাচন করা হয়নি। আগে একটি মডেল বেছে নিন।',
     'error.requestFailed': 'অনুরোধ ব্যর্থ হয়েছে। আবার চেষ্টা করুন।',

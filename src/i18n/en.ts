@@ -152,7 +152,7 @@ const en: Translations = {
     'channel.selectRoleAgent': 'Select Role and CLI Agent',
     'hint.devInvite': 'Develop AI apps or AI games — see \"Reversi\" and \"AI Translate\".',
     // Mother Agent
-    'mother.selectModel': 'Select model...',    'mother.hintInstall': 'Install {agent}',    'mother.enterMessage': 'Enter message...',
+    'mother.selectModel': 'Select model',    'mother.hintInstall': 'Install {agent}',    'mother.enterMessage': 'Enter message...',
     'mother.noModels': 'No models available',    'mother.servers': 'SERVERS',
     'mother.sshGuide': 'Setup Guide',
     'mother.local': 'LOCAL',
@@ -213,7 +213,7 @@ const en: Translations = {
     // Error messages (user-friendly, non-technical)
     'error.connectionTimeout': 'No response from server, please check your connection.',
     'error.serverUnreachable': 'Cannot reach the server, please check the address and settings.',
-    'error.agentFailed': 'Agent failed to start, please check the connection.',
+    'error.agentFailed': 'Agent failed.',
     'error.noServerConfig': 'No server configured for this channel.',
     'error.noModelSelected': 'No model selected, please select a model first.',
     'error.requestFailed': 'Request failed, please try again.',

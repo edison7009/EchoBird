@@ -128,7 +128,7 @@ const th: Partial<Translations> = {
     'hint.devInvite': 'พัฒนาแอป AI หรือเกม AI — ดูตัวอย่าง \"Reversi\" และ \"AI Translate\"',
     'nav.motherAgent': 'Mother Agent',
     'page.motherAgent': 'Mother Agent',    // Mother Agent
-    'mother.selectModel': 'เลือกโมเดล...',    'mother.hintInstall': 'ติดตั้ง {agent}',    'mother.enterMessage': 'พิมพ์ข้อความ...',
+    'mother.selectModel': 'เลือกโมเดล',    'mother.hintInstall': 'ติดตั้ง {agent}',    'mother.enterMessage': 'พิมพ์ข้อความ...',
     'mother.noModels': 'ไม่มีโมเดลที่พร้อมใช้งาน',    'mother.servers': 'เซิร์ฟเวอร์',
     'mother.sshGuide': 'คู่มือการตั้งค่า',
     'mother.local': 'ท้องถิ่น',
@@ -188,7 +188,7 @@ const th: Partial<Translations> = {
     // Error messages (user-friendly, non-technical)
     'error.connectionTimeout': 'ไม่มีการตอบสนองจากเซิร์ฟเวอร์ กรุณาตรวจสอบการเชื่อมต่อ',
     'error.serverUnreachable': 'ไม่สามารถเข้าถึงเซิร์ฟเวอร์ได้ กรุณาตรวจสอบที่อยู่และการตั้งค่า',
-    'error.agentFailed': 'เอเจนต์ไม่สามารถเริ่มต้นได้ กรุณาตรวจสอบการเชื่อมต่อ',
+    'error.agentFailed': 'Agent ล้มเหลว.',
     'error.noServerConfig': 'ช่องนี้ยังไม่ได้กำหนดค่าเซิร์ฟเวอร์',
     'error.noModelSelected': 'ยังไม่ได้เลือกโมเดล กรุณาเลือกโมเดลก่อน',
     'error.requestFailed': 'คำขอล้มเหลว กรุณาลองอีกครั้ง',

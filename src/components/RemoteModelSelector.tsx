@@ -22,7 +22,7 @@ export const RemoteModelSelector: React.FC<RemoteModelSelectorProps> = ({
     currentModelId,
     loading,
     onSelect,
-    placeholder = 'Select model...',
+    placeholder = 'Select model',
 }) => {
     const [isOpen, setIsOpen] = useState(false);
     const containerRef = useRef<HTMLDivElement>(null);

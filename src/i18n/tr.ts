@@ -126,7 +126,7 @@ const tr: Partial<Translations> = {
     'hint.devInvite': 'AI uygulamaları veya AI oyunları geliştirin — \"Reversi\" ve \"AI Translate\"\'e bakın.',
     'nav.motherAgent': 'Mother Agent',
     'page.motherAgent': 'Mother Agent',    // Mother Agent
-    'mother.selectModel': 'Model seçin...',    'mother.hintInstall': '{agent} kur',    'mother.enterMessage': 'Mesaj yazın...',
+    'mother.selectModel': 'Model seçin',    'mother.hintInstall': '{agent} kur',    'mother.enterMessage': 'Mesaj yazın...',
     'mother.noModels': 'Kullanılabilir model yok',    'mother.servers': 'SUNUCULAR',
     'mother.sshGuide': 'Kurulum Kılavuzu',
     'mother.local': 'YEREL',
@@ -186,7 +186,7 @@ const tr: Partial<Translations> = {
     // Error messages (user-friendly, non-technical)
     'error.connectionTimeout': 'Sunucudan yanıt yok. Bağlantıyı kontrol edin.',
     'error.serverUnreachable': 'Sunucuya ulaşılamıyor. Adres ve ayarları kontrol edin.',
-    'error.agentFailed': 'Ajan başlatılamadı. Bağlantıyı kontrol edin.',
+    'error.agentFailed': 'Agent başarısız.',
     'error.noServerConfig': 'Bu kanal için sunucu yapılandırılmamış.',
     'error.noModelSelected': 'Model seçilmedi. Lütfen önce bir model seçin.',
     'error.requestFailed': 'İstek başarısız. Lütfen tekrar deneyin.',

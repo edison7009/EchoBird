@@ -149,7 +149,7 @@ const de: Partial<Translations> = {
     'hint.devInvite': 'KI-Apps oder KI-Spiele entwickeln →siehe \"Reversi\" und \"AI Translate\".',
     'nav.motherAgent': 'Mother Agent',
     'page.motherAgent': 'Mother Agent',    // Mother Agent
-    'mother.selectModel': 'Modell wählen...',    'mother.hintInstall': '{agent} installieren',    'mother.enterMessage': 'Nachricht eingeben...',
+    'mother.selectModel': 'Modell wählen',    'mother.hintInstall': '{agent} installieren',    'mother.enterMessage': 'Nachricht eingeben...',
     'mother.noModels': 'Keine Modelle verfügbar',    'mother.servers': 'SERVER',
     'mother.sshGuide': 'Einrichtungshilfe',
     'mother.local': 'LOKAL',
@@ -209,7 +209,7 @@ const de: Partial<Translations> = {
     // Error messages (user-friendly, non-technical)
     'error.connectionTimeout': 'Keine Antwort vom Server. Bitte Verbindung prüfen.',
     'error.serverUnreachable': 'Server nicht erreichbar. Bitte Adresse und Einstellungen prüfen.',
-    'error.agentFailed': 'Agent konnte nicht gestartet werden. Bitte Verbindung prüfen.',
+    'error.agentFailed': 'Agent fehlgeschlagen.',
     'error.noServerConfig': 'Für diesen Kanal ist kein Server konfiguriert.',
     'error.noModelSelected': 'Kein Modell ausgewählt. Bitte zuerst ein Modell wählen.',
     'error.requestFailed': 'Anfrage fehlgeschlagen. Bitte erneut versuchen.',

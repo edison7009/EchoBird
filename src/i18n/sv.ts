@@ -46,7 +46,7 @@ const sv: Partial<Translations> = {
     'hint.devInvite': 'Utveckla AI-appar eller AI-spel — se \"Reversi\" och \"AI Translate\".',
     'nav.motherAgent': 'Mother Agent',
     'page.motherAgent': 'Mother Agent',    // Mother Agent
-    'mother.selectModel': 'Välj modell...',    'mother.hintInstall': 'Installera {agent}',    'mother.enterMessage': 'Skriv meddelande...',
+    'mother.selectModel': 'Välj modell',    'mother.hintInstall': 'Installera {agent}',    'mother.enterMessage': 'Skriv meddelande...',
     'mother.noModels': 'Inga modeller tillgängliga',    'mother.servers': 'SERVRAR',
     'mother.sshGuide': 'Installationsguide',
     'mother.local': 'LOKAL',
@@ -106,7 +106,7 @@ const sv: Partial<Translations> = {
     // Error messages (user-friendly, non-technical)
     'error.connectionTimeout': 'Inget svar från servern. Kontrollera anslutningen.',
     'error.serverUnreachable': 'Kan inte nå servern. Kontrollera adressen och inställningarna.',
-    'error.agentFailed': 'Agenten misslyckades med att starta. Kontrollera anslutningen.',
+    'error.agentFailed': 'Agent misslyckades.',
     'error.noServerConfig': 'Ingen server konfigurerad för den här kanalen.',
     'error.noModelSelected': 'Ingen modell vald. Välj en modell först.',
     'error.requestFailed': 'Förfrågan misslyckades. Försök igen.',

@@ -126,7 +126,7 @@ const vi: Partial<Translations> = {
     'hint.devInvite': 'Phát triển ứng dụng hoặc trò chơi AI — tham khảo \"Reversi\" và \"AI Translate\".',
     'nav.motherAgent': 'Mother Agent',
     'page.motherAgent': 'Mother Agent',    // Mother Agent
-    'mother.selectModel': 'Chọn mô hình...',    'mother.hintInstall': 'Cài đặt {agent}',    'mother.enterMessage': 'Nhập tin nhắn...',
+    'mother.selectModel': 'Chọn mô hình',    'mother.hintInstall': 'Cài đặt {agent}',    'mother.enterMessage': 'Nhập tin nhắn...',
     'mother.noModels': 'Không có mô hình nào',    'mother.servers': 'MÁY CHỦ',
     'mother.sshGuide': 'Hướng dẫn cài đặt',
     'mother.local': 'NỘI BỘ',
@@ -186,7 +186,7 @@ const vi: Partial<Translations> = {
     // Error messages (user-friendly, non-technical)
     'error.connectionTimeout': 'Không có phản hồi từ máy chủ. Vui lòng kiểm tra kết nối.',
     'error.serverUnreachable': 'Không thể kết nối đến máy chủ. Kiểm tra địa chỉ và cài đặt.',
-    'error.agentFailed': 'Agent khởi động thất bại. Kiểm tra kết nối.',
+    'error.agentFailed': 'Agent thất bại.',
     'error.noServerConfig': 'Kênh này chưa có máy chủ được cấu hình.',
     'error.noModelSelected': 'Chưa chọn mô hình. Vui lòng chọn mô hình trước.',
     'error.requestFailed': 'Yêu cầu thất bại. Vui lòng thử lại.',

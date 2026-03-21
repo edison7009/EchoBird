@@ -1482,7 +1482,12 @@ pub async fn bridge_get_remote_model(
     crate::commands::ssh_commands::auto_connect_ssh(&pool, &server_id).await
         .map_err(|e| format!("SSH connection failed: {}", e))?;
 
-    let cmd = format!("cat ~/.echobird/remote_{}.json 2>/dev/null || echo 'NOT_FOUND'", agent_id);
+    // OpenClaw: read ~/.openclaw/openclaw.json (same as local)
+    let cmd = if agent_id == "openclaw" {
+        "cat ~/.openclaw/openclaw.json 2>/dev/null || echo 'NOT_FOUND'".to_string()
+    } else {
+        format!("cat ~/.echobird/remote_{}.json 2>/dev/null || echo 'NOT_FOUND'", agent_id)
+    };
 
     let connections = pool.lock().await;
     let client = connections.get(&server_id)
@@ -1501,8 +1506,28 @@ pub async fn bridge_get_remote_model(
 
     let stdout = result.stdout.trim();
     if stdout != "NOT_FOUND" && !stdout.is_empty() {
-        // Parse JSON marker file
         if let Ok(json) = serde_json::from_str::<serde_json::Value>(stdout) {
+            // OpenClaw: parse agents.defaults.model.primary
+            if agent_id == "openclaw" {
+                if let Some(primary) = json.pointer("/agents/defaults/model/primary").and_then(|v| v.as_str()) {
+                    if let Some((_provider, model_id)) = primary.split_once('/') {
+                        let model_name = json.pointer(&format!("/models/providers/{}", _provider))
+                            .and_then(|p| p.get("models"))
+                            .and_then(|m| m.as_array())
+                            .and_then(|arr| arr.iter().find(|m| m.get("id").and_then(|v| v.as_str()) == Some(model_id)))
+                            .and_then(|m| m.get("name").and_then(|v| v.as_str()))
+                            .unwrap_or(model_id)
+                            .to_string();
+                        return Ok(Some(RemoteModelResult {
+                            model_id: model_id.to_string(),
+                            model_name,
+                        }));
+                    }
+                }
+                return Ok(None);
+            }
+
+            // Other agents: parse marker file format
             let model_id = json.get("modelId").and_then(|v| v.as_str()).unwrap_or("").to_string();
             let model_name = json.get("modelName").and_then(|v| v.as_str()).unwrap_or("").to_string();
             if !model_id.is_empty() {
@@ -1579,19 +1604,59 @@ pub async fn bridge_set_remote_model(
             )
         }
         "openclaw" => {
-            // OpenClaw: write Echobird relay JSON → ~/.echobird/openclaw.json
-            // The patched OpenClaw launcher reads this file (same as local App Manager)
-            let relay = serde_json::json!({
-                "apiKey": api_key,
-                "modelId": model_id,
-                "modelName": model_name,
-                "baseUrl": base_url,
-                "protocol": api_type,
+            // OpenClaw v2026.3.13+: write fresh ~/.openclaw/openclaw.json via SSH
+            let base = base_url.trim_end_matches('/');
+            let provider_tag = {
+                let without_protocol = base
+                    .strip_prefix("https://").or_else(|| base.strip_prefix("http://"))
+                    .unwrap_or(base);
+                let host = without_protocol.split('/').next().unwrap_or("");
+                let host = host.split(':').next().unwrap_or(host);
+                if host == "localhost" || host.starts_with("127.") || host.starts_with("192.168.") {
+                    "local".to_string()
+                } else {
+                    let parts: Vec<&str> = host.split('.').collect();
+                    if parts.len() >= 2 { parts[parts.len() - 2].to_string() } else { host.to_string() }
+                }
+            };
+            let eb_provider = format!("eb_{}", provider_tag);
+            let is_anthropic = api_type == "anthropic"
+                || model_id.to_lowercase().contains("claude")
+                || base_url.to_lowercase().contains("anthropic");
+            let oc_api_type = if is_anthropic { "anthropic-messages" } else { "openai-completions" };
+
+            // Build fresh openclaw.json (same format as local)
+            let oc_config = serde_json::json!({
+                "models": {
+                    "mode": "merge",
+                    "providers": {
+                        eb_provider.clone(): {
+                            "baseUrl": base,
+                            "apiKey": api_key,
+                            "api": oc_api_type,
+                            "models": [{
+                                "id": model_id,
+                                "name": model_name,
+                                "contextWindow": 128000,
+                                "maxTokens": 8192,
+                                "input": ["text"],
+                                "reasoning": false,
+                                "cost": { "input": 0, "output": 0, "cacheRead": 0, "cacheWrite": 0 }
+                            }]
+                        }
+                    }
+                },
+                "agents": {
+                    "defaults": {
+                        "model": { "primary": format!("{}/{}", eb_provider, model_id) }
+                    }
+                }
             });
-            let relay_str = shell_escape(&serde_json::to_string(&relay).unwrap_or_default());
+            let config_str = shell_escape(&serde_json::to_string_pretty(&oc_config).unwrap_or_default());
+            // Preserve gateway token if exists, then overwrite
             format!(
-                "mkdir -p ~/.echobird && echo '{}' > ~/.echobird/openclaw.json",
-                relay_str
+                "mkdir -p ~/.openclaw && GW=$(cat ~/.openclaw/openclaw.json 2>/dev/null | grep -o '\"gateway\"[^}}]*}}' || true) && echo '{}' > ~/.openclaw/openclaw.json",
+                config_str
             )
         }
         "zeroclaw" => {
@@ -1755,6 +1820,35 @@ pub async fn bridge_get_local_model(
     log::info!("[BridgeGetLocalModel] agent={}", agent_id);
 
     let home = dirs::home_dir().ok_or("Cannot find home directory")?;
+
+    // OpenClaw: read directly from ~/.openclaw/openclaw.json
+    if agent_id == "openclaw" {
+        let oc_path = home.join(".openclaw").join("openclaw.json");
+        if !oc_path.exists() { return Ok(None); }
+        let content = std::fs::read_to_string(&oc_path)
+            .map_err(|e| format!("Failed to read openclaw.json: {}", e))?;
+        if let Ok(json) = serde_json::from_str::<serde_json::Value>(&content) {
+            if let Some(primary) = json.pointer("/agents/defaults/model/primary").and_then(|v| v.as_str()) {
+                if let Some((_provider, model_id)) = primary.split_once('/') {
+                    // Get display name from models array
+                    let model_name = json.pointer(&format!("/models/providers/{}", _provider))
+                        .and_then(|p| p.get("models"))
+                        .and_then(|m| m.as_array())
+                        .and_then(|arr| arr.iter().find(|m| m.get("id").and_then(|v| v.as_str()) == Some(model_id)))
+                        .and_then(|m| m.get("name").and_then(|v| v.as_str()))
+                        .unwrap_or(model_id)
+                        .to_string();
+                    return Ok(Some(RemoteModelResult {
+                        model_id: model_id.to_string(),
+                        model_name,
+                    }));
+                }
+            }
+        }
+        return Ok(None);
+    }
+
+    // Other agents: read from marker file ~/.echobird/local_{agent_id}.json
     let marker_path = home.join(".echobird").join(format!("local_{}.json", agent_id));
 
     if !marker_path.exists() {
@@ -1814,7 +1908,76 @@ pub async fn bridge_set_local_model(
             }
         }
         "openclaw" => {
-            // OpenClaw: write Echobird relay JSON → ~/.echobird/openclaw.json
+            // OpenClaw v2026.3.13+: full overwrite ~/.openclaw/openclaw.json
+            // Only preserves gateway token from existing config
+
+            // Determine provider tag and API type
+            let base = base_url.trim_end_matches('/');
+            let provider_tag = {
+                let without_protocol = base
+                    .strip_prefix("https://").or_else(|| base.strip_prefix("http://"))
+                    .unwrap_or(base);
+                let host = without_protocol.split('/').next().unwrap_or("");
+                let host = host.split(':').next().unwrap_or(host);
+                if host == "localhost" || host.starts_with("127.") || host.starts_with("192.168.") {
+                    "local".to_string()
+                } else {
+                    let parts: Vec<&str> = host.split('.').collect();
+                    if parts.len() >= 2 { parts[parts.len() - 2].to_string() } else { host.to_string() }
+                }
+            };
+            let eb_provider = format!("eb_{}", provider_tag);
+            let is_anthropic = api_type == "anthropic"
+                || model_id.to_lowercase().contains("claude")
+                || base_url.to_lowercase().contains("anthropic");
+            let oc_api_type = if is_anthropic { "anthropic-messages" } else { "openai-completions" };
+
+            // Preserve gateway token
+            let oc_dir = home.join(".openclaw");
+            std::fs::create_dir_all(&oc_dir)
+                .map_err(|e| format!("Failed to create .openclaw dir: {}", e))?;
+            let oc_config_path = oc_dir.join("openclaw.json");
+            let gateway = if oc_config_path.exists() {
+                std::fs::read_to_string(&oc_config_path).ok()
+                    .and_then(|c| serde_json::from_str::<serde_json::Value>(&c).ok())
+                    .and_then(|v| v.get("gateway").cloned())
+            } else { None };
+
+            // Build fresh config
+            let mut oc_config = serde_json::json!({
+                "models": {
+                    "mode": "merge",
+                    "providers": {
+                        eb_provider.clone(): {
+                            "baseUrl": base,
+                            "apiKey": api_key,
+                            "api": oc_api_type,
+                            "models": [{
+                                "id": model_id,
+                                "name": model_name,
+                                "contextWindow": 128000,
+                                "maxTokens": 8192,
+                                "input": ["text"],
+                                "reasoning": false,
+                                "cost": { "input": 0, "output": 0, "cacheRead": 0, "cacheWrite": 0 }
+                            }]
+                        }
+                    }
+                },
+                "agents": {
+                    "defaults": {
+                        "model": { "primary": format!("{}/{}", eb_provider, model_id) }
+                    }
+                }
+            });
+            if let Some(gw) = gateway { oc_config["gateway"] = gw; }
+
+            let oc_str = serde_json::to_string_pretty(&oc_config).unwrap_or_default();
+            std::fs::write(&oc_config_path, &oc_str)
+                .map_err(|e| format!("Failed to write openclaw.json: {}", e))?;
+            log::info!("[BridgeSetLocalModel] OpenClaw config overwritten: {}/{} ({})", eb_provider, model_id, oc_api_type);
+
+            // Also write relay file for Channels read-back
             let eb_dir = home.join(".echobird");
             std::fs::create_dir_all(&eb_dir)
                 .map_err(|e| format!("Failed to create .echobird dir: {}", e))?;
@@ -1827,7 +1990,7 @@ pub async fn bridge_set_local_model(
             });
             let relay_str = serde_json::to_string_pretty(&relay).unwrap_or_default();
             std::fs::write(eb_dir.join("openclaw.json"), &relay_str)
-                .map_err(|e| format!("Failed to write openclaw.json: {}", e))?;
+                .map_err(|e| format!("Failed to write openclaw.json relay: {}", e))?;
         }
         "zeroclaw" => {
             let config_dir = home.join(".zeroclaw");

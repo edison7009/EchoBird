@@ -126,7 +126,7 @@ const nl: Partial<Translations> = {
     'hint.devInvite': 'Ontwikkel AI-apps of AI-games — zie \"Reversi\" en \"AI Translate\".',
     'nav.motherAgent': 'Mother Agent',
     'page.motherAgent': 'Mother Agent',    // Mother Agent
-    'mother.selectModel': 'Model kiezen...',    'mother.hintInstall': '{agent} installeren',    'mother.enterMessage': 'Bericht invoeren...',
+    'mother.selectModel': 'Model kiezen',    'mother.hintInstall': '{agent} installeren',    'mother.enterMessage': 'Bericht invoeren...',
     'mother.noModels': 'Geen modellen beschikbaar',    'mother.servers': 'SERVERS',
     'mother.sshGuide': 'Installatiegids',
     'mother.local': 'LOKAAL',
@@ -186,7 +186,7 @@ const nl: Partial<Translations> = {
     // Error messages (user-friendly, non-technical)
     'error.connectionTimeout': 'Geen reactie van de server. Controleer de verbinding.',
     'error.serverUnreachable': 'Kan de server niet bereiken. Controleer het adres en de instellingen.',
-    'error.agentFailed': 'Agent kon niet worden gestart. Controleer de verbinding.',
+    'error.agentFailed': 'Agent mislukt.',
     'error.noServerConfig': 'Er is geen server geconfigureerd voor dit kanaal.',
     'error.noModelSelected': 'Geen model geselecteerd. Selecteer eerst een model.',
     'error.requestFailed': 'Verzoek mislukt. Probeer het opnieuw.',

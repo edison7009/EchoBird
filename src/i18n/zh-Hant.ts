@@ -149,7 +149,7 @@ const zhHant: Partial<Translations> = {
     'hint.devInvite': '開發 AI 應用或 AI 遊戲，參考「黑白棋」和「AI 翻譯」。',
     'nav.motherAgent': 'Mother Agent',
     'page.motherAgent': 'Mother Agent',    // Mother Agent
-    'mother.selectModel': '選擇模型...',    'mother.hintInstall': '安裝 {agent}',    'mother.enterMessage': '輸入訊息...',
+    'mother.selectModel': '選擇模型',    'mother.hintInstall': '安裝 {agent}',    'mother.enterMessage': '輸入訊息...',
     'mother.noModels': '暫無可用模型',    'mother.servers': '伺服器',
     'mother.sshGuide': '新增指南',
     'mother.local': '本機',
@@ -208,7 +208,7 @@ const zhHant: Partial<Translations> = {
     // Error messages (user-friendly, non-technical)
     'error.connectionTimeout': '伺服器沒有回應，請檢查網路連線。',
     'error.serverUnreachable': '無法連接伺服器，請檢查地址和設定。',
-    'error.agentFailed': 'Agent 啟動失敗，請檢查連線。',
+    'error.agentFailed': 'Agent 不可用。',
     'error.noServerConfig': '此頻道未配置伺服器。',
     'error.noModelSelected': '未選擇模型，請先選擇一個模型。',
     'error.requestFailed': '請求失敗，請重試。',

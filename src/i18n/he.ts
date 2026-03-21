@@ -46,7 +46,7 @@ const he: Partial<Translations> = {
     'hint.devInvite': 'פתחו אפליקציות AI או משחקי AI — ראו \"Reversi\" ו-\"AI Translate\".',
     'nav.motherAgent': 'Mother Agent',
     'page.motherAgent': 'Mother Agent',    // Mother Agent
-    'mother.selectModel': 'בחר מודל...',    'mother.hintInstall': 'התקן {agent}',    'mother.enterMessage': 'הזן הודעה...',
+    'mother.selectModel': 'בחר מודל',    'mother.hintInstall': 'התקן {agent}',    'mother.enterMessage': 'הזן הודעה...',
     'mother.noModels': 'אין מודלים זמינים',    'mother.servers': 'שרתים',
     'mother.sshGuide': 'מדריך הגדרה',
     'mother.local': 'מקומי',
@@ -106,7 +106,7 @@ const he: Partial<Translations> = {
     // Error messages (user-friendly, non-technical)
     'error.connectionTimeout': 'אין תגובה מהשרת. בדוק את החיבור.',
     'error.serverUnreachable': 'לא ניתן להגיע לשרת. בדוק את הכתובת וההגדרות.',
-    'error.agentFailed': 'הסוכן נכשל בהפעלה. בדוק את החיבור.',
+    'error.agentFailed': 'Agent נכשל.',
     'error.noServerConfig': 'לא הוגדר שרת לערוץ זה.',
     'error.noModelSelected': 'לא נבחר מודל. בחר מודל תחילה.',
     'error.requestFailed': 'הבקשה נכשלה. נסה שנית.',

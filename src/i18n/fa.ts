@@ -46,7 +46,7 @@ const fa: Partial<Translations> = {
     'hint.devInvite': 'برنامه‌ها یا بازی‌های هوش مصنوعی بسازید — به \"Reversi\" و \"AI Translate\" مراجعه کنید.',
     'nav.motherAgent': 'Mother Agent',
     'page.motherAgent': 'Mother Agent',    // Mother Agent
-    'mother.selectModel': 'مدل را انتخاب کنید...',    'mother.hintInstall': 'نصب {agent}',    'mother.enterMessage': 'پیام وارد کنید...',
+    'mother.selectModel': 'مدل را انتخاب کنید',    'mother.hintInstall': 'نصب {agent}',    'mother.enterMessage': 'پیام وارد کنید...',
     'mother.noModels': 'مدلی موجود نیست',    'mother.servers': 'سرورها',
     'mother.sshGuide': 'راهنمای راه‌اندازی',
     'mother.local': 'محلی',
@@ -106,7 +106,7 @@ const fa: Partial<Translations> = {
     // Error messages (user-friendly, non-technical)
     'error.connectionTimeout': 'پاسخی از سرور دریافت نشد. اتصال را بررسی کنید.',
     'error.serverUnreachable': 'برقراری ارتباط با سرور ممکن نیست. آدرس و تنظیمات را بررسی کنید.',
-    'error.agentFailed': 'راه‌اندازی عامل ناموفق بود. اتصال را بررسی کنید.',
+    'error.agentFailed': 'Agent ناموفق.',
     'error.noServerConfig': 'هیچ سروری برای این کانال تنظیم نشده است.',
     'error.noModelSelected': 'هیچ مدلی انتخاب نشده. ابتدا یک مدل انتخاب کنید.',
     'error.requestFailed': 'درخواست ناموفق بود. دوباره تلاش کنید.',

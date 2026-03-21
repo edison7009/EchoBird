@@ -126,7 +126,7 @@ const pl: Partial<Translations> = {
     'hint.devInvite': 'Twórz aplikacje lub gry AI — zobacz \"Reversi\" i \"AI Translate\".',
     'nav.motherAgent': 'Mother Agent',
     'page.motherAgent': 'Mother Agent',    // Mother Agent
-    'mother.selectModel': 'Wybierz model...',    'mother.hintInstall': 'Zainstaluj {agent}',    'mother.enterMessage': 'Wpisz wiadomość...',
+    'mother.selectModel': 'Wybierz model',    'mother.hintInstall': 'Zainstaluj {agent}',    'mother.enterMessage': 'Wpisz wiadomość...',
     'mother.noModels': 'Brak dostępnych modeli',    'mother.servers': 'SERWERY',
     'mother.sshGuide': 'Przewodnik konfiguracji',
     'mother.local': 'LOKALNY',
@@ -186,7 +186,7 @@ const pl: Partial<Translations> = {
     // Error messages (user-friendly, non-technical)
     'error.connectionTimeout': 'Brak odpowiedzi od serwera. Sprawdź połączenie.',
     'error.serverUnreachable': 'Nie można połączyć się z serwerem. Sprawdź adres i ustawienia.',
-    'error.agentFailed': 'Agent nie mógł się uruchomić. Sprawdź połączenie.',
+    'error.agentFailed': 'Agent nieudany.',
     'error.noServerConfig': 'Dla tego kanału nie skonfigurowano serwera.',
     'error.noModelSelected': 'Nie wybrano modelu. Najpierw wybierz model.',
     'error.requestFailed': 'Żądanie nie powiodło się. Spróbuj ponownie.',
