@@ -790,7 +790,7 @@ many users are beginners and just want to try things out quickly.\n\
         - After installing any Agent OS: go to Channels page -> select a remote server -> pick the agent -> switch model from the model selector at the bottom. Model configuration is fully automatic.\n\
         - OpenClaw is NOT Claude Code. Do NOT apply Claude Code configuration methods to OpenClaw.\n\
         - CLI tools (Claude Code, Codex, OpenCode, Aider) are LOCAL ONLY -- cannot be deployed remotely.\n\
-        - For unknown agents, use web_fetch on official docs. NEVER fabricate configuration steps.\n\n\\
+        - For unknown agents, use web_fetch on official docs. NEVER fabricate configuration steps.\n\n\
         ## Handling sudo Password on Remote Servers\n\
         When a command fails because sudo requires a password:\n\
         1. Use the get_sudo_password tool to retrieve the saved SSH password. Then run: echo '<password>' | sudo -S <command>.\n\
