@@ -76,7 +76,6 @@ Quer usar **OpenClaw**, **Claude Code**, **ZeroClaw** ou **Codex**? Um clique pa
 ### 🧩 Mais recursos integrados
 
 - 🌐 **Proxy túnel inteligente** — Acesse APIs com restrição geográfica sem VPN completo
-- 🎯 **Navegador de Skills** — Descubra, traduza e instale skills de IA com um clique
 - 🎮 **Apps de IA integrados** — Reversi, AI Translate e mais
 - 🌍 **28 idiomas** — Internacionalização completa do inglês ao árabe
 
@@ -92,9 +91,6 @@ Quer usar **OpenClaw**, **Claude Code**, **ZeroClaw** ou **Codex**? Um clique pa
 
 ### LLM Local — Implante Qwen, Llama, DeepSeek localmente via llama.cpp / vLLM / SGLang
 ![Local Server](./3.png)
-
-### Navegador de Skills — Traduza e instale Skills para OpenClaw, Claude Code e mais com um clique
-![Skill Browser](./4.png)
 
 ---
 

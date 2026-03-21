@@ -76,7 +76,6 @@ AI 초보자라도 EchoBird를 사용하면 간단한 채팅으로 자신만의 
 ### 🧩 추가 내장 기능
 
 - 🌐 **스마트 터널 프록시** — 풀 VPN 없이 지역 제한 API 접근
-- 🎯 **스킬 브라우저** — AI 스킬을 원클릭으로 검색, 번역, 설치
 - 🎮 **내장 AI 앱** — Reversi, AI 번역 등
 - 🌍 **28개 언어** — 영어부터 아랍어까지 완전 국제화
 
@@ -92,9 +91,6 @@ AI 초보자라도 EchoBird를 사용하면 간단한 채팅으로 자신만의 
 
 ### 로컬 LLM — llama.cpp / vLLM / SGLang으로 Qwen, Llama, DeepSeek 로컬 배포
 ![Local Server](./3.png)
-
-### 스킬 브라우저 — OpenClaw, Claude Code 등의 Skills를 원클릭 번역 및 설치
-![Skill Browser](./4.png)
 
 ---
 

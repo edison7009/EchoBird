@@ -76,7 +76,6 @@ Incluso como principiante en IA, EchoBird te permite controlar tu propio Agent �
 ### 🧩 Más funciones integradas
 
 - 🌐 **Proxy túnel inteligente** — Accede a APIs geo-restringidas sin VPN completo
-- 🎯 **Explorador de Skills** — Descubre, traduce e instala skills de IA con un clic
 - 🎮 **Apps de IA integradas** — Reversi, AI Translate y más
 - 🌍 **28 idiomas** — Internacionalización completa del inglés al árabe
 
@@ -92,9 +91,6 @@ Incluso como principiante en IA, EchoBird te permite controlar tu propio Agent �
 
 ### LLM Local — Despliega Qwen, Llama, DeepSeek localmente con llama.cpp / vLLM / SGLang
 ![Local Server](./3.png)
-
-### Explorador de Skills — Traduce e instala Skills para OpenClaw, Claude Code y más con un clic
-![Skill Browser](./4.png)
 
 ---
 

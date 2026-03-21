@@ -93,9 +93,6 @@
 ### Локальный LLM — Разворачивайте Qwen, Llama, DeepSeek локально через llama.cpp / vLLM / SGLang
 ![Local Server](./3.png)
 
-### Браузер навыков — Переводите и устанавливайте Skills для OpenClaw, Claude Code и других одним кликом
-![Skill Browser](./4.png)
-
 ---
 
 ## 🚀 Скачать

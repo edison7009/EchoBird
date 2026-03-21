@@ -76,7 +76,6 @@
 ### 🧩 更多內建功能
 
 - 🌐 **智慧隧道代理** — 無需全域 VPN 即可存取受限 API
-- 🎯 **技能瀏覽器** — 一鍵發現、翻譯和安裝 AI 技能
 - 🎮 **內建 AI 應用** — Reversi、AI 翻譯等
 - 🌍 **28 種語言** — 從英語到阿拉伯語的完整國際化支援
 
@@ -92,9 +91,6 @@
 
 ### 本地大模型 — 透過 llama.cpp / vLLM / SGLang 本地部署 Qwen、Llama、DeepSeek
 ![Local Server](./3.png)
-
-### 技能瀏覽器 — 為 OpenClaw、Claude Code 等一鍵翻譯和安裝 Skills
-![Skill Browser](./4.png)
 
 ---
 

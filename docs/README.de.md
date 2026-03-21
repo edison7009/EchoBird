@@ -76,7 +76,6 @@ Du willst **OpenClaw**, **Claude Code**, **ZeroClaw** oder **Codex** nutzen? Ein
 ### 🧩 Weitere integrierte Funktionen
 
 - 🌐 **Smarter Tunnel-Proxy** — Geo-beschränkte APIs ohne komplettes VPN
-- 🎯 **Skill-Browser** — KI-Skills per Klick entdecken, übersetzen und installieren
 - 🎮 **Eingebaute KI-Apps** — Reversi, AI Translate und mehr
 - 🌍 **28 Sprachen** — Vollständige Internationalisierung von Englisch bis Arabisch
 
@@ -93,8 +92,6 @@ Du willst **OpenClaw**, **Claude Code**, **ZeroClaw** oder **Codex** nutzen? Ein
 ### Lokales LLM — Qwen, Llama, DeepSeek lokal deployen via llama.cpp / vLLM / SGLang
 ![Local Server](./3.png)
 
-### Skill-Browser — Skills für OpenClaw, Claude Code & mehr per Klick übersetzen und installieren
-![Skill Browser](./4.png)
 
 ---
 
