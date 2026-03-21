@@ -998,6 +998,20 @@ async fn ensure_remote_bridge(
     Ok(())
 }
 
+/// Public Tauri command: deploy/update Bridge binary on a remote server.
+/// Used by "Test Connection" flow to ensure Bridge is ready before showing success.
+#[tauri::command]
+pub async fn bridge_ensure_remote(
+    pool: tauri::State<'_, crate::commands::ssh_commands::SSHPool>,
+    server_id: String,
+) -> Result<String, String> {
+    let pool = pool.inner().clone();
+    crate::commands::ssh_commands::auto_connect_ssh(&pool, &server_id).await
+        .map_err(|e| format!("SSH connection failed: {}", e))?;
+    ensure_remote_bridge(&pool, &server_id).await?;
+    Ok("Bridge ready".to_string())
+}
+
 
 /// Tauri command: chat with remote Agent via SSH → echobird-bridge
 #[tauri::command]
