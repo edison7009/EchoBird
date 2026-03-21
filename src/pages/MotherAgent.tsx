@@ -592,15 +592,10 @@ export function MotherAgentMain() {
         fetch('https://echobird.ai/api/mother/hints.json')
             .then(r => r.json())
             .then(data => {
-                // Filter out deprecated deploy-LLM action; keep deployBridge (core Bridge CLI feature)
                 const hints = (data.hints || []).filter((h: any) => h.action !== 'deployLlm');
-                // Always include local CLI Bridge install hint
-                setRemoteHints([{ action: 'install', agent: 'Echobird CLI Bridge' }, ...hints]);
+                setRemoteHints(hints);
             })
-            .catch(() => {
-                // Offline: still show CLI Bridge hint
-                setRemoteHints([{ action: 'install', agent: 'Echobird CLI Bridge' }]);
-            });
+            .catch(() => setRemoteHints([]));
     }, []);
 
     // Poll Local Server status
