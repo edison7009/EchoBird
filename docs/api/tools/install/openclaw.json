@@ -5,11 +5,11 @@
     "docs": "https://docs.openclaw.ai/",
     "github": "https://github.com/openclaw/openclaw",
     "install": {
-        "one-liner (macOS / Linux / WSL2)": "curl -fsSL https://openclaw.ai/install.sh | bash",
-        "one-liner no-onboard (remote SSH — PREFERRED for remote servers)": "curl -fsSL https://openclaw.ai/install.sh | bash -s -- --no-onboard",
-        "one-liner (Windows PowerShell)": "iwr -useb https://openclaw.ai/install.ps1 | iex",
-        "npm (if Node.js already installed)": "npm install -g openclaw@latest && openclaw onboard --install-daemon",
+        "npm (recommended)": "npm install -g openclaw@latest && openclaw onboard --install-daemon",
+        "npm no-onboard (remote SSH — PREFERRED for remote servers)": "npm install -g openclaw@latest",
+        "pnpm": "pnpm add -g openclaw@latest && openclaw onboard --install-daemon",
         "npm China mirror (slow network fallback)": "npm install -g openclaw@latest --registry=https://registry.npmmirror.com",
-        "note": "For REMOTE servers via SSH, always use the --no-onboard variant to skip interactive onboarding. The installer script auto-installs Node.js if missing. If npm download is slow (especially in China mainland), use the China mirror variant."
+        "from source": "git clone https://github.com/openclaw/openclaw.git && cd openclaw && pnpm install && pnpm build",
+        "note": "Requires Node 24 (recommended) or Node 22.16+. For REMOTE servers via SSH, skip --onboard to avoid interactive prompts. The onboard step installs the Gateway daemon (launchd/systemd)."
     }
 }

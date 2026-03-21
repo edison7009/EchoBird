@@ -5,9 +5,10 @@
     "docs": "https://github.com/sipeed/picoclaw",
     "github": "https://github.com/sipeed/picoclaw",
     "install": {
-        "one-liner (macOS / Linux)": "curl -fsSL https://raw.githubusercontent.com/sipeed/picoclaw/main/install.sh | bash",
-        "go install": "go install github.com/sipeed/picoclaw@latest",
-        "note": "Ultra-lightweight (<10MB RAM, <1s boot). Run 'picoclaw onboard' after install to initialize."
+        "download (recommended)": "Visit https://picoclaw.io — auto-detects platform and provides one-click download.",
+        "precompiled binary": "Download from https://github.com/sipeed/picoclaw/releases for your platform.",
+        "from source": "git clone https://github.com/sipeed/picoclaw.git && cd picoclaw && make deps && make install",
+        "note": "Go-based agent, ultra-lightweight (<10MB RAM, <1s boot). No 'go install' available — use download or source build. After install, run 'picoclaw onboard' to initialize."
     },
     "cli": {
         "description": "PicoClaw uses cli-oneshot protocol for EchoBird integration. The agent itself runs persistently via 'picoclaw gateway'.",

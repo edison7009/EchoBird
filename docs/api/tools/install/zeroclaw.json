@@ -1,13 +1,14 @@
 {
     "id": "zeroclaw",
     "displayName": "ZeroClaw",
-    "homepage": "https://www.zeroclawlabs.ai",
-    "docs": "https://www.zeroclawlabs.ai/docs",
-    "github": "https://github.com/zeroclawlabs/zeroclaw",
+    "homepage": "https://github.com/zeroclaw-labs/zeroclaw",
+    "docs": "https://github.com/zeroclaw-labs/zeroclaw",
+    "github": "https://github.com/zeroclaw-labs/zeroclaw",
     "install": {
-        "cargo (all platforms)": "cargo install zeroclaw",
-        "curl (macOS / Linux)": "curl -fsSL https://zeroclawlabs.ai/install.sh | bash",
-        "note": "ZeroClaw is a Rust binary installed via cargo. After install, verify with: zeroclaw --version"
+        "brew (macOS / Linux)": "brew install zeroclaw",
+        "from source": "git clone https://github.com/zeroclaw-labs/zeroclaw.git && cd zeroclaw && cargo install --path .",
+        "bootstrap script": "git clone https://github.com/zeroclaw-labs/zeroclaw.git && cd zeroclaw && ./bootstrap.sh",
+        "note": "Rust-based agent. Requires Rust toolchain for source builds. After install, run 'zeroclaw onboard' to configure. Verify with: zeroclaw --version"
     },
     "cli": {
         "description": "ZeroClaw uses cli-oneshot protocol. Each message is a fresh invocation.",

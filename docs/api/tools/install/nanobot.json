@@ -1,7 +1,7 @@
 {
     "id": "nanobot",
     "displayName": "NanoBot",
-    "homepage": "https://nanobot.sh",
+    "homepage": "https://github.com/HKUDS/nanobot",
     "docs": "https://github.com/HKUDS/nanobot",
     "github": "https://github.com/HKUDS/nanobot",
     "install": {
@@ -9,7 +9,7 @@
         "uv (stable, fast)": "uv tool install nanobot-ai",
         "from source (latest)": "git clone https://github.com/HKUDS/nanobot.git && cd nanobot && pip install -e .",
         "WARNING": "The PyPI package is 'nanobot-ai', NOT 'nanobot'. The 'nanobot' package on PyPI is a completely different project (robot navigation framework).",
-        "note": "Python-based agent. After install, verify with: nanobot --version"
+        "note": "Python-based agent by HKUDS (Hong Kong University). After install, verify with: nanobot --version"
     },
     "cli": {
         "description": "NanoBot uses cli-oneshot protocol for EchoBird integration. The agent itself runs persistently via 'nanobot gateway'.",
