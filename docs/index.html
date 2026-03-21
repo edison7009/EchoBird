@@ -764,6 +764,53 @@
             opacity: .9
         }
 
+        /* ── Lightbox ── */
+        .lightbox {
+            position: fixed;
+            inset: 0;
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(5, 10, 14, .85);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity .35s, visibility .35s;
+            cursor: zoom-out
+        }
+
+        .lightbox.open {
+            opacity: 1;
+            visibility: visible
+        }
+
+        .lightbox img {
+            max-width: 92vw;
+            max-height: 90vh;
+            border-radius: 12px;
+            box-shadow: 0 0 80px rgba(0, 255, 157, .15), 0 8px 32px rgba(0, 0, 0, .6);
+            transform: scale(.85);
+            transition: transform .4s cubic-bezier(.16, 1, .3, 1)
+        }
+
+        .lightbox.open img {
+            transform: scale(1)
+        }
+
+        .hero-right img,
+        .shot img {
+            cursor: zoom-in;
+            transition: transform .3s, box-shadow .3s
+        }
+
+        .hero-right img:hover,
+        .shot img:hover {
+            transform: scale(1.02);
+            box-shadow: 0 0 30px rgba(0, 255, 157, .15)
+        }
+
         /* ── Fade-in animation ── */
         .fade {
             opacity: 0;
@@ -1142,6 +1189,11 @@
         </div>
     </section>
 
+    <!-- Lightbox Overlay -->
+    <div class="lightbox" id="lightbox">
+        <img id="lightbox-img" src="" alt="">
+    </div>
+
     <!-- Footer -->
     <footer class="footer">
         <div class="wrap">
@@ -1185,6 +1237,30 @@
         // ── Scroll fade-in ──
         const obs = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); obs.unobserve(e.target) } }), { threshold: .15 });
         document.querySelectorAll('.fade').forEach(el => obs.observe(el));
+
+        // ── Lightbox ──
+        (function () {
+            const lb = document.getElementById('lightbox');
+            const lbImg = document.getElementById('lightbox-img');
+            document.querySelectorAll('.hero-right img, .shot img').forEach(img => {
+                img.addEventListener('click', e => {
+                    e.preventDefault();
+                    lbImg.src = img.src;
+                    lb.classList.add('open');
+                    document.body.style.overflow = 'hidden';
+                });
+            });
+            lb.addEventListener('click', () => {
+                lb.classList.remove('open');
+                document.body.style.overflow = '';
+            });
+            document.addEventListener('keydown', e => {
+                if (e.key === 'Escape' && lb.classList.contains('open')) {
+                    lb.classList.remove('open');
+                    document.body.style.overflow = '';
+                }
+            });
+        })();
 
         // ── i18n ──
         const i18n = {
