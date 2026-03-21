@@ -95,9 +95,9 @@ Then verify compatibility:
 
 **Present the options clearly to the user and wait for their choice before proceeding.**
 
-### Step 2: Download Speed Test
+### Step 2: Download Speed Test (on the REMOTE server)
 
-Before installing, ping the primary download source to check speed:
+Before installing, run this on the **remote server** via `shell_exec` to test download speed from the server's perspective (NOT from the user's local machine — the server is where the download happens):
 ```bash
 # For npm-based agents:
 curl -o /dev/null -s -w "%{time_total}" https://registry.npmjs.org/openclaw/latest 2>/dev/null
