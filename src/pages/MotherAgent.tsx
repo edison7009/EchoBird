@@ -696,7 +696,23 @@ export function MotherAgentMain() {
                                     return (
                                         <button
                                             key={i}
-                                            onClick={() => { setChatInput(label); chatInputRef.current?.focus(); }}
+                                            onClick={() => {
+                                                const el = chatInputRef.current;
+                                                if (el) {
+                                                    const start = el.selectionStart ?? el.value.length;
+                                                    const end = el.selectionEnd ?? start;
+                                                    const before = el.value.slice(0, start);
+                                                    const after = el.value.slice(end);
+                                                    setChatInput(before + label + after);
+                                                    el.focus();
+                                                    requestAnimationFrame(() => {
+                                                        const pos = start + label.length;
+                                                        el.selectionStart = el.selectionEnd = pos;
+                                                    });
+                                                } else {
+                                                    setChatInput(label);
+                                                }
+                                            }}
                                             className="px-3 py-1 text-xs rounded-full border border-cyber-accent-secondary/20 text-cyber-accent-secondary/70 hover:bg-cyber-accent-secondary/10 hover:text-cyber-accent-secondary transition-all cursor-pointer"
                                         >
                                             {label}
