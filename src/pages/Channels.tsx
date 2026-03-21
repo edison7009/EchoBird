@@ -811,6 +811,7 @@ const ChannelsInner: React.FC = () => {
                     setAllBridgeHasNew(prev => ({ ...prev, [channelKey]: true }));
                 } catch (remoteErr: any) {
                     clearTimeout(workingTimer);
+                    setBridgeConnectionStatus('standby');
                     window.dispatchEvent(new CustomEvent('chat-error'));
                     setBridgeMessages(prev => {
                         const cleaned = prev.filter(m => m.content !== WORKING_MARKER);
@@ -930,6 +931,10 @@ const ChannelsInner: React.FC = () => {
                 onSelectAgent={(name) => {
                     const previousAgent = allActiveAgents[channelKey] || '';
                     setActiveAgentFor(channelKey, name);
+                    // Clear remote model when agent changes or is cleared
+                    if (previousAgent !== name) {
+                        setAllRemoteModels(prev => ({ ...prev, [channelKey]: null }));
+                    }
                     // Agent tool changed — reset bridge so next send re-initializes with the new agent
                     if (previousAgent && previousAgent !== name) {
                         setBridgeConnectionStatus('standby');
@@ -986,12 +991,8 @@ export function ChannelsPanel() {
                             >
                                 <div className="flex items-center gap-3">
                                     {(() => {
-                                        const selectedAgent = allActiveAgents[ch.id];
+                                    const selectedAgent = allActiveAgents[ch.id];
                                         const agent = selectedAgent ? AGENT_LIST.find(a => a.name === selectedAgent) : null;
-                                        const hasRole = !!allSelectedRoles[ch.id]?.id;
-                                        if (agent && hasRole) {
-                                            return <img src={agent.icon} alt={agent.name} className="w-9 h-9 flex-shrink-0" />;
-                                        }
                                         if (agent) {
                                             return <img src={agent.icon} alt={agent.name} className="w-9 h-9 flex-shrink-0" />;
                                         }
