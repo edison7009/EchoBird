@@ -1424,7 +1424,8 @@ pub struct RemoteModelResult {
 }
 
 /// Read the current Echobird-configured model for a remote agent.
-/// Reads ~/.echobird/remote_{agent_id}.json on the remote server.
+/// 1. First try Echobird marker file ~/.echobird/remote_{agent_id}.json
+/// 2. Fallback: try reading agent's native config
 #[tauri::command]
 pub async fn bridge_get_remote_model(
     pool: tauri::State<'_, crate::commands::ssh_commands::SSHPool>,
@@ -1456,25 +1457,53 @@ pub async fn bridge_get_remote_model(
     drop(connections);
 
     let stdout = result.stdout.trim();
-    if stdout == "NOT_FOUND" || stdout.is_empty() {
-        return Ok(None);
-    }
-
-    // Parse JSON marker file
-    if let Ok(json) = serde_json::from_str::<serde_json::Value>(stdout) {
-        let model_id = json.get("modelId").and_then(|v| v.as_str()).unwrap_or("").to_string();
-        let model_name = json.get("modelName").and_then(|v| v.as_str()).unwrap_or("").to_string();
-        if !model_id.is_empty() {
-            return Ok(Some(RemoteModelResult { model_id, model_name }));
+    if stdout != "NOT_FOUND" && !stdout.is_empty() {
+        // Parse JSON marker file
+        if let Ok(json) = serde_json::from_str::<serde_json::Value>(stdout) {
+            let model_id = json.get("modelId").and_then(|v| v.as_str()).unwrap_or("").to_string();
+            let model_name = json.get("modelName").and_then(|v| v.as_str()).unwrap_or("").to_string();
+            if !model_id.is_empty() {
+                return Ok(Some(RemoteModelResult { model_id, model_name }));
+            }
         }
     }
 
     Ok(None)
 }
 
+/// Helper: execute a single SSH command with timeout, return stdout
+async fn ssh_exec_simple(
+    pool: &crate::commands::ssh_commands::SSHPool,
+    server_id: &str,
+    cmd: &str,
+    timeout_secs: u64,
+) -> Result<String, String> {
+    let connections = pool.lock().await;
+    let client = connections.get(server_id)
+        .ok_or_else(|| format!("SSH not connected: {}", server_id))?;
+
+    let result = match tokio::time::timeout(
+        std::time::Duration::from_secs(timeout_secs),
+        crate::commands::ssh_commands::execute_tolerant(client, cmd)
+    ).await {
+        Ok(Ok(r)) => r,
+        Ok(Err(e)) => return Err(format!("SSH exec failed: {}", e)),
+        Err(_) => return Err(format!("SSH command timed out after {}s", timeout_secs)),
+    };
+
+    drop(connections);
+    Ok(result.stdout)
+}
+
+/// Escape a string for safe use inside single-quoted shell arguments
+fn shell_escape(s: &str) -> String {
+    s.replace('\'', "'\\''")
+}
+
 /// Write model configuration to a remote agent via SSH.
-/// 1. Writes agent-specific config (OpenClaw JSON, Hermes YAML, etc.)
-/// 2. Saves marker file ~/.echobird/remote_{agent_id}.json for future reads
+/// 1. Writes agent-specific native config (Hermes CLI, OpenClaw JSON, etc.)
+/// 2. Writes Echobird relay JSON (~/.echobird/{agent_id}.json) for agents using relay
+/// 3. Saves marker file ~/.echobird/remote_{agent_id}.json for future reads
 #[tauri::command]
 pub async fn bridge_set_remote_model(
     pool: tauri::State<'_, crate::commands::ssh_commands::SSHPool>,
@@ -1494,7 +1523,133 @@ pub async fn bridge_set_remote_model(
     crate::commands::ssh_commands::auto_connect_ssh(&pool, &server_id).await
         .map_err(|e| format!("SSH connection failed: {}", e))?;
 
-    // Save Echobird marker file for future reads
+    // ── Step 1: Write agent-specific config ──
+    let agent_cmd = match agent_id.as_str() {
+        "hermes" => {
+            // Hermes: use CLI `hermes config set` commands
+            let base = shell_escape(&base_url);
+            let key = shell_escape(&api_key);
+            let model = shell_escape(&model_id);
+            format!(
+                "hermes config set model '{}' && hermes config set OPENAI_API_KEY '{}' && hermes config set OPENAI_BASE_URL '{}'",
+                model, key, base
+            )
+        }
+        "openclaw" => {
+            // OpenClaw: write Echobird relay JSON → ~/.echobird/openclaw.json
+            // The patched OpenClaw launcher reads this file (same as local App Manager)
+            let relay = serde_json::json!({
+                "apiKey": api_key,
+                "modelId": model_id,
+                "modelName": model_name,
+                "baseUrl": base_url,
+                "protocol": api_type,
+            });
+            let relay_str = shell_escape(&serde_json::to_string(&relay).unwrap_or_default());
+            format!(
+                "mkdir -p ~/.echobird && echo '{}' > ~/.echobird/openclaw.json",
+                relay_str
+            )
+        }
+        "zeroclaw" => {
+            // ZeroClaw: write TOML config
+            let toml_content = format!(
+                "default_model = \"{}\"\n\n[providers.echobird]\napi_key = \"{}\"\nbase_url = \"{}\"\nmodel = \"{}\"",
+                shell_escape(&model_id),
+                shell_escape(&api_key),
+                shell_escape(&base_url),
+                shell_escape(&model_id),
+            );
+            format!(
+                "mkdir -p ~/.zeroclaw && echo '{}' > ~/.zeroclaw/config.toml",
+                shell_escape(&toml_content)
+            )
+        }
+        "nanobot" => {
+            // NanoBot: write JSON config
+            let config = serde_json::json!({
+                "agents": {
+                    "defaults": {
+                        "model": model_id,
+                        "apiKey": api_key,
+                        "baseUrl": base_url,
+                    }
+                }
+            });
+            let config_str = shell_escape(&serde_json::to_string_pretty(&config).unwrap_or_default());
+            format!(
+                "mkdir -p ~/.nanobot && echo '{}' > ~/.nanobot/config.json",
+                config_str
+            )
+        }
+        "picoclaw" => {
+            // PicoClaw: write JSON config
+            let config = serde_json::json!({
+                "agents": {
+                    "defaults": {
+                        "model": model_id,
+                        "apiKey": api_key,
+                        "baseUrl": base_url,
+                    }
+                }
+            });
+            let config_str = shell_escape(&serde_json::to_string_pretty(&config).unwrap_or_default());
+            format!(
+                "mkdir -p ~/.picoclaw && echo '{}' > ~/.picoclaw/config.json",
+                config_str
+            )
+        }
+        "openfang" => {
+            // OpenFang: write TOML config
+            let toml_content = format!(
+                "model = \"{}\"\napi_key = \"{}\"\nbase_url = \"{}\"",
+                shell_escape(&model_id),
+                shell_escape(&api_key),
+                shell_escape(&base_url),
+            );
+            format!(
+                "mkdir -p ~/.openfang && echo '{}' > ~/.openfang/config.toml",
+                shell_escape(&toml_content)
+            )
+        }
+        "claudecode" => {
+            // Claude Code: no native config write needed (uses --model flag at runtime)
+            // Just write Echobird relay JSON for tracking
+            let relay = serde_json::json!({
+                "apiKey": api_key,
+                "modelId": model_id,
+                "modelName": model_name,
+                "baseUrl": base_url,
+            });
+            let relay_str = shell_escape(&serde_json::to_string(&relay).unwrap_or_default());
+            format!(
+                "mkdir -p ~/.echobird && echo '{}' > ~/.echobird/claudecode.json",
+                relay_str
+            )
+        }
+        _ => {
+            // Unknown agent — write generic Echobird relay JSON
+            let relay = serde_json::json!({
+                "apiKey": api_key,
+                "modelId": model_id,
+                "modelName": model_name,
+                "baseUrl": base_url,
+            });
+            let relay_str = shell_escape(&serde_json::to_string(&relay).unwrap_or_default());
+            format!(
+                "mkdir -p ~/.echobird && echo '{}' > ~/.echobird/{}.json",
+                relay_str, agent_id
+            )
+        }
+    };
+
+    // Execute agent-specific config write
+    ssh_exec_simple(&pool, &server_id, &agent_cmd, 15).await
+        .map_err(|e| format!("Agent config write failed: {}", e))?;
+
+    log::info!("[BridgeSetRemoteModel] Agent config written for agent={}", agent_id);
+
+    // ── Step 2: Write Echobird marker file (for future reads) ──
     let marker = serde_json::json!({
         "modelId": model_id,
         "modelName": model_name,
@@ -1503,33 +1658,15 @@ pub async fn bridge_set_remote_model(
         "updatedAt": chrono::Utc::now().to_rfc3339(),
     });
     let marker_str = serde_json::to_string(&marker).map_err(|e| format!("JSON error: {}", e))?;
-    let escaped_marker = marker_str.replace('\'', "'\\''");
-
     let marker_cmd = format!(
         "mkdir -p ~/.echobird && echo '{}' > ~/.echobird/remote_{}.json",
-        escaped_marker, agent_id
+        shell_escape(&marker_str), agent_id
     );
 
-    let connections = pool.lock().await;
-    let client = connections.get(&server_id)
-        .ok_or_else(|| format!("SSH not connected: {}", server_id))?;
+    ssh_exec_simple(&pool, &server_id, &marker_cmd, 10).await
+        .map_err(|e| format!("Marker file write failed: {}", e))?;
 
-    // Write marker file
-    match tokio::time::timeout(
-        std::time::Duration::from_secs(10),
-        crate::commands::ssh_commands::execute_tolerant(client, &marker_cmd)
-    ).await {
-        Ok(Ok(_)) => {},
-        Ok(Err(e)) => return Err(format!("Failed to write marker file: {}", e)),
-        Err(_) => return Err("Write marker timed out".to_string()),
-    };
-
-    drop(connections);
-
-    log::info!("[BridgeSetRemoteModel] Marker file written for agent={}", agent_id);
-
-    // TODO: Write agent-specific config (OpenClaw JSON, Hermes config, etc.)
-    // This will be implemented per-agent in Phase 4
+    log::info!("[BridgeSetRemoteModel] Marker + agent config written for agent={}", agent_id);
 
     Ok(serde_json::json!({
         "success": true,
