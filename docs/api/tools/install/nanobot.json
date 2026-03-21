@@ -6,7 +6,7 @@
     "github": "https://github.com/HKUDS/nanobot",
     "install": {
         "one-liner (macOS / Linux)": "curl -fsSL https://raw.githubusercontent.com/HKUDS/nanobot/main/install.sh | bash",
-        "pip install": "pip install nanobot",
+        "WARNING": "Do NOT use 'pip install nanobot' — the PyPI 'nanobot' package is a DIFFERENT project (robot navigation framework). Always use the curl installer above.",
         "note": "Python-based agent. After install, run 'nanobot onboard' to initialize config at ~/.nanobot/config.json"
     },
     "configure": {

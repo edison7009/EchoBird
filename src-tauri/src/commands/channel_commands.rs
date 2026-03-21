@@ -1580,13 +1580,22 @@ pub async fn bridge_set_remote_model(
             )
         }
         "nanobot" => {
-            // NanoBot: write JSON config
+            // NanoBot: providers.custom format (NOT agents.defaults for key/url)
+            let api_base = if base_url.trim_end_matches('/').ends_with("/v1") {
+                base_url.clone()
+            } else {
+                format!("{}/v1", base_url.trim_end_matches('/'))
+            };
             let config = serde_json::json!({
                 "agents": {
                     "defaults": {
                         "model": model_id,
+                    }
+                },
+                "providers": {
+                    "custom": {
+                        "apiBase": api_base,
                         "apiKey": api_key,
-                        "baseUrl": base_url,
                     }
                 }
             });
@@ -1597,15 +1606,33 @@ pub async fn bridge_set_remote_model(
             )
         }
         "picoclaw" => {
-            // PicoClaw: write JSON config
+            // PicoClaw: model_list array format with vendor prefix
+            let api_base = if base_url.trim_end_matches('/').ends_with("/v1") {
+                base_url.clone()
+            } else {
+                format!("{}/v1", base_url.trim_end_matches('/'))
+            };
+            // Auto-detect vendor from domain: api.minimaxi.com -> minimax
+            let vendor = base_url
+                .find("api.")
+                .and_then(|start| {
+                    let after = &base_url[start + 4..];
+                    after.find('.').map(|end| &after[..end])
+                })
+                .unwrap_or("custom");
+            let vendor_model = format!("{}/{}", vendor, model_id);
             let config = serde_json::json!({
                 "agents": {
                     "defaults": {
                         "model": model_id,
-                        "apiKey": api_key,
-                        "baseUrl": base_url,
                     }
-                }
+                },
+                "model_list": [{
+                    "model_name": model_id,
+                    "model": vendor_model,
+                    "api_key": api_key,
+                    "api_base": api_base,
+                }]
             });
             let config_str = shell_escape(&serde_json::to_string_pretty(&config).unwrap_or_default());
             format!(
