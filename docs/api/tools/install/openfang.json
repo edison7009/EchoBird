@@ -7,26 +7,9 @@
     "install": {
         "one-liner (macOS / Linux)": "curl -fsSL https://openfang.sh/install | sh",
         "Windows (PowerShell)": "irm https://openfang.sh/install.ps1 | iex",
-        "note": "After install, run 'openfang init' to configure provider and model."
-    },
-    "configure": {
-        "note": "OpenFang uses ~/.openfang/config.toml (TOML format). Supports 27 providers, 123+ models.",
-        "field_mapping": {
-            "apiKey": "[llm] api_key",
-            "baseUrl": "[llm] base_url (must end with /v1)",
-            "modelId": "[llm] model"
-        },
-        "steps": [
-            "1. Open ~/.openfang/config.toml",
-            "2. Under [llm] section, set api_key, model, and base_url",
-            "3. base_url must end with /v1 for OpenAI-compatible providers"
-        ],
-        "merge_script": "python3 -c \"import json,sys,os; c=json.load(open(sys.argv[1])); b=c.get('baseUrl',''); b=b+'/v1' if b and not b.endswith('/v1') else b; f=open(os.path.expanduser('~/.openfang/config.toml'),'w'); f.write('[llm]\\napi_key = \\\"'+c['apiKey']+'\\\"\\nmodel = \\\"'+c['modelId']+'\\\"\\nbase_url = \\\"'+b+'\\\"\\ntemperature = 0.7\\n'); f.close()\"",
-        "verify": "openfang chat 'Hello, respond with OK'"
+        "note": "After install, run 'openfang init' to initialize."
     },
     "common_pitfalls": [
-        "TOML format: values must be quoted with double quotes",
-        "API base URL must end with /v1",
         "Daemon mode: 'openfang start' (not 'openfang daemon')",
         "OpenFang supports migration from OpenClaw: 'openfang migrate --from openclaw'"
     ]

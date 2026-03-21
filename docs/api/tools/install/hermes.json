@@ -8,44 +8,6 @@
         "one-liner (macOS / Linux)": "curl -fsSL https://raw.githubusercontent.com/NousResearch/hermes-agent/main/scripts/install.sh | bash",
         "note": "Python-based agent by Nous Research. Requires Linux or macOS (WSL2 on Windows). After install, run 'source ~/.bashrc' then 'hermes --version' to verify."
     },
-    "configure": {
-        "note": "For LOCAL installations, EchoBird's App Manager handles model configuration automatically via ~/.echobird/hermes.json. This section is for REMOTE server deployments via Mother Agent (SSH).",
-        "config_method": "hermes config set",
-        "config_file": "~/.hermes/config.yaml",
-        "secrets_file": "~/.hermes/.env",
-        "first_run": {
-            "description": "Hermes uses 'hermes config set' to configure models. This routes secrets to ~/.hermes/.env and settings to ~/.hermes/config.yaml automatically. Supports any OpenAI-compatible endpoint via OPENAI_BASE_URL + OPENAI_API_KEY.",
-            "required_commands": {
-                "hermes config set OPENAI_BASE_URL": "(string) API endpoint URL with /v1 suffix",
-                "hermes config set OPENAI_API_KEY": "(string) API key for the LLM provider",
-                "hermes config set model": "(string) Model name, e.g. 'deepseek-chat', 'MiniMax-M2.7'"
-            },
-            "builtin_providers": ["openrouter", "nous", "openai-codex", "copilot", "anthropic", "zai", "kimi-coding", "minimax", "minimax-cn", "kilocode", "alibaba"],
-            "common_mistakes": [
-                "WRONG: manually writing to ~/.hermes/.env with echo/cat (may cause duplicate entries)",
-                "RIGHT: using 'hermes config set KEY VALUE' (handles routing automatically)",
-                "WRONG: OPENAI_BASE_URL without /v1 suffix (causes 404 errors)",
-                "RIGHT: OPENAI_BASE_URL=https://api.deepseek.com/v1",
-                "WRONG: using --provider custom (not a valid provider name)",
-                "RIGHT: just set OPENAI_BASE_URL + OPENAI_API_KEY + model, hermes auto-detects"
-            ]
-        },
-        "field_mapping": {
-            "description": "EchoBird sends model data in the '[Attached models for deployment]' block. Map to Hermes config as follows:",
-            "attachment_model_field": "-> hermes config set model <value>",
-            "attachment_baseUrl": "-> hermes config set OPENAI_BASE_URL <value> (append /v1 if needed)",
-            "attachment_apiKey": "-> hermes config set OPENAI_API_KEY <value>"
-        },
-        "steps": [
-            "1. Parse the '[Attached models for deployment]' block to extract: name, model (=modelId), baseUrl, apiKey.",
-            "2. Ensure baseUrl ends with /v1. If not, append /v1.",
-            "3. Run: hermes config set OPENAI_BASE_URL <baseUrl>",
-            "4. Run: hermes config set OPENAI_API_KEY <apiKey>",
-            "5. Run: hermes config set model <modelId>",
-            "6. Verify: hermes chat -q 'Hello, respond with OK' --quiet"
-        ],
-        "verify": "hermes chat -q 'Hello, respond with OK' --quiet"
-    },
     "cli": {
         "description": "Hermes uses 'hermes chat -q' for non-interactive oneshot mode.",
         "chat_command": "hermes chat -q \"<message>\" --quiet",

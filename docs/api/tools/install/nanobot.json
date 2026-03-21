@@ -9,41 +9,6 @@
         "WARNING": "Do NOT use 'pip install nanobot' — the PyPI 'nanobot' package is a DIFFERENT project (robot navigation framework). Always use the curl installer above.",
         "note": "Python-based agent. After install, run 'nanobot onboard' to initialize config at ~/.nanobot/config.json"
     },
-    "configure": {
-        "note": "For LOCAL installations, EchoBird's App Manager handles model configuration automatically via ~/.echobird/nanobot.json -> ~/.nanobot/config.json. This section is for REMOTE server deployments via Mother Agent (SSH).",
-        "config_file": "~/.nanobot/config.json",
-        "config_file_windows": "%USERPROFILE%\\.nanobot\\config.json",
-        "first_run": {
-            "description": "NanoBot uses providers.custom format (NOT model_list like PicoClaw). Config requires: providers.custom.apiKey, providers.custom.apiBase, and agents.defaults.model.",
-            "required_fields": {
-                "providers.custom.apiKey": "(string) API key for the LLM provider",
-                "providers.custom.apiBase": "(string) API endpoint URL, must end with /v1",
-                "agents.defaults.model": "(string) Model name, e.g. 'MiniMax-M2.7', 'deepseek-chat'"
-            },
-            "example_config": "{\n  \"agents\": {\n    \"defaults\": {\n      \"model\": \"deepseek-chat\"\n    }\n  },\n  \"providers\": {\n    \"custom\": {\n      \"apiBase\": \"https://api.deepseek.com/v1\",\n      \"apiKey\": \"sk-your-key-here\"\n    }\n  }\n}",
-            "common_mistakes": [
-                "WRONG: using model_list array (that is PicoClaw format, not NanoBot)",
-                "RIGHT: using providers.custom object with apiBase and apiKey",
-                "WRONG: apiBase without /v1 suffix (causes 404 errors)",
-                "RIGHT: apiBase = 'https://api.minimaxi.com/v1'"
-            ]
-        },
-        "field_mapping": {
-            "description": "EchoBird sends model data in the '[Attached models for deployment]' block. Map to NanoBot config.json as follows:",
-            "attachment_model_field": "-> agents.defaults.model",
-            "attachment_baseUrl": "-> providers.custom.apiBase (append /v1 if needed)",
-            "attachment_apiKey": "-> providers.custom.apiKey"
-        },
-        "steps": [
-            "1. Parse the '[Attached models for deployment]' block to extract: name, model (=modelId), baseUrl, apiKey.",
-            "2. Create ~/.nanobot/ directory if it does not exist: mkdir -p ~/.nanobot",
-            "3. Run the merge_script below with the extracted values.",
-            "4. Run 'nanobot onboard' if first time to initialize workspace.",
-            "5. Verify: nanobot agent --no-logs -m 'Hello, respond with OK' (should print a greeting and exit cleanly)"
-        ],
-        "merge_script": "python3 -c \"\nimport json, os\n\n# --- fill from '[Attached models for deployment]' block ---\nMODEL_ID   = '<attachment model field>'   # e.g. deepseek-chat\nBASE_URL   = '<attachment baseUrl>'        # e.g. https://api.deepseek.com\nAPI_KEY    = '<attachment apiKey>'\n# ----------------------------------------------------------\n\n# Ensure /v1 suffix\nif not BASE_URL.rstrip('/').endswith('/v1'):\n    BASE_URL = BASE_URL.rstrip('/') + '/v1'\n\npath = os.path.expanduser('~/.nanobot/config.json')\nos.makedirs(os.path.dirname(path), exist_ok=True)\n\n# Read existing config or start fresh\ncfg = {}\nif os.path.exists(path):\n    with open(path) as f:\n        cfg = json.load(f)\n\ncfg.setdefault('providers', {})['custom'] = {\n    'apiBase': BASE_URL,\n    'apiKey': API_KEY\n}\ncfg.setdefault('agents', {}).setdefault('defaults', {})['model'] = MODEL_ID\n\nwith open(path, 'w', encoding='utf-8') as f:\n    json.dump(cfg, f, indent=2)\n\nprint('Done:', MODEL_ID, '@', BASE_URL)\n\"",
-        "verify": "nanobot agent --no-logs -m 'Hello, respond with OK'"
-    },
     "cli": {
         "description": "NanoBot uses cli-oneshot protocol for EchoBird integration. The agent itself runs persistently via 'nanobot gateway'.",
         "chat_command": "nanobot agent -m \"<message>\"",

@@ -9,49 +9,25 @@
         "brew (macOS / Linux)": "brew install --cask claude-code",
         "powershell (Windows)": "irm https://claude.ai/install.ps1 | iex",
         "winget (Windows)": "winget install Anthropic.ClaudeCode",
-        "note": "After install, first-time setup MUST add allowedTools to settings. Without this, Claude Code will hang waiting for interactive permission prompts when run non-interactively. See configure.first_run below."
+        "note": "After install, first-time setup MUST add allowedTools to settings. Without this, Claude Code will hang waiting for interactive permission prompts when run non-interactively. See first_run below."
     },
-    "configure": {
-        "note": "For LOCAL installations, EchoBird's App Manager handles model configuration automatically via ~/.claude/settings.json. This section is for REMOTE server deployments via Mother Agent (SSH) and first-time setup.",
-        "config_file": "~/.claude/settings.json",
-        "first_run": {
-            "description": "Claude Code requires TWO config files for non-interactive use: (1) config.json to skip login/onboarding, (2) settings.json for tool permissions. Without these, Claude Code will hang waiting for interactive prompts.",
-            "config_json": {
-                "path": "~/.claude/config.json",
-                "path_windows": "%USERPROFILE%\\.claude\\config.json",
-                "path_macos": "~/.claude/config.json",
-                "path_linux": "~/.claude/config.json",
-                "description": "MUST be created FIRST. Skips login screen and onboarding wizard. Without this, Claude Code opens an interactive login flow that hangs automated sessions.",
-                "required": {
-                    "hasCompletedOnboarding": true,
-                    "primaryApiKey": "dummy"
-                }
-            },
-            "settings_json": {
-                "path": "~/.claude/settings.json",
-                "path_windows": "%USERPROFILE%\\.claude\\settings.json",
-                "path_macos": "~/.claude/settings.json",
-                "path_linux": "~/.claude/settings.json",
-                "description": "Tool permissions. Without allowedTools, Claude Code prompts for folder trust and tool approvals interactively.",
-                "required": {
-                    "allowedTools": ["Edit", "Write", "Bash", "Read", "MultiEdit", "Glob", "Grep", "LS", "TodoRead", "TodoWrite", "WebFetch", "NotebookRead", "NotebookEdit"]
-                }
-            },
-            "merge_script": "python3 -c \"\nimport json, os\n# Step 1: config.json - skip onboarding/login\ncpath = os.path.expanduser('~/.claude/config.json')\nos.makedirs(os.path.dirname(cpath), exist_ok=True)\ncc = {}\nif os.path.exists(cpath):\n    with open(cpath) as f: cc = json.load(f)\ncc['hasCompletedOnboarding'] = True\ncc['primaryApiKey'] = 'dummy'\nwith open(cpath, 'w') as f: json.dump(cc, f, indent=2)\nprint('config.json: onboarding skipped')\n# Step 2: settings.json - tool permissions\nspath = os.path.expanduser('~/.claude/settings.json')\nsc = {}\nif os.path.exists(spath):\n    with open(spath) as f: sc = json.load(f)\nif 'allowedTools' not in sc:\n    sc['allowedTools'] = ['Edit','Write','Bash','Read','MultiEdit','Glob','Grep','LS','TodoRead','TodoWrite','WebFetch','NotebookRead','NotebookEdit']\nwith open(spath, 'w') as f: json.dump(sc, f, indent=2)\nprint('settings.json: allowedTools set')\n\""
+    "first_run": {
+        "description": "Claude Code requires TWO config files for non-interactive use: (1) config.json to skip login/onboarding, (2) settings.json for tool permissions. Without these, Claude Code will hang waiting for interactive prompts.",
+        "config_json": {
+            "path": "~/.claude/config.json",
+            "description": "MUST be created FIRST. Skips login screen and onboarding wizard.",
+            "required": {
+                "hasCompletedOnboarding": true,
+                "primaryApiKey": "dummy"
+            }
         },
-        "field_mapping": {
-            "description": "EchoBird sends model data in the '[Attached models for deployment]' block. Map to Claude Code settings.json as follows:",
-            "attachment_model_field": "→ env.ANTHROPIC_MODEL",
-            "attachment_baseUrl": "→ env.ANTHROPIC_BASE_URL",
-            "attachment_apiKey": "→ env.ANTHROPIC_API_KEY"
+        "settings_json": {
+            "path": "~/.claude/settings.json",
+            "description": "Tool permissions. Without allowedTools, Claude Code prompts for folder trust and tool approvals interactively.",
+            "required": {
+                "allowedTools": ["Edit", "Write", "Bash", "Read", "MultiEdit", "Glob", "Grep", "LS", "TodoRead", "TodoWrite", "WebFetch", "NotebookRead", "NotebookEdit"]
+            }
         },
-        "steps": [
-            "1. Parse the '[Attached models for deployment]' block to extract: name, model (=modelId), baseUrl, apiKey.",
-            "2. Run first_run merge_script if Claude Code was just installed (ensures allowedTools is set).",
-            "3. Run configure merge_script below with the extracted values.",
-            "4. Verify: cat ~/.claude/settings.json | python3 -c \"import json,sys; c=json.load(sys.stdin); print(c.get('env',{}).get('ANTHROPIC_MODEL','NOT SET'))\""
-        ],
-        "merge_script": "python3 -c \"\nimport json, os\npath = os.path.expanduser('~/.claude/settings.json')\ncfg = {}\nif os.path.exists(path):\n    with open(path) as f: cfg = json.load(f)\n\n# --- fill from '[Attached models for deployment]' block ---\nMODEL_ID   = '<attachment model field>'   # e.g. deepseek-chat\nBASE_URL   = '<attachment baseUrl>'        # e.g. https://api.deepseek.com\nAPI_KEY    = '<attachment apiKey>'\n# ----------------------------------------------------------\n\nif 'env' not in cfg: cfg['env'] = {}\ncfg['env']['ANTHROPIC_MODEL'] = MODEL_ID\ncfg['env']['ANTHROPIC_BASE_URL'] = BASE_URL\ncfg['env']['ANTHROPIC_API_KEY'] = API_KEY\n\nwith open(path, 'w') as f: json.dump(cfg, f, indent=2)\nprint('Done:', MODEL_ID, '@', BASE_URL)\n\"",
-        "verify": "cat ~/.claude/settings.json | python3 -c \"import json,sys; c=json.load(sys.stdin); print(c.get('env',{}).get('ANTHROPIC_MODEL','NOT SET'))\""
+        "setup_script": "python3 -c \"\nimport json, os\n# Step 1: config.json - skip onboarding/login\ncpath = os.path.expanduser('~/.claude/config.json')\nos.makedirs(os.path.dirname(cpath), exist_ok=True)\ncc = {}\nif os.path.exists(cpath):\n    with open(cpath) as f: cc = json.load(f)\ncc['hasCompletedOnboarding'] = True\ncc['primaryApiKey'] = 'dummy'\nwith open(cpath, 'w') as f: json.dump(cc, f, indent=2)\nprint('config.json: onboarding skipped')\n# Step 2: settings.json - tool permissions\nspath = os.path.expanduser('~/.claude/settings.json')\nsc = {}\nif os.path.exists(spath):\n    with open(spath) as f: sc = json.load(f)\nif 'allowedTools' not in sc:\n    sc['allowedTools'] = ['Edit','Write','Bash','Read','MultiEdit','Glob','Grep','LS','TodoRead','TodoWrite','WebFetch','NotebookRead','NotebookEdit']\nwith open(spath, 'w') as f: json.dump(sc, f, indent=2)\nprint('settings.json: allowedTools set')\n\""
     }
 }
