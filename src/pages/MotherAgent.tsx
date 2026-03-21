@@ -592,8 +592,7 @@ export function MotherAgentMain() {
         fetch('https://echobird.ai/api/mother/hints.json')
             .then(r => r.json())
             .then(data => {
-                const hints = (data.hints || []).filter((h: any) => h.action !== 'deployLlm');
-                setRemoteHints(hints);
+                setRemoteHints(data.hints || []);
             })
             .catch(() => setRemoteHints([]));
     }, []);
