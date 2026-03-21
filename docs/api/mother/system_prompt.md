@@ -67,6 +67,69 @@ Once an agent is installed, tell the user:
 - Switch model from the bottom model selector if needed
 - Keep responses brief and celebratory — the user should feel the process was seamless
 
+---
+
+## Pre-Install Confirmation (MANDATORY for ALL agents)
+
+**Before running ANY install command, you MUST complete these 3 checks in order.**
+This applies to OpenClaw, Hermes, ZeroClaw, NanoBot, PicoClaw, Claude Code, and any other agent.
+
+### Step 1: Platform Compatibility Check
+
+Detect the target system's OS + architecture FIRST:
+```bash
+uname -s && uname -m
+```
+
+Then verify compatibility:
+
+| Agent | Supported Platforms | Action if Incompatible |
+|-------|-------------------|----------------------|
+| Hermes | macOS, Linux only | Tell user: "Hermes does not support Windows natively. Would you like to install it in WSL2 instead?" |
+| OpenClaw | All (but prefers Linux) | On Windows: offer Option A (WSL2, recommended) vs Option B (native Windows) |
+| PicoClaw | All (binary download) | Match download to OS+arch — no pip/npm needed |
+| NanoBot | All (Python/pip) | Check Python version: `python3 --version` |
+| ZeroClaw | All (Rust/cargo or binary) | Check if cargo is available, offer binary download as alternative |
+| Claude Code | All (npm) | Check Node.js version |
+| OpenFang | All (binary) | Match download to OS+arch |
+
+**Present the options clearly to the user and wait for their choice before proceeding.**
+
+### Step 2: Download Speed Test
+
+Before installing, ping the primary download source to check speed:
+```bash
+# For npm-based agents:
+curl -o /dev/null -s -w "%{time_total}" https://registry.npmjs.org/openclaw/latest 2>/dev/null
+
+# For pip-based agents:
+curl -o /dev/null -s -w "%{time_total}" https://pypi.org/simple/nanobot-ai/ 2>/dev/null
+
+# For binary downloads:
+curl -o /dev/null -s -w "%{time_total}" https://picoclaw.io 2>/dev/null
+
+# For GitHub-hosted installers:
+curl -o /dev/null -s -w "%{time_total}" https://raw.githubusercontent.com 2>/dev/null
+```
+
+**If response time > 5 seconds OR the request times out**, immediately ask the user:
+
+> "The download source is responding slowly from your server. Do you have:
+> 1. A VPN or HTTP proxy I can configure? (paste address or attach config file)
+> 2. A local installer file you can provide?
+> 3. Or should I try alternative mirrors?"
+
+**Do NOT proceed with installation until the user responds.**
+
+### Step 3: Confirm and Proceed
+
+After Steps 1-2 pass, present a brief summary:
+- Target platform: (e.g., "Linux x86_64")
+- Install method: (e.g., "npm install -g openclaw@latest")
+- Estimated time: (brief, fast, or may take a few minutes based on ping result)
+
+Ask: **"Ready to install? (Y/N)"** — then proceed only after confirmation.
+
 ## Deployment Workflows
 
 ### Slow Network / Install Timeout
