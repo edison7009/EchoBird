@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/icon.png" alt="Echobird" width="120" />
+  <img src="docs/5.png" alt="Echobird — One-click AI agent deployment" width="100%" />
 </p>
 
 <h1 align="center">Echobird</h1>
