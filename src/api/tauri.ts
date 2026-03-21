@@ -438,6 +438,20 @@ export async function bridgeSetRemoteModel(
     return invoke('bridge_set_remote_model', { serverId, agentId, modelId, modelName, apiKey, baseUrl, apiType });
 }
 
+// Local model read/write (same pattern as remote but no SSH)
+
+export async function bridgeGetLocalModel(agentId: string): Promise<RemoteModelResult | null> {
+    return invoke('bridge_get_local_model', { agentId });
+}
+
+export async function bridgeSetLocalModel(
+    agentId: string,
+    modelId: string, modelName: string,
+    apiKey: string, baseUrl: string, apiType: string,
+): Promise<{ success: boolean; message: string }> {
+    return invoke('bridge_set_local_model', { agentId, modelId, modelName, apiKey, baseUrl, apiType });
+}
+
 // ─── Role APIs ───
 
 export interface RoleCategory {

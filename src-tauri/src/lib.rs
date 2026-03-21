@@ -400,6 +400,8 @@ pub fn run() {
             channel_commands::bridge_start_agent_remote,
             channel_commands::bridge_get_remote_model,
             channel_commands::bridge_set_remote_model,
+            channel_commands::bridge_get_local_model,
+            channel_commands::bridge_set_local_model,
             channel_commands::bridge_ensure_remote,
             channel_commands::channel_history_load,
             channel_commands::channel_history_save,

@@ -546,11 +546,8 @@ const ChannelsInner: React.FC = () => {
     // ── Remote model: load model list + read current model when agent changes ──
     const selectedAgentForChannel = allActiveAgents[channelKey] || '';
     useEffect(() => {
-        if (isLocalChannel || !selectedAgentForChannel) {
-            // Local channel or no agent → no model selector
-            return;
-        }
-        // Load available models from Model Nexus
+        if (!selectedAgentForChannel) return;
+        // Load available models from Model Nexus (same for local and remote)
         api.getModels().then(models => {
             setChannelModelList(models.map(m => ({
                 id: m.internalId,
@@ -559,11 +556,18 @@ const ChannelsInner: React.FC = () => {
             })));
         }).catch(() => {});
 
-        // Read remote model (Echobird data)
+        // Read current model (local or remote)
         const agentEntry = AGENT_LIST.find(a => a.name === selectedAgentForChannel);
-        if (!agentEntry || !activeChannel?.serverId) return;
+        if (!agentEntry) return;
         setAllRemoteModelLoading(prev => ({ ...prev, [channelKey]: true }));
-        api.bridgeGetRemoteModel(String(activeChannel.serverId), agentEntry.id)
+
+        const readPromise = isLocalChannel
+            ? api.bridgeGetLocalModel(agentEntry.id)
+            : activeChannel?.serverId
+                ? api.bridgeGetRemoteModel(String(activeChannel.serverId), agentEntry.id)
+                : Promise.resolve(null);
+
+        readPromise
             .then(result => {
                 if (result?.modelId) {
                     setAllRemoteModels(prev => ({ ...prev, [channelKey]: { id: result.modelId, name: result.modelName || result.modelId } }));
@@ -580,9 +584,9 @@ const ChannelsInner: React.FC = () => {
     }, [selectedAgentForChannel, channelKey, isLocalChannel]);
 
     // Handle remote model switch
-    const handleRemoteModelSelect = useCallback(async (modelId: string) => {
+    const handleModelSelect = useCallback(async (modelId: string) => {
         const agentEntry = AGENT_LIST.find(a => a.name === selectedAgentForChannel);
-        if (!agentEntry || !activeChannel?.serverId) return;
+        if (!agentEntry) return;
 
         const previousModel = allRemoteModels[channelKey] || null;
         setAllRemoteModelLoading(prev => ({ ...prev, [channelKey]: true }));
@@ -593,15 +597,27 @@ const ChannelsInner: React.FC = () => {
             const selected = models.find(m => m.internalId === modelId);
             if (!selected) throw new Error('Model not found');
 
-            await api.bridgeSetRemoteModel(
-                String(activeChannel.serverId),
-                agentEntry.id,
-                selected.internalId,
-                selected.name,
-                selected.apiKey || '',
-                selected.baseUrl || '',
-                selected.anthropicUrl ? 'anthropic' : 'openai',
-            );
+            if (isLocalChannel) {
+                await api.bridgeSetLocalModel(
+                    agentEntry.id,
+                    selected.internalId,
+                    selected.name,
+                    selected.apiKey || '',
+                    selected.baseUrl || '',
+                    selected.anthropicUrl ? 'anthropic' : 'openai',
+                );
+            } else {
+                if (!activeChannel?.serverId) throw new Error('No server ID');
+                await api.bridgeSetRemoteModel(
+                    String(activeChannel.serverId),
+                    agentEntry.id,
+                    selected.internalId,
+                    selected.name,
+                    selected.apiKey || '',
+                    selected.baseUrl || '',
+                    selected.anthropicUrl ? 'anthropic' : 'openai',
+                );
+            }
             setAllRemoteModels(prev => ({ ...prev, [channelKey]: { id: selected.internalId, name: selected.name } }));
         } catch (e) {
             // Rollback to previous model
@@ -610,7 +626,7 @@ const ChannelsInner: React.FC = () => {
         } finally {
             setAllRemoteModelLoading(prev => ({ ...prev, [channelKey]: false }));
         }
-    }, [selectedAgentForChannel, channelKey, activeChannel, allRemoteModels]);
+    }, [selectedAgentForChannel, channelKey, activeChannel, allRemoteModels, isLocalChannel]);
 
 
 
@@ -647,8 +663,8 @@ const ChannelsInner: React.FC = () => {
             return;
         }
 
-        // Check if model is selected for remote channels
-        if (!isLocalChannel && !remoteModel) {
+        // Check if model is selected (both local and remote channels)
+        if (!remoteModel) {
             setBridgeMessages(prev => [...prev, { role: 'system', content: '', i18nKey: 'error.noModelSelected' }]);
             return;
         }
@@ -903,13 +919,13 @@ const ChannelsInner: React.FC = () => {
                                 <button onClick={() => imageInputRef.current?.click()} disabled={bridgeLoading || !isActiveConnected} className="p-1 text-cyber-accent/60 hover:text-cyber-accent transition-colors disabled:opacity-20"><ImageIcon size={15} /></button>
                             </div>
                             <div className="flex items-center gap-1.5">
-                                {/* Remote model selector — left of send button, remote channels only */}
-                                {!isLocalChannel && selectedAgentForChannel && (
+                                {/* Model selector — left of send button, all channels */}
+                                {selectedAgentForChannel && (
                                     <RemoteModelSelector
                                         models={channelModelList}
                                         currentModelId={remoteModel?.id || null}
                                         loading={remoteModelLoading}
-                                        onSelect={handleRemoteModelSelect}
+                                        onSelect={handleModelSelect}
                                         placeholder={t('mother.selectModel')}
                                     />
                                 )}

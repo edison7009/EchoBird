@@ -1715,6 +1715,212 @@ pub async fn bridge_set_remote_model(
     }))
 }
 
+// ── Local Model Read/Write ──────────────────────────────────────────────────
+
+/// Read the current Echobird-configured model for a local agent.
+/// Reads marker file ~/.echobird/local_{agent_id}.json
+#[tauri::command]
+pub async fn bridge_get_local_model(
+    agent_id: String,
+) -> Result<Option<RemoteModelResult>, String> {
+    log::info!("[BridgeGetLocalModel] agent={}", agent_id);
+
+    let home = dirs::home_dir().ok_or("Cannot find home directory")?;
+    let marker_path = home.join(".echobird").join(format!("local_{}.json", agent_id));
+
+    if !marker_path.exists() {
+        return Ok(None);
+    }
+
+    let content = std::fs::read_to_string(&marker_path)
+        .map_err(|e| format!("Failed to read marker file: {}", e))?;
+
+    if let Ok(json) = serde_json::from_str::<serde_json::Value>(&content) {
+        let model_id = json.get("modelId").and_then(|v| v.as_str()).unwrap_or("").to_string();
+        let model_name = json.get("modelName").and_then(|v| v.as_str()).unwrap_or("").to_string();
+        if !model_id.is_empty() {
+            return Ok(Some(RemoteModelResult { model_id, model_name }));
+        }
+    }
+
+    Ok(None)
+}
+
+/// Write model configuration for a local agent.
+/// 1. Writes agent-specific native config (same logic as remote but to local filesystem)
+/// 2. Writes marker file ~/.echobird/local_{agent_id}.json for future reads
+#[tauri::command]
+pub async fn bridge_set_local_model(
+    agent_id: String,
+    model_id: String,
+    model_name: String,
+    api_key: String,
+    base_url: String,
+    api_type: String,
+) -> Result<serde_json::Value, String> {
+    log::info!("[BridgeSetLocalModel] agent={}, model={}, type={}", agent_id, model_id, api_type);
+
+    let home = dirs::home_dir().ok_or("Cannot find home directory")?;
+
+    // ── Step 1: Write agent-specific config ──
+    match agent_id.as_str() {
+        "hermes" => {
+            // Hermes: write config.yaml via CLI if available, else write directly
+            let config_dir = home.join(".hermes");
+            std::fs::create_dir_all(&config_dir)
+                .map_err(|e| format!("Failed to create .hermes dir: {}", e))?;
+            // Try CLI first (more reliable)
+            let cli_result = std::process::Command::new("hermes")
+                .args(["config", "set", "model", &model_id])
+                .output();
+            if let Ok(output) = cli_result {
+                if output.status.success() {
+                    let _ = std::process::Command::new("hermes")
+                        .args(["config", "set", "OPENAI_API_KEY", &api_key])
+                        .output();
+                    let _ = std::process::Command::new("hermes")
+                        .args(["config", "set", "OPENAI_BASE_URL", &base_url])
+                        .output();
+                }
+            }
+        }
+        "openclaw" => {
+            // OpenClaw: write Echobird relay JSON → ~/.echobird/openclaw.json
+            let eb_dir = home.join(".echobird");
+            std::fs::create_dir_all(&eb_dir)
+                .map_err(|e| format!("Failed to create .echobird dir: {}", e))?;
+            let relay = serde_json::json!({
+                "apiKey": api_key,
+                "modelId": model_id,
+                "modelName": model_name,
+                "baseUrl": base_url,
+                "protocol": api_type,
+            });
+            let relay_str = serde_json::to_string_pretty(&relay).unwrap_or_default();
+            std::fs::write(eb_dir.join("openclaw.json"), &relay_str)
+                .map_err(|e| format!("Failed to write openclaw.json: {}", e))?;
+        }
+        "zeroclaw" => {
+            let config_dir = home.join(".zeroclaw");
+            std::fs::create_dir_all(&config_dir)
+                .map_err(|e| format!("Failed to create .zeroclaw dir: {}", e))?;
+            let toml_content = format!(
+                "default_model = \"{}\"\n\n[providers.echobird]\napi_key = \"{}\"\nbase_url = \"{}\"\nmodel = \"{}\"",
+                model_id, api_key, base_url, model_id,
+            );
+            std::fs::write(config_dir.join("config.toml"), &toml_content)
+                .map_err(|e| format!("Failed to write zeroclaw config: {}", e))?;
+        }
+        "nanobot" => {
+            let config_dir = home.join(".nanobot");
+            std::fs::create_dir_all(&config_dir)
+                .map_err(|e| format!("Failed to create .nanobot dir: {}", e))?;
+            let api_base = if base_url.trim_end_matches('/').ends_with("/v1") {
+                base_url.clone()
+            } else {
+                format!("{}/v1", base_url.trim_end_matches('/'))
+            };
+            let config = serde_json::json!({
+                "agents": { "defaults": { "model": model_id } },
+                "providers": { "custom": { "apiBase": api_base, "apiKey": api_key } }
+            });
+            let config_str = serde_json::to_string_pretty(&config).unwrap_or_default();
+            std::fs::write(config_dir.join("config.json"), &config_str)
+                .map_err(|e| format!("Failed to write nanobot config: {}", e))?;
+        }
+        "picoclaw" => {
+            let config_dir = home.join(".picoclaw");
+            std::fs::create_dir_all(&config_dir)
+                .map_err(|e| format!("Failed to create .picoclaw dir: {}", e))?;
+            let api_base = if base_url.trim_end_matches('/').ends_with("/v1") {
+                base_url.clone()
+            } else {
+                format!("{}/v1", base_url.trim_end_matches('/'))
+            };
+            let vendor = base_url
+                .find("api.")
+                .and_then(|start| {
+                    let after = &base_url[start + 4..];
+                    after.find('.').map(|end| &after[..end])
+                })
+                .unwrap_or("custom");
+            let vendor_model = format!("{}/{}", vendor, model_id);
+            let config = serde_json::json!({
+                "agents": { "defaults": { "model": model_id } },
+                "model_list": [{ "model_name": model_id, "model": vendor_model, "api_key": api_key, "api_base": api_base }]
+            });
+            let config_str = serde_json::to_string_pretty(&config).unwrap_or_default();
+            std::fs::write(config_dir.join("config.json"), &config_str)
+                .map_err(|e| format!("Failed to write picoclaw config: {}", e))?;
+        }
+        "openfang" => {
+            let config_dir = home.join(".openfang");
+            std::fs::create_dir_all(&config_dir)
+                .map_err(|e| format!("Failed to create .openfang dir: {}", e))?;
+            let toml_content = format!(
+                "model = \"{}\"\napi_key = \"{}\"\nbase_url = \"{}\"",
+                model_id, api_key, base_url,
+            );
+            std::fs::write(config_dir.join("config.toml"), &toml_content)
+                .map_err(|e| format!("Failed to write openfang config: {}", e))?;
+        }
+        "claudecode" => {
+            // Claude Code: write Echobird relay JSON for tracking
+            let eb_dir = home.join(".echobird");
+            std::fs::create_dir_all(&eb_dir)
+                .map_err(|e| format!("Failed to create .echobird dir: {}", e))?;
+            let relay = serde_json::json!({
+                "apiKey": api_key,
+                "modelId": model_id,
+                "modelName": model_name,
+                "baseUrl": base_url,
+            });
+            let relay_str = serde_json::to_string(&relay).unwrap_or_default();
+            std::fs::write(eb_dir.join("claudecode.json"), &relay_str)
+                .map_err(|e| format!("Failed to write claudecode.json: {}", e))?;
+        }
+        _ => {
+            // Unknown agent — write generic Echobird relay JSON
+            let eb_dir = home.join(".echobird");
+            std::fs::create_dir_all(&eb_dir)
+                .map_err(|e| format!("Failed to create .echobird dir: {}", e))?;
+            let relay = serde_json::json!({
+                "apiKey": api_key,
+                "modelId": model_id,
+                "modelName": model_name,
+                "baseUrl": base_url,
+            });
+            let relay_str = serde_json::to_string(&relay).unwrap_or_default();
+            std::fs::write(eb_dir.join(format!("{}.json", agent_id)), &relay_str)
+                .map_err(|e| format!("Failed to write agent config: {}", e))?;
+        }
+    }
+
+    log::info!("[BridgeSetLocalModel] Agent config written for agent={}", agent_id);
+
+    // ── Step 2: Write marker file for future reads ──
+    let eb_dir = home.join(".echobird");
+    std::fs::create_dir_all(&eb_dir)
+        .map_err(|e| format!("Failed to create .echobird dir: {}", e))?;
+    let marker = serde_json::json!({
+        "modelId": model_id,
+        "modelName": model_name,
+        "baseUrl": base_url,
+        "apiType": api_type,
+        "updatedAt": chrono::Utc::now().to_rfc3339(),
+    });
+    let marker_str = serde_json::to_string(&marker).map_err(|e| format!("JSON error: {}", e))?;
+    std::fs::write(eb_dir.join(format!("local_{}.json", agent_id)), &marker_str)
+        .map_err(|e| format!("Failed to write marker file: {}", e))?;
+
+    log::info!("[BridgeSetLocalModel] Marker + agent config written for agent={}", agent_id);
+
+    Ok(serde_json::json!({
+        "success": true,
+        "message": format!("Model {} configured for {}", model_name, agent_id)
+    }))
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BridgeChatResult {
     pub text: String,
