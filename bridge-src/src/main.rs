@@ -63,6 +63,15 @@ enum InboundMessage {
         agent_id: String,
         role_id: String,
     },
+    #[serde(rename = "set_model")]
+    SetModel {
+        agent_id: String,
+        model_id: String,
+        model_name: String,
+        api_key: String,
+        base_url: String,
+        api_type: String,
+    },
 }
 
 #[derive(Debug, Serialize)]
@@ -110,6 +119,12 @@ enum OutboundMessage {
     RoleCleared {
         agent_id: String,
         role_id: String,
+        success: bool,
+    },
+    #[serde(rename = "model_set")]
+    ModelSet {
+        agent_id: String,
+        model_id: String,
         success: bool,
     },
 }
@@ -243,6 +258,9 @@ fn handle_message(config: &BridgeConfig, msg: InboundMessage) {
         }
         InboundMessage::ClearRole { agent_id, role_id } => {
             handle_clear_role(&agent_id, &role_id);
+        }
+        InboundMessage::SetModel { agent_id, model_id, model_name, api_key, base_url, api_type } => {
+            handle_set_model(&agent_id, &model_id, &model_name, &api_key, &base_url, &api_type);
         }
     }
 }
@@ -815,6 +833,243 @@ fn handle_clear_role(agent_id: &str, role_id: &str) {
             });
         }
     }
+}
+
+// ── Model Config (SINGLE SOURCE OF TRUTH) ──
+
+fn handle_set_model(agent_id: &str, model_id: &str, model_name: &str, api_key: &str, base_url: &str, api_type: &str) {
+    let home = home_dir();
+    eprintln!("[bridge] set_model: agent={}, model={}, type={}", agent_id, model_id, api_type);
+
+    let result = match agent_id {
+        "hermes" => {
+            // Hermes: use CLI `hermes config set` commands
+            let cmds = vec![
+                vec!["hermes", "config", "set", "model", model_id],
+                vec!["hermes", "config", "set", "OPENAI_API_KEY", api_key],
+                vec!["hermes", "config", "set", "OPENAI_BASE_URL", base_url],
+            ];
+            let mut last_err = None;
+            for cmd in &cmds {
+                match Command::new(cmd[0]).args(&cmd[1..]).output() {
+                    Ok(o) if o.status.success() => {},
+                    Ok(o) => { last_err = Some(String::from_utf8_lossy(&o.stderr).to_string()); },
+                    Err(e) => { last_err = Some(e.to_string()); },
+                }
+            }
+            match last_err {
+                None => Ok(()),
+                Some(e) => Err(format!("hermes config set failed: {}", e)),
+            }
+        }
+
+        "openclaw" => {
+            // OpenClaw: write fresh ~/.openclaw/openclaw.json
+            let base = base_url.trim_end_matches('/');
+            let provider_tag = {
+                let without_protocol = base
+                    .strip_prefix("https://").or_else(|| base.strip_prefix("http://"))
+                    .unwrap_or(base);
+                let host = without_protocol.split('/').next().unwrap_or("");
+                let host = host.split(':').next().unwrap_or(host);
+                if host == "localhost" || host.starts_with("127.") || host.starts_with("192.168.") {
+                    "local".to_string()
+                } else {
+                    let parts: Vec<&str> = host.split('.').collect();
+                    if parts.len() >= 2 { parts[parts.len() - 2].to_string() } else { host.to_string() }
+                }
+            };
+            let eb_provider = format!("eb_{}", provider_tag);
+            let is_anthropic = api_type == "anthropic"
+                || model_id.to_lowercase().contains("claude")
+                || base_url.to_lowercase().contains("anthropic");
+            let oc_api_type = if is_anthropic { "anthropic-messages" } else { "openai-completions" };
+
+            let oc_config = serde_json::json!({
+                "models": {
+                    "mode": "merge",
+                    "providers": {
+                        &eb_provider: {
+                            "baseUrl": base,
+                            "apiKey": api_key,
+                            "api": oc_api_type,
+                            "models": [{
+                                "id": model_id,
+                                "name": model_name,
+                                "contextWindow": 128000,
+                                "maxTokens": 8192,
+                                "input": ["text"],
+                                "reasoning": false,
+                                "cost": { "input": 0, "output": 0, "cacheRead": 0, "cacheWrite": 0 }
+                            }]
+                        }
+                    }
+                },
+                "agents": {
+                    "defaults": {
+                        "model": { "primary": format!("{}/{}", eb_provider, model_id) }
+                    }
+                }
+            });
+
+            // Preserve gateway token from existing config
+            let oc_dir = home.join(".openclaw");
+            let oc_path = oc_dir.join("openclaw.json");
+            let gateway = if oc_path.exists() {
+                std::fs::read_to_string(&oc_path).ok()
+                    .and_then(|c| serde_json::from_str::<serde_json::Value>(&c).ok())
+                    .and_then(|v| v.get("gateway").cloned())
+            } else { None };
+
+            let mut config = oc_config;
+            if let Some(gw) = gateway { config["gateway"] = gw; }
+
+            write_config_file(&oc_dir, "openclaw.json",
+                &serde_json::to_string_pretty(&config).unwrap_or_default())
+        }
+
+        "zeroclaw" => {
+            // ZeroClaw v2026+: top-level keys (no [providers] table!)
+            let base = base_url.trim_end_matches('/');
+            let provider_value = if base.contains("openrouter.ai") {
+                "openrouter"
+            } else if base.contains("anthropic.com") {
+                "anthropic"
+            } else if base.contains("openai.com") {
+                "openai"
+            } else {
+                // custom provider handled below
+                ""
+            };
+            let toml_content = if provider_value.is_empty() {
+                let url = if base.ends_with("/v1") { base.to_string() } else { format!("{}/v1", base) };
+                format!("default_provider = \"custom:{}\"\ndefault_model = \"{}\"", url, model_id)
+            } else {
+                format!("default_provider = \"{}\"\ndefault_model = \"{}\"", provider_value, model_id)
+            };
+
+            let zc_dir = home.join(".zeroclaw");
+            let result = write_config_file(&zc_dir, "config.toml", &toml_content);
+
+            // Also set env vars for API key (ZeroClaw reads OPENROUTER_API_KEY at runtime)
+            std::env::set_var("OPENROUTER_API_KEY", api_key);
+            std::env::set_var("OPENAI_API_KEY", api_key);
+
+            result
+        }
+
+        "nanobot" => {
+            // NanoBot: providers.custom format
+            let api_base = ensure_v1_suffix(base_url);
+            let config = serde_json::json!({
+                "agents": { "defaults": { "model": model_id } },
+                "providers": { "custom": { "apiBase": api_base, "apiKey": api_key } }
+            });
+            write_config_file(&home.join(".nanobot"), "config.json",
+                &serde_json::to_string_pretty(&config).unwrap_or_default())
+        }
+
+        "picoclaw" => {
+            // PicoClaw: model_list array format
+            let api_base = ensure_v1_suffix(base_url);
+            let vendor = base_url
+                .find("api.")
+                .and_then(|start| {
+                    let after = &base_url[start + 4..];
+                    after.find('.').map(|end| &after[..end])
+                })
+                .unwrap_or("custom");
+            let vendor_model = format!("{}/{}", vendor, model_id);
+            let config = serde_json::json!({
+                "agents": { "defaults": { "model": model_id } },
+                "model_list": [{ "model_name": model_id, "model": vendor_model, "api_key": api_key, "api_base": api_base }]
+            });
+            write_config_file(&home.join(".picoclaw"), "config.json",
+                &serde_json::to_string_pretty(&config).unwrap_or_default())
+        }
+
+        "openfang" => {
+            let toml_content = format!("model = \"{}\"\napi_key = \"{}\"\nbase_url = \"{}\"",
+                model_id, api_key, base_url);
+            write_config_file(&home.join(".openfang"), "config.toml", &toml_content)
+        }
+
+        "claudecode" => {
+            // Claude Code: settings.json + onboarding skip
+            let claude_dir = home.join(".claude");
+
+            // ~/.claude.json: onboarding skip (only if missing)
+            let claude_json = home.join(".claude.json");
+            if !claude_json.exists() {
+                let onboarding = serde_json::json!({ "hasCompletedOnboarding": true });
+                let _ = std::fs::write(&claude_json, serde_json::to_string(&onboarding).unwrap_or_default());
+            }
+
+            // ~/.claude/settings.json: env vars + allowed tools
+            let settings = serde_json::json!({
+                "env": {
+                    "ANTHROPIC_BASE_URL": base_url,
+                    "ANTHROPIC_AUTH_TOKEN": api_key,
+                    "API_TIMEOUT_MS": "3000000",
+                    "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": 1,
+                    "ANTHROPIC_MODEL": model_id,
+                    "ANTHROPIC_SMALL_FAST_MODEL": model_id,
+                    "ANTHROPIC_DEFAULT_SONNET_MODEL": model_id,
+                    "ANTHROPIC_DEFAULT_OPUS_MODEL": model_id,
+                    "ANTHROPIC_DEFAULT_HAIKU_MODEL": model_id
+                },
+                "allowedTools": ["Edit","Write","Bash","Read","MultiEdit","Glob","Grep","LS","TodoRead","TodoWrite","WebFetch","NotebookRead","NotebookEdit"]
+            });
+            write_config_file(&claude_dir, "settings.json",
+                &serde_json::to_string_pretty(&settings).unwrap_or_default())
+        }
+
+        _ => {
+            send(&OutboundMessage::Error {
+                message: format!("Unknown agent for set_model: {}", agent_id),
+            });
+            return;
+        }
+    };
+
+    // Also write Echobird relay JSON for read-back (all agents)
+    let eb_dir = home.join(".echobird");
+    let relay = serde_json::json!({
+        "apiKey": api_key, "modelId": model_id,
+        "modelName": model_name, "baseUrl": base_url, "protocol": api_type,
+    });
+    let _ = write_config_file(&eb_dir, &format!("{}.json", agent_id),
+        &serde_json::to_string_pretty(&relay).unwrap_or_default());
+
+    match result {
+        Ok(()) => {
+            eprintln!("[bridge] Model set: agent={}, model={}", agent_id, model_id);
+            send(&OutboundMessage::ModelSet {
+                agent_id: agent_id.to_string(),
+                model_id: model_id.to_string(),
+                success: true,
+            });
+        }
+        Err(e) => {
+            send(&OutboundMessage::Error {
+                message: format!("Failed to set model for {}: {}", agent_id, e),
+            });
+        }
+    }
+}
+
+/// Write a config file to dir/filename, creating parent directories as needed.
+fn write_config_file(dir: &std::path::Path, filename: &str, content: &str) -> Result<(), String> {
+    std::fs::create_dir_all(dir)
+        .map_err(|e| format!("Failed to create dir {:?}: {}", dir, e))?;
+    std::fs::write(dir.join(filename), content)
+        .map_err(|e| format!("Failed to write {}/{}: {}", dir.display(), filename, e))
+}
+
+/// Ensure URL ends with /v1
+fn ensure_v1_suffix(url: &str) -> String {
+    let base = url.trim_end_matches('/');
+    if base.ends_with("/v1") { base.to_string() } else { format!("{}/v1", base) }
 }
 
 // ── Helpers ──
