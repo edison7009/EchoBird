@@ -21,7 +21,8 @@
     "paths": {
         "win32": [
             "%USERPROFILE%/.local/bin/picoclaw.exe",
-            "%USERPROFILE%/go/bin/picoclaw.exe"
+            "%USERPROFILE%/go/bin/picoclaw.exe",
+            "%USERPROFILE%/AppData/Local/Programs/PicoClaw/picoclaw.exe"
         ],
         "darwin": [
             "/usr/local/bin/picoclaw",
