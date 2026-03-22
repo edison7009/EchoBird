@@ -1658,18 +1658,28 @@ pub async fn bridge_set_remote_model(
                 config_str
             )
         }
-        "zeroclaw" => {
-            // ZeroClaw: write TOML config
+                "zeroclaw" => {
+            // ZeroClaw v2026+: top-level keys (no [providers] table!)
+            let base = base_url.trim_end_matches('/');
+            let provider_value = if base.contains("openrouter.ai") {
+                "openrouter".to_string()
+            } else if base.contains("anthropic.com") {
+                "anthropic".to_string()
+            } else if base.contains("openai.com") {
+                "openai".to_string()
+            } else {
+                let url = if base.ends_with("/v1") { base.to_string() } else { format!("{}/v1", base) };
+                format!("custom:{}", url)
+            };
             let toml_content = format!(
-                "default_model = \"{}\"\n\n[providers.echobird]\napi_key = \"{}\"\nbase_url = \"{}\"\nmodel = \"{}\"",
-                shell_escape(&model_id),
-                shell_escape(&api_key),
-                shell_escape(&base_url),
-                shell_escape(&model_id),
+                "default_provider = \"{}\"\ndefault_model = \"{}\"",
+                provider_value, model_id,
             );
             format!(
-                "mkdir -p ~/.zeroclaw && echo '{}' > ~/.zeroclaw/config.toml",
-                shell_escape(&toml_content)
+                "mkdir -p ~/.zeroclaw && echo '{}' > ~/.zeroclaw/config.toml && grep -q 'OPENROUTER_API_KEY' ~/.bashrc 2>/dev/null || echo 'export OPENROUTER_API_KEY=\"{}\"' >> ~/.bashrc && grep -q 'OPENAI_API_KEY' ~/.bashrc 2>/dev/null || echo 'export OPENAI_API_KEY=\"{}\"' >> ~/.bashrc",
+                shell_escape(&toml_content),
+                shell_escape(&api_key),
+                shell_escape(&api_key),
             )
         }
         "nanobot" => {
@@ -2017,15 +2027,29 @@ pub async fn bridge_set_local_model(
                 .map_err(|e| format!("Failed to write openclaw.json relay: {}", e))?;
         }
         "zeroclaw" => {
-            let config_dir = home.join(".zeroclaw");
-            std::fs::create_dir_all(&config_dir)
-                .map_err(|e| format!("Failed to create .zeroclaw dir: {}", e))?;
+            // ZeroClaw v2026+: top-level keys in config.toml (no [providers] table!)
+            // Config ref: docs/reference/api/config-reference.md
+            let base = base_url.trim_end_matches('/');
+            let provider_value = if base.contains("openrouter.ai") {
+                "openrouter".to_string()
+            } else if base.contains("anthropic.com") {
+                "anthropic".to_string()
+            } else if base.contains("openai.com") {
+                "openai".to_string()
+            } else {
+                let url = if base.ends_with("/v1") { base.to_string() } else { format!("{}/v1", base) };
+                format!("custom:{}", url)
+            };
             let toml_content = format!(
-                "default_model = \"{}\"\n\n[providers.echobird]\napi_key = \"{}\"\nbase_url = \"{}\"\nmodel = \"{}\"",
-                model_id, api_key, base_url, model_id,
+                "default_provider = \"{}\"\\ndefault_model = \"{}\"",
+                provider_value, model_id,
             );
-            std::fs::write(config_dir.join("config.toml"), &toml_content)
-                .map_err(|e| format!("Failed to write zeroclaw config: {}", e))?;
+            format!(
+                "mkdir -p ~/.zeroclaw && echo '{}' > ~/.zeroclaw/config.toml && grep -q 'OPENROUTER_API_KEY' ~/.bashrc 2>/dev/null || echo 'export OPENROUTER_API_KEY=\"{}\"' >> ~/.bashrc && grep -q 'OPENAI_API_KEY' ~/.bashrc 2>/dev/null || echo 'export OPENAI_API_KEY=\"{}\"' >> ~/.bashrc",
+                shell_escape(&toml_content),
+                shell_escape(&api_key),
+                shell_escape(&api_key),
+            )
         }
         "nanobot" => {
             let config_dir = home.join(".nanobot");
