@@ -16,7 +16,7 @@ This workflow defines what to monitor and how to respond.
 | ZeroClaw | [icerdesign/zeroclaw](https://github.com/icerdesign/zeroclaw) | `cargo install zeroclaw` |
 | NanoBot | [HKUDS/nanobot](https://github.com/HKUDS/nanobot) | `pip install nanobot-ai` |
 | PicoClaw | [nicobailey/picoclaw](https://github.com/nicobailey/picoclaw) | `go install github.com/nicobailey/picoclaw@latest` |
-| Hermes | [anthropics/hermes](https://github.com/anthropics/hermes) | `pip install hermes-agent` |
+| Hermes | [NousResearch/hermes-agent](https://github.com/NousResearch/hermes-agent) | `pip install hermes-agent` |
 
 ## Critical Integration Points
 
