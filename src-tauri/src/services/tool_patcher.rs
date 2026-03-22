@@ -922,13 +922,19 @@ pub fn patch_openfang() {
 
 // ── Hermes Agent Patcher ───
 
-/// Patch Hermes Agent by writing its config files directly.
-/// Hermes config: ~/.hermes/.env (OPENAI_API_KEY, OPENAI_BASE_URL without /v1, LLM_MODEL)
-///                ~/.hermes/config.yaml (model, OPENAI_BASE_URL with /v1)
-/// Equivalent to running:
-///   hermes config set OPENAI_BASE_URL <url>
-///   hermes config set OPENAI_API_KEY <key>
-///   hermes config set model <model>
+/// Patch Hermes Agent config files for custom endpoint.
+///
+/// Hermes config rules (confirmed from cli.py source, 2026-03-23):
+///   - Model comes from: CLI arg or config.yaml `model.default` (single source of truth)
+///   - LLM_MODEL/OPENAI_MODEL env vars are NOT checked by Hermes
+///   - API keys (OPENAI_API_KEY) and base URLs (OPENAI_BASE_URL) read from .env only
+///   - Default fallback model: anthropic/claude-opus-4.6
+///
+/// Correct approach:
+///   1. Write `model:\n  default: {model_id}` to config.yaml
+///   2. Write OPENAI_API_KEY + OPENAI_BASE_URL to .env
+///   3. Clear ANTHROPIC_API_KEY from .env (prevents auto-detection override)
+///   4. Clean stale entries (LLM_MODEL, flat OPENAI_BASE_URL:) from config.yaml
 pub fn patch_hermes() {
     let home = match dirs::home_dir() {
         Some(h) => h,
@@ -960,18 +966,16 @@ pub fn patch_hermes() {
         return;
     }
 
-    // Base URL without /v1 (for .env) — Hermes handles /v1 internally
-    let base_url_raw = base_url.trim_end_matches('/').to_string();
-
-    // Base URL with /v1 (for config.yaml) — hermes config set adds /v1
-    let base_url_v1 = if !base_url_raw.is_empty() {
-        if base_url_raw.ends_with("/v1") {
-            base_url_raw.clone()
+    // Ensure base URL has /v1 suffix (Hermes expects full endpoint)
+    let base_url_full = {
+        let raw = base_url.trim_end_matches('/');
+        if raw.is_empty() {
+            String::new()
+        } else if raw.ends_with("/v1") {
+            raw.to_string()
         } else {
-            format!("{}/v1", base_url_raw)
+            format!("{}/v1", raw)
         }
-    } else {
-        String::new()
     };
 
     let hermes_dir = home.join(".hermes");
@@ -979,19 +983,25 @@ pub fn patch_hermes() {
         let _ = fs::create_dir_all(&hermes_dir);
     }
 
-    // Write ~/.hermes/.env (secrets + base URL without /v1 + LLM_MODEL)
-    // Matches `hermes config set` behavior observed on real install.
+    // ── Step 1: Update .env ──
+    // Write OPENAI_API_KEY + OPENAI_BASE_URL, clear ANTHROPIC_API_KEY
+    // Remove stale LLM_MODEL (Hermes does NOT read this from .env)
     let env_path = hermes_dir.join(".env");
     let mut env_lines: Vec<String> = Vec::new();
     if env_path.exists() {
         if let Ok(existing) = fs::read_to_string(&env_path) {
             for line in existing.lines() {
                 let trimmed = line.trim();
-                // Remove entries we'll re-add
-                if trimmed.starts_with("OPENAI_API_KEY=") && !trimmed.starts_with("OPENAI_API_KEY=sk-") {
-                    continue; // only remove if it's our injected key
+                // Remove entries we'll re-add or clear
+                if trimmed.starts_with("OPENAI_API_KEY=")
+                    || trimmed.starts_with("OPENAI_BASE_URL=")
+                    || trimmed.starts_with("LLM_MODEL=")
+                {
+                    continue;
                 }
-                if trimmed.starts_with("OPENAI_API_KEY=") || trimmed.starts_with("OPENAI_BASE_URL=") || trimmed.starts_with("LLM_MODEL=") {
+                // Clear ANTHROPIC_API_KEY (prevents Hermes auto-detecting Anthropic provider)
+                if trimmed.starts_with("ANTHROPIC_API_KEY=") {
+                    env_lines.push("ANTHROPIC_API_KEY=".to_string());
                     continue;
                 }
                 env_lines.push(line.to_string());
@@ -999,9 +1009,8 @@ pub fn patch_hermes() {
         }
     }
     env_lines.push(format!("OPENAI_API_KEY={}", api_key));
-    env_lines.push(format!("LLM_MODEL={}", model_id));
-    if !base_url_raw.is_empty() {
-        env_lines.push(format!("OPENAI_BASE_URL={}", base_url_raw));
+    if !base_url_full.is_empty() {
+        env_lines.push(format!("OPENAI_BASE_URL={}", base_url_full));
     }
 
     if let Err(e) = fs::write(&env_path, env_lines.join("\n") + "\n") {
@@ -1009,33 +1018,46 @@ pub fn patch_hermes() {
         return;
     }
 
-    // Write OPENAI_BASE_URL to ~/.hermes/config.yaml
-    // IMPORTANT: Do NOT write `model:` here — config.yaml `model:` overrides .env `LLM_MODEL`.
-    // If we write `model: MiniMax-M2.7` (bare name without provider prefix), Hermes defaults
-    // to OpenRouter and ignores OPENAI_API_KEY/OPENAI_BASE_URL from .env entirely.
-    // Solution: let LLM_MODEL from .env be the active model, and only set OPENAI_BASE_URL
-    // in config.yaml so Hermes uses our custom endpoint.
+    // ── Step 2: Update config.yaml ──
+    // Write `model:\n  default: {model_id}` (the ONLY key Hermes reads for model)
+    // Clean stale entries: LLM_MODEL:, flat OPENAI_BASE_URL:, flat model: (non-nested)
     let config_path = hermes_dir.join("config.yaml");
     let mut yaml_lines: Vec<String> = Vec::new();
+    let mut skip_model_block = false;
     if config_path.exists() {
         if let Ok(existing) = fs::read_to_string(&config_path) {
             for line in existing.lines() {
                 let trimmed = line.trim();
-                // Remove model and OPENAI_BASE_URL — we control both via .env now
-                if trimmed.starts_with("model:") || trimmed.starts_with("OPENAI_BASE_URL:") {
+                // Skip existing model: block (we'll re-add it)
+                if trimmed == "model:" || trimmed.starts_with("model:") {
+                    // Check if it's the nested model: block (next line would be indented)
+                    skip_model_block = trimmed == "model:";
+                    if !skip_model_block {
+                        // Flat `model: xxx` — skip it
+                        continue;
+                    }
+                    continue; // skip `model:` header
+                }
+                if skip_model_block {
+                    if line.starts_with(' ') || line.starts_with('\t') {
+                        continue; // skip indented lines under model:
+                    }
+                    skip_model_block = false; // end of model block
+                }
+                // Remove stale entries from previous Bridge versions
+                if trimmed.starts_with("LLM_MODEL:") || trimmed.starts_with("OPENAI_BASE_URL:") {
                     continue;
                 }
                 yaml_lines.push(line.to_string());
             }
         }
     }
-    // Only write OPENAI_BASE_URL to config.yaml (persists across sessions)
-    if !base_url_v1.is_empty() {
-        yaml_lines.push(format!("OPENAI_BASE_URL: {}", base_url_v1));
-    }
+    // Add correct model block
+    yaml_lines.push("model:".to_string());
+    yaml_lines.push(format!("  default: {}", model_id));
 
     match fs::write(&config_path, yaml_lines.join("\n") + "\n") {
-        Ok(_) => log::info!("[Patcher] Hermes config written: model={} (via .env LLM_MODEL), base_url={}", model_id, base_url_v1),
+        Ok(_) => log::info!("[Patcher] Hermes config written: model.default={}, base_url={}", model_id, base_url_full),
         Err(e) => log::warn!("[Patcher] Failed to write Hermes config.yaml: {}", e),
     }
 }

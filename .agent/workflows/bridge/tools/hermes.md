@@ -37,33 +37,55 @@ description: Hermes Agent Bridge integration — config, model switching, role i
 
 ## Model Switching
 
-### Config Precedence (critical to understand)
-1. **CLI arguments** (highest) — e.g. `hermes chat --model X`
-2. **~/.hermes/config.yaml** — `model:` key
-3. **~/.hermes/.env** — `LLM_MODEL` env var
-4. **Built-in defaults** (lowest) — defaults to OpenRouter
+### Config Rules (confirmed from Hermes source cli.py, 2026-03-23)
 
-### Correct approach: custom endpoint via .env
-Our goal is always **custom endpoint** (EchoBird relay). All 3 values go to `.env`:
+```python
+# Model comes from: CLI arg or config.yaml model.default (single source of truth).
+# LLM_MODEL/OPENAI_MODEL env vars are NOT checked — config.yaml is authoritative.
+# Default fallback: anthropic/claude-opus-4.6
+```
+
+### Config Precedence
+1. **CLI argument** `--model X` (highest)
+2. **config.yaml** `model.default` key (nested YAML, NOT flat `model:`)
+3. **Hardcoded default** `anthropic/claude-opus-4.6` (lowest)
+
+> [!WARNING]
+> `.env LLM_MODEL` and `HERMES_MODEL` are **NOT read by Hermes** despite being documented.
+> Hermes source explicitly skips env var model detection.
+
+### Correct approach: custom endpoint
 ```bash
-hermes config set LLM_MODEL {model_id}       # → .env (all-caps = .env routing)
-hermes config set OPENAI_API_KEY {api_key}    # → .env
-hermes config set OPENAI_BASE_URL {base_url}  # → .env
+# 1. Set model in config.yaml (the ONLY place Hermes reads model from)
+hermes config set model.default {model_id}
+
+# 2. Set API credentials in .env (sed directly, hermes config set routes wrong)
+sed -i 's|^OPENAI_API_KEY=.*|OPENAI_API_KEY={api_key}|' ~/.hermes/.env
+sed -i 's|^OPENAI_BASE_URL=.*|OPENAI_BASE_URL={base_url}|' ~/.hermes/.env
+
+# 3. Clear ANTHROPIC_API_KEY (prevents auto-detection override)
+sed -i 's|^ANTHROPIC_API_KEY=.*|ANTHROPIC_API_KEY=|' ~/.hermes/.env
 ```
 
 > [!CAUTION]
-> **NEVER use `hermes config set model {model_id}`** — this writes to config.yaml,
-> which triggers Hermes' built-in provider routing. A bare model name like `MiniMax-M2.7`
-> defaults to OpenRouter, completely ignoring OPENAI_API_KEY and OPENAI_BASE_URL from .env.
-> This caused persistent 401 "Missing Authentication header" errors.
+> **DO NOT use `openai/` prefix on model names.** Hermes uses OpenAI SDK directly
+> and passes model name as-is to the endpoint. `openai/MiniMax-M2.7` → API returns
+> "unknown model" error.
 
-### Cleanup: remove stale `model:` from config.yaml
-If config.yaml already has a `model:` line from a previous run, it overrides .env. Bridge must also:
-```bash
-sed -i '/^model:/d' ~/.hermes/config.yaml    # Remove stale model line
-```
+> [!CAUTION]
+> **`hermes config set OPENAI_BASE_URL`** writes to config.yaml, but Hermes reads
+> OPENAI_BASE_URL from **.env only**. Always sed .env directly.
 
-Bridge `handle_set_model("hermes")` runs `LLM_MODEL` + cleanup + API key/URL commands.
+### What DOESN'T work (tried and failed)
+
+| Command | Problem |
+|---------|---------|
+| `hermes config set model X` | Writes flat `model: X` to config.yaml — Hermes ignores (needs `model.default`) |
+| `hermes config set LLM_MODEL X` | Writes `LLM_MODEL:` to config.yaml — Hermes doesn't read this key |
+| `.env LLM_MODEL=X` | Hermes source explicitly skips env var model detection |
+| `openai/model-name` prefix | Sent as-is to API, causing "unknown model" errors |
+
+Bridge `handle_set_model("hermes")` uses: `hermes config set model.default` + sed `.env`.
 
 ---
 

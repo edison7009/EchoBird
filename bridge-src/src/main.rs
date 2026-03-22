@@ -923,32 +923,73 @@ fn handle_set_model(agent_id: &str, model_id: &str, model_name: &str, api_key: &
 
     let result = match agent_id {
         "hermes" => {
-            // Hermes: use CLI `hermes config set` commands
-            // IMPORTANT: Use LLM_MODEL (not `model`) — `hermes config set model X` writes to
-            // config.yaml which triggers Hermes' own provider routing (bare names default to
-            // OpenRouter, ignoring OPENAI_API_KEY). `hermes config set LLM_MODEL X` writes to
-            // .env alongside OPENAI_API_KEY/OPENAI_BASE_URL, ensuring custom endpoint is used.
-            // Step 1: Remove stale `model:` from config.yaml (it overrides .env due to precedence)
-            let _ = Command::new("sed")
-                .args(&["-i", "/^model:/d", &format!("{}/.hermes/config.yaml", std::env::var("HOME").unwrap_or_default())])
+            // Hermes model switching — confirmed by Hermes source code + remote testing (2026-03-23)
+            //
+            // HERMES CONFIG RULES (from cli.py source):
+            //   Model comes from: CLI arg or config.yaml model.default (single source of truth).
+            //   LLM_MODEL/OPENAI_MODEL env vars are NOT checked.
+            //   Default fallback: anthropic/claude-opus-4.6
+            //
+            // CORRECT APPROACH:
+            //   1. `hermes config set model.default {model_id}` → writes config.yaml model.default
+            //   2. sed .env OPENAI_API_KEY (Hermes reads API keys from .env only)
+            //   3. sed .env OPENAI_BASE_URL (Hermes reads base URL from .env only)
+            //   4. Clear ANTHROPIC_API_KEY from .env (prevents auto-detection override)
+            //   5. Clean stale entries from config.yaml (LLM_MODEL:, OPENAI_BASE_URL:, flat model:)
+            //
+            // DO NOT use openai/ prefix on model name — Hermes uses OpenAI SDK directly,
+            // sends model name as-is to the endpoint.
+            let home = std::env::var("HOME").unwrap_or_default();
+            let env_path = format!("{}/.hermes/.env", home);
+            let yaml_path = format!("{}/.hermes/config.yaml", home);
+
+            // Step 1: Set model.default in config.yaml via hermes CLI (the ONLY key Hermes reads)
+            let model_result = Command::new("hermes")
+                .args(&["config", "set", "model.default", model_id])
                 .output();
-            // Step 2: Set LLM_MODEL + API credentials in .env via hermes CLI
-            let cmds = vec![
-                vec!["hermes", "config", "set", "LLM_MODEL", model_id],
-                vec!["hermes", "config", "set", "OPENAI_API_KEY", api_key],
-                vec!["hermes", "config", "set", "OPENAI_BASE_URL", base_url],
-            ];
-            let mut last_err = None;
-            for cmd in &cmds {
-                match Command::new(cmd[0]).args(&cmd[1..]).output() {
-                    Ok(o) if o.status.success() => {},
-                    Ok(o) => { last_err = Some(String::from_utf8_lossy(&o.stderr).to_string()); },
-                    Err(e) => { last_err = Some(e.to_string()); },
+            if let Ok(o) = &model_result {
+                if !o.status.success() {
+                    eprintln!("[bridge] hermes config set model.default failed: {}", String::from_utf8_lossy(&o.stderr));
                 }
             }
+
+            // Step 2: Clean config.yaml — remove stale entries from previous Bridge versions
+            for pattern in &["/^LLM_MODEL:/d", "/^OPENAI_BASE_URL:/d"] {
+                let _ = Command::new("sed").args(&["-i", pattern, &yaml_path]).output();
+            }
+
+            // Step 3: Update .env — OPENAI_API_KEY + OPENAI_BASE_URL (sed in-place)
+            // Also clear ANTHROPIC_API_KEY to prevent Hermes from auto-detecting Anthropic provider
+            let updates: Vec<(&str, &str)> = vec![
+                ("OPENAI_API_KEY", api_key),
+                ("OPENAI_BASE_URL", base_url),
+                ("ANTHROPIC_API_KEY", ""),
+            ];
+            let mut last_err = None;
+            for (key, value) in &updates {
+                let sed_result = Command::new("sed")
+                    .args(&["-i", &format!("s|^{}=.*|{}={}|", key, key, value), &env_path])
+                    .output();
+                match sed_result {
+                    Ok(o) if o.status.success() => {
+                        // Check if key exists in file; if not, append it (skip empty values)
+                        if !value.is_empty() {
+                            let grep = Command::new("grep").args(&["-q", &format!("^{}=", key), &env_path]).output();
+                            if grep.map(|g| !g.status.success()).unwrap_or(true) {
+                                let _ = Command::new("sh")
+                                    .args(&["-c", &format!("echo '{}={}' >> '{}'", key, value, env_path)])
+                                    .output();
+                            }
+                        }
+                    }
+                    Ok(o) => { last_err = Some(String::from_utf8_lossy(&o.stderr).to_string()); }
+                    Err(e) => { last_err = Some(e.to_string()); }
+                }
+            }
+            eprintln!("[bridge] hermes: model.default={}, BASE_URL={}", model_id, base_url);
             match last_err {
                 None => Ok(()),
-                Some(e) => Err(format!("hermes config set failed: {}", e)),
+                Some(e) => Err(format!("hermes config update failed: {}", e)),
             }
         }
 
