@@ -1073,7 +1073,15 @@ pub async fn bridge_chat_remote(
     let agent_command = if let Some(p) = plugin_config {
         if let Some(ref cli) = p.cli {
             let mut parts = vec![cli.command.clone()];
-            parts.extend(cli.args.iter().cloned());
+            // When resuming with session_id, use resumeArgs if available
+            if let (Some(ref sid), Some(ref resume_args)) = (&session_id, &cli.resume_args) {
+                let resolved: Vec<String> = resume_args.iter()
+                    .map(|a| a.replace("{sessionId}", sid))
+                    .collect();
+                parts.extend(resolved);
+            } else {
+                parts.extend(cli.args.iter().cloned());
+            }
             parts.join(" ")
         } else {
             format!("{} agent --json", plugin)
@@ -1120,32 +1128,38 @@ pub async fn bridge_chat_remote(
     // Parse Bridge JSON output (unified for all protocols)
     let mut response_text = String::new();
     let mut new_session_id: Option<String> = None;
+    let mut parsed_bridge_json = false;
     for line in result.stdout.lines() {
         if let Ok(json) = serde_json::from_str::<serde_json::Value>(line) {
-            match json.get("type").and_then(|v| v.as_str()) {
-                Some("text") => {
-                    if let Some(text) = json.get("text").and_then(|v| v.as_str()) {
-                        response_text.push_str(text);
+            if let Some(msg_type) = json.get("type").and_then(|v| v.as_str()) {
+                parsed_bridge_json = true;
+                match msg_type {
+                    "text" => {
+                        if let Some(text) = json.get("text").and_then(|v| v.as_str()) {
+                            response_text.push_str(text);
+                        }
+                        if let Some(sid) = json.get("session_id").and_then(|v| v.as_str()) {
+                            new_session_id = Some(sid.to_string());
+                        }
                     }
-                    if let Some(sid) = json.get("session_id").and_then(|v| v.as_str()) {
-                        new_session_id = Some(sid.to_string());
+                    "done" => {
+                        if let Some(sid) = json.get("session_id").and_then(|v| v.as_str()) {
+                            new_session_id = Some(sid.to_string());
+                        }
                     }
-                }
-                Some("done") => {
-                    if let Some(sid) = json.get("session_id").and_then(|v| v.as_str()) {
-                        new_session_id = Some(sid.to_string());
+                    "error" => {
+                        let msg = json.get("message").and_then(|v| v.as_str()).unwrap_or("Unknown error");
+                        return Err(format!("Bridge error: {}", msg));
                     }
+                    _ => {}
                 }
-                Some("error") => {
-                    let msg = json.get("message").and_then(|v| v.as_str()).unwrap_or("Unknown error");
-                    return Err(format!("Bridge error: {}", msg));
-                }
-                _ => {}
             }
         }
     }
 
-    if response_text.is_empty() && !result.stdout.is_empty() {
+    // Only fallback to raw stdout when Bridge returned NO valid protocol JSON
+    // (i.e., Bridge completely failed to run — not when agent returned empty text)
+    if response_text.is_empty() && !parsed_bridge_json && !result.stdout.is_empty() {
         response_text = result.stdout.clone();
     }
 
