@@ -817,14 +817,32 @@ fn apply_zeroclaw(model_info: &ModelInfo) -> ApplyResult {
     let config_path = dirs::home_dir().unwrap_or_default().join(".zeroclaw").join("config.toml");
     let mut content = fs::read_to_string(&config_path).unwrap_or_default();
 
-    if let Some(ref k) = model_info.api_key { content = toml_write_top(&content, "api_key", k); }
     let model = model_info.model.as_deref().or(model_info.name.as_deref()).unwrap_or("");
     if !model.is_empty() { content = toml_write_top(&content, "default_model", model); }
+
+    // Build ZeroClaw provider string (matches Bridge handle_set_model logic)
     if let Some(ref u) = model_info.base_url {
-        let clean = u.trim_end_matches("/v1/").trim_end_matches("/v1").trim_end_matches('/');
-        content = toml_write_top(&content, "default_provider", &format!("custom:{}", clean));
+        let base = u.trim_end_matches('/');
+        let provider_value = if base.contains("openrouter.ai") {
+            "openrouter".to_string()
+        } else if base.contains("anthropic.com") {
+            "anthropic".to_string()
+        } else if base.contains("openai.com") {
+            "openai".to_string()
+        } else {
+            // Custom provider: ensure /v1 suffix
+            let url = if base.ends_with("/v1") { base.to_string() } else { format!("{}/v1", base) };
+            format!("custom:{}", url)
+        };
+        content = toml_write_top(&content, "default_provider", &provider_value);
     } else {
         content = toml_write_top(&content, "default_provider", "openrouter");
+    }
+
+    // ZeroClaw reads API key from env vars, NOT from config.toml
+    if let Some(ref k) = model_info.api_key {
+        std::env::set_var("OPENROUTER_API_KEY", k);
+        std::env::set_var("OPENAI_API_KEY", k);
     }
 
     ensure_parent(&config_path);
