@@ -85,7 +85,7 @@ Channel page: user selects role
   → bridgeSetRoleLocal("picoclaw", roleId, url)
   → Bridge handle_set_role("picoclaw")
   → Downloads role markdown from CDN
-  → Writes to ~/.picoclaw/workspace/AGENT.md
+  → Writes to ~/.picoclaw/workspace/SOUL.md
   → Session reset → next chat reads new role
 ```
 

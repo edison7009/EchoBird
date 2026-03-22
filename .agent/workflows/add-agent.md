@@ -365,5 +365,5 @@ Add the tool ID to `docs/api/tools/install/index.json`:
 > - [openclaw.md](bridge/tools/openclaw.md) — OpenClaw (stdio-json, SOUL.md overwrite, session reset)
 > - [zeroclaw.md](bridge/tools/zeroclaw.md) — ZeroClaw (TOML config, custom provider 404)
 > - [nanobot.md](bridge/tools/nanobot.md) — NanoBot (Python module, `split_whitespace`)
-> - [picoclaw.md](bridge/tools/picoclaw.md) — PicoClaw (Go binary, AGENT.md injection, unknown protocol)
+> - [picoclaw.md](bridge/tools/picoclaw.md) — PicoClaw (Go binary, SOUL.md injection, cli-oneshot)
 > - [hermes.md](bridge/tools/hermes.md) — Hermes (-Q/-q flags, no Windows, SOUL.md auto-read)

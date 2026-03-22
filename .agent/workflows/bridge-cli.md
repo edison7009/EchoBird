@@ -106,7 +106,7 @@ Bridge does NOT inject roles as system prompts. It **downloads and writes role f
 | Claude Code | `~/.claude/agents/{role_id}.md` | Markdown |
 | ZeroClaw | `~/.zeroclaw/workspace/skills/{role_id}/SKILL.md` | Markdown |
 | NanoBot | `~/.nanobot/workspace/AGENTS.md` (overwrites) | Markdown |
-| PicoClaw | `~/.picoclaw/workspace/AGENT.md` (overwrites) | Markdown |
+| PicoClaw | `~/.picoclaw/workspace/SOUL.md` (overwrites) | Markdown |
 | Hermes Agent | `~/.hermes/SOUL.md` (overwrites) | Markdown |
 
 Role URLs are stored as **full URLs** in each `roles-{lang}.json`:
@@ -253,7 +253,7 @@ OpenClaw reads SOUL.md only at **session start**. Changing SOUL.md mid-session h
 | Claude Code | Create `agents/{role_id}.md` | Per-role files, coexist |
 | ZeroClaw | Create `skills/{role_id}/SKILL.md` | Per-role directories, coexist |
 | NanoBot | Overwrite `workspace/AGENTS.md` | Single workspace, roles share same file |
-| PicoClaw | Overwrite `workspace/AGENT.md` | Single workspace, mtime-tracked |
+| PicoClaw | Overwrite `workspace/SOUL.md` | Single workspace, mtime-tracked |
 | Hermes Agent | Overwrite `SOUL.md` | Auto-read on each `hermes chat` |
 
 For agents with per-role files, idempotent skip (`if exists, skip download`) is safe. For agents with shared files (OpenClaw, NanoBot, PicoClaw, Hermes), always overwrite.
@@ -268,7 +268,7 @@ When a user clears their selected role, the agent must return to its built-in de
 | ZeroClaw | Per-role dirs | Keep file, clear active state | Just stop reading that SKILL |
 | OpenClaw | Shared SOUL.md | Truncate to 0 bytes | Agent expects file to exist; empty = default persona |
 | NanoBot | Shared AGENTS.md | Truncate to 0 bytes | Same reason |
-| PicoClaw | Shared AGENT.md | Truncate to 0 bytes | Same reason |
+| PicoClaw | Shared SOUL.md | Truncate to 0 bytes | Same reason |
 | Hermes | Shared SOUL.md | Truncate to 0 bytes | Same reason |
 
 > **Never delete shared role files.** These agents may crash or behave unexpectedly if their expected file is missing. Writing 0 bytes safely returns them to default.
