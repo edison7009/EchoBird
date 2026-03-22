@@ -1,1 +1,1 @@
-{"version":"3.2.5","releaseDate":"2026-03-23","releaseNotes":"Fixed Hermes model switching: use config.yaml model.default (confirmed from source code). Sed .env for API keys. Clear ANTHROPIC_API_KEY to prevent provider conflict."}
+{"version":"3.2.6","releaseDate":"2026-03-23","releaseNotes":"Fix chat scroll bounce in Channels page, strip Hermes box-drawing output, unify Channels layout with Mother Agent"}
