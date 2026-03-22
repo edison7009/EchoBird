@@ -390,12 +390,13 @@ const ChannelsInner: React.FC = () => {
         setTimeout(() => { isProgrammaticScrollRef.current = false; }, 100);
     };
 
-    // Auto-scroll when messages change (new message from user or agent)
+    // Auto-scroll when messages change OR loading indicator appears/disappears
+    // (The "Typing..." bubble changes DOM height — must scroll again to stay at bottom)
     useEffect(() => {
         if (autoFollowRef.current) {
             requestAnimationFrame(() => doScrollToBottom('instant' as any));
         }
-    }, [messages]);
+    }, [messages, bridgeLoading]);
 
     // Scroll to bottom when switching channels
     useEffect(() => {
@@ -734,8 +735,8 @@ const ChannelsInner: React.FC = () => {
         const displayText = input.trim();            // clean text -> bubble & disk
         setInput('');
         setAttachments([]);
-        // Always scroll to bottom when user sends a message
-        doScrollToBottom('auto');
+        // Ensure auto-follow is on so useEffect scrolls to bottom after render
+        autoFollowRef.current = true;
         setBridgeMessages(prev => [...prev, { role: 'user', content: displayText || '📎', chips } as any]);
 
         if (!canSendMessage) {
