@@ -889,7 +889,16 @@ fn load_config() -> BridgeConfig {
                     let mut resume_args = cmd_args;
                     resume_args.push("--session-id".to_string());
                     resume_args.push("{sessionId}".to_string());
-                    eprintln!("[bridge] Using CLI config: {}", cmd_str);
+                    // Check for optional --agent-arg (e.g. --agent-arg "--agent")
+                    let mut agent_arg: Option<String> = None;
+                    for j in 0..args.len() {
+                        if args[j] == "--agent-arg" {
+                            if let Some(val) = args.get(j + 1) {
+                                agent_arg = Some(val.to_string());
+                            }
+                        }
+                    }
+                    eprintln!("[bridge] Using CLI config: {} (agent_arg: {:?})", cmd_str, agent_arg);
                     return BridgeConfig {
                         command,
                         args: chat_args,
@@ -897,7 +906,7 @@ fn load_config() -> BridgeConfig {
                         session_arg: Some("--session-id".to_string()),
                         model_arg: None,
                         system_prompt_arg: None,
-                        agent_arg: None,
+                        agent_arg,
                     };
                 }
             }

@@ -381,8 +381,8 @@ export async function bridgeChatLocal(message: string, sessionId?: string, syste
     return invoke('bridge_chat_local', { message, sessionId: sessionId ?? null, systemPrompt: systemPrompt ?? null });
 }
 
-export async function bridgeChatRemote(serverId: string, message: string, sessionId?: string, pluginId?: string): Promise<{ text: string; session_id?: string; model?: string; tokens?: number; duration_ms?: number }> {
-    return invoke('bridge_chat_remote', { serverId, message, sessionId: sessionId ?? null, pluginId: pluginId ?? null });
+export async function bridgeChatRemote(serverId: string, message: string, sessionId?: string, pluginId?: string, roleId?: string): Promise<{ text: string; session_id?: string; model?: string; tokens?: number; duration_ms?: number }> {
+    return invoke('bridge_chat_remote', { serverId, message, sessionId: sessionId ?? null, pluginId: pluginId ?? null, roleId: roleId ?? null });
 }
 
 // ─── Remote Bridge CLI Commands ───

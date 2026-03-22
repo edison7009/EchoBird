@@ -1050,6 +1050,7 @@ pub async fn bridge_chat_remote(
     message: String,
     session_id: Option<String>,
     plugin_id: Option<String>,
+    role_id: Option<String>,
 ) -> Result<BridgeChatResult, String> {
     let pool = pool.inner().clone();
     let plugin = plugin_id.unwrap_or_else(|| "openclaw".to_string());
@@ -1090,18 +1091,33 @@ pub async fn bridge_chat_remote(
         format!("{} agent --json", plugin)
     };
 
+    // Determine if we need --agent-arg for role injection
+    let agent_arg_flag = plugin_config
+        .and_then(|p| p.cli.as_ref())
+        .and_then(|cli| cli.agent_arg.as_ref())
+        .cloned();
+
     // All protocols: pipe JSON into Bridge (Bridge handles output parsing for all agents)
-    let input_json = if let Some(ref sid) = session_id {
-        serde_json::json!({ "type": "chat", "message": message, "session_id": sid })
-    } else {
-        serde_json::json!({ "type": "chat", "message": message })
-    };
-    let input_str = serde_json::to_string(&input_json)
+    let mut input_map = serde_json::json!({ "type": "chat", "message": message });
+    if let Some(ref sid) = session_id {
+        input_map["session_id"] = serde_json::json!(sid);
+    }
+    if let Some(ref rid) = role_id {
+        if agent_arg_flag.is_some() {
+            input_map["agent_name"] = serde_json::json!(rid);
+        }
+    }
+    let input_str = serde_json::to_string(&input_map)
         .map_err(|e| format!("JSON error: {}", e))?;
     let escaped = input_str.replace('\'', "'\\''");
+    let bridge_extra = if let Some(ref aa) = agent_arg_flag {
+        format!(" --agent-arg '{}'", aa)
+    } else {
+        String::new()
+    };
     let cmd = format!(
-        "export PATH=\"$HOME/.npm-global/bin:$HOME/.local/bin:$HOME/.cargo/bin:$PATH\" && echo '{}' | ~/echobird/echobird-bridge --command '{}'",
-        escaped, agent_command
+        "export PATH=\"$HOME/.npm-global/bin:$HOME/.local/bin:$HOME/.cargo/bin:$PATH\" && echo '{}' | ~/echobird/echobird-bridge --command '{}'{}",
+        escaped, agent_command, bridge_extra
     );
 
     let connections = pool.lock().await;
