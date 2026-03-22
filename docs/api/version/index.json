@@ -1,1 +1,1 @@
-{"version":"3.1.9","releaseDate":"2026-03-22","releaseNotes":"v3.1.9: fix model display after page switch, OpenClaw config overwrite, i18n error.agentFailed cleanup, remove Select model ellipsis"}
+{"version":"3.2.0","releaseDate":"2026-03-22","releaseNotes":"Unified Bridge protocol for all agents (local + remote), fixed Claude Code output parsing, fixed Windows install prompts for all agents, improved Mother Agent install UX"}
