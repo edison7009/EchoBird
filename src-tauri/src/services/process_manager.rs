@@ -419,23 +419,35 @@ impl ProcessManager {
         }
     }
 
-    /// Ensure Claude Code onboarding is marked as completed in ~/.claude.json
+    /// Ensure Claude Code onboarding is marked as completed in ~/.claude/config.json
     fn ensure_claude_onboarding() {
-        let claude_json = dirs::home_dir().unwrap_or_default().join(".claude.json");
-        let mut config: serde_json::Value = if claude_json.exists() {
-            std::fs::read_to_string(&claude_json)
-                .ok()
-                .and_then(|s| serde_json::from_str(&s).ok())
-                .unwrap_or_else(|| serde_json::json!({}))
-        } else {
-            serde_json::json!({})
-        };
+        let claude_dir = dirs::home_dir().unwrap_or_default().join(".claude");
+        let _ = std::fs::create_dir_all(&claude_dir);
+        let config_path = claude_dir.join("config.json");
 
-        if config.get("hasCompletedOnboarding").and_then(|v| v.as_bool()) != Some(true) {
-            config["hasCompletedOnboarding"] = serde_json::json!(true);
-            if let Ok(content) = serde_json::to_string_pretty(&config) {
-                let _ = std::fs::write(&claude_json, content);
-                log::info!("[ProcessManager] Set hasCompletedOnboarding=true in {:?}", claude_json);
+        // Only create if missing (don't overwrite real Anthropic auth)
+        if config_path.exists() {
+            return;
+        }
+
+        let config = serde_json::json!({
+            "hasCompletedOnboarding": true,
+            "primaryApiKey": "dummy"
+        });
+        if let Ok(content) = serde_json::to_string_pretty(&config) {
+            let _ = std::fs::write(&config_path, content);
+            log::info!("[ProcessManager] Created {:?} (onboarding skip)", config_path);
+        }
+
+        // Also ensure settings.json with allowedTools
+        let settings_path = claude_dir.join("settings.json");
+        if !settings_path.exists() {
+            let settings = serde_json::json!({
+                "allowedTools": ["Edit","Write","Bash","Read","MultiEdit","Glob","Grep","LS","TodoRead","TodoWrite","WebFetch","NotebookRead","NotebookEdit"]
+            });
+            if let Ok(content) = serde_json::to_string_pretty(&settings) {
+                let _ = std::fs::write(&settings_path, content);
+                log::info!("[ProcessManager] Created {:?} (allowedTools)", settings_path);
             }
         }
     }

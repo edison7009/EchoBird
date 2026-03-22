@@ -1748,8 +1748,7 @@ pub async fn bridge_set_remote_model(
             )
         }
         "claudecode" => {
-            // Claude Code: no native config write needed (uses --model flag at runtime)
-            // Just write Echobird relay JSON for tracking
+            // Claude Code: write relay JSON + ensure onboarding config for non-interactive use
             let relay = serde_json::json!({
                 "apiKey": api_key,
                 "modelId": model_id,
@@ -1757,9 +1756,21 @@ pub async fn bridge_set_remote_model(
                 "baseUrl": base_url,
             });
             let relay_str = shell_escape(&serde_json::to_string(&relay).unwrap_or_default());
+            // config.json: skip login/onboarding wizard (only if not already authenticated)
+            let config_json = shell_escape(&serde_json::to_string(&serde_json::json!({
+                "hasCompletedOnboarding": true,
+                "primaryApiKey": "dummy"
+            })).unwrap_or_default());
+            // settings.json: tool permissions for non-interactive use (only if missing)
+            let settings_json = shell_escape(&serde_json::to_string(&serde_json::json!({
+                "allowedTools": ["Edit","Write","Bash","Read","MultiEdit","Glob","Grep","LS","TodoRead","TodoWrite","WebFetch","NotebookRead","NotebookEdit"]
+            })).unwrap_or_default());
             format!(
-                "mkdir -p ~/.echobird && echo '{}' > ~/.echobird/claudecode.json",
-                relay_str
+                "mkdir -p ~/.echobird && echo '{}' > ~/.echobird/claudecode.json && \
+                 mkdir -p ~/.claude && \
+                 test -f ~/.claude/config.json || echo '{}' > ~/.claude/config.json && \
+                 test -f ~/.claude/settings.json || echo '{}' > ~/.claude/settings.json",
+                relay_str, config_json, settings_json
             )
         }
         _ => {
@@ -2070,6 +2081,32 @@ pub async fn bridge_set_local_model(
             let relay_str = serde_json::to_string(&relay).unwrap_or_default();
             std::fs::write(eb_dir.join("claudecode.json"), &relay_str)
                 .map_err(|e| format!("Failed to write claudecode.json: {}", e))?;
+
+            // Ensure Claude Code onboarding config exists (skip if already authenticated)
+            let claude_dir = home.join(".claude");
+            std::fs::create_dir_all(&claude_dir)
+                .map_err(|e| format!("Failed to create .claude dir: {}", e))?;
+
+            let config_path = claude_dir.join("config.json");
+            if !config_path.exists() {
+                let config = serde_json::json!({
+                    "hasCompletedOnboarding": true,
+                    "primaryApiKey": "dummy"
+                });
+                std::fs::write(&config_path, serde_json::to_string_pretty(&config).unwrap_or_default())
+                    .map_err(|e| format!("Failed to write claude config.json: {}", e))?;
+                log::info!("[BridgeSetLocalModel] Created ~/.claude/config.json (onboarding skip)");
+            }
+
+            let settings_path = claude_dir.join("settings.json");
+            if !settings_path.exists() {
+                let settings = serde_json::json!({
+                    "allowedTools": ["Edit","Write","Bash","Read","MultiEdit","Glob","Grep","LS","TodoRead","TodoWrite","WebFetch","NotebookRead","NotebookEdit"]
+                });
+                std::fs::write(&settings_path, serde_json::to_string_pretty(&settings).unwrap_or_default())
+                    .map_err(|e| format!("Failed to write claude settings.json: {}", e))?;
+                log::info!("[BridgeSetLocalModel] Created ~/.claude/settings.json (allowedTools)");
+            }
         }
         _ => {
             // Unknown agent — write generic Echobird relay JSON
