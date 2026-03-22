@@ -12,6 +12,14 @@
         "WARNING": "npm install is DEPRECATED. Do NOT use 'npm install -g @anthropic-ai/claude-code'. Use one of the methods above.",
         "note": "After install, first-time setup MUST add allowedTools to settings for non-interactive use. See first_run below."
     },
+    "network_requirements": {
+        "test_urls": ["https://claude.ai", "https://github.com/anthropics/claude-code"],
+        "blocked_regions": {
+            "zh-CN": "Claude Code requires direct access to claude.ai — this site is blocked in mainland China. Installation success rate is nearly zero without a VPN/proxy. There are NO mirror alternatives for Claude Code.",
+            "zh-TW": "Claude Code requires access to claude.ai. If your network cannot reach it, you may need a proxy."
+        },
+        "mirrors": {}
+    },
     "first_run": {
         "description": "Claude Code requires TWO config files for non-interactive use: (1) ~/.claude.json to skip onboarding, (2) ~/.claude/settings.json for tool permissions and API config. Without these, Claude Code will hang waiting for interactive prompts.",
         "claude_json": {

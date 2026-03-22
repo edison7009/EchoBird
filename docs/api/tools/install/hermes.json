@@ -16,5 +16,9 @@
         "role_mechanism": "Hermes uses SOUL.md at ~/.hermes/SOUL.md for agent identity. EchoBird writes role content here; Hermes auto-detects changes on next session.",
         "output_format": "With --quiet flag, outputs clean text response only.",
         "note": "Hermes is Python-based, by Nous Research. Supports 200+ models via OpenRouter, plus MiniMax, Kimi, OpenAI, Anthropic, custom endpoints. No native Windows support (WSL2 required)."
+    },
+    "network_requirements": {
+        "test_urls": ["https://raw.githubusercontent.com/NousResearch/hermes-agent/main/scripts/install.sh"],
+        "mirrors": {}
     }
 }

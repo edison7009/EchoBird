@@ -11,5 +11,11 @@
         "npm China mirror (slow network fallback)": "npm install -g openclaw@latest --registry=https://registry.npmmirror.com",
         "from source": "git clone https://github.com/openclaw/openclaw.git && cd openclaw && pnpm install && pnpm build",
         "note": "Requires Node 22+ (LTS recommended). For REMOTE servers via SSH, skip --onboard to avoid interactive prompts. The onboard step installs the Gateway daemon (launchd/systemd)."
+    },
+    "network_requirements": {
+        "test_urls": ["https://registry.npmjs.org", "https://github.com/openclaw/openclaw"],
+        "mirrors": {
+            "npm": "npm install -g openclaw@latest --registry=https://registry.npmmirror.com"
+        }
     }
 }

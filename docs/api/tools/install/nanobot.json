@@ -21,5 +21,12 @@
         "role_mechanism": "NanoBot uses SOUL.md file at ~/.nanobot/workspace/SOUL.md for agent persona. EchoBird writes role content here; NanoBot auto-detects changes. Note: AGENTS.md does NOT work for identity.",
         "output_format": "Clean plain text with cat emoji (U+1F408) delimiter. Output is very clean by default (no ANSI codes or log lines when using --no-logs).",
         "note": "NanoBot is Python-based (unlike PicoClaw which is Go). Config format uses 'providers' object, NOT 'model_list' array."
+    },
+    "network_requirements": {
+        "test_urls": ["https://pypi.org/simple/nanobot-ai/"],
+        "mirrors": {
+            "pip": "pip install nanobot-ai -i https://pypi.tuna.tsinghua.edu.cn/simple",
+            "uv": "uv tool install nanobot-ai --index-url https://pypi.tuna.tsinghua.edu.cn/simple"
+        }
     }
 }

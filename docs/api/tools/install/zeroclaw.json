@@ -26,5 +26,9 @@
         "supported_flags": ["-m (message)", "-p (provider)", "--model (model ID)", "-t (temperature)"],
         "unsupported_flags": ["--json", "--session-id", "--system-prompt-file"],
         "note": "ZeroClaw does NOT support JSON output mode or session resumption. Output includes ANSI color codes and log lines that must be cleaned."
+    },
+    "network_requirements": {
+        "test_urls": ["https://github.com/zeroclaw-labs/zeroclaw", "https://crates.io"],
+        "mirrors": {}
     }
 }

@@ -21,5 +21,9 @@
         "role_mechanism": "PicoClaw uses SOUL.md file at ~/.picoclaw/workspace/SOUL.md for agent persona. EchoBird writes role content here; PicoClaw auto-detects changes via mtime tracking. Note: AGENT.md does NOT work — PicoClaw ignores it.",
         "output_format": "Plain text with ANSI color codes and structured log lines. Clean response starts after the lobster emoji delimiter. EchoBird strips ANSI codes, filters log lines, removes <think> blocks, and extracts content after the delimiter.",
         "note": "Output contains Go structured logs (HH:MM:SS INF/WRN), ASCII art banner, and <think> reasoning blocks. All are automatically filtered by EchoBird."
+    },
+    "network_requirements": {
+        "test_urls": ["https://github.com/sipeed/picoclaw/releases"],
+        "mirrors": {}
     }
 }

@@ -813,6 +813,21 @@ many users are beginners and just want to try things out quickly.\n\
         https://echobird.ai/api/tools/install/{tool-id}.json (e.g. openclaw, opencode)\n\
         The JSON contains official install commands, homepage, docs URL, and GitHub link.\n\
         Use these as authoritative install instructions. If 404, fall back to web_fetch on the tool's official site.\n\n\
+        ## Network Pre-Check (MANDATORY Before Installation)\n\
+        Before installing ANY agent, you MUST check network connectivity:\n\
+        1. **Detect user region from their INPUT LANGUAGE** (what they type, NOT the UI setting):\n\
+           - Simplified Chinese input -> likely mainland China (GitHub/npm/PyPI often blocked or extremely slow)\n\
+           - Traditional Chinese -> likely Taiwan/HK (usually fine)\n\
+           - Other languages -> usually fine\n\
+        2. Read `network_requirements` from the tool's install JSON. Use `web_fetch` to quickly test each `test_urls` entry.\n\
+        3. If original URLs fail OR respond extremely slowly (>10s), test `mirrors` URLs (npmmirror.com, pypi.tuna.tsinghua.edu.cn, etc).\n\
+        4. Decision logic:\n\
+           - Original URLs reachable at normal speed -> install normally\n\
+           - Original fails/slow BUT mirror reachable -> use mirror install command instead\n\
+           - BOTH original AND mirror URLs ALL fail or extremely slow -> STOP. Tell the user:\n\
+             'We detected you may be in [region]. Your network cannot reliably connect to [servers]. These packages are large (100MB+) and installation success rate is nearly zero at your current network speed. Please configure a VPN/proxy and try again.'\n\
+             Do NOT attempt installation when all connectivity tests fail or are extremely slow.\n\
+        5. For Simplified Chinese users, ALWAYS test network first even if they don't mention issues.\n\n\
         ## Echobird CLI Bridge (Automatically Managed)\n\
         Bridge is the communication layer between EchoBird and remote agents.\n\
         EchoBird automatically deploys, updates, and manages Bridge on remote servers.\n\
