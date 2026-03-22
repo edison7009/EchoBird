@@ -1284,6 +1284,11 @@ fn is_agent_log_line(line: &str) -> bool {
         return true;
     }
 
+    // Pattern 7: Hermes box-drawing border lines (╭─ ⚕ Hermes ───╮ and ╰───╯)
+    if trimmed.starts_with('╭') || trimmed.starts_with('╰') || trimmed.starts_with('└') || trimmed.starts_with('┌') {
+        return true;
+    }
+
     false
 }
 
