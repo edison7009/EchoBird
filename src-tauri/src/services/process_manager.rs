@@ -419,27 +419,22 @@ impl ProcessManager {
         }
     }
 
-    /// Ensure Claude Code onboarding is marked as completed in ~/.claude/config.json
+    /// Ensure Claude Code onboarding is marked as completed in ~/.claude.json
+    /// and settings.json has allowedTools for non-interactive use
     fn ensure_claude_onboarding() {
+        // ~/.claude.json: skip onboarding (only if missing)
+        let claude_json = dirs::home_dir().unwrap_or_default().join(".claude.json");
+        if !claude_json.exists() {
+            let config = serde_json::json!({ "hasCompletedOnboarding": true });
+            if let Ok(content) = serde_json::to_string_pretty(&config) {
+                let _ = std::fs::write(&claude_json, content);
+                log::info!("[ProcessManager] Created {:?} (onboarding skip)", claude_json);
+            }
+        }
+
+        // ~/.claude/settings.json: ensure allowedTools exist (only if missing)
         let claude_dir = dirs::home_dir().unwrap_or_default().join(".claude");
         let _ = std::fs::create_dir_all(&claude_dir);
-        let config_path = claude_dir.join("config.json");
-
-        // Only create if missing (don't overwrite real Anthropic auth)
-        if config_path.exists() {
-            return;
-        }
-
-        let config = serde_json::json!({
-            "hasCompletedOnboarding": true,
-            "primaryApiKey": "dummy"
-        });
-        if let Ok(content) = serde_json::to_string_pretty(&config) {
-            let _ = std::fs::write(&config_path, content);
-            log::info!("[ProcessManager] Created {:?} (onboarding skip)", config_path);
-        }
-
-        // Also ensure settings.json with allowedTools
         let settings_path = claude_dir.join("settings.json");
         if !settings_path.exists() {
             let settings = serde_json::json!({

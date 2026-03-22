@@ -1748,7 +1748,7 @@ pub async fn bridge_set_remote_model(
             )
         }
         "claudecode" => {
-            // Claude Code: write relay JSON + ensure onboarding config for non-interactive use
+            // Claude Code: write relay JSON + Claude Code native config
             let relay = serde_json::json!({
                 "apiKey": api_key,
                 "modelId": model_id,
@@ -1756,21 +1756,35 @@ pub async fn bridge_set_remote_model(
                 "baseUrl": base_url,
             });
             let relay_str = shell_escape(&serde_json::to_string(&relay).unwrap_or_default());
-            // config.json: skip login/onboarding wizard (only if not already authenticated)
-            let config_json = shell_escape(&serde_json::to_string(&serde_json::json!({
-                "hasCompletedOnboarding": true,
-                "primaryApiKey": "dummy"
+
+            // ~/.claude.json: skip onboarding (only if missing)
+            let claude_json = shell_escape(&serde_json::to_string(&serde_json::json!({
+                "hasCompletedOnboarding": true
             })).unwrap_or_default());
-            // settings.json: tool permissions for non-interactive use (only if missing)
-            let settings_json = shell_escape(&serde_json::to_string(&serde_json::json!({
+
+            // ~/.claude/settings.json: env vars for API + model + allowedTools
+            let settings = serde_json::json!({
+                "env": {
+                    "ANTHROPIC_BASE_URL": base_url,
+                    "ANTHROPIC_AUTH_TOKEN": api_key,
+                    "API_TIMEOUT_MS": "3000000",
+                    "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": 1,
+                    "ANTHROPIC_MODEL": model_id,
+                    "ANTHROPIC_SMALL_FAST_MODEL": model_id,
+                    "ANTHROPIC_DEFAULT_SONNET_MODEL": model_id,
+                    "ANTHROPIC_DEFAULT_OPUS_MODEL": model_id,
+                    "ANTHROPIC_DEFAULT_HAIKU_MODEL": model_id
+                },
                 "allowedTools": ["Edit","Write","Bash","Read","MultiEdit","Glob","Grep","LS","TodoRead","TodoWrite","WebFetch","NotebookRead","NotebookEdit"]
-            })).unwrap_or_default());
+            });
+            let settings_str = shell_escape(&serde_json::to_string(&settings).unwrap_or_default());
+
             format!(
                 "mkdir -p ~/.echobird && echo '{}' > ~/.echobird/claudecode.json && \
+                 test -f ~/.claude.json || echo '{}' > ~/.claude.json && \
                  mkdir -p ~/.claude && \
-                 test -f ~/.claude/config.json || echo '{}' > ~/.claude/config.json && \
-                 test -f ~/.claude/settings.json || echo '{}' > ~/.claude/settings.json",
-                relay_str, config_json, settings_json
+                 echo '{}' > ~/.claude/settings.json",
+                relay_str, claude_json, settings_str
             )
         }
         _ => {
@@ -2082,31 +2096,36 @@ pub async fn bridge_set_local_model(
             std::fs::write(eb_dir.join("claudecode.json"), &relay_str)
                 .map_err(|e| format!("Failed to write claudecode.json: {}", e))?;
 
-            // Ensure Claude Code onboarding config exists (skip if already authenticated)
+            // ~/.claude.json: skip onboarding (only if missing)
+            let claude_json_path = home.join(".claude.json");
+            if !claude_json_path.exists() {
+                let onboarding = serde_json::json!({ "hasCompletedOnboarding": true });
+                std::fs::write(&claude_json_path, serde_json::to_string_pretty(&onboarding).unwrap_or_default())
+                    .map_err(|e| format!("Failed to write .claude.json: {}", e))?;
+                log::info!("[BridgeSetLocalModel] Created ~/.claude.json (onboarding skip)");
+            }
+
+            // ~/.claude/settings.json: env vars for API + model + allowedTools (always update for model switch)
             let claude_dir = home.join(".claude");
             std::fs::create_dir_all(&claude_dir)
                 .map_err(|e| format!("Failed to create .claude dir: {}", e))?;
-
-            let config_path = claude_dir.join("config.json");
-            if !config_path.exists() {
-                let config = serde_json::json!({
-                    "hasCompletedOnboarding": true,
-                    "primaryApiKey": "dummy"
-                });
-                std::fs::write(&config_path, serde_json::to_string_pretty(&config).unwrap_or_default())
-                    .map_err(|e| format!("Failed to write claude config.json: {}", e))?;
-                log::info!("[BridgeSetLocalModel] Created ~/.claude/config.json (onboarding skip)");
-            }
-
-            let settings_path = claude_dir.join("settings.json");
-            if !settings_path.exists() {
-                let settings = serde_json::json!({
-                    "allowedTools": ["Edit","Write","Bash","Read","MultiEdit","Glob","Grep","LS","TodoRead","TodoWrite","WebFetch","NotebookRead","NotebookEdit"]
-                });
-                std::fs::write(&settings_path, serde_json::to_string_pretty(&settings).unwrap_or_default())
-                    .map_err(|e| format!("Failed to write claude settings.json: {}", e))?;
-                log::info!("[BridgeSetLocalModel] Created ~/.claude/settings.json (allowedTools)");
-            }
+            let settings = serde_json::json!({
+                "env": {
+                    "ANTHROPIC_BASE_URL": base_url,
+                    "ANTHROPIC_AUTH_TOKEN": api_key,
+                    "API_TIMEOUT_MS": "3000000",
+                    "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": 1,
+                    "ANTHROPIC_MODEL": model_id,
+                    "ANTHROPIC_SMALL_FAST_MODEL": model_id,
+                    "ANTHROPIC_DEFAULT_SONNET_MODEL": model_id,
+                    "ANTHROPIC_DEFAULT_OPUS_MODEL": model_id,
+                    "ANTHROPIC_DEFAULT_HAIKU_MODEL": model_id
+                },
+                "allowedTools": ["Edit","Write","Bash","Read","MultiEdit","Glob","Grep","LS","TodoRead","TodoWrite","WebFetch","NotebookRead","NotebookEdit"]
+            });
+            std::fs::write(claude_dir.join("settings.json"), serde_json::to_string_pretty(&settings).unwrap_or_default())
+                .map_err(|e| format!("Failed to write claude settings.json: {}", e))?;
+            log::info!("[BridgeSetLocalModel] Claude Code settings.json written (model={})", model_id);
         }
         _ => {
             // Unknown agent — write generic Echobird relay JSON
