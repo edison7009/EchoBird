@@ -10,8 +10,8 @@
     "apiProtocol": [
         "openai"
     ],
-    "docs": "https://github.com/zeroclaw-labs/zeroclaw",
-    "installUrl": "https://github.com/zeroclaw-labs/zeroclaw#quick-start",
+    "docs": "https://www.zeroclawlabs.ai/",
+    "installUrl": "https://www.zeroclawlabs.ai/",
     "command": "zeroclaw",
     "startCommand": "zeroclaw daemon",
     "configDir": "~/.zeroclaw",
