@@ -1221,6 +1221,19 @@ fn send(msg: &OutboundMessage) {
 /// Resolve a command name to its full path (handles .cmd/.bat on Windows)
 fn resolve_command(command: &str) -> String {
     if cfg!(target_os = "windows") {
+        if command == "picoclaw" || command == "picoclaw.exe" {
+            let appdata = std::env::var("LOCALAPPDATA").unwrap_or_else(|_| String::from("C:\\Users\\default\\AppData\\Local"));
+            let fallback_appdata = std::path::PathBuf::from(&appdata).join("Programs").join("PicoClaw").join("picoclaw.exe");
+            let userprofile = std::env::var("USERPROFILE").unwrap_or_else(|_| String::from("C:\\Users\\default"));
+            let fallback_go = std::path::PathBuf::from(&userprofile).join("go").join("bin").join("picoclaw.exe");
+            
+            if fallback_appdata.exists() {
+                return fallback_appdata.to_string_lossy().into_owned();
+            } else if fallback_go.exists() {
+                return fallback_go.to_string_lossy().into_owned();
+            }
+        }
+
         // Use where.exe to find the full path of .cmd/.bat scripts
         if let Ok(output) = Command::new("where.exe").arg(command).output() {
             let stdout = String::from_utf8_lossy(&output.stdout);
