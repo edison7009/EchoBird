@@ -1,13 +1,19 @@
 # Echobird Channels Architecture
 
-> **IMPORTANT**: Read this doc and `bridge-cli.md` workflow before modifying any Channels-related code.
+## Core Principle
+
+> **⚠️ CRITICAL: Bridge is the SOLE communication layer for ALL agents, both LOCAL and REMOTE. The Tauri backend NEVER calls agent CLIs directly. No exceptions. Adding a new agent only requires a new `plugins/{agent_id}/plugin.json` — zero Tauri code changes for basic support.**
 
 ## Overview
 
-Channels page lets users chat with AI agents installed on **local** or **remote** servers. All agents communicate through **Bridge** — the desktop app never calls agent CLIs directly.
+Channels page lets users chat with AI agents installed on **local** or **remote** servers. Whether the agent is running on `127.0.0.1` or a remote Linux server via SSH, the message always flows through Bridge:
 
 ```
 User → Channels.tsx → tauri.ts → channel_commands.rs → Bridge → Agent CLI
+                                                         ↑
+                                              ALL paths go through Bridge
+                                              Local = persistent subprocess
+                                              Remote = one-shot via SSH pipe
 ```
 
 ---
@@ -63,6 +69,12 @@ Each agent has a config at `plugins/{agent_id}/plugin.json`:
 ---
 
 ## Communication Flow
+
+> **Both local and remote use Bridge — the only difference is HOW Bridge runs:**
+> - **Local**: Bridge runs as a **persistent subprocess** (started once, stdin/stdout streaming)
+> - **Remote**: Bridge runs as a **one-shot command** (SSH pipes JSON into remote Bridge binary)
+>
+> The Tauri backend NEVER constructs raw agent CLI commands. It always delegates to Bridge.
 
 ### Local Channels
 
