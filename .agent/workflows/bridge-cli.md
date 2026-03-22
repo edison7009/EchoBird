@@ -258,6 +258,21 @@ OpenClaw reads SOUL.md only at **session start**. Changing SOUL.md mid-session h
 
 For agents with per-role files, idempotent skip (`if exists, skip download`) is safe. For agents with shared files (OpenClaw, NanoBot, PicoClaw, Hermes), always overwrite.
 
-### 8. Role filePath Is a Full URL
+### 8. Clear Role Strategy (Default State)
+
+When a user clears their selected role, the agent must return to its built-in default persona. The strategy differs by agent type:
+
+| Agent | Type | clear_role action | Why |
+|-------|------|-------------------|-----|
+| Claude Code | Per-role files | Keep file, clear active state | Just stop passing `--system-prompt-file` |
+| ZeroClaw | Per-role dirs | Keep file, clear active state | Just stop reading that SKILL |
+| OpenClaw | Shared SOUL.md | Truncate to 0 bytes | Agent expects file to exist; empty = default persona |
+| NanoBot | Shared AGENTS.md | Truncate to 0 bytes | Same reason |
+| PicoClaw | Shared AGENT.md | Truncate to 0 bytes | Same reason |
+| Hermes | Shared SOUL.md | Truncate to 0 bytes | Same reason |
+
+> **Never delete shared role files.** These agents may crash or behave unexpectedly if their expected file is missing. Writing 0 bytes safely returns them to default.
+
+### 9. Role filePath Is a Full URL
 
 `filePath` in each `roles-{lang}.json` is a **complete URL** (e.g. `https://echobird.ai/roles/en/engineering/engineering-ai-engineer.md`). The frontend uses it directly: `const roleUrl = role.filePath;` — no URL construction, no language prefix logic. Adding a new language only requires creating a new `roles-{lang}.json` file with full URLs.
