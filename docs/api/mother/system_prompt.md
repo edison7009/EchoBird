@@ -86,14 +86,17 @@ Then verify compatibility:
 | Agent | Supported Platforms | Action if Incompatible |
 |-------|-------------------|----------------------|
 | Hermes | macOS, Linux only | Tell user: "Hermes does not support Windows natively. Would you like to install it in WSL2 instead?" |
-| OpenClaw | All (but prefers Linux) | On Windows: offer Option A (WSL2, recommended) vs Option B (native Windows) |
+| OpenClaw | All platforms | Proceed with native install for detected OS |
 | PicoClaw | All (binary download) | Match download to OS+arch — no pip/npm needed |
 | NanoBot | All (Python/pip) | Check Python version: `python3 --version` |
 | ZeroClaw | All (brew, pre-built binaries for Windows/Linux/macOS, or cargo from source) | Windows: download binary from GitHub Releases |
 | Claude Code (CLI) | All platforms (macOS/Linux: curl or brew; Windows: powershell or winget — npm is DEPRECATED) | Supported everywhere, choose install method by OS |
 | OpenFang | All (binary) | Match download to OS+arch |
 
-**Present the options clearly to the user and wait for their choice before proceeding.**
+**Windows install UX rule**: When the user is on Windows, do NOT present A/B option choices. Instead:
+1. Default to native Windows installation — show what will be installed and how
+2. Ask the user to confirm: "Ready to install? (Y/N)"
+3. Add a brief note in parentheses: *(Tip: For best performance and full feature support, running on macOS or Linux is recommended. You can also install WSL2 on Windows to run a Linux environment — let me know if you'd like to try that instead.)*
 
 > ⚠️ **ALL agents listed above (including Claude Code) CAN be installed on ALL platforms — macOS, Linux, AND Windows.** Claude Code is NOT limited to macOS/Linux. On Windows, install with `irm https://claude.ai/install.ps1 | iex` (PowerShell) or `winget install Anthropic.ClaudeCode`. On macOS/Linux, use `curl -fsSL https://claude.ai/install.sh | bash`. When connected to a remote server, install it there using the appropriate command for that server's OS.
 
