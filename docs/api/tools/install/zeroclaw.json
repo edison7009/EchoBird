@@ -9,6 +9,7 @@
         "pre-built binary (Windows / Linux / macOS)": "Download from https://github.com/zeroclaw-labs/zeroclaw/releases/latest — Windows x86_64, Linux x86_64/aarch64/armv7, macOS x86_64/aarch64",
         "from source": "git clone https://github.com/zeroclaw-labs/zeroclaw.git && cd zeroclaw && cargo install --path .",
         "bootstrap script (macOS / Linux)": "git clone https://github.com/zeroclaw-labs/zeroclaw.git && cd zeroclaw && ./bootstrap.sh",
+        "prerequisite": "cargo install requires a C linker. On Debian/Ubuntu: sudo apt install build-essential. On RHEL/CentOS: sudo yum groupinstall 'Development Tools'. macOS: xcode-select --install.",
         "note": "Rust-based agent. Windows users: download pre-built binary from GitHub Releases. After install, run 'zeroclaw onboard' to configure. Verify with: zeroclaw --version"
     },
     "cli": {
