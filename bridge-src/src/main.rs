@@ -415,8 +415,10 @@ fn parse_agent_output(stdout: &str) -> (String, Option<String>) {
         Some(s) => s,
         None => {
             // No JSON found — raw text output (e.g. ZeroClaw without --json)
-            // Filter out log/status lines (timestamps + log levels from tracing/env_logger)
-            let cleaned: Vec<&str> = stdout.lines()
+            // Strip ANSI first, THEN filter log/status lines
+            // (PicoClaw banner + logs contain ANSI color codes that break pattern matching)
+            let cleaned: Vec<String> = stdout.lines()
+                .map(|line| strip_ansi(line))
                 .filter(|line| !is_agent_log_line(line))
                 .collect();
             let mut text = cleaned.join("\n").trim().to_string();
