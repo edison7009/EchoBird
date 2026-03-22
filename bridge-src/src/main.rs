@@ -331,12 +331,22 @@ fn execute_chat(
     // Execute the CLI
     eprintln!("[bridge] Executing: {} {}", config.command, args.join(" "));
 
+    // Handle string commands that include spaces (e.g. "python -m nanobot")
+    let mut cmd_parts: Vec<&str> = config.command.split_whitespace().collect();
+    let actual_cmd = cmd_parts.remove(0);
+    if !cmd_parts.is_empty() {
+        // Prepend the remaining parts (like "-m" and "nanobot") to args
+        let mut new_args = cmd_parts.iter().map(|s| s.to_string()).collect::<Vec<String>>();
+        new_args.extend(args);
+        args = new_args;
+    }
+
     // On Windows, .cmd scripts must be run through cmd.exe.
     // Resolve the full .cmd path first, then pass each arg separately so that
     // Rust's Windows argv encoding (CreateProcess) correctly quotes args that
     // contain newlines or special characters — avoiding cmd.exe shell truncation.
     let result = if cfg!(target_os = "windows") {
-        let resolved = resolve_command(&config.command);
+        let resolved = resolve_command(actual_cmd);
         // Pass /c + full-path-to-.cmd as two separate args, then all message args.
         // Rust's Command on Windows calls CreateProcess and quotes each element
         // individually, so newlines in message are preserved correctly.
@@ -346,7 +356,7 @@ fn execute_chat(
             .env("NO_COLOR", "1")  // Disable ANSI colors (https://no-color.org/)
             .output()
     } else {
-        Command::new(&config.command).args(&args)
+        Command::new(actual_cmd).args(&args)
             .env("NO_COLOR", "1")  // Disable ANSI colors (https://no-color.org/)
             .output()
     };
@@ -1151,6 +1161,11 @@ fn is_agent_log_line(line: &str) -> bool {
        trimmed.starts_with("path=") || trimmed.starts_with("workspace=") ||
        trimmed.starts_with("source=") || trimmed.starts_with("backend=") ||
        trimmed.starts_with("initialized=") || trimmed.starts_with("error=") {
+        return true;
+    }
+
+    // Pattern 4: NanoBot banner
+    if trimmed.starts_with("🐈 nanobot") {
         return true;
     }
 
