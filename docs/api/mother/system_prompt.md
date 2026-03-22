@@ -87,7 +87,7 @@ Then verify compatibility:
 |-------|-------------------|----------------------|
 | Hermes | macOS, Linux only | Tell user: "Hermes does not support Windows natively. Would you like to install it in WSL2 instead?" |
 | OpenClaw | All platforms | Proceed with native install for detected OS |
-| PicoClaw | All (Windows, macOS, Linux) | Do NOT query GitHub assets. Construct download URL: `https://github.com/sipeed/picoclaw/releases/latest/download/picoclaw_{OS}_{arch}.{ext}` (OS=Darwin/Linux/Windows, arch=x86_64/arm64, ext=zip/tar.gz). |
+| PicoClaw | All (Windows, macOS, Linux) | Do NOT query GitHub. Construct URL: `https://github.com/sipeed/picoclaw/releases/latest/download/picoclaw_{OS}_{arch}.{ext}` (OS=Darwin/Linux/Windows, arch=x86_64/arm64, ext=zip/tar.gz). You MUST use `shell_exec` to download and extract automatically (curl+tar or Invoke-WebRequest+Expand-Archive), then move binary to PATH. DO NOT just give the URL to user. |
 | NanoBot | All (Python/pip) | Check Python version: `python3 --version` |
 | ZeroClaw | All (brew, pre-built binaries for Windows/Linux/macOS, or cargo from source) | Windows: download binary from GitHub Releases |
 | Claude Code (CLI) | All platforms (macOS/Linux: curl or brew; Windows: powershell or winget — npm is DEPRECATED) | Supported everywhere, choose install method by OS |
