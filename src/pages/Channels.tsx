@@ -377,15 +377,7 @@ const ChannelsInner: React.FC = () => {
         isProgrammaticScrollRef.current = true;
         autoFollowRef.current = true;
         setShowScrollBtn(false);
-        // Use direct scrollTop for instant scroll (avoids scrollIntoView bounce/animation)
-        const container = chatContainerRef.current;
-        if (container) {
-            if (behavior === 'smooth') {
-                container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' });
-            } else {
-                container.scrollTop = container.scrollHeight;
-            }
-        }
+        scrollRef.current?.scrollIntoView({ behavior });
         // Reset flag after scroll events settle
         setTimeout(() => { isProgrammaticScrollRef.current = false; }, 100);
     };
@@ -951,11 +943,11 @@ const ChannelsInner: React.FC = () => {
 
     return (
         <>
-        <div className="flex flex-col h-full relative">
-            {/* Chat area wrapper — relative for scroll button positioning */}
-            <div className="relative flex-1 min-h-0">
-                <div ref={chatContainerRef} onScroll={handleChatScroll} className="h-full overflow-y-auto slim-scroll custom-scrollbar p-4">
-                    <div className="pt-2 pb-1">
+        <div className="flex flex-col h-full">
+            {/* Chat area wrapper — matches Mother Agent layout exactly */}
+            <div className="relative flex-1">
+                <div ref={chatContainerRef} onScroll={handleChatScroll} className="absolute inset-0 overflow-y-auto slim-scroll p-4">
+                    <div className="pt-2 pb-2">
                     {chPersistence.showSkeleton && [0,1,2].map(i => (
                         <ChatBubble key={`sk-${i}`} role="skeleton" content="" variant="channels" />
                     ))}
