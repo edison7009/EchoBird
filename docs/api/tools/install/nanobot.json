@@ -9,6 +9,7 @@
         "uv (stable, fast)": "uv tool install nanobot-ai",
         "from source (latest)": "git clone https://github.com/HKUDS/nanobot.git && cd nanobot && pip install -e .",
         "WARNING": "The PyPI package is 'nanobot-ai', NOT 'nanobot'. The 'nanobot' package on PyPI is a completely different project (robot navigation framework).",
+        "IMPORTANT": "NanoBot is NOT NanoClaw. NanoClaw (https://github.com/qwibitai/nanoclaw, https://nanoclaw.dev/) is a completely different project — a Claude Code wrapper. EchoBird does NOT support NanoClaw. Do NOT install NanoClaw unless the user explicitly asks for it by name.",
         "note": "Python-based agent by HKUDS (Hong Kong University). After install, verify with: nanobot --version"
     },
     "cli": {
