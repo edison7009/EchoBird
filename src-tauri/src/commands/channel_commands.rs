@@ -922,16 +922,107 @@ async fn ensure_remote_bridge(
         "bridge-win.exe"
     };
 
-    // ── Strategy 1: CDN download (faster — server downloads directly) ──
+    let remote_binary = format!("~/echobird/{}", bridge_filename);
+
+    // ── Strategy 1: SSH base64 upload (most reliable — connection already established) ──
+
+    // Find local bridge binary path from bundle
+    let local_path = {
+        let plugins = crate::services::plugin_manager::plugins_dir();
+        let bridge_dir = plugins.parent().unwrap_or(&plugins).join("bridge");
+        let path = bridge_dir.join(bridge_filename);
+        if path.exists() { Some(path) } else { None }
+    };
+
+    if let Some(ref local_path) = local_path {
+        log::info!("[Bridge] Uploading {} via SSH", bridge_filename);
+
+        let file_data = std::fs::read(local_path)
+            .map_err(|e| format!("Failed to read local bridge binary: {}", e))?;
+
+        let encoded = {
+            use base64::Engine;
+            base64::engine::general_purpose::STANDARD.encode(&file_data)
+        };
+
+        // Release connection lock before upload (re-acquire after)
+        drop(connections);
+
+        let connections = pool.lock().await;
+        let client = connections.get(server_id)
+            .ok_or_else(|| format!("SSH not connected: {}", server_id))?;
+
+        let _ = client.execute("mkdir -p ~/echobird").await;
+
+        // Upload via base64 chunks
+        let chunk_size = 65536;
+        let chunks: Vec<&str> = encoded.as_bytes()
+            .chunks(chunk_size)
+            .map(|c| std::str::from_utf8(c).unwrap_or(""))
+            .collect();
+
+        let mut upload_ok = true;
+        if chunks.len() == 1 {
+            let cmd = format!("echo '{}' | base64 -d > {}", encoded, remote_binary);
+            if let Err(e) = client.execute(&cmd).await {
+                log::warn!("[Bridge] SSH upload failed: {}", e);
+                upload_ok = false;
+            }
+        } else {
+            let first_cmd = format!("printf '%s' '{}' > {}.b64", chunks[0], remote_binary);
+            if let Err(e) = client.execute(&first_cmd).await {
+                log::warn!("[Bridge] SSH upload chunk 0 failed: {}", e);
+                upload_ok = false;
+            } else {
+                for (i, chunk) in chunks[1..].iter().enumerate() {
+                    let cmd = format!("printf '%s' '{}' >> {}.b64", chunk, remote_binary);
+                    if let Err(e) = client.execute(&cmd).await {
+                        log::warn!("[Bridge] SSH upload chunk {} failed: {}", i + 1, e);
+                        upload_ok = false;
+                        break;
+                    }
+                }
+                if upload_ok {
+                    let decode_cmd = format!("base64 -d {}.b64 > {} && rm {}.b64",
+                        remote_binary, remote_binary, remote_binary);
+                    if let Err(e) = client.execute(&decode_cmd).await {
+                        log::warn!("[Bridge] SSH upload decode failed: {}", e);
+                        upload_ok = false;
+                    }
+                }
+            }
+        }
+
+        if upload_ok {
+            let chmod_cmd = format!("chmod +x {} && ln -sf {} ~/echobird/echobird-bridge",
+                remote_binary, remote_binary);
+            let _ = client.execute(&chmod_cmd).await;
+
+            log::info!("[Bridge] Remote bridge deployed via SSH: {} ({} bytes)", bridge_filename, file_data.len());
+            if let Ok(mut cache) = REMOTE_BRIDGE_VERIFIED.lock() {
+                cache.insert(server_id.to_string());
+            }
+            return Ok(());
+        }
+
+        log::info!("[Bridge] SSH upload failed, falling back to CDN download");
+    } else {
+        log::info!("[Bridge] Local binary not found, trying CDN download");
+    }
+
+    // ── Strategy 2: CDN download (fallback — requires server internet access) ──
     let cdn_url = format!(
         "https://dl.echobird.ai/releases/v{}/{}",
         local_version, bridge_filename
     );
-    let remote_binary = format!("~/echobird/{}", bridge_filename);
 
     log::info!("[Bridge] Trying CDN download: {}", cdn_url);
 
-    // Try wget first, then curl as fallback
+    // Re-acquire connection if needed
+    let connections = pool.lock().await;
+    let client = connections.get(server_id)
+        .ok_or_else(|| format!("SSH not connected: {}", server_id))?;
+
     let cdn_cmd = format!(
         "mkdir -p ~/echobird && (wget -q -O {remote} '{url}' 2>/dev/null || curl -fsSL -o {remote} '{url}' 2>/dev/null) && chmod +x {remote} && ln -sf {remote} ~/echobird/echobird-bridge && echo 'CDN_OK'",
         remote = remote_binary,
@@ -949,92 +1040,9 @@ async fn ensure_remote_bridge(
         }
     }
 
-    log::info!("[Bridge] CDN download failed, falling back to SSH upload");
-
-    // ── Strategy 2: SSH base64 upload (fallback) ──
-
-    // Find local bridge binary path from bundle
-    let local_path = {
-        let plugins = crate::services::plugin_manager::plugins_dir();
-        let bridge_dir = plugins.parent().unwrap_or(&plugins).join("bridge");
-        let path = bridge_dir.join(bridge_filename);
-        if path.exists() { Some(path) } else { None }
-    };
-
-    let local_path = match local_path {
-        Some(p) => p,
-        None => {
-            log::warn!("[Bridge] Local bridge binary not found: {}", bridge_filename);
-            return Err(format!("Local bridge binary '{}' not found in bundle", bridge_filename));
-        }
-    };
-
-    log::info!("[Bridge] Uploading {} to remote ~/echobird/", bridge_filename);
-
-    // Release connection lock before upload (upload acquires its own lock)
-    drop(connections);
-
-    // Read local binary and upload via base64
-    let file_data = std::fs::read(&local_path)
-        .map_err(|e| format!("Failed to read local bridge binary: {}", e))?;
-
-    let encoded = {
-        use base64::Engine;
-        base64::engine::general_purpose::STANDARD.encode(&file_data)
-    };
-
-    // Re-acquire connection
-    let connections = pool.lock().await;
-    let client = connections.get(server_id)
-        .ok_or_else(|| format!("SSH not connected: {}", server_id))?;
-
-    // Create remote directory
-    let _ = client.execute("mkdir -p ~/echobird").await;
-
-    // Upload via base64 chunks
-    let chunk_size = 65536;
-    let chunks: Vec<&str> = encoded.as_bytes()
-        .chunks(chunk_size)
-        .map(|c| std::str::from_utf8(c).unwrap_or(""))
-        .collect();
-
-    if chunks.len() == 1 {
-        let cmd = format!("echo '{}' | base64 -d > {}", encoded, remote_binary);
-        client.execute(&cmd).await
-            .map_err(|e| format!("Upload failed: {}", e))?;
-    } else {
-        // Multi-chunk upload
-        let first_cmd = format!("printf '%s' '{}' > {}.b64", chunks[0], remote_binary);
-        client.execute(&first_cmd).await
-            .map_err(|e| format!("Upload chunk 0 failed: {}", e))?;
-
-        for (i, chunk) in chunks[1..].iter().enumerate() {
-            let cmd = format!("printf '%s' '{}' >> {}.b64", chunk, remote_binary);
-            client.execute(&cmd).await
-                .map_err(|e| format!("Upload chunk {} failed: {}", i + 1, e))?;
-        }
-
-        let decode_cmd = format!("base64 -d {}.b64 > {} && rm {}.b64",
-            remote_binary, remote_binary, remote_binary);
-        client.execute(&decode_cmd).await
-            .map_err(|e| format!("Upload decode failed: {}", e))?;
-    }
-
-    // chmod +x and create symlink
-    let chmod_cmd = format!("chmod +x {} && ln -sf {} ~/echobird/echobird-bridge",
-        remote_binary, remote_binary);
-    client.execute(&chmod_cmd).await
-        .map_err(|e| format!("chmod failed: {}", e))?;
-
-    log::info!("[Bridge] Remote bridge deployed: {} ({} bytes)", bridge_filename, file_data.len());
-
-    // Cache as verified
-    if let Ok(mut cache) = REMOTE_BRIDGE_VERIFIED.lock() {
-        cache.insert(server_id.to_string());
-    }
-
-    Ok(())
+    Err(format!("Failed to deploy bridge to remote server (both SSH upload and CDN download failed)"))
 }
+
 
 /// Public Tauri command: deploy/update Bridge binary on a remote server.
 /// Used by "Test Connection" flow to ensure Bridge is ready before showing success.
