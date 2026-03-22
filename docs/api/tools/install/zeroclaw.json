@@ -6,14 +6,22 @@
     "github": "https://github.com/zeroclaw-labs/zeroclaw",
     "install": {
         "one-liner (recommended, Linux/macOS)": "curl -fsSL https://zeroclawlabs.ai/install.sh | bash",
+        "one-liner with API key": "./install.sh --api-key \"sk-...\" --provider openrouter",
         "brew (macOS / Linux)": "brew install zeroclaw-labs/tap/zeroclaw",
         "cargo": "cargo install zeroclawlabs",
         "docker": "docker run -p 42617:42617 ghcr.io/zeroclaw-labs/zeroclaw:latest",
-        "note": "Rust-based agent. After install, run 'zeroclaw onboard' to configure. Verify with: zeroclaw --version"
+        "from source": "git clone https://github.com/zeroclaw-labs/zeroclaw.git && cd zeroclaw && ./install.sh",
+        "post-install": "zeroclaw onboard (runs automatically after install)",
+        "note": "Rust-based agent. Verify with: zeroclaw --version. Run 'zeroclaw doctor' for diagnostics."
     },
     "cli": {
         "description": "ZeroClaw uses cli-oneshot protocol. Each message is a fresh invocation.",
         "chat_command": "zeroclaw agent -m \"<message>\"",
+        "interactive_mode": "zeroclaw agent",
+        "gateway": "zeroclaw gateway (default: 127.0.0.1:42617)",
+        "daemon": "zeroclaw daemon (full autonomous runtime: gateway + channels + cron)",
+        "status": "zeroclaw status",
+        "diagnostics": "zeroclaw doctor",
         "detect_command": "zeroclaw --version",
         "supported_flags": ["-m (message)", "-p (provider)", "--model (model ID)", "-t (temperature)"],
         "unsupported_flags": ["--json", "--session-id", "--system-prompt-file"],
