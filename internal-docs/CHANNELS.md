@@ -23,7 +23,7 @@ User → Channels.tsx → tauri.ts → channel_commands.rs → Bridge → Agent 
 | Agent | Protocol | Language | Session | Role Mechanism |
 |-------|----------|----------|---------|---------------|
 | OpenClaw | stdio-json | Node.js | Gateway persistent | Overwrite `~/.openclaw/workspace/SOUL.md` |
-| Claude Code | cli-oneshot | Node.js | `--resume {sid}` | Per-file `~/.claude/agents/{role_id}.md` + `--agent` |
+| Claude Code | cli-oneshot | Node.js | `--resume {sid}` | Per-file `~/.claude/agents/{role_id}.md` + `--agent {YAML name}` |
 | ZeroClaw | cli-oneshot | Rust | Not supported | Per-directory `~/.zeroclaw/workspace/skills/{role_id}/SKILL.md` |
 | NanoBot | cli-oneshot | Python | `--session {sid}` | Overwrite `~/.nanobot/workspace/AGENTS.md` |
 | PicoClaw | cli-oneshot | Go | `-s {sid}` | Overwrite `~/.picoclaw/workspace/AGENT.md` |
@@ -81,21 +81,23 @@ Each agent has a config at `plugins/{agent_id}/plugin.json`:
 ```
 Channels.tsx
   → bridgeStart(pluginId)           // Start persistent Bridge subprocess with --config plugin.json
-  → bridgeSetRoleLocal(agentId, roleId, url)  // Write role file + store ACTIVE_ROLE
-  → bridgeChatLocal(message, sessionId)       // Pipe JSON to Bridge stdin, read stdout
-                                               // Bridge uses ACTIVE_ROLE + agentArg to inject --agent
+  → bridgeSetRoleLocal(agentId, roleId, url)  // Write role file (Bridge downloads .md)
+  → bridgeChatLocal(message, sessionId, systemPrompt, roleName)
+      // roleName = role.name from frontend (YAML frontmatter display name)
+      // Passed as agent_name in JSON → Bridge uses it for --agent flag
+      // agent_name in JSON OVERRIDES Bridge's ACTIVE_ROLE (priority: JSON > stored)
 ```
 
-**Bridge runs as persistent subprocess** — it reads `plugin.json`, manages sessions, handles `--agent` via ACTIVE_ROLE.
+**Bridge runs as persistent subprocess** — it reads `plugin.json`, manages sessions. For Claude Code, `agent_name` from JSON takes priority over ACTIVE_ROLE for `--agent` injection.
 
 ### Remote Channels
 
 ```
 Channels.tsx
   → bridgeSetRoleRemote(serverId, agentId, roleId, url)  // SSH: pipe set_role to remote Bridge
-  → bridgeChatRemote(serverId, message, sessionId, pluginId, roleId)
+  → bridgeChatRemote(serverId, message, sessionId, pluginId, roleName)
     → channel_commands.rs builds SSH command:
-      echo '{"type":"chat","message":"...","agent_name":"ai-engineer"}' |
+      echo '{"type":"chat","message":"...","agent_name":"制度文件撰写专家"}' |
         ~/echobird/echobird-bridge --command 'claude -p --output-format json' --agent-arg '--agent'
 ```
 
@@ -145,13 +147,13 @@ Channels.tsx
 | Agent | Strategy | Role Path | CLI Injection |
 |-------|----------|-----------|--------------|
 | OpenClaw | Overwrite single file | `~/.openclaw/workspace/SOUL.md` | `--agent main` (always main) |
-| Claude Code | Per-role coexisting files | `~/.claude/agents/{role_id}.md` | `--agent {role_id}` |
+| Claude Code | Per-role coexisting files | `~/.claude/agents/{role_id}.md` | `--agent {YAML name}` |
 | ZeroClaw | Per-role directories | `~/.zeroclaw/workspace/skills/{role_id}/SKILL.md` | None (auto-discovery) |
 | NanoBot | Overwrite single file | `~/.nanobot/workspace/AGENTS.md` | None (auto-read) |
 | PicoClaw | Overwrite single file | `~/.picoclaw/workspace/AGENT.md` | None (mtime tracking) |
 | Hermes | Overwrite single file | `~/.hermes/SOUL.md` | None (auto-read each session) |
 
-> **Claude Code is unique**: it requires `--agent {role_id}` CLI flag to select which agent file to use. Other agents auto-read their single role file. This is why `agentArg` exists in plugin.json and why `--agent-arg` was added to Bridge's `--command` mode.
+> **Claude Code is unique**: `--agent` matches by the **YAML frontmatter `name:` field** inside the `.md` file, NOT the filename. For example, `~/.claude/agents/narrative-designer.md` contains `name: 叙事设计师`, so `--agent 叙事设计师` works but `--agent narrative-designer` does NOT. Frontend passes `role.name` (display name from roles JSON) directly as `agent_name` in the Bridge JSON — this bypasses Bridge's ACTIVE_ROLE and provides the correct YAML name without requiring Bridge to parse the file.
 
 ### Role Source (Upstream)
 
@@ -178,7 +180,7 @@ Channels.tsx
 |--------|-------|--------|
 | Session storage | Bridge subprocess state | Frontend `bridgeSessionId` |
 | Resume args | Bridge reads plugin.json | channel_commands.rs reads plugin.json, substitutes `{sessionId}` |
-| Agent arg | Bridge uses ACTIVE_ROLE + agentArg | channel_commands.rs passes `--agent-arg` + `agent_name` in JSON |
+| Agent arg | Frontend passes `role.name` as `agent_name` in JSON (overrides ACTIVE_ROLE) | Frontend passes `role.name` as `agent_name` in JSON + `--agent-arg` flag |
 
 ---
 
@@ -223,30 +225,44 @@ if response_text.is_empty() && !parsed_bridge_json && !result.stdout.is_empty() 
 
 ---
 
-## Pitfalls & Lessons Learned
+## Pitfalls & Lessons Learned (v3.2.0)
 
-### 1. Claude Code `--agent` vs `--session-id` vs `--resume`
+### 1. Claude Code `--agent` Uses YAML Name, NOT Filename
 
-- `--agent {name}` → Select agent persona from `~/.claude/agents/`
-- `--session-id {uuid}` → Create NEW session with specific UUID (NOT resume!)
-- `--resume {uuid}` → Resume an EXISTING session by its UUID
-- **Critical**: Bridge `--command` mode hardcodes `--session-id` in resume_args, but channel_commands.rs now uses plugin.json's `resumeArgs` which correctly uses `--resume`
+> ⚠️ This is the most critical lesson — cost hours of debugging.
 
-### 2. Session Must Reset on Role Change
+- `~/.claude/agents/narrative-designer.md` has YAML frontmatter: `name: 叙事设计师`
+- `claude agents list` shows agents by their YAML `name`, not filename
+- `--agent narrative-designer` → **SILENT FAILURE** (agent not found, Claude uses default behavior)
+- `--agent 叙事设计师` → **WORKS** (correct YAML name match)
+- **Solution**: Frontend passes `role.name` (display name from roles JSON) as `agent_name` in Bridge JSON. This value matches the YAML `name` field because both come from the same upstream source. No Bridge recompilation needed — JSON `agent_name` overrides Bridge's ACTIVE_ROLE.
+
+### 2. `--resume` ≠ `--session-id` (Claude Code)
+
+- `--session-id {uuid}` → Create **NEW** session with specific UUID (NOT resume!)
+- `--resume {uuid}` → Resume an **EXISTING** session by its UUID
+- Bridge `--command` mode hardcodes `--session-id` in resume_args
+- **Fix**: `channel_commands.rs` uses plugin.json's `resumeArgs` (which has `--resume`) instead of Bridge's hardcoded default
+
+### 3. Raw JSON Fallback Must Check `parsed_bridge_json`
+
+Only fall back to raw stdout when Bridge returned NO valid protocol JSON lines (`parsed_bridge_json = false`). Previously, empty text + valid JSON would dump raw protocol to chat bubbles.
+
+### 4. Session Must Reset on Role Change
 
 OpenClaw (and others) read role files only at session start. Changing SOUL.md mid-session has no effect. After `set_role`, clear `bridgeSessionId` to force new session. Track with `lastAppliedRoleRef`.
 
-### 3. Raw JSON Fallback
-
-Only fall back to raw stdout when Bridge returned NO valid protocol JSON lines (`parsed_bridge_json = false`). This prevents raw Bridge protocol from showing in chat bubbles when text happens to be empty.
-
-### 4. Windows Encoding
+### 5. Windows Encoding
 
 Always use `safe_truncate()` for log messages containing multi-byte UTF-8 (Chinese). Slicing at byte boundaries panics in Rust.
 
-### 5. Remote Bridge Auto-Deploy
+### 6. Remote Bridge Auto-Deploy
 
 `ensure_remote_bridge()` checks version match — if remote Bridge is older than local, it auto-deploys via SCP. Bridge version is tied to Echobird version.
+
+### 7. Bridge Recompilation is Expensive
+
+Bridge has 5 cross-platform binaries. Avoid changes that require Bridge recompilation when a Tauri-side or frontend-side fix is possible. Example: passing `role.name` from frontend is better than having Bridge parse YAML from role files.
 
 ---
 
@@ -254,10 +270,11 @@ Always use `safe_truncate()` for log messages containing multi-byte UTF-8 (Chine
 
 | File | Purpose |
 |------|---------|
-| `bridge-src/src/main.rs` | Bridge binary — protocol handling, execute_chat, parse_agent_output |
+| `bridge-src/src/main.rs` | Bridge binary — protocol handling, execute_chat, parse_agent_output, extract_yaml_name |
 | `src-tauri/src/commands/channel_commands.rs` | All Tauri commands: chat, set_role, detect_agents, model read/write |
 | `src-tauri/src/services/plugin_manager.rs` | Plugin config loading, bridge path resolution |
 | `src/pages/Channels.tsx` | Frontend UI — role selection, message sending, chat display |
 | `src/api/tauri.ts` | Frontend API wrappers for all bridge commands |
 | `plugins/{agent}/plugin.json` | Per-agent CLI config |
 | `.agent/workflows/bridge-cli.md` | Architecture reference workflow |
+| `internal-docs/TOOLS.md` | Tool system architecture (App Manager page) |
