@@ -342,19 +342,24 @@ fn execute_chat(
         // individually, so newlines in message are preserved correctly.
         let mut cmd_args = vec!["/c".to_string(), resolved];
         cmd_args.extend(args.iter().cloned());
-        Command::new("cmd.exe").args(&cmd_args).output()
+        Command::new("cmd.exe").args(&cmd_args)
+            .env("NO_COLOR", "1")  // Disable ANSI colors (https://no-color.org/)
+            .output()
     } else {
-        Command::new(&config.command).args(&args).output()
+        Command::new(&config.command).args(&args)
+            .env("NO_COLOR", "1")  // Disable ANSI colors (https://no-color.org/)
+            .output()
     };
 
     match result
     {
         Ok(output) => {
-            let stdout = String::from_utf8_lossy(&output.stdout).to_string();
+            let raw_stdout = String::from_utf8_lossy(&output.stdout).to_string();
+            let stdout = strip_ansi(&raw_stdout);
             let stderr = String::from_utf8_lossy(&output.stderr).to_string();
 
             if !stderr.is_empty() {
-                eprintln!("[bridge] stderr: {}", stderr);
+                eprintln!("[bridge] stderr: {}", strip_ansi(&stderr));
             }
 
             // Parse agent JSON output (supports OpenClaw + Claude Code formats)
@@ -1087,6 +1092,32 @@ fn home_dir() -> PathBuf {
 }
 
 // bridge_roles_dir() removed — roles are now downloaded from URL, not copied from local files
+
+/// Strip ANSI escape codes from a string (ESC[...m color codes, cursor moves, etc.)
+/// Uses a simple state machine — no regex crate needed.
+fn strip_ansi(s: &str) -> String {
+    let mut result = String::with_capacity(s.len());
+    let mut chars = s.chars().peekable();
+    while let Some(c) = chars.next() {
+        if c == '\x1b' {
+            // ESC found — consume the escape sequence
+            if chars.peek() == Some(&'[') {
+                chars.next(); // consume '['
+                // Consume until we hit a letter (the terminator)
+                while let Some(&next) = chars.peek() {
+                    chars.next();
+                    if next.is_ascii_alphabetic() {
+                        break;
+                    }
+                }
+            }
+            // else: bare ESC without '[', just skip it
+        } else {
+            result.push(c);
+        }
+    }
+    result
+}
 
 /// Send a JSON message to stdout (one line)
 fn send(msg: &OutboundMessage) {
