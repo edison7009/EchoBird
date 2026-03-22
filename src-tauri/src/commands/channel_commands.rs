@@ -1546,34 +1546,6 @@ pub async fn bridge_get_remote_model(
     Ok(None)
 }
 
-/// Helper: execute a single SSH command with timeout, return stdout
-async fn ssh_exec_simple(
-    pool: &crate::commands::ssh_commands::SSHPool,
-    server_id: &str,
-    cmd: &str,
-    timeout_secs: u64,
-) -> Result<String, String> {
-    let connections = pool.lock().await;
-    let client = connections.get(server_id)
-        .ok_or_else(|| format!("SSH not connected: {}", server_id))?;
-
-    let result = match tokio::time::timeout(
-        std::time::Duration::from_secs(timeout_secs),
-        crate::commands::ssh_commands::execute_tolerant(client, cmd)
-    ).await {
-        Ok(Ok(r)) => r,
-        Ok(Err(e)) => return Err(format!("SSH exec failed: {}", e)),
-        Err(_) => return Err(format!("SSH command timed out after {}s", timeout_secs)),
-    };
-
-    drop(connections);
-    Ok(result.stdout)
-}
-
-/// Escape a string for safe use inside single-quoted shell arguments
-fn shell_escape(s: &str) -> String {
-    s.replace('\'', "'\\''")
-}
 
 /// Write model configuration to a remote agent via Bridge protocol (SSH → Bridge).
 /// Bridge handles ALL config writing — no shell commands, no direct SSH file writes.
