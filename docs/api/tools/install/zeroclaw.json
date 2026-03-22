@@ -5,11 +5,15 @@
     "docs": "https://github.com/zeroclaw-labs/zeroclaw",
     "github": "https://github.com/zeroclaw-labs/zeroclaw",
     "install": {
+        "one-liner (recommended, Linux/macOS)": "curl -LsSf https://raw.githubusercontent.com/zeroclaw-labs/zeroclaw/master/install.sh | bash",
+        "one-liner (prefer pre-built binary)": "curl -LsSf https://raw.githubusercontent.com/zeroclaw-labs/zeroclaw/master/install.sh | bash -s -- --prefer-prebuilt",
         "brew (macOS / Linux)": "brew install zeroclaw",
         "pre-built binary (Windows / Linux / macOS)": "Download from https://github.com/zeroclaw-labs/zeroclaw/releases/latest — Windows x86_64, Linux x86_64/aarch64/armv7, macOS x86_64/aarch64",
         "from source": "git clone https://github.com/zeroclaw-labs/zeroclaw.git && cd zeroclaw && cargo install --path .",
-        "bootstrap script (macOS / Linux)": "git clone https://github.com/zeroclaw-labs/zeroclaw.git && cd zeroclaw && ./bootstrap.sh",
-        "prerequisite": "cargo install requires a C linker. On Debian/Ubuntu: sudo apt install build-essential. On RHEL/CentOS: sudo yum groupinstall 'Development Tools'. macOS: xcode-select --install.",
+        "prerequisite (Debian/Ubuntu)": "sudo apt install build-essential pkg-config",
+        "prerequisite (Fedora/RHEL)": "sudo dnf group install development-tools && sudo dnf install pkg-config",
+        "prerequisite (macOS)": "xcode-select --install",
+        "IMPORTANT": "cargo install requires a C linker AND pkg-config. Install build tools BEFORE compiling. For low-resource servers, use --prefer-prebuilt to skip compilation.",
         "note": "Rust-based agent. Windows users: download pre-built binary from GitHub Releases. After install, run 'zeroclaw onboard' to configure. Verify with: zeroclaw --version"
     },
     "cli": {
