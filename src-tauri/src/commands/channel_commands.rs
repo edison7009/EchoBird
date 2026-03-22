@@ -1132,32 +1132,56 @@ pub async fn bridge_chat_remote(
     let mut new_session_id: Option<String> = None;
 
     if protocol == "cli-oneshot" {
-        // cli-oneshot with -Q flag: clean text output + optional "session_id: xxx" footer.
-        // Strip the session_id line and capture it for session management.
         let raw = result.stdout.clone();
-        let mut content_lines: Vec<&str> = Vec::new();
 
-        for line in raw.lines() {
-            let trimmed = line.trim();
-            // Capture and strip session_id footer
-            if trimmed.starts_with("session_id:") {
-                let sid = trimmed.trim_start_matches("session_id:").trim();
-                if !sid.is_empty() {
+        // Try Claude Code JSON format first: {"type":"result","result":"...","session_id":"..."}
+        if let Ok(json) = serde_json::from_str::<serde_json::Value>(raw.trim()) {
+            if let Some(result_val) = json.get("result") {
+                // Extract text from result field
+                if let Some(s) = result_val.as_str() {
+                    response_text = s.to_string();
+                } else if let Some(content) = result_val.get("content").and_then(|c| c.as_array()) {
+                    // Rich content: [{"type":"text","text":"..."}]
+                    let texts: Vec<&str> = content.iter()
+                        .filter_map(|c| c.get("text").and_then(|t| t.as_str()))
+                        .collect();
+                    response_text = texts.join("\n");
+                }
+                // Extract session_id
+                if let Some(sid) = json.get("session_id").and_then(|v| v.as_str()) {
                     new_session_id = Some(sid.to_string());
                 }
-                continue;
+                // Check for error
+                if json.get("is_error").and_then(|v| v.as_bool()) == Some(true) {
+                    return Err(format!("Agent error: {}", response_text));
+                }
             }
-            // Also strip any leftover banner lines (safety net)
-            if trimmed.starts_with('╭') || trimmed.starts_with('│') || trimmed.starts_with('╰') {
-                continue;
-            }
-            if trimmed.starts_with("Resume this session") || trimmed.starts_with("Session:") || trimmed.starts_with("Duration:") || trimmed.starts_with("Messages:") {
-                continue;
-            }
-            content_lines.push(line);
         }
 
-        response_text = content_lines.join("\n").trim().to_string();
+        // Fallback: plain text output (ZeroClaw, NanoBot, etc.)
+        if response_text.is_empty() {
+            let mut content_lines: Vec<&str> = Vec::new();
+            for line in raw.lines() {
+                let trimmed = line.trim();
+                // Capture and strip session_id footer
+                if trimmed.starts_with("session_id:") {
+                    let sid = trimmed.trim_start_matches("session_id:").trim();
+                    if !sid.is_empty() {
+                        new_session_id = Some(sid.to_string());
+                    }
+                    continue;
+                }
+                // Also strip any leftover banner lines (safety net)
+                if trimmed.starts_with('╭') || trimmed.starts_with('│') || trimmed.starts_with('╰') {
+                    continue;
+                }
+                if trimmed.starts_with("Resume this session") || trimmed.starts_with("Session:") || trimmed.starts_with("Duration:") || trimmed.starts_with("Messages:") {
+                    continue;
+                }
+                content_lines.push(line);
+            }
+            response_text = content_lines.join("\n").trim().to_string();
+        }
     } else {
         // stdio-json: parse Bridge JSON output
         for line in result.stdout.lines() {
