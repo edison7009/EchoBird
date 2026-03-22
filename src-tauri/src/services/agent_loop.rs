@@ -292,7 +292,7 @@ pub async fn run_agent(
                     sse_retry_count += 1;
                     log::warn!("[AgentLoop] chat_stream failed, retrying ({}/{}): {}", sse_retry_count, MAX_SSE_RETRIES, e);
                     emit_event(&app, AgentEvent::TextDelta {
-                        text: format!("\n\n⚠️ Connection error, retrying ({}/{})...\n\n", sse_retry_count, MAX_SSE_RETRIES),
+                        text: format!("\n\n__CONN_RETRY__:{}/{}\n", sse_retry_count, MAX_SSE_RETRIES),
                     });
                     tokio::time::sleep(std::time::Duration::from_secs(2)).await;
                     loop_count -= 1; // Don't count retries toward tool loop limit
