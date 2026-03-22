@@ -861,8 +861,15 @@ fn handle_clear_role(agent_id: &str, role_id: &str) {
                 _ => unreachable!(),
             };
             if target.exists() {
-                std::fs::write(&target, "").map_err(|e| format!("Failed to truncate: {}", e))?;
-                eprintln!("[bridge] Role {} cleared for {} (file truncated to 0)", role_id, agent_id);
+                match std::fs::write(&target, "") {
+                    Ok(_) => eprintln!("[bridge] Role {} cleared for {} (file truncated to 0)", role_id, agent_id),
+                    Err(e) => {
+                        send(&OutboundMessage::Error {
+                            message: format!("Failed to truncate: {}", e),
+                        });
+                        return;
+                    }
+                }
             } else {
                 eprintln!("[bridge] Role file not found for {} (already clean)", agent_id);
             }
