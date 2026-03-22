@@ -683,7 +683,7 @@ fn handle_set_role(agent_id: &str, role_id: &str, url: &str) {
         "claudecode" => home.join(".claude").join("agents").join(format!("{}.md", role_id)),
         "openclaw"   => home.join(".openclaw").join("workspace").join("SOUL.md"),
         "zeroclaw"   => home.join(".zeroclaw").join("workspace").join("skills").join(role_id).join("SKILL.md"),
-        "nanobot"    => home.join(".nanobot").join("workspace").join("AGENTS.md"),
+        "nanobot"    => home.join(".nanobot").join("workspace").join("SOUL.md"),
         "picoclaw"   => home.join(".picoclaw").join("workspace").join("SOUL.md"),
         "hermes"     => home.join(".hermes").join("SOUL.md"),
         _ => {
@@ -871,7 +871,7 @@ fn handle_clear_role(agent_id: &str, role_id: &str) {
             let home = home_dir();
             let target = match agent_id {
                 "openclaw" => home.join(".openclaw").join("workspace").join("SOUL.md"),
-                "nanobot"  => home.join(".nanobot").join("workspace").join("AGENTS.md"),
+                "nanobot"  => home.join(".nanobot").join("workspace").join("SOUL.md"),
                 "picoclaw" => home.join(".picoclaw").join("workspace").join("SOUL.md"),
                 "hermes"   => home.join(".hermes").join("SOUL.md"),
                 _ => unreachable!(),

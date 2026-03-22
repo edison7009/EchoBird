@@ -45,7 +45,7 @@ Bridge `handle_set_model("nanobot")` writes `~/.nanobot/config.json` with `provi
 
 ### File path
 ```
-~/.nanobot/workspace/AGENTS.md   (always overwritten)
+~/.nanobot/workspace/SOUL.md   (always overwritten)
 ```
 
 ### Why Message Prepending is also needed

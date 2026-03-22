@@ -105,7 +105,7 @@ Bridge does NOT inject roles as system prompts. It **downloads and writes role f
 | OpenClaw | `~/.openclaw/workspace/SOUL.md` (overwrites main agent) | Markdown |
 | Claude Code | `~/.claude/agents/{role_id}.md` | Markdown |
 | ZeroClaw | `~/.zeroclaw/workspace/skills/{role_id}/SKILL.md` | Markdown |
-| NanoBot | `~/.nanobot/workspace/AGENTS.md` (overwrites) | Markdown |
+| NanoBot | `~/.nanobot/workspace/SOUL.md` (overwrites) | Markdown |
 | PicoClaw | `~/.picoclaw/workspace/SOUL.md` (overwrites) | Markdown |
 | Hermes Agent | `~/.hermes/SOUL.md` (overwrites) | Markdown |
 
@@ -252,7 +252,7 @@ OpenClaw reads SOUL.md only at **session start**. Changing SOUL.md mid-session h
 | OpenClaw | Overwrite `workspace/SOUL.md` | Single workspace, roles share same file |
 | Claude Code | Create `agents/{role_id}.md` | Per-role files, coexist |
 | ZeroClaw | Create `skills/{role_id}/SKILL.md` | Per-role directories, coexist |
-| NanoBot | Overwrite `workspace/AGENTS.md` | Single workspace, roles share same file |
+| NanoBot | Overwrite `workspace/SOUL.md` | Single workspace, roles share same file |
 | PicoClaw | Overwrite `workspace/SOUL.md` | Single workspace, mtime-tracked |
 | Hermes Agent | Overwrite `SOUL.md` | Auto-read on each `hermes chat` |
 
@@ -267,7 +267,7 @@ When a user clears their selected role, the agent must return to its built-in de
 | Claude Code | Per-role files | Keep file, clear active state | Just stop passing `--system-prompt-file` |
 | ZeroClaw | Per-role dirs | Keep file, clear active state | Just stop reading that SKILL |
 | OpenClaw | Shared SOUL.md | Truncate to 0 bytes | Agent expects file to exist; empty = default persona |
-| NanoBot | Shared AGENTS.md | Truncate to 0 bytes | Same reason |
+| NanoBot | Shared SOUL.md | Truncate to 0 bytes | Same reason |
 | PicoClaw | Shared SOUL.md | Truncate to 0 bytes | Same reason |
 | Hermes | Shared SOUL.md | Truncate to 0 bytes | Same reason |
 
