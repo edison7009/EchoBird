@@ -716,7 +716,8 @@ const ChannelsInner: React.FC = () => {
         const displayText = input.trim();            // clean text -> bubble & disk
         setInput('');
         setAttachments([]);
-        // Bubble shows clean user text + chips; agent receives full text with attachments
+        // Always scroll to bottom when user sends a message
+        autoFollowRef.current = true;
         setBridgeMessages(prev => [...prev, { role: 'user', content: displayText || '📎', chips } as any]);
 
         if (!canSendMessage) {

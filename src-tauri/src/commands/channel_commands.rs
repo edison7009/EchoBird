@@ -1107,10 +1107,11 @@ pub async fn bridge_chat_remote(
         .cloned();
 
     // All protocols: pipe JSON into Bridge (Bridge handles output parsing for all agents)
+    // NOTE: Do NOT pass session_id in JSON here. When session_id is present,
+    // we already embed resumeArgs (e.g. --resume {uuid}) into the --command string above.
+    // If we also pass session_id in JSON, Bridge's execute_chat enters is_resume=true and
+    // overrides our correct --resume with its hardcoded --session-id — breaking Claude Code.
     let mut input_map = serde_json::json!({ "type": "chat", "message": message });
-    if let Some(ref sid) = session_id {
-        input_map["session_id"] = serde_json::json!(sid);
-    }
     if let Some(ref rid) = role_id {
         if agent_arg_flag.is_some() {
             input_map["agent_name"] = serde_json::json!(rid);
