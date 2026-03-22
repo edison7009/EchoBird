@@ -46,6 +46,10 @@ const pageScroll = (active: boolean) => active ? 'flex-1 overflow-y-auto' : 'hid
 function App() {
     const { t, locale, setLocale } = useI18n();
     const [activePage, setActivePage] = useState<PageType>('models');
+    // Notify always-mounted pages when they become visible (CSS hidden toggle)
+    useEffect(() => {
+        window.dispatchEvent(new CustomEvent('page-activated', { detail: { page: activePage } }));
+    }, [activePage]);
     const [showSettings, setShowSettings] = useState(false);
 
     // App logs (shared with MotherAgent)

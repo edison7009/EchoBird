@@ -618,12 +618,31 @@ const ChannelsInner: React.FC = () => {
             });
     }, [selectedAgentForChannel, channelKey, isLocalChannel]);
 
-    // Re-read model when user returns from other pages (e.g. App Manager changed the model)
+    // Re-load model list + current model when user returns to Channels page
+    // (e.g. after adding/modifying models in Model Nexus or App Manager)
     useEffect(() => {
         if (!selectedAgentForChannel) return;
-        const handleFocus = () => refreshCurrentModel();
-        window.addEventListener('focus', handleFocus);
-        return () => window.removeEventListener('focus', handleFocus);
+        const handlePageActivated = (e: Event) => {
+            if ((e as CustomEvent).detail?.page !== 'channels') return;
+            // Refresh model list
+            api.getModels().then(models => {
+                const anthropicOnlyAgents = ['claudecode'];
+                const agentEntry = AGENT_LIST.find((a: any) => a.name === selectedAgentForChannel);
+                const isAnthropicOnly = agentEntry && anthropicOnlyAgents.includes(agentEntry.id);
+                const filtered = isAnthropicOnly
+                    ? models.filter(m => !!m.anthropicUrl)
+                    : models;
+                setChannelModelList(filtered.map(m => ({
+                    id: m.internalId,
+                    name: m.name,
+                    icon: getModelIcon(m.name, m.modelId),
+                })));
+            }).catch(() => {});
+            // Refresh current model
+            refreshCurrentModel();
+        };
+        window.addEventListener('page-activated', handlePageActivated);
+        return () => window.removeEventListener('page-activated', handlePageActivated);
     }, [selectedAgentForChannel, refreshCurrentModel]);
 
     // Handle remote model switch
