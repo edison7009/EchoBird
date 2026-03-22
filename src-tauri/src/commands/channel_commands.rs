@@ -535,9 +535,9 @@ pub fn bridge_status() -> BridgeStatusResult {
 // ── Bridge Chat Command ──
 
 /// Chat with Agent via persistent Bridge subprocess (blocking — runs in spawn_blocking)
-fn bridge_chat_sync(message: String, session_id: Option<String>, role_name: Option<String>) -> Result<BridgeChatResult, String> {
-    log::info!("[BridgeChat] message={}, session_id={:?}, role_name={:?}",
-        safe_truncate(&message, 50), session_id, role_name);
+fn bridge_chat_sync(message: String, session_id: Option<String>, system_prompt: Option<String>, role_name: Option<String>) -> Result<BridgeChatResult, String> {
+    log::info!("[BridgeChat] message={}, session_id={:?}, role_name={:?}, system_prompt len: {:?}",
+        safe_truncate(&message, 50), session_id, role_name, system_prompt.as_ref().map(|s| s.len()));
 
     // Auto-start bridge if not running
     {
@@ -564,26 +564,25 @@ fn bridge_chat_sync(message: String, session_id: Option<String>, role_name: Opti
     // Build JSON input for bridge protocol
     // If we have a session_id from a previous message, use "resume" to continue the session
     // (Bridge translates "resume" → --resume {sessionId} for Claude Code)
-    let input_json = if let Some(ref sid) = effective_sid {
-        let mut j = serde_json::json!({
+    let mut input_json = if let Some(ref sid) = effective_sid {
+        serde_json::json!({
             "type": "resume",
             "message": message,
             "session_id": sid
-        });
-        if let Some(ref rn) = role_name {
-            j["agent_name"] = serde_json::json!(rn);
-        }
-        j
+        })
     } else {
-        let mut j = serde_json::json!({
+        serde_json::json!({
             "type": "chat",
             "message": message
-        });
-        if let Some(ref rn) = role_name {
-            j["agent_name"] = serde_json::json!(rn);
-        }
-        j
+        })
     };
+    
+    if let Some(ref rn) = role_name {
+        input_json["agent_name"] = serde_json::json!(rn);
+    }
+    if let Some(ref sp) = system_prompt {
+        input_json["system_prompt"] = serde_json::json!(sp);
+    }
 
     let input_str = serde_json::to_string(&input_json)
         .map_err(|e| format!("JSON serialization error: {}", e))?;
@@ -622,7 +621,10 @@ fn bridge_chat_sync(message: String, session_id: Option<String>, role_name: Opti
                         // Retry: re-acquire lock and resend message
                         let mut guard2 = BRIDGE_PROCESS.lock().map_err(|e| format!("Lock error: {}", e))?;
                         let bp2 = guard2.as_mut().ok_or("Bridge not running after restart")?;
-                        let retry_json = serde_json::json!({"type": "chat", "message": message});
+                        let mut retry_json = serde_json::json!({"type": "chat", "message": message.clone()});
+                        if let Some(ref sp) = system_prompt {
+                            retry_json["system_prompt"] = serde_json::json!(sp);
+                        }
                         let retry_str = serde_json::to_string(&retry_json).unwrap_or_default();
                         let _ = writeln!(bp2.stdin, "{}", retry_str);
                         let _ = bp2.stdin.flush();
@@ -736,13 +738,13 @@ fn bridge_chat_sync(message: String, session_id: Option<String>, role_name: Opti
 pub async fn bridge_chat_local(
     message: String,
     session_id: Option<String>,
-    _system_prompt: Option<String>,
+    system_prompt: Option<String>,
     role_name: Option<String>,
 ) -> Result<BridgeChatResult, String> {
 
     // stdio-json: existing persistent subprocess chat
     tokio::task::spawn_blocking(move || {
-        bridge_chat_sync(message, session_id, role_name)
+        bridge_chat_sync(message, session_id, system_prompt, role_name)
     }).await.map_err(|e| format!("Task error: {}", e))?
 }
 

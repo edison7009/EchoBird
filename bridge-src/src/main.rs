@@ -270,7 +270,7 @@ fn execute_chat(
     message: &str,
     session_id: Option<&str>,
     model: Option<&str>,
-    _system_prompt: Option<&str>,
+    system_prompt: Option<&str>,
     agent_name: Option<&str>,
     is_resume: bool,
 ) {
@@ -318,14 +318,23 @@ fn execute_chat(
         args.push(name.to_string());
     }
 
-    // Add message as last arg (--message is already in args list).
     // On Windows, cmd.exe treats a real newline as a command separator and truncates
     // the argument at the first newline. Replace real newlines with the two-character
     // literal \n so the full message is passed intact. The agent (openclaw) interprets \n.
+    let message_text = if let Some(prompt) = system_prompt {
+        if config.command.contains("nanobot") || config.command.contains("zeroclaw") {
+            format!("[System Instructions]\n{}\n\n[User Message]\n{}", prompt, message)
+        } else {
+            message.to_string()
+        }
+    } else {
+        message.to_string()
+    };
+
     #[cfg(target_os = "windows")]
-    let message_arg = message.replace("\r\n", "\\n").replace('\n', "\\n");
+    let message_arg = message_text.replace("\r\n", "\\n").replace('\n', "\\n");
     #[cfg(not(target_os = "windows"))]
-    let message_arg = message.to_string();
+    let message_arg = message_text.to_string();
     args.push(message_arg);
 
     // Execute the CLI
