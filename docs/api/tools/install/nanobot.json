@@ -18,7 +18,7 @@
         "detect_command": "nanobot --version",
         "gateway_command": "nanobot gateway",
         "supported_flags": ["-m (message)", "--no-logs (suppress runtime logs)", "--session/-s (session ID)", "--workspace/-w (custom workspace)", "--config/-c (config path)"],
-        "role_mechanism": "NanoBot uses AGENTS.md (plural) file at ~/.nanobot/workspace/AGENTS.md for system prompt. EchoBird writes role content here; NanoBot auto-detects changes.",
+        "role_mechanism": "NanoBot uses SOUL.md file at ~/.nanobot/workspace/SOUL.md for agent persona. EchoBird writes role content here; NanoBot auto-detects changes. Note: AGENTS.md does NOT work for identity.",
         "output_format": "Clean plain text with cat emoji (U+1F408) delimiter. Output is very clean by default (no ANSI codes or log lines when using --no-logs).",
         "note": "NanoBot is Python-based (unlike PicoClaw which is Go). Config format uses 'providers' object, NOT 'model_list' array."
     }
