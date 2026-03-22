@@ -1,1 +1,1 @@
-{"version":"3.2.4","releaseDate":"2026-03-23","releaseNotes":"Fixed Hermes 401 error: use LLM_MODEL in .env instead of model in config.yaml for custom endpoint. Added sed cleanup for stale config.yaml entries. Network pre-check for region-aware installation."}
+{"version":"3.2.5","releaseDate":"2026-03-23","releaseNotes":"Fixed Hermes model switching: use config.yaml model.default (confirmed from source code). Sed .env for API keys. Clear ANTHROPIC_API_KEY to prevent provider conflict."}
