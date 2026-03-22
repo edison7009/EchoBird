@@ -930,6 +930,7 @@ fn handle_set_model(agent_id: &str, model_id: &str, model_name: &str, api_key: &
 
         "zeroclaw" => {
             // ZeroClaw v2026+: top-level keys (no [providers] table!)
+            // Official config: default_provider, default_model, api_key
             let base = base_url.trim_end_matches('/');
             let provider_value = if base.contains("openrouter.ai") {
                 "openrouter"
@@ -943,15 +944,15 @@ fn handle_set_model(agent_id: &str, model_id: &str, model_name: &str, api_key: &
             };
             let toml_content = if provider_value.is_empty() {
                 let url = if base.ends_with("/v1") { base.to_string() } else { format!("{}/v1", base) };
-                format!("default_provider = \"custom:{}\"\ndefault_model = \"{}\"", url, model_id)
+                format!("default_provider = \"custom:{}\"\ndefault_model = \"{}\"\napi_key = \"{}\"", url, model_id, api_key)
             } else {
-                format!("default_provider = \"{}\"\ndefault_model = \"{}\"", provider_value, model_id)
+                format!("default_provider = \"{}\"\ndefault_model = \"{}\"\napi_key = \"{}\"", provider_value, model_id, api_key)
             };
 
             let zc_dir = home.join(".zeroclaw");
             let result = write_config_file(&zc_dir, "config.toml", &toml_content);
 
-            // Also set env vars for API key (ZeroClaw reads OPENROUTER_API_KEY at runtime)
+            // Also set env vars as fallback (ZeroClaw checks both config.toml and env)
             std::env::set_var("OPENROUTER_API_KEY", api_key);
             std::env::set_var("OPENAI_API_KEY", api_key);
 

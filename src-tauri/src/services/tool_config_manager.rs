@@ -839,8 +839,9 @@ fn apply_zeroclaw(model_info: &ModelInfo) -> ApplyResult {
         content = toml_write_top(&content, "default_provider", "openrouter");
     }
 
-    // ZeroClaw reads API key from env vars, NOT from config.toml
+    // Write api_key to config.toml (official ZeroClaw config key) + env vars as fallback
     if let Some(ref k) = model_info.api_key {
+        content = toml_write_top(&content, "api_key", k);
         std::env::set_var("OPENROUTER_API_KEY", k);
         std::env::set_var("OPENAI_API_KEY", k);
     }
