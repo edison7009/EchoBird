@@ -1,1 +1,1 @@
-{"version":"3.2.3","releaseDate":"2026-03-23","releaseNotes":"Fixed PicoClaw/NanoBot role injection (SOUL.md). Added network pre-check for region-aware installation. Improved agent output cleaning (ANSI strip, session_id removal, banner filtering). Updated all 6 agent install docs and Bridge configs."}
+{"version":"3.2.4","releaseDate":"2026-03-23","releaseNotes":"Fixed Hermes 401 error: use LLM_MODEL in .env instead of model in config.yaml for custom endpoint. Added sed cleanup for stale config.yaml entries. Network pre-check for region-aware installation."}
