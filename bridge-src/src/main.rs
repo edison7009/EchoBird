@@ -446,7 +446,23 @@ fn parse_agent_output(stdout: &str) -> (String, Option<String>) {
                 }
             }
             
-            return (if text.is_empty() { strip_ansi(stdout).trim().to_string() } else { text }, None);
+            // Hermes session_id footer: last line may be "session_id: xxx" — strip and capture
+            let mut captured_session_id: Option<String> = None;
+            if let Some(last_line) = text.lines().last() {
+                let trimmed = last_line.trim();
+                if trimmed.starts_with("session_id:") || trimmed.starts_with("session_id :") {
+                    captured_session_id = trimmed.splitn(2, ':').nth(1).map(|s| s.trim().to_string());
+                    // Remove the last line from text
+                    let lines: Vec<&str> = text.lines().collect();
+                    if lines.len() > 1 {
+                        text = lines[..lines.len()-1].join("\n").trim().to_string();
+                    } else {
+                        text = String::new();
+                    }
+                }
+            }
+            
+            return (if text.is_empty() { strip_ansi(stdout).trim().to_string() } else { text }, captured_session_id);
         }
     };
 
