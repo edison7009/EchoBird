@@ -1009,28 +1009,33 @@ pub fn patch_hermes() {
         return;
     }
 
-    // Write model + OPENAI_BASE_URL to ~/.hermes/config.yaml
-    // Matches real format: both `model:` and `OPENAI_BASE_URL:` as top-level YAML keys.
+    // Write OPENAI_BASE_URL to ~/.hermes/config.yaml
+    // IMPORTANT: Do NOT write `model:` here — config.yaml `model:` overrides .env `LLM_MODEL`.
+    // If we write `model: MiniMax-M2.7` (bare name without provider prefix), Hermes defaults
+    // to OpenRouter and ignores OPENAI_API_KEY/OPENAI_BASE_URL from .env entirely.
+    // Solution: let LLM_MODEL from .env be the active model, and only set OPENAI_BASE_URL
+    // in config.yaml so Hermes uses our custom endpoint.
     let config_path = hermes_dir.join("config.yaml");
     let mut yaml_lines: Vec<String> = Vec::new();
     if config_path.exists() {
         if let Ok(existing) = fs::read_to_string(&config_path) {
             for line in existing.lines() {
                 let trimmed = line.trim();
+                // Remove model and OPENAI_BASE_URL — we control both via .env now
                 if trimmed.starts_with("model:") || trimmed.starts_with("OPENAI_BASE_URL:") {
-                    continue; // Remove old entries
+                    continue;
                 }
                 yaml_lines.push(line.to_string());
             }
         }
     }
-    yaml_lines.push(format!("model: {}", model_id));
+    // Only write OPENAI_BASE_URL to config.yaml (persists across sessions)
     if !base_url_v1.is_empty() {
         yaml_lines.push(format!("OPENAI_BASE_URL: {}", base_url_v1));
     }
 
     match fs::write(&config_path, yaml_lines.join("\n") + "\n") {
-        Ok(_) => log::info!("[Patcher] Hermes config written: model={}, base_url={}", model_id, base_url_v1),
+        Ok(_) => log::info!("[Patcher] Hermes config written: model={} (via .env LLM_MODEL), base_url={}", model_id, base_url_v1),
         Err(e) => log::warn!("[Patcher] Failed to write Hermes config.yaml: {}", e),
     }
 }
