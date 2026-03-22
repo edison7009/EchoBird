@@ -89,7 +89,7 @@ Then verify compatibility:
 | OpenClaw | All (but prefers Linux) | On Windows: offer Option A (WSL2, recommended) vs Option B (native Windows) |
 | PicoClaw | All (binary download) | Match download to OS+arch — no pip/npm needed |
 | NanoBot | All (Python/pip) | Check Python version: `python3 --version` |
-| ZeroClaw | All (Rust/cargo or binary) | Check if cargo is available, offer binary download as alternative |
+| ZeroClaw | All (brew, pre-built binaries for Windows/Linux/macOS, or cargo from source) | Windows: download binary from GitHub Releases |
 | Claude Code (CLI) | All platforms (macOS/Linux: curl or brew; Windows: powershell or winget — npm is DEPRECATED) | Supported everywhere, choose install method by OS |
 | OpenFang | All (binary) | Match download to OS+arch |
 

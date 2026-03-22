@@ -6,9 +6,10 @@
     "github": "https://github.com/zeroclaw-labs/zeroclaw",
     "install": {
         "brew (macOS / Linux)": "brew install zeroclaw",
+        "pre-built binary (Windows / Linux / macOS)": "Download from https://github.com/zeroclaw-labs/zeroclaw/releases/latest — Windows x86_64, Linux x86_64/aarch64/armv7, macOS x86_64/aarch64",
         "from source": "git clone https://github.com/zeroclaw-labs/zeroclaw.git && cd zeroclaw && cargo install --path .",
-        "bootstrap script": "git clone https://github.com/zeroclaw-labs/zeroclaw.git && cd zeroclaw && ./bootstrap.sh",
-        "note": "Rust-based agent. Requires Rust toolchain for source builds. After install, run 'zeroclaw onboard' to configure. Verify with: zeroclaw --version"
+        "bootstrap script (macOS / Linux)": "git clone https://github.com/zeroclaw-labs/zeroclaw.git && cd zeroclaw && ./bootstrap.sh",
+        "note": "Rust-based agent. Windows users: download pre-built binary from GitHub Releases. After install, run 'zeroclaw onboard' to configure. Verify with: zeroclaw --version"
     },
     "cli": {
         "description": "ZeroClaw uses cli-oneshot protocol. Each message is a fresh invocation.",

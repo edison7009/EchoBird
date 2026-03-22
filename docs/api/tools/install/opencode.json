@@ -1,14 +1,16 @@
 {
     "id": "opencode",
-    "displayName": "OpenCode",
+    "displayName": "OpenCode (CLI)",
     "homepage": "https://opencode.ai/",
     "docs": "https://opencode.ai/docs",
     "github": "https://github.com/anomalyco/opencode",
     "install": {
-        "curl": "curl -fsSL https://opencode.ai/install | bash",
-        "npm": "npm i -g opencode-ai",
-        "bun": "bun add -g opencode-ai",
-        "brew": "brew install anomalyco/tap/opencode",
-        "paru": "paru -S opencode"
+        "curl (macOS / Linux)": "curl -fsSL https://opencode.ai/install | bash",
+        "brew (macOS / Linux)": "brew install anomalyco/tap/opencode",
+        "scoop (Windows)": "scoop install opencode",
+        "choco (Windows)": "choco install opencode",
+        "npm (all platforms)": "npm i -g opencode-ai",
+        "bun (all platforms)": "bun add -g opencode-ai",
+        "note": "CLI-based coding agent. Windows users: use scoop or choco. All platforms: npm/bun also work."
     }
 }
