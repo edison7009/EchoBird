@@ -839,43 +839,42 @@ fn handle_start_agent(agent_id: &str) {
 // ── Role Clearing ──
 
 fn handle_clear_role(agent_id: &str, role_id: &str) {
-    let home = home_dir();
-    let target = match agent_id {
-        "claudecode" => home.join(".claude").join("agents").join(format!("{}.md", role_id)),
-        "openclaw"   => home.join(".openclaw").join("workspace").join("SOUL.md"),
-        "zeroclaw"   => home.join(".zeroclaw").join("workspace").join("skills").join(role_id),
-        "nanobot"    => home.join(".nanobot").join("workspace").join("AGENTS.md"),
-        "picoclaw"   => home.join(".picoclaw").join("workspace").join("AGENT.md"),
-        "hermes"     => home.join(".hermes").join("SOUL.md"),
-        _ => {
-            send(&OutboundMessage::Error {
-                message: format!("Unknown agent: {}", agent_id),
-            });
-            return;
+    // Per-role agents (claudecode, zeroclaw): files are kept as-is.
+    // We just clear the active role state so no role parameter is sent on next chat.
+    // Shared-file agents (openclaw, nanobot, picoclaw, hermes): truncate file to 0 bytes.
+    // This returns the agent to its built-in default persona without breaking file expectations.
+
+    let result: Result<(), String> = match agent_id {
+        "claudecode" | "zeroclaw" => {
+            // Per-role files stay on disk — just stop passing the role parameter
+            eprintln!("[bridge] Role {} deactivated for {} (file kept)", role_id, agent_id);
+            Ok(())
         }
-    };
-
-    if !target.exists() {
-        // Already cleared
-        send(&OutboundMessage::RoleCleared {
-            agent_id: agent_id.to_string(),
-            role_id: role_id.to_string(),
-            success: true,
-        });
-        return;
-    }
-
-    // Delete: file or directory (OpenClaw/ZeroClaw use subdirectories)
-    let result = if target.is_dir() {
-        std::fs::remove_dir_all(&target)
-    } else {
-        std::fs::remove_file(&target)
+        "openclaw" | "nanobot" | "picoclaw" | "hermes" => {
+            // Shared role file — truncate to 0 bytes (don't delete)
+            let home = home_dir();
+            let target = match agent_id {
+                "openclaw" => home.join(".openclaw").join("workspace").join("SOUL.md"),
+                "nanobot"  => home.join(".nanobot").join("workspace").join("AGENTS.md"),
+                "picoclaw" => home.join(".picoclaw").join("workspace").join("AGENT.md"),
+                "hermes"   => home.join(".hermes").join("SOUL.md"),
+                _ => unreachable!(),
+            };
+            if target.exists() {
+                std::fs::write(&target, "").map_err(|e| format!("Failed to truncate: {}", e))?;
+                eprintln!("[bridge] Role {} cleared for {} (file truncated to 0)", role_id, agent_id);
+            } else {
+                eprintln!("[bridge] Role file not found for {} (already clean)", agent_id);
+            }
+            Ok(())
+        }
+        _ => {
+            Err(format!("Unknown agent: {}", agent_id))
+        }
     };
 
     match result {
         Ok(_) => {
-            eprintln!("[bridge] Role {} cleared for {}", role_id, agent_id);
-            // Clear active role state
             if let Ok(mut guard) = ACTIVE_ROLE.lock() {
                 *guard = None;
             }
@@ -885,10 +884,8 @@ fn handle_clear_role(agent_id: &str, role_id: &str) {
                 success: true,
             });
         }
-        Err(e) => {
-            send(&OutboundMessage::Error {
-                message: format!("Failed to clear role: {}", e),
-            });
+        Err(msg) => {
+            send(&OutboundMessage::Error { message: msg });
         }
     }
 }
