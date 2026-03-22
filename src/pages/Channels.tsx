@@ -346,6 +346,7 @@ const ChannelsInner: React.FC = () => {
     // Save to config file on channel changes
     // Smart scroll: auto-follow unless user scrolls up
     const autoFollowRef = useRef(true);
+    const isProgrammaticScrollRef = useRef(false);
     const [showScrollBtn, setShowScrollBtn] = useState(false);
     const chatContainerRef = useRef<HTMLDivElement>(null);
 
@@ -363,35 +364,39 @@ const ChannelsInner: React.FC = () => {
     const handleChatScroll = () => {
         const container = chatContainerRef.current;
         if (!container) return;
+        // Skip autoFollow updates during programmatic scroll (scrollIntoView triggers scroll events)
+        if (isProgrammaticScrollRef.current) return;
         const isAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 40;
         autoFollowRef.current = isAtBottom;
         setShowScrollBtn(!isAtBottom && messages.length > 0);
         chPersistence.handleScrollPagination(container);
     };
 
+    // Helper: programmatic scroll that won't flip autoFollowRef
+    const doScrollToBottom = (behavior: ScrollBehavior = 'auto') => {
+        isProgrammaticScrollRef.current = true;
+        autoFollowRef.current = true;
+        setShowScrollBtn(false);
+        scrollRef.current?.scrollIntoView({ behavior });
+        // Reset flag after scroll events settle
+        setTimeout(() => { isProgrammaticScrollRef.current = false; }, 100);
+    };
+
+    // Auto-scroll when messages change (new message from user or agent)
     useEffect(() => {
-        if (autoFollowRef.current && scrollRef.current) {
-            requestAnimationFrame(() => {
-                scrollRef.current?.scrollIntoView({ behavior: 'auto' });
-            });
+        if (autoFollowRef.current) {
+            requestAnimationFrame(() => doScrollToBottom('auto'));
         }
     }, [messages]);
 
+    // Scroll to bottom when switching channels
     useEffect(() => {
-        autoFollowRef.current = true;
-        setShowScrollBtn(false);
         // Delay scroll to after DOM updates from loadInitial()
-        const timer = setTimeout(() => {
-            scrollRef.current?.scrollIntoView({ behavior: 'instant' as any });
-        }, 50);
+        const timer = setTimeout(() => doScrollToBottom('instant' as any), 50);
         return () => clearTimeout(timer);
     }, [activeId]);
 
-    const scrollToBottom = () => {
-        autoFollowRef.current = true;
-        setShowScrollBtn(false);
-        scrollRef.current?.scrollIntoView({ behavior: 'smooth' });
-    };
+    const scrollToBottom = () => doScrollToBottom('smooth');
 
     // Loading animation
     useEffect(() => {
@@ -717,13 +722,8 @@ const ChannelsInner: React.FC = () => {
         setInput('');
         setAttachments([]);
         // Always scroll to bottom when user sends a message
-        autoFollowRef.current = true;
-        setShowScrollBtn(false);
+        doScrollToBottom('auto');
         setBridgeMessages(prev => [...prev, { role: 'user', content: displayText || '📎', chips } as any]);
-        // Force scroll after DOM updates (setBridgeMessages is async re-render)
-        setTimeout(() => {
-            scrollRef.current?.scrollIntoView({ behavior: 'auto' });
-        }, 50);
 
         if (!canSendMessage) {
             // Blocked (e.g. still connecting) — show error so user knows, their message is still saved above

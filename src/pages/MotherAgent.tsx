@@ -613,6 +613,7 @@ export function MotherAgentMain() {
     // Scroll management
     const chatContainerRef = useRef<HTMLDivElement>(null!);
     const autoFollowRef = useRef(true);
+    const isProgrammaticScrollRef = useRef(false);
     const [showScrollBtn, setShowScrollBtn] = useState(false);
     const PAGE_SIZE = MA_PAGE_SIZE;
     const [displayCount, setDisplayCount] = useState(PAGE_SIZE);
@@ -624,6 +625,8 @@ export function MotherAgentMain() {
     const handleScroll = () => {
         const container = chatContainerRef.current;
         if (!container) return;
+        // Skip autoFollow updates during programmatic scroll
+        if (isProgrammaticScrollRef.current) return;
         const isAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 40;
         autoFollowRef.current = isAtBottom;
         setShowScrollBtn(!isAtBottom && chatOutput.length > 0);
@@ -664,19 +667,22 @@ export function MotherAgentMain() {
         }).catch(() => { setShowSkeleton(false); });
     };
 
+    // Helper: programmatic scroll that won't flip autoFollowRef
+    const doScrollToBottom = (behavior: ScrollBehavior = 'auto') => {
+        isProgrammaticScrollRef.current = true;
+        autoFollowRef.current = true;
+        setShowScrollBtn(false);
+        chatEndRef.current?.scrollIntoView({ behavior });
+        setTimeout(() => { isProgrammaticScrollRef.current = false; }, 100);
+    };
+
     useEffect(() => {
-        if (autoFollowRef.current && chatEndRef.current) {
-            requestAnimationFrame(() => {
-                chatEndRef.current?.scrollIntoView({ behavior: 'auto' });
-            });
+        if (autoFollowRef.current) {
+            requestAnimationFrame(() => doScrollToBottom('auto'));
         }
     }, [chatOutput]);
 
-    const scrollToBottom = () => {
-        autoFollowRef.current = true;
-        setShowScrollBtn(false);
-        chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    };
+    const scrollToBottom = () => doScrollToBottom('smooth');
 
     return (
         <div className="flex flex-col h-full">
