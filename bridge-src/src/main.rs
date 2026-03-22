@@ -988,11 +988,6 @@ fn handle_set_model(agent_id: &str, model_id: &str, model_name: &str, api_key: &
                 &serde_json::to_string_pretty(&config).unwrap_or_default())
         }
 
-        "openfang" => {
-            let toml_content = format!("model = \"{}\"\napi_key = \"{}\"\nbase_url = \"{}\"",
-                model_id, api_key, base_url);
-            write_config_file(&home.join(".openfang"), "config.toml", &toml_content)
-        }
 
         "claudecode" => {
             // Claude Code: settings.json + onboarding skip
