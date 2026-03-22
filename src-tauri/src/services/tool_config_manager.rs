@@ -839,6 +839,9 @@ fn apply_zeroclaw(model_info: &ModelInfo) -> ApplyResult {
         content = toml_write_top(&content, "default_provider", "openrouter");
     }
 
+    // default_temperature is required by ZeroClaw config parser
+    content = toml_write_top(&content, "default_temperature", "0.7");
+
     // Write api_key to config.toml (official ZeroClaw config key) + env vars as fallback
     if let Some(ref k) = model_info.api_key {
         content = toml_write_top(&content, "api_key", k);
