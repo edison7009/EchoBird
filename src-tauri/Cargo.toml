@@ -1,6 +1,6 @@
 [package]
 name = "echobird"
-version = "3.2.0"
+version = "3.2.1"
 description = "The Nexus for Models, Agents & Vibe Coding"
 authors = ["Echobird Team"]
 license = "MIT"
