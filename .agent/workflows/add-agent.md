@@ -384,49 +384,12 @@ Add the tool ID to `docs/api/tools/install/index.json`:
 11. **`tools/{id}/paths.json` needs `startCommand`**: Without it, Launch app falls back to the bare CLI command which may just show help and exit
 12. **Patcher must be registered in `patch_tool()` dispatch**: Adding `patch_youragent()` without registering it in the match block means App Manager model-apply does nothing
 
-### Claude Code Specific (cli-oneshot)
-13. **`--agent` flag hangs in `-p` mode**: Claude Code's `--agent` is for subagent delegation, NOT for loading a persona file. It causes the CLI to hang indefinitely. Use `--system-prompt-file` instead
-14. **`--system-prompt-file` is the correct approach**: Point to the downloaded `.md` role file directly. The path must be absolute (e.g. `C:\Users\eben\.claude\agents\game-designer.md`)
-15. **Oneshot agents have no Bridge subprocess**: `bridge_set_role_sync()` tries to write to stdin of a process that doesn't exist. Must download role files directly in Rust backend using `reqwest`
-16. **Raw JSON displayed instead of text**: cli-oneshot responses bypass Bridge's `parse_agent_output()`. Must add Claude Code format (`result` field) parsing to `bridge_chat_oneshot()` in `channel_commands.rs`
-17. **`&a[..30]` panics on Chinese text**: Rust string indexing by byte offset crashes on multi-byte UTF-8 chars. Always use `safe_truncate()` or `str::is_char_boundary()`. This caused `thread panicked at byte index 30 is not a char boundary`
-18. **Role dedup key must include agent ID**: `lastAppliedRoleRef` compared only `role.id`. Switching agent (OpenClaw -> Claude Code) with same role skipped `set_role`. Fix: use `${agentId}:${role.id}` as key
-19. **`--dangerously-skip-permissions` required**: Without this, Claude Code prompts for "trust folder" interactively, which hangs the automated CLI
-20. **`--output-format json` required**: Without this, Claude Code returns plain text. With it, returns structured JSON containing `result`, `session_id`, `usage` etc.
-21. **Multiple agent files in `~/.claude/agents/`**: Claude Code auto-scans this directory. N roles = N files. Each chat must specify which one to use via `--system-prompt-file`
-22. **`OneshotState` needs `active_role_id`**: Bridge protocol doesn't pass role info per-chat. Store the active role ID in `ONESHOT_STATE` when `set_role` is called, then auto-inject `--system-prompt-file` in `bridge_chat_oneshot()`
+### Agent-Specific Pitfalls
 
-### ZeroClaw Specific (cli-oneshot, Rust binary)
-23. **ZeroClaw uses Skills system, not agent files**: Roles are installed as ZeroClaw skills at `~/.zeroclaw/workspace/skills/{role_id}/SKILL.md` with a companion `skill.toml` manifest. The `download_role_file_direct()` must write both files
-24. **ZeroClaw CLI does NOT support `--json`**: Only `-m`, `-p`, `--model`, `-t` flags. Using `--json` causes `error: unexpected argument`. Remote mapping must use `agent -m` not `agent --json`
-25. **TOML config, not JSON**: ZeroClaw uses `~/.zeroclaw/config.toml`. Patcher must write TOML format (key = "value"), not JSON
-26. **`default_temperature` is mandatory**: Omitting this field causes ZeroClaw to fail at startup. Always include `default_temperature = 0.7`
-27. **`/v1` suffix required on API URLs**: ZeroClaw's `default_provider` must be `custom:https://api.example.com/v1`. Missing `/v1` results in 404 from most providers (e.g. MiniMax)
-28. **Role injection via message prepending**: ZeroClaw doesn't support `--system-prompt-file`. Instead, read the SKILL.md content and prepend it to the user message: `[System Instructions]\n<content>\n\n[User Message]\n<message>`
-29. **ANSI color codes in output**: ZeroClaw outputs rich terminal colors (ANSI escape sequences) and log lines. Must strip with regex: `\x1B\[[0-9;]*[a-zA-Z]` and filter lines starting with timestamps or `INFO`/`WARN`/`DEBUG`
-30. **PowerShell `Set-Content` adds BOM**: Using PowerShell to write config.toml injects a UTF-8 BOM which may break TOML parsing. Use `[System.IO.File]::WriteAllText()` with `UTF8Encoding($false)` instead
-31. **`startCommand` needed for Launch app**: ZeroClaw's Launch app should run `zeroclaw daemon` (similar to OpenClaw's `openclaw gateway`). Without `startCommand` in paths.json, the bare `zeroclaw` command just shows help and exits
-
-### PicoClaw / Go Agent Specific (cli-oneshot, Go binary)
-32. **`model_list` array, NOT `providers` object**: PicoClaw uses `model_list: [{model_name, model, api_key, api_base}]`. The deprecated `providers` object still parses but `gateway` fails with "model not found in model_list". Always use `model_list`.
-33. **`vendor/model` format in `model` field**: e.g. `"model": "minimax/MiniMax-M2.7"`. The `agents.defaults.model` uses the bare `model_name` (without vendor prefix).
-34. **Go structured log format `HH:MM:SS INF/WRN`**: PicoClaw logs use `14:29:33 INF agent ...` format (unlike `2026-xx-xxTxx INFO` in Node/Rust tools). The output filter must match both.
-35. **ASCII art banner in stdout**: PicoClaw prints a box-drawing banner on every invocation. Filter lines containing `U+2588` and `U+2557` etc.
-36. **Role path must be dynamic**: `bridge_chat_oneshot()` role injection was hardcoded to `.zeroclaw`. Must derive from `cli_command` name: `.{cli_command}/workspace/skills/{role_id}/SKILL.md`
-37. **Go key=value structured log lines leak into output**: Lines like `channel=cli chat_id=direct sender_id=cron` must be filtered by detecting `key=value` patterns
-38. **Message prepending does NOT work for role injection**: PicoClaw has its own identity system (SOUL.md, AGENT.md, IDENTITY.md). It refuses instructions injected via user messages. Must write role content to `~/.picoclaw/workspace/AGENT.md` instead. PicoClaw auto-detects AGENT.md changes via mtime tracking.
-39. **Output uses lobster emoji delimiter**: PicoClaw outputs response twice -- once in the log line (with metadata), once clean after the lobster emoji. Use `rfind("lobster")` to extract only the clean response after the last occurrence.
-40. **`<think>` blocks in output**: Models like MiniMax output reasoning in `<think>...</think>` tags. Must strip these with `strip_think_tags()` after extracting the clean response.
-41. **Role download must be generic**: `download_role_file_direct()` was hardcoded to claudecode/zeroclaw. Use `_` catch-all branch with `format!(".{}", agent_id)` to support all agents dynamically. Also write AGENT.md to `~/.{agent_id}/workspace/AGENT.md` when the workspace exists.
-
-
-### Hermes Agent Specific (cli-oneshot, Python)
-42. **Hermes does NOT support native Windows**: Only Linux/macOS/WSL2. Set `""win32"": []` in paths.json. App Manager shows it with ""AI Auto-Install"" button on Windows.
-43. **Hermes uses `hermes chat -q` not `--message`**: The `-q` flag is for question input. Plugin uses `messageMode: ""last-arg""`.
-44. **SOUL.md auto-read per chat**: Unlike OpenClaw (reads only at session start), Hermes reads `~/.hermes/SOUL.md` on every `hermes chat` invocation. No session reset needed on role change.
-45. **Tauri `_up_/tools/` cache**: When adding new `tools/` directories during development, Tauri caches the resource copy at `D:\build-output\debug\_up_\tools\`. New tool directories must be manually copied there or the app rebuilt. This ONLY affects dev mode.
-46. **Version detection: strip ANSI + support v-prefix**: Tools like NanoBot output `v0.1.4.post5` (v-prefix) and PicoClaw outputs colored banners. `get_version()` in `platform.rs` must strip ANSI codes and handle v-prefixed version strings.
-47. **ALWAYS run `--help` first**: Before guessing CLI parameters or hardcoding banner-stripping logic, run `agent chat --help` to discover existing flags. Hermes had `-Q/--quiet` ("suppress banner, spinner, and tool previews for programmatic use") all along — one flag solved everything vs fragile regex parsing. **Rule: ask before exploring.**
-48. **`-Q` (uppercase) vs `-q` (lowercase)**: Hermes uses `-q` for query text and `-Q` for quiet/programmatic mode. Both are needed: `hermes chat -Q -q "message"`. Missing `-Q` outputs a full ASCII art welcome banner.
-49. **Remote protocol routing**: `bridge_chat_remote()` must route by `protocol` field from plugin.json. `stdio-json` agents go through Bridge (`echo JSON | echobird-bridge --command`), `cli-oneshot` agents execute directly via SSH (`hermes chat -Q -q 'message'`). Sending cli-oneshot agents through Bridge returns empty/raw JSON.
-50. **Strip `session_id:` footer from cli-oneshot output**: With `-Q`, Hermes appends `session_id: xxx` as the last line. Backend must strip this and capture it for session management.
+> **Moved to per-agent files.** See `.agent/workflows/bridge/tools/` for detailed pitfalls per agent:
+> - [claudecode.md](bridge/tools/claudecode.md) — Claude Code (cli-oneshot, `--system-prompt-file`, `--agent` hang)
+> - [openclaw.md](bridge/tools/openclaw.md) — OpenClaw (stdio-json, SOUL.md overwrite, session reset)
+> - [zeroclaw.md](bridge/tools/zeroclaw.md) — ZeroClaw (TOML config, custom provider 404)
+> - [nanobot.md](bridge/tools/nanobot.md) — NanoBot (Python module, `split_whitespace`)
+> - [picoclaw.md](bridge/tools/picoclaw.md) — PicoClaw (Go binary, AGENT.md injection, unknown protocol)
+> - [hermes.md](bridge/tools/hermes.md) — Hermes (-Q/-q flags, no Windows, SOUL.md auto-read)

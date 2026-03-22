@@ -8,6 +8,8 @@ description: Architecture reference for Echobird CLI Bridge — how it works, di
 
 Bridge is the **communication layer** between the EchoBird desktop app and AI agents (OpenClaw, Claude Code, ZeroClaw, NanoBot, PicoClaw, Hermes Agent). It translates EchoBird's JSON protocol into CLI commands for each agent.
 
+> **Per-agent integration details**: See [bridge/tools/](bridge/tools/) for agent-specific config, pitfalls, and solutions.
+
 > **UPSTREAM FIRST**: When encountering issues with agents, ALWAYS check these references BEFORE developing custom solutions:
 > 1. **https://github.com/msitarzewski/agency-agents** — upstream agent files, usage patterns, how --agent works
 > 2. Each agent's official docs/GitHub (e.g. `claude --help`, OpenClaw docs)
