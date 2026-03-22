@@ -386,14 +386,14 @@ const ChannelsInner: React.FC = () => {
     // (The "Typing..." bubble changes DOM height — must scroll again to stay at bottom)
     useEffect(() => {
         if (autoFollowRef.current) {
-            requestAnimationFrame(() => doScrollToBottom('instant' as any));
+            requestAnimationFrame(() => doScrollToBottom('auto'));
         }
     }, [messages, bridgeLoading]);
 
     // Scroll to bottom when switching channels
     useEffect(() => {
         // Delay scroll to after DOM updates from loadInitial()
-        const timer = setTimeout(() => doScrollToBottom('instant' as any), 50);
+        const timer = setTimeout(() => doScrollToBottom('auto'), 50);
         return () => clearTimeout(timer);
     }, [activeId]);
 
