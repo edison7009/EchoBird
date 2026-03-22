@@ -1118,6 +1118,8 @@ pub async fn bridge_chat_remote(
     }
 
     // Parse Bridge JSON output (unified for all protocols)
+    let mut response_text = String::new();
+    let mut new_session_id: Option<String> = None;
     for line in result.stdout.lines() {
         if let Ok(json) = serde_json::from_str::<serde_json::Value>(line) {
             match json.get("type").and_then(|v| v.as_str()) {
