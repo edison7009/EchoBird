@@ -5,9 +5,9 @@
     "docs": "https://github.com/sipeed/picoclaw",
     "github": "https://github.com/sipeed/picoclaw",
     "install": {
-        "windows": "Windows IS natively supported. Instruct the user to download the zip file from: https://github.com/sipeed/picoclaw/releases/latest/download/picoclaw_Windows_x86_64.zip (or picoclaw_Windows_arm64.zip for ARM). Unzip and run the executable. DO NOT claim Windows is unsupported based on missing API assets (GitHub paginates past 30 items!).",
-        "macOS/Linux (recommended)": "Visit https://picoclaw.io — auto-detects platform and provides one-click download.",
-        "precompiled binary": "Download from https://github.com/sipeed/picoclaw/releases for your platform.",
+        "download_url_pattern": "Direct download template: `https://github.com/sipeed/picoclaw/releases/latest/download/picoclaw_{OS}_{arch}.{ext}`. OS='Darwin', 'Linux', or 'Windows'. Arch='x86_64' or 'arm64'. Ext='zip' for Windows, 'tar.gz' for Darwin/Linux. Construct this URL immediately based on `uname -s` and `uname -m`.",
+        "windows": "Windows IS natively supported. Use the direct download template above to get `.zip`. DO NOT check GitHub releases API (paginates past Windows assets).",
+        "macOS_Linux": "Use the direct download template above to get `.tar.gz`. Extract and move the binary to `/usr/local/bin/picoclaw`. DO NOT query GitHub API assets list.",
         "from source": "git clone https://github.com/sipeed/picoclaw.git && cd picoclaw && make deps && make install",
         "note": "Go-based agent, ultra-lightweight (<10MB RAM, <1s boot). No 'go install' available — use download or source build. After install, run 'picoclaw onboard' to initialize."
     },
