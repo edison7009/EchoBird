@@ -881,15 +881,14 @@ fn load_config() -> BridgeConfig {
                 if !parts.is_empty() {
                     let command = parts[0].to_string();
                     let cmd_args: Vec<String> = parts[1..].iter().map(|s| s.to_string()).collect();
-                    // Build a config with the provided command + args + --message at the end
-                    let mut chat_args = cmd_args.clone();
-                    if !chat_args.contains(&"--message".to_string()) {
-                        chat_args.push("--message".to_string());
-                    }
+                    // Build config from provided command + args
+                    // Message is appended as last arg by execute_chat()
+                    // Agents that need --message flag include it in their args (e.g. openclaw agent --json --message)
+                    // Agents that use positional args (e.g. claude -p) just get message appended
+                    let chat_args = cmd_args.clone();
                     let mut resume_args = cmd_args;
                     resume_args.push("--session-id".to_string());
                     resume_args.push("{sessionId}".to_string());
-                    resume_args.push("--message".to_string());
                     eprintln!("[bridge] Using CLI config: {}", cmd_str);
                     return BridgeConfig {
                         command,
