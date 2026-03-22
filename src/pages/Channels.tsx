@@ -883,7 +883,7 @@ const ChannelsInner: React.FC = () => {
                     }
 
                     // ── Step 4: Send message to agent ──
-                    const result = await api.bridgeChatRemote(serverId, text, bridgeSessionId, agentId, role?.id);
+                    const result = await api.bridgeChatRemote(serverId, text, bridgeSessionId, agentId, role?.name);
                     clearTimeout(workingTimer);
                     // Success → now mark as connected
                     setBridgeConnectionStatus('connected');

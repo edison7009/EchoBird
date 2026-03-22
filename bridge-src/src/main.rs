@@ -565,6 +565,25 @@ fn check_running(cmd: &str) -> bool {
 
 // ── Role Installation (URL-based download) ──
 
+/// Extract `name` from YAML frontmatter (--- delimited block at top of .md file)
+fn extract_yaml_name(content: &str) -> Option<String> {
+    let trimmed = content.trim_start();
+    if !trimmed.starts_with("---") { return None; }
+    let after_first = &trimmed[3..];
+    let end = after_first.find("---")?;
+    let frontmatter = &after_first[..end];
+    for line in frontmatter.lines() {
+        let line = line.trim();
+        if let Some(rest) = line.strip_prefix("name:") {
+            let name = rest.trim().trim_matches('"').trim_matches('\'').trim();
+            if !name.is_empty() {
+                return Some(name.to_string());
+            }
+        }
+    }
+    None
+}
+
 fn handle_set_role(agent_id: &str, role_id: &str, url: &str) {
     // Determine target path based on agent
     let home = home_dir();
@@ -587,9 +606,17 @@ fn handle_set_role(agent_id: &str, role_id: &str, url: &str) {
     // OpenClaw always overwrites SOUL.md in main workspace, so never skip
     if agent_id != "openclaw" && agent_id != "nanobot" && agent_id != "picoclaw" && agent_id != "hermes" && target.exists() {
         eprintln!("[bridge] Role {} already installed for {} at {:?}", role_id, agent_id, target);
+        // For Claude Code: extract YAML name from existing file for --agent
+        let effective_role_id = if agent_id == "claudecode" {
+            std::fs::read_to_string(&target).ok()
+                .and_then(|content| extract_yaml_name(&content))
+                .unwrap_or_else(|| role_id.to_string())
+        } else {
+            role_id.to_string()
+        };
         // Store as active role for execute_chat --agent
         if let Ok(mut guard) = ACTIVE_ROLE.lock() {
-            *guard = Some((agent_id.to_string(), role_id.to_string()));
+            *guard = Some((agent_id.to_string(), effective_role_id));
         }
         send(&OutboundMessage::RoleSet {
             agent_id: agent_id.to_string(),
@@ -634,9 +661,16 @@ fn handle_set_role(agent_id: &str, role_id: &str, url: &str) {
     match std::fs::write(&target, &body) {
         Ok(_) => {
             eprintln!("[bridge] Role {} installed for {} at {:?} ({} bytes)", role_id, agent_id, target, body.len());
+            // For Claude Code: extract YAML frontmatter `name` field for --agent flag
+            // Claude Code matches agents by YAML name (e.g. "叙事设计师"), not filename (e.g. "narrative-designer")
+            let effective_role_id = if agent_id == "claudecode" {
+                extract_yaml_name(&body).unwrap_or_else(|| role_id.to_string())
+            } else {
+                role_id.to_string()
+            };
             // Store as active role for execute_chat --agent
             if let Ok(mut guard) = ACTIVE_ROLE.lock() {
-                *guard = Some((agent_id.to_string(), role_id.to_string()));
+                *guard = Some((agent_id.to_string(), effective_role_id));
             }
             send(&OutboundMessage::RoleSet {
                 agent_id: agent_id.to_string(),
