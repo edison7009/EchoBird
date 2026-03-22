@@ -1205,6 +1205,11 @@ fn is_agent_log_line(line: &str) -> bool {
         return true;
     }
 
+    // Pattern 6: PicoClaw ASCII Banner lines
+    if trimmed.contains("████") || trimmed.contains("╚═════╝") || trimmed.contains("╚══════╝") {
+        return true;
+    }
+
     false
 }
 
