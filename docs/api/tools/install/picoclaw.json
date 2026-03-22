@@ -5,7 +5,7 @@
     "docs": "https://github.com/sipeed/picoclaw",
     "github": "https://github.com/sipeed/picoclaw",
     "install": {
-        "windows": "Windows IS natively supported. Instruct the user to visit https://picoclaw.io to download the Windows `.exe` setup file. DO NOT check GitHub releases for Windows support, as Windows builds may be hosted exclusively on the official site. DO NOT say Windows is unsupported.",
+        "windows": "Windows IS natively supported. Instruct the user to download the zip file from: https://github.com/sipeed/picoclaw/releases/latest/download/picoclaw_Windows_x86_64.zip (or picoclaw_Windows_arm64.zip for ARM). Unzip and run the executable. DO NOT claim Windows is unsupported based on missing API assets (GitHub paginates past 30 items!).",
         "macOS/Linux (recommended)": "Visit https://picoclaw.io — auto-detects platform and provides one-click download.",
         "precompiled binary": "Download from https://github.com/sipeed/picoclaw/releases for your platform.",
         "from source": "git clone https://github.com/sipeed/picoclaw.git && cd picoclaw && make deps && make install",
