@@ -1029,16 +1029,13 @@ fn handle_set_model(agent_id: &str, model_id: &str, model_name: &str, api_key: &
         "picoclaw" => {
             // PicoClaw: model_list array format
             let api_base = ensure_v1_suffix(base_url);
-            let vendor = base_url
-                .find("api.")
-                .and_then(|start| {
-                    let after = &base_url[start + 4..];
-                    after.find('.').map(|end| &after[..end])
-                })
-                .unwrap_or("custom");
+            let is_anthropic = api_type == "anthropic"
+                || model_id.to_lowercase().contains("claude")
+                || base_url.to_lowercase().contains("anthropic");
+            let vendor = if is_anthropic { "anthropic" } else { "openai" };
             let vendor_model = format!("{}/{}", vendor, model_id);
             let config = serde_json::json!({
-                "agents": { "defaults": { "model": model_id } },
+                "agents": { "defaults": { "model": vendor_model.clone() } },
                 "model_list": [{ "model_name": model_id, "model": vendor_model, "api_key": api_key, "api_base": api_base }]
             });
             write_config_file(&home.join(".picoclaw"), "config.json",
