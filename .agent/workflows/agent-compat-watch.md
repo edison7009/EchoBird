@@ -11,11 +11,11 @@ This workflow defines what to monitor and how to respond.
 
 | Agent | GitHub Repo | Install Package |
 |-------|------------|----------------|
-| OpenClaw | [dosco/openclaw](https://github.com/dosco/openclaw) | `npm i -g openclaw` |
+| OpenClaw | [openclaw/openclaw](https://github.com/openclaw/openclaw) | `npm i -g openclaw` |
 | Claude Code | [anthropics/claude-code](https://github.com/anthropics/claude-code) | `npm i -g @anthropic-ai/claude-code` |
-| ZeroClaw | [icerdesign/zeroclaw](https://github.com/icerdesign/zeroclaw) | `cargo install zeroclaw` |
+| ZeroClaw | [zeroclaw-labs/zeroclaw](https://github.com/zeroclaw-labs/zeroclaw) | `cargo install zeroclaw` |
 | NanoBot | [HKUDS/nanobot](https://github.com/HKUDS/nanobot) | `pip install nanobot-ai` |
-| PicoClaw | [nicobailey/picoclaw](https://github.com/nicobailey/picoclaw) | `go install github.com/nicobailey/picoclaw@latest` |
+| PicoClaw | [sipeed/picoclaw](https://github.com/sipeed/picoclaw) | `go install github.com/sipeed/picoclaw@latest` |
 | Hermes | [NousResearch/hermes-agent](https://github.com/NousResearch/hermes-agent) | `pip install hermes-agent` |
 
 ## Critical Integration Points
