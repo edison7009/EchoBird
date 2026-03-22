@@ -718,7 +718,12 @@ const ChannelsInner: React.FC = () => {
         setAttachments([]);
         // Always scroll to bottom when user sends a message
         autoFollowRef.current = true;
+        setShowScrollBtn(false);
         setBridgeMessages(prev => [...prev, { role: 'user', content: displayText || '📎', chips } as any]);
+        // Force scroll after DOM updates (setBridgeMessages is async re-render)
+        setTimeout(() => {
+            scrollRef.current?.scrollIntoView({ behavior: 'auto' });
+        }, 50);
 
         if (!canSendMessage) {
             // Blocked (e.g. still connecting) — show error so user knows, their message is still saved above
