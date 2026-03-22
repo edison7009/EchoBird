@@ -37,14 +37,33 @@ description: Hermes Agent Bridge integration — config, model switching, role i
 
 ## Model Switching
 
-Unlike other agents that use config file writes, Hermes exposes CLI commands:
+### Config Precedence (critical to understand)
+1. **CLI arguments** (highest) — e.g. `hermes chat --model X`
+2. **~/.hermes/config.yaml** — `model:` key
+3. **~/.hermes/.env** — `LLM_MODEL` env var
+4. **Built-in defaults** (lowest) — defaults to OpenRouter
+
+### Correct approach: custom endpoint via .env
+Our goal is always **custom endpoint** (EchoBird relay). All 3 values go to `.env`:
 ```bash
-hermes config set model {model_id}
-hermes config set OPENAI_API_KEY {api_key}
-hermes config set OPENAI_BASE_URL {base_url}
+hermes config set LLM_MODEL {model_id}       # → .env (all-caps = .env routing)
+hermes config set OPENAI_API_KEY {api_key}    # → .env
+hermes config set OPENAI_BASE_URL {base_url}  # → .env
 ```
 
-Bridge `handle_set_model("hermes")` runs these 3 commands sequentially.
+> [!CAUTION]
+> **NEVER use `hermes config set model {model_id}`** — this writes to config.yaml,
+> which triggers Hermes' built-in provider routing. A bare model name like `MiniMax-M2.7`
+> defaults to OpenRouter, completely ignoring OPENAI_API_KEY and OPENAI_BASE_URL from .env.
+> This caused persistent 401 "Missing Authentication header" errors.
+
+### Cleanup: remove stale `model:` from config.yaml
+If config.yaml already has a `model:` line from a previous run, it overrides .env. Bridge must also:
+```bash
+sed -i '/^model:/d' ~/.hermes/config.yaml    # Remove stale model line
+```
+
+Bridge `handle_set_model("hermes")` runs `LLM_MODEL` + cleanup + API key/URL commands.
 
 ---
 

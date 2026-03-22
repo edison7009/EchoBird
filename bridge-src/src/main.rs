@@ -924,8 +924,17 @@ fn handle_set_model(agent_id: &str, model_id: &str, model_name: &str, api_key: &
     let result = match agent_id {
         "hermes" => {
             // Hermes: use CLI `hermes config set` commands
+            // IMPORTANT: Use LLM_MODEL (not `model`) — `hermes config set model X` writes to
+            // config.yaml which triggers Hermes' own provider routing (bare names default to
+            // OpenRouter, ignoring OPENAI_API_KEY). `hermes config set LLM_MODEL X` writes to
+            // .env alongside OPENAI_API_KEY/OPENAI_BASE_URL, ensuring custom endpoint is used.
+            // Step 1: Remove stale `model:` from config.yaml (it overrides .env due to precedence)
+            let _ = Command::new("sed")
+                .args(&["-i", "/^model:/d", &format!("{}/.hermes/config.yaml", std::env::var("HOME").unwrap_or_default())])
+                .output();
+            // Step 2: Set LLM_MODEL + API credentials in .env via hermes CLI
             let cmds = vec![
-                vec!["hermes", "config", "set", "model", model_id],
+                vec!["hermes", "config", "set", "LLM_MODEL", model_id],
                 vec!["hermes", "config", "set", "OPENAI_API_KEY", api_key],
                 vec!["hermes", "config", "set", "OPENAI_BASE_URL", base_url],
             ];
