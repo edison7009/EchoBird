@@ -1,1 +1,1 @@
-{"version":"3.2.2","releaseDate":"2026-03-22","releaseNotes":"Unified Bridge set_model protocol - single source of truth for all agent model configs. Fixed ZeroClaw config format (deprecated [providers] table). Eliminated SSH shell command fragility for remote config writes."}
+{"version":"3.2.3","releaseDate":"2026-03-23","releaseNotes":"Fixed PicoClaw/NanoBot role injection (SOUL.md). Added network pre-check for region-aware installation. Improved agent output cleaning (ANSI strip, session_id removal, banner filtering). Updated all 6 agent install docs and Bridge configs."}
