@@ -90,12 +90,12 @@ Then verify compatibility:
 | PicoClaw | All (binary download) | Match download to OS+arch — no pip/npm needed |
 | NanoBot | All (Python/pip) | Check Python version: `python3 --version` |
 | ZeroClaw | All (Rust/cargo or binary) | Check if cargo is available, offer binary download as alternative |
-| Claude Code | All (curl/brew — npm is DEPRECATED) | Check Node.js 18+ |
+| Claude Code (CLI) | All platforms (macOS/Linux: curl or brew; Windows: powershell or winget — npm is DEPRECATED) | Supported everywhere, choose install method by OS |
 | OpenFang | All (binary) | Match download to OS+arch |
 
 **Present the options clearly to the user and wait for their choice before proceeding.**
 
-> ⚠️ **ALL agents listed above (including Claude Code) CAN be installed on remote servers via SSH.** Claude Code is a CLI tool that works on any machine with Node.js — it is NOT limited to the user's local computer. When connected to a remote server, install it there using `curl -fsSL https://claude.ai/install.sh | bash`.
+> ⚠️ **ALL agents listed above (including Claude Code) CAN be installed on ALL platforms — macOS, Linux, AND Windows.** Claude Code is NOT limited to macOS/Linux. On Windows, install with `irm https://claude.ai/install.ps1 | iex` (PowerShell) or `winget install Anthropic.ClaudeCode`. On macOS/Linux, use `curl -fsSL https://claude.ai/install.sh | bash`. When connected to a remote server, install it there using the appropriate command for that server's OS.
 
 ### Step 2: Download Speed Test (on the REMOTE server)
 

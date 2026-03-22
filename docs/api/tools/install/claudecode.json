@@ -1,6 +1,6 @@
 {
     "id": "claudecode",
-    "displayName": "Claude Code",
+    "displayName": "Claude Code (CLI)",
     "homepage": "https://claude.ai/code",
     "docs": "https://code.claude.com/docs/en/setup",
     "github": "https://github.com/anthropics/claude-code",
@@ -13,13 +13,12 @@
         "note": "After install, first-time setup MUST add allowedTools to settings for non-interactive use. See first_run below."
     },
     "first_run": {
-        "description": "Claude Code requires TWO config files for non-interactive use: (1) config.json to skip login/onboarding, (2) settings.json for tool permissions. Without these, Claude Code will hang waiting for interactive prompts.",
-        "config_json": {
-            "path": "~/.claude/config.json",
-            "description": "MUST be created FIRST. Skips login screen and onboarding wizard.",
+        "description": "Claude Code requires TWO config files for non-interactive use: (1) ~/.claude.json to skip onboarding, (2) ~/.claude/settings.json for tool permissions and API config. Without these, Claude Code will hang waiting for interactive prompts.",
+        "claude_json": {
+            "path": "~/.claude.json",
+            "description": "MUST be created FIRST. Skips onboarding wizard.",
             "required": {
-                "hasCompletedOnboarding": true,
-                "primaryApiKey": "dummy"
+                "hasCompletedOnboarding": true
             }
         },
         "settings_json": {
@@ -29,6 +28,6 @@
                 "allowedTools": ["Edit", "Write", "Bash", "Read", "MultiEdit", "Glob", "Grep", "LS", "TodoRead", "TodoWrite", "WebFetch", "NotebookRead", "NotebookEdit"]
             }
         },
-        "setup_script": "python3 -c \"\nimport json, os\n# Step 1: config.json - skip onboarding/login\ncpath = os.path.expanduser('~/.claude/config.json')\nos.makedirs(os.path.dirname(cpath), exist_ok=True)\ncc = {}\nif os.path.exists(cpath):\n    with open(cpath) as f: cc = json.load(f)\ncc['hasCompletedOnboarding'] = True\ncc['primaryApiKey'] = 'dummy'\nwith open(cpath, 'w') as f: json.dump(cc, f, indent=2)\nprint('config.json: onboarding skipped')\n# Step 2: settings.json - tool permissions\nspath = os.path.expanduser('~/.claude/settings.json')\nsc = {}\nif os.path.exists(spath):\n    with open(spath) as f: sc = json.load(f)\nif 'allowedTools' not in sc:\n    sc['allowedTools'] = ['Edit','Write','Bash','Read','MultiEdit','Glob','Grep','LS','TodoRead','TodoWrite','WebFetch','NotebookRead','NotebookEdit']\nwith open(spath, 'w') as f: json.dump(sc, f, indent=2)\nprint('settings.json: allowedTools set')\n\""
+        "setup_script": "python3 -c \"\nimport json, os\n# Step 1: ~/.claude.json - skip onboarding\ncpath = os.path.expanduser('~/.claude.json')\ncc = {}\nif os.path.exists(cpath):\n    with open(cpath) as f: cc = json.load(f)\ncc['hasCompletedOnboarding'] = True\nwith open(cpath, 'w') as f: json.dump(cc, f, indent=2)\nprint('~/.claude.json: onboarding skipped')\n# Step 2: ~/.claude/settings.json - tool permissions\nspath = os.path.expanduser('~/.claude/settings.json')\nos.makedirs(os.path.dirname(spath), exist_ok=True)\nsc = {}\nif os.path.exists(spath):\n    with open(spath) as f: sc = json.load(f)\nif 'allowedTools' not in sc:\n    sc['allowedTools'] = ['Edit','Write','Bash','Read','MultiEdit','Glob','Grep','LS','TodoRead','TodoWrite','WebFetch','NotebookRead','NotebookEdit']\nwith open(spath, 'w') as f: json.dump(sc, f, indent=2)\nprint('settings.json: allowedTools set')\n\""
     }
 }
