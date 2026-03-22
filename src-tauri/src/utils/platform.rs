@@ -33,6 +33,29 @@ pub async fn get_command_path(cmd: &str) -> Option<String> {
         .map(|p| p.to_string_lossy().to_string())
 }
 
+/// Check if a Python module is installed (pip-installed tools like nanobot)
+/// Runs `python -m {module} --version` and checks exit code
+pub async fn python_module_exists(module: &str) -> bool {
+    #[cfg(windows)]
+    let result = {
+        use std::os::windows::process::CommandExt;
+        const CREATE_NO_WINDOW: u32 = 0x08000000;
+        Command::new("python")
+            .args(["-m", module, "--version"])
+            .creation_flags(CREATE_NO_WINDOW)
+            .output()
+    };
+    #[cfg(not(windows))]
+    let result = Command::new("python3")
+        .args(["-m", module, "--version"])
+        .output();
+
+    match result {
+        Ok(output) => output.status.success() || !output.stdout.is_empty(),
+        Err(_) => false,
+    }
+}
+
 /// Get command version by running `cmd --version`
 pub async fn get_version(cmd: &str) -> Option<String> {
     #[cfg(windows)]

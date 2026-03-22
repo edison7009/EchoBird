@@ -306,6 +306,15 @@ async fn detect_tool(pc: &PathsConfig) -> Option<String> {
         }
     }
 
+    // 2.5. Check Python module (pip-installed tools like nanobot)
+    if let Some(ref py_module) = pc.python_module {
+        let found = platform::python_module_exists(py_module).await;
+        if found {
+            log::info!("[{}] Python module '{}' detected (python -m {})", pc.name, py_module, py_module);
+            return Some(format!("python -m {}", py_module));
+        }
+    }
+
     // 3. Check platform-specific paths
     let platform_paths = get_platform_paths(&pc.paths);
     for p in &platform_paths {

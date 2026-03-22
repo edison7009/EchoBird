@@ -14,6 +14,7 @@
     "website": "https://nanobot.sh",
     "installUrl": "https://github.com/HKUDS/nanobot#-install",
     "command": "nanobot",
+    "pythonModule": "nanobot",
     "startCommand": "nanobot gateway",
     "configDir": "~/.nanobot",
     "configFile": "~/.nanobot/config.json",

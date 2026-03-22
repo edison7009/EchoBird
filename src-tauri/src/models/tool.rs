@@ -86,6 +86,9 @@ pub struct PathsConfig {
     pub start_command: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub extension_id: Option<String>,
+    /// Python module name for pip-installed tools (e.g. "nanobot" → detected via `python -m nanobot`)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub python_module: Option<String>,
 }
 
 // ─── config.json data structure (config read/write mapping) ───
