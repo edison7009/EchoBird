@@ -1232,23 +1232,56 @@ fn send(msg: &OutboundMessage) {
 /// Resolve a command name to its full path (handles .cmd/.bat on Windows)
 fn resolve_command(command: &str) -> String {
     if cfg!(target_os = "windows") {
-        if command == "picoclaw" || command == "picoclaw.exe" {
-            let appdata = std::env::var("LOCALAPPDATA").unwrap_or_else(|_| String::from("C:\\Users\\default\\AppData\\Local"));
-            let fallback_appdata = std::path::PathBuf::from(&appdata).join("Programs").join("PicoClaw").join("picoclaw.exe");
-            let userprofile = std::env::var("USERPROFILE").unwrap_or_else(|_| String::from("C:\\Users\\default"));
-            let fallback_go = std::path::PathBuf::from(&userprofile).join("go").join("bin").join("picoclaw.exe");
-            
-            if fallback_appdata.exists() {
-                return fallback_appdata.to_string_lossy().into_owned();
-            } else if fallback_go.exists() {
-                return fallback_go.to_string_lossy().into_owned();
+        // Step 1: Try common installation directories for ALL agents
+        // This eliminates the need for per-agent hardcoded paths.
+        let cmd_exe = format!("{}.exe", command);
+        let cmd_cmd = format!("{}.cmd", command);
+
+        let appdata = std::env::var("APPDATA").unwrap_or_default();
+        let localappdata = std::env::var("LOCALAPPDATA").unwrap_or_default();
+        let userprofile = std::env::var("USERPROFILE").unwrap_or_default();
+
+        // Title-case variant for Programs folder (e.g. "PicoClaw" for "picoclaw")
+        let title_case: String = {
+            let mut chars = command.chars();
+            match chars.next() {
+                None => String::new(),
+                Some(c) => c.to_uppercase().collect::<String>() + chars.as_str(),
+            }
+        };
+
+        let candidates: Vec<std::path::PathBuf> = vec![
+            // npm global installs (.cmd wrappers)
+            std::path::PathBuf::from(&appdata).join("npm").join(&cmd_cmd),
+            // Scoop installs
+            std::path::PathBuf::from(&userprofile).join("scoop").join("shims").join(&cmd_exe),
+            // Bun installs
+            std::path::PathBuf::from(&userprofile).join(".bun").join("bin").join(&cmd_exe),
+            // Cargo installs (Rust tools like zeroclaw)
+            std::path::PathBuf::from(&userprofile).join(".cargo").join("bin").join(&cmd_exe),
+            // Go installs (Go tools like picoclaw)
+            std::path::PathBuf::from(&userprofile).join("go").join("bin").join(&cmd_exe),
+            // pip/pipx installs
+            std::path::PathBuf::from(&userprofile).join(".local").join("bin").join(&cmd_exe),
+            // Windows Programs folder (e.g. AppData/Local/Programs/PicoClaw/)
+            std::path::PathBuf::from(&localappdata).join("Programs").join(&title_case).join(&cmd_exe),
+            // Alternative: Programs/{command}/ (lowercase)
+            std::path::PathBuf::from(&localappdata).join("Programs").join(command).join(&cmd_exe),
+            // Program Files
+            std::path::PathBuf::from(std::env::var("PROGRAMFILES").unwrap_or_default()).join(command).join(&cmd_exe),
+        ];
+
+        for candidate in &candidates {
+            if candidate.exists() {
+                let path = candidate.to_string_lossy().into_owned();
+                eprintln!("[bridge] Resolved '{}' -> '{}' (fallback path)", command, path);
+                return path;
             }
         }
 
-        // Use where.exe to find the full path of .cmd/.bat scripts
+        // Step 2: Fall back to where.exe for anything not in our known paths
         if let Ok(output) = Command::new("where.exe").arg(command).output() {
             let stdout = String::from_utf8_lossy(&output.stdout);
-            // Take the first result line (full path)
             if let Some(path) = stdout.lines().next() {
                 let path = path.trim();
                 if !path.is_empty() {
