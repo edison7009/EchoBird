@@ -377,7 +377,15 @@ const ChannelsInner: React.FC = () => {
         isProgrammaticScrollRef.current = true;
         autoFollowRef.current = true;
         setShowScrollBtn(false);
-        scrollRef.current?.scrollIntoView({ behavior });
+        // Use direct scrollTop for instant scroll (avoids scrollIntoView bounce/animation)
+        const container = chatContainerRef.current;
+        if (container) {
+            if (behavior === 'smooth') {
+                container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' });
+            } else {
+                container.scrollTop = container.scrollHeight;
+            }
+        }
         // Reset flag after scroll events settle
         setTimeout(() => { isProgrammaticScrollRef.current = false; }, 100);
     };
@@ -385,7 +393,7 @@ const ChannelsInner: React.FC = () => {
     // Auto-scroll when messages change (new message from user or agent)
     useEffect(() => {
         if (autoFollowRef.current) {
-            requestAnimationFrame(() => doScrollToBottom('auto'));
+            requestAnimationFrame(() => doScrollToBottom('instant' as any));
         }
     }, [messages]);
 
