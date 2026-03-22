@@ -102,8 +102,8 @@ No session reset needed after role change — each `hermes chat` invocation read
 ### 4. `session_id:` footer in output
 With `-Q`, Hermes appends `session_id: xxx` as last line. Must strip this before displaying response and capture for session continuity.
 
-### 5. Remote protocol routing
-`bridge_chat_remote()` must route by `protocol` from plugin.json. `cli-oneshot` agents execute directly via SSH (`hermes chat -Q -q 'message'`), NOT through Bridge binary.
+### 5. Remote uses Bridge too (unified architecture)
+Both local and remote channels pipe JSON into Bridge. Remote: `echo JSON | ~/echobird/echobird-bridge --command '{agent_cli}'` via SSH. The Bridge binary on the remote server handles all agent invocation — no direct SSH CLI calls.
 
 ### 6. Version detection: strip ANSI + v-prefix
 Tools like Hermes may output colored version strings. `get_version()` in `platform.rs` must strip ANSI codes and handle `v`-prefixed versions.

@@ -141,34 +141,8 @@ Different agents return different JSON formats:
 
 Add a new format branch in `parse_agent_output()` for your agent's output.
 
-### 2d. For cli-oneshot: Add output parsing in `bridge_chat_oneshot()`
-
-File: `src-tauri/src/commands/channel_commands.rs`
-
-cli-oneshot agents do NOT use the Bridge binary -- responses go directly through `bridge_chat_oneshot()` in the Rust backend. Update the JSON parsing section:
-
-```rust
-// Format 1: OpenClaw streaming {"text": "..."}
-if let Some(t) = json.get("text").and_then(|v| v.as_str()) { ... }
-// Format 2: Claude Code {"result": "..."}  (simple string)
-else if let Some(result) = json.get("result") { ... }
-```
-
-> [!WARNING]
-> **Without this, cli-oneshot agents will show raw JSON in the chat bubble!** This was the first major bug encountered during Claude Code integration.
-
-### 2e. For cli-oneshot: Add direct role download in Rust backend
-
-File: `src-tauri/src/commands/channel_commands.rs`
-
-cli-oneshot agents have NO Bridge subprocess, so `bridge_set_role_sync()` cannot send `set_role` to a non-existent stdin pipe. Instead, `bridge_set_role_local()` must:
-
-1. Update `ONESHOT_STATE.active_role_id` for `--system-prompt-file` injection
-2. Download the role file directly using `reqwest` (async, in Tauri backend)
-3. Write to the correct agent directory (e.g. `~/.claude/agents/{role_id}.md`)
-4. Return early without calling `bridge_set_role_sync()`
-
-See `download_role_file_direct()` in `channel_commands.rs`.
+> [!IMPORTANT]
+> **Deprecated**: Steps 2d/2e from older versions of this guide described a flow where cli-oneshot agents bypassed Bridge and used direct Rust backend functions (`bridge_chat_oneshot()`, `download_role_file_direct()`, `ONESHOT_STATE`). These have been **fully removed**. ALL agents — both `stdio-json` and `cli-oneshot` — now go through the Bridge binary uniformly. No special handling is needed in `channel_commands.rs`.
 
 ### 2f. Compile locally (Windows only, for testing)
 
@@ -337,7 +311,7 @@ Add the tool ID to `docs/api/tools/install/index.json`:
 | `tools/{id}/paths.json` | **[NEW]** Detection paths, `startCommand` for Launch app |
 | `tools/{id}/config.json` | **[NEW]** Config mapping (how to write API key/model) |
 | `bridge-src/src/main.rs` | Add to `handle_set_role()` + `handle_clear_role()` + `parse_agent_output()` |
-| `src-tauri/src/commands/channel_commands.rs` | cli-oneshot: `download_role_file_direct()` + JSON parsing + remote agent mapping |
+| `src-tauri/src/commands/channel_commands.rs` | Bridge subprocess management (start/stop/chat/set_role — all agents) |
 | `src-tauri/src/services/tool_patcher.rs` | **Add patcher function** + register in `patch_tool()` dispatch |
 | `src-tauri/src/services/plugin_manager.rs` | Add new CLI fields (e.g. `agent_arg`) to `CliConfig` struct |
 | `src-tauri/src/commands/role_commands.rs` | Add to `detect_local_agents()` |

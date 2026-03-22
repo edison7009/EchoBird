@@ -87,8 +87,8 @@ Bridge `parse_agent_output()` handles both formats.
 ### 2. `--system-prompt-file` is the correct approach
 Point to the downloaded `.md` role file directly. Path must be absolute (e.g. `C:\Users\eben\.claude\agents\game-designer.md`).
 
-### 3. `OneshotState` needs `active_role_id`
-Bridge protocol doesn't pass role info per-chat. Store active role ID in `ONESHOT_STATE` when `set_role` is called, then auto-inject `--system-prompt-file` in `bridge_chat_oneshot()`.
+### 3. Role state managed by Bridge (not Rust backend)
+In the old architecture, `ONESHOT_STATE.active_role_id` tracked the active role in the Rust backend. This has been removed — Bridge now manages role state internally via `ACTIVE_ROLE`. The `set_role` JSON command writes the role file and stores the active role ID.
 
 ### 4. Raw JSON displayed instead of text
 cli-oneshot responses bypass Bridge's `parse_agent_output()`. Must add Claude Code format (`result` field) parsing to response handler.

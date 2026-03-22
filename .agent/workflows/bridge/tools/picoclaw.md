@@ -116,8 +116,8 @@ PicoClaw's Go client only recognizes `openai/`, `anthropic/`, etc. Custom vendor
 ### 3. Windows PATH not updated after install
 Mother Agent installs to `AppData\Local\Programs\PicoClaw` but PATH may not be updated in the Bridge process. `resolve_command()` has hardcoded fallback paths for PicoClaw on Windows.
 
-### 4. Role download must be generic
-`download_role_file_direct()` was initially hardcoded to claudecode/zeroclaw. Use `_` catch-all branch with `format!(".{}", agent_id)` to support all agents. Write AGENT.md to `~/.{agent_id}/workspace/AGENT.md` when workspace exists.
+### 4. Role download handled by Bridge generically
+Bridge's `handle_set_role()` uses a catch-all branch for unknown agents: `format!(".{}", agent_id)`. It writes AGENT.md to `~/.{agent_id}/workspace/AGENT.md` when the workspace directory exists. No special handling in the Rust backend needed.
 
 ### 5. `defaults.model` vs `model_list[].model` format mismatch
 `defaults.model` = bare name (`MiniMax-M2.7`), `model_list[].model` = vendor-prefixed (`openai/MiniMax-M2.7`). Using the vendor-prefixed name in defaults causes "model not found in model_list" crash.
