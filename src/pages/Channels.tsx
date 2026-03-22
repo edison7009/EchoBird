@@ -791,7 +791,7 @@ const ChannelsInner: React.FC = () => {
                     }
                 }
 
-                const result = await api.bridgeChatLocal(text, bridgeSessionId);
+                const result = await api.bridgeChatLocal(text, bridgeSessionId, undefined, role?.name);
                 if (result.session_id) setBridgeSessionId(result.session_id);
                 setBridgeMessages(prev => [...prev, {
                     role: 'assistant',

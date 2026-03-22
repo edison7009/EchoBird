@@ -535,9 +535,9 @@ pub fn bridge_status() -> BridgeStatusResult {
 // ── Bridge Chat Command ──
 
 /// Chat with Agent via persistent Bridge subprocess (blocking — runs in spawn_blocking)
-fn bridge_chat_sync(message: String, session_id: Option<String>) -> Result<BridgeChatResult, String> {
-    log::info!("[BridgeChat] message={}, session_id={:?}",
-        safe_truncate(&message, 50), session_id);
+fn bridge_chat_sync(message: String, session_id: Option<String>, role_name: Option<String>) -> Result<BridgeChatResult, String> {
+    log::info!("[BridgeChat] message={}, session_id={:?}, role_name={:?}",
+        safe_truncate(&message, 50), session_id, role_name);
 
     // Auto-start bridge if not running
     {
@@ -565,16 +565,24 @@ fn bridge_chat_sync(message: String, session_id: Option<String>) -> Result<Bridg
     // If we have a session_id from a previous message, use "resume" to continue the session
     // (Bridge translates "resume" → --resume {sessionId} for Claude Code)
     let input_json = if let Some(ref sid) = effective_sid {
-        serde_json::json!({
+        let mut j = serde_json::json!({
             "type": "resume",
             "message": message,
             "session_id": sid
-        })
+        });
+        if let Some(ref rn) = role_name {
+            j["agent_name"] = serde_json::json!(rn);
+        }
+        j
     } else {
-        serde_json::json!({
+        let mut j = serde_json::json!({
             "type": "chat",
             "message": message
-        })
+        });
+        if let Some(ref rn) = role_name {
+            j["agent_name"] = serde_json::json!(rn);
+        }
+        j
     };
 
     let input_str = serde_json::to_string(&input_json)
@@ -729,11 +737,12 @@ pub async fn bridge_chat_local(
     message: String,
     session_id: Option<String>,
     _system_prompt: Option<String>,
+    role_name: Option<String>,
 ) -> Result<BridgeChatResult, String> {
 
     // stdio-json: existing persistent subprocess chat
     tokio::task::spawn_blocking(move || {
-        bridge_chat_sync(message, session_id)
+        bridge_chat_sync(message, session_id, role_name)
     }).await.map_err(|e| format!("Task error: {}", e))?
 }
 
