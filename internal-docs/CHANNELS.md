@@ -264,6 +264,17 @@ Always use `safe_truncate()` for log messages containing multi-byte UTF-8 (Chine
 
 Bridge has 5 cross-platform binaries. Avoid changes that require Bridge recompilation when a Tauri-side or frontend-side fix is possible. Example: passing `role.name` from frontend is better than having Bridge parse YAML from role files.
 
+### 8. Chat Scroll: Bottom-Anchored by Default (Channels + MotherAgent)
+
+> **Rule**: The chat view MUST stay at bottom at all times. This is the default state. The ONLY exception is when the user manually scrolls up.
+
+- **User sends message** → auto-scroll to bottom
+- **Agent response arrives (incremental)** → keep scrolling to bottom as messages grow
+- **Open/switch channel** → scroll to bottom
+- **Re-open the page** → scroll to bottom
+
+**Implementation**: `isProgrammaticScrollRef` flag prevents `handleScroll` from overriding `autoFollowRef` during programmatic `scrollIntoView` calls. All scroll-to-bottom calls go through `doScrollToBottom()` helper which sets the flag, scrolls, then clears it after 100ms.
+
 ---
 
 ## Key Source Files
