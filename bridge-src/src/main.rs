@@ -318,15 +318,14 @@ fn execute_chat(
         args.push(name.to_string());
     }
 
+    let target_agent = config.command.split('/').last().unwrap_or(&config.command);
+
     // On Windows, cmd.exe treats a real newline as a command separator and truncates
     // the argument at the first newline. Replace real newlines with the two-character
     // literal \n so the full message is passed intact. The agent (openclaw) interprets \n.
-    let message_text = if let Some(prompt) = system_prompt {
-        if config.command.contains("nanobot") || config.command.contains("zeroclaw") {
-            format!("[System Instructions]\n{}\n\n[User Message]\n{}", prompt, message)
-        } else {
-            message.to_string()
-        }
+    // If the agent is known to ignore soft role prompts, we prepend the system prompt directly to the user message
+    let message_text = if (target_agent == "nanobot" || target_agent == "zeroclaw" || target_agent == "picoclaw" || target_agent == "hermes") && system_prompt.is_some() {
+        format!("[System Instructions]\n{}\n\n[User Message]\n{}", system_prompt.unwrap(), message)
     } else {
         message.to_string()
     };
@@ -419,8 +418,34 @@ fn parse_agent_output(stdout: &str) -> (String, Option<String>) {
             let cleaned: Vec<&str> = stdout.lines()
                 .filter(|line| !is_agent_log_line(line))
                 .collect();
-            let text = cleaned.join("\n").trim().to_string();
-            return (if text.is_empty() { stdout.to_string() } else { text }, None);
+            let mut text = cleaned.join("\n").trim().to_string();
+            
+            // PicoClaw special delimiter 🦞 (extract everything after the last lobster)
+            if text.contains("🦞") {
+                if let Some(last_part) = text.split("🦞").last() {
+                    text = last_part.trim().to_string();
+                }
+            }
+            
+            // Strip any remaining ANSI escape codes
+            text = strip_ansi(&text);
+            
+            // Strip <think> tags if they exist
+            while let Some(start) = text.find("<think>") {
+                if let Some(end) = text.find("</think>") {
+                    if end > start {
+                        let mut new_text = text[..start].to_string();
+                        new_text.push_str(&text[end + "</think>".len()..]);
+                        text = new_text.trim().to_string();
+                    } else {
+                        break;
+                    }
+                } else {
+                    break;
+                }
+            }
+            
+            return (if text.is_empty() { strip_ansi(stdout).trim().to_string() } else { text }, None);
         }
     };
 
@@ -1173,8 +1198,13 @@ fn is_agent_log_line(line: &str) -> bool {
         return true;
     }
 
-    // Pattern 4: NanoBot banner
-    if trimmed.starts_with("🐈 nanobot") {
+    // Pattern 4: NanoBot or Hermes banners
+    if trimmed.starts_with("🐈 nanobot") || trimmed.starts_with("Hermes") || trimmed.starts_with("hermes") {
+        return true;
+    }
+
+    // Pattern 5: PicoClaw / Go styled structured logs (e.g. 14:22:15 INF ...)
+    if trimmed.len() > 12 && trimmed.as_bytes()[2] == b':' && trimmed.as_bytes()[5] == b':' && (trimmed.contains(" INF ") || trimmed.contains(" WRN ") || trimmed.contains(" ERR ")) {
         return true;
     }
 
