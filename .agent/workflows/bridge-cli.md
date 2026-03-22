@@ -40,7 +40,14 @@ User sends message in Channels page
 ```
 
 > **KEY PRINCIPLE**: Bridge is the **sole communication layer** for ALL agents,
-> both local and remote. The Tauri backend NEVER calls agent CLIs directly.
+> both local and remote. ALL operations go through Bridge:
+> - **Chat** (send/receive messages)
+> - **Role injection** (set_role / clear_role)
+> - **Model config** (set_model — writes agent-specific config files)
+> - **Agent detection** (detect_agents)
+>
+> The Tauri backend NEVER calls agent CLIs directly, NEVER writes agent config
+> files directly, and NEVER uses SSH shell commands to write files.
 > Adding a new agent only requires a new `plugins/{agent_id}/plugin.json`.
 
 
@@ -77,6 +84,10 @@ User sends message to remote server
 // Clear role
 → {"type": "clear_role", "agent_id": "openclaw", "role_id": "ai-engineer"}
 ← {"type": "role_cleared", "agent_id": "openclaw", "role_id": "ai-engineer", "success": true}
+
+// Set model config (writes agent-specific config files + Echobird relay JSON)
+→ {"type": "set_model", "agent_id": "zeroclaw", "model_id": "anthropic/claude-sonnet-4-6", "model_name": "Claude Sonnet", "api_key": "sk-...", "base_url": "https://openrouter.ai/api/v1", "api_type": "openai"}
+← {"type": "model_set", "agent_id": "zeroclaw", "model_id": "anthropic/claude-sonnet-4-6", "success": true}
 
 // Start agent process
 → {"type": "start_agent", "agent_id": "openclaw"}
