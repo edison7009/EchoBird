@@ -54,20 +54,30 @@ PicoClaw's Go client only recognizes built-in protocol engines. Custom vendor na
 
 ## Role Injection
 
-### Method: Native AGENT.md file (NOT Message Prepending)
+PicoClaw uses `SOUL.md` for role injection — the same file as OpenClaw.
 
-> [!IMPORTANT]
-> PicoClaw has its own identity system (`AGENT.md`, `AGENTS.md`, `IDENTITY.md`, `SOUL.md`).
-> **Message Prepending does NOT work** — PicoClaw's internal safety layer rejects user-message-level identity overrides as prompt injection attacks.
+> [!CAUTION]
+> **`AGENT.md` does NOT work.** PicoClaw ignores `AGENT.md` for identity purposes. It reads `IDENTITY.md` (hardcoded identity) and `SOUL.md` (soul / persona). Role content must be written to `SOUL.md` to have any effect.
 
-### File path
+**Bridge path**: `~/.picoclaw/workspace/SOUL.md`
+
 ```
-~/.picoclaw/workspace/AGENT.md   (always overwritten by Bridge set_role)
+handle_set_role("picoclaw", ...) → writes to ~/.picoclaw/workspace/SOUL.md
+handle_clear_role("picoclaw") → truncates SOUL.md to 0 bytes
 ```
 
-PicoClaw reads this file automatically via mtime tracking. After Bridge writes AGENT.md:
+**Workspace file roles** (from PicoClaw docs):
+| File | Purpose | Role injection target? |
+|------|---------|----------------------|
+| `IDENTITY.md` | Hardcoded identity (PicoClaw branding) | ❌ Do NOT modify |
+| `SOUL.md` | Agent soul / persona | ✅ **Write role here** |
+| `AGENTS.md` | Agent behavior guide | ❌ Ignored for identity |
+| `AGENT.md` | Unused by PicoClaw | ❌ PicoClaw ignores this |
+
+**Important**: PicoClaw has built-in identity resistance — even with SOUL.md modified, it introduces itself as "picoclaw with secondary identity as [role]". This is acceptable; the role instructions still take effect for actual task execution.
+PicoClaw reads this file automatically via mtime tracking. After Bridge writes `SOUL.md`:
 1. Bridge resets `bridgeSessionId` → forces new session
-2. Next `picoclaw agent -m "..."` picks up the new AGENT.md content
+2. Next `picoclaw agent -m "..."` picks up the new `SOUL.md` content
 
 ### Flow
 ```

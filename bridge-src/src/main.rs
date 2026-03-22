@@ -684,7 +684,7 @@ fn handle_set_role(agent_id: &str, role_id: &str, url: &str) {
         "openclaw"   => home.join(".openclaw").join("workspace").join("SOUL.md"),
         "zeroclaw"   => home.join(".zeroclaw").join("workspace").join("skills").join(role_id).join("SKILL.md"),
         "nanobot"    => home.join(".nanobot").join("workspace").join("AGENTS.md"),
-        "picoclaw"   => home.join(".picoclaw").join("workspace").join("AGENT.md"),
+        "picoclaw"   => home.join(".picoclaw").join("workspace").join("SOUL.md"),
         "hermes"     => home.join(".hermes").join("SOUL.md"),
         _ => {
             send(&OutboundMessage::Error {
@@ -872,7 +872,7 @@ fn handle_clear_role(agent_id: &str, role_id: &str) {
             let target = match agent_id {
                 "openclaw" => home.join(".openclaw").join("workspace").join("SOUL.md"),
                 "nanobot"  => home.join(".nanobot").join("workspace").join("AGENTS.md"),
-                "picoclaw" => home.join(".picoclaw").join("workspace").join("AGENT.md"),
+                "picoclaw" => home.join(".picoclaw").join("workspace").join("SOUL.md"),
                 "hermes"   => home.join(".hermes").join("SOUL.md"),
                 _ => unreachable!(),
             };
