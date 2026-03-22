@@ -1035,7 +1035,7 @@ fn handle_set_model(agent_id: &str, model_id: &str, model_name: &str, api_key: &
             let vendor = if is_anthropic { "anthropic" } else { "openai" };
             let vendor_model = format!("{}/{}", vendor, model_id);
             let config = serde_json::json!({
-                "agents": { "defaults": { "model": vendor_model.clone() } },
+                "agents": { "defaults": { "model": model_id } },
                 "model_list": [{ "model_name": model_id, "model": vendor_model, "api_key": api_key, "api_base": api_base }]
             });
             write_config_file(&home.join(".picoclaw"), "config.json",
@@ -1205,8 +1205,9 @@ fn is_agent_log_line(line: &str) -> bool {
         return true;
     }
 
-    // Pattern 6: PicoClaw ASCII Banner lines
-    if trimmed.contains("████") || trimmed.contains("╚═════╝") || trimmed.contains("╚══════╝") {
+    // Pattern 6: PicoClaw ASCII Banner lines (handles both solid block and outline variations)
+    let block_chars = ['█', '╗', '║', '╔', '╚', '═', '╝', ' '];
+    if trimmed.len() > 10 && trimmed.chars().all(|c| block_chars.contains(&c)) {
         return true;
     }
 
