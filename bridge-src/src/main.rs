@@ -394,7 +394,15 @@ fn parse_agent_output(stdout: &str) -> (String, Option<String>) {
     let json_str = find_json_object(stdout);
     let json_str = match json_str {
         Some(s) => s,
-        None => return (stdout.to_string(), None),
+        None => {
+            // No JSON found — raw text output (e.g. ZeroClaw without --json)
+            // Filter out log/status lines (timestamps + log levels from tracing/env_logger)
+            let cleaned: Vec<&str> = stdout.lines()
+                .filter(|line| !is_agent_log_line(line))
+                .collect();
+            let text = cleaned.join("\n").trim().to_string();
+            return (if text.is_empty() { stdout.to_string() } else { text }, None);
+        }
     };
 
     match serde_json::from_str::<serde_json::Value>(&json_str) {
@@ -1116,6 +1124,37 @@ fn strip_ansi(s: &str) -> String {
         }
     }
     result
+}
+
+/// Detect agent log/status lines that should be filtered from chat output.
+/// Matches patterns like:
+///   2026-03-22T08:21:49.368699Z INFO zeroclaw::config::schema: ...
+///   2026-03-22T08:15:13.172374Z WARN zeroclaw::providers::reliable: ...
+fn is_agent_log_line(line: &str) -> bool {
+    let trimmed = line.trim();
+    if trimmed.is_empty() { return true; }
+
+    // Pattern 1: ISO timestamp + log level (Rust tracing format)
+    if trimmed.len() > 25 && trimmed.as_bytes()[0..4].iter().all(|b| b.is_ascii_digit()) {
+        for kw in &[" INFO ", " WARN ", " ERROR ", " DEBUG ", " TRACE "] {
+            if trimmed.contains(kw) { return true; }
+        }
+    }
+
+    // Pattern 2: Bare log level prefix (env_logger style)
+    for prefix in &["INFO:", "WARN:", "ERROR:", "DEBUG:", "TRACE:"] {
+        if trimmed.starts_with(prefix) { return true; }
+    }
+
+    // Pattern 3: Structured key=value continuation lines
+    if trimmed.starts_with("provider=") || trimmed.starts_with("model=") ||
+       trimmed.starts_with("path=") || trimmed.starts_with("workspace=") ||
+       trimmed.starts_with("source=") || trimmed.starts_with("backend=") ||
+       trimmed.starts_with("initialized=") || trimmed.starts_with("error=") {
+        return true;
+    }
+
+    false
 }
 
 /// Send a JSON message to stdout (one line)
