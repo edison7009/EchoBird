@@ -830,9 +830,8 @@ fn apply_zeroclaw(model_info: &ModelInfo) -> ApplyResult {
         } else if base.contains("openai.com") {
             "openai".to_string()
         } else {
-            // Custom provider: ensure /v1 suffix
-            let url = if base.ends_with("/v1") { base.to_string() } else { format!("{}/v1", base) };
-            format!("custom:{}", url)
+            // Custom provider: use URL as-is (ZeroClaw handles endpoint paths internally)
+            format!("custom:{}", base)
         };
         content = toml_write_top(&content, "default_provider", &provider_value);
     } else {

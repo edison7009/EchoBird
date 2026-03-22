@@ -667,9 +667,14 @@ const ChannelsInner: React.FC = () => {
             // Use API model ID (modelId) for the actual model identifier, not internalId
             const apiModelId = selected.modelId || selected.name;
             // Use correct base URL for the protocol
-            const isAnthropic = !!selected.anthropicUrl;
-            const effectiveBaseUrl = isAnthropic ? (selected.anthropicUrl || '') : (selected.baseUrl || '');
-            const effectiveProtocol = isAnthropic ? 'anthropic' : 'openai';
+            // Anthropic-only agents (Claude Code): must use anthropicUrl
+            // All other agents (OpenClaw, ZeroClaw, etc.): prefer baseUrl (OpenAI protocol)
+            const anthropicOnlyAgents = ['claudecode'];
+            const isAnthropicAgent = anthropicOnlyAgents.includes(agentEntry.id);
+            const effectiveBaseUrl = isAnthropicAgent
+                ? (selected.anthropicUrl || selected.baseUrl || '')
+                : (selected.baseUrl || '');
+            const effectiveProtocol = isAnthropicAgent ? 'anthropic' : 'openai';
 
             if (isLocalChannel) {
                 await api.bridgeSetLocalModel(

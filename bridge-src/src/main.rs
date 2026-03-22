@@ -948,8 +948,7 @@ fn handle_set_model(agent_id: &str, model_id: &str, model_name: &str, api_key: &
                 ""
             };
             let toml_content = if provider_value.is_empty() {
-                let url = if base.ends_with("/v1") { base.to_string() } else { format!("{}/v1", base) };
-                format!("default_provider = \"custom:{}\"\ndefault_model = \"{}\"\ndefault_temperature = 0.7\napi_key = \"{}\"", url, model_id, api_key)
+                format!("default_provider = \"custom:{}\"\ndefault_model = \"{}\"\ndefault_temperature = 0.7\napi_key = \"{}\"", base, model_id, api_key)
             } else {
                 format!("default_provider = \"{}\"\ndefault_model = \"{}\"\ndefault_temperature = 0.7\napi_key = \"{}\"", provider_value, model_id, api_key)
             };
