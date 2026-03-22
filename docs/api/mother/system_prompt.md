@@ -90,10 +90,12 @@ Then verify compatibility:
 | PicoClaw | All (binary download) | Match download to OS+arch — no pip/npm needed |
 | NanoBot | All (Python/pip) | Check Python version: `python3 --version` |
 | ZeroClaw | All (Rust/cargo or binary) | Check if cargo is available, offer binary download as alternative |
-| Claude Code | All (npm) | Check Node.js version |
+| Claude Code | All (curl/brew — npm is DEPRECATED) | Check Node.js 18+ |
 | OpenFang | All (binary) | Match download to OS+arch |
 
 **Present the options clearly to the user and wait for their choice before proceeding.**
+
+> ⚠️ **ALL agents listed above (including Claude Code) CAN be installed on remote servers via SSH.** Claude Code is a CLI tool that works on any machine with Node.js — it is NOT limited to the user's local computer. When connected to a remote server, install it there using `curl -fsSL https://claude.ai/install.sh | bash`.
 
 ### Step 2: Download Speed Test (on the REMOTE server)
 
