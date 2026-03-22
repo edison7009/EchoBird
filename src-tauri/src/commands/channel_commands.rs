@@ -2028,7 +2028,9 @@ pub async fn bridge_set_local_model(
         }
         "zeroclaw" => {
             // ZeroClaw v2026+: top-level keys in config.toml (no [providers] table!)
-            // Config ref: docs/reference/api/config-reference.md
+            let config_dir = home.join(".zeroclaw");
+            std::fs::create_dir_all(&config_dir)
+                .map_err(|e| format!("Failed to create .zeroclaw dir: {}", e))?;
             let base = base_url.trim_end_matches('/');
             let provider_value = if base.contains("openrouter.ai") {
                 "openrouter".to_string()
@@ -2041,15 +2043,15 @@ pub async fn bridge_set_local_model(
                 format!("custom:{}", url)
             };
             let toml_content = format!(
-                "default_provider = \"{}\"\\ndefault_model = \"{}\"",
+                "default_provider = \"{}\"\ndefault_model = \"{}\"",
                 provider_value, model_id,
             );
-            format!(
-                "mkdir -p ~/.zeroclaw && echo '{}' > ~/.zeroclaw/config.toml && grep -q 'OPENROUTER_API_KEY' ~/.bashrc 2>/dev/null || echo 'export OPENROUTER_API_KEY=\"{}\"' >> ~/.bashrc && grep -q 'OPENAI_API_KEY' ~/.bashrc 2>/dev/null || echo 'export OPENAI_API_KEY=\"{}\"' >> ~/.bashrc",
-                shell_escape(&toml_content),
-                shell_escape(&api_key),
-                shell_escape(&api_key),
-            )
+            std::fs::write(config_dir.join("config.toml"), &toml_content)
+                .map_err(|e| format!("Failed to write zeroclaw config.toml: {}", e))?;
+            // Set env vars for current process (ZeroClaw reads these at runtime)
+            std::env::set_var("OPENROUTER_API_KEY", &api_key);
+            std::env::set_var("OPENAI_API_KEY", &api_key);
+            log::info!("[BridgeSetLocalModel] ZeroClaw config.toml written (provider={}, model={})", provider_value, model_id);
         }
         "nanobot" => {
             let config_dir = home.join(".nanobot");
