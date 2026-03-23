@@ -17,7 +17,9 @@ use commands::role_commands;
 
 use std::sync::Mutex;
 use tauri::{Emitter, Manager};
+#[cfg(not(target_os = "android"))]
 use tauri::menu::{MenuBuilder, MenuItemBuilder};
+#[cfg(not(target_os = "android"))]
 use tauri::tray::TrayIconBuilder;
 
 /// Managed state for tray locale and server status
@@ -42,6 +44,7 @@ const PIXEL_PATTERN: [[u8; 7]; 7] = [
 
 /// Generate tray icon RGBA data from pixel pattern
 /// color: "green" (#00FF9D) for offline, "yellow" (#FFD700) for online
+#[cfg(not(target_os = "android"))]
 fn create_tray_icon_rgba(color: &str) -> (Vec<u8>, u32, u32) {
     let (r, g, b) = match color {
         "yellow" => (0xFF_u8, 0xD7_u8, 0x00_u8),
@@ -81,6 +84,7 @@ fn create_tray_icon_rgba(color: &str) -> (Vec<u8>, u32, u32) {
 }
 
 /// Get localized tray string
+#[cfg(not(target_os = "android"))]
 fn tray_t(locale: &str, key: &str) -> String {
     match (locale, key) {
         // English
@@ -124,6 +128,7 @@ fn tray_t(locale: &str, key: &str) -> String {
 }
 
 /// Resolve locale to one of 5 supported tray locales
+#[cfg(not(target_os = "android"))]
 fn resolve_tray_locale(locale: &str) -> &'static str {
     if locale.starts_with("zh") {
         if locale.contains("Hans") || locale.contains("CN") || locale.contains("SG") {
@@ -143,6 +148,7 @@ fn resolve_tray_locale(locale: &str) -> &'static str {
 }
 
 /// Rebuild tray menu dynamically (call when locale or server status changes)
+#[cfg(not(target_os = "android"))]
 pub fn rebuild_tray_menu(app: &tauri::AppHandle) {
     let state = app.state::<TrayState>();
     let locale = state.locale.lock().unwrap().clone();
@@ -245,7 +251,9 @@ pub fn run() {
             // Register shell plugin (open external URLs, folders)
             app.handle().plugin(tauri_plugin_shell::init())?;
 
-            // ─── System Tray ───
+            // ─── System Tray (desktop only) ───
+            #[cfg(not(target_os = "android"))]
+            {
             let (rgba, w, h) = create_tray_icon_rgba("green");
             let tray_icon = tauri::image::Image::new_owned(rgba, w, h);
 
@@ -301,7 +309,7 @@ pub fn run() {
                 })
                 .on_tray_icon_event(|tray, event| {
                     // Only show/focus window on double-click (Windows)
-                    // Single click must not steal focus �?it opens the context menu
+                    // Single click must not steal focus — it opens the context menu
                     if let tauri::tray::TrayIconEvent::DoubleClick { .. } = event {
                         let app_handle = tray.app_handle();
                         if let Some(window) = app_handle.get_webview_window("main") {
@@ -312,9 +320,12 @@ pub fn run() {
                     }
                 })
                 .build(app)?;
+            } // end #[cfg(not(android))]
 
             // Safety fallback: show main window after 1s even if appReady() never fires.
             // Uses std::thread to avoid tokio runtime dependency in sync setup().
+            #[cfg(not(target_os = "android"))]
+            {
             let fallback_handle = app.handle().clone();
             std::thread::spawn(move || {
                 std::thread::sleep(std::time::Duration::from_millis(1000));
@@ -326,6 +337,7 @@ pub fn run() {
                     }
                 }
             });
+            }
 
             Ok(())
         })

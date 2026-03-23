@@ -25,40 +25,52 @@ pub fn health_check() -> String {
 /// Ensures splash stays visible for at least 1.5 seconds
 #[tauri::command]
 pub async fn app_ready(app: tauri::AppHandle) {
-    use tauri::Manager;
+    #[cfg(not(target_os = "android"))]
+    {
+        use tauri::Manager;
 
-    // Minimum splash display time (1.5 seconds from app start)
-    let state = app.state::<crate::AppStartTime>();
-    let elapsed = state.0.elapsed();
-    let min_splash = std::time::Duration::from_millis(1500);
-    if elapsed < min_splash {
-        tokio::time::sleep(min_splash - elapsed).await;
-    }
+        // Minimum splash display time (1.5 seconds from app start)
+        let state = app.state::<crate::AppStartTime>();
+        let elapsed = state.0.elapsed();
+        let min_splash = std::time::Duration::from_millis(1500);
+        if elapsed < min_splash {
+            tokio::time::sleep(min_splash - elapsed).await;
+        }
 
-    // Close splash window
-    if let Some(splash) = app.get_webview_window("splash") {
-        let _ = splash.close();
+        // Close splash window
+        if let Some(splash) = app.get_webview_window("splash") {
+            let _ = splash.close();
+        }
+        // Show and focus main window
+        if let Some(main) = app.get_webview_window("main") {
+            let _ = main.show();
+            let _ = main.set_focus();
+        }
     }
-    // Show and focus main window
-    if let Some(main) = app.get_webview_window("main") {
-        let _ = main.show();
-        let _ = main.set_focus();
-    }
+    #[cfg(target_os = "android")]
+    { let _ = app; }
 }
 
-/// Set locale �?sync frontend language to tray menu
+/// Set locale — sync frontend language to tray menu
 #[tauri::command]
 pub fn set_locale(app: tauri::AppHandle, locale: String) {
-    use tauri::Manager;
-    let state = app.state::<crate::TrayState>();
-    let resolved = crate::resolve_tray_locale(&locale);
-    *state.locale.lock().unwrap() = resolved.to_string();
-    log::info!("[TrayState] Locale set to: {}", resolved);
-    // Rebuild tray menu with new locale
-    crate::rebuild_tray_menu(&app);
+    #[cfg(not(target_os = "android"))]
+    {
+        use tauri::Manager;
+        let state = app.state::<crate::TrayState>();
+        let resolved = crate::resolve_tray_locale(&locale);
+        *state.locale.lock().unwrap() = resolved.to_string();
+        log::info!("[TrayState] Locale set to: {}", resolved);
+        // Rebuild tray menu with new locale
+        crate::rebuild_tray_menu(&app);
+    }
+    #[cfg(target_os = "android")]
+    {
+        let _ = (app, locale); // suppress unused warnings
+    }
 }
 
-/// Quit app �?fully exit the application
+/// Quit app — fully exit the application
 #[tauri::command]
 pub fn quit_app(app: tauri::AppHandle) {
     log::info!("[App] Quit requested from frontend");

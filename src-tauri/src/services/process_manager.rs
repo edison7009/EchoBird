@@ -357,6 +357,12 @@ impl ProcessManager {
             self.processes.insert(tool_id.to_string(), ProcessInfo { pid });
             return Ok(());
         }
+
+        #[cfg(target_os = "android")]
+        {
+            let _ = tool_id;
+            return Err("Not available on mobile".to_string());
+        }
     }
 
     /// Start a GUI tool by opening its executable
@@ -416,6 +422,12 @@ impl ProcessManager {
             log::info!("[ProcessManager] GUI tool {} started with PID: {}", tool_id, pid);
             self.processes.insert(tool_id.to_string(), ProcessInfo { pid });
             Ok(())
+        }
+
+        #[cfg(target_os = "android")]
+        {
+            let _ = (tool_id, exe_path);
+            Err("Not available on mobile".to_string())
         }
     }
 

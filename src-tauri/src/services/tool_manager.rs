@@ -267,6 +267,8 @@ fn get_platform_paths(paths: &crate::models::tool::PlatformPaths) -> Vec<String>
     { paths.darwin.clone().unwrap_or_default() }
     #[cfg(target_os = "linux")]
     { paths.linux.clone().unwrap_or_default() }
+    #[cfg(target_os = "android")]
+    { let _ = paths; Vec::new() }
 }
 
 /// Detect if a tool is installed, returns executable path
@@ -420,6 +422,8 @@ async fn find_skills_path(pc: &PathsConfig) -> Option<String> {
         { sp.darwin.clone().unwrap_or_default() }
         #[cfg(target_os = "linux")]
         { sp.linux.clone().unwrap_or_default() }
+        #[cfg(target_os = "android")]
+        { Vec::<String>::new() }
     };
     for p in &platform_paths {
         let expanded = expand_path(p);

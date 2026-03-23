@@ -42,6 +42,7 @@ pub async fn start_llm_server(
         use tauri::Manager;
         let state = app_handle.state::<crate::TrayState>();
         *state.server_running.lock().unwrap() = true;
+        #[cfg(not(target_os = "android"))]
         crate::rebuild_tray_menu(&app_handle);
     }
     result
@@ -54,6 +55,7 @@ pub async fn stop_llm_server(app_handle: tauri::AppHandle) -> Result<(), String>
         use tauri::Manager;
         let state = app_handle.state::<crate::TrayState>();
         *state.server_running.lock().unwrap() = false;
+        #[cfg(not(target_os = "android"))]
         crate::rebuild_tray_menu(&app_handle);
     }
     result
@@ -107,24 +109,28 @@ pub fn scan_hf_models(dir: String) -> Vec<HfModelEntry> {
 
 #[tauri::command]
 pub async fn add_models_dir() -> Result<Vec<String>, String> {
-    // Open native folder picker
-    let folder = rfd::AsyncFileDialog::new()
-        .set_title("Select Models Directory")
-        .pick_folder()
-        .await;
+    #[cfg(not(target_os = "android"))]
+    {
+        let folder = rfd::AsyncFileDialog::new()
+            .set_title("Select Models Directory")
+            .pick_folder()
+            .await;
 
-    match folder {
-        Some(handle) => {
-            let path = handle.path().to_string_lossy().to_string();
-            let mut settings = local_llm::load_model_settings();
-            if !settings.models_dirs.contains(&path) {
-                settings.models_dirs.push(path);
-                local_llm::save_model_settings(&settings);
+        match folder {
+            Some(handle) => {
+                let path = handle.path().to_string_lossy().to_string();
+                let mut settings = local_llm::load_model_settings();
+                if !settings.models_dirs.contains(&path) {
+                    settings.models_dirs.push(path);
+                    local_llm::save_model_settings(&settings);
+                }
+                Ok(settings.models_dirs)
             }
-            Ok(settings.models_dirs)
+            None => Ok(local_llm::get_models_dirs()),
         }
-        None => Ok(local_llm::get_models_dirs()), // User cancelled
     }
+    #[cfg(target_os = "android")]
+    Err("Not available on mobile".to_string())
 }
 
 #[tauri::command]
@@ -147,19 +153,24 @@ pub fn get_gpu_info() -> Option<GpuInfo> {
 
 #[tauri::command]
 pub async fn set_download_dir() -> Result<String, String> {
-    let folder = rfd::AsyncFileDialog::new()
-        .set_title("Select Download Directory")
-        .pick_folder()
-        .await;
+    #[cfg(not(target_os = "android"))]
+    {
+        let folder = rfd::AsyncFileDialog::new()
+            .set_title("Select Download Directory")
+            .pick_folder()
+            .await;
 
-    match folder {
-        Some(handle) => {
-            let path = handle.path().to_string_lossy().to_string();
-            local_llm::set_download_dir(&path);
-            Ok(path)
+        match folder {
+            Some(handle) => {
+                let path = handle.path().to_string_lossy().to_string();
+                local_llm::set_download_dir(&path);
+                Ok(path)
+            }
+            None => Ok(local_llm::get_download_dir()),
         }
-        None => Ok(local_llm::get_download_dir()), // User cancelled
     }
+    #[cfg(target_os = "android")]
+    Err("Not available on mobile".to_string())
 }
 
 #[tauri::command]

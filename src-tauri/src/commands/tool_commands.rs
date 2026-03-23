@@ -38,58 +38,61 @@ pub async fn launch_game(
     _launch_file: String,
     model_config: Option<serde_json::Value>,
 ) -> Result<serde_json::Value, String> {
-    use tauri::Manager;
+    #[cfg(not(target_os = "android"))]
+    {
+        use tauri::Manager;
 
-    let window_label = format!("tool-{}", tool_id);
+        let window_label = format!("tool-{}", tool_id);
 
-    // If window already exists, just focus it
-    if let Some(existing) = app_handle.get_webview_window(&window_label) {
-        let _ = existing.show();
-        let _ = existing.set_focus();
-        return Ok(serde_json::json!({ "success": true }));
+        // If window already exists, just focus it
+        if let Some(existing) = app_handle.get_webview_window(&window_label) {
+            let _ = existing.show();
+            let _ = existing.set_focus();
+            return Ok(serde_json::json!({ "success": true }));
+        }
+
+        // Determine window size based on tool
+        let (width, height, title) = match tool_id.as_str() {
+            "reversi" => (860.0, 680.0, "Reversi"),
+            "translator" => (800.0, 560.0, "AI Translate"),
+            _ => (800.0, 600.0, "Tool"),
+        };
+
+        let app_path = format!("tools/{}.html", tool_id);
+
+        let init_script = if let Some(config) = model_config {
+            format!("window.__MODEL_CONFIG__ = {};", config.to_string())
+        } else {
+            String::new()
+        };
+
+        let mut builder = tauri::WebviewWindowBuilder::new(
+            &app_handle,
+            &window_label,
+            tauri::WebviewUrl::App(app_path.into()),
+        )
+        .title(title)
+        .inner_size(width, height)
+        .resizable(true)
+        .decorations(false)
+        .center();
+
+        if !init_script.is_empty() {
+            builder = builder.initialization_script(&init_script);
+        }
+
+        let _window = builder
+            .build()
+            .map_err(|e| format!("Failed to create window: {}", e))?;
+
+        log::info!("[ToolCommands] Launched {} in new window", tool_id);
+        Ok(serde_json::json!({ "success": true }))
     }
-
-    // Determine window size based on tool
-    let (width, height, title) = match tool_id.as_str() {
-        "reversi" => (860.0, 680.0, "Reversi"),
-        "translator" => (800.0, 560.0, "AI Translate"),
-        _ => (800.0, 600.0, "Tool"),
-    };
-
-    // Build path relative to frontend assets (public/tools/)
-    // Use tool_id as filename �?actual files are tools/{tool_id}.html
-    let app_path = format!("tools/{}.html", tool_id);
-
-    // Prepare initialization script to inject model config BEFORE page scripts run
-    let init_script = if let Some(config) = model_config {
-        format!("window.__MODEL_CONFIG__ = {};", config.to_string())
-    } else {
-        String::new()
-    };
-
-    // Create new WebView window using App URL (served by Vite in dev, bundled in production)
-    let mut builder = tauri::WebviewWindowBuilder::new(
-        &app_handle,
-        &window_label,
-        tauri::WebviewUrl::App(app_path.into()),
-    )
-    .title(title)
-    .inner_size(width, height)
-    .resizable(true)
-    .decorations(false)
-    .center();
-
-    // initialization_script runs BEFORE any page JavaScript
-    if !init_script.is_empty() {
-        builder = builder.initialization_script(&init_script);
+    #[cfg(target_os = "android")]
+    {
+        let _ = (app_handle, tool_id, _launch_file, model_config);
+        Err("Not available on mobile".to_string())
     }
-
-    let _window = builder
-        .build()
-        .map_err(|e| format!("Failed to create window: {}", e))?;
-
-    log::info!("[ToolCommands] Launched {} in new window", tool_id);
-    Ok(serde_json::json!({ "success": true }))
 }
 
 /// List installed skills from a tool's skills directory
@@ -206,6 +209,12 @@ pub async fn open_folder(path: String) -> Result<(), String> {
             .arg(&resolved)
             .spawn()
             .map_err(|e| format!("Failed to open folder: {}", e))?;
+    }
+
+    #[cfg(target_os = "android")]
+    {
+        let _ = path;
+        return Err("Not available on mobile".to_string());
     }
 
     Ok(())

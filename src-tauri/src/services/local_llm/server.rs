@@ -75,7 +75,8 @@ impl LocalLlmServer {
         let echobird_bin = crate::utils::platform::echobird_dir().join("bin").join(exe_name);
         if echobird_bin.exists() { return Some(echobird_bin); }
 
-        // 4. System PATH
+        // 4. System PATH (desktop only)
+        #[cfg(not(target_os = "android"))]
         if let Ok(path) = which::which(exe_name) { return Some(path); }
 
         None
