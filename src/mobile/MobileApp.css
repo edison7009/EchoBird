@@ -51,9 +51,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: color 0.2s, background 0.2s;
 }
-.mobile-icon-btn:hover { color: #00FF9D; background: rgba(0,255,157,0.08); }
 .mobile-icon-btn.accent { color: #00FF9D; }
 
 .mobile-title {
@@ -81,7 +79,6 @@
     width: 100%;
     text-align: left;
     padding: 12px;
-    transition: all 0.2s;
     font-family: 'JetBrains Mono', monospace;
     border: 1px solid #2D3448;
     border-radius: 8px;
@@ -89,14 +86,9 @@
     background: rgba(0,0,0,0.8);
     box-shadow: 0 2px 10px rgba(0,0,0,0.5), 0 0 1px rgba(255,255,255,0.04);
 }
-.server-card:hover {
-    border-color: rgba(0,255,157,0.3);
-    background: rgba(0,0,0,0.9);
-}
 .server-card.active {
     border-color: #00FF9D;
     background: rgba(0,255,157,0.1);
-    box-shadow: 0 2px 10px rgba(0,0,0,0.5), 0 0 1px rgba(255,255,255,0.04);
 }
 
 .server-card-row {
@@ -229,10 +221,7 @@
     text-align: center;
     cursor: pointer;
     padding: 2px 8px;
-    border-radius: 8px;
-    transition: background 0.15s;
 }
-.chat-header-center:hover { background: rgba(0,255,157,0.06); }
 
 .chat-header-title {
     font-size: 15px;
@@ -257,17 +246,15 @@
     width: 36px;
     height: 36px;
     border-radius: 8px;
-    background: #1A1F2B;
-    border: 1px solid #2D3448;
+    background: transparent;
+    border: none;
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
     overflow: hidden;
     flex-shrink: 0;
-    transition: border-color 0.2s;
 }
-.chat-header-avatar:hover { border-color: #00FF9D; }
 
 .chat-avatar-img {
     width: 100%;
@@ -422,10 +409,8 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: color 0.2s;
     border-radius: 4px;
 }
-.chat-tool-btn:hover { color: #00FF9D; }
 .chat-tool-btn:disabled { opacity: 0.2; }
 
 /* Model icon-only button */
@@ -450,9 +435,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: all 0.15s;
 }
-.chat-send-btn:hover { filter: brightness(1.1); }
 .chat-send-btn:disabled { opacity: 0.2; cursor: default; }
 .chat-send-btn svg { transform: rotate(45deg) translateX(-1px); }
 .chat-send-btn.abort {
@@ -489,8 +472,7 @@
     transition: background 0.15s;
     font-family: 'JetBrains Mono', monospace;
 }
-.model-dropdown-item:hover { background: #252B3D; }
-.model-dropdown-item.active { color: #00FF9D; }
+.model-dropdown-item.active { color: #00FF9D; background: #252B3D; }
 .model-check { color: #00FF9D; font-size: 14px; }
 
 /* ── Setup Screen ── */
@@ -521,7 +503,7 @@
     transition: all 0.2s;
     font-family: 'JetBrains Mono', monospace;
 }
-.setup-agent-chip:hover { border-color: #00FF9D; }
+
 .setup-agent-chip.active {
     background: rgba(0,255,157,0.12);
     border-color: #00FF9D;
@@ -580,7 +562,7 @@
     font-family: 'JetBrains Mono', monospace;
     border-bottom: 2px solid transparent;
 }
-.setup-category-tab:hover { color: #E0F7FA; }
+
 .setup-category-tab.active {
     color: #00FF9D;
     border-bottom-color: #00FF9D;
@@ -597,10 +579,8 @@
     padding: 14px 16px;
     border-bottom: 1px solid rgba(45,52,72,0.3);
     cursor: pointer;
-    transition: background 0.15s;
     border-radius: 0;
 }
-.setup-role-card:hover { background: rgba(26,31,43,0.6); }
 .setup-role-card.active {
     background: rgba(0,255,157,0.06);
     border-left: 3px solid #00FF9D;
@@ -668,4 +648,4 @@
 .mobile-app ::-webkit-scrollbar { width: 4px; }
 .mobile-app ::-webkit-scrollbar-track { background: transparent; }
 .mobile-app ::-webkit-scrollbar-thumb { background: #2D3448; border-radius: 4px; }
-.mobile-app ::-webkit-scrollbar-thumb:hover { background: #A8B5C8; }
+
