@@ -5,22 +5,38 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { ArrowLeft, Settings, Plus, Send, Loader2, X } from 'lucide-react';
 import { Html5Qrcode } from 'html5-qrcode';
-import { useI18n } from '../hooks/useI18n';
-import { ChannelsProvider } from '../pages/Channels';
+import { invoke } from '@tauri-apps/api/core';
 import './MobileApp.css';
 
 type MobileScreen = 'servers' | 'qr' | 'chat' | 'settings';
 
+// Agent list — same as PC client (hardcoded)
+const AGENT_LIST = [
+    { id: 'openclaw', name: 'OpenClaw', icon: '/icons/tools/openclaw.svg' },
+    { id: 'claudecode', name: 'Claude Code', icon: '/icons/tools/claudecode.svg' },
+    { id: 'zeroclaw', name: 'ZeroClaw', icon: '/icons/tools/zeroclaw.png' },
+    { id: 'nanobot', name: 'NanoBot', icon: '/icons/tools/nanobot.png' },
+    { id: 'picoclaw', name: 'PicoClaw', icon: '/icons/tools/picoclaw.png' },
+    { id: 'hermes', name: 'Hermes Agent', icon: '/icons/tools/hermes.png' },
+];
+
 interface ServerEntry {
     id: string;
-    host: string;
-    user: string;
-    port: number;
+    name: string;
+    address: string;
+    serverId?: string;
     agent: string;
     agentIcon: string;
     lastMessage: string;
     lastTime: string;
-    serverId?: string;
+}
+
+interface ChatMsg {
+    role: 'user' | 'ai' | 'system';
+    content: string;
+    model?: string;
+    tokens?: number;
+    duration_ms?: number;
 }
 
 // QR payload schema — matches PC side ChannelsMobileQR
@@ -28,45 +44,43 @@ interface QRPayload {
     app: 'echobird';
     v: number;
     servers: { name: string; address: string; serverId?: string }[];
-    agents: { channelId: number; agent: string }[];
-    roles: { channelId: number; roleId: string; roleName: string }[];
 }
 
 // Parse QR payload → server entries
 function qrToServers(data: QRPayload): ServerEntry[] {
-    return data.servers.map((srv, i) => {
-        const parts = srv.name || srv.address || '';
-        const [user, host] = parts.includes('@') ? parts.split('@') : ['', parts];
-        return {
-            id: `qr_${i}_${Date.now()}`,
-            host: host || srv.address,
-            user: user || 'user',
-            port: 22,
-            agent: data.agents.find(a => a.channelId === i + 2)?.agent || 'OpenClaw',
-            agentIcon: '/icons/tools/openclaw.svg',
-            lastMessage: 'Synced from PC',
-            lastTime: 'now',
-            serverId: srv.serverId,
-        };
-    });
+    return data.servers.map((srv, i) => ({
+        id: `qr_${srv.serverId || i}_${Date.now()}`,
+        name: srv.name || srv.address,
+        address: srv.address,
+        serverId: srv.serverId,
+        agent: AGENT_LIST[0].name,
+        agentIcon: AGENT_LIST[0].icon,
+        lastMessage: 'Synced from PC',
+        lastTime: 'now',
+    }));
 }
 
 function MobileApp() {
-    const { t, locale, setLocale } = useI18n();
     const [screen, setScreen] = useState<MobileScreen>('servers');
     const [servers, setServers] = useState<ServerEntry[]>([]);
     const [activeServer, setActiveServer] = useState<ServerEntry | null>(null);
     const [message, setMessage] = useState('');
-    const [roleName, setRoleName] = useState('');
-    const [modelName, setModelName] = useState('');
-    const [showRoleSheet, setShowRoleSheet] = useState(false);
-    const [showModelSheet, setShowModelSheet] = useState(false);
-    const [chatMessages, setChatMessages] = useState<{ role: 'user' | 'ai'; content: string }[]>([]);
+    const [selectedAgent, setSelectedAgent] = useState(AGENT_LIST[0]);
+    const [showAgentSheet, setShowAgentSheet] = useState(false);
+    const [chatMessages, setChatMessages] = useState<ChatMsg[]>([]);
+    const [loading, setLoading] = useState(false);
+    const [sessionId, setSessionId] = useState<string | undefined>(undefined);
+    const chatBottomRef = useRef<HTMLDivElement>(null);
 
     // QR scanner state
     const [scanning, setScanning] = useState(false);
     const [scanError, setScanError] = useState('');
     const scannerRef = useRef<Html5Qrcode | null>(null);
+
+    // Auto-scroll chat
+    useEffect(() => {
+        chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, [chatMessages, loading]);
 
     // Handle successful QR scan
     const handleQRScan = useCallback((decodedText: string) => {
@@ -76,15 +90,12 @@ function MobileApp() {
                 setScanError('Invalid QR code — not an Echobird config');
                 return;
             }
-            // Convert QR data to server entries
             const newServers = qrToServers(data);
             setServers(prev => {
-                // Merge: replace existing by serverId, add new ones
                 const existing = new Map(prev.map(s => [s.serverId || s.id, s]));
                 newServers.forEach(s => existing.set(s.serverId || s.id, s));
                 return Array.from(existing.values());
             });
-            // Stop scanner and go to server list
             stopScanner();
             setScreen('servers');
         } catch {
@@ -103,7 +114,7 @@ function MobileApp() {
                 { facingMode: 'environment' },
                 { fps: 10, qrbox: { width: 250, height: 250 } },
                 (decodedText) => handleQRScan(decodedText),
-                () => {} // ignore scan failures (normal while pointing)
+                () => {}
             );
         } catch (err: any) {
             setScanning(false);
@@ -111,7 +122,6 @@ function MobileApp() {
         }
     }, [handleQRScan]);
 
-    // Stop scanner
     const stopScanner = useCallback(() => {
         if (scannerRef.current) {
             scannerRef.current.stop().catch(() => {});
@@ -120,28 +130,73 @@ function MobileApp() {
         setScanning(false);
     }, []);
 
-    // Auto-start scanner when entering QR screen
     useEffect(() => {
-        if (screen === 'qr') {
-            startScanner();
-        } else {
-            stopScanner();
-        }
+        if (screen === 'qr') startScanner();
+        else stopScanner();
         return () => stopScanner();
     }, [screen]);
 
     const openChat = (server: ServerEntry) => {
         setActiveServer(server);
         setChatMessages([]);
+        setSessionId(undefined);
         setScreen('chat');
     };
 
-    const sendMessage = () => {
-        if (!message.trim()) return;
-        setChatMessages(prev => [...prev, { role: 'user', content: message }]);
+    // Send message via Tauri bridge_chat_remote
+    const sendMessage = useCallback(async () => {
+        if (!message.trim() || !activeServer?.serverId || loading) return;
+
+        const userMsg = message.trim();
         setMessage('');
-        // TODO: Wire to bridge_chat_remote via SSH
-    };
+        setChatMessages(prev => [...prev, { role: 'user', content: userMsg }]);
+        setLoading(true);
+
+        try {
+            // Ensure bridge CLI is deployed on remote server
+            await invoke('bridge_ensure_remote', { serverId: activeServer.serverId });
+
+            // Send chat via SSH bridge
+            const agentEntry = AGENT_LIST.find(a => a.name === selectedAgent.name);
+            const result = await invoke<{
+                text: string;
+                session_id?: string;
+                model?: string;
+                tokens?: number;
+                duration_ms?: number;
+            }>('bridge_chat_remote', {
+                serverId: activeServer.serverId,
+                message: userMsg,
+                sessionId: sessionId ?? null,
+                pluginId: agentEntry?.id ?? null,
+                roleId: null,
+            });
+
+            setChatMessages(prev => [...prev, {
+                role: 'ai',
+                content: result.text,
+                model: result.model,
+                tokens: result.tokens,
+                duration_ms: result.duration_ms,
+            }]);
+
+            if (result.session_id) setSessionId(result.session_id);
+
+            // Update server's last message preview
+            setServers(prev => prev.map(s =>
+                s.id === activeServer.id
+                    ? { ...s, lastMessage: result.text.slice(0, 60), lastTime: 'now' }
+                    : s
+            ));
+        } catch (err: any) {
+            setChatMessages(prev => [...prev, {
+                role: 'system',
+                content: err?.message || String(err),
+            }]);
+        } finally {
+            setLoading(false);
+        }
+    }, [message, activeServer, loading, sessionId, selectedAgent]);
 
     return (
         <div className="mobile-app">
@@ -178,7 +233,7 @@ function MobileApp() {
                                         <span className="server-avatar-fallback">{s.agent[0]}</span>
                                     </div>
                                     <div className="server-info">
-                                        <div className="server-name">{s.user}@{s.host}</div>
+                                        <div className="server-name">{s.name}</div>
                                         <div className="server-preview">{s.lastMessage}</div>
                                     </div>
                                     <div className="server-time">{s.lastTime}</div>
@@ -200,13 +255,8 @@ function MobileApp() {
                         <div className="mobile-header-spacer" />
                     </div>
                     <div className="qr-container">
-                        {/* Camera preview — html5-qrcode mounts here */}
                         <div id="qr-reader" className="qr-reader-box" />
-
-                        {scanError && (
-                            <p className="qr-error">{scanError}</p>
-                        )}
-
+                        {scanError && <p className="qr-error">{scanError}</p>}
                         <p className="qr-hint">
                             Open Echobird on your PC<br />
                             Channels → hover the phone icon<br />
@@ -223,26 +273,38 @@ function MobileApp() {
                         <button className="mobile-icon-btn" onClick={() => setScreen('servers')}>
                             <ArrowLeft size={20} />
                         </button>
-                        <div className="chat-header-info" onClick={() => setShowRoleSheet(true)}>
-                            <div className="chat-role-name">{roleName || activeServer.agent} <span className="dropdown-arrow">▾</span></div>
-                            <div className="chat-subtitle" onClick={e => { e.stopPropagation(); setShowModelSheet(true); }}>
-                                {activeServer.user}@{activeServer.host} · {modelName || 'Select Model'} <span className="dropdown-arrow">▾</span>
+                        <div className="chat-header-info" onClick={() => setShowAgentSheet(true)}>
+                            <div className="chat-role-name">{activeServer.name} <span className="dropdown-arrow">▾</span></div>
+                            <div className="chat-subtitle">
+                                {selectedAgent.name}
                             </div>
                         </div>
                     </div>
 
                     <div className="chat-messages">
-                        {chatMessages.length === 0 && (
+                        {chatMessages.length === 0 && !loading && (
                             <div className="chat-empty">
-                                <p>Start chatting with {activeServer.agent}</p>
-                                <p className="chat-empty-sub">{activeServer.user}@{activeServer.host}</p>
+                                <p>Start chatting with {selectedAgent.name}</p>
+                                <p className="chat-empty-sub">{activeServer.name}</p>
                             </div>
                         )}
                         {chatMessages.map((msg, i) => (
                             <div key={i} className={`chat-bubble ${msg.role}`}>
                                 {msg.content}
+                                {msg.role === 'ai' && msg.model && (
+                                    <div className="chat-meta">
+                                        {msg.model}{msg.tokens ? ` · ${msg.tokens} tokens` : ''}
+                                        {msg.duration_ms ? ` · ${(msg.duration_ms / 1000).toFixed(1)}s` : ''}
+                                    </div>
+                                )}
                             </div>
                         ))}
+                        {loading && (
+                            <div className="chat-bubble ai">
+                                <Loader2 size={16} className="spin" />
+                            </div>
+                        )}
+                        <div ref={chatBottomRef} />
                     </div>
 
                     <div className="chat-input-bar">
@@ -252,9 +314,10 @@ function MobileApp() {
                             value={message}
                             onChange={e => setMessage(e.target.value)}
                             onKeyDown={e => e.key === 'Enter' && sendMessage()}
+                            disabled={loading}
                         />
-                        <button className="send-btn" onClick={sendMessage}>
-                            <Send size={18} />
+                        <button className="send-btn" onClick={sendMessage} disabled={loading}>
+                            {loading ? <Loader2 size={18} className="spin" /> : <Send size={18} />}
                         </button>
                     </div>
                 </div>
@@ -272,23 +335,6 @@ function MobileApp() {
                     </div>
                     <div className="settings-list">
                         <div className="settings-item">
-                            <span>Language</span>
-                            <select
-                                value={locale}
-                                onChange={e => setLocale(e.target.value)}
-                                className="settings-select"
-                            >
-                                <option value="en">English</option>
-                                <option value="zh-Hans">简体中文</option>
-                                <option value="zh-Hant">繁體中文</option>
-                                <option value="ja">日本語</option>
-                                <option value="ko">한국어</option>
-                                <option value="de">Deutsch</option>
-                                <option value="fr">Français</option>
-                                <option value="es">Español</option>
-                            </select>
-                        </div>
-                        <div className="settings-item">
                             <span>Version</span>
                             <span className="settings-value">3.2.7</span>
                         </div>
@@ -296,40 +342,24 @@ function MobileApp() {
                 </div>
             )}
 
-            {/* ===== Bottom Sheets ===== */}
-            {(showRoleSheet || showModelSheet) && (
-                <div className="sheet-overlay" onClick={() => { setShowRoleSheet(false); setShowModelSheet(false); }} />
+            {/* ===== Agent Selection Sheet ===== */}
+            {showAgentSheet && (
+                <div className="sheet-overlay" onClick={() => setShowAgentSheet(false)} />
             )}
-
-            {/* Role Sheet */}
-            <div className={`bottom-sheet ${showRoleSheet ? 'open' : ''}`}>
+            <div className={`bottom-sheet ${showAgentSheet ? 'open' : ''}`}>
                 <div className="sheet-handle" />
-                <div className="sheet-title">Select Role</div>
+                <div className="sheet-title">Select Agent</div>
                 <div className="sheet-content">
-                    {['Backend Architect', 'Data Engineer', 'DevOps Engineer', 'AI Engineer', 'Frontend Dev', 'Code Auditor'].map(role => (
+                    {AGENT_LIST.map(agent => (
                         <div
-                            key={role}
-                            className={`sheet-option ${role === roleName ? 'active' : ''}`}
-                            onClick={() => { setRoleName(role); setShowRoleSheet(false); }}
+                            key={agent.id}
+                            className={`sheet-option ${agent.id === selectedAgent.id ? 'active' : ''}`}
+                            onClick={() => { setSelectedAgent(agent); setShowAgentSheet(false); setSessionId(undefined); }}
                         >
-                            {role}
-                        </div>
-                    ))}
-                </div>
-            </div>
-
-            {/* Model Sheet */}
-            <div className={`bottom-sheet ${showModelSheet ? 'open' : ''}`}>
-                <div className="sheet-handle" />
-                <div className="sheet-title">Select Model</div>
-                <div className="sheet-content">
-                    {['GPT-4o', 'Claude Sonnet 4', 'Gemini 2.5 Pro', 'DeepSeek R1', 'Qwen3.5 27B'].map(model => (
-                        <div
-                            key={model}
-                            className={`sheet-option ${model === modelName ? 'active' : ''}`}
-                            onClick={() => { setModelName(model); setShowModelSheet(false); }}
-                        >
-                            {model}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                                <img src={agent.icon} alt="" style={{ width: 20, height: 20 }} onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                                {agent.name}
+                            </div>
                         </div>
                     ))}
                 </div>

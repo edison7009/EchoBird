@@ -236,6 +236,26 @@
     font-family: 'SF Mono', 'Fira Code', monospace;
     color: #6ab2f2;
 }
+.chat-bubble.system {
+    align-self: center;
+    background: rgba(255, 107, 107, 0.1);
+    color: #ff6b6b;
+    font-size: 12px;
+    max-width: 90%;
+    text-align: center;
+}
+.chat-meta {
+    font-size: 10px;
+    color: #546778;
+    margin-top: 6px;
+    font-family: monospace;
+}
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+.spin {
+    animation: spin 1s linear infinite;
+}
 
 /* ===== Chat Input ===== */
 .chat-input-bar {
