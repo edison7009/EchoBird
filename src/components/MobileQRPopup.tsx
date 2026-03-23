@@ -69,11 +69,19 @@ export const MobileQRPopup: React.FC<MobileQRProps> = ({ payload }) => {
                             {/* Label — 14px for readability */}
                             <div className="text-center">
                                 <p className="text-[14px] font-mono text-cyber-accent font-medium tracking-wide">
-                                    Scan with Echobird Mobile
+                                    Scan with Echobird APP
                                 </p>
-                                <p className="text-[12px] font-mono text-cyber-text-secondary/50 mt-1">
-                                    Sync channels, models & roles
-                                </p>
+                                <div className="flex items-center justify-center gap-3 mt-2">
+                                    <a href="https://echobird.ai/download/android" target="_blank" rel="noopener noreferrer"
+                                       className="text-[12px] font-mono text-cyber-text-secondary/60 hover:text-cyber-accent transition-colors underline underline-offset-2 decoration-cyber-accent/20">
+                                        Android
+                                    </a>
+                                    <span className="text-cyber-text-secondary/20">|</span>
+                                    <a href="https://echobird.ai/download/ios" target="_blank" rel="noopener noreferrer"
+                                       className="text-[12px] font-mono text-cyber-text-secondary/60 hover:text-cyber-accent transition-colors underline underline-offset-2 decoration-cyber-accent/20">
+                                        iOS
+                                    </a>
+                                </div>
                             </div>
                         </div>
                     </div>
