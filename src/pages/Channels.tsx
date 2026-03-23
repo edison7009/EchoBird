@@ -1181,9 +1181,9 @@ export function ChannelsRoleSelector() {
 
 // ===== ChannelsMobileQR — wraps MobileQRPopup with real channel data =====
 export function ChannelsMobileQR() {
-    const { channels, allActiveAgents, allSelectedRoles } = useChannels();
+    const { channels } = useChannels();
 
-    // Build QR payload from real channel context
+    // QR payload: server list only (agents/roles are hardcoded on mobile client)
     const payload = JSON.stringify({
         app: 'echobird',
         v: 1,
@@ -1194,15 +1194,6 @@ export function ChannelsMobileQR() {
                 address: c.address,
                 serverId: c.serverId,
             })),
-        agents: Object.entries(allActiveAgents).map(([chId, agentName]) => ({
-            channelId: Number(chId),
-            agent: agentName,
-        })),
-        roles: Object.entries(allSelectedRoles).map(([chId, role]) => ({
-            channelId: Number(chId),
-            roleId: role.id,
-            roleName: role.name,
-        })),
     });
 
     return <MobileQRPopup payload={payload} />;
