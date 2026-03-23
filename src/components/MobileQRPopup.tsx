@@ -1,9 +1,9 @@
 // MobileQRPopup — "Chat on the phone" QR code popup for Channels page
 // Generates a QR code containing channel config so the mobile app can scan and sync.
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
-import { Smartphone, X } from 'lucide-react';
+import { Smartphone } from 'lucide-react';
 import { useI18n } from '../hooks/useI18n';
 
 interface MobileQRProps {
@@ -14,37 +14,24 @@ interface MobileQRProps {
 export const MobileQRPopup: React.FC<MobileQRProps> = ({ payload }) => {
     const { t } = useI18n();
     const [open, setOpen] = useState(false);
-    const popupRef = useRef<HTMLDivElement>(null);
+    const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const containerRef = useRef<HTMLDivElement>(null);
 
-    // Close on outside click
-    useEffect(() => {
-        if (!open) return;
-        const handler = (e: MouseEvent) => {
-            if (popupRef.current && !popupRef.current.contains(e.target as Node)) setOpen(false);
-        };
-        document.addEventListener('mousedown', handler);
-        return () => document.removeEventListener('mousedown', handler);
-    }, [open]);
-
-    // Close on Escape
-    useEffect(() => {
-        if (!open) return;
-        const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false); };
-        document.addEventListener('keydown', handler);
-        return () => document.removeEventListener('keydown', handler);
-    }, [open]);
+    const showPopup = () => {
+        if (hideTimer.current) { clearTimeout(hideTimer.current); hideTimer.current = null; }
+        setOpen(true);
+    };
+    const scheduleHide = () => {
+        hideTimer.current = setTimeout(() => setOpen(false), 200);
+    };
 
     return (
-        <div className="relative" ref={popupRef}>
-            {/* Trigger button */}
-            <button
-                onClick={() => setOpen(!open)}
-                className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-mono text-cyber-accent/50 hover:text-cyber-accent hover:bg-cyber-accent/10 transition-all"
-                title="Chat on the phone"
-            >
+        <div className="relative" ref={containerRef} onMouseEnter={showPopup} onMouseLeave={scheduleHide}>
+            {/* Trigger — hover only, no click, no highlight */}
+            <span className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-mono text-cyber-accent/50 cursor-default select-none">
                 <Smartphone size={13} />
                 <span className="hidden lg:inline">Chat on Phone</span>
-            </button>
+            </span>
 
             {/* QR popup */}
             {open && (
@@ -54,13 +41,7 @@ export const MobileQRPopup: React.FC<MobileQRProps> = ({ payload }) => {
                         {/* Header accent */}
                         <div className="h-[2px] w-full bg-gradient-to-r from-cyber-accent/0 via-cyber-accent/60 to-cyber-accent/0" />
 
-                        {/* Close button */}
-                        <button
-                            onClick={() => setOpen(false)}
-                            className="absolute top-2.5 right-2.5 p-1 rounded-md text-cyber-text-secondary/50 hover:text-cyber-accent hover:bg-cyber-accent/10 transition-colors"
-                        >
-                            <X size={12} />
-                        </button>
+
 
                         {/* Content */}
                         <div className="flex flex-col items-center px-6 pt-4 pb-5 gap-3">
