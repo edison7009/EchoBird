@@ -10,6 +10,11 @@
     overflow: hidden;
     display: flex;
     flex-direction: column;
+    /* Safe area: prevent content from being hidden behind notch/rounded corners */
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
 }
 
 .mobile-screen {
@@ -237,6 +242,7 @@
     gap: 10px;
     align-items: flex-end;
     padding: 10px 16px;
+    padding-bottom: calc(10px + env(safe-area-inset-bottom));
     background: #17212b;
     border-top: 1px solid #1e2c3a;
     flex-shrink: 0;
