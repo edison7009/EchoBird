@@ -17,6 +17,8 @@
     font-family: 'Inter', system-ui, sans-serif;
     overflow: hidden;
     position: relative;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
 .mobile-screen {
@@ -361,19 +363,23 @@
 /* ── Chat Input (PC Channels style: cyber-terminal box) ── */
 .chat-input-wrap {
     flex-shrink: 0;
-    padding: 4px 8px 8px;
+    padding: 4px 8px calc(8px + env(safe-area-inset-bottom, 0px));
 }
 
 .chat-input-box {
     background: #131620;
     border-radius: 8px;
     position: relative;
+    display: flex;
+    align-items: center;
+    padding: 0 10px;
+    gap: 6px;
 }
 
 .chat-textarea {
-    width: 100%;
+    flex: 1;
     background: transparent;
-    padding: 10px 14px;
+    padding: 10px 4px;
     font-size: 14px;
     color: #DED9D2;
     font-family: 'Inter', system-ui, sans-serif;
@@ -382,16 +388,15 @@
     border: none;
     resize: none;
     line-height: 1.4;
+    min-height: 0;
+    max-height: 120px;
 }
 .chat-textarea::placeholder { color: rgba(222,217,210,0.4); }
 .chat-textarea:disabled { opacity: 0.3; }
 
-/* Toolbar row (below textarea) */
+/* Toolbar — inline with input (single row) */
 .chat-toolbar {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 4px 10px 6px;
+    display: none;
 }
 
 .chat-toolbar-left {
