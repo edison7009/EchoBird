@@ -140,6 +140,7 @@ function MobileApp() {
         setActiveServer(server);
         setChatMessages([]);
         setSessionId(undefined);
+        setShowAgentSheet(false);
         setScreen('chat');
     };
 
