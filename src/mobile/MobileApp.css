@@ -396,8 +396,9 @@
     gap: 20px;
 }
 .qr-reader-box {
-    width: 280px;
-    height: 280px;
+    width: 100%;
+    max-width: 300px;
+    aspect-ratio: 1 / 1;
     border-radius: 16px;
     overflow: hidden;
     border: 2px solid rgba(106, 178, 242, 0.3);
@@ -405,12 +406,17 @@
 /* Override html5-qrcode internal styles */
 .qr-reader-box video {
     border-radius: 14px;
+    object-fit: cover;
 }
 #qr-reader__scan_region {
     background: transparent !important;
 }
 #qr-reader__dashboard {
     display: none !important;
+}
+#qr-reader {
+    border: none !important;
+    width: 100% !important;
 }
 .qr-error {
     color: #ff6b6b;
