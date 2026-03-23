@@ -376,12 +376,7 @@ function MobileApp() {
 
                     {/* Messages */}
                     <div className="chat-messages">
-                        {chatMessages.length === 0 && !loading && (
-                            <div className="chat-empty">
-                                <p>{selectedAgent ? `Start chatting with ${selectedAgent.name}` : 'Select an Agent to start'}</p>
-                                {selectedRole && <p className="chat-empty-sub">{selectedRole.name}</p>}
-                            </div>
-                        )}
+
                         {chatMessages.map((msg, i) => (
                             <div key={i} className={`chat-bubble ${msg.role}`}>
                                 {msg.content}

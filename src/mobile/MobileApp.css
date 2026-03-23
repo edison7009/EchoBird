@@ -230,7 +230,11 @@
     display: flex;
     flex-direction: column;
     gap: 8px;
-    background: #0F1117;
+    background-color: #0F1117;
+    background-image:
+        linear-gradient(rgba(40, 46, 63, 0.2) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(40, 46, 63, 0.2) 1px, transparent 1px);
+    background-size: 40px 40px;
 }
 
 .chat-empty {
