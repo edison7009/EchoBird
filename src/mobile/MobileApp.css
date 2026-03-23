@@ -437,7 +437,7 @@
     justify-content: center;
 }
 .chat-send-btn:disabled { opacity: 0.2; cursor: default; }
-.chat-send-btn svg { transform: rotate(45deg) translateX(-1px); }
+.chat-send-btn svg { transform: rotate(45deg) translateX(-2px); }
 .chat-send-btn.abort {
     background: transparent;
     color: #ef4444;
