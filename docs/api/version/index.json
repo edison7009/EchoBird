@@ -1,1 +1,5 @@
-{"version":"3.2.6","releaseDate":"2026-03-23","releaseNotes":"Fix chat scroll bounce in Channels page, strip Hermes box-drawing output, unify Channels layout with Mother Agent"}
+{
+  "version": "3.2.7",
+  "releaseDate": "2026-03-23",
+  "releaseNotes": "Updated hero image, refreshed local model store, added connection status indicator to role selector"
+}
