@@ -2,7 +2,7 @@
 // Vertical image cards with hover slide-up text effect + category filter + agent tool selector
 // Roles and categories loaded dynamically from CDN (echobird.ai/roles/)
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Check, Loader2, X } from 'lucide-react';
+import { AlertCircle, ArrowLeft, Check, Loader2, X } from 'lucide-react';
 import { useI18n } from '../hooks/useI18n';
 import * as api from '../api/tauri';
 import type { RoleCategory, RoleEntry, AgentStatus } from '../api/tauri';
@@ -49,6 +49,7 @@ export const AgentRolePicker: React.FC<AgentRolePickerProps> = ({
     const [loading, setLoading] = useState(false);
     const [agentStatuses, setAgentStatuses] = useState<AgentStatus[]>([]);
     const [detecting, setDetecting] = useState(false);
+    const [connectionError, setConnectionError] = useState(false);
 
     // Sync localSelected when prop changes (e.g. switching channels)
     useEffect(() => {
@@ -59,6 +60,7 @@ export const AgentRolePicker: React.FC<AgentRolePickerProps> = ({
     useEffect(() => {
         if (!isOpen) return;
         let cancelled = false;
+        setConnectionError(false);
 
         // Scan roles
         setLoading(true);
@@ -96,6 +98,7 @@ export const AgentRolePicker: React.FC<AgentRolePickerProps> = ({
                 setLocalSelected(null);
                 onSelectRole('', '', '');
                 onSelectAgent('');
+                setConnectionError(true);
                 setDetecting(false);
             });
         } else if (!isRemote) {
@@ -119,6 +122,7 @@ export const AgentRolePicker: React.FC<AgentRolePickerProps> = ({
                 setLocalSelected(null);
                 onSelectRole('', '', '');
                 onSelectAgent('');
+                setConnectionError(true);
                 setDetecting(false);
             });
         }
@@ -156,8 +160,17 @@ export const AgentRolePicker: React.FC<AgentRolePickerProps> = ({
                     <button onClick={onClose} className="w-9 h-9 flex items-center justify-center rounded-lg text-cyber-accent hover:bg-cyber-accent/15 transition-colors">
                         <ArrowLeft size={18} />
                     </button>
-                    <h2 className="text-2xl cjk-title leading-8 flex-1">
+                    <h2 className="text-2xl cjk-title leading-8 flex-1 flex items-center gap-2.5">
                         {t('channel.selectRoleAgent')}
+                        {detecting && (
+                            <Loader2 size={18} className="text-cyber-accent/70 animate-spin" />
+                        )}
+                        {connectionError && !detecting && (
+                            <span className="inline-flex items-center gap-1.5 text-xs font-mono text-red-400" title={t('error.serverUnreachable')}>
+                                <AlertCircle size={16} className="text-red-400" />
+                                {t('error.serverUnreachable')}
+                            </span>
+                        )}
                     </h2>
                     <button onClick={onClose} className="w-9 h-9 flex items-center justify-center rounded-lg text-cyber-text-muted/40 hover:text-cyber-text hover:bg-white/10 transition-colors">
                         <X size={18} />
