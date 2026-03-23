@@ -5,14 +5,13 @@
 // Model: bottom bar selector (bridgeGetRemoteModel / getModels)
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { ArrowLeft, Settings, Plus, Send, Loader2, Paperclip } from 'lucide-react';
-import { Html5Qrcode } from 'html5-qrcode';
+import { ArrowLeft, Settings, Send, Loader2, Paperclip } from 'lucide-react';
 import * as api from '../api/tauri';
 import type { SSHServer, RemoteAgentInfo, RoleEntry, RoleCategory } from '../api/tauri';
 import type { ModelConfig } from '../api/types';
 import './MobileApp.css';
 
-type MobileScreen = 'servers' | 'qr' | 'chat' | 'setup' | 'settings';
+type MobileScreen = 'servers' | 'chat' | 'setup' | 'settings';
 
 // Agent list — same as PC Channels.tsx AGENT_LIST (icons bundled in app)
 const AGENT_LIST = [
