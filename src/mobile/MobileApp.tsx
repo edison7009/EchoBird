@@ -412,79 +412,100 @@ function MobileApp() {
                         <div ref={chatBottomRef} />
                     </div>
 
-                    {/* Bottom Bar: [Model▾] [📎] [Message...] [▶] */}
-                    <div className="chat-input-bar">
-                        {selectedAgent && (
-                            <div className="model-selector-wrapper">
-                                <button
-                                    className="model-selector-btn"
-                                    onClick={() => {
-                                        if (models.length === 0) doLoadModels();
-                                        setShowModelMenu(!showModelMenu);
-                                    }}
-                                >
-                                    <span className="model-btn-icon">☰</span>
-                                    <span className="model-btn-text">
-                                        {modelsLoading ? '...' : selectedModel?.name || 'Model'}
-                                    </span>
-                                </button>
-                                {showModelMenu && (
-                                    <div className="model-dropdown">
-                                        {modelsLoading ? (
-                                            <div className="model-dropdown-item">
-                                                <Loader2 size={14} className="spin" /> Loading...
-                                            </div>
-                                        ) : models.length === 0 ? (
-                                            <div className="model-dropdown-item">
-                                                No models configured
-                                            </div>
-                                        ) : (
-                                            models.map(m => (
-                                                <div
-                                                    key={m.internalId}
-                                                    className={`model-dropdown-item ${selectedModel?.internalId === m.internalId ? 'active' : ''}`}
-                                                    onClick={async () => {
-                                                        setSelectedModel(m);
-                                                        setShowModelMenu(false);
-                                                        // Write to remote via Bridge
-                                                        if (activeServer && selectedAgent) {
-                                                            try {
-                                                                await api.bridgeSetRemoteModel(
-                                                                    activeServer.id,
-                                                                    selectedAgent.id,
-                                                                    m.internalId,
-                                                                    m.name,
-                                                                    m.apiKey || '',
-                                                                    m.baseUrl || '',
-                                                                    m.anthropicUrl ? 'anthropic' : 'openai',
-                                                                );
-                                                            } catch { /* model write error */ }
-                                                        }
-                                                    }}
-                                                >
-                                                    {m.name}
-                                                    {selectedModel?.internalId === m.internalId && <span className="model-check">✓</span>}
+                    {/* Input area — same as PC Channels */}
+                    <div className="chat-input-wrap">
+                        <div className="chat-input-box">
+                            <textarea
+                                className="chat-textarea"
+                                placeholder={loading ? 'Awaiting response…' : 'Enter message…'}
+                                value={message}
+                                onChange={e => setMessage(e.target.value)}
+                                onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
+                                disabled={loading}
+                                rows={2}
+                            />
+                            <div className="chat-toolbar">
+                                {/* Left: attach icons */}
+                                <div className="chat-toolbar-left">
+                                    <button className="chat-tool-btn"><Paperclip size={15} /></button>
+                                </div>
+                                {/* Right: model icon + send */}
+                                <div className="chat-toolbar-right">
+                                    {selectedAgent && (
+                                        <div className="model-selector-wrapper">
+                                            <button
+                                                className="chat-tool-btn model-icon-btn"
+                                                onClick={() => {
+                                                    if (models.length === 0) doLoadModels();
+                                                    setShowModelMenu(!showModelMenu);
+                                                }}
+                                                title={selectedModel?.name || 'Select model'}
+                                            >
+                                                {selectedModel ? (
+                                                    <img
+                                                        src={`/icons/models/${selectedModel.name?.toLowerCase().split(/[\s-]/)[0] || 'default'}.svg`}
+                                                        alt=""
+                                                        className="model-icon-img"
+                                                        onError={e => { (e.target as HTMLImageElement).style.display = 'none'; (e.target as HTMLImageElement).nextElementSibling && ((e.target as HTMLImageElement).parentElement!.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>'); }}
+                                                    />
+                                                ) : (
+                                                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
+                                                )}
+                                            </button>
+                                            {showModelMenu && (
+                                                <div className="model-dropdown">
+                                                    {modelsLoading ? (
+                                                        <div className="model-dropdown-item">
+                                                            <Loader2 size={14} className="spin" /> Loading...
+                                                        </div>
+                                                    ) : models.length === 0 ? (
+                                                        <div className="model-dropdown-item">
+                                                            No models configured
+                                                        </div>
+                                                    ) : (
+                                                        models.map(m => (
+                                                            <div
+                                                                key={m.internalId}
+                                                                className={`model-dropdown-item ${selectedModel?.internalId === m.internalId ? 'active' : ''}`}
+                                                                onClick={async () => {
+                                                                    setSelectedModel(m);
+                                                                    setShowModelMenu(false);
+                                                                    if (hasTauri() && activeServer && selectedAgent) {
+                                                                        try {
+                                                                            await api.bridgeSetRemoteModel(
+                                                                                activeServer.id,
+                                                                                selectedAgent.id,
+                                                                                m.internalId,
+                                                                                m.name,
+                                                                                m.apiKey || '',
+                                                                                m.baseUrl || '',
+                                                                                m.anthropicUrl ? 'anthropic' : 'openai',
+                                                                            );
+                                                                        } catch { /* model write error */ }
+                                                                    }
+                                                                }}
+                                                            >
+                                                                {m.name}
+                                                                {selectedModel?.internalId === m.internalId && <span className="model-check">✓</span>}
+                                                            </div>
+                                                        ))
+                                                    )}
                                                 </div>
-                                            ))
-                                        )}
-                                    </div>
-                                )}
+                                            )}
+                                        </div>
+                                    )}
+                                    {loading ? (
+                                        <button className="chat-send-btn abort" onClick={() => setLoading(false)}>
+                                            <Loader2 size={15} className="spin" />
+                                        </button>
+                                    ) : (
+                                        <button className="chat-send-btn" onClick={sendMessage} disabled={!message.trim()}>
+                                            <Send size={15} />
+                                        </button>
+                                    )}
+                                </div>
                             </div>
-                        )}
-                        <button className="attach-btn">
-                            <Paperclip size={20} />
-                        </button>
-                        <input
-                            className="chat-input"
-                            placeholder="Message"
-                            value={message}
-                            onChange={e => setMessage(e.target.value)}
-                            onKeyDown={e => e.key === 'Enter' && sendMessage()}
-                            disabled={loading}
-                        />
-                        <button className="send-btn" onClick={sendMessage} disabled={loading}>
-                            {loading ? <Loader2 size={18} className="spin" /> : <Send size={18} />}
-                        </button>
+                        </div>
                     </div>
                 </div>
             )}
