@@ -166,10 +166,7 @@ export const AgentRolePicker: React.FC<AgentRolePickerProps> = ({
                             <Loader2 size={18} className="text-cyber-accent/70 animate-spin" />
                         )}
                         {connectionError && !detecting && (
-                            <span className="inline-flex items-center gap-1.5 text-xs font-mono text-red-400" title={t('error.serverUnreachable')}>
-                                <AlertCircle size={16} className="text-red-400" />
-                                {t('error.serverUnreachable')}
-                            </span>
+                            <span className="text-xs font-mono text-red-400">{t('error.serverUnreachable')}</span>
                         )}
                     </h2>
                     <button onClick={onClose} className="w-9 h-9 flex items-center justify-center rounded-lg text-cyber-text-muted/40 hover:text-cyber-text hover:bg-white/10 transition-colors">
