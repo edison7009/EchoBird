@@ -334,55 +334,82 @@
 }
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
-.bottom-sheet {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    background: #17212b;
-    border-radius: 16px 16px 0 0;
-    z-index: 60;
-    transform: translateY(100%);
-    transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1);
-    max-height: 65%;
-    display: flex;
-    flex-direction: column;
-}
-.bottom-sheet.open { transform: translateY(0); }
-
-.sheet-handle {
-    width: 36px;
-    height: 4px;
-    background: #3a4a5c;
-    border-radius: 2px;
-    margin: 10px auto;
-    flex-shrink: 0;
-}
-.sheet-title {
-    padding: 4px 20px 12px;
-    font-size: 16px;
-    font-weight: 600;
-    color: #e0e6ed;
-    flex-shrink: 0;
-}
-.sheet-content {
+/* ===== Setup Screen (Agent + Role + Model) ===== */
+.setup-container {
     flex: 1;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
-    padding: 0 12px 20px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
 }
-.sheet-option {
-    padding: 14px 16px;
+.setup-section {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.setup-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: #6ab2f2;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding-left: 4px;
+}
+.setup-options {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+.setup-option {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 14px;
     border-radius: 10px;
     font-size: 15px;
+    color: #e0e6ed;
     cursor: pointer;
     transition: background 0.15s;
-    color: #e0e6ed;
+    background: rgba(255, 255, 255, 0.02);
 }
-.sheet-option:active { background: rgba(255,255,255,0.05); }
-.sheet-option.active {
-    background: rgba(106, 178, 242, 0.15);
+.setup-option:active { background: rgba(255, 255, 255, 0.05); }
+.setup-option.active {
+    background: rgba(106, 178, 242, 0.12);
     color: #6ab2f2;
+    border: 1px solid rgba(106, 178, 242, 0.25);
+}
+.setup-option-icon {
+    width: 22px;
+    height: 22px;
+    object-fit: contain;
+}
+.setup-model-info {
+    padding: 12px 14px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.02);
+    font-size: 14px;
+    color: #8b9db5;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.setup-start-btn {
+    margin-top: 8px;
+    padding: 14px;
+    border-radius: 12px;
+    background: rgba(106, 178, 242, 0.2);
+    border: 1px solid rgba(106, 178, 242, 0.3);
+    color: #6ab2f2;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+    text-align: center;
+}
+.setup-start-btn:active {
+    background: rgba(106, 178, 242, 0.35);
 }
 
 /* ===== QR Scanner ===== */
