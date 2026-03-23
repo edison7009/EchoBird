@@ -274,10 +274,10 @@ function MobileApp() {
                         <button className="mobile-icon-btn" onClick={() => setScreen('servers')}>
                             <ArrowLeft size={20} />
                         </button>
-                        <div className="chat-header-info" onClick={() => setShowAgentSheet(true)}>
-                            <div className="chat-role-name">{activeServer.name} <span className="dropdown-arrow">▾</span></div>
-                            <div className="chat-subtitle">
-                                {selectedAgent.name}
+                        <div className="chat-header-info">
+                            <div className="chat-role-name">{activeServer.name}</div>
+                            <div className="chat-subtitle" onClick={() => setShowAgentSheet(true)}>
+                                {selectedAgent.name} <span className="dropdown-arrow">▾</span>
                             </div>
                         </div>
                     </div>
