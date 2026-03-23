@@ -25,6 +25,7 @@ import { AppManagerProvider, AppManagerMain, AppManagerPanel, AppManagerBottom, 
 import { LocalServerProvider, LocalServerMain, LocalServerPanel, LocalServerBottom } from './pages/LocalServer';
 import { MotherAgentProvider, MotherAgentMain, MotherAgentPanel, MotherAgentModelSelector } from './pages/MotherAgent';
 import { ChannelsMain, ChannelsPanel, ChannelsProvider, ChannelsRoleSelector } from './pages/Channels';
+import { MobileQRPopup } from './components/MobileQRPopup';
 
 declare const __APP_VERSION__: string;
 
@@ -182,6 +183,7 @@ function App() {
                                                                         )}
                                                                         {is('channels') && (
                                                                             <div className="ml-auto flex-shrink-0 flex items-center gap-2">
+                                                                                <MobileQRPopup payload={JSON.stringify({ app: 'echobird', v: 1, ts: Date.now() })} />
                                                                                 <button
                                                                                     onClick={() => window.dispatchEvent(new CustomEvent('clear-chat'))}
                                                                                     className="p-1.5 rounded-lg text-cyber-accent/40 hover:text-cyber-accent hover:bg-cyber-accent/10 transition-colors"
