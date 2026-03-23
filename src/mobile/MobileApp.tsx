@@ -323,19 +323,35 @@ function MobileApp() {
                         </div>
                     ) : (
                         <div className="server-list">
-                            {servers.map(s => (
-                                <div key={s.id} className="server-item" onClick={() => openServer(s)}>
-                                    <div className="server-avatar">
-                                        <span className="server-avatar-fallback">
-                                            {(s.alias || s.host)[0].toUpperCase()}
-                                        </span>
+                            {servers.map(s => {
+                                const isActive = activeServer?.id === s.id;
+                                return (
+                                    <div
+                                        key={s.id}
+                                        className={`server-card ${isActive ? 'active' : ''}`}
+                                        onClick={() => openServer(s)}
+                                    >
+                                        <div className="server-card-row">
+                                            {/* Agent icon — transparent bg like PC */}
+                                            <div className="server-card-icon">
+                                                <span className="server-card-icon-fallback">?</span>
+                                            </div>
+                                            <div className="server-card-info">
+                                                <div className="server-card-name-row">
+                                                    <span className={`server-card-name ${isActive ? 'active' : ''}`}>
+                                                        {serverDisplayName(s)}
+                                                    </span>
+                                                    <div className="server-status-dot standby" />
+                                                </div>
+                                                <div className="server-card-sub-row">
+                                                    <span className="server-card-status">[standby]</span>
+                                                    <span className="server-card-sub">{s.host}:{s.port}</span>
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
-                                    <div className="server-info">
-                                        <div className="server-name">{serverDisplayName(s)}</div>
-                                        <div className="server-preview">{s.host}:{s.port}</div>
-                                    </div>
-                                </div>
-                            ))}
+                                );
+                            })}
                         </div>
                     )}
                 </div>
