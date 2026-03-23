@@ -24,8 +24,7 @@ import { ModelNexusProvider, ModelNexusTitleActions, ModelNexusMain, ModelNexusP
 import { AppManagerProvider, AppManagerMain, AppManagerPanel, AppManagerBottom, AppManagerErrorModal } from './pages/AppManager';
 import { LocalServerProvider, LocalServerMain, LocalServerPanel, LocalServerBottom } from './pages/LocalServer';
 import { MotherAgentProvider, MotherAgentMain, MotherAgentPanel, MotherAgentModelSelector } from './pages/MotherAgent';
-import { ChannelsMain, ChannelsPanel, ChannelsProvider, ChannelsRoleSelector } from './pages/Channels';
-import { MobileQRPopup } from './components/MobileQRPopup';
+import { ChannelsMain, ChannelsPanel, ChannelsProvider, ChannelsRoleSelector, ChannelsMobileQR } from './pages/Channels';
 
 declare const __APP_VERSION__: string;
 
@@ -183,7 +182,7 @@ function App() {
                                                                         )}
                                                                         {is('channels') && (
                                                                             <div className="ml-auto flex-shrink-0 flex items-center gap-2">
-                                                                                <MobileQRPopup payload={JSON.stringify({ app: 'echobird', v: 1, ts: Date.now() })} />
+                                                                                <ChannelsMobileQR />
                                                                                 <button
                                                                                     onClick={() => window.dispatchEvent(new CustomEvent('clear-chat'))}
                                                                                     className="p-1.5 rounded-lg text-cyber-accent/40 hover:text-cyber-accent hover:bg-cyber-accent/10 transition-colors"

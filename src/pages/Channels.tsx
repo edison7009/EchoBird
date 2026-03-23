@@ -7,6 +7,7 @@ import { PendingChipsRow } from '../components/PendingChipsRow';
 import { RemoteModelSelector, type ModelOption } from '../components/RemoteModelSelector';
 import { AgentRolePicker } from '../components/AgentRolePicker';
 import { ChatBubble, TerminalStatusBar } from '../components/chat';
+import { MobileQRPopup } from '../components/MobileQRPopup';
 
 import { useI18n } from '../hooks/useI18n';
 import * as api from '../api/tauri';
@@ -1177,3 +1178,33 @@ export function ChannelsRoleSelector() {
         </div>
     );
 }
+
+// ===== ChannelsMobileQR — wraps MobileQRPopup with real channel data =====
+export function ChannelsMobileQR() {
+    const { channels, allActiveAgents, allSelectedRoles } = useChannels();
+
+    // Build QR payload from real channel context
+    const payload = JSON.stringify({
+        app: 'echobird',
+        v: 1,
+        servers: channels
+            .filter(c => c.id !== 1) // skip local channel — mobile can't use it
+            .map(c => ({
+                name: c.name,
+                address: c.address,
+                serverId: c.serverId,
+            })),
+        agents: Object.entries(allActiveAgents).map(([chId, agentName]) => ({
+            channelId: Number(chId),
+            agent: agentName,
+        })),
+        roles: Object.entries(allSelectedRoles).map(([chId, role]) => ({
+            channelId: Number(chId),
+            roleId: role.id,
+            roleName: role.name,
+        })),
+    });
+
+    return <MobileQRPopup payload={payload} />;
+}
+
