@@ -94,10 +94,6 @@ function MobileApp() {
     const [sessionId, setSessionId] = useState<string | undefined>(undefined);
     const chatBottomRef = useRef<HTMLDivElement>(null);
 
-    // QR scanner
-    const [scanError, setScanError] = useState('');
-    const scannerRef = useRef<Html5Qrcode | null>(null);
-
     // ── Load SSH servers on mount (same config as PC) ──
     useEffect(() => {
         (async () => {
@@ -107,7 +103,7 @@ function MobileApp() {
                 setServers(list);
             } catch (err) {
                 console.error('Failed to load SSH servers:', err);
-                setServers(MOCK_SERVERS); // fallback
+                setServers(MOCK_SERVERS);
             }
             setServersLoading(false);
         })();
@@ -117,55 +113,6 @@ function MobileApp() {
     useEffect(() => {
         chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [chatMessages, loading]);
-
-    // ── QR scan handler ──
-    const handleQRScan = useCallback((decodedText: string) => {
-        try {
-            const data: QRPayload = JSON.parse(decodedText);
-            if (data.app !== 'echobird' || !data.servers?.length) {
-                setScanError('Invalid QR code — not an Echobird config');
-                return;
-            }
-            // QR just triggers re-loading from disk (PC saves servers)
-            stopScanner();
-            (async () => {
-                const list = await api.loadSSHServers();
-                setServers(list);
-            })();
-            setScreen('servers');
-        } catch {
-            setScanError('Could not parse QR code data');
-        }
-    }, []);
-
-    const startScanner = useCallback(async () => {
-        setScanError('');
-        try {
-            const scanner = new Html5Qrcode('qr-reader');
-            scannerRef.current = scanner;
-            await scanner.start(
-                { facingMode: 'environment' },
-                { fps: 10 },
-                (decodedText) => handleQRScan(decodedText),
-                () => {}
-            );
-        } catch (err: any) {
-            setScanError(err?.message || 'Camera access denied');
-        }
-    }, [handleQRScan]);
-
-    const stopScanner = useCallback(() => {
-        if (scannerRef.current) {
-            scannerRef.current.stop().catch(() => {});
-            scannerRef.current = null;
-        }
-    }, []);
-
-    useEffect(() => {
-        if (screen === 'qr') startScanner();
-        else stopScanner();
-        return () => stopScanner();
-    }, [screen]);
 
     // ── Open server → go to chat ──
     const openServer = (server: SSHServer) => {
@@ -359,9 +306,6 @@ function MobileApp() {
                             <Settings size={20} />
                         </button>
                         <div className="mobile-header-spacer" />
-                        <button className="mobile-icon-btn accent" onClick={() => setScreen('qr')}>
-                            <Plus size={20} />
-                        </button>
                     </div>
 
                     {serversLoading ? (
@@ -374,11 +318,8 @@ function MobileApp() {
                             <div className="empty-servers-icon">📱</div>
                             <p className="empty-servers-title">No servers yet</p>
                             <p className="empty-servers-desc">
-                                Add a server on PC first — mobile reads the same config
+                                Add a server on PC first
                             </p>
-                            <button className="empty-servers-btn" onClick={() => setScreen('qr')}>
-                                Scan QR Code
-                            </button>
                         </div>
                     ) : (
                         <div className="server-list">
@@ -397,28 +338,6 @@ function MobileApp() {
                             ))}
                         </div>
                     )}
-                </div>
-            )}
-
-            {/* ===== QR Scanner ===== */}
-            {screen === 'qr' && (
-                <div className="mobile-screen">
-                    <div className="mobile-header">
-                        <button className="mobile-icon-btn" onClick={() => setScreen('servers')}>
-                            <ArrowLeft size={20} />
-                        </button>
-                        <h2 className="mobile-title">Scan QR Code</h2>
-                        <div className="mobile-header-spacer" />
-                    </div>
-                    <div className="qr-container">
-                        <div id="qr-reader" className="qr-reader-box" />
-                        {scanError && <p className="qr-error">{scanError}</p>}
-                        <p className="qr-hint">
-                            Open Echobird on your PC<br />
-                            Channels → hover the phone icon<br />
-                            Point your camera at the code
-                        </p>
-                    </div>
                 </div>
             )}
 
