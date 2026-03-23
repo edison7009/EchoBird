@@ -3,16 +3,21 @@
 
 import React, { useState, useRef } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
-import { Smartphone } from 'lucide-react';
-import { useI18n } from '../hooks/useI18n';
 
 interface MobileQRProps {
     /** Serialised config payload to encode in the QR code */
     payload: string;
 }
 
+// Phone icon — thin outline style that clearly reads as a mobile phone
+const PhoneIcon = () => (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="5" y="2" width="14" height="20" rx="2" ry="2" />
+        <line x1="12" y1="18" x2="12" y2="18.01" strokeWidth="2.5" />
+    </svg>
+);
+
 export const MobileQRPopup: React.FC<MobileQRProps> = ({ payload }) => {
-    const { t } = useI18n();
     const [open, setOpen] = useState(false);
     const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
     const containerRef = useRef<HTMLDivElement>(null);
@@ -27,10 +32,9 @@ export const MobileQRPopup: React.FC<MobileQRProps> = ({ payload }) => {
 
     return (
         <div className="relative" ref={containerRef} onMouseEnter={showPopup} onMouseLeave={scheduleHide}>
-            {/* Trigger — hover only, no click, no highlight */}
-            <span className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-mono text-cyber-accent/50 cursor-default select-none">
-                <Smartphone size={13} />
-                <span className="hidden lg:inline">Chat on Phone</span>
+            {/* Trigger — icon only, hover to show QR */}
+            <span className="flex items-center p-1.5 text-cyber-accent/40 cursor-default select-none">
+                <PhoneIcon />
             </span>
 
             {/* QR popup */}
@@ -41,11 +45,9 @@ export const MobileQRPopup: React.FC<MobileQRProps> = ({ payload }) => {
                         {/* Header accent */}
                         <div className="h-[2px] w-full bg-gradient-to-r from-cyber-accent/0 via-cyber-accent/60 to-cyber-accent/0" />
 
-
-
                         {/* Content */}
                         <div className="flex flex-col items-center px-6 pt-4 pb-5 gap-3">
-                            {/* QR code with Echobird-style border */}
+                            {/* QR code */}
                             <div className="p-3 rounded-lg bg-white">
                                 <QRCodeSVG
                                     value={payload}
@@ -64,12 +66,12 @@ export const MobileQRPopup: React.FC<MobileQRProps> = ({ payload }) => {
                                 />
                             </div>
 
-                            {/* Label */}
+                            {/* Label — 14px for readability */}
                             <div className="text-center">
-                                <p className="text-xs font-mono text-cyber-accent font-medium tracking-wide">
+                                <p className="text-[14px] font-mono text-cyber-accent font-medium tracking-wide">
                                     Scan with Echobird Mobile
                                 </p>
-                                <p className="text-[10px] font-mono text-cyber-text-secondary/50 mt-1">
+                                <p className="text-[12px] font-mono text-cyber-text-secondary/50 mt-1">
                                     Sync channels, models & roles
                                 </p>
                             </div>
