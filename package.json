@@ -17,6 +17,7 @@
         "@fortawesome/fontawesome-free": "^7.2.0",
         "@tauri-apps/api": "^2.10.1",
         "@tauri-apps/plugin-shell": "^2.3.5",
+        "html5-qrcode": "^2.3.8",
         "js-yaml": "^4.1.1",
         "qrcode.react": "^4.2.0",
         "react-markdown": "^10.1.0",
