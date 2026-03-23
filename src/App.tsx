@@ -3,8 +3,10 @@
 // Pages extracted to src/pages/ with Provider pattern.
 // All Providers are always mounted; pages are shown/hidden via CSS to avoid remounting.
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, lazy, Suspense } from 'react';
 import { RotateCcw } from 'lucide-react';
+import { isMobile } from './utils/platform';
+const MobileApp = lazy(() => import('./mobile/MobileApp'));
 import { Sidebar, PageType, ToastProvider, ConfirmDialogProvider } from './components';
 import { DownloadProvider } from './components/DownloadContext';
 import { DownloadBar } from './components/DownloadBar';
@@ -44,6 +46,15 @@ const pageBlock = (active: boolean) => active ? 'flex-1 flex flex-col overflow-h
 const pageScroll = (active: boolean) => active ? 'flex-1 overflow-y-auto' : 'hidden';
 
 function App() {
+    // Mobile platform: render Telegram-style MobileApp
+    if (isMobile()) {
+        return (
+            <Suspense fallback={<div style={{background:'#0e1621',width:'100vw',height:'100vh'}} />}>
+                <MobileApp />
+            </Suspense>
+        );
+    }
+
     const { t, locale, setLocale } = useI18n();
     const [activePage, setActivePage] = useState<PageType>('models');
     // Notify always-mounted pages when they become visible (CSS hidden toggle)
