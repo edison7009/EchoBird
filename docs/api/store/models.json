@@ -628,35 +628,29 @@
         ]
     },
     {
-        "id": "llama-3.1-8b",
-        "name": "Llama 3.1 8B",
+        "id": "llama-4-scout-17b",
+        "name": "Llama 4 Scout (109B MoE)",
         "icon": "llama",
+        "description": "Meta's latest MoE — 17B active, 16 experts, 10M context, multimodal",
+        "huggingfaceRepo": "unsloth/Llama-4-Scout-17B-16E-Instruct-GGUF",
+        "variants": [
+            {
+                "quantization": "Q4_K_M",
+                "fileName": "Llama-4-Scout-17B-16E-Instruct-Q4_K_M-00001-of-00002.gguf",
+                "fileSize": 58254827520,
+                "recommendedVRAM": "64 GB"
+            },
+            {
+                "quantization": "IQ2_M",
+                "fileName": "Llama-4-Scout-17B-16E-Instruct-UD-IQ2_M-00001-of-00002.gguf",
+                "fileSize": 35433480192,
+                "recommendedVRAM": "40 GB"
+            }
+        ],
         "runtimes": [
             "llama-server",
             "vllm",
             "sglang"
-        ],
-        "description": "Meta open-weight workhorse — fast, versatile, great for agents",
-        "huggingfaceRepo": "bartowski/Meta-Llama-3.1-8B-Instruct-GGUF",
-        "variants": [
-            {
-                "quantization": "Q4_K_M",
-                "fileName": "Meta-Llama-3.1-8B-Instruct-Q4_K_M.gguf",
-                "fileSize": 4920000000,
-                "recommendedVRAM": "6 GB"
-            },
-            {
-                "quantization": "Q6_K",
-                "fileName": "Meta-Llama-3.1-8B-Instruct-Q6_K.gguf",
-                "fileSize": 6600000000,
-                "recommendedVRAM": "8 GB"
-            },
-            {
-                "quantization": "Q8_0",
-                "fileName": "Meta-Llama-3.1-8B-Instruct-Q8_0.gguf",
-                "fileSize": 8540000000,
-                "recommendedVRAM": "10 GB"
-            }
         ]
     },
     {
@@ -718,35 +712,35 @@
         ]
     },
     {
-        "id": "yi-coder-9b",
-        "name": "Yi Coder 9B",
-        "icon": "yi",
-        "runtimes": [
-            "llama-server",
-            "vllm",
-            "sglang"
-        ],
-        "description": "01.AI coding specialist — strong code gen at 9B size",
-        "huggingfaceRepo": "bartowski/Yi-Coder-9B-Chat-GGUF",
+        "id": "qwen3.5-7b",
+        "name": "Qwen3.5 7B",
+        "icon": "qwen",
+        "description": "Qwen's efficient mid-size — 76% MMLU, great reasoning at low VRAM",
+        "huggingfaceRepo": "unsloth/Qwen3.5-7B-GGUF",
         "variants": [
             {
                 "quantization": "Q4_K_M",
-                "fileName": "Yi-Coder-9B-Chat-Q4_K_M.gguf",
-                "fileSize": 5370000000,
+                "fileName": "Qwen3.5-7B-Q4_K_M.gguf",
+                "fileSize": 4654510080,
                 "recommendedVRAM": "6 GB"
             },
             {
                 "quantization": "Q6_K",
-                "fileName": "Yi-Coder-9B-Chat-Q6_K.gguf",
-                "fileSize": 7160000000,
+                "fileName": "Qwen3.5-7B-Q6_K.gguf",
+                "fileSize": 6166769664,
                 "recommendedVRAM": "8 GB"
             },
             {
                 "quantization": "Q8_0",
-                "fileName": "Yi-Coder-9B-Chat-Q8_0.gguf",
-                "fileSize": 9280000000,
+                "fileName": "Qwen3.5-7B-Q8_0.gguf",
+                "fileSize": 8001069056,
                 "recommendedVRAM": "10 GB"
             }
+        ],
+        "runtimes": [
+            "llama-server",
+            "vllm",
+            "sglang"
         ]
     },
     {
@@ -782,35 +776,35 @@
         ]
     },
     {
-        "id": "deepseek-coder-v2-lite-16b",
-        "name": "DeepSeek Coder V2 Lite 16B",
-        "icon": "deepseek",
+        "id": "gemma-3n-e4b",
+        "name": "Gemma 3n E4B",
+        "icon": "gemma",
+        "description": "Google edge model — runs on phones/tablets, multimodal (text+image+video+audio)",
+        "huggingfaceRepo": "unsloth/gemma-3n-E4B-it-GGUF",
+        "variants": [
+            {
+                "quantization": "Q4_K_M",
+                "fileName": "gemma-3n-E4B-it-Q4_K_M.gguf",
+                "fileSize": 2684354560,
+                "recommendedVRAM": "4 GB"
+            },
+            {
+                "quantization": "Q6_K",
+                "fileName": "gemma-3n-E4B-it-Q6_K.gguf",
+                "fileSize": 3489660928,
+                "recommendedVRAM": "4 GB"
+            },
+            {
+                "quantization": "Q8_0",
+                "fileName": "gemma-3n-E4B-it-Q8_0.gguf",
+                "fileSize": 4509715456,
+                "recommendedVRAM": "6 GB"
+            }
+        ],
         "runtimes": [
             "llama-server",
             "vllm",
             "sglang"
-        ],
-        "description": "DeepSeek MoE coder — 236B total, 21B active parameters",
-        "huggingfaceRepo": "bartowski/DeepSeek-Coder-V2-Lite-Instruct-GGUF",
-        "variants": [
-            {
-                "quantization": "Q4_K_M",
-                "fileName": "DeepSeek-Coder-V2-Lite-Instruct-Q4_K_M.gguf",
-                "fileSize": 8780000000,
-                "recommendedVRAM": "10 GB"
-            },
-            {
-                "quantization": "Q6_K",
-                "fileName": "DeepSeek-Coder-V2-Lite-Instruct-Q6_K.gguf",
-                "fileSize": 11800000000,
-                "recommendedVRAM": "16 GB"
-            },
-            {
-                "quantization": "Q8_0",
-                "fileName": "DeepSeek-Coder-V2-Lite-Instruct-Q8_0.gguf",
-                "fileSize": 15300000000,
-                "recommendedVRAM": "16 GB"
-            }
         ]
     },
     {
@@ -910,35 +904,35 @@
         ]
     },
     {
-        "id": "glm-4-9b",
-        "name": "GLM-4 9B",
-        "icon": "glm",
+        "id": "nemotron-3-nano-4b",
+        "name": "Nemotron 3 Nano 4B",
+        "icon": "nemotron",
+        "description": "NVIDIA edge model — agentic AI on low-resource devices, hybrid reasoning",
+        "huggingfaceRepo": "unsloth/NVIDIA-Nemotron-3-Nano-4B-GGUF",
+        "variants": [
+            {
+                "quantization": "Q4_K_M",
+                "fileName": "NVIDIA-Nemotron-3-Nano-4B-Q4_K_M.gguf",
+                "fileSize": 2684354560,
+                "recommendedVRAM": "4 GB"
+            },
+            {
+                "quantization": "Q6_K",
+                "fileName": "NVIDIA-Nemotron-3-Nano-4B-Q6_K.gguf",
+                "fileSize": 3489660928,
+                "recommendedVRAM": "4 GB"
+            },
+            {
+                "quantization": "Q8_0",
+                "fileName": "NVIDIA-Nemotron-3-Nano-4B-Q8_0.gguf",
+                "fileSize": 4509715456,
+                "recommendedVRAM": "6 GB"
+            }
+        ],
         "runtimes": [
             "llama-server",
             "vllm",
             "sglang"
-        ],
-        "description": "Zhipu AI 9B — strong Chinese + English, tool use capable",
-        "huggingfaceRepo": "bartowski/glm-4-9b-chat-GGUF",
-        "variants": [
-            {
-                "quantization": "Q4_K_M",
-                "fileName": "glm-4-9b-chat-Q4_K_M.gguf",
-                "fileSize": 5370000000,
-                "recommendedVRAM": "6 GB"
-            },
-            {
-                "quantization": "Q6_K",
-                "fileName": "glm-4-9b-chat-Q6_K.gguf",
-                "fileSize": 7160000000,
-                "recommendedVRAM": "8 GB"
-            },
-            {
-                "quantization": "Q8_0",
-                "fileName": "glm-4-9b-chat-Q8_0.gguf",
-                "fileSize": 9280000000,
-                "recommendedVRAM": "10 GB"
-            }
         ]
     }
 ]
