@@ -822,13 +822,24 @@ fn handle_start_agent(agent_id: &str) {
         return;
     }
 
+    // Agents with persistent gateway/serve mode get the appropriate subcommand
+    let start_args: Vec<&str> = match agent_id {
+        "openclaw"  => vec!["gateway"],
+        "picoclaw"  => vec!["gateway"],
+        "zeroclaw"  => vec!["serve"],
+        _ => vec![],
+    };
+
     // Start the agent (detached background process)
     let result = if cfg!(target_os = "windows") {
+        let mut args = vec!["/c", "start", "/b", cmd];
+        args.extend(&start_args);
         Command::new("cmd.exe")
-            .args(["/c", "start", "/b", cmd])
+            .args(&args)
             .spawn()
     } else {
         Command::new(cmd)
+            .args(&start_args)
             .stdin(std::process::Stdio::null())
             .stdout(std::process::Stdio::null())
             .stderr(std::process::Stdio::null())

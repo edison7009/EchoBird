@@ -2,10 +2,12 @@
 import { Translations } from './types';
 const de: Partial<Translations> = {
     // Navigation
-    'nav.modelNexus': 'Modellzentrum',    'nav.appManager': 'App-Verwaltung',
+    'nav.modelNexus': 'Modellzentrum',
+    'nav.appManager': 'App-Verwaltung',
     'nav.localServer': 'Lokales LLM',
     // Seitentitel
-    'page.modelNexus': 'MODELLZENTRUM',    'page.appManager': 'APP-VERWALTUNG',
+    'page.modelNexus': 'MODELLZENTRUM',
+    'page.appManager': 'APP-VERWALTUNG',
     'page.localServer': 'LOKALES LLM',
     // Einstellungen
     'settings.title': 'EINSTELLUNGEN',
@@ -17,13 +19,21 @@ const de: Partial<Translations> = {
     'settings.latestVersion': 'Sie verwenden die neueste Version',
     'settings.checkFailed': 'Prüfung fehlgeschlagen →erneut versuchen',
     // Schaltflächen
-    'btn.addModel': 'MODELL HINZUFÜGEN',    'btn.refresh': 'AKTUALISIEREN',    'btn.cancel': 'ABBRECHEN',
+    'btn.addModel': 'MODELL HINZUFÜGEN',
+    'btn.refresh': 'AKTUALISIEREN',
+    'btn.cancel': 'ABBRECHEN',
     'btn.delete': 'LÖSCHEN',
-    'btn.edit': 'BEARBEITEN',    'btn.launchApp': 'APP STARTEN',    'btn.modifyOnly': 'NUR ÄNDERN',
+    'btn.edit': 'BEARBEITEN',
+    'btn.launchApp': 'APP STARTEN',
+    'btn.modifyOnly': 'NUR ÄNDERN',
     'btn.start': 'STARTEN',
     'btn.stop': 'STOPPEN',
     'btn.add': 'HINZUFÜGEN',
-    'btn.remove': 'ENTFERNEN',    // Status    'status.scanning': 'Scannen',    // Suche    // Modelldialog
+    'btn.remove': 'ENTFERNEN',
+    // Status
+    'status.scanning': 'Scannen',
+    // Suche
+    // Modelldialog
     'model.name': 'Name',
     'model.apiKey': 'API-Schlüssel',
     'model.modelId': 'Modell-ID',
@@ -37,10 +47,13 @@ const de: Partial<Translations> = {
     'model.deleteConfirm': 'Diese Modellkonfiguration wird dauerhaft entfernt. Diese Aktion kann nicht rückgängig gemacht werden.',
     'model.selectToTest': 'Modell zum Testen auswählen',
     'model.escCancel': '[ESC] ABBRECHEN',
-    'model.enterSave': '[ENTER] MODELL SPEICHERN',    // App-Verwaltung
+    'model.enterSave': '[ENTER] MODELL SPEICHERN',
+
+    // App-Verwaltung
     'agent.myLocalModel': 'Mein lokales Modell',
     'agent.selectTool': 'Tool zum Konfigurieren auswählen',
-    'agent.selectModelFor': 'Modell auswählen für',    'agent.noModelsTitle': 'Kein Modell konfiguriert.',
+    'agent.selectModelFor': 'Modell auswählen für',
+    'agent.noModelsTitle': 'Kein Modell konfiguriert.',
     'agent.noModelsHintPre': 'Gehe zu',
     'agent.noModelsHintPost': 'um eines hinzuzufügen.',
     'agent.applyAndLaunch': 'Konfiguration anwenden & App starten',
@@ -60,7 +73,8 @@ const de: Partial<Translations> = {
     'server.local': 'LOKAL',
     'server.store': 'SHOP',
     'server.selectModelDir': 'Modellverzeichnis auswählen',
-    'server.downloadFromStore': 'Modelle aus dem STORE herunterladen',    // Download / Modellshop
+    'server.downloadFromStore': 'Modelle aus dem STORE herunterladen',
+    // Download / Modellshop
     'download.location': 'Download-Pfad:',
     'download.changePath': 'Download-Pfad ändern',
     'download.selectNewDir': 'Neues Standard-Download-Verzeichnis auswählen?',
@@ -84,7 +98,8 @@ const de: Partial<Translations> = {
     'common.noData': 'Keine Daten',
     'common.confirm': 'Bestätigen',
     'common.website': 'Webseite',
-    'common.areYouSure': 'Sind Sie sicher?',    // Tool-Kategorien
+    'common.areYouSure': 'Sind Sie sicher?',
+    // Tool-Kategorien
     'toolCat.all': 'ALLE',
     'toolCat.agentOS': 'CLI Agent',
     'toolCat.ide': 'IDE',
@@ -93,22 +108,27 @@ const de: Partial<Translations> = {
     'toolCat.game': 'Spiel',
     'toolCat.utility': 'Werkzeuge',
     // Agent Worker Tabs
-    'agent.modelsTab': 'MODELLE',    // ToolCard Tabs
-    'tool.models': 'Modelle',    'tool.app': 'App',
+    'agent.modelsTab': 'MODELLE',
+    // ToolCard Tabs
+    'tool.models': 'Modelle',
+    'tool.app': 'App',
     'tool.config': 'Konfig',
     'tool.version': 'Version',
-    // Skills Extra    // VRAM Labels
+    // Skills Extra
+    // VRAM Labels
     'vram.easy': 'Leicht',
     'vram.good': 'Gut',
     'vram.tight': 'Knapp',
     'vram.heavy': 'Schwer',
-    // Download-Status    'download.inQueue': 'in Warteschlange',
+    // Download-Status
+    'download.inQueue': 'in Warteschlange',
     'download.pause': 'Pause',
     'download.resume': 'Fortsetzen',
     'download.cancel': 'Abbrechen',
     'download.retry': 'Wiederholen',
     // Log-Seite
-    // Debug-Konsole    // Lokaler Server
+    // Debug-Konsole
+    // Lokaler Server
     'server.gpuFull': '⚡ GPU Voll',
     'server.cpuOnly': '🖥 Nur CPU',
     'server.setupEngine': 'ENGINE EINRICHTEN',
@@ -143,14 +163,20 @@ const de: Partial<Translations> = {
     'channel.enterMessage': 'Nachricht eingeben...',
     'channel.awaitingResponse': 'Warte auf Antwort...',
                     'channel.failed': 'FEHLGESCHLAGEN',
-    'channel.connecting': 'Verbindung wird hergestellt...',    'channel.connectionFailed': 'Verbindung fehlgeschlagen',    'channel.noModels': 'Keine Modelle verfügbar',
+    'channel.connecting': 'Verbindung wird hergestellt...',
+    'channel.connectionFailed': 'Verbindung fehlgeschlagen',
+    'channel.noModels': 'Keine Modelle verfügbar',
     'channel.motherFlow': 'Mother Agent →Server →Agent',
-    'channel.selectRoleAgent': 'Rolle und Agent ausw\u00e4hlen CLI',
+    'channel.selectRoleAgent': 'Rolle und Agent auswählen CLI',
     'hint.devInvite': 'KI-Apps oder KI-Spiele entwickeln →siehe \"Reversi\" und \"AI Translate\".',
     'nav.motherAgent': 'Mother Agent',
-    'page.motherAgent': 'Mother Agent',    // Mother Agent
-    'mother.selectModel': 'Modell wählen',    'mother.hintInstall': '{agent} installieren',    'mother.enterMessage': 'Nachricht eingeben...',
-    'mother.noModels': 'Keine Modelle verfügbar',    'mother.servers': 'SERVER',
+    'page.motherAgent': 'Mother Agent',
+    // Mother Agent
+    'mother.selectModel': 'Modell wählen',
+    'mother.hintInstall': '{agent} installieren',
+    'mother.enterMessage': 'Nachricht eingeben...',
+    'mother.noModels': 'Keine Modelle verfügbar',
+    'mother.servers': 'SERVER',
     'mother.sshGuide': 'Einrichtungshilfe',
     'mother.local': 'LOKAL',
     'mother.noServer': 'Kein Server',

@@ -2,11 +2,13 @@
 import { Translations } from './types';
 const ja: Partial<Translations> = {
     // Navigation
-    'nav.modelNexus': 'モデルセンター',    'nav.appManager': 'アプリ管理',
-    'nav.localServer': '\u30ed\u30fc\u30ab\u30ebLLM',
+    'nav.modelNexus': 'モデルセンター',
+    'nav.appManager': 'アプリ管理',
+    'nav.localServer': 'ローカルLLM',
     // Page Titles
-    'page.modelNexus': 'モデルセンター',    'page.appManager': 'アプリ管理',
-    'page.localServer': '\u30ed\u30fc\u30ab\u30ebLLM',
+    'page.modelNexus': 'モデルセンター',
+    'page.appManager': 'アプリ管理',
+    'page.localServer': 'ローカルLLM',
     // Settings
     'settings.title': '設定',
     'settings.version': 'バージョン',
@@ -17,13 +19,21 @@ const ja: Partial<Translations> = {
     'settings.latestVersion': '最新バージョンです',
     'settings.checkFailed': '確認失敗 — 再試行',
     // Buttons
-    'btn.addModel': 'モデル追加',    'btn.refresh': '更新',    'btn.cancel': 'キャンセル',
+    'btn.addModel': 'モデル追加',
+    'btn.refresh': '更新',
+    'btn.cancel': 'キャンセル',
     'btn.delete': '削除',
-    'btn.edit': '編集',    'btn.launchApp': 'アプリ起動',    'btn.modifyOnly': '変更のみ',
+    'btn.edit': '編集',
+    'btn.launchApp': 'アプリ起動',
+    'btn.modifyOnly': '変更のみ',
     'btn.start': '開始',
     'btn.stop': '停止',
     'btn.add': '追加',
-    'btn.remove': '削除',    // Status    'status.scanning': 'スキャン中...',    // Search    // Model Dialog
+    'btn.remove': '削除',
+    // Status
+    'status.scanning': 'スキャン中...',
+    // Search
+    // Model Dialog
     'model.name': '名前',
     'model.apiKey': 'APIキー',
     'model.modelId': 'モデルID',
@@ -37,10 +47,13 @@ const ja: Partial<Translations> = {
     'model.deleteConfirm': 'このモデル設定は完全に削除されます。元に戻せません。',
     'model.selectToTest': 'モデルを選択してテスト開始',
     'model.escCancel': '[ESC] キャンセル',
-    'model.enterSave': '[ENTER] モデル保存',    // App Manager
+    'model.enterSave': '[ENTER] モデル保存',
+
+    // App Manager
     'agent.myLocalModel': 'ローカルモデル',
     'agent.selectTool': 'ツールを選択',
-    'agent.selectModelFor': 'モデルを選択：',    'agent.noModelsTitle': 'モデルが設定されていません。',
+    'agent.selectModelFor': 'モデルを選択：',
+    'agent.noModelsTitle': 'モデルが設定されていません。',
     'agent.noModelsHintPre': '',
     'agent.noModelsHintPost': 'でモデルを追加してください。',
     'agent.applyAndLaunch': '設定を適用してアプリ起動',
@@ -60,7 +73,8 @@ const ja: Partial<Translations> = {
     'server.local': 'ローカル',
     'server.store': 'ストア',
     'server.selectModelDir': 'モデルディレクトリを選択',
-    'server.downloadFromStore': 'ストアからモデルをダウンロード',    // Download / Model Store
+    'server.downloadFromStore': 'ストアからモデルをダウンロード',
+    // Download / Model Store
     'download.location': 'ダウンロード先：',
     'download.changePath': 'ダウンロードパスを変更',
     'download.selectNewDir': '新しいデフォルトダウンロードディレクトリを選択しますか？',
@@ -79,12 +93,13 @@ const ja: Partial<Translations> = {
     'model.tunnel': 'トンネル',
     // Copy buttons
     'btn.copy': '[コピー]',
-    'btn.copied': '[\u2713]',
+    'btn.copied': '[✓]',
     // Common
     'common.noData': 'データなし',
     'common.confirm': '確認',
     'common.website': 'ウェブサイト',
-    'common.areYouSure': '本当によろしいですか？',    // Tool Categories
+    'common.areYouSure': '本当によろしいですか？',
+    // Tool Categories
     'toolCat.all': 'すべて',
     'toolCat.agentOS': 'CLI Agent',
     'toolCat.ide': 'IDE',
@@ -93,22 +108,27 @@ const ja: Partial<Translations> = {
     'toolCat.game': 'ゲーム',
     'toolCat.utility': 'ユーティリティ',
     // Agent Worker tabs
-    'agent.modelsTab': 'モデル',    // ToolCard tabs
-    'tool.models': 'モデル',    'tool.app': 'アプリ',
+    'agent.modelsTab': 'モデル',
+    // ToolCard tabs
+    'tool.models': 'モデル',
+    'tool.app': 'アプリ',
     'tool.config': '設定',
     'tool.version': 'バージョン',
-    // Skills additions    // VRAM fitness labels
+    // Skills additions
+    // VRAM fitness labels
     'vram.easy': '余裕',
     'vram.good': '良好',
     'vram.tight': 'ギリギリ',
     'vram.heavy': '厳しい',
-    // Download status    'download.inQueue': 'キュー中',
+    // Download status
+    'download.inQueue': 'キュー中',
     'download.pause': '一時停止',
     'download.resume': '再開',
     'download.cancel': 'キャンセル',
     'download.retry': 'リトライ',
-    // Debug Console    // Local Server
-    'server.gpuFull': '\u26a1 GPU フル',
+    // Debug Console
+    // Local Server
+    'server.gpuFull': '⚡ GPU フル',
     'server.cpuOnly': '\U0001f5a5 CPU のみ',
     'server.setupEngine': 'エンジンをセットアップ',
     'server.downloading': 'ダウンロード中',
@@ -118,7 +138,7 @@ const ja: Partial<Translations> = {
     'store.cancel': '[キャンセル]',
     'store.remove': '削除',
     'store.ver': 'ver',
-    'store.ready': '\u2714 準備完了',
+    'store.ready': '✔ 準備完了',
     // Close confirmation
     'close.title': 'ウィンドウを閉じる',
     'close.message': 'システムトレイに最小化しますか、それとも完全に終了しますか？',
@@ -141,14 +161,20 @@ const ja: Partial<Translations> = {
     'channel.enterMessage': 'メッセージを入力...',
     'channel.awaitingResponse': '応答を待っています...',
                     'channel.failed': '失敗',
-    'channel.connecting': '接続中...',    'channel.connectionFailed': '接続に失敗しました',    'channel.noModels': '利用可能なモデルがありません',
+    'channel.connecting': '接続中...',
+    'channel.connectionFailed': '接続に失敗しました',
+    'channel.noModels': '利用可能なモデルがありません',
     'channel.motherFlow': 'Mother Agent → サーバー → Agent',
-    'channel.selectRoleAgent': '\u30ed\u30fc\u30eb\u3068\u30a8\u30fc\u30b8\u30a7\u30f3\u30c8\u3092\u9078\u629e CLI',
+    'channel.selectRoleAgent': 'ロールとエージェントを選択 CLI',
     'hint.devInvite': 'AI アプリや AI ゲームを開発 — 「リバーシ」と「AI 翻訳」を参考に',
     'nav.motherAgent': 'Mother Agent',
-    'page.motherAgent': 'Mother Agent',    // Mother Agent
-    'mother.selectModel': 'モデルを選択',    'mother.hintInstall': '{agent} をインストール',    'mother.enterMessage': 'メッセージを入力...',
-    'mother.noModels': '利用可能なモデルがありません',    'mother.servers': 'サーバー',
+    'page.motherAgent': 'Mother Agent',
+    // Mother Agent
+    'mother.selectModel': 'モデルを選択',
+    'mother.hintInstall': '{agent} をインストール',
+    'mother.enterMessage': 'メッセージを入力...',
+    'mother.noModels': '利用可能なモデルがありません',
+    'mother.servers': 'サーバー',
     'mother.sshGuide': 'セットアップガイド',
     'mother.local': 'ローカル',
     'mother.noServer': 'サーバーなし',

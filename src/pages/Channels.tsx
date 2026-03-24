@@ -843,6 +843,8 @@ const ChannelsInner: React.FC = () => {
                     // ── Step 1: Detect if agent is installed on remote server ──
                     // (cached per channel — only detect once, not every message)
                     if (!remoteAgentCache.current[channelKey]) {
+                        // Ensure bridge binary exists on remote first (3-layer verification)
+                        await api.bridgeEnsureRemote(serverId);
                         const agents = await api.bridgeDetectAgentsRemote(serverId);
                         remoteAgentCache.current[channelKey] = agents;
                     }
@@ -880,14 +882,19 @@ const ChannelsInner: React.FC = () => {
                             try {
                                 await api.bridgeSetRoleRemote(serverId, agentId, role.id, roleUrl);
                                 lastAppliedRoleRef.current[channelKey] = roleKey;
+                                // Force new session so agent reads updated role file
+                                // (OpenClaw only reads SOUL.md at session start)
+                                setBridgeSessionId(undefined);
                             } catch (e) {
                                 console.warn('[Bridge] set_role failed (non-fatal):', e);
                             }
                         }
                     } else if (lastApplied) {
                         // User cleared role → reset agent to default mode
+                        // Pass actual previous role_id (not empty string)
+                        const lastRoleId = lastApplied.split(':')[1] || '';
                         try {
-                            await api.bridgeClearRoleRemote(serverId, agentId, '');
+                            await api.bridgeClearRoleRemote(serverId, agentId, lastRoleId);
                             setBridgeSessionId(undefined);
                             lastAppliedRoleRef.current[channelKey] = '';
                         } catch (e) {
@@ -1179,23 +1186,54 @@ export function ChannelsRoleSelector() {
     );
 }
 
-// ===== ChannelsMobileQR — wraps MobileQRPopup with real channel data =====
-export function ChannelsMobileQR() {
-    const { channels } = useChannels();
+// ===== ChannelsMobileSync — clipboard-based config sync for mobile =====
+// Generates "eb:" + base64(JSON) config string. Delegates UI to MobileQRPopup.
+export function ChannelsMobileSync() {
+    const [configCode, setConfigCode] = useState('');
 
-    // QR payload: server list only (agents/roles are hardcoded on mobile client)
-    const payload = JSON.stringify({
-        app: 'echobird',
-        v: 1,
-        servers: channels
-            .filter(c => c.id !== 1) // skip local channel — mobile can't use it
-            .map(c => ({
-                name: c.name,
-                address: c.address,
-                serverId: c.serverId,
-            })),
-    });
+    useEffect(() => {
+        (async () => {
+            try {
+                // Load SSH servers and decrypt passwords
+                const sshServers = await api.loadSSHServers();
+                const decryptedSSH = await Promise.all(
+                    sshServers.map(async (s) => ({
+                        h: s.host,
+                        o: s.port,
+                        u: s.username,
+                        p: s.password?.startsWith('enc:v1:')
+                            ? await api.decryptSSHPassword(s.password)
+                            : (s.password || ''),
+                        n: s.alias || '',
+                    }))
+                );
 
-    return <MobileQRPopup payload={payload} />;
+                // Load user models and decrypt API keys
+                const allModels = await api.getModels();
+                const userModels = allModels.filter(m =>
+                    m.modelType !== 'LOCAL' && m.modelType !== 'DEMO' && m.internalId !== 'local-server'
+                );
+                const decryptedModels = await Promise.all(
+                    userModels.map(async (m) => ({
+                        n: m.name,
+                        i: m.modelId || m.name,
+                        b: m.baseUrl,
+                        k: m.apiKey?.startsWith('enc:v1:')
+                            ? await api.decryptSSHPassword(m.apiKey)
+                            : (m.apiKey || ''),
+                        x: m.anthropicUrl || '',
+                    }))
+                );
+
+                const json = JSON.stringify({ a: 'echobird', v: 2, s: decryptedSSH, m: decryptedModels });
+                const encoded = 'eb:' + btoa(unescape(encodeURIComponent(json)));
+                setConfigCode(encoded);
+            } catch (e) {
+                console.error('[MobileSync] Failed to build config code:', e);
+            }
+        })();
+    }, []);
+
+    if (!configCode) return null;
+    return <MobileQRPopup configCode={configCode} />;
 }
-

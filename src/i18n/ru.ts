@@ -2,10 +2,12 @@
 import { Translations } from './types';
 const ru: Partial<Translations> = {
     // Navigation
-    'nav.modelNexus': 'Центр моделей',    'nav.appManager': 'Менеджер приложений',
+    'nav.modelNexus': 'Центр моделей',
+    'nav.appManager': 'Менеджер приложений',
     'nav.localServer': 'Локальный LLM',
     // Page Titles
-    'page.modelNexus': 'ЦЕНТР МОДЕЛЕЙ',    'page.appManager': 'МЕНЕДЖЕР ПРИЛОЖЕНИЙ',
+    'page.modelNexus': 'ЦЕНТР МОДЕЛЕЙ',
+    'page.appManager': 'МЕНЕДЖЕР ПРИЛОЖЕНИЙ',
     'page.localServer': 'ЛОКАЛЬНЫЙ LLM',
     // Settings
     'settings.title': 'НАСТРОЙКИ',
@@ -17,13 +19,21 @@ const ru: Partial<Translations> = {
     'settings.latestVersion': 'У вас последняя версия',
     'settings.checkFailed': 'Сбой проверки — повторить',
     // Buttons
-    'btn.addModel': 'Добавить модель',    'btn.refresh': 'Обновить',    'btn.cancel': 'Отмена',
+    'btn.addModel': 'Добавить модель',
+    'btn.refresh': 'Обновить',
+    'btn.cancel': 'Отмена',
     'btn.delete': 'Удалить',
-    'btn.edit': 'Редактировать',    'btn.launchApp': 'Запустить приложение',    'btn.modifyOnly': 'Только изменить',
+    'btn.edit': 'Редактировать',
+    'btn.launchApp': 'Запустить приложение',
+    'btn.modifyOnly': 'Только изменить',
     'btn.start': 'Пуск',
     'btn.stop': 'Стоп',
     'btn.add': 'Добавить',
-    'btn.remove': 'Убрать',    // Status    'status.scanning': 'Сканирование...',    // Search    // Model Dialog
+    'btn.remove': 'Убрать',
+    // Status
+    'status.scanning': 'Сканирование...',
+    // Search
+    // Model Dialog
     'model.name': 'Имя',
     'model.apiKey': 'API ключ',
     'model.modelId': 'ID модели',
@@ -37,10 +47,13 @@ const ru: Partial<Translations> = {
     'model.deleteConfirm': 'Эта конфигурация модели будет удалена безвозвратно.',
     'model.selectToTest': 'Выберите модель для начала теста',
     'model.escCancel': '[ESC] Отмена',
-    'model.enterSave': '[ENTER] Сохранить модель',    // App Manager
+    'model.enterSave': '[ENTER] Сохранить модель',
+
+    // App Manager
     'agent.myLocalModel': 'Локальная модель',
     'agent.selectTool': 'Выбрать инструмент',
-    'agent.selectModelFor': 'Выбрать модель для:',    'agent.noModelsTitle': 'Модели не настроены.',
+    'agent.selectModelFor': 'Выбрать модель для:',
+    'agent.noModelsTitle': 'Модели не настроены.',
     'agent.noModelsHintPre': '',
     'agent.noModelsHintPost': 'чтобы добавить модель.',
     'agent.applyAndLaunch': 'Применить настройки и запустить',
@@ -60,7 +73,8 @@ const ru: Partial<Translations> = {
     'server.local': 'Локальный',
     'server.store': 'Магазин',
     'server.selectModelDir': 'Выбрать директорию модели',
-    'server.downloadFromStore': 'Скачать модель из магазина',    // Download / Model Store
+    'server.downloadFromStore': 'Скачать модель из магазина',
+    // Download / Model Store
     'download.location': 'Место загрузки:',
     'download.changePath': 'Изменить путь загрузки',
     'download.selectNewDir': 'Выбрать новый каталог загрузки по умолчанию?',
@@ -84,7 +98,8 @@ const ru: Partial<Translations> = {
     'common.noData': 'Нет данных',
     'common.confirm': 'Подтвердить',
     'common.website': 'Веб-сайт',
-    'common.areYouSure': 'Вы уверены?',    // Tool Categories
+    'common.areYouSure': 'Вы уверены?',
+    // Tool Categories
     'toolCat.all': 'Все',
     'toolCat.agentOS': 'CLI Agent',
     'toolCat.ide': 'IDE',
@@ -93,21 +108,26 @@ const ru: Partial<Translations> = {
     'toolCat.game': 'Игры',
     'toolCat.utility': 'Утилиты',
     // Agent Worker tabs
-    'agent.modelsTab': 'Модели',    // ToolCard tabs
-    'tool.models': 'Модели',    'tool.app': 'Приложение',
+    'agent.modelsTab': 'Модели',
+    // ToolCard tabs
+    'tool.models': 'Модели',
+    'tool.app': 'Приложение',
     'tool.config': 'Настройки',
     'tool.version': 'Версия',
-    // Skills additions    // VRAM fitness labels
+    // Skills additions
+    // VRAM fitness labels
     'vram.easy': 'Просто',
     'vram.good': 'Хорошо',
     'vram.tight': 'Впритык',
     'vram.heavy': 'Тяжело',
-    // Download status    'download.inQueue': 'В очереди',
+    // Download status
+    'download.inQueue': 'В очереди',
     'download.pause': 'Пауза',
     'download.resume': 'Возобновить',
     'download.cancel': 'Отмена',
     'download.retry': 'Повторить',
-    // Debug Console    // Local Server
+    // Debug Console
+    // Local Server
     'server.gpuFull': '⚡ GPU Полная',
     'server.cpuOnly': '🖥 Только CPU',
     'server.setupEngine': 'Настроить движок',
@@ -141,14 +161,20 @@ const ru: Partial<Translations> = {
     'channel.enterMessage': 'Введите сообщение...',
     'channel.awaitingResponse': 'Ожидание ответа...',
                     'channel.failed': 'Ошибка',
-    'channel.connecting': 'Подключение...',    'channel.connectionFailed': 'Ошибка подключения',    'channel.noModels': 'Нет доступных моделей',
+    'channel.connecting': 'Подключение...',
+    'channel.connectionFailed': 'Ошибка подключения',
+    'channel.noModels': 'Нет доступных моделей',
     'channel.motherFlow': 'Mother Agent → Сервер → Agent',
-    'channel.selectRoleAgent': '\u0412\u044b\u0431\u0440\u0430\u0442\u044c \u0440\u043e\u043b\u044c \u0438 \u0430\u0433\u0435\u043d\u0442\u0430 CLI',
+    'channel.selectRoleAgent': 'Выбрать роль и агента CLI',
     'hint.devInvite': 'Разрабатывайте AI-приложения или AI-игры — см. «Реверси» и «AI Translate».',
     'nav.motherAgent': 'Mother Agent',
-    'page.motherAgent': 'Mother Agent',    // Mother Agent
-    'mother.selectModel': 'Выбрать модель',    'mother.hintInstall': 'Установить {agent}',    'mother.enterMessage': 'Введите сообщение...',
-    'mother.noModels': 'Нет доступных моделей',    'mother.servers': 'СЕРВЕРЫ',
+    'page.motherAgent': 'Mother Agent',
+    // Mother Agent
+    'mother.selectModel': 'Выбрать модель',
+    'mother.hintInstall': 'Установить {agent}',
+    'mother.enterMessage': 'Введите сообщение...',
+    'mother.noModels': 'Нет доступных моделей',
+    'mother.servers': 'СЕРВЕРЫ',
     'mother.sshGuide': 'Руководство по настройке',
     'mother.local': 'ЛОКАЛЬНЫЙ',
     'mother.noServer': 'Нет сервера',
@@ -202,7 +228,7 @@ const ru: Partial<Translations> = {
     'mother.connectionRetrying': 'Ошибка подключения, повторная попытка ({n}/{total})...',
     'mother.connectionFailed': 'Не удалось подключиться к модели ИИ после {n} попыток.',
     'mother.connectionHint': 'Проверьте URL, Model ID, API Key и убедитесь, что лимит токенов достаточен.',
-    'agent.installViaMother': '\u0410\u0432\u0442\u043e-\u0443\u0441\u0442\u0430\u043d\u043e\u0432\u043a\u0430 AI',
+    'agent.installViaMother': 'Авто-установка AI',
     'common.inputting': 'Печатает',
     // Error messages (user-friendly, non-technical)
     'error.connectionTimeout': 'Нет ответа от сервера. Проверьте соединение.',

@@ -6,7 +6,7 @@
     "build": {
         "frontendDist": "../dist",
         "devUrl": "http://localhost:5173",
-        "beforeDevCommand": "npx vite",
+        "beforeDevCommand": "npx vite --host",
         "beforeBuildCommand": "npx vite build"
     },
     "app": {

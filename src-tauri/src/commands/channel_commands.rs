@@ -879,10 +879,24 @@ async fn ensure_remote_bridge(
 
     // Check if bridge exists and get version
     // IMPORTANT: Old Bridge (pre-3.1.5) doesn't support --version and enters main loop,
-    // so we must use timeout + pipe empty stdin to prevent hanging
-    let check_result = client.execute(
-        "echo '' | timeout 3 ~/echobird/echobird-bridge --version 2>/dev/null || echo 'NOT_INSTALLED'"
-    ).await.map_err(|e| format!("SSH check failed: {}", e))?;
+    // so we must use timeout + pipe empty stdin to prevent hanging.
+    // Use execute_tolerant (not client.execute) because piped commands may not send exit status.
+    let check_result = match tokio::time::timeout(
+        std::time::Duration::from_secs(10),
+        crate::commands::ssh_commands::execute_tolerant(client, "echo '' | timeout 3 ~/echobird/echobird-bridge --version 2>/dev/null || echo 'NOT_INSTALLED'"),
+    ).await {
+        Ok(Ok(r)) => r,
+        Ok(Err(e)) => return Err(format!("SSH check failed: {}", e)),
+        Err(_) => {
+            log::warn!("[Bridge] Version check timed out, assuming bridge is OK");
+            // If version check hangs, bridge likely exists — cache and proceed
+            if let Ok(mut cache) = REMOTE_BRIDGE_VERIFIED.lock() {
+                cache.insert(server_id.to_string());
+            }
+            drop(connections);
+            return Ok(());
+        }
+    };
 
     let remote_version = check_result.stdout.trim().to_string();
     let local_version = env!("CARGO_PKG_VERSION");
@@ -1026,11 +1040,20 @@ async fn ensure_remote_bridge(
         .ok_or_else(|| format!("SSH not connected: {}", server_id))?;
 
     let cdn_cmd = format!(
-        "mkdir -p ~/echobird && (wget -q -O {remote} '{url}' 2>/dev/null || curl -fsSL -o {remote} '{url}' 2>/dev/null) && chmod +x {remote} && ln -sf {remote} ~/echobird/echobird-bridge && echo 'CDN_OK'",
+        "mkdir -p ~/echobird && (wget -q --timeout=15 -O {remote} '{url}' 2>/dev/null || curl -fsSL --max-time 15 -o {remote} '{url}' 2>/dev/null) && chmod +x {remote} && ln -sf {remote} ~/echobird/echobird-bridge && echo 'CDN_OK'",
         remote = remote_binary,
         url = cdn_url,
     );
-    let cdn_result = client.execute(&cdn_cmd).await;
+    let cdn_result = match tokio::time::timeout(
+        std::time::Duration::from_secs(20),
+        client.execute(&cdn_cmd),
+    ).await {
+        Ok(r) => r,
+        Err(_) => {
+            log::warn!("[Bridge] CDN download timed out (20s)");
+            Err(async_ssh2_tokio::Error::from(std::io::Error::new(std::io::ErrorKind::TimedOut, "CDN timeout")))
+        }
+    };
 
     if let Ok(res) = &cdn_result {
         if res.stdout.trim().contains("CDN_OK") {
@@ -1081,7 +1104,8 @@ pub async fn bridge_chat_remote(
     crate::commands::ssh_commands::auto_connect_ssh(&pool, &server_id).await
         .map_err(|e| format!("SSH connection failed: {}", e))?;
 
-    // Auto-deploy Bridge binary if missing or outdated
+    // Auto-deploy Bridge binary if missing or outdated (skip on mobile — SSH impl incompatible)
+    #[cfg(not(any(target_os = "android", target_os = "ios")))]
     ensure_remote_bridge(&pool, &server_id).await
         .map_err(|e| format!("Bridge auto-deploy failed: {}", e))?;
 
@@ -1232,7 +1256,8 @@ pub async fn bridge_detect_agents_remote(
     crate::commands::ssh_commands::auto_connect_ssh(&pool, &server_id).await
         .map_err(|e| format!("SSH connection failed: {}", e))?;
 
-    // Auto-deploy Bridge binary if missing or outdated (same as bridge_chat_remote)
+    // Auto-deploy Bridge binary if missing or outdated (skip on mobile)
+    #[cfg(not(any(target_os = "android", target_os = "ios")))]
     ensure_remote_bridge(&pool, &server_id).await
         .map_err(|e| format!("Bridge auto-deploy failed: {}", e))?;
 
@@ -1298,7 +1323,8 @@ pub async fn bridge_set_role_remote(
     crate::commands::ssh_commands::auto_connect_ssh(&pool, &server_id).await
         .map_err(|e| format!("SSH connection failed: {}", e))?;
 
-    // Auto-deploy Bridge binary if missing or outdated
+    // Auto-deploy Bridge binary if missing or outdated (skip on mobile)
+    #[cfg(not(any(target_os = "android", target_os = "ios")))]
     ensure_remote_bridge(&pool, &server_id).await
         .map_err(|e| format!("Bridge auto-deploy failed: {}", e))?;
 
@@ -1567,10 +1593,14 @@ pub async fn bridge_set_remote_model(
     log::info!("[BridgeSetRemoteModel] server={}, agent={}, model={}, type={}",
         server_id, agent_id, model_id, api_type);
 
+    // Decrypt API key if encrypted (enc:v1:... → plaintext)
+    let api_key = crate::services::model_manager::decrypt_key_for_use(&api_key);
+
     crate::commands::ssh_commands::auto_connect_ssh(&pool, &server_id).await
         .map_err(|e| format!("SSH connection failed: {}", e))?;
 
-    // Auto-deploy Bridge binary if missing or outdated
+    // Auto-deploy Bridge binary if missing or outdated (desktop only)
+    #[cfg(not(any(target_os = "android", target_os = "ios")))]
     ensure_remote_bridge(&pool, &server_id).await
         .map_err(|e| format!("Bridge auto-deploy failed: {}", e))?;
 
@@ -1699,6 +1729,9 @@ pub async fn bridge_set_local_model(
     api_type: String,
 ) -> Result<serde_json::Value, String> {
     log::info!("[BridgeSetLocalModel] agent={}, model={}, type={}", agent_id, model_id, api_type);
+
+    // Decrypt API key if encrypted (enc:v1:... → plaintext)
+    let api_key = crate::services::model_manager::decrypt_key_for_use(&api_key);
 
     // Send set_model JSON to local Bridge subprocess (same pattern as set_role)
     let result = tokio::task::spawn_blocking(move || {

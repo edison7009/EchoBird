@@ -2,10 +2,12 @@
 import { Translations } from './types';
 const ko: Partial<Translations> = {
     // Navigation
-    'nav.modelNexus': '모델 센터',    'nav.appManager': '앱 관리자',
+    'nav.modelNexus': '모델 센터',
+    'nav.appManager': '앱 관리자',
     'nav.localServer': '로컬 LLM',
     // Page Titles
-    'page.modelNexus': '모델 센터',    'page.appManager': '앱 관리자',
+    'page.modelNexus': '모델 센터',
+    'page.appManager': '앱 관리자',
     'page.localServer': '로컬 LLM',
     // Settings
     'settings.title': '설정',
@@ -17,13 +19,21 @@ const ko: Partial<Translations> = {
     'settings.latestVersion': '최신 버전입니다',
     'settings.checkFailed': '확인 실패 — 다시 시도',
     // Buttons
-    'btn.addModel': '모델 추가',    'btn.refresh': '새로고침',    'btn.cancel': '취소',
+    'btn.addModel': '모델 추가',
+    'btn.refresh': '새로고침',
+    'btn.cancel': '취소',
     'btn.delete': '삭제',
-    'btn.edit': '편집',    'btn.launchApp': '앱 실행',    'btn.modifyOnly': '수정만',
+    'btn.edit': '편집',
+    'btn.launchApp': '앱 실행',
+    'btn.modifyOnly': '수정만',
     'btn.start': '시작',
     'btn.stop': '중지',
     'btn.add': '추가',
-    'btn.remove': '제거',    // Status    'status.scanning': '검색 중...',    // Search    // Model Dialog
+    'btn.remove': '제거',
+    // Status
+    'status.scanning': '검색 중...',
+    // Search
+    // Model Dialog
     'model.name': '이름',
     'model.apiKey': 'API 키',
     'model.modelId': '모델 ID',
@@ -37,10 +47,13 @@ const ko: Partial<Translations> = {
     'model.deleteConfirm': '이 모델 구성은 완전히 삭제됩니다. 되돌릴 수 없습니다.',
     'model.selectToTest': '테스트를 시작할 모델을 선택하세요',
     'model.escCancel': '[ESC] 취소',
-    'model.enterSave': '[ENTER] 모델 저장',    // App Manager
+    'model.enterSave': '[ENTER] 모델 저장',
+
+    // App Manager
     'agent.myLocalModel': '로컬 모델',
     'agent.selectTool': '도구 선택',
-    'agent.selectModelFor': '모델 선택:',    'agent.noModelsTitle': '설정된 모델이 없습니다.',
+    'agent.selectModelFor': '모델 선택:',
+    'agent.noModelsTitle': '설정된 모델이 없습니다.',
     'agent.noModelsHintPre': '',
     'agent.noModelsHintPost': '에서 모델을 추가하세요.',
     'agent.applyAndLaunch': '설정 적용 및 앱 실행',
@@ -60,7 +73,8 @@ const ko: Partial<Translations> = {
     'server.local': '로컬',
     'server.store': '스토어',
     'server.selectModelDir': '모델 디렉토리 선택',
-    'server.downloadFromStore': '스토어에서 모델 다운로드',    // Download / Model Store
+    'server.downloadFromStore': '스토어에서 모델 다운로드',
+    // Download / Model Store
     'download.location': '다운로드 위치:',
     'download.changePath': '다운로드 경로 변경',
     'download.selectNewDir': '새 기본 다운로드 디렉토리를 선택하시겠습니까?',
@@ -84,7 +98,8 @@ const ko: Partial<Translations> = {
     'common.noData': '데이터 없음',
     'common.confirm': '확인',
     'common.website': '웹사이트',
-    'common.areYouSure': '정말 하시겠습니까?',    // Tool Categories
+    'common.areYouSure': '정말 하시겠습니까?',
+    // Tool Categories
     'toolCat.all': '전체',
     'toolCat.agentOS': 'CLI Agent',
     'toolCat.ide': 'IDE',
@@ -93,21 +108,26 @@ const ko: Partial<Translations> = {
     'toolCat.game': '게임',
     'toolCat.utility': '유틸리티',
     // Agent Worker tabs
-    'agent.modelsTab': '모델',    // ToolCard tabs
-    'tool.models': '모델',    'tool.app': '앱',
+    'agent.modelsTab': '모델',
+    // ToolCard tabs
+    'tool.models': '모델',
+    'tool.app': '앱',
     'tool.config': '설정',
     'tool.version': '버전',
-    // Skills additions    // VRAM fitness labels
+    // Skills additions
+    // VRAM fitness labels
     'vram.easy': '여유',
     'vram.good': '좋음',
     'vram.tight': '빠듯',
     'vram.heavy': '버거움',
-    // Download status    'download.inQueue': '대기 중',
+    // Download status
+    'download.inQueue': '대기 중',
     'download.pause': '일시정지',
     'download.resume': '재개',
     'download.cancel': '취소',
     'download.retry': '다시 시도',
-    // Debug Console    // Local Server
+    // Debug Console
+    // Local Server
     'server.gpuFull': '⚡ GPU 풀',
     'server.cpuOnly': '🖥 CPU 전용',
     'server.setupEngine': '엔진 설정',
@@ -141,14 +161,20 @@ const ko: Partial<Translations> = {
     'channel.enterMessage': '메시지 입력...',
     'channel.awaitingResponse': '응답 대기 중...',
                     'channel.failed': '실패',
-    'channel.connecting': '연결 중...',    'channel.connectionFailed': '연결 실패',    'channel.noModels': '사용 가능한 모델 없음',
+    'channel.connecting': '연결 중...',
+    'channel.connectionFailed': '연결 실패',
+    'channel.noModels': '사용 가능한 모델 없음',
     'channel.motherFlow': 'Mother Agent → 서버 → Agent',
-    'channel.selectRoleAgent': '\u50ed\u54a0 \u48143 \u50640\u51060\u51204\u53944 \u49440\u53469 CLI',
+    'channel.selectRoleAgent': '역할 및 CLI Agent 선택',
     'hint.devInvite': 'AI 앱 또는 AI 게임 개발 — \"리버시\"와 \"AI 번역\"을 참고하세요.',
     'nav.motherAgent': 'Mother Agent',
-    'page.motherAgent': 'Mother Agent',    // Mother Agent
-    'mother.selectModel': '모델 선택',    'mother.hintInstall': '{agent} 설치',    'mother.enterMessage': '메시지 입력...',
-    'mother.noModels': '사용 가능한 모델 없음',    'mother.servers': '서버',
+    'page.motherAgent': 'Mother Agent',
+    // Mother Agent
+    'mother.selectModel': '모델 선택',
+    'mother.hintInstall': '{agent} 설치',
+    'mother.enterMessage': '메시지 입력...',
+    'mother.noModels': '사용 가능한 모델 없음',
+    'mother.servers': '서버',
     'mother.sshGuide': '설정 가이드',
     'mother.local': '로컬',
     'mother.noServer': '서버 없음',

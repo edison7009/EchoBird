@@ -1,15 +1,13 @@
-// MobileQRPopup — "Chat on the phone" QR code popup for Channels page
-// Generates a QR code containing channel config so the mobile app can scan and sync.
+// MobileConfigPopup — hover popup for copying config code to sync with mobile app
 
 import React, { useState, useRef } from 'react';
-import { QRCodeSVG } from 'qrcode.react';
 
-interface MobileQRProps {
-    /** Serialised config payload to encode in the QR code */
-    payload: string;
+interface MobileConfigProps {
+    /** Base64-encoded config string (eb:...) to copy */
+    configCode: string;
 }
 
-// Phone icon — thin outline style that clearly reads as a mobile phone
+// Phone icon — thin outline style
 const PhoneIcon = () => (
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
         <rect x="5" y="2" width="14" height="20" rx="2" ry="2" />
@@ -17,10 +15,10 @@ const PhoneIcon = () => (
     </svg>
 );
 
-export const MobileQRPopup: React.FC<MobileQRProps> = ({ payload }) => {
+export const MobileQRPopup: React.FC<MobileConfigProps> = ({ configCode }) => {
     const [open, setOpen] = useState(false);
+    const [copied, setCopied] = useState(false);
     const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-    const containerRef = useRef<HTMLDivElement>(null);
 
     const showPopup = () => {
         if (hideTimer.current) { clearTimeout(hideTimer.current); hideTimer.current = null; }
@@ -30,57 +28,69 @@ export const MobileQRPopup: React.FC<MobileQRProps> = ({ payload }) => {
         hideTimer.current = setTimeout(() => setOpen(false), 200);
     };
 
+    const handleCopy = async () => {
+        try {
+            await navigator.clipboard.writeText(configCode);
+            setCopied(true);
+            setTimeout(() => setCopied(false), 2000);
+        } catch {
+            const ta = document.createElement('textarea');
+            ta.value = configCode;
+            document.body.appendChild(ta);
+            ta.select();
+            document.execCommand('copy');
+            document.body.removeChild(ta);
+            setCopied(true);
+            setTimeout(() => setCopied(false), 2000);
+        }
+    };
+
     return (
-        <div className="relative" ref={containerRef} onMouseEnter={showPopup} onMouseLeave={scheduleHide}>
-            {/* Trigger — icon only, hover to show QR */}
+        <div className="relative" onMouseEnter={showPopup} onMouseLeave={scheduleHide}>
+            {/* Trigger — icon only, hover to show popup */}
             <span className="flex items-center p-1.5 text-cyber-accent/40 cursor-default select-none">
                 <PhoneIcon />
             </span>
 
-            {/* QR popup */}
+            {/* Config sync popup */}
             {open && (
                 <div className="absolute top-full right-0 mt-2 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
                     <div className="border border-cyber-accent/30 bg-cyber-bg rounded-xl shadow-lg shadow-cyber-accent/10 overflow-hidden"
-                         style={{ minWidth: 260 }}>
+                         style={{ minWidth: 280 }}>
                         {/* Header accent */}
                         <div className="h-[2px] w-full bg-gradient-to-r from-cyber-accent/0 via-cyber-accent/60 to-cyber-accent/0" />
 
                         {/* Content */}
-                        <div className="flex flex-col items-center px-6 pt-4 pb-5 gap-3">
-                            {/* QR code */}
-                            <div className="p-3 rounded-lg bg-white">
-                                <QRCodeSVG
-                                    value={payload}
-                                    size={180}
-                                    level="M"
-                                    bgColor="#ffffff"
-                                    fgColor="#0d0f1a"
-                                    imageSettings={{
-                                        src: '/ico.svg',
-                                        x: undefined,
-                                        y: undefined,
-                                        height: 28,
-                                        width: 28,
-                                        excavate: true,
-                                    }}
-                                />
-                            </div>
+                        <div className="flex flex-col items-center px-5 pt-4 pb-4 gap-3">
+                            {/* Copy button */}
+                            <button
+                                onClick={handleCopy}
+                                className="w-full py-2.5 px-4 rounded-lg font-mono text-[13px] font-medium tracking-wide transition-all cursor-pointer border"
+                                style={{
+                                    background: copied ? 'rgba(0, 255, 157, 0.15)' : 'rgba(0, 255, 157, 0.08)',
+                                    borderColor: copied ? 'rgba(0, 255, 157, 0.5)' : 'rgba(0, 255, 157, 0.25)',
+                                    color: copied ? '#00ff9d' : 'rgba(0, 255, 157, 0.8)',
+                                }}
+                            >
+                                {copied ? '✓ Copied' : 'Copy Config Code'}
+                            </button>
 
-                            {/* Label — 14px for readability */}
-                            <div className="text-center">
-                                <p className="text-[14px] font-mono text-cyber-accent font-medium tracking-wide">
-                                    Scan with Echobird APP
-                                </p>
-                                <div className="flex items-center justify-center gap-4 mt-2">
-                                    <a href="https://echobird.ai/download/android" target="_blank" rel="noopener noreferrer"
-                                       className="text-[12px] font-mono text-cyber-text-secondary/60 hover:text-cyber-accent transition-colors">
-                                        Android
-                                    </a>
-                                    <a href="https://echobird.ai/download/ios" target="_blank" rel="noopener noreferrer"
-                                       className="text-[12px] font-mono text-cyber-text-secondary/60 hover:text-cyber-accent transition-colors">
-                                        iOS
-                                    </a>
-                                </div>
+                            {/* Instruction */}
+                            <p className="text-[12px] font-mono text-cyber-text-secondary/50 text-center leading-relaxed">
+                                Paste on your phone, then open EchoBird to sync
+                            </p>
+
+                            {/* Download links */}
+                            <div className="flex items-center justify-center gap-4">
+                                <a href="https://echobird.ai/download/android" target="_blank" rel="noopener noreferrer"
+                                   className="text-[11px] font-mono text-cyber-text-secondary/40 hover:text-cyber-accent transition-colors">
+                                    Android
+                                </a>
+                                <span className="text-cyber-text-secondary/20">|</span>
+                                <a href="https://echobird.ai/download/ios" target="_blank" rel="noopener noreferrer"
+                                   className="text-[11px] font-mono text-cyber-text-secondary/40 hover:text-cyber-accent transition-colors">
+                                    iOS
+                                </a>
                             </div>
                         </div>
                     </div>

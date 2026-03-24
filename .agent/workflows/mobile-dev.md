@@ -78,6 +78,54 @@ npx vite --port 5174 --force
 ```
 Open `http://localhost:5174/?mobile=1` in browser DevTools mobile viewport (375x812).
 
+## PC → Mobile Sync Rules
+
+**When `Channels.tsx` is modified, `MobileApp.tsx` MUST be updated in the same commit.**
+
+The mobile app mirrors the PC Channels page 1:1. Any logic, guard, state, or UI change
+on PC must be reflected on mobile. Use this mapping to find the corresponding mobile code:
+
+### Module Mapping
+
+| PC Module (`Channels.tsx`) | Mobile Module (`MobileApp.tsx`) | Notes |
+|---|---|---|
+| `ChannelsPanel` (server list) | `screen === 'servers'` JSX | Agent icon, status dot, hasNew, isTyping, role name |
+| `ChannelsInner` (chat area) | `screen === 'chat'` JSX | Messages, loading bubble, input bar |
+| `handleSend` (4-step flow) | `sendMessage` callback | detect → start → setRole → chat |
+| `handleModelSelect` | Model dropdown `onClick` | modelWriting lock, rollback, anthropic protocol |
+| `AgentRolePicker` | `screen === 'setup'` JSX | Agent/role selection, detection |
+| `RemoteModelSelector` | `.chat-model-btn` + `.model-dropdown` | Icon-only on mobile, full dropdown |
+| `allRemoteModelLoading` | `modelWriting` state | Locks input + send + shows spinner |
+| `allBridgeStatus` | `connectionStatus` state | standby/connecting/connected/disconnected |
+| `allBridgeHasNew` | `hasNewMessages` state | Red dot on server list |
+| `remoteAgentCache` | `remoteAgentCacheRef` | Per-server agent detection cache |
+| `lastAppliedRoleRef` | `lastAppliedRoleRef` | Avoid redundant setRole calls |
+| `bridgeLoading` | `loading` state | Typing indicator + send lock |
+| `channelModelList` filter | `doLoadModels(agentId)` | Anthropic-only for Claude Code |
+
+### Sync Checklist (When Modifying `Channels.tsx`)
+
+1. **Identify** which module was changed (see mapping above)
+2. **Find** the corresponding code in `MobileApp.tsx`
+3. **Apply** the same logic change, adapting for mobile layout:
+   - Text → may need icon-only version
+   - Dropdown → may open upward
+   - Hover states → skip (no hover on mobile)
+4. **Verify** in browser at `http://localhost:5174/?mobile=1`
+5. **Check** no new `:hover` was introduced
+
+### Common Sync Scenarios
+
+| PC Change | Mobile Action |
+|---|---|
+| New guard in `handleSend` | Add same guard in `sendMessage` |
+| New state variable | Add matching state in `MobileApp` |
+| New API call in send flow | Add same call at same step position |
+| Model selector UI change | Update `.chat-model-btn` / `.model-dropdown` |
+| Server list card change | Update `screen === 'servers'` JSX |
+| New error message key | Add English equivalent (mobile is EN-only for now) |
+| New loading/disabled state | Mirror in mobile with same conditions |
+
 ## Checklist Before Committing Mobile Changes
 
 - [ ] Zero `:hover` pseudo-classes in MobileApp.css
@@ -87,3 +135,10 @@ Open `http://localhost:5174/?mobile=1` in browser DevTools mobile viewport (375x
 - [ ] Input bar stays single-line
 - [ ] Model selector is icon-only (full name in dropdown only)
 - [ ] Encoding: UTF-8 no BOM, CRLF line endings
+
+## Checklist Before Committing PC Channels Changes
+
+- [ ] Checked module mapping — found corresponding mobile code
+- [ ] Applied same logic/guard/state change to `MobileApp.tsx`
+- [ ] Verified mobile at `localhost:5174/?mobile=1`
+- [ ] No mobile-breaking changes introduced

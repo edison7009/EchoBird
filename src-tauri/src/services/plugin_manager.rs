@@ -89,12 +89,14 @@ pub fn plugins_dir() -> PathBuf {
     candidates[0].clone()
 }
 
-/// Scan plugins/ directory and return all valid plugin configs
+/// Scan plugins/ directory and return all valid plugin configs.
+/// Falls back to compile-time embedded configs when no plugins/ directory exists
+/// (e.g. on Android where the filesystem path is not accessible).
 pub fn scan_plugins() -> Vec<PluginConfig> {
     let dir = plugins_dir();
     if !dir.exists() {
-        log::info!("[PluginManager] No plugins directory found at {:?}", dir);
-        return Vec::new();
+        log::info!("[PluginManager] No plugins directory found at {:?}, using embedded configs", dir);
+        return embedded_plugin_configs();
     }
 
     let mut plugins = Vec::new();
@@ -128,7 +130,39 @@ pub fn scan_plugins() -> Vec<PluginConfig> {
         }
     }
 
+    if plugins.is_empty() {
+        log::info!("[PluginManager] No plugins found on disk, using embedded configs");
+        return embedded_plugin_configs();
+    }
+
     log::info!("[PluginManager] Scanned {} plugins", plugins.len());
+    plugins
+}
+
+/// Embedded plugin configs — compiled into the binary.
+/// Used as fallback when plugins/ directory is not accessible (Android, minimal installs).
+/// MUST be kept in sync with plugins/*/plugin.json files.
+fn embedded_plugin_configs() -> Vec<PluginConfig> {
+    let configs: &[&str] = &[
+        include_str!("../../../plugins/openclaw/plugin.json"),
+        include_str!("../../../plugins/zeroclaw/plugin.json"),
+        include_str!("../../../plugins/claudecode/plugin.json"),
+        include_str!("../../../plugins/nanobot/plugin.json"),
+        include_str!("../../../plugins/picoclaw/plugin.json"),
+        include_str!("../../../plugins/hermes/plugin.json"),
+    ];
+    let mut plugins = Vec::new();
+    for json_str in configs {
+        match serde_json::from_str::<PluginConfig>(json_str) {
+            Ok(config) => {
+                log::info!("[PluginManager] Embedded plugin: {} ({})", config.name, config.id);
+                plugins.push(config);
+            }
+            Err(e) => {
+                log::warn!("[PluginManager] Failed to parse embedded plugin: {}", e);
+            }
+        }
+    }
     plugins
 }
 

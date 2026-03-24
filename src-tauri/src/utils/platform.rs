@@ -134,8 +134,22 @@ pub fn home_dir() -> String {
 }
 
 /// Get Echobird config directory (~/.echobird/)
+/// On Android, dirs::home_dir() returns None, so we use the app's internal data dir.
 pub fn echobird_dir() -> std::path::PathBuf {
-    dirs::home_dir()
-        .unwrap_or_default()
-        .join(".echobird")
+    // Try standard home dir first (Windows / macOS / Linux desktop)
+    if let Some(home) = dirs::home_dir() {
+        return home.join(".echobird");
+    }
+    // Android fallback: use app internal storage
+    // Tauri sets TMPDIR to the app's cache dir; derive files dir from it
+    if let Ok(tmpdir) = std::env::var("TMPDIR") {
+        // TMPDIR is typically /data/data/com.echobird.ai/cache
+        // We want /data/data/com.echobird.ai/files/.echobird
+        let path = std::path::Path::new(&tmpdir);
+        if let Some(parent) = path.parent() {
+            return parent.join("files").join(".echobird");
+        }
+    }
+    // Last resort: use /data/local/tmp (unlikely to reach here)
+    std::path::PathBuf::from("/data/local/tmp/.echobird")
 }

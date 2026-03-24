@@ -2,10 +2,12 @@
 import { Translations } from './types';
 const zhHant: Partial<Translations> = {
     // Navigation
-    'nav.modelNexus': '模型中心',    'nav.appManager': '應用管理',
+    'nav.modelNexus': '模型中心',
+    'nav.appManager': '應用管理',
     'nav.localServer': '本地大模型',
     // Page titles
-    'page.modelNexus': '模型中心',    'page.appManager': '應用管理',
+    'page.modelNexus': '模型中心',
+    'page.appManager': '應用管理',
     'page.localServer': '本地大模型',
     // Settings
     'settings.title': '設定',
@@ -17,13 +19,21 @@ const zhHant: Partial<Translations> = {
     'settings.latestVersion': '已是最新版本',
     'settings.checkFailed': '檢查失敗 - 重試',
     // Buttons
-    'btn.addModel': '新增模型',    'btn.refresh': '重新整理',    'btn.cancel': '取消',
+    'btn.addModel': '新增模型',
+    'btn.refresh': '重新整理',
+    'btn.cancel': '取消',
     'btn.delete': '刪除',
-    'btn.edit': '編輯',    'btn.launchApp': '啟動應用',    'btn.modifyOnly': '僅修改',
+    'btn.edit': '編輯',
+    'btn.launchApp': '啟動應用',
+    'btn.modifyOnly': '僅修改',
     'btn.start': '啟動',
     'btn.stop': '停止',
     'btn.add': '新增',
-    'btn.remove': '移除',    // Status    'status.scanning': '掃描中…',    // Search    // Model dialog
+    'btn.remove': '移除',
+    // Status
+    'status.scanning': '掃描中…',
+    // Search
+    // Model dialog
     'model.name': '名稱',
     'model.apiKey': 'API 金鑰',
     'model.modelId': '模型 ID',
@@ -37,10 +47,13 @@ const zhHant: Partial<Translations> = {
     'model.deleteConfirm': '此模型設定將被永久刪除，操作不可復原。',
     'model.selectToTest': '選擇模型以開始測試',
     'model.escCancel': '[ESC] 取消',
-    'model.enterSave': '[ENTER] 儲存模型',    // App Manager
+    'model.enterSave': '[ENTER] 儲存模型',
+
+    // App Manager
     'agent.myLocalModel': '我的本機模型',
     'agent.selectTool': '選擇要設定的工具',
-    'agent.selectModelFor': '為以下工具選擇模型',    'agent.noModelsTitle': '尚未配置模型。',
+    'agent.selectModelFor': '為以下工具選擇模型',
+    'agent.noModelsTitle': '尚未配置模型。',
     'agent.noModelsHintPre': '請前往',
     'agent.noModelsHintPost': '新增模型。',
     'agent.applyAndLaunch': '套用設定並啟動應用',
@@ -60,7 +73,8 @@ const zhHant: Partial<Translations> = {
     'server.local': '本機',
     'server.store': '商店',
     'server.selectModelDir': '選擇模型目錄',
-    'server.downloadFromStore': '從商店下載模型',    // Download / Model Store
+    'server.downloadFromStore': '從商店下載模型',
+    // Download / Model Store
     'download.location': '下載位置：',
     'download.changePath': '變更下載路徑',
     'download.selectNewDir': '選擇新的預設下載目錄？',
@@ -84,7 +98,8 @@ const zhHant: Partial<Translations> = {
     'common.noData': '暫無資料',
     'common.confirm': '確認',
     'common.website': '官網',
-    'common.areYouSure': '確定嗎？',    // 工具分類
+    'common.areYouSure': '確定嗎？',
+    // 工具分類
     'toolCat.all': '全部',
     'toolCat.agentOS': 'CLI Agent',
     'toolCat.ide': 'IDE',
@@ -93,22 +108,27 @@ const zhHant: Partial<Translations> = {
     'toolCat.game': '遊戲',
     'toolCat.utility': '工具',
     // Agent Worker tabs
-    'agent.modelsTab': '模型',    'agent.installViaMother': 'AI 自動安裝',
+    'agent.modelsTab': '模型',
+    'agent.installViaMother': 'AI 自動安裝',
     // ToolCard labels
-    'tool.models': '模型',    'tool.app': '應用',
+    'tool.models': '模型',
+    'tool.app': '應用',
     'tool.config': '設定',
     'tool.version': '版本',
-    // Skills extra    // VRAM fitness labels
+    // Skills extra
+    // VRAM fitness labels
     'vram.easy': '輕鬆',
     'vram.good': '良好',
     'vram.tight': '緊湊',
     'vram.heavy': '吃力',
-    // Download status    'download.inQueue': '排隊中',
+    // Download status
+    'download.inQueue': '排隊中',
     'download.pause': '暫停',
     'download.resume': '繼續',
     'download.cancel': '取消',
     'download.retry': '重試',
-    // Debug主控台    // Local Server
+    // Debug主控台
+    // Local Server
     'server.gpuFull': '⚡ GPU 全速',
     'server.cpuOnly': '🖥 僅 CPU',
     'server.setupEngine': '安裝引擎',
@@ -143,14 +163,20 @@ const zhHant: Partial<Translations> = {
     'channel.enterMessage': '輸入訊息...',
     'channel.awaitingResponse': '等待回覆...',
                     'channel.failed': '失敗',
-    'channel.connecting': '連線中…',    'channel.connectionFailed': '連線失敗',    'channel.noModels': '暫無可用模型',
+    'channel.connecting': '連線中…',
+    'channel.connectionFailed': '連線失敗',
+    'channel.noModels': '暫無可用模型',
     'channel.motherFlow': 'Mother Agent → 伺服器 → Agent',
-    'channel.selectRoleAgent': '\u9078\u64c7\u89d2\u8272\u548c CLI Agent',
+    'channel.selectRoleAgent': '選擇角色和 CLI Agent',
     'hint.devInvite': '開發 AI 應用或 AI 遊戲，參考「黑白棋」和「AI 翻譯」。',
     'nav.motherAgent': 'Mother Agent',
-    'page.motherAgent': 'Mother Agent',    // Mother Agent
-    'mother.selectModel': '選擇模型',    'mother.hintInstall': '安裝 {agent}',    'mother.enterMessage': '輸入訊息...',
-    'mother.noModels': '暫無可用模型',    'mother.servers': '伺服器',
+    'page.motherAgent': 'Mother Agent',
+    // Mother Agent
+    'mother.selectModel': '選擇模型',
+    'mother.hintInstall': '安裝 {agent}',
+    'mother.enterMessage': '輸入訊息...',
+    'mother.noModels': '暫無可用模型',
+    'mother.servers': '伺服器',
     'mother.sshGuide': '新增指南',
     'mother.local': '本機',
     'mother.noServer': '無伺服器',

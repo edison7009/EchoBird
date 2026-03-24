@@ -31,56 +31,12 @@ pub struct TrayState {
 /// Track app start time for splash minimum duration
 pub struct AppStartTime(pub std::time::Instant);
 
-/// 7×7 pixel pattern (Echobird logo), 1=filled, 0=transparent
-const PIXEL_PATTERN: [[u8; 7]; 7] = [
-    [0, 1, 1, 1, 1, 1, 0],
-    [1, 0, 0, 0, 0, 1, 1],
-    [1, 1, 1, 1, 1, 1, 1],
-    [0, 1, 1, 1, 1, 1, 0],
-    [1, 1, 1, 0, 1, 1, 1],
-    [1, 0, 1, 0, 1, 0, 1],
-    [1, 0, 1, 0, 1, 0, 1],
-];
-
-/// Generate tray icon RGBA data from pixel pattern
-/// color: "green" (#00FF9D) for offline, "yellow" (#FFD700) for online
+/// Load tray icon from the bundled tray-icon.png
 #[cfg(not(target_os = "android"))]
-fn create_tray_icon_rgba(color: &str) -> (Vec<u8>, u32, u32) {
-    let (r, g, b) = match color {
-        "yellow" => (0xFF_u8, 0xD7_u8, 0x00_u8),
-        _ => (0x00_u8, 0xFF_u8, 0x9D_u8), // green
-    };
-
-    let src_size: u32 = 7;
-    let scale: u32 = 4;       // 7 * 4 = 28
-    let inner_size = src_size * scale; // 28
-    let out_size: u32 = 32;   // standard tray icon size
-    let pad = (out_size - inner_size) / 2; // 2px padding
-
-    let mut buf = vec![0u8; (out_size * out_size * 4) as usize];
-
-    for py in 0..out_size {
-        for px in 0..out_size {
-            let ix = px as i32 - pad as i32;
-            let iy = py as i32 - pad as i32;
-            let offset = ((py * out_size + px) * 4) as usize;
-
-            if ix >= 0 && ix < inner_size as i32 && iy >= 0 && iy < inner_size as i32 {
-                let sx = (ix as u32 / scale) as usize;
-                let sy = (iy as u32 / scale) as usize;
-                if PIXEL_PATTERN[sy][sx] == 1 {
-                    buf[offset] = r;
-                    buf[offset + 1] = g;
-                    buf[offset + 2] = b;
-                    buf[offset + 3] = 0xFF; // fully opaque
-                    continue;
-                }
-            }
-            buf[offset + 3] = 0x00; // fully transparent
-        }
-    }
-
-    (buf, out_size, out_size)
+fn load_tray_icon() -> tauri::image::Image<'static> {
+    let icon_bytes = include_bytes!("../icons/tray-icon.png");
+    tauri::image::Image::from_bytes(icon_bytes)
+        .expect("Failed to load tray-icon.png")
 }
 
 /// Get localized tray string
@@ -198,10 +154,8 @@ pub fn rebuild_tray_menu(app: &tauri::AppHandle) {
 
     let _ = tray.set_menu(Some(menu));
 
-    // Update icon color: green=offline, yellow=online
-    let color = if is_online { "yellow" } else { "green" };
-    let (rgba, w, h) = create_tray_icon_rgba(color);
-    let tray_icon = tauri::image::Image::new_owned(rgba, w, h);
+    // Use the unified app icon for tray (same icon regardless of server status)
+    let tray_icon = load_tray_icon();
     let _ = tray.set_icon(Some(tray_icon));
 
     // Update tooltip
@@ -254,8 +208,7 @@ pub fn run() {
             // ─── System Tray (desktop only) ───
             #[cfg(not(target_os = "android"))]
             {
-            let (rgba, w, h) = create_tray_icon_rgba("green");
-            let tray_icon = tauri::image::Image::new_owned(rgba, w, h);
+            let tray_icon = load_tray_icon();
 
             // Build initial tray menu (English default, server offline)
             let version = env!("CARGO_PKG_VERSION");

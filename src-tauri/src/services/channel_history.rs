@@ -3,6 +3,7 @@
 // Each file is a simple JSON array of {role, content} objects (max 500 entries).
 
 use serde::{Deserialize, Serialize};
+use crate::utils::platform::echobird_dir;
 
 /// A single chat message stored for a channel
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -15,9 +16,7 @@ pub struct ChannelMessage {
 const MAX_STORED: usize = 500;
 
 fn history_dir() -> std::path::PathBuf {
-    dirs::home_dir()
-        .unwrap_or_else(|| std::path::PathBuf::from("."))
-        .join(".echobird")
+    echobird_dir()
         .join("config")
         .join("channel_history")
 }
