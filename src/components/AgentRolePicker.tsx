@@ -80,7 +80,7 @@ export const AgentRolePicker: React.FC<AgentRolePickerProps> = ({
             setDetecting(true);
             api.bridgeDetectAgentsRemote(remoteServerId).then(remoteStatuses => {
                 if (cancelled) return;
-                const mapped: AgentStatus[] = remoteStatuses.map(r => ({ id: r.id, name: r.name, installed: r.installed }));
+                const mapped: AgentStatus[] = remoteStatuses.map(r => ({ id: r.id, name: r.name, installed: r.installed, running: r.running }));
                 setAgentStatuses(mapped);
                 // If no enabled agent is installed, clear stale role selection
                 const anyAvailable = AGENT_TOOLS.some(a => a.enabled && mapped.find(s => s.id === a.id)?.installed);
@@ -195,6 +195,7 @@ export const AgentRolePicker: React.FC<AgentRolePickerProps> = ({
                             >
                                 <img src={agent.icon} alt={agent.name} className={`w-5 h-5 ${isActive && isAvailable ? '' : 'opacity-50 grayscale'}`} />
                                 <span>{agent.name}</span>
+                                {status?.running && <span className="w-2 h-2 rounded-full bg-cyber-accent animate-pulse" />}
                             </div>
                         );
                     })}

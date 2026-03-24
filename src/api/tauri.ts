@@ -550,6 +550,7 @@ export interface AgentStatus {
     id: string;
     name: string;
     installed: boolean;
+    running?: boolean;
     path?: string;
 }
 
