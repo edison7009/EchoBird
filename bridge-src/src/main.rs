@@ -826,6 +826,8 @@ fn handle_start_agent(agent_id: &str) {
     let start_args: Vec<&str> = match agent_id {
         "openclaw"  => vec!["gateway"],
         "picoclaw"  => vec!["gateway"],
+        "nanobot"   => vec!["gateway"],
+        "hermes"    => vec!["gateway", "start"],
         "zeroclaw"  => vec!["serve"],
         _ => vec![],
     };
