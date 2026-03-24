@@ -1,6 +1,5 @@
 // OverscrollWrap.tsx — iOS-like rubber-band bounce for Android WebView
-// Uses transform: translateY() on inner wrapper — compositing-only, zero reflow.
-// Native touch listeners for 60fps performance.
+// Both top and bottom overscroll: transform inner div only (background stays fixed)
 
 import { useRef, useEffect, CSSProperties } from 'react';
 
@@ -23,62 +22,95 @@ export default function OverscrollWrap({ className, style, children }: Props) {
         const inner = innerRef.current;
         if (!scroll || !inner) return;
 
-        let startY = 0;
-        let isPulling = false;
+        let touching = false;
+        let lastY = 0;
+        let anchorY = 0;
+        let overscrollDir: 'none' | 'top' | 'bottom' = 'none';
 
-        const onStart = (e: TouchEvent) => {
-            startY = e.touches[0].clientY;
-            isPulling = false;
-            // No transition during drag — instant response
+        const isAtTop = () => scroll.scrollTop <= 0;
+        const isAtBot = () => scroll.scrollHeight - scroll.scrollTop - scroll.clientHeight < 2;
+
+        const onTouchStart = (e: TouchEvent) => {
+            touching = true;
+            lastY = e.touches[0].clientY;
+            anchorY = lastY;
+            overscrollDir = 'none';
             inner.style.transition = 'none';
         };
 
-        const onMove = (e: TouchEvent) => {
-            const delta = e.touches[0].clientY - startY;
-            const atTop = scroll.scrollTop <= 0;
-            const atBot = scroll.scrollHeight - scroll.scrollTop - scroll.clientHeight < 2;
+        const onTouchMove = (e: TouchEvent) => {
+            if (!touching) return;
+            const curY = e.touches[0].clientY;
+            const moveDelta = curY - lastY;
+            lastY = curY;
 
-            if (atTop && delta > 6) {
-                // Pull down at top — translateY positive
-                const d = Math.min(delta * DAMPING, MAX_PX);
+            if (overscrollDir === 'top') {
+                const totalDelta = curY - anchorY;
+                if (totalDelta <= 0) {
+                    inner.style.transform = '';
+                    overscrollDir = 'none';
+                    return;
+                }
+                const d = Math.min(totalDelta * DAMPING, MAX_PX);
                 inner.style.transform = `translateY(${d}px)`;
-                isPulling = true;
                 e.preventDefault();
-            } else if (atBot && delta < -6) {
-                // Pull up at bottom — translateY negative
-                const d = Math.max(delta * DAMPING, -MAX_PX);
-                inner.style.transform = `translateY(${d}px)`;
-                isPulling = true;
+                return;
+            }
+
+            if (overscrollDir === 'bottom') {
+                const totalDelta = anchorY - curY;
+                if (totalDelta <= 0) {
+                    inner.style.transform = '';
+                    overscrollDir = 'none';
+                    return;
+                }
+                const d = Math.min(totalDelta * DAMPING, MAX_PX);
+                // Transform inner div UP — gap appears at bottom within the scroll viewport
+                inner.style.transform = `translateY(-${d}px)`;
                 e.preventDefault();
-            } else if (isPulling) {
-                inner.style.transform = '';
-                isPulling = false;
+                return;
+            }
+
+            // Not in overscroll yet — check boundaries
+            if (isAtTop() && moveDelta > 0) {
+                overscrollDir = 'top';
+                anchorY = curY;
+            } else if (isAtBot() && moveDelta < 0) {
+                overscrollDir = 'bottom';
+                anchorY = curY;
             }
         };
 
-        const onEnd = () => {
-            if (!isPulling) return;
-            inner.style.transition = `transform ${SPRING_MS}ms cubic-bezier(0.25,0.46,0.45,0.94)`;
-            inner.style.transform = 'translateY(0)';
-            isPulling = false;
+        const onTouchEnd = () => {
+            touching = false;
+            if (overscrollDir !== 'none') {
+                inner.style.transition = `transform ${SPRING_MS}ms cubic-bezier(0.25,0.46,0.45,0.94)`;
+                inner.style.transform = 'translateY(0)';
+                overscrollDir = 'none';
+            }
         };
 
         scroll.addEventListener('touchstart', onStart, { passive: true });
-        scroll.addEventListener('touchmove', onMove, { passive: false });
-        scroll.addEventListener('touchend', onEnd, { passive: true });
+        scroll.addEventListener('touchmove', onTouchMove, { passive: false });
+        scroll.addEventListener('touchend', onTouchEnd, { passive: true });
+        scroll.addEventListener('touchcancel', onTouchEnd, { passive: true });
 
         return () => {
             scroll.removeEventListener('touchstart', onStart);
-            scroll.removeEventListener('touchmove', onMove);
-            scroll.removeEventListener('touchend', onEnd);
+            scroll.removeEventListener('touchmove', onTouchMove);
+            scroll.removeEventListener('touchend', onTouchEnd);
+            scroll.removeEventListener('touchcancel', onTouchEnd);
         };
+
+        function onStart(e: TouchEvent) { onTouchStart(e); }
     }, []);
 
     return (
-        <div ref={scrollRef} className={className} style={style}>
+        <div ref={scrollRef} className={className} style={{ ...style, overflowY: 'auto' }}>
             <div ref={innerRef} style={{ willChange: 'transform', display: 'flex', flexDirection: 'column', gap: 'inherit', minHeight: '100%' }}>
                 {children}
             </div>
         </div>
     );
 }
+

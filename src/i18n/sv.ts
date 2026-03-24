@@ -127,5 +127,9 @@ const sv: Partial<Translations> = {
     'mother.hintUninstall': 'Avinstallera {agent} helt',
     'status.running': 'Körs',
     'status.offline': 'Offline',
+    // Mobile sync
+    'mobile.syncToPhone': 'Sync to Phone',
+    'mobile.pasteInApp': 'Klistra in i EchoBird App',
+    'mobile.copied': 'Kopierat',
 };
 export default sv;

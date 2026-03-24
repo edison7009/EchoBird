@@ -221,5 +221,9 @@ const hi: Partial<Translations> = {
     'mother.hintUninstall': '{agent} को पूरी तरह हटाएं',
     'status.running': 'चल रहा है',
     'status.offline': 'ऑफ़लाइन',
+    // Mobile sync
+    'mobile.syncToPhone': 'Sync to Phone',
+    'mobile.pasteInApp': 'EchoBird App Paste',
+    'mobile.copied': 'Copied',
 };
 export default hi;

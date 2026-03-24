@@ -127,5 +127,9 @@ const fa: Partial<Translations> = {
     'mother.hintUninstall': 'حذف کامل {agent}',
     'status.running': 'در حال اجرا',
     'status.offline': 'آفلاین',
+    // Mobile sync
+    'mobile.syncToPhone': 'Sync to Phone',
+    'mobile.pasteInApp': 'Paste in EchoBird App',
+    'mobile.copied': 'Copied',
 };
 export default fa;

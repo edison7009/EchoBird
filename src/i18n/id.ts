@@ -200,5 +200,9 @@ const id: Partial<Translations> = {
     'mother.hintUninstall': 'Hapus instalasi {agent} sepenuhnya',
     'status.running': 'Berjalan',
     'status.offline': 'Offline',
+    // Mobile sync
+    'mobile.syncToPhone': 'Sync to Phone',
+    'mobile.pasteInApp': 'Tempel di EchoBird App',
+    'mobile.copied': 'Disalin',
 };
 export default id;

@@ -1004,8 +1004,6 @@ const ChannelsInner: React.FC = () => {
                         />
                         <div className="flex items-center justify-between px-3 py-1.5">
                             <div className="flex items-center gap-1 relative">
-                                <button onClick={() => fileInputRef.current?.click()} disabled={bridgeLoading || !isActiveConnected} className="p-1 text-cyber-accent/60 hover:text-cyber-accent transition-colors disabled:opacity-20"><Paperclip size={15} /></button>
-                                <button onClick={() => imageInputRef.current?.click()} disabled={bridgeLoading || !isActiveConnected} className="p-1 text-cyber-accent/60 hover:text-cyber-accent transition-colors disabled:opacity-20"><ImageIcon size={15} /></button>
                             </div>
                             <div className="flex items-center gap-1.5">
                                 {/* Model selector — left of send button, all channels */}
@@ -1025,8 +1023,7 @@ const ChannelsInner: React.FC = () => {
                                 )}
                             </div>
                         </div>
-                        <input ref={fileInputRef} type="file" multiple className="hidden" onChange={handleFileSelect} />
-                        <input ref={imageInputRef} type="file" multiple accept="image/*" className="hidden" onChange={handleImageSelect} />
+
                     </div>
                 </div>
             )}
@@ -1234,6 +1231,5 @@ export function ChannelsMobileSync() {
         })();
     }, []);
 
-    if (!configCode) return null;
     return <MobileQRPopup configCode={configCode} />;
 }

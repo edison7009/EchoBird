@@ -200,5 +200,9 @@ const ms: Partial<Translations> = {
     'mother.hintUninstall': 'Nyahpasang {agent} sepenuhnya',
     'status.running': 'Berjalan',
     'status.offline': 'Luar talian',
+    // Mobile sync
+    'mobile.syncToPhone': 'Sync to Phone',
+    'mobile.pasteInApp': 'Tampal di EchoBird App',
+    'mobile.copied': 'Disalin',
 };
 export default ms;

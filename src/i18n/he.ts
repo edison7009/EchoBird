@@ -127,5 +127,9 @@ const he: Partial<Translations> = {
     'mother.hintUninstall': 'הסר לחלוטין את {agent}',
     'status.running': 'פועל',
     'status.offline': 'לא מקוון',
+    // Mobile sync
+    'mobile.syncToPhone': 'Sync to Phone',
+    'mobile.pasteInApp': 'Paste in EchoBird App',
+    'mobile.copied': 'Copied',
 };
 export default he;

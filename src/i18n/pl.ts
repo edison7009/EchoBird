@@ -221,5 +221,9 @@ const pl: Partial<Translations> = {
     'mother.hintUninstall': 'Odinstaluj {agent} całkowicie',
     'status.running': 'Działa',
     'status.offline': 'Offline',
+    // Mobile sync
+    'mobile.syncToPhone': 'Sync to Phone',
+    'mobile.pasteInApp': 'Wklej w EchoBird App',
+    'mobile.copied': 'Skopiowano',
 };
 export default pl;

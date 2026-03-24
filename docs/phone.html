@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EchoBird Mobile — Download for Android & iOS</title>
+    <meta name="description" content="Download EchoBird for Android and iOS. Sync your AI agent configs from PC to phone.">
+    <link rel="icon" href="./icon.png" type="image/png">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        :root {
+            --neon: #00FF9D;
+            --bg: #050a0e;
+            --bg2: #0a1018;
+            --border: #1a2a3a;
+            --text: #c9d1d9;
+            --dim: #5a6a7a;
+            --white: #f0f6fc;
+            --mono: 'JetBrains Mono', monospace;
+            --sans: 'Inter', system-ui, sans-serif;
+        }
+        body {
+            font-family: var(--sans);
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 40px 20px;
+        }
+        .container { max-width: 480px; width: 100%; text-align: center; }
+        .logo {
+            width: 80px; height: 80px;
+            border-radius: 20px;
+            margin-bottom: 24px;
+            filter: drop-shadow(0 0 30px rgba(0,255,157,.3));
+        }
+        h1 {
+            font-family: var(--mono);
+            font-size: 28px; font-weight: 700;
+            color: var(--neon);
+            margin-bottom: 8px;
+            letter-spacing: 1px;
+        }
+        .subtitle { font-size: 15px; color: var(--dim); margin-bottom: 48px; }
+        .cards { display: flex; flex-direction: column; gap: 16px; }
+        .card {
+            display: flex; align-items: center; gap: 20px;
+            background: var(--bg2);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 24px 28px;
+            text-decoration: none; color: var(--white);
+            transition: all .25s;
+        }
+        .card:hover {
+            border-color: rgba(0,255,157,.4);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 32px rgba(0,0,0,.4), 0 0 20px rgba(0,255,157,.06);
+        }
+        .card-icon { font-size: 36px; flex-shrink: 0; }
+        .card-info { text-align: left; }
+        .card-info h3 { font-family: var(--mono); font-size: 16px; font-weight: 600; margin-bottom: 4px; }
+        .card-info p { font-size: 13px; color: var(--dim); }
+        .badge {
+            display: inline-block; font-family: var(--mono); font-size: 11px;
+            color: var(--neon); background: rgba(0,255,157,.1);
+            border: 1px solid rgba(0,255,157,.2);
+            border-radius: 6px; padding: 2px 8px; margin-top: 6px;
+        }
+        .card-arrow { margin-left: auto; color: var(--dim); font-size: 20px; transition: color .2s; }
+        .card:hover .card-arrow { color: var(--neon); }
+        .card.disabled { opacity: .5; cursor: default; pointer-events: none; }
+        .footer-note { margin-top: 48px; font-size: 12px; color: var(--dim); line-height: 1.6; }
+        .footer-note a { color: var(--neon); text-decoration: none; }
+        .footer-note a:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <img src="./icon.png" alt="EchoBird" class="logo">
+        <h1>EchoBird Mobile</h1>
+        <p class="subtitle">Sync your AI agent configs from PC to phone</p>
+
+        <div class="cards">
+            <a href="https://github.com/edison7009/Echobird-MotherAgent/releases/latest" class="card">
+                <span class="card-icon">🤖</span>
+                <div class="card-info">
+                    <h3>Android</h3>
+                    <p>Download APK from GitHub Releases</p>
+                    <span class="badge">v3.2.7</span>
+                </div>
+                <span class="card-arrow">→</span>
+            </a>
+
+            <div class="card disabled">
+                <span class="card-icon">🍎</span>
+                <div class="card-info">
+                    <h3>iOS</h3>
+                    <p>Coming soon</p>
+                </div>
+            </div>
+        </div>
+
+        <p class="footer-note">
+            Open source &amp; free — <a href="https://github.com/edison7009/Echobird-MotherAgent">GitHub</a><br>
+            &copy; 2025 EchoBird
+        </p>
+    </div>
+</body>
+</html>

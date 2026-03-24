@@ -221,5 +221,9 @@ const bn: Partial<Translations> = {
     'mother.hintUninstall': '{agent} সম্পূর্ণ আনইনস্টল করুন',
     'status.running': 'চলছে',
     'status.offline': 'অফলাইন',
+    // Mobile sync
+    'mobile.syncToPhone': 'Sync to Phone',
+    'mobile.pasteInApp': 'EchoBird App Paste',
+    'mobile.copied': 'Copied',
 };
 export default bn;

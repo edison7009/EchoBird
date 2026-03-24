@@ -118,5 +118,9 @@ const fi: Partial<Translations> = {
     'mother.hintUninstall': 'Poista {agent} kokonaan',
     'status.running': 'Käynnissä',
     'status.offline': 'Offline',
+    // Mobile sync
+    'mobile.syncToPhone': 'Sync to Phone',
+    'mobile.pasteInApp': 'Paste in EchoBird App',
+    'mobile.copied': 'Copied',
 };
 export default fi;

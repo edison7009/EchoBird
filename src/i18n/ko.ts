@@ -245,5 +245,9 @@ const ko: Partial<Translations> = {
     'mother.hintUninstall': '{agent} 완전 삭제',
     'status.running': '실행 중',
     'status.offline': '오프라인',
+    // Mobile sync
+    'mobile.syncToPhone': '\uD734\uB300\uD3F0\uC5D0 \uB3D9\uAE30\uD654',
+    'mobile.pasteInApp': 'EchoBird App\uC5D0 \uBD99\uC5EC\uB123\uAE30',
+    'mobile.copied': '\uBCF5\uC0AC\uB428',
 };
 export default ko;

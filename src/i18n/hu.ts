@@ -221,5 +221,9 @@ const hu: Partial<Translations> = {
     'mother.hintUninstall': '{agent} teljes eltávolítása',
     'status.running': 'Fut',
     'status.offline': 'Offline',
+    // Mobile sync
+    'mobile.syncToPhone': 'Sync to Phone',
+    'mobile.pasteInApp': 'Paste in EchoBird App',
+    'mobile.copied': 'Copied',
 };
 export default hu;

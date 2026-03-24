@@ -811,21 +811,6 @@ export function MotherAgentMain() {
                     {/* Bottom toolbar */}
                     <div className="flex items-center justify-between px-3 py-1.5">
                         <div className="flex items-center gap-1 relative">
-                            <button
-                                onClick={() => fileInputRef.current?.click()}
-                                disabled={isProcessing}
-                                className="p-1 text-cyber-accent-secondary/40 hover:text-cyber-accent-secondary transition-colors disabled:opacity-20"
-                            >
-                                <Paperclip size={15} />
-                            </button>
-                            <button
-                                onClick={() => imageInputRef.current?.click()}
-                                disabled={isProcessing}
-                                className="p-1 text-cyber-accent-secondary/40 hover:text-cyber-accent-secondary transition-colors disabled:opacity-20"
-                            >
-                                <ImageIcon size={15} />
-                            </button>
-
                         </div>
                         <div className="flex items-center gap-2">
                             <span className="text-xs font-mono text-cyber-accent-secondary/80 truncate max-w-[160px]">
@@ -855,8 +840,7 @@ export function MotherAgentMain() {
                     </div>
                 </div>
                 {/* Hidden file inputs */}
-                <input ref={fileInputRef} type="file" multiple className="hidden" onChange={handleFileSelect} />
-                <input ref={imageInputRef} type="file" multiple accept="image/*" className="hidden" onChange={handleImageSelect} />
+
             </div>
         </div>
     );

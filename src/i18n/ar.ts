@@ -221,5 +221,9 @@ const ar: Partial<Translations> = {
     'mother.hintUninstall': 'إلغاء تثبيت {agent} بالكامل',
     'status.running': 'قيد التشغيل',
     'status.offline': 'غير متصل',
+    // Mobile sync
+    'mobile.syncToPhone': 'Sync to Phone',
+    'mobile.pasteInApp': 'Paste in EchoBird App',
+    'mobile.copied': 'Copied',
 };
 export default ar;

@@ -1,6 +1,8 @@
 // MobileConfigPopup — hover popup for copying config code to sync with mobile app
 
 import React, { useState, useRef } from 'react';
+import { useI18n } from '../hooks/useI18n';
+import { open as shellOpen } from '@tauri-apps/plugin-shell';
 
 interface MobileConfigProps {
     /** Base64-encoded config string (eb:...) to copy */
@@ -19,6 +21,7 @@ export const MobileQRPopup: React.FC<MobileConfigProps> = ({ configCode }) => {
     const [open, setOpen] = useState(false);
     const [copied, setCopied] = useState(false);
     const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const { t } = useI18n();
 
     const showPopup = () => {
         if (hideTimer.current) { clearTimeout(hideTimer.current); hideTimer.current = null; }
@@ -72,25 +75,24 @@ export const MobileQRPopup: React.FC<MobileConfigProps> = ({ configCode }) => {
                                     color: copied ? '#00ff9d' : 'rgba(0, 255, 157, 0.8)',
                                 }}
                             >
-                                {copied ? '✓ Copied' : 'Copy Config Code'}
+                                {copied ? `✓ ${t('mobile.copied')}` : t('mobile.syncToPhone')}
                             </button>
 
                             {/* Instruction */}
                             <p className="text-[12px] font-mono text-cyber-text-secondary/50 text-center leading-relaxed">
-                                Paste on your phone, then open EchoBird to sync
+                                {t('mobile.pasteInApp')}
                             </p>
 
                             {/* Download links */}
                             <div className="flex items-center justify-center gap-4">
-                                <a href="https://echobird.ai/download/android" target="_blank" rel="noopener noreferrer"
-                                   className="text-[11px] font-mono text-cyber-text-secondary/40 hover:text-cyber-accent transition-colors">
+                                <span onClick={() => shellOpen('https://echobird.ai/phone').catch(() => window.open('https://echobird.ai/phone', '_blank'))}
+                                   className="text-[11px] font-mono text-cyber-text-secondary/40 hover:text-cyber-accent transition-colors cursor-pointer">
                                     Android
-                                </a>
-                                <span className="text-cyber-text-secondary/20">|</span>
-                                <a href="https://echobird.ai/download/ios" target="_blank" rel="noopener noreferrer"
-                                   className="text-[11px] font-mono text-cyber-text-secondary/40 hover:text-cyber-accent transition-colors">
+                                </span>
+                                <span onClick={() => shellOpen('https://echobird.ai/phone').catch(() => window.open('https://echobird.ai/phone', '_blank'))}
+                                   className="text-[11px] font-mono text-cyber-text-secondary/40 hover:text-cyber-accent transition-colors cursor-pointer">
                                     iOS
-                                </a>
+                                </span>
                             </div>
                         </div>
                     </div>

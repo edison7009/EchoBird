@@ -198,5 +198,9 @@ const nl: Partial<Translations> = {
     'mother.hintUninstall': '{agent} volledig verwijderen',
     'status.running': 'Actief',
     'status.offline': 'Offline',
+    // Mobile sync
+    'mobile.syncToPhone': 'Sync to Phone',
+    'mobile.pasteInApp': 'Plak in EchoBird App',
+    'mobile.copied': 'Gekopieerd',
 };
 export default nl;

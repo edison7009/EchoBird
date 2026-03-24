@@ -223,5 +223,9 @@ const th: Partial<Translations> = {
     'mother.hintUninstall': 'ถอนการติดตั้ง {agent} ทั้งหมด',
     'status.running': 'กำลังทำงาน',
     'status.offline': 'ออฟไลน์',
+    // Mobile sync
+    'mobile.syncToPhone': 'Sync to Phone',
+    'mobile.pasteInApp': 'Paste in EchoBird App',
+    'mobile.copied': 'Copied',
 };
 export default th;

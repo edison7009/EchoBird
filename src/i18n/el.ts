@@ -127,5 +127,9 @@ const el: Partial<Translations> = {
     'mother.hintUninstall': 'Πλήρης απεγκατάσταση {agent}',
     'status.running': 'Εκτελείται',
     'status.offline': 'Εκτός σύνδεσης',
+    // Mobile sync
+    'mobile.syncToPhone': 'Sync to Phone',
+    'mobile.pasteInApp': 'Paste in EchoBird App',
+    'mobile.copied': 'Copied',
 };
 export default el;

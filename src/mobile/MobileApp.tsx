@@ -6,7 +6,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 declare const __APP_VERSION__: string;
-import { ArrowLeft, Settings, Send, Loader2, Paperclip, Box, Ban, Check, ScanLine, Globe, Download, ExternalLink, ChevronDown, ClipboardPaste } from 'lucide-react';
+import { ChevronLeft, Settings, Send, Loader2, Box, Ban, Check, Globe, Download, ExternalLink, ChevronDown, ClipboardPaste, X } from 'lucide-react';
 import { useI18n } from '../hooks/useI18n';
 import { errorToKey } from '../utils/normalizeError';
 import { useChatPersistence } from '../hooks/useChatPersistence';
@@ -18,7 +18,7 @@ import type { ModelConfig } from '../api/types';
 import './MobileApp.css';
 import OverscrollWrap from './OverscrollWrap';
 
-type MobileScreen = 'servers' | 'chat' | 'setup' | 'settings' | 'scanner';
+type MobileScreen = 'servers' | 'chat' | 'setup' | 'settings';
 
 // Agent list — same as PC Channels.tsx AGENT_LIST (icons bundled in app)
 const AGENT_LIST = [
@@ -112,16 +112,6 @@ interface ChatMsg {
     duration_ms?: number;
 }
 
-interface QRPayload {
-    a: string;   // 'echobird'
-    v: number;
-    // v1 legacy (full key names)
-    app?: string;
-    servers?: { name: string; address: string; serverId?: string }[];
-    // v2: compressed keys
-    s?: { h: string; o: number; u: string; p: string; n: string }[];  // ssh
-    m?: { n: string; i: string; b: string; k: string; x: string }[];  // models
-}
 
 // Settings screen component — language, version check, website link
 interface SettingsScreenProps {
@@ -129,8 +119,9 @@ interface SettingsScreenProps {
     setLocale: (l: string) => void;
     onBack: () => void;
     t: (key: any) => string;
+    slideClass?: string;
 }
-function SettingsScreen({ locale, setLocale, onBack, t }: SettingsScreenProps) {
+function SettingsScreen({ locale, setLocale, onBack, t, slideClass }: SettingsScreenProps) {
     const [updateStatus, setUpdateStatus] = useState<'idle' | 'checking' | 'latest' | 'available' | 'error'>('idle');
     const [latestVersion, setLatestVersion] = useState<string | null>(null);
     const [langOpen, setLangOpen] = useState(false);
@@ -156,10 +147,10 @@ function SettingsScreen({ locale, setLocale, onBack, t }: SettingsScreenProps) {
     const currentLang = LOCALE_OPTIONS.find(o => o.id === locale)?.label || 'English';
 
     return (
-        <div className="mobile-screen">
+        <div className={`mobile-screen ${slideClass || ''}`}>
             <div className="mobile-header">
                 <button className="mobile-icon-btn" onClick={onBack}>
-                    <ArrowLeft size={20} />
+                    <ChevronLeft size={22} />
                 </button>
                 <h2 className="mobile-title">{t('settings.title')}</h2>
                 <div className="mobile-header-spacer" />
@@ -242,90 +233,39 @@ function SettingsScreen({ locale, setLocale, onBack, t }: SettingsScreenProps) {
     );
 }
 
-// QR Scanner component using html5-qrcode
-function QRScannerView({ onScanned }: { onScanned: (text: string) => void }) {
-    const scannerRef = useRef<HTMLDivElement>(null);
-    const scannerInstanceRef = useRef<any>(null);
-    const [scanError, setScanError] = useState<string | null>(null);
-    const hasScannedRef = useRef(false);
-
-    useEffect(() => {
-        let mounted = true;
-        (async () => {
-            try {
-                const { Html5Qrcode } = await import('html5-qrcode');
-                if (!mounted || !scannerRef.current) return;
-
-                const scannerId = 'qr-scanner-region';
-                // Ensure the element exists
-                if (!document.getElementById(scannerId)) {
-                    const el = document.createElement('div');
-                    el.id = scannerId;
-                    scannerRef.current.appendChild(el);
-                }
-
-                const scanner = new Html5Qrcode(scannerId);
-                scannerInstanceRef.current = scanner;
-
-                await scanner.start(
-                    { facingMode: 'environment' },
-                    {
-                        fps: 10,
-                        qrbox: { width: 280, height: 280 },
-                        // Request HD resolution for better QR decoding
-                        videoConstraints: {
-                            facingMode: 'environment',
-                            width: { min: 1280, ideal: 1920 },
-                            height: { min: 720, ideal: 1080 },
-                        },
-                    },
-                    (decodedText: string) => {
-                        if (hasScannedRef.current) return;
-                        hasScannedRef.current = true;
-                        // Stop scanner before callback
-                        scanner.stop().catch(() => {});
-                        onScanned(decodedText);
-                    },
-                    () => {} // ignore scan failures (normal — most frames won't have QR)
-                );
-            } catch (err: any) {
-                if (mounted) setScanError(err?.message || 'Camera access denied');
-            }
-        })();
-
-        return () => {
-            mounted = false;
-            const inst = scannerInstanceRef.current;
-            if (inst) {
-                inst.stop().catch(() => {});
-                try { inst.clear(); } catch {}
-            }
-        };
-    }, []);
-
-    return (
-        <div className="qr-scanner-container" ref={scannerRef}>
-            {scanError ? (
-                <div className="qr-scanner-error">
-                    <ScanLine size={48} />
-                    <p>{scanError}</p>
-                </div>
-            ) : (
-                <div className="qr-scanner-viewfinder">
-                    <div className="qr-scanner-corners">
-                        <span className="corner tl" /><span className="corner tr" />
-                        <span className="corner bl" /><span className="corner br" />
-                    </div>
-                    <div className="qr-scanner-line" />
-                </div>
-            )}
-        </div>
-    );
-}
 
 function MobileApp() {
     const { t, locale, setLocale } = useI18n();
     const [screen, setScreen] = useState<MobileScreen>('servers');
+    const [slideDirection, setSlideDirection] = useState<'slide-right' | 'slide-left' | ''>('');
+
+    // ── Fix keyboard covering input: use visualViewport height ──
+    useEffect(() => {
+        const vv = window.visualViewport;
+        if (!vv) return;
+        let prevHeight = vv.height;
+        const update = () => {
+            document.documentElement.style.setProperty('--app-height', `${vv.height}px`);
+            // Keyboard opened (height shrank) → scroll chat to bottom
+            if (vv.height < prevHeight - 50 && chatBottomRef.current) {
+                setTimeout(() => chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
+            }
+            prevHeight = vv.height;
+        };
+        update();
+        vv.addEventListener('resize', update);
+        return () => vv.removeEventListener('resize', update);
+    }, []);
+
+    // Screen depth for determining slide direction
+    const screenDepth: Record<MobileScreen, number> = { settings: 0, servers: 1, chat: 2, setup: 3 };
+    const navigateTo = useCallback((target: MobileScreen) => {
+        const dir = screenDepth[target] >= screenDepth[screen] ? 'slide-right' : 'slide-left';
+        setSlideDirection(dir);
+        setScreen(target);
+        // Clear animation class after it completes so re-triggering works
+        setTimeout(() => setSlideDirection(''), 300);
+    }, [screen]);
 
     // Server list — loaded from same config as PC (ssh_servers.json)
     const [servers, setServers] = useState<SSHServer[]>([]);
@@ -437,21 +377,14 @@ function MobileApp() {
         setShowPasteModal(true);
     }, []);
 
-    const doPasteImport = useCallback(async () => {
-        const text = pasteInput.trim();
-        if (!text.startsWith('eb:')) {
-            setPasteStatus('error');
-            return;
-        }
+    const doPasteImport = useCallback(async (text: string) => {
+        if (!text.trim().startsWith('eb:')) return;
         setPasteStatus('importing');
         try {
-            const b64 = text.slice(3);
+            const b64 = text.trim().slice(3);
             const json = decodeURIComponent(escape(atob(b64)));
             const data = JSON.parse(json);
             if (data.a !== 'echobird' || data.v < 2) { setPasteStatus('error'); return; }
-
-            let srvCount = 0;
-            let modCount = 0;
 
             // Import SSH servers
             if (data.s?.length) {
@@ -462,7 +395,6 @@ function MobileApp() {
                 for (const srv of data.s) {
                     const id = `sync-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
                     await api.saveSSHServer(id, srv.h, srv.o, srv.u, srv.p, srv.n);
-                    srvCount++;
                 }
             }
             // Import models
@@ -481,7 +413,6 @@ function MobileApp() {
                         apiKey: mod.k,
                         anthropicUrl: mod.x || undefined,
                     });
-                    modCount++;
                 }
             }
             const updated = await api.loadSSHServers();
@@ -491,8 +422,17 @@ function MobileApp() {
         } catch (e) {
             console.error('[Sync] Paste import failed:', e);
             setPasteStatus('error');
+            setTimeout(() => setPasteStatus('idle'), 1500);
         }
-    }, [pasteInput]);
+    }, []);
+
+    // Auto-detect: trigger import when paste input starts with 'eb:'
+    const handlePasteInputChange = useCallback((val: string) => {
+        setPasteInput(val);
+        if (val.trim().startsWith('eb:') && pasteStatus === 'idle') {
+            doPasteImport(val);
+        }
+    }, [pasteStatus, doPasteImport]);
 
     // ── Auto-scroll chat ──
     useEffect(() => {
@@ -555,7 +495,7 @@ function MobileApp() {
         setShowModelMenu(false);
         // Clear hasNew for this server
         setHasNewMessages(prev => ({ ...prev, [server.id]: false }));
-        setScreen('chat');
+        navigateTo('chat');
     };
 
     // ── Load chat history from disk when entering server with no cached messages ──
@@ -638,7 +578,7 @@ function MobileApp() {
 
     // ── Open setup screen ──
     const openSetup = () => {
-        setScreen('setup');
+        navigateTo('setup');
         setSetupCategory('all');
         doLoadRoles();
         if (activeServer) {
@@ -874,9 +814,9 @@ function MobileApp() {
         <div className="mobile-app">
             {/* ===== Server List ===== */}
             {screen === 'servers' && (
-                <div className="mobile-screen">
+                <div className={`mobile-screen ${slideDirection}`}>
                     <div className="mobile-header">
-                        <button className="mobile-icon-btn" onClick={() => setScreen('settings')}>
+                        <button className="mobile-icon-btn" onClick={() => navigateTo('settings')}>
                             <Settings size={20} />
                         </button>
                         <div className="mobile-header-spacer" />
@@ -891,55 +831,47 @@ function MobileApp() {
                             display: 'flex', gap: 8, padding: '8px 12px',
                             borderBottom: '1px solid rgba(0,255,157,0.15)',
                             background: 'rgba(0,0,0,0.3)',
+                            alignItems: 'center',
                         }}>
                             <input
                                 type="text"
                                 value={pasteInput}
-                                onChange={e => setPasteInput(e.target.value)}
-                                placeholder="Paste config code here (eb:...)"
+                                onChange={e => handlePasteInputChange(e.target.value)}
+                                autoFocus
                                 style={{
                                     flex: 1, background: 'rgba(255,255,255,0.06)',
-                                    border: '1px solid rgba(0,255,157,0.2)',
+                                    border: `1px solid ${pasteStatus === 'success' ? 'rgba(0,255,157,0.5)' : pasteStatus === 'error' ? 'rgba(255,80,80,0.5)' : 'rgba(0,255,157,0.2)'}`,
                                     borderRadius: 8, padding: '8px 12px',
                                     color: '#e0e0e0', fontSize: 13,
                                     fontFamily: 'monospace', outline: 'none',
                                 }}
                             />
-                            <button
-                                onClick={doPasteImport}
-                                disabled={pasteStatus === 'importing' || !pasteInput.trim()}
-                                style={{
-                                    padding: '8px 16px', borderRadius: 8,
-                                    background: pasteStatus === 'success' ? 'rgba(0,255,157,0.25)' :
-                                               pasteStatus === 'error' ? 'rgba(255,80,80,0.25)' :
-                                               'rgba(0,255,157,0.15)',
-                                    border: '1px solid rgba(0,255,157,0.3)',
-                                    color: pasteStatus === 'success' ? '#00ff9d' :
-                                           pasteStatus === 'error' ? '#ff5050' : 'rgba(0,255,157,0.8)',
-                                    fontSize: 13, fontFamily: 'monospace',
-                                    fontWeight: 600, cursor: 'pointer',
-                                    whiteSpace: 'nowrap',
-                                }}
-                            >
-                                {pasteStatus === 'importing' ? '...' :
-                                 pasteStatus === 'success' ? '✓' :
-                                 pasteStatus === 'error' ? '✗' : 'Import'}
-                            </button>
+                            {pasteStatus === 'importing' && <Loader2 size={18} className="spin" style={{ color: '#00ff9d', flexShrink: 0 }} />}
+                            {pasteStatus === 'success' && <Check size={18} style={{ color: '#00ff9d', flexShrink: 0 }} />}
+                            {pasteStatus === 'error' && <X size={18} style={{ color: '#ff5050', flexShrink: 0 }} />}
+                            {pasteStatus === 'idle' && (
+                                <button
+                                    onClick={() => { setShowPasteModal(false); setPasteInput(''); }}
+                                    style={{
+                                        background: 'none', border: 'none',
+                                        color: 'rgba(255,255,255,0.3)', cursor: 'pointer',
+                                        display: 'flex', alignItems: 'center',
+                                        padding: 0, flexShrink: 0,
+                                    }}
+                                >
+                                    <X size={18} />
+                                </button>
+                            )}
                         </div>
                     )}
 
                     {serversLoading ? (
                         <div className="empty-servers">
                             <Loader2 size={32} className="spin" />
-                            <p className="empty-servers-desc">Loading...</p>
                         </div>
                     ) : servers.length === 0 ? (
                         <div className="empty-servers">
-                            <div className="empty-servers-icon">📱</div>
-                            <p className="empty-servers-title">No servers</p>
-                            <p className="empty-servers-desc">
-                                Copy config code from PC, then tap paste button
-                            </p>
+                            <img src="/ico.png" alt="" className="empty-servers-watermark" />
                         </div>
                     ) : (
                         <OverscrollWrap className="server-list">
@@ -961,7 +893,7 @@ function MobileApp() {
                                         onClick={() => openServer(s)}
                                     >
                                         <div className="server-card-row">
-                                            <div className="server-card-icon">
+                                            <div className={`server-card-icon${serverAgent ? '' : ' fallback'}`}>
                                                 {serverAgent ? (
                                                     <img src={serverAgent.icon} alt="" className="server-agent-img" />
                                                 ) : (
@@ -977,7 +909,7 @@ function MobileApp() {
                                                 </div>
                                                 <div className="server-card-sub-row">
                                                     <span className={`server-card-status ${isTyping ? 'typing' : isLinked ? 'connected' : isConnecting ? 'connecting' : isError ? 'error' : ''}`}>
-                                                        [{isTyping ? 'inputting' : isLinked ? 'linked' : isConnecting ? 'connecting' : isError ? 'failed' : t('channel.standby')}]
+                                                        [{isTyping ? t('common.inputting') : isLinked ? t('channel.linked') : isConnecting ? t('channel.connecting') : isError ? t('channel.failed') : t('channel.standby')}]
                                                     </span>
                                                     {(isActive && selectedRole) && (
                                                         <span className="server-card-sub">{selectedRole.name}</span>
@@ -995,11 +927,11 @@ function MobileApp() {
 
             {/* ===== Chat (Telegram Layout) ===== */}
             {screen === 'chat' && activeServer && (
-                <div className="mobile-screen">
+                <div className={`mobile-screen ${slideDirection}`}>
                     {/* Header: [←] [Role Name ▾] [Agent Icon] */}
                     <div className="chat-header">
-                        <button className="mobile-icon-btn" onClick={() => setScreen('servers')}>
-                            <ArrowLeft size={20} />
+                        <button className="mobile-icon-btn" onClick={() => navigateTo('servers')}>
+                            <ChevronLeft size={22} />
                         </button>
                         <div className="chat-header-center" onClick={openSetup}>
                             <div className="chat-header-title">
@@ -1079,10 +1011,10 @@ function MobileApp() {
                                         setShowModelMenu(!showModelMenu);
                                     }}
                                     disabled={modelWriting}
-                                    title={selectedModel?.name || 'Select model'}
+                                    title={selectedModel?.name || t('mother.selectModel')}
                                 >
                                     {modelWriting ? (
-                                        <Loader2 size={16} className="spin" />
+                                        <Loader2 size={20} className="spin" />
                                     ) : selectedModel ? (
                                         (() => {
                                             const iconPath = getModelIcon(selectedModel.name, selectedModel.modelId);
@@ -1094,18 +1026,18 @@ function MobileApp() {
                                                     onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }}
                                                 />
                                             ) : (
-                                                <Box size={16} />
+                                                <Box size={20} />
                                             );
                                         })()
                                     ) : (
-                                        <Box size={16} />
+                                        <Box size={20} />
                                     )}
                                 </button>
                                 {showModelMenu && (
                                     <div className="model-dropdown">
                                         {modelsLoading ? (
                                             <div className="model-dropdown-item">
-                                                <Loader2 size={14} className="spin" /> Loading...
+                                                <Loader2 size={14} className="spin" />
                                             </div>
                                         ) : models.length === 0 ? (
                                             <div className="model-dropdown-item">
@@ -1165,7 +1097,6 @@ function MobileApp() {
                             </div>
                         )}
                         {/* Input box: [input text only] */}
-                        <button className="chat-attach-btn"><Paperclip size={20} /></button>
                         <div className="chat-input-box">
                             <textarea
                                 className="chat-textarea"
@@ -1192,10 +1123,10 @@ function MobileApp() {
 
             {/* ===== Setup Screen (= PC AgentRolePicker) ===== */}
             {screen === 'setup' && activeServer && (
-                <div className="mobile-screen">
+                <div className={`mobile-screen ${slideDirection}`}>
                     <div className="mobile-header">
-                        <button className="mobile-icon-btn" onClick={() => setScreen('chat')}>
-                            <ArrowLeft size={20} />
+                        <button className="mobile-icon-btn" onClick={() => navigateTo('chat')}>
+                            <ChevronLeft size={22} />
                         </button>
                         <h2 className="mobile-title">
                             {t('channel.selectRoleAgent')}
@@ -1323,82 +1254,10 @@ function MobileApp() {
             )}
 
             {/* ===== Settings ===== */}
-            {/* ===== QR Scanner ===== */}
-            {screen === 'scanner' && (
-                <div className="mobile-screen">
-                    <div className="mobile-header">
-                        <button className="mobile-icon-btn" onClick={() => setScreen('servers')}>
-                            <ArrowLeft size={20} />
-                        </button>
-                        <h2 className="mobile-title">Scan QR</h2>
-                        <div className="mobile-header-spacer" />
-                    </div>
-                    <QRScannerView
-                        onScanned={async (payload) => {
-                            try {
-                                const data = JSON.parse(payload) as QRPayload;
-                                if (data.a !== 'echobird' && (data as any).app !== 'echobird') return;
 
-                                if (hasTauri()) {
-                                    if (data.v >= 2 && data.s) {
-                                        // v2: full SSH + models sync (compressed keys)
-                                        // Remove all existing servers
-                                        for (const old of servers) {
-                                            await api.removeSSHServerFromDisk(old.id);
-                                        }
-                                        // Save SSH servers (Rust auto-encrypts password)
-                                        for (const srv of data.s) {
-                                            const id = `scanned-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
-                                            await api.saveSSHServer(id, srv.h, srv.o, srv.u, srv.p, srv.n);
-                                        }
-                                        // Save models (Rust auto-encrypts apiKey)
-                                        if (data.m?.length) {
-                                            // Remove existing user models first
-                                            const existing = await api.getModels();
-                                            for (const em of existing) {
-                                                if (em.internalId !== 'local-server') {
-                                                    await api.deleteModel(em.internalId);
-                                                }
-                                            }
-                                            // Add scanned models
-                                            for (const mod of data.m) {
-                                                await api.addModel({
-                                                    name: mod.n,
-                                                    modelId: mod.i,
-                                                    baseUrl: mod.b,
-                                                    apiKey: mod.k,
-                                                    anthropicUrl: mod.x || undefined,
-                                                });
-                                            }
-                                        }
-                                    } else if (data.servers?.length) {
-                                        // v1 legacy: address-only servers
-                                        for (const old of servers) {
-                                            await api.removeSSHServerFromDisk(old.id);
-                                        }
-                                        for (const s of data.servers) {
-                                            const host = s.address.includes('@') ? s.address.split('@')[1]?.split(':')[0] || '' : s.address;
-                                            const port = parseInt(s.address.split(':').pop() || '22') || 22;
-                                            const username = s.address.split('@')[0] || 'root';
-                                            const id = s.serverId || `scanned-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
-                                            await api.saveSSHServer(id, host, port, username, '', s.name);
-                                        }
-                                    }
-                                    // Reload servers from disk
-                                    const updated = await api.loadSSHServers();
-                                    setServers(updated);
-                                }
-                                setScreen('servers');
-                            } catch (e) {
-                                console.error('[Scanner] Parse/save error:', e);
-                            }
-                        }}
-                    />
-                </div>
-            )}
 
             {/* ===== Settings ===== */}
-            {screen === 'settings' && <SettingsScreen locale={locale} setLocale={setLocale} onBack={() => setScreen('servers')} t={t} />}
+            {screen === 'settings' && <SettingsScreen locale={locale} setLocale={setLocale} onBack={() => navigateTo('servers')} t={t} slideClass={slideDirection} />}
         </div>
     );
 }

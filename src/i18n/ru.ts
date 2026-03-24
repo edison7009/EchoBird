@@ -245,5 +245,9 @@ const ru: Partial<Translations> = {
     'mother.hintUninstall': 'Полностью удалить {agent}',
     'status.running': 'Запущено',
     'status.offline': 'Не в сети',
+    // Mobile sync
+    'mobile.syncToPhone': 'Sync to Phone',
+    'mobile.pasteInApp': 'Paste in EchoBird App',
+    'mobile.copied': 'Copied',
 };
 export default ru;

@@ -221,5 +221,9 @@ const tr: Partial<Translations> = {
     'mother.hintUninstall': '{agent} tamamen kaldır',
     'status.running': 'Çalışıyor',
     'status.offline': 'Çevrimdışı',
+    // Mobile sync
+    'mobile.syncToPhone': 'Sync to Phone',
+    'mobile.pasteInApp': 'EchoBird App yapistir',
+    'mobile.copied': 'Kopyalandi',
 };
 export default tr;

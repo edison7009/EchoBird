@@ -227,5 +227,9 @@ const en: Translations = {
     'status.offline': 'Offline',
     'status.complete': 'Complete',
     'status.failed': 'Failed',
+    // Mobile sync
+    'mobile.syncToPhone': 'Sync to Phone',
+    'mobile.pasteInApp': 'Paste in your EchoBird App',
+    'mobile.copied': 'Copied',
 };
 export { en };

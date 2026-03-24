@@ -198,5 +198,9 @@ const cs: Partial<Translations> = {
     'mother.hintUninstall': 'Zcela odinstalovat {agent}',
     'status.running': 'Spuštěno',
     'status.offline': 'Offline',
+    // Mobile sync
+    'mobile.syncToPhone': 'Sync to Phone',
+    'mobile.pasteInApp': 'Paste in EchoBird App',
+    'mobile.copied': 'Copied',
 };
 export default cs;

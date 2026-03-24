@@ -221,5 +221,9 @@ const vi: Partial<Translations> = {
     'mother.hintUninstall': 'Gỡ cài đặt {agent} hoàn toàn',
     'status.running': 'Đang chạy',
     'status.offline': 'Ngoại tuyến',
+    // Mobile sync
+    'mobile.syncToPhone': 'Sync to Phone',
+    'mobile.pasteInApp': 'Dan vao EchoBird App',
+    'mobile.copied': 'Da sao chep',
 };
 export default vi;

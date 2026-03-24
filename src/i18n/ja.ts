@@ -245,5 +245,9 @@ const ja: Partial<Translations> = {
     'mother.hintUninstall': '{agent} を完全にアンインストール',
     'status.running': '実行中',
     'status.offline': 'オフライン',
+    // Mobile sync
+    'mobile.syncToPhone': '\u30B9\u30DE\u30DB\u306B\u540C\u671F',
+    'mobile.pasteInApp': 'EchoBird App \u306B\u8CBC\u308A\u4ED8\u3051',
+    'mobile.copied': '\u30B3\u30D4\u30FC\u6E08\u307F',
 };
 export default ja;

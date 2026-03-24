@@ -206,5 +206,9 @@ const zhHans: Partial<Translations> = {
     'mother.hintUninstall': '完全卸载 {agent}',
     'status.running': '运行中',
     'status.offline': '离线',
+    // Mobile sync
+    'mobile.syncToPhone': '\u540C\u6B65\u5230\u624B\u673A',
+    'mobile.pasteInApp': '\u5728 EchoBird App \u4E2D\u7C98\u8D34',
+    'mobile.copied': '\u5DF2\u590D\u5236',
 };
 export default zhHans;

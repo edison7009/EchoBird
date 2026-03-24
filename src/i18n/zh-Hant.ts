@@ -246,5 +246,9 @@ const zhHant: Partial<Translations> = {
     'mother.hintUninstall': '完全解除安裝 {agent}',
     'status.running': '執行中',
     'status.offline': '離線',
+    // Mobile sync
+    'mobile.syncToPhone': '\u540C\u6B65\u5230\u624B\u6A5F',
+    'mobile.pasteInApp': '\u5728 EchoBird App \u4E2D\u8CBC\u4E0A',
+    'mobile.copied': '\u5DF2\u8907\u88FD',
 };
 export default zhHant;

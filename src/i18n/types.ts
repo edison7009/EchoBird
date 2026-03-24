@@ -69,7 +69,7 @@ export type TKey =
     // Common
     | 'common.noData' | 'common.confirm' | 'common.website'
     | 'common.areYouSure' | 'common.inputting'
-// API Key encryption status
+    // API Key encryption status
     | 'key.encrypted' | 'key.destroyed'
     // Close behavior confirmation
     | 'close.title' | 'close.message' | 'close.minimize' | 'close.quit' | 'close.remember'
@@ -109,6 +109,8 @@ export type TKey =
     | 'error.connectionTimeout' | 'error.serverUnreachable' | 'error.agentFailed'
     | 'error.noServerConfig' | 'error.noModelSelected' | 'error.requestFailed'
     | 'error.userCancelled'
+    // Mobile sync
+    | 'mobile.syncToPhone' | 'mobile.pasteInApp' | 'mobile.copied'
     | 'common.inputting';
 
 export type Translations = Record<TKey, string>;
