@@ -1,0 +1,5 @@
+{
+    "configFile": "~/.zeroclaw/config.toml",
+    "format": "toml",
+    "custom": true
+}

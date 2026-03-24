@@ -1,0 +1,17 @@
+{
+    "name": "FinGPT",
+    "category": "AutoTrading",
+    "docs": "https://github.com/AI4Finance-Foundation/FinGPT",
+    "apiProtocol": [
+        "openai"
+    ],
+    "installUrl": "https://github.com/AI4Finance-Foundation/FinGPT",
+    "command": "fingpt",
+    "configDir": "~/.fingpt",
+    "configFile": "~/.fingpt/config.json",
+    "paths": {
+        "win32": [],
+        "darwin": [],
+        "linux": []
+    }
+}

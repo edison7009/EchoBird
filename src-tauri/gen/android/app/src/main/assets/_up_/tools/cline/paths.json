@@ -1,0 +1,31 @@
+{
+    "name": "Cline",
+    "category": "IDE",
+    "docs": "https://docs.cline.bot",
+    "apiProtocol": [
+        "openai"
+    ],
+    "installUrl": "https://marketplace.visualstudio.com/items?itemName=saoudrizwan.claude-dev",
+    "command": "",
+    "configDir": "~/.vscode",
+    "configFile": "~/.vscode/settings.json",
+    "requireConfigFile": false,
+    "detectByConfigDir": false,
+    "paths": {
+        "win32": [],
+        "darwin": [],
+        "linux": []
+    },
+    "extensionId": "saoudrizwan.claude-dev",
+    "extensionPaths": {
+        "win32": [
+            "%USERPROFILE%/.vscode/extensions/saoudrizwan.claude-dev-*"
+        ],
+        "darwin": [
+            "~/.vscode/extensions/saoudrizwan.claude-dev-*"
+        ],
+        "linux": [
+            "~/.vscode/extensions/saoudrizwan.claude-dev-*"
+        ]
+    }
+}

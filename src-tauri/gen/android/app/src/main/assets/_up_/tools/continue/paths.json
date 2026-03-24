@@ -1,0 +1,24 @@
+{
+    "name": "Continue",
+    "category": "IDE",
+    "apiProtocol": [
+        "openai"
+    ],
+    "docs": "https://docs.continue.dev/",
+    "installUrl": "https://marketplace.visualstudio.com/items?itemName=Continue.continue",
+    "configDir": "~/.continue",
+    "configFile": "~/.continue/config.yaml",
+    "requireConfigFile": false,
+    "detectByConfigDir": false,
+    "extensionPaths": {
+        "win32": [
+            "%USERPROFILE%/.vscode/extensions/continue.continue-*"
+        ],
+        "darwin": [
+            "~/.vscode/extensions/continue.continue-*"
+        ],
+        "linux": [
+            "~/.vscode/extensions/continue.continue-*"
+        ]
+    }
+}

@@ -1,0 +1,35 @@
+{
+    "name": "ZeroClaw",
+    "names": {
+        "zh-CN": "ZeroClaw",
+        "zh-TW": "ZeroClaw",
+        "ja": "ZeroClaw",
+        "ko": "ZeroClaw"
+    },
+    "category": "CLI Agent",
+    "apiProtocol": [
+        "openai"
+    ],
+    "docs": "https://www.zeroclawlabs.ai/",
+    "installUrl": "https://www.zeroclawlabs.ai/",
+    "command": "zeroclaw",
+    "startCommand": "zeroclaw daemon",
+    "configDir": "~/.zeroclaw",
+    "configFile": "~/.zeroclaw/config.toml",
+    "requireConfigFile": false,
+    "paths": {
+        "win32": [
+            "%USERPROFILE%/.cargo/bin/zeroclaw.exe"
+        ],
+        "darwin": [
+            "/usr/local/bin/zeroclaw",
+            "/opt/homebrew/bin/zeroclaw",
+            "~/.cargo/bin/zeroclaw"
+        ],
+        "linux": [
+            "/usr/local/bin/zeroclaw",
+            "/usr/bin/zeroclaw",
+            "~/.cargo/bin/zeroclaw"
+        ]
+    }
+}

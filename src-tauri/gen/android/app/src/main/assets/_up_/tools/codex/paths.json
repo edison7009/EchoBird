@@ -1,0 +1,29 @@
+{
+    "name": "Codex",
+    "category": "CLI",
+    "apiProtocol": [
+        "openai"
+    ],
+    "docs": "https://github.com/openai/codex",
+    "command": "codex",
+    "startCommand": "codex",
+    "envVar": "CODEX_PATH",
+    "configDir": "~/.codex",
+    "configFile": "~/.codex/config.toml",
+    "requireConfigFile": false,
+    "paths": {
+        "win32": [
+            "%APPDATA%/npm/codex.cmd",
+            "%USERPROFILE%/scoop/shims/codex.exe",
+            "%USERPROFILE%/.bun/bin/codex.exe"
+        ],
+        "darwin": [
+            "/usr/local/bin/codex",
+            "/opt/homebrew/bin/codex"
+        ],
+        "linux": [
+            "/usr/local/bin/codex",
+            "/usr/bin/codex"
+        ]
+    }
+}

@@ -1,0 +1,5 @@
+{
+    "configFile": "~/.echobird/roocode.json",
+    "format": "json",
+    "custom": true
+}

@@ -1,0 +1,12 @@
+{
+    "id": "opencode",
+    "name": "OpenCode",
+    "protocol": "cli-oneshot",
+    "cli": {
+        "command": "opencode",
+        "detectCommand": "opencode --version",
+        "args": ["--non-interactive", "--message"],
+        "systemPromptArg": "--system-prompt",
+        "systemPromptWhen": "always"
+    }
+}

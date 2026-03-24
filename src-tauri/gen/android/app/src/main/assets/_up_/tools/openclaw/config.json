@@ -1,0 +1,6 @@
+{
+    "docs": "https://docs.openclaw.ai/configuration",
+    "configFile": "~/.openclaw/openclaw.json",
+    "format": "json",
+    "custom": true
+}

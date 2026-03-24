@@ -1,0 +1,14 @@
+{
+    "id": "picoclaw",
+    "name": "PicoClaw",
+    "protocol": "cli-oneshot",
+    "cli": {
+        "command": "picoclaw",
+        "detectCommand": "picoclaw version",
+        "args": [
+            "agent",
+            "-m"
+        ],
+        "messageMode": "last-arg"
+    }
+}

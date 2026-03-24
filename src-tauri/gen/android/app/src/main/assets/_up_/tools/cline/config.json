@@ -1,0 +1,5 @@
+{
+    "custom": true,
+    "configFile": "~/.vscode/settings.json",
+    "format": "json"
+}

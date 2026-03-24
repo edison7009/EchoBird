@@ -1,0 +1,30 @@
+{
+    "name": "ClaudeCode",
+    "category": "CLI",
+    "apiProtocol": [
+        "anthropic"
+    ],
+    "docs": "https://docs.anthropic.com/en/docs/claude-code/overview",
+    "command": "claude",
+    "startCommand": "claude",
+    "envVar": "CCS_CLAUDE_PATH",
+    "configDir": "~/.claude",
+    "configFile": "~/.claude/settings.json",
+    "requireConfigFile": true,
+    "paths": {
+        "win32": [
+            "%USERPROFILE%/.local/bin/claude.exe",
+            "%APPDATA%/npm/claude.cmd",
+            "%USERPROFILE%/.bun/bin/claude.exe"
+        ],
+        "darwin": [
+            "/usr/local/bin/claude",
+            "/opt/homebrew/bin/claude"
+        ],
+        "linux": [
+            "/usr/local/bin/claude",
+            "/usr/bin/claude",
+            "~/.local/bin/claude"
+        ]
+    }
+}

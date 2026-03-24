@@ -1,0 +1,15 @@
+{
+    "id": "hermes",
+    "name": "Hermes Agent",
+    "protocol": "cli-oneshot",
+    "cli": {
+        "command": "hermes",
+        "detectCommand": "hermes --version",
+        "args": [
+            "chat",
+            "-Q",
+            "-q"
+        ],
+        "messageMode": "last-arg"
+    }
+}

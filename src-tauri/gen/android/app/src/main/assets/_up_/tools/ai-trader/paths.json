@@ -1,0 +1,17 @@
+{
+    "name": "AI-Trader",
+    "category": "AutoTrading",
+    "docs": "https://github.com/HKUDS/AI-Trader",
+    "apiProtocol": [
+        "openai"
+    ],
+    "installUrl": "https://github.com/HKUDS/AI-Trader",
+    "command": "ai-trader",
+    "configDir": "~/.ai-trader",
+    "configFile": "~/.ai-trader/config.json",
+    "paths": {
+        "win32": [],
+        "darwin": [],
+        "linux": []
+    }
+}

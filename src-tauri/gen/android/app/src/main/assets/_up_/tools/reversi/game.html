@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reversi</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, 'SF Pro Display', 'Segoe UI', sans-serif;
+            background: #0a0e17;
+            color: #e0e0e0;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            user-select: none;
+        }
+
+        /* 自定义标题栏（无边框窗口） */
+        .titlebar {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            height: 32px;
+            -webkit-app-region: drag;
+            flex-shrink: 0;
+        }
+
+        .titlebar-btn {
+            -webkit-app-region: no-drag;
+            width: 40px;
+            height: 32px;
+            border: none;
+            background: transparent;
+            color: rgba(255, 255, 255, 0.4);
+            font-size: 11px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.15s, color 0.15s;
+        }
+
+        .titlebar-btn:hover {
+            background: rgba(255, 255, 255, 0.08);
+            color: #fff;
+        }
+
+        .titlebar-btn.close:hover {
+            background: #e81123;
+            color: #fff;
+        }
+
+        /* 主体 */
+        .main {
+            flex: 1;
+            display: flex;
+            overflow: hidden;
+        }
+
+        /* 左侧：棋盘 */
+        .board-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .board {
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            gap: 2px;
+            background: #0d7a4d;
+            border-radius: 12px;
+            padding: 6px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+            width: min(420px, 56vh);
+            height: min(420px, 56vh);
+        }
+
+        .cell {
+            background: #0a6640;
+            border-radius: 3px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background 0.15s;
+            aspect-ratio: 1;
+        }
+
+        .cell:hover {
+            background: #0d7a4d;
+        }
+
+        .cell.valid {
+            background: rgba(0, 255, 157, 0.12);
+            cursor: pointer;
+        }
+
+        .cell.valid:hover {
+            background: rgba(0, 255, 157, 0.25);
+        }
+
+        .piece {
+            width: 78%;
+            height: 78%;
+            border-radius: 50%;
+            transition: transform 0.2s ease;
+        }
+
+        .piece.black {
+            background: #f0f0f0;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+        }
+
+        .piece.white {
+            background: #00ff9d;
+            box-shadow: 0 2px 6px rgba(0, 255, 157, 0.3);
+        }
+
+        .piece.flip {
+            animation: flip 0.35s ease;
+        }
+
+        @keyframes flip {
+            0% {
+                transform: scale(1);
+            }
+
+            50% {
+                transform: scale(0, 1);
+            }
+
+            100% {
+                transform: scale(1);
+            }
+        }
+
+        .turn-hint {
+            margin-top: 14px;
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.4);
+            height: 20px;
+            text-align: center;
+            transition: color 0.3s;
+        }
+
+        .turn-hint.win {
+            color: #fff;
+            font-weight: 600;
+        }
+
+        .turn-hint.lose {
+            color: #00ff9d;
+            font-weight: 600;
+        }
+
+        .turn-hint.draw {
+            color: #888;
+            font-weight: 600;
+        }
+
+        /* 右侧：AI */
+        .ai-panel {
+            width: 300px;
+            display: flex;
+            flex-direction: column;
+            border-left: 1px solid rgba(255, 255, 255, 0.06);
+        }
+
+        .ai-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .ai-name {
+            font-size: 14px;
+            font-weight: 600;
+            color: #00ff9d;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            max-width: 180px;
+        }
+
+        .btn-new {
+            font-size: 11px;
+            padding: 4px 14px;
+            border: 1px solid rgba(0, 255, 157, 0.3);
+            background: transparent;
+            color: #00ff9d;
+            border-radius: 16px;
+            cursor: pointer;
+            font-weight: 600;
+            letter-spacing: 1px;
+            transition: all 0.2s;
+        }
+
+        .btn-new:hover {
+            background: rgba(0, 255, 157, 0.1);
+        }
+
+        .chat-area {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .chat-area::-webkit-scrollbar {
+            width: 3px;
+        }
+
+        .chat-area::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+        }
+
+        .bubble {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 10px 14px;
+            border-radius: 14px;
+            border-top-left-radius: 4px;
+            font-size: 13px;
+            line-height: 1.5;
+            color: rgba(255, 255, 255, 0.75);
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(6px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .thinking {
+            color: rgba(255, 255, 255, 0.3);
+            font-size: 12px;
+            font-style: italic;
+        }
+
+        /* 模型基础信息区 */
+        .model-info {
+            padding: 12px 20px;
+            border-top: 1px solid rgba(255, 255, 255, 0.06);
+            font-size: 10px;
+            color: rgba(255, 255, 255, 0.25);
+            line-height: 1.8;
+            font-family: 'Consolas', 'Monaco', monospace;
+            flex-shrink: 0;
+        }
+
+        .model-info div {
+            overflow: hidden;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+        }
+
+        .model-info .label {
+            color: rgba(0, 255, 157, 0.35);
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="titlebar">
+        <button class="titlebar-btn"
+            onclick="if(window.gameWindow){window.gameWindow.minimize()}else{console.warn('[Reversi] gameWindow not available')}">&#x2014;</button>
+        <button class="titlebar-btn close"
+            onclick="if(window.gameWindow){window.gameWindow.close()}else{window.close()}">&#x2715;</button>
+    </div>
+
+    <div class="main">
+        <div class="board-area">
+            <div class="board" id="board"></div>
+            <div class="turn-hint" id="turnHint"></div>
+        </div>
+        <div class="ai-panel">
+            <div class="ai-header">
+                <div class="ai-name" id="aiName">AI</div>
+                <button class="btn-new" onclick="resetGame()">NEW GAME</button>
+            </div>
+            <div class="chat-area" id="chatArea"></div>
+            <div class="model-info" id="modelInfo"></div>
+        </div>
+    </div>
+
+
+
+    <script>
+        // --- 模型配置（从 URL hash 读取） ---
+        let MODEL = { baseUrl: '', anthropicUrl: '', apiKey: '', model: '', name: 'AI', protocol: 'openai' };
+        try {
+            const hash = location.hash;
+            if (hash.startsWith('#model=')) {
+                MODEL = JSON.parse(decodeURIComponent(hash.slice(7)));
+            }
+        } catch (e) { }
+
+        // 将当前模型信息写入配置文件（供 ToolCard 读取）
+        if (MODEL.model && window.gameConfig?.saveModelInfo) {
+            window.gameConfig.saveModelInfo({ model: MODEL.model, baseUrl: MODEL.baseUrl || '' });
+        }
+
+        // --- 多语言（28 种，对齐主程序 electron/i18n，自动检测系统语言，fallback 英文） ---
+        const I18N = {
+            en: { yourTurn: 'Your turn', aiThinking: 'AI is thinking...', youWin: 'YOU WIN', aiWins: 'AI WINS', draw: 'DRAW', newGame: 'NEW GAME', disconnected: 'AI disconnected', aiLang: 'Reply your comment in English.' },
+            zh: { yourTurn: '你的回合', aiThinking: 'AI 思考中...', youWin: '你赢了', aiWins: 'AI 获胜', draw: '平局', newGame: '新游戏', disconnected: 'AI 断开连接', aiLang: '用中文回复你的评论。' },
+            'zh-Hant': { yourTurn: '你的回合', aiThinking: 'AI 思考中...', youWin: '你贏了', aiWins: 'AI 獲勝', draw: '平局', newGame: '新遊戲', disconnected: 'AI 斷開連接', aiLang: '用繁體中文回覆你的評論。' },
+            ja: { yourTurn: 'あなたの番', aiThinking: 'AI思考中...', youWin: 'あなたの勝ち', aiWins: 'AIの勝ち', draw: '引き分け', newGame: '新規ゲーム', disconnected: 'AI切断', aiLang: '日本語でコメントしてください。' },
+            ko: { yourTurn: '당신 차례', aiThinking: 'AI 생각중...', youWin: '당신 승리', aiWins: 'AI 승리', draw: '무승부', newGame: '새 게임', disconnected: 'AI 연결 끊김', aiLang: '한국어로 코멘트 해주세요.' },
+            fr: { yourTurn: 'Votre tour', aiThinking: "L'IA réfléchit...", youWin: 'VOUS GAGNEZ', aiWins: "L'IA GAGNE", draw: 'ÉGALITÉ', newGame: 'NOUVELLE PARTIE', disconnected: 'IA déconnectée', aiLang: 'Répondez en français.' },
+            de: { yourTurn: 'Dein Zug', aiThinking: 'KI denkt nach...', youWin: 'DU GEWINNST', aiWins: 'KI GEWINNT', draw: 'UNENTSCHIEDEN', newGame: 'NEUES SPIEL', disconnected: 'KI getrennt', aiLang: 'Antworte auf Deutsch.' },
+            es: { yourTurn: 'Tu turno', aiThinking: 'IA pensando...', youWin: 'GANASTE', aiWins: 'IA GANA', draw: 'EMPATE', newGame: 'NUEVO JUEGO', disconnected: 'IA desconectada', aiLang: 'Responde en español.' },
+            ru: { yourTurn: 'Ваш ход', aiThinking: 'ИИ думает...', youWin: 'ВЫ ПОБЕДИЛИ', aiWins: 'ИИ ПОБЕДИЛ', draw: 'НИЧЬЯ', newGame: 'НОВАЯ ИГРА', disconnected: 'ИИ отключён', aiLang: 'Ответь на русском.' },
+            pt: { yourTurn: 'Sua vez', aiThinking: 'IA pensando...', youWin: 'VOCÊ VENCEU', aiWins: 'IA VENCEU', draw: 'EMPATE', newGame: 'NOVO JOGO', disconnected: 'IA desconectada', aiLang: 'Responda em português.' },
+            ar: { yourTurn: 'دورك', aiThinking: 'الذكاء يفكر...', youWin: 'فزت', aiWins: 'فاز الذكاء', draw: 'تعادل', newGame: 'لعبة جديدة', disconnected: 'الذكاء غير متصل', aiLang: 'أجب بالعربية.' },
+            bn: { yourTurn: 'আপনার পালা', aiThinking: 'AI ভাবছে...', youWin: 'আপনি জিতেছেন', aiWins: 'AI জিতেছে', draw: 'ড্র', newGame: 'নতুন খেলা', disconnected: 'AI বিচ্ছিন্ন', aiLang: 'বাংলায় উত্তর দিন।' },
+            cs: { yourTurn: 'Váš tah', aiThinking: 'AI přemýšlí...', youWin: 'VÝHRA', aiWins: 'AI VYHRÁLA', draw: 'REMÍZA', newGame: 'NOVÁ HRA', disconnected: 'AI odpojeno', aiLang: 'Odpověz česky.' },
+            el: { yourTurn: 'Η σειρά σου', aiThinking: 'Το AI σκέφτεται...', youWin: 'ΝΙΚΗΣΕΣ', aiWins: 'TO AI ΚΕΡΔΙΣΕ', draw: 'ΙΣΟΠΑΛΙΑ', newGame: 'ΝΕΟ ΠΑΙΧΝΙΔΙ', disconnected: 'AI αποσυνδέθηκε', aiLang: 'Απάντησε στα ελληνικά.' },
+            fa: { yourTurn: 'نوبت شما', aiThinking: 'هوش مصنوعی فکر می‌کند...', youWin: 'شما بردید', aiWins: 'هوش مصنوعی برد', draw: 'مساوی', newGame: 'بازی جدید', disconnected: 'هوش مصنوعی قطع شد', aiLang: 'به فارسی پاسخ بده.' },
+            fi: { yourTurn: 'Sinun vuorosi', aiThinking: 'Tekoäly miettii...', youWin: 'VOITIT', aiWins: 'TEKOÄLY VOITTI', draw: 'TASAPELI', newGame: 'UUSI PELI', disconnected: 'Tekoäly katkaisi', aiLang: 'Vastaa suomeksi.' },
+            he: { yourTurn: 'התור שלך', aiThinking: 'AI חושב...', youWin: 'ניצחת', aiWins: 'AI ניצח', draw: 'תיקו', newGame: 'משחק חדש', disconnected: 'AI מנותק', aiLang: 'ענה בעברית.' },
+            hi: { yourTurn: 'आपकी बारी', aiThinking: 'AI सोच रहा है...', youWin: 'आप जीते', aiWins: 'AI जीता', draw: 'ड्रॉ', newGame: 'नया गेम', disconnected: 'AI डिस्कनेक्ट', aiLang: 'हिंदी में जवाब दें।' },
+            hu: { yourTurn: 'Te jössz', aiThinking: 'AI gondolkodik...', youWin: 'NYERTÉL', aiWins: 'AI NYERT', draw: 'DÖNTETLEN', newGame: 'ÚJ JÁTÉK', disconnected: 'AI lecsatlakozott', aiLang: 'Válaszolj magyarul.' },
+            id: { yourTurn: 'Giliran Anda', aiThinking: 'AI berpikir...', youWin: 'ANDA MENANG', aiWins: 'AI MENANG', draw: 'SERI', newGame: 'GAME BARU', disconnected: 'AI terputus', aiLang: 'Jawab dalam bahasa Indonesia.' },
+            it: { yourTurn: 'Il tuo turno', aiThinking: "L'IA sta pensando...", youWin: 'HAI VINTO', aiWins: "L'IA VINCE", draw: 'PAREGGIO', newGame: 'NUOVA PARTITA', disconnected: 'IA disconnessa', aiLang: 'Rispondi in italiano.' },
+            ms: { yourTurn: 'Giliran anda', aiThinking: 'AI berfikir...', youWin: 'ANDA MENANG', aiWins: 'AI MENANG', draw: 'SERI', newGame: 'PERMAINAN BARU', disconnected: 'AI terputus', aiLang: 'Jawab dalam Bahasa Melayu.' },
+            nl: { yourTurn: 'Jouw beurt', aiThinking: 'AI denkt na...', youWin: 'JE WINT', aiWins: 'AI WINT', draw: 'GELIJKSPEL', newGame: 'NIEUW SPEL', disconnected: 'AI losgekoppeld', aiLang: 'Antwoord in het Nederlands.' },
+            pl: { yourTurn: 'Twój ruch', aiThinking: 'AI myśli...', youWin: 'WYGRAŁEŚ', aiWins: 'AI WYGRYWA', draw: 'REMIS', newGame: 'NOWA GRA', disconnected: 'AI rozłączone', aiLang: 'Odpowiedz po polsku.' },
+            sv: { yourTurn: 'Din tur', aiThinking: 'AI tänker...', youWin: 'DU VANN', aiWins: 'AI VANN', draw: 'OAVGJORT', newGame: 'NYTT SPEL', disconnected: 'AI frånkopplad', aiLang: 'Svara på svenska.' },
+            th: { yourTurn: 'ตาคุณ', aiThinking: 'AI กำลังคิด...', youWin: 'คุณชนะ', aiWins: 'AI ชนะ', draw: 'เสมอ', newGame: 'เกมใหม่', disconnected: 'AI ขาดการเชื่อมต่อ', aiLang: 'ตอบเป็นภาษาไทย' },
+            tr: { yourTurn: 'Senin sıran', aiThinking: 'AI düşünüyor...', youWin: 'KAZANDIN', aiWins: 'AI KAZANDI', draw: 'BERABERE', newGame: 'YENİ OYUN', disconnected: 'AI bağlantısı kesildi', aiLang: 'Türkçe yanıtla.' },
+            vi: { yourTurn: 'Lượt của bạn', aiThinking: 'AI đang suy nghĩ...', youWin: 'BẠN THẮNG', aiWins: 'AI THẮNG', draw: 'HÒA', newGame: 'VÁN MỚI', disconnected: 'AI mất kết nối', aiLang: 'Trả lời bằng tiếng Việt.' },
+        };
+        // 语言检测：zh-TW/zh-HK → zh-Hant，zh/zh-CN → zh，其余取前缀
+        const rawLang = (navigator.language || 'en').toLowerCase();
+        const detectedLang = rawLang.startsWith('zh-tw') || rawLang.startsWith('zh-hk') ? 'zh-Hant'
+            : rawLang.startsWith('zh') ? 'zh' : rawLang.split('-')[0];
+        const t = I18N[detectedLang] || I18N.en;
+        document.querySelector('.btn-new').textContent = t.newGame;
+
+        // 从 URL 提取厂商名（如 api.deepseek.com → deepseek）
+        function detectProvider(url) {
+            try {
+                const hostname = new URL((url || '').trim()).hostname;
+                if (hostname === 'localhost' || hostname.startsWith('127.') || hostname.startsWith('192.168.')) {
+                    return 'local';
+                }
+                const parts = hostname.split('.');
+                return parts.length >= 2 ? parts[parts.length - 2] : hostname;
+            } catch { return null; }
+        }
+
+        const provider = detectProvider(MODEL.baseUrl);
+        const displayName = (MODEL.name || MODEL.model || 'AI') + (provider ? ` (${provider})` : '');
+        document.getElementById('aiName').textContent = displayName;
+
+        // 填充模型基础信息
+        const endpoint = (MODEL.protocol === 'anthropic' ? MODEL.anthropicUrl : MODEL.baseUrl || '').replace(/\/+$/, '');
+        document.getElementById('modelInfo').innerHTML = [
+            `<div><span class="label">Model:</span> ${MODEL.model || '-'}</div>`,
+            `<div><span class="label">Protocol:</span> ${(MODEL.protocol || 'openai').toUpperCase()}</div>`,
+            `<div><span class="label">Endpoint:</span> ${endpoint || '-'}</div>`,
+        ].join('');
+
+        // --- 游戏状态 ---
+        const B = 1, W = 2; // 黑=玩家, 白=AI
+        let board = [], currentPlayer = B, gameActive = true, aiThinking = false;
+        const DIR = [[-1, -1], [-1, 0], [-1, 1], [0, -1], [0, 1], [1, -1], [1, 0], [1, 1]];
+
+        function initBoard() {
+            board = Array.from({ length: 8 }, () => Array(8).fill(0));
+            board[3][3] = W; board[3][4] = B;
+            board[4][3] = B; board[4][4] = W;
+        }
+
+        function getFlips(r, c, player) {
+            if (board[r][c] !== 0) return [];
+            const opp = player === B ? W : B;
+            let flips = [];
+            for (const [dr, dc] of DIR) {
+                let tr = r + dr, tc = c + dc, line = [];
+                while (tr >= 0 && tr < 8 && tc >= 0 && tc < 8 && board[tr][tc] === opp) {
+                    line.push([tr, tc]); tr += dr; tc += dc;
+                }
+                if (line.length > 0 && tr >= 0 && tr < 8 && tc >= 0 && tc < 8 && board[tr][tc] === player) {
+                    flips.push(...line);
+                }
+            }
+            return flips;
+        }
+
+        function getValidMoves(player) {
+            let moves = [];
+            for (let r = 0; r < 8; r++) for (let c = 0; c < 8; c++) {
+                if (getFlips(r, c, player).length > 0) moves.push([r, c]);
+            }
+            return moves;
+        }
+
+        function countPieces() {
+            let b = 0, w = 0;
+            for (let r = 0; r < 8; r++) for (let c = 0; c < 8; c++) {
+                if (board[r][c] === B) b++; else if (board[r][c] === W) w++;
+            }
+            return { b, w };
+        }
+
+        function placePiece(r, c, player) {
+            const flips = getFlips(r, c, player);
+            if (flips.length === 0) return false;
+            board[r][c] = player;
+            for (const [fr, fc] of flips) board[fr][fc] = player;
+            return true;
+        }
+
+        // --- 渲染 ---
+        function render() {
+            const boardEl = document.getElementById('board');
+            const validMoves = currentPlayer === B && gameActive ? getValidMoves(B) : [];
+            const validSet = new Set(validMoves.map(([r, c]) => r * 8 + c));
+            boardEl.innerHTML = '';
+
+            for (let r = 0; r < 8; r++) for (let c = 0; c < 8; c++) {
+                const cell = document.createElement('div');
+                cell.className = 'cell' + (validSet.has(r * 8 + c) ? ' valid' : '');
+                if (board[r][c]) {
+                    const piece = document.createElement('div');
+                    piece.className = 'piece ' + (board[r][c] === B ? 'black' : 'white');
+                    cell.appendChild(piece);
+                }
+                cell.onclick = () => playerMove(r, c);
+                boardEl.appendChild(cell);
+            }
+
+            const hint = document.getElementById('turnHint');
+            if (gameActive) {
+                if (aiThinking) { hint.textContent = t.aiThinking; }
+                else if (currentPlayer === B) { hint.textContent = t.yourTurn; }
+            }
+        }
+
+        // --- 玩家走棋 ---
+        function playerMove(r, c) {
+            if (!gameActive || currentPlayer !== B || aiThinking) return;
+            if (!placePiece(r, c, B)) return;
+            render();
+            nextTurn(W);
+        }
+
+        // --- 轮次切换 ---
+        function nextTurn(player) {
+            const moves = getValidMoves(player);
+            if (moves.length > 0) {
+                currentPlayer = player;
+                if (player === W) {
+                    aiThinking = true;
+                    render();
+                    setTimeout(() => aiMove(), 400);
+                } else { render(); }
+            } else {
+                // 没有可走步，检查对方
+                const opp = player === B ? W : B;
+                const oppMoves = getValidMoves(opp);
+                if (oppMoves.length > 0) {
+                    currentPlayer = opp;
+                    if (opp === W) {
+                        aiThinking = true; render();
+                        setTimeout(() => aiMove(), 400);
+                    } else { render(); }
+                } else { endGame(); }
+            }
+        }
+
+        // --- AI 走棋 ---
+        async function aiMove() {
+            const moves = getValidMoves(W);
+            if (moves.length === 0) { aiThinking = false; nextTurn(B); return; }
+
+            try {
+                const chosen = await askLLM(moves);
+                placePiece(chosen[0], chosen[1], W);
+                aiThinking = false;
+                render();
+
+                // 检查游戏状态
+                if (getValidMoves(B).length === 0 && getValidMoves(W).length === 0) {
+                    endGame();
+                } else {
+                    nextTurn(B);
+                }
+            } catch (e) {
+                // AI 连接失败：显示错误，停止游戏
+                aiThinking = false;
+                addBubble('⚠ ' + t.disconnected);
+                document.getElementById('turnHint').textContent = t.disconnected;
+                render();
+            }
+        }
+
+        // --- LLM 调用 ---
+        async function askLLM(moves) {
+            const { b, w } = countPieces();
+            const totalPieces = b + w;
+            const boardStr = board.map((row, i) => row.map((v, j) => v === 0 ? '.' : v === B ? 'X' : 'O').join('')).join('\n');
+            const movesStr = moves.map(([r, c]) => `${r},${c}`).join(' | ');
+
+            // 棋力策略提示（对小模型尤其关键）
+            const corners = [[0, 0], [0, 7], [7, 0], [7, 7]];
+            const xSquares = [[1, 1], [1, 6], [6, 1], [6, 6]];
+            const cSquares = [[0, 1], [1, 0], [0, 6], [1, 7], [6, 0], [7, 1], [6, 7], [7, 6]];
+
+            const cornerMoves = moves.filter(([r, c]) => corners.some(([cr, cc]) => cr === r && cc === c));
+            const safeMoves = moves.filter(([r, c]) =>
+                !xSquares.some(([xr, xc]) => xr === r && xc === c) &&
+                !cSquares.some(([cr, cc]) => cr === r && cc === c)
+            );
+
+            let strategyHint = '';
+            if (cornerMoves.length > 0) {
+                strategyHint = `\nSTRATEGY HINT: Corner moves available: ${cornerMoves.map(([r, c]) => `${r},${c}`).join(' | ')}. ALWAYS take a corner - they can NEVER be flipped!`;
+            } else if (safeMoves.length > 0 && safeMoves.length < moves.length) {
+                const dangerMoves = moves.filter(([r, c]) =>
+                    xSquares.some(([xr, xc]) => xr === r && xc === c) ||
+                    cSquares.some(([cr, cc]) => cr === r && cc === c)
+                );
+                strategyHint = `\nSTRATEGY HINT: AVOID these dangerous moves (they give opponent corners): ${dangerMoves.map(([r, c]) => `${r},${c}`).join(' | ')}. Prefer safe moves: ${safeMoves.map(([r, c]) => `${r},${c}`).join(' | ')}`;
+            }
+
+            // 残局阶段提示
+            const phaseHint = totalPieces > 48 ? ' In endgame: maximize your piece count.' : ' In mid-game: prefer moves that flip fewer pieces and keep your mobility high.';
+
+            const prompt = `Reversi game. You are O, opponent is X. Board (row,col from 0):
+${boardStr}
+Score: X=${b} O=${w}
+Valid moves: ${movesStr}${strategyHint}${phaseHint}
+Reply ONLY with your chosen move as: row,col
+Then one SHORT trash-talk comment. Be cocky, mock the opponent, brag about your move. Be funny and provocative. ${t.aiLang}`;
+
+            let rawText = '';
+
+            if (MODEL.protocol === 'anthropic') {
+                // --- Anthropic /v1/messages 格式 ---
+                let apiUrl = (MODEL.anthropicUrl || '').trim().replace(/\/+$/, '');
+                if (!apiUrl.endsWith('/v1')) apiUrl += '/v1';
+                const resp = await fetch(apiUrl + '/messages', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'x-api-key': MODEL.apiKey,
+                        'anthropic-version': '2023-06-01',
+                    },
+                    body: JSON.stringify({
+                        model: MODEL.model,
+                        messages: [{ role: 'user', content: prompt }],
+                        max_tokens: 120,
+                    })
+                });
+                if (!resp.ok) throw new Error(`API ${resp.status}`);
+                const data = await resp.json();
+                // Anthropic 响应格式：data.content[0].text
+                rawText = data.content?.[0]?.text || '';
+            } else {
+                // --- OpenAI /v1/chat/completions 格式 ---
+                let apiUrl = (MODEL.baseUrl || '').trim().replace(/\/+$/, '');
+                if (!apiUrl.endsWith('/v1')) apiUrl += '/v1';
+                const resp = await fetch(apiUrl + '/chat/completions', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + MODEL.apiKey },
+                    body: JSON.stringify({
+                        model: MODEL.model,
+                        messages: [{ role: 'user', content: prompt }],
+                        max_tokens: 60,
+                        temperature: 0.7,
+                    })
+                });
+                if (!resp.ok) throw new Error(`API ${resp.status}`);
+                const data = await resp.json();
+                rawText = data.choices?.[0]?.message?.content || '';
+            }
+
+            // 过滤思考模型的 <think>...</think> 标签
+            const text = rawText.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
+            if (!text) throw new Error('Empty response');
+
+            // 解析走法
+            const match = text.match(/(\d)\s*,\s*(\d)/);
+            let chosen = null;
+            if (match) {
+                const mr = parseInt(match[1]), mc = parseInt(match[2]);
+                if (moves.some(([r, c]) => r === mr && c === mc)) chosen = [mr, mc];
+            }
+            // AI 返回无效走法时，随机选一个（AI 已连通，只是走法解析问题）
+            if (!chosen) chosen = moves[Math.floor(Math.random() * moves.length)];
+
+            // 提取评论
+            const comment = text.replace(/\d\s*,\s*\d/, '').replace(/^\s*[.\-:]\s*/, '').trim();
+            if (comment) addBubble(comment);
+
+            return chosen;
+        }
+
+        // --- 聊天气泡 ---
+        function addBubble(text) {
+            const area = document.getElementById('chatArea');
+            const div = document.createElement('div');
+            div.className = 'bubble';
+            div.textContent = text;
+            area.appendChild(div);
+            area.scrollTop = area.scrollHeight;
+        }
+
+        // --- 游戏结束 ---
+        function endGame() {
+            gameActive = false;
+            const { b, w } = countPieces();
+            const hint = document.getElementById('turnHint');
+            hint.className = 'turn-hint';
+            let msg = t.draw;
+            if (b > w) { msg = t.youWin; hint.classList.add('win'); }
+            else if (w > b) { msg = t.aiWins; hint.classList.add('lose'); }
+            else { hint.classList.add('draw'); }
+            hint.textContent = msg;
+            render();
+        }
+
+        // --- 重置 ---
+        function resetGame() {
+            document.getElementById('chatArea').innerHTML = '';
+            const hint = document.getElementById('turnHint');
+            hint.className = 'turn-hint';
+            hint.textContent = '';
+            initBoard();
+            currentPlayer = B;
+            gameActive = true;
+            aiThinking = false;
+            render();
+        }
+
+        // --- 启动 ---
+        initBoard();
+        render();
+    </script>
+</body>
+
+</html>

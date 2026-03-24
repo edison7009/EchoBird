@@ -1,0 +1,16 @@
+{
+    "id": "nanobot",
+    "name": "NanoBot",
+    "protocol": "cli-oneshot",
+    "cli": {
+        "command": "python -m nanobot",
+        "detectCommand": "python -m nanobot --version",
+        "args": [
+            "agent",
+            "--no-markdown",
+            "--no-logs",
+            "-m"
+        ],
+        "messageMode": "last-arg"
+    }
+}

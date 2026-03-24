@@ -1,0 +1,41 @@
+{
+    "name": "AI Translate",
+    "names": {
+        "zh-Hans": "AI 翻译",
+        "zh-Hant": "AI 翻譯",
+        "ja": "AI 翻訳",
+        "ko": "AI 번역",
+        "fr": "AI Traduction",
+        "de": "AI Übersetzer",
+        "es": "AI Traductor",
+        "ru": "AI Переводчик",
+        "pt": "AI Tradutor",
+        "ar": "AI ترجمة",
+        "hi": "AI अनुवाद",
+        "th": "AI แปลภาษา",
+        "vi": "AI Dịch thuật",
+        "id": "AI Terjemahan",
+        "tr": "AI Çeviri",
+        "it": "AI Traduttore",
+        "nl": "AI Vertaler",
+        "pl": "AI Tłumacz",
+        "sv": "AI Översättare"
+    },
+    "category": "Utility",
+    "version": "1.0",
+    "description": "AI-powered translation with your own model",
+    "apiProtocol": [
+        "openai",
+        "anthropic"
+    ],
+    "docs": "",
+    "command": "",
+    "configDir": "~/.echobird",
+    "configFile": "~/.echobird/translator.json",
+    "requireConfigFile": false,
+    "paths": {},
+    "alwaysInstalled": true,
+    "launchable": true,
+    "launchType": "html",
+    "launchFile": "app.html"
+}

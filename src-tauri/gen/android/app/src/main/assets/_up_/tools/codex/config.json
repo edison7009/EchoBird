@@ -1,0 +1,5 @@
+{
+    "configFile": "~/.codex/config.toml",
+    "format": "toml",
+    "custom": true
+}

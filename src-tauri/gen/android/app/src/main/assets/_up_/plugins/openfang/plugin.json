@@ -1,0 +1,13 @@
+{
+    "id": "openfang",
+    "name": "OpenFang",
+    "protocol": "cli-oneshot",
+    "cli": {
+        "command": "openfang",
+        "detectCommand": "openfang --version",
+        "args": [
+            "chat"
+        ],
+        "messageMode": "last-arg"
+    }
+}
