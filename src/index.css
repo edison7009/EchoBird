@@ -241,6 +241,16 @@ pre {
   50%       { opacity: 1;   transform: scale(1.2); }
 }
 
+/* Agent running heartbeat animation — used on role/agent picker screens */
+@keyframes agentHeartbeat {
+  0%   { transform: scale(1); }
+  14%  { transform: scale(1.35); }
+  28%  { transform: scale(1); }
+  42%  { transform: scale(1.2); }
+  70%  { transform: scale(1); }
+  100% { transform: scale(1); }
+}
+
 /* TerminalStatusBar — tool call slides in from right */
 /* Hidden scrollbar — scroll-to-bottom button is used instead */
 .slim-scroll {

@@ -698,17 +698,29 @@
 }
 
 .agent-running-dot {
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: #00FF9D;
-    animation: pulse 1.5s ease-in-out infinite;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 14px;
+    height: 14px;
     margin-left: 2px;
+    flex-shrink: 0;
+    animation: agentHeartbeat 0.9s ease-in-out infinite;
+    color: #00FF9D;
 }
 
 @keyframes pulse {
     0%, 100% { opacity: 1; }
     50% { opacity: 0.3; }
+}
+
+@keyframes agentHeartbeat {
+    0%   { transform: scale(1); }
+    14%  { transform: scale(1.35); }
+    28%  { transform: scale(1); }
+    42%  { transform: scale(1.2); }
+    70%  { transform: scale(1); }
+    100% { transform: scale(1); }
 }
 
 /* Category tabs — touch-friendly pill style */
