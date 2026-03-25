@@ -1,6 +1,7 @@
 // GPU detection for all platforms
 // Supports: NVIDIA, AMD ROCm, Intel XPU, Apple Silicon,
-// and Chinese domestic: Moore Threads, Iluvatar, Cambricon, Biren, KunlunXin
+// and Chinese domestic: Iluvatar, Cambricon, Biren, KunlunXin
+// Note: Moore Threads (MTT) cards are detected for display only; no special engine is bundled.
 
 use std::process::Command;
 #[cfg(windows)]
@@ -208,7 +209,6 @@ fn detect_gpu_system() -> Option<GpuInfo> {
         .or_else(detect_gpu_rocm)
         .or_else(detect_gpu_intel_xpu)
         .or_else(detect_gpu_apple)
-        .or_else(detect_gpu_mthreads)
         .or_else(detect_gpu_iluvatar)
         .or_else(detect_gpu_cambricon)
         .or_else(detect_gpu_biren)
@@ -296,17 +296,7 @@ fn detect_gpu_apple() -> Option<GpuInfo> {
 #[cfg(all(not(windows), not(target_os = "macos")))]
 fn detect_gpu_apple() -> Option<GpuInfo> { None }
 
-#[cfg(not(windows))]
-fn detect_gpu_mthreads() -> Option<GpuInfo> {
-    let out = Command::new("mthreads-gmi").args(["-q", "--display=MEMORY"]).output().ok()?;
-    if !out.status.success() { return None; }
-    let name_o = Command::new("mthreads-gmi").args(["-q", "--display=NAME"]).output().ok()?;
-    let gb = parse_vram_mb_line(&String::from_utf8_lossy(&out.stdout))?;
-    let name = parse_name_colon(&String::from_utf8_lossy(&name_o.stdout))
-        .unwrap_or_else(|| "Moore Threads MTT".to_string());
-    log::info!("[GPU] mthreads-gmi: {} ({:.1}GB)", name, gb);
-    Some(GpuInfo { gpu_name: shorten_gpu_name(&name), gpu_vram_gb: gb })
-}
+
 
 #[cfg(not(windows))]
 fn detect_gpu_iluvatar() -> Option<GpuInfo> {
