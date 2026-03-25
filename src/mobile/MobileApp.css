@@ -468,7 +468,7 @@
 
 .chat-input-box {
     flex: 1;
-    background: #131620;
+    background: rgba(45,52,72,0.6);
     border-radius: 8px;
     position: relative;
     display: flex;
@@ -560,7 +560,7 @@
 .chat-attach-btn {
     width: 40px;
     border-radius: 8px;
-    background: #131620;
+    background: rgba(45,52,72,0.6);
     border: none;
     color: rgba(0,255,157,0.6);
     cursor: pointer;

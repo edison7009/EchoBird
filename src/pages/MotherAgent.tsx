@@ -786,7 +786,7 @@ export function MotherAgentMain() {
 
             {/* Rich input area */}
             <div className="flex-shrink-0 mt-1 mb-1">
-                <div className="bg-cyber-terminal rounded-lg relative">
+                <div className="bg-cyber-border/60 rounded-lg relative">
                     {/* Pending attachments chips — shared component */}
                     <PendingChipsRow
                         files={pendingFiles}

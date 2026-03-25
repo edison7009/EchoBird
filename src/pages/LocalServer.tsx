@@ -580,7 +580,7 @@ export const LocalServerMain: React.FC = () => {
 
                 {/* Log area */}
                 <div className="relative flex-1">
-                    <div ref={logsContainerRef} onScroll={handleScroll} className="absolute inset-0 overflow-y-auto py-3 bg-cyber-terminal font-mono text-sm space-y-0.5 custom-scrollbar rounded-lg">
+                    <div ref={logsContainerRef} onScroll={handleScroll} className="absolute inset-0 overflow-y-auto py-3 bg-cyber-border/60 font-mono text-sm space-y-0.5 custom-scrollbar rounded-lg">
                         {logs.length === 0 && (
                             <div className="flex items-center justify-center" style={{ minHeight: 'calc(100% - 24px)' }}>
                                 <div className="font-mono text-center space-y-3">
