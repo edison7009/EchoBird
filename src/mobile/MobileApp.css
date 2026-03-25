@@ -701,12 +701,12 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 14px;
-    height: 14px;
+    width: 12px;
+    height: 12px;
     margin-left: 2px;
     flex-shrink: 0;
     animation: agentHeartbeat 0.9s ease-in-out infinite;
-    color: #00FF9D;
+    color: #FF5252;
 }
 
 @keyframes pulse {
