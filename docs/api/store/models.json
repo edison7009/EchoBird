@@ -234,7 +234,7 @@
     {
         "id": "mimo-v2-flash",
         "name": "MiMo-V2-Flash (309B MoE)",
-        "icon": "mimo",
+        "icon": "xiaomi",
         "description": "Xiaomi ultra-fast MoE — 309B total, 15B active, 256K context, top reasoning + coding",
         "huggingfaceRepo": "unsloth/MiMo-V2-Flash-GGUF",
         "variants": [
