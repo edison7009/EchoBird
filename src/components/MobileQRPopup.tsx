@@ -85,11 +85,11 @@ export const MobileQRPopup: React.FC<MobileConfigProps> = ({ configCode }) => {
 
                             {/* Download links */}
                             <div className="flex items-center justify-center gap-4">
-                                <span onClick={() => shellOpen('https://echobird.ai/phone').catch(() => window.open('https://echobird.ai/phone', '_blank'))}
+                                <span onClick={() => shellOpen('https://echobird.ai/mobile').catch(() => window.open('https://echobird.ai/mobile', '_blank'))}
                                    className="text-[11px] font-mono text-cyber-text-secondary/40 hover:text-cyber-accent transition-colors cursor-pointer">
                                     Android
                                 </span>
-                                <span onClick={() => shellOpen('https://echobird.ai/phone').catch(() => window.open('https://echobird.ai/phone', '_blank'))}
+                                <span onClick={() => shellOpen('https://echobird.ai/mobile').catch(() => window.open('https://echobird.ai/mobile', '_blank'))}
                                    className="text-[11px] font-mono text-cyber-text-secondary/40 hover:text-cyber-accent transition-colors cursor-pointer">
                                     iOS
                                 </span>
