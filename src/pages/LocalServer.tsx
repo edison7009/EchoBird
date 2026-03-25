@@ -450,7 +450,7 @@ export const LocalServerMain: React.FC = () => {
                         <div className="flex items-center gap-0 min-w-0 overflow-hidden">
                             {engineBinaryNames.map((name, i) => (
                                 <span key={name} className="flex items-center gap-0 min-w-0">
-                                    {i > 0 && <span className="flex-shrink-0 mx-2 text-cyber-border opacity-60">·</span>}
+                                    {i > 0 && <span className="flex-shrink-0 mx-2 text-cyber-accent opacity-70">+</span>}
                                     <span
                                         className={`truncate tracking-wide ${i === 0 ? 'text-cyber-text' : 'text-cyber-text-secondary'}`}
                                         style={{ minWidth: 0 }}
