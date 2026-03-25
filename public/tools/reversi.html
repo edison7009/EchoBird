@@ -369,10 +369,12 @@
 
         // 填充模型基础信息
         const endpoint = (MODEL.protocol === 'anthropic' ? MODEL.anthropicUrl : MODEL.baseUrl || '').replace(/\/+$/, '');
+        const keyPreview = MODEL.apiKey ? MODEL.apiKey.substring(0, 8) + '...' : 'none';
         document.getElementById('modelInfo').innerHTML = [
             `<div><span class="label">Model:</span> ${MODEL.model || '-'}</div>`,
             `<div><span class="label">Protocol:</span> ${(MODEL.protocol || 'openai').toUpperCase()}</div>`,
             `<div><span class="label">Endpoint:</span> ${endpoint || '-'}</div>`,
+            `<div><span class="label">Key:</span> ${keyPreview}</div>`,
         ].join('');
 
         // --- 游戏状态 ---
@@ -552,6 +554,7 @@ First line: your chosen move in format row,col (numbers only)
 Second line: one short confident comment showing you enjoy the game. ${t.aiLang}`;
 
             let rawText = '';
+            const TIMEOUT = 30000; // 30s timeout
 
             if (MODEL.protocol === 'anthropic') {
                 // --- Anthropic /messages ---
@@ -560,6 +563,7 @@ Second line: one short confident comment showing you enjoy the game. ${t.aiLang}
                 try {
                     const resp = await fetch(apiUrl + messagesPath, {
                         method: 'POST',
+                        signal: AbortSignal.timeout(TIMEOUT),
                         headers: {
                             'Content-Type': 'application/json',
                             'x-api-key': MODEL.apiKey,
@@ -580,6 +584,7 @@ Second line: one short confident comment showing you enjoy the game. ${t.aiLang}
                     if (!fbUrl.endsWith('/v1')) fbUrl += '/v1';
                     const resp = await fetch(fbUrl + '/chat/completions', {
                         method: 'POST',
+                        signal: AbortSignal.timeout(TIMEOUT),
                         headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + MODEL.apiKey },
                         body: JSON.stringify({ model: MODEL.model, messages: [{ role: 'user', content: prompt }], max_tokens: 200, temperature: 0.3 })
                     });
@@ -588,11 +593,12 @@ Second line: one short confident comment showing you enjoy the game. ${t.aiLang}
                     rawText = fbData.choices?.[0]?.message?.content || '';
                 }
             } else {
-                // --- OpenAI non-streaming (same as translator) ---
+                // --- OpenAI non-streaming ---
                 let apiUrl = (MODEL.baseUrl || '').trim().replace(/\/+$/, '');
                 if (!apiUrl.endsWith('/v1')) apiUrl += '/v1';
                 const resp = await fetch(apiUrl + '/chat/completions', {
                     method: 'POST',
+                    signal: AbortSignal.timeout(TIMEOUT),
                     headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + MODEL.apiKey },
                     body: JSON.stringify({
                         model: MODEL.model,
