@@ -76,7 +76,7 @@ export const AppManagerProvider: React.FC<AppManagerProviderProps> = ({
     onGoToMother = (_prefill: string) => { },
     children,
 }) => {
-    const { t } = useI18n();
+    const { t, locale } = useI18n();
     const confirm = useConfirm();
 
     // Wrapped navigation: build prefill and go to Mother Agent (model check happens there)
@@ -212,7 +212,8 @@ export const AppManagerProvider: React.FC<AppManagerProviderProps> = ({
                     model: selectedModel.modelId || selectedModel.name || 'unknown',
                     name: selectedModel.name,
                     protocol: modelProtocolSelection[selectedModel.modelId || ''] || 'openai',
-                } : undefined;
+                    locale,
+                } : { locale };
                 const result = await api.launchGame(selectedTool, toolData!.launchFile!, modelConfig);
                 if (result && !result.success) {
                     console.error('Failed to launch:', result.message);

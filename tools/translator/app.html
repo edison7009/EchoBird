@@ -501,7 +501,7 @@
             ru: { source: 'ОРИГИНАЛ', translation: 'ПЕРЕВОД', translate: 'ПЕРЕВЕСТИ', translating: 'ПЕРЕВОД...', copied: 'Скопировано!', error: 'Ошибка перевода', placeholder: 'Введите текст для перевода...', chars: 'символов' },
         };
 
-        const appLocale = window.__APP_LOCALE__ || '';
+        const appLocale = MODEL.locale || window.__APP_LOCALE__ || '';
         const rawLang = (appLocale || navigator.language || 'en').toLowerCase();
         const uiLang = rawLang.startsWith('zh-tw') || rawLang.startsWith('zh-hk') ? 'zh-Hant'
             : rawLang.startsWith('zh') ? 'zh' : rawLang.split('-')[0];
