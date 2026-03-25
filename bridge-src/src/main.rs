@@ -7,12 +7,15 @@
 //   stdin  → {"type":"chat","message":"...","session_id":"..."}
 //   stdout ← {"type":"text","text":"...","session_id":"..."}
 //   stdout ← {"type":"done","session_id":"..."}
+//   stdout ← {"type":"working","elapsed_secs":N}  (heartbeat, every 20s during long tasks)
 
 use serde::{Deserialize, Serialize};
 use std::io::{self, BufRead, Write};
 use std::path::PathBuf;
-use std::process::Command;
-use std::sync::Mutex;
+use std::process::{Command, Stdio};
+use std::sync::{Arc, Mutex};
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::time::{Duration, Instant};
 
 // ── Global state: current active role per agent ──
 static ACTIVE_ROLE: Mutex<Option<(String, String)>> = Mutex::new(None); // (agent_id, role_id)
@@ -126,6 +129,12 @@ enum OutboundMessage {
         agent_id: String,
         model_id: String,
         success: bool,
+    },
+    /// Heartbeat: emitted every 20s while agent CLI is running.
+    /// Tauri backend uses this to reset the idle timeout; never shown to the user.
+    #[serde(rename = "working")]
+    Working {
+        elapsed_secs: u64,
     },
 }
 
@@ -354,7 +363,7 @@ fn execute_chat(
     // Resolve the full .cmd path first, then pass each arg separately so that
     // Rust's Windows argv encoding (CreateProcess) correctly quotes args that
     // contain newlines or special characters — avoiding cmd.exe shell truncation.
-    let result = if cfg!(target_os = "windows") {
+    let child_result = if cfg!(target_os = "windows") {
         let resolved = resolve_command(actual_cmd);
         // Pass /c + full-path-to-.cmd as two separate args, then all message args.
         // Rust's Command on Windows calls CreateProcess and quotes each element
@@ -363,35 +372,71 @@ fn execute_chat(
         cmd_args.extend(args.iter().cloned());
         Command::new("cmd.exe").args(&cmd_args)
             .env("NO_COLOR", "1")  // Disable ANSI colors (https://no-color.org/)
-            .output()
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .spawn()
     } else {
         Command::new(actual_cmd).args(&args)
             .env("NO_COLOR", "1")  // Disable ANSI colors (https://no-color.org/)
-            .output()
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .spawn()
     };
 
-    match result
-    {
-        Ok(output) => {
-            let raw_stdout = String::from_utf8_lossy(&output.stdout).to_string();
-            let stdout = strip_ansi(&raw_stdout);
-            let stderr = String::from_utf8_lossy(&output.stderr).to_string();
+    match child_result {
+        Ok(child) => {
+            let start = Instant::now();
+            let stop_flag = Arc::new(AtomicBool::new(false));
+            let stop_flag_clone = stop_flag.clone();
 
-            if !stderr.is_empty() {
-                eprintln!("[bridge] stderr: {}", strip_ansi(&stderr));
+            // Heartbeat thread: every 20s emit {"type":"working","elapsed_secs":N}
+            // Tauri backend resets its idle timeout on each heartbeat line received.
+            let hb_thread = std::thread::spawn(move || {
+                loop {
+                    std::thread::sleep(Duration::from_secs(20));
+                    if stop_flag_clone.load(Ordering::SeqCst) {
+                        break;
+                    }
+                    let elapsed = start.elapsed().as_secs();
+                    send(&OutboundMessage::Working { elapsed_secs: elapsed });
+                }
+            });
+
+            // Block until the agent CLI finishes, collecting all output
+            let result = child.wait_with_output();
+
+            // Signal heartbeat thread to stop, then join it
+            stop_flag.store(true, Ordering::SeqCst);
+            let _ = hb_thread.join();
+
+            match result {
+                Ok(output) => {
+                    let raw_stdout = String::from_utf8_lossy(&output.stdout).to_string();
+                    let stdout = strip_ansi(&raw_stdout);
+                    let stderr = String::from_utf8_lossy(&output.stderr).to_string();
+
+                    if !stderr.is_empty() {
+                        eprintln!("[bridge] stderr: {}", strip_ansi(&stderr));
+                    }
+
+                    // Parse agent JSON output (supports OpenClaw + Claude Code formats)
+                    let (text, new_session_id) = parse_agent_output(&stdout);
+
+                    send(&OutboundMessage::Text {
+                        text,
+                        session_id: new_session_id.clone().or_else(|| session_id.map(String::from)),
+                    });
+
+                    send(&OutboundMessage::Done {
+                        session_id: new_session_id.or_else(|| session_id.map(String::from)),
+                    });
+                }
+                Err(e) => {
+                    send(&OutboundMessage::Error {
+                        message: format!("Agent process error: {}", e),
+                    });
+                }
             }
-
-            // Parse agent JSON output (supports OpenClaw + Claude Code formats)
-            let (text, new_session_id) = parse_agent_output(&stdout);
-
-            send(&OutboundMessage::Text {
-                text,
-                session_id: new_session_id.clone().or_else(|| session_id.map(String::from)),
-            });
-
-            send(&OutboundMessage::Done {
-                session_id: new_session_id.or_else(|| session_id.map(String::from)),
-            });
         }
         Err(e) => {
             send(&OutboundMessage::Error {
@@ -400,6 +445,7 @@ fn execute_chat(
         }
     }
 }
+
 
 /// Parse agent CLI JSON output
 ///
