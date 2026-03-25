@@ -109,7 +109,15 @@ pub async fn launch_game(
 
         let app_path = format!("tools/{}.html", tool_id);
 
-        let init_script = if let Some(config) = model_config {
+        let init_script = if let Some(mut config) = model_config {
+            // Decrypt API key if it's encrypted (frontend stores encrypted keys as enc:v1:...)
+            // Without this, the tool window receives an encrypted key and gets 401 from all APIs.
+            if let Some(api_key_val) = config.get("apiKey").and_then(|v| v.as_str()) {
+                let decrypted = crate::services::model_manager::decrypt_key_for_use(api_key_val);
+                if !decrypted.is_empty() {
+                    config["apiKey"] = serde_json::Value::String(decrypted);
+                }
+            }
             format!("window.__MODEL_CONFIG__ = {};", config.to_string())
         } else {
             String::new()
