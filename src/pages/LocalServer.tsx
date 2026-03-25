@@ -181,6 +181,7 @@ export const LocalServerMain: React.FC = () => {
     // Engine detection
     const [engineStatus, setEngineStatus] = useState<EngineStatus>('checking');
     const [engineInstallDir, setEngineInstallDir] = useState<string>('');
+    const [engineBinaryName, setEngineBinaryName] = useState<string>('');
 
     // Get engine download progress from global DownloadContext (single source of truth)
     // Key: use runtime name so progress matches the current engine being installed
@@ -211,6 +212,7 @@ export const LocalServerMain: React.FC = () => {
                 const status = await api.getLocalEngineStatus();
                 const entry = status.engines.find(e => e.name === runtime);
                 if (entry?.installDir) setEngineInstallDir(entry.installDir);
+                if (entry?.binaryName) setEngineBinaryName(entry.binaryName);
                 if (!entry?.installed) {
                     setEngineStatus('not-installed');
                 } else if (entry.latestVersion && entry.version && entry.version !== entry.latestVersion) {
@@ -439,26 +441,17 @@ export const LocalServerMain: React.FC = () => {
             );
         }
 
-        // Normal: ready — START / STOP with folder
+        // Normal: ready — show engine filename in bar + separate start/stop button
         return (
             <div className="flex gap-1.5 w-full">
-                <button
-                    onClick={handleToggleServer}
-                    disabled={!isRunning && !selectedModelPath}
-                    className={`flex-1 py-3 font-bold text-base tracking-[0.3em] font-mono transition-all flex items-center justify-center gap-2 rounded-lg ${isRunning
-                        ? 'bg-red-500 text-white hover:bg-red-600 shadow-[0_0_8px_rgba(239,68,68,0.2)]'
-                        : !selectedModelPath
-                            ? 'bg-cyber-border text-cyber-text-secondary cursor-not-allowed'
-                            : 'bg-cyber-accent text-black hover:bg-cyber-accent/90 shadow-[0_0_8px_rgba(0,255,157,0.15)] hover:shadow-[0_0_15px_rgba(0,255,157,0.35)]'
-                        }`}
-                >
-                    {isRunning ? (
-                        <><Square className="w-3.5 h-3.5 fill-current" /> {t('btn.stop')}</>
-                    ) : (
-                        <><Play className="w-3.5 h-3.5 fill-current" /> {t('btn.start')}</>
-                    )}
-                </button>
+                <div className="flex-1 py-3 px-4 font-mono text-sm flex items-center gap-2 rounded-lg bg-cyber-border/60 text-cyber-text-secondary overflow-hidden">
+                    <HardDrive className="w-3.5 h-3.5 flex-shrink-0 text-cyber-accent" />
+                    <span className="truncate tracking-wide">
+                        {engineBinaryName || runtime}
+                    </span>
+                </div>
                 {folderBtn}
+                {startStopBtn}
             </div>
         );
     };

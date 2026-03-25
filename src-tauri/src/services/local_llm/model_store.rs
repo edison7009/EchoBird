@@ -703,23 +703,31 @@ fn check_python_package(package: &str) -> Option<String> {
     None
 }
 
-/// Detect installed llama-server version from directory name (e.g. "llama-b7981-bin-win-cuda-...")
-fn get_installed_llama_version() -> Option<String> {
+/// Detect installed llama-server binary directory name (e.g. "llama-b8495-bin-win-cuda-13.1-x64")
+fn get_installed_llama_binary_name() -> Option<String> {
     let bin_dir = llama_install_dir().join("bin");
     if !bin_dir.exists() { return None; }
     if let Ok(entries) = std::fs::read_dir(&bin_dir) {
         for entry in entries.flatten() {
             let name = entry.file_name().to_string_lossy().to_string();
-            // Match pattern: llama-bNNNN-bin-...
             if name.starts_with("llama-b") && name.contains("-bin-") {
-                if let Some(ver_end) = name.find("-bin-") {
-                    let ver = &name[6..ver_end]; // skip "llama-" prefix, extract "bNNNN"
-                    return Some(format!("b{}", ver));
-                }
+                return Some(name);
             }
         }
     }
     None
+}
+
+/// Detect installed llama-server version from directory name (e.g. "llama-b7981-bin-win-cuda-...")
+fn get_installed_llama_version() -> Option<String> {
+    get_installed_llama_binary_name().and_then(|name| {
+        if let Some(ver_end) = name.find("-bin-") {
+            let ver = &name[6..ver_end]; // skip "llama-" prefix, extract "bNNNN"
+            Some(format!("b{}", ver))
+        } else {
+            None
+        }
+    })
 }
 
 
@@ -728,6 +736,7 @@ fn get_installed_llama_version() -> Option<String> {
 pub fn get_local_engine_status() -> serde_json::Value {
     let llama_installed = LocalLlmServer::find_llama_server().is_some();
     let installed_ver = get_installed_llama_version().unwrap_or_default();
+    let binary_name = get_installed_llama_binary_name().unwrap_or_default();
     let versions = get_engine_versions();
     let latest_llama = versions.get("llama-server")
         .map(|i| i.version.as_str())
@@ -743,7 +752,8 @@ pub fn get_local_engine_status() -> serde_json::Value {
                 "installed": llama_installed,
                 "version": installed_ver,
                 "latestVersion": latest_llama,
-                "installDir": llama_install_dir().to_string_lossy()
+                "installDir": llama_install_dir().to_string_lossy(),
+                "binaryName": binary_name
             },
             {
                 "name": "vllm",
