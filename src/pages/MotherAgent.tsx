@@ -525,7 +525,7 @@ export function MotherAgentMain() {
     }, [clearChat]);
 
     const [publicIP, setPublicIP] = useState('...');
-    const [remoteHints, setRemoteHints] = useState<Array<{ action: string; agent?: string }>>([]);
+    const [remoteHints, setRemoteHints] = useState<Array<{ action: string; agent?: string; label?: string }>>([]);
     const [serverModel, setServerModel] = useState<string | null>(null);
     const chatInputRef = useRef<HTMLTextAreaElement>(null!);
     const fileInputRef = useRef<HTMLInputElement>(null!);
@@ -694,10 +694,15 @@ export function MotherAgentMain() {
                         {remoteHints.length > 0 && (
                             <div className="flex flex-wrap gap-2 py-2">
                                 {remoteHints.map((hint, i) => {
-                                    const i18nKey = `mother.hint${hint.action[0].toUpperCase()}${hint.action.slice(1)}` as any;
-                                    const label = t(i18nKey).replace('{agent}', hint.agent || '');
-                                    // Skip hints whose i18n key was removed (label equals raw key)
-                                    if (label === i18nKey) return null;
+                                    let label: string;
+                                    if (hint.label) {
+                                        label = hint.label;
+                                    } else {
+                                        const i18nKey = `mother.hint${hint.action[0].toUpperCase()}${hint.action.slice(1)}` as any;
+                                        label = t(i18nKey).replace('{agent}', hint.agent || '');
+                                        // Skip hints whose i18n key was removed (label equals raw key)
+                                        if (label === i18nKey) return null;
+                                    }
                                     return (
                                         <button
                                             key={i}

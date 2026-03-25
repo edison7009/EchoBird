@@ -23,6 +23,18 @@
         {
             "action": "troubleshoot",
             "agent": "OpenClaw"
+        },
+        {
+            "action": "hardenSSH",
+            "label": "Harden Server Security"
+        },
+        {
+            "action": "networkInfo",
+            "label": "Show Internal/Public IP"
+        },
+        {
+            "action": "securityAudit",
+            "label": "Detect Suspicious Activity"
         }
     ]
 }
