@@ -93,7 +93,7 @@ const ms: Partial<Translations> = {
     'download.retry': 'Cuba lagi',    'server.gpuFull': '⚡ GPU Penuh',
     'server.cpuOnly': '🖥 CPU Sahaja',
     'server.setupEngine': 'SETUP ENJIN',
-    'server.upgradeEngine': 'UPGRADE ENGINE',
+    'server.upgradeEngine': 'NAIK TARAF ENJIN',
     'server.downloading': 'MEMUAT TURUN',
         // Butang ModelStore — kekalkan bahasa Inggeris untuk konsistensi UI
     'store.add': '[+TAMBAH]',

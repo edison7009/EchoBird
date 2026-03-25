@@ -132,7 +132,7 @@ const zhHant: Partial<Translations> = {
     'server.gpuFull': '⚡ GPU 全速',
     'server.cpuOnly': '🖥 僅 CPU',
     'server.setupEngine': '安裝引擎',
-    'server.upgradeEngine': 'UPGRADE ENGINE',
+    'server.upgradeEngine': '升級引擎',
     'server.downloading': '下載中',
         // ModelStore buttons
     'store.add': '[+新增]',

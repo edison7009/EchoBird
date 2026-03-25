@@ -27,7 +27,7 @@ const fa: Partial<Translations> = {
     'vram.easy': 'آسان', 'vram.good': 'خوب', 'vram.tight': 'تنگ', 'vram.heavy': 'سنگین', 'download.inQueue': 'در صف', 'download.pause': 'توقف', 'download.resume': 'ادامه', 'download.cancel': 'لغو', 'download.retry': 'تلاش مجدد',
     'server.gpuFull': '⚡ GPU کامل', 'server.cpuOnly': '🖥 فقط CPU',
     'server.setupEngine': 'راه‌اندازی موتور',
-    'server.upgradeEngine': 'UPGRADE ENGINE',
+    'server.upgradeEngine': 'ارتقاء موتور',
     'server.downloading': 'در حال دانلود',
         'store.add': '[+افزودن]', 'store.del': '[-حذف]', 'store.cancel': '[لغو]', 'store.remove': 'حذف', 'store.ver': 'نسخه', 'store.ready': '✓ آماده',
     'close.title': 'بستن پنجره', 'close.message': 'می‌خواهید به نوار وظیفه کوچک کنید یا کاملاً خارج شوید؟', 'close.minimize': 'کوچک کردن به نوار', 'close.quit': 'خروج', 'close.remember': 'انتخاب مرا به خاطر بسپار',

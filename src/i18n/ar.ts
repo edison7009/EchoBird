@@ -109,7 +109,7 @@ const ar: Partial<Translations> = {
     'server.gpuFull': '⚡ GPU كامل',
     'server.cpuOnly': '🖥 CPU فقط',
     'server.setupEngine': 'إعداد المحرك',
-    'server.upgradeEngine': 'UPGRADE ENGINE',
+    'server.upgradeEngine': 'ترقية المحرك',
     'server.downloading': 'جاري التحميل',
         'store.add': '[+إضافة]',
     'store.del': '[-حذف]',

@@ -27,7 +27,7 @@ const el: Partial<Translations> = {
     'vram.easy': 'Εύκολο', 'vram.good': 'Καλό', 'vram.tight': 'Στενό', 'vram.heavy': 'Βαρύ', 'download.inQueue': 'σε ουρά', 'download.pause': 'Παύση', 'download.resume': 'Συνέχεια', 'download.cancel': 'Ακύρωση', 'download.retry': 'Επανάληψη',
     'server.gpuFull': '⚡ GPU Πλήρες', 'server.cpuOnly': '🖥 Μόνο CPU',
     'server.setupEngine': 'ΡΥΘΜΙΣΗ ΜΗΧΑΝΗΣ',
-    'server.upgradeEngine': 'UPGRADE ENGINE',
+    'server.upgradeEngine': 'ΑΝΑΒΑΘΜΙΣΗ ΜΗΧΑΝΗΣ',
     'server.downloading': 'ΛΗΨΗ',
         'store.add': '[+ΠΡΟΣΘ]', 'store.del': '[-ΔΙΑΓΡ]', 'store.cancel': '[ΑΚΥΡΟ]', 'store.remove': 'ΑΦΑΙΡΕΣΗ', 'store.ver': 'έκδοση', 'store.ready': '✓ Έτοιμο',
     'close.title': 'Κλείσιμο παραθύρου', 'close.message': 'Ελαχιστοποίηση στη γραμμή ή πλήρης έξοδος;', 'close.minimize': 'Ελαχιστοποίηση', 'close.quit': 'Έξοδος', 'close.remember': 'Απομνημόνευση επιλογής',

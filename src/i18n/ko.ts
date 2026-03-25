@@ -131,7 +131,7 @@ const ko: Partial<Translations> = {
     'server.gpuFull': '⚡ GPU 풀',
     'server.cpuOnly': '🖥 CPU 전용',
     'server.setupEngine': '엔진 설정',
-    'server.upgradeEngine': 'UPGRADE ENGINE',
+    'server.upgradeEngine': '엔진 업그레이드',
     'server.downloading': '다운로드 중',
         // ModelStore buttons
     'store.add': '[+추가]',

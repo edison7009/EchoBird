@@ -109,7 +109,7 @@ const pl: Partial<Translations> = {
     'server.gpuFull': '⚡ GPU Pełne',
     'server.cpuOnly': '🖥 Tylko CPU',
     'server.setupEngine': 'USTAW SILNIK',
-    'server.upgradeEngine': 'UPGRADE ENGINE',
+    'server.upgradeEngine': 'AKTUALIZUJ SILNIK',
     'server.downloading': 'POBIERANIE',
         'store.add': '[+DODAJ]',
     'store.del': '[-USUŃ]',

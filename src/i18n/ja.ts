@@ -131,7 +131,7 @@ const ja: Partial<Translations> = {
     'server.gpuFull': '⚡ GPU フル',
     'server.cpuOnly': '\U0001f5a5 CPU のみ',
     'server.setupEngine': 'エンジンをセットアップ',
-    'server.upgradeEngine': 'UPGRADE ENGINE',
+    'server.upgradeEngine': 'エンジンをアップグレード',
     'server.downloading': 'ダウンロード中',
         // ModelStore buttons
     'store.add': '[+追加]',

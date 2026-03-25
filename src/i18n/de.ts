@@ -132,7 +132,7 @@ const de: Partial<Translations> = {
     'server.gpuFull': '⚡ GPU Voll',
     'server.cpuOnly': '🖥 Nur CPU',
     'server.setupEngine': 'ENGINE EINRICHTEN',
-    'server.upgradeEngine': 'UPGRADE ENGINE',
+    'server.upgradeEngine': 'ENGINE AKTUALISIEREN',
     'server.downloading': 'WIRD HERUNTERGELADEN',
         // ModelStore Buttons
     'store.add': '[+HINZU]',

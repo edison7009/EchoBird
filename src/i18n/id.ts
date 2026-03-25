@@ -93,7 +93,7 @@ const id: Partial<Translations> = {
     'download.retry': 'Coba lagi',    'server.gpuFull': '⚡ GPU Penuh',
     'server.cpuOnly': '🖥 CPU Saja',
     'server.setupEngine': 'SETUP MESIN',
-    'server.upgradeEngine': 'UPGRADE ENGINE',
+    'server.upgradeEngine': 'TINGKATKAN MESIN',
     'server.downloading': 'MENGUNDUH',
         // Tombol ModelStore — pertahankan bahasa Inggris untuk konsistensi UI
     'store.add': '[+TAMBAH]',

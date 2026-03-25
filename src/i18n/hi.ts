@@ -109,7 +109,7 @@ const hi: Partial<Translations> = {
     'server.gpuFull': '⚡ GPU पूर्ण',
     'server.cpuOnly': '🖥 केवल CPU',
     'server.setupEngine': 'इंजन सेटअप',
-    'server.upgradeEngine': 'UPGRADE ENGINE',
+    'server.upgradeEngine': 'इंजन अपग्रेड करें',
     'server.downloading': 'डाउनलोड हो रहा है',
         'store.add': '[+जोड़ें]',
     'store.del': '[-हटाएं]',
