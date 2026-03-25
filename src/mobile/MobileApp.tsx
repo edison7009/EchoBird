@@ -986,6 +986,9 @@ function MobileApp() {
                                     <path d="M8,2 C8,1 7.2,0.4 6.5,1 L1.5,6 C0.8,6.6 0.8,7.4 1.5,8 L6.5,13 C7.2,13.6 8,13 8,12 Z" fill="#2A2A2A"/>
                                 </svg>
                                 <span className="typing-indicator">
+                                    <svg viewBox="0 0 24 24" style={{ width: 12, height: 12, flexShrink: 0, animation: 'agentHeartbeat 0.9s ease-in-out infinite' }} aria-hidden="true">
+                                        <path d="M12 21.593c-5.63-5.539-11-10.297-11-14.402 0-3.791 3.068-5.191 5.281-5.191 1.312 0 4.151.501 5.719 4.457 1.59-3.968 4.464-4.447 5.726-4.447 2.54 0 5.274 1.621 5.274 5.181 0 4.069-5.136 8.625-11 14.402z" fill="#FF5252" />
+                                    </svg>
                                     <span className="typing-indicator-text">{t('common.inputting')}</span>
                                     <span className="typing-dots">
                                         <span className="typing-dot" />
