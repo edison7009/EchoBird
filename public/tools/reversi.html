@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 
 <head>
@@ -629,105 +629,6 @@ Then one SHORT trash-talk comment. Be cocky, mock the opponent, brag about your 
             if (!chosen) chosen = moves[Math.floor(Math.random() * moves.length)];
 
             // 提取评论
-            const comment = text.replace(/\d\s*,\s*\d/, '').replace(/^\s*[.\-:]\s*/, '').trim();
-            if (comment) addBubble(comment);
-
-            return chosen;
-        }
-
-        // --- LLM call ---
-        async function askLLM(moves) {
-            const { b, w } = countPieces();
-            const totalPieces = b + w;
-            const boardStr = board.map((row, i) => row.map((v, j) => v === 0 ? '.' : v === B ? 'X' : 'O').join('')).join('\n');
-            const movesStr = moves.map(([r, c]) => `${r},${c}`).join(' | ');
-
-            const corners = [[0, 0], [0, 7], [7, 0], [7, 7]];
-            const xSquares = [[1, 1], [1, 6], [6, 1], [6, 6]];
-            const cSquares = [[0, 1], [1, 0], [0, 6], [1, 7], [6, 0], [7, 1], [6, 7], [7, 6]];
-
-            const cornerMoves = moves.filter(([r, c]) => corners.some(([cr, cc]) => cr === r && cc === c));
-            const safeMoves = moves.filter(([r, c]) =>
-                !xSquares.some(([xr, xc]) => xr === r && xc === c) &&
-                !cSquares.some(([cr, cc]) => cr === r && cc === c)
-            );
-
-            let strategyHint = '';
-            if (cornerMoves.length > 0) {
-                strategyHint = `\nSTRATEGY HINT: Corner moves available: ${cornerMoves.map(([r, c]) => `${r},${c}`).join(' | ')}. ALWAYS take a corner - they can NEVER be flipped!`;
-            } else if (safeMoves.length > 0 && safeMoves.length < moves.length) {
-                const dangerMoves = moves.filter(([r, c]) =>
-                    xSquares.some(([xr, xc]) => xr === r && xc === c) ||
-                    cSquares.some(([cr, cc]) => cr === r && cc === c)
-                );
-                strategyHint = `\nSTRATEGY HINT: AVOID these dangerous moves (they give opponent corners): ${dangerMoves.map(([r, c]) => `${r},${c}`).join(' | ')}. Prefer safe moves: ${safeMoves.map(([r, c]) => `${r},${c}`).join(' | ')}`;
-            }
-
-            const phaseHint = totalPieces > 48 ? ' In endgame: maximize your piece count.' : ' In mid-game: prefer moves that flip fewer pieces and keep your mobility high.';
-
-            const prompt = `Reversi game. You are O, opponent is X. Board (row,col from 0):
-${boardStr}
-Score: X=${b} O=${w}
-Valid moves: ${movesStr}${strategyHint}${phaseHint}
-Reply ONLY with your chosen move as: row,col
-Then one SHORT trash-talk comment. Be cocky, mock the opponent, brag about your move. Be funny and provocative. ${t.aiLang}`;
-
-            let rawText = '';
-
-            // Always use OpenAI endpoint 鈥?works with all providers (local, remote, any protocol).
-            // OpenAI-compatible is universally supported. Fall back to Anthropic only if no baseUrl.
-            const openaiBase = (MODEL.baseUrl || '').trim().replace(/\/+$/, '');
-            if (openaiBase.length > 0) {
-                const apiUrl = openaiBase.endsWith('/v1') ? openaiBase : openaiBase + '/v1';
-                const resp = await fetch(apiUrl + '/chat/completions', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + MODEL.apiKey },
-                    body: JSON.stringify({
-                        model: MODEL.model,
-                        messages: [{ role: 'user', content: prompt }],
-                        max_tokens: 120,
-                        temperature: 0.7,
-                    })
-                });
-                if (!resp.ok) throw new Error(`API ${resp.status}`);
-                const data = await resp.json();
-                rawText = data.choices?.[0]?.message?.content || '';
-            } else {
-                // Anthropic-only provider fallback
-                const anthropicBase = (MODEL.anthropicUrl || '').trim().replace(/\/+$/, '');
-                const messagesPath = anthropicBase.includes('/v1') ? '/messages' : '/v1/messages';
-                const resp = await fetch(anthropicBase + messagesPath, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'x-api-key': MODEL.apiKey,
-                        'anthropic-version': '2023-06-01',
-                    },
-                    body: JSON.stringify({
-                        model: MODEL.model,
-                        messages: [{ role: 'user', content: prompt }],
-                        max_tokens: 120,
-                    })
-                });
-                if (!resp.ok) throw new Error(`API ${resp.status}`);
-                const data = await resp.json();
-                rawText = data.content?.[0]?.text || '';
-            }
-
-            // Strip thinking tags
-            const text = rawText.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
-            if (!text) throw new Error('Empty response');
-
-            // Parse move
-            const match = text.match(/(\d)\s*,\s*(\d)/);
-            let chosen = null;
-            if (match) {
-                const mr = parseInt(match[1]), mc = parseInt(match[2]);
-                if (moves.some(([r, c]) => r === mr && c === mc)) chosen = [mr, mc];
-            }
-            if (!chosen) chosen = moves[Math.floor(Math.random() * moves.length)];
-
-            // Extract comment
             const comment = text.replace(/\d\s*,\s*\d/, '').replace(/^\s*[.\-:]\s*/, '').trim();
             if (comment) addBubble(comment);
 
