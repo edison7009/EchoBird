@@ -182,6 +182,7 @@ export const LocalServerMain: React.FC = () => {
     const [engineStatus, setEngineStatus] = useState<EngineStatus>('checking');
     const [engineInstallDir, setEngineInstallDir] = useState<string>('');
     const [engineBinaryNames, setEngineBinaryNames] = useState<string[]>([]);
+    const [engineVersion, setEngineVersion] = useState<string>('');
 
     // Get engine download progress from global DownloadContext (single source of truth)
     // Key: use runtime name so progress matches the current engine being installed
@@ -212,7 +213,9 @@ export const LocalServerMain: React.FC = () => {
                 const status = await api.getLocalEngineStatus();
                 const entry = status.engines.find(e => e.name === runtime);
                 if (entry?.installDir) setEngineInstallDir(entry.installDir);
-                if (entry?.binaryNames?.length) setEngineBinaryNames(entry.binaryNames);
+                // Reset names first so stale data from previous runtime doesn't linger
+                setEngineBinaryNames(entry?.binaryNames?.length ? entry.binaryNames : []);
+                setEngineVersion(entry?.version || '');
                 if (!entry?.installed) {
                     setEngineStatus('not-installed');
                 } else if (entry.latestVersion && entry.version && entry.version !== entry.latestVersion) {
@@ -459,7 +462,9 @@ export const LocalServerMain: React.FC = () => {
                             ))}
                         </div>
                     ) : (
-                        <span className="text-cyber-text-secondary truncate">{runtime}</span>
+                        <span className="text-cyber-text-secondary truncate">
+                            {runtime}{engineVersion ? ` v${engineVersion}` : ''}
+                        </span>
                     )}
                 </div>
                 {folderBtn}
