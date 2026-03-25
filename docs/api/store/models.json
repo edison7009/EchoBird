@@ -64,6 +64,38 @@
         ]
     },
     {
+        "id": "qwen3.5-9b",
+        "name": "Qwen3.5 9B",
+        "icon": "qwen",
+        "description": "Qwen3.5 sweet spot — 256K context, multimodal, top reasoning at 8 GB VRAM",
+        "huggingfaceRepo": "unsloth/Qwen3.5-9B-GGUF",
+        "variants": [
+            {
+                "quantization": "Q4_K_M",
+                "fileName": "Qwen3.5-9B-Q4_K_M.gguf",
+                "fileSize": 5729882112,
+                "recommendedVRAM": "8 GB"
+            },
+            {
+                "quantization": "Q6_K",
+                "fileName": "Qwen3.5-9B-Q6_K.gguf",
+                "fileSize": 7537311744,
+                "recommendedVRAM": "10 GB"
+            },
+            {
+                "quantization": "Q8_0",
+                "fileName": "Qwen3.5-9B-Q8_0.gguf",
+                "fileSize": 9710411776,
+                "recommendedVRAM": "12 GB"
+            }
+        ],
+        "runtimes": [
+            "llama-server",
+            "vllm",
+            "sglang"
+        ]
+    },
+    {
         "id": "qwen3.5-4b",
         "name": "Qwen3.5 4B",
         "icon": "qwen",
