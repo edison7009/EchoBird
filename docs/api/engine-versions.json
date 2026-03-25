@@ -1,0 +1,7 @@
+{
+  "llama-server": {
+    "version": "b8495",
+    "cudaVersion": "13.1",
+    "changelog": "Qwen3.5, Llama 4 Scout/Maverick support"
+  }
+}
