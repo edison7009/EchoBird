@@ -364,7 +364,9 @@ export const LocalServerMain: React.FC = () => {
             <button
                 onClick={() => engineInstallDir && api.openFolder(engineInstallDir)}
                 disabled={!engineInstallDir}
-                className={`py-3 px-3 ${btnBase} ${engineInstallDir ? btnActive : btnDisabled}`}
+                className={`py-3 px-3 ${btnBase} ${engineInstallDir
+                    ? 'bg-cyber-border/60 text-cyber-text-secondary border border-cyber-border/40 hover:text-cyber-accent hover:border-cyber-accent/50 hover:bg-cyber-accent/10'
+                    : btnDisabled}`}
             >
                 <FolderOpen className="w-4 h-4" />
             </button>
