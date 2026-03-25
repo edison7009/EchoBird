@@ -429,40 +429,58 @@
 
     <script>
         // --- Model Config (from URL hash) ---
-        let MODEL = window.__MODEL_CONFIG__ || { baseUrl: '', anthropicUrl: '', apiKey: '', model: '', name: 'AI', protocol: 'openai' }
+        let MODEL = window.__MODEL_CONFIG__ || { baseUrl: '', anthropicUrl: '', apiKey: '', model: '', name: 'AI', protocol: 'openai' };
+        try {
+            const hash = location.hash;
+            if (hash.startsWith('#model=')) {
+                MODEL = Object.assign(MODEL, JSON.parse(decodeURIComponent(hash.slice(7))));
+            }
+        } catch (e) { }
 
-  // --- Multi-language UI ---
+        // --- Multi-language UI ---
         const LANGUAGES = [
-            { code: 'auto', en: 'Auto Detect' },
-            { code: 'en', en: 'English', native: 'English' },
-            { code: 'zh', en: 'Chinese (Simplified)', native: '简体中文' },
-            { code: 'zh-Hant', en: 'Chinese (Traditional)', native: '繁體中文' },
-            { code: 'ja', en: 'Japanese', native: '日本語' },
-            { code: 'ko', en: 'Korean', native: '한국어' },
-            { code: 'fr', en: 'French', native: 'Français' },
-            { code: 'de', en: 'German', native: 'Deutsch' },
-            { code: 'es', en: 'Spanish', native: 'Español' },
-            { code: 'pt', en: 'Portuguese', native: 'Português' },
-            { code: 'ru', en: 'Russian', native: 'Русский' },
-            { code: 'ar', en: 'Arabic', native: 'العربية' },
-            { code: 'hi', en: 'Hindi', native: 'हिन्दी' },
-            { code: 'bn', en: 'Bengali', native: 'বাংলা' },
-            { code: 'th', en: 'Thai', native: 'ไทย' },
-            { code: 'vi', en: 'Vietnamese', native: 'Tiếng Việt' },
-            { code: 'id', en: 'Indonesian', native: 'Bahasa Indonesia' },
-            { code: 'ms', en: 'Malay', native: 'Bahasa Melayu' },
-            { code: 'tr', en: 'Turkish', native: 'Türkçe' },
-            { code: 'it', en: 'Italian', native: 'Italiano' },
-            { code: 'nl', en: 'Dutch', native: 'Nederlands' },
-            { code: 'pl', en: 'Polish', native: 'Polski' },
-            { code: 'sv', en: 'Swedish', native: 'Svenska' },
-            { code: 'fi', en: 'Finnish', native: 'Suomi' },
-            { code: 'cs', en: 'Czech', native: 'Čeština' },
-            { code: 'hu', en: 'Hungarian', native: 'Magyar' },
-            { code: 'el', en: 'Greek', native: 'Ελληνικά' },
-            { code: 'he', en: 'Hebrew', native: 'עברית' },
-            { code: 'fa', en: 'Persian', native: 'فارسی' },
+            { code: 'auto', en: 'Auto Detect', zh: '自动检测', 'zh-Hant': '自動偵測' },
+            { code: 'en', en: 'English', native: 'English', zh: '英语', 'zh-Hant': '英語' },
+            { code: 'zh', en: 'Chinese (Simplified)', native: '简体中文', zh: '简体中文', 'zh-Hant': '簡體中文' },
+            { code: 'zh-Hant', en: 'Chinese (Traditional)', native: '繁體中文', zh: '繁体中文', 'zh-Hant': '繁體中文' },
+            { code: 'ja', en: 'Japanese', native: '日本語', zh: '日语', 'zh-Hant': '日語' },
+            { code: 'ko', en: 'Korean', native: '한국어', zh: '韩语', 'zh-Hant': '韓語' },
+            { code: 'fr', en: 'French', native: 'Français', zh: '法语', 'zh-Hant': '法語' },
+            { code: 'de', en: 'German', native: 'Deutsch', zh: '德语', 'zh-Hant': '德語' },
+            { code: 'es', en: 'Spanish', native: 'Español', zh: '西班牙语', 'zh-Hant': '西班牙語' },
+            { code: 'pt', en: 'Portuguese', native: 'Português', zh: '葡萄牙语', 'zh-Hant': '葡萄牙語' },
+            { code: 'ru', en: 'Russian', native: 'Русский', zh: '俄语', 'zh-Hant': '俄語' },
+            { code: 'ar', en: 'Arabic', native: 'العربية', zh: '阿拉伯语', 'zh-Hant': '阿拉伯語' },
+            { code: 'hi', en: 'Hindi', native: 'हिन्दी', zh: '印地语', 'zh-Hant': '印地語' },
+            { code: 'bn', en: 'Bengali', native: 'বাংলা', zh: '孟加拉语', 'zh-Hant': '孟加拉語' },
+            { code: 'th', en: 'Thai', native: 'ไทย', zh: '泰语', 'zh-Hant': '泰語' },
+            { code: 'vi', en: 'Vietnamese', native: 'Tiếng Việt', zh: '越南语', 'zh-Hant': '越南語' },
+            { code: 'id', en: 'Indonesian', native: 'Bahasa Indonesia', zh: '印尼语', 'zh-Hant': '印尼語' },
+            { code: 'ms', en: 'Malay', native: 'Bahasa Melayu', zh: '马来语', 'zh-Hant': '馬來語' },
+            { code: 'tr', en: 'Turkish', native: 'Türkçe', zh: '土耳其语', 'zh-Hant': '土耳其語' },
+            { code: 'it', en: 'Italian', native: 'Italiano', zh: '意大利语', 'zh-Hant': '義大利語' },
+            { code: 'nl', en: 'Dutch', native: 'Nederlands', zh: '荷兰语', 'zh-Hant': '荷蘭語' },
+            { code: 'pl', en: 'Polish', native: 'Polski', zh: '波兰语', 'zh-Hant': '波蘭語' },
+            { code: 'sv', en: 'Swedish', native: 'Svenska', zh: '瑞典语', 'zh-Hant': '瑞典語' },
+            { code: 'fi', en: 'Finnish', native: 'Suomi', zh: '芬兰语', 'zh-Hant': '芬蘭語' },
+            { code: 'cs', en: 'Czech', native: 'Čeština', zh: '捷克语', 'zh-Hant': '捷克語' },
+            { code: 'hu', en: 'Hungarian', native: 'Magyar', zh: '匈牙利语', 'zh-Hant': '匈牙利語' },
+            { code: 'el', en: 'Greek', native: 'Ελληνικά', zh: '希腊语', 'zh-Hant': '希臘語' },
+            { code: 'he', en: 'Hebrew', native: 'עברית', zh: '希伯来语', 'zh-Hant': '希伯來語' },
+            { code: 'fa', en: 'Persian', native: 'فارسی', zh: '波斯语', 'zh-Hant': '波斯語' },
         ];
+
+        function getLangName(langObj, currentUiLang) {
+            if (!langObj) return '';
+            const localizedName = langObj[currentUiLang] || langObj.en;
+            if (langObj.code === 'auto') return localizedName;
+            return langObj.native === localizedName ? localizedName : `${langObj.native} (${localizedName})`;
+        }
+
+        function getShortLangName(langObj, currentUiLang) {
+            if (!langObj) return '';
+            return langObj[currentUiLang] || langObj.native || langObj.en;
+        }
 
         // UI Text
         const I18N = {
@@ -477,7 +495,8 @@
             ru: { source: 'ОРИГИНАЛ', translation: 'ПЕРЕВОД', translate: 'ПЕРЕВЕСТИ', translating: 'ПЕРЕВОД...', auto: 'Автоопределение', copied: 'Скопировано!', error: 'Ошибка перевода', placeholder: 'Введите текст для перевода...', chars: 'символов' },
         };
 
-        const rawLang = (navigator.language || 'en').toLowerCase();
+        const appLocale = MODEL.locale || window.__APP_LOCALE__ || '';
+        const rawLang = (appLocale || navigator.language || 'en').toLowerCase();
         const uiLang = rawLang.startsWith('zh-tw') || rawLang.startsWith('zh-hk') ? 'zh-Hant'
             : rawLang.startsWith('zh') ? 'zh' : rawLang.split('-')[0];
         const t = I18N[uiLang] || I18N.en;
@@ -501,8 +520,7 @@
                 this.langs.forEach(lang => {
                     const div = document.createElement('div');
                     div.className = 'lang-option' + (lang.code === this.value ? ' selected' : '');
-                    div.textContent = lang.code === 'auto' ? (t.auto || lang.en)
-                        : (lang.native ? `${lang.native} (${lang.en})` : lang.en);
+                    div.textContent = getLangName(lang, uiLang);
                     div.dataset.code = lang.code;
                     div.addEventListener('click', (e) => {
                         e.stopPropagation();
@@ -523,8 +541,7 @@
             updateTrigger() {
                 const lang = this.langs.find(l => l.code === this.value);
                 if (!lang) return;
-                this.trigger.textContent = lang.code === 'auto' ? (t.auto || lang.en)
-                    : (lang.native || lang.en);
+                this.trigger.textContent = getShortLangName(lang, uiLang);
             }
             toggle() {
                 const isOpen = this.dropdown.classList.contains('show');
@@ -666,6 +683,7 @@
 
                                 if (MODEL.protocol === 'anthropic') {
                     let apiUrl = (MODEL.anthropicUrl || '').trim().replace(/\/+$/, '');
+                    if (!apiUrl) apiUrl = (MODEL.baseUrl || '').trim().replace(/\/+$/, '');
                     const messagesPath = apiUrl.includes('/v1') ? '/messages' : '/v1/messages';
                     try {
                         const resp = await fetch(apiUrl + messagesPath, {
@@ -699,6 +717,12 @@
                     }
                 } else {
                     let apiUrl = (MODEL.baseUrl || '').trim().replace(/\/+$/, '');
+                    if (!apiUrl) {
+                        apiUrl = (MODEL.anthropicUrl || '').trim()
+                            .replace(/\/+$/, '')
+                            .replace(/\/anthropic(\/.*)?$/, '')
+                            .replace(/\/v\d+(\/.*)?$/, '');
+                    }
                     if (!apiUrl.endsWith('/v1')) apiUrl += '/v1';
                     const resp = await fetch(apiUrl + '/chat/completions', {
                         method: 'POST',
