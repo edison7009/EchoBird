@@ -570,6 +570,7 @@ Then one SHORT trash-talk comment. Be cocky, mock the opponent, brag about your 
                             model: MODEL.model,
                             messages: [{ role: 'user', content: prompt }],
                             max_tokens: 4096,
+                            temperature: 0.3
                         })
                     });
                     if (!resp.ok) throw new Error(`API ${resp.status}`);
@@ -587,6 +588,7 @@ Then one SHORT trash-talk comment. Be cocky, mock the opponent, brag about your 
                             model: MODEL.model,
                             messages: [{ role: 'user', content: prompt }],
                             max_tokens: 4096,
+                            temperature: 0.3
                         })
                     });
                     if (!resp.ok) throw new Error(`API ${resp.status}`);
@@ -604,6 +606,7 @@ Then one SHORT trash-talk comment. Be cocky, mock the opponent, brag about your 
                         model: MODEL.model,
                         messages: [{ role: 'user', content: prompt }],
                         max_tokens: 4096,
+                        temperature: 0.3
                     })
                 });
                 if (!resp.ok) throw new Error(`API ${resp.status}`);
