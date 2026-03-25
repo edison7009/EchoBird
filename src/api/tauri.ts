@@ -232,7 +232,7 @@ export interface LocalEngineEntry {
     version: string;
     latestVersion?: string;
     installDir?: string;
-    binaryName?: string;
+    binaryNames?: string[];
 }
 
 export interface LocalEngineStatus {

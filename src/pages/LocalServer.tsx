@@ -181,7 +181,7 @@ export const LocalServerMain: React.FC = () => {
     // Engine detection
     const [engineStatus, setEngineStatus] = useState<EngineStatus>('checking');
     const [engineInstallDir, setEngineInstallDir] = useState<string>('');
-    const [engineBinaryName, setEngineBinaryName] = useState<string>('');
+    const [engineBinaryNames, setEngineBinaryNames] = useState<string[]>([]);
 
     // Get engine download progress from global DownloadContext (single source of truth)
     // Key: use runtime name so progress matches the current engine being installed
@@ -212,7 +212,7 @@ export const LocalServerMain: React.FC = () => {
                 const status = await api.getLocalEngineStatus();
                 const entry = status.engines.find(e => e.name === runtime);
                 if (entry?.installDir) setEngineInstallDir(entry.installDir);
-                if (entry?.binaryName) setEngineBinaryName(entry.binaryName);
+                if (entry?.binaryNames?.length) setEngineBinaryNames(entry.binaryNames);
                 if (!entry?.installed) {
                     setEngineStatus('not-installed');
                 } else if (entry.latestVersion && entry.version && entry.version !== entry.latestVersion) {
@@ -441,14 +441,26 @@ export const LocalServerMain: React.FC = () => {
             );
         }
 
-        // Normal: ready — show engine filename in bar + separate start/stop button
+        // Normal: ready — show engine binary names in bar + separate start/stop button
         return (
             <div className="flex gap-1.5 w-full">
-                <div className="flex-1 py-3 px-4 font-mono text-sm flex items-center gap-2 rounded-lg bg-cyber-border/60 text-cyber-text-secondary overflow-hidden">
-                    <HardDrive className="w-3.5 h-3.5 flex-shrink-0 text-cyber-accent" />
-                    <span className="truncate tracking-wide">
-                        {engineBinaryName || runtime}
-                    </span>
+                <div className="flex-1 py-2 px-4 font-mono text-xs flex items-center gap-0 rounded-lg bg-cyber-border/60 overflow-hidden min-w-0">
+                    <HardDrive className="w-3.5 h-3.5 flex-shrink-0 text-cyber-accent mr-2" />
+                    {engineBinaryNames.length > 0 ? (
+                        <div className="flex items-center gap-0 min-w-0 overflow-hidden">
+                            {engineBinaryNames.map((name, i) => (
+                                <span key={name} className="flex items-center gap-0 min-w-0">
+                                    {i > 0 && <span className="flex-shrink-0 mx-2 text-cyber-border opacity-60">·</span>}
+                                    <span
+                                        className={`truncate tracking-wide ${i === 0 ? 'text-cyber-text' : 'text-cyber-text-secondary'}`}
+                                        style={{ minWidth: 0 }}
+                                    >{name}</span>
+                                </span>
+                            ))}
+                        </div>
+                    ) : (
+                        <span className="text-cyber-text-secondary truncate">{runtime}</span>
+                    )}
                 </div>
                 {folderBtn}
                 {startStopBtn}

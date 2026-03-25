@@ -703,19 +703,33 @@ fn check_python_package(package: &str) -> Option<String> {
     None
 }
 
-/// Detect installed llama-server binary directory name (e.g. "llama-b8495-bin-win-cuda-13.1-x64")
-fn get_installed_llama_binary_name() -> Option<String> {
+/// Collect all installed binary directory names under the bin folder
+fn get_installed_llama_binary_names() -> Vec<String> {
     let bin_dir = llama_install_dir().join("bin");
-    if !bin_dir.exists() { return None; }
+    if !bin_dir.exists() { return vec![]; }
+    let mut names: Vec<String> = Vec::new();
     if let Ok(entries) = std::fs::read_dir(&bin_dir) {
         for entry in entries.flatten() {
-            let name = entry.file_name().to_string_lossy().to_string();
-            if name.starts_with("llama-b") && name.contains("-bin-") {
-                return Some(name);
+            if entry.path().is_dir() {
+                let name = entry.file_name().to_string_lossy().to_string();
+                if !name.is_empty() {
+                    names.push(name);
+                }
             }
         }
     }
-    None
+    // Sort: llama-b* first, then cudart-*, then rest
+    names.sort_by(|a, b| {
+        let a_main = a.starts_with("llama-b");
+        let b_main = b.starts_with("llama-b");
+        b_main.cmp(&a_main).then(a.cmp(b))
+    });
+    names
+}
+
+/// Detect installed llama-server binary directory name for version parsing
+fn get_installed_llama_binary_name() -> Option<String> {
+    get_installed_llama_binary_names().into_iter().find(|n| n.starts_with("llama-b"))
 }
 
 /// Detect installed llama-server version from directory name (e.g. "llama-b7981-bin-win-cuda-...")
@@ -736,7 +750,7 @@ fn get_installed_llama_version() -> Option<String> {
 pub fn get_local_engine_status() -> serde_json::Value {
     let llama_installed = LocalLlmServer::find_llama_server().is_some();
     let installed_ver = get_installed_llama_version().unwrap_or_default();
-    let binary_name = get_installed_llama_binary_name().unwrap_or_default();
+    let binary_names = get_installed_llama_binary_names();
     let versions = get_engine_versions();
     let latest_llama = versions.get("llama-server")
         .map(|i| i.version.as_str())
@@ -753,7 +767,7 @@ pub fn get_local_engine_status() -> serde_json::Value {
                 "version": installed_ver,
                 "latestVersion": latest_llama,
                 "installDir": llama_install_dir().to_string_lossy(),
-                "binaryName": binary_name
+                "binaryNames": binary_names
             },
             {
                 "name": "vllm",
