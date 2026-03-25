@@ -180,6 +180,7 @@ export const LocalServerMain: React.FC = () => {
 
     // Engine detection
     const [engineStatus, setEngineStatus] = useState<EngineStatus>('checking');
+    const [engineInstallDir, setEngineInstallDir] = useState<string>('');
 
     // Get engine download progress from global DownloadContext (single source of truth)
     // Key: use runtime name so progress matches the current engine being installed
@@ -209,6 +210,7 @@ export const LocalServerMain: React.FC = () => {
             try {
                 const status = await api.getLocalEngineStatus();
                 const entry = status.engines.find(e => e.name === runtime);
+                if (entry?.installDir) setEngineInstallDir(entry.installDir);
                 if (!entry?.installed) {
                     setEngineStatus('not-installed');
                 } else if (entry.latestVersion && entry.version && entry.version !== entry.latestVersion) {
@@ -332,94 +334,16 @@ export const LocalServerMain: React.FC = () => {
 
     // Render START button (state machine)
     const renderStartButton = () => {
-        // Engine not installed: show SETUP ENGINE button
-        if (engineStatus === 'not-installed' || engineStatus === 'error') {
-            return (
-                <button
-                    onClick={handleDownloadEngine}
-                    className="w-full py-3 font-bold text-base tracking-[0.3em] font-mono transition-all flex items-center justify-center gap-2
-                        bg-cyber-accent/10 text-cyber-accent border border-cyber-accent/50 hover:bg-cyber-accent/20 shadow-[0_0_15px_rgba(0,255,157,0.15)]"
-                >
-                    <Download className="w-4 h-4" />
-                    {engineStatus === 'error' ? `\u26A0 ${t('server.setupEngine')}` : t('server.setupEngine')}
-                </button>
-            );
-        }
-
-        // Downloading: show progress bar
-        if (engineStatus === 'downloading') {
-            return (
-                <div className="w-full relative overflow-hidden border border-cyber-accent/50 bg-cyber-accent/5">
-                    <div
-                        className="absolute inset-0 bg-cyber-accent/15 transition-all duration-300 ease-out"
-                        style={{ width: `${downloadProgress}%` }}
-                    />
-                    <div className="relative py-3 flex items-center justify-center gap-2 font-bold text-base tracking-[0.3em] font-mono text-cyber-accent">
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                        {downloadProgress === 0
-                            ? `${t('server.downloading')} 0%`
-                            : totalSize > 0
-                                ? `${t('server.downloading')} ${downloadProgress}% · ${formatSize(downloadedSize)}/${formatSize(totalSize)}`
-                                : `${t('server.downloading')} ${downloadProgress}%`
-                        }
-                    </div>
-                </div>
-            );
-        }
-
-        // Checking engine
-        if (engineStatus === 'checking') {
-            return (
-                <div className="w-full py-3 font-bold text-base tracking-[0.3em] font-mono flex items-center justify-center gap-2
-                    bg-cyber-accent/10 text-cyber-accent/50 border border-cyber-accent/30">
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    CHECKING…
-                </div>
-            );
-        }
-
-        // Update available: show UPGRADE ENGINE button
-        if (engineStatus === 'update-available') {
-            return (
-                <div className="flex gap-2 w-full">
-                    <button
-                        onClick={handleDownloadEngine}
-                        className="flex-1 py-3 font-bold text-base tracking-[0.2em] font-mono transition-all flex items-center justify-center gap-2
-                            bg-amber-500/10 text-amber-400 border border-amber-500/50 hover:bg-amber-500/20 shadow-[0_0_15px_rgba(245,158,11,0.15)]"
-                    >
-                        <Download className="w-4 h-4" />
-                        {t('server.upgradeEngine') || 'UPGRADE ENGINE'}
-                    </button>
-                    <button
-                        onClick={handleToggleServer}
-                        disabled={!isRunning && !selectedModelPath}
-                        className={`py-3 px-6 font-bold text-base tracking-[0.3em] font-mono transition-all flex items-center justify-center gap-2 ${isRunning
-                            ? 'bg-red-500/10 text-red-400 border border-red-500/50 hover:bg-red-500/20'
-                            : !selectedModelPath
-                                ? 'bg-cyber-border/30 text-cyber-text-muted/50 cursor-not-allowed border border-cyber-border/30'
-                                : 'bg-cyber-accent/10 text-cyber-accent border border-cyber-accent/50 hover:bg-cyber-accent/20'
-                            }`}
-                    >
-                        {isRunning ? (
-                            <><Square className="w-3.5 h-3.5 fill-current" /> {t('btn.stop')}</>
-                        ) : (
-                            <><Play className="w-3.5 h-3.5 fill-current" /> {t('btn.start')}</>
-                        )}
-                    </button>
-                </div>
-            );
-        }
-
-        // Normal: START / STOP
-        return (
+        // Shared button styles
+        const startStopBtn = (
             <button
                 onClick={handleToggleServer}
-                disabled={!isRunning && !selectedModelPath}
-                className={`w-full py-3 font-bold text-base tracking-[0.3em] font-mono transition-all flex items-center justify-center gap-2 ${isRunning
-                    ? 'bg-red-500/10 text-red-400 border border-red-500/50 hover:bg-red-500/20 shadow-[0_0_15px_rgba(239,68,68,0.15)]'
-                    : !selectedModelPath
+                disabled={!isRunning && (!selectedModelPath || engineStatus === 'not-installed' || engineStatus === 'downloading' || engineStatus === 'checking' || engineStatus === 'error')}
+                className={`py-3 px-6 font-bold text-base tracking-[0.3em] font-mono transition-all flex items-center justify-center gap-2 flex-shrink-0 ${isRunning
+                    ? 'bg-red-500/10 text-red-400 border border-red-500/50 hover:bg-red-500/20'
+                    : (!selectedModelPath || engineStatus === 'not-installed' || engineStatus === 'downloading' || engineStatus === 'checking' || engineStatus === 'error')
                         ? 'bg-cyber-border/30 text-cyber-text-muted/50 cursor-not-allowed border border-cyber-border/30'
-                        : 'bg-cyber-accent/10 text-cyber-accent border border-cyber-accent/50 hover:bg-cyber-accent/20 shadow-[0_0_15px_rgba(0,255,157,0.15)]'
+                        : 'bg-cyber-accent/10 text-cyber-accent border border-cyber-accent/50 hover:bg-cyber-accent/20'
                     }`}
             >
                 {isRunning ? (
@@ -428,6 +352,120 @@ export const LocalServerMain: React.FC = () => {
                     <><Play className="w-3.5 h-3.5 fill-current" /> {t('btn.start')}</>
                 )}
             </button>
+        );
+
+        const folderBtn = (
+            <button
+                onClick={() => engineInstallDir && api.openFolder(engineInstallDir)}
+                disabled={!engineInstallDir}
+                className={`py-3 px-3 font-mono transition-all flex items-center justify-center flex-shrink-0 border ${
+                    engineInstallDir
+                        ? 'text-cyber-text-secondary border-cyber-border/50 hover:text-cyber-accent hover:border-cyber-accent/50 hover:bg-cyber-accent/5'
+                        : 'text-cyber-text-muted/30 border-cyber-border/20 cursor-not-allowed'
+                }`}
+                title="Open engine directory"
+            >
+                <FolderOpen className="w-4 h-4" />
+            </button>
+        );
+
+        // Engine not installed: show SETUP ENGINE button
+        if (engineStatus === 'not-installed' || engineStatus === 'error') {
+            return (
+                <div className="flex gap-1.5 w-full">
+                    <button
+                        onClick={handleDownloadEngine}
+                        className="flex-1 py-3 font-bold text-base tracking-[0.3em] font-mono transition-all flex items-center justify-center gap-2
+                            bg-cyber-accent/10 text-cyber-accent border border-cyber-accent/50 hover:bg-cyber-accent/20 shadow-[0_0_15px_rgba(0,255,157,0.15)]"
+                    >
+                        <Download className="w-4 h-4" />
+                        {engineStatus === 'error' ? `\u26A0 ${t('server.setupEngine')}` : t('server.setupEngine')}
+                    </button>
+                    {folderBtn}
+                    {startStopBtn}
+                </div>
+            );
+        }
+
+        // Downloading: show progress bar
+        if (engineStatus === 'downloading') {
+            return (
+                <div className="flex gap-1.5 w-full">
+                    <div className="flex-1 relative overflow-hidden border border-cyber-accent/50 bg-cyber-accent/5">
+                        <div
+                            className="absolute inset-0 bg-cyber-accent/15 transition-all duration-300 ease-out"
+                            style={{ width: `${downloadProgress}%` }}
+                        />
+                        <div className="relative py-3 flex items-center justify-center gap-2 font-bold text-base tracking-[0.3em] font-mono text-cyber-accent">
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            {downloadProgress === 0
+                                ? `${t('server.downloading')} 0%`
+                                : totalSize > 0
+                                    ? `${t('server.downloading')} ${downloadProgress}% · ${formatSize(downloadedSize)}/${formatSize(totalSize)}`
+                                    : `${t('server.downloading')} ${downloadProgress}%`
+                            }
+                        </div>
+                    </div>
+                    {folderBtn}
+                    {startStopBtn}
+                </div>
+            );
+        }
+
+        // Checking engine
+        if (engineStatus === 'checking') {
+            return (
+                <div className="flex gap-1.5 w-full">
+                    <div className="flex-1 py-3 font-bold text-base tracking-[0.3em] font-mono flex items-center justify-center gap-2
+                        bg-cyber-accent/10 text-cyber-accent/50 border border-cyber-accent/30">
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        CHECKING…
+                    </div>
+                    {folderBtn}
+                    {startStopBtn}
+                </div>
+            );
+        }
+
+        // Update available: show UPGRADE ENGINE button
+        if (engineStatus === 'update-available') {
+            return (
+                <div className="flex gap-1.5 w-full">
+                    <button
+                        onClick={handleDownloadEngine}
+                        className="flex-1 py-3 font-bold text-base tracking-[0.2em] font-mono transition-all flex items-center justify-center gap-2
+                            bg-amber-500/10 text-amber-400 border border-amber-500/50 hover:bg-amber-500/20 shadow-[0_0_15px_rgba(245,158,11,0.15)]"
+                    >
+                        <Download className="w-4 h-4" />
+                        {t('server.upgradeEngine') || 'UPGRADE ENGINE'}
+                    </button>
+                    {folderBtn}
+                    {startStopBtn}
+                </div>
+            );
+        }
+
+        // Normal: ready — START / STOP with folder
+        return (
+            <div className="flex gap-1.5 w-full">
+                <button
+                    onClick={handleToggleServer}
+                    disabled={!isRunning && !selectedModelPath}
+                    className={`flex-1 py-3 font-bold text-base tracking-[0.3em] font-mono transition-all flex items-center justify-center gap-2 ${isRunning
+                        ? 'bg-red-500/10 text-red-400 border border-red-500/50 hover:bg-red-500/20 shadow-[0_0_15px_rgba(239,68,68,0.15)]'
+                        : !selectedModelPath
+                            ? 'bg-cyber-border/30 text-cyber-text-muted/50 cursor-not-allowed border border-cyber-border/30'
+                            : 'bg-cyber-accent/10 text-cyber-accent border border-cyber-accent/50 hover:bg-cyber-accent/20 shadow-[0_0_15px_rgba(0,255,157,0.15)]'
+                        }`}
+                >
+                    {isRunning ? (
+                        <><Square className="w-3.5 h-3.5 fill-current" /> {t('btn.stop')}</>
+                    ) : (
+                        <><Play className="w-3.5 h-3.5 fill-current" /> {t('btn.start')}</>
+                    )}
+                </button>
+                {folderBtn}
+            </div>
         );
     };
 

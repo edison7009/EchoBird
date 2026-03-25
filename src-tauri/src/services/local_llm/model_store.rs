@@ -742,7 +742,8 @@ pub fn get_local_engine_status() -> serde_json::Value {
                 "name": "llama-server",
                 "installed": llama_installed,
                 "version": installed_ver,
-                "latestVersion": latest_llama
+                "latestVersion": latest_llama,
+                "installDir": llama_install_dir().to_string_lossy()
             },
             {
                 "name": "vllm",
