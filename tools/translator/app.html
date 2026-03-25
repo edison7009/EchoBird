@@ -444,48 +444,56 @@
 
         // --- 多语言 UI ---
         const LANGUAGES = [
-            { code: 'auto', en: 'Auto Detect' },
-            { code: 'en', en: 'English', native: 'English' },
-            { code: 'zh', en: 'Chinese (Simplified)', native: '简体中文' },
-            { code: 'zh-Hant', en: 'Chinese (Traditional)', native: '繁體中文' },
-            { code: 'ja', en: 'Japanese', native: '日本語' },
-            { code: 'ko', en: 'Korean', native: '한국어' },
-            { code: 'fr', en: 'French', native: 'Français' },
-            { code: 'de', en: 'German', native: 'Deutsch' },
-            { code: 'es', en: 'Spanish', native: 'Español' },
-            { code: 'pt', en: 'Portuguese', native: 'Português' },
-            { code: 'ru', en: 'Russian', native: 'Русский' },
-            { code: 'ar', en: 'Arabic', native: 'العربية' },
-            { code: 'hi', en: 'Hindi', native: 'हिन्दी' },
-            { code: 'bn', en: 'Bengali', native: 'বাংলা' },
-            { code: 'th', en: 'Thai', native: 'ไทย' },
-            { code: 'vi', en: 'Vietnamese', native: 'Tiếng Việt' },
-            { code: 'id', en: 'Indonesian', native: 'Bahasa Indonesia' },
-            { code: 'ms', en: 'Malay', native: 'Bahasa Melayu' },
-            { code: 'tr', en: 'Turkish', native: 'Türkçe' },
-            { code: 'it', en: 'Italian', native: 'Italiano' },
-            { code: 'nl', en: 'Dutch', native: 'Nederlands' },
-            { code: 'pl', en: 'Polish', native: 'Polski' },
-            { code: 'sv', en: 'Swedish', native: 'Svenska' },
-            { code: 'fi', en: 'Finnish', native: 'Suomi' },
-            { code: 'cs', en: 'Czech', native: 'Čeština' },
-            { code: 'hu', en: 'Hungarian', native: 'Magyar' },
-            { code: 'el', en: 'Greek', native: 'Ελληνικά' },
-            { code: 'he', en: 'Hebrew', native: 'עברית' },
-            { code: 'fa', en: 'Persian', native: 'فارسی' },
+            { code: 'auto', en: 'Auto Detect', zh: '自动检测', 'zh-Hant': '自動偵測' },
+            { code: 'en', en: 'English', native: 'English', zh: '英语', 'zh-Hant': '英語' },
+            { code: 'zh', en: 'Chinese (Simplified)', native: '简体中文', zh: '简体中文', 'zh-Hant': '簡體中文' },
+            { code: 'zh-Hant', en: 'Chinese (Traditional)', native: '繁體中文', zh: '繁体中文', 'zh-Hant': '繁體中文' },
+            { code: 'ja', en: 'Japanese', native: '日本語', zh: '日语', 'zh-Hant': '日語' },
+            { code: 'ko', en: 'Korean', native: '한국어', zh: '韩语', 'zh-Hant': '韓語' },
+            { code: 'fr', en: 'French', native: 'Français', zh: '法语', 'zh-Hant': '法語' },
+            { code: 'de', en: 'German', native: 'Deutsch', zh: '德语', 'zh-Hant': '德語' },
+            { code: 'es', en: 'Spanish', native: 'Español', zh: '西班牙语', 'zh-Hant': '西班牙語' },
+            { code: 'pt', en: 'Portuguese', native: 'Português', zh: '葡萄牙语', 'zh-Hant': '葡萄牙語' },
+            { code: 'ru', en: 'Russian', native: 'Русский', zh: '俄语', 'zh-Hant': '俄語' },
+            { code: 'ar', en: 'Arabic', native: 'العربية', zh: '阿拉伯语', 'zh-Hant': '阿拉伯語' },
+            { code: 'hi', en: 'Hindi', native: 'हिन्दी', zh: '印地语', 'zh-Hant': '印地語' },
+            { code: 'bn', en: 'Bengali', native: 'বাংলা', zh: '孟加拉语', 'zh-Hant': '孟加拉語' },
+            { code: 'th', en: 'Thai', native: 'ไทย', zh: '泰语', 'zh-Hant': '泰語' },
+            { code: 'vi', en: 'Vietnamese', native: 'Tiếng Việt', zh: '越南语', 'zh-Hant': '越南語' },
+            { code: 'id', en: 'Indonesian', native: 'Bahasa Indonesia', zh: '印尼语', 'zh-Hant': '印尼語' },
+            { code: 'ms', en: 'Malay', native: 'Bahasa Melayu', zh: '马来语', 'zh-Hant': '馬來語' },
+            { code: 'tr', en: 'Turkish', native: 'Türkçe', zh: '土耳其语', 'zh-Hant': '土耳其語' },
+            { code: 'it', en: 'Italian', native: 'Italiano', zh: '意大利语', 'zh-Hant': '義大利語' },
+            { code: 'nl', en: 'Dutch', native: 'Nederlands', zh: '荷兰语', 'zh-Hant': '荷蘭語' },
+            { code: 'pl', en: 'Polish', native: 'Polski', zh: '波兰语', 'zh-Hant': '波蘭語' },
+            { code: 'sv', en: 'Swedish', native: 'Svenska', zh: '瑞典语', 'zh-Hant': '瑞典語' },
+            { code: 'fi', en: 'Finnish', native: 'Suomi', zh: '芬兰语', 'zh-Hant': '芬蘭語' },
+            { code: 'cs', en: 'Czech', native: 'Čeština', zh: '捷克语', 'zh-Hant': '捷克語' },
+            { code: 'hu', en: 'Hungarian', native: 'Magyar', zh: '匈牙利语', 'zh-Hant': '匈牙利語' },
+            { code: 'el', en: 'Greek', native: 'Ελληνικά', zh: '希腊语', 'zh-Hant': '希臘語' },
+            { code: 'he', en: 'Hebrew', native: 'עברית', zh: '希伯来语', 'zh-Hant': '希伯來語' },
+            { code: 'fa', en: 'Persian', native: 'فارسی', zh: '波斯语', 'zh-Hant': '波斯語' },
         ];
+
+        function getLangName(langObj, currentUiLang) {
+            if (!langObj) return '';
+            const localizedName = langObj[currentUiLang] || langObj.en;
+            if (langObj.code === 'auto') return localizedName;
+            // Examples: '简体中文 (Chinese)', 'English', 'Français (French)'
+            return langObj.native === localizedName ? localizedName : `${langObj.native} (${localizedName})`;
+        }
 
         // UI 文本
         const I18N = {
-            en: { source: 'SOURCE', translation: 'TRANSLATION', translate: 'TRANSLATE', translating: 'TRANSLATING...', auto: 'Auto Detect', copied: 'Copied!', error: 'Translation failed', placeholder: 'Enter text to translate...', chars: 'chars' },
-            zh: { source: '原文', translation: '译文', translate: '翻译', translating: '翻译中...', auto: '自动检测', copied: '已复制！', error: '翻译失败', placeholder: '输入要翻译的文本...', chars: '字' },
-            'zh-Hant': { source: '原文', translation: '譯文', translate: '翻譯', translating: '翻譯中...', auto: '自動偵測', copied: '已複製！', error: '翻譯失敗', placeholder: '輸入要翻譯的文字...', chars: '字' },
-            ja: { source: '原文', translation: '翻訳', translate: '翻訳する', translating: '翻訳中...', auto: '自動検出', copied: 'コピー済み！', error: '翻訳失敗', placeholder: '翻訳するテキストを入力...', chars: '文字' },
-            ko: { source: '원문', translation: '번역', translate: '번역', translating: '번역 중...', auto: '자동 감지', copied: '복사됨!', error: '번역 실패', placeholder: '번역할 텍스트 입력...', chars: '자' },
-            fr: { source: 'SOURCE', translation: 'TRADUCTION', translate: 'TRADUIRE', translating: 'TRADUCTION...', auto: 'Détection auto', copied: 'Copié !', error: 'Échec de traduction', placeholder: 'Saisissez le texte à traduire...', chars: 'car.' },
-            de: { source: 'QUELLE', translation: 'ÜBERSETZUNG', translate: 'ÜBERSETZEN', translating: 'ÜBERSETZE...', auto: 'Automatisch', copied: 'Kopiert!', error: 'Übersetzung fehlgeschlagen', placeholder: 'Text zum Übersetzen eingeben...', chars: 'Zeichen' },
-            es: { source: 'ORIGEN', translation: 'TRADUCCIÓN', translate: 'TRADUCIR', translating: 'TRADUCIENDO...', auto: 'Auto detectar', copied: '¡Copiado!', error: 'Error de traducción', placeholder: 'Ingrese texto para traducir...', chars: 'car.' },
-            ru: { source: 'ОРИГИНАЛ', translation: 'ПЕРЕВОД', translate: 'ПЕРЕВЕСТИ', translating: 'ПЕРЕВОД...', auto: 'Автоопределение', copied: 'Скопировано!', error: 'Ошибка перевода', placeholder: 'Введите текст для перевода...', chars: 'символов' },
+            en: { source: 'SOURCE', translation: 'TRANSLATION', translate: 'TRANSLATE', translating: 'TRANSLATING...', copied: 'Copied!', error: 'Translation failed', placeholder: 'Enter text to translate...', chars: 'chars' },
+            zh: { source: '原文', translation: '译文', translate: '翻译', translating: '翻译中...', copied: '已复制！', error: '翻译失败', placeholder: '输入要翻译的文本...', chars: '字' },
+            'zh-Hant': { source: '原文', translation: '譯文', translate: '翻譯', translating: '翻譯中...', copied: '已複製！', error: '翻譯失敗', placeholder: '輸入要翻譯的文字...', chars: '字' },
+            ja: { source: '原文', translation: '翻訳', translate: '翻訳する', translating: '翻訳中...', copied: 'コピー済み！', error: '翻訳失敗', placeholder: '翻訳するテキストを入力...', chars: '文字' },
+            ko: { source: '원문', translation: '번역', translate: '번역', translating: '번역 중...', copied: '복사됨!', error: '번역 실패', placeholder: '번역할 텍스트 입력...', chars: '자' },
+            fr: { source: 'SOURCE', translation: 'TRADUCTION', translate: 'TRADUIRE', translating: 'TRADUCTION...', copied: 'Copié !', error: 'Échec de traduction', placeholder: 'Saisissez le texte à traduire...', chars: 'car.' },
+            de: { source: 'QUELLE', translation: 'ÜBERSETZUNG', translate: 'ÜBERSETZEN', translating: 'ÜBERSETZE...', copied: 'Kopiert!', error: 'Übersetzung fehlgeschlagen', placeholder: 'Text zum Übersetzen eingeben...', chars: 'Zeichen' },
+            es: { source: 'ORIGEN', translation: 'TRADUCCIÓN', translate: 'TRADUCIR', translating: 'TRADUCIENDO...', copied: '¡Copiado!', error: 'Error de traducción', placeholder: 'Ingrese texto para traducir...', chars: 'car.' },
+            ru: { source: 'ОРИГИНАЛ', translation: 'ПЕРЕВОД', translate: 'ПЕРЕВЕСТИ', translating: 'ПЕРЕВОД...', copied: 'Скопировано!', error: 'Ошибка перевода', placeholder: 'Введите текст для перевода...', chars: 'символов' },
         };
 
         const appLocale = window.__APP_LOCALE__ || '';
@@ -513,8 +521,7 @@
                 this.langs.forEach(lang => {
                     const div = document.createElement('div');
                     div.className = 'lang-option' + (lang.code === this.value ? ' selected' : '');
-                    div.textContent = lang.code === 'auto' ? (t.auto || lang.en)
-                        : (lang.native ? `${lang.native} (${lang.en})` : lang.en);
+                    div.textContent = getLangName(lang, uiLang);
                     div.dataset.code = lang.code;
                     div.addEventListener('click', (e) => {
                         e.stopPropagation();
@@ -535,8 +542,7 @@
             updateTrigger() {
                 const lang = this.langs.find(l => l.code === this.value);
                 if (!lang) return;
-                this.trigger.textContent = lang.code === 'auto' ? (t.auto || lang.en)
-                    : (lang.native || lang.en);
+                this.trigger.textContent = getLangName(lang, uiLang);
             }
             toggle() {
                 const isOpen = this.dropdown.classList.contains('show');
