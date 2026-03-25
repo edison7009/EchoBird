@@ -506,7 +506,7 @@
             } catch (e) {
                 // AI 连接失败：显示错误，停止游戏
                 aiThinking = false;
-                addBubble('⚠ ' + t.disconnected + (e.message ? '\\n' + e.message : ''));
+                addBubble('⚠ ' + t.disconnected + (e.message ? ': ' + e.message : ''));
                 document.getElementById('turnHint').textContent = t.disconnected;
                 render();
             }
@@ -577,7 +577,10 @@ Second line: one short confident comment showing you enjoy the game. ${t.aiLang}
                     });
                     if (!resp.ok) throw new Error(`API ${resp.status}`);
                     const data = await resp.json();
-                    rawText = data.content?.[0]?.text || '';
+                    // Try Anthropic format first, then OpenAI format (some providers return OpenAI format even on Anthropic endpoint)
+                    rawText = data.content?.[0]?.text
+                        || data.choices?.[0]?.message?.content
+                        || '';
                 } catch (anthropicErr) {
                     console.warn('[Reversi] Anthropic failed, falling back to OpenAI:', anthropicErr);
                     // Derive baseUrl from anthropicUrl if baseUrl is empty
@@ -598,7 +601,9 @@ Second line: one short confident comment showing you enjoy the game. ${t.aiLang}
                     });
                     if (!resp.ok) throw new Error(`API ${resp.status}`);
                     const fbData = await resp.json();
-                    rawText = fbData.choices?.[0]?.message?.content || '';
+                    rawText = fbData.choices?.[0]?.message?.content
+                        || fbData.content?.[0]?.text
+                        || '';
                 }
             } else {
                 // --- OpenAI non-streaming ---
