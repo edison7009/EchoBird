@@ -412,10 +412,8 @@ export const LocalServerMain: React.FC = () => {
         if (engineStatus === 'checking') {
             return (
                 <div className="flex gap-1.5 w-full">
-                    <div className="flex-1 py-3 font-bold text-base tracking-[0.3em] font-mono flex items-center justify-center gap-2 rounded-lg
-                        bg-cyber-border text-cyber-text-secondary">
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                        CHECKING…
+                    <div className="flex-1 py-3 flex items-center justify-center rounded-lg bg-cyber-border text-cyber-text-secondary">
+                        <Loader2 className="w-5 h-5 animate-spin" />
                     </div>
                     {folderBtn}
                     {startStopBtn}
