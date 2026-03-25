@@ -659,7 +659,7 @@ Then one SHORT trash-talk comment. Be cocky, mock the opponent, brag about your 
                     const { done, value } = await reader.read();
                     if (done) break;
                     buffer += decoder.decode(value, { stream: true });
-                    const lines = buffer.split('\\n');
+                    const lines = buffer.split('\n');
                     buffer = lines.pop() || '';
                     for (const line of lines) {
                         const trimmed = line.trim();
@@ -672,7 +672,7 @@ Then one SHORT trash-talk comment. Be cocky, mock the opponent, brag about your 
                             if (delta) {
                                 rawText += delta;
                                 // strip out long think tags for display buffer to not clutter screen
-                                const display = rawText.replace(/<think>[\\s\\S]*?<\\/think>/gi, '').trim();
+                                const display = rawText.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
                                 streamDiv.textContent = display.length > 0 ? display : '(reasoning...)';
                                 area.scrollTop = area.scrollHeight;
                             }
