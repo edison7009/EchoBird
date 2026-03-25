@@ -742,8 +742,7 @@ fn get_installed_llama_version() -> Option<String> {
             None
         }
     })
-
-
+}
 
 /// Get installation status for all supported local runtimes
 pub fn get_local_engine_status() -> serde_json::Value {
