@@ -430,7 +430,7 @@ export const LocalServerMain: React.FC = () => {
                     <button
                         onClick={handleDownloadEngine}
                         className="flex-1 py-3 font-bold text-base tracking-[0.2em] font-mono transition-all flex items-center justify-center gap-2 rounded-lg
-                            bg-amber-500 text-black hover:bg-amber-400 shadow-[0_0_8px_rgba(245,158,11,0.2)] hover:shadow-[0_0_15px_rgba(245,158,11,0.4)]"
+                            bg-cyber-accent text-black hover:bg-cyber-accent/90 shadow-[0_0_8px_rgba(0,255,157,0.15)] hover:shadow-[0_0_15px_rgba(0,255,157,0.35)]"
                     >
                         <Download className="w-4 h-4" />
                         {t('server.upgradeEngine') || 'UPGRADE ENGINE'}

@@ -736,13 +736,12 @@ fn get_installed_llama_binary_name() -> Option<String> {
 fn get_installed_llama_version() -> Option<String> {
     get_installed_llama_binary_name().and_then(|name| {
         if let Some(ver_end) = name.find("-bin-") {
-            let ver = &name[6..ver_end]; // skip "llama-" prefix, extract "bNNNN"
-            Some(format!("b{}", ver))
+            let ver = &name[6..ver_end]; // skip "llama-" prefix → already "bNNNN"
+            Some(ver.to_string())
         } else {
             None
         }
     })
-}
 
 
 
