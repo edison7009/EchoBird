@@ -335,16 +335,17 @@ export const LocalServerMain: React.FC = () => {
     // Render START button (state machine)
     const renderStartButton = () => {
         // Shared button styles
+        const disabledStart = !isRunning && (!selectedModelPath || engineStatus === 'not-installed' || engineStatus === 'downloading' || engineStatus === 'checking' || engineStatus === 'error');
+        const btnBase = 'font-bold text-base font-mono transition-all flex items-center justify-center gap-2 flex-shrink-0 border';
+        const btnActive = 'bg-cyber-bg/50 text-cyber-text-secondary border-cyber-border/50 hover:text-cyber-accent hover:border-cyber-accent/50 hover:bg-cyber-accent/5';
+        const btnDisabled = 'bg-cyber-bg/30 text-cyber-text-muted/30 border-cyber-border/20 cursor-not-allowed';
+        const btnStop = 'bg-red-500/10 text-red-400 border-red-500/50 hover:bg-red-500/20';
+
         const startStopBtn = (
             <button
                 onClick={handleToggleServer}
-                disabled={!isRunning && (!selectedModelPath || engineStatus === 'not-installed' || engineStatus === 'downloading' || engineStatus === 'checking' || engineStatus === 'error')}
-                className={`py-3 px-6 font-bold text-base tracking-[0.3em] font-mono transition-all flex items-center justify-center gap-2 flex-shrink-0 ${isRunning
-                    ? 'bg-red-500/10 text-red-400 border border-red-500/50 hover:bg-red-500/20'
-                    : (!selectedModelPath || engineStatus === 'not-installed' || engineStatus === 'downloading' || engineStatus === 'checking' || engineStatus === 'error')
-                        ? 'bg-cyber-border/30 text-cyber-text-muted/50 cursor-not-allowed border border-cyber-border/30'
-                        : 'bg-cyber-accent/10 text-cyber-accent border border-cyber-accent/50 hover:bg-cyber-accent/20'
-                    }`}
+                disabled={disabledStart}
+                className={`py-3 px-6 tracking-[0.3em] ${btnBase} ${isRunning ? btnStop : disabledStart ? btnDisabled : btnActive}`}
             >
                 {isRunning ? (
                     <><Square className="w-3.5 h-3.5 fill-current" /> {t('btn.stop')}</>
@@ -358,12 +359,7 @@ export const LocalServerMain: React.FC = () => {
             <button
                 onClick={() => engineInstallDir && api.openFolder(engineInstallDir)}
                 disabled={!engineInstallDir}
-                className={`py-3 px-3 font-mono transition-all flex items-center justify-center flex-shrink-0 border ${
-                    engineInstallDir
-                        ? 'text-cyber-text-secondary border-cyber-border/50 hover:text-cyber-accent hover:border-cyber-accent/50 hover:bg-cyber-accent/5'
-                        : 'text-cyber-text-muted/30 border-cyber-border/20 cursor-not-allowed'
-                }`}
-                title="Open engine directory"
+                className={`py-3 px-3 ${btnBase} ${engineInstallDir ? btnActive : btnDisabled}`}
             >
                 <FolderOpen className="w-4 h-4" />
             </button>
