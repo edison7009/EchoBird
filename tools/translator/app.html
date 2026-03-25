@@ -483,6 +483,11 @@
             return langObj.native === localizedName ? localizedName : `${langObj.native} (${localizedName})`;
         }
 
+        function getShortLangName(langObj, currentUiLang) {
+            if (!langObj) return '';
+            return langObj[currentUiLang] || langObj.native || langObj.en;
+        }
+
         // UI 文本
         const I18N = {
             en: { source: 'SOURCE', translation: 'TRANSLATION', translate: 'TRANSLATE', translating: 'TRANSLATING...', copied: 'Copied!', error: 'Translation failed', placeholder: 'Enter text to translate...', chars: 'chars' },
@@ -542,7 +547,7 @@
             updateTrigger() {
                 const lang = this.langs.find(l => l.code === this.value);
                 if (!lang) return;
-                this.trigger.textContent = getLangName(lang, uiLang);
+                this.trigger.textContent = getShortLangName(lang, uiLang);
             }
             toggle() {
                 const isOpen = this.dropdown.classList.contains('show');
