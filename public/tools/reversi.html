@@ -504,7 +504,7 @@
             } catch (e) {
                 // AI 连接失败：显示错误，停止游戏
                 aiThinking = false;
-                addBubble('⚠ ' + t.disconnected);
+                addBubble('⚠ ' + t.disconnected + (e.message ? '\\n' + e.message : ''));
                 document.getElementById('turnHint').textContent = t.disconnected;
                 render();
             }
