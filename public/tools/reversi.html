@@ -554,77 +554,39 @@ First line: your chosen move in format row,col (numbers only)
 Second line: one short confident comment showing you enjoy the game. ${t.aiLang}`;
 
             let rawText = '';
-            const TIMEOUT = 30000; // 30s timeout
+            const TIMEOUT = 30000;
 
-            if (MODEL.protocol === 'anthropic') {
-                // --- Anthropic /messages ---
-                let apiUrl = (MODEL.anthropicUrl || '').trim().replace(/\/+$/, '');
-                const messagesPath = apiUrl.includes('/v1') ? '/messages' : '/v1/messages';
-                try {
-                    const resp = await fetch(apiUrl + messagesPath, {
-                        method: 'POST',
-                        signal: AbortSignal.timeout(TIMEOUT),
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'x-api-key': MODEL.apiKey,
-                            'anthropic-version': '2023-06-01',
-                        },
-                        body: JSON.stringify({
-                            model: MODEL.model,
-                            messages: [{ role: 'user', content: prompt }],
-                            max_tokens: 200
-                        })
-                    });
-                    if (!resp.ok) throw new Error(`API ${resp.status}`);
-                    const data = await resp.json();
-                    // Try Anthropic format first, then OpenAI format (some providers return OpenAI format even on Anthropic endpoint)
-                    rawText = data.content?.[0]?.text
-                        || data.choices?.[0]?.message?.content
-                        || '';
-                } catch (anthropicErr) {
-                    console.warn('[Reversi] Anthropic failed, falling back to OpenAI:', anthropicErr);
-                    // Derive baseUrl from anthropicUrl if baseUrl is empty
-                    // e.g. https://api.minimaxi.com/anthropic → https://api.minimaxi.com/v1
-                    let fbUrl = (MODEL.baseUrl || '').trim().replace(/\/+$/, '');
-                    if (!fbUrl) {
-                        fbUrl = (MODEL.anthropicUrl || '').trim()
-                            .replace(/\/+$/, '')
-                            .replace(/\/anthropic(\/.*)?$/, '')
-                            .replace(/\/v\d+$/, '');
-                    }
-                    if (!fbUrl.endsWith('/v1')) fbUrl += '/v1';
-                    const resp = await fetch(fbUrl + '/chat/completions', {
-                        method: 'POST',
-                        signal: AbortSignal.timeout(TIMEOUT),
-                        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + MODEL.apiKey },
-                        body: JSON.stringify({ model: MODEL.model, messages: [{ role: 'user', content: prompt }], max_tokens: 200, temperature: 0.3 })
-                    });
-                    if (!resp.ok) throw new Error(`API ${resp.status}`);
-                    const fbData = await resp.json();
-                    rawText = fbData.choices?.[0]?.message?.content
-                        || fbData.content?.[0]?.text
-                        || '';
-                }
-            } else {
-                // --- OpenAI non-streaming ---
-                let apiUrl = (MODEL.baseUrl || '').trim().replace(/\/+$/, '');
-                if (!apiUrl.endsWith('/v1')) apiUrl += '/v1';
-                const resp = await fetch(apiUrl + '/chat/completions', {
-                    method: 'POST',
-                    signal: AbortSignal.timeout(TIMEOUT),
-                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + MODEL.apiKey },
-                    body: JSON.stringify({
-                        model: MODEL.model,
-                        messages: [{ role: 'user', content: prompt }],
-                        max_tokens: 200,
-                        temperature: 0.3
-                    })
-                });
-                if (!resp.ok) throw new Error(`API ${resp.status}`);
-                const data = await resp.json();
-                rawText = data.choices?.[0]?.message?.content || '';
+            // Always use OpenAI chat/completions format (more compatible across providers).
+            // For Anthropic-protocol models, derive baseUrl from anthropicUrl.
+            let apiUrl = (MODEL.baseUrl || '').trim().replace(/\/+$/, '');
+            if (!apiUrl) {
+                // e.g. https://api.minimaxi.com/anthropic → https://api.minimaxi.com
+                apiUrl = (MODEL.anthropicUrl || '').trim()
+                    .replace(/\/+$/, '')
+                    .replace(/\/anthropic(\/.*)?$/, '')
+                    .replace(/\/v\d+(\/.*)?$/, '');
             }
+            if (!apiUrl.endsWith('/v1')) apiUrl += '/v1';
 
+            const resp = await fetch(apiUrl + '/chat/completions', {
+                method: 'POST',
+                signal: AbortSignal.timeout(TIMEOUT),
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ' + MODEL.apiKey,
+                },
+                body: JSON.stringify({
+                    model: MODEL.model,
+                    messages: [{ role: 'user', content: prompt }],
+                    max_tokens: 200,
+                    temperature: 0.3
+                })
+            });
+            if (!resp.ok) throw new Error(`API ${resp.status}`);
+            const data = await resp.json();
+            rawText = data.choices?.[0]?.message?.content
+                || data.content?.[0]?.text
+                || '';
 
             // 过滤思考模型的 <think>...</think> 标签
             const text = rawText.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
