@@ -305,17 +305,83 @@ pub fn cancel_download(app_handle: &tauri::AppHandle, target_file_name: Option<S
     log::info!("[ModelStore] Download cancelled");
 }
 
-// ─── Engine download: llama-server binary installer ───
+// ─── Engine version config (remote + cached + fallback) ───
 
-const LLAMA_VERSION: &str = "b8495";
-const LLAMA_CUDA_VER: &str = "13.1";
+const FALLBACK_LLAMA_VERSION: &str = "b8495";
+const FALLBACK_CUDA_VER: &str = "13.1";
+const ENGINE_VERSIONS_URL: &str = "https://echobird.ai/api/engine-versions.json";
 
-fn llama_github_base() -> String {
-    format!("https://github.com/ggml-org/llama.cpp/releases/download/{}", LLAMA_VERSION)
+#[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
+pub struct EngineVersionInfo {
+    pub version: String,
+    #[serde(rename = "cudaVersion", default)]
+    pub cuda_version: Option<String>,
+    #[serde(default)]
+    pub changelog: Option<String>,
 }
 
-fn llama_download_mirrors() -> Vec<String> {
-    let base = llama_github_base();
+/// Fetch engine versions: remote → cache → hardcoded fallback
+pub fn get_engine_versions() -> std::collections::HashMap<String, EngineVersionInfo> {
+    let cache_dir = dirs::home_dir().unwrap_or_default().join(".echobird").join("cache");
+    let cache_path = cache_dir.join("engine-versions.json");
+
+    // Try cache first (synchronous — remote fetch is done in background)
+    if let Ok(text) = std::fs::read_to_string(&cache_path) {
+        if let Ok(map) = serde_json::from_str(&text) {
+            return map;
+        }
+    }
+
+    // Fallback defaults
+    let mut map = std::collections::HashMap::new();
+    map.insert("llama-server".to_string(), EngineVersionInfo {
+        version: FALLBACK_LLAMA_VERSION.to_string(),
+        cuda_version: Some(FALLBACK_CUDA_VER.to_string()),
+        changelog: None,
+    });
+    map
+}
+
+/// Fetch engine versions from remote and cache locally (async, called on page load)
+pub async fn refresh_engine_versions() -> std::collections::HashMap<String, EngineVersionInfo> {
+    let cache_dir = dirs::home_dir().unwrap_or_default().join(".echobird").join("cache");
+    let cache_path = cache_dir.join("engine-versions.json");
+
+    if let Ok(resp) = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(6))
+        .build()
+        .unwrap_or_default()
+        .get(ENGINE_VERSIONS_URL)
+        .header("User-Agent", "Echobird/3.0")
+        .send()
+        .await
+    {
+        if resp.status().is_success() {
+            if let Ok(text) = resp.text().await {
+                if let Ok(map) = serde_json::from_str::<std::collections::HashMap<String, EngineVersionInfo>>(&text) {
+                    if !map.is_empty() {
+                        let _ = std::fs::create_dir_all(&cache_dir);
+                        let _ = std::fs::write(&cache_path, &text);
+                        log::info!("[EngineVersions] Refreshed {} engines from remote", map.len());
+                        return map;
+                    }
+                }
+            }
+        }
+    }
+
+    log::warn!("[EngineVersions] Remote fetch failed, using cached/fallback");
+    get_engine_versions()
+}
+
+// ─── Engine download: llama-server binary installer ───
+
+fn llama_github_base(version: &str) -> String {
+    format!("https://github.com/ggml-org/llama.cpp/releases/download/{}", version)
+}
+
+fn llama_download_mirrors(version: &str) -> Vec<String> {
+    let base = llama_github_base(version);
     vec![
         base.clone(),
         format!("https://ghfast.top/{}", base),
@@ -335,25 +401,25 @@ fn classify_gpu_vendor_for_download(name: &str) -> &'static str {
     { "nvidia" } else { "other" }
 }
 
-fn get_llama_platform_files(has_nvidia: bool) -> Vec<String> {
+fn get_llama_platform_files(has_nvidia: bool, version: &str, cuda_ver: &str) -> Vec<String> {
     match std::env::consts::OS {
         "windows" => {
             if has_nvidia {
                 vec![
-                    format!("llama-{}-bin-win-cuda-{}-x64.zip", LLAMA_VERSION, LLAMA_CUDA_VER),
-                    format!("cudart-llama-bin-win-cuda-{}-x64.zip", LLAMA_CUDA_VER),
+                    format!("llama-{}-bin-win-cuda-{}-x64.zip", version, cuda_ver),
+                    format!("cudart-llama-bin-win-cuda-{}-x64.zip", cuda_ver),
                 ]
             } else {
-                vec![format!("llama-{}-bin-win-avx2-x64.zip", LLAMA_VERSION)]
+                vec![format!("llama-{}-bin-win-avx2-x64.zip", version)]
             }
         }
-        "macos" => vec![format!("llama-{}-bin-macos-arm64.tar.gz", LLAMA_VERSION)],
+        "macos" => vec![format!("llama-{}-bin-macos-arm64.tar.gz", version)],
         _ => {
             let arch = std::env::consts::ARCH;
             if arch == "aarch64" || arch == "arm" {
-                vec![format!("llama-{}-bin-ubuntu-arm64.tar.gz", LLAMA_VERSION)]
+                vec![format!("llama-{}-bin-ubuntu-arm64.tar.gz", version)]
             } else {
-                vec![format!("llama-{}-bin-ubuntu-x64.tar.gz", LLAMA_VERSION)]
+                vec![format!("llama-{}-bin-ubuntu-x64.tar.gz", version)]
             }
         }
     }
@@ -394,6 +460,13 @@ async fn test_mirror_speed(url: String, name: String) -> (String, String, f64) {
 
 /// Download and install llama-server binary
 pub async fn download_llama_server(app_handle: tauri::AppHandle) -> Result<String, String> {
+    // Fetch latest version from remote config
+    let versions = refresh_engine_versions().await;
+    let llama_info = versions.get("llama-server");
+    let version = llama_info.map(|i| i.version.as_str()).unwrap_or(FALLBACK_LLAMA_VERSION);
+    let cuda_ver = llama_info.and_then(|i| i.cuda_version.as_deref()).unwrap_or(FALLBACK_CUDA_VER);
+    log::info!("[LlamaDownloader] Using version={}, cuda={}", version, cuda_ver);
+
     let gpu_info = get_gpu_info();
     let has_nvidia = gpu_info.as_ref()
         .map(|g| classify_gpu_vendor_for_download(&g.gpu_name) == "nvidia")
@@ -401,10 +474,10 @@ pub async fn download_llama_server(app_handle: tauri::AppHandle) -> Result<Strin
     log::info!("[LlamaDownloader] GPU vendor: {}, has_nvidia={}",
         gpu_info.as_ref().map(|g| g.gpu_name.as_str()).unwrap_or("none"), has_nvidia);
 
-    let file_names = get_llama_platform_files(has_nvidia);
+    let file_names = get_llama_platform_files(has_nvidia, version, cuda_ver);
     let bin_dir = llama_install_dir().join("bin");
     let temp_dir = llama_install_dir().join("temp");
-    let mirrors = llama_download_mirrors();
+    let mirrors = llama_download_mirrors(version);
 
     DOWNLOAD_ABORT.store(false, Ordering::SeqCst);
     DOWNLOAD_PAUSED.store(false, Ordering::SeqCst);
@@ -649,15 +722,19 @@ fn get_installed_llama_version() -> Option<String> {
     None
 }
 
+
+
 /// Get installation status for all supported local runtimes
 pub fn get_local_engine_status() -> serde_json::Value {
     let llama_installed = LocalLlmServer::find_llama_server().is_some();
     let installed_ver = get_installed_llama_version().unwrap_or_default();
+    let versions = get_engine_versions();
+    let latest_llama = versions.get("llama-server")
+        .map(|i| i.version.as_str())
+        .unwrap_or(FALLBACK_LLAMA_VERSION);
 
     let vllm_version = check_python_package("vllm");
     let sglang_version = check_python_package("sglang");
-    let vllm_musa_version = check_python_package("vllm-musa")
-        .or_else(|| check_python_package("vllm_musa"));
 
     serde_json::json!({
         "engines": [
@@ -665,7 +742,7 @@ pub fn get_local_engine_status() -> serde_json::Value {
                 "name": "llama-server",
                 "installed": llama_installed,
                 "version": installed_ver,
-                "latestVersion": LLAMA_VERSION
+                "latestVersion": latest_llama
             },
             {
                 "name": "vllm",
@@ -676,20 +753,14 @@ pub fn get_local_engine_status() -> serde_json::Value {
                 "name": "sglang",
                 "installed": sglang_version.is_some(),
                 "version": sglang_version.unwrap_or_default()
-            },
-            {
-                "name": "vllm-musa",
-                "installed": vllm_musa_version.is_some(),
-                "version": vllm_musa_version.unwrap_or_default()
             }
         ]
     })
 }
 
 /// Install engine for local use. Routes by runtime:
-/// - llama-server: binary download (existing flow)
+/// - llama-server: binary download (auto-versioned from remote config)
 /// - vllm / sglang: pip3 install
-/// - vllm-musa: pip3 install vllm-musa (Moore Threads build)
 pub async fn install_local_engine(app_handle: tauri::AppHandle, runtime: String) -> Result<(), String> {
     match runtime.as_str() {
         "llama-server" => {
@@ -706,9 +777,6 @@ pub async fn install_local_engine(app_handle: tauri::AppHandle, runtime: String)
         }
         "sglang" => {
             install_pip_engine(&app_handle, "sglang[all]", &runtime).await
-        }
-        "vllm-musa" => {
-            install_pip_engine(&app_handle, "vllm-musa", &runtime).await
         }
         other => {
             Err(format!("Unknown runtime: {}", other))

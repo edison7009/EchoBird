@@ -77,7 +77,7 @@ export const LocalServerProvider: React.FC<{ children: React.ReactNode }> = ({ c
             const dirs = await api.getModelsDirs();
             setModelsDirs(dirs);
             const allFiles: GgufFileEntry[] = [];
-            const isHfRuntime = rt === 'vllm' || rt === 'sglang' || rt === 'vllm-musa';
+            const isHfRuntime = rt === 'vllm' || rt === 'sglang';
             for (const dir of dirs) {
                 if (isHfRuntime) {
                     // Scan HuggingFace model directories
@@ -164,17 +164,12 @@ export const LocalServerMain: React.FC = () => {
     // Only NVIDIA GPUs can use GPU-Full mode (app downloads CUDA build for NVIDIA, AVX2 CPU build for others)
     const hasNvidiaGpu = systemInfo ? systemInfo.hasNvidiaGpu : false;
     const hasAmdGpu = systemInfo ? (systemInfo as any).hasAmdGpu ?? false : false;
-    const isMooreThreadsGpu = systemInfo ? ((systemInfo.gpuName || '').toLowerCase().includes('mtt') || (systemInfo.gpuName || '').toLowerCase().includes('moore')) : false;
     const runtimeOptions = [
         { id: 'llama-server', label: 'llama.cpp' },
         // vLLM / SGLang: Linux + NVIDIA or AMD GPU only
         ...(isLinux && (hasNvidiaGpu || hasAmdGpu) ? [
             { id: 'vllm', label: 'vLLM' },
             { id: 'sglang', label: 'SGLang' },
-        ] : []),
-        // vLLM-MUSA: Linux + Moore Threads GPU only
-        ...(isLinux && isMooreThreadsGpu ? [
-            { id: 'vllm-musa', label: 'vLLM-MUSA' },
         ] : []),
     ];
 
@@ -463,14 +458,14 @@ export const LocalServerMain: React.FC = () => {
                         <MiniSelect
                             value={runtime !== 'llama-server' ? '-1' : String(gpuLayers)}
                             onChange={(v) => setGpuLayers(Number(v))}
-                            disabled={isRunning || runtime !== 'llama-server' || hasNvidiaGpu || hasAmdGpu || isMooreThreadsGpu}
+                            disabled={isRunning || runtime !== 'llama-server' || hasNvidiaGpu || hasAmdGpu}
                             options={[
                                 // GPU-Full always first; shown when any GPU present or non-llama runtime
-                                ...(runtime !== 'llama-server' || hasNvidiaGpu || hasAmdGpu || isMooreThreadsGpu
+                                ...(runtime !== 'llama-server' || hasNvidiaGpu || hasAmdGpu
                                     ? [{ id: '-1', label: t('server.gpuFull') }]
                                     : []),
                                 // CPU-only only shown when no GPU detected and using llama-server
-                                ...(!hasNvidiaGpu && !hasAmdGpu && !isMooreThreadsGpu && runtime === 'llama-server'
+                                ...(!hasNvidiaGpu && !hasAmdGpu && runtime === 'llama-server'
                                     ? [{ id: '0', label: t('server.cpuOnly') }]
                                     : []),
                             ]}
@@ -732,13 +727,9 @@ export const LocalServerPanel: React.FC = () => {
     })();
 
     // Filter store models by current runtime
-    // vllm-musa is treated as 'vllm' for store purposes (same model format)
-    const storeRuntimeKey = runtime === 'vllm-musa' ? 'vllm' : runtime;
     const filteredStoreModels = storeModels.filter(model => {
         const modelRuntimes = model.runtimes || ['llama-server'];
-        // If model has no runtimes field, default to llama-server
-        return modelRuntimes.includes(storeRuntimeKey) ||
-            (storeRuntimeKey === 'vllm' && modelRuntimes.includes('vllm-musa'));
+        return modelRuntimes.includes(runtime);
     });
 
     // Check if a file exists locally
@@ -1033,9 +1024,9 @@ export const LocalServerPanel: React.FC = () => {
                         ) : (
                             <div className="space-y-2">
                                 {/* Runtime filter badge */}
-                                {storeRuntimeKey !== 'llama-server' && (
+                                {runtime !== 'llama-server' && (
                                     <div className="text-[10px] font-mono text-cyan-400/70 px-1 pb-1">
-                                        {storeRuntimeKey === 'vllm' ? 'vLLM / vLLM-MUSA' : storeRuntimeKey}
+                                        {runtime}
                                     </div>
                                 )}
                                 {filteredStoreModels.map(model => {
@@ -1140,7 +1131,7 @@ export const LocalServerPanel: React.FC = () => {
                                 })}
                                 {filteredStoreModels.length === 0 && !isLoadingStore && (
                                     <div className="text-center py-8 text-cyber-text-secondary text-xs font-mono">
-                                        No models for {storeRuntimeKey === 'vllm' ? 'vLLM' : storeRuntimeKey} in store
+                                        No models for {runtime} in store
                                     </div>
                                 )}
                             </div>

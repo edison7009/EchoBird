@@ -10,7 +10,6 @@ const ENGINE_LABELS: Record<string, string> = {
     'llama-server': 'llama.cpp',
     'vllm': 'vLLM',
     'sglang': 'SGLang',
-    'vllm-musa': 'vLLM-MUSA',
 };
 
 function getDisplayName(fileName: string): string {
