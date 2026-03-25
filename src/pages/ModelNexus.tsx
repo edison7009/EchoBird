@@ -583,7 +583,7 @@ export function ModelNexusPanel() {
                     </span>
                 )}
             </div>
-            <div className="flex-1 p-4 overflow-y-auto text-xs font-mono space-y-1 bg-black/40 backdrop-blur-sm rounded-lg">
+            <div className="flex-1 p-4 overflow-y-auto text-xs font-mono space-y-1 bg-black/30 backdrop-blur-sm rounded-lg">
                 {selectedModelData ? (
                     <div className="space-y-1">
                         <p className="text-cyber-accent">[SYS] Model connected</p>
@@ -648,7 +648,7 @@ export function ModelNexusPanel() {
             </div>
             <div className="py-3">
                 <div
-                    className="flex items-center gap-2 bg-black/40 backdrop-blur-sm p-2 cursor-text rounded-lg border border-cyber-border/30"
+                    className="flex items-center gap-2 bg-black/30 backdrop-blur-sm p-2 cursor-text rounded-lg border border-cyber-border/30"
                     onClick={() => testInputRef.current?.focus()}
                 >
                     {/* Clickable protocol selector */}
