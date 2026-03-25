@@ -334,12 +334,12 @@ export const LocalServerMain: React.FC = () => {
 
     // Render START button (state machine)
     const renderStartButton = () => {
-        // Shared button styles
+        // Shared button styles — solid fill matching AppManager launch button
         const disabledStart = !isRunning && (!selectedModelPath || engineStatus === 'not-installed' || engineStatus === 'downloading' || engineStatus === 'checking' || engineStatus === 'error');
-        const btnBase = 'font-bold text-base font-mono transition-all flex items-center justify-center gap-2 flex-shrink-0 border';
-        const btnActive = 'bg-cyber-bg/50 text-cyber-text-secondary border-cyber-border/50 hover:text-cyber-accent hover:border-cyber-accent/50 hover:bg-cyber-accent/5';
-        const btnDisabled = 'bg-cyber-bg/30 text-cyber-text-muted/30 border-cyber-border/20 cursor-not-allowed';
-        const btnStop = 'bg-red-500/10 text-red-400 border-red-500/50 hover:bg-red-500/20';
+        const btnBase = 'font-bold text-base font-mono transition-all flex items-center justify-center gap-2 flex-shrink-0 rounded-lg';
+        const btnActive = 'bg-cyber-accent text-black hover:bg-cyber-accent/90 shadow-[0_0_8px_rgba(0,255,157,0.15)] hover:shadow-[0_0_15px_rgba(0,255,157,0.35)]';
+        const btnDisabled = 'bg-cyber-border text-cyber-text-secondary cursor-not-allowed';
+        const btnStop = 'bg-red-500 text-white hover:bg-red-600 shadow-[0_0_8px_rgba(239,68,68,0.2)]';
 
         const startStopBtn = (
             <button
@@ -371,8 +371,8 @@ export const LocalServerMain: React.FC = () => {
                 <div className="flex gap-1.5 w-full">
                     <button
                         onClick={handleDownloadEngine}
-                        className="flex-1 py-3 font-bold text-base tracking-[0.3em] font-mono transition-all flex items-center justify-center gap-2
-                            bg-cyber-accent/10 text-cyber-accent border border-cyber-accent/50 hover:bg-cyber-accent/20 shadow-[0_0_15px_rgba(0,255,157,0.15)]"
+                        className="flex-1 py-3 font-bold text-base tracking-[0.3em] font-mono transition-all flex items-center justify-center gap-2 rounded-lg
+                            bg-cyber-accent text-black hover:bg-cyber-accent/90 shadow-[0_0_8px_rgba(0,255,157,0.15)] hover:shadow-[0_0_15px_rgba(0,255,157,0.35)]"
                     >
                         <Download className="w-4 h-4" />
                         {engineStatus === 'error' ? `\u26A0 ${t('server.setupEngine')}` : t('server.setupEngine')}
@@ -387,12 +387,12 @@ export const LocalServerMain: React.FC = () => {
         if (engineStatus === 'downloading') {
             return (
                 <div className="flex gap-1.5 w-full">
-                    <div className="flex-1 relative overflow-hidden border border-cyber-accent/50 bg-cyber-accent/5">
+                    <div className="flex-1 relative overflow-hidden rounded-lg bg-cyber-border">
                         <div
-                            className="absolute inset-0 bg-cyber-accent/15 transition-all duration-300 ease-out"
+                            className="absolute inset-0 bg-cyber-accent/40 transition-all duration-300 ease-out"
                             style={{ width: `${downloadProgress}%` }}
                         />
-                        <div className="relative py-3 flex items-center justify-center gap-2 font-bold text-base tracking-[0.3em] font-mono text-cyber-accent">
+                        <div className="relative py-3 flex items-center justify-center gap-2 font-bold text-base tracking-[0.3em] font-mono text-black">
                             <Loader2 className="w-4 h-4 animate-spin" />
                             {downloadProgress === 0
                                 ? `${t('server.downloading')} 0%`
@@ -412,8 +412,8 @@ export const LocalServerMain: React.FC = () => {
         if (engineStatus === 'checking') {
             return (
                 <div className="flex gap-1.5 w-full">
-                    <div className="flex-1 py-3 font-bold text-base tracking-[0.3em] font-mono flex items-center justify-center gap-2
-                        bg-cyber-accent/10 text-cyber-accent/50 border border-cyber-accent/30">
+                    <div className="flex-1 py-3 font-bold text-base tracking-[0.3em] font-mono flex items-center justify-center gap-2 rounded-lg
+                        bg-cyber-border text-cyber-text-secondary">
                         <Loader2 className="w-4 h-4 animate-spin" />
                         CHECKING…
                     </div>
@@ -429,8 +429,8 @@ export const LocalServerMain: React.FC = () => {
                 <div className="flex gap-1.5 w-full">
                     <button
                         onClick={handleDownloadEngine}
-                        className="flex-1 py-3 font-bold text-base tracking-[0.2em] font-mono transition-all flex items-center justify-center gap-2
-                            bg-amber-500/10 text-amber-400 border border-amber-500/50 hover:bg-amber-500/20 shadow-[0_0_15px_rgba(245,158,11,0.15)]"
+                        className="flex-1 py-3 font-bold text-base tracking-[0.2em] font-mono transition-all flex items-center justify-center gap-2 rounded-lg
+                            bg-amber-500 text-black hover:bg-amber-400 shadow-[0_0_8px_rgba(245,158,11,0.2)] hover:shadow-[0_0_15px_rgba(245,158,11,0.4)]"
                     >
                         <Download className="w-4 h-4" />
                         {t('server.upgradeEngine') || 'UPGRADE ENGINE'}
@@ -447,11 +447,11 @@ export const LocalServerMain: React.FC = () => {
                 <button
                     onClick={handleToggleServer}
                     disabled={!isRunning && !selectedModelPath}
-                    className={`flex-1 py-3 font-bold text-base tracking-[0.3em] font-mono transition-all flex items-center justify-center gap-2 ${isRunning
-                        ? 'bg-red-500/10 text-red-400 border border-red-500/50 hover:bg-red-500/20 shadow-[0_0_15px_rgba(239,68,68,0.15)]'
+                    className={`flex-1 py-3 font-bold text-base tracking-[0.3em] font-mono transition-all flex items-center justify-center gap-2 rounded-lg ${isRunning
+                        ? 'bg-red-500 text-white hover:bg-red-600 shadow-[0_0_8px_rgba(239,68,68,0.2)]'
                         : !selectedModelPath
-                            ? 'bg-cyber-border/30 text-cyber-text-muted/50 cursor-not-allowed border border-cyber-border/30'
-                            : 'bg-cyber-accent/10 text-cyber-accent border border-cyber-accent/50 hover:bg-cyber-accent/20 shadow-[0_0_15px_rgba(0,255,157,0.15)]'
+                            ? 'bg-cyber-border text-cyber-text-secondary cursor-not-allowed'
+                            : 'bg-cyber-accent text-black hover:bg-cyber-accent/90 shadow-[0_0_8px_rgba(0,255,157,0.15)] hover:shadow-[0_0_15px_rgba(0,255,157,0.35)]'
                         }`}
                 >
                     {isRunning ? (
