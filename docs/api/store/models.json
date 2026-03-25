@@ -180,6 +180,84 @@
         ]
     },
     {
+        "id": "gpt-oss-120b",
+        "name": "GPT-OSS 120B (OpenAI MoE)",
+        "icon": "openai",
+        "description": "OpenAI's open-weight MoE — 117B total, 5.1B active, Apache 2.0, o4-mini class reasoning",
+        "huggingfaceRepo": "unsloth/gpt-oss-120b-GGUF",
+        "variants": [
+            {
+                "quantization": "IQ2_M",
+                "fileName": "gpt-oss-120b-UD-IQ2_M-00001-of-00002.gguf",
+                "fileSize": 38000000000,
+                "recommendedVRAM": "48 GB"
+            },
+            {
+                "quantization": "Q4_K_M",
+                "fileName": "gpt-oss-120b-Q4_K_M-00001-of-00002.gguf",
+                "fileSize": 68000000000,
+                "recommendedVRAM": "80 GB"
+            }
+        ],
+        "runtimes": [
+            "llama-server",
+            "vllm",
+            "sglang"
+        ]
+    },
+    {
+        "id": "llama-4-maverick",
+        "name": "Llama 4 Maverick (400B MoE)",
+        "icon": "llama",
+        "description": "Meta flagship MoE — 400B total, 17B active, 1M context, multimodal. Remote GPU recommended",
+        "huggingfaceRepo": "unsloth/Llama-4-Maverick-17B-128E-Instruct-GGUF",
+        "variants": [
+            {
+                "quantization": "IQ2_M",
+                "fileName": "Llama-4-Maverick-17B-128E-Instruct-UD-IQ2_M-00001-of-00003.gguf",
+                "fileSize": 105000000000,
+                "recommendedVRAM": "112 GB"
+            },
+            {
+                "quantization": "Q4_K_M",
+                "fileName": "Llama-4-Maverick-17B-128E-Instruct-Q4_K_M-00001-of-00005.gguf",
+                "fileSize": 220000000000,
+                "recommendedVRAM": "240 GB"
+            }
+        ],
+        "runtimes": [
+            "llama-server",
+            "vllm",
+            "sglang"
+        ]
+    },
+    {
+        "id": "mimo-v2-flash",
+        "name": "MiMo-V2-Flash (309B MoE)",
+        "icon": "mimo",
+        "description": "Xiaomi ultra-fast MoE — 309B total, 15B active, 256K context, top reasoning + coding",
+        "huggingfaceRepo": "unsloth/MiMo-V2-Flash-GGUF",
+        "variants": [
+            {
+                "quantization": "IQ2_M",
+                "fileName": "MiMo-V2-Flash-UD-IQ2_M-00001-of-00003.gguf",
+                "fileSize": 72000000000,
+                "recommendedVRAM": "80 GB"
+            },
+            {
+                "quantization": "Q4_K_M",
+                "fileName": "MiMo-V2-Flash-Q4_K_M-00001-of-00004.gguf",
+                "fileSize": 140000000000,
+                "recommendedVRAM": "160 GB"
+            }
+        ],
+        "runtimes": [
+            "llama-server",
+            "vllm",
+            "sglang"
+        ]
+    },
+    {
         "id": "qwen3-coder-30b-a3b",
         "name": "Qwen3 Coder 30B-A3B",
         "icon": "qwen",
@@ -243,38 +321,7 @@
             "sglang"
         ]
     },
-    {
-        "id": "qwen2.5-coder-32b",
-        "name": "Qwen2.5 Coder 32B",
-        "icon": "qwen",
-        "description": "Top-tier coding model, GPT-4o level code generation",
-        "huggingfaceRepo": "bartowski/Qwen2.5-Coder-32B-Instruct-GGUF",
-        "variants": [
-            {
-                "quantization": "Q4_K_M",
-                "fileName": "Qwen2.5-Coder-32B-Instruct-Q4_K_M.gguf",
-                "fileSize": 19851336672,
-                "recommendedVRAM": "24 GB"
-            },
-            {
-                "quantization": "Q6_K",
-                "fileName": "Qwen2.5-Coder-32B-Instruct-Q6_K.gguf",
-                "fileSize": 26886155232,
-                "recommendedVRAM": "32 GB"
-            },
-            {
-                "quantization": "Q8_0",
-                "fileName": "Qwen2.5-Coder-32B-Instruct-Q8_0.gguf",
-                "fileSize": 34820885184,
-                "recommendedVRAM": "48 GB"
-            }
-        ],
-        "runtimes": [
-            "llama-server",
-            "vllm",
-            "sglang"
-        ]
-    },
+
     {
         "id": "deepseek-r1-0528-8b",
         "name": "DeepSeek R1 0528 8B",
@@ -499,38 +546,7 @@
             "sglang"
         ]
     },
-    {
-        "id": "deepseek-r1-distill-qwen-32b",
-        "name": "DeepSeek R1 Distill 32B",
-        "icon": "deepseek",
-        "description": "R1 reasoning power distilled into 32B Qwen — strong logic & math",
-        "huggingfaceRepo": "bartowski/DeepSeek-R1-Distill-Qwen-32B-GGUF",
-        "variants": [
-            {
-                "quantization": "Q4_K_M",
-                "fileName": "DeepSeek-R1-Distill-Qwen-32B-Q4_K_M.gguf",
-                "fileSize": 19856900096,
-                "recommendedVRAM": "24 GB"
-            },
-            {
-                "quantization": "Q6_K",
-                "fileName": "DeepSeek-R1-Distill-Qwen-32B-Q6_K.gguf",
-                "fileSize": 26883307520,
-                "recommendedVRAM": "32 GB"
-            },
-            {
-                "quantization": "Q8_0",
-                "fileName": "DeepSeek-R1-Distill-Qwen-32B-Q8_0.gguf",
-                "fileSize": 34817719296,
-                "recommendedVRAM": "40 GB"
-            }
-        ],
-        "runtimes": [
-            "llama-server",
-            "vllm",
-            "sglang"
-        ]
-    },
+
     {
         "id": "mistral-small-3.1-24b",
         "name": "Mistral Small 3.1 24B",
@@ -685,32 +701,7 @@
             "sglang"
         ]
     },
-    {
-        "id": "llama-3.3-70b",
-        "name": "Llama 3.3 70B",
-        "icon": "llama",
-        "runtimes": [
-            "llama-server",
-            "vllm",
-            "sglang"
-        ],
-        "description": "Meta flagship 70B — GPT-4 class reasoning and coding",
-        "huggingfaceRepo": "bartowski/Llama-3.3-70B-Instruct-GGUF",
-        "variants": [
-            {
-                "quantization": "Q4_K_M",
-                "fileName": "Llama-3.3-70B-Instruct-Q4_K_M.gguf",
-                "fileSize": 42520000000,
-                "recommendedVRAM": "48 GB"
-            },
-            {
-                "quantization": "Q6_K",
-                "fileName": "Llama-3.3-70B-Instruct-Q6_K.gguf",
-                "fileSize": 57400000000,
-                "recommendedVRAM": "64 GB"
-            }
-        ]
-    },
+
     {
         "id": "codestral-25.01",
         "name": "Codestral 25.01 22B",
