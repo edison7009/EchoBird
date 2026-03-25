@@ -1170,9 +1170,9 @@ export function MotherAgentPanel() {
                         {/* Local server — always first */}
                         <div
                             onClick={() => !isProcessing && selectServer('local')}
-                            className={`p-3 border rounded transition-all select-none flex items-center ${isProcessing && selectedServerId !== 'local' ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'} ${selectedServerId === 'local'
-                                ? 'border-cyber-accent-secondary bg-cyber-accent-secondary/5 shadow-[0_0_10px_rgba(0,212,255,0.15)]'
-                                : 'border-cyber-border hover:border-cyber-accent-secondary/50'
+                            className={`p-3 rounded transition-all select-none flex items-center ${isProcessing && selectedServerId !== 'local' ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'} ${selectedServerId === 'local'
+                                ? 'bg-cyber-accent-secondary/10'
+                                : 'bg-black/30 hover:bg-white/5'
                                 }`}
                         >
                             <div className="mr-3">
@@ -1190,9 +1190,9 @@ export function MotherAgentPanel() {
                             <div
                                 key={server.id}
                                 onClick={() => !isProcessing && selectServer(server.id)}
-                                className={`p-3 border rounded transition-all select-none flex items-center ${isProcessing && selectedServerId !== server.id ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'} ${selectedServerId === server.id
-                                    ? 'border-cyber-accent-secondary bg-cyber-accent-secondary/5 shadow-[0_0_10px_rgba(0,212,255,0.15)]'
-                                    : 'border-cyber-border hover:border-cyber-accent-secondary/50'
+                                className={`p-3 rounded transition-all select-none flex items-center ${isProcessing && selectedServerId !== server.id ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'} ${selectedServerId === server.id
+                                    ? 'bg-cyber-accent-secondary/10'
+                                    : 'bg-black/30 hover:bg-white/5'
                                     }`}
                             >
                                 <div className="mr-3">

@@ -910,13 +910,13 @@ export const LocalServerPanel: React.FC = () => {
                                     return (
                                         <div
                                             key={groupKey}
-                                            className={`p-3 border rounded transition-all ${isDeleteMode
+                                            className={`p-3 rounded transition-all ${isDeleteMode
                                                 ? (isGroupSelected
-                                                    ? 'border-red-500/50 bg-red-500/5'
-                                                    : 'border-cyber-border hover:border-red-500/30')
+                                                    ? 'bg-red-500/10'
+                                                    : 'bg-black/30 hover:bg-red-500/5')
                                                 : (selected
-                                                    ? 'border-green-500/50 bg-green-500/5'
-                                                    : 'border-cyber-border hover:border-green-500/30')
+                                                    ? 'bg-green-500/10'
+                                                    : 'bg-black/30 hover:bg-white/5')
                                                 }`}
                                         >
                                             {/* Card Header */}
@@ -1080,11 +1080,11 @@ export const LocalServerPanel: React.FC = () => {
                                     return (
                                         <div
                                             key={model.id}
-                                            className={`p-3 border rounded cursor-pointer transition-all ${isExpanded
-                                                ? 'border-cyan-400/50 bg-cyan-400/5'
+                                            className={`p-3 rounded cursor-pointer transition-all ${isExpanded
+                                                ? 'bg-cyan-400/10'
                                                 : hasDownloaded
-                                                    ? 'border-cyan-400/30 hover:border-cyan-400/50'
-                                                    : 'border-cyber-border hover:border-cyan-400/50'
+                                                    ? 'bg-black/30 hover:bg-cyan-400/5'
+                                                    : 'bg-black/30 hover:bg-white/5'
                                                 }`}
                                             onClick={() => setExpandedModelId(isExpanded ? null : model.id)}
                                         >
