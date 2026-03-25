@@ -344,8 +344,9 @@
             tr: { yourTurn: 'Senin sıran', aiThinking: 'AI düşünüyor...', youWin: 'KAZANDIN', aiWins: 'AI KAZANDI', draw: 'BERABERE', newGame: 'YENİ OYUN', disconnected: 'AI bağlantısı kesildi', aiLang: 'Türkçe yanıtla.' },
             vi: { yourTurn: 'Lượt của bạn', aiThinking: 'AI đang suy nghĩ...', youWin: 'BẠN THẮNG', aiWins: 'AI THẮNG', draw: 'HÒA', newGame: 'VÁN MỚI', disconnected: 'AI mất kết nối', aiLang: 'Trả lời bằng tiếng Việt.' },
         };
-        // 语言检测：zh-TW/zh-HK → zh-Hant，zh/zh-CN → zh，其余取前缀
-        const rawLang = (navigator.language || 'en').toLowerCase();
+        // Language detection: prefer app locale injected by launch_game, fall back to browser language
+        const appLocale = window.__APP_LOCALE__ || '';
+        const rawLang = (appLocale || navigator.language || 'en').toLowerCase();
         const detectedLang = rawLang.startsWith('zh-tw') || rawLang.startsWith('zh-hk') ? 'zh-Hant'
             : rawLang.startsWith('zh') ? 'zh' : rawLang.split('-')[0];
         const t = I18N[detectedLang] || I18N.en;

@@ -109,19 +109,28 @@ pub async fn launch_game(
 
         let app_path = format!("tools/{}.html", tool_id);
 
-        let init_script = if let Some(mut config) = model_config {
-            // Decrypt API key if it's encrypted (frontend stores encrypted keys as enc:v1:...)
-            // Without this, the tool window receives an encrypted key and gets 401 from all APIs.
-            if let Some(api_key_val) = config.get("apiKey").and_then(|v| v.as_str()) {
-                let decrypted = crate::services::model_manager::decrypt_key_for_use(api_key_val);
-                if !decrypted.is_empty() {
-                    config["apiKey"] = serde_json::Value::String(decrypted);
+        let init_script = {
+            // Read current app locale from settings (falls back to empty = browser default)
+            let locale = crate::commands::settings_commands::get_settings()
+                .locale
+                .unwrap_or_default();
+
+            let mut script = format!("window.__APP_LOCALE__ = {:?};", locale);
+
+            if let Some(mut config) = model_config {
+                // Decrypt API key if it's encrypted (frontend stores encrypted keys as enc:v1:...)
+                // Without this, the tool window receives an encrypted key and gets 401 from all APIs.
+                if let Some(api_key_val) = config.get("apiKey").and_then(|v| v.as_str()) {
+                    let decrypted = crate::services::model_manager::decrypt_key_for_use(api_key_val);
+                    if !decrypted.is_empty() {
+                        config["apiKey"] = serde_json::Value::String(decrypted);
+                    }
                 }
+                script.push_str(&format!("\nwindow.__MODEL_CONFIG__ = {};", config.to_string()));
             }
-            format!("window.__MODEL_CONFIG__ = {};", config.to_string())
-        } else {
-            String::new()
+            script
         };
+
 
         let mut builder = tauri::WebviewWindowBuilder::new(
             &app_handle,

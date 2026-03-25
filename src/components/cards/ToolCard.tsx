@@ -24,7 +24,7 @@ export interface ToolCardProps {
 
 export const ToolCard = React.memo(({ id, name, version, installed, path, detectedPath, configPath, activeModel, website, iconBase64, names, command, hasRemoteInstall, selected = false, onClick, onMotherAgentInstall }: ToolCardProps) => {
     const { t, locale } = useI18n();
-    const displayName = (names && locale !== 'en' && names[locale]) || name;
+    const displayName = (names && locale !== 'en' && (names[locale] || names[locale.split('-')[0]] || Object.entries(names).find(([k]) => k.startsWith(locale.split('-')[0]))?.[1])) || name;
 
     // Show AI Auto-Install button based on remote index (not local command field)
     const showMotherInstall = !installed && !!hasRemoteInstall;
