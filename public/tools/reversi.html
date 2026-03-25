@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 
 <head>
@@ -569,7 +569,7 @@ Then one SHORT trash-talk comment. Be cocky, mock the opponent, brag about your 
                         body: JSON.stringify({
                             model: MODEL.model,
                             messages: [{ role: 'user', content: prompt }],
-                            max_tokens: 120,
+                            max_tokens: 4096,
                         })
                     });
                     if (!resp.ok) throw new Error(`API ${resp.status}`);
@@ -586,8 +586,7 @@ Then one SHORT trash-talk comment. Be cocky, mock the opponent, brag about your 
                         body: JSON.stringify({
                             model: MODEL.model,
                             messages: [{ role: 'user', content: prompt }],
-                            max_tokens: 120,
-                            temperature: 0.7,
+                            max_tokens: 4096,
                         })
                     });
                     if (!resp.ok) throw new Error(`API ${resp.status}`);
@@ -604,8 +603,7 @@ Then one SHORT trash-talk comment. Be cocky, mock the opponent, brag about your 
                     body: JSON.stringify({
                         model: MODEL.model,
                         messages: [{ role: 'user', content: prompt }],
-                        max_tokens: 60,
-                        temperature: 0.7,
+                        max_tokens: 4096,
                     })
                 });
                 if (!resp.ok) throw new Error(`API ${resp.status}`);
