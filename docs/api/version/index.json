@@ -1,5 +1,1 @@
-{
-  "version": "3.3.3",
-  "releaseDate": "2026-03-25",
-  "releaseNotes": "Mobile config sync (28 languages), Android APK, overscroll fix, phone download page"
-}
+{"version":"3.3.5","releaseDate":"2026-03-25","releaseNotes":"Mother Agent security suite (SSH hardening, network diagnostics, intrusion detection), proactive risk alerts, 28-language i18n, AI Model Store refresh, MiMo icon fix"}
