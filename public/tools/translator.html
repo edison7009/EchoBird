@@ -664,53 +664,54 @@
             try {
                 let result = '';
 
-                                const invoke = window.__TAURI__?.core?.invoke;
-                if (!invoke) throw new Error('Tauri API not available');
-
-                if (MODEL.protocol === 'anthropic') {
-                    // Anthropic API via Rust proxy
+                                if (MODEL.protocol === 'anthropic') {
                     let apiUrl = (MODEL.anthropicUrl || '').trim().replace(/\/+$/, '');
                     const messagesPath = apiUrl.includes('/v1') ? '/messages' : '/v1/messages';
                     try {
-                        const data = await invoke('llm_proxy_chat', {
-                            url: apiUrl + messagesPath,
-                            apiKey: MODEL.apiKey,
-                            body: {
+                        const resp = await fetch(apiUrl + messagesPath, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'x-api-key': MODEL.apiKey,
+                                'anthropic-version': '2023-06-01',
+                            },
+                            body: JSON.stringify({
                                 model: MODEL.model,
                                 messages: [{ role: 'user', content: prompt }],
-                                max_tokens: 4096
-                            },
-                            anthropicVersion: '2023-06-01'
+                                max_tokens: 4096,
+                            })
                         });
+                        if (!resp.ok) throw new Error(`API ${resp.status}: ${resp.statusText}`);
+                        const data = await resp.json();
                         result = data.content?.[0]?.text || '';
                     } catch (anthropicErr) {
-                        // Fallback to OpenAI via Rust proxy
                         console.warn('[Translator] Anthropic failed, falling back to OpenAI:', anthropicErr);
                         let fbUrl = (MODEL.baseUrl || '').trim().replace(/\/+$/, '');
                         if (!fbUrl.endsWith('/v1')) fbUrl += '/v1';
-                        const data = await invoke('llm_proxy_chat', {
-                            url: fbUrl + '/chat/completions',
-                            apiKey: MODEL.apiKey,
-                            body: { model: MODEL.model, messages: [{ role: 'user', content: prompt }], max_tokens: 4096, temperature: 0.3 },
-                            anthropicVersion: null
+                        const resp = await fetch(fbUrl + '/chat/completions', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + MODEL.apiKey },
+                            body: JSON.stringify({ model: MODEL.model, messages: [{ role: 'user', content: prompt }], max_tokens: 4096, temperature: 0.3 })
                         });
+                        if (!resp.ok) throw new Error(`API ${resp.status}: ${resp.statusText}`);
+                        const data = await resp.json();
                         result = data.choices?.[0]?.message?.content || '';
                     }
                 } else {
-                    // OpenAI via Rust proxy (no CORS)
                     let apiUrl = (MODEL.baseUrl || '').trim().replace(/\/+$/, '');
                     if (!apiUrl.endsWith('/v1')) apiUrl += '/v1';
-                    const data = await invoke('llm_proxy_chat', {
-                        url: apiUrl + '/chat/completions',
-                        apiKey: MODEL.apiKey,
-                        body: {
+                    const resp = await fetch(apiUrl + '/chat/completions', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + MODEL.apiKey },
+                        body: JSON.stringify({
                             model: MODEL.model,
                             messages: [{ role: 'user', content: prompt }],
                             max_tokens: 4096,
                             temperature: 0.3
-                        },
-                        anthropicVersion: null
+                        })
                     });
+                    if (!resp.ok) throw new Error(`API ${resp.status}: ${resp.statusText}`);
+                    const data = await resp.json();
                     result = data.choices?.[0]?.message?.content || '';
                 }
 
