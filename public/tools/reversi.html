@@ -580,7 +580,15 @@ Second line: one short confident comment showing you enjoy the game. ${t.aiLang}
                     rawText = data.content?.[0]?.text || '';
                 } catch (anthropicErr) {
                     console.warn('[Reversi] Anthropic failed, falling back to OpenAI:', anthropicErr);
+                    // Derive baseUrl from anthropicUrl if baseUrl is empty
+                    // e.g. https://api.minimaxi.com/anthropic → https://api.minimaxi.com/v1
                     let fbUrl = (MODEL.baseUrl || '').trim().replace(/\/+$/, '');
+                    if (!fbUrl) {
+                        fbUrl = (MODEL.anthropicUrl || '').trim()
+                            .replace(/\/+$/, '')
+                            .replace(/\/anthropic(\/.*)?$/, '')
+                            .replace(/\/v\d+$/, '');
+                    }
                     if (!fbUrl.endsWith('/v1')) fbUrl += '/v1';
                     const resp = await fetch(fbUrl + '/chat/completions', {
                         method: 'POST',
