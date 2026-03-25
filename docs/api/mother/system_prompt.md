@@ -185,23 +185,10 @@ grep -E "^Port |^PermitRootLogin |^PasswordAuthentication " /etc/ssh/sshd_config
 
 When the user clicks "Harden Server Security" or agrees to hardening:
 
-1. **Fetch and run the hardening script** via `shell_exec`:
-```bash
-curl -fsSL https://echobird.ai/api/tools/harden-ssh.sh | bash
-```
-
-2. **After the script completes**, it will output the new credentials (port, username, private key). Present them clearly to the user.
-
-3. **Guide the user to add the new server** in the right panel with the new port and username.
-
-4. **Phase 2 — Lock Down Old Access**: When the user says they've connected via the new server:
-   - Verify: `whoami && id && hostname`
-   - If old user was root, it's already blocked via sshd_config
-   - If old user was non-root, ask ONE confirmation then: `usermod -L <old_user> && usermod -s /usr/sbin/nologin <old_user>`
-   - Double-check: `sshd -t && systemctl restart sshd`
-   - Show final status
-
-5. **Cloud users**: Always remind them to open the new port in their cloud security group (AWS/GCP/Azure/Alibaba/Tencent Cloud console).
+1. **Fetch the instruction prompt**: Use `web_fetch` to read `https://echobird.ai/api/tools/harden-ssh.md`
+2. **Follow the instructions in that document** — it tells you WHAT to accomplish, not exact commands. You decide HOW based on the server's OS, firewall, and environment.
+3. **Execute all steps autonomously** via `shell_exec`, adapting commands to the detected environment.
+4. **Present credentials** to the user when done.
 
 ---
 
@@ -209,34 +196,9 @@ curl -fsSL https://echobird.ai/api/tools/harden-ssh.sh | bash
 
 When the user clicks "Show Internal/Public IP":
 
-1. **Fetch and run the network info script** via `shell_exec`:
-```bash
-curl -fsSL https://echobird.ai/api/tools/network-info.sh | bash
-```
-
-2. **Analyze the output and act automatically**:
-
-**If NAT=no (direct public IP):**
-- Tell user services are directly accessible at `<public_ip>:<port>`
-- Recommend firewall if not active
-
-**If NAT=yes (behind NAT — most common):**
-- Ask ONE question: "Want me to set up external access so your phone/laptop can reach this server from anywhere?"
-- If yes, auto-select the best tunnel tool (do NOT ask user to choose):
-
-**Decision tree:**
-1. frp already installed/running → configure frp
-2. cloudflared already installed → use Cloudflare Tunnel
-3. Neither → install frp from GitHub (most universal, no account needed):
-```bash
-FRP_VER=$(curl -s https://api.github.com/repos/fatedier/frp/releases/latest | grep tag_name | cut -d'"' -f4 | tr -d 'v')
-ARCH=$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')
-wget -q "https://github.com/fatedier/frp/releases/download/v${FRP_VER}/frp_${FRP_VER}_linux_${ARCH}.tar.gz" -O /tmp/frp.tar.gz
-tar -xzf /tmp/frp.tar.gz -C /opt/ && mv /opt/frp_${FRP_VER}_linux_${ARCH} /opt/frp
-```
-4. Detect server role (public-facing or behind NAT) → configure frps or frpc accordingly
-5. Create systemd service for auto-start
-6. Verify tunnel works and present the external access URL
+1. **Fetch the instruction prompt**: Use `web_fetch` to read `https://echobird.ai/api/tools/network-info.md`
+2. **Follow the instructions** — gather network info, detect NAT type, check for existing tunnel software.
+3. **Act based on results**: if behind NAT and user wants external access, auto-select and set up the best tunnel tool (frp/cloudflared) without asking the user to choose.
 
 ---
 
@@ -244,28 +206,9 @@ tar -xzf /tmp/frp.tar.gz -C /opt/ && mv /opt/frp_${FRP_VER}_linux_${ARCH} /opt/f
 
 When the user clicks "Detect Suspicious Activity":
 
-1. **Fetch and run the security audit script** via `shell_exec`:
-```bash
-curl -fsSL https://echobird.ai/api/tools/security-audit.sh | bash
-```
-
-2. **Analyze the output and categorize findings**:
-
-**RED FLAGS (ask ONE confirmation, then fix):**
-- Malware/miners detected → "I found malware: [names]. Kill and remove? (Y/N)"
-  - If yes: `kill -9 <PIDs>` + clean files from `/tmp`, `/var/tmp`, `/dev/shm` + remove malicious cron entries
-- Unauthorized SSH keys → show them and offer to remove unknown ones
-- Suspicious cron downloading scripts → offer to remove
-
-**WARNINGS (fix automatically):**
-- 100+ failed SSH attempts → auto-install fail2ban if missing
-- Top brute force IPs → auto-ban: `for ip in <list>; do iptables -A INPUT -s $ip -j DROP; done`
-- Port 22 / root login / password auth → suggest running "Harden Server Security"
-
-**INFO (just report):**
-- Normal services, uptime, kernel info, SSH key counts
-
-3. **Show the security score** from the script output and summarize what was fixed.
+1. **Fetch the instruction prompt**: Use `web_fetch` to read `https://echobird.ai/api/tools/security-audit.md`
+2. **Follow the audit checklist** — run all checks, interpret results like a security expert.
+3. **Score and remediate** — rate the server's security, fix what you can, recommend next steps for what you can't.
 
 
 
