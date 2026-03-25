@@ -1,8 +1,57 @@
-// Tauri Commands for tool operations �?exposed to frontend via invoke()
+// Tauri Commands for tool operations — exposed to frontend via invoke()
 
 use crate::models::tool::DetectedTool;
 use crate::services::tool_config_manager::{self, ApplyResult, ModelInfo};
 use crate::services::tool_manager;
+
+// ── LLM Proxy (bypass browser CORS for tool windows) ──
+
+/// Proxy an OpenAI-compatible chat request from a tool window (no CORS involved).
+/// Called by reversi.html and other tool pages via window.__TAURI__.core.invoke().
+#[tauri::command]
+pub async fn llm_proxy_chat(
+    url: String,
+    api_key: String,
+    body: serde_json::Value,
+    anthropic_version: Option<String>,
+) -> Result<serde_json::Value, String> {
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(120))
+        .build()
+        .map_err(|e| format!("HTTP client error: {}", e))?;
+
+    let mut req = client.post(&url)
+        .header("Content-Type", "application/json");
+
+    if let Some(av) = &anthropic_version {
+        // Anthropic protocol
+        req = req
+            .header("x-api-key", &api_key)
+            .header("anthropic-version", av);
+    } else {
+        // OpenAI-compatible protocol
+        req = req.header("Authorization", format!("Bearer {}", api_key));
+    }
+
+    let resp = req
+        .json(&body)
+        .send()
+        .await
+        .map_err(|e| format!("Request failed: {}", e))?;
+
+    let status = resp.status().as_u16();
+    let json = resp
+        .json::<serde_json::Value>()
+        .await
+        .map_err(|e| format!("Failed to read response: {}", e))?;
+
+    if status >= 400 {
+        return Err(format!("API {} — {}", status,
+            json.get("error").and_then(|e| e.get("message")).and_then(|m| m.as_str()).unwrap_or("unknown")));
+    }
+
+    Ok(json)
+}
 
 /// Scan all installed tools and return detection results
 #[tauri::command]

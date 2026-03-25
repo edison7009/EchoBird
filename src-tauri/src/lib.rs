@@ -306,6 +306,7 @@ pub fn run() {
             tool_commands::apply_model_to_tool,
             tool_commands::launch_game,
             tool_commands::open_folder,
+            tool_commands::llm_proxy_chat,
 
             model_commands::get_models,
             model_commands::add_model,
