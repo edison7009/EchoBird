@@ -693,29 +693,11 @@
                         const resp = await fetch(fbUrl + '/chat/completions', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + MODEL.apiKey },
-                            body: JSON.stringify({ model: MODEL.model, messages: [{ role: 'user', content: prompt }], max_tokens: 4096, temperature: 0.3, stream: true })
+                            body: JSON.stringify({ model: MODEL.model, messages: [{ role: 'user', content: prompt }], max_tokens: 4096, temperature: 0.3 })
                         });
                         if (!resp.ok) throw new Error(`API ${resp.status}: ${resp.statusText}`);
-                        const reader = resp.body.getReader();
-                        const decoder = new TextDecoder();
-                        let buffer = '';
-                        while (true) {
-                            const { done, value } = await reader.read();
-                            if (done) break;
-                            buffer += decoder.decode(value, { stream: true });
-                            const lines = buffer.split('\n'); buffer = lines.pop() || '';
-                            for (const line of lines) {
-                                const trimmed = line.trim();
-                                if (!trimmed.startsWith('data: ')) continue;
-                                const jsonStr = trimmed.slice(6);
-                                if (jsonStr === '[DONE]') continue;
-                                try {
-                                    const chunk = JSON.parse(jsonStr);
-                                    const delta = chunk.choices?.[0]?.delta?.content || '';
-                                    if (delta) { result += delta; outputEl.textContent = result.replace(/<think>[\s\S]*?<\/think>/gi, '').trim(); }
-                                } catch { }
-                            }
-                        }
+                        const data = await resp.json();
+                        result = data.choices?.[0]?.message?.content || '';
                     }
                 } else {
                     let apiUrl = (MODEL.baseUrl || '').trim().replace(/\/+$/, '');
@@ -724,48 +706,20 @@
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
-                            'Authorization': 'Bearer ' + MODEL.apiKey,
+                            'Authorization': 'Bearer ' + MODEL.apiKey
                         },
                         body: JSON.stringify({
                             model: MODEL.model,
                             messages: [{ role: 'user', content: prompt }],
                             max_tokens: 4096,
-                            temperature: 0.3,
-                            stream: true,
+                            temperature: 0.3
                         })
                     });
                     if (!resp.ok) throw new Error(`API ${resp.status}: ${resp.statusText}`);
 
-                    // Streaming read
-                    const reader = resp.body.getReader();
-                    const decoder = new TextDecoder();
-                    let buffer = '';
-
-                    while (true) {
-                        const { done, value } = await reader.read();
-                        if (done) break;
-                        buffer += decoder.decode(value, { stream: true });
-
-                        const lines = buffer.split('\n');
-                        buffer = lines.pop() || '';
-
-                        for (const line of lines) {
-                            const trimmed = line.trim();
-                            if (!trimmed.startsWith('data: ')) continue;
-                            const jsonStr = trimmed.slice(6);
-                            if (jsonStr === '[DONE]') continue;
-                            try {
-                                const chunk = JSON.parse(jsonStr);
-                                const delta = chunk.choices?.[0]?.delta?.content || '';
-                                if (delta) {
-                                    result += delta;
-                                    // Filter <think> tags
-                                    const display = result.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
-                                    outputEl.textContent = display;
-                                }
-                            } catch { }
-                        }
-                    }
+                    // Use non-streaming just like Anthropic format
+                    const data = await resp.json();
+                    result = data.choices?.[0]?.message?.content || '';
                 }
 
 
