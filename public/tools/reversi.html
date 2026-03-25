@@ -542,12 +542,14 @@
             // 残局阶段提示
             const phaseHint = totalPieces > 48 ? ' In endgame: maximize your piece count.' : ' In mid-game: prefer moves that flip fewer pieces and keep your mobility high.';
 
-            const prompt = `Reversi game. You are O, opponent is X. Board (row,col from 0):
+            const prompt = `You are playing Reversi as O (white). Your opponent is X (black).
+Board (rows and columns 0-7, dot = empty):
 ${boardStr}
-Score: X=${b} O=${w}
-Valid moves: ${movesStr}${strategyHint}${phaseHint}
-Reply ONLY with your chosen move as: row,col
-Then one SHORT trash-talk comment. Be cocky, mock the opponent, brag about your move. Be funny and provocative. ${t.aiLang}`;
+Score: X=${b}  O=${w}
+Your valid moves: ${movesStr}${strategyHint}${phaseHint}
+Pick the best move from the valid moves list.
+First line: your chosen move in format row,col (numbers only)
+Second line: one short confident comment showing you enjoy the game. ${t.aiLang}`;
 
             let rawText = '';
 
