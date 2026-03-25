@@ -566,7 +566,7 @@ Then one SHORT trash-talk comment. Be cocky, mock the opponent, brag about your 
                         body: JSON.stringify({
                             model: MODEL.model,
                             messages: [{ role: 'user', content: prompt }],
-                            max_tokens: 4096
+                            max_tokens: 200
                         })
                     });
                     if (!resp.ok) throw new Error(`API ${resp.status}`);
@@ -579,7 +579,7 @@ Then one SHORT trash-talk comment. Be cocky, mock the opponent, brag about your 
                     const resp = await fetch(fbUrl + '/chat/completions', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + MODEL.apiKey },
-                        body: JSON.stringify({ model: MODEL.model, messages: [{ role: 'user', content: prompt }], max_tokens: 4096, temperature: 0.3 })
+                        body: JSON.stringify({ model: MODEL.model, messages: [{ role: 'user', content: prompt }], max_tokens: 200, temperature: 0.3 })
                     });
                     if (!resp.ok) throw new Error(`API ${resp.status}`);
                     const fbData = await resp.json();
@@ -595,7 +595,7 @@ Then one SHORT trash-talk comment. Be cocky, mock the opponent, brag about your 
                     body: JSON.stringify({
                         model: MODEL.model,
                         messages: [{ role: 'user', content: prompt }],
-                        max_tokens: 4096,
+                        max_tokens: 200,
                         temperature: 0.3
                     })
                 });
