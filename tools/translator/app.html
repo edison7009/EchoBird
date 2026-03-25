@@ -488,7 +488,8 @@
             ru: { source: 'ОРИГИНАЛ', translation: 'ПЕРЕВОД', translate: 'ПЕРЕВЕСТИ', translating: 'ПЕРЕВОД...', auto: 'Автоопределение', copied: 'Скопировано!', error: 'Ошибка перевода', placeholder: 'Введите текст для перевода...', chars: 'символов' },
         };
 
-        const rawLang = (navigator.language || 'en').toLowerCase();
+        const appLocale = window.__APP_LOCALE__ || '';
+        const rawLang = (appLocale || navigator.language || 'en').toLowerCase();
         const uiLang = rawLang.startsWith('zh-tw') || rawLang.startsWith('zh-hk') ? 'zh-Hant'
             : rawLang.startsWith('zh') ? 'zh' : rawLang.split('-')[0];
         const t = I18N[uiLang] || I18N.en;
@@ -697,7 +698,14 @@
                     result = data.content?.[0]?.text || '';
                 } else {
                     // OpenAI API (streaming)
+                    // Derive baseUrl from anthropicUrl if baseUrl is empty
                     let apiUrl = (MODEL.baseUrl || '').trim().replace(/\/+$/, '');
+                    if (!apiUrl) {
+                        apiUrl = (MODEL.anthropicUrl || '').trim()
+                            .replace(/\/+$/, '')
+                            .replace(/\/anthropic(\/.*)?$/, '')
+                            .replace(/\/v\d+(\/.*)?$/, '');
+                    }
                     if (!apiUrl.endsWith('/v1')) apiUrl += '/v1';
                     const resp = await fetch(apiUrl + '/chat/completions', {
                         method: 'POST',
