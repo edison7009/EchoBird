@@ -342,36 +342,90 @@ pub fn get_engine_versions() -> std::collections::HashMap<String, EngineVersionI
     map
 }
 
+/// Fetch latest version of a PyPI package
+async fn fetch_pypi_latest(client: &reqwest::Client, package: &str) -> Option<String> {
+    let url = format!("https://pypi.org/pypi/{}/json", package);
+    let resp = client
+        .get(&url)
+        .header("User-Agent", "Echobird/3.0")
+        .timeout(std::time::Duration::from_secs(6))
+        .send()
+        .await
+        .ok()?;
+    if !resp.status().is_success() { return None; }
+    let json: serde_json::Value = resp.json().await.ok()?;
+    json["info"]["version"].as_str().map(|s| s.to_string())
+}
+
 /// Fetch engine versions from remote and cache locally (async, called on page load)
 pub async fn refresh_engine_versions() -> std::collections::HashMap<String, EngineVersionInfo> {
     let cache_dir = dirs::home_dir().unwrap_or_default().join(".echobird").join("cache");
     let cache_path = cache_dir.join("engine-versions.json");
 
-    if let Ok(resp) = reqwest::Client::builder()
+    let client = reqwest::Client::builder()
         .timeout(std::time::Duration::from_secs(6))
         .build()
-        .unwrap_or_default()
-        .get(ENGINE_VERSIONS_URL)
-        .header("User-Agent", "Echobird/3.0")
-        .send()
-        .await
-    {
+        .unwrap_or_default();
+
+    // Fetch llama-server version from echobird CDN + vllm/sglang from PyPI concurrently
+    let (llama_result, vllm_ver, sglang_ver) = tokio::join!(
+        client
+            .get(ENGINE_VERSIONS_URL)
+            .header("User-Agent", "Echobird/3.0")
+            .send(),
+        fetch_pypi_latest(&client, "vllm"),
+        fetch_pypi_latest(&client, "sglang")
+    );
+
+    // Start with fallback / cached map
+    let mut map = get_engine_versions();
+
+    // Merge llama-server result
+    if let Ok(resp) = llama_result {
         if resp.status().is_success() {
             if let Ok(text) = resp.text().await {
-                if let Ok(map) = serde_json::from_str::<std::collections::HashMap<String, EngineVersionInfo>>(&text) {
-                    if !map.is_empty() {
-                        let _ = std::fs::create_dir_all(&cache_dir);
-                        let _ = std::fs::write(&cache_path, &text);
-                        log::info!("[EngineVersions] Refreshed {} engines from remote", map.len());
-                        return map;
+                if let Ok(remote_map) = serde_json::from_str::<std::collections::HashMap<String, EngineVersionInfo>>(&text) {
+                    if !remote_map.is_empty() {
+                        for (k, v) in remote_map {
+                            map.insert(k, v);
+                        }
+                        log::info!("[EngineVersions] Refreshed llama-server from remote");
                     }
                 }
             }
         }
     }
 
-    log::warn!("[EngineVersions] Remote fetch failed, using cached/fallback");
-    get_engine_versions()
+    // Merge vllm latest
+    if let Some(ver) = vllm_ver {
+        log::info!("[EngineVersions] vllm latest from PyPI: {}", ver);
+        map.insert("vllm".to_string(), EngineVersionInfo {
+            version: ver,
+            cuda_version: None,
+            changelog: None,
+        });
+    }
+
+    // Merge sglang latest
+    if let Some(ver) = sglang_ver {
+        log::info!("[EngineVersions] sglang latest from PyPI: {}", ver);
+        map.insert("sglang".to_string(), EngineVersionInfo {
+            version: ver,
+            cuda_version: None,
+            changelog: None,
+        });
+    }
+
+    // Write merged result to cache
+    if !map.is_empty() {
+        if let Ok(json_str) = serde_json::to_string_pretty(&map) {
+            let _ = std::fs::create_dir_all(&cache_dir);
+            let _ = std::fs::write(&cache_path, &json_str);
+        }
+    }
+
+    log::info!("[EngineVersions] Final map has {} engines", map.len());
+    map
 }
 
 // ─── Engine download: llama-server binary installer ───
@@ -756,6 +810,8 @@ pub fn get_local_engine_status() -> serde_json::Value {
 
     let vllm_version = check_python_package("vllm");
     let sglang_version = check_python_package("sglang");
+    let latest_vllm = versions.get("vllm").map(|i| i.version.clone());
+    let latest_sglang = versions.get("sglang").map(|i| i.version.clone());
 
     serde_json::json!({
         "engines": [
@@ -770,12 +826,14 @@ pub fn get_local_engine_status() -> serde_json::Value {
             {
                 "name": "vllm",
                 "installed": vllm_version.is_some(),
-                "version": vllm_version.unwrap_or_default()
+                "version": vllm_version.clone().unwrap_or_default(),
+                "latestVersion": latest_vllm
             },
             {
                 "name": "sglang",
                 "installed": sglang_version.is_some(),
-                "version": sglang_version.unwrap_or_default()
+                "version": sglang_version.clone().unwrap_or_default(),
+                "latestVersion": latest_sglang
             }
         ]
     })
