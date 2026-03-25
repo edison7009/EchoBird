@@ -343,7 +343,7 @@ export const LocalServerMain: React.FC = () => {
         const disabledStart = !isRunning && (!selectedModelPath || engineStatus === 'not-installed' || engineStatus === 'downloading' || engineStatus === 'checking' || engineStatus === 'error');
         const btnBase = 'font-bold text-base font-mono transition-all flex items-center justify-center gap-2 flex-shrink-0 rounded-lg';
         const btnActive = 'bg-cyber-accent text-black hover:bg-cyber-accent/90 shadow-[0_0_8px_rgba(0,255,157,0.15)] hover:shadow-[0_0_15px_rgba(0,255,157,0.35)]';
-        const btnDisabled = 'bg-cyber-border text-cyber-text-secondary cursor-not-allowed';
+        const btnDisabled = 'bg-cyber-border/60 text-cyber-text-secondary cursor-not-allowed';
         const btnStop = 'bg-red-500 text-white hover:bg-red-600 shadow-[0_0_8px_rgba(239,68,68,0.2)]';
 
         const startStopBtn = (
@@ -365,7 +365,7 @@ export const LocalServerMain: React.FC = () => {
                 onClick={() => engineInstallDir && api.openFolder(engineInstallDir)}
                 disabled={!engineInstallDir}
                 className={`py-3 px-3 ${btnBase} ${engineInstallDir
-                    ? 'bg-cyber-border text-cyber-text-secondary hover:text-cyber-accent hover:bg-cyber-accent/20'
+                    ? 'bg-cyber-border/60 text-cyber-text-secondary hover:text-cyber-accent hover:bg-cyber-accent/20'
                     : btnDisabled}`}
             >
                 <FolderOpen className="w-4 h-4" />
