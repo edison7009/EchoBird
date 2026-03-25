@@ -14,8 +14,7 @@
     "version": "1.0",
     "description": "AI Reversi - Test your model connection",
     "apiProtocol": [
-        "openai",
-        "anthropic"
+        "openai"
     ],
     "docs": "https://en.wikipedia.org/wiki/Reversi",
     "command": "",
