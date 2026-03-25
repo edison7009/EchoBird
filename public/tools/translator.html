@@ -1,792 +1,792 @@
-<!DOCTYPE html>
-<html lang="en">
-
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Translate</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: -apple-system, 'SF Pro Display', 'Segoe UI', sans-serif;
-            background: #0a0e17;
-            color: #e0e0e0;
-            height: 100vh;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-            user-select: none;
-        }
-
-        /* 自定义标题栏 */
-        .titlebar {
-            display: flex;
-            align-items: center;
-            justify-content: flex-end;
-            height: 32px;
-            -webkit-app-region: drag;
-            flex-shrink: 0;
-        }
-
-        .titlebar-btn {
-            -webkit-app-region: no-drag;
-            width: 40px;
-            height: 32px;
-            border: none;
-            background: transparent;
-            color: rgba(255, 255, 255, 0.4);
-            font-size: 11px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: background 0.15s, color 0.15s;
-        }
-
-        .titlebar-btn:hover {
-            background: rgba(255, 255, 255, 0.08);
-            color: #fff;
-        }
-
-        .titlebar-btn.close:hover {
-            background: #e81123;
-            color: #fff;
-        }
-
-        /* 主体 */
-        .main {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            padding: 0 24px 20px;
-            overflow: hidden;
-            gap: 12px;
-        }
-
-        /* 顶部栏：语言选择 */
-        .toolbar {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            flex-shrink: 0;
-        }
-
-        .lang-select {
-            position: relative;
-            min-width: 160px;
-            user-select: none;
-        }
-
-        .lang-select-trigger {
-            background: rgba(255, 255, 255, 0.06);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 8px;
-            color: #e0e0e0;
-            padding: 8px 32px 8px 14px;
-            font-size: 13px;
-            cursor: pointer;
-            transition: border-color 0.2s;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        .lang-select-trigger:hover {
-            border-color: rgba(255, 255, 255, 0.2);
-        }
-
-        .lang-select-trigger.open {
-            border-color: rgba(0, 255, 157, 0.4);
-        }
-
-        /* 下拉箭头 */
-        .lang-select-trigger::after {
-            content: '\25BE';
-            position: absolute;
-            right: 12px;
-            top: 50%;
-            transform: translateY(-50%);
-            font-size: 12px;
-            color: rgba(255, 255, 255, 0.3);
-            pointer-events: none;
-        }
-
-        .lang-select-dropdown {
-            display: none;
-            position: absolute;
-            top: calc(100% + 4px);
-            left: 0;
-            min-width: 100%;
-            max-height: 320px;
-            overflow-y: auto;
-            background: #1a1f2e;
-            border: 1px solid rgba(255, 255, 255, 0.12);
-            border-radius: 8px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
-            z-index: 100;
-            padding: 4px;
-        }
-
-        .lang-select-dropdown.show {
-            display: block;
-        }
-
-        .lang-select-dropdown::-webkit-scrollbar {
-            width: 4px;
-        }
-
-        .lang-select-dropdown::-webkit-scrollbar-thumb {
-            background: rgba(255, 255, 255, 0.15);
-            border-radius: 4px;
-        }
-
-        .lang-option {
-            padding: 8px 12px;
-            font-size: 13px;
-            color: #e0e0e0;
-            cursor: pointer;
-            border-radius: 6px;
-            transition: background 0.1s;
-            white-space: nowrap;
-        }
-
-        .lang-option:hover {
-            background: rgba(0, 255, 157, 0.1);
-        }
-
-        .lang-option.selected {
-            color: #00ff9d;
-            background: rgba(0, 255, 157, 0.08);
-        }
-
-        .swap-btn {
-            background: rgba(0, 255, 157, 0.1);
-            border: 1px solid rgba(0, 255, 157, 0.2);
-            border-radius: 50%;
-            width: 36px;
-            height: 36px;
-            color: #00ff9d;
-            font-size: 16px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.3s;
-            flex-shrink: 0;
-        }
-
-        .swap-btn:hover {
-            background: rgba(0, 255, 157, 0.2);
-        }
-
-        .toolbar-spacer {
-            flex: 1;
-        }
-
-        .model-badge {
-            font-size: 11px;
-            color: rgba(255, 255, 255, 0.3);
-            background: rgba(255, 255, 255, 0.04);
-            padding: 4px 10px;
-            border-radius: 12px;
-            max-width: 200px;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-        }
-
-        /* 翻译区域 */
-        .translate-area {
-            flex: 1;
-            display: flex;
-            gap: 12px;
-            min-height: 0;
-        }
-
-        .pane {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid rgba(255, 255, 255, 0.06);
-            border-radius: 12px;
-            overflow: hidden;
-            position: relative;
-        }
-
-        .pane-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 10px 16px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-            flex-shrink: 0;
-        }
-
-        .pane-label {
-            font-size: 11px;
-            font-weight: 600;
-            color: rgba(255, 255, 255, 0.35);
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-
-        .pane-label.source {
-            color: rgba(0, 255, 157, 0.5);
-        }
-
-        .pane-action {
-            background: none;
-            border: none;
-            color: rgba(255, 255, 255, 0.3);
-            font-size: 12px;
-            cursor: pointer;
-            padding: 2px 8px;
-            border-radius: 4px;
-            transition: all 0.15s;
-        }
-
-        .pane-action:hover {
-            color: #00ff9d;
-            background: rgba(0, 255, 157, 0.1);
-        }
-
-        textarea {
-            flex: 1;
-            background: transparent;
-            border: none;
-            color: #e0e0e0;
-            font-size: 15px;
-            line-height: 1.7;
-            padding: 16px;
-            resize: none;
-            outline: none;
-            font-family: inherit;
-        }
-
-        textarea::placeholder {
-            color: rgba(255, 255, 255, 0.15);
-        }
-
-        .output-text {
-            flex: 1;
-            padding: 16px;
-            font-size: 15px;
-            line-height: 1.7;
-            overflow-y: auto;
-            color: #e0e0e0;
-            user-select: text;
-            white-space: pre-wrap;
-            word-break: break-word;
-        }
-
-        .output-text::-webkit-scrollbar {
-            width: 3px;
-        }
-
-        .output-text::-webkit-scrollbar-thumb {
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 3px;
-        }
-
-        .output-text.streaming {
-            color: rgba(255, 255, 255, 0.6);
-        }
-
-        .output-text.empty {
-            color: rgba(255, 255, 255, 0.15);
-            font-style: italic;
-        }
-
-        /* 底部状态栏 */
-        .statusbar {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 0 4px;
-            flex-shrink: 0;
-        }
-
-        .char-count {
-            font-size: 11px;
-            color: rgba(255, 255, 255, 0.2);
-        }
-
-        .status-msg {
-            font-size: 11px;
-            color: rgba(0, 255, 157, 0.5);
-            transition: opacity 0.3s;
-        }
-
-        .status-msg.error {
-            color: #ff5555;
-        }
-
-        /* 翻译按钮 */
-        .translate-btn {
-            position: absolute;
-            bottom: 16px;
-            right: 16px;
-            background: linear-gradient(135deg, #00ff9d, #00cc7d);
-            border: none;
-            color: #0a0e17;
-            font-size: 12px;
-            font-weight: 700;
-            padding: 10px 24px;
-            border-radius: 20px;
-            cursor: pointer;
-            letter-spacing: 1px;
-            transition: all 0.2s;
-            box-shadow: 0 4px 16px rgba(0, 255, 157, 0.25);
-            z-index: 2;
-        }
-
-        .translate-btn:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 6px 20px rgba(0, 255, 157, 0.35);
-        }
-
-        .translate-btn:active {
-            transform: translateY(0);
-        }
-
-        .translate-btn:disabled {
-            opacity: 0.4;
-            cursor: not-allowed;
-            transform: none;
-            box-shadow: none;
-        }
-
-        /* 快捷键提示 */
-        .shortcut-hint {
-            font-size: 10px;
-            color: rgba(255, 255, 255, 0.15);
-            text-align: center;
-            flex-shrink: 0;
-        }
-    </style>
-</head>
-
-<body>
-
-    <div class="titlebar">
-        <button class="titlebar-btn"
-            onclick="if(window.__TAURI__){window.__TAURI__.window.getCurrentWindow().minimize()}">&#x2014;</button>
-        <button class="titlebar-btn close"
-            onclick="if(window.__TAURI__){window.__TAURI__.window.getCurrentWindow().close()}else{window.close()}">&#x2715;</button>
-    </div>
-
-    <div class="main">
-        <!-- 工具栏 -->
-        <div class="toolbar">
-            <div class="lang-select" id="srcLangWrap">
-                <div class="lang-select-trigger" id="srcLangTrigger"></div>
-                <div class="lang-select-dropdown" id="srcLangDropdown"></div>
-            </div>
-            <button class="swap-btn" id="swapBtn">⇄</button>
-            <div class="lang-select" id="tgtLangWrap">
-                <div class="lang-select-trigger" id="tgtLangTrigger"></div>
-                <div class="lang-select-dropdown" id="tgtLangDropdown"></div>
-            </div>
-            <div class="toolbar-spacer"></div>
-            <div class="model-badge" id="modelBadge">-</div>
-        </div>
-
-        <!-- 翻译区 -->
-        <div class="translate-area">
-            <!-- 源文本 -->
-            <div class="pane">
-                <div class="pane-header">
-                    <span class="pane-label source" id="srcLabel">SOURCE</span>
-                    <button class="pane-action" id="clearBtn">✕</button>
-                </div>
-                <textarea id="srcText" spellcheck="false"></textarea>
-                <button class="translate-btn" id="translateBtn"></button>
-            </div>
-
-            <!-- 翻译结果 -->
-            <div class="pane">
-                <div class="pane-header">
-                    <span class="pane-label" id="tgtLabel">TRANSLATION</span>
-                    <button class="pane-action" id="copyBtn">📋</button>
-                </div>
-                <div class="output-text empty" id="outputText"></div>
-            </div>
-        </div>
-
-        <!-- 底部状态 -->
-        <div class="statusbar">
-            <div class="char-count" id="charCount">0</div>
-            <div class="status-msg" id="statusMsg"></div>
-            <div class="shortcut-hint">Ctrl+Enter</div>
-        </div>
-    </div>
-
-    <script>
-        // --- 模型配置（从 URL hash 读取） ---
-        let MODEL = window.__MODEL_CONFIG__ || { baseUrl: '', anthropicUrl: '', apiKey: '', model: '', name: 'AI', protocol: 'openai' }
-
-  // --- 多语言 UI ---
-        const LANGUAGES = [
-            { code: 'auto', en: 'Auto Detect' },
-            { code: 'en', en: 'English', native: 'English' },
-            { code: 'zh', en: 'Chinese (Simplified)', native: '简体中文' },
-            { code: 'zh-Hant', en: 'Chinese (Traditional)', native: '繁體中文' },
-            { code: 'ja', en: 'Japanese', native: '日本語' },
-            { code: 'ko', en: 'Korean', native: '한국어' },
-            { code: 'fr', en: 'French', native: 'Français' },
-            { code: 'de', en: 'German', native: 'Deutsch' },
-            { code: 'es', en: 'Spanish', native: 'Español' },
-            { code: 'pt', en: 'Portuguese', native: 'Português' },
-            { code: 'ru', en: 'Russian', native: 'Русский' },
-            { code: 'ar', en: 'Arabic', native: 'العربية' },
-            { code: 'hi', en: 'Hindi', native: 'हिन्दी' },
-            { code: 'bn', en: 'Bengali', native: 'বাংলা' },
-            { code: 'th', en: 'Thai', native: 'ไทย' },
-            { code: 'vi', en: 'Vietnamese', native: 'Tiếng Việt' },
-            { code: 'id', en: 'Indonesian', native: 'Bahasa Indonesia' },
-            { code: 'ms', en: 'Malay', native: 'Bahasa Melayu' },
-            { code: 'tr', en: 'Turkish', native: 'Türkçe' },
-            { code: 'it', en: 'Italian', native: 'Italiano' },
-            { code: 'nl', en: 'Dutch', native: 'Nederlands' },
-            { code: 'pl', en: 'Polish', native: 'Polski' },
-            { code: 'sv', en: 'Swedish', native: 'Svenska' },
-            { code: 'fi', en: 'Finnish', native: 'Suomi' },
-            { code: 'cs', en: 'Czech', native: 'Čeština' },
-            { code: 'hu', en: 'Hungarian', native: 'Magyar' },
-            { code: 'el', en: 'Greek', native: 'Ελληνικά' },
-            { code: 'he', en: 'Hebrew', native: 'עברית' },
-            { code: 'fa', en: 'Persian', native: 'فارسی' },
-        ];
-
-        // UI 文本
-        const I18N = {
-            en: { source: 'SOURCE', translation: 'TRANSLATION', translate: 'TRANSLATE', translating: 'TRANSLATING...', auto: 'Auto Detect', copied: 'Copied!', error: 'Translation failed', placeholder: 'Enter text to translate...', chars: 'chars' },
-            zh: { source: '原文', translation: '译文', translate: '翻译', translating: '翻译中...', auto: '自动检测', copied: '已复制！', error: '翻译失败', placeholder: '输入要翻译的文本...', chars: '字' },
-            'zh-Hant': { source: '原文', translation: '譯文', translate: '翻譯', translating: '翻譯中...', auto: '自動偵測', copied: '已複製！', error: '翻譯失敗', placeholder: '輸入要翻譯的文字...', chars: '字' },
-            ja: { source: '原文', translation: '翻訳', translate: '翻訳する', translating: '翻訳中...', auto: '自動検出', copied: 'コピー済み！', error: '翻訳失敗', placeholder: '翻訳するテキストを入力...', chars: '文字' },
-            ko: { source: '원문', translation: '번역', translate: '번역', translating: '번역 중...', auto: '자동 감지', copied: '복사됨!', error: '번역 실패', placeholder: '번역할 텍스트 입력...', chars: '자' },
-            fr: { source: 'SOURCE', translation: 'TRADUCTION', translate: 'TRADUIRE', translating: 'TRADUCTION...', auto: 'Détection auto', copied: 'Copié !', error: 'Échec de traduction', placeholder: 'Saisissez le texte à traduire...', chars: 'car.' },
-            de: { source: 'QUELLE', translation: 'ÜBERSETZUNG', translate: 'ÜBERSETZEN', translating: 'ÜBERSETZE...', auto: 'Automatisch', copied: 'Kopiert!', error: 'Übersetzung fehlgeschlagen', placeholder: 'Text zum Übersetzen eingeben...', chars: 'Zeichen' },
-            es: { source: 'ORIGEN', translation: 'TRADUCCIÓN', translate: 'TRADUCIR', translating: 'TRADUCIENDO...', auto: 'Auto detectar', copied: '¡Copiado!', error: 'Error de traducción', placeholder: 'Ingrese texto para traducir...', chars: 'car.' },
-            ru: { source: 'ОРИГИНАЛ', translation: 'ПЕРЕВОД', translate: 'ПЕРЕВЕСТИ', translating: 'ПЕРЕВОД...', auto: 'Автоопределение', copied: 'Скопировано!', error: 'Ошибка перевода', placeholder: 'Введите текст для перевода...', chars: 'символов' },
-        };
-
-        const rawLang = (navigator.language || 'en').toLowerCase();
-        const uiLang = rawLang.startsWith('zh-tw') || rawLang.startsWith('zh-hk') ? 'zh-Hant'
-            : rawLang.startsWith('zh') ? 'zh' : rawLang.split('-')[0];
-        const t = I18N[uiLang] || I18N.en;
-
-        // --- 自定义下拉菜单组件 ---
-        class LangDropdown {
-            constructor(wrapId, triggerId, dropdownId, langs, defaultVal) {
-                this.wrap = document.getElementById(wrapId);
-                this.trigger = document.getElementById(triggerId);
-                this.dropdown = document.getElementById(dropdownId);
-                this.value = defaultVal;
-                this.langs = langs;
-                this.build();
-                this.trigger.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    this.toggle();
-                });
-            }
-            build() {
-                this.dropdown.innerHTML = '';
-                this.langs.forEach(lang => {
-                    const div = document.createElement('div');
-                    div.className = 'lang-option' + (lang.code === this.value ? ' selected' : '');
-                    div.textContent = lang.code === 'auto' ? (t.auto || lang.en)
-                        : (lang.native ? `${lang.native} (${lang.en})` : lang.en);
-                    div.dataset.code = lang.code;
-                    div.addEventListener('click', (e) => {
-                        e.stopPropagation();
-                        this.select(lang.code);
-                        this.close();
-                    });
-                    this.dropdown.appendChild(div);
-                });
-                this.updateTrigger();
-            }
-            select(code) {
-                this.value = code;
-                this.dropdown.querySelectorAll('.lang-option').forEach(el => {
-                    el.classList.toggle('selected', el.dataset.code === code);
-                });
-                this.updateTrigger();
-            }
-            updateTrigger() {
-                const lang = this.langs.find(l => l.code === this.value);
-                if (!lang) return;
-                this.trigger.textContent = lang.code === 'auto' ? (t.auto || lang.en)
-                    : (lang.native || lang.en);
-            }
-            toggle() {
-                const isOpen = this.dropdown.classList.contains('show');
-                closeAllDropdowns();
-                if (!isOpen) {
-                    this.dropdown.classList.add('show');
-                    this.trigger.classList.add('open');
-                    // 滚动到当前选中项
-                    const sel = this.dropdown.querySelector('.selected');
-                    if (sel) sel.scrollIntoView({ block: 'nearest' });
-                }
-            }
-            close() {
-                this.dropdown.classList.remove('show');
-                this.trigger.classList.remove('open');
-            }
-        }
-
-        function closeAllDropdowns() {
-            document.querySelectorAll('.lang-select-dropdown').forEach(d => d.classList.remove('show'));
-            document.querySelectorAll('.lang-select-trigger').forEach(t => t.classList.remove('open'));
-        }
-        document.addEventListener('click', closeAllDropdowns);
-
-        // 初始化两个下拉
-        const srcLangDD = new LangDropdown('srcLangWrap', 'srcLangTrigger', 'srcLangDropdown',
-            LANGUAGES, 'auto');
-        const tgtLangDD = new LangDropdown('tgtLangWrap', 'tgtLangTrigger', 'tgtLangDropdown',
-            LANGUAGES.filter(l => l.code !== 'auto'),
-            uiLang === 'zh' ? 'en' : uiLang === 'zh-Hant' ? 'en' : uiLang === 'en' ? 'zh' : 'en');
-
-        // 兼容层：让后续代码用 .value 访问
-        const srcLangEl = srcLangDD;
-        const tgtLangEl = tgtLangDD;
-
-        const srcTextEl = document.getElementById('srcText');
-        const outputEl = document.getElementById('outputText');
-        const translateBtn = document.getElementById('translateBtn');
-
-        // UI 文本
-        document.getElementById('srcLabel').textContent = t.source;
-        document.getElementById('tgtLabel').textContent = t.translation;
-        translateBtn.textContent = t.translate;
-        srcTextEl.placeholder = t.placeholder;
-        outputEl.textContent = '';
-
-        // 模型信息
-        const provider = (() => {
-            try {
-                const h = new URL((MODEL.baseUrl || '').trim()).hostname;
-                const p = h.split('.');
-                return p.length >= 2 ? p[p.length - 2] : h;
-            } catch { return null; }
-        })();
-        document.getElementById('modelBadge').textContent =
-            (MODEL.name || MODEL.model || '-') + (provider ? ` (${provider})` : '');
-
-        // --- 字符计数 ---
-        srcTextEl.addEventListener('input', () => {
-            document.getElementById('charCount').textContent =
-                `${srcTextEl.value.length} ${t.chars || 'chars'}`;
-        });
-
-        // --- 清除按钮 ---
-        document.getElementById('clearBtn').addEventListener('click', () => {
-            srcTextEl.value = '';
-            outputEl.textContent = '';
-            outputEl.className = 'output-text empty';
-            document.getElementById('charCount').textContent = `0 ${t.chars || 'chars'}`;
-            document.getElementById('statusMsg').textContent = '';
-        });
-
-        // --- 复制按钮 ---
-        document.getElementById('copyBtn').addEventListener('click', () => {
-            const text = outputEl.textContent;
-            if (!text) return;
-            navigator.clipboard.writeText(text).then(() => {
-                const msg = document.getElementById('statusMsg');
-                msg.textContent = t.copied;
-                msg.className = 'status-msg';
-                setTimeout(() => { msg.textContent = ''; }, 2000);
-            });
-        });
-
-        // --- 交换语言 ---
-        document.getElementById('swapBtn').addEventListener('click', () => {
-            if (srcLangEl.value === 'auto') return;
-            const tmp = srcLangEl.value;
-            srcLangEl.select(tgtLangEl.value);
-            tgtLangEl.select(tmp);
-            // 同时交换文本
-            const srcVal = srcTextEl.value;
-            const tgtVal = outputEl.textContent;
-            if (tgtVal && !outputEl.classList.contains('empty')) {
-                srcTextEl.value = tgtVal;
-                outputEl.textContent = srcVal;
-                document.getElementById('charCount').textContent =
-                    `${srcTextEl.value.length} ${t.chars || 'chars'}`;
-            }
-        });
-
-        // --- 快捷键 Ctrl+Enter ---
-        srcTextEl.addEventListener('keydown', (e) => {
-            if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
-                e.preventDefault();
-                doTranslate();
-            }
-        });
-
-        // --- 翻译按钮 ---
-        translateBtn.addEventListener('click', doTranslate);
-
-        let isTranslating = false;
-
-        async function doTranslate() {
-            const text = srcTextEl.value.trim();
-            if (!text || isTranslating) return;
-
-            isTranslating = true;
-            translateBtn.disabled = true;
-            translateBtn.textContent = t.translating;
-            outputEl.textContent = '';
-            outputEl.className = 'output-text streaming';
-            document.getElementById('statusMsg').textContent = '';
-
-            const srcLang = srcLangEl.value;
-            const tgtLang = tgtLangEl.value;
-
-            // 找目标语言的完整名称
-            const tgtLangInfo = LANGUAGES.find(l => l.code === tgtLang);
-            const tgtLangName = tgtLangInfo ? tgtLangInfo.en : tgtLang;
-            const srcLangName = srcLang === 'auto' ? '' : (LANGUAGES.find(l => l.code === srcLang)?.en || srcLang);
-
-            const srcHint = srcLang === 'auto' ? '' : ` from ${srcLangName}`;
-            const prompt = `Translate the following text${srcHint} to ${tgtLangName}. Output ONLY the translated text, nothing else. No explanations, no quotes, no prefixes.\n\n${text}`;
-
-            try {
-                let result = '';
-
-                                if (MODEL.protocol === 'anthropic') {
-                    // Anthropic API 鈥?smart URL, no double /v1
-                    let apiUrl = (MODEL.anthropicUrl || '').trim().replace(/\/+$/, '');
-                    const messagesPath = apiUrl.includes('/v1') ? '/messages' : '/v1/messages';
-                    try {
-                        const resp = await fetch(apiUrl + messagesPath, {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'x-api-key': MODEL.apiKey,
-                                'anthropic-version': '2023-06-01',
-                            },
-                            body: JSON.stringify({
-                                model: MODEL.model,
-                                messages: [{ role: 'user', content: prompt }],
-                                max_tokens: 4096,
-                            })
-                        });
-                        if (!resp.ok) throw new Error(`API ${resp.status}: ${resp.statusText}`);
-                        const data = await resp.json();
-                        result = data.content?.[0]?.text || '';
-                    } catch (anthropicErr) {
-                        // Fall back to OpenAI streaming
-                        console.warn('[Translator] Anthropic failed, falling back to OpenAI:', anthropicErr);
-                        let fbUrl = (MODEL.baseUrl || '').trim().replace(/\/+$/, '');
-                        if (!fbUrl.endsWith('/v1')) fbUrl += '/v1';
-                        const resp = await fetch(fbUrl + '/chat/completions', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + MODEL.apiKey },
-                            body: JSON.stringify({ model: MODEL.model, messages: [{ role: 'user', content: prompt }], max_tokens: 4096, temperature: 0.3, stream: true })
-                        });
-                        if (!resp.ok) throw new Error(`API ${resp.status}: ${resp.statusText}`);
-                        const reader = resp.body.getReader();
-                        const decoder = new TextDecoder();
-                        let buffer = '';
-                        while (true) {
-                            const { done, value } = await reader.read();
-                            if (done) break;
-                            buffer += decoder.decode(value, { stream: true });
-                            const lines = buffer.split('\n'); buffer = lines.pop() || '';
-                            for (const line of lines) {
-                                const trimmed = line.trim();
-                                if (!trimmed.startsWith('data: ')) continue;
-                                const jsonStr = trimmed.slice(6);
-                                if (jsonStr === '[DONE]') continue;
-                                try {
-                                    const chunk = JSON.parse(jsonStr);
-                                    const delta = chunk.choices?.[0]?.delta?.content || '';
-                                    if (delta) { result += delta; outputEl.textContent = result.replace(/<think>[\s\S]*?<\/think>/gi, '').trim(); }
-                                } catch { }
-                            }
-                        }
-                    }
-                } else {
-                    let apiUrl = (MODEL.baseUrl || '').trim().replace(/\/+$/, '');
-                    if (!apiUrl.endsWith('/v1')) apiUrl += '/v1';
-                    const resp = await fetch(apiUrl + '/chat/completions', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': 'Bearer ' + MODEL.apiKey,
-                        },
-                        body: JSON.stringify({
-                            model: MODEL.model,
-                            messages: [{ role: 'user', content: prompt }],
-                            max_tokens: 4096,
-                            temperature: 0.3,
-                            stream: true,
-                        })
-                    });
-                    if (!resp.ok) throw new Error(`API ${resp.status}: ${resp.statusText}`);
-
-                    // 流式读取
-                    const reader = resp.body.getReader();
-                    const decoder = new TextDecoder();
-                    let buffer = '';
-
-                    while (true) {
-                        const { done, value } = await reader.read();
-                        if (done) break;
-                        buffer += decoder.decode(value, { stream: true });
-
-                        const lines = buffer.split('\n');
-                        buffer = lines.pop() || '';
-
-                        for (const line of lines) {
-                            const trimmed = line.trim();
-                            if (!trimmed.startsWith('data: ')) continue;
-                            const jsonStr = trimmed.slice(6);
-                            if (jsonStr === '[DONE]') continue;
-                            try {
-                                const chunk = JSON.parse(jsonStr);
-                                const delta = chunk.choices?.[0]?.delta?.content || '';
-                                if (delta) {
-                                    result += delta;
-                                    // 过滤 <think> 标签
-                                    const display = result.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
-                                    outputEl.textContent = display;
-                                }
-                            } catch { }
-                        }
-                    }
-                }
-
-
-                // 最终结果
-                const finalText = result.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
-                outputEl.textContent = finalText || '(empty response)';
-                outputEl.className = finalText ? 'output-text' : 'output-text empty';
-
-            } catch (e) {
-                outputEl.textContent = '';
-                outputEl.className = 'output-text empty';
-                const msg = document.getElementById('statusMsg');
-                msg.textContent = `${t.error}: ${e.message}`;
-                msg.className = 'status-msg error';
-            }
-
-            isTranslating = false;
-            translateBtn.disabled = false;
-            translateBtn.textContent = t.translate;
-        }
-    </script>
-</body>
-
-</html>
+﻿-<-!-D-O-C-T-Y-P-E- -h-t-m-l->-
+-<-h-t-m-l- -l-a-n-g-=-"-e-n-"->-
+-
+-<-h-e-a-d->-
+- - - - -<-m-e-t-a- -c-h-a-r-s-e-t-=-"-U-T-F---8-"->-
+- - - - -<-m-e-t-a- -n-a-m-e-=-"-v-i-e-w-p-o-r-t-"- -c-o-n-t-e-n-t-=-"-w-i-d-t-h-=-d-e-v-i-c-e---w-i-d-t-h-,- -i-n-i-t-i-a-l---s-c-a-l-e-=-1-.-0-"->-
+- - - - -<-t-i-t-l-e->-A-I- -T-r-a-n-s-l-a-t-e-<-/-t-i-t-l-e->-
+- - - - -<-s-t-y-l-e->-
+- - - - - - - - -*- -{-
+- - - - - - - - - - - - -m-a-r-g-i-n-:- -0-;-
+- - - - - - - - - - - - -p-a-d-d-i-n-g-:- -0-;-
+- - - - - - - - - - - - -b-o-x---s-i-z-i-n-g-:- -b-o-r-d-e-r---b-o-x-;-
+- - - - - - - - -}-
+-
+- - - - - - - - -b-o-d-y- -{-
+- - - - - - - - - - - - -f-o-n-t---f-a-m-i-l-y-:- ---a-p-p-l-e---s-y-s-t-e-m-,- -'-S-F- -P-r-o- -D-i-s-p-l-a-y-'-,- -'-S-e-g-o-e- -U-I-'-,- -s-a-n-s---s-e-r-i-f-;-
+- - - - - - - - - - - - -b-a-c-k-g-r-o-u-n-d-:- -#-0-a-0-e-1-7-;-
+- - - - - - - - - - - - -c-o-l-o-r-:- -#-e-0-e-0-e-0-;-
+- - - - - - - - - - - - -h-e-i-g-h-t-:- -1-0-0-v-h-;-
+- - - - - - - - - - - - -d-i-s-p-l-a-y-:- -f-l-e-x-;-
+- - - - - - - - - - - - -f-l-e-x---d-i-r-e-c-t-i-o-n-:- -c-o-l-u-m-n-;-
+- - - - - - - - - - - - -o-v-e-r-f-l-o-w-:- -h-i-d-d-e-n-;-
+- - - - - - - - - - - - -u-s-e-r---s-e-l-e-c-t-:- -n-o-n-e-;-
+- - - - - - - - -}-
+-
+- - - - - - - - -/-*- -自-定-义-标-题-栏- -*-/-
+- - - - - - - - -.-t-i-t-l-e-b-a-r- -{-
+- - - - - - - - - - - - -d-i-s-p-l-a-y-:- -f-l-e-x-;-
+- - - - - - - - - - - - -a-l-i-g-n---i-t-e-m-s-:- -c-e-n-t-e-r-;-
+- - - - - - - - - - - - -j-u-s-t-i-f-y---c-o-n-t-e-n-t-:- -f-l-e-x---e-n-d-;-
+- - - - - - - - - - - - -h-e-i-g-h-t-:- -3-2-p-x-;-
+- - - - - - - - - - - - ---w-e-b-k-i-t---a-p-p---r-e-g-i-o-n-:- -d-r-a-g-;-
+- - - - - - - - - - - - -f-l-e-x---s-h-r-i-n-k-:- -0-;-
+- - - - - - - - -}-
+-
+- - - - - - - - -.-t-i-t-l-e-b-a-r---b-t-n- -{-
+- - - - - - - - - - - - ---w-e-b-k-i-t---a-p-p---r-e-g-i-o-n-:- -n-o---d-r-a-g-;-
+- - - - - - - - - - - - -w-i-d-t-h-:- -4-0-p-x-;-
+- - - - - - - - - - - - -h-e-i-g-h-t-:- -3-2-p-x-;-
+- - - - - - - - - - - - -b-o-r-d-e-r-:- -n-o-n-e-;-
+- - - - - - - - - - - - -b-a-c-k-g-r-o-u-n-d-:- -t-r-a-n-s-p-a-r-e-n-t-;-
+- - - - - - - - - - - - -c-o-l-o-r-:- -r-g-b-a-(-2-5-5-,- -2-5-5-,- -2-5-5-,- -0-.-4-)-;-
+- - - - - - - - - - - - -f-o-n-t---s-i-z-e-:- -1-1-p-x-;-
+- - - - - - - - - - - - -c-u-r-s-o-r-:- -p-o-i-n-t-e-r-;-
+- - - - - - - - - - - - -d-i-s-p-l-a-y-:- -f-l-e-x-;-
+- - - - - - - - - - - - -a-l-i-g-n---i-t-e-m-s-:- -c-e-n-t-e-r-;-
+- - - - - - - - - - - - -j-u-s-t-i-f-y---c-o-n-t-e-n-t-:- -c-e-n-t-e-r-;-
+- - - - - - - - - - - - -t-r-a-n-s-i-t-i-o-n-:- -b-a-c-k-g-r-o-u-n-d- -0-.-1-5-s-,- -c-o-l-o-r- -0-.-1-5-s-;-
+- - - - - - - - -}-
+-
+- - - - - - - - -.-t-i-t-l-e-b-a-r---b-t-n-:-h-o-v-e-r- -{-
+- - - - - - - - - - - - -b-a-c-k-g-r-o-u-n-d-:- -r-g-b-a-(-2-5-5-,- -2-5-5-,- -2-5-5-,- -0-.-0-8-)-;-
+- - - - - - - - - - - - -c-o-l-o-r-:- -#-f-f-f-;-
+- - - - - - - - -}-
+-
+- - - - - - - - -.-t-i-t-l-e-b-a-r---b-t-n-.-c-l-o-s-e-:-h-o-v-e-r- -{-
+- - - - - - - - - - - - -b-a-c-k-g-r-o-u-n-d-:- -#-e-8-1-1-2-3-;-
+- - - - - - - - - - - - -c-o-l-o-r-:- -#-f-f-f-;-
+- - - - - - - - -}-
+-
+- - - - - - - - -/-*- -主-体- -*-/-
+- - - - - - - - -.-m-a-i-n- -{-
+- - - - - - - - - - - - -f-l-e-x-:- -1-;-
+- - - - - - - - - - - - -d-i-s-p-l-a-y-:- -f-l-e-x-;-
+- - - - - - - - - - - - -f-l-e-x---d-i-r-e-c-t-i-o-n-:- -c-o-l-u-m-n-;-
+- - - - - - - - - - - - -p-a-d-d-i-n-g-:- -0- -2-4-p-x- -2-0-p-x-;-
+- - - - - - - - - - - - -o-v-e-r-f-l-o-w-:- -h-i-d-d-e-n-;-
+- - - - - - - - - - - - -g-a-p-:- -1-2-p-x-;-
+- - - - - - - - -}-
+-
+- - - - - - - - -/-*- -顶-部-栏-：-语-言-选-择- -*-/-
+- - - - - - - - -.-t-o-o-l-b-a-r- -{-
+- - - - - - - - - - - - -d-i-s-p-l-a-y-:- -f-l-e-x-;-
+- - - - - - - - - - - - -a-l-i-g-n---i-t-e-m-s-:- -c-e-n-t-e-r-;-
+- - - - - - - - - - - - -g-a-p-:- -1-2-p-x-;-
+- - - - - - - - - - - - -f-l-e-x---s-h-r-i-n-k-:- -0-;-
+- - - - - - - - -}-
+-
+- - - - - - - - -.-l-a-n-g---s-e-l-e-c-t- -{-
+- - - - - - - - - - - - -p-o-s-i-t-i-o-n-:- -r-e-l-a-t-i-v-e-;-
+- - - - - - - - - - - - -m-i-n---w-i-d-t-h-:- -1-6-0-p-x-;-
+- - - - - - - - - - - - -u-s-e-r---s-e-l-e-c-t-:- -n-o-n-e-;-
+- - - - - - - - -}-
+-
+- - - - - - - - -.-l-a-n-g---s-e-l-e-c-t---t-r-i-g-g-e-r- -{-
+- - - - - - - - - - - - -b-a-c-k-g-r-o-u-n-d-:- -r-g-b-a-(-2-5-5-,- -2-5-5-,- -2-5-5-,- -0-.-0-6-)-;-
+- - - - - - - - - - - - -b-o-r-d-e-r-:- -1-p-x- -s-o-l-i-d- -r-g-b-a-(-2-5-5-,- -2-5-5-,- -2-5-5-,- -0-.-1-)-;-
+- - - - - - - - - - - - -b-o-r-d-e-r---r-a-d-i-u-s-:- -8-p-x-;-
+- - - - - - - - - - - - -c-o-l-o-r-:- -#-e-0-e-0-e-0-;-
+- - - - - - - - - - - - -p-a-d-d-i-n-g-:- -8-p-x- -3-2-p-x- -8-p-x- -1-4-p-x-;-
+- - - - - - - - - - - - -f-o-n-t---s-i-z-e-:- -1-3-p-x-;-
+- - - - - - - - - - - - -c-u-r-s-o-r-:- -p-o-i-n-t-e-r-;-
+- - - - - - - - - - - - -t-r-a-n-s-i-t-i-o-n-:- -b-o-r-d-e-r---c-o-l-o-r- -0-.-2-s-;-
+- - - - - - - - - - - - -w-h-i-t-e---s-p-a-c-e-:- -n-o-w-r-a-p-;-
+- - - - - - - - - - - - -o-v-e-r-f-l-o-w-:- -h-i-d-d-e-n-;-
+- - - - - - - - - - - - -t-e-x-t---o-v-e-r-f-l-o-w-:- -e-l-l-i-p-s-i-s-;-
+- - - - - - - - -}-
+-
+- - - - - - - - -.-l-a-n-g---s-e-l-e-c-t---t-r-i-g-g-e-r-:-h-o-v-e-r- -{-
+- - - - - - - - - - - - -b-o-r-d-e-r---c-o-l-o-r-:- -r-g-b-a-(-2-5-5-,- -2-5-5-,- -2-5-5-,- -0-.-2-)-;-
+- - - - - - - - -}-
+-
+- - - - - - - - -.-l-a-n-g---s-e-l-e-c-t---t-r-i-g-g-e-r-.-o-p-e-n- -{-
+- - - - - - - - - - - - -b-o-r-d-e-r---c-o-l-o-r-:- -r-g-b-a-(-0-,- -2-5-5-,- -1-5-7-,- -0-.-4-)-;-
+- - - - - - - - -}-
+-
+- - - - - - - - -/-*- -下-拉-箭-头- -*-/-
+- - - - - - - - -.-l-a-n-g---s-e-l-e-c-t---t-r-i-g-g-e-r-:-:-a-f-t-e-r- -{-
+- - - - - - - - - - - - -c-o-n-t-e-n-t-:- -'-\-2-5-B-E-'-;-
+- - - - - - - - - - - - -p-o-s-i-t-i-o-n-:- -a-b-s-o-l-u-t-e-;-
+- - - - - - - - - - - - -r-i-g-h-t-:- -1-2-p-x-;-
+- - - - - - - - - - - - -t-o-p-:- -5-0-%-;-
+- - - - - - - - - - - - -t-r-a-n-s-f-o-r-m-:- -t-r-a-n-s-l-a-t-e-Y-(---5-0-%-)-;-
+- - - - - - - - - - - - -f-o-n-t---s-i-z-e-:- -1-2-p-x-;-
+- - - - - - - - - - - - -c-o-l-o-r-:- -r-g-b-a-(-2-5-5-,- -2-5-5-,- -2-5-5-,- -0-.-3-)-;-
+- - - - - - - - - - - - -p-o-i-n-t-e-r---e-v-e-n-t-s-:- -n-o-n-e-;-
+- - - - - - - - -}-
+-
+- - - - - - - - -.-l-a-n-g---s-e-l-e-c-t---d-r-o-p-d-o-w-n- -{-
+- - - - - - - - - - - - -d-i-s-p-l-a-y-:- -n-o-n-e-;-
+- - - - - - - - - - - - -p-o-s-i-t-i-o-n-:- -a-b-s-o-l-u-t-e-;-
+- - - - - - - - - - - - -t-o-p-:- -c-a-l-c-(-1-0-0-%- -+- -4-p-x-)-;-
+- - - - - - - - - - - - -l-e-f-t-:- -0-;-
+- - - - - - - - - - - - -m-i-n---w-i-d-t-h-:- -1-0-0-%-;-
+- - - - - - - - - - - - -m-a-x---h-e-i-g-h-t-:- -3-2-0-p-x-;-
+- - - - - - - - - - - - -o-v-e-r-f-l-o-w---y-:- -a-u-t-o-;-
+- - - - - - - - - - - - -b-a-c-k-g-r-o-u-n-d-:- -#-1-a-1-f-2-e-;-
+- - - - - - - - - - - - -b-o-r-d-e-r-:- -1-p-x- -s-o-l-i-d- -r-g-b-a-(-2-5-5-,- -2-5-5-,- -2-5-5-,- -0-.-1-2-)-;-
+- - - - - - - - - - - - -b-o-r-d-e-r---r-a-d-i-u-s-:- -8-p-x-;-
+- - - - - - - - - - - - -b-o-x---s-h-a-d-o-w-:- -0- -8-p-x- -3-2-p-x- -r-g-b-a-(-0-,- -0-,- -0-,- -0-.-6-)-;-
+- - - - - - - - - - - - -z---i-n-d-e-x-:- -1-0-0-;-
+- - - - - - - - - - - - -p-a-d-d-i-n-g-:- -4-p-x-;-
+- - - - - - - - -}-
+-
+- - - - - - - - -.-l-a-n-g---s-e-l-e-c-t---d-r-o-p-d-o-w-n-.-s-h-o-w- -{-
+- - - - - - - - - - - - -d-i-s-p-l-a-y-:- -b-l-o-c-k-;-
+- - - - - - - - -}-
+-
+- - - - - - - - -.-l-a-n-g---s-e-l-e-c-t---d-r-o-p-d-o-w-n-:-:---w-e-b-k-i-t---s-c-r-o-l-l-b-a-r- -{-
+- - - - - - - - - - - - -w-i-d-t-h-:- -4-p-x-;-
+- - - - - - - - -}-
+-
+- - - - - - - - -.-l-a-n-g---s-e-l-e-c-t---d-r-o-p-d-o-w-n-:-:---w-e-b-k-i-t---s-c-r-o-l-l-b-a-r---t-h-u-m-b- -{-
+- - - - - - - - - - - - -b-a-c-k-g-r-o-u-n-d-:- -r-g-b-a-(-2-5-5-,- -2-5-5-,- -2-5-5-,- -0-.-1-5-)-;-
+- - - - - - - - - - - - -b-o-r-d-e-r---r-a-d-i-u-s-:- -4-p-x-;-
+- - - - - - - - -}-
+-
+- - - - - - - - -.-l-a-n-g---o-p-t-i-o-n- -{-
+- - - - - - - - - - - - -p-a-d-d-i-n-g-:- -8-p-x- -1-2-p-x-;-
+- - - - - - - - - - - - -f-o-n-t---s-i-z-e-:- -1-3-p-x-;-
+- - - - - - - - - - - - -c-o-l-o-r-:- -#-e-0-e-0-e-0-;-
+- - - - - - - - - - - - -c-u-r-s-o-r-:- -p-o-i-n-t-e-r-;-
+- - - - - - - - - - - - -b-o-r-d-e-r---r-a-d-i-u-s-:- -6-p-x-;-
+- - - - - - - - - - - - -t-r-a-n-s-i-t-i-o-n-:- -b-a-c-k-g-r-o-u-n-d- -0-.-1-s-;-
+- - - - - - - - - - - - -w-h-i-t-e---s-p-a-c-e-:- -n-o-w-r-a-p-;-
+- - - - - - - - -}-
+-
+- - - - - - - - -.-l-a-n-g---o-p-t-i-o-n-:-h-o-v-e-r- -{-
+- - - - - - - - - - - - -b-a-c-k-g-r-o-u-n-d-:- -r-g-b-a-(-0-,- -2-5-5-,- -1-5-7-,- -0-.-1-)-;-
+- - - - - - - - -}-
+-
+- - - - - - - - -.-l-a-n-g---o-p-t-i-o-n-.-s-e-l-e-c-t-e-d- -{-
+- - - - - - - - - - - - -c-o-l-o-r-:- -#-0-0-f-f-9-d-;-
+- - - - - - - - - - - - -b-a-c-k-g-r-o-u-n-d-:- -r-g-b-a-(-0-,- -2-5-5-,- -1-5-7-,- -0-.-0-8-)-;-
+- - - - - - - - -}-
+-
+- - - - - - - - -.-s-w-a-p---b-t-n- -{-
+- - - - - - - - - - - - -b-a-c-k-g-r-o-u-n-d-:- -r-g-b-a-(-0-,- -2-5-5-,- -1-5-7-,- -0-.-1-)-;-
+- - - - - - - - - - - - -b-o-r-d-e-r-:- -1-p-x- -s-o-l-i-d- -r-g-b-a-(-0-,- -2-5-5-,- -1-5-7-,- -0-.-2-)-;-
+- - - - - - - - - - - - -b-o-r-d-e-r---r-a-d-i-u-s-:- -5-0-%-;-
+- - - - - - - - - - - - -w-i-d-t-h-:- -3-6-p-x-;-
+- - - - - - - - - - - - -h-e-i-g-h-t-:- -3-6-p-x-;-
+- - - - - - - - - - - - -c-o-l-o-r-:- -#-0-0-f-f-9-d-;-
+- - - - - - - - - - - - -f-o-n-t---s-i-z-e-:- -1-6-p-x-;-
+- - - - - - - - - - - - -c-u-r-s-o-r-:- -p-o-i-n-t-e-r-;-
+- - - - - - - - - - - - -d-i-s-p-l-a-y-:- -f-l-e-x-;-
+- - - - - - - - - - - - -a-l-i-g-n---i-t-e-m-s-:- -c-e-n-t-e-r-;-
+- - - - - - - - - - - - -j-u-s-t-i-f-y---c-o-n-t-e-n-t-:- -c-e-n-t-e-r-;-
+- - - - - - - - - - - - -t-r-a-n-s-i-t-i-o-n-:- -a-l-l- -0-.-3-s-;-
+- - - - - - - - - - - - -f-l-e-x---s-h-r-i-n-k-:- -0-;-
+- - - - - - - - -}-
+-
+- - - - - - - - -.-s-w-a-p---b-t-n-:-h-o-v-e-r- -{-
+- - - - - - - - - - - - -b-a-c-k-g-r-o-u-n-d-:- -r-g-b-a-(-0-,- -2-5-5-,- -1-5-7-,- -0-.-2-)-;-
+- - - - - - - - -}-
+-
+- - - - - - - - -.-t-o-o-l-b-a-r---s-p-a-c-e-r- -{-
+- - - - - - - - - - - - -f-l-e-x-:- -1-;-
+- - - - - - - - -}-
+-
+- - - - - - - - -.-m-o-d-e-l---b-a-d-g-e- -{-
+- - - - - - - - - - - - -f-o-n-t---s-i-z-e-:- -1-1-p-x-;-
+- - - - - - - - - - - - -c-o-l-o-r-:- -r-g-b-a-(-2-5-5-,- -2-5-5-,- -2-5-5-,- -0-.-3-)-;-
+- - - - - - - - - - - - -b-a-c-k-g-r-o-u-n-d-:- -r-g-b-a-(-2-5-5-,- -2-5-5-,- -2-5-5-,- -0-.-0-4-)-;-
+- - - - - - - - - - - - -p-a-d-d-i-n-g-:- -4-p-x- -1-0-p-x-;-
+- - - - - - - - - - - - -b-o-r-d-e-r---r-a-d-i-u-s-:- -1-2-p-x-;-
+- - - - - - - - - - - - -m-a-x---w-i-d-t-h-:- -2-0-0-p-x-;-
+- - - - - - - - - - - - -o-v-e-r-f-l-o-w-:- -h-i-d-d-e-n-;-
+- - - - - - - - - - - - -t-e-x-t---o-v-e-r-f-l-o-w-:- -e-l-l-i-p-s-i-s-;-
+- - - - - - - - - - - - -w-h-i-t-e---s-p-a-c-e-:- -n-o-w-r-a-p-;-
+- - - - - - - - -}-
+-
+- - - - - - - - -/-*- -翻-译-区-域- -*-/-
+- - - - - - - - -.-t-r-a-n-s-l-a-t-e---a-r-e-a- -{-
+- - - - - - - - - - - - -f-l-e-x-:- -1-;-
+- - - - - - - - - - - - -d-i-s-p-l-a-y-:- -f-l-e-x-;-
+- - - - - - - - - - - - -g-a-p-:- -1-2-p-x-;-
+- - - - - - - - - - - - -m-i-n---h-e-i-g-h-t-:- -0-;-
+- - - - - - - - -}-
+-
+- - - - - - - - -.-p-a-n-e- -{-
+- - - - - - - - - - - - -f-l-e-x-:- -1-;-
+- - - - - - - - - - - - -d-i-s-p-l-a-y-:- -f-l-e-x-;-
+- - - - - - - - - - - - -f-l-e-x---d-i-r-e-c-t-i-o-n-:- -c-o-l-u-m-n-;-
+- - - - - - - - - - - - -b-a-c-k-g-r-o-u-n-d-:- -r-g-b-a-(-2-5-5-,- -2-5-5-,- -2-5-5-,- -0-.-0-3-)-;-
+- - - - - - - - - - - - -b-o-r-d-e-r-:- -1-p-x- -s-o-l-i-d- -r-g-b-a-(-2-5-5-,- -2-5-5-,- -2-5-5-,- -0-.-0-6-)-;-
+- - - - - - - - - - - - -b-o-r-d-e-r---r-a-d-i-u-s-:- -1-2-p-x-;-
+- - - - - - - - - - - - -o-v-e-r-f-l-o-w-:- -h-i-d-d-e-n-;-
+- - - - - - - - - - - - -p-o-s-i-t-i-o-n-:- -r-e-l-a-t-i-v-e-;-
+- - - - - - - - -}-
+-
+- - - - - - - - -.-p-a-n-e---h-e-a-d-e-r- -{-
+- - - - - - - - - - - - -d-i-s-p-l-a-y-:- -f-l-e-x-;-
+- - - - - - - - - - - - -a-l-i-g-n---i-t-e-m-s-:- -c-e-n-t-e-r-;-
+- - - - - - - - - - - - -j-u-s-t-i-f-y---c-o-n-t-e-n-t-:- -s-p-a-c-e---b-e-t-w-e-e-n-;-
+- - - - - - - - - - - - -p-a-d-d-i-n-g-:- -1-0-p-x- -1-6-p-x-;-
+- - - - - - - - - - - - -b-o-r-d-e-r---b-o-t-t-o-m-:- -1-p-x- -s-o-l-i-d- -r-g-b-a-(-2-5-5-,- -2-5-5-,- -2-5-5-,- -0-.-0-6-)-;-
+- - - - - - - - - - - - -f-l-e-x---s-h-r-i-n-k-:- -0-;-
+- - - - - - - - -}-
+-
+- - - - - - - - -.-p-a-n-e---l-a-b-e-l- -{-
+- - - - - - - - - - - - -f-o-n-t---s-i-z-e-:- -1-1-p-x-;-
+- - - - - - - - - - - - -f-o-n-t---w-e-i-g-h-t-:- -6-0-0-;-
+- - - - - - - - - - - - -c-o-l-o-r-:- -r-g-b-a-(-2-5-5-,- -2-5-5-,- -2-5-5-,- -0-.-3-5-)-;-
+- - - - - - - - - - - - -t-e-x-t---t-r-a-n-s-f-o-r-m-:- -u-p-p-e-r-c-a-s-e-;-
+- - - - - - - - - - - - -l-e-t-t-e-r---s-p-a-c-i-n-g-:- -1-p-x-;-
+- - - - - - - - -}-
+-
+- - - - - - - - -.-p-a-n-e---l-a-b-e-l-.-s-o-u-r-c-e- -{-
+- - - - - - - - - - - - -c-o-l-o-r-:- -r-g-b-a-(-0-,- -2-5-5-,- -1-5-7-,- -0-.-5-)-;-
+- - - - - - - - -}-
+-
+- - - - - - - - -.-p-a-n-e---a-c-t-i-o-n- -{-
+- - - - - - - - - - - - -b-a-c-k-g-r-o-u-n-d-:- -n-o-n-e-;-
+- - - - - - - - - - - - -b-o-r-d-e-r-:- -n-o-n-e-;-
+- - - - - - - - - - - - -c-o-l-o-r-:- -r-g-b-a-(-2-5-5-,- -2-5-5-,- -2-5-5-,- -0-.-3-)-;-
+- - - - - - - - - - - - -f-o-n-t---s-i-z-e-:- -1-2-p-x-;-
+- - - - - - - - - - - - -c-u-r-s-o-r-:- -p-o-i-n-t-e-r-;-
+- - - - - - - - - - - - -p-a-d-d-i-n-g-:- -2-p-x- -8-p-x-;-
+- - - - - - - - - - - - -b-o-r-d-e-r---r-a-d-i-u-s-:- -4-p-x-;-
+- - - - - - - - - - - - -t-r-a-n-s-i-t-i-o-n-:- -a-l-l- -0-.-1-5-s-;-
+- - - - - - - - -}-
+-
+- - - - - - - - -.-p-a-n-e---a-c-t-i-o-n-:-h-o-v-e-r- -{-
+- - - - - - - - - - - - -c-o-l-o-r-:- -#-0-0-f-f-9-d-;-
+- - - - - - - - - - - - -b-a-c-k-g-r-o-u-n-d-:- -r-g-b-a-(-0-,- -2-5-5-,- -1-5-7-,- -0-.-1-)-;-
+- - - - - - - - -}-
+-
+- - - - - - - - -t-e-x-t-a-r-e-a- -{-
+- - - - - - - - - - - - -f-l-e-x-:- -1-;-
+- - - - - - - - - - - - -b-a-c-k-g-r-o-u-n-d-:- -t-r-a-n-s-p-a-r-e-n-t-;-
+- - - - - - - - - - - - -b-o-r-d-e-r-:- -n-o-n-e-;-
+- - - - - - - - - - - - -c-o-l-o-r-:- -#-e-0-e-0-e-0-;-
+- - - - - - - - - - - - -f-o-n-t---s-i-z-e-:- -1-5-p-x-;-
+- - - - - - - - - - - - -l-i-n-e---h-e-i-g-h-t-:- -1-.-7-;-
+- - - - - - - - - - - - -p-a-d-d-i-n-g-:- -1-6-p-x-;-
+- - - - - - - - - - - - -r-e-s-i-z-e-:- -n-o-n-e-;-
+- - - - - - - - - - - - -o-u-t-l-i-n-e-:- -n-o-n-e-;-
+- - - - - - - - - - - - -f-o-n-t---f-a-m-i-l-y-:- -i-n-h-e-r-i-t-;-
+- - - - - - - - -}-
+-
+- - - - - - - - -t-e-x-t-a-r-e-a-:-:-p-l-a-c-e-h-o-l-d-e-r- -{-
+- - - - - - - - - - - - -c-o-l-o-r-:- -r-g-b-a-(-2-5-5-,- -2-5-5-,- -2-5-5-,- -0-.-1-5-)-;-
+- - - - - - - - -}-
+-
+- - - - - - - - -.-o-u-t-p-u-t---t-e-x-t- -{-
+- - - - - - - - - - - - -f-l-e-x-:- -1-;-
+- - - - - - - - - - - - -p-a-d-d-i-n-g-:- -1-6-p-x-;-
+- - - - - - - - - - - - -f-o-n-t---s-i-z-e-:- -1-5-p-x-;-
+- - - - - - - - - - - - -l-i-n-e---h-e-i-g-h-t-:- -1-.-7-;-
+- - - - - - - - - - - - -o-v-e-r-f-l-o-w---y-:- -a-u-t-o-;-
+- - - - - - - - - - - - -c-o-l-o-r-:- -#-e-0-e-0-e-0-;-
+- - - - - - - - - - - - -u-s-e-r---s-e-l-e-c-t-:- -t-e-x-t-;-
+- - - - - - - - - - - - -w-h-i-t-e---s-p-a-c-e-:- -p-r-e---w-r-a-p-;-
+- - - - - - - - - - - - -w-o-r-d---b-r-e-a-k-:- -b-r-e-a-k---w-o-r-d-;-
+- - - - - - - - -}-
+-
+- - - - - - - - -.-o-u-t-p-u-t---t-e-x-t-:-:---w-e-b-k-i-t---s-c-r-o-l-l-b-a-r- -{-
+- - - - - - - - - - - - -w-i-d-t-h-:- -3-p-x-;-
+- - - - - - - - -}-
+-
+- - - - - - - - -.-o-u-t-p-u-t---t-e-x-t-:-:---w-e-b-k-i-t---s-c-r-o-l-l-b-a-r---t-h-u-m-b- -{-
+- - - - - - - - - - - - -b-a-c-k-g-r-o-u-n-d-:- -r-g-b-a-(-2-5-5-,- -2-5-5-,- -2-5-5-,- -0-.-1-)-;-
+- - - - - - - - - - - - -b-o-r-d-e-r---r-a-d-i-u-s-:- -3-p-x-;-
+- - - - - - - - -}-
+-
+- - - - - - - - -.-o-u-t-p-u-t---t-e-x-t-.-s-t-r-e-a-m-i-n-g- -{-
+- - - - - - - - - - - - -c-o-l-o-r-:- -r-g-b-a-(-2-5-5-,- -2-5-5-,- -2-5-5-,- -0-.-6-)-;-
+- - - - - - - - -}-
+-
+- - - - - - - - -.-o-u-t-p-u-t---t-e-x-t-.-e-m-p-t-y- -{-
+- - - - - - - - - - - - -c-o-l-o-r-:- -r-g-b-a-(-2-5-5-,- -2-5-5-,- -2-5-5-,- -0-.-1-5-)-;-
+- - - - - - - - - - - - -f-o-n-t---s-t-y-l-e-:- -i-t-a-l-i-c-;-
+- - - - - - - - -}-
+-
+- - - - - - - - -/-*- -底-部-状-态-栏- -*-/-
+- - - - - - - - -.-s-t-a-t-u-s-b-a-r- -{-
+- - - - - - - - - - - - -d-i-s-p-l-a-y-:- -f-l-e-x-;-
+- - - - - - - - - - - - -a-l-i-g-n---i-t-e-m-s-:- -c-e-n-t-e-r-;-
+- - - - - - - - - - - - -j-u-s-t-i-f-y---c-o-n-t-e-n-t-:- -s-p-a-c-e---b-e-t-w-e-e-n-;-
+- - - - - - - - - - - - -p-a-d-d-i-n-g-:- -0- -4-p-x-;-
+- - - - - - - - - - - - -f-l-e-x---s-h-r-i-n-k-:- -0-;-
+- - - - - - - - -}-
+-
+- - - - - - - - -.-c-h-a-r---c-o-u-n-t- -{-
+- - - - - - - - - - - - -f-o-n-t---s-i-z-e-:- -1-1-p-x-;-
+- - - - - - - - - - - - -c-o-l-o-r-:- -r-g-b-a-(-2-5-5-,- -2-5-5-,- -2-5-5-,- -0-.-2-)-;-
+- - - - - - - - -}-
+-
+- - - - - - - - -.-s-t-a-t-u-s---m-s-g- -{-
+- - - - - - - - - - - - -f-o-n-t---s-i-z-e-:- -1-1-p-x-;-
+- - - - - - - - - - - - -c-o-l-o-r-:- -r-g-b-a-(-0-,- -2-5-5-,- -1-5-7-,- -0-.-5-)-;-
+- - - - - - - - - - - - -t-r-a-n-s-i-t-i-o-n-:- -o-p-a-c-i-t-y- -0-.-3-s-;-
+- - - - - - - - -}-
+-
+- - - - - - - - -.-s-t-a-t-u-s---m-s-g-.-e-r-r-o-r- -{-
+- - - - - - - - - - - - -c-o-l-o-r-:- -#-f-f-5-5-5-5-;-
+- - - - - - - - -}-
+-
+- - - - - - - - -/-*- -翻-译-按-钮- -*-/-
+- - - - - - - - -.-t-r-a-n-s-l-a-t-e---b-t-n- -{-
+- - - - - - - - - - - - -p-o-s-i-t-i-o-n-:- -a-b-s-o-l-u-t-e-;-
+- - - - - - - - - - - - -b-o-t-t-o-m-:- -1-6-p-x-;-
+- - - - - - - - - - - - -r-i-g-h-t-:- -1-6-p-x-;-
+- - - - - - - - - - - - -b-a-c-k-g-r-o-u-n-d-:- -l-i-n-e-a-r---g-r-a-d-i-e-n-t-(-1-3-5-d-e-g-,- -#-0-0-f-f-9-d-,- -#-0-0-c-c-7-d-)-;-
+- - - - - - - - - - - - -b-o-r-d-e-r-:- -n-o-n-e-;-
+- - - - - - - - - - - - -c-o-l-o-r-:- -#-0-a-0-e-1-7-;-
+- - - - - - - - - - - - -f-o-n-t---s-i-z-e-:- -1-2-p-x-;-
+- - - - - - - - - - - - -f-o-n-t---w-e-i-g-h-t-:- -7-0-0-;-
+- - - - - - - - - - - - -p-a-d-d-i-n-g-:- -1-0-p-x- -2-4-p-x-;-
+- - - - - - - - - - - - -b-o-r-d-e-r---r-a-d-i-u-s-:- -2-0-p-x-;-
+- - - - - - - - - - - - -c-u-r-s-o-r-:- -p-o-i-n-t-e-r-;-
+- - - - - - - - - - - - -l-e-t-t-e-r---s-p-a-c-i-n-g-:- -1-p-x-;-
+- - - - - - - - - - - - -t-r-a-n-s-i-t-i-o-n-:- -a-l-l- -0-.-2-s-;-
+- - - - - - - - - - - - -b-o-x---s-h-a-d-o-w-:- -0- -4-p-x- -1-6-p-x- -r-g-b-a-(-0-,- -2-5-5-,- -1-5-7-,- -0-.-2-5-)-;-
+- - - - - - - - - - - - -z---i-n-d-e-x-:- -2-;-
+- - - - - - - - -}-
+-
+- - - - - - - - -.-t-r-a-n-s-l-a-t-e---b-t-n-:-h-o-v-e-r- -{-
+- - - - - - - - - - - - -t-r-a-n-s-f-o-r-m-:- -t-r-a-n-s-l-a-t-e-Y-(---1-p-x-)-;-
+- - - - - - - - - - - - -b-o-x---s-h-a-d-o-w-:- -0- -6-p-x- -2-0-p-x- -r-g-b-a-(-0-,- -2-5-5-,- -1-5-7-,- -0-.-3-5-)-;-
+- - - - - - - - -}-
+-
+- - - - - - - - -.-t-r-a-n-s-l-a-t-e---b-t-n-:-a-c-t-i-v-e- -{-
+- - - - - - - - - - - - -t-r-a-n-s-f-o-r-m-:- -t-r-a-n-s-l-a-t-e-Y-(-0-)-;-
+- - - - - - - - -}-
+-
+- - - - - - - - -.-t-r-a-n-s-l-a-t-e---b-t-n-:-d-i-s-a-b-l-e-d- -{-
+- - - - - - - - - - - - -o-p-a-c-i-t-y-:- -0-.-4-;-
+- - - - - - - - - - - - -c-u-r-s-o-r-:- -n-o-t---a-l-l-o-w-e-d-;-
+- - - - - - - - - - - - -t-r-a-n-s-f-o-r-m-:- -n-o-n-e-;-
+- - - - - - - - - - - - -b-o-x---s-h-a-d-o-w-:- -n-o-n-e-;-
+- - - - - - - - -}-
+-
+- - - - - - - - -/-*- -快-捷-键-提-示- -*-/-
+- - - - - - - - -.-s-h-o-r-t-c-u-t---h-i-n-t- -{-
+- - - - - - - - - - - - -f-o-n-t---s-i-z-e-:- -1-0-p-x-;-
+- - - - - - - - - - - - -c-o-l-o-r-:- -r-g-b-a-(-2-5-5-,- -2-5-5-,- -2-5-5-,- -0-.-1-5-)-;-
+- - - - - - - - - - - - -t-e-x-t---a-l-i-g-n-:- -c-e-n-t-e-r-;-
+- - - - - - - - - - - - -f-l-e-x---s-h-r-i-n-k-:- -0-;-
+- - - - - - - - -}-
+- - - - -<-/-s-t-y-l-e->-
+-<-/-h-e-a-d->-
+-
+-<-b-o-d-y->-
+-
+- - - - -<-d-i-v- -c-l-a-s-s-=-"-t-i-t-l-e-b-a-r-"->-
+- - - - - - - - -<-b-u-t-t-o-n- -c-l-a-s-s-=-"-t-i-t-l-e-b-a-r---b-t-n-"-
+- - - - - - - - - - - - -o-n-c-l-i-c-k-=-"-i-f-(-w-i-n-d-o-w-.-_-_-T-A-U-R-I-_-_-)-{-w-i-n-d-o-w-.-_-_-T-A-U-R-I-_-_-.-w-i-n-d-o-w-.-g-e-t-C-u-r-r-e-n-t-W-i-n-d-o-w-(-)-.-m-i-n-i-m-i-z-e-(-)-}-"->-&-#-x-2-0-1-4-;-<-/-b-u-t-t-o-n->-
+- - - - - - - - -<-b-u-t-t-o-n- -c-l-a-s-s-=-"-t-i-t-l-e-b-a-r---b-t-n- -c-l-o-s-e-"-
+- - - - - - - - - - - - -o-n-c-l-i-c-k-=-"-i-f-(-w-i-n-d-o-w-.-_-_-T-A-U-R-I-_-_-)-{-w-i-n-d-o-w-.-_-_-T-A-U-R-I-_-_-.-w-i-n-d-o-w-.-g-e-t-C-u-r-r-e-n-t-W-i-n-d-o-w-(-)-.-c-l-o-s-e-(-)-}-e-l-s-e-{-w-i-n-d-o-w-.-c-l-o-s-e-(-)-}-"->-&-#-x-2-7-1-5-;-<-/-b-u-t-t-o-n->-
+- - - - -<-/-d-i-v->-
+-
+- - - - -<-d-i-v- -c-l-a-s-s-=-"-m-a-i-n-"->-
+- - - - - - - - -<-!----- -工-具-栏- ----->-
+- - - - - - - - -<-d-i-v- -c-l-a-s-s-=-"-t-o-o-l-b-a-r-"->-
+- - - - - - - - - - - - -<-d-i-v- -c-l-a-s-s-=-"-l-a-n-g---s-e-l-e-c-t-"- -i-d-=-"-s-r-c-L-a-n-g-W-r-a-p-"->-
+- - - - - - - - - - - - - - - - -<-d-i-v- -c-l-a-s-s-=-"-l-a-n-g---s-e-l-e-c-t---t-r-i-g-g-e-r-"- -i-d-=-"-s-r-c-L-a-n-g-T-r-i-g-g-e-r-"->-<-/-d-i-v->-
+- - - - - - - - - - - - - - - - -<-d-i-v- -c-l-a-s-s-=-"-l-a-n-g---s-e-l-e-c-t---d-r-o-p-d-o-w-n-"- -i-d-=-"-s-r-c-L-a-n-g-D-r-o-p-d-o-w-n-"->-<-/-d-i-v->-
+- - - - - - - - - - - - -<-/-d-i-v->-
+- - - - - - - - - - - - -<-b-u-t-t-o-n- -c-l-a-s-s-=-"-s-w-a-p---b-t-n-"- -i-d-=-"-s-w-a-p-B-t-n-"->-⇄-<-/-b-u-t-t-o-n->-
+- - - - - - - - - - - - -<-d-i-v- -c-l-a-s-s-=-"-l-a-n-g---s-e-l-e-c-t-"- -i-d-=-"-t-g-t-L-a-n-g-W-r-a-p-"->-
+- - - - - - - - - - - - - - - - -<-d-i-v- -c-l-a-s-s-=-"-l-a-n-g---s-e-l-e-c-t---t-r-i-g-g-e-r-"- -i-d-=-"-t-g-t-L-a-n-g-T-r-i-g-g-e-r-"->-<-/-d-i-v->-
+- - - - - - - - - - - - - - - - -<-d-i-v- -c-l-a-s-s-=-"-l-a-n-g---s-e-l-e-c-t---d-r-o-p-d-o-w-n-"- -i-d-=-"-t-g-t-L-a-n-g-D-r-o-p-d-o-w-n-"->-<-/-d-i-v->-
+- - - - - - - - - - - - -<-/-d-i-v->-
+- - - - - - - - - - - - -<-d-i-v- -c-l-a-s-s-=-"-t-o-o-l-b-a-r---s-p-a-c-e-r-"->-<-/-d-i-v->-
+- - - - - - - - - - - - -<-d-i-v- -c-l-a-s-s-=-"-m-o-d-e-l---b-a-d-g-e-"- -i-d-=-"-m-o-d-e-l-B-a-d-g-e-"->---<-/-d-i-v->-
+- - - - - - - - -<-/-d-i-v->-
+-
+- - - - - - - - -<-!----- -翻-译-区- ----->-
+- - - - - - - - -<-d-i-v- -c-l-a-s-s-=-"-t-r-a-n-s-l-a-t-e---a-r-e-a-"->-
+- - - - - - - - - - - - -<-!----- -源-文-本- ----->-
+- - - - - - - - - - - - -<-d-i-v- -c-l-a-s-s-=-"-p-a-n-e-"->-
+- - - - - - - - - - - - - - - - -<-d-i-v- -c-l-a-s-s-=-"-p-a-n-e---h-e-a-d-e-r-"->-
+- - - - - - - - - - - - - - - - - - - - -<-s-p-a-n- -c-l-a-s-s-=-"-p-a-n-e---l-a-b-e-l- -s-o-u-r-c-e-"- -i-d-=-"-s-r-c-L-a-b-e-l-"->-S-O-U-R-C-E-<-/-s-p-a-n->-
+- - - - - - - - - - - - - - - - - - - - -<-b-u-t-t-o-n- -c-l-a-s-s-=-"-p-a-n-e---a-c-t-i-o-n-"- -i-d-=-"-c-l-e-a-r-B-t-n-"->-✕-<-/-b-u-t-t-o-n->-
+- - - - - - - - - - - - - - - - -<-/-d-i-v->-
+- - - - - - - - - - - - - - - - -<-t-e-x-t-a-r-e-a- -i-d-=-"-s-r-c-T-e-x-t-"- -s-p-e-l-l-c-h-e-c-k-=-"-f-a-l-s-e-"->-<-/-t-e-x-t-a-r-e-a->-
+- - - - - - - - - - - - - - - - -<-b-u-t-t-o-n- -c-l-a-s-s-=-"-t-r-a-n-s-l-a-t-e---b-t-n-"- -i-d-=-"-t-r-a-n-s-l-a-t-e-B-t-n-"->-<-/-b-u-t-t-o-n->-
+- - - - - - - - - - - - -<-/-d-i-v->-
+-
+- - - - - - - - - - - - -<-!----- -翻-译-结-果- ----->-
+- - - - - - - - - - - - -<-d-i-v- -c-l-a-s-s-=-"-p-a-n-e-"->-
+- - - - - - - - - - - - - - - - -<-d-i-v- -c-l-a-s-s-=-"-p-a-n-e---h-e-a-d-e-r-"->-
+- - - - - - - - - - - - - - - - - - - - -<-s-p-a-n- -c-l-a-s-s-=-"-p-a-n-e---l-a-b-e-l-"- -i-d-=-"-t-g-t-L-a-b-e-l-"->-T-R-A-N-S-L-A-T-I-O-N-<-/-s-p-a-n->-
+- - - - - - - - - - - - - - - - - - - - -<-b-u-t-t-o-n- -c-l-a-s-s-=-"-p-a-n-e---a-c-t-i-o-n-"- -i-d-=-"-c-o-p-y-B-t-n-"->-�-�-<-/-b-u-t-t-o-n->-
+- - - - - - - - - - - - - - - - -<-/-d-i-v->-
+- - - - - - - - - - - - - - - - -<-d-i-v- -c-l-a-s-s-=-"-o-u-t-p-u-t---t-e-x-t- -e-m-p-t-y-"- -i-d-=-"-o-u-t-p-u-t-T-e-x-t-"->-<-/-d-i-v->-
+- - - - - - - - - - - - -<-/-d-i-v->-
+- - - - - - - - -<-/-d-i-v->-
+-
+- - - - - - - - -<-!----- -底-部-状-态- ----->-
+- - - - - - - - -<-d-i-v- -c-l-a-s-s-=-"-s-t-a-t-u-s-b-a-r-"->-
+- - - - - - - - - - - - -<-d-i-v- -c-l-a-s-s-=-"-c-h-a-r---c-o-u-n-t-"- -i-d-=-"-c-h-a-r-C-o-u-n-t-"->-0-<-/-d-i-v->-
+- - - - - - - - - - - - -<-d-i-v- -c-l-a-s-s-=-"-s-t-a-t-u-s---m-s-g-"- -i-d-=-"-s-t-a-t-u-s-M-s-g-"->-<-/-d-i-v->-
+- - - - - - - - - - - - -<-d-i-v- -c-l-a-s-s-=-"-s-h-o-r-t-c-u-t---h-i-n-t-"->-C-t-r-l-+-E-n-t-e-r-<-/-d-i-v->-
+- - - - - - - - -<-/-d-i-v->-
+- - - - -<-/-d-i-v->-
+-
+- - - - -<-s-c-r-i-p-t->-
+- - - - - - - - -/-/- ------- -模-型-配-置-（-从- -U-R-L- -h-a-s-h- -读-取-）- -------
+- - - - - - - - -l-e-t- -M-O-D-E-L- -=- -w-i-n-d-o-w-.-_-_-M-O-D-E-L-_-C-O-N-F-I-G-_-_- -|-|- -{- -b-a-s-e-U-r-l-:- -'-'-,- -a-n-t-h-r-o-p-i-c-U-r-l-:- -'-'-,- -a-p-i-K-e-y-:- -'-'-,- -m-o-d-e-l-:- -'-'-,- -n-a-m-e-:- -'-A-I-'-,- -p-r-o-t-o-c-o-l-:- -'-o-p-e-n-a-i-'- -}-
+-
+- - -/-/- ------- -多-语-言- -U-I- -------
+- - - - - - - - -c-o-n-s-t- -L-A-N-G-U-A-G-E-S- -=- -[-
+- - - - - - - - - - - - -{- -c-o-d-e-:- -'-a-u-t-o-'-,- -e-n-:- -'-A-u-t-o- -D-e-t-e-c-t-'- -}-,-
+- - - - - - - - - - - - -{- -c-o-d-e-:- -'-e-n-'-,- -e-n-:- -'-E-n-g-l-i-s-h-'-,- -n-a-t-i-v-e-:- -'-E-n-g-l-i-s-h-'- -}-,-
+- - - - - - - - - - - - -{- -c-o-d-e-:- -'-z-h-'-,- -e-n-:- -'-C-h-i-n-e-s-e- -(-S-i-m-p-l-i-f-i-e-d-)-'-,- -n-a-t-i-v-e-:- -'-简-体-中-文-'- -}-,-
+- - - - - - - - - - - - -{- -c-o-d-e-:- -'-z-h---H-a-n-t-'-,- -e-n-:- -'-C-h-i-n-e-s-e- -(-T-r-a-d-i-t-i-o-n-a-l-)-'-,- -n-a-t-i-v-e-:- -'-繁-體-中-文-'- -}-,-
+- - - - - - - - - - - - -{- -c-o-d-e-:- -'-j-a-'-,- -e-n-:- -'-J-a-p-a-n-e-s-e-'-,- -n-a-t-i-v-e-:- -'-日-本-語-'- -}-,-
+- - - - - - - - - - - - -{- -c-o-d-e-:- -'-k-o-'-,- -e-n-:- -'-K-o-r-e-a-n-'-,- -n-a-t-i-v-e-:- -'-한-국-어-'- -}-,-
+- - - - - - - - - - - - -{- -c-o-d-e-:- -'-f-r-'-,- -e-n-:- -'-F-r-e-n-c-h-'-,- -n-a-t-i-v-e-:- -'-F-r-a-n-ç-a-i-s-'- -}-,-
+- - - - - - - - - - - - -{- -c-o-d-e-:- -'-d-e-'-,- -e-n-:- -'-G-e-r-m-a-n-'-,- -n-a-t-i-v-e-:- -'-D-e-u-t-s-c-h-'- -}-,-
+- - - - - - - - - - - - -{- -c-o-d-e-:- -'-e-s-'-,- -e-n-:- -'-S-p-a-n-i-s-h-'-,- -n-a-t-i-v-e-:- -'-E-s-p-a-ñ-o-l-'- -}-,-
+- - - - - - - - - - - - -{- -c-o-d-e-:- -'-p-t-'-,- -e-n-:- -'-P-o-r-t-u-g-u-e-s-e-'-,- -n-a-t-i-v-e-:- -'-P-o-r-t-u-g-u-ê-s-'- -}-,-
+- - - - - - - - - - - - -{- -c-o-d-e-:- -'-r-u-'-,- -e-n-:- -'-R-u-s-s-i-a-n-'-,- -n-a-t-i-v-e-:- -'-Р-у-с-с-к-и-й-'- -}-,-
+- - - - - - - - - - - - -{- -c-o-d-e-:- -'-a-r-'-,- -e-n-:- -'-A-r-a-b-i-c-'-,- -n-a-t-i-v-e-:- -'-ا-ل-ع-ر-ب-ي-ة-'- -}-,-
+- - - - - - - - - - - - -{- -c-o-d-e-:- -'-h-i-'-,- -e-n-:- -'-H-i-n-d-i-'-,- -n-a-t-i-v-e-:- -'-ह-ि-न-्-द-ी-'- -}-,-
+- - - - - - - - - - - - -{- -c-o-d-e-:- -'-b-n-'-,- -e-n-:- -'-B-e-n-g-a-l-i-'-,- -n-a-t-i-v-e-:- -'-ব-া-ং-ল-া-'- -}-,-
+- - - - - - - - - - - - -{- -c-o-d-e-:- -'-t-h-'-,- -e-n-:- -'-T-h-a-i-'-,- -n-a-t-i-v-e-:- -'-ไ-ท-ย-'- -}-,-
+- - - - - - - - - - - - -{- -c-o-d-e-:- -'-v-i-'-,- -e-n-:- -'-V-i-e-t-n-a-m-e-s-e-'-,- -n-a-t-i-v-e-:- -'-T-i-ế-n-g- -V-i-ệ-t-'- -}-,-
+- - - - - - - - - - - - -{- -c-o-d-e-:- -'-i-d-'-,- -e-n-:- -'-I-n-d-o-n-e-s-i-a-n-'-,- -n-a-t-i-v-e-:- -'-B-a-h-a-s-a- -I-n-d-o-n-e-s-i-a-'- -}-,-
+- - - - - - - - - - - - -{- -c-o-d-e-:- -'-m-s-'-,- -e-n-:- -'-M-a-l-a-y-'-,- -n-a-t-i-v-e-:- -'-B-a-h-a-s-a- -M-e-l-a-y-u-'- -}-,-
+- - - - - - - - - - - - -{- -c-o-d-e-:- -'-t-r-'-,- -e-n-:- -'-T-u-r-k-i-s-h-'-,- -n-a-t-i-v-e-:- -'-T-ü-r-k-ç-e-'- -}-,-
+- - - - - - - - - - - - -{- -c-o-d-e-:- -'-i-t-'-,- -e-n-:- -'-I-t-a-l-i-a-n-'-,- -n-a-t-i-v-e-:- -'-I-t-a-l-i-a-n-o-'- -}-,-
+- - - - - - - - - - - - -{- -c-o-d-e-:- -'-n-l-'-,- -e-n-:- -'-D-u-t-c-h-'-,- -n-a-t-i-v-e-:- -'-N-e-d-e-r-l-a-n-d-s-'- -}-,-
+- - - - - - - - - - - - -{- -c-o-d-e-:- -'-p-l-'-,- -e-n-:- -'-P-o-l-i-s-h-'-,- -n-a-t-i-v-e-:- -'-P-o-l-s-k-i-'- -}-,-
+- - - - - - - - - - - - -{- -c-o-d-e-:- -'-s-v-'-,- -e-n-:- -'-S-w-e-d-i-s-h-'-,- -n-a-t-i-v-e-:- -'-S-v-e-n-s-k-a-'- -}-,-
+- - - - - - - - - - - - -{- -c-o-d-e-:- -'-f-i-'-,- -e-n-:- -'-F-i-n-n-i-s-h-'-,- -n-a-t-i-v-e-:- -'-S-u-o-m-i-'- -}-,-
+- - - - - - - - - - - - -{- -c-o-d-e-:- -'-c-s-'-,- -e-n-:- -'-C-z-e-c-h-'-,- -n-a-t-i-v-e-:- -'-Č-e-š-t-i-n-a-'- -}-,-
+- - - - - - - - - - - - -{- -c-o-d-e-:- -'-h-u-'-,- -e-n-:- -'-H-u-n-g-a-r-i-a-n-'-,- -n-a-t-i-v-e-:- -'-M-a-g-y-a-r-'- -}-,-
+- - - - - - - - - - - - -{- -c-o-d-e-:- -'-e-l-'-,- -e-n-:- -'-G-r-e-e-k-'-,- -n-a-t-i-v-e-:- -'-Ε-λ-λ-η-ν-ι-κ-ά-'- -}-,-
+- - - - - - - - - - - - -{- -c-o-d-e-:- -'-h-e-'-,- -e-n-:- -'-H-e-b-r-e-w-'-,- -n-a-t-i-v-e-:- -'-ע-ב-ר-י-ת-'- -}-,-
+- - - - - - - - - - - - -{- -c-o-d-e-:- -'-f-a-'-,- -e-n-:- -'-P-e-r-s-i-a-n-'-,- -n-a-t-i-v-e-:- -'-ف-ا-ر-س-ی-'- -}-,-
+- - - - - - - - -]-;-
+-
+- - - - - - - - -/-/- -U-I- -文-本-
+- - - - - - - - -c-o-n-s-t- -I-1-8-N- -=- -{-
+- - - - - - - - - - - - -e-n-:- -{- -s-o-u-r-c-e-:- -'-S-O-U-R-C-E-'-,- -t-r-a-n-s-l-a-t-i-o-n-:- -'-T-R-A-N-S-L-A-T-I-O-N-'-,- -t-r-a-n-s-l-a-t-e-:- -'-T-R-A-N-S-L-A-T-E-'-,- -t-r-a-n-s-l-a-t-i-n-g-:- -'-T-R-A-N-S-L-A-T-I-N-G-.-.-.-'-,- -a-u-t-o-:- -'-A-u-t-o- -D-e-t-e-c-t-'-,- -c-o-p-i-e-d-:- -'-C-o-p-i-e-d-!-'-,- -e-r-r-o-r-:- -'-T-r-a-n-s-l-a-t-i-o-n- -f-a-i-l-e-d-'-,- -p-l-a-c-e-h-o-l-d-e-r-:- -'-E-n-t-e-r- -t-e-x-t- -t-o- -t-r-a-n-s-l-a-t-e-.-.-.-'-,- -c-h-a-r-s-:- -'-c-h-a-r-s-'- -}-,-
+- - - - - - - - - - - - -z-h-:- -{- -s-o-u-r-c-e-:- -'-原-文-'-,- -t-r-a-n-s-l-a-t-i-o-n-:- -'-译-文-'-,- -t-r-a-n-s-l-a-t-e-:- -'-翻-译-'-,- -t-r-a-n-s-l-a-t-i-n-g-:- -'-翻-译-中-.-.-.-'-,- -a-u-t-o-:- -'-自-动-检-测-'-,- -c-o-p-i-e-d-:- -'-已-复-制-！-'-,- -e-r-r-o-r-:- -'-翻-译-失-败-'-,- -p-l-a-c-e-h-o-l-d-e-r-:- -'-输-入-要-翻-译-的-文-本-.-.-.-'-,- -c-h-a-r-s-:- -'-字-'- -}-,-
+- - - - - - - - - - - - -'-z-h---H-a-n-t-'-:- -{- -s-o-u-r-c-e-:- -'-原-文-'-,- -t-r-a-n-s-l-a-t-i-o-n-:- -'-譯-文-'-,- -t-r-a-n-s-l-a-t-e-:- -'-翻-譯-'-,- -t-r-a-n-s-l-a-t-i-n-g-:- -'-翻-譯-中-.-.-.-'-,- -a-u-t-o-:- -'-自-動-偵-測-'-,- -c-o-p-i-e-d-:- -'-已-複-製-！-'-,- -e-r-r-o-r-:- -'-翻-譯-失-敗-'-,- -p-l-a-c-e-h-o-l-d-e-r-:- -'-輸-入-要-翻-譯-的-文-字-.-.-.-'-,- -c-h-a-r-s-:- -'-字-'- -}-,-
+- - - - - - - - - - - - -j-a-:- -{- -s-o-u-r-c-e-:- -'-原-文-'-,- -t-r-a-n-s-l-a-t-i-o-n-:- -'-翻-訳-'-,- -t-r-a-n-s-l-a-t-e-:- -'-翻-訳-す-る-'-,- -t-r-a-n-s-l-a-t-i-n-g-:- -'-翻-訳-中-.-.-.-'-,- -a-u-t-o-:- -'-自-動-検-出-'-,- -c-o-p-i-e-d-:- -'-コ-ピ-ー-済-み-！-'-,- -e-r-r-o-r-:- -'-翻-訳-失-敗-'-,- -p-l-a-c-e-h-o-l-d-e-r-:- -'-翻-訳-す-る-テ-キ-ス-ト-を-入-力-.-.-.-'-,- -c-h-a-r-s-:- -'-文-字-'- -}-,-
+- - - - - - - - - - - - -k-o-:- -{- -s-o-u-r-c-e-:- -'-원-문-'-,- -t-r-a-n-s-l-a-t-i-o-n-:- -'-번-역-'-,- -t-r-a-n-s-l-a-t-e-:- -'-번-역-'-,- -t-r-a-n-s-l-a-t-i-n-g-:- -'-번-역- -중-.-.-.-'-,- -a-u-t-o-:- -'-자-동- -감-지-'-,- -c-o-p-i-e-d-:- -'-복-사-됨-!-'-,- -e-r-r-o-r-:- -'-번-역- -실-패-'-,- -p-l-a-c-e-h-o-l-d-e-r-:- -'-번-역-할- -텍-스-트- -입-력-.-.-.-'-,- -c-h-a-r-s-:- -'-자-'- -}-,-
+- - - - - - - - - - - - -f-r-:- -{- -s-o-u-r-c-e-:- -'-S-O-U-R-C-E-'-,- -t-r-a-n-s-l-a-t-i-o-n-:- -'-T-R-A-D-U-C-T-I-O-N-'-,- -t-r-a-n-s-l-a-t-e-:- -'-T-R-A-D-U-I-R-E-'-,- -t-r-a-n-s-l-a-t-i-n-g-:- -'-T-R-A-D-U-C-T-I-O-N-.-.-.-'-,- -a-u-t-o-:- -'-D-é-t-e-c-t-i-o-n- -a-u-t-o-'-,- -c-o-p-i-e-d-:- -'-C-o-p-i-é- -!-'-,- -e-r-r-o-r-:- -'-É-c-h-e-c- -d-e- -t-r-a-d-u-c-t-i-o-n-'-,- -p-l-a-c-e-h-o-l-d-e-r-:- -'-S-a-i-s-i-s-s-e-z- -l-e- -t-e-x-t-e- -à- -t-r-a-d-u-i-r-e-.-.-.-'-,- -c-h-a-r-s-:- -'-c-a-r-.-'- -}-,-
+- - - - - - - - - - - - -d-e-:- -{- -s-o-u-r-c-e-:- -'-Q-U-E-L-L-E-'-,- -t-r-a-n-s-l-a-t-i-o-n-:- -'-Ü-B-E-R-S-E-T-Z-U-N-G-'-,- -t-r-a-n-s-l-a-t-e-:- -'-Ü-B-E-R-S-E-T-Z-E-N-'-,- -t-r-a-n-s-l-a-t-i-n-g-:- -'-Ü-B-E-R-S-E-T-Z-E-.-.-.-'-,- -a-u-t-o-:- -'-A-u-t-o-m-a-t-i-s-c-h-'-,- -c-o-p-i-e-d-:- -'-K-o-p-i-e-r-t-!-'-,- -e-r-r-o-r-:- -'-Ü-b-e-r-s-e-t-z-u-n-g- -f-e-h-l-g-e-s-c-h-l-a-g-e-n-'-,- -p-l-a-c-e-h-o-l-d-e-r-:- -'-T-e-x-t- -z-u-m- -Ü-b-e-r-s-e-t-z-e-n- -e-i-n-g-e-b-e-n-.-.-.-'-,- -c-h-a-r-s-:- -'-Z-e-i-c-h-e-n-'- -}-,-
+- - - - - - - - - - - - -e-s-:- -{- -s-o-u-r-c-e-:- -'-O-R-I-G-E-N-'-,- -t-r-a-n-s-l-a-t-i-o-n-:- -'-T-R-A-D-U-C-C-I-Ó-N-'-,- -t-r-a-n-s-l-a-t-e-:- -'-T-R-A-D-U-C-I-R-'-,- -t-r-a-n-s-l-a-t-i-n-g-:- -'-T-R-A-D-U-C-I-E-N-D-O-.-.-.-'-,- -a-u-t-o-:- -'-A-u-t-o- -d-e-t-e-c-t-a-r-'-,- -c-o-p-i-e-d-:- -'-¡-C-o-p-i-a-d-o-!-'-,- -e-r-r-o-r-:- -'-E-r-r-o-r- -d-e- -t-r-a-d-u-c-c-i-ó-n-'-,- -p-l-a-c-e-h-o-l-d-e-r-:- -'-I-n-g-r-e-s-e- -t-e-x-t-o- -p-a-r-a- -t-r-a-d-u-c-i-r-.-.-.-'-,- -c-h-a-r-s-:- -'-c-a-r-.-'- -}-,-
+- - - - - - - - - - - - -r-u-:- -{- -s-o-u-r-c-e-:- -'-О-Р-И-Г-И-Н-А-Л-'-,- -t-r-a-n-s-l-a-t-i-o-n-:- -'-П-Е-Р-Е-В-О-Д-'-,- -t-r-a-n-s-l-a-t-e-:- -'-П-Е-Р-Е-В-Е-С-Т-И-'-,- -t-r-a-n-s-l-a-t-i-n-g-:- -'-П-Е-Р-Е-В-О-Д-.-.-.-'-,- -a-u-t-o-:- -'-А-в-т-о-о-п-р-е-д-е-л-е-н-и-е-'-,- -c-o-p-i-e-d-:- -'-С-к-о-п-и-р-о-в-а-н-о-!-'-,- -e-r-r-o-r-:- -'-О-ш-и-б-к-а- -п-е-р-е-в-о-д-а-'-,- -p-l-a-c-e-h-o-l-d-e-r-:- -'-В-в-е-д-и-т-е- -т-е-к-с-т- -д-л-я- -п-е-р-е-в-о-д-а-.-.-.-'-,- -c-h-a-r-s-:- -'-с-и-м-в-о-л-о-в-'- -}-,-
+- - - - - - - - -}-;-
+-
+- - - - - - - - -c-o-n-s-t- -r-a-w-L-a-n-g- -=- -(-n-a-v-i-g-a-t-o-r-.-l-a-n-g-u-a-g-e- -|-|- -'-e-n-'-)-.-t-o-L-o-w-e-r-C-a-s-e-(-)-;-
+- - - - - - - - -c-o-n-s-t- -u-i-L-a-n-g- -=- -r-a-w-L-a-n-g-.-s-t-a-r-t-s-W-i-t-h-(-'-z-h---t-w-'-)- -|-|- -r-a-w-L-a-n-g-.-s-t-a-r-t-s-W-i-t-h-(-'-z-h---h-k-'-)- -?- -'-z-h---H-a-n-t-'-
+- - - - - - - - - - - - -:- -r-a-w-L-a-n-g-.-s-t-a-r-t-s-W-i-t-h-(-'-z-h-'-)- -?- -'-z-h-'- -:- -r-a-w-L-a-n-g-.-s-p-l-i-t-(-'---'-)-[-0-]-;-
+- - - - - - - - -c-o-n-s-t- -t- -=- -I-1-8-N-[-u-i-L-a-n-g-]- -|-|- -I-1-8-N-.-e-n-;-
+-
+- - - - - - - - -/-/- ------- -自-定-义-下-拉-菜-单-组-件- -------
+- - - - - - - - -c-l-a-s-s- -L-a-n-g-D-r-o-p-d-o-w-n- -{-
+- - - - - - - - - - - - -c-o-n-s-t-r-u-c-t-o-r-(-w-r-a-p-I-d-,- -t-r-i-g-g-e-r-I-d-,- -d-r-o-p-d-o-w-n-I-d-,- -l-a-n-g-s-,- -d-e-f-a-u-l-t-V-a-l-)- -{-
+- - - - - - - - - - - - - - - - -t-h-i-s-.-w-r-a-p- -=- -d-o-c-u-m-e-n-t-.-g-e-t-E-l-e-m-e-n-t-B-y-I-d-(-w-r-a-p-I-d-)-;-
+- - - - - - - - - - - - - - - - -t-h-i-s-.-t-r-i-g-g-e-r- -=- -d-o-c-u-m-e-n-t-.-g-e-t-E-l-e-m-e-n-t-B-y-I-d-(-t-r-i-g-g-e-r-I-d-)-;-
+- - - - - - - - - - - - - - - - -t-h-i-s-.-d-r-o-p-d-o-w-n- -=- -d-o-c-u-m-e-n-t-.-g-e-t-E-l-e-m-e-n-t-B-y-I-d-(-d-r-o-p-d-o-w-n-I-d-)-;-
+- - - - - - - - - - - - - - - - -t-h-i-s-.-v-a-l-u-e- -=- -d-e-f-a-u-l-t-V-a-l-;-
+- - - - - - - - - - - - - - - - -t-h-i-s-.-l-a-n-g-s- -=- -l-a-n-g-s-;-
+- - - - - - - - - - - - - - - - -t-h-i-s-.-b-u-i-l-d-(-)-;-
+- - - - - - - - - - - - - - - - -t-h-i-s-.-t-r-i-g-g-e-r-.-a-d-d-E-v-e-n-t-L-i-s-t-e-n-e-r-(-'-c-l-i-c-k-'-,- -(-e-)- -=->- -{-
+- - - - - - - - - - - - - - - - - - - - -e-.-s-t-o-p-P-r-o-p-a-g-a-t-i-o-n-(-)-;-
+- - - - - - - - - - - - - - - - - - - - -t-h-i-s-.-t-o-g-g-l-e-(-)-;-
+- - - - - - - - - - - - - - - - -}-)-;-
+- - - - - - - - - - - - -}-
+- - - - - - - - - - - - -b-u-i-l-d-(-)- -{-
+- - - - - - - - - - - - - - - - -t-h-i-s-.-d-r-o-p-d-o-w-n-.-i-n-n-e-r-H-T-M-L- -=- -'-'-;-
+- - - - - - - - - - - - - - - - -t-h-i-s-.-l-a-n-g-s-.-f-o-r-E-a-c-h-(-l-a-n-g- -=->- -{-
+- - - - - - - - - - - - - - - - - - - - -c-o-n-s-t- -d-i-v- -=- -d-o-c-u-m-e-n-t-.-c-r-e-a-t-e-E-l-e-m-e-n-t-(-'-d-i-v-'-)-;-
+- - - - - - - - - - - - - - - - - - - - -d-i-v-.-c-l-a-s-s-N-a-m-e- -=- -'-l-a-n-g---o-p-t-i-o-n-'- -+- -(-l-a-n-g-.-c-o-d-e- -=-=-=- -t-h-i-s-.-v-a-l-u-e- -?- -'- -s-e-l-e-c-t-e-d-'- -:- -'-'-)-;-
+- - - - - - - - - - - - - - - - - - - - -d-i-v-.-t-e-x-t-C-o-n-t-e-n-t- -=- -l-a-n-g-.-c-o-d-e- -=-=-=- -'-a-u-t-o-'- -?- -(-t-.-a-u-t-o- -|-|- -l-a-n-g-.-e-n-)-
+- - - - - - - - - - - - - - - - - - - - - - - - -:- -(-l-a-n-g-.-n-a-t-i-v-e- -?- -`-$-{-l-a-n-g-.-n-a-t-i-v-e-}- -(-$-{-l-a-n-g-.-e-n-}-)-`- -:- -l-a-n-g-.-e-n-)-;-
+- - - - - - - - - - - - - - - - - - - - -d-i-v-.-d-a-t-a-s-e-t-.-c-o-d-e- -=- -l-a-n-g-.-c-o-d-e-;-
+- - - - - - - - - - - - - - - - - - - - -d-i-v-.-a-d-d-E-v-e-n-t-L-i-s-t-e-n-e-r-(-'-c-l-i-c-k-'-,- -(-e-)- -=->- -{-
+- - - - - - - - - - - - - - - - - - - - - - - - -e-.-s-t-o-p-P-r-o-p-a-g-a-t-i-o-n-(-)-;-
+- - - - - - - - - - - - - - - - - - - - - - - - -t-h-i-s-.-s-e-l-e-c-t-(-l-a-n-g-.-c-o-d-e-)-;-
+- - - - - - - - - - - - - - - - - - - - - - - - -t-h-i-s-.-c-l-o-s-e-(-)-;-
+- - - - - - - - - - - - - - - - - - - - -}-)-;-
+- - - - - - - - - - - - - - - - - - - - -t-h-i-s-.-d-r-o-p-d-o-w-n-.-a-p-p-e-n-d-C-h-i-l-d-(-d-i-v-)-;-
+- - - - - - - - - - - - - - - - -}-)-;-
+- - - - - - - - - - - - - - - - -t-h-i-s-.-u-p-d-a-t-e-T-r-i-g-g-e-r-(-)-;-
+- - - - - - - - - - - - -}-
+- - - - - - - - - - - - -s-e-l-e-c-t-(-c-o-d-e-)- -{-
+- - - - - - - - - - - - - - - - -t-h-i-s-.-v-a-l-u-e- -=- -c-o-d-e-;-
+- - - - - - - - - - - - - - - - -t-h-i-s-.-d-r-o-p-d-o-w-n-.-q-u-e-r-y-S-e-l-e-c-t-o-r-A-l-l-(-'-.-l-a-n-g---o-p-t-i-o-n-'-)-.-f-o-r-E-a-c-h-(-e-l- -=->- -{-
+- - - - - - - - - - - - - - - - - - - - -e-l-.-c-l-a-s-s-L-i-s-t-.-t-o-g-g-l-e-(-'-s-e-l-e-c-t-e-d-'-,- -e-l-.-d-a-t-a-s-e-t-.-c-o-d-e- -=-=-=- -c-o-d-e-)-;-
+- - - - - - - - - - - - - - - - -}-)-;-
+- - - - - - - - - - - - - - - - -t-h-i-s-.-u-p-d-a-t-e-T-r-i-g-g-e-r-(-)-;-
+- - - - - - - - - - - - -}-
+- - - - - - - - - - - - -u-p-d-a-t-e-T-r-i-g-g-e-r-(-)- -{-
+- - - - - - - - - - - - - - - - -c-o-n-s-t- -l-a-n-g- -=- -t-h-i-s-.-l-a-n-g-s-.-f-i-n-d-(-l- -=->- -l-.-c-o-d-e- -=-=-=- -t-h-i-s-.-v-a-l-u-e-)-;-
+- - - - - - - - - - - - - - - - -i-f- -(-!-l-a-n-g-)- -r-e-t-u-r-n-;-
+- - - - - - - - - - - - - - - - -t-h-i-s-.-t-r-i-g-g-e-r-.-t-e-x-t-C-o-n-t-e-n-t- -=- -l-a-n-g-.-c-o-d-e- -=-=-=- -'-a-u-t-o-'- -?- -(-t-.-a-u-t-o- -|-|- -l-a-n-g-.-e-n-)-
+- - - - - - - - - - - - - - - - - - - - -:- -(-l-a-n-g-.-n-a-t-i-v-e- -|-|- -l-a-n-g-.-e-n-)-;-
+- - - - - - - - - - - - -}-
+- - - - - - - - - - - - -t-o-g-g-l-e-(-)- -{-
+- - - - - - - - - - - - - - - - -c-o-n-s-t- -i-s-O-p-e-n- -=- -t-h-i-s-.-d-r-o-p-d-o-w-n-.-c-l-a-s-s-L-i-s-t-.-c-o-n-t-a-i-n-s-(-'-s-h-o-w-'-)-;-
+- - - - - - - - - - - - - - - - -c-l-o-s-e-A-l-l-D-r-o-p-d-o-w-n-s-(-)-;-
+- - - - - - - - - - - - - - - - -i-f- -(-!-i-s-O-p-e-n-)- -{-
+- - - - - - - - - - - - - - - - - - - - -t-h-i-s-.-d-r-o-p-d-o-w-n-.-c-l-a-s-s-L-i-s-t-.-a-d-d-(-'-s-h-o-w-'-)-;-
+- - - - - - - - - - - - - - - - - - - - -t-h-i-s-.-t-r-i-g-g-e-r-.-c-l-a-s-s-L-i-s-t-.-a-d-d-(-'-o-p-e-n-'-)-;-
+- - - - - - - - - - - - - - - - - - - - -/-/- -滚-动-到-当-前-选-中-项-
+- - - - - - - - - - - - - - - - - - - - -c-o-n-s-t- -s-e-l- -=- -t-h-i-s-.-d-r-o-p-d-o-w-n-.-q-u-e-r-y-S-e-l-e-c-t-o-r-(-'-.-s-e-l-e-c-t-e-d-'-)-;-
+- - - - - - - - - - - - - - - - - - - - -i-f- -(-s-e-l-)- -s-e-l-.-s-c-r-o-l-l-I-n-t-o-V-i-e-w-(-{- -b-l-o-c-k-:- -'-n-e-a-r-e-s-t-'- -}-)-;-
+- - - - - - - - - - - - - - - - -}-
+- - - - - - - - - - - - -}-
+- - - - - - - - - - - - -c-l-o-s-e-(-)- -{-
+- - - - - - - - - - - - - - - - -t-h-i-s-.-d-r-o-p-d-o-w-n-.-c-l-a-s-s-L-i-s-t-.-r-e-m-o-v-e-(-'-s-h-o-w-'-)-;-
+- - - - - - - - - - - - - - - - -t-h-i-s-.-t-r-i-g-g-e-r-.-c-l-a-s-s-L-i-s-t-.-r-e-m-o-v-e-(-'-o-p-e-n-'-)-;-
+- - - - - - - - - - - - -}-
+- - - - - - - - -}-
+-
+- - - - - - - - -f-u-n-c-t-i-o-n- -c-l-o-s-e-A-l-l-D-r-o-p-d-o-w-n-s-(-)- -{-
+- - - - - - - - - - - - -d-o-c-u-m-e-n-t-.-q-u-e-r-y-S-e-l-e-c-t-o-r-A-l-l-(-'-.-l-a-n-g---s-e-l-e-c-t---d-r-o-p-d-o-w-n-'-)-.-f-o-r-E-a-c-h-(-d- -=->- -d-.-c-l-a-s-s-L-i-s-t-.-r-e-m-o-v-e-(-'-s-h-o-w-'-)-)-;-
+- - - - - - - - - - - - -d-o-c-u-m-e-n-t-.-q-u-e-r-y-S-e-l-e-c-t-o-r-A-l-l-(-'-.-l-a-n-g---s-e-l-e-c-t---t-r-i-g-g-e-r-'-)-.-f-o-r-E-a-c-h-(-t- -=->- -t-.-c-l-a-s-s-L-i-s-t-.-r-e-m-o-v-e-(-'-o-p-e-n-'-)-)-;-
+- - - - - - - - -}-
+- - - - - - - - -d-o-c-u-m-e-n-t-.-a-d-d-E-v-e-n-t-L-i-s-t-e-n-e-r-(-'-c-l-i-c-k-'-,- -c-l-o-s-e-A-l-l-D-r-o-p-d-o-w-n-s-)-;-
+-
+- - - - - - - - -/-/- -初-始-化-两-个-下-拉-
+- - - - - - - - -c-o-n-s-t- -s-r-c-L-a-n-g-D-D- -=- -n-e-w- -L-a-n-g-D-r-o-p-d-o-w-n-(-'-s-r-c-L-a-n-g-W-r-a-p-'-,- -'-s-r-c-L-a-n-g-T-r-i-g-g-e-r-'-,- -'-s-r-c-L-a-n-g-D-r-o-p-d-o-w-n-'-,-
+- - - - - - - - - - - - -L-A-N-G-U-A-G-E-S-,- -'-a-u-t-o-'-)-;-
+- - - - - - - - -c-o-n-s-t- -t-g-t-L-a-n-g-D-D- -=- -n-e-w- -L-a-n-g-D-r-o-p-d-o-w-n-(-'-t-g-t-L-a-n-g-W-r-a-p-'-,- -'-t-g-t-L-a-n-g-T-r-i-g-g-e-r-'-,- -'-t-g-t-L-a-n-g-D-r-o-p-d-o-w-n-'-,-
+- - - - - - - - - - - - -L-A-N-G-U-A-G-E-S-.-f-i-l-t-e-r-(-l- -=->- -l-.-c-o-d-e- -!-=-=- -'-a-u-t-o-'-)-,-
+- - - - - - - - - - - - -u-i-L-a-n-g- -=-=-=- -'-z-h-'- -?- -'-e-n-'- -:- -u-i-L-a-n-g- -=-=-=- -'-z-h---H-a-n-t-'- -?- -'-e-n-'- -:- -u-i-L-a-n-g- -=-=-=- -'-e-n-'- -?- -'-z-h-'- -:- -'-e-n-'-)-;-
+-
+- - - - - - - - -/-/- -兼-容-层-：-让-后-续-代-码-用- -.-v-a-l-u-e- -访-问-
+- - - - - - - - -c-o-n-s-t- -s-r-c-L-a-n-g-E-l- -=- -s-r-c-L-a-n-g-D-D-;-
+- - - - - - - - -c-o-n-s-t- -t-g-t-L-a-n-g-E-l- -=- -t-g-t-L-a-n-g-D-D-;-
+-
+- - - - - - - - -c-o-n-s-t- -s-r-c-T-e-x-t-E-l- -=- -d-o-c-u-m-e-n-t-.-g-e-t-E-l-e-m-e-n-t-B-y-I-d-(-'-s-r-c-T-e-x-t-'-)-;-
+- - - - - - - - -c-o-n-s-t- -o-u-t-p-u-t-E-l- -=- -d-o-c-u-m-e-n-t-.-g-e-t-E-l-e-m-e-n-t-B-y-I-d-(-'-o-u-t-p-u-t-T-e-x-t-'-)-;-
+- - - - - - - - -c-o-n-s-t- -t-r-a-n-s-l-a-t-e-B-t-n- -=- -d-o-c-u-m-e-n-t-.-g-e-t-E-l-e-m-e-n-t-B-y-I-d-(-'-t-r-a-n-s-l-a-t-e-B-t-n-'-)-;-
+-
+- - - - - - - - -/-/- -U-I- -文-本-
+- - - - - - - - -d-o-c-u-m-e-n-t-.-g-e-t-E-l-e-m-e-n-t-B-y-I-d-(-'-s-r-c-L-a-b-e-l-'-)-.-t-e-x-t-C-o-n-t-e-n-t- -=- -t-.-s-o-u-r-c-e-;-
+- - - - - - - - -d-o-c-u-m-e-n-t-.-g-e-t-E-l-e-m-e-n-t-B-y-I-d-(-'-t-g-t-L-a-b-e-l-'-)-.-t-e-x-t-C-o-n-t-e-n-t- -=- -t-.-t-r-a-n-s-l-a-t-i-o-n-;-
+- - - - - - - - -t-r-a-n-s-l-a-t-e-B-t-n-.-t-e-x-t-C-o-n-t-e-n-t- -=- -t-.-t-r-a-n-s-l-a-t-e-;-
+- - - - - - - - -s-r-c-T-e-x-t-E-l-.-p-l-a-c-e-h-o-l-d-e-r- -=- -t-.-p-l-a-c-e-h-o-l-d-e-r-;-
+- - - - - - - - -o-u-t-p-u-t-E-l-.-t-e-x-t-C-o-n-t-e-n-t- -=- -'-'-;-
+-
+- - - - - - - - -/-/- -模-型-信-息-
+- - - - - - - - -c-o-n-s-t- -p-r-o-v-i-d-e-r- -=- -(-(-)- -=->- -{-
+- - - - - - - - - - - - -t-r-y- -{-
+- - - - - - - - - - - - - - - - -c-o-n-s-t- -h- -=- -n-e-w- -U-R-L-(-(-M-O-D-E-L-.-b-a-s-e-U-r-l- -|-|- -'-'-)-.-t-r-i-m-(-)-)-.-h-o-s-t-n-a-m-e-;-
+- - - - - - - - - - - - - - - - -c-o-n-s-t- -p- -=- -h-.-s-p-l-i-t-(-'-.-'-)-;-
+- - - - - - - - - - - - - - - - -r-e-t-u-r-n- -p-.-l-e-n-g-t-h- ->-=- -2- -?- -p-[-p-.-l-e-n-g-t-h- --- -2-]- -:- -h-;-
+- - - - - - - - - - - - -}- -c-a-t-c-h- -{- -r-e-t-u-r-n- -n-u-l-l-;- -}-
+- - - - - - - - -}-)-(-)-;-
+- - - - - - - - -d-o-c-u-m-e-n-t-.-g-e-t-E-l-e-m-e-n-t-B-y-I-d-(-'-m-o-d-e-l-B-a-d-g-e-'-)-.-t-e-x-t-C-o-n-t-e-n-t- -=-
+- - - - - - - - - - - - -(-M-O-D-E-L-.-n-a-m-e- -|-|- -M-O-D-E-L-.-m-o-d-e-l- -|-|- -'---'-)- -+- -(-p-r-o-v-i-d-e-r- -?- -`- -(-$-{-p-r-o-v-i-d-e-r-}-)-`- -:- -'-'-)-;-
+-
+- - - - - - - - -/-/- ------- -字-符-计-数- -------
+- - - - - - - - -s-r-c-T-e-x-t-E-l-.-a-d-d-E-v-e-n-t-L-i-s-t-e-n-e-r-(-'-i-n-p-u-t-'-,- -(-)- -=->- -{-
+- - - - - - - - - - - - -d-o-c-u-m-e-n-t-.-g-e-t-E-l-e-m-e-n-t-B-y-I-d-(-'-c-h-a-r-C-o-u-n-t-'-)-.-t-e-x-t-C-o-n-t-e-n-t- -=-
+- - - - - - - - - - - - - - - - -`-$-{-s-r-c-T-e-x-t-E-l-.-v-a-l-u-e-.-l-e-n-g-t-h-}- -$-{-t-.-c-h-a-r-s- -|-|- -'-c-h-a-r-s-'-}-`-;-
+- - - - - - - - -}-)-;-
+-
+- - - - - - - - -/-/- ------- -清-除-按-钮- -------
+- - - - - - - - -d-o-c-u-m-e-n-t-.-g-e-t-E-l-e-m-e-n-t-B-y-I-d-(-'-c-l-e-a-r-B-t-n-'-)-.-a-d-d-E-v-e-n-t-L-i-s-t-e-n-e-r-(-'-c-l-i-c-k-'-,- -(-)- -=->- -{-
+- - - - - - - - - - - - -s-r-c-T-e-x-t-E-l-.-v-a-l-u-e- -=- -'-'-;-
+- - - - - - - - - - - - -o-u-t-p-u-t-E-l-.-t-e-x-t-C-o-n-t-e-n-t- -=- -'-'-;-
+- - - - - - - - - - - - -o-u-t-p-u-t-E-l-.-c-l-a-s-s-N-a-m-e- -=- -'-o-u-t-p-u-t---t-e-x-t- -e-m-p-t-y-'-;-
+- - - - - - - - - - - - -d-o-c-u-m-e-n-t-.-g-e-t-E-l-e-m-e-n-t-B-y-I-d-(-'-c-h-a-r-C-o-u-n-t-'-)-.-t-e-x-t-C-o-n-t-e-n-t- -=- -`-0- -$-{-t-.-c-h-a-r-s- -|-|- -'-c-h-a-r-s-'-}-`-;-
+- - - - - - - - - - - - -d-o-c-u-m-e-n-t-.-g-e-t-E-l-e-m-e-n-t-B-y-I-d-(-'-s-t-a-t-u-s-M-s-g-'-)-.-t-e-x-t-C-o-n-t-e-n-t- -=- -'-'-;-
+- - - - - - - - -}-)-;-
+-
+- - - - - - - - -/-/- ------- -复-制-按-钮- -------
+- - - - - - - - -d-o-c-u-m-e-n-t-.-g-e-t-E-l-e-m-e-n-t-B-y-I-d-(-'-c-o-p-y-B-t-n-'-)-.-a-d-d-E-v-e-n-t-L-i-s-t-e-n-e-r-(-'-c-l-i-c-k-'-,- -(-)- -=->- -{-
+- - - - - - - - - - - - -c-o-n-s-t- -t-e-x-t- -=- -o-u-t-p-u-t-E-l-.-t-e-x-t-C-o-n-t-e-n-t-;-
+- - - - - - - - - - - - -i-f- -(-!-t-e-x-t-)- -r-e-t-u-r-n-;-
+- - - - - - - - - - - - -n-a-v-i-g-a-t-o-r-.-c-l-i-p-b-o-a-r-d-.-w-r-i-t-e-T-e-x-t-(-t-e-x-t-)-.-t-h-e-n-(-(-)- -=->- -{-
+- - - - - - - - - - - - - - - - -c-o-n-s-t- -m-s-g- -=- -d-o-c-u-m-e-n-t-.-g-e-t-E-l-e-m-e-n-t-B-y-I-d-(-'-s-t-a-t-u-s-M-s-g-'-)-;-
+- - - - - - - - - - - - - - - - -m-s-g-.-t-e-x-t-C-o-n-t-e-n-t- -=- -t-.-c-o-p-i-e-d-;-
+- - - - - - - - - - - - - - - - -m-s-g-.-c-l-a-s-s-N-a-m-e- -=- -'-s-t-a-t-u-s---m-s-g-'-;-
+- - - - - - - - - - - - - - - - -s-e-t-T-i-m-e-o-u-t-(-(-)- -=->- -{- -m-s-g-.-t-e-x-t-C-o-n-t-e-n-t- -=- -'-'-;- -}-,- -2-0-0-0-)-;-
+- - - - - - - - - - - - -}-)-;-
+- - - - - - - - -}-)-;-
+-
+- - - - - - - - -/-/- ------- -交-换-语-言- -------
+- - - - - - - - -d-o-c-u-m-e-n-t-.-g-e-t-E-l-e-m-e-n-t-B-y-I-d-(-'-s-w-a-p-B-t-n-'-)-.-a-d-d-E-v-e-n-t-L-i-s-t-e-n-e-r-(-'-c-l-i-c-k-'-,- -(-)- -=->- -{-
+- - - - - - - - - - - - -i-f- -(-s-r-c-L-a-n-g-E-l-.-v-a-l-u-e- -=-=-=- -'-a-u-t-o-'-)- -r-e-t-u-r-n-;-
+- - - - - - - - - - - - -c-o-n-s-t- -t-m-p- -=- -s-r-c-L-a-n-g-E-l-.-v-a-l-u-e-;-
+- - - - - - - - - - - - -s-r-c-L-a-n-g-E-l-.-s-e-l-e-c-t-(-t-g-t-L-a-n-g-E-l-.-v-a-l-u-e-)-;-
+- - - - - - - - - - - - -t-g-t-L-a-n-g-E-l-.-s-e-l-e-c-t-(-t-m-p-)-;-
+- - - - - - - - - - - - -/-/- -同-时-交-换-文-本-
+- - - - - - - - - - - - -c-o-n-s-t- -s-r-c-V-a-l- -=- -s-r-c-T-e-x-t-E-l-.-v-a-l-u-e-;-
+- - - - - - - - - - - - -c-o-n-s-t- -t-g-t-V-a-l- -=- -o-u-t-p-u-t-E-l-.-t-e-x-t-C-o-n-t-e-n-t-;-
+- - - - - - - - - - - - -i-f- -(-t-g-t-V-a-l- -&-&- -!-o-u-t-p-u-t-E-l-.-c-l-a-s-s-L-i-s-t-.-c-o-n-t-a-i-n-s-(-'-e-m-p-t-y-'-)-)- -{-
+- - - - - - - - - - - - - - - - -s-r-c-T-e-x-t-E-l-.-v-a-l-u-e- -=- -t-g-t-V-a-l-;-
+- - - - - - - - - - - - - - - - -o-u-t-p-u-t-E-l-.-t-e-x-t-C-o-n-t-e-n-t- -=- -s-r-c-V-a-l-;-
+- - - - - - - - - - - - - - - - -d-o-c-u-m-e-n-t-.-g-e-t-E-l-e-m-e-n-t-B-y-I-d-(-'-c-h-a-r-C-o-u-n-t-'-)-.-t-e-x-t-C-o-n-t-e-n-t- -=-
+- - - - - - - - - - - - - - - - - - - - -`-$-{-s-r-c-T-e-x-t-E-l-.-v-a-l-u-e-.-l-e-n-g-t-h-}- -$-{-t-.-c-h-a-r-s- -|-|- -'-c-h-a-r-s-'-}-`-;-
+- - - - - - - - - - - - -}-
+- - - - - - - - -}-)-;-
+-
+- - - - - - - - -/-/- ------- -快-捷-键- -C-t-r-l-+-E-n-t-e-r- -------
+- - - - - - - - -s-r-c-T-e-x-t-E-l-.-a-d-d-E-v-e-n-t-L-i-s-t-e-n-e-r-(-'-k-e-y-d-o-w-n-'-,- -(-e-)- -=->- -{-
+- - - - - - - - - - - - -i-f- -(-(-e-.-c-t-r-l-K-e-y- -|-|- -e-.-m-e-t-a-K-e-y-)- -&-&- -e-.-k-e-y- -=-=-=- -'-E-n-t-e-r-'-)- -{-
+- - - - - - - - - - - - - - - - -e-.-p-r-e-v-e-n-t-D-e-f-a-u-l-t-(-)-;-
+- - - - - - - - - - - - - - - - -d-o-T-r-a-n-s-l-a-t-e-(-)-;-
+- - - - - - - - - - - - -}-
+- - - - - - - - -}-)-;-
+-
+- - - - - - - - -/-/- ------- -翻-译-按-钮- -------
+- - - - - - - - -t-r-a-n-s-l-a-t-e-B-t-n-.-a-d-d-E-v-e-n-t-L-i-s-t-e-n-e-r-(-'-c-l-i-c-k-'-,- -d-o-T-r-a-n-s-l-a-t-e-)-;-
+-
+- - - - - - - - -l-e-t- -i-s-T-r-a-n-s-l-a-t-i-n-g- -=- -f-a-l-s-e-;-
+-
+- - - - - - - - -a-s-y-n-c- -f-u-n-c-t-i-o-n- -d-o-T-r-a-n-s-l-a-t-e-(-)- -{-
+- - - - - - - - - - - - -c-o-n-s-t- -t-e-x-t- -=- -s-r-c-T-e-x-t-E-l-.-v-a-l-u-e-.-t-r-i-m-(-)-;-
+- - - - - - - - - - - - -i-f- -(-!-t-e-x-t- -|-|- -i-s-T-r-a-n-s-l-a-t-i-n-g-)- -r-e-t-u-r-n-;-
+-
+- - - - - - - - - - - - -i-s-T-r-a-n-s-l-a-t-i-n-g- -=- -t-r-u-e-;-
+- - - - - - - - - - - - -t-r-a-n-s-l-a-t-e-B-t-n-.-d-i-s-a-b-l-e-d- -=- -t-r-u-e-;-
+- - - - - - - - - - - - -t-r-a-n-s-l-a-t-e-B-t-n-.-t-e-x-t-C-o-n-t-e-n-t- -=- -t-.-t-r-a-n-s-l-a-t-i-n-g-;-
+- - - - - - - - - - - - -o-u-t-p-u-t-E-l-.-t-e-x-t-C-o-n-t-e-n-t- -=- -'-'-;-
+- - - - - - - - - - - - -o-u-t-p-u-t-E-l-.-c-l-a-s-s-N-a-m-e- -=- -'-o-u-t-p-u-t---t-e-x-t- -s-t-r-e-a-m-i-n-g-'-;-
+- - - - - - - - - - - - -d-o-c-u-m-e-n-t-.-g-e-t-E-l-e-m-e-n-t-B-y-I-d-(-'-s-t-a-t-u-s-M-s-g-'-)-.-t-e-x-t-C-o-n-t-e-n-t- -=- -'-'-;-
+-
+- - - - - - - - - - - - -c-o-n-s-t- -s-r-c-L-a-n-g- -=- -s-r-c-L-a-n-g-E-l-.-v-a-l-u-e-;-
+- - - - - - - - - - - - -c-o-n-s-t- -t-g-t-L-a-n-g- -=- -t-g-t-L-a-n-g-E-l-.-v-a-l-u-e-;-
+-
+- - - - - - - - - - - - -/-/- -找-目-标-语-言-的-完-整-名-称-
+- - - - - - - - - - - - -c-o-n-s-t- -t-g-t-L-a-n-g-I-n-f-o- -=- -L-A-N-G-U-A-G-E-S-.-f-i-n-d-(-l- -=->- -l-.-c-o-d-e- -=-=-=- -t-g-t-L-a-n-g-)-;-
+- - - - - - - - - - - - -c-o-n-s-t- -t-g-t-L-a-n-g-N-a-m-e- -=- -t-g-t-L-a-n-g-I-n-f-o- -?- -t-g-t-L-a-n-g-I-n-f-o-.-e-n- -:- -t-g-t-L-a-n-g-;-
+- - - - - - - - - - - - -c-o-n-s-t- -s-r-c-L-a-n-g-N-a-m-e- -=- -s-r-c-L-a-n-g- -=-=-=- -'-a-u-t-o-'- -?- -'-'- -:- -(-L-A-N-G-U-A-G-E-S-.-f-i-n-d-(-l- -=->- -l-.-c-o-d-e- -=-=-=- -s-r-c-L-a-n-g-)-?-.-e-n- -|-|- -s-r-c-L-a-n-g-)-;-
+-
+- - - - - - - - - - - - -c-o-n-s-t- -s-r-c-H-i-n-t- -=- -s-r-c-L-a-n-g- -=-=-=- -'-a-u-t-o-'- -?- -'-'- -:- -`- -f-r-o-m- -$-{-s-r-c-L-a-n-g-N-a-m-e-}-`-;-
+- - - - - - - - - - - - -c-o-n-s-t- -p-r-o-m-p-t- -=- -`-T-r-a-n-s-l-a-t-e- -t-h-e- -f-o-l-l-o-w-i-n-g- -t-e-x-t-$-{-s-r-c-H-i-n-t-}- -t-o- -$-{-t-g-t-L-a-n-g-N-a-m-e-}-.- -O-u-t-p-u-t- -O-N-L-Y- -t-h-e- -t-r-a-n-s-l-a-t-e-d- -t-e-x-t-,- -n-o-t-h-i-n-g- -e-l-s-e-.- -N-o- -e-x-p-l-a-n-a-t-i-o-n-s-,- -n-o- -q-u-o-t-e-s-,- -n-o- -p-r-e-f-i-x-e-s-.-\-n-\-n-$-{-t-e-x-t-}-`-;-
+-
+- - - - - - - - - - - - -t-r-y- -{-
+- - - - - - - - - - - - - - - - -l-e-t- -r-e-s-u-l-t- -=- -'-'-;-
+-
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -i-f- -(-M-O-D-E-L-.-p-r-o-t-o-c-o-l- -=-=-=- -'-a-n-t-h-r-o-p-i-c-'-)- -{-
+- - - - - - - - - - - - - - - - - - - - -/-/- -A-n-t-h-r-o-p-i-c- -A-P-I- --?-s-m-a-r-t- -U-R-L-,- -n-o- -d-o-u-b-l-e- -/-v-1-
+- - - - - - - - - - - - - - - - - - - - -l-e-t- -a-p-i-U-r-l- -=- -(-M-O-D-E-L-.-a-n-t-h-r-o-p-i-c-U-r-l- -|-|- -'-'-)-.-t-r-i-m-(-)-.-r-e-p-l-a-c-e-(-/-\-/-+-$-/-,- -'-'-)-;-
+- - - - - - - - - - - - - - - - - - - - -c-o-n-s-t- -m-e-s-s-a-g-e-s-P-a-t-h- -=- -a-p-i-U-r-l-.-i-n-c-l-u-d-e-s-(-'-/-v-1-'-)- -?- -'-/-m-e-s-s-a-g-e-s-'- -:- -'-/-v-1-/-m-e-s-s-a-g-e-s-'-;-
+- - - - - - - - - - - - - - - - - - - - -t-r-y- -{-
+- - - - - - - - - - - - - - - - - - - - - - - - -c-o-n-s-t- -r-e-s-p- -=- -a-w-a-i-t- -f-e-t-c-h-(-a-p-i-U-r-l- -+- -m-e-s-s-a-g-e-s-P-a-t-h-,- -{-
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - -m-e-t-h-o-d-:- -'-P-O-S-T-'-,-
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - -h-e-a-d-e-r-s-:- -{-
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -'-C-o-n-t-e-n-t---T-y-p-e-'-:- -'-a-p-p-l-i-c-a-t-i-o-n-/-j-s-o-n-'-,-
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -'-x---a-p-i---k-e-y-'-:- -M-O-D-E-L-.-a-p-i-K-e-y-,-
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -'-a-n-t-h-r-o-p-i-c---v-e-r-s-i-o-n-'-:- -'-2-0-2-3---0-6---0-1-'-,-
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - -}-,-
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - -b-o-d-y-:- -J-S-O-N-.-s-t-r-i-n-g-i-f-y-(-{-
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -m-o-d-e-l-:- -M-O-D-E-L-.-m-o-d-e-l-,-
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -m-e-s-s-a-g-e-s-:- -[-{- -r-o-l-e-:- -'-u-s-e-r-'-,- -c-o-n-t-e-n-t-:- -p-r-o-m-p-t- -}-]-,-
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -m-a-x-_-t-o-k-e-n-s-:- -4-0-9-6-,-
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - -}-)-
+- - - - - - - - - - - - - - - - - - - - - - - - -}-)-;-
+- - - - - - - - - - - - - - - - - - - - - - - - -i-f- -(-!-r-e-s-p-.-o-k-)- -t-h-r-o-w- -n-e-w- -E-r-r-o-r-(-`-A-P-I- -$-{-r-e-s-p-.-s-t-a-t-u-s-}-:- -$-{-r-e-s-p-.-s-t-a-t-u-s-T-e-x-t-}-`-)-;-
+- - - - - - - - - - - - - - - - - - - - - - - - -c-o-n-s-t- -d-a-t-a- -=- -a-w-a-i-t- -r-e-s-p-.-j-s-o-n-(-)-;-
+- - - - - - - - - - - - - - - - - - - - - - - - -r-e-s-u-l-t- -=- -d-a-t-a-.-c-o-n-t-e-n-t-?-.-[-0-]-?-.-t-e-x-t- -|-|- -'-'-;-
+- - - - - - - - - - - - - - - - - - - - -}- -c-a-t-c-h- -(-a-n-t-h-r-o-p-i-c-E-r-r-)- -{-
+- - - - - - - - - - - - - - - - - - - - - - - - -/-/- -F-a-l-l- -b-a-c-k- -t-o- -O-p-e-n-A-I- -s-t-r-e-a-m-i-n-g-
+- - - - - - - - - - - - - - - - - - - - - - - - -c-o-n-s-o-l-e-.-w-a-r-n-(-'-[-T-r-a-n-s-l-a-t-o-r-]- -A-n-t-h-r-o-p-i-c- -f-a-i-l-e-d-,- -f-a-l-l-i-n-g- -b-a-c-k- -t-o- -O-p-e-n-A-I-:-'-,- -a-n-t-h-r-o-p-i-c-E-r-r-)-;-
+- - - - - - - - - - - - - - - - - - - - - - - - -l-e-t- -f-b-U-r-l- -=- -(-M-O-D-E-L-.-b-a-s-e-U-r-l- -|-|- -'-'-)-.-t-r-i-m-(-)-.-r-e-p-l-a-c-e-(-/-\-/-+-$-/-,- -'-'-)-;-
+- - - - - - - - - - - - - - - - - - - - - - - - -i-f- -(-!-f-b-U-r-l-.-e-n-d-s-W-i-t-h-(-'-/-v-1-'-)-)- -f-b-U-r-l- -+-=- -'-/-v-1-'-;-
+- - - - - - - - - - - - - - - - - - - - - - - - -c-o-n-s-t- -r-e-s-p- -=- -a-w-a-i-t- -f-e-t-c-h-(-f-b-U-r-l- -+- -'-/-c-h-a-t-/-c-o-m-p-l-e-t-i-o-n-s-'-,- -{-
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - -m-e-t-h-o-d-:- -'-P-O-S-T-'-,-
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - -h-e-a-d-e-r-s-:- -{- -'-C-o-n-t-e-n-t---T-y-p-e-'-:- -'-a-p-p-l-i-c-a-t-i-o-n-/-j-s-o-n-'-,- -'-A-u-t-h-o-r-i-z-a-t-i-o-n-'-:- -'-B-e-a-r-e-r- -'- -+- -M-O-D-E-L-.-a-p-i-K-e-y- -}-,-
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - -b-o-d-y-:- -J-S-O-N-.-s-t-r-i-n-g-i-f-y-(-{- -m-o-d-e-l-:- -M-O-D-E-L-.-m-o-d-e-l-,- -m-e-s-s-a-g-e-s-:- -[-{- -r-o-l-e-:- -'-u-s-e-r-'-,- -c-o-n-t-e-n-t-:- -p-r-o-m-p-t- -}-]-,- -m-a-x-_-t-o-k-e-n-s-:- -4-0-9-6-,- -t-e-m-p-e-r-a-t-u-r-e-:- -0-.-3-,- -s-t-r-e-a-m-:- -t-r-u-e- -}-)-
+- - - - - - - - - - - - - - - - - - - - - - - - -}-)-;-
+- - - - - - - - - - - - - - - - - - - - - - - - -i-f- -(-!-r-e-s-p-.-o-k-)- -t-h-r-o-w- -n-e-w- -E-r-r-o-r-(-`-A-P-I- -$-{-r-e-s-p-.-s-t-a-t-u-s-}-:- -$-{-r-e-s-p-.-s-t-a-t-u-s-T-e-x-t-}-`-)-;-
+- - - - - - - - - - - - - - - - - - - - - - - - -c-o-n-s-t- -r-e-a-d-e-r- -=- -r-e-s-p-.-b-o-d-y-.-g-e-t-R-e-a-d-e-r-(-)-;-
+- - - - - - - - - - - - - - - - - - - - - - - - -c-o-n-s-t- -d-e-c-o-d-e-r- -=- -n-e-w- -T-e-x-t-D-e-c-o-d-e-r-(-)-;-
+- - - - - - - - - - - - - - - - - - - - - - - - -l-e-t- -b-u-f-f-e-r- -=- -'-'-;-
+- - - - - - - - - - - - - - - - - - - - - - - - -w-h-i-l-e- -(-t-r-u-e-)- -{-
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - -c-o-n-s-t- -{- -d-o-n-e-,- -v-a-l-u-e- -}- -=- -a-w-a-i-t- -r-e-a-d-e-r-.-r-e-a-d-(-)-;-
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - -i-f- -(-d-o-n-e-)- -b-r-e-a-k-;-
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - -b-u-f-f-e-r- -+-=- -d-e-c-o-d-e-r-.-d-e-c-o-d-e-(-v-a-l-u-e-,- -{- -s-t-r-e-a-m-:- -t-r-u-e- -}-)-;-
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - -c-o-n-s-t- -l-i-n-e-s- -=- -b-u-f-f-e-r-.-s-p-l-i-t-(-'-\-n-'-)-;- -b-u-f-f-e-r- -=- -l-i-n-e-s-.-p-o-p-(-)- -|-|- -'-'-;-
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - -f-o-r- -(-c-o-n-s-t- -l-i-n-e- -o-f- -l-i-n-e-s-)- -{-
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -c-o-n-s-t- -t-r-i-m-m-e-d- -=- -l-i-n-e-.-t-r-i-m-(-)-;-
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -i-f- -(-!-t-r-i-m-m-e-d-.-s-t-a-r-t-s-W-i-t-h-(-'-d-a-t-a-:- -'-)-)- -c-o-n-t-i-n-u-e-;-
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -c-o-n-s-t- -j-s-o-n-S-t-r- -=- -t-r-i-m-m-e-d-.-s-l-i-c-e-(-6-)-;-
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -i-f- -(-j-s-o-n-S-t-r- -=-=-=- -'-[-D-O-N-E-]-'-)- -c-o-n-t-i-n-u-e-;-
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -t-r-y- -{-
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -c-o-n-s-t- -c-h-u-n-k- -=- -J-S-O-N-.-p-a-r-s-e-(-j-s-o-n-S-t-r-)-;-
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -c-o-n-s-t- -d-e-l-t-a- -=- -c-h-u-n-k-.-c-h-o-i-c-e-s-?-.-[-0-]-?-.-d-e-l-t-a-?-.-c-o-n-t-e-n-t- -|-|- -'-'-;-
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -i-f- -(-d-e-l-t-a-)- -{- -r-e-s-u-l-t- -+-=- -d-e-l-t-a-;- -o-u-t-p-u-t-E-l-.-t-e-x-t-C-o-n-t-e-n-t- -=- -r-e-s-u-l-t-.-r-e-p-l-a-c-e-(-/-<-t-h-i-n-k->-[-\-s-\-S-]-*-?-<-\-/-t-h-i-n-k->-/-g-i-,- -'-'-)-.-t-r-i-m-(-)-;- -}-
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -}- -c-a-t-c-h- -{- -}-
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - -}-
+- - - - - - - - - - - - - - - - - - - - - - - - -}-
+- - - - - - - - - - - - - - - - - - - - -}-
+- - - - - - - - - - - - - - - - -}- -e-l-s-e- -{-
+- - - - - - - - - - - - - - - - - - - - -l-e-t- -a-p-i-U-r-l- -=- -(-M-O-D-E-L-.-b-a-s-e-U-r-l- -|-|- -'-'-)-.-t-r-i-m-(-)-.-r-e-p-l-a-c-e-(-/-\-/-+-$-/-,- -'-'-)-;-
+- - - - - - - - - - - - - - - - - - - - -i-f- -(-!-a-p-i-U-r-l-.-e-n-d-s-W-i-t-h-(-'-/-v-1-'-)-)- -a-p-i-U-r-l- -+-=- -'-/-v-1-'-;-
+- - - - - - - - - - - - - - - - - - - - -c-o-n-s-t- -r-e-s-p- -=- -a-w-a-i-t- -f-e-t-c-h-(-a-p-i-U-r-l- -+- -'-/-c-h-a-t-/-c-o-m-p-l-e-t-i-o-n-s-'-,- -{-
+- - - - - - - - - - - - - - - - - - - - - - - - -m-e-t-h-o-d-:- -'-P-O-S-T-'-,-
+- - - - - - - - - - - - - - - - - - - - - - - - -h-e-a-d-e-r-s-:- -{-
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - -'-C-o-n-t-e-n-t---T-y-p-e-'-:- -'-a-p-p-l-i-c-a-t-i-o-n-/-j-s-o-n-'-,-
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - -'-A-u-t-h-o-r-i-z-a-t-i-o-n-'-:- -'-B-e-a-r-e-r- -'- -+- -M-O-D-E-L-.-a-p-i-K-e-y-,-
+- - - - - - - - - - - - - - - - - - - - - - - - -}-,-
+- - - - - - - - - - - - - - - - - - - - - - - - -b-o-d-y-:- -J-S-O-N-.-s-t-r-i-n-g-i-f-y-(-{-
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - -m-o-d-e-l-:- -M-O-D-E-L-.-m-o-d-e-l-,-
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - -m-e-s-s-a-g-e-s-:- -[-{- -r-o-l-e-:- -'-u-s-e-r-'-,- -c-o-n-t-e-n-t-:- -p-r-o-m-p-t- -}-]-,-
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - -m-a-x-_-t-o-k-e-n-s-:- -4-0-9-6-,-
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - -t-e-m-p-e-r-a-t-u-r-e-:- -0-.-3-,-
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - -s-t-r-e-a-m-:- -t-r-u-e-,-
+- - - - - - - - - - - - - - - - - - - - - - - - -}-)-
+- - - - - - - - - - - - - - - - - - - - -}-)-;-
+- - - - - - - - - - - - - - - - - - - - -i-f- -(-!-r-e-s-p-.-o-k-)- -t-h-r-o-w- -n-e-w- -E-r-r-o-r-(-`-A-P-I- -$-{-r-e-s-p-.-s-t-a-t-u-s-}-:- -$-{-r-e-s-p-.-s-t-a-t-u-s-T-e-x-t-}-`-)-;-
+-
+- - - - - - - - - - - - - - - - - - - - -/-/- -流-式-读-取-
+- - - - - - - - - - - - - - - - - - - - -c-o-n-s-t- -r-e-a-d-e-r- -=- -r-e-s-p-.-b-o-d-y-.-g-e-t-R-e-a-d-e-r-(-)-;-
+- - - - - - - - - - - - - - - - - - - - -c-o-n-s-t- -d-e-c-o-d-e-r- -=- -n-e-w- -T-e-x-t-D-e-c-o-d-e-r-(-)-;-
+- - - - - - - - - - - - - - - - - - - - -l-e-t- -b-u-f-f-e-r- -=- -'-'-;-
+-
+- - - - - - - - - - - - - - - - - - - - -w-h-i-l-e- -(-t-r-u-e-)- -{-
+- - - - - - - - - - - - - - - - - - - - - - - - -c-o-n-s-t- -{- -d-o-n-e-,- -v-a-l-u-e- -}- -=- -a-w-a-i-t- -r-e-a-d-e-r-.-r-e-a-d-(-)-;-
+- - - - - - - - - - - - - - - - - - - - - - - - -i-f- -(-d-o-n-e-)- -b-r-e-a-k-;-
+- - - - - - - - - - - - - - - - - - - - - - - - -b-u-f-f-e-r- -+-=- -d-e-c-o-d-e-r-.-d-e-c-o-d-e-(-v-a-l-u-e-,- -{- -s-t-r-e-a-m-:- -t-r-u-e- -}-)-;-
+-
+- - - - - - - - - - - - - - - - - - - - - - - - -c-o-n-s-t- -l-i-n-e-s- -=- -b-u-f-f-e-r-.-s-p-l-i-t-(-'-\-n-'-)-;-
+- - - - - - - - - - - - - - - - - - - - - - - - -b-u-f-f-e-r- -=- -l-i-n-e-s-.-p-o-p-(-)- -|-|- -'-'-;-
+-
+- - - - - - - - - - - - - - - - - - - - - - - - -f-o-r- -(-c-o-n-s-t- -l-i-n-e- -o-f- -l-i-n-e-s-)- -{-
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - -c-o-n-s-t- -t-r-i-m-m-e-d- -=- -l-i-n-e-.-t-r-i-m-(-)-;-
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - -i-f- -(-!-t-r-i-m-m-e-d-.-s-t-a-r-t-s-W-i-t-h-(-'-d-a-t-a-:- -'-)-)- -c-o-n-t-i-n-u-e-;-
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - -c-o-n-s-t- -j-s-o-n-S-t-r- -=- -t-r-i-m-m-e-d-.-s-l-i-c-e-(-6-)-;-
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - -i-f- -(-j-s-o-n-S-t-r- -=-=-=- -'-[-D-O-N-E-]-'-)- -c-o-n-t-i-n-u-e-;-
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - -t-r-y- -{-
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -c-o-n-s-t- -c-h-u-n-k- -=- -J-S-O-N-.-p-a-r-s-e-(-j-s-o-n-S-t-r-)-;-
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -c-o-n-s-t- -d-e-l-t-a- -=- -c-h-u-n-k-.-c-h-o-i-c-e-s-?-.-[-0-]-?-.-d-e-l-t-a-?-.-c-o-n-t-e-n-t- -|-|- -'-'-;-
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -i-f- -(-d-e-l-t-a-)- -{-
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -r-e-s-u-l-t- -+-=- -d-e-l-t-a-;-
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -/-/- -过-滤- -<-t-h-i-n-k->- -标-签-
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -c-o-n-s-t- -d-i-s-p-l-a-y- -=- -r-e-s-u-l-t-.-r-e-p-l-a-c-e-(-/-<-t-h-i-n-k->-[-\-s-\-S-]-*-?-<-\-/-t-h-i-n-k->-/-g-i-,- -'-'-)-.-t-r-i-m-(-)-;-
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -o-u-t-p-u-t-E-l-.-t-e-x-t-C-o-n-t-e-n-t- -=- -d-i-s-p-l-a-y-;-
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -}-
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - -}- -c-a-t-c-h- -{- -}-
+- - - - - - - - - - - - - - - - - - - - - - - - -}-
+- - - - - - - - - - - - - - - - - - - - -}-
+- - - - - - - - - - - - - - - - -}-
+-
+-
+- - - - - - - - - - - - - - - - -/-/- -最-终-结-果-
+- - - - - - - - - - - - - - - - -c-o-n-s-t- -f-i-n-a-l-T-e-x-t- -=- -r-e-s-u-l-t-.-r-e-p-l-a-c-e-(-/-<-t-h-i-n-k->-[-\-s-\-S-]-*-?-<-\-/-t-h-i-n-k->-/-g-i-,- -'-'-)-.-t-r-i-m-(-)-;-
+- - - - - - - - - - - - - - - - -o-u-t-p-u-t-E-l-.-t-e-x-t-C-o-n-t-e-n-t- -=- -f-i-n-a-l-T-e-x-t- -|-|- -'-(-e-m-p-t-y- -r-e-s-p-o-n-s-e-)-'-;-
+- - - - - - - - - - - - - - - - -o-u-t-p-u-t-E-l-.-c-l-a-s-s-N-a-m-e- -=- -f-i-n-a-l-T-e-x-t- -?- -'-o-u-t-p-u-t---t-e-x-t-'- -:- -'-o-u-t-p-u-t---t-e-x-t- -e-m-p-t-y-'-;-
+-
+- - - - - - - - - - - - -}- -c-a-t-c-h- -(-e-)- -{-
+- - - - - - - - - - - - - - - - -o-u-t-p-u-t-E-l-.-t-e-x-t-C-o-n-t-e-n-t- -=- -'-'-;-
+- - - - - - - - - - - - - - - - -o-u-t-p-u-t-E-l-.-c-l-a-s-s-N-a-m-e- -=- -'-o-u-t-p-u-t---t-e-x-t- -e-m-p-t-y-'-;-
+- - - - - - - - - - - - - - - - -c-o-n-s-t- -m-s-g- -=- -d-o-c-u-m-e-n-t-.-g-e-t-E-l-e-m-e-n-t-B-y-I-d-(-'-s-t-a-t-u-s-M-s-g-'-)-;-
+- - - - - - - - - - - - - - - - -m-s-g-.-t-e-x-t-C-o-n-t-e-n-t- -=- -`-$-{-t-.-e-r-r-o-r-}-:- -$-{-e-.-m-e-s-s-a-g-e-}-`-;-
+- - - - - - - - - - - - - - - - -m-s-g-.-c-l-a-s-s-N-a-m-e- -=- -'-s-t-a-t-u-s---m-s-g- -e-r-r-o-r-'-;-
+- - - - - - - - - - - - -}-
+-
+- - - - - - - - - - - - -i-s-T-r-a-n-s-l-a-t-i-n-g- -=- -f-a-l-s-e-;-
+- - - - - - - - - - - - -t-r-a-n-s-l-a-t-e-B-t-n-.-d-i-s-a-b-l-e-d- -=- -f-a-l-s-e-;-
+- - - - - - - - - - - - -t-r-a-n-s-l-a-t-e-B-t-n-.-t-e-x-t-C-o-n-t-e-n-t- -=- -t-.-t-r-a-n-s-l-a-t-e-;-
+- - - - - - - - -}-
+- - - - -<-/-s-c-r-i-p-t->-
+-<-/-b-o-d-y->-
+-
+-<-/-h-t-m-l->-
