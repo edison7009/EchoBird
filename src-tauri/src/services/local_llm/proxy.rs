@@ -27,9 +27,20 @@ pub async fn run_unified_proxy(
 
     // Binding succeeded — notify the frontend STDOUT panel
     log::info!("[Proxy] Unified proxy bound to port {}", listen_port);
-    let _ = app_handle.emit("local-llm-stdout", format!("Unified Proxy started:"));
-    let _ = app_handle.emit("local-llm-stdout", format!("  OpenAI:    http://127.0.0.1:{}/v1", listen_port));
-    let _ = app_handle.emit("local-llm-stdout", format!("  Anthropic: http://127.0.0.1:{}/anthropic", listen_port));
+    let msg1 = "Unified Proxy started:".to_string();
+    let msg2 = format!("  OpenAI:    http://127.0.0.1:{}/v1", listen_port);
+    let msg3 = format!("  Anthropic: http://127.0.0.1:{}/anthropic", listen_port);
+    let _ = app_handle.emit("local-llm-stdout", &msg1);
+    let _ = app_handle.emit("local-llm-stdout", &msg2);
+    let _ = app_handle.emit("local-llm-stdout", &msg3);
+    // Also write to server.logs so frontend polling picks them up
+    {
+        let server = super::server::get_server_arc().await;
+        let mut srv = server.lock().await;
+        srv.add_log(&msg1);
+        srv.add_log(&msg2);
+        srv.add_log(&msg3);
+    }
 
     loop {
         tokio::select! {

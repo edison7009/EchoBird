@@ -328,7 +328,16 @@ fn spawn_output_reader(mut child: std::process::Child, pid: u32, app_handle: tau
                 match line {
                     Ok(l) => {
                         log::debug!("[llama-server stdout] {}", l);
-                        let _ = app.emit("local-llm-stdout", l);
+                        let _ = app.emit("local-llm-stdout", &l);
+                        // Write into server.logs so frontend polling picks it up
+                        if let Ok(handle) = tokio::runtime::Handle::try_current() {
+                            let line_clone = l.clone();
+                            handle.spawn(async move {
+                                let server = get_server().await;
+                                let mut srv = server.lock().await;
+                                srv.add_log(&line_clone);
+                            });
+                        }
                     }
                     Err(_) => break,
                 }
@@ -346,7 +355,16 @@ fn spawn_output_reader(mut child: std::process::Child, pid: u32, app_handle: tau
                 match line {
                     Ok(l) => {
                         log::debug!("[llama-server stderr] {}", l);
-                        let _ = app.emit("local-llm-stdout", l);
+                        let _ = app.emit("local-llm-stdout", &l);
+                        // Write into server.logs so frontend polling picks it up
+                        if let Ok(handle) = tokio::runtime::Handle::try_current() {
+                            let line_clone = l.clone();
+                            handle.spawn(async move {
+                                let server = get_server().await;
+                                let mut srv = server.lock().await;
+                                srv.add_log(&line_clone);
+                            });
+                        }
                     }
                     Err(_) => break,
                 }
@@ -424,6 +442,11 @@ async fn get_server() -> Arc<Mutex<LocalLlmServer>> {
         .get_or_init(|| async { Arc::new(Mutex::new(LocalLlmServer::new())) })
         .await
         .clone()
+}
+
+/// Public alias for sibling modules (e.g. proxy) that need to write into server.logs
+pub(super) async fn get_server_arc() -> Arc<Mutex<LocalLlmServer>> {
+    get_server().await
 }
 
 pub async fn start_server(
