@@ -8,7 +8,6 @@
             "action": "installSkills",
             "agent": "OpenClaw"
         },
-
         {
             "action": "showSpecs"
         },
@@ -25,16 +24,13 @@
             "agent": "OpenClaw"
         },
         {
-            "action": "hardenSSH",
-            "label": "Harden Server Security"
+            "action": "hardenSSH"
         },
         {
-            "action": "networkInfo",
-            "label": "Show Internal/Public IP"
+            "action": "networkInfo"
         },
         {
-            "action": "securityAudit",
-            "label": "Detect Suspicious Activity"
+            "action": "securityAudit"
         }
     ]
 }

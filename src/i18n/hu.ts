@@ -219,6 +219,9 @@ const hu: Partial<Translations> = {
     'mother.hintShowSpecs': 'Szerver specifikációk',
     'mother.hintTroubleshoot': '{agent} nem működik, segíts',
     'mother.hintUninstall': '{agent} teljes eltávolítása',
+    'mother.hintHardenSSH': 'Szerver biztonság megerősítése',
+    'mother.hintNetworkInfo': 'Belső/nyilvános IP megjelenítése',
+    'mother.hintSecurityAudit': 'Gyanús tevékenység észlelése',
     'status.running': 'Fut',
     'status.offline': 'Offline',
     // Mobile sync

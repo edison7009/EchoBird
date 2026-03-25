@@ -125,6 +125,9 @@ const el: Partial<Translations> = {
     'mother.hintShowSpecs': 'Εμφάνιση προδιαγραφών',
     'mother.hintTroubleshoot': '{agent} δεν λειτουργεί, βοηθήστε',
     'mother.hintUninstall': 'Πλήρης απεγκατάσταση {agent}',
+    'mother.hintHardenSSH': 'Ενίσχυση ασφάλειας διακομιστή',
+    'mother.hintNetworkInfo': 'Εμφάνιση εσωτερικής/δημόσιας IP',
+    'mother.hintSecurityAudit': 'Ανίχνευση ύποπτης δραστηριότητας',
     'status.running': 'Εκτελείται',
     'status.offline': 'Εκτός σύνδεσης',
     // Mobile sync

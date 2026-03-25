@@ -198,6 +198,9 @@ const ms: Partial<Translations> = {
     'mother.hintShowSpecs': 'Tunjukkan spesifikasi pelayan',
     'mother.hintTroubleshoot': '{agent} tidak berfungsi, tolong',
     'mother.hintUninstall': 'Nyahpasang {agent} sepenuhnya',
+    'mother.hintHardenSSH': 'Kukuhkan keselamatan pelayan',
+    'mother.hintNetworkInfo': 'Papar IP dalaman/awam',
+    'mother.hintSecurityAudit': 'Kesan aktiviti mencurigakan',
     'status.running': 'Berjalan',
     'status.offline': 'Luar talian',
     // Mobile sync

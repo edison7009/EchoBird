@@ -219,6 +219,9 @@ const bn: Partial<Translations> = {
     'mother.hintShowSpecs': 'সার্ভার স্পেক দেখুন',
     'mother.hintTroubleshoot': '{agent} কাজ করছে না, সাহায্য করুন',
     'mother.hintUninstall': '{agent} সম্পূর্ণ আনইনস্টল করুন',
+    'mother.hintHardenSSH': 'সার্ভার নিরাপত্তা শক্তিশালী করুন',
+    'mother.hintNetworkInfo': 'অভ্যন্তরীণ/পাবলিক IP দেখান',
+    'mother.hintSecurityAudit': 'সন্দেহজনক কার্যকলাপ সনাক্ত করুন',
     'status.running': 'চলছে',
     'status.offline': 'অফলাইন',
     // Mobile sync

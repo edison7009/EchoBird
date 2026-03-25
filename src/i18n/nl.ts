@@ -196,6 +196,9 @@ const nl: Partial<Translations> = {
     'mother.hintShowSpecs': 'Server specificaties tonen',
     'mother.hintTroubleshoot': '{agent} werkt niet, help mij',
     'mother.hintUninstall': '{agent} volledig verwijderen',
+    'mother.hintHardenSSH': 'Serverbeveiliging versterken',
+    'mother.hintNetworkInfo': 'Intern/publiek IP tonen',
+    'mother.hintSecurityAudit': 'Verdachte activiteit detecteren',
     'status.running': 'Actief',
     'status.offline': 'Offline',
     // Mobile sync

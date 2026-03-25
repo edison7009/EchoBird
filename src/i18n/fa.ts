@@ -125,6 +125,9 @@ const fa: Partial<Translations> = {
     'mother.hintShowSpecs': 'نمایش مشخصات سرور',
     'mother.hintTroubleshoot': '{agent} کار نمی‌کند، کمک کنید',
     'mother.hintUninstall': 'حذف کامل {agent}',
+    'mother.hintHardenSSH': 'تقویت امنیت سرور',
+    'mother.hintNetworkInfo': 'نمایش IP داخلی/عمومی',
+    'mother.hintSecurityAudit': 'شناسایی فعالیت مشکوک',
     'status.running': 'در حال اجرا',
     'status.offline': 'آفلاین',
     // Mobile sync

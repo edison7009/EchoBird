@@ -243,6 +243,9 @@ const ko: Partial<Translations> = {
     'mother.hintShowSpecs': '서버 스펙 보기',
     'mother.hintTroubleshoot': '{agent} 작동 안 함? 수정 도와주세요',
     'mother.hintUninstall': '{agent} 완전 삭제',
+    'mother.hintHardenSSH': '서버 보안 강화',
+    'mother.hintNetworkInfo': '내부/공용 IP 확인',
+    'mother.hintSecurityAudit': '의심스러운 활동 감지',
     'status.running': '실행 중',
     'status.offline': '오프라인',
     // Mobile sync

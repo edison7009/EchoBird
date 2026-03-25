@@ -219,6 +219,9 @@ const tr: Partial<Translations> = {
     'mother.hintShowSpecs': 'Sunucu özelliklerini göster',
     'mother.hintTroubleshoot': '{agent} çalışmıyor, yardım edin',
     'mother.hintUninstall': '{agent} tamamen kaldır',
+    'mother.hintHardenSSH': 'Sunucu güvenliğini güçlendir',
+    'mother.hintNetworkInfo': 'Dahili/genel IP göster',
+    'mother.hintSecurityAudit': 'Şüpheli etkinlik tespit et',
     'status.running': 'Çalışıyor',
     'status.offline': 'Çevrimdışı',
     // Mobile sync

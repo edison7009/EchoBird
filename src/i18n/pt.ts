@@ -219,6 +219,9 @@ const pt: Partial<Translations> = {
     'mother.hintShowSpecs': 'Mostrar specs do servidor',
     'mother.hintTroubleshoot': '{agent} não funciona, me ajude',
     'mother.hintUninstall': 'Desinstalar {agent} completamente',
+    'mother.hintHardenSSH': 'Reforcar seguranca do servidor',
+    'mother.hintNetworkInfo': 'Mostrar IP interno/publico',
+    'mother.hintSecurityAudit': 'Detectar atividade suspeita',
     'status.running': 'Em execução',
     'status.offline': 'Offline',
     // Mobile sync

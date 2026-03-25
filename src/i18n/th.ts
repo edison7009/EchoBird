@@ -221,6 +221,9 @@ const th: Partial<Translations> = {
     'mother.hintShowSpecs': 'แสดงสเปคเซิร์ฟเวอร์',
     'mother.hintTroubleshoot': '{agent} ไม่ทำงาน ช่วยแก้ไข',
     'mother.hintUninstall': 'ถอนการติดตั้ง {agent} ทั้งหมด',
+    'mother.hintHardenSSH': 'เสริมความปลอดภัยเซิร์ฟเวอร์',
+    'mother.hintNetworkInfo': 'แสดง IP ภายใน/สาธารณะ',
+    'mother.hintSecurityAudit': 'ตรวจจับกิจกรรมที่น่าสงสัย',
     'status.running': 'กำลังทำงาน',
     'status.offline': 'ออฟไลน์',
     // Mobile sync

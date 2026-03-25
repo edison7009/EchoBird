@@ -196,6 +196,9 @@ const cs: Partial<Translations> = {
     'mother.hintShowSpecs': 'Zobrazit specifikace serveru',
     'mother.hintTroubleshoot': '{agent} nefunguje, pomozte',
     'mother.hintUninstall': 'Zcela odinstalovat {agent}',
+    'mother.hintHardenSSH': 'Posílit zabezpečení serveru',
+    'mother.hintNetworkInfo': 'Zobrazit interní/veřejnou IP',
+    'mother.hintSecurityAudit': 'Detekovat podezřelou aktivitu',
     'status.running': 'Spuštěno',
     'status.offline': 'Offline',
     // Mobile sync

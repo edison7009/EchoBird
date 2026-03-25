@@ -116,6 +116,9 @@ const fi: Partial<Translations> = {
     'mother.hintShowSpecs': 'Näytä palvelimen tiedot',
     'mother.hintTroubleshoot': '{agent} ei toimi, auta',
     'mother.hintUninstall': 'Poista {agent} kokonaan',
+    'mother.hintHardenSSH': 'Vahvista palvelimen tietoturva',
+    'mother.hintNetworkInfo': 'Näytä sisäinen/julkinen IP',
+    'mother.hintSecurityAudit': 'Havaitse epäilyttävä toiminta',
     'status.running': 'Käynnissä',
     'status.offline': 'Offline',
     // Mobile sync

@@ -243,6 +243,9 @@ const ja: Partial<Translations> = {
     'mother.hintShowSpecs': 'サーバースペックを表示',
     'mother.hintTroubleshoot': '{agent} が動かない？修正を手伝って',
     'mother.hintUninstall': '{agent} を完全にアンインストール',
+    'mother.hintHardenSSH': 'サーバーセキュリティを強化',
+    'mother.hintNetworkInfo': '内部/外部IPを表示',
+    'mother.hintSecurityAudit': '不審なアクティビティを検出',
     'status.running': '実行中',
     'status.offline': 'オフライン',
     // Mobile sync

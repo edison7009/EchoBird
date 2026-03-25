@@ -83,6 +83,7 @@ export type TKey =
     // Mother Agent
     | 'mother.selectModel'
     | 'mother.hintInstall' | 'mother.hintShowSpecs' | 'mother.hintTroubleshoot' | 'mother.hintUninstall'
+    | 'mother.hintHardenSSH' | 'mother.hintNetworkInfo' | 'mother.hintSecurityAudit'
     | 'mother.enterMessage' | 'mother.noModels'
     | 'mother.servers' | 'mother.sshGuide' | 'mother.local' | 'mother.noServer'
     | 'mother.addServer' | 'mother.hostIp' | 'mother.port' | 'mother.username'

@@ -125,6 +125,9 @@ const he: Partial<Translations> = {
     'mother.hintShowSpecs': 'הצג מפרטי שרת',
     'mother.hintTroubleshoot': '{agent} לא עובד, עזור לי',
     'mother.hintUninstall': 'הסר לחלוטין את {agent}',
+    'mother.hintHardenSSH': 'חזק את אבטחת השרת',
+    'mother.hintNetworkInfo': 'הצג IP פנימי/ציבורי',
+    'mother.hintSecurityAudit': 'זהה פעילות חשודה',
     'status.running': 'פועל',
     'status.offline': 'לא מקוון',
     // Mobile sync

@@ -243,6 +243,9 @@ const ru: Partial<Translations> = {
     'mother.hintShowSpecs': 'Показать характеристики сервера',
     'mother.hintTroubleshoot': '{agent} не работает, помогите',
     'mother.hintUninstall': 'Полностью удалить {agent}',
+    'mother.hintHardenSSH': 'Усилить безопасность сервера',
+    'mother.hintNetworkInfo': 'Показать внутренний/внешний IP',
+    'mother.hintSecurityAudit': 'Обнаружить подозрительную активность',
     'status.running': 'Запущено',
     'status.offline': 'Не в сети',
     // Mobile sync

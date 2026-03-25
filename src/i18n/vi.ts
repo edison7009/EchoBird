@@ -219,6 +219,9 @@ const vi: Partial<Translations> = {
     'mother.hintShowSpecs': 'Xem cấu hình máy chủ',
     'mother.hintTroubleshoot': '{agent} không hoạt động, giúp tôi',
     'mother.hintUninstall': 'Gỡ cài đặt {agent} hoàn toàn',
+    'mother.hintHardenSSH': 'Tăng cường bảo mật máy chủ',
+    'mother.hintNetworkInfo': 'Hiển thị IP nội bộ/công cộng',
+    'mother.hintSecurityAudit': 'Phát hiện hoạt động đáng ngờ',
     'status.running': 'Đang chạy',
     'status.offline': 'Ngoại tuyến',
     // Mobile sync

@@ -198,6 +198,9 @@ const id: Partial<Translations> = {
     'mother.hintShowSpecs': 'Tampilkan spesifikasi server',
     'mother.hintTroubleshoot': '{agent} tidak berfungsi, bantu saya',
     'mother.hintUninstall': 'Hapus instalasi {agent} sepenuhnya',
+    'mother.hintHardenSSH': 'Perkuat keamanan server',
+    'mother.hintNetworkInfo': 'Tampilkan IP internal/publik',
+    'mother.hintSecurityAudit': 'Deteksi aktivitas mencurigakan',
     'status.running': 'Berjalan',
     'status.offline': 'Offline',
     // Mobile sync

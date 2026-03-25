@@ -204,6 +204,9 @@ const zhHans: Partial<Translations> = {
     'mother.hintShowSpecs': '查看服务器配置',
     'mother.hintTroubleshoot': '{agent} 不好用了，帮我修复',
     'mother.hintUninstall': '完全卸载 {agent}',
+    'mother.hintHardenSSH': '加固服务器安全',
+    'mother.hintNetworkInfo': '查看内网/公网IP',
+    'mother.hintSecurityAudit': '检测可疑活动',
     'status.running': '运行中',
     'status.offline': '离线',
     // Mobile sync

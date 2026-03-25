@@ -219,6 +219,9 @@ const ar: Partial<Translations> = {
     'mother.hintShowSpecs': 'عرض مواصفات الخادم',
     'mother.hintTroubleshoot': '{agent} لا يعمل، ساعدني',
     'mother.hintUninstall': 'إلغاء تثبيت {agent} بالكامل',
+    'mother.hintHardenSSH': 'تعزيز أمان الخادم',
+    'mother.hintNetworkInfo': 'عرض IP الداخلي/العام',
+    'mother.hintSecurityAudit': 'كشف النشاط المشبوه',
     'status.running': 'قيد التشغيل',
     'status.offline': 'غير متصل',
     // Mobile sync

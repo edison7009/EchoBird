@@ -125,6 +125,9 @@ const sv: Partial<Translations> = {
     'mother.hintShowSpecs': 'Visa serverspecifikationer',
     'mother.hintTroubleshoot': '{agent} fungerar inte, hjälp mig',
     'mother.hintUninstall': 'Avinstallera {agent} helt',
+    'mother.hintHardenSSH': 'Stärk serversäkerheten',
+    'mother.hintNetworkInfo': 'Visa intern/offentlig IP',
+    'mother.hintSecurityAudit': 'Upptäck misstänkt aktivitet',
     'status.running': 'Körs',
     'status.offline': 'Offline',
     // Mobile sync
