@@ -253,12 +253,18 @@ export const LocalServerMain: React.FC = () => {
         }
     };
 
+    const lastRunning = useRef<boolean>(isRunning);
+
     // Polling: server status + logs
     useEffect(() => {
         const poll = async () => {
             try {
                 const info = await api.getLlmServerInfo();
                 setIsRunning(info.running);
+                if (lastRunning.current !== info.running) {
+                    lastRunning.current = info.running;
+                    window.dispatchEvent(new Event('models-changed'));
+                }
                 const serverLogs = await api.getLlmServerLogs();
                 if (serverLogs.length > 0) {
                     setLogs(serverLogs);
@@ -300,6 +306,8 @@ export const LocalServerMain: React.FC = () => {
                 await api.stopLlmServer();
                 setIsRunning(false);
                 setServerApiKey('');
+                lastRunning.current = false;
+                window.dispatchEvent(new Event('models-changed'));
             } catch (e) {
                 setLogs(prev => [...prev, `[Error] Failed to stop: ${e}`]);
             }
@@ -311,6 +319,8 @@ export const LocalServerMain: React.FC = () => {
             try {
                 await api.startLlmServer(selectedModelPath, serverPort, gpuLayers, contextSize, runtime);
                 setIsRunning(true);
+                lastRunning.current = true;
+                window.dispatchEvent(new Event('models-changed'));
                 // Fetch server info to get the generated API key
                 try {
                     const info = await api.getLlmServerInfo();
