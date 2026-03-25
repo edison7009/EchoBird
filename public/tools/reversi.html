@@ -629,7 +629,7 @@ Then one SHORT trash-talk comment. Be cocky, mock the opponent, brag about your 
                     streamDiv.remove();
                 }
             } else {
-                // --- OpenAI /v1/chat/completions format ---
+                // --- OpenAI /v1/chat/completions format (non-streaming, avoids CORS preflight rejection) ---
                 let apiUrl = (MODEL.baseUrl || '').trim().replace(/\/+$/, '');
                 if (!apiUrl.endsWith('/v1')) apiUrl += '/v1';
                 const resp = await fetch(apiUrl + '/chat/completions', {
@@ -639,47 +639,12 @@ Then one SHORT trash-talk comment. Be cocky, mock the opponent, brag about your 
                         model: MODEL.model,
                         messages: [{ role: 'user', content: prompt }],
                         max_tokens: 4096,
-                        temperature: 0.3,
-                        stream: true
+                        temperature: 0.3
                     })
                 });
                 if (!resp.ok) throw new Error(`API ${resp.status}`);
-                
-                // Add a temporary thinking bubble to show stream progress
-                const area = document.getElementById('chatArea');
-                const streamDiv = document.createElement('div');
-                streamDiv.className = 'bubble thinking';
-                streamDiv.textContent = '...';
-                area.appendChild(streamDiv);
-
-                const reader = resp.body.getReader();
-                const decoder = new TextDecoder();
-                let buffer = '';
-                while (true) {
-                    const { done, value } = await reader.read();
-                    if (done) break;
-                    buffer += decoder.decode(value, { stream: true });
-                    const lines = buffer.split('\n');
-                    buffer = lines.pop() || '';
-                    for (const line of lines) {
-                        const trimmed = line.trim();
-                        if (!trimmed.startsWith('data: ')) continue;
-                        const jsonStr = trimmed.slice(6);
-                        if (jsonStr === '[DONE]') continue;
-                        try {
-                            const chunk = JSON.parse(jsonStr);
-                            const delta = chunk.choices?.[0]?.delta?.content || '';
-                            if (delta) {
-                                rawText += delta;
-                                // strip out long think tags for display buffer to not clutter screen
-                                const display = rawText.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
-                                streamDiv.textContent = display.length > 0 ? display : '(reasoning...)';
-                                area.scrollTop = area.scrollHeight;
-                            }
-                        } catch (e) {}
-                    }
-                }
-                streamDiv.remove();
+                const data = await resp.json();
+                rawText = data.choices?.[0]?.message?.content || '';
             }
 
 
