@@ -131,6 +131,7 @@ const ru: Partial<Translations> = {
     'server.gpuFull': '⚡ GPU Полная',
     'server.cpuOnly': '🖥 Только CPU',
     'server.setupEngine': 'Настроить движок',
+    'server.upgradeEngine': 'UPGRADE ENGINE',
     'server.downloading': 'Загрузка',
         // ModelStore buttons
     'store.add': '[+Добавить]',

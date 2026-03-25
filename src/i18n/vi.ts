@@ -109,6 +109,7 @@ const vi: Partial<Translations> = {
     'server.gpuFull': '⚡ GPU Đầy đủ',
     'server.cpuOnly': '🖥 Chỉ CPU',
     'server.setupEngine': 'CÀI ĐẶT ENGINE',
+    'server.upgradeEngine': 'UPGRADE ENGINE',
     'server.downloading': 'ĐANG TẢI',
         'store.add': '[+THÊM]',
     'store.del': '[-XÓA]',

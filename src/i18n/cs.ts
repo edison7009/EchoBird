@@ -92,6 +92,7 @@ const cs: Partial<Translations> = {
     'download.retry': 'Opakovat',    'server.gpuFull': '⚡ GPU Plné',
     'server.cpuOnly': '🖥 Pouze CPU',
     'server.setupEngine': 'NASTAVIT ENGINE',
+    'server.upgradeEngine': 'UPGRADE ENGINE',
     'server.downloading': 'STAHOVÁNÍ',
         'store.add': '[+PŘIDAT]',
     'store.del': '[-SMAZAT]',

@@ -103,6 +103,7 @@ const zhHans: Partial<Translations> = {
     'server.gpuFull': '⚡ GPU 全速',
     'server.cpuOnly': '🖥 仅 CPU',
     'server.setupEngine': '安装引擎',
+    'server.upgradeEngine': 'UPGRADE ENGINE',
     'server.downloading': '下载中',
     'store.add': '[+添加]',
     'store.del': '[-删除]',

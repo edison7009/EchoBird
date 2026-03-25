@@ -109,6 +109,7 @@ const hu: Partial<Translations> = {
     'server.gpuFull': '⚡ GPU Teljes',
     'server.cpuOnly': '🖥 Csak CPU',
     'server.setupEngine': 'MOTOR BEÁLLÍTÁSA',
+    'server.upgradeEngine': 'UPGRADE ENGINE',
     'server.downloading': 'LETÖLTÉS',
         'store.add': '[+HOZZÁAD]',
     'store.del': '[-TÖRÖL]',

@@ -92,6 +92,7 @@ const nl: Partial<Translations> = {
     'download.retry': 'Opnieuw',    'server.gpuFull': '⚡ GPU Vol',
     'server.cpuOnly': '🖥 Alleen CPU',
     'server.setupEngine': 'ENGINE INSTELLEN',
+    'server.upgradeEngine': 'UPGRADE ENGINE',
     'server.downloading': 'DOWNLOADEN',
         'store.add': '[+TOEV]',
     'store.del': '[-VERW]',

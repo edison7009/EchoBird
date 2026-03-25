@@ -115,6 +115,7 @@ const en: Translations = {
     'server.gpuFull': '⚡ GPU Full',
     'server.cpuOnly': '🖥 CPU Only',
     'server.setupEngine': 'SETUP ENGINE',
+    'server.upgradeEngine': 'UPGRADE ENGINE',
     'server.downloading': 'DOWNLOADING',
         // ModelStore buttons
     'store.add': '[+ADD]',

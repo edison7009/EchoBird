@@ -99,6 +99,7 @@ const fr: Partial<Translations> = {
     'download.retry': 'Réessayer',    'server.gpuFull': '⚡ GPU Complet',
     'server.cpuOnly': '🖥 CPU uniquement',
     'server.setupEngine': 'CONFIGURER LE MOTEUR',
+    'server.upgradeEngine': 'UPGRADE ENGINE',
     'server.downloading': 'TÉLÉCHARGEMENT',
     'store.add': '[+AJOUT]',
     'store.del': '[-SUPPR]',

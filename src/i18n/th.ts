@@ -110,6 +110,7 @@ const th: Partial<Translations> = {
     'server.gpuFull': '⚡ GPU เต็มกำลัง',
     'server.cpuOnly': '🖥 CPU เท่านั้น',
     'server.setupEngine': 'ตั้งค่าเอนจิน',
+    'server.upgradeEngine': 'UPGRADE ENGINE',
     'server.downloading': 'กำลังดาวน์โหลด',
         // ปุ่ม ModelStore — คงไว้เป็นภาษาอังกฤษเพื่อความสอดคล้อง
     'store.add': '[+เพิ่ม]',

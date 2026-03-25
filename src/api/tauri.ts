@@ -230,6 +230,7 @@ export interface LocalEngineEntry {
     name: string;
     installed: boolean;
     version: string;
+    latestVersion?: string;
 }
 
 export interface LocalEngineStatus {

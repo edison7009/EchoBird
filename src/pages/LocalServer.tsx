@@ -14,7 +14,7 @@ import type { StoreModel, StoreModelVariant } from '../api/types';
 
 // ─── Types ───
 
-type EngineStatus = 'checking' | 'ready' | 'not-installed' | 'downloading' | 'error';
+type EngineStatus = 'checking' | 'ready' | 'not-installed' | 'downloading' | 'error' | 'update-available';
 
 interface GgufFileEntry {
     fileName: string;
@@ -212,13 +212,14 @@ export const LocalServerMain: React.FC = () => {
         const check = async () => {
             setEngineStatus('checking');
             try {
-                if (runtime === 'llama-server') {
-                    const path = await api.findLlamaServer();
-                    setEngineStatus(path ? 'ready' : 'not-installed');
+                const status = await api.getLocalEngineStatus();
+                const entry = status.engines.find(e => e.name === runtime);
+                if (!entry?.installed) {
+                    setEngineStatus('not-installed');
+                } else if (entry.latestVersion && entry.version && entry.version !== entry.latestVersion) {
+                    setEngineStatus('update-available');
                 } else {
-                    const status = await api.getLocalEngineStatus();
-                    const entry = status.engines.find(e => e.name === runtime);
-                    setEngineStatus(entry?.installed ? 'ready' : 'not-installed');
+                    setEngineStatus('ready');
                 }
             } catch {
                 setEngineStatus('error');
@@ -378,6 +379,38 @@ export const LocalServerMain: React.FC = () => {
                     bg-cyber-accent/10 text-cyber-accent/50 border border-cyber-accent/30">
                     <Loader2 className="w-4 h-4 animate-spin" />
                     CHECKING…
+                </div>
+            );
+        }
+
+        // Update available: show UPGRADE ENGINE button
+        if (engineStatus === 'update-available') {
+            return (
+                <div className="flex gap-2 w-full">
+                    <button
+                        onClick={handleDownloadEngine}
+                        className="flex-1 py-3 font-bold text-base tracking-[0.2em] font-mono transition-all flex items-center justify-center gap-2
+                            bg-amber-500/10 text-amber-400 border border-amber-500/50 hover:bg-amber-500/20 shadow-[0_0_15px_rgba(245,158,11,0.15)]"
+                    >
+                        <Download className="w-4 h-4" />
+                        {t('server.upgradeEngine') || 'UPGRADE ENGINE'}
+                    </button>
+                    <button
+                        onClick={handleToggleServer}
+                        disabled={!isRunning && !selectedModelPath}
+                        className={`py-3 px-6 font-bold text-base tracking-[0.3em] font-mono transition-all flex items-center justify-center gap-2 ${isRunning
+                            ? 'bg-red-500/10 text-red-400 border border-red-500/50 hover:bg-red-500/20'
+                            : !selectedModelPath
+                                ? 'bg-cyber-border/30 text-cyber-text-muted/50 cursor-not-allowed border border-cyber-border/30'
+                                : 'bg-cyber-accent/10 text-cyber-accent border border-cyber-accent/50 hover:bg-cyber-accent/20'
+                            }`}
+                    >
+                        {isRunning ? (
+                            <><Square className="w-3.5 h-3.5 fill-current" /> {t('btn.stop')}</>
+                        ) : (
+                            <><Play className="w-3.5 h-3.5 fill-current" /> {t('btn.start')}</>
+                        )}
+                    </button>
                 </div>
             );
         }

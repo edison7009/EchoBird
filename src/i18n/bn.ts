@@ -109,6 +109,7 @@ const bn: Partial<Translations> = {
     'server.gpuFull': '⚡ GPU সম্পূর্ণ',
     'server.cpuOnly': '🖥 শুধু CPU',
     'server.setupEngine': 'ইঞ্জিন সেটআপ',
+    'server.upgradeEngine': 'UPGRADE ENGINE',
     'server.downloading': 'ডাউনলোড হচ্ছে',
         'store.add': '[+যোগ]',
     'store.del': '[-মুছুন]',

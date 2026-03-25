@@ -27,6 +27,7 @@ const sv: Partial<Translations> = {
     'vram.easy': 'Lätt', 'vram.good': 'Bra', 'vram.tight': 'Trångt', 'vram.heavy': 'Tung', 'download.inQueue': 'i kö', 'download.pause': 'Pausa', 'download.resume': 'Återuppta', 'download.cancel': 'Avbryt', 'download.retry': 'Försök igen',
     'server.gpuFull': '⚡ GPU Full', 'server.cpuOnly': '🖥 Bara CPU',
     'server.setupEngine': 'KONFIGURERA MOTOR',
+    'server.upgradeEngine': 'UPGRADE ENGINE',
     'server.downloading': 'LADDAR NER',
         'store.add': '[+LÄGG TILL]', 'store.del': '[-RADERA]', 'store.cancel': '[AVBRYT]', 'store.remove': 'TA BORT', 'store.ver': 'version', 'store.ready': '✓ Klar',
     'close.title': 'Stäng fönster', 'close.message': 'Vill du minimera till systemfältet eller avsluta helt?', 'close.minimize': 'Minimera till systemfältet', 'close.quit': 'Avsluta', 'close.remember': 'Kom ihåg mitt val',

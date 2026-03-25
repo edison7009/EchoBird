@@ -54,7 +54,7 @@ export type TKey =
     | 'server.local' | 'server.store'
     | 'server.selectModelDir' | 'server.downloadFromStore'
     | 'server.gpuFull' | 'server.cpuOnly'
-    | 'server.setupEngine' | 'server.downloading'
+    | 'server.setupEngine' | 'server.upgradeEngine' | 'server.downloading'
     // Debug (used in ModelNexus)
     | 'debug.console' | 'debug.gettingStarted'    // Download / Model Store
     | 'download.location' | 'download.changePath' | 'download.selectNewDir'

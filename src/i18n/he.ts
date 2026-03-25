@@ -27,6 +27,7 @@ const he: Partial<Translations> = {
     'vram.easy': 'קל', 'vram.good': 'טוב', 'vram.tight': 'צפוף', 'vram.heavy': 'כבד', 'download.inQueue': 'בתור', 'download.pause': 'השהה', 'download.resume': 'המשך', 'download.cancel': 'ביטול', 'download.retry': 'נסה שוב',
     'server.gpuFull': '⚡ GPU מלא', 'server.cpuOnly': '🖥 CPU בלבד',
     'server.setupEngine': 'הגדרת מנוע',
+    'server.upgradeEngine': 'UPGRADE ENGINE',
     'server.downloading': 'מוריד',
         'store.add': '[+הוסף]', 'store.del': '[-מחק]', 'store.cancel': '[ביטול]', 'store.remove': 'הסר', 'store.ver': 'גרסה', 'store.ready': '✓ מוכן',
     'close.title': 'סגור חלון', 'close.message': 'להקטין לשורת המשימות או לצאת לגמרי?', 'close.minimize': 'הקטן למגש', 'close.quit': 'צא', 'close.remember': 'זכור את הבחירה שלי',

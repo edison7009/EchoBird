@@ -307,7 +307,7 @@ pub fn cancel_download(app_handle: &tauri::AppHandle, target_file_name: Option<S
 
 // ─── Engine download: llama-server binary installer ───
 
-const LLAMA_VERSION: &str = "b7981";
+const LLAMA_VERSION: &str = "b8495";
 const LLAMA_CUDA_VER: &str = "13.1";
 
 fn llama_github_base() -> String {
@@ -630,9 +630,29 @@ fn check_python_package(package: &str) -> Option<String> {
     None
 }
 
+/// Detect installed llama-server version from directory name (e.g. "llama-b7981-bin-win-cuda-...")
+fn get_installed_llama_version() -> Option<String> {
+    let bin_dir = llama_install_dir().join("bin");
+    if !bin_dir.exists() { return None; }
+    if let Ok(entries) = std::fs::read_dir(&bin_dir) {
+        for entry in entries.flatten() {
+            let name = entry.file_name().to_string_lossy().to_string();
+            // Match pattern: llama-bNNNN-bin-...
+            if name.starts_with("llama-b") && name.contains("-bin-") {
+                if let Some(ver_end) = name.find("-bin-") {
+                    let ver = &name[6..ver_end]; // skip "llama-" prefix, extract "bNNNN"
+                    return Some(format!("b{}", ver));
+                }
+            }
+        }
+    }
+    None
+}
+
 /// Get installation status for all supported local runtimes
 pub fn get_local_engine_status() -> serde_json::Value {
     let llama_installed = LocalLlmServer::find_llama_server().is_some();
+    let installed_ver = get_installed_llama_version().unwrap_or_default();
 
     let vllm_version = check_python_package("vllm");
     let sglang_version = check_python_package("sglang");
@@ -644,9 +664,8 @@ pub fn get_local_engine_status() -> serde_json::Value {
             {
                 "name": "llama-server",
                 "installed": llama_installed,
-                "version": LocalLlmServer::find_llama_server()
-                    .map(|p| p.to_string_lossy().to_string())
-                    .unwrap_or_default()
+                "version": installed_ver,
+                "latestVersion": LLAMA_VERSION
             },
             {
                 "name": "vllm",
@@ -674,7 +693,12 @@ pub fn get_local_engine_status() -> serde_json::Value {
 pub async fn install_local_engine(app_handle: tauri::AppHandle, runtime: String) -> Result<(), String> {
     match runtime.as_str() {
         "llama-server" => {
-            // Reuse existing full download & extract logic
+            // Upgrade: remove old bin directory before installing new version
+            let bin_dir = llama_install_dir().join("bin");
+            if bin_dir.exists() {
+                log::info!("[EngineInstaller] Removing old llama-server installation at {:?}", bin_dir);
+                let _ = std::fs::remove_dir_all(&bin_dir);
+            }
             download_llama_server(app_handle).await.map(|_| ())
         }
         "vllm" => {

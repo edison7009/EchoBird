@@ -92,6 +92,7 @@ const es: Partial<Translations> = {
     'download.retry': 'Reintentar',    'server.gpuFull': '⚡ GPU Completa',
     'server.cpuOnly': '🖥 Solo CPU',
     'server.setupEngine': 'CONFIGURAR MOTOR',
+    'server.upgradeEngine': 'UPGRADE ENGINE',
     'server.downloading': 'DESCARGANDO',
         'store.add': '[+AÑADIR]',
     'store.del': '[-ELIM]',
