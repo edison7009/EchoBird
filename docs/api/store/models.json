@@ -182,7 +182,7 @@
     {
         "id": "gpt-oss-120b",
         "name": "GPT-OSS 120B (OpenAI MoE)",
-        "icon": "openai",
+        "icon": "chatgpt",
         "description": "OpenAI's open-weight MoE — 117B total, 5.1B active, Apache 2.0, o4-mini class reasoning",
         "huggingfaceRepo": "unsloth/gpt-oss-120b-GGUF",
         "variants": [
