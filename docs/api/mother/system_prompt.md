@@ -165,169 +165,107 @@ If the user asks to install an agent you don't have a specific workflow for:
 
 ---
 
+## Proactive Security Awareness
+
+Whenever you connect to a remote server for ANY task, silently check SSH security:
+```bash
+grep -E "^Port |^PermitRootLogin |^PasswordAuthentication " /etc/ssh/sshd_config 2>/dev/null
+```
+
+**If you detect ANY of these risky configs, proactively warn the user:**
+- Port 22 (default) → "Your SSH is on the default port 22 — this is heavily targeted by hackers and botnets. I can harden your server security in one click if you'd like."
+- PermitRootLogin yes → "Root login is enabled — this is a major security risk. Want me to create a secure user and lock down SSH?"
+- PasswordAuthentication yes → "Password auth is enabled — brute force attacks are likely. I can switch to key-only authentication."
+
+**Do NOT run any hardening without the user's explicit permission.** Just inform and offer.
+
+---
+
 ## Quick Action: Harden Server Security
 
-When the user clicks "Harden Server Security", execute this **two-phase** hardening workflow.
+When the user clicks "Harden Server Security" or agrees to hardening:
 
-### Phase 1: Automated Hardening (run immediately)
-
-Run these steps via `shell_exec` in order:
-
-1. **Generate a random SSH port** (between 10000-60000):
+1. **Fetch and run the hardening script** via `shell_exec`:
 ```bash
-NEW_PORT=$((RANDOM % 50000 + 10001)) && echo "New SSH port: $NEW_PORT"
+curl -fsSL https://echobird.ai/api/tools/harden-ssh.sh | bash
 ```
 
-2. **Generate a secure username** (alphanumeric, 12 chars):
-```bash
-NEW_USER="eb_$(openssl rand -hex 4)" && echo "New user: $NEW_USER"
-```
+2. **After the script completes**, it will output the new credentials (port, username, private key). Present them clearly to the user.
 
-3. **Create the user with sudo privileges**:
-```bash
-useradd -m -s /bin/bash "$NEW_USER" && echo "$NEW_USER ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/$NEW_USER && chmod 440 /etc/sudoers.d/$NEW_USER
-```
+3. **Guide the user to add the new server** in the right panel with the new port and username.
 
-4. **Generate an SSH key pair** for the new user:
-```bash
-mkdir -p /home/$NEW_USER/.ssh && ssh-keygen -t ed25519 -f /home/$NEW_USER/.ssh/id_ed25519 -N "" -C "echobird-$NEW_USER" && cat /home/$NEW_USER/.ssh/id_ed25519.pub >> /home/$NEW_USER/.ssh/authorized_keys && chmod 700 /home/$NEW_USER/.ssh && chmod 600 /home/$NEW_USER/.ssh/authorized_keys && chown -R $NEW_USER:$NEW_USER /home/$NEW_USER/.ssh
-```
+4. **Phase 2 — Lock Down Old Access**: When the user says they've connected via the new server:
+   - Verify: `whoami && id && hostname`
+   - If old user was root, it's already blocked via sshd_config
+   - If old user was non-root, ask ONE confirmation then: `usermod -L <old_user> && usermod -s /usr/sbin/nologin <old_user>`
+   - Double-check: `sshd -t && systemctl restart sshd`
+   - Show final status
 
-5. **Harden sshd_config**: Change port, disable root login, disable password auth, add AllowUsers:
-```bash
-cp /etc/ssh/sshd_config /etc/ssh/sshd_config.backup.$(date +%s)
-sed -i "s/^#\?Port .*/Port $NEW_PORT/" /etc/ssh/sshd_config
-sed -i "s/^#\?PermitRootLogin .*/PermitRootLogin no/" /etc/ssh/sshd_config
-sed -i "s/^#\?PasswordAuthentication .*/PasswordAuthentication no/" /etc/ssh/sshd_config
-sed -i "s/^#\?PubkeyAuthentication .*/PubkeyAuthentication yes/" /etc/ssh/sshd_config
-grep -q "^AllowUsers" /etc/ssh/sshd_config && sed -i "s/^AllowUsers .*/AllowUsers $NEW_USER/" /etc/ssh/sshd_config || echo "AllowUsers $NEW_USER" >> /etc/ssh/sshd_config
-```
-
-6. **Open the new port in firewall** (ufw or firewalld):
-```bash
-if command -v ufw &>/dev/null; then ufw allow $NEW_PORT/tcp && ufw reload; elif command -v firewall-cmd &>/dev/null; then firewall-cmd --permanent --add-port=$NEW_PORT/tcp && firewall-cmd --reload; else iptables -A INPUT -p tcp --dport $NEW_PORT -j ACCEPT; fi
-```
-
-7. **Retrieve the private key** to show to the user:
-```bash
-cat /home/$NEW_USER/.ssh/id_ed25519
-```
-
-8. **Restart SSH** (do NOT close current session yet):
-```bash
-systemctl restart sshd || service sshd restart
-```
-
-After Phase 1, present a **summary card** to the user:
-- New SSH Port: `$NEW_PORT`
-- New Username: `$NEW_USER`
-- Auth: ED25519 key (show the private key and instruct user to save it)
-- Root Login: **Disabled**
-- Password Auth: **Disabled**
-
-Then tell the user:
-> "Your server is hardened! Please save the private key above.
-> **Next steps:**
-> 1. In the right panel, click **Add Server** with the new port (`$NEW_PORT`) and username (`$NEW_USER`)
-> 2. After adding, select the new server from the right panel
-> 3. Then click **Phase 2** below — I'll verify the new connection works and permanently lock out old access"
-
-### Phase 2: Verify & Lock Down (after user switches to new server)
-
-When the user confirms they've added the new server, run:
-1. Verify SSH connection works: `whoami && hostname && uptime`
-2. If the old user was `root`, confirm root is already disabled via sshd_config
-3. If the old user was a non-root user, offer to remove it: `userdel -r <old_user>` (ask confirmation first)
-4. Install fail2ban if not present: `apt-get install -y fail2ban || yum install -y fail2ban`
-5. Show final security status
+5. **Cloud users**: Always remind them to open the new port in their cloud security group (AWS/GCP/Azure/Alibaba/Tencent Cloud console).
 
 ---
 
 ## Quick Action: Show Internal/Public IP
 
-When the user clicks "Show Internal/Public IP", run these commands via `shell_exec`:
+When the user clicks "Show Internal/Public IP":
 
+1. **Fetch and run the network info script** via `shell_exec`:
 ```bash
-echo "=== Network Information ==="
-echo ""
-echo "--- Internal IPs ---"
-ip -4 addr show | grep inet | grep -v 127.0.0.1 | awk '{print $NF": "$2}'
-echo ""
-echo "--- Public IP ---"
-curl -s --max-time 5 https://api.ipify.org || curl -s --max-time 5 https://ifconfig.me || echo "Could not detect public IP"
-echo ""
-echo "--- Hostname ---"
-hostname -f 2>/dev/null || hostname
-echo ""
-echo "--- Open Ports (listening) ---"
-ss -tlnp 2>/dev/null | head -20 || netstat -tlnp 2>/dev/null | head -20
+curl -fsSL https://echobird.ai/api/tools/network-info.sh | bash
 ```
 
-After showing results, provide practical advice:
-- If the user wants mobile access, suggest port forwarding or a reverse proxy (e.g. frp, ngrok, Cloudflare Tunnel)
-- Show which services are listening and on which ports
-- Offer to set up frp or Cloudflare Tunnel if the user wants external access
+2. **Analyze the output and act automatically**:
+
+**If NAT=no (direct public IP):**
+- Tell user services are directly accessible at `<public_ip>:<port>`
+- Recommend firewall if not active
+
+**If NAT=yes (behind NAT — most common):**
+- Ask ONE question: "Want me to set up external access so your phone/laptop can reach this server from anywhere?"
+- If yes, auto-select the best tunnel tool (do NOT ask user to choose):
+
+**Decision tree:**
+1. frp already installed/running → configure frp
+2. cloudflared already installed → use Cloudflare Tunnel
+3. Neither → install frp from GitHub (most universal, no account needed):
+```bash
+FRP_VER=$(curl -s https://api.github.com/repos/fatedier/frp/releases/latest | grep tag_name | cut -d'"' -f4 | tr -d 'v')
+ARCH=$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')
+wget -q "https://github.com/fatedier/frp/releases/download/v${FRP_VER}/frp_${FRP_VER}_linux_${ARCH}.tar.gz" -O /tmp/frp.tar.gz
+tar -xzf /tmp/frp.tar.gz -C /opt/ && mv /opt/frp_${FRP_VER}_linux_${ARCH} /opt/frp
+```
+4. Detect server role (public-facing or behind NAT) → configure frps or frpc accordingly
+5. Create systemd service for auto-start
+6. Verify tunnel works and present the external access URL
 
 ---
 
 ## Quick Action: Detect Suspicious Activity
 
-When the user clicks "Detect Suspicious Activity", run a comprehensive security audit via `shell_exec`:
+When the user clicks "Detect Suspicious Activity":
 
+1. **Fetch and run the security audit script** via `shell_exec`:
 ```bash
-echo "=============================="
-echo "  SECURITY AUDIT REPORT"
-echo "=============================="
-echo ""
-
-echo "--- [1] Failed SSH Login Attempts (last 20) ---"
-grep "Failed password\|Invalid user" /var/log/auth.log 2>/dev/null | tail -20 || journalctl _COMM=sshd --no-pager -n 20 2>/dev/null | grep -i "failed\|invalid" || echo "No auth log accessible"
-
-echo ""
-echo "--- [2] Currently Logged-in Users ---"
-w 2>/dev/null || who
-
-echo ""
-echo "--- [3] Suspicious Processes (high CPU/MEM) ---"
-ps aux --sort=-%cpu | head -15
-
-echo ""
-echo "--- [4] Unusual Listening Ports ---"
-ss -tlnp 2>/dev/null || netstat -tlnp 2>/dev/null
-
-echo ""
-echo "--- [5] Recently Modified System Files (last 24h) ---"
-find /etc -type f -mtime -1 2>/dev/null | head -20
-
-echo ""
-echo "--- [6] Cron Jobs (all users) ---"
-for user in $(cut -f1 -d: /etc/passwd 2>/dev/null); do crontab -u $user -l 2>/dev/null | grep -v "^#" | while read -r line; do echo "$user: $line"; done; done
-cat /etc/crontab 2>/dev/null | grep -v "^#" | grep -v "^$"
-ls -la /etc/cron.d/ 2>/dev/null
-
-echo ""
-echo "--- [7] Unauthorized SSH Keys ---"
-find /home -name authorized_keys -exec echo "FILE: {}" \; -exec cat {} \; 2>/dev/null
-cat /root/.ssh/authorized_keys 2>/dev/null && echo "(root authorized_keys above)"
-
-echo ""
-echo "--- [8] Active Network Connections (ESTABLISHED) ---"
-ss -tnp state established 2>/dev/null | head -20 || netstat -tnp 2>/dev/null | grep ESTABLISHED | head -20
-
-echo ""
-echo "=============================="
-echo "  AUDIT COMPLETE"
-echo "=============================="
+curl -fsSL https://echobird.ai/api/tools/security-audit.sh | bash
 ```
 
-After the audit, analyze the results and report:
-- **RED FLAGS**: Unknown processes, crypto miners (look for processes like `xmrig`, `kdevtmpfsi`, `kinsing`), suspicious outbound connections to foreign IPs, unauthorized SSH keys, unusual cron jobs
-- **WARNINGS**: Failed SSH attempts from many IPs (brute force), old unpatched packages, wide-open ports
-- **RECOMMENDATIONS**: Specific actions to remediate any issues found
+2. **Analyze the output and categorize findings**:
 
-If suspicious activity is detected, immediately offer to:
-1. Kill the suspicious processes
-2. Remove unauthorized SSH keys
-3. Block suspicious IPs with iptables/ufw
-4. Install/configure fail2ban
+**RED FLAGS (ask ONE confirmation, then fix):**
+- Malware/miners detected → "I found malware: [names]. Kill and remove? (Y/N)"
+  - If yes: `kill -9 <PIDs>` + clean files from `/tmp`, `/var/tmp`, `/dev/shm` + remove malicious cron entries
+- Unauthorized SSH keys → show them and offer to remove unknown ones
+- Suspicious cron downloading scripts → offer to remove
+
+**WARNINGS (fix automatically):**
+- 100+ failed SSH attempts → auto-install fail2ban if missing
+- Top brute force IPs → auto-ban: `for ip in <list>; do iptables -A INPUT -s $ip -j DROP; done`
+- Port 22 / root login / password auth → suggest running "Harden Server Security"
+
+**INFO (just report):**
+- Normal services, uptime, kernel info, SSH key counts
+
+3. **Show the security score** from the script output and summarize what was fixed.
+
+
 
