@@ -394,7 +394,7 @@
             <div class="qr-card">
                 <div class="qr-box" id="qr-android"></div>
                 <span class="qr-label">Android</span>
-                <span class="qr-badge">v3.3.3</span>
+                <span class="qr-badge" id="qr-android-ver">...</span>
             </div>
 
             <!-- iOS placeholder -->
@@ -456,7 +456,33 @@
             var el = document.getElementById(elId);
             if (el) el.innerHTML = qr.createImgTag(4, 0);
         }
-        renderQR('qr-android', 'https://github.com/edison7009/Echobird-MotherAgent/releases/latest');
+        // Dynamic APK URL from GitHub API
+        (function() {
+            var REPO = 'edison7009/Echobird-MotherAgent';
+            var FALLBACK = 'https://github.com/' + REPO + '/releases/latest';
+            fetch('https://api.github.com/repos/' + REPO + '/releases/latest')
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    var tag = data.tag_name || '';
+                    var apkUrl = FALLBACK;
+                    if (tag) {
+                        var asset = (data.assets || []).find(function(a) {
+                            return a.name && a.name.toLowerCase().indexOf('android') !== -1 && a.name.toLowerCase().indexOf('.apk') !== -1;
+                        });
+                        apkUrl = asset
+                            ? asset.browser_download_url
+                            : 'https://github.com/' + REPO + '/releases/download/' + tag + '/Echobird-android-' + tag + '.apk';
+                        var badge = document.getElementById('qr-android-ver');
+                        if (badge) badge.textContent = tag;
+                    }
+                    renderQR('qr-android', apkUrl);
+                })
+                .catch(function() {
+                    renderQR('qr-android', FALLBACK);
+                    var badge = document.getElementById('qr-android-ver');
+                    if (badge) badge.textContent = 'Latest';
+                });
+        })();
 
         // ── i18n ──
         const LABELS = { en:'EN','zh-CN':'ZH','zh-TW':'ZH','ja':'JA','ko':'KO','es':'ES','fr':'FR','de':'DE','pt':'PT','ru':'RU','ar':'AR' };
