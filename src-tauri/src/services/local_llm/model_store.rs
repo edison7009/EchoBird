@@ -818,8 +818,16 @@ pub fn get_local_engine_status() -> serde_json::Value {
         .map(|i| i.version.as_str())
         .unwrap_or(FALLBACK_LLAMA_VERSION);
 
+    // vllm and sglang are Linux-only — skip detection on Windows/macOS
+    #[cfg(target_os = "linux")]
     let vllm_version = check_python_package("vllm");
+    #[cfg(not(target_os = "linux"))]
+    let vllm_version: Option<String> = None;
+
+    #[cfg(target_os = "linux")]
     let sglang_version = check_python_package("sglang");
+    #[cfg(not(target_os = "linux"))]
+    let sglang_version: Option<String> = None;
     let latest_vllm = versions.get("vllm").map(|i| i.version.clone());
     let latest_sglang = versions.get("sglang").map(|i| i.version.clone());
 
@@ -864,10 +872,16 @@ pub async fn install_local_engine(app_handle: tauri::AppHandle, runtime: String)
             download_llama_server(app_handle).await.map(|_| ())
         }
         "vllm" => {
-            install_pip_engine(&app_handle, "vllm", &runtime).await
+            #[cfg(target_os = "linux")]
+            { install_pip_engine(&app_handle, "vllm", &runtime).await }
+            #[cfg(not(target_os = "linux"))]
+            { Err("vllm is only supported on Linux".to_string()) }
         }
         "sglang" => {
-            install_pip_engine(&app_handle, "sglang[all]", &runtime).await
+            #[cfg(target_os = "linux")]
+            { install_pip_engine(&app_handle, "sglang[all]", &runtime).await }
+            #[cfg(not(target_os = "linux"))]
+            { Err("sglang is only supported on Linux".to_string()) }
         }
         other => {
             Err(format!("Unknown runtime: {}", other))
