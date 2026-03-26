@@ -20,7 +20,7 @@ export const NavItem = React.memo(({ icon, label, active = false, onClick, color
         <div
             className={`flex items-center gap-3 p-2 cursor-pointer transition-all rounded-lg ${active
                 ? colorClasses
-                : 'hover:bg-cyber-elevated text-cyber-text-secondary'
+                : 'hover:bg-cyber-input text-cyber-text-secondary'
                 }`}
             onClick={onClick}
         >

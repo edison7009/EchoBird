@@ -26,7 +26,7 @@ pub async fn command_exists(cmd: &str) -> bool {
     #[cfg(not(target_os = "android"))]
     { which::which(cmd).is_ok() }
     #[cfg(target_os = "android")]
-    { false }
+    { let _ = cmd; false }
 }
 
 /// Get the full path of a command
@@ -34,7 +34,7 @@ pub async fn get_command_path(cmd: &str) -> Option<String> {
     #[cfg(not(target_os = "android"))]
     { which::which(cmd).ok().map(|p| p.to_string_lossy().to_string()) }
     #[cfg(target_os = "android")]
-    { None }
+    { let _ = cmd; None }
 }
 
 /// Check if a Python module is installed (pip-installed tools like nanobot)

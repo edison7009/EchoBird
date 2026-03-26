@@ -414,13 +414,13 @@ const ModelListSection: React.FC<ModelListSectionProps> = ({
         return (
             <div
                 key={model.internalId}
-                className={`p-3 border rounded cursor-pointer transition-all mb-2 flex items-center gap-3 ${isSelected
+                className={`p-3 rounded cursor-pointer transition-all mb-2 flex items-center gap-3 ${isSelected
                     ? isLocalServer
-                        ? 'border-cyan-400 bg-cyan-400/10'
-                        : 'border-cyber-accent bg-cyber-accent/10'
+                        ? 'bg-cyan-400/10'
+                        : 'bg-cyber-accent/10'
                     : isLocalServer
-                        ? 'border-cyan-400/50 hover:border-cyan-400 bg-cyan-400/5'
-                        : 'border-cyber-border hover:border-cyber-accent/50'
+                        ? 'bg-black/30 hover:bg-cyan-400/5'
+                        : 'bg-black/30 hover:bg-white/5'
                     }`}
                 onClick={() => selectedTool && handleSelectModel(selectedTool, model.internalId)}
             >

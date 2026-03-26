@@ -80,6 +80,8 @@ User sends message to remote server
 
 // Chat
 → {"type": "chat", "message": "Hello", "session_id": "abc-123"}
+← {"type": "working", "elapsed_secs": 20}   // heartbeat every 20s (filtered by Tauri — never shown to user)
+← {"type": "working", "elapsed_secs": 40}   // resets 90s idle timeout in backend
 ← {"type": "text", "text": "Hi!", "session_id": "abc-123"}
 ← {"type": "done", "session_id": "abc-123"}
 
@@ -95,6 +97,7 @@ User sends message to remote server
 → {"type": "start_agent", "agent_id": "openclaw"}
 ← {"type": "agent_started", "agent_id": "openclaw", "success": true}
 ```
+
 
 ## Role File Deployment
 

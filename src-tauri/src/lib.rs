@@ -16,7 +16,9 @@ use commands::agent_commands;
 use commands::role_commands;
 
 use std::sync::Mutex;
-use tauri::{Emitter, Manager};
+#[cfg(not(target_os = "android"))]
+use tauri::Emitter;
+use tauri::Manager;
 #[cfg(not(target_os = "android"))]
 use tauri::menu::{MenuBuilder, MenuItemBuilder};
 #[cfg(not(target_os = "android"))]

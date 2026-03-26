@@ -283,5 +283,6 @@ pub async fn open_folder(path: String) -> Result<(), String> {
         return Err("Not available on mobile".to_string());
     }
 
+    #[cfg(not(target_os = "android"))]
     Ok(())
 }

@@ -343,7 +343,7 @@ export const LocalServerMain: React.FC = () => {
         const disabledStart = !isRunning && (!selectedModelPath || engineStatus === 'not-installed' || engineStatus === 'downloading' || engineStatus === 'checking' || engineStatus === 'error');
         const btnBase = 'font-bold text-base font-mono transition-all flex items-center justify-center gap-2 flex-shrink-0 rounded-lg';
         const btnActive = 'bg-cyber-accent text-black hover:bg-cyber-accent/90 shadow-[0_0_8px_rgba(0,255,157,0.15)] hover:shadow-[0_0_15px_rgba(0,255,157,0.35)]';
-        const btnDisabled = 'bg-cyber-border text-cyber-text-secondary cursor-not-allowed';
+        const btnDisabled = 'bg-cyber-border/60 text-cyber-text-secondary cursor-not-allowed';
         const btnStop = 'bg-red-500 text-white hover:bg-red-600 shadow-[0_0_8px_rgba(239,68,68,0.2)]';
 
         const startStopBtn = (
@@ -364,7 +364,9 @@ export const LocalServerMain: React.FC = () => {
             <button
                 onClick={() => engineInstallDir && api.openFolder(engineInstallDir)}
                 disabled={!engineInstallDir}
-                className={`py-3 px-3 ${btnBase} ${engineInstallDir ? btnActive : btnDisabled}`}
+                className={`py-3 px-3 ${btnBase} ${engineInstallDir
+                    ? 'bg-cyber-border/60 text-cyber-text-secondary hover:text-cyber-accent hover:bg-cyber-accent/20'
+                    : btnDisabled}`}
             >
                 <FolderOpen className="w-4 h-4" />
             </button>
@@ -571,7 +573,7 @@ export const LocalServerMain: React.FC = () => {
             {/* ===== Terminal Output ===== */}
             <div className="flex-1 flex flex-col overflow-hidden">
                 {/* Terminal header */}
-                <div className="flex items-center justify-between py-2 border-b border-cyber-border/30 flex-shrink-0">
+                <div className="flex items-center justify-between py-2 flex-shrink-0">
                     <div className="flex items-center gap-2 text-sm font-mono text-cyber-text-secondary">
                         <Terminal className="w-3 h-3" />
                         <span>{t('server.stdout')}</span>
@@ -580,7 +582,7 @@ export const LocalServerMain: React.FC = () => {
 
                 {/* Log area */}
                 <div className="relative flex-1">
-                    <div ref={logsContainerRef} onScroll={handleScroll} className="absolute inset-0 overflow-y-auto py-3 bg-cyber-border/60 font-mono text-sm space-y-0.5 custom-scrollbar rounded-lg">
+                    <div ref={logsContainerRef} onScroll={handleScroll} className="absolute inset-0 overflow-y-auto py-3 bg-cyber-input font-mono text-sm space-y-0.5 custom-scrollbar rounded-lg">
                         {logs.length === 0 && (
                             <div className="flex items-center justify-center" style={{ minHeight: 'calc(100% - 24px)' }}>
                                 <div className="font-mono text-center space-y-3">
@@ -908,13 +910,13 @@ export const LocalServerPanel: React.FC = () => {
                                     return (
                                         <div
                                             key={groupKey}
-                                            className={`p-3 border rounded transition-all ${isDeleteMode
+                                            className={`p-3 rounded transition-all ${isDeleteMode
                                                 ? (isGroupSelected
-                                                    ? 'border-red-500/50 bg-red-500/5'
-                                                    : 'border-cyber-border hover:border-red-500/30')
+                                                    ? 'bg-red-500/10'
+                                                    : 'bg-black/30 hover:bg-red-500/5')
                                                 : (selected
-                                                    ? 'border-green-500/50 bg-green-500/5'
-                                                    : 'border-cyber-border hover:border-green-500/30')
+                                                    ? 'bg-green-500/10'
+                                                    : 'bg-black/30 hover:bg-white/5')
                                                 }`}
                                         >
                                             {/* Card Header */}
@@ -1078,11 +1080,11 @@ export const LocalServerPanel: React.FC = () => {
                                     return (
                                         <div
                                             key={model.id}
-                                            className={`p-3 border rounded cursor-pointer transition-all ${isExpanded
-                                                ? 'border-cyan-400/50 bg-cyan-400/5'
+                                            className={`p-3 rounded cursor-pointer transition-all ${isExpanded
+                                                ? 'bg-cyan-400/10'
                                                 : hasDownloaded
-                                                    ? 'border-cyan-400/30 hover:border-cyan-400/50'
-                                                    : 'border-cyber-border hover:border-cyan-400/50'
+                                                    ? 'bg-black/30 hover:bg-cyan-400/5'
+                                                    : 'bg-black/30 hover:bg-white/5'
                                                 }`}
                                             onClick={() => setExpandedModelId(isExpanded ? null : model.id)}
                                         >

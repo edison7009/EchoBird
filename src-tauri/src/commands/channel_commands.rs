@@ -1168,53 +1168,73 @@ pub async fn bridge_chat_remote(
     let client = connections.get(&server_id)
         .ok_or_else(|| format!("SSH not connected: {}", server_id))?;
 
-    // Timeout: OpenClaw currently works in blocking mode; 5 minutes covers most tasks.
-    // The UI shows a "working" animation while waiting.
-    let result = match tokio::time::timeout(
-        std::time::Duration::from_secs(300), // 5 minutes
-        crate::commands::ssh_commands::execute_tolerant(client, &cmd)
-    ).await {
-        Ok(Ok(r)) => r,
-        Ok(Err(e)) => return Err(format!("SSH exec failed: {}", e)),
-        Err(_) => return Err("Bridge chat timed out (5 min). The agent may still be running — try resuming the session.".to_string()),
-    };
-
-    drop(connections); // Release lock
-
-    if result.exit_status != 0 && result.stdout.is_empty() {
-        return Err(format!("Bridge execution failed (exit {}): {}", result.exit_status, result.stderr));
-    }
-
-    // Parse Bridge JSON output (unified for all protocols)
+    // Heartbeat-aware streaming execution:
+    // - bridge binary emits {"type":"working","elapsed_secs":N} every 20s while agent runs
+    // - On each line received, idle timer resets (90s idle = truly dead connection)
+    // - No more hard 5-min timeout: the agent can run as long as it needs
     let mut response_text = String::new();
     let mut new_session_id: Option<String> = None;
     let mut parsed_bridge_json = false;
-    for line in result.stdout.lines() {
-        if let Ok(json) = serde_json::from_str::<serde_json::Value>(line) {
-            if let Some(msg_type) = json.get("type").and_then(|v| v.as_str()) {
-                parsed_bridge_json = true;
-                match msg_type {
-                    "text" => {
-                        if let Some(text) = json.get("text").and_then(|v| v.as_str()) {
-                            response_text.push_str(text);
+    let mut bridge_error: Option<String> = None;
+
+    let idle_timeout = std::time::Duration::from_secs(90);
+    let result = crate::commands::ssh_commands::execute_with_heartbeat(
+        client,
+        &cmd,
+        idle_timeout,
+        |line| {
+            // Called for each output line from the bridge subprocess.
+            // Parse JSON and collect text/done/error; silently drop working heartbeats.
+            if let Ok(json) = serde_json::from_str::<serde_json::Value>(line) {
+                if let Some(msg_type) = json.get("type").and_then(|v| v.as_str()) {
+                    match msg_type {
+                        "working" => {
+                            // Heartbeat from bridge — just log it, idle timer already reset
+                            let elapsed = json.get("elapsed_secs").and_then(|v| v.as_u64()).unwrap_or(0);
+                            log::info!("[BridgeChatRemote] agent working ({}s elapsed)", elapsed);
                         }
-                        if let Some(sid) = json.get("session_id").and_then(|v| v.as_str()) {
-                            new_session_id = Some(sid.to_string());
+                        "text" => {
+                            parsed_bridge_json = true;
+                            if let Some(text) = json.get("text").and_then(|v| v.as_str()) {
+                                response_text.push_str(text);
+                            }
+                            if let Some(sid) = json.get("session_id").and_then(|v| v.as_str()) {
+                                new_session_id = Some(sid.to_string());
+                            }
                         }
-                    }
-                    "done" => {
-                        if let Some(sid) = json.get("session_id").and_then(|v| v.as_str()) {
-                            new_session_id = Some(sid.to_string());
+                        "done" => {
+                            parsed_bridge_json = true;
+                            if let Some(sid) = json.get("session_id").and_then(|v| v.as_str()) {
+                                new_session_id = Some(sid.to_string());
+                            }
                         }
+                        "error" => {
+                            parsed_bridge_json = true;
+                            let msg = json.get("message").and_then(|v| v.as_str()).unwrap_or("Unknown error");
+                            bridge_error = Some(format!("Bridge error: {}", msg));
+                        }
+                        _ => {}
                     }
-                    "error" => {
-                        let msg = json.get("message").and_then(|v| v.as_str()).unwrap_or("Unknown error");
-                        return Err(format!("Bridge error: {}", msg));
-                    }
-                    _ => {}
                 }
             }
-        }
+        },
+    ).await;
+
+    drop(connections); // Release lock
+
+    // Propagate idle-timeout or SSH errors
+    let result = match result {
+        Ok(r) => r,
+        Err(e) => return Err(e),
+    };
+
+    // Propagate any bridge protocol error seen in streaming
+    if let Some(err) = bridge_error {
+        return Err(err);
+    }
+
+    if result.exit_status != 0 && result.stdout.is_empty() {
+        return Err(format!("Bridge execution failed (exit {}): {}", result.exit_status, result.stderr));
     }
 
     // Only fallback to raw stdout when Bridge returned NO valid protocol JSON
@@ -1231,6 +1251,8 @@ pub async fn bridge_chat_remote(
         duration_ms: None,
     })
 }
+
+
 
 // ── Remote Bridge CLI: Detect Agents ──
 

@@ -986,7 +986,7 @@ const ChannelsInner: React.FC = () => {
             {/* Input area */}
             {activeChannel && (
                 <div className="flex-shrink-0 mt-1 mb-1">
-                    <div className="bg-cyber-border/60 rounded-lg relative">
+                    <div className="bg-cyber-input rounded-lg relative">
                         <PendingChipsRow
                             files={attachments.map((a, i) => ({ id: String(i), name: a.name, type: a.type as 'file'|'image', preview: a.preview }))}
                             onRemoveFile={id => removeAttachment(Number(id))}
@@ -1095,9 +1095,9 @@ export function ChannelsPanel() {
                             <div
                                 key={ch.id}
                                 onClick={() => selectChannel(ch.id)}
-                                className={`w-full text-left p-3 transition-all font-mono border rounded-card cursor-pointer ${isActive
-                                    ? 'border-cyber-accent bg-cyber-accent/10 shadow-cyber-card'
-                                    : 'border-cyber-border shadow-cyber-card bg-black/80 hover:border-cyber-accent/30 hover:bg-black/90'
+                                className={`w-full text-left p-3 transition-all font-mono rounded-card cursor-pointer ${isActive
+                                    ? 'bg-cyber-accent/10'
+                                    : 'bg-black/30 hover:bg-white/5'
                                     }`}
                             >
                                 <div className="flex items-center gap-3">

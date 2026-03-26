@@ -89,16 +89,15 @@
     letter-spacing: 0.02em;
 }
 
-/* ── Server List (PC Channels Panel style) ── */
+/* ── Server List (Telegram-style divider list) ── */
 .server-list {
     flex: 1;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
     overscroll-behavior-y: contain;
-    padding: 8px;
+    padding: 0;
     display: flex;
     flex-direction: column;
-    gap: 10px;
     background-color: #0F1117;
     background-image:
         linear-gradient(rgba(40, 46, 63, 0.2) 1px, transparent 1px),
@@ -109,29 +108,30 @@
 .server-card {
     width: 100%;
     text-align: left;
-    padding: 12px;
-    font-family: 'JetBrains Mono', monospace;
-    border: 1px solid #2D3448;
-    border-radius: 8px;
+    padding: 16px 16px;
     cursor: pointer;
-    background: rgba(0,0,0,0.8);
-    box-shadow: 0 2px 10px rgba(0,0,0,0.5), 0 0 1px rgba(255,255,255,0.04);
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid rgba(45, 52, 72, 0.6);
+    border-radius: 0;
+    position: relative;
+    transition: background 0.08s ease;
 }
-.server-card.active {
-    border-color: #00FF9D;
-    background: rgba(0,255,157,0.1);
+/* Tap / press feedback — shown briefly before navigation */
+.server-card.pressed {
+    background: rgba(168, 181, 200, 0.12);
 }
 
 .server-card-row {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 14px;
 }
 
-/* Agent icon — transparent bg, 36x36, same as PC */
+/* Agent icon — 56x56 for comfortable touch target */
 .server-card-icon {
-    width: 60px;
-    height: 60px;
+    width: 56px;
+    height: 56px;
     flex-shrink: 0;
     border-radius: 10px;
     background: transparent;
@@ -150,7 +150,7 @@
 }
 .server-card-icon-fallback {
     color: rgba(168,181,200,0.4);
-    font-size: 22px;
+    font-size: 26px;
     font-weight: 700;
 }
 
@@ -163,11 +163,11 @@
     display: flex;
     align-items: center;
     gap: 4px;
-    margin-bottom: 4px;
+    margin-bottom: 6px;
 }
 
 .server-card-name {
-    font-size: 18px;
+    font-size: 20px;
     font-weight: 700;
     color: rgba(0,255,157,0.9);
     white-space: nowrap;
@@ -198,7 +198,7 @@
 }
 
 .server-card-status {
-    font-size: 13px;
+    font-size: 14px;
     color: rgba(168,181,200,0.7);
     white-space: nowrap;
     flex-shrink: 0;
@@ -210,7 +210,7 @@
 .server-card-status.error { color: #ef4444; }
 
 .server-card-sub {
-    font-size: 13px;
+    font-size: 14px;
     color: rgba(168,181,200,0.7);
     white-space: nowrap;
     overflow: hidden;
@@ -468,7 +468,7 @@
 
 .chat-input-box {
     flex: 1;
-    background: rgba(45,52,72,0.6);
+    background: rgba(28, 28, 30, 0.65);
     border-radius: 8px;
     position: relative;
     display: flex;
@@ -648,6 +648,19 @@
     margin-left: 8px;
     vertical-align: middle;
 }
+
+.detect-error-standalone {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    font-size: 12px;
+    color: #f87171;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-weight: 500;
+    line-height: 1.3;
+}
 .setup-agent-row {
     display: flex;
     gap: 8px;
@@ -698,17 +711,29 @@
 }
 
 .agent-running-dot {
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: #00FF9D;
-    animation: pulse 1.5s ease-in-out infinite;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 12px;
+    height: 12px;
     margin-left: 2px;
+    flex-shrink: 0;
+    animation: agentHeartbeat 0.9s ease-in-out infinite;
+    color: #FF5252;
 }
 
 @keyframes pulse {
     0%, 100% { opacity: 1; }
     50% { opacity: 0.3; }
+}
+
+@keyframes agentHeartbeat {
+    0%   { transform: scale(1); }
+    14%  { transform: scale(1.35); }
+    28%  { transform: scale(1); }
+    42%  { transform: scale(1.2); }
+    70%  { transform: scale(1); }
+    100% { transform: scale(1); }
 }
 
 /* Category tabs — touch-friendly pill style */
@@ -844,6 +869,7 @@
     word-break: keep-all;
     display: -webkit-box;
     -webkit-line-clamp: 2;
+    line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
 }
@@ -856,6 +882,7 @@
     margin-top: 2px;
     display: -webkit-box;
     -webkit-line-clamp: 2;
+    line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
 }

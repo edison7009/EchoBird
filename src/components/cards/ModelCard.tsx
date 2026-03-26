@@ -42,7 +42,7 @@ export const getModelIcon = (name: string, modelId?: string): string | null => {
 
 // Card skeleton (loading state)
 export const ModelCardSkeleton = () => (
-    <div className="h-48 p-4 border border-cyber-border bg-black/80 rounded-card shadow-cyber-card animate-pulse">
+    <div className="h-48 p-4 bg-black/30 rounded-card animate-pulse">
         <div className="h-3 w-16 bg-cyber-border rounded mb-2"></div>
         <div className="h-5 w-32 bg-cyber-border rounded mb-4"></div>
         <div className="space-y-2">
@@ -165,12 +165,12 @@ export const ModelCard = React.memo(({
 
     return (
         <div
-            className={`h-48 p-4 border ${isActive
-                ? 'border-cyber-accent shadow-[0_0_15px_rgba(0,255,157,0.3)] bg-cyber-accent/5'
+            className={`h-48 p-4 ${isActive
+                ? 'ring-1 ring-inset ring-cyber-accent/50 bg-cyber-accent/5'
                 : selected
-                    ? 'border-cyber-accent shadow-lg shadow-cyber-accent/20 bg-cyber-accent/5'
-                    : 'border-cyber-border'
-                } relative overflow-hidden rounded-card cursor-pointer transition-all hover:border-cyber-accent bg-black/80 shadow-cyber-card flex flex-col`}
+                    ? 'ring-1 ring-inset ring-cyber-accent/50 bg-cyber-accent/5'
+                    : 'bg-black/30 hover:bg-white/5'
+                } relative overflow-hidden rounded-card cursor-pointer transition-all shadow-cyber-card flex flex-col`}
             onClick={onClick}
         >
             {/* Action buttons — top right */}
