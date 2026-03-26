@@ -870,7 +870,7 @@ fn handle_start_agent(agent_id: &str) {
 
     // Agents with persistent gateway/serve mode get the appropriate subcommand
     let start_args: Vec<&str> = match agent_id {
-        "openclaw"  => vec!["gateway"],
+        "openclaw"  => vec!["gateway", "--allow-unconfigured"],
         "picoclaw"  => vec!["gateway"],
         "nanobot"   => vec!["gateway"],
         "hermes"    => vec!["gateway", "start"],
