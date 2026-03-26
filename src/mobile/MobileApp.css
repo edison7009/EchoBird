@@ -860,18 +860,19 @@
     z-index: 5;
 }
 .role-card-name {
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 700;
     text-align: center;
     line-height: 1.3;
     color: #00FF9D;
     text-shadow: 0 0 8px rgba(0,0,0,0.9), 0 0 16px rgba(0,0,0,0.7), 0 1px 3px rgba(0,0,0,1);
-    word-break: keep-all;
+    word-break: break-word;
     display: -webkit-box;
     -webkit-line-clamp: 2;
     line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
+    max-width: 100%;
 }
 .role-card-desc {
     font-size: 12px;

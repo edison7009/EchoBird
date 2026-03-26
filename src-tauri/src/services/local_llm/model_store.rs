@@ -738,6 +738,7 @@ async fn download_engine_file(
 
 // ─── Engine status detection ───
 
+#[allow(dead_code)]
 fn check_python_package(package: &str) -> Option<String> {
     #[cfg(windows)]
     let result = {
@@ -821,16 +822,16 @@ pub fn get_local_engine_status(runtime_filter: Option<&str>) -> serde_json::Valu
     let latest_llama    = versions.get("llama-server").map(|i| i.version.as_str()).unwrap_or(FALLBACK_LLAMA_VERSION);
 
     // ── vllm / sglang — Linux-only + only when explicitly selected ───────────
-    let check_vllm   = runtime_filter.map(|r| r == "vllm").unwrap_or(false);
-    let check_sglang = runtime_filter.map(|r| r == "sglang").unwrap_or(false);
+    let _check_vllm   = runtime_filter.map(|r| r == "vllm").unwrap_or(false);
+    let _check_sglang = runtime_filter.map(|r| r == "sglang").unwrap_or(false);
 
     #[cfg(target_os = "linux")]
-    let vllm_version = if check_vllm { check_python_package("vllm") } else { None };
+    let vllm_version = if _check_vllm { check_python_package("vllm") } else { None };
     #[cfg(not(target_os = "linux"))]
     let vllm_version: Option<String> = None;
 
     #[cfg(target_os = "linux")]
-    let sglang_version = if check_sglang { check_python_package("sglang") } else { None };
+    let sglang_version = if _check_sglang { check_python_package("sglang") } else { None };
     #[cfg(not(target_os = "linux"))]
     let sglang_version: Option<String> = None;
 
@@ -896,6 +897,7 @@ pub async fn install_local_engine(app_handle: tauri::AppHandle, runtime: String)
 }
 
 /// Install a Python package via pip3, emitting download-progress events for UI
+#[allow(dead_code)]
 async fn install_pip_engine(
     app_handle: &tauri::AppHandle,
     package: &str,

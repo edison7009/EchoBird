@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback, createContext, useCont
 import { Paperclip, ImageIcon, Send, X, ChevronDown, Square, Lock, RotateCcw, ChevronLeft, ChevronRight, ChevronsDown, Globe, Info, CheckCircle, HelpCircle, ChevronUp, Code, Search, X as XIcon, FileText, Sparkles, Plus, Bot, Database, Settings2 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { MiniSelect } from '../components/MiniSelect';
+import { RemoteModelSelector, type ModelOption } from '../components/RemoteModelSelector';
 import { getModelIcon } from '../components/cards/ModelCard';
 import { PendingChipsRow } from '../components/PendingChipsRow';
 import { ChatBubble, type BubbleChip } from '../components/chat';
@@ -517,6 +517,12 @@ export function MotherAgentMain() {
         maDiskTotal, loadOlderChat,
     } = useMotherAgent();
 
+    // Build model list for RemoteModelSelector (with icons)
+    const modelList: ModelOption[] = React.useMemo(() =>
+        models.map(m => ({ id: m.internalId, name: m.name, icon: getModelIcon(m.name, m.modelId) })),
+        [models],
+    );
+
     // Listen for clear-chat event from title bar
     useEffect(() => {
         const handler = () => clearChat();
@@ -813,13 +819,14 @@ export function MotherAgentMain() {
                         <div className="flex items-center gap-1 relative">
                         </div>
                         <div className="flex items-center gap-2">
-                            <span className="text-xs font-mono text-cyber-accent-secondary/80 truncate max-w-[160px]">
-                                {(() => {
-                                    if (selectedServerId === 'local') return t('mother.local');
-                                    const server = sshServers.find(s => s.id === selectedServerId);
-                                    return server ? server.host : t('mother.noServer');
-                                })()}
-                            </span>
+                            <RemoteModelSelector
+                                models={modelList}
+                                currentModelId={agentModel}
+                                loading={false}
+                                onSelect={(id) => setAgentModel(id || null)}
+                                placeholder={t('mother.selectModel')}
+                                variant="mother"
+                            />
                             {isProcessing ? (
                                 <button
                                     onClick={() => abortAgent()}
@@ -846,23 +853,7 @@ export function MotherAgentMain() {
     );
 }
 
-// ===== Title Bar Model Selector =====
-export function MotherAgentModelSelector() {
-    const { models, agentModel, setAgentModel } = useMotherAgent();
-    const { t } = useI18n();
-    return (
-        <MiniSelect
-            value={agentModel || ''}
-            onChange={(val) => setAgentModel(val || null)}
-            options={[
-                { id: '', label: t('mother.selectModel') },
-                ...models.map(m => ({ id: m.internalId, label: m.name }))
-            ]}
-            className="ml-auto w-52 min-w-[180px]"
-            accent="blue"
-        />
-    );
-}
+
 
 // ===== Right Panel (aside area) — SERVERS =====
 export function MotherAgentPanel() {

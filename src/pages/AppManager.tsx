@@ -409,7 +409,7 @@ const ModelListSection: React.FC<ModelListSectionProps> = ({
             }
         })();
 
-        const iconSrc = isLocalServer ? null : getModelIcon(model.name, model.modelId || '');
+        const iconSrc = getModelIcon(model.name, model.modelId || '');
 
         return (
             <div
@@ -432,12 +432,16 @@ const ModelListSection: React.FC<ModelListSectionProps> = ({
                         }`}>
                         {isSelected && <div className={`w-2 h-2 rounded-full ${isLocalServer ? 'bg-cyan-400' : 'bg-cyber-accent'}`} />}
                     </div>
-                    {isLocalServer ? (
+                    {iconSrc ? (
+                        <img src={iconSrc} alt="" className="w-6 h-6" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                    ) : isLocalServer ? (
                         <div className="w-6 h-6 rounded bg-cyan-400/15 flex items-center justify-center text-cyan-400">
                             <ServerIcon size={14} />
                         </div>
                     ) : (
-                        iconSrc && <img src={iconSrc} alt="" className="w-6 h-6" />
+                        <div className="w-6 h-6 rounded bg-cyber-accent/15 flex items-center justify-center text-cyber-accent">
+                            <BoxIcon size={14} />
+                        </div>
                     )}
                 </div>
 

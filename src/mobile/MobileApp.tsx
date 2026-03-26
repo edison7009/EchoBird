@@ -892,7 +892,12 @@ function MobileApp() {
                                 const isTyping = isActive && loading;
                                 const hasNew = hasNewMessages[s.id] && !isActive;
                                 // Show selected agent icon or "?" fallback
-                                const serverAgent = isActive && selectedAgent ? selectedAgent : null;
+                                // For active server: use live state; for others: read persisted agent from localStorage
+                                const serverAgent = (() => {
+                                    if (isActive && selectedAgent) return selectedAgent;
+                                    const savedId = localStorage.getItem(`mb_agent_${s.id}`);
+                                    return savedId ? AGENT_LIST.find(a => a.id === savedId) || null : null;
+                                })();
                                 return (
                                     <div
                                         key={s.id}

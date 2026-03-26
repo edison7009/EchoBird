@@ -61,3 +61,8 @@ plugins/*/bridge/target/
 tools/*/target/
 roles/en/
 roles/zh-Hans/
+
+# Android signing keystore (NEVER commit — store in GitHub Secrets)
+*.keystore
+*-keystore-b64.txt
+Echobird-MotherAgent/

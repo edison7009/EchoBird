@@ -15,6 +15,7 @@ interface RemoteModelSelectorProps {
     loading: boolean;
     onSelect: (modelId: string) => void;
     placeholder?: string;
+    variant?: 'channels' | 'mother';
 }
 
 export const RemoteModelSelector: React.FC<RemoteModelSelectorProps> = ({
@@ -23,7 +24,9 @@ export const RemoteModelSelector: React.FC<RemoteModelSelectorProps> = ({
     loading,
     onSelect,
     placeholder = 'Select model',
+    variant = 'channels',
 }) => {
+    const isMother = variant === 'mother';
     const [isOpen, setIsOpen] = useState(false);
     const containerRef = useRef<HTMLDivElement>(null);
 
@@ -53,6 +56,19 @@ export const RemoteModelSelector: React.FC<RemoteModelSelectorProps> = ({
     const displayText = currentModel?.name || placeholder;
     const displayIcon = currentModel?.icon;
 
+    // Full static class strings for Tailwind JIT (no dynamic concatenation)
+    const triggerClass = isMother
+        ? 'flex items-center gap-1.5 px-2 py-1 text-xs font-mono text-cyber-accent-secondary transition-colors rounded hover:bg-white/8 active:bg-white/12 disabled:cursor-default'
+        : 'flex items-center gap-1.5 px-2 py-1 text-xs font-mono text-cyber-accent transition-colors rounded hover:bg-white/8 active:bg-white/12 disabled:cursor-default';
+    const spinClass = isMother ? 'animate-spin text-cyber-accent-secondary/70' : 'animate-spin text-cyber-accent/70';
+    const selectedItemClass = isMother
+        ? 'text-cyber-accent-secondary bg-cyber-accent-secondary/10'
+        : 'text-cyber-accent bg-cyber-accent/10';
+    const unselectedItemClass = isMother
+        ? 'text-cyber-text hover:bg-white/8 hover:text-cyber-accent-secondary'
+        : 'text-cyber-text hover:bg-white/8 hover:text-cyber-accent';
+    const checkClass = isMother ? 'flex-shrink-0 ml-1 text-cyber-accent-secondary' : 'flex-shrink-0 ml-1 text-cyber-accent';
+
     return (
         <div ref={containerRef} className="relative">
             {/* Trigger button — icon + text + arrow, no bg/border */}
@@ -60,12 +76,10 @@ export const RemoteModelSelector: React.FC<RemoteModelSelectorProps> = ({
                 type="button"
                 onClick={() => !loading && setIsOpen(!isOpen)}
                 disabled={loading}
-                className="flex items-center gap-1.5 px-2 py-1 text-xs font-mono text-cyber-accent transition-colors rounded
-                    hover:bg-white/8 active:bg-white/12
-                    disabled:cursor-default"
+                className={triggerClass}
             >
                 {loading ? (
-                    <Loader2 size={12} className="animate-spin text-cyber-accent/70" />
+                    <Loader2 size={12} className={spinClass} />
                 ) : (
                     <>
                         {displayIcon && (
@@ -102,10 +116,7 @@ export const RemoteModelSelector: React.FC<RemoteModelSelectorProps> = ({
                                 setIsOpen(false);
                             }}
                             className={`flex items-center gap-2 px-3 py-2 cursor-pointer text-xs font-mono transition-colors
-                                ${model.id === currentModelId
-                                    ? 'text-cyber-accent bg-cyber-accent/10'
-                                    : 'text-cyber-text hover:bg-white/8 hover:text-cyber-accent'
-                                }`}
+                                ${model.id === currentModelId ? selectedItemClass : unselectedItemClass}`}
                         >
                             {model.icon && (
                                 <img
@@ -117,7 +128,7 @@ export const RemoteModelSelector: React.FC<RemoteModelSelectorProps> = ({
                             )}
                             <span className="truncate flex-1">{model.name}</span>
                             {model.id === currentModelId && (
-                                <Check size={12} className="flex-shrink-0 ml-1 text-cyber-accent" />
+                                <Check size={12} className={checkClass} />
                             )}
                         </div>
                     ))}

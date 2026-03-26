@@ -216,8 +216,7 @@ const ChannelsInner: React.FC = () => {
         : channelKey === 1 ? 'local'
         : (channels.find(c => c.id === channelKey)?.address || `ch_${channelKey}`).replace(/[^a-zA-Z0-9._-]/g, '_');
 
-    // Agent/role selections are runtime-only — not persisted to localStorage.
-    // If server is offline on next visit, UI starts fresh with "?" state.
+    // Agent selection is persisted to localStorage keyed by channel address
 
     // ─── Stable disk key derived from channel address (computed early from channels state) ───
     // e.g. activeId=1 → 'local', SSH → 'eben_192.168.10.39'
@@ -328,6 +327,17 @@ const ChannelsInner: React.FC = () => {
             const all = [localChannel, ...sshChannels];
             setChannels(all);
             if (!preserveActiveId) setActiveId(all[0].id);
+
+            // Restore persisted agent selections from localStorage
+            const restored: Record<number, string> = {};
+            for (const ch of all) {
+                const stableKey = ch.id === 1 ? 'local' : ch.address.replace(/[^a-zA-Z0-9._-]/g, '_');
+                const saved = localStorage.getItem(`ch_agent_${stableKey}`);
+                if (saved) restored[ch.id] = saved;
+            }
+            if (Object.keys(restored).length > 0) {
+                setAllActiveAgents(prev => ({ ...prev, ...restored }));
+            }
         } catch (e) {
             console.error('[Channels] Failed to load data:', e);
         }
@@ -1039,6 +1049,14 @@ const ChannelsInner: React.FC = () => {
                 onSelectAgent={(name) => {
                     const previousAgent = allActiveAgents[channelKey] || '';
                     setActiveAgentFor(channelKey, name);
+                    // Persist agent selection to localStorage
+                    if (channelFileKeyForPersist) {
+                        if (name) {
+                            localStorage.setItem(`ch_agent_${channelFileKeyForPersist}`, name);
+                        } else {
+                            localStorage.removeItem(`ch_agent_${channelFileKeyForPersist}`);
+                        }
+                    }
                     // Any agent change (switch or clear) → full reset to initial state
                     if (previousAgent !== name) {
                         // Clear remote model + model list (avoids stale flash)
