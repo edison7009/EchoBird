@@ -1,14 +1,14 @@
 {
-    "version": "3.4.1",
+    "version": "3.4.3",
     "releaseDate": "2026-03-26T00:00:00Z",
-    "releaseNotes": "1. [Fix] API format for OpenClaw is restored to standard OpenAI, resolving both local and remote connection errors.\n2. [Update] Remote CLI Bridge is rebuilt with identical model connection fixes.\n\nEnjoy the seamless AI agent experience!",
+    "releaseNotes": "1. [Fix] Critical: API format for OpenClaw is restored to standard OpenAI (`openai-completions`), resolving complete connection failures on Gateway hot-reloads.\n2. [Update] Remote CLI Bridge is rebuilt with identical model connection fixes.\n\nEnjoy the seamless AI agent experience! (v3.4.1/v3.4.2 skipped due to CI network errors)",
     "windows": {
-        "url": "https://github.com/edison7009/Echobird-MotherAgent/releases/latest/download/EchoBird_3.4.1_x64-setup.exe"
+        "url": "https://github.com/edison7009/Echobird-MotherAgent/releases/latest/download/EchoBird_3.4.3_x64-setup.exe"
     },
     "macos": {
-        "url": "https://github.com/edison7009/Echobird-MotherAgent/releases/latest/download/EchoBird_3.4.1_aarch64.dmg"
+        "url": "https://github.com/edison7009/Echobird-MotherAgent/releases/latest/download/EchoBird_3.4.3_aarch64.dmg"
     },
     "linux": {
-        "url": "https://github.com/edison7009/Echobird-MotherAgent/releases/latest/download/EchoBird_3.4.1_amd64.AppImage"
+        "url": "https://github.com/edison7009/Echobird-MotherAgent/releases/latest/download/EchoBird_3.4.3_amd64.AppImage"
     }
 }
