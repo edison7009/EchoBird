@@ -1,1 +1,1 @@
-{"version":"3.3.5","releaseDate":"2026-03-25","releaseNotes":"Mother Agent security suite (SSH hardening, network diagnostics, intrusion detection), proactive risk alerts, 28-language i18n, AI Model Store refresh, MiMo icon fix"}
+{"version":"3.3.6","releaseDate":"2026-03-26","releaseNotes":"Bridge heartbeat protocol (20s ping, 90s idle timeout), heartbeat animation on chat and role picker, Deep Gray UI theme, card selection ring style, mobile setup error layout fix, Android build warnings cleared"}
