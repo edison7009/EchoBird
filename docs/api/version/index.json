@@ -1,1 +1,1 @@
-{"version":"3.3.6","releaseDate":"2026-03-26","releaseNotes":"Bridge heartbeat protocol (20s ping, 90s idle timeout), heartbeat animation on chat and role picker, Deep Gray UI theme, card selection ring style, mobile setup error layout fix, Android build warnings cleared"}
+{"version":"3.3.7","releaseDate":"2026-03-26","releaseNotes":"Fixed: CLI windows no longer flash on startup (Windows users affected by v3.3.6)"}
