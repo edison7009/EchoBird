@@ -1,14 +1,14 @@
 {
-    "version": "3.4.0",
+    "version": "3.4.1",
     "releaseDate": "2026-03-26T00:00:00Z",
-    "releaseNotes": "1. [New] Mobile server list shows last-used agent icon for all servers.\n2. [Fix] Mobile role card names now wrap correctly for long CJK text (max 2 lines with ellipsis).\n3. [Update] Bridge binaries updated, model selector and channel persistence improvements.\n\nEnjoy the seamless AI agent experience!",
+    "releaseNotes": "1. [Fix] API format for OpenClaw is restored to standard OpenAI, resolving both local and remote connection errors.\n2. [Update] Remote CLI Bridge is rebuilt with identical model connection fixes.\n\nEnjoy the seamless AI agent experience!",
     "windows": {
-        "url": "https://github.com/edison7009/Echobird-MotherAgent/releases/latest/download/EchoBird_3.4.0_x64-setup.exe"
+        "url": "https://github.com/edison7009/Echobird-MotherAgent/releases/latest/download/EchoBird_3.4.1_x64-setup.exe"
     },
     "macos": {
-        "url": "https://github.com/edison7009/Echobird-MotherAgent/releases/latest/download/EchoBird_3.4.0_aarch64.dmg"
+        "url": "https://github.com/edison7009/Echobird-MotherAgent/releases/latest/download/EchoBird_3.4.1_aarch64.dmg"
     },
     "linux": {
-        "url": "https://github.com/edison7009/Echobird-MotherAgent/releases/latest/download/EchoBird_3.4.0_amd64.AppImage"
+        "url": "https://github.com/edison7009/Echobird-MotherAgent/releases/latest/download/EchoBird_3.4.1_amd64.AppImage"
     }
 }
