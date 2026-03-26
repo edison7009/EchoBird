@@ -573,7 +573,7 @@ export const LocalServerMain: React.FC = () => {
             {/* ===== Terminal Output ===== */}
             <div className="flex-1 flex flex-col overflow-hidden">
                 {/* Terminal header */}
-                <div className="flex items-center justify-between py-2 border-b border-cyber-border/30 flex-shrink-0">
+                <div className="flex items-center justify-between py-2 flex-shrink-0">
                     <div className="flex items-center gap-2 text-sm font-mono text-cyber-text-secondary">
                         <Terminal className="w-3 h-3" />
                         <span>{t('server.stdout')}</span>
@@ -582,7 +582,7 @@ export const LocalServerMain: React.FC = () => {
 
                 {/* Log area */}
                 <div className="relative flex-1">
-                    <div ref={logsContainerRef} onScroll={handleScroll} className="absolute inset-0 overflow-y-auto py-3 bg-cyber-border/60 font-mono text-sm space-y-0.5 custom-scrollbar rounded-lg">
+                    <div ref={logsContainerRef} onScroll={handleScroll} className="absolute inset-0 overflow-y-auto py-3 bg-cyber-input font-mono text-sm space-y-0.5 custom-scrollbar rounded-lg">
                         {logs.length === 0 && (
                             <div className="flex items-center justify-center" style={{ minHeight: 'calc(100% - 24px)' }}>
                                 <div className="font-mono text-center space-y-3">

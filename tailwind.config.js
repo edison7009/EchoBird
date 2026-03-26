@@ -17,6 +17,7 @@ export default {
                 'cyber-text': '#E0F7FA',
                 'cyber-text-secondary': '#E2E8F0',
                 'cyber-text-muted': '#A8B5C8',
+                'cyber-input': 'rgba(28, 28, 30, 0.65)',
             },
             fontFamily: {
                 mono: ['JetBrains Mono', 'ui-monospace', 'monospace'],
