@@ -166,9 +166,9 @@ export const ModelCard = React.memo(({
     return (
         <div
             className={`h-48 p-4 ${isActive
-                ? 'bg-cyber-accent/10'
+                ? 'ring-1 ring-inset ring-cyber-accent/50 bg-cyber-accent/5'
                 : selected
-                    ? 'bg-cyber-accent/10'
+                    ? 'ring-1 ring-inset ring-cyber-accent/50 bg-cyber-accent/5'
                     : 'bg-black/30 hover:bg-white/5'
                 } relative overflow-hidden rounded-card cursor-pointer transition-all shadow-cyber-card flex flex-col`}
             onClick={onClick}

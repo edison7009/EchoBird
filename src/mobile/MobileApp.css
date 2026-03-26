@@ -108,32 +108,32 @@
 .server-card {
     width: 100%;
     text-align: left;
-    padding: 10px 16px;
+    padding: 16px 16px;
     cursor: pointer;
     background: transparent;
     border: none;
     border-bottom: 1px solid rgba(45, 52, 72, 0.6);
     border-radius: 0;
     position: relative;
+    transition: background 0.08s ease;
 }
-.server-card.active {
-    background: rgba(0, 255, 157, 0.05);
-    border-left: 3px solid #00FF9D;
-    padding-left: 13px;
+/* Tap / press feedback — shown briefly before navigation */
+.server-card.pressed {
+    background: rgba(168, 181, 200, 0.12);
 }
 
 .server-card-row {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 14px;
 }
 
-/* Agent icon — 48x48, matches Telegram contact list avatar size */
+/* Agent icon — 56x56 for comfortable touch target */
 .server-card-icon {
-    width: 48px;
-    height: 48px;
+    width: 56px;
+    height: 56px;
     flex-shrink: 0;
-    border-radius: 8px;
+    border-radius: 10px;
     background: transparent;
     display: flex;
     align-items: center;
@@ -150,7 +150,7 @@
 }
 .server-card-icon-fallback {
     color: rgba(168,181,200,0.4);
-    font-size: 22px;
+    font-size: 26px;
     font-weight: 700;
 }
 
@@ -163,11 +163,11 @@
     display: flex;
     align-items: center;
     gap: 4px;
-    margin-bottom: 4px;
+    margin-bottom: 6px;
 }
 
 .server-card-name {
-    font-size: 18px;
+    font-size: 20px;
     font-weight: 700;
     color: rgba(0,255,157,0.9);
     white-space: nowrap;
@@ -198,7 +198,7 @@
 }
 
 .server-card-status {
-    font-size: 13px;
+    font-size: 14px;
     color: rgba(168,181,200,0.7);
     white-space: nowrap;
     flex-shrink: 0;
@@ -210,7 +210,7 @@
 .server-card-status.error { color: #ef4444; }
 
 .server-card-sub {
-    font-size: 13px;
+    font-size: 14px;
     color: rgba(168,181,200,0.7);
     white-space: nowrap;
     overflow: hidden;
@@ -468,7 +468,7 @@
 
 .chat-input-box {
     flex: 1;
-    background: rgba(45,52,72,0.6);
+    background: rgba(28, 28, 30, 0.65);
     border-radius: 8px;
     position: relative;
     display: flex;
@@ -647,6 +647,19 @@
     font-weight: 400;
     margin-left: 8px;
     vertical-align: middle;
+}
+
+.detect-error-standalone {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    font-size: 12px;
+    color: #f87171;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-weight: 500;
+    line-height: 1.3;
 }
 .setup-agent-row {
     display: flex;
@@ -856,6 +869,7 @@
     word-break: keep-all;
     display: -webkit-box;
     -webkit-line-clamp: 2;
+    line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
 }
@@ -868,6 +882,7 @@
     margin-top: 2px;
     display: -webkit-box;
     -webkit-line-clamp: 2;
+    line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
 }

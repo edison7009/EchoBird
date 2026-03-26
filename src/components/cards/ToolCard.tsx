@@ -35,7 +35,7 @@ export const ToolCard = React.memo(({ id, name, version, installed, path, detect
 
     return (
         <div
-            className={`p-5 min-h-[160px] ${selected ? 'bg-cyber-accent/10' : 'bg-black/30'} relative overflow-hidden rounded-card ${installed ? 'cursor-pointer hover:bg-white/5' : 'cursor-default opacity-80'} transition-all flex flex-col`}
+            className={`p-5 min-h-[160px] ${selected ? 'ring-1 ring-inset ring-cyber-accent/50 bg-cyber-accent/5' : 'bg-black/30'} relative overflow-hidden rounded-card ${installed ? 'cursor-pointer hover:bg-white/5' : 'cursor-default opacity-80'} transition-all flex flex-col`}
             onClick={handleCardClick}
         >
             {/* Tool icon top-right */}

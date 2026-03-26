@@ -297,6 +297,8 @@ function MobileApp() {
     const [connectionStatus, setConnectionStatus] = useState<'standby' | 'connecting' | 'connected' | 'disconnected'>('standby');
     // Has new (unread) messages — per server, for red dot on server list
     const [hasNewMessages, setHasNewMessages] = useState<Record<string, boolean>>({});
+    // Pressed server id — transient tap feedback before navigation
+    const [pressedServerId, setPressedServerId] = useState<string | null>(null);
     // Cache remote agent detection (avoid repeated SSH round-trips)
     const remoteAgentCacheRef = useRef<Record<string, any[]>>({});
     // Track last applied role per server to avoid redundant set_role calls
@@ -451,51 +453,56 @@ function MobileApp() {
         return () => document.removeEventListener('mousedown', handler);
     }, [showModelMenu]);
 
-    // ── Open server → go to chat ──
+    // ── Open server → go to chat (with press feedback + 150ms delay) ──
     const openServer = (server: SSHServer) => {
-        // Save current server's state before switching
-        if (activeServer) {
-            serverStateCache.current[activeServer.id] = {
-                chatMessages,
-                selectedAgent,
-                selectedRole,
-                selectedModel,
-                sessionId,
-                connectionStatus,
-            };
-        }
+        // Immediately show tap feedback
+        setPressedServerId(server.id);
+        setTimeout(() => {
+            setPressedServerId(null);
+            // Save current server's state before switching
+            if (activeServer) {
+                serverStateCache.current[activeServer.id] = {
+                    chatMessages,
+                    selectedAgent,
+                    selectedRole,
+                    selectedModel,
+                    sessionId,
+                    connectionStatus,
+                };
+            }
 
-        // Restore cached state for target server (or reset if first visit)
-        const cached = serverStateCache.current[server.id];
-        setActiveServer(server);
-        if (cached) {
-            setChatMessages(cached.chatMessages);
-            setSelectedAgent(cached.selectedAgent);
-            setSelectedRole(cached.selectedRole);
-            setSelectedModel(cached.selectedModel);
-            setSessionId(cached.sessionId);
-            setConnectionStatus(cached.connectionStatus);
-        } else {
-            setChatMessages([]);
-            setSessionId(undefined);
-            setConnectionStatus('standby');
-            // Restore agent/role/model from localStorage (survives app restart)
-            const savedAgentId = localStorage.getItem(`mb_agent_${server.id}`);
-            const savedAgent = savedAgentId ? AGENT_LIST.find(a => a.id === savedAgentId) || null : null;
-            setSelectedAgent(savedAgent);
-            // Restore role from localStorage (full object JSON)
-            try {
-                const savedRoleJson = localStorage.getItem(`mb_role_${server.id}`);
-                setSelectedRole(savedRoleJson ? JSON.parse(savedRoleJson) : null);
-            } catch { setSelectedRole(null); }
-            setSelectedModel(null); // model will be restored after models load
-            // Trigger model load for restored agent
-            if (savedAgent) doLoadModels(savedAgent.id);
-        }
-        setShowModelMenu(false);
-        // Clear hasNew for this server
-        setHasNewMessages(prev => ({ ...prev, [server.id]: false }));
-        navigateTo('chat');
+            // Restore cached state for target server (or reset if first visit)
+            const cached = serverStateCache.current[server.id];
+            setActiveServer(server);
+            if (cached) {
+                setChatMessages(cached.chatMessages);
+                setSelectedAgent(cached.selectedAgent);
+                setSelectedRole(cached.selectedRole);
+                setSelectedModel(cached.selectedModel);
+                setSessionId(cached.sessionId);
+                setConnectionStatus(cached.connectionStatus);
+            } else {
+                setChatMessages([]);
+                setSessionId(undefined);
+                setConnectionStatus('standby');
+                // Restore agent/role/model from localStorage (survives app restart)
+                const savedAgentId = localStorage.getItem(`mb_agent_${server.id}`);
+                const savedAgent = savedAgentId ? AGENT_LIST.find(a => a.id === savedAgentId) || null : null;
+                setSelectedAgent(savedAgent);
+                // Restore role from localStorage (full object JSON)
+                try {
+                    const savedRoleJson = localStorage.getItem(`mb_role_${server.id}`);
+                    setSelectedRole(savedRoleJson ? JSON.parse(savedRoleJson) : null);
+                } catch { setSelectedRole(null); }
+                setSelectedModel(null); // model will be restored after models load
+                // Trigger model load for restored agent
+                if (savedAgent) doLoadModels(savedAgent.id);
+            }
+            setShowModelMenu(false);
+            // Clear hasNew for this server
+            setHasNewMessages(prev => ({ ...prev, [server.id]: false }));
+            navigateTo('chat');
+        }, 150);
     };
 
     // ── Load chat history from disk when entering server with no cached messages ──
@@ -889,7 +896,7 @@ function MobileApp() {
                                 return (
                                     <div
                                         key={s.id}
-                                        className={`server-card ${isActive ? 'active' : ''}`}
+                                        className={`server-card${pressedServerId === s.id ? ' pressed' : ''}`}
                                         onClick={() => openServer(s)}
                                     >
                                         <div className="server-card-row">
@@ -902,7 +909,7 @@ function MobileApp() {
                                             </div>
                                             <div className="server-card-info">
                                                 <div className="server-card-name-row">
-                                                    <span className={`server-card-name ${isActive ? 'active' : ''}`}>
+                                                    <span className="server-card-name">
                                                         {serverDisplayName(s)}
                                                     </span>
                                                     <div className={`server-status-dot ${hasNew ? 'has-new' : isLinked ? 'connected' : isConnecting ? 'connecting' : isError ? 'error' : 'standby'}`} />
@@ -1132,12 +1139,15 @@ function MobileApp() {
                             <ChevronLeft size={22} />
                         </button>
                         <h2 className="mobile-title">
-                            {t('channel.selectRoleAgent')}
-                            {detecting && (
-                                <Loader2 size={16} className="spin" style={{ marginLeft: 8, display: 'inline-block', verticalAlign: 'middle' }} />
-                            )}
-                            {detectError && !detecting && (
-                                <span className="detect-error-text">{t('error.serverUnreachable')}</span>
+                            {detectError && !detecting ? (
+                                <span className="detect-error-standalone">{t('error.serverUnreachable')}</span>
+                            ) : (
+                                <>
+                                    {t('channel.selectRoleAgent')}
+                                    {detecting && (
+                                        <Loader2 size={16} className="spin" style={{ marginLeft: 8, display: 'inline-block', verticalAlign: 'middle' }} />
+                                    )}
+                                </>
                             )}
                         </h2>
                         <div className="mobile-header-spacer" />
