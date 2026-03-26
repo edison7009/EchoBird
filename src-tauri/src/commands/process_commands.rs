@@ -204,8 +204,8 @@ pub fn get_system_info() -> SystemInfo {
 }
 
 #[tauri::command]
-pub fn get_local_engine_status() -> serde_json::Value {
-    local_llm::get_local_engine_status()
+pub fn get_local_engine_status(runtime: Option<String>) -> serde_json::Value {
+    local_llm::get_local_engine_status(runtime.as_deref())
 }
 
 #[tauri::command]

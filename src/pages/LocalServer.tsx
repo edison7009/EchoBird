@@ -210,7 +210,7 @@ export const LocalServerMain: React.FC = () => {
         const check = async () => {
             setEngineStatus('checking');
             try {
-                const status = await api.getLocalEngineStatus();
+                const status = await api.getLocalEngineStatus(runtime);
                 const entry = status.engines.find(e => e.name === runtime);
                 if (entry?.installDir) setEngineInstallDir(entry.installDir);
                 // Reset names first so stale data from previous runtime doesn't linger

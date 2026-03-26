@@ -239,8 +239,8 @@ export interface LocalEngineStatus {
     engines: LocalEngineEntry[];
 }
 
-export async function getLocalEngineStatus(): Promise<LocalEngineStatus> {
-    return invoke('get_local_engine_status');
+export async function getLocalEngineStatus(runtime?: string): Promise<LocalEngineStatus> {
+    return invoke('get_local_engine_status', { runtime: runtime ?? null });
 }
 
 export async function installLocalEngine(runtime: string): Promise<void> {

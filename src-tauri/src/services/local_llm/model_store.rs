@@ -808,27 +808,33 @@ fn get_installed_llama_version() -> Option<String> {
     })
 }
 
-/// Get installation status for all supported local runtimes
-pub fn get_local_engine_status() -> serde_json::Value {
-    let llama_installed = LocalLlmServer::find_llama_server().is_some();
-    let installed_ver = get_installed_llama_version().unwrap_or_default();
-    let binary_names = get_installed_llama_binary_names();
+/// Get installation status for the specified runtime only (lazy — avoids unnecessary pip3 calls).
+/// Pass `runtime_filter = None` to check all engines (legacy / admin use).
+pub fn get_local_engine_status(runtime_filter: Option<&str>) -> serde_json::Value {
     let versions = get_engine_versions();
-    let latest_llama = versions.get("llama-server")
-        .map(|i| i.version.as_str())
-        .unwrap_or(FALLBACK_LLAMA_VERSION);
 
-    // vllm and sglang are Linux-only — skip detection on Windows/macOS
+    // ── llama-server (always cheap — binary lookup, no pip) ──────────────────
+    let check_llama = runtime_filter.map(|r| r == "llama-server").unwrap_or(true);
+    let llama_installed = if check_llama { LocalLlmServer::find_llama_server().is_some() } else { false };
+    let installed_ver   = if check_llama { get_installed_llama_version().unwrap_or_default() } else { String::new() };
+    let binary_names    = if check_llama { get_installed_llama_binary_names() } else { vec![] };
+    let latest_llama    = versions.get("llama-server").map(|i| i.version.as_str()).unwrap_or(FALLBACK_LLAMA_VERSION);
+
+    // ── vllm / sglang — Linux-only + only when explicitly selected ───────────
+    let check_vllm   = runtime_filter.map(|r| r == "vllm").unwrap_or(false);
+    let check_sglang = runtime_filter.map(|r| r == "sglang").unwrap_or(false);
+
     #[cfg(target_os = "linux")]
-    let vllm_version = check_python_package("vllm");
+    let vllm_version = if check_vllm { check_python_package("vllm") } else { None };
     #[cfg(not(target_os = "linux"))]
     let vllm_version: Option<String> = None;
 
     #[cfg(target_os = "linux")]
-    let sglang_version = check_python_package("sglang");
+    let sglang_version = if check_sglang { check_python_package("sglang") } else { None };
     #[cfg(not(target_os = "linux"))]
     let sglang_version: Option<String> = None;
-    let latest_vllm = versions.get("vllm").map(|i| i.version.clone());
+
+    let latest_vllm   = versions.get("vllm").map(|i| i.version.clone());
     let latest_sglang = versions.get("sglang").map(|i| i.version.clone());
 
     serde_json::json!({
