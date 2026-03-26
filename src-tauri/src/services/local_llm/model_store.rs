@@ -739,6 +739,16 @@ async fn download_engine_file(
 // ─── Engine status detection ───
 
 fn check_python_package(package: &str) -> Option<String> {
+    #[cfg(windows)]
+    let result = {
+        use std::os::windows::process::CommandExt;
+        const CREATE_NO_WINDOW: u32 = 0x08000000;
+        Command::new("pip3")
+            .args(["show", package])
+            .creation_flags(CREATE_NO_WINDOW)
+            .output()
+    };
+    #[cfg(not(windows))]
     let result = Command::new("pip3")
         .args(["show", package])
         .output();
@@ -893,6 +903,23 @@ async fn install_pip_engine(
         let app = app.clone();
         move || {
             // Try primary install
+            #[cfg(windows)]
+            let status = {
+                use std::os::windows::process::CommandExt;
+                const CREATE_NO_WINDOW: u32 = 0x08000000;
+                Command::new("pip3")
+                    .args([
+                        "install", &package,
+                        "--upgrade",
+                        "-i", "https://pypi.tuna.tsinghua.edu.cn/simple",
+                        "--trusted-host", "pypi.tuna.tsinghua.edu.cn",
+                    ])
+                    .stdout(std::process::Stdio::piped())
+                    .stderr(std::process::Stdio::piped())
+                    .creation_flags(CREATE_NO_WINDOW)
+                    .spawn()
+            };
+            #[cfg(not(windows))]
             let status = Command::new("pip3")
                 .args([
                     "install", &package,
@@ -937,6 +964,16 @@ async fn install_pip_engine(
                                 total: 0,
                                 status: "installing".to_string(),
                             });
+                            #[cfg(windows)]
+                            let result2 = {
+                                use std::os::windows::process::CommandExt;
+                                const CREATE_NO_WINDOW: u32 = 0x08000000;
+                                Command::new("pip3")
+                                    .args(["install", &package, "--upgrade"])
+                                    .creation_flags(CREATE_NO_WINDOW)
+                                    .output()
+                            };
+                            #[cfg(not(windows))]
                             let result2 = Command::new("pip3")
                                 .args(["install", &package, "--upgrade"])
                                 .output();
