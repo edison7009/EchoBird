@@ -1,14 +1,14 @@
 {
-    "version": "3.3.9",
+    "version": "3.4.0",
     "releaseDate": "2026-03-26T00:00:00Z",
-    "releaseNotes": "1. [Fix] Remote agent communication auto-detects roles and parses instructions correctly.\n2. [Fix] Android version QR code updates dynamically, providing direct APK installation without GitHub jumps.\n3. [Update] System core upgrades and internal bug fixes.\n\nEnjoy the seamless AI agent experience!",
+    "releaseNotes": "1. [New] Mobile server list shows last-used agent icon for all servers.\n2. [Fix] Mobile role card names now wrap correctly for long CJK text (max 2 lines with ellipsis).\n3. [Update] Bridge binaries updated, model selector and channel persistence improvements.\n\nEnjoy the seamless AI agent experience!",
     "windows": {
-        "url": "https://github.com/edison7009/Echobird-MotherAgent/releases/latest/download/EchoBird_3.3.9_x64-setup.exe"
+        "url": "https://github.com/edison7009/Echobird-MotherAgent/releases/latest/download/EchoBird_3.4.0_x64-setup.exe"
     },
     "macos": {
-        "url": "https://github.com/edison7009/Echobird-MotherAgent/releases/latest/download/EchoBird_3.3.9_aarch64.dmg"
+        "url": "https://github.com/edison7009/Echobird-MotherAgent/releases/latest/download/EchoBird_3.4.0_aarch64.dmg"
     },
     "linux": {
-        "url": "https://github.com/edison7009/Echobird-MotherAgent/releases/latest/download/EchoBird_3.3.9_amd64.AppImage"
+        "url": "https://github.com/edison7009/Echobird-MotherAgent/releases/latest/download/EchoBird_3.4.0_amd64.AppImage"
     }
 }
