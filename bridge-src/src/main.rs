@@ -1072,7 +1072,7 @@ fn handle_set_model(agent_id: &str, model_id: &str, model_name: &str, api_key: &
             let is_anthropic = api_type == "anthropic"
                 || model_id.to_lowercase().contains("claude")
                 || base_url.to_lowercase().contains("anthropic");
-            let oc_api_type = if is_anthropic { "anthropic" } else { "openai" };
+            let oc_api_type = if is_anthropic { "anthropic-messages" } else { "openai-completions" };
 
             let oc_config = serde_json::json!({
                 "models": {
