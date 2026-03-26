@@ -466,12 +466,7 @@
                     var tag = data.tag_name || '';
                     var apkUrl = FALLBACK;
                     if (tag) {
-                        var asset = (data.assets || []).find(function(a) {
-                            return a.name && a.name.toLowerCase().indexOf('android') !== -1 && a.name.toLowerCase().indexOf('.apk') !== -1;
-                        });
-                        apkUrl = asset
-                            ? asset.browser_download_url
-                            : 'https://github.com/' + REPO + '/releases/download/' + tag + '/Echobird-android-' + tag + '.apk';
+                        apkUrl = 'https://dl.echobird.ai/releases/' + tag + '/Echobird-android-' + tag + '.apk';
                         var badge = document.getElementById('qr-android-ver');
                         if (badge) badge.textContent = tag;
                     }
