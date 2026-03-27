@@ -1,1 +1,1 @@
-{"version": "3.4.8","releaseDate": "2026-03-27","releaseNotes": "Fix agent role switching for persistent agents, empty response detection, build error fix"}
+{"version": "3.4.9","releaseDate": "2026-03-27","releaseNotes": "Fix mobile role switching for OpenClaw, empty response detection"}
