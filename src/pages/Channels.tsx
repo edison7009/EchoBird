@@ -807,7 +807,7 @@ const ChannelsInner: React.FC = () => {
                     if (roleKey !== lastApplied) {
                         // Restart persistent agents to clear memory before role change
                         // openclaw: reads SOUL.md only at session start — must restart to pick up new role
-                        if (['openclaw', 'nanobot', 'zeroclaw', 'picoclaw', 'hermes'].includes(agentId)) {
+                        if (['openclaw'].includes(agentId)) {
                             try {
                                 console.info('[Bridge] Restarting local agent to apply new role:', agentId);
                                 await api.stopTool(agentId);
@@ -831,7 +831,7 @@ const ChannelsInner: React.FC = () => {
                     const agentId = agentEntry?.id || '';
                     try {
                         // Restart persistent agents to clear memory before clearing role
-                        if (['openclaw', 'nanobot', 'zeroclaw', 'picoclaw', 'hermes'].includes(agentId)) {
+                        if (['openclaw'].includes(agentId)) {
                             console.info('[Bridge] Restarting local agent to clear role:', agentId);
                             await api.stopTool(agentId);
                             await api.startTool(agentId);
@@ -846,11 +846,17 @@ const ChannelsInner: React.FC = () => {
 
                 const result = await api.bridgeChatLocal(text, bridgeSessionId, undefined, role?.name);
                 if (result.session_id) setBridgeSessionId(result.session_id);
-                setBridgeMessages(prev => [...prev, {
-                    role: 'assistant',
-                    content: result.text,
-                    meta: { model: result.model, tokens: result.tokens, duration_ms: result.duration_ms },
-                }]);
+                if (!result.text || result.text.trim() === '') {
+                    // Empty response from agent — show error instead of invisible bubble
+                    window.dispatchEvent(new CustomEvent('chat-error'));
+                    setBridgeMessages(prev => [...prev, { role: 'system', content: 'Agent returned an empty response. The agent process may have crashed — try sending again.' }]);
+                } else {
+                    setBridgeMessages(prev => [...prev, {
+                        role: 'assistant',
+                        content: result.text,
+                        meta: { model: result.model, tokens: result.tokens, duration_ms: result.duration_ms },
+                    }]);
+                }
                 // Mark channel as having new message (for red dot when user is on another channel)
                 setAllBridgeHasNew(prev => ({ ...prev, [channelKey]: true }));
             } else {
@@ -922,7 +928,7 @@ const ChannelsInner: React.FC = () => {
                             try {
                                 // Restart persistent agents to clear memory before role change
                                 // openclaw: reads SOUL.md only at session start — must stop process so bridge restarts it fresh
-                                if (['openclaw', 'nanobot', 'zeroclaw', 'picoclaw', 'hermes'].includes(agentId)) {
+                                if (['openclaw'].includes(agentId)) {
                                     console.info('[Bridge] Restarting remote agent to apply new role:', agentId);
                                     await api.bridgeStopAgentRemote(serverId, agentId);
                                     // Note: bridge auto-restarts openclaw on next chat message, no explicit start_agent needed
@@ -942,7 +948,7 @@ const ChannelsInner: React.FC = () => {
                         const lastRoleId = lastApplied.split(':')[1] || '';
                         try {
                             // Restart persistent agents to clear memory before clearing role
-                            if (['openclaw', 'nanobot', 'zeroclaw', 'picoclaw', 'hermes'].includes(agentId)) {
+                            if (['openclaw'].includes(agentId)) {
                                 console.info('[Bridge] Restarting remote agent to clear role:', agentId);
                                 await api.bridgeStopAgentRemote(serverId, agentId);
                                 // Note: bridge auto-restarts openclaw on next chat message, no explicit start_agent needed
@@ -961,14 +967,23 @@ const ChannelsInner: React.FC = () => {
                     // Success → now mark as connected
                     setBridgeConnectionStatus('connected');
                     // Remove the working hint before adding the real reply
-                    setBridgeMessages(prev => {
-                        const cleaned = prev.filter(m => m.content !== WORKING_MARKER);
-                        return [...cleaned, {
-                            role: 'assistant',
-                            content: result.text,
-                            meta: { model: result.model, tokens: result.tokens, duration_ms: result.duration_ms },
-                        }];
-                    });
+                    if (!result.text || result.text.trim() === '') {
+                        // Empty response from agent — show error instead of invisible bubble
+                        window.dispatchEvent(new CustomEvent('chat-error'));
+                        setBridgeMessages(prev => {
+                            const cleaned = prev.filter(m => m.content !== WORKING_MARKER);
+                            return [...cleaned, { role: 'system', content: 'Agent returned an empty response. The agent process may have crashed — try sending again.' }];
+                        });
+                    } else {
+                        setBridgeMessages(prev => {
+                            const cleaned = prev.filter(m => m.content !== WORKING_MARKER);
+                            return [...cleaned, {
+                                role: 'assistant',
+                                content: result.text,
+                                meta: { model: result.model, tokens: result.tokens, duration_ms: result.duration_ms },
+                            }];
+                        });
+                    }
                     if (result.session_id) setBridgeSessionId(result.session_id);
                     setAllBridgeHasNew(prev => ({ ...prev, [channelKey]: true }));
                 } catch (remoteErr: any) {
