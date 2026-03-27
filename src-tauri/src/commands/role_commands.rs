@@ -34,7 +34,7 @@ const AGENT_TOOL_IDS: &[&str] = &[
 pub async fn detect_local_agents() -> Vec<AgentStatus> {
     let detected = tool_manager::scan_tools().await;
     // We already have a get_running_tools endpoint that checks process existence
-    let running_tools = tool_manager::get_running_tools().await;
+    let running_tools = crate::services::process_manager::get_running_tools().await;
 
     AGENT_TOOL_IDS.iter().map(|&agent_id| {
         let tool = detected.iter().find(|t| t.id == agent_id);
