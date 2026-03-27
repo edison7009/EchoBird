@@ -697,6 +697,12 @@ const ChannelsInner: React.FC = () => {
                     effectiveBaseUrl,
                     effectiveProtocol,
                 );
+                // Restart persistent agents to clear memory and reload config
+                if (['nanobot', 'zeroclaw', 'picoclaw', 'hermes'].includes(agentEntry.id)) {
+                    console.info('[Bridge] Restarting local agent to apply new model:', agentEntry.id);
+                    await api.stopTool(agentEntry.id);
+                    await api.startTool(agentEntry.id);
+                }
             } else {
                 if (!activeChannel?.serverId) throw new Error('No server ID');
                 await api.bridgeSetRemoteModel(
@@ -708,6 +714,12 @@ const ChannelsInner: React.FC = () => {
                     effectiveBaseUrl,
                     effectiveProtocol,
                 );
+                // Restart persistent agents to clear memory and reload config
+                if (['nanobot', 'zeroclaw', 'picoclaw', 'hermes'].includes(agentEntry.id)) {
+                    console.info('[Bridge] Restarting remote agent to apply new model:', agentEntry.id);
+                    await api.bridgeStopAgentRemote(String(activeChannel.serverId), agentEntry.id);
+                    await api.bridgeStartAgentRemote(String(activeChannel.serverId), agentEntry.id);
+                }
             }
             setAllRemoteModels(prev => ({ ...prev, [channelKey]: { id: selected.internalId, name: selected.name } }));
         } catch (e) {
@@ -793,6 +805,18 @@ const ChannelsInner: React.FC = () => {
 
                     // Re-apply if role or agent changed
                     if (roleKey !== lastApplied) {
+                        // Restart persistent agents to clear memory before role change
+                        // openclaw: reads SOUL.md only at session start — must restart to pick up new role
+                        if (['openclaw', 'nanobot', 'zeroclaw', 'picoclaw', 'hermes'].includes(agentId)) {
+                            try {
+                                console.info('[Bridge] Restarting local agent to apply new role:', agentId);
+                                await api.stopTool(agentId);
+                                await api.startTool(agentId);
+                            } catch (e) {
+                                console.warn('[Bridge] Failed to restart local agent (non-fatal):', e);
+                            }
+                        }
+
                         // Let errors propagate to outer catch — shows as send failure
                         await api.bridgeSetRoleLocal(agentId, role.id, roleUrl);
 
@@ -806,6 +830,12 @@ const ChannelsInner: React.FC = () => {
                     const agentEntry = AGENT_LIST.find(a => a.name === selectedAgent);
                     const agentId = agentEntry?.id || '';
                     try {
+                        // Restart persistent agents to clear memory before clearing role
+                        if (['openclaw', 'nanobot', 'zeroclaw', 'picoclaw', 'hermes'].includes(agentId)) {
+                            console.info('[Bridge] Restarting local agent to clear role:', agentId);
+                            await api.stopTool(agentId);
+                            await api.startTool(agentId);
+                        }
                         await api.bridgeSetRoleLocal(agentId, '', '');
                         setBridgeSessionId(undefined);
                         lastAppliedRoleRef.current[channelKey] = '';
@@ -890,6 +920,13 @@ const ChannelsInner: React.FC = () => {
                         const roleKey = `${agentId}:${role.id}`;
                         if (roleKey !== lastApplied) {
                             try {
+                                // Restart persistent agents to clear memory before role change
+                                // openclaw: reads SOUL.md only at session start — must stop process so bridge restarts it fresh
+                                if (['openclaw', 'nanobot', 'zeroclaw', 'picoclaw', 'hermes'].includes(agentId)) {
+                                    console.info('[Bridge] Restarting remote agent to apply new role:', agentId);
+                                    await api.bridgeStopAgentRemote(serverId, agentId);
+                                    // Note: bridge auto-restarts openclaw on next chat message, no explicit start_agent needed
+                                }
                                 await api.bridgeSetRoleRemote(serverId, agentId, role.id, roleUrl);
                                 lastAppliedRoleRef.current[channelKey] = roleKey;
                                 // Force new session so agent reads updated role file
@@ -904,6 +941,12 @@ const ChannelsInner: React.FC = () => {
                         // Pass actual previous role_id (not empty string)
                         const lastRoleId = lastApplied.split(':')[1] || '';
                         try {
+                            // Restart persistent agents to clear memory before clearing role
+                            if (['openclaw', 'nanobot', 'zeroclaw', 'picoclaw', 'hermes'].includes(agentId)) {
+                                console.info('[Bridge] Restarting remote agent to clear role:', agentId);
+                                await api.bridgeStopAgentRemote(serverId, agentId);
+                                // Note: bridge auto-restarts openclaw on next chat message, no explicit start_agent needed
+                            }
                             await api.bridgeClearRoleRemote(serverId, agentId, lastRoleId);
                             setBridgeSessionId(undefined);
                             lastAppliedRoleRef.current[channelKey] = '';
