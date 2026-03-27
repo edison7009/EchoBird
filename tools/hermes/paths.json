@@ -20,7 +20,9 @@
         ],
         "linux": [
             "/usr/local/bin/hermes",
-            "/usr/bin/hermes"
+            "/usr/bin/hermes",
+            "~/.local/bin/hermes",
+            "~/.hermes/hermes-agent/venv/bin/hermes"
         ]
     },
     "skillsPath": {

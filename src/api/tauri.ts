@@ -422,6 +422,10 @@ export async function bridgeStartAgentRemote(serverId: string, agentId: string):
     return invoke('bridge_start_agent_remote', { serverId, agentId });
 }
 
+export async function bridgeStopAgentRemote(serverId: string, agentId: string): Promise<unknown> {
+    return invoke('bridge_stop_agent_remote', { serverId, agentId });
+}
+
 // Remote model read/write
 
 export interface RemoteModelResult {

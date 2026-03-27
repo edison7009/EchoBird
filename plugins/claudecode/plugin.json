@@ -20,11 +20,9 @@
             "{sessionId}"
         ],
         "sessionArg": "--session-id",
-        "sessionMode": "always",
         "modelArg": "--model",
         "systemPromptArg": "--system-prompt",
         "systemPromptWhen": "new-session",
-        "agentArg": "--agent",
         "messageMode": "last-arg"
     }
 }

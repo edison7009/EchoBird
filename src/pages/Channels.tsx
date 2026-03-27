@@ -685,7 +685,7 @@ const ChannelsInner: React.FC = () => {
             const isAnthropicAgent = anthropicOnlyAgents.includes(agentEntry.id);
             const effectiveBaseUrl = isAnthropicAgent
                 ? (selected.anthropicUrl || selected.baseUrl || '')
-                : (selected.baseUrl || '');
+                : (selected.baseUrl || selected.anthropicUrl || '');
             const effectiveProtocol = isAnthropicAgent ? 'anthropic' : 'openai';
 
             if (isLocalChannel) {
@@ -697,11 +697,16 @@ const ChannelsInner: React.FC = () => {
                     effectiveBaseUrl,
                     effectiveProtocol,
                 );
-                // Restart persistent agents to clear memory and reload config
-                if (['nanobot', 'zeroclaw', 'picoclaw', 'hermes'].includes(agentEntry.id)) {
-                    console.info('[Bridge] Restarting local agent to apply new model:', agentEntry.id);
-                    await api.stopTool(agentEntry.id);
-                    await api.startTool(agentEntry.id);
+                // Restart persistent agents (stdio-json protocol) to clear memory and reload config
+                // cli-oneshot agents (zeroclaw, picoclaw, claudecode) don't need restart — they read config fresh each message
+                if (['nanobot', 'hermes'].includes(agentEntry.id)) {
+                    try {
+                        console.info('[Bridge] Restarting local agent to apply new model:', agentEntry.id);
+                        await api.stopTool(agentEntry.id);
+                        await api.startTool(agentEntry.id);
+                    } catch (restartErr) {
+                        console.warn('[Bridge] Agent restart failed (non-fatal):', restartErr);
+                    }
                 }
             } else {
                 if (!activeChannel?.serverId) throw new Error('No server ID');
@@ -714,14 +719,20 @@ const ChannelsInner: React.FC = () => {
                     effectiveBaseUrl,
                     effectiveProtocol,
                 );
-                // Restart persistent agents to clear memory and reload config
-                if (['nanobot', 'zeroclaw', 'picoclaw', 'hermes'].includes(agentEntry.id)) {
-                    console.info('[Bridge] Restarting remote agent to apply new model:', agentEntry.id);
-                    await api.bridgeStopAgentRemote(String(activeChannel.serverId), agentEntry.id);
-                    await api.bridgeStartAgentRemote(String(activeChannel.serverId), agentEntry.id);
+                // Restart persistent agents (stdio-json protocol) — same logic as local
+                if (['nanobot', 'hermes'].includes(agentEntry.id)) {
+                    try {
+                        console.info('[Bridge] Restarting remote agent to apply new model:', agentEntry.id);
+                        await api.bridgeStopAgentRemote(String(activeChannel.serverId), agentEntry.id);
+                        await api.bridgeStartAgentRemote(String(activeChannel.serverId), agentEntry.id);
+                    } catch (restartErr) {
+                        console.warn('[Bridge] Remote agent restart failed (non-fatal):', restartErr);
+                    }
                 }
             }
             setAllRemoteModels(prev => ({ ...prev, [channelKey]: { id: selected.internalId, name: selected.name } }));
+            // Clear session so next chat starts fresh with new model config
+            setBridgeSessionId(undefined);
         } catch (e) {
             // Rollback to previous model
             setAllRemoteModels(prev => ({ ...prev, [channelKey]: previousModel }));
@@ -776,8 +787,11 @@ const ChannelsInner: React.FC = () => {
         setBridgeLoading(true);
         try {
             if (isLocalChannel) {
-                // Local channel: auto-start bridge subprocess if needed
-                if (bridgeConnectionStatus !== 'connected') {
+                // Local channel: always call bridgeStart — backend handles:
+                // - Same agent already running → returns immediately (no-op)
+                // - Different agent → kills old bridge + starts new one
+                // This ensures agent switches (e.g. OpenClaw → Claude Code) work correctly
+                {
                     setBridgeConnectionStatus('connecting');
                     const selectedAgent = allActiveAgents[channelKey] || '';
                     const agentEntry = AGENT_LIST.find(a => a.name === selectedAgent);

@@ -546,7 +546,9 @@ fn bridge_chat_sync(message: String, session_id: Option<String>, system_prompt: 
         drop(guard);
 
         if needs_start {
-            log::info!("[BridgeChat] Bridge not running, auto-starting...");
+            // Bridge should already be started by frontend's bridge_start() call.
+            // This is a safety fallback — log a warning so we can detect if this ever triggers.
+            log::warn!("[BridgeChat] Bridge not running — frontend should have started it. Falling back to openclaw.");
             let start_result = start_bridge_internal("openclaw")?;
             if start_result.status != "connected" {
                 return Err(format!("Failed to start bridge: {:?}", start_result.error));
@@ -558,8 +560,21 @@ fn bridge_chat_sync(message: String, session_id: Option<String>, system_prompt: 
     let mut guard = BRIDGE_PROCESS.lock().map_err(|e| format!("Lock error: {}", e))?;
     let bp = guard.as_mut().ok_or_else(|| "Bridge not running".to_string())?;
 
+    // Extract plugin CLI config to check if sessionMode == "always"
+    let plugins = crate::services::plugin_manager::scan_plugins();
+    let plugin_config = plugins.iter().find(|p| p.id == bp.plugin_id);
+    let session_mode_always = plugin_config
+        .and_then(|p| p.cli.as_ref())
+        .and_then(|cli| cli.session_mode.as_deref())
+        == Some("always");
+
     // Use stored session_id if caller doesn't provide one
-    let effective_sid = session_id.or_else(|| bp.session_id.clone());
+    let mut effective_sid = session_id.or_else(|| bp.session_id.clone());
+
+    // Auto-generate UUID for new sessions if plugin requires it
+    if effective_sid.is_none() && session_mode_always {
+        effective_sid = Some(uuid::Uuid::new_v4().to_string());
+    }
 
     // Build JSON input for bridge protocol
     // If we have a session_id from a previous message, use "resume" to continue the session
@@ -759,8 +774,9 @@ fn bridge_set_role_sync(agent_id: String, role_id: String, url: String) -> Resul
         drop(guard);
 
         if needs_start {
-            log::info!("[BridgeSetRoleLocal] Bridge not running, auto-starting...");
-            let start_result = start_bridge_internal("openclaw")?;
+            // Use the agent_id from the role being set — not hardcoded openclaw
+            log::info!("[BridgeSetRoleLocal] Bridge not running, auto-starting for agent: {}", agent_id);
+            let start_result = start_bridge_internal(&agent_id)?;
             if start_result.status != "connected" {
                 return Err(format!("Failed to start bridge: {:?}", start_result.error));
             }
@@ -798,6 +814,9 @@ fn bridge_set_role_sync(agent_id: String, role_id: String, url: String) -> Resul
                     match json.get("type").and_then(|v| v.as_str()) {
                         Some("role_set") => {
                             log::info!("[BridgeSetRoleLocal] SUCCESS: role_set received");
+                            // Clear stored session so next chat starts fresh
+                            // (SOUL.md is only read at session start)
+                            bp.session_id = None;
                             return Ok(json);
                         }
                         Some("error") => {
@@ -834,6 +853,8 @@ pub async fn bridge_set_role_local(
                     });
                     let _ = writeln!(bp.stdin, "{}", clear_json.to_string());
                     let _ = bp.stdin.flush();
+                    // Clear stored session so next chat starts fresh
+                    bp.session_id = None;
                     log::info!("[BridgeSetRoleLocal] Sent clear_role to Bridge for {}", agent_id);
                 }
             }
@@ -1114,11 +1135,22 @@ pub async fn bridge_chat_remote(
     let plugin_config = plugins.iter().find(|p| p.id == plugin);
     let _protocol = plugin_config.map(|p| p.protocol.as_str()).unwrap_or("stdio-json");
 
+    let session_mode_always = plugin_config
+        .and_then(|p| p.cli.as_ref())
+        .and_then(|cli| cli.session_mode.as_deref())
+        == Some("always");
+
+    let effective_session_id = if session_id.is_none() && session_mode_always {
+        Some(uuid::Uuid::new_v4().to_string())
+    } else {
+        session_id.clone()
+    };
+
     let agent_command = if let Some(p) = plugin_config {
         if let Some(ref cli) = p.cli {
             let mut parts = vec![cli.command.clone()];
             // When resuming with session_id, use resumeArgs if available
-            if let (Some(ref sid), Some(ref resume_args)) = (&session_id, &cli.resume_args) {
+            if let (Some(ref sid), Some(ref resume_args)) = (&effective_session_id, &cli.resume_args) {
                 let resolved: Vec<String> = resume_args.iter()
                     .map(|a| a.replace("{sessionId}", sid))
                     .collect();
@@ -1245,7 +1277,7 @@ pub async fn bridge_chat_remote(
 
     Ok(BridgeChatResult {
         text: response_text,
-        session_id: new_session_id.or(session_id),
+        session_id: new_session_id.or(effective_session_id),
         model: None,
         tokens: None,
         duration_ms: None,
@@ -1369,7 +1401,7 @@ pub async fn bridge_set_role_remote(
         .ok_or_else(|| format!("SSH not connected: {}", server_id))?;
 
     let result = match tokio::time::timeout(
-        std::time::Duration::from_secs(30),
+        std::time::Duration::from_secs(60),
         crate::commands::ssh_commands::execute_tolerant(client, &cmd)
     ).await {
         Ok(Ok(r)) => r,
@@ -1512,6 +1544,64 @@ pub async fn bridge_start_agent_remote(
     }
 
     Err("No response from Bridge CLI for start_agent".to_string())
+}
+
+// ── Remote Bridge CLI: Stop Agent ──
+
+#[tauri::command]
+pub async fn bridge_stop_agent_remote(
+    pool: tauri::State<'_, crate::commands::ssh_commands::SSHPool>,
+    server_id: String,
+    agent_id: String,
+) -> Result<serde_json::Value, String> {
+    let pool = pool.inner().clone();
+
+    log::info!("[BridgeStopAgent] server={}, agent={}", server_id, agent_id);
+
+    crate::commands::ssh_commands::auto_connect_ssh(&pool, &server_id).await
+        .map_err(|e| format!("SSH connection failed: {}", e))?;
+
+    let input_json = serde_json::json!({
+        "type": "stop_agent",
+        "agent_id": agent_id
+    });
+    let input_str = serde_json::to_string(&input_json).map_err(|e| format!("JSON error: {}", e))?;
+    let escaped = input_str.replace('\'', "'\\''");
+
+    let cmd = format!(
+        "export PATH=\"$HOME/.npm-global/bin:$HOME/.local/bin:$HOME/.cargo/bin:$PATH\" && echo '{}' | ~/echobird/echobird-bridge 2>/dev/null",
+        escaped
+    );
+
+    let connections = pool.lock().await;
+    let client = connections.get(&server_id)
+        .ok_or_else(|| format!("SSH not connected: {}", server_id))?;
+
+    let result = match tokio::time::timeout(
+        std::time::Duration::from_secs(15),
+        crate::commands::ssh_commands::execute_tolerant(client, &cmd)
+    ).await {
+        Ok(Ok(r)) => r,
+        Ok(Err(e)) => return Err(format!("SSH exec failed: {}", e)),
+        Err(_) => return Err("Stop agent timed out".to_string()),
+    };
+
+    drop(connections);
+
+    for line in result.stdout.lines() {
+        if let Ok(json) = serde_json::from_str::<serde_json::Value>(line) {
+            match json.get("type").and_then(|v| v.as_str()) {
+                Some("agent_stopped") => return Ok(json),
+                Some("error") => {
+                    let msg = json.get("message").and_then(|v| v.as_str()).unwrap_or("Unknown error");
+                    return Err(format!("Bridge error: {}", msg));
+                }
+                _ => {}
+            }
+        }
+    }
+
+    Err("No response from Bridge CLI for stop_agent".to_string())
 }
 
 // ── Remote Model Read/Write ──
@@ -1764,8 +1854,8 @@ pub async fn bridge_set_local_model(
             drop(guard);
 
             if needs_start {
-                log::info!("[BridgeSetLocalModel] Bridge not running, auto-starting...");
-                let start_result = start_bridge_internal("openclaw")?;
+                log::info!("[BridgeSetLocalModel] Bridge not running, auto-starting for agent: {}", agent_id);
+                let start_result = start_bridge_internal(&agent_id)?;
                 if start_result.status != "connected" {
                     return Err(format!("Failed to start bridge: {:?}", start_result.error));
                 }

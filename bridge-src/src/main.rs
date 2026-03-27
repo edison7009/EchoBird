@@ -61,6 +61,10 @@ enum InboundMessage {
     StartAgent {
         agent_id: String,
     },
+    #[serde(rename = "stop_agent")]
+    StopAgent {
+        agent_id: String,
+    },
     #[serde(rename = "clear_role")]
     ClearRole {
         agent_id: String,
@@ -114,6 +118,12 @@ enum OutboundMessage {
     },
     #[serde(rename = "agent_started")]
     AgentStarted {
+        agent_id: String,
+        success: bool,
+        message: String,
+    },
+    #[serde(rename = "agent_stopped")]
+    AgentStopped {
         agent_id: String,
         success: bool,
         message: String,
@@ -175,8 +185,6 @@ impl Default for BridgeConfig {
                 "--json".to_string(),
                 "--agent".to_string(),
                 "main".to_string(),
-                "--session-id".to_string(),
-                "{sessionId}".to_string(),
                 "--message".to_string(),
             ],
             session_arg: Some("--session-id".to_string()),
@@ -264,6 +272,9 @@ fn handle_message(config: &BridgeConfig, msg: InboundMessage) {
         }
         InboundMessage::StartAgent { agent_id } => {
             handle_start_agent(&agent_id);
+        }
+        InboundMessage::StopAgent { agent_id } => {
+            handle_stop_agent(&agent_id);
         }
         InboundMessage::ClearRole { agent_id, role_id } => {
             handle_clear_role(&agent_id, &role_id);
@@ -372,12 +383,14 @@ fn execute_chat(
         cmd_args.extend(args.iter().cloned());
         Command::new("cmd.exe").args(&cmd_args)
             .env("NO_COLOR", "1")  // Disable ANSI colors (https://no-color.org/)
+            .stdin(Stdio::null())   // Prevent inheriting bridge's piped stdin
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
             .spawn()
     } else {
         Command::new(actual_cmd).args(&args)
             .env("NO_COLOR", "1")  // Disable ANSI colors (https://no-color.org/)
+            .stdin(Stdio::null())   // Prevent inheriting bridge's piped stdin
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
             .spawn()
@@ -724,6 +737,47 @@ fn extract_yaml_name(content: &str) -> Option<String> {
     None
 }
 
+/// OpenClaw caches the compiled system prompt (SOUL.md + workspace files) in its
+/// internal session (`agent:main:main`). A new `--session-id` reuses the cached prompt.
+/// Only the built-in `/new` reset trigger forces the gateway to re-read workspace files
+/// from disk and recompile the system prompt. This is the correct way to apply role changes.
+fn restart_gateway_if_needed(agent_id: &str) {
+    let cmd = match agent_id {
+        "openclaw"  => "openclaw",
+        "picoclaw"  => "picoclaw",
+        "nanobot"   => "nanobot",
+        "hermes"    => "hermes",
+        _ => return, // claudecode, zeroclaw don't need session reset
+    };
+
+    eprintln!("[bridge] Sending /new to {} to reset session and reload SOUL.md...", agent_id);
+
+    // On Windows, CLI tools installed via npm are .cmd scripts that MUST be run
+    // through cmd.exe — Command::new("openclaw") silently fails on Windows.
+    // This matches the same pattern used in execute_chat().
+    let result = if cfg!(target_os = "windows") {
+        let resolved = resolve_command(cmd);
+        Command::new("cmd.exe")
+            .args(["/c", &resolved, "agent", "--json", "--agent", "main", "--message", "/new"])
+            .stdin(Stdio::null())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .output()
+    } else {
+        Command::new(cmd)
+            .args(["agent", "--json", "--agent", "main", "--message", "/new"])
+            .stdin(Stdio::null())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::null())
+            .output()
+    };
+
+    match result {
+        Ok(o) => eprintln!("[bridge] Session reset complete for {} (status: {})", agent_id, o.status),
+        Err(e) => eprintln!("[bridge] Session reset failed for {}: {}", agent_id, e),
+    }
+}
+
 fn handle_set_role(agent_id: &str, role_id: &str, url: &str) {
     // Determine target path based on agent
     let home = home_dir();
@@ -812,6 +866,11 @@ fn handle_set_role(agent_id: &str, role_id: &str, url: &str) {
             if let Ok(mut guard) = ACTIVE_ROLE.lock() {
                 *guard = Some((agent_id.to_string(), effective_role_id));
             }
+
+            // Auto-restart gateway so it reads the updated SOUL.md
+            // Uses native `openclaw gateway restart` (see agency-agents README)
+            restart_gateway_if_needed(agent_id);
+
             send(&OutboundMessage::RoleSet {
                 agent_id: agent_id.to_string(),
                 role_id: role_id.to_string(),
@@ -913,6 +972,69 @@ fn handle_start_agent(agent_id: &str) {
     }
 }
 
+// ── Agent Stopping ──
+
+fn handle_stop_agent(agent_id: &str) {
+    let cmd = match agent_id {
+        "claudecode" => "claude",
+        "openclaw"   => "openclaw",
+        "zeroclaw"   => "zeroclaw",
+        "nanobot"    => "nanobot",
+        "picoclaw"   => "picoclaw",
+        "hermes"     => "hermes",
+        _ => {
+            send(&OutboundMessage::AgentStopped {
+                agent_id: agent_id.to_string(),
+                success: false,
+                message: format!("Unknown agent: {}", agent_id),
+            });
+            return;
+        }
+    };
+
+    if !check_running(cmd) {
+        send(&OutboundMessage::AgentStopped {
+            agent_id: agent_id.to_string(),
+            success: true,
+            message: "Not running".to_string(),
+        });
+        return;
+    }
+
+    let result = if cfg!(target_os = "windows") {
+        let exe_name = format!("{}.exe", cmd);
+        // taskkill /F /IM nanobot.exe
+        Command::new("taskkill")
+            .args(["/F", "/IM", &exe_name])
+            .output()
+    } else {
+        // pkill -f <cmd> (more reliable than -x for python processes)
+        // For claudecode/openclaw etc, exact match works, but for nanobot "python -m nanobot", pkill -f is better
+        let pattern = if cmd == "nanobot" { "python.*nanobot" } else { cmd };
+        Command::new("pkill")
+            .args(["-f", pattern])
+            .output()
+    };
+
+    match result {
+        Ok(_) => {
+            eprintln!("[bridge] Stopped agent: {}", cmd);
+            send(&OutboundMessage::AgentStopped {
+                agent_id: agent_id.to_string(),
+                success: true,
+                message: format!("{} stopped successfully", cmd),
+            });
+        }
+        Err(e) => {
+            send(&OutboundMessage::AgentStopped {
+                agent_id: agent_id.to_string(),
+                success: false,
+                message: format!("Failed to stop {}: {}", cmd, e),
+            });
+        }
+    }
+}
+
 // ── Role Clearing ──
 
 fn handle_clear_role(agent_id: &str, role_id: &str) {
@@ -939,7 +1061,11 @@ fn handle_clear_role(agent_id: &str, role_id: &str) {
             };
             if target.exists() {
                 match std::fs::write(&target, "") {
-                    Ok(_) => eprintln!("[bridge] Role {} cleared for {} (file truncated to 0)", role_id, agent_id),
+                    Ok(_) => {
+                        eprintln!("[bridge] Role {} cleared for {} (file truncated to 0)", role_id, agent_id);
+                        // Auto-restart gateway so it drops the old role
+                        restart_gateway_if_needed(agent_id);
+                    }
                     Err(e) => {
                         send(&OutboundMessage::Error {
                             message: format!("Failed to truncate: {}", e),
@@ -1113,8 +1239,38 @@ fn handle_set_model(agent_id: &str, model_id: &str, model_name: &str, api_key: &
             let mut config = oc_config;
             if let Some(gw) = gateway { config["gateway"] = gw; }
 
-            write_config_file(&oc_dir, "openclaw.json",
-                &serde_json::to_string_pretty(&config).unwrap_or_default())
+            let result = write_config_file(&oc_dir, "openclaw.json",
+                &serde_json::to_string_pretty(&config).unwrap_or_default());
+
+            // Restart Gateway so it reloads the new model config
+            if result.is_ok() {
+                eprintln!("[bridge] Restarting OpenClaw Gateway to apply new model...");
+                let restart = if cfg!(target_os = "windows") {
+                    let resolved = resolve_command("openclaw");
+                    Command::new("cmd.exe")
+                        .args(["/c", &resolved, "gateway", "restart", "--force"])
+                        .stdin(Stdio::null())
+                        .stdout(Stdio::piped())
+                        .stderr(Stdio::piped())
+                        .output()
+                } else {
+                    Command::new("openclaw")
+                        .args(["gateway", "restart", "--force"])
+                        .stdin(Stdio::null())
+                        .stdout(Stdio::piped())
+                        .stderr(Stdio::null())
+                        .output()
+                };
+                match &restart {
+                    Ok(o) => eprintln!("[bridge] Gateway restart: {}", o.status),
+                    Err(e) => eprintln!("[bridge] Gateway restart failed: {}", e),
+                }
+
+                // Send /new to reset session cache after gateway restart
+                restart_gateway_if_needed("openclaw");
+            }
+
+            result
         }
 
         "zeroclaw" => {

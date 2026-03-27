@@ -366,6 +366,7 @@ pub fn run() {
             channel_commands::bridge_set_role_local,
             channel_commands::bridge_clear_role_remote,
             channel_commands::bridge_start_agent_remote,
+            channel_commands::bridge_stop_agent_remote,
             channel_commands::bridge_get_remote_model,
             channel_commands::bridge_set_remote_model,
             channel_commands::bridge_get_local_model,

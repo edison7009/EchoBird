@@ -1,6 +1,6 @@
 [package]
 name = "echobird-bridge"
-version = "3.4.9"
+version = "3.5.0"
 edition = "2021"
 description = "Echobird bridge for remote Agent communication via stdin/stdout JSON protocol"
 
