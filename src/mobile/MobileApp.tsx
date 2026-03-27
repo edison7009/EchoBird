@@ -741,6 +741,12 @@ function MobileApp() {
                 if (selectedRole?.filePath) {
                     if (roleKey !== lastApplied) {
                         try {
+                            // Restart persistent agents to clear memory before role change
+                            // Only openclaw needs restart (reads SOUL.md at session start via gateway)
+                            if (['openclaw'].includes(selectedAgent.id)) {
+                                console.info('[Bridge] Restarting remote agent to apply new role:', selectedAgent.id);
+                                await api.bridgeStopAgentRemote(serverId, selectedAgent.id);
+                            }
                             await api.bridgeSetRoleRemote(serverId, selectedAgent.id, selectedRole.id, selectedRole.filePath);
                             lastAppliedRoleRef.current[serverId] = roleKey;
                             // Force new session so agent reads updated role file
@@ -754,6 +760,11 @@ function MobileApp() {
                     // Clear role: pass actual previous role_id (not empty string)
                     const lastRoleId = lastApplied.split(':')[1] || '';
                     try {
+                        // Restart persistent agents to clear memory before clearing role
+                        if (['openclaw'].includes(selectedAgent.id)) {
+                            console.info('[Bridge] Restarting remote agent to clear role:', selectedAgent.id);
+                            await api.bridgeStopAgentRemote(serverId, selectedAgent.id);
+                        }
                         await api.bridgeClearRoleRemote(serverId, selectedAgent.id, lastRoleId);
                         setSessionId(undefined);
                         lastAppliedRoleRef.current[serverId] = '';
@@ -769,16 +780,25 @@ function MobileApp() {
                 clearTimeout(workingTimer);
                 setConnectionStatus('connected');
                 // Remove working hint, add real reply
-                setChatMessages(prev => {
-                    const cleaned = prev.filter(m => m.content !== WORKING_MARKER);
-                    return [...cleaned, {
-                        role: 'ai',
-                        content: result.text,
-                        model: result.model,
-                        tokens: result.tokens,
-                        duration_ms: result.duration_ms,
-                    }];
-                });
+                if (!result.text || result.text.trim() === '') {
+                    // Empty response from agent — show error instead of invisible bubble
+                    window.dispatchEvent(new CustomEvent('chat-error'));
+                    setChatMessages(prev => {
+                        const cleaned = prev.filter(m => m.content !== WORKING_MARKER);
+                        return [...cleaned, { role: 'system', content: 'Agent returned an empty response. The agent process may have crashed — try sending again.' }];
+                    });
+                } else {
+                    setChatMessages(prev => {
+                        const cleaned = prev.filter(m => m.content !== WORKING_MARKER);
+                        return [...cleaned, {
+                            role: 'ai',
+                            content: result.text,
+                            model: result.model,
+                            tokens: result.tokens,
+                            duration_ms: result.duration_ms,
+                        }];
+                    });
+                }
                 if (result.session_id) setSessionId(result.session_id);
                 // Mark hasNew only when user is NOT actively viewing this chat
                 // (red dot should only appear on server list for background conversations)
@@ -1087,6 +1107,12 @@ function MobileApp() {
                                                                     effectiveBaseUrl,
                                                                     effectiveProtocol,
                                                                 );
+                                                                // Restart persistent agents to clear memory and reload config
+                                                                if (['nanobot', 'zeroclaw', 'picoclaw', 'hermes'].includes(selectedAgent.id)) {
+                                                                    console.info('[Bridge] Restarting remote agent to apply new model:', selectedAgent.id);
+                                                                    await api.bridgeStopAgentRemote(activeServer.id, selectedAgent.id);
+                                                                    await api.bridgeStartAgentRemote(activeServer.id, selectedAgent.id);
+                                                                }
                                                             }
                                                         } catch {
                                                             // Rollback on failure
