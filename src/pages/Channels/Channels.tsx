@@ -336,11 +336,18 @@ const ChannelsInner: React.FC = () => {
     // Then scroll to bottom after messages are loaded (fixes local channel starting at top)
     useEffect(() => {
         if (!channelFileKey || !activeId) return;
-        if ((allBridgeMessages[channelKey] || []).length > 0) return;
-        chPersistence.loadInitial().then(() => {
-            // Wait for React to render the loaded messages, then scroll
+        // Always force auto-follow on channel switch so when messages arrive
+        // (either from loadInitial or in-memory), the messages useEffect scrolls to bottom
+        autoFollowRef.current = true;
+        isProgrammaticScrollRef.current = false;
+        if ((allBridgeMessages[channelKey] || []).length > 0) {
+            // Already have in-memory messages — scroll immediately after render
             requestAnimationFrame(() => requestAnimationFrame(() => doScrollToBottom('auto')));
-        });
+            return;
+        }
+        chPersistence.loadInitial();
+        // No explicit scroll here — messages useEffect fires when loadInitial updates state,
+        // and autoFollowRef=true ensures it scrolls to bottom at that point.
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [activeId, channelFileKey]);
 
@@ -381,12 +388,7 @@ const ChannelsInner: React.FC = () => {
         }
     }, [messages, bridgeLoading]);
 
-    // Scroll to bottom when switching channels
-    useEffect(() => {
-        // Delay scroll to after DOM updates from loadInitial()
-        const timer = setTimeout(() => doScrollToBottom('auto'), 50);
-        return () => clearTimeout(timer);
-    }, [activeId]);
+    // (Scroll on channel switch is now handled by the loadInitial useEffect above)
 
     const scrollToBottom = () => doScrollToBottom('smooth');
 
@@ -644,6 +646,21 @@ const ChannelsInner: React.FC = () => {
         });
         return unsub;
     }, [selectedAgentForChannel, refreshCurrentModel]);
+
+    // Scroll to bottom when navigating back to Channels page from another page
+    // Pages are always-mounted (hidden class), so activeId doesn't change — must listen to activePage
+    useEffect(() => {
+        let prevPage = useNavigationStore.getState().activePage;
+        const unsub = useNavigationStore.subscribe((state) => {
+            if (state.activePage !== prevPage) {
+                prevPage = state.activePage;
+                if (state.activePage !== 'channels') return;
+                requestAnimationFrame(() => requestAnimationFrame(() => doScrollToBottom('auto')));
+            }
+        });
+        return unsub;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     // Handle remote model switch
     const handleModelSelect = useCallback(async (modelId: string) => {
