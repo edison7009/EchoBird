@@ -297,6 +297,8 @@ function MobileApp() {
     const remoteAgentCacheRef = useRef<Record<string, any[]>>({});
     // Track last applied role per server to avoid redundant set_role calls
     const lastAppliedRoleRef = useRef<Record<string, string>>({});
+    const sendingRef = useRef(false);  // prevent concurrent sends (stale closure guard)
+    const abortedRef = useRef(false);  // discard responses after user taps Cancel
     // Ref for model selector — outside click to close dropdown
     const modelSelectorRef = useRef<HTMLDivElement>(null);
 
@@ -667,6 +669,7 @@ function MobileApp() {
     // ── Send message (mirrors PC Channels 4-step remote flow) ──
     const sendMessage = useCallback(async () => {
         if (!message.trim() || loading || modelWriting) return;
+        if (sendingRef.current) return; // Prevent concurrent sends (stale closure guard)
 
         // Guard: no agent
         if (!selectedAgent) {
@@ -684,6 +687,8 @@ function MobileApp() {
         setMessage('');
         setChatMessages(prev => [...prev, { role: 'user', content: userMsg }]);
         setLoading(true);
+        sendingRef.current = true;
+        abortedRef.current = false;
 
         try {
 
@@ -772,6 +777,11 @@ function MobileApp() {
                     serverId, userMsg, sessionId, selectedAgent.id, selectedRole?.name,
                 );
                 clearTimeout(workingTimer);
+                // If user cancelled while waiting, discard the response
+                if (abortedRef.current) {
+                    setChatMessages(prev => prev.filter(m => m.content !== WORKING_MARKER));
+                    return;
+                }
                 setConnectionStatus('connected');
                 // Remove working hint, add real reply
                 if (!result.text || result.text.trim() === '') {
@@ -813,6 +823,7 @@ function MobileApp() {
             setChatMessages(prev => [...prev, { role: 'system', content: '', i18nKey: errorToKey(e?.message || String(e)) }]);
         } finally {
             setLoading(false);
+            sendingRef.current = false;
         }
     }, [message, activeServer, loading, modelWriting, sessionId, selectedAgent, selectedRole, selectedModel]);
 
@@ -1144,7 +1155,11 @@ function MobileApp() {
                             />
                         </div>
                         {loading ? (
-                            <button className="chat-send-circle abort" onClick={() => setLoading(false)}>
+                            <button className="chat-send-circle abort" onClick={() => {
+                                abortedRef.current = true;
+                                setLoading(false);
+                                setChatMessages(prev => [...prev, { role: 'system', content: '', i18nKey: 'error.userCancelled' }]);
+                            }}>
                                 <Loader2 size={20} className="spin" />
                             </button>
                         ) : (
