@@ -4,11 +4,10 @@
 
 <h1 align="center">EchoBird</h1>
 
-<h3 align="center">Installez OpenClaw, Claude Code, ZeroClaw et Codex en un clic. Changez de modèle. Déployez des LLMs.</h3>
+<h3 align="center">Déployez des agents IA comme un pro — sans terminal, sans fichiers de config, en un seul clic.</h3>
 
 <p align="center">
-  Une app pour installer des agents, changer de modèle, déployer des LLMs locaux/distants et contrôler tous les agents depuis un écran Channels.<br/>
-  <sub>Panneau de contrôle IA de bureau multiplateforme — construit avec Tauri 2 + Rust.</sub>
+  Installez OpenClaw, Claude Code, ZeroClaw et plus · Changez de modèle sur serveurs locaux et distants · Le tout depuis un seul écran.
 </p>
 
 <p align="center">

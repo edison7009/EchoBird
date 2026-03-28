@@ -4,11 +4,10 @@
 
 <h1 align="center">EchoBird</h1>
 
-<h3 align="center">一键安装 OpenClaw、Claude Code、ZeroClaw 和 Codex。切换模型。部署大模型。</h3>
+<h3 align="center">像 AI 专家一样部署 Agent —— 无需终端，无需配置，一键搞定。</h3>
 
 <p align="center">
-  一个应用安装智能体、切换模型、部署本地/远程大模型，在一个 Channels 页面控制所有智能体。<br/>
-  <sub>跨平台桌面 AI 控制台 — 基于 Tauri 2 + Rust 构建。</sub>
+  一键安装 OpenClaw、Claude Code、ZeroClaw 等 · 本地或远程服务器自由切换模型 · 一屏掌控所有 Agent。
 </p>
 
 <p align="center">

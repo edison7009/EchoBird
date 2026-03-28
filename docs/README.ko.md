@@ -4,11 +4,10 @@
 
 <h1 align="center">EchoBird</h1>
 
-<h3 align="center">원클릭으로 OpenClaw, Claude Code, ZeroClaw, Codex 설치. 모델 전환. LLM 배포.</h3>
+<h3 align="center">AI 에이전트를 전문가처럼 배포하세요 — 터미널도, 설정 파일도 필요 없이 클릭 한 번이면 됩니다.</h3>
 
 <p align="center">
-  하나의 앱으로 에이전트 설치, 모델 전환, 로컬/원격 LLM 배포, 하나의 Channels 화면에서 모든 에이전트 제어.<br/>
-  <sub>크로스 플랫폼 데스크톱 AI 컨트롤 패널 — Tauri 2 + Rust로 구축.</sub>
+  OpenClaw, Claude Code, ZeroClaw 등을 원클릭 설치 · 로컬 및 원격 서버에서 모델 전환 · 하나의 화면에서 모두 관리.
 </p>
 
 <p align="center">

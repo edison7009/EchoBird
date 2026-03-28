@@ -4,11 +4,10 @@
 
 <h1 align="center">EchoBird</h1>
 
-<h3 align="center">ثبّت OpenClaw وClaude Code وZeroClaw وCodex بنقرة واحدة. بدّل النماذج. انشر LLM.</h3>
+<h3 align="center">انشر وكلاء الذكاء الاصطناعي كالمحترفين — بدون طرفية، بدون ملفات تهيئة، بنقرة واحدة فقط.</h3>
 
 <p align="center">
-  تطبيق واحد لتثبيت الوكلاء، تبديل النماذج، نشر LLMs محلية/بعيدة، والتحكم بجميع الوكلاء من شاشة Channels واحدة.<br/>
-  <sub>لوحة تحكم ذكاء اصطناعي متعددة المنصات — مبنية بـ Tauri 2 + Rust.</sub>
+  ثبّت OpenClaw و Claude Code و ZeroClaw والمزيد · بدّل النماذج بين الخوادم المحلية والبعيدة · الكل من شاشة واحدة.
 </p>
 
 <p align="center">

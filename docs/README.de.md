@@ -4,11 +4,10 @@
 
 <h1 align="center">EchoBird</h1>
 
-<h3 align="center">OpenClaw, Claude Code, ZeroClaw & Codex per Klick installieren. Modelle wechseln. LLMs deployen.</h3>
+<h3 align="center">KI-Agenten wie ein Profi bereitstellen — kein Terminal, keine Konfigurationsdateien, nur ein Klick.</h3>
 
 <p align="center">
-  Eine App zum Installieren von Agents, Wechseln von Modellen, Deployen lokaler/entfernter LLMs und Steuern aller Agents von einem Channels-Bildschirm.<br/>
-  <sub>Plattformübergreifendes Desktop-KI-Kontrollpanel — gebaut mit Tauri 2 + Rust.</sub>
+  OpenClaw, Claude Code, ZeroClaw und mehr installieren · Modelle auf lokalen und Remote-Servern wechseln · Alles auf einem Bildschirm.
 </p>
 
 <p align="center">

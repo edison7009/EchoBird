@@ -4,11 +4,10 @@
 
 <h1 align="center">EchoBird</h1>
 
-<h3 align="center">One-click install OpenClaw, Claude Code, ZeroClaw & Codex. Switch models. Deploy LLMs.</h3>
+<h3 align="center">Deploy AI agents like a pro — no terminal, no config files, just one click.</h3>
 
 <p align="center">
-  One app to install agents, switch models, deploy local/remote LLMs, and control all agents from one Channels screen.<br/>
-  <sub>A cross-platform desktop AI control panel — built with Tauri 2 + Rust.</sub>
+  Install OpenClaw, Claude Code, ZeroClaw & more · Switch models across local and remote servers · All from one screen.
 </p>
 
 <p align="center">

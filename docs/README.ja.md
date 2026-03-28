@@ -4,11 +4,10 @@
 
 <h1 align="center">EchoBird</h1>
 
-<h3 align="center">ワンクリックで OpenClaw、Claude Code、ZeroClaw、Codex をインストール。モデル切替。LLMデプロイ。</h3>
+<h3 align="center">AIエージェントをプロのようにデプロイ — ターミナル不要、設定ファイル不要、ワンクリックで完了。</h3>
 
 <p align="center">
-  1つのアプリでエージェントのインストール、モデル切替、ローカル/リモートLLMのデプロイ、すべてのエージェントを1つのChannels画面で制御。<br/>
-  <sub>クロスプラットフォーム デスクトップ AI コントロールパネル — Tauri 2 + Rust で構築。</sub>
+  OpenClaw、Claude Code、ZeroClaw などをワンクリックインストール · ローカル/リモートサーバー間でモデルを自在に切り替え · すべてをひとつの画面で操作。
 </p>
 
 <p align="center">
