@@ -303,7 +303,7 @@ export function MotherAgentMain() {
 
             {/* Rich input area */}
             <div className="flex-shrink-0 mt-1 mb-1">
-                <div className="bg-cyber-input rounded-lg relative">
+                <div className="bg-cyber-input rounded-lg p-2">
                     {/* Pending attachments chips — shared component */}
                     <PendingChipsRow
                         files={pendingFiles}
@@ -323,38 +323,33 @@ export function MotherAgentMain() {
                         placeholder={t('mother.enterMessage')}
                         disabled={isProcessing}
                         rows={2}
-                        className="w-full bg-transparent px-4 py-2 text-sm text-[#DED9D2] font-sans font-medium outline-none placeholder:text-[#DED9D2]/40 disabled:opacity-30 resize-none"
+                        className="w-full bg-transparent px-2 py-1 text-sm text-[#DED9D2] font-sans font-medium outline-none placeholder:text-[#DED9D2]/40 disabled:opacity-30 resize-none"
                     />
-                    {/* Bottom toolbar */}
-                    <div className="flex items-center justify-between px-3 py-1.5">
-                        <div className="flex items-center gap-1 relative">
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <RemoteModelSelector
-                                models={modelList}
-                                currentModelId={agentModel}
-                                loading={false}
-                                onSelect={(id) => setAgentModel(id || null)}
-                                placeholder={t('mother.selectModel')}
-                                variant="mother"
-                            />
-                            {isProcessing ? (
-                                <button
-                                    onClick={() => abortAgent()}
-                                    className="p-1 text-red-400/80 hover:text-red-400 transition-colors"
-                                >
-                                    <Square size={16} fill="currentColor" />
-                                </button>
-                            ) : (
-                                <button
-                                    onClick={localSend}
-                                    disabled={!chatInput.trim()}
-                                    className="w-6 h-6 rounded-lg flex items-center justify-center bg-cyber-accent-secondary hover:brightness-110 transition-all disabled:opacity-20"
-                                >
-                                    <Send size={15} className="text-cyber-bg rotate-45 -translate-x-[2px]" />
-                                </button>
-                            )}
-                        </div>
+                    <div className="flex items-center justify-end gap-1.5">
+                        <RemoteModelSelector
+                            models={modelList}
+                            currentModelId={agentModel}
+                            loading={false}
+                            onSelect={(id) => setAgentModel(id || null)}
+                            placeholder={t('mother.selectModel')}
+                            variant="mother"
+                        />
+                        {isProcessing ? (
+                            <button
+                                onClick={() => abortAgent()}
+                                className="w-8 h-8 rounded-lg flex items-center justify-center bg-red-500/20 hover:bg-red-500/30 transition-colors"
+                            >
+                                <Square size={14} fill="#f87171" className="text-red-400" />
+                            </button>
+                        ) : (
+                            <button
+                                onClick={localSend}
+                                disabled={!chatInput.trim()}
+                                className="w-8 h-8 rounded-lg flex items-center justify-center bg-cyber-accent-secondary hover:brightness-110 transition-all disabled:opacity-20"
+                            >
+                                <Send size={18} className="text-cyber-bg rotate-45 -translate-x-[1px]" />
+                            </button>
+                        )}
                     </div>
                 </div>
                 {/* Hidden file inputs */}

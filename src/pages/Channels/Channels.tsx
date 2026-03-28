@@ -235,6 +235,8 @@ const ChannelsInner: React.FC = () => {
 
     const inputRef = useRef<HTMLTextAreaElement>(null);
     const scrollRef = useRef<HTMLDivElement>(null);
+    const sendingRef = useRef(false);
+    const abortedRef = useRef(false);  // discard responses after user clicks Cancel
     const fileInputRef = useRef<HTMLInputElement>(null);
     const imageInputRef = useRef<HTMLInputElement>(null);
 
@@ -281,15 +283,24 @@ const ChannelsInner: React.FC = () => {
             if (!preserveActiveId) setActiveId(all[0].id);
 
             // Restore persisted agent selections from localStorage
-            const restored: Record<number, string> = {};
+            const restoredAgents: Record<number, string> = {};
+            const restoredRoles: Record<number, { id: string; name: string; filePath: string }> = {};
             for (const ch of all) {
                 const stableKey = ch.id === 1 ? 'local' : ch.address.replace(/[^a-zA-Z0-9._-]/g, '_');
-                const saved = localStorage.getItem(`ch_agent_${stableKey}`);
-                if (saved) restored[ch.id] = saved;
+                const savedAgent = localStorage.getItem(`ch_agent_${stableKey}`);
+                if (savedAgent) restoredAgents[ch.id] = savedAgent;
+                const savedRole = localStorage.getItem(`ch_role_${stableKey}`);
+                if (savedRole) {
+                    try { restoredRoles[ch.id] = JSON.parse(savedRole); } catch {}
+                }
             }
-            if (Object.keys(restored).length > 0) {
-                setAllActiveAgents(prev => ({ ...prev, ...restored }));
+            if (Object.keys(restoredAgents).length > 0) {
+                setAllActiveAgents(prev => ({ ...prev, ...restoredAgents }));
             }
+            if (Object.keys(restoredRoles).length > 0) {
+                setAllSelectedRoles(prev => ({ ...prev, ...restoredRoles }));
+            }
+            // Model is restored separately after channelModelList loads (via useEffect below)
         } catch (e) {
             console.error('[Channels] Failed to load data:', e);
         }
@@ -322,10 +333,14 @@ const ChannelsInner: React.FC = () => {
     useEffect(() => { chPersistence.resetDisplayCount(); }, [activeId]);
 
     // Load history from disk when switching to a channel with no in-memory messages
+    // Then scroll to bottom after messages are loaded (fixes local channel starting at top)
     useEffect(() => {
         if (!channelFileKey || !activeId) return;
         if ((allBridgeMessages[channelKey] || []).length > 0) return;
-        chPersistence.loadInitial();
+        chPersistence.loadInitial().then(() => {
+            // Wait for React to render the loaded messages, then scroll
+            requestAnimationFrame(() => requestAnimationFrame(() => doScrollToBottom('auto')));
+        });
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [activeId, channelFileKey]);
 
@@ -345,16 +360,24 @@ const ChannelsInner: React.FC = () => {
         isProgrammaticScrollRef.current = true;
         autoFollowRef.current = true;
         setShowScrollBtn(false);
-        scrollRef.current?.scrollIntoView({ behavior });
+        const container = chatContainerRef.current;
+        if (container) {
+            if (behavior === 'smooth') {
+                container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' });
+            } else {
+                container.scrollTop = container.scrollHeight;
+            }
+        }
         // Reset flag after scroll events settle
-        setTimeout(() => { isProgrammaticScrollRef.current = false; }, 100);
+        setTimeout(() => { isProgrammaticScrollRef.current = false; }, 150);
     };
 
     // Auto-scroll when messages change OR loading indicator appears/disappears
     // (The "Typing..." bubble changes DOM height — must scroll again to stay at bottom)
+    // Double requestAnimationFrame ensures DOM layout is complete (especially for the typing bubble)
     useEffect(() => {
         if (autoFollowRef.current) {
-            requestAnimationFrame(() => doScrollToBottom('auto'));
+            requestAnimationFrame(() => requestAnimationFrame(() => doScrollToBottom('auto')));
         }
     }, [messages, bridgeLoading]);
 
@@ -691,6 +714,10 @@ const ChannelsInner: React.FC = () => {
                 }
             }
             setAllRemoteModels(prev => ({ ...prev, [channelKey]: { id: selected.internalId, name: selected.name } }));
+            // Persist model selection to localStorage
+            if (channelFileKeyForPersist) {
+                localStorage.setItem(`ch_model_${channelFileKeyForPersist}`, JSON.stringify({ id: selected.internalId, name: selected.name }));
+            }
             // Clear session so next chat starts fresh with new model config
             setBridgeSessionId(undefined);
         } catch (e) {
@@ -700,7 +727,27 @@ const ChannelsInner: React.FC = () => {
         } finally {
             setAllRemoteModelLoading(prev => ({ ...prev, [channelKey]: false }));
         }
-    }, [selectedAgentForChannel, channelKey, activeChannel, allRemoteModels, isLocalChannel]);
+    }, [selectedAgentForChannel, channelKey, activeChannel, allRemoteModels, isLocalChannel, channelFileKeyForPersist]);
+
+    // Restore model from localStorage after models finish loading (mirrors MobileApp pattern)
+    // Also auto-applies the model to the bridge backend so local channel works on cold start
+    useEffect(() => {
+        if (!channelFileKeyForPersist || !channelModelList.length) return;
+        const currentModel = allRemoteModels[channelKey];
+        if (currentModel) return; // already have a model selected
+        const savedModelJson = localStorage.getItem(`ch_model_${channelFileKeyForPersist}`);
+        if (savedModelJson) {
+            try {
+                const saved = JSON.parse(savedModelJson);
+                const match = channelModelList.find(m => m.id === saved.id);
+                if (match) {
+                    // Push model config to bridge backend (also sets in-memory state on success)
+                    handleModelSelect(match.id);
+                }
+            } catch {}
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [channelModelList.length, channelKey, channelFileKeyForPersist]);
 
 
 
@@ -709,7 +756,10 @@ const ChannelsInner: React.FC = () => {
         if (!activeId) return;
         if (!canSendMessage) return;
         if (bridgeLoading) return;
+        if (sendingRef.current) return; // Prevent concurrent sends (stale closure guard)
         if (!input.trim() && attachments.length === 0) return;
+        sendingRef.current = true;
+        abortedRef.current = false;
         // Build message text + chips using shared utility
         const { messageText, chips } = buildPendingMessage(
             input,
@@ -721,8 +771,12 @@ const ChannelsInner: React.FC = () => {
         const displayText = input.trim();            // clean text -> bubble & disk
         setInput('');
         setAttachments([]);
-        // Ensure auto-follow is on so useEffect scrolls to bottom after render
+        // Ensure auto-follow is on so useEffect scrolls to bottom after render.
+        // Also set isProgrammaticScrollRef to prevent layout-shift scroll events
+        // (textarea shrinks → chat area grows → onScroll fires) from resetting autoFollow.
         autoFollowRef.current = true;
+        isProgrammaticScrollRef.current = true;
+        setTimeout(() => { isProgrammaticScrollRef.current = false; }, 300);
         setBridgeMessages(prev => [...prev, { role: 'user', content: displayText || '📎', chips } as any]);
 
         if (!canSendMessage) {
@@ -819,6 +873,7 @@ const ChannelsInner: React.FC = () => {
                 }
 
                 const result = await api.bridgeChatLocal(text, bridgeSessionId, undefined, role?.name);
+                if (abortedRef.current) return; // User cancelled — discard response
                 if (result.session_id) setBridgeSessionId(result.session_id);
                 if (!result.text || result.text.trim() === '') {
                     // Empty response from agent — show error instead of invisible bubble
@@ -938,6 +993,11 @@ const ChannelsInner: React.FC = () => {
                     // ── Step 4: Send message to agent ──
                     const result = await api.bridgeChatRemote(serverId, text, bridgeSessionId, agentId, role?.name);
                     clearTimeout(workingTimer);
+                    // If user cancelled while waiting, discard the response
+                    if (abortedRef.current) {
+                        setBridgeMessages(prev => prev.filter(m => m.content !== WORKING_MARKER));
+                        return;
+                    }
                     // Success → now mark as connected
                     setBridgeConnectionStatus('connected');
                     // Remove the working hint before adding the real reply
@@ -984,12 +1044,18 @@ const ChannelsInner: React.FC = () => {
             }
         } finally {
             setBridgeLoading(false);
+            sendingRef.current = false;
         }
         inputRef.current?.focus();
     }, [activeId, input, attachments, isActiveConnected, canSendMessage, isLocalChannel, bridgeLoading, bridgeSessionId, bridgeConnectionStatus, activeChannel, allActiveAgents, channelKey]);
 
-    // Abort current request (bridge mode — no-op for now)
-    const handleAbort = useCallback(() => {}, []);
+    // Abort current request — stops loading and discards late-arriving response
+    const handleAbort = useCallback(() => {
+        abortedRef.current = true;
+        setBridgeLoading(false);
+        sendingRef.current = false;
+        setBridgeMessages(prev => [...prev, { role: 'system', content: '', i18nKey: 'error.userCancelled' }]);
+    }, []);
 
     return (
         <>
@@ -997,7 +1063,7 @@ const ChannelsInner: React.FC = () => {
             {/* Chat area wrapper — matches Mother Agent layout exactly */}
             <div className="relative flex-1">
                 <div ref={chatContainerRef} onScroll={handleChatScroll} className="absolute inset-0 overflow-y-auto slim-scroll p-4">
-                    <div className="pt-2 pb-2">
+                    <div className="pt-2 pb-8">
                     {chPersistence.showSkeleton && [0,1,2].map(i => (
                         <ChatBubble key={`sk-${i}`} role="skeleton" content="" variant="channels" />
                     ))}
@@ -1014,7 +1080,7 @@ const ChannelsInner: React.FC = () => {
                         return <ChatBubble key={i} role="assistant" content={msg.content} variant="channels" />;
                     })}
                     {bridgeLoading && <ChatBubble role="assistant" content="" variant="channels" isStreaming={true} />}
-                    <div ref={scrollRef} />
+                    <div ref={scrollRef} style={{ height: 1 }} />
                     </div>
                 </div>
                 {/* Scroll-to-bottom button — bottom-right of chat area, like Mother Agent */}
@@ -1028,7 +1094,7 @@ const ChannelsInner: React.FC = () => {
             {/* Input area */}
             {activeChannel && (
                 <div className="flex-shrink-0 mt-1 mb-1">
-                    <div className="bg-cyber-input rounded-lg relative">
+                    <div className="bg-cyber-input rounded-lg p-2">
                         <PendingChipsRow
                             files={attachments.map((a, i) => ({ id: String(i), name: a.name, type: a.type as 'file'|'image', preview: a.preview }))}
                             onRemoveFile={id => removeAttachment(Number(id))}
@@ -1042,30 +1108,24 @@ const ChannelsInner: React.FC = () => {
                             placeholder={bridgeLoading ? t('channel.awaitingResponse') : t('channel.enterMessage')}
                             disabled={bridgeLoading || (!canSendMessage && !isActiveConnected)}
                             rows={2}
-                            className="w-full bg-transparent px-4 py-2 text-sm text-[#DED9D2] font-sans font-medium outline-none placeholder:text-[#DED9D2]/40 disabled:opacity-30 resize-none"
+                            className="w-full bg-transparent px-2 py-1 text-sm text-[#DED9D2] font-sans font-medium outline-none placeholder:text-[#DED9D2]/40 disabled:opacity-30 resize-none"
                         />
-                        <div className="flex items-center justify-between px-3 py-1.5">
-                            <div className="flex items-center gap-1 relative">
-                            </div>
-                            <div className="flex items-center gap-1.5">
-                                {/* Model selector — left of send button, all channels */}
-                                {selectedAgentForChannel && (
-                                    <RemoteModelSelector
-                                        models={channelModelList}
-                                        currentModelId={remoteModel?.id || null}
-                                        loading={remoteModelLoading}
-                                        onSelect={handleModelSelect}
-                                        placeholder={t('mother.selectModel')}
-                                    />
-                                )}
-                                {bridgeLoading ? (
-                                    <button onClick={handleAbort} className="p-1 text-red-400 hover:text-red-300 transition-colors"><Square size={16} fill="currentColor" /></button>
-                                ) : (
-                                    <button onClick={handleSend} disabled={(!input.trim() && attachments.length === 0) || !isActiveConnected || remoteModelLoading} className="w-6 h-6 rounded-lg flex items-center justify-center bg-cyber-accent hover:brightness-110 transition-all disabled:opacity-20"><Send size={15} className="text-cyber-bg rotate-45 -translate-x-[2px]" /></button>
-                                )}
-                            </div>
+                        <div className="flex items-center justify-end gap-1.5">
+                            {selectedAgentForChannel && (
+                                <RemoteModelSelector
+                                    models={channelModelList}
+                                    currentModelId={remoteModel?.id || null}
+                                    loading={remoteModelLoading}
+                                    onSelect={handleModelSelect}
+                                    placeholder={t('mother.selectModel')}
+                                />
+                            )}
+                            {bridgeLoading ? (
+                                <button onClick={handleAbort} className="w-8 h-8 rounded-lg flex items-center justify-center bg-red-500/20 hover:bg-red-500/30 transition-colors"><Square size={14} fill="#f87171" className="text-red-400" /></button>
+                            ) : (
+                                <button onClick={handleSend} disabled={(!input.trim() && attachments.length === 0) || !isActiveConnected || remoteModelLoading} className="w-8 h-8 rounded-lg flex items-center justify-center bg-cyber-accent hover:brightness-110 transition-all disabled:opacity-20"><Send size={18} className="text-cyber-bg rotate-45 -translate-x-[1px]" /></button>
+                            )}
                         </div>
-
                     </div>
                 </div>
             )}
@@ -1076,6 +1136,14 @@ const ChannelsInner: React.FC = () => {
                 selectedRole={selectedRoleForChannel?.id || null}
                 onSelectRole={(id, name, filePath) => {
                     setAllSelectedRoles(prev => ({ ...prev, [channelKey]: { id, name, filePath } }));
+                    // Persist role selection to localStorage
+                    if (channelFileKeyForPersist) {
+                        if (id) {
+                            localStorage.setItem(`ch_role_${channelFileKeyForPersist}`, JSON.stringify({ id, name, filePath }));
+                        } else {
+                            localStorage.removeItem(`ch_role_${channelFileKeyForPersist}`);
+                        }
+                    }
                 }}
                 selectedAgent={allActiveAgents[channelKey] || ''}
                 onSelectAgent={(name) => {
@@ -1099,6 +1167,11 @@ const ChannelsInner: React.FC = () => {
                         setBridgeSessionId(undefined);
                         setBridgeAgentName(undefined);
                         lastAppliedRoleRef.current[channelKey] = '';
+                        // Clear role when switching agents (roles are agent-specific)
+                        setAllSelectedRoles(prev => { const next = { ...prev }; delete next[channelKey]; return next; });
+                        if (channelFileKeyForPersist) localStorage.removeItem(`ch_role_${channelFileKeyForPersist}`);
+                        // Clear model when switching agents
+                        if (channelFileKeyForPersist) localStorage.removeItem(`ch_model_${channelFileKeyForPersist}`);
                         // Invalidate remote agent detection cache
                         delete remoteAgentCache.current[channelKey];
                     }
