@@ -17,17 +17,7 @@
             "main",
             "--message"
         ],
-        "resumeArgs": [
-            "agent",
-            "--json",
-            "--agent",
-            "main",
-            "--session-id",
-            "{sessionId}",
-            "--message"
-        ],
         "sessionArg": "--session-id",
-        "sessionMode": "always",
         "modelArg": null,
         "systemPromptArg": null
     }

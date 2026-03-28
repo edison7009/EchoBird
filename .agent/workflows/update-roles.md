@@ -87,6 +87,29 @@ Get-ChildItem $zhSrc -Directory | Where-Object { $_.Name -notin $skipDirs } | Fo
 }
 ```
 
+### Step 3.5: Audit nested directories
+
+> [!IMPORTANT]
+> Upstream repos have **nested subdirectories** under categories like `game-development/blender/`, `game-development/unity/`, etc. These are easy to miss. Run this audit after every sync to verify:
+
+// turbo
+```powershell
+# Compare upstream MD count vs docs MD count (EN)
+$upstreamEN = (Get-ChildItem "D:\tmp\agency-agents" -Recurse -Filter "*.md" | Where-Object { $_.FullName -notmatch '(scripts|strategy|examples|\.github|\.git|integrations|README|EXECUTIVE|QUICKSTART|CONTRIBUTING|CATALOG|AGENT-LIST)' }).Count
+$docsEN = (Get-ChildItem "D:\Echobird\docs\roles\en" -Recurse -Filter "*.md").Count
+$upstreamZH = (Get-ChildItem "D:\tmp\agency-agents-zh" -Recurse -Filter "*.md" | Where-Object { $_.FullName -notmatch '(scripts|strategy|examples|\.github|\.git|integrations|README|EXECUTIVE|QUICKSTART|CONTRIBUTING|CATALOG|AGENT-LIST)' }).Count
+$docsZH = (Get-ChildItem "D:\Echobird\docs\roles\zh-Hans" -Recurse -Filter "*.md").Count
+Write-Output "EN: upstream=$upstreamEN docs=$docsEN | ZH: upstream=$upstreamZH docs=$docsZH"
+if ($upstreamEN -ne $docsEN -or $upstreamZH -ne $docsZH) { Write-Output "WARNING: COUNT MISMATCH - check nested dirs!" }
+```
+
+Known nested structures (as of 2026-03):
+- `game-development/blender/` (1 role)
+- `game-development/godot/` (3 roles)
+- `game-development/roblox-studio/` (3 roles)
+- `game-development/unity/` (4 roles)
+- `game-development/unreal-engine/` (4 roles)
+
 ## Step 4: Maintenance of Images
 
 If a new role is added upstream WITHOUT an image, or if you want to change an image:

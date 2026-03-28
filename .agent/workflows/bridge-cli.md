@@ -52,6 +52,22 @@ User sends message in Channels page
 > files directly, and NEVER uses SSH shell commands to write files.
 > Adding a new agent only requires a new `plugins/{agent_id}/plugin.json`.
 
+> [!CAUTION]
+> ### LOCAL/REMOTE PARITY — Must-sync checklist
+> Local and remote channels MUST produce identical behavior.
+> **When modifying any of these, you MUST update both sides:**
+>
+> | What | Local (bridge binary) | Remote (Tauri + bridge binary) |
+> |------|----------------------|-------------------------------|
+> | **CLI args** | `BridgeConfig::default()` in `bridge-src/src/main.rs` | `plugin.json` `args`/`resumeArgs` read by `bridge_chat_remote` in `channel_commands.rs` |
+> | **Session ID** | `bridge_chat_sync` → `effective_sid` logic | `bridge_chat_remote` → `effective_session_id` logic |
+> | **Set role** | `bridge_set_role_sync` → pipe to bridge | `bridge_set_role_remote` → SSH pipe to bridge |
+> | **Role reset** | `restart_gateway_if_needed` inside bridge binary | Same binary runs on remote — **must be same version** |
+> | **Bridge binary** | `bridge/bridge-win.exe` bundled in app | Uploaded via `ensure_remote_bridge` — **verify with `--version`** |
+>
+> **Golden rule**: If it works locally, it MUST work remotely with zero additional changes.
+> If it doesn't, the parity is broken and must be fixed before merge.
+
 
 ### Remote Channel Flow
 ```

@@ -93,10 +93,12 @@ git commit -m "docs: publish vX.Y.Z release notes"
 git push origin main
 
 # 3. Sync docs to public repo
+# IMPORTANT: pull FIRST — CI creates release commits on public repo during build.
+# Pulling before commit avoids rebase conflicts and push failures.
+git -C "d:\Echobird-MotherAgent" pull --rebase origin main
 Copy-Item -Path "d:\Echobird\docs\*" -Destination "d:\Echobird-MotherAgent\docs\" -Recurse -Force
 git -C "d:\Echobird-MotherAgent" add -A
 git -C "d:\Echobird-MotherAgent" commit -m "docs: sync from private repo - vX.Y.Z"
-git -C "d:\Echobird-MotherAgent" pull --rebase origin main
 git -C "d:\Echobird-MotherAgent" push origin main
 ```
 
