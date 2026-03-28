@@ -128,6 +128,9 @@ chmod +x Echobird_*.AppImage
 | Claude Code | Anthropic | 一键安装 |
 | OpenCode | OpenAI | 一键安装 |
 | ZeroClaw | OpenAI | 一键安装 |
+| NanoBot | OpenAI / Anthropic | 一键安装 |
+| PicoClaw | OpenAI / Anthropic | 一键安装 |
+| Hermes Agent | OpenAI / Anthropic | 一键安装 |
 | Codex | OpenAI | 一键安装 |
 | Cline | OpenAI | 配置 |
 | Roo Code | OpenAI | 配置 |

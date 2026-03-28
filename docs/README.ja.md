@@ -127,6 +127,9 @@ chmod +x Echobird_*.AppImage
 | Claude Code | Anthropic | ワンクリック |
 | OpenCode | OpenAI | ワンクリック |
 | ZeroClaw | OpenAI | ワンクリック |
+| NanoBot | OpenAI / Anthropic | ワンクリック |
+| PicoClaw | OpenAI / Anthropic | ワンクリック |
+| Hermes Agent | OpenAI / Anthropic | ワンクリック |
 | Codex | OpenAI | ワンクリック |
 | Cline | OpenAI | 設定 |
 | Roo Code | OpenAI | 設定 |
