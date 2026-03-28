@@ -7,7 +7,7 @@
 <h3 align="center">Deploy AI agents like a pro — no terminal, no config files, just one click.</h3>
 
 <p align="center">
-  Install OpenClaw, Claude Code, ZeroClaw & more · Switch models across local and remote servers · All from one screen.
+  Install OpenClaw, Claude Code, NanoBot, PicoClaw, Hermes & more · Switch models across local and remote servers · All from one screen.
 </p>
 
 <p align="center">
@@ -38,7 +38,7 @@
 
 Even as an AI beginner, Echobird lets you command your own Agent — from setup to work — through simple chat. No terminal expertise, no config files, no deployment headaches.
 
-Want to use **OpenClaw**, **Claude Code**, **ZeroClaw**, or **Codex**? One click to install. Want to run **Qwen**, **DeepSeek**, or **Llama** on your own machine? One click to deploy. Want to switch models or add skills? Point, click, done.
+Want to use **OpenClaw**, **Claude Code**, **NanoBot**, **PicoClaw**, **Hermes**, or **ZeroClaw**? One click to install. Want to run **Qwen**, **DeepSeek**, or **Llama** on your own machine? One click to deploy. Want to switch models or add skills? Point, click, done.
 
 **Echobird gives you one app to install agents, switch models, deploy LLMs, and control everything from one screen** — whether you're a developer or just getting started with AI.
 
@@ -88,7 +88,7 @@ Want to use **OpenClaw**, **Claude Code**, **ZeroClaw**, or **Codex**? One click
 ### Model Nexus — OpenAI, Anthropic, Gemini, DeepSeek, Ollama — all in one panel
 ![Model Nexus](docs/1.png)
 
-### App Manager — One-click model switching for OpenClaw, Claude Code, Codex & more
+### App Manager — One-click model switching for OpenClaw, Claude Code, NanoBot, PicoClaw, Hermes & more
 ![App Manager](docs/2.png)
 
 ### Local LLM — Deploy Qwen, Llama, DeepSeek locally via llama.cpp / vLLM / SGLang
@@ -127,6 +127,9 @@ chmod +x Echobird_*.AppImage
 | Claude Code | Anthropic | One-click |
 | OpenCode | OpenAI | One-click |
 | ZeroClaw | OpenAI | One-click |
+| NanoBot | OpenAI / Anthropic | One-click |
+| PicoClaw | OpenAI / Anthropic | One-click |
+| Hermes Agent | OpenAI / Anthropic | One-click |
 | Codex | OpenAI | One-click |
 | Cline | OpenAI | Config |
 | Roo Code | OpenAI | Config |
