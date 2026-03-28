@@ -3,7 +3,7 @@
 // Pages extracted to src/pages/ with Provider pattern.
 // All Providers are always mounted; pages are shown/hidden via CSS to avoid remounting.
 
-import { useState, useEffect, useCallback, lazy, Suspense } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import { RotateCcw } from 'lucide-react';
 import { isMobile } from './utils/platform';
 const MobileApp = lazy(() => import('./mobile/MobileApp'));
@@ -16,7 +16,10 @@ import { CircuitFlow } from './components/CircuitFlow';
 
 import { useI18n } from './hooks/useI18n';
 import * as api from './api/tauri';
-import type { LocalTool, AppLogEntry } from './api/types';
+
+// Zustand stores
+import { useToolsStore } from './stores/toolsStore';
+import { useNavigationStore } from './stores/navigationStore';
 
 // Pages
 import { ModelNexusProvider, ModelNexusTitleActions, ModelNexusMain, ModelNexusPanel, AddModelModal } from './pages/ModelNexus';
@@ -29,13 +32,14 @@ import { ChannelsMain, ChannelsPanel, ChannelsProvider, ChannelsRoleSelector, Ch
 declare const __APP_VERSION__: string;
 
 
-function SidebarConnected({ activePage, onPageChange, agentRunning, motherNewMessage, clearMotherBadge, updateAvailable, onSettingsClick }: { activePage: PageType; onPageChange: (p: PageType) => void; agentRunning: boolean; motherNewMessage: boolean; clearMotherBadge: () => void; updateAvailable: string | null; onSettingsClick: () => void }) {
+function SidebarConnected({ onSettingsClick }: { onSettingsClick: () => void }) {
+    const { activePage, setActivePage, agentRunning, motherNewMessage, clearMotherBadge, updateAvailable } = useNavigationStore();
     const channelsBadge = false; // TODO: wire to bridge state
     const motherBadge = motherNewMessage && activePage !== 'mother';
     // Clear badge when switching to Mother Agent page
     const handlePageChange = (p: PageType) => {
         if (p === 'mother') clearMotherBadge();
-        onPageChange(p);
+        setActivePage(p);
     };
     return <Sidebar activePage={activePage} onPageChange={handlePageChange} agentRunning={agentRunning} channelsBadge={channelsBadge} motherBadge={motherBadge} updateAvailable={updateAvailable} onSettingsClick={onSettingsClick} />;
 }
@@ -56,57 +60,16 @@ function App() {
     }
 
     const { t, locale, setLocale } = useI18n();
-    const [activePage, setActivePage] = useState<PageType>('models');
-    // Notify always-mounted pages when they become visible (CSS hidden toggle)
-    useEffect(() => {
-        window.dispatchEvent(new CustomEvent('page-activated', { detail: { page: activePage } }));
-    }, [activePage]);
     const [showSettings, setShowSettings] = useState(false);
 
-    // App logs (shared with MotherAgent)
-    const [appLogs, setAppLogs] = useState<AppLogEntry[]>([]);
-
-    // Detected tools (shared with App Manager & MotherAgent)
-    const [detectedTools, setDetectedTools] = useState<LocalTool[]>([]);
-    const [isScanning, setIsScanning] = useState(false);
-    const [modelProtocolSelection, setModelProtocolSelection] = useState<Record<string, 'openai' | 'anthropic'>>({});
-
-
-
-    // Mother Agent running state
-    const [agentRunning, setAgentRunning] = useState(false);
-    // Mother Agent new message badge
-    const [motherNewMessage, setMotherNewMessage] = useState(false);
-    // Pre-fill message for Mother Agent (set when navigating from App Manager install)
-    const [motherPrefill, setMotherPrefill] = useState<string | undefined>(undefined);
-    // Update available (null = none, string = new version number)
-    const [updateAvailable, setUpdateAvailable] = useState<string | null>(null);
-    // Red dot flash counter — incremented by chat-error window events
-    const [flashCount, setFlashCount] = useState(0);
-
-    useEffect(() => {
-        const handler = (e: Event) => {
-            const count = (e as CustomEvent).detail?.count ?? 1;
-            setFlashCount(prev => prev + count);
-        };
-        window.addEventListener('chat-error', handler);
-        return () => window.removeEventListener('chat-error', handler);
-    }, []);
-
-    // Scan tools
-    const doScanTools = useCallback(async () => {
-        setIsScanning(true);
-        try {
-            const tools = await api.scanTools();
-            setDetectedTools(tools);
-        } catch { /* ignore */ }
-        setIsScanning(false);
-    }, []);
+    // Stores
+    const { activePage, flashCount, setUpdateAvailable } = useNavigationStore();
+    const scanTools = useToolsStore(s => s.scanTools);
 
     // ── Splash preload: run scanTools then mark app ready.
     useEffect(() => {
         const preload = async () => {
-            await doScanTools();
+            await scanTools();
             api.appReady();
             // Silent update check after app is ready
             try {
@@ -122,9 +85,6 @@ function App() {
         preload();
     }, []);
 
-    // Clear logs
-    const onClearLogs = useCallback(() => setAppLogs([]), []);
-
     const is = (p: PageType) => activePage === p;
 
     return (
@@ -132,10 +92,10 @@ function App() {
             <ConfirmDialogProvider>
                 <DownloadProvider>
                     {/* All Providers always mounted — only CSS hidden changes */}
-                        <MotherAgentProvider appLogs={appLogs} detectedTools={detectedTools} onClearLogs={onClearLogs} onAgentRunningChange={setAgentRunning} onNewMessage={() => { if (activePage !== 'mother') setMotherNewMessage(true); }} initialMessage={motherPrefill}>
+                        <MotherAgentProvider>
                             <ModelNexusProvider>
 
-                                    <AppManagerProvider detectedTools={detectedTools} setDetectedTools={setDetectedTools} isScanning={isScanning} scanTools={doScanTools} modelProtocolSelection={modelProtocolSelection} setModelProtocolSelection={setModelProtocolSelection} isActive={activePage === 'apps'} onGoToMother={(prefill) => { setMotherPrefill(prefill); setActivePage('mother'); }}>
+                                    <AppManagerProvider>
                                         <LocalServerProvider>
                                             <ChannelsProvider>
 
@@ -145,7 +105,7 @@ function App() {
                                                 <div className="flex flex-1 overflow-hidden text-cyber-accent font-mono p-4 gap-0 grid-bg relative isolate">
                                                     <CircuitFlow flashCount={flashCount} />
                                                     {/* Sidebar */}
-                                                    <SidebarConnected activePage={activePage} onPageChange={setActivePage} agentRunning={agentRunning} motherNewMessage={motherNewMessage} clearMotherBadge={() => setMotherNewMessage(false)} updateAvailable={updateAvailable} onSettingsClick={() => setShowSettings(true)} />
+                                                    <SidebarConnected onSettingsClick={() => setShowSettings(true)} />
 
                                                     {/* Main content wrapper */}
                                                     <div className="flex-1 flex flex-col overflow-hidden">

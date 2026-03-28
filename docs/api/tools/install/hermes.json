@@ -6,7 +6,7 @@
     "github": "https://github.com/NousResearch/hermes-agent",
     "install": {
         "one-liner (macOS / Linux)": "curl -fsSL https://raw.githubusercontent.com/NousResearch/hermes-agent/main/scripts/install.sh | bash",
-        "note": "Python-based agent by Nous Research. Requires Linux or macOS (WSL2 on Windows). After install, run 'source ~/.bashrc' then 'hermes --version' to verify."
+        "note": "Python-based agent by Nous Research. Requires Linux or macOS (not supported on Windows). After install, run 'source ~/.bashrc' then 'hermes --version' to verify."
     },
     "cli": {
         "description": "Hermes uses 'hermes chat -q' for non-interactive oneshot mode.",
@@ -15,7 +15,7 @@
         "supported_flags": ["-q/--query (message text)", "--quiet (suppress UI, output only)", "--model (model override)", "--provider (provider override)", "--resume (resume session)"],
         "role_mechanism": "Hermes uses SOUL.md at ~/.hermes/SOUL.md for agent identity. EchoBird writes role content here; Hermes auto-detects changes on next session.",
         "output_format": "With --quiet flag, outputs clean text response only.",
-        "note": "Hermes is Python-based, by Nous Research. Supports 200+ models via OpenRouter, plus MiniMax, Kimi, OpenAI, Anthropic, custom endpoints. No native Windows support (WSL2 required)."
+        "note": "Hermes is Python-based, by Nous Research. Supports 200+ models via OpenRouter, plus MiniMax, Kimi, OpenAI, Anthropic, custom endpoints. No native Windows support."
     },
     "network_requirements": {
         "test_urls": ["https://raw.githubusercontent.com/NousResearch/hermes-agent/main/scripts/install.sh"],

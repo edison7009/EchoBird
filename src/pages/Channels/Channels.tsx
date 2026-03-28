@@ -1,55 +1,26 @@
 // Channels — OpenClaw agent chat interface (bridge CLI + SSH)
 import React, { useState, useEffect, useRef, useCallback, createContext, useContext } from 'react';
 import { Send, CornerDownLeft, X, Square, Paperclip, Image as ImageIcon, RotateCcw, Zap, Server, ChevronsDown, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
-import { MiniSelect } from '../components/MiniSelect';
-import { getModelIcon } from '../components/cards/ModelCard';
-import { PendingChipsRow } from '../components/PendingChipsRow';
-import { RemoteModelSelector, type ModelOption } from '../components/RemoteModelSelector';
-import { AgentRolePicker } from '../components/AgentRolePicker';
-import { ChatBubble, TerminalStatusBar } from '../components/chat';
-import { MobileQRPopup } from '../components/MobileQRPopup';
+import { MiniSelect } from '../../components/MiniSelect';
+import { getModelIcon } from '../../components/cards/ModelCard';
+import { PendingChipsRow } from '../../components/PendingChipsRow';
+import { RemoteModelSelector, type ModelOption } from '../../components/RemoteModelSelector';
+import { AgentRolePicker } from '../../components/AgentRolePicker';
+import { ChatBubble, TerminalStatusBar } from '../../components/chat';
+import { MobileQRPopup } from '../../components/MobileQRPopup';
 
-import { useI18n } from '../hooks/useI18n';
-import * as api from '../api/tauri';
-import { normalizeError, errorToKey } from '../utils/normalizeError';
-import { buildPendingMessage } from '../utils/buildPendingMessage';
-import type { ModelConfig } from '../api/types';
-import { useChatPersistence } from '../hooks/useChatPersistence';
-import type { DiskMsg } from '../hooks/useChatPersistence';
+import { useI18n } from '../../hooks/useI18n';
+import * as api from '../../api/tauri';
+import { normalizeError, errorToKey } from '../../utils/normalizeError';
+import { buildPendingMessage } from '../../utils/buildPendingMessage';
+import type { ModelConfig } from '../../api/types';
+import { useChatPersistence } from '../../hooks/useChatPersistence';
+import type { DiskMsg } from '../../hooks/useChatPersistence';
+import { useNavigationStore } from '../../stores/navigationStore';
+import { AGENT_LIST } from '../../api/agentList';
+import { ChannelsContext, useChannels } from './context';
+import type { Channel, Attachment } from './context';
 
-
-
-
-// Agent list (shared across Main and Panel)
-const AGENT_LIST = [
-    { id: 'openclaw', name: 'OpenClaw', icon: '/icons/tools/openclaw.svg' },
-    { id: 'claudecode', name: 'Claude Code', icon: '/icons/tools/claudecode.svg' },
-    { id: 'zeroclaw', name: 'ZeroClaw', icon: '/icons/tools/zeroclaw.png' },
-    { id: 'nanobot', name: 'NanoBot', icon: '/icons/tools/nanobot.png' },
-    { id: 'picoclaw', name: 'PicoClaw', icon: '/icons/tools/picoclaw.png' },
-    { id: 'hermes', name: 'Hermes Agent', icon: '/icons/tools/hermes.png' },
-];
-
-// ===== Context (shared state between ChannelsMain & ChannelsPanel) =====
-interface ChannelsCtx {
-    channels: Channel[];
-    setChannels: React.Dispatch<React.SetStateAction<Channel[]>>;
-    activeId: number | null;
-    setActiveId: React.Dispatch<React.SetStateAction<number | null>>;
-    selectChannel: (id: number) => void;
-    allBridgeStatus: Record<number, string>;
-    setAllBridgeStatus: React.Dispatch<React.SetStateAction<Record<number, string>>>;
-    allActiveAgents: Record<number, string>;
-    setAllActiveAgents: React.Dispatch<React.SetStateAction<Record<number, string>>>;
-    allBridgeLoading: Record<number, boolean>;
-    setAllBridgeLoading: React.Dispatch<React.SetStateAction<Record<number, boolean>>>;
-    allSelectedRoles: Record<number, { id: string; name: string; filePath: string }>;
-    setAllSelectedRoles: React.Dispatch<React.SetStateAction<Record<number, { id: string; name: string; filePath: string }>>>;
-    allBridgeHasNew: Record<number, boolean>;
-    setAllBridgeHasNew: React.Dispatch<React.SetStateAction<Record<number, boolean>>>;
-}
-const ChannelsContext = createContext<ChannelsCtx | null>(null);
-const useChannels = () => useContext(ChannelsContext)!;
 
 // ===== Provider =====
 export function ChannelsProvider({ children }: { children: React.ReactNode }) {
@@ -64,8 +35,7 @@ export function ChannelsProvider({ children }: { children: React.ReactNode }) {
         if (id !== activeId) setActiveId(id);
         setAllBridgeHasNew(prev => ({ ...prev, [id]: false }));
     }, [activeId]);
-    const ctx: ChannelsCtx = { channels, setChannels, activeId, setActiveId, selectChannel, allBridgeStatus, setAllBridgeStatus, allActiveAgents, setAllActiveAgents, allBridgeLoading, setAllBridgeLoading, allSelectedRoles, setAllSelectedRoles, allBridgeHasNew, setAllBridgeHasNew };
-    return <ChannelsContext.Provider value={ctx}>{children}</ChannelsContext.Provider>;
+    return <ChannelsContext.Provider value={{ channels, setChannels, activeId, setActiveId, selectChannel, allBridgeStatus, setAllBridgeStatus, allActiveAgents, setAllActiveAgents, allBridgeLoading, setAllBridgeLoading, allSelectedRoles, setAllSelectedRoles, allBridgeHasNew, setAllBridgeHasNew }}>{children}</ChannelsContext.Provider>;
 }
 
 // Connection protocols (display as SSH since connections go through SSH port forwarding)
@@ -73,24 +43,6 @@ const PROTOCOLS = [
     { id: 'ws://', label: 'ssh://' },
     { id: 'wss://', label: 'ssh://' },
 ];
-
-// Attachment type
-interface Attachment {
-    type: 'image' | 'file';
-    name: string;
-    data: string; // base64 data URL (image) or text content (file)
-    preview?: string; // Image thumbnail URL
-}
-
-interface Channel {
-    id: number;
-    name: string;
-    address: string;
-    protocol: string;
-    serverId?: string; // SSH server id — used to persist alias changes
-}
-
-
 
 // Parse address into tunnelUrl + token + password
 const parseAddress = (channel: Channel) => {
@@ -180,7 +132,7 @@ const ChannelsInner: React.FC = () => {
     // Process toggle (show/hide tool calls and thinking)
 
     // Bridge mode state — per-channel storage
-    type BridgeMsg = { role: string; content: string; i18nKey?: string; meta?: { model?: string; tokens?: number; duration_ms?: number }; chips?: import('../components/chat/ChatBubble').BubbleChip[] };
+    type BridgeMsg = { role: string; content: string; i18nKey?: string; meta?: { model?: string; tokens?: number; duration_ms?: number }; chips?: import('../../components/chat/ChatBubble').BubbleChip[] };
     const [allBridgeMessages, setAllBridgeMessages] = useState<Record<number, BridgeMsg[]>>({});
     const [allBridgeSessionIds, setAllBridgeSessionIds] = useState<Record<number, string>>({});
     const [allBridgeAgentNames, setAllBridgeAgentNames] = useState<Record<number, string>>({});
@@ -346,9 +298,14 @@ const ChannelsInner: React.FC = () => {
     useEffect(() => {
         loadChannelData();
         // Refresh when SSH servers change (added/removed in Mother Agent)
-        const onServersChanged = () => loadChannelData(true);
-        window.addEventListener('ssh-servers-changed', onServersChanged);
-        return () => window.removeEventListener('ssh-servers-changed', onServersChanged);
+        let prevVersion = useNavigationStore.getState().sshServersVersion;
+        const unsub = useNavigationStore.subscribe((state) => {
+            if (state.sshServersVersion !== prevVersion) {
+                prevVersion = state.sshServersVersion;
+                loadChannelData(true);
+            }
+        });
+        return unsub;
     }, [loadChannelData]);
 
     // Note: channels.json polling removed — local channel uses bridge mode,
@@ -639,27 +596,30 @@ const ChannelsInner: React.FC = () => {
     // (e.g. after adding/modifying models in Model Nexus or App Manager)
     useEffect(() => {
         if (!selectedAgentForChannel) return;
-        const handlePageActivated = (e: Event) => {
-            if ((e as CustomEvent).detail?.page !== 'channels') return;
-            // Refresh model list
-            api.getModels().then(models => {
-                const anthropicOnlyAgents = ['claudecode'];
-                const agentEntry = AGENT_LIST.find((a: any) => a.name === selectedAgentForChannel);
-                const isAnthropicOnly = agentEntry && anthropicOnlyAgents.includes(agentEntry.id);
-                const filtered = isAnthropicOnly
-                    ? models.filter(m => !!m.anthropicUrl)
-                    : models;
-                setChannelModelList(filtered.map(m => ({
-                    id: m.internalId,
-                    name: m.name,
-                    icon: getModelIcon(m.name, m.modelId),
-                })));
-            }).catch(() => {});
-            // Refresh current model
-            refreshCurrentModel();
-        };
-        window.addEventListener('page-activated', handlePageActivated);
-        return () => window.removeEventListener('page-activated', handlePageActivated);
+        let prevPage = useNavigationStore.getState().activePage;
+        const unsub = useNavigationStore.subscribe((state) => {
+            if (state.activePage !== prevPage) {
+                prevPage = state.activePage;
+                if (state.activePage !== 'channels') return;
+                // Refresh model list
+                api.getModels().then(models => {
+                    const anthropicOnlyAgents = ['claudecode'];
+                    const agentEntry = AGENT_LIST.find((a: any) => a.name === selectedAgentForChannel);
+                    const isAnthropicOnly = agentEntry && anthropicOnlyAgents.includes(agentEntry.id);
+                    const filtered = isAnthropicOnly
+                        ? models.filter(m => !!m.anthropicUrl)
+                        : models;
+                    setChannelModelList(filtered.map(m => ({
+                        id: m.internalId,
+                        name: m.name,
+                        icon: getModelIcon(m.name, m.modelId),
+                    })));
+                }).catch(() => {});
+                // Refresh current model
+                refreshCurrentModel();
+            }
+        });
+        return unsub;
     }, [selectedAgentForChannel, refreshCurrentModel]);
 
     // Handle remote model switch
@@ -862,7 +822,7 @@ const ChannelsInner: React.FC = () => {
                 if (result.session_id) setBridgeSessionId(result.session_id);
                 if (!result.text || result.text.trim() === '') {
                     // Empty response from agent — show error instead of invisible bubble
-                    window.dispatchEvent(new CustomEvent('chat-error'));
+                    useNavigationStore.getState().incrementFlashCount();
                     setBridgeMessages(prev => [...prev, { role: 'system', content: 'Agent returned an empty response. The agent process may have crashed — try sending again.' }]);
                 } else {
                     setBridgeMessages(prev => [...prev, {
@@ -983,7 +943,7 @@ const ChannelsInner: React.FC = () => {
                     // Remove the working hint before adding the real reply
                     if (!result.text || result.text.trim() === '') {
                         // Empty response from agent — show error instead of invisible bubble
-                        window.dispatchEvent(new CustomEvent('chat-error'));
+                        useNavigationStore.getState().incrementFlashCount();
                         setBridgeMessages(prev => {
                             const cleaned = prev.filter(m => m.content !== WORKING_MARKER);
                             return [...cleaned, { role: 'system', content: 'Agent returned an empty response. The agent process may have crashed — try sending again.' }];
@@ -1005,7 +965,7 @@ const ChannelsInner: React.FC = () => {
                     // Error → reset all transient state back to initial
                     setBridgeConnectionStatus('standby');
                     setBridgeAgentName(undefined);
-                    window.dispatchEvent(new CustomEvent('chat-error'));
+                    useNavigationStore.getState().incrementFlashCount();
                     setBridgeMessages(prev => {
                         const cleaned = prev.filter(m => m.content !== WORKING_MARKER);
                         return [...cleaned, { role: 'system', content: '', i18nKey: errorToKey(remoteErr?.message || String(remoteErr)) }];
@@ -1014,7 +974,7 @@ const ChannelsInner: React.FC = () => {
                 }
             }
         } catch (e: any) {
-            window.dispatchEvent(new CustomEvent('chat-error'));
+            useNavigationStore.getState().incrementFlashCount();
             setBridgeMessages(prev => [...prev, { role: 'system', content: '', i18nKey: errorToKey(e?.message || String(e)) }]);
             if (isLocalChannel) {
                 try {
@@ -1045,7 +1005,7 @@ const ChannelsInner: React.FC = () => {
                         if (msg.role === 'system' && msg.content === '__agent_working__') return null;
                         if (msg.role === 'user') return <ChatBubble key={i} role="user" content={msg.content} variant="channels" chips={msg.chips} />;
                         if (msg.role === 'system') {
-                            const text = msg.i18nKey ? t(msg.i18nKey as import('../i18n/types').TKey) : msg.content;
+                            const text = msg.i18nKey ? t(msg.i18nKey as import('../../i18n/types').TKey) : msg.content;
                             const isCancelled = msg.i18nKey === 'error.userCancelled';
                             if (isCancelled)
                                 return <div key={i} className="flex justify-center my-4"><span className="text-cyber-text-muted/35 text-xs font-mono">{text}</span></div>;
@@ -1155,171 +1115,6 @@ const ChannelsInner: React.FC = () => {
     );
 };
 
-// ===== ChannelsPanel — right-side channel list (rendered in aside) =====
-export function ChannelsPanel() {
-    const { channels, activeId, selectChannel, allBridgeStatus, allActiveAgents, allBridgeLoading, allSelectedRoles, allBridgeHasNew } = useChannels();
-    const { t } = useI18n();
-
-
-    return (
-        <>
-            {/* Header */}
-            <div className="p-2 bg-transparent">
-                <span className="text-xs font-bold tracking-wider text-cyber-accent font-mono">{t('mother.servers')}</span>
-            </div>
-
-            {/* Channel list */}
-            <div className="flex-1 p-2 overflow-y-auto slim-scroll">
-                <div className="space-y-2">
-                    {channels.map(ch => {
-                        const isActive = activeId === ch.id;
-
-                        const chBridgeStatus = allBridgeStatus[ch.id] || 'standby';
-                        const isLinked = chBridgeStatus === 'connected';
-                        const isBridgeConnecting = chBridgeStatus === 'connecting';
-                        const isError = chBridgeStatus === 'disconnected';
-                        const isTyping = allBridgeLoading[ch.id] || false;
-                        const hasNew = allBridgeHasNew[ch.id] && !isActive;
-
-                        return (
-                            <div
-                                key={ch.id}
-                                onClick={() => selectChannel(ch.id)}
-                                className={`w-full text-left p-3 transition-all font-mono rounded-card cursor-pointer ${isActive
-                                    ? 'bg-cyber-accent/10'
-                                    : 'bg-black/30 hover:bg-white/5'
-                                    }`}
-                            >
-                                <div className="flex items-center gap-3">
-                                    {(() => {
-                                    const selectedAgent = allActiveAgents[ch.id];
-                                        const agent = selectedAgent ? AGENT_LIST.find(a => a.name === selectedAgent) : null;
-                                        if (agent) {
-                                            return <img src={agent.icon} alt={agent.name} className="w-9 h-9 flex-shrink-0" />;
-                                        }
-                                        return (
-                                            <div className="w-9 h-9 flex-shrink-0 rounded-lg bg-cyber-border/30 flex items-center justify-center">
-                                                <span className="text-cyber-text-muted/40 text-lg font-bold">?</span>
-                                            </div>
-                                        );
-                                    })()}
-                                    <div className="flex-1 min-w-0">
-                                        <div className="flex items-center gap-1 mb-1">
-                                            <span className={`text-sm font-bold whitespace-nowrap truncate ${isActive ? 'text-cyber-accent' : 'text-cyber-accent/90'}`}>
-                                                {ch.name || (ch.address?.startsWith('127.0.0.1') || ch.address === 'localhost'
-                                                    ? `${t('mother.local')} (127.0.0.1)` : ch.address)}
-                                            </span>
-                                            <div className={`ml-auto w-2 h-2 rounded-full flex-shrink-0 ${hasNew ? 'bg-red-500 animate-pulse' : isLinked ? 'bg-cyber-accent animate-pulse' : isBridgeConnecting ? 'bg-yellow-400 animate-pulse' : isError ? 'bg-red-400' : 'bg-cyber-text-muted/50'}`} />
-                                        </div>
-                                        <div className="flex items-center gap-1.5 overflow-hidden">
-                                            <span className={`text-xs tracking-wide whitespace-nowrap flex-shrink-0 ${isTyping ? 'text-cyber-accent' : isLinked ? 'text-cyber-accent' : isBridgeConnecting ? 'text-yellow-400' : isError ? 'text-red-400' : 'text-cyber-text-muted/70'}`}>
-                                                [{isTyping ? t('common.inputting') : isLinked ? t('channel.linked') : isBridgeConnecting ? t('channel.connecting') : isError ? t('channel.failed') : t('channel.standby')}]
-                                            </span>
-                                            {(allSelectedRoles[ch.id]?.name || allActiveAgents[ch.id]) && (
-                                                <span className={`text-xs min-w-0 truncate ${isTyping ? 'text-cyber-accent' : isLinked ? 'text-cyber-accent' : isBridgeConnecting ? 'text-yellow-400' : isError ? 'text-red-400' : 'text-cyber-text-muted/70'}`}>
-                                                    {allSelectedRoles[ch.id]?.name || allActiveAgents[ch.id]}
-                                                </span>
-                                            )}
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        );
-                    })}
-                </div>
-            </div>
-        </>
-    );
-}
-
 // ===== Exports =====
 export { ChannelsInner as ChannelsMain };
 
-// ===== ChannelsRoleSelector — title bar widget (styled like MiniSelect) =====
-export function ChannelsRoleSelector() {
-    const { channels, activeId, allActiveAgents, allSelectedRoles } = useChannels();
-    const { t } = useI18n();
-    const channelKey = activeId ?? '';
-    const activeChannel = channels.find(c => c.id === activeId);
-    const selectedAgent = (allActiveAgents as Record<string, string>)[channelKey] || '';
-    const agent = selectedAgent ? AGENT_LIST.find(a => a.name === selectedAgent) : null;
-    const selectedRoleForChannel = (allSelectedRoles as Record<string, { id: string; name: string; filePath: string }>)[channelKey] || { id: '', name: '', filePath: '' };
-    const hasRole = selectedRoleForChannel && selectedRoleForChannel.id;
-
-    // Dispatch event to open AgentRolePicker in ChannelsMain
-    const openPicker = () => window.dispatchEvent(new CustomEvent('open-role-picker'));
-
-    if (!activeChannel) return null;
-
-    const label = hasRole
-        ? selectedRoleForChannel.name
-        : selectedAgent || t('channel.selectRoleAgent');
-
-    return (
-        <div className="relative">
-            <button
-                type="button"
-                onClick={openPicker}
-                className={`w-full min-w-[90px] bg-black border px-3 py-1.5 outline-none cursor-pointer flex items-center justify-center transition-colors text-xs font-mono rounded-button ${
-                    (hasRole || selectedAgent)
-                        ? 'border-cyber-accent/40 hover:border-cyber-accent/70'
-                        : 'border-cyber-border hover:border-cyber-accent/50'
-                }`}
-            >
-                <span className="truncate text-cyber-text">{label}</span>
-                <ChevronDown size={12} className="flex-shrink-0 ml-1 text-cyber-accent" />
-            </button>
-        </div>
-    );
-}
-
-// ===== ChannelsMobileSync — clipboard-based config sync for mobile =====
-// Generates "eb:" + base64(JSON) config string. Delegates UI to MobileQRPopup.
-export function ChannelsMobileSync() {
-    const [configCode, setConfigCode] = useState('');
-
-    useEffect(() => {
-        (async () => {
-            try {
-                // Load SSH servers and decrypt passwords
-                const sshServers = await api.loadSSHServers();
-                const decryptedSSH = await Promise.all(
-                    sshServers.map(async (s) => ({
-                        h: s.host,
-                        o: s.port,
-                        u: s.username,
-                        p: s.password?.startsWith('enc:v1:')
-                            ? await api.decryptSSHPassword(s.password)
-                            : (s.password || ''),
-                        n: s.alias || '',
-                    }))
-                );
-
-                // Load user models and decrypt API keys
-                const allModels = await api.getModels();
-                const userModels = allModels.filter(m =>
-                    m.modelType !== 'LOCAL' && m.modelType !== 'DEMO' && m.internalId !== 'local-server'
-                );
-                const decryptedModels = await Promise.all(
-                    userModels.map(async (m) => ({
-                        n: m.name,
-                        i: m.modelId || m.name,
-                        b: m.baseUrl,
-                        k: m.apiKey?.startsWith('enc:v1:')
-                            ? await api.decryptSSHPassword(m.apiKey)
-                            : (m.apiKey || ''),
-                        x: m.anthropicUrl || '',
-                    }))
-                );
-
-                const json = JSON.stringify({ a: 'echobird', v: 2, s: decryptedSSH, m: decryptedModels });
-                const encoded = 'eb:' + btoa(unescape(encodeURIComponent(json)));
-                setConfigCode(encoded);
-            } catch (e) {
-                console.error('[MobileSync] Failed to build config code:', e);
-            }
-        })();
-    }, []);
-
-    return <MobileQRPopup configCode={configCode} />;
-}

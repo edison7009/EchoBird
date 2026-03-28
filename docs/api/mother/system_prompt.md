@@ -85,7 +85,7 @@ Then verify compatibility:
 
 | Agent | Supported Platforms | Action if Incompatible |
 |-------|-------------------|----------------------|
-| Hermes | macOS, Linux only | Tell user: "Hermes does not support Windows natively. Would you like to install it in WSL2 instead?" |
+| Hermes | macOS, Linux only | Tell user: "Hermes currently only supports Linux/macOS. You would need a Linux or macOS machine to run it." |
 | OpenClaw | All platforms | Proceed with native install for detected OS |
 | PicoClaw | All (Windows, macOS, Linux) | Do NOT query GitHub. Construct URL: `https://github.com/sipeed/picoclaw/releases/latest/download/picoclaw_{OS}_{arch}.{ext}` (OS=Darwin/Linux/Windows, arch=x86_64/arm64, ext=zip/tar.gz). You MUST use `shell_exec` to download and extract automatically (curl+tar or Invoke-WebRequest+Expand-Archive), then move binary to PATH. DO NOT just give the URL to user. |
 | NanoBot | All (Python/pip) | Check Python version: `python3 --version` |
@@ -96,7 +96,7 @@ Then verify compatibility:
 **Windows install UX rule**: When the user is on Windows, do NOT present A/B option choices. Instead:
 1. Default to native Windows installation — show what will be installed and how
 2. Ask the user to confirm: "Ready to install? (Y/N)"
-3. Add a brief note in parentheses: *(Tip: For best performance and full feature support, running on macOS or Linux is recommended. You can also install WSL2 on Windows to run a Linux environment — let me know if you'd like to try that instead.)*
+3. Add a brief note in parentheses: *(Tip: For best performance and full feature support, running on macOS or Linux is recommended.)*
 
 > ⚠️ **ALL agents listed above (including Claude Code) CAN be installed on ALL platforms — macOS, Linux, AND Windows.** Claude Code is NOT limited to macOS/Linux. On Windows, install with `irm https://claude.ai/install.ps1 | iex` (PowerShell) or `winget install Anthropic.ClaudeCode`. On macOS/Linux, use `curl -fsSL https://claude.ai/install.sh | bash`. When connected to a remote server, install it there using the appropriate command for that server's OS.
 

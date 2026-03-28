@@ -2,59 +2,18 @@
 // Layout restored from Electron v1.0.8 LocalModelPlayer.tsx
 // Architecture: Provider + Main + Panel (consistent with other pages)
 
-import { useState, useEffect, useRef, useCallback, createContext, useContext } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Play, Square, Terminal, ChevronDown, Download, Loader2, HardDrive, FolderOpen } from 'lucide-react';
-import { MiniSelect } from '../components/MiniSelect';
-import { useI18n } from '../hooks/useI18n';
-import { useConfirm } from '../components/ConfirmDialog';
-import { useDownload } from '../components/DownloadContext';
-import * as api from '../api/tauri';
-import type { SystemInfo } from '../api/tauri';
-import type { StoreModel, StoreModelVariant } from '../api/types';
+import { MiniSelect } from '../../components/MiniSelect';
+import { useI18n } from '../../hooks/useI18n';
+import { useConfirm } from '../../components/ConfirmDialog';
+import { useDownload } from '../../components/DownloadContext';
+import * as api from '../../api/tauri';
+import type { SystemInfo } from '../../api/tauri';
+import type { StoreModel, StoreModelVariant } from '../../api/types';
+import { LocalServerContext, useLocalServer } from './context';
+import type { EngineStatus, GgufFileEntry } from './context';
 
-// ─── Types ───
-
-type EngineStatus = 'checking' | 'ready' | 'not-installed' | 'downloading' | 'error' | 'update-available';
-
-interface GgufFileEntry {
-    fileName: string;
-    filePath: string;
-    fileSize: number;
-}
-
-// ─── Context ───
-
-interface LocalServerContextValue {
-    // Model selection
-    selectedModelPath: string | null;
-    setSelectedModelPath: (path: string | null) => void;
-    // GGUF / HF model files
-    ggufFiles: GgufFileEntry[];
-    isScanning: boolean;
-    rescanModels: (runtime?: string) => void;
-    // Model dirs
-    modelsDirs: string[];
-    // Current runtime (shared between Main and Panel)
-    runtime: string;
-    setRuntime: (v: string) => void;
-    // Server runtime state (for bottom bar)
-    serverRunning: boolean;
-    setServerRunning: (v: boolean) => void;
-    serverPort: number;
-    setServerPort: (v: number) => void;
-    serverModelName: string;
-    setServerModelName: (v: string) => void;
-    serverApiKey: string;
-    setServerApiKey: (v: string) => void;
-}
-
-const LocalServerContext = createContext<LocalServerContextValue | null>(null);
-
-const useLocalServer = () => {
-    const ctx = useContext(LocalServerContext);
-    if (!ctx) throw new Error('useLocalServer must be used within LocalServerProvider');
-    return ctx;
-};
 
 // ─── Provider ───
 

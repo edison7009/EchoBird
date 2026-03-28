@@ -17,18 +17,12 @@ import { getModelIcon } from '../components/cards/ModelCard';
 import type { ModelConfig } from '../api/types';
 import './MobileApp.css';
 import OverscrollWrap from './OverscrollWrap';
+import { useNavigationStore } from '../stores/navigationStore';
+import { AGENT_LIST, type AgentDef } from '../api/agentList';
 
 type MobileScreen = 'servers' | 'chat' | 'setup' | 'settings';
 
-// Agent list — same as PC Channels.tsx AGENT_LIST (icons bundled in app)
-const AGENT_LIST = [
-    { id: 'openclaw', name: 'OpenClaw', icon: '/icons/tools/openclaw.svg' },
-    { id: 'claudecode', name: 'Claude Code', icon: '/icons/tools/claudecode.svg' },
-    { id: 'zeroclaw', name: 'ZeroClaw', icon: '/icons/tools/zeroclaw.png' },
-    { id: 'nanobot', name: 'NanoBot', icon: '/icons/tools/nanobot.png' },
-    { id: 'picoclaw', name: 'PicoClaw', icon: '/icons/tools/picoclaw.png' },
-    { id: 'hermes', name: 'Hermes Agent', icon: '/icons/tools/hermes.png' },
-];
+
 
 // Detect if running inside Tauri (real device) or browser dev mode
 const hasTauri = () => !!(window as any).__TAURI_INTERNALS__;
@@ -273,7 +267,7 @@ function MobileApp() {
     const [activeServer, setActiveServer] = useState<SSHServer | null>(null);
 
     // Agent detection
-    const [selectedAgent, setSelectedAgent] = useState<typeof AGENT_LIST[0] | null>(null);
+    const [selectedAgent, setSelectedAgent] = useState<AgentDef | null>(null);
     const [agentStatuses, setAgentStatuses] = useState<Record<string, RemoteAgentInfo>>({});
     const [detecting, setDetecting] = useState(false);
     const [detectError, setDetectError] = useState(false);
@@ -309,7 +303,7 @@ function MobileApp() {
     // Per-server state cache — preserves chat, agent, role, model when switching servers
     interface ServerState {
         chatMessages: ChatMsg[];
-        selectedAgent: typeof AGENT_LIST[0] | null;
+        selectedAgent: AgentDef | null;
         selectedRole: RoleEntry | null;
         selectedModel: ModelConfig | null;
         sessionId: string | undefined;
@@ -594,7 +588,7 @@ function MobileApp() {
     };
 
     // ── Select agent (mirrors PC: clear model/session/cache, stop old bridge, auto-load models) ──
-    const handleSelectAgent = (agentDef: typeof AGENT_LIST[0]) => {
+    const handleSelectAgent = (agentDef: AgentDef) => {
         const info = agentStatuses[agentDef.id];
         if (!info?.installed) return;
         const previousAgent = selectedAgent;
@@ -782,7 +776,7 @@ function MobileApp() {
                 // Remove working hint, add real reply
                 if (!result.text || result.text.trim() === '') {
                     // Empty response from agent — show error instead of invisible bubble
-                    window.dispatchEvent(new CustomEvent('chat-error'));
+                    useNavigationStore.getState().incrementFlashCount();
                     setChatMessages(prev => {
                         const cleaned = prev.filter(m => m.content !== WORKING_MARKER);
                         return [...cleaned, { role: 'system', content: 'Agent returned an empty response. The agent process may have crashed — try sending again.' }];
@@ -808,14 +802,14 @@ function MobileApp() {
             } catch (remoteErr: any) {
                 clearTimeout(workingTimer);
                 setConnectionStatus('standby');
-                window.dispatchEvent(new CustomEvent('chat-error'));
+                useNavigationStore.getState().incrementFlashCount();
                 setChatMessages(prev => {
                     const cleaned = prev.filter(m => m.content !== WORKING_MARKER);
                     return [...cleaned, { role: 'system', content: '', i18nKey: errorToKey(remoteErr?.message || String(remoteErr)) }];
                 });
             }
         } catch (e: any) {
-            window.dispatchEvent(new CustomEvent('chat-error'));
+            useNavigationStore.getState().incrementFlashCount();
             setChatMessages(prev => [...prev, { role: 'system', content: '', i18nKey: errorToKey(e?.message || String(e)) }]);
         } finally {
             setLoading(false);
