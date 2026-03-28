@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="./5.png" alt="Echobird — One-click AI agent deployment" width="100%" />
+  <img src="./icon.png" alt="Echobird" width="120" />
 </p>
 
 <h1 align="center">EchoBird</h1>
@@ -42,6 +42,11 @@ AI 초보자라도 EchoBird를 사용하면 간단한 채팅으로 자신만의 
 **OpenClaw**, **Claude Code**, **ZeroClaw**, **Codex**를 사용하고 싶으신가요? 원클릭으로 설치. 자신의 컴퓨터에서 **Qwen**, **DeepSeek**, **Llama**를 실행하고 싶으신가요? 원클릭으로 배포. 모델 전환이나 스킬 추가? 클릭 한 번이면 끝.
 
 **EchoBird는 하나의 앱으로 모든 것을 해결합니다** — 에이전트 설치, 모델 전환, LLM 배포, 모든 에이전트를 하나의 화면에서 제어 — 개발자든 AI 초보자든.
+
+
+<p align="center">
+  <img src="./5.png" alt="Echobird Channels" width="100%" />
+</p>
 
 ---
 

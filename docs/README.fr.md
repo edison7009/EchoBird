@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="./5.png" alt="Echobird — One-click AI agent deployment" width="100%" />
+  <img src="./icon.png" alt="Echobird" width="120" />
 </p>
 
 <h1 align="center">EchoBird</h1>
@@ -42,6 +42,11 @@ Même en tant que débutant en IA, EchoBird vous permet de contrôler votre prop
 Vous voulez utiliser **OpenClaw**, **Claude Code**, **ZeroClaw** ou **Codex** ? Un clic pour installer. Exécuter **Qwen**, **DeepSeek** ou **Llama** sur votre propre machine ? Un clic pour déployer. Changer de modèle ou ajouter des skills ? Pointez, cliquez, c'est fait.
 
 **EchoBird vous offre une seule app pour tout** — installer des agents, changer de modèle, déployer des LLMs et tout contrôler depuis un écran — que vous soyez développeur ou débutant en IA.
+
+
+<p align="center">
+  <img src="./5.png" alt="Echobird Channels" width="100%" />
+</p>
 
 ---
 

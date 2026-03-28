@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="./5.png" alt="Echobird — One-click AI agent deployment" width="100%" />
+  <img src="./icon.png" alt="Echobird" width="120" />
 </p>
 
 <h1 align="center">EchoBird</h1>
@@ -42,6 +42,11 @@
 تريد استخدام **OpenClaw** أو **Claude Code** أو **ZeroClaw** أو **Codex**؟ نقرة واحدة للتثبيت. تريد تشغيل **Qwen** أو **DeepSeek** أو **Llama** على جهازك؟ نقرة واحدة للنشر. تبديل النماذج أو إضافة مهارات؟ انقر وانتهى الأمر.
 
 **EchoBird يمنحك تطبيقاً واحداً لكل شيء** — تثبيت الوكلاء، تبديل النماذج، نشر LLMs، والتحكم بكل شيء من شاشة واحدة — سواء كنت مطوراً أو مبتدئاً في الذكاء الاصطناعي.
+
+
+<p align="center">
+  <img src="./5.png" alt="Echobird Channels" width="100%" />
+</p>
 
 ---
 

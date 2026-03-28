@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/5.png" alt="Echobird — One-click AI agent deployment" width="100%" />
+  <img src="docs/icon.png" alt="Echobird" width="120" />
 </p>
 
 <h1 align="center">EchoBird</h1>
@@ -42,6 +42,10 @@ Even as an AI beginner, Echobird lets you command your own Agent — from setup 
 Want to use **OpenClaw**, **Claude Code**, **ZeroClaw**, or **Codex**? One click to install. Want to run **Qwen**, **DeepSeek**, or **Llama** on your own machine? One click to deploy. Want to switch models or add skills? Point, click, done.
 
 **Echobird gives you one app to install agents, switch models, deploy LLMs, and control everything from one screen** — whether you're a developer or just getting started with AI.
+
+<p align="center">
+  <img src="docs/5.png" alt="Echobird Channels" width="100%" />
+</p>
 
 ---
 

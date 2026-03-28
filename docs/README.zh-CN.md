@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="./5.png" alt="Echobird — One-click AI agent deployment" width="100%" />
+  <img src="./icon.png" alt="Echobird" width="120" />
 </p>
 
 <h1 align="center">EchoBird</h1>
@@ -42,6 +42,11 @@
 想用 **OpenClaw**、**Claude Code**、**ZeroClaw** 或 **Codex**？一键安装。想在自己的电脑上运行 **Qwen**、**DeepSeek** 或 **Llama**？一键部署。想切换模型或添加技能？点一下就搞定。
 
 **EchoBird 用一个应用搞定一切** —— 安装智能体、切换模型、部署大模型、在一个页面控制所有智能体 —— 无论你是开发者还是 AI 新手。
+
+
+<p align="center">
+  <img src="./5.png" alt="Echobird Channels" width="100%" />
+</p>
 
 ---
 

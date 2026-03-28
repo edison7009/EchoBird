@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="./5.png" alt="Echobird — One-click AI agent deployment" width="100%" />
+  <img src="./icon.png" alt="Echobird" width="120" />
 </p>
 
 <h1 align="center">EchoBird</h1>
@@ -42,6 +42,11 @@
 Хотите использовать **OpenClaw**, **Claude Code**, **ZeroClaw** или **Codex**? Один клик для установки. Запустить **Qwen**, **DeepSeek** или **Llama** на своём компьютере? Один клик для развёртывания. Переключить модель или добавить навыки? Нажмите — готово.
 
 **EchoBird — одно приложение для всего** — установка агентов, переключение моделей, развёртывание LLM и управление всеми агентами с одного экрана — будь вы разработчик или новичок в ИИ.
+
+
+<p align="center">
+  <img src="./5.png" alt="Echobird Channels" width="100%" />
+</p>
 
 ---
 
