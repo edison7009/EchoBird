@@ -1,1 +1,1 @@
-{"version": "3.4.9","releaseDate": "2026-03-27","releaseNotes": "Fix mobile role switching for OpenClaw, empty response detection"}
+{"version":"3.5.0","releaseDate":"2026-03-28","releaseNotes":"Robust model switching for all 6 agents. Fixed bridge stdin handling, OpenClaw gateway restart, URL fallback, and agent detection paths."}
