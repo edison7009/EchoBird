@@ -1,13 +1,13 @@
 <p align="center">
-  <img src="./icon.png" alt="Echobird" width="120" />
+  <img src="../icon.png" alt="Echobird" width="120" />
 </p>
 
 <h1 align="center">EchoBird</h1>
 
-<h3 align="center">KI-Agenten wie ein Profi bereitstellen — kein Terminal, keine Konfigurationsdateien, nur ein Klick.</h3>
+<h3 align="center">KI-Agenten wie ein Profi einsetzen — ohne Terminal, ohne Konfiguration, mit nur einem Klick.</h3>
 
 <p align="center">
-  OpenClaw, Claude Code, ZeroClaw und mehr installieren · Modelle auf lokalen und Remote-Servern wechseln · Alles auf einem Bildschirm.
+  OpenClaw, Claude Code, ZeroClaw und mehr mit einem Klick installieren · Modelle auf lokalen Servern frei wechseln · Alle Agenten auf einem Bildschirm steuern.
 </p>
 
 <p align="center">
@@ -41,7 +41,6 @@ Selbst als KI-Anfänger lässt EchoBird dich deinen eigenen Agent steuern — vo
 Du willst **OpenClaw**, **Claude Code**, **ZeroClaw** oder **Codex** nutzen? Ein Klick zum Installieren. **Qwen**, **DeepSeek** oder **Llama** auf deinem eigenen Rechner ausführen? Ein Klick zum Deployen. Modelle wechseln oder Skills hinzufügen? Klick, fertig.
 
 **EchoBird gibt dir eine App für alles** — Agents installieren, Modelle wechseln, LLMs deployen und alles von einem Bildschirm steuern — egal ob Entwickler oder KI-Einsteiger.
-
 
 <p align="center">
   <img src="./5.png" alt="Echobird Channels" width="100%" />
@@ -95,8 +94,6 @@ Du willst **OpenClaw**, **Claude Code**, **ZeroClaw** oder **Codex** nutzen? Ein
 ### Lokales LLM — Qwen, Llama, DeepSeek lokal deployen via llama.cpp / vLLM / SGLang
 ![Local Server](./3.png)
 
-### Channels — Mehrere Agenten auf einem Bildschirm steuern
-![Channels](./4.png)
 
 ---
 

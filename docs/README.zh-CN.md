@@ -1,13 +1,14 @@
 <p align="center">
-  <img src="./icon.png" alt="Echobird" width="120" />
+  <img src="../icon.png" alt="Echobird" width="120" />
 </p>
 
 <h1 align="center">EchoBird</h1>
 
-<h3 align="center">鍍?AI 涓撳涓€鏍烽儴缃?Agent 鈥斺€?鏃犻渶缁堢锛屾棤闇€閰嶇疆锛屼竴閿悶瀹氥€?/h3>
+<h3 align="center">像 AI 专家一样部署 Agent —— 无需终端，无需配置，一键搞定。</h3>
 
 <p align="center">
-  涓€閿畨瑁?OpenClaw銆丆laude Code銆乑eroClaw 绛?路 鏈湴鏈嶅姟鍣ㄨ嚜鐢卞垏鎹㈡ā鍨?路 涓€灞忔帉鎺ф墍鏈?Agent銆?</p>
+  一键安装 OpenClaw、Claude Code、ZeroClaw 等 · 本地服务器自由切换模型 · 一屏掌控所有 Agent。
+</p>
 
 <p align="center">
   <a href="https://github.com/edison7009/Echobird-MotherAgent/releases">
@@ -18,25 +19,28 @@
 </p>
 
 <p align="center">
-  <a href="../README.md">English</a> 路
-  <strong>绠€浣撲腑鏂?/strong> 路
-  <a href="./README.zh-TW.md">绻侀珨涓枃</a> 路
-  <a href="./README.ja.md">鏃ユ湰瑾?/a> 路
-  <a href="./README.ko.md">頃滉淡鞏?/a> 路
-  <a href="./README.es.md">Espa帽ol</a> 路
-  <a href="./README.fr.md">Fran莽ais</a> 路
-  <a href="./README.de.md">Deutsch</a> 路
-  <a href="./README.pt.md">Portugu锚s</a> 路
-  <a href="./README.ru.md">袪褍褋褋泻懈泄</a> 路
-  <a href="./README.ar.md">丕賱毓乇亘賷丞</a>
+  <a href="../README.md">English</a> ·
+  <strong>简体中文</strong> ·
+  <a href="./README.zh-TW.md">繁體中文</a> ·
+  <a href="./README.ja.md">日本語</a> ·
+  <a href="./README.ko.md">한국어</a> ·
+  <a href="./README.es.md">Español</a> ·
+  <a href="./README.fr.md">Français</a> ·
+  <a href="./README.de.md">Deutsch</a> ·
+  <a href="./README.pt.md">Português</a> ·
+  <a href="./README.ru.md">Русский</a> ·
+  <a href="./README.ar.md">العربية</a>
 </p>
 
 ---
 
-## 涓轰粈涔堥€夋嫨 EchoBird锛?
-鍗充娇浣犳槸 AI 鏂版墜锛孍choBird 涔熻兘璁╀綘閫氳繃绠€鍗曠殑瀵硅瘽鏉ユ帉鎺ц嚜宸辩殑 Agent 鈥斺€?浠庡畨瑁呭埌宸ヤ綔锛屼竴姘斿懙鎴愩€備笉闇€瑕佺粓绔粡楠岋紝涓嶉渶瑕佺紪杈戦厤缃枃浠讹紝涓嶉渶瑕佸鏉傜殑閮ㄧ讲銆?
-鎯崇敤 **OpenClaw**銆?*Claude Code**銆?*ZeroClaw** 鎴?**Codex**锛熶竴閿畨瑁呫€傛兂鍦ㄨ嚜宸辩殑鐢佃剳涓婅繍琛?**Qwen**銆?*DeepSeek** 鎴?**Llama**锛熶竴閿儴缃层€傛兂鍒囨崲妯″瀷鎴栨坊鍔犳妧鑳斤紵鐐逛竴涓嬪氨鎼炲畾銆?
-**EchoBird 鐢ㄤ竴涓簲鐢ㄦ悶瀹氫竴鍒?* 鈥斺€?瀹夎鏅鸿兘浣撱€佸垏鎹㈡ā鍨嬨€侀儴缃插ぇ妯″瀷銆佸湪涓€涓〉闈㈡帶鍒舵墍鏈夋櫤鑳戒綋 鈥斺€?鏃犺浣犳槸寮€鍙戣€呰繕鏄?AI 鏂版墜銆?
+## 为什么选择 EchoBird？
+
+即使你是 AI 新手，EchoBird 也能让你通过简单的对话来掌控自己的 Agent —— 从安装到工作，一气呵成。不需要终端经验，不需要编辑配置文件，不需要复杂的部署。
+
+想用 **OpenClaw**、**Claude Code**、**ZeroClaw** 或 **Codex**？一键安装。想在自己的电脑上运行 **Qwen**、**DeepSeek** 或 **Llama**？一键部署。想切换模型或添加技能？点一下就搞定。
+
+**EchoBird 用一个应用搞定一切** —— 安装智能体、切换模型、部署大模型、在一个页面控制所有智能体 —— 无论你是开发者还是 AI 新手。
 
 <p align="center">
   <img src="./5.png" alt="Echobird Channels" width="100%" />
@@ -44,105 +48,114 @@
 
 ---
 
-## 鉁?鏍稿績鍔熻兘
+## ✨ 核心功能
 
-### 馃殌 涓€閿畨瑁?鈥?OpenClaw銆丆laude Code銆丱penCode銆乑eroClaw 绛?
-- **鑷姩妫€娴嬪苟瀹夎** 鈥?EchoBird 鑷姩妫€娴嬪凡瀹夎鐨勬櫤鑳戒綋锛岀己灏戠殑涓€閿嵆鍙儴缃?- **鍗虫彃鍗崇敤宸ュ叿** 鈥?鎶?`plugin.json` 鏀惧埌 tools 鏂囦欢澶瑰氨鑳界敤锛屾棤闇€鏀逛唬鐮?- **鍐呯疆鍚姩鍣?* 鈥?鏃犻渶缁堢锛岀洿鎺ュ惎鍔ㄤ换浣曟敮鎸佺殑鏅鸿兘浣?
-### 馃攢 涓€閿垏鎹㈡ā鍨?鈥?璺ㄦ墍鏈夋櫤鑳戒綋鍗虫椂鍒囨崲妯″瀷
+### 🚀 一键安装 — OpenClaw、Claude Code、OpenCode、ZeroClaw 等
 
-- **鍙鍖?Model Nexus** 鈥?鍦ㄤ竴涓潰鏉跨鐞嗘墍鏈?AI 妯″瀷锛圤penAI銆丄nthropic銆丟emini銆丏eepSeek銆丱llama 鎴栦换鎰忚嚜瀹氫箟绔偣锛?- **鍙屽崗璁敮鎸?* 鈥?OpenAI API 涓?Anthropic API锛屾瘡涓櫤鑳戒綋鐙珛閰嶇疆锛岄浂閰嶇疆鍒囨崲
-- **涓€閿簲鐢?* 鈥?閫夋嫨妯″瀷鍗＄墖锛屼负浠绘剰鏅鸿兘浣撳紑鍚€備笉鍐嶇紪杈?JSON銆乀OML 鎴?`.env` 鏂囦欢
+- **自动检测并安装** — EchoBird 自动检测已安装的智能体，缺少的一键即可部署
+- **即插即用工具** — 把 `plugin.json` 放到 tools 文件夹就能用，无需改代码
+- **内置启动器** — 无需终端，直接启动任何支持的智能体
 
-### 馃捇 涓€閿儴缃插ぇ妯″瀷 鈥?鏈湴杩愯 Qwen銆丏eepSeek銆丩lama銆丮iniMax
+### 🔀 一键切换模型 — 跨所有智能体即时切换模型
 
-- **鏈湴澶фā鍨?* 鈥?閫氳繃鍐呯疆 llama.cpp銆乿LLM 鎴?SGLang 閮ㄧ讲寮€婧愭ā鍨嬨€傛暟鎹案涓嶇寮€璁惧
-- **杩滅▼澶фā鍨?* 鈥?閫氳繃 SSH 閮ㄧ讲鍒颁换鎰?GPU 鏈嶅姟鍣ㄣ€備竴閿惎鍔?Qwen 3.5銆丮iniMax M2.5銆丟LM-5 鎴栦换浣?GGUF/HuggingFace 妯″瀷
-- **缁熶竴浠ｇ悊** 鈥?鑷姩鎻愪緵 OpenAI (`/v1`) 鍜?Anthropic (`/anthropic`) 鍙岀鐐癸紝浠讳綍鏅鸿兘浣撳嵆杩炲嵆鐢?- **鏅鸿兘 GPU 妫€娴?* 鈥?鑷姩妫€娴?NVIDIA GPU 骞舵帹鑽愭渶浼樿缃?
-### 馃摗 Channels 鈥?涓€涓〉闈㈡帶鍒跺涓櫤鑳戒綋
+- **可视化 Model Nexus** — 在一个面板管理所有 AI 模型（OpenAI、Anthropic、Gemini、DeepSeek、Ollama 或任意自定义端点）
+- **双协议支持** — OpenAI API 与 Anthropic API，每个智能体独立配置，零配置切换
+- **一键应用** — 选择模型卡片，为任意智能体开启。不再编辑 JSON、TOML 或 `.env` 文件
 
-- **澶氭櫤鑳戒綋棰戦亾** 鈥?鍚屾椂杩愯 OpenClaw銆乑eroClaw 鎴栦换浣?Bridge 鍏煎鏅鸿兘浣?- **鏈湴涓庤繙绋?* 鈥?鏈湴鏅鸿兘浣撻€氳繃 Bridge 鍗忚锛岃繙绋嬫櫤鑳戒綋閫氳繃 SSH 闅ч亾銆傜粺涓€鐣岄潰锛岀粺涓€浣撻獙
-- **鎸佷箙浼氳瘽** 鈥?鏅鸿兘浣撳璇濆湪搴旂敤閲嶅惎鍚庝緷鐒朵繚鐣欙紝缁х画涓婃杩涘害
-- **MotherAgent** 鈥?浣犵殑鑷富 AI 鏅鸿兘浣擄紝鏀寔 Tool Calling銆佹妧鑳界郴缁熷拰瀹屾暣妯″瀷鐏垫椿鎬?
-### 馃З 鏇村鍐呯疆鍔熻兘
+### 💻 一键部署大模型 — 本地运行 Qwen、DeepSeek、Llama、MiniMax
 
-- 馃寪 **鏅鸿兘闅ч亾浠ｇ悊** 鈥?鏃犻渶鍏ㄥ眬 VPN 鍗冲彲璁块棶鍙楅檺 API
-- 馃幃 **鍐呯疆 AI 搴旂敤** 鈥?Reversi銆丄I 缈昏瘧绛?- 馃實 **28 绉嶈瑷€** 鈥?浠庤嫳璇埌闃挎媺浼鐨勫畬鏁村浗闄呭寲鏀寔
+- **本地大模型** — 通过内置 llama.cpp、vLLM 或 SGLang 部署开源模型。数据永不离开设备
+- **远程大模型** — 通过 SSH 部署到任意 GPU 服务器。一键启动 Qwen 3.5、MiniMax M2.5、GLM-5 或任何 GGUF/HuggingFace 模型
+- **统一代理** — 自动提供 OpenAI (`/v1`) 和 Anthropic (`/anthropic`) 双端点，任何智能体即连即用
+- **智能 GPU 检测** — 自动检测 NVIDIA GPU 并推荐最优设置
+
+### 📡 Channels — 一个页面控制多个智能体
+
+- **多智能体频道** — 同时运行 OpenClaw、ZeroClaw 或任何 Bridge 兼容智能体
+- **本地与远程** — 本地智能体通过 Bridge 协议，远程智能体通过 SSH 隧道。统一界面，统一体验
+- **持久会话** — 智能体对话在应用重启后依然保留，继续上次进度
+- **MotherAgent** — 你的自主 AI 智能体，支持 Tool Calling、技能系统和完整模型灵活性
+
+### 🧩 更多内置功能
+
+- 🌐 **智能隧道代理** — 无需全局 VPN 即可访问受限 API
+- 🎮 **内置 AI 应用** — Reversi、AI 翻译等
+- 🌍 **28 种语言** — 从英语到阿拉伯语的完整国际化支持
 
 ---
 
-## 馃柤锔?鎴浘
+## 🖼️ 截图
 
-### Model Nexus 鈥?OpenAI銆丄nthropic銆丟emini銆丏eepSeek銆丱llama 鈥?缁熶竴绠＄悊
+### Model Nexus — OpenAI、Anthropic、Gemini、DeepSeek、Ollama — 统一管理
 ![Model Nexus](./1.png)
 
-### App Manager 鈥?涓?OpenClaw銆丆laude Code銆丆odex 绛変竴閿垏鎹㈡ā鍨?![App Manager](./2.png)
+### App Manager — 为 OpenClaw、Claude Code、Codex 等一键切换模型
+![App Manager](./2.png)
 
-### 鏈湴澶фā鍨?鈥?閫氳繃 llama.cpp / vLLM / SGLang 鏈湴閮ㄧ讲 Qwen銆丩lama銆丏eepSeek
+### 本地大模型 — 通过 llama.cpp / vLLM / SGLang 本地部署 Qwen、Llama、DeepSeek
 ![Local Server](./3.png)
-
-### Channels 鈥?涓€灞忔帉鎺у涓?Agent
-![Channels](./4.png)
 
 ---
 
-## 馃殌 涓嬭浇
+## 🚀 下载
 
-| 骞冲彴 | 涓嬭浇閾炬帴 |
+| 平台 | 下载链接 |
 |------|---------|
-| 馃獰 Windows | [Echobird-x64-setup.exe](https://github.com/edison7009/Echobird-MotherAgent/releases/latest) |
-| 馃崕 macOS (Apple Silicon) | [Echobird_aarch64.dmg](https://github.com/edison7009/Echobird-MotherAgent/releases/latest) |
-| 馃崕 macOS (Intel) | [Echobird_x64.dmg](https://github.com/edison7009/Echobird-MotherAgent/releases/latest) |
-| 馃惂 Linux | [Echobird_amd64.AppImage](https://github.com/edison7009/Echobird-MotherAgent/releases/latest) |
+| 🪟 Windows | [Echobird-x64-setup.exe](https://github.com/edison7009/Echobird-MotherAgent/releases/latest) |
+| 🍎 macOS (Apple Silicon) | [Echobird_aarch64.dmg](https://github.com/edison7009/Echobird-MotherAgent/releases/latest) |
+| 🍎 macOS (Intel) | [Echobird_x64.dmg](https://github.com/edison7009/Echobird-MotherAgent/releases/latest) |
+| 🐧 Linux | [Echobird_amd64.AppImage](https://github.com/edison7009/Echobird-MotherAgent/releases/latest) |
 
-**Linux 蹇€熷惎鍔細**
+**Linux 快速启动：**
 ```bash
 chmod +x Echobird_*.AppImage
 ./Echobird_*.AppImage
-# FUSE 鎶ラ敊锛熻繍琛岋細sudo apt install libfuse2
+# FUSE 报错？运行：sudo apt install libfuse2
 ```
 
 ---
 
-## 馃敡 鏀寔鐨勫伐鍏?
-### 鏅鸿兘浣撲笌缂栫▼宸ュ叿
+## 🔧 支持的工具
 
-| 宸ュ叿 | 鍗忚 | 瀹夎鏂瑰紡 |
+### 智能体与编程工具
+
+| 工具 | 协议 | 安装方式 |
 |------|------|---------|
-| OpenClaw | OpenAI / Anthropic | 涓€閿畨瑁?|
-| Claude Code | Anthropic | 涓€閿畨瑁?|
-| OpenCode | OpenAI | 涓€閿畨瑁?|
-| ZeroClaw | OpenAI | 涓€閿畨瑁?|
-| Codex | OpenAI | 涓€閿畨瑁?|
-| Cline | OpenAI | 閰嶇疆 |
-| Roo Code | OpenAI | 閰嶇疆 |
-| Continue | OpenAI | 閰嶇疆 |
-| Aider | OpenAI / Anthropic | 閰嶇疆 |
+| OpenClaw | OpenAI / Anthropic | 一键安装 |
+| Claude Code | Anthropic | 一键安装 |
+| OpenCode | OpenAI | 一键安装 |
+| ZeroClaw | OpenAI | 一键安装 |
+| Codex | OpenAI | 一键安装 |
+| Cline | OpenAI | 配置 |
+| Roo Code | OpenAI | 配置 |
+| Continue | OpenAI | 配置 |
+| Aider | OpenAI / Anthropic | 配置 |
 
-### 鏈湴澶фā鍨嬭繍琛屾椂
+### 本地大模型运行时
 
-| 杩愯鏃?| 妯″瀷 | 骞冲彴 |
+| 运行时 | 模型 | 平台 |
 |--------|------|------|
-| llama.cpp | Qwen 3.5銆丩lama 4銆丏eepSeek銆丮iniMax M2.5銆丟LM-5 (GGUF) | Windows / macOS / Linux |
-| vLLM | 浠讳綍 HuggingFace 妯″瀷 | Linux (CUDA) |
-| SGLang | 浠讳綍 HuggingFace 妯″瀷 | Linux (CUDA) |
+| llama.cpp | Qwen 3.5、Llama 4、DeepSeek、MiniMax M2.5、GLM-5 (GGUF) | Windows / macOS / Linux |
+| vLLM | 任何 HuggingFace 模型 | Linux (CUDA) |
+| SGLang | 任何 HuggingFace 模型 | Linux (CUDA) |
 
 ---
 
-## 馃彈锔?鎶€鏈爤
+## 🏗️ 技术栈
 
 **Tauri 2** + **Rust** + **React** + **TypeScript** + **llama.cpp**
 
 ---
 
-## 馃摤 鑱旂郴鎴戜滑
+## 📬 联系我们
 
-- 馃摟 [hi@EchoBird.ai](mailto:hi@EchoBird.ai) (Bug Reports)
-- 馃寪 [EchoBird.ai](https://echobird.ai)
+- 📧 [hi@EchoBird.ai](mailto:hi@EchoBird.ai) (Bug Reports)
+- 🌐 [EchoBird.ai](https://echobird.ai)
 
 ---
 
 <p align="center">
-  <em>AI 鏃朵唬鍓嶇殑鏈€鍚庝竴涓晫闈€?/em><br/>
-  鐢?EchoBird 鍥㈤槦鐢?馃挌 鎵撻€?br/>
-  <sub>猸?<a href="https://github.com/edison7009/Echobird-MotherAgent">鍦?GitHub 涓婄粰涓?Star</a> 鈥?璁╂洿澶氫汉鍙戠幇杩欎釜椤圭洰锛?/sub>
+  <em>AI 时代前的最后一个界面。</em><br/>
+  由 EchoBird 团队用 💚 打造<br/>
+  <sub>⭐ <a href="https://github.com/edison7009/Echobird-MotherAgent">在 GitHub 上给个 Star</a> — 让更多人发现这个项目！</sub>
 </p>

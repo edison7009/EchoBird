@@ -1,13 +1,13 @@
 <p align="center">
-  <img src="./icon.png" alt="Echobird" width="120" />
+  <img src="../icon.png" alt="Echobird" width="120" />
 </p>
 
 <h1 align="center">EchoBird</h1>
 
-<h3 align="center">Déployez des agents IA comme un pro — sans terminal, sans fichiers de config, en un seul clic.</h3>
+<h3 align="center">Déployez des agents IA comme un pro — sans terminal, sans configuration, en un seul clic.</h3>
 
 <p align="center">
-  Installez OpenClaw, Claude Code, ZeroClaw et plus · Changez de modèle sur serveurs locaux et distants · Le tout depuis un seul écran.
+  Installez OpenClaw, Claude Code, ZeroClaw et bien plus en un clic · Changez librement de modèle sur les serveurs locaux · Contrôlez tous les agents depuis un seul écran.
 </p>
 
 <p align="center">
@@ -41,7 +41,6 @@ Même en tant que débutant en IA, EchoBird vous permet de contrôler votre prop
 Vous voulez utiliser **OpenClaw**, **Claude Code**, **ZeroClaw** ou **Codex** ? Un clic pour installer. Exécuter **Qwen**, **DeepSeek** ou **Llama** sur votre propre machine ? Un clic pour déployer. Changer de modèle ou ajouter des skills ? Pointez, cliquez, c'est fait.
 
 **EchoBird vous offre une seule app pour tout** — installer des agents, changer de modèle, déployer des LLMs et tout contrôler depuis un écran — que vous soyez développeur ou débutant en IA.
-
 
 <p align="center">
   <img src="./5.png" alt="Echobird Channels" width="100%" />
@@ -94,9 +93,6 @@ Vous voulez utiliser **OpenClaw**, **Claude Code**, **ZeroClaw** ou **Codex** ? 
 
 ### LLM Local — Déployez Qwen, Llama, DeepSeek localement via llama.cpp / vLLM / SGLang
 ![Local Server](./3.png)
-
-### Channels — Controlez plusieurs agents depuis un seul ecran
-![Channels](./4.png)
 
 ---
 
