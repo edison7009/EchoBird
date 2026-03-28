@@ -935,179 +935,207 @@ Portrait of a technical architect drawing system diagrams. minimalist silhouette
 ---
 
 === #157 === B站内容策略师 (Bilibili Content Strategist) [marketing]
-Filename: 157.jpg
+Filename: 157.png
 Portrait of a video content creator reviewing editing timeline. art deco style, geometric gold and black. Professional workplace setting, 1:1 aspect ratio, no text or letters in the image, no watermark. High quality, detailed. Subject centered in the middle of the image.
 
 ---
 
 === #158 === 电商运营师 (E-Commerce Operations) [marketing]
-Filename: 158.jpg
+Filename: 158.png
 Portrait of an e-commerce professional managing online store dashboards. Japanese ukiyo-e inspired, soft ink wash. Professional workplace setting, 1:1 aspect ratio, no text or letters in the image, no watermark. High quality, detailed. Subject centered in the middle of the image.
 
 ---
 
 === #159 === 微信公众号运营 (WeChat Operator) [marketing]
-Filename: 159.jpg
+Filename: 159.png
 Portrait of a social media operator managing content platform. Nordic design style, clean whites and forest green. Professional workplace setting, 1:1 aspect ratio, no text or letters in the image, no watermark. High quality, detailed. Subject centered in the middle of the image.
 
 ---
 
 === #160 === 小红书运营专家 (Xiaohongshu Operator) [marketing]
-Filename: 160.jpg
+Filename: 160.png
 Portrait of a lifestyle content creator reviewing campaign analytics. stained glass mosaic style, jewel tones. Professional workplace setting, 1:1 aspect ratio, no text or letters in the image, no watermark. High quality, detailed. Subject centered in the middle of the image.
 
 ---
 
 === #161 === 招聘运营专家 (Recruitment Specialist) [support]
-Filename: 161.jpg
+Filename: 161.png
 Portrait of a recruiter reviewing candidate profiles and resumes. chiaroscuro style, dramatic dark background. Professional workplace setting, 1:1 aspect ratio, no text or letters in the image, no watermark. High quality, detailed. Subject centered in the middle of the image.
 
 ---
 
 === #162 === 供应链采购策略师 (Supply Chain Strategist) [support]
-Filename: 162.jpg
+Filename: 162.png
 Portrait of a logistics professional tracking supply chain data. paper cut-out collage style, layered textures. Professional workplace setting, 1:1 aspect ratio, no text or letters in the image, no watermark. High quality, detailed. Subject centered in the middle of the image.
 
 ---
 
 === #163 === 提示词工程师 (Prompt Engineer) [specialized]
-Filename: 163.jpg
+Filename: 163.png
 Portrait of a prompt engineer crafting AI instructions at workstation. blueprint style, white lines on deep blue. Professional workplace setting, 1:1 aspect ratio, no text or letters in the image, no watermark. High quality, detailed. Subject centered in the middle of the image.
 
 ---
 
 === #164 === 钉钉集成开发工程师 (DingTalk Integration Developer) [engineering]
-Filename: 164.jpg
+Filename: 164.png
 Portrait of a developer working with office automation workflows. low-poly geometric art, muted earth tones. Professional workplace setting, 1:1 aspect ratio, no text or letters in the image, no watermark. High quality, detailed. Subject centered in the middle of the image.
 
 ---
 
 === #165 === 嵌入式 Linux 驱动工程师 (Embedded Linux Driver Engineer) [engineering]
-Filename: 165.jpg
+Filename: 165.png
 Portrait of a hardware engineer debugging circuit boards with oscilloscope. cyberpunk style with neon cyan and magenta accents. Professional workplace setting, 1:1 aspect ratio, no text or letters in the image, no watermark. High quality, detailed. Subject centered in the middle of the image.
 
 ---
 
 === #166 === FPGA/ASIC 数字设计工程师 (FPGA/ASIC Digital Design Engineer) [engineering]
-Filename: 166.jpg
+Filename: 166.png
 Portrait of a microchip designer reviewing silicon wafer architecture. vintage poster style, sepia and gold tones. Professional workplace setting, 1:1 aspect ratio, no text or letters in the image, no watermark. High quality, detailed. Subject centered in the middle of the image.
 
 ---
 
 === #167 === IoT 解决方案架构师 (IoT Solution Architect) [engineering]
-Filename: 167.jpg
+Filename: 167.png
 Portrait of a technical architect connecting smart device networks. minimalist silhouette, deep navy and gold. Professional workplace setting, 1:1 aspect ratio, no text or letters in the image, no watermark. High quality, detailed. Subject centered in the middle of the image.
 
 ---
 
 === #168 === 知识付费产品策划师 (Knowledge Commerce Strategist) [marketing]
-Filename: 168.jpg
+Filename: 168.png
 Portrait of a content strategist planning educational courses. pop art style, high contrast vibrant colors. Professional workplace setting, 1:1 aspect ratio, no text or letters in the image, no watermark. High quality, detailed. Subject centered in the middle of the image.
 
 ---
 
 === #169 === 微信视频号运营专家 (Weixin Channels Strategist) [marketing]
-Filename: 169.jpg
+Filename: 169.png
 Portrait of a video content creator reviewing short-form video metrics. gouache painting, warm sunset palette. Professional workplace setting, 1:1 aspect ratio, no text or letters in the image, no watermark. High quality, detailed. Subject centered in the middle of the image.
 
 ---
 
 === #170 === 嵌入式测试工程师 (Embedded QA Engineer) [testing]
-Filename: 170.jpg
+Filename: 170.png
 Portrait of a quality engineer testing hardware device reliability. charcoal sketch style with amber highlights. Professional workplace setting, 1:1 aspect ratio, no text or letters in the image, no watermark. High quality, detailed. Subject centered in the middle of the image.
 
 ---
 
 === #171 === 高考志愿报填专家 (Gaokao College Advisor) [specialized]
-Filename: 171.jpg
+Filename: 171.png
 Portrait of an academic advisor reviewing university ranking data. isometric illustration, vibrant gradient colors. Professional workplace setting, 1:1 aspect ratio, no text or letters in the image, no watermark. High quality, detailed. Subject centered in the middle of the image.
 
 ---
 
 === #172 === AI 合规政策专家 (AI Policy Writer) [specialized]
-Filename: 172.jpg
+Filename: 172.png
 Portrait of a legal expert reviewing AI ethics and compliance documents. oil painting style, rich warm tones. Professional workplace setting, 1:1 aspect ratio, no text or letters in the image, no watermark. High quality, detailed. Subject centered in the middle of the image.
 
 ---
 
 === #173 === 会议提效专家 (Meeting Efficiency Specialist) [specialized]
-Filename: 173.jpg
+Filename: 173.png
 Portrait of a productivity consultant managing corporate meeting schedules. watercolor illustration, soft pastel colors. Professional workplace setting, 1:1 aspect ratio, no text or letters in the image, no watermark. High quality, detailed. Subject centered in the middle of the image.
 
 ---
 
 === #174 === 动态定价策略师 (Pricing Optimizer) [specialized]
-Filename: 174.jpg
+Filename: 174.png
 Portrait of a pricing analyst monitoring market demand curves. digital painting / synthwave style, electric purple and blue. Professional workplace setting, 1:1 aspect ratio, no text or letters in the image, no watermark. High quality, detailed. Subject centered in the middle of the image.
 
 ---
 
 === #175 === 商业风险评估师 (Risk Assessor) [specialized]
-Filename: 175.jpg
+Filename: 175.png
 Portrait of a financial risk analyst reviewing corporate audit data. pencil portrait with subtle color wash. Professional workplace setting, 1:1 aspect ratio, no text or letters in the image, no watermark. High quality, detailed. Subject centered in the middle of the image.
 
 ---
 
 === #176 === 学习规划专家 (Study Planner) [academic]
-Filename: 176.jpg
+Filename: 176.png
 Portrait of an educator planning personalized student learning paths. pointillism style, vivid dots of color. Professional workplace setting, 1:1 aspect ratio, no text or letters in the image, no watermark. High quality, detailed. Subject centered in the middle of the image.
 
 ---
 
 === #177 === 财务预测分析师 (Financial Forecaster) [finance]
-Filename: 177.jpg
+Filename: 177.png
 Portrait of a financial analyst modeling revenue projections. woodblock print style, earthy brown tones. Professional workplace setting, 1:1 aspect ratio, no text or letters in the image, no watermark. High quality, detailed. Subject centered in the middle of the image.
 
 ---
 
 === #178 === 金融风控分析师 (Fraud Detector) [finance]
-Filename: 178.jpg
+Filename: 178.png
 Portrait of a fraud detection specialist monitoring transaction anomalies. mosaic tile art style, Mediterranean colors. Professional workplace setting, 1:1 aspect ratio, no text or letters in the image, no watermark. High quality, detailed. Subject centered in the middle of the image.
 
 ---
 
 === #179 === 发票管理专家 (Invoice Manager) [finance]
-Filename: 179.jpg
+Filename: 179.png
 Portrait of an accountant managing digital tax invoice portfolios. flat vector illustration, bold clean lines. Professional workplace setting, 1:1 aspect ratio, no text or letters in the image, no watermark. High quality, detailed. Subject centered in the middle of the image.
 
 ---
 
 === #180 === 绩效管理专家 (Performance Reviewer) [hr]
-Filename: 180.jpg
+Filename: 180.png
 Portrait of an HR professional reviewing employee performance KPIs. editorial illustration style, elegant muted palette. Professional workplace setting, 1:1 aspect ratio, no text or letters in the image, no watermark. High quality, detailed. Subject centered in the middle of the image.
 
 ---
 
 === #181 === 招聘专家 (Recruiter) [hr]
-Filename: 181.jpg
+Filename: 181.png
 Portrait of a recruiter interviewing candidates in a modern office. cinematic photography style, dramatic lighting. Professional workplace setting, 1:1 aspect ratio, no text or letters in the image, no watermark. High quality, detailed. Subject centered in the middle of the image.
 
 ---
 
 === #182 === 合同审查专家 (Contract Reviewer) [legal]
-Filename: 182.jpg
+Filename: 182.png
 Portrait of a legal expert reviewing commercial contract terms. art deco style, geometric gold and black. Professional workplace setting, 1:1 aspect ratio, no text or letters in the image, no watermark. High quality, detailed. Subject centered in the middle of the image.
 
 ---
 
 === #183 === 制度文件撰写专家 (Policy Writer) [legal]
-Filename: 183.jpg
+Filename: 183.png
 Portrait of a policy writer drafting corporate regulation documents. Japanese ukiyo-e inspired, soft ink wash. Professional workplace setting, 1:1 aspect ratio, no text or letters in the image, no watermark. High quality, detailed. Subject centered in the middle of the image.
 
 ---
 
 === #184 === 库存预测专家 (Inventory Forecaster) [supply-chain]
-Filename: 184.jpg
+Filename: 184.png
 Portrait of a logistics professional managing warehouse stock levels. Nordic design style, clean whites and forest green. Professional workplace setting, 1:1 aspect ratio, no text or letters in the image, no watermark. High quality, detailed. Subject centered in the middle of the image.
 
 ---
 
 === #185 === 物流路线优化师 (Route Optimizer) [supply-chain]
-Filename: 185.jpg
+Filename: 185.png
 Portrait of a logistics expert optimizing delivery truck routes. stained glass mosaic style, jewel tones. Professional workplace setting, 1:1 aspect ratio, no text or letters in the image, no watermark. High quality, detailed. Subject centered in the middle of the image.
 
 ---
 
 === #186 === 供应商评估专家 (Vendor Evaluator) [supply-chain]
-Filename: 186.jpg
+Filename: 186.png
 Portrait of a procurement specialist auditing potential factory partners. chiaroscuro style, dramatic dark background. Professional workplace setting, 1:1 aspect ratio, no text or letters in the image, no watermark. High quality, detailed. Subject centered in the middle of the image.
+
+=== #187 === engineering-cms-developer === CMS Developer [engineering]
+Filename: engineering-cms-developer.png
+Portrait of a web developer working with CMS platforms like WordPress and Drupal. Nordic design style, clean minimalist background with soft gradients. The person is surrounded by floating content blocks, template layouts, and plugin icons. Professional attire with a creative touch. Square 1:1 aspect ratio. No text, no letters, no words on the image, no watermark. High quality, detailed. Subject centered in the middle of the image.
+
+=== #188 === engineering-email-intelligence-engineer === Email Intelligence Engineer [engineering]
+Filename: engineering-email-intelligence-engineer.png
+Portrait of a data engineer analyzing email communication patterns and metadata. Nordic design style, clean minimalist background with soft gradients. Surrounded by flowing email envelope icons, data streams, and intelligence dashboards with pattern recognition visualizations. Professional and analytical atmosphere. Square 1:1 aspect ratio. No text, no letters, no words on the image, no watermark. High quality, detailed. Subject centered in the middle of the image.
+
+=== #189 === engineering-filament-optimization-specialist === Filament Optimization Specialist [engineering]
+Filename: engineering-filament-optimization-specialist.png
+Portrait of a 3D printing engineer optimizing filament parameters and print quality. Nordic design style, clean minimalist background with soft gradients. Surrounded by 3D printer components, material spools, cross-section diagrams of print layers, and quality metrics. Technical and precise atmosphere. Square 1:1 aspect ratio. No text, no letters, no words on the image, no watermark. High quality, detailed. Subject centered in the middle of the image.
+
+=== #190 === marketing-china-market-localization-strategist === China Market Localization Strategist [marketing]
+Filename: marketing-china-market-localization-strategist.png
+Portrait of a marketing strategist specializing in Chinese market localization. Nordic design style, clean minimalist background with soft gradients. Surrounded by cultural symbols bridging East and West, localization workflow diagrams, WeChat and Douyin icons, and market analysis charts. Professional cross-cultural atmosphere. Square 1:1 aspect ratio. No text, no letters, no words on the image, no watermark. High quality, detailed. Subject centered in the middle of the image.
+
+=== #191 === marketing-video-optimization-specialist === Video Optimization Specialist [marketing]
+Filename: marketing-video-optimization-specialist.png
+Portrait of a video marketing specialist optimizing content for maximum engagement. Nordic design style, clean minimalist background with soft gradients. Surrounded by video player interfaces, engagement analytics, thumbnail grids, and SEO optimization indicators. Creative and data-driven atmosphere. Square 1:1 aspect ratio. No text, no letters, no words on the image, no watermark. High quality, detailed. Subject centered in the middle of the image.
+
+=== #192 === specialized-civil-engineer === Civil Engineer [specialized]
+Filename: specialized-civil-engineer.png
+Portrait of a civil and structural engineer reviewing building plans and construction documents. Nordic design style, clean minimalist background with soft gradients. Surrounded by architectural blueprints, structural beam diagrams, building code references, and construction site elements. Professional engineering atmosphere. Square 1:1 aspect ratio. No text, no letters, no words on the image, no watermark. High quality, detailed. Subject centered in the middle of the image.
+
+=== #193 === technical-translator-agent (ZH-only) [specialized]
+Filename: technical-translator-agent.png
+Portrait of a professional technical translator working across multiple languages with code and documentation. Nordic design style, clean minimalist background with soft gradients. Surrounded by floating multi-language text fragments, translation workflow arrows, API documentation, and code snippets being translated between languages. Scholarly and precise atmosphere. Square 1:1 aspect ratio. No text, no letters, no words on the image, no watermark. High quality, detailed. Subject centered in the middle of the image.
