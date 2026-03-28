@@ -1,1 +1,1 @@
-{"version":"3.5.0","releaseDate":"2026-03-28","releaseNotes":"Robust model switching for all 6 agents. Fixed bridge stdin handling, OpenClaw gateway restart, URL fallback, and agent detection paths."}
+{"version":"3.5.1","releaseDate":"2026-03-29","releaseNotes":"Frontend architecture refactor: split pages into modules, API layer split into domain modules, remove WSL2 prompts for Windows."}
