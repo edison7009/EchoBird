@@ -1,1 +1,1 @@
-{"version":"3.5.1","releaseDate":"2026-03-29","releaseNotes":"Frontend architecture refactor: split pages into modules, API layer split into domain modules, remove WSL2 prompts for Windows."}
+{"version":"3.5.5","releaseDate":"2026-03-29","releaseNotes":"Fix scroll to bottom when navigating to Channels page; add concurrent-send and abort guards to mobile chat."}
