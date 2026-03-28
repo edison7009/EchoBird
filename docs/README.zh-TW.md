@@ -63,7 +63,7 @@
 - **雙協議支援** — OpenAI API 與 Anthropic API，每個智能體獨立設定，零設定切換
 - **一鍵套用** — 選擇模型卡片，為任意智能體開啟。不再編輯 JSON、TOML 或 `.env` 檔案
 
-### 💻 一鍵部署大模型 — 本地或遠端執行 Qwen、DeepSeek、Llama、MiniMax
+### 💻 一鍵部署大模型 — 本地執行 Qwen、DeepSeek、Llama、MiniMax
 
 - **本地大模型** — 透過內建 llama.cpp、vLLM 或 SGLang 部署開源模型。資料永不離開裝置
 - **遠端大模型** — 透過 SSH 部署到任意 GPU 伺服器。一鍵啟動 Qwen 3.5、MiniMax M2.5、GLM-5 或任何 GGUF/HuggingFace 模型
@@ -95,6 +95,9 @@
 
 ### 本地大模型 — 透過 llama.cpp / vLLM / SGLang 本地部署 Qwen、Llama、DeepSeek
 ![Local Server](./3.png)
+
+### Channels — 一屏掌控多個 Agent
+![Channels](./4.png)
 
 ---
 

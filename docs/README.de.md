@@ -63,10 +63,9 @@ Du willst **OpenClaw**, **Claude Code**, **ZeroClaw** oder **Codex** nutzen? Ein
 - **Dual-Protokoll** — OpenAI API & Anthropic API. Pro Agent wechseln ohne Konfigurationsänderungen
 - **Ein-Klick Anwendung** — Modellkarte auswählen, für jeden Agent aktivieren. Kein Editieren von JSON, TOML oder `.env`
 
-### 💻 Ein-Klick LLM-Deployment — Qwen, DeepSeek, Llama, MiniMax lokal oder remote
+### 💻 Ein-Klick LLM-Deployment — Qwen, DeepSeek, Llama, MiniMax lokal
 
 - **Lokales LLM** — Open-Source-Modelle mit integriertem llama.cpp, vLLM oder SGLang deployen. Deine Daten verlassen nie das Gerät
-- **Remote LLM** — Per SSH auf jeden GPU-Server deployen. Qwen 3.5, MiniMax M2.5, GLM-5 oder jedes GGUF/HuggingFace-Modell mit einem Klick starten
 - **Unified Proxy** — Stellt automatisch OpenAI (`/v1`) und Anthropic (`/anthropic`) Endpoints bereit. Jeden Agent sofort verbinden
 - **Smarte GPU-Erkennung** — NVIDIA GPUs automatisch erkennen und optimale Einstellungen empfehlen
 
@@ -96,6 +95,8 @@ Du willst **OpenClaw**, **Claude Code**, **ZeroClaw** oder **Codex** nutzen? Ein
 ### Lokales LLM — Qwen, Llama, DeepSeek lokal deployen via llama.cpp / vLLM / SGLang
 ![Local Server](./3.png)
 
+### Channels — Mehrere Agenten auf einem Bildschirm steuern
+![Channels](./4.png)
 
 ---
 

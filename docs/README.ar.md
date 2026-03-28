@@ -4,10 +4,10 @@
 
 <h1 align="center">EchoBird</h1>
 
-<h3 align="center">انشر وكلاء الذكاء الاصطناعي كالمحترفين — بدون طرفية، بدون ملفات تهيئة، بنقرة واحدة فقط.</h3>
+<h3 align="center">丕賳卮乇 賵賰賱丕亍 丕賱匕賰丕亍 丕賱丕氐胤賳丕毓賷 賰丕賱賲丨鬲乇賮賷賳 鈥?亘丿賵賳 胤乇賮賷丞貙 亘丿賵賳 賲賱賮丕鬲 鬲賴賷卅丞貙 亘賳賯乇丞 賵丕丨丿丞 賮賯胤.</h3>
 
 <p align="center">
-  ثبّت OpenClaw و Claude Code و ZeroClaw والمزيد · بدّل النماذج بين الخوادم المحلية والبعيدة · الكل من شاشة واحدة.
+  孬亘賾鬲 OpenClaw 賵 Claude Code 賵 ZeroClaw 賵丕賱賲夭賷丿 路 亘丿賾賱 丕賱賳賲丕匕噩 亘賷賳 丕賱禺賵丕丿賲 丕賱賲丨賱賷丞 賵丕賱亘毓賷丿丞 路 丕賱賰賱 賲賳 卮丕卮丞 賵丕丨丿丞.
 </p>
 
 <p align="center">
@@ -19,28 +19,28 @@
 </p>
 
 <p align="center">
-  <a href="../README.md">English</a> ·
-  <a href="./README.zh-CN.md">简体中文</a> ·
-  <a href="./README.zh-TW.md">繁體中文</a> ·
-  <a href="./README.ja.md">日本語</a> ·
-  <a href="./README.ko.md">한국어</a> ·
-  <a href="./README.es.md">Español</a> ·
-  <a href="./README.fr.md">Français</a> ·
-  <a href="./README.de.md">Deutsch</a> ·
-  <a href="./README.pt.md">Português</a> ·
-  <a href="./README.ru.md">Русский</a> ·
-  <strong>العربية</strong>
+  <a href="../README.md">English</a> 路
+  <a href="./README.zh-CN.md">绠€浣撲腑鏂?/a> 路
+  <a href="./README.zh-TW.md">绻侀珨涓枃</a> 路
+  <a href="./README.ja.md">鏃ユ湰瑾?/a> 路
+  <a href="./README.ko.md">頃滉淡鞏?/a> 路
+  <a href="./README.es.md">Espa帽ol</a> 路
+  <a href="./README.fr.md">Fran莽ais</a> 路
+  <a href="./README.de.md">Deutsch</a> 路
+  <a href="./README.pt.md">Portugu锚s</a> 路
+  <a href="./README.ru.md">袪褍褋褋泻懈泄</a> 路
+  <strong>丕賱毓乇亘賷丞</strong>
 </p>
 
 ---
 
-## لماذا EchoBird؟
+## 賱賲丕匕丕 EchoBird責
 
-حتى لو كنت مبتدئاً في الذكاء الاصطناعي، يتيح لك EchoBird التحكم بوكيلك الخاص — من التثبيت إلى العمل — عبر محادثة بسيطة. بدون خبرة في الطرفية، بدون ملفات إعدادات، بدون نشر معقد.
+丨鬲賶 賱賵 賰賳鬲 賲亘鬲丿卅丕賸 賮賷 丕賱匕賰丕亍 丕賱丕氐胤賳丕毓賷貙 賷鬲賷丨 賱賰 EchoBird 丕賱鬲丨賰賲 亘賵賰賷賱賰 丕賱禺丕氐 鈥?賲賳 丕賱鬲孬亘賷鬲 廿賱賶 丕賱毓賲賱 鈥?毓亘乇 賲丨丕丿孬丞 亘爻賷胤丞. 亘丿賵賳 禺亘乇丞 賮賷 丕賱胤乇賮賷丞貙 亘丿賵賳 賲賱賮丕鬲 廿毓丿丕丿丕鬲貙 亘丿賵賳 賳卮乇 賲毓賯丿.
 
-تريد استخدام **OpenClaw** أو **Claude Code** أو **ZeroClaw** أو **Codex**؟ نقرة واحدة للتثبيت. تريد تشغيل **Qwen** أو **DeepSeek** أو **Llama** على جهازك؟ نقرة واحدة للنشر. تبديل النماذج أو إضافة مهارات؟ انقر وانتهى الأمر.
+鬲乇賷丿 丕爻鬲禺丿丕賲 **OpenClaw** 兀賵 **Claude Code** 兀賵 **ZeroClaw** 兀賵 **Codex**責 賳賯乇丞 賵丕丨丿丞 賱賱鬲孬亘賷鬲. 鬲乇賷丿 鬲卮睾賷賱 **Qwen** 兀賵 **DeepSeek** 兀賵 **Llama** 毓賱賶 噩賴丕夭賰責 賳賯乇丞 賵丕丨丿丞 賱賱賳卮乇. 鬲亘丿賷賱 丕賱賳賲丕匕噩 兀賵 廿囟丕賮丞 賲賴丕乇丕鬲責 丕賳賯乇 賵丕賳鬲賴賶 丕賱兀賲乇.
 
-**EchoBird يمنحك تطبيقاً واحداً لكل شيء** — تثبيت الوكلاء، تبديل النماذج، نشر LLMs، والتحكم بكل شيء من شاشة واحدة — سواء كنت مطوراً أو مبتدئاً في الذكاء الاصطناعي.
+**EchoBird 賷賲賳丨賰 鬲胤亘賷賯丕賸 賵丕丨丿丕賸 賱賰賱 卮賷亍** 鈥?鬲孬亘賷鬲 丕賱賵賰賱丕亍貙 鬲亘丿賷賱 丕賱賳賲丕匕噩貙 賳卮乇 LLMs貙 賵丕賱鬲丨賰賲 亘賰賱 卮賷亍 賲賳 卮丕卮丞 賵丕丨丿丞 鈥?爻賵丕亍 賰賳鬲 賲胤賵乇丕賸 兀賵 賲亘鬲丿卅丕賸 賮賷 丕賱匕賰丕亍 丕賱丕氐胤賳丕毓賷.
 
 
 <p align="center">
@@ -49,114 +49,117 @@
 
 ---
 
-## ✨ الميزات
+## 鉁?丕賱賲賷夭丕鬲
 
-### 🚀 تثبيت بنقرة واحدة — OpenClaw وClaude Code وOpenCode وZeroClaw والمزيد
+### 馃殌 鬲孬亘賷鬲 亘賳賯乇丞 賵丕丨丿丞 鈥?OpenClaw 賵Claude Code 賵OpenCode 賵ZeroClaw 賵丕賱賲夭賷丿
 
-- **كشف وتثبيت تلقائي** — EchoBird يكتشف الوكلاء المثبتين وينشر المفقودين بنقرة واحدة
-- **أدوات جاهزة للاستخدام** — ضع `plugin.json` في مجلد tools ويعمل فوراً. بدون تغيير كود
-- **مُشغّل مدمج** — شغّل أي وكيل مدعوم بدون لمس الطرفية
+- **賰卮賮 賵鬲孬亘賷鬲 鬲賱賯丕卅賷** 鈥?EchoBird 賷賰鬲卮賮 丕賱賵賰賱丕亍 丕賱賲孬亘鬲賷賳 賵賷賳卮乇 丕賱賲賮賯賵丿賷賳 亘賳賯乇丞 賵丕丨丿丞
+- **兀丿賵丕鬲 噩丕賴夭丞 賱賱丕爻鬲禺丿丕賲** 鈥?囟毓 `plugin.json` 賮賷 賲噩賱丿 tools 賵賷毓賲賱 賮賵乇丕賸. 亘丿賵賳 鬲睾賷賷乇 賰賵丿
+- **賲購卮睾賾賱 賲丿賲噩** 鈥?卮睾賾賱 兀賷 賵賰賷賱 賲丿毓賵賲 亘丿賵賳 賱賲爻 丕賱胤乇賮賷丞
 
-### 🔀 تبديل النموذج بنقرة واحدة — بدّل النماذج عبر جميع الوكلاء فوراً
+### 馃攢 鬲亘丿賷賱 丕賱賳賲賵匕噩 亘賳賯乇丞 賵丕丨丿丞 鈥?亘丿賾賱 丕賱賳賲丕匕噩 毓亘乇 噩賲賷毓 丕賱賵賰賱丕亍 賮賵乇丕賸
 
-- **Model Nexus المرئي** — أدر جميع نماذج الذكاء الاصطناعي (OpenAI وAnthropic وGemini وDeepSeek وOllama أو أي نقطة نهاية مخصصة) في لوحة واحدة
-- **بروتوكول مزدوج** — OpenAI API وAnthropic API. بدّل لكل وكيل بدون تغيير إعدادات
-- **تطبيق بنقرة** — اختر بطاقة نموذج وفعّلها لأي وكيل. بدون تعديل JSON أو TOML أو `.env`
+- **Model Nexus 丕賱賲乇卅賷** 鈥?兀丿乇 噩賲賷毓 賳賲丕匕噩 丕賱匕賰丕亍 丕賱丕氐胤賳丕毓賷 (OpenAI 賵Anthropic 賵Gemini 賵DeepSeek 賵Ollama 兀賵 兀賷 賳賯胤丞 賳賴丕賷丞 賲禺氐氐丞) 賮賷 賱賵丨丞 賵丕丨丿丞
+- **亘乇賵鬲賵賰賵賱 賲夭丿賵噩** 鈥?OpenAI API 賵Anthropic API. 亘丿賾賱 賱賰賱 賵賰賷賱 亘丿賵賳 鬲睾賷賷乇 廿毓丿丕丿丕鬲
+- **鬲胤亘賷賯 亘賳賯乇丞** 鈥?丕禺鬲乇 亘胤丕賯丞 賳賲賵匕噩 賵賮毓賾賱賴丕 賱兀賷 賵賰賷賱. 亘丿賵賳 鬲毓丿賷賱 JSON 兀賵 TOML 兀賵 `.env`
 
-### 💻 نشر LLM بنقرة واحدة — شغّل Qwen وDeepSeek وLlama وMiniMax محلياً أو عن بُعد
+### 馃捇 賳卮乇 LLM 亘賳賯乇丞 賵丕丨丿丞 鈥?卮睾賾賱 Qwen 賵DeepSeek 賵Llama 賵MiniMax 賲丨賱賷丕賸 兀賵 毓賳 亘購毓丿
 
-- **LLM محلي** — انشر نماذج مفتوحة المصدر عبر llama.cpp أو vLLM أو SGLang المدمجة. بياناتك لا تغادر جهازك أبداً
-- **LLM بعيد** — انشر على أي خادم GPU عبر SSH. شغّل Qwen 3.5 أو MiniMax M2.5 أو GLM-5 أو أي نموذج GGUF/HuggingFace بنقرة
-- **وكيل موحد** — يكشف تلقائياً نقاط نهاية OpenAI (`/v1`) وAnthropic (`/anthropic`). اربط أي وكيل فوراً
-- **كشف GPU ذكي** — يكتشف تلقائياً NVIDIA GPUs ويوصي بالإعدادات المثلى
+- **LLM 賲丨賱賷** 鈥?丕賳卮乇 賳賲丕匕噩 賲賮鬲賵丨丞 丕賱賲氐丿乇 毓亘乇 llama.cpp 兀賵 vLLM 兀賵 SGLang 丕賱賲丿賲噩丞. 亘賷丕賳丕鬲賰 賱丕 鬲睾丕丿乇 噩賴丕夭賰 兀亘丿丕賸
+- **LLM 亘毓賷丿** 鈥?丕賳卮乇 毓賱賶 兀賷 禺丕丿賲 GPU 毓亘乇 SSH. 卮睾賾賱 Qwen 3.5 兀賵 MiniMax M2.5 兀賵 GLM-5 兀賵 兀賷 賳賲賵匕噩 GGUF/HuggingFace 亘賳賯乇丞
+- **賵賰賷賱 賲賵丨丿** 鈥?賷賰卮賮 鬲賱賯丕卅賷丕賸 賳賯丕胤 賳賴丕賷丞 OpenAI (`/v1`) 賵Anthropic (`/anthropic`). 丕乇亘胤 兀賷 賵賰賷賱 賮賵乇丕賸
+- **賰卮賮 GPU 匕賰賷** 鈥?賷賰鬲卮賮 鬲賱賯丕卅賷丕賸 NVIDIA GPUs 賵賷賵氐賷 亘丕賱廿毓丿丕丿丕鬲 丕賱賲孬賱賶
 
-### 📡 Channels — تحكم بعدة وكلاء من شاشة واحدة
+### 馃摗 Channels 鈥?鬲丨賰賲 亘毓丿丞 賵賰賱丕亍 賲賳 卮丕卮丞 賵丕丨丿丞
 
-- **قنوات متعددة الوكلاء** — شغّل OpenClaw أو ZeroClaw أو أي وكيل متوافق مع Bridge بالتوازي
-- **محلي وبعيد** — الوكلاء المحليون عبر بروتوكول Bridge، البعيدون عبر أنفاق SSH. نفس الواجهة، نفس التجربة
-- **جلسات دائمة** — محادثات الوكيل تبقى بعد إعادة التشغيل. استأنف من حيث توقفت
-- **MotherAgent** — وكيلك المستقل للذكاء الاصطناعي مع tool calling ونظام مهارات ومرونة كاملة في النماذج
+- **賯賳賵丕鬲 賲鬲毓丿丿丞 丕賱賵賰賱丕亍** 鈥?卮睾賾賱 OpenClaw 兀賵 ZeroClaw 兀賵 兀賷 賵賰賷賱 賲鬲賵丕賮賯 賲毓 Bridge 亘丕賱鬲賵丕夭賷
+- **賲丨賱賷 賵亘毓賷丿** 鈥?丕賱賵賰賱丕亍 丕賱賲丨賱賷賵賳 毓亘乇 亘乇賵鬲賵賰賵賱 Bridge貙 丕賱亘毓賷丿賵賳 毓亘乇 兀賳賮丕賯 SSH. 賳賮爻 丕賱賵丕噩賴丞貙 賳賮爻 丕賱鬲噩乇亘丞
+- **噩賱爻丕鬲 丿丕卅賲丞** 鈥?賲丨丕丿孬丕鬲 丕賱賵賰賷賱 鬲亘賯賶 亘毓丿 廿毓丕丿丞 丕賱鬲卮睾賷賱. 丕爻鬲兀賳賮 賲賳 丨賷孬 鬲賵賯賮鬲
+- **MotherAgent** 鈥?賵賰賷賱賰 丕賱賲爻鬲賯賱 賱賱匕賰丕亍 丕賱丕氐胤賳丕毓賷 賲毓 tool calling 賵賳馗丕賲 賲賴丕乇丕鬲 賵賲乇賵賳丞 賰丕賲賱丞 賮賷 丕賱賳賲丕匕噩
 
-### 🧩 المزيد من الميزات المدمجة
+### 馃З 丕賱賲夭賷丿 賲賳 丕賱賲賷夭丕鬲 丕賱賲丿賲噩丞
 
-- 🌐 **وكيل نفق ذكي** — ادخل إلى APIs المحظورة جغرافياً بدون VPN كامل
-- 🎮 **تطبيقات ذكاء اصطناعي مدمجة** — Reversi وAI Translate والمزيد
-- 🌍 **28 لغة** — دعم كامل للتدويل من الإنجليزية إلى العربية
+- 馃寪 **賵賰賷賱 賳賮賯 匕賰賷** 鈥?丕丿禺賱 廿賱賶 APIs 丕賱賲丨馗賵乇丞 噩睾乇丕賮賷丕賸 亘丿賵賳 VPN 賰丕賲賱
+- 馃幃 **鬲胤亘賷賯丕鬲 匕賰丕亍 丕氐胤賳丕毓賷 賲丿賲噩丞** 鈥?Reversi 賵AI Translate 賵丕賱賲夭賷丿
+- 馃實 **28 賱睾丞** 鈥?丿毓賲 賰丕賲賱 賱賱鬲丿賵賷賱 賲賳 丕賱廿賳噩賱賷夭賷丞 廿賱賶 丕賱毓乇亘賷丞
 
 ---
 
-## 🖼️ لقطات الشاشة
+## 馃柤锔?賱賯胤丕鬲 丕賱卮丕卮丞
 
-### Model Nexus — OpenAI وAnthropic وGemini وDeepSeek وOllama — الكل في لوحة واحدة
+### Model Nexus 鈥?OpenAI 賵Anthropic 賵Gemini 賵DeepSeek 賵Ollama 鈥?丕賱賰賱 賮賷 賱賵丨丞 賵丕丨丿丞
 ![Model Nexus](./1.png)
 
-### App Manager — تبديل النموذج بنقرة لـ OpenClaw وClaude Code وCodex والمزيد
+### App Manager 鈥?鬲亘丿賷賱 丕賱賳賲賵匕噩 亘賳賯乇丞 賱賭 OpenClaw 賵Claude Code 賵Codex 賵丕賱賲夭賷丿
 ![App Manager](./2.png)
 
-### LLM محلي — انشر Qwen وLlama وDeepSeek محلياً عبر llama.cpp / vLLM / SGLang
+### LLM 賲丨賱賷 鈥?丕賳卮乇 Qwen 賵Llama 賵DeepSeek 賲丨賱賷丕賸 毓亘乇 llama.cpp / vLLM / SGLang
 ![Local Server](./3.png)
+
+### Channels 鈥?鬲丨賰賲 亘毓丿丞 賵賰賱丕亍 賲賳 卮丕卮丞 賵丕丨丿丞
+![Channels](./4.png)
 
 ---
 
-## 🚀 تحميل
+## 馃殌 鬲丨賲賷賱
 
-| المنصة | تحميل |
+| 丕賱賲賳氐丞 | 鬲丨賲賷賱 |
 |--------|-------|
-| 🪟 Windows | [Echobird-x64-setup.exe](https://github.com/edison7009/Echobird-MotherAgent/releases/latest) |
-| 🍎 macOS (Apple Silicon) | [Echobird_aarch64.dmg](https://github.com/edison7009/Echobird-MotherAgent/releases/latest) |
-| 🍎 macOS (Intel) | [Echobird_x64.dmg](https://github.com/edison7009/Echobird-MotherAgent/releases/latest) |
-| 🐧 Linux | [Echobird_amd64.AppImage](https://github.com/edison7009/Echobird-MotherAgent/releases/latest) |
+| 馃獰 Windows | [Echobird-x64-setup.exe](https://github.com/edison7009/Echobird-MotherAgent/releases/latest) |
+| 馃崕 macOS (Apple Silicon) | [Echobird_aarch64.dmg](https://github.com/edison7009/Echobird-MotherAgent/releases/latest) |
+| 馃崕 macOS (Intel) | [Echobird_x64.dmg](https://github.com/edison7009/Echobird-MotherAgent/releases/latest) |
+| 馃惂 Linux | [Echobird_amd64.AppImage](https://github.com/edison7009/Echobird-MotherAgent/releases/latest) |
 
-**بدء سريع في Linux:**
+**亘丿亍 爻乇賷毓 賮賷 Linux:**
 ```bash
 chmod +x Echobird_*.AppImage
 ./Echobird_*.AppImage
-# تحتاج FUSE؟ sudo apt install libfuse2
+# 鬲丨鬲丕噩 FUSE責 sudo apt install libfuse2
 ```
 
 ---
 
-## 🔧 متوافق مع
+## 馃敡 賲鬲賵丕賮賯 賲毓
 
-### الوكلاء وأدوات البرمجة
+### 丕賱賵賰賱丕亍 賵兀丿賵丕鬲 丕賱亘乇賲噩丞
 
-| الأداة | البروتوكول | التثبيت |
+| 丕賱兀丿丕丞 | 丕賱亘乇賵鬲賵賰賵賱 | 丕賱鬲孬亘賷鬲 |
 |--------|-----------|---------|
-| OpenClaw | OpenAI / Anthropic | نقرة واحدة |
-| Claude Code | Anthropic | نقرة واحدة |
-| OpenCode | OpenAI | نقرة واحدة |
-| ZeroClaw | OpenAI | نقرة واحدة |
-| Codex | OpenAI | نقرة واحدة |
-| Cline | OpenAI | إعدادات |
-| Roo Code | OpenAI | إعدادات |
-| Continue | OpenAI | إعدادات |
-| Aider | OpenAI / Anthropic | إعدادات |
+| OpenClaw | OpenAI / Anthropic | 賳賯乇丞 賵丕丨丿丞 |
+| Claude Code | Anthropic | 賳賯乇丞 賵丕丨丿丞 |
+| OpenCode | OpenAI | 賳賯乇丞 賵丕丨丿丞 |
+| ZeroClaw | OpenAI | 賳賯乇丞 賵丕丨丿丞 |
+| Codex | OpenAI | 賳賯乇丞 賵丕丨丿丞 |
+| Cline | OpenAI | 廿毓丿丕丿丕鬲 |
+| Roo Code | OpenAI | 廿毓丿丕丿丕鬲 |
+| Continue | OpenAI | 廿毓丿丕丿丕鬲 |
+| Aider | OpenAI / Anthropic | 廿毓丿丕丿丕鬲 |
 
-### بيئات تشغيل LLM المحلية
+### 亘賷卅丕鬲 鬲卮睾賷賱 LLM 丕賱賲丨賱賷丞
 
-| بيئة التشغيل | النماذج | المنصة |
+| 亘賷卅丞 丕賱鬲卮睾賷賱 | 丕賱賳賲丕匕噩 | 丕賱賲賳氐丞 |
 |-------------|---------|--------|
 | llama.cpp | Qwen 3.5, Llama 4, DeepSeek, MiniMax M2.5, GLM-5 (GGUF) | Windows / macOS / Linux |
-| vLLM | أي نموذج HuggingFace | Linux (CUDA) |
-| SGLang | أي نموذج HuggingFace | Linux (CUDA) |
+| vLLM | 兀賷 賳賲賵匕噩 HuggingFace | Linux (CUDA) |
+| SGLang | 兀賷 賳賲賵匕噩 HuggingFace | Linux (CUDA) |
 
 ---
 
-## 🏗️ المكدس التقني
+## 馃彈锔?丕賱賲賰丿爻 丕賱鬲賯賳賷
 
 **Tauri 2** + **Rust** + **React** + **TypeScript** + **llama.cpp**
 
 ---
 
-## 📬 تواصل
+## 馃摤 鬲賵丕氐賱
 
-- 📧 [hi@EchoBird.ai](mailto:hi@EchoBird.ai) (Bug Reports)
-- 🌐 [EchoBird.ai](https://echobird.ai)
+- 馃摟 [hi@EchoBird.ai](mailto:hi@EchoBird.ai) (Bug Reports)
+- 馃寪 [EchoBird.ai](https://echobird.ai)
 
 ---
 
 <p align="center">
-  <em>آخر واجهة قبل عصر الذكاء الاصطناعي.</em><br/>
-  صُنع بـ 💚 من فريق EchoBird<br/>
-  <sub>⭐ <a href="https://github.com/edison7009/Echobird-MotherAgent">Star على GitHub</a> — ساعد الآخرين في اكتشاف المشروع!</sub>
+  <em>丌禺乇 賵丕噩賴丞 賯亘賱 毓氐乇 丕賱匕賰丕亍 丕賱丕氐胤賳丕毓賷.</em><br/>
+  氐購賳毓 亘賭 馃挌 賲賳 賮乇賷賯 EchoBird<br/>
+  <sub>猸?<a href="https://github.com/edison7009/Echobird-MotherAgent">Star 毓賱賶 GitHub</a> 鈥?爻丕毓丿 丕賱丌禺乇賷賳 賮賷 丕賰鬲卮丕賮 丕賱賲卮乇賵毓!</sub>
 </p>

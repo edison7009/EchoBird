@@ -4,10 +4,10 @@
 
 <h1 align="center">EchoBird</h1>
 
-<h3 align="center">AI 에이전트를 전문가처럼 배포하세요 — 터미널도, 설정 파일도 필요 없이 클릭 한 번이면 됩니다.</h3>
+<h3 align="center">AI 鞐愳澊鞝勴姼毳?鞝勲臧€觳橂熂 氚绊彫頃橃劯鞖?鈥?韯半雱愲弰, 靹れ爼 韺岇澕霃?頃勳殧 鞐嗢澊 韥措Ν 頃?氩堨澊氅?霅╇媹雼?</h3>
 
 <p align="center">
-  OpenClaw, Claude Code, ZeroClaw 등을 원클릭 설치 · 로컬 및 원격 서버에서 모델 전환 · 하나의 화면에서 모두 관리.
+  OpenClaw, Claude Code, ZeroClaw 霌膘潉 鞗愴伌毽?靹れ箻 路 搿滌滑 氚?鞗愱博 靹滊矂鞐愳劀 氇嵏 鞝勴櫂 路 頃橂倶鞚?頇旊┐鞐愳劀 氇憪 甏€毽?
 </p>
 
 <p align="center">
@@ -19,28 +19,28 @@
 </p>
 
 <p align="center">
-  <a href="../README.md">English</a> ·
-  <a href="./README.zh-CN.md">简体中文</a> ·
-  <a href="./README.zh-TW.md">繁體中文</a> ·
-  <a href="./README.ja.md">日本語</a> ·
-  <strong>한국어</strong> ·
-  <a href="./README.es.md">Español</a> ·
-  <a href="./README.fr.md">Français</a> ·
-  <a href="./README.de.md">Deutsch</a> ·
-  <a href="./README.pt.md">Português</a> ·
-  <a href="./README.ru.md">Русский</a> ·
-  <a href="./README.ar.md">العربية</a>
+  <a href="../README.md">English</a> 路
+  <a href="./README.zh-CN.md">绠€浣撲腑鏂?/a> 路
+  <a href="./README.zh-TW.md">绻侀珨涓枃</a> 路
+  <a href="./README.ja.md">鏃ユ湰瑾?/a> 路
+  <strong>頃滉淡鞏?/strong> 路
+  <a href="./README.es.md">Espa帽ol</a> 路
+  <a href="./README.fr.md">Fran莽ais</a> 路
+  <a href="./README.de.md">Deutsch</a> 路
+  <a href="./README.pt.md">Portugu锚s</a> 路
+  <a href="./README.ru.md">袪褍褋褋泻懈泄</a> 路
+  <a href="./README.ar.md">丕賱毓乇亘賷丞</a>
 </p>
 
 ---
 
-## 왜 EchoBird인가?
+## 鞕?EchoBird鞚戈皜?
 
-AI 초보자라도 EchoBird를 사용하면 간단한 채팅으로 자신만의 Agent를 제어할 수 있습니다 — 설치부터 작업까지. 터미널 경험도, 설정 파일 편집도, 복잡한 배포도 필요 없습니다.
+AI 齑堧炒鞛愲澕霃?EchoBird毳?靷毄頃橂┐ 臧勲嫧頃?毂勴寘鞙茧 鞛愳嫚毵岇潣 Agent毳?鞝滌柎頃?靾?鞛堨姷雼堧嫟 鈥?靹れ箻攵€韯?鞛戩梾旯岇. 韯半雱?瓴巾棙霃? 靹れ爼 韺岇澕 韼胳霃? 氤奠灐頃?氚绊彫霃?頃勳殧 鞐嗢姷雼堧嫟.
 
-**OpenClaw**, **Claude Code**, **ZeroClaw**, **Codex**를 사용하고 싶으신가요? 원클릭으로 설치. 자신의 컴퓨터에서 **Qwen**, **DeepSeek**, **Llama**를 실행하고 싶으신가요? 원클릭으로 배포. 모델 전환이나 스킬 추가? 클릭 한 번이면 끝.
+**OpenClaw**, **Claude Code**, **ZeroClaw**, **Codex**毳?靷毄頃橁碃 鞁鹅溂鞁犼皜鞖? 鞗愴伌毽溂搿?靹れ箻. 鞛愳嫚鞚?旎错摠韯办棎靹?**Qwen**, **DeepSeek**, **Llama**毳?鞁ろ枆頃橁碃 鞁鹅溂鞁犼皜鞖? 鞗愴伌毽溂搿?氚绊彫. 氇嵏 鞝勴櫂鞚措倶 鞀ろ偓 於旉皜? 韥措Ν 頃?氩堨澊氅?雭?
 
-**EchoBird는 하나의 앱으로 모든 것을 해결합니다** — 에이전트 설치, 모델 전환, LLM 배포, 모든 에이전트를 하나의 화면에서 제어 — 개발자든 AI 초보자든.
+**EchoBird電?頃橂倶鞚?鞎膘溂搿?氇摖 瓴冹潉 頃搓舶頃╇媹雼?* 鈥?鞐愳澊鞝勴姼 靹れ箻, 氇嵏 鞝勴櫂, LLM 氚绊彫, 氇摖 鞐愳澊鞝勴姼毳?頃橂倶鞚?頇旊┐鞐愳劀 鞝滌柎 鈥?臧滊皽鞛愲摖 AI 齑堧炒鞛愲摖.
 
 
 <p align="center">
@@ -49,114 +49,107 @@ AI 초보자라도 EchoBird를 사용하면 간단한 채팅으로 자신만의 
 
 ---
 
-## ✨ 기능
+## 鉁?旮半姤
 
-### 🚀 원클릭 설치 — OpenClaw, Claude Code, OpenCode, ZeroClaw 등
+### 馃殌 鞗愴伌毽?靹れ箻 鈥?OpenClaw, Claude Code, OpenCode, ZeroClaw 霌?
+- **鞛愲彊 臧愳 氚?靹れ箻** 鈥?EchoBird臧€ 靹れ箻霅?鞐愳澊鞝勴姼毳?臧愳頃橁碃 雸勲澖霅?瓴冹潉 鞗愴伌毽溂搿?氚绊彫
+- **頂岆煬攴胳暏頂岆爤鞚?* 鈥?`plugin.json`鞚?tools 韽措崝鞐?雱ｌ溂氅?氚旊 鞛戨彊. 旖旊摐 氤€瓴?攵堩晞鞖?- **雮挫灔 霟办矘** 鈥?韯半雱?鞐嗢澊 歆€鞗愲悩電?氇摖 鞐愳澊鞝勴姼毳?鞁滌瀾
 
-- **자동 감지 및 설치** — EchoBird가 설치된 에이전트를 감지하고 누락된 것을 원클릭으로 배포
-- **플러그앤플레이** — `plugin.json`을 tools 폴더에 넣으면 바로 작동. 코드 변경 불필요
-- **내장 런처** — 터미널 없이 지원되는 모든 에이전트를 시작
+### 馃攢 鞗愴伌毽?氇嵏 鞝勴櫂 鈥?氇摖 鞐愳澊鞝勴姼鞐愳劀 歃夓嫓 氇嵏 鞝勴櫂
 
-### 🔀 원클릭 모델 전환 — 모든 에이전트에서 즉시 모델 전환
+- **牍勳＜鞏?Model Nexus** 鈥?氇摖 AI 氇嵏(OpenAI, Anthropic, Gemini, DeepSeek, Ollama 霕愲姅 旎れ姢韰€ 鞐旊摐韽澑韸?鞚?頃橂倶鞚?韺剱鞐愳劀 甏€毽?- **霌€鞏?頂勲韱犾綔** 鈥?OpenAI API & Anthropic API. 鞐愳澊鞝勴姼毵堧嫟 靹れ爼, 鞝滊 靹れ爼 氤€瓴届溂搿?鞝勴櫂
+- **鞗愴伌毽?鞝侅毄** 鈥?氇嵏 旃措摐毳?靹犿儩頃橁碃 鞐愳澊鞝勴姼鞐?鞝侅毄. JSON, TOML, `.env` 韺岇澕 韼胳 攵堩晞鞖?
+### 馃捇 鞗愴伌毽?LLM 氚绊彫 鈥?Qwen, DeepSeek, Llama, MiniMax毳?搿滌滑搿?
+- **搿滌滑 LLM** 鈥?雮挫灔 llama.cpp, vLLM, SGLang鞙茧 鞓ろ攬靻岇姢 氇嵏 氚绊彫. 雿办澊韯半姅 旮瓣赴毳?氩楈柎雮橃 鞎婌姷雼堧嫟
+- **韱淀暕 頂勲鞁?* 鈥?OpenAI (`/v1`)鞕€ Anthropic (`/anthropic`) 鞐旊摐韽澑韸鸽ゼ 鞛愲彊 鞝滉车. 氇摖 鞐愳澊鞝勴姼臧€ 歃夓嫓 鞐瓣舶
+- **鞀る韸?GPU 臧愳** 鈥?NVIDIA GPU毳?鞛愲彊 臧愳頃橁碃 斓滌爜 靹れ爼 於旍矞
 
-- **비주얼 Model Nexus** — 모든 AI 모델(OpenAI, Anthropic, Gemini, DeepSeek, Ollama 또는 커스텀 엔드포인트)을 하나의 패널에서 관리
-- **듀얼 프로토콜** — OpenAI API & Anthropic API. 에이전트마다 설정, 제로 설정 변경으로 전환
-- **원클릭 적용** — 모델 카드를 선택하고 에이전트에 적용. JSON, TOML, `.env` 파일 편집 불필요
+### 馃摗 Channels 鈥?頃橂倶鞚?頇旊┐鞐愳劀 鞐煬 鞐愳澊鞝勴姼 鞝滌柎
 
-### 💻 원클릭 LLM 배포 — Qwen, DeepSeek, Llama, MiniMax를 로컬 또는 원격으로
+- **氅€韹?鞐愳澊鞝勴姼 毂勲剱** 鈥?OpenClaw, ZeroClaw 霕愲姅 Bridge 順疙櫂 鞐愳澊鞝勴姼毳?氤戨牞 鞁ろ枆
+- **搿滌滑 & 鞗愱博** 鈥?搿滌滑 鞐愳澊鞝勴姼電?Bridge 頂勲韱犾綔, 鞗愱博 鞐愳澊鞝勴姼電?SSH 韯半剱. 霃欖澕頃?UI, 霃欖澕頃?瓴巾棙
+- **鞓侁惮 靹胳厴** 鈥?鞎?鞛嫓鞛?頉勳棎霃?鞐愳澊鞝勴姼 雽€頇旉皜 鞙犾. 欷戨嫧頃?瓿踌棎靹?鞚挫柎靹?- **MotherAgent** 鈥?Tool Calling, 鞀ろ偓 鞁滌姢韰? 鞙犾棸頃?氇嵏 靹れ爼鞚?臧栰稑 鞛愳湪 AI 鞐愳澊鞝勴姼
 
-- **로컬 LLM** — 내장 llama.cpp, vLLM, SGLang으로 오픈소스 모델 배포. 데이터는 기기를 벗어나지 않습니다
-- **원격 LLM** — SSH를 통해 GPU 서버에 배포. Qwen 3.5, MiniMax M2.5, GLM-5 또는 GGUF/HuggingFace 모델을 원클릭으로 시작
-- **통합 프록시** — OpenAI (`/v1`)와 Anthropic (`/anthropic`) 엔드포인트를 자동 제공. 모든 에이전트가 즉시 연결
-- **스마트 GPU 감지** — NVIDIA GPU를 자동 감지하고 최적 설정 추천
+### 馃З 於旉皜 雮挫灔 旮半姤
 
-### 📡 Channels — 하나의 화면에서 여러 에이전트 제어
-
-- **멀티 에이전트 채널** — OpenClaw, ZeroClaw 또는 Bridge 호환 에이전트를 병렬 실행
-- **로컬 & 원격** — 로컬 에이전트는 Bridge 프로토콜, 원격 에이전트는 SSH 터널. 동일한 UI, 동일한 경험
-- **영구 세션** — 앱 재시작 후에도 에이전트 대화가 유지. 중단한 곳에서 이어서
-- **MotherAgent** — Tool Calling, 스킬 시스템, 유연한 모델 설정을 갖춘 자율 AI 에이전트
-
-### 🧩 추가 내장 기능
-
-- 🌐 **스마트 터널 프록시** — 풀 VPN 없이 지역 제한 API 접근
-- 🎮 **내장 AI 앱** — Reversi, AI 번역 등
-- 🌍 **28개 언어** — 영어부터 아랍어까지 완전 국제화
-
+- 馃寪 **鞀る韸?韯半剱 頂勲鞁?* 鈥?頀€ VPN 鞐嗢澊 歆€鞐?鞝滍暅 API 鞝戧芳
+- 馃幃 **雮挫灔 AI 鞎?* 鈥?Reversi, AI 氩堨棴 霌?- 馃實 **28臧?鞏胳柎** 鈥?鞓侅柎攵€韯?鞎勲瀺鞏搓箤歆€ 鞕勳爠 甑牅頇?
 ---
 
-## 🖼️ 스크린샷
+## 馃柤锔?鞀ろ伂毽办兎
 
-### Model Nexus — OpenAI, Anthropic, Gemini, DeepSeek, Ollama — 모두 하나의 패널에서
+### Model Nexus 鈥?OpenAI, Anthropic, Gemini, DeepSeek, Ollama 鈥?氇憪 頃橂倶鞚?韺剱鞐愳劀
 ![Model Nexus](./1.png)
 
-### App Manager — OpenClaw, Claude Code, Codex 등의 모델을 원클릭 전환
+### App Manager 鈥?OpenClaw, Claude Code, Codex 霌膘潣 氇嵏鞚?鞗愴伌毽?鞝勴櫂
 ![App Manager](./2.png)
 
-### 로컬 LLM — llama.cpp / vLLM / SGLang으로 Qwen, Llama, DeepSeek 로컬 배포
+### 搿滌滑 LLM 鈥?llama.cpp / vLLM / SGLang鞙茧 Qwen, Llama, DeepSeek 搿滌滑 氚绊彫
 ![Local Server](./3.png)
+
+### Channels 鈥?鞐煬 鞐愳澊鞝勴姼毳?頃橂倶鞚?頇旊┐鞐愳劀 鞝滌柎
+![Channels](./4.png)
 
 ---
 
-## 🚀 다운로드
+## 馃殌 雼れ毚搿滊摐
 
-| 플랫폼 | 다운로드 |
+| 頂岆灚韽?| 雼れ毚搿滊摐 |
 |--------|---------|
-| 🪟 Windows | [Echobird-x64-setup.exe](https://github.com/edison7009/Echobird-MotherAgent/releases/latest) |
-| 🍎 macOS (Apple Silicon) | [Echobird_aarch64.dmg](https://github.com/edison7009/Echobird-MotherAgent/releases/latest) |
-| 🍎 macOS (Intel) | [Echobird_x64.dmg](https://github.com/edison7009/Echobird-MotherAgent/releases/latest) |
-| 🐧 Linux | [Echobird_amd64.AppImage](https://github.com/edison7009/Echobird-MotherAgent/releases/latest) |
+| 馃獰 Windows | [Echobird-x64-setup.exe](https://github.com/edison7009/Echobird-MotherAgent/releases/latest) |
+| 馃崕 macOS (Apple Silicon) | [Echobird_aarch64.dmg](https://github.com/edison7009/Echobird-MotherAgent/releases/latest) |
+| 馃崕 macOS (Intel) | [Echobird_x64.dmg](https://github.com/edison7009/Echobird-MotherAgent/releases/latest) |
+| 馃惂 Linux | [Echobird_amd64.AppImage](https://github.com/edison7009/Echobird-MotherAgent/releases/latest) |
 
-**Linux 빠른 시작:**
+**Linux 牍犽ジ 鞁滌瀾:**
 ```bash
 chmod +x Echobird_*.AppImage
 ./Echobird_*.AppImage
-# FUSE 필요? sudo apt install libfuse2
+# FUSE 頃勳殧? sudo apt install libfuse2
 ```
 
 ---
 
-## 🔧 지원 도구
+## 馃敡 歆€鞗?霃勱惮
 
-### 에이전트 & 코딩 도구
+### 鞐愳澊鞝勴姼 & 旖旊敥 霃勱惮
 
-| 도구 | 프로토콜 | 설치 |
+| 霃勱惮 | 頂勲韱犾綔 | 靹れ箻 |
 |------|----------|------|
-| OpenClaw | OpenAI / Anthropic | 원클릭 |
-| Claude Code | Anthropic | 원클릭 |
-| OpenCode | OpenAI | 원클릭 |
-| ZeroClaw | OpenAI | 원클릭 |
-| Codex | OpenAI | 원클릭 |
-| Cline | OpenAI | 설정 |
-| Roo Code | OpenAI | 설정 |
-| Continue | OpenAI | 설정 |
-| Aider | OpenAI / Anthropic | 설정 |
+| OpenClaw | OpenAI / Anthropic | 鞗愴伌毽?|
+| Claude Code | Anthropic | 鞗愴伌毽?|
+| OpenCode | OpenAI | 鞗愴伌毽?|
+| ZeroClaw | OpenAI | 鞗愴伌毽?|
+| Codex | OpenAI | 鞗愴伌毽?|
+| Cline | OpenAI | 靹れ爼 |
+| Roo Code | OpenAI | 靹れ爼 |
+| Continue | OpenAI | 靹れ爼 |
+| Aider | OpenAI / Anthropic | 靹れ爼 |
 
-### 로컬 LLM 런타임
-
-| 런타임 | 모델 | 플랫폼 |
+### 搿滌滑 LLM 霟绊儉鞛?
+| 霟绊儉鞛?| 氇嵏 | 頂岆灚韽?|
 |--------|------|--------|
 | llama.cpp | Qwen 3.5, Llama 4, DeepSeek, MiniMax M2.5, GLM-5 (GGUF) | Windows / macOS / Linux |
-| vLLM | 모든 HuggingFace 모델 | Linux (CUDA) |
-| SGLang | 모든 HuggingFace 모델 | Linux (CUDA) |
+| vLLM | 氇摖 HuggingFace 氇嵏 | Linux (CUDA) |
+| SGLang | 氇摖 HuggingFace 氇嵏 | Linux (CUDA) |
 
 ---
 
-## 🏗️ 기술 스택
+## 馃彈锔?旮办垹 鞀ろ儩
 
 **Tauri 2** + **Rust** + **React** + **TypeScript** + **llama.cpp**
 
 ---
 
-## 📬 문의
+## 馃摤 氍胳潣
 
-- 📧 [hi@EchoBird.ai](mailto:hi@EchoBird.ai) (Bug Reports)
-- 🌐 [EchoBird.ai](https://echobird.ai)
+- 馃摟 [hi@EchoBird.ai](mailto:hi@EchoBird.ai) (Bug Reports)
+- 馃寪 [EchoBird.ai](https://echobird.ai)
 
 ---
 
 <p align="center">
-  <em>AI 시대의 사이버펑크 컨트롤 패널.</em><br/>
-  EchoBird 팀이 💚으로 제작<br/>
-  <sub>⭐ <a href="https://github.com/edison7009/Echobird-MotherAgent">GitHub에서 Star 주기</a> — 더 많은 사람들이 프로젝트를 발견할 수 있도록!</sub>
+  <em>AI 鞁滊寑鞚?靷澊氩勴帒韥?旎姼搿?韺剱.</em><br/>
+  EchoBird 韺€鞚?馃挌鞙茧 鞝滌瀾<br/>
+  <sub>猸?<a href="https://github.com/edison7009/Echobird-MotherAgent">GitHub鞐愳劀 Star 欤缄赴</a> 鈥?雿?毵庫潃 靷瀸霌れ澊 頂勲鞝濏姼毳?氚滉铂頃?靾?鞛堧弰搿?</sub>
 </p>
