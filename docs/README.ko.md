@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="../icon.png" alt="Echobird" width="120" />
+  <img src="./icon.png" alt="Echobird" width="120" />
 </p>
 
 <h1 align="center">EchoBird</h1>
@@ -93,6 +93,9 @@ AI 초보자라도 EchoBird를 사용하면 간단한 채팅으로 자신만의 
 
 ### 로컬 LLM — llama.cpp / vLLM / SGLang으로 Qwen, Llama, DeepSeek 로컬 배포
 ![Local Server](./3.png)
+
+### Channels — 하나의 화면에서 여러 에이전트 제어
+![Channels](./4.png)
 
 ---
 

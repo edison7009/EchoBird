@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="../icon.png" alt="Echobird" width="120" />
+  <img src="./icon.png" alt="Echobird" width="120" />
 </p>
 
 <h1 align="center">EchoBird</h1>
@@ -94,6 +94,9 @@
 
 ### Локальный LLM — Разворачивайте Qwen, Llama, DeepSeek локально через llama.cpp / vLLM / SGLang
 ![Local Server](./3.png)
+
+### Channels — Управление несколькими агентами с одного экрана
+![Channels](./4.png)
 
 ---
 

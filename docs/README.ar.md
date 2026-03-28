@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="../icon.png" alt="Echobird" width="120" />
+  <img src="./icon.png" alt="Echobird" width="120" />
 </p>
 
 <h1 align="center">EchoBird</h1>
@@ -94,6 +94,9 @@
 
 ### LLM محلي — انشر Qwen وLlama وDeepSeek محلياً عبر llama.cpp / vLLM / SGLang
 ![Local Server](./3.png)
+
+### Channels — تحكم بعدة وكلاء من شاشة واحدة
+![Channels](./4.png)
 
 ---
 

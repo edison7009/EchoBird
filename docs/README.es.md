@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="../icon.png" alt="Echobird" width="120" />
+  <img src="./icon.png" alt="Echobird" width="120" />
 </p>
 
 <h1 align="center">EchoBird</h1>
@@ -93,6 +93,9 @@ Incluso como principiante en IA, EchoBird te permite controlar tu propio Agent �
 
 ### LLM Local — Despliega Qwen, Llama, DeepSeek localmente con llama.cpp / vLLM / SGLang
 ![Local Server](./3.png)
+
+### Channels — Controla múltiples agentes desde una pantalla
+![Channels](./4.png)
 
 ---
 

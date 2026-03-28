@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="../icon.png" alt="Echobird" width="120" />
+  <img src="./icon.png" alt="Echobird" width="120" />
 </p>
 
 <h1 align="center">EchoBird</h1>
@@ -94,6 +94,9 @@
 
 ### 本地大模型 — 透過 llama.cpp / vLLM / SGLang 本地部署 Qwen、Llama、DeepSeek
 ![Local Server](./3.png)
+
+### Channels — 一個頁面控制多個智能體
+![Channels](./4.png)
 
 ---
 
