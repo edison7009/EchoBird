@@ -811,6 +811,15 @@
             box-shadow: 0 0 30px rgba(0, 255, 157, .15)
         }
 
+        .hero-right img {
+            width: 100%;
+            height: 480px;
+            object-fit: cover;
+            object-position: left top;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+        }
+
         /* ── Fade-in animation ── */
         .fade {
             opacity: 0;
@@ -849,7 +858,11 @@
             }
 
             .hero-right {
-                max-width: 500px
+                max-width: 500px;
+                width: 100%;
+            }
+            .hero-right img {
+                height: 380px;
             }
         }
 
@@ -982,7 +995,7 @@
             </p>
         </div>
         <div class="hero-right">
-            <img src="./5.png" alt="EchoBird App Manager">
+            <img src="./4.png" alt="EchoBird Channels">
         </div>
     </section>
 
