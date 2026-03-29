@@ -181,6 +181,29 @@ fn start_bridge_internal(plugin_id: &str) -> Result<BridgeStartResult, String> {
     // Launch OpenClaw Gateway (only for openclaw plugin)
     // Skip if gateway is already running (check port 18789)
     if plugin_id == "openclaw" {
+        // Pre-flight: OpenClaw requires Node.js >= 22.14.0
+        match Command::new("node").arg("--version").output() {
+            Ok(out) => {
+                let ver_raw = String::from_utf8_lossy(&out.stdout);
+                let ver = ver_raw.trim().trim_start_matches('v');
+                let parts: Vec<u64> = ver.split('.').map(|s| s.parse().unwrap_or(0)).collect();
+                let major = parts.first().copied().unwrap_or(0);
+                let minor = parts.get(1).copied().unwrap_or(0);
+                if major < 22 || (major == 22 && minor < 14) {
+                    return Err(format!(
+                        "OpenClaw requires Node.js >= 22.14.0 — detected v{}. Please upgrade at https://nodejs.org",
+                        ver
+                    ));
+                }
+                log::info!("[Bridge] Node.js pre-flight OK: v{}", ver);
+            }
+            Err(_) => {
+                return Err(
+                    "OpenClaw requires Node.js >= 22.14.0, but Node.js was not found in PATH. \
+                     Please install it from https://nodejs.org".to_string()
+                );
+            }
+        }
     if let Some(cli) = &plugin.cli {
         let gateway_command = format!("{} gateway --allow-unconfigured", cli.command);
 
