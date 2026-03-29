@@ -61,13 +61,25 @@ curl -fsSL https://openclaw.ai/install.sh | bash
 
 ## After Deployment
 
-Once an agent is installed, tell the user:
-- Installation is complete and the agent is ready
+### Local installation (user's own machine)
+
+Once a local agent is installed, tell the user **exactly these steps** — do NOT add extra steps, do NOT mention Model Nexus, do NOT say "close this window":
+
+1. **Assign a model** — Go to **App Manager** (应用管理) → find the agent → select a model. App Manager is also where you can launch built-in apps and start agent backends.
+2. **Start chatting** — Go to **Channels** (频道) page → in the chat input area, click the role/agent selector → pick a Role and select the CLI Agent → then send your message.
+
+**Phrasing rules:**
+- Say **"leave this page"** or **"navigate to..."** — NEVER say "close this window" (there is no separate window; Echobird is a single app)
+- Do NOT tell users to open Model Nexus — model config for local agents is done in App Manager
+- Do NOT say "click OpenClaw to start chatting" — the correct flow is selecting it inside the **role/agent picker in the input area**
+
+### Remote installation (SSH/remote server)
+
+Once a remote agent is installed, tell the user:
 - Go to **Channels** page → select the remote server → pick the agent
 - Switch model from the bottom model selector if needed
 - Keep responses brief and celebratory — the user should feel the process was seamless
 
----
 
 ## Pre-Install Confirmation (MANDATORY for ALL agents)
 
