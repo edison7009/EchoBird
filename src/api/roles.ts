@@ -86,12 +86,19 @@ export async function scanRoles(locale: string): Promise<RoleScanResult> {
         order: c.order ?? i,
     }));
 
+    // Determine locale directory prefix for building full CDN URLs.
+    // zh-Hans roles already include "zh-Hans/" in filePath.
+    // EN roles do NOT include "en/" prefix — we must add it here.
+    const localeDir = isZh ? '' : 'en/';
+
     return {
         categories,
         // Ensure filePath is always a full URL (CDN JSON stores relative paths)
         roles: (data.roles || []).map((r: RoleEntry) => ({
             ...r,
-            filePath: r.filePath?.startsWith('http') ? r.filePath : `${ROLES_CDN_BASE}/${r.filePath}`,
+            filePath: r.filePath?.startsWith('http')
+                ? r.filePath
+                : `${ROLES_CDN_BASE}/${localeDir}${r.filePath}`,
         })),
         locale: isZh ? 'zh-Hans' : 'en',
         allLabel: isZh ? '\u5168\u90e8' : 'All',
