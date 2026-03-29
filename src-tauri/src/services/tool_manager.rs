@@ -642,7 +642,92 @@ pub fn is_vscode_extension(tool_id: &str) -> bool {
 
 // ─── Main entry point ───
 
-/// Scan all installed tools — main entry point
+/// Scan a single tool definition — runs detection, skills, version, and model reads.
+/// Extracted so scan_tools() can run all tools concurrently via tokio::spawn.
+async fn scan_single_tool(def: ToolDefinition) -> DetectedTool {
+    let pc = &def.paths_config;
+    let installed_path = detect_tool(pc).await;
+    let installed = installed_path.is_some();
+
+    let mut skills_path_str = None;
+    let mut skills_count = 0u32;
+    let mut version = pc.version.clone();
+
+    if installed {
+        if let Some(sp) = find_skills_path(pc).await {
+            skills_count = count_skills(&sp);
+            skills_path_str = Some(sp);
+        }
+        if skills_path_str.is_none() {
+            if let Some(ref rel_path) = pc.default_skills_path {
+                let default_path = PathBuf::from(&def.tool_dir).join(rel_path);
+                if default_path.exists() {
+                    let p = default_path.to_string_lossy().to_string();
+                    skills_count = count_skills(&p);
+                    skills_path_str = Some(p);
+                }
+            }
+        }
+        if version.is_none() && !pc.command.is_empty() {
+            version = platform::get_version(&pc.command).await;
+        }
+    }
+
+    let active_model = if installed {
+        read_active_model(&def).await
+    } else {
+        None
+    };
+
+    let config_path = if installed && !def.config_mapping.config_file.is_empty() {
+        let cp = expand_path(&def.config_mapping.config_file);
+        Some(strip_unc(cp.to_string_lossy().to_string()))
+    } else {
+        None
+    };
+
+    let detected_path = if pc.always_installed {
+        if let Some(ref launch) = pc.launch_file {
+            let tools_dir = find_tools_dir().unwrap_or_default();
+            let launch_path = tools_dir.join(&def.id).join(launch);
+            if launch_path.exists() {
+                Some(strip_unc(launch_path.to_string_lossy().to_string()))
+            } else {
+                installed_path
+            }
+        } else {
+            installed_path
+        }
+    } else {
+        installed_path
+    };
+
+    DetectedTool {
+        id: def.id.clone(),
+        name: pc.name.clone(),
+        category: parse_category(&pc.category),
+        official: true,
+        installed,
+        detected_path,
+        config_path,
+        skills_path: skills_path_str,
+        version,
+        installed_skills_count: Some(skills_count),
+        active_model,
+        website: pc.website.clone().or(Some(pc.docs.clone())),
+        api_protocol: if pc.api_protocol.is_empty() {
+            None
+        } else {
+            Some(pc.api_protocol.clone())
+        },
+        launch_file: pc.launch_file.clone(),
+        names: pc.names.clone(),
+        start_command: pc.start_command.clone(),
+        command: if pc.command.is_empty() { None } else { Some(pc.command.clone()) },
+    }
+}
+
+/// Scan all installed tools — runs all detections in parallel for fast completion.
 pub async fn scan_tools() -> Vec<DetectedTool> {
     // Clear cache to pick up newly added tool directories
     {
@@ -650,96 +735,21 @@ pub async fn scan_tools() -> Vec<DetectedTool> {
         *cache = None;
     }
     let definitions = get_definitions();
-    let mut results: Vec<DetectedTool> = Vec::new();
 
-    for def in &definitions {
-        let pc = &def.paths_config;
-        let installed_path = detect_tool(pc).await;
-        let installed = installed_path.is_some();
+    // Spawn a task per tool so all detections run concurrently
+    let mut handles = Vec::with_capacity(definitions.len());
+    for def in definitions {
+        handles.push(tokio::spawn(async move {
+            scan_single_tool(def).await
+        }));
+    }
 
-        let mut skills_path_str = None;
-        let mut skills_count = 0;
-        let mut version = pc.version.clone();
-
-        if installed {
-            // Find skills path (from user directory via skillsPath config)
-            if let Some(sp) = find_skills_path(pc).await {
-                skills_count = count_skills(&sp);
-                skills_path_str = Some(sp);
-            }
-            // Fallback: if no user skills path found, use defaultSkillsPath (relative to tool dir)
-            if skills_path_str.is_none() {
-                if let Some(ref rel_path) = pc.default_skills_path {
-                    let default_path = PathBuf::from(&def.tool_dir).join(rel_path);
-                    if default_path.exists() {
-                        let p = default_path.to_string_lossy().to_string();
-                        skills_count = count_skills(&p);
-                        skills_path_str = Some(p);
-                    }
-                }
-            }
-
-            // Get version from command
-            if version.is_none() && !pc.command.is_empty() {
-                version = platform::get_version(&pc.command).await;
-            }
+    let mut results = Vec::with_capacity(handles.len());
+    for handle in handles {
+        match handle.await {
+            Ok(tool) => results.push(tool),
+            Err(e) => log::warn!("[ToolManager] Tool scan task panicked: {}", e),
         }
-
-        // Read active model
-        let active_model = if installed {
-            read_active_model(def).await
-        } else {
-            None
-        };
-
-        // Config file path �?show the expected path even if file doesn't exist yet
-        let config_path = if installed && !def.config_mapping.config_file.is_empty() {
-            let cp = expand_path(&def.config_mapping.config_file);
-            Some(strip_unc(cp.to_string_lossy().to_string()))
-        } else {
-            None
-        };
-
-        // For built-in tools: resolve launchFile to actual path under tools directory
-        let detected_path = if pc.always_installed {
-            if let Some(ref launch) = pc.launch_file {
-                let tools_dir = find_tools_dir().unwrap_or_default();
-                let launch_path = tools_dir.join(&def.id).join(launch);
-                if launch_path.exists() {
-                    Some(strip_unc(launch_path.to_string_lossy().to_string()))
-                } else {
-                    installed_path  // fallback to "built-in"
-                }
-            } else {
-                installed_path
-            }
-        } else {
-            installed_path
-        };
-
-        results.push(DetectedTool {
-            id: def.id.clone(),
-            name: pc.name.clone(),
-            category: parse_category(&pc.category),
-            official: true,
-            installed,
-            detected_path,
-            config_path,
-            skills_path: skills_path_str,
-            version,
-            installed_skills_count: Some(skills_count),
-            active_model,
-            website: pc.website.clone().or(Some(pc.docs.clone())),
-            api_protocol: if pc.api_protocol.is_empty() {
-                None
-            } else {
-                Some(pc.api_protocol.clone())
-            },
-            launch_file: pc.launch_file.clone(),
-            names: pc.names.clone(),
-            start_command: pc.start_command.clone(),
-            command: if pc.command.is_empty() { None } else { Some(pc.command.clone()) },
-        });
     }
 
     log::info!("[ToolManager] Scan complete: {} tools found", results.len());
