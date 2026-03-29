@@ -12,6 +12,17 @@ use crate::utils::platform;
 
 // ─── Path expansion (mirrors tools/utils.ts expandPath) ───
 
+/// Strip Windows UNC prefix `\\?\` that Rust's canonicalize / Tauri resource_dir adds.
+/// Without this, paths displayed in the UI look like `\\?\C:\Users\...`.
+#[allow(unused)]
+fn strip_unc(s: String) -> String {
+    #[cfg(target_os = "windows")]
+    if s.starts_with(r"\\?\") {
+        return s[4..].to_string();
+    }
+    s
+}
+
 /// Expand ~ and %ENV_VAR% in path strings
 pub fn expand_path(p: &str) -> PathBuf {
     let mut result = p.to_string();
@@ -684,7 +695,7 @@ pub async fn scan_tools() -> Vec<DetectedTool> {
         // Config file path �?show the expected path even if file doesn't exist yet
         let config_path = if installed && !def.config_mapping.config_file.is_empty() {
             let cp = expand_path(&def.config_mapping.config_file);
-            Some(cp.to_string_lossy().to_string())
+            Some(strip_unc(cp.to_string_lossy().to_string()))
         } else {
             None
         };
@@ -695,7 +706,7 @@ pub async fn scan_tools() -> Vec<DetectedTool> {
                 let tools_dir = find_tools_dir().unwrap_or_default();
                 let launch_path = tools_dir.join(&def.id).join(launch);
                 if launch_path.exists() {
-                    Some(launch_path.to_string_lossy().to_string())
+                    Some(strip_unc(launch_path.to_string_lossy().to_string()))
                 } else {
                     installed_path  // fallback to "built-in"
                 }
