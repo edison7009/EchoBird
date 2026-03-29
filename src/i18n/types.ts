@@ -96,7 +96,7 @@ export type TKey =
     // SSH Guide
     | 'ssh.cloudDesc' | 'ssh.usernameHint' | 'ssh.passwordHint' | 'ssh.ipHint' | 'ssh.portHint'
     | 'ssh.cloudUsername' | 'ssh.cloudPassword' | 'ssh.cloudIp'
-    | 'ssh.winStep1' | 'ssh.winStep2' | 'ssh.winStep3' | 'ssh.winStep3Hint'
+    | 'ssh.winStep1' | 'ssh.winStep2' | 'ssh.winStep3'
     | 'ssh.winUsername' | 'ssh.winPassword' | 'ssh.winIp'
     | 'ssh.macStep' | 'ssh.macOr'
     | 'ssh.macUsername' | 'ssh.macPassword' | 'ssh.macIp'
