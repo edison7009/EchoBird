@@ -17,12 +17,6 @@ use std::sync::{Arc, Mutex};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::{Duration, Instant};
 
-// Windows-only: CREATE_NO_WINDOW flag prevents cmd.exe subprocesses from flashing
-// a console window on screen. Must be at crate level so it compiles on all targets.
-#[cfg(target_os = "windows")]
-use std::os::windows::process::CommandExt;
-#[cfg(target_os = "windows")]
-const CREATE_NO_WINDOW: u32 = 0x08000000;
 
 // ── Global state: current active role per agent ──
 static ACTIVE_ROLE: Mutex<Option<(String, String)>> = Mutex::new(None); // (agent_id, role_id)
@@ -381,26 +375,26 @@ fn execute_chat(
     // Resolve the full .cmd path first, then pass each arg separately so that
     // Rust's Windows argv encoding (CreateProcess) correctly quotes args that
     // contain newlines or special characters — avoiding cmd.exe shell truncation.
-    // CREATE_NO_WINDOW (defined at crate top) prevents a CMD console window
-    // from flashing on screen on Windows.
-    let child_result = if cfg!(target_os = "windows") {
+    // CREATE_NO_WINDOW (0x08000000) prevents a CMD console window from flashing.
+    #[cfg(target_os = "windows")]
+    let child_result = {
+        use std::os::windows::process::CommandExt;
         let resolved = resolve_command(actual_cmd);
-        // Pass /c + full-path-to-.cmd as two separate args, then all message args.
-        // Rust's Command on Windows calls CreateProcess and quotes each element
-        // individually, so newlines in message are preserved correctly.
         let mut cmd_args = vec!["/c".to_string(), resolved];
         cmd_args.extend(args.iter().cloned());
         Command::new("cmd.exe").args(&cmd_args)
-            .env("NO_COLOR", "1")  // Disable ANSI colors (https://no-color.org/)
-            .stdin(Stdio::null())   // Prevent inheriting bridge's piped stdin
+            .env("NO_COLOR", "1")
+            .stdin(Stdio::null())
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
-            .creation_flags(CREATE_NO_WINDOW)  // No console window flash on Windows
+            .creation_flags(0x08000000)  // CREATE_NO_WINDOW
             .spawn()
-    } else {
+    };
+    #[cfg(not(target_os = "windows"))]
+    let child_result = {
         Command::new(actual_cmd).args(&args)
-            .env("NO_COLOR", "1")  // Disable ANSI colors (https://no-color.org/)
-            .stdin(Stdio::null())   // Prevent inheriting bridge's piped stdin
+            .env("NO_COLOR", "1")
+            .stdin(Stdio::null())
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
             .spawn()
@@ -796,17 +790,21 @@ fn restart_gateway_if_needed(agent_id: &str) {
 
     // On Windows, CLI tools installed via npm are .cmd scripts that MUST be run
     // through cmd.exe — Command::new("openclaw") silently fails on Windows.
-    // CREATE_NO_WINDOW (crate-level const) prevents a console window from flashing.
-    let result = if cfg!(target_os = "windows") {
+    // CREATE_NO_WINDOW (0x08000000) prevents a console window from flashing.
+    #[cfg(target_os = "windows")]
+    let result = {
+        use std::os::windows::process::CommandExt;
         let resolved = resolve_command(cmd);
         Command::new("cmd.exe")
             .args(["/c", &resolved, "agent", "--json", "--agent", "main", "--message", "/new"])
             .stdin(Stdio::null())
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
-            .creation_flags(CREATE_NO_WINDOW)
+            .creation_flags(0x08000000)  // CREATE_NO_WINDOW
             .output()
-    } else {
+    };
+    #[cfg(not(target_os = "windows"))]
+    let result = {
         Command::new(cmd)
             .args(["agent", "--json", "--agent", "main", "--message", "/new"])
             .stdin(Stdio::null())
@@ -998,8 +996,10 @@ fn handle_start_agent(agent_id: &str) {
     };
 
     // Start the agent (detached background process).
-    // On Windows, use CREATE_NO_WINDOW (crate-level) so no console flashes on screen.
-    let result = if cfg!(target_os = "windows") {
+    // On Windows, use CREATE_NO_WINDOW (0x08000000) so no console flashes on screen.
+    #[cfg(target_os = "windows")]
+    let result = {
+        use std::os::windows::process::CommandExt;
         let resolved = resolve_command(cmd);
         let mut cmd_args = vec!["/c".to_string(), resolved];
         cmd_args.extend(start_args.iter().map(|s| s.to_string()));
@@ -1008,9 +1008,11 @@ fn handle_start_agent(agent_id: &str) {
             .stdin(Stdio::null())
             .stdout(Stdio::null())
             .stderr(Stdio::null())
-            .creation_flags(CREATE_NO_WINDOW)
+            .creation_flags(0x08000000)  // CREATE_NO_WINDOW
             .spawn()
-    } else {
+    };
+    #[cfg(not(target_os = "windows"))]
+    let result = {
         Command::new(cmd)
             .args(&start_args)
             .stdin(std::process::Stdio::null())
@@ -1309,19 +1311,23 @@ fn handle_set_model(agent_id: &str, model_id: &str, model_name: &str, api_key: &
                 &serde_json::to_string_pretty(&config).unwrap_or_default());
 
             // Restart Gateway so it reloads the new model config.
-            // CREATE_NO_WINDOW (crate-level) prevents console flash on Windows.
+            // CREATE_NO_WINDOW (0x08000000) prevents console flash on Windows.
             if result.is_ok() {
                 eprintln!("[bridge] Restarting OpenClaw Gateway to apply new model...");
-                let restart = if cfg!(target_os = "windows") {
+                #[cfg(target_os = "windows")]
+                let restart = {
+                    use std::os::windows::process::CommandExt;
                     let resolved = resolve_command("openclaw");
                     Command::new("cmd.exe")
                         .args(["/c", &resolved, "gateway", "restart", "--force"])
                         .stdin(Stdio::null())
                         .stdout(Stdio::piped())
                         .stderr(Stdio::piped())
-                        .creation_flags(CREATE_NO_WINDOW)
+                        .creation_flags(0x08000000)  // CREATE_NO_WINDOW
                         .output()
-                } else {
+                };
+                #[cfg(not(target_os = "windows"))]
+                let restart = {
                     Command::new("openclaw")
                         .args(["gateway", "restart", "--force"])
                         .stdin(Stdio::null())
