@@ -1,43 +1,53 @@
-# Translate roles-xx.json Files (26 Languages)
+# Role JSON Translation Plan
 
-## Overview
+## Current Status (as of 2026-03-29)
 
-Translate the `name` and `description` fields in 26 language-specific role JSON files under `d:\Echobird\docs\roles\`. Each file is currently a copy of `roles-en.json` (English source). The `roles-zh-Hans.json` (Simplified Chinese) already has its own translations — **do not touch it**.
+Two files exist and are maintained:
 
-## Source File
+| File | Language | Status |
+|------|----------|--------|
+| `roles-en.json` | English | ✅ Source of truth |
+| `roles-zh-Hans.json` | Simplified Chinese | ✅ Separately maintained |
 
-- **English source**: `d:\Echobird\docs\roles\roles-en.json` (1354 lines, ~85KB)
+All other 26 locale JSON files have been **deleted**. Non-zh-Hans users automatically fall back to `roles-en.json` via the CDN fallback logic in `src/api/roles.ts`.
 
-## Files to Translate
+---
 
-| # | File | Target Language |
-|---|------|----------------|
-| 1 | `roles-ar.json` | Arabic (العربية) |
-| 2 | `roles-bn.json` | Bengali (বাংলা) |
-| 3 | `roles-cs.json` | Czech (Čeština) |
-| 4 | `roles-de.json` | German (Deutsch) |
-| 5 | `roles-el.json` | Greek (Ελληνικά) |
-| 6 | `roles-es.json` | Spanish (Español) |
-| 7 | `roles-fa.json` | Persian (فارسی) |
-| 8 | `roles-fi.json` | Finnish (Suomi) |
-| 9 | `roles-fr.json` | French (Français) |
-| 10 | `roles-he.json` | Hebrew (עברית) |
-| 11 | `roles-hi.json` | Hindi (हिन्दी) |
-| 12 | `roles-hu.json` | Hungarian (Magyar) |
-| 13 | `roles-id.json` | Indonesian (Bahasa Indonesia) |
-| 14 | `roles-it.json` | Italian (Italiano) |
-| 15 | `roles-ja.json` | Japanese (日本語) |
-| 16 | `roles-ko.json` | Korean (한국어) |
-| 17 | `roles-ms.json` | Malay (Bahasa Melayu) |
-| 18 | `roles-nl.json` | Dutch (Nederlands) |
-| 19 | `roles-pl.json` | Polish (Polski) |
-| 20 | `roles-pt.json` | Portuguese (Português) |
-| 21 | `roles-ru.json` | Russian (Русский) |
-| 22 | `roles-sv.json` | Swedish (Svenska) |
-| 23 | `roles-th.json` | Thai (ไทย) |
-| 24 | `roles-tr.json` | Turkish (Türkçe) |
-| 25 | `roles-vi.json` | Vietnamese (Tiếng Việt) |
-| 26 | `roles-zh-Hant.json` | Traditional Chinese (繁體中文) |
+## Chinese Locale Routing
+
+Both Simplified and Traditional Chinese map to `roles-zh-Hans.json`:
+
+```ts
+// In src/api/roles.ts — resolveLocaleFileName()
+if (locale.startsWith('zh')) return 'roles-zh-Hans.json';
+```
+
+This means `zh-TW`, `zh-HK`, `zh-Hant` all read `roles-zh-Hans.json`. No separate `roles-zh-Hant.json` is needed — the role names and descriptions are shared Chinese content.
+
+---
+
+## Target Languages for v1 Translation
+
+Based on AI agent user demographics (developer-centric, GitHub/Claude/Cursor user base), the following **7 additional languages** cover ~85% of real users:
+
+| Priority | File | Language | Justification |
+|----------|------|----------|---------------|
+| 🔴 High | `roles-ja.json` | Japanese (日本語) | Very high AI adoption rate in Japan; active Claude/ChatGPT community |
+| 🔴 High | `roles-ko.json` | Korean (한국어) | Korea has one of the highest AI tool adoption rates globally |
+| 🟡 Medium | `roles-de.json` | German (Deutsch) | Largest tech market in the EU |
+| 🟡 Medium | `roles-pt.json` | Portuguese (Português) | Brazil is one of the fastest-growing AI user communities |
+| 🟡 Medium | `roles-ru.json` | Russian (Русский) | Large active developer base |
+| 🟡 Medium | `roles-fr.json` | French (Français) | France + Francophone Africa |
+| 🟡 Medium | `roles-es.json` | Spanish (Español) | Largest AI user group in Latin America |
+
+### Not prioritized (low ROI for AI agent users)
+
+Languages with large populations but low AI developer density, or where English acceptance is high:
+- Arabic, Hindi — wide populations but lower dev density
+- Southeast Asian (vi/id/th/ms) — growing but lower priority for now
+- Small EU languages (nl/sv/fi/pl/cs/el/hu/it) — English acceptance rate very high among their developers
+
+---
 
 ## Translation Rules
 
@@ -54,9 +64,9 @@ Only **two fields** need translation per entry:
 - `categories[].id` — Keep exactly as-is (e.g. `"engineering"`)
 - `roles[].id` — Keep exactly as-is (e.g. `"engineering-ai-engineer"`)
 - `roles[].category` — Keep exactly as-is
-- `roles[].filePath` — Keep exactly as-is (relative path, e.g. `"engineering/engineering-ai-engineer.md"`)
+- `roles[].filePath` — Keep exactly as-is (relative path)
 - `roles[].img` — Keep exactly as-is (full URL)
-- Proper nouns / brand names in descriptions (e.g. `React`, `Kubernetes`, `Shopee`, `TikTok`, `WeChat`, `Douyin`, `FMOD`, `Unity`, `Unreal Engine`) — keep in English within the translated text
+- Proper nouns / brand names (e.g. `React`, `Kubernetes`, `TikTok`, `Unity`) — keep in English within translated text
 
 ### JSON Structure Example
 
@@ -89,9 +99,11 @@ Only **two fields** need translation per entry:
 - Translation should be natural and professional, not machine-literal
 - Technical terms commonly used in English in the target locale should stay in English (e.g. `API`, `CI/CD`, `DevOps`, `SRE`)
 
+---
+
 ## Execution Strategy
 
 > [!TIP]
-> Process one file at a time. Read `roles-en.json` as reference, then overwrite `roles-xx.json` with the translated version.
+> Process one file at a time. Read `roles-en.json` as reference, then create `roles-xx.json` with the translated version.
 
-Suggested order: Start with high-priority languages (ja, ko, zh-Hant, de, fr, es, pt, ru) then proceed with the rest.
+Suggested order: `ja` → `ko` → `de` → `pt` → `ru` → `fr` → `es`
