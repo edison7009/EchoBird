@@ -423,15 +423,18 @@ export function MotherAgentPanel() {
                                 id: 'windows', label: 'Windows', content: (
                                     <>
                                         <ol className="space-y-0.5 text-cyber-text-muted/70 list-decimal list-inside">
-                                            <li>{t('ssh.winStep1')}</li>
+                                            <li>
+                                                {t('ssh.winStep1')}{' '}
+                                                <span
+                                                    className="text-cyber-accent hover:underline cursor-pointer"
+                                                    onClick={() => api.openExternal('https://bitvise.com/ssh-server-download')}
+                                                >
+                                                    Bitvise SSH Server
+                                                </span>
+                                            </li>
                                             <li>{t('ssh.winStep2')}</li>
-                                            <li>{t('ssh.winStep3')} {t('ssh.winStep3Hint')}</li>
+                                            <li>{t('ssh.winStep3')}</li>
                                         </ol>
-                                        <div className="flex flex-col gap-3 pl-4 my-3">
-                                            <p className="text-cyber-accent-secondary">Start-Service sshd</p>
-                                            <p className="text-cyber-accent-secondary">Set-Service sshd -StartupType Automatic</p>
-                                            <p className="text-cyber-accent-secondary leading-relaxed">New-NetFirewallRule -Name sshd -DisplayName 'OpenSSH Server' -Enabled True -Direction Inbound -Protocol TCP -Action Allow -LocalPort 22</p>
-                                        </div>
                                         <div className="mt-2 pt-1 border-t border-cyber-border/20 text-xs space-y-0.5">
                                             <p className="text-cyber-text-muted/70">• <span className="text-cyber-accent-secondary">{t('ssh.usernameHint')}</span> — {t('ssh.winUsername')}</p>
                                             <p className="text-cyber-text-muted/70">• <span className="text-cyber-accent-secondary">{t('ssh.passwordHint')}</span> — {t('ssh.winPassword')}</p>
