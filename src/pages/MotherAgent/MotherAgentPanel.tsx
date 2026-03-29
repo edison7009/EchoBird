@@ -432,12 +432,12 @@ export function MotherAgentPanel() {
                                                     Bitvise SSH Server
                                                 </span>
                                             </li>
-                                            <li>{t('ssh.winStep2')}</li>
-                                            <li>{t('ssh.winStep3')}</li>
+                                            <li>{t('ssh.winStep2')} 'Open easy settings' → 'Virtual accounts' → 'Add'</li>
+                                            <li>{t('ssh.winStep3')} 'Start server'</li>
                                         </ol>
                                         <div className="mt-2 pt-1 border-t border-cyber-border/20 text-xs space-y-0.5">
-                                            <p className="text-cyber-text-muted/70">• <span className="text-cyber-accent-secondary">{t('ssh.usernameHint')}</span> — {t('ssh.winUsername')}</p>
-                                            <p className="text-cyber-text-muted/70">• <span className="text-cyber-accent-secondary">{t('ssh.passwordHint')}</span> — {t('ssh.winPassword')}</p>
+                                            <p className="text-cyber-text-muted/70">• <span className="text-cyber-accent-secondary">{t('ssh.usernameHint')}</span> — Virtual account name {t('ssh.winUsername')}</p>
+                                            <p className="text-cyber-text-muted/70">• <span className="text-cyber-accent-secondary">{t('ssh.passwordHint')}</span> — Virtual account password {t('ssh.winPassword')}</p>
                                             <p className="text-cyber-text-muted/70">• <span className="text-cyber-accent-secondary">{t('ssh.ipHint')}</span> — {t('ssh.winIp')}</p>
                                             <p className="text-cyber-text-muted/70">• <span className="text-cyber-accent-secondary">{t('ssh.portHint')}</span> — 22</p>
                                         </div>
