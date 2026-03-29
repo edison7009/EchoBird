@@ -17,6 +17,13 @@ use std::sync::{Arc, Mutex};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::{Duration, Instant};
 
+// Windows-only: CREATE_NO_WINDOW flag prevents cmd.exe subprocesses from flashing
+// a console window on screen. Must be at crate level so it compiles on all targets.
+#[cfg(target_os = "windows")]
+use std::os::windows::process::CommandExt;
+#[cfg(target_os = "windows")]
+const CREATE_NO_WINDOW: u32 = 0x08000000;
+
 // ── Global state: current active role per agent ──
 static ACTIVE_ROLE: Mutex<Option<(String, String)>> = Mutex::new(None); // (agent_id, role_id)
 
@@ -374,10 +381,9 @@ fn execute_chat(
     // Resolve the full .cmd path first, then pass each arg separately so that
     // Rust's Windows argv encoding (CreateProcess) correctly quotes args that
     // contain newlines or special characters — avoiding cmd.exe shell truncation.
-    // CREATE_NO_WINDOW prevents a CMD console window from flashing on screen.
+    // CREATE_NO_WINDOW (defined at crate top) prevents a CMD console window
+    // from flashing on screen on Windows.
     let child_result = if cfg!(target_os = "windows") {
-        use std::os::windows::process::CommandExt;
-        const CREATE_NO_WINDOW: u32 = 0x08000000;
         let resolved = resolve_command(actual_cmd);
         // Pass /c + full-path-to-.cmd as two separate args, then all message args.
         // Rust's Command on Windows calls CreateProcess and quotes each element
@@ -790,10 +796,8 @@ fn restart_gateway_if_needed(agent_id: &str) {
 
     // On Windows, CLI tools installed via npm are .cmd scripts that MUST be run
     // through cmd.exe — Command::new("openclaw") silently fails on Windows.
-    // CREATE_NO_WINDOW prevents a console window from flashing on screen.
+    // CREATE_NO_WINDOW (crate-level const) prevents a console window from flashing.
     let result = if cfg!(target_os = "windows") {
-        use std::os::windows::process::CommandExt;
-        const CREATE_NO_WINDOW: u32 = 0x08000000;
         let resolved = resolve_command(cmd);
         Command::new("cmd.exe")
             .args(["/c", &resolved, "agent", "--json", "--agent", "main", "--message", "/new"])
@@ -994,10 +998,8 @@ fn handle_start_agent(agent_id: &str) {
     };
 
     // Start the agent (detached background process).
-    // On Windows, use CREATE_NO_WINDOW so no console flashes on screen.
+    // On Windows, use CREATE_NO_WINDOW (crate-level) so no console flashes on screen.
     let result = if cfg!(target_os = "windows") {
-        use std::os::windows::process::CommandExt;
-        const CREATE_NO_WINDOW: u32 = 0x08000000;
         let resolved = resolve_command(cmd);
         let mut cmd_args = vec!["/c".to_string(), resolved];
         cmd_args.extend(start_args.iter().map(|s| s.to_string()));
@@ -1307,12 +1309,10 @@ fn handle_set_model(agent_id: &str, model_id: &str, model_name: &str, api_key: &
                 &serde_json::to_string_pretty(&config).unwrap_or_default());
 
             // Restart Gateway so it reloads the new model config.
-            // CREATE_NO_WINDOW prevents console flash on Windows.
+            // CREATE_NO_WINDOW (crate-level) prevents console flash on Windows.
             if result.is_ok() {
                 eprintln!("[bridge] Restarting OpenClaw Gateway to apply new model...");
                 let restart = if cfg!(target_os = "windows") {
-                    use std::os::windows::process::CommandExt;
-                    const CREATE_NO_WINDOW: u32 = 0x08000000;
                     let resolved = resolve_command("openclaw");
                     Command::new("cmd.exe")
                         .args(["/c", &resolved, "gateway", "restart", "--force"])
