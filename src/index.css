@@ -342,21 +342,15 @@ pre {
   }
 }
 
-/* ── Role-card skeleton shimmer (scanning light sweep) ── */
-@keyframes shimmer {
-  0%   { background-position: -200% 0; }
-  100% { background-position:  200% 0; }
+/* ── Role-card skeleton shimmer (standard subtle pulse) ── */
+@keyframes shimmer-pulse {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 0.7; }
 }
 
 .role-card-shimmer {
-  background: linear-gradient(
-    90deg,
-    #0c0c0c 25%,
-    rgba(0, 255, 157, 0.05) 50%,
-    #0c0c0c 75%
-  );
-  background-size: 200% 100%;
-  animation: shimmer 1.8s infinite linear;
+  background: rgba(255, 255, 255, 0.08); /* solid subtle gray/white */
+  animation: shimmer-pulse 1.5s ease-in-out infinite;
 }
 
 .toast-enter {

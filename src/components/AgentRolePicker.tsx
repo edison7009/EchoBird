@@ -311,7 +311,7 @@ export const AgentRolePicker: React.FC<AgentRolePickerProps> = ({
                                         )}
 
                                         {/* Gradient overlay */}
-                                        <div className="absolute inset-x-0 bottom-0 pointer-events-none"
+                                        <div className="absolute inset-x-0 bottom-0 pointer-events-none z-30"
                                              style={{
                                                  height: '60%',
                                                  background: 'linear-gradient(to top, rgba(0,0,0,0.88) 0%, rgba(0,0,0,0.5) 40%, transparent 100%)',
@@ -319,7 +319,7 @@ export const AgentRolePicker: React.FC<AgentRolePickerProps> = ({
                                         />
 
                                         {/* Text overlay */}
-                                        <div className="absolute inset-x-0 bottom-0 px-3 pb-3 flex flex-col items-center"
+                                        <div className="absolute inset-x-0 bottom-0 px-3 pb-3 flex flex-col items-center z-40"
                                              style={{ backfaceVisibility: 'hidden' }}>
                                             <div
                                                 className="text-sm font-bold text-center leading-tight line-clamp-2"
