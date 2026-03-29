@@ -189,6 +189,7 @@ const en: Translations = {
     'ssh.winStep1': 'Download and install',
     'ssh.winStep2': 'Click',
     'ssh.winStep3': 'Set account name/password, save and click',
+    'ssh.winStep4': 'Edit the account, set',
     'ssh.winUsername': '(Virtual account name)',
     'ssh.winPassword': '(Virtual account password)',
     'ssh.winIp': 'run ipconfig',

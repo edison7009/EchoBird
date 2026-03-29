@@ -184,6 +184,7 @@ const vi: Partial<Translations> = {
     'ssh.winStep1': 'Tải và cài đặt',
     'ssh.winStep2': 'Nhấp vào',
     'ssh.winStep3': 'Đặt tên/mật khẩu tài khoản, lưu lại và nhấp',
+    'ssh.winStep4': 'Chỉnh sửa tài khoản, đặt',
     'ssh.winUsername': '(tên tài khoản ảo)',
     'ssh.winPassword': '(mật khẩu tài khoản ảo)',
     'ssh.winIp': 'chạy ipconfig',

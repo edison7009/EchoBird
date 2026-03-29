@@ -90,6 +90,7 @@ const el: Partial<Translations> = {
     'ssh.winStep1': 'Λήψη και εγκατάσταση',
     'ssh.winStep2': 'Κάντε κλικ',
     'ssh.winStep3': 'Ορίστε όνομα/κωδικό, αποθηκεύστε και κάντε κλικ',
+    'ssh.winStep4': 'Επεξεργαστείτε τον λογαριασμό, ορίστε',
     'ssh.winUsername': '(όνομα εικονικού λογαριασμού)',
     'ssh.winPassword': '(κωδικός εικονικού λογαριασμού)',
     'ssh.winIp': 'εκτελέστε ipconfig',

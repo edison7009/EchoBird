@@ -184,6 +184,7 @@ const ar: Partial<Translations> = {
     'ssh.winStep1': 'تنزيل وتثبيت',
     'ssh.winStep2': 'انقر',
     'ssh.winStep3': 'اضبط الاسم/كلمة المرور، احفظ وانقر',
+    'ssh.winStep4': 'تحرير الحساب، وضبط',
     'ssh.winUsername': '(اسم الحساب الافتراضي)',
     'ssh.winPassword': '(كلمة مرور الحساب الافتراضي)',
     'ssh.winIp': 'شغّل ipconfig',

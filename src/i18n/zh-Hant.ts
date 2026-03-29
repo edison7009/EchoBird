@@ -210,6 +210,7 @@ const zhHant: Partial<Translations> = {
     'ssh.winStep1': '下載並安裝',
     'ssh.winStep2': '點擊',
     'ssh.winStep3': '設定帳號名稱/密碼，儲存並點擊',
+    'ssh.winStep4': '編輯帳號，將',
     'ssh.winUsername': '（虛擬帳號名稱）',
     'ssh.winPassword': '（虛擬帳號密碼）',
     'ssh.winIp': '執行 ipconfig',

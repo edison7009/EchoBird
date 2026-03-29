@@ -434,6 +434,7 @@ export function MotherAgentPanel() {
                                             </li>
                                             <li>{t('ssh.winStep2')} 'Open easy settings' → 'Virtual accounts' → 'Add'</li>
                                             <li>{t('ssh.winStep3')} 'Start server'</li>
+                                            <li>{t('ssh.winStep4')} 'Shell access type' → 'Command Prompt'</li>
                                         </ol>
                                         <div className="mt-2 pt-1 border-t border-cyber-border/20 text-xs space-y-0.5">
                                             <p className="text-cyber-text-muted/70">• <span className="text-cyber-accent-secondary">{t('ssh.usernameHint')}</span> — Virtual account name {t('ssh.winUsername')}</p>

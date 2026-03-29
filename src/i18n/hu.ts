@@ -184,6 +184,7 @@ const hu: Partial<Translations> = {
     'ssh.winStep1': 'Letöltés és telepítés',
     'ssh.winStep2': 'Kattintson',
     'ssh.winStep3': 'Állítsa be a nevet/jelszót, mentse és kattintson',
+    'ssh.winStep4': 'Szerkessze a fiókot, állítsa be',
     'ssh.winUsername': '(virtuális fiók neve)',
     'ssh.winPassword': '(virtuális fiók jelszava)',
     'ssh.winIp': 'ipconfig futtatása',

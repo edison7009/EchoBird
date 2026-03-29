@@ -90,6 +90,7 @@ const sv: Partial<Translations> = {
     'ssh.winStep1': 'Ladda ner och installera',
     'ssh.winStep2': 'Klicka på',
     'ssh.winStep3': 'Ange kontonamn/lösenord, spara och klicka',
+    'ssh.winStep4': 'Redigera kontot, ange',
     'ssh.winUsername': '(namn på virtuellt konto)',
     'ssh.winPassword': '(lösenord för virtuellt konto)',
     'ssh.winIp': 'kör ipconfig',

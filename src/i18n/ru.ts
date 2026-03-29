@@ -208,6 +208,7 @@ const ru: Partial<Translations> = {
     'ssh.winStep1': 'Скачать и установить',
     'ssh.winStep2': 'Нажмите',
     'ssh.winStep3': 'Задайте имя/пароль аккаунта, сохраните и нажмите',
+    'ssh.winStep4': 'Отредактируйте аккаунт, задайте',
     'ssh.winUsername': '(имя виртуального аккаунта)',
     'ssh.winPassword': '(пароль виртуального аккаунта)',
     'ssh.winIp': 'Выполните ipconfig',

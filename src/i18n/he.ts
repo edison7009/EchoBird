@@ -90,6 +90,7 @@ const he: Partial<Translations> = {
     'ssh.winStep1': 'הורד והתקן',
     'ssh.winStep2': 'לחץ על',
     'ssh.winStep3': 'הגדר שם/סיסמה, שמור ולחץ',
+    'ssh.winStep4': 'ערוך את החשבון, הגדר',
     'ssh.winUsername': '(שם חשבון וירטואלי)',
     'ssh.winPassword': '(סיסמת חשבון וירטואלי)',
     'ssh.winIp': 'הרץ ipconfig',

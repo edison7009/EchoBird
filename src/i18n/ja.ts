@@ -208,6 +208,7 @@ const ja: Partial<Translations> = {
     'ssh.winStep1': 'ダウンロードしてインストール',
     'ssh.winStep2': 'クリック',
     'ssh.winStep3': 'アカウント名/パスワードを設定し、保存してクリック',
+    'ssh.winStep4': 'アカウントを編集して、設定',
     'ssh.winUsername': '（仮想アカウント名）',
     'ssh.winPassword': '（仮想アカウントのパスワード）',
     'ssh.winIp': 'ipconfig を実行',

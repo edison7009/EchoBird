@@ -90,6 +90,7 @@ const fa: Partial<Translations> = {
     'ssh.winStep1': 'دانلود و نصب',
     'ssh.winStep2': 'کلیک کنید',
     'ssh.winStep3': 'نام/رمز حساب مجازی را تنظیم کنید، ذخیره کنید و کلیک کنید',
+    'ssh.winStep4': 'حساب را ویرایش کنید، تنظیم کنید',
     'ssh.winUsername': '(نام حساب مجازی)',
     'ssh.winPassword': '(رمز عبور حساب مجازی)',
     'ssh.winIp': 'ipconfig را اجرا کنید',

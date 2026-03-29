@@ -184,6 +184,7 @@ const pt: Partial<Translations> = {
     'ssh.winStep1': 'Baixar e instalar',
     'ssh.winStep2': 'Clique em',
     'ssh.winStep3': 'Defina o nome/senha da conta, salve e clique',
+    'ssh.winStep4': 'Edite a conta, defina',
     'ssh.winUsername': '(nome da conta virtual)',
     'ssh.winPassword': '(senha da conta virtual)',
     'ssh.winIp': 'executar ipconfig',

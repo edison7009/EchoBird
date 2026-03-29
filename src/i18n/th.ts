@@ -186,6 +186,7 @@ const th: Partial<Translations> = {
     'ssh.winStep1': 'ดาวน์โหลดและติดตั้ง',
     'ssh.winStep2': 'คลิก',
     'ssh.winStep3': 'ตั้งชื่อ/รหัสผ่านบัญชี บันทึก แล้วคลิก',
+    'ssh.winStep4': 'แก้ไขบัญชี แล้วตั้งค่า',
     'ssh.winUsername': '(ชื่อ Virtual account)',
     'ssh.winPassword': '(รหัสผ่าน Virtual account)',
     'ssh.winIp': 'รัน ipconfig',

@@ -208,6 +208,7 @@ const ko: Partial<Translations> = {
     'ssh.winStep1': '다운로드 및 설치',
     'ssh.winStep2': '클릭',
     'ssh.winStep3': '계정 이름/비밀번호 설정, 저장 후 클릭',
+    'ssh.winStep4': '계정을 편집하여, 설정',
     'ssh.winUsername': '(가상 계정 이름)',
     'ssh.winPassword': '(가상 계정 비밀번호)',
     'ssh.winIp': 'ipconfig 실행',

@@ -171,6 +171,7 @@ const zhHans: Partial<Translations> = {
     'ssh.winStep1': '下载并安装',
     'ssh.winStep2': '点击',
     'ssh.winStep3': '设置账号名/密码，保存并点击',
+    'ssh.winStep4': '编辑该账号，将',
     'ssh.winUsername': '（虚拟账号名）',
     'ssh.winPassword': '（虚拟账号密码）',
     'ssh.winIp': '运行 ipconfig',
