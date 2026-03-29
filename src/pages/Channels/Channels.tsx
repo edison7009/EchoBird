@@ -850,9 +850,12 @@ const ChannelsInner: React.FC = () => {
 
                     // Re-apply if role or agent changed
                     if (roleKey !== lastApplied) {
-                        // Restart persistent agents to clear memory before role change
-                        // openclaw: reads SOUL.md only at session start — must restart to pick up new role
-                        if (['openclaw'].includes(agentId)) {
+                        // Note: openclaw gateway restart is handled inside the Bridge binary
+                        // (restart_gateway_if_needed → sends /new to reload SOUL.md).
+                        // Do NOT call stopTool/startTool here — it would open a visible console window.
+                        // Only restart non-bridge persistent agents (nanobot, hermes) that need
+                        // process-level restart to pick up config changes.
+                        if (['nanobot', 'hermes'].includes(agentId)) {
                             try {
                                 console.info('[Bridge] Restarting local agent to apply new role:', agentId);
                                 await api.stopTool(agentId);
@@ -875,8 +878,9 @@ const ChannelsInner: React.FC = () => {
                     const agentEntry = AGENT_LIST.find(a => a.name === selectedAgent);
                     const agentId = agentEntry?.id || '';
                     try {
-                        // Restart persistent agents to clear memory before clearing role
-                        if (['openclaw'].includes(agentId)) {
+                        // Note: openclaw gateway restart is handled inside Bridge binary.
+                        // Only restart non-bridge persistent agents that need process-level restart.
+                        if (['nanobot', 'hermes'].includes(agentId)) {
                             console.info('[Bridge] Restarting local agent to clear role:', agentId);
                             await api.stopTool(agentId);
                             await api.startTool(agentId);
