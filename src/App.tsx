@@ -27,7 +27,7 @@ import { ModelNexusProvider, ModelNexusTitleActions, ModelNexusMain, ModelNexusP
 import { AppManagerProvider, AppManagerMain, AppManagerPanel, AppManagerBottom, AppManagerErrorModal } from './pages/AppManager';
 import { LocalServerProvider, LocalServerMain, LocalServerPanel, LocalServerBottom } from './pages/LocalServer';
 import { MotherAgentProvider, MotherAgentMain, MotherAgentPanel } from './pages/MotherAgent';
-import { ChannelsMain, ChannelsPanel, ChannelsProvider, ChannelsRoleSelector, ChannelsMobileSync } from './pages/Channels';
+import { ChannelsMain, ChannelsPanel, ChannelsProvider, ChannelsMobileSync } from './pages/Channels';
 
 declare const __APP_VERSION__: string;
 
@@ -148,7 +148,6 @@ function App() {
                                                                                 >
                                                                                     <RotateCcw size={14} />
                                                                                 </button>
-                                                                                <ChannelsRoleSelector />
                                                                             </div>
                                                                         )}
                                                                     </h2>

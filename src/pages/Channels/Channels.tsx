@@ -1127,7 +1127,21 @@ const ChannelsInner: React.FC = () => {
                             rows={2}
                             className="w-full bg-transparent px-2 py-1 text-sm text-[#DED9D2] font-sans font-medium outline-none placeholder:text-[#DED9D2]/40 disabled:opacity-30 resize-none"
                         />
-                        <div className="flex items-center justify-end gap-1.5">
+                        <div className="flex items-center justify-between gap-1.5">
+                                {/* Left: role/agent selector — transparent, text-only */}
+                                <button
+                                    type="button"
+                                    onClick={() => window.dispatchEvent(new CustomEvent('open-role-picker'))}
+                                    className="flex items-center gap-1 text-xs font-mono text-cyber-text-muted/60 hover:text-cyber-accent transition-colors cursor-pointer min-w-0 flex-shrink-0 max-w-[45%]"
+                                >
+                                    <span className="truncate">
+                                        {(selectedRoleForChannel?.id ? selectedRoleForChannel.name : null)
+                                            ?? (selectedAgentForChannel || t('channel.selectRoleAgent'))}
+                                    </span>
+                                    <ChevronDown size={11} className="flex-shrink-0 opacity-50" />
+                                </button>
+                                {/* Right: model selector + send/abort */}
+                                <div className="flex items-center gap-1.5 flex-shrink-0">
                             {selectedAgentForChannel && (
                                 <RemoteModelSelector
                                     models={channelModelList}
@@ -1142,6 +1156,7 @@ const ChannelsInner: React.FC = () => {
                             ) : (
                                 <button onClick={handleSend} disabled={(!input.trim() && attachments.length === 0) || !isActiveConnected || remoteModelLoading} className="w-8 h-8 rounded-lg flex items-center justify-center bg-cyber-accent hover:brightness-110 transition-all disabled:opacity-20"><Send size={18} className="text-cyber-bg rotate-45 -translate-x-[1px]" /></button>
                             )}
+                                </div>
                         </div>
                     </div>
                 </div>
