@@ -342,6 +342,23 @@ pre {
   }
 }
 
+/* ── Role-card skeleton shimmer (scanning light sweep) ── */
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position:  200% 0; }
+}
+
+.role-card-shimmer {
+  background: linear-gradient(
+    90deg,
+    #0c0c0c 25%,
+    rgba(0, 255, 157, 0.05) 50%,
+    #0c0c0c 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.8s infinite linear;
+}
+
 .toast-enter {
   animation: toast-slide-in 0.3s ease-out forwards;
 }

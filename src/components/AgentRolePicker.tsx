@@ -273,15 +273,20 @@ export const AgentRolePicker: React.FC<AgentRolePickerProps> = ({
                                                     : 'border-cyber-border bg-black/80 shadow-cyber-card hover:border-cyber-accent/40 hover:shadow-[0_0_8px_rgba(0,255,157,0.1)] cursor-pointer'
                                         }`}
                                     >
-                                        {/* Image with skeleton loading */}
-                                        <div className="aspect-[5/8] overflow-hidden bg-black/60 relative">
-                                            <div className="absolute inset-0 bg-gradient-to-br from-cyber-border/20 to-black/40 animate-pulse" />
+                                        {/* Image with skeleton shimmer — hides once image loads */}
+                                        <div className="aspect-[5/8] overflow-hidden bg-[#0c0c0c] relative">
+                                            <div className="absolute inset-0 z-10 role-card-shimmer" />
                                             <img
                                                 src={role.img || role.fallbackImg}
                                                 alt={role.name}
-                                                className="w-full h-full object-cover object-center relative"
+                                                className="absolute inset-0 w-full h-full object-cover object-center z-20"
                                                 loading="lazy"
-                                                onLoad={(e) => { (e.target as HTMLElement).style.opacity = '1'; }}
+                                                onLoad={(e) => {
+                                                    const img = e.target as HTMLElement;
+                                                    img.style.opacity = '1';
+                                                    const shimmer = img.parentElement?.querySelector('.role-card-shimmer') as HTMLElement;
+                                                    if (shimmer) shimmer.style.display = 'none';
+                                                }}
                                                 onError={(e) => {
                                                     const el = e.target as HTMLImageElement;
                                                     if (role.fallbackImg && el.src !== role.fallbackImg) {
@@ -289,6 +294,9 @@ export const AgentRolePicker: React.FC<AgentRolePickerProps> = ({
                                                     } else if (!el.src.endsWith('/none.png')) {
                                                         el.src = '/none.png';
                                                     }
+                                                    // Hide shimmer on error too — fallback image will show
+                                                    const shimmer = el.parentElement?.querySelector('.role-card-shimmer') as HTMLElement;
+                                                    if (shimmer) shimmer.style.display = 'none';
                                                 }}
                                                 style={{ opacity: 0, transition: 'opacity 0.3s ease-in' }}
                                             />
