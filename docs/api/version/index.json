@@ -1,1 +1,1 @@
-{"version":"3.5.5","releaseDate":"2026-03-29","releaseNotes":"Fix scroll to bottom when navigating to Channels page; add concurrent-send and abort guards to mobile chat."}
+{"version":"3.5.6","releaseDate":"2026-03-29","releaseNotes":"Fix role download failing with RelativeUrlWithoutBase error — role file paths now correctly resolve to full CDN URLs with locale directory prefix (en/ or zh-Hans/)."}
