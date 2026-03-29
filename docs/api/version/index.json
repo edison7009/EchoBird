@@ -1,1 +1,1 @@
-{"version": "3.5.7","releaseDate": "2026-03-29","releaseNotes": "Parallel agent detection, role selector moved into input bar, shimmer skeleton for role cards, Windows CRT static linking fix"}
+{"version":"3.5.8","releaseDate":"2026-03-30","releaseNotes":"Fix: eliminate CLI window flash and empty response when using local OpenClaw on fresh Windows install"}
