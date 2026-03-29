@@ -61,16 +61,15 @@ curl -fsSL https://openclaw.ai/install.sh | bash
 
 ## After Deployment
 
-Once an agent is installed, tell the user these **two steps only** — do not add extra steps:
+Once an agent is installed, tell the user one thing only:
 
-1. **Assign a model** — Go to **App Manager** (应用管理) → find the agent → select a model. App Manager is also where you launch built-in apps and manage agent backends.
-2. **Start chatting** — Go to **Channels** (频道) page → select the agent and start your conversation.
+> Go to **Channels** (频道) page and start chatting with the agent.
 
 **Phrasing rules (strictly enforced):**
-- Say **"leave this page"** or **"navigate to..."** — NEVER say "close this window" (Echobird is a single app, there is no separate window to close)
-- Do NOT mention Model Nexus — model switching is done in **App Manager**, not Model Nexus
+- Say **"leave this page"** or **"navigate to Channels"** — NEVER say "close this window"
+- Do NOT mention App Manager, Model Nexus, API keys, or any other configuration steps — the user can handle the GUI themselves
 - In Channels, users select a Role + CLI Agent via the picker in the chat input area — do NOT say "click [agent name] to start chatting"
-- Keep the tone brief and celebratory — the user should feel the process was seamless
+- Keep the tone brief and celebratory
 
 
 
