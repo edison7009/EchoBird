@@ -428,8 +428,8 @@ export function MotherAgentPanel() {
                                             <li>{t('ssh.winStep3')} {t('ssh.winStep3Hint')}</li>
                                         </ol>
                                         <p className="text-cyber-accent-secondary pl-4 mt-2">Start-Service sshd</p>
-                                        <p className="text-cyber-accent-secondary pl-4 mt-2">Set-Service sshd -StartupType Automatic</p>
-                                        <p className="text-cyber-accent-secondary pl-4 mt-2">New-NetFirewallRule -Name sshd -DisplayName 'OpenSSH Server' -Enabled True -Direction Inbound -Protocol TCP -Action Allow -LocalPort 22</p>
+                                        <p className="text-cyber-accent-secondary pl-4 mt-4">Set-Service sshd -StartupType Automatic</p>
+                                        <p className="text-cyber-accent-secondary pl-4 mt-4">New-NetFirewallRule -Name sshd -DisplayName 'OpenSSH Server' -Enabled True -Direction Inbound -Protocol TCP -Action Allow -LocalPort 22</p>
                                         <div className="mt-2 pt-1 border-t border-cyber-border/20 text-xs space-y-0.5">
                                             <p className="text-cyber-text-muted/70">• <span className="text-cyber-accent-secondary">{t('ssh.usernameHint')}</span> — {t('ssh.winUsername')}</p>
                                             <p className="text-cyber-text-muted/70">• <span className="text-cyber-accent-secondary">{t('ssh.passwordHint')}</span> — {t('ssh.winPassword')}</p>
