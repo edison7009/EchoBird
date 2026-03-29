@@ -1128,18 +1128,26 @@ const ChannelsInner: React.FC = () => {
                             className="w-full bg-transparent px-2 py-1 text-sm text-[#DED9D2] font-sans font-medium outline-none placeholder:text-[#DED9D2]/40 disabled:opacity-30 resize-none"
                         />
                         <div className="flex items-center justify-between gap-1.5">
-                                {/* Left: role/agent selector — transparent, text-only */}
-                                <button
-                                    type="button"
-                                    onClick={() => window.dispatchEvent(new CustomEvent('open-role-picker'))}
-                                    className="flex items-center gap-1 text-xs font-mono text-cyber-text-muted/60 hover:text-cyber-accent transition-colors cursor-pointer min-w-0 flex-shrink-0 max-w-[45%]"
-                                >
-                                    <span className="truncate">
-                                        {(selectedRoleForChannel?.id ? selectedRoleForChannel.name : null)
-                                            ?? (selectedAgentForChannel || t('channel.selectRoleAgent'))}
-                                    </span>
-                                    <ChevronDown size={11} className="flex-shrink-0 opacity-50" />
-                                </button>
+                                {/* Left: role/agent selector — matches RemoteModelSelector style */}
+                                {(() => {
+                                    const agentObj = selectedAgentForChannel ? AGENT_LIST.find(a => a.name === selectedAgentForChannel) : null;
+                                    const label = selectedRoleForChannel?.id
+                                        ? selectedRoleForChannel.name
+                                        : (selectedAgentForChannel || t('channel.selectRoleAgent'));
+                                    return (
+                                        <button
+                                            type="button"
+                                            onClick={() => window.dispatchEvent(new CustomEvent('open-role-picker'))}
+                                            className="flex items-center gap-1.5 px-2 py-1 text-xs font-mono text-cyber-accent transition-colors rounded hover:bg-white/8 active:bg-white/12 cursor-pointer min-w-0 max-w-[45%]"
+                                        >
+                                            {agentObj?.icon && (
+                                                <img src={agentObj.icon} alt="" className="w-3.5 h-3.5 flex-shrink-0" onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                                            )}
+                                            <span className="truncate">{label}</span>
+                                            <ChevronDown size={11} className="flex-shrink-0 opacity-60" />
+                                        </button>
+                                    );
+                                })()}
                                 {/* Right: model selector + send/abort */}
                                 <div className="flex items-center gap-1.5 flex-shrink-0">
                             {selectedAgentForChannel && (
