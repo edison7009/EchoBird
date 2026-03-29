@@ -40,10 +40,15 @@ fn is_openclaw_gateway_running() -> bool {
     // (e.g. OpenClaw listening on a non-loopback interface, or IPv6-only)
     #[cfg(target_os = "windows")]
     {
+        use std::os::windows::process::CommandExt;
+        const CREATE_NO_WINDOW: u32 = 0x08000000;
+        
         // wmic covers Node-based CLI tools where the process is node.exe
-        if let Ok(out) = Command::new("wmic")
-            .args(["process", "where", "commandline like '%openclaw%gateway%'", "get", "processid", "/format:value"])
-            .output()
+        let mut wmic_cmd = Command::new("wmic");
+        wmic_cmd.args(["process", "where", "commandline like '%openclaw%gateway%'", "get", "processid", "/format:value"]);
+        wmic_cmd.creation_flags(CREATE_NO_WINDOW);
+        
+        if let Ok(out) = wmic_cmd.output()
         {
             let text = String::from_utf8_lossy(&out.stdout);
             if text.lines().any(|l| l.trim_start().starts_with("ProcessId=") && l.trim() != "ProcessId=") {
@@ -51,8 +56,13 @@ fn is_openclaw_gateway_running() -> bool {
                 return true;
             }
         }
+        
         // Fallback: tasklist for native binary installs
-        if let Ok(out) = Command::new("tasklist").args(["/FO", "CSV", "/NH"]).output() {
+        let mut tasklist_cmd = Command::new("tasklist");
+        tasklist_cmd.args(["/FO", "CSV", "/NH"]);
+        tasklist_cmd.creation_flags(CREATE_NO_WINDOW);
+        
+        if let Ok(out) = tasklist_cmd.output() {
             let text = String::from_utf8_lossy(&out.stdout).to_lowercase();
             if text.contains("openclaw") {
                 log::info!("[Bridge] OpenClaw process detected via tasklist");
@@ -189,6 +199,9 @@ fn start_bridge_internal(plugin_id: &str) -> Result<BridgeStartResult, String> {
                 const CREATE_NO_WINDOW: u32 = 0x08000000; // Silent background — no visible console
                 let mut cmd = Command::new("cmd");
                 cmd.args(["/C", &gateway_command]);
+                cmd.stdin(Stdio::null())
+                   .stdout(Stdio::null())
+                   .stderr(Stdio::null());
                 cmd.creation_flags(CREATE_NEW_PROCESS_GROUP | CREATE_NO_WINDOW);
                 match cmd.spawn() {
                     Ok(_) => log::info!("[Bridge] OpenClaw Gateway launched silently (Windows)"),
@@ -235,8 +248,25 @@ fn start_bridge_internal(plugin_id: &str) -> Result<BridgeStartResult, String> {
                 }
             }
 
-            // Brief pause to let gateway start
-            std::thread::sleep(std::time::Duration::from_millis(500));
+            // Wait for Gateway to be ready — poll port 18789 instead of fixed sleep.
+            // Node.js Gateway can take 1-3s normally, longer on slow machines or first install.
+            // Heartbeat keeps the session alive — we poll up to 30s before giving up.
+            {
+                let deadline = std::time::Instant::now() + std::time::Duration::from_secs(30);
+                let mut ready = false;
+                while std::time::Instant::now() < deadline {
+                    if is_port_in_use(18789) {
+                        ready = true;
+                        break;
+                    }
+                    std::thread::sleep(std::time::Duration::from_millis(300));
+                }
+                if ready {
+                    log::info!("[Bridge] OpenClaw Gateway is ready on port 18789");
+                } else {
+                    log::warn!("[Bridge] OpenClaw Gateway did not become ready within 30s — proceeding anyway");
+                }
+            }
         }
     }
     } // end: only openclaw launches Gateway
