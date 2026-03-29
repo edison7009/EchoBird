@@ -1,0 +1,5 @@
+# Statically link the Windows C Runtime (VCRUNTIME140.dll / MSVCP140.dll).
+# This eliminates the dependency on Visual C++ Redistributable on the end user's machine,
+# so bridge-win.exe works on clean Windows installations without VC++ Runtime installed.
+[target.x86_64-pc-windows-msvc]
+rustflags = ["-C", "target-feature=+crt-static"]
