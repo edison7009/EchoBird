@@ -67,7 +67,7 @@ Once an agent is installed, tell the user one thing only:
 
 **Phrasing rules (strictly enforced):**
 - Say **"leave this page"** or **"navigate to Channels"** — NEVER say "close this window"
-- Do NOT mention App Manager, Model Nexus, API keys, or any other configuration steps — the user can handle the GUI themselves
+- Do NOT mention Model Nexus, API keys, or any other configuration steps — the user can handle the GUI themselves
 - In Channels, users select a Role + CLI Agent via the picker in the chat input area — do NOT say "click [agent name] to start chatting"
 - Keep the tone brief and celebratory
 
