@@ -374,7 +374,10 @@ fn execute_chat(
     // Resolve the full .cmd path first, then pass each arg separately so that
     // Rust's Windows argv encoding (CreateProcess) correctly quotes args that
     // contain newlines or special characters — avoiding cmd.exe shell truncation.
+    // CREATE_NO_WINDOW prevents a CMD console window from flashing on screen.
     let child_result = if cfg!(target_os = "windows") {
+        use std::os::windows::process::CommandExt;
+        const CREATE_NO_WINDOW: u32 = 0x08000000;
         let resolved = resolve_command(actual_cmd);
         // Pass /c + full-path-to-.cmd as two separate args, then all message args.
         // Rust's Command on Windows calls CreateProcess and quotes each element
@@ -386,6 +389,7 @@ fn execute_chat(
             .stdin(Stdio::null())   // Prevent inheriting bridge's piped stdin
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
+            .creation_flags(CREATE_NO_WINDOW)  // No console window flash on Windows
             .spawn()
     } else {
         Command::new(actual_cmd).args(&args)
@@ -434,6 +438,26 @@ fn execute_chat(
 
                     // Parse agent JSON output (supports OpenClaw + Claude Code formats)
                     let (text, new_session_id) = parse_agent_output(&stdout);
+
+                    // Empty response means the agent process ran but produced no output.
+                    // This typically happens when the Gateway is not running, lacks API
+                    // config, or restarted mid-flight. Surface as an error so the UI
+                    // shows a meaningful message instead of an empty bubble.
+                    if text.trim().is_empty() {
+                        let detail = if !strip_ansi(&stderr).trim().is_empty() {
+                            format!(" stderr: {}", strip_ansi(&stderr).trim())
+                        } else {
+                            String::new()
+                        };
+                        eprintln!("[bridge] Agent returned empty response (exit: {}).{}", output.status, detail);
+                        send(&OutboundMessage::Error {
+                            message: format!(
+                                "Agent returned an empty response. The agent process may have crashed — try sending again.{}",
+                                detail
+                            ),
+                        });
+                        return;
+                    }
 
                     send(&OutboundMessage::Text {
                         text,
@@ -752,16 +776,31 @@ fn restart_gateway_if_needed(agent_id: &str) {
 
     eprintln!("[bridge] Sending /new to {} to reset session and reload SOUL.md...", agent_id);
 
+    // For Gateway-based agents (openclaw, picoclaw, nanobot), wait until the gateway
+    // port is reachable before sending /new. This prevents an empty response when
+    // restart_gateway_if_needed is called right after `gateway restart --force`.
+    if agent_id == "openclaw" || agent_id == "picoclaw" || agent_id == "nanobot" {
+        let port: u16 = match agent_id {
+            "openclaw" | "picoclaw" => 18789,
+            "nanobot"  => 18790,
+            _          => 18789,
+        };
+        wait_for_port(port, 8000); // wait up to 8 s
+    }
+
     // On Windows, CLI tools installed via npm are .cmd scripts that MUST be run
     // through cmd.exe — Command::new("openclaw") silently fails on Windows.
-    // This matches the same pattern used in execute_chat().
+    // CREATE_NO_WINDOW prevents a console window from flashing on screen.
     let result = if cfg!(target_os = "windows") {
+        use std::os::windows::process::CommandExt;
+        const CREATE_NO_WINDOW: u32 = 0x08000000;
         let resolved = resolve_command(cmd);
         Command::new("cmd.exe")
             .args(["/c", &resolved, "agent", "--json", "--agent", "main", "--message", "/new"])
             .stdin(Stdio::null())
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
+            .creation_flags(CREATE_NO_WINDOW)
             .output()
     } else {
         Command::new(cmd)
@@ -775,6 +814,23 @@ fn restart_gateway_if_needed(agent_id: &str) {
     match result {
         Ok(o) => eprintln!("[bridge] Session reset complete for {} (status: {})", agent_id, o.status),
         Err(e) => eprintln!("[bridge] Session reset failed for {}: {}", agent_id, e),
+    }
+}
+
+/// Poll a TCP port until it is accepting connections or the timeout (ms) elapses.
+fn wait_for_port(port: u16, timeout_ms: u64) {
+    let deadline = std::time::Instant::now() + std::time::Duration::from_millis(timeout_ms);
+    loop {
+        let addr: std::net::SocketAddr = format!("127.0.0.1:{}", port).parse().unwrap();
+        if std::net::TcpStream::connect_timeout(&addr, std::time::Duration::from_millis(300)).is_ok() {
+            eprintln!("[bridge] Port {} is ready", port);
+            return;
+        }
+        if std::time::Instant::now() >= deadline {
+            eprintln!("[bridge] Timed out waiting for port {} to become ready", port);
+            return;
+        }
+        std::thread::sleep(std::time::Duration::from_millis(300));
     }
 }
 
@@ -937,12 +993,20 @@ fn handle_start_agent(agent_id: &str) {
         _ => vec![],
     };
 
-    // Start the agent (detached background process)
+    // Start the agent (detached background process).
+    // On Windows, use CREATE_NO_WINDOW so no console flashes on screen.
     let result = if cfg!(target_os = "windows") {
-        let mut args = vec!["/c", "start", "/b", cmd];
-        args.extend(&start_args);
+        use std::os::windows::process::CommandExt;
+        const CREATE_NO_WINDOW: u32 = 0x08000000;
+        let resolved = resolve_command(cmd);
+        let mut cmd_args = vec!["/c".to_string(), resolved];
+        cmd_args.extend(start_args.iter().map(|s| s.to_string()));
         Command::new("cmd.exe")
-            .args(&args)
+            .args(&cmd_args)
+            .stdin(Stdio::null())
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
+            .creation_flags(CREATE_NO_WINDOW)
             .spawn()
     } else {
         Command::new(cmd)
@@ -1242,16 +1306,20 @@ fn handle_set_model(agent_id: &str, model_id: &str, model_name: &str, api_key: &
             let result = write_config_file(&oc_dir, "openclaw.json",
                 &serde_json::to_string_pretty(&config).unwrap_or_default());
 
-            // Restart Gateway so it reloads the new model config
+            // Restart Gateway so it reloads the new model config.
+            // CREATE_NO_WINDOW prevents console flash on Windows.
             if result.is_ok() {
                 eprintln!("[bridge] Restarting OpenClaw Gateway to apply new model...");
                 let restart = if cfg!(target_os = "windows") {
+                    use std::os::windows::process::CommandExt;
+                    const CREATE_NO_WINDOW: u32 = 0x08000000;
                     let resolved = resolve_command("openclaw");
                     Command::new("cmd.exe")
                         .args(["/c", &resolved, "gateway", "restart", "--force"])
                         .stdin(Stdio::null())
                         .stdout(Stdio::piped())
                         .stderr(Stdio::piped())
+                        .creation_flags(CREATE_NO_WINDOW)
                         .output()
                 } else {
                     Command::new("openclaw")
