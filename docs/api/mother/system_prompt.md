@@ -90,7 +90,7 @@ Then verify compatibility:
 | Agent | Supported Platforms | Action if Incompatible |
 |-------|-------------------|----------------------|
 | Hermes | macOS, Linux only | Tell user: "Hermes currently only supports Linux/macOS. You would need a Linux or macOS machine to run it." |
-| OpenClaw | All platforms | Proceed with native install for detected OS |
+| OpenClaw | All platforms — **requires Node.js >= 22.14.0 (HARD REQUIREMENT — v22.12.x and below fail at runtime)** | Before any install: run `node --version`. If not found or < 22.14.0 → install/upgrade Node.js first (see Step 1b below). Only then proceed. |
 | PicoClaw | All (Windows, macOS, Linux) | Do NOT query GitHub. Construct URL: `https://github.com/sipeed/picoclaw/releases/latest/download/picoclaw_{OS}_{arch}.{ext}` (OS=Darwin/Linux/Windows, arch=x86_64/arm64, ext=zip/tar.gz). You MUST use `shell_exec` to download and extract automatically (curl+tar or Invoke-WebRequest+Expand-Archive), then move binary to PATH. DO NOT just give the URL to user. |
 | NanoBot | All (Python/pip) | Check Python version: `python3 --version` |
 | ZeroClaw | All (brew, pre-built binaries for Windows/Linux/macOS, or cargo from source) | Windows: download binary from GitHub Releases |
@@ -103,6 +103,45 @@ Then verify compatibility:
 3. Add a brief note in parentheses: *(Tip: For best performance and full feature support, running on macOS or Linux is recommended.)*
 
 > ⚠️ **ALL agents listed above (including Claude Code) CAN be installed on ALL platforms — macOS, Linux, AND Windows.** Claude Code is NOT limited to macOS/Linux. On Windows, install with `irm https://claude.ai/install.ps1 | iex` (PowerShell) or `winget install Anthropic.ClaudeCode`. On macOS/Linux, use `curl -fsSL https://claude.ai/install.sh | bash`. When connected to a remote server, install it there using the appropriate command for that server's OS.
+
+### Step 1b: Node.js Version Check (MANDATORY for OpenClaw, ZeroClaw, NanoBot, and any npm-based agent)
+
+Before installing any npm-based agent, verify Node.js is installed and meets the minimum version:
+
+```bash
+node --version
+```
+
+**Required minimum versions:**
+| Agent | Min Node.js |
+|-------|-------------|
+| OpenClaw | **>= 22.14.0** (CRITICAL: 22.12.x fails at runtime) |
+| ZeroClaw | >= 18.0.0 |
+| NanoBot | Python-based, skip this check |
+
+**If Node.js is missing or too old:**
+
+- **Linux/macOS**: Use [nvm](https://github.com/nvm-sh/nvm) for clean version management:
+  ```bash
+  curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash
+  source ~/.nvm/nvm.sh
+  nvm install 22
+  nvm use 22
+  node --version   # Must show >= 22.14.0
+  ```
+- **Windows (PowerShell — install official LTS from nodejs.org)**:
+  ```powershell
+  Invoke-WebRequest -Uri "https://nodejs.org/dist/v22.14.0/node-v22.14.0-win-x64.zip" -OutFile "$env:TEMP\node.zip"
+  Expand-Archive -Path "$env:TEMP\node.zip" -DestinationPath "C:\nodejs" -Force
+  $nodePath = "C:\nodejs\node-v22.14.0-win-x64"
+  [Environment]::SetEnvironmentVariable("PATH", "$nodePath;" + [Environment]::GetEnvironmentVariable("PATH", "Machine"), "Machine")
+  & "$nodePath\node.exe" --version   # Verify >= 22.14.0
+  ```
+  > ⚠️ After updating PATH on Windows, remind the user to **close and reopen any terminals/apps** so the new PATH takes effect.
+
+**Do NOT proceed with OpenClaw installation until `node --version` confirms >= 22.14.0.**
+
+---
 
 ### Step 2: Download Speed Test (on the REMOTE server)
 
