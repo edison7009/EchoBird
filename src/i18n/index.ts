@@ -4,34 +4,44 @@
 import { en } from './en';
 import type { Translations } from './types';
 
+export type TKey = keyof Translations;
+export type { Translations };
+export { en };
+
 const loadedLocales: Record<string, Partial<Translations>> = { en };
+
+const localeLoaders: Record<string, () => Promise<{ default: Partial<Translations> }>> = {
+    'zh-Hans': () => import('./zh-Hans'),
+};
+
+export function resolveLocale(tag: string): string {
+    if (!tag) return 'en';
+    if (/^zh/i.test(tag)) return 'zh-Hans';
+    return 'en';
+}
+
+export function detectLocale(): string {
+    try {
+        const saved = localStorage.getItem('echobird-locale');
+        if (saved) return resolveLocale(saved);
+    } catch { /* ignore */ }
+    const lang = typeof navigator !== 'undefined' ? navigator.language || 'en' : 'en';
+    return resolveLocale(lang);
+}
 
 export async function loadLocale(locale: string): Promise<void> {
     if (loadedLocales[locale]) return;
-    const resolved = resolveLocale(locale);
-    if (!resolved || resolved === 'en') return;
+    const loader = localeLoaders[locale];
+    if (!loader) return;
     try {
-        if (resolved === 'zh-Hans') {
-            const mod = await import('./zh-Hans');
-            if (mod?.default) loadedLocales['zh-Hans'] = mod.default;
-        }
+        const mod = await loader();
+        if (mod?.default) loadedLocales[locale] = mod.default;
     } catch {
         // Silently fall back to English
     }
 }
 
-export function resolveLocale(tag: string): string {
-    if (!tag) return 'en';
-    // Any zh-* variant -> zh-Hans for now
-    if (/^zh/i.test(tag)) return 'zh-Hans';
-    return 'en';
-}
-
-// Synchronous translate (requires loadLocale called first)
-export function t(locale: string, key: keyof Translations): string {
+export function translate(key: TKey, locale: string): string {
     const dict = loadedLocales[locale] || en;
-    return (dict[key] || en[key] || key) as string;
+    return ((dict as Record<string, string>)[key as string] || (en as Record<string, string>)[key as string] || key as string);
 }
-
-export { en };
-export type { Translations };
