@@ -52,7 +52,7 @@ dependencies = [
 
 [[package]]
 name = "echobird-bridge"
-version = "3.4.10"
+version = "3.5.8"
 dependencies = [
  "serde",
  "serde_json",

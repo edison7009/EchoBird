@@ -228,6 +228,8 @@ const en: Translations = {
     'mother.hintHardenSSH': 'Harden server security',
     'mother.hintNetworkInfo': 'Show internal/public IP',
     'mother.hintSecurityAudit': 'Detect suspicious activity',
+    'mother.hintDeployLocalSSH': 'Let my phone connect to this machine (deploy local SSH)',
+    'ssh.winNote': 'Windows SSH deployment is more complex than Linux/macOS. Recommended: install EchoBird on the Windows machine first, then ask Mother Agent to set up local SSH access for you.',
     'status.running': 'Running',
     'status.offline': 'Offline',
     'status.complete': 'Complete',

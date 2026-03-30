@@ -129,7 +129,7 @@ const de: Partial<Translations> = {
     // Log-Seite
     // Debug-Konsole
     // Lokaler Server
-    'server.gpuFull': '⚡ GPU Voll',
+    'server.gpuFull': '�?GPU Voll',
     'server.cpuOnly': '🖥 Nur CPU',
     'server.setupEngine': 'ENGINE EINRICHTEN',
     'server.upgradeEngine': 'ENGINE AKTUALISIEREN',
@@ -140,7 +140,7 @@ const de: Partial<Translations> = {
     'store.cancel': '[ABBRUCH]',
     'store.remove': 'ENTFERNEN',
     'store.ver': 'Ver.',
-    'store.ready': '✔ Bereit',
+    'store.ready': '�?Bereit',
     // Schließen-Bestätigung
     'close.title': 'Fenster schließen',
     'close.message': 'Möchten Sie in die Taskleiste minimieren oder komplett beenden?',
@@ -214,7 +214,7 @@ const de: Partial<Translations> = {
     'ssh.winUsername': '(Name des virtuellen Kontos)',
     'ssh.winPassword': '(Passwort des virtuellen Kontos)',
     'ssh.winIp': 'ipconfig ausführen',
-    'ssh.macStep': 'Systemeinstellungen →Allgemein →Freigabe →"Entfernte Anmeldung" aktivieren',
+    'ssh.macStep': 'Systemeinstellungen →Allgemein →Freigabe �?Entfernte Anmeldung" aktivieren',
     'ssh.macOr': 'Oder:',
     'ssh.macUsername': 'whoami ausführen',
     'ssh.macPassword': 'Ihr Mac-Passwort',
@@ -228,7 +228,7 @@ const de: Partial<Translations> = {
     'ssh.termuxIp': 'ifconfig | grep inet ausführen',
     'ssh.ishUsername': 'root',
     'ssh.ishPassword': 'per passwd festlegen',
-    'ssh.ishIp': 'Einstellungen → Wi-Fi → IP-Adresse',
+    'ssh.ishIp': 'Einstellungen �?Wi-Fi �?IP-Adresse',
     'mother.connectionRetrying': 'Verbindungsfehler, erneuter Versuch ({n}/{total})...',
     'mother.connectionFailed': 'Verbindung zum KI-Modell nach {n} Versuchen fehlgeschlagen.',
     'mother.connectionHint': 'Bitte URL, Model-ID und API-Key prüfen und sicherstellen, dass ausreichend Token-Guthaben vorhanden ist.',
@@ -250,6 +250,8 @@ const de: Partial<Translations> = {
     'mother.hintHardenSSH': 'Server-Sicherheit härten',
     'mother.hintNetworkInfo': 'Interne/öffentliche IP anzeigen',
     'mother.hintSecurityAudit': 'Verdächtige Aktivitäten erkennen',
+    'mother.hintDeployLocalSSH': 'Let my phone connect to this machine (deploy local SSH)',
+    'ssh.winNote': 'Windows SSH deployment is more complex than Linux/macOS. Recommended: install EchoBird on the Windows machine first, then ask Mother Agent to set up local SSH access for you.',
     'status.running': 'Läuft',
     'status.offline': 'Offline',
     // Mobile sync

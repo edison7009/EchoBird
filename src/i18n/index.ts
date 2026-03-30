@@ -1,4 +1,4 @@
-// Lightweight i18n entry â€” translation loader
+// Lightweight i18n entry â€?translation loader
 // Tool names, API terms, and brand names stay in English (no translation)
 
 // Types re-exported from types.ts

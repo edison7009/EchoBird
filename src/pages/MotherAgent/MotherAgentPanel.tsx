@@ -422,26 +422,7 @@ export function MotherAgentPanel() {
                             {
                                 id: 'windows', label: 'Windows', content: (
                                     <>
-                                        <ol className="space-y-0.5 text-cyber-text-muted/70 list-decimal list-inside">
-                                            <li>
-                                                {t('ssh.winStep1')}{' '}
-                                                <span
-                                                    className="text-cyber-accent hover:underline cursor-pointer"
-                                                    onClick={() => api.openExternal('https://bitvise.com/ssh-server-download')}
-                                                >
-                                                    Bitvise SSH Server
-                                                </span>
-                                            </li>
-                                            <li>{t('ssh.winStep2')} 'Open easy settings' → 'Virtual accounts' → 'Add'</li>
-                                            <li>{t('ssh.winStep3')} 'Start server'</li>
-                                            <li>{t('ssh.winStep4')} 'Shell access type' → 'Command Prompt'</li>
-                                        </ol>
-                                        <div className="mt-2 pt-1 border-t border-cyber-border/20 text-xs space-y-0.5">
-                                            <p className="text-cyber-text-muted/70">• <span className="text-cyber-accent-secondary">{t('ssh.usernameHint')}</span> — Virtual account name {t('ssh.winUsername')}</p>
-                                            <p className="text-cyber-text-muted/70">• <span className="text-cyber-accent-secondary">{t('ssh.passwordHint')}</span> — Virtual account password {t('ssh.winPassword')}</p>
-                                            <p className="text-cyber-text-muted/70">• <span className="text-cyber-accent-secondary">{t('ssh.ipHint')}</span> — {t('ssh.winIp')}</p>
-                                            <p className="text-cyber-text-muted/70">• <span className="text-cyber-accent-secondary">{t('ssh.portHint')}</span> — 22</p>
-                                        </div>
+                                        <p className="text-cyber-text-muted/70 leading-relaxed">{t('ssh.winNote')}</p>
                                     </>
                                 )
                             },

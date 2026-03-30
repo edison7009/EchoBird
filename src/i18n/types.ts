@@ -83,7 +83,7 @@ export type TKey =
     // Mother Agent
     | 'mother.selectModel'
     | 'mother.hintInstall' | 'mother.hintShowSpecs' | 'mother.hintTroubleshoot' | 'mother.hintUninstall'
-    | 'mother.hintHardenSSH' | 'mother.hintNetworkInfo' | 'mother.hintSecurityAudit'
+    | 'mother.hintHardenSSH' | 'mother.hintNetworkInfo' | 'mother.hintSecurityAudit' | 'mother.hintDeployLocalSSH'
     | 'mother.enterMessage' | 'mother.noModels'
     | 'mother.servers' | 'mother.sshGuide' | 'mother.local' | 'mother.noServer'
     | 'mother.addServer' | 'mother.hostIp' | 'mother.port' | 'mother.username'
@@ -97,7 +97,7 @@ export type TKey =
     | 'ssh.cloudDesc' | 'ssh.usernameHint' | 'ssh.passwordHint' | 'ssh.ipHint' | 'ssh.portHint'
     | 'ssh.cloudUsername' | 'ssh.cloudPassword' | 'ssh.cloudIp'
     | 'ssh.winStep1' | 'ssh.winStep2' | 'ssh.winStep3' | 'ssh.winStep4'
-    | 'ssh.winUsername' | 'ssh.winPassword' | 'ssh.winIp'
+    | 'ssh.winUsername' | 'ssh.winPassword' | 'ssh.winIp' | 'ssh.winNote'
     | 'ssh.macStep' | 'ssh.macOr'
     | 'ssh.macUsername' | 'ssh.macPassword' | 'ssh.macIp'
     | 'ssh.linuxNote'

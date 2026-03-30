@@ -1,6 +1,9 @@
 {
     "hints": [
         {
+            "action": "deployLocalSSH"
+        },
+        {
             "action": "install",
             "agent": "OpenClaw"
         },

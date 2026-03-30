@@ -209,6 +209,8 @@ const zhHans: Partial<Translations> = {
     'mother.hintHardenSSH': '加固服务器安全',
     'mother.hintNetworkInfo': '查看内网/公网IP',
     'mother.hintSecurityAudit': '检测可疑活动',
+    'mother.hintDeployLocalSSH': '让手机连接到本机（部署本机 SSH）',
+    'ssh.winNote': 'Windows 部署 SSH 较为复杂。建议在服务器端下载安装 EchoBird，然后通过 Mother Agent 部署本机 SSH。',
     'status.running': '运行中',
     'status.offline': '离线',
     // Mobile sync
