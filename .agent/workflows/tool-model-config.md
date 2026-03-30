@@ -9,20 +9,30 @@ This document is the single source of truth for how tools read and write model c
 
 ---
 
-## 1. Canonical Model Store Path
+## 1. Model Store Paths
+
+### Standard for ALL tools (including Echobird tools)
 
 ```
-~/.echobird/config/models.json
+~/.{appname}/models.json
 ```
 
-| Platform | Actual path |
-|---|---|
-| Windows | `C:\Users\{user}\.echobird\config\models.json` |
-| macOS | `/Users/{user}/.echobird/config/models.json` |
-| Linux | `/home/{user}/.echobird/config/models.json` |
+| App | Windows | macOS / Linux |
+|---|---|---|
+| Echobird | `C:\Users\{user}\.echobird\models.json` (⚠️ see note) | `~/.echobird/models.json` |
+| BudgetCoder | `C:\Users\{user}\.budgetcoder\models.json` | `~/.budgetcoder/models.json` |
+| Any tool | `C:\Users\{user}\.{appname}\models.json` | `~/.{appname}/models.json` |
 
-This file is written and managed by the Echobird desktop app.
-Tools should **read-only** unless they are explicitly model management tools.
+> [!WARNING]
+> **Echobird internal path exception**: The Echobird desktop app currently stores its own
+> models at `~/.echobird/config/models.json` (one level deeper, inside a `config/` subdirectory).
+> This is an Echobird-internal detail. When Echobird reads tool configs, it still uses the
+> flat `~/.echobird/models.json` standard for standalone tools.
+>
+> **TL;DR**: New tools always use `~/.{appname}/models.json` — no subdirectory.
+
+This file may be written by the tool itself or synced from Echobird's export.
+Tools should **read-only** by default unless they are model management tools.
 
 ---
 
@@ -115,12 +125,11 @@ This file tells the tool WHERE to find model config and HOW to map fields:
 
 When a tool runs **without Echobird installed** (e.g. BudgetCoder on another machine):
 
-**Fallback lookup order:**
-1. `~/.echobird/config/models.json` — shared Echobird store (preferred)
-2. `~/.{tool-name}/models.json` — tool-specific standalone store (fallback)
-3. Environment variable: `ECHOBIRD_MODELS_PATH` — override for CI/scripts
+**Lookup order:**
+1. `~/.{appname}/models.json` — tool's own store (always check first)
+2. Environment variable: `ECHOBIRD_MODELS_PATH` — override for CI/scripts
 
-**Standalone models.json** (same schema, placed at `~/.{tool-name}/models.json`):
+**models.json** (placed at `~/.{appname}/models.json`):
 ```json
 [
   {
@@ -134,8 +143,8 @@ When a tool runs **without Echobird installed** (e.g. BudgetCoder on another mac
 ```
 
 > [!TIP]
-> For BudgetCoder: if `~/.echobird/config/models.json` exists, prefer it automatically.
-> Only fall back to `~/.budgetcoder/models.json` if Echobird is not installed.
+> For BudgetCoder: models.json lives at `~/.budgetcoder/models.json`.
+> The schema is identical to Echobird's — users can copy/export from Echobird directly.
 
 ---
 
