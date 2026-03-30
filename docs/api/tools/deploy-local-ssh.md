@@ -129,19 +129,32 @@ Test-NetConnection -ComputerName localhost -Port 22 | Select-Object TcpTestSucce
 
 ## Phase 4: Report to User
 
-Deliver the result in the user's language, clearly and concisely. Include:
+Deliver the result in the user's language, clearly and concisely.
 
-1. ✅ **SSH is now enabled** (or already was)
-2. The exact credentials they need to add to EchoBird:
-   - **IP Address**: `[detected local IP]`
+### ⚠️ CRITICAL: Always Report LAN/Public IP — NEVER 127.0.0.1
+
+The phone needs to connect **from a different device**, so `127.0.0.1` or `localhost` will **NOT work**.
+
+- **LAN IP** (e.g. `192.168.1.x`): use when phone is on the **same Wi-Fi network** as this machine
+- **Public IP**: use when connecting from **outside the home/office network**
+
+You already collected the correct LAN IP in Phase 2 (the commands explicitly filter out `127.*` and `169.*`). Use that value.
+
+### What to include in your reply:
+
+1. ✅ **SSH is now enabled** (or "was already enabled")
+
+2. The exact credentials to add to EchoBird **on the phone**:
+   - **IP Address**: `[LAN IP detected in Phase 2]` *(NOT 127.0.0.1)*
    - **Port**: `22`
    - **Username**: `[detected username]`
    - **Password**: their current login password (you cannot retrieve it — tell them to use their Windows/macOS/Linux login password)
 
 3. Clear next step:
-   > "Now go to **Mother Agent** on your phone → click **+** to add a server → enter these credentials. You'll be able to control this machine from your phone."
+   > "Now on your **phone**, open EchoBird → go to **Mother Agent** → tap **+** on the right side to add a new server → enter the credentials above. Make sure your phone is connected to the **same Wi-Fi network** as this machine."
 
-4. **Important note for Windows users**: If they have a Windows login PIN (not a password), they may need to set a traditional password first via: Settings → Accounts → Sign-in options → Password.
+4. **Important note for Windows users**: If they use a Windows login PIN (not a traditional password), they must set a password first: Settings → Accounts → Sign-in options → Password → Add.
+
 
 ---
 
