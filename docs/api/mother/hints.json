@@ -1,21 +1,7 @@
 {
     "hints": [
         {
-            "action": "deployLocalSSH"
-        },
-        {
             "action": "install",
-            "agent": "OpenClaw"
-        },
-        {
-            "action": "installSkills",
-            "agent": "OpenClaw"
-        },
-        {
-            "action": "showSpecs"
-        },
-        {
-            "action": "uninstall",
             "agent": "OpenClaw"
         },
         {
@@ -23,8 +9,18 @@
             "agent": "Claude Code"
         },
         {
+            "action": "showSpecs"
+        },
+        {
             "action": "troubleshoot",
             "agent": "OpenClaw"
+        },
+        {
+            "action": "uninstall",
+            "agent": "OpenClaw"
+        },
+        {
+            "action": "deployLocalSSH"
         },
         {
             "action": "hardenSSH"
