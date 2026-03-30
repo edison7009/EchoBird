@@ -1,67 +1,53 @@
 ---
-description: How to safely add a new i18n key to all 28 language files
+description: How to safely add a new i18n key to en.ts and zh-Hans.ts
 ---
 
-# Adding a new i18n key to all 28 languages
+# Adding a new i18n key
 
-> **Golden rule**: Never use PowerShell string operations to write i18n files directly.
-> Always use the `write_to_file` tool or the validation script below.
+> **Project supports only 2 languages: `en` (English) and `zh-Hans` (Simplified Chinese).**
+> All other language files have been removed. Do NOT add them back without discussion.
 
-## Step 1: Add the key to `en.ts` first (source of truth)
+> **Golden rule**: NEVER use PowerShell `Set-Content`, `>` redirect, or string replace to write i18n files.
+> Always use `multi_replace_file_content` tool or `[System.IO.File]::WriteAllText` with explicit UTF-8 no-BOM.
 
-Add the new key to `src/i18n/en.ts`. This is the reference file.
+## Step 1: Add the key to `en.ts` (source of truth)
+
+Add the new key to `src/i18n/en.ts`:
 
 ```typescript
 'your.new.key': 'English value',
 ```
 
-Make sure the line above has a trailing comma. Run quick check:
+Also add to `src/i18n/types.ts` in the `TKey` union type.
 
-// turbo
+## Step 2: Add to `zh-Hans.ts` using `multi_replace_file_content` tool only
+
+Use `multi_replace_file_content` to insert the translated value.
+**NEVER** use PowerShell string operations — they corrupt non-ASCII characters.
+
+If batch-patching in PowerShell is needed, use ONLY this safe pattern:
 ```powershell
-npx vite build 2>&1 | Select-String "error|built in" | Select-Object -First 5
+$path = (Resolve-Path "src\i18n\zh-Hans.ts").Path
+$bytes = [System.IO.File]::ReadAllBytes($path)
+$content = [System.Text.Encoding]::UTF8.GetString($bytes)
+# ... string manipulation ...
+[System.IO.File]::WriteAllText($path, $newContent, [System.Text.UTF8Encoding]::new($false))
 ```
 
-## Step 2: Add to all other language files using `write_to_file` tool only
-
-**NEVER** use PowerShell `Replace` or string concatenation to add i18n keys.
-Always use the `write_to_file` (Overwrite) tool or `multi_replace_file_content` tool.
-
-For each language file, use `multi_replace_file_content` to append the key **before the closing `};`**:
-
-TargetContent: `    'common.showProcess':` ... `,\n};`
-ReplacementContent: add the new key before `};`
-
-Order of files to update (28 total):
-`ar`, `bn`, `cs`, `de`, `el`, `en`, `es`, `fa`, `fi`, `fr`, `he`, `hi`, `hu`, `id`, `it`, `ja`, `ko`, `ms`, `nl`, `pl`, `pt`, `ru`, `sv`, `th`, `tr`, `vi`, `zh-Hans`, `zh-Hant`
-
-## Step 3: Validate ALL files pass — run this after every batch
+## Step 3: Validate both files
 
 // turbo
 ```powershell
 $utf8 = [System.Text.UTF8Encoding]::new($false)
 $repl = [char]0xFFFD
 $errors = 0
-Get-ChildItem "src\i18n\*.ts" | Where-Object { $_.Name -ne 'types.ts' -and $_.Name -ne 'index.ts' } | Sort-Object Name | ForEach-Object {
+Get-ChildItem "src\i18n\*.ts" | Where-Object { $_.Name -notin @('types.ts','index.ts') } | ForEach-Object {
     $text = [System.IO.File]::ReadAllText($_.FullName, $utf8)
-    $fffd  = ($text.ToCharArray() | Where-Object { $_ -eq $repl }).Count
-    $lines = $text -split "\r?\n"
-    $badQ  = 0
-    foreach ($line in $lines) {
-        if ($line -match "^\s+'[^']+':") {
-            $s = $line -replace "\\'"
-            $q = ($s.ToCharArray() | Where-Object { $_ -eq "'" }).Count
-            if ($q % 2 -ne 0) { $badQ++ }
-        }
-    }
-    if ($fffd -gt 0 -or $badQ -gt 0) {
-        Write-Host "FAIL $($_.Name): fffd=$fffd badQuotes=$badQ"
-        $errors++
-    } else {
-        Write-Host "OK   $($_.Name)"
-    }
+    $fffd = ($text.ToCharArray() | Where-Object { $_ -eq $repl }).Count
+    if ($fffd -gt 0) { Write-Host "FAIL $($_.Name): fffd=$fffd"; $errors++ }
+    else { Write-Host "OK   $($_.Name)" }
 }
-if ($errors -eq 0) { Write-Host "`nAll $((Get-ChildItem 'src\i18n\*.ts' | Where-Object { $_.Name -ne 'types.ts' -and $_.Name -ne 'index.ts' }).Count) language files clean!" }
+if ($errors -eq 0) { Write-Host "All language files clean!" }
 ```
 
 ## Step 4: Build verification
@@ -71,20 +57,11 @@ if ($errors -eq 0) { Write-Host "`nAll $((Get-ChildItem 'src\i18n\*.ts' | Where-
 npx vite build 2>&1 | Select-String "error during build|ERROR|built in" | Select-Object -First 5
 ```
 
-If build fails with `Unterminated string literal`:
-1. Note the file and line number from the error
-2. Open the file and find the line
-3. Check if the string has an even number of single quotes
-4. Common fixes:
-   - Missing trailing comma on previous line → add `,`
-   - U+FFFD character in string → replace with correct char (`→` `—` `…` etc.)
-   - String not closed → add closing `'`
-
 ## Step 5: Commit
 
 ```powershell
 git add src/i18n/
-git commit -m "i18n: add <key-name> to all 28 languages"
+git commit -m "i18n: add <key-name> to en + zh-Hans"
 git push origin main
 ```
 
