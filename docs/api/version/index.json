@@ -1,1 +1,5 @@
-{"version": "3.6.3","releaseDate": "2026-03-30","releaseNotes": "Add deploy-local-SSH workflow for phone-to-PC connection. Fix NSIS installer compatibility with nsis-tauri-utils v0.5.3. Reduce i18n to en+zh-Hans for stability."}
+{
+  "version": "3.6.4",
+  "releaseDate": "2026-04-06",
+  "releaseNotes": "Optimize LLM engines initialization and update built-in llama.cpp to b8672."
+}
