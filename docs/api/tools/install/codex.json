@@ -1,0 +1,27 @@
+{
+    "id": "codex",
+    "displayName": "Codex CLI (OpenAI)",
+    "homepage": "https://github.com/openai/codex",
+    "docs": "https://github.com/openai/codex#readme",
+    "github": "https://github.com/openai/codex",
+    "install": {
+        "npm (all platforms — recommended)": "npm install -g @openai/codex@latest",
+        "bun (all platforms)": "bun add -g @openai/codex",
+        "WARNING": "The npm package name is EXACTLY '@openai/codex'. Do NOT confuse with '@anthropic-ai/claude-code' (that is Claude Code, a completely different tool). Do NOT install 'codex' alone (wrong package).",
+        "note": "Codex CLI is OpenAI's open-source coding agent (built in Rust, distributed via npm). Requires Node.js >= 22. After install, verify with 'codex --version'. On Windows, run directly in PowerShell — do NOT use WSL. Codex is a LOCAL-ONLY CLI tool — it cannot be deployed on remote servers."
+    },
+    "network_requirements": {
+        "test_urls": ["https://registry.npmjs.org/@openai/codex", "https://github.com/openai/codex"],
+        "mirrors": {
+            "npm": "npm install -g @openai/codex@latest --registry=https://registry.npmmirror.com"
+        }
+    },
+    "identity_guard": {
+        "description": "Codex CLI is made by OpenAI. It is NOT Claude Code (Anthropic), NOT OpenCode (Charm/Anomaly), and NOT GitHub Copilot. These are four completely different products.",
+        "common_confusions": {
+            "claude_code": "Claude Code is by Anthropic (@anthropic-ai/claude-code). Codex is by OpenAI (@openai/codex). They are DIFFERENT tools.",
+            "opencode": "OpenCode is by Charm/Anomaly (opencode-ai). Codex is by OpenAI (@openai/codex). They are DIFFERENT tools.",
+            "github_copilot": "GitHub Copilot is a VS Code extension. Codex CLI is a terminal-based agent. They are DIFFERENT tools."
+        }
+    }
+}
