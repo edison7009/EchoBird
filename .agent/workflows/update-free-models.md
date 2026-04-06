@@ -36,7 +36,6 @@ Only include **S+** (≥70% SWE-bench) and **S** (60–70%) tier models.
 | 12 | Together AI | `https://api.together.xyz/v1` |
 | 13 | Cloudflare | `https://api.cloudflare.com/client/v4/accounts/{id}/ai/v1` |
 | 14 | Alibaba DashScope | `https://dashscope-intl.aliyuncs.com/compatible-mode/v1` |
-| 15 | iFlow | `https://apis.iflow.cn/v1` |
 
 > **Note:** Google AI Studio excluded — no S/S+ tier free models (Gemma is B/C tier only).
 
