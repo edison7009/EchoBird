@@ -307,7 +307,7 @@ pub fn cancel_download(app_handle: &tauri::AppHandle, target_file_name: Option<S
 
 // ─── Engine version config (remote + cached + fallback) ───
 
-const FALLBACK_LLAMA_VERSION: &str = "b8495";
+const FALLBACK_LLAMA_VERSION: &str = "b8672";
 const FALLBACK_CUDA_VER: &str = "13.1";
 const ENGINE_VERSIONS_URL: &str = "https://echobird.ai/api/engine-versions.json";
 

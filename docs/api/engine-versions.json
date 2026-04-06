@@ -1,7 +1,7 @@
 {
   "llama-server": {
-    "version": "b8522",
+    "version": "b8672",
     "cudaVersion": "13.1",
-    "changelog": "llama-bench: print -n-cpu-moe when offloaded layers > 1"
+    "changelog": "hexagon: slight optimization for argosrt output init (#21463)"
   }
 }
