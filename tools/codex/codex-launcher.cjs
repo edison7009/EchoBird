@@ -59,29 +59,42 @@ function responsesToChat(body) {
         }
     }
 
-    // Merge system messages into user messages (MiniMax etc. don't support system role)
+    const isMinimax = (body.model || "").toLowerCase().includes("minimax");
+
     const merged = [];
-    let pendingSystem = "";
-    for (const msg of messages) {
-        if (msg.role === "system") {
-            pendingSystem += (pendingSystem ? "\n" : "") + msg.content;
-        } else {
-            if (pendingSystem) {
-                if (msg.role === "user") {
-                    msg.content = `[System Instructions]\n${pendingSystem}\n\n${msg.content}`;
-                } else {
-                    merged.push({ role: "user", content: `[System Instructions]\n${pendingSystem}` });
+    if (isMinimax) {
+        // Legacy mode for MiniMax: merge system into user because it ignores/mishandles System instructions
+        let pendingSystem = "";
+        for (const msg of messages) {
+            if (msg.role === "system") {
+                pendingSystem += (pendingSystem ? "\n" : "") + msg.content;
+            } else {
+                if (pendingSystem) {
+                    if (msg.role === "user") {
+                        msg.content = `[System Instructions]\n${pendingSystem}\n\n${msg.content}`;
+                    } else {
+                        merged.push({ role: "user", content: `[System Instructions]\n${pendingSystem}` });
+                    }
+                    pendingSystem = "";
                 }
-                pendingSystem = "";
+                merged.push(msg);
             }
-            merged.push(msg);
         }
-    }
-    if (pendingSystem) {
-        merged.push({ role: "user", content: `[System Instructions]\n${pendingSystem}` });
-    }
-    if (merged.length === 0) {
-        merged.push({ role: "user", content: "Hello" });
+        if (pendingSystem) {
+            merged.push({ role: "user", content: `[System Instructions]\n${pendingSystem}` });
+        }
+        if (merged.length === 0) {
+            merged.push({ role: "user", content: "Hello" });
+        }
+    } else {
+        // Modern mode (DeepSeek, OpenAI, etc.): Preserve system/user/assistant roles
+        for (const msg of messages) {
+            if (merged.length > 0 && merged[merged.length - 1].role === msg.role) {
+                merged[merged.length - 1].content += "\n\n" + msg.content;
+            } else {
+                merged.push(msg);
+            }
+        }
     }
 
     const chatBody = {
@@ -91,6 +104,8 @@ function responsesToChat(body) {
     };
     if (body.max_output_tokens) chatBody.max_tokens = body.max_output_tokens;
     if (body.temperature != null) chatBody.temperature = body.temperature;
+    if (body.stop_sequences) chatBody.stop = body.stop_sequences;
+    if (body.stop) chatBody.stop = body.stop;
     return chatBody;
 }
 

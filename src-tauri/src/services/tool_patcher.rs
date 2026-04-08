@@ -180,8 +180,11 @@ const CODEX_INJECT: &str = r#"
       process.env.OPENAI_API_KEY = _eb_c.apiKey;
     }
     if (_eb_c.baseUrl && !_eb_c.baseUrl.includes("api.openai.com")) {
-      env.OPENAI_BASE_URL = _eb_c.baseUrl;
-      process.env.OPENAI_BASE_URL = _eb_c.baseUrl;
+      // Do not overwrite if the Echobird proxy launcher already set it to localhost!
+      if (!process.env.OPENAI_BASE_URL || !process.env.OPENAI_BASE_URL.includes("127.0.0.1")) {
+        env.OPENAI_BASE_URL = _eb_c.baseUrl;
+        process.env.OPENAI_BASE_URL = _eb_c.baseUrl;
+      }
     }
     console.log("[EchoBird] Codex env injected: model=" + (_eb_c.modelId || "default"));
   }
