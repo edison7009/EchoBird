@@ -49,8 +49,6 @@ const zhHans: Partial<Translations> = {
     'agent.applyAndLaunch': '应用配置并启动应用',
     'agent.appliedVia': '通过官方配置文件应用',
     'agent.restore': '复原',
-    'agent.restoreTip': '恢复为原始模型：{model}',
-    'agent.restoreUnavailable': '原始模型 "{model}" 已不在你的模型列表中',
     'server.selectModel': '选择模型：',
     'server.context': '上下文',
     'server.port': '端口',

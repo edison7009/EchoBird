@@ -4,6 +4,7 @@ import { ToolCard, getModelIcon } from '../../components';
 import { useI18n } from '../../hooks/useI18n';
 import type { ModelConfig, LocalTool } from '../../api/types';
 import { useAppManager, toolCategories } from './context';
+import { getOfficialEndpoint } from '../../data/officialEndpoints';
 
 // ===== Main Content (tool cards grid) =====
 
@@ -268,15 +269,10 @@ export const AppManagerPanel: React.FC = () => {
         selectedToolData, selectedTool,
         userModels, toolModelConfig, handleSelectModel,
         modelProtocolSelection, setModelProtocolSelection,
-        originalToolModel, handleRestoreModel,
+        handleRestoreModel,
     } = useAppManager();
 
-    const originalModelId = selectedTool ? originalToolModel[selectedTool] : undefined;
-    const currentActive = selectedToolData?.activeModel;
-    const canRestore = !!(selectedTool && originalModelId && currentActive !== originalModelId);
-    const restoreTip = originalModelId
-        ? t('agent.restoreTip').replace('{model}', originalModelId)
-        : '';
+    const official = selectedTool ? getOfficialEndpoint(selectedTool) : undefined;
 
     return (
         <>
@@ -288,15 +284,10 @@ export const AppManagerPanel: React.FC = () => {
                     </span>
                 </div>
                 <div className="flex items-center gap-2">
-                    {selectedTool && originalModelId && (
+                    {selectedTool && official && (
                         <button
-                            onClick={() => canRestore && handleRestoreModel(selectedTool)}
-                            disabled={!canRestore}
-                            title={restoreTip}
-                            className={`flex items-center gap-1 px-2 py-1 text-[10px] font-mono border rounded transition-colors outline-none ${canRestore
-                                ? 'border-cyber-accent/40 text-cyber-accent hover:bg-cyber-accent/10'
-                                : 'border-cyber-border text-cyber-text-muted/50 cursor-not-allowed'
-                                }`}
+                            onClick={() => handleRestoreModel(selectedTool)}
+                            className="flex items-center gap-1 px-2 py-1 text-[10px] font-mono border rounded transition-colors outline-none border-cyber-accent/40 text-cyber-accent hover:bg-cyber-accent/10"
                         >
                             <RotateCcw size={11} />
                             {t('agent.restore')}

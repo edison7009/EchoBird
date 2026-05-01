@@ -16,8 +16,7 @@ export interface AppManagerContextType {
     setAgreedConfigPolicy: (v: boolean) => void;
     toolModelConfig: Record<string, string | null>;
     handleSelectModel: (toolId: string, modelId: string) => void;
-    // Original-model snapshot (the modelId that was active when EchoBird first saw this tool)
-    originalToolModel: Record<string, string>;
+    /** Restore the tool's config back to its official vendor endpoint */
     handleRestoreModel: (toolId: string) => Promise<void>;
     selectedToolData: LocalTool | undefined;
     applyError: string | null;

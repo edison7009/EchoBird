@@ -6,6 +6,7 @@ import type { ModelConfig } from '../../api/types';
 import { AppManagerContext } from './context';
 import { useToolsStore } from '../../stores/toolsStore';
 import { useNavigationStore } from '../../stores/navigationStore';
+import { getOfficialEndpoint } from '../../data/officialEndpoints';
 
 // ===== Provider =====
 
@@ -79,34 +80,6 @@ export const AppManagerProvider: React.FC<AppManagerProviderProps> = ({ children
         }));
     };
 
-    // Original model snapshot: persisted per-tool to localStorage on first detection
-    const ORIGINAL_STORAGE_KEY = 'echobird:original-tool-model';
-    const [originalToolModel, setOriginalToolModel] = useState<Record<string, string>>(() => {
-        try {
-            const raw = localStorage.getItem(ORIGINAL_STORAGE_KEY);
-            return raw ? JSON.parse(raw) : {};
-        } catch {
-            return {};
-        }
-    });
-
-    // Snapshot any newly-detected tool's activeModel as its "original" (one-shot per tool)
-    useEffect(() => {
-        if (!detectedTools.length) return;
-        let dirty = false;
-        const next = { ...originalToolModel };
-        for (const tool of detectedTools) {
-            if (tool.activeModel && next[tool.id] === undefined) {
-                next[tool.id] = tool.activeModel;
-                dirty = true;
-            }
-        }
-        if (dirty) {
-            setOriginalToolModel(next);
-            try { localStorage.setItem(ORIGINAL_STORAGE_KEY, JSON.stringify(next)); } catch { /* quota / private mode */ }
-        }
-    }, [detectedTools]);
-
     // Get selected tool data
     const selectedToolData = detectedTools.find(t => t.id === selectedTool);
 
@@ -156,22 +129,47 @@ export const AppManagerProvider: React.FC<AppManagerProviderProps> = ({ children
         }
     };
 
-    // Restore: revert the tool's backend config to its original model and update UI selection
+    // Restore: write the tool's official vendor endpoint (e.g. ClaudeCode →
+    // api.anthropic.com) so the user reverts from a third-party / proxy URL
+    // back to the canonical one. Existing API key on disk is preserved by
+    // reading it via getToolModelInfo before we apply.
     const handleRestoreModel = async (toolId: string) => {
-        const originalModelId = originalToolModel[toolId];
-        if (!originalModelId) return;
-        // Find a userModel whose modelId matches the original (the snapshot stores modelId, not internalId)
-        const match = userModels.find(m => m.modelId === originalModelId || m.internalId === originalModelId);
-        if (!match) {
-            setApplyError(t('agent.restoreUnavailable').replace('{model}', originalModelId));
-            return;
-        }
-        // Update UI selection
-        setToolModelConfig(prev => ({ ...prev, [toolId]: match.internalId }));
-        // Apply to backend so the tool actually uses the original again
-        const result = await applyModelConfig(toolId, match.internalId);
-        if (result !== true) {
-            setApplyError(typeof result === 'string' ? result : t('key.destroyed'));
+        const official = getOfficialEndpoint(toolId);
+        if (!official) return;
+
+        // Reuse the API key that's already configured for this tool — most
+        // users keep the same key and only swap URLs.
+        let existingKey = '';
+        try {
+            const info = await api.getToolModelInfo(toolId);
+            existingKey = info?.apiKey || '';
+        } catch { /* fall through with empty key */ }
+
+        const apiUrl = official.protocol === 'anthropic'
+            ? (official.anthropicUrl || official.baseUrl)
+            : official.baseUrl;
+
+        try {
+            const result = await api.applyModelToTool(toolId, {
+                id: `__official__${toolId}`,
+                name: official.name,
+                baseUrl: apiUrl,
+                apiKey: existingKey,
+                model: official.modelId || '',
+                protocol: official.protocol,
+            });
+
+            if (result?.success) {
+                setDetectedTools(prev => prev.map(t =>
+                    t.id === toolId ? { ...t, activeModel: official.modelId || official.name } : t
+                ));
+                setToolModelConfig(prev => ({ ...prev, [toolId]: null }));
+            } else {
+                setApplyError(result?.message || t('key.destroyed'));
+            }
+        } catch (err) {
+            console.error('[AppManager] Restore-to-official failed:', err);
+            setApplyError(String(err));
         }
     };
 
@@ -230,7 +228,7 @@ export const AppManagerProvider: React.FC<AppManagerProviderProps> = ({ children
                 launchAfterApply, setLaunchAfterApply,
                 isLaunching, agreedConfigPolicy, setAgreedConfigPolicy,
                 toolModelConfig, handleSelectModel,
-                originalToolModel, handleRestoreModel,
+                handleRestoreModel,
                 selectedToolData, applyError, setApplyError,
                 detectedTools, setDetectedTools,
                 isScanning, scanTools,
