@@ -249,7 +249,7 @@ export function MotherAgentMain() {
                         )}
                     </div>
 
-                    {/* Chat messages — bubble UI */}
+                    {/* Chat messages — markdown stream */}
                         <div className="pt-2 pb-2">
                             {/* Skeleton placeholders — shown briefly when lazy-loading older messages */}
                             {showSkeleton && [0, 1, 2].map(i => (

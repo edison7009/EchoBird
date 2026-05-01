@@ -251,6 +251,21 @@ pre {
   100% { transform: scale(1); }
 }
 
+/* Streaming caret for assistant messages */
+@keyframes caretBlink {
+  0%, 50%   { opacity: 1; }
+  51%, 100% { opacity: 0; }
+}
+
+/* Markdown body — applied to streamed assistant responses */
+.markdown-body > * + * { margin-top: 0.6em; }
+.markdown-body p { margin: 0; line-height: 1.55; }
+.markdown-body ul,
+.markdown-body ol { padding-left: 1.25em; }
+.markdown-body li { margin-bottom: 0.15em; }
+.markdown-body pre { margin: 0.5em 0; }
+.markdown-body table { border-collapse: collapse; }
+
 /* TerminalStatusBar — tool call slides in from right */
 /* Hidden scrollbar — scroll-to-bottom button is used instead */
 .slim-scroll {
