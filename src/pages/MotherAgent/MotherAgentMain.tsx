@@ -3,7 +3,7 @@ import { Send, ChevronDown, Square } from 'lucide-react';
 import { RemoteModelSelector, type ModelOption } from '../../components/RemoteModelSelector';
 import { getModelIcon } from '../../components/cards/ModelCard';
 import { PendingChipsRow } from '../../components/PendingChipsRow';
-import { ChatBubble } from '../../components/chat';
+import { ChatBubble, ToolCallCard } from '../../components/chat';
 import { buildPendingMessage } from '../../utils/buildPendingMessage';
 import { useI18n } from '../../hooks/useI18n';
 import * as api from '../../api/tauri';
@@ -258,6 +258,9 @@ export function MotherAgentMain() {
                             {chatOutput.slice(-displayCount).map((msg, i, arr) => {
                                 if (msg.type === 'user') {
                                     return <ChatBubble key={i} role="user" content={msg.text} variant="mother" chips={msg.chips} />;
+                                }
+                                if (msg.type === 'tool_call') {
+                                    return <ToolCallCard key={`${i}-${msg.id}`} name={msg.name} args={msg.args} status={msg.status} output={msg.output} />;
                                 }
                                 if (msg.type === 'assistant') {
                                     const retryMatch = msg.text.match(/__CONN_RETRY__:(\d+)\/(\d+)/);

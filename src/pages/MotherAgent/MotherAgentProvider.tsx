@@ -220,16 +220,30 @@ export function MotherAgentProvider({ children }: { children: React.ReactNode })
                     });
                     break;
                 case 'thinking':
-                    // Thinking text is handled by TerminalStatusBar via agentState,
-                    // not stored in chatOutput (it's not user-visible history)
+                    // Reasoning is private — not surfaced into the chat stream
                     break;
                 case 'tool_call_start':
+                    setChatOutput(prev => [...prev, {
+                        type: 'tool_call',
+                        id: event.id,
+                        name: event.name,
+                        args: '',
+                        status: 'running',
+                    }]);
+                    break;
                 case 'tool_call_args':
-                    // Tool call progress is shown in TerminalStatusBar only,
-                    // not stored in chatOutput
+                    setChatOutput(prev => prev.map(m =>
+                        m.type === 'tool_call' && m.id === event.id
+                            ? { ...m, args: m.args + event.args }
+                            : m
+                    ));
                     break;
                 case 'tool_result':
-                    // Tool results are internal agent data, not user-visible chat
+                    setChatOutput(prev => prev.map(m =>
+                        m.type === 'tool_call' && m.id === event.id
+                            ? { ...m, status: event.success ? 'done' : 'failed', output: event.output }
+                            : m
+                    ));
                     break;
                 case 'done':
                     if (abortTimeoutRef.current) { clearTimeout(abortTimeoutRef.current); abortTimeoutRef.current = null; }

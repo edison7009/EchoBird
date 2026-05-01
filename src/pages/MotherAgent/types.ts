@@ -6,6 +6,7 @@ import type { BubbleChip } from '../../components/chat/ChatBubble';
 export type ChatMessage =
     | { type: 'user'; text: string; chips?: BubbleChip[] }
     | { type: 'assistant'; text: string }
+    | { type: 'tool_call'; id: string; name: string; args: string; status: 'running' | 'done' | 'failed'; output?: string }
     | { type: 'error'; text: string; i18nKey?: string }
     | { type: 'cancelled'; text: string; i18nKey?: string };
 
