@@ -11,8 +11,8 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/edison7009/Echobird-MotherAgent/releases">
-    <img src="https://img.shields.io/github/v/release/edison7009/Echobird-MotherAgent?style=flat-square&color=00FF9D" alt="Release" />
+  <a href="https://github.com/edison7009/EchoBird/releases">
+    <img src="https://img.shields.io/github/v/release/edison7009/EchoBird?style=flat-square&color=00FF9D" alt="Release" />
   </a>
   <img src="https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-blue?style=flat-square" alt="Platform" />
   <img src="https://img.shields.io/badge/built%20with-Tauri%20%2B%20Rust-orange?style=flat-square" alt="Tauri + Rust" />
@@ -21,7 +21,7 @@
 
 <p align="center">
   <a href="https://echobird.ai">官网</a> ·
-  <a href="https://github.com/edison7009/Echobird-MotherAgent/releases/latest">下载</a> ·
+  <a href="https://github.com/edison7009/EchoBird/releases/latest">下载</a> ·
   <a href="https://echobird.ai/free-models.html">今日免费模型</a>
 </p>
 
@@ -94,10 +94,10 @@
 
 | 平台 | 下载 |
 |------|------|
-| 🪟 Windows | [Echobird-x64-setup.exe](https://github.com/edison7009/Echobird-MotherAgent/releases/latest) |
-| 🍎 macOS(Apple Silicon) | [Echobird_aarch64.dmg](https://github.com/edison7009/Echobird-MotherAgent/releases/latest) |
-| 🍎 macOS(Intel) | [Echobird_x64.dmg](https://github.com/edison7009/Echobird-MotherAgent/releases/latest) |
-| 🐧 Linux | [Echobird_amd64.AppImage](https://github.com/edison7009/Echobird-MotherAgent/releases/latest) |
+| 🪟 Windows | [Echobird-x64-setup.exe](https://github.com/edison7009/EchoBird/releases/latest) |
+| 🍎 macOS(Apple Silicon) | [Echobird_aarch64.dmg](https://github.com/edison7009/EchoBird/releases/latest) |
+| 🍎 macOS(Intel) | [Echobird_x64.dmg](https://github.com/edison7009/EchoBird/releases/latest) |
+| 🐧 Linux | [Echobird_amd64.AppImage](https://github.com/edison7009/EchoBird/releases/latest) |
 
 **Linux 快速上手:**
 ```bash
@@ -147,12 +147,12 @@ chmod +x Echobird_*.AppImage
 
 - 📧 [hi@echobird.ai](mailto:hi@echobird.ai)(Bug 反馈)
 - 🌐 [echobird.ai](https://echobird.ai)
-- 🐛 [GitHub Issues](https://github.com/edison7009/Echobird-MotherAgent/issues)
+- 🐛 [GitHub Issues](https://github.com/edison7009/EchoBird/issues)
 
 ---
 
 <p align="center">
   <em>The last interface before the age of AI.</em><br/>
   Made with 💚 by the EchoBird Team<br/>
-  <sub>⭐ <a href="https://github.com/edison7009/Echobird-MotherAgent">Star on GitHub</a> — 帮更多人发现这个项目</sub>
+  <sub>⭐ <a href="https://github.com/edison7009/EchoBird">Star on GitHub</a> — 帮更多人发现这个项目</sub>
 </p>
