@@ -1,7 +1,7 @@
 {
   "llama-server": {
-    "version": "b8672",
+    "version": "b8999",
     "cudaVersion": "13.1",
-    "changelog": "hexagon: slight optimization for argosrt output init (#21463)"
+    "changelog": "llama-quant : fix --tensor-type when default qtype is overriden (#22572)"
   }
 }

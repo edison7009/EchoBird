@@ -307,7 +307,7 @@ pub fn cancel_download(app_handle: &tauri::AppHandle, target_file_name: Option<S
 
 // ─── Engine version config (remote + cached + fallback) ───
 
-const FALLBACK_LLAMA_VERSION: &str = "b8672";
+const FALLBACK_LLAMA_VERSION: &str = "b8999";
 const FALLBACK_CUDA_VER: &str = "13.1";
 const ENGINE_VERSIONS_URL: &str = "https://echobird.ai/api/engine-versions.json";
 
@@ -464,7 +464,10 @@ fn get_llama_platform_files(has_nvidia: bool, version: &str, cuda_ver: &str) -> 
                     format!("cudart-llama-bin-win-cuda-{}-x64.zip", cuda_ver),
                 ]
             } else {
-                vec![format!("llama-{}-bin-win-avx2-x64.zip", version)]
+                // Upstream renamed the non-CUDA Windows build from `avx2` to
+                // `cpu` somewhere before b8672. The old name 404s on every
+                // recent release.
+                vec![format!("llama-{}-bin-win-cpu-x64.zip", version)]
             }
         }
         "macos" => vec![format!("llama-{}-bin-macos-arm64.tar.gz", version)],
