@@ -255,7 +255,6 @@ export function MotherAgentProvider({ children }: { children: React.ReactNode })
                     const key = errorToKey(event.message);
                     // Skip duplicate cancelled message — already added immediately in abortAgent()
                     if (key !== 'error.userCancelled') {
-                        useNavigationStore.getState().incrementFlashCount();
                         setChatOutput(prev => [...prev, { type: 'error', text: '', i18nKey: key }]);
                     }
                     setIsProcessing(false);
@@ -306,7 +305,6 @@ export function MotherAgentProvider({ children }: { children: React.ReactNode })
         setChatOutput(prev => [...prev, { type: 'user', text: (displayText ?? message).trim(), chips }]);
         const modelData = models.find(m => m.internalId === agentModel);
         if (!modelData) {
-            useNavigationStore.getState().incrementFlashCount();
             setChatOutput(prev => [...prev, { type: 'error', text: '', i18nKey: 'error.noModelSelected' }]);
             setIsProcessing(false);
             return;
@@ -345,7 +343,6 @@ export function MotherAgentProvider({ children }: { children: React.ReactNode })
         } catch (e) {
             const key = errorToKey(String(e));
             const type = key === 'error.userCancelled' ? 'cancelled' : 'error';
-            if (type === 'error') useNavigationStore.getState().incrementFlashCount();
             setChatOutput(prev => [...prev, { type, text: '', i18nKey: key }]);
             setIsProcessing(false);
         }

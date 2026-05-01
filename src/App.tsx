@@ -10,7 +10,6 @@ import { DownloadProvider } from './components/DownloadContext';
 import { DownloadBar } from './components/DownloadBar';
 import { TitleBar } from './components/TitleBar';
 import { SettingsDialog } from './components/SettingsDialog';
-import { CircuitFlow } from './components/CircuitFlow';
 
 import { useI18n } from './hooks/useI18n';
 import * as api from './api/tauri';
@@ -50,7 +49,7 @@ function App() {
     const [showSettings, setShowSettings] = useState(false);
 
     // Stores
-    const { activePage, flashCount, setUpdateAvailable } = useNavigationStore();
+    const { activePage, setUpdateAvailable } = useNavigationStore();
     const scanTools = useToolsStore(s => s.scanTools);
 
     // ── Splash preload: run scanTools then mark app ready.
@@ -89,7 +88,6 @@ function App() {
                                                 {/* Title bar */}
                                                 <TitleBar onSettingsClick={() => setShowSettings(true)} />
                                                 <div className="flex flex-1 overflow-hidden text-cyber-accent font-mono p-4 gap-0 grid-bg relative isolate">
-                                                    <CircuitFlow flashCount={flashCount} />
                                                     {/* Sidebar */}
                                                     <SidebarConnected onSettingsClick={() => setShowSettings(true)} />
 
