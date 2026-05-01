@@ -336,7 +336,6 @@ export function MotherAgentMain() {
                             loading={false}
                             onSelect={(id) => setAgentModel(id || null)}
                             placeholder={t('mother.selectModel')}
-                            variant="mother"
                         />
                         {isProcessing ? (
                             <button

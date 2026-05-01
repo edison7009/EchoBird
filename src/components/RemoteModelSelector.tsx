@@ -1,4 +1,4 @@
-// RemoteModelSelector — Minimal model dropdown for Channels page (remote channels only)
+// RemoteModelSelector — Minimal model dropdown for Mother Agent
 // Text + arrow, no background/border, hover shows soft bg, dropdown opens upward
 import React, { useState, useRef, useEffect } from 'react';
 import { ChevronDown, Loader2, Check } from 'lucide-react';
@@ -15,7 +15,6 @@ interface RemoteModelSelectorProps {
     loading: boolean;
     onSelect: (modelId: string) => void;
     placeholder?: string;
-    variant?: 'channels' | 'mother';
 }
 
 export const RemoteModelSelector: React.FC<RemoteModelSelectorProps> = ({
@@ -24,9 +23,7 @@ export const RemoteModelSelector: React.FC<RemoteModelSelectorProps> = ({
     loading,
     onSelect,
     placeholder = 'Select model',
-    variant = 'channels',
 }) => {
-    const isMother = variant === 'mother';
     const [isOpen, setIsOpen] = useState(false);
     const containerRef = useRef<HTMLDivElement>(null);
 
@@ -56,18 +53,12 @@ export const RemoteModelSelector: React.FC<RemoteModelSelectorProps> = ({
     const displayText = currentModel?.name || placeholder;
     const displayIcon = currentModel?.icon;
 
-    // Full static class strings for Tailwind JIT (no dynamic concatenation)
-    const triggerClass = isMother
-        ? 'flex items-center gap-1.5 px-2 py-1 text-xs font-mono text-cyber-accent-secondary transition-colors rounded hover:bg-white/8 active:bg-white/12 disabled:cursor-default'
-        : 'flex items-center gap-1.5 px-2 py-1 text-xs font-mono text-cyber-accent transition-colors rounded hover:bg-white/8 active:bg-white/12 disabled:cursor-default';
-    const spinClass = isMother ? 'animate-spin text-cyber-accent-secondary/70' : 'animate-spin text-cyber-accent/70';
-    const selectedItemClass = isMother
-        ? 'text-cyber-accent-secondary bg-cyber-accent-secondary/10'
-        : 'text-cyber-accent bg-cyber-accent/10';
-    const unselectedItemClass = isMother
-        ? 'text-cyber-text hover:bg-white/8 hover:text-cyber-accent-secondary'
-        : 'text-cyber-text hover:bg-white/8 hover:text-cyber-accent';
-    const checkClass = isMother ? 'flex-shrink-0 ml-1 text-cyber-accent-secondary' : 'flex-shrink-0 ml-1 text-cyber-accent';
+    // Tailwind JIT-friendly static class strings (Mother Agent secondary accent)
+    const triggerClass = 'flex items-center gap-1.5 px-2 py-1 text-xs font-mono text-cyber-accent-secondary transition-colors rounded hover:bg-white/8 active:bg-white/12 disabled:cursor-default';
+    const spinClass = 'animate-spin text-cyber-accent-secondary/70';
+    const selectedItemClass = 'text-cyber-accent-secondary bg-cyber-accent-secondary/10';
+    const unselectedItemClass = 'text-cyber-text hover:bg-white/8 hover:text-cyber-accent-secondary';
+    const checkClass = 'flex-shrink-0 ml-1 text-cyber-accent-secondary';
 
     return (
         <div ref={containerRef} className="relative">

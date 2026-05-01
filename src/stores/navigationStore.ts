@@ -1,7 +1,7 @@
 // Navigation store — cross-page navigation state & app-wide signals
 // Replaces: onGoToMother, onAgentRunningChange, onNewMessage callbacks
 // Replaces: page-activated CustomEvent, chat-error CustomEvent, ssh-servers-changed CustomEvent
-// Used by: App.tsx, AppManagerProvider, MotherAgentProvider, SidebarConnected, Channels
+// Used by: App.tsx, AppManagerProvider, MotherAgentProvider, SidebarConnected
 
 import { create } from 'zustand';
 import type { PageType } from '../components';

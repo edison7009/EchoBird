@@ -42,8 +42,7 @@
     "category": "DeveloperTool",
     "resources": [
       "../tools/",
-      "../plugins/",
-      "../bridge/"
+      "../plugins/"
     ],
     "icon": [
       "icons/32x32.png",

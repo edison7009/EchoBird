@@ -424,9 +424,8 @@ const WELCOME_FALLBACK = {
     providers_archived: [] as { name: string; url: string }[],
     steps: [
         { step: '01', title: 'Add an AI Model', desc: 'Get an API key from any supported AI provider and add it in [Model Nexus]. Got a capable machine at home? You can also run a local model instead.' },
-        { step: '02', title: 'Prepare a Machine', desc: 'Your Agent needs a dedicated machine to run on. A spare home computer works great — macOS enables more complex tasks.' },
-        { step: '03', title: 'Deploy Your Agent', desc: 'In [Mother Agent], select the model you just added and follow the setup flow to deploy your own AI Agent onto that machine.' },
-        { step: '04', title: 'Get to Work', desc: 'Head to [Channels] and chat with your Agent to kick off a work plan — just like messaging a teammate.' },
+        { step: '02', title: 'Pick an Application', desc: 'In [App Manager], pick the agent or app you want to use and assign the model you just added. EchoBird wires up the config automatically.' },
+        { step: '03', title: 'Install or Repair', desc: 'New tool not on your machine yet? Use [Mother Agent] to install it — and to fix things if anything breaks later.' },
     ],
 };
 
@@ -435,8 +434,6 @@ const PAGE_TOKEN_MAP: Record<string, string | null> = {
     'EchoBird': null,
     'Model Nexus': 'nav.modelNexus',
     'Mother Agent': 'nav.motherAgent',
-
-    'Channels': 'nav.channels',
     'App Manager': 'nav.appManager',
 };
 

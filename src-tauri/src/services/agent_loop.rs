@@ -722,7 +722,7 @@ async fn build_system_prompt(request: &AgentRequest, ssh_pool: &SSHPool) -> Stri
         - For destructive operations, explain briefly before executing.\n\
         - Keep responses concise. Only show output when it reveals useful info.\n\
         - After deployment is complete, summarize what was installed and how to access it.\n\
-        - **Stay in your lane**: After install/configure/repair completes, do NOT direct the user to other EchoBird pages (Channels, App Manager, Model Nexus, etc.) or describe what to click there. Your job is the install/configure/repair work itself, not UI navigation. Users already know the rest of the app.\n\
+        - **Stay in your lane**: After install/configure/repair completes, do NOT direct the user to other EchoBird pages (App Manager, Model Nexus, etc.) or describe what to click there. Your job is the install/configure/repair work itself, not UI navigation. Users already know the rest of the app.\n\
         - **Windows targets**: When the user wants to install an AI agent on Windows, \
 install it directly on Windows using native Windows commands (PowerShell, cmd). \
 Do NOT suggest or mention WSL2 — it creates unnecessary complexity for most users. \
@@ -759,7 +759,7 @@ Do NOT offer WSL2 as a workaround.\n\
         Always respond in the same language the user is writing in.\n\
         - Product name: Always \"EchoBird\" in any language. Never translate it.\n\
         - Page names in Chinese (zh-Hans/zh-Hant): 模型中心 / 应用管理 / 频道 / 技能浏览 / 本地大模型\n\
-        - Page names in all other languages: Model Nexus / App Manager / Channels / Skill Browser / Local LLM\n\n\
+        - Page names in all other languages: Model Nexus / App Manager / Skill Browser / Local LLM\n\n\
         ## First Interaction Behavior\n\
         When a user first interacts without a specific request:\n\
         - Do NOT proactively push any specific agent. Wait for the user to state what they want.\n\
@@ -810,11 +810,7 @@ Do NOT offer WSL2 as a workaround.\n\
              'We detected you may be in [region]. Your network cannot reliably connect to [servers]. These packages are large (100MB+) and installation success rate is nearly zero at your current network speed. Please configure a VPN/proxy and try again.'\n\
              Do NOT attempt installation when all connectivity tests fail or are extremely slow.\n\
         5. For Simplified Chinese users, ALWAYS test network first even if they don't mention issues.\n\n\
-        ## Echobird CLI Bridge (Automatically Managed)\n\
-        Bridge is the communication layer between EchoBird and remote agents.\n\
-        EchoBird automatically deploys, updates, and manages Bridge on remote servers.\n\
-        You do NOT need to install, start, or manage Bridge manually.\n\
-        If users report Channels connection issues, suggest they click 'Test Connection' in the server settings which will automatically repair Bridge.\n\n"
+"
     );
 
     // Bundled system prompt + embedded install/script references.

@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useI18n } from '../../hooks/useI18n';
 import * as api from '../../api/tauri';
-import { channelHistoryLoad } from '../../api/tauri';
 import type { ModelConfig, AgentEvent } from '../../api/types';
 import { useChatPersistence } from '../../hooks/useChatPersistence';
 import type { DiskMsg } from '../../hooks/useChatPersistence';
@@ -145,14 +144,19 @@ export function MotherAgentProvider({ children }: { children: React.ReactNode })
     const selectServer = useCallback(async (id: string) => {
         // Save current chat to history map
         chatHistoryMap.current.set(prevServerRef.current, chatOutput);
-        // Load target server's chat from memory or disk
+        // Load target server's chat from memory or localStorage
         let history = chatHistoryMap.current.get(id);
         if (!history || history.length === 0) {
             try {
-                const result = await channelHistoryLoad(agentChatKey(id), 0, MA_PAGE_SIZE);
-                if (result.messages.length > 0) {
-                    history = result.messages.map(m => fromDisk(m));
-                    chatHistoryMap.current.set(id, history);
+                const raw = localStorage.getItem(`echobird:chat:${agentChatKey(id)}`);
+                if (raw) {
+                    const stored = JSON.parse(raw) as DiskMsg[];
+                    if (Array.isArray(stored) && stored.length > 0) {
+                        history = stored.map(m => fromDisk(m));
+                        chatHistoryMap.current.set(id, history);
+                    } else {
+                        history = [];
+                    }
                 } else {
                     history = [];
                 }

@@ -16,7 +16,7 @@ pub struct AgentStatus {
     pub path: Option<String>,
 }
 
-/// Agent CLI tool IDs that appear in the Channels page AgentRolePicker.
+/// Agent CLI tool IDs detected on the local machine.
 /// These must match the tool directory names under tools/ (e.g. tools/claudecode/).
 const AGENT_TOOL_IDS: &[&str] = &[
     "openclaw",

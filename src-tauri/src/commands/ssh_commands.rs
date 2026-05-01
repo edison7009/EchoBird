@@ -474,24 +474,11 @@ pub fn scan_plugins() -> Vec<crate::services::plugin_manager::PluginConfig> {
     crate::services::plugin_manager::scan_plugins()
 }
 
-/// Get the bridge binary path for a specific plugin on the current platform
-#[tauri::command]
-pub fn get_bridge_path(plugin_id: String) -> Result<String, String> {
-    let plugins = crate::services::plugin_manager::scan_plugins();
-    let plugin = plugins.iter()
-        .find(|p| p.id == plugin_id)
-        .ok_or_else(|| format!("Plugin '{}' not found", plugin_id))?;
-
-    crate::services::plugin_manager::get_bridge_path(plugin)
-        .map(|p| p.to_string_lossy().to_string())
-        .ok_or_else(|| format!("No bridge binary found for '{}' on this platform", plugin_id))
-}
-
 /// Execute an SSH command that tolerates missing exit codes.
-/// Some commands (especially piped ones like `echo '...' | bridge`) don't always
-/// send an exit status through the SSH channel. The standard `client.execute()`
-/// discards all collected stdout/stderr and returns an error in that case.
-/// This helper uses `execute_io` with `default_exit_code: Some(0)` to avoid that.
+/// Some commands (especially piped commands) don't always send an exit status
+/// through the SSH channel. The standard `client.execute()` discards all collected
+/// stdout/stderr and returns an error in that case. This helper uses `execute_io`
+/// with `default_exit_code: Some(0)` to avoid that.
 pub async fn execute_tolerant(
     client: &async_ssh2_tokio::Client,
     command: &str,
@@ -553,8 +540,8 @@ pub async fn execute_tolerant(
 /// If no output is received for `idle_timeout`, returns an error — distinguishing a
 /// truly stuck connection from a working-but-slow agent that emits heartbeat lines.
 ///
-/// Used by `bridge_chat_remote` to detect `{"type":"working"}` heartbeats from the
-/// bridge binary and keep the connection alive during long agent tasks.
+/// Used to keep long-running SSH commands alive when they emit heartbeat-style
+/// progress lines but no exit code yet.
 pub async fn execute_with_heartbeat<F>(
     client: &async_ssh2_tokio::Client,
     command: &str,

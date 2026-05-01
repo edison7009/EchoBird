@@ -1,13 +1,15 @@
-// English baseline translation (complete reference, fallback for all locales)
+﻿// English baseline translation (complete reference, fallback for all locales)
 import { Translations } from './types';
 
 const en: Translations = {
     // Navigation
-    'nav.modelNexus': 'Model Nexus',    'nav.appManager': 'App Manager',
+    'nav.modelNexus': 'Model Nexus',
+    'nav.appManager': 'App Manager',
     'nav.localServer': 'Local LLM',
     'nav.motherAgent': 'Mother Agent',
     // Page titles
-    'page.modelNexus': 'MODEL NEXUS',    'page.appManager': 'APP MANAGER',
+    'page.modelNexus': 'MODEL NEXUS',
+    'page.appManager': 'APP MANAGER',
     'page.localServer': 'LOCAL LLM',
     'page.motherAgent': 'Mother Agent',
     // Settings
@@ -18,15 +20,23 @@ const en: Translations = {
     'settings.checkForUpdates': 'CHECK FOR UPDATES',
     'settings.checking': 'Checking...',
     'settings.latestVersion': 'Already on the latest version',
-    'settings.checkFailed': 'Check failed — retry',
+    'settings.checkFailed': 'Check failed 鈥?retry',
     // Buttons
-    'btn.addModel': 'ADD MODEL',    'btn.refresh': 'REFRESH',    'btn.cancel': 'CANCEL',
+    'btn.addModel': 'ADD MODEL',
+    'btn.refresh': 'REFRESH',
+    'btn.cancel': 'CANCEL',
     'btn.delete': 'DELETE',
-    'btn.edit': 'EDIT',    'btn.launchApp': 'LAUNCH APP',    'btn.modifyOnly': 'MODIFY ONLY',
+    'btn.edit': 'EDIT',
+    'btn.launchApp': 'LAUNCH APP',
+    'btn.modifyOnly': 'MODIFY ONLY',
     'btn.start': 'START',
     'btn.stop': 'STOP',
     'btn.add': 'ADD',
-    'btn.remove': 'REMOVE',    // Status    'status.scanning': 'Scanning...',    // Search    // Model dialog
+    'btn.remove': 'REMOVE',
+    // Status
+    'status.scanning': 'Scanning...',
+    // Search
+    // Model dialog
     'model.name': 'Name',
     'model.apiKey': 'API Key',
     'model.modelId': 'Model ID',
@@ -41,10 +51,12 @@ const en: Translations = {
     'model.selectToTest': 'Select a model to begin testing',
     'model.escCancel': '[ESC] CANCEL',
     'model.enterSave': '[ENTER] SAVE_MODEL',
-    // Skills    // App Manager
+    // Skills
+    // App Manager
     'agent.myLocalModel': 'My Local Model',
     'agent.selectTool': 'Select a tool to configure',
-    'agent.selectModelFor': 'Select a model for',    'agent.noModelsTitle': 'No models configured.',
+    'agent.selectModelFor': 'Select a model for',
+    'agent.noModelsTitle': 'No models configured.',
     'agent.noModelsHintPre': 'Go to',
     'agent.noModelsHintPost': 'to add one.',
     'agent.applyAndLaunch': 'Apply config & Launch app',
@@ -67,7 +79,8 @@ const en: Translations = {
     'server.local': 'LOCAL',
     'server.store': 'STORE',
     'server.selectModelDir': 'Select model directory',
-    'server.downloadFromStore': 'Download models from the STORE',    // Download / Model Store
+    'server.downloadFromStore': 'Download models from the STORE',
+    // Download / Model Store
     'download.location': 'Download location:',
     'download.changePath': 'Change Download Path',
     'download.selectNewDir': 'Select a new default directory for downloading models?',
@@ -86,12 +99,13 @@ const en: Translations = {
     'model.tunnel': 'TUNNEL',
     // Copy button
     'btn.copy': '[COPY]',
-    'btn.copied': '[✓]',
+    'btn.copied': '[鉁揮',
     // Common
     'common.noData': 'No data',
     'common.confirm': 'Confirm',
     'common.website': 'Website',
-    'common.areYouSure': 'Are you sure?',    // Tool categories
+    'common.areYouSure': 'Are you sure?',
+    // Tool categories
     'toolCat.all': 'ALL',
     'toolCat.agentOS': 'CLI Agent',
     'toolCat.ide': 'IDE',
@@ -100,23 +114,28 @@ const en: Translations = {
     'toolCat.game': 'Game',
     'toolCat.utility': 'Utilities',
     // Agent Worker tabs
-    'agent.modelsTab': 'MODELS',    'agent.installViaMother': 'AI Auto-Install',
+    'agent.modelsTab': 'MODELS',
+    'agent.installViaMother': 'AI Auto-Install',
     // ToolCard labels
-    'tool.models': 'Models',    'tool.app': 'App',
+    'tool.models': 'Models',
+    'tool.app': 'App',
     'tool.config': 'Config',
-    'tool.version': 'Version',    // VRAM fitness labels
+    'tool.version': 'Version',
+    // VRAM fitness labels
     'vram.easy': 'Easy',
     'vram.good': 'Good',
     'vram.tight': 'Tight',
     'vram.heavy': 'Heavy',
-    // Download status    'download.inQueue': 'in queue',
+    // Download status
+    'download.inQueue': 'in queue',
     'download.pause': 'Pause',
     'download.resume': 'Resume',
     'download.cancel': 'Cancel',
     'download.retry': 'Retry',
-    // Debug console    // Local Server
-    'server.gpuFull': '⚡ GPU Full',
-    'server.cpuOnly': '🖥 CPU Only',
+    // Debug console
+    // Local Server
+    'server.gpuFull': '鈿?GPU Full',
+    'server.cpuOnly': '馃枼 CPU Only',
     'server.setupEngine': 'SETUP ENGINE',
     'server.upgradeEngine': 'UPGRADE ENGINE',
     'server.downloading': 'DOWNLOADING',
@@ -126,7 +145,7 @@ const en: Translations = {
     'store.cancel': '[CANCEL]',
     'store.remove': 'REMOVE',
     'store.ver': 'ver',
-    'store.ready': '✓ Ready',
+    'store.ready': '鉁?Ready',
     // Close behavior confirmation
     'close.title': 'Close Window',
     'close.message': 'Would you like to minimize to system tray or quit completely?',
@@ -140,24 +159,15 @@ const en: Translations = {
     'settings.closeQuit': 'Quit completely',
     // Developer invite hint
     // API Key encryption status hints
-    'key.encrypted': 'Encrypted globally — API Key will self-destruct if environment changes',
-    'key.destroyed': 'Environment change detected — API Key has self-destructed, please re-enter',
-    // Main Console
-    'nav.channels': 'Channels',
-    'page.channels': 'CHANNELS',
-    // Channels
-    'channel.standby': 'STANDBY',
-    'channel.linked': 'LINKED',
-    'channel.enterMessage': 'Enter message...',
-    'channel.awaitingResponse': 'Awaiting response...',
-                    'channel.failed': 'FAILED',
-    'channel.connecting': 'Connecting...',    'channel.connectionFailed': 'Connection failed',    'channel.noModels': 'No models available',
-    'channel.motherFlow': 'Mother Agent → Server → Agent',
-    'channel.selectRoleAgent': 'Select Role and CLI Agent',
-    'hint.devInvite': 'Develop AI apps or AI games — see \"Reversi\" and \"AI Translate\".',
+    'key.encrypted': 'Encrypted globally 鈥?API Key will self-destruct if environment changes',
+    'key.destroyed': 'Environment change detected 鈥?API Key has self-destructed, please re-enter',
+    'hint.devInvite': 'Develop AI apps or AI games 鈥?see \"Reversi\" and \"AI Translate\".',
     // Mother Agent
-    'mother.selectModel': 'Select model',    'mother.hintInstall': 'Install {agent}',    'mother.enterMessage': 'Enter message...',
-    'mother.noModels': 'No models available',    'mother.servers': 'SERVERS',
+    'mother.selectModel': 'Select model',
+    'mother.hintInstall': 'Install {agent}',
+    'mother.enterMessage': 'Enter message...',
+    'mother.noModels': 'No models available',
+    'mother.servers': 'SERVERS',
     'mother.sshGuide': 'Setup Guide',
     'mother.local': 'LOCAL',
     'mother.noServer': 'No server',
@@ -172,7 +182,7 @@ const en: Translations = {
     'mother.displayName': 'Display Name',
     'mother.optional': 'optional',
     'mother.displayNamePlaceholder': 'e.g. Agent#03, Server#17',
-    'mother.encrypted': 'Encrypted globally — Password will self-destruct if environment changes',
+    'mother.encrypted': 'Encrypted globally 鈥?Password will self-destruct if environment changes',
     'mother.testing': 'TESTING...',
     'mother.testConnection': 'TEST CONNECTION',
     'mother.cancel': '[ESC] CANCEL',
@@ -196,7 +206,7 @@ const en: Translations = {
     'ssh.winUsername': '(Virtual account name)',
     'ssh.winPassword': '(Virtual account password)',
     'ssh.winIp': 'run ipconfig',
-    'ssh.macStep': 'System Settings → General → Sharing → Enable "Remote Login"',
+    'ssh.macStep': 'System Settings 鈫?General 鈫?Sharing 鈫?Enable "Remote Login"',
     'ssh.macOr': 'Or:',
     'ssh.macUsername': 'run whoami',
     'ssh.macPassword': 'your Mac password',
@@ -210,7 +220,7 @@ const en: Translations = {
     'ssh.termuxIp': 'run ifconfig | grep inet',
     'ssh.ishUsername': 'root',
     'ssh.ishPassword': 'set via passwd',
-    'ssh.ishIp': 'Settings → Wi-Fi → IP Address',
+    'ssh.ishIp': 'Settings 鈫?Wi-Fi 鈫?IP Address',
     'mother.connectionRetrying': 'Connection error, retrying ({n}/{total})...',
     'mother.connectionFailed': 'Failed to connect to AI model after {n} retries.',
     'mother.connectionHint': 'Please check the URL, Model ID, API Key, and ensure your token quota is sufficient.',
@@ -237,9 +247,5 @@ const en: Translations = {
     'status.offline': 'Offline',
     'status.complete': 'Complete',
     'status.failed': 'Failed',
-    // Mobile sync
-    'mobile.syncToPhone': 'Sync to Phone',
-    'mobile.pasteInApp': 'Paste in your EchoBird App',
-    'mobile.copied': 'Copied',
 };
 export { en };

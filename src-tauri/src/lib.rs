@@ -8,7 +8,6 @@ use commands::tool_commands;
 use commands::model_commands;
 use commands::proxy_commands;
 use commands::process_commands;
-use commands::channel_commands;
 use commands::settings_commands;
 
 use commands::ssh_commands;
@@ -355,27 +354,6 @@ pub fn run() {
             process_commands::get_system_info,
             process_commands::get_local_engine_status,
             process_commands::install_local_engine,
-            channel_commands::get_channels,
-            channel_commands::save_channels,
-            channel_commands::bridge_start,
-            channel_commands::bridge_stop,
-            channel_commands::bridge_status,
-            channel_commands::bridge_chat_local,
-            channel_commands::bridge_chat_remote,
-            channel_commands::bridge_detect_agents_remote,
-            channel_commands::bridge_set_role_remote,
-            channel_commands::bridge_set_role_local,
-            channel_commands::bridge_clear_role_remote,
-            channel_commands::bridge_start_agent_remote,
-            channel_commands::bridge_stop_agent_remote,
-            channel_commands::bridge_get_remote_model,
-            channel_commands::bridge_set_remote_model,
-            channel_commands::bridge_get_local_model,
-            channel_commands::bridge_set_local_model,
-            channel_commands::bridge_ensure_remote,
-            channel_commands::channel_history_load,
-            channel_commands::channel_history_save,
-            channel_commands::channel_history_clear,
             settings_commands::get_settings,
             settings_commands::save_settings,
 
@@ -394,7 +372,6 @@ pub fn run() {
             agent_commands::agent_reset,
             ssh_commands::ssh_upload_file,
             ssh_commands::scan_plugins,
-            ssh_commands::get_bridge_path,
             role_commands::detect_local_agents,
             bundled_commands::get_mother_system_prompt,
             bundled_commands::get_mother_hints,

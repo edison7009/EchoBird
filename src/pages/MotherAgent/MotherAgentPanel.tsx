@@ -35,37 +35,7 @@ export function MotherAgentPanel() {
                 return;
             }
 
-            // Step 2: Save temp server to disk (needed for auto_connect_ssh in Bridge deploy)
-            const tempId = `__test_${Date.now()}`;
-            try {
-                await api.saveSSHServer(
-                    tempId, sshForm.host.trim(),
-                    parseInt(sshForm.port) || 22,
-                    sshForm.username.trim(),
-                    sshForm.password,
-                );
-            } catch {
-                // If save fails, still show SSH success (Bridge deploy optional)
-                setSSHTestResult(result);
-                return;
-            }
-
-            // Step 3: Deploy/update Bridge binary
-            try {
-                await api.bridgeEnsureRemote(tempId);
-                setSSHTestResult({
-                    success: true,
-                    message: result.message + ' · Bridge OK',
-                });
-            } catch (bridgeErr) {
-                setSSHTestResult({
-                    success: false,
-                    message: `SSH OK, but Bridge deploy failed: ${bridgeErr}`,
-                });
-            }
-
-            // Step 4: Cleanup temp server from disk (fire-and-forget)
-            api.removeSSHServerFromDisk(tempId).catch(() => {});
+            setSSHTestResult(result);
         } catch (e) {
             setSSHTestResult({ success: false, message: String(e) });
         } finally {
@@ -285,9 +255,6 @@ export function MotherAgentPanel() {
                                         alias: sshForm.alias.trim() || undefined,
                                     };
                                     await addSSHServer(newServer);
-                                    // Silently deploy Bridge in background (fire-and-forget)
-                                    // Bridge is automatically deployed by EchoBird
-                                    api.bridgeDetectAgentsRemote(newServer.id).catch(() => {});
                                     setSSHForm({ host: '', port: '22', username: '', password: '', alias: '', showPassword: false });
                                     setSSHTestResult(null);
                                     setShowSSHModal(false);

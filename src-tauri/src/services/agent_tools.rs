@@ -114,34 +114,6 @@ pub fn get_tool_definitions() -> Vec<super::llm_client::ToolDef> {
             }),
         },
         super::llm_client::ToolDef {
-            name: "bridge_chat".into(),
-            description: "Send a message to a remote Agent through the bridge. \
-                The bridge is automatically deployed by EchoBird. \
-                Returns the Agent's response text.".into(),
-            parameters: json!({
-                "type": "object",
-                "properties": {
-                    "server_id": {
-                        "type": "string",
-                        "description": "SSH server ID where bridge is deployed"
-                    },
-                    "message": {
-                        "type": "string",
-                        "description": "Message to send to the remote Agent"
-                    },
-                    "session_id": {
-                        "type": "string",
-                        "description": "Optional session ID to resume a previous conversation"
-                    },
-                    "plugin_id": {
-                        "type": "string",
-                        "description": "Agent plugin ID (e.g. 'openclaw', 'zeroclaw'). Defaults to 'openclaw' if not specified."
-                    }
-                },
-                "required": ["server_id", "message"]
-            }),
-        },
-        super::llm_client::ToolDef {
             name: "web_fetch".into(),
             description: "Fetch the content of a web page by URL. Returns the page text (HTML stripped). \
                 Use this to read documentation, check npm packages, or look up installation guides. \
@@ -315,16 +287,6 @@ pub async fn execute_tool(
             }
             let server_id = resolve_server_id(raw_sid);
             exec_file_write(path, content, &server_id, ssh_pool).await
-        }
-        "bridge_chat" => {
-            let server_id = args["server_id"].as_str().unwrap_or("");
-            let message = args["message"].as_str().unwrap_or("");
-            let session_id = args["session_id"].as_str();
-            let plugin_id = args["plugin_id"].as_str().unwrap_or("openclaw");
-            if server_id.is_empty() || message.is_empty() {
-                return ToolResult { success: false, output: "server_id and message are required".into() };
-            }
-            exec_bridge_chat(server_id, message, session_id, plugin_id, ssh_pool).await
         }
         "web_fetch" => {
             let url = args["url"].as_str().unwrap_or("");
@@ -788,8 +750,7 @@ async fn exec_deploy_plugin_source(
 
         ToolResult {
             success: true,
-            output: format!("{}Plugin '{}' deployed and running on port {}. \
-                User should go to Channels page → Remote LLM Panel to manage models.", log_output, plugin_id, port),
+            output: format!("{}Plugin '{}' deployed and running on port {}.", log_output, plugin_id, port),
         }
     } else {
         let log_check = exec_ssh_shell(
@@ -800,91 +761,6 @@ async fn exec_deploy_plugin_source(
             success: false,
             output: format!("{}Server failed to start. Logs:\n{}", log_output, log_check.output),
         }
-    }
-}
-
-async fn exec_bridge_chat(
-    server_id: &str,
-    message: &str,
-    session_id: Option<&str>,
-    plugin_id: &str,
-    ssh_pool: &SSHPool,
-) -> ToolResult {
-    log::info!("[AgentTools] Bridge chat on {} (plugin: {}): {}", server_id, plugin_id, &message[..message.len().min(100)]);
-
-    // Map plugin_id to agent CLI command
-    let agent_command = match plugin_id {
-        "openclaw" => "openclaw agent --json --agent main",
-        "zeroclaw" => "zeroclaw agent --json",
-        "nanoclaw" => "nanoclaw agent --json",
-        other => other, // allow custom commands
-    };
-
-    // Build JSON input
-    let input_json = if let Some(sid) = session_id {
-        json!({ "type": "resume", "message": message, "session_id": sid })
-    } else {
-        json!({ "type": "chat", "message": message })
-    };
-
-    let input_str = serde_json::to_string(&input_json).unwrap_or_default();
-    // Escape for shell single quotes
-    let escaped = input_str.replace('\'', "'\\''");
-
-    // Pipe JSON into bridge via SSH (must set PATH for non-interactive SSH sessions)
-    let cmd = format!("export PATH=\"$HOME/.npm-global/bin:$HOME/.local/bin:$HOME/.cargo/bin:$PATH\" && echo '{}' | ~/echobird/echobird-bridge --command '{}' 2>/dev/null", escaped, agent_command);
-    let result = exec_ssh_shell(&cmd, server_id, ssh_pool).await;
-
-    if !result.success {
-        return ToolResult {
-            success: false,
-            output: format!("Bridge execution failed: {}", result.output),
-        };
-    }
-
-    // Parse bridge JSON output
-    let mut response_text = String::new();
-    let mut final_session_id: Option<String> = None;
-    let mut had_error = false;
-
-    for line in result.output.lines() {
-        if let Ok(json) = serde_json::from_str::<Value>(line) {
-            match json.get("type").and_then(|v| v.as_str()) {
-                Some("text") => {
-                    if let Some(text) = json.get("text").and_then(|v| v.as_str()) {
-                        response_text.push_str(text);
-                    }
-                    if let Some(sid) = json.get("session_id").and_then(|v| v.as_str()) {
-                        final_session_id = Some(sid.to_string());
-                    }
-                }
-                Some("done") => {
-                    if let Some(sid) = json.get("session_id").and_then(|v| v.as_str()) {
-                        final_session_id = Some(sid.to_string());
-                    }
-                }
-                Some("error") => {
-                    if let Some(msg) = json.get("message").and_then(|v| v.as_str()) {
-                        response_text.push_str(&format!("[Error] {}\n", msg));
-                        had_error = true;
-                    }
-                }
-                _ => {}
-            }
-        }
-    }
-
-    if let Some(sid) = &final_session_id {
-        response_text.push_str(&format!("\n[session_id: {}]", sid));
-    }
-
-    if response_text.is_empty() {
-        response_text = result.output;
-    }
-
-    ToolResult {
-        success: !had_error,
-        output: response_text,
     }
 }
 
@@ -920,12 +796,7 @@ pub fn get_plugins_info() -> String {
         if let Some(cli) = &p.cli {
             info.push_str(&format!(", CLI: {}", cli.command));
         }
-        let has_bridge = crate::services::plugin_manager::get_bridge_path(p).is_some();
-        info.push_str(&format!(", Bridge ready: {}", has_bridge));
     }
-    info.push_str("\n\nTo connect a remote Agent:");
-    info.push_str("\n  1. Use deploy_bridge to upload the bridge binary to the remote server");
-    info.push_str("\n  2. Use bridge_chat to send messages through the bridge");
     info
 }
 

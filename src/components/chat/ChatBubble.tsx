@@ -18,7 +18,7 @@ export interface BubbleChip {
 export interface ChatBubbleProps {
     role: BubbleRole;
     content: string;
-    variant: 'mother' | 'channels';
+    variant: 'mother';
     chips?: BubbleChip[];
     isStreaming?: boolean;
     subContent?: string;
@@ -27,7 +27,6 @@ export interface ChatBubbleProps {
 // ── User bubble colors (solid fill, dark text — same as nav active state) ────
 const USER_BUBBLE = {
     mother:   'bg-[#00D4FF] text-[#1C1C1E]',
-    channels: 'bg-[#00FF9D] text-[#1C1C1E]',
 } as const;
 
 // ── Strip common markdown symbols for plain-text display ─────────────────────
@@ -171,8 +170,8 @@ export function ChatBubble({ role, content, variant, chips = [], isStreaming = f
 
     // ── AI bubble (left) — white bg, black text, plain text ──
     if (role === 'assistant') {
-        // MotherAgent uses `<chat>` protocol. Channels receives clean text from the Agent OS plugin.
-        const chatMatch = variant === 'mother' ? content.match(/<chat>([\s\S]*?)(?:<\/chat>|$)/i) : null;
+        // MotherAgent uses `<chat>` protocol — extract the user-facing message.
+        const chatMatch = content.match(/<chat>([\s\S]*?)(?:<\/chat>|$)/i);
         
         const rawText = chatMatch
             ? chatMatch[1].trim()
@@ -212,7 +211,7 @@ export function ChatBubble({ role, content, variant, chips = [], isStreaming = f
     }
 
     // ── User bubble (right) — solid color, dark text ──
-    const tailColor = variant === 'mother' ? '#00D4FF' : '#00FF9D';
+    const tailColor = '#00D4FF';
     return (
         <div className="flex flex-col items-end mb-4">
             <div className="flex justify-end max-w-[62%]">

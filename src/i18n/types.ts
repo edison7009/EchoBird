@@ -4,10 +4,10 @@
 export type TKey =
     // Navigation
     | 'nav.modelNexus' | 'nav.appManager'
-    | 'nav.localServer' | 'nav.motherAgent' | 'nav.channels'
+    | 'nav.localServer' | 'nav.motherAgent'
     // Page titles
     | 'page.modelNexus' | 'page.appManager'
-    | 'page.localServer' | 'page.motherAgent' | 'page.channels'
+    | 'page.localServer' | 'page.motherAgent'
     // Settings
     | 'settings.title' | 'settings.version' | 'settings.language' | 'settings.updates'
     | 'settings.checkForUpdates' | 'settings.checking'
@@ -76,11 +76,6 @@ export type TKey =
     | 'close.title' | 'close.message' | 'close.minimize' | 'close.quit' | 'close.remember'
     // Developer invite hint
     | 'hint.devInvite'
-    // Channels
-    | 'channel.standby' | 'channel.linked' | 'channel.enterMessage' | 'channel.awaitingResponse'
-    | 'channel.failed' | 'channel.connecting'
-    | 'channel.connectionFailed' | 'channel.noModels'
-    | 'channel.motherFlow' | 'channel.selectRoleAgent'
     // Mother Agent
     | 'mother.selectModel'
     | 'mother.hintInstall' | 'mother.hintShowSpecs' | 'mother.hintTroubleshoot' | 'mother.hintUninstall'
@@ -111,8 +106,6 @@ export type TKey =
     | 'error.connectionTimeout' | 'error.serverUnreachable' | 'error.agentFailed'
     | 'error.noServerConfig' | 'error.noModelSelected' | 'error.requestFailed'
     | 'error.userCancelled'
-    // Mobile sync
-    | 'mobile.syncToPhone' | 'mobile.pasteInApp' | 'mobile.copied'
     | 'common.inputting';
 
 export type Translations = Record<TKey, string>;

@@ -3,10 +3,8 @@
 // Pages extracted to src/pages/ with Provider pattern.
 // All Providers are always mounted; pages are shown/hidden via CSS to avoid remounting.
 
-import { useState, useEffect, lazy, Suspense } from 'react';
+import { useState, useEffect } from 'react';
 import { RotateCcw } from 'lucide-react';
-import { isMobile } from './utils/platform';
-const MobileApp = lazy(() => import('./mobile/MobileApp'));
 import { Sidebar, PageType, ToastProvider, ConfirmDialogProvider } from './components';
 import { DownloadProvider } from './components/DownloadContext';
 import { DownloadBar } from './components/DownloadBar';
@@ -27,21 +25,19 @@ import { ModelNexusProvider, ModelNexusTitleActions, ModelNexusMain, ModelNexusP
 import { AppManagerProvider, AppManagerMain, AppManagerPanel, AppManagerBottom, AppManagerErrorModal } from './pages/AppManager';
 import { LocalServerProvider, LocalServerMain, LocalServerPanel, LocalServerBottom } from './pages/LocalServer';
 import { MotherAgentProvider, MotherAgentMain, MotherAgentPanel } from './pages/MotherAgent';
-import { ChannelsMain, ChannelsPanel, ChannelsProvider, ChannelsMobileSync } from './pages/Channels';
 
 declare const __APP_VERSION__: string;
 
 
 function SidebarConnected({ onSettingsClick }: { onSettingsClick: () => void }) {
     const { activePage, setActivePage, agentRunning, motherNewMessage, clearMotherBadge, updateAvailable } = useNavigationStore();
-    const channelsBadge = false; // TODO: wire to bridge state
     const motherBadge = motherNewMessage && activePage !== 'mother';
     // Clear badge when switching to Mother Agent page
     const handlePageChange = (p: PageType) => {
         if (p === 'mother') clearMotherBadge();
         setActivePage(p);
     };
-    return <Sidebar activePage={activePage} onPageChange={handlePageChange} agentRunning={agentRunning} channelsBadge={channelsBadge} motherBadge={motherBadge} updateAvailable={updateAvailable} onSettingsClick={onSettingsClick} />;
+    return <Sidebar activePage={activePage} onPageChange={handlePageChange} agentRunning={agentRunning} motherBadge={motherBadge} updateAvailable={updateAvailable} onSettingsClick={onSettingsClick} />;
 }
 
 // Helper: h (hidden) vs shown class
@@ -50,15 +46,6 @@ const pageBlock = (active: boolean) => active ? 'flex-1 flex flex-col overflow-h
 const pageScroll = (active: boolean) => active ? 'flex-1 overflow-y-auto' : 'hidden';
 
 function App() {
-    // Mobile platform: render Telegram-style MobileApp
-    if (isMobile()) {
-        return (
-            <Suspense fallback={<div style={{background:'#0e1621',width:'100vw',height:'100vh'}} />}>
-                <MobileApp />
-            </Suspense>
-        );
-    }
-
     const { t, locale, setLocale } = useI18n();
     const [showSettings, setShowSettings] = useState(false);
 
@@ -97,7 +84,6 @@ function App() {
 
                                     <AppManagerProvider>
                                         <LocalServerProvider>
-                                            <ChannelsProvider>
 
                                             <div className="flex flex-col h-screen w-full bg-cyber-bg">
                                                 {/* Title bar */}
@@ -123,7 +109,6 @@ function App() {
                                                                             {is('apps') && t('page.appManager')}
                                                                             {is('localLlm') && t('page.localServer')}
                                                                             {is('mother') && <span className="text-cyber-accent-secondary">{t('page.motherAgent')}</span>}
-                                                                            {is('channels') && t('page.channels')}
                                                                         </span>
                                                                         {/* Title actions — always mounted but hidden */}
 
@@ -139,17 +124,6 @@ function App() {
                                                                                 </button>
                                                                             </div>
                                                                         )}
-                                                                        {is('channels') && (
-                                                                            <div className="ml-auto flex-shrink-0 flex items-center gap-2">
-                                                                                <ChannelsMobileSync />
-                                                                                <button
-                                                                                    onClick={() => window.dispatchEvent(new CustomEvent('clear-chat'))}
-                                                                                    className="p-1.5 rounded-lg text-cyber-accent/40 hover:text-cyber-accent hover:bg-cyber-accent/10 transition-colors"
-                                                                                >
-                                                                                    <RotateCcw size={14} />
-                                                                                </button>
-                                                                            </div>
-                                                                        )}
                                                                     </h2>
 
                                                                     {/* Page content — always mounted, CSS hidden */}
@@ -157,7 +131,6 @@ function App() {
 
                                                                     <div className={pageBlock(is('apps'))}><AppManagerMain /></div>
                                                                     <div className={pageBlock(is('localLlm'))}><LocalServerMain /></div>
-                                                                    <div className={`flex-1 flex flex-col overflow-hidden ${is('channels') ? '' : 'hidden'}`}><ChannelsMain /></div>
                                                                     {/* MotherAgent: always mounted, hidden via CSS to preserve chat state */}
                                                                     <div className={`flex-1 flex flex-col overflow-hidden ${is('mother') ? '' : 'hidden'}`}>
                                                                         <MotherAgentMain />
@@ -174,10 +147,6 @@ function App() {
                                                                     {/* MotherAgent panel: always mounted, hidden via CSS */}
                                                                     <div className={!is('mother') ? 'hidden' : 'contents'}>
                                                                         <MotherAgentPanel />
-                                                                    </div>
-                                                                    {/* Channels panel: always mounted, hidden via CSS */}
-                                                                    <div className={!is('channels') ? 'hidden' : 'contents'}>
-                                                                        <ChannelsPanel />
                                                                     </div>
                                                                 </aside>
                                                         </div>
@@ -198,7 +167,6 @@ function App() {
                                             <AddModelModal />
                                             <AppManagerErrorModal />
 
-                                            </ChannelsProvider>
                                         </LocalServerProvider>
                                     </AppManagerProvider>
 

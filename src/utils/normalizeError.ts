@@ -37,15 +37,13 @@ export function errorToKey(msg: string): TKey {
         lower.includes('no route')
     ) return 'error.serverUnreachable';
 
-    // Bridge / agent startup failed
+    // Agent startup failed
     if (
-        lower.includes('bridge start failed') ||
-        lower.includes('bridge start') ||
         lower.includes('agent start') ||
         lower.includes('agent failed')
     ) return 'error.agentFailed';
 
-    // No server ID configured for this channel
+    // No server ID configured
     if (
         lower.includes('no server id') ||
         lower.includes('server id')

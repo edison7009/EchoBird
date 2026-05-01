@@ -12,16 +12,7 @@ pub struct PluginConfig {
     pub id: String,
     pub name: String,
     pub protocol: String, // "stdio-json"
-    pub bridge: Option<BridgePaths>,
     pub cli: Option<CliConfig>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct BridgePaths {
-    pub linux: Option<String>,
-    pub darwin: Option<String>,
-    pub win32: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -166,66 +157,6 @@ fn embedded_plugin_configs() -> Vec<PluginConfig> {
     plugins
 }
 
-/// Get the bridge/ directory path (central bridge binaries for all platforms)
-pub fn bridge_dir() -> PathBuf {
-    let exe_dir = std::env::current_exe()
-        .ok()
-        .and_then(|p| p.parent().map(|p| p.to_path_buf()))
-        .unwrap_or_else(|| PathBuf::from("."));
-
-    let mut candidates = vec![
-        exe_dir.join("bridge"),
-        exe_dir.join("_up_").join("bridge"),
-    ];
-
-    if let Some(p1) = exe_dir.parent() {
-        candidates.push(p1.join("bridge"));
-        candidates.push(p1.join("_up_").join("bridge"));
-        candidates.push(p1.join("Resources").join("bridge"));
-        if let Some(p2) = p1.parent() {
-            candidates.push(p2.join("bridge"));
-            candidates.push(p2.join("Resources").join("bridge"));
-            if let Some(p3) = p2.parent() {
-                candidates.push(p3.join("bridge"));
-            }
-        }
-    }
-
-    let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    if let Some(project_root) = manifest_dir.parent() {
-        candidates.push(project_root.join("bridge"));
-    }
-
-    candidates.push(PathBuf::from("bridge"));
-
-    for candidate in &candidates {
-        if candidate.exists() {
-            log::info!("[PluginManager] Found bridge dir: {:?}", candidate);
-            return candidate.clone();
-        }
-    }
-
-    candidates[0].clone()
-}
-
-/// Get the bridge binary path for the current platform.
-/// Uses central bridge/ directory only.
-pub fn get_bridge_path(_plugin: &PluginConfig) -> Option<PathBuf> {
-    let arch_name = match (std::env::consts::OS, std::env::consts::ARCH) {
-        ("linux", "aarch64") => "bridge-linux-aarch64",
-        ("linux", _)         => "bridge-linux-x86_64",
-        ("macos", "aarch64") => "bridge-darwin-aarch64",
-        ("macos", _)         => "bridge-darwin-x86_64",
-        _                    => "bridge-win.exe",
-    };
-    let bridge_dir_path = bridge_dir().join(arch_name);
-    if bridge_dir_path.exists() {
-        Some(bridge_dir_path)
-    } else {
-        log::error!("[PluginManager] Bridge binary NOT found at {:?}", bridge_dir_path);
-        None
-    }
-}
 
 /// Get the full path to a plugin's plugin.json file
 pub fn get_plugin_json_path(plugin: &PluginConfig) -> Option<PathBuf> {

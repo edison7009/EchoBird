@@ -141,15 +141,6 @@ export interface AppLogEntry {
     message: string;
 }
 
-// ─── Channel Types ───
-
-export interface ChannelConfig {
-    id: number;
-    name: string;
-    protocol: string;
-    address: string;
-}
-
 // ─── App Settings Types ───
 
 export interface AppSettings {
