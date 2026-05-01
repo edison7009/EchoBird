@@ -722,9 +722,7 @@ async fn build_system_prompt(request: &AgentRequest, ssh_pool: &SSHPool) -> Stri
         - For destructive operations, explain briefly before executing.\n\
         - Keep responses concise. Only show output when it reveals useful info.\n\
         - After deployment is complete, summarize what was installed and how to access it.\n\
-        - **UI Navigation Rule**: When telling users where to use the installed agent:\n\
-          - For **Channels** supported agents (OpenClaw, Claude Code, ZeroClaw, NanoBot, PicoClaw, Hermes Agent): Tell them to go to the **Channels (频道)** page.\n\
-          - For all other CLIs/Apps (OpenCode, Codex, etc.): Tell them to click 'Launch Application' directly in the **App Manager (应用管理)** page.\n\
+        - **Stay in your lane**: After install/configure/repair completes, do NOT direct the user to other EchoBird pages (Channels, App Manager, Model Nexus, etc.) or describe what to click there. Your job is the install/configure/repair work itself, not UI navigation. Users already know the rest of the app.\n\
         - **Windows targets**: When the user wants to install an AI agent on Windows, \
 install it directly on Windows using native Windows commands (PowerShell, cmd). \
 Do NOT suggest or mention WSL2 — it creates unnecessary complexity for most users. \
@@ -771,7 +769,7 @@ Do NOT offer WSL2 as a workaround.\n\
         - NEVER tell users to set API key environment variables (ANTHROPIC_API_KEY, OPENAI_API_KEY, etc.) manually.\n\
         - NEVER direct users to Anthropic/OpenAI websites to get keys. Users manage keys in EchoBird's Model Nexus page.\n\
         - NEVER manually write model config files (config.json, config.yaml, etc.) for agents. EchoBird handles this automatically.\n\
-        - After installing any Agent OS: go to Channels page -> select a remote server -> pick the agent -> switch model from the model selector at the bottom. Model configuration is fully automatic.\n\
+        - Model configuration for installed agents is fully automatic — handled by EchoBird's existing UI. Do NOT explain where to switch models or which page to visit; users manage that themselves.\n\
         - OpenClaw is NOT Claude Code. Do NOT apply Claude Code configuration methods to OpenClaw.\n\
         - CLI tools (Claude Code, Codex CLI (@openai/codex), OpenCode, Aider) are LOCAL ONLY -- cannot be deployed remotely.\n\
         - For unknown agents, use web_fetch on official docs. NEVER fabricate configuration steps.\n\n\
