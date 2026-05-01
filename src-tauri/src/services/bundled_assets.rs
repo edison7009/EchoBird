@@ -27,8 +27,6 @@ pub fn get_install_ref(tool_id: &str) -> Option<&'static str> {
 
 pub fn get_tool_script(name: &str) -> Option<&'static str> {
     match name {
-        "deploy-local-ssh" => Some(include_str!("../../../docs/api/tools/deploy-local-ssh.md")),
-        "harden-ssh" => Some(include_str!("../../../docs/api/tools/harden-ssh.md")),
         "network-info" => Some(include_str!("../../../docs/api/tools/network-info.md")),
         "security-audit" => Some(include_str!("../../../docs/api/tools/security-audit.md")),
         _ => None,
@@ -66,7 +64,7 @@ pub fn build_embedded_refs_section() -> String {
     }
 
     out.push_str("### Quick-Action Task Scripts\n\n");
-    for name in &["harden-ssh", "network-info", "security-audit", "deploy-local-ssh"] {
+    for name in &["network-info", "security-audit"] {
         if let Some(md) = get_tool_script(name) {
             out.push_str(&format!(
                 "#### `{}.md` (use this when the matching Quick Action runs)\n{}\n\n",

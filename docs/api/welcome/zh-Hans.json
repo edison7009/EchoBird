@@ -23,11 +23,6 @@
             "desc": "在 [Mother Agent] 页面中，选择你刚刚添加的模型，按照流程将你的 AI Agent 部署到那台机器上。"
         },
         {
-            "step": "04",
-            "title": "开始工作",
-            "desc": "前往 [Channels]，通过聊天的方式给 Agent 选择角色或下达工作计划——就像给同事发消息一样。"
-        },
-        {
             "step": "tip",
             "title": "推荐",
             "desc": "若长期使用，推荐 [MiniMax]、[GLM] 或 [Moonshot] 的 Coding Plan。"

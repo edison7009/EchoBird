@@ -9,6 +9,10 @@
             "agent": "Claude Code"
         },
         {
+            "action": "install",
+            "agent": "Hermes Agent"
+        },
+        {
             "action": "showSpecs"
         },
         {
@@ -18,12 +22,6 @@
         {
             "action": "uninstall",
             "agent": "OpenClaw"
-        },
-        {
-            "action": "deployLocalSSH"
-        },
-        {
-            "action": "hardenSSH"
         },
         {
             "action": "networkInfo"

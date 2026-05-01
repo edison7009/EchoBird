@@ -23,11 +23,6 @@
             "desc": "In [Mother Agent], select the model you just added and follow the setup flow to deploy your own AI Agent onto that machine."
         },
         {
-            "step": "04",
-            "title": "Get to Work",
-            "desc": "Head to [Channels] and chat with your Agent to select roles or kick off a work plan — just like messaging a teammate."
-        },
-        {
             "step": "tip",
             "title": "Extra",
             "desc": "For long-term use, we recommend the Coding Plan from [MiniMax], [GLM] or [Moonshot]."

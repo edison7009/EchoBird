@@ -203,17 +203,6 @@ grep -E "^Port |^PermitRootLogin |^PasswordAuthentication " /etc/ssh/sshd_config
 
 ---
 
-## Quick Action: Harden Server Security
-
-When the user clicks "Harden Server Security" or agrees to hardening:
-
-1. **Fetch the instruction prompt**: Use `web_fetch` to read `https://echobird.ai/api/tools/harden-ssh.md`
-2. **Follow the instructions in that document** — it tells you WHAT to accomplish, not exact commands. You decide HOW based on the server's OS, firewall, and environment.
-3. **Execute all steps autonomously** via `shell_exec`, adapting commands to the detected environment.
-4. **Present credentials** to the user when done.
-
----
-
 ## Quick Action: Show Internal/Public IP
 
 When the user clicks "Show Internal/Public IP":
@@ -231,13 +220,3 @@ When the user clicks "Detect Suspicious Activity":
 1. **Fetch the instruction prompt**: Use `web_fetch` to read `https://echobird.ai/api/tools/security-audit.md`
 2. **Follow the audit checklist** — run all checks, interpret results like a security expert.
 3. **Score and remediate** — rate the server's security, fix what you can, recommend next steps for what you can't.
-
----
-
-## Quick Action: Let Phone Connect to This Machine (Deploy Local SSH)
-
-When the user says anything about "let my phone connect", "deploy local SSH", "让手机连接到本机", or similar:
-
-1. **Fetch the instruction prompt**: Use `web_fetch` to read `https://echobird.ai/api/tools/deploy-local-ssh.md`
-2. **Follow the instructions** — detect the OS, install/enable the SSH server, verify it's running.
-3. **Report connection credentials** clearly so the user can add this machine to EchoBird on their phone.

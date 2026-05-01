@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Send, ChevronDown, Square } from 'lucide-react';
+import { ArrowUp, ChevronDown, Square } from 'lucide-react';
 import { RemoteModelSelector, type ModelOption } from '../../components/RemoteModelSelector';
 import { getModelIcon } from '../../components/cards/ModelCard';
 import { PendingChipsRow } from '../../components/PendingChipsRow';
@@ -353,7 +353,7 @@ export function MotherAgentMain() {
                                 disabled={!chatInput.trim()}
                                 className="w-8 h-8 rounded-lg flex items-center justify-center bg-cyber-accent hover:brightness-110 transition-all disabled:opacity-20"
                             >
-                                <Send size={18} className="text-cyber-bg rotate-45 -translate-x-[1px]" />
+                                <ArrowUp size={18} strokeWidth={2.5} className="text-cyber-bg" />
                             </button>
                         )}
                     </div>
