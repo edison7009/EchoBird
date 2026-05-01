@@ -14,9 +14,18 @@ export interface OfficialEndpoint {
     anthropicUrl?: string;
     /** Which protocol to write into the tool's config */
     protocol: 'openai' | 'anthropic';
-    /** Default model id to write (empty = let the tool fall back to its own default) */
+    /**
+     * Fallback model id used only when the tool has no model configured yet.
+     * Restore preserves the user's existing model where possible — this is
+     * the seed for fresh installs, not a forced override.
+     */
     modelId?: string;
 }
+
+/** Sentinel internalId used to mark "official endpoint" as the pending selection. */
+export const officialModelSentinel = (toolId: string) => `__official__${toolId}`;
+export const isOfficialModelSentinel = (id: string | null | undefined) =>
+    typeof id === 'string' && id.startsWith('__official__');
 
 export const OFFICIAL_ENDPOINTS: Record<string, OfficialEndpoint> = {
     claudecode: {

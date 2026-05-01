@@ -4,7 +4,7 @@ import { ToolCard, getModelIcon } from '../../components';
 import { useI18n } from '../../hooks/useI18n';
 import type { ModelConfig, LocalTool } from '../../api/types';
 import { useAppManager, toolCategories } from './context';
-import { getOfficialEndpoint, type OfficialEndpoint } from '../../data/officialEndpoints';
+import { getOfficialEndpoint, officialModelSentinel, type OfficialEndpoint } from '../../data/officialEndpoints';
 
 // ===== Main Content (tool cards grid) =====
 
@@ -113,7 +113,6 @@ interface ModelListSectionProps {
     toolModelConfig: Record<string, string | null>;
     selectedTool: string | null;
     handleSelectModel: (toolId: string, modelId: string) => void;
-    handleRestoreModel: (toolId: string) => Promise<void>;
     modelProtocolSelection: Record<string, 'openai' | 'anthropic'>;
     setModelProtocolSelection: React.Dispatch<React.SetStateAction<Record<string, 'openai' | 'anthropic'>>>;
     t: (key: any) => string;
@@ -121,7 +120,7 @@ interface ModelListSectionProps {
 
 export const ModelListSection: React.FC<ModelListSectionProps> = ({
     selectedToolData, userModels, toolModelConfig, selectedTool,
-    handleSelectModel, handleRestoreModel,
+    handleSelectModel,
     modelProtocolSelection, setModelProtocolSelection, t,
 }) => {
     const toolProtocols = selectedToolData.apiProtocol || ['openai', 'anthropic'];
@@ -233,9 +232,8 @@ export const ModelListSection: React.FC<ModelListSectionProps> = ({
 
     // Official-endpoint card — first item, like cc-switch's "Claude Official"
     const official = selectedTool ? getOfficialEndpoint(selectedTool) : undefined;
-    const isOnOfficial = !!(official && selectedToolData.activeModel
-        && (selectedToolData.activeModel === official.modelId
-            || selectedToolData.activeModel === official.name));
+    const officialSentinel = selectedTool ? officialModelSentinel(selectedTool) : '';
+    const isOfficialPending = !!(selectedTool && toolModelConfig[selectedTool] === officialSentinel);
 
     const renderOfficialCard = (ep: OfficialEndpoint) => {
         const apiPath = (() => {
@@ -253,16 +251,16 @@ export const ModelListSection: React.FC<ModelListSectionProps> = ({
 
         return (
             <div
-                className={`p-3 rounded cursor-pointer transition-all mb-2 flex items-center gap-3 ${isOnOfficial
+                className={`p-3 rounded cursor-pointer transition-all mb-2 flex items-center gap-3 ${isOfficialPending
                     ? 'bg-cyber-accent/10'
                     : 'bg-black/30 hover:bg-white/5'
                     }`}
-                onClick={() => selectedTool && handleRestoreModel(selectedTool)}
+                onClick={() => selectedTool && handleSelectModel(selectedTool, officialSentinel)}
             >
                 <div className="flex items-center gap-3 flex-shrink-0">
-                    <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${isOnOfficial ? 'border-cyber-accent' : 'border-cyber-border'
+                    <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${isOfficialPending ? 'border-cyber-accent' : 'border-cyber-border'
                         }`}>
-                        {isOnOfficial && <div className="w-2 h-2 rounded-full bg-cyber-accent" />}
+                        {isOfficialPending && <div className="w-2 h-2 rounded-full bg-cyber-accent" />}
                     </div>
                     {iconSrc ? (
                         <img src={iconSrc} alt="" className="w-6 h-6" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
@@ -275,7 +273,7 @@ export const ModelListSection: React.FC<ModelListSectionProps> = ({
                 <div className="flex-1 min-w-0 flex flex-col justify-center h-10">
                     <div className="flex items-center gap-2">
                         <div className="text-sm font-bold truncate leading-none flex-1 min-w-0">{ep.name}</div>
-                        <span className="text-[9px] font-mono px-1.5 py-0.5 rounded border border-cyber-accent/30 text-cyber-accent/80 flex-shrink-0">
+                        <span className="text-[9px] font-mono text-cyber-text-secondary/60 flex-shrink-0 pointer-events-none select-none">
                             {t('agent.restore')}
                         </span>
                     </div>
@@ -327,7 +325,6 @@ export const AppManagerPanel: React.FC = () => {
         selectedToolData, selectedTool,
         userModels, toolModelConfig, handleSelectModel,
         modelProtocolSelection, setModelProtocolSelection,
-        handleRestoreModel,
     } = useAppManager();
 
     return (
@@ -355,7 +352,6 @@ export const AppManagerPanel: React.FC = () => {
                             toolModelConfig={toolModelConfig}
                             selectedTool={selectedTool}
                             handleSelectModel={handleSelectModel}
-                            handleRestoreModel={handleRestoreModel}
                             modelProtocolSelection={modelProtocolSelection}
                             setModelProtocolSelection={setModelProtocolSelection}
                             t={t}

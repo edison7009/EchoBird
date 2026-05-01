@@ -168,6 +168,51 @@ pub async fn apply_model_to_tool(tool_id: &str, model_info: ModelInfo) -> ApplyR
 }
 
 // ════════════════════════════════════════════════════════════════
+//  RESTORE TO OFFICIAL — delete config so tool regenerates defaults
+// ════════════════════════════════════════════════════════════════
+
+/// Delete the tool's config file (and any Echobird relay side-channel) so
+/// the tool itself regenerates a fresh, vendor-default config on next launch.
+/// Used by the App Manager "restore to official" flow.
+pub async fn restore_tool_to_official(tool_id: &str) -> ApplyResult {
+    let config_path = match tool_manager::get_tool_config_mapping(tool_id) {
+        Some((_, path)) => path,
+        None => return ApplyResult {
+            success: false,
+            message: format!("Unknown tool: {}", tool_id),
+        },
+    };
+
+    // Side-channel relay file (cline/roocode/openclaw/kilocode and other
+    // "custom" tools) — best-effort cleanup, ignored if absent.
+    let relay_path = echobird_dir().join(format!("{}.json", tool_id));
+    if relay_path.exists() {
+        let _ = fs::remove_file(&relay_path);
+    }
+
+    if !config_path.exists() {
+        return ApplyResult {
+            success: true,
+            message: format!("{} already at defaults — no config file to remove.", tool_id),
+        };
+    }
+
+    match fs::remove_file(&config_path) {
+        Ok(_) => {
+            log::info!("[ToolConfigManager] Restored {} — deleted {:?}", tool_id, config_path);
+            ApplyResult {
+                success: true,
+                message: format!("{} restored — config deleted, tool will regenerate defaults on next launch.", tool_id),
+            }
+        }
+        Err(e) => ApplyResult {
+            success: false,
+            message: format!("Failed to delete {} config: {}", tool_id, e),
+        },
+    }
+}
+
+// ════════════════════════════════════════════════════════════════
 //  GET MODEL INFO �?main entry point
 // ════════════════════════════════════════════════════════════════
 

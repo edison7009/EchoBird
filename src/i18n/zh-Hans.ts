@@ -48,7 +48,7 @@ const zhHans: Partial<Translations> = {
     'agent.noModelsHintPost': '添加模型。',
     'agent.applyAndLaunch': '应用配置并启动应用',
     'agent.appliedVia': '通过官方配置文件应用',
-    'agent.restore': '复原',
+    'agent.restore': '恢复默认',
     'server.selectModel': '选择模型：',
     'server.context': '上下文',
     'server.port': '端口',

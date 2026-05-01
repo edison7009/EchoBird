@@ -35,6 +35,10 @@ export async function applyModelToTool(toolId: string, modelInfo: ApplyModelInpu
     return invoke('apply_model_to_tool', { toolId, modelInfo });
 }
 
+export async function restoreToolToOfficial(toolId: string): Promise<{ success: boolean; message: string }> {
+    return invoke('restore_tool_to_official', { toolId });
+}
+
 // ─── Proxy APIs ───
 
 export async function startProxy(config?: SSNodeConfig): Promise<number> {

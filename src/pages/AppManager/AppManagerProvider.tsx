@@ -6,7 +6,7 @@ import type { ModelConfig } from '../../api/types';
 import { AppManagerContext } from './context';
 import { useToolsStore } from '../../stores/toolsStore';
 import { useNavigationStore } from '../../stores/navigationStore';
-import { getOfficialEndpoint } from '../../data/officialEndpoints';
+import { getOfficialEndpoint, isOfficialModelSentinel } from '../../data/officialEndpoints';
 
 // ===== Provider =====
 
@@ -129,47 +129,35 @@ export const AppManagerProvider: React.FC<AppManagerProviderProps> = ({ children
         }
     };
 
-    // Restore: write the tool's official vendor endpoint (e.g. ClaudeCode →
-    // api.anthropic.com) so the user reverts from a third-party / proxy URL
-    // back to the canonical one. Existing API key on disk is preserved by
-    // reading it via getToolModelInfo before we apply.
-    const handleRestoreModel = async (toolId: string) => {
-        const official = getOfficialEndpoint(toolId);
-        if (!official) return;
-
-        // Reuse the API key that's already configured for this tool — most
-        // users keep the same key and only swap URLs.
-        let existingKey = '';
+    // Restore = delete the tool's config file. The tool itself regenerates
+    // a vendor-default config on next launch, so restore is symmetric with
+    // a fresh install. Backend also clears the ~/.echobird/{tool}.json relay
+    // for "custom" tools.
+    const applyRestore = async (toolId: string): Promise<true | string | false> => {
         try {
-            const info = await api.getToolModelInfo(toolId);
-            existingKey = info?.apiKey || '';
-        } catch { /* fall through with empty key */ }
-
-        const apiUrl = official.protocol === 'anthropic'
-            ? (official.anthropicUrl || official.baseUrl)
-            : official.baseUrl;
-
-        try {
-            const result = await api.applyModelToTool(toolId, {
-                id: `__official__${toolId}`,
-                name: official.name,
-                baseUrl: apiUrl,
-                apiKey: existingKey,
-                model: official.modelId || '',
-                protocol: official.protocol,
-            });
-
+            const result = await api.restoreToolToOfficial(toolId);
             if (result?.success) {
+                const official = getOfficialEndpoint(toolId);
                 setDetectedTools(prev => prev.map(t =>
-                    t.id === toolId ? { ...t, activeModel: official.modelId || official.name } : t
+                    t.id === toolId ? { ...t, activeModel: official?.name || '' } : t
                 ));
-                setToolModelConfig(prev => ({ ...prev, [toolId]: null }));
-            } else {
-                setApplyError(result?.message || t('key.destroyed'));
+                return true;
             }
+            return result?.message || false;
         } catch (err) {
             console.error('[AppManager] Restore-to-official failed:', err);
-            setApplyError(String(err));
+            return String(err);
+        }
+    };
+
+    // Direct restore — kept exported on context for any callers that want to
+    // bypass the bottom-bar flow. The card click now selects (no immediate
+    // apply); the actual restore runs from handleLaunch when the official
+    // sentinel is the pending selection.
+    const handleRestoreModel = async (toolId: string) => {
+        const result = await applyRestore(toolId);
+        if (result !== true) {
+            setApplyError(typeof result === 'string' ? result : t('key.destroyed'));
         }
     };
 
@@ -184,7 +172,10 @@ export const AppManagerProvider: React.FC<AppManagerProviderProps> = ({ children
 
         // Apply model config (if model selected) — skip for launchable tools (they get config via URL hash)
         if (!isLaunchable && toolModelConfig[selectedTool]) {
-            const applyResult = await applyModelConfig(selectedTool, toolModelConfig[selectedTool]!);
+            const pending = toolModelConfig[selectedTool]!;
+            const applyResult = isOfficialModelSentinel(pending)
+                ? await applyRestore(selectedTool)
+                : await applyModelConfig(selectedTool, pending);
             if (applyResult !== true) {
                 setApplyError(typeof applyResult === 'string' ? applyResult : t('key.destroyed'));
                 setIsLaunching(false);

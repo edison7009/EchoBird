@@ -306,6 +306,7 @@ pub fn run() {
             tool_commands::scan_tools,
             tool_commands::get_tool_model_info,
             tool_commands::apply_model_to_tool,
+            tool_commands::restore_tool_to_official,
             tool_commands::launch_game,
             tool_commands::open_folder,
             tool_commands::llm_proxy_chat,

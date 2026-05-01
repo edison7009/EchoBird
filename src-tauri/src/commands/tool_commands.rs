@@ -79,6 +79,14 @@ pub async fn apply_model_to_tool(tool_id: String, model_info: ModelInfo) -> Resu
     Ok(tool_config_manager::apply_model_to_tool(&tool_id, info).await)
 }
 
+/// Restore a tool to its official defaults by deleting its config file. The
+/// tool will regenerate a default config (pointing at its vendor endpoint) on
+/// next launch.
+#[tauri::command]
+pub async fn restore_tool_to_official(tool_id: String) -> Result<ApplyResult, String> {
+    Ok(tool_config_manager::restore_tool_to_official(&tool_id).await)
+}
+
 /// Launch a built-in tool (game/utility) in a new WebView window
 #[tauri::command]
 pub async fn launch_game(
