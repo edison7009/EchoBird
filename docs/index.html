@@ -289,56 +289,6 @@
             line-height: 1.7;
         }
 
-        /* Tools Section */
-        .tools {
-            padding: 6rem 2rem;
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-
-        .tools-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 1.5rem;
-        }
-
-        .tool-card {
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: 1rem;
-            padding: 1.5rem;
-            text-align: center;
-            transition: all 0.3s;
-        }
-
-        .tool-card:hover {
-            border-color: var(--primary);
-            transform: translateY(-2px);
-        }
-
-        .tool-icon {
-            width: 64px;
-            height: 64px;
-            margin: 0 auto 1rem;
-            background: linear-gradient(135deg, var(--primary-light) 0%, var(--accent) 100%);
-            border-radius: 16px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 32px;
-        }
-
-        .tool-card h3 {
-            font-size: 1.125rem;
-            font-weight: 600;
-            margin-bottom: 0.5rem;
-        }
-
-        .tool-card p {
-            color: var(--text-secondary);
-            font-size: 0.875rem;
-        }
-
         /* Footer */
         footer {
             padding: 3rem 2rem;
@@ -389,7 +339,6 @@
             <ul class="nav-links">
                 <li><a href="#features">功能特性</a></li>
                 <li><a href="#steps">快速开始</a></li>
-                <li><a href="#tools">支持工具</a></li>
                 <li><a href="https://github.com/edison7009/EchoBird" target="_blank">GitHub</a></li>
             </ul>
         </div>
@@ -474,43 +423,6 @@
                     <h3>安装工具</h3>
                     <p>在"工具管理"页面，选择你需要的 AI 编程工具（如 Claude Code、OpenClaw），点击"一键安装"按钮，几秒钟即可完成安装和配置。</p>
                 </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Tools Section -->
-    <section id="tools" class="tools">
-        <h2 class="section-title">支持的 AI 工具</h2>
-        <div class="tools-grid">
-            <div class="tool-card">
-                <div class="tool-icon">🤖</div>
-                <h3>Claude Code</h3>
-                <p>Anthropic 官方 CLI 工具</p>
-            </div>
-            <div class="tool-card">
-                <div class="tool-icon">🦅</div>
-                <h3>OpenClaw</h3>
-                <p>开源 AI 编程助手</p>
-            </div>
-            <div class="tool-card">
-                <div class="tool-icon">⚙️</div>
-                <h3>Codex</h3>
-                <p>OpenAI 编程工具</p>
-            </div>
-            <div class="tool-card">
-                <div class="tool-icon">🔧</div>
-                <h3>ZeroClaw</h3>
-                <p>轻量级 AI 助手</p>
-            </div>
-            <div class="tool-card">
-                <div class="tool-icon">🎯</div>
-                <h3>NanoBot</h3>
-                <p>迷你 AI 机器人</p>
-            </div>
-            <div class="tool-card">
-                <div class="tool-icon">✨</div>
-                <h3>更多工具</h3>
-                <p>持续添加中...</p>
             </div>
         </div>
     </section>
