@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { Server as ServerIcon, Box as BoxIcon, ShieldCheck } from 'lucide-react';
+import { Server as ServerIcon, Box as BoxIcon } from 'lucide-react';
 import { ToolCard, getModelIcon } from '../../components';
 import { useI18n } from '../../hooks/useI18n';
 import type { ModelConfig, LocalTool } from '../../api/types';
@@ -261,9 +261,13 @@ export const ModelListSection: React.FC<ModelListSectionProps> = ({
                         }`}>
                         {isOnOfficial && <div className="w-2 h-2 rounded-full bg-cyber-accent" />}
                     </div>
-                    <div className="w-6 h-6 rounded bg-cyber-accent/15 flex items-center justify-center text-cyber-accent">
-                        <ShieldCheck size={14} />
-                    </div>
+                    {selectedToolData.iconBase64 ? (
+                        <img src={selectedToolData.iconBase64} alt="" className="w-6 h-6" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                    ) : (
+                        <div className="w-6 h-6 rounded bg-cyber-accent/15 flex items-center justify-center text-cyber-accent">
+                            <BoxIcon size={14} />
+                        </div>
+                    )}
                 </div>
                 <div className="flex-1 min-w-0 flex flex-col justify-center h-10">
                     <div className="flex items-center gap-2">
