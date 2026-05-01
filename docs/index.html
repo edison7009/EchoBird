@@ -4,438 +4,1200 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EchoBird - AI 工具管理平台 | 一键安装配置 Claude Code、OpenClaw 等 AI 编程助手</title>
+    <title>EchoBird — 像专家一样部署 AI Agent · 一键安装 Claude Code、OpenClaw、本地大模型</title>
     <meta name="description"
-        content="EchoBird 是专为 AI 新手设计的工具管理平台。一键安装 Claude Code、OpenClaw、Codex 等 AI 编程工具，统一管理模型配置，支持本地和云端 LLM 部署。">
+        content="EchoBird 让你不打开终端、不写配置文件,一键安装 Claude Code、OpenClaw、NanoBot 等 AI Agent,一键切换 OpenAI / Anthropic / Gemini / 本地大模型。Windows / macOS / Linux 全平台。">
     <meta name="keywords"
-        content="AI工具管理,Claude Code安装,OpenClaw安装,模型配置,LLM部署,AI编程助手,新手教程,EchoBird">
-    <meta property="og:title" content="EchoBird - AI 工具管理平台">
-    <meta property="og:description" content="一键安装配置 AI 编程工具，专为新手设计">
+        content="EchoBird,AI Agent,Claude Code,OpenClaw,Codex,本地大模型,llama.cpp,vLLM,Qwen,DeepSeek,模型管理,一键安装">
+    <meta property="og:title" content="EchoBird — 像专家一样部署 AI Agent">
+    <meta property="og:description" content="一键安装 Agent · 一键切换模型 · 一键部署本地大模型">
     <meta property="og:image" content="./icon.png">
     <link rel="icon" href="./icon.png" type="image/png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <link
-        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;600;700&display=swap"
+        href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;700;800&family=JetBrains+Mono:wght@400;500;600&family=Inter:wght@300;400;500;600;700;800&display=swap"
         rel="stylesheet">
     <style>
+        :root {
+            --bg: #050a0e;
+            --bg2: #080f14;
+            --bg3: #0d1821;
+            --bg-card: rgba(13, 24, 33, 0.6);
+            --neon: #00FF9D;
+            --neon2: #00d4ff;
+            --neon-soft: rgba(0, 255, 157, 0.15);
+            --neon-line: rgba(0, 255, 157, 0.25);
+            --white: #e8f4f0;
+            --text: #c8d6cf;
+            --dim: #5a7a6a;
+            --border: rgba(0, 255, 157, 0.1);
+            --border-strong: rgba(0, 255, 157, 0.2);
+            --sans: 'Inter', -apple-system, 'PingFang SC', 'Noto Sans SC', 'Microsoft YaHei', system-ui, sans-serif;
+            --mono: 'JetBrains Mono', monospace;
+            --display: 'Orbitron', var(--mono);
+        }
+
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
 
-        :root {
-            --primary: #4F46E5;
-            --primary-light: #6366F1;
-            --primary-dark: #4338CA;
-            --secondary: #10B981;
-            --background: #FFFFFF;
-            --surface: #F9FAFB;
-            --border: #E5E7EB;
-            --text: #111827;
-            --text-secondary: #6B7280;
-            --text-light: #9CA3AF;
-            --accent: #8B5CF6;
-            --shadow: rgba(0, 0, 0, 0.1);
-            --shadow-lg: rgba(0, 0, 0, 0.15);
-        }
-
-        @media (prefers-color-scheme: dark) {
-            :root {
-                --background: #0F172A;
-                --surface: #1E293B;
-                --border: #334155;
-                --text: #F1F5F9;
-                --text-secondary: #CBD5E1;
-                --text-light: #94A3B8;
-                --shadow: rgba(0, 0, 0, 0.3);
-                --shadow-lg: rgba(0, 0, 0, 0.5);
-            }
+        html {
+            scroll-behavior: smooth;
         }
 
         body {
-            font-family: 'Inter', 'Noto Sans SC', sans-serif;
-            background: var(--background);
-            color: var(--text);
-            line-height: 1.6;
+            background: var(--bg);
+            color: var(--white);
+            font-family: var(--sans);
+            min-height: 100vh;
+            overflow-x: hidden;
             -webkit-font-smoothing: antialiased;
             -moz-osx-font-smoothing: grayscale;
         }
 
-        /* Navigation */
-        nav {
+        /* ── Background grid ── */
+        .bg-grid {
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            pointer-events: none;
+            background-image:
+                linear-gradient(rgba(0, 255, 157, 0.04) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 255, 157, 0.04) 1px, transparent 1px);
+            background-size: 56px 56px;
+            mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, #000 30%, transparent 80%);
+            -webkit-mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, #000 30%, transparent 80%);
+        }
+
+        canvas#matrix {
+            position: fixed;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+            opacity: 0.18;
+        }
+
+        .glow-orb {
+            position: fixed;
+            border-radius: 50%;
+            filter: blur(120px);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .glow-orb.a {
+            top: -200px;
+            left: 10%;
+            width: 500px;
+            height: 500px;
+            background: rgba(0, 255, 157, 0.15);
+        }
+
+        .glow-orb.b {
+            top: 20%;
+            right: -100px;
+            width: 400px;
+            height: 400px;
+            background: rgba(0, 212, 255, 0.1);
+        }
+
+        /* ── Nav ── */
+        .nav {
             position: fixed;
             top: 0;
             left: 0;
             right: 0;
-            z-index: 1000;
-            background: rgba(255, 255, 255, 0.8);
-            backdrop-filter: blur(10px);
-            border-bottom: 1px solid var(--border);
-            padding: 1rem 0;
-        }
-
-        @media (prefers-color-scheme: dark) {
-            nav {
-                background: rgba(15, 23, 42, 0.8);
-            }
-        }
-
-        .nav-container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 0 2rem;
+            z-index: 100;
             display: flex;
+            align-items: center;
             justify-content: space-between;
-            align-items: center;
+            padding: 14px 32px;
+            background: rgba(5, 10, 14, 0.7);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border-bottom: 1px solid var(--border);
         }
 
-        .logo {
+        .nav-logo {
             display: flex;
             align-items: center;
-            gap: 0.75rem;
+            gap: 10px;
             text-decoration: none;
-            color: var(--text);
+        }
+
+        .nav-logo img {
+            width: 26px;
+            height: 26px;
+            border-radius: 6px;
+        }
+
+        .nav-logo span {
+            font-family: var(--mono);
             font-weight: 600;
-            font-size: 1.25rem;
+            font-size: 15px;
+            color: var(--neon);
+            letter-spacing: 0.5px;
         }
 
-        .logo img {
-            width: 32px;
-            height: 32px;
-            border-radius: 8px;
-        }
-
-        .nav-links {
+        .nav-r {
             display: flex;
-            gap: 2rem;
-            list-style: none;
+            align-items: center;
+            gap: 24px;
         }
 
-        .nav-links a {
-            color: var(--text-secondary);
+        .nav-r a {
+            color: var(--dim);
             text-decoration: none;
+            font-size: 13px;
             font-weight: 500;
             transition: color 0.2s;
         }
 
-        .nav-links a:hover {
-            color: var(--primary);
+        .nav-r a:hover {
+            color: var(--neon);
         }
 
-        /* Hero Section */
+        .nav-r .nav-cta {
+            color: var(--bg);
+            background: var(--neon);
+            padding: 7px 14px;
+            border-radius: 6px;
+            font-family: var(--mono);
+            font-weight: 600;
+            font-size: 12px;
+            letter-spacing: 0.5px;
+            transition: all 0.2s;
+        }
+
+        .nav-r .nav-cta:hover {
+            color: var(--bg);
+            box-shadow: 0 0 24px rgba(0, 255, 157, 0.5);
+            transform: translateY(-1px);
+        }
+
+        /* ── Hero ── */
         .hero {
-            padding: 8rem 2rem 6rem;
-            text-align: center;
+            position: relative;
+            z-index: 1;
+            padding: 140px 32px 60px;
             max-width: 1200px;
             margin: 0 auto;
+            text-align: center;
+        }
+
+        .hero .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-family: var(--mono);
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--neon);
+            letter-spacing: 1.5px;
+            margin-bottom: 28px;
+            padding: 6px 14px;
+            border: 1px solid var(--border-strong);
+            border-radius: 20px;
+            background: var(--neon-soft);
+        }
+
+        .hero .badge .dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--neon);
+            box-shadow: 0 0 8px var(--neon);
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.4;
+            }
         }
 
         .hero h1 {
-            font-size: 3.5rem;
-            font-weight: 700;
-            line-height: 1.2;
-            margin-bottom: 1.5rem;
-            background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
+            font-family: var(--sans);
+            font-size: clamp(36px, 6.5vw, 68px);
+            font-weight: 800;
+            line-height: 1.05;
+            letter-spacing: -1.5px;
+            margin-bottom: 24px;
+            color: var(--white);
+        }
+
+        .hero h1 .gradient {
+            background: linear-gradient(135deg, var(--neon) 0%, var(--neon2) 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
         }
 
-        .hero p {
-            font-size: 1.25rem;
-            color: var(--text-secondary);
-            max-width: 600px;
-            margin: 0 auto 2.5rem;
+        .hero .lede {
+            font-size: clamp(15px, 1.6vw, 18px);
+            color: var(--text);
+            line-height: 1.7;
+            max-width: 680px;
+            margin: 0 auto 16px;
         }
 
-        .cta-buttons {
+        .hero .lede strong {
+            color: var(--neon);
+            font-weight: 600;
+        }
+
+        .hero .platforms {
+            font-family: var(--mono);
+            font-size: 12px;
+            color: var(--dim);
+            margin-bottom: 36px;
+            letter-spacing: 0.5px;
+        }
+
+        .hero .cta-row {
             display: flex;
-            gap: 1rem;
+            gap: 14px;
             justify-content: center;
             flex-wrap: wrap;
+            margin-bottom: 24px;
         }
 
         .btn {
-            padding: 0.875rem 2rem;
-            border-radius: 0.75rem;
-            font-weight: 600;
-            font-size: 1rem;
-            text-decoration: none;
-            transition: all 0.2s;
             display: inline-flex;
             align-items: center;
-            gap: 0.5rem;
+            gap: 10px;
+            padding: 13px 26px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 14px;
+            text-decoration: none;
+            transition: all 0.2s;
+            font-family: var(--mono);
+            letter-spacing: 0.3px;
+            cursor: pointer;
+            border: none;
         }
 
         .btn-primary {
-            background: var(--primary);
-            color: white;
-            box-shadow: 0 4px 14px var(--shadow);
+            background: var(--neon);
+            color: var(--bg);
+            box-shadow: 0 0 0 1px var(--neon), 0 8px 32px rgba(0, 255, 157, 0.25);
         }
 
         .btn-primary:hover {
-            background: var(--primary-dark);
             transform: translateY(-2px);
-            box-shadow: 0 6px 20px var(--shadow-lg);
+            box-shadow: 0 0 0 1px var(--neon), 0 12px 40px rgba(0, 255, 157, 0.45);
         }
 
-        .btn-secondary {
-            background: var(--surface);
-            color: var(--text);
-            border: 1px solid var(--border);
+        .btn-ghost {
+            background: rgba(255, 255, 255, 0.03);
+            color: var(--white);
+            border: 1px solid var(--border-strong);
         }
 
-        .btn-secondary:hover {
-            border-color: var(--primary);
+        .btn-ghost:hover {
+            border-color: var(--neon);
+            color: var(--neon);
+            background: rgba(0, 255, 157, 0.05);
             transform: translateY(-2px);
         }
 
-        /* Features Section */
-        .features {
-            padding: 6rem 2rem;
+        .hero .micro {
+            font-family: var(--mono);
+            font-size: 12px;
+            color: var(--dim);
+        }
+
+        .hero .micro a {
+            color: var(--neon);
+            text-decoration: none;
+            transition: opacity 0.2s;
+        }
+
+        .hero .micro a:hover {
+            opacity: 0.7;
+        }
+
+        /* ── Section heading ── */
+        .section {
+            position: relative;
+            z-index: 1;
+            padding: 100px 32px;
             max-width: 1200px;
             margin: 0 auto;
         }
 
-        .section-title {
+        .section-head {
             text-align: center;
-            font-size: 2.5rem;
-            font-weight: 700;
-            margin-bottom: 3rem;
+            margin-bottom: 60px;
         }
 
-        .features-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 2rem;
-        }
-
-        .feature-card {
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: 1rem;
-            padding: 2rem;
-            transition: all 0.3s;
-        }
-
-        .feature-card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 8px 24px var(--shadow);
-        }
-
-        .feature-icon {
-            width: 48px;
-            height: 48px;
-            background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 24px;
-            margin-bottom: 1.5rem;
-        }
-
-        .feature-card h3 {
-            font-size: 1.25rem;
+        .section-eyebrow {
+            display: inline-block;
+            font-family: var(--mono);
+            font-size: 12px;
             font-weight: 600;
-            margin-bottom: 0.75rem;
+            color: var(--neon);
+            letter-spacing: 2px;
+            margin-bottom: 16px;
+            text-transform: uppercase;
         }
 
-        .feature-card p {
-            color: var(--text-secondary);
+        .section-title {
+            font-family: var(--sans);
+            font-size: clamp(28px, 4vw, 44px);
+            font-weight: 800;
+            letter-spacing: -1px;
+            color: var(--white);
+            margin-bottom: 14px;
+            line-height: 1.15;
+        }
+
+        .section-sub {
+            font-size: 16px;
+            color: var(--dim);
+            max-width: 600px;
+            margin: 0 auto;
             line-height: 1.7;
         }
 
-        /* Steps Section */
-        .steps {
-            padding: 6rem 2rem;
-            background: var(--surface);
+        /* ── Pillars (3 big features) ── */
+        .pillars {
+            display: flex;
+            flex-direction: column;
+            gap: 80px;
         }
 
-        .steps-container {
+        .pillar {
+            display: grid;
+            grid-template-columns: 1fr 1.2fr;
+            gap: 56px;
+            align-items: center;
+        }
+
+        .pillar:nth-child(even) {
+            grid-template-columns: 1.2fr 1fr;
+        }
+
+        .pillar:nth-child(even) .pillar-text {
+            order: 2;
+        }
+
+        .pillar-text .num {
+            display: inline-block;
+            font-family: var(--display);
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--neon);
+            letter-spacing: 3px;
+            margin-bottom: 14px;
+        }
+
+        .pillar-text h3 {
+            font-family: var(--sans);
+            font-size: clamp(24px, 3vw, 34px);
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            margin-bottom: 16px;
+            line-height: 1.2;
+            color: var(--white);
+        }
+
+        .pillar-text h3 .hl {
+            color: var(--neon);
+        }
+
+        .pillar-text p {
+            color: var(--text);
+            font-size: 15px;
+            line-height: 1.75;
+            margin-bottom: 20px;
+        }
+
+        .pillar-text ul {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .pillar-text li {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            font-size: 14px;
+            color: var(--text);
+            line-height: 1.6;
+        }
+
+        .pillar-text li i {
+            color: var(--neon);
+            font-size: 12px;
+            margin-top: 5px;
+            flex-shrink: 0;
+        }
+
+        .pillar-shot {
+            position: relative;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid var(--border-strong);
+            background: var(--bg2);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(0, 255, 157, 0.05);
+            transition: all 0.3s;
+        }
+
+        .pillar-shot:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 30px 80px rgba(0, 0, 0, 0.5), 0 0 40px rgba(0, 255, 157, 0.15);
+        }
+
+        .pillar-shot img {
+            display: block;
+            width: 100%;
+            height: auto;
+        }
+
+        /* ── Tools grid ── */
+        .tools-section {
+            background: linear-gradient(180deg, transparent, rgba(0, 255, 157, 0.02), transparent);
+        }
+
+        .tools-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 14px;
+        }
+
+        .tool-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 18px 20px;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            transition: all 0.2s;
+            backdrop-filter: blur(8px);
+        }
+
+        .tool-card:hover {
+            border-color: var(--border-strong);
+            background: rgba(0, 255, 157, 0.04);
+            transform: translateY(-2px);
+        }
+
+        .tool-card .ico {
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            background: linear-gradient(135deg, rgba(0, 255, 157, 0.15), rgba(0, 212, 255, 0.1));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--neon);
+            font-size: 16px;
+            flex-shrink: 0;
+            border: 1px solid var(--border);
+        }
+
+        .tool-card .meta {
+            min-width: 0;
+        }
+
+        .tool-card .name {
+            font-weight: 600;
+            font-size: 14px;
+            color: var(--white);
+            margin-bottom: 2px;
+        }
+
+        .tool-card .proto {
+            font-family: var(--mono);
+            font-size: 11px;
+            color: var(--dim);
+        }
+
+        .tool-card .badge-one {
+            margin-left: auto;
+            font-family: var(--mono);
+            font-size: 10px;
+            color: var(--neon);
+            background: rgba(0, 255, 157, 0.08);
+            border: 1px solid var(--border-strong);
+            padding: 2px 7px;
+            border-radius: 4px;
+            flex-shrink: 0;
+        }
+
+        .tool-card .badge-cfg {
+            margin-left: auto;
+            font-family: var(--mono);
+            font-size: 10px;
+            color: var(--dim);
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            padding: 2px 7px;
+            border-radius: 4px;
+            flex-shrink: 0;
+        }
+
+        /* ── Models bar ── */
+        .models-bar {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 12px;
             max-width: 900px;
             margin: 0 auto;
         }
 
-        .step {
-            display: flex;
-            gap: 2rem;
-            margin-bottom: 3rem;
-            align-items: flex-start;
+        .model-chip {
+            font-family: var(--mono);
+            font-size: 13px;
+            color: var(--text);
+            padding: 10px 18px;
+            border-radius: 8px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
         }
 
-        .step-number {
-            width: 48px;
-            height: 48px;
-            background: var(--primary);
-            color: white;
-            border-radius: 50%;
+        .model-chip:hover {
+            border-color: var(--neon);
+            color: var(--neon);
+            transform: translateY(-2px);
+        }
+
+        .model-chip i {
+            font-size: 11px;
+            color: var(--neon);
+        }
+
+        /* ── Local LLM strip ── */
+        .local-strip {
+            background: linear-gradient(135deg, rgba(0, 255, 157, 0.05), rgba(0, 212, 255, 0.03));
+            border: 1px solid var(--border-strong);
+            border-radius: 16px;
+            padding: 40px;
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 32px;
+            margin-top: 40px;
+        }
+
+        .local-stat .runtime {
+            font-family: var(--display);
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--neon);
+            margin-bottom: 8px;
+            letter-spacing: 1px;
+        }
+
+        .local-stat .desc {
+            font-size: 13px;
+            color: var(--text);
+            line-height: 1.6;
+            margin-bottom: 6px;
+        }
+
+        .local-stat .platform {
+            font-family: var(--mono);
+            font-size: 11px;
+            color: var(--dim);
+        }
+
+        /* ── Download ── */
+        .download-section {
+            position: relative;
+            z-index: 1;
+            padding: 100px 32px;
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+
+        .download-card {
+            background:
+                linear-gradient(135deg, rgba(0, 255, 157, 0.06), rgba(0, 212, 255, 0.03)),
+                var(--bg2);
+            border: 1px solid var(--border-strong);
+            border-radius: 20px;
+            padding: 56px 40px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .download-card::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(ellipse at 50% 0%, rgba(0, 255, 157, 0.15), transparent 60%);
+            pointer-events: none;
+        }
+
+        .download-card > * {
+            position: relative;
+            z-index: 1;
+        }
+
+        .download-card h2 {
+            font-family: var(--sans);
+            font-size: clamp(28px, 4vw, 40px);
+            font-weight: 800;
+            letter-spacing: -1px;
+            margin-bottom: 14px;
+        }
+
+        .download-card p {
+            color: var(--dim);
+            font-size: 15px;
+            margin-bottom: 36px;
+        }
+
+        .download-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 14px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .dl-btn {
             display: flex;
             align-items: center;
-            justify-content: center;
-            font-weight: 700;
-            font-size: 1.25rem;
-            flex-shrink: 0;
-        }
-
-        .step-content h3 {
-            font-size: 1.5rem;
-            font-weight: 600;
-            margin-bottom: 0.5rem;
-        }
-
-        .step-content p {
-            color: var(--text-secondary);
-            line-height: 1.7;
-        }
-
-        /* Footer */
-        footer {
-            padding: 3rem 2rem;
-            text-align: center;
-            border-top: 1px solid var(--border);
-            color: var(--text-light);
-        }
-
-        footer a {
-            color: var(--primary);
+            gap: 14px;
+            padding: 18px 22px;
+            border-radius: 10px;
+            background: rgba(5, 10, 14, 0.5);
+            border: 1px solid var(--border-strong);
             text-decoration: none;
+            transition: all 0.2s;
+            text-align: left;
         }
 
-        footer a:hover {
-            text-decoration: underline;
+        .dl-btn:hover {
+            border-color: var(--neon);
+            background: rgba(0, 255, 157, 0.05);
+            transform: translateY(-2px);
         }
 
-        /* Responsive */
-        @media (max-width: 768px) {
-            .hero h1 {
-                font-size: 2.5rem;
+        .dl-btn i {
+            font-size: 26px;
+            color: var(--neon);
+        }
+
+        .dl-btn .dl-meta .label {
+            font-size: 11px;
+            font-family: var(--mono);
+            color: var(--dim);
+            letter-spacing: 0.5px;
+            margin-bottom: 2px;
+        }
+
+        .dl-btn .dl-meta .name {
+            font-size: 14px;
+            color: var(--white);
+            font-weight: 600;
+        }
+
+        /* ── Footer ── */
+        footer {
+            position: relative;
+            z-index: 1;
+            padding: 48px 32px 32px;
+            border-top: 1px solid var(--border);
+            margin-top: 40px;
+        }
+
+        .footer-wrap {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr 1fr;
+            gap: 40px;
+            margin-bottom: 32px;
+        }
+
+        .foot-brand .logo-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+
+        .foot-brand .logo-row img {
+            width: 24px;
+            height: 24px;
+            border-radius: 5px;
+        }
+
+        .foot-brand .logo-row span {
+            font-family: var(--mono);
+            font-weight: 600;
+            color: var(--neon);
+            font-size: 14px;
+        }
+
+        .foot-brand p {
+            font-size: 13px;
+            color: var(--dim);
+            line-height: 1.7;
+            max-width: 320px;
+        }
+
+        .foot-col h4 {
+            font-family: var(--mono);
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--neon);
+            letter-spacing: 1.5px;
+            margin-bottom: 14px;
+            text-transform: uppercase;
+        }
+
+        .foot-col a {
+            display: block;
+            color: var(--text);
+            text-decoration: none;
+            font-size: 13px;
+            margin-bottom: 10px;
+            transition: color 0.2s;
+        }
+
+        .foot-col a:hover {
+            color: var(--neon);
+        }
+
+        .foot-bottom {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding-top: 24px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-family: var(--mono);
+            font-size: 12px;
+            color: var(--dim);
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .foot-bottom .quote {
+            font-style: italic;
+            color: var(--dim);
+        }
+
+        /* ── Reveal animation ── */
+        .reveal {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: opacity 0.6s ease, transform 0.6s ease;
+        }
+
+        .reveal.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* ── Responsive ── */
+        @media (max-width: 900px) {
+            .pillar,
+            .pillar:nth-child(even) {
+                grid-template-columns: 1fr;
+                gap: 32px;
             }
 
-            .hero p {
-                font-size: 1.125rem;
+            .pillar:nth-child(even) .pillar-text {
+                order: 0;
             }
 
-            .nav-links {
+            .local-strip {
+                grid-template-columns: 1fr;
+                gap: 24px;
+                padding: 28px;
+            }
+
+            .footer-wrap {
+                grid-template-columns: 1fr 1fr;
+            }
+
+            .foot-brand {
+                grid-column: 1 / -1;
+            }
+        }
+
+        @media (max-width: 600px) {
+            .nav {
+                padding: 12px 18px;
+            }
+
+            .nav-r {
+                gap: 14px;
+            }
+
+            .nav-r a:not(.nav-cta) {
                 display: none;
             }
 
-            .features-grid,
-            .tools-grid {
+            .hero {
+                padding: 110px 20px 40px;
+            }
+
+            .section {
+                padding: 70px 20px;
+            }
+
+            .download-section {
+                padding: 60px 20px;
+            }
+
+            .download-card {
+                padding: 36px 22px;
+            }
+
+            .footer-wrap {
                 grid-template-columns: 1fr;
+                gap: 28px;
+            }
+
+            .foot-bottom {
+                flex-direction: column;
+                text-align: center;
             }
         }
     </style>
 </head>
 
 <body>
+    <div class="bg-grid"></div>
+    <canvas id="matrix"></canvas>
+    <div class="glow-orb a"></div>
+    <div class="glow-orb b"></div>
+
     <!-- Navigation -->
-    <nav>
-        <div class="nav-container">
-            <a href="#" class="logo">
-                <img src="./icon.png" alt="EchoBird">
-                <span>EchoBird</span>
-            </a>
-            <ul class="nav-links">
-                <li><a href="#features">功能特性</a></li>
-                <li><a href="#steps">快速开始</a></li>
-                <li><a href="https://github.com/edison7009/EchoBird" target="_blank">GitHub</a></li>
-            </ul>
+    <nav class="nav">
+        <a href="#" class="nav-logo">
+            <img src="./icon.png" alt="EchoBird">
+            <span>ECHOBIRD</span>
+        </a>
+        <div class="nav-r">
+            <a href="#features">功能</a>
+            <a href="#tools">支持工具</a>
+            <a href="./free-models.html">免费模型</a>
+            <a href="https://github.com/edison7009/Echobird-MotherAgent" target="_blank">GitHub</a>
+            <a href="#download" class="nav-cta">下载</a>
         </div>
     </nav>
 
-    <!-- Hero Section -->
+    <!-- Hero -->
     <section class="hero">
-        <h1>让 AI 工具触手可及</h1>
-        <p>专为新手设计的 AI 工具管理平台，一键安装、配置和管理所有 AI 编程助手，无需复杂的技术知识</p>
-        <div class="cta-buttons">
-            <a href="https://github.com/edison7009/EchoBird/releases/latest" class="btn btn-primary">
-                <span>⬇️</span>
+        <div class="badge">
+            <span class="dot"></span>
+            <span>v1.0 · Tauri + Rust + llama.cpp</span>
+        </div>
+        <h1>
+            像专家一样部署 AI Agent<br>
+            <span class="gradient">不打开终端,不写配置文件</span>
+        </h1>
+        <p class="lede">
+            一键安装 <strong>Claude Code</strong>、<strong>OpenClaw</strong>、<strong>NanoBot</strong> 等
+            AI Agent · 一键在 OpenAI / Anthropic / Gemini / 本地大模型间切换 · 一键用 llama.cpp 部署
+            Qwen、DeepSeek 到本机。从此再也不用碰 JSON、TOML 和 .env。
+        </p>
+        <p class="platforms">Windows · macOS · Linux · MIT 开源 · 永久免费</p>
+        <div class="cta-row">
+            <a href="#download" class="btn btn-primary">
+                <i class="fa-solid fa-arrow-down"></i>
                 立即下载
             </a>
-            <a href="#steps" class="btn btn-secondary">
-                <span>📖</span>
-                新手教程
+            <a href="https://github.com/edison7009/Echobird-MotherAgent" target="_blank" class="btn btn-ghost">
+                <i class="fa-brands fa-github"></i>
+                Star on GitHub
             </a>
         </div>
+        <p class="micro">
+            找不到合适的模型? 看看 <a href="./free-models.html">今日免费模型 →</a>
+        </p>
     </section>
 
-    <!-- Features Section -->
-    <section id="features" class="features">
-        <h2 class="section-title">为什么选择 EchoBird？</h2>
-        <div class="features-grid">
-            <div class="feature-card">
-                <div class="feature-icon">⚡</div>
-                <h3>一键安装</h3>
-                <p>无需复杂的命令行操作，点击即可安装 Claude Code、OpenClaw 等 AI 工具，让新手也能轻松上手</p>
+    <!-- Pillars -->
+    <section id="features" class="section">
+        <div class="section-head reveal">
+            <div class="section-eyebrow">CORE CAPABILITIES</div>
+            <h2 class="section-title">三个"一键",搞定整个 AI Agent 工作流</h2>
+            <p class="section-sub">从安装到运行,从切换到部署,EchoBird 把每一个原本需要看十篇文档的步骤,压缩成了一次点击。</p>
+        </div>
+
+        <div class="pillars">
+            <!-- Pillar 1 -->
+            <div class="pillar reveal">
+                <div class="pillar-text">
+                    <div class="num">/ 01 — INSTALL</div>
+                    <h3>一键安装 <span class="hl">所有主流 AI Agent</span></h3>
+                    <p>
+                        OpenClaw、Claude Code、NanoBot、PicoClaw、Hermes、ZeroClaw…… EchoBird 自动检测你机器上已安装的 Agent,
+                        缺哪个,点一下就装好,不用再去翻 GitHub README 和 npm 命令。
+                    </p>
+                    <ul>
+                        <li><i class="fa-solid fa-check"></i> 自动检测已安装环境,缺哪装哪</li>
+                        <li><i class="fa-solid fa-check"></i> 内置启动器 — 不碰终端就能跑</li>
+                        <li><i class="fa-solid fa-check"></i> 即插即用插件:丢一个 plugin.json 就能扩展新工具</li>
+                    </ul>
+                </div>
+                <div class="pillar-shot">
+                    <img src="./2.png" alt="App Manager — 一键切换 OpenClaw / Claude Code / NanoBot 的模型"
+                        loading="lazy">
+                </div>
             </div>
-            <div class="feature-card">
-                <div class="feature-icon">🎯</div>
-                <h3>统一管理</h3>
-                <p>在一个界面中管理所有 AI 工具的模型配置，切换模型就像切换主题一样简单</p>
+
+            <!-- Pillar 2 -->
+            <div class="pillar reveal">
+                <div class="pillar-text">
+                    <div class="num">/ 02 — SWITCH</div>
+                    <h3>一键切换 <span class="hl">所有 Agent 的模型</span></h3>
+                    <p>
+                        Model Nexus 把 OpenAI、Anthropic、Gemini、DeepSeek、Ollama 和你的私有 endpoint 摆在同一个面板。
+                        给任意 Agent 换模型 = 选一张卡,点一下应用。OpenAI 协议和 Anthropic 协议自由切换,零配置改动。
+                    </p>
+                    <ul>
+                        <li><i class="fa-solid fa-check"></i> 双协议:OpenAI API + Anthropic API,按 Agent 单独指定</li>
+                        <li><i class="fa-solid fa-check"></i> 永远告别手动改 JSON / TOML / .env</li>
+                        <li><i class="fa-solid fa-check"></i> 任意自定义 endpoint,一秒接入</li>
+                    </ul>
+                </div>
+                <div class="pillar-shot">
+                    <img src="./1.png" alt="Model Nexus — OpenAI、Anthropic、Gemini、DeepSeek、Ollama 在一个面板"
+                        loading="lazy">
+                </div>
             </div>
-            <div class="feature-card">
-                <div class="feature-icon">🔄</div>
-                <h3>灵活切换</h3>
-                <p>支持在 Claude、GPT、本地模型之间自由切换，适配不同场景的需求</p>
-            </div>
-            <div class="feature-card">
-                <div class="feature-icon">🚀</div>
-                <h3>本地部署</h3>
-                <p>内置 llama.cpp 和 vLLM 支持，轻松部署 Qwen、DeepSeek 等开源模型到本地</p>
-            </div>
-            <div class="feature-card">
-                <div class="feature-icon">🛡️</div>
-                <h3>安全可靠</h3>
-                <p>完全开源，所有配置本地存储，不会上传任何敏感信息到云端</p>
-            </div>
-            <div class="feature-card">
-                <div class="feature-icon">🆓</div>
-                <h3>永久免费</h3>
-                <p>完全免费且开源，无任何隐藏费用，社区驱动持续更新</p>
+
+            <!-- Pillar 3 -->
+            <div class="pillar reveal">
+                <div class="pillar-text">
+                    <div class="num">/ 03 — DEPLOY</div>
+                    <h3>一键部署 <span class="hl">本地大模型</span></h3>
+                    <p>
+                        内置 llama.cpp、vLLM、SGLang。Qwen、DeepSeek、Llama、MiniMax、GLM 一键拉起本地服务,
+                        自动暴露 OpenAI (<code style="font-family:var(--mono);color:var(--neon)">/v1</code>) 与
+                        Anthropic (<code style="font-family:var(--mono);color:var(--neon)">/anthropic</code>)
+                        端点,任何 Agent 都能直连。数据完全留在你的设备上。
+                    </p>
+                    <ul>
+                        <li><i class="fa-solid fa-check"></i> 自动检测 NVIDIA GPU,推荐最优参数</li>
+                        <li><i class="fa-solid fa-check"></i> 双协议代理:OpenAI + Anthropic 双端点同时可用</li>
+                        <li><i class="fa-solid fa-check"></i> GGUF / HuggingFace 任意模型即拉即跑</li>
+                    </ul>
+                </div>
+                <div class="pillar-shot">
+                    <img src="./3.png" alt="Local Server — 本地部署 Qwen / Llama / DeepSeek" loading="lazy">
+                </div>
             </div>
         </div>
     </section>
 
-    <!-- Steps Section -->
-    <section id="steps" class="steps">
-        <div class="steps-container">
-            <h2 class="section-title">三步开始使用</h2>
-            <div class="step">
-                <div class="step-number">1</div>
-                <div class="step-content">
-                    <h3>下载安装</h3>
-                    <p>前往 <a href="https://github.com/edison7009/EchoBird/releases/latest"
-                            style="color: var(--primary);">GitHub Releases</a> 下载最新版本的安装包，双击运行完成安装。支持 Windows、macOS
-                        和 Linux 系统。</p>
-                </div>
+    <!-- Tools section -->
+    <section id="tools" class="section tools-section">
+        <div class="section-head reveal">
+            <div class="section-eyebrow">SUPPORTED AGENTS</div>
+            <h2 class="section-title">原生支持你已经在用的工具</h2>
+            <p class="section-sub">12+ 主流 Agent 与编程助手,大部分都是一键安装。</p>
+        </div>
+        <div class="tools-grid reveal">
+            <div class="tool-card"><div class="ico"><i class="fa-solid fa-bolt"></i></div><div class="meta"><div class="name">OpenClaw</div><div class="proto">OpenAI / Anthropic</div></div><span class="badge-one">1-CLICK</span></div>
+            <div class="tool-card"><div class="ico"><i class="fa-solid fa-code"></i></div><div class="meta"><div class="name">Claude Code</div><div class="proto">Anthropic</div></div><span class="badge-one">1-CLICK</span></div>
+            <div class="tool-card"><div class="ico"><i class="fa-solid fa-terminal"></i></div><div class="meta"><div class="name">OpenCode</div><div class="proto">OpenAI</div></div><span class="badge-one">1-CLICK</span></div>
+            <div class="tool-card"><div class="ico"><i class="fa-solid fa-circle-nodes"></i></div><div class="meta"><div class="name">ZeroClaw</div><div class="proto">OpenAI</div></div><span class="badge-one">1-CLICK</span></div>
+            <div class="tool-card"><div class="ico"><i class="fa-solid fa-microchip"></i></div><div class="meta"><div class="name">NanoBot</div><div class="proto">OpenAI / Anthropic</div></div><span class="badge-one">1-CLICK</span></div>
+            <div class="tool-card"><div class="ico"><i class="fa-solid fa-robot"></i></div><div class="meta"><div class="name">PicoClaw</div><div class="proto">OpenAI / Anthropic</div></div><span class="badge-one">1-CLICK</span></div>
+            <div class="tool-card"><div class="ico"><i class="fa-solid fa-shield-halved"></i></div><div class="meta"><div class="name">Hermes Agent</div><div class="proto">OpenAI / Anthropic</div></div><span class="badge-one">1-CLICK</span></div>
+            <div class="tool-card"><div class="ico"><i class="fa-solid fa-cube"></i></div><div class="meta"><div class="name">Codex</div><div class="proto">OpenAI</div></div><span class="badge-one">1-CLICK</span></div>
+            <div class="tool-card"><div class="ico"><i class="fa-solid fa-link"></i></div><div class="meta"><div class="name">Cline</div><div class="proto">OpenAI</div></div><span class="badge-cfg">CONFIG</span></div>
+            <div class="tool-card"><div class="ico"><i class="fa-solid fa-route"></i></div><div class="meta"><div class="name">Roo Code</div><div class="proto">OpenAI</div></div><span class="badge-cfg">CONFIG</span></div>
+            <div class="tool-card"><div class="ico"><i class="fa-solid fa-arrow-right-arrow-left"></i></div><div class="meta"><div class="name">Continue</div><div class="proto">OpenAI</div></div><span class="badge-cfg">CONFIG</span></div>
+            <div class="tool-card"><div class="ico"><i class="fa-solid fa-pen-fancy"></i></div><div class="meta"><div class="name">Aider</div><div class="proto">OpenAI / Anthropic</div></div><span class="badge-cfg">CONFIG</span></div>
+        </div>
+    </section>
+
+    <!-- Models bar -->
+    <section class="section">
+        <div class="section-head reveal">
+            <div class="section-eyebrow">MODEL PROVIDERS</div>
+            <h2 class="section-title">连接所有主流模型,统一在 Model Nexus</h2>
+            <p class="section-sub">Anthropic、OpenAI、Google、DeepSeek、Ollama、xAI…… 任何 OpenAI 兼容的 endpoint 都能接入。</p>
+        </div>
+        <div class="models-bar reveal">
+            <span class="model-chip"><i class="fa-solid fa-circle"></i>Anthropic Claude</span>
+            <span class="model-chip"><i class="fa-solid fa-circle"></i>OpenAI GPT</span>
+            <span class="model-chip"><i class="fa-solid fa-circle"></i>Google Gemini</span>
+            <span class="model-chip"><i class="fa-solid fa-circle"></i>DeepSeek</span>
+            <span class="model-chip"><i class="fa-solid fa-circle"></i>Qwen</span>
+            <span class="model-chip"><i class="fa-solid fa-circle"></i>xAI Grok</span>
+            <span class="model-chip"><i class="fa-solid fa-circle"></i>Mistral</span>
+            <span class="model-chip"><i class="fa-solid fa-circle"></i>MiniMax</span>
+            <span class="model-chip"><i class="fa-solid fa-circle"></i>GLM</span>
+            <span class="model-chip"><i class="fa-solid fa-circle"></i>Ollama</span>
+            <span class="model-chip"><i class="fa-solid fa-circle"></i>OpenRouter</span>
+            <span class="model-chip"><i class="fa-solid fa-circle"></i>Together AI</span>
+            <span class="model-chip"><i class="fa-solid fa-circle"></i>SiliconFlow</span>
+            <span class="model-chip"><i class="fa-solid fa-plus"></i>任意自定义 endpoint</span>
+        </div>
+
+        <div class="local-strip reveal">
+            <div class="local-stat">
+                <div class="runtime">llama.cpp</div>
+                <div class="desc">最轻量、最通用 — GGUF 格式直接拉起,任何笔记本都能跑。</div>
+                <div class="platform">Windows · macOS · Linux</div>
             </div>
-            <div class="step">
-                <div class="step-number">2</div>
-                <div class="step-content">
-                    <h3>配置模型</h3>
-                    <p>打开 EchoBird，在"模型管理"页面添加你的 API Key（支持 Claude、OpenAI 等），或者部署本地模型。所有配置都有详细的引导提示。</p>
-                </div>
+            <div class="local-stat">
+                <div class="runtime">vLLM</div>
+                <div class="desc">高吞吐推理,适合工作站级 GPU 部署生产规模的开源模型。</div>
+                <div class="platform">Linux + CUDA</div>
             </div>
-            <div class="step">
-                <div class="step-number">3</div>
-                <div class="step-content">
-                    <h3>安装工具</h3>
-                    <p>在"工具管理"页面，选择你需要的 AI 编程工具（如 Claude Code、OpenClaw），点击"一键安装"按钮，几秒钟即可完成安装和配置。</p>
-                </div>
+            <div class="local-stat">
+                <div class="runtime">SGLang</div>
+                <div class="desc">为 Agent / 结构化输出 / 多轮调用做了深度优化的运行时。</div>
+                <div class="platform">Linux + CUDA</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Download -->
+    <section id="download" class="download-section">
+        <div class="download-card reveal">
+            <h2>现在就下载,五分钟跑起你的第一个 Agent</h2>
+            <p>免费 · 开源 · MIT 协议 · 无需注册 · 不上传任何数据到云端</p>
+            <div class="download-grid">
+                <a href="https://github.com/edison7009/Echobird-MotherAgent/releases/latest" class="dl-btn">
+                    <i class="fa-brands fa-windows"></i>
+                    <div class="dl-meta">
+                        <div class="label">DOWNLOAD FOR</div>
+                        <div class="name">Windows (x64)</div>
+                    </div>
+                </a>
+                <a href="https://github.com/edison7009/Echobird-MotherAgent/releases/latest" class="dl-btn">
+                    <i class="fa-brands fa-apple"></i>
+                    <div class="dl-meta">
+                        <div class="label">DOWNLOAD FOR</div>
+                        <div class="name">macOS (Apple Silicon)</div>
+                    </div>
+                </a>
+                <a href="https://github.com/edison7009/Echobird-MotherAgent/releases/latest" class="dl-btn">
+                    <i class="fa-brands fa-apple"></i>
+                    <div class="dl-meta">
+                        <div class="label">DOWNLOAD FOR</div>
+                        <div class="name">macOS (Intel)</div>
+                    </div>
+                </a>
+                <a href="https://github.com/edison7009/Echobird-MotherAgent/releases/latest" class="dl-btn">
+                    <i class="fa-brands fa-linux"></i>
+                    <div class="dl-meta">
+                        <div class="label">DOWNLOAD FOR</div>
+                        <div class="name">Linux (AppImage)</div>
+                    </div>
+                </a>
             </div>
         </div>
     </section>
 
     <!-- Footer -->
     <footer>
-        <p>&copy; 2024 EchoBird. 开源项目，采用 MIT 许可证.</p>
-        <p>
-            <a href="https://github.com/edison7009/EchoBird" target="_blank">GitHub</a> ·
-            <a href="https://github.com/edison7009/EchoBird/issues" target="_blank">反馈问题</a> ·
-            <a href="https://github.com/edison7009/EchoBird/blob/main/README.md" target="_blank">文档</a>
-        </p>
+        <div class="footer-wrap">
+            <div class="foot-brand">
+                <div class="logo-row">
+                    <img src="./icon.png" alt="">
+                    <span>ECHOBIRD</span>
+                </div>
+                <p>The last interface before the age of AI. 一个应用,搞定 Agent 安装、模型切换与本地 LLM 部署。</p>
+            </div>
+            <div class="foot-col">
+                <h4>产品</h4>
+                <a href="#features">核心功能</a>
+                <a href="#tools">支持工具</a>
+                <a href="#download">下载</a>
+                <a href="./free-models.html">免费模型</a>
+            </div>
+            <div class="foot-col">
+                <h4>资源</h4>
+                <a href="https://github.com/edison7009/Echobird-MotherAgent" target="_blank">GitHub 仓库</a>
+                <a href="https://github.com/edison7009/Echobird-MotherAgent/releases" target="_blank">所有版本</a>
+                <a href="https://github.com/edison7009/Echobird-MotherAgent/issues" target="_blank">反馈问题</a>
+                <a href="https://github.com/edison7009/Echobird-MotherAgent/blob/main/README.md" target="_blank">README</a>
+            </div>
+            <div class="foot-col">
+                <h4>联系</h4>
+                <a href="mailto:hi@echobird.ai">hi@echobird.ai</a>
+                <a href="https://echobird.ai" target="_blank">echobird.ai</a>
+            </div>
+        </div>
+        <div class="foot-bottom">
+            <span>© 2026 EchoBird · MIT License · Tauri + Rust</span>
+            <span class="quote">Made with 💚 by the EchoBird Team</span>
+        </div>
     </footer>
+
+    <script>
+        // Matrix rain (subtle)
+        (function () {
+            const canvas = document.getElementById('matrix');
+            const ctx = canvas.getContext('2d');
+            let cols, drops;
+
+            function resize() {
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+                cols = Math.floor(canvas.width / 18);
+                drops = Array(cols).fill(1);
+            }
+            resize();
+            window.addEventListener('resize', resize);
+
+            const chars = '01░▒▓█▼▲ABCDEF<>/\\{}[]+=*';
+            function draw() {
+                ctx.fillStyle = 'rgba(5, 10, 14, 0.08)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = 'rgba(0, 255, 157, 0.55)';
+                ctx.font = '13px JetBrains Mono, monospace';
+                for (let i = 0; i < drops.length; i++) {
+                    const c = chars[Math.floor(Math.random() * chars.length)];
+                    ctx.fillText(c, i * 18, drops[i] * 18);
+                    if (drops[i] * 18 > canvas.height && Math.random() > 0.975) drops[i] = 0;
+                    drops[i]++;
+                }
+            }
+            setInterval(draw, 80);
+        })();
+
+        // Reveal on scroll
+        (function () {
+            const obs = new IntersectionObserver((entries) => {
+                entries.forEach(e => {
+                    if (e.isIntersecting) {
+                        e.target.classList.add('visible');
+                        obs.unobserve(e.target);
+                    }
+                });
+            }, { threshold: 0.12 });
+            document.querySelectorAll('.reveal').forEach(el => obs.observe(el));
+        })();
+    </script>
 </body>
 
 </html>
