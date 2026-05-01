@@ -11,8 +11,8 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/edison7009/Echobird-MotherAgent/releases">
-    <img src="https://img.shields.io/github/v/release/edison7009/Echobird-MotherAgent?style=flat-square&color=00FF9D" alt="Release" />
+  <a href="https://github.com/edison7009/Echobird/releases">
+    <img src="https://img.shields.io/github/v/release/edison7009/Echobird?style=flat-square&color=00FF9D" alt="Release" />
   </a>
   <img src="https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-blue?style=flat-square" alt="Platform" />
   <img src="https://img.shields.io/badge/built%20with-Tauri%20%2B%20Rust-orange?style=flat-square" alt="Tauri + Rust" />
@@ -104,10 +104,10 @@
 
 | 平台 | 下載連結 |
 |------|---------|
-| 🪟 Windows | [Echobird-x64-setup.exe](https://github.com/edison7009/Echobird-MotherAgent/releases/latest) |
-| 🍎 macOS (Apple Silicon) | [Echobird_aarch64.dmg](https://github.com/edison7009/Echobird-MotherAgent/releases/latest) |
-| 🍎 macOS (Intel) | [Echobird_x64.dmg](https://github.com/edison7009/Echobird-MotherAgent/releases/latest) |
-| 🐧 Linux | [Echobird_amd64.AppImage](https://github.com/edison7009/Echobird-MotherAgent/releases/latest) |
+| 🪟 Windows | [Echobird-x64-setup.exe](https://github.com/edison7009/Echobird/releases/latest) |
+| 🍎 macOS (Apple Silicon) | [Echobird_aarch64.dmg](https://github.com/edison7009/Echobird/releases/latest) |
+| 🍎 macOS (Intel) | [Echobird_x64.dmg](https://github.com/edison7009/Echobird/releases/latest) |
+| 🐧 Linux | [Echobird_amd64.AppImage](https://github.com/edison7009/Echobird/releases/latest) |
 
 **Linux 快速啟動：**
 ```bash
@@ -163,5 +163,5 @@ chmod +x Echobird_*.AppImage
 <p align="center">
   <em>AI 時代前的最後一個介面。</em><br/>
   由 EchoBird 團隊用 💚 打造<br/>
-  <sub>⭐ <a href="https://github.com/edison7009/Echobird-MotherAgent">在 GitHub 上給個 Star</a> — 讓更多人發現這個專案！</sub>
+  <sub>⭐ <a href="https://github.com/edison7009/Echobird">在 GitHub 上給個 Star</a> — 讓更多人發現這個專案！</sub>
 </p>
