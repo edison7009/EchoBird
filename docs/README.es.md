@@ -11,8 +11,8 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/edison7009/Echobird-MotherAgent/releases">
-    <img src="https://img.shields.io/github/v/release/edison7009/Echobird-MotherAgent?style=flat-square&color=00FF9D" alt="Release" />
+  <a href="https://github.com/edison7009/Echobird/releases">
+    <img src="https://img.shields.io/github/v/release/edison7009/Echobird?style=flat-square&color=00FF9D" alt="Release" />
   </a>
   <img src="https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-blue?style=flat-square" alt="Platform" />
   <img src="https://img.shields.io/badge/built%20with-Tauri%20%2B%20Rust-orange?style=flat-square" alt="Tauri + Rust" />
@@ -103,10 +103,10 @@ Incluso como principiante en IA, EchoBird te permite controlar tu propio Agent �
 
 | Plataforma | Descarga |
 |------------|----------|
-| 🪟 Windows | [Echobird-x64-setup.exe](https://github.com/edison7009/Echobird-MotherAgent/releases/latest) |
-| 🍎 macOS (Apple Silicon) | [Echobird_aarch64.dmg](https://github.com/edison7009/Echobird-MotherAgent/releases/latest) |
-| 🍎 macOS (Intel) | [Echobird_x64.dmg](https://github.com/edison7009/Echobird-MotherAgent/releases/latest) |
-| 🐧 Linux | [Echobird_amd64.AppImage](https://github.com/edison7009/Echobird-MotherAgent/releases/latest) |
+| 🪟 Windows | [Echobird-x64-setup.exe](https://github.com/edison7009/Echobird/releases/latest) |
+| 🍎 macOS (Apple Silicon) | [Echobird_aarch64.dmg](https://github.com/edison7009/Echobird/releases/latest) |
+| 🍎 macOS (Intel) | [Echobird_x64.dmg](https://github.com/edison7009/Echobird/releases/latest) |
+| 🐧 Linux | [Echobird_amd64.AppImage](https://github.com/edison7009/Echobird/releases/latest) |
 
 **Inicio rápido en Linux:**
 ```bash
@@ -162,5 +162,5 @@ chmod +x Echobird_*.AppImage
 <p align="center">
   <em>La última interfaz antes de la era de la IA.</em><br/>
   Hecho con 💚 por el equipo EchoBird<br/>
-  <sub>⭐ <a href="https://github.com/edison7009/Echobird-MotherAgent">Star en GitHub</a> — ¡ayuda a que otros descubran el proyecto!</sub>
+  <sub>⭐ <a href="https://github.com/edison7009/Echobird">Star en GitHub</a> — ¡ayuda a que otros descubran el proyecto!</sub>
 </p>

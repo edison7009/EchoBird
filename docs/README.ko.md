@@ -11,8 +11,8 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/edison7009/Echobird-MotherAgent/releases">
-    <img src="https://img.shields.io/github/v/release/edison7009/Echobird-MotherAgent?style=flat-square&color=00FF9D" alt="Release" />
+  <a href="https://github.com/edison7009/Echobird/releases">
+    <img src="https://img.shields.io/github/v/release/edison7009/Echobird?style=flat-square&color=00FF9D" alt="Release" />
   </a>
   <img src="https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-blue?style=flat-square" alt="Platform" />
   <img src="https://img.shields.io/badge/built%20with-Tauri%20%2B%20Rust-orange?style=flat-square" alt="Tauri + Rust" />
@@ -103,10 +103,10 @@ AI 초보자라도 EchoBird를 사용하면 간단한 채팅으로 자신만의 
 
 | 플랫폼 | 다운로드 |
 |--------|---------|
-| 🪟 Windows | [Echobird-x64-setup.exe](https://github.com/edison7009/Echobird-MotherAgent/releases/latest) |
-| 🍎 macOS (Apple Silicon) | [Echobird_aarch64.dmg](https://github.com/edison7009/Echobird-MotherAgent/releases/latest) |
-| 🍎 macOS (Intel) | [Echobird_x64.dmg](https://github.com/edison7009/Echobird-MotherAgent/releases/latest) |
-| 🐧 Linux | [Echobird_amd64.AppImage](https://github.com/edison7009/Echobird-MotherAgent/releases/latest) |
+| 🪟 Windows | [Echobird-x64-setup.exe](https://github.com/edison7009/Echobird/releases/latest) |
+| 🍎 macOS (Apple Silicon) | [Echobird_aarch64.dmg](https://github.com/edison7009/Echobird/releases/latest) |
+| 🍎 macOS (Intel) | [Echobird_x64.dmg](https://github.com/edison7009/Echobird/releases/latest) |
+| 🐧 Linux | [Echobird_amd64.AppImage](https://github.com/edison7009/Echobird/releases/latest) |
 
 **Linux 빠른 시작:**
 ```bash
@@ -162,5 +162,5 @@ chmod +x Echobird_*.AppImage
 <p align="center">
   <em>AI 시대의 사이버펑크 컨트롤 패널.</em><br/>
   EchoBird 팀이 💚으로 제작<br/>
-  <sub>⭐ <a href="https://github.com/edison7009/Echobird-MotherAgent">GitHub에서 Star 주기</a> — 더 많은 사람들이 프로젝트를 발견할 수 있도록!</sub>
+  <sub>⭐ <a href="https://github.com/edison7009/Echobird">GitHub에서 Star 주기</a> — 더 많은 사람들이 프로젝트를 발견할 수 있도록!</sub>
 </p>
