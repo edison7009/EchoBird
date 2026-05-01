@@ -31,11 +31,15 @@ dev.bat
 start.bat
 stop.bat
 clean-cache.bat
+run-repo-dev.bat
 test-*.mjs
 demo-*.mjs
 inspect-*.mjs
 verify-*.mjs
 ts-errors.txt
+
+# Claude Code agent config (per-machine permissions)
+.claude/settings.local.json
 
 # Project specific
 .whichclaw.pid
