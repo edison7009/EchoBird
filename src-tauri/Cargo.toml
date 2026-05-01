@@ -60,12 +60,11 @@ tokio-util = "0.7"
 uuid = { version = "1", features = ["v4"] }
 base64 = "0.22"
 
-[target.'cfg(unix)'.dependencies]
-libc = "0.2"
-
-# Desktop-only dependencies (not available on Android/iOS)
-[target.'cfg(not(target_os = "android"))'.dependencies]
+# Desktop UX
 rfd = "0.15"
 which = "7"
+
+[target.'cfg(unix)'.dependencies]
+libc = "0.2"
 
 

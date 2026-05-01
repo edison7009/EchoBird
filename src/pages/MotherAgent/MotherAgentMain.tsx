@@ -239,7 +239,7 @@ export function MotherAgentMain() {
                                                     setChatInput(label);
                                                 }
                                             }}
-                                            className="px-3 py-1 text-xs rounded-full border border-cyber-accent-secondary/20 text-cyber-accent-secondary/70 hover:bg-cyber-accent-secondary/10 hover:text-cyber-accent-secondary transition-all cursor-pointer"
+                                            className="px-3 py-1 text-xs rounded-full border border-cyber-accent/20 text-cyber-accent/70 hover:bg-cyber-accent/10 hover:text-cyber-accent transition-all cursor-pointer"
                                         >
                                             {label}
                                         </button>
@@ -298,7 +298,7 @@ export function MotherAgentMain() {
                 {showScrollBtn && (
                     <button
                         onClick={scrollToBottom}
-                        className="absolute bottom-3 right-3 w-7 h-7 flex items-center justify-center bg-cyber-bg/90 border border-cyber-border/50 rounded text-cyber-text-secondary hover:text-cyber-accent-secondary hover:border-cyber-accent-secondary/50 transition-colors z-10"
+                        className="absolute bottom-3 right-3 w-7 h-7 flex items-center justify-center bg-cyber-bg/90 border border-cyber-border/50 rounded text-cyber-text-secondary hover:text-cyber-accent hover:border-cyber-accent/50 transition-colors z-10"
                     >
                         <ChevronDown className="w-4 h-4" />
                     </button>
@@ -348,7 +348,7 @@ export function MotherAgentMain() {
                             <button
                                 onClick={localSend}
                                 disabled={!chatInput.trim()}
-                                className="w-8 h-8 rounded-lg flex items-center justify-center bg-cyber-accent-secondary hover:brightness-110 transition-all disabled:opacity-20"
+                                className="w-8 h-8 rounded-lg flex items-center justify-center bg-cyber-accent hover:brightness-110 transition-all disabled:opacity-20"
                             >
                                 <Send size={18} className="text-cyber-bg rotate-45 -translate-x-[1px]" />
                             </button>

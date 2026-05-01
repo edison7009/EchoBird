@@ -42,7 +42,7 @@ export const Sidebar = ({ activePage, onPageChange, agentRunning: _agentRunning 
         <nav className="w-64 flex flex-col px-6 pb-6">
             <div className="mb-6 tracking-wide flex items-center gap-2 overflow-hidden">
                 <span
-                    className={`flex-shrink-0 ${activePage === 'mother' ? 'text-cyber-accent-secondary' : 'text-cyber-accent'}`}
+                    className="flex-shrink-0 text-cyber-accent"
                     style={{
                         fontFamily: "'JetBrains Mono', monospace",
                         fontWeight: 500,
@@ -89,7 +89,6 @@ export const Sidebar = ({ activePage, onPageChange, agentRunning: _agentRunning 
                     label={t('nav.motherAgent')}
                     active={activePage === 'mother'}
                     onClick={() => onPageChange('mother')}
-                    color="blue"
                     badge={motherBadge}
                 />
             </div>

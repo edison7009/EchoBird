@@ -26,7 +26,7 @@ export interface ChatBubbleProps {
 
 // ── User bubble colors (solid fill, dark text — same as nav active state) ────
 const USER_BUBBLE = {
-    mother:   'bg-[#00D4FF] text-[#1C1C1E]',
+    mother:   'bg-[#00FF9D] text-[#1C1C1E]',
 } as const;
 
 // ── Strip common markdown symbols for plain-text display ─────────────────────
@@ -211,7 +211,7 @@ export function ChatBubble({ role, content, variant, chips = [], isStreaming = f
     }
 
     // ── User bubble (right) — solid color, dark text ──
-    const tailColor = '#00D4FF';
+    const tailColor = '#00FF9D';
     return (
         <div className="flex flex-col items-end mb-4">
             <div className="flex justify-end max-w-[62%]">

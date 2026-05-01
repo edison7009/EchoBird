@@ -54,11 +54,11 @@ export const RemoteModelSelector: React.FC<RemoteModelSelectorProps> = ({
     const displayIcon = currentModel?.icon;
 
     // Tailwind JIT-friendly static class strings (Mother Agent secondary accent)
-    const triggerClass = 'flex items-center gap-1.5 px-2 py-1 text-xs font-mono text-cyber-accent-secondary transition-colors rounded hover:bg-white/8 active:bg-white/12 disabled:cursor-default';
-    const spinClass = 'animate-spin text-cyber-accent-secondary/70';
-    const selectedItemClass = 'text-cyber-accent-secondary bg-cyber-accent-secondary/10';
-    const unselectedItemClass = 'text-cyber-text hover:bg-white/8 hover:text-cyber-accent-secondary';
-    const checkClass = 'flex-shrink-0 ml-1 text-cyber-accent-secondary';
+    const triggerClass = 'flex items-center gap-1.5 px-2 py-1 text-xs font-mono text-cyber-accent transition-colors rounded hover:bg-white/8 active:bg-white/12 disabled:cursor-default';
+    const spinClass = 'animate-spin text-cyber-accent/70';
+    const selectedItemClass = 'text-cyber-accent bg-cyber-accent/10';
+    const unselectedItemClass = 'text-cyber-text hover:bg-white/8 hover:text-cyber-accent';
+    const checkClass = 'flex-shrink-0 ml-1 text-cyber-accent';
 
     return (
         <div ref={containerRef} className="relative">

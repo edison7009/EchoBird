@@ -108,7 +108,7 @@ function App() {
 
                                                                             {is('apps') && t('page.appManager')}
                                                                             {is('localLlm') && t('page.localServer')}
-                                                                            {is('mother') && <span className="text-cyber-accent-secondary">{t('page.motherAgent')}</span>}
+                                                                            {is('mother') && t('page.motherAgent')}
                                                                         </span>
                                                                         {/* Title actions — always mounted but hidden */}
 
@@ -118,7 +118,7 @@ function App() {
                                                                             <div className="ml-auto flex-shrink-0 flex items-center gap-2">
                                                                                 <button
                                                                                     onClick={() => window.dispatchEvent(new CustomEvent('clear-chat'))}
-                                                                                    className="p-1.5 rounded-lg text-cyber-accent-secondary/40 hover:text-cyber-accent-secondary hover:bg-cyber-accent-secondary/10 transition-colors"
+                                                                                    className="p-1.5 rounded-lg text-cyber-accent/40 hover:text-cyber-accent hover:bg-cyber-accent/10 transition-colors"
                                                                                 >
                                                                                     <RotateCcw size={14} />
                                                                                 </button>
