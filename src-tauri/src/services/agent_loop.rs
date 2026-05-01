@@ -656,45 +656,13 @@ fn emit_event(app: &AppHandle, event: AgentEvent) {
     }
 }
 
-const REMOTE_PROMPT_URL: &str = "https://echobird.ai/api/mother/system_prompt.md";
-
-/// Fetch the latest system prompt from the remote server.
-/// Falls back to a basic version if the network is unavailable.
-async fn fetch_remote_prompt() -> String {
-    let client = reqwest::Client::builder()
-        .timeout(std::time::Duration::from_secs(3))
-        .build()
-        .unwrap_or_default();
-
-    match client.get(REMOTE_PROMPT_URL).send().await {
-        Ok(resp) if resp.status().is_success() => {
-            if let Ok(text) = resp.text().await {
-                if !text.trim().is_empty() {
-                    log::info!("[AgentLoop] Remote prompt loaded ({} bytes)", text.len());
-                    return text;
-                }
-            }
-        }
-        Ok(resp) => log::warn!("[AgentLoop] Remote prompt HTTP {}", resp.status()),
-        Err(e) => log::warn!("[AgentLoop] Remote prompt fetch failed: {}", e),
-    }
-
-    // Fallback: basic instructions when offline
-    log::info!("[AgentLoop] Using fallback prompt");
-    String::from(
-        "## Echobird Product Knowledge\n\
-        After installing any tool/agent, ALWAYS guide users through these steps:\n\
-        1. **Model Nexus** — add your AI model API key here first\n\
-        2. **App Manager** — find the agent and assign a model to it\n\
-        3. **Launch & Use**:\n\
-           - For **Channels** supported agents (OpenClaw, Claude Code, ZeroClaw, NanoBot, PicoClaw, Hermes Agent): tell the user to go to the **Channels (频道)** page to chat.\n\
-           - For all other CLIs/Apps (OpenCode, Codex, etc.): tell the user to click 'Launch Application' directly in the **App Manager** to open them.\n\n\
-        NEVER tell users to set environment variables manually.\n\
-        NEVER fabricate configuration steps — use `web_fetch` to read official docs first.\n\
-        OpenClaw official docs: https://docs.openclaw.ai/\n\
-        OpenClaw npm package: `openclaw` (NOT `@anthropic-ai/claude-code`)\n\
-        Install command: `npm install -g openclaw@latest`\n\n"
-    )
+/// Load the system prompt from the compile-time bundled asset. No network
+/// involved — many users pick smart-install precisely because their network
+/// is unreliable, so the prompt itself must work offline.
+fn load_bundled_prompt() -> String {
+    let prompt = crate::services::bundled_assets::MOTHER_SYSTEM_PROMPT;
+    log::info!("[AgentLoop] Bundled prompt loaded ({} bytes)", prompt.len());
+    prompt.to_string()
 }
 
 async fn build_system_prompt(request: &AgentRequest, ssh_pool: &SSHPool) -> String {
@@ -851,9 +819,10 @@ Do NOT offer WSL2 as a workaround.\n\
         If users report Channels connection issues, suggest they click 'Test Connection' in the server settings which will automatically repair Bridge.\n\n"
     );
 
-    // Fetch remote prompt (product knowledge + deployment workflows)
-    let remote_prompt = fetch_remote_prompt().await;
-    prompt.push_str(&remote_prompt);
+    // Bundled system prompt + embedded install/script references.
+    // Both are compile-time `include_str!` so the agent works offline.
+    prompt.push_str(&load_bundled_prompt());
+    prompt.push_str(&crate::services::bundled_assets::build_embedded_refs_section());
     prompt.push_str("\n\n");
 
     // Local platform info

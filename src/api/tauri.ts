@@ -20,6 +20,7 @@ export * from './localServer';
 export * from './agent';
 export * from './ssh';
 export * from './roles';
+export * from './bundled';
 
 // ─── Tool APIs ───
 

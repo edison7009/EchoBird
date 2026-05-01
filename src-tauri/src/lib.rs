@@ -14,6 +14,7 @@ use commands::settings_commands;
 use commands::ssh_commands;
 use commands::agent_commands;
 use commands::role_commands;
+use commands::bundled_commands;
 
 use std::sync::Mutex;
 #[cfg(not(target_os = "android"))]
@@ -395,6 +396,11 @@ pub fn run() {
             ssh_commands::scan_plugins,
             ssh_commands::get_bridge_path,
             role_commands::detect_local_agents,
+            bundled_commands::get_mother_system_prompt,
+            bundled_commands::get_mother_hints,
+            bundled_commands::get_install_index,
+            bundled_commands::get_install_ref,
+            bundled_commands::get_tool_script,
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")

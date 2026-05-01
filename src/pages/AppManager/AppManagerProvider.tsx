@@ -36,14 +36,18 @@ export const AppManagerProvider: React.FC<AppManagerProviderProps> = ({ children
         }
     }, [isActive]);
 
-    // Remote AI-installable IDs: fetch from echobird.ai/api/tools/install/index.json on activate
+    // AI-installable IDs from bundled install/index.json (offline-first).
     const [aiInstallableIds, setAiInstallableIds] = useState<string[]>([]);
     useEffect(() => {
         if (!isActive) return;
-        fetch('https://echobird.ai/api/tools/install/index.json', { signal: AbortSignal.timeout(6000) })
-            .then(r => r.json())
-            .then(data => { if (Array.isArray(data?.ids)) setAiInstallableIds(data.ids); })
-            .catch(() => { /* network error — keep empty */ });
+        api.getInstallIndex()
+            .then(s => {
+                try {
+                    const data = JSON.parse(s);
+                    if (Array.isArray(data?.ids)) setAiInstallableIds(data.ids);
+                } catch { /* malformed — keep empty */ }
+            })
+            .catch(() => { /* IPC error — keep empty */ });
     }, [isActive]);
 
     // Internalized state

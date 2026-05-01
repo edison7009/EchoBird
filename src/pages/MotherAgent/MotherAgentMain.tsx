@@ -105,11 +105,15 @@ export function MotherAgentMain() {
             .then(r => r.text())
             .then(ip => setPublicIP(ip))
             .catch(() => setPublicIP('offline'));
-        // Load quick-hint buttons from remote config
-        fetch('https://echobird.ai/api/mother/hints.json')
-            .then(r => r.json())
-            .then(data => {
-                setRemoteHints(data.hints || []);
+        // Load quick-hint buttons from bundled assets (offline-first).
+        api.getMotherHints()
+            .then(s => {
+                try {
+                    const data = JSON.parse(s);
+                    setRemoteHints(data.hints || []);
+                } catch {
+                    setRemoteHints([]);
+                }
             })
             .catch(() => setRemoteHints([]));
     }, []);

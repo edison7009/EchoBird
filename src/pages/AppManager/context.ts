@@ -34,7 +34,7 @@ export interface AppManagerContextType {
     handleLaunch: () => Promise<void>;
     // Navigation — internal handler: (toolId, toolName) => fetch install info → call prop
     onGoToMother: (toolId: string, toolName: string) => void;
-    // Remote AI-installable tool IDs (from echobird.ai/api/tools/install/index.json)
+    // AI-installable tool IDs (from bundled tools/install/index.json)
     aiInstallableIds: string[];
 }
 
