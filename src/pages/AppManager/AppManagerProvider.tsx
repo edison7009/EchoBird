@@ -75,6 +75,34 @@ export const AppManagerProvider: React.FC<AppManagerProviderProps> = ({ children
         }));
     };
 
+    // Original model snapshot: persisted per-tool to localStorage on first detection
+    const ORIGINAL_STORAGE_KEY = 'echobird:original-tool-model';
+    const [originalToolModel, setOriginalToolModel] = useState<Record<string, string>>(() => {
+        try {
+            const raw = localStorage.getItem(ORIGINAL_STORAGE_KEY);
+            return raw ? JSON.parse(raw) : {};
+        } catch {
+            return {};
+        }
+    });
+
+    // Snapshot any newly-detected tool's activeModel as its "original" (one-shot per tool)
+    useEffect(() => {
+        if (!detectedTools.length) return;
+        let dirty = false;
+        const next = { ...originalToolModel };
+        for (const tool of detectedTools) {
+            if (tool.activeModel && next[tool.id] === undefined) {
+                next[tool.id] = tool.activeModel;
+                dirty = true;
+            }
+        }
+        if (dirty) {
+            setOriginalToolModel(next);
+            try { localStorage.setItem(ORIGINAL_STORAGE_KEY, JSON.stringify(next)); } catch { /* quota / private mode */ }
+        }
+    }, [detectedTools]);
+
     // Get selected tool data
     const selectedToolData = detectedTools.find(t => t.id === selectedTool);
 
@@ -121,6 +149,25 @@ export const AppManagerProvider: React.FC<AppManagerProviderProps> = ({ children
         } catch (error) {
             console.error('[AppManager] Error applying model to tool:', error);
             return false;
+        }
+    };
+
+    // Restore: revert the tool's backend config to its original model and update UI selection
+    const handleRestoreModel = async (toolId: string) => {
+        const originalModelId = originalToolModel[toolId];
+        if (!originalModelId) return;
+        // Find a userModel whose modelId matches the original (the snapshot stores modelId, not internalId)
+        const match = userModels.find(m => m.modelId === originalModelId || m.internalId === originalModelId);
+        if (!match) {
+            setApplyError(t('agent.restoreUnavailable').replace('{model}', originalModelId));
+            return;
+        }
+        // Update UI selection
+        setToolModelConfig(prev => ({ ...prev, [toolId]: match.internalId }));
+        // Apply to backend so the tool actually uses the original again
+        const result = await applyModelConfig(toolId, match.internalId);
+        if (result !== true) {
+            setApplyError(typeof result === 'string' ? result : t('key.destroyed'));
         }
     };
 
@@ -179,6 +226,7 @@ export const AppManagerProvider: React.FC<AppManagerProviderProps> = ({ children
                 launchAfterApply, setLaunchAfterApply,
                 isLaunching, agreedConfigPolicy, setAgreedConfigPolicy,
                 toolModelConfig, handleSelectModel,
+                originalToolModel, handleRestoreModel,
                 selectedToolData, applyError, setApplyError,
                 detectedTools, setDetectedTools,
                 isScanning, scanTools,

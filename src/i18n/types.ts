@@ -40,6 +40,7 @@ export type TKey =
     | 'agent.applyAndLaunch' | 'agent.appliedVia'
     | 'agent.modelsTab'
     | 'agent.installViaMother'
+    | 'agent.restore' | 'agent.restoreTip' | 'agent.restoreUnavailable'
     // Tool categories
     | 'toolCat.all' | 'toolCat.agentOS' | 'toolCat.ide' | 'toolCat.cli'
     | 'toolCat.autoTrading' | 'toolCat.game' | 'toolCat.utility'

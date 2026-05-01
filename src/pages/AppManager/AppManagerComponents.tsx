@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { Server as ServerIcon, Box as BoxIcon } from 'lucide-react';
+import { Server as ServerIcon, Box as BoxIcon, RotateCcw } from 'lucide-react';
 import { ToolCard, getModelIcon } from '../../components';
 import { useI18n } from '../../hooks/useI18n';
 import type { ModelConfig, LocalTool } from '../../api/types';
@@ -268,7 +268,15 @@ export const AppManagerPanel: React.FC = () => {
         selectedToolData, selectedTool,
         userModels, toolModelConfig, handleSelectModel,
         modelProtocolSelection, setModelProtocolSelection,
+        originalToolModel, handleRestoreModel,
     } = useAppManager();
+
+    const originalModelId = selectedTool ? originalToolModel[selectedTool] : undefined;
+    const currentActive = selectedToolData?.activeModel;
+    const canRestore = !!(selectedTool && originalModelId && currentActive !== originalModelId);
+    const restoreTip = originalModelId
+        ? t('agent.restoreTip').replace('{model}', originalModelId)
+        : '';
 
     return (
         <>
@@ -279,11 +287,27 @@ export const AppManagerPanel: React.FC = () => {
                         {t('agent.modelsTab')}
                     </span>
                 </div>
-                {selectedToolData && (
-                    <span className="text-[10px] text-cyber-accent">
-                        {selectedToolData.name}
-                    </span>
-                )}
+                <div className="flex items-center gap-2">
+                    {selectedTool && originalModelId && (
+                        <button
+                            onClick={() => canRestore && handleRestoreModel(selectedTool)}
+                            disabled={!canRestore}
+                            title={restoreTip}
+                            className={`flex items-center gap-1 px-2 py-1 text-[10px] font-mono border rounded transition-colors outline-none ${canRestore
+                                ? 'border-cyber-accent/40 text-cyber-accent hover:bg-cyber-accent/10'
+                                : 'border-cyber-border text-cyber-text-muted/50 cursor-not-allowed'
+                                }`}
+                        >
+                            <RotateCcw size={11} />
+                            {t('agent.restore')}
+                        </button>
+                    )}
+                    {selectedToolData && (
+                        <span className="text-[10px] text-cyber-accent">
+                            {selectedToolData.name}
+                        </span>
+                    )}
+                </div>
             </div>
 
             <div className="flex-1 p-2 overflow-y-auto">

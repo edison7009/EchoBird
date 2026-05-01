@@ -49,6 +49,9 @@ const en: Translations = {
     'agent.noModelsHintPost': 'to add one.',
     'agent.applyAndLaunch': 'Apply config & Launch app',
     'agent.appliedVia': 'Applied via official config files',
+    'agent.restore': 'Restore',
+    'agent.restoreTip': 'Restore original model: {model}',
+    'agent.restoreUnavailable': 'Original model "{model}" is no longer in your model list',
     // Local Server
     'server.selectModel': 'Select Model:',
     'server.context': 'CONTEXT',
