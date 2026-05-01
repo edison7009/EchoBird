@@ -46,4 +46,4 @@ export const useAppManager = () => {
 };
 
 // Tool categories
-export const toolCategories = ['ALL', 'CLI Agent', 'IDE', 'CLI', 'AutoTrading', 'Game', 'Utility'] as const;
+export const toolCategories = ['ALL', 'CLI Agent', 'IDE', 'Desktop', 'CLI Code', 'AutoTrading', 'Game', 'Utility'] as const;

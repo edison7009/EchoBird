@@ -3,7 +3,7 @@
     "names": {
         "zh-CN": "通义灵码 CLI"
     },
-    "category": "CLI",
+    "category": "CLI Code",
     "apiProtocol": [
         "openai",
         "anthropic"

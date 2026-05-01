@@ -6,7 +6,7 @@
         "ja": "Aider",
         "ko": "Aider"
     },
-    "category": "CLI",
+    "category": "CLI Code",
     "apiProtocol": [
         "openai",
         "anthropic"

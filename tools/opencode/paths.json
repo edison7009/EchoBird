@@ -1,6 +1,6 @@
 {
     "name": "OpenCode",
-    "category": "CLI",
+    "category": "CLI Code",
     "apiProtocol": [
         "openai"
     ],

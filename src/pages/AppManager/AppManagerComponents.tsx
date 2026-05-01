@@ -36,7 +36,8 @@ export const AppManagerMain: React.FC = () => {
                             {(() => {
                                 const catMap: Record<string, string> = {
                                     'ALL': 'toolCat.all', 'CLI Agent': 'toolCat.agentOS',
-                                    'IDE': 'toolCat.ide', 'CLI': 'toolCat.cli',
+                                    'IDE': 'toolCat.ide', 'Desktop': 'toolCat.desktop',
+                                    'CLI Code': 'toolCat.cli',
                                     'AutoTrading': 'toolCat.autoTrading', 'Game': 'toolCat.game',
                                     'Utility': 'toolCat.utility'
                                 };
@@ -85,7 +86,7 @@ export const AppManagerMain: React.FC = () => {
                                 const bHasRemote = aiInstallableIds.includes(b.id);
                                 if (aHasRemote !== bHasRemote) return aHasRemote ? -1 : 1;
                                 // 3. Then by category
-                                const categoryOrder: Record<string, number> = { 'CLI Agent': 0, 'IDE': 1, 'CLI': 2, 'AutoTrading': 3, 'Game': 4, 'Utility': 5 };
+                                const categoryOrder: Record<string, number> = { 'CLI Agent': 0, 'IDE': 1, 'Desktop': 2, 'CLI Code': 3, 'AutoTrading': 4, 'Game': 5, 'Utility': 6 };
                                 return (categoryOrder[a.category || ''] ?? 99) - (categoryOrder[b.category || ''] ?? 99);
                             })
                             .map(tool => (

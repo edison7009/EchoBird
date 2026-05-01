@@ -42,7 +42,7 @@ export type TKey =
     | 'agent.installViaMother'
     | 'agent.restore'
     // Tool categories
-    | 'toolCat.all' | 'toolCat.agentOS' | 'toolCat.ide' | 'toolCat.cli'
+    | 'toolCat.all' | 'toolCat.agentOS' | 'toolCat.ide' | 'toolCat.cli' | 'toolCat.desktop'
     | 'toolCat.autoTrading' | 'toolCat.game' | 'toolCat.utility'
     // ToolCard labels
     | 'tool.models'

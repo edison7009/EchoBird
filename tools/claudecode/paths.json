@@ -1,6 +1,6 @@
 {
     "name": "ClaudeCode",
-    "category": "CLI",
+    "category": "CLI Code",
     "apiProtocol": [
         "anthropic"
     ],
