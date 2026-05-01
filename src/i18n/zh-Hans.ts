@@ -92,7 +92,6 @@ const zhHans: Partial<Translations> = {
     'toolCat.agentOS': 'CLI Agent',
     'toolCat.ide': 'IDE',
     'toolCat.cli': 'CLI Code',
-    'toolCat.desktop': '桌面端',
     'toolCat.autoTrading': '自动交易',
     'toolCat.game': '游戏',
     'toolCat.utility': '工具',

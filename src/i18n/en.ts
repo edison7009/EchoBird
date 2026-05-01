@@ -108,7 +108,6 @@ const en: Translations = {
     'toolCat.agentOS': 'CLI Agent',
     'toolCat.ide': 'IDE',
     'toolCat.cli': 'CLI Code',
-    'toolCat.desktop': 'Desktop',
     'toolCat.autoTrading': 'AutoTrading',
     'toolCat.game': 'Game',
     'toolCat.utility': 'Utilities',
