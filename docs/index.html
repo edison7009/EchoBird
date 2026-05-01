@@ -1,1562 +1,529 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-CN">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EchoBird · One-click install OpenClaw, Claude Code, NanoBot, PicoClaw, Hermes & more. Switch models. Deploy LLMs.</title>
+    <title>EchoBird - AI 工具管理平台 | 一键安装配置 Claude Code、OpenClaw 等 AI 编程助手</title>
     <meta name="description"
-        content="One-click install OpenClaw, Claude Code, NanoBot, PicoClaw, Hermes, ZeroClaw & more. Switch models across all agents. Deploy Qwen, DeepSeek, Llama locally or remotely. Free & open source.">
+        content="EchoBird 是专为 AI 新手设计的工具管理平台。一键安装 Claude Code、OpenClaw、Codex 等 AI 编程工具，统一管理模型配置，支持本地和云端 LLM 部署。">
     <meta name="keywords"
-        content="install OpenClaw, install Claude Code, install ZeroClaw, install Codex, switch models, deploy LLM, deploy Qwen, deploy DeepSeek, deploy Llama, one-click install agent, model switching, AI coding tools, EchoBird, llama.cpp, vLLM">
-    <meta property="og:title" content="EchoBird · One-click install OpenClaw, Claude Code, ZeroClaw & Codex">
-    <meta property="og:description" content="One-click install agents, switch models, deploy LLMs. Free & open source.">
+        content="AI工具管理,Claude Code安装,OpenClaw安装,模型配置,LLM部署,AI编程助手,新手教程,EchoBird">
+    <meta property="og:title" content="EchoBird - AI 工具管理平台">
+    <meta property="og:description" content="一键安装配置 AI 编程工具，专为新手设计">
     <meta property="og:image" content="./icon.png">
     <link rel="icon" href="./icon.png" type="image/png">
     <link
-        href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700;800&family=Inter:wght@300;400;500;600;700;800;900&family=Orbitron:wght@700&family=Noto+Sans+SC:wght@400;500;700&family=Noto+Sans+TC:wght@400;500;700&display=swap"
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;600;700&display=swap"
         rel="stylesheet">
     <style>
-        *,
-        *::before,
-        *::after {
-            box-sizing: border-box;
+        * {
             margin: 0;
-            padding: 0
+            padding: 0;
+            box-sizing: border-box;
         }
 
         :root {
-            --neon: #00FF9D;
-            --neon2: #00d4ff;
-            --neon-g: rgba(0, 255, 157, .35);
-            --bg: #050a0e;
-            --bg2: #0a1018;
-            --bg3: #0e1620;
-            --border: #1a2a3a;
-            --text: #c9d1d9;
-            --dim: #5a6a7a;
-            --white: #f0f6fc;
-            --mono: 'JetBrains Mono', monospace;
-            --sans: 'Inter', system-ui, sans-serif;
+            --primary: #4F46E5;
+            --primary-light: #6366F1;
+            --primary-dark: #4338CA;
+            --secondary: #10B981;
+            --background: #FFFFFF;
+            --surface: #F9FAFB;
+            --border: #E5E7EB;
+            --text: #111827;
+            --text-secondary: #6B7280;
+            --text-light: #9CA3AF;
+            --accent: #8B5CF6;
+            --shadow: rgba(0, 0, 0, 0.1);
+            --shadow-lg: rgba(0, 0, 0, 0.15);
         }
 
-        html {
-            scroll-behavior: smooth
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --background: #0F172A;
+                --surface: #1E293B;
+                --border: #334155;
+                --text: #F1F5F9;
+                --text-secondary: #CBD5E1;
+                --text-light: #94A3B8;
+                --shadow: rgba(0, 0, 0, 0.3);
+                --shadow-lg: rgba(0, 0, 0, 0.5);
+            }
         }
 
         body {
-            font-family: var(--sans);
-            background: var(--bg);
+            font-family: 'Inter', 'Noto Sans SC', sans-serif;
+            background: var(--background);
             color: var(--text);
-            overflow-x: hidden
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
         }
 
-        /* ── Matrix Rain Canvas ── */
-        #matrix {
-            position: fixed;
-            inset: 0;
-            z-index: 0;
-            opacity: .07;
-            pointer-events: none
-        }
-
-        /* ── Nav ── */
-        .nav {
+        /* Navigation */
+        nav {
             position: fixed;
             top: 0;
             left: 0;
             right: 0;
-            z-index: 100;
-            padding: 0 32px;
-            height: 56px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            background: rgba(5, 10, 14, .8);
-            backdrop-filter: blur(20px);
-            border-bottom: 1px solid rgba(26, 42, 58, .5)
+            z-index: 1000;
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--border);
+            padding: 1rem 0;
         }
 
-        .nav-logo {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            text-decoration: none
+        @media (prefers-color-scheme: dark) {
+            nav {
+                background: rgba(15, 23, 42, 0.8);
+            }
         }
 
-        .nav-logo img {
-            width: 28px;
-            height: 28px;
-            border-radius: 6px
-        }
-
-        .nav-logo span {
-            font-family: var(--mono);
-            font-weight: 500;
-            font-size: 15px;
-            color: var(--neon);
-            letter-spacing: 0.5px
-        }
-
-        /* Chinese locale overrides — CJK chars don't have Orbitron glyphs */
-        .lang-zh {
-            --cjk: 'Noto Sans SC', 'Noto Sans TC', system-ui, sans-serif
-        }
-
-
-
-        .nav-r {
-            display: flex;
-            align-items: center;
-            gap: 20px
-        }
-
-        .nav-r a {
-            color: var(--dim);
-            text-decoration: none;
-            font-size: 13px;
-            font-weight: 500;
-            transition: color .2s
-        }
-
-        .nav-r a:hover {
-            color: var(--neon)
-        }
-
-        .lang-wrap {
-            position: relative
-        }
-
-        .lang-btn {
-            background: rgba(0, 255, 157, .06);
-            color: var(--neon);
-            border: 1px solid rgba(0, 255, 157, .25);
-            border-radius: 6px;
-            padding: 5px 10px;
-            font-size: 12px;
-            font-family: var(--mono);
-            cursor: pointer;
-            white-space: nowrap;
-            transition: border-color .2s, color .2s
-        }
-
-        .lang-btn:hover {
-            border-color: var(--neon)
-        }
-
-        .lang-drop {
-            display: none;
-            position: absolute;
-            right: 0;
-            top: calc(100% + 6px);
-            background: var(--bg2);
-            border: 1px solid var(--border);
-            border-radius: 6px;
-            min-width: 110px;
-            z-index: 9999;
-            overflow: hidden
-        }
-
-        .lang-drop.open {
-            display: block
-        }
-
-        .lang-opt {
-            padding: 9px 14px;
-            font-size: 13px;
-            font-family: var(--mono);
-            cursor: pointer;
-            color: var(--white);
-            transition: background .15s
-        }
-
-        .lang-opt:hover {
-            background: rgba(0, 255, 157, .07)
-        }
-
-        .lang-opt.active {
-            color: var(--neon)
-        }
-
-        /* ── Hero ── */
-        .hero {
-            position: relative;
-            z-index: 1;
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 100px 32px 60px;
+        .nav-container {
             max-width: 1200px;
             margin: 0 auto;
-            gap: 48px
+            padding: 0 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
 
-        .hero-left {
-            flex: 0 0 420px;
-            text-align: left
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            text-decoration: none;
+            color: var(--text);
+            font-weight: 600;
+            font-size: 1.25rem;
         }
 
-        .hero-right {
-            flex: 1;
-            min-width: 0;
-            position: relative
+        .logo img {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
         }
 
-        .hero-right {
-            overflow: hidden;
-            border-radius: 12px;
-            border: 1px solid var(--border);
-            box-shadow: 0 24px 80px rgba(0, 0, 0, .6), 0 0 40px rgba(0, 255, 157, .06);
-            line-height: 0;
-            height: fit-content
+        .nav-links {
+            display: flex;
+            gap: 2rem;
+            list-style: none;
         }
 
-        .hero-right img {
-            width: calc(100% + 8px);
-            margin: -4px;
-            display: block;
-            transition: transform .4s
+        .nav-links a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.2s;
         }
 
-        .hero-right img:hover {
-            opacity: .95
+        .nav-links a:hover {
+            color: var(--primary);
         }
 
-        .hero-glow {
-            position: absolute;
-            top: -200px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 800px;
-            height: 800px;
-            background: radial-gradient(circle, rgba(0, 255, 157, .12) 0%, rgba(0, 212, 255, .05) 30%, transparent 70%);
-            pointer-events: none;
-            z-index: -1
-        }
-
-        .hero-icon {
-            width: 40px;
-            height: 40px;
-            border-radius: 10px;
-            margin-bottom: 16px;
-            animation: icon-shimmer 4s ease-in-out infinite
-        }
-
-        @keyframes icon-shimmer {
-
-            0%,
-            100% {
-                filter: drop-shadow(0 0 30px rgba(0, 255, 157, .5)) hue-rotate(0deg) brightness(1.05) saturate(1.2)
-            }
-
-            25% {
-                filter: drop-shadow(0 0 40px rgba(0, 212, 255, .7)) hue-rotate(20deg) brightness(1.2) saturate(1.5)
-            }
-
-            50% {
-                filter: drop-shadow(0 0 50px rgba(0, 255, 200, .8)) hue-rotate(5deg) brightness(1.3) saturate(1.6)
-            }
-
-            75% {
-                filter: drop-shadow(0 0 40px rgba(80, 220, 255, .6)) hue-rotate(-8deg) brightness(1.15) saturate(1.3)
-            }
+        /* Hero Section */
+        .hero {
+            padding: 8rem 2rem 6rem;
+            text-align: center;
+            max-width: 1200px;
+            margin: 0 auto;
         }
 
         .hero h1 {
-            font-family: 'Orbitron', var(--mono);
-            font-size: clamp(32px, 4vw, 48px);
+            font-size: 3.5rem;
             font-weight: 700;
-            letter-spacing: 3px;
-            line-height: .95;
-            margin-bottom: 16px;
-            /* text-transform: uppercase; */
-            white-space: nowrap;
-            background: linear-gradient(135deg, var(--neon) 0%, var(--neon2) 50%, var(--neon) 100%);
-            background-size: 200% 200%;
+            line-height: 1.2;
+            margin-bottom: 1.5rem;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
-            animation: shimmer 8s ease-in-out infinite
         }
 
-
-
-        .lang-zh .hero-tagline,
-        .lang-zh .sec-title,
-        .lang-zh .sec-desc,
-        .lang-zh .bento-card h3,
-        .lang-zh .bento-card p,
-        .lang-zh .shot-label,
-        .lang-zh .dl-card h3,
-        .lang-zh .dl-card .sub,
-        .lang-zh .footer {
-            font-family: var(--cjk)
+        .hero p {
+            font-size: 1.25rem;
+            color: var(--text-secondary);
+            max-width: 600px;
+            margin: 0 auto 2.5rem;
         }
 
-        @keyframes shimmer {
-
-            0%,
-            100% {
-                background-position: 0% 50%
-            }
-
-            50% {
-                background-position: 100% 50%
-            }
-        }
-
-        .hero-tagline {
-            font-size: clamp(14px, 1.5vw, 17px);
-            font-weight: 300;
-            color: var(--dim);
-            margin-bottom: 28px;
-            max-width: 420px;
-            letter-spacing: -0.2px;
-            line-height: 1.5
-        }
-
-        .hero-tagline strong {
-            color: var(--white);
-            font-weight: 600
-        }
-
-        .hero-actions {
+        .cta-buttons {
             display: flex;
-            gap: 12px;
+            gap: 1rem;
+            justify-content: center;
             flex-wrap: wrap;
-            justify-content: flex-start
-        }
-
-        .dl-wrap {
-            position: relative
-        }
-
-        .dl-dropdown {
-            position: absolute;
-            top: 100%;
-            left: 50%;
-            transform: translateX(-50%);
-            min-width: 180px;
-            padding-top: 6px;
-            opacity: 0;
-            visibility: hidden;
-            transition: opacity .2s, visibility .2s;
-            z-index: 10
-        }
-
-        .dl-wrap:hover .dl-dropdown {
-            opacity: 1;
-            visibility: visible
-        }
-
-        .dl-dropdown-inner {
-            background: rgba(10, 18, 24, .92);
-            border-radius: 8px;
-            padding: 4px 0
-        }
-
-        .dl-dropdown a {
-            display: block;
-            padding: 7px 16px;
-            color: var(--dim);
-            text-decoration: none;
-            font-size: 13px;
-            font-weight: 500;
-            transition: color .15s;
-            white-space: nowrap
-        }
-
-        .dl-dropdown a:hover {
-            color: var(--neon)
-        }
-
-        .dl-dropdown a.dd-active {
-            color: var(--white)
         }
 
         .btn {
+            padding: 0.875rem 2rem;
+            border-radius: 0.75rem;
+            font-weight: 600;
+            font-size: 1rem;
+            text-decoration: none;
+            transition: all 0.2s;
             display: inline-flex;
             align-items: center;
-            gap: 6px;
-            padding: 11px 22px;
-            border-radius: 8px;
-            font-size: 14px;
-            font-weight: 600;
-            text-decoration: none;
-            transition: all .25s;
-            border: none;
-            cursor: pointer;
-            font-family: var(--sans);
-            white-space: nowrap
+            gap: 0.5rem;
         }
 
-        .btn-g {
-            background: var(--neon);
-            color: var(--bg);
-            box-shadow: 0 0 30px var(--neon-g), inset 0 1px 0 rgba(255, 255, 255, .2)
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+            box-shadow: 0 4px 14px var(--shadow);
         }
 
-        .btn-g:hover {
-            box-shadow: 0 0 50px var(--neon-g)
+        .btn-primary:hover {
+            background: var(--primary-dark);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px var(--shadow-lg);
         }
 
-        .btn-o {
-            background: transparent;
-            color: var(--neon);
-            border: 1px solid rgba(0, 255, 157, .4)
+        .btn-secondary {
+            background: var(--surface);
+            color: var(--text);
+            border: 1px solid var(--border);
         }
 
-        .btn-o:hover {
-            background: rgba(0, 255, 157, .08);
-            border-color: var(--neon)
+        .btn-secondary:hover {
+            border-color: var(--primary);
+            transform: translateY(-2px);
         }
 
-        .hero-note {
-            margin-top: 16px;
-            font-size: 15px;
-            color: var(--dim)
-        }
-
-        .hero-note span {
-            color: var(--neon)
-        }
-
-        /* ── Sections shared ── */
-        .sec {
-            position: relative;
-            z-index: 1;
-            padding: 120px 0
-        }
-
-        .wrap {
-            max-width: 1000px;
+        /* Features Section */
+        .features {
+            padding: 6rem 2rem;
+            max-width: 1200px;
             margin: 0 auto;
-            padding: 0 32px
         }
 
-        .sec-head {
-            font-family: var(--mono);
-            font-size: 14px;
-            font-weight: 700;
-            color: var(--neon);
-            /* text-transform: uppercase; */
-            letter-spacing: 2px;
-            margin-bottom: 16px;
-            display: flex;
-            align-items: center;
-            gap: 8px
-        }
-
-        .sec-head::before {
-            content: '❯';
-            font-size: 16px
-        }
-
-        .sec-title {
-            font-family: var(--sans);
-            font-size: clamp(32px, 5vw, 56px);
-            font-weight: 800;
-            letter-spacing: -2px;
-            line-height: 1.1;
-            color: var(--white);
-            margin-bottom: 20px
-        }
-
-        .sec-desc {
-            font-size: 18px;
-            color: var(--dim);
-            max-width: 560px;
-            line-height: 1.6;
-            margin-bottom: 48px
-        }
-
-        /* ── Features Bento Grid ── */
-        .bento {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 16px
-        }
-
-        .bento-card {
-            background: var(--bg2);
-            border: 1px solid var(--border);
-            border-radius: 16px;
-            padding: 32px;
-            transition: all .3s;
-            position: relative;
-            overflow: hidden
-        }
-
-        .bento-card::after {
-            content: '';
-            position: absolute;
-            inset: 0;
-            border-radius: 16px;
-            opacity: 0;
-            transition: opacity .3s;
-            background: linear-gradient(135deg, rgba(0, 255, 157, .04), transparent 60%)
-        }
-
-        .bento-card:hover {
-            border-color: rgba(0, 255, 157, .4);
-            transform: translateY(-4px)
-        }
-
-        .bento-card:hover::after {
-            opacity: 1
-        }
-
-        .bento-card.big {
-            grid-column: span 2
-        }
-
-        .bento-icon {
-            font-size: 28px;
-            margin-bottom: 16px
-        }
-
-        .bento-card h3 {
-            font-family: var(--mono);
-            font-size: 16px;
-            font-weight: 700;
-            color: var(--white);
-            margin-bottom: 8px;
-            letter-spacing: -0.3px
-        }
-
-        .bento-card p {
-            font-size: 14px;
-            color: var(--dim);
-            line-height: 1.5
-        }
-
-        /* ── Screenshots ── */
-        .shots {
-            display: grid;
-            gap: 48px
-        }
-
-        .shot {
-            position: relative
-        }
-
-        .shot-label {
-            font-family: var(--mono);
-            font-size: 13px;
-            font-weight: 600;
-            color: var(--neon);
-            margin-bottom: 12px;
-            display: flex;
-            align-items: center;
-            gap: 8px
-        }
-
-        .shot-label::before {
-            content: '❯';
-        }
-
-        .shot img {
-            width: 100%;
-            border-radius: 12px;
-            border: 1px solid var(--border);
-            box-shadow: 0 24px 80px rgba(0, 0, 0, .6);
-            transition: transform .4s
-        }
-
-        .shot img:hover {
-            transform: scale(1.01)
-        }
-
-        /* ── Download ── */
-        .dl-sec {
-            background: var(--bg2);
-            border-top: 1px solid var(--border);
-            border-bottom: 1px solid var(--border)
-        }
-
-        .dl-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 16px
-        }
-
-        .dl-card {
-            background: var(--bg);
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 32px;
+        .section-title {
             text-align: center;
-            transition: all .3s
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 3rem;
         }
 
-        .dl-card:hover {
-            border-color: var(--neon);
-            box-shadow: 0 0 30px rgba(0, 255, 157, .08)
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
         }
 
-        .dl-card .os {
-            font-size: 36px;
-            margin-bottom: 12px
+        .feature-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 1rem;
+            padding: 2rem;
+            transition: all 0.3s;
         }
 
-        .dl-card h3 {
-            font-family: var(--mono);
-            font-size: 16px;
-            color: var(--white);
-            margin-bottom: 4px
+        .feature-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 24px var(--shadow);
         }
 
-        .dl-card .sub {
-            font-size: 12px;
-            color: var(--dim);
-            margin-bottom: 20px
-        }
-
-        /* ── Terminal ── */
-        .term {
-            max-width: 560px;
-            margin: 48px auto 0;
-            border-radius: 10px;
-            overflow: hidden;
-            border: 1px solid var(--border)
-        }
-
-        .term-bar {
+        .feature-icon {
+            width: 48px;
+            height: 48px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
+            border-radius: 12px;
             display: flex;
             align-items: center;
-            gap: 6px;
-            padding: 10px 16px;
-            background: var(--bg3);
-            border-bottom: 1px solid var(--border)
+            justify-content: center;
+            font-size: 24px;
+            margin-bottom: 1.5rem;
         }
 
-        .term-dot {
-            width: 10px;
-            height: 10px;
-            border-radius: 50%
+        .feature-card h3 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 0.75rem;
         }
 
-        .term-dot.r {
-            background: #ff5f57
+        .feature-card p {
+            color: var(--text-secondary);
+            line-height: 1.7;
         }
 
-        .term-dot.y {
-            background: #febc2e
+        /* Steps Section */
+        .steps {
+            padding: 6rem 2rem;
+            background: var(--surface);
         }
 
-        .term-dot.g {
-            background: #28c840
+        .steps-container {
+            max-width: 900px;
+            margin: 0 auto;
         }
 
-        .term-title {
-            margin-left: 8px;
-            font-family: var(--mono);
-            font-size: 11px;
-            color: var(--dim)
+        .step {
+            display: flex;
+            gap: 2rem;
+            margin-bottom: 3rem;
+            align-items: flex-start;
         }
 
-        .term-body {
-            background: var(--bg2);
-            padding: 20px;
-            font-family: var(--mono);
-            font-size: 13px;
-            line-height: 2
+        .step-number {
+            width: 48px;
+            height: 48px;
+            background: var(--primary);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 1.25rem;
+            flex-shrink: 0;
         }
 
-        .term-body .p {
-            color: var(--neon)
+        .step-content h3 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
         }
 
-        .term-body .c {
-            color: var(--dim)
+        .step-content p {
+            color: var(--text-secondary);
+            line-height: 1.7;
         }
 
-        /* ── Tools ── */
+        /* Tools Section */
+        .tools {
+            padding: 6rem 2rem;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
         .tools-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-            gap: 12px
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
         }
 
-        .tool-chip {
-            background: var(--bg2);
+        .tool-card {
+            background: var(--surface);
             border: 1px solid var(--border);
-            border-radius: 10px;
-            padding: 16px;
+            border-radius: 1rem;
+            padding: 1.5rem;
             text-align: center;
-            font-family: var(--mono);
-            font-size: 13px;
-            font-weight: 600;
-            color: var(--white);
-            transition: all .3s
+            transition: all 0.3s;
         }
 
-        .tool-chip:hover {
-            border-color: var(--neon);
-            background: var(--bg3)
+        .tool-card:hover {
+            border-color: var(--primary);
+            transform: translateY(-2px);
         }
 
-        .tool-chip .proto {
-            font-size: 11px;
-            color: var(--dim);
-            font-weight: 400;
-            margin-top: 4px
-        }
-
-        /* ── Footer ── */
-        .footer {
-            position: relative;
-            z-index: 1;
-            padding: 80px 0 48px;
-            text-align: center;
-            border-top: 1px solid var(--border)
-        }
-
-        .footer-links {
-            display: flex;
-            gap: 24px;
-            justify-content: center;
-            flex-wrap: wrap;
-            margin-bottom: 20px
-        }
-
-        .footer-links a {
-            color: var(--dim);
-            text-decoration: none;
-            font-size: 13px;
-            transition: color .2s
-        }
-
-        .footer-links a:hover {
-            color: var(--neon)
-        }
-
-        .footer p {
-            font-size: 12px;
-            color: var(--dim)
-        }
-
-        .footer p span {
-            color: var(--neon)
-        }
-
-        .footer .email {
-            display: block;
-            margin-top: 8px;
-            font-family: var(--mono);
-            font-size: 12px;
-            color: var(--neon);
-            text-decoration: none
-        }
-
-        .hero-install-hint {
-            margin-top: 48px;
-            font-size: 12.5px;
-            color: var(--dim);
-            opacity: .85;
-            line-height: 1.7;
-            font-family: var(--mono)
-        }
-
-        .hero-install-hint code {
-            color: var(--neon);
-            opacity: .9
-        }
-
-        /* ── Lightbox ── */
-        .lightbox {
-            position: fixed;
-            inset: 0;
-            z-index: 9999;
+        .tool-icon {
+            width: 64px;
+            height: 64px;
+            margin: 0 auto 1rem;
+            background: linear-gradient(135deg, var(--primary-light) 0%, var(--accent) 100%);
+            border-radius: 16px;
             display: flex;
             align-items: center;
             justify-content: center;
-            background: rgba(5, 10, 14, .85);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            opacity: 0;
-            visibility: hidden;
-            transition: opacity .35s, visibility .35s;
-            cursor: zoom-out
+            font-size: 32px;
         }
 
-        .lightbox.open {
-            opacity: 1;
-            visibility: visible
+        .tool-card h3 {
+            font-size: 1.125rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
         }
 
-        .lightbox img {
-            max-width: 92vw;
-            max-height: 90vh;
-            border-radius: 12px;
-            box-shadow: 0 0 80px rgba(0, 255, 157, .15), 0 8px 32px rgba(0, 0, 0, .6);
-            transform: scale(.85);
-            transition: transform .4s cubic-bezier(.16, 1, .3, 1)
+        .tool-card p {
+            color: var(--text-secondary);
+            font-size: 0.875rem;
         }
 
-        .lightbox.open img {
-            transform: scale(1)
+        /* Footer */
+        footer {
+            padding: 3rem 2rem;
+            text-align: center;
+            border-top: 1px solid var(--border);
+            color: var(--text-light);
         }
 
-        .hero-right img,
-        .shot img {
-            cursor: zoom-in;
-            transition: transform .3s, box-shadow .3s
+        footer a {
+            color: var(--primary);
+            text-decoration: none;
         }
 
-        .hero-right img:hover,
-        .shot img:hover {
-            transform: scale(1.02);
-            box-shadow: 0 0 30px rgba(0, 255, 157, .15)
+        footer a:hover {
+            text-decoration: underline;
         }
 
-        .hero-right img {
-            width: 100%;
-            aspect-ratio: 14 / 9;
-            object-fit: cover;
-            object-position: top center;
-            border-radius: 12px;
-            border: none;
-        }
-
-        /* ── Fade-in animation ── */
-        .fade {
-            opacity: 0;
-            transform: translateY(30px);
-            transition: opacity .8s, transform .8s
-        }
-
-        .fade.in {
-            opacity: 1;
-            transform: translateY(0)
-        }
-
-        /* ── Responsive ── */
-        @media(max-width:900px) {
-            .hero {
-                flex-direction: column;
-                text-align: center;
-                padding-top: 100px;
-                padding-bottom: 40px;
-                gap: 32px;
-                min-height: auto
-            }
-
-            .hero-left {
-                flex: none;
-                width: 100%;
-                text-align: center
-            }
-
+        /* Responsive */
+        @media (max-width: 768px) {
             .hero h1 {
-                white-space: normal
+                font-size: 2.5rem;
             }
 
-            .hero-actions {
-                justify-content: center
+            .hero p {
+                font-size: 1.125rem;
             }
 
-            .hero-right {
-                max-width: 500px;
-                width: 100%;
-            }
-            .hero-right img {
-                height: auto;
-            }
-        }
-
-        @media(max-width:768px) {
-            .bento {
-                grid-template-columns: 1fr
+            .nav-links {
+                display: none;
             }
 
-            .bento-card.big {
-                grid-column: span 1
-            }
-
-            .dl-grid {
-                grid-template-columns: 1fr
-            }
-
-            .nav-r a:not(.lang-btn) {
-                display: none
-            }
-
+            .features-grid,
             .tools-grid {
-                grid-template-columns: repeat(2, 1fr)
-            }
-
-            .hero h1 {
-                letter-spacing: -1px
+                grid-template-columns: 1fr;
             }
         }
     </style>
 </head>
 
 <body>
-
-    <canvas id="matrix"></canvas>
-
-    <!-- Nav -->
-    <div class="nav">
-        <a href="#" class="nav-logo"><span data-i18n="nav_logo">EchoBird AI</span></a>
-        <div class="nav-r">
-            <a href="#features" data-i18n="nav_features">Features</a>
-            <a href="#screenshots" data-i18n="nav_screenshots">Screenshots</a>
-            <a href="#download" data-i18n="nav_download">Download</a>
-            <a href="/free-models" data-i18n="nav_free_models">Today's Free Models</a>
-            <a href="https://github.com/edison7009/Echobird" target="_blank">GitHub</a>
-            <div class="lang-wrap">
-                <button class="lang-btn" id="langBtn">🌐 EN</button>
-                <div class="lang-drop" id="langDrop">
-                    <div class="lang-opt" data-lang="en">English</div>
-                    <div class="lang-opt" data-lang="zh-CN">简体中文</div>
-                    <div class="lang-opt" data-lang="zh-TW">繁體中文</div>
-                    <div class="lang-opt" data-lang="ja">日本語</div>
-                    <div class="lang-opt" data-lang="ko">한국어</div>
-                    <div class="lang-opt" data-lang="es">Español</div>
-                    <div class="lang-opt" data-lang="fr">Français</div>
-                    <div class="lang-opt" data-lang="de">Deutsch</div>
-                    <div class="lang-opt" data-lang="pt">Português</div>
-                    <div class="lang-opt" data-lang="ru">Русский</div>
-                    <div class="lang-opt" data-lang="ar">عربي</div>
-                </div>
-            </div>
+    <!-- Navigation -->
+    <nav>
+        <div class="nav-container">
+            <a href="#" class="logo">
+                <img src="./icon.png" alt="EchoBird">
+                <span>EchoBird</span>
+            </a>
+            <ul class="nav-links">
+                <li><a href="#features">功能特性</a></li>
+                <li><a href="#steps">快速开始</a></li>
+                <li><a href="#tools">支持工具</a></li>
+                <li><a href="https://github.com/edison7009/EchoBird" target="_blank">GitHub</a></li>
+            </ul>
         </div>
-    </div>
+    </nav>
 
-    <!-- Hero -->
+    <!-- Hero Section -->
     <section class="hero">
-        <div class="hero-glow"></div>
-        <div class="hero-left">
-
-            <h1 data-i18n="hero_title">EchoBird</h1>
-            <p class="hero-tagline" data-i18n="hero_tag">Even as an <strong>AI beginner</strong>, EchoBird lets you command your own <strong>Agent</strong> — from setup to work — through <strong>simple chat</strong>.</p>
-            <div class="hero-actions">
-                <div class="dl-wrap">
-                    <a id="hero-dl-win" href="https://github.com/edison7009/Echobird/releases/latest"
-                        class="btn btn-g"><svg width="16" height="16" viewBox="0 0 448 512" fill="currentColor">
-                            <path
-                                d="M0 93.7l183.6-25.3 0 177.4-183.6 0 0-152.1zM0 418.3l183.6 25.3 0-175.2-183.6 0 0 149.9zm203.8 28l244.2 33.7 0-211.6-244.2 0 0 177.9zm0-380.6l0 180.1 244.2 0 0-213.8-244.2 33.7z" />
-                        </svg> Windows</a>
-                    <div class="dl-dropdown">
-                        <div class="dl-dropdown-inner">
-                            <a id="dd-win-exe" href="https://github.com/edison7009/Echobird/releases/latest"
-                                class="dd-active">✓ Windows x64 (.exe)</a>
-                            <a id="dd-win-msi"
-                                href="https://github.com/edison7009/Echobird/releases/latest">Windows x64
-                                (.msi)</a>
-                        </div>
-                    </div>
-                </div>
-                <div class="dl-wrap">
-                    <a id="hero-dl-mac" href="https://github.com/edison7009/Echobird/releases/latest"
-                        class="btn btn-g"><svg width="16" height="16" viewBox="0 0 384 512" fill="currentColor">
-                            <path
-                                d="M319.1 268.7c-.2-36.7 16.4-64.4 50-84.8-18.8-26.9-47.2-41.7-84.7-44.6-35.5-2.8-74.3 20.7-88.5 20.7-15 0-49.4-19.7-76.4-19.7-55.8 .9-115.1 44.5-115.1 133.2 0 26.2 4.8 53.3 14.4 81.2 12.8 36.7 59 126.7 107.2 125.2 25.2-.6 43-17.9 75.8-17.9 31.8 0 48.3 17.9 76.4 17.9 48.6-.7 90.4-82.5 102.6-119.3-65.2-30.7-61.7-90-61.7-91.9zM262.5 104.5c27.3-32.4 24.8-61.9 24-72.5-24.1 1.4-52 16.4-67.9 34.9-17.5 19.8-27.8 44.3-25.6 71.9 26.1 2 49.9-11.4 69.5-34.3z" />
-                        </svg> macOS</a>
-                    <div class="dl-dropdown">
-                        <div class="dl-dropdown-inner">
-                            <a id="dd-mac-arm" href="https://github.com/edison7009/Echobird/releases/latest"
-                                class="dd-active">✓ Apple Silicon (.dmg)</a>
-                            <a id="dd-mac-intel"
-                                href="https://github.com/edison7009/Echobird/releases/latest">Intel
-                                (.dmg)</a>
-                        </div>
-                    </div>
-                </div>
-                <div class="dl-wrap">
-                    <a id="hero-dl-linux" href="https://github.com/edison7009/Echobird/releases/latest"
-                        class="btn btn-g"><svg width="16" height="16" viewBox="0 0 448 512" fill="currentColor">
-                            <path
-                                d="M220.9 123.3c1 .5 1.8 1.7 3 1.7 1.1 0 2.8-.4 2.9-1.5 .2-1.4-1.9-2.3-3.2-2.9-1.7-.7-3.9-1-5.5-.1-.4 .2-.8 .7-.6 1.1 .3 1.3 2.3 1.1 3.4 1.7zM199 125c1.2 0 2-1.2 3-1.7 1.1-.6 3.1-.4 3.5-1.6 .2-.4-.2-.9-.6-1.1-1.6-.9-3.8-.6-5.5 .1-1.3 .6-3.4 1.5-3.2 2.9 .1 1 1.8 1.5 2.8 1.4zM420 403.8c-3.6-4-5.3-11.6-7.2-19.7-1.8-8.1-3.9-16.8-10.5-22.4-1.3-1.1-2.6-2.1-4-2.9-1.3-.8-2.7-1.5-4.1-2 9.2-27.3 5.6-54.5-3.7-79.1-11.4-30.1-31.3-56.4-46.5-74.4-17.1-21.5-33.7-41.9-33.4-72 .5-45.9 5.1-131.2-75.8-131.3-102.4-.2-76.8 103.4-77.9 135.2-1.7 23.4-6.4 41.8-22.5 64.7-18.9 22.5-45.5 58.8-58.1 96.7-6 17.9-8.8 36.1-6.2 53.3-6.5 5.8-11.4 14.7-16.6 20.2-4.2 4.3-10.3 5.9-17 8.3s-14 6-18.5 14.5c-2.1 3.9-2.8 8.1-2.8 12.4 0 3.9 .6 7.9 1.2 11.8 1.2 8.1 2.5 15.7 .8 20.8-5.2 14.4-5.9 24.4-2.2 31.7 3.8 7.3 11.4 10.5 20.1 12.3 17.3 3.6 40.8 2.7 59.3 12.5 19.8 10.4 39.9 14.1 55.9 10.4 11.6-2.6 21.1-9.6 25.9-20.2 12.5-.1 26.3-5.4 48.3-6.6 14.9-1.2 33.6 5.3 55.1 4.1 .6 2.3 1.4 4.6 2.5 6.7l0 .1c8.3 16.7 23.8 24.3 40.3 23 16.6-1.3 34.1-11 48.3-27.9 13.6-16.4 36-23.2 50.9-32.2 7.4-4.5 13.4-10.1 13.9-18.3 .4-8.2-4.4-17.3-15.5-29.7z" />
-                        </svg> Linux</a>
-                    <div class="dl-dropdown">
-                        <div class="dl-dropdown-inner">
-                            <a id="dd-linux-appimage"
-                                href="https://github.com/edison7009/Echobird/releases/latest"
-                                class="dd-active">✓ AppImage (.AppImage)</a>
-                            <a id="dd-linux-deb"
-                                href="https://github.com/edison7009/Echobird/releases/latest">Debian
-                                (.deb)</a>
-                            <a id="dd-linux-rpm"
-                                href="https://github.com/edison7009/Echobird/releases/latest">Fedora
-                                (.rpm)</a>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <p class="hero-install-hint" data-i18n="install_hint">macOS: &ldquo;damaged&rdquo; alert &rarr; Terminal
-                &rarr;
-                <code>xattr -cr /Applications/EchoBird.app</code> &middot; Windows: SmartScreen &rarr; More info &rarr;
-                Run anyway
-            </p>
-        </div>
-        <div class="hero-right">
-            <img src="./hero.png" alt="EchoBird Channels">
+        <h1>让 AI 工具触手可及</h1>
+        <p>专为新手设计的 AI 工具管理平台，一键安装、配置和管理所有 AI 编程助手，无需复杂的技术知识</p>
+        <div class="cta-buttons">
+            <a href="https://github.com/edison7009/EchoBird/releases/latest" class="btn btn-primary">
+                <span>⬇️</span>
+                立即下载
+            </a>
+            <a href="#steps" class="btn btn-secondary">
+                <span>📖</span>
+                新手教程
+            </a>
         </div>
     </section>
 
-    <!-- MotherAgent -->
-    <section class="sec" id="motheragent"
-        style="background:linear-gradient(180deg,var(--bg) 0%,var(--bg2) 50%,var(--bg) 100%);border-top:1px solid var(--border);border-bottom:1px solid var(--border)">
-        <div class="wrap">
-            <div class="sec-head">MOTHER AGENT</div>
-            <h2 class="sec-title fade" data-i18n="ma_title">Deploy models.<br>Run agents.</h2>
-            <p class="sec-desc fade" data-i18n="ma_desc">MotherAgent is your autonomous AI agent &mdash; deploy local
-                LLMs, connect remote models, and launch OpenClaw, all from one place.</p>
-            <div class="bento">
-                <div class="bento-card big fade">
-                    <div class="bento-icon">&#x1F5A5;&#xFE0F;</div>
-                    <h3 data-i18n="ma1_t">Local LLM Deployment</h3>
-                    <p data-i18n="ma1_d">One-click deploy Qwen, DeepSeek, Llama and other open-source models on your own
-                        machine via built-in llama.cpp. Your data never leaves your device.</p>
+    <!-- Features Section -->
+    <section id="features" class="features">
+        <h2 class="section-title">为什么选择 EchoBird？</h2>
+        <div class="features-grid">
+            <div class="feature-card">
+                <div class="feature-icon">⚡</div>
+                <h3>一键安装</h3>
+                <p>无需复杂的命令行操作，点击即可安装 Claude Code、OpenClaw 等 AI 工具，让新手也能轻松上手</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">🎯</div>
+                <h3>统一管理</h3>
+                <p>在一个界面中管理所有 AI 工具的模型配置，切换模型就像切换主题一样简单</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">🔄</div>
+                <h3>灵活切换</h3>
+                <p>支持在 Claude、GPT、本地模型之间自由切换，适配不同场景的需求</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">🚀</div>
+                <h3>本地部署</h3>
+                <p>内置 llama.cpp 和 vLLM 支持，轻松部署 Qwen、DeepSeek 等开源模型到本地</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">🛡️</div>
+                <h3>安全可靠</h3>
+                <p>完全开源，所有配置本地存储，不会上传任何敏感信息到云端</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">🆓</div>
+                <h3>永久免费</h3>
+                <p>完全免费且开源，无任何隐藏费用，社区驱动持续更新</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Steps Section -->
+    <section id="steps" class="steps">
+        <div class="steps-container">
+            <h2 class="section-title">三步开始使用</h2>
+            <div class="step">
+                <div class="step-number">1</div>
+                <div class="step-content">
+                    <h3>下载安装</h3>
+                    <p>前往 <a href="https://github.com/edison7009/EchoBird/releases/latest"
+                            style="color: var(--primary);">GitHub Releases</a> 下载最新版本的安装包，双击运行完成安装。支持 Windows、macOS
+                        和 Linux 系统。</p>
                 </div>
-                <div class="bento-card fade">
-                    <div class="bento-icon">&#x1F310;</div>
-                    <h3 data-i18n="ma2_t">Remote LLM</h3>
-                    <p data-i18n="ma2_d">Connect OpenAI, Anthropic, Google Gemini, or any OpenAI-compatible remote API
-                        endpoint instantly.</p>
+            </div>
+            <div class="step">
+                <div class="step-number">2</div>
+                <div class="step-content">
+                    <h3>配置模型</h3>
+                    <p>打开 EchoBird，在"模型管理"页面添加你的 API Key（支持 Claude、OpenAI 等），或者部署本地模型。所有配置都有详细的引导提示。</p>
                 </div>
-                <div class="bento-card fade">
-                    <div class="bento-icon">&#x1F985;</div>
-                    <h3 data-i18n="ma3_t">Deploy OpenClaw</h3>
-                    <p data-i18n="ma3_d">Launch and manage OpenClaw agents directly from MotherAgent. Point, configure,
-                        and run &mdash; no terminal needed.</p>
-                </div>
-                <div class="bento-card fade">
-                    <div class="bento-icon">&#x1F4BE;</div>
-                    <h3 data-i18n="ma4_t">Persistent Sessions</h3>
-                    <p data-i18n="ma4_d">Agent conversations survive app restarts. Pick up exactly where you left off.
-                    </p>
-                </div>
-                <div class="bento-card fade">
-                    <div class="bento-icon">&#x26A1;</div>
-                    <h3 data-i18n="ma5_t">Any Protocol</h3>
-                    <p data-i18n="ma5_d">OpenAI API &amp; Anthropic API. Switch protocols per agent with zero config
-                        changes.</p>
+            </div>
+            <div class="step">
+                <div class="step-number">3</div>
+                <div class="step-content">
+                    <h3>安装工具</h3>
+                    <p>在"工具管理"页面，选择你需要的 AI 编程工具（如 Claude Code、OpenClaw），点击"一键安装"按钮，几秒钟即可完成安装和配置。</p>
                 </div>
             </div>
         </div>
     </section>
 
-    <!-- Features -->
-    <section class="sec" id="features">
-        <div class="wrap">
-            <div class="sec-head" data-i18n="sec_features">FEATURES</div>
-            <h2 class="sec-title fade" data-i18n="features_title">Install agents.<br>Switch models.<br>Deploy LLMs.</h2>
-            <p class="sec-desc fade" data-i18n="features_desc">One app to install OpenClaw, Claude Code, ZeroClaw &
-                Codex, switch models across all agents, and deploy Qwen, DeepSeek, Llama locally or remotely.</p>
-            <div class="bento">
-                <div class="bento-card big fade">
-                    <div class="bento-icon">🎯</div>
-                    <h3 data-i18n="f1_t">One-Click Model Switching</h3>
-                    <p data-i18n="f1_d">Visually configure AI models for any supported tool. No more digging through
-                        JSON files or editing configs by hand.</p>
-                </div>
-                <div class="bento-card fade">
-                    <div class="bento-icon">🔀</div>
-                    <h3 data-i18n="f2_t">Dual Protocol</h3>
-                    <p data-i18n="f2_d">OpenAI & Anthropic API. Switch anytime.</p>
-                </div>
-                <div class="bento-card fade">
-                    <div class="bento-icon">🚇</div>
-                    <h3 data-i18n="f3_t">Smart Tunnel Proxy</h3>
-                    <p data-i18n="f3_d">Access geo-restricted APIs. No full VPN needed.</p>
-                </div>
-                <div class="bento-card big fade">
-                    <div class="bento-icon">🖥️</div>
-                    <h3 data-i18n="f4_t">Local Model Server</h3>
-                    <p data-i18n="f4_d">Run Qwen, DeepSeek, Llama and other open-source models locally via built-in
-                        llama.cpp server. Your data stays on your machine.</p>
-                </div>
-                <div class="bento-card fade">
-                    <div class="bento-icon">🎮</div>
-                    <h3 data-i18n="f6_t">Built-in AI Apps</h3>
-                    <p data-i18n="f6_d">Reversi, AI Translate. More coming.</p>
-                </div>
-                <div class="bento-card fade">
-                    <div class="bento-icon">🌍</div>
-                    <h3 data-i18n="f7_t">28 Languages</h3>
-                    <p data-i18n="f7_d">Full i18n for global developers.</p>
-                </div>
+    <!-- Tools Section -->
+    <section id="tools" class="tools">
+        <h2 class="section-title">支持的 AI 工具</h2>
+        <div class="tools-grid">
+            <div class="tool-card">
+                <div class="tool-icon">🤖</div>
+                <h3>Claude Code</h3>
+                <p>Anthropic 官方 CLI 工具</p>
+            </div>
+            <div class="tool-card">
+                <div class="tool-icon">🦅</div>
+                <h3>OpenClaw</h3>
+                <p>开源 AI 编程助手</p>
+            </div>
+            <div class="tool-card">
+                <div class="tool-icon">⚙️</div>
+                <h3>Codex</h3>
+                <p>OpenAI 编程工具</p>
+            </div>
+            <div class="tool-card">
+                <div class="tool-icon">🔧</div>
+                <h3>ZeroClaw</h3>
+                <p>轻量级 AI 助手</p>
+            </div>
+            <div class="tool-card">
+                <div class="tool-icon">🎯</div>
+                <h3>NanoBot</h3>
+                <p>迷你 AI 机器人</p>
+            </div>
+            <div class="tool-card">
+                <div class="tool-icon">✨</div>
+                <h3>更多工具</h3>
+                <p>持续添加中...</p>
             </div>
         </div>
     </section>
-
-    <!-- Screenshots -->
-    <section class="sec" id="screenshots">
-        <div class="wrap">
-            <div class="sec-head" data-i18n="sec_ss">SCREENSHOTS</div>
-            <h2 class="sec-title fade" data-i18n="ss_title">See it in action.</h2>
-            <div class="shots">
-                <div class="shot fade">
-                    <div class="shot-label" data-i18n="ss1">Model Nexus · OpenAI, Anthropic, Gemini, DeepSeek, Ollama —
-                        all in one panel</div>
-                    <img src="./1.png" alt="Model Nexus" loading="lazy">
-                </div>
-                <div class="shot fade">
-                    <div class="shot-label" data-i18n="ss2">App Manager · One-click model switching for OpenClaw, Claude
-                        Code, Codex & more</div>
-                    <img src="./2.png" alt="App Manager" loading="lazy">
-                </div>
-                <div class="shot fade">
-                    <div class="shot-label" data-i18n="ss3">Local LLM · Deploy Qwen, Llama, DeepSeek locally via
-                        llama.cpp / vLLM / SGLang</div>
-                    <img src="./3.png" alt="Local Server" loading="lazy">
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Download -->
-    <section class="sec dl-sec" id="download">
-        <div class="wrap">
-            <div class="sec-head" data-i18n="sec_dl">DOWNLOAD</div>
-            <h2 class="sec-title fade" data-i18n="dl_title">Get started in seconds.</h2>
-            <p class="sec-desc fade" data-i18n="dl_desc">Download EchoBird for your platform. Free, open source, MIT
-                licensed.</p>
-            <div class="dl-grid fade">
-                <div class="dl-card">
-                    <div class="os"><svg width="40" height="40" viewBox="0 0 448 512" fill="var(--neon)">
-                            <path
-                                d="M0 93.7l183.6-25.3 0 177.4-183.6 0 0-152.1zM0 418.3l183.6 25.3 0-175.2-183.6 0 0 149.9zm203.8 28l244.2 33.7 0-211.6-244.2 0 0 177.9zm0-380.6l0 180.1 244.2 0 0-213.8-244.2 33.7z" />
-                        </svg></div>
-                    <h3>Windows</h3>
-                    <div class="sub">Windows 10+, x64</div>
-                    <a id="dl-win" href="https://github.com/edison7009/Echobird/releases/latest"
-                        class="btn btn-g" data-i18n="dl_btn">Download</a>
-                </div>
-                <div class="dl-card">
-                    <div class="os"><svg width="40" height="40" viewBox="0 0 384 512" fill="var(--neon)">
-                            <path
-                                d="M319.1 268.7c-.2-36.7 16.4-64.4 50-84.8-18.8-26.9-47.2-41.7-84.7-44.6-35.5-2.8-74.3 20.7-88.5 20.7-15 0-49.4-19.7-76.4-19.7-55.8 .9-115.1 44.5-115.1 133.2 0 26.2 4.8 53.3 14.4 81.2 12.8 36.7 59 126.7 107.2 125.2 25.2-.6 43-17.9 75.8-17.9 31.8 0 48.3 17.9 76.4 17.9 48.6-.7 90.4-82.5 102.6-119.3-65.2-30.7-61.7-90-61.7-91.9zM262.5 104.5c27.3-32.4 24.8-61.9 24-72.5-24.1 1.4-52 16.4-67.9 34.9-17.5 19.8-27.8 44.3-25.6 71.9 26.1 2 49.9-11.4 69.5-34.3z" />
-                        </svg></div>
-                    <h3>macOS</h3>
-                    <div class="sub">macOS 11+, Universal</div>
-                    <a id="dl-mac" href="https://github.com/edison7009/Echobird/releases/latest"
-                        class="btn btn-g" data-i18n="dl_btn">Download</a>
-                </div>
-                <div class="dl-card">
-                    <div class="os"><svg width="40" height="40" viewBox="0 0 448 512" fill="var(--neon)">
-                            <path
-                                d="M220.9 123.3c1 .5 1.8 1.7 3 1.7 1.1 0 2.8-.4 2.9-1.5 .2-1.4-1.9-2.3-3.2-2.9-1.7-.7-3.9-1-5.5-.1-.4 .2-.8 .7-.6 1.1 .3 1.3 2.3 1.1 3.4 1.7zM199 125c1.2 0 2-1.2 3-1.7 1.1-.6 3.1-.4 3.5-1.6 .2-.4-.2-.9-.6-1.1-1.6-.9-3.8-.6-5.5 .1-1.3 .6-3.4 1.5-3.2 2.9 .1 1 1.8 1.5 2.8 1.4zM420 403.8c-3.6-4-5.3-11.6-7.2-19.7-1.8-8.1-3.9-16.8-10.5-22.4-1.3-1.1-2.6-2.1-4-2.9-1.3-.8-2.7-1.5-4.1-2 9.2-27.3 5.6-54.5-3.7-79.1-11.4-30.1-31.3-56.4-46.5-74.4-17.1-21.5-33.7-41.9-33.4-72 .5-45.9 5.1-131.2-75.8-131.3-102.4-.2-76.8 103.4-77.9 135.2-1.7 23.4-6.4 41.8-22.5 64.7-18.9 22.5-45.5 58.8-58.1 96.7-6 17.9-8.8 36.1-6.2 53.3-6.5 5.8-11.4 14.7-16.6 20.2-4.2 4.3-10.3 5.9-17 8.3s-14 6-18.5 14.5c-2.1 3.9-2.8 8.1-2.8 12.4 0 3.9 .6 7.9 1.2 11.8 1.2 8.1 2.5 15.7 .8 20.8-5.2 14.4-5.9 24.4-2.2 31.7 3.8 7.3 11.4 10.5 20.1 12.3 17.3 3.6 40.8 2.7 59.3 12.5 19.8 10.4 39.9 14.1 55.9 10.4 11.6-2.6 21.1-9.6 25.9-20.2 12.5-.1 26.3-5.4 48.3-6.6 14.9-1.2 33.6 5.3 55.1 4.1 .6 2.3 1.4 4.6 2.5 6.7l0 .1c8.3 16.7 23.8 24.3 40.3 23 16.6-1.3 34.1-11 48.3-27.9 13.6-16.4 36-23.2 50.9-32.2 7.4-4.5 13.4-10.1 13.9-18.3 .4-8.2-4.4-17.3-15.5-29.7z" />
-                        </svg></div>
-                    <h3>Linux</h3>
-                    <div class="sub">AppImage, x64</div>
-                    <a id="dl-linux" href="https://github.com/edison7009/Echobird/releases/latest"
-                        class="btn btn-g" data-i18n="dl_btn">Download</a>
-                </div>
-            </div>
-            <!-- Terminal -->
-            <div class="term fade">
-                <div class="term-bar">
-                    <div class="term-dot r"></div>
-                    <div class="term-dot y"></div>
-                    <div class="term-dot g"></div><span class="term-title">terminal</span>
-                </div>
-                <div class="term-body">
-                    <span class="c"># Linux quick start</span>
-                    <span class="p">$</span> chmod +x Echobird-*.AppImage
-                    <span class="p">$</span> ./Echobird-*.AppImage
-                    <span class="c"># Need FUSE?</span>
-                    <span class="p">$</span> sudo apt install libfuse2
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Tools -->
-    <section class="sec" id="tools">
-        <div class="wrap">
-            <div class="sec-head" data-i18n="sec_tools">WORKS WITH</div>
-            <h2 class="sec-title fade" data-i18n="tools_title">Your favorite tools.</h2>
-            <p class="sec-desc fade" data-i18n="tools_desc">Install, configure, and switch models for all your coding
-                agents.</p>
-            <div class="tools-grid fade">
-                <div class="tool-chip">OpenClaw
-                    <div class="proto">OpenAI</div>
-                    <div class="proto">Anthropic</div>
-                </div>
-                <div class="tool-chip">Claude Code<div class="proto">Anthropic</div>
-                </div>
-                <div class="tool-chip">NanoBot
-                    <div class="proto">OpenAI</div>
-                    <div class="proto">Anthropic</div>
-                </div>
-                <div class="tool-chip">PicoClaw
-                    <div class="proto">OpenAI</div>
-                    <div class="proto">Anthropic</div>
-                </div>
-                <div class="tool-chip">Hermes Agent
-                    <div class="proto">OpenAI</div>
-                    <div class="proto">Anthropic</div>
-                </div>
-                <div class="tool-chip">ZeroClaw<div class="proto">OpenAI</div>
-                </div>
-                <div class="tool-chip">OpenCode<div class="proto">OpenAI</div>
-                </div>
-                <div class="tool-chip">Codex<div class="proto">OpenAI</div>
-                </div>
-                <div class="tool-chip">Cline<div class="proto">OpenAI</div>
-                </div>
-                <div class="tool-chip">Continue<div class="proto">OpenAI</div>
-                </div>
-                <div class="tool-chip">Roo Code<div class="proto">OpenAI</div>
-                </div>
-                <div class="tool-chip">Aider
-                    <div class="proto">OpenAI</div>
-                    <div class="proto">Anthropic</div>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Lightbox Overlay -->
-    <div class="lightbox" id="lightbox">
-        <img id="lightbox-img" src="" alt="">
-    </div>
 
     <!-- Footer -->
-    <footer class="footer">
-        <div class="wrap">
-            <div class="footer-links">
-                <a href="https://github.com/edison7009/Echobird" target="_blank">GitHub</a>
-                <a href="https://github.com/edison7009/Echobird/issues" target="_blank"
-                    data-i18n="ft_issues">Issues</a>
-                <a href="https://github.com/edison7009/Echobird/discussions" target="_blank"
-                    data-i18n="ft_discuss">Discussions</a>
-                <a href="mailto:hi@EchoBird.ai">📧 hi@EchoBird.ai (Bug Reports)</a>
-            </div>
-            <p>Made with <span>💚</span> by the EchoBird Team · MIT License</p>
-            <a href="https://EchoBird.ai" target="_blank" class="email">EchoBird.ai</a>
-        </div>
+    <footer>
+        <p>&copy; 2024 EchoBird. 开源项目，采用 MIT 许可证.</p>
+        <p>
+            <a href="https://github.com/edison7009/EchoBird" target="_blank">GitHub</a> ·
+            <a href="https://github.com/edison7009/EchoBird/issues" target="_blank">反馈问题</a> ·
+            <a href="https://github.com/edison7009/EchoBird/blob/main/README.md" target="_blank">文档</a>
+        </p>
     </footer>
-
-    <script>
-        // ── Matrix Rain ──
-        (function () {
-            const c = document.getElementById('matrix'), x = c.getContext('2d');
-            let W, H, cols, drops;
-            const S = 20;
-            const chars = 'ﾊﾐﾋｰｳｼﾅﾓﾆｻﾜﾂｵﾘｱﾎﾃﾏｹﾒｴｶｷﾑﾕﾗｾﾈｽﾀﾇﾍ01';
-            function init() { W = c.width = innerWidth; H = c.height = innerHeight; cols = Math.floor(W / S); drops = Array(cols).fill(1) }
-            init(); addEventListener('resize', init);
-            setInterval(() => {
-                x.fillStyle = 'rgba(5,10,14,.04)'; x.fillRect(0, 0, W, H);
-                x.font = S + 'px monospace';
-                x.shadowColor = '#00FF9D'; x.shadowBlur = 3;
-                for (let i = 0; i < cols; i++) {
-                    const bright = Math.random() > .6;
-                    x.fillStyle = bright ? '#00FF9D' : 'rgba(0,255,157,.35)';
-                    x.fillText(chars[Math.floor(Math.random() * chars.length)], i * S, drops[i] * S);
-                    if (drops[i] * S > H && Math.random() > .975) drops[i] = 0;
-                    drops[i]++;
-                }
-                x.shadowBlur = 0;
-            }, 40);
-        })();
-
-        // ── Scroll fade-in ──
-        const obs = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); obs.unobserve(e.target) } }), { threshold: .15 });
-        document.querySelectorAll('.fade').forEach(el => obs.observe(el));
-
-        // ── Lightbox ──
-        (function () {
-            const lb = document.getElementById('lightbox');
-            const lbImg = document.getElementById('lightbox-img');
-            document.querySelectorAll('.hero-right img, .shot img').forEach(img => {
-                img.addEventListener('click', e => {
-                    e.preventDefault();
-                    lbImg.src = img.src;
-                    lb.classList.add('open');
-                    document.body.style.overflow = 'hidden';
-                });
-            });
-            lb.addEventListener('click', () => {
-                lb.classList.remove('open');
-                document.body.style.overflow = '';
-            });
-            document.addEventListener('keydown', e => {
-                if (e.key === 'Escape' && lb.classList.contains('open')) {
-                    lb.classList.remove('open');
-                    document.body.style.overflow = '';
-                }
-            });
-        })();
-
-        // ── i18n ──
-        const i18n = {
-            en: {
-                hero_title: 'EchoBird', nav_logo: 'EchoBird.ai', page_title: 'EchoBird · One-click install OpenClaw, Claude Code, ZeroClaw & Codex', nav_features: 'Features', nav_screenshots: 'Screenshots', nav_download: 'Download', nav_free_models: "Today's Free Models",
-                hero_tag: 'Even as an <strong>AI beginner</strong>, EchoBird lets you command your own <strong>Agent</strong> — from setup to work — through <strong>simple chat</strong>.',
-                install_hint: 'macOS: &ldquo;damaged&rdquo; alert &rarr; Terminal &rarr; <code>xattr -cr /Applications/EchoBird.app</code> &middot; Windows: SmartScreen &rarr; More info &rarr; Run anyway',
-                sec_features: 'FEATURES', features_title: 'Install agents.<br>Switch models.<br>Deploy LLMs.', features_desc: 'One app to install OpenClaw, Claude Code, ZeroClaw & Codex, switch models across all agents, and deploy Qwen, DeepSeek, Llama locally or remotely.',
-                f1_t: 'One-Click Model Switching', f1_d: 'Visually configure AI models for any supported tool. No more digging through JSON files or editing configs by hand.',
-                f2_t: 'Dual Protocol', f2_d: 'OpenAI & Anthropic API. Switch anytime.', f3_t: 'Smart Tunnel Proxy', f3_d: 'Access geo-restricted APIs. No full VPN needed.',
-                f4_t: 'Local Model Server', f4_d: 'Run Qwen, DeepSeek, Llama and other open-source models locally via built-in llama.cpp server. Your data stays on your machine.', f6_t: 'Built-in AI Apps', f6_d: 'Reversi, AI Translate. More coming.',
-                f7_t: '28 Languages', f7_d: 'Full i18n for global developers.',
-                sec_ss: 'SCREENSHOTS', ss_title: 'See it in action.', ss1: 'Model Nexus · OpenAI, Anthropic, Gemini, DeepSeek, Ollama — all in one panel', ss2: 'App Manager · One-click model switching for OpenClaw, Claude Code, Codex & more', ss3: 'Local LLM · Deploy Qwen, Llama, DeepSeek locally via llama.cpp / vLLM / SGLang',
-                sec_dl: 'DOWNLOAD', dl_title: 'Get started in seconds.', dl_desc: 'Download EchoBird for your platform. Free, open source, MIT licensed.', dl_btn: 'Download',
-                sec_tools: 'WORKS WITH', tools_title: 'Your favorite tools.', tools_desc: 'Install, configure, and switch models for all your coding agents.', ft_issues: 'Issues', ft_discuss: 'Discussions',
-                ma_title: 'Deploy models.<br>Run agents.', ma_desc: 'MotherAgent is your autonomous AI agent \u2014 deploy local LLMs, connect remote models, and launch OpenClaw, all from one place.',
-                ma1_t: 'Local LLM Deployment', ma1_d: 'One-click deploy Qwen, DeepSeek, Llama and other open-source models on your own machine via built-in llama.cpp. Your data never leaves your device.',
-                ma2_t: 'Remote LLM', ma2_d: 'Connect OpenAI, Anthropic, Google Gemini, or any OpenAI-compatible remote API endpoint instantly.',
-                ma3_t: 'Deploy OpenClaw', ma3_d: 'Launch and manage OpenClaw agents directly from MotherAgent. Point, configure, and run \u2014 no terminal needed.',
-                ma4_t: 'Persistent Sessions', ma4_d: 'Agent conversations survive app restarts. Pick up exactly where you left off.',
-                ma5_t: 'Any Protocol', ma5_d: 'OpenAI API & Anthropic API. Switch protocols per agent with zero config changes.'
-            },
-            'zh-CN': {
-                hero_title: 'EchoBird', nav_logo: 'EchoBird.ai', page_title: 'EchoBird · 一键安装 OpenClaw、Claude Code、ZeroClaw 和 Codex', nav_features: '功能', nav_screenshots: '截图', nav_download: '下载', nav_free_models: '今日免费模型',
-                hero_tag: '即便你是 <strong>AI 新手</strong>，在 EchoBird 的帮助下，你也可以通过<strong>简单聊天</strong>的方式，从部署到使用，全程指挥你的 <strong>Agent</strong>。',
-                install_hint: 'macOS：提示「已损坏」→ 终端 → <code>xattr -cr /Applications/EchoBird.app</code> · Windows：SmartScreen 拦截 → 更多信息 → 仍要运行',
-                sec_features: '核心功能', features_title: '安装智能体。<br>切换模型。<br>部署大模型。', features_desc: '一个应用安装 OpenClaw、Claude Code、ZeroClaw 和 Codex，跨所有智能体切换模型，本地或远程部署 Qwen、DeepSeek、Llama 等大模型。',
-                f1_t: '一键切换模型', f1_d: '可视化配置任何支持工具的 AI 模型。不再手动翻 JSON 文件。',
-                f2_t: '双协议支持', f2_d: 'OpenAI & Anthropic API，随时切换。', f3_t: '智能隧道代理', f3_d: '无需 VPN 即可访问受限 API。',
-                f4_t: '本地模型服务器', f4_d: '通过内置 llama.cpp 服务器本地运行 Qwen、DeepSeek、Llama 等开源模型。数据留在本地。', f6_t: '内置 AI 应用', f6_d: 'Reversi、AI 翻译，更多即将到来。',
-                f7_t: '28 种语言', f7_d: '完整国际化支持。',
-                sec_ss: '截图', ss_title: '实际效果。', ss1: 'Model Nexus · OpenAI、Anthropic、Gemini、DeepSeek、Ollama — 统一管理', ss2: 'App Manager · 为 OpenClaw、Claude Code、Codex 等一键切换模型', ss3: 'Local LLM · 通过 llama.cpp / vLLM / SGLang 本地部署 Qwen、Llama、DeepSeek',
-                sec_dl: '下载', dl_title: '几秒上手。', dl_desc: '下载EchoBird，免费开源，MIT 许可。', dl_btn: '下载',
-                sec_tools: '支持的工具', tools_title: '你喜欢的工具。', tools_desc: '为所有编程智能体安装、配置和切换模型。', ft_issues: '问题反馈', ft_discuss: '讨论',
-                ma_title: '部署模型。<br>运行智能体。', ma_desc: 'MotherAgent 是你的自主 AI 智能体——部署本地 LLM、连接远程模型、启动 OpenClaw，一站搞定。',
-                ma1_t: '本地 LLM 部署', ma1_d: '一键通过内置 llama.cpp 在本机部署 Qwen、DeepSeek、Llama 等开源模型，数据永不离开设备。',
-                ma2_t: '远程 LLM', ma2_d: '一键接入 OpenAI、Anthropic、Google Gemini 或任何 OpenAI 兼容的远程 API 端点。',
-                ma3_t: '部署 OpenClaw', ma3_d: '直接从 MotherAgent 启动和管理 OpenClaw 智能体，无需终端。',
-                ma4_t: '持久会话', ma4_d: '智能体对话在应用重启后依然保留，继续上次进度。',
-                ma5_t: '任意协议', ma5_d: 'OpenAI API 与 Anthropic API，每个智能体独立配置协议，零配置切换。'
-            },
-            'zh-TW': {
-                hero_title: 'EchoBird', nav_logo: 'EchoBird.ai', page_title: 'EchoBird · 一鍵安裝 OpenClaw、Claude Code、ZeroClaw 和 Codex', nav_features: '功能', nav_screenshots: '截圖', nav_download: '下載', nav_free_models: '今日免費模型',
-                hero_tag: '即便你是 <strong>AI 新手</strong>，在 EchoBird 的幫助下，你也可以透過<strong>簡單聊天</strong>的方式，從部署到使用，全程指揮你的 <strong>Agent</strong>。',
-                install_hint: 'macOS：提示「已損壞」→ 終端機 → <code>xattr -cr /Applications/EchoBird.app</code> · Windows：SmartScreen 封鎖 → 更多資訊 → 仍要執行',
-                sec_features: '核心功能', features_title: '安裝智能體。<br>切換模型。<br>部署大模型。', features_desc: '一個應用安裝 OpenClaw、Claude Code、ZeroClaw 和 Codex，跨所有智能體切換模型，本地或遠端部署 Qwen、DeepSeek、Llama 等大模型。',
-                f1_t: '一鍵切換模型', f1_d: '視覺化設定任何支援工具的 AI 模型。', f2_t: '雙協議支援', f2_d: 'OpenAI & Anthropic API。', f3_t: '智慧隧道代理', f3_d: '無需 VPN 即可存取受限 API。',
-                f4_t: '本地模型伺服器', f4_d: '透過內建 llama.cpp 本地執行開源模型。', f6_t: '內建 AI 應用', f6_d: 'Reversi、AI 翻譯。', f7_t: '28 種語言', f7_d: '完整國際化支援。',
-                sec_ss: '截圖', ss_title: '實際效果。', ss1: 'Model Nexus · OpenAI、Anthropic、Gemini、DeepSeek、Ollama — 統一管理', ss2: 'App Manager · 為 OpenClaw、Claude Code、Codex 等一鍵切換模型', ss3: 'Local LLM · 透過 llama.cpp / vLLM / SGLang 本地部署 Qwen、Llama、DeepSeek',
-                sec_dl: '下載', dl_title: '幾秒上手。', dl_desc: '下載EchoBird，免費開源。', dl_btn: '下載',
-                sec_tools: '支援的工具', tools_title: '你喜歡的工具。', tools_desc: '為所有程式設計智能體安裝、配置和切換模型。', ft_issues: '問題回報', ft_discuss: '討論',
-                ma_title: '部署模型。<br>執行智能體。', ma_desc: 'MotherAgent 是你的自主 AI 智能體——部署本地 LLM、連接遠端模型、啟動 OpenClaw，一站搞定。',
-                ma1_t: '本地 LLM 部署', ma1_d: '一鍵透過內建 llama.cpp 在本機部署 Qwen、DeepSeek、Llama 等開源模型，資料永不離開裝置。',
-                ma2_t: '遠端 LLM', ma2_d: '一鍵接入 OpenAI、Anthropic、Google Gemini 或任何 OpenAI 相容的遠端 API 端點。',
-                ma3_t: '部署 OpenClaw', ma3_d: '直接從 MotherAgent 啟動和管理 OpenClaw 智能體，無需終端機。',
-                ma4_t: '持久工作階段', ma4_d: '智能體對話在應用程式重啟後依然保留，繼續上次進度。',
-                ma5_t: '任意協議', ma5_d: 'OpenAI API 與 Anthropic API，每個智能體獨立設定協議，零設定切換。'
-            },
-            ja: {
-                nav_features: '機能', nav_screenshots: 'スクリーンショット', nav_download: 'ダウンロード', nav_free_models: '無料モデル',
-                hero_tag: '<strong>AI初心者</strong>でも、EchoBirdがあれば、<strong>シンプルなチャット</strong>を通じてセットアップから実務まで、自分の<strong>Agent</strong>を自在に動かせます。',
-                sec_features: '機能', features_title: 'モデルを切り替え。<br>設定ファイルではなく。', features_desc: 'EchoBirdはすべてのAIコーディングツールのビジュアルコントロール面板です。',
-                f1_t: '一鍵切替', f1_d: '設定ファイル編集不要。ビジュアルに切り替え。', f2_t: 'デュアルプロトコル', f2_d: 'OpenAI & Anthropic API。', f3_t: 'スマートプロキシ', f3_d: 'VPNなしでAPI制限を突破。',
-                f4_t: 'ローカルサーバー', f4_d: 'llama.cppでオープンソースモデルをローカル実行。', f6_t: '内蔵AIアプリ', f6_d: 'Reversi、AI翻訳など。', f7_t: '28言語', f7_d: '完全国際化対応。',
-                sec_ss: 'スクリーンショット', ss_title: '実際の画面。', ss1: 'Model Nexus · 管理所 AI 模型', ss2: 'App Manager · 一鍵切替', ss3: 'Local LLM · 透過 llama.cpp / vLLM / SGLang 本地部署 Qwen、Llama、DeepSeek',
-                sec_dl: 'ダウンロード', dl_title: '数秒で開始。', dl_desc: '無料・オープンソース・MIT。', dl_btn: 'ダウンロード',
-                sec_tools: '対応ツール', tools_title: 'お気に入りのツール。', tools_desc: 'すべてのコーディングツールのAIモデルを一元管理。', ft_issues: 'バグ報告', ft_discuss: 'ディスカッション',
-                ma_title: 'モデルをデプロイ。<br>エージェントを起動。', ma_desc: 'MotherAgentはあなたの自律AIエージェント。ローカルLLMのデプロイ、リモートモデルの接続、OpenClawの起動をすべて一か所から。',
-                ma1_t: 'ローカルLLMデプロイ', ma1_d: '内蔵llama.cppでQwen、DeepSeek、Llamaなどのオープンソースモデルをワンクリックでデプロイ。データは端末外に出ません。',
-                ma2_t: 'リモートLLM', ma2_d: 'OpenAI、Anthropic、Google GeminiまたはOpenAI互換リモートAPIに即接続。',
-                ma3_t: 'OpenClawデプロイ', ma3_d: 'MotherAgentから直接OpenClawエージェントを起動・管理。ターミナル不要。',
-                ma4_t: '永続セッション', ma4_d: 'エージェントの会話はアプリ再起動後も保持。続きからすぐに再開できます。',
-                ma5_t: '任意プロトコル', ma5_d: 'OpenAI APIとAnthropic API。エージェントごとにプロトコルを設定、設定変更ゼロで切替。'
-            },
-            ko: {
-                nav_features: '기능', nav_screenshots: '스크린샷', nav_download: '다운로드', nav_free_models: '무료 모델',
-                hero_tag: '<strong>AI 초보자</strong>라도 EchoBird를 활용하면 <strong>간단한 채팅</strong>으로 <strong>Agent</strong>를 설정부터 업무까지 손쉽게 지휘할 수 있습니다.',
-                sec_features: '기능', features_title: '모델을 전환.<br>설정 파일이 아닌.', features_desc: 'EchoBird는 모든 AI 코딩 도구의 비주얼 컨트롤 패널입니다.',
-                f1_t: '원클릭 전환', f1_d: '설정 파일 편집 없이 AI 모델을 시각적으로 전환.', f2_t: '듀얼 프로토콜', f2_d: 'OpenAI & Anthropic API.', f3_t: '스마트 프록시', f3_d: 'VPN 없이 API 접근.',
-                f4_t: '로컬 서버', f4_d: 'llama.cpp로 오픈소스 모델 로컬 실행.', f6_t: '내장 AI 앱', f6_d: 'Reversi, AI 번역 등', f7_t: '28개 언어', f7_d: '완전 국제화.',
-                sec_ss: '스크린샷', ss_title: '실제 화면.', ss1: 'Model Nexus · 관리 전 모델', ss2: 'App Manager · 원클릭 전환', ss3: 'Local Server · 로컬 실행',
-                sec_dl: '다운로드', dl_title: '초면 시작.', dl_desc: '무료, 오픈소스, MIT.', dl_btn: '다운로드',
-                sec_tools: '지원 도구', tools_title: '좋아하는 도구.', tools_desc: '모든 코딩 도구의 AI 모델을 통합 관리.', ft_issues: '버그 신고', ft_discuss: '토론',
-                ma_title: '모델을 배포.<br>에이전트를 실행.', ma_desc: 'MotherAgent는 자율 AI 에이전트입니다. 로컬 LLM 배포, 원격 모델 연결, OpenClaw 실행을 한 곳에서.',
-                ma1_t: '로컬 LLM 배포', ma1_d: '내장 llama.cpp로 Qwen, DeepSeek, Llama 등 오픈소스 모델을 원클릭 배포. 데이터는 내 기기를 떠나지 않습니다.',
-                ma2_t: '원격 LLM', ma2_d: 'OpenAI, Anthropic, Google Gemini 또는 OpenAI 호환 원격 API에 즉시 연결.',
-                ma3_t: 'OpenClaw 배포', ma3_d: 'MotherAgent에서 직접 OpenClaw 에이전트를 실행·관리. 터미널 불필요.',
-                ma4_t: '영구 세션', ma4_d: '앱을 재시작해도 에이전트 대화가 유지됩니다. 중단한 곳에서 이어서.',
-                ma5_t: '모든 프로토콜', ma5_d: 'OpenAI API & Anthropic API. 에이전트마다 프로토콜을 설정, 설정 변경 없이 전환.'
-            },
-            es: {
-                nav_features: 'Funciones', nav_screenshots: 'Capturas', nav_download: 'Descargar', nav_free_models: 'Modelos Gratis',
-                hero_tag: 'Incluso siendo <strong>principiante en IA</strong>, EchoBird te permite comandar tu propio <strong>Agent</strong> — desde la configuración hasta el trabajo — mediante un <strong>simple chat</strong>.',
-                sec_features: 'FUNCIONES', features_title: 'Cambia modelos.<br>No archivos de config.', features_desc: 'EchoBird es el panel de control visual para tus herramientas de IA.',
-                f1_t: 'Cambio con Un Clic', f1_d: 'Configura modelos de IA visualmente.', f2_t: 'Protocolo Dual', f2_d: 'OpenAI y Anthropic API.', f3_t: 'Proxy Túnel', f3_d: 'APIs restringidas sin VPN.',
-                f4_t: 'Servidor Local', f4_d: 'Ejecuta modelos open-source localmente.', f6_t: 'Apps de IA', f6_d: 'Reversi, AI Translate.', f7_t: '28 Idiomas', f7_d: 'Internacionalización completa.',
-                sec_ss: 'CAPTURAS', ss_title: 'En acción.', ss1: 'Model Nexus', ss2: 'App Manager', ss3: 'Local Server',
-                sec_dl: 'DESCARGAR', dl_title: 'Comienza en segundos.', dl_desc: 'Gratis, open source, MIT.', dl_btn: 'Descargar',
-                sec_tools: 'COMPATIBLE CON', tools_title: 'Tus herramientas favoritas.', tools_desc: 'Gestiona modelos de IA en todas tus herramientas.', ft_issues: 'Reportar', ft_discuss: 'Discusiones',
-                ma_title: 'Despliega modelos.<br>Ejecuta agentes.', ma_desc: 'MotherAgent es tu agente IA autónomo — despliega LLMs locales, conecta modelos remotos y lanza OpenClaw desde un solo lugar.',
-                ma1_t: 'Despliegue LLM Local', ma1_d: 'Despliega Qwen, DeepSeek, Llama con un clic via llama.cpp integrado. Tus datos nunca salen del dispositivo.',
-                ma2_t: 'LLM Remoto', ma2_d: 'Conecta OpenAI, Anthropic, Google Gemini o cualquier endpoint OpenAI-compatible al instante.',
-                ma3_t: 'Desplegar OpenClaw', ma3_d: 'Lanza y gestiona agentes OpenClaw directamente desde MotherAgent. Sin terminal.',
-                ma4_t: 'Sesiones Persistentes', ma4_d: 'Las conversaciones del agente sobreviven al reinicio. Continúa donde lo dejaste.',
-                ma5_t: 'Cualquier Protocolo', ma5_d: 'OpenAI API y Anthropic API. Cambia protocolo por agente sin cambios de config.'
-            },
-            fr: {
-                nav_features: 'Fonctions', nav_screenshots: 'Captures', nav_download: 'Télécharger', nav_free_models: 'Modèles Gratuits',
-                hero_tag: 'Même <strong>débutant en IA</strong>, EchoBird vous permet de piloter votre propre <strong>Agent</strong> — de la configuration au travail — via une <strong>simple conversation</strong>.',
-                sec_features: 'FONCTIONS', features_title: 'Changez de modèle.<br>Pas de fichiers config.', features_desc: 'EchoBird est le panneau de contrôle visuel pour vos outils IA.',
-                f1_t: 'Changement en Un Clic', f1_d: 'Configurez visuellement les modèles IA.', f2_t: 'Double Protocole', f2_d: 'OpenAI & Anthropic API.', f3_t: 'Proxy Tunnel', f3_d: 'APIs géo-restreintes sans VPN.',
-                f4_t: 'Serveur Local', f4_d: 'Exécutez des modèles open-source localement.', f6_t: 'Apps IA', f6_d: 'Reversi, AI Translate.', f7_t: '28 Langues', f7_d: 'Internationalisation complète.',
-                sec_ss: 'CAPTURES', ss_title: 'En action.', ss1: 'Model Nexus', ss2: 'App Manager', ss3: 'Local Server',
-                sec_dl: 'TÉLÉCHARGER', dl_title: 'Commencez en secondes.', dl_desc: 'Gratuit, open source, MIT.', dl_btn: 'Télécharger',
-                sec_tools: 'COMPATIBLE AVEC', tools_title: 'Vos outils favoris.', tools_desc: 'Gérez les modèles IA pour tous vos outils.', ft_issues: 'Signaler', ft_discuss: 'Discussions',
-                ma_title: 'Déployez des modèles.<br>Lancez des agents.', ma_desc: 'MotherAgent est votre agent IA autonome — déployez des LLMs locaux, connectez des modèles distants et lancez OpenClaw depuis un seul endroit.',
-                ma1_t: 'Déploiement LLM Local', ma1_d: 'Déployez Qwen, DeepSeek, Llama en un clic via llama.cpp intégré. Vos données ne quittent jamais votre appareil.',
-                ma2_t: 'LLM Distant', ma2_d: 'Connectez OpenAI, Anthropic, Google Gemini ou tout endpoint OpenAI-compatible instantanément.',
-                ma3_t: 'Déployer OpenClaw', ma3_d: 'Lancez et gérez les agents OpenClaw directement depuis MotherAgent. Sans terminal.',
-                ma4_t: 'Sessions Persistantes', ma4_d: 'Les conversations de l\'agent survivent au redémarrage. Reprenez exactement où vous en étiez.',
-                ma5_t: 'Tout Protocole', ma5_d: 'OpenAI API et Anthropic API. Changez de protocole par agent sans modifier les configs.'
-            },
-            de: {
-                nav_features: 'Funktionen', nav_screenshots: 'Screenshots', nav_download: 'Download', nav_free_models: 'Kostenlose Modelle',
-                hero_tag: 'Auch als <strong>KI-Einsteiger</strong> kannst du mit EchoBird deinen eigenen <strong>Agenten</strong> — von der Einrichtung bis zur Arbeit — per <strong>einfachem Chat</strong> steuern.',
-                sec_features: 'FUNKTIONEN', features_title: 'Modelle wechseln.<br>Nicht Konfigdateien.', features_desc: 'EchoBird ist das visuelle Kontrollpanel für deine KI-Tools.',
-                f1_t: 'Ein-Klick Wechsel', f1_d: 'KI-Modelle visuell konfigurieren.', f2_t: 'Dual-Protokoll', f2_d: 'OpenAI & Anthropic API.', f3_t: 'Tunnel-Proxy', f3_d: 'Geo-beschränkte APIs ohne VPN.',
-                f4_t: 'Lokaler Server', f4_d: 'Open-Source-Modelle lokal ausführen.', f6_t: 'KI-Apps', f6_d: 'Reversi, AI Translate.', f7_t: '28 Sprachen', f7_d: 'Volle Internationalisierung.',
-                sec_ss: 'SCREENSHOTS', ss_title: 'In Aktion.', ss1: 'Model Nexus', ss2: 'App Manager', ss3: 'Local Server',
-                sec_dl: 'DOWNLOAD', dl_title: 'In Sekunden starten.', dl_desc: 'Kostenlos, Open Source, MIT.', dl_btn: 'Download',
-                sec_tools: 'KOMPATIBEL MIT', tools_title: 'Deine Lieblingstools.', tools_desc: 'KI-Modelle für alle deine Tools verwalten.', ft_issues: 'Bugs melden', ft_discuss: 'Diskussionen',
-                ma_title: 'Modelle deployen.<br>Agenten starten.', ma_desc: 'MotherAgent ist dein autonomer KI-Agent — deploye lokale LLMs, verbinde Remote-Modelle und starte OpenClaw, alles an einem Ort.',
-                ma1_t: 'Lokales LLM-Deployment', ma1_d: 'Deploye Qwen, DeepSeek, Llama per Klick via integriertem llama.cpp. Deine Daten verlassen das Gerät nie.',
-                ma2_t: 'Remote LLM', ma2_d: 'Verbinde sofort mit OpenAI, Anthropic, Google Gemini oder beliebigen OpenAI-kompatiblen APIs.',
-                ma3_t: 'OpenClaw deployen', ma3_d: 'Starte und verwalte OpenClaw-Agenten direkt aus MotherAgent. Kein Terminal nötig.',
-                ma4_t: 'Persistente Sessions', ma4_d: 'Agenten-Gespräche überleben Neustarts. Genau dort weitermachen, wo du aufgehört hast.',
-                ma5_t: 'Jedes Protokoll', ma5_d: 'OpenAI API und Anthropic API. Protokoll pro Agent wechseln ohne Konfigurationsänderungen.'
-            },
-            pt: {
-                nav_features: 'Recursos', nav_screenshots: 'Capturas', nav_download: 'Download', nav_free_models: 'Modelos Grátis',
-                hero_tag: 'Mesmo sendo <strong>iniciante em IA</strong>, o EchoBird permite que você comande seu próprio <strong>Agent</strong> — da configuração ao trabalho — por meio de um <strong>simples chat</strong>.',
-                sec_features: 'RECURSOS', features_title: 'Troque modelos.<br>Não arquivos de config.', features_desc: 'EchoBird é o painel de controle visual para suas ferramentas de IA.',
-                f1_t: 'Troca com Um Clique', f1_d: 'Configure modelos de IA visualmente.', f2_t: 'Protocolo Duplo', f2_d: 'OpenAI & Anthropic API.', f3_t: 'Proxy Túnel', f3_d: 'APIs restritas sem VPN.',
-                f4_t: 'Servidor Local', f4_d: 'Execute modelos open-source localmente.', f6_t: 'Apps de IA', f6_d: 'Reversi, AI Translate.', f7_t: '28 Idiomas', f7_d: 'Internacionalização completa.',
-                sec_ss: 'CAPTURAS', ss_title: 'Em ação.', ss1: 'Model Nexus', ss2: 'App Manager', ss3: 'Local Server',
-                sec_dl: 'DOWNLOAD', dl_title: 'Comece em segundos.', dl_desc: 'Grátis, open source, MIT.', dl_btn: 'Download',
-                sec_tools: 'COMPATÍVEL COM', tools_title: 'Suas ferramentas favoritas.', tools_desc: 'Gerencie modelos de IA em todas as suas ferramentas.', ft_issues: 'Reportar', ft_discuss: 'Discussões',
-                ma_title: 'Implante modelos.<br>Execute agentes.', ma_desc: 'MotherAgent é seu agente IA autônomo — implante LLMs locais, conecte modelos remotos e lance o OpenClaw em um só lugar.',
-                ma1_t: 'Implantação LLM Local', ma1_d: 'Implante Qwen, DeepSeek, Llama com um clique via llama.cpp integrado. Seus dados nunca saem do dispositivo.',
-                ma2_t: 'LLM Remoto', ma2_d: 'Conecte OpenAI, Anthropic, Google Gemini ou qualquer endpoint OpenAI-compatível instantaneamente.',
-                ma3_t: 'Implantar OpenClaw', ma3_d: 'Lance e gerencie agentes OpenClaw diretamente do MotherAgent. Sem terminal.',
-                ma4_t: 'Sessões Persistentes', ma4_d: 'Conversas do agente sobrevivem a reinicializações. Continue de onde parou.',
-                ma5_t: 'Qualquer Protocolo', ma5_d: 'OpenAI API e Anthropic API. Mude protocolo por agente sem alterar configurações.'
-            },
-            ru: {
-                nav_features: 'Функции', nav_screenshots: 'Скриншоты', nav_download: 'Скачать', nav_free_models: 'Бесплатные модели',
-                hero_tag: 'Даже если вы <strong>новичок в ИИ</strong>, EchoBird позволяет управлять собственным <strong>Агентом</strong> — от настройки до работы — с помощью <strong>простого чата</strong>.',
-                sec_features: 'ФУНКЦИИ', features_title: 'Переключайте модели.<br>Не конфиги.', features_desc: 'EchoBird — визуальный пульт управления для всех ваших ИИ-инструментов.',
-                f1_t: 'Переключение в Один Клик', f1_d: 'Визуально настраивайте ИИ-модели.', f2_t: 'Двойной Протокол', f2_d: 'OpenAI и Anthropic API.', f3_t: 'Туннельный Прокси', f3_d: 'Доступ к API без VPN.',
-                f4_t: 'Локальный Сервер', f4_d: 'Запускайте open-source модели локально.', f6_t: 'ИИ-Приложения', f6_d: 'Reversi, AI Translate.', f7_t: '28 Языков', f7_d: 'Полная интернационализация.',
-                sec_ss: 'СКРИНШОТЫ', ss_title: 'В действии.', ss1: 'Model Nexus', ss2: 'App Manager', ss3: 'Local Server',
-                sec_dl: 'СКАЧАТЬ', dl_title: 'Начните за секунды.', dl_desc: 'Бесплатно, open source, MIT.', dl_btn: 'Скачать',
-                sec_tools: 'СОВМЕСТИМ С', tools_title: 'Ваши любимые инструменты.', tools_desc: 'Управляйте ИИ-моделями для всех ваших инструментов.', ft_issues: 'Баги', ft_discuss: 'Обсуждения',
-                ma_title: 'Разворачивайте модели.<br>Запускайте агентов.', ma_desc: 'MotherAgent — ваш автономный ИИ-агент: разворачивайте локальные LLM, подключайте удалённые модели и запускайте OpenClaw из одного места.',
-                ma1_t: 'Локальный LLM', ma1_d: 'Один клик — и Qwen, DeepSeek, Llama работают на вашем устройстве через встроенный llama.cpp. Данные не покидают устройство.',
-                ma2_t: 'Удалённый LLM', ma2_d: 'Мгновенное подключение к OpenAI, Anthropic, Google Gemini или любому OpenAI-совместимому API.',
-                ma3_t: 'Запуск OpenClaw', ma3_d: 'Запускайте и управляйте агентами OpenClaw прямо из MotherAgent. Терминал не нужен.',
-                ma4_t: 'Постоянные Сессии', ma4_d: 'Беседы агентов сохраняются после перезапуска. Продолжайте с того места, где остановились.',
-                ma5_t: 'Любой Протокол', ma5_d: 'OpenAI API и Anthropic API. Протокол настраивается для каждого агента без изменения конфига.'
-            },
-            ar: {
-                nav_features: 'الميزات', nav_screenshots: 'لقطات', nav_download: 'تحميل', nav_free_models: 'نماذج مجانية',
-                hero_tag: 'حتى لو كنت <strong>مبتدئاً في الذكاء الاصطناعي</strong>، يتيح لك EchoBird قيادة <strong>وكيلك</strong> الخاص — من الإعداد إلى العمل — عبر <strong>دردشة بسيطة</strong>.',
-                sec_features: 'الميزات', features_title: 'بدّل النماذج.<br>ليس ملفات الإعدادات.', features_desc: 'EchoBird هو لوحة تحكم مرئية لجميع أدوات البرمجة بالذكاء الاصطناعي.',
-                f1_t: 'تبديل بنقرة', f1_d: 'اضبط نماذج الذكاء الاصطناعي بصرياً.', f2_t: 'بروتوكول مزدوج', f2_d: 'OpenAI و Anthropic API.', f3_t: 'وكيل نفق', f3_d: 'APIs محظورة بدون VPN.',
-                f4_t: 'خادم محلي', f4_d: 'شغّل نماذج مفتوحة المصدر محلياً.', f6_t: 'تطبيقات ذكاء اصطناعي', f6_d: 'Reversi و AI Translate.', f7_t: '28 لغة', f7_d: 'دعم كامل للتدويل.',
-                sec_ss: 'لقطات', ss_title: 'قيد العمل.', ss1: 'Model Nexus', ss2: 'App Manager', ss3: 'Local Server',
-                sec_dl: 'تحميل', dl_title: 'ابدأ في ثوانٍ.', dl_desc: 'مجاني، مفتوح المصدر، MIT.', dl_btn: 'تحميل',
-                sec_tools: 'متوافق مع', tools_title: 'أدواتك المفضلة.', tools_desc: 'أدر نماذج الذكاء الاصطناعي لجميع أدواتك.', ft_issues: 'أخطاء', ft_discuss: 'مناقشات',
-                ma_title: 'انشر النماذج.<br>شغّل الوكلاء.', ma_desc: 'MotherAgent هو وكيلك الذكي المستقل — انشر LLMs محلية، وصّل نماذج بعيدة، وشغّل OpenClaw من مكان واحد.',
-                ma1_t: 'نشر LLM المحلي', ma1_d: 'انشر Qwen وDeepSeek وLlama بنقرة واحدة عبر llama.cpp المدمج. بياناتك لا تغادر جهازك.',
-                ma2_t: 'LLM البعيد', ma2_d: 'اتصل فوراً بـ OpenAI وAnthropic وGoogle Gemini أو أي API متوافق مع OpenAI.',
-                ma3_t: 'نشر OpenClaw', ma3_d: 'شغّل وأدر وكلاء OpenClaw مباشرةً من MotherAgent. لا حاجة للطرفية.',
-                ma4_t: 'جلسات دائمة', ma4_d: 'محادثات الوكيل تبقى بعد إعادة التشغيل. استأنف من حيث توقفت.',
-                ma5_t: 'أي بروتوكول', ma5_d: 'OpenAI API وAnthropic API. غيّر البروتوكول لكل وكيل دون تغيير الإعدادات.'
-            }
-        };
-
-        // ── Apply language ──
-        function setLang(l) {
-            const t = i18n[l] || i18n.en;
-            document.querySelectorAll('[data-i18n]').forEach(el => {
-                const k = el.getAttribute('data-i18n');
-                if (t[k]) {
-                    if (t[k].includes('<')) { el.innerHTML = t[k] } else { el.textContent = t[k] }
-                }
-            });
-            document.documentElement.lang = l;
-            document.documentElement.dir = l === 'ar' ? 'rtl' : 'ltr';
-            document.title = (t.hero_title || 'EchoBird') + ' \u00b7 ' + (t.hero_tag || '').replace(/<[^>]*>/g, '');
-            document.body.classList.toggle('lang-zh', l === 'zh-CN' || l === 'zh-TW');
-            localStorage.setItem('wc-lang', l);
-        }
-        document.addEventListener('DOMContentLoaded', () => {
-            function detect() {
-                const s = localStorage.getItem('wc-lang'); if (s && i18n[s]) return s;
-                const n = navigator.language || 'en';
-                if (n.startsWith('zh')) return n.includes('TW') || n.includes('Hant') ? 'zh-TW' : 'zh-CN';
-                return Object.keys(i18n).find(k => n.startsWith(k)) || 'en';
-            }
-            const LANG_LABELS = { en: 'EN', 'zh-CN': '简体', 'zh-TW': '繁體', ja: '日本語', ko: '한국어', es: 'ES', fr: 'FR', de: 'DE', pt: 'PT', ru: 'RU', ar: 'عربي' };
-            const langBtn = document.getElementById('langBtn');
-            const langDrop = document.getElementById('langDrop');
-
-            function applyDropdown(l) {
-                langBtn.textContent = '🌐 ' + (LANG_LABELS[l] || l.toUpperCase());
-                document.querySelectorAll('.lang-opt').forEach(o => o.classList.toggle('active', o.dataset.lang === l));
-            }
-
-            const lang = detect(); setLang(lang); applyDropdown(lang);
-
-            langBtn.addEventListener('click', e => { e.stopPropagation(); langDrop.classList.toggle('open'); });
-            document.addEventListener('click', () => langDrop.classList.remove('open'));
-            document.querySelectorAll('.lang-opt').forEach(opt => {
-                opt.addEventListener('click', () => {
-                    const l = opt.dataset.lang;
-                    setLang(l); applyDropdown(l);
-                    langDrop.classList.remove('open');
-                });
-            });
-
-            // ── Auto-detect version and set direct download links ──
-            fetch('/api/version/index.json')
-                .then(r => r.json())
-                .then(v => {
-                    const ver = v.version; // e.g. "2.4.4"
-                    const base = 'https://dl.EchoBird.ai/releases/v' + ver;
-                    const winUrl = base + '/Echobird_' + ver + '_x64-setup.exe';
-                    const macUrl = base + '/Echobird_' + ver + '_aarch64.dmg';
-                    const linuxUrl = base + '/Echobird_' + ver + '_amd64.AppImage';
-                    // Update bottom download section
-                    const w = document.getElementById('dl-win');
-                    const m = document.getElementById('dl-mac');
-                    const l = document.getElementById('dl-linux');
-                    if (w) w.href = winUrl;
-                    if (m) m.href = macUrl;
-                    if (l) l.href = linuxUrl;
-                    // Update hero download buttons
-                    const hw = document.getElementById('hero-dl-win');
-                    const hm = document.getElementById('hero-dl-mac');
-                    const hl = document.getElementById('hero-dl-linux');
-                    if (hw) hw.href = winUrl;
-                    if (hm) hm.href = macUrl;
-                    if (hl) hl.href = linuxUrl;
-                    // Update dropdown links
-                    const dd = {
-                        'dd-win-exe': winUrl,
-                        'dd-win-msi': base + '/Echobird_' + ver + '_x64_en-US.msi',
-                        'dd-mac-arm': macUrl,
-                        'dd-mac-intel': base + '/Echobird_' + ver + '_x64.dmg',
-                        'dd-linux-appimage': linuxUrl,
-                        'dd-linux-deb': base + '/Echobird_' + ver + '_amd64.deb',
-                        'dd-linux-rpm': base + '/Echobird-' + ver + '-1.x86_64.rpm'
-                    };
-                    Object.entries(dd).forEach(([id, url]) => {
-                        const el = document.getElementById(id); if (el) el.href = url;
-                    });
-                })
-                .catch(() => { }); // fallback: keeps GitHub releases/latest links
-        });
-    </script>
 </body>
 
 </html>
