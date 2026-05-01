@@ -248,6 +248,9 @@ export const ModelListSection: React.FC<ModelListSectionProps> = ({
             }
         })();
 
+        // Use provider icon (Claude/OpenAI etc.) based on official endpoint name
+        const iconSrc = getModelIcon(ep.name, ep.modelId);
+
         return (
             <div
                 className={`p-3 rounded cursor-pointer transition-all mb-2 flex items-center gap-3 ${isOnOfficial
@@ -261,8 +264,8 @@ export const ModelListSection: React.FC<ModelListSectionProps> = ({
                         }`}>
                         {isOnOfficial && <div className="w-2 h-2 rounded-full bg-cyber-accent" />}
                     </div>
-                    {selectedToolData.iconBase64 ? (
-                        <img src={selectedToolData.iconBase64} alt="" className="w-6 h-6" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                    {iconSrc ? (
+                        <img src={iconSrc} alt="" className="w-6 h-6" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
                     ) : (
                         <div className="w-6 h-6 rounded bg-cyber-accent/15 flex items-center justify-center text-cyber-accent">
                             <BoxIcon size={14} />
