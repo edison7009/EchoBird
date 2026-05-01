@@ -1,10 +1,10 @@
 import React, { useMemo } from 'react';
-import { Server as ServerIcon, Box as BoxIcon, RotateCcw } from 'lucide-react';
+import { Server as ServerIcon, Box as BoxIcon, ShieldCheck } from 'lucide-react';
 import { ToolCard, getModelIcon } from '../../components';
 import { useI18n } from '../../hooks/useI18n';
 import type { ModelConfig, LocalTool } from '../../api/types';
 import { useAppManager, toolCategories } from './context';
-import { getOfficialEndpoint } from '../../data/officialEndpoints';
+import { getOfficialEndpoint, type OfficialEndpoint } from '../../data/officialEndpoints';
 
 // ===== Main Content (tool cards grid) =====
 
@@ -113,6 +113,7 @@ interface ModelListSectionProps {
     toolModelConfig: Record<string, string | null>;
     selectedTool: string | null;
     handleSelectModel: (toolId: string, modelId: string) => void;
+    handleRestoreModel: (toolId: string) => Promise<void>;
     modelProtocolSelection: Record<string, 'openai' | 'anthropic'>;
     setModelProtocolSelection: React.Dispatch<React.SetStateAction<Record<string, 'openai' | 'anthropic'>>>;
     t: (key: any) => string;
@@ -120,7 +121,8 @@ interface ModelListSectionProps {
 
 export const ModelListSection: React.FC<ModelListSectionProps> = ({
     selectedToolData, userModels, toolModelConfig, selectedTool,
-    handleSelectModel, modelProtocolSelection, setModelProtocolSelection, t,
+    handleSelectModel, handleRestoreModel,
+    modelProtocolSelection, setModelProtocolSelection, t,
 }) => {
     const toolProtocols = selectedToolData.apiProtocol || ['openai', 'anthropic'];
 
@@ -229,6 +231,55 @@ export const ModelListSection: React.FC<ModelListSectionProps> = ({
         );
     };
 
+    // Official-endpoint card — first item, like cc-switch's "Claude Official"
+    const official = selectedTool ? getOfficialEndpoint(selectedTool) : undefined;
+    const isOnOfficial = !!(official && selectedToolData.activeModel
+        && (selectedToolData.activeModel === official.modelId
+            || selectedToolData.activeModel === official.name));
+
+    const renderOfficialCard = (ep: OfficialEndpoint) => {
+        const apiPath = (() => {
+            try {
+                const url = new URL(ep.protocol === 'anthropic' ? (ep.anthropicUrl || ep.baseUrl) : ep.baseUrl);
+                const path = url.pathname === '/' ? '' : url.pathname;
+                return url.hostname + path;
+            } catch {
+                return ep.baseUrl;
+            }
+        })();
+
+        return (
+            <div
+                className={`p-3 rounded cursor-pointer transition-all mb-2 flex items-center gap-3 ${isOnOfficial
+                    ? 'bg-cyber-accent/10'
+                    : 'bg-black/30 hover:bg-white/5'
+                    }`}
+                onClick={() => selectedTool && handleRestoreModel(selectedTool)}
+            >
+                <div className="flex items-center gap-3 flex-shrink-0">
+                    <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${isOnOfficial ? 'border-cyber-accent' : 'border-cyber-border'
+                        }`}>
+                        {isOnOfficial && <div className="w-2 h-2 rounded-full bg-cyber-accent" />}
+                    </div>
+                    <div className="w-6 h-6 rounded bg-cyber-accent/15 flex items-center justify-center text-cyber-accent">
+                        <ShieldCheck size={14} />
+                    </div>
+                </div>
+                <div className="flex-1 min-w-0 flex flex-col justify-center h-10">
+                    <div className="flex items-center gap-2">
+                        <div className="text-sm font-bold truncate leading-none flex-1 min-w-0">{ep.name}</div>
+                        <span className="text-[9px] font-mono px-1.5 py-0.5 rounded border border-cyber-accent/30 text-cyber-accent/80 flex-shrink-0">
+                            {t('agent.restore')}
+                        </span>
+                    </div>
+                    <div className="text-[10px] text-cyber-text-secondary truncate leading-tight mt-1 opacity-70">
+                        {apiPath}
+                    </div>
+                </div>
+            </div>
+        );
+    };
+
     return (
         <>
             {/* Local models area */}
@@ -240,15 +291,15 @@ export const ModelListSection: React.FC<ModelListSectionProps> = ({
                     {localModels.map(renderModelCard)}
                 </div>
             )}
-            {/* Cloud models area */}
+            {/* Cloud models area — official endpoint goes first if registered */}
             <div className="text-xs text-cyber-text-secondary mb-3">
                 {t('agent.selectModelFor')} {selectedToolData.name}:
             </div>
-            {cloudModels.length > 0 ? (
-                <div className="space-y-2">
-                    {cloudModels.map(renderModelCard)}
-                </div>
-            ) : localModels.length === 0 ? (
+            <div className="space-y-2">
+                {official && renderOfficialCard(official)}
+                {cloudModels.map(renderModelCard)}
+            </div>
+            {cloudModels.length === 0 && !official && localModels.length === 0 && (
                 <div className="py-10 flex flex-col items-center gap-3 text-center">
                     <BoxIcon size={28} className="text-cyber-accent opacity-25" />
                     <p className="text-[12px] text-cyber-text-secondary font-mono leading-relaxed">
@@ -256,7 +307,7 @@ export const ModelListSection: React.FC<ModelListSectionProps> = ({
                         {t('agent.noModelsHintPre')} <span className="text-cyber-accent font-bold">{t('nav.modelNexus')}</span> {t('agent.noModelsHintPost')}
                     </p>
                 </div>
-            ) : null}
+            )}
         </>
     );
 };
@@ -272,8 +323,6 @@ export const AppManagerPanel: React.FC = () => {
         handleRestoreModel,
     } = useAppManager();
 
-    const official = selectedTool ? getOfficialEndpoint(selectedTool) : undefined;
-
     return (
         <>
             {/* Header */}
@@ -283,22 +332,11 @@ export const AppManagerPanel: React.FC = () => {
                         {t('agent.modelsTab')}
                     </span>
                 </div>
-                <div className="flex items-center gap-2">
-                    {selectedTool && official && (
-                        <button
-                            onClick={() => handleRestoreModel(selectedTool)}
-                            className="flex items-center gap-1 px-2 py-1 text-[10px] font-mono border rounded transition-colors outline-none border-cyber-accent/40 text-cyber-accent hover:bg-cyber-accent/10"
-                        >
-                            <RotateCcw size={11} />
-                            {t('agent.restore')}
-                        </button>
-                    )}
-                    {selectedToolData && (
-                        <span className="text-[10px] text-cyber-accent">
-                            {selectedToolData.name}
-                        </span>
-                    )}
-                </div>
+                {selectedToolData && (
+                    <span className="text-[10px] text-cyber-accent">
+                        {selectedToolData.name}
+                    </span>
+                )}
             </div>
 
             <div className="flex-1 p-2 overflow-y-auto">
@@ -310,6 +348,7 @@ export const AppManagerPanel: React.FC = () => {
                             toolModelConfig={toolModelConfig}
                             selectedTool={selectedTool}
                             handleSelectModel={handleSelectModel}
+                            handleRestoreModel={handleRestoreModel}
                             modelProtocolSelection={modelProtocolSelection}
                             setModelProtocolSelection={setModelProtocolSelection}
                             t={t}
