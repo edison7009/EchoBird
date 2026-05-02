@@ -1,5 +1,5 @@
 {
-  "version": "3.7.4",
+  "version": "3.7.5",
   "releaseDate": "2026-05-02",
-  "releaseNotes": "UI polish + provider list refresh."
+  "releaseNotes": "Fix chat snapping to bottom while you scroll up during agent streaming."
 }
