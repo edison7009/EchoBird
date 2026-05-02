@@ -243,7 +243,7 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
                             onClick={() => api.openExternal('https://echobird.ai')}
                             className="text-[13px] font-mono text-cyber-text-secondary/80 hover:text-cyber-accent transition-colors tracking-wider flex items-center gap-1.5"
                         >
-                            EchoBird.ai <ExternalLink size={12} />
+                            百灵鸟 <ExternalLink size={12} />
                         </button>
                     </div>
                 </div>
