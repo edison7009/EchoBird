@@ -62,7 +62,7 @@ export const AppManagerMain: React.FC = () => {
                         // Skeleton cards while scanning
                         <>
                             {Array.from({ length: 6 }).map((_, i) => (
-                                <div key={i} className="p-5 border border-cyber-border rounded-card bg-black/80 flex flex-col animate-pulse">
+                                <div key={i} className="relative p-5 border border-cyber-border rounded-card bg-black/80 flex flex-col animate-pulse">
                                     <div className="absolute top-4 right-4 w-10 h-10 rounded-lg bg-cyber-border/30" />
                                     <div className="h-5 w-2/3 bg-cyber-border/40 rounded mb-4" />
                                     <div className="space-y-2">

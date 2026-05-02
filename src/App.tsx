@@ -7,6 +7,7 @@ import { useState, useEffect } from 'react';
 import { RotateCcw } from 'lucide-react';
 import { getVersion } from '@tauri-apps/api/app';
 import { Sidebar, PageType, ToastProvider, ConfirmDialogProvider } from './components';
+import { isNewerVersion } from './utils/version';
 import { DownloadProvider } from './components/DownloadContext';
 import { DownloadBar } from './components/DownloadBar';
 import { TitleBar } from './components/TitleBar';
@@ -63,7 +64,7 @@ function App() {
                 ]);
                 if (res.ok && appVersion) {
                     const data = await res.json();
-                    if (data.version && data.version !== appVersion) {
+                    if (data.version && isNewerVersion(data.version, appVersion)) {
                         setUpdateAvailable(data.version);
                     }
                 }

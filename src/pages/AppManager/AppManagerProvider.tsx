@@ -54,7 +54,7 @@ export const AppManagerProvider: React.FC<AppManagerProviderProps> = ({ children
     // Internalized state
     const [selectedTool, setSelectedTool] = useState<string | null>(null);
     const [activeToolCategory, setActiveToolCategory] = useState<string>('ALL');
-    const [launchAfterApply, setLaunchAfterApply] = useState(true);
+    const [launchAfterApply, setLaunchAfterApply] = useState(false);
     const [isLaunching, setIsLaunching] = useState(false);
     const [agreedConfigPolicy, setAgreedConfigPolicy] = useState(true);
     const [applyError, setApplyError] = useState<string | null>(null);

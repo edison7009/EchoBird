@@ -74,7 +74,7 @@ export function ToolCallCard({ name, args, status, output }: ToolCallCardProps) 
                 <Icon size={12} className="flex-shrink-0 text-cyber-accent/80" />
                 <span className="flex-shrink-0 text-cyber-accent/80 font-bold">{meta.label}</span>
                 {preview && (
-                    <span className="flex-1 truncate text-cyber-text-muted/70" title={preview}>
+                    <span className="flex-1 truncate text-cyber-text-muted/70">
                         {preview}
                     </span>
                 )}

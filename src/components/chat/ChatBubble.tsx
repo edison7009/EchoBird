@@ -42,7 +42,7 @@ function ReadonlyChips({ chips }: { chips: BubbleChip[] }) {
                 if (c.type === 'model') {
                     const icon = getModelIcon(c.name, c.modelId || '');
                     return (
-                        <span key={i} className={CHIP_MODEL} title={c.name}>
+                        <span key={i} className={CHIP_MODEL}>
                             {icon
                                 ? <img src={icon} alt="" className="w-4 h-4" />
                                 : <KeyRound size={12} className="text-cyber-accent" />}
@@ -51,7 +51,7 @@ function ReadonlyChips({ chips }: { chips: BubbleChip[] }) {
                 }
                 if (c.type === 'image') {
                     return (
-                        <span key={i} className={CHIP_FILE} title={c.name}>
+                        <span key={i} className={CHIP_FILE}>
                             {c.preview
                                 ? <img src={c.preview} alt={c.name} className="w-4 h-4 object-cover rounded" />
                                 : <ImageIcon size={12} className="text-cyber-text-muted" />}
@@ -59,7 +59,7 @@ function ReadonlyChips({ chips }: { chips: BubbleChip[] }) {
                     );
                 }
                 return (
-                    <span key={i} className={CHIP_FILE} title={c.name}>
+                    <span key={i} className={CHIP_FILE}>
                         <Paperclip size={12} className="text-cyber-text-muted" />
                     </span>
                 );

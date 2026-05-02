@@ -606,7 +606,7 @@ function getVramFitness(requiredGb: number, userVramGb: number, t: ReturnType<ty
 }
 
 // Known model names for icon detection
-const KNOWN_MODELS = ['qwen', 'llama', 'deepseek', 'mistral', 'phi', 'gemma', 'yi', 'internlm', 'glm', 'chatglm', 'nemotron', 'codestral', 'mixtral'];
+const KNOWN_MODELS = ['qwen', 'llama', 'deepseek', 'mistral', 'phi', 'gemma', 'yi', 'internlm', 'glm', 'chatglm', 'nemotron', 'codestral', 'mixtral', 'granite'];
 
 function guessIconFromFileName(fileName: string): string | null {
     const lower = fileName.toLowerCase();
