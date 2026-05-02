@@ -20,8 +20,7 @@
 
 <p align="center">
   <a href="https://echobird.ai">官网</a> ·
-  <a href="https://github.com/edison7009/EchoBird/releases/latest">下载</a> ·
-  <a href="https://echobird.ai/free-models.html">今日免费模型</a>
+  <a href="https://github.com/edison7009/EchoBird/releases/latest">下载</a>
 </p>
 
 ---
