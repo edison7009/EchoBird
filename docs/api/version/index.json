@@ -1,5 +1,5 @@
 {
-  "version": "3.7.3",
+  "version": "3.7.4",
   "releaseDate": "2026-05-02",
-  "releaseNotes": "Add Linux arm64 builds and persist detailed agent tool-call timeline across reloads."
+  "releaseNotes": "UI polish + provider list refresh."
 }
