@@ -1,6 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "EchoBird",
+  "productName": "百灵鸟",
   "version": "3.6.8",
   "identifier": "com.echobird.ai",
   "build": {
