@@ -713,7 +713,7 @@ async fn build_system_prompt(request: &AgentRequest, ssh_pool: &SSHPool) -> Stri
         When the user says 'install Codex', install `@openai/codex`. Do NOT install Claude Code.\n\
         When the user says 'install Claude Code', install via `irm https://claude.ai/install.ps1 | iex` (Windows) or `curl -fsSL https://claude.ai/install.sh | bash`. Do NOT install Codex.\n\
         When the user says 'install OpenCode', install `opencode-ai`. Do NOT install Codex or Claude Code.\n\
-        ALWAYS fetch the tool's install JSON first: https://echobird.ai/api/tools/install/{tool-id}.json\n\n\
+        ALWAYS read the tool's install JSON first from the **Embedded Install References** section appended below — do NOT `web_fetch` echobird.ai for these (they are already in this prompt).\n\n\
         ## Rules\n\
         - Work autonomously. Do NOT ask the user unnecessary questions.\n\
         - Detect the OS and package manager first, then proceed.\n\
@@ -791,10 +791,9 @@ Do NOT offer WSL2 as a workaround.\n\
         - OpenClaw remote: npm uninstall -g openclaw && pkill -f 'openclaw gateway' || true\n\
         - NEVER delete ~/.openclaw/openclaw.json unless user explicitly requests -- it contains the channel pairing token.\n\n\
         ## Tool Install Reference\n\
-        When the user asks to install any tool, ALWAYS fetch the install reference first:\n\
-        https://echobird.ai/api/tools/install/{tool-id}.json (e.g. openclaw, opencode)\n\
-        The JSON contains official install commands, homepage, docs URL, and GitHub link.\n\
-        Use these as authoritative install instructions. If 404, fall back to web_fetch on the tool's official site.\n\n\
+        When the user asks to install any tool, ALWAYS read the install reference from the **Embedded Install References** section appended at the end of this system prompt — it contains the install JSON for every supported tool (openclaw, opencode, claudecode, codex, hermes, nanobot, openfang, picoclaw, zeroclaw).\n\
+        Do NOT `web_fetch` `https://echobird.ai/api/tools/install/...` — that content is already embedded in this prompt and works offline.\n\
+        Only fall back to `web_fetch` on the tool's official site when the requested tool is NOT in the embedded list.\n\n\
         ## Network Pre-Check (MANDATORY Before Installation)\n\
         Before installing ANY agent, you MUST check network connectivity:\n\
         1. **Detect user region from their INPUT LANGUAGE** (what they type, NOT the UI setting):\n\

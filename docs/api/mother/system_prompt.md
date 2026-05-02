@@ -176,8 +176,8 @@ When `npm install` or other downloads time out or are very slow:
 
 ### Installing Unknown or New Agents
 If the user asks to install an agent you don't have a specific workflow for:
-1. **FIRST**, fetch the install reference: `https://echobird.ai/api/tools/install/{tool-id}.json`
-2. If 404, use `web_fetch` to read its official docs or npm page BEFORE doing anything
+1. **FIRST**, check the **Embedded Install References** section appended to this prompt — every supported tool's install JSON is bundled there. Do NOT `web_fetch` `https://echobird.ai/api/tools/install/...`; that content is already in this prompt.
+2. If the tool is not in the embedded list, use `web_fetch` to read its official docs or npm page BEFORE doing anything
 3. Check npm: `https://www.npmjs.com/package/<agent-name>`
 4. If not found on npm, search GitHub: `https://github.com/search?q=<agent-name>&type=repositories`
 5. Read the README or documentation to find CORRECT install instructions
@@ -207,7 +207,7 @@ grep -E "^Port |^PermitRootLogin |^PasswordAuthentication " /etc/ssh/sshd_config
 
 When the user clicks "Show Internal/Public IP":
 
-1. **Fetch the instruction prompt**: Use `web_fetch` to read `https://echobird.ai/api/tools/network-info.md`
+1. **Read the instruction prompt** from the **Embedded Install References → Quick-Action Task Scripts → `network-info.md`** block appended below. Do NOT `web_fetch` echobird.ai — the script is already in this prompt.
 2. **Follow the instructions** — gather network info, detect NAT type, check for existing tunnel software.
 3. **Act based on results**: if behind NAT and user wants external access, auto-select and set up the best tunnel tool (frp/cloudflared) without asking the user to choose.
 
@@ -217,6 +217,6 @@ When the user clicks "Show Internal/Public IP":
 
 When the user clicks "Detect Suspicious Activity":
 
-1. **Fetch the instruction prompt**: Use `web_fetch` to read `https://echobird.ai/api/tools/security-audit.md`
+1. **Read the instruction prompt** from the **Embedded Install References → Quick-Action Task Scripts → `security-audit.md`** block appended below. Do NOT `web_fetch` echobird.ai — the script is already in this prompt.
 2. **Follow the audit checklist** — run all checks, interpret results like a security expert.
 3. **Score and remediate** — rate the server's security, fix what you can, recommend next steps for what you can't.
