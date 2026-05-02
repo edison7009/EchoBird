@@ -13,8 +13,6 @@ import { useAppLogsStore } from '../../stores/appLogsStore';
 import { useToolsStore } from '../../stores/toolsStore';
 import { useNavigationStore } from '../../stores/navigationStore';
 
-declare const __APP_VERSION__: string;
-
 // ===== Provider =====
 
 export function MotherAgentProvider({ children }: { children: React.ReactNode }) {

@@ -10,8 +10,6 @@ import * as api from '../../api/tauri';
 import { useMotherAgent } from './context';
 import { MA_PAGE_SIZE } from './types';
 
-declare const __APP_VERSION__: string;
-
 // ===== Main Content (center area) — CHAT =====
 export function MotherAgentMain() {
     const { t, locale } = useI18n();

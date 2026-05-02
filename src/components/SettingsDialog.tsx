@@ -1,18 +1,20 @@
 // SettingsDialog — Global settings modal (gear button in title bar)
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { X, Globe, Download, ExternalLink } from 'lucide-react';
+import { getVersion } from '@tauri-apps/api/app';
 import { MiniSelect } from './MiniSelect';
 import { useI18n } from '../hooks/useI18n';
 import * as api from '../api/tauri';
 
-declare const __APP_VERSION__: string;
-const APP_VERSION = __APP_VERSION__;
-
-/** Returns true only if `remote` version is strictly greater than `local` (semver X.Y.Z) */
+/** Returns true only if `remote` version is strictly greater than `local` (semver X.Y.Z).
+ *  Returns false when either side fails to parse — avoids false "update available" prompts. */
 function isNewerVersion(remote: string, local: string): boolean {
     const parse = (v: string) => v.replace(/^v/, '').split('.').map(Number);
-    const [rMaj, rMin, rPat] = parse(remote);
-    const [lMaj, lMin, lPat] = parse(local);
+    const r = parse(remote);
+    const l = parse(local);
+    if (r.length < 3 || l.length < 3 || r.some(isNaN) || l.some(isNaN)) return false;
+    const [rMaj, rMin, rPat] = r;
+    const [lMaj, lMin, lPat] = l;
     if (rMaj !== lMaj) return rMaj > lMaj;
     if (rMin !== lMin) return rMin > lMin;
     return rPat > lPat;
@@ -41,8 +43,14 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
     const [isAnimatingOut, setIsAnimatingOut] = useState(false);
     const [updateStatus, setUpdateStatus] = useState<'idle' | 'checking' | 'latest' | 'available' | 'error'>('idle');
     const [latestVersion, setLatestVersion] = useState<string | null>(null);
+    const [appVersion, setAppVersion] = useState<string>('');
     const [closeBehavior, setCloseBehavior] = useState('ask');
     const dialogRef = useRef<HTMLDivElement>(null);
+
+    // Read the installed binary version from Tauri at runtime — single source of truth (tauri.conf.json).
+    useEffect(() => {
+        getVersion().then(setAppVersion).catch(() => setAppVersion(''));
+    }, []);
 
     // Close with animation
     const handleClose = useCallback(() => {
@@ -70,7 +78,7 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
             const res = await fetch('https://echobird.ai/api/version/index.json');
             if (!res.ok) { setUpdateStatus('error'); return; }
             const data = await res.json();
-            if (data.version && isNewerVersion(data.version, APP_VERSION)) {
+            if (data.version && appVersion && isNewerVersion(data.version, appVersion)) {
                 setLatestVersion(data.version);
                 setUpdateStatus('available');
             } else {
@@ -79,7 +87,7 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
         } catch {
             setUpdateStatus('error');
         }
-    }, []);
+    }, [appVersion]);
 
     // Reset status and load settings when dialog opens
     useEffect(() => {
@@ -133,7 +141,7 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
                     {/* Version */}
                     <div className="flex items-center justify-between">
                         <span className="text-xs font-mono text-cyber-text-secondary tracking-wider">{t('settings.version')}</span>
-                        <span className="text-xs font-mono text-cyber-accent">v{APP_VERSION}</span>
+                        <span className="text-xs font-mono text-cyber-accent">{appVersion ? `v${appVersion}` : '—'}</span>
                     </div>
 
                     {/* Divider */}

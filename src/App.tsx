@@ -5,6 +5,7 @@
 
 import { useState, useEffect } from 'react';
 import { RotateCcw } from 'lucide-react';
+import { getVersion } from '@tauri-apps/api/app';
 import { Sidebar, PageType, ToastProvider, ConfirmDialogProvider } from './components';
 import { DownloadProvider } from './components/DownloadContext';
 import { DownloadBar } from './components/DownloadBar';
@@ -24,9 +25,6 @@ import { ModelNexusProvider, ModelNexusTitleActions, ModelNexusMain, ModelNexusP
 import { AppManagerProvider, AppManagerMain, AppManagerPanel, AppManagerBottom, AppManagerErrorModal } from './pages/AppManager';
 import { LocalServerProvider, LocalServerMain, LocalServerPanel, LocalServerBottom } from './pages/LocalServer';
 import { MotherAgentProvider, MotherAgentMain, MotherAgentPanel } from './pages/MotherAgent';
-
-declare const __APP_VERSION__: string;
-
 
 function SidebarConnected({ onSettingsClick }: { onSettingsClick: () => void }) {
     const { activePage, setActivePage, agentRunning, motherNewMessage, clearMotherBadge, updateAvailable } = useNavigationStore();
@@ -57,12 +55,15 @@ function App() {
         const preload = async () => {
             await scanTools();
             api.appReady();
-            // Silent update check after app is ready
+            // Silent update check after app is ready — read installed binary version from Tauri at runtime.
             try {
-                const res = await fetch('https://echobird.ai/api/version/index.json');
-                if (res.ok) {
+                const [appVersion, res] = await Promise.all([
+                    getVersion().catch(() => ''),
+                    fetch('https://echobird.ai/api/version/index.json'),
+                ]);
+                if (res.ok && appVersion) {
                     const data = await res.json();
-                    if (data.version && data.version !== __APP_VERSION__) {
+                    if (data.version && data.version !== appVersion) {
                         setUpdateAvailable(data.version);
                     }
                 }
