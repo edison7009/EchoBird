@@ -14,6 +14,15 @@ jobs:
       matrix:
         include:
           - platform: 'windows-latest'
+            rust-target: 'x86_64-pc-windows-msvc'
+            args: ''
+
+          - platform: 'macos-latest'
+            rust-target: 'aarch64-apple-darwin x86_64-apple-darwin'
+            args: '--target universal-apple-darwin'
+
+          - platform: 'ubuntu-latest'
+            rust-target: 'x86_64-unknown-linux-gnu'
             args: ''
 
     runs-on: ${{ matrix.platform }}
@@ -30,12 +39,18 @@ jobs:
       - name: Install Rust stable
         uses: dtolnay/rust-toolchain@stable
         with:
-          targets: x86_64-pc-windows-msvc
+          targets: ${{ matrix.rust-target }}
 
       - name: Rust cache
         uses: swatinem/rust-cache@v2
         with:
           workspaces: './src-tauri -> target'
+
+      - name: Install Linux system dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf libssl-dev libgtk-3-dev libayatana-appindicator3-dev
 
       - name: Install frontend dependencies
         run: npm ci
