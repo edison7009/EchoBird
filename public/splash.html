@@ -95,7 +95,7 @@
 <body>
     <div class="splash-card">
         <img class="logo" src="ico.svg" alt="">
-        <div class="title" id="appTitle">Echobird</div>
+        <div class="title" id="appTitle">EchoBird</div>
         <div class="loader">
             <span></span>
             <span></span>
@@ -103,11 +103,7 @@
         </div>
     </div>
     <script>
-        try {
-            const locale = new URLSearchParams(location.search).get('locale') || 'en';
-            if (/^zh[-_]?(Hans|CN|SG)/i.test(locale)) document.getElementById('appTitle').textContent = '百灵鸟';
-            else if (/^zh/i.test(locale)) document.getElementById('appTitle').textContent = '百靈鳥';
-        } catch (e) { }
+        // App name is "EchoBird" in every locale — no Chinese alias.
     </script>
 </body>
 

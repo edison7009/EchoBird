@@ -213,7 +213,13 @@ export function MotherAgentMain() {
                         {remoteHints.length > 0 && (
                             <div className="flex flex-wrap gap-2 py-2">
                                 {remoteHints.map((hint, i) => {
-                                    const i18nKey = `mother.hint${hint.action[0].toUpperCase()}${hint.action.slice(1)}` as any;
+                                    // showSpecs swaps to a local-machine wording when 127.0.0.1
+                                    // is selected — otherwise the agent often refuses, treating
+                                    // "server" prompts as a remote/privileged operation.
+                                    const isLocalShowSpecs = hint.action === 'showSpecs' && selectedServerId === 'local';
+                                    const i18nKey = (isLocalShowSpecs
+                                        ? 'mother.hintShowSpecsLocal'
+                                        : `mother.hint${hint.action[0].toUpperCase()}${hint.action.slice(1)}`) as any;
                                     const label = t(i18nKey).replace('{agent}', hint.agent || '');
                                     // Skip hints whose i18n key was removed (label equals raw key)
                                     if (label === i18nKey) return null;
@@ -221,20 +227,16 @@ export function MotherAgentMain() {
                                         <button
                                             key={i}
                                             onClick={() => {
+                                                // Replace input contents — don't append. Each hint
+                                                // is a self-contained prompt; concatenating them
+                                                // produces nonsense for the agent.
+                                                setChatInput(label);
                                                 const el = chatInputRef.current;
                                                 if (el) {
-                                                    const start = el.selectionStart ?? el.value.length;
-                                                    const end = el.selectionEnd ?? start;
-                                                    const before = el.value.slice(0, start);
-                                                    const after = el.value.slice(end);
-                                                    setChatInput(before + label + after);
                                                     el.focus();
                                                     requestAnimationFrame(() => {
-                                                        const pos = start + label.length;
-                                                        el.selectionStart = el.selectionEnd = pos;
+                                                        el.selectionStart = el.selectionEnd = label.length;
                                                     });
-                                                } else {
-                                                    setChatInput(label);
                                                 }
                                             }}
                                             className="px-3 py-1 text-xs rounded-full border border-cyber-accent/20 text-cyber-accent/70 hover:bg-cyber-accent/10 hover:text-cyber-accent transition-all cursor-pointer"
