@@ -51,7 +51,7 @@ export const Sidebar = ({ activePage, onPageChange, agentRunning: _agentRunning 
                         lineHeight: '16px',
                     }}
                 >
-                    {'百灵鸟'}
+                    {t('app.name')}
                 </span>
                 {updateAvailable && (
                     <button

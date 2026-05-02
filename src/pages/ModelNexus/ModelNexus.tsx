@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { open as shellOpen } from '@tauri-apps/plugin-shell';
-import { X } from 'lucide-react';
+import { X, Box, ExternalLink } from 'lucide-react';
 import { MiniSelect } from '../../components/MiniSelect';
 import { ModelCard, ModelCardSkeleton, getModelIcon } from '../../components';
 import { useI18n } from '../../hooks/useI18n';
@@ -413,229 +413,112 @@ export function ModelNexusMain() {
     );
 }
 
-// ===== Right Panel (Debug Console) =====
+// ===== Right Panel (Provider / Relay tabs) =====
 
-// Fallback welcome content (used when remote fetch fails or content is unavailable)
-// NOTE: keep this generic — no specific provider names here.
-// Providers are controlled exclusively via the remote JSON on echobird.ai.
-const WELCOME_FALLBACK = {
-    intro: 'Even as an AI beginner, [EchoBird] lets you command your own Agent — from setup to work — through simple chat.',
-    providers: [] as { name: string; url: string }[],
-    providers_archived: [] as { name: string; url: string }[],
-    steps: [
-        { step: '01', title: 'Add an AI Model', desc: 'Get an API key from any supported AI provider and add it in [Model Nexus]. Got a capable machine at home? You can also run a local model instead.' },
-        { step: '02', title: 'Pick an Application', desc: 'In [App Manager], pick the agent or app you want to use and assign the model you just added. EchoBird wires up the config automatically.' },
-        { step: '03', title: 'Install or Repair', desc: 'New tool not on your machine yet? Use [Mother Agent] to install it — and to fix things if anything breaks later.' },
-    ],
-};
+// Globally well-known LLM providers — ordered by approximate end-user MAU
+// (chatbot product reach) as of mid-2025, blending public reports
+// (a16z, SimilarWeb, Sensor Tower, QuestMobile). Indicative, not official.
+// Names are picked to match keyword rules in getModelIcon (so the SVG resolves).
+const KNOWN_PROVIDERS: { name: string; url: string }[] = [
+    { name: 'OpenAI',           url: 'https://openai.com' },             //  1. ChatGPT 全球第一
+    { name: 'Google Gemini',    url: 'https://gemini.google.com' },      //  2. Google 流量整合
+    { name: 'Doubao 豆包',      url: 'https://www.doubao.com' },         //  3. 国内 C 端第一
+    { name: 'DeepSeek',         url: 'https://www.deepseek.com' },       //  4. 2025 全球出圈
+    { name: 'ERNIE 文心',       url: 'https://yiyan.baidu.com' },        //  5. 百度生态
+    { name: 'Qwen 通义千问',    url: 'https://chat.qwen.ai' },           //  6. 阿里加持
+    { name: 'Kimi 月之暗面',    url: 'https://www.kimi.com' },           //  7. 长文 C 端热门
+    { name: 'Anthropic',        url: 'https://www.anthropic.com' },      //  8. Claude 知识工作者首选
+    { name: 'GLM 智谱',         url: 'https://www.zhipuai.cn' },         //  9. 国内活跃
+    { name: 'xAI Grok',         url: 'https://x.ai' },                   // 10. X 平台带量
+    { name: 'Hunyuan 混元',     url: 'https://hunyuan.tencent.com' },    // 11. 微信生态
+    { name: 'Meta AI',          url: 'https://ai.meta.com' },            // 12. Llama 开源 + IG/WA
+    { name: 'Perplexity',       url: 'https://www.perplexity.ai' },      // 13. AI 搜索
+    { name: 'MiniMax',          url: 'https://www.minimaxi.com' },       // 14. 国内中等规模
+    { name: 'Stepfun 阶跃星辰', url: 'https://www.stepfun.com' },        // 15. 国内中等规模
+    { name: 'Mistral AI',       url: 'https://mistral.ai' },             // 16. 欧洲开源代表
+    { name: 'Xiaomi 小米',      url: 'https://platform.xiaomimimo.com/' },// 17. MiMo 新势力
+    { name: 'Cohere',           url: 'https://cohere.com' },             // 18. 偏 B 端
+    { name: 'Groq',             url: 'https://groq.com' },               // 19. 推理引擎,B 端
+    { name: 'Together AI',      url: 'https://www.together.ai' },        // 20. 模型托管,B 端
+];
 
-// Map bracket tokens like [Model Nexus] → i18n nav key, or hardcoded string
-const PAGE_TOKEN_MAP: Record<string, string | null> = {
-    'EchoBird': null,
-    'Model Nexus': 'nav.modelNexus',
-    'Mother Agent': 'nav.motherAgent',
-    'App Manager': 'nav.appManager',
-};
+// Aggregator/router platforms — single OpenAI-compatible endpoint that fans
+// out to many upstream models.
+const KNOWN_RELAYS: { name: string; url: string }[] = [
+    { name: 'OpenRouter', url: 'https://openrouter.ai' },
+];
 
-// Render a string with [Token] markers:
-//   - nav tokens   → highlighted span with localized name
-//   - provider tokens → clickable inline button that opens a URL
-function renderTokens(
-    text: string,
-    t: (key: any) => string,
-    providerMap: Map<string, string>,
-): React.ReactNode[] {
-    const parts = text.split(/(\[[^\]]+\])/g);
-    return parts.map((part, i) => {
-        const match = part.match(/^\[([^\]]+)\]$/);
-        if (match) {
-            const token = match[1];
-            const url = providerMap.get(token);
-            if (url) {
-                return (
-                    <button
-                        key={i}
-                        onClick={() => shellOpen(url).catch(() => window.open(url, '_blank'))}
-                        className="inline text-cyber-accent font-bold underline decoration-dotted underline-offset-2 cursor-pointer hover:text-white transition-colors"
-                    >
-                        [{token}]
-                    </button>
-                );
-            }
-            const navKey = PAGE_TOKEN_MAP[token];
-            const label = navKey ? t(navKey as any) : token;
-            return <span key={i} className="text-cyber-accent font-bold">{label}</span>;
-        }
-        return <span key={i}>{part}</span>;
-    });
+function ProviderRow({ entry }: { entry: { name: string; url: string } }) {
+    const iconSrc = getModelIcon(entry.name, '');
+    const hostname = (() => {
+        try { return new URL(entry.url).hostname; }
+        catch { return entry.url; }
+    })();
+    return (
+        <div
+            onClick={() => shellOpen(entry.url).catch(() => window.open(entry.url, '_blank'))}
+            className="group p-3 rounded cursor-pointer transition-all flex items-center gap-3 bg-black/30 hover:bg-white/5"
+        >
+            <div className="flex-shrink-0">
+                {iconSrc ? (
+                    <img
+                        src={iconSrc}
+                        alt=""
+                        className="w-6 h-6"
+                        onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                    />
+                ) : (
+                    <div className="w-6 h-6 rounded bg-cyber-accent/15 flex items-center justify-center text-cyber-accent">
+                        <Box size={14} />
+                    </div>
+                )}
+            </div>
+            <div className="flex-1 min-w-0 flex flex-col justify-center h-10">
+                <div className="text-sm font-bold truncate leading-none">{entry.name}</div>
+                <div className="text-[10px] text-cyber-text-secondary truncate leading-tight mt-1 opacity-70">
+                    {hostname}
+                </div>
+            </div>
+            <ExternalLink
+                size={14}
+                className="flex-shrink-0 text-cyber-text-muted/50 group-hover:text-cyber-accent transition-colors"
+            />
+        </div>
+    );
 }
 
 export function ModelNexusPanel() {
-    const { t, locale } = useI18n();
-    const {
-        selectedModelData, testOutput, isTesting, arrowIndex,
-        testProtocol, setTestProtocol,
-        testInput, setTestInput,
-        inputFocused, setInputFocused,
-        cursorPos, setCursorPos,
-        testInputRef, handleTestModel,
-    } = useModelNexus();
-
-    const [welcomeContent, setWelcomeContent] = useState<typeof WELCOME_FALLBACK | null>(null);
-
-    useEffect(() => {
-        const fetchWelcome = async () => {
-            try {
-                // Try locale-specific JSON, fall back to en if missing
-                let res = await fetch(`https://echobird.ai/api/welcome/${locale}.json`);
-                if (!res.ok) {
-                    res = await fetch('https://echobird.ai/api/welcome/en.json');
-                }
-                const data = await res.json();
-                if (data?.intro && Array.isArray(data?.steps)) {
-                    setWelcomeContent({
-                        intro: data.intro,
-                        providers: Array.isArray(data.providers) ? data.providers : [],
-                        providers_archived: Array.isArray(data.providers_archived) ? data.providers_archived : [],
-                        steps: data.steps,
-                    });
-                }
-            } catch {
-                // True network failure — show t('model.selectToTest')
-            }
-        };
-        fetchWelcome();
-    }, [locale]);
+    const { t } = useI18n();
+    const [panelTab, setPanelTab] = useState<'providers' | 'relays'>('providers');
+    const list = panelTab === 'providers' ? KNOWN_PROVIDERS : KNOWN_RELAYS;
 
     return (
         <>
-            <div className="px-4 pt-0.5 pb-3 text-sm flex items-center justify-between bg-transparent">
-                <span className="font-mono">{selectedModelData ? t('debug.console') : welcomeContent ? t('debug.gettingStarted') : t('debug.console')}</span>
-                {selectedModelData && (
-                    <span className="text-[10px] text-cyber-accent font-mono">
-                        {selectedModelData.name}
-                    </span>
-                )}
-            </div>
-            <div className="flex-1 p-4 overflow-y-auto text-xs font-mono space-y-1 bg-black/30 rounded-lg">
-                {selectedModelData ? (
-                    <div className="space-y-1">
-                        <p className="text-cyber-accent">[SYS] Model connected</p>
-                        <p className="text-cyber-text-secondary">$ echo $MODEL_ID</p>
-                        <p className="text-cyber-accent/80 break-all">{selectedModelData.modelId || selectedModelData.internalId}</p>
-                        <p className="text-cyber-text-secondary">$ echo $ENDPOINT ({testProtocol.toUpperCase()})</p>
-                        <p className="text-cyber-accent/80 break-all">
-                            {testProtocol === 'openai'
-                                ? (selectedModelData.baseUrl || 'not set')
-                                : (selectedModelData.anthropicUrl || 'not set')}
-                        </p>
-                        <p className="text-cyber-text-secondary mt-2">$ test --prompt</p>
-                        {/* Test output history */}
-                        {testOutput.map((line, i) => (
-                            <p key={i} className={`break-words ${line.startsWith('Response in') ? 'text-green-400' :
-                                line.includes('HTTP 4') || line.includes('HTTP 5') || line.includes('error') || line.includes('Error') || line.includes('failed') ? 'text-red-400' :
-                                    line.startsWith('Sending') ? 'text-cyber-accent' :
-                                        line.startsWith('>') ? 'text-white' :
-                                            'text-cyber-text-muted/80'
-                                }`}>{line}</p>
-                        ))}
-                        {isTesting ? (
-                            <p className="text-cyber-accent font-mono">[EXEC] <span className="inline-block w-8 text-left">{['>', '>>', '>>>', ''][arrowIndex]}</span> transmitting...</p>
-                        ) : (
-                            <p className="text-cyber-accent">_ ready</p>
-                        )}
-                    </div>
-                ) : welcomeContent ? (
-                    <div className="space-y-5 py-2">
-                        {(() => {
-                            const providerMap = new Map([
-                                ...welcomeContent.providers.map(p => [p.name, p.url] as [string, string]),
-                                ...(welcomeContent.providers_archived || []).map(p => [p.name, p.url] as [string, string]),
-                            ]);
-                            return (
-                                <>
-                                    <p className="text-cyber-accent text-sm leading-loose">
-                                        {renderTokens(welcomeContent.intro, t, providerMap)}
-                                    </p>
-                                    <div className="space-y-4">
-                                        {welcomeContent.steps.map(({ step, title, desc }) => (
-                                            <div key={step} className={`flex gap-3 ${step === 'tip' ? 'mt-2 pt-3 border-t border-cyber-border/20' : ''}`}>
-                                                <div className="flex-shrink-0 w-6">
-                                                    <div className="text-cyber-accent text-sm font-bold leading-6 text-center">
-                                                        {step === 'tip' ? '★' : step}
-                                                    </div>
-                                                </div>
-                                                <div>
-                                                    <div className="text-cyber-accent text-sm font-bold mb-1 leading-6">{title}</div>
-                                                    <div className="text-cyber-text text-sm leading-loose">{renderTokens(desc, t, providerMap)}</div>
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </>
-                            );
-                        })()}
-                    </div>
-                ) : (
-                    <p className="text-cyber-text-secondary text-sm">{t('model.selectToTest')}</p>
-                )}
-            </div>
-            <div className="py-3">
-                <div
-                    className="flex items-center gap-2 bg-black/30 p-2 cursor-text rounded-lg"
-                    onClick={() => testInputRef.current?.focus()}
-                >
-                    {/* Clickable protocol selector */}
+            <div className="p-2 flex items-center justify-between bg-transparent">
+                <div className="flex gap-1">
                     <button
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            if (testProtocol === 'openai' && selectedModelData?.anthropicUrl) {
-                                setTestProtocol('anthropic');
-                            } else if (testProtocol === 'anthropic' && selectedModelData?.baseUrl) {
-                                setTestProtocol('openai');
-                            }
-                        }}
-                        className="text-xs font-mono select-none whitespace-nowrap text-cyber-accent cursor-pointer"
+                        onClick={() => setPanelTab('providers')}
+                        className={`px-3 py-1.5 text-xs font-bold rounded transition-colors ${panelTab === 'providers'
+                            ? 'bg-cyber-accent text-black'
+                            : 'text-cyber-text-secondary hover:text-cyber-text'
+                            }`}
                     >
-                        ~\{(selectedModelData?.baseUrl || selectedModelData?.anthropicUrl)
-                            ? (testProtocol === 'openai' ? 'OpenAI' : 'Anthropic')
-                            : ''} {'>'}
+                        {t('model.providers')}
                     </button>
-                    <div className="flex-1 relative flex items-center">
-                        <input
-                            ref={testInputRef}
-                            type="text"
-                            placeholder=""
-                            value={testInput}
-                            onChange={(e) => {
-                                setTestInput(e.target.value);
-                                setCursorPos(e.target.selectionStart || 0);
-                            }}
-                            onFocus={() => setInputFocused(true)}
-                            onBlur={() => setInputFocused(false)}
-                            onSelect={(e) => setCursorPos(e.currentTarget.selectionStart || 0)}
-                            onClick={(e) => setCursorPos(e.currentTarget.selectionStart || 0)}
-                            onKeyUp={(e) => {
-                                setCursorPos(e.currentTarget.selectionStart || 0);
-                                if (e.key === 'Enter' && !isTesting) {
-                                    handleTestModel();
-                                }
-                            }}
-                            className="w-full bg-transparent text-xs font-mono focus:outline-none text-cyber-text"
-                            disabled={!selectedModelData || isTesting}
-                            style={{ caretColor: 'transparent' }}
-                        />
-                        {/* Custom underscore cursor */}
-                        <div className="absolute inset-0 flex items-end pb-[2px] pointer-events-none text-xs font-mono text-cyber-text overflow-hidden whitespace-pre">
-                            <span className="invisible">{testInput.slice(0, cursorPos)}</span>
-                            {inputFocused && (
-                                <span
-                                    className="inline-block w-[0.6em] h-[2px] bg-cyber-accent shadow-[0_0_8px_rgba(0,255,157,0.8)]"
-                                    style={{ animation: 'blink 1s step-end infinite' }}
-                                ></span>
-                            )}
-                        </div>
-                    </div>
+                    <button
+                        onClick={() => setPanelTab('relays')}
+                        className={`px-3 py-1.5 text-xs font-bold rounded transition-colors ${panelTab === 'relays'
+                            ? 'bg-cyber-accent/80 text-black'
+                            : 'text-cyber-text-secondary hover:text-cyber-text'
+                            }`}
+                    >
+                        {t('model.relays')}
+                    </button>
+                </div>
+            </div>
+            <div className="flex-1 p-2 overflow-y-auto">
+                <div className="space-y-2">
+                    {list.map(entry => <ProviderRow key={entry.name} entry={entry} />)}
                 </div>
             </div>
         </>

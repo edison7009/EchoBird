@@ -1,6 +1,7 @@
 // ChatBubble — modern AI conversation style.
 // Assistant: full-width markdown, no bubble (plain text on the page bg).
 // User: subtle right-aligned card. Streaming caret while the agent types.
+import { useEffect, useState } from 'react';
 import { Paperclip, KeyRound, Image as ImageIcon } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -68,23 +69,100 @@ function ReadonlyChips({ chips }: { chips: BubbleChip[] }) {
     );
 }
 
-// ── "Inputting..." indicator before the first delta arrives ───────────────────
+// ── Claude-Code-style "thinking" indicator ────────────────────────────────────
+// Cycling asterisk glyph (forward + reverse) plus a random verb with ellipsis,
+// rendered in theme green. Same shape as Claude Code's terminal spinner.
+const SPINNER_GLYPHS = ['·', '✢', '*', '✶', '✻', '✽'];
+const SPINNER_FRAMES = [...SPINNER_GLYPHS, ...[...SPINNER_GLYPHS].reverse()];
+const SPINNER_VERBS_EN = [
+    'Accomplishing', 'Architecting', 'Brewing', 'Bootstrapping', 'Calculating',
+    'Cascading', 'Channelling', 'Cogitating', 'Composing', 'Computing',
+    'Concocting', 'Considering', 'Cooking', 'Crafting', 'Crunching',
+    'Cultivating', 'Deciphering', 'Deliberating', 'Doing', 'Effecting',
+    'Envisioning', 'Forging', 'Formulating', 'Generating', 'Hatching',
+    'Honing', 'Imagining', 'Incubating', 'Manifesting', 'Marinating',
+    'Meditating', 'Mulling', 'Musing', 'Optimizing', 'Orchestrating',
+    'Percolating', 'Plotting', 'Pondering', 'Processing', 'Reasoning',
+    'Reticulating', 'Spelunking', 'Spinning', 'Stewing', 'Synthesizing',
+    'Thinking', 'Tinkering', 'Transmuting', 'Unfurling', 'Vibing',
+    'Working', 'Wrangling',
+];
+// Chinese verbs — keep the playful Claude-Code-ish vibe ("烹调中…", "揉捏中…").
+const SPINNER_VERBS_ZH = [
+    '思索', '琢磨', '酝酿', '烹调', '雕琢',
+    '沉吟', '推敲', '冥想', '编织', '梳理',
+    '揉捏', '锻造', '调和', '织梦', '谋划',
+    '玩味', '端详', '神游', '钻研', '寻思',
+    '烧脑', '挠头', '浸泡', '发酵', '熬煮',
+    '炮制', '推演', '演算', '召唤', '拨弦',
+    '咕嘟', '搅拌', '编排', '凝聚', '飘忽',
+];
+
 function InputDots() {
-    const { t } = useI18n();
-    const col = '#F0EDE8';
+    const { locale } = useI18n();
+    const isZh = locale.startsWith('zh');
+    const verbs = isZh ? SPINNER_VERBS_ZH : SPINNER_VERBS_EN;
+    const formatVerb = (v: string) => (isZh ? `正在${v}中…` : `${v}…`);
+    const pickRandom = () => formatVerb(verbs[Math.floor(Math.random() * verbs.length)]);
+
+    // Glyph cycle (·✢*✶✻✽ forward + reverse)
+    const [frame, setFrame] = useState(0);
+    useEffect(() => {
+        const id = setInterval(() => setFrame(f => (f + 1) % SPINNER_FRAMES.length), 100);
+        return () => clearInterval(id);
+    }, []);
+
+    // Typewriter cycle: show → erase → type a new verb → repeat
+    const [target, setTarget] = useState<string>(pickRandom);
+    const [shown, setShown] = useState<string>(target);
+    const [phase, setPhase] = useState<'show' | 'erase' | 'type'>('show');
+
+    // When locale flips, immediately swap to a fresh verb in the new language.
+    useEffect(() => {
+        const next = pickRandom();
+        setTarget(next);
+        setShown(next);
+        setPhase('show');
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isZh]);
+
+    useEffect(() => {
+        if (phase === 'show') {
+            const id = setTimeout(() => setPhase('erase'), 2800);
+            return () => clearTimeout(id);
+        }
+        if (phase === 'erase') {
+            if (shown.length === 0) {
+                setTarget(pickRandom());
+                setPhase('type');
+                return;
+            }
+            const id = setTimeout(() => setShown(s => s.slice(0, -1)), 45);
+            return () => clearTimeout(id);
+        }
+        // phase === 'type'
+        if (shown.length >= target.length) {
+            setPhase('show');
+            return;
+        }
+        const id = setTimeout(() => setShown(target.slice(0, shown.length + 1)), 70);
+        return () => clearTimeout(id);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [phase, shown, target]);
+
     return (
         <span className="inline-flex items-center gap-2">
-            <svg viewBox="0 0 24 24" style={{ width: 12, height: 12, flexShrink: 0, animation: 'agentHeartbeat 0.9s ease-in-out infinite' }} aria-hidden="true">
-                <path d="M12 21.593c-5.63-5.539-11-10.297-11-14.402 0-3.791 3.068-5.191 5.281-5.191 1.312 0 4.151.501 5.719 4.457 1.59-3.968 4.464-4.447 5.726-4.447 2.54 0 5.274 1.621 5.274 5.181 0 4.069-5.136 8.625-11 14.402z" fill="#FF5252" />
-            </svg>
-            <span className="font-sans font-medium text-sm" style={{ color: col }}>{t('common.inputting')}</span>
-            <span className="inline-flex gap-[3px]">
-                {[0,1,2].map(i => (
-                    <span key={i}
-                        className="inline-block w-1 h-1 rounded-full"
-                        style={{ backgroundColor: col, animation: 'dotPulse 1.2s ease-in-out infinite', animationDelay: `${i * 0.2}s` }}
-                    />
-                ))}
+            <span className="spinner-glyph inline-block w-3 text-center font-mono text-base leading-none text-cyber-accent">
+                {SPINNER_FRAMES[frame]}
+            </span>
+            <span className="inline-flex items-baseline font-mono text-sm">
+                <span className="spinner-shimmer">{shown}</span>
+                {/* Blinking caret at the tail — sits OUTSIDE the shimmer span
+                    so background-clip:text doesn't eat it. */}
+                <span
+                    className="inline-block w-[0.5em] h-[1em] ml-0.5 bg-cyber-accent self-center"
+                    style={{ animation: 'caretBlink 1s steps(2) infinite' }}
+                />
             </span>
         </span>
     );

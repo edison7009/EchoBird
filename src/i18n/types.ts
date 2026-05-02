@@ -31,7 +31,7 @@ export type TKey =
     | 'model.deleteTitle' | 'model.deleteConfirm'
     | 'model.selectToTest' | 'model.escCancel' | 'model.enterSave'
     // ModelCard labels
-    | 'model.label' | 'model.source' | 'model.latency' | 'model.debugTesting'
+    | 'model.label' | 'model.source' | 'model.latency' | 'model.debugTesting' | 'model.providers' | 'model.relays'
     | 'model.cloud' | 'model.local' | 'model.tunnel'
 
     // App Manager
@@ -78,7 +78,7 @@ export type TKey =
     | 'hint.devInvite'
     // Mother Agent
     | 'mother.selectModel'
-    | 'mother.hintInstall' | 'mother.hintShowSpecs' | 'mother.hintTroubleshoot' | 'mother.hintUninstall'
+    | 'mother.hintInstall' | 'mother.hintShowSpecs' | 'mother.hintShowSpecsLocal' | 'mother.hintTroubleshoot' | 'mother.hintUninstall'
     | 'mother.hintNetworkInfo' | 'mother.hintSecurityAudit'
     | 'mother.enterMessage' | 'mother.noModels'
     | 'mother.servers' | 'mother.sshGuide' | 'mother.local' | 'mother.noServer'
@@ -106,6 +106,8 @@ export type TKey =
     | 'error.connectionTimeout' | 'error.serverUnreachable' | 'error.agentFailed'
     | 'error.noServerConfig' | 'error.noModelSelected' | 'error.requestFailed'
     | 'error.userCancelled'
-    | 'common.inputting';
+    | 'common.inputting'
+    // App brand
+    | 'app.name';
 
 export type Translations = Record<TKey, string>;
