@@ -4,7 +4,9 @@
 
 <h1 align="center">百灵鸟</h1>
 
-<h3 align="center">很多朋友让我帮他安装 Claude Code、OpenClaw、Hermes Agent……<br>但每个人系统不一样，安装起来费神费力。<br>于是我开发了这个叫「百灵鸟」的 Agent ——<br>受《赛博朋克2077》里那位总能帮主角搞定一切技术难题的女黑客启发，<br>百灵鸟可以帮你一键装好所有 AI 工具。</h3>
+<p align="center"><strong>One-click install Agents.</strong></p>
+
+很多朋友让我帮他安装 **Claude Code**、**OpenClaw**、**Hermes Agent**……但每个人系统不一样，安装起来费神费力。于是我开发了这个叫「百灵鸟」的 Agent —— 受《赛博朋克2077》里那位总能帮主角搞定一切技术难题的女黑客启发，百灵鸟可以帮你一键装好所有 AI 工具。
 
 <p align="center">
   <a href="https://github.com/edison7009/EchoBird/releases">
