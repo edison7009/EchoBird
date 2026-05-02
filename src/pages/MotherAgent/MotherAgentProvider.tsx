@@ -95,6 +95,17 @@ export function MotherAgentProvider({ children }: { children: React.ReactNode })
             if (m.text.includes('__CONN_RETRY__') || m.text.includes('__CONN_FAILED__')) return null;
             return { role: 'assistant', content: m.text };
         }
+        if (m.type === 'tool_call') {
+            // Persist tool invocations so the rebuilt timeline matches what the user saw.
+            // Coerce 'running' → 'failed' on save: if we're still running when persisted,
+            // any later state (done/failed) overwrites this; if the session ends while
+            // running, the call was interrupted and 'failed' is the honest state.
+            const status = m.status === 'running' ? 'failed' : m.status;
+            return {
+                role: 'tool',
+                content: JSON.stringify({ id: m.id, name: m.name, args: m.args, status, output: m.output }),
+            };
+        }
         if (m.type === 'error') return { role: 'system', content: (m as any).i18nKey || m.text };
         if (m.type === 'cancelled') return { role: 'system', content: (m as any).i18nKey || m.text };
         return null;
@@ -102,6 +113,24 @@ export function MotherAgentProvider({ children }: { children: React.ReactNode })
 
     // Shared mapper: disk format → ChatMessage
     const fromDisk = useCallback((m: DiskMsg): ChatMessage => {
+        if (m.role === 'tool') {
+            try {
+                const o = JSON.parse(m.content);
+                const status: 'running' | 'done' | 'failed' =
+                    o.status === 'done' || o.status === 'failed' ? o.status : 'failed';
+                return {
+                    type: 'tool_call',
+                    id: String(o.id ?? ''),
+                    name: String(o.name ?? ''),
+                    args: typeof o.args === 'string' ? o.args : '',
+                    status,
+                    output: typeof o.output === 'string' ? o.output : undefined,
+                };
+            } catch {
+                // Corrupted entry — fall back to a visible cancelled marker rather than crashing
+                return { type: 'cancelled', text: m.content };
+            }
+        }
         if (m.role === 'system' && m.content === 'error.userCancelled') {
             return { type: 'cancelled', text: '', i18nKey: m.content };
         }
