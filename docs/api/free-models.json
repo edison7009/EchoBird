@@ -9,8 +9,11 @@
             "baseUrl": "https://integrate.api.nvidia.com/v1",
             "protocol": "OpenAI",
             "models": [
+                { "id": "minimaxai/minimax-m2.7", "name": "MiniMax M2.7", "context": 204800, "limit": "40 RPM", "free": true },
+                { "id": "deepseek-ai/deepseek-v4-pro", "name": "DeepSeek V4 Pro", "context": 131072, "limit": "40 RPM", "free": true },
+                { "id": "deepseek-ai/deepseek-v4-flash", "name": "DeepSeek V4 Flash", "context": 131072, "limit": "40 RPM", "free": true },
+                { "id": "z-ai/glm-5.1", "name": "GLM 5.1", "context": 131072, "limit": "40 RPM", "free": true },
                 { "id": "minimaxai/minimax-m2.5", "name": "MiniMax M2.5", "context": 204800, "limit": "40 RPM", "free": true },
-                { "id": "z-ai/glm5", "name": "GLM 5", "context": 131072, "limit": "40 RPM", "free": true },
                 { "id": "moonshotai/kimi-k2.5", "name": "Kimi K2.5", "context": 131072, "limit": "40 RPM", "free": true },
                 { "id": "z-ai/glm4.7", "name": "GLM 4.7", "context": 204800, "limit": "40 RPM", "free": true },
                 { "id": "stepfun-ai/step-3.5-flash", "name": "Step 3.5 Flash", "context": 262144, "limit": "40 RPM", "free": true },

@@ -8,13 +8,17 @@ Periodically run this to keep `docs/api/free-models.json` up to date.
 
 ## Reference Sources
 
-| What | URL |
-|---|---|
-| **Model IDs + tiers** | https://github.com/vava-nessa/free-coding-models/blob/main/sources.js |
-| **Free limits** | https://github.com/cheahjs/free-llm-api-resources |
+| Priority | What | URL |
+|---|---|---|
+| **1 (primary)** | NVIDIA NIM catalog (newest models first) | https://build.nvidia.com/explore/discover |
+| **2 (secondary)** | Model tiers + SWE scores | https://github.com/vava-nessa/free-coding-models/blob/main/sources.js |
+| **3 (limits)** | Free tier rate limits | https://github.com/cheahjs/free-llm-api-resources |
 
-`sources.js` format: `[model_id, display_name, tier, swe_score, context]`  
-Only include **S+** (≥70% SWE-bench) and **S** (60–70%) tier models.
+> **Important:** `sources.js` lags behind NVIDIA NIM releases (e.g. MiniMax M2.7, DeepSeek V4, GLM 5.1). Always check NVIDIA NIM catalog directly first for new models, then cross-reference tiers from sources.js.
+>
+> `sources.js` format: `[model_id, display_name, tier, swe_score, context]`  
+> Only include **S+** (≥70% SWE-bench) and **S** (60–70%) tier models.  
+> For brand-new models not yet in sources.js, assume S+ tier and add them.
 
 ---
 
