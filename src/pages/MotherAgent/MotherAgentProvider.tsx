@@ -224,9 +224,9 @@ export function MotherAgentProvider({ children }: { children: React.ReactNode })
         onAgentRunningChange?.(!!agentModel);
     }, [agentModel, onAgentRunningChange]);
 
-    // Auto-scroll
+    // Auto-scroll (logs only — chat scroll is managed by MotherAgentMain so the
+    // user can scroll up freely while the agent is streaming).
     useEffect(() => { logsEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [appLogs]);
-    useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [chatOutput]);
 
     // Subscribe to agent events
     useEffect(() => {

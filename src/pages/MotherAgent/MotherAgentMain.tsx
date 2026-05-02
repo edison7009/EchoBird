@@ -131,23 +131,22 @@ export function MotherAgentMain() {
 
     // Scroll management
     const chatContainerRef = useRef<HTMLDivElement>(null!);
-    const autoFollowRef = useRef(true);
-    const isProgrammaticScrollRef = useRef(false);
+    const didInitialScrollRef = useRef(false);
     const [showScrollBtn, setShowScrollBtn] = useState(false);
     const PAGE_SIZE = MA_PAGE_SIZE;
     const [displayCount, setDisplayCount] = useState(PAGE_SIZE);
     const [showSkeleton, setShowSkeleton] = useState(false);
 
-    // Reset pagination when server changes
-    useEffect(() => { setDisplayCount(PAGE_SIZE); }, [selectedServerId]);
+    // Reset pagination + initial-scroll flag when server changes
+    useEffect(() => {
+        setDisplayCount(PAGE_SIZE);
+        didInitialScrollRef.current = false;
+    }, [selectedServerId]);
 
     const handleScroll = () => {
         const container = chatContainerRef.current;
         if (!container) return;
-        // Skip autoFollow updates during programmatic scroll
-        if (isProgrammaticScrollRef.current) return;
         const isAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 40;
-        autoFollowRef.current = isAtBottom;
         setShowScrollBtn(!isAtBottom && chatOutput.length > 0);
 
         if (container.scrollTop !== 0) return;
@@ -186,19 +185,18 @@ export function MotherAgentMain() {
         }).catch(() => { setShowSkeleton(false); });
     };
 
-    // Helper: programmatic scroll that won't flip autoFollowRef
     const doScrollToBottom = (behavior: ScrollBehavior = 'auto') => {
-        isProgrammaticScrollRef.current = true;
-        autoFollowRef.current = true;
         setShowScrollBtn(false);
         chatEndRef.current?.scrollIntoView({ behavior });
-        setTimeout(() => { isProgrammaticScrollRef.current = false; }, 100);
     };
 
+    // One-time scroll to bottom on initial hydration (and after server switch).
+    // After that, the user is in control — streaming deltas don't move the viewport.
     useEffect(() => {
-        if (autoFollowRef.current) {
-            requestAnimationFrame(() => doScrollToBottom('auto'));
-        }
+        if (didInitialScrollRef.current) return;
+        if (chatOutput.length === 0) return;
+        didInitialScrollRef.current = true;
+        requestAnimationFrame(() => doScrollToBottom('auto'));
     }, [chatOutput]);
 
     const scrollToBottom = () => doScrollToBottom('smooth');
