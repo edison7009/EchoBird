@@ -1,5 +1,5 @@
 {
-    "updated": "2026-03-18",
+    "updated": "2026-05-02",
     "providers": [
         {
             "name": "NVIDIA NIM",
@@ -12,15 +12,16 @@
                 { "id": "minimaxai/minimax-m2.5", "name": "MiniMax M2.5", "context": 204800, "limit": "40 RPM", "free": true },
                 { "id": "z-ai/glm5", "name": "GLM 5", "context": 131072, "limit": "40 RPM", "free": true },
                 { "id": "moonshotai/kimi-k2.5", "name": "Kimi K2.5", "context": 131072, "limit": "40 RPM", "free": true },
+                { "id": "z-ai/glm4.7", "name": "GLM 4.7", "context": 204800, "limit": "40 RPM", "free": true },
                 { "id": "stepfun-ai/step-3.5-flash", "name": "Step 3.5 Flash", "context": 262144, "limit": "40 RPM", "free": true },
                 { "id": "minimaxai/minimax-m2.1", "name": "MiniMax M2.1", "context": 204800, "limit": "40 RPM", "free": true },
-                { "id": "z-ai/glm4.7", "name": "GLM 4.7", "context": 204800, "limit": "40 RPM", "free": true },
+                { "id": "moonshotai/kimi-k2-thinking", "name": "Kimi K2 Thinking", "context": 262144, "limit": "40 RPM", "free": true },
                 { "id": "deepseek-ai/deepseek-v3.2", "name": "DeepSeek V3.2", "context": 131072, "limit": "40 RPM", "free": true },
                 { "id": "qwen/qwen3-coder-480b-a35b-instruct", "name": "Qwen3 Coder 480B", "context": 262144, "limit": "40 RPM", "free": true },
                 { "id": "qwen/qwen3-235b-a22b", "name": "Qwen3 235B", "context": 131072, "limit": "40 RPM", "free": true },
                 { "id": "mistralai/devstral-2-123b-instruct-2512", "name": "Devstral 2 123B", "context": 262144, "limit": "40 RPM", "free": true },
-                { "id": "moonshotai/kimi-k2-thinking", "name": "Kimi K2 Thinking", "context": 262144, "limit": "40 RPM", "free": true },
                 { "id": "deepseek-ai/deepseek-v3.1-terminus", "name": "DeepSeek V3.1 Term", "context": 131072, "limit": "40 RPM", "free": true },
+                { "id": "moonshotai/kimi-k2-instruct-0905", "name": "Kimi K2 Instruct 0905", "context": 262144, "limit": "40 RPM", "free": true },
                 { "id": "moonshotai/kimi-k2-instruct", "name": "Kimi K2 Instruct", "context": 131072, "limit": "40 RPM", "free": true },
                 { "id": "minimaxai/minimax-m2", "name": "MiniMax M2", "context": 131072, "limit": "40 RPM", "free": true },
                 { "id": "qwen/qwen3-next-80b-a3b-thinking", "name": "Qwen3 80B Thinking", "context": 131072, "limit": "40 RPM", "free": true },
@@ -39,9 +40,9 @@
             "baseUrl": "https://api.groq.com/openai/v1",
             "protocol": "OpenAI",
             "models": [
-                { "id": "meta-llama/llama-4-maverick-17b-128e-preview", "name": "Llama 4 Maverick", "context": 1048576, "limit": "1K RPD", "free": true },
-                { "id": "moonshotai/kimi-k2-instruct", "name": "Kimi K2 Instruct", "context": 131072, "limit": "1K RPD", "free": true },
-                { "id": "openai/gpt-oss-120b", "name": "GPT OSS 120B", "context": 131072, "limit": "1K RPD", "free": true }
+                { "id": "openai/gpt-oss-120b", "name": "GPT OSS 120B", "context": 131072, "limit": "1K RPD", "free": true },
+                { "id": "meta-llama/llama-4-scout-17b-16e-instruct", "name": "Llama 4 Scout", "context": 131072, "limit": "1K RPD", "free": true },
+                { "id": "qwen/qwen3-32b", "name": "Qwen3 32B", "context": 131072, "limit": "1K RPD", "free": true }
             ]
         },
         {
@@ -69,8 +70,10 @@
                 { "id": "DeepSeek-V3.2", "name": "DeepSeek V3.2", "context": 8192, "limit": "$5 trial credits", "free": true },
                 { "id": "DeepSeek-V3.1-Terminus", "name": "DeepSeek V3.1 Term", "context": 131072, "limit": "$5 trial credits", "free": true },
                 { "id": "DeepSeek-V3.1", "name": "DeepSeek V3.1", "context": 131072, "limit": "$5 trial credits", "free": true },
+                { "id": "DeepSeek-V3-0324", "name": "DeepSeek V3 0324", "context": 131072, "limit": "$5 trial credits", "free": true },
                 { "id": "DeepSeek-R1-0528", "name": "DeepSeek R1 0528", "context": 131072, "limit": "$5 trial credits", "free": true },
                 { "id": "Llama-4-Maverick-17B-128E-Instruct", "name": "Llama 4 Maverick", "context": 1048576, "limit": "$5 trial credits", "free": true },
+                { "id": "Qwen3-235B-A22B-Instruct-2507", "name": "Qwen3 235B", "context": 65536, "limit": "$5 trial credits", "free": true },
                 { "id": "gpt-oss-120b", "name": "GPT OSS 120B", "context": 131072, "limit": "$5 trial credits", "free": true }
             ]
         },
@@ -82,11 +85,19 @@
             "baseUrl": "https://openrouter.ai/api/v1",
             "protocol": "OpenAI",
             "models": [
-                { "id": "qwen/qwen3-coder:free", "name": "Qwen3 Coder 480B", "context": 262144, "limit": "50 RPD / 1K w/ $10", "free": true },
-                { "id": "z-ai/glm-4.5-air:free", "name": "GLM 4.5 Air", "context": 131072, "limit": "50 RPD / 1K w/ $10", "free": true },
-                { "id": "stepfun/step-3.5-flash:free", "name": "Step 3.5 Flash", "context": 262144, "limit": "50 RPD / 1K w/ $10", "free": true },
-                { "id": "qwen/qwen3-next-80b-a3b-instruct:free", "name": "Qwen3 80B Instruct", "context": 131072, "limit": "50 RPD / 1K w/ $10", "free": true },
-                { "id": "openai/gpt-oss-120b:free", "name": "GPT OSS 120B", "context": 131072, "limit": "50 RPD / 1K w/ $10", "free": true }
+                { "id": "qwen/qwen3.6-plus:free", "name": "Qwen3.6 Plus", "context": 1048576, "limit": "20 RPM / 50 RPD", "free": true },
+                { "id": "qwen/qwen3-coder:free", "name": "Qwen3 Coder 480B", "context": 262144, "limit": "20 RPM / 50 RPD", "free": true },
+                { "id": "minimax/minimax-m2.5:free", "name": "MiniMax M2.5", "context": 201728, "limit": "20 RPM / 50 RPD", "free": true },
+                { "id": "z-ai/glm-4.5-air:free", "name": "GLM 4.5 Air", "context": 131072, "limit": "20 RPM / 50 RPD", "free": true },
+                { "id": "stepfun/step-3.5-flash:free", "name": "Step 3.5 Flash", "context": 262144, "limit": "20 RPM / 50 RPD", "free": true },
+                { "id": "xiaomi/mimo-v2-flash:free", "name": "MiMo V2 Flash", "context": 262144, "limit": "20 RPM / 50 RPD", "free": true },
+                { "id": "arcee-ai/trinity-large-preview:free", "name": "Arcee Trinity Large", "context": 131072, "limit": "20 RPM / 50 RPD", "free": true },
+                { "id": "deepseek/deepseek-r1-0528:free", "name": "DeepSeek R1 0528", "context": 167936, "limit": "20 RPM / 50 RPD", "free": true },
+                { "id": "qwen/qwen3-next-80b-a3b-instruct:free", "name": "Qwen3 80B Instruct", "context": 131072, "limit": "20 RPM / 50 RPD", "free": true },
+                { "id": "nvidia/nemotron-3-super-120b-a12b:free", "name": "Nemotron 3 Super", "context": 262144, "limit": "20 RPM / 50 RPD", "free": true },
+                { "id": "openai/gpt-oss-120b:free", "name": "GPT OSS 120B", "context": 131072, "limit": "20 RPM / 50 RPD", "free": true },
+                { "id": "nousresearch/hermes-3-llama-3.1-405b:free", "name": "Hermes 3 405B", "context": 131072, "limit": "20 RPM / 50 RPD", "free": true },
+                { "id": "openai/gpt-oss-20b:free", "name": "GPT OSS 20B", "context": 131072, "limit": "20 RPM / 50 RPD", "free": true }
             ]
         },
         {
@@ -97,7 +108,7 @@
             "baseUrl": "https://router.huggingface.co/v1",
             "protocol": "OpenAI",
             "models": [
-                { "id": "deepseek-ai/DeepSeek-V3-Coder", "name": "DeepSeek V3 Coder", "context": 131072, "limit": "$0.10/mo credits", "free": true }
+                { "id": "deepseek-ai/DeepSeek-V3-0324", "name": "DeepSeek V3 0324", "context": 131072, "limit": "$0.10/mo credits", "free": true }
             ]
         },
         {
@@ -109,7 +120,9 @@
             "protocol": "OpenAI",
             "models": [
                 { "id": "accounts/fireworks/models/deepseek-v3", "name": "DeepSeek V3", "context": 131072, "limit": "$1 trial credits", "free": true },
-                { "id": "accounts/fireworks/models/deepseek-r1", "name": "DeepSeek R1", "context": 131072, "limit": "$1 trial credits", "free": true }
+                { "id": "accounts/fireworks/models/deepseek-r1", "name": "DeepSeek R1", "context": 131072, "limit": "$1 trial credits", "free": true },
+                { "id": "accounts/fireworks/models/llama4-maverick-instruct-basic", "name": "Llama 4 Maverick", "context": 1048576, "limit": "$1 trial credits", "free": true },
+                { "id": "accounts/fireworks/models/qwen3-235b-a22b", "name": "Qwen3 235B", "context": 131072, "limit": "$1 trial credits", "free": true }
             ]
         },
         {
@@ -121,11 +134,13 @@
             "protocol": "OpenAI",
             "models": [
                 { "id": "qwen/qwen3-coder-480b-a35b-instruct", "name": "Qwen3 Coder 480B", "context": 262144, "limit": "$1 trial credits", "free": true },
+                { "id": "Qwen/Qwen3-235B-A22B-Instruct-2507", "name": "Qwen3 235B", "context": 262144, "limit": "$1 trial credits", "free": true },
                 { "id": "Qwen/Qwen3-235B-A22B", "name": "Qwen3 235B", "context": 131072, "limit": "$1 trial credits", "free": true },
+                { "id": "deepseek-ai/DeepSeek-R1-0528", "name": "DeepSeek R1 0528", "context": 131072, "limit": "$1 trial credits", "free": true },
                 { "id": "moonshotai/Kimi-K2-Instruct", "name": "Kimi K2 Instruct", "context": 131072, "limit": "$1 trial credits", "free": true },
                 { "id": "qwen/qwen3-next-80b-a3b-instruct", "name": "Qwen3 80B Instruct", "context": 131072, "limit": "$1 trial credits", "free": true },
+                { "id": "Qwen/Qwen3-Next-80B-A3B-Thinking", "name": "Qwen3 80B Thinking", "context": 131072, "limit": "$1 trial credits", "free": true },
                 { "id": "openai/gpt-oss-120b", "name": "GPT OSS 120B", "context": 131072, "limit": "$1 trial credits", "free": true },
-                { "id": "deepseek-ai/DeepSeek-R1-0528", "name": "DeepSeek R1 0528", "context": 131072, "limit": "$1 trial credits", "free": true },
                 { "id": "deepseek-ai/DeepSeek-V3-0324", "name": "DeepSeek V3 0324", "context": 131072, "limit": "$1 trial credits", "free": true }
             ]
         },
@@ -138,6 +153,7 @@
             "protocol": "OpenAI",
             "models": [
                 { "id": "devstral-2-123b-instruct-2512", "name": "Devstral 2 123B", "context": 262144, "limit": "1M free tokens", "free": true },
+                { "id": "qwen3.5-397b-a17b", "name": "Qwen3.5 400B VLM", "context": 256000, "limit": "1M free tokens", "free": true },
                 { "id": "qwen3-235b-a22b-instruct-2507", "name": "Qwen3 235B", "context": 131072, "limit": "1M free tokens", "free": true },
                 { "id": "gpt-oss-120b", "name": "GPT OSS 120B", "context": 131072, "limit": "1M free tokens", "free": true }
             ]
@@ -151,12 +167,12 @@
             "protocol": "OpenAI",
             "models": [
                 { "id": "zai/glm-5", "name": "GLM 5", "context": 131072, "limit": "Free tier", "free": true },
+                { "id": "zai/glm-4.7", "name": "GLM 4.7", "context": 204800, "limit": "Free tier", "free": true },
+                { "id": "zai/glm-4.7-flash", "name": "GLM 4.7 Flash", "context": 204800, "limit": "Free tier", "free": true },
                 { "id": "zai/glm-4.5", "name": "GLM 4.5", "context": 131072, "limit": "Free tier", "free": true },
                 { "id": "zai/glm-4.5-air", "name": "GLM 4.5 Air", "context": 131072, "limit": "Free tier", "free": true },
-                { "id": "zai/glm-4.7", "name": "GLM 4.7", "context": 204800, "limit": "Free tier", "free": true },
-                { "id": "zai/glm-4.6", "name": "GLM 4.6", "context": 131072, "limit": "Free tier", "free": true },
                 { "id": "zai/glm-4.5-flash", "name": "GLM 4.5 Flash", "context": 131072, "limit": "Free tier", "free": true },
-                { "id": "zai/glm-4.7-flash", "name": "GLM 4.7 Flash", "context": 204800, "limit": "Free tier", "free": true }
+                { "id": "zai/glm-4.6", "name": "GLM 4.6", "context": 131072, "limit": "Free tier", "free": true }
             ]
         },
         {
@@ -181,11 +197,18 @@
             "baseUrl": "https://api.together.xyz/v1",
             "protocol": "OpenAI",
             "models": [
+                { "id": "MiniMaxAI/MiniMax-M2.5", "name": "MiniMax M2.5", "context": 233472, "limit": "Trial credits", "free": true },
+                { "id": "zai-org/GLM-5", "name": "GLM 5", "context": 131072, "limit": "Trial credits", "free": true },
                 { "id": "moonshotai/Kimi-K2.5", "name": "Kimi K2.5", "context": 131072, "limit": "Trial credits", "free": true },
                 { "id": "Qwen/Qwen3-Coder-480B-A35B-Instruct-FP8", "name": "Qwen3 Coder 480B", "context": 262144, "limit": "Trial credits", "free": true },
-                { "id": "deepseek-ai/DeepSeek-V3.1", "name": "DeepSeek V3.1", "context": 131072, "limit": "Trial credits", "free": true },
-                { "id": "deepseek-ai/DeepSeek-R1", "name": "DeepSeek R1", "context": 131072, "limit": "Trial credits", "free": true },
-                { "id": "openai/gpt-oss-120b", "name": "GPT OSS 120B", "context": 131072, "limit": "Trial credits", "free": true }
+                { "id": "deepseek-ai/DeepSeek-V3.2", "name": "DeepSeek V3.2", "context": 167936, "limit": "Trial credits", "free": true },
+                { "id": "MiniMaxAI/MiniMax-M2.1", "name": "MiniMax M2.1", "context": 201728, "limit": "Trial credits", "free": true },
+                { "id": "deepseek-ai/DeepSeek-V3.1", "name": "DeepSeek V3.1", "context": 167936, "limit": "Trial credits", "free": true },
+                { "id": "deepseek-ai/DeepSeek-V3.1-Terminus", "name": "DeepSeek V3.1 Term", "context": 167936, "limit": "Trial credits", "free": true },
+                { "id": "Qwen/Qwen3.5-397B-A17B", "name": "Qwen3.5 400B VLM", "context": 256000, "limit": "Trial credits", "free": true },
+                { "id": "deepseek-ai/DeepSeek-R1", "name": "DeepSeek R1", "context": 167936, "limit": "Trial credits", "free": true },
+                { "id": "openai/gpt-oss-120b", "name": "GPT OSS 120B", "context": 131072, "limit": "Trial credits", "free": true },
+                { "id": "MiniMaxAI/MiniMax-M2", "name": "MiniMax M2", "context": 201728, "limit": "Trial credits", "free": true }
             ]
         },
         {
@@ -196,7 +219,9 @@
             "baseUrl": "https://api.cloudflare.com/client/v4/accounts/{id}/ai/v1",
             "protocol": "OpenAI",
             "models": [
-                { "id": "@cf/openai/gpt-oss-120b", "name": "GPT OSS 120B", "context": 131072, "limit": "Free neuron quota", "free": true }
+                { "id": "@cf/moonshotai/kimi-k2.5", "name": "Kimi K2.5", "context": 262144, "limit": "10K neurons/day", "free": true },
+                { "id": "@cf/zhipu/glm-4.7-flash", "name": "GLM 4.7 Flash", "context": 131072, "limit": "10K neurons/day", "free": true },
+                { "id": "@cf/openai/gpt-oss-120b", "name": "GPT OSS 120B", "context": 131072, "limit": "10K neurons/day", "free": true }
             ]
         },
         {
@@ -207,6 +232,7 @@
             "baseUrl": "https://dashscope-intl.aliyuncs.com/compatible-mode/v1",
             "protocol": "OpenAI",
             "models": [
+                { "id": "qwen3.6-plus", "name": "Qwen3.6 Plus", "context": 1048576, "limit": "1M tokens/model", "free": true },
                 { "id": "qwen3-coder-plus", "name": "Qwen3 Coder Plus", "context": 262144, "limit": "1M tokens/model", "free": true },
                 { "id": "qwen3-coder-480b-a35b-instruct", "name": "Qwen3 Coder 480B", "context": 262144, "limit": "1M tokens/model", "free": true },
                 { "id": "qwen3-coder-max", "name": "Qwen3 Coder Max", "context": 262144, "limit": "1M tokens/model", "free": true },
