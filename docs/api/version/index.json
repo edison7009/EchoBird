@@ -1,5 +1,5 @@
 {
-  "version": "3.7.2",
+  "version": "3.7.3",
   "releaseDate": "2026-05-02",
-  "releaseNotes": "Fix duplicate '>' next to terminal tool icons in Install & Fix chat."
+  "releaseNotes": "Add Linux arm64 builds and persist detailed agent tool-call timeline across reloads."
 }
