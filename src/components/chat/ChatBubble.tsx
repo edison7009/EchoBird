@@ -157,12 +157,15 @@ function InputDots() {
             </span>
             <span className="inline-flex items-baseline font-mono text-sm">
                 <span className="spinner-shimmer">{shown}</span>
-                {/* Blinking caret at the tail — sits OUTSIDE the shimmer span
-                    so background-clip:text doesn't eat it. */}
-                <span
-                    className="inline-block w-[0.5em] h-[1em] ml-0.5 bg-cyber-accent self-center"
-                    style={{ animation: 'caretBlink 1s steps(2) infinite' }}
-                />
+                {/* Caret only appears while we're actively rewriting the verb
+                    (erase/type). During the steady "show" phase it's hidden so
+                    the line doesn't sit there with a blinking cursor on idle. */}
+                {phase !== 'show' && (
+                    <span
+                        className="inline-block w-[0.5em] h-[1em] ml-0.5 bg-cyber-accent self-center"
+                        style={{ animation: 'caretBlink 1s steps(2) infinite' }}
+                    />
+                )}
             </span>
         </span>
     );
