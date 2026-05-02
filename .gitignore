@@ -45,6 +45,11 @@ ts-errors.txt
 .whichclaw.pid
 .electron-cache
 
+# One-off / scratch files (do not commit)
+tmp/
+.agent/
+scripts/
+
 # llama-server binaries (downloaded during CI build)
 electron/tools/llama-server/bin/
 
