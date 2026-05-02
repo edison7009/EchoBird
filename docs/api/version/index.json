@@ -1,5 +1,5 @@
 {
-  "version": "3.6.5",
-  "releaseDate": "2026-04-08",
-  "releaseNotes": "Fix Codex Proxy bypass and infinite looping bugs."
+  "version": "3.7.2",
+  "releaseDate": "2026-05-02",
+  "releaseNotes": "Fix duplicate '>' next to terminal tool icons in Install & Fix chat."
 }
