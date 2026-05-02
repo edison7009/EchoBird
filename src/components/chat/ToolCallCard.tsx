@@ -4,7 +4,7 @@
 // for full args + output.
 import { useState } from 'react';
 import {
-    Loader2, ChevronRight, Check, X as XIcon,
+    Loader2, Check, X as XIcon,
     Terminal, Globe, FileText, FileEdit, Upload, Download,
     KeyRound, Wrench,
 } from 'lucide-react';
@@ -70,7 +70,6 @@ export function ToolCallCard({ name, args, status, output }: ToolCallCardProps) 
                 onClick={() => setOpen(o => !o)}
                 className="w-full flex items-center gap-2 px-2.5 py-1.5 text-left hover:bg-white/5 transition-colors rounded-md"
             >
-                <ChevronRight size={11} className={`flex-shrink-0 text-cyber-text-muted/60 transition-transform ${open ? 'rotate-90' : ''}`} />
                 <Icon size={12} className="flex-shrink-0 text-cyber-accent/80" />
                 <span className="flex-shrink-0 text-cyber-accent/80 font-bold">{meta.label}</span>
                 {preview && (
