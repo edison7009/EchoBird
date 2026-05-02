@@ -144,6 +144,7 @@ pub struct ToolDefinition {
 /// Tool category
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum ToolCategory {
+    #[serde(rename = "CLI Code", alias = "CLI")]
     CLI,
     #[serde(rename = "CLI Agent", alias = "AgentOS")]
     AgentOS,

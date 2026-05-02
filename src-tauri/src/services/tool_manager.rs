@@ -511,7 +511,7 @@ fn parse_category(s: &str) -> ToolCategory {
     match s {
         "CLI Agent" | "AgentOS" => ToolCategory::AgentOS,
         "IDE" => ToolCategory::IDE,
-        "CLI" => ToolCategory::CLI,
+        "CLI Code" | "CLI" => ToolCategory::CLI,
         "AutoTrading" => ToolCategory::AutoTrading,
         "Game" => ToolCategory::Game,
         "Utility" => ToolCategory::Utility,
