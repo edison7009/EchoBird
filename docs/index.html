@@ -245,6 +245,18 @@
             background-clip: text;
         }
 
+        /* English line 2 is the long canonical riddle ("Which came first, the
+           chicken or the egg?") — render it smaller than the line-1 claim so
+           it still fits without wrapping awkwardly. Chinese H1 stays at the
+           full hero size. */
+        [lang="en"] .hero h1 .gradient {
+            font-size: 0.62em;
+            line-height: 1.2;
+            letter-spacing: -0.5px;
+            display: inline-block;
+            margin-top: 6px;
+        }
+
         .hero .lede {
             font-size: clamp(15px, 1.6vw, 18px);
             color: var(--text);
@@ -968,7 +980,7 @@
                 'nav.tools': 'Tools',
                 'nav.download': 'Download',
                 'hero.h1.line1': 'AI deploys AI.',
-                'hero.h1.line2': 'Which came first? Solved.',
+                'hero.h1.line2': 'Which came first, the chicken or the egg?',
                 'hero.lede.html': 'Friends kept asking me to install <strong>Claude Code</strong>, <strong>OpenClaw</strong>, <strong>Hermes Agent</strong>… every machine was different, and some refused to pay for an LLM. Setup and explanations took forever. So I built <strong>EchoBird</strong> — an Agent inspired by the female hacker in <em>Cyberpunk 2077</em> who fixes any tech problem for V. EchoBird installs every AI tool with one click.',
                 'hero.platforms': 'Windows · macOS · Linux · MIT Open Source · Free Forever',
                 'hero.btn.download': 'Download Now',
