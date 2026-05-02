@@ -25,6 +25,10 @@ jobs:
             rust-target: 'x86_64-unknown-linux-gnu'
             args: ''
 
+          - platform: 'ubuntu-24.04-arm'
+            rust-target: 'aarch64-unknown-linux-gnu'
+            args: ''
+
     runs-on: ${{ matrix.platform }}
     steps:
       - name: Checkout repository
