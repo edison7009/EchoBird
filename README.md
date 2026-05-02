@@ -4,7 +4,8 @@
 
 <h1 align="center">百灵鸟</h1>
 
-<p align="center"><strong>One-click install Agents.</strong></p>
+<p align="center"><strong>让 AI 部署 AI Agent · 不再是先有鸡,还是先有蛋</strong></p>
+<p align="center"><sub>Let AI deploy AI Agents — no more chicken-and-egg.</sub></p>
 
 很多朋友让我帮他们安装 **Claude Code**、**OpenClaw**、**Hermes Agent**……不但每个人的系统都不一样，甚至有些人还抠门到不愿花钱买大模型，安装和解释起来都特别费劲。于是我开发了这个叫「百灵鸟」的 Agent —— 灵感来自《赛博朋克 2077》里那位总能帮主角搞定一切技术难题的女黑客。百灵鸟可以帮你一键装好所有 AI 工具。
 
