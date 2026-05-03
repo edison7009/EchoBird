@@ -11,7 +11,7 @@
 
 <p align="center">
   <a href="https://github.com/edison7009/EchoBird/releases">
-    <img src="https://img.shields.io/github/v/release/edison7009/EchoBird?style=flat-square&color=00FF9D" alt="Release" />
+    <img src="https://img.shields.io/github/v/release/edison7009/EchoBird?style=flat-square&color=D97757" alt="Release" />
   </a>
   <img src="https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-blue?style=flat-square" alt="Platform" />
   <img src="https://img.shields.io/badge/built%20with-Tauri%20%2B%20Rust-orange?style=flat-square" alt="Tauri + Rust" />
