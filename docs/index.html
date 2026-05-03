@@ -21,19 +21,21 @@
         rel="stylesheet">
     <style>
         :root {
-            --bg: #050a0e;
-            --bg2: #080f14;
-            --bg3: #0d1821;
-            --bg-card: rgba(13, 24, 33, 0.6);
-            --neon: #00FF9D;
-            --neon2: #00d4ff;
-            --neon-soft: rgba(0, 255, 157, 0.15);
-            --neon-line: rgba(0, 255, 157, 0.25);
-            --white: #e8f4f0;
-            --text: #c8d6cf;
-            --dim: #5a7a6a;
-            --border: rgba(0, 255, 157, 0.1);
-            --border-strong: rgba(0, 255, 157, 0.2);
+            /* Claude Desktop palette — matches the app's dark theme. Coral
+               accent is used sparingly: brand mark, primary CTA, link hover. */
+            --bg: #121212;
+            --bg2: #1A1A1C;
+            --bg3: #222224;
+            --bg-card: rgba(28, 28, 30, 0.85);
+            --neon: #D97757;          /* Claude coral */
+            --neon2: #E89F7A;         /* warm amber for gradient pair */
+            --neon-soft: rgba(217, 119, 87, 0.12);
+            --neon-line: rgba(217, 119, 87, 0.22);
+            --white: #ECECEE;
+            --text: #B5B5B7;
+            --dim: #7A7A7C;
+            --border: rgba(255, 255, 255, 0.06);
+            --border-strong: rgba(255, 255, 255, 0.12);
             --sans: 'Inter', -apple-system, 'PingFang SC', 'Noto Sans SC', 'Microsoft YaHei', system-ui, sans-serif;
             --mono: 'JetBrains Mono', monospace;
             --display: 'Orbitron', var(--mono);
@@ -59,52 +61,33 @@
             -moz-osx-font-smoothing: grayscale;
         }
 
-        /* ── Background grid ── */
+        /* ── Subtle dotted background — Claude Desktop style ── */
         .bg-grid {
             position: fixed;
             inset: 0;
             z-index: 0;
             pointer-events: none;
             background-image:
-                linear-gradient(rgba(0, 255, 157, 0.04) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(0, 255, 157, 0.04) 1px, transparent 1px);
-            background-size: 56px 56px;
+                radial-gradient(rgba(255, 255, 255, 0.045) 1px, transparent 1px);
+            background-size: 24px 24px;
             mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, #000 30%, transparent 80%);
             -webkit-mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, #000 30%, transparent 80%);
         }
 
-        canvas#matrix {
-            position: fixed;
-            inset: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
-            z-index: 0;
-            opacity: 0.18;
-        }
-
+        /* Single restrained warm halo behind the hero — replaces the old
+           cyberpunk matrix rain + dual neon orbs. */
         .glow-orb {
             position: fixed;
             border-radius: 50%;
-            filter: blur(120px);
+            filter: blur(140px);
             pointer-events: none;
             z-index: 0;
-        }
-
-        .glow-orb.a {
-            top: -200px;
-            left: 10%;
-            width: 500px;
-            height: 500px;
-            background: rgba(0, 255, 157, 0.15);
-        }
-
-        .glow-orb.b {
-            top: 20%;
-            right: -100px;
-            width: 400px;
-            height: 400px;
-            background: rgba(0, 212, 255, 0.1);
+            top: -240px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 720px;
+            height: 480px;
+            background: rgba(217, 119, 87, 0.08);
         }
 
         /* ── Nav ── */
@@ -118,7 +101,7 @@
             align-items: center;
             justify-content: space-between;
             padding: 14px 32px;
-            background: rgba(5, 10, 14, 0.7);
+            background: rgba(18, 18, 18, 0.78);
             backdrop-filter: blur(16px);
             -webkit-backdrop-filter: blur(16px);
             border-bottom: 1px solid var(--border);
@@ -177,7 +160,7 @@
 
         .nav-r .nav-cta:hover {
             color: var(--bg);
-            box-shadow: 0 0 24px rgba(0, 255, 157, 0.5);
+            box-shadow: 0 0 24px rgba(217, 119, 87, 0.5);
             transform: translateY(-1px);
         }
 
@@ -303,12 +286,12 @@
         .btn-primary {
             background: var(--neon);
             color: var(--bg);
-            box-shadow: 0 0 0 1px var(--neon), 0 8px 32px rgba(0, 255, 157, 0.25);
+            box-shadow: 0 0 0 1px var(--neon), 0 8px 32px rgba(217, 119, 87, 0.22);
         }
 
         .btn-primary:hover {
             transform: translateY(-2px);
-            box-shadow: 0 0 0 1px var(--neon), 0 12px 40px rgba(0, 255, 157, 0.45);
+            box-shadow: 0 0 0 1px var(--neon), 0 12px 40px rgba(217, 119, 87, 0.4);
         }
 
         .btn-ghost {
@@ -320,7 +303,7 @@
         .btn-ghost:hover {
             border-color: var(--neon);
             color: var(--neon);
-            background: rgba(0, 255, 157, 0.05);
+            background: rgba(217, 119, 87, 0.06);
             transform: translateY(-2px);
         }
 
@@ -465,13 +448,13 @@
             overflow: hidden;
             border: 1px solid var(--border-strong);
             background: var(--bg2);
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(0, 255, 157, 0.05);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.03);
             transition: all 0.3s;
         }
 
         .pillar-shot:hover {
             transform: translateY(-4px);
-            box-shadow: 0 30px 80px rgba(0, 0, 0, 0.5), 0 0 40px rgba(0, 255, 157, 0.15);
+            box-shadow: 0 30px 80px rgba(0, 0, 0, 0.55), 0 0 40px rgba(217, 119, 87, 0.12);
         }
 
         .pillar-shot img {
@@ -482,7 +465,7 @@
 
         /* ── Tools grid ── */
         .tools-section {
-            background: linear-gradient(180deg, transparent, rgba(0, 255, 157, 0.02), transparent);
+            background: linear-gradient(180deg, transparent, rgba(217, 119, 87, 0.02), transparent);
         }
 
         .tools-grid {
@@ -505,7 +488,7 @@
 
         .tool-card:hover {
             border-color: var(--border-strong);
-            background: rgba(0, 255, 157, 0.04);
+            background: rgba(255, 255, 255, 0.03);
             transform: translateY(-2px);
         }
 
@@ -513,7 +496,7 @@
             width: 36px;
             height: 36px;
             border-radius: 8px;
-            background: linear-gradient(135deg, rgba(0, 255, 157, 0.15), rgba(0, 212, 255, 0.1));
+            background: linear-gradient(135deg, rgba(217, 119, 87, 0.18), rgba(232, 159, 122, 0.08));
             display: flex;
             align-items: center;
             justify-content: center;
@@ -545,8 +528,8 @@
             font-family: var(--mono);
             font-size: 10px;
             color: var(--neon);
-            background: rgba(0, 255, 157, 0.08);
-            border: 1px solid var(--border-strong);
+            background: rgba(217, 119, 87, 0.1);
+            border: 1px solid rgba(217, 119, 87, 0.3);
             padding: 2px 7px;
             border-radius: 4px;
             flex-shrink: 0;
@@ -601,7 +584,7 @@
 
         /* ── Local LLM strip ── */
         .local-strip {
-            background: linear-gradient(135deg, rgba(0, 255, 157, 0.05), rgba(0, 212, 255, 0.03));
+            background: linear-gradient(135deg, rgba(217, 119, 87, 0.05), rgba(255, 255, 255, 0.02));
             border: 1px solid var(--border-strong);
             border-radius: 16px;
             padding: 40px;
@@ -644,7 +627,7 @@
 
         .download-card {
             background:
-                linear-gradient(135deg, rgba(0, 255, 157, 0.06), rgba(0, 212, 255, 0.03)),
+                linear-gradient(135deg, rgba(217, 119, 87, 0.06), rgba(255, 255, 255, 0.02)),
                 var(--bg2);
             border: 1px solid var(--border-strong);
             border-radius: 20px;
@@ -658,7 +641,7 @@
             content: '';
             position: absolute;
             inset: 0;
-            background: radial-gradient(ellipse at 50% 0%, rgba(0, 255, 157, 0.15), transparent 60%);
+            background: radial-gradient(ellipse at 50% 0%, rgba(217, 119, 87, 0.12), transparent 60%);
             pointer-events: none;
         }
 
@@ -695,7 +678,7 @@
             gap: 14px;
             padding: 18px 22px;
             border-radius: 10px;
-            background: rgba(5, 10, 14, 0.5);
+            background: rgba(18, 18, 18, 0.6);
             border: 1px solid var(--border-strong);
             text-decoration: none;
             transition: all 0.2s;
@@ -704,7 +687,7 @@
 
         .dl-btn:hover {
             border-color: var(--neon);
-            background: rgba(0, 255, 157, 0.05);
+            background: rgba(217, 119, 87, 0.06);
             transform: translateY(-2px);
         }
 
@@ -897,7 +880,7 @@
         /* Language toggle button */
         .lang-toggle {
             background: transparent;
-            border: 1px solid rgba(0, 255, 157, 0.3);
+            border: 1px solid rgba(217, 119, 87, 0.35);
             color: var(--neon);
             padding: 6px 12px;
             border-radius: 4px;
@@ -909,7 +892,7 @@
             margin-left: 10px;
         }
         .lang-toggle:hover {
-            background: rgba(0, 255, 157, 0.1);
+            background: rgba(217, 119, 87, 0.1);
             border-color: var(--neon);
         }
     </style>
@@ -968,7 +951,7 @@
                 'footer.col2.issues': '反馈问题',
                 'footer.col3.title': '联系',
                 'footer.copyright': '© 2026 百灵鸟 · MIT License · Tauri + Rust',
-                'footer.tagline': 'Made with 💚 by 百灵鸟团队',
+                'footer.tagline': 'Made with ❤ by 百灵鸟团队',
             },
             'en': {
                 'meta.title': 'EchoBird — 1-Click Install AI Agents · Claude Code, OpenClaw, Local LLMs',
@@ -1022,7 +1005,7 @@
                 'footer.col2.issues': 'Report Issue',
                 'footer.col3.title': 'Contact',
                 'footer.copyright': '© 2026 EchoBird · MIT License · Tauri + Rust',
-                'footer.tagline': 'Made with 💚 by the EchoBird team',
+                'footer.tagline': 'Made with ❤ by the EchoBird team',
             },
         };
 
@@ -1078,9 +1061,7 @@
 
 <body>
     <div class="bg-grid"></div>
-    <canvas id="matrix"></canvas>
-    <div class="glow-orb a"></div>
-    <div class="glow-orb b"></div>
+    <div class="glow-orb"></div>
 
     <!-- Navigation -->
     <nav class="nav">
@@ -1336,42 +1317,11 @@
         </div>
         <div class="foot-bottom">
             <span data-i18n="footer.copyright">© 2026 百灵鸟 · MIT License · Tauri + Rust</span>
-            <span class="quote" data-i18n="footer.tagline">Made with 💚 by 百灵鸟团队</span>
+            <span class="quote" data-i18n="footer.tagline">Made with ❤ by 百灵鸟团队</span>
         </div>
     </footer>
 
     <script>
-        // Matrix rain (subtle)
-        (function () {
-            const canvas = document.getElementById('matrix');
-            const ctx = canvas.getContext('2d');
-            let cols, drops;
-
-            function resize() {
-                canvas.width = window.innerWidth;
-                canvas.height = window.innerHeight;
-                cols = Math.floor(canvas.width / 18);
-                drops = Array(cols).fill(1);
-            }
-            resize();
-            window.addEventListener('resize', resize);
-
-            const chars = '01░▒▓█▼▲ABCDEF<>/\\{}[]+=*';
-            function draw() {
-                ctx.fillStyle = 'rgba(5, 10, 14, 0.08)';
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
-                ctx.fillStyle = 'rgba(0, 255, 157, 0.55)';
-                ctx.font = '13px JetBrains Mono, monospace';
-                for (let i = 0; i < drops.length; i++) {
-                    const c = chars[Math.floor(Math.random() * chars.length)];
-                    ctx.fillText(c, i * 18, drops[i] * 18);
-                    if (drops[i] * 18 > canvas.height && Math.random() > 0.975) drops[i] = 0;
-                    drops[i]++;
-                }
-            }
-            setInterval(draw, 80);
-        })();
-
         // Reveal on scroll
         (function () {
             const obs = new IntersectionObserver((entries) => {
