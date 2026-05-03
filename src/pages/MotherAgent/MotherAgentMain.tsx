@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useRef, useCallback } from 'react';
 import { ArrowUp, ChevronDown, Square } from 'lucide-react';
 import { RemoteModelSelector, type ModelOption } from '../../components/RemoteModelSelector';
 import { getModelIcon } from '../../components/cards/ModelCard';
@@ -7,6 +7,7 @@ import { ChatBubble, ToolCallCard } from '../../components/chat';
 import { buildPendingMessage } from '../../utils/buildPendingMessage';
 import { useI18n } from '../../hooks/useI18n';
 import * as api from '../../api/tauri';
+import { useNavigationStore } from '../../stores/navigationStore';
 import { useMotherAgent } from './context';
 import { MA_PAGE_SIZE } from './types';
 
@@ -129,25 +130,73 @@ export function MotherAgentMain() {
         return () => clearInterval(interval);
     }, []);
 
-    // Scroll management
+    // ── Scroll management — sticky-bottom auto-follow ──
+    // Default-stuck-to-bottom: streaming chunks, tool calls, "thinking" indicators
+    // all keep the viewport pinned. Sticky flips off the moment the user scrolls
+    // up beyond the threshold; flips back on when they return to the bottom.
     const chatContainerRef = useRef<HTMLDivElement>(null!);
-    const didInitialScrollRef = useRef(false);
+    const stickToBottomRef = useRef(true);
     const [showScrollBtn, setShowScrollBtn] = useState(false);
     const PAGE_SIZE = MA_PAGE_SIZE;
     const [displayCount, setDisplayCount] = useState(PAGE_SIZE);
     const [showSkeleton, setShowSkeleton] = useState(false);
 
-    // Reset pagination + initial-scroll flag when server changes
+    // Re-snap to bottom every time the user opens this page — not just on first
+    // hydration (the component stays mounted via CSS hidden, so a one-shot
+    // initial-scroll flag misses subsequent visits).
+    const isMotherActive = useNavigationStore(s => s.activePage === 'mother');
+
+    const snapToBottom = useCallback(() => {
+        const c = chatContainerRef.current;
+        if (!c) return;
+        c.scrollTop = c.scrollHeight;
+        setShowScrollBtn(false);
+    }, []);
+
+    // Reset pagination + re-arm sticky when the server changes
     useEffect(() => {
         setDisplayCount(PAGE_SIZE);
-        didInitialScrollRef.current = false;
-    }, [selectedServerId]);
+        stickToBottomRef.current = true;
+        requestAnimationFrame(snapToBottom);
+    }, [selectedServerId, snapToBottom]);
+
+    // Re-arm sticky + snap whenever the page becomes active
+    useEffect(() => {
+        if (!isMotherActive) return;
+        stickToBottomRef.current = true;
+        // Two rAFs: first lets layout settle after CSS unhide, second scrolls.
+        requestAnimationFrame(() => requestAnimationFrame(snapToBottom));
+    }, [isMotherActive, snapToBottom]);
+
+    // Sticky auto-follow: every chat update (new message, streaming delta,
+    // tool call, processing-flag flip) re-snaps to bottom if sticky is on.
+    useLayoutEffect(() => {
+        if (!stickToBottomRef.current) return;
+        snapToBottom();
+    }, [chatOutput, displayCount, isProcessing, snapToBottom]);
+
+    // ResizeObserver safety net — catches async growth (markdown re-render,
+    // image loads, code-block syntax highlighting) that bypasses React state.
+    useEffect(() => {
+        const c = chatContainerRef.current;
+        if (!c) return;
+        const ro = new ResizeObserver(() => {
+            if (stickToBottomRef.current) snapToBottom();
+        });
+        Array.from(c.children).forEach(child => ro.observe(child));
+        return () => ro.disconnect();
+    }, [snapToBottom]);
 
     const handleScroll = () => {
         const container = chatContainerRef.current;
         if (!container) return;
-        const isAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 40;
-        setShowScrollBtn(!isAtBottom && chatOutput.length > 0);
+        const distanceFromBottom = container.scrollHeight - container.scrollTop - container.clientHeight;
+        const isNearBottom = distanceFromBottom < 80;
+        // Sticky tracks the actual scroll position. Programmatic snaps land
+        // at distance≈0, so they correctly keep sticky=true; user wheel/drag
+        // away from the bottom flips it off.
+        stickToBottomRef.current = isNearBottom;
+        setShowScrollBtn(!isNearBottom && chatOutput.length > 0);
 
         if (container.scrollTop !== 0) return;
 
@@ -185,21 +234,11 @@ export function MotherAgentMain() {
         }).catch(() => { setShowSkeleton(false); });
     };
 
-    const doScrollToBottom = (behavior: ScrollBehavior = 'auto') => {
+    const scrollToBottom = useCallback(() => {
+        stickToBottomRef.current = true;
         setShowScrollBtn(false);
-        chatEndRef.current?.scrollIntoView({ behavior });
-    };
-
-    // One-time scroll to bottom on initial hydration (and after server switch).
-    // After that, the user is in control — streaming deltas don't move the viewport.
-    useEffect(() => {
-        if (didInitialScrollRef.current) return;
-        if (chatOutput.length === 0) return;
-        didInitialScrollRef.current = true;
-        requestAnimationFrame(() => doScrollToBottom('auto'));
-    }, [chatOutput]);
-
-    const scrollToBottom = () => doScrollToBottom('smooth');
+        chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, [chatEndRef]);
 
     return (
         <div className="flex flex-col h-full">
@@ -306,9 +345,9 @@ export function MotherAgentMain() {
                 )}
             </div>
 
-            {/* Rich input area */}
+            {/* Rich input area — Claude-style elevated rounded card */}
             <div className="flex-shrink-0 mt-1 mb-1">
-                <div className="bg-cyber-input rounded-lg p-2">
+                <div className="bg-cyber-elevated rounded-2xl p-2.5 border border-cyber-border">
                     {/* Pending attachments chips — shared component */}
                     <PendingChipsRow
                         files={pendingFiles}

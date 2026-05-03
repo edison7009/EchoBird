@@ -89,11 +89,11 @@ function App() {
                                             <div className="flex flex-col h-screen w-full bg-cyber-bg">
                                                 {/* Title bar */}
                                                 <TitleBar onSettingsClick={() => setShowSettings(true)} />
-                                                <div className="flex flex-1 overflow-hidden text-cyber-text font-sans p-4 gap-0 grid-bg relative isolate">
+                                                <div className="flex flex-1 overflow-hidden text-cyber-text font-sans p-4 gap-0 relative isolate">
                                                     {/* Sidebar */}
                                                     <SidebarConnected onSettingsClick={() => setShowSettings(true)} />
 
-                                                    {/* Main content wrapper */}
+                                                    {/* Main content wrapper — transparent against page bg, Claude-style */}
                                                     <div className="flex-1 flex flex-col overflow-hidden">
 
                                                         {/* Main + Right panel row */}

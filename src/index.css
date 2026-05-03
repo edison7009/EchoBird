@@ -24,11 +24,12 @@
 }
 
 :root[data-theme="light"] {
-    /* Claude Desktop light — warm cream page, slightly lighter card surface. */
+    /* Claude Desktop light — warm cream page; cards rest at the comfortable
+       cream tone (was hover/selected); hover/selected steps a shade deeper. */
     --bg-base-rgb:           239 238 235;    /* #EFEEEB — page */
     --bg-terminal-rgb:       247 246 243;
-    --bg-surface-rgb:        247 246 243;    /* #F7F6F3 — cards, lifted */
-    --bg-elevated-rgb:       232 230 224;    /* #E8E6E0 — selected, dropdowns */
+    --bg-surface-rgb:        232 230 224;    /* #E8E6E0 — cards rest here */
+    --bg-elevated-rgb:       216 213 205;    /* #D8D5CD — hover, selected, dropdowns */
     --bg-deep-rgb:           232 230 224;
     --bg-input-rgb:          255 255 255;
     --border-rgb:            220 218 211;
@@ -191,12 +192,6 @@ pre {
 
 .custom-scrollbar:hover::-webkit-scrollbar-thumb {
   background: rgba(255,255,255,0.18);
-}
-
-/* Subtle dotted background — Claude Desktop style */
-.grid-bg {
-  background-image: radial-gradient(rgb(var(--text-muted-rgb) / 0.22) 1px, transparent 1px);
-  background-size: 22px 22px;
 }
 
 /* Pure-white SVG logos invert in light mode so they read on the cream
