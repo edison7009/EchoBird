@@ -1,5 +1,5 @@
 {
   "version": "3.7.6",
   "releaseDate": "2026-05-03",
-  "releaseNotes": "Claude Desktop-style redesign: light/dark/system theme, neutral palette with sparing coral accent, iOS-style opaque cards, mojibake fixes, new Echo Rings icon."
+  "releaseNotes": "feat(icon): replace icon set with hand-fixed square-corner EchoBird"
 }
