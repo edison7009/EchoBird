@@ -71,11 +71,52 @@ jobs:
           prerelease: false
           args: ${{ matrix.args }}
 
+  rename-assets:
+    # Tauri's bundler uses inconsistent filenames (no platform label, RPM "-1"
+    # release counter, version-less updater bundle). Rename every asset on the
+    # release in place via the GitHub API — non-destructive, no re-upload.
+    needs: release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Rename release assets with platform labels
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          VER="${TAG#v}"
+          # Pull every asset on this tag, derive a clean platform-labeled name,
+          # PATCH only when the name actually changes.
+          gh api "repos/${REPO}/releases/tags/${TAG}" \
+            --jq '.assets[] | "\(.id)\t\(.name)"' \
+          | while IFS=$'\t' read -r ID NAME; do
+              case "$NAME" in
+                *_x64-setup.exe)             NEW="EchoBird_${VER}_Windows_x64-setup.exe" ;;
+                *_x64_*.msi)                 NEW="EchoBird_${VER}_Windows_x64.msi" ;;
+                *_universal.dmg)             NEW="EchoBird_${VER}_macOS_Universal.dmg" ;;
+                *_universal.app.tar.gz)      NEW="EchoBird_${VER}_macOS_Universal.app.tar.gz" ;;
+                *_universal.app.tar.gz.sig)  NEW="EchoBird_${VER}_macOS_Universal.app.tar.gz.sig" ;;
+                *_amd64.AppImage)            NEW="EchoBird_${VER}_Linux_x64.AppImage" ;;
+                *_aarch64.AppImage)          NEW="EchoBird_${VER}_Linux_arm64.AppImage" ;;
+                *_amd64.deb)                 NEW="EchoBird_${VER}_Linux_x64.deb" ;;
+                *_arm64.deb)                 NEW="EchoBird_${VER}_Linux_arm64.deb" ;;
+                *.x86_64.rpm)                NEW="EchoBird_${VER}_Linux_x64.rpm" ;;
+                *.aarch64.rpm)               NEW="EchoBird_${VER}_Linux_arm64.rpm" ;;
+                *)                           NEW="" ;;
+              esac
+              if [ -n "$NEW" ] && [ "$NEW" != "$NAME" ]; then
+                echo "rename: $NAME  ->  $NEW"
+                gh api -X PATCH "repos/${REPO}/releases/assets/${ID}" -f name="$NEW" --jq '.name'
+              fi
+            done
+
   sync-version-manifest:
     # Updates docs/api/version/index.json (served at echobird.ai/api/version/index.json)
     # so the in-app "Check for updates" prompt sees the new version. Must stay in sync
     # with src-tauri/tauri.conf.json — see memory/reference_version_update.md.
-    needs: release
+    needs: rename-assets
     runs-on: ubuntu-latest
     permissions:
       contents: write
