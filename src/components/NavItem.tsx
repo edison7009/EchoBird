@@ -12,15 +12,15 @@ export interface NavItemProps {
 
 export const NavItem = React.memo(({ icon, label, active = false, onClick, color = 'accent', badge = false }: NavItemProps) => {
     const colorClasses = color === 'warning'
-        ? 'bg-cyber-warning text-black font-bold'
+        ? 'bg-cyber-warning/15 text-cyber-warning font-medium'
         : color === 'secondary' || color === 'blue'
-            ? 'bg-cyber-accent-secondary text-black font-bold'
-            : 'bg-cyber-accent text-black font-bold';
+            ? 'bg-cyber-elevated text-cyber-text font-medium'
+            : 'bg-cyber-elevated text-cyber-text font-medium';
     return (
         <div
             className={`flex items-center gap-3 p-2 cursor-pointer transition-all rounded-lg ${active
                 ? colorClasses
-                : 'hover:bg-cyber-input text-cyber-text-secondary'
+                : 'hover:bg-cyber-elevated/50 text-cyber-text-secondary hover:text-cyber-text'
                 }`}
             onClick={onClick}
         >

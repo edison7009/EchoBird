@@ -35,7 +35,10 @@ export const ToolCard = React.memo(({ id, name, version, installed, path, detect
 
     return (
         <div
-            className={`p-5 min-h-[160px] ${selected ? 'ring-1 ring-inset ring-cyber-accent/50 bg-cyber-accent/5' : 'bg-black/30'} relative overflow-hidden rounded-card ${installed ? 'cursor-pointer hover:bg-white/5' : 'cursor-default opacity-80'} transition-all flex flex-col`}
+            className={`p-5 min-h-[160px] border bg-cyber-surface ${selected
+                ? 'border-cyber-accent'
+                : `border-transparent ${installed ? 'hover:bg-cyber-elevated' : ''}`
+                } relative overflow-hidden rounded-card ${installed ? 'cursor-pointer' : 'cursor-default opacity-80'} transition-colors flex flex-col`}
             onClick={handleCardClick}
         >
             {/* Tool icon top-right */}
@@ -54,11 +57,11 @@ export const ToolCard = React.memo(({ id, name, version, installed, path, detect
                     }
                 }}
             />
-            <div className={`text-lg font-bold truncate pr-12 ${installed ? 'text-cyber-accent' : showMotherInstall ? 'text-cyber-text-secondary' : 'text-cyber-text-secondary'}`}>{displayName}</div>
+            <div className={`text-lg font-bold truncate pr-12 ${installed ? 'text-cyber-text' : showMotherInstall ? 'text-cyber-text-secondary' : 'text-cyber-text-secondary'}`}>{displayName}</div>
 
             {/* 4 rows always rendered to hold card height; invisible for CLI-installable tools */}
             <div className="relative mt-3">
-                <div className={`text-xs space-y-1.5 ${installed ? 'text-cyber-accent/60' : 'text-cyber-text-muted/70'} ${showMotherInstall ? 'invisible' : ''}`}>
+                <div className={`text-xs space-y-1.5 ${installed ? 'text-cyber-text/60' : 'text-cyber-text-muted/70'} ${showMotherInstall ? 'invisible' : ''}`}>
                     <div className="truncate">{t('tool.models')}: {installed ? (activeModel || '-') : '-'}</div>
                     <div className="truncate">{t('tool.app')}: {installed ? (detectedPath || path || '-') : '-'}</div>
                     <div className="truncate">{t('tool.config')}: {installed ? (configPath || '-') : '-'}</div>
@@ -68,7 +71,7 @@ export const ToolCard = React.memo(({ id, name, version, installed, path, detect
                     <div className="absolute inset-0 flex items-center justify-center">
                         <button
                             onClick={(e) => { e.stopPropagation(); onMotherAgentInstall?.(); }}
-                            className="py-1.5 px-5 text-xs font-bold rounded bg-cyber-accent/40 text-black hover:bg-cyber-accent/55 transition-all"
+                            className="py-1.5 px-5 text-xs font-bold rounded bg-cyber-elevated text-cyber-text hover:bg-cyber-elevated/80 transition-all"
                         >
                             {t('agent.installViaMother')}
                         </button>

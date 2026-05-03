@@ -46,7 +46,7 @@ export const getModelIcon = (name: string, modelId?: string): string | null => {
 
 // Card skeleton (loading state)
 export const ModelCardSkeleton = () => (
-    <div className="h-48 p-4 bg-black/30 rounded-card animate-pulse">
+    <div className="h-48 p-4 bg-cyber-surface rounded-card animate-pulse">
         <div className="h-3 w-16 bg-cyber-border rounded mb-2"></div>
         <div className="h-5 w-32 bg-cyber-border rounded mb-4"></div>
         <div className="space-y-2">
@@ -139,7 +139,7 @@ export const MatrixDecode = ({ duration = 2000 }: { duration?: number }) => {
                 <span
                     key={i}
                     className={`inline-block transition-all ${locked[i]
-                        ? 'text-cyber-accent'
+                        ? 'text-cyber-text'
                         : 'text-green-500 opacity-80'
                         }`}
                     style={{
@@ -169,12 +169,10 @@ export const ModelCard = React.memo(({
 
     return (
         <div
-            className={`h-48 p-4 ${isActive
-                ? 'ring-1 ring-inset ring-cyber-accent/50 bg-cyber-accent/5'
-                : selected
-                    ? 'ring-1 ring-inset ring-cyber-accent/50 bg-cyber-accent/5'
-                    : 'bg-black/30 hover:bg-white/5'
-                } relative overflow-hidden rounded-card cursor-pointer transition-all shadow-cyber-card flex flex-col`}
+            className={`h-48 p-4 border bg-cyber-surface ${(isActive || selected)
+                ? 'border-cyber-accent'
+                : 'border-transparent hover:bg-cyber-elevated'
+                } relative overflow-hidden rounded-card cursor-pointer transition-colors flex flex-col`}
             onClick={onClick}
         >
             {/* Action buttons — top right */}
@@ -202,7 +200,7 @@ export const ModelCard = React.memo(({
                     )}
                     {onEdit && (
                         <button
-                            className="text-xs font-mono text-cyber-text-muted/70 hover:text-cyber-accent transition-colors"
+                            className="text-xs font-mono text-cyber-text-muted/70 hover:text-cyber-text transition-colors"
                             onClick={(e) => {
                                 e.stopPropagation();
                                 onEdit();
@@ -223,12 +221,12 @@ export const ModelCard = React.memo(({
             <div className="text-lg font-bold mb-3 truncate h-7">{name || <span className="invisible">-</span>}</div>
             <div className="text-xs space-y-1.5 font-mono">
                 <div className="flex items-center gap-1 truncate">
-                    <span className="text-cyber-accent/60">{t('model.label')}:</span>
-                    <span className="truncate text-cyber-accent/60">{modelId || '-'}</span>
+                    <span className="text-cyber-text/60">{t('model.label')}:</span>
+                    <span className="truncate text-cyber-text/60">{modelId || '-'}</span>
                 </div>
                 <div className="flex items-center gap-1 truncate">
-                    <span className="text-cyber-accent/60">{t('model.source')}:</span>
-                    <span className="truncate text-cyber-accent/40">{(() => {
+                    <span className="text-cyber-text/60">{t('model.source')}:</span>
+                    <span className="truncate text-cyber-text/40">{(() => {
                         const url = baseUrl || anthropicUrl;
                         if (!url) return '-';
                         try { return new URL(url).hostname; } catch { return url; }
@@ -236,7 +234,7 @@ export const ModelCard = React.memo(({
                 </div>
 
                 <div className="flex items-center gap-1">
-                    <span className="text-cyber-accent/60">{t('model.latency')}:</span>
+                    <span className="text-cyber-text/60">{t('model.latency')}:</span>
                     {isPinging ? (
                         <MatrixDecode />
                     ) : latency === -1 ? (
@@ -246,10 +244,10 @@ export const ModelCard = React.memo(({
                             {latency}ms
                         </span>
                     ) : (
-                        <span className="text-cyber-text-muted/70 text-xs">{t('model.debugTesting')}</span>
+                        <span className="text-cyber-text-muted/70 text-xs">{t('model.notTested')}</span>
                     )}
                     {hasProxy && (
-                        <span className="text-[10px] ml-1 text-cyber-accent/70 font-mono">
+                        <span className="text-[10px] ml-1 text-cyber-text/70 font-mono">
                             ({t('model.tunnel')})
                         </span>
                     )}
@@ -258,36 +256,27 @@ export const ModelCard = React.memo(({
             {/* Protocol tags */}
             <div className="mt-auto flex items-center gap-1.5 flex-wrap">
                 {protocols.includes('openai') && (
-                    <div
-                        className="flex items-center gap-1.5 select-none group cursor-pointer"
-                        onClick={(e) => { e.stopPropagation(); onProtocolClick?.('openai'); }}
-                    >
-                        <span className="text-cyber-accent/30 font-mono text-xs transition-colors group-hover:text-cyber-accent/60">[</span>
+                    <div className="flex items-center gap-1.5 select-none">
+                        <span className="text-cyber-text/30 font-mono text-xs">[</span>
                         <span className={`${openaiTested
-                            ? 'font-bold font-mono tracking-widest text-cyber-accent text-[10px] drop-shadow-[0_0_5px_rgba(0,255,157,0.5)] animate-pulse'
+                            ? 'font-bold font-mono tracking-widest text-cyber-text text-[10px] drop-shadow-[0_0_5px_rgb(var(--accent-rgb)/0.5)] animate-pulse'
                             : 'font-mono tracking-widest text-cyber-text-muted/70 text-[10px]'
                             }`}>
                             OPENAI
                         </span>
-                        <span className="text-cyber-accent/30 font-mono text-xs transition-colors group-hover:text-cyber-accent/60">]</span>
+                        <span className="text-cyber-text/30 font-mono text-xs">]</span>
                     </div>
                 )}
                 {protocols.includes('anthropic') && (
-                    <div
-                        className="flex items-center gap-1.5 select-none group cursor-pointer"
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            onProtocolClick?.('anthropic');
-                        }}
-                    >
-                        <span className="text-cyber-accent/30 font-mono text-xs transition-colors group-hover:text-cyber-accent/60">[</span>
+                    <div className="flex items-center gap-1.5 select-none">
+                        <span className="text-cyber-text/30 font-mono text-xs">[</span>
                         <span className={`${anthropicTested
-                            ? 'font-bold font-mono tracking-widest text-cyber-accent text-[10px] drop-shadow-[0_0_5px_rgba(0,255,157,0.5)] animate-pulse'
+                            ? 'font-bold font-mono tracking-widest text-cyber-text text-[10px] drop-shadow-[0_0_5px_rgb(var(--accent-rgb)/0.5)] animate-pulse'
                             : 'font-mono tracking-widest text-cyber-text-muted/70 text-[10px]'
                             }`}>
                             ANTHROPIC
                         </span>
-                        <span className="text-cyber-accent/30 font-mono text-xs transition-colors group-hover:text-cyber-accent/60">]</span>
+                        <span className="text-cyber-text/30 font-mono text-xs">]</span>
                     </div>
                 )}
                 {protocols.length === 0 && (

@@ -57,7 +57,7 @@ const DownloadItemRow: React.FC<{
         <div className="flex items-center gap-3 h-full min-w-0">
             {/* Status icon */}
             {isInstalling && <Package className="w-3.5 h-3.5 text-cyan-400 flex-shrink-0 animate-pulse" />}
-            {isActive && !isInstalling && <Download className="w-3.5 h-3.5 text-cyber-accent flex-shrink-0 animate-pulse" />}
+            {isActive && !isInstalling && <Download className="w-3.5 h-3.5 text-cyber-text flex-shrink-0 animate-pulse" />}
             {isPaused && <Pause className="w-3.5 h-3.5 text-yellow-400 flex-shrink-0" />}
             {isDone && <Check className="w-3.5 h-3.5 text-green-400 flex-shrink-0" />}
             {isError && <AlertTriangle className="w-3.5 h-3.5 text-red-400 flex-shrink-0" />}
@@ -81,7 +81,7 @@ const DownloadItemRow: React.FC<{
                         />
                     </div>
                     {/* Percentage */}
-                    <span className={`text-[10px] font-mono w-8 text-right ${isPaused ? 'text-yellow-400' : isInstalling ? 'text-cyan-400' : 'text-cyber-accent'
+                    <span className={`text-[10px] font-mono w-8 text-right ${isPaused ? 'text-yellow-400' : isInstalling ? 'text-cyan-400' : 'text-cyber-text'
                         }`}>
                         {item.progress}%
                     </span>

@@ -71,7 +71,7 @@ const ToastItem: React.FC<{ toast: ToastMessage; onRemove: (id: string) => void 
 
     const getIcon = () => {
         switch (toast.type) {
-            case 'success': return <CheckCircle className="w-5 h-5 text-cyber-accent" />;
+            case 'success': return <CheckCircle className="w-5 h-5 text-cyber-text" />;
             case 'error': return <AlertOctagon className="w-5 h-5 text-cyber-error" />;
             case 'warning': return <AlertTriangle className="w-5 h-5 text-cyber-warning" />;
             case 'info': return <Info className="w-5 h-5 text-cyber-text-secondary" />;
@@ -80,7 +80,7 @@ const ToastItem: React.FC<{ toast: ToastMessage; onRemove: (id: string) => void 
 
     const getBorderColor = () => {
         switch (toast.type) {
-            case 'success': return 'border-cyber-accent/50';
+            case 'success': return 'border-cyber-border/50';
             case 'error': return 'border-cyber-error/50';
             case 'warning': return 'border-cyber-warning/50';
             case 'info': return 'border-cyber-border';
@@ -113,7 +113,7 @@ const ToastItem: React.FC<{ toast: ToastMessage; onRemove: (id: string) => void 
             </div>
             <button
                 onClick={handleRemove}
-                className="flex-shrink-0 text-cyber-text-secondary hover:text-white transition-colors"
+                className="flex-shrink-0 text-cyber-text-secondary hover:text-cyber-text transition-colors"
                 aria-label="Close"
             >
                 <X className="w-4 h-4" />
@@ -122,12 +122,12 @@ const ToastItem: React.FC<{ toast: ToastMessage; onRemove: (id: string) => void 
             {/* Progress bar for auto-dismiss */}
             {toast.duration && toast.duration > 0 && (
                 <div
-                    className={`absolute bottom-0 left-0 h-0.5 bg-current opacity-30 origin-left animate-progress`}
-                    style={{
-                        width: '100%',
-                        animationDuration: `${toast.duration}ms`,
-                        color: toast.type === 'success' ? '#00FF9D' : toast.type === 'error' ? '#FF4444' : '#E0F7FA'
-                    }}
+                    className={`absolute bottom-0 left-0 h-0.5 bg-current opacity-30 origin-left animate-progress ${
+                        toast.type === 'success' ? 'text-cyber-text'
+                            : toast.type === 'error' ? 'text-cyber-error'
+                            : 'text-cyber-text-secondary'
+                    }`}
+                    style={{ width: '100%', animationDuration: `${toast.duration}ms` }}
                 />
             )}
         </div>

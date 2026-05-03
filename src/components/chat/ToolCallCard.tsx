@@ -52,11 +52,11 @@ export function ToolCallCard({ name, args, status, output }: ToolCallCardProps) 
     const statusIcon =
         status === 'running' ? <Loader2 size={11} className="animate-spin text-cyber-accent" />
         : status === 'failed' ? <XIcon size={11} className="text-red-400" />
-        : <Check size={11} className="text-cyber-accent" />;
+        : <Check size={11} className="text-cyber-text-muted" />;
 
     const borderColor =
         status === 'failed' ? 'border-red-500/30'
-        : status === 'running' ? 'border-cyber-accent/40'
+        : status === 'running' ? 'border-cyber-border/40'
         : 'border-cyber-border/40';
 
     const truncatedOutput = output && output.length > OUTPUT_PREVIEW_LIMIT
@@ -64,14 +64,14 @@ export function ToolCallCard({ name, args, status, output }: ToolCallCardProps) 
         : output;
 
     return (
-        <div className={`mb-3 border ${borderColor} rounded-md bg-black/30 text-[12px] font-mono`}>
+        <div className={`mb-3 border ${borderColor} rounded-md bg-cyber-surface text-[12px] font-mono`}>
             <button
                 type="button"
                 onClick={() => setOpen(o => !o)}
-                className="w-full flex items-center gap-2 px-2.5 py-1.5 text-left hover:bg-white/5 transition-colors rounded-md"
+                className="w-full flex items-center gap-2 px-2.5 py-1.5 text-left hover:bg-cyber-elevated transition-colors rounded-md"
             >
-                <Icon size={12} className="flex-shrink-0 text-cyber-accent/80" />
-                <span className="flex-shrink-0 text-cyber-accent/80 font-bold">{meta.label}</span>
+                <Icon size={12} className="flex-shrink-0 text-cyber-text-muted" />
+                <span className="flex-shrink-0 text-cyber-text font-bold">{meta.label}</span>
                 {preview && (
                     <span className="flex-1 truncate text-cyber-text-muted/70">
                         {preview}
@@ -84,14 +84,14 @@ export function ToolCallCard({ name, args, status, output }: ToolCallCardProps) 
                 <div className="px-2.5 pb-2 pt-1 space-y-2 border-t border-cyber-border/30">
                     <div>
                         <div className="text-[10px] text-cyber-text-muted/60 mb-0.5">arguments</div>
-                        <pre className="bg-cyber-bg/60 px-2 py-1 rounded text-cyber-text-primary whitespace-pre-wrap break-all">
+                        <pre className="bg-cyber-bg/60 px-2 py-1 rounded text-cyber-text whitespace-pre-wrap break-all">
                             {args || '<streaming…>'}
                         </pre>
                     </div>
                     {truncatedOutput !== undefined && (
                         <div>
                             <div className="text-[10px] text-cyber-text-muted/60 mb-0.5">output</div>
-                            <pre className={`px-2 py-1 rounded whitespace-pre-wrap break-all max-h-72 overflow-y-auto ${status === 'failed' ? 'bg-red-950/30 text-red-300' : 'bg-cyber-bg/60 text-cyber-text-primary'}`}>
+                            <pre className={`px-2 py-1 rounded whitespace-pre-wrap break-all max-h-72 overflow-y-auto ${status === 'failed' ? 'bg-red-950/30 text-red-300' : 'bg-cyber-bg/60 text-cyber-text'}`}>
                                 {truncatedOutput}
                             </pre>
                         </div>

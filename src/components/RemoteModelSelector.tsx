@@ -54,11 +54,11 @@ export const RemoteModelSelector: React.FC<RemoteModelSelectorProps> = ({
     const displayIcon = currentModel?.icon;
 
     // Tailwind JIT-friendly static class strings (Mother Agent secondary accent)
-    const triggerClass = 'flex items-center gap-1.5 px-2 py-1 text-xs font-mono text-cyber-accent transition-colors rounded hover:bg-white/8 active:bg-white/12 disabled:cursor-default';
-    const spinClass = 'animate-spin text-cyber-accent/70';
-    const selectedItemClass = 'text-cyber-accent bg-cyber-accent/10';
-    const unselectedItemClass = 'text-cyber-text hover:bg-white/8 hover:text-cyber-accent';
-    const checkClass = 'flex-shrink-0 ml-1 text-cyber-accent';
+    const triggerClass = 'flex items-center gap-1.5 px-2 py-1 text-xs font-mono text-cyber-text transition-colors rounded hover:bg-cyber-elevated disabled:cursor-default';
+    const spinClass = 'animate-spin text-cyber-text/70';
+    const selectedItemClass = 'text-cyber-text bg-cyber-text/10';
+    const unselectedItemClass = 'text-cyber-text hover:bg-cyber-elevated hover:text-cyber-text';
+    const checkClass = 'flex-shrink-0 ml-1 text-cyber-text';
 
     return (
         <div ref={containerRef} className="relative">
@@ -93,7 +93,7 @@ export const RemoteModelSelector: React.FC<RemoteModelSelectorProps> = ({
             {/* Dropdown — opens upward */}
             {isOpen && models.length > 0 && (
                 <div className="absolute bottom-full mb-1 right-0 min-w-[200px] max-w-[300px] max-h-60 overflow-y-auto
-                    bg-[#1a1a2e]/95 backdrop-blur-md rounded-lg shadow-xl
+                    bg-cyber-elevated border border-cyber-border rounded-lg shadow-2xl
                     animate-in fade-in slide-in-from-bottom-2 duration-150
                     z-50"
                 >

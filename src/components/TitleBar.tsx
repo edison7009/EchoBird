@@ -107,19 +107,19 @@ export const TitleBar: React.FC<TitleBarProps> = ({ onSettingsClick }) => {
                 >
                     <button
                         onClick={onSettingsClick}
-                        className="h-full px-4 flex items-center justify-center text-cyber-text-secondary hover:bg-cyber-accent/20 hover:text-cyber-accent transition-colors"
+                        className="h-full px-4 flex items-center justify-center text-cyber-text-secondary hover:bg-cyber-text/20 hover:text-cyber-text transition-colors"
                     >
                         <Settings size={13} />
                     </button>
                     <button
                         onClick={handleMinimize}
-                        className="h-full px-4 flex items-center justify-center text-cyber-text-secondary hover:bg-cyber-accent/20 hover:text-cyber-accent transition-colors"
+                        className="h-full px-4 flex items-center justify-center text-cyber-text-secondary hover:bg-cyber-text/20 hover:text-cyber-text transition-colors"
                     >
                         <Minus size={14} />
                     </button>
                     <button
                         onClick={handleMaximize}
-                        className="h-full px-4 flex items-center justify-center text-cyber-text-secondary hover:bg-cyber-accent/20 hover:text-cyber-accent transition-colors"
+                        className="h-full px-4 flex items-center justify-center text-cyber-text-secondary hover:bg-cyber-text/20 hover:text-cyber-text transition-colors"
                     >
                         {isMaximized ? <Minimize2 size={13} /> : <Maximize2 size={13} />}
                     </button>
@@ -145,15 +145,15 @@ export const TitleBar: React.FC<TitleBarProps> = ({ onSettingsClick }) => {
 
                     {/* Dialog */}
                     <div
-                        className={`relative w-[380px] max-w-[90vw] border border-cyber-accent/40 bg-cyber-bg shadow-lg rounded-xl overflow-hidden transition-all duration-200 shadow-[0_0_20px_rgba(0,255,157,0.1)] ${isAnimatingOut ? 'scale-95 opacity-0' : 'scale-100 opacity-100'}`}
+                        className={`relative w-[380px] max-w-[90vw] border border-cyber-border/40 bg-cyber-surface shadow-2xl rounded-xl overflow-hidden transition-all duration-200 ${isAnimatingOut ? 'scale-95 opacity-0' : 'scale-100 opacity-100'}`}
                         onClick={e => e.stopPropagation()}
                     >
                         {/* Top accent line */}
-                        <div className="h-[2px] w-full bg-cyber-accent/60" />
+                        <div className="h-px w-full bg-cyber-border" />
 
                         {/* Title */}
                         <div className="px-5 pt-4 pb-2">
-                            <span className="text-sm font-mono font-bold tracking-wider text-cyber-accent">
+                            <span className="text-sm font-mono font-bold tracking-wider text-cyber-text">
                                 {t('close.title')}
                             </span>
                         </div>
@@ -170,12 +170,12 @@ export const TitleBar: React.FC<TitleBarProps> = ({ onSettingsClick }) => {
                             <label className="flex items-center gap-2 cursor-pointer group">
                                 <div
                                     className={`w-3.5 h-3.5 rounded border transition-all flex items-center justify-center ${rememberChoice
-                                        ? 'bg-cyber-accent/20 border-cyber-accent'
-                                        : 'border-cyber-border hover:border-cyber-accent/50'
+                                        ? 'bg-cyber-text/20 border-cyber-border'
+                                        : 'border-cyber-border hover:border-cyber-border/50'
                                         }`}
                                     onClick={() => setRememberChoice(!rememberChoice)}
                                 >
-                                    {rememberChoice && <span className="text-[9px] text-cyber-accent">✓</span>}
+                                    {rememberChoice && <span className="text-[9px] text-cyber-text">✓</span>}
                                 </div>
                                 <span
                                     className="text-[11px] text-cyber-text-secondary font-mono group-hover:text-cyber-text transition-colors"
@@ -190,7 +190,7 @@ export const TitleBar: React.FC<TitleBarProps> = ({ onSettingsClick }) => {
                         <div className="flex border-t border-cyber-border">
                             <button
                                 onClick={handleMinimizeToTray}
-                                className="flex-1 px-4 py-2.5 text-xs font-mono font-bold tracking-wider text-cyber-accent hover:bg-cyber-accent/10 transition-all border-r border-cyber-border"
+                                className="flex-1 px-4 py-2.5 text-xs font-mono font-bold tracking-wider text-cyber-text hover:bg-cyber-text/10 transition-all border-r border-cyber-border"
                             >
                                 {t('close.minimize')}
                             </button>

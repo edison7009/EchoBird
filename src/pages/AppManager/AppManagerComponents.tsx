@@ -29,8 +29,8 @@ export const AppManagerMain: React.FC = () => {
                             key={cat}
                             onClick={() => setActiveToolCategory(cat)}
                             className={`px-4 py-2 text-xs transition-colors outline-none ${activeToolCategory === cat
-                                ? 'text-cyber-accent font-bold border-b-2 border-cyber-accent'
-                                : 'text-cyber-text-secondary hover:text-cyber-accent'
+                                ? 'text-cyber-text font-bold border-b-2 border-cyber-border'
+                                : 'text-cyber-text-secondary hover:text-cyber-text'
                                 }`}
                         >
                             {(() => {
@@ -49,7 +49,7 @@ export const AppManagerMain: React.FC = () => {
                     <button
                         onClick={scanTools}
                         disabled={isScanning}
-                        className="text-xs border border-cyber-accent text-cyber-accent px-3 py-1 hover:bg-cyber-accent/10 transition-colors rounded disabled:opacity-50 outline-none"
+                        className="text-xs border border-cyber-border text-cyber-text px-3 py-1 hover:bg-cyber-text/10 transition-colors rounded disabled:opacity-50 outline-none"
                     >
                         {isScanning ? t('status.scanning') : t('btn.refresh')}
                     </button>
@@ -62,7 +62,7 @@ export const AppManagerMain: React.FC = () => {
                         // Skeleton cards while scanning
                         <>
                             {Array.from({ length: 6 }).map((_, i) => (
-                                <div key={i} className="relative p-5 border border-cyber-border rounded-card bg-black/80 flex flex-col animate-pulse">
+                                <div key={i} className="relative p-5 border border-cyber-border rounded-card bg-cyber-surface flex flex-col animate-pulse">
                                     <div className="absolute top-4 right-4 w-10 h-10 rounded-lg bg-cyber-border/30" />
                                     <div className="h-5 w-2/3 bg-cyber-border/40 rounded mb-4" />
                                     <div className="space-y-2">
@@ -171,20 +171,16 @@ export const ModelListSection: React.FC<ModelListSectionProps> = ({
         return (
             <div
                 key={model.internalId}
-                className={`p-3 rounded cursor-pointer transition-all mb-2 flex items-center gap-3 ${isSelected
-                    ? isLocalServer
-                        ? 'bg-cyan-400/10'
-                        : 'bg-cyber-accent/10'
-                    : isLocalServer
-                        ? 'bg-black/30 hover:bg-cyan-400/5'
-                        : 'bg-black/30 hover:bg-white/5'
+                className={`p-3 rounded cursor-pointer transition-colors mb-2 flex items-center gap-3 border bg-cyber-surface ${isSelected
+                    ? (isLocalServer ? 'border-cyan-400' : 'border-cyber-accent')
+                    : 'border-transparent hover:bg-cyber-elevated'
                     }`}
                 onClick={() => selectedTool && handleSelectModel(selectedTool, model.internalId)}
             >
                 {/* Left: Radio + Icon */}
                 <div className="flex items-center gap-3 flex-shrink-0">
                     <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${isSelected
-                        ? isLocalServer ? 'border-cyan-400' : 'border-cyber-accent'
+                        ? isLocalServer ? 'border-cyan-400' : 'border-cyber-border'
                         : 'border-cyber-border'
                         }`}>
                         {isSelected && <div className={`w-2 h-2 rounded-full ${isLocalServer ? 'bg-cyan-400' : 'bg-cyber-accent'}`} />}
@@ -196,7 +192,7 @@ export const ModelListSection: React.FC<ModelListSectionProps> = ({
                             <ServerIcon size={14} />
                         </div>
                     ) : (
-                        <div className="w-6 h-6 rounded bg-cyber-accent/15 flex items-center justify-center text-cyber-accent">
+                        <div className="w-6 h-6 rounded bg-cyber-text/15 flex items-center justify-center text-cyber-text">
                             <BoxIcon size={14} />
                         </div>
                     )}
@@ -210,7 +206,7 @@ export const ModelListSection: React.FC<ModelListSectionProps> = ({
                             <span
                                 className={`text-[10px] font-mono cursor-pointer select-none flex-shrink-0 transition-colors ${isLocalServer
                                     ? 'text-cyan-400/60 hover:text-cyan-400'
-                                    : 'text-cyber-text-muted/60 hover:text-cyber-accent'
+                                    : 'text-cyber-text-muted/60 hover:text-cyber-text'
                                     }`}
                                 onClick={(e) => {
                                     e.stopPropagation();
@@ -251,21 +247,21 @@ export const ModelListSection: React.FC<ModelListSectionProps> = ({
 
         return (
             <div
-                className={`p-3 rounded cursor-pointer transition-all mb-2 flex items-center gap-3 ${isOfficialPending
-                    ? 'bg-cyber-accent/10'
-                    : 'bg-black/30 hover:bg-white/5'
+                className={`p-3 rounded cursor-pointer transition-colors mb-2 flex items-center gap-3 border bg-cyber-surface ${isOfficialPending
+                    ? 'border-cyber-accent'
+                    : 'border-transparent hover:bg-cyber-elevated'
                     }`}
                 onClick={() => selectedTool && handleSelectModel(selectedTool, officialSentinel)}
             >
                 <div className="flex items-center gap-3 flex-shrink-0">
-                    <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${isOfficialPending ? 'border-cyber-accent' : 'border-cyber-border'
+                    <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${isOfficialPending ? 'border-cyber-border' : 'border-cyber-border'
                         }`}>
                         {isOfficialPending && <div className="w-2 h-2 rounded-full bg-cyber-accent" />}
                     </div>
                     {iconSrc ? (
                         <img src={iconSrc} alt="" className="w-6 h-6" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
                     ) : (
-                        <div className="w-6 h-6 rounded bg-cyber-accent/15 flex items-center justify-center text-cyber-accent">
+                        <div className="w-6 h-6 rounded bg-cyber-text/15 flex items-center justify-center text-cyber-text">
                             <BoxIcon size={14} />
                         </div>
                     )}
@@ -306,10 +302,10 @@ export const ModelListSection: React.FC<ModelListSectionProps> = ({
             </div>
             {cloudModels.length === 0 && !official && localModels.length === 0 && (
                 <div className="py-10 flex flex-col items-center gap-3 text-center">
-                    <BoxIcon size={28} className="text-cyber-accent opacity-25" />
+                    <BoxIcon size={28} className="text-cyber-text opacity-25" />
                     <p className="text-[12px] text-cyber-text-secondary font-mono leading-relaxed">
                         {t('agent.noModelsTitle')}<br />
-                        {t('agent.noModelsHintPre')} <span className="text-cyber-accent font-bold">{t('nav.modelNexus')}</span> {t('agent.noModelsHintPost')}
+                        {t('agent.noModelsHintPre')} <span className="text-cyber-text font-bold">{t('nav.modelNexus')}</span> {t('agent.noModelsHintPost')}
                     </p>
                 </div>
             )}
@@ -332,12 +328,12 @@ export const AppManagerPanel: React.FC = () => {
             {/* Header */}
             <div className="p-2 flex items-center justify-between bg-transparent">
                 <div className="flex gap-1">
-                    <span className="px-3 py-1.5 text-xs font-bold text-cyber-accent">
+                    <span className="px-3 py-1.5 text-xs font-bold text-cyber-text">
                         {t('agent.modelsTab')}
                     </span>
                 </div>
                 {selectedToolData && (
-                    <span className="text-[10px] text-cyber-accent">
+                    <span className="text-[10px] text-cyber-text">
                         {selectedToolData.name}
                     </span>
                 )}
@@ -390,9 +386,9 @@ export const AppManagerBottom: React.FC = () => {
                 <button
                     onClick={handleLaunch}
                     disabled={!hasModel || !agreedConfigPolicy || isLaunching}
-                    className={`w-64 h-14 text-lg font-bold font-mono tracking-widest transition-all flex-shrink-0 rounded-lg cjk-btn ${(!hasModel || !agreedConfigPolicy || isLaunching)
-                        ? 'bg-cyber-border text-cyber-text-secondary cursor-not-allowed'
-                        : 'bg-cyber-accent text-black hover:bg-cyber-accent/90 hover:shadow-[0_0_15px_rgba(0,255,157,0.35)] shadow-[0_0_8px_rgba(0,255,157,0.15)]'
+                    className={`w-64 h-14 text-lg font-bold font-mono tracking-widest transition-colors flex-shrink-0 rounded-lg cjk-btn border ${(!hasModel || !agreedConfigPolicy || isLaunching)
+                        ? 'bg-cyber-border text-cyber-text-secondary border-transparent cursor-not-allowed'
+                        : 'bg-cyber-accent/15 text-cyber-accent border-cyber-accent/40 hover:bg-cyber-accent/25 hover:border-cyber-accent/60'
                         }`}
                 >
                     {launchAfterApply ? t('btn.launchApp') : t('btn.modifyOnly')}
@@ -401,29 +397,29 @@ export const AppManagerBottom: React.FC = () => {
                 <div className="flex flex-col gap-2">
                     {/* Apply & Launch checkbox */}
                     <label className="flex items-center gap-2 cursor-pointer select-none" onClick={() => setLaunchAfterApply(!launchAfterApply)}>
-                        <div className={`w-3.5 h-3.5 border flex items-center justify-center transition-all flex-shrink-0 ${launchAfterApply ? 'border-cyber-accent bg-cyber-accent/20' : 'border-cyber-border hover:border-cyber-text-muted'
+                        <div className={`w-3.5 h-3.5 border flex items-center justify-center transition-all flex-shrink-0 ${launchAfterApply ? 'border-cyber-border bg-cyber-text/20' : 'border-cyber-border hover:border-cyber-text-muted'
                             }`}>
                             {launchAfterApply && (
-                                <svg width="8" height="8" viewBox="0 0 10 10" fill="none">
-                                    <path d="M2 5L4 7L8 3" stroke="#00FF9D" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                                <svg width="8" height="8" viewBox="0 0 10 10" fill="none" className="text-cyber-text">
+                                    <path d="M2 5L4 7L8 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                                 </svg>
                             )}
                         </div>
-                        <span className={`text-xs font-mono transition-colors ${launchAfterApply ? 'text-cyber-accent' : 'text-cyber-text-secondary'}`}>
+                        <span className={`text-xs font-mono transition-colors ${launchAfterApply ? 'text-cyber-text' : 'text-cyber-text-secondary'}`}>
                             {t('agent.applyAndLaunch')}
                         </span>
                     </label>
                     {/* Config policy agreement */}
                     <label className="flex items-center gap-2 cursor-pointer select-none" onClick={() => setAgreedConfigPolicy(!agreedConfigPolicy)}>
-                        <div className={`w-3.5 h-3.5 border flex items-center justify-center transition-all flex-shrink-0 ${agreedConfigPolicy ? 'border-cyber-accent bg-cyber-accent/20' : 'border-cyber-border hover:border-cyber-text-muted'
+                        <div className={`w-3.5 h-3.5 border flex items-center justify-center transition-all flex-shrink-0 ${agreedConfigPolicy ? 'border-cyber-border bg-cyber-text/20' : 'border-cyber-border hover:border-cyber-text-muted'
                             }`}>
                             {agreedConfigPolicy && (
-                                <svg width="8" height="8" viewBox="0 0 10 10" fill="none">
-                                    <path d="M2 5L4 7L8 3" stroke="#00FF9D" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                                <svg width="8" height="8" viewBox="0 0 10 10" fill="none" className="text-cyber-text">
+                                    <path d="M2 5L4 7L8 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                                 </svg>
                             )}
                         </div>
-                        <span className={`text-xs font-mono transition-colors ${agreedConfigPolicy ? 'text-cyber-accent' : 'text-cyber-text-secondary'}`}>
+                        <span className={`text-xs font-mono transition-colors ${agreedConfigPolicy ? 'text-cyber-text' : 'text-cyber-text-secondary'}`}>
                             {t('agent.appliedVia')}
                         </span>
                     </label>
@@ -444,7 +440,7 @@ export const AppManagerErrorModal: React.FC = () => {
     return (
         <div className="fixed inset-0 z-[9998] flex items-center justify-center">
             <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setApplyError(null)} />
-            <div className="relative w-[360px] max-w-[90vw] border border-red-500/40 bg-cyber-bg shadow-lg shadow-[0_0_20px_rgba(255,60,60,0.1)] rounded-xl overflow-hidden">
+            <div className="relative w-[360px] max-w-[90vw] border border-red-500/40 bg-cyber-surface shadow-2xl rounded-xl overflow-hidden">
                 <div className="h-[2px] w-full bg-red-500/60" />
                 <div className="px-5 pt-4 pb-2 flex items-center gap-2">
                     <svg className="w-4 h-4 text-red-400 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" /></svg>

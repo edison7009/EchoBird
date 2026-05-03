@@ -13,6 +13,7 @@ export type TKey =
     | 'settings.checkForUpdates' | 'settings.checking'
     | 'settings.latestVersion' | 'settings.checkFailed'
     | 'settings.closeBehavior' | 'settings.closeAsk' | 'settings.closeMinimize' | 'settings.closeQuit'
+    | 'settings.appearance' | 'settings.themeLight' | 'settings.themeDark' | 'settings.themeSystem'
     // Buttons
     | 'btn.addModel' | 'btn.refresh'
     | 'btn.cancel' | 'btn.delete' | 'btn.edit'
@@ -31,7 +32,7 @@ export type TKey =
     | 'model.deleteTitle' | 'model.deleteConfirm'
     | 'model.selectToTest' | 'model.escCancel' | 'model.enterSave'
     // ModelCard labels
-    | 'model.label' | 'model.source' | 'model.latency' | 'model.debugTesting' | 'model.providers' | 'model.relays'
+    | 'model.label' | 'model.source' | 'model.latency' | 'model.debugTesting' | 'model.notTested' | 'model.providers' | 'model.relays'
     | 'model.cloud' | 'model.local' | 'model.tunnel'
 
     // App Manager

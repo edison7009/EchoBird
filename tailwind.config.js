@@ -4,20 +4,24 @@ export default {
     theme: {
         extend: {
             colors: {
-                'cyber-bg': '#0F1117',
-                'cyber-terminal': '#131620',
-                'cyber-surface': '#1A1F2B',
-                'cyber-elevated': '#252B3D',
-                'cyber-border': '#2D3448',
-                'cyber-dark': '#0C0E14',
-                'cyber-accent': '#00FF9D',
-                'cyber-accent-secondary': '#00D4FF',
-                'cyber-warning': '#facc15',
-                'cyber-error': '#FFD700',
-                'cyber-text': '#E0F7FA',
-                'cyber-text-secondary': '#E2E8F0',
-                'cyber-text-muted': '#A8B5C8',
-                'cyber-input': 'rgba(28, 28, 30, 0.65)',
+                // All theme tokens point at CSS variables so light/dark mode swaps work.
+                // The original "cyber-*" names are preserved (used in 22 files) — only the
+                // values shift. Opacity modifiers (`bg-cyber-accent/20`) keep working
+                // because each var is stored as space-separated RGB channels.
+                'cyber-bg':               'rgb(var(--bg-base-rgb) / <alpha-value>)',
+                'cyber-terminal':         'rgb(var(--bg-terminal-rgb) / <alpha-value>)',
+                'cyber-surface':          'rgb(var(--bg-surface-rgb) / <alpha-value>)',
+                'cyber-elevated':         'rgb(var(--bg-elevated-rgb) / <alpha-value>)',
+                'cyber-border':           'rgb(var(--border-rgb) / <alpha-value>)',
+                'cyber-dark':             'rgb(var(--bg-deep-rgb) / <alpha-value>)',
+                'cyber-accent':           'rgb(var(--accent-rgb) / <alpha-value>)',
+                'cyber-accent-secondary': 'rgb(var(--accent-secondary-rgb) / <alpha-value>)',
+                'cyber-warning':          'rgb(var(--warning-rgb) / <alpha-value>)',
+                'cyber-error':            'rgb(var(--error-rgb) / <alpha-value>)',
+                'cyber-text':             'rgb(var(--text-primary-rgb) / <alpha-value>)',
+                'cyber-text-secondary':   'rgb(var(--text-secondary-rgb) / <alpha-value>)',
+                'cyber-text-muted':       'rgb(var(--text-muted-rgb) / <alpha-value>)',
+                'cyber-input':            'rgb(var(--bg-input-rgb) / <alpha-value>)',
             },
             fontFamily: {
                 mono: ['JetBrains Mono', 'ui-monospace', 'monospace'],

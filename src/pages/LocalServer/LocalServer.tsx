@@ -301,7 +301,7 @@ export const LocalServerMain: React.FC = () => {
         // Shared button styles — solid fill matching AppManager launch button
         const disabledStart = !isRunning && (!selectedModelPath || engineStatus === 'not-installed' || engineStatus === 'downloading' || engineStatus === 'checking' || engineStatus === 'error');
         const btnBase = 'font-bold text-base font-mono transition-all flex items-center justify-center gap-2 flex-shrink-0 rounded-lg';
-        const btnActive = 'bg-cyber-accent text-black hover:bg-cyber-accent/90 shadow-[0_0_8px_rgba(0,255,157,0.15)] hover:shadow-[0_0_15px_rgba(0,255,157,0.35)]';
+        const btnActive = 'bg-cyber-accent/15 text-cyber-accent border border-cyber-accent/40 hover:bg-cyber-accent/25 hover:border-cyber-accent/60';
         const btnDisabled = 'bg-cyber-border/60 text-cyber-text-secondary cursor-not-allowed';
         const btnStop = 'bg-red-500 text-white hover:bg-red-600 shadow-[0_0_8px_rgba(239,68,68,0.2)]';
 
@@ -324,7 +324,7 @@ export const LocalServerMain: React.FC = () => {
                 onClick={() => engineInstallDir && api.openFolder(engineInstallDir)}
                 disabled={!engineInstallDir}
                 className={`py-3 px-3 ${btnBase} ${engineInstallDir
-                    ? 'bg-cyber-border/60 text-cyber-text-secondary hover:text-cyber-accent hover:bg-cyber-accent/20'
+                    ? 'bg-cyber-border/60 text-cyber-text-secondary hover:text-cyber-text hover:bg-cyber-text/20'
                     : btnDisabled}`}
             >
                 <FolderOpen className="w-4 h-4" />
@@ -338,7 +338,7 @@ export const LocalServerMain: React.FC = () => {
                     <button
                         onClick={handleDownloadEngine}
                         className="flex-1 py-3 font-bold text-base tracking-[0.3em] font-mono transition-all flex items-center justify-center gap-2 rounded-lg
-                            bg-cyber-accent text-black hover:bg-cyber-accent/90 shadow-[0_0_8px_rgba(0,255,157,0.15)] hover:shadow-[0_0_15px_rgba(0,255,157,0.35)]"
+                            bg-cyber-accent/15 text-cyber-accent border border-cyber-accent/40 hover:bg-cyber-accent/25 hover:border-cyber-accent/60"
                     >
                         <Download className="w-4 h-4" />
                         {engineStatus === 'error' ? `\u26A0 ${t('server.setupEngine')}` : t('server.setupEngine')}
@@ -355,10 +355,10 @@ export const LocalServerMain: React.FC = () => {
                 <div className="flex gap-1.5 w-full">
                     <div className="flex-1 relative overflow-hidden rounded-lg bg-cyber-border">
                         <div
-                            className="absolute inset-0 bg-cyber-accent/40 transition-all duration-300 ease-out"
+                            className="absolute inset-0 bg-cyber-text/40 transition-all duration-300 ease-out"
                             style={{ width: `${downloadProgress}%` }}
                         />
-                        <div className="relative py-3 flex items-center justify-center gap-2 font-bold text-base tracking-[0.3em] font-mono text-black">
+                        <div className="relative py-3 flex items-center justify-center gap-2 font-bold text-base tracking-[0.3em] font-mono text-cyber-text">
                             <Loader2 className="w-4 h-4 animate-spin" />
                             {downloadProgress === 0
                                 ? `${t('server.downloading')} 0%`
@@ -394,7 +394,7 @@ export const LocalServerMain: React.FC = () => {
                     <button
                         onClick={handleDownloadEngine}
                         className="flex-1 py-3 font-bold text-base tracking-[0.2em] font-mono transition-all flex items-center justify-center gap-2 rounded-lg
-                            bg-cyber-accent text-black hover:bg-cyber-accent/90 shadow-[0_0_8px_rgba(0,255,157,0.15)] hover:shadow-[0_0_15px_rgba(0,255,157,0.35)]"
+                            bg-cyber-accent/15 text-cyber-accent border border-cyber-accent/40 hover:bg-cyber-accent/25 hover:border-cyber-accent/60"
                     >
                         <Download className="w-4 h-4" />
                         {t('server.upgradeEngine') || 'UPGRADE ENGINE'}
@@ -409,12 +409,12 @@ export const LocalServerMain: React.FC = () => {
         return (
             <div className="flex gap-1.5 w-full">
                 <div className="flex-1 py-2 px-4 font-mono text-xs flex items-center gap-0 rounded-lg bg-cyber-border/60 overflow-hidden min-w-0">
-                    <HardDrive className="w-3.5 h-3.5 flex-shrink-0 text-cyber-accent mr-2" />
+                    <HardDrive className="w-3.5 h-3.5 flex-shrink-0 text-cyber-text mr-2" />
                     {engineBinaryNames.length > 0 ? (
                         <div className="flex items-center gap-0 min-w-0 overflow-hidden">
                             {engineBinaryNames.map((name, i) => (
                                 <span key={name} className="flex items-center gap-0 min-w-0">
-                                    {i > 0 && <span className="flex-shrink-0 mx-2 text-cyber-accent opacity-70">+</span>}
+                                    {i > 0 && <span className="flex-shrink-0 mx-2 text-cyber-text opacity-70">+</span>}
                                     <span
                                         className={`truncate tracking-wide ${i === 0 ? 'text-cyber-text' : 'text-cyber-text-secondary'}`}
                                         style={{ minWidth: 0 }}
@@ -443,9 +443,9 @@ export const LocalServerMain: React.FC = () => {
                     <span className="text-cyber-text-secondary">{t('server.selectModel')}</span>
                     {selectedModelPath ? (
                         <>
-                            <span className="text-cyber-accent font-bold truncate">{modelInfo.name}</span>
+                            <span className="text-cyber-text font-bold truncate">{modelInfo.name}</span>
                             {modelInfo.quant && (
-                                <span className="text-cyber-accent font-bold flex-shrink-0">{modelInfo.quant}</span>
+                                <span className="text-cyber-text font-bold flex-shrink-0">{modelInfo.quant}</span>
                             )}
                         </>
                     ) : (
@@ -541,7 +541,7 @@ export const LocalServerMain: React.FC = () => {
 
                 {/* Log area */}
                 <div className="relative flex-1">
-                    <div ref={logsContainerRef} onScroll={handleScroll} className="absolute inset-0 overflow-y-auto py-3 bg-cyber-input font-mono text-sm space-y-0.5 custom-scrollbar rounded-lg">
+                    <div ref={logsContainerRef} onScroll={handleScroll} className="absolute inset-0 overflow-y-auto py-3 bg-cyber-surface border border-cyber-border font-mono text-sm space-y-0.5 custom-scrollbar rounded-lg">
                         {logs.length === 0 && (
                             <div className="flex items-center justify-center" style={{ minHeight: 'calc(100% - 24px)' }}>
                                 <div className="font-mono text-center space-y-3">
@@ -564,7 +564,7 @@ export const LocalServerMain: React.FC = () => {
                     {showScrollBtn && (
                         <button
                             onClick={scrollToBottom}
-                            className="absolute bottom-3 right-3 w-7 h-7 flex items-center justify-center bg-cyber-bg/90 border border-cyber-border/50 rounded text-cyber-text-secondary hover:text-cyber-accent hover:border-cyber-accent/50 transition-colors"
+                            className="absolute bottom-3 right-3 w-7 h-7 flex items-center justify-center bg-cyber-bg/90 border border-cyber-border/50 rounded text-cyber-text-secondary hover:text-cyber-text hover:border-cyber-border/50 transition-colors"
                         >
                             <ChevronDown className="w-4 h-4" />
                         </button>
@@ -777,7 +777,7 @@ export const LocalServerPanel: React.FC = () => {
                     <button
                         onClick={() => setActiveTab('local')}
                         className={`px-3 py-1.5 text-xs font-bold rounded transition-colors ${activeTab === 'local'
-                            ? 'bg-cyber-accent text-black'
+                            ? 'bg-cyber-elevated text-cyber-text'
                             : 'text-cyber-text-secondary hover:text-cyber-text'
                             }`}
                     >
@@ -786,7 +786,7 @@ export const LocalServerPanel: React.FC = () => {
                     <button
                         onClick={() => setActiveTab('store')}
                         className={`px-3 py-1.5 text-xs font-bold rounded transition-colors ${activeTab === 'store'
-                            ? 'bg-cyan-400 text-black'
+                            ? 'bg-cyber-elevated text-cyber-text'
                             : 'text-cyber-text-secondary hover:text-cyber-text'
                             }`}
                     >
@@ -813,7 +813,7 @@ export const LocalServerPanel: React.FC = () => {
                                 <>
                                     <button
                                         onClick={handleAddDir}
-                                        className="text-xs font-mono font-bold text-green-500/70 hover:text-green-400 transition-colors"
+                                        className="text-xs font-mono font-bold text-cyber-text-secondary hover:text-cyber-text transition-colors"
                                     >
                                         {t('store.add')}
                                     </button>
@@ -856,7 +856,7 @@ export const LocalServerPanel: React.FC = () => {
 
                         {isScanning ? (
                             <div className="flex items-center justify-center py-10">
-                                <Loader2 className="w-5 h-5 text-cyber-accent animate-spin" />
+                                <Loader2 className="w-5 h-5 text-cyber-text animate-spin" />
                             </div>
                         ) : localGroups.length > 0 ? (
                             <div className="space-y-2">
@@ -869,13 +869,13 @@ export const LocalServerPanel: React.FC = () => {
                                     return (
                                         <div
                                             key={groupKey}
-                                            className={`p-3 rounded transition-all ${isDeleteMode
+                                            className={`p-3 rounded transition-colors border bg-cyber-surface ${isDeleteMode
                                                 ? (isGroupSelected
-                                                    ? 'bg-red-500/10'
-                                                    : 'bg-black/30 hover:bg-red-500/5')
+                                                    ? 'border-red-500'
+                                                    : 'border-transparent hover:bg-cyber-elevated')
                                                 : (selected
-                                                    ? 'bg-green-500/10'
-                                                    : 'bg-black/30 hover:bg-white/5')
+                                                    ? 'border-green-500'
+                                                    : 'border-transparent hover:bg-cyber-elevated')
                                                 }`}
                                         >
                                             {/* Card Header */}
@@ -961,10 +961,10 @@ export const LocalServerPanel: React.FC = () => {
                                                         return (
                                                             <div
                                                                 key={v.filePath}
-                                                                className={`flex items-center gap-3 p-2 rounded cursor-pointer transition-colors ${isSelected ? 'bg-green-500/10' : 'hover:bg-cyber-surface/30'}`}
+                                                                className={`flex items-center gap-3 p-2 rounded cursor-pointer transition-colors border ${isSelected ? 'bg-cyber-elevated border-green-500' : 'border-transparent hover:bg-cyber-elevated'}`}
                                                                 onClick={() => setSelectedModelPath(v.filePath)}
                                                             >
-                                                                <span className={`text-xs font-mono font-bold w-14 flex-shrink-0 ${isSelected ? 'text-green-400' : 'text-cyber-accent'}`}>
+                                                                <span className={`text-xs font-mono font-bold w-14 flex-shrink-0 ${isSelected ? 'text-green-400' : 'text-cyber-text'}`}>
                                                                     {quant}
                                                                 </span>
                                                                 <span className="text-[10px] text-cyber-text-secondary flex-1 whitespace-nowrap">
@@ -1013,7 +1013,7 @@ export const LocalServerPanel: React.FC = () => {
                         {/* Download directory — clickable to change */}
                         {downloadDir && (
                             <div
-                                className="mb-3 text-[10px] text-cyan-400 p-2 bg-cyan-400/10 rounded truncate cursor-pointer hover:bg-cyan-400/15 transition-colors"
+                                className="mb-3 text-[10px] text-cyber-text-secondary p-2 bg-cyber-surface border border-cyber-border rounded truncate cursor-pointer hover:bg-cyber-elevated transition-colors"
                                 onClick={handleChangeDownloadDir}
                             >
                                 <FolderOpen className="w-3 h-3 inline mr-1" />{t('download.location')} {downloadDir}
@@ -1022,13 +1022,13 @@ export const LocalServerPanel: React.FC = () => {
 
                         {isLoadingStore ? (
                             <div className="flex items-center justify-center py-10">
-                                <Loader2 className="w-5 h-5 text-cyan-400 animate-spin" />
+                                <Loader2 className="w-5 h-5 text-cyber-accent animate-spin" />
                             </div>
                         ) : (
                             <div className="space-y-2">
                                 {/* Runtime filter badge */}
                                 {runtime !== 'llama-server' && (
-                                    <div className="text-[10px] font-mono text-cyan-400/70 px-1 pb-1">
+                                    <div className="text-[10px] font-mono text-cyber-text-muted px-1 pb-1">
                                         {runtime}
                                     </div>
                                 )}
@@ -1039,11 +1039,9 @@ export const LocalServerPanel: React.FC = () => {
                                     return (
                                         <div
                                             key={model.id}
-                                            className={`p-3 rounded cursor-pointer transition-all ${isExpanded
-                                                ? 'bg-cyan-400/10'
-                                                : hasDownloaded
-                                                    ? 'bg-black/30 hover:bg-cyan-400/5'
-                                                    : 'bg-black/30 hover:bg-white/5'
+                                            className={`p-3 rounded cursor-pointer transition-colors border bg-cyber-surface ${isExpanded
+                                                ? 'border-cyber-accent'
+                                                : 'border-transparent hover:bg-cyber-elevated'
                                                 }`}
                                             onClick={() => setExpandedModelId(isExpanded ? null : model.id)}
                                         >
@@ -1060,9 +1058,9 @@ export const LocalServerPanel: React.FC = () => {
                                                 />
                                                 <div className="flex-1 min-w-0 flex flex-col justify-center">
                                                     <div className="flex items-center justify-between gap-2">
-                                                        <div className="text-sm font-bold truncate leading-none text-cyan-400 flex-1 min-w-0">{model.name}</div>
+                                                        <div className="text-sm font-bold truncate leading-none text-cyber-text flex-1 min-w-0">{model.name}</div>
                                                         {hasDownloaded && (
-                                                            <span className="text-[10px] text-cyan-400 flex-shrink-0">{t('store.ready')}</span>
+                                                            <span className="text-[10px] text-cyber-text-secondary flex-shrink-0">{t('store.ready')}</span>
                                                         )}
                                                     </div>
                                                     <div className="text-[10px] text-cyber-text-secondary truncate leading-tight mt-1 opacity-70 flex gap-1">
@@ -1086,11 +1084,11 @@ export const LocalServerPanel: React.FC = () => {
                                                         return (
                                                             <div
                                                                 key={variant.quantization}
-                                                                className={`p-2 rounded transition-colors ${variantDownloaded ? 'bg-cyan-400/5' : 'hover:bg-cyber-surface/30'}`}
+                                                                className={`p-2 rounded transition-colors ${variantDownloaded ? 'bg-cyber-elevated/60' : 'hover:bg-cyber-elevated'}`}
                                                             >
                                                                 <div className="flex items-center gap-3">
                                                                     {/* Quantization */}
-                                                                    <span className="text-xs font-mono font-bold text-cyan-400 w-14 flex-shrink-0">
+                                                                    <span className="text-xs font-mono font-bold text-cyber-text w-14 flex-shrink-0">
                                                                         {variant.quantization}
                                                                     </span>
                                                                     {/* VRAM + Size */}
@@ -1108,15 +1106,15 @@ export const LocalServerPanel: React.FC = () => {
                                                                     {/* Action: fixed width to prevent layout shift */}
                                                                     <div className="flex-shrink-0 w-8 flex items-center justify-center">
                                                                         {variantDownloaded ? (
-                                                                            <span className="text-cyan-400 text-sm">✓</span>
+                                                                            <span className="text-cyber-text-muted text-sm">✓</span>
                                                                         ) : (isActiveDownload || isPaused) ? (
-                                                                            <span className={`text-[10px] font-mono ${isPaused ? 'text-yellow-400' : 'text-cyan-400'}`}>
+                                                                            <span className={`text-[10px] font-mono ${isPaused ? 'text-yellow-400' : 'text-cyber-accent'}`}>
                                                                                 {dlItem?.progress ?? 0}%
                                                                             </span>
                                                                         ) : (
                                                                             <button
                                                                                 onClick={(e) => { e.stopPropagation(); startDownload(model.huggingfaceRepo, variant.fileName); }}
-                                                                                className={`${dlItem?.status === 'error' ? 'text-red-400 hover:text-red-300' : 'text-cyber-text-secondary hover:text-cyan-400'} transition-colors`}
+                                                                                className={`${dlItem?.status === 'error' ? 'text-red-400 hover:text-red-300' : 'text-cyber-text-secondary hover:text-cyber-text'} transition-colors`}
                                                                             >
                                                                                 <Download className="w-4 h-4" />
                                                                             </button>
@@ -1163,21 +1161,21 @@ export const LocalServerBottom: React.FC = () => {
         <div className="flex-shrink-0 border-t border-cyber-border/30">
             <div className="flex items-center gap-4 py-2 text-xs font-mono">
                 <div
-                    className="flex items-center gap-1.5 cursor-pointer hover:text-cyber-accent transition-colors"
+                    className="flex items-center gap-1.5 cursor-pointer hover:text-cyber-text transition-colors"
                     onClick={() => handleCopy('openai', `http://127.0.0.1:${serverPort}/v1`)}
                 >
                     <span className="text-cyber-text-secondary/80">OpenAI:</span>
-                    <code className="text-cyber-accent/80">127.0.0.1:{serverPort}/v1</code>
-                    <span className="text-cyber-accent ml-0.5">{copied === 'openai' ? t('btn.copied') : t('btn.copy')}</span>
+                    <code className="text-cyber-text/80">127.0.0.1:{serverPort}/v1</code>
+                    <span className="text-cyber-text ml-0.5">{copied === 'openai' ? t('btn.copied') : t('btn.copy')}</span>
                 </div>
                 <span className="text-cyber-border">|</span>
                 <div
-                    className="flex items-center gap-1.5 cursor-pointer hover:text-cyber-accent transition-colors"
+                    className="flex items-center gap-1.5 cursor-pointer hover:text-cyber-text transition-colors"
                     onClick={() => handleCopy('anthropic', `http://127.0.0.1:${serverPort}/anthropic`)}
                 >
                     <span className="text-cyber-text-secondary/80">Anthropic:</span>
-                    <code className="text-cyber-accent/80">127.0.0.1:{serverPort}/anthropic</code>
-                    <span className="text-cyber-accent ml-0.5">{copied === 'anthropic' ? t('btn.copied') : t('btn.copy')}</span>
+                    <code className="text-cyber-text/80">127.0.0.1:{serverPort}/anthropic</code>
+                    <span className="text-cyber-text ml-0.5">{copied === 'anthropic' ? t('btn.copied') : t('btn.copy')}</span>
                 </div>
             </div>
         </div>

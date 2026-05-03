@@ -77,17 +77,17 @@ export const ConfirmDialogProvider: React.FC<{ children: React.ReactNode }> = ({
         : isWarning
             ? 'border-cyber-warning/40 shadow-[0_0_20px_rgba(255,204,0,0.12)]'
             : isInfo
-                ? 'border-cyber-accent-secondary/40 shadow-[0_0_20px_rgba(0,212,255,0.12)]'
-                : 'border-cyber-accent/40 shadow-[0_0_20px_rgba(0,255,157,0.1)]';
-    const lineClass = isDanger ? 'bg-red-500/60' : isWarning ? 'bg-cyber-warning/60' : isInfo ? 'bg-cyber-accent-secondary/60' : 'bg-cyber-accent/60';
-    const titleClass = isDanger ? 'text-red-400' : isWarning ? 'text-cyber-warning' : isInfo ? 'text-cyber-accent-secondary' : 'text-cyber-accent';
+                ? 'border-cyber-border-secondary/40 shadow-[0_0_20px_rgba(0,212,255,0.12)]'
+                : 'border-cyber-border/40 shadow-2xl';
+    const lineClass = isDanger ? 'bg-red-500/60' : isWarning ? 'bg-cyber-warning/60' : 'bg-cyber-border';
+    const titleClass = isDanger ? 'text-red-400' : isWarning ? 'text-cyber-warning' : isInfo ? 'text-cyber-text-secondary' : 'text-cyber-text';
     const confirmClass = isDanger
         ? 'text-red-400 hover:bg-red-500/10 hover:text-red-300'
         : isWarning
             ? 'text-cyber-warning hover:bg-cyber-warning/10 hover:text-cyber-warning/80'
             : isInfo
-                ? 'text-cyber-accent-secondary hover:bg-cyber-accent-secondary/10'
-                : 'text-cyber-accent hover:bg-cyber-accent/10';
+                ? 'text-cyber-text-secondary hover:bg-cyber-accent-secondary/10'
+                : 'text-cyber-text hover:bg-cyber-text/10';
 
     return (
         <ConfirmContext.Provider value={{ confirm }}>
@@ -105,7 +105,7 @@ export const ConfirmDialogProvider: React.FC<{ children: React.ReactNode }> = ({
 
                     {/* Dialog box */}
                     <div
-                        className={`relative w-[360px] max-w-[90vw] border bg-cyber-bg shadow-lg rounded-xl overflow-hidden transition-all duration-200 ${isAnimatingOut
+                        className={`relative w-[360px] max-w-[90vw] border bg-cyber-surface shadow-2xl rounded-xl overflow-hidden transition-all duration-200 ${isAnimatingOut
                             ? 'scale-95 opacity-0'
                             : 'scale-100 opacity-100'
                             } ${accentClass}`}
@@ -120,7 +120,7 @@ export const ConfirmDialogProvider: React.FC<{ children: React.ReactNode }> = ({
                                 <AlertTriangle className={`w-4 h-4 flex-shrink-0 ${isDanger ? 'text-red-400' : 'text-cyber-warning'}`} />
                             )}
                             {isInfo && (
-                                <svg className="w-4 h-4 flex-shrink-0 text-cyber-accent-secondary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" /></svg>
+                                <svg className="w-4 h-4 flex-shrink-0 text-cyber-text-secondary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" /></svg>
                             )}
                             <span className={`text-sm font-mono font-bold tracking-wider ${titleClass}`}>
                                 {options.title || t('common.confirm')}
@@ -139,7 +139,7 @@ export const ConfirmDialogProvider: React.FC<{ children: React.ReactNode }> = ({
                             {options.cancelText !== '' && (
                                 <button
                                     onClick={() => closeWith(false)}
-                                    className="flex-1 px-4 py-2.5 text-xs font-mono font-bold tracking-wider text-cyber-text-secondary hover:text-cyber-text hover:bg-white/5 transition-all border-r border-cyber-border"
+                                    className="flex-1 px-4 py-2.5 text-xs font-mono font-bold tracking-wider text-cyber-text-secondary hover:text-cyber-text hover:bg-cyber-elevated transition-all border-r border-cyber-border"
                                 >
                                     {options.cancelText || t('btn.cancel')}
                                 </button>

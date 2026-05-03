@@ -1,11 +1,12 @@
 // SettingsDialog — Global settings modal (gear button in title bar)
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { X, Globe, Download, ExternalLink } from 'lucide-react';
+import { X, Globe, Download, ExternalLink, Sun, Moon, Monitor } from 'lucide-react';
 import { getVersion } from '@tauri-apps/api/app';
 import { MiniSelect } from './MiniSelect';
 import { useI18n } from '../hooks/useI18n';
 import * as api from '../api/tauri';
 import { isNewerVersion } from '../utils/version';
+import { useThemeStore, type ThemeMode } from '../stores/themeStore';
 
 // All supported locales
 const LOCALE_OPTIONS = [
@@ -32,6 +33,8 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
     const [latestVersion, setLatestVersion] = useState<string | null>(null);
     const [appVersion, setAppVersion] = useState<string>('');
     const [closeBehavior, setCloseBehavior] = useState('ask');
+    const themeMode = useThemeStore(s => s.mode);
+    const setThemeMode = useThemeStore(s => s.setMode);
     const dialogRef = useRef<HTMLDivElement>(null);
 
     // Read the installed binary version from Tauri at runtime — single source of truth (tauri.conf.json).
@@ -102,16 +105,16 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
             {/* Dialog */}
             <div
                 ref={dialogRef}
-                className={`relative w-[400px] max-w-[90vw] border border-cyber-accent/30 bg-cyber-bg shadow-[0_0_30px_rgba(0,255,157,0.08)] rounded-xl overflow-hidden transition-all duration-200 ${isAnimatingOut ? 'scale-95 opacity-0' : 'scale-100 opacity-100'
+                className={`relative w-[400px] max-w-[90vw] border border-cyber-border/30 bg-cyber-surface shadow-2xl rounded-xl overflow-hidden transition-all duration-200 ${isAnimatingOut ? 'scale-95 opacity-0' : 'scale-100 opacity-100'
                     }`}
                 onClick={e => e.stopPropagation()}
             >
                 {/* Top accent line */}
-                <div className="h-[2px] w-full bg-gradient-to-r from-cyber-accent/60 via-cyber-accent-secondary/40 to-transparent" />
+                <div className="h-px w-full bg-cyber-border" />
 
                 {/* Header */}
                 <div className="px-5 pt-4 pb-3 flex items-center justify-between">
-                    <span className="text-sm font-mono font-bold tracking-wider text-cyber-accent">
+                    <span className="text-sm font-mono font-bold tracking-wider text-cyber-text">
                         {t('settings.title')}
                     </span>
                     <button
@@ -128,7 +131,27 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
                     {/* Version */}
                     <div className="flex items-center justify-between">
                         <span className="text-xs font-mono text-cyber-text-secondary tracking-wider">{t('settings.version')}</span>
-                        <span className="text-xs font-mono text-cyber-accent">{appVersion ? `v${appVersion}` : '—'}</span>
+                        <span className="text-xs font-mono text-cyber-text">{appVersion ? `v${appVersion}` : '—'}</span>
+                    </div>
+
+                    {/* Divider */}
+                    <div className="h-px bg-cyber-border" />
+
+                    {/* Appearance — Light / Dark / System */}
+                    <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                            <Sun size={12} className="text-cyber-text-secondary" />
+                            <span className="text-xs font-mono text-cyber-text-secondary tracking-wider">{t('settings.appearance')}</span>
+                        </div>
+                        <ThemeSegmented
+                            value={themeMode}
+                            onChange={setThemeMode}
+                            labels={{
+                                light: t('settings.themeLight'),
+                                dark: t('settings.themeDark'),
+                                system: t('settings.themeSystem'),
+                            }}
+                        />
                     </div>
 
                     {/* Divider */}
@@ -137,7 +160,7 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
                     {/* Language */}
                     <div className="space-y-2">
                         <div className="flex items-center gap-2">
-                            <Globe size={12} className="text-cyber-accent-secondary" />
+                            <Globe size={12} className="text-cyber-text-secondary" />
                             <span className="text-xs font-mono text-cyber-text-secondary tracking-wider">{t('settings.language')}</span>
                         </div>
                         <MiniSelect
@@ -153,7 +176,7 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
                     {/* Close behavior */}
                     <div className="space-y-2">
                         <div className="flex items-center gap-2">
-                            <X size={12} className="text-cyber-accent-secondary" />
+                            <X size={12} className="text-cyber-text-secondary" />
                             <span className="text-xs font-mono text-cyber-text-secondary tracking-wider">{t('settings.closeBehavior')}</span>
                         </div>
                         <MiniSelect
@@ -178,7 +201,7 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
                     {/* Update check */}
                     <div className="space-y-2">
                         <div className="flex items-center gap-2">
-                            <Download size={12} className="text-cyber-accent-secondary" />
+                            <Download size={12} className="text-cyber-text-secondary" />
                             <span className="text-xs font-mono text-cyber-text-secondary tracking-wider">{t('settings.updates')}</span>
                         </div>
 
@@ -186,20 +209,20 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
                             {updateStatus === 'idle' && (
                                 <button
                                     onClick={checkForUpdates}
-                                    className="w-full h-9 text-xs font-mono font-bold border border-cyber-accent/40 text-cyber-accent hover:bg-cyber-accent/10 transition-colors tracking-wider rounded-button"
+                                    className="w-full h-9 text-xs font-mono font-bold border border-cyber-border/40 text-cyber-text hover:bg-cyber-text/10 transition-colors tracking-wider rounded-button"
                                 >
                                     {t('settings.checkForUpdates')}
                                 </button>
                             )}
 
                             {updateStatus === 'checking' && (
-                                <div className="w-full h-9 flex items-center justify-center text-xs font-mono text-cyber-accent-secondary border border-cyber-accent-secondary/30 rounded-button">
+                                <div className="w-full h-9 flex items-center justify-center text-xs font-mono text-cyber-text-secondary border border-cyber-border-secondary/30 rounded-button">
                                     {t('settings.checking')}
                                 </div>
                             )}
 
                             {updateStatus === 'latest' && (
-                                <div className="w-full h-9 flex items-center justify-center text-xs font-mono text-cyber-accent border border-cyber-accent/30 rounded-button">
+                                <div className="w-full h-9 flex items-center justify-center text-xs font-mono text-cyber-text border border-cyber-border/30 rounded-button">
                                     ✓ {t('settings.latestVersion')}
                                 </div>
                             )}
@@ -207,7 +230,7 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
                             {updateStatus === 'available' && (
                                 <button
                                     onClick={() => api.openExternal('https://echobird.ai/')}
-                                    className="flex items-center justify-center gap-1.5 w-full h-9 text-xs font-mono border border-cyber-accent-secondary/30 text-cyber-accent-secondary hover:bg-cyber-accent-secondary/10 transition-colors tracking-wider rounded-button"
+                                    className="flex items-center justify-center gap-1.5 w-full h-9 text-xs font-mono border border-cyber-border-secondary/30 text-cyber-text-secondary hover:bg-cyber-accent-secondary/10 transition-colors tracking-wider rounded-button"
                                 >
                                     UPDATE TO v{latestVersion} <ExternalLink size={10} />
                                 </button>
@@ -228,13 +251,47 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
                     <div className="pt-1 flex justify-center">
                         <button
                             onClick={() => api.openExternal('https://echobird.ai')}
-                            className="text-[13px] font-mono text-cyber-text-secondary/80 hover:text-cyber-accent transition-colors tracking-wider flex items-center gap-1.5"
+                            className="text-[13px] font-mono text-cyber-text-secondary/80 hover:text-cyber-text transition-colors tracking-wider flex items-center gap-1.5"
                         >
                             EchoBird <ExternalLink size={12} />
                         </button>
                     </div>
                 </div>
             </div>
+        </div>
+    );
+};
+
+// 3-button segmented control for the theme: Light / Dark / System.
+const ThemeSegmented: React.FC<{
+    value: ThemeMode;
+    onChange: (mode: ThemeMode) => void;
+    labels: { light: string; dark: string; system: string };
+}> = ({ value, onChange, labels }) => {
+    const opts: Array<{ id: ThemeMode; icon: React.ReactNode; label: string }> = [
+        { id: 'light', icon: <Sun size={12} />, label: labels.light },
+        { id: 'dark', icon: <Moon size={12} />, label: labels.dark },
+        { id: 'system', icon: <Monitor size={12} />, label: labels.system },
+    ];
+    return (
+        <div className="flex gap-1 p-1 bg-cyber-input border border-cyber-border rounded-button">
+            {opts.map(o => {
+                const active = value === o.id;
+                return (
+                    <button
+                        key={o.id}
+                        onClick={() => onChange(o.id)}
+                        className={`flex-1 h-7 flex items-center justify-center gap-1.5 text-xs font-mono transition-colors rounded ${
+                            active
+                                ? 'bg-cyber-text/15 text-cyber-text'
+                                : 'text-cyber-text-secondary hover:text-cyber-text hover:bg-cyber-elevated'
+                        }`}
+                    >
+                        {o.icon}
+                        {o.label}
+                    </button>
+                );
+            })}
         </div>
     );
 };

@@ -41,7 +41,7 @@ export function PendingChipsRow({
                 <div key={f.id} className={VARIANTS.file}>
                     {f.type === 'image' && f.preview
                         ? <img src={f.preview} alt={f.name} className="w-4 h-4 object-cover rounded flex-shrink-0" />
-                        : <Paperclip size={12} className="text-cyber-accent/60 flex-shrink-0" />
+                        : <Paperclip size={12} className="text-cyber-text/60 flex-shrink-0" />
                     }
                     <span className="max-w-[120px] truncate">{f.name}</span>
                     <button onClick={() => onRemoveFile(f.id)} className={REMOVE_BTN_FILE}>

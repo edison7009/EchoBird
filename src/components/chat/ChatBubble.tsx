@@ -32,7 +32,7 @@ export interface ChatBubbleProps {
 
 // ── Icon-only readonly chips below user message ───────────────────────────────
 const BASE_CHIP = 'flex items-center justify-center w-6 h-6 rounded border flex-shrink-0';
-const CHIP_MODEL = `${BASE_CHIP} bg-cyber-accent/10 border-cyber-accent/40`;
+const CHIP_MODEL = `${BASE_CHIP} bg-cyber-text/10 border-cyber-border/40`;
 const CHIP_FILE  = `${BASE_CHIP} bg-cyber-bg/60 border-cyber-text-muted/30`;
 
 function ReadonlyChips({ chips }: { chips: BubbleChip[] }) {
@@ -242,7 +242,7 @@ export function ChatBubble({ role, content, chips = [], isStreaming = false, sub
         if (!cleaned && !isStreaming) return null;
 
         return (
-            <div className="mb-6 text-sm leading-relaxed text-cyber-text-primary font-sans">
+            <div className="mb-6 text-sm leading-relaxed text-cyber-text font-sans">
                 {cleaned ? (
                     <div className="markdown-body">
                         <ReactMarkdown remarkPlugins={[remarkGfm]} components={mdComponents}>
@@ -266,7 +266,7 @@ export function ChatBubble({ role, content, chips = [], isStreaming = false, sub
     return (
         <div className="flex flex-col items-end mb-6">
             <div
-                className="max-w-[78%] rounded-lg px-3.5 py-2 text-sm leading-relaxed font-sans whitespace-pre-line text-cyber-text-primary border border-cyber-accent/25 bg-cyber-accent/5"
+                className="max-w-[78%] rounded-lg px-3.5 py-2 text-sm leading-relaxed font-sans whitespace-pre-line text-cyber-text border border-cyber-border/25 bg-cyber-text/5"
                 style={{ overflowWrap: 'anywhere', wordBreak: 'break-word' }}
             >
                 {truncate(content)}

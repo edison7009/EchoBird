@@ -53,7 +53,7 @@ export function MotherAgentPanel() {
                     <button
                         onClick={() => setPanelTab('servers')}
                         className={`px-3 py-1.5 text-xs font-bold rounded transition-colors ${panelTab === 'servers'
-                            ? 'bg-cyber-accent text-black'
+                            ? 'bg-cyber-elevated text-cyber-text'
                             : 'text-cyber-text-secondary hover:text-cyber-text'
                             }`}
                     >
@@ -62,7 +62,7 @@ export function MotherAgentPanel() {
                     <button
                         onClick={() => setPanelTab('guide')}
                         className={`px-3 py-1.5 text-xs font-bold rounded transition-colors ${panelTab === 'guide'
-                            ? 'bg-cyber-accent/80 text-black'
+                            ? 'bg-cyber-elevated text-cyber-text'
                             : 'text-cyber-text-secondary hover:text-cyber-text'
                             }`}
                     >
@@ -84,17 +84,17 @@ export function MotherAgentPanel() {
                     />
 
                     <div
-                        className="relative w-[400px] max-w-[90vw] border border-cyber-accent/30 bg-cyber-bg shadow-[0_0_30px_rgba(0,255,157,0.08)] rounded-xl overflow-hidden"
+                        className="relative w-[400px] max-w-[90vw] border border-cyber-border/30 bg-cyber-surface shadow-2xl rounded-xl overflow-hidden"
                         onClick={e => e.stopPropagation()}
                     >
                         {/* Top accent line */}
-                        <div className="h-[2px] w-full bg-gradient-to-r from-cyber-accent/60 via-cyber-accent/40 to-transparent" />
+                        <div className="h-px w-full bg-cyber-border" />
 
                         {/* Header */}
                         <div className="px-5 pt-4 pb-3 flex items-center justify-between">
                             <div className="flex items-center gap-2">
-                                <span className="text-cyber-accent font-mono text-xs opacity-60">&gt;_</span>
-                                <span className="text-sm font-mono font-bold tracking-wider text-cyber-accent">{t('mother.addServer')}</span>
+                                <span className="text-cyber-text font-mono text-xs opacity-60">&gt;_</span>
+                                <span className="text-sm font-mono font-bold tracking-wider text-cyber-text">{t('mother.addServer')}</span>
                             </div>
                             <button
                                 onClick={() => setShowSSHModal(false)}
@@ -114,7 +114,7 @@ export function MotherAgentPanel() {
                                         placeholder={t('mother.hostPlaceholder')}
                                         value={sshForm.host}
                                         onChange={e => setSSHForm(f => ({ ...f, host: e.target.value }))}
-                                        className="w-full bg-black border border-cyber-border px-2 py-1.5 text-xs text-cyber-text font-mono focus:border-cyber-accent focus:outline-none rounded-button"
+                                        className="w-full bg-cyber-input border border-cyber-border px-2 py-1.5 text-xs text-cyber-text font-mono focus:border-cyber-border focus:outline-none rounded-button"
                                         autoFocus
                                     />
                                 </div>
@@ -128,7 +128,7 @@ export function MotherAgentPanel() {
                                         placeholder={t('mother.displayNamePlaceholder')}
                                         value={sshForm.alias}
                                         onChange={e => setSSHForm(f => ({ ...f, alias: e.target.value }))}
-                                        className="w-full bg-black border border-cyber-border px-2 py-1.5 text-xs text-cyber-text font-mono focus:border-cyber-accent focus:outline-none rounded-button"
+                                        className="w-full bg-cyber-input border border-cyber-border px-2 py-1.5 text-xs text-cyber-text font-mono focus:border-cyber-border focus:outline-none rounded-button"
                                     />
                                 </div>
                                 <div>
@@ -138,7 +138,7 @@ export function MotherAgentPanel() {
                                         placeholder="22"
                                         value={sshForm.port}
                                         onChange={e => setSSHForm(f => ({ ...f, port: e.target.value }))}
-                                        className="w-full bg-black border border-cyber-border px-2 py-1.5 text-xs text-cyber-text font-mono focus:border-cyber-accent focus:outline-none rounded-button no-spinner"
+                                        className="w-full bg-cyber-input border border-cyber-border px-2 py-1.5 text-xs text-cyber-text font-mono focus:border-cyber-border focus:outline-none rounded-button no-spinner"
                                     />
                                 </div>
                                 <div>
@@ -148,7 +148,7 @@ export function MotherAgentPanel() {
                                         placeholder={t('mother.userPlaceholder')}
                                         value={sshForm.username}
                                         onChange={e => setSSHForm(f => ({ ...f, username: e.target.value }))}
-                                        className="w-full bg-black border border-cyber-border px-2 py-1.5 text-xs text-cyber-text font-mono focus:border-cyber-accent focus:outline-none rounded-button"
+                                        className="w-full bg-cyber-input border border-cyber-border px-2 py-1.5 text-xs text-cyber-text font-mono focus:border-cyber-border focus:outline-none rounded-button"
                                     />
                                 </div>
                                 <div>
@@ -159,7 +159,7 @@ export function MotherAgentPanel() {
                                             placeholder={t('mother.passwordPlaceholder')}
                                             value={sshForm.password.startsWith('enc:v1:') ? '•••••••••••••••' : sshForm.password}
                                             onChange={e => setSSHForm(f => ({ ...f, password: e.target.value }))}
-                                            className="w-full bg-black border border-cyber-border px-2 py-1.5 pr-8 text-xs text-cyber-text font-mono focus:border-cyber-accent focus:outline-none rounded-button"
+                                            className="w-full bg-cyber-input border border-cyber-border px-2 py-1.5 pr-8 text-xs text-cyber-text font-mono focus:border-cyber-border focus:outline-none rounded-button"
                                             readOnly={sshForm.password.startsWith('enc:v1:')}
                                         />
                                         <button
@@ -188,7 +188,7 @@ export function MotherAgentPanel() {
                                             className={`absolute right-2 top-1/2 -translate-y-1/2 transition-colors hover:opacity-80 ${!sshForm.password ? 'opacity-20' : ''}`}
                                         >
                                             {sshForm.password.startsWith('enc:v1:') ? (
-                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-cyber-accent">
+                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-cyber-text">
                                                     <rect x="3" y="11" width="18" height="11" rx="2" />
                                                     <path d="M7 11V7a5 5 0 0 1 10 0v4" />
                                                 </svg>
@@ -202,7 +202,7 @@ export function MotherAgentPanel() {
                                     </div>
                                     <div className="min-h-[36px] mt-1">
                                         {sshForm.password.startsWith('enc:v1:') && (
-                                            <div className="text-xs leading-tight text-cyber-accent/60">
+                                            <div className="text-xs leading-tight text-cyber-text/60">
                                                 {t('mother.encrypted')}
                                             </div>
                                         )}
@@ -216,7 +216,7 @@ export function MotherAgentPanel() {
                             <button
                                 onClick={handleSSHTest}
                                 disabled={sshTesting || !sshForm.host.trim() || !sshForm.username.trim()}
-                                className="w-full py-2 text-xs font-mono font-bold tracking-wider border border-cyber-accent/40 text-cyber-accent rounded-button hover:bg-cyber-accent/10 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                                className="w-full py-2 text-xs font-mono font-bold tracking-wider border border-cyber-border/40 text-cyber-text rounded-button hover:bg-cyber-text/10 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
                             >
                                 {sshTesting ? t('mother.testing') : t('mother.testConnection')}
                             </button>
@@ -234,7 +234,7 @@ export function MotherAgentPanel() {
                         <div className="flex border-t border-cyber-border">
                             <button
                                 onClick={() => { setShowSSHModal(false); setSSHTestResult(null); }}
-                                className="flex-1 px-4 py-2.5 text-xs font-mono font-bold tracking-wider text-cyber-text-secondary hover:text-cyber-text hover:bg-white/5 transition-all border-r border-cyber-border"
+                                className="flex-1 px-4 py-2.5 text-xs font-mono font-bold tracking-wider text-cyber-text-secondary hover:text-cyber-text hover:bg-cyber-elevated transition-all border-r border-cyber-border"
                             >
                                 {t('mother.cancel')}
                             </button>
@@ -259,7 +259,7 @@ export function MotherAgentPanel() {
                                     setSSHTestResult(null);
                                     setShowSSHModal(false);
                                 }}
-                                className="flex-1 px-4 py-2.5 text-xs font-mono font-bold tracking-wider text-cyber-accent hover:bg-cyber-accent/10 transition-all"
+                                className="flex-1 px-4 py-2.5 text-xs font-mono font-bold tracking-wider text-cyber-text hover:bg-cyber-text/10 transition-all"
                             >
                                 {t('mother.addServerBtn')}
                             </button>
@@ -278,19 +278,19 @@ export function MotherAgentPanel() {
                         {/* Local server — always first */}
                         <div
                             onClick={() => !isProcessing && selectServer('local')}
-                            className={`p-3 rounded transition-all select-none flex items-center ${isProcessing && selectedServerId !== 'local' ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'} ${selectedServerId === 'local'
-                                ? 'bg-cyber-accent/10'
-                                : 'bg-black/30 hover:bg-white/5'
+                            className={`p-3 rounded transition-colors select-none flex items-center border bg-cyber-surface ${isProcessing && selectedServerId !== 'local' ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'} ${selectedServerId === 'local'
+                                ? 'border-cyber-accent'
+                                : 'border-transparent hover:bg-cyber-elevated'
                                 }`}
                         >
                             <div className="mr-3">
-                                <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center transition-all ${selectedServerId === 'local' ? 'border-cyber-accent' : 'border-cyber-text-muted/30'}`}>
+                                <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center transition-all ${selectedServerId === 'local' ? 'border-cyber-border' : 'border-cyber-text-muted/30'}`}>
                                     {selectedServerId === 'local' && <div className="w-2 h-2 rounded-full bg-cyber-accent" />}
                                 </div>
                             </div>
                             <div className="flex-1 min-w-0">
                                 <div className="text-xs text-cyber-text-secondary mb-0.5 tracking-widest uppercase font-mono">{t('mother.local')}</div>
-                                <div className="text-sm font-bold truncate text-cyber-accent font-mono">127.0.0.1</div>
+                                <div className="text-sm font-bold truncate text-cyber-text font-mono">127.0.0.1</div>
                             </div>
                         </div>
                         {/* SSH servers */}
@@ -298,13 +298,13 @@ export function MotherAgentPanel() {
                             <div
                                 key={server.id}
                                 onClick={() => !isProcessing && selectServer(server.id)}
-                                className={`p-3 rounded transition-all select-none flex items-center ${isProcessing && selectedServerId !== server.id ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'} ${selectedServerId === server.id
-                                    ? 'bg-cyber-accent/10'
-                                    : 'bg-black/30 hover:bg-white/5'
+                                className={`p-3 rounded transition-colors select-none flex items-center border bg-cyber-surface ${isProcessing && selectedServerId !== server.id ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'} ${selectedServerId === server.id
+                                    ? 'border-cyber-accent'
+                                    : 'border-transparent hover:bg-cyber-elevated'
                                     }`}
                             >
                                 <div className="mr-3">
-                                    <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center transition-all ${selectedServerId === server.id ? 'border-cyber-accent' : 'border-cyber-text-muted/30'}`}>
+                                    <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center transition-all ${selectedServerId === server.id ? 'border-cyber-border' : 'border-cyber-text-muted/30'}`}>
                                         {selectedServerId === server.id && <div className="w-2 h-2 rounded-full bg-cyber-accent" />}
                                     </div>
                                 </div>
@@ -332,7 +332,7 @@ export function MotherAgentPanel() {
                                                 setSSHTestResult(null);
                                                 setShowSSHModal(true);
                                             }}
-                                            className="text-xs font-mono text-cyber-text-muted/50 hover:text-cyber-accent transition-colors flex-shrink-0"
+                                            className="text-xs font-mono text-cyber-text-muted/50 hover:text-cyber-text transition-colors flex-shrink-0"
                                         >
                                             [{t('btn.edit')}]
                                         </button>
@@ -353,7 +353,7 @@ export function MotherAgentPanel() {
                                             [{t('btn.delete')}]
                                         </button>
                                     </div>
-                                    <div className="text-sm font-bold truncate text-cyber-accent font-mono">{server.username ? `${server.username}@` : ''}{server.host}{server.port !== '22' ? `:${server.port}` : ''}</div>
+                                    <div className="text-sm font-bold truncate text-cyber-text font-mono">{server.username ? `${server.username}@` : ''}{server.host}{server.port !== '22' ? `:${server.port}` : ''}</div>
                                 </div>
                             </div>
                         ))}
@@ -364,7 +364,7 @@ export function MotherAgentPanel() {
                                 setSSHTestResult(null);
                                 setShowSSHModal(true);
                             }}
-                            className="w-full p-4 border border-dashed border-cyber-accent/30 rounded hover:border-cyber-accent/60 hover:bg-cyber-accent/5 transition-all text-cyber-accent/60 hover:text-cyber-accent text-xs font-bold"
+                            className="w-full p-4 border border-dashed border-cyber-border/30 rounded hover:border-cyber-border/60 hover:bg-cyber-text/5 transition-all text-cyber-text/60 hover:text-cyber-text text-xs font-bold"
                         >
                             + {t('mother.addServer')}
                         </button>
@@ -378,10 +378,10 @@ export function MotherAgentPanel() {
                                     <>
                                         <p className="text-cyber-text-muted/80">{t('ssh.cloudDesc')}</p>
                                         <div className="mt-2 text-xs space-y-0.5">
-                                            <p className="text-cyber-text-muted/70">• <span className="text-cyber-accent">{t('ssh.usernameHint')}</span> — {t('ssh.cloudUsername')}</p>
-                                            <p className="text-cyber-text-muted/70">• <span className="text-cyber-accent">{t('ssh.passwordHint')}</span> — {t('ssh.cloudPassword')}</p>
-                                            <p className="text-cyber-text-muted/70">• <span className="text-cyber-accent">{t('ssh.ipHint')}</span> — {t('ssh.cloudIp')}</p>
-                                            <p className="text-cyber-text-muted/70">• <span className="text-cyber-accent">{t('ssh.portHint')}</span> — 22</p>
+                                            <p className="text-cyber-text-muted/70">• <span className="text-cyber-text">{t('ssh.usernameHint')}</span> — {t('ssh.cloudUsername')}</p>
+                                            <p className="text-cyber-text-muted/70">• <span className="text-cyber-text">{t('ssh.passwordHint')}</span> — {t('ssh.cloudPassword')}</p>
+                                            <p className="text-cyber-text-muted/70">• <span className="text-cyber-text">{t('ssh.ipHint')}</span> — {t('ssh.cloudIp')}</p>
+                                            <p className="text-cyber-text-muted/70">• <span className="text-cyber-text">{t('ssh.portHint')}</span> — 22</p>
                                         </div>
                                     </>
                                 )
@@ -397,12 +397,12 @@ export function MotherAgentPanel() {
                                 id: 'macos', label: 'macOS', content: (
                                     <>
                                         <p className="text-cyber-text-muted/70">{t('ssh.macStep')}</p>
-                                        <p className="text-cyber-text-muted/50 mt-0.5">{t('ssh.macOr')} <span className="text-cyber-accent">sudo systemsetup -setremotelogin on</span></p>
+                                        <p className="text-cyber-text-muted/50 mt-0.5">{t('ssh.macOr')} <span className="text-cyber-text">sudo systemsetup -setremotelogin on</span></p>
                                         <div className="mt-2 pt-1 border-t border-cyber-border/20 text-xs space-y-0.5">
-                                            <p className="text-cyber-text-muted/70">• <span className="text-cyber-accent">{t('ssh.usernameHint')}</span> — {t('ssh.macUsername')}</p>
-                                            <p className="text-cyber-text-muted/70">• <span className="text-cyber-accent">{t('ssh.passwordHint')}</span> — {t('ssh.macPassword')}</p>
-                                            <p className="text-cyber-text-muted/70">• <span className="text-cyber-accent">{t('ssh.ipHint')}</span> — {t('ssh.macIp')}</p>
-                                            <p className="text-cyber-text-muted/70">• <span className="text-cyber-accent">{t('ssh.portHint')}</span> — 22</p>
+                                            <p className="text-cyber-text-muted/70">• <span className="text-cyber-text">{t('ssh.usernameHint')}</span> — {t('ssh.macUsername')}</p>
+                                            <p className="text-cyber-text-muted/70">• <span className="text-cyber-text">{t('ssh.passwordHint')}</span> — {t('ssh.macPassword')}</p>
+                                            <p className="text-cyber-text-muted/70">• <span className="text-cyber-text">{t('ssh.ipHint')}</span> — {t('ssh.macIp')}</p>
+                                            <p className="text-cyber-text-muted/70">• <span className="text-cyber-text">{t('ssh.portHint')}</span> — 22</p>
                                         </div>
                                     </>
                                 )
@@ -410,14 +410,14 @@ export function MotherAgentPanel() {
                             {
                                 id: 'linux', label: 'Linux', content: (
                                     <>
-                                        <p className="text-cyber-accent">sudo apt install openssh-server</p>
-                                        <p className="text-cyber-accent">sudo systemctl enable --now ssh</p>
+                                        <p className="text-cyber-text">sudo apt install openssh-server</p>
+                                        <p className="text-cyber-text">sudo systemctl enable --now ssh</p>
                                         <p className="text-cyber-text-muted/50 text-xs">{t('ssh.linuxNote')}</p>
                                         <div className="mt-2 pt-1 border-t border-cyber-border/20 text-xs space-y-0.5">
-                                            <p className="text-cyber-text-muted/70">• <span className="text-cyber-accent">{t('ssh.usernameHint')}</span> — {t('ssh.linuxUsername')}</p>
-                                            <p className="text-cyber-text-muted/70">• <span className="text-cyber-accent">{t('ssh.passwordHint')}</span> — {t('ssh.linuxPassword')}</p>
-                                            <p className="text-cyber-text-muted/70">• <span className="text-cyber-accent">{t('ssh.ipHint')}</span> — {t('ssh.linuxIp')}</p>
-                                            <p className="text-cyber-text-muted/70">• <span className="text-cyber-accent">{t('ssh.portHint')}</span> — 22</p>
+                                            <p className="text-cyber-text-muted/70">• <span className="text-cyber-text">{t('ssh.usernameHint')}</span> — {t('ssh.linuxUsername')}</p>
+                                            <p className="text-cyber-text-muted/70">• <span className="text-cyber-text">{t('ssh.passwordHint')}</span> — {t('ssh.linuxPassword')}</p>
+                                            <p className="text-cyber-text-muted/70">• <span className="text-cyber-text">{t('ssh.ipHint')}</span> — {t('ssh.linuxIp')}</p>
+                                            <p className="text-cyber-text-muted/70">• <span className="text-cyber-text">{t('ssh.portHint')}</span> — 22</p>
                                         </div>
                                     </>
                                 )
@@ -425,12 +425,12 @@ export function MotherAgentPanel() {
                             {
                                 id: 'android', label: 'Android (Termux)', content: (
                                     <>
-                                        <p className="text-cyber-accent">pkg install openssh && sshd</p>
+                                        <p className="text-cyber-text">pkg install openssh && sshd</p>
                                         <div className="mt-2 pt-1 border-t border-cyber-border/20 text-xs space-y-0.5">
-                                            <p className="text-cyber-text-muted/70">• <span className="text-cyber-accent">{t('ssh.usernameHint')}</span> — {t('ssh.termuxUsername')}</p>
-                                            <p className="text-cyber-text-muted/70">• <span className="text-cyber-accent">{t('ssh.passwordHint')}</span> — {t('ssh.termuxPassword')}</p>
-                                            <p className="text-cyber-text-muted/70">• <span className="text-cyber-accent">{t('ssh.ipHint')}</span> — {t('ssh.termuxIp')}</p>
-                                            <p className="text-cyber-text-muted/70">• <span className="text-cyber-accent">{t('ssh.portHint')}</span> — 8022</p>
+                                            <p className="text-cyber-text-muted/70">• <span className="text-cyber-text">{t('ssh.usernameHint')}</span> — {t('ssh.termuxUsername')}</p>
+                                            <p className="text-cyber-text-muted/70">• <span className="text-cyber-text">{t('ssh.passwordHint')}</span> — {t('ssh.termuxPassword')}</p>
+                                            <p className="text-cyber-text-muted/70">• <span className="text-cyber-text">{t('ssh.ipHint')}</span> — {t('ssh.termuxIp')}</p>
+                                            <p className="text-cyber-text-muted/70">• <span className="text-cyber-text">{t('ssh.portHint')}</span> — 8022</p>
                                         </div>
                                     </>
                                 )
@@ -438,25 +438,25 @@ export function MotherAgentPanel() {
                             {
                                 id: 'ios', label: 'iOS (iSH)', content: (
                                     <>
-                                        <p className="text-cyber-accent">apk add openssh</p>
-                                        <p className="text-cyber-accent">ssh-keygen -A && /usr/sbin/sshd</p>
+                                        <p className="text-cyber-text">apk add openssh</p>
+                                        <p className="text-cyber-text">ssh-keygen -A && /usr/sbin/sshd</p>
                                         <div className="mt-2 pt-1 border-t border-cyber-border/20 text-xs space-y-0.5">
-                                            <p className="text-cyber-text-muted/70">• <span className="text-cyber-accent">{t('ssh.usernameHint')}</span> — {t('ssh.ishUsername')}</p>
-                                            <p className="text-cyber-text-muted/70">• <span className="text-cyber-accent">{t('ssh.passwordHint')}</span> — {t('ssh.ishPassword')}</p>
-                                            <p className="text-cyber-text-muted/70">• <span className="text-cyber-accent">{t('ssh.ipHint')}</span> — {t('ssh.ishIp')}</p>
-                                            <p className="text-cyber-text-muted/70">• <span className="text-cyber-accent">{t('ssh.portHint')}</span> — 22</p>
+                                            <p className="text-cyber-text-muted/70">• <span className="text-cyber-text">{t('ssh.usernameHint')}</span> — {t('ssh.ishUsername')}</p>
+                                            <p className="text-cyber-text-muted/70">• <span className="text-cyber-text">{t('ssh.passwordHint')}</span> — {t('ssh.ishPassword')}</p>
+                                            <p className="text-cyber-text-muted/70">• <span className="text-cyber-text">{t('ssh.ipHint')}</span> — {t('ssh.ishIp')}</p>
+                                            <p className="text-cyber-text-muted/70">• <span className="text-cyber-text">{t('ssh.portHint')}</span> — 22</p>
                                         </div>
                                     </>
                                 )
                             },
                         ].map(section => (
-                            <div key={section.id} className="border border-cyber-accent/20 rounded overflow-hidden">
+                            <div key={section.id} className="border border-cyber-border/20 rounded overflow-hidden">
                                 <button
                                     onClick={() => setExpandedGuide(prev => prev === section.id ? null : section.id)}
-                                    className="w-full px-3 py-2 flex items-center justify-between bg-cyber-accent/5 hover:bg-cyber-accent/10 transition-colors"
+                                    className="w-full px-3 py-2 flex items-center justify-between bg-cyber-text/5 hover:bg-cyber-text/10 transition-colors"
                                 >
-                                    <span className="text-cyber-accent font-bold text-sm">{section.label}</span>
-                                    <ChevronDown size={14} className={`text-cyber-accent/60 transition-transform ${expandedGuide === section.id ? 'rotate-180' : ''}`} />
+                                    <span className="text-cyber-text font-bold text-sm">{section.label}</span>
+                                    <ChevronDown size={14} className={`text-cyber-text/60 transition-transform ${expandedGuide === section.id ? 'rotate-180' : ''}`} />
                                 </button>
                                 {expandedGuide === section.id && (
                                     <div className="px-3 py-2 space-y-1">

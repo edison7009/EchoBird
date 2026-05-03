@@ -89,7 +89,7 @@ function App() {
                                             <div className="flex flex-col h-screen w-full bg-cyber-bg">
                                                 {/* Title bar */}
                                                 <TitleBar onSettingsClick={() => setShowSettings(true)} />
-                                                <div className="flex flex-1 overflow-hidden text-cyber-accent font-mono p-4 gap-0 grid-bg relative isolate">
+                                                <div className="flex flex-1 overflow-hidden text-cyber-text font-sans p-4 gap-0 grid-bg relative isolate">
                                                     {/* Sidebar */}
                                                     <SidebarConnected onSettingsClick={() => setShowSettings(true)} />
 
@@ -118,7 +118,7 @@ function App() {
                                                                             <div className="ml-auto flex-shrink-0 flex items-center gap-2">
                                                                                 <button
                                                                                     onClick={() => window.dispatchEvent(new CustomEvent('clear-chat'))}
-                                                                                    className="p-1.5 rounded-lg text-cyber-accent/40 hover:text-cyber-accent hover:bg-cyber-accent/10 transition-colors"
+                                                                                    className="p-1.5 rounded-lg text-cyber-text/40 hover:text-cyber-text hover:bg-cyber-text/10 transition-colors"
                                                                                 >
                                                                                     <RotateCcw size={14} />
                                                                                 </button>

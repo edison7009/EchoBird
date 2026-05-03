@@ -239,7 +239,7 @@ export function ModelNexusTitleActions() {
                 onClick={pingAllModels}
                 disabled={isTesting}
                 className={`text-xs font-mono px-2 py-1 border rounded transition-colors ${!isTesting
-                    ? 'border-cyber-accent/50 text-cyber-accent hover:bg-cyber-accent/10'
+                    ? 'border-cyber-border/50 text-cyber-text hover:bg-cyber-text/10'
                     : 'border-cyber-border text-cyber-text-muted cursor-not-allowed'
                     }`}
             >
@@ -385,7 +385,7 @@ export function ModelNexusMain() {
 
                         {/* Add new model button */}
                         <div
-                            className="h-48 border border-dashed border-cyber-border flex flex-col items-center justify-center hover:border-cyber-accent cursor-pointer transition-all rounded-card text-cyber-text-secondary hover:text-cyber-accent"
+                            className="h-48 border border-dashed border-cyber-border flex flex-col items-center justify-center hover:border-cyber-border cursor-pointer transition-all rounded-card text-cyber-text-secondary hover:text-cyber-text"
                             onClick={() => {
                                 setNewModelForm({
                                     name: '',
@@ -457,7 +457,7 @@ function ProviderRow({ entry }: { entry: { name: string; url: string } }) {
     return (
         <div
             onClick={() => shellOpen(entry.url).catch(() => window.open(entry.url, '_blank'))}
-            className="group p-3 rounded cursor-pointer transition-all flex items-center gap-3 bg-black/30 hover:bg-white/5"
+            className="group p-3 rounded cursor-pointer transition-colors flex items-center gap-3 border border-transparent bg-cyber-surface hover:bg-cyber-elevated"
         >
             <div className="flex-shrink-0">
                 {iconSrc ? (
@@ -468,7 +468,7 @@ function ProviderRow({ entry }: { entry: { name: string; url: string } }) {
                         onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
                     />
                 ) : (
-                    <div className="w-6 h-6 rounded bg-cyber-accent/15 flex items-center justify-center text-cyber-accent">
+                    <div className="w-6 h-6 rounded bg-cyber-text/15 flex items-center justify-center text-cyber-text">
                         <Box size={14} />
                     </div>
                 )}
@@ -481,7 +481,7 @@ function ProviderRow({ entry }: { entry: { name: string; url: string } }) {
             </div>
             <ExternalLink
                 size={14}
-                className="flex-shrink-0 text-cyber-text-muted/50 group-hover:text-cyber-accent transition-colors"
+                className="flex-shrink-0 text-cyber-text-muted/50 group-hover:text-cyber-text transition-colors"
             />
         </div>
     );
@@ -499,7 +499,7 @@ export function ModelNexusPanel() {
                     <button
                         onClick={() => setPanelTab('providers')}
                         className={`px-3 py-1.5 text-xs font-bold rounded transition-colors ${panelTab === 'providers'
-                            ? 'bg-cyber-accent text-black'
+                            ? 'bg-cyber-elevated text-cyber-text'
                             : 'text-cyber-text-secondary hover:text-cyber-text'
                             }`}
                     >
@@ -508,7 +508,7 @@ export function ModelNexusPanel() {
                     <button
                         onClick={() => setPanelTab('relays')}
                         className={`px-3 py-1.5 text-xs font-bold rounded transition-colors ${panelTab === 'relays'
-                            ? 'bg-cyber-accent/80 text-black'
+                            ? 'bg-cyber-elevated text-cyber-text'
                             : 'text-cyber-text-secondary hover:text-cyber-text'
                             }`}
                     >
@@ -552,17 +552,17 @@ export function AddModelModal() {
             />
 
             <div
-                className={`relative w-[450px] max-w-[90vw] border border-cyber-accent/30 bg-cyber-bg shadow-[0_0_30px_rgba(0,255,157,0.08)] rounded-xl overflow-hidden transition-all duration-200 ${modelModalAnimatingOut ? 'scale-95 opacity-0' : 'scale-100 opacity-100'}`}
+                className={`relative w-[450px] max-w-[90vw] border border-cyber-border/30 bg-cyber-surface shadow-2xl rounded-xl overflow-hidden transition-all duration-200 ${modelModalAnimatingOut ? 'scale-95 opacity-0' : 'scale-100 opacity-100'}`}
                 onClick={e => e.stopPropagation()}
             >
                 {/* Top accent line */}
-                <div className="h-[2px] w-full bg-gradient-to-r from-cyber-accent/60 via-cyber-accent-secondary/40 to-transparent" />
+                <div className="h-px w-full bg-cyber-border" />
 
                 {/* Header */}
                 <div className="px-5 pt-4 pb-3 flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                        <span className="text-cyber-accent font-mono text-xs opacity-60">&gt;_</span>
-                        <span className="text-sm font-mono font-bold tracking-wider text-cyber-accent">{editingModelId ? t('model.editConfig') : t('btn.addModel')}</span>
+                        <span className="text-cyber-text font-mono text-xs opacity-60">&gt;_</span>
+                        <span className="text-sm font-mono font-bold tracking-wider text-cyber-text">{editingModelId ? t('model.editConfig') : t('btn.addModel')}</span>
                     </div>
                     <button
                         onClick={closeModelModal}
@@ -582,7 +582,7 @@ export function AddModelModal() {
                                 placeholder="e.g. My Model"
                                 value={newModelForm.name}
                                 onChange={e => setNewModelForm(prev => ({ ...prev, name: e.target.value }))}
-                                className="w-full bg-black border border-cyber-border px-2 py-1.5 text-xs text-cyber-text font-mono focus:border-cyber-accent focus:outline-none rounded-button"
+                                className="w-full bg-cyber-input border border-cyber-border px-2 py-1.5 text-xs text-cyber-text font-mono focus:border-cyber-border focus:outline-none rounded-button"
                             />
                         </div>
                         <div>
@@ -596,7 +596,7 @@ export function AddModelModal() {
                                     v = v.replace(/\/chat\/completions\/?$/i, '').replace(/\/v1\/chat\/completions\/?$/i, '/v1');
                                     setNewModelForm(prev => ({ ...prev, baseUrl: v }));
                                 }}
-                                className="w-full bg-black border border-cyber-border px-2 py-1.5 text-xs text-cyber-text font-mono focus:border-cyber-accent focus:outline-none rounded-button"
+                                className="w-full bg-cyber-input border border-cyber-border px-2 py-1.5 text-xs text-cyber-text font-mono focus:border-cyber-border focus:outline-none rounded-button"
                             />
                         </div>
                         <div>
@@ -610,7 +610,7 @@ export function AddModelModal() {
                                     v = v.replace(/\/v1\/messages\/?$/i, '').replace(/\/messages\/?$/i, '');
                                     setNewModelForm(prev => ({ ...prev, anthropicUrl: v }));
                                 }}
-                                className="w-full bg-black border border-cyber-border px-2 py-1.5 text-xs text-cyber-text font-mono focus:border-cyber-accent focus:outline-none rounded-button"
+                                className="w-full bg-cyber-input border border-cyber-border px-2 py-1.5 text-xs text-cyber-text font-mono focus:border-cyber-border focus:outline-none rounded-button"
                             />
                         </div>
                         <div>
@@ -620,7 +620,7 @@ export function AddModelModal() {
                                 placeholder="e.g. Qwen/Qwen-Coder"
                                 value={newModelForm.modelId}
                                 onChange={e => setNewModelForm(prev => ({ ...prev, modelId: e.target.value }))}
-                                className="w-full bg-black border border-cyber-border px-2 py-1.5 text-xs text-cyber-text font-mono focus:border-cyber-accent focus:outline-none rounded-button"
+                                className="w-full bg-cyber-input border border-cyber-border px-2 py-1.5 text-xs text-cyber-text font-mono focus:border-cyber-border focus:outline-none rounded-button"
                             />
                         </div>
                         <div>
@@ -631,7 +631,7 @@ export function AddModelModal() {
                                     placeholder="sk-..."
                                     value={newModelForm.apiKey.startsWith('enc:v1:') ? '•••••••••••••••' : newModelForm.apiKey}
                                     onChange={e => setNewModelForm(prev => ({ ...prev, apiKey: e.target.value }))}
-                                    className="w-full bg-black border border-cyber-border px-2 py-1.5 pr-8 text-xs text-cyber-text font-mono focus:border-cyber-accent focus:outline-none rounded-button"
+                                    className="w-full bg-cyber-input border border-cyber-border px-2 py-1.5 pr-8 text-xs text-cyber-text font-mono focus:border-cyber-border focus:outline-none rounded-button"
                                     readOnly={newModelForm.apiKey.startsWith('enc:v1:')}
                                 />
                                 {newModelForm.apiKey && newModelForm.apiKey !== 'local' && (
@@ -670,7 +670,7 @@ export function AddModelModal() {
                                         className="absolute right-2 top-1/2 -translate-y-1/2 transition-colors hover:opacity-80"
                                     >
                                         {newModelForm.apiKey.startsWith('enc:v1:') ? (
-                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-cyber-accent">
+                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-cyber-text">
                                                 <rect x="3" y="11" width="18" height="11" rx="2" />
                                                 <path d="M7 11V7a5 5 0 0 1 10 0v4" />
                                             </svg>
@@ -685,7 +685,7 @@ export function AddModelModal() {
                             </div>
                             <div className="min-h-[36px] mt-1">
                                 {newModelForm.apiKey.startsWith('enc:v1:') && (
-                                    <div className={`text-xs leading-tight ${keyDestroyed ? 'text-red-400' : 'text-cyber-accent/60'}`}>
+                                    <div className={`text-xs leading-tight ${keyDestroyed ? 'text-red-400' : 'text-cyber-text/60'}`}>
                                         {keyDestroyed ? t('key.destroyed') : t('key.encrypted')}
                                     </div>
                                 )}
@@ -693,7 +693,7 @@ export function AddModelModal() {
                         </div>
 
                         {/* SS proxy configuration area */}
-                        <div className="border-t border-cyber-accent/20 pt-4 mt-4">
+                        <div className="border-t border-cyber-border/20 pt-4 mt-4">
                             <label className="flex items-center gap-3 cursor-pointer group">
                                 <div className="relative">
                                     <input
@@ -702,11 +702,11 @@ export function AddModelModal() {
                                         onChange={e => setNewModelForm(prev => ({ ...prev, useProxy: e.target.checked }))}
                                         className="sr-only peer"
                                     />
-                                    <div className="w-5 h-5 border-2 border-cyber-accent/50 bg-black peer-checked:bg-cyber-accent peer-checked:border-cyber-accent transition-all flex items-center justify-center">
+                                    <div className="w-5 h-5 border-2 border-cyber-border/50 bg-cyber-input peer-checked:bg-cyber-accent peer-checked:border-cyber-border transition-all flex items-center justify-center">
                                         {newModelForm.useProxy && <span className="text-black text-xs font-bold">✓</span>}
                                     </div>
                                 </div>
-                                <span className="text-sm text-cyber-text font-mono group-hover:text-cyber-accent transition-colors">{t('model.proxyTunnel')} <span className="text-cyber-text-secondary">({t('model.specificProxy')})</span></span>
+                                <span className="text-sm text-cyber-text font-mono group-hover:text-cyber-text transition-colors">{t('model.proxyTunnel')} <span className="text-cyber-text-secondary">({t('model.specificProxy')})</span></span>
                             </label>
 
                             {newModelForm.useProxy && (
@@ -718,7 +718,7 @@ export function AddModelModal() {
                                             placeholder="sg1.expressvpn.com"
                                             value={newModelForm.ssServer}
                                             onChange={e => setNewModelForm(prev => ({ ...prev, ssServer: e.target.value }))}
-                                            className="w-full bg-black border border-cyber-border px-2 py-1.5 text-xs text-cyber-text font-mono focus:border-cyber-accent focus:outline-none rounded-button"
+                                            className="w-full bg-cyber-input border border-cyber-border px-2 py-1.5 text-xs text-cyber-text font-mono focus:border-cyber-border focus:outline-none rounded-button"
                                         />
                                     </div>
                                     <div>
@@ -728,7 +728,7 @@ export function AddModelModal() {
                                             placeholder="52324"
                                             value={newModelForm.ssPort}
                                             onChange={e => setNewModelForm(prev => ({ ...prev, ssPort: e.target.value }))}
-                                            className="w-full bg-black border border-cyber-border px-2 py-1.5 text-xs text-cyber-text font-mono focus:border-cyber-accent focus:outline-none rounded-button no-spinner"
+                                            className="w-full bg-cyber-input border border-cyber-border px-2 py-1.5 text-xs text-cyber-text font-mono focus:border-cyber-border focus:outline-none rounded-button no-spinner"
                                         />
                                     </div>
                                     <div>
@@ -751,7 +751,7 @@ export function AddModelModal() {
                                             placeholder="SS Password / UUID"
                                             value={newModelForm.ssPassword}
                                             onChange={e => setNewModelForm(prev => ({ ...prev, ssPassword: e.target.value }))}
-                                            className="w-full bg-black border border-cyber-border px-2 py-1.5 text-xs text-cyber-text font-mono focus:border-cyber-accent focus:outline-none rounded-button"
+                                            className="w-full bg-cyber-input border border-cyber-border px-2 py-1.5 text-xs text-cyber-text font-mono focus:border-cyber-border focus:outline-none rounded-button"
                                         />
                                     </div>
                                 </div>
@@ -764,7 +764,7 @@ export function AddModelModal() {
                 <div className="flex border-t border-cyber-border">
                     <button
                         onClick={closeModelModal}
-                        className="flex-1 px-4 py-2.5 text-xs font-mono font-bold tracking-wider text-cyber-text-secondary hover:text-cyber-text hover:bg-white/5 transition-all border-r border-cyber-border"
+                        className="flex-1 px-4 py-2.5 text-xs font-mono font-bold tracking-wider text-cyber-text-secondary hover:text-cyber-text hover:bg-cyber-elevated transition-all border-r border-cyber-border"
                     >
                         {t('model.escCancel')}
                     </button>
@@ -839,7 +839,7 @@ export function AddModelModal() {
                                 setShowAddModelModal(false);
                             }
                         }}
-                        className="flex-1 px-4 py-2.5 text-xs font-mono font-bold tracking-wider text-cyber-accent hover:bg-cyber-accent/10 transition-all"
+                        className="flex-1 px-4 py-2.5 text-xs font-mono font-bold tracking-wider text-cyber-text hover:bg-cyber-text/10 transition-all"
                     >
                         {t('model.enterSave')}
                     </button>

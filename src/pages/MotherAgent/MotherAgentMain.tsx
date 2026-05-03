@@ -237,7 +237,7 @@ export function MotherAgentMain() {
                                                     });
                                                 }
                                             }}
-                                            className="px-3 py-1 text-xs rounded-full border border-cyber-accent/20 text-cyber-accent/70 hover:bg-cyber-accent/10 hover:text-cyber-accent transition-all cursor-pointer"
+                                            className="px-3 py-1.5 text-xs rounded-full bg-cyber-surface border border-cyber-border text-cyber-text-secondary hover:bg-cyber-elevated hover:text-cyber-text hover:border-cyber-text-muted/50 transition-colors cursor-pointer"
                                         >
                                             {label}
                                         </button>
@@ -299,7 +299,7 @@ export function MotherAgentMain() {
                 {showScrollBtn && (
                     <button
                         onClick={scrollToBottom}
-                        className="absolute bottom-3 right-3 w-7 h-7 flex items-center justify-center bg-cyber-bg/90 border border-cyber-border/50 rounded text-cyber-text-secondary hover:text-cyber-accent hover:border-cyber-accent/50 transition-colors z-10"
+                        className="absolute bottom-3 right-3 w-7 h-7 flex items-center justify-center bg-cyber-bg/90 border border-cyber-border/50 rounded text-cyber-text-secondary hover:text-cyber-text hover:border-cyber-border/50 transition-colors z-10"
                     >
                         <ChevronDown className="w-4 h-4" />
                     </button>
@@ -328,7 +328,7 @@ export function MotherAgentMain() {
                         placeholder={t('mother.enterMessage')}
                         disabled={isProcessing}
                         rows={2}
-                        className="w-full bg-transparent px-2 py-1 text-sm text-[#DED9D2] font-sans font-medium outline-none placeholder:text-[#DED9D2]/40 disabled:opacity-30 resize-none"
+                        className="w-full bg-transparent px-2 py-1 text-sm text-cyber-text font-sans font-medium outline-none placeholder:text-cyber-text-muted disabled:opacity-30 resize-none"
                     />
                     <div className="flex items-center justify-end gap-1.5">
                         <RemoteModelSelector

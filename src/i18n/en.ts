@@ -16,11 +16,15 @@ const en: Translations = {
     'settings.title': 'SETTINGS',
     'settings.version': 'VERSION',
     'settings.language': 'LANGUAGE',
+    'settings.appearance': 'APPEARANCE',
+    'settings.themeLight': 'Light',
+    'settings.themeDark': 'Dark',
+    'settings.themeSystem': 'System',
     'settings.updates': 'UPDATES',
     'settings.checkForUpdates': 'CHECK FOR UPDATES',
     'settings.checking': 'Checking...',
     'settings.latestVersion': 'Already on the latest version',
-    'settings.checkFailed': 'Check failed 鈥?retry',
+    'settings.checkFailed': 'Check failed — retry',
     // Buttons
     'btn.addModel': 'ADD MODEL',
     'btn.refresh': 'REFRESH',
@@ -94,6 +98,7 @@ const en: Translations = {
     'model.source': 'SOURCE',
     'model.latency': 'LATENCY',
     'model.debugTesting': 'DEBUG TESTING',
+    'model.notTested': 'Not tested',
     'model.cloud': 'CLOUD',
     'model.local': 'LOCAL',
     'model.tunnel': 'TUNNEL',
@@ -134,7 +139,7 @@ const en: Translations = {
     'download.retry': 'Retry',
     // Debug console
     // Local Server
-    'server.gpuFull': '鈿?GPU Full',
+    'server.gpuFull': '⚡ GPU Full',
     'server.cpuOnly': '馃枼 CPU Only',
     'server.setupEngine': 'SETUP ENGINE',
     'server.upgradeEngine': 'UPGRADE ENGINE',
@@ -159,9 +164,9 @@ const en: Translations = {
     'settings.closeQuit': 'Quit completely',
     // Developer invite hint
     // API Key encryption status hints
-    'key.encrypted': 'Encrypted globally 鈥?API Key will self-destruct if environment changes',
-    'key.destroyed': 'Environment change detected 鈥?API Key has self-destructed, please re-enter',
-    'hint.devInvite': 'Develop AI apps or AI games 鈥?see \"Reversi\" and \"AI Translate\".',
+    'key.encrypted': 'Encrypted globally — API Key will self-destruct if environment changes',
+    'key.destroyed': 'Environment change detected — API Key has self-destructed, please re-enter',
+    'hint.devInvite': 'Develop AI apps or AI games — see \"Reversi\" and \"AI Translate\".',
     // Mother Agent
     'mother.selectModel': 'Select model',
     'mother.hintInstall': 'Install {agent}',
@@ -182,7 +187,7 @@ const en: Translations = {
     'mother.displayName': 'Display Name',
     'mother.optional': 'optional',
     'mother.displayNamePlaceholder': 'e.g. Agent#03, Server#17',
-    'mother.encrypted': 'Encrypted globally 鈥?Password will self-destruct if environment changes',
+    'mother.encrypted': 'Encrypted globally — Password will self-destruct if environment changes',
     'mother.testing': 'TESTING...',
     'mother.testConnection': 'TEST CONNECTION',
     'mother.cancel': '[ESC] CANCEL',

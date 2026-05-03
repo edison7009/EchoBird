@@ -2,6 +2,45 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ── Theme palettes ── values are space-separated RGB channels so Tailwind
+   opacity modifiers (e.g. bg-cyber-accent/20) keep working. ── */
+:root,
+:root[data-theme="dark"] {
+    /* Claude Desktop — near-black page, gently elevated cards. */
+    --bg-base-rgb:           18 18 18;       /* #121212 — page */
+    --bg-terminal-rgb:       12 12 12;
+    --bg-surface-rgb:        28 28 30;       /* #1C1C1E — cards, lists */
+    --bg-elevated-rgb:       44 44 46;       /* #2C2C2E — selected, dropdowns */
+    --bg-deep-rgb:           10 10 10;
+    --bg-input-rgb:          28 28 30;
+    --border-rgb:            48 48 50;
+    --accent-rgb:            217 119 87;     /* Claude coral — used sparingly */
+    --accent-secondary-rgb:  192 132 100;
+    --warning-rgb:           250 204 21;
+    --error-rgb:             224 109 109;
+    --text-primary-rgb:      236 236 238;
+    --text-secondary-rgb:    158 158 162;
+    --text-muted-rgb:        110 110 114;
+}
+
+:root[data-theme="light"] {
+    /* Claude Desktop light — warm cream page, slightly lighter card surface. */
+    --bg-base-rgb:           239 238 235;    /* #EFEEEB — page */
+    --bg-terminal-rgb:       247 246 243;
+    --bg-surface-rgb:        247 246 243;    /* #F7F6F3 — cards, lifted */
+    --bg-elevated-rgb:       232 230 224;    /* #E8E6E0 — selected, dropdowns */
+    --bg-deep-rgb:           232 230 224;
+    --bg-input-rgb:          255 255 255;
+    --border-rgb:            220 218 211;
+    --accent-rgb:            201 100 66;     /* Claude coral, slightly deeper for AA contrast */
+    --accent-secondary-rgb:  176 88 56;
+    --warning-rgb:           181 130 14;
+    --error-rgb:             198 60 60;
+    --text-primary-rgb:      28 28 30;
+    --text-secondary-rgb:    110 110 114;
+    --text-muted-rgb:        160 160 164;
+}
+
 /* ── Local Font Faces ── */
 @font-face {
   font-family: 'Inter';
@@ -102,8 +141,8 @@ html {
 
 body {
   font-family: 'Inter', system-ui, sans-serif;
-  background-color: #0F1117;
-  color: #E0F7FA;
+  background-color: rgb(var(--bg-base-rgb));
+  color: rgb(var(--text-primary-rgb));
   overflow: hidden;
 }
 
@@ -154,12 +193,34 @@ pre {
   background: rgba(255,255,255,0.18);
 }
 
-/* Grid background effect */
+/* Subtle dotted background — Claude Desktop style */
 .grid-bg {
-  background-image:
-    linear-gradient(rgba(40, 46, 63, 0.2) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(40, 46, 63, 0.2) 1px, transparent 1px);
-  background-size: 40px 40px;
+  background-image: radial-gradient(rgb(var(--text-muted-rgb) / 0.22) 1px, transparent 1px);
+  background-size: 22px 22px;
+}
+
+/* Pure-white SVG logos invert in light mode so they read on the cream
+   card surface. Logos with mixed colors are skipped (the filter would
+   shift their accent hues). */
+[data-theme="light"] img[src*="/icons/models/chatgpt.svg"],
+[data-theme="light"] img[src*="/icons/models/glm.svg"],
+[data-theme="light"] img[src*="/icons/models/grok.svg"],
+[data-theme="light"] img[src*="/icons/models/groq.svg"],
+[data-theme="light"] img[src*="/icons/models/granite.svg"],
+[data-theme="light"] img[src*="/icons/models/openrouter.svg"],
+[data-theme="light"] img[src*="/icons/models/kimi.svg"],
+[data-theme="light"] img[src*="/icons/models/together.svg"],
+[data-theme="light"] img[src*="/icons/tools/codex.svg"],
+[data-theme="light"] img[src*="/icons/tools/kilocode.svg"],
+[data-theme="light"] img[src*="/icons/tools/continue.svg"] {
+    filter: invert(1) brightness(0.88);
+}
+
+/* Logos with near-black backgrounds invert in dark mode so they read on
+   the near-black page. */
+[data-theme="dark"] img[src*="/icons/models/yi.svg"],
+[data-theme="dark"] img[src*="/icons/tools/opencode.svg"] {
+    filter: invert(1) brightness(0.92);
 }
 
 /* Cyber arrow marquee animation */
@@ -260,11 +321,11 @@ pre {
 .spinner-shimmer {
   background-image: linear-gradient(
     90deg,
-    rgba(0, 255, 157, 0.55) 0%,
-    rgba(0, 255, 157, 0.55) 38%,
-    rgba(220, 255, 235, 1) 50%,
-    rgba(0, 255, 157, 0.55) 62%,
-    rgba(0, 255, 157, 0.55) 100%
+    rgb(var(--accent-rgb) / 0.55) 0%,
+    rgb(var(--accent-rgb) / 0.55) 38%,
+    rgb(var(--text-primary-rgb) / 1) 50%,
+    rgb(var(--accent-rgb) / 0.55) 62%,
+    rgb(var(--accent-rgb) / 0.55) 100%
   );
   background-size: 200% 100%;
   -webkit-background-clip: text;
@@ -353,7 +414,7 @@ pre {
 
 /* Terminal block cursor */
 .terminal-cursor {
-  caret-color: #00FF9D;
+  caret-color: rgb(var(--accent-rgb));
   caret-shape: underscore;
 }
 

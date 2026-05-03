@@ -3,16 +3,23 @@
 
 <head>
   <meta charset="UTF-8" />
-  <link rel="icon" type="image/svg+xml" href="/ico.svg" />
+  <link rel="icon" type="image/png" href="/ico.png" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <title>Echobird</title>
-  <!-- Instant dark background — prevents white flash before React renders -->
+  <!-- Instant background — matches the resolved theme so React mount has no flash.
+       Defaults to dark; switches to cream if the OS reports a light color scheme. -->
   <style>
     html,
     body {
-      background: #0d0f1a;
+      background: #121212;
       margin: 0;
       padding: 0;
+    }
+    @media (prefers-color-scheme: light) {
+      html,
+      body {
+        background: #EFEEEB;
+      }
     }
   </style>
   <!-- Fonts loaded locally from /fonts/ -->

@@ -1,5 +1,5 @@
 {
-  "version": "3.7.5",
-  "releaseDate": "2026-05-02",
-  "releaseNotes": "Fix chat snapping to bottom while you scroll up during agent streaming."
+  "version": "3.7.6",
+  "releaseDate": "2026-05-03",
+  "releaseNotes": "Claude Desktop-style redesign: light/dark/system theme, neutral palette with sparing coral accent, iOS-style opaque cards, mojibake fixes, new Echo Rings icon."
 }
