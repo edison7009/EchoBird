@@ -2,12 +2,14 @@
   <img src="docs/icon.png" alt="百灵鸟" width="120" />
 </p>
 
-<h1 align="center">百灵鸟</h1>
+<h1 align="center">百灵鸟 / EchoBird</h1>
 
 <p align="center"><strong>AI 部署不再是:先有鸡,还是先有蛋</strong></p>
 <p align="center"><sub>AI deployment, no more chicken-and-egg.</sub></p>
 
 很多朋友让我帮他们安装 **Claude Code**、**OpenClaw**、**Hermes Agent**……不但每个人的系统都不一样，甚至有些人还抠门到不愿花钱买大模型，安装和解释起来都特别费劲。于是我开发了这个叫「百灵鸟」的 Agent —— 灵感来自《赛博朋克 2077》里那位总能帮主角搞定一切技术难题的女黑客。百灵鸟可以帮你一键装好所有 AI 工具。
+
+> Friends kept asking me to install **Claude Code**, **OpenClaw**, **Hermes Agent**… every machine was different, and some refused to pay for an LLM. Setup and explanations took forever. So I built **EchoBird** — an Agent inspired by the female hacker in *Cyberpunk 2077* who fixes any tech problem for V. EchoBird installs every AI tool with one click.
 
 <p align="center">
   <a href="https://github.com/edison7009/EchoBird/releases">
