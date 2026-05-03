@@ -233,11 +233,12 @@
            it still fits without wrapping awkwardly. Chinese H1 stays at the
            full hero size. */
         [lang="en"] .hero h1 .gradient {
-            font-size: 0.62em;
+            font-size: 0.5em;
             line-height: 1.2;
-            letter-spacing: -0.5px;
+            letter-spacing: -0.3px;
             display: inline-block;
-            margin-top: 6px;
+            margin-top: 8px;
+            white-space: nowrap;
         }
 
         .hero .lede {
@@ -897,6 +898,7 @@
                 'nav.brand': '百灵鸟',
                 'nav.features': '功能',
                 'nav.tools': '支持工具',
+                'nav.feedback': '问题反馈',
                 'nav.download': '下载',
                 'hero.h1.line1': 'AI 部署不再是:',
                 'hero.h1.line2': '先有鸡,还是先有蛋',
@@ -951,6 +953,7 @@
                 'nav.brand': 'EchoBird',
                 'nav.features': 'Features',
                 'nav.tools': 'Tools',
+                'nav.feedback': 'Feedback',
                 'nav.download': 'Download',
                 'hero.h1.line1': 'AI deploys AI.',
                 'hero.h1.line2': 'Which came first, the chicken or the egg?',
@@ -1062,6 +1065,7 @@
         <div class="nav-r">
             <a href="#features" data-i18n="nav.features">功能</a>
             <a href="#tools" data-i18n="nav.tools">支持工具</a>
+            <a href="https://github.com/edison7009/EchoBird/issues" target="_blank" data-i18n="nav.feedback">问题反馈</a>
             <a href="https://github.com/edison7009/EchoBird" target="_blank">GitHub</a>
             <a href="https://github.com/edison7009/EchoBird/releases/latest" class="nav-cta" data-i18n="nav.download">下载</a>
             <button id="lang-toggle" class="lang-toggle" type="button" aria-label="Switch language">EN</button>
