@@ -366,101 +366,96 @@
             line-height: 1.7;
         }
 
-        /* ── Pillars (3 big features) ── */
-        .pillars {
+        /* ── Feature cards (3 in a row, no screenshots) ── */
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 22px;
+        }
+
+        .feature-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 32px 28px;
+            backdrop-filter: blur(8px);
+            transition: all 0.3s;
             display: flex;
             flex-direction: column;
-            gap: 80px;
         }
 
-        .pillar {
-            display: grid;
-            grid-template-columns: 1fr 1.2fr;
-            gap: 56px;
+        .feature-card:hover {
+            border-color: var(--border-strong);
+            transform: translateY(-4px);
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.35);
+        }
+
+        .feature-icon {
+            width: 52px;
+            height: 52px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, rgba(217, 119, 87, 0.2), rgba(232, 159, 122, 0.06));
+            display: flex;
             align-items: center;
+            justify-content: center;
+            color: var(--neon);
+            font-size: 22px;
+            margin-bottom: 22px;
+            border: 1px solid rgba(217, 119, 87, 0.25);
         }
 
-        .pillar:nth-child(even) {
-            grid-template-columns: 1.2fr 1fr;
-        }
-
-        .pillar:nth-child(even) .pillar-text {
-            order: 2;
-        }
-
-        .pillar-text .num {
-            display: inline-block;
+        .feature-num {
             font-family: var(--display);
-            font-size: 13px;
+            font-size: 11px;
             font-weight: 700;
             color: var(--neon);
             letter-spacing: 3px;
-            margin-bottom: 14px;
+            margin-bottom: 10px;
         }
 
-        .pillar-text h3 {
+        .feature-card h3 {
             font-family: var(--sans);
-            font-size: clamp(24px, 3vw, 34px);
+            font-size: 22px;
             font-weight: 800;
-            letter-spacing: -0.5px;
-            margin-bottom: 16px;
-            line-height: 1.2;
+            letter-spacing: -0.4px;
+            margin-bottom: 14px;
+            line-height: 1.25;
             color: var(--white);
         }
 
-        .pillar-text h3 .hl {
+        .feature-card h3 .hl {
             color: var(--neon);
         }
 
-        .pillar-text p {
+        .feature-card p {
             color: var(--text);
-            font-size: 15px;
-            line-height: 1.75;
+            font-size: 14px;
+            line-height: 1.7;
             margin-bottom: 20px;
         }
 
-        .pillar-text ul {
+        .feature-card ul {
             list-style: none;
             display: flex;
             flex-direction: column;
             gap: 10px;
+            margin-top: auto;
         }
 
-        .pillar-text li {
+        .feature-card li {
             display: flex;
             align-items: flex-start;
             gap: 10px;
-            font-size: 14px;
+            font-size: 13px;
             color: var(--text);
-            line-height: 1.6;
+            line-height: 1.5;
         }
 
-        .pillar-text li i {
+        .feature-card li i {
             color: var(--neon);
-            font-size: 12px;
+            font-size: 11px;
             margin-top: 5px;
             flex-shrink: 0;
-        }
-
-        .pillar-shot {
-            position: relative;
-            border-radius: 12px;
-            overflow: hidden;
-            border: 1px solid var(--border-strong);
-            background: var(--bg2);
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.03);
-            transition: all 0.3s;
-        }
-
-        .pillar-shot:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 30px 80px rgba(0, 0, 0, 0.55), 0 0 40px rgba(217, 119, 87, 0.12);
-        }
-
-        .pillar-shot img {
-            display: block;
-            width: 100%;
-            height: auto;
         }
 
         /* ── Tools grid ── */
@@ -812,14 +807,9 @@
 
         /* ── Responsive ── */
         @media (max-width: 900px) {
-            .pillar,
-            .pillar:nth-child(even) {
+            .features-grid {
                 grid-template-columns: 1fr;
-                gap: 32px;
-            }
-
-            .pillar:nth-child(even) .pillar-text {
-                order: 0;
+                gap: 16px;
             }
 
             .local-strip {
@@ -916,17 +906,17 @@
                 'features.title': '三个"一键",搞定整个 AI Agent 工作流',
                 'features.sub': '从安装到运行,从切换到部署,百灵鸟把每一个原本需要看十篇文档的步骤,压缩成了一次点击。',
                 'pillar1.h3.html': '一键安装 <span class="hl">所有主流 AI Agent</span>',
-                'pillar1.p': 'OpenClaw、Claude Code、NanoBot、PicoClaw、Hermes、ZeroClaw…… 百灵鸟自动检测你机器上已安装的 Agent,缺哪个,点一下就装好,不用再去翻 GitHub README 和 npm 命令。',
+                'pillar1.p': 'OpenClaw、Claude Code、NanoBot、PicoClaw、Hermes、ZeroClaw…… 百灵鸟自动检测已安装的 Agent,缺哪个,点一下就装好。',
                 'pillar1.li1': '自动检测已安装环境,缺哪装哪',
                 'pillar1.li2': '内置启动器 — 不碰终端就能跑',
                 'pillar1.li3': '即插即用插件:丢一个 plugin.json 就能扩展新工具',
                 'pillar2.h3.html': '一键切换 <span class="hl">所有 Agent 的模型</span>',
-                'pillar2.p': 'Model Nexus 把 OpenAI、Anthropic、Gemini、DeepSeek、Ollama 和你的私有 endpoint 摆在同一个面板。给任意 Agent 换模型 = 选一张卡,点一下应用。OpenAI 协议和 Anthropic 协议自由切换,零配置改动。',
+                'pillar2.p': 'Model Nexus 把 OpenAI、Anthropic、Gemini、DeepSeek、Ollama 摆在同一个面板。OpenAI ↔ Anthropic 协议自由切换,零配置改动。',
                 'pillar2.li1': '双协议:OpenAI API + Anthropic API,按 Agent 单独指定',
                 'pillar2.li2': '永远告别手动改 JSON / TOML / .env',
                 'pillar2.li3': '任意自定义 endpoint,一秒接入',
                 'pillar3.h3.html': '一键部署 <span class="hl">本地大模型</span>',
-                'pillar3.p.html': '内置 llama.cpp、vLLM、SGLang。Qwen、DeepSeek、Llama、MiniMax、GLM 一键拉起本地服务,自动暴露 OpenAI (<code style="font-family:var(--mono);color:var(--neon)">/v1</code>) 与 Anthropic (<code style="font-family:var(--mono);color:var(--neon)">/anthropic</code>) 端点,任何 Agent 都能直连。数据完全留在你的设备上。',
+                'pillar3.p.html': '内置 llama.cpp、vLLM、SGLang。Qwen、DeepSeek、Llama 一键拉起,自动暴露 OpenAI 与 Anthropic 双端点。数据完全留在本地。',
                 'pillar3.li1': '自动检测 NVIDIA GPU,推荐最优参数',
                 'pillar3.li2': '双协议代理:OpenAI + Anthropic 双端点同时可用',
                 'pillar3.li3': 'GGUF / HuggingFace 任意模型即拉即跑',
@@ -970,17 +960,17 @@
                 'features.title': 'Three "1-Clicks" cover the whole AI Agent workflow',
                 'features.sub': 'From install to run, from switch to deploy — EchoBird collapses every step that used to need ten docs into a single click.',
                 'pillar1.h3.html': '1-Click Install <span class="hl">every mainstream AI Agent</span>',
-                'pillar1.p': 'OpenClaw, Claude Code, NanoBot, PicoClaw, Hermes, ZeroClaw… EchoBird auto-detects which agents are already on your machine. Whatever\'s missing, install with one click — no more digging through GitHub READMEs or npm commands.',
+                'pillar1.p': 'OpenClaw, Claude Code, NanoBot, PicoClaw, Hermes, ZeroClaw… EchoBird auto-detects what\'s already installed. One click installs whatever\'s missing.',
                 'pillar1.li1': 'Auto-detects installed environments, fills in what\'s missing',
                 'pillar1.li2': 'Built-in launcher — never touch a terminal',
                 'pillar1.li3': 'Plug-and-play plugins: drop a plugin.json to add new tools',
                 'pillar2.h3.html': '1-Click Switch <span class="hl">every Agent\'s model</span>',
-                'pillar2.p': 'Model Nexus puts OpenAI, Anthropic, Gemini, DeepSeek, Ollama and your private endpoints in the same panel. Switching a model for any agent = pick a card, click apply. Toggle OpenAI ↔ Anthropic protocols freely, zero config edits.',
+                'pillar2.p': 'Model Nexus puts OpenAI, Anthropic, Gemini, DeepSeek, Ollama in one panel. Toggle OpenAI ↔ Anthropic protocols freely, zero config edits.',
                 'pillar2.li1': 'Dual-protocol: OpenAI API + Anthropic API, per-agent override',
                 'pillar2.li2': 'Say goodbye to hand-editing JSON / TOML / .env forever',
                 'pillar2.li3': 'Any custom endpoint plugs in within a second',
                 'pillar3.h3.html': '1-Click Deploy <span class="hl">local LLMs</span>',
-                'pillar3.p.html': 'Built-in llama.cpp, vLLM, SGLang. Qwen, DeepSeek, Llama, MiniMax, GLM — spin up a local service with one click. OpenAI (<code style="font-family:var(--mono);color:var(--neon)">/v1</code>) and Anthropic (<code style="font-family:var(--mono);color:var(--neon)">/anthropic</code>) endpoints are exposed automatically, any agent can connect directly. Your data stays on your device.',
+                'pillar3.p.html': 'Built-in llama.cpp, vLLM, SGLang. Qwen, DeepSeek, Llama — spin up locally with one click. OpenAI + Anthropic endpoints exposed automatically. Data stays on your device.',
                 'pillar3.li1': 'Auto-detects NVIDIA GPU, recommends optimal parameters',
                 'pillar3.li2': 'Dual-protocol proxy: OpenAI + Anthropic endpoints both available',
                 'pillar3.li3': 'Any GGUF / HuggingFace model — pull and run',
@@ -1115,69 +1105,56 @@
             <p class="section-sub" data-i18n="features.sub">从安装到运行,从切换到部署,百灵鸟把每一个原本需要看十篇文档的步骤,压缩成了一次点击。</p>
         </div>
 
-        <div class="pillars">
-            <!-- Pillar 1 -->
-            <div class="pillar reveal">
-                <div class="pillar-text">
-                    <div class="num">/ 01 — INSTALL</div>
-                    <h3 data-i18n-html="pillar1.h3.html">一键安装 <span class="hl">所有主流 AI Agent</span></h3>
-                    <p data-i18n="pillar1.p">
-                        OpenClaw、Claude Code、NanoBot、PicoClaw、Hermes、ZeroClaw…… 百灵鸟自动检测你机器上已安装的 Agent,
-                        缺哪个,点一下就装好,不用再去翻 GitHub README 和 npm 命令。
-                    </p>
-                    <ul>
-                        <li><i class="fa-solid fa-check"></i> <span data-i18n="pillar1.li1">自动检测已安装环境,缺哪装哪</span></li>
-                        <li><i class="fa-solid fa-check"></i> <span data-i18n="pillar1.li2">内置启动器 — 不碰终端就能跑</span></li>
-                        <li><i class="fa-solid fa-check"></i> <span data-i18n="pillar1.li3">即插即用插件:丢一个 plugin.json 就能扩展新工具</span></li>
-                    </ul>
+        <div class="features-grid reveal">
+            <!-- 1. Install -->
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <i class="fa-solid fa-download"></i>
                 </div>
-                <div class="pillar-shot">
-                    <img src="./2.png" alt="App Manager"
-                        loading="lazy">
-                </div>
+                <div class="feature-num">/ 01 — INSTALL</div>
+                <h3 data-i18n-html="pillar1.h3.html">一键安装 <span class="hl">所有主流 AI Agent</span></h3>
+                <p data-i18n="pillar1.p">
+                    OpenClaw、Claude Code、NanoBot、PicoClaw、Hermes、ZeroClaw…… 百灵鸟自动检测你机器上已安装的 Agent,缺哪个,点一下就装好。
+                </p>
+                <ul>
+                    <li><i class="fa-solid fa-check"></i> <span data-i18n="pillar1.li1">自动检测已安装环境,缺哪装哪</span></li>
+                    <li><i class="fa-solid fa-check"></i> <span data-i18n="pillar1.li2">内置启动器 — 不碰终端就能跑</span></li>
+                    <li><i class="fa-solid fa-check"></i> <span data-i18n="pillar1.li3">即插即用插件:丢一个 plugin.json 就能扩展新工具</span></li>
+                </ul>
             </div>
 
-            <!-- Pillar 2 -->
-            <div class="pillar reveal">
-                <div class="pillar-text">
-                    <div class="num">/ 02 — SWITCH</div>
-                    <h3 data-i18n-html="pillar2.h3.html">一键切换 <span class="hl">所有 Agent 的模型</span></h3>
-                    <p data-i18n="pillar2.p">
-                        Model Nexus 把 OpenAI、Anthropic、Gemini、DeepSeek、Ollama 和你的私有 endpoint 摆在同一个面板。
-                        给任意 Agent 换模型 = 选一张卡,点一下应用。OpenAI 协议和 Anthropic 协议自由切换,零配置改动。
-                    </p>
-                    <ul>
-                        <li><i class="fa-solid fa-check"></i> <span data-i18n="pillar2.li1">双协议:OpenAI API + Anthropic API,按 Agent 单独指定</span></li>
-                        <li><i class="fa-solid fa-check"></i> <span data-i18n="pillar2.li2">永远告别手动改 JSON / TOML / .env</span></li>
-                        <li><i class="fa-solid fa-check"></i> <span data-i18n="pillar2.li3">任意自定义 endpoint,一秒接入</span></li>
-                    </ul>
+            <!-- 2. Switch -->
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <i class="fa-solid fa-shuffle"></i>
                 </div>
-                <div class="pillar-shot">
-                    <img src="./1.png" alt="Model Nexus"
-                        loading="lazy">
-                </div>
+                <div class="feature-num">/ 02 — SWITCH</div>
+                <h3 data-i18n-html="pillar2.h3.html">一键切换 <span class="hl">所有 Agent 的模型</span></h3>
+                <p data-i18n="pillar2.p">
+                    Model Nexus 把 OpenAI、Anthropic、Gemini、DeepSeek、Ollama 摆在同一个面板。OpenAI ↔ Anthropic 协议自由切换,零配置改动。
+                </p>
+                <ul>
+                    <li><i class="fa-solid fa-check"></i> <span data-i18n="pillar2.li1">双协议:OpenAI API + Anthropic API,按 Agent 单独指定</span></li>
+                    <li><i class="fa-solid fa-check"></i> <span data-i18n="pillar2.li2">永远告别手动改 JSON / TOML / .env</span></li>
+                    <li><i class="fa-solid fa-check"></i> <span data-i18n="pillar2.li3">任意自定义 endpoint,一秒接入</span></li>
+                </ul>
             </div>
 
-            <!-- Pillar 3 -->
-            <div class="pillar reveal">
-                <div class="pillar-text">
-                    <div class="num">/ 03 — DEPLOY</div>
-                    <h3 data-i18n-html="pillar3.h3.html">一键部署 <span class="hl">本地大模型</span></h3>
-                    <p data-i18n-html="pillar3.p.html">
-                        内置 llama.cpp、vLLM、SGLang。Qwen、DeepSeek、Llama、MiniMax、GLM 一键拉起本地服务,
-                        自动暴露 OpenAI (<code style="font-family:var(--mono);color:var(--neon)">/v1</code>) 与
-                        Anthropic (<code style="font-family:var(--mono);color:var(--neon)">/anthropic</code>)
-                        端点,任何 Agent 都能直连。数据完全留在你的设备上。
-                    </p>
-                    <ul>
-                        <li><i class="fa-solid fa-check"></i> <span data-i18n="pillar3.li1">自动检测 NVIDIA GPU,推荐最优参数</span></li>
-                        <li><i class="fa-solid fa-check"></i> <span data-i18n="pillar3.li2">双协议代理:OpenAI + Anthropic 双端点同时可用</span></li>
-                        <li><i class="fa-solid fa-check"></i> <span data-i18n="pillar3.li3">GGUF / HuggingFace 任意模型即拉即跑</span></li>
-                    </ul>
+            <!-- 3. Deploy -->
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <i class="fa-solid fa-server"></i>
                 </div>
-                <div class="pillar-shot">
-                    <img src="./3.png" alt="Local Server" loading="lazy">
-                </div>
+                <div class="feature-num">/ 03 — DEPLOY</div>
+                <h3 data-i18n-html="pillar3.h3.html">一键部署 <span class="hl">本地大模型</span></h3>
+                <p data-i18n-html="pillar3.p.html">
+                    内置 llama.cpp、vLLM、SGLang。Qwen、DeepSeek、Llama 一键拉起,自动暴露 OpenAI 与 Anthropic 双端点。数据完全留在本地。
+                </p>
+                <ul>
+                    <li><i class="fa-solid fa-check"></i> <span data-i18n="pillar3.li1">自动检测 NVIDIA GPU,推荐最优参数</span></li>
+                    <li><i class="fa-solid fa-check"></i> <span data-i18n="pillar3.li2">双协议代理:OpenAI + Anthropic 双端点同时可用</span></li>
+                    <li><i class="fa-solid fa-check"></i> <span data-i18n="pillar3.li3">GGUF / HuggingFace 任意模型即拉即跑</span></li>
+                </ul>
             </div>
         </div>
     </section>
