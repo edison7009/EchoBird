@@ -51,25 +51,6 @@ pub async fn app_ready(app: tauri::AppHandle) {
     { let _ = app; }
 }
 
-/// Set locale — sync frontend language to tray menu
-#[tauri::command]
-pub fn set_locale(app: tauri::AppHandle, locale: String) {
-    #[cfg(not(target_os = "android"))]
-    {
-        use tauri::Manager;
-        let state = app.state::<crate::TrayState>();
-        let resolved = crate::resolve_tray_locale(&locale);
-        *state.locale.lock().unwrap() = resolved.to_string();
-        log::info!("[TrayState] Locale set to: {}", resolved);
-        // Rebuild tray menu with new locale
-        crate::rebuild_tray_menu(&app);
-    }
-    #[cfg(target_os = "android")]
-    {
-        let _ = (app, locale); // suppress unused warnings
-    }
-}
-
 /// Quit app — fully exit the application
 #[tauri::command]
 pub fn quit_app(app: tauri::AppHandle) {

@@ -1,6 +1,6 @@
 [package]
 name = "echobird"
-version = "3.7.1"
+version = "3.7.9"
 description = "The Nexus for Models, Agents & Vibe Coding"
 authors = ["Echobird Team"]
 license = "MIT"
@@ -17,7 +17,7 @@ tauri-build = { version = "2", features = [] }
 
 [dependencies]
 # Tauri core
-tauri = { version = "2", features = ["tray-icon", "image-png"] }
+tauri = { version = "2", features = [] }
 tauri-plugin-log = "2"
 tauri-plugin-shell = "2"
 

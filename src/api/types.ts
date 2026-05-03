@@ -145,7 +145,6 @@ export interface AppLogEntry {
 
 export interface AppSettings {
     locale?: string;
-    closeBehavior?: string;
     themeMode?: 'light' | 'dark';
 }
 

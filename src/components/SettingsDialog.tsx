@@ -32,7 +32,6 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
     const [updateStatus, setUpdateStatus] = useState<'idle' | 'checking' | 'latest' | 'available' | 'error'>('idle');
     const [latestVersion, setLatestVersion] = useState<string | null>(null);
     const [appVersion, setAppVersion] = useState<string>('');
-    const [closeBehavior, setCloseBehavior] = useState('ask');
     const themeMode = useThemeStore(s => s.mode);
     const setThemeMode = useThemeStore(s => s.setMode);
     const dialogRef = useRef<HTMLDivElement>(null);
@@ -79,13 +78,10 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
         }
     }, [appVersion]);
 
-    // Reset status and load settings when dialog opens
+    // Reset status when dialog opens
     useEffect(() => {
         if (isOpen) {
             setUpdateStatus('idle');
-            api.getSettings().then(s => {
-                setCloseBehavior(s.closeBehavior || 'ask');
-            }).catch(() => { });
         }
     }, [isOpen]);
 
@@ -167,31 +163,6 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
                             value={locale}
                             onChange={onLocaleChange}
                             options={LOCALE_OPTIONS}
-                        />
-                    </div>
-
-                    {/* Divider */}
-                    <div className="h-px bg-cyber-border" />
-
-                    {/* Close behavior */}
-                    <div className="space-y-2">
-                        <div className="flex items-center gap-2">
-                            <X size={12} className="text-cyber-text-secondary" />
-                            <span className="text-xs font-mono text-cyber-text-secondary tracking-wider">{t('settings.closeBehavior')}</span>
-                        </div>
-                        <MiniSelect
-                            value={closeBehavior}
-                            onChange={(val) => {
-                                setCloseBehavior(val);
-                                api.getSettings().then(s => {
-                                    api.saveSettings({ ...s, closeBehavior: val === 'ask' ? undefined : val }).catch(() => { });
-                                }).catch(() => { });
-                            }}
-                            options={[
-                                { id: 'ask', label: t('settings.closeAsk') },
-                                { id: 'minimize', label: t('settings.closeMinimize') },
-                                { id: 'quit', label: t('settings.closeQuit') },
-                            ]}
                         />
                     </div>
 

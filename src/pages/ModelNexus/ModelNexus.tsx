@@ -422,7 +422,7 @@ export function ModelNexusMain() {
 const KNOWN_PROVIDERS: { name: string; url: string }[] = [
     { name: 'OpenAI',           url: 'https://openai.com' },             //  1. ChatGPT 全球第一
     { name: 'Google Gemini',    url: 'https://gemini.google.com' },      //  2. Google 流量整合
-    { name: 'Doubao 豆包',      url: 'https://www.doubao.com' },         //  3. 国内 C 端第一
+    { name: 'Volcengine 火山引擎', url: 'https://www.volcengine.com/' },  //  3. 字节模型服务（豆包母公司）
     { name: 'DeepSeek',         url: 'https://www.deepseek.com' },       //  4. 2025 全球出圈
     { name: 'ERNIE 文心',       url: 'https://yiyan.baidu.com' },        //  5. 百度生态
     { name: 'Qwen 通义千问',    url: 'https://chat.qwen.ai' },           //  6. 阿里加持

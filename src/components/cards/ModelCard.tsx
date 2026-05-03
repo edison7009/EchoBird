@@ -27,7 +27,7 @@ export const getModelIcon = (name: string, modelId?: string): string | null => {
         [['cohere', 'command'], 'cohere'],
         [['perplexity', 'pplx'], 'perplexity'],
         [['together'], 'together'],
-        [['doubao', '豆包', 'bytedance'], 'bytedance'],
+        [['doubao', '豆包', 'bytedance', 'volcengine', 'volces', '火山'], 'bytedance'],
         [['xiaomi', '小米', 'mimo'], 'xiaomi'],
         [['nemotron', 'nvidia'], 'nemotron'],
         [['stepfun', 'step', '阶跃'], 'stepfun'],

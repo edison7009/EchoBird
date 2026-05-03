@@ -128,10 +128,6 @@ export async function appReady(): Promise<void> {
     return invoke('app_ready');
 }
 
-export async function setLocale(locale: string): Promise<void> {
-    return invoke('set_locale', { locale });
-}
-
 export async function quitApp(): Promise<void> {
     return invoke('quit_app');
 }

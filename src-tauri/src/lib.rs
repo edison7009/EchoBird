@@ -15,169 +15,14 @@ use commands::agent_commands;
 use commands::role_commands;
 use commands::bundled_commands;
 
-use std::sync::Mutex;
-#[cfg(not(target_os = "android"))]
-use tauri::Emitter;
 use tauri::Manager;
-#[cfg(not(target_os = "android"))]
-use tauri::menu::{MenuBuilder, MenuItemBuilder};
-#[cfg(not(target_os = "android"))]
-use tauri::tray::TrayIconBuilder;
-
-/// Managed state for tray locale and server status
-pub struct TrayState {
-    pub locale: Mutex<String>,
-    pub server_running: Mutex<bool>,
-}
 
 /// Track app start time for splash minimum duration
 pub struct AppStartTime(pub std::time::Instant);
 
-/// Load tray icon from the bundled tray-icon.png
-#[cfg(not(target_os = "android"))]
-fn load_tray_icon() -> tauri::image::Image<'static> {
-    let icon_bytes = include_bytes!("../icons/tray-icon.png");
-    tauri::image::Image::from_bytes(icon_bytes)
-        .expect("Failed to load tray-icon.png")
-}
-
-/// Get localized tray string
-#[cfg(not(target_os = "android"))]
-fn tray_t(locale: &str, key: &str) -> String {
-    match (locale, key) {
-        // English
-        ("en", "show") => "Show EchoBird".into(),
-        ("en", "server") => "LOCAL SERVER".into(),
-        ("en", "on") => "ON".into(),
-        ("en", "off") => "OFF".into(),
-        ("en", "quit") => "Quit".into(),
-        ("en", "tooltip") => "Local Server".into(),
-        // Simplified Chinese
-        ("zh-Hans", "show") => "\u{663E}\u{793A} EchoBird".into(),
-        ("zh-Hans", "server") => "\u{672C}\u{5730}\u{670D}\u{52A1}\u{5668}".into(),
-        ("zh-Hans", "on") => "\u{5F00}\u{542F}".into(),
-        ("zh-Hans", "off") => "\u{5173}\u{95ED}".into(),
-        ("zh-Hans", "quit") => "\u{9000}\u{51FA}".into(),
-        ("zh-Hans", "tooltip") => "\u{672C}\u{5730}\u{670D}\u{52A1}\u{5668}".into(),
-        // Traditional Chinese
-        ("zh-Hant", "show") => "\u{986F}\u{793A} EchoBird".into(),
-        ("zh-Hant", "server") => "\u{672C}\u{4F3A}\u{670D}\u{5668}".into(),
-        ("zh-Hant", "on") => "\u{958B}\u{555F}".into(),
-        ("zh-Hant", "off") => "\u{95DC}\u{9589}".into(),
-        ("zh-Hant", "quit") => "\u{7D50}\u{675F}".into(),
-        ("zh-Hant", "tooltip") => "\u{672C}\u{4F3A}\u{670D}\u{5668}".into(),
-        // Japanese
-        ("ja", "show") => "EchoBird \u{3092}\u{8868}\u{793A}".into(),
-        ("ja", "server") => "\u{30ED}\u{30FC}\u{30AB}\u{30EB}\u{30B5}\u{30FC}\u{30D0}\u{30FC}".into(),
-        ("ja", "on") => "\u{30AA}\u{30F3}".into(),
-        ("ja", "off") => "\u{30AA}\u{30D5}".into(),
-        ("ja", "quit") => "\u{7D42}\u{4E86}".into(),
-        ("ja", "tooltip") => "\u{30ED}\u{30FC}\u{30AB}\u{30EB}\u{30B5}\u{30FC}\u{30D0}\u{30FC}".into(),
-        // Korean
-        ("ko", "show") => "EchoBird \u{D45C}\u{C2DC}".into(),
-        ("ko", "server") => "\u{B85C}\u{CEEC} \u{C11C}\u{BC84}".into(),
-        ("ko", "on") => "\u{CF1C}\u{AE30}".into(),
-        ("ko", "off") => "\u{B044}\u{AE30}".into(),
-        ("ko", "quit") => "\u{C885}\u{B8CC}".into(),
-        ("ko", "tooltip") => "\u{B85C}\u{CEEC} \u{C11C}\u{BC84}".into(),
-        // Fallback to English
-        (_, key) => tray_t("en", key),
-    }
-}
-
-/// Resolve locale to one of 5 supported tray locales
-#[cfg(not(target_os = "android"))]
-fn resolve_tray_locale(locale: &str) -> &'static str {
-    if locale.starts_with("zh") {
-        if locale.contains("Hans") || locale.contains("CN") || locale.contains("SG") {
-            "zh-Hans"
-        } else if locale.contains("Hant") || locale.contains("TW") || locale.contains("HK") {
-            "zh-Hant"
-        } else {
-            "zh-Hans"
-        }
-    } else if locale.starts_with("ja") {
-        "ja"
-    } else if locale.starts_with("ko") {
-        "ko"
-    } else {
-        "en"
-    }
-}
-
-/// Rebuild tray menu dynamically (call when locale or server status changes)
-#[cfg(not(target_os = "android"))]
-pub fn rebuild_tray_menu(app: &tauri::AppHandle) {
-    let state = app.state::<TrayState>();
-    let locale = state.locale.lock().unwrap().clone();
-    let is_online = *state.server_running.lock().unwrap();
-    let version = env!("CARGO_PKG_VERSION");
-
-    // Get tray icon by ID
-    let Some(tray) = app.tray_by_id("main-tray") else {
-        log::warn!("[Tray] Cannot find tray icon 'main-tray'");
-        return;
-    };
-
-    // Build menu items
-    let app_name = "EchoBird";
-    let version_item = MenuItemBuilder::with_id("version", format!("{} v{}", app_name, version))
-        .enabled(false)
-        .build(app)
-        .unwrap();
-    let show_item = MenuItemBuilder::with_id("show", tray_t(&locale, "show"))
-        .build(app)
-        .unwrap();
-
-    // Server status item (clickable �?opens Local Server page)
-    let server_label = format!("{} [{}]",
-        tray_t(&locale, "server"),
-        if is_online { tray_t(&locale, "on") } else { tray_t(&locale, "off") }
-    );
-    let server_item = MenuItemBuilder::with_id("server_status", &server_label)
-        .build(app)
-        .unwrap();
-
-    let quit_item = MenuItemBuilder::with_id("quit", tray_t(&locale, "quit"))
-        .build(app)
-        .unwrap();
-
-    // Build menu using chaining
-    let menu = MenuBuilder::new(app)
-        .item(&version_item)
-        .separator()
-        .item(&show_item)
-        .separator()
-        .item(&server_item)
-        .separator()
-        .item(&quit_item)
-        .build()
-        .unwrap();
-
-    let _ = tray.set_menu(Some(menu));
-
-    // Use the unified app icon for tray (same icon regardless of server status)
-    let tray_icon = load_tray_icon();
-    let _ = tray.set_icon(Some(tray_icon));
-
-    // Update tooltip
-    let tooltip = format!("{} - {} {}",
-        app_name,
-        tray_t(&locale, "tooltip"),
-        if is_online { tray_t(&locale, "on") } else { tray_t(&locale, "off") }
-    );
-    let _ = tray.set_tooltip(Some(&tooltip));
-
-    log::info!("[Tray] Menu rebuilt: locale={}, server={}", locale, if is_online { "ON" } else { "OFF" });
-}
-
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
-        .manage(TrayState {
-            locale: Mutex::new("en".into()),
-            server_running: Mutex::new(false),
-        })
         .manage(AppStartTime(std::time::Instant::now()))
         .manage(ssh_commands::create_ssh_pool())
         .manage(services::agent_loop::create_session_map())
@@ -207,76 +52,6 @@ pub fn run() {
             // Register shell plugin (open external URLs, folders)
             app.handle().plugin(tauri_plugin_shell::init())?;
 
-            // ─── System Tray (desktop only) ───
-            #[cfg(not(target_os = "android"))]
-            {
-            let tray_icon = load_tray_icon();
-
-            // Build initial tray menu (English default, server offline)
-            let version = env!("CARGO_PKG_VERSION");
-            let version_item = MenuItemBuilder::with_id("version", format!("EchoBird v{}", version))
-                .enabled(false)
-                .build(app)?;
-            let show_item = MenuItemBuilder::with_id("show", tray_t("en", "show"))
-                .build(app)?;
-            let server_item = MenuItemBuilder::with_id("server_status",
-                format!("{} [{}]", tray_t("en", "server"), tray_t("en", "off")))
-                .build(app)?;
-            let quit_item = MenuItemBuilder::with_id("quit", tray_t("en", "quit"))
-                .build(app)?;
-            let tray_menu = MenuBuilder::new(app)
-                .item(&version_item)
-                .separator()
-                .item(&show_item)
-                .separator()
-                .item(&server_item)
-                .separator()
-                .item(&quit_item)
-                .build()?;
-
-            TrayIconBuilder::with_id("main-tray")
-                .icon(tray_icon)
-                .menu(&tray_menu)
-                .tooltip(format!("EchoBird - {} {}", tray_t("en", "tooltip"), tray_t("en", "off")))
-                .on_menu_event(move |app_handle, event| {
-                    match event.id().as_ref() {
-                        "show" => {
-                            if let Some(window) = app_handle.get_webview_window("main") {
-                                let _ = window.show();
-                                let _ = window.unminimize();
-                                let _ = window.set_focus();
-                            }
-                        }
-                        "server_status" => {
-                            // Open main window and navigate to Local Server page
-                            if let Some(window) = app_handle.get_webview_window("main") {
-                                let _ = window.show();
-                                let _ = window.unminimize();
-                                let _ = window.set_focus();
-                                let _ = window.emit("tray:navigate", "player");
-                            }
-                        }
-                        "quit" => {
-                            app_handle.exit(0);
-                        }
-                        _ => {}
-                    }
-                })
-                .on_tray_icon_event(|tray, event| {
-                    // Only show/focus window on double-click (Windows)
-                    // Single click must not steal focus — it opens the context menu
-                    if let tauri::tray::TrayIconEvent::DoubleClick { .. } = event {
-                        let app_handle = tray.app_handle();
-                        if let Some(window) = app_handle.get_webview_window("main") {
-                            let _ = window.show();
-                            let _ = window.unminimize();
-                            let _ = window.set_focus();
-                        }
-                    }
-                })
-                .build(app)?;
-            } // end #[cfg(not(android))]
-
             // Safety fallback: show main window after 1s even if appReady() never fires.
             // Uses std::thread to avoid tokio runtime dependency in sync setup().
             #[cfg(not(target_os = "android"))]
@@ -301,7 +76,6 @@ pub fn run() {
             mod_stub::get_app_logs,
             mod_stub::clear_app_logs,
             mod_stub::app_ready,
-            mod_stub::set_locale,
             mod_stub::quit_app,
             tool_commands::scan_tools,
             tool_commands::get_tool_model_info,

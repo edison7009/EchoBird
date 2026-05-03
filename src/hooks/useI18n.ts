@@ -43,14 +43,7 @@ export const I18nProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }).catch(() => {
             api.saveSettings({ locale: newLocale }).catch(() => { });
         });
-        // Sync tray menu language
-        api.setLocale(newLocale).catch(() => { });
     }, []);
-
-    // Sync current locale to backend on init
-    useEffect(() => {
-        api.setLocale(locale).catch(() => { });
-    }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
     const t = useCallback((key: TKey) => translate(key, ready ? locale : 'en'), [locale, ready]);
 

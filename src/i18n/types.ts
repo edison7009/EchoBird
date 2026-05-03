@@ -12,7 +12,6 @@ export type TKey =
     | 'settings.title' | 'settings.version' | 'settings.language' | 'settings.updates'
     | 'settings.checkForUpdates' | 'settings.checking'
     | 'settings.latestVersion' | 'settings.checkFailed'
-    | 'settings.closeBehavior' | 'settings.closeAsk' | 'settings.closeMinimize' | 'settings.closeQuit'
     | 'settings.appearance' | 'settings.themeLight' | 'settings.themeDark' | 'settings.themeSystem'
     // Buttons
     | 'btn.addModel' | 'btn.refresh'
@@ -73,8 +72,6 @@ export type TKey =
     | 'common.areYouSure' | 'common.inputting'
     // API Key encryption status
     | 'key.encrypted' | 'key.destroyed'
-    // Close behavior confirmation
-    | 'close.title' | 'close.message' | 'close.minimize' | 'close.quit' | 'close.remember'
     // Developer invite hint
     | 'hint.devInvite'
     // Mother Agent

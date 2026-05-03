@@ -37,28 +37,12 @@ pub async fn start_llm_server(
     runtime: Option<String>,
 ) -> Result<(), String> {
     let rt = runtime.as_deref().unwrap_or("llama-server");
-    let result = local_llm::start_server(&model_path, port, gpu_layers, context_size, rt, app_handle.clone()).await;
-    if result.is_ok() {
-        use tauri::Manager;
-        let state = app_handle.state::<crate::TrayState>();
-        *state.server_running.lock().unwrap() = true;
-        #[cfg(not(target_os = "android"))]
-        crate::rebuild_tray_menu(&app_handle);
-    }
-    result
+    local_llm::start_server(&model_path, port, gpu_layers, context_size, rt, app_handle).await
 }
 
 #[tauri::command]
-pub async fn stop_llm_server(app_handle: tauri::AppHandle) -> Result<(), String> {
-    let result = local_llm::stop_server().await;
-    if result.is_ok() {
-        use tauri::Manager;
-        let state = app_handle.state::<crate::TrayState>();
-        *state.server_running.lock().unwrap() = false;
-        #[cfg(not(target_os = "android"))]
-        crate::rebuild_tray_menu(&app_handle);
-    }
-    result
+pub async fn stop_llm_server() -> Result<(), String> {
+    local_llm::stop_server().await
 }
 
 #[tauri::command]

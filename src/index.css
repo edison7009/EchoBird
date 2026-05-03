@@ -532,3 +532,17 @@ input[type=number].no-spinner::-webkit-outer-spin-button {
 input[type=number].no-spinner {
   -moz-appearance: textfield;
 }
+
+/* WebKit autofill: keep theme colors instead of Chrome's blue-on-yellow default */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active,
+textarea:-webkit-autofill,
+textarea:-webkit-autofill:hover,
+textarea:-webkit-autofill:focus {
+  -webkit-text-fill-color: rgb(var(--text-primary-rgb));
+  -webkit-box-shadow: 0 0 0 1000px rgb(var(--bg-input-rgb)) inset;
+  caret-color: rgb(var(--text-primary-rgb));
+  transition: background-color 5000s ease-in-out 0s;
+}

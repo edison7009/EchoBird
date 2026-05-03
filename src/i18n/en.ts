@@ -67,7 +67,7 @@ const en: Translations = {
     'agent.noModelsHintPost': 'to add one.',
     'agent.applyAndLaunch': 'Apply config & Launch app',
     'agent.appliedVia': 'Applied via official config files',
-    'agent.restore': 'Restore Default',
+    'agent.restore': 'Default',
     // Local Server
     'server.selectModel': 'Select Model:',
     'server.context': 'CONTEXT',
@@ -151,17 +151,6 @@ const en: Translations = {
     'store.remove': 'REMOVE',
     'store.ver': 'ver',
     'store.ready': '鉁?Ready',
-    // Close behavior confirmation
-    'close.title': 'Close Window',
-    'close.message': 'Would you like to minimize to system tray or quit completely?',
-    'close.minimize': 'Minimize to Tray',
-    'close.quit': 'Quit',
-    'close.remember': 'Remember my choice',
-    // Close behavior settings
-    'settings.closeBehavior': 'Close Behavior',
-    'settings.closeAsk': 'Ask every time',
-    'settings.closeMinimize': 'Minimize to tray',
-    'settings.closeQuit': 'Quit completely',
     // Developer invite hint
     // API Key encryption status hints
     'key.encrypted': 'Encrypted globally — API Key will self-destruct if environment changes',

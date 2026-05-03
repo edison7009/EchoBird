@@ -5,8 +5,6 @@ use crate::utils::platform::echobird_dir;
 pub struct AppSettings {
     #[serde(default)]
     pub locale: Option<String>,
-    #[serde(default, rename = "closeBehavior")]
-    pub close_behavior: Option<String>,
 }
 
 fn settings_path() -> std::path::PathBuf {
