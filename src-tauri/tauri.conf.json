@@ -55,8 +55,6 @@
       "nsis": {
         "template": "installer.nsi",
         "installerIcon": "icons/icon.ico",
-        "headerImage": "icons/nsis-header.bmp",
-        "sidebarImage": "icons/nsis-sidebar.bmp",
         "startMenuFolder": "EchoBird"
       }
     }
