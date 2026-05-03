@@ -1,5 +1,5 @@
 {
-  "version": "3.7.7",
+  "version": "3.7.8",
   "releaseDate": "2026-05-03",
-  "releaseNotes": "Solid Claude-style background, sticky-bottom chat that always follows the agent's \"thinking\" indicator, default NSIS installer artwork, fixed splash screen, and light-mode cards that no longer feel painfully white."
+  "releaseNotes": "Dark mode retuned to Claude's warm-tinted palette — page bg shifted from cold near-black to warm dark, primary text from glaring near-white to a comfortable off-cream. Same coral accent, much easier on the eyes."
 }
