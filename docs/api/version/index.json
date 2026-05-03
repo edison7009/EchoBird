@@ -1,5 +1,5 @@
 {
   "version": "3.7.7",
   "releaseDate": "2026-05-03",
-  "releaseNotes": "Solid Claude-style background, sticky-bottom chat that always follows the agent's \"thinking\" indicator, regenerated installer/uninstaller artwork with the new EchoBird icon, and light-mode cards that no longer feel painfully white."
+  "releaseNotes": "Solid Claude-style background, sticky-bottom chat that always follows the agent's \"thinking\" indicator, default NSIS installer artwork, fixed splash screen, and light-mode cards that no longer feel painfully white."
 }
