@@ -6,21 +6,22 @@
    opacity modifiers (e.g. bg-cyber-accent/20) keep working. ── */
 :root,
 :root[data-theme="dark"] {
-    /* Claude Desktop — near-black page, gently elevated cards. */
-    --bg-base-rgb:           18 18 18;       /* #121212 — page */
-    --bg-terminal-rgb:       12 12 12;
-    --bg-surface-rgb:        28 28 30;       /* #1C1C1E — cards, lists */
-    --bg-elevated-rgb:       44 44 46;       /* #2C2C2E — selected, dropdowns */
-    --bg-deep-rgb:           10 10 10;
-    --bg-input-rgb:          28 28 30;
-    --border-rgb:            48 48 50;
+    /* Claude Desktop dark — warm-tinted dark grays (NOT pure black) paired
+       with off-cream text (NOT pure white) so the contrast stays gentle. */
+    --bg-base-rgb:           33 31 28;       /* #211F1C — page, warm dark */
+    --bg-terminal-rgb:       26 24 21;       /* #1A1815 — slightly deeper */
+    --bg-surface-rgb:        42 39 35;       /* #2A2723 — cards, lists */
+    --bg-elevated-rgb:       54 50 44;       /* #36322C — selected, hover */
+    --bg-deep-rgb:           26 24 21;       /* #1A1815 */
+    --bg-input-rgb:          46 43 38;       /* #2E2B26 — raised input */
+    --border-rgb:            59 54 47;       /* #3B362F — soft warm border */
     --accent-rgb:            217 119 87;     /* Claude coral — used sparingly */
     --accent-secondary-rgb:  192 132 100;
     --warning-rgb:           250 204 21;
     --error-rgb:             224 109 109;
-    --text-primary-rgb:      236 236 238;
-    --text-secondary-rgb:    158 158 162;
-    --text-muted-rgb:        110 110 114;
+    --text-primary-rgb:      217 211 197;    /* #D9D3C5 — warm off-cream */
+    --text-secondary-rgb:    155 150 138;    /* #9B968A — warm muted */
+    --text-muted-rgb:        107 103 95;     /* #6B675F — warm dim */
 }
 
 :root[data-theme="light"] {
