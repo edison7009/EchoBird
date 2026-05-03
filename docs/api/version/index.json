@@ -1,5 +1,5 @@
 {
-  "version": "3.7.8",
+  "version": "3.7.9",
   "releaseDate": "2026-05-03",
-  "releaseNotes": "Dark mode retuned to Claude's warm-tinted palette — page bg shifted from cold near-black to warm dark, primary text from glaring near-white to a comfortable off-cream. Same coral accent, much easier on the eyes."
+  "releaseNotes": "Removed the always-on system-tray icon — the close button now exits directly, no more \"minimize to tray\" prompt. Form fields in Add Server / Add Model dialogs now keep their theme colors when Chromium tries to autofill (no more blue text on yellow). Model Nexus replaces \"Doubao 豆包\" with \"Volcengine 火山引擎\" pointing at volcengine.com — the actual ByteDance model-service portal. App Manager's right-panel \"Default\" badge is bigger and simpler (renamed from \"Restore Default\")."
 }
