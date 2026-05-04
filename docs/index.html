@@ -308,6 +308,72 @@
             transform: translateY(-2px);
         }
 
+        /* Command-line install hint shown next to the CTA buttons.
+           OS-detected: only the matching block is visible at a time. */
+        .install-cmd {
+            margin: 8px 0 28px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            max-width: 640px;
+        }
+
+        .install-cmd-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border-strong);
+            border-radius: 8px;
+            padding: 10px 14px;
+            font-family: var(--mono);
+            font-size: 13px;
+            transition: border-color 0.15s;
+        }
+
+        .install-cmd-row:hover {
+            border-color: rgba(217, 119, 87, 0.4);
+        }
+
+        .install-cmd-row .label {
+            color: var(--dim);
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            min-width: 56px;
+        }
+
+        .install-cmd-row code {
+            color: var(--white);
+            background: transparent;
+            flex: 1;
+            overflow-x: auto;
+            white-space: nowrap;
+        }
+
+        .install-cmd-row .copy-btn {
+            background: transparent;
+            border: 1px solid var(--border-strong);
+            color: var(--dim);
+            font-family: var(--mono);
+            font-size: 11px;
+            padding: 4px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            letter-spacing: 0.5px;
+            transition: all 0.15s;
+        }
+
+        .install-cmd-row .copy-btn:hover {
+            border-color: var(--neon);
+            color: var(--neon);
+        }
+
+        .install-cmd-row .copy-btn.copied {
+            border-color: var(--neon);
+            color: var(--neon);
+        }
+
         .hero .micro {
             font-family: var(--mono);
             font-size: 12px;
@@ -1099,6 +1165,20 @@
                 Star on GitHub
             </a>
         </div>
+
+        <!-- Command-line install hint (auto-detects OS, shows only the matching row) -->
+        <div class="install-cmd" id="installCmd" style="display:none">
+            <div class="install-cmd-row" data-os="windows" style="display:none">
+                <span class="label">Windows</span>
+                <code id="cmdWin">irm https://echobird.ai/install.ps1 | iex</code>
+                <button class="copy-btn" data-copy="cmdWin">COPY</button>
+            </div>
+            <div class="install-cmd-row" data-os="unix" style="display:none">
+                <span class="label" id="unixLabel">macOS / Linux</span>
+                <code id="cmdUnix">curl -fsSL https://echobird.ai/install.sh | sh</code>
+                <button class="copy-btn" data-copy="cmdUnix">COPY</button>
+            </div>
+        </div>
     </section>
 
     <!-- Pillars -->
@@ -1314,6 +1394,46 @@
                 });
             }, { threshold: 0.12 });
             document.querySelectorAll('.reveal').forEach(el => obs.observe(el));
+        })();
+
+        // Command-line install hint — show only the row matching the visitor's OS.
+        // navigator.userAgentData (modern) is preferred; fallback to userAgent string
+        // for Safari and older browsers.
+        (function () {
+            const wrap = document.getElementById('installCmd');
+            if (!wrap) return;
+            const ua = navigator.userAgent || '';
+            let os = 'unix';                                        // default: macOS/Linux
+            if (/Windows/i.test(ua)) os = 'windows';
+            else if (/Mac OS X|Macintosh/i.test(ua)) os = 'unix';
+            else if (/Linux/i.test(ua)) os = 'unix';
+            // Tighten the unix label so Mac users see "macOS" and Linux users see "Linux"
+            const unixLabel = document.getElementById('unixLabel');
+            if (unixLabel) {
+                if (/Mac OS X|Macintosh/i.test(ua)) unixLabel.textContent = 'macOS';
+                else if (/Linux/i.test(ua))         unixLabel.textContent = 'Linux';
+            }
+            const row = wrap.querySelector(`[data-os="${os}"]`);
+            if (row) row.style.display = 'flex';
+            wrap.style.display = 'flex';
+
+            // Copy button — Clipboard API with a transient "COPIED" affordance
+            wrap.querySelectorAll('.copy-btn').forEach(btn => {
+                btn.addEventListener('click', async () => {
+                    const target = document.getElementById(btn.getAttribute('data-copy'));
+                    if (!target) return;
+                    try {
+                        await navigator.clipboard.writeText(target.textContent.trim());
+                        const orig = btn.textContent;
+                        btn.textContent = 'COPIED';
+                        btn.classList.add('copied');
+                        setTimeout(() => {
+                            btn.textContent = orig;
+                            btn.classList.remove('copied');
+                        }, 1500);
+                    } catch { /* clipboard blocked — fall through silently */ }
+                });
+            });
         })();
     </script>
 </body>
