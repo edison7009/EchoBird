@@ -25,39 +25,65 @@ echo "  ${GRAY}─────────────────────�
 OS=$(uname -s)
 ARCH=$(uname -m)
 
-# Detect the asset matcher pattern for our platform.
-# CI emits these names (see .github/workflows/release.yml rename step):
-#   EchoBird_<ver>_Windows_x64-setup.exe
-#   EchoBird_<ver>_macOS_Universal.dmg     ← single Universal binary covers Intel + ARM
-#   EchoBird_<ver>_Linux_x64.deb
-#   EchoBird_<ver>_Linux_arm64.deb
-ASSET_GREP=""
+# Each ASSET_GREP must match BOTH naming schemes the CI produces:
+#   1. Default Tauri names (visible mid-build before the rename-assets job runs)
+#      e.g. EchoBird_3.8.0_amd64.deb, EchoBird_3.8.0_universal.dmg
+#   2. Renamed final names (post rename-assets job — see .github/workflows/release.yml)
+#      e.g. EchoBird_3.8.0_Linux_x64.deb, EchoBird_3.8.0_macOS_Universal.dmg
+# Matching both ensures `curl | sh` never reports "no asset" during the brief
+# window where rename-assets hasn't run yet.
 PLATFORM=""
+ASSET_GREP=""
+
 if [ "$OS" = "Darwin" ]; then
   PLATFORM="macos"
-  ASSET_GREP="macOS_Universal\.dmg"
+  # macOS Universal binary covers both Intel and Apple Silicon.
+  ASSET_GREP='(macOS_Universal|universal)\.dmg'
+
 elif [ "$OS" = "Linux" ]; then
   case "$ARCH" in
-    x86_64|amd64)
-      PLATFORM="linux-x64"
-      ASSET_GREP="(Linux_x64|amd64)\.deb"
-      ;;
-    aarch64|arm64)
-      PLATFORM="linux-arm64"
-      ASSET_GREP="(Linux_arm64|arm64)\.deb"
-      ;;
+    x86_64|amd64)  LINUX_ARCH="amd64" ;;
+    aarch64|arm64) LINUX_ARCH="arm64" ;;
     *)
       echo "  ${RED}Unsupported Linux architecture: $ARCH${RESET}"
-      echo "  ${YELLOW}EchoBird ships amd64 and arm64 .deb only.${RESET}"
+      echo "  ${YELLOW}EchoBird currently ships amd64 and arm64 Linux builds only.${RESET}"
       echo "  ${YELLOW}Open an issue: https://github.com/edison7009/EchoBird/issues${RESET}"
       exit 1
       ;;
   esac
-  if ! command -v dpkg > /dev/null 2>&1; then
-    echo "  ${RED}This Linux distro doesn't have dpkg.${RESET}"
-    echo "  ${YELLOW}EchoBird only ships .deb packages right now.${RESET}"
-    echo "  ${YELLOW}Manual download: https://github.com/edison7009/EchoBird/releases/latest${RESET}"
-    exit 1
+
+  # Prefer dpkg (.deb on Debian/Ubuntu) → rpm (.rpm on Fedora/RHEL/openSUSE)
+  # → AppImage (everything else, incl. Arch / NixOS / minimal containers).
+  # Distro-native packages register the binary system-wide and integrate with
+  # the package manager; AppImage is portable but requires the user to put
+  # ~/.local/bin on PATH themselves.
+  if command -v dpkg > /dev/null 2>&1; then
+    if [ "$LINUX_ARCH" = "arm64" ]; then
+      PLATFORM="linux-arm64-deb"
+      ASSET_GREP='(Linux_arm64|arm64)\.deb'
+    else
+      PLATFORM="linux-x64-deb"
+      ASSET_GREP='(Linux_x64|amd64)\.deb'
+    fi
+  elif command -v rpm > /dev/null 2>&1; then
+    # Tauri default rpm name is "EchoBird-3.8.0-1.x86_64.rpm" (note the
+    # build counter "-1" before .arch.rpm). The renamed name is
+    # "EchoBird_3.8.0_Linux_x64.rpm".
+    if [ "$LINUX_ARCH" = "arm64" ]; then
+      PLATFORM="linux-arm64-rpm"
+      ASSET_GREP='(Linux_arm64\.rpm|aarch64\.rpm)'
+    else
+      PLATFORM="linux-x64-rpm"
+      ASSET_GREP='(Linux_x64\.rpm|x86_64\.rpm)'
+    fi
+  else
+    if [ "$LINUX_ARCH" = "arm64" ]; then
+      PLATFORM="linux-arm64-appimage"
+      ASSET_GREP='(Linux_arm64|aarch64)\.AppImage'
+    else
+      PLATFORM="linux-x64-appimage"
+      ASSET_GREP='(Linux_x64|amd64)\.AppImage'
+    fi
   fi
 else
   echo "  ${RED}Unsupported OS: $OS${RESET}"
@@ -79,7 +105,8 @@ LATEST_VER=$(echo "$GH_JSON" | grep -oE '"tag_name"[[:space:]]*:[[:space:]]*"[^"
 DOWNLOAD_URL=$(echo "$GH_JSON" | grep -oE "\"browser_download_url\"[[:space:]]*:[[:space:]]*\"[^\"]*${ASSET_GREP}\"" | head -1 | sed -E 's/.*"(https[^"]*)"$/\1/')
 
 # Empty download URL = our platform's asset isn't out yet (mid-CI for a
-# just-tagged release). Show a friendly "come back later" instead of
+# just-tagged release: Linux runner usually finishes first, mac/Win take
+# longer, then rename-assets runs). Show "come back later" instead of
 # advertising a version we can't deliver.
 if [ -z "$LATEST_VER" ] || [ -z "$DOWNLOAD_URL" ]; then
   echo ""
@@ -177,9 +204,13 @@ if [ "$OS" = "Darwin" ]; then
 # ── Linux ──────────────────────────────────────────────────────────────────────
 elif [ "$OS" = "Linux" ]; then
 
+  # Detect installed version — try both package managers
   INSTALLED_VER=""
   if command -v dpkg > /dev/null 2>&1; then
     INSTALLED_VER=$(dpkg -s echobird 2>/dev/null | grep '^Version:' | sed 's/Version: //' || true)
+  fi
+  if [ -z "$INSTALLED_VER" ] && command -v rpm > /dev/null 2>&1; then
+    INSTALLED_VER=$(rpm -q --queryformat '%{VERSION}' echobird 2>/dev/null || true)
   fi
 
   if [ -n "$INSTALLED_VER" ]; then
@@ -195,22 +226,81 @@ elif [ "$OS" = "Linux" ]; then
     echo "  ${GRAY}Not installed — performing fresh install...${RESET}"
   fi
 
-  TMP="/tmp/echobird-v${LATEST_VER}.deb"
+  # ── .deb branch (Debian / Ubuntu / Mint / etc.) ──
+  case "$PLATFORM" in *-deb)
+    TMP="/tmp/echobird-v${LATEST_VER}.deb"
+    rm -f "$TMP"
+    echo "  ${GRAY}Downloading .deb package...${RESET}"
+    if ! curl -fL --progress-bar --retry 5 --retry-all-errors --retry-delay 2 "$DOWNLOAD_URL" -o "$TMP"; then
+      echo ""
+      echo "  ${RED}Download failed.${RESET}"
+      echo "  ${YELLOW}Retry in ~5 min, or manual: https://github.com/edison7009/EchoBird/releases/latest${RESET}"
+      echo ""
+      exit 1
+    fi
+    echo "  ${GRAY}Installing (requires sudo)...${RESET}"
+    # `dpkg -i` then `apt-get install -f -y` is the idiomatic way to install a
+    # local .deb that depends on packages the user doesn't have yet — apt fixes
+    # the broken state by pulling deps from the configured repos.
+    sudo dpkg -i "$TMP" || sudo apt-get install -f -y
+    rm "$TMP"
+    echo ""
+    echo "  ${GREEN}Done! EchoBird v$LATEST_VER installed.${RESET}"
+    exit 0
+  esac
+
+  # ── .rpm branch (Fedora / RHEL / openSUSE / CentOS) ──
+  case "$PLATFORM" in *-rpm)
+    TMP="/tmp/echobird-v${LATEST_VER}.rpm"
+    rm -f "$TMP"
+    echo "  ${GRAY}Downloading .rpm package...${RESET}"
+    if ! curl -fL --progress-bar --retry 5 --retry-all-errors --retry-delay 2 "$DOWNLOAD_URL" -o "$TMP"; then
+      echo ""
+      echo "  ${RED}Download failed.${RESET}"
+      echo "  ${YELLOW}Retry in ~5 min, or manual: https://github.com/edison7009/EchoBird/releases/latest${RESET}"
+      echo ""
+      exit 1
+    fi
+    echo "  ${GRAY}Installing (requires sudo)...${RESET}"
+    # Prefer dnf/zypper (resolves dependencies) over raw `rpm -i`. Plain
+    # `rpm -i` fails with "Failed dependencies: ..." on newer Fedora / RHEL
+    # where webkit2gtk is split into many runtime sub-packages.
+    if command -v dnf > /dev/null 2>&1; then
+      sudo dnf install -y "$TMP"
+    elif command -v zypper > /dev/null 2>&1; then
+      sudo zypper --non-interactive install --allow-unsigned-rpm "$TMP"
+    elif command -v yum > /dev/null 2>&1; then
+      sudo yum install -y "$TMP"
+    else
+      sudo rpm -i --replacepkgs "$TMP"
+    fi
+    rm "$TMP"
+    echo ""
+    echo "  ${GREEN}Done! EchoBird v$LATEST_VER installed.${RESET}"
+    exit 0
+  esac
+
+  # ── AppImage branch (Arch / NixOS / Alpine / minimal containers) ──
+  DEST="$HOME/.local/bin/echobird"
+  mkdir -p "$HOME/.local/bin"
+  # Download to a versioned temp first, then move into place. Writing
+  # straight to $DEST would clobber a working install if the download
+  # failed partway.
+  TMP="/tmp/echobird-v${LATEST_VER}.AppImage"
   rm -f "$TMP"
-  echo "  ${GRAY}Downloading .deb package...${RESET}"
+  echo "  ${GRAY}Downloading AppImage...${RESET}"
   if ! curl -fL --progress-bar --retry 5 --retry-all-errors --retry-delay 2 "$DOWNLOAD_URL" -o "$TMP"; then
     echo ""
     echo "  ${RED}Download failed.${RESET}"
-    echo "  ${YELLOW}Retry in ~5 min, or download manually:${RESET}"
-    echo "  ${YELLOW}https://github.com/edison7009/EchoBird/releases/latest${RESET}"
+    echo "  ${YELLOW}Retry in ~5 min, or manual: https://github.com/edison7009/EchoBird/releases/latest${RESET}"
     echo ""
     exit 1
   fi
-  echo "  ${GRAY}Installing (requires sudo)...${RESET}"
-  sudo dpkg -i "$TMP" || sudo apt-get install -f -y
-  rm "$TMP"
+  mv -f "$TMP" "$DEST"
+  chmod +x "$DEST"
   echo ""
-  echo "  ${GREEN}Done! EchoBird v$LATEST_VER installed.${RESET}"
+  echo "  ${GREEN}Done! EchoBird v$LATEST_VER installed to $DEST${RESET}"
+  echo "  ${GRAY}Make sure ~/.local/bin is in your PATH.${RESET}"
 
 fi
 
