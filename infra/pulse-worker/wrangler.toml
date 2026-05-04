@@ -1,0 +1,12 @@
+name = "echobird-pulse"
+main = "src/index.js"
+compatibility_date = "2025-01-01"
+
+# Bind to echobird.ai/pulse/*
+# Adjust zone_name to your registered Cloudflare zone if different.
+routes = [
+  { pattern = "echobird.ai/pulse/*",   zone_name = "echobird.ai" },
+  { pattern = "echobird.ai/courses/*", zone_name = "echobird.ai" },
+]
+
+# No KV / D1 / R2 needed — the Worker is a pure pass-through with edge cache.

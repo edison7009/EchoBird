@@ -26,6 +26,8 @@ import { ModelNexusProvider, ModelNexusTitleActions, ModelNexusMain, ModelNexusP
 import { AppManagerProvider, AppManagerMain, AppManagerPanel, AppManagerBottom, AppManagerErrorModal } from './pages/AppManager';
 import { LocalServerProvider, LocalServerMain, LocalServerPanel, LocalServerBottom } from './pages/LocalServer';
 import { MotherAgentProvider, MotherAgentMain, MotherAgentPanel } from './pages/MotherAgent';
+import { AiPulseProvider, AiPulseTitleActions, AiNewsMain, AiProjectsMain, AiPulsePanel } from './pages/AiPulse';
+import { AiCoursesProvider, AiCoursesTitleActions, AiCoursesMain, AiCoursesPanel } from './pages/AiCourses';
 
 function SidebarConnected({ onSettingsClick }: { onSettingsClick: () => void }) {
     const { activePage, setActivePage, agentRunning, motherNewMessage, clearMotherBadge, updateAvailable } = useNavigationStore();
@@ -82,6 +84,8 @@ function App() {
                     {/* All Providers always mounted — only CSS hidden changes */}
                         <MotherAgentProvider>
                             <ModelNexusProvider>
+                              <AiPulseProvider>
+                                <AiCoursesProvider>
 
                                     <AppManagerProvider>
                                         <LocalServerProvider>
@@ -104,6 +108,9 @@ function App() {
                                                                     {/* Shared page title bar */}
                                                                     <h2 className="text-xl mb-3 flex-shrink-0 relative flex items-center cjk-title">
                                                                         <span className="truncate">
+                                                                            {is('news') && t('page.news')}
+                                                                            {is('projects') && t('page.projects')}
+                                                                            {is('courses') && t('page.courses')}
                                                                             {is('models') && t('page.modelNexus')}
 
                                                                             {is('apps') && t('page.appManager')}
@@ -112,6 +119,8 @@ function App() {
                                                                         </span>
                                                                         {/* Title actions — always mounted but hidden */}
 
+                                                                        <span className={page(is('news') || is('projects'))}><AiPulseTitleActions /></span>
+                                                                        <span className={page(is('courses'))}><AiCoursesTitleActions /></span>
                                                                         <span className={page(is('models'))}><ModelNexusTitleActions /></span>
 
                                                                         {is('mother') && (
@@ -127,6 +136,9 @@ function App() {
                                                                     </h2>
 
                                                                     {/* Page content — always mounted, CSS hidden */}
+                                                                    <div className={pageScroll(is('news'))}><AiNewsMain /></div>
+                                                                    <div className={pageScroll(is('projects'))}><AiProjectsMain /></div>
+                                                                    <div className={pageScroll(is('courses'))}><AiCoursesMain /></div>
                                                                     <div className={pageScroll(is('models'))}><ModelNexusMain /></div>
 
                                                                     <div className={pageBlock(is('apps'))}><AppManagerMain /></div>
@@ -140,6 +152,8 @@ function App() {
                                                             </main>
 
                                                             <aside className="w-80 flex flex-col">
+                                                                    <div className={page(is('news') || is('projects'))}><AiPulsePanel /></div>
+                                                                    <div className={page(is('courses'))}><AiCoursesPanel /></div>
                                                                     <div className={page(is('models'))}><ModelNexusPanel /></div>
 
                                                                     <div className={page(is('apps'))}><AppManagerPanel /></div>
@@ -170,6 +184,8 @@ function App() {
                                         </LocalServerProvider>
                                     </AppManagerProvider>
 
+                                </AiCoursesProvider>
+                              </AiPulseProvider>
                             </ModelNexusProvider>
                         </MotherAgentProvider>
 

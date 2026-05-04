@@ -26,7 +26,7 @@ interface NavigationState {
 }
 
 export const useNavigationStore = create<NavigationState>((set) => ({
-    activePage: 'models',
+    activePage: 'news',
     motherPrefill: undefined,
     agentRunning: false,
     motherNewMessage: false,

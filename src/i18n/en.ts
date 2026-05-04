@@ -3,15 +3,29 @@ import { Translations } from './types';
 
 const en: Translations = {
     // Navigation
+    'nav.news': 'AI News',
+    'nav.projects': 'Star Projects',
+    'nav.courses': 'AI Courses',
     'nav.modelNexus': 'Model Nexus',
     'nav.appManager': 'App Manager',
     'nav.localServer': 'Local LLM',
     'nav.motherAgent': 'Install & Repair',
     // Page titles
+    'page.news': 'AI NEWS',
+    'page.projects': 'STAR PROJECTS',
+    'page.courses': 'AI COURSES',
+    'courses.filter': 'CATEGORY',
+    'courses.cat.all': 'All',
     'page.modelNexus': 'MODEL NEXUS',
     'page.appManager': 'APP MANAGER',
     'page.localServer': 'LOCAL LLM',
     'page.motherAgent': 'INSTALL & REPAIR',
+    // AI Pulse (News + Projects shared)
+    'pulse.archive': 'ARCHIVE',
+    'pulse.days': 'days',
+    'pulse.fetchFailed': 'Fetch failed',
+    'pulse.loadingFirst': 'Loading…',
+    'pulse.empty': 'No items',
     // Settings
     'settings.title': 'SETTINGS',
     'settings.version': 'VERSION',

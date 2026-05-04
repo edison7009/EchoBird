@@ -5,9 +5,16 @@ export type TKey =
     // Navigation
     | 'nav.modelNexus' | 'nav.appManager'
     | 'nav.localServer' | 'nav.motherAgent'
+    | 'nav.news' | 'nav.projects' | 'nav.courses'
     // Page titles
     | 'page.modelNexus' | 'page.appManager'
     | 'page.localServer' | 'page.motherAgent'
+    | 'page.news' | 'page.projects' | 'page.courses'
+    // AI Courses
+    | 'courses.filter' | 'courses.cat.all'
+    // AI Pulse (News + Projects shared)
+    | 'pulse.archive' | 'pulse.days' | 'pulse.fetchFailed'
+    | 'pulse.loadingFirst' | 'pulse.empty'
     // Settings
     | 'settings.title' | 'settings.version' | 'settings.language' | 'settings.updates'
     | 'settings.checkForUpdates' | 'settings.checking'
