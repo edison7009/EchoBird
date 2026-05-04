@@ -1,5 +1,5 @@
 {
-  "version": "3.8.0",
+  "version": "3.8.1",
   "releaseDate": "2026-05-04",
-  "releaseNotes": "三个动态页面:AI 资讯、明星项目、AI 公开课。中英自动分流,数据来自 GitHub 维护的 awesome-list,本地累积+去重,卡片点击直达原文。"
+  "releaseNotes": "修复 AI 资讯时间戳全部显示「刚刚」的 bug,以及 AI 公开课中 AtomGit 图标错误。"
 }
