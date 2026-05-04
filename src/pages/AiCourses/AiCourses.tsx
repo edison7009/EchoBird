@@ -357,9 +357,15 @@ function parseDairAi(md: string): { courses: Course[]; categories: string[] } {
 // ===== Helpers =====
 
 const openExternal = (url: string) => shellOpen(url).catch(() => window.open(url, '_blank'));
+// Hosts whose Google s2 favicon is wrong/blank — point at the real logo.
+const FAVICON_OVERRIDES: Record<string, string> = {
+    'ai.atomgit.com': 'https://cdn-static.gitcode.com/static/images/logo-favicon.png',
+};
 const faviconFor = (url: string): string => {
-    try { return `https://www.google.com/s2/favicons?domain=${new URL(url).hostname}&sz=64`; }
-    catch { return ''; }
+    try {
+        const host = new URL(url).hostname;
+        return FAVICON_OVERRIDES[host] || `https://www.google.com/s2/favicons?domain=${host}&sz=64`;
+    } catch { return ''; }
 };
 const hostnameOf = (url: string): string => {
     try { return new URL(url).hostname.replace(/^www\./, ''); }

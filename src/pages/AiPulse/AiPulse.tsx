@@ -128,7 +128,17 @@ const isProjectItem = (item: NewsItem): boolean => {
 };
 
 // Many items have null published_at; first_seen_at is always present.
-const itemTs = (item: NewsItem): string => item.published_at || item.first_seen_at || '';
+// Some Chinese aggregators label local CST as "Z" (UTC), putting published_at
+// up to 8h in the future — fall back to first_seen_at in that case so the
+// relative-time display doesn't pin every fresh item at "刚刚".
+const itemTs = (item: NewsItem): string => {
+    const pub = item.published_at;
+    const seen = item.first_seen_at || item.last_seen_at || '';
+    if (!pub) return seen;
+    const pubMs = Date.parse(pub);
+    if (Number.isFinite(pubMs) && pubMs > Date.now() + 5 * 60 * 1000) return seen || pub;
+    return pub;
+};
 
 // Language detection by CJK presence in the title. Bilingual side effect:
 // Chinese-app users see WeChat 公众号 too (and have WeChat installed to read them);
