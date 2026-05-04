@@ -27,14 +27,38 @@
 
 ---
 
-## 下载
+## 安装 / Install
 
-| 平台 | 下载 |
-|------|------|
-| Windows | [Echobird-x64-setup.exe](https://github.com/edison7009/EchoBird/releases/latest) |
-| macOS (Apple Silicon) | [Echobird_aarch64.dmg](https://github.com/edison7009/EchoBird/releases/latest) |
-| macOS (Intel) | [Echobird_x64.dmg](https://github.com/edison7009/EchoBird/releases/latest) |
-| Linux | [Echobird_amd64.AppImage](https://github.com/edison7009/EchoBird/releases/latest) |
+### 一行命令安装 / One-line Install
+
+**Windows** (PowerShell)
+
+```powershell
+irm https://echobird.ai/install.ps1 | iex
+```
+
+**macOS / Linux**
+
+```sh
+curl -fsSL https://echobird.ai/install.sh | sh
+```
+
+脚本会自动检测系统、下载对应安装包、跳过已安装的最新版本。
+The script auto-detects your OS, downloads the right package, and skips if you're already on the latest version.
+
+### 或下载安装包 / Or download a package
+
+最新版本 / Latest release → <https://github.com/edison7009/EchoBird/releases/latest>
+
+| 平台 / Platform | 文件 / Asset |
+|---|---|
+| Windows x64 | `EchoBird_<ver>_Windows_x64-setup.exe` |
+| macOS (Intel + Apple Silicon) | `EchoBird_<ver>_macOS_Universal.dmg` |
+| Linux x64 · Debian/Ubuntu | `EchoBird_<ver>_Linux_x64.deb` |
+| Linux arm64 · Debian/Ubuntu | `EchoBird_<ver>_Linux_arm64.deb` |
+| Linux x64 · Fedora/RHEL | `EchoBird_<ver>_Linux_x64.rpm` |
+| Linux arm64 · Fedora/RHEL | `EchoBird_<ver>_Linux_arm64.rpm` |
+| Linux portable (任意发行版 / any distro) | `EchoBird_<ver>_Linux_x64.AppImage` |
 
 ---
 
