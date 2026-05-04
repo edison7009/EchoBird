@@ -1,5 +1,5 @@
 {
-  "version": "3.7.9",
-  "releaseDate": "2026-05-03",
-  "releaseNotes": "Removed the always-on system-tray icon — the close button now exits directly, no more \"minimize to tray\" prompt. Form fields in Add Server / Add Model dialogs now keep their theme colors when Chromium tries to autofill (no more blue text on yellow). Model Nexus replaces \"Doubao 豆包\" with \"Volcengine 火山引擎\" pointing at volcengine.com — the actual ByteDance model-service portal. App Manager's right-panel \"Default\" badge is bigger and simpler (renamed from \"Restore Default\")."
+  "version": "3.8.0",
+  "releaseDate": "2026-05-04",
+  "releaseNotes": "三个动态页面:AI 资讯、明星项目、AI 公开课。中英自动分流,数据来自 GitHub 维护的 awesome-list,本地累积+去重,卡片点击直达原文。"
 }
