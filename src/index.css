@@ -298,6 +298,12 @@ pre {
   50%       { opacity: 1;   transform: scale(1.2); }
 }
 
+/* AI Pulse top progress bar — indeterminate sweep */
+@keyframes loading {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(400%); }
+}
+
 /* Agent running heartbeat animation — used on role/agent picker screens */
 @keyframes agentHeartbeat {
   0%   { transform: scale(1); }

@@ -1,6 +1,6 @@
 // Sidebar navigation component
 import { useState, useEffect } from 'react';
-import { Box, Cpu, Server, Activity } from 'lucide-react';
+import { Box, Cpu, Server, Activity, Newspaper, Star, GraduationCap } from 'lucide-react';
 import { NavItem } from './NavItem';
 import { useI18n } from '../hooks/useI18n';
 import * as api from '../api/tauri';
@@ -8,7 +8,7 @@ import * as api from '../api/tauri';
 declare const __APP_EDITION__: string;
 const isFullEdition = __APP_EDITION__ === 'full';
 
-export type PageType = 'models' | 'apps' | 'localLlm' | 'mother';
+export type PageType = 'news' | 'projects' | 'courses' | 'models' | 'apps' | 'localLlm' | 'mother';
 
 interface SidebarProps {
     activePage: PageType;
@@ -63,6 +63,24 @@ export const Sidebar = ({ activePage, onPageChange, agentRunning: _agentRunning 
                 )}
             </div>
             <div className="flex-1 space-y-6 text-sm">
+                <NavItem
+                    icon={<Newspaper size={18} />}
+                    label={t('nav.news')}
+                    active={activePage === 'news'}
+                    onClick={() => onPageChange('news')}
+                />
+                <NavItem
+                    icon={<Star size={18} />}
+                    label={t('nav.projects')}
+                    active={activePage === 'projects'}
+                    onClick={() => onPageChange('projects')}
+                />
+                <NavItem
+                    icon={<GraduationCap size={18} />}
+                    label={t('nav.courses')}
+                    active={activePage === 'courses'}
+                    onClick={() => onPageChange('courses')}
+                />
                 <NavItem
                     icon={<Box size={18} />}
                     label={t('nav.modelNexus')}
