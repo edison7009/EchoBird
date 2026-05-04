@@ -374,6 +374,13 @@
             color: var(--neon);
         }
 
+        /* Brief highlight pulse when triggered from the hero "命令安装" button */
+        .install-cmd-row.flash {
+            border-color: var(--neon);
+            box-shadow: 0 0 0 2px rgba(217, 119, 87, 0.18);
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
         .hero .micro {
             font-family: var(--mono);
             font-size: 12px;
@@ -971,6 +978,7 @@
                 'hero.lede.html': '很多朋友让我帮他们安装 <strong>Claude Code</strong>、<strong>OpenClaw</strong>、<strong>Hermes Agent</strong>……不但每个人的系统都不一样,甚至有些人还抠门到不愿花钱买大模型,安装和解释起来都特别费劲。于是我开发了这个叫<strong>「百灵鸟」</strong>的 Agent —— 灵感来自《赛博朋克 2077》里那位总能帮主角搞定一切技术难题的女黑客。百灵鸟可以帮你一键装好所有 AI 工具。',
                 'hero.platforms': 'Windows · macOS · Linux · MIT 开源 · 永久免费',
                 'hero.btn.download': '立即下载',
+                'hero.btn.install': '命令安装',
                 'features.title': '三个"一键",搞定整个 AI Agent 工作流',
                 'features.sub': '从安装到运行,从切换到部署,百灵鸟把每一个原本需要看十篇文档的步骤,压缩成了一次点击。',
                 'pillar1.h3.html': '一键安装 <span class="hl">所有主流 AI Agent</span>',
@@ -1026,6 +1034,7 @@
                 'hero.lede.html': 'Friends kept asking me to install <strong>Claude Code</strong>, <strong>OpenClaw</strong>, <strong>Hermes Agent</strong>… every machine was different, and some refused to pay for an LLM. Setup and explanations took forever. So I built <strong>EchoBird</strong> — an Agent inspired by the female hacker in <em>Cyberpunk 2077</em> who fixes any tech problem for V. EchoBird installs every AI tool with one click.',
                 'hero.platforms': 'Windows · macOS · Linux · MIT Open Source · Free Forever',
                 'hero.btn.download': 'Download Now',
+                'hero.btn.install': 'Install via Command',
                 'features.title': 'Three "1-Clicks" cover the whole AI Agent workflow',
                 'features.sub': 'From install to run, from switch to deploy — EchoBird collapses every step that used to need ten docs into a single click.',
                 'pillar1.h3.html': '1-Click Install <span class="hl">every mainstream AI Agent</span>',
@@ -1160,10 +1169,10 @@
                 <i class="fa-solid fa-download"></i>
                 <span data-i18n="hero.btn.download">立即下载</span>
             </a>
-            <a href="https://github.com/edison7009/EchoBird" target="_blank" class="btn btn-ghost">
-                <i class="fa-brands fa-github"></i>
-                Star on GitHub
-            </a>
+            <button type="button" class="btn btn-ghost" id="installCmdBtn">
+                <i class="fa-solid fa-terminal"></i>
+                <span data-i18n="hero.btn.install">命令安装</span>
+            </button>
         </div>
 
         <!-- Command-line install hint (auto-detects OS, shows only the matching row) -->
@@ -1434,6 +1443,30 @@
                     } catch { /* clipboard blocked — fall through silently */ }
                 });
             });
+
+            // Hero "命令安装" CTA — copy the OS-detected command and pulse the row.
+            // Visually links the button to the command box right below it.
+            const heroBtn = document.getElementById('installCmdBtn');
+            if (heroBtn && row) {
+                heroBtn.addEventListener('click', async () => {
+                    const code = row.querySelector('code');
+                    const copyBtn = row.querySelector('.copy-btn');
+                    if (code) {
+                        try { await navigator.clipboard.writeText(code.textContent.trim()); } catch {}
+                    }
+                    row.classList.add('flash');
+                    if (copyBtn) {
+                        const orig = copyBtn.textContent;
+                        copyBtn.textContent = 'COPIED';
+                        copyBtn.classList.add('copied');
+                        setTimeout(() => {
+                            copyBtn.textContent = orig;
+                            copyBtn.classList.remove('copied');
+                        }, 1500);
+                    }
+                    setTimeout(() => row.classList.remove('flash'), 1200);
+                });
+            }
         })();
     </script>
 </body>
