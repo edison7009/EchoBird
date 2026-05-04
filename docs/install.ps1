@@ -4,9 +4,15 @@
 
 $ErrorActionPreference = "Stop"
 
+# Force UTF-8 console output so any non-ASCII text (paths, error messages
+# from native tools) renders correctly. Windows PowerShell 5.1 defaults
+# its output to the local code page (often GBK or CP-1252), which mangles
+# anything outside the active codepage into "ç¾çµé¸"-style mojibake.
+try { [Console]::OutputEncoding = [System.Text.UTF8Encoding]::new() } catch {}
+
 Write-Host ""
-Write-Host "  EchoBird 百灵鸟 Installer" -ForegroundColor Cyan
-Write-Host "  -------------------------" -ForegroundColor DarkGray
+Write-Host "  EchoBird Installer" -ForegroundColor Cyan
+Write-Host "  ------------------" -ForegroundColor DarkGray
 
 # Resolve version + Windows asset URL via GitHub Releases API.
 # We hit api.github.com directly (the user's own anonymous quota is 60/h,

@@ -19,8 +19,8 @@ RED=$(printf '\033[0;31m')
 RESET=$(printf '\033[0m')
 
 echo ""
-echo "  ${CYAN}EchoBird 百灵鸟 Installer${RESET}"
-echo "  ${GRAY}─────────────────────────${RESET}"
+echo "  ${CYAN}EchoBird Installer${RESET}"
+echo "  ${GRAY}──────────────────${RESET}"
 
 OS=$(uname -s)
 ARCH=$(uname -m)
