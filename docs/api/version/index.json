@@ -1,5 +1,5 @@
 {
-  "version": "3.8.2",
+  "version": "3.9.0",
   "releaseDate": "2026-05-05",
-  "releaseNotes": "修复主题/窗口大小不持久化 & 简化 AI 公开课卡片"
+  "releaseNotes": "新增桌面端应用分类(Claude / Codex / Gemini Desktop + Coffee CLI),支持 MSIX 检测与启动;桌面端 AI 自动安装会引导你下载安装包并自行点击下一步。整套字体系统重做:内置思源黑体 + Inter,中文不再回退细宋;界面字号、对比度、间距全面调优,设置面板与各页面排版焕新。"
 }
