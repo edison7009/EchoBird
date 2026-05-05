@@ -5,6 +5,11 @@ use crate::utils::platform::echobird_dir;
 pub struct AppSettings {
     #[serde(default)]
     pub locale: Option<String>,
+    // The TS side sends/expects camelCase `themeMode` (light | dark | undefined).
+    // Without the rename + default, serde would drop unknown fields on save and
+    // the user's theme choice would silently reset on every restart.
+    #[serde(default, rename = "themeMode")]
+    pub theme_mode: Option<String>,
 }
 
 fn settings_path() -> std::path::PathBuf {

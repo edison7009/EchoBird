@@ -23,6 +23,10 @@ pub struct AppStartTime(pub std::time::Instant);
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        // window-state must be registered on the Builder (not inside .setup()) so
+        // it can restore size/position before the main window is created from
+        // tauri.conf.json. Auto-saves on close, auto-restores on creation.
+        .plugin(tauri_plugin_window_state::Builder::default().build())
         .manage(AppStartTime(std::time::Instant::now()))
         .manage(ssh_commands::create_ssh_pool())
         .manage(services::agent_loop::create_session_map())

@@ -7,7 +7,7 @@
 
 import { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { open as shellOpen } from '@tauri-apps/plugin-shell';
-import { GraduationCap, ExternalLink, RefreshCw } from 'lucide-react';
+import { ExternalLink, RefreshCw } from 'lucide-react';
 import { useI18n } from '../../hooks/useI18n';
 
 // ===== Mirror config =====
@@ -357,16 +357,6 @@ function parseDairAi(md: string): { courses: Course[]; categories: string[] } {
 // ===== Helpers =====
 
 const openExternal = (url: string) => shellOpen(url).catch(() => window.open(url, '_blank'));
-// Hosts whose Google s2 favicon is wrong/blank — point at the real logo.
-const FAVICON_OVERRIDES: Record<string, string> = {
-    'ai.atomgit.com': 'https://cdn-static.gitcode.com/static/images/logo-favicon.png',
-};
-const faviconFor = (url: string): string => {
-    try {
-        const host = new URL(url).hostname;
-        return FAVICON_OVERRIDES[host] || `https://www.google.com/s2/favicons?domain=${host}&sz=64`;
-    } catch { return ''; }
-};
 const hostnameOf = (url: string): string => {
     try { return new URL(url).hostname.replace(/^www\./, ''); }
     catch { return url; }
@@ -478,13 +468,11 @@ export function AiCoursesTitleActions() {
 // ===== Card =====
 
 function CourseCard({ course }: { course: Course }) {
-    const favicon = faviconFor(course.url);
     return (
         <button
             onClick={() => openExternal(course.url)}
             className="group w-full text-left bg-cyber-surface rounded-card border border-cyber-border/15 hover:border-cyber-border/40 hover:bg-cyber-elevated transition-colors p-4 flex flex-col h-full"
         >
-            {/* Title block — full width, no competing icon */}
             <div className="text-[10px] font-mono text-cyber-text-secondary uppercase tracking-wider mb-1.5 truncate">
                 {course.category}
             </div>
@@ -492,28 +480,16 @@ function CourseCard({ course }: { course: Course }) {
                 {course.name}
             </div>
 
-            {/* Description */}
             {course.description && (
                 <div className="text-xs text-cyber-text-secondary leading-relaxed flex-1 line-clamp-3">
                     {course.description}
                 </div>
             )}
 
-            {/* Footer — hostname left, favicon + open icon bottom-right */}
             <div className="mt-3 pt-2 border-t border-cyber-border/10 flex items-center gap-2">
                 <span className="text-[10px] font-mono text-cyber-text-muted/60 truncate flex-1">
                     {hostnameOf(course.url)}
                 </span>
-                {favicon ? (
-                    <img
-                        src={favicon}
-                        alt=""
-                        className="w-4 h-4 opacity-60 group-hover:opacity-100 transition-opacity"
-                        onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-                    />
-                ) : (
-                    <GraduationCap size={12} className="text-cyber-text-muted/60" />
-                )}
                 <ExternalLink size={11} className="text-cyber-text-muted/40 group-hover:text-cyber-text transition-colors" />
             </div>
         </button>
