@@ -44,14 +44,11 @@
 }
 
 /* ── Local Font Faces ──
-   Strategy: small woff2 for Latin (Inter, CascadiaMono), full Noto Sans SC
-   for CJK so Windows users don't fall back to thin SimSun / Microsoft YaHei
-   Light. macOS already has PingFang SC; the CJK font stays embedded as a
-   universal fallback. */
+   Latin via woff2 (Inter, CascadiaMono). CJK relies on system fonts:
+   PingFang SC on macOS, Microsoft YaHei on Windows, Noto Sans CJK on Linux. */
 @font-face {
   font-family: 'Inter';
-  src: url('/fonts/inter-400.woff2') format('woff2'),
-       url('/fonts/Inter-Regular.ttf') format('truetype');
+  src: url('/fonts/inter-400.woff2') format('woff2');
   font-weight: 400;
   font-style: normal;
   font-display: swap;
@@ -59,8 +56,7 @@
 
 @font-face {
   font-family: 'Inter';
-  src: url('/fonts/inter-500.woff2') format('woff2'),
-       url('/fonts/Inter-Medium.ttf') format('truetype');
+  src: url('/fonts/inter-500.woff2') format('woff2');
   font-weight: 500;
   font-style: normal;
   font-display: swap;
@@ -68,8 +64,7 @@
 
 @font-face {
   font-family: 'Inter';
-  src: url('/fonts/inter-600.woff2') format('woff2'),
-       url('/fonts/Inter-SemiBold.ttf') format('truetype');
+  src: url('/fonts/inter-600.woff2') format('woff2');
   font-weight: 600;
   font-style: normal;
   font-display: swap;
@@ -77,20 +72,8 @@
 
 @font-face {
   font-family: 'Inter';
-  src: url('/fonts/inter-700.woff2') format('woff2'),
-       url('/fonts/Inter-Bold.ttf') format('truetype');
+  src: url('/fonts/inter-700.woff2') format('woff2');
   font-weight: 700;
-  font-style: normal;
-  font-display: swap;
-}
-
-/* CJK — single Noto Sans SC face used for both regular (400) and medium (500).
-   Windows browsers will synthesise heavier weights when needed. macOS users
-   transparently get PingFang SC via the fallback chain. */
-@font-face {
-  font-family: 'Noto Sans SC';
-  src: url('/fonts/noto-sans-sc-500.otf') format('opentype');
-  font-weight: 400 500;
   font-style: normal;
   font-display: swap;
 }
