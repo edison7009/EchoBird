@@ -1,5 +1,5 @@
 {
-  "version": "3.8.1",
-  "releaseDate": "2026-05-04",
-  "releaseNotes": "修复 AI 资讯时间戳全部显示「刚刚」的 bug,以及 AI 公开课中 AtomGit 图标错误。"
+  "version": "3.8.2",
+  "releaseDate": "2026-05-05",
+  "releaseNotes": "修复主题/窗口大小不持久化 & 简化 AI 公开课卡片"
 }
