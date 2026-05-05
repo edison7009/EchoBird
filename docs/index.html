@@ -308,6 +308,32 @@
             transform: translateY(-2px);
         }
 
+        /* Chinese-only mirror download channels (Baidu / Quark / 123pan).
+           Hidden on English via the html[lang="en"] rule below. */
+        .mirror-downloads {
+            margin-top: -8px;
+            margin-bottom: 24px;
+            font-size: 13px;
+            color: var(--dim);
+            display: flex;
+            flex-wrap: wrap;
+            gap: 14px;
+            align-items: center;
+            font-family: var(--mono);
+        }
+        .mirror-downloads a {
+            color: var(--white);
+            text-decoration: none;
+            border-bottom: 1px dashed var(--border-strong);
+            padding-bottom: 1px;
+            transition: color 0.15s, border-color 0.15s;
+        }
+        .mirror-downloads a:hover {
+            color: var(--neon);
+            border-color: var(--neon);
+        }
+        html[lang="en"] .zh-only { display: none !important; }
+
         /* "or" / "或" separator between the download button and the command box */
         .cta-or {
             font-family: var(--mono);
@@ -1176,6 +1202,12 @@
                 <code id="cmdUnix">curl -fsSL https://echobird.ai/install.sh | sh</code>
                 <button class="copy-btn" data-copy="cmdUnix">COPY</button>
             </div>
+        </div>
+        <div class="mirror-downloads zh-only">
+            <span>其他下载渠道:</span>
+            <a href="https://pan.baidu.com/s/1DW6U--mzhRqXyaBaGChK5A?pwd=2wv9" target="_blank" rel="noopener noreferrer">百度网盘</a>
+            <a href="https://pan.quark.cn/s/e481fd96fba7" target="_blank" rel="noopener noreferrer">夸克网盘</a>
+            <a href="https://1842244417.share.123865.com/123pan/rqi0Td-5JhxH" target="_blank" rel="noopener noreferrer">123云盘</a>
         </div>
     </section>
 
