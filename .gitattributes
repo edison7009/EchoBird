@@ -16,6 +16,7 @@
 *.yml   text eol=crlf
 *.rs    text eol=lf
 *.lock  text eol=lf
+*.sh    text eol=lf
 
 # Binary files — never normalize
 *.png   binary
