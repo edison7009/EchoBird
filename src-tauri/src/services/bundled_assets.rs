@@ -21,6 +21,10 @@ pub fn get_install_ref(tool_id: &str) -> Option<&'static str> {
         "openfang" => Some(include_str!("../../../docs/api/tools/install/openfang.json")),
         "picoclaw" => Some(include_str!("../../../docs/api/tools/install/picoclaw.json")),
         "zeroclaw" => Some(include_str!("../../../docs/api/tools/install/zeroclaw.json")),
+        "claudedesktop" => Some(include_str!("../../../docs/api/tools/install/claudedesktop.json")),
+        "codexdesktop" => Some(include_str!("../../../docs/api/tools/install/codexdesktop.json")),
+        "geminidesktop" => Some(include_str!("../../../docs/api/tools/install/geminidesktop.json")),
+        "coffeecli" => Some(include_str!("../../../docs/api/tools/install/coffeecli.json")),
         _ => None,
     }
 }
@@ -38,6 +42,7 @@ pub fn get_tool_script(name: &str) -> Option<&'static str> {
 pub const INSTALLABLE_TOOL_IDS: &[&str] = &[
     "claudecode", "codex", "hermes", "nanobot", "openclaw",
     "opencode", "openfang", "picoclaw", "zeroclaw",
+    "claudedesktop", "codexdesktop", "geminidesktop", "coffeecli",
 ];
 
 /// Build the full embedded-references block to append to the system prompt.

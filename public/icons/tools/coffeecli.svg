@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <!-- Square background, fills every pixel — no transparent corners -->
+  <rect width="512" height="512" fill="#181818"/>
+  <!--
+    Coffee cup scaled slightly smaller (scale 17 vs 21.2 before)
+    and re-centered so it sits comfortably in the square canvas.
+  -->
+  <g transform="translate(54, 54) scale(17)">
+    <!-- Steam — bright highlight layer -->
+    <path fill="#d0d0d0" d="M5 2h2v3H5zM9 2h2v3H9zM13 2h2v3h-2z"/>
+    <!-- Cup body + handle — mid-tone layer -->
+    <path fill="#888888" d="M19 9h-2V8a1 1 0 0 0-1-1H4a1 1 0 0 0-1 1v10a3 3 0 0 0 3 3h8a3 3 0 0 0 3-3h2c1.103 0 2-.897 2-2v-5c0-1.103-.897-2-2-2zm-2 7v-5h2l.002 5z"/>
+  </g>
+</svg>

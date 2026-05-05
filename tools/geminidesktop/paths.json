@@ -1,0 +1,27 @@
+{
+    "name": "Gemini Desktop",
+    "names": {
+        "zh-Hans": "Gemini 桌面端",
+        "zh-Hant": "Gemini 桌面端",
+        "ja": "Gemini デスクトップ",
+        "ko": "Gemini 데스크톱"
+    },
+    "category": "Desktop",
+    "noModelConfig": true,
+    "apiProtocol": [
+        "openai"
+    ],
+    "docs": "https://gemini.google/mac/",
+    "website": "https://gemini.google/mac/",
+    "command": "",
+    "configDir": "~/.gemini",
+    "configFile": "~/.gemini/settings.json",
+    "requireConfigFile": false,
+    "paths": {
+        "win32": [],
+        "darwin": [
+            "/Applications/Gemini.app/Contents/MacOS/Gemini"
+        ],
+        "linux": []
+    }
+}

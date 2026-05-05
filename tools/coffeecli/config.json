@@ -1,0 +1,6 @@
+{
+    "docs": "https://coffeecli.com/",
+    "configFile": "~/.coffee-cli/config.json",
+    "format": "json",
+    "custom": false
+}

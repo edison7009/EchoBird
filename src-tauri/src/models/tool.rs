@@ -80,6 +80,12 @@ pub struct PathsConfig {
     pub launch_type: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub launch_file: Option<String>,
+    #[serde(default)]
+    pub no_model_config: bool,
+    /// Optional shell URI (e.g. "shell:AppsFolder\\Claude_pzs8sxrjxfjjc!Claude")
+    /// used to launch MSIX/Store apps that have no plain .exe path.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub launch_uri: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub website: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -151,6 +157,7 @@ pub enum ToolCategory {
     IDE,
     AutoTrading,
     Game,
+    Desktop,
     Utility,
     Custom,
 }
@@ -188,4 +195,8 @@ pub struct DetectedTool {
     pub start_command: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub command: Option<String>,
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub no_model_config: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub launch_uri: Option<String>,
 }

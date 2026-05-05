@@ -19,14 +19,14 @@
     --accent-secondary-rgb:  192 132 100;
     --warning-rgb:           250 204 21;
     --error-rgb:             224 109 109;
-    --text-primary-rgb:      217 211 197;    /* #D9D3C5 — warm off-cream */
-    --text-secondary-rgb:    155 150 138;    /* #9B968A — warm muted */
-    --text-muted-rgb:        107 103 95;     /* #6B675F — warm dim */
+    --text-primary-rgb:      232 226 213;    /* #E8E2D5 — brighter warm cream, better legibility */
+    --text-secondary-rgb:    178 172 158;    /* #B2AC9E — clearer secondary, lifted from #9B968A */
+    --text-muted-rgb:        135 130 119;    /* #878277 — dim but still readable */
 }
 
 :root[data-theme="light"] {
-    /* Claude Desktop light — warm cream page; cards rest at the comfortable
-       cream tone (was hover/selected); hover/selected steps a shade deeper. */
+    /* Claude Desktop light — warm cream page. Title text uses warm-dark
+       (NOT pure black) to feel premium and stay coherent with the cream. */
     --bg-base-rgb:           239 238 235;    /* #EFEEEB — page */
     --bg-terminal-rgb:       247 246 243;
     --bg-surface-rgb:        232 230 224;    /* #E8E6E0 — cards rest here */
@@ -38,15 +38,20 @@
     --accent-secondary-rgb:  176 88 56;
     --warning-rgb:           181 130 14;
     --error-rgb:             198 60 60;
-    --text-primary-rgb:      28 28 30;
-    --text-secondary-rgb:    110 110 114;
-    --text-muted-rgb:        160 160 164;
+    --text-primary-rgb:      46 41 36;       /* #2E2924 — warm dark (NOT pure black) */
+    --text-secondary-rgb:    92 87 80;       /* #5C5750 — clearer for body copy, lifted from #6E6E72 */
+    --text-muted-rgb:        130 124 114;    /* #827C72 — readable warm muted */
 }
 
-/* ── Local Font Faces ── */
+/* ── Local Font Faces ──
+   Strategy: small woff2 for Latin (Inter, CascadiaMono), full Noto Sans SC
+   for CJK so Windows users don't fall back to thin SimSun / Microsoft YaHei
+   Light. macOS already has PingFang SC; the CJK font stays embedded as a
+   universal fallback. */
 @font-face {
   font-family: 'Inter';
-  src: url('/fonts/Inter-Regular.ttf') format('truetype');
+  src: url('/fonts/inter-400.woff2') format('woff2'),
+       url('/fonts/Inter-Regular.ttf') format('truetype');
   font-weight: 400;
   font-style: normal;
   font-display: swap;
@@ -54,7 +59,8 @@
 
 @font-face {
   font-family: 'Inter';
-  src: url('/fonts/Inter-Medium.ttf') format('truetype');
+  src: url('/fonts/inter-500.woff2') format('woff2'),
+       url('/fonts/Inter-Medium.ttf') format('truetype');
   font-weight: 500;
   font-style: normal;
   font-display: swap;
@@ -62,7 +68,8 @@
 
 @font-face {
   font-family: 'Inter';
-  src: url('/fonts/Inter-SemiBold.ttf') format('truetype');
+  src: url('/fonts/inter-600.woff2') format('woff2'),
+       url('/fonts/Inter-SemiBold.ttf') format('truetype');
   font-weight: 600;
   font-style: normal;
   font-display: swap;
@@ -70,8 +77,28 @@
 
 @font-face {
   font-family: 'Inter';
-  src: url('/fonts/Inter-Bold.ttf') format('truetype');
+  src: url('/fonts/inter-700.woff2') format('woff2'),
+       url('/fonts/Inter-Bold.ttf') format('truetype');
   font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* CJK — single Noto Sans SC face used for both regular (400) and medium (500).
+   Windows browsers will synthesise heavier weights when needed. macOS users
+   transparently get PingFang SC via the fallback chain. */
+@font-face {
+  font-family: 'Noto Sans SC';
+  src: url('/fonts/noto-sans-sc-500.otf') format('opentype');
+  font-weight: 400 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'CascadiaMono';
+  src: url('/fonts/CascadiaMono-Regular.woff2') format('woff2');
+  font-weight: 400;
   font-style: normal;
   font-display: swap;
 }
@@ -116,11 +143,88 @@
   font-display: swap;
 }
 
-/* ── Page titles — Noto Sans with system-ui fallback for all scripts ── */
-.cjk-title,
-.cjk-btn {
-  font-family: 'Noto Sans', system-ui, sans-serif;
+/* ── Global font stacks ──
+   - --font-sans: Inter for Latin + Noto Sans SC / PingFang SC for CJK.
+     On macOS, system PingFang SC kicks in via the fallback chain — the
+     embedded otf is only used on Windows / Linux when no premium CJK
+     system font is available.
+   - --font-mono: CascadiaMono (woff2, embedded) preferred, then system
+     monos as fallback. */
+:root {
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'PingFang SC',
+               'Noto Sans SC', 'Hiragino Sans GB', 'Microsoft YaHei',
+               'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
+               'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol';
+  --font-mono: 'CascadiaMono', 'Cascadia Code', 'JetBrains Mono', 'SF Mono',
+               Menlo, Monaco, Consolas, 'Courier New', ui-monospace, monospace,
+               'PingFang SC', 'Noto Sans SC', 'Microsoft YaHei';
+}
+
+/* ── CJK readability fixes ──
+   Latin-centric design tokens look bad on CJK text:
+   - text-xs / text-[10px] / text-[11px] are unreadable in Chinese.
+   - tracking-wider / tracking-widest scatter Chinese characters.
+   These rules upgrade them on CJK locales without touching Latin layouts. */
+:lang(zh) .text-\[10px\],
+:lang(ja) .text-\[10px\],
+:lang(ko) .text-\[10px\] { font-size: 12px; }
+
+:lang(zh) .text-\[11px\],
+:lang(ja) .text-\[11px\],
+:lang(ko) .text-\[11px\] { font-size: 13px; }
+
+:lang(zh) .text-xs,
+:lang(ja) .text-xs,
+:lang(ko) .text-xs { font-size: 13px; line-height: 1.55; }
+
+:lang(zh) .text-sm,
+:lang(ja) .text-sm,
+:lang(ko) .text-sm { font-size: 14px; line-height: 1.6; }
+
+/* Disable letter-spacing on CJK — character-level tracking is a Latin habit. */
+:lang(zh) .tracking-wide,
+:lang(zh) .tracking-wider,
+:lang(zh) .tracking-widest,
+:lang(ja) .tracking-wide,
+:lang(ja) .tracking-wider,
+:lang(ja) .tracking-widest,
+:lang(ko) .tracking-wide,
+:lang(ko) .tracking-wider,
+:lang(ko) .tracking-widest { letter-spacing: 0; }
+
+/* ── Page titles & big buttons — Noto Sans (Latin) + Noto Sans SC (CJK) ── */
+.cjk-title {
+  font-family: 'Noto Sans', 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei',
+               system-ui, sans-serif;
   font-weight: 700;
+  font-size: 22px;
+  letter-spacing: 0.01em;
+  line-height: 1.3;
+}
+
+.cjk-btn {
+  font-family: 'Noto Sans', 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei',
+               system-ui, sans-serif;
+  font-weight: 700;
+}
+
+/* Brand wordmark — used by the sidebar logo "百灵鸟" / "EchoBird".
+   Heavier weight + relaxed letter-spacing so the two-character mark feels
+   like a logotype rather than just bold body text. */
+.brand-mark {
+  font-family: 'Noto Sans SC', 'PingFang SC', 'Noto Sans', 'Microsoft YaHei',
+               system-ui, sans-serif;
+  font-weight: 700;
+  font-size: 19px;
+  letter-spacing: 0.18em;
+  line-height: 1;
+}
+
+/* Latin-only contexts (logo when locale is en) lean on Noto Sans for the
+   wordmark feel; the SC fallback covers any leak-through. */
+:lang(en) .brand-mark {
+  font-family: 'Noto Sans', 'Inter', system-ui, sans-serif;
+  letter-spacing: 0.08em;
 }
 
 * {
@@ -141,12 +245,22 @@ html {
   box-shadow: none !important;
 }
 
+html { font-size: 15px; }
+
 body {
-  font-family: 'Inter', system-ui, sans-serif;
+  font-family: var(--font-sans);
+  font-feature-settings: 'cv11', 'ss01', 'ss03';
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  line-height: 1.55;
   background-color: rgb(var(--bg-base-rgb));
   color: rgb(var(--text-primary-rgb));
   overflow: hidden;
 }
+
+/* CJK locales need slightly looser line-height than Latin to breathe. */
+:lang(zh) body, :lang(ja) body, :lang(ko) body { line-height: 1.6; }
 
 #root {
   overflow: hidden;
@@ -155,7 +269,7 @@ body {
 
 code,
 pre {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
 }
 
 /* Hide scrollbar but keep scrolling */

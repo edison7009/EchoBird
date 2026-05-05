@@ -264,11 +264,11 @@ export function AiPulseTitleActions() {
                 onClick={retry}
                 disabled={syncing}
                 title={t('btn.refresh')}
-                className={`text-xs font-mono px-2 py-1 border rounded transition-colors flex items-center gap-1.5 ${!syncing
+                className={`text-sm px-3 py-1.5 border rounded-md transition-colors flex items-center gap-2 ${!syncing
                     ? 'border-cyber-border/50 text-cyber-text hover:bg-cyber-text/10'
                     : 'border-cyber-border text-cyber-text-muted cursor-not-allowed'}`}
             >
-                <RefreshCw size={12} className={syncing ? 'animate-spin' : ''} />
+                <RefreshCw size={13} className={syncing ? 'animate-spin' : ''} />
                 {t('btn.refresh')}
             </button>
         </div>
@@ -288,23 +288,23 @@ function ItemRow({ item }: { item: NewsItem }) {
     return (
         <button
             onClick={() => openExternal(item.url)}
-            className="group w-full text-left bg-cyber-surface rounded-card border border-cyber-border/15 hover:border-cyber-border/40 hover:bg-cyber-elevated transition-colors px-4 py-3 flex gap-3 items-start"
+            className="group w-full text-left bg-cyber-surface rounded-card border border-cyber-border/15 hover:border-cyber-border/40 hover:bg-cyber-elevated transition-colors px-5 py-4 flex gap-3 items-start"
         >
             <div className="flex-1 min-w-0">
-                <div className="text-sm text-cyber-text leading-snug group-hover:text-cyber-accent transition-colors">
+                <div className="text-[15px] font-medium text-cyber-text leading-relaxed group-hover:text-cyber-accent transition-colors">
                     {title}
                 </div>
-                <div className="mt-1.5 text-[11px] font-mono text-cyber-text-secondary tracking-wide flex items-center gap-2">
+                <div className="mt-2 text-[13px] text-cyber-text-secondary flex items-center gap-2">
                     <span className="truncate max-w-[240px]">{sourceLabel}</span>
                     {ts > 0 && (
                         <>
-                            <span className="opacity-40">·</span>
+                            <span className="opacity-50">·</span>
                             <span>{formatRelative(ts, locale)}</span>
                         </>
                     )}
                 </div>
             </div>
-            <ExternalLink size={12} className="flex-shrink-0 mt-1 text-cyber-text-muted/40 group-hover:text-cyber-text transition-colors" />
+            <ExternalLink size={14} className="flex-shrink-0 mt-1 text-cyber-text-muted/50 group-hover:text-cyber-text transition-colors" />
         </button>
     );
 }
@@ -451,17 +451,17 @@ export function AiPulsePanel() {
 
     return (
         <>
-            <div className="p-2 flex items-center justify-between bg-transparent">
-                <div className="text-xs font-bold text-cyber-text-secondary px-2">{t('pulse.archive')}</div>
-                <span className="text-[10px] font-mono text-cyber-text-muted/60">{cachedDates.length} {t('pulse.days')}</span>
+            <div className="px-3 py-2 mb-1 flex items-center justify-between bg-transparent">
+                <div className="text-[15px] font-semibold text-cyber-text">{t('pulse.archive')}</div>
+                <span className="text-[13px] font-mono text-cyber-text-muted">{cachedDates.length} {t('pulse.days')}</span>
             </div>
             <div className="flex-1 px-2 overflow-y-auto pb-4">
                 {cachedDates.length === 0 ? (
-                    <div className="px-3 py-8 text-center text-[11px] font-mono text-cyber-text-muted/70 leading-relaxed">
+                    <div className="px-3 py-8 text-center text-[14px] text-cyber-text-muted leading-relaxed">
                         {t('pulse.loadingFirst')}
                     </div>
                 ) : (
-                    <div className="space-y-0.5">
+                    <div className="space-y-1">
                         {months.map(ym => {
                             const isOpen = expanded.has(ym);
                             const days = grouped.get(ym) || [];
@@ -469,19 +469,19 @@ export function AiPulsePanel() {
                                 <div key={ym}>
                                     <button
                                         onClick={() => toggle(ym)}
-                                        className="w-full flex items-center gap-1 px-2 py-1.5 text-xs font-mono text-cyber-text-secondary hover:text-cyber-text rounded transition-colors"
+                                        className="w-full flex items-center gap-1.5 px-2 py-2 text-[15px] font-mono text-cyber-text-secondary hover:text-cyber-text rounded transition-colors"
                                     >
-                                        {isOpen ? <ChevronDown size={11} /> : <ChevronRight size={11} />}
+                                        {isOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
                                         <span>{ym}</span>
-                                        <span className="ml-auto text-[10px] text-cyber-text-muted/60">{days.length}</span>
+                                        <span className="ml-auto text-[13px] text-cyber-text-muted">{days.length}</span>
                                     </button>
                                     {isOpen && (
-                                        <div className="ml-3 border-l border-cyber-border/20 pl-1 space-y-0.5">
+                                        <div className="ml-3 border-l border-cyber-border/20 pl-2 space-y-0.5">
                                             {days.map(d => (
                                                 <button
                                                     key={d}
                                                     onClick={() => requestScroll(d)}
-                                                    className="w-full text-left px-2 py-1 rounded text-[11px] font-mono text-cyber-text-secondary hover:bg-cyber-elevated hover:text-cyber-text transition-colors"
+                                                    className="w-full text-left px-2 py-1.5 rounded text-[14px] font-mono text-cyber-text-secondary hover:bg-cyber-elevated hover:text-cyber-text transition-colors"
                                                 >
                                                     {d.slice(8)}
                                                 </button>

@@ -1,0 +1,6 @@
+{
+    "docs": "https://claude.ai/download",
+    "configFile": "~/.claude/settings.json",
+    "format": "json",
+    "custom": false
+}

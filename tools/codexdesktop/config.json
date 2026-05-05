@@ -1,0 +1,6 @@
+{
+    "docs": "https://github.com/openai/codex",
+    "configFile": "~/.codex/config.toml",
+    "format": "json",
+    "custom": false
+}

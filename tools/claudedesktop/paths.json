@@ -1,0 +1,31 @@
+{
+    "name": "Claude Desktop",
+    "names": {
+        "zh-Hans": "Claude 桌面端",
+        "zh-Hant": "Claude 桌面端",
+        "ja": "Claude デスクトップ",
+        "ko": "Claude 데스크톱"
+    },
+    "category": "Desktop",
+    "noModelConfig": true,
+    "apiProtocol": [
+        "anthropic"
+    ],
+    "docs": "https://claude.ai/download",
+    "website": "https://claude.ai/download",
+    "command": "",
+    "configDir": "~/.claude",
+    "configFile": "~/.claude/settings.json",
+    "requireConfigFile": false,
+    "launchUri": "shell:AppsFolder\\Claude_pzs8sxrjxfjjc!Claude",
+    "paths": {
+        "win32": [
+            "%LOCALAPPDATA%/AnthropicClaude/Claude.exe",
+            "%LOCALAPPDATA%/Programs/Claude/Claude.exe"
+        ],
+        "darwin": [
+            "/Applications/Claude.app/Contents/MacOS/Claude"
+        ],
+        "linux": []
+    }
+}

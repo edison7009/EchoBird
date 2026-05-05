@@ -24,8 +24,19 @@ export default {
                 'cyber-input':            'rgb(var(--bg-input-rgb) / <alpha-value>)',
             },
             fontFamily: {
-                mono: ['JetBrains Mono', 'ui-monospace', 'monospace'],
-                sans: ['Inter', 'system-ui', 'sans-serif'],
+                // Latin via Inter; CJK falls back to PingFang SC (macOS),
+                // then embedded Noto Sans SC (Windows / Linux), then Microsoft YaHei.
+                sans: [
+                    'Inter', '-apple-system', 'BlinkMacSystemFont',
+                    'PingFang SC', 'Noto Sans SC', 'Hiragino Sans GB',
+                    'Microsoft YaHei', 'Segoe UI', 'Roboto', 'Helvetica',
+                    'Arial', 'sans-serif',
+                ],
+                mono: [
+                    'CascadiaMono', 'Cascadia Code', 'JetBrains Mono',
+                    'SF Mono', 'Menlo', 'Monaco', 'Consolas',
+                    'Courier New', 'ui-monospace', 'monospace',
+                ],
             },
             borderRadius: {
                 'card': '8px',

@@ -454,11 +454,11 @@ export function AiCoursesTitleActions() {
                 onClick={retry}
                 disabled={syncing}
                 title={t('btn.refresh')}
-                className={`text-xs font-mono px-2 py-1 border rounded transition-colors flex items-center gap-1.5 ${!syncing
+                className={`text-sm px-3 py-1.5 border rounded-md transition-colors flex items-center gap-2 ${!syncing
                     ? 'border-cyber-border/50 text-cyber-text hover:bg-cyber-text/10'
                     : 'border-cyber-border text-cyber-text-muted cursor-not-allowed'}`}
             >
-                <RefreshCw size={12} className={syncing ? 'animate-spin' : ''} />
+                <RefreshCw size={13} className={syncing ? 'animate-spin' : ''} />
                 {t('btn.refresh')}
             </button>
         </div>
@@ -471,26 +471,26 @@ function CourseCard({ course }: { course: Course }) {
     return (
         <button
             onClick={() => openExternal(course.url)}
-            className="group w-full text-left bg-cyber-surface rounded-card border border-cyber-border/15 hover:border-cyber-border/40 hover:bg-cyber-elevated transition-colors p-4 flex flex-col h-full"
+            className="group w-full text-left bg-cyber-surface rounded-card border border-cyber-border/15 hover:border-cyber-border/40 hover:bg-cyber-elevated transition-colors p-5 flex flex-col h-full"
         >
-            <div className="text-[10px] font-mono text-cyber-text-secondary uppercase tracking-wider mb-1.5 truncate">
+            <div className="text-xs text-cyber-text-secondary tracking-wide mb-2 truncate">
                 {course.category}
             </div>
-            <div className="text-base font-bold text-cyber-text leading-snug mb-3 group-hover:text-cyber-accent transition-colors line-clamp-2">
+            <div className="text-[17px] font-bold text-cyber-text leading-snug mb-3 group-hover:text-cyber-accent transition-colors line-clamp-2">
                 {course.name}
             </div>
 
             {course.description && (
-                <div className="text-xs text-cyber-text-secondary leading-relaxed flex-1 line-clamp-3">
+                <div className="text-[13px] text-cyber-text-secondary leading-relaxed flex-1 line-clamp-3">
                     {course.description}
                 </div>
             )}
 
-            <div className="mt-3 pt-2 border-t border-cyber-border/10 flex items-center gap-2">
-                <span className="text-[10px] font-mono text-cyber-text-muted/60 truncate flex-1">
+            <div className="mt-4 pt-3 border-t border-cyber-border/10 flex items-center gap-2">
+                <span className="text-xs font-mono text-cyber-text-muted truncate flex-1">
                     {hostnameOf(course.url)}
                 </span>
-                <ExternalLink size={11} className="text-cyber-text-muted/40 group-hover:text-cyber-text transition-colors" />
+                <ExternalLink size={13} className="text-cyber-text-muted/60 group-hover:text-cyber-text transition-colors" />
             </div>
         </button>
     );
@@ -588,36 +588,36 @@ export function AiCoursesPanel() {
 
     return (
         <>
-            <div className="p-2 flex items-center justify-between bg-transparent">
-                <div className="text-xs font-bold text-cyber-text-secondary px-2">{t('courses.filter')}</div>
+            <div className="px-3 py-2 mb-1 flex items-center justify-between bg-transparent">
+                <div className="text-[15px] font-semibold text-cyber-text">{t('courses.filter')}</div>
                 {total > 0 && (
-                    <span className="text-[10px] font-mono text-cyber-text-muted/60">{total}</span>
+                    <span className="text-[13px] font-mono text-cyber-text-muted">{total}</span>
                 )}
             </div>
             <div className="flex-1 px-2 overflow-y-auto pb-4 space-y-1">
                 <button
                     onClick={() => setSelectedCategory('all')}
-                    className={`w-full text-left px-3 py-2 rounded text-xs font-mono transition-colors flex items-center justify-between ${
+                    className={`w-full text-left px-3 py-2 rounded text-[14px] transition-colors flex items-center justify-between ${
                         selectedCategory === 'all'
-                            ? 'bg-cyber-elevated text-cyber-text'
+                            ? 'bg-cyber-elevated text-cyber-text font-medium'
                             : 'text-cyber-text-secondary hover:bg-cyber-surface hover:text-cyber-text'
                     }`}
                 >
                     <span>{t('courses.cat.all')}</span>
-                    <span className="text-[10px] text-cyber-text-muted/60">{total}</span>
+                    <span className="text-[13px] font-mono text-cyber-text-muted">{total}</span>
                 </button>
                 {categories.map(cat => (
                     <button
                         key={cat}
                         onClick={() => setSelectedCategory(cat)}
-                        className={`w-full text-left px-3 py-2 rounded text-xs font-mono transition-colors flex items-center justify-between ${
+                        className={`w-full text-left px-3 py-2 rounded text-[14px] transition-colors flex items-center justify-between ${
                             selectedCategory === cat
-                                ? 'bg-cyber-elevated text-cyber-text'
+                                ? 'bg-cyber-elevated text-cyber-text font-medium'
                                 : 'text-cyber-text-secondary hover:bg-cyber-surface hover:text-cyber-text'
                         }`}
                     >
                         <span className="truncate">{cat}</span>
-                        <span className="text-[10px] text-cyber-text-muted/60 ml-2">{countByCat.get(cat) || 0}</span>
+                        <span className="text-[13px] font-mono text-cyber-text-muted ml-2">{countByCat.get(cat) || 0}</span>
                     </button>
                 ))}
             </div>

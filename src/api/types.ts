@@ -19,6 +19,8 @@ export interface DetectedTool {
     launchFile?: string;
     command?: string;        // CLI install command (non-empty = installable via Mother Agent)
     version?: string;        // Tool version from paths.json
+    noModelConfig?: boolean; // Hide model picker; show "no model config supported" instead
+    launchUri?: string;      // shell:AppsFolder\<AUMID> for MSIX / Store apps
 }
 
 // UI-level tool type used by AppManager, MotherAgent, and App shell

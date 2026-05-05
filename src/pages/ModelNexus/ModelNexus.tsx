@@ -498,7 +498,7 @@ export function ModelNexusPanel() {
                 <div className="flex gap-1">
                     <button
                         onClick={() => setPanelTab('providers')}
-                        className={`px-3 py-1.5 text-xs font-bold rounded transition-colors ${panelTab === 'providers'
+                        className={`px-3.5 py-2 text-[14px] font-semibold rounded transition-colors ${panelTab === 'providers'
                             ? 'bg-cyber-elevated text-cyber-text'
                             : 'text-cyber-text-secondary hover:text-cyber-text'
                             }`}
@@ -507,7 +507,7 @@ export function ModelNexusPanel() {
                     </button>
                     <button
                         onClick={() => setPanelTab('relays')}
-                        className={`px-3 py-1.5 text-xs font-bold rounded transition-colors ${panelTab === 'relays'
+                        className={`px-3.5 py-2 text-[14px] font-semibold rounded transition-colors ${panelTab === 'relays'
                             ? 'bg-cyber-elevated text-cyber-text'
                             : 'text-cyber-text-secondary hover:text-cyber-text'
                             }`}
@@ -559,16 +559,16 @@ export function AddModelModal() {
                 <div className="h-px w-full bg-cyber-border" />
 
                 {/* Header */}
-                <div className="px-5 pt-4 pb-3 flex items-center justify-between">
+                <div className="px-6 pt-5 pb-4 flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                        <span className="text-cyber-text font-mono text-xs opacity-60">&gt;_</span>
-                        <span className="text-sm font-mono font-bold tracking-wider text-cyber-text">{editingModelId ? t('model.editConfig') : t('btn.addModel')}</span>
+                        <span className="text-cyber-text font-mono text-sm opacity-60">&gt;_</span>
+                        <span className="text-base font-bold text-cyber-text">{editingModelId ? t('model.editConfig') : t('btn.addModel')}</span>
                     </div>
                     <button
                         onClick={closeModelModal}
                         className="text-cyber-text-secondary hover:text-cyber-text transition-colors"
                     >
-                        <X size={14} />
+                        <X size={18} />
                     </button>
                 </div>
 
@@ -764,7 +764,7 @@ export function AddModelModal() {
                 <div className="flex border-t border-cyber-border">
                     <button
                         onClick={closeModelModal}
-                        className="flex-1 px-4 py-2.5 text-xs font-mono font-bold tracking-wider text-cyber-text-secondary hover:text-cyber-text hover:bg-cyber-elevated transition-all border-r border-cyber-border"
+                        className="flex-1 px-4 py-3 text-[14px] font-semibold text-cyber-text-secondary hover:text-cyber-text hover:bg-cyber-elevated transition-all border-r border-cyber-border"
                     >
                         {t('model.escCancel')}
                     </button>
@@ -839,7 +839,7 @@ export function AddModelModal() {
                                 setShowAddModelModal(false);
                             }
                         }}
-                        className="flex-1 px-4 py-2.5 text-xs font-mono font-bold tracking-wider text-cyber-text hover:bg-cyber-text/10 transition-all"
+                        className="flex-1 px-4 py-3 text-[14px] font-semibold text-cyber-text hover:bg-cyber-text/10 transition-all"
                     >
                         {t('model.enterSave')}
                     </button>

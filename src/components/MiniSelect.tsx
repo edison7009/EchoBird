@@ -42,15 +42,15 @@ export const MiniSelect: React.FC<MiniSelectProps> = ({ value, onChange, options
             <button
                 type="button"
                 onClick={() => !disabled && setIsOpen(!isOpen)}
-                className={`w-full min-w-[90px] bg-cyber-input border border-cyber-border px-3 py-1.5 outline-none cursor-pointer flex items-center justify-center transition-colors text-xs font-mono rounded-button ${disabled
+                className={`w-full min-w-[90px] bg-cyber-input border border-cyber-border px-3 py-2 outline-none cursor-pointer flex items-center justify-center transition-colors text-[14px] rounded-button ${disabled
                     ? 'opacity-40 cursor-not-allowed'
                     : accentBorderHover
                     } ${isOpen ? accentBorderOpen : ''}`}
             >
                 <span className="truncate text-cyber-text">{selectedOption?.label || '...'}</span>
                 <ChevronDown
-                    size={12}
-                    className={`flex-shrink-0 ml-1 ${accentChevron} transition-transform ${isOpen ? 'rotate-180' : ''}`}
+                    size={14}
+                    className={`flex-shrink-0 ml-1.5 ${accentChevron} transition-transform ${isOpen ? 'rotate-180' : ''}`}
                 />
             </button>
 
@@ -63,7 +63,7 @@ export const MiniSelect: React.FC<MiniSelectProps> = ({ value, onChange, options
                                 onChange(option.id);
                                 setIsOpen(false);
                             }}
-                            className={`px-2 py-1.5 cursor-pointer transition-colors text-xs font-mono truncate text-center ${option.id === value
+                            className={`px-2 py-2 cursor-pointer transition-colors text-[14px] truncate text-center ${option.id === value
                                 ? accentItemActive
                                 : `text-cyber-text ${accentItemHover}`
                                 }`}

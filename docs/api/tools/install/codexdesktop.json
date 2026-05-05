@@ -1,0 +1,39 @@
+{
+    "id": "codexdesktop",
+    "displayName": "Codex Desktop",
+    "homepage": "https://openai.com/codex/",
+    "docs": "https://developers.openai.com/codex/app",
+    "kind": "desktop_app",
+    "platforms": ["windows", "macos"],
+    "install": {
+        "windows_winget": "winget install --id OpenAI.Codex --accept-package-agreements --accept-source-agreements",
+        "windows_download": "Open https://openai.com/codex/ in the browser, click the Windows download. Saves to %USERPROFILE%\\Downloads by default.",
+        "macos_download": "Open https://openai.com/codex/ in the browser, click the macOS download (.dmg). Saves to ~/Downloads by default.",
+        "linux": "Not supported. Codex Desktop is Windows / macOS only.",
+        "note": "This is a GUI desktop application (Microsoft Store / MSIX on Windows). Always tell the user the download location and ask them to follow the install wizard themselves."
+    },
+    "install_flow": {
+        "summary": "Download installer → user double-clicks → user clicks through the install wizard",
+        "agent_steps": [
+            "Detect OS first.",
+            "Windows: prefer `winget install --id OpenAI.Codex` if winget is available.",
+            "macOS / Windows manual: download installer to ~/Downloads (or %USERPROFILE%\\Downloads).",
+            "After download finishes, tell the user the EXACT file path.",
+            "Open the installer (`Start-Process` / `open`).",
+            "Tell the user: 'Codex 安装向导已打开,请按向导点击下一步完成安装。' / 'Codex installer opened — follow the wizard to finish.'",
+            "Do NOT try to automate the GUI wizard."
+        ],
+        "tell_user": [
+            "Download location (full path)",
+            "That the installer was opened",
+            "That they should click through the wizard themselves"
+        ]
+    },
+    "identity_guard": {
+        "description": "Codex Desktop is OpenAI's GUI app for the Codex coding agent. It is DIFFERENT from the Codex CLI (`@openai/codex`). Both can coexist — the desktop app shares config under `~/.codex` with the CLI."
+    },
+    "network_requirements": {
+        "test_urls": ["https://openai.com", "https://developers.openai.com"],
+        "mirrors": {}
+    }
+}

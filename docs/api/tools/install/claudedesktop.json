@@ -1,0 +1,39 @@
+{
+    "id": "claudedesktop",
+    "displayName": "Claude Desktop",
+    "homepage": "https://claude.com/download",
+    "docs": "https://support.claude.com/en/articles/10065433-install-claude-desktop",
+    "kind": "desktop_app",
+    "platforms": ["windows", "macos"],
+    "install": {
+        "windows_winget": "winget install --id Anthropic.Claude --accept-package-agreements --accept-source-agreements",
+        "windows_download": "Open https://claude.com/download in the browser to download the official installer (.exe). Default save location: %USERPROFILE%\\Downloads.",
+        "macos_download": "Open https://claude.com/download in the browser to download the official installer (.dmg). Default save location: ~/Downloads.",
+        "linux": "Not supported. Claude Desktop is Windows / macOS only.",
+        "note": "This is a GUI desktop application — installation completes through a graphical wizard. Always tell the user the download location and ask them to double-click the installer and follow the wizard (Next → Next → Install)."
+    },
+    "install_flow": {
+        "summary": "Download installer → user double-clicks → user clicks through the install wizard",
+        "agent_steps": [
+            "Detect OS via `uname -s` (or PowerShell `$IsWindows`).",
+            "Windows: prefer `winget install --id Anthropic.Claude` if winget is available — it handles download and install silently. Fall back to manual download if winget is missing.",
+            "macOS / Windows manual: download the installer to the user's Downloads folder using `Invoke-WebRequest` (Windows) or `curl -L -o` (macOS).",
+            "After download finishes, tell the user the EXACT file path (e.g. 'Saved to ~/Downloads/Claude-Setup.exe').",
+            "Open the installer for the user (`Start-Process` on Windows, `open` on macOS).",
+            "Tell the user: '安装向导已打开,请按照向导点击下一步完成安装。' / 'The installer is open — please follow the wizard to finish.'",
+            "Do NOT try to automate the GUI wizard."
+        ],
+        "tell_user": [
+            "Download location (full path)",
+            "That the installer was opened automatically",
+            "That they should click through the wizard themselves"
+        ]
+    },
+    "network_requirements": {
+        "test_urls": ["https://claude.com", "https://downloads.claude.ai"],
+        "blocked_regions": {
+            "zh-CN": "claude.com may be blocked in mainland China — a VPN/proxy is usually required."
+        },
+        "mirrors": {}
+    }
+}

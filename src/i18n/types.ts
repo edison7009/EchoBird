@@ -44,13 +44,13 @@ export type TKey =
     // App Manager
     | 'agent.myLocalModel' | 'agent.selectTool' | 'agent.selectModelFor'
     | 'agent.noModelsTitle' | 'agent.noModelsHintPre' | 'agent.noModelsHintPost'
-    | 'agent.applyAndLaunch' | 'agent.appliedVia'
+    | 'agent.applyAndLaunch' | 'agent.appliedVia' | 'agent.noModelConfig'
     | 'agent.modelsTab'
     | 'agent.installViaMother'
     | 'agent.restore'
     // Tool categories
     | 'toolCat.all' | 'toolCat.agentOS' | 'toolCat.ide' | 'toolCat.cli'
-    | 'toolCat.autoTrading' | 'toolCat.game' | 'toolCat.utility'
+    | 'toolCat.autoTrading' | 'toolCat.game' | 'toolCat.desktop' | 'toolCat.utility'
     // ToolCard labels
     | 'tool.models'
     | 'tool.app' | 'tool.config' | 'tool.version'

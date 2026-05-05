@@ -1,0 +1,37 @@
+{
+    "id": "geminidesktop",
+    "displayName": "Gemini Desktop",
+    "homepage": "https://gemini.google/mac/",
+    "docs": "https://gemini.google/mac/",
+    "kind": "desktop_app",
+    "platforms": ["macos"],
+    "install": {
+        "macos_download": "Open https://gemini.google/mac/ in the browser to download the official .dmg. Saves to ~/Downloads by default.",
+        "windows": "NOT SUPPORTED. Gemini Desktop is macOS-only. If the user is on Windows or Linux, tell them: 'Gemini Desktop only supports macOS. Use the web version at https://gemini.google.com/ on Windows / Linux.'",
+        "linux": "NOT SUPPORTED. Gemini Desktop is macOS-only.",
+        "note": "Mac-only GUI desktop application. Tell the user the download location and ask them to follow the install steps (drag Gemini.app to /Applications)."
+    },
+    "install_flow": {
+        "summary": "Download .dmg → user double-clicks → drags Gemini.app to /Applications",
+        "agent_steps": [
+            "Verify OS is macOS first. If not, refuse with the message above.",
+            "Download the .dmg to ~/Downloads using `curl -L -o`.",
+            "After download finishes, tell the user the EXACT file path (e.g. '~/Downloads/Gemini.dmg').",
+            "Open the .dmg with `open ~/Downloads/Gemini.dmg`.",
+            "Tell the user: 'Gemini 安装窗口已打开,请把 Gemini.app 拖到 Applications 文件夹完成安装。' / 'The .dmg is open — drag Gemini.app to your Applications folder.'",
+            "Do NOT try to automate the GUI install."
+        ],
+        "tell_user": [
+            "Download location (full path)",
+            "That the .dmg was opened",
+            "That they should drag Gemini.app to /Applications"
+        ]
+    },
+    "network_requirements": {
+        "test_urls": ["https://gemini.google", "https://gemini.google.com"],
+        "blocked_regions": {
+            "zh-CN": "gemini.google may be blocked in mainland China — a VPN/proxy is usually required."
+        },
+        "mirrors": {}
+    }
+}

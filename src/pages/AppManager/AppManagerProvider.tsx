@@ -169,9 +169,12 @@ export const AppManagerProvider: React.FC<AppManagerProviderProps> = ({ children
 
         const toolData = detectedTools.find(t => t.id === selectedTool);
         const isLaunchable = !!toolData?.launchFile;
+        const noModelConfig = !!toolData?.noModelConfig;
 
-        // Apply model config (if model selected) — skip for launchable tools (they get config via URL hash)
-        if (!isLaunchable && toolModelConfig[selectedTool]) {
+        // Write model config to file only when the "apply via official config" checkbox is on.
+        // Launchable tools (e.g. games) always pass config via URL hash, never via file write.
+        // no-model-config tools (e.g. desktop apps) skip config writes entirely.
+        if (!noModelConfig && agreedConfigPolicy && !isLaunchable && toolModelConfig[selectedTool]) {
             const pending = toolModelConfig[selectedTool]!;
             const applyResult = isOfficialModelSentinel(pending)
                 ? await applyRestore(selectedTool)
@@ -182,8 +185,8 @@ export const AppManagerProvider: React.FC<AppManagerProviderProps> = ({ children
                 return;
             }
         }
-        // Only launch tool when checkbox is checked
-        if (launchAfterApply) {
+        // Launch tool when "launch directly" is checked, or unconditionally for desktop apps
+        if (launchAfterApply || noModelConfig) {
             if (isLaunchable) {
                 // Launchable tool (e.g. game): open independent window with model config
                 const selectedModelId = toolModelConfig[selectedTool];

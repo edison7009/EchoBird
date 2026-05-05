@@ -100,6 +100,12 @@ impl ProcessManager {
             }
         }
 
+        // Priority 2.9: MSIX / Store app — use shell:AppsFolder\<AUMID>
+        if let Some(uri) = crate::services::tool_manager::get_tool_launch_uri(tool_id) {
+            log::info!("[ProcessManager] Launching MSIX/Store app for {}: {}", tool_id, uri);
+            return self.start_shell_uri(tool_id, &uri);
+        }
+
         // Priority 3: GUI executable found (for desktop apps like CodeBuddy)
         if crate::services::tool_manager::get_tool_exe_path(tool_id).is_some() {
             log::info!("[ProcessManager] Found GUI exe for {}, launching as desktop app", tool_id);
@@ -366,6 +372,34 @@ impl ProcessManager {
     }
 
     /// Start a GUI tool by opening its executable
+    /// Launch an MSIX/Store app via shell:AppsFolder URI (Windows only).
+    /// On non-Windows hosts there are no Store apps, so this is a no-op error.
+    fn start_shell_uri(&mut self, tool_id: &str, uri: &str) -> Result<(), String> {
+        #[cfg(windows)]
+        {
+            use std::os::windows::process::CommandExt;
+            const CREATE_NO_WINDOW: u32 = 0x08000000;
+            let result = Command::new("explorer.exe")
+                .arg(uri)
+                .creation_flags(CREATE_NO_WINDOW)
+                .spawn();
+            match result {
+                Ok(child) => {
+                    let pid = child.id();
+                    log::info!("[ProcessManager] Launched {} via shell URI, PID: {}", tool_id, pid);
+                    self.processes.insert(tool_id.to_string(), ProcessInfo { pid });
+                    Ok(())
+                }
+                Err(e) => Err(format!("Failed to launch via shell URI: {}", e)),
+            }
+        }
+        #[cfg(not(windows))]
+        {
+            let _ = (tool_id, uri);
+            Err("Shell-URI launch is Windows-only".to_string())
+        }
+    }
+
     async fn start_gui_tool(&mut self, tool_id: &str) -> Result<(), String> {
         // Look up the executable path from tool definitions
         let exe_path = crate::services::tool_manager::get_tool_exe_path(tool_id)

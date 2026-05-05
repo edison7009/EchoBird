@@ -289,6 +289,25 @@ async fn detect_tool(pc: &PathsConfig) -> Option<String> {
         return Some("built-in".to_string());
     }
 
+    // 0.5. MSIX / Store apps (Windows): check user-data dir under %LOCALAPPDATA%\Packages\<PFN>.
+    // PackageFamilyName is the AUMID prefix before '!'. Standard Windows install marker.
+    #[cfg(windows)]
+    if let Some(ref aumid) = pc.launch_uri {
+        // Accept either raw AUMID or "shell:AppsFolder\<AUMID>"
+        let aumid_clean = aumid
+            .strip_prefix("shell:AppsFolder\\")
+            .or_else(|| aumid.strip_prefix("shell:AppsFolder/"))
+            .unwrap_or(aumid);
+        if let Some(pfn) = aumid_clean.split('!').next() {
+            if let Ok(local) = std::env::var("LOCALAPPDATA") {
+                let user_data = std::path::PathBuf::from(local).join("Packages").join(pfn);
+                if user_data.exists() {
+                    return Some(strip_unc(user_data.to_string_lossy().to_string()));
+                }
+            }
+        }
+    }
+
     // 1. Check custom env var
     if let Some(ref env_var) = pc.env_var {
         if let Ok(custom_path) = std::env::var(env_var) {
@@ -514,6 +533,7 @@ fn parse_category(s: &str) -> ToolCategory {
         "CLI Code" | "CLI" => ToolCategory::CLI,
         "AutoTrading" => ToolCategory::AutoTrading,
         "Game" => ToolCategory::Game,
+        "Desktop" => ToolCategory::Desktop,
         "Utility" => ToolCategory::Utility,
         _ => ToolCategory::Custom,
     }
@@ -724,7 +744,15 @@ async fn scan_single_tool(def: ToolDefinition) -> DetectedTool {
         names: pc.names.clone(),
         start_command: pc.start_command.clone(),
         command: if pc.command.is_empty() { None } else { Some(pc.command.clone()) },
+        no_model_config: pc.no_model_config,
+        launch_uri: pc.launch_uri.clone(),
     }
+}
+
+/// Get the launch URI (e.g. "shell:AppsFolder\\<AUMID>") for an MSIX/Store app.
+pub fn get_tool_launch_uri(tool_id: &str) -> Option<String> {
+    let defs = get_definitions();
+    defs.iter().find(|d| d.id == tool_id)?.paths_config.launch_uri.clone()
 }
 
 /// Scan all installed tools — runs all detections in parallel for fast completion.

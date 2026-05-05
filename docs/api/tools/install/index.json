@@ -7,6 +7,10 @@
         "nanobot",
         "picoclaw",
         "openfang",
-        "hermes"
+        "hermes",
+        "claudedesktop",
+        "codexdesktop",
+        "geminidesktop",
+        "coffeecli"
     ]
 }

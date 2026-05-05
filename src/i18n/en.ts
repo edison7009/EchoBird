@@ -79,8 +79,9 @@ const en: Translations = {
     'agent.noModelsTitle': 'No models configured.',
     'agent.noModelsHintPre': 'Go to',
     'agent.noModelsHintPost': 'to add one.',
-    'agent.applyAndLaunch': 'Apply config & Launch app',
+    'agent.applyAndLaunch': 'Launch app directly',
     'agent.appliedVia': 'Applied via official config files',
+    'agent.noModelConfig': 'This app does not support model configuration',
     'agent.restore': 'Default',
     // Local Server
     'server.selectModel': 'Select Model:',
@@ -131,6 +132,7 @@ const en: Translations = {
     'toolCat.cli': 'CLI Code',
     'toolCat.autoTrading': 'AutoTrading',
     'toolCat.game': 'Game',
+    'toolCat.desktop': 'Desktop',
     'toolCat.utility': 'Utilities',
     // Agent Worker tabs
     'agent.modelsTab': 'MODELS',

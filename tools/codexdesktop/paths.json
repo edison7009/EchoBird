@@ -1,0 +1,30 @@
+{
+    "name": "Codex Desktop",
+    "names": {
+        "zh-Hans": "Codex 桌面端",
+        "zh-Hant": "Codex 桌面端",
+        "ja": "Codex デスクトップ",
+        "ko": "Codex 데스크톱"
+    },
+    "category": "Desktop",
+    "noModelConfig": true,
+    "apiProtocol": [
+        "openai"
+    ],
+    "docs": "https://github.com/openai/codex",
+    "website": "https://openai.com/codex",
+    "command": "",
+    "configDir": "~/.codex",
+    "configFile": "~/.codex/config.toml",
+    "requireConfigFile": false,
+    "launchUri": "shell:AppsFolder\\OpenAI.Codex_2p2nqsd0c76g0!App",
+    "paths": {
+        "win32": [
+            "%LOCALAPPDATA%/Programs/Codex/Codex.exe"
+        ],
+        "darwin": [
+            "/Applications/Codex.app/Contents/MacOS/Codex"
+        ],
+        "linux": []
+    }
+}

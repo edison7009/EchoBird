@@ -1,0 +1,30 @@
+{
+    "name": "Coffee CLI",
+    "names": {
+        "zh-Hans": "Coffee CLI",
+        "zh-Hant": "Coffee CLI",
+        "ja": "Coffee CLI",
+        "ko": "Coffee CLI"
+    },
+    "category": "Desktop",
+    "noModelConfig": true,
+    "apiProtocol": [
+        "openai"
+    ],
+    "docs": "https://coffeecli.com/",
+    "website": "https://coffeecli.com/",
+    "command": "",
+    "configDir": "~/.coffee-cli",
+    "configFile": "~/.coffee-cli/config.json",
+    "requireConfigFile": false,
+    "paths": {
+        "win32": [
+            "%LOCALAPPDATA%/Coffee CLI/coffee-cli.exe"
+        ],
+        "darwin": [
+            "/Applications/Coffee CLI.app/Contents/MacOS/Coffee CLI",
+            "/Applications/Coffee CLI.app/Contents/MacOS/coffee-cli"
+        ],
+        "linux": []
+    }
+}

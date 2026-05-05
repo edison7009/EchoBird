@@ -28,7 +28,7 @@ export const AppManagerMain: React.FC = () => {
                         <button
                             key={cat}
                             onClick={() => setActiveToolCategory(cat)}
-                            className={`px-4 py-2 text-xs transition-colors outline-none ${activeToolCategory === cat
+                            className={`px-4 py-2.5 text-[14px] transition-colors outline-none ${activeToolCategory === cat
                                 ? 'text-cyber-text font-bold border-b-2 border-cyber-border'
                                 : 'text-cyber-text-secondary hover:text-cyber-text'
                                 }`}
@@ -38,7 +38,7 @@ export const AppManagerMain: React.FC = () => {
                                     'ALL': 'toolCat.all', 'CLI Agent': 'toolCat.agentOS',
                                     'IDE': 'toolCat.ide', 'CLI Code': 'toolCat.cli',
                                     'AutoTrading': 'toolCat.autoTrading', 'Game': 'toolCat.game',
-                                    'Utility': 'toolCat.utility'
+                                    'Desktop': 'toolCat.desktop', 'Utility': 'toolCat.utility'
                                 };
                                 return t((catMap[cat] || cat) as any);
                             })()}
@@ -85,8 +85,17 @@ export const AppManagerMain: React.FC = () => {
                                 const bHasRemote = aiInstallableIds.includes(b.id);
                                 if (aHasRemote !== bHasRemote) return aHasRemote ? -1 : 1;
                                 // 3. Then by category
-                                const categoryOrder: Record<string, number> = { 'CLI Agent': 0, 'IDE': 1, 'CLI Code': 2, 'AutoTrading': 3, 'Game': 4, 'Utility': 5 };
-                                return (categoryOrder[a.category || ''] ?? 99) - (categoryOrder[b.category || ''] ?? 99);
+                                const categoryOrder: Record<string, number> = { 'Desktop': 0, 'CLI Agent': 1, 'IDE': 2, 'CLI Code': 3, 'AutoTrading': 4, 'Game': 5, 'Utility': 6 };
+                                const catDiff = (categoryOrder[a.category || ''] ?? 99) - (categoryOrder[b.category || ''] ?? 99);
+                                if (catDiff !== 0) return catDiff;
+                                // 4. Within Desktop: fixed display order (Coffee CLI last)
+                                if (a.category === 'Desktop' && b.category === 'Desktop') {
+                                    const desktopOrder: Record<string, number> = {
+                                        claudedesktop: 0, codexdesktop: 1, geminidesktop: 2, coffeecli: 99,
+                                    };
+                                    return (desktopOrder[a.id] ?? 50) - (desktopOrder[b.id] ?? 50);
+                                }
+                                return 0;
                             })
                             .map(tool => (
                                 <ToolCard
@@ -341,18 +350,27 @@ export const AppManagerPanel: React.FC = () => {
 
             <div className="flex-1 p-2 overflow-y-auto">
                 {selectedToolData ? (
-                    <div className="space-y-2">
-                        <ModelListSection
-                            selectedToolData={selectedToolData}
-                            userModels={userModels}
-                            toolModelConfig={toolModelConfig}
-                            selectedTool={selectedTool}
-                            handleSelectModel={handleSelectModel}
-                            modelProtocolSelection={modelProtocolSelection}
-                            setModelProtocolSelection={setModelProtocolSelection}
-                            t={t}
-                        />
-                    </div>
+                    selectedToolData.noModelConfig ? (
+                        <div className="py-10 flex flex-col items-center gap-3 text-center">
+                            <BoxIcon size={28} className="text-cyber-text opacity-25" />
+                            <p className="text-[12px] text-cyber-text-secondary font-mono leading-relaxed">
+                                {t('agent.noModelConfig')}
+                            </p>
+                        </div>
+                    ) : (
+                        <div className="space-y-2">
+                            <ModelListSection
+                                selectedToolData={selectedToolData}
+                                userModels={userModels}
+                                toolModelConfig={toolModelConfig}
+                                selectedTool={selectedTool}
+                                handleSelectModel={handleSelectModel}
+                                modelProtocolSelection={modelProtocolSelection}
+                                setModelProtocolSelection={setModelProtocolSelection}
+                                t={t}
+                            />
+                        </div>
+                    )
                 ) : (
                     <p className="text-cyber-text-secondary text-center py-10">
                         {t('agent.selectTool')}
@@ -368,13 +386,15 @@ export const AppManagerPanel: React.FC = () => {
 export const AppManagerBottom: React.FC = () => {
     const { t } = useI18n();
     const {
-        selectedTool, toolModelConfig,
+        selectedTool, selectedToolData, toolModelConfig,
         launchAfterApply, setLaunchAfterApply,
         isLaunching, agreedConfigPolicy, setAgreedConfigPolicy,
         handleLaunch,
     } = useAppManager();
 
-    const hasModel = !!(selectedTool && toolModelConfig[selectedTool]);
+    const noModelConfig = !!selectedToolData?.noModelConfig;
+    const hasModel = noModelConfig || !!(selectedTool && toolModelConfig[selectedTool]);
+    const buttonDisabled = !hasModel || (!noModelConfig && !launchAfterApply && !agreedConfigPolicy) || isLaunching;
 
     return (
         <div className="flex-shrink-0 flex flex-col mt-2">
@@ -385,16 +405,16 @@ export const AppManagerBottom: React.FC = () => {
                 {/* Launch button */}
                 <button
                     onClick={handleLaunch}
-                    disabled={!hasModel || !agreedConfigPolicy || isLaunching}
-                    className={`w-64 h-14 text-lg font-bold font-mono tracking-widest transition-colors flex-shrink-0 rounded-lg cjk-btn border ${(!hasModel || !agreedConfigPolicy || isLaunching)
+                    disabled={buttonDisabled}
+                    className={`w-64 h-14 text-lg font-bold font-mono tracking-widest transition-colors flex-shrink-0 rounded-lg cjk-btn border ${buttonDisabled
                         ? 'bg-cyber-border text-cyber-text-secondary border-transparent cursor-not-allowed'
                         : 'bg-cyber-accent/15 text-cyber-accent border-cyber-accent/40 hover:bg-cyber-accent/25 hover:border-cyber-accent/60'
                         }`}
                 >
-                    {launchAfterApply ? t('btn.launchApp') : t('btn.modifyOnly')}
+                    {(noModelConfig || launchAfterApply) ? t('btn.launchApp') : t('btn.modifyOnly')}
                 </button>
-                {/* Checkboxes */}
-                <div className="flex flex-col gap-2">
+                {/* Checkboxes — hidden for tools that don't support model config (desktop apps) */}
+                <div className={`flex flex-col gap-2 ${noModelConfig ? 'invisible' : ''}`}>
                     {/* Apply & Launch checkbox */}
                     <label className="flex items-center gap-2 cursor-pointer select-none" onClick={() => setLaunchAfterApply(!launchAfterApply)}>
                         <div className={`w-3.5 h-3.5 border flex items-center justify-center transition-all flex-shrink-0 ${launchAfterApply ? 'border-cyber-border bg-cyber-text/20' : 'border-cyber-border hover:border-cyber-text-muted'

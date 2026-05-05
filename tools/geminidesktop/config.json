@@ -1,0 +1,6 @@
+{
+    "docs": "https://gemini.google.com/",
+    "configFile": "~/.gemini/settings.json",
+    "format": "json",
+    "custom": false
+}

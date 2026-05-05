@@ -52,7 +52,7 @@ export function MotherAgentPanel() {
                 <div className="flex gap-1">
                     <button
                         onClick={() => setPanelTab('servers')}
-                        className={`px-3 py-1.5 text-xs font-bold rounded transition-colors ${panelTab === 'servers'
+                        className={`px-3.5 py-2 text-[14px] font-semibold rounded transition-colors ${panelTab === 'servers'
                             ? 'bg-cyber-elevated text-cyber-text'
                             : 'text-cyber-text-secondary hover:text-cyber-text'
                             }`}
@@ -61,7 +61,7 @@ export function MotherAgentPanel() {
                     </button>
                     <button
                         onClick={() => setPanelTab('guide')}
-                        className={`px-3 py-1.5 text-xs font-bold rounded transition-colors ${panelTab === 'guide'
+                        className={`px-3.5 py-2 text-[14px] font-semibold rounded transition-colors ${panelTab === 'guide'
                             ? 'bg-cyber-elevated text-cyber-text'
                             : 'text-cyber-text-secondary hover:text-cyber-text'
                             }`}
@@ -364,14 +364,14 @@ export function MotherAgentPanel() {
                                 setSSHTestResult(null);
                                 setShowSSHModal(true);
                             }}
-                            className="w-full p-4 border border-dashed border-cyber-border/30 rounded hover:border-cyber-border/60 hover:bg-cyber-text/5 transition-all text-cyber-text/60 hover:text-cyber-text text-xs font-bold"
+                            className="w-full p-4 border border-dashed border-cyber-border/30 rounded hover:border-cyber-border/60 hover:bg-cyber-text/5 transition-all text-cyber-text/60 hover:text-cyber-text text-[14px] font-semibold"
                         >
                             + {t('mother.addServer')}
                         </button>
                     </div>
                 ) : (
                     /* ── SSH GUIDE tab (accordion) ── */
-                    <div className="space-y-1 text-xs font-mono">
+                    <div className="space-y-1.5 text-[13px]">
                         {[
                             {
                                 id: 'cloud', label: 'Cloud Server', content: (
@@ -453,9 +453,9 @@ export function MotherAgentPanel() {
                             <div key={section.id} className="border border-cyber-border/20 rounded overflow-hidden">
                                 <button
                                     onClick={() => setExpandedGuide(prev => prev === section.id ? null : section.id)}
-                                    className="w-full px-3 py-2 flex items-center justify-between bg-cyber-text/5 hover:bg-cyber-text/10 transition-colors"
+                                    className="w-full px-3 py-2.5 flex items-center justify-between bg-cyber-text/5 hover:bg-cyber-text/10 transition-colors"
                                 >
-                                    <span className="text-cyber-text font-bold text-sm">{section.label}</span>
+                                    <span className="text-cyber-text font-semibold text-[14px]">{section.label}</span>
                                     <ChevronDown size={14} className={`text-cyber-text/60 transition-transform ${expandedGuide === section.id ? 'rotate-180' : ''}`} />
                                 </button>
                                 {expandedGuide === section.id && (

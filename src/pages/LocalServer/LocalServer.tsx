@@ -776,7 +776,7 @@ export const LocalServerPanel: React.FC = () => {
                 <div className="flex gap-1">
                     <button
                         onClick={() => setActiveTab('local')}
-                        className={`px-3 py-1.5 text-xs font-bold rounded transition-colors ${activeTab === 'local'
+                        className={`px-3.5 py-2 text-[14px] font-semibold rounded transition-colors ${activeTab === 'local'
                             ? 'bg-cyber-elevated text-cyber-text'
                             : 'text-cyber-text-secondary hover:text-cyber-text'
                             }`}
@@ -785,7 +785,7 @@ export const LocalServerPanel: React.FC = () => {
                     </button>
                     <button
                         onClick={() => setActiveTab('store')}
-                        className={`px-3 py-1.5 text-xs font-bold rounded transition-colors ${activeTab === 'store'
+                        className={`px-3.5 py-2 text-[14px] font-semibold rounded transition-colors ${activeTab === 'store'
                             ? 'bg-cyber-elevated text-cyber-text'
                             : 'text-cyber-text-secondary hover:text-cyber-text'
                             }`}

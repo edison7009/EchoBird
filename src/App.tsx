@@ -106,7 +106,7 @@ function App() {
                                                                 <section className="flex-1 flex flex-col overflow-hidden pr-2">
 
                                                                     {/* Shared page title bar */}
-                                                                    <h2 className="text-xl mb-3 flex-shrink-0 relative flex items-center cjk-title">
+                                                                    <h2 className="mb-5 flex-shrink-0 relative flex items-center cjk-title">
                                                                         <span className="truncate">
                                                                             {is('news') && t('page.news')}
                                                                             {is('projects') && t('page.projects')}

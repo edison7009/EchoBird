@@ -157,6 +157,31 @@ After Steps 1-2 pass, present a brief summary:
 
 Ask: **"Ready to install? (Y/N)"** — then proceed only after confirmation.
 
+---
+
+## Desktop App Install (kind: desktop_app)
+
+When the install JSON has `"kind": "desktop_app"` (Claude Desktop, Codex Desktop, Gemini Desktop, Coffee CLI desktop build, etc.) the rules differ from CLI tools:
+
+1. **Local machine only.** Desktop apps must install on the user's local machine — NEVER on a remote SSH server. If the user is currently connected to a remote server, switch them to the **local** server (server id `local`) before proceeding.
+
+2. **Follow `install_flow.agent_steps` literally.** That field is authored per tool — read it and execute the steps in order. Do not invent your own install procedure for desktop apps.
+
+3. **Always do these three things:**
+    - Tell the user the **exact download path** (e.g. `~/Downloads/Claude-Setup.exe` or `%USERPROFILE%\Downloads\Codex.msix`).
+    - Open the installer for them (`Start-Process` on Windows, `open` on macOS) so the wizard pops up.
+    - Tell the user in plain language: *"Installer opened — please click through the wizard (Next → Next → Install) to finish."* Then stop. The user clicks the wizard themselves.
+
+4. **Do NOT automate the GUI wizard.** No silent-install flags, no AutoHotkey, no `/S /VERYSILENT` unless the install JSON explicitly says so.
+
+5. **Prefer package managers when available.** On Windows, `winget install --id <id>` (Anthropic.Claude / OpenAI.Codex) is silent and faster than the manual download flow — try it first when winget is on PATH.
+
+6. **One-line install scripts** (e.g. Coffee CLI's `iwr | iex` / `curl | sh`) handle everything end-to-end and don't need a wizard step. When the install JSON exposes one, prefer it over manual download.
+
+7. **Platform compatibility.** Read `platforms` in the install JSON. If the user's OS is not listed (e.g. Gemini Desktop on Windows), refuse politely and point them to the web alternative — do NOT try to install anyway.
+
+---
+
 ## Deployment Workflows
 
 ### Slow Network / Install Timeout

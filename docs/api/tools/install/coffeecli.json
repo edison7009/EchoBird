@@ -1,0 +1,39 @@
+{
+    "id": "coffeecli",
+    "displayName": "Coffee CLI",
+    "homepage": "https://coffeecli.com/",
+    "docs": "https://coffeecli.com/",
+    "github": "https://github.com/edison7009/Coffee-CLI",
+    "kind": "desktop_app",
+    "platforms": ["windows", "macos", "linux"],
+    "install": {
+        "windows_powershell": "iwr -useb https://coffeecli.com/install.ps1 | iex",
+        "macos_curl": "curl -fsSL https://coffeecli.com/install.sh | sh",
+        "linux_curl": "curl -fsSL https://coffeecli.com/install.sh | sh",
+        "windows_download": "https://coffeecli.com/download/windows",
+        "macos_download": "https://coffeecli.com/download/macos-arm",
+        "linux_download": "https://coffeecli.com/download/linux-deb",
+        "other_releases": "Other variants (Intel Mac, ARM Linux, AppImage): https://github.com/edison7009/Coffee-CLI/releases/latest",
+        "from_source": "git clone https://github.com/edison7009/Coffee-CLI",
+        "note": "Coffee CLI ships as a Tauri desktop app. The one-line `iwr | iex` (Windows) or `curl | sh` (macOS / Linux) script handles download, install, and PATH setup automatically — prefer it over the manual download links."
+    },
+    "install_flow": {
+        "summary": "Run the one-line install script for the user's OS — it does everything.",
+        "agent_steps": [
+            "Detect OS first.",
+            "Windows: run `iwr -useb https://coffeecli.com/install.ps1 | iex` via `shell_exec` — the script downloads to %LOCALAPPDATA%\\Coffee CLI and registers a shortcut.",
+            "macOS / Linux: run `curl -fsSL https://coffeecli.com/install.sh | sh` — the script downloads and places the binary on PATH.",
+            "If the install script fails (network, region block), fall back to the direct download URLs above and tell the user to double-click the installer.",
+            "After install, tell the user where Coffee CLI is installed (Windows: `%LOCALAPPDATA%\\Coffee CLI\\coffee-cli.exe`; macOS: `/Applications/Coffee CLI.app`; Linux: depends on the .deb)."
+        ],
+        "tell_user": [
+            "Which install method was used",
+            "Final install location",
+            "How to launch (Start menu / Applications / `coffee` CLI)"
+        ]
+    },
+    "network_requirements": {
+        "test_urls": ["https://coffeecli.com", "https://github.com/edison7009/Coffee-CLI/releases"],
+        "mirrors": {}
+    }
+}

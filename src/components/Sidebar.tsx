@@ -40,29 +40,20 @@ export const Sidebar = ({ activePage, onPageChange, agentRunning: _agentRunning 
 
     return (
         <nav className="w-64 flex flex-col px-6 pb-6">
-            <div className="mb-6 tracking-wide flex items-center gap-2 overflow-hidden">
-                <span
-                    className="flex-shrink-0 text-cyber-accent"
-                    style={{
-                        fontFamily: "'JetBrains Mono', monospace",
-                        fontWeight: 500,
-                        letterSpacing: '0.5px',
-                        fontSize: '15px',
-                        lineHeight: '16px',
-                    }}
-                >
+            <div className="mb-7 flex items-center gap-2 overflow-hidden">
+                <span className="brand-mark flex-shrink-0 text-cyber-accent">
                     {t('app.name')}
                 </span>
                 {updateAvailable && (
                     <button
                         onClick={onSettingsClick}
-                        className="flex-shrink-0 text-[12px] font-mono text-red-400 hover:opacity-70 transition-opacity animate-pulse leading-none"
+                        className="flex-shrink-0 text-[11px] font-mono text-red-400 hover:opacity-70 transition-opacity animate-pulse leading-none"
                     >
                         {t('settings.updates')}
                     </button>
                 )}
             </div>
-            <div className="flex-1 space-y-6 text-sm">
+            <div className="flex-1 space-y-5 text-[15px]">
                 <NavItem
                     icon={<Newspaper size={18} />}
                     label={t('nav.news')}
@@ -112,11 +103,11 @@ export const Sidebar = ({ activePage, onPageChange, agentRunning: _agentRunning 
             </div>
 
             {isFullEdition && (
-                <div className="pt-4 text-[12px] text-cyber-text-secondary uppercase tracking-widest">
+                <div className="pt-4 text-[14px] text-cyber-text-secondary">
                     {t('nav.localServer')}: {serverRunning ? (
-                        <span className="text-cyber-accent">{t('status.running')}</span>
+                        <span className="text-cyber-accent font-semibold">{t('status.running')}</span>
                     ) : (
-                        <span className="text-cyber-text-muted/70">{t('status.offline')}</span>
+                        <span className="text-cyber-text-muted">{t('status.offline')}</span>
                     )}
                 </div>
             )}
