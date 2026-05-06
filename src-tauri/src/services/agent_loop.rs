@@ -11,6 +11,7 @@ use tauri::{AppHandle, Emitter};
 use crate::commands::ssh_commands::SSHPool;
 use super::llm_client::*;
 use super::agent_tools;
+use super::json_repair::repair_tool_args;
 
 // ── Constants ──
 
@@ -392,7 +393,19 @@ pub async fn run_agent(
                     LlmEvent::ToolCallEnd { id } => {
                         if let Some(final_args) = tool_args_map.get(&id) {
                             if let Some(tc) = tool_calls.iter_mut().find(|t| t.id == id) {
-                                tc.arguments = final_args.clone();
+                                // Repair common LLM JSON malformations before the
+                                // tool sees the args. Pass-through on valid JSON.
+                                let repaired = repair_tool_args(&tc.name, final_args);
+                                if repaired != *final_args {
+                                    log::warn!(
+                                        "[AgentLoop] Repaired malformed tool args for {} ({}): {} → {}",
+                                        tc.name,
+                                        id,
+                                        truncate_for_log(final_args),
+                                        truncate_for_log(&repaired),
+                                    );
+                                }
+                                tc.arguments = repaired;
                             }
                         }
                     }
@@ -747,6 +760,16 @@ pub async fn run_agent(
 fn emit_event(app: &AppHandle, event: AgentEvent) {
     if let Err(e) = app.emit("agent_event", &event) {
         log::error!("[AgentLoop] Failed to emit event: {}", e);
+    }
+}
+
+fn truncate_for_log(s: &str) -> String {
+    const MAX: usize = 160;
+    if s.chars().count() <= MAX {
+        s.replace('\n', "\\n")
+    } else {
+        let head: String = s.chars().take(MAX).collect();
+        format!("{}...", head.replace('\n', "\\n"))
     }
 }
 
