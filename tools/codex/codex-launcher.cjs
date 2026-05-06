@@ -323,52 +323,112 @@ async function main() {
     });
 }
 
-function launchCodex(onExit) {
-    const codexCmd = process.platform === "win32" ? "codex.cmd" : "codex";
+// Resolve the platform-specific Rust codex binary. Codex v0.107+ ships a native
+// Rust executable inside @openai/codex-<platform> — spawning it directly preserves
+// the TTY chain. Going through codex.cmd → node codex.js → codex.exe with shell:true
+// drops TTY-ness somewhere in the cmd /d /s /c wrapping, causing the Rust TUI to
+// abort with "stdin is not a terminal".
+function resolveCodexBinary() {
+    const platform = process.platform;
+    const arch = process.arch;
 
-    // Try to find codex via multiple strategies (in order):
-    // 1. Standard APPDATA/npm location (Windows default)
-    // 2. `where codex.cmd` / `which codex` — resolves across any drive or PATH entry
-    // 3. Just rely on PATH (let shell resolve it via shell: true)
-    let codexPath = null;
+    // Map to the npm sub-package name and vendor directory triple used by codex.js.
+    let platPkg, triple, exeName;
+    if (platform === "win32") {
+        if (arch === "arm64") { platPkg = "@openai/codex-win32-arm64"; triple = "aarch64-pc-windows-msvc"; }
+        else                  { platPkg = "@openai/codex-win32-x64";   triple = "x86_64-pc-windows-msvc"; }
+        exeName = "codex.exe";
+    } else if (platform === "darwin") {
+        if (arch === "arm64") { platPkg = "@openai/codex-darwin-arm64"; triple = "aarch64-apple-darwin"; }
+        else                  { platPkg = "@openai/codex-darwin-x64";   triple = "x86_64-apple-darwin"; }
+        exeName = "codex";
+    } else if (platform === "linux") {
+        if (arch === "arm64") { platPkg = "@openai/codex-linux-arm64"; triple = "aarch64-unknown-linux-musl"; }
+        else                  { platPkg = "@openai/codex-linux-x64";   triple = "x86_64-unknown-linux-musl"; }
+        exeName = "codex";
+    } else {
+        return null;
+    }
 
-    // Strategy 1: APPDATA/npm
-    if (process.platform === "win32") {
-        const appdata = process.env.APPDATA || process.env.LOCALAPPDATA || "";
-        if (appdata && appdata.length > 2) { // must be more than just "D:" bare drive
-            const candidate = path.join(appdata, "npm", codexCmd);
-            if (fs.existsSync(candidate)) codexPath = candidate;
+    // Build candidate npm-root paths to look for @openai/codex.
+    const codexPkgRoots = [];
+
+    // Strategy 1: derive from `where codex.cmd` / `which codex`.
+    try {
+        const { execFileSync } = require("child_process");
+        const findCmd = platform === "win32" ? "where" : "which";
+        const findArg = platform === "win32" ? "codex.cmd" : "codex";
+        const stub = execFileSync(findCmd, [findArg], { encoding: "utf8", timeout: 3000 })
+            .trim().split(/\r?\n/)[0].trim();
+        if (stub) {
+            const npmDir = path.dirname(stub);
+            codexPkgRoots.push(path.join(npmDir, "node_modules", "@openai", "codex"));
+            // Linux/macOS pattern: /usr/local/bin/codex → /usr/local/lib/node_modules/...
+            codexPkgRoots.push(path.join(path.dirname(npmDir), "lib", "node_modules", "@openai", "codex"));
+        }
+    } catch { /* fall through */ }
+
+    // Strategy 2: well-known npm prefix locations.
+    if (platform === "win32") {
+        const appdata = process.env.APPDATA || process.env.LOCALAPPDATA;
+        if (appdata && appdata.length > 2) {
+            codexPkgRoots.push(path.join(appdata, "npm", "node_modules", "@openai", "codex"));
         }
     } else {
-        const candidate = "/usr/local/bin/" + codexCmd;
-        if (fs.existsSync(candidate)) codexPath = candidate;
+        codexPkgRoots.push("/usr/local/lib/node_modules/@openai/codex");
+        codexPkgRoots.push("/usr/lib/node_modules/@openai/codex");
+        codexPkgRoots.push(path.join(os.homedir(), ".npm-global", "lib", "node_modules", "@openai", "codex"));
     }
 
-    // Strategy 2: use where/which to locate
-    if (!codexPath) {
-        try {
-            const { execFileSync } = require("child_process");
-            const findCmd = process.platform === "win32" ? "where" : "which";
-            const result = execFileSync(findCmd, [codexCmd], { encoding: "utf8", timeout: 3000 })
-                .trim().split(/\r?\n/)[0].trim();
-            if (result && fs.existsSync(result)) codexPath = result;
-        } catch { /* not found via where/which */ }
+    for (const pkgRoot of codexPkgRoots) {
+        const candidate = path.join(pkgRoot, "node_modules", platPkg, "vendor", triple, "codex", exeName);
+        if (fs.existsSync(candidate)) return candidate;
     }
+    return null;
+}
 
-    // Strategy 3: fallback – let shell resolve via PATH
-    if (!codexPath) {
-        codexPath = codexCmd; // shell: true will resolve it
-        console.log(`[Echobird] Codex path not found locally, relying on PATH: ${codexCmd}`);
+function launchCodex(onExit) {
+    // Prefer the direct Rust binary so TTY survives the spawn. Fall back to the
+    // npm shim only if we cannot locate the platform binary.
+    let codexPath = resolveCodexBinary();
+    let useShell = false;
+
+    if (codexPath) {
+        console.log(`[Echobird] Launching Codex (direct binary): ${codexPath}`);
     } else {
-        console.log(`[Echobird] Launching Codex: ${codexPath}`);
+        const codexCmd = process.platform === "win32" ? "codex.cmd" : "codex";
+        if (process.platform === "win32") {
+            const appdata = process.env.APPDATA || process.env.LOCALAPPDATA || "";
+            if (appdata && appdata.length > 2) {
+                const candidate = path.join(appdata, "npm", codexCmd);
+                if (fs.existsSync(candidate)) codexPath = candidate;
+            }
+        } else {
+            const candidate = "/usr/local/bin/" + codexCmd;
+            if (fs.existsSync(candidate)) codexPath = candidate;
+        }
+        if (!codexPath) {
+            try {
+                const { execFileSync } = require("child_process");
+                const findCmd = process.platform === "win32" ? "where" : "which";
+                const result = execFileSync(findCmd, [codexCmd], { encoding: "utf8", timeout: 3000 })
+                    .trim().split(/\r?\n/)[0].trim();
+                if (result && fs.existsSync(result)) codexPath = result;
+            } catch { /* not found via where/which */ }
+        }
+        if (!codexPath) codexPath = codexCmd;
+        useShell = true;
+        console.log(`[Echobird] Rust binary not found, falling back to shim: ${codexPath}`);
     }
 
-    // Async spawn — keeps event loop alive for proxy server
+    // Async spawn — keeps event loop alive for proxy server.
+    // shell:false when we have the direct binary path, otherwise we need shell to
+    // execute .cmd shims on Windows.
     const child = spawn(codexPath, [], {
         stdio: "inherit",
         env: process.env,
         cwd: os.homedir(),
-        shell: true,
+        shell: useShell,
     });
 
     process.on("SIGINT", () => child.kill("SIGINT"));
