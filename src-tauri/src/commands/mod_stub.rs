@@ -43,6 +43,10 @@ pub async fn app_ready(app: tauri::AppHandle) {
         }
         // Show and focus main window
         if let Some(main) = app.get_webview_window("main") {
+            // Re-center right before show(): on Linux (GNOME/Wayland), the
+            // initial `center: true` is dropped because the compositor ignores
+            // client positioning until the window is mapped.
+            let _ = main.center();
             let _ = main.show();
             let _ = main.set_focus();
         }
