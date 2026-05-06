@@ -7,9 +7,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <title>Echobird</title>
   <!-- Resolve the theme synchronously *before* any CSS or JS runs, so the
-       boot splash and html/body background match the user's saved choice
-       (not just the OS preference). themeStore writes localStorage['theme']
-       on every apply() — see src/stores/themeStore.ts. -->
+       html/body background matches the user's saved choice during the brief
+       window between WebView paint and React mount. themeStore writes
+       localStorage['theme'] on every apply() — see src/stores/themeStore.ts. -->
   <script>
     (function () {
       try {
@@ -21,17 +21,10 @@
       } catch (e) { /* private mode etc. — fall through to CSS defaults */ }
     })();
   </script>
-  <!-- Inline boot splash — visible from the very first WebView paint, so the
-       window doesn't open onto a blank dark body while React mounts.
-       React removes it after appReady() (see App.tsx).
-
-       Design: a large static "EchoBird" wordmark in the same color as page
-       titles (text-primary). Single soft fade-in, no per-letter animation,
-       no caret, no spinner — pure typography. -->
   <style>
     /* Lora Bold Italic — Google Font, latin subset (~22 KB woff2).
-       Used by both the boot splash and the sidebar brand-mark, so the
-       brand has one weight + style across the whole app. */
+       Used by the sidebar brand-mark. Inline @font-face here so it's
+       available before src/index.css loads. */
     @font-face {
       font-family: 'Lora';
       src: url('/fonts/Lora-BoldItalic.woff2') format('woff2');
@@ -40,10 +33,10 @@
       font-display: block;
     }
     /* Match the real app palette (src/index.css):
-       dark  → bg #211F1C + text #E8E2D5
-       light → bg #EFEEEB + text #2E2924
-       [data-theme] is set synchronously by the head script, so these match
-       the user's saved theme on first paint. */
+       dark  → #211F1C, light → #EFEEEB. The window stays hidden via Tauri
+       (visible:false in tauri.conf.json) until React mounts and calls
+       appReady(), so this background is mainly visible during the first
+       paint of the main UI. */
     html, body {
       background: #211F1C;
       margin: 0;
@@ -51,95 +44,10 @@
     }
     :root[data-theme="light"] body,
     :root[data-theme="light"] { background: #EFEEEB; }
-
-    #boot-splash {
-      position: fixed;
-      inset: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: #211F1C;
-      z-index: 9999;
-      transition: opacity 0.4s ease;
-      -webkit-app-region: drag;
-      user-select: none;
-    }
-    :root[data-theme="light"] #boot-splash { background: #EFEEEB; }
-    body.app-ready #boot-splash {
-      opacity: 0;
-      pointer-events: none;
-    }
-
-    /* Splash group — label + 3-dot pulse, ported from Coffee-CLI's
-       tier-loading splash (D:\Coffee-CLI\src-ui\src\components\center\
-       TierTerminal.css:124+). Coffee uses 20px; we go a touch bigger
-       at 24px per request. No coffee cup, no mask reveal — just the
-       calm italic serif label + the three pulsing dots beneath it. */
-    #boot-splash .splash-group {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 16px;
-    }
-
-    #boot-splash .splash-label {
-      font-family: 'Lora', ui-serif, Georgia, Cambria, 'Times New Roman', serif;
-      font-weight: 700;
-      font-style: italic;
-      font-size: 24px;            /* slightly bigger than Coffee's 20px */
-      letter-spacing: 0.02em;
-      line-height: 1.2;
-      color: #E8E2D5;             /* matches --text-primary-rgb (dark) */
-      /* Soft halo for a luminous "lit-from-behind" feel — same trick as
-         Coffee-CLI's splash. Light theme uses warm-dark accent, dark
-         theme uses Claude coral. */
-      text-shadow:
-        0 0 1px currentColor,
-        0 0 18px rgba(217, 119, 87, 0.35);
-      -webkit-font-smoothing: antialiased;
-      -moz-osx-font-smoothing: grayscale;
-      text-rendering: optimizeLegibility;
-    }
-    :root[data-theme="light"] #boot-splash .splash-label {
-      color: #2E2924;
-      text-shadow:
-        0 0 1px currentColor,
-        0 0 18px rgba(201, 100, 66, 0.30);
-    }
-
-    #boot-splash .splash-dots {
-      display: flex;
-      gap: 6px;
-      align-items: center;
-    }
-    #boot-splash .splash-dot {
-      width: 6px;
-      height: 6px;
-      border-radius: 50%;
-      background: #E8E2D5;        /* match the wordmark color (dark theme) */
-      animation: bootSplashDotPulse 1.4s ease-in-out infinite;
-    }
-    :root[data-theme="light"] #boot-splash .splash-dot { background: #2E2924; }
-    #boot-splash .splash-dot:nth-child(2) { animation-delay: 0.2s; }
-    #boot-splash .splash-dot:nth-child(3) { animation-delay: 0.4s; }
-    @keyframes bootSplashDotPulse {
-      0%, 80%, 100% { transform: scale(0.5); opacity: 0.3; }
-      40%           { transform: scale(1);   opacity: 1;   }
-    }
   </style>
 </head>
 
 <body>
-  <div id="boot-splash">
-    <div class="splash-group">
-      <span class="splash-label">EchoBird</span>
-      <div class="splash-dots">
-        <span class="splash-dot"></span>
-        <span class="splash-dot"></span>
-        <span class="splash-dot"></span>
-      </div>
-    </div>
-  </div>
   <div id="root"></div>
   <script type="module" src="/src/main.tsx"></script>
 </body>

@@ -53,24 +53,13 @@ function App() {
     const { activePage, setUpdateAvailable } = useNavigationStore();
     const scanTools = useToolsStore(s => s.scanTools);
 
-    // ── Splash preload: run scanTools then mark app ready.
+    // ── Boot preload: scan tools, then tell Rust the app is ready so the
+    // hidden main window shows. No splash element to fade out — the window
+    // stays hidden until React has rendered, then opens straight to the UI.
     useEffect(() => {
         const preload = async () => {
-            await scanTools();
+            try { await scanTools(); } catch { /* continue anyway */ }
             api.appReady();
-            // Hold the splash for a minimum of ~700ms from page-load so the
-            // user actually sees one cycle of the 3-dot pulse — without it
-            // the splash flashes for just the fade duration on fast machines.
-            // performance.now() = ms since navigationStart, so this scales:
-            // slow scanTools → no extra wait, fast scanTools → small top-up.
-            const SPLASH_MIN_VISIBLE_MS = 700;
-            const elapsed = performance.now();
-            const waitMs = Math.max(0, SPLASH_MIN_VISIBLE_MS - elapsed);
-            setTimeout(() => {
-                document.body.classList.add('app-ready');
-                const splash = document.getElementById('boot-splash');
-                splash?.addEventListener('transitionend', () => splash.remove(), { once: true });
-            }, waitMs);
             // Silent update check after app is ready — read installed binary version from Tauri at runtime.
             try {
                 const [appVersion, res] = await Promise.all([
