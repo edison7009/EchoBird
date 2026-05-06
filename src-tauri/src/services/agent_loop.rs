@@ -13,6 +13,7 @@ use super::llm_client::*;
 use super::agent_tools;
 use super::json_repair::repair_tool_args;
 use super::datalog::DatalogWriter;
+use super::auto_fix;
 
 // ── Constants ──
 
@@ -736,7 +737,7 @@ pub async fn run_agent(
 
                 // Use precomputed result if intent-validator already produced one;
                 // otherwise race tool execution against cancel token.
-                let (result, was_cancelled) = if let Some(pre) = precomputed.remove(&tc.id) {
+                let (mut result, was_cancelled) = if let Some(pre) = precomputed.remove(&tc.id) {
                     (pre, false)
                 } else {
                     tokio::select! {
@@ -747,6 +748,28 @@ pub async fn run_agent(
                         }
                     }
                 };
+
+                // auto_fix: for known install/config-write intents, run a
+                // deterministic verifier. On verify failure we flip success
+                // and append a banner to result.output — the next ReAct
+                // iteration sees the failure and re-plans naturally.
+                if result.success && !was_cancelled {
+                    if let Some((intent, server_id)) =
+                        derive_verify_intent(&tc.name, &tc.arguments, &request.server_ids)
+                    {
+                        log::info!("[AgentLoop] auto_fix verifying {} on {}", intent.label(), server_id);
+                        match auto_fix::verify(&intent, &server_id, &ssh_pool).await {
+                            Ok(()) => log::info!("[AgentLoop] auto_fix OK for {}", intent.label()),
+                            Err(reason) => {
+                                log::warn!(
+                                    "[AgentLoop] auto_fix FAILED for {}: {}",
+                                    intent.label(), reason
+                                );
+                                result = auto_fix::wrap_failure(result, &intent, reason);
+                            }
+                        }
+                    }
+                }
 
                 datalog.log_tool_result(&result.output, result.success);
                 // Always emit ToolResult to frontend
@@ -849,6 +872,35 @@ fn emit_event(app: &AppHandle, event: AgentEvent) {
     if let Err(e) = app.emit("agent_event", &event) {
         log::error!("[AgentLoop] Failed to emit event: {}", e);
     }
+}
+
+/// Inspect a tool call and return (intent, resolved_server_id) when it is a
+/// known install/config-write that auto_fix should verify. Mirrors the
+/// server_id resolution used by execute_tool: an explicit "local" or empty
+/// server_id is replaced by the session's first non-local server when one
+/// exists, so the verifier hits the same machine the install ran on.
+fn derive_verify_intent(
+    tool_name: &str,
+    args_json: &str,
+    session_server_ids: &[String],
+) -> Option<(auto_fix::InstallIntent, String)> {
+    let args: Value = serde_json::from_str(args_json).ok()?;
+    let intent = match tool_name {
+        "shell_exec" => auto_fix::detect_install_intent_from_shell(args["command"].as_str()?),
+        "file_write" => auto_fix::detect_install_intent_from_write(args["path"].as_str()?),
+        _ => None,
+    }?;
+    let raw_sid = args["server_id"].as_str().unwrap_or("local");
+    let server_id = if raw_sid == "local" || raw_sid.is_empty() {
+        session_server_ids
+            .iter()
+            .find(|s| s.as_str() != "local" && !s.is_empty())
+            .cloned()
+            .unwrap_or_else(|| "local".to_string())
+    } else {
+        raw_sid.to_string()
+    };
+    Some((intent, server_id))
 }
 
 fn truncate_for_log(s: &str) -> String {

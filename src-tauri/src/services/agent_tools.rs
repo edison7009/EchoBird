@@ -428,7 +428,7 @@ pub async fn execute_tool(
 
 // ── Shell Execution ──
 
-async fn exec_shell(command: &str, server_id: &str, ssh_pool: &SSHPool) -> ToolResult {
+pub async fn exec_shell(command: &str, server_id: &str, ssh_pool: &SSHPool) -> ToolResult {
     if server_id == "local" || server_id.is_empty() {
         exec_local_shell(command).await
     } else {
