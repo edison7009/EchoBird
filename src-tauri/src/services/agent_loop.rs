@@ -12,6 +12,7 @@ use crate::commands::ssh_commands::SSHPool;
 use super::llm_client::*;
 use super::agent_tools;
 use super::json_repair::repair_tool_args;
+use super::datalog::DatalogWriter;
 
 // ── Constants ──
 
@@ -283,6 +284,11 @@ pub async fn run_agent(
         sess.cancel_token.clone()
     };
 
+    // Per-turn datalog — markdown trace under ~/.echobird/datalog/<server>/.
+    // Default-on; flip the constructor arg to gate via a settings flag later.
+    let mut datalog = DatalogWriter::new(true);
+    datalog.begin_turn(&server_key, &request.message, &request.model_name);
+
     emit_event(&app, AgentEvent::StateChange { state: "processing".into() });
 
     // 4. ReAct loop
@@ -328,6 +334,7 @@ pub async fn run_agent(
 
         // Call LLM
         log::info!("[AgentLoop] Loop {}: calling LLM with {} messages (SSE retry: {}/{})", loop_count, messages.len(), sse_retry_count, MAX_SSE_RETRIES);
+        datalog.log_llm_call();
 
         let mut rx = match client.chat_stream(&messages, &tools, &system_prompt).await {
             Ok(rx) => rx,
@@ -591,6 +598,7 @@ pub async fn run_agent(
         // 6. If no tool calls, we're done
         if tool_calls.is_empty() {
             log::info!("[AgentLoop] LLM finished with no tool calls (reason: {})", stop_reason);
+            datalog.log_text(&text_accumulator);
             break;
         }
 
@@ -659,6 +667,9 @@ pub async fn run_agent(
 
         if parallel {
             log::info!("[AgentLoop] Parallel-dispatching {} read-only tools", tool_calls.len());
+            for tc in &tool_calls {
+                datalog.log_tool_call(&tc.name, &tc.arguments);
+            }
             let mut handles = Vec::with_capacity(tool_calls.len());
             for tc in &tool_calls {
                 let name = tc.name.clone();
@@ -688,6 +699,7 @@ pub async fn run_agent(
             };
 
             for (tc, result) in tool_calls.iter().zip(results.into_iter()) {
+                datalog.log_tool_result(&result.output, result.success);
                 emit_event(&app, AgentEvent::ToolResult {
                     id: tc.id.clone(),
                     output: result.output.clone(),
@@ -720,6 +732,7 @@ pub async fn run_agent(
                 }
 
                 log::info!("[AgentLoop] Executing tool: {} ({})", tc.name, tc.id);
+                datalog.log_tool_call(&tc.name, &tc.arguments);
 
                 // Use precomputed result if intent-validator already produced one;
                 // otherwise race tool execution against cancel token.
@@ -735,6 +748,7 @@ pub async fn run_agent(
                     }
                 };
 
+                datalog.log_tool_result(&result.output, result.success);
                 // Always emit ToolResult to frontend
                 emit_event(&app, AgentEvent::ToolResult {
                     id: tc.id.clone(),
@@ -822,6 +836,7 @@ pub async fn run_agent(
             save_session_to_disk(&server_key, &sess.messages);
         }
     }
+    datalog.end_turn();
     emit_event(&app, AgentEvent::Done {});
     emit_event(&app, AgentEvent::StateChange { state: "idle".into() });
 

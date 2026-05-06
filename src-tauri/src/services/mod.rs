@@ -11,5 +11,6 @@ pub mod llm_client;
 pub mod agent_tools;
 pub mod agent_loop;
 pub mod json_repair;
+pub mod datalog;
 pub mod plugin_manager;
 pub mod bundled_assets;
