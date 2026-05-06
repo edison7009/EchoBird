@@ -1,5 +1,5 @@
 {
-  "version": "4.0.1",
+  "version": "4.0.2",
   "releaseDate": "2026-05-06",
-  "releaseNotes": "v4.0.1 — slim macOS to arm64-only, drop Linux AppImage"
+  "releaseNotes": "v4.0.2 — Linux agent shell + Codex launcher TTY fixes"
 }
