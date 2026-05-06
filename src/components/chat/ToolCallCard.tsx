@@ -54,10 +54,10 @@ export function ToolCallCard({ name, args, status, output }: ToolCallCardProps) 
         : status === 'failed' ? <XIcon size={11} className="text-red-400" />
         : <Check size={11} className="text-cyber-text-muted" />;
 
-    const borderColor =
-        status === 'failed' ? 'border-red-500/30'
-        : status === 'running' ? 'border-cyber-border/40'
-        : 'border-cyber-border/40';
+    // Border stays neutral across all statuses — the red ✕ icon already
+    // marks failures. Tinted borders looked peachy/orange against the warm
+    // dark surface, which read as visual noise in long tool-call sequences.
+    const borderColor = 'border-cyber-border/40';
 
     const truncatedOutput = output && output.length > OUTPUT_PREVIEW_LIMIT
         ? output.slice(0, OUTPUT_PREVIEW_LIMIT) + '\n…\n[truncated]'
