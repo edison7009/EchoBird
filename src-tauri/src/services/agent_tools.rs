@@ -3,7 +3,7 @@
 
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
-use std::process::Command;
+use std::process::{Command, Stdio};
 use std::time::Duration;
 use tokio::time::timeout;
 
@@ -31,6 +31,11 @@ fn get_exec_timeout(command: &str) -> u64 {
         "cargo install", "cargo build",
         "pip install", "pip3 install",
         "apt install", "apt-get install", "apt upgrade", "apt-get upgrade",
+        "dnf install", "dnf upgrade", "dnf update",
+        "yum install", "yum upgrade", "yum update",
+        "pacman -s", "pacman -syu", "pacman -syyu",
+        "zypper install", "zypper in ", "zypper update", "zypper up",
+        "apk add", "apk upgrade",
         "brew install",
         "curl", "wget",
         "tar ", "unzip ",
@@ -42,6 +47,8 @@ fn get_exec_timeout(command: &str) -> u64 {
         "yarn install", "yarn build",
         "git clone",
         "dpkg -i",
+        "snap install",
+        "nvm install",
     ];
     if long_patterns.iter().any(|p| cmd.contains(p)) {
         EXEC_TIMEOUT_LONG_SECS
@@ -180,16 +187,20 @@ pub fn get_tool_definitions() -> Vec<super::llm_client::ToolDef> {
         },
         super::llm_client::ToolDef {
             name: "get_sudo_password".into(),
-            description: "Get the saved SSH/sudo password for a remote server. Use this when you need to run sudo commands. Pipe it: echo '<password>' | sudo -S <command>".into(),
+            description: "Get the saved sudo password. \
+                For a remote SSH server, pass its server_id and you get back the saved SSH password. \
+                For the LOCAL machine, pass server_id=\"local\" (or omit it) — there is NO saved local password, \
+                so this returns an instruction telling you to ask the user in chat for their sudo password \
+                (and then run: echo '<password>' | sudo -S <command>). \
+                Always prefer non-sudo alternatives (nvm, pip install --user, cargo install) before resorting to sudo.".into(),
             parameters: json!({
                 "type": "object",
                 "properties": {
                     "server_id": {
                         "type": "string",
-                        "description": "The server ID to get the password for"
+                        "description": "Server ID. Use 'local' (or omit) for the local machine, or a remote SSH server ID."
                     }
-                },
-                "required": ["server_id"]
+                }
             }),
         },
         super::llm_client::ToolDef {
@@ -380,11 +391,9 @@ pub async fn execute_tool(
             exec_web_fetch(url).await
         }
         "get_sudo_password" => {
-            let server_id = args["server_id"].as_str().unwrap_or("");
-            if server_id.is_empty() {
-                return ToolResult { success: false, output: "server_id is required".into() };
-            }
-            exec_get_sudo_password(server_id)
+            let raw_sid = args["server_id"].as_str();
+            let server_id = resolve_server_id(raw_sid);
+            exec_get_sudo_password(&server_id)
         }
         "deploy_plugin_source" => {
             let server_id = args["server_id"].as_str().unwrap_or("");
@@ -471,12 +480,17 @@ async fn exec_local_shell(command: &str) -> ToolResult {
                     ])
                     .env("PYTHONIOENCODING", "utf-8")
                     .creation_flags(CREATE_NO_WINDOW)
+                    .stdin(Stdio::null())
                     .output()
             };
 
+            // Use bash (not sh) so `source`, `[[ ]]`, arrays etc. work on Debian/Ubuntu
+            // where /bin/sh is dash. Stdio::null() makes interactive prompts (sudo, ssh-keygen)
+            // fail fast instead of blocking until the 60s/600s timeout.
             #[cfg(not(target_os = "windows"))]
-            let output = Command::new("sh")
+            let output = Command::new("bash")
                 .args(["-c", &cmd])
+                .stdin(Stdio::null())
                 .output();
 
             output
@@ -593,12 +607,28 @@ fn exec_get_sudo_password(server_id: &str) -> ToolResult {
     use crate::commands::ssh_commands::read_servers_from_disk;
     use crate::services::model_manager;
 
+    // Local machine: no password is stored. Tell the model to ask the user in chat.
+    // success=false so the model treats this as "I need to do something else"
+    // rather than piping the literal directive into `sudo -S`.
+    if server_id == "local" || server_id.is_empty() {
+        return ToolResult {
+            success: false,
+            output: "NO_LOCAL_SUDO_PASSWORD_STORED. The local machine has no saved sudo password. \
+                Do NOT call this tool again for local. Instead: \
+                (1) prefer non-sudo alternatives first — nvm for Node, `pip install --user` for Python, \
+                `cargo install` for Rust binaries; \
+                (2) if sudo is truly required, ask the user in your <chat> reply for their sudo password, \
+                then on the next turn run: echo '<password>' | sudo -S <command>. \
+                When showing the command back to the user, mask the password as '***'.".into(),
+        };
+    }
+
     let servers = read_servers_from_disk();
     match servers.iter().find(|s| s.id == server_id) {
         Some(server) => {
             let plain = model_manager::decrypt_key_for_use(&server.password);
             if plain.is_empty() {
-                ToolResult { success: false, output: "No password saved for this server.".into() }
+                ToolResult { success: false, output: "No password saved for this server. Ask the user in <chat> for their sudo password, then run: echo '<password>' | sudo -S <command>".into() }
             } else {
                 ToolResult { success: true, output: plain }
             }
