@@ -30,7 +30,15 @@ import { AiPulseProvider, AiPulseTitleActions, AiNewsMain, AiProjectsMain, AiPul
 import { AiCoursesProvider, AiCoursesTitleActions, AiCoursesMain, AiCoursesPanel } from './pages/AiCourses';
 
 function SidebarConnected({ onSettingsClick }: { onSettingsClick: () => void }) {
-    const { activePage, setActivePage, agentRunning, motherNewMessage, clearMotherBadge, updateAvailable } = useNavigationStore();
+    // Selector form (one field per call) so unrelated store fields like
+    // agentRunning ticking or motherNewMessage flipping don't re-render the
+    // sidebar — and through it, the whole app tree on tab switches.
+    const activePage        = useNavigationStore(s => s.activePage);
+    const setActivePage     = useNavigationStore(s => s.setActivePage);
+    const agentRunning      = useNavigationStore(s => s.agentRunning);
+    const motherNewMessage  = useNavigationStore(s => s.motherNewMessage);
+    const clearMotherBadge  = useNavigationStore(s => s.clearMotherBadge);
+    const updateAvailable   = useNavigationStore(s => s.updateAvailable);
     const motherBadge = motherNewMessage && activePage !== 'mother';
     // Clear badge when switching to Mother Agent page
     const handlePageChange = (p: PageType) => {
@@ -49,8 +57,10 @@ function App() {
     const { t, locale, setLocale } = useI18n();
     const [showSettings, setShowSettings] = useState(false);
 
-    // Stores
-    const { activePage, setUpdateAvailable } = useNavigationStore();
+    // Stores — selector form so App.tsx (the root of the entire tree) only
+    // re-renders when activePage flips, not on every motherNewMessage tick.
+    const activePage         = useNavigationStore(s => s.activePage);
+    const setUpdateAvailable = useNavigationStore(s => s.setUpdateAvailable);
     const scanTools = useToolsStore(s => s.scanTools);
 
     // ── Boot preload: scan tools, then tell Rust the app is ready so the

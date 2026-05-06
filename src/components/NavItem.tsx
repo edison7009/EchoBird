@@ -18,7 +18,7 @@ export const NavItem = React.memo(({ icon, label, active = false, onClick, color
             : 'bg-cyber-elevated text-cyber-text font-medium';
     return (
         <div
-            className={`flex items-center gap-3 p-2 cursor-pointer transition-all rounded-lg ${active
+            className={`flex items-center gap-3 p-2 cursor-pointer transition-colors rounded-lg ${active
                 ? colorClasses
                 : 'hover:bg-cyber-elevated/50 text-cyber-text-secondary hover:text-cyber-text'
                 }`}
