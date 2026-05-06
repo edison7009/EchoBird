@@ -148,7 +148,6 @@ pub async fn apply_model_to_tool(tool_id: &str, model_info: ModelInfo) -> ApplyR
         "continue" => return apply_continue_dev(&model_info),
 
         // Type 5: TOML
-        "codex" => return apply_codex(&model_info),
         "zeroclaw" => return apply_zeroclaw(&model_info),
 
         // Qwen Code: direct write to ~/.qwen/settings.json
@@ -224,7 +223,6 @@ pub async fn get_tool_model_info(tool_id: &str) -> Option<ModelInfo> {
         "opencode" => return read_opencode(),
         "aider" => return read_aider(),
         "continue" => return read_continue_dev(),
-        "codex" => return read_codex(),
         "zeroclaw" => return read_zeroclaw(),
         "qwencode" => return read_qwen_code(),
         // Plug-and-play: check config.json custom flag
@@ -778,84 +776,7 @@ fn read_continue_dev() -> Option<ModelInfo> {
 }
 
 // ════════════════════════════════════════════════════════════════
-//  Type 5a: Codex �?~/.codex/config.toml
-//  API Key in ~/.echobird/codex.json
-// ════════════════════════════════════════════════════════════════
-
-fn apply_codex(model_info: &ModelInfo) -> ApplyResult {
-    let config_path = dirs::home_dir().unwrap_or_default().join(".codex").join("config.toml");
-
-    // Write config to ~/.echobird/codex.json (used by injected proxy code)
-    {
-        let codex_json = echobird_dir().join("codex.json");
-        let mut cfg = serde_json::json!({});
-        if let Some(ref api_key) = model_info.api_key {
-            cfg["apiKey"] = serde_json::json!(api_key);
-        }
-        if let Some(ref base_url) = model_info.base_url {
-            cfg["baseUrl"] = serde_json::json!(base_url);
-        }
-        if let Some(ref model) = model_info.model {
-            cfg["modelId"] = serde_json::json!(model);
-        } else if let Some(ref name) = model_info.name {
-            cfg["modelId"] = serde_json::json!(name);
-        }
-        if let Some(ref name) = model_info.name {
-            cfg["modelName"] = serde_json::json!(name);
-        }
-        let _ = write_json_file(&codex_json, &cfg);
-    }
-
-    let base_url = model_info.base_url.as_deref()
-        .unwrap_or("https://api.openai.com/v1").trim_end_matches('/').to_string();
-    let is_openai = base_url.contains("api.openai.com");
-    let provider = if is_openai { "openai".to_string() } else { extract_domain_name(&base_url) };
-    let model_name = model_info.model.as_deref().or(model_info.name.as_deref()).unwrap_or("unknown");
-
-    // Codex v0.107+ only supports wire_api = "responses" (chat is removed).
-    // Third-party APIs use the proxy (codex-launcher.cjs) to convert Responses→Chat.
-    let wire_api_line = "wire_api = \"responses\"\n";
-
-    let toml_content = format!(
-        "model = \"{model}\"\nmodel_provider = \"{prov}\"\nprofile = \"Echobird\"\n\n\
-         [model_providers.{prov}]\nname = \"{prov} (via Echobird)\"\n\
-         base_url = \"{url}\"\nenv_key = \"OPENAI_API_KEY\"\n\
-         {wire}requires_openai_auth = false\n\n\
-         [profiles.Echobird]\nmodel = \"{model}\"\nmodel_provider = \"{prov}\"\n",
-        model = model_name, prov = provider, url = base_url, wire = wire_api_line,
-    );
-
-    ensure_parent(&config_path);
-    match fs::write(&config_path, &toml_content) {
-        Ok(_) => {
-            crate::services::tool_patcher::patch_codex();
-            ApplyResult {
-                success: true,
-                message: format!("Codex updated: provider={}, model={}. Restart to apply.", provider, model_name),
-            }
-        }
-        Err(e) => ApplyResult { success: false, message: format!("Codex error: {}", e) },
-    }
-}
-
-fn read_codex() -> Option<ModelInfo> {
-    let path = dirs::home_dir()?.join(".codex").join("config.toml");
-    let content = fs::read_to_string(&path).ok()?;
-    let model = toml_read_top(&content, "model");
-    if model.is_empty() { return None; }
-    let prov = toml_read_top(&content, "model_provider");
-    let base_url = if !prov.is_empty() {
-        toml_read_section(&content, &format!("model_providers.{}", prov), "base_url")
-    } else { None };
-
-    Some(ModelInfo {
-        name: Some(model.clone()), model: Some(model), base_url,
-        api_key: None, anthropic_url: None, proxy_url: None, protocol: None,
-    })
-}
-
-// ════════════════════════════════════════════════════════════════
-//  Type 5b: ZeroClaw �?~/.zeroclaw/config.toml
+//  Type 5: ZeroClaw → ~/.zeroclaw/config.toml
 // ════════════════════════════════════════════════════════════════
 
 fn apply_zeroclaw(model_info: &ModelInfo) -> ApplyResult {
@@ -1093,27 +1014,6 @@ fn toml_read_top(content: &str, key: &str) -> String {
         }
     }
     String::new()
-}
-
-fn toml_read_section(content: &str, section: &str, key: &str) -> Option<String> {
-    let header = format!("[{}]", section);
-    let mut in_target = false;
-    for line in content.lines() {
-        let t = line.trim();
-        if t == header { in_target = true; continue; }
-        if t.starts_with('[') { if in_target { break; } continue; }
-        if !in_target || t.starts_with('#') || t.is_empty() { continue; }
-        if let Some((k, v)) = t.split_once('=') {
-            if k.trim() == key {
-                let v = v.trim();
-                if v.starts_with('"') && v.ends_with('"') && v.len() >= 2 {
-                    return Some(v[1..v.len()-1].to_string());
-                }
-                return Some(v.to_string());
-            }
-        }
-    }
-    None
 }
 
 fn toml_write_top(content: &str, key: &str, value: &str) -> String {

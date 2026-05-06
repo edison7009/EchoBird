@@ -4,6 +4,7 @@
     "apiProtocol": [
         "openai"
     ],
+    "noModelConfig": true,
     "docs": "https://github.com/openai/codex",
     "command": "codex",
     "startCommand": "codex",

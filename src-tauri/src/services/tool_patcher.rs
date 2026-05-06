@@ -12,7 +12,6 @@ const CLINE_MARKER: &str = "/* [Echobird-Patched] */";
 const ROOCODE_MARKER: &str = "/* [Echobird-RooCode-Patched] */";
 const KILOCODE_MARKER: &str = "/* [Echobird-KiloCode-Patched] */";
 const OPENCLAW_MARKER: &str = "/* [Echobird-Patched] */";
-const CODEX_MARKER: &str = "/* [Echobird-Codex-Patched] */";
 
 // ─── Injection Code Strings ───
 
@@ -161,34 +160,6 @@ import { homedir as _wc_homedir } from "node:os";
   }
 })();
 
-"#;
-
-// Codex injection: sync code after `const env = {...}` line
-// Codex v0.104+ is a Rust binary launcher, so we inject env vars into
-// the `env` object BEFORE it spawns the binary. No ESM imports needed
-// because codex.js already imports fs/path/os.
-const CODEX_INJECT: &str = r#"
-/* [Echobird-Codex-Patched] */
-;(function() { try {
-  const _eb_p = path.join(process.env.HOME || process.env.USERPROFILE || "", ".echobird", "codex.json");
-  // Guard: require() is not available in ESM modules (codex v0.107+ uses type:module)
-  // In that case env vars are already injected by the Echobird launcher process.
-  if (existsSync(_eb_p) && typeof require !== "undefined") {
-    const _eb_c = JSON.parse(require("fs").readFileSync(_eb_p, "utf-8"));
-    if (_eb_c.apiKey) {
-      env.OPENAI_API_KEY = _eb_c.apiKey;
-      process.env.OPENAI_API_KEY = _eb_c.apiKey;
-    }
-    if (_eb_c.baseUrl && !_eb_c.baseUrl.includes("api.openai.com")) {
-      // Do not overwrite if the Echobird proxy launcher already set it to localhost!
-      if (!process.env.OPENAI_BASE_URL || !process.env.OPENAI_BASE_URL.includes("127.0.0.1")) {
-        env.OPENAI_BASE_URL = _eb_c.baseUrl;
-        process.env.OPENAI_BASE_URL = _eb_c.baseUrl;
-      }
-    }
-    console.log("[EchoBird] Codex env injected: model=" + (_eb_c.modelId || "default"));
-  }
-} catch(_e) { console.warn("[EchoBird] Codex inject error:", _e.message); } })();
 "#;
 
 // ─── Installation Directories ───
@@ -459,28 +430,6 @@ pub fn patch_openclaw() {
         search_patterns: vec![
             "await installProcessWarningFilter();",
             "if (await tryImport(",
-        ],
-        inject_after: true,
-    });
-}
-
-/// Patch Codex CLI tool
-pub fn patch_codex() {
-    let install_dir = match find_npm_global_module("@openai/codex") {
-        Some(d) => d,
-        None => { log::info!("[Patcher] Codex not found, skipping"); return; }
-    };
-
-    let entry = install_dir.join("bin").join("codex.js");
-
-    // Codex v0.104+: inject AFTER the `const env = { ... };` line
-    // so we can set env.OPENAI_API_KEY before spawn()
-    patch_entry_file(&entry, &PatchConfig {
-        marker: CODEX_MARKER,
-        inject_code: CODEX_INJECT,
-        search_patterns: vec![
-            "env[packageManagerEnvVar] = \"1\";",
-            "const env = {",
         ],
         inject_after: true,
     });
@@ -1072,7 +1021,6 @@ pub fn patch_tool(tool_id: &str) {
         "roocode" => patch_roocode(),
         "kilocode" => patch_kilocode(),
         "openclaw" => patch_openclaw(),
-        "codex" => patch_codex(),
         "opencode" => patch_opencode(),
         "zeroclaw" => patch_zeroclaw(),
         "nanobot" => patch_nanobot(),
