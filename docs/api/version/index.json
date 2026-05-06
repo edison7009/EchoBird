@@ -1,5 +1,5 @@
 {
-  "version": "3.9.1",
-  "releaseDate": "2026-05-05",
-  "releaseNotes": "瘦身版:安装包从 30MB 降至约 14MB。移除已废弃的角色头像本地资源、冗余 Inter ttf 字体、16MB CJK 字体兜底(改用系统字体)。功能无变化。"
+  "version": "4.0.0",
+  "releaseDate": "2026-05-06",
+  "releaseNotes": "v4.0.0 — agent core overhaul"
 }
