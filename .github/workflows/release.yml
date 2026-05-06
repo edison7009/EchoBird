@@ -17,17 +17,21 @@ jobs:
             rust-target: 'x86_64-pc-windows-msvc'
             args: ''
 
+          # macOS: arm64 only (Apple Silicon). Universal binary doubles size
+          # (~20MB → 2x single-arch); Intel Macs are EOL post-2020.
           - platform: 'macos-latest'
-            rust-target: 'aarch64-apple-darwin x86_64-apple-darwin'
-            args: '--target universal-apple-darwin'
+            rust-target: 'aarch64-apple-darwin'
+            args: '--target aarch64-apple-darwin --bundles dmg'
 
+          # Linux: deb + rpm only. AppImage bundles full webkit/gtk runtime
+          # (~80MB each); deb/rpm rely on system webkit2gtk (~11MB each).
           - platform: 'ubuntu-latest'
             rust-target: 'x86_64-unknown-linux-gnu'
-            args: ''
+            args: '--bundles deb,rpm'
 
           - platform: 'ubuntu-24.04-arm'
             rust-target: 'aarch64-unknown-linux-gnu'
-            args: ''
+            args: '--bundles deb,rpm'
 
     runs-on: ${{ matrix.platform }}
     steps:
@@ -95,11 +99,7 @@ jobs:
               case "$NAME" in
                 *_x64-setup.exe)             NEW="EchoBird_${VER}_Windows_x64-setup.exe" ;;
                 *_x64_*.msi)                 NEW="EchoBird_${VER}_Windows_x64.msi" ;;
-                *_universal.dmg)             NEW="EchoBird_${VER}_macOS_Universal.dmg" ;;
-                *_universal.app.tar.gz)      NEW="EchoBird_${VER}_macOS_Universal.app.tar.gz" ;;
-                *_universal.app.tar.gz.sig)  NEW="EchoBird_${VER}_macOS_Universal.app.tar.gz.sig" ;;
-                *_amd64.AppImage)            NEW="EchoBird_${VER}_Linux_x64.AppImage" ;;
-                *_aarch64.AppImage)          NEW="EchoBird_${VER}_Linux_arm64.AppImage" ;;
+                *_aarch64.dmg)               NEW="EchoBird_${VER}_macOS_arm64.dmg" ;;
                 *_amd64.deb)                 NEW="EchoBird_${VER}_Linux_x64.deb" ;;
                 *_arm64.deb)                 NEW="EchoBird_${VER}_Linux_arm64.deb" ;;
                 *.x86_64.rpm)                NEW="EchoBird_${VER}_Linux_x64.rpm" ;;

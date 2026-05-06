@@ -53,12 +53,11 @@ The script auto-detects your OS, downloads the right package, and skips if you'r
 | 平台 / Platform | 文件 / Asset |
 |---|---|
 | Windows x64 | `EchoBird_<ver>_Windows_x64-setup.exe` |
-| macOS (Intel + Apple Silicon) | `EchoBird_<ver>_macOS_Universal.dmg` |
+| macOS (Apple Silicon) | `EchoBird_<ver>_macOS_arm64.dmg` |
 | Linux x64 · Debian/Ubuntu | `EchoBird_<ver>_Linux_x64.deb` |
 | Linux arm64 · Debian/Ubuntu | `EchoBird_<ver>_Linux_arm64.deb` |
 | Linux x64 · Fedora/RHEL | `EchoBird_<ver>_Linux_x64.rpm` |
 | Linux arm64 · Fedora/RHEL | `EchoBird_<ver>_Linux_arm64.rpm` |
-| Linux portable (任意发行版 / any distro) | `EchoBird_<ver>_Linux_x64.AppImage` |
 
 ---
 

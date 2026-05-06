@@ -36,9 +36,25 @@ PLATFORM=""
 ASSET_GREP=""
 
 if [ "$OS" = "Darwin" ]; then
-  PLATFORM="macos"
-  # macOS Universal binary covers both Intel and Apple Silicon.
-  ASSET_GREP='(macOS_Universal|universal)\.dmg'
+  # macOS: Apple Silicon only (arm64). Universal binary was 20MB; arm64-only
+  # halves that. Intel Macs are EOL post-2020 and a shrinking minority.
+  case "$ARCH" in
+    arm64)
+      PLATFORM="macos"
+      ASSET_GREP='(macOS_arm64|aarch64)\.dmg'
+      ;;
+    x86_64)
+      echo "  ${RED}Intel Mac is no longer supported.${RESET}"
+      echo "  ${YELLOW}EchoBird v4+ ships Apple Silicon (arm64) builds only.${RESET}"
+      echo "  ${YELLOW}Older v3.x universal builds remain available at:${RESET}"
+      echo "  ${YELLOW}  https://github.com/edison7009/EchoBird/releases${RESET}"
+      exit 1
+      ;;
+    *)
+      echo "  ${RED}Unsupported macOS architecture: $ARCH${RESET}"
+      exit 1
+      ;;
+  esac
 
 elif [ "$OS" = "Linux" ]; then
   case "$ARCH" in
@@ -52,11 +68,11 @@ elif [ "$OS" = "Linux" ]; then
       ;;
   esac
 
-  # Prefer dpkg (.deb on Debian/Ubuntu) → rpm (.rpm on Fedora/RHEL/openSUSE)
-  # → AppImage (everything else, incl. Arch / NixOS / minimal containers).
-  # Distro-native packages register the binary system-wide and integrate with
-  # the package manager; AppImage is portable but requires the user to put
-  # ~/.local/bin on PATH themselves.
+  # Prefer dpkg (.deb on Debian/Ubuntu) → rpm (.rpm on Fedora/RHEL/openSUSE).
+  # We dropped AppImage in v4 — it was 80MB per arch (bundled webkit/gtk),
+  # vs 11MB for distro-native packages that share system webkit2gtk.
+  # Arch / NixOS / Alpine users without dpkg or rpm will need to extract
+  # the .deb manually or build from source.
   if command -v dpkg > /dev/null 2>&1; then
     if [ "$LINUX_ARCH" = "arm64" ]; then
       PLATFORM="linux-arm64-deb"
@@ -66,9 +82,6 @@ elif [ "$OS" = "Linux" ]; then
       ASSET_GREP='(Linux_x64|amd64)\.deb'
     fi
   elif command -v rpm > /dev/null 2>&1; then
-    # Tauri default rpm name is "EchoBird-3.8.0-1.x86_64.rpm" (note the
-    # build counter "-1" before .arch.rpm). The renamed name is
-    # "EchoBird_3.8.0_Linux_x64.rpm".
     if [ "$LINUX_ARCH" = "arm64" ]; then
       PLATFORM="linux-arm64-rpm"
       ASSET_GREP='(Linux_arm64\.rpm|aarch64\.rpm)'
@@ -77,13 +90,11 @@ elif [ "$OS" = "Linux" ]; then
       ASSET_GREP='(Linux_x64\.rpm|x86_64\.rpm)'
     fi
   else
-    if [ "$LINUX_ARCH" = "arm64" ]; then
-      PLATFORM="linux-arm64-appimage"
-      ASSET_GREP='(Linux_arm64|aarch64)\.AppImage'
-    else
-      PLATFORM="linux-x64-appimage"
-      ASSET_GREP='(Linux_x64|amd64)\.AppImage'
-    fi
+    echo "  ${RED}No supported package manager found (dpkg or rpm).${RESET}"
+    echo "  ${YELLOW}EchoBird ships .deb (Debian/Ubuntu) and .rpm (Fedora/RHEL/openSUSE) only.${RESET}"
+    echo "  ${YELLOW}For Arch / NixOS / Alpine, extract a .deb manually from:${RESET}"
+    echo "  ${YELLOW}  https://github.com/edison7009/EchoBird/releases/latest${RESET}"
+    exit 1
   fi
 else
   echo "  ${RED}Unsupported OS: $OS${RESET}"
@@ -279,28 +290,6 @@ elif [ "$OS" = "Linux" ]; then
     echo "  ${GREEN}Done! EchoBird v$LATEST_VER installed.${RESET}"
     exit 0
   esac
-
-  # ── AppImage branch (Arch / NixOS / Alpine / minimal containers) ──
-  DEST="$HOME/.local/bin/echobird"
-  mkdir -p "$HOME/.local/bin"
-  # Download to a versioned temp first, then move into place. Writing
-  # straight to $DEST would clobber a working install if the download
-  # failed partway.
-  TMP="/tmp/echobird-v${LATEST_VER}.AppImage"
-  rm -f "$TMP"
-  echo "  ${GRAY}Downloading AppImage...${RESET}"
-  if ! curl -fL --progress-bar --retry 5 --retry-all-errors --retry-delay 2 "$DOWNLOAD_URL" -o "$TMP"; then
-    echo ""
-    echo "  ${RED}Download failed.${RESET}"
-    echo "  ${YELLOW}Retry in ~5 min, or manual: https://github.com/edison7009/EchoBird/releases/latest${RESET}"
-    echo ""
-    exit 1
-  fi
-  mv -f "$TMP" "$DEST"
-  chmod +x "$DEST"
-  echo ""
-  echo "  ${GREEN}Done! EchoBird v$LATEST_VER installed to $DEST${RESET}"
-  echo "  ${GRAY}Make sure ~/.local/bin is in your PATH.${RESET}"
 
 fi
 
