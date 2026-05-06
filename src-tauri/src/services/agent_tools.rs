@@ -1070,23 +1070,6 @@ pub fn get_local_platform_info() -> String {
     info
 }
 
-/// Get available plugins info for system prompt
-pub fn get_plugins_info() -> String {
-    let plugins = crate::services::plugin_manager::scan_plugins();
-    if plugins.is_empty() {
-        return String::new();
-    }
-
-    let mut info = "\n\nAvailable Agent Plugins:".to_string();
-    for p in &plugins {
-        info.push_str(&format!("\n  - {} (id: {})", p.name, p.id));
-        if let Some(cli) = &p.cli {
-            info.push_str(&format!(", CLI: {}", cli.command));
-        }
-    }
-    info
-}
-
 // ── Web Fetch ──
 
 const WEB_FETCH_MAX_CHARS: usize = 8000;

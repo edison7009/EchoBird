@@ -41,8 +41,7 @@
     "homepage": "https://echobird.ai/",
     "category": "DeveloperTool",
     "resources": [
-      "../tools/",
-      "../plugins/"
+      "../tools/"
     ],
     "icon": [
       "icons/32x32.png",

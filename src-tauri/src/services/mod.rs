@@ -12,5 +12,4 @@ pub mod agent_loop;
 pub mod json_repair;
 pub mod datalog;
 pub mod auto_fix;
-pub mod plugin_manager;
 pub mod bundled_assets;

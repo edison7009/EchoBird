@@ -145,7 +145,6 @@ pub fn run() {
             agent_commands::agent_abort,
             agent_commands::agent_reset,
             ssh_commands::ssh_upload_file,
-            ssh_commands::scan_plugins,
             role_commands::detect_local_agents,
             bundled_commands::get_mother_system_prompt,
             bundled_commands::get_mother_hints,

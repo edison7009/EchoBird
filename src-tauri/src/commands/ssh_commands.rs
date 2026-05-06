@@ -468,12 +468,6 @@ pub async fn ssh_upload_file(
     }
 }
 
-/// Scan plugins directory and return available agent plugins
-#[tauri::command]
-pub fn scan_plugins() -> Vec<crate::services::plugin_manager::PluginConfig> {
-    crate::services::plugin_manager::scan_plugins()
-}
-
 /// Execute an SSH command that tolerates missing exit codes.
 /// Some commands (especially piped commands) don't always send an exit status
 /// through the SSH channel. The standard `client.execute()` discards all collected

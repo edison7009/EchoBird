@@ -1123,13 +1123,6 @@ Do NOT offer WSL2 as a workaround.\n\
         prompt.push_str("\n");
     }
 
-    // Agent Plugins
-    let plugins_info = agent_tools::get_plugins_info();
-    if !plugins_info.is_empty() {
-        prompt.push_str(&plugins_info);
-        prompt.push_str("\n\n");
-    }
-
     prompt
 }
 
