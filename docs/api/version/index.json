@@ -1,5 +1,5 @@
 {
-  "version": "4.0.3",
+  "version": "4.0.4",
   "releaseDate": "2026-05-06",
-  "releaseNotes": "v4.0.3 — drop Codex CLI local-proxy stack. Codex installs only; model config disabled. v4.0.2's TTY fix preserved the launcher; this release removes it entirely. Fixes SSE follow-up failures on Linux for any endpoint routed via the launcher."
+  "releaseNotes": "v4.0.4 — splash redesign, theme persistence, pulse mirrors for CN users, dead-code purge."
 }
