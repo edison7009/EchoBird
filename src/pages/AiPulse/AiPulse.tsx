@@ -312,7 +312,7 @@ function ItemRow({ item }: { item: NewsItem }) {
     return (
         <button
             onClick={() => openExternal(item.url)}
-            className="group w-full text-left bg-cyber-surface rounded-card border border-cyber-border/15 hover:border-cyber-border/40 hover:bg-cyber-elevated transition-colors px-5 py-4 flex gap-3 items-start"
+            className="group w-full text-left rounded-card hover:bg-cyber-text/5 transition-colors px-5 py-4 flex gap-3 items-start"
         >
             <div className="flex-1 min-w-0">
                 <div className="text-[15px] font-medium text-cyber-text leading-relaxed group-hover:text-cyber-accent transition-colors">
