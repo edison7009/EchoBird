@@ -68,7 +68,18 @@ pub struct AgentSession {
     pub messages: Vec<Message>,
     pub running: bool,
     pub cancel_token: CancellationToken,
+    /// Ring buffer of recent tool-call hashes for loop detection.
+    /// Cleared at the start of each user turn — loops only count within-turn.
+    pub recent_calls: std::collections::VecDeque<u64>,
 }
+
+/// Maximum repeats of the same (tool, args) within the recent-calls window
+/// before the agent loop short-circuits the call with a "you're in a loop"
+/// synthetic tool result. 3rd repeat trips it.
+const LOOP_REPEAT_THRESHOLD: usize = 3;
+/// Ring buffer size for `recent_calls`. 8 is enough to catch tight loops
+/// without keeping arbitrary history around.
+const RECENT_CALLS_CAPACITY: usize = 8;
 
 impl AgentSession {
     pub fn new() -> Self {
@@ -77,6 +88,7 @@ impl AgentSession {
             messages: Vec::new(),
             running: false,
             cancel_token: CancellationToken::new(),
+            recent_calls: std::collections::VecDeque::with_capacity(RECENT_CALLS_CAPACITY),
         }
     }
 
@@ -92,7 +104,45 @@ impl AgentSession {
             self.cancel_token = CancellationToken::new();
         }
         self.running = true;
+        // New turn — drop history of the previous turn's calls so a tool
+        // legitimately re-used across turns doesn't get flagged.
+        self.recent_calls.clear();
     }
+
+    /// Record a tool call and return Some(reason) if it has now repeated
+    /// LOOP_REPEAT_THRESHOLD times in the recent window.
+    pub fn record_call_and_detect_loop(&mut self, hash: u64) -> Option<String> {
+        let prior_count = self.recent_calls.iter().filter(|&&h| h == hash).count();
+        if self.recent_calls.len() >= RECENT_CALLS_CAPACITY {
+            self.recent_calls.pop_front();
+        }
+        self.recent_calls.push_back(hash);
+        if prior_count + 1 >= LOOP_REPEAT_THRESHOLD {
+            Some(format!(
+                "Loop detected: this exact call has now run {} times in a row without progress. \
+                 Stop calling the same tool with the same arguments. Read the previous result, \
+                 explain what you found, and either change approach or ask the user.",
+                prior_count + 1
+            ))
+        } else {
+            None
+        }
+    }
+}
+
+/// Hash a tool call so equivalent invocations collide regardless of whitespace
+/// or JSON key order. Falls back to the raw string when args don't parse —
+/// malformed-but-identical calls still trip the detector.
+fn loop_args_hash(tool_name: &str, args: &str) -> u64 {
+    use std::hash::{Hash, Hasher};
+    let mut h = std::collections::hash_map::DefaultHasher::new();
+    tool_name.hash(&mut h);
+    let canon = serde_json::from_str::<serde_json::Value>(args)
+        .ok()
+        .and_then(|v| serde_json::to_string(&v).ok())
+        .unwrap_or_else(|| args.to_string());
+    canon.hash(&mut h);
+    h.finish()
 }
 
 // Per-server session map (keyed by server_id: "local" or SSH server id)
@@ -570,6 +620,29 @@ pub async fn run_agent(
                             });
                         }
                     }
+                }
+            }
+        }
+
+        // Loop detection: short-circuit any tool call that would be the Nth
+        // identical (tool, args) repeat within the current turn. Hash is
+        // computed against canonical JSON so whitespace / key-order doesn't
+        // hide loops. Skipped for tools already short-circuited above
+        // (intent validator wins; no need to also flag a loop on them).
+        {
+            let mut map = session_map.lock().await;
+            let sess = map.entry(server_key.clone()).or_insert_with(AgentSession::new);
+            for tc in &tool_calls {
+                if precomputed.contains_key(&tc.id) {
+                    continue;
+                }
+                let h = loop_args_hash(&tc.name, &tc.arguments);
+                if let Some(reason) = sess.record_call_and_detect_loop(h) {
+                    log::warn!("[AgentLoop] Loop guard tripped on tool {} ({}): {}", tc.name, tc.id, reason);
+                    precomputed.insert(tc.id.clone(), agent_tools::ToolResult {
+                        success: false,
+                        output: reason,
+                    });
                 }
             }
         }
@@ -1157,4 +1230,81 @@ fn validate_install_intent(command: &str, messages: &[Message]) -> Result<(), St
         intent.label(),
         intent.canonical_install(),
     ))
+}
+
+#[cfg(test)]
+mod loop_detection_tests {
+    use super::*;
+
+    #[test]
+    fn hash_stable_across_whitespace_and_key_order() {
+        let a = loop_args_hash("read_file", r#"{"path":"/a.rs","line":3}"#);
+        let b = loop_args_hash("read_file", r#"{ "path": "/a.rs", "line": 3 }"#);
+        let c = loop_args_hash("read_file", r#"{"line":3,"path":"/a.rs"}"#);
+        assert_eq!(a, b, "whitespace must not affect hash");
+        assert_eq!(a, c, "key order must not affect hash");
+    }
+
+    #[test]
+    fn hash_distinguishes_tool_name() {
+        let a = loop_args_hash("read_file", r#"{"path":"/x"}"#);
+        let b = loop_args_hash("file_edit", r#"{"path":"/x"}"#);
+        assert_ne!(a, b);
+    }
+
+    #[test]
+    fn hash_distinguishes_args() {
+        let a = loop_args_hash("read_file", r#"{"path":"/a"}"#);
+        let b = loop_args_hash("read_file", r#"{"path":"/b"}"#);
+        assert_ne!(a, b);
+    }
+
+    #[test]
+    fn malformed_args_fall_back_to_raw_string() {
+        // Two identical malformed strings must collide; differing ones must not.
+        let a = loop_args_hash("read_file", "not json");
+        let b = loop_args_hash("read_file", "not json");
+        let c = loop_args_hash("read_file", "also not json");
+        assert_eq!(a, b);
+        assert_ne!(a, c);
+    }
+
+    #[test]
+    fn third_repeat_trips_loop_guard() {
+        let mut s = AgentSession::new();
+        let h = 42_u64;
+        assert!(s.record_call_and_detect_loop(h).is_none(), "1st call ok");
+        assert!(s.record_call_and_detect_loop(h).is_none(), "2nd call ok");
+        assert!(s.record_call_and_detect_loop(h).is_some(), "3rd call must trip");
+    }
+
+    #[test]
+    fn distinct_calls_do_not_trip() {
+        let mut s = AgentSession::new();
+        for h in [1u64, 2, 3, 4, 5, 6] {
+            assert!(s.record_call_and_detect_loop(h).is_none());
+        }
+    }
+
+    #[test]
+    fn prepare_run_resets_recent_calls() {
+        let mut s = AgentSession::new();
+        let h = 99_u64;
+        s.record_call_and_detect_loop(h);
+        s.record_call_and_detect_loop(h);
+        s.prepare_run();
+        // After reset the same hash must not trip until 3 fresh repeats.
+        assert!(s.record_call_and_detect_loop(h).is_none());
+        assert!(s.record_call_and_detect_loop(h).is_none());
+        assert!(s.record_call_and_detect_loop(h).is_some());
+    }
+
+    #[test]
+    fn ring_buffer_does_not_grow_unboundedly() {
+        let mut s = AgentSession::new();
+        for h in 0..100u64 {
+            s.record_call_and_detect_loop(h);
+        }
+        assert!(s.recent_calls.len() <= RECENT_CALLS_CAPACITY);
+    }
 }
