@@ -19,6 +19,10 @@ import { useI18n } from '../../hooks/useI18n';
 
 const PULSE_MIRRORS: { name: string; base: string }[] = [
     { name: 'echobird', base: 'https://echobird.ai/pulse' },
+    // jsDelivr CDN — global CDN that's still routable from mainland China,
+    // unlike raw.githubusercontent.com which is GFW-blocked. Caches @main
+    // for up to 12h so data lags the upstream a bit; acceptable as a fallback.
+    { name: 'jsdelivr', base: 'https://cdn.jsdelivr.net/gh/SuYxh/ai-news-aggregator@main/data' },
     { name: 'github',   base: 'https://raw.githubusercontent.com/SuYxh/ai-news-aggregator/main/data' },
 ];
 

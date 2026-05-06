@@ -1,0 +1,51 @@
+name: Refresh Pulse Data
+
+# Mirrors SuYxh/ai-news-aggregator's latest-{24h,7d}.json into docs/pulse/
+# so echobird.ai/pulse/* serves them as static files (the Cloudflare Pages
+# fallback for when the pulse-worker isn't deployed). Commits only when the
+# upstream payload changed, to keep git history bounded.
+
+on:
+  schedule:
+    - cron: '15 */6 * * *'   # every 6 hours, offset 15min from the hour
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: refresh-pulse-data
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fetch upstream pulse files
+        run: |
+          set -euo pipefail
+          mkdir -p docs/pulse
+          base="https://raw.githubusercontent.com/SuYxh/ai-news-aggregator/main/data"
+          for f in latest-24h.json latest-7d.json; do
+            tmp="$(mktemp)"
+            curl -fsSL --retry 3 --retry-delay 5 -o "$tmp" "$base/$f"
+            # Sanity: must be JSON, not an HTML error page
+            head -c 1 "$tmp" | grep -q '{' || { echo "::error::$f did not look like JSON"; exit 1; }
+            mv "$tmp" "docs/pulse/$f"
+          done
+          ls -lh docs/pulse/
+
+      - name: Commit if changed
+        run: |
+          set -euo pipefail
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/pulse/latest-24h.json docs/pulse/latest-7d.json
+          if git diff --cached --quiet; then
+            echo "No upstream changes — skipping commit."
+            exit 0
+          fi
+          git commit -m "chore(pulse): refresh upstream snapshot"
+          git push
