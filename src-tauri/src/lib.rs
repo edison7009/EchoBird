@@ -74,8 +74,6 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             mod_stub::health_check,
-            mod_stub::get_app_logs,
-            mod_stub::clear_app_logs,
             mod_stub::app_ready,
             mod_stub::quit_app,
             tool_commands::scan_tools,

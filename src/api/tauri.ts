@@ -8,7 +8,7 @@
 import { invoke } from '@tauri-apps/api/core';
 import type {
     DetectedTool, ToolModelInfo, ApplyModelInput,
-    ProxyRule, SSNodeConfig, AppLogEntry,
+    ProxyRule, SSNodeConfig,
     AppSettings,
 } from './types';
 
@@ -100,16 +100,6 @@ export async function openExternal(url: string): Promise<void> {
 
 export async function openFolder(path: string): Promise<void> {
     await invoke('open_folder', { path });
-}
-
-// ─── App Log APIs ───
-
-export async function getAppLogs(): Promise<AppLogEntry[]> {
-    return invoke('get_app_logs');
-}
-
-export async function clearAppLogs(): Promise<void> {
-    return invoke('clear_app_logs');
 }
 
 // ─── App Settings APIs ───

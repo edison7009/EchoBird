@@ -1,5 +1,5 @@
 /**
- * buildPendingMessage — shared utility for both MotherAgent and Channels pages.
+ * buildPendingMessage — shared utility for the MotherAgent page.
  *
  * Takes pending attachments (files/images, models) and produces:
  *  - `messageText`: the full text to send to the agent (includes base64 image data, model configs)

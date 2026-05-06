@@ -50,26 +50,6 @@ pub enum ConfigFormat {
     Toml,
 }
 
-/// Application log entry
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct AppLogEntry {
-    pub timestamp: String,
-    pub category: LogCategory,
-    pub message: String,
-}
-
-/// Log categories
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "UPPERCASE")]
-pub enum LogCategory {
-    Error,
-    Model,
-    Download,
-    Tool,
-    Security,
-    Channel,
-}
-
 /// Proxy rule
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ProxyRule {

@@ -209,7 +209,7 @@ const zhHans: Partial<Translations> = {
     'error.connectionTimeout': '服务器没有回应，请检查网络连接。',
     'error.serverUnreachable': '无法连接服务器，请检查地址和设置。',
     'error.agentFailed': 'Agent 不可用。',
-    'error.noServerConfig': '此频道未配置服务器。',
+    'error.noServerConfig': '尚未配置服务器。',
     'error.noModelSelected': '未选择模型，请先选择一个模型。',
     'error.requestFailed': '请求失败，请重试。',
     'error.userCancelled': '已取消。',

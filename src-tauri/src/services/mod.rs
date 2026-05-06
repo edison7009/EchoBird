@@ -1,4 +1,3 @@
-pub mod logger;
 pub mod crypto;
 pub mod tool_manager;
 pub mod tool_config_manager;

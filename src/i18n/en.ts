@@ -239,7 +239,7 @@ const en: Translations = {
     'error.connectionTimeout': 'No response from server, please check your connection.',
     'error.serverUnreachable': 'Cannot reach the server, please check the address and settings.',
     'error.agentFailed': 'Agent failed.',
-    'error.noServerConfig': 'No server configured for this channel.',
+    'error.noServerConfig': 'No server configured.',
     'error.noModelSelected': 'No model selected, please select a model first.',
     'error.requestFailed': 'Request failed, please try again.',
     'error.userCancelled': 'Cancelled.',

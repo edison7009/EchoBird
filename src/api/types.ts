@@ -135,14 +135,6 @@ export interface ApplyModelInput {
     protocol?: string;
 }
 
-// ─── App Log Types ───
-
-export interface AppLogEntry {
-    timestamp: string;
-    category: string;
-    message: string;
-}
-
 // ─── App Settings Types ───
 
 export interface AppSettings {

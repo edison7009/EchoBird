@@ -1,8 +1,6 @@
 // useChatPersistence — localStorage-backed chat history for Mother Agent.
-// Used to be a Tauri-backed paginated store for Channels, but Channels was removed
-// in the "tools repositioning" pass. Mother Agent chat history is small enough to
-// live entirely in localStorage; pagination still exists for compatibility but
-// always serves from memory after the initial load.
+// History is small enough to live entirely in localStorage; pagination
+// still exists in the API but always serves from memory after first load.
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 

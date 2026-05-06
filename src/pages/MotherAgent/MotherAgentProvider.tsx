@@ -9,7 +9,6 @@ import type { BubbleChip } from '../../components/chat/ChatBubble';
 import type { ChatMessage } from './types';
 import { MA_PAGE_SIZE } from './types';
 import { MotherAgentContext } from './context';
-import { useAppLogsStore } from '../../stores/appLogsStore';
 import { useToolsStore } from '../../stores/toolsStore';
 import { useNavigationStore } from '../../stores/navigationStore';
 
@@ -17,7 +16,6 @@ import { useNavigationStore } from '../../stores/navigationStore';
 
 export function MotherAgentProvider({ children }: { children: React.ReactNode }) {
     // From stores (replaces drilled props)
-    const { appLogs, clearLogs: onClearLogs } = useAppLogsStore();
     const { detectedTools } = useToolsStore();
     const { motherPrefill: initialMessage, activePage, setMotherNewMessage } = useNavigationStore();
     const onNewMessage = useCallback(() => {
@@ -41,7 +39,6 @@ export function MotherAgentProvider({ children }: { children: React.ReactNode })
     const [agentState, setAgentState] = useState('idle');
     const [chatInputFocused, setChatInputFocused] = useState(false);
     const [chatCursorPos, setChatCursorPos] = useState(0);
-    const logsEndRef = useRef<HTMLDivElement>(null!);
     const chatEndRef = useRef<HTMLDivElement>(null!);
     const chatInputRef = useRef<HTMLInputElement>(null!);
     const abortTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -224,9 +221,8 @@ export function MotherAgentProvider({ children }: { children: React.ReactNode })
         onAgentRunningChange?.(!!agentModel);
     }, [agentModel, onAgentRunningChange]);
 
-    // Auto-scroll (logs only — chat scroll is managed by MotherAgentMain so the
-    // user can scroll up freely while the agent is streaming).
-    useEffect(() => { logsEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [appLogs]);
+    // Chat scroll is managed by MotherAgentMain so the user can scroll up
+    // freely while the agent is streaming.
 
     // Subscribe to agent events
     useEffect(() => {
@@ -305,25 +301,6 @@ export function MotherAgentProvider({ children }: { children: React.ReactNode })
         };
     }, []);
 
-    // Send logs to AI
-    const handleSendLogsToAI = useCallback(async () => {
-        if (isProcessing) return;
-        // Clear any pending abort timeout from previous request
-        if (abortTimeoutRef.current) { clearTimeout(abortTimeoutRef.current); abortTimeoutRef.current = null; }
-        const errorLogs = appLogs.filter(l => l.category === 'ERROR').slice(-10);
-        const recentLogs = appLogs.slice(-20);
-        const logsToSend = errorLogs.length > 0 ? errorLogs : recentLogs;
-        const logsText = logsToSend.map(l => `[${l.timestamp}] [${l.category}] ${l.message}`).join('\n');
-        const userMsg = chatInput.trim();
-        const prompt = userMsg
-            ? `Analyze these system logs and provide suggestions:\n\n${logsText}\n\nUser note: ${userMsg}`
-            : `Analyze these system logs and provide suggestions:\n\n${logsText}`;
-
-        setChatInput('');
-        // Delegate to handleChatSend logic by setting chatInput and calling
-        handleChatSendInternal(prompt);
-    }, [agentModel, chatInput, appLogs, isProcessing]);
-
     // Internal send function
     const handleChatSendInternal = useCallback(async (message: string, displayText?: string, chips?: BubbleChip[]) => {
         if (isProcessing || !message.trim()) return;
@@ -392,8 +369,8 @@ export function MotherAgentProvider({ children }: { children: React.ReactNode })
             chatOutput, isProcessing, agentModelData, agentState,
             chatInputFocused, setChatInputFocused,
             chatCursorPos, setChatCursorPos,
-            chatInputRef, chatEndRef, logsEndRef,
-            handleSendLogsToAI, handleChatSend,
+            chatInputRef, chatEndRef,
+            handleChatSend,
             sendMessage: handleChatSendInternal,
 
             sshServers, addSSHServer, removeSSHServer,

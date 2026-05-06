@@ -1,20 +1,5 @@
 // Stub commands for initial validation
 
-use crate::models::config::AppLogEntry;
-use crate::services::logger;
-
-/// Get application logs
-#[tauri::command]
-pub fn get_app_logs() -> Vec<AppLogEntry> {
-    logger::get_logs()
-}
-
-/// Clear application logs
-#[tauri::command]
-pub fn clear_app_logs() {
-    logger::clear_logs();
-}
-
 /// Health check — returns app version
 #[tauri::command]
 pub fn health_check() -> String {

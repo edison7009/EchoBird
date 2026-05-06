@@ -111,14 +111,6 @@
 }
 
 @font-face {
-  font-family: 'Orbitron';
-  src: url('/fonts/Orbitron-Bold.ttf') format('truetype');
-  font-weight: 700;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
   font-family: 'Noto Sans';
   src: url('/fonts/NotoSans-Bold.ttf') format('truetype');
   font-weight: 700;
