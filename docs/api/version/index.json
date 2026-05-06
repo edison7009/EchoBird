@@ -1,5 +1,5 @@
 {
-  "version": "4.0.0",
+  "version": "4.0.1",
   "releaseDate": "2026-05-06",
-  "releaseNotes": "v4.0.0 — agent core overhaul"
+  "releaseNotes": "v4.0.1 — slim macOS to arm64-only, drop Linux AppImage"
 }
