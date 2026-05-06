@@ -1,5 +1,5 @@
 {
-  "version": "4.0.4",
+  "version": "4.0.5",
   "releaseDate": "2026-05-06",
-  "releaseNotes": "v4.0.4 — splash redesign, theme persistence, pulse mirrors for CN users, dead-code purge."
+  "releaseNotes": "v4.0.5 — boot splash removed, tab switching snappier."
 }
