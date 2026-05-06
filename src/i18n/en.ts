@@ -69,8 +69,8 @@ const en: Translations = {
     'model.selectToTest': 'Select a model to begin testing',
     'model.providers': 'Model Providers',
     'model.relays': 'Model Relays',
-    'model.escCancel': '[ESC] CANCEL',
-    'model.enterSave': '[ENTER] SAVE_MODEL',
+    'model.escCancel': 'CANCEL',
+    'model.enterSave': 'SAVE',
     // Skills
     // App Manager
     'agent.myLocalModel': 'My Local Model',
@@ -195,8 +195,8 @@ const en: Translations = {
     'mother.encrypted': 'Encrypted globally — Password will self-destruct if environment changes',
     'mother.testing': 'TESTING...',
     'mother.testConnection': 'TEST CONNECTION',
-    'mother.cancel': '[ESC] CANCEL',
-    'mother.addServerBtn': '[ENTER] ADD_SERVER',
+    'mother.cancel': 'CANCEL',
+    'mother.addServerBtn': 'ADD SERVER',
     'mother.deleteServerTitle': 'DELETE SERVER',
     'mother.deleteServerMsg': 'This server will be permanently removed. This action cannot be undone.',
     // Process toggle

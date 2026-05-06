@@ -535,68 +535,162 @@ pub async fn run_agent(
         log::info!("[AgentLoop] Executing {} tool calls", tool_calls.len());
         emit_event(&app, AgentEvent::StateChange { state: "executing".into() });
 
+        // Pre-validate shell_exec install commands against the user's stated
+        // intent. Any command that would install a different product than
+        // requested gets short-circuited with a synthetic tool_result here
+        // (no actual shell call), so the model has to re-plan.
+        let messages_snapshot: Vec<Message> = {
+            let map = session_map.lock().await;
+            map.get(&server_key).map(|s| s.messages.clone()).unwrap_or_default()
+        };
+        let mut precomputed: std::collections::HashMap<String, agent_tools::ToolResult> =
+            std::collections::HashMap::new();
+        for tc in &tool_calls {
+            if tc.name == "shell_exec" {
+                if let Ok(args) = serde_json::from_str::<Value>(&tc.arguments) {
+                    if let Some(cmd) = args["command"].as_str() {
+                        if let Err(msg) = validate_install_intent(cmd, &messages_snapshot) {
+                            log::warn!("[AgentLoop] Install-intent block on tool {}: {}", tc.id, msg);
+                            precomputed.insert(tc.id.clone(), agent_tools::ToolResult {
+                                success: false,
+                                output: msg,
+                            });
+                        }
+                    }
+                }
+            }
+        }
+
         // Track how many tools were saved, so we can complete the rest on cancel
         let mut completed_count = 0usize;
 
-        for tc in &tool_calls {
-            // Check cancellation before each tool
-            if cancel_token.is_cancelled() {
-                log::info!("[AgentLoop] Cancelled before tool: {}", tc.name);
-                break;
+        // Decide dispatch mode: parallel only when ALL tool calls are read-only
+        // and there are 2+ of them. Mixed batches and exclusive tools keep the
+        // existing sequential behaviour so order-dependent flows (file_write
+        // then shell_exec, etc.) stay correct.
+        let all_shared = tool_calls.iter().all(|tc| is_shared_tool(&tc.name));
+        let parallel = all_shared && tool_calls.len() > 1;
+
+        if parallel {
+            log::info!("[AgentLoop] Parallel-dispatching {} read-only tools", tool_calls.len());
+            let mut handles = Vec::with_capacity(tool_calls.len());
+            for tc in &tool_calls {
+                let name = tc.name.clone();
+                let args = tc.arguments.clone();
+                let sshp = ssh_pool.clone();
+                let server_ids = request.server_ids.clone();
+                let pre = precomputed.get(&tc.id).cloned();
+                handles.push(tokio::spawn(async move {
+                    if let Some(p) = pre { return p; }
+                    agent_tools::execute_tool(&name, &args, &sshp, &server_ids).await
+                }));
             }
 
-            log::info!("[AgentLoop] Executing tool: {} ({})", tc.name, tc.id);
-
-            // Race tool execution against cancel token
-            let (result, was_cancelled) = tokio::select! {
-                r = agent_tools::execute_tool(&tc.name, &tc.arguments, &ssh_pool, &request.server_ids) => (r, false),
+            let mut joined = std::pin::pin!(futures_util::future::join_all(handles));
+            let results: Vec<agent_tools::ToolResult> = tokio::select! {
+                rs = &mut joined => rs.into_iter().map(|r| r.unwrap_or_else(|e| agent_tools::ToolResult {
+                    success: false,
+                    output: format!("Tool task panicked: {}", e),
+                })).collect(),
                 _ = cancel_token.cancelled() => {
-                    log::info!("[AgentLoop] Tool cancelled by user: {}", tc.name);
-                    (agent_tools::ToolResult { output: "Cancelled by user".to_string(), success: false }, true)
+                    log::info!("[AgentLoop] Parallel batch cancelled by user");
+                    tool_calls.iter().map(|_| agent_tools::ToolResult {
+                        success: false,
+                        output: "Cancelled by user".to_string(),
+                    }).collect()
                 }
             };
 
-            // Always emit ToolResult to frontend
-            emit_event(&app, AgentEvent::ToolResult {
-                id: tc.id.clone(),
-                output: result.output.clone(),
-                success: result.success,
-            });
-
-            // Always save tool result to message history — even for cancelled tools.
-            // This keeps the conversation structure valid (every tool_call must have a tool_result).
-            {
+            for (tc, result) in tool_calls.iter().zip(results.into_iter()) {
+                emit_event(&app, AgentEvent::ToolResult {
+                    id: tc.id.clone(),
+                    output: result.output.clone(),
+                    success: result.success,
+                });
                 let mut map = session_map.lock().await;
                 let sess = map.entry(server_key.clone()).or_insert_with(AgentSession::new);
+                let block = ContentBlock::ToolResult {
+                    tool_use_id: tc.id.clone(),
+                    content: result.output,
+                };
                 match active_provider {
-                    LlmProvider::OpenAI => {
-                        sess.messages.push(Message {
-                            role: "tool".into(),
-                            content: MessageContent::Blocks(vec![
-                                ContentBlock::ToolResult {
-                                    tool_use_id: tc.id.clone(),
-                                    content: result.output,
-                                }
-                            ]),
-                        });
+                    LlmProvider::OpenAI => sess.messages.push(Message {
+                        role: "tool".into(),
+                        content: MessageContent::Blocks(vec![block]),
+                    }),
+                    LlmProvider::Anthropic => sess.messages.push(Message {
+                        role: "user".into(),
+                        content: MessageContent::Blocks(vec![block]),
+                    }),
+                }
+                completed_count += 1;
+            }
+        } else {
+            for tc in &tool_calls {
+                // Check cancellation before each tool
+                if cancel_token.is_cancelled() {
+                    log::info!("[AgentLoop] Cancelled before tool: {}", tc.name);
+                    break;
+                }
+
+                log::info!("[AgentLoop] Executing tool: {} ({})", tc.name, tc.id);
+
+                // Use precomputed result if intent-validator already produced one;
+                // otherwise race tool execution against cancel token.
+                let (result, was_cancelled) = if let Some(pre) = precomputed.remove(&tc.id) {
+                    (pre, false)
+                } else {
+                    tokio::select! {
+                        r = agent_tools::execute_tool(&tc.name, &tc.arguments, &ssh_pool, &request.server_ids) => (r, false),
+                        _ = cancel_token.cancelled() => {
+                            log::info!("[AgentLoop] Tool cancelled by user: {}", tc.name);
+                            (agent_tools::ToolResult { output: "Cancelled by user".to_string(), success: false }, true)
+                        }
                     }
-                    LlmProvider::Anthropic => {
-                        sess.messages.push(Message {
-                            role: "user".into(),
-                            content: MessageContent::Blocks(vec![
-                                ContentBlock::ToolResult {
-                                    tool_use_id: tc.id.clone(),
-                                    content: result.output,
-                                }
-                            ]),
-                        });
+                };
+
+                // Always emit ToolResult to frontend
+                emit_event(&app, AgentEvent::ToolResult {
+                    id: tc.id.clone(),
+                    output: result.output.clone(),
+                    success: result.success,
+                });
+
+                // Always save tool result to message history — even for cancelled tools.
+                // This keeps the conversation structure valid (every tool_call must have a tool_result).
+                {
+                    let mut map = session_map.lock().await;
+                    let sess = map.entry(server_key.clone()).or_insert_with(AgentSession::new);
+                    match active_provider {
+                        LlmProvider::OpenAI => {
+                            sess.messages.push(Message {
+                                role: "tool".into(),
+                                content: MessageContent::Blocks(vec![
+                                    ContentBlock::ToolResult {
+                                        tool_use_id: tc.id.clone(),
+                                        content: result.output,
+                                    }
+                                ]),
+                            });
+                        }
+                        LlmProvider::Anthropic => {
+                            sess.messages.push(Message {
+                                role: "user".into(),
+                                content: MessageContent::Blocks(vec![
+                                    ContentBlock::ToolResult {
+                                        tool_use_id: tc.id.clone(),
+                                        content: result.output,
+                                    }
+                                ]),
+                            });
+                        }
                     }
                 }
-            }
-            completed_count += 1;
+                completed_count += 1;
 
-            if was_cancelled {
-                break;
+                if was_cancelled {
+                    break;
+                }
             }
         }
 
@@ -689,7 +783,7 @@ async fn build_system_prompt(request: &AgentRequest, ssh_pool: &SSHPool) -> Stri
 
     let mut prompt = locale_hint;
     prompt.push_str(
-        "You are Mother Agent, the built-in deployment assistant of EchoBird. \
+        "You are EchoBird's AI agent deployment expert — the built-in deployment assistant of EchoBird. \
         Your purpose is to help users deploy AI agents on local machines or remote servers via SSH.\n\n\
         ## Your Mission\n\
         You specialize in one-click deployment of AI agents such as:\n\
@@ -763,7 +857,7 @@ Do NOT offer WSL2 as a workaround.\n\
         ## First Interaction Behavior\n\
         When a user first interacts without a specific request:\n\
         - Do NOT proactively push any specific agent. Wait for the user to state what they want.\n\
-        - Briefly introduce yourself as Mother Agent -- AI agent installation, configuration, and repair expert.\n\
+        - Briefly introduce yourself as EchoBird's AI agent deployment expert (install, configure, repair). Do NOT mention or use the name \"Mother Agent\".\n\
         - Only recommend OpenClaw if the user explicitly asks for an Agent OS recommendation.\n\n\
         ## CRITICAL MODEL CONFIGURATION RULES\n\
         - NEVER tell users to set API key environment variables (ANTHROPIC_API_KEY, OPENAI_API_KEY, etc.) manually.\n\
@@ -882,4 +976,148 @@ fn is_llm_server_down(err: &str) -> bool {
 fn format_server_down_error(err: &str) -> String {
     log::error!("[AgentLoop] Local LLM server is offline: {}", err);
     "⚠️ Local LLM server is offline (connection refused).\n     Please restart the local LLM server and try again.\n\n     In the sidebar: stop the LLM server, then start it again.".to_string()
+}
+
+
+// -- Tool concurrency classification --
+//
+// "Shared" tools are read-only with no observable side-effect on disk, network state,
+// or remote process state — safe to run in parallel inside one LLM turn.
+// "Exclusive" tools (shell_exec, file_write, file_edit, upload/download, deploy)
+// must run sequentially because the model's next call may depend on what the
+// previous one produced (e.g. file_write then shell_exec).
+fn is_shared_tool(name: &str) -> bool {
+    matches!(name, "file_read" | "grep" | "glob" | "web_fetch" | "get_sudo_password")
+}
+
+
+// -- Install-intent validator --
+//
+// The model occasionally substitutes a similarly-named product when generating
+// install commands ("install OpenClaw" → `npm install -g opencode-ai`). The
+// system prompt's tool-identity table tries to prevent this but model attention
+// is not reliable enough to lean on it alone, so this is a deterministic check:
+// before a shell_exec install command runs, we compare what the user asked for
+// against what the command would actually install. If they disagree, we short-
+// circuit with a synthetic tool_result so the model has to re-plan instead of
+// silently installing the wrong thing.
+//
+// Only fires for the small set of products that are actually confusable. If
+// either side is unidentified, the command passes through.
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum AgentTarget {
+    OpenClaw,
+    OpenCode,
+    ClaudeCode,
+    Codex,
+}
+
+impl AgentTarget {
+    fn label(&self) -> &'static str {
+        match self {
+            Self::OpenClaw => "OpenClaw",
+            Self::OpenCode => "OpenCode",
+            Self::ClaudeCode => "Claude Code",
+            Self::Codex => "Codex CLI",
+        }
+    }
+    fn canonical_install(&self) -> &'static str {
+        match self {
+            Self::OpenClaw => "npm install -g openclaw",
+            Self::OpenCode => "npm install -g opencode-ai",
+            Self::ClaudeCode => "curl -fsSL https://claude.ai/install.sh | bash  (or  npm install -g @anthropic-ai/claude-code)",
+            Self::Codex => "npm install -g @openai/codex",
+        }
+    }
+}
+
+fn detect_user_intent(messages: &[Message]) -> Option<AgentTarget> {
+    // Walk backward; the most recent user message defines current intent.
+    for msg in messages.iter().rev() {
+        if msg.role != "user" { continue; }
+        let text = match &msg.content {
+            MessageContent::Text(t) => t.to_lowercase(),
+            MessageContent::Blocks(blocks) => {
+                let mut out = String::new();
+                for b in blocks {
+                    if let ContentBlock::Text { text } = b {
+                        out.push_str(&text.to_lowercase());
+                        out.push(' ');
+                    }
+                }
+                if out.is_empty() { continue; }
+                out
+            }
+        };
+        // Order matters: more specific names first to avoid "claude code" matching
+        // a generic "claude" mention.
+        if text.contains("openclaw") || text.contains("open claw") || text.contains("openclaude") {
+            return Some(AgentTarget::OpenClaw);
+        }
+        if text.contains("opencode") || text.contains("open code") {
+            return Some(AgentTarget::OpenCode);
+        }
+        if text.contains("claude code") || text.contains("claudecode") || text.contains("claude-code") {
+            return Some(AgentTarget::ClaudeCode);
+        }
+        if text.contains("codex") {
+            return Some(AgentTarget::Codex);
+        }
+        return None; // Latest user message has no install target — don't validate.
+    }
+    None
+}
+
+fn detect_command_target(command: &str) -> Option<AgentTarget> {
+    let cmd = command.to_lowercase();
+    // Must look like an install operation, otherwise we don't validate
+    // (don't false-positive on `which openclaw`, `npm view opencode-ai`, etc.).
+    let is_install_op = cmd.contains("install")
+        || cmd.contains("brew add")
+        || cmd.contains("yarn add")
+        || cmd.contains("pnpm add")
+        || cmd.contains("cargo install")
+        || cmd.contains("pip install")
+        || (cmd.contains("curl") && (cmd.contains("install.sh") || cmd.contains("install.ps1") || cmd.contains("| bash") || cmd.contains("| sh")));
+    if !is_install_op {
+        return None;
+    }
+
+    // Order matters: check the more-specific package strings first.
+    if cmd.contains("@anthropic-ai/claude-code") || cmd.contains("claude.ai/install") {
+        return Some(AgentTarget::ClaudeCode);
+    }
+    if cmd.contains("@openai/codex") {
+        return Some(AgentTarget::Codex);
+    }
+    if cmd.contains("opencode-ai") || (cmd.contains("install") && cmd.contains(" opencode")) {
+        return Some(AgentTarget::OpenCode);
+    }
+    if cmd.contains(" openclaw") || cmd.ends_with("openclaw") || cmd.contains("openclaw.ai/install") {
+        return Some(AgentTarget::OpenClaw);
+    }
+    None
+}
+
+/// Returns Err with a model-facing message when the install command's package
+/// disagrees with what the user asked for. Returns Ok(()) when alignment is
+/// confirmed OR when either side is unidentified (skip-on-uncertainty).
+fn validate_install_intent(command: &str, messages: &[Message]) -> Result<(), String> {
+    let intent = match detect_user_intent(messages) { Some(x) => x, None => return Ok(()) };
+    let target = match detect_command_target(command) { Some(x) => x, None => return Ok(()) };
+    if intent == target {
+        return Ok(());
+    }
+    Err(format!(
+        "INTENT MISMATCH (install_intent_validator):\n\
+         The user asked you to install {} but this command would install {}.\n\
+         These are different products — DO NOT proceed. \
+         Re-read the user's request and run the correct install instead.\n\n\
+         Canonical install for {}: {}",
+        intent.label(),
+        target.label(),
+        intent.label(),
+        intent.canonical_install(),
+    ))
 }

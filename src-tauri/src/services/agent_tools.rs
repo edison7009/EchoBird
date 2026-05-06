@@ -114,6 +114,55 @@ pub fn get_tool_definitions() -> Vec<super::llm_client::ToolDef> {
             }),
         },
         super::llm_client::ToolDef {
+            name: "file_edit".into(),
+            description: "Edit a file by replacing exactly one occurrence of `old_string` with `new_string`. \
+                Fails if `old_string` is not found, or appears more than once (provide more context to disambiguate). \
+                Prefer this over `file_write` for small changes — it preserves the rest of the file and is much cheaper on tokens. \
+                Use `server_id` to target a remote SSH server.".into(),
+            parameters: json!({
+                "type": "object",
+                "properties": {
+                    "path": { "type": "string", "description": "Absolute path to the file" },
+                    "old_string": { "type": "string", "description": "Exact substring to replace (must match once and only once)" },
+                    "new_string": { "type": "string", "description": "Replacement string" },
+                    "server_id": { "type": "string", "description": "Optional SSH server ID. Omit or use 'local' for local execution." }
+                },
+                "required": ["path", "old_string", "new_string"]
+            }),
+        },
+        super::llm_client::ToolDef {
+            name: "grep".into(),
+            description: "Search for a pattern across files in a directory tree. \
+                Returns up to 200 matching lines as `path:lineno:content`. \
+                Use this instead of running `grep` via `shell_exec` — output is normalized and capped. \
+                Use `server_id` for remote search.".into(),
+            parameters: json!({
+                "type": "object",
+                "properties": {
+                    "pattern": { "type": "string", "description": "Regex pattern (POSIX extended on Unix, .NET-flavored on Windows)" },
+                    "path": { "type": "string", "description": "Directory to search (default: current working dir on local, $HOME on remote)" },
+                    "case_insensitive": { "type": "boolean", "description": "Match case-insensitively (default false)" },
+                    "server_id": { "type": "string", "description": "Optional SSH server ID. Omit or use 'local' for local execution." }
+                },
+                "required": ["pattern"]
+            }),
+        },
+        super::llm_client::ToolDef {
+            name: "glob".into(),
+            description: "List files matching a glob/name pattern under a directory. \
+                Returns up to 200 paths. Use this to locate config files, binaries, etc. \
+                Use `server_id` for remote search.".into(),
+            parameters: json!({
+                "type": "object",
+                "properties": {
+                    "pattern": { "type": "string", "description": "Filename glob, e.g. '*.toml' or 'openclaw*'" },
+                    "path": { "type": "string", "description": "Directory to search (default: current working dir on local, $HOME on remote)" },
+                    "server_id": { "type": "string", "description": "Optional SSH server ID. Omit or use 'local' for local execution." }
+                },
+                "required": ["pattern"]
+            }),
+        },
+        super::llm_client::ToolDef {
             name: "web_fetch".into(),
             description: "Fetch the content of a web page by URL. Returns the page text (HTML stripped). \
                 Use this to read documentation, check npm packages, or look up installation guides. \
@@ -287,6 +336,41 @@ pub async fn execute_tool(
             }
             let server_id = resolve_server_id(raw_sid);
             exec_file_write(path, content, &server_id, ssh_pool).await
+        }
+        "file_edit" => {
+            let path = args["path"].as_str().unwrap_or("");
+            let old_string = args["old_string"].as_str().unwrap_or("");
+            let new_string = args["new_string"].as_str().unwrap_or("");
+            let raw_sid = args["server_id"].as_str();
+            if path.is_empty() {
+                return ToolResult { success: false, output: "Empty path".into() };
+            }
+            if old_string.is_empty() {
+                return ToolResult { success: false, output: "old_string cannot be empty".into() };
+            }
+            let server_id = resolve_server_id(raw_sid);
+            exec_file_edit(path, old_string, new_string, &server_id, ssh_pool).await
+        }
+        "grep" => {
+            let pattern = args["pattern"].as_str().unwrap_or("");
+            let path = args["path"].as_str();
+            let ci = args["case_insensitive"].as_bool().unwrap_or(false);
+            let raw_sid = args["server_id"].as_str();
+            if pattern.is_empty() {
+                return ToolResult { success: false, output: "pattern is required".into() };
+            }
+            let server_id = resolve_server_id(raw_sid);
+            exec_grep(pattern, path, ci, &server_id, ssh_pool).await
+        }
+        "glob" => {
+            let pattern = args["pattern"].as_str().unwrap_or("");
+            let path = args["path"].as_str();
+            let raw_sid = args["server_id"].as_str();
+            if pattern.is_empty() {
+                return ToolResult { success: false, output: "pattern is required".into() };
+            }
+            let server_id = resolve_server_id(raw_sid);
+            exec_glob(pattern, path, &server_id, ssh_pool).await
         }
         "web_fetch" => {
             let url = args["url"].as_str().unwrap_or("");
@@ -617,6 +701,179 @@ fn shell_escape(s: &str) -> String {
     format!("\"{}\"", s)
 }
 
+/// Single-quote-escape for embedding into a shell command.
+/// e.g. `it's` → `'it'\''s'` so it survives `sh -c 'grep PATTERN ...'`.
+fn sq(s: &str) -> String {
+    format!("'{}'", s.replace('\'', r"'\''"))
+}
+
+// ── file_edit: string-replace edit (one occurrence only) ──
+
+async fn exec_file_edit(
+    path: &str,
+    old_string: &str,
+    new_string: &str,
+    server_id: &str,
+    ssh_pool: &SSHPool,
+) -> ToolResult {
+    // 1. Read current content
+    let read = exec_file_read(path, server_id, ssh_pool).await;
+    if !read.success {
+        return ToolResult {
+            success: false,
+            output: format!("Cannot read file '{}': {}", path, read.output),
+        };
+    }
+    let content = read.output;
+
+    // 2. Refuse if read was truncated — replacing in a partial view is unsafe
+    if content.contains("\n... [file truncated]")
+        || content.contains("[output truncated, showing last")
+    {
+        return ToolResult {
+            success: false,
+            output: format!(
+                "File '{}' is too large to edit safely (read returned a truncated view). \
+                 Use shell_exec with sed/awk for large-file edits, or split the change into smaller pieces.",
+                path
+            ),
+        };
+    }
+
+    // 3. Find occurrences
+    let occurrences = content.matches(old_string).count();
+    if occurrences == 0 {
+        return ToolResult {
+            success: false,
+            output: format!(
+                "old_string not found in '{}'. The file content may have changed; re-read the file and try again with the exact current substring.",
+                path
+            ),
+        };
+    }
+    if occurrences > 1 {
+        return ToolResult {
+            success: false,
+            output: format!(
+                "old_string is ambiguous — found {} matches in '{}'. Add more surrounding context to old_string so it identifies exactly one location.",
+                occurrences, path
+            ),
+        };
+    }
+
+    // 4. Replace and write back
+    let updated = content.replacen(old_string, new_string, 1);
+    let write = exec_file_write(path, &updated, server_id, ssh_pool).await;
+    if !write.success {
+        return ToolResult {
+            success: false,
+            output: format!("Edit-write failed: {}", write.output),
+        };
+    }
+
+    let old_lines = old_string.lines().count().max(1);
+    let new_lines = new_string.lines().count().max(1);
+    ToolResult {
+        success: true,
+        output: format!(
+            "Edited '{}' — replaced {} line(s) with {} line(s).",
+            path, old_lines, new_lines
+        ),
+    }
+}
+
+// ── grep: search file tree for a pattern ──
+
+async fn exec_grep(
+    pattern: &str,
+    path: Option<&str>,
+    case_insensitive: bool,
+    server_id: &str,
+    ssh_pool: &SSHPool,
+) -> ToolResult {
+    let path_str = path.unwrap_or(".");
+
+    if server_id == "local" || server_id.is_empty() {
+        // Local: route by OS
+        #[cfg(target_os = "windows")]
+        {
+            // PowerShell Select-String. -Pattern accepts regex.
+            let ci_flag = if case_insensitive { "-CaseSensitive:$false" } else { "-CaseSensitive" };
+            let cmd = format!(
+                "Get-ChildItem -Recurse -File -Path {p} -ErrorAction SilentlyContinue | \
+                 Select-String -Pattern {pat} {ci} -ErrorAction SilentlyContinue | \
+                 Select-Object -First 200 | \
+                 ForEach-Object {{ \"$($_.Path):$($_.LineNumber):$($_.Line)\" }}",
+                p = sq(path_str),
+                pat = sq(pattern),
+                ci = ci_flag,
+            );
+            return exec_local_shell(&cmd).await;
+        }
+        #[cfg(not(target_os = "windows"))]
+        {
+            let ci = if case_insensitive { "-i" } else { "" };
+            let cmd = format!(
+                "grep -rEn {ci} -- {pat} {p} 2>/dev/null | head -n 200",
+                ci = ci,
+                pat = sq(pattern),
+                p = sq(path_str),
+            );
+            return exec_local_shell(&cmd).await;
+        }
+    }
+
+    // SSH: assume POSIX grep on the remote
+    let ci = if case_insensitive { "-i" } else { "" };
+    let cmd = format!(
+        "grep -rEn {ci} -- {pat} {p} 2>/dev/null | head -n 200",
+        ci = ci,
+        pat = sq(pattern),
+        p = sq(path_str),
+    );
+    exec_ssh_shell(&cmd, server_id, ssh_pool).await
+}
+
+// ── glob: list files matching a pattern ──
+
+async fn exec_glob(
+    pattern: &str,
+    path: Option<&str>,
+    server_id: &str,
+    ssh_pool: &SSHPool,
+) -> ToolResult {
+    let path_str = path.unwrap_or(".");
+
+    if server_id == "local" || server_id.is_empty() {
+        #[cfg(target_os = "windows")]
+        {
+            let cmd = format!(
+                "Get-ChildItem -Recurse -File -Path {p} -Filter {pat} -ErrorAction SilentlyContinue | \
+                 Select-Object -First 200 -ExpandProperty FullName",
+                p = sq(path_str),
+                pat = sq(pattern),
+            );
+            return exec_local_shell(&cmd).await;
+        }
+        #[cfg(not(target_os = "windows"))]
+        {
+            let cmd = format!(
+                "find {p} -type f -name {pat} 2>/dev/null | head -n 200",
+                p = sq(path_str),
+                pat = sq(pattern),
+            );
+            return exec_local_shell(&cmd).await;
+        }
+    }
+
+    let cmd = format!(
+        "find {p} -type f -name {pat} 2>/dev/null | head -n 200",
+        p = sq(path_str),
+        pat = sq(pattern),
+    );
+    exec_ssh_shell(&cmd, server_id, ssh_pool).await
+}
+
 /// Fetch the latest published plugin version from the version API.
 /// Falls back to the compile-time version if the network call fails.
 async fn fetch_latest_plugin_version() -> String {
@@ -803,19 +1060,24 @@ pub fn get_plugins_info() -> String {
 // ── Web Fetch ──
 
 const WEB_FETCH_MAX_CHARS: usize = 8000;
-const WEB_FETCH_TIMEOUT_SECS: u64 = 15;
+const WEB_FETCH_TIMEOUT_SECS: u64 = 30;
+// Real-browser UA: many CDNs (Cloudflare, Akamai) and major sites (GitHub, npm)
+// 4xx-block requests with non-browser UAs, which is why the previous "Echobird-MotherAgent/1.0"
+// produced a string of unexplained "can't open the page" errors.
+const WEB_FETCH_USER_AGENT: &str = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36";
 
 async fn exec_web_fetch(url: &str) -> ToolResult {
-    // Only allow HTTPS
-    if !url.starts_with("https://") {
+    // Accept http:// and https:// — internal docs and some CN mirrors are HTTP-only.
+    if !(url.starts_with("https://") || url.starts_with("http://")) {
         return ToolResult {
             success: false,
-            output: "Only HTTPS URLs are allowed".into(),
+            output: "URL must start with http:// or https://".into(),
         };
     }
 
     let client = match reqwest::Client::builder()
         .timeout(std::time::Duration::from_secs(WEB_FETCH_TIMEOUT_SECS))
+        .redirect(reqwest::redirect::Policy::limited(10))
         .build()
     {
         Ok(c) => c,
@@ -826,22 +1088,37 @@ async fn exec_web_fetch(url: &str) -> ToolResult {
     };
 
     let response = match client.get(url)
-        .header("User-Agent", "Echobird-MotherAgent/1.0")
+        .header("User-Agent", WEB_FETCH_USER_AGENT)
+        .header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
+        .header("Accept-Language", "en-US,en;q=0.9,zh-CN;q=0.8,zh;q=0.7")
         .send()
         .await
     {
         Ok(r) => r,
-        Err(e) => return ToolResult {
-            success: false,
-            output: format!("Request failed: {}", e),
-        },
+        Err(e) => {
+            // Distinguish error class so the model can decide what to do
+            let kind = if e.is_timeout() { "timeout" }
+                else if e.is_connect() { "connect_failed (DNS/TLS/network)" }
+                else if e.is_redirect() { "too_many_redirects" }
+                else { "request_error" };
+            return ToolResult {
+                success: false,
+                output: format!("web_fetch failed [{}]: {}", kind, e),
+            };
+        }
     };
 
+    let final_url = response.url().to_string();
     let status = response.status();
     if !status.is_success() {
         return ToolResult {
             success: false,
-            output: format!("HTTP {}: {}", status.as_u16(), status.canonical_reason().unwrap_or("Error")),
+            output: format!(
+                "HTTP {} {} (final URL: {})",
+                status.as_u16(),
+                status.canonical_reason().unwrap_or("Error"),
+                final_url,
+            ),
         };
     }
 

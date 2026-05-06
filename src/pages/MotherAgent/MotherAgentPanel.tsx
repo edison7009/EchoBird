@@ -91,16 +91,16 @@ export function MotherAgentPanel() {
                         <div className="h-px w-full bg-cyber-border" />
 
                         {/* Header */}
-                        <div className="px-5 pt-4 pb-3 flex items-center justify-between">
+                        <div className="px-6 pt-5 pb-4 flex items-center justify-between">
                             <div className="flex items-center gap-2">
-                                <span className="text-cyber-text font-mono text-xs opacity-60">&gt;_</span>
-                                <span className="text-sm font-mono font-bold tracking-wider text-cyber-text">{t('mother.addServer')}</span>
+                                <span className="text-cyber-text font-mono text-sm opacity-60">&gt;_</span>
+                                <span className="text-base font-bold text-cyber-text">{t('mother.addServer')}</span>
                             </div>
                             <button
                                 onClick={() => setShowSSHModal(false)}
                                 className="text-cyber-text-secondary hover:text-cyber-text transition-colors"
                             >
-                                <X size={14} />
+                                <X size={18} />
                             </button>
                         </div>
 
@@ -234,7 +234,7 @@ export function MotherAgentPanel() {
                         <div className="flex border-t border-cyber-border">
                             <button
                                 onClick={() => { setShowSSHModal(false); setSSHTestResult(null); }}
-                                className="flex-1 px-4 py-2.5 text-xs font-mono font-bold tracking-wider text-cyber-text-secondary hover:text-cyber-text hover:bg-cyber-elevated transition-all border-r border-cyber-border"
+                                className="flex-1 px-4 py-3 text-[14px] font-semibold text-cyber-text-secondary hover:text-cyber-text hover:bg-cyber-elevated transition-all border-r border-cyber-border"
                             >
                                 {t('mother.cancel')}
                             </button>
@@ -259,7 +259,7 @@ export function MotherAgentPanel() {
                                     setSSHTestResult(null);
                                     setShowSSHModal(false);
                                 }}
-                                className="flex-1 px-4 py-2.5 text-xs font-mono font-bold tracking-wider text-cyber-text hover:bg-cyber-text/10 transition-all"
+                                className="flex-1 px-4 py-3 text-[14px] font-semibold text-cyber-text hover:bg-cyber-text/10 transition-all"
                             >
                                 {t('mother.addServerBtn')}
                             </button>

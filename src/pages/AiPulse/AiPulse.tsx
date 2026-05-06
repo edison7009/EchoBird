@@ -140,6 +140,21 @@ const itemTs = (item: NewsItem): string => {
     return pub;
 };
 
+// Local-timezone YYYY-MM-DD. A naive `ts.slice(0, 10)` slices the raw ISO
+// string and so groups items by UTC date — for CST users that pushes
+// every item from CST 00:00–08:00 back into yesterday's archive bucket.
+const itemLocalDate = (item: NewsItem): string => {
+    const ts = itemTs(item);
+    if (!ts) return '';
+    const ms = Date.parse(ts);
+    if (!Number.isFinite(ms)) return ts.slice(0, 10);
+    const d = new Date(ms);
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+};
+
 // Language detection by CJK presence in the title. Bilingual side effect:
 // Chinese-app users see WeChat 公众号 too (and have WeChat installed to read them);
 // English-app users see only Latin-script items, so the WeChat awkwardness is gone.
@@ -379,7 +394,7 @@ function ItemFeed({ variant }: { variant: PageVariant }) {
                 />
             </div>
             {visible.map(item => {
-                const date = itemTs(item).slice(0, 10);
+                const date = itemLocalDate(item);
                 const isFirstOfDate = !!date && date !== lastDate;
                 if (date) lastDate = date;
                 return (
@@ -429,7 +444,7 @@ export function AiPulsePanel() {
         const set = new Set<string>();
         for (const it of items) {
             if (itemLang(it) !== lang) continue;
-            const d = itemTs(it).slice(0, 10);
+            const d = itemLocalDate(it);
             if (d) set.add(d);
         }
         return Array.from(set).sort((a, b) => b.localeCompare(a));

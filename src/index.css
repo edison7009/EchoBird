@@ -636,6 +636,14 @@ input[type=number].no-spinner {
   -moz-appearance: textfield;
 }
 
+/* Placeholder: theme-aware muted color. Without this, WebView2 on Windows 11
+   falls back to the system accent (often blue) instead of staying neutral. */
+input::placeholder,
+textarea::placeholder {
+  color: rgb(var(--text-muted-rgb));
+  opacity: 0.7;
+}
+
 /* WebKit autofill: keep theme colors instead of Chrome's blue-on-yellow default */
 input:-webkit-autofill,
 input:-webkit-autofill:hover,
