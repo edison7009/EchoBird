@@ -17,9 +17,6 @@ use commands::bundled_commands;
 
 use tauri::Manager;
 
-/// Track app start time for splash minimum duration
-pub struct AppStartTime(pub std::time::Instant);
-
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -27,7 +24,6 @@ pub fn run() {
         // it can restore size/position before the main window is created from
         // tauri.conf.json. Auto-saves on close, auto-restores on creation.
         .plugin(tauri_plugin_window_state::Builder::default().build())
-        .manage(AppStartTime(std::time::Instant::now()))
         .manage(ssh_commands::create_ssh_pool())
         .manage(services::agent_loop::create_session_map())
         .setup(|app| {

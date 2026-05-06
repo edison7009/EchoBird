@@ -6,26 +6,141 @@
   <link rel="icon" type="image/png" href="/ico.png" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <title>Echobird</title>
-  <!-- Instant background — matches the resolved theme so React mount has no flash.
-       Defaults to dark; switches to cream if the OS reports a light color scheme. -->
+  <!-- Resolve the theme synchronously *before* any CSS or JS runs, so the
+       boot splash and html/body background match the user's saved choice
+       (not just the OS preference). themeStore writes localStorage['theme']
+       on every apply() — see src/stores/themeStore.ts. -->
+  <script>
+    (function () {
+      try {
+        var t = localStorage.getItem('theme');
+        if (t !== 'light' && t !== 'dark') {
+          t = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        }
+        document.documentElement.dataset.theme = t;
+      } catch (e) { /* private mode etc. — fall through to CSS defaults */ }
+    })();
+  </script>
+  <!-- Inline boot splash — visible from the very first WebView paint, so the
+       window doesn't open onto a blank dark body while React mounts.
+       React removes it after appReady() (see App.tsx).
+
+       Design: a large static "EchoBird" wordmark in the same color as page
+       titles (text-primary). Single soft fade-in, no per-letter animation,
+       no caret, no spinner — pure typography. -->
   <style>
-    html,
-    body {
-      background: #121212;
+    /* Lora Italic — Google Font, latin subset (~22 KB woff2). Same serif
+       used in Coffee-CLI's tier-loading splash (D:\Coffee-CLI\src-ui\src\
+       styles\global.css:128 → --font-serif: 'Lora'). Soft transitional
+       serif with calligraphic italic — premium without being shouty. */
+    @font-face {
+      font-family: 'Lora';
+      src: url('/fonts/Lora-Italic.woff2') format('woff2');
+      font-weight: 400;
+      font-style: italic;
+      font-display: block;
+    }
+    /* Match the real app palette (src/index.css):
+       dark  → bg #211F1C + text #E8E2D5
+       light → bg #EFEEEB + text #2E2924
+       [data-theme] is set synchronously by the head script, so these match
+       the user's saved theme on first paint. */
+    html, body {
+      background: #211F1C;
       margin: 0;
       padding: 0;
     }
-    @media (prefers-color-scheme: light) {
-      html,
-      body {
-        background: #EFEEEB;
-      }
+    :root[data-theme="light"] body,
+    :root[data-theme="light"] { background: #EFEEEB; }
+
+    #boot-splash {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #211F1C;
+      z-index: 9999;
+      transition: opacity 0.4s ease;
+      -webkit-app-region: drag;
+      user-select: none;
+    }
+    :root[data-theme="light"] #boot-splash { background: #EFEEEB; }
+    body.app-ready #boot-splash {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    /* Splash group — label + 3-dot pulse, ported from Coffee-CLI's
+       tier-loading splash (D:\Coffee-CLI\src-ui\src\components\center\
+       TierTerminal.css:124+). Coffee uses 20px; we go a touch bigger
+       at 24px per request. No coffee cup, no mask reveal — just the
+       calm italic serif label + the three pulsing dots beneath it. */
+    #boot-splash .splash-group {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+    }
+
+    #boot-splash .splash-label {
+      font-family: 'Lora', ui-serif, Georgia, Cambria, 'Times New Roman', serif;
+      font-weight: 400;
+      font-style: italic;
+      font-size: 24px;            /* slightly bigger than Coffee's 20px */
+      letter-spacing: 0.02em;
+      line-height: 1.2;
+      color: #E8E2D5;             /* matches --text-primary-rgb (dark) */
+      /* Soft halo for a luminous "lit-from-behind" feel — same trick as
+         Coffee-CLI's splash. Light theme uses warm-dark accent, dark
+         theme uses Claude coral. */
+      text-shadow:
+        0 0 1px currentColor,
+        0 0 18px rgba(217, 119, 87, 0.35);
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      text-rendering: optimizeLegibility;
+    }
+    :root[data-theme="light"] #boot-splash .splash-label {
+      color: #2E2924;
+      text-shadow:
+        0 0 1px currentColor,
+        0 0 18px rgba(201, 100, 66, 0.30);
+    }
+
+    #boot-splash .splash-dots {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
+    #boot-splash .splash-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #D97757;        /* Claude coral accent */
+      animation: bootSplashDotPulse 1.4s ease-in-out infinite;
+    }
+    :root[data-theme="light"] #boot-splash .splash-dot { background: #C96442; }
+    #boot-splash .splash-dot:nth-child(2) { animation-delay: 0.2s; }
+    #boot-splash .splash-dot:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes bootSplashDotPulse {
+      0%, 80%, 100% { transform: scale(0.5); opacity: 0.3; }
+      40%           { transform: scale(1);   opacity: 1;   }
     }
   </style>
-  <!-- Fonts loaded locally from /fonts/ -->
 </head>
 
 <body>
+  <div id="boot-splash">
+    <div class="splash-group">
+      <span class="splash-label">EchoBird</span>
+      <div class="splash-dots">
+        <span class="splash-dot"></span>
+        <span class="splash-dot"></span>
+        <span class="splash-dot"></span>
+      </div>
+    </div>
+  </div>
   <div id="root"></div>
   <script type="module" src="/src/main.tsx"></script>
 </body>

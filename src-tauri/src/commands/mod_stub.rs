@@ -21,27 +21,14 @@ pub fn health_check() -> String {
     format!("Echobird v{}", env!("CARGO_PKG_VERSION"))
 }
 
-/// App ready — close splash screen and show main window
-/// Ensures splash stays visible for at least 1.5 seconds
+/// App ready — show the main window. Called by the frontend (App.tsx) after
+/// React has mounted and scanTools() has resolved, so the WebView has already
+/// painted the inline #boot-splash from index.html.
 #[tauri::command]
 pub async fn app_ready(app: tauri::AppHandle) {
     #[cfg(not(target_os = "android"))]
     {
         use tauri::Manager;
-
-        // Minimum splash display time (1.5 seconds from app start)
-        let state = app.state::<crate::AppStartTime>();
-        let elapsed = state.0.elapsed();
-        let min_splash = std::time::Duration::from_millis(1500);
-        if elapsed < min_splash {
-            tokio::time::sleep(min_splash - elapsed).await;
-        }
-
-        // Close splash window
-        if let Some(splash) = app.get_webview_window("splash") {
-            let _ = splash.close();
-        }
-        // Show and focus main window
         if let Some(main) = app.get_webview_window("main") {
             // Re-center right before show(): on Linux (GNOME/Wayland), the
             // initial `center: true` is dropped because the compositor ignores

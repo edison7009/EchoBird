@@ -4,7 +4,6 @@
   "description": "enables the default permissions",
   "windows": [
     "main",
-    "splash",
     "tool-*"
   ],
   "permissions": [
