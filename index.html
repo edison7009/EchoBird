@@ -29,14 +29,13 @@
        titles (text-primary). Single soft fade-in, no per-letter animation,
        no caret, no spinner — pure typography. -->
   <style>
-    /* Lora Italic — Google Font, latin subset (~22 KB woff2). Same serif
-       used in Coffee-CLI's tier-loading splash (D:\Coffee-CLI\src-ui\src\
-       styles\global.css:128 → --font-serif: 'Lora'). Soft transitional
-       serif with calligraphic italic — premium without being shouty. */
+    /* Lora Bold Italic — Google Font, latin subset (~22 KB woff2).
+       Used by both the boot splash and the sidebar brand-mark, so the
+       brand has one weight + style across the whole app. */
     @font-face {
       font-family: 'Lora';
-      src: url('/fonts/Lora-Italic.woff2') format('woff2');
-      font-weight: 400;
+      src: url('/fonts/Lora-BoldItalic.woff2') format('woff2');
+      font-weight: 700;
       font-style: italic;
       font-display: block;
     }
@@ -85,7 +84,7 @@
 
     #boot-splash .splash-label {
       font-family: 'Lora', ui-serif, Georgia, Cambria, 'Times New Roman', serif;
-      font-weight: 400;
+      font-weight: 700;
       font-style: italic;
       font-size: 24px;            /* slightly bigger than Coffee's 20px */
       letter-spacing: 0.02em;

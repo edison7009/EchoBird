@@ -41,7 +41,7 @@ export const Sidebar = ({ activePage, onPageChange, agentRunning: _agentRunning 
     return (
         <nav className="w-64 flex flex-col px-6 pb-6">
             <div className="mb-7 flex items-center gap-2 overflow-hidden">
-                <span className="brand-mark flex-shrink-0 text-cyber-accent">
+                <span className="brand-mark flex-shrink-0 text-cyber-text">
                     {t('app.name')}
                 </span>
                 {updateAvailable && (

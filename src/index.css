@@ -191,24 +191,20 @@
   font-weight: 700;
 }
 
-/* Brand wordmark — used by the sidebar logo "百灵鸟" / "EchoBird".
-   Heavier weight + relaxed letter-spacing so the two-character mark feels
-   like a logotype rather than just bold body text. */
+/* Brand wordmark — sidebar logo. Always "EchoBird" in every locale
+   (the previous "百灵鸟" Chinese name was retired to keep one brand
+   voice across UI). Lora italic matches the boot splash exactly. */
 .brand-mark {
-  font-family: 'Noto Sans SC', 'PingFang SC', 'Noto Sans', 'Microsoft YaHei',
-               system-ui, sans-serif;
+  font-family: 'Lora', ui-serif, Georgia, 'Times New Roman', serif;
   font-weight: 700;
-  font-size: 19px;
-  letter-spacing: 0.18em;
+  font-style: italic;
+  font-size: 22px;
+  letter-spacing: 0.02em;
   line-height: 1;
 }
 
-/* Latin-only contexts (logo when locale is en) lean on Noto Sans for the
-   wordmark feel; the SC fallback covers any leak-through. */
-:lang(en) .brand-mark {
-  font-family: 'Noto Sans', 'Inter', system-ui, sans-serif;
-  letter-spacing: 0.08em;
-}
+/* No :lang(en) override here — English "EchoBird" should use the same
+   Lora italic as the main .brand-mark rule, matching the boot splash. */
 
 * {
   margin: 0;

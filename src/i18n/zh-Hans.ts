@@ -215,7 +215,7 @@ const zhHans: Partial<Translations> = {
     'error.userCancelled': '已取消。',
     'debug.console': '调试控制台',
     'debug.gettingStarted': '开始使用',
-    'app.name': '百灵鸟',
+    'app.name': 'EchoBird',
     'mother.hintShowSpecs': '查看服务器的硬件配置(系统、CPU、内存、磁盘)',
     'mother.hintShowSpecsLocal': '查看本机的硬件配置(系统、CPU、内存、磁盘)',
     'mother.hintTroubleshoot': '{agent} 不好用了，帮我修复',
