@@ -15,20 +15,21 @@ const I18nContext = createContext<I18nContextValue>({
     t: (key) => key,
 });
 
-export const I18nProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-    const [locale, setLocaleState] = useState(() => detectLocale());
-    const [ready, setReady] = useState(locale === 'en');
+interface I18nProviderProps {
+    children: React.ReactNode;
+    /** Pre-resolved locale from main.tsx boot. When provided, skip the
+     *  detect → fetch-settings → load-pack flicker chain entirely. */
+    initialLocale?: string;
+}
 
-    // Load saved locale from Rust backend on mount
-    useEffect(() => {
-        api.getSettings().then(settings => {
-            if (settings.locale) {
-                setLocaleState(settings.locale);
-            }
-        }).catch(() => { });
-    }, []);
+export const I18nProvider: React.FC<I18nProviderProps> = ({ children, initialLocale }) => {
+    const [locale, setLocaleState] = useState(() => initialLocale ?? detectLocale());
+    // If main.tsx pre-loaded the pack we're already ready; otherwise English
+    // is always bundled so it's instantly ready, and any non-en locale will
+    // flip ready=false during its load below.
+    const [ready, setReady] = useState(true);
 
-    // Load language pack when locale changes
+    // Load language pack when locale changes (e.g. user switches language at runtime).
     useEffect(() => {
         if (locale === 'en') { setReady(true); return; }
         setReady(false);
