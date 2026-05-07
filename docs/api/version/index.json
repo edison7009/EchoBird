@@ -1,5 +1,5 @@
 {
-  "version": "4.0.8",
+  "version": "4.0.9",
   "releaseDate": "2026-05-07",
-  "releaseNotes": "修复 deepseek-v4-pro 等思维模型多轮调用中断;消除冷启动语言/字体闪烁"
+  "releaseNotes": "Provider cards: + quick-add prefilled from registry, ↗ opens site, locale-aware sort."
 }
