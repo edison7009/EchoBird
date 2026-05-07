@@ -180,6 +180,19 @@
   line-height: 1.3;
 }
 
+/* Editorial kicker beside page titles — Lora italic to echo the brand-mark.
+   Sits to the right of the title on its baseline (running-head style). */
+.page-kicker {
+  font-family: 'Lora', ui-serif, Georgia, 'Times New Roman', serif;
+  font-weight: 600;
+  font-style: italic;
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgb(var(--accent-rgb));
+  line-height: 1;
+}
+
 .cjk-btn {
   font-family: 'Noto Sans', 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei',
                system-ui, sans-serif;

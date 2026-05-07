@@ -41,6 +41,13 @@ export const Sidebar = ({ activePage, onPageChange, agentRunning: _agentRunning 
     return (
         <nav className="w-64 flex flex-col px-6 pb-6">
             <div className="mb-7 flex items-center gap-2 overflow-hidden">
+                <img
+                    src="/brand/bird.png"
+                    alt=""
+                    aria-hidden="true"
+                    draggable={false}
+                    className="brand-mark-bird flex-shrink-0 h-7 w-7 select-none"
+                />
                 <span className="brand-mark flex-shrink-0 text-cyber-text">
                     {t('app.name')}
                 </span>
