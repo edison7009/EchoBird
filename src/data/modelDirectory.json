@@ -1,0 +1,207 @@
+{
+    "$schema-comment": "Right-panel model directory. Each entry: name (display + matched against getModelIcon), url (website opened by ↗), baseUrl (OpenAI-protocol API base, prefilled into Add-Model when + is clicked), anthropicUrl (Anthropic-protocol API base — only filled if vendor natively serves /v1/messages, not via gateway adaptation), modelId (default model id; empty = leave blank in form), region ('cn' | 'global', controls locale-aware sort: zh locales surface 'cn' first, others surface 'global' first). URLs sourced from songquanpeng/one-api channeltype/url.go (2026-05) and vendor docs; some legacy URLs in one-api have been replaced with the current OpenAI-compatible v2 endpoint. Edit this file to fill in URLs / model IDs for each vendor.",
+    "providers": [
+        {
+            "name": "OpenAI",
+            "url": "https://openai.com",
+            "baseUrl": "https://api.openai.com/v1",
+            "anthropicUrl": "",
+            "modelId": "gpt-4o",
+            "region": "global"
+        },
+        {
+            "name": "Google Gemini",
+            "url": "https://gemini.google.com",
+            "baseUrl": "https://generativelanguage.googleapis.com/v1beta/openai",
+            "anthropicUrl": "",
+            "modelId": "",
+            "region": "global"
+        },
+        {
+            "name": "Volcengine 火山引擎",
+            "url": "https://www.volcengine.com/",
+            "baseUrl": "https://ark.cn-beijing.volces.com/api/v3",
+            "anthropicUrl": "",
+            "modelId": "",
+            "region": "cn"
+        },
+        {
+            "name": "DeepSeek",
+            "url": "https://www.deepseek.com",
+            "baseUrl": "https://api.deepseek.com",
+            "anthropicUrl": "https://api.deepseek.com/anthropic",
+            "modelId": "",
+            "region": "cn"
+        },
+        {
+            "name": "ERNIE 文心",
+            "url": "https://yiyan.baidu.com",
+            "baseUrl": "https://qianfan.baidubce.com/v2",
+            "anthropicUrl": "",
+            "modelId": "",
+            "region": "cn"
+        },
+        {
+            "name": "Qwen 通义千问",
+            "url": "https://chat.qwen.ai",
+            "baseUrl": "https://dashscope.aliyuncs.com/compatible-mode/v1",
+            "anthropicUrl": "https://dashscope-intl.aliyuncs.com/api/v2/apps/claude-code-proxy",
+            "modelId": "",
+            "region": "cn"
+        },
+        {
+            "name": "Kimi 月之暗面",
+            "url": "https://www.kimi.com",
+            "baseUrl": "https://api.moonshot.cn/v1",
+            "anthropicUrl": "https://api.moonshot.ai/anthropic",
+            "modelId": "",
+            "region": "cn"
+        },
+        {
+            "name": "Anthropic",
+            "url": "https://www.anthropic.com",
+            "baseUrl": "",
+            "anthropicUrl": "https://api.anthropic.com",
+            "modelId": "claude-sonnet-4-5",
+            "region": "global"
+        },
+        {
+            "name": "GLM 智谱",
+            "url": "https://www.zhipuai.cn",
+            "baseUrl": "https://open.bigmodel.cn/api/paas/v4",
+            "anthropicUrl": "https://api.z.ai/api/anthropic",
+            "modelId": "",
+            "region": "cn"
+        },
+        {
+            "name": "xAI Grok",
+            "url": "https://x.ai",
+            "baseUrl": "https://api.x.ai/v1",
+            "anthropicUrl": "",
+            "modelId": "",
+            "region": "global"
+        },
+        {
+            "name": "Hunyuan 混元",
+            "url": "https://hunyuan.tencent.com",
+            "baseUrl": "https://api.hunyuan.cloud.tencent.com/v1",
+            "anthropicUrl": "",
+            "modelId": "",
+            "region": "cn"
+        },
+        {
+            "name": "Meta AI",
+            "url": "https://ai.meta.com",
+            "baseUrl": "",
+            "anthropicUrl": "",
+            "modelId": "",
+            "region": "global"
+        },
+        {
+            "name": "Perplexity",
+            "url": "https://www.perplexity.ai",
+            "baseUrl": "https://api.perplexity.ai",
+            "anthropicUrl": "",
+            "modelId": "",
+            "region": "global"
+        },
+        {
+            "name": "MiniMax EN",
+            "url": "https://www.minimax.io",
+            "baseUrl": "https://api.minimax.io/v1",
+            "anthropicUrl": "https://api.minimax.io/anthropic",
+            "modelId": "",
+            "region": "global"
+        },
+        {
+            "name": "MiniMax CN",
+            "url": "https://www.minimaxi.com",
+            "baseUrl": "https://api.minimaxi.com/v1",
+            "anthropicUrl": "https://api.minimaxi.com/anthropic",
+            "modelId": "",
+            "region": "cn"
+        },
+        {
+            "name": "Stepfun 阶跃星辰",
+            "url": "https://www.stepfun.com",
+            "baseUrl": "https://api.stepfun.com/v1",
+            "anthropicUrl": "",
+            "modelId": "",
+            "region": "cn"
+        },
+        {
+            "name": "Mistral AI",
+            "url": "https://mistral.ai",
+            "baseUrl": "https://api.mistral.ai/v1",
+            "anthropicUrl": "",
+            "modelId": "",
+            "region": "global"
+        },
+        {
+            "name": "Xiaomi 小米",
+            "url": "https://platform.xiaomimimo.com/",
+            "baseUrl": "https://api.xiaomimimo.com/v1",
+            "anthropicUrl": "https://api.xiaomimimo.com/anthropic",
+            "modelId": "",
+            "region": "cn"
+        },
+        {
+            "name": "Cohere",
+            "url": "https://cohere.com",
+            "baseUrl": "https://api.cohere.ai/compatibility/v1",
+            "anthropicUrl": "",
+            "modelId": "",
+            "region": "global"
+        },
+        {
+            "name": "Groq",
+            "url": "https://groq.com",
+            "baseUrl": "https://api.groq.com/openai/v1",
+            "anthropicUrl": "",
+            "modelId": "",
+            "region": "global"
+        },
+        {
+            "name": "Together AI",
+            "url": "https://www.together.ai",
+            "baseUrl": "https://api.together.xyz/v1",
+            "anthropicUrl": "",
+            "modelId": "",
+            "region": "global"
+        },
+        {
+            "name": "NVIDIA",
+            "url": "https://build.nvidia.com/models",
+            "baseUrl": "https://integrate.api.nvidia.com/v1",
+            "anthropicUrl": "",
+            "modelId": "",
+            "region": "global"
+        }
+    ],
+    "relays": [
+        {
+            "name": "OpenRouter",
+            "url": "https://openrouter.ai",
+            "baseUrl": "https://openrouter.ai/api/v1",
+            "anthropicUrl": "",
+            "modelId": "",
+            "region": "global"
+        },
+        {
+            "name": "WorldRouter",
+            "url": "https://www.worldrouter.ai",
+            "baseUrl": "https://inference-api.worldrouter.ai/v1",
+            "anthropicUrl": "https://inference-api.worldrouter.ai",
+            "modelId": "",
+            "region": "global"
+        },
+        {
+            "name": "B.ai",
+            "url": "https://b.ai",
+            "baseUrl": "https://api.theb.ai/v1",
+            "anthropicUrl": "",
+            "modelId": "",
+            "region": "global"
+        }
+    ]
+}
