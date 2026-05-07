@@ -1,5 +1,5 @@
 {
-  "version": "4.0.5",
-  "releaseDate": "2026-05-06",
-  "releaseNotes": "v4.0.5 — boot splash removed, tab switching snappier."
+  "version": "4.0.6",
+  "releaseDate": "2026-05-07",
+  "releaseNotes": "新增 B-AI / WorldRouter 模型,优化工具配置管理。"
 }
