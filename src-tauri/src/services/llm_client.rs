@@ -418,6 +418,15 @@ fn message_to_openai_json(m: &Message) -> Value {
         MessageContent::Text(text) => json!({"role": m.role, "content": text}),
         MessageContent::Blocks(blocks) => {
             // For tool results in OpenAI format
+            if (m.role == "tool" || m.role == "user") && blocks.len() == 1 {
+                if let Some(ContentBlock::ToolResult { tool_use_id, content }) = blocks.first() {
+                    return json!({
+                        "role": "tool",
+                        "tool_call_id": tool_use_id,
+                        "content": content,
+                    });
+                }
+            }
             if m.role == "tool" {
                 if let Some(ContentBlock::ToolResult { tool_use_id, content }) = blocks.first() {
                     return json!({
@@ -448,9 +457,7 @@ fn message_to_openai_json(m: &Message) -> Value {
                     }
                 }
                 let mut msg = json!({"role": "assistant"});
-                if !text_parts.is_empty() {
-                    msg["content"] = json!(text_parts.join(""));
-                }
+                msg["content"] = json!(text_parts.join(""));
                 if !tool_calls.is_empty() {
                     msg["tool_calls"] = json!(tool_calls);
                 }
@@ -478,4 +485,3 @@ fn message_to_anthropic_json(m: &Message) -> Value {
         }
     }
 }
-
