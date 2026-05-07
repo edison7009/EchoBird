@@ -41,6 +41,9 @@ ts-errors.txt
 # Claude Code agent config (per-machine permissions)
 .claude/settings.local.json
 
+# OpenCode agent scratch dirs (regenerated locally, not part of the build)
+.opencode/
+
 # Project specific
 .whichclaw.pid
 .electron-cache
