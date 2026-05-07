@@ -1,5 +1,5 @@
 {
-  "version": "4.1.0",
+  "version": "4.1.1",
   "releaseDate": "2026-05-07",
-  "releaseNotes": "Cold-start polish: preload all first-paint fonts and gate window show on real paint — kills the empty-card flash and title baseline jitter."
+  "releaseNotes": "v4.1.1 — 全新飞鸟品牌标识(侧边栏 + 应用图标);页面标题改为杂志式 kicker 排版;统一三系统圆角窗口(Linux 此前为直角)。"
 }
