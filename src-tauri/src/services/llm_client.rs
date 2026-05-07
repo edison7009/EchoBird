@@ -58,6 +58,17 @@ pub enum MessageContent {
 pub enum ContentBlock {
     #[serde(rename = "text")]
     Text { text: String },
+    /// Thinking / reasoning block. Required round-trip for thinking-mode models
+    /// (DeepSeek-R1, deepseek-v4-pro, Anthropic extended-thinking, etc.). Without
+    /// this stored on the prior assistant message, the next request 400s with
+    /// "reasoning_content / content[].thinking must be passed back to the API".
+    /// `signature` is Anthropic-only — empty for OpenAI-style reasoning_content.
+    #[serde(rename = "thinking")]
+    Thinking {
+        thinking: String,
+        #[serde(default, skip_serializing_if = "String::is_empty")]
+        signature: String,
+    },
     #[serde(rename = "tool_use")]
     ToolUse { id: String, name: String, input: Value },
     #[serde(rename = "tool_result")]
@@ -69,6 +80,10 @@ pub enum ContentBlock {
 pub enum LlmEvent {
     TextDelta(String),
     Thinking(String),
+    /// Anthropic streams the thinking block's signature as a separate
+    /// `signature_delta`. We accumulate it alongside `Thinking` text and
+    /// pin it to the saved assistant message so the next turn validates.
+    ThinkingSignature(String),
     ToolCallStart { id: String, name: String },
     ToolCallDelta { id: String, args_chunk: String },
     ToolCallEnd { id: String },
@@ -353,6 +368,11 @@ impl LlmClient {
                                                     let _ = tx.send(LlmEvent::Thinking(thinking.to_string())).await;
                                                 }
                                             }
+                                            Some("signature_delta") => {
+                                                if let Some(sig) = delta["signature"].as_str() {
+                                                    let _ = tx.send(LlmEvent::ThinkingSignature(sig.to_string())).await;
+                                                }
+                                            }
                                             _ => {}
                                         }
                                     }
@@ -440,9 +460,11 @@ fn message_to_openai_json(m: &Message) -> Value {
             if m.role == "assistant" {
                 let mut tool_calls = Vec::new();
                 let mut text_parts = Vec::new();
+                let mut reasoning_parts = Vec::new();
                 for block in blocks {
                     match block {
                         ContentBlock::Text { text } => text_parts.push(text.clone()),
+                        ContentBlock::Thinking { thinking, .. } => reasoning_parts.push(thinking.clone()),
                         ContentBlock::ToolUse { id, name, input } => {
                             tool_calls.push(json!({
                                 "id": id,
@@ -458,6 +480,12 @@ fn message_to_openai_json(m: &Message) -> Value {
                 }
                 let mut msg = json!({"role": "assistant"});
                 msg["content"] = json!(text_parts.join(""));
+                // Required by thinking-mode models (deepseek-v4-pro, R1, etc.):
+                // the prior turn's reasoning must be echoed back, otherwise the
+                // server returns 400 invalid_request_error.
+                if !reasoning_parts.is_empty() {
+                    msg["reasoning_content"] = json!(reasoning_parts.join(""));
+                }
                 if !tool_calls.is_empty() {
                     msg["tool_calls"] = json!(tool_calls);
                 }
@@ -474,6 +502,15 @@ fn message_to_anthropic_json(m: &Message) -> Value {
         MessageContent::Blocks(blocks) => {
             let content: Vec<Value> = blocks.iter().map(|b| match b {
                 ContentBlock::Text { text } => json!({"type": "text", "text": text}),
+                ContentBlock::Thinking { thinking, signature } => {
+                    // Anthropic-compat thinking-mode endpoints (e.g. DeepSeek's
+                    // /anthropic) require both fields on round-trip or 400.
+                    let mut block = json!({"type": "thinking", "thinking": thinking});
+                    if !signature.is_empty() {
+                        block["signature"] = json!(signature);
+                    }
+                    block
+                }
                 ContentBlock::ToolUse { id, name, input } => json!({
                     "type": "tool_use", "id": id, "name": name, "input": input
                 }),
