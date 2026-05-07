@@ -14,7 +14,6 @@ import { TitleBar } from './components/TitleBar';
 import { SettingsDialog } from './components/SettingsDialog';
 
 import { useI18n } from './hooks/useI18n';
-import * as api from './api/tauri';
 
 // Zustand stores
 import { useToolsStore } from './stores/toolsStore';
@@ -63,14 +62,12 @@ function App() {
     const setUpdateAvailable = useNavigationStore(s => s.setUpdateAvailable);
     const scanTools = useToolsStore(s => s.scanTools);
 
-    // ── Boot preload: scan tools, then tell Rust the app is ready so the
-    // hidden main window shows. No splash element to fade out — the window
-    // stays hidden until React has rendered, then opens straight to the UI.
+    // ── Post-mount work — the window is already shown (main.tsx fires
+    // appReady after first paint). Scan installed tools and check for app
+    // updates in the background; both are non-blocking.
     useEffect(() => {
         const preload = async () => {
             try { await scanTools(); } catch { /* continue anyway */ }
-            api.appReady();
-            // Silent update check after app is ready — read installed binary version from Tauri at runtime.
             try {
                 const [appVersion, res] = await Promise.all([
                     getVersion().catch(() => ''),

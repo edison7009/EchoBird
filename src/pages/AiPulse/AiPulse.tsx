@@ -358,6 +358,11 @@ function ItemFeed({ variant }: { variant: PageVariant }) {
     if ((initialLoading || syncing) && visible.length === 0) {
         return (
             <div ref={containerRef} className="space-y-2">
+                {/* Same 2px slot as the real list path — keeps cards at the
+                    same Y position on skeleton → list swap (no jitter). */}
+                <div className="sticky top-0 z-20 h-0.5 overflow-hidden pointer-events-none">
+                    <div className="h-full w-1/3 bg-cyber-accent/70 animate-[loading_1.2s_ease-in-out_infinite]" />
+                </div>
                 {Array.from({ length: 8 }).map((_, i) => (
                     <div key={i} className="p-3 bg-cyber-surface rounded-card animate-pulse">
                         <div className="h-3 w-full bg-cyber-border/50 rounded mb-2" />
