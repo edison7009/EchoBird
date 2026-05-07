@@ -46,7 +46,7 @@ export const Sidebar = ({ activePage, onPageChange, agentRunning: _agentRunning 
                     alt=""
                     aria-hidden="true"
                     draggable={false}
-                    className="brand-mark-bird flex-shrink-0 h-7 w-7 select-none"
+                    className="flex-shrink-0 h-7 w-7 select-none"
                 />
                 <span className="brand-mark flex-shrink-0 text-cyber-text">
                     {t('app.name')}
