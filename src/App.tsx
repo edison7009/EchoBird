@@ -114,18 +114,29 @@ function App() {
                                                             <main className="flex-1 flex flex-col overflow-hidden">
                                                                 <section className="flex-1 flex flex-col overflow-hidden pr-2">
 
-                                                                    {/* Shared page title bar */}
-                                                                    <h2 className="mb-5 flex-shrink-0 relative flex items-center cjk-title">
-                                                                        <span className="truncate">
-                                                                            {is('news') && t('page.news')}
-                                                                            {is('projects') && t('page.projects')}
-                                                                            {is('courses') && t('page.courses')}
-                                                                            {is('models') && t('page.modelNexus')}
+                                                                    {/* Shared page title bar — fixed-height row so the title sits at the same baseline whether the page has tall action buttons or none */}
+                                                                    <div className="mb-5 flex-shrink-0 flex items-center gap-3 h-9">
+                                                                        <div className="flex items-baseline gap-3 flex-1 min-w-0">
+                                                                            <h2 className="cjk-title flex-shrink-0">
+                                                                                {is('news') && t('page.news')}
+                                                                                {is('projects') && t('page.projects')}
+                                                                                {is('courses') && t('page.courses')}
+                                                                                {is('models') && t('page.modelNexus')}
 
-                                                                            {is('apps') && t('page.appManager')}
-                                                                            {is('localLlm') && t('page.localServer')}
-                                                                            {is('mother') && t('page.motherAgent')}
-                                                                        </span>
+                                                                                {is('apps') && t('page.appManager')}
+                                                                                {is('localLlm') && t('page.localServer')}
+                                                                                {is('mother') && t('page.motherAgent')}
+                                                                            </h2>
+                                                                            <div className="page-kicker truncate" aria-hidden="true">
+                                                                                {is('news') && 'PULSE'}
+                                                                                {is('projects') && 'RISING'}
+                                                                                {is('courses') && 'ACADEMY'}
+                                                                                {is('models') && 'ROSTER'}
+                                                                                {is('apps') && 'STUDIO'}
+                                                                                {is('localLlm') && 'RUNTIME'}
+                                                                                {is('mother') && 'AGENT'}
+                                                                            </div>
+                                                                        </div>
                                                                         {/* Title actions — always mounted but hidden */}
 
                                                                         <span className={page(is('news') || is('projects'))}><AiPulseTitleActions /></span>
@@ -133,7 +144,7 @@ function App() {
                                                                         <span className={page(is('models'))}><ModelNexusTitleActions /></span>
 
                                                                         {is('mother') && (
-                                                                            <div className="ml-auto flex-shrink-0 flex items-center gap-2">
+                                                                            <div className="flex-shrink-0 flex items-center gap-2">
                                                                                 <button
                                                                                     onClick={() => window.dispatchEvent(new CustomEvent('clear-chat'))}
                                                                                     className="p-1.5 rounded-lg text-cyber-text/40 hover:text-cyber-text hover:bg-cyber-text/10 transition-colors"
@@ -142,7 +153,7 @@ function App() {
                                                                                 </button>
                                                                             </div>
                                                                         )}
-                                                                    </h2>
+                                                                    </div>
 
                                                                     {/* Page content — always mounted, CSS hidden */}
                                                                     <div className={pageScroll(is('news'))}><AiNewsMain /></div>

@@ -49,6 +49,7 @@ async function bootFonts(): Promise<void> {
         '700 15px "Inter"',         // bold UI
         '700 22px "Noto Sans"',     // .cjk-title (page headers)
         '700 italic 22px "Lora"',   // .brand-mark (sidebar wordmark)
+        '600 italic 11px "Lora"',   // .page-kicker (editorial page kicker)
     ];
     for (const spec of specs) {
         try { fs.load(spec); } catch { /* ignore individual failures */ }
