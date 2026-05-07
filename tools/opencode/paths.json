@@ -8,7 +8,7 @@
     "command": "opencode",
     "envVar": "OPENCODE_PATH",
     "configDir": "~/.config/opencode",
-    "configFile": "~/.config/opencode/opencode.json",
+    "configFile": "~/.config/opencode/opencode.jsonc",
     "requireConfigFile": false,
     "paths": {
         "win32": [

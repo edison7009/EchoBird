@@ -34,10 +34,14 @@ export const getModelIcon = (name: string, modelId?: string): string | null => {
         [['granite', 'ibm'], 'granite'],
         [['meta'], 'meta'],
         [['openrouter'], 'openrouter'],
+        [['worldrouter'], 'worldrouter'],
+        [['b.ai', 'bai'], 'b-ai'],
     ];
 
     for (const [keywords, icon] of iconMap) {
         if (keywords.some(kw => text.includes(kw))) {
+            if (icon === 'worldrouter') return './icons/models/worldrouter.png';
+            if (icon === 'b-ai') return './icons/models/b-ai.ico';
             return `./icons/models/${icon}.svg`;
         }
     }

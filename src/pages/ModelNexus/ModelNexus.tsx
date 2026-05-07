@@ -446,6 +446,8 @@ const KNOWN_PROVIDERS: { name: string; url: string }[] = [
 // out to many upstream models.
 const KNOWN_RELAYS: { name: string; url: string }[] = [
     { name: 'OpenRouter', url: 'https://openrouter.ai' },
+    { name: 'WorldRouter', url: 'https://www.worldrouter.ai' },
+    { name: 'B.ai', url: 'https://b.ai' },
 ];
 
 function ProviderRow({ entry }: { entry: { name: string; url: string } }) {

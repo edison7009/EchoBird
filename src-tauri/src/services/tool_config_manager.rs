@@ -94,6 +94,69 @@ fn read_json_file(path: &Path) -> Option<serde_json::Value> {
     serde_json::from_str(&content).ok()
 }
 
+fn read_jsonc_file(path: &Path) -> Option<serde_json::Value> {
+    let content = fs::read_to_string(path).ok()?;
+    serde_json::from_str(&strip_jsonc_comments(&content)).ok()
+}
+
+fn strip_jsonc_comments(input: &str) -> String {
+    let mut out = String::with_capacity(input.len());
+    let mut chars = input.chars().peekable();
+    let mut in_string = false;
+    let mut escaped = false;
+
+    while let Some(c) = chars.next() {
+        if in_string {
+            if escaped {
+                escaped = false;
+            } else if c == '\\' {
+                escaped = true;
+            } else if c == '"' {
+                in_string = false;
+            }
+            out.push(c);
+            continue;
+        }
+
+        if c == '"' {
+            in_string = true;
+            out.push(c);
+            continue;
+        }
+
+        if c == '/' {
+            match chars.peek().copied() {
+                Some('/') => {
+                    chars.next();
+                    for next in chars.by_ref() {
+                        if next == '\n' {
+                            out.push('\n');
+                            break;
+                        }
+                    }
+                    continue;
+                }
+                Some('*') => {
+                    chars.next();
+                    let mut prev = '\0';
+                    for next in chars.by_ref() {
+                        if prev == '*' && next == '/' {
+                            break;
+                        }
+                        prev = next;
+                    }
+                    continue;
+                }
+                _ => {}
+            }
+        }
+
+        out.push(c);
+    }
+
+    out
+}
+
 /// Write JSON value to file with pretty formatting
 fn write_json_file(path: &Path, value: &serde_json::Value) -> Result<(), String> {
     ensure_parent(path);
@@ -126,6 +189,7 @@ fn get_model_field(model_info: &ModelInfo, field_name: &str) -> Option<String> {
 
 pub async fn apply_model_to_tool(tool_id: &str, model_info: ModelInfo) -> ApplyResult {
     log::info!("[ToolConfigManager] Applying model to {}", tool_id);
+    let model_info = normalize_model_info_for_tool(tool_id, model_info);
 
     // Dispatch custom tools to their own handlers
     match tool_id {
@@ -142,6 +206,9 @@ pub async fn apply_model_to_tool(tool_id: &str, model_info: ModelInfo) -> ApplyR
 
         // Type 3: Direct JSON overwrite (special format)
         "opencode" => return apply_opencode(&model_info),
+
+        // Codex CLI and Codex Desktop share ~/.codex/config.toml
+        "codex" | "codexdesktop" => return apply_codex(tool_id, &model_info),
 
         // Type 4: YAML
         "aider" => return apply_aider(&model_info),
@@ -166,6 +233,20 @@ pub async fn apply_model_to_tool(tool_id: &str, model_info: ModelInfo) -> ApplyR
     apply_generic_json(tool_id, &model_info).await
 }
 
+fn normalize_model_info_for_tool(tool_id: &str, mut model_info: ModelInfo) -> ModelInfo {
+    if tool_id == "claudecode" && model_info.protocol.as_deref() == Some("anthropic") {
+        if let Some(ref mut base_url) = model_info.base_url {
+            let trimmed = base_url.trim_end_matches('/').to_string();
+            if let Some(without_v1) = trimmed.strip_suffix("/v1") {
+                *base_url = without_v1.to_string();
+            } else {
+                *base_url = trimmed;
+            }
+        }
+    }
+    model_info
+}
+
 // ════════════════════════════════════════════════════════════════
 //  RESTORE TO OFFICIAL — delete config so tool regenerates defaults
 // ════════════════════════════════════════════════════════════════
@@ -181,6 +262,13 @@ pub async fn restore_tool_to_official(tool_id: &str) -> ApplyResult {
             message: format!("Unknown tool: {}", tool_id),
         },
     };
+
+    if matches!(tool_id, "codex" | "codexdesktop") {
+        return restore_codex_to_official(tool_id, &config_path);
+    }
+    if tool_id == "opencode" {
+        return restore_opencode_to_official();
+    }
 
     // Side-channel relay file (cline/roocode/openclaw/kilocode and other
     // "custom" tools) — best-effort cleanup, ignored if absent.
@@ -221,6 +309,7 @@ pub async fn get_tool_model_info(tool_id: &str) -> Option<ModelInfo> {
         "openclaw" => return read_openclaw(),
         "kilocode" => return read_echobird_relay(tool_id),
         "opencode" => return read_opencode(),
+        "codex" | "codexdesktop" => return read_codex(),
         "aider" => return read_aider(),
         "continue" => return read_continue_dev(),
         "zeroclaw" => return read_zeroclaw(),
@@ -280,6 +369,11 @@ async fn apply_generic_json(tool_id: &str, model_info: &ModelInfo) -> ApplyResul
             tool_manager::set_nested_value(
                 &mut config, config_json_path,
                 serde_json::Value::String(val),
+            );
+        } else if model_field.is_empty() {
+            tool_manager::set_nested_value(
+                &mut config, config_json_path,
+                serde_json::Value::String(String::new()),
             );
         } else if !KNOWN_MODEL_FIELDS.contains(&model_field.as_str()) {
             tool_manager::set_nested_value(
@@ -613,6 +707,10 @@ fn apply_opencode(model_info: &ModelInfo) -> ApplyResult {
         "providerName": provider_name,
     });
 
+    if let Err(e) = write_opencode_native_config(model_info, model_id, &base_url, &provider_name) {
+        return ApplyResult { success: false, message: e };
+    }
+
     match write_json_file(&config_path, &config) {
         Ok(_) => {
             log::info!("[ToolConfigManager] OpenCode config written to {:?}", config_path);
@@ -629,7 +727,57 @@ fn apply_opencode(model_info: &ModelInfo) -> ApplyResult {
     }
 }
 
+fn write_opencode_native_config(
+    model_info: &ModelInfo,
+    model_id: &str,
+    base_url: &str,
+    provider_name: &str,
+) -> Result<(), String> {
+    let config_path = dirs::home_dir()
+        .unwrap_or_default()
+        .join(".config")
+        .join("opencode")
+        .join("opencode.jsonc");
+
+    let mut config = read_jsonc_file(&config_path)
+        .or_else(|| read_json_file(&config_path.with_extension("json")))
+        .unwrap_or(serde_json::json!({}));
+
+    if config.get("$schema").is_none() {
+        config["$schema"] = serde_json::json!("https://opencode.ai/config.json");
+    }
+    if !config.get("provider").map(|v| v.is_object()).unwrap_or(false) {
+        config["provider"] = serde_json::json!({});
+    }
+
+    let provider_id = "echobird";
+    config["provider"][provider_id] = serde_json::json!({
+        "npm": "@ai-sdk/openai-compatible",
+        "name": provider_name,
+        "options": {
+            "baseURL": base_url,
+            "apiKey": model_info.api_key.as_deref().unwrap_or("")
+        },
+        "models": {
+            model_id: {
+                "name": model_info.name.as_deref().unwrap_or(model_id)
+            }
+        }
+    });
+    config["model"] = serde_json::Value::String(format!("{}/{}", provider_id, model_id));
+    config["small_model"] = serde_json::Value::String(format!("{}/{}", provider_id, model_id));
+
+    write_json_file(&config_path, &config)
+}
+
 fn read_opencode() -> Option<ModelInfo> {
+    let native_path = dirs::home_dir()?.join(".config").join("opencode").join("opencode.jsonc");
+    if let Some(info) = read_opencode_native_config(&native_path)
+        .or_else(|| read_opencode_native_config(&native_path.with_extension("json")))
+    {
+        return Some(info);
+    }
+
     // Read from echobird relay JSON
     let config_path = echobird_dir().join("opencode.json");
     let config = read_json_file(&config_path)?;
@@ -645,9 +793,244 @@ fn read_opencode() -> Option<ModelInfo> {
     })
 }
 
+fn read_opencode_native_config(path: &Path) -> Option<ModelInfo> {
+    let config = if path.extension().and_then(|e| e.to_str()) == Some("jsonc") {
+        read_jsonc_file(path)?
+    } else {
+        read_json_file(path)?
+    };
+    let selected = config.get("model")?.as_str()?;
+    let (provider_id, model_id) = selected.split_once('/')?;
+    let provider = config.pointer(&format!("/provider/{}", provider_id))?;
+
+    Some(ModelInfo {
+        name: provider
+            .pointer(&format!("/models/{}/name", model_id))
+            .and_then(|v| v.as_str())
+            .map(|s| s.to_string()),
+        model: Some(model_id.to_string()),
+        base_url: provider.pointer("/options/baseURL").and_then(|v| v.as_str()).map(|s| s.to_string()),
+        api_key: provider.pointer("/options/apiKey").and_then(|v| v.as_str()).map(|s| s.to_string()),
+        anthropic_url: None,
+        proxy_url: None,
+        protocol: Some("openai".to_string()),
+    })
+}
+
+fn restore_opencode_to_official() -> ApplyResult {
+    let relay_path = echobird_dir().join("opencode.json");
+    if relay_path.exists() {
+        let _ = fs::remove_file(&relay_path);
+    }
+
+    let native_path = dirs::home_dir()
+        .unwrap_or_default()
+        .join(".config")
+        .join("opencode")
+        .join("opencode.jsonc");
+
+    if !native_path.exists() {
+        return ApplyResult {
+            success: true,
+            message: "OpenCode already at defaults - no config file to update.".to_string(),
+        };
+    }
+
+    let mut updated_any = false;
+    for path in [&native_path, &native_path.with_extension("json")] {
+        if !path.exists() {
+            continue;
+        }
+
+        let mut config = match read_jsonc_file(path) {
+            Some(c) => c,
+            None => return ApplyResult {
+                success: false,
+                message: format!("Failed to parse OpenCode config: {}", path.display()),
+            },
+        };
+
+        if let Some(provider) = config.get_mut("provider").and_then(|v| v.as_object_mut()) {
+            provider.remove("echobird");
+        }
+        if config.get("model").and_then(|v| v.as_str()).map(|s| s.starts_with("echobird/")).unwrap_or(false) {
+            tool_manager::delete_nested_value(&mut config, "model");
+        }
+        if config.get("small_model").and_then(|v| v.as_str()).map(|s| s.starts_with("echobird/")).unwrap_or(false) {
+            tool_manager::delete_nested_value(&mut config, "small_model");
+        }
+
+        if let Err(e) = write_json_file(path, &config) {
+            return ApplyResult { success: false, message: e };
+        }
+        updated_any = true;
+    }
+
+    if updated_any {
+        ApplyResult {
+            success: true,
+            message: "OpenCode restored - Echobird provider removed.".to_string(),
+        }
+    } else {
+        ApplyResult {
+            success: true,
+            message: "OpenCode already at defaults - no config file to update.".to_string(),
+        }
+    }
+}
+
+
 // ════════════════════════════════════════════════════════════════
 //  Type 4a: Aider �?~/.aider.conf.yml (simple YAML key: value)
 // ════════════════════════════════════════════════════════════════
+
+// Codex CLI and Codex Desktop share ~/.codex/config.toml.
+fn codex_env_key(base_url: &str) -> String {
+    let domain = extract_domain_name(base_url);
+    format!("ECHOBIRD_{}_API_KEY", domain.to_uppercase())
+}
+
+fn codex_provider_id(base_url: &str) -> String {
+    let domain = extract_domain_name(base_url)
+        .to_lowercase()
+        .chars()
+        .map(|c| if c.is_ascii_alphanumeric() || c == '_' || c == '-' { c } else { '_' })
+        .collect::<String>();
+    format!("echobird_{}", if domain.is_empty() { "openai" } else { &domain })
+}
+
+fn set_user_env_var(key: &str, value: &str) {
+    std::env::set_var(key, value);
+
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        let _ = std::process::Command::new("setx")
+            .args([key, value])
+            .creation_flags(0x08000000)
+            .output();
+    }
+}
+
+fn apply_codex(tool_id: &str, model_info: &ModelInfo) -> ApplyResult {
+    let config_path = dirs::home_dir().unwrap_or_default().join(".codex").join("config.toml");
+    let mut content = fs::read_to_string(&config_path).unwrap_or_default();
+
+    let model_id = model_info.model.as_deref()
+        .or(model_info.name.as_deref())
+        .unwrap_or("");
+    if model_id.is_empty() {
+        return ApplyResult { success: false, message: "Model ID is empty".to_string() };
+    }
+
+    let base_url = model_info.base_url.as_deref()
+        .unwrap_or("https://api.openai.com/v1")
+        .trim_end_matches('/')
+        .to_string();
+    let api_key = model_info.api_key.as_deref().unwrap_or("");
+    if api_key.is_empty() {
+        return ApplyResult { success: false, message: "API Key is empty, cannot apply Codex config".to_string() };
+    }
+
+    let provider_id = codex_provider_id(&base_url);
+    let provider_name = format!("{} (via Echobird)", extract_domain_name(&base_url));
+    let env_key = codex_env_key(&base_url);
+
+    content = toml_write_top(&content, "model_provider", &provider_id);
+    content = toml_write_top(&content, "model", model_id);
+    if toml_read_top(&content, "model_reasoning_effort").is_empty() {
+        content = toml_write_top(&content, "model_reasoning_effort", "high");
+    }
+    content = toml_write_table_value(&content, &format!("model_providers.{}", provider_id), "name", &provider_name);
+    content = toml_write_table_value(&content, &format!("model_providers.{}", provider_id), "base_url", &base_url);
+    content = toml_write_table_value(&content, &format!("model_providers.{}", provider_id), "env_key", &env_key);
+
+    ensure_parent(&config_path);
+    if let Err(e) = fs::write(&config_path, &content) {
+        return ApplyResult { success: false, message: format!("Codex config error: {}", e) };
+    }
+
+    set_user_env_var(&env_key, api_key);
+
+    let relay_path = echobird_dir().join("codex.json");
+    let relay = serde_json::json!({
+        "apiKey": api_key,
+        "baseUrl": base_url,
+        "modelId": model_id,
+        "modelName": model_info.name.as_deref().unwrap_or(model_id),
+        "providerId": provider_id,
+        "envKey": env_key,
+    });
+    let _ = write_json_file(&relay_path, &relay);
+
+    let display = if tool_id == "codexdesktop" { "Codex Desktop" } else { "Codex CLI" };
+    ApplyResult {
+        success: true,
+        message: format!("Model \"{}\" configured for {}.", model_info.name.as_deref().unwrap_or(model_id), display),
+    }
+}
+
+fn read_codex() -> Option<ModelInfo> {
+    let config_path = dirs::home_dir()?.join(".codex").join("config.toml");
+    let content = fs::read_to_string(&config_path).ok()?;
+
+    let model = toml_read_top(&content, "model");
+    if model.is_empty() { return None; }
+
+    let provider_id = toml_read_top(&content, "model_provider");
+    let base_url = if provider_id.is_empty() {
+        None
+    } else {
+        let value = toml_read_table_value(&content, &format!("model_providers.{}", provider_id), "base_url");
+        if value.is_empty() { None } else { Some(value) }
+    };
+
+    let env_key = if provider_id.is_empty() {
+        String::new()
+    } else {
+        toml_read_table_value(&content, &format!("model_providers.{}", provider_id), "env_key")
+    };
+    let api_key = if env_key.is_empty() {
+        None
+    } else {
+        std::env::var(&env_key).ok()
+    };
+
+    Some(ModelInfo {
+        name: Some(model.clone()),
+        model: Some(model),
+        base_url,
+        api_key,
+        anthropic_url: None,
+        proxy_url: None,
+        protocol: Some("openai".to_string()),
+    })
+}
+
+fn restore_codex_to_official(tool_id: &str, config_path: &Path) -> ApplyResult {
+    let mut content = fs::read_to_string(config_path).unwrap_or_default();
+    content = toml_write_top(&content, "model_provider", "openai");
+    content = toml_write_top(&content, "model", "gpt-4o");
+    content = toml_remove_tables_with_prefix(&content, "model_providers.echobird_");
+
+    ensure_parent(config_path);
+    match fs::write(config_path, content) {
+        Ok(_) => {
+            let relay_path = echobird_dir().join("codex.json");
+            if relay_path.exists() {
+                let _ = fs::remove_file(&relay_path);
+            }
+            ApplyResult {
+                success: true,
+                message: format!("{} restored to OpenAI official provider.", if tool_id == "codexdesktop" { "Codex Desktop" } else { "Codex CLI" }),
+            }
+        }
+        Err(e) => ApplyResult {
+            success: false,
+            message: format!("Failed to restore Codex config: {}", e),
+        },
+    }
+}
 
 fn apply_aider(model_info: &ModelInfo) -> ApplyResult {
     let config_path = dirs::home_dir().unwrap_or_default().join(".aider.conf.yml");
@@ -1027,7 +1410,7 @@ fn toml_write_top(content: &str, key: &str, value: &str) -> String {
         if first_section.is_some() && i >= first_section.unwrap() { continue; }
         if let Some((k, _)) = t.split_once('=') {
             if k.trim() == key {
-                *line = format!("{} = \"{}\"", key, value);
+                *line = format!("{} = \"{}\"", key, toml_escape(value));
                 found = true;
                 break;
             }
@@ -1035,11 +1418,112 @@ fn toml_write_top(content: &str, key: &str, value: &str) -> String {
     }
 
     if !found {
-        let new_line = format!("{} = \"{}\"", key, value);
+        let new_line = format!("{} = \"{}\"", key, toml_escape(value));
         match first_section {
             Some(i) => lines.insert(i, new_line),
             None => lines.push(new_line),
         }
     }
     lines.join("\n")
+}
+
+fn toml_read_table_value(content: &str, table: &str, key: &str) -> String {
+    let header = format!("[{}]", table);
+    let mut in_table = false;
+
+    for line in content.lines() {
+        let t = line.trim();
+        if t.starts_with('[') && t.ends_with(']') {
+            in_table = t == header;
+            continue;
+        }
+        if !in_table || t.starts_with('#') || t.is_empty() {
+            continue;
+        }
+        if let Some((k, v)) = t.split_once('=') {
+            if k.trim() == key {
+                return toml_unquote(v.trim());
+            }
+        }
+    }
+
+    String::new()
+}
+
+fn toml_write_table_value(content: &str, table: &str, key: &str, value: &str) -> String {
+    let header = format!("[{}]", table);
+    let mut lines: Vec<String> = content.lines().map(|l| l.to_string()).collect();
+    let mut table_start = None;
+    let mut table_end = lines.len();
+
+    for (i, line) in lines.iter().enumerate() {
+        let t = line.trim();
+        if t.starts_with('[') && t.ends_with(']') {
+            if t == header {
+                table_start = Some(i);
+            } else if table_start.is_some() {
+                table_end = i;
+                break;
+            }
+        }
+    }
+
+    let new_line = format!("{} = \"{}\"", key, toml_escape(value));
+
+    if let Some(start) = table_start {
+        for line in lines.iter_mut().take(table_end).skip(start + 1) {
+            let t = line.trim();
+            if let Some((k, _)) = t.split_once('=') {
+                if k.trim() == key {
+                    *line = new_line;
+                    return lines.join("\n");
+                }
+            }
+        }
+        lines.insert(table_end, new_line);
+    } else {
+        if !lines.is_empty() && !lines.last().map(|l| l.trim().is_empty()).unwrap_or(false) {
+            lines.push(String::new());
+        }
+        lines.push(header);
+        lines.push(new_line);
+    }
+
+    lines.join("\n")
+}
+
+fn toml_remove_tables_with_prefix(content: &str, prefix: &str) -> String {
+    let mut out = Vec::new();
+    let mut removing = false;
+
+    for line in content.lines() {
+        let t = line.trim();
+        if t.starts_with('[') && t.ends_with(']') {
+            let table = &t[1..t.len() - 1];
+            removing = table.starts_with(prefix);
+            if removing {
+                continue;
+            }
+        }
+        if !removing {
+            out.push(line);
+        }
+    }
+
+    out.join("\n")
+}
+
+fn toml_unquote(value: &str) -> String {
+    let v = value.trim();
+    if v.starts_with('"') && v.ends_with('"') && v.len() >= 2 {
+        v[1..v.len()-1]
+            .replace("\\\"", "\"")
+            .replace("\\\\", "\\")
+    } else {
+        v.to_string()
+    }
+}
+
+fn toml_escape(value: &str) -> String {
+    value.replace('\\', "\\\\").replace('"', "\\\"")
 }

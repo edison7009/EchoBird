@@ -7,7 +7,6 @@
         "ko": "Codex 데스크톱"
     },
     "category": "Desktop",
-    "noModelConfig": true,
     "apiProtocol": [
         "openai"
     ],

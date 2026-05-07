@@ -208,8 +208,8 @@ export const ModelListSection: React.FC<ModelListSectionProps> = ({
                 </div>
 
                 {/* Right: Two-row layout */}
-                <div className="flex-1 min-w-0 flex flex-col justify-center h-10">
-                    <div className="flex items-center gap-2">
+                <div className="flex-1 min-w-0 flex flex-col justify-center min-h-[2.5rem] py-0.5">
+                    <div className="flex items-start gap-2">
                         <div className={`text-sm font-bold truncate leading-none flex-1 min-w-0 ${isLocalServer ? 'text-cyan-400' : ''}`}>{model.name || 'Untitled Model'}</div>
                         {showSwitcher && (
                             <span
@@ -275,8 +275,8 @@ export const ModelListSection: React.FC<ModelListSectionProps> = ({
                         </div>
                     )}
                 </div>
-                <div className="flex-1 min-w-0 flex flex-col justify-center h-10">
-                    <div className="flex items-center gap-2">
+                <div className="flex-1 min-w-0 flex flex-col justify-center min-h-[2.5rem] py-0.5">
+                    <div className="flex items-start gap-2">
                         <div className="text-sm font-bold truncate leading-none flex-1 min-w-0">{ep.name}</div>
                         <span className="text-xs font-mono text-cyber-text-secondary/60 flex-shrink-0 pointer-events-none select-none">
                             {t('agent.restore')}

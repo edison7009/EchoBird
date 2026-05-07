@@ -132,12 +132,14 @@ impl ProcessManager {
         let mut api_key_env: Option<String> = None;
         let mut base_url_env: Option<String> = None;
         let mut model_id: Option<String> = None;
+        let mut custom_api_key_env_name: Option<String> = None;
         if config_path.exists() {
             if let Ok(content) = std::fs::read_to_string(&config_path) {
                 if let Ok(config) = serde_json::from_str::<serde_json::Value>(&content) {
                     api_key_env = config.get("apiKey").and_then(|v| v.as_str()).map(|s| s.to_string());
                     base_url_env = config.get("baseUrl").and_then(|v| v.as_str()).map(|s| s.to_string());
                     model_id = config.get("modelId").and_then(|v| v.as_str()).map(|s| s.to_string());
+                    custom_api_key_env_name = config.get("envKey").and_then(|v| v.as_str()).map(|s| s.to_string());
                 }
             }
         }
@@ -169,6 +171,9 @@ impl ProcessManager {
             // Set env vars directly on the Command — they inherit properly
             if let Some(ref key) = api_key_env {
                 cmd.env("OPENAI_API_KEY", key);
+                if let Some(ref env_name) = custom_api_key_env_name {
+                    cmd.env(env_name, key);
+                }
             }
             if let Some(ref url) = base_url_env {
                 cmd.env("OPENAI_BASE_URL", url);
@@ -204,6 +209,9 @@ impl ProcessManager {
             cmd.current_dir(&home);
             if let Some(ref key) = api_key_env {
                 cmd.env("OPENAI_API_KEY", key);
+                if let Some(ref env_name) = custom_api_key_env_name {
+                    cmd.env(env_name, key);
+                }
             }
             if let Some(ref url) = base_url_env {
                 cmd.env("OPENAI_BASE_URL", url);

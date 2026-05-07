@@ -1,6 +1,6 @@
 [package]
 name = "echobird"
-version = "4.0.3"
+version = "4.0.6"
 description = "The Nexus for Models, Agents & Vibe Coding"
 authors = ["Echobird Team"]
 license = "MIT"
@@ -67,5 +67,4 @@ which = "7"
 
 [target.'cfg(unix)'.dependencies]
 libc = "0.2"
-
 

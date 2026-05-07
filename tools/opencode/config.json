@@ -1,5 +1,5 @@
 {
-    "configFile": "~/.config/opencode/opencode.json",
+    "configFile": "~/.config/opencode/opencode.jsonc",
     "format": "json",
     "custom": true
 }
