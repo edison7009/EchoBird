@@ -1,5 +1,5 @@
 {
-  "version": "4.0.9",
+  "version": "4.1.0",
   "releaseDate": "2026-05-07",
-  "releaseNotes": "Provider cards: + quick-add prefilled from registry, ↗ opens site, locale-aware sort."
+  "releaseNotes": "Cold-start polish: preload all first-paint fonts and gate window show on real paint — kills the empty-card flash and title baseline jitter."
 }
