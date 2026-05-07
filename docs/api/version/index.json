@@ -1,5 +1,5 @@
 {
-  "version": "4.0.6",
+  "version": "4.0.7",
   "releaseDate": "2026-05-07",
-  "releaseNotes": "新增 B-AI / WorldRouter 模型,优化工具配置管理。"
+  "releaseNotes": "Fix Linux agent disconnecting after first tool call — convert Anthropic-style tool_result history to OpenAI tool messages on protocol fallback, and always include the content field on tool-call assistant messages."
 }
