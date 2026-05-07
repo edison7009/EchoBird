@@ -364,6 +364,10 @@ pub async fn run_agent(
 
         // Collect the response
         let mut text_accumulator = String::new();
+        // Thinking-mode round-trip: must be saved on the assistant message so
+        // the next turn can echo it back. Empty when the model isn't a thinker.
+        let mut thinking_accumulator = String::new();
+        let mut thinking_signature = String::new();
         let mut tool_calls: Vec<ToolCall> = Vec::new();
         let mut tool_args_map: std::collections::HashMap<String, String> = std::collections::HashMap::new();
         let mut stop_reason = String::new();
@@ -433,7 +437,12 @@ pub async fn run_agent(
                     }
                     LlmEvent::Thinking(text) => {
                         received_any_token = true;
+                        thinking_accumulator.push_str(&text);
                         emit_event(&app, AgentEvent::Thinking { text });
+                    }
+                    LlmEvent::ThinkingSignature(sig) => {
+                        // Anthropic streams signature separately; keep latest.
+                        thinking_signature = sig;
                     }
                     LlmEvent::ToolCallStart { id, name } => {
                         received_any_token = true;
@@ -569,15 +578,23 @@ pub async fn run_agent(
         {
             let mut map = session_map.lock().await;
             let sess = map.entry(server_key.clone()).or_insert_with(AgentSession::new);
-            if tool_calls.is_empty() {
-                // Pure text response
+            let has_thinking = !thinking_accumulator.is_empty();
+            if tool_calls.is_empty() && !has_thinking {
+                // Pure text response — keep the simple Text variant.
                 sess.messages.push(Message {
                     role: "assistant".into(),
                     content: MessageContent::Text(text_accumulator.clone()),
                 });
             } else {
-                // Response with tool calls
+                // Block form: thinking (if any) first, then text, then tool_uses.
+                // Order matters for Anthropic: thinking must precede tool_use.
                 let mut blocks: Vec<ContentBlock> = Vec::new();
+                if has_thinking {
+                    blocks.push(ContentBlock::Thinking {
+                        thinking: thinking_accumulator.clone(),
+                        signature: thinking_signature.clone(),
+                    });
+                }
                 if !text_accumulator.is_empty() {
                     blocks.push(ContentBlock::Text { text: text_accumulator.clone() });
                 }
