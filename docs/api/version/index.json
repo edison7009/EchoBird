@@ -1,5 +1,5 @@
 {
-  "version": "4.0.7",
+  "version": "4.0.8",
   "releaseDate": "2026-05-07",
-  "releaseNotes": "Fix Linux agent disconnecting after first tool call — convert Anthropic-style tool_result history to OpenAI tool messages on protocol fallback, and always include the content field on tool-call assistant messages."
+  "releaseNotes": "修复 deepseek-v4-pro 等思维模型多轮调用中断;消除冷启动语言/字体闪烁"
 }
