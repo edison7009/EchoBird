@@ -1,9 +1,9 @@
 // Model Nexus Page — Model cards, debug console, add/edit modal
 // Extracted from App.tsx with Provider pattern for shared state
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { open as shellOpen } from '@tauri-apps/plugin-shell';
-import { X, Box, ExternalLink } from 'lucide-react';
+import { X, Box, ExternalLink, Plus } from 'lucide-react';
 import { MiniSelect } from '../../components/MiniSelect';
 import { ModelCard, ModelCardSkeleton, getModelIcon } from '../../components';
 import { useI18n } from '../../hooks/useI18n';
@@ -11,6 +11,7 @@ import * as api from '../../api/tauri';
 import type { SSNodeConfig, ModelConfig } from '../../api/types';
 import { ModelNexusContext, useModelNexus } from './context';
 import type { NewModelForm } from './context';
+import modelDirectory from '../../data/modelDirectory.json';
 
 
 // ===== Provider =====
@@ -415,84 +416,121 @@ export function ModelNexusMain() {
 
 // ===== Right Panel (Provider / Relay tabs) =====
 
-// Globally well-known LLM providers — ordered by approximate end-user MAU
-// (chatbot product reach) as of mid-2025, blending public reports
-// (a16z, SimilarWeb, Sensor Tower, QuestMobile). Indicative, not official.
-// Names are picked to match keyword rules in getModelIcon (so the SVG resolves).
-const KNOWN_PROVIDERS: { name: string; url: string }[] = [
-    { name: 'OpenAI',           url: 'https://openai.com' },             //  1. ChatGPT 全球第一
-    { name: 'Google Gemini',    url: 'https://gemini.google.com' },      //  2. Google 流量整合
-    { name: 'Volcengine 火山引擎', url: 'https://www.volcengine.com/' },  //  3. 字节模型服务（豆包母公司）
-    { name: 'DeepSeek',         url: 'https://www.deepseek.com' },       //  4. 2025 全球出圈
-    { name: 'ERNIE 文心',       url: 'https://yiyan.baidu.com' },        //  5. 百度生态
-    { name: 'Qwen 通义千问',    url: 'https://chat.qwen.ai' },           //  6. 阿里加持
-    { name: 'Kimi 月之暗面',    url: 'https://www.kimi.com' },           //  7. 长文 C 端热门
-    { name: 'Anthropic',        url: 'https://www.anthropic.com' },      //  8. Claude 知识工作者首选
-    { name: 'GLM 智谱',         url: 'https://www.zhipuai.cn' },         //  9. 国内活跃
-    { name: 'xAI Grok',         url: 'https://x.ai' },                   // 10. X 平台带量
-    { name: 'Hunyuan 混元',     url: 'https://hunyuan.tencent.com' },    // 11. 微信生态
-    { name: 'Meta AI',          url: 'https://ai.meta.com' },            // 12. Llama 开源 + IG/WA
-    { name: 'Perplexity',       url: 'https://www.perplexity.ai' },      // 13. AI 搜索
-    { name: 'MiniMax',          url: 'https://www.minimaxi.com' },       // 14. 国内中等规模
-    { name: 'Stepfun 阶跃星辰', url: 'https://www.stepfun.com' },        // 15. 国内中等规模
-    { name: 'Mistral AI',       url: 'https://mistral.ai' },             // 16. 欧洲开源代表
-    { name: 'Xiaomi 小米',      url: 'https://platform.xiaomimimo.com/' },// 17. MiMo 新势力
-    { name: 'Cohere',           url: 'https://cohere.com' },             // 18. 偏 B 端
-    { name: 'Groq',             url: 'https://groq.com' },               // 19. 推理引擎,B 端
-    { name: 'Together AI',      url: 'https://www.together.ai' },        // 20. 模型托管,B 端
-];
+// Provider / relay lists are loaded from src/data/modelDirectory.json so
+// users can edit baseUrl / anthropicUrl / modelId per vendor without touching
+// component code. Provider order is curated (roughly end-user MAU); names are
+// picked to match keyword rules in getModelIcon so the SVG resolves.
+type DirectoryEntry = {
+    name: string;
+    url: string;
+    baseUrl: string;
+    anthropicUrl: string;
+    modelId: string;
+    region: 'cn' | 'global';
+};
 
-// Aggregator/router platforms — single OpenAI-compatible endpoint that fans
-// out to many upstream models.
-const KNOWN_RELAYS: { name: string; url: string }[] = [
-    { name: 'OpenRouter', url: 'https://openrouter.ai' },
-    { name: 'WorldRouter', url: 'https://www.worldrouter.ai' },
-    { name: 'B.ai', url: 'https://b.ai' },
-];
+const PROVIDERS: DirectoryEntry[] = modelDirectory.providers as DirectoryEntry[];
+const RELAYS: DirectoryEntry[] = modelDirectory.relays as DirectoryEntry[];
 
-function ProviderRow({ entry }: { entry: { name: string; url: string } }) {
+// Locale-aware reorder: zh* surfaces 'cn' entries first; everything else
+// surfaces 'global' first. Within each region we keep the curated JSON order
+// (Array.prototype.sort is stable in modern engines).
+function sortByLocale(list: DirectoryEntry[], locale: string): DirectoryEntry[] {
+    const cnFirst = locale.toLowerCase().startsWith('zh');
+    const weight = (e: DirectoryEntry) =>
+        cnFirst ? (e.region === 'cn' ? 0 : 1) : (e.region === 'global' ? 0 : 1);
+    return [...list].sort((a, b) => weight(a) - weight(b));
+}
+
+function ProviderRow({ entry, onAdd }: { entry: DirectoryEntry; onAdd: () => void }) {
     const iconSrc = getModelIcon(entry.name, '');
     const hostname = (() => {
         try { return new URL(entry.url).hostname; }
         catch { return entry.url; }
     })();
+    const openSite = () => shellOpen(entry.url).catch(() => window.open(entry.url, '_blank'));
+    // Two click+hover zones (50/50). Buttons sit underneath; the visual content
+    // floats on top with pointer-events-none so clicks pass through to whichever
+    // half they land on. Named groups (group/left, group/right) let the icons
+    // brighten in sync with their half's hover state.
     return (
-        <div
-            onClick={() => shellOpen(entry.url).catch(() => window.open(entry.url, '_blank'))}
-            className="group p-3 rounded cursor-pointer transition-colors flex items-center gap-3 border border-transparent bg-cyber-surface hover:bg-cyber-elevated"
-        >
-            <div className="flex-shrink-0">
-                {iconSrc ? (
-                    <img
-                        src={iconSrc}
-                        alt=""
-                        className="w-6 h-6"
-                        onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-                    />
-                ) : (
-                    <div className="w-6 h-6 rounded bg-cyber-text/15 flex items-center justify-center text-cyber-text">
-                        <Box size={14} />
-                    </div>
-                )}
-            </div>
-            <div className="flex-1 min-w-0 flex flex-col justify-center h-10">
-                <div className="text-sm font-bold truncate leading-none">{entry.name}</div>
-                <div className="text-[10px] text-cyber-text-secondary truncate leading-tight mt-1 opacity-70">
-                    {hostname}
-                </div>
-            </div>
-            <ExternalLink
-                size={14}
-                className="flex-shrink-0 text-cyber-text-muted/50 group-hover:text-cyber-text transition-colors"
+        <div className="relative flex items-stretch rounded overflow-hidden bg-cyber-surface">
+            {/* Click + hover layer (two equal halves) */}
+            <button
+                type="button"
+                onClick={onAdd}
+                aria-label={`Add model: ${entry.name}`}
+                className="group/left flex-1 min-h-[64px] bg-gradient-to-r from-transparent to-transparent hover:from-cyber-text/15 hover:to-transparent transition-[background-image] duration-200"
             />
+            <button
+                type="button"
+                onClick={openSite}
+                aria-label={`Open ${entry.name} website`}
+                className="group/right flex-1 min-h-[64px] bg-gradient-to-l from-transparent to-transparent hover:from-cyber-text/15 hover:to-transparent transition-[background-image] duration-200"
+            />
+
+            {/* Visual content overlay (does not capture clicks) */}
+            <div className="pointer-events-none absolute inset-0 flex items-center gap-3 px-3">
+                <Plus
+                    size={22}
+                    strokeWidth={2.5}
+                    className="flex-shrink-0 text-cyber-text-muted group-hover/left:text-cyber-text group-hover/left:scale-110 transition-all"
+                />
+                <div className="flex-shrink-0">
+                    {iconSrc ? (
+                        <img
+                            src={iconSrc}
+                            alt=""
+                            className="w-6 h-6"
+                            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                        />
+                    ) : (
+                        <div className="w-6 h-6 rounded bg-cyber-text/15 flex items-center justify-center text-cyber-text">
+                            <Box size={14} />
+                        </div>
+                    )}
+                </div>
+                <div className="flex-1 min-w-0 flex flex-col justify-center">
+                    <div className="text-sm font-bold truncate leading-none">{entry.name}</div>
+                    <div className="text-[10px] text-cyber-text-secondary truncate leading-tight mt-1 opacity-70">
+                        {hostname}
+                    </div>
+                </div>
+                <ExternalLink
+                    size={18}
+                    strokeWidth={2.25}
+                    className="flex-shrink-0 text-cyber-text-muted group-hover/right:text-cyber-text group-hover/right:scale-110 transition-all"
+                />
+            </div>
         </div>
     );
 }
 
 export function ModelNexusPanel() {
-    const { t } = useI18n();
+    const { t, locale } = useI18n();
     const [panelTab, setPanelTab] = useState<'providers' | 'relays'>('providers');
-    const list = panelTab === 'providers' ? KNOWN_PROVIDERS : KNOWN_RELAYS;
+    const list = useMemo(
+        () => sortByLocale(panelTab === 'providers' ? PROVIDERS : RELAYS, locale),
+        [panelTab, locale]
+    );
+    const { setNewModelForm, setEditingModelId, setShowAddModelModal } = useModelNexus();
+
+    const handleAddFromEntry = useCallback((entry: DirectoryEntry) => {
+        setNewModelForm({
+            name: entry.name,
+            baseUrl: entry.baseUrl,
+            anthropicUrl: entry.anthropicUrl,
+            apiKey: '',
+            modelId: entry.modelId,
+            useProxy: false,
+            ssServer: '',
+            ssPort: '',
+            ssCipher: 'aes-128-gcm',
+            ssPassword: ''
+        });
+        setEditingModelId(null);
+        setShowAddModelModal(true);
+    }, [setNewModelForm, setEditingModelId, setShowAddModelModal]);
 
     return (
         <>
@@ -520,7 +558,13 @@ export function ModelNexusPanel() {
             </div>
             <div className="flex-1 p-2 overflow-y-auto">
                 <div className="space-y-2">
-                    {list.map(entry => <ProviderRow key={entry.name} entry={entry} />)}
+                    {list.map(entry => (
+                        <ProviderRow
+                            key={entry.name}
+                            entry={entry}
+                            onAdd={() => handleAddFromEntry(entry)}
+                        />
+                    ))}
                 </div>
             </div>
         </>
