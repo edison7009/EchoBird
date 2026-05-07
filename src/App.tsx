@@ -6,6 +6,7 @@
 import { useState, useEffect } from 'react';
 import { RotateCcw } from 'lucide-react';
 import { getVersion } from '@tauri-apps/api/app';
+import { getCurrentWindow } from '@tauri-apps/api/window';
 import { Sidebar, PageType, ToastProvider, ConfirmDialogProvider } from './components';
 import { isNewerVersion } from './utils/version';
 import { DownloadProvider } from './components/DownloadContext';
@@ -84,6 +85,18 @@ function App() {
         preload();
     }, []);
 
+    // Track maximized state so the rounded-corner shell goes square when the
+    // window fills the screen (rounded corners against screen edges look off).
+    const [isMaximized, setIsMaximized] = useState(false);
+    useEffect(() => {
+        const win = getCurrentWindow();
+        win.isMaximized().then(setIsMaximized).catch(() => {});
+        const unlisten = win.onResized(() => {
+            win.isMaximized().then(setIsMaximized).catch(() => {});
+        });
+        return () => { unlisten.then(fn => fn()).catch(() => {}); };
+    }, []);
+
     const is = (p: PageType) => activePage === p;
 
     return (
@@ -99,7 +112,7 @@ function App() {
                                     <AppManagerProvider>
                                         <LocalServerProvider>
 
-                                            <div className="flex flex-col h-screen w-full bg-cyber-bg">
+                                            <div className={`flex flex-col h-screen w-full bg-cyber-bg overflow-hidden ${isMaximized ? '' : 'rounded-xl'}`}>
                                                 {/* Title bar */}
                                                 <TitleBar onSettingsClick={() => setShowSettings(true)} />
                                                 <div className="flex flex-1 overflow-hidden text-cyber-text font-sans p-4 gap-0 relative isolate">
@@ -115,7 +128,7 @@ function App() {
                                                                 <section className="flex-1 flex flex-col overflow-hidden pr-2">
 
                                                                     {/* Shared page title bar — fixed-height row so the title sits at the same baseline whether the page has tall action buttons or none */}
-                                                                    <div className="mb-5 flex-shrink-0 flex items-center gap-3 h-9">
+                                                                    <div className="mb-5 flex-shrink-0 flex items-center gap-3 h-10">
                                                                         <div className="flex items-baseline gap-3 flex-1 min-w-0">
                                                                             <h2 className="cjk-title flex-shrink-0">
                                                                                 {is('news') && t('page.news')}

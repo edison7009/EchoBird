@@ -62,46 +62,46 @@ export const Sidebar = ({ activePage, onPageChange, agentRunning: _agentRunning 
             </div>
             <div className="flex-1 space-y-5 text-[15px]">
                 <NavItem
-                    icon={<Newspaper size={18} />}
+                    icon={<Newspaper size={20} />}
                     label={t('nav.news')}
                     active={activePage === 'news'}
                     onClick={() => onPageChange('news')}
                 />
                 <NavItem
-                    icon={<Star size={18} />}
+                    icon={<Star size={20} />}
                     label={t('nav.projects')}
                     active={activePage === 'projects'}
                     onClick={() => onPageChange('projects')}
                 />
                 <NavItem
-                    icon={<GraduationCap size={18} />}
+                    icon={<GraduationCap size={20} />}
                     label={t('nav.courses')}
                     active={activePage === 'courses'}
                     onClick={() => onPageChange('courses')}
                 />
                 <NavItem
-                    icon={<Box size={18} />}
+                    icon={<Box size={20} />}
                     label={t('nav.modelNexus')}
                     active={activePage === 'models'}
                     onClick={() => onPageChange('models')}
                 />
 
                 <NavItem
-                    icon={<Cpu size={18} />}
+                    icon={<Cpu size={20} />}
                     label={t('nav.appManager')}
                     active={activePage === 'apps'}
                     onClick={() => onPageChange('apps')}
                 />
                 {isFullEdition && (
                     <NavItem
-                        icon={<Server size={18} />}
+                        icon={<Server size={20} />}
                         label={t('nav.localServer')}
                         active={activePage === 'localLlm'}
                         onClick={() => onPageChange('localLlm')}
                     />
                 )}
                 <NavItem
-                    icon={<Activity size={18} />}
+                    icon={<Activity size={20} />}
                     label={t('nav.motherAgent')}
                     active={activePage === 'mother'}
                     onClick={() => onPageChange('mother')}
