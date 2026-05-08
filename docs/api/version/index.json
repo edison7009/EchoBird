@@ -1,5 +1,5 @@
 {
-  "version": "4.2.6",
+  "version": "4.2.7",
   "releaseDate": "2026-05-08",
-  "releaseNotes": "Linux/macOS launch fixes (use $SHELL -lic so .bashrc/.zshrc PATH is loaded; pause terminal on quick exit so users can read errors), solid-orange launch buttons matching the theme accent, vertically-centered empty states, and per-day batching for AI News / Star Projects with item counts on each date."
+  "releaseNotes": "Linux launch fixes: Hermes/OpenCode now open in terminal; Coffee CLI launches the actual desktop binary instead of CoffeeScript."
 }
