@@ -28,7 +28,9 @@
 
 Friends kept asking me to install **Claude Code**, **OpenClaw**, **Hermes Agent** for them — every machine was different, and some refused to pay for an LLM. Setup and explanations took forever.
 
-So I built **EchoBird** — an Agent named after **Songbird**, the netrunner from *Cyberpunk 2077* who can fix any tech problem for V. EchoBird installs every AI tool with one click, points them at the model of your choice (cloud, local, or relay), and gets out of your way.
+So I built **EchoBird**. The name is a nod to **Songbird** from *Cyberpunk 2077* — the netrunner who can fix any tech problem for V. The look-and-feel, however, pulls from **earlier cyberpunk** — phosphor-green terminals, *Neuromancer*, the Matrix-era hacker aesthetic — not the neon-magenta gloss of 2077. EchoBird installs every AI tool with one click, points them at the model of your choice (cloud, local, or relay), and gets out of your way.
+
+> Both light and dark UI themes are first-class. The screenshots below adapt to your GitHub theme.
 
 ## Highlights
 
@@ -41,30 +43,40 @@ So I built **EchoBird** — an Agent named after **Songbird**, the netrunner fro
 
 ## Screenshots
 
-<table>
-<tr>
-  <td width="50%"><img src="docs/screenshots/news-en.png" alt="AI News" /></td>
-  <td width="50%"><img src="docs/screenshots/model-en.png" alt="Model Nexus" /></td>
-</tr>
-<tr>
-  <td align="center"><sub>AI News & Star Projects</sub></td>
-  <td align="center"><sub>Model Nexus — manage & speed-test models</sub></td>
-</tr>
-<tr>
-  <td width="50%"><img src="docs/screenshots/app-en.png" alt="App Manager" /></td>
-  <td width="50%"><img src="docs/screenshots/localllm-en.png" alt="Local LLM" /></td>
-</tr>
-<tr>
-  <td align="center"><sub>App Manager — one-click launch</sub></td>
-  <td align="center"><sub>Local LLM — run models on your machine</sub></td>
-</tr>
-<tr>
-  <td colspan="2"><img src="docs/screenshots/agent-en.png" alt="Install & Repair Agent" /></td>
-</tr>
-<tr>
-  <td colspan="2" align="center"><sub>Install & Repair — chat-driven setup and troubleshooting</sub></td>
-</tr>
-</table>
+### AI News & Star Projects — your daily AI brief
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/news-en-dark.png">
+  <img alt="AI News" src="docs/screenshots/news-en-light.png" width="100%">
+</picture>
+
+### Model Nexus — manage every model, speed-test in one click
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/model-en-dark.png">
+  <img alt="Model Nexus" src="docs/screenshots/model-en-light.png" width="100%">
+</picture>
+
+### App Manager — one-click launch for every AI tool
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/app-en-dark.png">
+  <img alt="App Manager" src="docs/screenshots/app-en-light.png" width="100%">
+</picture>
+
+### Local LLM — run models on your own machine
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/localllm-en-dark.png">
+  <img alt="Local LLM" src="docs/screenshots/localllm-en-light.png" width="100%">
+</picture>
+
+### Install & Repair Agent — chat-driven setup and troubleshooting
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/agent-en-dark.png">
+  <img alt="Install & Repair Agent" src="docs/screenshots/agent-en-light.png" width="100%">
+</picture>
 
 ## Install
 

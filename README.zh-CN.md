@@ -27,7 +27,9 @@
 
 很多朋友让我帮他们安装 **Claude Code**、**OpenClaw**、**Hermes Agent**…… 每个人的系统都不一样,有些人还抠门到不愿花钱买大模型,安装和解释起来都特别费劲。
 
-于是我做了 **EchoBird** —— 名字致敬《赛博朋克 2077》里的女网客 **Songbird(夜莺)**,她总能帮主角 V 搞定一切技术难题。EchoBird 也是这样:一键装好所有 AI 工具,把它们指向你选定的模型(云端 / 本地 / 中转),然后安静地退到一边。
+于是我做了 **EchoBird**。名字致敬《赛博朋克 2077》里的女网客 **Songbird**,她总能帮主角 V 搞定一切技术难题。但视觉气质并不取自 2077 的霓虹粉黄,而是更早期的赛博朋克 —— **绿色磷光终端、《神经漫游者》、《黑客帝国》那个时代的黑客味**。EchoBird 一键装好所有 AI 工具,把它们指向你选定的模型(云端 / 本地 / 中转),然后安静地退到一边。
+
+> 浅色和深色主题都是一等公民,下面的截图会跟着你 GitHub 的主题切换。
 
 ## 亮点
 
@@ -40,30 +42,40 @@
 
 ## 界面截图
 
-<table>
-<tr>
-  <td width="50%"><img src="docs/screenshots/news-cn.png" alt="AI 资讯" /></td>
-  <td width="50%"><img src="docs/screenshots/model-cn.png" alt="模型中心" /></td>
-</tr>
-<tr>
-  <td align="center"><sub>AI 资讯 & 明星项目</sub></td>
-  <td align="center"><sub>模型中心 —— 管理与一键测速</sub></td>
-</tr>
-<tr>
-  <td width="50%"><img src="docs/screenshots/app-cn.png" alt="应用管理" /></td>
-  <td width="50%"><img src="docs/screenshots/localllm-cn.png" alt="本地大模型" /></td>
-</tr>
-<tr>
-  <td align="center"><sub>应用管理 —— 一键启动</sub></td>
-  <td align="center"><sub>本地大模型 —— 在自己机器上跑</sub></td>
-</tr>
-<tr>
-  <td colspan="2"><img src="docs/screenshots/agent-cn.png" alt="安装与修复" /></td>
-</tr>
-<tr>
-  <td colspan="2" align="center"><sub>安装与修复 —— 用对话搞定部署和排障</sub></td>
-</tr>
-</table>
+### AI 资讯 & 明星项目 —— 每天的 AI 简报
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/news-cn-dark.png">
+  <img alt="AI 资讯" src="docs/screenshots/news-cn-light.png" width="100%">
+</picture>
+
+### 模型中心 —— 统一管理,一键测速
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/model-cn-dark.png">
+  <img alt="模型中心" src="docs/screenshots/model-cn-light.png" width="100%">
+</picture>
+
+### 应用管理 —— 一键启动每一个 AI 工具
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/app-cn-dark.png">
+  <img alt="应用管理" src="docs/screenshots/app-cn-light.png" width="100%">
+</picture>
+
+### 本地大模型 —— 在自己机器上跑
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/localllm-cn-dark.png">
+  <img alt="本地大模型" src="docs/screenshots/localllm-cn-light.png" width="100%">
+</picture>
+
+### 安装与修复 —— 用对话搞定部署和排障
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/agent-cn-dark.png">
+  <img alt="安装与修复" src="docs/screenshots/agent-cn-light.png" width="100%">
+</picture>
 
 ## 安装
 
