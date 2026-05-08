@@ -235,10 +235,77 @@ impl ProcessManager {
         }
 
 
-        // Other unix (macOS, *BSD): keep the historical raw-spawn behavior
-        // for now. macOS likely has the same TTY issue for TUI tools and may
-        // need its own Terminal.app wrapper later.
-        #[cfg(all(unix, not(target_os = "linux")))]
+        // macOS: same TTY problem as Linux. The fix is simpler though —
+        // Terminal.app is system-bundled so no detection is needed. We bake
+        // env exports into a cached shell script and hand it to `open -a
+        // Terminal`. Env can't ride along on `open` itself because Terminal
+        // launches a fresh login shell, so the script approach is the clean
+        // way to propagate API keys.
+        //
+        // Caveat: `open` exits immediately after handing off to Terminal,
+        // so the PID we capture belongs to `open`, not the running tool.
+        // is_tool_running() will report the tool as exited shortly after
+        // launch — acceptable for now since users close the Terminal tab
+        // themselves anyway.
+        #[cfg(target_os = "macos")]
+        {
+            use std::os::unix::fs::PermissionsExt;
+
+            let cache_dir = dirs::cache_dir()
+                .unwrap_or_else(|| home.join(".cache"))
+                .join("echobird");
+            std::fs::create_dir_all(&cache_dir)
+                .map_err(|e| format!("Failed to create cache dir: {}", e))?;
+
+            let script_path = cache_dir.join(format!("launch-{}.sh", tool_id));
+
+            // Single-quote wrap; escape internal singles as '\''. Bullet-proof
+            // for bash, and keeps API keys / URLs safe from shell metachars.
+            fn shq(s: &str) -> String {
+                format!("'{}'", s.replace('\'', "'\\''"))
+            }
+
+            let mut script = String::from("#!/bin/bash\n");
+            if let Some(ref key) = api_key_env {
+                script.push_str(&format!("export OPENAI_API_KEY={}\n", shq(key)));
+                if let Some(ref env_name) = custom_api_key_env_name {
+                    script.push_str(&format!("export {}={}\n", env_name, shq(key)));
+                }
+            }
+            if let Some(ref url) = base_url_env {
+                script.push_str(&format!("export OPENAI_BASE_URL={}\n", shq(url)));
+            }
+            script.push_str(&format!("cd {}\n", shq(&home.to_string_lossy())));
+            // exec replaces bash with the tool, so closing the tool closes
+            // the Terminal tab — matches Linux/Windows UX.
+            script.push_str(&format!("exec {}\n", &full_command));
+
+            std::fs::write(&script_path, &script)
+                .map_err(|e| format!("Failed to write launch script: {}", e))?;
+
+            let mut perms = std::fs::metadata(&script_path)
+                .map_err(|e| format!("metadata: {}", e))?
+                .permissions();
+            perms.set_mode(0o755);
+            std::fs::set_permissions(&script_path, perms)
+                .map_err(|e| format!("chmod: {}", e))?;
+
+            let child = Command::new("open")
+                .args(["-a", "Terminal"])
+                .arg(&script_path)
+                .spawn()
+                .map_err(|e| format!("Failed to launch Terminal.app: {}", e))?;
+
+            let pid = child.id();
+            log::info!("[ProcessManager] Tool {} launched in Terminal.app via {}, open PID: {}", tool_id, script_path.display(), pid);
+            self.processes.insert(tool_id.to_string(), ProcessInfo { pid });
+            Ok(())
+        }
+
+
+        // Other unix (*BSD, etc.): keep the historical raw-spawn behavior as
+        // a safety net. Realistically nothing hits this branch in production.
+        #[cfg(all(unix, not(target_os = "linux"), not(target_os = "macos")))]
         {
             let parts: Vec<&str> = full_command.split_whitespace().collect();
             if parts.is_empty() {
