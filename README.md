@@ -28,7 +28,7 @@
 
 Friends kept asking me to install **Claude Code**, **OpenClaw**, **Hermes Agent** for them — every machine was different, and some refused to pay for an LLM. Setup and explanations took forever.
 
-So I built **EchoBird** — an Agent inspired by the netrunner from *Cyberpunk 2077* who fixes any tech problem for V. EchoBird installs every AI tool with one click, points them at the model of your choice (cloud, local, or relay), and gets out of your way.
+So I built **EchoBird** — an Agent named after **Songbird**, the netrunner from *Cyberpunk 2077* who can fix any tech problem for V. EchoBird installs every AI tool with one click, points them at the model of your choice (cloud, local, or relay), and gets out of your way.
 
 ## Highlights
 
