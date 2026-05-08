@@ -314,6 +314,22 @@ export function MotherAgentPanel() {
                                         <button
                                             onClick={async (e) => {
                                                 e.stopPropagation();
+                                                const ok = await confirm({
+                                                    title: t('mother.deleteServerTitle'),
+                                                    message: t('mother.deleteServerMsg'),
+                                                    confirmText: t('btn.delete'),
+                                                    cancelText: t('btn.cancel'),
+                                                    type: 'danger'
+                                                });
+                                                if (ok) removeSSHServer(server.id);
+                                            }}
+                                            className="text-xs font-mono text-cyber-text-muted/50 hover:text-red-500 transition-colors flex-shrink-0"
+                                        >
+                                            [{t('btn.delete')}]
+                                        </button>
+                                        <button
+                                            onClick={async (e) => {
+                                                e.stopPropagation();
                                                 // Load encrypted password from backend
                                                 let savedPassword = '';
                                                 try {
@@ -335,22 +351,6 @@ export function MotherAgentPanel() {
                                             className="text-xs font-mono text-cyber-text-muted/50 hover:text-cyber-text transition-colors flex-shrink-0"
                                         >
                                             [{t('btn.edit')}]
-                                        </button>
-                                        <button
-                                            onClick={async (e) => {
-                                                e.stopPropagation();
-                                                const ok = await confirm({
-                                                    title: t('mother.deleteServerTitle'),
-                                                    message: t('mother.deleteServerMsg'),
-                                                    confirmText: t('btn.delete'),
-                                                    cancelText: t('btn.cancel'),
-                                                    type: 'danger'
-                                                });
-                                                if (ok) removeSSHServer(server.id);
-                                            }}
-                                            className="text-xs font-mono text-cyber-text-muted/50 hover:text-red-500 transition-colors flex-shrink-0"
-                                        >
-                                            [{t('btn.delete')}]
                                         </button>
                                     </div>
                                     <div className="text-sm font-bold truncate text-cyber-text font-mono">{server.username ? `${server.username}@` : ''}{server.host}{server.port !== '22' ? `:${server.port}` : ''}</div>

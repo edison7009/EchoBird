@@ -50,6 +50,7 @@ const en: Translations = {
     'btn.stop': 'STOP',
     'btn.add': 'ADD',
     'btn.remove': 'REMOVE',
+    'btn.pingAll': 'test speed',
     // Status
     'status.scanning': 'Scanning...',
     // Search

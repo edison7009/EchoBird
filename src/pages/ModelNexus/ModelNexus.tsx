@@ -233,6 +233,7 @@ export function ModelNexusProvider({ children }: { children: React.ReactNode }) 
 // ===== Title Actions (ping --all button, rendered in page header) =====
 
 export function ModelNexusTitleActions() {
+    const { t } = useI18n();
     const { pingAllModels, isTesting } = useModelNexus();
     return (
         <div className="ml-auto flex-shrink-0 flex items-center gap-3">
@@ -244,7 +245,7 @@ export function ModelNexusTitleActions() {
                     : 'border-cyber-border text-cyber-text-muted cursor-not-allowed'
                     }`}
             >
-                $ ping --all
+                {t('btn.pingAll')}
             </button>
         </div>
     );

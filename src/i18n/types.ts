@@ -27,6 +27,7 @@ export type TKey =
     | 'btn.modifyOnly' | 'btn.start' | 'btn.stop'
     | 'btn.add' | 'btn.remove'
     | 'btn.copy' | 'btn.copied'
+    | 'btn.pingAll'
     // Status
     | 'status.running' | 'status.offline' | 'status.scanning'
     | 'status.complete' | 'status.failed'
