@@ -1,5 +1,5 @@
 {
-  "version": "4.2.4",
+  "version": "4.2.5",
   "releaseDate": "2026-05-08",
-  "releaseNotes": "Fix macOS app launch (now opens in Terminal.app with env vars baked into a launch script so TUI tools work)."
+  "releaseNotes": "Keep terminal open when launched tool exits quickly or with non-zero status, so users can see help text or errors instead of a flash."
 }
