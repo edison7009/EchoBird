@@ -1,0 +1,40 @@
+{
+    "id": "pi",
+    "displayName": "Pi (CLI)",
+    "homepage": "https://pi.dev/",
+    "docs": "https://pi.dev/docs",
+    "github": "https://github.com/earendil-works/pi",
+    "kind": "cli",
+    "platforms": ["windows", "macos", "linux"],
+    "install": {
+        "curl (macOS / Linux — recommended)": "curl -fsSL https://pi.dev/install.sh | sh",
+        "npm (all platforms)": "npm install -g @earendil-works/pi-coding-agent",
+        "bun (all platforms)": "bun add -g @earendil-works/pi-coding-agent",
+        "WARNING": "The npm package name is EXACTLY '@earendil-works/pi-coding-agent'. Do NOT install 'pi' alone (wrong package — that's a Python utility). The CLI binary that lands on PATH is `pi`.",
+        "note": "Pi is an open-source CLI coding agent by Earendil Works (MIT, 46k+ GitHub stars). It is multi-provider — supports OpenAI, Anthropic, Google, Azure, Bedrock, Mistral, Groq, and OpenAI-compatible custom endpoints. Verify with `pi --version` after install. Config lives under ~/.pi/agent/ (auth.json + settings.json + models.json) — Echobird's 'Update model config' flow writes models.json + settings.json for you."
+    },
+    "install_flow": {
+        "summary": "curl install or npm global → verify → Echobird writes ~/.pi/agent/models.json + settings.json on apply",
+        "agent_steps": [
+            "Detect OS first.",
+            "macOS / Linux: prefer `curl -fsSL https://pi.dev/install.sh | sh` — handles binary download and PATH setup.",
+            "Windows: use `npm install -g @earendil-works/pi-coding-agent` (verify Node.js ≥ 18 first; install via winget OpenJS.NodeJS / nvm if missing).",
+            "After install, run `pi --version` to confirm. If the command isn't found, instruct the user to restart their shell.",
+            "Tell the user that model selection happens via Echobird's App Manager — clicking 'Update model config' writes ~/.pi/agent/models.json (registers an 'echobird' provider) and ~/.pi/agent/settings.json (sets defaultProvider/defaultModel). Pi auto-reloads models.json on next /model command — no restart needed."
+        ],
+        "tell_user": [
+            "Install method used (curl vs npm)",
+            "Node.js prerequisite if Windows / npm path",
+            "That `~/.pi/agent/{models,settings}.json` is what Echobird writes when applying a model"
+        ]
+    },
+    "network_requirements": {
+        "test_urls": ["https://pi.dev", "https://registry.npmjs.org/@earendil-works/pi-coding-agent"],
+        "mirrors": {
+            "npm (China)": "npm install -g @earendil-works/pi-coding-agent --registry=https://registry.npmmirror.com"
+        }
+    },
+    "identity_guard": {
+        "description": "Pi here means the open-source CLI coding agent by Earendil Works (pi.dev / github.com/earendil-works/pi). It is NOT 'Pi network' (the cryptocurrency app), NOT Inflection AI's Pi assistant, and NOT Raspberry Pi tooling — those are completely unrelated products that share the name. The npm package is `@earendil-works/pi-coding-agent` and the binary is `pi`."
+    }
+}

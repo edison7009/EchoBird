@@ -1,0 +1,32 @@
+{
+    "name": "Pi",
+    "category": "CLI Code",
+    "apiProtocol": [
+        "openai",
+        "anthropic"
+    ],
+    "docs": "https://pi.dev/docs",
+    "website": "https://pi.dev/",
+    "command": "pi",
+    "startCommand": "pi",
+    "configDir": "~/.pi/agent",
+    "configFile": "~/.pi/agent/settings.json",
+    "requireConfigFile": false,
+    "detectByConfigDir": false,
+    "paths": {
+        "win32": [
+            "%APPDATA%/npm/pi.cmd",
+            "%USERPROFILE%/.local/bin/pi.exe",
+            "%USERPROFILE%/.bun/bin/pi.exe"
+        ],
+        "darwin": [
+            "/usr/local/bin/pi",
+            "/opt/homebrew/bin/pi"
+        ],
+        "linux": [
+            "/usr/local/bin/pi",
+            "/usr/bin/pi",
+            "~/.local/bin/pi"
+        ]
+    }
+}

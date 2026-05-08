@@ -1,0 +1,6 @@
+{
+    "docs": "https://pi.dev/docs",
+    "configFile": "~/.pi/agent/settings.json",
+    "format": "json",
+    "custom": false
+}

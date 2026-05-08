@@ -16,6 +16,7 @@ pub fn get_install_ref(tool_id: &str) -> Option<&'static str> {
         "codex" => Some(include_str!("../../../docs/api/tools/install/codex.json")),
         "qwencode" => Some(include_str!("../../../docs/api/tools/install/qwencode.json")),
         "aider" => Some(include_str!("../../../docs/api/tools/install/aider.json")),
+        "pi" => Some(include_str!("../../../docs/api/tools/install/pi.json")),
         "hermes" => Some(include_str!("../../../docs/api/tools/install/hermes.json")),
         "nanobot" => Some(include_str!("../../../docs/api/tools/install/nanobot.json")),
         "openclaw" => Some(include_str!("../../../docs/api/tools/install/openclaw.json")),
@@ -47,7 +48,7 @@ pub fn get_tool_script(name: &str) -> Option<&'static str> {
 /// IDs of every tool with a bundled install reference. Mirrors the keys of
 /// `get_install_ref` so the system prompt and AppManager stay in sync.
 pub const INSTALLABLE_TOOL_IDS: &[&str] = &[
-    "claudecode", "codex", "qwencode", "aider", "hermes",
+    "claudecode", "codex", "qwencode", "aider", "pi", "hermes",
     "nanobot", "openclaw", "opencode", "openfang", "picoclaw", "zeroclaw",
     "claudedesktop", "codexdesktop", "geminidesktop", "coffeecli",
     "vscode", "cursor", "windsurf", "trae", "traecn",
