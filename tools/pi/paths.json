@@ -17,16 +17,20 @@
         "win32": [
             "%APPDATA%/npm/pi.cmd",
             "%USERPROFILE%/.local/bin/pi.exe",
-            "%USERPROFILE%/.bun/bin/pi.exe"
+            "%USERPROFILE%/.bun/bin/pi.exe",
+            "%USERPROFILE%/.hermes/node/bin/pi.exe",
+            "%USERPROFILE%/.hermes/node/bin/pi.cmd"
         ],
         "darwin": [
             "/usr/local/bin/pi",
-            "/opt/homebrew/bin/pi"
+            "/opt/homebrew/bin/pi",
+            "~/.hermes/node/bin/pi"
         ],
         "linux": [
             "/usr/local/bin/pi",
             "/usr/bin/pi",
-            "~/.local/bin/pi"
+            "~/.local/bin/pi",
+            "~/.hermes/node/bin/pi"
         ]
     }
 }

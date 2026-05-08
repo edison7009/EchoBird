@@ -19,11 +19,15 @@
         ],
         "darwin": [
             "/usr/local/bin/codex",
-            "/opt/homebrew/bin/codex"
+            "/opt/homebrew/bin/codex",
+            "~/.bun/bin/codex",
+            "~/.local/bin/codex"
         ],
         "linux": [
             "/usr/local/bin/codex",
-            "/usr/bin/codex"
+            "/usr/bin/codex",
+            "~/.bun/bin/codex",
+            "~/.local/bin/codex"
         ]
     }
 }

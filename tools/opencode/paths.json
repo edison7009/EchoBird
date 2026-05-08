@@ -20,11 +20,15 @@
         ],
         "darwin": [
             "/usr/local/bin/opencode",
-            "/opt/homebrew/bin/opencode"
+            "/opt/homebrew/bin/opencode",
+            "~/.bun/bin/opencode",
+            "~/.local/bin/opencode"
         ],
         "linux": [
             "/usr/local/bin/opencode",
-            "/usr/bin/opencode"
+            "/usr/bin/opencode",
+            "~/.bun/bin/opencode",
+            "~/.local/bin/opencode"
         ]
     }
 }

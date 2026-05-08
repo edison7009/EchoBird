@@ -21,11 +21,14 @@
         ],
         "darwin": [
             "/usr/local/bin/qwen",
-            "/opt/homebrew/bin/qwen"
+            "/opt/homebrew/bin/qwen",
+            "~/.bun/bin/qwen",
+            "~/.local/bin/qwen"
         ],
         "linux": [
             "/usr/local/bin/qwen",
             "/usr/bin/qwen",
+            "~/.bun/bin/qwen",
             "~/.local/bin/qwen"
         ]
     }

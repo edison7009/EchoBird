@@ -17,7 +17,7 @@
         "summary": "curl install or npm global → verify → Echobird writes ~/.pi/agent/models.json + settings.json on apply",
         "agent_steps": [
             "Detect OS first.",
-            "macOS / Linux: prefer `curl -fsSL https://pi.dev/install.sh | sh` — handles binary download and PATH setup.",
+            "macOS / Linux: prefer `curl -fsSL https://pi.dev/install.sh | sh` — handles binary download and PATH setup. NOTE: this installer drops the binary at `~/.hermes/node/bin/pi` and writes PATH into `~/.bashrc`; the running Echobird process won't see PATH from a not-yet-reloaded shell, so always tell the user to click REFRESH in App Manager (or restart Echobird) after install.",
             "Windows: use `npm install -g @earendil-works/pi-coding-agent` (verify Node.js ≥ 18 first; install via winget OpenJS.NodeJS / nvm if missing).",
             "After install, run `pi --version` to confirm. If the command isn't found, instruct the user to restart their shell.",
             "Tell the user that model selection happens via Echobird's App Manager — clicking 'Update model config' writes ~/.pi/agent/models.json (registers an 'echobird' provider) and ~/.pi/agent/settings.json (sets defaultProvider/defaultModel). Pi auto-reloads models.json on next /model command — no restart needed."
@@ -25,6 +25,7 @@
         "tell_user": [
             "Install method used (curl vs npm)",
             "Node.js prerequisite if Windows / npm path",
+            "After install: click REFRESH in App Manager so Echobird picks up the new binary (or restart Echobird if REFRESH doesn't surface it)",
             "That `~/.pi/agent/{models,settings}.json` is what Echobird writes when applying a model"
         ]
     },

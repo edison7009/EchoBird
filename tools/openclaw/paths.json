@@ -18,15 +18,21 @@
         "win32": [
             "%APPDATA%/npm/openclaw.cmd",
             "%LOCALAPPDATA%/OpenClaw/bin/openclaw.exe",
-            "%USERPROFILE%/scoop/shims/openclaw.exe"
+            "%USERPROFILE%/scoop/shims/openclaw.exe",
+            "%LOCALAPPDATA%/pnpm/openclaw.exe",
+            "%USERPROFILE%/.local/bin/openclaw.exe"
         ],
         "darwin": [
             "/usr/local/bin/openclaw",
-            "/opt/homebrew/bin/openclaw"
+            "/opt/homebrew/bin/openclaw",
+            "~/Library/pnpm/openclaw",
+            "~/.local/bin/openclaw"
         ],
         "linux": [
             "/usr/local/bin/openclaw",
-            "/usr/bin/openclaw"
+            "/usr/bin/openclaw",
+            "~/.local/share/pnpm/openclaw",
+            "~/.local/bin/openclaw"
         ]
     },
     "skillsPath": {

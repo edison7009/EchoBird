@@ -15,11 +15,13 @@
         "win32": [
             "%USERPROFILE%/.local/bin/claude.exe",
             "%APPDATA%/npm/claude.cmd",
-            "%USERPROFILE%/.bun/bin/claude.exe"
+            "%USERPROFILE%/.bun/bin/claude.exe",
+            "%LOCALAPPDATA%/Microsoft/WinGet/Links/claude.exe"
         ],
         "darwin": [
             "/usr/local/bin/claude",
-            "/opt/homebrew/bin/claude"
+            "/opt/homebrew/bin/claude",
+            "~/.local/bin/claude"
         ],
         "linux": [
             "/usr/local/bin/claude",

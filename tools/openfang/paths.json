@@ -21,12 +21,14 @@
         "darwin": [
             "/usr/local/bin/openfang",
             "/opt/homebrew/bin/openfang",
-            "~/.cargo/bin/openfang"
+            "~/.cargo/bin/openfang",
+            "~/.local/bin/openfang"
         ],
         "linux": [
             "/usr/local/bin/openfang",
             "/usr/bin/openfang",
-            "~/.cargo/bin/openfang"
+            "~/.cargo/bin/openfang",
+            "~/.local/bin/openfang"
         ]
     }
 }
