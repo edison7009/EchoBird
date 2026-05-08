@@ -210,13 +210,16 @@ impl ProcessManager {
 
             let mut cmd = Command::new(&term.binary);
             cmd.args(term.prefix_args.iter().copied());
-            // bash -l so PATH from .bash_profile / .profile is available; -c so
-            // we pass the full command including args as a single shell string.
-            // Wrap so the terminal stays open if the tool flashes (helps users
-            // see "command not found" or `--help` output instead of a closed
-            // window).
+            // Use the user's login shell in login+interactive mode. `-i` is
+            // critical: it sources .bashrc / .zshrc, where npm/bun/cargo PATH
+            // entries actually live. `bash -lc` alone misses .bashrc and
+            // doesn't read .zshrc at all, which is why pi/hermes (installed
+            // via npm) flashed "command not found" while system-PATH tools
+            // like claude worked. Separate flags (not `-ilc`) for fish-shell
+            // compatibility.
+            let user_shell = std::env::var("SHELL").unwrap_or_else(|_| "/bin/bash".into());
             let wrapped = wrap_with_pause_on_quick_or_error(&full_command);
-            cmd.arg("bash").arg("-lc").arg(&wrapped);
+            cmd.arg(&user_shell).arg("-l").arg("-i").arg("-c").arg(&wrapped);
             cmd.current_dir(&home);
 
             if let Some(ref key) = api_key_env {
@@ -280,12 +283,16 @@ impl ProcessManager {
                 script.push_str(&format!("export OPENAI_BASE_URL={}\n", shq(url)));
             }
             script.push_str(&format!("cd {}\n", shq(&home.to_string_lossy())));
-            // Don't `exec` — we need code to run after the tool exits so the
-            // user can read errors / help when the tool flashes. The wrapper
-            // only pauses on quick-exit or non-zero status, so a long-running
-            // TUI that exits cleanly still closes the Terminal tab.
-            script.push_str(&wrap_with_pause_on_quick_or_error(&full_command));
-            script.push('\n');
+            // Re-exec into the user's actual login shell in interactive mode
+            // so PATH entries from .zshrc / .bashrc (npm/bun bin dirs etc.)
+            // are picked up — same reason as the Linux branch. The wrapped
+            // command itself contains no single quotes, so single-quote
+            // wrapping it is safe; if that ever changes, shq() handles
+            // escaping. Pause-on-quick-exit logic is inside the wrapped cmd.
+            script.push_str(&format!(
+                "exec \"${{SHELL:-/bin/bash}}\" -l -i -c {}\n",
+                shq(&wrap_with_pause_on_quick_or_error(&full_command))
+            ));
 
             std::fs::write(&script_path, &script)
                 .map_err(|e| format!("Failed to write launch script: {}", e))?;
