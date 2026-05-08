@@ -417,84 +417,236 @@
             opacity: 0.7;
         }
 
-        /* ── Showcase (product screenshots) ── */
+        /* ── Showcase: a "monitor" — main screen + right-side tab list,
+           top bar carries window dots, screen title, and light/dark toggle.
+           One frame, all 10 screenshots reachable via tab + theme. ── */
         .showcase-section {
             position: relative;
             z-index: 1;
-            padding: 60px 32px 40px;
+            padding: 80px 32px 40px;
             max-width: 1200px;
             margin: 0 auto;
         }
 
-        .showcase-list {
-            display: flex;
-            flex-direction: column;
-            gap: 56px;
+        .showcase-frame {
+            display: grid;
+            grid-template-columns: 1fr 280px;
+            gap: 18px;
             margin-top: 56px;
+            align-items: stretch;
         }
 
-        .showcase-item {
+        /* The "monitor" itself */
+        .showcase-screen {
             display: flex;
             flex-direction: column;
-            gap: 14px;
-        }
-
-        .showcase-item .shot-wrap {
+            border: 1px solid var(--border-strong);
             border-radius: 14px;
             overflow: hidden;
-            border: 1px solid var(--border-strong);
-            box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
             background: var(--bg2);
+            box-shadow: 0 30px 80px rgba(0, 0, 0, 0.5);
         }
 
-        .showcase-item img {
-            width: 100%;
-            height: auto;
-            display: block;
-        }
-
-        .showcase-item .shot-caption {
-            font-family: var(--mono);
-            font-size: 13px;
-            color: var(--text);
-            text-align: center;
-            letter-spacing: 0.3px;
-        }
-
-        /* Pair view: two screenshots side by side (used for AI News to
-           demonstrate the app's light + dark themes on this dark-only site) */
-        .shot-pair {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
+        .showcase-toolbar {
+            display: flex;
+            align-items: center;
             gap: 14px;
+            padding: 10px 14px;
+            border-bottom: 1px solid var(--border);
+            background: rgba(255, 255, 255, 0.02);
+            min-height: 42px;
         }
 
-        .shot-pair .shot-wrap {
-            box-shadow: 0 18px 40px rgba(0, 0, 0, 0.4);
+        .screen-dots {
+            display: flex;
+            gap: 6px;
+            flex-shrink: 0;
         }
 
-        .shot-pair-label {
+        .screen-dots span {
+            width: 11px;
+            height: 11px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.18);
+        }
+
+        .screen-dots span:nth-child(1) { background: #ff5f57; }
+        .screen-dots span:nth-child(2) { background: #febc2e; }
+        .screen-dots span:nth-child(3) { background: #28c841; }
+
+        .screen-title {
+            flex: 1;
+            text-align: center;
+            font-family: var(--mono);
+            font-size: 12px;
+            color: var(--dim);
+            letter-spacing: 0.5px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .theme-switcher {
+            display: flex;
+            gap: 4px;
+            padding: 3px;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            flex-shrink: 0;
+        }
+
+        .theme-btn {
+            background: transparent;
+            border: none;
+            color: var(--dim);
             font-family: var(--mono);
             font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            padding: 4px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.15s;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .theme-btn:hover {
+            color: var(--white);
+        }
+
+        .theme-btn.active {
+            background: var(--neon);
+            color: var(--bg);
+        }
+
+        .showcase-img-wrap {
+            background: var(--bg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 320px;
+        }
+
+        .showcase-img-wrap img {
+            display: block;
+            width: 100%;
+            height: auto;
+            opacity: 1;
+            transition: opacity 0.25s ease;
+        }
+
+        .showcase-img-wrap.swapping img { opacity: 0; }
+
+        /* Right-side tab list */
+        .showcase-tabs {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            min-width: 0;
+        }
+
+        .showcase-tab {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 14px 16px;
+            text-align: left;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            cursor: pointer;
+            color: var(--text);
+            font-family: var(--sans);
+            transition: all 0.18s;
+            backdrop-filter: blur(8px);
+        }
+
+        .showcase-tab:hover {
+            border-color: var(--border-strong);
+            transform: translateX(-2px);
+        }
+
+        .showcase-tab.active {
+            border-color: var(--neon);
+            background: rgba(217, 119, 87, 0.08);
+            transform: translateX(-2px);
+        }
+
+        .showcase-tab .tab-ico {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            background: linear-gradient(135deg, rgba(217, 119, 87, 0.18), rgba(232, 159, 122, 0.06));
+            border: 1px solid rgba(217, 119, 87, 0.25);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--neon);
+            font-size: 13px;
+            flex-shrink: 0;
+        }
+
+        .showcase-tab .tab-meta {
+            min-width: 0;
+            flex: 1;
+        }
+
+        .showcase-tab .tab-name {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--white);
+            margin-bottom: 2px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .showcase-tab .tab-desc {
+            font-size: 11px;
             color: var(--dim);
-            letter-spacing: 1px;
-            text-align: center;
-            margin-top: 6px;
-            text-transform: uppercase;
+            font-family: var(--mono);
+            letter-spacing: 0.2px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        @media (max-width: 900px) {
+            .showcase-frame {
+                grid-template-columns: 1fr;
+            }
+            .showcase-tabs {
+                flex-direction: row;
+                gap: 8px;
+                overflow-x: auto;
+                padding-bottom: 4px;
+                -webkit-overflow-scrolling: touch;
+            }
+            .showcase-tab {
+                flex-shrink: 0;
+                min-width: 200px;
+            }
+            .showcase-tab:hover,
+            .showcase-tab.active {
+                transform: none;
+            }
         }
 
         @media (max-width: 600px) {
             .showcase-section {
                 padding: 40px 16px 20px;
             }
-            .showcase-list {
-                gap: 40px;
-                margin-top: 40px;
+            .showcase-frame {
+                margin-top: 36px;
             }
-            .shot-pair {
-                grid-template-columns: 1fr;
-                gap: 18px;
+            .showcase-toolbar {
+                gap: 8px;
+                padding: 8px 10px;
             }
+            .screen-title { display: none; }
         }
 
         /* ── Section heading ── */
@@ -1080,8 +1232,8 @@
                 'showcase.eyebrow': '界面预览',
                 'showcase.title': '看看 EchoBird 长啥样',
                 'showcase.sub': '浅色 / 深色双主题,中英文界面,所有 AI 工具集中在一个地方。',
-                'showcase.themeLight': '☀ 浅色主题',
-                'showcase.themeDark': '☾ 深色主题',
+                'showcase.themeLight': '浅色',
+                'showcase.themeDark': '深色',
                 'showcase.news': 'AI 资讯 & 明星项目 — 每天的 AI 简报',
                 'showcase.model': '模型中心 — 统一管理,一键测速',
                 'showcase.app': '应用管理 — 一键启动每一个 AI 工具',
@@ -1147,8 +1299,8 @@
                 'showcase.eyebrow': 'PRODUCT TOUR',
                 'showcase.title': 'See EchoBird in action',
                 'showcase.sub': 'Light & dark themes, EN / CN UI — every AI tool in one place.',
-                'showcase.themeLight': '☀ LIGHT',
-                'showcase.themeDark': '☾ DARK',
+                'showcase.themeLight': 'LIGHT',
+                'showcase.themeDark': 'DARK',
                 'showcase.news': 'AI News & Star Projects — your daily AI brief',
                 'showcase.model': 'Model Nexus — manage every model, speed-test in one click',
                 'showcase.app': 'App Manager — one-click launch for every AI tool',
@@ -1217,11 +1369,8 @@
                 const v = dict[el.dataset.i18nHtml];
                 if (v !== undefined) el.innerHTML = v;
             });
-            // Swap screenshot src by language using src-zh / src-en attrs
-            document.querySelectorAll('img[data-i18n-src]').forEach(img => {
-                const src = lang === 'zh-CN' ? img.getAttribute('src-zh') : img.getAttribute('src-en');
-                if (src) img.setAttribute('src', src);
-            });
+            // Showcase: re-localize tab labels + image to current language
+            if (typeof updateShowcase === 'function') updateShowcase();
             // <head> meta tags
             if (dict['meta.title']) document.title = dict['meta.title'];
             const set = (sel, attr, key) => {
@@ -1319,72 +1468,81 @@
         </div>
     </section>
 
-    <!-- Showcase: product screenshots, lang-swapped via i18n -->
+    <!-- Showcase: monitor-style frame with tab list + light/dark switcher.
+         All 10 screenshots (5 pages × 2 themes × i18n lang) reachable here. -->
     <section id="showcase" class="showcase-section">
         <div class="section-head reveal">
             <div class="section-eyebrow" data-i18n="showcase.eyebrow">界面预览</div>
             <h2 class="section-title" data-i18n="showcase.title">看看 EchoBird 长啥样</h2>
             <p class="section-sub" data-i18n="showcase.sub">浅色 / 深色双主题,中英文界面,所有 AI 工具集中在一个地方。</p>
         </div>
-        <div class="showcase-list reveal">
-            <div class="showcase-item">
-                <div class="shot-pair">
-                    <div>
-                        <div class="shot-wrap">
-                            <img alt="AI News (Light)" data-i18n-src="shot.news.light"
-                                 src-zh="./screenshots/news-cn-light.png"
-                                 src-en="./screenshots/news-en-light.png"
-                                 src="./screenshots/news-cn-light.png">
-                        </div>
-                        <div class="shot-pair-label" data-i18n="showcase.themeLight">☀ 浅色主题</div>
-                    </div>
-                    <div>
-                        <div class="shot-wrap">
-                            <img alt="AI News (Dark)" data-i18n-src="shot.news.dark"
-                                 src-zh="./screenshots/news-cn-dark.png"
-                                 src-en="./screenshots/news-en-dark.png"
-                                 src="./screenshots/news-cn-dark.png">
-                        </div>
-                        <div class="shot-pair-label" data-i18n="showcase.themeDark">☾ 深色主题</div>
+        <div class="showcase-frame reveal">
+            <!-- Monitor / screen -->
+            <div class="showcase-screen">
+                <div class="showcase-toolbar">
+                    <div class="screen-dots"><span></span><span></span><span></span></div>
+                    <div class="screen-title" id="showcase-title">AI 资讯 & 明星项目</div>
+                    <div class="theme-switcher" role="tablist" aria-label="Theme">
+                        <button class="theme-btn active" data-theme="dark" type="button">
+                            ☾&nbsp;<span data-i18n="showcase.themeDark">深色</span>
+                        </button>
+                        <button class="theme-btn" data-theme="light" type="button">
+                            ☀&nbsp;<span data-i18n="showcase.themeLight">浅色</span>
+                        </button>
                     </div>
                 </div>
-                <div class="shot-caption" data-i18n="showcase.news">AI 资讯 & 明星项目 — 每天的 AI 简报</div>
-            </div>
-            <div class="showcase-item">
-                <div class="shot-wrap">
-                    <img alt="Model Nexus" data-i18n-src="shot.model"
-                         src-zh="./screenshots/model-cn-dark.png"
-                         src-en="./screenshots/model-en-dark.png"
-                         src="./screenshots/model-cn-dark.png">
+                <div class="showcase-img-wrap" id="showcase-img-wrap">
+                    <img id="showcase-img" src="./screenshots/news-cn-dark.png" alt="EchoBird preview">
                 </div>
-                <div class="shot-caption" data-i18n="showcase.model">模型中心 — 统一管理,一键测速</div>
             </div>
-            <div class="showcase-item">
-                <div class="shot-wrap">
-                    <img alt="App Manager" data-i18n-src="shot.app"
-                         src-zh="./screenshots/app-cn-dark.png"
-                         src-en="./screenshots/app-en-dark.png"
-                         src="./screenshots/app-cn-dark.png">
-                </div>
-                <div class="shot-caption" data-i18n="showcase.app">应用管理 — 一键启动每一个 AI 工具</div>
-            </div>
-            <div class="showcase-item">
-                <div class="shot-wrap">
-                    <img alt="Local LLM" data-i18n-src="shot.localllm"
-                         src-zh="./screenshots/localllm-cn-dark.png"
-                         src-en="./screenshots/localllm-en-dark.png"
-                         src="./screenshots/localllm-cn-dark.png">
-                </div>
-                <div class="shot-caption" data-i18n="showcase.localllm">本地大模型 — 在自己机器上跑</div>
-            </div>
-            <div class="showcase-item">
-                <div class="shot-wrap">
-                    <img alt="Install & Repair Agent" data-i18n-src="shot.agent"
-                         src-zh="./screenshots/agent-cn-dark.png"
-                         src-en="./screenshots/agent-en-dark.png"
-                         src="./screenshots/agent-cn-dark.png">
-                </div>
-                <div class="shot-caption" data-i18n="showcase.agent">安装与修复 — 用对话搞定部署和排障</div>
+
+            <!-- Right side tabs -->
+            <div class="showcase-tabs" role="tablist" aria-label="Pages">
+                <button class="showcase-tab active" data-tab="news" type="button"
+                        data-name-zh="AI 资讯" data-name-en="AI News"
+                        data-desc-zh="每天的 AI 简报" data-desc-en="Daily AI brief">
+                    <div class="tab-ico"><i class="fa-solid fa-newspaper"></i></div>
+                    <div class="tab-meta">
+                        <div class="tab-name">AI 资讯</div>
+                        <div class="tab-desc">每天的 AI 简报</div>
+                    </div>
+                </button>
+                <button class="showcase-tab" data-tab="model" type="button"
+                        data-name-zh="模型中心" data-name-en="Model Nexus"
+                        data-desc-zh="管理 + 一键测速" data-desc-en="Manage + speed-test">
+                    <div class="tab-ico"><i class="fa-solid fa-shuffle"></i></div>
+                    <div class="tab-meta">
+                        <div class="tab-name">模型中心</div>
+                        <div class="tab-desc">管理 + 一键测速</div>
+                    </div>
+                </button>
+                <button class="showcase-tab" data-tab="app" type="button"
+                        data-name-zh="应用管理" data-name-en="App Manager"
+                        data-desc-zh="一键启动 AI 工具" data-desc-en="One-click launch">
+                    <div class="tab-ico"><i class="fa-solid fa-bolt"></i></div>
+                    <div class="tab-meta">
+                        <div class="tab-name">应用管理</div>
+                        <div class="tab-desc">一键启动 AI 工具</div>
+                    </div>
+                </button>
+                <button class="showcase-tab" data-tab="localllm" type="button"
+                        data-name-zh="本地大模型" data-name-en="Local LLM"
+                        data-desc-zh="在自己机器上跑" data-desc-en="Run on your machine">
+                    <div class="tab-ico"><i class="fa-solid fa-server"></i></div>
+                    <div class="tab-meta">
+                        <div class="tab-name">本地大模型</div>
+                        <div class="tab-desc">在自己机器上跑</div>
+                    </div>
+                </button>
+                <button class="showcase-tab" data-tab="agent" type="button"
+                        data-name-zh="安装与修复" data-name-en="Install & Repair"
+                        data-desc-zh="对话式部署排障" data-desc-en="Chat-driven setup">
+                    <div class="tab-ico"><i class="fa-solid fa-shield-halved"></i></div>
+                    <div class="tab-meta">
+                        <div class="tab-name">安装与修复</div>
+                        <div class="tab-desc">对话式部署排障</div>
+                    </div>
+                </button>
             </div>
         </div>
     </section>
@@ -1592,6 +1750,66 @@
                 });
             }, { threshold: 0.12 });
             document.querySelectorAll('.reveal').forEach(el => obs.observe(el));
+        })();
+
+        // Showcase: tabbed product preview with light/dark switcher.
+        // State lives at module scope so applyI18n() can re-render after a
+        // language toggle without re-binding event handlers.
+        let showcaseTab = 'news';
+        let showcaseTheme = 'dark';
+
+        function updateShowcase() {
+            const lang = (document.documentElement.lang || 'zh-CN').toLowerCase().startsWith('zh') ? 'cn' : 'en';
+            const img = document.getElementById('showcase-img');
+            const wrap = document.getElementById('showcase-img-wrap');
+            if (img && wrap) {
+                const next = `./screenshots/${showcaseTab}-${lang}-${showcaseTheme}.png`;
+                if (img.getAttribute('src') !== next) {
+                    wrap.classList.add('swapping');
+                    const swap = () => {
+                        img.src = next;
+                        img.onload = () => wrap.classList.remove('swapping');
+                    };
+                    setTimeout(swap, 120);
+                }
+            }
+            // Localize all tab labels + screen title
+            const nameAttr = lang === 'cn' ? 'data-name-zh' : 'data-name-en';
+            const descAttr = lang === 'cn' ? 'data-desc-zh' : 'data-desc-en';
+            document.querySelectorAll('.showcase-tab').forEach(btn => {
+                const nameEl = btn.querySelector('.tab-name');
+                const descEl = btn.querySelector('.tab-desc');
+                const name = btn.getAttribute(nameAttr);
+                const desc = btn.getAttribute(descAttr);
+                if (nameEl && name) nameEl.textContent = name;
+                if (descEl && desc) descEl.textContent = desc;
+            });
+            const activeTab = document.querySelector(`.showcase-tab[data-tab="${showcaseTab}"]`);
+            const titleEl = document.getElementById('showcase-title');
+            if (activeTab && titleEl) {
+                titleEl.textContent = activeTab.getAttribute(nameAttr) || '';
+            }
+        }
+
+        (function () {
+            document.querySelectorAll('.showcase-tab').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    document.querySelectorAll('.showcase-tab').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    showcaseTab = btn.dataset.tab;
+                    updateShowcase();
+                });
+            });
+            document.querySelectorAll('.theme-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    document.querySelectorAll('.theme-btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    showcaseTheme = btn.dataset.theme;
+                    updateShowcase();
+                });
+            });
+            // Initial sync (in case DOMContentLoaded ran before applyI18n)
+            updateShowcase();
         })();
 
         // Command-line install hint — show only the row matching the visitor's OS.
