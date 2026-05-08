@@ -26,9 +26,7 @@
 
 ## What is EchoBird?
 
-Friends kept asking me to install **Claude Code**, **OpenClaw**, **Hermes Agent** for them — every machine was different, and some refused to pay for an LLM. Setup and explanations took forever.
-
-So I built **EchoBird**. The name is a nod to **Songbird** from *Cyberpunk 2077* — the netrunner who can fix any tech problem for V. The look-and-feel, however, pulls from **earlier cyberpunk** — phosphor-green terminals, *Neuromancer*, the Matrix-era hacker aesthetic — not the neon-magenta gloss of 2077. EchoBird installs every AI tool with one click, points them at the model of your choice (cloud, local, or relay), and gets out of your way.
+Friends kept asking me to install **Claude Code**, **OpenClaw**, **Hermes Agent**… every machine was different, and some refused to pay for an LLM. Setup and explanations took forever. So I built **EchoBird** — an Agent inspired by **Songbird**, the female hacker in *Cyberpunk 2077* who fixes any tech problem for V. EchoBird installs every AI tool with one click.
 
 ## Highlights
 
