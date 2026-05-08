@@ -1,5 +1,5 @@
 {
-  "version": "4.2.1",
+  "version": "4.2.2",
   "releaseDate": "2026-05-08",
-  "releaseNotes": "Add Pi CLI agent (earendil-works/pi); fix sidebar bird logo cold-start flash."
+  "releaseNotes": "Tool detection fixes (Pi/codex/openclaw bun+pnpm paths) and Tencent COS HK mirror for mainland-CN AI news access."
 }
