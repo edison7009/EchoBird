@@ -49,3 +49,23 @@ jobs:
           fi
           git commit -m "chore(pulse): refresh upstream snapshot"
           git push
+
+      # Mirror to Tencent COS (Hong Kong) so mainland-China users have a
+      # GFW-friendly source. Runs every cycle (idempotent overwrite, ~10MB)
+      # so a one-off upload failure self-heals on the next run.
+      - name: Mirror to Tencent COS
+        env:
+          TENCENT_COS_SECRET_ID:  ${{ secrets.TENCENT_COS_SECRET_ID }}
+          TENCENT_COS_SECRET_KEY: ${{ secrets.TENCENT_COS_SECRET_KEY }}
+          TENCENT_COS_BUCKET:     ${{ secrets.TENCENT_COS_BUCKET }}
+          TENCENT_COS_REGION:     ${{ secrets.TENCENT_COS_REGION }}
+        run: |
+          set -euo pipefail
+          python3 -m pip install --quiet coscmd
+          coscmd config \
+            -a "$TENCENT_COS_SECRET_ID" \
+            -s "$TENCENT_COS_SECRET_KEY" \
+            -b "$TENCENT_COS_BUCKET" \
+            -r "$TENCENT_COS_REGION"
+          coscmd upload docs/pulse/latest-24h.json /latest-24h.json
+          coscmd upload docs/pulse/latest-7d.json  /latest-7d.json

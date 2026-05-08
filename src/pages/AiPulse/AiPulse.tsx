@@ -19,6 +19,11 @@ import { useI18n } from '../../hooks/useI18n';
 
 const PULSE_MIRRORS: { name: string; base: string }[] = [
     { name: 'echobird',   base: 'https://echobird.ai/pulse' },
+    // Tencent COS Hong Kong — refreshed by .github/workflows/refresh-pulse-data.yml
+    // every 6h. HK region needs no ICP filing, default domain is bucket-level
+    // public-read, and is reliably reachable from mainland China when
+    // echobird.ai (Cloudflare) is throttled.
+    { name: 'tencent-hk', base: 'https://ainew-1251534910.cos.ap-hongkong.myqcloud.com' },
     // Upstream's own GitHub Pages — official publish point, freshest data
     // (updates within minutes of the upstream Action), CORS enabled,
     // and *.github.io is generally GFW-routable from mainland China.
