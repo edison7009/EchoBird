@@ -7,6 +7,7 @@
     "docs": "https://hermes-agent.nousresearch.com/docs/",
     "website": "https://github.com/NousResearch/hermes-agent",
     "command": "hermes",
+    "startCommand": "hermes",
     "envVar": "HERMES_HOME",
     "configDir": "~/.hermes",
     "configFile": "~/.hermes/config.yaml",

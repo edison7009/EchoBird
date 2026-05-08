@@ -7,8 +7,7 @@
     ],
     "docs": "https://coffeecli.com/",
     "website": "https://coffeecli.com/",
-    "command": "coffee",
-    "startCommand": "coffee",
+    "command": "coffee-cli",
     "configDir": "~/.coffee-cli",
     "configFile": "~/.coffee-cli/config.json",
     "requireConfigFile": false,
@@ -21,13 +20,11 @@
             "/Applications/Coffee CLI.app/Contents/MacOS/coffee-cli"
         ],
         "linux": [
-            "/usr/local/bin/coffee",
-            "/usr/bin/coffee",
-            "~/.local/bin/coffee",
             "/opt/Coffee CLI/coffee-cli",
             "/opt/coffee-cli/coffee-cli",
             "/usr/bin/coffee-cli",
-            "/usr/local/bin/coffee-cli"
+            "/usr/local/bin/coffee-cli",
+            "~/.local/bin/coffee-cli"
         ]
     }
 }
