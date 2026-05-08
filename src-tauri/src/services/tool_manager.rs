@@ -688,7 +688,11 @@ async fn scan_single_tool(def: ToolDefinition) -> DetectedTool {
                 }
             }
         }
-        if version.is_none() && !pc.command.is_empty() {
+        // Skip --version probe for desktop GUI apps: their binary doesn't
+        // implement a CLI fast-path for --version, so invoking it just opens
+        // the main window. noModelConfig is the right gate — it's already the
+        // marker for "this is a launch-only desktop app, not a CLI we query".
+        if version.is_none() && !pc.command.is_empty() && !pc.no_model_config {
             version = platform::get_version(&pc.command).await;
         }
     }
