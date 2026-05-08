@@ -1,5 +1,5 @@
 {
-    "name": "Codex",
+    "name": "Codex CLI",
     "category": "CLI Code",
     "apiProtocol": [
         "openai"

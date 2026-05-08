@@ -1,0 +1,6 @@
+{
+    "docs": "https://cursor.com/",
+    "configFile": "~/.cursor/settings.json",
+    "format": "json",
+    "custom": false
+}

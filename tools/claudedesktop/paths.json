@@ -1,10 +1,7 @@
 {
     "name": "Claude Desktop",
     "names": {
-        "zh-Hans": "Claude 桌面端",
-        "zh-Hant": "Claude 桌面端",
-        "ja": "Claude デスクトップ",
-        "ko": "Claude 데스크톱"
+        "zh-Hans": "Claude 桌面端"
     },
     "category": "Desktop",
     "noModelConfig": true,

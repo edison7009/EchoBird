@@ -103,7 +103,7 @@ impl ProcessManager {
             return self.start_gui_tool(tool_id).await;
         }
 
-        // Priority 4: VS Code extension tools (Cline, Roo Code, Continue) �?launch VS Code
+        // Priority 4: VS Code extension tools — launch VS Code
         if crate::services::tool_manager::is_vscode_extension(tool_id) {
             log::info!("[ProcessManager] Tool {} is a VS Code extension, launching VS Code", tool_id);
             return self.launch_vscode(tool_id).await;
@@ -227,7 +227,7 @@ impl ProcessManager {
         }
     }
 
-    /// Launch VS Code for extension-based tools (Cline, Roo Code, Continue, etc.)
+    /// Launch VS Code for extension-based tools
     async fn launch_vscode(&mut self, tool_id: &str) -> Result<(), String> {
         log::info!("[ProcessManager] Launching VS Code for extension tool: {}", tool_id);
 

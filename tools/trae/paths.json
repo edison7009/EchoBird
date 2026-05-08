@@ -1,0 +1,23 @@
+{
+    "name": "Trae",
+    "category": "IDE",
+    "noModelConfig": true,
+    "apiProtocol": [
+        "openai"
+    ],
+    "docs": "https://docs.trae.ai/ide/",
+    "website": "https://www.trae.ai/",
+    "command": "trae",
+    "configDir": "~/.trae",
+    "configFile": "~/.trae/settings.json",
+    "requireConfigFile": false,
+    "paths": {
+        "win32": [
+            "%LOCALAPPDATA%/Programs/Trae/Trae.exe"
+        ],
+        "darwin": [
+            "/Applications/Trae.app/Contents/MacOS/Trae"
+        ],
+        "linux": []
+    }
+}

@@ -72,22 +72,6 @@ fn extract_domain_name(url: &str) -> String {
     }
 }
 
-/// Extract root domain e.g. "api.minimaxi.com" �?"minimaxi.com"
-fn extract_root_domain(url: &str) -> String {
-    let without_protocol = url
-        .strip_prefix("https://").or_else(|| url.strip_prefix("http://"))
-        .unwrap_or(url);
-    let host = without_protocol.split('/').next().unwrap_or("");
-    let host = host.split(':').next().unwrap_or(host);
-
-    let parts: Vec<&str> = host.split('.').collect();
-    if parts.len() >= 2 {
-        parts[parts.len() - 2..].join(".")
-    } else {
-        host.to_string()
-    }
-}
-
 /// Read JSON file, return Value or None
 fn read_json_file(path: &Path) -> Option<serde_json::Value> {
     let content = fs::read_to_string(path).ok()?;
@@ -193,16 +177,8 @@ pub async fn apply_model_to_tool(tool_id: &str, model_info: ModelInfo) -> ApplyR
 
     // Dispatch custom tools to their own handlers
     match tool_id {
-        // Type 2: Echobird relay JSON (write ~/.echobird/{tool}.json)
-        "cline" => return apply_echobird_relay(tool_id, &model_info, true),
-        "roocode" => return apply_echobird_relay(tool_id, &model_info, false),
-
         // OpenClaw: direct write to ~/.openclaw/openclaw.json (no patch needed since v2026.3.13)
         "openclaw" => return apply_openclaw(&model_info),
-
-
-        // KiloCode VS Code extension (RooCode fork — same relay + patcher approach)
-        "kilocode" => return apply_echobird_relay(tool_id, &model_info, false),
 
         // Type 3: Direct JSON overwrite (special format)
         "opencode" => return apply_opencode(&model_info),
@@ -212,7 +188,6 @@ pub async fn apply_model_to_tool(tool_id: &str, model_info: ModelInfo) -> ApplyR
 
         // Type 4: YAML
         "aider" => return apply_aider(&model_info),
-        "continue" => return apply_continue_dev(&model_info),
 
         // Type 5: TOML
         "zeroclaw" => return apply_zeroclaw(&model_info),
@@ -270,8 +245,8 @@ pub async fn restore_tool_to_official(tool_id: &str) -> ApplyResult {
         return restore_opencode_to_official();
     }
 
-    // Side-channel relay file (cline/roocode/openclaw/kilocode and other
-    // "custom" tools) — best-effort cleanup, ignored if absent.
+    // Side-channel relay file (openclaw and other "custom" tools) —
+    // best-effort cleanup, ignored if absent.
     let relay_path = echobird_dir().join(format!("{}.json", tool_id));
     if relay_path.exists() {
         let _ = fs::remove_file(&relay_path);
@@ -305,13 +280,10 @@ pub async fn restore_tool_to_official(tool_id: &str) -> ApplyResult {
 
 pub async fn get_tool_model_info(tool_id: &str) -> Option<ModelInfo> {
     match tool_id {
-        "cline" | "roocode" => return read_echobird_relay(tool_id),
         "openclaw" => return read_openclaw(),
-        "kilocode" => return read_echobird_relay(tool_id),
         "opencode" => return read_opencode(),
         "codex" | "codexdesktop" => return read_codex(),
         "aider" => return read_aider(),
-        "continue" => return read_continue_dev(),
         "zeroclaw" => return read_zeroclaw(),
         "qwencode" => return read_qwen_code(),
         // Plug-and-play: check config.json custom flag
@@ -447,7 +419,7 @@ fn read_generic_json(tool_id: &str) -> Option<ModelInfo> {
 
 
 // ════════════════════════════════════════════════════════════════
-//  Type 2: Echobird relay JSON (Cline, RooCode, OpenClaw)
+//  Type 2: Echobird relay JSON (OpenClaw + custom plug-and-play tools)
 //  Write to ~/.echobird/{tool_id}.json
 // ════════════════════════════════════════════════════════════════
 
@@ -487,8 +459,7 @@ fn apply_echobird_relay(tool_id: &str, model_info: &ModelInfo, include_provider:
             log::info!("[ToolConfigManager] {} config written to {:?}", tool_id, config_path);
             crate::services::tool_patcher::patch_tool(tool_id);
             let tool_display = match tool_id {
-                "cline" => "Cline", "roocode" => "Roo Code", "openclaw" => "OpenClaw",
-                "kilocode" => "KiloCode",
+                "openclaw" => "OpenClaw",
                 _ => tool_id,
             };
             ApplyResult {
@@ -1073,88 +1044,6 @@ fn read_aider() -> Option<ModelInfo> {
         name: Some(model.clone()), model: Some(model),
         base_url: if bu.is_empty() { None } else { Some(bu) },
         api_key, anthropic_url: None, proxy_url: None, protocol: None,
-    })
-}
-
-// ════════════════════════════════════════════════════════════════
-//  Type 4b: Continue �?~/.continue/config.yaml
-//  Simple JSON-like YAML: {models: [{name, provider, model, apiBase, roles, apiKey}]}
-//  We read/write as JSON since the structure is JSON-compatible
-// ════════════════════════════════════════════════════════════════
-
-fn apply_continue_dev(model_info: &ModelInfo) -> ApplyResult {
-    let config_path = dirs::home_dir().unwrap_or_default().join(".continue").join("config.yaml");
-
-    // Read as JSON (YAML superset of JSON for simple structures)
-    let mut config = if config_path.exists() {
-        let content = fs::read_to_string(&config_path).unwrap_or_default();
-        // Try JSON parse first, then simple YAML
-        serde_json::from_str::<serde_json::Value>(&content)
-            .unwrap_or(serde_json::json!({}))
-    } else {
-        serde_json::json!({})
-    };
-
-    if config.get("name").is_none() { config["name"] = serde_json::json!("Echobird Config"); }
-    if config.get("version").is_none() { config["version"] = serde_json::json!("1.0.0"); }
-    if config.get("schema").is_none() { config["schema"] = serde_json::json!("v1"); }
-
-    let mut models_vec: Vec<serde_json::Value> = config.get("models")
-        .and_then(|v| v.as_array()).cloned().unwrap_or_default();
-
-    let base_url = model_info.base_url.as_deref()
-        .unwrap_or("https://api.openai.com/v1").trim_end_matches('/').to_string();
-    let domain_tag = extract_root_domain(&base_url);
-    let model_id = model_info.model.as_deref().unwrap_or("");
-    let display = format!("{} ({})", model_info.name.as_deref().unwrap_or(model_id), domain_tag);
-
-    let mut new_model = serde_json::json!({
-        "name": display, "provider": "openai", "model": model_id,
-        "apiBase": base_url, "roles": ["chat", "edit"],
-    });
-    if let Some(ref k) = model_info.api_key {
-        new_model["apiKey"] = serde_json::Value::String(k.clone());
-    }
-
-    // Replace existing Echobird model or insert at top
-    let idx = models_vec.iter().position(|m|
-        m.get("name").and_then(|n| n.as_str())
-            .map(|n| n.trim().ends_with(')') && n.contains('('))
-            .unwrap_or(false)
-    );
-    if let Some(i) = idx { models_vec[i] = new_model; } else { models_vec.insert(0, new_model); }
-
-    config["models"] = serde_json::Value::Array(models_vec);
-
-    // Write as pretty JSON (valid YAML)
-    match write_json_file(&config_path, &config) {
-        Ok(_) => ApplyResult {
-            success: true,
-            message: format!("Continue updated: model={}, apiBase={}", model_id, base_url),
-        },
-        Err(e) => ApplyResult { success: false, message: e },
-    }
-}
-
-fn read_continue_dev() -> Option<ModelInfo> {
-    let path = dirs::home_dir()?.join(".continue").join("config.yaml");
-    let content = fs::read_to_string(&path).ok()?;
-    let config: serde_json::Value = serde_json::from_str(&content).ok()?;
-    let models = config.get("models")?.as_array()?;
-    if models.is_empty() { return None; }
-
-    let target = models.iter().find(|m|
-        m.get("roles").and_then(|r| r.as_array())
-            .map(|roles| roles.iter().any(|r| r.as_str() == Some("chat")))
-            .unwrap_or(false)
-    ).unwrap_or(&models[0]);
-
-    Some(ModelInfo {
-        name: target.get("name").and_then(|v| v.as_str()).map(|s| s.to_string()),
-        model: target.get("model").and_then(|v| v.as_str()).map(|s| s.to_string()),
-        base_url: target.get("apiBase").and_then(|v| v.as_str()).map(|s| s.to_string()),
-        api_key: target.get("apiKey").and_then(|v| v.as_str()).map(|s| s.to_string()),
-        anthropic_url: None, proxy_url: None, protocol: None,
     })
 }
 

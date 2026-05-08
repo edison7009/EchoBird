@@ -528,7 +528,7 @@ async fn read_active_model(def: &ToolDefinition) -> Option<String> {
 /// Parse category string to ToolCategory enum
 fn parse_category(s: &str) -> ToolCategory {
     match s {
-        "CLI Agent" | "AgentOS" => ToolCategory::AgentOS,
+        "Agents" | "CLI Agent" | "AgentOS" => ToolCategory::Agents,
         "IDE" => ToolCategory::IDE,
         "CLI Code" | "CLI" => ToolCategory::CLI,
         "AutoTrading" => ToolCategory::AutoTrading,

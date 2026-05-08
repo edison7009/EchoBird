@@ -1,11 +1,5 @@
 {
     "name": "Aider",
-    "names": {
-        "zh-CN": "Aider",
-        "zh-TW": "Aider",
-        "ja": "Aider",
-        "ko": "Aider"
-    },
     "category": "CLI Code",
     "apiProtocol": [
         "openai",

@@ -1,8 +1,5 @@
 {
     "name": "QwenCode",
-    "names": {
-        "zh-CN": "通义灵码 CLI"
-    },
     "category": "CLI Code",
     "apiProtocol": [
         "openai",

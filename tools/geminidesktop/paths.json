@@ -1,10 +1,7 @@
 {
     "name": "Gemini Desktop",
     "names": {
-        "zh-Hans": "Gemini 桌面端",
-        "zh-Hant": "Gemini 桌面端",
-        "ja": "Gemini デスクトップ",
-        "ko": "Gemini 데스크톱"
+        "zh-Hans": "Gemini 桌面端"
     },
     "category": "Desktop",
     "noModelConfig": true,

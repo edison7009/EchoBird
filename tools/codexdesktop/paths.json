@@ -1,10 +1,7 @@
 {
     "name": "Codex Desktop",
     "names": {
-        "zh-Hans": "Codex 桌面端",
-        "zh-Hant": "Codex 桌面端",
-        "ja": "Codex デスクトップ",
-        "ko": "Codex 데스크톱"
+        "zh-Hans": "Codex 桌面端"
     },
     "category": "Desktop",
     "apiProtocol": [

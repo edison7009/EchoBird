@@ -1,0 +1,26 @@
+{
+    "name": "Windsurf",
+    "category": "IDE",
+    "noModelConfig": true,
+    "apiProtocol": [
+        "openai"
+    ],
+    "docs": "https://docs.windsurf.com/windsurf/getting-started",
+    "website": "https://windsurf.com/",
+    "command": "windsurf",
+    "configDir": "~/.codeium/windsurf",
+    "configFile": "~/.codeium/windsurf/settings.json",
+    "requireConfigFile": false,
+    "paths": {
+        "win32": [
+            "%LOCALAPPDATA%/Programs/Windsurf/Windsurf.exe"
+        ],
+        "darwin": [
+            "/Applications/Windsurf.app/Contents/MacOS/Electron"
+        ],
+        "linux": [
+            "/usr/bin/windsurf",
+            "/opt/Windsurf/windsurf"
+        ]
+    }
+}

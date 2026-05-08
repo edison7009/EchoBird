@@ -1,0 +1,41 @@
+{
+    "id": "vscode",
+    "displayName": "Visual Studio Code",
+    "homepage": "https://code.visualstudio.com/",
+    "docs": "https://code.visualstudio.com/docs/setup/setup-overview",
+    "kind": "ide",
+    "platforms": ["windows", "macos", "linux"],
+    "install": {
+        "windows_winget": "winget install --id Microsoft.VisualStudioCode --accept-package-agreements --accept-source-agreements",
+        "windows_download": "Open https://code.visualstudio.com/Download in the browser, click 'Windows x64 User Installer'. Saves to %USERPROFILE%\\Downloads by default.",
+        "macos_brew": "brew install --cask visual-studio-code",
+        "macos_download": "Open https://code.visualstudio.com/Download in the browser, click 'macOS Universal'. Saves to ~/Downloads by default.",
+        "linux_apt": "sudo apt install code (after adding the Microsoft apt repo per https://code.visualstudio.com/docs/setup/linux)",
+        "linux_snap": "sudo snap install --classic code",
+        "linux_download": "Open https://code.visualstudio.com/Download in the browser and download the .deb / .rpm matching the user's distro.",
+        "note": "GUI IDE — installation completes through a graphical wizard on Windows / macOS. Always tell the user the download location and ask them to follow the installer."
+    },
+    "install_flow": {
+        "summary": "winget / brew / snap if available → otherwise download installer → user runs the wizard",
+        "agent_steps": [
+            "Detect OS first.",
+            "Windows: prefer `winget install --id Microsoft.VisualStudioCode` if winget is available — silent install.",
+            "macOS: prefer `brew install --cask visual-studio-code` if Homebrew is available.",
+            "Linux: prefer `snap install --classic code` if snap is available, otherwise the apt/dnf package per the official docs.",
+            "Manual fallback: download the installer to the user's Downloads folder using `Invoke-WebRequest` (Windows) or `curl -L -o` (macOS/Linux).",
+            "After download finishes, tell the user the EXACT file path.",
+            "Open the installer (`Start-Process` on Windows, `open` on macOS).",
+            "Tell the user: 'VS Code 安装向导已打开,请按向导点击下一步完成安装。' / 'The VS Code installer is open — follow the wizard to finish.'",
+            "Do NOT try to automate the GUI wizard."
+        ],
+        "tell_user": [
+            "Download location (full path) when manual",
+            "That the installer was opened or that the package manager is installing silently",
+            "That Echobird does NOT switch models for VS Code — model selection lives in the user's chosen AI extension"
+        ]
+    },
+    "network_requirements": {
+        "test_urls": ["https://code.visualstudio.com", "https://update.code.visualstudio.com"],
+        "mirrors": {}
+    }
+}

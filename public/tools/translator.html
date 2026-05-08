@@ -720,7 +720,10 @@
                         });
                         if (!resp.ok) throw new Error(`API ${resp.status}: ${resp.statusText}`);
                         const data = await resp.json();
-                        result = data.content?.[0]?.text || '';
+                        // Thinking-enabled models prepend a {type:"thinking"} block;
+                        // scan for the first text block instead of blindly indexing [0].
+                        const textBlock = (data.content || []).find(b => b && b.type === 'text');
+                        result = (textBlock && textBlock.text) || '';
                     } catch (anthropicErr) {
                         console.warn('[Translator] Anthropic failed, falling back to OpenAI:', anthropicErr);
                         let fbUrl = (MODEL.baseUrl || '').trim().replace(/\/+$/, '');
@@ -732,7 +735,9 @@
                         });
                         if (!resp.ok) throw new Error(`API ${resp.status}: ${resp.statusText}`);
                         const data = await resp.json();
-                        result = data.choices?.[0]?.message?.content || '';
+                        const fbMsg = data.choices?.[0]?.message || {};
+                        // Reasoning models may route the answer into reasoning_content.
+                        result = fbMsg.content || fbMsg.reasoning_content || '';
                     }
                 } else {
                     let apiUrl = (MODEL.baseUrl || '').trim().replace(/\/+$/, '');
@@ -755,12 +760,18 @@
                     });
                     if (!resp.ok) throw new Error(`API ${resp.status}: ${resp.statusText}`);
                     const data = await resp.json();
-                    result = data.choices?.[0]?.message?.content || '';
+                    const msg = data.choices?.[0]?.message || {};
+                    // Reasoning models (DeepSeek-Reasoner, Qwen-QwQ, etc.) may route
+                    // the visible answer into reasoning_content and leave content empty.
+                    result = msg.content || msg.reasoning_content || '';
                 }
 
 
                 // Final result
-                const finalText = result.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
+                let finalText = result.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
+                // If stripping <think>...</think> emptied content, the model only
+                // emitted thinking — leave the raw result so the user sees something.
+                if (!finalText && result.trim()) finalText = result.trim();
                 outputEl.textContent = finalText || '(empty response)';
                 outputEl.className = finalText ? 'output-text' : 'output-text empty';
 

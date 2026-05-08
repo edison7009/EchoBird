@@ -1,0 +1,27 @@
+{
+    "name": "Trae CN",
+    "names": {
+        "zh-Hans": "Trae 国内版"
+    },
+    "category": "IDE",
+    "noModelConfig": true,
+    "apiProtocol": [
+        "openai"
+    ],
+    "docs": "https://docs.trae.cn/ide/",
+    "website": "https://www.trae.cn/",
+    "command": "trae-cn",
+    "configDir": "~/.trae-cn",
+    "configFile": "~/.trae-cn/settings.json",
+    "requireConfigFile": false,
+    "paths": {
+        "win32": [
+            "%LOCALAPPDATA%/Programs/Trae CN/Trae CN.exe",
+            "%LOCALAPPDATA%/Programs/Trae-CN/Trae CN.exe"
+        ],
+        "darwin": [
+            "/Applications/Trae CN.app/Contents/MacOS/Trae CN"
+        ],
+        "linux": []
+    }
+}

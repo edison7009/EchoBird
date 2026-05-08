@@ -261,6 +261,29 @@
             font-style: italic;
         }
 
+        /* AI 流式思考区 — 没有气泡边框,占满聊天面板,文字直接铺开 */
+        .think-stream {
+            color: rgba(255, 255, 255, 0.3);
+            font-size: 12px;
+            font-style: italic;
+            line-height: 1.6;
+            white-space: pre-wrap;
+            word-break: break-word;
+            flex: 1;
+            min-height: 0;
+            overflow-y: auto;
+            padding: 0;
+        }
+
+        .think-stream::-webkit-scrollbar {
+            width: 3px;
+        }
+
+        .think-stream::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 3px;
+        }
+
         /* 模型基础信息区 */
         .model-info {
             padding: 12px 20px;
@@ -508,7 +531,15 @@
             } catch (e) {
                 // AI 连接失败：显示错误，停止游戏
                 aiThinking = false;
-                addBubble('⚠ ' + t.disconnected + (e.message ? ': ' + e.message : ''));
+                // AbortSignal.timeout fires a TimeoutError or generic AbortError —
+                // both surface as "The user aborted a request" which is misleading.
+                // Translate to a clearer "thinking timed out" message.
+                const isTimeout = e && (e.name === 'TimeoutError' || e.name === 'AbortError'
+                    || /aborted/i.test(e.message || ''));
+                const reason = isTimeout
+                    ? (appLocale.startsWith('zh') ? '思考超时,请重试或换更快的模型' : 'thinking timed out — try again or pick a faster model')
+                    : (e.message || 'unknown error');
+                addBubble('⚠ ' + t.disconnected + ': ' + reason);
                 document.getElementById('turnHint').textContent = t.disconnected;
                 render();
             }
@@ -516,47 +547,22 @@
 
         // --- LLM 调用 ---
         async function askLLM(moves) {
-            const { b, w } = countPieces();
-            const totalPieces = b + w;
-            const boardStr = board.map((row, i) => row.map((v, j) => v === 0 ? '.' : v === B ? 'X' : 'O').join('')).join('\n');
             const movesStr = moves.map(([r, c]) => `${r},${c}`).join(' | ');
 
-            // 棋力策略提示（对小模型尤其关键）
-            const corners = [[0, 0], [0, 7], [7, 0], [7, 7]];
-            const xSquares = [[1, 1], [1, 6], [6, 1], [6, 6]];
-            const cSquares = [[0, 1], [1, 0], [0, 6], [1, 7], [6, 0], [7, 1], [6, 7], [7, 6]];
-
-            const cornerMoves = moves.filter(([r, c]) => corners.some(([cr, cc]) => cr === r && cc === c));
-            const safeMoves = moves.filter(([r, c]) =>
-                !xSquares.some(([xr, xc]) => xr === r && xc === c) &&
-                !cSquares.some(([cr, cc]) => cr === r && cc === c)
-            );
-
-            let strategyHint = '';
-            if (cornerMoves.length > 0) {
-                strategyHint = `\nSTRATEGY HINT: Corner moves available: ${cornerMoves.map(([r, c]) => `${r},${c}`).join(' | ')}. ALWAYS take a corner - they can NEVER be flipped!`;
-            } else if (safeMoves.length > 0 && safeMoves.length < moves.length) {
-                const dangerMoves = moves.filter(([r, c]) =>
-                    xSquares.some(([xr, xc]) => xr === r && xc === c) ||
-                    cSquares.some(([cr, cc]) => cr === r && cc === c)
-                );
-                strategyHint = `\nSTRATEGY HINT: AVOID these dangerous moves (they give opponent corners): ${dangerMoves.map(([r, c]) => `${r},${c}`).join(' | ')}. Prefer safe moves: ${safeMoves.map(([r, c]) => `${r},${c}`).join(' | ')}`;
-            }
-
-            // 残局阶段提示
-            const phaseHint = totalPieces > 48 ? ' In endgame: maximize your piece count.' : ' In mid-game: prefer moves that flip fewer pieces and keep your mobility high.';
-
-            const prompt = `You are playing Reversi as O (white). Your opponent is X (black).
-Board (rows and columns 0-7, dot = empty):
-${boardStr}
-Score: X=${b}  O=${w}
-Your valid moves: ${movesStr}${strategyHint}${phaseHint}
-Pick the best move from the valid moves list.
-First line: your chosen move in format row,col (numbers only)
-Second line: one short confident comment showing you enjoy the game. ${t.aiLang}`;
+            // Casual, short prompt — this is for-fun gameplay, not a chess engine.
+            // Explicitly telling the model NOT to overthink trims reasoning length on
+            // models that respect such hints (some still ignore it, but we removed the
+            // full board + strategy hints so the prompt is tiny either way).
+            const prompt = `We're playing casual Reversi just for fun. Your valid moves: ${movesStr}.
+Pick any move you like — DO NOT analyze deeply, DO NOT enumerate options, just answer fast (2 seconds).
+Reply with EXACTLY two lines:
+Line 1: row,col
+Line 2: one short playful comment (${t.aiLang})`;
 
             let rawText = '';
-            const TIMEOUT = 30000;
+            // 60s — with the casual "don't overthink" prompt, even reasoning models
+            // typically wrap up within ~30s. Beyond a minute the move isn't fun anymore.
+            const TIMEOUT = 60000;
 
             // Always use OpenAI chat/completions format (more compatible across providers).
             // For Anthropic-protocol models, derive baseUrl from anthropicUrl.
@@ -570,6 +576,8 @@ Second line: one short confident comment showing you enjoy the game. ${t.aiLang}
             }
             if (!apiUrl.endsWith('/v1')) apiUrl += '/v1';
 
+            // Streaming request — lets us surface delta.reasoning_content live so the
+            // player sees the AI "thinking out loud" instead of staring at a 60s blank.
             const resp = await fetch(apiUrl + '/chat/completions', {
                 method: 'POST',
                 signal: AbortSignal.timeout(TIMEOUT),
@@ -580,35 +588,98 @@ Second line: one short confident comment showing you enjoy the game. ${t.aiLang}
                 body: JSON.stringify({
                     model: MODEL.model,
                     messages: [{ role: 'user', content: prompt }],
-                    max_tokens: 200,
-                    temperature: 0.3
+                    // Smaller budget discourages reasoning models from going deep —
+                    // the visible answer is ~30 tokens; 1024 gives room for a brief
+                    // CoT without inviting a full essay.
+                    max_tokens: 1024,
+                    temperature: 0.9,
+                    stream: true,
                 })
             });
             if (!resp.ok) throw new Error(`API ${resp.status}`);
-            const data = await resp.json();
-            rawText = data.choices?.[0]?.message?.content
-                || data.content?.[0]?.text
-                || '';
 
-            // 过滤思考模型的 <think>...</think> 标签
-            const text = rawText.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
+            // One rolling "thinking" bubble per move — italic + dim, updated in place
+            // as reasoning streams in. Removed via finally so it never orphans on error.
+            const thinkBubble = addThinkingBubble();
+
+            let visible = '';
+            let reasoning = '';
+            try {
+                const reader = resp.body.getReader();
+                const decoder = new TextDecoder();
+                let buf = '';
+                const chatArea = document.getElementById('chatArea');
+
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    buf += decoder.decode(value, { stream: true });
+                    const lines = buf.split('\n');
+                    buf = lines.pop() || '';
+                    for (const line of lines) {
+                        const trimmed = line.trim();
+                        if (!trimmed.startsWith('data: ')) continue;
+                        const payload = trimmed.slice(6);
+                        if (payload === '[DONE]') continue;
+                        try {
+                            const chunk = JSON.parse(payload);
+                            const d = chunk.choices?.[0]?.delta || {};
+                            if (d.reasoning_content) {
+                                reasoning += d.reasoning_content;
+                                // Render the full chain-of-thought; auto-scroll the
+                                // think-stream box itself so latest reasoning stays in view.
+                                thinkBubble.textContent = reasoning.replace(/\s+/g, ' ').trim();
+                                thinkBubble.scrollTop = thinkBubble.scrollHeight;
+                            }
+                            if (d.content) visible += d.content;
+                        } catch { /* malformed chunk — skip */ }
+                    }
+                }
+            } finally {
+                thinkBubble.remove();
+            }
+
+            // Strip <think>...</think> tags some models embed inline in content.
+            const stripThink = s => (s || '').replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
+            const usingReasoning = !visible.trim() && reasoning.trim();
+            let text = stripThink(visible) || stripThink(reasoning);
+
             if (!text) throw new Error('Empty response');
 
-            // 解析走法
-            const match = text.match(/(\d)\s*,\s*(\d)/);
+            // Pick the LAST valid (row,col) pair — reasoning models that enumerate
+            // options ("5,3 or 5,5 — I choose 5,5") would otherwise be parsed as 5,3.
             let chosen = null;
-            if (match) {
-                const mr = parseInt(match[1]), mc = parseInt(match[2]);
-                if (moves.some(([r, c]) => r === mr && c === mc)) chosen = [mr, mc];
+            const allMatches = [...text.matchAll(/(\d)\s*,\s*(\d)/g)];
+            for (let i = allMatches.length - 1; i >= 0; i--) {
+                const mr = parseInt(allMatches[i][1]), mc = parseInt(allMatches[i][2]);
+                if (moves.some(([r, c]) => r === mr && c === mc)) {
+                    chosen = [mr, mc];
+                    break;
+                }
             }
-            // AI 返回无效走法时，随机选一个（AI 已连通，只是走法解析问题）
             if (!chosen) chosen = moves[Math.floor(Math.random() * moves.length)];
 
-            // 提取评论
-            const comment = text.replace(/\d\s*,\s*\d/, '').replace(/^\s*[.\-:]\s*/, '').trim();
-            if (comment) addBubble(comment);
+            // Only show the trash-talk comment when the model produced a clean
+            // visible answer. If we fell back to reasoning_content, the text is
+            // mid-thinking and would dump the chain-of-thought into chat.
+            if (!usingReasoning) {
+                const comment = text.replace(/\d\s*,\s*\d/g, '').replace(/^\s*[.\-:]\s*/, '').trim();
+                if (comment) addBubble(comment);
+            }
 
             return chosen;
+        }
+
+        function addThinkingBubble() {
+            // Full-panel streaming text — no bubble chrome, lets the AI's reasoning
+            // fill the otherwise-empty chat area instead of cramping into a small box.
+            const area = document.getElementById('chatArea');
+            const div = document.createElement('div');
+            div.className = 'think-stream';
+            div.textContent = t.aiThinking;
+            area.appendChild(div);
+            area.scrollTop = area.scrollHeight;
+            return div;
         }
 
         function addBubble(text) {

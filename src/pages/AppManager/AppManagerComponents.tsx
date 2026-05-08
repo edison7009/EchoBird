@@ -35,7 +35,7 @@ export const AppManagerMain: React.FC = () => {
                         >
                             {(() => {
                                 const catMap: Record<string, string> = {
-                                    'ALL': 'toolCat.all', 'CLI Agent': 'toolCat.agentOS',
+                                    'ALL': 'toolCat.all', 'Agents': 'toolCat.agents',
                                     'IDE': 'toolCat.ide', 'CLI Code': 'toolCat.cli',
                                     'AutoTrading': 'toolCat.autoTrading', 'Game': 'toolCat.game',
                                     'Desktop': 'toolCat.desktop', 'Utility': 'toolCat.utility'
@@ -85,7 +85,7 @@ export const AppManagerMain: React.FC = () => {
                                 const bHasRemote = aiInstallableIds.includes(b.id);
                                 if (aHasRemote !== bHasRemote) return aHasRemote ? -1 : 1;
                                 // 3. Then by category
-                                const categoryOrder: Record<string, number> = { 'Desktop': 0, 'CLI Agent': 1, 'IDE': 2, 'CLI Code': 3, 'AutoTrading': 4, 'Game': 5, 'Utility': 6 };
+                                const categoryOrder: Record<string, number> = { 'Desktop': 0, 'Agents': 1, 'IDE': 2, 'CLI Code': 3, 'AutoTrading': 4, 'Game': 5, 'Utility': 6 };
                                 const catDiff = (categoryOrder[a.category || ''] ?? 99) - (categoryOrder[b.category || ''] ?? 99);
                                 if (catDiff !== 0) return catDiff;
                                 // 4. Within Desktop: fixed display order (Coffee CLI last)
@@ -413,10 +413,15 @@ export const AppManagerBottom: React.FC = () => {
                 >
                     {(noModelConfig || launchAfterApply) ? t('btn.launchApp') : t('btn.modifyOnly')}
                 </button>
-                {/* Checkboxes — hidden for tools that don't support model config (desktop apps) */}
-                <div className={`flex flex-col gap-2 ${noModelConfig ? 'invisible' : ''}`}>
+                {/* Checkboxes — for tools that don't support model config (desktop apps,
+                    IDE plugins) the boxes stay visible but go gray + un-clickable, so the
+                    layout doesn't shift and the user understands why the toggles are inert. */}
+                <div className={`flex flex-col gap-2 ${noModelConfig ? 'opacity-40 pointer-events-none' : ''}`}>
                     {/* Apply & Launch checkbox */}
-                    <label className="flex items-center gap-2 cursor-pointer select-none" onClick={() => setLaunchAfterApply(!launchAfterApply)}>
+                    <label
+                        className={`flex items-center gap-2 select-none ${noModelConfig ? 'cursor-not-allowed' : 'cursor-pointer'}`}
+                        onClick={() => { if (!noModelConfig) setLaunchAfterApply(!launchAfterApply); }}
+                    >
                         <div className={`w-3.5 h-3.5 border flex items-center justify-center transition-all flex-shrink-0 ${launchAfterApply ? 'border-cyber-border bg-cyber-text/20' : 'border-cyber-border hover:border-cyber-text-muted'
                             }`}>
                             {launchAfterApply && (
@@ -430,7 +435,10 @@ export const AppManagerBottom: React.FC = () => {
                         </span>
                     </label>
                     {/* Config policy agreement */}
-                    <label className="flex items-center gap-2 cursor-pointer select-none" onClick={() => setAgreedConfigPolicy(!agreedConfigPolicy)}>
+                    <label
+                        className={`flex items-center gap-2 select-none ${noModelConfig ? 'cursor-not-allowed' : 'cursor-pointer'}`}
+                        onClick={() => { if (!noModelConfig) setAgreedConfigPolicy(!agreedConfigPolicy); }}
+                    >
                         <div className={`w-3.5 h-3.5 border flex items-center justify-center transition-all flex-shrink-0 ${agreedConfigPolicy ? 'border-cyber-border bg-cyber-text/20' : 'border-cyber-border hover:border-cyber-text-muted'
                             }`}>
                             {agreedConfigPolicy && (
