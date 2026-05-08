@@ -436,90 +436,13 @@
             align-items: stretch;
         }
 
-        /* The "monitor" itself */
+        /* The "monitor" — no toolbar, image fills the whole frame */
         .showcase-screen {
-            display: flex;
-            flex-direction: column;
             border: 1px solid var(--border-strong);
             border-radius: 14px;
             overflow: hidden;
             background: var(--bg2);
             box-shadow: 0 30px 80px rgba(0, 0, 0, 0.5);
-        }
-
-        .showcase-toolbar {
-            display: flex;
-            align-items: center;
-            gap: 14px;
-            padding: 10px 14px;
-            border-bottom: 1px solid var(--border);
-            background: rgba(255, 255, 255, 0.02);
-            min-height: 42px;
-        }
-
-        .screen-dots {
-            display: flex;
-            gap: 6px;
-            flex-shrink: 0;
-        }
-
-        .screen-dots span {
-            width: 11px;
-            height: 11px;
-            border-radius: 50%;
-            background: rgba(255, 255, 255, 0.18);
-        }
-
-        .screen-dots span:nth-child(1) { background: #ff5f57; }
-        .screen-dots span:nth-child(2) { background: #febc2e; }
-        .screen-dots span:nth-child(3) { background: #28c841; }
-
-        .screen-title {
-            flex: 1;
-            text-align: center;
-            font-family: var(--mono);
-            font-size: 12px;
-            color: var(--dim);
-            letter-spacing: 0.5px;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        .theme-switcher {
-            display: flex;
-            gap: 4px;
-            padding: 3px;
-            background: rgba(255, 255, 255, 0.04);
-            border: 1px solid var(--border);
-            border-radius: 6px;
-            flex-shrink: 0;
-        }
-
-        .theme-btn {
-            background: transparent;
-            border: none;
-            color: var(--dim);
-            font-family: var(--mono);
-            font-size: 11px;
-            font-weight: 600;
-            letter-spacing: 0.5px;
-            padding: 4px 10px;
-            border-radius: 4px;
-            cursor: pointer;
-            transition: all 0.15s;
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
-        }
-
-        .theme-btn:hover {
-            color: var(--white);
-        }
-
-        .theme-btn.active {
-            background: var(--neon);
-            color: var(--bg);
         }
 
         .showcase-img-wrap {
@@ -540,7 +463,51 @@
 
         .showcase-img-wrap.swapping img { opacity: 0; }
 
-        /* Right-side tab list */
+        /* Right column: theme switcher on top, tabs below */
+        .showcase-side {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            min-width: 0;
+        }
+
+        .theme-switcher {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 4px;
+            padding: 4px;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+        }
+
+        .theme-btn {
+            background: transparent;
+            border: none;
+            color: var(--dim);
+            font-family: var(--mono);
+            font-size: 12px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            padding: 8px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.15s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        .theme-btn:hover {
+            color: var(--white);
+        }
+
+        .theme-btn.active {
+            background: var(--neon);
+            color: var(--bg);
+        }
+
         .showcase-tabs {
             display: flex;
             flex-direction: column;
@@ -642,11 +609,6 @@
             .showcase-frame {
                 margin-top: 36px;
             }
-            .showcase-toolbar {
-                gap: 8px;
-                padding: 8px 10px;
-            }
-            .screen-title { display: none; }
         }
 
         /* ── Section heading ── */
@@ -1477,27 +1439,24 @@
             <p class="section-sub" data-i18n="showcase.sub">浅色 / 深色双主题,中英文界面,所有 AI 工具集中在一个地方。</p>
         </div>
         <div class="showcase-frame reveal">
-            <!-- Monitor / screen -->
+            <!-- Monitor: image only, no toolbar -->
             <div class="showcase-screen">
-                <div class="showcase-toolbar">
-                    <div class="screen-dots"><span></span><span></span><span></span></div>
-                    <div class="screen-title" id="showcase-title">AI 资讯 & 明星项目</div>
-                    <div class="theme-switcher" role="tablist" aria-label="Theme">
-                        <button class="theme-btn active" data-theme="dark" type="button">
-                            ☾&nbsp;<span data-i18n="showcase.themeDark">深色</span>
-                        </button>
-                        <button class="theme-btn" data-theme="light" type="button">
-                            ☀&nbsp;<span data-i18n="showcase.themeLight">浅色</span>
-                        </button>
-                    </div>
-                </div>
                 <div class="showcase-img-wrap" id="showcase-img-wrap">
                     <img id="showcase-img" src="./screenshots/news-cn-dark.png" alt="EchoBird preview">
                 </div>
             </div>
 
-            <!-- Right side tabs -->
-            <div class="showcase-tabs" role="tablist" aria-label="Pages">
+            <!-- Right side: theme switcher + tab list -->
+            <div class="showcase-side">
+                <div class="theme-switcher" role="tablist" aria-label="Theme">
+                    <button class="theme-btn active" data-theme="dark" type="button">
+                        ☾&nbsp;<span data-i18n="showcase.themeDark">深色</span>
+                    </button>
+                    <button class="theme-btn" data-theme="light" type="button">
+                        ☀&nbsp;<span data-i18n="showcase.themeLight">浅色</span>
+                    </button>
+                </div>
+                <div class="showcase-tabs" role="tablist" aria-label="Pages">
                 <button class="showcase-tab active" data-tab="news" type="button"
                         data-name-zh="AI 资讯" data-name-en="AI News"
                         data-desc-zh="每天的 AI 简报" data-desc-en="Daily AI brief">
@@ -1543,6 +1502,7 @@
                         <div class="tab-desc">对话式部署排障</div>
                     </div>
                 </button>
+                </div>
             </div>
         </div>
     </section>
@@ -1784,11 +1744,6 @@
                 if (nameEl && name) nameEl.textContent = name;
                 if (descEl && desc) descEl.textContent = desc;
             });
-            const activeTab = document.querySelector(`.showcase-tab[data-tab="${showcaseTab}"]`);
-            const titleEl = document.getElementById('showcase-title');
-            if (activeTab && titleEl) {
-                titleEl.textContent = activeTab.getAttribute(nameAttr) || '';
-            }
         }
 
         (function () {
