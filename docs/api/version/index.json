@@ -1,5 +1,5 @@
 {
-  "version": "4.2.5",
+  "version": "4.2.6",
   "releaseDate": "2026-05-08",
-  "releaseNotes": "Keep terminal open when launched tool exits quickly or with non-zero status, so users can see help text or errors instead of a flash."
+  "releaseNotes": "Linux/macOS launch fixes (use $SHELL -lic so .bashrc/.zshrc PATH is loaded; pause terminal on quick exit so users can read errors), solid-orange launch buttons matching the theme accent, vertically-centered empty states, and per-day batching for AI News / Star Projects with item counts on each date."
 }
