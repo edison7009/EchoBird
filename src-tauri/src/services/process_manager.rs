@@ -163,8 +163,10 @@ impl ProcessManager {
             const CREATE_NEW_CONSOLE: u32 = 0x00000010;
 
             // Use cmd.exe /C to run the command — this handles .cmd/.bat scripts
-            // (npm-installed tools like openclaw.cmd, codex.cmd, opencode.cmd)
-            let mut cmd = Command::new("cmd");
+            // (npm-installed tools like openclaw.cmd, codex.cmd, opencode.cmd).
+            // Resolve cmd.exe via %COMSPEC% / %SystemRoot%\System32 instead of
+            // relying on PATH — some users have System32 stripped from PATH.
+            let mut cmd = Command::new(resolve_cmd_exe());
             cmd.args(["/C", &full_command]);
             cmd.current_dir(&home);
 
@@ -195,7 +197,48 @@ impl ProcessManager {
         }
 
 
-        #[cfg(not(windows))]
+        // Linux: TUI tools (claude/codex/opencode etc.) need a real TTY, so we
+        // can't just spawn the binary as a child of the Tauri GUI. Find a
+        // terminal emulator and run the command through `bash -lc` inside it,
+        // mirroring what CREATE_NEW_CONSOLE gives us on Windows.
+        #[cfg(target_os = "linux")]
+        {
+            let term = find_terminal_emulator()
+                .ok_or_else(|| "No terminal emulator found. Please install one of: \
+                                gnome-terminal, konsole, xfce4-terminal, alacritty, \
+                                kitty, wezterm, foot, tilix, or xterm.".to_string())?;
+
+            let mut cmd = Command::new(&term.binary);
+            cmd.args(term.prefix_args.iter().copied());
+            // bash -l so PATH from .bash_profile / .profile is available; -c so
+            // we pass the full command including args as a single shell string.
+            cmd.arg("bash").arg("-lc").arg(&full_command);
+            cmd.current_dir(&home);
+
+            if let Some(ref key) = api_key_env {
+                cmd.env("OPENAI_API_KEY", key);
+                if let Some(ref env_name) = custom_api_key_env_name {
+                    cmd.env(env_name, key);
+                }
+            }
+            if let Some(ref url) = base_url_env {
+                cmd.env("OPENAI_BASE_URL", url);
+            }
+
+            let child = cmd.spawn()
+                .map_err(|e| format!("Failed to launch terminal '{}': {}", term.binary.display(), e))?;
+
+            let pid = child.id();
+            log::info!("[ProcessManager] Tool {} started in {} with PID: {}", tool_id, term.binary.display(), pid);
+            self.processes.insert(tool_id.to_string(), ProcessInfo { pid });
+            Ok(())
+        }
+
+
+        // Other unix (macOS, *BSD): keep the historical raw-spawn behavior
+        // for now. macOS likely has the same TTY issue for TUI tools and may
+        // need its own Terminal.app wrapper later.
+        #[cfg(all(unix, not(target_os = "linux")))]
         {
             let parts: Vec<&str> = full_command.split_whitespace().collect();
             if parts.is_empty() {
@@ -237,8 +280,9 @@ impl ProcessManager {
             const CREATE_NEW_PROCESS_GROUP: u32 = 0x00000200;
             const CREATE_NO_WINDOW: u32 = 0x08000000;
 
-            // On Windows, `code` is actually `code.cmd` in PATH
-            let output = Command::new("cmd")
+            // On Windows, `code` is actually `code.cmd` in PATH. Resolve
+            // cmd.exe directly so we don't rely on PATH containing System32.
+            let output = Command::new(resolve_cmd_exe())
                 .args(["/c", "code"])
                 .creation_flags(CREATE_NEW_PROCESS_GROUP | CREATE_NO_WINDOW)
                 .spawn()
@@ -527,6 +571,69 @@ impl ProcessManager {
 
         exited
     }
+}
+
+// ─── Platform helpers ───
+
+// Resolve cmd.exe via %COMSPEC% / %SystemRoot%\System32 instead of trusting
+// PATH. Some environments (AV-cleaned, custom-policy, or tampered user PATH)
+// drop System32, which makes bare `Command::new("cmd")` fail with "file not
+// found". WezTerm / VS Code / Hyper all use the same fallback chain.
+#[cfg(windows)]
+fn resolve_cmd_exe() -> std::path::PathBuf {
+    if let Ok(comspec) = std::env::var("COMSPEC") {
+        let p = std::path::PathBuf::from(&comspec);
+        if p.exists() {
+            return p;
+        }
+    }
+    if let Ok(sysroot) = std::env::var("SystemRoot") {
+        let p = std::path::PathBuf::from(sysroot).join("System32").join("cmd.exe");
+        if p.exists() {
+            return p;
+        }
+    }
+    std::path::PathBuf::from("cmd")
+}
+
+#[cfg(target_os = "linux")]
+struct TerminalLauncher {
+    binary: std::path::PathBuf,
+    /// Args that go between the terminal binary and the user command, e.g.
+    /// `gnome-terminal --` or `xterm -e`. After these we always append
+    /// `bash -lc <full_command>`.
+    prefix_args: &'static [&'static str],
+}
+
+// Probe the user's system for a usable terminal emulator. Order matters:
+// `x-terminal-emulator` is the Debian/Ubuntu meta-binary that already points
+// at whatever the user picked, so it's the most user-respecting choice. The
+// rest are fallbacks ordered roughly by ubiquity.
+#[cfg(target_os = "linux")]
+fn find_terminal_emulator() -> Option<TerminalLauncher> {
+    const CANDIDATES: &[(&str, &[&str])] = &[
+        ("x-terminal-emulator", &["-e"]),
+        ("gnome-terminal",      &["--"]),
+        ("konsole",             &["-e"]),
+        // xfce4-terminal/tilix accept argv after `-x`; `-e` wants a single string.
+        ("xfce4-terminal",      &["-x"]),
+        ("tilix",               &["-x"]),
+        ("alacritty",           &["-e"]),
+        ("kitty",               &[]),
+        ("wezterm",             &["start", "--"]),
+        ("foot",                &[]),
+        ("xterm",               &["-e"]),
+    ];
+
+    for &(name, prefix_args) in CANDIDATES {
+        if let Ok(path) = which::which(name) {
+            return Some(TerminalLauncher {
+                binary: path,
+                prefix_args,
+            });
+        }
+    }
+    None
 }
 
 // ─── Global singleton ───
