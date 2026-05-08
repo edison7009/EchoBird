@@ -1,5 +1,5 @@
 {
-  "version": "4.2.7",
+  "version": "4.2.8",
   "releaseDate": "2026-05-08",
-  "releaseNotes": "Linux launch fixes: Hermes/OpenCode now open in terminal; Coffee CLI launches the actual desktop binary instead of CoffeeScript."
+  "releaseNotes": "Stop the App Manager scan from auto-launching Coffee CLI on Linux: skip the --version probe for desktop GUI apps so the binary doesn't get spawned just to read its version."
 }
