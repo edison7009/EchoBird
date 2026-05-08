@@ -212,7 +212,11 @@ impl ProcessManager {
             cmd.args(term.prefix_args.iter().copied());
             // bash -l so PATH from .bash_profile / .profile is available; -c so
             // we pass the full command including args as a single shell string.
-            cmd.arg("bash").arg("-lc").arg(&full_command);
+            // Wrap so the terminal stays open if the tool flashes (helps users
+            // see "command not found" or `--help` output instead of a closed
+            // window).
+            let wrapped = wrap_with_pause_on_quick_or_error(&full_command);
+            cmd.arg("bash").arg("-lc").arg(&wrapped);
             cmd.current_dir(&home);
 
             if let Some(ref key) = api_key_env {
@@ -276,9 +280,12 @@ impl ProcessManager {
                 script.push_str(&format!("export OPENAI_BASE_URL={}\n", shq(url)));
             }
             script.push_str(&format!("cd {}\n", shq(&home.to_string_lossy())));
-            // exec replaces bash with the tool, so closing the tool closes
-            // the Terminal tab — matches Linux/Windows UX.
-            script.push_str(&format!("exec {}\n", &full_command));
+            // Don't `exec` — we need code to run after the tool exits so the
+            // user can read errors / help when the tool flashes. The wrapper
+            // only pauses on quick-exit or non-zero status, so a long-running
+            // TUI that exits cleanly still closes the Terminal tab.
+            script.push_str(&wrap_with_pause_on_quick_or_error(&full_command));
+            script.push('\n');
 
             std::fs::write(&script_path, &script)
                 .map_err(|e| format!("Failed to write launch script: {}", e))?;
@@ -661,6 +668,26 @@ fn resolve_cmd_exe() -> std::path::PathBuf {
         }
     }
     std::path::PathBuf::from("cmd")
+}
+
+// Wrap a user command so the terminal stays open when the tool exits quickly
+// or with a non-zero status. The heuristic catches two real failure modes:
+//   - tool not found / immediate error  -> non-zero exit, user needs to read it
+//   - tool ran < 2s and exited 0        -> probably printed `--help` and quit;
+//                                          user wants to see what it printed
+// A long-running TUI (e.g. claude) that the user `/quit`s normally exits 0
+// after >2s, so the terminal closes cleanly — no extra Enter press needed.
+#[cfg(any(target_os = "linux", target_os = "macos"))]
+fn wrap_with_pause_on_quick_or_error(cmd: &str) -> String {
+    let mut s = String::new();
+    s.push_str("start_ts=$(date +%s); ");
+    s.push_str(cmd);
+    s.push_str("; ec=$?; end_ts=$(date +%s); elapsed=$((end_ts - start_ts)); ");
+    s.push_str("if [ $ec -ne 0 ] || [ $elapsed -lt 2 ]; then ");
+    s.push_str("echo; echo \"[exit=$ec, ran ${elapsed}s -- press Enter to close]\"; ");
+    s.push_str("read -r _; ");
+    s.push_str("fi");
+    s
 }
 
 #[cfg(target_os = "linux")]
