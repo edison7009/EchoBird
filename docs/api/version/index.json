@@ -1,5 +1,5 @@
 {
-  "version": "4.2.2",
+  "version": "4.2.4",
   "releaseDate": "2026-05-08",
-  "releaseNotes": "Tool detection fixes (Pi/codex/openclaw bun+pnpm paths) and Tencent COS HK mirror for mainland-CN AI news access."
+  "releaseNotes": "Fix macOS app launch (now opens in Terminal.app with env vars baked into a launch script so TUI tools work)."
 }
