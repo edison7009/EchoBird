@@ -1,0 +1,26 @@
+{
+    "name": "Cursor",
+    "category": "IDE",
+    "noModelConfig": true,
+    "apiProtocol": [
+        "openai"
+    ],
+    "docs": "https://cursor.com/",
+    "website": "https://cursor.com/",
+    "command": "cursor",
+    "configDir": "~/.cursor",
+    "configFile": "~/.cursor/settings.json",
+    "requireConfigFile": false,
+    "paths": {
+        "win32": [
+            "%LOCALAPPDATA%/Programs/cursor/Cursor.exe"
+        ],
+        "darwin": [
+            "/Applications/Cursor.app/Contents/MacOS/Cursor"
+        ],
+        "linux": [
+            "/usr/bin/cursor",
+            "/opt/Cursor/cursor"
+        ]
+    }
+}

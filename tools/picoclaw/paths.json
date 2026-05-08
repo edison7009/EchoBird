@@ -1,12 +1,6 @@
 {
     "name": "PicoClaw",
-    "names": {
-        "zh-CN": "PicoClaw",
-        "zh-TW": "PicoClaw",
-        "ja": "PicoClaw",
-        "ko": "PicoClaw"
-    },
-    "category": "CLI Agent",
+    "category": "Agents",
     "apiProtocol": [
         "openai"
     ],

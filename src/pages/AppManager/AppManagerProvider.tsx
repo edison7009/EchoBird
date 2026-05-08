@@ -54,10 +54,35 @@ export const AppManagerProvider: React.FC<AppManagerProviderProps> = ({ children
     // Internalized state
     const [selectedTool, setSelectedTool] = useState<string | null>(null);
     const [activeToolCategory, setActiveToolCategory] = useState<string>('ALL');
-    const [launchAfterApply, setLaunchAfterApply] = useState(false);
     const [isLaunching, setIsLaunching] = useState(false);
-    const [agreedConfigPolicy, setAgreedConfigPolicy] = useState(true);
     const [applyError, setApplyError] = useState<string | null>(null);
+
+    // Bottom-bar checkbox states are persisted across sessions — users get tired of
+    // re-checking the same boxes every launch. Defaults match prior behavior:
+    // launchAfterApply=false (user usually just wants to write config), apply=true.
+    const readBool = (key: string, fallback: boolean): boolean => {
+        try {
+            const v = localStorage.getItem(key);
+            return v === null ? fallback : v === 'true';
+        } catch { return fallback; }
+    };
+    const writeBool = (key: string, v: boolean) => {
+        try { localStorage.setItem(key, String(v)); } catch { /* private mode */ }
+    };
+    const [launchAfterApply, setLaunchAfterApplyRaw] = useState<boolean>(
+        () => readBool('echobird_appmgr_launch_after', false)
+    );
+    const setLaunchAfterApply = (v: boolean) => {
+        setLaunchAfterApplyRaw(v);
+        writeBool('echobird_appmgr_launch_after', v);
+    };
+    const [agreedConfigPolicy, setAgreedConfigPolicyRaw] = useState<boolean>(
+        () => readBool('echobird_appmgr_apply_config', true)
+    );
+    const setAgreedConfigPolicy = (v: boolean) => {
+        setAgreedConfigPolicyRaw(v);
+        writeBool('echobird_appmgr_apply_config', v);
+    };
 
     // Tool model config (single selection - one model per tool)
     const [toolModelConfig, setToolModelConfig] = useState<Record<string, string | null>>({

@@ -59,7 +59,7 @@ pub struct AgentRequest {
     pub proxy_url: Option<String>,
     pub server_ids: Vec<String>,  // selected SSH servers
     pub skills: Vec<String>,      // skill descriptions
-    /// UI locale (e.g. "zh-Hans", "en", "ja"). Used to hint the agent's response language.
+    /// UI locale ("en" or "zh-Hans"). Used to hint the agent's response language.
     pub locale: Option<String>,
 }
 
@@ -945,16 +945,7 @@ async fn build_system_prompt(request: &AgentRequest, ssh_pool: &SSHPool) -> Stri
         // Map locale code to readable language name for clarity
         let lang_name = match locale.as_str() {
             "zh" | "zh-Hans" => "Simplified Chinese (简体中文)",
-            "zh-Hant" => "Traditional Chinese (繁體中文)",
-            "ja" => "Japanese (日本語)",
-            "ko" => "Korean (한국어)",
-            "de" => "German (Deutsch)",
-            "fr" => "French (Français)",
-            "es" => "Spanish (Español)",
-            "pt" => "Portuguese (Português)",
-            "ru" => "Russian (Русский)",
-            "ar" => "Arabic (العربية)",
-            "en" | _ => "English",
+            _ => "English",
         };
         format!("## User Language\nThe user's interface is set to **{}**. Respond in this language by default unless the user writes in a different language.\n\n", lang_name)
     } else {

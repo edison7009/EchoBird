@@ -1,12 +1,6 @@
 {
     "name": "OpenFang",
-    "names": {
-        "zh-CN": "OpenFang",
-        "zh-TW": "OpenFang",
-        "ja": "OpenFang",
-        "ko": "OpenFang"
-    },
-    "category": "CLI Agent",
+    "category": "Agents",
     "apiProtocol": [
         "openai",
         "anthropic"

@@ -1,0 +1,28 @@
+{
+    "name": "Visual Studio Code",
+    "category": "IDE",
+    "noModelConfig": true,
+    "apiProtocol": [
+        "openai"
+    ],
+    "docs": "https://code.visualstudio.com/docs/setup/setup-overview",
+    "website": "https://code.visualstudio.com/",
+    "command": "code",
+    "configDir": "~/.vscode",
+    "configFile": "~/.vscode/settings.json",
+    "requireConfigFile": false,
+    "paths": {
+        "win32": [
+            "%LOCALAPPDATA%/Programs/Microsoft VS Code/Code.exe",
+            "%ProgramFiles%/Microsoft VS Code/Code.exe"
+        ],
+        "darwin": [
+            "/Applications/Visual Studio Code.app/Contents/MacOS/Electron"
+        ],
+        "linux": [
+            "/usr/bin/code",
+            "/usr/share/code/code",
+            "/snap/bin/code"
+        ]
+    }
+}

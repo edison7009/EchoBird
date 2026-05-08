@@ -152,8 +152,8 @@ pub struct ToolDefinition {
 pub enum ToolCategory {
     #[serde(rename = "CLI Code", alias = "CLI")]
     CLI,
-    #[serde(rename = "CLI Agent", alias = "AgentOS")]
-    AgentOS,
+    #[serde(rename = "Agents", alias = "CLI Agent", alias = "AgentOS")]
+    Agents,
     IDE,
     AutoTrading,
     Game,

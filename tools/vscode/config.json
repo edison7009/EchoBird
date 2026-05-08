@@ -1,0 +1,6 @@
+{
+    "docs": "https://code.visualstudio.com/docs/setup/setup-overview",
+    "configFile": "~/.vscode/settings.json",
+    "format": "json",
+    "custom": false
+}

@@ -1,0 +1,40 @@
+{
+    "id": "aider",
+    "displayName": "Aider (CLI)",
+    "homepage": "https://aider.chat/",
+    "docs": "https://aider.chat/docs/",
+    "github": "https://github.com/Aider-AI/aider",
+    "kind": "cli",
+    "platforms": ["windows", "macos", "linux"],
+    "install": {
+        "pipx (all platforms — recommended)": "python -m pip install --user pipx && pipx install aider-chat",
+        "pip (all platforms — fallback)": "python -m pip install --user aider-chat",
+        "brew (macOS)": "brew install aider",
+        "WARNING": "Aider requires Python 3.10–3.12. If `python` is missing or older, install it first (winget Python.Python.3.12 / brew install python@3.12 / apt install python3-pip). pipx is preferred over plain pip because it isolates aider into its own venv and puts it on PATH automatically.",
+        "note": "After install, verify with `aider --version`. The first run will pick up API credentials from environment vars (OPENAI_API_KEY / ANTHROPIC_API_KEY) or from ~/.aider.conf.yml — Echobird's 'Update model config' flow writes the YAML for you."
+    },
+    "install_flow": {
+        "summary": "Detect Python 3.10+ → install pipx if missing → pipx install aider-chat → verify",
+        "agent_steps": [
+            "Detect OS and verify Python ≥ 3.10 with `python --version` / `python3 --version`. If missing or older, install Python first via the platform's package manager (winget Python.Python.3.12, brew install python@3.12, apt install python3 python3-pip, etc.).",
+            "Prefer pipx — `python -m pip install --user pipx` then `python -m pipx ensurepath`, then `pipx install aider-chat`.",
+            "If pipx isn't available and the user is OK with a global pip install, `python -m pip install --user aider-chat` works.",
+            "After install, run `aider --version` to confirm. If the command isn't found, instruct the user to restart their shell so PATH updates take effect.",
+            "Tell the user that model selection happens via Echobird's App Manager — clicking 'Update model config' writes ~/.aider.conf.yml with the chosen base URL / API key / model."
+        ],
+        "tell_user": [
+            "Python prerequisite (and how to install if missing)",
+            "That `aider` is now on PATH (may need a shell restart)",
+            "That ~/.aider.conf.yml is the config file Echobird writes when applying a model"
+        ]
+    },
+    "network_requirements": {
+        "test_urls": ["https://pypi.org", "https://aider.chat"],
+        "mirrors": {
+            "pip (China)": "python -m pip install --user aider-chat -i https://pypi.tuna.tsinghua.edu.cn/simple"
+        }
+    },
+    "identity_guard": {
+        "description": "Aider is an open-source CLI coding agent (paul-gauthier / Aider-AI on GitHub) that supports OpenAI, Anthropic, and many OpenAI-compatible endpoints. It is NOT Aider Pro / aider.app / any commercial fork — install ONLY via pip/pipx/brew from the canonical `aider-chat` package."
+    }
+}

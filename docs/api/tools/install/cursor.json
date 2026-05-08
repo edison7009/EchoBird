@@ -1,0 +1,37 @@
+{
+    "id": "cursor",
+    "displayName": "Cursor",
+    "homepage": "https://cursor.com/",
+    "docs": "https://cursor.com/",
+    "kind": "ide",
+    "platforms": ["windows", "macos", "linux"],
+    "install": {
+        "windows_winget": "winget install --id Anysphere.Cursor --accept-package-agreements --accept-source-agreements",
+        "windows_download": "Open https://cursor.com/download in the browser, click the Windows installer. Saves to %USERPROFILE%\\Downloads by default.",
+        "macos_download": "Open https://cursor.com/download in the browser, click the macOS download (.dmg). Saves to ~/Downloads by default.",
+        "linux_download": "Open https://cursor.com/download for the Linux AppImage. Save it to ~/Applications, `chmod +x`, and run.",
+        "note": "GUI IDE — VS Code fork by Anysphere. AI features and model selection are built into the app; Echobird does not switch its model."
+    },
+    "install_flow": {
+        "summary": "winget if available → otherwise download installer → user runs the wizard or AppImage",
+        "agent_steps": [
+            "Detect OS first.",
+            "Windows: prefer `winget install --id Anysphere.Cursor` if winget is available — silent install.",
+            "Manual fallback: download the installer to the user's Downloads folder using `Invoke-WebRequest` (Windows) or `curl -L -o` (macOS/Linux).",
+            "After download finishes, tell the user the EXACT file path.",
+            "Open the installer (`Start-Process` on Windows, `open` on macOS).",
+            "Linux AppImage: `chmod +x` the file and tell the user how to launch it.",
+            "Tell the user: 'Cursor 安装向导已打开,请按向导点击下一步完成安装。' / 'The Cursor installer is open — follow the wizard to finish.'",
+            "Do NOT try to automate the GUI wizard."
+        ],
+        "tell_user": [
+            "Download location (full path) when manual",
+            "That the installer was opened or that winget is installing silently",
+            "That Cursor handles its own model selection — Echobird does NOT switch models for it"
+        ]
+    },
+    "network_requirements": {
+        "test_urls": ["https://cursor.com", "https://download.cursor.sh"],
+        "mirrors": {}
+    }
+}

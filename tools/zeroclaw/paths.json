@@ -1,12 +1,6 @@
 {
     "name": "ZeroClaw",
-    "names": {
-        "zh-CN": "ZeroClaw",
-        "zh-TW": "ZeroClaw",
-        "ja": "ZeroClaw",
-        "ko": "ZeroClaw"
-    },
-    "category": "CLI Agent",
+    "category": "Agents",
     "apiProtocol": [
         "openai"
     ],

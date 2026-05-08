@@ -80,7 +80,7 @@ const en: Translations = {
     'agent.noModelsHintPre': 'Go to',
     'agent.noModelsHintPost': 'to add one.',
     'agent.applyAndLaunch': 'Launch app directly',
-    'agent.appliedVia': 'Applied via official config files',
+    'agent.appliedVia': 'Update model config',
     'agent.noModelConfig': 'This app does not support model configuration',
     'agent.restore': 'Default',
     // Local Server
@@ -127,7 +127,7 @@ const en: Translations = {
     'common.areYouSure': 'Are you sure?',
     // Tool categories
     'toolCat.all': 'ALL',
-    'toolCat.agentOS': 'CLI Agent',
+    'toolCat.agents': 'Agents',
     'toolCat.ide': 'IDE',
     'toolCat.cli': 'CLI Code',
     'toolCat.autoTrading': 'AutoTrading',

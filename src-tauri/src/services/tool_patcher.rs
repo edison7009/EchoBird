@@ -8,79 +8,9 @@ const ECHOBIRD_BACKUP_EXT: &str = ".echobird-backup";
 
 // ─── Patch Markers ───
 
-const CLINE_MARKER: &str = "/* [Echobird-Patched] */";
-const ROOCODE_MARKER: &str = "/* [Echobird-RooCode-Patched] */";
-const KILOCODE_MARKER: &str = "/* [Echobird-KiloCode-Patched] */";
 const OPENCLAW_MARKER: &str = "/* [Echobird-Patched] */";
 
 // ─── Injection Code Strings ───
-
-const CLINE_INJECT: &str = r#"
-/* [Echobird-Patched] */
-(function(){try{
-var _wc_fs=require("fs"),_wc_path=require("path"),_wc_os=require("os");
-var _wc_cfg_path=_wc_path.join(_wc_os.homedir(),".echobird","cline.json");
-if(_wc_fs.existsSync(_wc_cfg_path)){
-var _wc_cfg=JSON.parse(_wc_fs.readFileSync(_wc_cfg_path,"utf-8"));
-if(_wc_cfg.apiKey&&_wc_cfg.modelId){
-var _inst=t.instance,_gs=_inst.globalStateCache,_sc=_inst.secretsCache;
-var _mi={maxTokens:8192,contextWindow:128000,supportsImages:true,supportsPromptCache:false,inputPrice:0,outputPrice:0,description:"[EchoBird] "+(_wc_cfg.modelName||_wc_cfg.modelId)};
-_gs.actModeApiProvider="openai";
-_gs.planModeApiProvider="openai";
-_gs.actModeOpenAiModelId=_wc_cfg.modelId;
-_gs.planModeOpenAiModelId=_wc_cfg.modelId;
-if(_wc_cfg.baseUrl)_gs.openAiBaseUrl=_wc_cfg.baseUrl;
-_gs.actModeOpenAiModelInfo=_mi;
-_gs.planModeOpenAiModelInfo=_mi;
-_sc.openAiApiKey=_wc_cfg.apiKey;
-console.log("[EchoBird] Loaded: openai-compat, model="+_wc_cfg.modelId);
-}}
-}catch(_wc_err){console.warn("[EchoBird] Failed to load config:",_wc_err.message);}})(),
-"#;
-
-const ROOCODE_INJECT: &str = r#"
-/* [Echobird-RooCode-Patched] */
-(function(){try{
-var _wc_fs=require("fs"),_wc_path=require("path"),_wc_os=require("os");
-var _wc_cfg_path=_wc_path.join(_wc_os.homedir(),".echobird","roocode.json");
-if(_wc_fs.existsSync(_wc_cfg_path)){
-var _wc_cfg=JSON.parse(_wc_fs.readFileSync(_wc_cfg_path,"utf-8"));
-if(_wc_cfg.apiKey&&_wc_cfg.modelId){
-var _gs=this.stateCache,_sc=this.secretCache,_ctx=this.originalContext;
-_gs.apiProvider="openai";
-_gs.openAiModelId=_wc_cfg.modelId;
-if(_wc_cfg.baseUrl)_gs.openAiBaseUrl=_wc_cfg.baseUrl;
-_sc.openAiApiKey=_wc_cfg.apiKey;
-_ctx.globalState.update("apiProvider","openai");
-_ctx.globalState.update("openAiModelId",_wc_cfg.modelId);
-if(_wc_cfg.baseUrl)_ctx.globalState.update("openAiBaseUrl",_wc_cfg.baseUrl);
-_ctx.secrets.store("openAiApiKey",_wc_cfg.apiKey);
-console.log("[EchoBird] RooCode loaded: model="+_wc_cfg.modelId);
-}}
-}catch(_wc_err){console.warn("[EchoBird] RooCode config error:",_wc_err.message);}}).call(this),
-"#;
-
-const KILOCODE_INJECT: &str = r#"
-/* [Echobird-KiloCode-Patched] */
-(function(){try{
-var _wc_fs=require("fs"),_wc_path=require("path"),_wc_os=require("os");
-var _wc_cfg_path=_wc_path.join(_wc_os.homedir(),".echobird","kilocode.json");
-if(_wc_fs.existsSync(_wc_cfg_path)){
-var _wc_cfg=JSON.parse(_wc_fs.readFileSync(_wc_cfg_path,"utf-8"));
-if(_wc_cfg.apiKey&&_wc_cfg.modelId){
-var _gs=this.stateCache,_sc=this.secretCache,_ctx=this.originalContext;
-_gs.apiProvider="openai";
-_gs.openAiModelId=_wc_cfg.modelId;
-if(_wc_cfg.baseUrl)_gs.openAiBaseUrl=_wc_cfg.baseUrl;
-_sc.openAiApiKey=_wc_cfg.apiKey;
-_ctx.globalState.update("apiProvider","openai");
-_ctx.globalState.update("openAiModelId",_wc_cfg.modelId);
-if(_wc_cfg.baseUrl)_ctx.globalState.update("openAiBaseUrl",_wc_cfg.baseUrl);
-_ctx.secrets.store("openAiApiKey",_wc_cfg.apiKey);
-console.log("[EchoBird] KiloCode loaded: model="+_wc_cfg.modelId);
-}}
-}catch(_wc_err){console.warn("[EchoBird] KiloCode config error:",_wc_err.message);}}).call(this),
-"#;
 
 // OpenClaw injection: ESM import style
 // Compatible with OpenClaw v2026.3.11+: removed deprecated auth/authHeader fields,
@@ -163,23 +93,6 @@ import { homedir as _wc_homedir } from "node:os";
 "#;
 
 // ─── Installation Directories ───
-
-/// Find VS Code extension directory by prefix
-fn find_vscode_extension(prefix: &str) -> Option<PathBuf> {
-    let extensions_dir = dirs::home_dir()?.join(".vscode").join("extensions");
-    if !extensions_dir.exists() { return None; }
-
-    let mut matches: Vec<String> = fs::read_dir(&extensions_dir).ok()?
-        .filter_map(|e| e.ok())
-        .filter_map(|e| e.file_name().into_string().ok())
-        .filter(|name| name.starts_with(prefix))
-        .collect();
-
-    matches.sort();
-    matches.reverse(); // latest version first
-
-    matches.first().map(|name| extensions_dir.join(name))
-}
 
 /// Find npm global module install directory
 fn find_npm_global_module(package_name: &str) -> Option<PathBuf> {
@@ -288,133 +201,6 @@ fn patch_entry_file(entry_path: &Path, config: &PatchConfig) -> bool {
 }
 
 // ─── Tool-Specific Patchers ───
-
-/// Patch Cline extension
-pub fn patch_cline() {
-    let ext_dir = match find_vscode_extension("saoudrizwan.claude-dev-") {
-        Some(d) => d,
-        None => { log::info!("[Patcher] Cline extension not found, skipping"); return; }
-    };
-
-    let entry = ext_dir.join("dist").join("extension.js");
-    patch_entry_file(&entry, &PatchConfig {
-        marker: CLINE_MARKER,
-        inject_code: CLINE_INJECT,
-        search_patterns: vec![".populateCache(r,n,o),"],
-        inject_after: true,
-    });
-}
-
-/// Patch Roo Code extension
-pub fn patch_roocode() {
-    let ext_dir = match find_vscode_extension("rooveterinaryinc.roo-cline-") {
-        Some(d) => d,
-        None => { log::info!("[Patcher] Roo Code extension not found, skipping"); return; }
-    };
-
-    let entry = ext_dir.join("dist").join("extension.js");
-
-    // Roo Code needs special handling: find the _isInitialized=!0 near stateCache
-    if !entry.exists() {
-        log::warn!("[Patcher] Roo Code extension.js not found: {:?}", entry);
-        return;
-    }
-
-    let backup = PathBuf::from(format!("{}{}", entry.display(), ECHOBIRD_BACKUP_EXT));
-    let mut content = match fs::read_to_string(&entry) {
-        Ok(c) => c,
-        Err(e) => { log::warn!("[Patcher] Failed to read roocode: {}", e); return; }
-    };
-
-    if content.contains(ROOCODE_MARKER) {
-        if backup.exists() {
-            content = match fs::read_to_string(&backup) {
-                Ok(c) => c,
-                Err(_) => return,
-            };
-        } else { return; }
-    } else {
-        let _ = fs::copy(&entry, &backup);
-    }
-
-    // Find _isInitialized=!0 near stateCache/secretCache
-    let pattern = "this._isInitialized=!0";
-    let mut target_idx = None;
-    let mut search_from = 0;
-    while let Some(idx) = content[search_from..].find(pattern) {
-        let abs_idx = search_from + idx;
-        let start = if abs_idx > 2000 { abs_idx - 2000 } else { 0 };
-        let nearby = &content[start..abs_idx];
-        if nearby.contains("stateCache") && nearby.contains("secretCache") {
-            target_idx = Some(abs_idx);
-            break;
-        }
-        search_from = abs_idx + pattern.len();
-    }
-
-    if let Some(idx) = target_idx {
-        let patched = format!("{}{}{}", &content[..idx], ROOCODE_INJECT, &content[idx..]);
-        let _ = fs::write(&entry, &patched);
-        log::info!("[Patcher] Roo Code patched successfully");
-    } else {
-        log::warn!("[Patcher] Roo Code injection point not found");
-    }
-}
-
-/// Patch KiloCode VS Code extension (fork of RooCode — identical injection pattern)
-pub fn patch_kilocode() {
-    let ext_dir = match find_vscode_extension("kilocode.kilo-code-") {
-        Some(d) => d,
-        None => { log::info!("[Patcher] KiloCode extension not found, skipping"); return; }
-    };
-
-    let entry = ext_dir.join("dist").join("extension.js");
-
-    if !entry.exists() {
-        log::warn!("[Patcher] KiloCode extension.js not found: {:?}", entry);
-        return;
-    }
-
-    let backup = PathBuf::from(format!("{}{}", entry.display(), ECHOBIRD_BACKUP_EXT));
-    let mut content = match fs::read_to_string(&entry) {
-        Ok(c) => c,
-        Err(e) => { log::warn!("[Patcher] Failed to read kilocode: {}", e); return; }
-    };
-
-    if content.contains(KILOCODE_MARKER) {
-        if backup.exists() {
-            content = match fs::read_to_string(&backup) {
-                Ok(c) => c,
-                Err(_) => return,
-            };
-        } else { return; }
-    } else {
-        let _ = fs::copy(&entry, &backup);
-    }
-
-    // Same injection point as RooCode: _isInitialized=!0 near stateCache/secretCache
-    let pattern = "this._isInitialized=!0";
-    let mut target_idx = None;
-    let mut search_from = 0;
-    while let Some(idx) = content[search_from..].find(pattern) {
-        let abs_idx = search_from + idx;
-        let start = if abs_idx > 2000 { abs_idx - 2000 } else { 0 };
-        let nearby = &content[start..abs_idx];
-        if nearby.contains("stateCache") && nearby.contains("secretCache") {
-            target_idx = Some(abs_idx);
-            break;
-        }
-        search_from = abs_idx + pattern.len();
-    }
-
-    if let Some(idx) = target_idx {
-        let patched = format!("{}{}{}", &content[..idx], KILOCODE_INJECT, &content[idx..]);
-        let _ = fs::write(&entry, &patched);
-        log::info!("[Patcher] KiloCode patched successfully");
-    } else {
-        log::warn!("[Patcher] KiloCode injection point not found");
-    }
-}
 
 /// Patch OpenClaw CLI tool
 pub fn patch_openclaw() {
@@ -1017,9 +803,6 @@ pub fn patch_hermes() {
 /// Dispatch patch by tool ID
 pub fn patch_tool(tool_id: &str) {
     match tool_id {
-        "cline" => patch_cline(),
-        "roocode" => patch_roocode(),
-        "kilocode" => patch_kilocode(),
         "openclaw" => patch_openclaw(),
         "opencode" => patch_opencode(),
         "zeroclaw" => patch_zeroclaw(),

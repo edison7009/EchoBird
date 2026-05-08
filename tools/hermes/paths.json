@@ -1,6 +1,6 @@
 {
     "name": "Hermes Agent",
-    "category": "CLI Agent",
+    "category": "Agents",
     "apiProtocol": [
         "openai"
     ],
@@ -26,7 +26,11 @@
         ]
     },
     "skillsPath": {
-        "darwin": ["~/.hermes/skills"],
-        "linux": ["~/.hermes/skills"]
+        "darwin": [
+            "~/.hermes/skills"
+        ],
+        "linux": [
+            "~/.hermes/skills"
+        ]
     }
 }

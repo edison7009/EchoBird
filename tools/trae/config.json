@@ -1,0 +1,6 @@
+{
+    "docs": "https://docs.trae.ai/ide/",
+    "configFile": "~/.trae/settings.json",
+    "format": "json",
+    "custom": false
+}

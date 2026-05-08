@@ -1,11 +1,5 @@
 {
     "name": "Coffee CLI",
-    "names": {
-        "zh-Hans": "Coffee CLI",
-        "zh-Hant": "Coffee CLI",
-        "ja": "Coffee CLI",
-        "ko": "Coffee CLI"
-    },
     "category": "Desktop",
     "noModelConfig": true,
     "apiProtocol": [

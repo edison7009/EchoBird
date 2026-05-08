@@ -1,0 +1,38 @@
+{
+    "id": "qwencode",
+    "displayName": "Qwen Code (CLI)",
+    "homepage": "https://qwen.ai/qwencode",
+    "docs": "https://qwenlm.github.io/qwen-code-docs/en/users/overview/",
+    "github": "https://github.com/QwenLM/qwen-code",
+    "kind": "cli",
+    "platforms": ["windows", "macos", "linux"],
+    "install": {
+        "npm (all platforms — recommended)": "npm install -g @qwen-code/qwen-code",
+        "bun (all platforms)": "bun add -g @qwen-code/qwen-code",
+        "WARNING": "The npm package name is EXACTLY '@qwen-code/qwen-code'. Do NOT install 'qwen-code' or 'qwen' alone (wrong packages). The CLI binary that lands on PATH is `qwen` (not `qwen-code`).",
+        "note": "Qwen Code is Alibaba's open-source coding agent CLI (a fork of Gemini CLI tuned for Qwen models). Requires Node.js ≥ 20. After install, verify with `qwen --version`. Config lives at ~/.qwen/settings.json — Echobird's 'Update model config' flow writes it for you."
+    },
+    "install_flow": {
+        "summary": "Detect Node ≥ 20 → npm install -g @qwen-code/qwen-code → verify",
+        "agent_steps": [
+            "Detect OS and verify Node.js ≥ 20 with `node --version`. If missing or older, install Node via nvm / winget OpenJS.NodeJS / brew install node first.",
+            "Run `npm install -g @qwen-code/qwen-code` (or `bun add -g @qwen-code/qwen-code` if the user prefers bun).",
+            "After install, run `qwen --version` to confirm. The CLI binary is `qwen`, not `qwen-code` — point this out to avoid confusion.",
+            "Tell the user that model selection happens via Echobird's App Manager — clicking 'Update model config' writes ~/.qwen/settings.json with the chosen base URL / API key / model."
+        ],
+        "tell_user": [
+            "Node.js prerequisite (and how to install if missing)",
+            "That the CLI binary is `qwen`, not `qwen-code`",
+            "That ~/.qwen/settings.json is the config file Echobird writes when applying a model"
+        ]
+    },
+    "network_requirements": {
+        "test_urls": ["https://registry.npmjs.org/@qwen-code/qwen-code", "https://github.com/QwenLM/qwen-code"],
+        "mirrors": {
+            "npm (China)": "npm install -g @qwen-code/qwen-code --registry=https://registry.npmmirror.com"
+        }
+    },
+    "identity_guard": {
+        "description": "Qwen Code is Alibaba/QwenLM's open-source coding agent CLI (`@qwen-code/qwen-code` on npm, QwenLM/qwen-code on GitHub). It is a Qwen-optimized fork of Google's Gemini CLI. It is NOT 'Qwen Coder' (the model itself) and NOT 'Qwen-Agent' (a different agent framework) — they are separate products that happen to share the Qwen brand."
+    }
+}

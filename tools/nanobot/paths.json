@@ -1,12 +1,6 @@
 {
     "name": "NanoBot",
-    "names": {
-        "zh-CN": "NanoBot",
-        "zh-TW": "NanoBot",
-        "ja": "NanoBot",
-        "ko": "NanoBot"
-    },
-    "category": "CLI Agent",
+    "category": "Agents",
     "apiProtocol": [
         "openai"
     ],

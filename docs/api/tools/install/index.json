@@ -1,6 +1,9 @@
 {
     "ids": [
         "claudecode",
+        "codex",
+        "qwencode",
+        "aider",
         "openclaw",
         "opencode",
         "zeroclaw",
@@ -11,6 +14,11 @@
         "claudedesktop",
         "codexdesktop",
         "geminidesktop",
-        "coffeecli"
+        "coffeecli",
+        "vscode",
+        "cursor",
+        "windsurf",
+        "trae",
+        "traecn"
     ]
 }

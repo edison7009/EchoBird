@@ -1,0 +1,6 @@
+{
+    "docs": "https://docs.windsurf.com/windsurf/getting-started",
+    "configFile": "~/.codeium/windsurf/settings.json",
+    "format": "json",
+    "custom": false
+}
