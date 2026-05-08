@@ -30,8 +30,6 @@ Friends kept asking me to install **Claude Code**, **OpenClaw**, **Hermes Agent*
 
 So I built **EchoBird**. The name is a nod to **Songbird** from *Cyberpunk 2077* — the netrunner who can fix any tech problem for V. The look-and-feel, however, pulls from **earlier cyberpunk** — phosphor-green terminals, *Neuromancer*, the Matrix-era hacker aesthetic — not the neon-magenta gloss of 2077. EchoBird installs every AI tool with one click, points them at the model of your choice (cloud, local, or relay), and gets out of your way.
 
-> Both light and dark UI themes are first-class. The screenshots below adapt to your GitHub theme.
-
 ## Highlights
 
 - **One-click install** for Claude Code, OpenClaw, Hermes Agent, and more
@@ -45,10 +43,18 @@ So I built **EchoBird**. The name is a nod to **Songbird** from *Cyberpunk 2077*
 
 ### AI News & Star Projects — your daily AI brief
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/news-en-dark.png">
-  <img alt="AI News" src="docs/screenshots/news-en-light.png" width="100%">
-</picture>
+> Day & night, side by side — the rest of the screenshots below follow your GitHub theme.
+
+<table>
+<tr>
+  <td width="50%"><img src="docs/screenshots/news-en-light.png" alt="AI News (Light)" /></td>
+  <td width="50%"><img src="docs/screenshots/news-en-dark.png" alt="AI News (Dark)" /></td>
+</tr>
+<tr>
+  <td align="center"><sub>☀️ Light theme</sub></td>
+  <td align="center"><sub>🌙 Dark theme</sub></td>
+</tr>
+</table>
 
 ### Model Nexus — manage every model, speed-test in one click
 

@@ -29,8 +29,6 @@
 
 于是我做了 **EchoBird**。名字致敬《赛博朋克 2077》里的女网客 **Songbird**,她总能帮主角 V 搞定一切技术难题。但视觉气质并不取自 2077 的霓虹粉黄,而是更早期的赛博朋克 —— **绿色磷光终端、《神经漫游者》、《黑客帝国》那个时代的黑客味**。EchoBird 一键装好所有 AI 工具,把它们指向你选定的模型(云端 / 本地 / 中转),然后安静地退到一边。
 
-> 浅色和深色主题都是一等公民,下面的截图会跟着你 GitHub 的主题切换。
-
 ## 亮点
 
 - **一键安装** Claude Code、OpenClaw、Hermes Agent 等多款主流 AI 工具
@@ -44,10 +42,18 @@
 
 ### AI 资讯 & 明星项目 —— 每天的 AI 简报
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/news-cn-dark.png">
-  <img alt="AI 资讯" src="docs/screenshots/news-cn-light.png" width="100%">
-</picture>
+> 白天和晚上,左右对照看一眼 —— 下面其他截图会跟着你 GitHub 的主题切换。
+
+<table>
+<tr>
+  <td width="50%"><img src="docs/screenshots/news-cn-light.png" alt="AI 资讯(浅色)" /></td>
+  <td width="50%"><img src="docs/screenshots/news-cn-dark.png" alt="AI 资讯(深色)" /></td>
+</tr>
+<tr>
+  <td align="center"><sub>☀️ 浅色主题</sub></td>
+  <td align="center"><sub>🌙 深色主题</sub></td>
+</tr>
+</table>
 
 ### 模型中心 —— 统一管理,一键测速
 
