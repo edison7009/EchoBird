@@ -301,7 +301,7 @@ export const LocalServerMain: React.FC = () => {
         // Shared button styles — solid fill matching AppManager launch button
         const disabledStart = !isRunning && (!selectedModelPath || engineStatus === 'not-installed' || engineStatus === 'downloading' || engineStatus === 'checking' || engineStatus === 'error');
         const btnBase = 'font-bold text-base font-mono transition-all flex items-center justify-center gap-2 flex-shrink-0 rounded-lg';
-        const btnActive = 'bg-cyber-accent/15 text-cyber-accent border border-cyber-accent/40 hover:bg-cyber-accent/25 hover:border-cyber-accent/60';
+        const btnActive = 'bg-cyber-accent text-white border border-cyber-accent hover:bg-cyber-accent-secondary hover:border-cyber-accent-secondary shadow-lg shadow-cyber-accent/30';
         const btnDisabled = 'bg-cyber-border/60 text-cyber-text-secondary cursor-not-allowed';
         const btnStop = 'bg-red-500 text-white hover:bg-red-600 shadow-[0_0_8px_rgba(239,68,68,0.2)]';
 
@@ -338,7 +338,7 @@ export const LocalServerMain: React.FC = () => {
                     <button
                         onClick={handleDownloadEngine}
                         className="flex-1 py-3 font-bold text-base tracking-[0.3em] font-mono transition-all flex items-center justify-center gap-2 rounded-lg
-                            bg-cyber-accent/15 text-cyber-accent border border-cyber-accent/40 hover:bg-cyber-accent/25 hover:border-cyber-accent/60"
+                            bg-cyber-accent text-white border border-cyber-accent hover:bg-cyber-accent-secondary hover:border-cyber-accent-secondary shadow-lg shadow-cyber-accent/30"
                     >
                         <Download className="w-4 h-4" />
                         {engineStatus === 'error' ? `\u26A0 ${t('server.setupEngine')}` : t('server.setupEngine')}
@@ -806,9 +806,9 @@ export const LocalServerPanel: React.FC = () => {
 
                 {/* ── LOCAL Tab ── */}
                 {activeTab === 'local' && (
-                    <>
+                    <div className="h-full flex flex-col">
                         {/* Directory Management Toolbar */}
-                        <div className="flex items-center gap-2 mb-3">
+                        <div className="flex items-center gap-2 mb-3 flex-shrink-0">
                             {!isDeleteMode ? (
                                 <>
                                     <button
@@ -991,8 +991,8 @@ export const LocalServerPanel: React.FC = () => {
                                 })}
                             </div>
                         ) : (
-                            <div className="text-center py-10">
-                                <HardDrive className="w-8 h-8 text-cyber-text-secondary mx-auto mb-3 opacity-50" />
+                            <div className="flex-1 flex flex-col items-center justify-center text-center">
+                                <HardDrive className="w-8 h-8 text-cyber-text-secondary mb-3 opacity-50" />
                                 <p className="text-sm text-cyber-text-secondary">{t('server.selectModelDir')}</p>
                                 <p className="text-xs text-cyber-text-secondary mt-1 opacity-70">{t('server.downloadFromStore')}</p>
                                 {localDirs.length > 0 && (
@@ -1004,7 +1004,7 @@ export const LocalServerPanel: React.FC = () => {
                                 )}
                             </div>
                         )}
-                    </>
+                    </div>
                 )}
 
                 {/* ── STORE Tab ── */}

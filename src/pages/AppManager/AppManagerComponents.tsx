@@ -290,6 +290,22 @@ export const ModelListSection: React.FC<ModelListSectionProps> = ({
         );
     };
 
+    // Fully empty: no local models, no cloud models, no official endpoint.
+    // Show only the centered placeholder — the "select model for X" heading
+    // would be misleading when there's nothing to select anyway.
+    const isEmpty = cloudModels.length === 0 && !official && localModels.length === 0;
+    if (isEmpty) {
+        return (
+            <div className="h-full flex flex-col items-center justify-center gap-3 text-center">
+                <BoxIcon size={28} className="text-cyber-text opacity-25" />
+                <p className="text-[12px] text-cyber-text-secondary font-mono leading-relaxed">
+                    {t('agent.noModelsTitle')}<br />
+                    {t('agent.noModelsHintPre')} <span className="text-cyber-text font-bold">{t('nav.modelNexus')}</span> {t('agent.noModelsHintPost')}
+                </p>
+            </div>
+        );
+    }
+
     return (
         <>
             {/* Local models area */}
@@ -309,15 +325,6 @@ export const ModelListSection: React.FC<ModelListSectionProps> = ({
                 {official && renderOfficialCard(official)}
                 {cloudModels.map(renderModelCard)}
             </div>
-            {cloudModels.length === 0 && !official && localModels.length === 0 && (
-                <div className="py-10 flex flex-col items-center gap-3 text-center">
-                    <BoxIcon size={28} className="text-cyber-text opacity-25" />
-                    <p className="text-[12px] text-cyber-text-secondary font-mono leading-relaxed">
-                        {t('agent.noModelsTitle')}<br />
-                        {t('agent.noModelsHintPre')} <span className="text-cyber-text font-bold">{t('nav.modelNexus')}</span> {t('agent.noModelsHintPost')}
-                    </p>
-                </div>
-            )}
         </>
     );
 };
@@ -351,14 +358,14 @@ export const AppManagerPanel: React.FC = () => {
             <div className="flex-1 p-2 overflow-y-auto">
                 {selectedToolData ? (
                     selectedToolData.noModelConfig ? (
-                        <div className="py-10 flex flex-col items-center gap-3 text-center">
+                        <div className="h-full flex flex-col items-center justify-center gap-3 text-center">
                             <BoxIcon size={28} className="text-cyber-text opacity-25" />
                             <p className="text-[12px] text-cyber-text-secondary font-mono leading-relaxed">
                                 {t('agent.noModelConfig')}
                             </p>
                         </div>
                     ) : (
-                        <div className="space-y-2">
+                        <div className="space-y-2 h-full">
                             <ModelListSection
                                 selectedToolData={selectedToolData}
                                 userModels={userModels}
@@ -372,9 +379,11 @@ export const AppManagerPanel: React.FC = () => {
                         </div>
                     )
                 ) : (
-                    <p className="text-cyber-text-secondary text-center py-10">
-                        {t('agent.selectTool')}
-                    </p>
+                    <div className="h-full flex items-center justify-center">
+                        <p className="text-cyber-text-secondary text-center">
+                            {t('agent.selectTool')}
+                        </p>
+                    </div>
                 )}
             </div>
         </>
@@ -406,9 +415,9 @@ export const AppManagerBottom: React.FC = () => {
                 <button
                     onClick={handleLaunch}
                     disabled={buttonDisabled}
-                    className={`w-64 h-14 text-lg font-bold font-mono tracking-widest transition-colors flex-shrink-0 rounded-lg cjk-btn border ${buttonDisabled
-                        ? 'bg-cyber-border text-cyber-text-secondary border-transparent cursor-not-allowed'
-                        : 'bg-cyber-accent/15 text-cyber-accent border-cyber-accent/40 hover:bg-cyber-accent/25 hover:border-cyber-accent/60'
+                    className={`w-64 h-14 text-lg font-bold font-mono tracking-widest transition-colors flex-shrink-0 rounded-lg cjk-btn border shadow-lg ${buttonDisabled
+                        ? 'bg-cyber-border text-cyber-text-secondary border-transparent shadow-none cursor-not-allowed'
+                        : 'bg-cyber-accent text-white border-cyber-accent hover:bg-cyber-accent-secondary hover:border-cyber-accent-secondary shadow-cyber-accent/30'
                         }`}
                 >
                     {(noModelConfig || launchAfterApply) ? t('btn.launchApp') : t('btn.modifyOnly')}

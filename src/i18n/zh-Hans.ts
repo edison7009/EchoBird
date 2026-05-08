@@ -87,7 +87,7 @@ const zhHans: Partial<Translations> = {
     'server.local': '本地',
     'server.store': '商店',
     'server.selectModelDir': '选择模型目录',
-    'server.downloadFromStore': '从商店下载模型',
+    'server.downloadFromStore': '或从商店下载模型',
     'download.changePath': '更改下载路径',
     'download.selectNewDir': '选择新的默认模型下载目录？',
     'quant.light': '轻量',

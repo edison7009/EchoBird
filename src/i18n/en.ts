@@ -98,7 +98,7 @@ const en: Translations = {
     'server.local': 'LOCAL',
     'server.store': 'STORE',
     'server.selectModelDir': 'Select model directory',
-    'server.downloadFromStore': 'Download models from the STORE',
+    'server.downloadFromStore': 'or download from the STORE',
     // Download / Model Store
     'download.location': 'Download location:',
     'download.changePath': 'Change Download Path',
