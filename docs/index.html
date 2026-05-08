@@ -417,6 +417,60 @@
             opacity: 0.7;
         }
 
+        /* ── Showcase (product screenshots) ── */
+        .showcase-section {
+            position: relative;
+            z-index: 1;
+            padding: 60px 32px 40px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .showcase-list {
+            display: flex;
+            flex-direction: column;
+            gap: 56px;
+            margin-top: 56px;
+        }
+
+        .showcase-item {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        .showcase-item .shot-wrap {
+            border-radius: 14px;
+            overflow: hidden;
+            border: 1px solid var(--border-strong);
+            box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
+            background: var(--bg2);
+        }
+
+        .showcase-item img {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        .showcase-item .shot-caption {
+            font-family: var(--mono);
+            font-size: 13px;
+            color: var(--text);
+            text-align: center;
+            letter-spacing: 0.3px;
+        }
+
+        @media (max-width: 600px) {
+            .showcase-section {
+                padding: 40px 16px 20px;
+            }
+            .showcase-list {
+                gap: 40px;
+                margin-top: 40px;
+            }
+        }
+
         /* ── Section heading ── */
         .section {
             position: relative;
@@ -989,13 +1043,22 @@
                 'meta.ogTitle': 'EchoBird — AI 部署不再是先有鸡先有蛋',
                 'meta.ogDesc': '一键安装 Agent · 一键切换模型 · 一键部署本地大模型',
                 'nav.brand': 'EchoBird',
+                'nav.showcase': '界面',
                 'nav.features': '功能',
                 'nav.tools': '支持工具',
                 'nav.feedback': '问题反馈',
                 'nav.download': '下载',
                 'hero.h1.line1': 'AI 部署不再是:',
                 'hero.h1.line2': '先有鸡,还是先有蛋',
-                'hero.lede.html': '很多朋友让我帮他们安装 <strong>Claude Code</strong>、<strong>OpenClaw</strong>、<strong>Hermes Agent</strong>……不但每个人的系统都不一样,甚至有些人还抠门到不愿花钱买大模型,安装和解释起来都特别费劲。于是我开发了这个叫<strong>「EchoBird」</strong>的 Agent —— 灵感来自《赛博朋克 2077》里那位总能帮主角搞定一切技术难题的女黑客。EchoBird可以帮你一键装好所有 AI 工具。',
+                'hero.lede.html': '很多朋友让我帮他们安装 <strong>Claude Code</strong>、<strong>OpenClaw</strong>、<strong>Hermes Agent</strong>……不但每个人的系统都不一样,甚至有些人还抠门到不愿花钱买大模型,安装和解释起来都特别费劲。于是我开发了这个叫<strong>「EchoBird」</strong>的 Agent —— 灵感来自《赛博朋克 2077》里那位总能帮主角搞定一切技术难题的女黑客 <strong>Songbird</strong>。EchoBird 可以帮你一键装好所有 AI 工具。',
+                'showcase.eyebrow': '界面预览',
+                'showcase.title': '看看 EchoBird 长啥样',
+                'showcase.sub': '浅色 / 深色双主题,中英文界面,所有 AI 工具集中在一个地方。',
+                'showcase.news': 'AI 资讯 & 明星项目 — 每天的 AI 简报',
+                'showcase.model': '模型中心 — 统一管理,一键测速',
+                'showcase.app': '应用管理 — 一键启动每一个 AI 工具',
+                'showcase.localllm': '本地大模型 — 在自己机器上跑',
+                'showcase.agent': '安装与修复 — 用对话搞定部署和排障',
                 'hero.platforms': 'Windows · macOS · Linux · MIT 开源 · 永久免费',
                 'hero.btn.download': '立即下载',
                 'hero.or': '或',
@@ -1045,13 +1108,22 @@
                 'meta.ogTitle': 'EchoBird — AI deployment, no more chicken-and-egg',
                 'meta.ogDesc': '1-Click install · 1-Click switch · 1-Click deploy',
                 'nav.brand': 'EchoBird',
+                'nav.showcase': 'Tour',
                 'nav.features': 'Features',
                 'nav.tools': 'Tools',
                 'nav.feedback': 'Feedback',
                 'nav.download': 'Download',
                 'hero.h1.line1': 'AI deploys AI.',
                 'hero.h1.line2': 'Which came first, the chicken or the egg?',
-                'hero.lede.html': 'Friends kept asking me to install <strong>Claude Code</strong>, <strong>OpenClaw</strong>, <strong>Hermes Agent</strong>… every machine was different, and some refused to pay for an LLM. Setup and explanations took forever. So I built <strong>EchoBird</strong> — an Agent inspired by the female hacker in <em>Cyberpunk 2077</em> who fixes any tech problem for V. EchoBird installs every AI tool with one click.',
+                'hero.lede.html': 'Friends kept asking me to install <strong>Claude Code</strong>, <strong>OpenClaw</strong>, <strong>Hermes Agent</strong>… every machine was different, and some refused to pay for an LLM. Setup and explanations took forever. So I built <strong>EchoBird</strong> — an Agent inspired by <strong>Songbird</strong>, the female hacker in <em>Cyberpunk 2077</em> who fixes any tech problem for V. EchoBird installs every AI tool with one click.',
+                'showcase.eyebrow': 'PRODUCT TOUR',
+                'showcase.title': 'See EchoBird in action',
+                'showcase.sub': 'Light & dark themes, EN / CN UI — every AI tool in one place.',
+                'showcase.news': 'AI News & Star Projects — your daily AI brief',
+                'showcase.model': 'Model Nexus — manage every model, speed-test in one click',
+                'showcase.app': 'App Manager — one-click launch for every AI tool',
+                'showcase.localllm': 'Local LLM — run models on your own machine',
+                'showcase.agent': 'Install & Repair Agent — chat-driven setup and troubleshooting',
                 'hero.platforms': 'Windows · macOS · Linux · MIT Open Source · Free Forever',
                 'hero.btn.download': 'Download Now',
                 'hero.or': 'or',
@@ -1115,6 +1187,11 @@
                 const v = dict[el.dataset.i18nHtml];
                 if (v !== undefined) el.innerHTML = v;
             });
+            // Swap screenshot src by language using src-zh / src-en attrs
+            document.querySelectorAll('img[data-i18n-src]').forEach(img => {
+                const src = lang === 'zh-CN' ? img.getAttribute('src-zh') : img.getAttribute('src-en');
+                if (src) img.setAttribute('src', src);
+            });
             // <head> meta tags
             if (dict['meta.title']) document.title = dict['meta.title'];
             const set = (sel, attr, key) => {
@@ -1158,6 +1235,7 @@
             <span data-i18n="nav.brand">EchoBird</span>
         </a>
         <div class="nav-r">
+            <a href="#showcase" data-i18n="nav.showcase">界面</a>
             <a href="#features" data-i18n="nav.features">功能</a>
             <a href="#tools" data-i18n="nav.tools">支持工具</a>
             <a href="https://github.com/edison7009/EchoBird/issues" target="_blank" data-i18n="nav.feedback">问题反馈</a>
@@ -1180,8 +1258,8 @@
         <p class="lede" data-i18n-html="hero.lede.html">
             很多朋友让我帮他们安装 <strong>Claude Code</strong>、<strong>OpenClaw</strong>、<strong>Hermes Agent</strong>……
             不但每个人的系统都不一样,甚至有些人还抠门到不愿花钱买大模型,安装和解释起来都特别费劲。于是我开发了这个叫<strong>「EchoBird」</strong>的
-            Agent —— 灵感来自《赛博朋克 2077》里那位总能帮主角搞定一切技术难题的女黑客。
-            EchoBird可以帮你一键装好所有 AI 工具。
+            Agent —— 灵感来自《赛博朋克 2077》里那位总能帮主角搞定一切技术难题的女黑客 <strong>Songbird</strong>。
+            EchoBird 可以帮你一键装好所有 AI 工具。
         </p>
         <p class="platforms" data-i18n="hero.platforms">Windows · macOS · Linux · MIT 开源 · 永久免费</p>
         <!-- Two parallel install paths in one row: pkg download OR copyable one-liner.
@@ -1208,6 +1286,62 @@
             <a href="https://pan.baidu.com/s/1DW6U--mzhRqXyaBaGChK5A?pwd=2wv9" target="_blank" rel="noopener noreferrer">百度网盘</a>
             <a href="https://pan.quark.cn/s/e481fd96fba7" target="_blank" rel="noopener noreferrer">夸克网盘</a>
             <a href="https://1842244417.share.123865.com/123pan/rqi0Td-5JhxH" target="_blank" rel="noopener noreferrer">123云盘</a>
+        </div>
+    </section>
+
+    <!-- Showcase: product screenshots, lang-swapped via i18n -->
+    <section id="showcase" class="showcase-section">
+        <div class="section-head reveal">
+            <div class="section-eyebrow" data-i18n="showcase.eyebrow">界面预览</div>
+            <h2 class="section-title" data-i18n="showcase.title">看看 EchoBird 长啥样</h2>
+            <p class="section-sub" data-i18n="showcase.sub">浅色 / 深色双主题,中英文界面,所有 AI 工具集中在一个地方。</p>
+        </div>
+        <div class="showcase-list reveal">
+            <div class="showcase-item">
+                <div class="shot-wrap">
+                    <img alt="AI News" data-i18n-src="shot.news"
+                         src-zh="./screenshots/news-cn-dark.png"
+                         src-en="./screenshots/news-en-dark.png"
+                         src="./screenshots/news-cn-dark.png">
+                </div>
+                <div class="shot-caption" data-i18n="showcase.news">AI 资讯 & 明星项目 — 每天的 AI 简报</div>
+            </div>
+            <div class="showcase-item">
+                <div class="shot-wrap">
+                    <img alt="Model Nexus" data-i18n-src="shot.model"
+                         src-zh="./screenshots/model-cn-dark.png"
+                         src-en="./screenshots/model-en-dark.png"
+                         src="./screenshots/model-cn-dark.png">
+                </div>
+                <div class="shot-caption" data-i18n="showcase.model">模型中心 — 统一管理,一键测速</div>
+            </div>
+            <div class="showcase-item">
+                <div class="shot-wrap">
+                    <img alt="App Manager" data-i18n-src="shot.app"
+                         src-zh="./screenshots/app-cn-dark.png"
+                         src-en="./screenshots/app-en-dark.png"
+                         src="./screenshots/app-cn-dark.png">
+                </div>
+                <div class="shot-caption" data-i18n="showcase.app">应用管理 — 一键启动每一个 AI 工具</div>
+            </div>
+            <div class="showcase-item">
+                <div class="shot-wrap">
+                    <img alt="Local LLM" data-i18n-src="shot.localllm"
+                         src-zh="./screenshots/localllm-cn-dark.png"
+                         src-en="./screenshots/localllm-en-dark.png"
+                         src="./screenshots/localllm-cn-dark.png">
+                </div>
+                <div class="shot-caption" data-i18n="showcase.localllm">本地大模型 — 在自己机器上跑</div>
+            </div>
+            <div class="showcase-item">
+                <div class="shot-wrap">
+                    <img alt="Install & Repair Agent" data-i18n-src="shot.agent"
+                         src-zh="./screenshots/agent-cn-dark.png"
+                         src-en="./screenshots/agent-en-dark.png"
+                         src="./screenshots/agent-cn-dark.png">
+                </div>
+                <div class="shot-caption" data-i18n="showcase.agent">安装与修复 — 用对话搞定部署和排障</div>
+            </div>
         </div>
     </section>
 
