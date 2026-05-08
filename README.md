@@ -61,7 +61,7 @@ Friends kept asking me to install **Claude Code**, **OpenClaw**, **Hermes Agent*
   <img alt="Model Nexus" src="docs/screenshots/model-en-light.png" width="100%">
 </picture>
 
-### App Manager — one-click launch for every AI tool
+### App Manager — one-click launch, switch any tool's model in seconds
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/app-en-dark.png">

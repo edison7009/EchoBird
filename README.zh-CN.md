@@ -60,7 +60,7 @@
   <img alt="模型中心" src="docs/screenshots/model-cn-light.png" width="100%">
 </picture>
 
-### 应用管理 —— 一键启动每一个 AI 工具
+### 应用管理 —— 一键启动应用,顺手切换模型
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/app-cn-dark.png">
