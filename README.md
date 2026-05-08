@@ -1,15 +1,11 @@
 <p align="center">
-  <img src="docs/icon.png" alt="EchoBird" width="120" />
+  <img src="docs/icon.png" alt="EchoBird" width="140" />
 </p>
 
 <h1 align="center">EchoBird</h1>
 
-<p align="center"><strong>AI 部署不再是:先有鸡,还是先有蛋</strong></p>
-<p align="center"><sub>AI deployment, no more chicken-and-egg.</sub></p>
-
-很多朋友让我帮他们安装 **Claude Code**、**OpenClaw**、**Hermes Agent**……不但每个人的系统都不一样，甚至有些人还抠门到不愿花钱买大模型，安装和解释起来都特别费劲。于是我开发了这个叫「EchoBird」的 Agent —— 灵感来自《赛博朋克 2077》里那位总能帮主角搞定一切技术难题的女黑客。EchoBird 可以帮你一键装好所有 AI 工具。
-
-> Friends kept asking me to install **Claude Code**, **OpenClaw**, **Hermes Agent**… every machine was different, and some refused to pay for an LLM. Setup and explanations took forever. So I built **EchoBird** — an Agent inspired by the female hacker in *Cyberpunk 2077* who fixes any tech problem for V. EchoBird installs every AI tool with one click.
+<p align="center"><strong>AI deployment, no more chicken-and-egg.</strong></p>
+<p align="center"><sub>AI 部署,不再是先有鸡还是先有蛋。</sub></p>
 
 <p align="center">
   <a href="https://github.com/edison7009/EchoBird/releases">
@@ -21,15 +17,58 @@
 </p>
 
 <p align="center">
-  <a href="https://echobird.ai">官网</a> ·
-  <a href="https://github.com/edison7009/EchoBird/releases/latest">下载</a>
+  <a href="https://echobird.ai">Website</a> ·
+  <a href="https://github.com/edison7009/EchoBird/releases/latest">Download</a> ·
+  <a href="README.zh-CN.md">中文 README</a>
 </p>
 
 ---
 
-## 安装 / Install
+## What is EchoBird?
 
-### 一行命令安装 / One-line Install
+Friends kept asking me to install **Claude Code**, **OpenClaw**, **Hermes Agent** for them — every machine was different, and some refused to pay for an LLM. Setup and explanations took forever.
+
+So I built **EchoBird** — an Agent inspired by the netrunner from *Cyberpunk 2077* who fixes any tech problem for V. EchoBird installs every AI tool with one click, points them at the model of your choice (cloud, local, or relay), and gets out of your way.
+
+## Highlights
+
+- **One-click install** for Claude Code, OpenClaw, Hermes Agent, and more
+- **Bring your own model** — OpenAI / Anthropic / local LLMs / relays, all in one place
+- **Speed-test every model** in one click before you commit
+- **Local LLM runtime** built in — pick a quant, hit START
+- **Install & Repair Agent** — talk to it like a colleague when something breaks
+- **Cross-platform** — Windows, macOS, Linux (x64 + arm64)
+
+## Screenshots
+
+<table>
+<tr>
+  <td width="50%"><img src="docs/screenshots/news-en.png" alt="AI News" /></td>
+  <td width="50%"><img src="docs/screenshots/model-en.png" alt="Model Nexus" /></td>
+</tr>
+<tr>
+  <td align="center"><sub>AI News & Star Projects</sub></td>
+  <td align="center"><sub>Model Nexus — manage & speed-test models</sub></td>
+</tr>
+<tr>
+  <td width="50%"><img src="docs/screenshots/app-en.png" alt="App Manager" /></td>
+  <td width="50%"><img src="docs/screenshots/localllm-en.png" alt="Local LLM" /></td>
+</tr>
+<tr>
+  <td align="center"><sub>App Manager — one-click launch</sub></td>
+  <td align="center"><sub>Local LLM — run models on your machine</sub></td>
+</tr>
+<tr>
+  <td colspan="2"><img src="docs/screenshots/agent-en.png" alt="Install & Repair Agent" /></td>
+</tr>
+<tr>
+  <td colspan="2" align="center"><sub>Install & Repair — chat-driven setup and troubleshooting</sub></td>
+</tr>
+</table>
+
+## Install
+
+### One-line install
 
 **Windows** (PowerShell)
 
@@ -43,14 +82,13 @@ irm https://echobird.ai/install.ps1 | iex
 curl -fsSL https://echobird.ai/install.sh | sh
 ```
 
-脚本会自动检测系统、下载对应安装包、跳过已安装的最新版本。
 The script auto-detects your OS, downloads the right package, and skips if you're already on the latest version.
 
-### 或下载安装包 / Or download a package
+### Or download a package
 
-最新版本 / Latest release → <https://github.com/edison7009/EchoBird/releases/latest>
+Latest release → <https://github.com/edison7009/EchoBird/releases/latest>
 
-| 平台 / Platform | 文件 / Asset |
+| Platform | Asset |
 |---|---|
 | Windows x64 | `EchoBird_<ver>_Windows_x64-setup.exe` |
 | macOS (Apple Silicon) | `EchoBird_<ver>_macOS_arm64.dmg` |
@@ -59,9 +97,13 @@ The script auto-detects your OS, downloads the right package, and skips if you'r
 | Linux x64 · Fedora/RHEL | `EchoBird_<ver>_Linux_x64.rpm` |
 | Linux arm64 · Fedora/RHEL | `EchoBird_<ver>_Linux_arm64.rpm` |
 
+## License
+
+MIT — see [LICENSE](LICENSE).
+
 ---
 
 <p align="center">
   Made with 💚 by EchoBird Team<br>
-  <sub>⭐ <a href="https://github.com/edison7009/EchoBird">Star on GitHub</a></sub>
+  <sub>⭐ <a href="https://github.com/edison7009/EchoBird">Star on GitHub</a> · <a href="README.zh-CN.md">中文文档</a></sub>
 </p>
