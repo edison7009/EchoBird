@@ -6,6 +6,7 @@
     ],
     "docs": "https://opencode.ai/docs#install",
     "command": "opencode",
+    "startCommand": "opencode",
     "envVar": "OPENCODE_PATH",
     "configDir": "~/.config/opencode",
     "configFile": "~/.config/opencode/opencode.jsonc",
