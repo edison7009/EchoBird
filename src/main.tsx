@@ -60,7 +60,25 @@ async function bootFonts(): Promise<void> {
     ]);
 }
 
-// 4. Tell Tauri the React tree has actually painted — only then show the
+// 4. Sidebar bird logo — small but visible top-left. The PNG is preloaded via
+// <link rel="preload"> in index.html so the network fetch starts at HTML-parse
+// time, but we still await img.decode() here to guarantee the bitmap is
+// decoded BEFORE the first paint. Without this, on a cold cache the bird pops
+// in visibly later than text + icons because img decode is async.
+async function bootBrandImage(): Promise<void> {
+    try {
+        const img = new Image();
+        img.src = '/brand/bird.png';
+        // decode() resolves once the image is fully ready to paint without further work.
+        // Race against a 1s ceiling so we never block window-show on a flaky network.
+        await Promise.race([
+            img.decode(),
+            new Promise<void>(resolve => setTimeout(resolve, 1000)),
+        ]);
+    } catch { /* decode rejects on broken image — fall through, browser will retry on render */ }
+}
+
+// 5. Tell Tauri the React tree has actually painted — only then show the
 // window. Two RAFs because the first fires *before* the browser paints; the
 // second fires after the paint that draws our first frame. This is what
 // makes the window appear with the real UI already on screen.
@@ -73,7 +91,7 @@ function showWindowAfterFirstPaint(): void {
 }
 
 (async () => {
-    const [locale] = await Promise.all([bootI18n(), bootFonts()]);
+    const [locale] = await Promise.all([bootI18n(), bootFonts(), bootBrandImage()]);
 
     // Sync <html lang> before render so :lang(zh) CJK overrides apply on the
     // first paint instead of triggering a reflow when I18nProvider's effect

@@ -4,6 +4,10 @@
 <head>
   <meta charset="UTF-8" />
   <link rel="icon" type="image/png" href="/ico.png" />
+  <!-- Preload the sidebar wordmark logo. Without this the browser only starts
+       fetching it after React mounts and Sidebar renders the <img>, so it
+       pops in visibly later than the rest of the first paint. -->
+  <link rel="preload" as="image" href="/brand/bird.png" fetchpriority="high" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <title>Echobird</title>
   <!-- Resolve the theme synchronously *before* any CSS or JS runs, so the
