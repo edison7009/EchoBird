@@ -461,6 +461,28 @@
             letter-spacing: 0.3px;
         }
 
+        /* Pair view: two screenshots side by side (used for AI News to
+           demonstrate the app's light + dark themes on this dark-only site) */
+        .shot-pair {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+        }
+
+        .shot-pair .shot-wrap {
+            box-shadow: 0 18px 40px rgba(0, 0, 0, 0.4);
+        }
+
+        .shot-pair-label {
+            font-family: var(--mono);
+            font-size: 11px;
+            color: var(--dim);
+            letter-spacing: 1px;
+            text-align: center;
+            margin-top: 6px;
+            text-transform: uppercase;
+        }
+
         @media (max-width: 600px) {
             .showcase-section {
                 padding: 40px 16px 20px;
@@ -468,6 +490,10 @@
             .showcase-list {
                 gap: 40px;
                 margin-top: 40px;
+            }
+            .shot-pair {
+                grid-template-columns: 1fr;
+                gap: 18px;
             }
         }
 
@@ -1054,6 +1080,8 @@
                 'showcase.eyebrow': '界面预览',
                 'showcase.title': '看看 EchoBird 长啥样',
                 'showcase.sub': '浅色 / 深色双主题,中英文界面,所有 AI 工具集中在一个地方。',
+                'showcase.themeLight': '☀ 浅色主题',
+                'showcase.themeDark': '☾ 深色主题',
                 'showcase.news': 'AI 资讯 & 明星项目 — 每天的 AI 简报',
                 'showcase.model': '模型中心 — 统一管理,一键测速',
                 'showcase.app': '应用管理 — 一键启动每一个 AI 工具',
@@ -1119,6 +1147,8 @@
                 'showcase.eyebrow': 'PRODUCT TOUR',
                 'showcase.title': 'See EchoBird in action',
                 'showcase.sub': 'Light & dark themes, EN / CN UI — every AI tool in one place.',
+                'showcase.themeLight': '☀ LIGHT',
+                'showcase.themeDark': '☾ DARK',
                 'showcase.news': 'AI News & Star Projects — your daily AI brief',
                 'showcase.model': 'Model Nexus — manage every model, speed-test in one click',
                 'showcase.app': 'App Manager — one-click launch for every AI tool',
@@ -1298,11 +1328,25 @@
         </div>
         <div class="showcase-list reveal">
             <div class="showcase-item">
-                <div class="shot-wrap">
-                    <img alt="AI News" data-i18n-src="shot.news"
-                         src-zh="./screenshots/news-cn-dark.png"
-                         src-en="./screenshots/news-en-dark.png"
-                         src="./screenshots/news-cn-dark.png">
+                <div class="shot-pair">
+                    <div>
+                        <div class="shot-wrap">
+                            <img alt="AI News (Light)" data-i18n-src="shot.news.light"
+                                 src-zh="./screenshots/news-cn-light.png"
+                                 src-en="./screenshots/news-en-light.png"
+                                 src="./screenshots/news-cn-light.png">
+                        </div>
+                        <div class="shot-pair-label" data-i18n="showcase.themeLight">☀ 浅色主题</div>
+                    </div>
+                    <div>
+                        <div class="shot-wrap">
+                            <img alt="AI News (Dark)" data-i18n-src="shot.news.dark"
+                                 src-zh="./screenshots/news-cn-dark.png"
+                                 src-en="./screenshots/news-en-dark.png"
+                                 src="./screenshots/news-cn-dark.png">
+                        </div>
+                        <div class="shot-pair-label" data-i18n="showcase.themeDark">☾ 深色主题</div>
+                    </div>
                 </div>
                 <div class="shot-caption" data-i18n="showcase.news">AI 资讯 & 明星项目 — 每天的 AI 简报</div>
             </div>
