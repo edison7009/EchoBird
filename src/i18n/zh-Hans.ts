@@ -18,7 +18,6 @@ const zhHans: Partial<Translations> = {
     'page.localServer': '本地大模型',
     'page.motherAgent': '安装与修复',
     'pulse.archive': '历史归档',
-    'pulse.days': '天',
     'pulse.fetchFailed': '加载失败',
     'pulse.loadingFirst': '正在为您加载…',
     'pulse.empty': '暂无内容',

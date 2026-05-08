@@ -22,7 +22,6 @@ const en: Translations = {
     'page.motherAgent': 'INSTALL & REPAIR',
     // AI Pulse (News + Projects shared)
     'pulse.archive': 'ARCHIVE',
-    'pulse.days': 'days',
     'pulse.fetchFailed': 'Fetch failed',
     'pulse.loadingFirst': 'Loading…',
     'pulse.empty': 'No items',

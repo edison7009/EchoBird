@@ -13,7 +13,7 @@ export type TKey =
     // AI Courses
     | 'courses.filter' | 'courses.cat.all'
     // AI Pulse (News + Projects shared)
-    | 'pulse.archive' | 'pulse.days' | 'pulse.fetchFailed'
+    | 'pulse.archive' | 'pulse.fetchFailed'
     | 'pulse.loadingFirst' | 'pulse.empty'
     // Settings
     | 'settings.title' | 'settings.version' | 'settings.language' | 'settings.updates'

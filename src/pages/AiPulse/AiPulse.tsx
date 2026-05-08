@@ -198,8 +198,11 @@ interface AiPulseContextValue {
     initialLoading: boolean;
     syncing: boolean;
     error: string | null;
-    scrollTarget: string | null;
-    requestScroll: (date: string) => void;
+    // Currently-viewed date (YYYY-MM-DD). null until set — AiPulsePanel
+    // auto-fills it with the latest cached date on first mount, after
+    // which date-button clicks just replace the value.
+    selectedDate: string | null;
+    selectDate: (date: string) => void;
     lastFetched: number | null;
     retry: () => void;
 }
@@ -219,16 +222,13 @@ export function AiPulseProvider({ children }: { children: React.ReactNode }) {
     const [initialLoading, setInitialLoading] = useState(() => loadItems().length === 0);
     const [syncing, setSyncing] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const [scrollTarget, setScrollTarget] = useState<string | null>(null);
+    const [selectedDate, setSelectedDate] = useState<string | null>(null);
     const [lastFetched, setLastFetched] = useState<number | null>(() => loadMeta()?.lastFetched || null);
     const seq = useRef(0);
     const itemsRef = useRef(items);
     useEffect(() => { itemsRef.current = items; }, [items]);
 
-    const requestScroll = useCallback((date: string) => {
-        setScrollTarget(date);
-        setTimeout(() => setScrollTarget(null), 100);
-    }, []);
+    const selectDate = useCallback((date: string) => setSelectedDate(date), []);
 
     const sync = useCallback(async (force = false) => {
         const meta = loadMeta();
@@ -276,8 +276,8 @@ export function AiPulseProvider({ children }: { children: React.ReactNode }) {
     useEffect(() => { sync(); }, [sync]);
 
     const value = useMemo<AiPulseContextValue>(() => ({
-        items, initialLoading, syncing, error, scrollTarget, requestScroll, lastFetched, retry,
-    }), [items, initialLoading, syncing, error, scrollTarget, requestScroll, lastFetched, retry]);
+        items, initialLoading, syncing, error, selectedDate, selectDate, lastFetched, retry,
+    }), [items, initialLoading, syncing, error, selectedDate, selectDate, lastFetched, retry]);
 
     return <AiPulseContext.Provider value={value}>{children}</AiPulseContext.Provider>;
 }
@@ -342,29 +342,43 @@ function ItemRow({ item }: { item: NewsItem }) {
 
 function ItemFeed({ variant }: { variant: PageVariant }) {
     const { t, locale } = useI18n();
-    const { items, initialLoading, syncing, error, scrollTarget, retry } = useAiPulse();
-    const containerRef = useRef<HTMLDivElement>(null);
+    const { items, initialLoading, syncing, error, selectedDate, retry } = useAiPulse();
     const lang: 'zh' | 'en' = locale.startsWith('zh') ? 'zh' : 'en';
 
-    const visible = useMemo(() => {
-        // Show only items written in the user's app language.
-        // zh users → Chinese-titled items (incl. WeChat 公众号 they can read).
-        // en users → English-titled items (Hacker News, Bloomberg, TechCrunch …).
+    // Two-stage filter: language → variant. Done as a single memo because
+    // both upstream inputs change rarely and we'll re-derive several
+    // date-keyed views off the result.
+    const variantFiltered = useMemo(() => {
         const langMatched = items.filter(it => itemLang(it) === lang);
         return variant === 'projects' ? langMatched.filter(isProjectItem) : langMatched;
     }, [items, variant, lang]);
 
-    useEffect(() => {
-        if (!scrollTarget) return;
-        const anchor = containerRef.current?.querySelector(`[data-pulse-date="${scrollTarget}"]`);
-        if (anchor) (anchor as HTMLElement).scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }, [scrollTarget]);
+    // Latest cached date for this variant+lang. Used as the fallback when
+    // selectedDate is null (panel hasn't initialised it yet, or items just
+    // arrived). Computing here — not in the provider — keeps the default
+    // language-aware: zh users won't accidentally land on an en-only date.
+    const latestDate = useMemo(() => {
+        let latest = '';
+        for (const it of variantFiltered) {
+            const d = itemLocalDate(it);
+            if (d && d > latest) latest = d;
+        }
+        return latest;
+    }, [variantFiltered]);
 
-    if ((initialLoading || syncing) && visible.length === 0) {
+    const effectiveDate = selectedDate || latestDate;
+
+    // Per-day batching: feed shows a single day's items. Switching dates in
+    // the right panel replaces the batch wholesale instead of scrolling
+    // through every older day, which was the original UX bug.
+    const visible = useMemo(() => {
+        if (!effectiveDate) return [];
+        return variantFiltered.filter(it => itemLocalDate(it) === effectiveDate);
+    }, [variantFiltered, effectiveDate]);
+
+    if ((initialLoading || syncing) && visible.length === 0 && variantFiltered.length === 0) {
         return (
-            <div ref={containerRef} className="space-y-2">
-                {/* Same 2px slot as the real list path — keeps cards at the
-                    same Y position on skeleton → list swap (no jitter). */}
+            <div className="space-y-2">
                 <div className="sticky top-0 z-20 h-0.5 overflow-hidden pointer-events-none">
                     <div className="h-full w-1/3 bg-cyber-accent/70 animate-[loading_1.2s_ease-in-out_infinite]" />
                 </div>
@@ -378,7 +392,7 @@ function ItemFeed({ variant }: { variant: PageVariant }) {
         );
     }
 
-    if (error && visible.length === 0) {
+    if (error && variantFiltered.length === 0) {
         return (
             <div className="p-8 text-center text-sm font-mono">
                 <div className="text-cyber-warning mb-2">{t('pulse.fetchFailed')}</div>
@@ -393,18 +407,8 @@ function ItemFeed({ variant }: { variant: PageVariant }) {
         );
     }
 
-    if (visible.length === 0) {
-        return (
-            <div className="p-8 text-center text-sm text-cyber-text-secondary font-mono">
-                {t('pulse.empty')}
-            </div>
-        );
-    }
-
-    let lastDate = '';
     return (
-        <div ref={containerRef} className="space-y-2">
-            {/* Reserved 2px slot — opacity toggle prevents layout shift on sync start/stop */}
+        <div className="space-y-2">
             <div className="sticky top-0 z-20 h-0.5 overflow-hidden pointer-events-none">
                 <div
                     className={`h-full w-1/3 bg-cyber-accent/70 transition-opacity duration-150 ${
@@ -412,16 +416,13 @@ function ItemFeed({ variant }: { variant: PageVariant }) {
                     }`}
                 />
             </div>
-            {visible.map(item => {
-                const date = itemLocalDate(item);
-                const isFirstOfDate = !!date && date !== lastDate;
-                if (date) lastDate = date;
-                return (
-                    <div key={item.id} data-pulse-date={isFirstOfDate ? date : undefined}>
-                        <ItemRow item={item} />
-                    </div>
-                );
-            })}
+            {visible.length === 0 ? (
+                <div className="p-8 text-center text-sm text-cyber-text-secondary font-mono">
+                    {t('pulse.empty')}
+                </div>
+            ) : (
+                visible.map(item => <ItemRow key={item.id} item={item} />)
+            )}
         </div>
     );
 }
@@ -454,23 +455,44 @@ function groupByMonth(dates: string[]): Map<string, string[]> {
     return map;
 }
 
-export function AiPulsePanel() {
+export function AiPulsePanel({ variant = 'news' }: { variant?: PageVariant }) {
     const { t, locale } = useI18n();
-    const { items, requestScroll } = useAiPulse();
+    const { items, selectedDate, selectDate } = useAiPulse();
     const lang: 'zh' | 'en' = locale.startsWith('zh') ? 'zh' : 'en';
 
-    const cachedDates = useMemo(() => {
-        const set = new Set<string>();
+    // Per-day item count, filtered by lang AND variant so the number on
+    // each date button reflects what the user will actually see in the
+    // feed when they click. cachedDates derives from the same map's keys
+    // — a date with zero matching items wouldn't appear at all.
+    const dateCount = useMemo(() => {
+        const map = new Map<string, number>();
         for (const it of items) {
             if (itemLang(it) !== lang) continue;
+            if (variant === 'projects' && !isProjectItem(it)) continue;
             const d = itemLocalDate(it);
-            if (d) set.add(d);
+            if (!d) continue;
+            map.set(d, (map.get(d) || 0) + 1);
         }
-        return Array.from(set).sort((a, b) => b.localeCompare(a));
-    }, [items, lang]);
+        return map;
+    }, [items, lang, variant]);
+
+    const cachedDates = useMemo(
+        () => Array.from(dateCount.keys()).sort((a, b) => b.localeCompare(a)),
+        [dateCount]
+    );
 
     const grouped = useMemo(() => groupByMonth(cachedDates), [cachedDates]);
     const months = useMemo(() => Array.from(grouped.keys()), [grouped]);
+
+    // Auto-pick the latest date once items arrive so the feed has something
+    // to show without forcing the user to click first. Re-runs only when
+    // selectedDate is still null — once the user picks anything, we leave
+    // their choice alone even if a refresh adds a newer day.
+    useEffect(() => {
+        if (selectedDate) return;
+        if (cachedDates.length === 0) return;
+        selectDate(cachedDates[0]);
+    }, [cachedDates, selectedDate, selectDate]);
 
     const [expanded, setExpanded] = useState<Set<string>>(new Set());
     useEffect(() => {
@@ -485,9 +507,8 @@ export function AiPulsePanel() {
 
     return (
         <>
-            <div className="px-3 py-2 mb-1 flex items-center justify-between bg-transparent">
+            <div className="px-3 py-2 mb-1 bg-transparent">
                 <div className="text-[15px] font-semibold text-cyber-text">{t('pulse.archive')}</div>
-                <span className="text-[13px] font-mono text-cyber-text-muted">{cachedDates.length} {t('pulse.days')}</span>
             </div>
             <div className="flex-1 px-2 overflow-y-auto pb-4">
                 {cachedDates.length === 0 ? (
@@ -499,6 +520,11 @@ export function AiPulsePanel() {
                         {months.map(ym => {
                             const isOpen = expanded.has(ym);
                             const days = grouped.get(ym) || [];
+                            // Sum items across the month so the badge mirrors what
+                            // the user gets when they expand the group, not a
+                            // redundant day count (the day chevrons already
+                            // implicitly convey day count by their list length).
+                            const monthCount = days.reduce((s, d) => s + (dateCount.get(d) || 0), 0);
                             return (
                                 <div key={ym}>
                                     <button
@@ -507,19 +533,30 @@ export function AiPulsePanel() {
                                     >
                                         {isOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
                                         <span>{ym}</span>
-                                        <span className="ml-auto text-[13px] text-cyber-text-muted">{days.length}</span>
+                                        <span className="ml-auto text-[13px] text-cyber-text-muted">{monthCount}</span>
                                     </button>
                                     {isOpen && (
                                         <div className="ml-3 border-l border-cyber-border/20 pl-2 space-y-0.5">
-                                            {days.map(d => (
-                                                <button
-                                                    key={d}
-                                                    onClick={() => requestScroll(d)}
-                                                    className="w-full text-left px-2 py-1.5 rounded text-[14px] font-mono text-cyber-text-secondary hover:bg-cyber-elevated hover:text-cyber-text transition-colors"
-                                                >
-                                                    {d.slice(8)}
-                                                </button>
-                                            ))}
+                                            {days.map(d => {
+                                                const isActive = d === selectedDate;
+                                                const count = dateCount.get(d) || 0;
+                                                return (
+                                                    <button
+                                                        key={d}
+                                                        onClick={() => selectDate(d)}
+                                                        className={`w-full flex items-center px-2 py-1.5 rounded text-[14px] font-mono transition-colors ${
+                                                            isActive
+                                                                ? 'bg-cyber-accent/15 text-cyber-text border border-cyber-accent/40'
+                                                                : 'text-cyber-text-secondary hover:bg-cyber-elevated hover:text-cyber-text border border-transparent'
+                                                        }`}
+                                                    >
+                                                        <span>{d.slice(8)}</span>
+                                                        <span className={`ml-auto text-[12px] ${isActive ? 'text-cyber-text-secondary' : 'text-cyber-text-muted'}`}>
+                                                            {count}
+                                                        </span>
+                                                    </button>
+                                                );
+                                            })}
                                         </div>
                                     )}
                                 </div>

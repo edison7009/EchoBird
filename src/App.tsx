@@ -185,7 +185,7 @@ function App() {
                                                             </main>
 
                                                             <aside className="w-80 flex flex-col">
-                                                                    <div className={page(is('news') || is('projects'))}><AiPulsePanel /></div>
+                                                                    <div className={page(is('news') || is('projects'))}><AiPulsePanel variant={is('projects') ? 'projects' : 'news'} /></div>
                                                                     <div className={page(is('courses'))}><AiCoursesPanel /></div>
                                                                     <div className={page(is('models'))}><ModelNexusPanel /></div>
 
