@@ -59,8 +59,6 @@ const en: Translations = {
     'model.openaiUrl': 'OpenAI URL',
     'model.anthropicUrl': 'Anthropic URL',
     'model.editConfig': 'EDIT MODEL CONFIG',
-    'model.proxyTunnel': 'PROXY TUNNEL',
-    'model.specificProxy': 'Model-specific proxy',
     'model.deleteTitle': 'DELETE MODEL',
     'model.deleteConfirm': 'This model configuration will be permanently removed. This action cannot be undone.',
     'model.providers': 'Model Providers',
@@ -103,7 +101,6 @@ const en: Translations = {
     'model.notTested': 'Not tested',
     'model.cloud': 'CLOUD',
     'model.local': 'LOCAL',
-    'model.tunnel': 'TUNNEL',
     // Copy button
     'btn.copy': '[COPY]',
     'btn.copied': '[✓]',

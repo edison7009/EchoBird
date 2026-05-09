@@ -56,7 +56,6 @@ pub struct AgentRequest {
     /// Optional Anthropic-compatible URL. When present the agent always tries Anthropic
     /// first and falls back to OpenAI (`base_url`) on 400 / tool-unsupported errors.
     pub anthropic_url: Option<String>,
-    pub proxy_url: Option<String>,
     pub server_ids: Vec<String>,  // selected SSH servers
     pub skills: Vec<String>,      // skill descriptions
     /// UI locale ("en" or "zh-Hans"). Used to hint the agent's response language.
@@ -236,7 +235,6 @@ pub async fn run_agent(
             base_url: anth_url.clone(),
             api_key: decrypted_key.clone(),
             model: request.model_name.clone(),
-            proxy_url: request.proxy_url.clone(),
         };
         (LlmProvider::Anthropic, LlmClient::new(cfg)?)
     } else {
@@ -245,7 +243,6 @@ pub async fn run_agent(
             base_url: request.base_url.clone(),
             api_key: decrypted_key.clone(),
             model: request.model_name.clone(),
-            proxy_url: request.proxy_url.clone(),
         };
         (LlmProvider::OpenAI, LlmClient::new(cfg)?)
     };
@@ -257,7 +254,6 @@ pub async fn run_agent(
             base_url: request.base_url.clone(),
             api_key: decrypted_key.clone(),
             model: request.model_name.clone(),
-            proxy_url: request.proxy_url.clone(),
         };
         LlmClient::new(cfg).ok()
     } else {

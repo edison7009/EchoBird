@@ -339,7 +339,6 @@ export function MotherAgentProvider({ children }: { children: React.ReactNode })
                 // Start with Anthropic when available; backend downgrades to OpenAI on 400
                 provider: anthropicUrl ? 'anthropic' : 'openai',
                 anthropic_url: anthropicUrl || undefined,
-                proxy_url: modelData.proxyUrl,
                 server_ids: selectedServerId === 'local' ? [] : [selectedServerId],
                 skills: [],
                 locale: locale || undefined,

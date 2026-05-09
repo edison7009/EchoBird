@@ -10,11 +10,6 @@ export interface NewModelForm {
     anthropicUrl: string;
     apiKey: string;
     modelId: string;
-    useProxy: boolean;
-    ssServer: string;
-    ssPort: string;
-    ssCipher: string;
-    ssPassword: string;
 }
 
 export interface ModelNexusCtx {

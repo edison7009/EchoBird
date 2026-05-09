@@ -1,4 +1,4 @@
-// Tool config manager �?handles model configuration for all tools
+﻿// Tool config manager �?handles model configuration for all tools
 // Ports the old Electron model.ts/model.cjs logic into Rust
 // Each custom tool has its own apply/read function
 
@@ -21,8 +21,6 @@ pub struct ModelInfo {
     pub api_key: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub anthropic_url: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub proxy_url: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub protocol: Option<String>,
 }
@@ -151,7 +149,7 @@ fn write_json_file(path: &Path, value: &serde_json::Value) -> Result<(), String>
 // ─── Known ModelInfo fields ───
 
 const KNOWN_MODEL_FIELDS: &[&str] = &[
-    "id", "name", "baseUrl", "apiKey", "model", "proxyUrl", "protocol",
+    "id", "name", "baseUrl", "apiKey", "model", "protocol",
 ];
 
 fn get_model_field(model_info: &ModelInfo, field_name: &str) -> Option<String> {
@@ -160,7 +158,6 @@ fn get_model_field(model_info: &ModelInfo, field_name: &str) -> Option<String> {
         "name" => model_info.name.clone(),
         "baseUrl" | "base_url" => model_info.base_url.clone(),
         "apiKey" | "api_key" => model_info.api_key.clone(),
-        "proxyUrl" | "proxy_url" => model_info.proxy_url.clone(),
         "protocol" => model_info.protocol.clone(),
         "anthropicUrl" | "anthropic_url" => model_info.anthropic_url.clone(),
         _ => None,
@@ -362,22 +359,6 @@ async fn apply_generic_json(tool_id: &str, model_info: &ModelInfo) -> ApplyResul
         }
     }
 
-    // Handle proxy write/delete
-    if let Some(proxy_map) = &cm.write_proxy {
-        if let Some(ref proxy_url) = model_info.proxy_url {
-            for (path, _) in proxy_map {
-                tool_manager::set_nested_value(
-                    &mut config, path,
-                    serde_json::Value::String(proxy_url.clone()),
-                );
-            }
-        } else {
-            for (path, _) in proxy_map {
-                tool_manager::delete_nested_value(&mut config, path);
-            }
-        }
-    }
-
     match write_json_file(&config_path, &config) {
         Ok(_) => {
             log::info!("[ToolConfigManager] Config written to {:?}", config_path);
@@ -419,7 +400,6 @@ fn read_generic_json(tool_id: &str) -> Option<ModelInfo> {
         base_url: read_field(&read_map.base_url),
         api_key: read_field(&read_map.api_key),
         anthropic_url: None,
-        proxy_url: read_field(&read_map.proxy_url),
         protocol: None,
     })
 }
@@ -492,7 +472,7 @@ fn read_echobird_relay(tool_id: &str) -> Option<ModelInfo> {
         model: Some(model_id),
         base_url: config.get("baseUrl").and_then(|v| v.as_str()).map(|s| s.to_string()),
         api_key: config.get("apiKey").and_then(|v| v.as_str()).map(|s| s.to_string()),
-        anthropic_url: None, proxy_url: None,
+        anthropic_url: None,
         protocol: config.get("protocol").and_then(|v| v.as_str()).map(|s| s.to_string()),
     })
 }
@@ -650,7 +630,6 @@ fn read_openclaw() -> Option<ModelInfo> {
         base_url,
         api_key,
         anthropic_url: None,
-        proxy_url: None,
         protocol: Some(protocol.to_string()),
     })
 }
@@ -767,7 +746,7 @@ fn read_opencode() -> Option<ModelInfo> {
         model: Some(model_id),
         base_url: config.get("baseUrl").and_then(|v| v.as_str()).map(|s| s.to_string()),
         api_key: config.get("apiKey").and_then(|v| v.as_str()).map(|s| s.to_string()),
-        anthropic_url: None, proxy_url: None, protocol: None,
+        anthropic_url: None, protocol: None,
     })
 }
 
@@ -790,7 +769,6 @@ fn read_opencode_native_config(path: &Path) -> Option<ModelInfo> {
         base_url: provider.pointer("/options/baseURL").and_then(|v| v.as_str()).map(|s| s.to_string()),
         api_key: provider.pointer("/options/apiKey").and_then(|v| v.as_str()).map(|s| s.to_string()),
         anthropic_url: None,
-        proxy_url: None,
         protocol: Some("openai".to_string()),
     })
 }
@@ -980,7 +958,6 @@ fn read_codex() -> Option<ModelInfo> {
         base_url,
         api_key,
         anthropic_url: None,
-        proxy_url: None,
         protocol: Some("openai".to_string()),
     })
 }
@@ -1050,7 +1027,7 @@ fn read_aider() -> Option<ModelInfo> {
     Some(ModelInfo {
         name: Some(model.clone()), model: Some(model),
         base_url: if bu.is_empty() { None } else { Some(bu) },
-        api_key, anthropic_url: None, proxy_url: None, protocol: None,
+        api_key, anthropic_url: None, protocol: None,
     })
 }
 
@@ -1115,7 +1092,7 @@ fn read_zeroclaw() -> Option<ModelInfo> {
     Some(ModelInfo {
         name: Some(model.clone()), model: Some(model), base_url,
         api_key: if key.is_empty() { None } else { Some(key) },
-        anthropic_url: None, proxy_url: None, protocol: None,
+        anthropic_url: None, protocol: None,
     })
 }
 
@@ -1223,7 +1200,6 @@ fn read_qwen_code() -> Option<ModelInfo> {
         base_url,
         api_key,
         anthropic_url: None,
-        proxy_url: None,
         protocol: Some(selected_type.to_string()),
     })
 }
@@ -1329,7 +1305,6 @@ fn read_pi() -> Option<ModelInfo> {
         base_url: base,
         api_key,
         anthropic_url: anthro,
-        proxy_url: None,
         protocol: Some(if api_type == "anthropic-messages" { "anthropic" } else { "openai" }.to_string()),
     })
 }

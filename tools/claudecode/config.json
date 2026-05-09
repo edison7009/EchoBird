@@ -12,10 +12,6 @@
         "apiKey": [
             "env.ANTHROPIC_AUTH_TOKEN",
             "env.ANTHROPIC_API_KEY"
-        ],
-        "proxyUrl": [
-            "env.HTTPS_PROXY",
-            "env.https_proxy"
         ]
     },
     "write": {
@@ -29,11 +25,5 @@
         "env.ANTHROPIC_API_KEY": "",
         "env.API_TIMEOUT_MS": "3000000",
         "env.CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1"
-    },
-    "writeProxy": {
-        "env.HTTPS_PROXY": "proxyUrl",
-        "env.HTTP_PROXY": "proxyUrl",
-        "env.https_proxy": "proxyUrl",
-        "env.http_proxy": "proxyUrl"
     }
 }

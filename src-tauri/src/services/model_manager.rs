@@ -309,8 +309,6 @@ pub fn get_models() -> Vec<ModelConfig> {
             api_key: server_info.api_key.clone(),
             anthropic_url: Some(format!("http://127.0.0.1:{}/anthropic", server_info.port)),
             model_type: Some(crate::models::model::ModelType::Local),
-            proxy_url: None,
-            ss_node: None,
             openai_tested: None,
             anthropic_tested: None,
             openai_latency: None,
@@ -376,10 +374,6 @@ pub struct AddModelInput {
     pub api_key: Option<String>,
     #[serde(default)]
     pub model_id: Option<String>,
-    #[serde(default)]
-    pub proxy_url: Option<String>,
-    #[serde(default)]
-    pub ss_node: Option<crate::models::model::SSNode>,
 }
 
 pub fn add_model(input: AddModelInput) -> ModelConfig {
@@ -397,8 +391,6 @@ pub fn add_model(input: AddModelInput) -> ModelConfig {
         api_key: input.api_key.unwrap_or_default(),
         anthropic_url: input.anthropic_url,
         model_type: auto_type,
-        proxy_url: input.proxy_url,
-        ss_node: input.ss_node,
         openai_tested: None,
         anthropic_tested: None,
         openai_latency: None,
@@ -441,10 +433,6 @@ pub struct UpdateModelInput {
     #[serde(default)]
     pub model_id: Option<String>,
     #[serde(default)]
-    pub proxy_url: Option<String>,
-    #[serde(default)]
-    pub ss_node: Option<crate::models::model::SSNode>,
-    #[serde(default)]
     pub openai_tested: Option<bool>,
     #[serde(default)]
     pub anthropic_tested: Option<bool>,
@@ -475,12 +463,6 @@ pub fn update_model(internal_id: &str, updates: UpdateModelInput) -> Option<Mode
     if let Some(id) = updates.model_id {
         models[index].model_id = Some(id);
     }
-    if let Some(url) = updates.proxy_url {
-        models[index].proxy_url = Some(url);
-    }
-    if let Some(node) = updates.ss_node {
-        models[index].ss_node = Some(node);
-    }
     if let Some(v) = updates.openai_tested {
         models[index].openai_tested = Some(v);
     }
@@ -502,19 +484,12 @@ pub fn update_model(internal_id: &str, updates: UpdateModelInput) -> Option<Mode
 
 // ─── Test & Ping ───
 
-/// Build HTTP client (optionally with proxy)
+/// Build HTTP client
 fn build_client(_model: &ModelConfig) -> reqwest::Client {
-    let mut builder = reqwest::Client::builder()
-        .timeout(std::time::Duration::from_secs(30));
-
-    // TODO: integrate with ssProxyServer for TUNNEL mode
-    if let Some(proxy_url) = &_model.proxy_url {
-        if let Ok(proxy) = reqwest::Proxy::http(proxy_url) {
-            builder = builder.proxy(proxy);
-        }
-    }
-
-    builder.build().unwrap_or_default()
+    reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(30))
+        .build()
+        .unwrap_or_default()
 }
 
 /// Test model with OpenAI or Anthropic protocol
@@ -785,68 +760,6 @@ pub async fn ping_model(internal_id: &str) -> PingResult {
             url: base_url,
             error: Some(e.to_string()),
         },
-    }
-}
-
-// ─── API Key encryption toggle ───
-
-/// Toggle encryption state for a model's API key
-#[derive(Debug, serde::Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct ToggleEncryptionResult {
-    pub success: bool,
-    pub api_key: String,
-    pub encrypted: bool,
-}
-
-pub fn toggle_key_encryption(internal_id: &str) -> ToggleEncryptionResult {
-    let mut models = get_user_models();
-    let index = match models.iter().position(|m| m.internal_id == internal_id) {
-        Some(i) => i,
-        None => {
-            return ToggleEncryptionResult {
-                success: false,
-                api_key: String::new(),
-                encrypted: false,
-            };
-        }
-    };
-
-    let current_key = &models[index].api_key;
-    if current_key.is_empty() || current_key == "local" {
-        return ToggleEncryptionResult {
-            success: false,
-            api_key: current_key.clone(),
-            encrypted: false,
-        };
-    }
-
-    let (new_key, encrypted) = if is_encrypted(current_key) {
-        // Unlock: decrypt AES ciphertext back to plaintext
-        let decrypted = decrypt_api_key(current_key);
-        if decrypted.is_empty() {
-            log::error!("[ModelManager] Decryption failed, clearing key");
-        }
-        (decrypted, false)
-    } else {
-        // Lock: encrypt plaintext with AES-256-GCM
-        let enc = encrypt_api_key(current_key);
-        let is_enc = is_encrypted(&enc);
-        (enc, is_enc)
-    };
-
-    models[index].api_key = new_key.clone();
-    save_user_models(&models);
-    log::info!(
-        "[ModelManager] Key encryption toggled for: {} -> {}",
-        models[index].name,
-        if encrypted { "encrypted" } else { "plaintext" }
-    );
-
-    ToggleEncryptionResult {
-        success: true,
-        api_key: new_key,
-        encrypted,
     }
 }
 

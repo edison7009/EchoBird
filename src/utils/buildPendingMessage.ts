@@ -23,7 +23,6 @@ export interface PendingModel {
     baseUrl?: string;
     anthropicUrl?: string;
     apiKey?: string;
-    proxyUrl?: string;
 }
 
 export interface BuildResult {
@@ -71,7 +70,6 @@ export function buildPendingMessage(
             if (pm.baseUrl) lines.push(`Base URL: ${pm.baseUrl}`);
             if (pm.anthropicUrl) lines.push(`Anthropic URL: ${pm.anthropicUrl}`);
             if (pm.apiKey) lines.push(`API Key: ${pm.apiKey}`);
-            if (pm.proxyUrl) lines.push(`Proxy URL: ${pm.proxyUrl}`);
             lines.push('[/MODEL CONFIG]');
             return lines.join('\n');
         }).join('\n\n');

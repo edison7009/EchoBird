@@ -16,7 +16,6 @@ pub struct LlmConfig {
     pub base_url: String,
     pub api_key: String,
     pub model: String,
-    pub proxy_url: Option<String>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
@@ -101,17 +100,7 @@ pub struct LlmClient {
 
 impl LlmClient {
     pub fn new(config: LlmConfig) -> Result<Self, String> {
-        let mut builder = reqwest::Client::builder();
-
-        if let Some(ref proxy_url) = config.proxy_url {
-            if !proxy_url.is_empty() {
-                let proxy = reqwest::Proxy::all(proxy_url)
-                    .map_err(|e| format!("Invalid proxy URL: {}", e))?;
-                builder = builder.proxy(proxy);
-            }
-        }
-
-        let http = builder
+        let http = reqwest::Client::builder()
             .timeout(std::time::Duration::from_secs(600)) // 10 min: supports thinking models (DeepSeek-R1, etc.)
             .build()
             .map_err(|e| format!("Failed to build HTTP client: {}", e))?;

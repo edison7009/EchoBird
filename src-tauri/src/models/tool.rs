@@ -99,7 +99,7 @@ pub struct PathsConfig {
 
 // ─── config.json data structure (config read/write mapping) ───
 
-/// Read mapping: ModelInfo field �?config file path(s) (priority order)
+/// Read mapping: ModelInfo field → config file path(s) (priority order)
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct ConfigReadMapping {
@@ -109,11 +109,9 @@ pub struct ConfigReadMapping {
     pub base_url: Option<Vec<String>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub api_key: Option<Vec<String>>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub proxy_url: Option<Vec<String>>,
 }
 
-/// config.json �?configuration read/write mapping
+/// config.json — configuration read/write mapping
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ConfigMapping {
@@ -128,8 +126,6 @@ pub struct ConfigMapping {
     pub read: Option<ConfigReadMapping>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub write: Option<HashMap<String, String>>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub write_proxy: Option<HashMap<String, String>>,
 }
 
 fn default_format() -> String {

@@ -2,7 +2,6 @@
 import { invoke } from '@tauri-apps/api/core';
 import type {
     ModelConfig, ModelTestResult, PingResult,
-    SSNodeConfig,
 } from './types';
 
 
@@ -16,8 +15,6 @@ export async function addModel(input: {
     apiKey: string;
     anthropicUrl?: string;
     modelId?: string;
-    proxyUrl?: string;
-    ssNode?: SSNodeConfig;
 }): Promise<ModelConfig> {
     const result = await invoke<ModelConfig>('add_model', { input });
     window.dispatchEvent(new Event('models-changed'));
@@ -36,8 +33,6 @@ export async function updateModel(internalId: string, updates: {
     apiKey?: string;
     anthropicUrl?: string;
     modelId?: string;
-    proxyUrl?: string;
-    ssNode?: SSNodeConfig;
 }): Promise<ModelConfig | null> {
     const result = await invoke<ModelConfig | null>('update_model', { internalId, updates });
     window.dispatchEvent(new Event('models-changed'));

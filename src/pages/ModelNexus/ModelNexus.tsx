@@ -4,11 +4,10 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { open as shellOpen } from '@tauri-apps/plugin-shell';
 import { X, Box, ExternalLink, Plus } from 'lucide-react';
-import { MiniSelect } from '../../components/MiniSelect';
 import { ModelCard, ModelCardSkeleton, getModelIcon } from '../../components';
 import { useI18n } from '../../hooks/useI18n';
 import * as api from '../../api/tauri';
-import type { SSNodeConfig, ModelConfig } from '../../api/types';
+import type { ModelConfig } from '../../api/types';
 import { ModelNexusContext, useModelNexus } from './context';
 import type { NewModelForm } from './context';
 import modelDirectory from '../../data/modelDirectory.json';
@@ -35,11 +34,6 @@ export function ModelNexusProvider({ children }: { children: React.ReactNode }) 
         anthropicUrl: '',
         apiKey: '',
         modelId: '',
-        useProxy: false,
-        ssServer: '',
-        ssPort: '',
-        ssCipher: 'aes-128-gcm',
-        ssPassword: ''
     });
 
     const closeModelModal = useCallback(() => {
@@ -327,11 +321,6 @@ export function ModelNexusMain() {
             anthropicUrl: freshModel.anthropicUrl || '',
             apiKey: freshModel.apiKey,
             modelId: freshModel.modelId || '',
-            useProxy: !!freshModel.ssNode,
-            ssServer: freshModel.ssNode?.server || '',
-            ssPort: freshModel.ssNode?.port?.toString() || '',
-            ssCipher: freshModel.ssNode?.cipher || 'aes-128-gcm',
-            ssPassword: freshModel.ssNode?.password || ''
         });
         setShowAddModelModal(true);
     }, [setEditingModelId, setKeyDestroyed, setNewModelForm, setShowAddModelModal, setUserModels]);
@@ -369,7 +358,6 @@ export function ModelNexusMain() {
                                     baseUrl={model.baseUrl}
                                     anthropicUrl={model.anthropicUrl}
                                     modelId={model.modelId || ''}
-                                    hasProxy={!!model.proxyUrl}
                                     protocols={protocols}
                                     latency={modelLatencies[model.internalId] ?? model.openaiLatency}
                                     openaiTested={model.openaiTested}
@@ -395,11 +383,6 @@ export function ModelNexusMain() {
                                     anthropicUrl: '',
                                     apiKey: '',
                                     modelId: '',
-                                    useProxy: false,
-                                    ssServer: '',
-                                    ssPort: '',
-                                    ssCipher: 'aes-256-gcm',
-                                    ssPassword: ''
                                 });
                                 setEditingModelId(null);
                                 setShowAddModelModal(true);
@@ -523,11 +506,6 @@ export function ModelNexusPanel() {
             anthropicUrl: entry.anthropicUrl,
             apiKey: '',
             modelId: entry.modelId,
-            useProxy: false,
-            ssServer: '',
-            ssPort: '',
-            ssCipher: 'aes-128-gcm',
-            ssPassword: ''
         });
         setEditingModelId(null);
         setShowAddModelModal(true);
@@ -739,71 +717,6 @@ export function AddModelModal() {
                             </div>
                         </div>
 
-                        {/* SS proxy configuration area */}
-                        <div className="border-t border-cyber-border/20 pt-4 mt-4">
-                            <label className="flex items-center gap-3 cursor-pointer group">
-                                <div className="relative">
-                                    <input
-                                        type="checkbox"
-                                        checked={newModelForm.useProxy}
-                                        onChange={e => setNewModelForm(prev => ({ ...prev, useProxy: e.target.checked }))}
-                                        className="sr-only peer"
-                                    />
-                                    <div className="w-5 h-5 border-2 border-cyber-border/50 bg-cyber-input peer-checked:bg-cyber-accent peer-checked:border-cyber-border transition-all flex items-center justify-center">
-                                        {newModelForm.useProxy && <span className="text-black text-xs font-bold">✓</span>}
-                                    </div>
-                                </div>
-                                <span className="text-sm text-cyber-text font-mono group-hover:text-cyber-text transition-colors">{t('model.proxyTunnel')} <span className="text-cyber-text-secondary">({t('model.specificProxy')})</span></span>
-                            </label>
-
-                            {newModelForm.useProxy && (
-                                <div className="grid grid-cols-2 gap-3 mt-3">
-                                    <div className="col-span-2">
-                                        <label className="block text-xs text-cyber-text-secondary mb-1">SS Server *</label>
-                                        <input
-                                            type="text"
-                                            placeholder="sg1.expressvpn.com"
-                                            value={newModelForm.ssServer}
-                                            onChange={e => setNewModelForm(prev => ({ ...prev, ssServer: e.target.value }))}
-                                            className="w-full bg-cyber-input border border-cyber-border px-2 py-1.5 text-xs text-cyber-text font-mono focus:border-cyber-border focus:outline-none rounded-button"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-xs text-cyber-text-secondary mb-1">Port *</label>
-                                        <input
-                                            type="number"
-                                            placeholder="52324"
-                                            value={newModelForm.ssPort}
-                                            onChange={e => setNewModelForm(prev => ({ ...prev, ssPort: e.target.value }))}
-                                            className="w-full bg-cyber-input border border-cyber-border px-2 py-1.5 text-xs text-cyber-text font-mono focus:border-cyber-border focus:outline-none rounded-button no-spinner"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-xs text-cyber-text-secondary mb-1">Cipher</label>
-                                        <MiniSelect
-                                            value={newModelForm.ssCipher}
-                                            onChange={value => setNewModelForm(prev => ({ ...prev, ssCipher: value }))}
-                                            options={[
-                                                { id: 'aes-128-gcm', label: 'aes-128-gcm' },
-                                                { id: 'aes-256-gcm', label: 'aes-256-gcm' },
-                                                { id: 'chacha20-ietf-poly1305', label: 'chacha20-ietf-poly1305' }
-                                            ]}
-                                            className="w-full"
-                                        />
-                                    </div>
-                                    <div className="col-span-2">
-                                        <label className="block text-xs text-cyber-text-secondary mb-1">Password *</label>
-                                        <input
-                                            type="password"
-                                            placeholder="SS Password / UUID"
-                                            value={newModelForm.ssPassword}
-                                            onChange={e => setNewModelForm(prev => ({ ...prev, ssPassword: e.target.value }))}
-                                            className="w-full bg-cyber-input border border-cyber-border px-2 py-1.5 text-xs text-cyber-text font-mono focus:border-cyber-border focus:outline-none rounded-button"
-                                        />
-                                    </div>
-                                </div>
-                            )}
-                        </div>
                     </div>
                 </div>
 
@@ -817,55 +730,25 @@ export function AddModelModal() {
                     </button>
                     <button
                         onClick={async () => {
-                            if (newModelForm.useProxy) {
-                                if (!newModelForm.ssServer || !newModelForm.ssPort || !newModelForm.ssPassword) {
-                                    console.warn('[ModelNexus] SS proxy config incomplete, saving anyway');
-                                }
-                            }
-
                             if (api.addModel) {
-                                let proxyUrl: string | undefined = undefined;
-                                let ssNode: SSNodeConfig | undefined = undefined;
-
-                                if (newModelForm.useProxy && api.addSSProxyRoute) {
-                                    ssNode = {
-                                        name: newModelForm.name,
-                                        server: newModelForm.ssServer,
-                                        port: parseInt(newModelForm.ssPort),
-                                        cipher: newModelForm.ssCipher,
-                                        password: newModelForm.ssPassword
-                                    };
-                                    const tempId = editingModelId || `model_${Date.now()}`;
-                                    const result = await api.addSSProxyRoute(tempId, newModelForm.baseUrl, ssNode);
-                                    if (result.success) {
-                                        proxyUrl = result.proxyUrl;
-                                    }
-                                }
-
                                 if (editingModelId && api.updateModel) {
-                                    // Edit: always pass actual values (including empty string) — Rust handles clearing
                                     const updatedModel = await api.updateModel(editingModelId, {
                                         name: newModelForm.name,
                                         baseUrl: newModelForm.baseUrl,
                                         anthropicUrl: newModelForm.anthropicUrl,
                                         apiKey: newModelForm.apiKey,
                                         modelId: newModelForm.modelId,
-                                        proxyUrl: proxyUrl,
-                                        ssNode: ssNode,
                                     });
                                     if (updatedModel) {
                                         setUserModels(prev => prev.map(m => m.internalId === editingModelId ? updatedModel : m));
                                     }
                                 } else {
-                                    // Add: baseUrl required as string (empty string is valid)
                                     const newModel = await api.addModel({
                                         name: newModelForm.name,
                                         baseUrl: newModelForm.baseUrl,
                                         anthropicUrl: newModelForm.anthropicUrl || undefined,
                                         apiKey: newModelForm.apiKey,
                                         modelId: newModelForm.modelId,
-                                        proxyUrl: proxyUrl,
-                                        ssNode: ssNode,
                                     });
                                     setUserModels(prev => [...prev, newModel]);
                                 }
@@ -877,11 +760,6 @@ export function AddModelModal() {
                                     anthropicUrl: '',
                                     apiKey: '',
                                     modelId: '',
-                                    useProxy: false,
-                                    ssServer: '',
-                                    ssPort: '',
-                                    ssCipher: 'aes-128-gcm',
-                                    ssPassword: ''
                                 });
                                 setShowAddModelModal(false);
                             }

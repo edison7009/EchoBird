@@ -8,7 +8,6 @@
 import { invoke } from '@tauri-apps/api/core';
 import type {
     DetectedTool, ApplyModelInput,
-    SSNodeConfig,
     AppSettings,
 } from './types';
 
@@ -78,12 +77,6 @@ export async function launchGame(toolId: string, launchFile: string, modelConfig
     protocol?: string;
 }): Promise<{ success: boolean; message?: string }> {
     return invoke('launch_game', { toolId, launchFile, modelConfig: modelConfig || null });
-}
-
-// ─── SS Proxy APIs ───
-
-export async function addSSProxyRoute(modelId: string, targetUrl: string, ssNode: SSNodeConfig): Promise<{ success: boolean; proxyUrl?: string }> {
-    return invoke('add_ss_proxy_route', { modelId, targetUrl, ssNode });
 }
 
 // ─── Window APIs (Tauri built-in) ───

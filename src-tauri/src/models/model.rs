@@ -1,16 +1,6 @@
-// Model configuration structures �?mirrors old modelManager.ts types
+// Model configuration structures — mirrors old modelManager.ts types
 
 use serde::{Deserialize, Serialize};
-
-/// Shadowsocks node configuration (embedded in model config)
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct SSNode {
-    pub name: String,
-    pub server: String,
-    pub port: u16,
-    pub cipher: String,
-    pub password: String,
-}
 
 /// Model type indicator
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -38,10 +28,6 @@ pub struct ModelConfig {
     #[serde(skip_serializing_if = "Option::is_none")]
     #[serde(rename = "type")]
     pub model_type: Option<ModelType>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub proxy_url: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub ss_node: Option<SSNode>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub openai_tested: Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]

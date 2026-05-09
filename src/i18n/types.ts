@@ -34,11 +34,11 @@ export type TKey =
     // Model dialog
     | 'model.name' | 'model.apiKey' | 'model.modelId'
     | 'model.openaiUrl' | 'model.anthropicUrl'
-    | 'model.editConfig' | 'model.proxyTunnel' | 'model.specificProxy'
+    | 'model.editConfig'
     | 'model.deleteTitle' | 'model.deleteConfirm' | 'model.escCancel' | 'model.enterSave'
     // ModelCard labels
     | 'model.label' | 'model.source' | 'model.latency' | 'model.notTested' | 'model.providers' | 'model.relays'
-    | 'model.cloud' | 'model.local' | 'model.tunnel'
+    | 'model.cloud' | 'model.local'
 
     // App Manager
     | 'agent.myLocalModel' | 'agent.selectTool' | 'agent.selectModelFor'

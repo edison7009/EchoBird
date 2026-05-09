@@ -73,7 +73,6 @@ export interface ModelCardProps {
     baseUrl?: string;        // API endpoint (OpenAI)
     anthropicUrl?: string;   // API endpoint (Anthropic)
     modelId?: string;        // model ID (provider-defined)
-    hasProxy?: boolean;      // proxy enabled
     latency?: number;        // latency in ms, undefined = untested
     protocols?: ('openai' | 'anthropic')[];  // supported API protocols
     openaiTested?: boolean;      // OpenAI protocol tested
@@ -162,7 +161,7 @@ export const MatrixDecode = ({ duration = 2000 }: { duration?: number }) => {
 
 // ModelCard component
 export const ModelCard = React.memo(({
-    name, type, baseUrl, anthropicUrl, modelId, hasProxy, latency,
+    name, type, baseUrl, anthropicUrl, modelId, latency,
     protocols = [], openaiTested = false, anthropicTested = false,
     isPinging = false, selected = false, isActive = false,
     onClick, onEdit, onDelete, onProtocolClick
@@ -250,11 +249,6 @@ export const ModelCard = React.memo(({
                     ) : (
                         <span className="text-cyber-text-muted/70 text-xs">{t('model.notTested')}</span>
                     )}
-                    {hasProxy && (
-                        <span className="text-[10px] ml-1 text-cyber-text/70 font-mono">
-                            ({t('model.tunnel')})
-                        </span>
-                    )}
                 </div>
             </div>
             {/* Protocol tags */}
@@ -302,7 +296,7 @@ export const ModelCard = React.memo(({
     // Custom comparator: skip function props (new refs each render)
     const keys: (keyof ModelCardProps)[] = [
         'id', 'name', 'type', 'baseUrl', 'anthropicUrl', 'modelId',
-        'hasProxy', 'latency', 'openaiTested', 'anthropicTested',
+        'latency', 'openaiTested', 'anthropicTested',
         'isPinging', 'selected',
     ];
     for (const k of keys) {

@@ -134,7 +134,6 @@ export const AppManagerProvider: React.FC<AppManagerProviderProps> = ({ children
                 baseUrl: apiUrl,
                 apiKey: model.apiKey,
                 model: model.modelId || '',
-                proxyUrl: model.proxyUrl,
                 protocol: selectedProtocol
             });
 

@@ -33,14 +33,6 @@ export interface LocalTool extends DetectedTool {
 
 // ─── Model Types ───
 
-export interface SSNodeConfig {
-    name: string;
-    server: string;
-    port: number;
-    cipher: string;
-    password: string;
-}
-
 export interface ModelConfig {
     internalId: string;
     name: string;
@@ -49,8 +41,6 @@ export interface ModelConfig {
     apiKey: string;
     anthropicUrl?: string;
     modelType?: 'CLOUD' | 'LOCAL' | 'TUNNEL' | 'DEMO';
-    proxyUrl?: string;
-    ssNode?: SSNodeConfig;
     openaiTested?: boolean;
     anthropicTested?: boolean;
     openaiLatency?: number;
@@ -107,13 +97,6 @@ export interface ModelSettings {
     gpuVramGb?: number;
 }
 
-// ─── Proxy Types ───
-
-export interface ProxyRule {
-    pattern: string;
-    enabled: boolean;
-}
-
 // ─── Tool Config Types ───
 
 export interface ToolModelInfo {
@@ -122,7 +105,6 @@ export interface ToolModelInfo {
     baseUrl: string;
     apiKey: string;
     model: string;
-    proxyUrl?: string;
 }
 
 export interface ApplyModelInput {
@@ -131,7 +113,6 @@ export interface ApplyModelInput {
     baseUrl: string;
     apiKey: string;
     model: string;
-    proxyUrl?: string;
     protocol?: string;
 }
 
@@ -174,7 +155,6 @@ export interface AgentRequest {
     /** Anthropic-compatible URL. When provided, backend tries Anthropic first,
      *  falls back to OpenAI base_url on 400. */
     anthropic_url?: string;
-    proxy_url?: string;
     server_ids: string[];
     skills: string[];
     /** UI locale code (e.g. "zh-Hans", "en"). Hints the agent's response language. */
