@@ -50,7 +50,7 @@ const en: Translations = {
     'btn.stop': 'STOP',
     'btn.add': 'ADD',
     'btn.remove': 'REMOVE',
-    'btn.pingAll': 'test speed',
+    'btn.pingAll': 'Test Latency',
     // Status
     'status.scanning': 'Scanning...',
     // Search
@@ -119,7 +119,7 @@ const en: Translations = {
     'model.tunnel': 'TUNNEL',
     // Copy button
     'btn.copy': '[COPY]',
-    'btn.copied': '[鉁揮',
+    'btn.copied': '[✓]',
     // Common
     'common.noData': 'No data',
     'common.confirm': 'Confirm',
@@ -156,7 +156,7 @@ const en: Translations = {
     // Debug console
     // Local Server
     'server.gpuFull': '⚡ GPU Full',
-    'server.cpuOnly': '馃枼 CPU Only',
+    'server.cpuOnly': '🖥 CPU Only',
     'server.setupEngine': 'SETUP ENGINE',
     'server.upgradeEngine': 'UPGRADE ENGINE',
     'server.downloading': 'DOWNLOADING',
@@ -166,7 +166,7 @@ const en: Translations = {
     'store.cancel': '[CANCEL]',
     'store.remove': 'REMOVE',
     'store.ver': 'ver',
-    'store.ready': '鉁?Ready',
+    'store.ready': '✓ Ready',
     // Developer invite hint
     // API Key encryption status hints
     'key.encrypted': 'Encrypted globally — API Key will self-destruct if environment changes',
@@ -216,7 +216,7 @@ const en: Translations = {
     'ssh.winUsername': '(Virtual account name)',
     'ssh.winPassword': '(Virtual account password)',
     'ssh.winIp': 'run ipconfig',
-    'ssh.macStep': 'System Settings 鈫?General 鈫?Sharing 鈫?Enable "Remote Login"',
+    'ssh.macStep': 'System Settings → General → Sharing → Enable "Remote Login"',
     'ssh.macOr': 'Or:',
     'ssh.macUsername': 'run whoami',
     'ssh.macPassword': 'your Mac password',
@@ -230,7 +230,7 @@ const en: Translations = {
     'ssh.termuxIp': 'run ifconfig | grep inet',
     'ssh.ishUsername': 'root',
     'ssh.ishPassword': 'set via passwd',
-    'ssh.ishIp': 'Settings 鈫?Wi-Fi 鈫?IP Address',
+    'ssh.ishIp': 'Settings → Wi-Fi → IP Address',
     'mother.connectionRetrying': 'Connection error, retrying ({n}/{total})...',
     'mother.connectionFailed': 'Failed to connect to AI model after {n} retries.',
     'mother.connectionHint': 'Please check the URL, Model ID, API Key, and ensure your token quota is sufficient.',
