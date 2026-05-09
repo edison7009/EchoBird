@@ -172,11 +172,6 @@ fn find_tools_dir() -> Option<PathBuf> {
     None
 }
 
-/// Public wrapper to get the tools directory path
-pub fn get_tools_dir() -> PathBuf {
-    find_tools_dir().unwrap_or_else(|| PathBuf::from("tools"))
-}
-
 // ─── Load tool definitions from directory ───
 
 /// Load all tool definitions by scanning tools/*/paths.json

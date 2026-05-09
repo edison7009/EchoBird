@@ -757,9 +757,3 @@ pub async fn start_tool(tool_id: &str, start_command: Option<&str>) -> Result<()
     mgr.start_tool(tool_id, start_command).await
 }
 
-/// Stop all tools
-pub async fn stop_all_tools() {
-    let mgr = get_manager().await;
-    let mut mgr = mgr.lock().await;
-    mgr.stop_all();
-}

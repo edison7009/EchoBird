@@ -1,25 +1,6 @@
-// Platform detection and command utilities �?mirrors old utils.ts
+// Platform detection and command utilities — mirrors old utils.ts
 
 use std::process::Command;
-
-/// Supported platforms
-#[derive(Debug, Clone, PartialEq)]
-pub enum Platform {
-    Windows,
-    Mac,
-    Linux,
-}
-
-/// Detect the current platform
-pub fn get_platform() -> Platform {
-    if cfg!(target_os = "windows") {
-        Platform::Windows
-    } else if cfg!(target_os = "macos") {
-        Platform::Mac
-    } else {
-        Platform::Linux
-    }
-}
 
 /// Check if a command exists on PATH
 pub async fn command_exists(cmd: &str) -> bool {
