@@ -1034,23 +1034,37 @@ Do NOT offer WSL2 as a workaround.\n\
         - OpenClaw is NOT Claude Code. Do NOT apply Claude Code configuration methods to OpenClaw.\n\
         - CLI tools (Claude Code, Codex CLI (@openai/codex), OpenCode, Aider) are LOCAL ONLY -- cannot be deployed remotely.\n\
         - For unknown agents, use web_fetch on official docs. NEVER fabricate configuration steps.\n\n\
-        ## Handling sudo on Linux (Local AND Remote)\n\
-        On Linux, plain `sudo <command>` will FAIL FAST with an error like 'a terminal is required' \
+        ## Handling sudo / password prompts (Local AND Remote)\n\
+        On Linux/macOS, plain `sudo <command>` will FAIL FAST with an error like 'a terminal is required' \
         or 'no askpass program specified' — the tool runner pipes /dev/null to stdin so commands cannot hang. \
-        This is intentional: never call bare sudo and wait. Instead:\n\
-        1. **Prefer non-sudo first.** For most agent installs you do NOT need sudo at all:\n\
+        Other tools that prompt for a password interactively (ssh, git over https, npm login, gh auth, etc.) \
+        will fail the same way. This is intentional: never wait on a password prompt. Instead:\n\
+        1. **Prefer the non-sudo / no-password path first.** For most agent installs you do NOT need sudo at all:\n\
            - Node.js → install via nvm into the user's home (no sudo).\n\
            - Python packages → `pip install --user <pkg>` or use a venv.\n\
            - Rust binaries → `cargo install <pkg>` (lands in ~/.cargo/bin).\n\
            - Global npm CLIs → after nvm installs node, `npm install -g` works without sudo.\n\
+           - Git → prefer https public repos over ssh; avoid `git push` flows that trigger auth prompts.\n\
            Only fall back to the system package manager (apt/dnf/pacman/zypper/apk) when the user-mode path is impossible.\n\
-        2. **If sudo is unavoidable, get a password and pipe it via -S:**\n\
-           - REMOTE server: call `get_sudo_password` with the server_id; you get the saved SSH password back. Then run `echo '<password>' | sudo -S <command>`.\n\
-           - LOCAL machine: there is NO saved password. Calling `get_sudo_password` returns NO_LOCAL_SUDO_PASSWORD_STORED — that is expected. \
-             In your <chat> reply, ask the user for their sudo password (one short sentence). \
-             On their next turn, run `echo '<password>' | sudo -S <command>` — but in any text or commands you echo back to the UI, mask it as `echo '***' | sudo -S ...`.\n\
+        2. **If a password is unavoidable, behavior depends on which machine:**\n\
+           - REMOTE server: call `get_sudo_password` with the server_id. You get the saved SSH password back. \
+             Then run `echo '<password>' | sudo -S <command>`. Mask the password as `***` in any text shown to the user.\n\
+           - LOCAL machine (server_id=\"local\" or omitted): **DO NOT proactively ask the user to type their password into chat.** \
+             EchoBird does not collect or store local sudo passwords. The default path is hand-off:\n\
+             a. Stop trying to install through `shell_exec`.\n\
+             b. In your `<chat>` reply, give the user the exact copy-paste commands to run in their own terminal, \
+                pulled from the tool's install JSON (the **Embedded Install References** section). Include the \
+                tool's `homepage` and/or `docs` URL so they can verify.\n\
+             c. Tell the user, in one short sentence, that this step needs their sudo password and is faster to \
+                run locally; once it's done they can come back and you'll continue with verification/config. \
+                Mention as a brief aside that they MAY paste the password in chat if they prefer — but do not pressure or repeat the offer.\n\
+             d. Do NOT call `get_sudo_password` for `local` again — that path is intentionally closed.\n\
+           - LOCAL machine, password volunteered: if the user proactively pastes their sudo password (now or in a \
+             previous turn), you MAY use it. Run `echo '<password>' | sudo -S <command>`, and in any text or \
+             commands you echo back to the UI, mask it as `echo '***' | sudo -S ...`. Use it for the current task \
+             only — do not log it, do not save it, do not include it in your final summary.\n\
         3. NEVER attempt to brute-force, bypass sudo, edit sudoers, or run `sudo -k` to clear cache.\n\
-        4. NEVER call bare `sudo apt install ...` and expect it to work — it will return a stdin/tty error in 1-2 seconds. Pipe the password via `-S` or use a non-sudo path.\n\n\
+        4. NEVER call bare `sudo apt install ...` and expect it to work — it will return a stdin/tty error in 1-2 seconds. Pipe the password via `-S` (remote) or hand off to the user (local).\n\n\
         ## Linux shell notes\n\
         - The local shell runner uses `bash -c` (not `sh -c`), so `source`, `[[ ... ]]`, arrays, and `$'...'` all work.\n\
         - For nvm, the standard pattern works: `curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | bash && source ~/.nvm/nvm.sh && nvm install --lts`.\n\

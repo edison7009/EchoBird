@@ -58,8 +58,9 @@ export const AppManagerProvider: React.FC<AppManagerProviderProps> = ({ children
     const [applyError, setApplyError] = useState<string | null>(null);
 
     // Bottom-bar checkbox states are persisted across sessions — users get tired of
-    // re-checking the same boxes every launch. Defaults match prior behavior:
-    // launchAfterApply=false (user usually just wants to write config), apply=true.
+    // re-checking the same boxes every launch. Default both to true so picking an app
+    // and clicking the big button "just launches it"; users who only want to rewrite
+    // config without launching can uncheck the launch box.
     const readBool = (key: string, fallback: boolean): boolean => {
         try {
             const v = localStorage.getItem(key);
@@ -70,7 +71,7 @@ export const AppManagerProvider: React.FC<AppManagerProviderProps> = ({ children
         try { localStorage.setItem(key, String(v)); } catch { /* private mode */ }
     };
     const [launchAfterApply, setLaunchAfterApplyRaw] = useState<boolean>(
-        () => readBool('echobird_appmgr_launch_after', false)
+        () => readBool('echobird_appmgr_launch_after', true)
     );
     const setLaunchAfterApply = (v: boolean) => {
         setLaunchAfterApplyRaw(v);

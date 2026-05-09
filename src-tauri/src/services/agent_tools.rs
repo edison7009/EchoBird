@@ -187,12 +187,14 @@ pub fn get_tool_definitions() -> Vec<super::llm_client::ToolDef> {
         },
         super::llm_client::ToolDef {
             name: "get_sudo_password".into(),
-            description: "Get the saved sudo password. \
-                For a remote SSH server, pass its server_id and you get back the saved SSH password. \
-                For the LOCAL machine, pass server_id=\"local\" (or omit it) — there is NO saved local password, \
-                so this returns an instruction telling you to ask the user in chat for their sudo password \
-                (and then run: echo '<password>' | sudo -S <command>). \
-                Always prefer non-sudo alternatives (nvm, pip install --user, cargo install) before resorting to sudo.".into(),
+            description: "Get the saved sudo password for a REMOTE SSH server. \
+                Pass the server_id and you get back the saved SSH password, then run: echo '<password>' | sudo -S <command>. \
+                Do NOT call this for the local machine — there is no saved local password. \
+                For LOCAL sudo, the default is hand-off: print the copy-paste install commands plus the tool's \
+                homepage/docs URL in your <chat> reply and let the user run them in their own terminal. The user \
+                MAY volunteer their password in chat if they prefer; if they do, use it directly via \
+                `echo '<pwd>' | sudo -S` and mask it as '***' in any output. \
+                Always prefer non-sudo alternatives first (nvm, pip install --user, cargo install).".into(),
             parameters: json!({
                 "type": "object",
                 "properties": {
@@ -607,19 +609,27 @@ fn exec_get_sudo_password(server_id: &str) -> ToolResult {
     use crate::commands::ssh_commands::read_servers_from_disk;
     use crate::services::model_manager;
 
-    // Local machine: no password is stored. Tell the model to ask the user in chat.
-    // success=false so the model treats this as "I need to do something else"
-    // rather than piping the literal directive into `sudo -S`.
+    // Local machine: no password is stored, AND we deliberately do not collect one via chat
+    // by default. Typing a sudo password into a chat panel is bad UX, so the model should
+    // hand off — print the install commands + homepage/docs URL and let the user run them
+    // in their own terminal. The user MAY still volunteer their password in chat if they
+    // prefer that flow; in that case the model uses it directly via `echo '<pwd>' | sudo -S`.
+    // success=false so the model treats this branch as "stop polling, switch strategy".
     if server_id == "local" || server_id.is_empty() {
         return ToolResult {
             success: false,
-            output: "NO_LOCAL_SUDO_PASSWORD_STORED. The local machine has no saved sudo password. \
-                Do NOT call this tool again for local. Instead: \
+            output: "NO_LOCAL_SUDO_PASSWORD_STORED. EchoBird does not collect local sudo passwords. \
+                Do NOT call this tool again for local. Default path: \
                 (1) prefer non-sudo alternatives first — nvm for Node, `pip install --user` for Python, \
                 `cargo install` for Rust binaries; \
-                (2) if sudo is truly required, ask the user in your <chat> reply for their sudo password, \
-                then on the next turn run: echo '<password>' | sudo -S <command>. \
-                When showing the command back to the user, mask the password as '***'.".into(),
+                (2) if sudo is truly unavoidable, HAND OFF to the user: in your <chat> reply give the \
+                exact copy-paste commands from the tool's Embedded Install Reference (plus its homepage/docs \
+                URL), and in one short sentence explain this step needs their sudo password and is faster \
+                to run locally. Mention briefly that they MAY paste the password in chat if they prefer, \
+                but do not press for it. \
+                If the user has already volunteered their password (now or earlier in this conversation), \
+                you may run `echo '<password>' | sudo -S <command>`. Mask the password as '***' in any \
+                command or text echoed back to the UI, and do NOT include it in your final summary.".into(),
         };
     }
 

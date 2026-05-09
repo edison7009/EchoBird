@@ -402,8 +402,15 @@ export const AppManagerBottom: React.FC = () => {
     } = useAppManager();
 
     const noModelConfig = !!selectedToolData?.noModelConfig;
-    const hasModel = noModelConfig || !!(selectedTool && toolModelConfig[selectedTool]);
-    const buttonDisabled = !hasModel || (!noModelConfig && !launchAfterApply && !agreedConfigPolicy) || isLaunching;
+    const hasModelSelected = !!(selectedTool && toolModelConfig[selectedTool]);
+    // What will a click actually do?
+    //  - "Apply" runs only when the user picked a model AND agreed to the config-write policy.
+    //  - "Launch" runs whenever launchAfterApply is on, or unconditionally for desktop/no-config apps.
+    // Many tools already work out of the box, so launching without picking a model must stay enabled —
+    // forcing model selection just to start a CLI was the long-standing bug.
+    const willApply = !noModelConfig && agreedConfigPolicy && hasModelSelected;
+    const willLaunch = launchAfterApply || noModelConfig;
+    const buttonDisabled = !selectedTool || (!willApply && !willLaunch) || isLaunching;
 
     return (
         <div className="flex-shrink-0 flex flex-col mt-2">
@@ -420,7 +427,7 @@ export const AppManagerBottom: React.FC = () => {
                         : 'bg-cyber-accent text-white border-cyber-accent hover:bg-cyber-accent-secondary hover:border-cyber-accent-secondary shadow-cyber-accent/30'
                         }`}
                 >
-                    {(noModelConfig || launchAfterApply) ? t('btn.launchApp') : t('btn.modifyOnly')}
+                    {willLaunch ? t('btn.launchApp') : t('btn.modifyOnly')}
                 </button>
                 {/* Checkboxes — for tools that don't support model config (desktop apps,
                     IDE plugins) the boxes stay visible but go gray + un-clickable, so the
