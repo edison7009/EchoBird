@@ -1,4 +1,4 @@
-// i18n type definitions (separate file to avoid circular imports)
+﻿// i18n type definitions (separate file to avoid circular imports)
 
 // Translation key definitions
 export type TKey =
@@ -24,8 +24,7 @@ export type TKey =
     | 'btn.addModel' | 'btn.refresh'
     | 'btn.cancel' | 'btn.delete' | 'btn.edit'
     | 'btn.launchApp'
-    | 'btn.modifyOnly' | 'btn.start' | 'btn.stop'
-    | 'btn.add' | 'btn.remove'
+    | 'btn.modifyOnly' | 'btn.start' | 'btn.stop' | 'btn.remove'
     | 'btn.copy' | 'btn.copied'
     | 'btn.pingAll'
     // Status
@@ -34,12 +33,11 @@ export type TKey =
 
     // Model dialog
     | 'model.name' | 'model.apiKey' | 'model.modelId'
-    | 'model.openaiUrl' | 'model.anthropicUrl' | 'model.proxyNode'
+    | 'model.openaiUrl' | 'model.anthropicUrl'
     | 'model.editConfig' | 'model.proxyTunnel' | 'model.specificProxy'
-    | 'model.deleteTitle' | 'model.deleteConfirm'
-    | 'model.selectToTest' | 'model.escCancel' | 'model.enterSave'
+    | 'model.deleteTitle' | 'model.deleteConfirm' | 'model.escCancel' | 'model.enterSave'
     // ModelCard labels
-    | 'model.label' | 'model.source' | 'model.latency' | 'model.debugTesting' | 'model.notTested' | 'model.providers' | 'model.relays'
+    | 'model.label' | 'model.source' | 'model.latency' | 'model.notTested' | 'model.providers' | 'model.relays'
     | 'model.cloud' | 'model.local' | 'model.tunnel'
 
     // App Manager
@@ -64,20 +62,17 @@ export type TKey =
     | 'server.selectModelDir' | 'server.downloadFromStore'
     | 'server.gpuFull' | 'server.cpuOnly'
     | 'server.setupEngine' | 'server.upgradeEngine' | 'server.downloading'
-    // Debug (used in ModelNexus)
-    | 'debug.console' | 'debug.gettingStarted'    // Download / Model Store
-    | 'download.location' | 'download.changePath' | 'download.selectNewDir'
-    | 'download.inQueue' | 'download.pause' | 'download.resume'
-    | 'download.cancel' | 'download.retry'
-    | 'quant.light' | 'quant.standard' | 'quant.extended' | 'quant.large' | 'quant.maximum'
+    // Download / Model Store
+    | 'download.location'
+    | 'download.inQueue' | 'download.pause'
     // ModelStore buttons
     | 'store.add' | 'store.del' | 'store.cancel' | 'store.remove'
     | 'store.ver' | 'store.ready'
     // VRAM fitness labels
     | 'vram.easy' | 'vram.good' | 'vram.tight' | 'vram.heavy'
     // Common
-    | 'common.noData' | 'common.confirm' | 'common.website'
-    | 'common.areYouSure' | 'common.inputting'
+    | 'common.confirm'
+    | 'common.areYouSure'
     // API Key encryption status
     | 'key.encrypted' | 'key.destroyed'
     // Developer invite hint
@@ -86,8 +81,8 @@ export type TKey =
     | 'mother.selectModel'
     | 'mother.hintInstall' | 'mother.hintShowSpecs' | 'mother.hintShowSpecsLocal' | 'mother.hintTroubleshoot' | 'mother.hintUninstall'
     | 'mother.hintNetworkInfo' | 'mother.hintSecurityAudit'
-    | 'mother.enterMessage' | 'mother.noModels'
-    | 'mother.servers' | 'mother.sshGuide' | 'mother.local' | 'mother.noServer'
+    | 'mother.enterMessage'
+    | 'mother.servers' | 'mother.sshGuide' | 'mother.local'
     | 'mother.addServer' | 'mother.hostIp' | 'mother.port' | 'mother.username'
     | 'mother.passwordKey' | 'mother.hostPlaceholder' | 'mother.userPlaceholder'
     | 'mother.passwordPlaceholder' | 'mother.encrypted'
@@ -97,9 +92,7 @@ export type TKey =
     | 'mother.displayName' | 'mother.optional' | 'mother.displayNamePlaceholder'
     // SSH Guide
     | 'ssh.cloudDesc' | 'ssh.usernameHint' | 'ssh.passwordHint' | 'ssh.ipHint' | 'ssh.portHint'
-    | 'ssh.cloudUsername' | 'ssh.cloudPassword' | 'ssh.cloudIp'
-    | 'ssh.winStep1' | 'ssh.winStep2' | 'ssh.winStep3' | 'ssh.winStep4'
-    | 'ssh.winUsername' | 'ssh.winPassword' | 'ssh.winIp' | 'ssh.winNote'
+    | 'ssh.cloudUsername' | 'ssh.cloudPassword' | 'ssh.cloudIp' | 'ssh.winNote'
     | 'ssh.macStep' | 'ssh.macOr'
     | 'ssh.macUsername' | 'ssh.macPassword' | 'ssh.macIp'
     | 'ssh.linuxNote'
@@ -112,7 +105,6 @@ export type TKey =
     | 'error.connectionTimeout' | 'error.serverUnreachable' | 'error.agentFailed'
     | 'error.noServerConfig' | 'error.noModelSelected' | 'error.requestFailed'
     | 'error.userCancelled'
-    | 'common.inputting'
     // App brand
     | 'app.name';
 

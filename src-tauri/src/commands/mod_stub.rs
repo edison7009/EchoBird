@@ -1,10 +1,4 @@
-// Stub commands for initial validation
-
-/// Health check — returns app version
-#[tauri::command]
-pub fn health_check() -> String {
-    format!("Echobird v{}", env!("CARGO_PKG_VERSION"))
-}
+// Window lifecycle commands
 
 /// App ready — show the main window. Called by the frontend (App.tsx) after
 /// React has mounted and scanTools() has resolved, so the WebView has already

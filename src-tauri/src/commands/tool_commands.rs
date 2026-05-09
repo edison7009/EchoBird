@@ -4,55 +4,6 @@ use crate::models::tool::DetectedTool;
 use crate::services::tool_config_manager::{self, ApplyResult, ModelInfo};
 use crate::services::tool_manager;
 
-// ── LLM Proxy (bypass browser CORS for tool windows) ──
-
-/// Proxy an OpenAI-compatible chat request from a tool window (no CORS involved).
-/// Called by reversi.html and other tool pages via window.__TAURI__.core.invoke().
-#[tauri::command]
-pub async fn llm_proxy_chat(
-    url: String,
-    api_key: String,
-    body: serde_json::Value,
-    anthropic_version: Option<String>,
-) -> Result<serde_json::Value, String> {
-    let client = reqwest::Client::builder()
-        .timeout(std::time::Duration::from_secs(120))
-        .build()
-        .map_err(|e| format!("HTTP client error: {}", e))?;
-
-    let mut req = client.post(&url)
-        .header("Content-Type", "application/json");
-
-    if let Some(av) = &anthropic_version {
-        // Anthropic protocol
-        req = req
-            .header("x-api-key", &api_key)
-            .header("anthropic-version", av);
-    } else {
-        // OpenAI-compatible protocol
-        req = req.header("Authorization", format!("Bearer {}", api_key));
-    }
-
-    let resp = req
-        .json(&body)
-        .send()
-        .await
-        .map_err(|e| format!("Request failed: {}", e))?;
-
-    let status = resp.status().as_u16();
-    let json = resp
-        .json::<serde_json::Value>()
-        .await
-        .map_err(|e| format!("Failed to read response: {}", e))?;
-
-    if status >= 400 {
-        return Err(format!("API {} — {}", status,
-            json.get("error").and_then(|e| e.get("message")).and_then(|m| m.as_str()).unwrap_or("unknown")));
-    }
-
-    Ok(json)
-}
-
 /// Scan all installed tools and return detection results
 #[tauri::command]
 pub async fn scan_tools() -> Result<Vec<DetectedTool>, String> {
@@ -167,80 +118,6 @@ pub async fn launch_game(
         let _ = (app_handle, tool_id, _launch_file, model_config);
         Err("Not available on mobile".to_string())
     }
-}
-
-/// List installed skills from a tool's skills directory
-/// Note: frontend passes the skills directory path as `tool_id` parameter
-#[tauri::command]
-pub async fn get_tool_installed_skills(tool_id: String) -> Result<Vec<serde_json::Value>, String> {
-    let skills_dir = std::path::Path::new(&tool_id);
-    if !skills_dir.exists() || !skills_dir.is_dir() {
-        return Ok(vec![]);
-    }
-
-    let mut skills = Vec::new();
-    let entries = std::fs::read_dir(skills_dir)
-        .map_err(|e| format!("Failed to read skills dir: {}", e))?;
-
-    for entry in entries.filter_map(|e| e.ok()) {
-        let path = entry.path();
-        if !path.is_dir() { continue; }
-
-        let dir_name = entry.file_name().to_string_lossy().to_string();
-        if dir_name.starts_with('.') { continue; }
-
-        // Try to read skill name from package.json or .prompt file
-        let display_name = read_skill_name(&path).unwrap_or_else(|| dir_name.clone());
-
-        skills.push(serde_json::json!({
-            "id": dir_name,
-            "name": display_name,
-            "path": path.to_string_lossy().to_string(),
-        }));
-    }
-
-    skills.sort_by(|a, b| {
-        let na = a["name"].as_str().unwrap_or("");
-        let nb = b["name"].as_str().unwrap_or("");
-        na.to_lowercase().cmp(&nb.to_lowercase())
-    });
-
-    Ok(skills)
-}
-
-/// Read skill display name from package.json or .md/.prompt file
-/// Falls back to directory name if only generic files exist (e.g. SKILL.md)
-fn read_skill_name(skill_dir: &std::path::Path) -> Option<String> {
-    // Try package.json
-    let pkg = skill_dir.join("package.json");
-    if pkg.exists() {
-        if let Ok(content) = std::fs::read_to_string(&pkg) {
-            if let Ok(json) = serde_json::from_str::<serde_json::Value>(&content) {
-                if let Some(name) = json.get("name").and_then(|v| v.as_str()) {
-                    if !name.is_empty() {
-                        return Some(name.to_string());
-                    }
-                }
-            }
-        }
-    }
-    // Try .prompt/.md file �?skip generic names like SKILL.md
-    if let Ok(entries) = std::fs::read_dir(skill_dir) {
-        for entry in entries.filter_map(|e| e.ok()) {
-            let fname = entry.file_name().to_string_lossy().to_string();
-            if fname.ends_with(".md") || fname.ends_with(".prompt") {
-                let stem = fname.trim_end_matches(".md").trim_end_matches(".prompt");
-                // Skip generic names �?use directory name instead
-                if !stem.eq_ignore_ascii_case("skill")
-                    && !stem.eq_ignore_ascii_case("readme")
-                    && !stem.eq_ignore_ascii_case("index")
-                {
-                    return Some(stem.to_string());
-                }
-            }
-        }
-    }
-    None
 }
 
 /// Open a folder in the system file manager

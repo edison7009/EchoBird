@@ -48,30 +48,25 @@ const en: Translations = {
     'btn.modifyOnly': 'MODIFY ONLY',
     'btn.start': 'START',
     'btn.stop': 'STOP',
-    'btn.add': 'ADD',
     'btn.remove': 'REMOVE',
     'btn.pingAll': 'Test Latency',
     // Status
     'status.scanning': 'Scanning...',
-    // Search
     // Model dialog
     'model.name': 'Name',
     'model.apiKey': 'API Key',
     'model.modelId': 'Model ID',
     'model.openaiUrl': 'OpenAI URL',
     'model.anthropicUrl': 'Anthropic URL',
-    'model.proxyNode': 'Proxy Node',
     'model.editConfig': 'EDIT MODEL CONFIG',
     'model.proxyTunnel': 'PROXY TUNNEL',
     'model.specificProxy': 'Model-specific proxy',
     'model.deleteTitle': 'DELETE MODEL',
     'model.deleteConfirm': 'This model configuration will be permanently removed. This action cannot be undone.',
-    'model.selectToTest': 'Select a model to begin testing',
     'model.providers': 'Model Providers',
     'model.relays': 'Model Relays',
     'model.escCancel': 'CANCEL',
     'model.enterSave': 'SAVE',
-    // Skills
     // App Manager
     'agent.myLocalModel': 'My Local Model',
     'agent.selectTool': 'Select a tool to configure',
@@ -101,18 +96,10 @@ const en: Translations = {
     'server.downloadFromStore': 'or download from the STORE',
     // Download / Model Store
     'download.location': 'Download location:',
-    'download.changePath': 'Change Download Path',
-    'download.selectNewDir': 'Select a new default directory for downloading models?',
-    'quant.light': 'Light',
-    'quant.standard': 'Standard',
-    'quant.extended': 'Extended',
-    'quant.large': 'Large',
-    'quant.maximum': 'Maximum',
     // ModelCard labels
     'model.label': 'MODEL',
     'model.source': 'SOURCE',
     'model.latency': 'LATENCY',
-    'model.debugTesting': 'DEBUG TESTING',
     'model.notTested': 'Not tested',
     'model.cloud': 'CLOUD',
     'model.local': 'LOCAL',
@@ -121,9 +108,7 @@ const en: Translations = {
     'btn.copy': '[COPY]',
     'btn.copied': '[✓]',
     // Common
-    'common.noData': 'No data',
     'common.confirm': 'Confirm',
-    'common.website': 'Website',
     'common.areYouSure': 'Are you sure?',
     // Tool categories
     'toolCat.all': 'ALL',
@@ -150,10 +135,6 @@ const en: Translations = {
     // Download status
     'download.inQueue': 'in queue',
     'download.pause': 'Pause',
-    'download.resume': 'Resume',
-    'download.cancel': 'Cancel',
-    'download.retry': 'Retry',
-    // Debug console
     // Local Server
     'server.gpuFull': '⚡ GPU Full',
     'server.cpuOnly': '🖥 CPU Only',
@@ -167,8 +148,7 @@ const en: Translations = {
     'store.remove': 'REMOVE',
     'store.ver': 'ver',
     'store.ready': '✓ Ready',
-    // Developer invite hint
-    // API Key encryption status hints
+    // API Key encryption + developer hint
     'key.encrypted': 'Encrypted globally — API Key will self-destruct if environment changes',
     'key.destroyed': 'Environment change detected — API Key has self-destructed, please re-enter',
     'hint.devInvite': 'Develop AI apps or AI games — see \"Reversi\" and \"AI Translate\".',
@@ -176,11 +156,9 @@ const en: Translations = {
     'mother.selectModel': 'Select model',
     'mother.hintInstall': 'Install {agent}',
     'mother.enterMessage': 'Enter message...',
-    'mother.noModels': 'No models available',
     'mother.servers': 'SERVERS',
     'mother.sshGuide': 'Setup Guide',
     'mother.local': 'LOCAL',
-    'mother.noServer': 'No server',
     'mother.addServer': 'ADD SERVER',
     'mother.hostIp': 'Host / IP',
     'mother.port': 'Port',
@@ -199,7 +177,6 @@ const en: Translations = {
     'mother.addServerBtn': 'ADD SERVER',
     'mother.deleteServerTitle': 'DELETE SERVER',
     'mother.deleteServerMsg': 'This server will be permanently removed. This action cannot be undone.',
-    // Process toggle
     // SSH Guide
     'ssh.cloudDesc': 'Most cloud providers provide SSH credentials when you create an instance.',
     'ssh.usernameHint': 'Username',
@@ -209,13 +186,6 @@ const en: Translations = {
     'ssh.cloudUsername': 'usually root or ubuntu',
     'ssh.cloudPassword': 'generated on creation',
     'ssh.cloudIp': 'shown in dashboard',
-    'ssh.winStep1': 'Download and install',
-    'ssh.winStep2': 'Click',
-    'ssh.winStep3': 'Set account name/password, save and click',
-    'ssh.winStep4': 'Edit the account, set',
-    'ssh.winUsername': '(Virtual account name)',
-    'ssh.winPassword': '(Virtual account password)',
-    'ssh.winIp': 'run ipconfig',
     'ssh.macStep': 'System Settings → General → Sharing → Enable "Remote Login"',
     'ssh.macOr': 'Or:',
     'ssh.macUsername': 'run whoami',
@@ -234,7 +204,6 @@ const en: Translations = {
     'mother.connectionRetrying': 'Connection error, retrying ({n}/{total})...',
     'mother.connectionFailed': 'Failed to connect to AI model after {n} retries.',
     'mother.connectionHint': 'Please check the URL, Model ID, API Key, and ensure your token quota is sufficient.',
-    'common.inputting': 'Typing',
     // Error messages (user-friendly, non-technical)
     'error.connectionTimeout': 'No response from server, please check your connection.',
     'error.serverUnreachable': 'Cannot reach the server, please check the address and settings.',
@@ -243,8 +212,6 @@ const en: Translations = {
     'error.noModelSelected': 'No model selected, please select a model first.',
     'error.requestFailed': 'Request failed, please try again.',
     'error.userCancelled': 'Cancelled.',
-    'debug.console': 'DEBUG CONSOLE',
-    'debug.gettingStarted': 'Getting started',
     'app.name': 'EchoBird',
     'mother.hintShowSpecs': 'Show server specs (OS, CPU, memory, disk)',
     'mother.hintShowSpecsLocal': 'Show local machine specs (OS, CPU, memory, disk)',

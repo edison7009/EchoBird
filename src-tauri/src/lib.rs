@@ -73,7 +73,6 @@ pub fn run() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
-            mod_stub::health_check,
             mod_stub::app_ready,
             mod_stub::quit_app,
             tool_commands::scan_tools,
@@ -82,7 +81,6 @@ pub fn run() {
             tool_commands::restore_tool_to_official,
             tool_commands::launch_game,
             tool_commands::open_folder,
-            tool_commands::llm_proxy_chat,
 
             model_commands::get_models,
             model_commands::add_model,
