@@ -1,5 +1,5 @@
 {
   "version": "4.3.0",
   "releaseDate": "2026-05-09",
-  "releaseNotes": "Spring cleaning: lighter, faster, and clearer. Dropped the rarely-used Shadowsocks tunnel from the Add Model dialog, pruned dead code across the app, and made the API-key lock icon actually visible on dark backgrounds."
+  "releaseNotes": "release: v4.3.0"
 }
