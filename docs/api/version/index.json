@@ -1,5 +1,5 @@
 {
-  "version": "4.3.0",
+  "version": "4.3.1",
   "releaseDate": "2026-05-09",
-  "releaseNotes": "release: v4.3.0"
+  "releaseNotes": "App Manager: Launch App button works without forcing model selection (default checkboxes set up so a freshly selected app is one click away). Install/repair agent: stop asking for sudo passwords in chat — by default it hands off the copy-paste install commands and the tool's official URL so users can run them in their own terminal; if a user volunteers their password the agent still uses it (masked as ***)."
 }
