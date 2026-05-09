@@ -1,28 +1,13 @@
 // Tauri Commands for process management and local LLM server
 
 use crate::services::process_manager;
-use crate::services::local_llm::{self, LocalServerInfo, ModelSettings, GgufFile, GpuInfo, HfModelEntry, SystemInfo};
+use crate::services::local_llm::{self, LocalServerInfo, GgufFile, GpuInfo, HfModelEntry, SystemInfo};
 
 // ─── Process Manager ───
 
 #[tauri::command]
 pub async fn start_tool(tool_id: String, start_command: Option<String>) -> Result<(), String> {
     process_manager::start_tool(&tool_id, start_command.as_deref()).await
-}
-
-#[tauri::command]
-pub async fn stop_tool(tool_id: String) -> Result<(), String> {
-    process_manager::stop_tool(&tool_id).await
-}
-
-#[tauri::command]
-pub async fn get_running_tools() -> Vec<String> {
-    process_manager::get_running_tools().await
-}
-
-#[tauri::command]
-pub async fn is_tool_running(tool_id: String) -> bool {
-    process_manager::is_tool_running(&tool_id).await
 }
 
 // ─── Local LLM Server ───
@@ -56,12 +41,6 @@ pub async fn get_llm_server_logs() -> Vec<String> {
 }
 
 #[tauri::command]
-pub fn find_llama_server() -> Option<String> {
-    local_llm::LocalLlmServer::find_llama_server()
-        .map(|p| p.to_string_lossy().to_string())
-}
-
-#[tauri::command]
 pub fn get_models_dirs() -> Vec<String> {
     local_llm::get_models_dirs()
 }
@@ -69,16 +48,6 @@ pub fn get_models_dirs() -> Vec<String> {
 #[tauri::command]
 pub fn get_download_dir() -> String {
     local_llm::get_download_dir()
-}
-
-#[tauri::command]
-pub fn load_model_settings() -> ModelSettings {
-    local_llm::load_model_settings()
-}
-
-#[tauri::command]
-pub fn save_model_settings(settings: ModelSettings) {
-    local_llm::save_model_settings(&settings);
 }
 
 #[tauri::command]
@@ -175,11 +144,6 @@ pub fn pause_download() {
 #[tauri::command]
 pub fn cancel_download(app_handle: tauri::AppHandle, file_name: Option<String>) {
     local_llm::cancel_download(&app_handle, file_name);
-}
-
-#[tauri::command]
-pub async fn download_llama_server(app_handle: tauri::AppHandle) -> Result<String, String> {
-    local_llm::download_llama_server(app_handle).await
 }
 
 #[tauri::command]

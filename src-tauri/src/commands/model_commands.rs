@@ -2,7 +2,7 @@
 
 use crate::models::model::{ModelConfig, PingResult, TestResult};
 use crate::services::model_manager::{
-    self, AddModelInput, ToggleEncryptionResult, UpdateModelInput,
+    self, AddModelInput, UpdateModelInput,
 };
 
 /// Get all models (user + built-in + local)
@@ -39,12 +39,6 @@ pub async fn test_model(internal_id: String, prompt: String, protocol: String) -
 #[tauri::command]
 pub async fn ping_model(internal_id: String) -> Result<PingResult, String> {
     Ok(model_manager::ping_model(&internal_id).await)
-}
-
-/// Toggle API key encryption
-#[tauri::command]
-pub fn toggle_key_encryption(internal_id: String) -> ToggleEncryptionResult {
-    model_manager::toggle_key_encryption(&internal_id)
 }
 
 /// Check if encrypted key is destroyed

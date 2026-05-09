@@ -10,12 +10,6 @@ pub async fn scan_tools() -> Result<Vec<DetectedTool>, String> {
     Ok(tool_manager::scan_tools().await)
 }
 
-/// Get current model info for a specific tool
-#[tauri::command]
-pub async fn get_tool_model_info(tool_id: String) -> Result<Option<ModelInfo>, String> {
-    Ok(tool_config_manager::get_tool_model_info(&tool_id).await)
-}
-
 /// Apply a model configuration to a tool
 #[tauri::command]
 pub async fn apply_model_to_tool(tool_id: String, model_info: ModelInfo) -> Result<ApplyResult, String> {

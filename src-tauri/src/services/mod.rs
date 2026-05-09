@@ -2,7 +2,6 @@ pub mod crypto;
 pub mod tool_manager;
 pub mod tool_config_manager;
 pub mod model_manager;
-pub mod proxy_server;
 pub mod process_manager;
 pub mod local_llm;
 pub mod tool_patcher;

@@ -3,7 +3,6 @@ use std::sync::Arc;
 use tokio::sync::Mutex;
 use serde::{Deserialize, Serialize};
 use async_ssh2_tokio::client::{Client, AuthMethod, ServerCheckMethod};
-use tauri::State;
 
 // ── Types ──
 
@@ -23,14 +22,6 @@ pub struct SSHServer {
 pub struct SSHConnectResult {
     pub success: bool,
     pub message: String,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct SSHExecResult {
-    pub stdout: String,
-    pub stderr: String,
-    pub exit_code: u32,
-    pub success: bool,
 }
 
 // Connection pool: maps server ID → connected client
@@ -135,21 +126,6 @@ pub async fn remove_ssh_server(id: String) -> Result<bool, String> {
     Ok(true)
 }
 
-/// Update only the display alias of an SSH server
-#[tauri::command]
-pub async fn update_ssh_alias(id: String, alias: String) -> Result<bool, String> {
-    let mut servers = read_servers_from_disk();
-    if let Some(server) = servers.iter_mut().find(|s| s.id == id) {
-        server.alias = if alias.is_empty() { None } else { Some(alias) };
-        write_servers_to_disk(&servers);
-        log::info!("[SSH] Updated alias for server: {}", id);
-        Ok(true)
-    } else {
-        log::warn!("[SSH] update_ssh_alias: server '{}' not found", id);
-        Ok(false)
-    }
-}
-
 /// Decrypt an encrypted SSH password (for lock toggle UI)
 #[tauri::command]
 pub async fn decrypt_ssh_password(encrypted: String) -> Result<String, String> {
@@ -168,45 +144,6 @@ pub async fn encrypt_ssh_password(plaintext: String) -> Result<String, String> {
 }
 
 // ── Connection Commands ──
-
-/// Connect to an SSH server using password auth
-#[tauri::command]
-pub async fn ssh_connect(
-    pool: State<'_, SSHPool>,
-    id: String,
-    host: String,
-    port: u16,
-    username: String,
-    password: String,
-) -> Result<SSHConnectResult, String> {
-    use crate::services::model_manager;
-    log::info!("SSH connecting to {}@{}:{}", username, host, port);
-
-    // Auto-decrypt if stored encrypted
-    let plain_password = model_manager::decrypt_key_for_use(&password);
-
-    let auth = AuthMethod::with_password(&plain_password);
-    let check = ServerCheckMethod::NoCheck;
-
-    match Client::connect((host.as_str(), port), username.as_str(), auth, check).await {
-        Ok(client) => {
-            let mut connections = pool.lock().await;
-            connections.insert(id.clone(), client);
-            log::info!("SSH connected: {}", id);
-            Ok(SSHConnectResult {
-                success: true,
-                message: format!("Connected to {}:{}", host, port),
-            })
-        }
-        Err(e) => {
-            log::error!("SSH connect failed: {}", e);
-            Ok(SSHConnectResult {
-                success: false,
-                message: format!("Connection failed: {}", e),
-            })
-        }
-    }
-}
 
 /// Auto-connect to an SSH server by loading saved credentials from disk.
 /// Used by agent_tools when a server_id isn't in the pool.
@@ -258,52 +195,6 @@ pub async fn auto_connect_ssh(pool: &SSHPool, server_id: &str) -> Result<(), Str
         Err(e) => {
             Err(format!("SSH auto-connect failed for '{}': {}", server_id, e))
         }
-    }
-}
-
-/// Execute a command on a connected SSH server
-#[tauri::command]
-pub async fn ssh_execute(
-    pool: State<'_, SSHPool>,
-    id: String,
-    command: String,
-) -> Result<SSHExecResult, String> {
-    let connections = pool.lock().await;
-
-    let client = connections.get(&id).ok_or_else(|| {
-        format!("No connection found for server: {}", id)
-    })?;
-
-    log::info!("SSH exec on {}: {}", id, command);
-
-    match client.execute(&command).await {
-        Ok(result) => {
-            Ok(SSHExecResult {
-                stdout: result.stdout,
-                stderr: result.stderr,
-                exit_code: result.exit_status,
-                success: result.exit_status == 0,
-            })
-        }
-        Err(e) => {
-            log::error!("SSH exec failed: {}", e);
-            Err(format!("Command execution failed: {}", e))
-        }
-    }
-}
-
-/// Disconnect from an SSH server
-#[tauri::command]
-pub async fn ssh_disconnect(
-    pool: State<'_, SSHPool>,
-    id: String,
-) -> Result<bool, String> {
-    let mut connections = pool.lock().await;
-    if connections.remove(&id).is_some() {
-        log::info!("SSH disconnected: {}", id);
-        Ok(true)
-    } else {
-        Ok(false)
     }
 }
 
@@ -373,97 +264,6 @@ pub async fn ssh_test_connection(
                 success: false,
                 message,
             })
-        }
-    }
-}
-
-/// Upload a file to a remote server via SSH (base64 encoded transfer)
-/// Works without SCP/SFTP — uses SSH execute channel with base64
-#[tauri::command]
-pub async fn ssh_upload_file(
-    pool: State<'_, SSHPool>,
-    id: String,
-    local_path: String,
-    remote_path: String,
-) -> Result<SSHExecResult, String> {
-    log::info!("[SSH] Uploading file {} → {}:{}", local_path, id, remote_path);
-
-    let connections = pool.lock().await;
-    let client = connections.get(&id)
-        .ok_or_else(|| format!("SSH server '{}' not connected", id))?;
-
-    // Read local file
-    let file_data = std::fs::read(&local_path)
-        .map_err(|e| format!("Failed to read local file {}: {}", local_path, e))?;
-
-    let encoded = {
-        use base64::Engine;
-        base64::engine::general_purpose::STANDARD.encode(&file_data)
-    };
-
-    // Create remote directory if needed
-    let remote_dir = std::path::Path::new(&remote_path)
-        .parent()
-        .map(|p| p.to_string_lossy().to_string())
-        .unwrap_or_else(|| ".".to_string());
-
-    let mkdir_cmd = format!("mkdir -p {}", remote_dir);
-    let _ = client.execute(&mkdir_cmd).await;
-
-    // Transfer via base64 decode
-    // Split into chunks if large (SSH channel has limits)
-    let chunk_size = 65536; // 64KB base64 chunks
-    let chunks: Vec<&str> = encoded.as_bytes()
-        .chunks(chunk_size)
-        .map(|c| std::str::from_utf8(c).unwrap_or(""))
-        .collect();
-
-    if chunks.len() == 1 {
-        // Small file — single command
-        let cmd = format!("echo '{}' | base64 -d > {}", encoded, remote_path);
-        match client.execute(&cmd).await {
-            Ok(result) => {
-                // Make executable
-                let _ = client.execute(&format!("chmod +x {}", remote_path)).await;
-                log::info!("[SSH] File uploaded successfully: {} ({} bytes)", remote_path, file_data.len());
-                Ok(SSHExecResult {
-                    stdout: format!("Uploaded {} bytes to {}", file_data.len(), remote_path),
-                    stderr: result.stderr,
-                    exit_code: result.exit_status,
-                    success: result.exit_status == 0,
-                })
-            }
-            Err(e) => Err(format!("Upload failed: {}", e)),
-        }
-    } else {
-        // Large file — accumulate base64 text, then decode once
-        // First chunk overwrites
-        let first_cmd = format!("printf '%s' '{}' > {}.b64", chunks[0], remote_path);
-        client.execute(&first_cmd).await
-            .map_err(|e| format!("Upload chunk 0 failed: {}", e))?;
-
-        for (i, chunk) in chunks[1..].iter().enumerate() {
-            let cmd = format!("printf '%s' '{}' >> {}.b64", chunk, remote_path);
-            client.execute(&cmd).await
-                .map_err(|e| format!("Upload chunk {} failed: {}", i + 1, e))?;
-        }
-
-        // Decode the concatenated base64 in one shot
-        let decode_cmd = format!("base64 -d {}.b64 > {} && rm {}.b64 && chmod +x {}",
-            remote_path, remote_path, remote_path, remote_path);
-        match client.execute(&decode_cmd).await {
-            Ok(result) => {
-                log::info!("[SSH] Large file uploaded: {} ({} bytes, {} chunks)",
-                    remote_path, file_data.len(), chunks.len());
-                Ok(SSHExecResult {
-                    stdout: format!("Uploaded {} bytes to {} ({} chunks)",
-                        file_data.len(), remote_path, chunks.len()),
-                    stderr: result.stderr,
-                    exit_code: result.exit_status,
-                    success: result.exit_status == 0,
-                })
-            }
-            Err(e) => Err(format!("Upload decode failed: {}", e)),
         }
     }
 }

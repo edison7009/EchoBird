@@ -757,27 +757,6 @@ pub async fn start_tool(tool_id: &str, start_command: Option<&str>) -> Result<()
     mgr.start_tool(tool_id, start_command).await
 }
 
-/// Stop a tool process
-pub async fn stop_tool(tool_id: &str) -> Result<(), String> {
-    let mgr = get_manager().await;
-    let mut mgr = mgr.lock().await;
-    mgr.stop_tool(tool_id).await
-}
-
-/// Get running tool IDs
-pub async fn get_running_tools() -> Vec<String> {
-    let mgr = get_manager().await;
-    let mgr = mgr.lock().await;
-    mgr.get_running_tools()
-}
-
-/// Check if tool is running
-pub async fn is_tool_running(tool_id: &str) -> bool {
-    let mgr = get_manager().await;
-    let mgr = mgr.lock().await;
-    mgr.is_tool_running(tool_id)
-}
-
 /// Stop all tools
 pub async fn stop_all_tools() {
     let mgr = get_manager().await;

@@ -6,13 +6,11 @@ pub mod commands;
 use commands::mod_stub;
 use commands::tool_commands;
 use commands::model_commands;
-use commands::proxy_commands;
 use commands::process_commands;
 use commands::settings_commands;
 
 use commands::ssh_commands;
 use commands::agent_commands;
-use commands::role_commands;
 use commands::bundled_commands;
 
 use tauri::Manager;
@@ -74,9 +72,7 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             mod_stub::app_ready,
-            mod_stub::quit_app,
             tool_commands::scan_tools,
-            tool_commands::get_tool_model_info,
             tool_commands::apply_model_to_tool,
             tool_commands::restore_tool_to_official,
             tool_commands::launch_game,
@@ -88,29 +84,14 @@ pub fn run() {
             model_commands::update_model,
             model_commands::test_model,
             model_commands::ping_model,
-            model_commands::toggle_key_encryption,
             model_commands::is_key_destroyed,
-            proxy_commands::start_proxy,
-            proxy_commands::stop_proxy,
-            proxy_commands::get_proxy_port,
-            proxy_commands::get_proxy_rules,
-            proxy_commands::save_proxy_rules,
-            proxy_commands::add_proxy_host_rule,
-            proxy_commands::clear_proxy_host_rules,
-            proxy_commands::parse_ss_url,
             process_commands::start_tool,
-            process_commands::stop_tool,
-            process_commands::get_running_tools,
-            process_commands::is_tool_running,
             process_commands::start_llm_server,
             process_commands::stop_llm_server,
             process_commands::get_llm_server_info,
             process_commands::get_llm_server_logs,
-            process_commands::find_llama_server,
             process_commands::get_models_dirs,
             process_commands::get_download_dir,
-            process_commands::load_model_settings,
-            process_commands::save_model_settings,
             process_commands::scan_gguf_files,
             process_commands::scan_hf_models,
             process_commands::add_models_dir,
@@ -122,33 +103,23 @@ pub fn run() {
             process_commands::download_model,
             process_commands::pause_download,
             process_commands::cancel_download,
-            process_commands::download_llama_server,
             process_commands::get_system_info,
             process_commands::get_local_engine_status,
             process_commands::install_local_engine,
             settings_commands::get_settings,
             settings_commands::save_settings,
 
-            ssh_commands::ssh_connect,
-            ssh_commands::ssh_execute,
-            ssh_commands::ssh_disconnect,
             ssh_commands::ssh_test_connection,
             ssh_commands::load_ssh_servers,
             ssh_commands::save_ssh_server,
             ssh_commands::remove_ssh_server,
-            ssh_commands::update_ssh_alias,
             ssh_commands::decrypt_ssh_password,
             ssh_commands::encrypt_ssh_password,
             agent_commands::agent_send_message,
             agent_commands::agent_abort,
             agent_commands::agent_reset,
-            ssh_commands::ssh_upload_file,
-            role_commands::detect_local_agents,
-            bundled_commands::get_mother_system_prompt,
             bundled_commands::get_mother_hints,
             bundled_commands::get_install_index,
-            bundled_commands::get_install_ref,
-            bundled_commands::get_tool_script,
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")

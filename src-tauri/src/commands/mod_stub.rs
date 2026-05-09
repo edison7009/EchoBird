@@ -21,9 +21,3 @@ pub async fn app_ready(app: tauri::AppHandle) {
     { let _ = app; }
 }
 
-/// Quit app — fully exit the application
-#[tauri::command]
-pub fn quit_app(app: tauri::AppHandle) {
-    log::info!("[App] Quit requested from frontend");
-    app.exit(0);
-}

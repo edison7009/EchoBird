@@ -2,7 +2,7 @@
 import { invoke } from '@tauri-apps/api/core';
 import type {
     ModelConfig, ModelTestResult, PingResult,
-    ToggleEncryptionResult, SSNodeConfig,
+    SSNodeConfig,
 } from './types';
 
 
@@ -50,10 +50,6 @@ export async function testModel(internalId: string, prompt: string, protocol: st
 
 export async function pingModel(internalId: string): Promise<PingResult> {
     return invoke('ping_model', { internalId });
-}
-
-export async function toggleKeyEncryption(internalId: string): Promise<ToggleEncryptionResult> {
-    return invoke('toggle_key_encryption', { internalId });
 }
 
 export async function isKeyDestroyed(internalId: string): Promise<boolean> {

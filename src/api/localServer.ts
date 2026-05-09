@@ -23,28 +23,12 @@ export async function getLlmServerLogs(): Promise<string[]> {
     return invoke('get_llm_server_logs');
 }
 
-export async function findLlamaServer(): Promise<string | null> {
-    return invoke('find_llama_server');
-}
-
-export async function downloadLlamaServer(): Promise<string> {
-    return invoke('download_llama_server');
-}
-
 export async function getModelsDirs(): Promise<string[]> {
     return invoke('get_models_dirs');
 }
 
 export async function getDownloadDir(): Promise<string> {
     return invoke('get_download_dir');
-}
-
-export async function loadModelSettings(): Promise<ModelSettings> {
-    return invoke('load_model_settings');
-}
-
-export async function saveModelSettings(settings: ModelSettings): Promise<void> {
-    return invoke('save_model_settings', { settings });
 }
 
 export async function scanGgufFiles(dir: string): Promise<GgufFile[]> {
