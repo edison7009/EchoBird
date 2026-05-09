@@ -1,5 +1,5 @@
 {
-  "version": "4.2.9",
-  "releaseDate": "2026-05-08",
-  "releaseNotes": "Clearer 'test speed' label and reordered server card buttons."
+  "version": "4.3.0",
+  "releaseDate": "2026-05-09",
+  "releaseNotes": "Spring cleaning: lighter, faster, and clearer. Dropped the rarely-used Shadowsocks tunnel from the Add Model dialog, pruned dead code across the app, and made the API-key lock icon actually visible on dark backgrounds."
 }
