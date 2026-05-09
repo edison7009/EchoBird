@@ -1275,14 +1275,12 @@ dependencies = [
  "hmac",
  "libc",
  "log",
- "md-5",
  "rand 0.8.5",
  "reqwest 0.12.28",
  "reqwest-eventsource",
  "rfd",
  "serde",
  "serde_json",
- "sha1",
  "sha2",
  "tauri",
  "tauri-build",
@@ -1292,7 +1290,6 @@ dependencies = [
  "tokio",
  "tokio-util",
  "url",
- "urlencoding",
  "uuid",
  "which",
 ]
@@ -2889,16 +2886,6 @@ name = "matches"
 version = "0.1.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2532096657941c2fea9c289d370a250971c689d4f143798ff67113ec042024a5"
-
-[[package]]
-name = "md-5"
-version = "0.10.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d89e7ee0cfbedfc4da3340218492196241d89eefb6dab27de5df917a6d2e78cf"
-dependencies = [
- "cfg-if",
- "digest",
-]
 
 [[package]]
 name = "md5"

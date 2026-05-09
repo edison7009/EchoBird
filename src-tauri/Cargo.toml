@@ -35,17 +35,14 @@ tokio = { version = "1", features = ["full"] }
 # Platform helpers
 dirs = "6"
 
-# Crypto (Shadowsocks AEAD + API Key encryption)
+# Crypto (API Key encryption)
 aes-gcm = "0.10"
 hmac = "0.12"
-sha1 = "0.10"
 sha2 = "0.10"
-md-5 = "0.10"
 
 # HTTP client
 reqwest = { version = "0.12", features = ["json", "rustls-tls", "stream", "gzip"], default-features = false }
 url = "2"
-urlencoding = "2"
 rand = "0.8"
 futures-util = "0.3"
 
