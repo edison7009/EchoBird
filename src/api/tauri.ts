@@ -17,6 +17,7 @@ export * from './models';
 export * from './localServer';
 export * from './agent';
 export * from './ssh';
+export * from './secret';
 export * from './bundled';
 
 // ─── Tool APIs ───

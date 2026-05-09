@@ -1,4 +1,6 @@
-// SSH APIs — Server persistence, encryption, and connection testing
+// SSH APIs — server persistence + connection testing
+// Generic secret encrypt/decrypt lives in ./secret.ts (used by both SSH passwords
+// and model API keys; same AES-GCM crypto, neutral name).
 import { invoke } from '@tauri-apps/api/core';
 
 export interface SSHConnectResult {
@@ -29,12 +31,4 @@ export async function saveSSHServer(id: string, host: string, port: number, user
 
 export async function removeSSHServerFromDisk(id: string): Promise<boolean> {
     return invoke('remove_ssh_server', { id });
-}
-
-export async function decryptSSHPassword(encrypted: string): Promise<string> {
-    return invoke('decrypt_ssh_password', { encrypted });
-}
-
-export async function encryptSSHPassword(plaintext: string): Promise<string> {
-    return invoke('encrypt_ssh_password', { plaintext });
 }

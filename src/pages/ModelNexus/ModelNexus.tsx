@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { open as shellOpen } from '@tauri-apps/plugin-shell';
-import { X, Box, ExternalLink, Plus } from 'lucide-react';
+import { X, Box, ExternalLink, Plus, Lock, Unlock } from 'lucide-react';
 import { ModelCard, ModelCardSkeleton, getModelIcon } from '../../components';
 import { useI18n } from '../../hooks/useI18n';
 import * as api from '../../api/tauri';
@@ -659,14 +659,15 @@ export function AddModelModal() {
                                     className="w-full bg-cyber-input border border-cyber-border px-2 py-1.5 pr-8 text-xs text-cyber-text font-mono focus:border-cyber-border focus:outline-none rounded-button"
                                     readOnly={newModelForm.apiKey.startsWith('enc:v1:')}
                                 />
-                                {newModelForm.apiKey && newModelForm.apiKey !== 'local' && (
+                                {newModelForm.apiKey !== 'local' && (
                                     <button
                                         type="button"
+                                        disabled={!newModelForm.apiKey}
+                                        title={newModelForm.apiKey.startsWith('enc:v1:') ? 'Decrypt' : 'Encrypt'}
                                         onClick={async () => {
                                             if (newModelForm.apiKey.startsWith('enc:v1:')) {
-                                                // Decrypt
                                                 try {
-                                                    const plain = await api.decryptSSHPassword(newModelForm.apiKey);
+                                                    const plain = await api.decryptSecret(newModelForm.apiKey);
                                                     const newKey = plain || '';
                                                     setNewModelForm(prev => ({ ...prev, apiKey: newKey }));
                                                     if (editingModelId) {
@@ -678,9 +679,8 @@ export function AddModelModal() {
                                                     setNewModelForm(prev => ({ ...prev, apiKey: '' }));
                                                 }
                                             } else {
-                                                // Encrypt
                                                 try {
-                                                    const encrypted = await api.encryptSSHPassword(newModelForm.apiKey);
+                                                    const encrypted = await api.encryptSecret(newModelForm.apiKey);
                                                     setNewModelForm(prev => ({ ...prev, apiKey: encrypted }));
                                                     if (editingModelId) {
                                                         setUserModels(prev => prev.map(m =>
@@ -692,18 +692,12 @@ export function AddModelModal() {
                                                 }
                                             }
                                         }}
-                                        className="absolute right-2 top-1/2 -translate-y-1/2 transition-colors hover:opacity-80"
+                                        className={`absolute right-2 top-1/2 -translate-y-1/2 transition-colors hover:opacity-80 ${!newModelForm.apiKey ? 'opacity-30 cursor-not-allowed' : ''}`}
                                     >
                                         {newModelForm.apiKey.startsWith('enc:v1:') ? (
-                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-cyber-text">
-                                                <rect x="3" y="11" width="18" height="11" rx="2" />
-                                                <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-                                            </svg>
+                                            <Lock size={14} className="text-cyber-accent" />
                                         ) : (
-                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-cyber-text-muted">
-                                                <rect x="3" y="11" width="18" height="11" rx="2" />
-                                                <path d="M7 11V7a5 5 0 0 1 9.9-1" />
-                                            </svg>
+                                            <Unlock size={14} className="text-cyber-text/70" />
                                         )}
                                     </button>
                                 )}

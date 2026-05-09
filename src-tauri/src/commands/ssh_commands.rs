@@ -126,23 +126,6 @@ pub async fn remove_ssh_server(id: String) -> Result<bool, String> {
     Ok(true)
 }
 
-/// Decrypt an encrypted SSH password (for lock toggle UI)
-#[tauri::command]
-pub async fn decrypt_ssh_password(encrypted: String) -> Result<String, String> {
-    use crate::services::model_manager;
-    Ok(model_manager::decrypt_key_for_use(&encrypted))
-}
-
-/// Encrypt a plaintext SSH password (for lock toggle UI)
-#[tauri::command]
-pub async fn encrypt_ssh_password(plaintext: String) -> Result<String, String> {
-    use crate::services::model_manager;
-    if plaintext.is_empty() || plaintext.starts_with("enc:v1:") {
-        return Ok(plaintext);
-    }
-    Ok(model_manager::encrypt_key_for_storage(&plaintext))
-}
-
 // ── Connection Commands ──
 
 /// Auto-connect to an SSH server by loading saved credentials from disk.

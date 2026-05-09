@@ -12,6 +12,7 @@ use commands::settings_commands;
 use commands::ssh_commands;
 use commands::agent_commands;
 use commands::bundled_commands;
+use commands::secret_commands;
 
 use tauri::Manager;
 
@@ -113,8 +114,8 @@ pub fn run() {
             ssh_commands::load_ssh_servers,
             ssh_commands::save_ssh_server,
             ssh_commands::remove_ssh_server,
-            ssh_commands::decrypt_ssh_password,
-            ssh_commands::encrypt_ssh_password,
+            secret_commands::decrypt_secret,
+            secret_commands::encrypt_secret,
             agent_commands::agent_send_message,
             agent_commands::agent_abort,
             agent_commands::agent_reset,

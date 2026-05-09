@@ -170,7 +170,7 @@ export function MotherAgentPanel() {
                                                 if (sshForm.password.startsWith('enc:v1:')) {
                                                     // Decrypt
                                                     try {
-                                                        const plain = await api.decryptSSHPassword(sshForm.password);
+                                                        const plain = await api.decryptSecret(sshForm.password);
                                                         setSSHForm(f => ({ ...f, password: plain || '' }));
                                                     } catch {
                                                         setSSHForm(f => ({ ...f, password: '' }));
@@ -178,7 +178,7 @@ export function MotherAgentPanel() {
                                                 } else {
                                                     // Encrypt
                                                     try {
-                                                        const encrypted = await api.encryptSSHPassword(sshForm.password);
+                                                        const encrypted = await api.encryptSecret(sshForm.password);
                                                         setSSHForm(f => ({ ...f, password: encrypted }));
                                                     } catch {
                                                         // stay plaintext on failure

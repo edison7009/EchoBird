@@ -7,3 +7,4 @@ pub mod settings_commands;
 pub mod ssh_commands;
 pub mod agent_commands;
 pub mod bundled_commands;
+pub mod secret_commands;
