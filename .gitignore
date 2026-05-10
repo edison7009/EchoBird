@@ -51,7 +51,10 @@ ts-errors.txt
 # One-off / scratch files (do not commit)
 tmp/
 .agent/
-scripts/
+# scripts/ is mostly scratch, but a few entries are real CI artifacts.
+# Ignore everything by default and whitelist the keepers explicitly.
+scripts/*
+!scripts/build_en_pulse.py
 
 # llama-server binaries (downloaded during CI build)
 electron/tools/llama-server/bin/

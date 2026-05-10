@@ -1,9 +1,13 @@
 name: Refresh Pulse Data
 
-# Mirrors SuYxh/ai-news-aggregator's latest-{24h,7d}.json into docs/pulse/
-# so echobird.ai/pulse/* serves them as static files (the Cloudflare Pages
+# Two parallel data feeds:
+#   1. Mirrors SuYxh/ai-news-aggregator's latest-{24h,7d}.json into docs/pulse/
+#      → bilingual (mostly Chinese) pulse data for zh users.
+#   2. Builds latest-7d-en.json from US/global English sources (HN Algolia +
+#      AI lab RSS + GitHub Trending) → en-only pulse data for English users.
+# echobird.ai/pulse/* serves both as static files (the Cloudflare Pages
 # fallback for when the pulse-worker isn't deployed). Commits only when the
-# upstream payload changed, to keep git history bounded.
+# payload changed, to keep git history bounded.
 
 on:
   schedule:
@@ -23,7 +27,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Fetch upstream pulse files
+      - name: Fetch upstream pulse files (zh)
         run: |
           set -euo pipefail
           mkdir -p docs/pulse
@@ -37,14 +41,28 @@ jobs:
           done
           ls -lh docs/pulse/
 
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Build en-only pulse file
+        run: |
+          set -euo pipefail
+          python -m pip install --quiet requests feedparser beautifulsoup4
+          python scripts/build_en_pulse.py
+          # Sanity: file exists and parses as JSON with at least one item
+          python -c "import json,sys; d=json.load(open('docs/pulse/latest-7d-en.json',encoding='utf-8')); assert d.get('total_items',0) > 0, 'empty feed'; print(f'en feed total_items={d[\"total_items\"]}')"
+          ls -lh docs/pulse/
+
       - name: Commit if changed
         run: |
           set -euo pipefail
           git config user.name  "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add docs/pulse/latest-24h.json docs/pulse/latest-7d.json
+          git add docs/pulse/latest-24h.json docs/pulse/latest-7d.json docs/pulse/latest-7d-en.json
           if git diff --cached --quiet; then
-            echo "No upstream changes — skipping commit."
+            echo "No pulse changes — skipping commit."
             exit 0
           fi
           git commit -m "chore(pulse): refresh upstream snapshot"
@@ -67,5 +85,6 @@ jobs:
             -s "$TENCENT_COS_SECRET_KEY" \
             -b "$TENCENT_COS_BUCKET" \
             -r "$TENCENT_COS_REGION"
-          coscmd upload docs/pulse/latest-24h.json /latest-24h.json
-          coscmd upload docs/pulse/latest-7d.json  /latest-7d.json
+          coscmd upload docs/pulse/latest-24h.json   /latest-24h.json
+          coscmd upload docs/pulse/latest-7d.json    /latest-7d.json
+          coscmd upload docs/pulse/latest-7d-en.json /latest-7d-en.json

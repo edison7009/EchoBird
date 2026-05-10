@@ -1,7 +1,10 @@
 // AI Pulse — Per-item AI news feed.
 //
-// Source: SuYxh/ai-news-aggregator latest-24h.json (auto-refreshed every 2h, ~600 items, native zh).
-// Mirror chain: echobird.ai/pulse/latest-24h.json → CF Worker → GitHub raw.
+// Two parallel feeds, picked by app locale:
+//   • zh users → SuYxh/ai-news-aggregator latest-7d.json (~6000 items, mostly CN)
+//   • en users → our own latest-7d-en.json built from HN Algolia + AI lab RSS
+//                + GitHub Trending. US/global sources only, no CN dependency.
+// Mirror chain: echobird.ai/pulse → CF Worker → GitHub raw / Tencent COS / jsdelivr.
 //
 // AI 资讯  : all items.
 // 明星项目: subset where url is on github.com or source mentions Trending/开源.
@@ -17,7 +20,8 @@ import { useI18n } from '../../hooks/useI18n';
 
 // ===== Mirror config =====
 
-const PULSE_MIRRORS: { name: string; base: string }[] = [
+// ZH feed: SuYxh's bilingual (mostly CN) aggregator — five mirrors.
+const PULSE_MIRRORS_ZH: { name: string; base: string }[] = [
     { name: 'echobird',   base: 'https://echobird.ai/pulse' },
     // Tencent COS Hong Kong — refreshed by .github/workflows/refresh-pulse-data.yml
     // every 6h. HK region needs no ICP filing, default domain is bucket-level
@@ -36,10 +40,23 @@ const PULSE_MIRRORS: { name: string; base: string }[] = [
     { name: 'github-raw', base: 'https://raw.githubusercontent.com/SuYxh/ai-news-aggregator/main/data' },
 ];
 
+// EN feed: built by scripts/build_en_pulse.py and committed to docs/pulse/
+// + mirrored to Tencent COS. Only available from our infrastructure — none
+// of SuYxh's mirrors carry it. Order trades latency vs. CN-reachability the
+// same way as the ZH chain.
+const PULSE_MIRRORS_EN: { name: string; base: string }[] = [
+    { name: 'echobird',   base: 'https://echobird.ai/pulse' },
+    { name: 'tencent-hk', base: 'https://ainew-1251534910.cos.ap-hongkong.myqcloud.com' },
+    // jsDelivr proxy of OUR repo's docs/pulse — useful when echobird.ai is throttled.
+    { name: 'jsdelivr',   base: 'https://cdn.jsdelivr.net/gh/edison7009/EchoBird@main/docs/pulse' },
+    { name: 'github-raw', base: 'https://raw.githubusercontent.com/edison7009/EchoBird/main/docs/pulse' },
+];
+
 // 7-day window gives much richer EN content (~5000 items vs ~600 for 24h)
 // after the strict CJK-title filter and project sub-filter eat into the pool.
 // Trade-off: 5.4 MB fetch every 6h, capped to MAX_ITEMS in storage.
-const FEED_FILE = 'latest-7d.json';
+const FEED_FILE_ZH = 'latest-7d.json';
+const FEED_FILE_EN = 'latest-7d-en.json';
 
 // ===== Types =====
 
@@ -67,59 +84,80 @@ interface NewsItem {
 type PageVariant = 'news' | 'projects';
 
 // ===== Local cache =====
+// Per-locale keys: zh and en use different upstream files, so a single shared
+// cache would clobber on every locale switch. Keeping them separate also lets
+// each feed track its own refresh cadence.
 
-const ITEMS_KEY        = 'pulse:items';
-const FEED_META        = 'pulse:meta';
+const ITEMS_KEY        = (lang: 'zh' | 'en') => `pulse:items:${lang}`;
+const FEED_META        = (lang: 'zh' | 'en') => `pulse:meta:${lang}`;
 const MAX_ITEMS        = 3000;
 const REFRESH_AFTER_MS = 30 * 60 * 1000;
 
 interface FeedMeta { lastFetched: number; }
 
-const loadItems = (): NewsItem[] => {
-    try { const raw = localStorage.getItem(ITEMS_KEY); return raw ? JSON.parse(raw) : []; }
+const loadItems = (lang: 'zh' | 'en'): NewsItem[] => {
+    try { const raw = localStorage.getItem(ITEMS_KEY(lang)); return raw ? JSON.parse(raw) : []; }
     catch { return []; }
 };
-const saveItems = (items: NewsItem[]) => {
-    try { localStorage.setItem(ITEMS_KEY, JSON.stringify(items)); } catch { /* quota */ }
+const saveItems = (lang: 'zh' | 'en', items: NewsItem[]) => {
+    try { localStorage.setItem(ITEMS_KEY(lang), JSON.stringify(items)); } catch { /* quota */ }
 };
-const loadMeta = (): FeedMeta | null => {
-    try { const raw = localStorage.getItem(FEED_META); return raw ? JSON.parse(raw) : null; }
+const loadMeta = (lang: 'zh' | 'en'): FeedMeta | null => {
+    try { const raw = localStorage.getItem(FEED_META(lang)); return raw ? JSON.parse(raw) : null; }
     catch { return null; }
 };
-const saveMeta = (m: FeedMeta) => {
-    try { localStorage.setItem(FEED_META, JSON.stringify(m)); } catch { /* quota */ }
+const saveMeta = (lang: 'zh' | 'en', m: FeedMeta) => {
+    try { localStorage.setItem(FEED_META(lang), JSON.stringify(m)); } catch { /* quota */ }
 };
 
 // ===== Network: mirror-aware fetch =====
 
-let preferredMirror = 0;
+// Sticky preferred-mirror index, separate per feed: once a mirror serves a
+// good response it stays at the head of the chain for subsequent fetches.
+const preferredMirror: Record<'zh' | 'en', number> = { zh: 0, en: 0 };
 
 const looksLikeHtml = (s: string): boolean => {
     const head = s.slice(0, 200).trimStart().toLowerCase();
     return head.startsWith('<!doctype html') || head.startsWith('<html');
 };
 
-async function fetchFeed(): Promise<RawFeed> {
-    const order = [
-        ...PULSE_MIRRORS.slice(preferredMirror),
-        ...PULSE_MIRRORS.slice(0, preferredMirror),
-    ];
+async function fetchOneFeed(lang: 'zh' | 'en'): Promise<RawFeed> {
+    const mirrors = lang === 'en' ? PULSE_MIRRORS_EN : PULSE_MIRRORS_ZH;
+    const file    = lang === 'en' ? FEED_FILE_EN    : FEED_FILE_ZH;
+    const start   = preferredMirror[lang];
+    const order = [...mirrors.slice(start), ...mirrors.slice(0, start)];
     let lastErr: any = null;
     for (let i = 0; i < order.length; i++) {
         const mirror = order[i];
         try {
-            const res = await fetch(`${mirror.base}/${FEED_FILE}`, { cache: 'no-cache' });
+            const res = await fetch(`${mirror.base}/${file}`, { cache: 'no-cache' });
             if (!res.ok) { lastErr = new Error(`${mirror.name} ${res.status}`); continue; }
             const text = await res.text();
             if (looksLikeHtml(text)) { lastErr = new Error(`${mirror.name} returned HTML`); continue; }
             try {
                 const parsed = JSON.parse(text);
-                preferredMirror = (preferredMirror + i) % PULSE_MIRRORS.length;
+                preferredMirror[lang] = (start + i) % mirrors.length;
                 return parsed;
             } catch { lastErr = new Error(`${mirror.name} bad JSON`); continue; }
         } catch (e) { lastErr = e; }
     }
     throw lastErr || new Error('all mirrors failed');
+}
+
+// Soft-fallback wrapper: en users hit our self-built file first, but if that
+// file isn't yet deployed (fresh PR, GHA hasn't run, etc.) fall through to
+// the ZH file — its EN-titled subset (~2000 items) is the same content the
+// app shipped before this feature, so the page never looks empty.
+async function fetchFeed(lang: 'zh' | 'en'): Promise<RawFeed> {
+    if (lang === 'en') {
+        try {
+            return await fetchOneFeed('en');
+        } catch (e) {
+            console.warn('[pulse] EN feed unavailable, falling back to bilingual feed:', e);
+            return await fetchOneFeed('zh');
+        }
+    }
+    return fetchOneFeed('zh');
 }
 
 // ===== Helpers =====
@@ -218,21 +256,25 @@ function useAiPulse() {
 // ===== Provider =====
 
 export function AiPulseProvider({ children }: { children: React.ReactNode }) {
-    const [items, setItems] = useState<NewsItem[]>(() => loadItems());
-    const [initialLoading, setInitialLoading] = useState(() => loadItems().length === 0);
+    const { locale } = useI18n();
+    const lang: 'zh' | 'en' = locale.startsWith('zh') ? 'zh' : 'en';
+
+    const [items, setItems] = useState<NewsItem[]>(() => loadItems(lang));
+    const [initialLoading, setInitialLoading] = useState(() => loadItems(lang).length === 0);
     const [syncing, setSyncing] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [selectedDate, setSelectedDate] = useState<string | null>(null);
-    const [lastFetched, setLastFetched] = useState<number | null>(() => loadMeta()?.lastFetched || null);
+    const [lastFetched, setLastFetched] = useState<number | null>(() => loadMeta(lang)?.lastFetched || null);
     const seq = useRef(0);
     const itemsRef = useRef(items);
     useEffect(() => { itemsRef.current = items; }, [items]);
 
     const selectDate = useCallback((date: string) => setSelectedDate(date), []);
 
-    const sync = useCallback(async (force = false) => {
-        const meta = loadMeta();
-        if (!force && meta && Date.now() - meta.lastFetched < REFRESH_AFTER_MS && itemsRef.current.length > 0) {
+    const sync = useCallback(async (targetLang: 'zh' | 'en', force = false) => {
+        const meta = loadMeta(targetLang);
+        const cached = loadItems(targetLang);
+        if (!force && meta && Date.now() - meta.lastFetched < REFRESH_AFTER_MS && cached.length > 0) {
             setInitialLoading(false);
             return;
         }
@@ -240,13 +282,12 @@ export function AiPulseProvider({ children }: { children: React.ReactNode }) {
         setSyncing(true);
         setError(null);
         try {
-            const feed = await fetchFeed();
+            const feed = await fetchFeed(targetLang);
             if (my !== seq.current) return;
 
-            const existing = loadItems();
-            // Dedupe by url — upstream often ingests the same article through
-            // multiple aggregators (e.g. raw HN + 24h-hot HN + Lobsters = 3 ids, 1 url).
-            // First occurrence wins so the oldest entry's metadata stays stable.
+            // Dedupe by url against THIS lang's existing cache only — never
+            // cross-pollinate zh ↔ en caches.
+            const existing = loadItems(targetLang);
             const byUrl = new Map<string, NewsItem>();
             for (const it of [...existing, ...feed.items]) {
                 if (!byUrl.has(it.url)) byUrl.set(it.url, it);
@@ -255,9 +296,9 @@ export function AiPulseProvider({ children }: { children: React.ReactNode }) {
                 .sort((a, b) => itemTs(b).localeCompare(itemTs(a)))
                 .slice(0, MAX_ITEMS);
 
-            saveItems(merged);
+            saveItems(targetLang, merged);
             const now = Date.now();
-            saveMeta({ lastFetched: now });
+            saveMeta(targetLang, { lastFetched: now });
             setItems(merged);
             setLastFetched(now);
         } catch (e: any) {
@@ -271,9 +312,17 @@ export function AiPulseProvider({ children }: { children: React.ReactNode }) {
         }
     }, []);
 
-    const retry = useCallback(() => { sync(true); }, [sync]);
+    const retry = useCallback(() => { sync(lang, true); }, [sync, lang]);
 
-    useEffect(() => { sync(); }, [sync]);
+    // Refetch + swap cache whenever the locale flips. selectedDate gets reset
+    // because the date sets between zh and en feeds usually don't overlap.
+    useEffect(() => {
+        setItems(loadItems(lang));
+        setLastFetched(loadMeta(lang)?.lastFetched || null);
+        setSelectedDate(null);
+        setInitialLoading(loadItems(lang).length === 0);
+        sync(lang);
+    }, [lang, sync]);
 
     const value = useMemo<AiPulseContextValue>(() => ({
         items, initialLoading, syncing, error, selectedDate, selectDate, lastFetched, retry,
