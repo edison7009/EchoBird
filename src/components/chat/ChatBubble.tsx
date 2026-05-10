@@ -8,6 +8,7 @@ import remarkGfm from 'remark-gfm';
 import { getModelIcon } from '../cards/ModelCard';
 import { useI18n } from '../../hooks/useI18n';
 import { mdComponents } from '../../pages/MotherAgent/mdComponents';
+import { IS_LINUX } from '../../utils/platform';
 
 export type BubbleRole = 'user' | 'assistant' | 'system' | 'error' | 'working' | 'retry' | 'skeleton';
 
@@ -98,7 +99,37 @@ const SPINNER_VERBS_ZH = [
     '咕嘟', '搅拌', '编排', '凝聚', '飘忽',
 ];
 
+// Linux WebKitGTK pins a CPU core animating the gradient sweep + setInterval
+// glyph cycle, so on Linux we render a static frame instead. One verb,
+// one glyph, no caret, no shimmer/pulse — picked fresh each time the
+// indicator mounts (i.e. each new agent turn) so it still feels alive.
+function InputDotsStatic() {
+    const { locale } = useI18n();
+    const isZh = locale.startsWith('zh');
+    const verbs = isZh ? SPINNER_VERBS_ZH : SPINNER_VERBS_EN;
+    const formatVerb = (v: string) => (isZh ? `正在${v}中…` : `${v}…`);
+    const pickRandom = () => formatVerb(verbs[Math.floor(Math.random() * verbs.length)]);
+
+    const [staticGlyph] = useState(() => SPINNER_GLYPHS[Math.floor(Math.random() * SPINNER_GLYPHS.length)]);
+    const [staticVerb, setStaticVerb] = useState<string>(pickRandom);
+    useEffect(() => { setStaticVerb(pickRandom()); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [isZh]);
+
+    return (
+        <span className="inline-flex items-center gap-2">
+            <span className="inline-block w-3 text-center font-mono text-base leading-none text-cyber-accent">
+                {staticGlyph}
+            </span>
+            <span className="font-mono text-sm text-cyber-accent">{staticVerb}</span>
+        </span>
+    );
+}
+
 function InputDots() {
+    if (IS_LINUX) return <InputDotsStatic />;
+    return <InputDotsAnimated />;
+}
+
+function InputDotsAnimated() {
     const { locale } = useI18n();
     const isZh = locale.startsWith('zh');
     const verbs = isZh ? SPINNER_VERBS_ZH : SPINNER_VERBS_EN;
@@ -251,7 +282,7 @@ export function ChatBubble({ role, content, chips = [], isStreaming = false, sub
                         {isStreaming && (
                             <span
                                 className="inline-block w-1.5 h-4 ml-0.5 align-text-bottom bg-cyber-accent"
-                                style={{ animation: 'caretBlink 1s steps(2) infinite' }}
+                                style={IS_LINUX ? undefined : { animation: 'caretBlink 1s steps(2) infinite' }}
                             />
                         )}
                     </div>
