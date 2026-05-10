@@ -234,6 +234,28 @@ html {
 
 html { font-size: 15px; }
 
+/* html/body/#root must stay transparent so the rounded outer shell in App.tsx
+   carries the only visible background. Windows 11 DWM rounds undecorated
+   windows at the OS level, masking any opaque body bg, but Linux Mutter and
+   macOS NSWindow (with decorations:false + transparent:true) do not — a
+   solid body color there fills the four corners as square, defeating the
+   .rounded-xl on the inner div. tauri.conf already sets transparent:true. */
+html, body, #root { background: transparent; }
+
+/* Clip the entire window contents (including fixed-positioned modals and
+   toasts that are rendered outside the .rounded-xl shell) to a rounded
+   rectangle. clip-path applies to all descendants regardless of position,
+   so modal backdrops and Toast portals inherit the rounded edge. The
+   .window-maximized class is toggled on <html> from App.tsx — when the
+   window fills the screen, rounded corners against the screen edges look
+   off, so we drop the clip. */
+#root {
+  clip-path: inset(0 round 0.75rem);
+}
+html.window-maximized #root {
+  clip-path: none;
+}
+
 body {
   font-family: var(--font-sans);
   font-feature-settings: 'cv11', 'ss01', 'ss03';
@@ -241,7 +263,6 @@ body {
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
   line-height: 1.55;
-  background-color: rgb(var(--bg-base-rgb));
   color: rgb(var(--text-primary-rgb));
   overflow: hidden;
 }

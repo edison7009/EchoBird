@@ -97,6 +97,14 @@ function App() {
         return () => { unlisten.then(fn => fn()).catch(() => {}); };
     }, []);
 
+    // Mirror isMaximized to <html> so the global #root clip-path in index.css
+    // can drop its rounded corners when the window is maximized. Necessary
+    // because the clip lives at #root level (covering modal/toast portals
+    // outside the .rounded-xl shell) and CSS can't read React state directly.
+    useEffect(() => {
+        document.documentElement.classList.toggle('window-maximized', isMaximized);
+    }, [isMaximized]);
+
     const is = (p: PageType) => activePage === p;
 
     return (
