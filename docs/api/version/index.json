@@ -1,5 +1,5 @@
 {
-  "version": "4.4.0",
+  "version": "4.4.1",
   "releaseDate": "2026-05-10",
-  "releaseNotes": "v4.4.0 — EN news feed, rounded corners on Linux/macOS, silent retries"
+  "releaseNotes": "Fix: detect opencode / claude-code / codex / qwen / pi / openclaw when installed under nvm, asdf, conda, or custom prefixes — Linux/macOS GUI apps now query the user's login shell PATH as a fallback when 'which' fails."
 }
