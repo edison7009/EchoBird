@@ -16,17 +16,24 @@
             "%USERPROFILE%/.local/bin/claude.exe",
             "%APPDATA%/npm/claude.cmd",
             "%USERPROFILE%/.bun/bin/claude.exe",
-            "%LOCALAPPDATA%/Microsoft/WinGet/Links/claude.exe"
+            "%LOCALAPPDATA%/Microsoft/WinGet/Links/claude.exe",
+            "%LOCALAPPDATA%/pnpm/claude.exe"
         ],
         "darwin": [
             "/usr/local/bin/claude",
             "/opt/homebrew/bin/claude",
-            "~/.local/bin/claude"
+            "~/.local/bin/claude",
+            "~/.bun/bin/claude",
+            "~/.npm-global/bin/claude",
+            "~/Library/pnpm/claude"
         ],
         "linux": [
             "/usr/local/bin/claude",
             "/usr/bin/claude",
-            "~/.local/bin/claude"
+            "~/.local/bin/claude",
+            "~/.bun/bin/claude",
+            "~/.npm-global/bin/claude",
+            "~/.local/share/pnpm/claude"
         ]
     }
 }

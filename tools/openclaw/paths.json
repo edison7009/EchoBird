@@ -26,13 +26,17 @@
             "/usr/local/bin/openclaw",
             "/opt/homebrew/bin/openclaw",
             "~/Library/pnpm/openclaw",
-            "~/.local/bin/openclaw"
+            "~/.local/bin/openclaw",
+            "~/.bun/bin/openclaw",
+            "~/.npm-global/bin/openclaw"
         ],
         "linux": [
             "/usr/local/bin/openclaw",
             "/usr/bin/openclaw",
             "~/.local/share/pnpm/openclaw",
-            "~/.local/bin/openclaw"
+            "~/.local/bin/openclaw",
+            "~/.bun/bin/openclaw",
+            "~/.npm-global/bin/openclaw"
         ]
     },
     "skillsPath": {
