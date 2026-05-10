@@ -5,7 +5,10 @@ use std::process::Command;
 /// Check if a command exists on PATH
 pub async fn command_exists(cmd: &str) -> bool {
     #[cfg(not(target_os = "android"))]
-    { which::which(cmd).is_ok() }
+    {
+        if which::which(cmd).is_ok() { return true; }
+        shell_command_path(cmd).is_some()
+    }
     #[cfg(target_os = "android")]
     { let _ = cmd; false }
 }
@@ -13,9 +16,56 @@ pub async fn command_exists(cmd: &str) -> bool {
 /// Get the full path of a command
 pub async fn get_command_path(cmd: &str) -> Option<String> {
     #[cfg(not(target_os = "android"))]
-    { which::which(cmd).ok().map(|p| p.to_string_lossy().to_string()) }
+    {
+        if let Ok(p) = which::which(cmd) {
+            return Some(p.to_string_lossy().to_string());
+        }
+        shell_command_path(cmd)
+    }
     #[cfg(target_os = "android")]
     { let _ = cmd; None }
+}
+
+/// Linux/macOS fallback: query the user's login-shell PATH.
+/// Tauri GUI processes inherit a stripped PATH (no rc-file additions like nvm, asdf,
+/// conda, ~/.local/bin extensions). Spawning `$SHELL -lc 'command -v <cmd>'` runs the
+/// user's login shell, sources their rc files, and reports the real PATH resolution.
+#[cfg(any(target_os = "linux", target_os = "macos"))]
+fn shell_command_path(cmd: &str) -> Option<String> {
+    // Defense-in-depth: only forward simple command names into the shell
+    if cmd.is_empty()
+        || !cmd
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_' || c == '.')
+    {
+        return None;
+    }
+    let shell = std::env::var("SHELL").unwrap_or_else(|_| "/bin/bash".to_string());
+    let output = Command::new(&shell)
+        .args(["-lc", &format!("command -v {} 2>/dev/null", cmd)])
+        .output()
+        .ok()?;
+    if !output.status.success() {
+        return None;
+    }
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let line = stdout.lines().next().unwrap_or("").trim();
+    if line.is_empty() || !std::path::Path::new(line).exists() {
+        return None;
+    }
+    log::info!(
+        "[platform] '{}' resolved via login shell: {}",
+        cmd, line
+    );
+    Some(line.to_string())
+}
+
+#[cfg(not(any(target_os = "linux", target_os = "macos")))]
+#[allow(dead_code)]
+fn shell_command_path(_cmd: &str) -> Option<String> {
+    // Windows: GUI apps inherit the system PATH via the registry, so `which` is
+    // already authoritative. No fallback needed.
+    None
 }
 
 /// Check if a Python module is installed (pip-installed tools like nanobot)

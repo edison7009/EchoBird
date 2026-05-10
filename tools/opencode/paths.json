@@ -17,19 +17,27 @@
             "%LOCALAPPDATA%/Programs/opencode/opencode.exe",
             "%USERPROFILE%/scoop/shims/opencode.exe",
             "%PROGRAMFILES%/opencode/opencode.exe",
-            "%USERPROFILE%/.bun/bin/opencode.exe"
+            "%USERPROFILE%/.bun/bin/opencode.exe",
+            "%USERPROFILE%/.opencode/bin/opencode.exe",
+            "%LOCALAPPDATA%/pnpm/opencode.exe"
         ],
         "darwin": [
             "/usr/local/bin/opencode",
             "/opt/homebrew/bin/opencode",
             "~/.bun/bin/opencode",
-            "~/.local/bin/opencode"
+            "~/.local/bin/opencode",
+            "~/.opencode/bin/opencode",
+            "~/.npm-global/bin/opencode",
+            "~/.local/share/pnpm/opencode"
         ],
         "linux": [
             "/usr/local/bin/opencode",
             "/usr/bin/opencode",
             "~/.bun/bin/opencode",
-            "~/.local/bin/opencode"
+            "~/.local/bin/opencode",
+            "~/.opencode/bin/opencode",
+            "~/.npm-global/bin/opencode",
+            "~/.local/share/pnpm/opencode"
         ]
     }
 }

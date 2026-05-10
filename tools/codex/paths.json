@@ -15,19 +15,25 @@
         "win32": [
             "%APPDATA%/npm/codex.cmd",
             "%USERPROFILE%/scoop/shims/codex.exe",
-            "%USERPROFILE%/.bun/bin/codex.exe"
+            "%USERPROFILE%/.bun/bin/codex.exe",
+            "%USERPROFILE%/.local/bin/codex.exe",
+            "%LOCALAPPDATA%/pnpm/codex.exe"
         ],
         "darwin": [
             "/usr/local/bin/codex",
             "/opt/homebrew/bin/codex",
             "~/.bun/bin/codex",
-            "~/.local/bin/codex"
+            "~/.local/bin/codex",
+            "~/.npm-global/bin/codex",
+            "~/Library/pnpm/codex"
         ],
         "linux": [
             "/usr/local/bin/codex",
             "/usr/bin/codex",
             "~/.bun/bin/codex",
-            "~/.local/bin/codex"
+            "~/.local/bin/codex",
+            "~/.npm-global/bin/codex",
+            "~/.local/share/pnpm/codex"
         ]
     }
 }
