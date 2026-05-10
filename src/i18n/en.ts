@@ -198,9 +198,6 @@ const en: Translations = {
     'ssh.ishUsername': 'root',
     'ssh.ishPassword': 'set via passwd',
     'ssh.ishIp': 'Settings → Wi-Fi → IP Address',
-    'mother.connectionRetrying': 'Connection error, retrying ({n}/{total})...',
-    'mother.connectionFailed': 'Failed to connect to AI model after {n} retries.',
-    'mother.connectionHint': 'Please check the URL, Model ID, API Key, and ensure your token quota is sufficient.',
     // Error messages (user-friendly, non-technical)
     'error.connectionTimeout': 'No response from server, please check your connection.',
     'error.serverUnreachable': 'Cannot reach the server, please check the address and settings.',

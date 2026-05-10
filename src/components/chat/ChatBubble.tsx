@@ -10,7 +10,7 @@ import { useI18n } from '../../hooks/useI18n';
 import { mdComponents } from '../../pages/MotherAgent/mdComponents';
 import { IS_LINUX } from '../../utils/platform';
 
-export type BubbleRole = 'user' | 'assistant' | 'system' | 'error' | 'working' | 'retry' | 'skeleton';
+export type BubbleRole = 'user' | 'assistant' | 'system' | 'error' | 'working' | 'skeleton';
 
 export interface BubbleChip {
     type: 'file' | 'image' | 'model';
@@ -245,14 +245,6 @@ export function ChatBubble({ role, content, chips = [], isStreaming = false, sub
             <div className="flex flex-col items-center gap-0.5 my-4">
                 <span className="text-red-400 text-xs font-mono text-center">{content}</span>
                 {subContent && <span className="text-red-400/60 text-[11px] font-mono text-center">{subContent}</span>}
-            </div>
-        );
-    }
-
-    if (role === 'retry') {
-        return (
-            <div className="flex justify-center my-4">
-                <span className="text-yellow-400/70 text-xs font-mono text-center">{content}</span>
             </div>
         );
     }

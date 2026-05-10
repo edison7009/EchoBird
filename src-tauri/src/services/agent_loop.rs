@@ -345,10 +345,10 @@ pub async fn run_agent(
             Err(e) => {
                 if sse_retry_count < MAX_SSE_RETRIES {
                     sse_retry_count += 1;
+                    // Silent retry — no UI signal. Mirrors ClaudeCode/OpenCode:
+                    // a transient upstream blip shouldn't break the user's flow,
+                    // only an exhausted retry budget surfaces as an error.
                     log::warn!("[AgentLoop] chat_stream failed, retrying ({}/{}): {}", sse_retry_count, MAX_SSE_RETRIES, e);
-                    emit_event(&app, AgentEvent::TextDelta {
-                        text: format!("\n\n__CONN_RETRY__:{}/{}\n", sse_retry_count, MAX_SSE_RETRIES),
-                    });
                     tokio::time::sleep(std::time::Duration::from_secs(2)).await;
                     loop_count -= 1; // Don't count retries toward tool loop limit
                     continue;
@@ -523,12 +523,12 @@ pub async fn run_agent(
 
         if had_error {
             if !sse_error_msg.is_empty() && sse_retry_count < MAX_SSE_RETRIES {
-                // SSE stream error — retry
+                // SSE stream error — silent retry (no UI signal). The user
+                // sees whatever partial text streamed before the failure, the
+                // retry stream appends naturally, and only an exhausted retry
+                // budget surfaces as an error.
                 sse_retry_count += 1;
                 log::warn!("[AgentLoop] SSE stream error, retrying ({}/{}): {}", sse_retry_count, MAX_SSE_RETRIES, sse_error_msg);
-                emit_event(&app, AgentEvent::TextDelta {
-                    text: format!("\n\n__CONN_RETRY__:{}/{}\n", sse_retry_count, MAX_SSE_RETRIES),
-                });
                 // If we had partial text but no tool calls, save it to avoid losing progress
                 if !text_accumulator.is_empty() && tool_calls.is_empty() {
                     let mut map = session_map.lock().await;

@@ -99,8 +99,6 @@ export type TKey =
     | 'ssh.linuxUsername' | 'ssh.linuxPassword' | 'ssh.linuxIp'
     | 'ssh.termuxUsername' | 'ssh.termuxPassword' | 'ssh.termuxIp'
     | 'ssh.ishUsername' | 'ssh.ishPassword' | 'ssh.ishIp'
-    // Mother Agent connection error messages
-    | 'mother.connectionRetrying' | 'mother.connectionFailed' | 'mother.connectionHint'
     // Error messages (user-friendly, non-technical)
     | 'error.connectionTimeout' | 'error.serverUnreachable' | 'error.agentFailed'
     | 'error.noServerConfig' | 'error.noModelSelected' | 'error.requestFailed'

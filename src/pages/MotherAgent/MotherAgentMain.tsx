@@ -300,11 +300,6 @@ export function MotherAgentMain() {
                                     return <ToolCallCard key={`${i}-${msg.id}`} name={msg.name} args={msg.args} status={msg.status} output={msg.output} />;
                                 }
                                 if (msg.type === 'assistant') {
-                                    const retryMatch = msg.text.match(/__CONN_RETRY__:(\d+)\/(\d+)/);
-                                    if (retryMatch) {
-                                        const label = t('mother.connectionRetrying').replace('{n}', retryMatch[1]).replace('{total}', retryMatch[2]);
-                                        return <ChatBubble key={i} role="retry" content={label} variant="mother" />;
-                                    }
                                     const isLast = arr.slice(i + 1).every(m => m.type !== 'assistant');
                                     const lastOutput = chatOutput[chatOutput.length - 1];
                                     const isCurrentResponse = isLast && lastOutput?.type === 'assistant';
@@ -316,13 +311,6 @@ export function MotherAgentMain() {
                                 }
                                 if (msg.type === 'error') {
                                     const text = msg.i18nKey ? t(msg.i18nKey as import('../../i18n/types').TKey) : msg.text;
-                                    const failedMatch = msg.text.match(/__CONN_FAILED__:(\d+)/);
-                                    if (failedMatch) {
-                                        return <ChatBubble key={i} role="error"
-                                            content={t('mother.connectionFailed').replace('{n}', failedMatch[1])}
-                                            subContent={t('mother.connectionHint')}
-                                            variant="mother" />;
-                                    }
                                     return <ChatBubble key={i} role="error" content={text} variant="mother" />;
                                 }
                                 return null;
