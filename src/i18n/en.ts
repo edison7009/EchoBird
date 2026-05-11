@@ -148,7 +148,7 @@ const en: Translations = {
     // API Key encryption + developer hint
     'key.encrypted': 'Encrypted globally — API Key will self-destruct if environment changes',
     'key.destroyed': 'Environment change detected — API Key has self-destructed, please re-enter',
-    'hint.devInvite': 'Develop AI apps or AI games — see \"Reversi\" and \"AI Translate\".',
+    'hint.devInvite': 'After switching the Codex Desktop / Codex CLI model, keep EchoBird running.',
     // Mother Agent
     'mother.selectModel': 'Select model',
     'mother.hintInstall': 'Install {agent}',

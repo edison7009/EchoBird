@@ -126,7 +126,7 @@ const zhHans: Partial<Translations> = {
     'store.ready': '✓ 就绪',
     'key.encrypted': '已全局加密，任何环境改变 API Key 将自毁',
     'key.destroyed': '检测到环境已改变，API Key 已自毁，请重新输入',
-    'hint.devInvite': '开发 AI 应用或 AI 游戏，参考「黑白棋」和「AI 翻译」。',
+    'hint.devInvite': '修改 Codex 桌面端或 Codex CLI 的模型后，不要关闭 EchoBird。',
     'mother.selectModel': '选择模型',
     'mother.hintInstall': '安装 {agent}',
     'mother.enterMessage': '输入消息...',

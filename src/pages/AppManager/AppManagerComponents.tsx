@@ -416,8 +416,8 @@ export const AppManagerBottom: React.FC = () => {
         <div className="flex-shrink-0 flex flex-col mt-2">
             <div className="mx-2 border-t border-cyber-border"></div>
             <div className="flex items-center justify-end gap-8 px-6 py-5">
-                {/* Developer invite hint */}
-                <div className="flex-1 text-[13px] text-cyber-text-muted/40">{t('hint.devInvite')}</div>
+                {/* Developer hint — themed accent so it's actually readable. */}
+                <div className="flex-1 text-[13px] text-cyber-accent/80">{t('hint.devInvite')}</div>
                 {/* Launch button */}
                 <button
                     onClick={handleLaunch}
