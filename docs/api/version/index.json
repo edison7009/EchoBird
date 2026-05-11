@@ -1,5 +1,5 @@
 {
-  "version": "4.4.1",
-  "releaseDate": "2026-05-10",
-  "releaseNotes": "Fix: detect opencode / claude-code / codex / qwen / pi / openclaw when installed under nvm, asdf, conda, or custom prefixes — Linux/macOS GUI apps now query the user's login shell PATH as a fallback when 'which' fails."
+  "version": "4.5.1",
+  "releaseDate": "2026-05-11",
+  "releaseNotes": "Codex CLI + Codex Desktop can now use third-party endpoints again (DeepSeek, Moonshot, Qwen, OpenRouter) via the restored 127.0.0.1 dual-spoof proxy — translates Codex's Responses-only protocol to Chat Completions, writes ~/.codex/auth.json for v0.130+, supports Microsoft Store Desktop installs via shell URI, and properly handles tool-call grouping + dedup + reasoning items. Also fixes AI Pulse so English News and Star Projects are disjoint instead of identical, and expands EN sources from 6 to 17 (Anthropic, TechCrunch AI, arXiv, Reddit, more)."
 }
