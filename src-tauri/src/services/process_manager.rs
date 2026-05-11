@@ -73,15 +73,17 @@ impl ProcessManager {
             crate::services::tool_manager::is_vscode_extension(tool_id),
         );
 
-        // Priority 0: Codex launcher — must run before any other branch
-        // because paths.json supplies startCommand="codex" which would
-        // bypass the proxy. The launcher converts Codex's Responses-only
-        // protocol to Chat Completions so third-party endpoints (DeepSeek,
-        // Moonshot, OpenRouter, etc.) actually work; see
-        // tools/codex/codex-launcher.cjs for the rationale.
-        if tool_id == "codex" {
+        // Priority 0: Codex launcher (CLI + Desktop) — must run before any
+        // other branch because paths.json supplies startCommand="codex" /
+        // launchUri for desktop, either of which would bypass the proxy.
+        // The launcher converts Codex's Responses-only protocol to Chat
+        // Completions so third-party endpoints (DeepSeek, Moonshot,
+        // OpenRouter, etc.) actually work; CLI and Desktop share the same
+        // launcher script and only differ in which Codex binary it spawns.
+        // See tools/codex/codex-launcher.cjs for the rationale.
+        if matches!(tool_id, "codex" | "codexdesktop") {
             if let Some(launcher) = Self::find_codex_launcher() {
-                log::info!("[ProcessManager] Routing Codex through dual-spoof launcher: {:?}", launcher);
+                log::info!("[ProcessManager] Routing {} through dual-spoof launcher: {:?}", tool_id, launcher);
                 return self.start_codex_launcher(tool_id, &launcher);
             }
         }
@@ -143,12 +145,13 @@ impl ProcessManager {
         if launcher.exists() { Some(launcher) } else { None }
     }
 
-    /// Start Codex via the dual-spoof launcher.
+    /// Start Codex (CLI or Desktop) via the dual-spoof launcher.
     ///
     /// We invoke `node codex-launcher.cjs` rather than calling node with the
     /// path glued into a single argv string, so cmd.exe's quoting doesn't
     /// mangle paths containing spaces. The launcher takes care of spawning
-    /// the actual Codex Rust binary with a working TTY.
+    /// the actual Codex binary (npm Rust CLI vs. standalone Desktop exe)
+    /// based on the ECHOBIRD_CODEX_LAUNCH_MODE env var we set here.
     fn start_codex_launcher(&mut self, tool_id: &str, launcher: &std::path::Path) -> Result<(), String> {
         let home = dirs::home_dir().unwrap_or_default();
 
@@ -170,6 +173,11 @@ impl ProcessManager {
             }
         }
 
+        // Tell the launcher which Codex binary to spawn. CLI mode picks up
+        // the npm-bundled Rust binary via resolveCodexBinary(); desktop
+        // mode looks at tools/codexdesktop/paths.json's exe locations.
+        let launch_mode = if tool_id == "codexdesktop" { "desktop" } else { "cli" };
+
         #[cfg(windows)]
         {
             use std::os::windows::process::CommandExt;
@@ -187,6 +195,7 @@ impl ProcessManager {
             let mut cmd = Command::new("cmd");
             cmd.args(["/C", "node", launcher_clean]);
             cmd.current_dir(&home);
+            cmd.env("ECHOBIRD_CODEX_LAUNCH_MODE", launch_mode);
             if let Some(ref key) = api_key {
                 cmd.env("OPENAI_API_KEY", key);
                 if let Some(ref ek) = env_key {
@@ -196,7 +205,7 @@ impl ProcessManager {
             if let Some(ref url) = base_url { cmd.env("OPENAI_BASE_URL", url); }
             cmd.creation_flags(CREATE_NEW_PROCESS_GROUP | CREATE_NEW_CONSOLE);
 
-            log::info!("[ProcessManager] Codex launcher: cmd /C node {}", launcher_clean);
+            log::info!("[ProcessManager] Codex launcher ({}): cmd /C node {}", launch_mode, launcher_clean);
             return match cmd.spawn() {
                 Ok(child) => {
                     let pid = child.id();
@@ -213,6 +222,7 @@ impl ProcessManager {
             let mut cmd = Command::new("node");
             cmd.arg(launcher);
             cmd.current_dir(&home);
+            cmd.env("ECHOBIRD_CODEX_LAUNCH_MODE", launch_mode);
             if let Some(ref key) = api_key {
                 cmd.env("OPENAI_API_KEY", key);
                 if let Some(ref ek) = env_key {
@@ -224,7 +234,7 @@ impl ProcessManager {
             match cmd.spawn() {
                 Ok(child) => {
                     let pid = child.id();
-                    log::info!("[ProcessManager] Codex launcher PID: {}", pid);
+                    log::info!("[ProcessManager] Codex launcher PID ({}): {}", launch_mode, pid);
                     self.processes.insert(tool_id.to_string(), ProcessInfo { pid });
                     Ok(())
                 }

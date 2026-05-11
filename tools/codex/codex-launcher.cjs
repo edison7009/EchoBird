@@ -509,13 +509,36 @@ function rewriteSectionBaseUrl(section, newUrl) {
     }
 }
 
-// ─── Codex binary resolution (Rust TUI direct-spawn) ──────────────────
+// ─── Binary resolution ────────────────────────────────────────────────
 //
-// Codex v0.107+ ships as a Rust binary inside @openai/codex-<platform>.
-// Direct-spawning preserves the TTY chain; going through codex.cmd →
-// node codex.js → codex.exe with shell:true drops TTY-ness inside the
-// cmd /d /s /c wrapper and the Rust TUI aborts with "stdin is not a
-// terminal".
+// CLI mode: Codex v0.107+ ships as a Rust binary inside
+// @openai/codex-<platform>. Direct-spawning preserves the TTY chain;
+// going through codex.cmd → node codex.js → codex.exe with shell:true
+// drops TTY-ness inside the cmd /d /s /c wrapper and the Rust TUI aborts
+// with "stdin is not a terminal".
+//
+// Desktop mode: looks for the standalone Codex app (.exe on Windows,
+// .app on macOS). The desktop installer is independent of npm, so we
+// search the well-known install locations from tools/codexdesktop/paths.json.
+
+function resolveDesktopBinary() {
+    const platform = process.platform;
+    const candidates = [];
+    if (platform === "win32") {
+        const localAppData = process.env.LOCALAPPDATA;
+        if (localAppData) {
+            candidates.push(path.join(localAppData, "Programs", "Codex", "Codex.exe"));
+        }
+    } else if (platform === "darwin") {
+        candidates.push("/Applications/Codex.app/Contents/MacOS/Codex");
+        candidates.push(path.join(os.homedir(), "Applications", "Codex.app", "Contents", "MacOS", "Codex"));
+    }
+    // Codex Desktop has no Linux build as of 2026-05.
+    for (const c of candidates) {
+        if (fs.existsSync(c)) return c;
+    }
+    return null;
+}
 
 function resolveCodexBinary() {
     const platform = process.platform;
@@ -567,40 +590,60 @@ function resolveCodexBinary() {
     return null;
 }
 
-function launchCodex(onExit) {
-    let codexPath = resolveCodexBinary();
+// Resolve the right binary based on launch mode, then spawn it. Both
+// CLI and Desktop go through the same "wait for child to exit" path so
+// the proxy lifetime matches the Codex session — when the user closes
+// Codex, the launcher tears down the proxy and restores config.toml.
+function launchCodex(mode, onExit) {
+    let codexPath;
     let useShell = false;
+    let stdio = "inherit"; // CLI needs an attached TTY; Desktop doesn't care.
 
-    if (codexPath) {
-        console.log(`[Echobird] Launching Codex (direct binary): ${codexPath}`);
+    if (mode === "desktop") {
+        codexPath = resolveDesktopBinary();
+        if (!codexPath) {
+            console.error("[Echobird] Codex Desktop not found in standard install locations.");
+            console.error("[Echobird] Install Codex Desktop from https://openai.com/codex first.");
+            process.exit(1);
+        }
+        // Desktop is a GUI app: detach stdio so the launcher doesn't keep
+        // a console window pinned to it. We still treat it as a child so
+        // exit detection works on macOS / standalone-Windows installs.
+        stdio = "ignore";
+        console.log(`[Echobird] Launching Codex Desktop: ${codexPath}`);
     } else {
-        const codexCmd = process.platform === "win32" ? "codex.cmd" : "codex";
-        if (process.platform === "win32") {
-            const appdata = process.env.APPDATA || process.env.LOCALAPPDATA || "";
-            if (appdata.length > 2) {
-                const candidate = path.join(appdata, "npm", codexCmd);
+        codexPath = resolveCodexBinary();
+        if (codexPath) {
+            console.log(`[Echobird] Launching Codex CLI (direct binary): ${codexPath}`);
+        } else {
+            const codexCmd = process.platform === "win32" ? "codex.cmd" : "codex";
+            if (process.platform === "win32") {
+                const appdata = process.env.APPDATA || process.env.LOCALAPPDATA || "";
+                if (appdata.length > 2) {
+                    const candidate = path.join(appdata, "npm", codexCmd);
+                    if (fs.existsSync(candidate)) codexPath = candidate;
+                }
+            } else {
+                const candidate = "/usr/local/bin/" + codexCmd;
                 if (fs.existsSync(candidate)) codexPath = candidate;
             }
-        } else {
-            const candidate = "/usr/local/bin/" + codexCmd;
-            if (fs.existsSync(candidate)) codexPath = candidate;
+            if (!codexPath) {
+                try {
+                    const { execFileSync } = require("child_process");
+                    const findCmd = process.platform === "win32" ? "where" : "which";
+                    const r = execFileSync(findCmd, [codexCmd], { encoding: "utf8", timeout: 3000 })
+                        .trim().split(/\r?\n/)[0].trim();
+                    if (r && fs.existsSync(r)) codexPath = r;
+                } catch { /* not found */ }
+            }
+            if (!codexPath) codexPath = codexCmd;
+            useShell = true;
+            console.log(`[Echobird] Rust binary not found, falling back to shim: ${codexPath}`);
         }
-        if (!codexPath) {
-            try {
-                const { execFileSync } = require("child_process");
-                const findCmd = process.platform === "win32" ? "where" : "which";
-                const r = execFileSync(findCmd, [codexCmd], { encoding: "utf8", timeout: 3000 })
-                    .trim().split(/\r?\n/)[0].trim();
-                if (r && fs.existsSync(r)) codexPath = r;
-            } catch { /* not found */ }
-        }
-        if (!codexPath) codexPath = codexCmd;
-        useShell = true;
-        console.log(`[Echobird] Rust binary not found, falling back to shim: ${codexPath}`);
     }
 
     const child = spawn(codexPath, [], {
-        stdio: "inherit",
+        stdio,
         env: process.env,
         cwd: os.homedir(),
         shell: useShell,
@@ -617,10 +660,17 @@ function launchCodex(onExit) {
 // ─── Main ─────────────────────────────────────────────────────────────
 
 async function main() {
+    // ECHOBIRD_CODEX_LAUNCH_MODE is set by start_codex_launcher in
+    // process_manager.rs. "cli" (default) or "desktop". Restore-to-official
+    // doesn't need any special handling here — when the user resets via UI,
+    // ~/.echobird/codex.json is deleted, loadEchobirdConfig() returns null,
+    // and we fall straight through to a direct launch without a proxy.
+    const mode = (process.env.ECHOBIRD_CODEX_LAUNCH_MODE || "cli").toLowerCase();
+
     const config = loadEchobirdConfig();
     if (!config) {
-        console.log("[Echobird] No relay config, launching Codex directly");
-        launchCodex();
+        console.log(`[Echobird] No relay config — launching Codex ${mode} directly`);
+        launchCodex(mode);
         return;
     }
 
@@ -628,13 +678,13 @@ async function main() {
     const envKey = config.envKey || "OPENAI_API_KEY";
 
     if (isOpenAI(baseUrl)) {
-        console.log("[Echobird] OpenAI endpoint detected — no proxy needed");
+        console.log(`[Echobird] OpenAI endpoint detected — no proxy needed (${mode})`);
         if (apiKey) process.env[envKey] = apiKey;
-        launchCodex();
+        launchCodex(mode);
         return;
     }
 
-    console.log(`[Echobird] Third-party endpoint: ${baseUrl}`);
+    console.log(`[Echobird] ${mode} mode, third-party endpoint: ${baseUrl}`);
     console.log(`[Echobird] Model: ${modelId || "default"}  Provider section: ${providerId || "(none)"}`);
 
     const { port, server } = await startProxy(baseUrl, apiKey);
@@ -649,7 +699,7 @@ async function main() {
 
     if (apiKey) process.env[envKey] = apiKey;
 
-    launchCodex((code) => {
+    launchCodex(mode, (code) => {
         if (rewrote && providerId) rewriteSectionBaseUrl(providerId, baseUrl);
         server.close();
         process.exit(code);
