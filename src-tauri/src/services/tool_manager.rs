@@ -70,7 +70,7 @@ pub fn init_resource_dir(path: PathBuf) {
 /// Find the tools directory (tools/)
 /// In dev: relative to project root
 /// In production: bundled with the app binary
-fn find_tools_dir() -> Option<PathBuf> {
+pub fn find_tools_dir() -> Option<PathBuf> {
     // 0. Tauri-native resource_dir (most reliable — set at startup via init_resource_dir)
     //
     // Tauri v2 bundles resources relative to src-tauri/ using "_up_" for "../" paths:

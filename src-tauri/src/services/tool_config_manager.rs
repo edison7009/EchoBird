@@ -900,6 +900,12 @@ fn apply_codex(tool_id: &str, model_info: &ModelInfo) -> ApplyResult {
     content = toml_write_table_value(&content, &format!("model_providers.{}", provider_id), "name", &provider_name);
     content = toml_write_table_value(&content, &format!("model_providers.{}", provider_id), "base_url", &base_url);
     content = toml_write_table_value(&content, &format!("model_providers.{}", provider_id), "env_key", &env_key);
+    // Codex v0.107+ removed the "chat" wire_api option; it only emits
+    // POST /v1/responses. The launcher (tools/codex/codex-launcher.cjs)
+    // runs a 127.0.0.1 proxy that translates Responses → Chat for
+    // third-party endpoints, so we always declare "responses" here and
+    // let the launcher do the bridging.
+    content = toml_write_table_value(&content, &format!("model_providers.{}", provider_id), "wire_api", "responses");
 
     ensure_parent(&config_path);
     if let Err(e) = fs::write(&config_path, &content) {

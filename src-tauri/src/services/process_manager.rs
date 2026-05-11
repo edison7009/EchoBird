@@ -73,6 +73,19 @@ impl ProcessManager {
             crate::services::tool_manager::is_vscode_extension(tool_id),
         );
 
+        // Priority 0: Codex launcher — must run before any other branch
+        // because paths.json supplies startCommand="codex" which would
+        // bypass the proxy. The launcher converts Codex's Responses-only
+        // protocol to Chat Completions so third-party endpoints (DeepSeek,
+        // Moonshot, OpenRouter, etc.) actually work; see
+        // tools/codex/codex-launcher.cjs for the rationale.
+        if tool_id == "codex" {
+            if let Some(launcher) = Self::find_codex_launcher() {
+                log::info!("[ProcessManager] Routing Codex through dual-spoof launcher: {:?}", launcher);
+                return self.start_codex_launcher(tool_id, &launcher);
+            }
+        }
+
         // Priority 1: If explicit command is given from frontend, use it
         if let Some(cmd) = start_command {
             log::info!("[ProcessManager] Starting tool: {} with explicit command: {}", tool_id, cmd);
@@ -120,6 +133,104 @@ impl ProcessManager {
         }
 
         Err(format!("No executable or command found for tool '{}'. The tool may be installed but not in PATH.", tool_id))
+    }
+
+    /// Locate the bundled codex-launcher.cjs under tools/codex/.
+    fn find_codex_launcher() -> Option<std::path::PathBuf> {
+        let launcher = crate::services::tool_manager::find_tools_dir()?
+            .join("codex")
+            .join("codex-launcher.cjs");
+        if launcher.exists() { Some(launcher) } else { None }
+    }
+
+    /// Start Codex via the dual-spoof launcher.
+    ///
+    /// We invoke `node codex-launcher.cjs` rather than calling node with the
+    /// path glued into a single argv string, so cmd.exe's quoting doesn't
+    /// mangle paths containing spaces. The launcher takes care of spawning
+    /// the actual Codex Rust binary with a working TTY.
+    fn start_codex_launcher(&mut self, tool_id: &str, launcher: &std::path::Path) -> Result<(), String> {
+        let home = dirs::home_dir().unwrap_or_default();
+
+        // Pull api_key / base_url out of ~/.echobird/codex.json so we can
+        // pre-seed env vars. The launcher itself also reads this file, so
+        // the env pre-seed is mainly a backstop for the OpenAI-direct case
+        // where the launcher skips the proxy.
+        let relay_path = home.join(".echobird").join("codex.json");
+        let mut api_key: Option<String> = None;
+        let mut base_url: Option<String> = None;
+        let mut env_key: Option<String> = None;
+        if relay_path.exists() {
+            if let Ok(content) = std::fs::read_to_string(&relay_path) {
+                if let Ok(cfg) = serde_json::from_str::<serde_json::Value>(&content) {
+                    api_key  = cfg.get("apiKey").and_then(|v| v.as_str()).map(String::from);
+                    base_url = cfg.get("baseUrl").and_then(|v| v.as_str()).map(String::from);
+                    env_key  = cfg.get("envKey").and_then(|v| v.as_str()).map(String::from);
+                }
+            }
+        }
+
+        #[cfg(windows)]
+        {
+            use std::os::windows::process::CommandExt;
+            const CREATE_NEW_PROCESS_GROUP: u32 = 0x00000200;
+            const CREATE_NEW_CONSOLE: u32 = 0x00000010;
+
+            // Strip the Windows extended-length path prefix "\\?\" if
+            // present — cmd.exe rejects it, even though Rust hands them
+            // out in debug builds.
+            let launcher_str = launcher.to_string_lossy();
+            let launcher_clean = launcher_str
+                .strip_prefix(r"\\?\")
+                .unwrap_or(&launcher_str);
+
+            let mut cmd = Command::new("cmd");
+            cmd.args(["/C", "node", launcher_clean]);
+            cmd.current_dir(&home);
+            if let Some(ref key) = api_key {
+                cmd.env("OPENAI_API_KEY", key);
+                if let Some(ref ek) = env_key {
+                    cmd.env(ek, key);
+                }
+            }
+            if let Some(ref url) = base_url { cmd.env("OPENAI_BASE_URL", url); }
+            cmd.creation_flags(CREATE_NEW_PROCESS_GROUP | CREATE_NEW_CONSOLE);
+
+            log::info!("[ProcessManager] Codex launcher: cmd /C node {}", launcher_clean);
+            return match cmd.spawn() {
+                Ok(child) => {
+                    let pid = child.id();
+                    log::info!("[ProcessManager] Codex launcher PID: {}", pid);
+                    self.processes.insert(tool_id.to_string(), ProcessInfo { pid });
+                    Ok(())
+                }
+                Err(e) => Err(format!("Failed to launch Codex launcher: {}", e)),
+            };
+        }
+
+        #[cfg(not(windows))]
+        {
+            let mut cmd = Command::new("node");
+            cmd.arg(launcher);
+            cmd.current_dir(&home);
+            if let Some(ref key) = api_key {
+                cmd.env("OPENAI_API_KEY", key);
+                if let Some(ref ek) = env_key {
+                    cmd.env(ek, key);
+                }
+            }
+            if let Some(ref url) = base_url { cmd.env("OPENAI_BASE_URL", url); }
+
+            match cmd.spawn() {
+                Ok(child) => {
+                    let pid = child.id();
+                    log::info!("[ProcessManager] Codex launcher PID: {}", pid);
+                    self.processes.insert(tool_id.to_string(), ProcessInfo { pid });
+                    Ok(())
+                }
+                Err(e) => Err(format!("Failed to launch Codex via node: {}", e)),
+            }
+        }
     }
 
     /// Start a CLI tool via terminal
