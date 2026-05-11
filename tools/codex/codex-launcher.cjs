@@ -729,8 +729,14 @@ function resolveDesktopBinary() {
         // 3. PATH lookup as a last resort.
         try {
             const { execFileSync } = require("child_process");
-            const found = execFileSync("where", ["Codex.exe"], { encoding: "utf-8", timeout: 3000 })
-                .trim().split(/\r?\n/)[0].trim();
+            // Silence stderr: `where` writes localized "not found" messages
+            // to stderr in the system's ANSI codepage (e.g. GBK on
+            // zh-CN), which then bleeds into our launcher console as
+            // mojibake. We only care about stdout for the resolved path.
+            const found = execFileSync("where", ["Codex.exe"], {
+                encoding: "utf-8", timeout: 3000,
+                stdio: ["ignore", "pipe", "ignore"],
+            }).trim().split(/\r?\n/)[0].trim();
             if (found) candidates.push(found);
         } catch { /* not in PATH */ }
     } else if (platform === "darwin") {
@@ -766,7 +772,7 @@ async function waitForCodexProcessLifecycle() {
         try {
             const { execFileSync } = require("child_process");
             const out = execFileSync("tasklist", ["/FI", "IMAGENAME eq Codex.exe", "/FO", "CSV", "/NH"],
-                { encoding: "utf-8", timeout: 3000 });
+                { encoding: "utf-8", timeout: 3000, stdio: ["ignore", "pipe", "ignore"] });
             return out.toLowerCase().includes("codex.exe");
         } catch { return false; }
     };
@@ -816,8 +822,10 @@ function resolveCodexBinary() {
         const { execFileSync } = require("child_process");
         const findCmd = platform === "win32" ? "where" : "which";
         const findArg = platform === "win32" ? "codex.cmd" : "codex";
-        const stub = execFileSync(findCmd, [findArg], { encoding: "utf8", timeout: 3000 })
-            .trim().split(/\r?\n/)[0].trim();
+        const stub = execFileSync(findCmd, [findArg], {
+            encoding: "utf8", timeout: 3000,
+            stdio: ["ignore", "pipe", "ignore"],
+        }).trim().split(/\r?\n/)[0].trim();
         if (stub) {
             const npmDir = path.dirname(stub);
             codexPkgRoots.push(path.join(npmDir, "node_modules", "@openai", "codex"));
@@ -896,8 +904,10 @@ function launchCodex(mode, onExit) {
                 try {
                     const { execFileSync } = require("child_process");
                     const findCmd = process.platform === "win32" ? "where" : "which";
-                    const r = execFileSync(findCmd, [codexCmd], { encoding: "utf8", timeout: 3000 })
-                        .trim().split(/\r?\n/)[0].trim();
+                    const r = execFileSync(findCmd, [codexCmd], {
+                        encoding: "utf8", timeout: 3000,
+                        stdio: ["ignore", "pipe", "ignore"],
+                    }).trim().split(/\r?\n/)[0].trim();
                     if (r && fs.existsSync(r)) codexPath = r;
                 } catch { /* not found */ }
             }

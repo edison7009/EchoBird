@@ -215,6 +215,7 @@ impl ProcessManager {
             use std::os::windows::process::CommandExt;
             const CREATE_NEW_PROCESS_GROUP: u32 = 0x00000200;
             const CREATE_NEW_CONSOLE: u32 = 0x00000010;
+            const CREATE_NO_WINDOW: u32 = 0x08000000;
 
             // Strip the Windows extended-length path prefix "\\?\" if
             // present — cmd.exe rejects it, even though Rust hands them
@@ -235,7 +236,17 @@ impl ProcessManager {
                 }
             }
             if let Some(ref url) = base_url { cmd.env("OPENAI_BASE_URL", url); }
-            cmd.creation_flags(CREATE_NEW_PROCESS_GROUP | CREATE_NEW_CONSOLE);
+
+            // CLI needs a visible terminal — Codex CLI's TUI renders in
+            // it via stdio:inherit. Desktop is a GUI app, so hide the
+            // launcher console entirely (otherwise users see a black
+            // cmd window flash open with bootstrap logs in it).
+            let flags = if launch_mode == "desktop" {
+                CREATE_NO_WINDOW
+            } else {
+                CREATE_NEW_PROCESS_GROUP | CREATE_NEW_CONSOLE
+            };
+            cmd.creation_flags(flags);
 
             log::info!("[ProcessManager] Codex launcher ({}): cmd /C node {}", launch_mode, launcher_clean);
             return match cmd.spawn() {
