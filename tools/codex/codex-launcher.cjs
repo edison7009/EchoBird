@@ -87,40 +87,59 @@ function responsesToChat(body) {
     if (typeof body.input === "string") {
         messages.push({ role: "user", content: body.input });
     } else if (Array.isArray(body.input)) {
-        for (const item of body.input) {
-            switch (item.type) {
-                case "message": {
-                    let role = item.role || "user";
-                    if (role === "developer") role = "system";
-                    const text = extractText(item.content);
-                    if (text) messages.push({ role, content: text });
-                    break;
-                }
-                case "function_call": {
-                    // Assistant tool invocation. Chat puts these on the
-                    // assistant message's tool_calls[] array.
-                    const callId = item.call_id || item.id
+        // Track call_ids we've already emitted as tool_calls or tool
+        // responses, so when Codex's previous_response_id + input both
+        // replay the same items we don't duplicate them.
+        const emittedCallIds = new Set();
+        const emittedToolResponses = new Set();
+        const items = body.input;
+        let i = 0;
+        while (i < items.length) {
+            const item = items[i];
+            const t = item?.type;
+
+            if (t === "function_call") {
+                // Group ALL consecutive function_calls into one assistant
+                // message. Chat Completions spec requires that all tool
+                // calls produced in one turn live in a single assistant
+                // message's tool_calls[] array — emitting them as separate
+                // messages breaks providers (DeepSeek/Moonshot/etc).
+                const grouped = [];
+                while (i < items.length && items[i]?.type === "function_call") {
+                    const cur = items[i];
+                    const callId = cur.call_id || cur.id
                         || `call_${Math.random().toString(36).slice(2, 12)}`;
-                    messages.push({
-                        role: "assistant",
-                        content: null,
-                        tool_calls: [{
+                    if (!emittedCallIds.has(callId)) {
+                        emittedCallIds.add(callId);
+                        grouped.push({
                             id: callId,
                             type: "function",
                             function: {
-                                name: item.name || "",
-                                arguments: typeof item.arguments === "string"
-                                    ? item.arguments
-                                    : JSON.stringify(item.arguments || {}),
+                                name: cur.name || "",
+                                arguments: typeof cur.arguments === "string"
+                                    ? cur.arguments
+                                    : JSON.stringify(cur.arguments || {}),
                             },
-                        }],
-                    });
-                    break;
+                        });
+                    }
+                    i++;
                 }
-                case "function_call_output": {
-                    // Tool result. Chat encodes these as role=tool with
-                    // tool_call_id matching the prior assistant call.
-                    const callId = item.call_id || item.id || "";
+                if (grouped.length > 0) {
+                    messages.push({
+                        role: "assistant",
+                        content: null,
+                        tool_calls: grouped,
+                    });
+                }
+                continue;
+            }
+
+            if (t === "function_call_output" || t === "local_shell_call_output") {
+                // local_shell_call_output (Codex 0.130+ for the built-in
+                // shell tool) maps to a regular tool result in Chat.
+                const callId = item.call_id || item.id || "";
+                if (callId && !emittedToolResponses.has(callId)) {
+                    emittedToolResponses.add(callId);
                     const out = typeof item.output === "string"
                         ? item.output
                         : JSON.stringify(item.output ?? "");
@@ -129,11 +148,55 @@ function responsesToChat(body) {
                         tool_call_id: callId,
                         content: out,
                     });
-                    break;
                 }
-                default:
-                    warn(`[Proxy] Skipping unknown input item type: ${item.type}`);
+                i++;
+                continue;
             }
+
+            if (t === "local_shell_call") {
+                // Codex emits these when the model decides to invoke the
+                // built-in local_shell tool. Chat-side, surface it as an
+                // assistant tool_call so the upstream model sees the
+                // history correctly.
+                const callId = item.call_id || item.id
+                    || `call_${Math.random().toString(36).slice(2, 12)}`;
+                if (!emittedCallIds.has(callId)) {
+                    emittedCallIds.add(callId);
+                    messages.push({
+                        role: "assistant",
+                        content: null,
+                        tool_calls: [{
+                            id: callId,
+                            type: "function",
+                            function: {
+                                name: "local_shell",
+                                arguments: JSON.stringify(item.action || {}),
+                            },
+                        }],
+                    });
+                }
+                i++;
+                continue;
+            }
+
+            if (t === "reasoning") {
+                // Codex 0.128+ replays reasoning items in history. We don't
+                // have a session store to round-trip them, just drop.
+                i++;
+                continue;
+            }
+
+            if (t === "message") {
+                let role = item.role || "user";
+                if (role === "developer") role = "system";
+                const text = extractText(item.content);
+                if (text) messages.push({ role, content: text });
+                i++;
+                continue;
+            }
+
+            warn(`[Proxy] Skipping unknown input item type: ${t}`);
+            i++;
         }
     }
 
@@ -193,26 +256,59 @@ function responsesToChat(body) {
     if (body.stop_sequences) chatBody.stop = body.stop_sequences;
     if (body.stop) chatBody.stop = body.stop;
 
-    // Pass through tool definitions; without these the model cannot
-    // call any tools and Codex stays in plain-chat mode forever.
+    // Convert Responses-API tools to Chat Completions tools.
+    //
+    // Strategy (ported from MetaFARS/codex-relay's convert_tools): keep
+    // ONLY `type: "function"` and `type: "namespace"` (a container of
+    // functions). Drop every built-in type that has no Chat-side analogue
+    // — local_shell, web_search, file_search, computer_use_preview,
+    // custom (grammar-constrained), etc. — because including them as
+    // type=function with a missing name field gets the request 400'd
+    // upstream ("tools[3].function: missing field `name`").
+    //
+    // Codex CLI normally registers a regular `function`-shaped shell tool
+    // alongside the built-in local_shell, so dropping local_shell from
+    // the tools list still leaves the model with a way to call shell —
+    // it just routes through the function path instead.
     if (Array.isArray(body.tools) && body.tools.length > 0) {
-        chatBody.tools = body.tools.map(t => {
-            // Responses tool shape: {type:"function", name, description, parameters}
-            // Chat tool shape:      {type:"function", function:{name, description, parameters}}
-            if (t.type === "function" && t.function) return t;
-            return {
-                type: "function",
-                function: {
-                    name: t.name,
-                    description: t.description,
-                    parameters: t.parameters || { type: "object", properties: {} },
-                },
-            };
-        });
-        if (body.tool_choice) chatBody.tool_choice = body.tool_choice;
+        const out = [];
+        const dropped = [];
+        for (const tool of body.tools) {
+            const tt = tool?.type;
+            if (tt === "function") {
+                out.push(normalizeFunctionTool(tool));
+            } else if (tt === "namespace" && Array.isArray(tool.tools)) {
+                for (const sub of tool.tools) {
+                    if (sub?.type === "function") out.push(normalizeFunctionTool(sub));
+                }
+            } else if (tt) {
+                dropped.push(tt);
+            }
+        }
+        if (out.length > 0) {
+            chatBody.tools = out;
+            if (body.tool_choice) chatBody.tool_choice = body.tool_choice;
+        }
+        if (dropped.length > 0) {
+            warn(`[Proxy] Dropped ${dropped.length} non-function tool(s): ${[...new Set(dropped)].join(", ")}`);
+        }
     }
 
     return chatBody;
+}
+
+function normalizeFunctionTool(tool) {
+    // Already in Chat shape: {type:"function", function:{...}}
+    if (tool.function && typeof tool.function === "object") {
+        return { type: "function", function: tool.function };
+    }
+    // Responses flat shape: {type:"function", name, description, parameters, strict}
+    const fn = {};
+    if (tool.name) fn.name = tool.name;
+    if (tool.description) fn.description = tool.description;
+    if (tool.parameters) fn.parameters = tool.parameters;
+    if (tool.strict !== undefined) fn.strict = tool.strict;
+    return { type: "function", function: fn };
 }
 
 // ─── Chat-Completions stream → Responses SSE ──────────────────────────
