@@ -857,6 +857,13 @@ fn restore_opencode_to_official() -> ApplyResult {
 /// Hard requirement: node ≥ 24 because the vendored CLI uses Node's
 /// built-in `node:sqlite` which only stabilized in v24. On older Node we
 /// skip with a warning.
+///
+/// NOTE: as of the launcher pre-launch sync move, apply_codex no longer
+/// calls this — the launcher (tools/codex/codex-launcher.cjs::runProviderSync)
+/// is the canonical sync trigger because it runs before Codex starts and
+/// state_5.sqlite is guaranteed unlocked. This Rust helper is retained for
+/// potential future UI hooks (e.g. a manual "retag history now" button).
+#[allow(dead_code)]
 fn run_codex_provider_sync(provider_id: &str) {
     use std::process::Command;
 
@@ -925,7 +932,76 @@ fn codex_provider_id(base_url: &str) -> String {
     format!("echobird_{}", if domain.is_empty() { "openai" } else { &domain })
 }
 
+/// Kill any running Codex CLI / Codex Desktop processes before rewriting
+/// config.toml + auth.json. Codex caches both files in memory at startup
+/// and never re-reads — without this kill the user's "modify" click is
+/// silently ignored until they manually quit and reopen Codex. Other
+/// switcher tools (codex-switcher, codex-auth, Codex_AccountSwitch) all
+/// do the same.
+///
+/// Bonus side-effect: state_5.sqlite's WAL lock is released, so the
+/// launcher's pre-launch provider-sync (which retags historical sessions)
+/// can acquire its exclusive lock cleanly. Without the kill, sync silently
+/// fails when Codex is open.
+///
+/// Silent / best-effort: we don't prompt and don't fail apply_codex if
+/// taskkill / pkill return nonzero (most commonly that's "no matching
+/// process to kill", which is fine). In-progress conversations are
+/// already persisted to ~/.codex/sessions/*.jsonl so users can /resume
+/// after the new launch.
+fn kill_codex_if_running() {
+    #[cfg(target_os = "windows")]
+    {
+        use std::os::windows::process::CommandExt;
+        const CREATE_NO_WINDOW: u32 = 0x08000000;
+        // taskkill matches case-insensitive, so "Codex.exe" catches both
+        // Codex Desktop and codex.exe (the CLI Rust binary). We issue
+        // both invocations because their exit codes don't compose and
+        // we want best-effort on both names independently.
+        for image in &["Codex.exe", "codex.exe"] {
+            let res = std::process::Command::new("taskkill")
+                .args(["/F", "/IM", image])
+                .creation_flags(CREATE_NO_WINDOW)
+                .output();
+            match res {
+                Ok(o) if o.status.success() => log::info!("[codex-kill] taskkill /F /IM {} OK", image),
+                Ok(_) => { /* exit code 128 = "no such process", expected */ }
+                Err(e) => log::warn!("[codex-kill] taskkill {} failed: {}", image, e),
+            }
+        }
+    }
+
+    #[cfg(target_os = "macos")]
+    {
+        // pkill -9: SIGKILL. -f: match against full command line so we
+        // catch both /Applications/Codex.app/Contents/MacOS/Codex (the
+        // Desktop binary) and the npm-installed CLI codex binary.
+        for pattern in &["Codex.app/Contents/MacOS/Codex", "@openai/codex.*vendor.*codex"] {
+            let _ = std::process::Command::new("pkill")
+                .args(["-9", "-f", pattern])
+                .output();
+        }
+    }
+
+    #[cfg(target_os = "linux")]
+    {
+        // Codex Desktop has no Linux build as of 2026-05; only the CLI
+        // (which runs as a child of the user's terminal — short-lived).
+        // We still kill in case the user has a Codex session in another
+        // terminal that holds state_5.sqlite open.
+        let _ = std::process::Command::new("pkill")
+            .args(["-9", "-f", "@openai/codex.*vendor.*codex"])
+            .output();
+    }
+}
+
 fn apply_codex(tool_id: &str, model_info: &ModelInfo) -> ApplyResult {
+    // Kill any running Codex first. Codex caches config.toml + auth.json
+    // in memory at startup, so writing them without restarting Codex is
+    // a no-op from the user's perspective. Also releases state_5.sqlite's
+    // WAL lock so the launcher's pre-launch sync can retag history cleanly.
+    kill_codex_if_running();
+
     let codex_dir = dirs::home_dir().unwrap_or_default().join(".codex");
     let config_path = codex_dir.join("config.toml");
     let auth_path = codex_dir.join("auth.json");
@@ -1005,12 +1081,14 @@ fn apply_codex(tool_id: &str, model_info: &ModelInfo) -> ApplyResult {
     });
     let _ = write_json_file(&relay_path, &relay);
 
-    // Silently retag historical sessions so they remain visible under the
-    // new provider in Codex Desktop / `/resume`. Fire-and-forget — does NOT
-    // affect apply_codex's success response: a sync failure just means
-    // old sessions stay hidden under the previous provider, which is the
-    // status quo without this integration.
-    run_codex_provider_sync(&provider_id);
+    // History retag MOVED to the launcher's pre-launch step (see
+    // codex-launcher.cjs::runProviderSync). The apply_codex path was racy
+    // — if Codex was still running when the user switched models, the
+    // sync's state_5.sqlite lock would fail silently and history stayed
+    // hidden. The launcher fires sync immediately before spawning Codex,
+    // when state_5.sqlite is guaranteed unlocked. The Rust helper below
+    // is kept for potential future UI hooks (e.g. a manual "retag now"
+    // button), but apply_codex no longer invokes it.
 
     let display = if tool_id == "codexdesktop" { "Codex Desktop" } else { "Codex CLI" };
     ApplyResult {

@@ -71,6 +71,32 @@ pub fn init_resource_dir(path: PathBuf) {
 /// In dev: relative to project root
 /// In production: bundled with the app binary
 pub fn find_tools_dir() -> Option<PathBuf> {
+    // DEV-MODE PRIORITY: if the exe path contains /target/debug/ or
+    // /target/release/, we're running from a Cargo build dir (not an
+    // installed binary). Tauri only mirrors ../tools/ into _up_/tools/
+    // at the START of `tauri dev`, so subdirs added during a dev session
+    // won't appear in the mirror until the user restarts. Prefer the
+    // SOURCE tree's tools/ directly — it's always the freshest copy.
+    if let Ok(exe) = std::env::current_exe() {
+        let exe_str = exe.to_string_lossy().replace('\\', "/");
+        let is_cargo_target = exe_str.contains("/target/debug/") || exe_str.contains("/target/release/");
+        if is_cargo_target {
+            // exe at <repo>/src-tauri/target/{debug,release}/echobird.exe
+            // Walk up 4 parents: target/debug → target → src-tauri → <repo>
+            if let Some(repo_root) = exe.parent()
+                .and_then(|p| p.parent())
+                .and_then(|p| p.parent())
+                .and_then(|p| p.parent())
+            {
+                let src_tools = repo_root.join("tools");
+                if src_tools.is_dir() {
+                    log::info!("[ToolManager] dev mode — using source tree tools dir: {:?}", src_tools);
+                    return Some(src_tools);
+                }
+            }
+        }
+    }
+
     // 0. Tauri-native resource_dir (most reliable — set at startup via init_resource_dir)
     //
     // Tauri v2 bundles resources relative to src-tauri/ using "_up_" for "../" paths:
