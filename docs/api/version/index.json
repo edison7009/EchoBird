@@ -1,5 +1,5 @@
 {
-  "version": "4.5.5",
+  "version": "4.5.6",
   "releaseDate": "2026-05-11",
-  "releaseNotes": "Silently retags Codex historical sessions to the active provider after each model switch — old chats stay visible in Codex Desktop's left panel and CLI's /resume list instead of disappearing. Integrates a vendored copy of Dailin521/codex-provider-sync (MIT, 828 ★) under tools/codex/codex-provider-sync/, invoked fire-and-forget from apply_codex. No user-facing prompt; failures (Node < 24, lock held by running Codex) degrade silently to a log warning."
+  "releaseNotes": "v4.5.6 — reliable Codex history retention across model switches"
 }
