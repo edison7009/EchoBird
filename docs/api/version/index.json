@@ -1,5 +1,5 @@
 {
-  "version": "4.5.4",
+  "version": "4.5.5",
   "releaseDate": "2026-05-11",
-  "releaseNotes": "Brings the dual-spoof launcher to full feature parity with codex-relay master (MIT, 49 ★). Adds multimodal content translation: input_image / image_url parts now round-trip as Chat-Completions image_url shape, so vision-capable models (Kimi-K2-VL etc.) actually see attached images. Adds an in-memory SessionStore for response_id history and reasoning_content round-trip — Codex's previous_response_id continuation works, and thinking models (DeepSeek-V4-Pro, Kimi-K2.6) don't lose context across tool-call turns. Smoke test covers 47 scenarios."
+  "releaseNotes": "Silently retags Codex historical sessions to the active provider after each model switch — old chats stay visible in Codex Desktop's left panel and CLI's /resume list instead of disappearing. Integrates a vendored copy of Dailin521/codex-provider-sync (MIT, 828 ★) under tools/codex/codex-provider-sync/, invoked fire-and-forget from apply_codex. No user-facing prompt; failures (Node < 24, lock held by running Codex) degrade silently to a log warning."
 }
