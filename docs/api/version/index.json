@@ -1,5 +1,5 @@
 {
-  "version": "4.5.1",
+  "version": "4.5.3",
   "releaseDate": "2026-05-11",
-  "releaseNotes": "Codex CLI + Codex Desktop can now use third-party endpoints again (DeepSeek, Moonshot, Qwen, OpenRouter) via the restored 127.0.0.1 dual-spoof proxy — translates Codex's Responses-only protocol to Chat Completions, writes ~/.codex/auth.json for v0.130+, supports Microsoft Store Desktop installs via shell URI, and properly handles tool-call grouping + dedup + reasoning items. Also fixes AI Pulse so English News and Star Projects are disjoint instead of identical, and expands EN sources from 6 to 17 (Anthropic, TechCrunch AI, arXiv, Reddit, more)."
+  "releaseNotes": "Hides the cmd window that briefly flashed open when launching Codex Desktop (CREATE_NO_WINDOW for desktop mode only — CLI still needs its console for the TUI). Silences the Chinese-locale \"file not found\" mojibake that where/tasklist write to stderr in the system ANSI codepage. Drops the \"(via Echobird)\" suffix from Codex/OpenCode/Qwen-Code provider display names — providers now show just the bare domain (e.g. deepseek instead of deepseek (via Echobird))."
 }
