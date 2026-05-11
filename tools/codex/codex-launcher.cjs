@@ -25,8 +25,35 @@ const path = require("path");
 const os = require("os");
 const { spawn } = require("child_process");
 
-const ECHOBIRD_CONFIG = path.join(os.homedir(), ".echobird", "codex.json");
-const CODEX_CONFIG = path.join(os.homedir(), ".codex", "config.toml");
+// Paths are derived from $HOME by default. ECHOBIRD_CODEX_CONFIG_DIR /
+// ECHOBIRD_RELAY_DIR overrides exist for smoke tests so we don't touch
+// the user's real Codex config when running scripts/codex-launcher-smoke-test.cjs.
+const RELAY_DIR = process.env.ECHOBIRD_RELAY_DIR || path.join(os.homedir(), ".echobird");
+const CODEX_DIR = process.env.ECHOBIRD_CODEX_CONFIG_DIR || path.join(os.homedir(), ".codex");
+const ECHOBIRD_CONFIG = path.join(RELAY_DIR, "codex.json");
+const CODEX_CONFIG = path.join(CODEX_DIR, "config.toml");
+const LAUNCHER_LOG = path.join(RELAY_DIR, "codex-launcher.log");
+
+// Production launches run inside a hidden cmd window on Windows, so
+// console.log output is invisible. Mirror everything into a persistent
+// log so we can ask the user to "cat ~/.echobird/codex-launcher.log"
+// when something goes wrong. The launcher runs briefly per session,
+// so an append-only file with timestamps stays useful even after
+// the next launch.
+function logLine(level, msg) {
+    const ts = new Date().toISOString();
+    const line = `${ts} [${level}] ${msg}\n`;
+    try {
+        fs.mkdirSync(path.dirname(LAUNCHER_LOG), { recursive: true });
+        fs.appendFileSync(LAUNCHER_LOG, line, "utf-8");
+    } catch { /* log-of-the-log is pointless */ }
+    if (level === "ERROR") console.error(`[Echobird] ${msg}`);
+    else if (level === "WARN") console.warn(`[Echobird] ${msg}`);
+    else console.log(`[Echobird] ${msg}`);
+}
+const log  = (msg) => logLine("INFO",  msg);
+const warn = (msg) => logLine("WARN",  msg);
+const err  = (msg) => logLine("ERROR", msg);
 
 function loadEchobirdConfig() {
     try { return JSON.parse(fs.readFileSync(ECHOBIRD_CONFIG, "utf-8")); }
@@ -105,7 +132,7 @@ function responsesToChat(body) {
                     break;
                 }
                 default:
-                    console.error(`[Proxy] Skipping unknown input item type: ${item.type}`);
+                    warn(`[Proxy] Skipping unknown input item type: ${item.type}`);
             }
         }
     }
@@ -363,8 +390,8 @@ function chatStreamToResponsesStream(upstreamRes, clientRes) {
     });
 
     upstreamRes.on("end", finish);
-    upstreamRes.on("error", (err) => {
-        console.error("[Proxy] Upstream stream error:", err.message);
+    upstreamRes.on("error", (e) => {
+        err(`[Proxy] Upstream stream error: ${e.message}`);
         finish();
     });
 }
@@ -396,9 +423,15 @@ function chatToResponsesNonStream(chatResponse) {
 function startProxy(realBaseUrl, apiKey) {
     return new Promise((resolve, reject) => {
         const server = http.createServer((req, clientRes) => {
-            if (req.method !== "POST" || !req.url.startsWith("/v1/responses")) {
+            // Accept both /v1/responses and /responses — Codex's URL
+            // construction varies by version (some strip /v1 from
+            // base_url when applying wire_api=responses, some don't).
+            // Either path lands here and gets translated.
+            const path = req.url.split("?")[0];
+            const isResponses = path === "/v1/responses" || path === "/responses";
+            if (req.method !== "POST" || !isResponses) {
                 clientRes.writeHead(404, { "Content-Type": "application/json" });
-                clientRes.end(JSON.stringify({ error: "Only POST /v1/responses is proxied" }));
+                clientRes.end(JSON.stringify({ error: `Only POST /(v1/)?responses is proxied, got ${req.method} ${path}` }));
                 return;
             }
             let body = "";
@@ -414,7 +447,14 @@ function startProxy(realBaseUrl, apiKey) {
                 const chatBody = responsesToChat(reqBody);
                 const isStream = chatBody.stream;
 
-                const upstream = new URL(realBaseUrl.replace(/\/$/, "") + "/chat/completions");
+                // Normalize upstream URL. Users sometimes enter the bare
+                // host (`https://api.deepseek.com`) without `/v1`; we
+                // auto-add it so the forward lands on the standard
+                // OpenAI-compat endpoint. If they DID include `/v1` (or
+                // any `/v<n>`), we leave it alone.
+                let baseClean = realBaseUrl.replace(/\/$/, "");
+                if (!/\/v\d+$/.test(baseClean)) baseClean += "/v1";
+                const upstream = new URL(baseClean + "/chat/completions");
                 const transport = upstream.protocol === "https:" ? https : http;
                 const upstreamReq = transport.request({
                     hostname: upstream.hostname,
@@ -431,7 +471,7 @@ function startProxy(realBaseUrl, apiKey) {
                         let errBody = "";
                         upstreamRes.on("data", c => errBody += c);
                         upstreamRes.on("end", () => {
-                            console.error(`[Proxy] Upstream ${upstreamRes.statusCode}: ${errBody.slice(0, 500)}`);
+                            err(`[Proxy] Upstream ${upstreamRes.statusCode}: ${errBody.slice(0, 500)}`);
                             clientRes.writeHead(upstreamRes.statusCode, { "Content-Type": "application/json" });
                             clientRes.end(errBody);
                         });
@@ -461,7 +501,7 @@ function startProxy(realBaseUrl, apiKey) {
                     }
                 });
                 upstreamReq.on("error", e => {
-                    console.error("[Proxy] Upstream connect error:", e.message);
+                    err(`[Proxy] Upstream connect error: ${e.message}`);
                     clientRes.writeHead(502);
                     clientRes.end(JSON.stringify({ error: e.message }));
                 });
@@ -472,7 +512,7 @@ function startProxy(realBaseUrl, apiKey) {
         server.on("error", reject);
         server.listen(0, "127.0.0.1", () => {
             const port = server.address().port;
-            console.log(`[Echobird] Proxy started on 127.0.0.1:${port}`);
+            log(`Proxy listening on 127.0.0.1:${port}`);
             resolve({ port, server });
         });
     });
@@ -480,33 +520,89 @@ function startProxy(realBaseUrl, apiKey) {
 
 // ─── config.toml base_url rewrite ─────────────────────────────────────
 //
-// apply_codex writes the third-party URL inside a [model_providers.X]
-// section. Scope the regex to that section so we never accidentally
-// rewrite some other provider the user added by hand.
+// apply_codex writes the third-party URL inside a
+// [model_providers.<provider_id>] section. We try three tiers from
+// precise to blunt so a config that doesn't look exactly the way
+// apply_codex wrote it still gets rewritten correctly:
+//
+//   1. Section-scoped: find [model_providers.<provider_id>] and
+//      rewrite its base_url. Most precise — the case apply_codex
+//      produces.
+//   2. Host-scoped: find any base_url whose value matches the host
+//      we know is the third-party endpoint (from relay JSON).
+//      Survives user-edited TOML where section names don't match.
+//   3. First-occurrence: replace the first base_url in the file
+//      (the v4.0.2 approach). Last-resort for unusual layouts.
+//
+// Tier 1's regex uses [\s\S]*? rather than [^[]*? so it handles
+// inline arrays / tables inside the section body. Bounded by the
+// next `\n[` header to avoid leaking into the next section.
 
-function buildSectionRegex(section) {
-    const escaped = section.replace(/[.[\]\\]/g, "\\$&");
-    // Match [<section>] then anything up to the next [section] (or EOF),
-    // capturing the base_url assignment inside it.
-    return new RegExp(`(\\[${escaped}\\][^[]*?base_url\\s*=\\s*)"[^"]*"`, "m");
+function escapeRegex(s) {
+    return s.replace(/[.[\]\\^$*+?()|{}]/g, "\\$&");
 }
 
-function rewriteSectionBaseUrl(section, newUrl) {
+function rewriteBaseUrl(providerId, currentBaseUrlHint, newUrl) {
+    let toml;
     try {
-        let toml = fs.readFileSync(CODEX_CONFIG, "utf-8");
-        const re = buildSectionRegex(section);
-        const replaced = toml.replace(re, (_m, prefix) => `${prefix}"${newUrl}"`);
-        if (replaced === toml) {
-            console.warn(`[Echobird] base_url not found under [${section}] — config left unchanged`);
-            return false;
-        }
-        fs.writeFileSync(CODEX_CONFIG, replaced, "utf-8");
-        console.log(`[Echobird] [${section}].base_url → ${newUrl}`);
-        return true;
+        toml = fs.readFileSync(CODEX_CONFIG, "utf-8");
     } catch (e) {
-        console.error("[Echobird] config.toml rewrite failed:", e.message);
-        return false;
+        err(`Cannot read config.toml: ${e.message}`);
+        return { ok: false, tier: null };
     }
+
+    const apply = (regex, label) => {
+        const replaced = toml.replace(regex, (_m, prefix) => `${prefix}"${newUrl}"`);
+        if (replaced === toml) return null;
+        try {
+            fs.writeFileSync(CODEX_CONFIG, replaced, "utf-8");
+            log(`base_url rewritten via ${label} → ${newUrl}`);
+            return label;
+        } catch (e) {
+            err(`config.toml write failed: ${e.message}`);
+            return null;
+        }
+    };
+
+    // Tier 1: section-scoped with the full TOML section name.
+    if (providerId) {
+        const fullSection = `model_providers.${providerId}`;
+        const escaped = escapeRegex(fullSection);
+        // Match [section] then non-greedy body until next [header (or EOF)
+        // — capture the base_url = " prefix so we can replace just the value.
+        const re = new RegExp(
+            `(\\[${escaped}\\][\\s\\S]*?\\bbase_url\\s*=\\s*)"[^"]*"`,
+            "m"
+        );
+        const hit = apply(re, `[${fullSection}]`);
+        if (hit) return { ok: true, tier: hit };
+    }
+
+    // Tier 2: match by host. If we know the third-party endpoint host,
+    // rewrite any base_url whose URL contains that host.
+    if (currentBaseUrlHint) {
+        try {
+            const hintHost = new URL(currentBaseUrlHint).hostname;
+            if (hintHost) {
+                const escapedHost = escapeRegex(hintHost);
+                const re = new RegExp(
+                    `(\\bbase_url\\s*=\\s*)"https?://${escapedHost}[^"]*"`,
+                    "m"
+                );
+                const hit = apply(re, `host-match ${hintHost}`);
+                if (hit) return { ok: true, tier: hit };
+            }
+        } catch { /* malformed hint URL — skip tier */ }
+    }
+
+    // Tier 3: replace the first base_url in the file. Matches v4.0.2's
+    // approach. Blunt but reliable when there's only one provider.
+    const re = /(\bbase_url\s*=\s*)"[^"]*"/m;
+    const hit = apply(re, "first-base_url (fallback)");
+    if (hit) return { ok: true, tier: hit };
+
+    warn("No base_url assignment found in config.toml — rewrite skipped");
+    return { ok: false, tier: null };
 }
 
 // ─── Binary resolution ────────────────────────────────────────────────
@@ -602,19 +698,19 @@ function launchCodex(mode, onExit) {
     if (mode === "desktop") {
         codexPath = resolveDesktopBinary();
         if (!codexPath) {
-            console.error("[Echobird] Codex Desktop not found in standard install locations.");
-            console.error("[Echobird] Install Codex Desktop from https://openai.com/codex first.");
+            err("Codex Desktop not found in standard install locations.");
+            err("Install Codex Desktop from https://openai.com/codex first.");
             process.exit(1);
         }
         // Desktop is a GUI app: detach stdio so the launcher doesn't keep
         // a console window pinned to it. We still treat it as a child so
         // exit detection works on macOS / standalone-Windows installs.
         stdio = "ignore";
-        console.log(`[Echobird] Launching Codex Desktop: ${codexPath}`);
+        log(`Launching Codex Desktop: ${codexPath}`);
     } else {
         codexPath = resolveCodexBinary();
         if (codexPath) {
-            console.log(`[Echobird] Launching Codex CLI (direct binary): ${codexPath}`);
+            log(`Launching Codex CLI (direct binary): ${codexPath}`);
         } else {
             const codexCmd = process.platform === "win32" ? "codex.cmd" : "codex";
             if (process.platform === "win32") {
@@ -638,7 +734,7 @@ function launchCodex(mode, onExit) {
             }
             if (!codexPath) codexPath = codexCmd;
             useShell = true;
-            console.log(`[Echobird] Rust binary not found, falling back to shim: ${codexPath}`);
+            log(`Rust binary not found, falling back to shim: ${codexPath}`);
         }
     }
 
@@ -651,8 +747,8 @@ function launchCodex(mode, onExit) {
     process.on("SIGINT",  () => child.kill("SIGINT"));
     process.on("SIGTERM", () => child.kill("SIGTERM"));
     child.on("close", (code) => { if (onExit) onExit(code || 0); else process.exit(code || 0); });
-    child.on("error", (err) => {
-        console.error(`[Echobird] Failed to launch Codex: ${err.message}`);
+    child.on("error", (e) => {
+        err(`Failed to launch Codex: ${e.message}`);
         process.exit(1);
     });
 }
@@ -666,6 +762,7 @@ async function main() {
     // ~/.echobird/codex.json is deleted, loadEchobirdConfig() returns null,
     // and we fall straight through to a direct launch without a proxy.
     const mode = (process.env.ECHOBIRD_CODEX_LAUNCH_MODE || "cli").toLowerCase();
+    log(`──── launcher start, mode=${mode}, pid=${process.pid} ────`);
 
     // For desktop mode, the launcher requires the standalone Codex.exe /
     // Codex.app — a direct child process is the only way to detect "user
@@ -676,48 +773,46 @@ async function main() {
     // anyway — it skips the launcher when no third-party relay exists —
     // but this is the safety net.)
     if (mode === "desktop" && !resolveDesktopBinary()) {
-        console.error("[Echobird] Codex Desktop standalone binary not found.");
-        console.error("[Echobird] Microsoft Store installs are launched via shell:AppsFolder URI,");
-        console.error("[Echobird] which can't be wrapped by the dual-spoof proxy. To use third-party");
-        console.error("[Echobird] endpoints with Codex Desktop, install the standalone build from");
-        console.error("[Echobird] https://openai.com/codex — or use Codex CLI instead.");
+        err("Codex Desktop standalone binary not found.");
+        err("Microsoft Store installs use shell:AppsFolder URI which can't be");
+        err("wrapped by the proxy. Install the standalone build from");
+        err("https://openai.com/codex — or use Codex CLI instead.");
         process.exit(1);
     }
 
     const config = loadEchobirdConfig();
     if (!config) {
-        console.log(`[Echobird] No relay config — launching Codex ${mode} directly`);
+        log(`No relay config at ${ECHOBIRD_CONFIG} — launching Codex ${mode} directly`);
         launchCodex(mode);
         return;
     }
 
     const { apiKey, baseUrl, modelId, providerId } = config;
     const envKey = config.envKey || "OPENAI_API_KEY";
+    log(`relay: baseUrl=${baseUrl} model=${modelId || "(default)"} provider=${providerId || "(none)"} envKey=${envKey}`);
 
     if (isOpenAI(baseUrl)) {
-        console.log(`[Echobird] OpenAI endpoint detected — no proxy needed (${mode})`);
+        log(`OpenAI endpoint detected — no proxy needed (${mode})`);
         if (apiKey) process.env[envKey] = apiKey;
         launchCodex(mode);
         return;
     }
 
-    console.log(`[Echobird] ${mode} mode, third-party endpoint: ${baseUrl}`);
-    console.log(`[Echobird] Model: ${modelId || "default"}  Provider section: ${providerId || "(none)"}`);
+    log(`${mode} mode, third-party endpoint: ${baseUrl}`);
 
     const { port, server } = await startProxy(baseUrl, apiKey);
     const localUrl = `http://127.0.0.1:${port}/v1`;
 
-    let rewrote = false;
-    if (providerId) {
-        rewrote = rewriteSectionBaseUrl(providerId, localUrl);
-    } else {
-        console.warn("[Echobird] No providerId in relay config — config.toml not rewritten");
+    const rewriteResult = rewriteBaseUrl(providerId, baseUrl, localUrl);
+    if (!rewriteResult.ok) {
+        err("config.toml base_url was NOT rewritten — Codex will bypass the proxy and hit the upstream directly.");
+        err(`Check ${CODEX_CONFIG} — expected to find a base_url line we could replace.`);
     }
 
     if (apiKey) process.env[envKey] = apiKey;
 
     launchCodex(mode, (code) => {
-        if (rewrote && providerId) rewriteSectionBaseUrl(providerId, baseUrl);
+        if (rewriteResult.ok) rewriteBaseUrl(providerId, localUrl, baseUrl);
         server.close();
         process.exit(code);
     });
@@ -726,13 +821,14 @@ async function main() {
 // Run main() when invoked as a script; export translation helpers so
 // tests can exercise them in isolation without spawning Codex.
 if (require.main === module) {
-    main().catch(e => { console.error("[Echobird] Fatal:", e); process.exit(1); });
+    main().catch(e => { err(`Fatal: ${e.stack || e}`); process.exit(1); });
 } else {
     module.exports = {
         responsesToChat,
         chatToResponsesNonStream,
         startProxy,
-        buildSectionRegex,
-        rewriteSectionBaseUrl,
+        rewriteBaseUrl,
+        CODEX_CONFIG,
+        ECHOBIRD_CONFIG,
     };
 }
