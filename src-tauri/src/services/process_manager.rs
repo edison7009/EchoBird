@@ -210,6 +210,17 @@ impl ProcessManager {
         // mode looks at tools/codexdesktop/paths.json's exe locations.
         let launch_mode = if tool_id == "codexdesktop" { "desktop" } else { "cli" };
 
+        // Inject the absolute path to the vendored provider-sync CLI as an
+        // env var. In dev mode Tauri mirrors tools/ to target/.../_up_/tools/
+        // only at startup, so freshly-added subdirs (like codex-provider-sync)
+        // may be missing from the mirror. The launcher would then fall back
+        // to relative path resolution and miss it too. By passing the
+        // launcher's own .cjs path, we know its sibling codex-provider-sync/
+        // directory must exist alongside it — that's the canonical location.
+        let provider_sync_cli = launcher
+            .parent()
+            .map(|p| p.join("codex-provider-sync").join("src").join("cli.js"));
+
         #[cfg(windows)]
         {
             use std::os::windows::process::CommandExt;
@@ -229,6 +240,9 @@ impl ProcessManager {
             cmd.args(["/C", "node", launcher_clean]);
             cmd.current_dir(&home);
             cmd.env("ECHOBIRD_CODEX_LAUNCH_MODE", launch_mode);
+            if let Some(ref p) = provider_sync_cli {
+                cmd.env("ECHOBIRD_PROVIDER_SYNC_CLI", p);
+            }
             if let Some(ref key) = api_key {
                 cmd.env("OPENAI_API_KEY", key);
                 if let Some(ref ek) = env_key {
@@ -266,6 +280,9 @@ impl ProcessManager {
             cmd.arg(launcher);
             cmd.current_dir(&home);
             cmd.env("ECHOBIRD_CODEX_LAUNCH_MODE", launch_mode);
+            if let Some(ref p) = provider_sync_cli {
+                cmd.env("ECHOBIRD_PROVIDER_SYNC_CLI", p);
+            }
             if let Some(ref key) = api_key {
                 cmd.env("OPENAI_API_KEY", key);
                 if let Some(ref ek) = env_key {
