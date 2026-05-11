@@ -841,6 +841,81 @@ fn restore_opencode_to_official() -> ApplyResult {
 // ════════════════════════════════════════════════════════════════
 
 // Codex CLI and Codex Desktop share ~/.codex/config.toml.
+
+/// Fire-and-forget invocation of the vendored codex-provider-sync CLI.
+///
+/// When the user switches Codex's `model_provider` via apply_codex, the
+/// rollout-file metadata and `state_5.sqlite` thread rows still tag prior
+/// conversations with the OLD provider — Codex Desktop / `/resume` hide
+/// them. The provider-sync tool rewrites that metadata to the new
+/// provider so historical chats stay visible.
+///
+/// We invoke it silently here so the user gets a "model applied" toast
+/// and never sees the sync UI. Failures (lock contention because Codex
+/// is open, missing Node 24, etc.) are logged but don't fail apply_codex.
+///
+/// Hard requirement: node ≥ 24 because the vendored CLI uses Node's
+/// built-in `node:sqlite` which only stabilized in v24. On older Node we
+/// skip with a warning.
+fn run_codex_provider_sync(provider_id: &str) {
+    use std::process::Command;
+
+    // Resolve the vendored cli.js. In dev it lives under
+    // <repo>/tools/codex/codex-provider-sync/src/cli.js; in production
+    // Tauri ships it inside the resources bundle, discoverable via
+    // tool_manager::find_tools_dir().
+    let cli_js = match crate::services::tool_manager::find_tools_dir() {
+        Some(dir) => dir.join("codex").join("codex-provider-sync").join("src").join("cli.js"),
+        None => {
+            log::warn!("[codex-sync] tools dir not found, skipping provider sync");
+            return;
+        }
+    };
+    if !cli_js.exists() {
+        log::warn!("[codex-sync] vendored cli.js missing at {:?}, skipping", cli_js);
+        return;
+    }
+
+    // Pre-flight: detect node version. The CLI imports `node:sqlite`
+    // which crashes on Node < 24 with a confusing ERR_UNKNOWN_BUILTIN_MODULE.
+    // Catch it here and warn-and-skip instead.
+    let node_ok = Command::new("node").arg("--version").output()
+        .ok()
+        .and_then(|out| String::from_utf8(out.stdout).ok())
+        .and_then(|s| s.trim().trim_start_matches('v').split('.').next().map(String::from))
+        .and_then(|major| major.parse::<u32>().ok())
+        .map(|major| major >= 24)
+        .unwrap_or(false);
+    if !node_ok {
+        log::warn!("[codex-sync] node ≥ 24 required for provider sync; older runtime detected — skipping. Old Codex sessions may not appear in the new provider's history list until you upgrade Node and re-apply the model.");
+        return;
+    }
+
+    // Fire-and-forget. Don't .wait() — apply_codex must return immediately
+    // for a snappy UI. On Windows we hide the cmd window; on Unix node
+    // attaches to whatever stdio it gets (we set stdio to null below).
+    let mut cmd = Command::new("node");
+    cmd.arg(&cli_js)
+        .arg("sync")
+        .arg("--provider").arg(provider_id)
+        .arg("--keep").arg("5")
+        .stdin(std::process::Stdio::null())
+        .stdout(std::process::Stdio::null())
+        .stderr(std::process::Stdio::null());
+
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        const CREATE_NO_WINDOW: u32 = 0x08000000;
+        cmd.creation_flags(CREATE_NO_WINDOW);
+    }
+
+    match cmd.spawn() {
+        Ok(child) => log::info!("[codex-sync] provider sync spawned (pid {}) for provider={}", child.id(), provider_id),
+        Err(e) => log::warn!("[codex-sync] failed to spawn provider sync: {}", e),
+    }
+}
+
 fn codex_provider_id(base_url: &str) -> String {
     let domain = extract_domain_name(base_url)
         .to_lowercase()
@@ -929,6 +1004,13 @@ fn apply_codex(tool_id: &str, model_info: &ModelInfo) -> ApplyResult {
         "providerId": provider_id,
     });
     let _ = write_json_file(&relay_path, &relay);
+
+    // Silently retag historical sessions so they remain visible under the
+    // new provider in Codex Desktop / `/resume`. Fire-and-forget — does NOT
+    // affect apply_codex's success response: a sync failure just means
+    // old sessions stay hidden under the previous provider, which is the
+    // status quo without this integration.
+    run_codex_provider_sync(&provider_id);
 
     let display = if tool_id == "codexdesktop" { "Codex Desktop" } else { "Codex CLI" };
     ApplyResult {
