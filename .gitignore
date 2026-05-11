@@ -81,3 +81,4 @@ roles/zh-Hans/
 *.keystore
 *-keystore-b64.txt
 Echobird-MotherAgent/
+references/
