@@ -1,5 +1,5 @@
 {
-  "version": "4.5.3",
+  "version": "4.5.4",
   "releaseDate": "2026-05-11",
-  "releaseNotes": "Hides the cmd window that briefly flashed open when launching Codex Desktop (CREATE_NO_WINDOW for desktop mode only — CLI still needs its console for the TUI). Silences the Chinese-locale \"file not found\" mojibake that where/tasklist write to stderr in the system ANSI codepage. Drops the \"(via Echobird)\" suffix from Codex/OpenCode/Qwen-Code provider display names — providers now show just the bare domain (e.g. deepseek instead of deepseek (via Echobird))."
+  "releaseNotes": "Brings the dual-spoof launcher to full feature parity with codex-relay master (MIT, 49 ★). Adds multimodal content translation: input_image / image_url parts now round-trip as Chat-Completions image_url shape, so vision-capable models (Kimi-K2-VL etc.) actually see attached images. Adds an in-memory SessionStore for response_id history and reasoning_content round-trip — Codex's previous_response_id continuation works, and thinking models (DeepSeek-V4-Pro, Kimi-K2.6) don't lose context across tool-call turns. Smoke test covers 47 scenarios."
 }
