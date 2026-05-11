@@ -667,6 +667,23 @@ async function main() {
     // and we fall straight through to a direct launch without a proxy.
     const mode = (process.env.ECHOBIRD_CODEX_LAUNCH_MODE || "cli").toLowerCase();
 
+    // For desktop mode, the launcher requires the standalone Codex.exe /
+    // Codex.app — a direct child process is the only way to detect "user
+    // closed Codex" so we can tear down the proxy and restore config.toml.
+    // Microsoft Store installs only expose shell:AppsFolder URI which is
+    // fire-and-forget, so abort early with a clear message before we touch
+    // any state. (process_manager normally won't route Store installs here
+    // anyway — it skips the launcher when no third-party relay exists —
+    // but this is the safety net.)
+    if (mode === "desktop" && !resolveDesktopBinary()) {
+        console.error("[Echobird] Codex Desktop standalone binary not found.");
+        console.error("[Echobird] Microsoft Store installs are launched via shell:AppsFolder URI,");
+        console.error("[Echobird] which can't be wrapped by the dual-spoof proxy. To use third-party");
+        console.error("[Echobird] endpoints with Codex Desktop, install the standalone build from");
+        console.error("[Echobird] https://openai.com/codex — or use Codex CLI instead.");
+        process.exit(1);
+    }
+
     const config = loadEchobirdConfig();
     if (!config) {
         console.log(`[Echobird] No relay config — launching Codex ${mode} directly`);

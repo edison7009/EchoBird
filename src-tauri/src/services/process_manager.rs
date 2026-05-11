@@ -73,15 +73,26 @@ impl ProcessManager {
             crate::services::tool_manager::is_vscode_extension(tool_id),
         );
 
-        // Priority 0: Codex launcher (CLI + Desktop) — must run before any
-        // other branch because paths.json supplies startCommand="codex" /
-        // launchUri for desktop, either of which would bypass the proxy.
-        // The launcher converts Codex's Responses-only protocol to Chat
-        // Completions so third-party endpoints (DeepSeek, Moonshot,
-        // OpenRouter, etc.) actually work; CLI and Desktop share the same
-        // launcher script and only differ in which Codex binary it spawns.
-        // See tools/codex/codex-launcher.cjs for the rationale.
-        if matches!(tool_id, "codex" | "codexdesktop") {
+        // Priority 0: Codex launcher (dual-spoof proxy + TTY preservation).
+        //
+        // CLI always goes through the launcher: even without a proxy, it
+        // resolves the npm-bundled Rust binary directly so the TUI gets
+        // a real TTY (the codex.cmd → node codex.js → codex.exe path on
+        // Windows drops stdin-is-a-terminal somewhere in cmd /d /s /c).
+        //
+        // Desktop only goes through the launcher when a third-party
+        // (non-OpenAI) relay is configured — that's the only case where
+        // the proxy is actually needed. Skipping the launcher otherwise
+        // preserves Desktop's normal launchUri path (Priority 2.9), which
+        // is the *only* way to start a Microsoft Store install of Codex
+        // Desktop; direct-exe spawn would fail with "not found" because
+        // Store packages live under \\WindowsApps\... not \\Programs\\.
+        let needs_launcher = match tool_id {
+            "codex" => true,
+            "codexdesktop" => Self::codex_has_third_party_relay(),
+            _ => false,
+        };
+        if needs_launcher {
             if let Some(launcher) = Self::find_codex_launcher() {
                 log::info!("[ProcessManager] Routing {} through dual-spoof launcher: {:?}", tool_id, launcher);
                 return self.start_codex_launcher(tool_id, &launcher);
@@ -143,6 +154,27 @@ impl ProcessManager {
             .join("codex")
             .join("codex-launcher.cjs");
         if launcher.exists() { Some(launcher) } else { None }
+    }
+
+    /// True iff ~/.echobird/codex.json points at a non-OpenAI endpoint.
+    /// Used to decide whether Codex Desktop needs to route through the
+    /// dual-spoof launcher (third-party endpoints only) or can take the
+    /// normal launchUri / GUI-exe path.
+    fn codex_has_third_party_relay() -> bool {
+        let relay_path = match dirs::home_dir() {
+            Some(h) => h.join(".echobird").join("codex.json"),
+            None => return false,
+        };
+        let content = match std::fs::read_to_string(&relay_path) {
+            Ok(c) => c,
+            Err(_) => return false,
+        };
+        let cfg: serde_json::Value = match serde_json::from_str(&content) {
+            Ok(v) => v,
+            Err(_) => return false,
+        };
+        let base_url = cfg.get("baseUrl").and_then(|v| v.as_str()).unwrap_or("");
+        !base_url.is_empty() && !base_url.contains("api.openai.com")
     }
 
     /// Start Codex (CLI or Desktop) via the dual-spoof launcher.
