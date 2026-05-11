@@ -719,8 +719,20 @@ function resolveDesktopBinary() {
     if (platform === "win32") {
         const localAppData = process.env.LOCALAPPDATA;
         if (localAppData) {
+            // 1. Standalone installer (default location).
             candidates.push(path.join(localAppData, "Programs", "Codex", "Codex.exe"));
+            // 2. Microsoft Store install — Windows 10+ exposes an
+            //    executable alias here that resolves to the Store
+            //    package, so we can spawn it like a normal exe.
+            candidates.push(path.join(localAppData, "Microsoft", "WindowsApps", "Codex.exe"));
         }
+        // 3. PATH lookup as a last resort.
+        try {
+            const { execFileSync } = require("child_process");
+            const found = execFileSync("where", ["Codex.exe"], { encoding: "utf-8", timeout: 3000 })
+                .trim().split(/\r?\n/)[0].trim();
+            if (found) candidates.push(found);
+        } catch { /* not in PATH */ }
     } else if (platform === "darwin") {
         candidates.push("/Applications/Codex.app/Contents/MacOS/Codex");
         candidates.push(path.join(os.homedir(), "Applications", "Codex.app", "Contents", "MacOS", "Codex"));
@@ -730,6 +742,55 @@ function resolveDesktopBinary() {
         if (fs.existsSync(c)) return c;
     }
     return null;
+}
+
+// Read tools/codexdesktop/paths.json to get the Windows shell:AppsFolder
+// URI. We use this only as a fallback when resolveDesktopBinary fails —
+// the URI launch is fire-and-forget (no child process to track), so we
+// have to poll for the Codex process to know when to tear down.
+function resolveDesktopLaunchUri() {
+    if (process.platform !== "win32") return null;
+    try {
+        const desktopPathsJson = path.join(__dirname, "..", "codexdesktop", "paths.json");
+        if (!fs.existsSync(desktopPathsJson)) return null;
+        const cfg = JSON.parse(fs.readFileSync(desktopPathsJson, "utf-8"));
+        return typeof cfg.launchUri === "string" ? cfg.launchUri : null;
+    } catch { return null; }
+}
+
+// Block until either: Codex.exe appears and then disappears (normal exit),
+// or we've waited the full deadline without ever seeing it. Used for the
+// launchUri path where we don't own a child process.
+async function waitForCodexProcessLifecycle() {
+    const isRunning = () => {
+        try {
+            const { execFileSync } = require("child_process");
+            const out = execFileSync("tasklist", ["/FI", "IMAGENAME eq Codex.exe", "/FO", "CSV", "/NH"],
+                { encoding: "utf-8", timeout: 3000 });
+            return out.toLowerCase().includes("codex.exe");
+        } catch { return false; }
+    };
+    const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+    // Phase 1: wait up to 30s for Codex.exe to appear.
+    const startupDeadline = Date.now() + 30_000;
+    while (Date.now() < startupDeadline) {
+        if (isRunning()) break;
+        await sleep(1000);
+    }
+    if (!isRunning()) {
+        warn("Codex Desktop process never appeared after 30s; tearing down proxy anyway.");
+        return;
+    }
+    log("Codex Desktop process detected; watching for exit.");
+
+    // Phase 2: poll until codex.exe disappears for 2 consecutive checks.
+    let absent = 0;
+    while (absent < 2) {
+        await sleep(3000);
+        if (isRunning()) absent = 0;
+        else absent++;
+    }
 }
 
 function resolveCodexBinary() {
@@ -790,19 +851,31 @@ function launchCodex(mode, onExit) {
     let codexPath;
     let useShell = false;
     let stdio = "inherit"; // CLI needs an attached TTY; Desktop doesn't care.
+    let desktopViaUri = false;
 
     if (mode === "desktop") {
         codexPath = resolveDesktopBinary();
         if (!codexPath) {
-            err("Codex Desktop not found in standard install locations.");
-            err("Install Codex Desktop from https://openai.com/codex first.");
-            process.exit(1);
+            // Direct exe not found — try the Store launchUri. Common on
+            // Microsoft Store installs whose binary lives under a locked
+            // WindowsApps directory we can't always resolve.
+            const uri = resolveDesktopLaunchUri();
+            if (uri) {
+                log(`Direct Codex.exe not found; launching via Store URI: ${uri}`);
+                desktopViaUri = true;
+                codexPath = "cmd";
+                useShell = false;
+            } else {
+                err("Codex Desktop not found in standard install locations.");
+                err("Install Codex Desktop from https://openai.com/codex or the Microsoft Store first.");
+                process.exit(1);
+            }
+        } else {
+            log(`Launching Codex Desktop: ${codexPath}`);
         }
         // Desktop is a GUI app: detach stdio so the launcher doesn't keep
-        // a console window pinned to it. We still treat it as a child so
-        // exit detection works on macOS / standalone-Windows installs.
+        // a console window pinned to it.
         stdio = "ignore";
-        log(`Launching Codex Desktop: ${codexPath}`);
     } else {
         codexPath = resolveCodexBinary();
         if (codexPath) {
@@ -834,6 +907,32 @@ function launchCodex(mode, onExit) {
         }
     }
 
+    if (desktopViaUri) {
+        // Fire-and-forget via cmd.exe: `start "" "shell:AppsFolder\..."`
+        // hands the URI to the Shell which dispatches to the Store-app
+        // activation pipeline. We don't get a child process back, so we
+        // run a background poller that watches for Codex.exe to appear
+        // and then disappear, then triggers onExit.
+        const uri = resolveDesktopLaunchUri();
+        try {
+            const launcher = spawn("cmd", ["/C", "start", "", uri], {
+                stdio: "ignore",
+                env: process.env,
+                cwd: os.homedir(),
+                detached: true,
+            });
+            launcher.unref();
+        } catch (e) {
+            err(`Failed to invoke Store launch URI: ${e.message}`);
+            process.exit(1);
+        }
+        waitForCodexProcessLifecycle().then(() => {
+            if (onExit) onExit(0);
+            else process.exit(0);
+        });
+        return;
+    }
+
     const child = spawn(codexPath, [], {
         stdio,
         env: process.env,
@@ -860,19 +959,15 @@ async function main() {
     const mode = (process.env.ECHOBIRD_CODEX_LAUNCH_MODE || "cli").toLowerCase();
     log(`──── launcher start, mode=${mode}, pid=${process.pid} ────`);
 
-    // For desktop mode, the launcher requires the standalone Codex.exe /
-    // Codex.app — a direct child process is the only way to detect "user
-    // closed Codex" so we can tear down the proxy and restore config.toml.
-    // Microsoft Store installs only expose shell:AppsFolder URI which is
-    // fire-and-forget, so abort early with a clear message before we touch
-    // any state. (process_manager normally won't route Store installs here
-    // anyway — it skips the launcher when no third-party relay exists —
-    // but this is the safety net.)
-    if (mode === "desktop" && !resolveDesktopBinary()) {
-        err("Codex Desktop standalone binary not found.");
-        err("Microsoft Store installs use shell:AppsFolder URI which can't be");
-        err("wrapped by the proxy. Install the standalone build from");
-        err("https://openai.com/codex — or use Codex CLI instead.");
+    // For desktop mode we need EITHER a direct Codex.exe / Codex.app path
+    // (preferred — child process tracking works) OR a Store launchUri
+    // (fallback — fire-and-forget + tasklist polling). Only abort if
+    // neither is available, which means Codex Desktop simply isn't
+    // installed.
+    if (mode === "desktop" && !resolveDesktopBinary() && !resolveDesktopLaunchUri()) {
+        err("Codex Desktop not installed (no Codex.exe at the standard");
+        err("paths and no Store launchUri available either).");
+        err("Install Codex Desktop from https://openai.com/codex or the Microsoft Store.");
         process.exit(1);
     }
 
