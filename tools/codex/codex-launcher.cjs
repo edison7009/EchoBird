@@ -69,19 +69,179 @@ function isOpenAI(url) { return !!url && url.includes("api.openai.com"); }
 // function_call_output produces an empty messages array on tool-call
 // follow-up turns, which is what nuked v4.0.2.
 
-function extractText(content) {
-    if (typeof content === "string") return content;
-    if (!Array.isArray(content)) return "";
-    return content
-        .filter(c => c && (c.type === "input_text" || c.type === "text" || c.type === "output_text"))
-        .map(c => c.text || "")
-        .join("\n");
+// ─── Content translation (Responses parts ↔ Chat parts) ──────────────
+//
+// Responses API content is either a string OR an array of typed parts:
+//   { type: "input_text",  text: "..." }       — user input text
+//   { type: "text",        text: "..." }       — generic text
+//   { type: "output_text", text: "..." }       — assistant history replay
+//   { type: "input_image", image_url: "data:..." }  — image as URL/data URI
+//   { type: "image_url",   image_url: "..." | {url:"..."} } — already chat shape
+// Chat Completions accepts content as string OR an array of:
+//   { type: "text",      text: "..." }
+//   { type: "image_url", image_url: {url:"..."} }
+// We collapse all-text parts to a plain string (less verbose, more providers
+// accept it), otherwise emit the multimodal array form.
+
+function mapContentPart(part) {
+    const kind = part?.type;
+    switch (kind) {
+        case "input_text":
+        case "text":
+        case "output_text":
+            return { type: "text", text: part.text || "" };
+        case "input_image": {
+            // Responses API: image_url is a plain string (often a data: URL).
+            // Chat Completions wants it wrapped: { image_url: { url: "..." } }.
+            const url = typeof part.image_url === "string" ? part.image_url : "";
+            return { type: "image_url", image_url: { url } };
+        }
+        case "image_url": {
+            // Either already chat-shape ({url:...} object) or flat string.
+            const raw = part.image_url;
+            const inner = raw && typeof raw === "object"
+                ? raw
+                : { url: typeof raw === "string" ? raw : "" };
+            return { type: "image_url", image_url: inner };
+        }
+        default:
+            // Unknown / future part type: pass through verbatim so providers
+            // that accept it can use it, and we don't crash on schemas the
+            // launcher hasn't been updated to know about.
+            return part;
+    }
 }
 
-function responsesToChat(body) {
-    const messages = [];
+function valueToChatContent(content) {
+    if (content == null) return null;
+    if (typeof content === "string") return content;
+    if (!Array.isArray(content)) {
+        // Object / number / etc — stringify defensively rather than drop it.
+        try { return JSON.stringify(content); } catch { return String(content); }
+    }
+
+    // Pure text array → collapse to a single string (lower-friction shape
+    // for providers that don't fully support multimodal content arrays).
+    // output_text is treated like text because that's what Codex replays
+    // for assistant history items.
+    const hasNonText = content.some(p => {
+        const k = p?.type;
+        return k && k !== "input_text" && k !== "text" && k !== "output_text";
+    });
+    if (!hasNonText) {
+        return content
+            .map(p => (p && typeof p.text === "string") ? p.text : "")
+            .join("");
+    }
+    return content.map(mapContentPart);
+}
+
+// ─── SessionStore (in-memory) ─────────────────────────────────────────
+//
+// Ported from MetaFARS/codex-relay's session.rs. Three maps, all
+// process-local (the launcher lives only as long as the Codex session
+// it spawned, so no need for persistence):
+//
+//   responseHistory  : response_id  → ChatMessage[]
+//       Codex uses `previous_response_id` to continue a conversation;
+//       we replay the stored messages so each Chat Completions call is
+//       self-contained even when Codex doesn't redundantly send the
+//       full input.
+//
+//   reasoning        : call_id      → reasoning_content (string)
+//       For thinking models (DeepSeek-V4-*, Kimi-K2.6, etc.), the
+//       upstream returns reasoning_content alongside tool_calls. We
+//       save it keyed by the call_id so when Codex replays the same
+//       function_call in a subsequent request, we can attach the
+//       saved reasoning_content to the assistant message — providers
+//       require this round-trip or the next turn degrades.
+//
+//   turnReasoning    : fingerprint(content) → reasoning_content
+//       For pure-text assistant turns (no tool_calls), there's no
+//       call_id to key on. We hash the assistant content and use that
+//       as the lookup key, so Codex replaying the assistant turn as a
+//       message item still recovers the reasoning_content.
+//
+// Hash uses Node's built-in `crypto` via a tiny stable string hash —
+// no external deps. Collisions are not a correctness issue (just
+// missed lookups), so a 64-bit FNV-1a is plenty.
+
+const sessionStore = (() => {
+    const responseHistory = new Map();
+    const reasoning = new Map();
+    const turnReasoning = new Map();
+
+    // 64-bit FNV-1a, returned as hex string for Map keying.
+    const fnv1a = (s) => {
+        let h1 = 0xcbf29ce4 >>> 0;
+        let h2 = 0x84222325 >>> 0;
+        for (let i = 0; i < s.length; i++) {
+            const c = s.charCodeAt(i);
+            h1 ^= c & 0xff;
+            h2 ^= (c >>> 8) & 0xff;
+            // Multiply by FNV prime 0x100000001b3 (mod 2^64), split into halves
+            h1 = Math.imul(h1, 0x1b3) >>> 0;
+            h2 = Math.imul(h2, 0x1b3) >>> 0;
+        }
+        return h1.toString(16).padStart(8, "0") + h2.toString(16).padStart(8, "0");
+    };
+
+    const contentToString = (content) => {
+        if (typeof content === "string") return content;
+        if (Array.isArray(content)) {
+            return content
+                .map(p => (p && typeof p.text === "string") ? p.text : "")
+                .join("");
+        }
+        return "";
+    };
+
+    return {
+        storeReasoning(callId, text) {
+            if (callId && text) reasoning.set(callId, text);
+        },
+        getReasoning(callId) {
+            return reasoning.get(callId) || null;
+        },
+        storeTurnReasoning(assistantContent, text) {
+            const key = contentToString(assistantContent);
+            if (key && text) turnReasoning.set(fnv1a(key), text);
+        },
+        getTurnReasoning(assistantContent) {
+            const key = contentToString(assistantContent);
+            if (!key) return null;
+            return turnReasoning.get(fnv1a(key)) || null;
+        },
+        saveHistory(responseId, messages) {
+            if (responseId && Array.isArray(messages)) {
+                responseHistory.set(responseId, messages);
+            }
+        },
+        getHistory(responseId) {
+            return responseHistory.get(responseId) || [];
+        },
+        newResponseId() {
+            return "resp_" + Math.random().toString(36).slice(2, 14);
+        },
+    };
+})();
+
+function responsesToChat(body, sessions = sessionStore) {
+    // Replay any prior history we stashed under previous_response_id.
+    // If the lookup misses (e.g., process restarted, or Codex sent a
+    // response_id we never created), we degrade to an empty history
+    // and rely on Codex including the full input items array.
+    const messages = body.previous_response_id
+        ? sessions.getHistory(body.previous_response_id).slice()
+        : [];
+
     if (body.instructions) {
-        messages.push({ role: "system", content: body.instructions });
+        // Only prepend if there isn't already a system message at the top
+        // (mirrors codex-relay's behaviour — avoids duplicating instructions
+        // on replays).
+        if (messages.length === 0 || messages[0].role !== "system") {
+            messages.unshift({ role: "system", content: body.instructions });
+        }
     }
 
     if (typeof body.input === "string") {
@@ -125,11 +285,18 @@ function responsesToChat(body) {
                     i++;
                 }
                 if (grouped.length > 0) {
-                    messages.push({
+                    // Recover reasoning_content from prior turn (thinking
+                    // models need it round-tripped or context degrades).
+                    // We key by the FIRST call_id in the group — store-side
+                    // we save under every call_id, so any of them resolves.
+                    const reasoningContent = sessions.getReasoning(grouped[0].id);
+                    const assistantMsg = {
                         role: "assistant",
                         content: null,
                         tool_calls: grouped,
-                    });
+                    };
+                    if (reasoningContent) assistantMsg.reasoning_content = reasoningContent;
+                    messages.push(assistantMsg);
                 }
                 continue;
             }
@@ -162,7 +329,8 @@ function responsesToChat(body) {
                     || `call_${Math.random().toString(36).slice(2, 12)}`;
                 if (!emittedCallIds.has(callId)) {
                     emittedCallIds.add(callId);
-                    messages.push({
+                    const reasoningContent = sessions.getReasoning(callId);
+                    const msg = {
                         role: "assistant",
                         content: null,
                         tool_calls: [{
@@ -173,15 +341,20 @@ function responsesToChat(body) {
                                 arguments: JSON.stringify(item.action || {}),
                             },
                         }],
-                    });
+                    };
+                    if (reasoningContent) msg.reasoning_content = reasoningContent;
+                    messages.push(msg);
                 }
                 i++;
                 continue;
             }
 
             if (t === "reasoning") {
-                // Codex 0.128+ replays reasoning items in history. We don't
-                // have a session store to round-trip them, just drop.
+                // Codex 0.128+ replays reasoning items in input history. The
+                // SessionStore round-trips reasoning_content separately
+                // (keyed by call_id / content fingerprint), so these
+                // standalone reasoning items don't need to map to chat
+                // messages — drop them.
                 i++;
                 continue;
             }
@@ -189,8 +362,25 @@ function responsesToChat(body) {
             if (t === "message") {
                 let role = item.role || "user";
                 if (role === "developer") role = "system";
-                const text = extractText(item.content);
-                if (text) messages.push({ role, content: text });
+                // valueToChatContent returns string for pure-text content
+                // or a multimodal parts array when images / other parts are
+                // present. Both shapes are valid Chat Completions content.
+                const content = valueToChatContent(item.content);
+                const hasContent = typeof content === "string"
+                    ? content.length > 0
+                    : Array.isArray(content) && content.length > 0;
+                if (hasContent) {
+                    const msg = { role, content };
+                    // For assistant replays (Codex sending its prior turn
+                    // back as a message item), try to recover the original
+                    // reasoning_content via the turn-fingerprint index —
+                    // thinking models need this on every turn.
+                    if (role === "assistant") {
+                        const rc = sessions.getTurnReasoning(content);
+                        if (rc) msg.reasoning_content = rc;
+                    }
+                    messages.push(msg);
+                }
                 i++;
                 continue;
             }
@@ -209,11 +399,16 @@ function responsesToChat(body) {
         merged = [];
         let pendingSystem = "";
         for (const msg of messages) {
-            if (msg.role === "system") {
+            if (msg.role === "system" && typeof msg.content === "string") {
                 pendingSystem += (pendingSystem ? "\n" : "") + msg.content;
             } else {
                 if (pendingSystem) {
-                    if (msg.role === "user") {
+                    // Prepend the bundled-up system text. If the next user
+                    // message is a multimodal array, push the system blob
+                    // as its own user message *before* it instead of trying
+                    // to concatenate string + array (which would stringify
+                    // the array into "[object Object]" garbage).
+                    if (msg.role === "user" && typeof msg.content === "string") {
                         msg.content = `[System Instructions]\n${pendingSystem}\n\n${msg.content}`;
                     } else {
                         merged.push({ role: "user", content: `[System Instructions]\n${pendingSystem}` });
@@ -317,8 +512,8 @@ function genResponseId() {
     return "resp_" + Math.random().toString(36).slice(2, 14);
 }
 
-function chatStreamToResponsesStream(upstreamRes, clientRes) {
-    const responseId = genResponseId();
+function chatStreamToResponsesStream(upstreamRes, clientRes, requestMessages = [], sessions = sessionStore) {
+    const responseId = sessions.newResponseId();
 
     // SSE flush: write headers immediately and disable Nagle so each
     // event hits the wire before the next read tick. Without these,
@@ -344,6 +539,7 @@ function chatStreamToResponsesStream(upstreamRes, clientRes) {
     let textOpen = false;
     let textIdx = -1;
     let textBuf = "";
+    let reasoningBuf = "";  // Accumulate `delta.reasoning_content` from thinking models.
     const toolCalls = new Map();   // chat-delta index → {id, name, arguments, output_index}
     let nextOutputIndex = 0;
     let buffer = "";
@@ -434,6 +630,36 @@ function chatStreamToResponsesStream(upstreamRes, clientRes) {
             response: { id: responseId, object: "response", status: "completed", output: [] },
         });
         if (!clientRes.writableEnded) clientRes.end();
+
+        // Persist reasoning_content + assembled history so the next
+        // /v1/responses request from Codex (which may replay this turn
+        // via input items or previous_response_id) can recover them.
+        try {
+            const assistantMsg = {
+                role: "assistant",
+                content: toolCalls.size > 0 ? null : textBuf,
+            };
+            if (toolCalls.size > 0) {
+                assistantMsg.tool_calls = [...toolCalls.values()].map(s => ({
+                    id: s.id, type: "function",
+                    function: { name: s.name, arguments: s.arguments },
+                }));
+            }
+            if (reasoningBuf) {
+                assistantMsg.reasoning_content = reasoningBuf;
+                // Store reasoning under every tool_call id so any of them
+                // resolves in the next turn's lookup.
+                for (const s of toolCalls.values()) {
+                    sessions.storeReasoning(s.id, reasoningBuf);
+                }
+                // And under a content-fingerprint key, so plain assistant
+                // turns (no tool_calls) also round-trip.
+                if (textBuf) sessions.storeTurnReasoning(textBuf, reasoningBuf);
+            }
+            sessions.saveHistory(responseId, [...requestMessages, assistantMsg]);
+        } catch (e) {
+            warn(`session store update failed: ${e.message}`);
+        }
     };
 
     upstreamRes.on("data", (chunk) => {
@@ -450,6 +676,16 @@ function chatStreamToResponsesStream(upstreamRes, clientRes) {
 
             const delta = parsed.choices?.[0]?.delta;
             if (!delta) continue;
+
+            // reasoning_content delta — DeepSeek-V4-* / Kimi-K2.6 / etc.
+            // emit these alongside the regular content stream. We
+            // accumulate them but DON'T forward to Codex (Codex's
+            // Responses API has its own reasoning summary event family
+            // we don't synthesize yet — the round-trip via session
+            // store is what matters for context preservation).
+            if (typeof delta.reasoning_content === "string") {
+                reasoningBuf += delta.reasoning_content;
+            }
 
             // Text delta
             if (delta.content) {
@@ -492,8 +728,8 @@ function chatStreamToResponsesStream(upstreamRes, clientRes) {
     });
 }
 
-function chatToResponsesNonStream(chatResponse) {
-    const responseId = genResponseId();
+function chatToResponsesNonStream(chatResponse, requestMessages = [], sessions = sessionStore) {
+    const responseId = sessions.newResponseId();
     const msg = chatResponse.choices?.[0]?.message || {};
     const output = [];
     if (msg.content) {
@@ -511,6 +747,31 @@ function chatToResponsesNonStream(chatResponse) {
             });
         }
     }
+
+    // Persist reasoning + history (same shape as the streaming path).
+    try {
+        const assistantMsg = {
+            role: "assistant",
+            content: msg.tool_calls?.length ? null : (msg.content || ""),
+        };
+        if (msg.tool_calls?.length) {
+            assistantMsg.tool_calls = msg.tool_calls.map(tc => ({
+                id: tc.id, type: "function",
+                function: { name: tc.function?.name || "", arguments: tc.function?.arguments || "" },
+            }));
+        }
+        if (msg.reasoning_content) {
+            assistantMsg.reasoning_content = msg.reasoning_content;
+            if (msg.tool_calls?.length) {
+                for (const tc of msg.tool_calls) sessions.storeReasoning(tc.id, msg.reasoning_content);
+            }
+            if (msg.content) sessions.storeTurnReasoning(msg.content, msg.reasoning_content);
+        }
+        sessions.saveHistory(responseId, [...requestMessages, assistantMsg]);
+    } catch (e) {
+        warn(`session store update failed: ${e.message}`);
+    }
+
     return { id: responseId, object: "response", status: "completed", output };
 }
 
@@ -573,6 +834,11 @@ function startProxy(realBaseUrl, apiKey) {
                         });
                         return;
                     }
+                    // chatBody.messages = the EXACT history we just sent
+                    // upstream — pass it through so the converters can save
+                    // [...requestMessages, assistantTurn] under the new
+                    // response_id for future previous_response_id lookups.
+                    const requestMessages = chatBody.messages || [];
                     if (isStream) {
                         clientRes.writeHead(200, {
                             "Content-Type": "text/event-stream",
@@ -580,13 +846,13 @@ function startProxy(realBaseUrl, apiKey) {
                             "Connection": "keep-alive",
                             "X-Accel-Buffering": "no",
                         });
-                        chatStreamToResponsesStream(upstreamRes, clientRes);
+                        chatStreamToResponsesStream(upstreamRes, clientRes, requestMessages);
                     } else {
                         let resBody = "";
                         upstreamRes.on("data", c => resBody += c);
                         upstreamRes.on("end", () => {
                             try {
-                                const res = chatToResponsesNonStream(JSON.parse(resBody));
+                                const res = chatToResponsesNonStream(JSON.parse(resBody), requestMessages);
                                 clientRes.writeHead(200, { "Content-Type": "application/json" });
                                 clientRes.end(JSON.stringify(res));
                             } catch (e) {
@@ -1029,6 +1295,9 @@ if (require.main === module) {
         chatToResponsesNonStream,
         startProxy,
         rewriteBaseUrl,
+        valueToChatContent,
+        mapContentPart,
+        sessionStore,
         CODEX_CONFIG,
         ECHOBIRD_CONFIG,
     };
