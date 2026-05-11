@@ -841,11 +841,6 @@ fn restore_opencode_to_official() -> ApplyResult {
 // ════════════════════════════════════════════════════════════════
 
 // Codex CLI and Codex Desktop share ~/.codex/config.toml.
-fn codex_env_key(base_url: &str) -> String {
-    let domain = extract_domain_name(base_url);
-    format!("ECHOBIRD_{}_API_KEY", domain.to_uppercase())
-}
-
 fn codex_provider_id(base_url: &str) -> String {
     let domain = extract_domain_name(base_url)
         .to_lowercase()
@@ -855,21 +850,10 @@ fn codex_provider_id(base_url: &str) -> String {
     format!("echobird_{}", if domain.is_empty() { "openai" } else { &domain })
 }
 
-fn set_user_env_var(key: &str, value: &str) {
-    std::env::set_var(key, value);
-
-    #[cfg(windows)]
-    {
-        use std::os::windows::process::CommandExt;
-        let _ = std::process::Command::new("setx")
-            .args([key, value])
-            .creation_flags(0x08000000)
-            .output();
-    }
-}
-
 fn apply_codex(tool_id: &str, model_info: &ModelInfo) -> ApplyResult {
-    let config_path = dirs::home_dir().unwrap_or_default().join(".codex").join("config.toml");
+    let codex_dir = dirs::home_dir().unwrap_or_default().join(".codex");
+    let config_path = codex_dir.join("config.toml");
+    let auth_path = codex_dir.join("auth.json");
     let mut content = fs::read_to_string(&config_path).unwrap_or_default();
 
     let model_id = model_info.model.as_deref()
@@ -890,29 +874,51 @@ fn apply_codex(tool_id: &str, model_info: &ModelInfo) -> ApplyResult {
 
     let provider_id = codex_provider_id(&base_url);
     let provider_name = format!("{} (via Echobird)", extract_domain_name(&base_url));
-    let env_key = codex_env_key(&base_url);
 
     content = toml_write_top(&content, "model_provider", &provider_id);
     content = toml_write_top(&content, "model", model_id);
     if toml_read_top(&content, "model_reasoning_effort").is_empty() {
         content = toml_write_top(&content, "model_reasoning_effort", "high");
     }
+    // Codex v0.130+ reads OPENAI_API_KEY from ~/.codex/auth.json (written
+    // below), not from env_key, when preferred_auth_method = "apikey".
+    // disable_response_storage stops Codex from trying to persist
+    // response IDs against an OpenAI account — third-party providers
+    // reject this and break the conversation.
+    content = toml_write_top(&content, "preferred_auth_method", "apikey");
+    content = toml_write_top_raw(&content, "disable_response_storage", "true");
     content = toml_write_table_value(&content, &format!("model_providers.{}", provider_id), "name", &provider_name);
     content = toml_write_table_value(&content, &format!("model_providers.{}", provider_id), "base_url", &base_url);
-    content = toml_write_table_value(&content, &format!("model_providers.{}", provider_id), "env_key", &env_key);
-    // Codex v0.107+ removed the "chat" wire_api option; it only emits
-    // POST /v1/responses. The launcher (tools/codex/codex-launcher.cjs)
-    // runs a 127.0.0.1 proxy that translates Responses → Chat for
-    // third-party endpoints, so we always declare "responses" here and
-    // let the launcher do the bridging.
+    // The launcher (tools/codex/codex-launcher.cjs) runs a 127.0.0.1
+    // proxy that translates Responses → Chat for third-party endpoints,
+    // so we always declare "responses" here and let the launcher bridge.
     content = toml_write_table_value(&content, &format!("model_providers.{}", provider_id), "wire_api", "responses");
+    content = toml_write_table_value_raw(&content, &format!("model_providers.{}", provider_id), "requires_openai_auth", "true");
 
     ensure_parent(&config_path);
     if let Err(e) = fs::write(&config_path, &content) {
         return ApplyResult { success: false, message: format!("Codex config error: {}", e) };
     }
 
-    set_user_env_var(&env_key, api_key);
+    // Back up any existing auth.json (OAuth-token sign-ins, prior api-key
+    // configs, etc.) before overwriting so restore-to-official can put it
+    // back. We keep one snapshot per session — apply_codex called multiple
+    // times in a row preserves the FIRST snapshot, not the most recent
+    // (which would clobber the original OAuth state with our apikey state).
+    let auth_backup_path = echobird_dir().join("codex-auth.bak.json");
+    if auth_path.exists() && !auth_backup_path.exists() {
+        if let Ok(existing) = fs::read(&auth_path) {
+            ensure_parent(&auth_backup_path);
+            let _ = fs::write(&auth_backup_path, existing);
+        }
+    }
+
+    // Write the api-key auth.json that Codex v0.130+ expects.
+    let auth_payload = serde_json::json!({ "OPENAI_API_KEY": api_key });
+    ensure_parent(&auth_path);
+    if let Err(e) = fs::write(&auth_path, serde_json::to_string_pretty(&auth_payload).unwrap_or_default()) {
+        return ApplyResult { success: false, message: format!("Codex auth.json error: {}", e) };
+    }
 
     let relay_path = echobird_dir().join("codex.json");
     let relay = serde_json::json!({
@@ -921,7 +927,6 @@ fn apply_codex(tool_id: &str, model_info: &ModelInfo) -> ApplyResult {
         "modelId": model_id,
         "modelName": model_info.name.as_deref().unwrap_or(model_id),
         "providerId": provider_id,
-        "envKey": env_key,
     });
     let _ = write_json_file(&relay_path, &relay);
 
@@ -933,8 +938,8 @@ fn apply_codex(tool_id: &str, model_info: &ModelInfo) -> ApplyResult {
 }
 
 fn read_codex() -> Option<ModelInfo> {
-    let config_path = dirs::home_dir()?.join(".codex").join("config.toml");
-    let content = fs::read_to_string(&config_path).ok()?;
+    let codex_dir = dirs::home_dir()?.join(".codex");
+    let content = fs::read_to_string(codex_dir.join("config.toml")).ok()?;
 
     let model = toml_read_top(&content, "model");
     if model.is_empty() { return None; }
@@ -947,16 +952,16 @@ fn read_codex() -> Option<ModelInfo> {
         if value.is_empty() { None } else { Some(value) }
     };
 
-    let env_key = if provider_id.is_empty() {
-        String::new()
-    } else {
-        toml_read_table_value(&content, &format!("model_providers.{}", provider_id), "env_key")
-    };
-    let api_key = if env_key.is_empty() {
-        None
-    } else {
-        std::env::var(&env_key).ok()
-    };
+    // API key now lives in ~/.codex/auth.json (preferred_auth_method=apikey).
+    // Fall back to the legacy env_key path for configs written before this change.
+    let api_key = read_codex_auth_key(&codex_dir).or_else(|| {
+        let env_key = if provider_id.is_empty() {
+            String::new()
+        } else {
+            toml_read_table_value(&content, &format!("model_providers.{}", provider_id), "env_key")
+        };
+        if env_key.is_empty() { None } else { std::env::var(&env_key).ok() }
+    });
 
     Some(ModelInfo {
         name: Some(model.clone()),
@@ -968,15 +973,42 @@ fn read_codex() -> Option<ModelInfo> {
     })
 }
 
+fn read_codex_auth_key(codex_dir: &Path) -> Option<String> {
+    let content = fs::read_to_string(codex_dir.join("auth.json")).ok()?;
+    let v: serde_json::Value = serde_json::from_str(&content).ok()?;
+    v.get("OPENAI_API_KEY").and_then(|x| x.as_str()).map(String::from)
+}
+
 fn restore_codex_to_official(tool_id: &str, config_path: &Path) -> ApplyResult {
     let mut content = fs::read_to_string(config_path).unwrap_or_default();
     content = toml_write_top(&content, "model_provider", "openai");
     content = toml_write_top(&content, "model", "gpt-4o");
+    // Strip the apikey overrides we wrote in apply_codex so OAuth flow
+    // works again. Removing model_reasoning_effort is intentional — gpt-4o
+    // doesn't accept it and rejects with an error if it's still there.
+    content = toml_remove_top_key(&content, "preferred_auth_method");
+    content = toml_remove_top_key(&content, "disable_response_storage");
+    content = toml_remove_top_key(&content, "model_reasoning_effort");
     content = toml_remove_tables_with_prefix(&content, "model_providers.echobird_");
 
     ensure_parent(config_path);
     match fs::write(config_path, content) {
         Ok(_) => {
+            // Restore or remove auth.json. If we have a backup from before
+            // apply_codex (OAuth tokens, prior api-key, etc.), put it back.
+            // Otherwise just remove our apikey blob so Codex falls through
+            // to its own login flow on next launch.
+            let auth_path = config_path.parent().unwrap_or(Path::new("")).join("auth.json");
+            let auth_backup_path = echobird_dir().join("codex-auth.bak.json");
+            if auth_backup_path.exists() {
+                if let Ok(bak) = fs::read(&auth_backup_path) {
+                    let _ = fs::write(&auth_path, bak);
+                    let _ = fs::remove_file(&auth_backup_path);
+                }
+            } else if auth_path.exists() {
+                let _ = fs::remove_file(&auth_path);
+            }
+
             let relay_path = echobird_dir().join("codex.json");
             if relay_path.exists() {
                 let _ = fs::remove_file(&relay_path);
@@ -1440,6 +1472,78 @@ fn toml_write_top(content: &str, key: &str, value: &str) -> String {
     lines.join("\n")
 }
 
+/// Like toml_write_top but emits `key = <value>` without quoting the value.
+/// Use for booleans / numbers / inline tables that must NOT be string-quoted.
+fn toml_write_top_raw(content: &str, key: &str, value: &str) -> String {
+    let mut lines: Vec<String> = content.lines().map(|l| l.to_string()).collect();
+    let mut found = false;
+    let mut first_section: Option<usize> = None;
+
+    for (i, line) in lines.iter_mut().enumerate() {
+        let t = line.trim();
+        if first_section.is_none() && t.starts_with('[') { first_section = Some(i); }
+        if first_section.is_some() && i >= first_section.unwrap() { continue; }
+        if let Some((k, _)) = t.split_once('=') {
+            if k.trim() == key {
+                *line = format!("{} = {}", key, value);
+                found = true;
+                break;
+            }
+        }
+    }
+
+    if !found {
+        let new_line = format!("{} = {}", key, value);
+        match first_section {
+            Some(i) => lines.insert(i, new_line),
+            None => lines.push(new_line),
+        }
+    }
+    lines.join("\n")
+}
+
+/// Like toml_write_table_value but emits the value unquoted.
+fn toml_write_table_value_raw(content: &str, table: &str, key: &str, value: &str) -> String {
+    let header = format!("[{}]", table);
+    let mut lines: Vec<String> = content.lines().map(|l| l.to_string()).collect();
+    let mut table_start = None;
+    let mut table_end = lines.len();
+
+    for (i, line) in lines.iter().enumerate() {
+        let t = line.trim();
+        if t.starts_with('[') && t.ends_with(']') {
+            if t == header {
+                table_start = Some(i);
+            } else if table_start.is_some() {
+                table_end = i;
+                break;
+            }
+        }
+    }
+
+    let new_line = format!("{} = {}", key, value);
+
+    if let Some(start) = table_start {
+        for line in lines.iter_mut().take(table_end).skip(start + 1) {
+            let t = line.trim();
+            if let Some((k, _)) = t.split_once('=') {
+                if k.trim() == key {
+                    *line = new_line;
+                    return lines.join("\n");
+                }
+            }
+        }
+        lines.insert(table_end, new_line);
+    } else {
+        if !lines.is_empty() && !lines.last().map(|l| l.trim().is_empty()).unwrap_or(false) {
+            lines.push(String::new());
+        }
+        lines.push(header);
+        lines.push(new_line);
+    }
+    lines.join("\n")
+}
+
 fn toml_read_table_value(content: &str, table: &str, key: &str) -> String {
     let header = format!("[{}]", table);
     let mut in_table = false;
@@ -1503,6 +1607,29 @@ fn toml_write_table_value(content: &str, table: &str, key: &str, value: &str) ->
     }
 
     lines.join("\n")
+}
+
+/// Remove a top-level `key = ...` line (the slice before the first [section]).
+/// Used by restore_codex_to_official to strip our apikey overrides without
+/// touching anything inside model_providers.* tables.
+fn toml_remove_top_key(content: &str, key: &str) -> String {
+    let mut out = Vec::new();
+    let mut in_section = false;
+    for line in content.lines() {
+        let t = line.trim();
+        if t.starts_with('[') && t.ends_with(']') {
+            in_section = true;
+        }
+        if !in_section {
+            if let Some((k, _)) = t.split_once('=') {
+                if k.trim() == key {
+                    continue; // drop this line
+                }
+            }
+        }
+        out.push(line);
+    }
+    out.join("\n")
 }
 
 fn toml_remove_tables_with_prefix(content: &str, prefix: &str) -> String {
