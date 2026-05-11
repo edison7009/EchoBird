@@ -6,8 +6,11 @@
 //                + GitHub Trending. US/global sources only, no CN dependency.
 // Mirror chain: echobird.ai/pulse → CF Worker → GitHub raw / Tencent COS / jsdelivr.
 //
-// AI 资讯  : all items.
-// 明星项目: subset where url is on github.com or source mentions Trending/开源.
+// AI 资讯  : items that are NOT projects (news articles, blog posts, HN discussion).
+// 明星项目: items where url is on github.com or source mentions Trending/开源.
+// The two views are disjoint: every item lands in exactly one tab. Without
+// this split the EN feed (built largely from HN AI stories that link to
+// github.com + GitHub Trending) makes both views look identical.
 //
 // Each row is one news item. Click → open the source URL in the system browser.
 // No inline reader: the upstream extractor (jina.ai) hits CAPTCHA on many sources
@@ -173,10 +176,18 @@ const formatRelative = (ts: number, locale: string): string => {
     return isCN ? `${Math.floor(sec/86400)}天前` : `${Math.floor(sec/86400)}d ago`;
 };
 
+// URL-path-driven classification so that *.blog* hosts and lab-name sources
+// stay in News. e.g. github.blog → news (engineering articles), but
+// github.com/owner/repo → project; huggingface.co/blog → news, but
+// huggingface.co/spaces|models|datasets → project. The source-name regex is
+// kept only for upstream ZH aggregators that label items with explicit
+// project markers like "GitHub Trending" or "开源周报".
 const isProjectItem = (item: NewsItem): boolean => {
-    if (item.url.includes('github.com/')) return true;
+    const url = item.url || '';
+    if (/^https?:\/\/(www\.)?github\.com\//i.test(url)) return true;
+    if (/^https?:\/\/huggingface\.co\/(spaces|models|datasets)\//i.test(url)) return true;
     const s = `${item.source} ${item.site_name || ''}`.toLowerCase();
-    return /trending|开源|github|hugging\s*face/i.test(s);
+    return /trending|开源/i.test(s);
 };
 
 // Many items have null published_at; first_seen_at is always present.
@@ -396,10 +407,13 @@ function ItemFeed({ variant }: { variant: PageVariant }) {
 
     // Two-stage filter: language → variant. Done as a single memo because
     // both upstream inputs change rarely and we'll re-derive several
-    // date-keyed views off the result.
+    // date-keyed views off the result. News and Projects are disjoint
+    // partitions — see isProjectItem comment above.
     const variantFiltered = useMemo(() => {
         const langMatched = items.filter(it => itemLang(it) === lang);
-        return variant === 'projects' ? langMatched.filter(isProjectItem) : langMatched;
+        return variant === 'projects'
+            ? langMatched.filter(isProjectItem)
+            : langMatched.filter(it => !isProjectItem(it));
     }, [items, variant, lang]);
 
     // Latest cached date for this variant+lang. Used as the fallback when
@@ -513,11 +527,14 @@ export function AiPulsePanel({ variant = 'news' }: { variant?: PageVariant }) {
     // each date button reflects what the user will actually see in the
     // feed when they click. cachedDates derives from the same map's keys
     // — a date with zero matching items wouldn't appear at all.
+    // Must mirror ItemFeed's variantFiltered: news = !isProjectItem,
+    // projects = isProjectItem (the two are disjoint).
     const dateCount = useMemo(() => {
         const map = new Map<string, number>();
         for (const it of items) {
             if (itemLang(it) !== lang) continue;
-            if (variant === 'projects' && !isProjectItem(it)) continue;
+            const proj = isProjectItem(it);
+            if (variant === 'projects' ? !proj : proj) continue;
             const d = itemLocalDate(it);
             if (!d) continue;
             map.set(d, (map.get(d) || 0) + 1);

@@ -7,10 +7,19 @@ SuYxh/ai-news-aggregator latest-7d.json so the frontend can swap files
 based on locale without code changes beyond the file name.
 
 Sources:
-  - Hacker News Algolia API (front-page stories matching AI keywords)
-  - Official AI lab blogs (OpenAI, Anthropic, DeepMind, Google Research,
-    HuggingFace, Meta AI) via RSS
+  - Hacker News Algolia API (stories matching AI keywords)
+  - AI lab blogs: OpenAI, Anthropic (via Olshansk RSS proxy), Google DeepMind,
+    Google Research, Hugging Face
+  - Tech media (AI-tagged feeds): TechCrunch AI, The Verge AI, Wired AI
+  - Tech media (general feeds, AI-keyword filtered): Ars Technica, MIT
+    Technology Review
+  - arXiv RSS: cs.AI, cs.LG, cs.CL, cs.CV
+  - Reddit RSS: r/MachineLearning, r/LocalLLaMA
+  - Analyst blogs / newsletters: Import AI (Jack Clark), Chip Huyen
   - GitHub Trending (daily snapshot, filtered to AI/ML repos)
+
+Each feed degrades silently: HTTP/parse failures log a warning and contribute
+zero items; the workflow only fails if *every* source is empty.
 
 The script is idempotent: it overwrites the output file each run. The
 GitHub Action that invokes it commits only when the payload changes.
@@ -154,18 +163,58 @@ def fetch_hn_stories() -> list[dict]:
     return out
 
 
-# ─── Source 2: AI lab official blogs (RSS) ────────────────────────────────────
+# ─── Source 2: RSS feeds (AI labs, tech media, arXiv) ─────────────────────────
 
 
-# Slug → (display name, RSS URL). Each feed parsed independently; failures
-# are warnings, not fatal — a broken feed shouldn't blackhole the whole build.
-# Confirmed working as of 2026-05. Anthropic and Meta AI publish no public
-# RSS feed; periodically re-check if they ever expose one.
-LAB_FEEDS: dict[str, tuple[str, str]] = {
-    "openai":      ("OpenAI",          "https://openai.com/news/rss.xml"),
-    "deepmind":    ("Google DeepMind", "https://deepmind.google/blog/rss.xml"),
-    "googleai":    ("Google Research", "https://research.google/blog/rss/"),
-    "huggingface": ("Hugging Face",    "https://huggingface.co/blog/feed.xml"),
+# Each spec: slug -> (display name, RSS URL, filter_ai, max_items).
+#   filter_ai=False — feed is already AI-only (lab blog, AI-tagged media feed,
+#                     arXiv AI category). Trust every entry.
+#   filter_ai=True  — feed is a general tech firehose (Ars Technica, MIT TR,
+#                     The Verge). Apply AI_RE on title or skip.
+#   max_items       — cap retained items per feed. arXiv categories publish
+#                     500+ papers/day so without a cap they'd swamp every
+#                     other source. None means "take everything in window".
+# Each feed parsed independently; failures are warnings, not fatal — a broken
+# feed shouldn't blackhole the whole build.
+#
+# Source list cross-referenced with ai-news-daily/ai-news-daily.github.io
+# (MIT, 70+ feeds) and verified working 2026-05. Anthropic has no native RSS,
+# so we proxy through Olshansk/rss-feeds — periodically re-check if Anthropic
+# ever publishes their own. The Verge retired their AI-specific feed (returns
+# empty payload), so we fall back to the general feed + AI filter.
+RSS_FEEDS: dict[str, tuple[str, str, bool, int | None]] = {
+    # ── AI labs ─────────────────────────────────────────────
+    "openai":         ("OpenAI",          "https://openai.com/news/rss.xml",                                                False, None),
+    "anthropic":      ("Anthropic",       "https://raw.githubusercontent.com/Olshansk/rss-feeds/main/feeds/feed_anthropic_news.xml", False, None),
+    "deepmind":       ("Google DeepMind", "https://deepmind.google/blog/rss.xml",                                           False, None),
+    "googleai":       ("Google Research", "https://research.google/blog/rss/",                                              False, None),
+    "huggingface":    ("Hugging Face",    "https://huggingface.co/blog/feed.xml",                                           False, None),
+    # ── Tech media (AI-tagged feeds, pre-filtered upstream) ─
+    "techcrunch_ai":  ("TechCrunch AI",   "https://techcrunch.com/category/artificial-intelligence/feed/",                  False, None),
+    "wired_ai":       ("Wired AI",        "https://www.wired.com/feed/tag/ai/latest/rss",                                   False, None),
+    # ── Tech media (general feeds, need keyword filter) ─────
+    "theverge":       ("The Verge",       "https://www.theverge.com/rss/index.xml",                                         True,  None),
+    "arstechnica":    ("Ars Technica",    "https://feeds.arstechnica.com/arstechnica/index",                                True,  None),
+    "mit_tr":         ("MIT Tech Review", "https://www.technologyreview.com/feed/",                                         True,  None),
+    # ── arXiv (per-category feeds, all AI-relevant) ─────────
+    # Cap each category at 60 so the page isn't 90% papers. arXiv RSS sorts
+    # newest-first, so the cap drops the bottom of yesterday's batch.
+    "arxiv_ai":       ("arXiv cs.AI",     "https://export.arxiv.org/rss/cs.AI",                                             False, 60),
+    "arxiv_lg":       ("arXiv cs.LG",     "https://export.arxiv.org/rss/cs.LG",                                             False, 60),
+    "arxiv_cl":       ("arXiv cs.CL",     "https://export.arxiv.org/rss/cs.CL",                                             False, 60),
+    "arxiv_cv":       ("arXiv cs.CV",     "https://export.arxiv.org/rss/cs.CV",                                             False, 60),
+    # ── Reddit communities (RSS) ────────────────────────────
+    # Reddit blocks generic user-agents with a 403/429 page; our HEADERS
+    # already sets a unique UA, and these feeds degrade silently to 0 items
+    # if Reddit rejects us. Picked the two highest-signal subs (research +
+    # practitioner) — wider subs like r/singularity are too hype-heavy.
+    "r_mlearning":    ("r/MachineLearning", "https://www.reddit.com/r/MachineLearning/.rss",                                False, 40),
+    "r_localllama":   ("r/LocalLLaMA",      "https://www.reddit.com/r/LocalLLaMA/.rss",                                     False, 40),
+    # ── Newsletters / analyst blogs ─────────────────────────
+    # Import AI is Jack Clark's (Anthropic co-founder) weekly digest; Chip
+    # Huyen writes about ML systems and LLM ops. Low-volume, high-signal.
+    "import_ai":      ("Import AI",        "https://jack-clark.net/feed/",                                                  False, None),
+    "chip_huyen":     ("Chip Huyen",       "https://huyenchip.com/feed.xml",                                                False, None),
 }
 
 
@@ -180,7 +229,7 @@ def parse_rss_dt(entry) -> datetime | None:
     return None
 
 
-def fetch_lab_feed(slug: str, name: str, url: str) -> list[dict]:
+def fetch_rss_feed(slug: str, name: str, url: str, filter_ai: bool, max_items: int | None) -> list[dict]:
     r = fetch(url, timeout=15)
     if not r:
         return []
@@ -190,16 +239,29 @@ def fetch_lab_feed(slug: str, name: str, url: str) -> list[dict]:
         print(f"[warn] {slug} parse error: {e}", file=sys.stderr)
         return []
     out: list[dict] = []
+    skipped_off_topic = 0
     for entry in feed.entries:
+        if max_items is not None and len(out) >= max_items:
+            break
         title = (entry.get("title") or "").strip()
         link = (entry.get("link") or "").strip()
         if not title or not link:
             continue
-        dt = parse_rss_dt(entry)
-        if not dt or dt < WINDOW_START:
-            continue
         # Strip RSS-frequent HTML entities + tags from titles
         title = html.unescape(re.sub(r"<[^>]+>", "", title))
+        # General-firehose feeds (Ars Technica, MIT TR, The Verge) carry
+        # plenty of non-AI content. Skip anything whose title doesn't
+        # mention an AI keyword — same gate used on Hacker News.
+        if filter_ai and not AI_RE.search(title):
+            skipped_off_topic += 1
+            continue
+        dt = parse_rss_dt(entry)
+        if not dt:
+            continue
+        # arXiv RSS often lists items as "today" in UTC; only enforce the
+        # lower bound, never trust future timestamps from upstream.
+        if dt < WINDOW_START:
+            continue
         out.append({
             "id": stable_id(slug, link),
             "site_id": slug,
@@ -215,16 +277,22 @@ def fetch_lab_feed(slug: str, name: str, url: str) -> list[dict]:
             "title_zh": None,
             "title_bilingual": title,
         })
-    print(f"[rss:{slug}] {len(out)} items", file=sys.stderr)
+    extras = []
+    if skipped_off_topic:
+        extras.append(f"{skipped_off_topic} off-topic")
+    if max_items is not None and len(out) >= max_items:
+        extras.append(f"capped at {max_items}")
+    suffix = f" ({', '.join(extras)})" if extras else ""
+    print(f"[rss:{slug}] {len(out)} items{suffix}", file=sys.stderr)
     return out
 
 
-def fetch_all_lab_feeds() -> list[dict]:
+def fetch_all_rss_feeds() -> list[dict]:
     out: list[dict] = []
-    with ThreadPoolExecutor(max_workers=4) as ex:
+    with ThreadPoolExecutor(max_workers=6) as ex:
         futures = [
-            ex.submit(fetch_lab_feed, slug, name, url)
-            for slug, (name, url) in LAB_FEEDS.items()
+            ex.submit(fetch_rss_feed, slug, name, url, filter_ai, max_items)
+            for slug, (name, url, filter_ai, max_items) in RSS_FEEDS.items()
         ]
         for f in futures:
             out.extend(f.result())
@@ -320,7 +388,7 @@ def main() -> int:
     print(f"[info] window = {WINDOW_DAYS}d, output = {OUTPUT_PATH}", file=sys.stderr)
     items: list[dict] = []
     items.extend(fetch_hn_stories())
-    items.extend(fetch_all_lab_feeds())
+    items.extend(fetch_all_rss_feeds())
     items.extend(fetch_github_trending())
 
     items = dedupe_by_url(items)
