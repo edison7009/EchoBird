@@ -842,28 +842,29 @@ fn restore_opencode_to_official() -> ApplyResult {
 
 // Codex CLI and Codex Desktop share ~/.codex/config.toml.
 
-/// Fire-and-forget invocation of the vendored codex-provider-sync CLI.
+/// Synchronously retag historical Codex sessions to the given provider.
 ///
 /// When the user switches Codex's `model_provider` via apply_codex, the
 /// rollout-file metadata and `state_5.sqlite` thread rows still tag prior
 /// conversations with the OLD provider — Codex Desktop / `/resume` hide
-/// them. The provider-sync tool rewrites that metadata to the new
-/// provider so historical chats stay visible.
+/// them. The vendored provider-sync CLI rewrites that metadata to the
+/// new provider so historical chats stay visible.
 ///
-/// We invoke it silently here so the user gets a "model applied" toast
-/// and never sees the sync UI. Failures (lock contention because Codex
-/// is open, missing Node 24, etc.) are logged but don't fail apply_codex.
+/// Called synchronously from apply_codex AFTER kill_codex_if_running: the
+/// kill releases state_5.sqlite's WAL lock so the CLI's exclusive lock
+/// acquires cleanly. The caller blocks for up to 10s while sync runs —
+/// sync is usually <2s, so most users feel 1–3s extra on the "apply
+/// model" click in exchange for merged history across switches.
 ///
-/// Hard requirement: node ≥ 24 because the vendored CLI uses Node's
-/// built-in `node:sqlite` which only stabilized in v24. On older Node we
-/// skip with a warning.
+/// Previously fired by the launcher pre-launch, but that path was unreliable:
+/// users who launched Codex Desktop directly (outside our "Open" button),
+/// or who stayed on the official OpenAI provider (launcher skipped),
+/// never got retagged. apply_codex runs on every model switch, so this
+/// placement is the only one that always fires.
 ///
-/// NOTE: as of the launcher pre-launch sync move, apply_codex no longer
-/// calls this — the launcher (tools/codex/codex-launcher.cjs::runProviderSync)
-/// is the canonical sync trigger because it runs before Codex starts and
-/// state_5.sqlite is guaranteed unlocked. This Rust helper is retained for
-/// potential future UI hooks (e.g. a manual "retag history now" button).
-#[allow(dead_code)]
+/// Failures (missing node 24, lock contention, sync bug) are logged but
+/// don't fail apply_codex — the model is still applied, only history
+/// retag is skipped.
 fn run_codex_provider_sync(provider_id: &str) {
     use std::process::Command;
 
@@ -898,17 +899,17 @@ fn run_codex_provider_sync(provider_id: &str) {
         return;
     }
 
-    // Fire-and-forget. Don't .wait() — apply_codex must return immediately
-    // for a snappy UI. On Windows we hide the cmd window; on Unix node
-    // attaches to whatever stdio it gets (we set stdio to null below).
+    // Block until sync finishes, but cap at 10s so a hung child can't
+    // freeze the UI forever. Sync is usually <2s on a real user's data,
+    // so the 10s ceiling is a safety net, not the common path.
     let mut cmd = Command::new("node");
     cmd.arg(&cli_js)
         .arg("sync")
         .arg("--provider").arg(provider_id)
         .arg("--keep").arg("5")
         .stdin(std::process::Stdio::null())
-        .stdout(std::process::Stdio::null())
-        .stderr(std::process::Stdio::null());
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::piped());
 
     #[cfg(windows)]
     {
@@ -917,9 +918,45 @@ fn run_codex_provider_sync(provider_id: &str) {
         cmd.creation_flags(CREATE_NO_WINDOW);
     }
 
-    match cmd.spawn() {
-        Ok(child) => log::info!("[codex-sync] provider sync spawned (pid {}) for provider={}", child.id(), provider_id),
-        Err(e) => log::warn!("[codex-sync] failed to spawn provider sync: {}", e),
+    let mut child = match cmd.spawn() {
+        Ok(c) => c,
+        Err(e) => {
+            log::warn!("[codex-sync] failed to spawn provider sync: {}", e);
+            return;
+        }
+    };
+    let pid = child.id();
+    log::info!("[codex-sync] provider sync started (pid {}) for provider={}", pid, provider_id);
+
+    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(10);
+    loop {
+        match child.try_wait() {
+            Ok(Some(status)) => {
+                if status.success() {
+                    log::info!("[codex-sync] provider sync OK (pid {})", pid);
+                } else {
+                    let mut stderr_buf = String::new();
+                    if let Some(mut s) = child.stderr.take() {
+                        use std::io::Read;
+                        let _ = s.read_to_string(&mut stderr_buf);
+                    }
+                    log::warn!("[codex-sync] provider sync exited {:?}: {}", status.code(), stderr_buf.trim());
+                }
+                return;
+            }
+            Ok(None) => {
+                if std::time::Instant::now() >= deadline {
+                    let _ = child.kill();
+                    log::warn!("[codex-sync] provider sync exceeded 10s, killed");
+                    return;
+                }
+                std::thread::sleep(std::time::Duration::from_millis(100));
+            }
+            Err(e) => {
+                log::warn!("[codex-sync] try_wait error: {}", e);
+                return;
+            }
+        }
     }
 }
 
@@ -1081,14 +1118,17 @@ fn apply_codex(tool_id: &str, model_info: &ModelInfo) -> ApplyResult {
     });
     let _ = write_json_file(&relay_path, &relay);
 
-    // History retag MOVED to the launcher's pre-launch step (see
-    // codex-launcher.cjs::runProviderSync). The apply_codex path was racy
-    // — if Codex was still running when the user switched models, the
-    // sync's state_5.sqlite lock would fail silently and history stayed
-    // hidden. The launcher fires sync immediately before spawning Codex,
-    // when state_5.sqlite is guaranteed unlocked. The Rust helper below
-    // is kept for potential future UI hooks (e.g. a manual "retag now"
-    // button), but apply_codex no longer invokes it.
+    // Retag historical sessions to the new provider. Applies to both
+    // Codex CLI and Desktop — they share ~/.codex/state_5.sqlite and
+    // ~/.codex/sessions/, and BOTH filter the visible session list by
+    // the active provider tag (Desktop's Recent panel, CLI's `/resume`).
+    // Without retag, switching providers hides the old history in both
+    // surfaces.
+    //
+    // Runs AFTER kill_codex_if_running (sqlite lock released) and BEFORE
+    // returning success, so no matter how the user next opens Codex,
+    // the retag is in place. Blocks for up to 10s; usually <2s.
+    run_codex_provider_sync(&provider_id);
 
     let display = if tool_id == "codexdesktop" { "Codex Desktop" } else { "Codex CLI" };
     ApplyResult {
