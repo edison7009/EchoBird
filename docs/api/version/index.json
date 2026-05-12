@@ -1,5 +1,5 @@
 {
-  "version": "4.5.6",
-  "releaseDate": "2026-05-11",
-  "releaseNotes": "v4.5.6 — reliable Codex history retention across model switches"
+  "version": "4.5.7",
+  "releaseDate": "2026-05-12",
+  "releaseNotes": "Fixes Codex history retention across model switches — sync now runs synchronously in apply_codex (1-3s wait) instead of launcher pre-launch, so history retag fires regardless of how Codex is opened (Start menu, shortcut, or our Open button). Adds Windows native support for Hermes Agent — detects %LOCALAPPDATA%\\hermes installation from official irm install.ps1 installer."
 }
