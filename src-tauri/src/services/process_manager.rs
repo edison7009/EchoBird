@@ -229,6 +229,8 @@ impl ProcessManager {
             cmd.args(["/C", "node", launcher_clean]);
             cmd.current_dir(&home);
             cmd.env("ECHOBIRD_CODEX_LAUNCH_MODE", launch_mode);
+            // Suppress launcher console output in CLI mode (logs still go to file)
+            cmd.env("ECHOBIRD_LAUNCHER_QUIET", "1");
             if let Some(ref key) = api_key {
                 cmd.env("OPENAI_API_KEY", key);
                 if let Some(ref ek) = env_key {
@@ -266,6 +268,8 @@ impl ProcessManager {
             cmd.arg(launcher);
             cmd.current_dir(&home);
             cmd.env("ECHOBIRD_CODEX_LAUNCH_MODE", launch_mode);
+            // Suppress launcher console output in CLI mode (logs still go to file)
+            cmd.env("ECHOBIRD_LAUNCHER_QUIET", "1");
             if let Some(ref key) = api_key {
                 cmd.env("OPENAI_API_KEY", key);
                 if let Some(ref ek) = env_key {
