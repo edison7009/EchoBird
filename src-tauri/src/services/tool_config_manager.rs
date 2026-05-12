@@ -654,7 +654,7 @@ fn apply_opencode(model_info: &ModelInfo) -> ApplyResult {
 
     let base_url = model_info.base_url.as_deref()
         .unwrap_or("https://api.openai.com/v1").trim_end_matches('/').to_string();
-    let provider_name = extract_domain_name(&base_url);
+    let provider_name = model_id;  // Use model ID instead of domain name
 
     let config = serde_json::json!({
         "apiKey": model_info.api_key.as_deref().unwrap_or(""),
@@ -1090,7 +1090,7 @@ fn apply_codex(tool_id: &str, model_info: &ModelInfo) -> ApplyResult {
     }
 
     let provider_id = codex_provider_id(&base_url);
-    let provider_name = extract_domain_name(&base_url);
+    let provider_name = model_id;  // Use model ID instead of domain name
 
     content = toml_write_top(&content, "model_provider", &provider_id);
     content = toml_write_top(&content, "model", model_id);
@@ -1403,7 +1403,7 @@ fn apply_qwen_code(model_info: &ModelInfo) -> ApplyResult {
         "id": model_id,
         "name": display_name,
         "baseUrl": base_url,
-        "description": domain,
+        "description": model_id,  // Use model ID instead of domain name
         "envKey": env_key
     });
 
