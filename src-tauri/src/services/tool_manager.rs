@@ -431,6 +431,20 @@ async fn detect_tool(pc: &PathsConfig) -> Option<String> {
                 );
                 return Some(config_dir.to_string_lossy().to_string());
             }
+        } else if let Some(ref alt) = pc.config_dir_alt {
+            // Try alternate config dir (e.g. Windows-specific %LOCALAPPDATA%\hermes vs Unix ~/.hermes)
+            let alt_config_dir = expand_path(alt);
+            if alt_config_dir.exists() {
+                let platform_paths = get_platform_paths(&pc.paths);
+                if platform_paths.is_empty() {
+                    log::info!(
+                        "[{}] Alternate config directory found: {:?}, treated as installed",
+                        pc.name,
+                        alt_config_dir
+                    );
+                    return Some(alt_config_dir.to_string_lossy().to_string());
+                }
+            }
         }
     }
 

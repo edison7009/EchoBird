@@ -52,6 +52,8 @@ pub struct PathsConfig {
     pub env_var: Option<String>,
     #[serde(default)]
     pub config_dir: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub config_dir_alt: Option<String>,
     #[serde(default)]
     pub config_file: String,
     #[serde(skip_serializing_if = "Option::is_none")]

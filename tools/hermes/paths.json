@@ -10,11 +10,15 @@
     "startCommand": "hermes",
     "envVar": "HERMES_HOME",
     "configDir": "~/.hermes",
+    "configDirAlt": "%LOCALAPPDATA%\\hermes",
     "configFile": "~/.hermes/config.yaml",
+    "configFileAlt": "%LOCALAPPDATA%\\hermes\\config.yaml",
     "requireConfigFile": false,
     "detectByConfigDir": true,
     "paths": {
-        "win32": [],
+        "win32": [
+            "%LOCALAPPDATA%\\hermes\\hermes-agent\\venv\\Scripts\\hermes.exe"
+        ],
         "darwin": [
             "/usr/local/bin/hermes",
             "/opt/homebrew/bin/hermes"
