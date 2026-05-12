@@ -51,6 +51,35 @@ pub fn run() {
             // Register shell plugin (open external URLs, folders)
             app.handle().plugin(tauri_plugin_shell::init())?;
 
+            // Windows 11: disable shadow and force square corners on borderless window.
+            // Without this, DWM adds a drop-shadow and rounds corners by default,
+            // creating visible gaps between the system border and the app content.
+            #[cfg(target_os = "windows")]
+            {
+                if let Some(win) = app.get_webview_window("main") {
+                    let _ = win.set_shadow(false);
+
+                    use windows::Win32::Graphics::Dwm::{DwmSetWindowAttribute, DWMWA_WINDOW_CORNER_PREFERENCE, DWMWCP_DONOTROUND};
+                    use windows::Win32::Foundation::HWND;
+                    use raw_window_handle::{HasWindowHandle, RawWindowHandle};
+
+                    if let Ok(handle) = win.window_handle() {
+                        if let RawWindowHandle::Win32(win32_handle) = handle.as_ref() {
+                            let hwnd = HWND(win32_handle.hwnd.get() as _);
+                            let pref: i32 = DWMWCP_DONOTROUND.0;
+                            unsafe {
+                                let _ = DwmSetWindowAttribute(
+                                    hwnd,
+                                    DWMWA_WINDOW_CORNER_PREFERENCE,
+                                    &pref as *const _ as *const _,
+                                    std::mem::size_of_val(&pref) as u32,
+                                );
+                            }
+                        }
+                    }
+                }
+            }
+
             // Safety fallback: show main window after 1s even if appReady() never fires.
             // Uses std::thread to avoid tokio runtime dependency in sync setup().
             #[cfg(not(target_os = "android"))]
