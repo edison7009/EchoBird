@@ -893,7 +893,17 @@ fn run_codex_provider_sync(provider_id: &str) {
     // Pre-flight: detect node version. The CLI imports `node:sqlite`
     // which crashes on Node < 24 with a confusing ERR_UNKNOWN_BUILTIN_MODULE.
     // Catch it here and warn-and-skip instead.
-    let node_version_output = Command::new("node").arg("--version").output();
+    let mut node_version_cmd = Command::new("node");
+    node_version_cmd.arg("--version");
+
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        const CREATE_NO_WINDOW: u32 = 0x08000000;
+        node_version_cmd.creation_flags(CREATE_NO_WINDOW);
+    }
+
+    let node_version_output = node_version_cmd.output();
     log::info!("[codex-sync] node version check result: {:?}", node_version_output.as_ref().map(|o| String::from_utf8_lossy(&o.stdout).to_string()));
     let node_ok = node_version_output
         .ok()
