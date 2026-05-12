@@ -872,22 +872,30 @@ fn run_codex_provider_sync(provider_id: &str) {
     // <repo>/tools/codex/codex-provider-sync/src/cli.js; in production
     // Tauri ships it inside the resources bundle, discoverable via
     // tool_manager::find_tools_dir().
-    let cli_js = match crate::services::tool_manager::find_tools_dir() {
-        Some(dir) => dir.join("codex").join("codex-provider-sync").join("src").join("cli.js"),
+    let tools_dir = match crate::services::tool_manager::find_tools_dir() {
+        Some(dir) => {
+            log::info!("[codex-sync] tools dir found: {:?}", dir);
+            dir
+        }
         None => {
             log::warn!("[codex-sync] tools dir not found, skipping provider sync");
             return;
         }
     };
+    let cli_js = tools_dir.join("codex").join("codex-provider-sync").join("src").join("cli.js");
+    log::info!("[codex-sync] looking for cli.js at: {:?}", cli_js);
     if !cli_js.exists() {
         log::warn!("[codex-sync] vendored cli.js missing at {:?}, skipping", cli_js);
         return;
     }
+    log::info!("[codex-sync] cli.js found, proceeding with sync");
 
     // Pre-flight: detect node version. The CLI imports `node:sqlite`
     // which crashes on Node < 24 with a confusing ERR_UNKNOWN_BUILTIN_MODULE.
     // Catch it here and warn-and-skip instead.
-    let node_ok = Command::new("node").arg("--version").output()
+    let node_version_output = Command::new("node").arg("--version").output();
+    log::info!("[codex-sync] node version check result: {:?}", node_version_output.as_ref().map(|o| String::from_utf8_lossy(&o.stdout).to_string()));
+    let node_ok = node_version_output
         .ok()
         .and_then(|out| String::from_utf8(out.stdout).ok())
         .and_then(|s| s.trim().trim_start_matches('v').split('.').next().map(String::from))
@@ -898,6 +906,7 @@ fn run_codex_provider_sync(provider_id: &str) {
         log::warn!("[codex-sync] node ≥ 24 required for provider sync; older runtime detected — skipping. Old Codex sessions may not appear in the new provider's history list until you upgrade Node and re-apply the model.");
         return;
     }
+    log::info!("[codex-sync] node version OK (≥ 24)");
 
     // Block until sync finishes, but cap at 10s so a hung child can't
     // freeze the UI forever. Sync is usually <2s on a real user's data,
@@ -918,10 +927,11 @@ fn run_codex_provider_sync(provider_id: &str) {
         cmd.creation_flags(CREATE_NO_WINDOW);
     }
 
+    log::info!("[codex-sync] spawning: node {:?} sync --provider {} --keep 5", cli_js, provider_id);
     let mut child = match cmd.spawn() {
         Ok(c) => c,
         Err(e) => {
-            log::warn!("[codex-sync] failed to spawn provider sync: {}", e);
+            log::error!("[codex-sync] failed to spawn provider sync: {}", e);
             return;
         }
     };
@@ -934,7 +944,16 @@ fn run_codex_provider_sync(provider_id: &str) {
             Ok(Some(status)) => {
                 if status.success() {
                     log::info!("[codex-sync] provider sync OK (pid {})", pid);
+                    // Log stdout for debugging
+                    if let Some(mut stdout) = child.stdout.take() {
+                        let mut stdout_buf = String::new();
+                        let _ = std::io::Read::read_to_string(&mut stdout, &mut stdout_buf);
+                        if !stdout_buf.is_empty() {
+                            log::info!("[codex-sync] stdout: {}", stdout_buf.trim());
+                        }
+                    }
                 } else {
+                    log::error!("[codex-sync] provider sync failed with status: {:?}", status);
                     let mut stderr_buf = String::new();
                     if let Some(mut s) = child.stderr.take() {
                         use std::io::Read;
