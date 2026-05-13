@@ -454,16 +454,16 @@ impl LlmClient {
                                         }
                                     }
                                 }
-                                "content_block_stop" => {
-                                    if !current_tool_id.is_empty() {
-                                        let _ = tx
-                                            .send(LlmEvent::ToolCallEnd {
-                                                id: current_tool_id.clone(),
-                                            })
-                                            .await;
-                                        current_tool_id.clear();
-                                        current_tool_name.clear();
-                                    }
+                                "content_block_stop"
+                                    if !current_tool_id.is_empty() =>
+                                {
+                                    let _ = tx
+                                        .send(LlmEvent::ToolCallEnd {
+                                            id: current_tool_id.clone(),
+                                        })
+                                        .await;
+                                    current_tool_id.clear();
+                                    current_tool_name.clear();
                                 }
                                 "message_delta" => {
                                     if let Some(delta) = data.get("delta") {

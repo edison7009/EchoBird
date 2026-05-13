@@ -860,7 +860,7 @@ pub async fn run_agent(
                 }
             };
 
-            for (tc, result) in tool_calls.iter().zip(results.into_iter()) {
+            for (tc, result) in tool_calls.iter().zip(results) {
                 datalog.log_tool_result(&result.output, result.success);
                 emit_event(
                     &app,
