@@ -80,6 +80,18 @@ pub fn run() {
                 }
             }
 
+            // macOS: ensure cursor events are enabled to prevent hit-test failures.
+            // Some users reported buttons becoming unresponsive (only scrolling worked)
+            // when decorations=false + transparent=true + window-state restoration
+            // caused the window to lose proper event routing.
+            #[cfg(target_os = "macos")]
+            {
+                if let Some(win) = app.get_webview_window("main") {
+                    let _ = win.set_ignore_cursor_events(false);
+                    log::info!("[macOS] Explicitly enabled cursor events for hit-test");
+                }
+            }
+
             // Safety fallback: show main window after 1s even if appReady() never fires.
             // Uses std::thread to avoid tokio runtime dependency in sync setup().
             #[cfg(not(target_os = "android"))]
