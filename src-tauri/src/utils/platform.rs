@@ -30,6 +30,10 @@ pub async fn get_command_path(cmd: &str) -> Option<String> {
 /// Tauri GUI processes inherit a stripped PATH (no rc-file additions like nvm, asdf,
 /// conda, ~/.local/bin extensions). Spawning `$SHELL -lc 'command -v <cmd>'` runs the
 /// user's login shell, sources their rc files, and reports the real PATH resolution.
+///
+/// IMPORTANT: This function has a 2-second timeout to prevent hanging the UI if the
+/// user's shell config is slow or broken. If the timeout is hit, we return None and
+/// fall back to the system PATH.
 #[cfg(any(target_os = "linux", target_os = "macos"))]
 fn shell_command_path(cmd: &str) -> Option<String> {
     // Defense-in-depth: only forward simple command names into the shell
@@ -41,10 +45,36 @@ fn shell_command_path(cmd: &str) -> Option<String> {
         return None;
     }
     let shell = std::env::var("SHELL").unwrap_or_else(|_| "/bin/bash".to_string());
-    let output = Command::new(&shell)
-        .args(["-lc", &format!("command -v {} 2>/dev/null", cmd)])
-        .output()
-        .ok()?;
+
+    // Spawn the shell command with a timeout to prevent hanging
+    use std::sync::mpsc;
+    use std::thread;
+    use std::time::Duration;
+
+    let (tx, rx) = mpsc::channel();
+    let cmd_clone = cmd.to_string();
+    let shell_clone = shell.clone();
+
+    thread::spawn(move || {
+        let output = Command::new(&shell_clone)
+            .args(["-lc", &format!("command -v {} 2>/dev/null", cmd_clone)])
+            .output();
+        let _ = tx.send(output);
+    });
+
+    // Wait up to 2 seconds for the shell command to complete
+    let output = match rx.recv_timeout(Duration::from_secs(2)) {
+        Ok(Ok(output)) => output,
+        Ok(Err(e)) => {
+            log::warn!("[platform] Shell command failed for '{}': {}", cmd, e);
+            return None;
+        }
+        Err(_) => {
+            log::warn!("[platform] Shell command timed out for '{}' (>2s) - user's shell config may be slow", cmd);
+            return None;
+        }
+    };
+
     if !output.status.success() {
         return None;
     }
@@ -70,45 +100,85 @@ fn shell_command_path(_cmd: &str) -> Option<String> {
 
 /// Check if a Python module is installed (pip-installed tools like nanobot)
 /// Runs `python -m {module} --version` and checks exit code
+/// Has a 3-second timeout to prevent hanging.
 pub async fn python_module_exists(module: &str) -> bool {
-    #[cfg(windows)]
-    let result = {
-        use std::os::windows::process::CommandExt;
-        const CREATE_NO_WINDOW: u32 = 0x08000000;
-        Command::new("python")
-            .args(["-m", module, "--version"])
-            .creation_flags(CREATE_NO_WINDOW)
-            .output()
-    };
-    #[cfg(not(windows))]
-    let result = Command::new("python3")
-        .args(["-m", module, "--version"])
-        .output();
+    use std::sync::mpsc;
+    use std::thread;
+    use std::time::Duration;
 
-    match result {
-        Ok(output) => output.status.success() || !output.stdout.is_empty(),
-        Err(_) => false,
+    let (tx, rx) = mpsc::channel();
+    let module_clone = module.to_string();
+
+    thread::spawn(move || {
+        #[cfg(windows)]
+        let result = {
+            use std::os::windows::process::CommandExt;
+            const CREATE_NO_WINDOW: u32 = 0x08000000;
+            Command::new("python")
+                .args(["-m", &module_clone, "--version"])
+                .creation_flags(CREATE_NO_WINDOW)
+                .output()
+        };
+        #[cfg(not(windows))]
+        let result = Command::new("python3")
+            .args(["-m", &module_clone, "--version"])
+            .output();
+
+        let _ = tx.send(result);
+    });
+
+    // Wait up to 3 seconds for the Python module check to complete
+    match rx.recv_timeout(Duration::from_secs(3)) {
+        Ok(Ok(output)) => output.status.success() || !output.stdout.is_empty(),
+        Ok(Err(_)) => false,
+        Err(_) => {
+            log::warn!("[platform] Python module check timed out for '{}' (>3s)", module);
+            false
+        }
     }
 }
 
 /// Get command version by running `cmd --version`
+/// Has a 3-second timeout to prevent hanging if the command is slow or broken.
 pub async fn get_version(cmd: &str) -> Option<String> {
-    #[cfg(windows)]
-    let output = {
-        use std::os::windows::process::CommandExt;
-        const CREATE_NO_WINDOW: u32 = 0x08000000;
-        // Use cmd.exe /C to properly resolve .cmd batch wrappers (npm-installed tools)
-        Command::new("cmd")
-            .args(["/C", cmd, "--version"])
-            .creation_flags(CREATE_NO_WINDOW)
-            .output()
-            .ok()?
+    use std::sync::mpsc;
+    use std::thread;
+    use std::time::Duration;
+
+    let (tx, rx) = mpsc::channel();
+    let cmd_clone = cmd.to_string();
+
+    thread::spawn(move || {
+        #[cfg(windows)]
+        let output = {
+            use std::os::windows::process::CommandExt;
+            const CREATE_NO_WINDOW: u32 = 0x08000000;
+            // Use cmd.exe /C to properly resolve .cmd batch wrappers (npm-installed tools)
+            Command::new("cmd")
+                .args(["/C", &cmd_clone, "--version"])
+                .creation_flags(CREATE_NO_WINDOW)
+                .output()
+        };
+        #[cfg(not(windows))]
+        let output = Command::new(&cmd_clone)
+            .arg("--version")
+            .output();
+
+        let _ = tx.send(output);
+    });
+
+    // Wait up to 3 seconds for the version command to complete
+    let output = match rx.recv_timeout(Duration::from_secs(3)) {
+        Ok(Ok(output)) => output,
+        Ok(Err(e)) => {
+            log::warn!("[platform] Version check failed for '{}': {}", cmd, e);
+            return None;
+        }
+        Err(_) => {
+            log::warn!("[platform] Version check timed out for '{}' (>3s)", cmd);
+            return None;
+        }
     };
-    #[cfg(not(windows))]
-    let output = Command::new(cmd)
-        .arg("--version")
-        .output()
-        .ok()?;
 
     // Check both stdout and stderr — some tools print version to stderr
     // Don't require success exit code — some tools return non-zero with --version
