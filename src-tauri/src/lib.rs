@@ -327,24 +327,24 @@ pub fn run() {
         .expect("error while building tauri application")
         .run(|app_handle, event| {
             match event {
-                tauri::RunEvent::WindowEvent { label, event, .. } => {
-                    if label == "main" {
-                        if let tauri::WindowEvent::CloseRequested { api, .. } = event {
-                            // Check user settings for close behavior
-                            let settings = settings_commands::get_settings();
-                            let close_to_tray = settings.close_to_tray.unwrap_or(false);
+                tauri::RunEvent::WindowEvent {
+                    label,
+                    event: tauri::WindowEvent::CloseRequested { api, .. },
+                    ..
+                } if label == "main" => {
+                    // Check user settings for close behavior
+                    let settings = settings_commands::get_settings();
+                    let close_to_tray = settings.close_to_tray.unwrap_or(false);
 
-                            if close_to_tray {
-                                // Prevent the window from closing and hide it instead
-                                api.prevent_close();
+                    if close_to_tray {
+                        // Prevent the window from closing and hide it instead
+                        api.prevent_close();
 
-                                if let Some(window) = app_handle.get_webview_window("main") {
-                                    let _ = window.hide();
-                                }
-                            }
-                            // Otherwise, let it close normally
+                        if let Some(window) = app_handle.get_webview_window("main") {
+                            let _ = window.hide();
                         }
                     }
+                    // Otherwise, let it close normally
                 }
                 tauri::RunEvent::Exit => {
                     // Clean up all spawned processes on app exit to prevent zombie processes.
