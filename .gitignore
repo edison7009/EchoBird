@@ -1,5 +1,13 @@
 # Internal development docs (local only)
 internal-docs/
+PROGRESS_HANDOFF.md
+FRONTEND_QUALITY.md
+SECURITY_AUDIT.md
+STAGE4_TEST_REPORT.md
+*_HANDOFF.md
+*_QUALITY.md
+*_AUDIT.md
+*_TEST_REPORT.md
 
 # Dependencies
 node_modules/
