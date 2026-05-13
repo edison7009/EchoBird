@@ -1,6 +1,16 @@
 import { createContext, useContext } from 'react';
 import type { ModelConfig, LocalTool } from '../../api/types';
 
+export interface BundledProviderPreset {
+  internalId: string;
+  name: string;
+  baseUrl: string;
+  anthropicUrl?: string;
+  modelId?: string;
+  url?: string;
+  region?: string;
+}
+
 // ===== Context =====
 
 export interface AppManagerContextType {
@@ -27,6 +37,7 @@ export interface AppManagerContextType {
   isScanning: boolean;
   scanTools: () => Promise<void>;
   userModels: ModelConfig[];
+  bundledProviderPresets: BundledProviderPreset[];
   modelProtocolSelection: Record<string, 'openai' | 'anthropic'>;
   setModelProtocolSelection: React.Dispatch<
     React.SetStateAction<Record<string, 'openai' | 'anthropic'>>

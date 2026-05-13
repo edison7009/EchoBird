@@ -176,6 +176,38 @@
       "anthropicUrl": "",
       "modelId": "",
       "region": "global"
+    },
+    {
+      "name": "SiliconFlow 硅基流动",
+      "url": "https://siliconflow.cn",
+      "baseUrl": "https://api.siliconflow.cn/v1",
+      "anthropicUrl": "",
+      "modelId": "",
+      "region": "cn"
+    },
+    {
+      "name": "PPIO 派欧云",
+      "url": "https://ppinfra.com",
+      "baseUrl": "https://api.ppinfra.com/v3/openai",
+      "anthropicUrl": "",
+      "modelId": "",
+      "region": "cn"
+    },
+    {
+      "name": "302.AI",
+      "url": "https://302.ai",
+      "baseUrl": "https://api.302.ai/v1",
+      "anthropicUrl": "",
+      "modelId": "",
+      "region": "global"
+    },
+    {
+      "name": "OpenAI-Compatible Custom",
+      "url": "",
+      "baseUrl": "",
+      "anthropicUrl": "",
+      "modelId": "",
+      "region": "global"
     }
   ],
   "relays": [
@@ -199,6 +231,30 @@
       "name": "B.ai",
       "url": "https://b.ai",
       "baseUrl": "https://api.theb.ai/v1",
+      "anthropicUrl": "",
+      "modelId": "",
+      "region": "global"
+    },
+    {
+      "name": "One API",
+      "url": "https://github.com/songquanpeng/one-api",
+      "baseUrl": "",
+      "anthropicUrl": "",
+      "modelId": "",
+      "region": "global"
+    },
+    {
+      "name": "New API",
+      "url": "https://github.com/QuantumNous/new-api",
+      "baseUrl": "",
+      "anthropicUrl": "",
+      "modelId": "",
+      "region": "global"
+    },
+    {
+      "name": "LibreChat AI Gateway",
+      "url": "https://www.librechat.ai",
+      "baseUrl": "",
       "anthropicUrl": "",
       "modelId": "",
       "region": "global"

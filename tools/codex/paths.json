@@ -20,6 +20,7 @@
             "%LOCALAPPDATA%/pnpm/codex.exe"
         ],
         "darwin": [
+            "/Applications/ServBay/package/node/current/bin/codex",
             "/usr/local/bin/codex",
             "/opt/homebrew/bin/codex",
             "~/.bun/bin/codex",

@@ -3,10 +3,20 @@ import { useConfirm } from '../../components/ConfirmDialog';
 import { useI18n } from '../../hooks/useI18n';
 import * as api from '../../api/tauri';
 import type { ModelConfig } from '../../api/types';
-import { AppManagerContext } from './context';
+import { AppManagerContext, BundledProviderPreset } from './context';
 import { useToolsStore } from '../../stores/toolsStore';
 import { useNavigationStore } from '../../stores/navigationStore';
 import { getOfficialEndpoint, isOfficialModelSentinel } from '../../data/officialEndpoints';
+import modelDirectory from '../../data/modelDirectory.json';
+
+type ModelDirectoryEntry = {
+  name?: string;
+  url?: string;
+  baseUrl?: string;
+  anthropicUrl?: string;
+  modelId?: string;
+  region?: string;
+};
 
 // ===== Provider =====
 
@@ -29,6 +39,36 @@ export const AppManagerProvider: React.FC<AppManagerProviderProps> = ({ children
   } = useToolsStore();
   const { activePage, goToMother } = useNavigationStore();
   const isActive = activePage === 'apps';
+
+  const bundledProviderPresets = React.useMemo<BundledProviderPreset[]>(() => {
+    const directory = modelDirectory as {
+      providers?: ModelDirectoryEntry[];
+      relays?: ModelDirectoryEntry[];
+    };
+    const entries = [...(directory.providers || []), ...(directory.relays || [])];
+
+    return entries
+      .filter((entry) => entry && (entry.baseUrl || entry.anthropicUrl))
+      .map((entry) => {
+        const baseUrl = entry.baseUrl || '';
+        const anthropicUrl = entry.anthropicUrl || '';
+        const modelId = entry.modelId || '';
+        const slug = String(entry.name || 'provider')
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, '-')
+          .replace(/^-+|-+$/g, '');
+
+        return {
+          internalId: `bundled:${slug}:${modelId || 'default'}`,
+          name: entry.name || 'Provider',
+          baseUrl,
+          anthropicUrl,
+          modelId,
+          url: entry.url || '',
+          region: entry.region || '',
+        };
+      });
+  }, []);
 
   // Wrapped navigation: build prefill and go to Mother Agent (model check happens there)
   const handleGoToMother = useCallback(
@@ -129,6 +169,35 @@ export const AppManagerProvider: React.FC<AppManagerProviderProps> = ({ children
       [toolId]: modelId,
     }));
   };
+
+  const ensureBundledPresetModel = useCallback(
+    async (presetId: string): Promise<string | null> => {
+      if (!presetId.startsWith('bundled:')) return presetId;
+
+      const preset = bundledProviderPresets.find((item) => item.internalId === presetId);
+      if (!preset) return null;
+
+      const existing = userModels.find(
+        (model) =>
+          model.name === preset.name &&
+          model.baseUrl === preset.baseUrl &&
+          (model.anthropicUrl || '') === (preset.anthropicUrl || '') &&
+          (model.modelId || '') === (preset.modelId || '')
+      );
+      if (existing) return existing.internalId;
+
+      const created = await api.addModel({
+        name: preset.name,
+        baseUrl: preset.baseUrl,
+        anthropicUrl: preset.anthropicUrl || undefined,
+        apiKey: '',
+        modelId: preset.modelId || undefined,
+      });
+      setUserModels((prev) => [...prev, created]);
+      return created.internalId;
+    },
+    [bundledProviderPresets, userModels]
+  );
 
   // Get selected tool data
   const selectedToolData = detectedTools.find((t) => t.id === selectedTool);
@@ -234,10 +303,21 @@ export const AppManagerProvider: React.FC<AppManagerProviderProps> = ({ children
     // Launchable tools (e.g. games) always pass config via URL hash, never via file write.
     // no-model-config tools (e.g. desktop apps) skip config writes entirely.
     if (!noModelConfig && agreedConfigPolicy && !isLaunchable && toolModelConfig[selectedTool]) {
-      const pending = toolModelConfig[selectedTool]!;
+      let pending = toolModelConfig[selectedTool]!;
       const applyResult = isOfficialModelSentinel(pending)
         ? await applyRestore(selectedTool)
-        : await applyModelConfig(selectedTool, pending);
+        : await (async () => {
+            const resolvedModelId = await ensureBundledPresetModel(pending);
+            if (!resolvedModelId) return false;
+            if (resolvedModelId !== pending) {
+              setToolModelConfig((prev) => ({
+                ...prev,
+                [selectedTool]: resolvedModelId,
+              }));
+            }
+            pending = resolvedModelId;
+            return applyModelConfig(selectedTool, resolvedModelId);
+          })();
       if (applyResult !== true) {
         setApplyError(typeof applyResult === 'string' ? applyResult : t('key.destroyed'));
         setIsLaunching(false);
@@ -300,6 +380,7 @@ export const AppManagerProvider: React.FC<AppManagerProviderProps> = ({ children
         isScanning,
         scanTools,
         userModels,
+        bundledProviderPresets,
         modelProtocolSelection,
         setModelProtocolSelection,
         handleLaunch,

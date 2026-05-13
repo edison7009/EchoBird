@@ -775,12 +775,20 @@ async fn scan_single_tool(def: ToolDefinition) -> DetectedTool {
                 }
             }
         }
-        // Skip --version probe for desktop GUI apps: their binary doesn't
-        // implement a CLI fast-path for --version, so invoking it just opens
-        // the main window. noModelConfig is the right gate — it's already the
-        // marker for "this is a launch-only desktop app, not a CLI we query".
-        if version.is_none() && !pc.command.is_empty() && !pc.no_model_config {
+        if version.is_none() {
+            if let Some(ref path) = installed_path {
+                version = platform::get_macos_bundle_version(Path::new(path));
+            }
+        }
+
+        if version.is_none() && !pc.command.is_empty() {
             version = platform::get_version(&pc.command).await;
+        }
+
+        if version.is_none() {
+            if let Some(ref path) = installed_path {
+                version = platform::get_version_from_path(Path::new(path)).await;
+            }
         }
     }
 

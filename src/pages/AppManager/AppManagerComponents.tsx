@@ -3,12 +3,15 @@ import { Server as ServerIcon, Box as BoxIcon } from 'lucide-react';
 import { ToolCard, getModelIcon } from '../../components';
 import { useI18n } from '../../hooks/useI18n';
 import type { ModelConfig, LocalTool } from '../../api/types';
+import type { BundledProviderPreset } from './context';
 import { useAppManager, toolCategories } from './context';
 import {
   getOfficialEndpoint,
   officialModelSentinel,
   type OfficialEndpoint,
 } from '../../data/officialEndpoints';
+
+type TranslationKey = Parameters<ReturnType<typeof useI18n>['t']>[0];
 
 // ===== Main Content (tool cards grid) =====
 
@@ -53,7 +56,7 @@ export const AppManagerMain: React.FC = () => {
                   Desktop: 'toolCat.desktop',
                   Utility: 'toolCat.utility',
                 };
-                return t((catMap[cat] || cat) as any);
+                return t((catMap[cat] || cat) as TranslationKey);
               })()}
             </button>
           ))}
@@ -149,6 +152,7 @@ export const AppManagerMain: React.FC = () => {
 interface ModelListSectionProps {
   selectedToolData: LocalTool;
   userModels: ModelConfig[];
+  bundledProviderPresets: BundledProviderPreset[];
   toolModelConfig: Record<string, string | null>;
   selectedTool: string | null;
   handleSelectModel: (toolId: string, modelId: string) => void;
@@ -156,12 +160,13 @@ interface ModelListSectionProps {
   setModelProtocolSelection: React.Dispatch<
     React.SetStateAction<Record<string, 'openai' | 'anthropic'>>
   >;
-  t: (key: any) => string;
+  t: (key: TranslationKey) => string;
 }
 
 export const ModelListSection: React.FC<ModelListSectionProps> = ({
   selectedToolData,
   userModels,
+  bundledProviderPresets,
   toolModelConfig,
   selectedTool,
   handleSelectModel,
@@ -169,19 +174,42 @@ export const ModelListSection: React.FC<ModelListSectionProps> = ({
   setModelProtocolSelection,
   t,
 }) => {
-  const toolProtocols = selectedToolData.apiProtocol || ['openai', 'anthropic'];
+  const toolProtocols = useMemo(
+    () => selectedToolData.apiProtocol || ['openai', 'anthropic'],
+    [selectedToolData.apiProtocol]
+  );
 
-  const { localModels, cloudModels } = useMemo(() => {
+  const { localModels, cloudModels, presetModels } = useMemo(() => {
     const compatible = userModels.filter((model) => {
       const hasOpenAI = toolProtocols.includes('openai') && !!model.baseUrl;
       const hasAnthropic = toolProtocols.includes('anthropic') && !!model.anthropicUrl;
       return hasOpenAI || hasAnthropic;
     });
+
+    const compatiblePresets = bundledProviderPresets.filter((preset) => {
+      const hasOpenAI = toolProtocols.includes('openai') && !!preset.baseUrl;
+      const hasAnthropic = toolProtocols.includes('anthropic') && !!preset.anthropicUrl;
+      return hasOpenAI || hasAnthropic;
+    });
+
+    const existingKeys = new Set(
+      compatible.map(
+        (model) =>
+          `${model.name}::${model.baseUrl}::${model.anthropicUrl || ''}::${model.modelId || ''}`
+      )
+    );
+
     return {
       localModels: compatible.filter((m) => m.internalId === 'local-server'),
       cloudModels: compatible.filter((m) => m.internalId !== 'local-server'),
+      presetModels: compatiblePresets.filter(
+        (preset) =>
+          !existingKeys.has(
+            `${preset.name}::${preset.baseUrl}::${preset.anthropicUrl || ''}::${preset.modelId || ''}`
+          )
+      ),
     };
-  }, [userModels, toolProtocols]);
+  }, [userModels, bundledProviderPresets, toolProtocols]);
 
   const renderModelCard = (model: (typeof userModels)[0]) => {
     const isSelected = selectedTool ? toolModelConfig[selectedTool] === model.internalId : false;
@@ -303,6 +331,85 @@ export const ModelListSection: React.FC<ModelListSectionProps> = ({
     );
   };
 
+  const renderPresetCard = (preset: BundledProviderPreset) => {
+    const isSelected = selectedTool ? toolModelConfig[selectedTool] === preset.internalId : false;
+    const showSwitcher = !!(preset.baseUrl && preset.anthropicUrl) && toolProtocols.length > 1;
+    const currentProtocol =
+      modelProtocolSelection[preset.modelId || preset.internalId] ||
+      (toolProtocols[0] === 'anthropic' ? 'anthropic' : 'openai');
+    const displayUrl =
+      currentProtocol === 'anthropic'
+        ? preset.anthropicUrl || preset.baseUrl
+        : preset.baseUrl || preset.anthropicUrl || '';
+    const apiPath = (() => {
+      try {
+        const url = new URL(displayUrl || '');
+        const path = url.pathname === '/' ? '' : url.pathname;
+        return url.hostname + path;
+      } catch {
+        return displayUrl || 'No URL Configured';
+      }
+    })();
+    const iconSrc = getModelIcon(preset.name, preset.modelId || '');
+
+    return (
+      <div
+        key={preset.internalId}
+        className={`p-3 rounded cursor-pointer transition-colors mb-2 flex items-center gap-3 border bg-cyber-surface ${
+          isSelected ? 'border-cyber-accent' : 'border-transparent hover:bg-cyber-elevated'
+        }`}
+        onClick={() => selectedTool && handleSelectModel(selectedTool, preset.internalId)}
+      >
+        <div className="flex items-center gap-3 flex-shrink-0">
+          <div className="w-4 h-4 rounded-full border-2 border-cyber-border flex items-center justify-center">
+            {isSelected && <div className="w-2 h-2 rounded-full bg-cyber-accent" />}
+          </div>
+          {iconSrc ? (
+            <img
+              src={iconSrc}
+              alt=""
+              className="w-6 h-6"
+              onError={(e) => {
+                (e.target as HTMLImageElement).style.display = 'none';
+              }}
+            />
+          ) : (
+            <div className="w-6 h-6 rounded bg-cyber-text/15 flex items-center justify-center text-cyber-text">
+              <BoxIcon size={14} />
+            </div>
+          )}
+        </div>
+
+        <div className="flex-1 min-w-0 flex flex-col justify-center min-h-[2.5rem] py-0.5">
+          <div className="flex items-start gap-2">
+            <div className="text-sm font-bold truncate leading-none flex-1 min-w-0">
+              {preset.name}
+            </div>
+            {showSwitcher && (
+              <span
+                className="text-[10px] font-mono cursor-pointer select-none flex-shrink-0 transition-colors text-cyber-text-muted/60 hover:text-cyber-text"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  const newProtocol = currentProtocol === 'openai' ? 'anthropic' : 'openai';
+                  setModelProtocolSelection((prev) => ({
+                    ...prev,
+                    [preset.modelId || preset.internalId]: newProtocol,
+                  }));
+                }}
+              >
+                {currentProtocol === 'openai' ? 'OpenAI' : 'Anthropic'}{' '}
+                <span className="text-[8px]">⇄</span>
+              </span>
+            )}
+          </div>
+          <div className="text-[10px] text-cyber-text-secondary truncate leading-tight mt-1 opacity-70">
+            {apiPath}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   // Official-endpoint card — first item, like cc-switch's "Claude Official"
   const official = selectedTool ? getOfficialEndpoint(selectedTool) : undefined;
   const officialSentinel = selectedTool ? officialModelSentinel(selectedTool) : '';
@@ -372,7 +479,8 @@ export const ModelListSection: React.FC<ModelListSectionProps> = ({
   // Fully empty: no local models, no cloud models, no official endpoint.
   // Show only the centered placeholder — the "select model for X" heading
   // would be misleading when there's nothing to select anyway.
-  const isEmpty = cloudModels.length === 0 && !official && localModels.length === 0;
+  const isEmpty =
+    cloudModels.length === 0 && presetModels.length === 0 && !official && localModels.length === 0;
   if (isEmpty) {
     return (
       <div className="h-full flex flex-col items-center justify-center gap-3 text-center">
@@ -404,6 +512,7 @@ export const ModelListSection: React.FC<ModelListSectionProps> = ({
       <div className="space-y-2">
         {official && renderOfficialCard(official)}
         {cloudModels.map(renderModelCard)}
+        {presetModels.map(renderPresetCard)}
       </div>
     </>
   );
@@ -417,6 +526,7 @@ export const AppManagerPanel: React.FC = () => {
     selectedToolData,
     selectedTool,
     userModels,
+    bundledProviderPresets,
     toolModelConfig,
     handleSelectModel,
     modelProtocolSelection,
@@ -451,6 +561,7 @@ export const AppManagerPanel: React.FC = () => {
               <ModelListSection
                 selectedToolData={selectedToolData}
                 userModels={userModels}
+                bundledProviderPresets={bundledProviderPresets}
                 toolModelConfig={toolModelConfig}
                 selectedTool={selectedTool}
                 handleSelectModel={handleSelectModel}

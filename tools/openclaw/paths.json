@@ -23,6 +23,8 @@
             "%USERPROFILE%/.local/bin/openclaw.exe"
         ],
         "darwin": [
+            "/Applications/OpenClaw.app/Contents/MacOS/OpenClaw",
+            "/Applications/ServBay/package/node/current/bin/openclaw",
             "/usr/local/bin/openclaw",
             "/opt/homebrew/bin/openclaw",
             "~/Library/pnpm/openclaw",

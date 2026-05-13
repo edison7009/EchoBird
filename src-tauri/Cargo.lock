@@ -1116,6 +1116,7 @@ dependencies = [
  "hmac",
  "libc",
  "log",
+ "plist",
  "rand 0.8.6",
  "raw-window-handle",
  "reqwest 0.12.28",

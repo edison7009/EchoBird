@@ -1,6 +1,7 @@
 // Platform detection and command utilities — mirrors old utils.ts
 
 use std::process::Command;
+use std::path::Path;
 
 /// Check if a command exists on PATH
 pub async fn command_exists(cmd: &str) -> bool {
@@ -234,6 +235,147 @@ pub async fn get_version(cmd: &str) -> Option<String> {
             return Some(ver[1..].trim().to_string());
         }
     }
+    None
+}
+
+/// Get version by running an explicit executable path with `--version`.
+/// Useful when the GUI process cannot resolve the tool on PATH but detection
+/// already found a concrete binary location.
+pub async fn get_version_from_path(exe_path: &Path) -> Option<String> {
+    if !exe_path.exists() || !exe_path.is_file() {
+        return None;
+    }
+
+    use std::sync::mpsc;
+    use std::thread;
+    use std::time::Duration;
+
+    let exe = exe_path.to_path_buf();
+    let (tx, rx) = mpsc::channel();
+
+    thread::spawn(move || {
+        #[cfg(windows)]
+        let output = {
+            use std::os::windows::process::CommandExt;
+            const CREATE_NO_WINDOW: u32 = 0x08000000;
+            Command::new(&exe)
+                .arg("--version")
+                .creation_flags(CREATE_NO_WINDOW)
+                .output()
+        };
+        #[cfg(not(windows))]
+        let output = Command::new(&exe).arg("--version").output();
+
+        let _ = tx.send(output);
+    });
+
+    let output = match rx.recv_timeout(Duration::from_secs(3)) {
+        Ok(Ok(output)) => output,
+        Ok(Err(e)) => {
+            log::warn!(
+                "[platform] Version check failed for path '{}': {}",
+                exe_path.display(),
+                e
+            );
+            return None;
+        }
+        Err(_) => {
+            log::warn!(
+                "[platform] Version check timed out for path '{}' (>3s)",
+                exe_path.display()
+            );
+            return None;
+        }
+    };
+
+    let combined = {
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        let raw = format!("{}\n{}", stdout, stderr);
+        let mut stripped = String::with_capacity(raw.len());
+        let mut chars = raw.chars().peekable();
+        while let Some(ch) = chars.next() {
+            if ch == '\x1b' {
+                if chars.peek() == Some(&'[') {
+                    chars.next();
+                    while let Some(&c) = chars.peek() {
+                        chars.next();
+                        if c.is_ascii_alphabetic() {
+                            break;
+                        }
+                    }
+                    continue;
+                }
+                chars.next();
+                continue;
+            }
+            stripped.push(ch);
+        }
+        stripped
+    };
+
+    for line in combined.lines() {
+        if let Some(ver) = line
+            .split_whitespace()
+            .find(|s| s.chars().next().is_some_and(|c| c.is_ascii_digit()) && s.contains('.'))
+        {
+            return Some(ver.trim().to_string());
+        }
+        if let Some(ver) = line.split_whitespace().find(|s| {
+            s.starts_with('v')
+                && s.len() > 1
+                && s.chars().nth(1).is_some_and(|c| c.is_ascii_digit())
+                && s.contains('.')
+        }) {
+            return Some(ver[1..].trim().to_string());
+        }
+    }
+
+    None
+}
+
+/// Read a macOS app bundle version from the executable path's enclosing app bundle.
+/// Prefers CFBundleShortVersionString and falls back to CFBundleVersion.
+#[cfg(target_os = "macos")]
+pub fn get_macos_bundle_version(exe_path: &Path) -> Option<String> {
+    let mut current = exe_path.to_path_buf();
+
+    loop {
+        let file_name = current.file_name()?.to_string_lossy();
+        if file_name == "MacOS" {
+            let contents_dir = current.parent()?;
+            let plist_path = contents_dir.join("Info.plist");
+            if !plist_path.exists() {
+                return None;
+            }
+
+            let value = plist::Value::from_file(&plist_path).ok()?;
+            let dict = value.as_dictionary()?;
+
+            if let Some(version) = dict
+                .get("CFBundleShortVersionString")
+                .and_then(|v| v.as_string())
+                .map(|s| s.trim())
+                .filter(|s| !s.is_empty())
+            {
+                return Some(version.to_string());
+            }
+
+            return dict
+                .get("CFBundleVersion")
+                .and_then(|v| v.as_string())
+                .map(|s| s.trim().to_string())
+                .filter(|s| !s.is_empty());
+        }
+
+        if !current.pop() {
+            return None;
+        }
+    }
+}
+
+#[cfg(not(target_os = "macos"))]
+pub fn get_macos_bundle_version(_exe_path: &Path) -> Option<String> {
     None
 }
 
