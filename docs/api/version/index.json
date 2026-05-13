@@ -1,5 +1,5 @@
 {
-  "version": "4.5.8",
-  "releaseDate": "2026-05-12",
-  "releaseNotes": "Release v4.5.8 - Windows borderless window + silent Codex launcher"
+  "version": "2.6.0",
+  "releaseDate": "2026-05-13",
+  "releaseNotes": "release: v2.6.0 — remove macOS Intel support"
 }
