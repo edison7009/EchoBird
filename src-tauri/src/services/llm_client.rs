@@ -454,9 +454,7 @@ impl LlmClient {
                                         }
                                     }
                                 }
-                                "content_block_stop"
-                                    if !current_tool_id.is_empty() =>
-                                {
+                                "content_block_stop" if !current_tool_id.is_empty() => {
                                     let _ = tx
                                         .send(LlmEvent::ToolCallEnd {
                                             id: current_tool_id.clone(),
