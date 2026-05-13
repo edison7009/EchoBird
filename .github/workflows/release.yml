@@ -17,15 +17,11 @@ jobs:
             rust-target: 'x86_64-pc-windows-msvc'
             args: ''
 
-          # macOS: separate builds for Apple Silicon and Intel.
-          # Universal binary would double size (~20MB → 40MB).
+          # macOS: Apple Silicon only. Intel Macs can run ARM64 via Rosetta 2.
+          # macos-13 (Intel) runners have severe queue delays (30+ min).
           - platform: 'macos-latest'
             rust-target: 'aarch64-apple-darwin'
             args: '--target aarch64-apple-darwin --bundles dmg'
-
-          - platform: 'macos-13'
-            rust-target: 'x86_64-apple-darwin'
-            args: '--target x86_64-apple-darwin --bundles dmg'
 
           # Linux: deb + rpm only. AppImage bundles full webkit/gtk runtime
           # (~80MB each); deb/rpm rely on system webkit2gtk (~11MB each).
@@ -104,7 +100,6 @@ jobs:
                 *_x64-setup.exe)             NEW="EchoBird_${VER}_Windows_x64-setup.exe" ;;
                 *_x64_*.msi)                 NEW="EchoBird_${VER}_Windows_x64.msi" ;;
                 *_aarch64.dmg)               NEW="EchoBird_${VER}_macOS_arm64.dmg" ;;
-                *_x64.dmg)                   NEW="EchoBird_${VER}_macOS_x64.dmg" ;;
                 *_amd64.deb)                 NEW="EchoBird_${VER}_Linux_x64.deb" ;;
                 *_arm64.deb)                 NEW="EchoBird_${VER}_Linux_arm64.deb" ;;
                 *.x86_64.rpm)                NEW="EchoBird_${VER}_Linux_x64.rpm" ;;

@@ -1302,7 +1302,7 @@ dependencies = [
 
 [[package]]
 name = "echobird"
-version = "4.5.9"
+version = "2.6.0"
 dependencies = [
  "aes-gcm",
  "async-ssh2-tokio",

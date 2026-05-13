@@ -1,0 +1,437 @@
+
+> echobird@4.5.5 lint
+> eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0
+
+
+E:\EchoBird\src\App.tsx
+  129:6  warning  React Hook useEffect has missing dependencies: 'scanTools' and 'setUpdateAvailable'. Either include them or remove the dependency array  react-hooks/exhaustive-deps
+
+E:\EchoBird\src\api\localServer.ts
+  4:56  error  'ModelSettings' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+E:\EchoBird\src\components\DownloadContext.tsx
+  95:21  warning  The ref value 'cleanupTimers.current' will likely have changed by the time this effect cleanup function runs. If this ref points to a node rendered by React, copy 'cleanupTimers.current' to a variable inside the effect, and use that variable in the cleanup function  react-hooks/exhaustive-deps
+
+E:\EchoBird\src\components\SettingsDialog.tsx
+  91:7  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+E:\EchoBird\src\components\SettingsDialog.tsx:91:7
+  89 |   useEffect(() => {
+  90 |     if (isOpen) {
+> 91 |       setUpdateStatus('idle');
+     |       ^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  92 |     }
+  93 |   }, [isOpen]);
+  94 |  react-hooks/set-state-in-effect
+
+E:\EchoBird\src\components\cards\ModelCard.tsx
+  141:6   warning  React Hook useEffect has a missing dependency: 'locked'. Either include it or remove the dependency array. You can also replace multiple useState variables with useReducer if 'setChars' needs the current value of 'locked'  react-hooks/exhaustive-deps
+  169:5   error    'type' is defined but never used. Allowed unused args must match /^_/u                                                                                                                                                         @typescript-eslint/no-unused-vars
+  183:5   error    'onProtocolClick' is defined but never used. Allowed unused args must match /^_/u                                                                                                                                              @typescript-eslint/no-unused-vars
+  351:20  warning  Unexpected any. Specify a different type                                                                                                                                                                                       @typescript-eslint/no-explicit-any
+  351:41  warning  Unexpected any. Specify a different type                                                                                                                                                                                       @typescript-eslint/no-explicit-any
+  353:18  warning  Unexpected any. Specify a different type                                                                                                                                                                                       @typescript-eslint/no-explicit-any
+  353:45  warning  Unexpected any. Specify a different type                                                                                                                                                                                       @typescript-eslint/no-explicit-any
+
+E:\EchoBird\src\components\cards\ToolCard.tsx
+  35:5  error  'website' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+  38:5  error  'command' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+
+E:\EchoBird\src\components\chat\ChatBubble.tsx
+  191:5   error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+E:\EchoBird\src\components\chat\ChatBubble.tsx:191:5
+  189 |   const [staticVerb, setStaticVerb] = useState<string>(pickRandom);
+  190 |   useEffect(() => {
+> 191 |     setStaticVerb(pickRandom()); /* eslint-disable-next-line react-hooks/exhaustive-deps */
+      |     ^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  192 |   }, [isZh]);
+  193 |
+  194 |   return (  react-hooks/set-state-in-effect
+  231:5   error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+E:\EchoBird\src\components\chat\ChatBubble.tsx:231:5
+  229 |   useEffect(() => {
+  230 |     const next = pickRandom();
+> 231 |     setTarget(next);
+      |     ^^^^^^^^^ Avoid calling setState() directly within an effect
+  232 |     setShown(next);
+  233 |     setPhase('show');
+  234 |     // eslint-disable-next-line react-hooks/exhaustive-deps                                     react-hooks/set-state-in-effect
+  244:9   error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+E:\EchoBird\src\components\chat\ChatBubble.tsx:244:9
+  242 |     if (phase === 'erase') {
+  243 |       if (shown.length === 0) {
+> 244 |         setTarget(pickRandom());
+      |         ^^^^^^^^^ Avoid calling setState() directly within an effect
+  245 |         setPhase('type');
+  246 |         return;
+  247 |       }                                                               react-hooks/set-state-in-effect
+  306:11  error  't' is assigned a value but never used. Allowed unused vars must match /^_/u                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       @typescript-eslint/no-unused-vars
+
+E:\EchoBird\src\components\chat\ToolCallCard.tsx
+  28:41  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+E:\EchoBird\src\hooks\useChatPersistence.ts
+  83:3  error  Error: Cannot access refs during render
+
+React refs are values that are not needed for rendering. Refs should only be accessed outside of render, such as in event handlers or effects. Accessing a ref value (the `current` property) during render can cause your component not to update as expected (https://react.dev/reference/react/useRef).
+
+E:\EchoBird\src\hooks\useChatPersistence.ts:83:3
+  81 |
+  82 |   const messagesRef = useRef(messages);
+> 83 |   messagesRef.current = messages;
+     |   ^^^^^^^^^^^^^^^^^^^ Cannot update ref during render
+  84 |   const diskKeyRef = useRef(diskKey);
+  85 |   diskKeyRef.current = diskKey;
+  86 |   const fromDiskRef = useRef(fromDisk);                                                                                                                                                                                                                                                                                                                                              react-hooks/refs
+  85:3  error  Error: Cannot access refs during render
+
+React refs are values that are not needed for rendering. Refs should only be accessed outside of render, such as in event handlers or effects. Accessing a ref value (the `current` property) during render can cause your component not to update as expected (https://react.dev/reference/react/useRef).
+
+E:\EchoBird\src\hooks\useChatPersistence.ts:85:3
+  83 |   messagesRef.current = messages;
+  84 |   const diskKeyRef = useRef(diskKey);
+> 85 |   diskKeyRef.current = diskKey;
+     |   ^^^^^^^^^^^^^^^^^^ Cannot update ref during render
+  86 |   const fromDiskRef = useRef(fromDisk);
+  87 |   fromDiskRef.current = fromDisk;
+  88 |                                                                                                                                                                                                                                                                                                                                                     react-hooks/refs
+  87:3  error  Error: Cannot access refs during render
+
+React refs are values that are not needed for rendering. Refs should only be accessed outside of render, such as in event handlers or effects. Accessing a ref value (the `current` property) during render can cause your component not to update as expected (https://react.dev/reference/react/useRef).
+
+E:\EchoBird\src\hooks\useChatPersistence.ts:87:3
+  85 |   diskKeyRef.current = diskKey;
+  86 |   const fromDiskRef = useRef(fromDisk);
+> 87 |   fromDiskRef.current = fromDisk;
+     |   ^^^^^^^^^^^^^^^^^^^ Cannot update ref during render
+  88 |
+  89 |   // Keep displayCount >= messages.length so new messages are always visible
+  90 |   useEffect(() => {                                                                                                                                                                                                                                                                                                                           react-hooks/refs
+  92:7  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+E:\EchoBird\src\hooks\useChatPersistence.ts:92:7
+  90 |   useEffect(() => {
+  91 |     if (messages.length > displayCount) {
+> 92 |       setDisplayCount(messages.length);
+     |       ^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  93 |     }
+  94 |   }, [messages.length, displayCount]);
+  95 |  react-hooks/set-state-in-effect
+
+E:\EchoBird\src\hooks\useI18n.ts
+  35:7  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+E:\EchoBird\src\hooks\useI18n.ts:35:7
+  33 |   useEffect(() => {
+  34 |     if (locale === 'en') {
+> 35 |       setReady(true);
+     |       ^^^^^^^^ Avoid calling setState() directly within an effect
+  36 |       return;
+  37 |     }
+  38 |     setReady(false);  react-hooks/set-state-in-effect
+
+E:\EchoBird\src\main.tsx
+  45:56  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  46:27  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+E:\EchoBird\src\pages\AiCourses\AiCourses.tsx
+  263:16  warning  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  @typescript-eslint/no-explicit-any
+  462:17  warning  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  @typescript-eslint/no-explicit-any
+  479:5   error    Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+E:\EchoBird\src\pages\AiCourses\AiCourses.tsx:479:5
+  477 |
+  478 |   useEffect(() => {
+> 479 |     sync();
+      |     ^^^^ Avoid calling setState() directly within an effect
+  480 |   }, [sync]);
+  481 |
+  482 |   const value = useMemo<AiCoursesContextValue>(  react-hooks/set-state-in-effect
+
+E:\EchoBird\src\pages\AiPulse\AiPulse.tsx
+  164:16  warning  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          @typescript-eslint/no-explicit-any
+  365:17  warning  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          @typescript-eslint/no-explicit-any
+  383:5   error    Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+E:\EchoBird\src\pages\AiPulse\AiPulse.tsx:383:5
+  381 |   // because the date sets between zh and en feeds usually don't overlap.
+  382 |   useEffect(() => {
+> 383 |     setItems(loadItems(lang));
+      |     ^^^^^^^^ Avoid calling setState() directly within an effect
+  384 |     setLastFetched(loadMeta(lang)?.lastFetched || null);
+  385 |     setSelectedDate(null);
+  386 |     setInitialLoading(loadItems(lang).length === 0);  react-hooks/set-state-in-effect
+  634:5   error    Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+E:\EchoBird\src\pages\AiPulse\AiPulse.tsx:634:5
+  632 |   const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  633 |   useEffect(() => {
+> 634 |     setExpanded((prev) =>
+      |     ^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  635 |       prev.size === 0 && months.length > 0 ? new Set(months.slice(0, 1)) : prev
+  636 |     );
+  637 |   }, [months]);                                            react-hooks/set-state-in-effect
+  642:7   error    Expected an assignment or function call and instead saw an expression                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             @typescript-eslint/no-unused-expressions
+
+E:\EchoBird\src\pages\AppManager\AppManagerComponents.tsx
+   56:50  warning  Unexpected any. Specify a different type                                                                                                                                                                    @typescript-eslint/no-explicit-any
+  159:12  warning  Unexpected any. Specify a different type                                                                                                                                                                    @typescript-eslint/no-explicit-any
+  172:9   warning  The 'toolProtocols' logical expression could make the dependencies of useMemo Hook (at line 184) change on every render. To fix this, wrap the initialization of 'toolProtocols' in its own useMemo() Hook  react-hooks/exhaustive-deps
+
+E:\EchoBird\src\pages\AppManager\AppManagerProvider.tsx
+   19:9  error    'confirm' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+  158:5  warning  Unexpected console statement                                                        no-console
+  173:9  warning  Unexpected console statement                                                        no-console
+
+E:\EchoBird\src\pages\LocalServer\LocalServer.tsx
+   22:27  error    'StoreModelVariant' is defined but never used. Allowed unused vars must match /^_/u                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        @typescript-eslint/no-unused-vars
+   80:5   error    Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+E:\EchoBird\src\pages\LocalServer\LocalServer.tsx:80:5
+  78 |   // Initial scan
+  79 |   useEffect(() => {
+> 80 |     rescanModels();
+     |     ^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  81 |   }, [rescanModels]);
+  82 |
+  83 |   return (                                                                                                                  react-hooks/set-state-in-effect
+  132:5   error    'serverModelName' is assigned a value but never used. Allowed unused vars must match /^_/u                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 @typescript-eslint/no-unused-vars
+  162:50  warning  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   @typescript-eslint/no-explicit-any
+  247:6   warning  React Hook useEffect has a missing dependency: 'engineDl'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                react-hooks/exhaustive-deps
+  255:19  warning  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   @typescript-eslint/no-explicit-any
+  284:6   warning  React Hook useEffect has a missing dependency: 'setIsRunning'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            react-hooks/exhaustive-deps
+  735:5   error    'serverRunning' is assigned a value but never used. Allowed unused vars must match /^_/u                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   @typescript-eslint/no-unused-vars
+  736:5   error    'serverPort' is assigned a value but never used. Allowed unused vars must match /^_/u                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      @typescript-eslint/no-unused-vars
+  737:5   error    'serverModelName' is assigned a value but never used. Allowed unused vars must match /^_/u                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 @typescript-eslint/no-unused-vars
+  771:5   error    Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+E:\EchoBird\src\pages\LocalServer\LocalServer.tsx:771:5
+  769 |   const [localDirs, setLocalDirs] = useState<string[]>(modelsDirs);
+  770 |   useEffect(() => {
+> 771 |     setLocalDirs(modelsDirs);
+      |     ^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  772 |   }, [modelsDirs]);
+  773 |
+  774 |   // Load download dir + GPU info on mount                react-hooks/set-state-in-effect
+  806:7   error    Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+E:\EchoBird\src\pages\LocalServer\LocalServer.tsx:806:7
+  804 |   useEffect(() => {
+  805 |     if (activeTab === 'store' && storeModels.length === 0) {
+> 806 |       setIsLoadingStore(true);
+      |       ^^^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  807 |       api
+  808 |         .getStoreModels()
+  809 |         .then((data: StoreModel[]) => {  react-hooks/set-state-in-effect
+
+E:\EchoBird\src\pages\LocalServer\context.ts
+  2:8  error  'React' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+E:\EchoBird\src\pages\ModelNexus\ModelNexus.tsx
+   88:24  warning  Unexpected any. Specify a different type                                                                           @typescript-eslint/no-explicit-any
+  116:6   warning  React Hook useEffect has a missing dependency: 'modelTerminals'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  292:5   error    'setTestOutput' is assigned a value but never used. Allowed unused vars must match /^_/u                           @typescript-eslint/no-unused-vars
+  293:5   error    'testProtocol' is assigned a value but never used. Allowed unused vars must match /^_/u                            @typescript-eslint/no-unused-vars
+  297:5   error    'modelTerminals' is assigned a value but never used. Allowed unused vars must match /^_/u                          @typescript-eslint/no-unused-vars
+  299:5   error    'isTesting' is assigned a value but never used. Allowed unused vars must match /^_/u                               @typescript-eslint/no-unused-vars
+  300:5   error    'editingModelId' is assigned a value but never used. Allowed unused vars must match /^_/u                          @typescript-eslint/no-unused-vars
+  305:5   error    'keyDestroyed' is assigned a value but never used. Allowed unused vars must match /^_/u                            @typescript-eslint/no-unused-vars
+
+E:\EchoBird\src\pages\MotherAgent\MotherAgentMain.tsx
+   16:14  error    'locale' is assigned a value but never used. Allowed unused vars must match /^_/u                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      @typescript-eslint/no-unused-vars
+   25:5   error    'agentModelData' is assigned a value but never used. Allowed unused vars must match /^_/u                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              @typescript-eslint/no-unused-vars
+   26:5   error    'agentState' is assigned a value but never used. Allowed unused vars must match /^_/u                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  @typescript-eslint/no-unused-vars
+   31:5   error    'sshServers' is assigned a value but never used. Allowed unused vars must match /^_/u                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  @typescript-eslint/no-unused-vars
+   57:10  error    'publicIP' is assigned a value but never used. Allowed unused vars must match /^_/u                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    @typescript-eslint/no-unused-vars
+   59:10  error    'serverModel' is assigned a value but never used. Allowed unused vars must match /^_/u                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 @typescript-eslint/no-unused-vars
+   61:9   error    'fileInputRef' is assigned a value but never used. Allowed unused vars must match /^_/u                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                @typescript-eslint/no-unused-vars
+   62:9   error    'imageInputRef' is assigned a value but never used. Allowed unused vars must match /^_/u                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               @typescript-eslint/no-unused-vars
+   69:33  error    Compilation Skipped: Existing memoization could not be preserved
+
+React Compiler has skipped optimizing this component because the existing manual memoization could not be preserved. The inferred dependencies did not match the manually specified dependencies, which could cause the value to change more or less frequently than expected. The inferred dependency was `setPendingFiles`, but the source dependencies were [pendingFiles, chatInput, setChatInput, handleChatSend, sendMessage]. Inferred different dependency than source.
+
+E:\EchoBird\src\pages\MotherAgent\MotherAgentMain.tsx:69:33
+  67 |
+  68 |   // Wrap handleChatSend to append pending file info as text
+> 69 |   const localSend = useCallback(() => {
+     |                                 ^^^^^^^
+> 70 |     const hasFiles = pendingFiles.length > 0;
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 71 |
+     …
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 80 |     }
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 81 |   }, [pendingFiles, chatInput, setChatInput, handleChatSend, sendMessage]);
+     | ^^^^ Could not preserve existing manual memoization
+  82 |
+  83 |   // File handling
+  84 |   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {  react-hooks/preserve-manual-memoization
+   84:9   error    'handleFileSelect' is assigned a value but never used. Allowed unused vars must match /^_/u                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            @typescript-eslint/no-unused-vars
+   94:9   error    'handleImageSelect' is assigned a value but never used. Allowed unused vars must match /^_/u                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           @typescript-eslint/no-unused-vars
+  170:5   error    Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+E:\EchoBird\src\pages\MotherAgent\MotherAgentMain.tsx:170:5
+  168 |   // Reset pagination + re-arm sticky when the server changes
+  169 |   useEffect(() => {
+> 170 |     setDisplayCount(PAGE_SIZE);
+      |     ^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  171 |     stickToBottomRef.current = true;
+  172 |     requestAnimationFrame(snapToBottom);
+  173 |   }, [selectedServerId, snapToBottom]);                                                                                                                                                  react-hooks/set-state-in-effect
+  173:6   warning  React Hook useEffect has a missing dependency: 'PAGE_SIZE'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           react-hooks/exhaustive-deps
+  285:24  warning  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               @typescript-eslint/no-explicit-any
+
+E:\EchoBird\src\pages\MotherAgent\MotherAgentPanel.tsx
+   11:5   error  'setChatInput' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+   12:5   error  'chatInputRef' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+  422:33  error  Empty block statement                                                                    no-empty
+
+E:\EchoBird\src\pages\MotherAgent\MotherAgentProvider.tsx
+   19:11  error    'detectedTools' is assigned a value but never used. Allowed unused vars must match /^_/u                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          @typescript-eslint/no-unused-vars
+   25:11  error    't' is assigned a value but never used. Allowed unused vars must match /^_/u                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      @typescript-eslint/no-unused-vars
+   50:5   error    Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+E:\EchoBird\src\pages\MotherAgent\MotherAgentProvider.tsx:50:5
+  48 |   useEffect(() => {
+  49 |     if (!initialMessage) return;
+> 50 |     setChatInput(initialMessage);
+     |     ^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  51 |     setTimeout(() => chatInputRef.current?.focus(), 100);
+  52 |   }, [initialMessage]);
+  53 |                                                                                                   react-hooks/set-state-in-effect
+  112:5   error    Error: Cannot access variable before it is declared
+
+`setSelectedServerId` is accessed before it is declared, which prevents the earlier access from updating when this value changes over time.
+
+E:\EchoBird\src\pages\MotherAgent\MotherAgentProvider.tsx:112:5
+  110 |   const removeSSHServer = useCallback(async (id: string) => {
+  111 |     setSSHServers((prev) => prev.filter((s) => s.id !== id));
+> 112 |     setSelectedServerId((prev) => (prev === id ? 'local' : prev));
+      |     ^^^^^^^^^^^^^^^^^^^ `setSelectedServerId` accessed before it is declared
+  113 |     // Remove from backend
+  114 |     await api.removeSSHServerFromDisk(id).catch(() => {});
+  115 |     useNavigationStore.getState().bumpSshServersVersion();
+
+E:\EchoBird\src\pages\MotherAgent\MotherAgentProvider.tsx:119:28
+  117 |
+  118 |   // Server selection (single-select)
+> 119 |   const [selectedServerId, setSelectedServerId] = useState('local');
+      |                            ^^^^^^^^^^^^^^^^^^^ `setSelectedServerId` is declared here
+  120 |
+  121 |   const prevServerRef = useRef('local');
+  122 |   const agentChatKey = (id: string) => `agent_${id}`;  react-hooks/immutability
+  143:69  warning  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          @typescript-eslint/no-explicit-any
+  144:73  warning  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          @typescript-eslint/no-explicit-any
+  205:6   warning  React Hook useEffect has a missing dependency: 'persistence'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    react-hooks/exhaustive-deps
+  252:6   warning  React Hook useCallback has a missing dependency: 'setAgentModel'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                react-hooks/exhaustive-deps
+  364:6   warning  React Hook useEffect has a missing dependency: 'onNewMessage'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   react-hooks/exhaustive-deps
+
+E:\EchoBird\src\pages\MotherAgent\mdComponents.tsx
+    6:45  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   24:23  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   63:27  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   75:26  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   76:22  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   77:22  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   78:22  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   81:22  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   84:22  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   87:22  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   90:30  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   96:25  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   99:22  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  104:22  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+E:\EchoBird\src\stores\toolsStore.ts
+  22:55  error  'get' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+
+✖ 101 problems (55 errors, 46 warnings)
+
