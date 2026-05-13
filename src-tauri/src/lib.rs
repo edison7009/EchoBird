@@ -155,28 +155,104 @@ pub fn run() {
         .expect("error while building tauri application")
         .run(|_app_handle, event| {
             if let tauri::RunEvent::Exit = event {
-                // Kill all llama-server processes on app exit.
-                // This prevents zombie processes from lingering and blocking ports
-                // on the next launch (which would cause 401 errors or port conflicts).
+                // Clean up all spawned processes on app exit to prevent zombie processes.
+                // ProcessManager uses a global singleton, so we can't access it here.
+                // Instead, we kill processes by name/pattern.
+
                 #[cfg(target_os = "windows")]
                 {
                     use std::os::windows::process::CommandExt;
+                    const CREATE_NO_WINDOW: u32 = 0x08000000;
+
+                    // 1. Kill codex-launcher node processes
+                    // The launcher spawns as "node.exe codex-launcher.cjs" and runs a local proxy.
+                    // We need to kill it to stop the proxy server.
+                    let _ = std::process::Command::new("wmic")
+                        .args(["process", "where", "CommandLine like '%codex-launcher.cjs%'", "delete"])
+                        .creation_flags(CREATE_NO_WINDOW)
+                        .stdout(std::process::Stdio::null())
+                        .stderr(std::process::Stdio::null())
+                        .spawn();
+
+                    // 2. Kill Codex processes (both Desktop and CLI)
+                    let _ = std::process::Command::new("taskkill")
+                        .args(["/F", "/IM", "Codex.exe", "/T"])
+                        .creation_flags(CREATE_NO_WINDOW)
+                        .stdout(std::process::Stdio::null())
+                        .stderr(std::process::Stdio::null())
+                        .spawn();
+
+                    let _ = std::process::Command::new("taskkill")
+                        .args(["/F", "/IM", "codex.exe", "/T"])
+                        .creation_flags(CREATE_NO_WINDOW)
+                        .stdout(std::process::Stdio::null())
+                        .stderr(std::process::Stdio::null())
+                        .spawn();
+
+                    // 3. Kill llama-server processes
                     let _ = std::process::Command::new("taskkill")
                         .args(["/F", "/IM", "llama-server.exe", "/T"])
-                        .creation_flags(0x08000000) // CREATE_NO_WINDOW
+                        .creation_flags(CREATE_NO_WINDOW)
                         .stdout(std::process::Stdio::null())
                         .stderr(std::process::Stdio::null())
                         .spawn();
                 }
-                #[cfg(not(target_os = "windows"))]
+
+                #[cfg(target_os = "macos")]
                 {
+                    // 1. Kill codex-launcher node processes
+                    let _ = std::process::Command::new("pkill")
+                        .args(["-f", "codex-launcher.cjs"])
+                        .stdout(std::process::Stdio::null())
+                        .stderr(std::process::Stdio::null())
+                        .spawn();
+
+                    // 2. Kill Codex processes
+                    let _ = std::process::Command::new("pkill")
+                        .args(["-f", "Codex.app/Contents/MacOS/Codex"])
+                        .stdout(std::process::Stdio::null())
+                        .stderr(std::process::Stdio::null())
+                        .spawn();
+
+                    let _ = std::process::Command::new("pkill")
+                        .args(["-f", "@openai/codex.*vendor.*codex"])
+                        .stdout(std::process::Stdio::null())
+                        .stderr(std::process::Stdio::null())
+                        .spawn();
+
+                    // 3. Kill llama-server processes
                     let _ = std::process::Command::new("pkill")
                         .args(["-f", "llama-server"])
                         .stdout(std::process::Stdio::null())
                         .stderr(std::process::Stdio::null())
                         .spawn();
                 }
-                log::info!("[App] Exit: killed all llama-server processes");
+
+                #[cfg(target_os = "linux")]
+                {
+                    // 1. Kill codex-launcher node processes
+                    let _ = std::process::Command::new("pkill")
+                        .args(["-f", "codex-launcher.cjs"])
+                        .stdout(std::process::Stdio::null())
+                        .stderr(std::process::Stdio::null())
+                        .spawn();
+
+                    // 2. Kill Codex CLI processes
+                    let _ = std::process::Command::new("pkill")
+                        .args(["-f", "@openai/codex.*vendor.*codex"])
+                        .stdout(std::process::Stdio::null())
+                        .stderr(std::process::Stdio::null())
+                        .spawn();
+
+                    // 3. Kill llama-server processes
+                    let _ = std::process::Command::new("pkill")
+                        .args(["-f", "llama-server"])
+                        .stdout(std::process::Stdio::null())
+                        .stderr(std::process::Stdio::null())
+                        .spawn();
+                }
+
+                log::info!("[App] Exit: killed codex-launcher, Codex, and llama-server processes");
             }
         });
 }
