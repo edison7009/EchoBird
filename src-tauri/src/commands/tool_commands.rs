@@ -12,7 +12,10 @@ pub async fn scan_tools() -> Result<Vec<DetectedTool>, String> {
 
 /// Apply a model configuration to a tool
 #[tauri::command]
-pub async fn apply_model_to_tool(tool_id: String, model_info: ModelInfo) -> Result<ApplyResult, String> {
+pub async fn apply_model_to_tool(
+    tool_id: String,
+    model_info: ModelInfo,
+) -> Result<ApplyResult, String> {
     // Decrypt API key if it's encrypted (frontend stores encrypted keys)
     let mut info = model_info;
     if let Some(ref encrypted_key) = info.api_key {
@@ -74,16 +77,16 @@ pub async fn launch_game(
                 // Decrypt API key if it's encrypted (frontend stores encrypted keys as enc:v1:...)
                 // Without this, the tool window receives an encrypted key and gets 401 from all APIs.
                 if let Some(api_key_val) = config.get("apiKey").and_then(|v| v.as_str()) {
-                    let decrypted = crate::services::model_manager::decrypt_key_for_use(api_key_val);
+                    let decrypted =
+                        crate::services::model_manager::decrypt_key_for_use(api_key_val);
                     if !decrypted.is_empty() {
                         config["apiKey"] = serde_json::Value::String(decrypted);
                     }
                 }
-                script.push_str(&format!("\nwindow.__MODEL_CONFIG__ = {};", config.to_string()));
+                script.push_str(&format!("\nwindow.__MODEL_CONFIG__ = {};", config));
             }
             script
         };
-
 
         let mut builder = tauri::WebviewWindowBuilder::new(
             &app_handle,
@@ -123,12 +126,16 @@ pub async fn open_folder(path: String) -> Result<(), String> {
     }
 
     // Canonicalize to get proper OS path separators (backslashes on Windows)
-    let canonical = p.canonicalize()
+    let canonical = p
+        .canonicalize()
         .map_err(|e| format!("Failed to resolve path: {}", e))?;
     let resolved = canonical.to_string_lossy().to_string();
     // Strip Windows UNC prefix \\?\ that canonicalize adds
     #[cfg(target_os = "windows")]
-    let resolved = resolved.strip_prefix(r"\\?\").unwrap_or(&resolved).to_string();
+    let resolved = resolved
+        .strip_prefix(r"\\?\")
+        .unwrap_or(&resolved)
+        .to_string();
 
     log::info!("[OpenFolder] Opening: {}", resolved);
 
