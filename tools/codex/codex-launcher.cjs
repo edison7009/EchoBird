@@ -49,16 +49,6 @@ async function main() {
     const logger = { log, warn, err };
     log(`──── launcher start, mode=${mode}, pid=${process.pid} ────`);
 
-    // Auto-skip Codex onboarding/login by patching .codex-global-state.json
-    // This allows first-time users to bypass the welcome screens and go
-    // straight to the main interface. Safe to run on every launch — it's
-    // a no-op if onboarding is already complete.
-    try {
-        bypassOnboarding(CODEX_DIR, logger);
-    } catch (e) {
-        warn(`Onboarding bypass failed (non-fatal): ${e.message}`);
-    }
-
     // For desktop mode we need EITHER a direct Codex.exe / Codex.app path
     // (preferred — child process tracking works) OR a Store launchUri
     // (fallback — fire-and-forget + tasklist polling). Only abort if
@@ -73,7 +63,8 @@ async function main() {
 
     const config = loadEchobirdConfig();
     if (!config) {
-        log(`No relay config at ${ECHOBIRD_CONFIG} — launching Codex ${mode} directly`);
+        log(`No relay config at ${ECHOBIRD_CONFIG} — launching Codex ${mode} directly (official mode)`);
+        log("Skipping onboarding bypass — user should authenticate with official Codex");
         launchCodex(mode, __dirname, null, logger);
         return;
     }
@@ -89,9 +80,19 @@ async function main() {
 
     if (isOpenAI(baseUrl)) {
         log(`OpenAI endpoint detected — no proxy needed (${mode})`);
+        log("Skipping onboarding bypass — user should authenticate with official OpenAI");
         if (apiKey) process.env[envKey] = apiKey;
         launchCodex(mode, __dirname, null, logger);
         return;
+    }
+
+    // Only bypass onboarding for third-party providers (DeepSeek, Moonshot, etc.)
+    // Official Codex/OpenAI should use normal authentication flow.
+    log(`Third-party provider detected — applying onboarding bypass`);
+    try {
+        bypassOnboarding(CODEX_DIR, logger);
+    } catch (e) {
+        warn(`Onboarding bypass failed (non-fatal): ${e.message}`);
     }
 
     log(`${mode} mode, third-party endpoint: ${baseUrl}`);
