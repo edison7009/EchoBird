@@ -2,6 +2,8 @@
 import React, { useState, useEffect } from 'react';
 import { Settings, Minus, Maximize2, Minimize2, X } from 'lucide-react';
 import { getCurrentWindow, LogicalSize } from '@tauri-apps/api/window';
+import { getSettings, saveSettings } from '../api/tauri';
+import { CloseWindowDialog } from './CloseWindowDialog';
 
 interface TitleBarProps {
   onSettingsClick?: () => void;
@@ -10,6 +12,7 @@ interface TitleBarProps {
 export const TitleBar: React.FC<TitleBarProps> = ({ onSettingsClick }) => {
   const handleMinimize = () => getCurrentWindow().minimize();
   const [isMaximized, setIsMaximized] = useState(false);
+  const [showCloseDialog, setShowCloseDialog] = useState(false);
 
   useEffect(() => {
     // Sync initial state and listen for resize/maximize events
@@ -40,54 +43,105 @@ export const TitleBar: React.FC<TitleBarProps> = ({ onSettingsClick }) => {
     }
   };
 
-  const handleClose = () => {
-    getCurrentWindow().destroy();
+  const handleClose = async () => {
+    const win = getCurrentWindow();
+
+    // Check user settings for close behavior
+    const settings = await getSettings();
+
+    // If user hasn't set their preference yet, or chose "always ask", show dialog
+    if (!settings.closeWindowBehaviorSet || settings.closeToTray === null) {
+      setShowCloseDialog(true);
+      return;
+    }
+
+    // User has set a specific preference
+    const closeToTray = settings.closeToTray ?? false;
+
+    if (closeToTray) {
+      // Hide window to tray instead of closing
+      await win.hide();
+    } else {
+      // Close the window normally
+      win.destroy();
+    }
+  };
+
+  const handleCloseDialogChoice = async (choice: 'direct' | 'tray' | null) => {
+    setShowCloseDialog(false);
+
+    if (choice === null) {
+      // User cancelled
+      return;
+    }
+
+    const win = getCurrentWindow();
+    const settings = await getSettings();
+
+    // Save user's choice (direct or tray)
+    await saveSettings({
+      ...settings,
+      closeToTray: choice === 'tray',
+      closeWindowBehaviorSet: true,
+    });
+
+    // Execute the chosen action
+    if (choice === 'tray') {
+      await win.hide();
+    } else {
+      win.destroy();
+    }
   };
 
   return (
-    <div
-      className="h-8 bg-cyber-bg flex items-center justify-end select-none flex-shrink-0 cursor-default"
-      onMouseDown={(e) => {
-        // Use startDragging for Linux (WebkitAppRegion doesn't work on Linux GTK)
-        // Also works cross-platform as a reliable fallback
-        if (e.button === 0 && !(e.target as HTMLElement).closest('button')) {
-          e.preventDefault();
-          getCurrentWindow()
-            .startDragging()
-            .catch(() => {});
-        }
-      }}
-    >
-      {/* Window controls */}
+    <>
       <div
-        className="flex items-center h-full"
-        style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
+        className="h-8 bg-cyber-bg flex items-center justify-end select-none flex-shrink-0 cursor-default"
+        onMouseDown={(e) => {
+          // Use startDragging for Linux (WebkitAppRegion doesn't work on Linux GTK)
+          // Also works cross-platform as a reliable fallback
+          if (e.button === 0 && !(e.target as HTMLElement).closest('button')) {
+            e.preventDefault();
+            getCurrentWindow()
+              .startDragging()
+              .catch(() => {});
+          }
+        }}
       >
-        <button
-          onClick={onSettingsClick}
-          className="h-full px-4 flex items-center justify-center text-cyber-text-secondary hover:bg-cyber-text/20 hover:text-cyber-text transition-colors"
+        {/* Window controls */}
+        <div
+          className="flex items-center h-full"
+          style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
         >
-          <Settings size={13} />
-        </button>
-        <button
-          onClick={handleMinimize}
-          className="h-full px-4 flex items-center justify-center text-cyber-text-secondary hover:bg-cyber-text/20 hover:text-cyber-text transition-colors"
-        >
-          <Minus size={14} />
-        </button>
-        <button
-          onClick={handleMaximize}
-          className="h-full px-4 flex items-center justify-center text-cyber-text-secondary hover:bg-cyber-text/20 hover:text-cyber-text transition-colors"
-        >
-          {isMaximized ? <Minimize2 size={13} /> : <Maximize2 size={13} />}
-        </button>
-        <button
-          onClick={handleClose}
-          className="h-full px-4 flex items-center justify-center text-cyber-text-secondary hover:bg-red-500/20 hover:text-red-400 transition-colors"
-        >
-          <X size={14} />
-        </button>
+          <button
+            onClick={onSettingsClick}
+            className="h-full px-4 flex items-center justify-center text-cyber-text-secondary hover:bg-cyber-text/20 hover:text-cyber-text transition-colors"
+          >
+            <Settings size={13} />
+          </button>
+          <button
+            onClick={handleMinimize}
+            className="h-full px-4 flex items-center justify-center text-cyber-text-secondary hover:bg-cyber-text/20 hover:text-cyber-text transition-colors"
+          >
+            <Minus size={14} />
+          </button>
+          <button
+            onClick={handleMaximize}
+            className="h-full px-4 flex items-center justify-center text-cyber-text-secondary hover:bg-cyber-text/20 hover:text-cyber-text transition-colors"
+          >
+            {isMaximized ? <Minimize2 size={13} /> : <Maximize2 size={13} />}
+          </button>
+          <button
+            onClick={handleClose}
+            className="h-full px-4 flex items-center justify-center text-cyber-text-secondary hover:bg-red-500/20 hover:text-red-400 transition-colors"
+          >
+            <X size={14} />
+          </button>
+        </div>
       </div>
-    </div>
+
+      {/* Close Window Dialog */}
+      <CloseWindowDialog isOpen={showCloseDialog} onClose={handleCloseDialogChoice} />
+    </>
   );
 };

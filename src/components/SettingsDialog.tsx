@@ -34,6 +34,7 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
   >('idle');
   const [latestVersion, setLatestVersion] = useState<string | null>(null);
   const [appVersion, setAppVersion] = useState<string>('');
+  const [closeToTray, setCloseToTray] = useState<boolean | null>(false);
   const themeMode = useThemeStore((s) => s.mode);
   const setThemeMode = useThemeStore((s) => s.setMode);
   const dialogRef = useRef<HTMLDivElement>(null);
@@ -43,6 +44,22 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
     getVersion()
       .then(setAppVersion)
       .catch(() => setAppVersion(''));
+  }, []);
+
+  // Load settings on mount
+  useEffect(() => {
+    if (isOpen) {
+      api.getSettings().then((settings) => {
+        setCloseToTray(settings.closeToTray ?? false);
+      });
+    }
+  }, [isOpen]);
+
+  // Save closeToTray setting when it changes
+  const handleCloseToTrayChange = useCallback(async (value: boolean | null) => {
+    setCloseToTray(value);
+    const settings = await api.getSettings();
+    await api.saveSettings({ ...settings, closeToTray: value });
   }, []);
 
   // Close with animation
@@ -156,6 +173,51 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
                 system: t('settings.themeSystem'),
               }}
             />
+          </div>
+
+          {/* Divider */}
+          <div className="h-px bg-cyber-border/50" />
+
+          {/* Close Window Behavior */}
+          <div className="space-y-2.5">
+            <div className="flex items-center gap-2">
+              <X size={14} className="text-cyber-text-secondary" />
+              <span className="text-[14px] font-medium text-cyber-text-secondary">
+                {t('settings.closeWindowBehavior')}
+              </span>
+            </div>
+            <div className="flex gap-1 p-1 bg-cyber-input border border-cyber-border rounded-button">
+              <button
+                onClick={() => handleCloseToTrayChange(false)}
+                className={`flex-1 h-9 flex items-center justify-center text-[13px] transition-colors rounded ${
+                  closeToTray === false
+                    ? 'bg-cyber-text/15 text-cyber-text font-semibold'
+                    : 'text-cyber-text-secondary hover:text-cyber-text hover:bg-cyber-elevated'
+                }`}
+              >
+                {t('settings.closeDirectly')}
+              </button>
+              <button
+                onClick={() => handleCloseToTrayChange(true)}
+                className={`flex-1 h-9 flex items-center justify-center text-[13px] transition-colors rounded ${
+                  closeToTray === true
+                    ? 'bg-cyber-text/15 text-cyber-text font-semibold'
+                    : 'text-cyber-text-secondary hover:text-cyber-text hover:bg-cyber-elevated'
+                }`}
+              >
+                {t('settings.closeToTray')}
+              </button>
+              <button
+                onClick={() => handleCloseToTrayChange(null)}
+                className={`flex-1 h-9 flex items-center justify-center text-[13px] transition-colors rounded ${
+                  closeToTray === null
+                    ? 'bg-cyber-text/15 text-cyber-text font-semibold'
+                    : 'text-cyber-text-secondary hover:text-cyber-text hover:bg-cyber-elevated'
+                }`}
+              >
+                {t('settings.alwaysAsk')}
+              </button>
+            </div>
           </div>
 
           {/* Divider */}

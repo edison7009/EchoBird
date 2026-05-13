@@ -14,15 +14,97 @@ use commands::bundled_commands;
 use commands::secret_commands;
 use commands::ssh_commands;
 
+use std::sync::Mutex;
 use tauri::Manager;
+use tauri::menu::{MenuBuilder, MenuItemBuilder};
+use tauri::tray::TrayIconBuilder;
+
+/// Managed state for tray locale
+pub struct TrayState {
+    pub locale: Mutex<String>,
+}
+
+/// Load tray icon from the bundled tray-icon.png
+fn load_tray_icon() -> tauri::image::Image<'static> {
+    let icon_bytes = include_bytes!("../icons/tray-icon.png");
+    let img = image::load_from_memory(icon_bytes).expect("Failed to decode tray-icon.png");
+    let rgba = img.to_rgba8();
+    let (width, height) = rgba.dimensions();
+    tauri::image::Image::new_owned(rgba.into_raw(), width, height)
+}
+
+/// Get localized tray string
+fn tray_t(locale: &str, key: &str) -> String {
+    match (locale, key) {
+        // English
+        ("en", "show") => "Show EchoBird".into(),
+        ("en", "quit") => "Quit".into(),
+        // Simplified Chinese
+        ("zh-Hans", "show") => "显示 EchoBird".into(),
+        ("zh-Hans", "quit") => "退出".into(),
+        // Fallback to English
+        (_, key) => tray_t("en", key),
+    }
+}
+
+/// Rebuild tray menu dynamically (call when locale changes)
+pub fn rebuild_tray_menu(app: &tauri::AppHandle) {
+    let state = app.state::<TrayState>();
+    let locale = state.locale.lock().unwrap().clone();
+    let version = env!("CARGO_PKG_VERSION");
+
+    // Get tray icon by ID
+    let Some(tray) = app.tray_by_id("main-tray") else {
+        log::warn!("[Tray] Cannot find tray icon 'main-tray'");
+        return;
+    };
+
+    // Build menu items
+    let app_name = "EchoBird";
+    let version_item = MenuItemBuilder::with_id("version", format!("{} v{}", app_name, version))
+        .enabled(false)
+        .build(app)
+        .unwrap();
+    let show_item = MenuItemBuilder::with_id("show", tray_t(&locale, "show"))
+        .build(app)
+        .unwrap();
+    let quit_item = MenuItemBuilder::with_id("quit", tray_t(&locale, "quit"))
+        .build(app)
+        .unwrap();
+
+    // Build menu
+    let menu = MenuBuilder::new(app)
+        .item(&version_item)
+        .separator()
+        .item(&show_item)
+        .separator()
+        .item(&quit_item)
+        .build()
+        .unwrap();
+
+    let _ = tray.set_menu(Some(menu));
+
+    // Update icon
+    let tray_icon = load_tray_icon();
+    let _ = tray.set_icon(Some(tray_icon));
+
+    // Update tooltip
+    let tooltip = format!("{} v{}", app_name, version);
+    let _ = tray.set_tooltip(Some(&tooltip));
+
+    log::info!("[Tray] Menu rebuilt: locale={}", locale);
+}
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
-        // window-state must be registered on the Builder (not inside .setup()) so
-        // it can restore size/position before the main window is created from
-        // tauri.conf.json. Auto-saves on close, auto-restores on creation.
-        .plugin(tauri_plugin_window_state::Builder::default().build())
+        // Note: window-state plugin is temporarily disabled because it intercepts
+        // CloseRequested events, preventing our "minimize to tray" feature from working.
+        // We'll need to manually save/restore window state if needed.
+        // .plugin(tauri_plugin_window_state::Builder::default().build())
+        .manage(TrayState {
+            locale: Mutex::new("en".into()),
+        })
         .manage(ssh_commands::create_ssh_pool())
         .manage(services::agent_loop::create_session_map())
         .setup(|app| {
@@ -38,16 +120,97 @@ pub fn run() {
             app.handle().plugin(
                 tauri_plugin_log::Builder::default()
                     .level(log::LevelFilter::Info)
-                    .targets([tauri_plugin_log::Target::new(
-                        tauri_plugin_log::TargetKind::LogDir {
-                            file_name: Some("echobird".to_string()),
-                        },
-                    )])
+                    .targets([
+                        // Log to file
+                        tauri_plugin_log::Target::new(
+                            tauri_plugin_log::TargetKind::LogDir {
+                                file_name: Some("echobird".to_string()),
+                            },
+                        ),
+                        // Also log to stdout in dev mode
+                        tauri_plugin_log::Target::new(
+                            tauri_plugin_log::TargetKind::Stdout,
+                        ),
+                    ])
                     .build(),
             )?;
 
             // Register shell plugin (open external URLs, folders)
             app.handle().plugin(tauri_plugin_shell::init())?;
+
+            // ─── System Tray ───
+            let tray_icon = load_tray_icon();
+
+            // Load user's locale from settings
+            let user_locale = settings_commands::get_settings()
+                .locale
+                .unwrap_or_else(|| "en".to_string());
+
+            // Build initial tray menu with user's locale
+            let version = env!("CARGO_PKG_VERSION");
+            let version_item = MenuItemBuilder::with_id("version", format!("EchoBird v{}", version))
+                .enabled(false)
+                .build(app)?;
+            let show_item = MenuItemBuilder::with_id("show", tray_t(&user_locale, "show"))
+                .build(app)?;
+            let quit_item = MenuItemBuilder::with_id("quit", tray_t(&user_locale, "quit"))
+                .build(app)?;
+            let tray_menu = MenuBuilder::new(app)
+                .item(&version_item)
+                .separator()
+                .item(&show_item)
+                .separator()
+                .item(&quit_item)
+                .build()?;
+
+            // Update TrayState with user's locale
+            let state = app.state::<TrayState>();
+            *state.locale.lock().unwrap() = user_locale;
+
+            TrayIconBuilder::with_id("main-tray")
+                .icon(tray_icon)
+                .menu(&tray_menu)
+                .show_menu_on_left_click(false)
+                .tooltip(format!("EchoBird v{}", version))
+                .on_menu_event(move |app_handle, event| {
+                    match event.id().as_ref() {
+                        "show" => {
+                            if let Some(window) = app_handle.get_webview_window("main") {
+                                let _ = window.show();
+                                let _ = window.unminimize();
+                                let _ = window.set_focus();
+                            }
+                        }
+                        "quit" => {
+                            app_handle.exit(0);
+                        }
+                        _ => {}
+                    }
+                })
+                .on_tray_icon_event(|tray, event| {
+                    match event {
+                        // Left click: toggle window visibility (only on button release)
+                        tauri::tray::TrayIconEvent::Click {
+                            button: tauri::tray::MouseButton::Left,
+                            button_state: tauri::tray::MouseButtonState::Up,
+                            ..
+                        } => {
+                            let app_handle = tray.app_handle();
+                            if let Some(window) = app_handle.get_webview_window("main") {
+                                if window.is_visible().unwrap_or(false) {
+                                    let _ = window.hide();
+                                } else {
+                                    let _ = window.show();
+                                    let _ = window.unminimize();
+                                    let _ = window.set_focus();
+                                }
+                            }
+                        }
+                        // Right click: show menu (handled automatically by Tauri)
+                        _ => {}
+                    }
+                })
+                .build(app)?;
 
             // Windows 11: disable shadow and force square corners on borderless window.
             // Without this, DWM adds a drop-shadow and rounds corners by default,
@@ -91,6 +254,10 @@ pub fn run() {
                     log::info!("[macOS] Explicitly enabled cursor events for hit-test");
                 }
             }
+
+            // Note: Window close interception is now handled in the frontend (App.tsx)
+            // using getCurrentWindow().onCloseRequested() API, which is the recommended
+            // approach in Tauri 2.0 for cross-platform compatibility.
 
             // Safety fallback: show main window after 1s even if appReady() never fires.
             // Uses std::thread to avoid tokio runtime dependency in sync setup().
@@ -165,8 +332,28 @@ pub fn run() {
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")
-        .run(|_app_handle, event| {
-            if let tauri::RunEvent::Exit = event {
+        .run(|app_handle, event| {
+            match event {
+                tauri::RunEvent::WindowEvent { label, event, .. } => {
+                    if label == "main" {
+                        if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+                            // Check user settings for close behavior
+                            let settings = settings_commands::get_settings();
+                            let close_to_tray = settings.close_to_tray.unwrap_or(false);
+
+                            if close_to_tray {
+                                // Prevent the window from closing and hide it instead
+                                api.prevent_close();
+
+                                if let Some(window) = app_handle.get_webview_window("main") {
+                                    let _ = window.hide();
+                                }
+                            }
+                            // Otherwise, let it close normally
+                        }
+                    }
+                }
+                tauri::RunEvent::Exit => {
                 // Clean up all spawned processes on app exit to prevent zombie processes.
                 // ProcessManager uses a global singleton, so we can't access it here.
                 // Instead, we kill processes by name/pattern.
@@ -270,6 +457,8 @@ pub fn run() {
                 }
 
                 log::info!("[App] Exit: killed codex-launcher, Codex, and llama-server processes");
+                }
+                _ => {}
             }
         });
 }

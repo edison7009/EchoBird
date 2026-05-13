@@ -38,6 +38,13 @@ const en: Translations = {
   'settings.checking': 'Checking...',
   'settings.latestVersion': 'Already on the latest version',
   'settings.checkFailed': 'Check failed — retry',
+  'settings.closeWindowBehavior': 'CLOSE WINDOW BEHAVIOR',
+  'settings.closeDirectly': 'Quit directly',
+  'settings.closeToTray': 'Minimize to tray',
+  'settings.alwaysAsk': 'Always ask',
+  // Close Dialog
+  'closeDialog.title': 'CLOSE BEHAVIOR',
+  'closeDialog.hint': 'Note: If your Codex has switched models, quitting will make it unusable.',
   // Buttons
   'btn.addModel': 'ADD MODEL',
   'btn.refresh': 'REFRESH',

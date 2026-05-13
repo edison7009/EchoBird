@@ -120,6 +120,8 @@ export interface ApplyModelInput {
 export interface AppSettings {
   locale?: string;
   themeMode?: 'light' | 'dark';
+  closeToTray?: boolean | null; // null = always ask, true = minimize to tray, false = quit directly
+  closeWindowBehaviorSet?: boolean; // Track if user has made a choice about close behavior
 }
 
 // ─── Store Model Types ───

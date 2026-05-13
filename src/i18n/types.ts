@@ -39,6 +39,13 @@ export type TKey =
   | 'settings.themeLight'
   | 'settings.themeDark'
   | 'settings.themeSystem'
+  | 'settings.closeWindowBehavior'
+  | 'settings.closeDirectly'
+  | 'settings.closeToTray'
+  | 'settings.alwaysAsk'
+  // Close Dialog
+  | 'closeDialog.title'
+  | 'closeDialog.hint'
   // Buttons
   | 'btn.addModel'
   | 'btn.refresh'

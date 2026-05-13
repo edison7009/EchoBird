@@ -13,6 +13,7 @@ import { DownloadProvider } from './components/DownloadContext';
 import { DownloadBar } from './components/DownloadBar';
 import { TitleBar } from './components/TitleBar';
 import { SettingsDialog } from './components/SettingsDialog';
+import { getSettings } from './api/tauri';
 
 import { useI18n } from './hooks/useI18n';
 
@@ -145,6 +146,42 @@ function App() {
     });
     return () => {
       unlisten.then((fn) => fn()).catch(() => {});
+    };
+  }, []);
+
+  // Intercept window close to support "minimize to tray" behavior
+  useEffect(() => {
+    const win = getCurrentWindow();
+    const setupCloseHandler = async () => {
+      const unlisten = await win.onCloseRequested(async (event) => {
+        // Check user settings
+        const settings = await getSettings();
+        const closeToTray = settings.closeToTray ?? false;
+
+        if (closeToTray) {
+          // Prevent default close and hide window instead
+          event.preventDefault();
+          await win.hide();
+        }
+        // Otherwise let the window close normally
+      });
+
+      return unlisten;
+    };
+
+    let unlistenFn: (() => void) | null = null;
+    setupCloseHandler()
+      .then((fn) => {
+        unlistenFn = fn;
+      })
+      .catch((err) => {
+        console.error('[App] Failed to setup close handler:', err);
+      });
+
+    return () => {
+      if (unlistenFn) {
+        unlistenFn();
+      }
     };
   }, []);
 

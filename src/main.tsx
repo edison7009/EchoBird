@@ -6,6 +6,7 @@ import { I18nProvider } from './hooks/useI18n';
 import { useThemeStore } from './stores/themeStore';
 import { detectLocale, loadLocale, resolveLocale } from './i18n';
 import * as api from './api/tauri';
+import { getCurrentWindow } from '@tauri-apps/api/window';
 
 // ── Boot pipeline ────────────────────────────────────────────────────────────
 // One linear sequence runs before the Tauri window becomes visible:
@@ -102,6 +103,26 @@ function showWindowAfterFirstPaint(): void {
   // first paint instead of triggering a reflow when I18nProvider's effect
   // runs post-mount.
   document.documentElement.lang = locale;
+
+  // Register window close handler BEFORE React mounts to ensure it's always active
+  const win = getCurrentWindow();
+  win.onCloseRequested(async (event) => {
+    try {
+      const settings = await api.getSettings();
+      const closeToTray = settings.closeToTray ?? false;
+
+      if (closeToTray) {
+        // Prevent default close and hide window instead
+        event.preventDefault();
+        await win.hide();
+      }
+      // Otherwise let the window close normally
+    } catch (err) {
+      console.error('[main.tsx] Error in close handler:', err);
+    }
+  }).catch((err) => {
+    console.error('[main.tsx] Failed to register close handler:', err);
+  });
 
   ReactDOM.createRoot(document.getElementById('root')!).render(
     <React.StrictMode>
