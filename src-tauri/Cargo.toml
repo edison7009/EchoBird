@@ -43,7 +43,7 @@ sha2 = "0.10"
 # HTTP client
 reqwest = { version = "0.12", features = ["json", "rustls-tls", "stream", "gzip"], default-features = false }
 url = "2"
-rand = "0.8"
+rand = "0.9"
 futures-util = "0.3"
 
 # Time
