@@ -1,5 +1,5 @@
 {
-  "version": "2.6.3",
+  "version": "2.6.4",
   "releaseDate": "2026-05-13",
-  "releaseNotes": "v2.6.3 — System tray with close-to-tray, Codex reasoning_content round-trip + onboarding bypass + proxy guard for third-party providers, tailwindcss v3 lock, CI quality gate, macOS hit-test + shell timeout fixes, Windows corner control, zombie process cleanup"
+  "releaseNotes": "v2.6.4 — fix version mismatch in installer; same features as v2.6.3"
 }
