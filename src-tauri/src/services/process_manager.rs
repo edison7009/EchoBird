@@ -229,7 +229,10 @@ impl ProcessManager {
             }
         };
 
-        log::info!("[codex_has_third_party_relay] Checking relay config at: {:?}", relay_path);
+        log::info!(
+            "[codex_has_third_party_relay] Checking relay config at: {:?}",
+            relay_path
+        );
 
         if !relay_path.exists() {
             log::warn!("[codex_has_third_party_relay] Relay config file does not exist");
@@ -239,7 +242,10 @@ impl ProcessManager {
         let content = match std::fs::read_to_string(&relay_path) {
             Ok(c) => c,
             Err(e) => {
-                log::error!("[codex_has_third_party_relay] Failed to read relay config: {}", e);
+                log::error!(
+                    "[codex_has_third_party_relay] Failed to read relay config: {}",
+                    e
+                );
                 return false;
             }
         };
@@ -247,7 +253,10 @@ impl ProcessManager {
         let cfg: serde_json::Value = match serde_json::from_str(&content) {
             Ok(v) => v,
             Err(e) => {
-                log::error!("[codex_has_third_party_relay] Failed to parse relay config JSON: {}", e);
+                log::error!(
+                    "[codex_has_third_party_relay] Failed to parse relay config JSON: {}",
+                    e
+                );
                 return false;
             }
         };
