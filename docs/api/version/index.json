@@ -1,5 +1,5 @@
 {
   "version": "2.6.3",
   "releaseDate": "2026-05-13",
-  "releaseNotes": "fix: reasoning_content round-trip for thinking models, lock tailwindcss v3, tray minimize support"
+  "releaseNotes": "v2.6.3 — System tray with close-to-tray, Codex reasoning_content round-trip + onboarding bypass + proxy guard for third-party providers, tailwindcss v3 lock, CI quality gate, macOS hit-test + shell timeout fixes, Windows corner control, zombie process cleanup"
 }
