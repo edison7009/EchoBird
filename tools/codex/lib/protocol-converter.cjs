@@ -35,6 +35,12 @@ function responsesToChat(body, sessions, logger) {
         // replay the same items we don't duplicate them.
         const emittedCallIds = new Set();
         const emittedToolResponses = new Set();
+        // reasoning_content from a preceding reasoning item that Codex
+        // replays from its persistent session. When the in-memory store
+        // is cold (proxy restart), this bridges the gap so DeepSeek/
+        // Moonshot/Kimi thinking models still get their required
+        // reasoning_content round-trip on the next assistant message.
+        let pendingReasoning = null;
         const items = body.input;
         let i = 0;
         while (i < items.length) {
@@ -68,11 +74,19 @@ function responsesToChat(body, sessions, logger) {
                     i++;
                 }
                 if (grouped.length > 0) {
-                    // Recover reasoning_content from prior turn (thinking
-                    // models need it round-tripped or context degrades).
-                    // We key by the FIRST call_id in the group — store-side
-                    // we save under every call_id, so any of them resolves.
-                    const reasoningContent = sessions.getReasoning(grouped[0].id);
+                    // Recover reasoning_content. Prefer the store (warm
+                    // path — filled during this proxy session). Fall back
+                    // to pendingReasoning set by a preceding reasoning
+                    // item Codex replayed from its persistent session
+                    // (cold-start path after proxy restart).
+                    let reasoningContent = sessions.getReasoning(grouped[0].id);
+                    if (!reasoningContent && pendingReasoning) {
+                        reasoningContent = pendingReasoning;
+                        pendingReasoning = null;
+                        // Persist it into the store under every call_id
+                        // so subsequent turns' lookups succeed.
+                        for (const g of grouped) sessions.storeReasoning(g.id, reasoningContent);
+                    }
                     const assistantMsg = {
                         role: "assistant",
                         content: null,
@@ -112,7 +126,12 @@ function responsesToChat(body, sessions, logger) {
                     || `call_${Math.random().toString(36).slice(2, 12)}`;
                 if (!emittedCallIds.has(callId)) {
                     emittedCallIds.add(callId);
-                    const reasoningContent = sessions.getReasoning(callId);
+                    let reasoningContent = sessions.getReasoning(callId);
+                    if (!reasoningContent && pendingReasoning) {
+                        reasoningContent = pendingReasoning;
+                        pendingReasoning = null;
+                        sessions.storeReasoning(callId, reasoningContent);
+                    }
                     const msg = {
                         role: "assistant",
                         content: null,
@@ -133,11 +152,23 @@ function responsesToChat(body, sessions, logger) {
             }
 
             if (t === "reasoning") {
-                // Codex 0.128+ replays reasoning items in input history. The
-                // SessionStore round-trips reasoning_content separately
-                // (keyed by call_id / content fingerprint), so these
-                // standalone reasoning items don't need to map to chat
-                // messages — drop them.
+                // Codex 0.128+ replays reasoning items in input history.
+                // When the in-memory SessionStore is cold (proxy restarted),
+                // getReasoning() returns null and we'd lose reasoning_content
+                // on the assistant message — DeepSeek/Moonshot/Kimi reject
+                // the turn because thinking models require this round-trip.
+                // Instead, buffer the reasoning text now and inject it into
+                // the NEXT function_call or local_shell_call assistant message
+                // we construct, keyed by the item's summary or ID.
+                const summary = item.summary || item.text || item.content || "";
+                if (summary) {
+                    // Stash so the NEXT function_call/local_shell_call block
+                    // (which must appear immediately after this reasoning
+                    // item, same as the original model output order) can pick
+                    // it up. Also persist to the store so getReasoning() can
+                    // find it regardless of the key used.
+                    pendingReasoning = summary;
+                }
                 i++;
                 continue;
             }
@@ -159,7 +190,12 @@ function responsesToChat(body, sessions, logger) {
                     // reasoning_content via the turn-fingerprint index —
                     // thinking models need this on every turn.
                     if (role === "assistant") {
-                        const rc = sessions.getTurnReasoning(content);
+                        let rc = sessions.getTurnReasoning(content);
+                        if (!rc && pendingReasoning) {
+                            rc = pendingReasoning;
+                            pendingReasoning = null;
+                            if (rc) sessions.storeTurnReasoning(content, rc);
+                        }
                         if (rc) msg.reasoning_content = rc;
                     }
                     messages.push(msg);
