@@ -59,7 +59,7 @@ uuid = { version = "1", features = ["v4"] }
 base64 = "0.22"
 
 # Desktop UX
-rfd = "0.15"
+rfd = "0.17"
 which = "8"
 
 [target.'cfg(unix)'.dependencies]
