@@ -60,7 +60,7 @@ base64 = "0.22"
 
 # Desktop UX
 rfd = "0.15"
-which = "7"
+which = "8"
 
 [target.'cfg(unix)'.dependencies]
 libc = "0.2"
