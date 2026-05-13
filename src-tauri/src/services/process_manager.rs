@@ -106,13 +106,26 @@ impl ProcessManager {
             _ => false,
         };
         if needs_launcher {
-            if let Some(launcher) = Self::find_codex_launcher() {
-                log::info!(
-                    "[ProcessManager] Routing {} through dual-spoof launcher: {:?}",
-                    tool_id,
-                    launcher
-                );
-                return self.start_codex_launcher(tool_id, &launcher);
+            match Self::find_codex_launcher() {
+                Some(launcher) => {
+                    log::info!(
+                        "[ProcessManager] Routing {} through dual-spoof launcher: {:?}",
+                        tool_id,
+                        launcher
+                    );
+                    return self.start_codex_launcher(tool_id, &launcher);
+                }
+                None => {
+                    log::error!(
+                        "[ProcessManager] {} requires launcher (third-party API configured) but codex-launcher.cjs not found",
+                        tool_id
+                    );
+                    return Err(format!(
+                        "{} requires the Codex launcher for third-party API support, but the launcher was not found. \
+                         Please check that tools/codex/codex-launcher.cjs exists.",
+                        if tool_id == "codexdesktop" { "Codex Desktop" } else { "Codex CLI" }
+                    ));
+                }
             }
         }
 
@@ -210,18 +223,45 @@ impl ProcessManager {
     fn codex_has_third_party_relay() -> bool {
         let relay_path = match dirs::home_dir() {
             Some(h) => h.join(".echobird").join("codex.json"),
-            None => return false,
+            None => {
+                log::warn!("[codex_has_third_party_relay] No home directory found");
+                return false;
+            }
         };
+
+        log::info!("[codex_has_third_party_relay] Checking relay config at: {:?}", relay_path);
+
+        if !relay_path.exists() {
+            log::warn!("[codex_has_third_party_relay] Relay config file does not exist");
+            return false;
+        }
+
         let content = match std::fs::read_to_string(&relay_path) {
             Ok(c) => c,
-            Err(_) => return false,
+            Err(e) => {
+                log::error!("[codex_has_third_party_relay] Failed to read relay config: {}", e);
+                return false;
+            }
         };
+
         let cfg: serde_json::Value = match serde_json::from_str(&content) {
             Ok(v) => v,
-            Err(_) => return false,
+            Err(e) => {
+                log::error!("[codex_has_third_party_relay] Failed to parse relay config JSON: {}", e);
+                return false;
+            }
         };
+
         let base_url = cfg.get("baseUrl").and_then(|v| v.as_str()).unwrap_or("");
-        !base_url.is_empty() && !base_url.contains("api.openai.com")
+        let is_third_party = !base_url.is_empty() && !base_url.contains("api.openai.com");
+
+        log::info!(
+            "[codex_has_third_party_relay] baseUrl='{}', is_third_party={}",
+            base_url,
+            is_third_party
+        );
+
+        is_third_party
     }
 
     /// Start Codex (CLI or Desktop) via the dual-spoof launcher.
