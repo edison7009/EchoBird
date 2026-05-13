@@ -21,7 +21,7 @@
 const path = require("path");
 const { log, warn, err } = require("./lib/logger.cjs");
 const { createSessionStore } = require("./lib/session-store.cjs");
-const { loadEchobirdConfig, isOpenAI, rewriteBaseUrl } = require("./lib/config-manager.cjs");
+const { loadEchobirdConfig, isOpenAI, rewriteBaseUrl, CODEX_DIR } = require("./lib/config-manager.cjs");
 const { startProxy } = require("./lib/proxy-server.cjs");
 const { launchCodex } = require("./lib/codex-launcher-core.cjs");
 const { runProviderSync } = require("./lib/provider-sync.cjs");
@@ -29,6 +29,7 @@ const { resolveDesktopBinary, resolveDesktopLaunchUri } = require("./lib/binary-
 const { responsesToChat } = require("./lib/protocol-converter.cjs");
 const { chatToResponsesNonStream } = require("./lib/stream-handler.cjs");
 const { valueToChatContent, mapContentPart } = require("./lib/content-mapper.cjs");
+const { bypassOnboarding } = require("./lib/onboarding-bypass.cjs");
 const { CODEX_CONFIG, ECHOBIRD_CONFIG } = require("./lib/config-manager.cjs");
 
 // Main entry point
@@ -47,6 +48,16 @@ async function main() {
     const mode = (process.env.ECHOBIRD_CODEX_LAUNCH_MODE || "cli").toLowerCase();
     const logger = { log, warn, err };
     log(`──── launcher start, mode=${mode}, pid=${process.pid} ────`);
+
+    // Auto-skip Codex onboarding/login by patching .codex-global-state.json
+    // This allows first-time users to bypass the welcome screens and go
+    // straight to the main interface. Safe to run on every launch — it's
+    // a no-op if onboarding is already complete.
+    try {
+        bypassOnboarding(CODEX_DIR, logger);
+    } catch (e) {
+        warn(`Onboarding bypass failed (non-fatal): ${e.message}`);
+    }
 
     // For desktop mode we need EITHER a direct Codex.exe / Codex.app path
     // (preferred — child process tracking works) OR a Store launchUri
