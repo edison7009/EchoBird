@@ -224,20 +224,7 @@ pub fn run() {
                         .stderr(std::process::Stdio::null())
                         .spawn();
 
-                    // 2. Kill Codex processes
-                    let _ = std::process::Command::new("pkill")
-                        .args(["-f", "Codex.app/Contents/MacOS/Codex"])
-                        .stdout(std::process::Stdio::null())
-                        .stderr(std::process::Stdio::null())
-                        .spawn();
-
-                    let _ = std::process::Command::new("pkill")
-                        .args(["-f", "@openai/codex.*vendor.*codex"])
-                        .stdout(std::process::Stdio::null())
-                        .stderr(std::process::Stdio::null())
-                        .spawn();
-
-                    // 3. Kill llama-server processes
+                    // 2. Kill bundled local llama-server processes
                     let _ = std::process::Command::new("pkill")
                         .args(["-f", "llama-server"])
                         .stdout(std::process::Stdio::null())
@@ -269,7 +256,7 @@ pub fn run() {
                         .spawn();
                 }
 
-                log::info!("[App] Exit: killed codex-launcher, Codex, and llama-server processes");
+                log::info!("[App] Exit: cleaned up bundled launcher and llama-server processes");
             }
         });
 }

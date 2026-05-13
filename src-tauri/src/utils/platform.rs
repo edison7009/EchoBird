@@ -150,12 +150,14 @@ pub async fn python_module_exists(module: &str) -> bool {
 /// Get command version by running `cmd --version`
 /// Has a 3-second timeout to prevent hanging if the command is slow or broken.
 pub async fn get_version(cmd: &str) -> Option<String> {
+    let resolved_path = get_command_path(cmd).await;
+
     use std::sync::mpsc;
     use std::thread;
     use std::time::Duration;
 
     let (tx, rx) = mpsc::channel();
-    let cmd_clone = cmd.to_string();
+    let cmd_clone = resolved_path.unwrap_or_else(|| cmd.to_string());
 
     thread::spawn(move || {
         #[cfg(windows)]
