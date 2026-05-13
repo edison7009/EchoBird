@@ -1,5 +1,5 @@
 {
-  "version": "2.6.1",
+  "version": "2.6.3",
   "releaseDate": "2026-05-13",
-  "releaseNotes": "v2.6.1 — Codex Auto-Skip Onboarding"
+  "releaseNotes": "fix: reasoning_content round-trip for thinking models, lock tailwindcss v3, tray minimize support"
 }
