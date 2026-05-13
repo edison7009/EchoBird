@@ -1,5 +1,5 @@
-use serde::{Deserialize, Serialize};
 use crate::utils::platform::echobird_dir;
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct AppSettings {

@@ -3,9 +3,9 @@
 import { invoke } from '@tauri-apps/api/core';
 
 export async function getMotherHints(): Promise<string> {
-    return invoke('get_mother_hints');
+  return invoke('get_mother_hints');
 }
 
 export async function getInstallIndex(): Promise<string> {
-    return invoke('get_install_index');
+  return invoke('get_install_index');
 }

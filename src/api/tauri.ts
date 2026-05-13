@@ -6,10 +6,7 @@
 // so consumers can continue to use  `import * as api from '../api/tauri'`.
 
 import { invoke } from '@tauri-apps/api/core';
-import type {
-    DetectedTool, ApplyModelInput,
-    AppSettings,
-} from './types';
+import type { DetectedTool, ApplyModelInput, AppSettings } from './types';
 
 // ─── Re-export domain modules ───
 
@@ -23,61 +20,70 @@ export * from './bundled';
 // ─── Tool APIs ───
 
 export async function scanTools(): Promise<DetectedTool[]> {
-    return invoke('scan_tools');
+  return invoke('scan_tools');
 }
 
-export async function applyModelToTool(toolId: string, modelInfo: ApplyModelInput): Promise<{ success: boolean; message: string }> {
-    return invoke('apply_model_to_tool', { toolId, modelInfo });
+export async function applyModelToTool(
+  toolId: string,
+  modelInfo: ApplyModelInput
+): Promise<{ success: boolean; message: string }> {
+  return invoke('apply_model_to_tool', { toolId, modelInfo });
 }
 
-export async function restoreToolToOfficial(toolId: string): Promise<{ success: boolean; message: string }> {
-    return invoke('restore_tool_to_official', { toolId });
+export async function restoreToolToOfficial(
+  toolId: string
+): Promise<{ success: boolean; message: string }> {
+  return invoke('restore_tool_to_official', { toolId });
 }
 
 // ─── Process APIs ───
 
 export async function startTool(toolId: string, startCommand?: string): Promise<void> {
-    return invoke('start_tool', { toolId, startCommand: startCommand || null });
+  return invoke('start_tool', { toolId, startCommand: startCommand || null });
 }
 
 // ─── Shell APIs (uses Tauri shell plugin) ───
 
 export async function openExternal(url: string): Promise<void> {
-    const { open } = await import('@tauri-apps/plugin-shell');
-    await open(url);
+  const { open } = await import('@tauri-apps/plugin-shell');
+  await open(url);
 }
 
 export async function openFolder(path: string): Promise<void> {
-    await invoke('open_folder', { path });
+  await invoke('open_folder', { path });
 }
 
 // ─── App Settings APIs ───
 
 export async function getSettings(): Promise<AppSettings> {
-    return invoke('get_settings');
+  return invoke('get_settings');
 }
 
 export async function saveSettings(settings: AppSettings): Promise<void> {
-    return invoke('save_settings', { settings });
+  return invoke('save_settings', { settings });
 }
 
 // ─── App Lifecycle APIs ───
 
 export async function appReady(): Promise<void> {
-    return invoke('app_ready');
+  return invoke('app_ready');
 }
 
 // ─── Misc APIs ───
 
-export async function launchGame(toolId: string, launchFile: string, modelConfig?: {
+export async function launchGame(
+  toolId: string,
+  launchFile: string,
+  modelConfig?: {
     baseUrl?: string;
     anthropicUrl?: string;
     apiKey?: string;
     model?: string;
     name?: string;
     protocol?: string;
-}): Promise<{ success: boolean; message?: string }> {
-    return invoke('launch_game', { toolId, launchFile, modelConfig: modelConfig || null });
+  }
+): Promise<{ success: boolean; message?: string }> {
+  return invoke('launch_game', { toolId, launchFile, modelConfig: modelConfig || null });
 }
 
 // ─── Window APIs (Tauri built-in) ───

@@ -18,6 +18,7 @@ pub async fn app_ready(app: tauri::AppHandle) {
         }
     }
     #[cfg(target_os = "android")]
-    { let _ = app; }
+    {
+        let _ = app;
+    }
 }
-

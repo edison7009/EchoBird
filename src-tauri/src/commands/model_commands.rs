@@ -1,9 +1,7 @@
 // Tauri Commands for model operations �?exposed to frontend via invoke()
 
 use crate::models::model::{ModelConfig, PingResult, TestResult};
-use crate::services::model_manager::{
-    self, AddModelInput, UpdateModelInput,
-};
+use crate::services::model_manager::{self, AddModelInput, UpdateModelInput};
 
 /// Get all models (user + built-in + local)
 #[tauri::command]
@@ -31,7 +29,11 @@ pub fn update_model(internal_id: String, updates: UpdateModelInput) -> Option<Mo
 
 /// Test model with API request
 #[tauri::command]
-pub async fn test_model(internal_id: String, prompt: String, protocol: String) -> Result<TestResult, String> {
+pub async fn test_model(
+    internal_id: String,
+    prompt: String,
+    protocol: String,
+) -> Result<TestResult, String> {
     Ok(model_manager::test_model(&internal_id, &prompt, &protocol).await)
 }
 

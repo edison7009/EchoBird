@@ -11,115 +11,121 @@ const isFullEdition = __APP_EDITION__ === 'full';
 export type PageType = 'news' | 'projects' | 'courses' | 'models' | 'apps' | 'localLlm' | 'mother';
 
 interface SidebarProps {
-    activePage: PageType;
-    onPageChange: (page: PageType) => void;
-    agentRunning?: boolean;
-    motherBadge?: boolean;
-    updateAvailable?: string | null;
-    onSettingsClick?: () => void;
+  activePage: PageType;
+  onPageChange: (page: PageType) => void;
+  agentRunning?: boolean;
+  motherBadge?: boolean;
+  updateAvailable?: string | null;
+  onSettingsClick?: () => void;
 }
 
-export const Sidebar = ({ activePage, onPageChange, agentRunning: _agentRunning = false, motherBadge = false, updateAvailable = null, onSettingsClick }: SidebarProps) => {
-    const { t } = useI18n();
-    // Poll local model server status
-    const [serverRunning, setServerRunning] = useState(false);
+export const Sidebar = ({
+  activePage,
+  onPageChange,
+  agentRunning: _agentRunning = false,
+  motherBadge = false,
+  updateAvailable = null,
+  onSettingsClick,
+}: SidebarProps) => {
+  const { t } = useI18n();
+  // Poll local model server status
+  const [serverRunning, setServerRunning] = useState(false);
 
-    useEffect(() => {
-        if (!isFullEdition) return;
-        const check = async () => {
-            try {
-                const info = await api.getLlmServerInfo();
-                const running = info?.running ?? false;
-                setServerRunning(prev => prev === running ? prev : running);
-            } catch { setServerRunning(prev => prev === false ? prev : false); }
-        };
-        check();
-        const interval = setInterval(check, 2000);
-        return () => clearInterval(interval);
-    }, []);
+  useEffect(() => {
+    if (!isFullEdition) return;
+    const check = async () => {
+      try {
+        const info = await api.getLlmServerInfo();
+        const running = info?.running ?? false;
+        setServerRunning((prev) => (prev === running ? prev : running));
+      } catch {
+        setServerRunning((prev) => (prev === false ? prev : false));
+      }
+    };
+    check();
+    const interval = setInterval(check, 2000);
+    return () => clearInterval(interval);
+  }, []);
 
-    return (
-        <nav className="w-64 flex flex-col px-6 pb-6">
-            <div className="mb-7 flex items-center gap-2 overflow-hidden">
-                <img
-                    src="/brand/bird.png"
-                    alt=""
-                    aria-hidden="true"
-                    draggable={false}
-                    className="flex-shrink-0 h-7 w-7 select-none"
-                />
-                <span className="brand-mark flex-shrink-0 text-cyber-text">
-                    {t('app.name')}
-                </span>
-                {updateAvailable && (
-                    <button
-                        onClick={onSettingsClick}
-                        className="flex-shrink-0 text-[11px] font-mono text-red-400 hover:opacity-70 transition-opacity animate-pulse leading-none"
-                    >
-                        {t('settings.updates')}
-                    </button>
-                )}
-            </div>
-            <div className="flex-1 space-y-5 text-[15px]">
-                <NavItem
-                    icon={<Newspaper size={20} />}
-                    label={t('nav.news')}
-                    active={activePage === 'news'}
-                    onClick={() => onPageChange('news')}
-                />
-                <NavItem
-                    icon={<Star size={20} />}
-                    label={t('nav.projects')}
-                    active={activePage === 'projects'}
-                    onClick={() => onPageChange('projects')}
-                />
-                <NavItem
-                    icon={<GraduationCap size={20} />}
-                    label={t('nav.courses')}
-                    active={activePage === 'courses'}
-                    onClick={() => onPageChange('courses')}
-                />
-                <NavItem
-                    icon={<Box size={20} />}
-                    label={t('nav.modelNexus')}
-                    active={activePage === 'models'}
-                    onClick={() => onPageChange('models')}
-                />
+  return (
+    <nav className="w-64 flex flex-col px-6 pb-6">
+      <div className="mb-7 flex items-center gap-2 overflow-hidden">
+        <img
+          src="/brand/bird.png"
+          alt=""
+          aria-hidden="true"
+          draggable={false}
+          className="flex-shrink-0 h-7 w-7 select-none"
+        />
+        <span className="brand-mark flex-shrink-0 text-cyber-text">{t('app.name')}</span>
+        {updateAvailable && (
+          <button
+            onClick={onSettingsClick}
+            className="flex-shrink-0 text-[11px] font-mono text-red-400 hover:opacity-70 transition-opacity animate-pulse leading-none"
+          >
+            {t('settings.updates')}
+          </button>
+        )}
+      </div>
+      <div className="flex-1 space-y-5 text-[15px]">
+        <NavItem
+          icon={<Newspaper size={20} />}
+          label={t('nav.news')}
+          active={activePage === 'news'}
+          onClick={() => onPageChange('news')}
+        />
+        <NavItem
+          icon={<Star size={20} />}
+          label={t('nav.projects')}
+          active={activePage === 'projects'}
+          onClick={() => onPageChange('projects')}
+        />
+        <NavItem
+          icon={<GraduationCap size={20} />}
+          label={t('nav.courses')}
+          active={activePage === 'courses'}
+          onClick={() => onPageChange('courses')}
+        />
+        <NavItem
+          icon={<Box size={20} />}
+          label={t('nav.modelNexus')}
+          active={activePage === 'models'}
+          onClick={() => onPageChange('models')}
+        />
 
-                <NavItem
-                    icon={<Cpu size={20} />}
-                    label={t('nav.appManager')}
-                    active={activePage === 'apps'}
-                    onClick={() => onPageChange('apps')}
-                />
-                {isFullEdition && (
-                    <NavItem
-                        icon={<Server size={20} />}
-                        label={t('nav.localServer')}
-                        active={activePage === 'localLlm'}
-                        onClick={() => onPageChange('localLlm')}
-                    />
-                )}
-                <NavItem
-                    icon={<Activity size={20} />}
-                    label={t('nav.motherAgent')}
-                    active={activePage === 'mother'}
-                    onClick={() => onPageChange('mother')}
-                    badge={motherBadge}
-                />
-            </div>
+        <NavItem
+          icon={<Cpu size={20} />}
+          label={t('nav.appManager')}
+          active={activePage === 'apps'}
+          onClick={() => onPageChange('apps')}
+        />
+        {isFullEdition && (
+          <NavItem
+            icon={<Server size={20} />}
+            label={t('nav.localServer')}
+            active={activePage === 'localLlm'}
+            onClick={() => onPageChange('localLlm')}
+          />
+        )}
+        <NavItem
+          icon={<Activity size={20} />}
+          label={t('nav.motherAgent')}
+          active={activePage === 'mother'}
+          onClick={() => onPageChange('mother')}
+          badge={motherBadge}
+        />
+      </div>
 
-            {isFullEdition && (
-                <div className="pt-4 text-[14px] text-cyber-text-secondary">
-                    {t('nav.localServer')}: {serverRunning ? (
-                        <span className="text-cyber-accent font-semibold">{t('status.running')}</span>
-                    ) : (
-                        <span className="text-cyber-text-muted">{t('status.offline')}</span>
-                    )}
-                </div>
-            )}
-
-
-        </nav>
-    );
+      {isFullEdition && (
+        <div className="pt-4 text-[14px] text-cyber-text-secondary">
+          {t('nav.localServer')}:{' '}
+          {serverRunning ? (
+            <span className="text-cyber-accent font-semibold">{t('status.running')}</span>
+          ) : (
+            <span className="text-cyber-text-muted">{t('status.offline')}</span>
+          )}
+        </div>
+      )}
+    </nav>
+  );
 };

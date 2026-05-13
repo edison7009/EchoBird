@@ -1,8 +1,8 @@
+use async_ssh2_tokio::client::{AuthMethod, Client, ServerCheckMethod};
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::Mutex;
-use serde::{Deserialize, Serialize};
-use async_ssh2_tokio::client::{Client, AuthMethod, ServerCheckMethod};
 
 // ── Types ──
 
@@ -89,7 +89,10 @@ pub async fn save_ssh_server(
     let mut servers = read_servers_from_disk();
 
     // On upsert: preserve existing alias if none provided
-    let existing_alias = servers.iter().find(|s| s.id == id).and_then(|s| s.alias.clone());
+    let existing_alias = servers
+        .iter()
+        .find(|s| s.id == id)
+        .and_then(|s| s.alias.clone());
 
     let server = SSHServer {
         id: id.clone(),
@@ -138,13 +141,15 @@ pub async fn auto_connect_ssh(pool: &SSHPool, server_id: &str) -> Result<(), Str
         let connections = pool.lock().await;
         if let Some(client) = connections.get(server_id) {
             // Health check: try a quick command to verify connection is alive
-            match tokio::time::timeout(
-                std::time::Duration::from_secs(3),
-                client.execute("echo ok")
-            ).await {
-                Ok(Ok(_)) => return Ok(()),  // Connection is alive
+            match tokio::time::timeout(std::time::Duration::from_secs(3), client.execute("echo ok"))
+                .await
+            {
+                Ok(Ok(_)) => return Ok(()), // Connection is alive
                 _ => {
-                    log::warn!("[SSH] Stale connection detected for '{}', will reconnect", server_id);
+                    log::warn!(
+                        "[SSH] Stale connection detected for '{}', will reconnect",
+                        server_id
+                    );
                 }
             }
         } else {
@@ -159,25 +164,40 @@ pub async fn auto_connect_ssh(pool: &SSHPool, server_id: &str) -> Result<(), Str
 
     // Load credentials from disk
     let servers = read_servers_from_disk();
-    let server = servers.iter().find(|s| s.id == server_id)
+    let server = servers
+        .iter()
+        .find(|s| s.id == server_id)
         .ok_or_else(|| format!("SSH server '{}' not found in saved servers", server_id))?;
 
     let plain_password = model_manager::decrypt_key_for_use(&server.password);
     let auth = AuthMethod::with_password(&plain_password);
     let check = ServerCheckMethod::NoCheck;
 
-    log::info!("[SSH] Auto-connecting to {}@{}:{}", server.username, server.host, server.port);
+    log::info!(
+        "[SSH] Auto-connecting to {}@{}:{}",
+        server.username,
+        server.host,
+        server.port
+    );
 
-    match Client::connect((server.host.as_str(), server.port), server.username.as_str(), auth, check).await {
+    match Client::connect(
+        (server.host.as_str(), server.port),
+        server.username.as_str(),
+        auth,
+        check,
+    )
+    .await
+    {
         Ok(client) => {
             let mut connections = pool.lock().await;
             connections.insert(server_id.to_string(), client);
             log::info!("[SSH] Auto-connected: {}", server_id);
             Ok(())
         }
-        Err(e) => {
-            Err(format!("SSH auto-connect failed for '{}': {}", server_id, e))
-        }
+        Err(e) => Err(format!(
+            "SSH auto-connect failed for '{}': {}",
+            server_id, e
+        )),
     }
 }
 
@@ -214,12 +234,10 @@ pub async fn ssh_test_connection(
                         message: format!("OK ({}ms) — {}", elapsed, result.stdout.trim()),
                     })
                 }
-                Err(e) => {
-                    Ok(SSHConnectResult {
-                        success: false,
-                        message: format!("Connected but command failed: {}", e),
-                    })
-                }
+                Err(e) => Ok(SSHConnectResult {
+                    success: false,
+                    message: format!("Connected but command failed: {}", e),
+                }),
             }
         }
         Err(e) => {
@@ -234,7 +252,10 @@ pub async fn ssh_test_connection(
             } else if raw.contains("os error") {
                 // Strip localized text, keep only "os error XXXX"
                 let clean = if let Some(pos) = raw.find("os error") {
-                    let end = raw[pos..].find(')').map(|i| pos + i + 1).unwrap_or(raw.len());
+                    let end = raw[pos..]
+                        .find(')')
+                        .map(|i| pos + i + 1)
+                        .unwrap_or(raw.len());
                     format!("Connection failed: {}", &raw[pos..end])
                 } else {
                     format!("Connection failed: {}", raw)
@@ -250,6 +271,3 @@ pub async fn ssh_test_connection(
         }
     }
 }
-
-
-

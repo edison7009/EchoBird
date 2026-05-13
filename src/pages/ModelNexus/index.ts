@@ -1,1 +1,7 @@
-export { ModelNexusProvider, ModelNexusTitleActions, ModelNexusMain, ModelNexusPanel, AddModelModal } from './ModelNexus';
+export {
+  ModelNexusProvider,
+  ModelNexusTitleActions,
+  ModelNexusMain,
+  ModelNexusPanel,
+  AddModelModal,
+} from './ModelNexus';

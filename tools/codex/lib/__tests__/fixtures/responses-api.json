@@ -1,0 +1,175 @@
+{
+  "simple_text_input": {
+    "model": "deepseek-chat",
+    "input": "Hello, how are you?",
+    "stream": true
+  },
+  "with_instructions": {
+    "model": "deepseek-chat",
+    "instructions": "You are a helpful assistant.",
+    "input": "What is 2+2?",
+    "stream": true
+  },
+  "with_previous_response": {
+    "model": "deepseek-chat",
+    "previous_response_id": "resp_abc123",
+    "input": "Tell me more",
+    "stream": true
+  },
+  "message_items": {
+    "model": "deepseek-chat",
+    "input": [
+      {
+        "type": "message",
+        "role": "user",
+        "content": "Hello"
+      },
+      {
+        "type": "message",
+        "role": "assistant",
+        "content": "Hi there!"
+      },
+      {
+        "type": "message",
+        "role": "user",
+        "content": "How are you?"
+      }
+    ],
+    "stream": true
+  },
+  "function_call_items": {
+    "model": "deepseek-chat",
+    "input": [
+      {
+        "type": "function_call",
+        "call_id": "call_123",
+        "name": "get_weather",
+        "arguments": "{\"location\":\"Tokyo\"}"
+      },
+      {
+        "type": "function_call_output",
+        "call_id": "call_123",
+        "output": "{\"temperature\":20,\"condition\":\"sunny\"}"
+      }
+    ],
+    "stream": true
+  },
+  "multiple_function_calls": {
+    "model": "deepseek-chat",
+    "input": [
+      {
+        "type": "function_call",
+        "call_id": "call_1",
+        "name": "get_weather",
+        "arguments": "{\"location\":\"Tokyo\"}"
+      },
+      {
+        "type": "function_call",
+        "call_id": "call_2",
+        "name": "get_time",
+        "arguments": "{\"timezone\":\"Asia/Tokyo\"}"
+      }
+    ],
+    "stream": true
+  },
+  "local_shell_call": {
+    "model": "deepseek-chat",
+    "input": [
+      {
+        "type": "local_shell_call",
+        "call_id": "call_shell_1",
+        "action": {
+          "command": "ls -la"
+        }
+      },
+      {
+        "type": "local_shell_call_output",
+        "call_id": "call_shell_1",
+        "output": "total 0\ndrwxr-xr-x  2 user user 4096 May 13 10:00 ."
+      }
+    ],
+    "stream": true
+  },
+  "reasoning_item": {
+    "model": "deepseek-chat",
+    "input": [
+      {
+        "type": "message",
+        "role": "user",
+        "content": "What is 2+2?"
+      },
+      {
+        "type": "reasoning",
+        "content": "Let me think about this..."
+      },
+      {
+        "type": "message",
+        "role": "assistant",
+        "content": "The answer is 4."
+      }
+    ],
+    "stream": true
+  },
+  "multimodal_content": {
+    "model": "gpt-4o",
+    "input": [
+      {
+        "type": "message",
+        "role": "user",
+        "content": [
+          {
+            "type": "input_text",
+            "text": "What's in this image?"
+          },
+          {
+            "type": "input_image",
+            "image_url": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
+          }
+        ]
+      }
+    ],
+    "stream": true
+  },
+  "with_tools": {
+    "model": "deepseek-chat",
+    "input": "What's the weather?",
+    "tools": [
+      {
+        "type": "function",
+        "name": "get_weather",
+        "description": "Get current weather",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "location": {
+              "type": "string"
+            }
+          },
+          "required": ["location"]
+        }
+      },
+      {
+        "type": "local_shell"
+      },
+      {
+        "type": "namespace",
+        "name": "utils",
+        "tools": [
+          {
+            "type": "function",
+            "name": "get_time",
+            "description": "Get current time"
+          }
+        ]
+      }
+    ],
+    "tool_choice": "auto",
+    "stream": true
+  },
+  "minimax_model": {
+    "model": "minimax-abab6.5",
+    "instructions": "You are helpful.",
+    "input": "Hello",
+    "stream": true
+  }
+}

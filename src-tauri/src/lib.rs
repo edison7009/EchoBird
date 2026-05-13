@@ -1,18 +1,18 @@
-pub mod models;
-pub mod utils;
-pub mod services;
 pub mod commands;
+pub mod models;
+pub mod services;
+pub mod utils;
 
 use commands::mod_stub;
-use commands::tool_commands;
 use commands::model_commands;
 use commands::process_commands;
 use commands::settings_commands;
+use commands::tool_commands;
 
-use commands::ssh_commands;
 use commands::agent_commands;
 use commands::bundled_commands;
 use commands::secret_commands;
+use commands::ssh_commands;
 
 use tauri::Manager;
 
@@ -38,13 +38,11 @@ pub fn run() {
             app.handle().plugin(
                 tauri_plugin_log::Builder::default()
                     .level(log::LevelFilter::Info)
-                    .targets([
-                        tauri_plugin_log::Target::new(
-                            tauri_plugin_log::TargetKind::LogDir {
-                                file_name: Some("echobird".to_string()),
-                            },
-                        ),
-                    ])
+                    .targets([tauri_plugin_log::Target::new(
+                        tauri_plugin_log::TargetKind::LogDir {
+                            file_name: Some("echobird".to_string()),
+                        },
+                    )])
                     .build(),
             )?;
 
@@ -59,9 +57,11 @@ pub fn run() {
                 if let Some(win) = app.get_webview_window("main") {
                     let _ = win.set_shadow(false);
 
-                    use windows::Win32::Graphics::Dwm::{DwmSetWindowAttribute, DWMWA_WINDOW_CORNER_PREFERENCE, DWMWCP_DONOTROUND};
-                    use windows::Win32::Foundation::HWND;
                     use raw_window_handle::{HasWindowHandle, RawWindowHandle};
+                    use windows::Win32::Foundation::HWND;
+                    use windows::Win32::Graphics::Dwm::{
+                        DwmSetWindowAttribute, DWMWA_WINDOW_CORNER_PREFERENCE, DWMWCP_DONOTROUND,
+                    };
 
                     if let Ok(handle) = win.window_handle() {
                         if let RawWindowHandle::Win32(win32_handle) = handle.as_ref() {
@@ -84,18 +84,20 @@ pub fn run() {
             // Uses std::thread to avoid tokio runtime dependency in sync setup().
             #[cfg(not(target_os = "android"))]
             {
-            let fallback_handle = app.handle().clone();
-            std::thread::spawn(move || {
-                std::thread::sleep(std::time::Duration::from_millis(1000));
-                if let Some(win) = fallback_handle.get_webview_window("main") {
-                    if !win.is_visible().unwrap_or(true) {
-                        log::warn!("[Safety] appReady() not called after 1s — showing main window");
-                        let _ = win.center();
-                        let _ = win.show();
-                        let _ = win.set_focus();
+                let fallback_handle = app.handle().clone();
+                std::thread::spawn(move || {
+                    std::thread::sleep(std::time::Duration::from_millis(1000));
+                    if let Some(win) = fallback_handle.get_webview_window("main") {
+                        if !win.is_visible().unwrap_or(true) {
+                            log::warn!(
+                                "[Safety] appReady() not called after 1s — showing main window"
+                            );
+                            let _ = win.center();
+                            let _ = win.show();
+                            let _ = win.set_focus();
+                        }
                     }
-                }
-            });
+                });
             }
 
             Ok(())
@@ -107,7 +109,6 @@ pub fn run() {
             tool_commands::restore_tool_to_official,
             tool_commands::launch_game,
             tool_commands::open_folder,
-
             model_commands::get_models,
             model_commands::add_model,
             model_commands::delete_model,
@@ -138,7 +139,6 @@ pub fn run() {
             process_commands::install_local_engine,
             settings_commands::get_settings,
             settings_commands::save_settings,
-
             ssh_commands::ssh_test_connection,
             ssh_commands::load_ssh_servers,
             ssh_commands::save_ssh_server,
@@ -168,7 +168,12 @@ pub fn run() {
                     // The launcher spawns as "node.exe codex-launcher.cjs" and runs a local proxy.
                     // We need to kill it to stop the proxy server.
                     let _ = std::process::Command::new("wmic")
-                        .args(["process", "where", "CommandLine like '%codex-launcher.cjs%'", "delete"])
+                        .args([
+                            "process",
+                            "where",
+                            "CommandLine like '%codex-launcher.cjs%'",
+                            "delete",
+                        ])
                         .creation_flags(CREATE_NO_WINDOW)
                         .stdout(std::process::Stdio::null())
                         .stderr(std::process::Stdio::null())
@@ -256,4 +261,3 @@ pub fn run() {
             }
         });
 }
-

@@ -50,7 +50,7 @@ futures-util = "0.3"
 chrono = "0.4"
 
 # SSH client
-async-ssh2-tokio = "0.12"
+async-ssh2-tokio = "0.12.2"
 
 # Agent Loop (LLM streaming + cancellation)
 reqwest-eventsource = "0.6"

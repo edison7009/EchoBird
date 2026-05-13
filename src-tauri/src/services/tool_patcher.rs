@@ -114,8 +114,14 @@ fn find_npm_global_module(package_name: &str) -> Option<PathBuf> {
     let home = dirs::home_dir()?;
     let candidates = vec![
         // Windows
-        PathBuf::from(std::env::var("APPDATA").unwrap_or_default()).join("npm").join("node_modules").join(package_name),
-        home.join(".npm-global").join("lib").join("node_modules").join(package_name),
+        PathBuf::from(std::env::var("APPDATA").unwrap_or_default())
+            .join("npm")
+            .join("node_modules")
+            .join(package_name),
+        home.join(".npm-global")
+            .join("lib")
+            .join("node_modules")
+            .join(package_name),
         // macOS/Linux
         PathBuf::from("/usr/local/lib/node_modules").join(package_name),
         PathBuf::from("/usr/lib/node_modules").join(package_name),
@@ -146,7 +152,10 @@ fn patch_entry_file(entry_path: &Path, config: &PatchConfig) -> bool {
 
     let mut content = match fs::read_to_string(entry_path) {
         Ok(c) => c,
-        Err(e) => { log::warn!("[Patcher] Failed to read {:?}: {}", entry_path, e); return false; }
+        Err(e) => {
+            log::warn!("[Patcher] Failed to read {:?}: {}", entry_path, e);
+            return false;
+        }
     };
 
     // Already patched? Restore from backup first
@@ -154,7 +163,10 @@ fn patch_entry_file(entry_path: &Path, config: &PatchConfig) -> bool {
         if backup_path.exists() {
             content = match fs::read_to_string(&backup_path) {
                 Ok(c) => c,
-                Err(e) => { log::warn!("[Patcher] Failed to read backup: {}", e); return false; }
+                Err(e) => {
+                    log::warn!("[Patcher] Failed to read backup: {}", e);
+                    return false;
+                }
             };
         } else {
             log::warn!("[Patcher] Already patched but no backup found");
@@ -189,7 +201,12 @@ fn patch_entry_file(entry_path: &Path, config: &PatchConfig) -> bool {
         }
     };
 
-    let patched = format!("{}\n{}{}", &content[..pos], config.inject_code, &content[pos..]);
+    let patched = format!(
+        "{}\n{}{}",
+        &content[..pos],
+        config.inject_code,
+        &content[pos..]
+    );
 
     if let Err(e) = fs::write(entry_path, &patched) {
         log::warn!("[Patcher] Failed to write patched file: {}", e);
@@ -206,19 +223,25 @@ fn patch_entry_file(entry_path: &Path, config: &PatchConfig) -> bool {
 pub fn patch_openclaw() {
     let install_dir = match find_npm_global_module("openclaw") {
         Some(d) => d,
-        None => { log::info!("[Patcher] OpenClaw not found, skipping"); return; }
+        None => {
+            log::info!("[Patcher] OpenClaw not found, skipping");
+            return;
+        }
     };
 
     let entry = install_dir.join("openclaw.mjs");
-    patch_entry_file(&entry, &PatchConfig {
-        marker: OPENCLAW_MARKER,
-        inject_code: OPENCLAW_INJECT,
-        search_patterns: vec![
-            "await installProcessWarningFilter();",
-            "if (await tryImport(",
-        ],
-        inject_after: true,
-    });
+    patch_entry_file(
+        &entry,
+        &PatchConfig {
+            marker: OPENCLAW_MARKER,
+            inject_code: OPENCLAW_INJECT,
+            search_patterns: vec![
+                "await installProcessWarningFilter();",
+                "if (await tryImport(",
+            ],
+            inject_after: true,
+        },
+    );
 }
 
 // ─── OpenCode Patcher ───
@@ -271,20 +294,26 @@ const OPENCODE_INJECT: &str = r#"
 pub fn patch_opencode() {
     let install_dir = match find_npm_global_module("opencode-ai") {
         Some(d) => d,
-        None => { log::info!("[Patcher] OpenCode not found, skipping"); return; }
+        None => {
+            log::info!("[Patcher] OpenCode not found, skipping");
+            return;
+        }
     };
 
     let entry = install_dir.join("bin").join("opencode");
 
-    patch_entry_file(&entry, &PatchConfig {
-        marker: OPENCODE_MARKER,
-        inject_code: OPENCODE_INJECT,
-        search_patterns: vec![
-            "const envPath = process.env.OPENCODE_BIN_PATH",
-            "function run(target) {",
-        ],
-        inject_after: false, // inject BEFORE these patterns
-    });
+    patch_entry_file(
+        &entry,
+        &PatchConfig {
+            marker: OPENCODE_MARKER,
+            inject_code: OPENCODE_INJECT,
+            search_patterns: vec![
+                "const envPath = process.env.OPENCODE_BIN_PATH",
+                "function run(target) {",
+            ],
+            inject_after: false, // inject BEFORE these patterns
+        },
+    );
 }
 
 // ─── ZeroClaw Patcher ───
@@ -295,23 +324,35 @@ pub fn patch_opencode() {
 pub fn patch_zeroclaw() {
     let home = match dirs::home_dir() {
         Some(h) => h,
-        None => { log::warn!("[Patcher] Cannot determine home dir for ZeroClaw"); return; }
+        None => {
+            log::warn!("[Patcher] Cannot determine home dir for ZeroClaw");
+            return;
+        }
     };
 
     let echobird_cfg = home.join(".echobird").join("zeroclaw.json");
     if !echobird_cfg.exists() {
-        log::info!("[Patcher] ZeroClaw config not found at {:?}, skipping", echobird_cfg);
+        log::info!(
+            "[Patcher] ZeroClaw config not found at {:?}, skipping",
+            echobird_cfg
+        );
         return;
     }
 
     let content = match fs::read_to_string(&echobird_cfg) {
         Ok(c) => c,
-        Err(e) => { log::warn!("[Patcher] Failed to read zeroclaw.json: {}", e); return; }
+        Err(e) => {
+            log::warn!("[Patcher] Failed to read zeroclaw.json: {}", e);
+            return;
+        }
     };
 
     let json: serde_json::Value = match serde_json::from_str(&content) {
         Ok(v) => v,
-        Err(e) => { log::warn!("[Patcher] Invalid zeroclaw.json: {}", e); return; }
+        Err(e) => {
+            log::warn!("[Patcher] Invalid zeroclaw.json: {}", e);
+            return;
+        }
     };
 
     let api_key = json.get("apiKey").and_then(|v| v.as_str()).unwrap_or("");
@@ -353,7 +394,11 @@ pub fn patch_zeroclaw() {
 
     let config_path = zeroclaw_dir.join("config.toml");
     match fs::write(&config_path, &toml_content) {
-        Ok(_) => log::info!("[Patcher] ZeroClaw config written: {:?} (model={})", config_path, model_id),
+        Ok(_) => log::info!(
+            "[Patcher] ZeroClaw config written: {:?} (model={})",
+            config_path,
+            model_id
+        ),
         Err(e) => log::warn!("[Patcher] Failed to write ZeroClaw config: {}", e),
     }
 }
@@ -366,23 +411,35 @@ pub fn patch_zeroclaw() {
 pub fn patch_nanobot() {
     let home = match dirs::home_dir() {
         Some(h) => h,
-        None => { log::warn!("[Patcher] Cannot determine home dir for NanoBot"); return; }
+        None => {
+            log::warn!("[Patcher] Cannot determine home dir for NanoBot");
+            return;
+        }
     };
 
     let echobird_cfg = home.join(".echobird").join("nanobot.json");
     if !echobird_cfg.exists() {
-        log::info!("[Patcher] NanoBot config not found at {:?}, skipping", echobird_cfg);
+        log::info!(
+            "[Patcher] NanoBot config not found at {:?}, skipping",
+            echobird_cfg
+        );
         return;
     }
 
     let content = match fs::read_to_string(&echobird_cfg) {
         Ok(c) => c,
-        Err(e) => { log::warn!("[Patcher] Failed to read nanobot.json: {}", e); return; }
+        Err(e) => {
+            log::warn!("[Patcher] Failed to read nanobot.json: {}", e);
+            return;
+        }
     };
 
     let json: serde_json::Value = match serde_json::from_str(&content) {
         Ok(v) => v,
-        Err(e) => { log::warn!("[Patcher] Invalid nanobot.json: {}", e); return; }
+        Err(e) => {
+            log::warn!("[Patcher] Invalid nanobot.json: {}", e);
+            return;
+        }
     };
 
     let api_key = json.get("apiKey").and_then(|v| v.as_str()).unwrap_or("");
@@ -445,8 +502,15 @@ pub fn patch_nanobot() {
         }
     }
 
-    match fs::write(&config_path, serde_json::to_string_pretty(&existing).unwrap_or_default()) {
-        Ok(_) => log::info!("[Patcher] NanoBot config written: {:?} (model={})", config_path, model_id),
+    match fs::write(
+        &config_path,
+        serde_json::to_string_pretty(&existing).unwrap_or_default(),
+    ) {
+        Ok(_) => log::info!(
+            "[Patcher] NanoBot config written: {:?} (model={})",
+            config_path,
+            model_id
+        ),
         Err(e) => log::warn!("[Patcher] Failed to write NanoBot config: {}", e),
     }
 }
@@ -458,23 +522,35 @@ pub fn patch_nanobot() {
 pub fn patch_picoclaw() {
     let home = match dirs::home_dir() {
         Some(h) => h,
-        None => { log::warn!("[Patcher] Cannot determine home dir for PicoClaw"); return; }
+        None => {
+            log::warn!("[Patcher] Cannot determine home dir for PicoClaw");
+            return;
+        }
     };
 
     let echobird_cfg = home.join(".echobird").join("picoclaw.json");
     if !echobird_cfg.exists() {
-        log::info!("[Patcher] PicoClaw config not found at {:?}, skipping", echobird_cfg);
+        log::info!(
+            "[Patcher] PicoClaw config not found at {:?}, skipping",
+            echobird_cfg
+        );
         return;
     }
 
     let content = match fs::read_to_string(&echobird_cfg) {
         Ok(c) => c,
-        Err(e) => { log::warn!("[Patcher] Failed to read picoclaw.json: {}", e); return; }
+        Err(e) => {
+            log::warn!("[Patcher] Failed to read picoclaw.json: {}", e);
+            return;
+        }
     };
 
     let json: serde_json::Value = match serde_json::from_str(&content) {
         Ok(v) => v,
-        Err(e) => { log::warn!("[Patcher] Invalid picoclaw.json: {}", e); return; }
+        Err(e) => {
+            log::warn!("[Patcher] Invalid picoclaw.json: {}", e);
+            return;
+        }
     };
 
     let api_key = json.get("apiKey").and_then(|v| v.as_str()).unwrap_or("");
@@ -539,7 +615,8 @@ pub fn patch_picoclaw() {
     };
 
     // Update or add the model entry in model_list
-    let model_list = existing.get_mut("model_list")
+    let model_list = existing
+        .get_mut("model_list")
         .and_then(|v| v.as_array_mut());
     if let Some(list) = model_list {
         // Remove existing entry with same model_name
@@ -557,8 +634,15 @@ pub fn patch_picoclaw() {
         obj.remove("providers");
     }
 
-    match fs::write(&config_path, serde_json::to_string_pretty(&existing).unwrap_or_default()) {
-        Ok(_) => log::info!("[Patcher] PicoClaw config written: {:?} (model={})", config_path, model_id),
+    match fs::write(
+        &config_path,
+        serde_json::to_string_pretty(&existing).unwrap_or_default(),
+    ) {
+        Ok(_) => log::info!(
+            "[Patcher] PicoClaw config written: {:?} (model={})",
+            config_path,
+            model_id
+        ),
         Err(e) => log::warn!("[Patcher] Failed to write PicoClaw config: {}", e),
     }
 }
@@ -573,23 +657,35 @@ pub fn patch_picoclaw() {
 pub fn patch_openfang() {
     let home = match dirs::home_dir() {
         Some(h) => h,
-        None => { log::warn!("[Patcher] Cannot determine home dir for OpenFang"); return; }
+        None => {
+            log::warn!("[Patcher] Cannot determine home dir for OpenFang");
+            return;
+        }
     };
 
     let echobird_cfg = home.join(".echobird").join("openfang.json");
     if !echobird_cfg.exists() {
-        log::info!("[Patcher] OpenFang config not found at {:?}, skipping", echobird_cfg);
+        log::info!(
+            "[Patcher] OpenFang config not found at {:?}, skipping",
+            echobird_cfg
+        );
         return;
     }
 
     let content = match fs::read_to_string(&echobird_cfg) {
         Ok(c) => c,
-        Err(e) => { log::warn!("[Patcher] Failed to read openfang.json: {}", e); return; }
+        Err(e) => {
+            log::warn!("[Patcher] Failed to read openfang.json: {}", e);
+            return;
+        }
     };
 
     let json: serde_json::Value = match serde_json::from_str(&content) {
         Ok(v) => v,
-        Err(e) => { log::warn!("[Patcher] Invalid openfang.json: {}", e); return; }
+        Err(e) => {
+            log::warn!("[Patcher] Invalid openfang.json: {}", e);
+            return;
+        }
     };
 
     let api_key = json.get("apiKey").and_then(|v| v.as_str()).unwrap_or("");
@@ -640,7 +736,9 @@ pub fn patch_openfang() {
             }
             continue;
         }
-        if skip_section { continue; }
+        if skip_section {
+            continue;
+        }
         new_config.push_str(line);
         new_config.push('\n');
     }
@@ -653,7 +751,11 @@ pub fn patch_openfang() {
     ));
 
     match fs::write(&config_path, &new_config) {
-        Ok(_) => log::info!("[Patcher] OpenFang config written: {:?} (model={})", config_path, model_id),
+        Ok(_) => log::info!(
+            "[Patcher] OpenFang config written: {:?} (model={})",
+            config_path,
+            model_id
+        ),
         Err(e) => log::warn!("[Patcher] Failed to write OpenFang config: {}", e),
     }
 }
@@ -676,23 +778,35 @@ pub fn patch_openfang() {
 pub fn patch_hermes() {
     let home = match dirs::home_dir() {
         Some(h) => h,
-        None => { log::warn!("[Patcher] Cannot determine home dir for Hermes"); return; }
+        None => {
+            log::warn!("[Patcher] Cannot determine home dir for Hermes");
+            return;
+        }
     };
 
     let echobird_cfg = home.join(".echobird").join("hermes.json");
     if !echobird_cfg.exists() {
-        log::info!("[Patcher] Hermes config not found at {:?}, skipping", echobird_cfg);
+        log::info!(
+            "[Patcher] Hermes config not found at {:?}, skipping",
+            echobird_cfg
+        );
         return;
     }
 
     let content = match fs::read_to_string(&echobird_cfg) {
         Ok(c) => c,
-        Err(e) => { log::warn!("[Patcher] Failed to read hermes.json: {}", e); return; }
+        Err(e) => {
+            log::warn!("[Patcher] Failed to read hermes.json: {}", e);
+            return;
+        }
     };
 
     let json: serde_json::Value = match serde_json::from_str(&content) {
         Ok(v) => v,
-        Err(e) => { log::warn!("[Patcher] Invalid hermes.json: {}", e); return; }
+        Err(e) => {
+            log::warn!("[Patcher] Invalid hermes.json: {}", e);
+            return;
+        }
     };
 
     let api_key = json.get("apiKey").and_then(|v| v.as_str()).unwrap_or("");
@@ -795,7 +909,11 @@ pub fn patch_hermes() {
     yaml_lines.push(format!("  default: {}", model_id));
 
     match fs::write(&config_path, yaml_lines.join("\n") + "\n") {
-        Ok(_) => log::info!("[Patcher] Hermes config written: model.default={}, base_url={}", model_id, base_url_full),
+        Ok(_) => log::info!(
+            "[Patcher] Hermes config written: model.default={}, base_url={}",
+            model_id,
+            base_url_full
+        ),
         Err(e) => log::warn!("[Patcher] Failed to write Hermes config.yaml: {}", e),
     }
 }
@@ -813,4 +931,3 @@ pub fn patch_tool(tool_id: &str) {
         _ => log::debug!("[Patcher] No patch needed for tool: {}", tool_id),
     }
 }
-

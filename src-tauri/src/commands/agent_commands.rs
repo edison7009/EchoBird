@@ -1,8 +1,8 @@
 // Agent Commands — Tauri IPC commands for the MotherAgent frontend
 
-use tauri::{AppHandle, Emitter, State};
 use crate::commands::ssh_commands::SSHPool;
 use crate::services::agent_loop::{self, AgentRequest, SharedSessionMap};
+use tauri::{AppHandle, Emitter, State};
 
 /// Send a message to the agent. The agent will process asynchronously
 /// and emit `agent_event` events to the frontend.
@@ -13,7 +13,9 @@ pub async fn agent_send_message(
     ssh_pool: State<'_, SSHPool>,
     request: AgentRequest,
 ) -> Result<String, String> {
-    let server_key = request.server_ids.first()
+    let server_key = request
+        .server_ids
+        .first()
         .cloned()
         .unwrap_or_else(|| "local".to_string());
 
@@ -47,13 +49,19 @@ pub async fn agent_send_message(
         if let Err(e) = agent_loop::run_agent(app, request, map_clone, pool_clone).await {
             log::error!("[AgentCommand] Agent error: {}", e);
             // Safety net: ensure frontend is never left stuck in isProcessing
-            let _ = app_clone.emit("agent_event", serde_json::json!({
-                "type": "error",
-                "message": e,
-            }));
-            let _ = app_clone.emit("agent_event", serde_json::json!({
-                "type": "done",
-            }));
+            let _ = app_clone.emit(
+                "agent_event",
+                serde_json::json!({
+                    "type": "error",
+                    "message": e,
+                }),
+            );
+            let _ = app_clone.emit(
+                "agent_event",
+                serde_json::json!({
+                    "type": "done",
+                }),
+            );
         }
     });
 
@@ -84,10 +92,16 @@ pub async fn agent_reset(
     server_key: String,
 ) -> Result<String, String> {
     let mut map = session_map.lock().await;
-    let sess = map.entry(server_key.clone()).or_insert_with(agent_loop::AgentSession::new);
+    let sess = map
+        .entry(server_key.clone())
+        .or_insert_with(agent_loop::AgentSession::new);
     *sess = agent_loop::AgentSession::new();
     // Also clear persisted session file from disk
     agent_loop::clear_session_from_disk(&server_key);
-    log::info!("[AgentCommand] Session reset for server {}: {}", server_key, sess.id);
+    log::info!(
+        "[AgentCommand] Session reset for server {}: {}",
+        server_key,
+        sess.id
+    );
     Ok(sess.id.clone())
 }

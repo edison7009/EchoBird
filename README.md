@@ -113,6 +113,61 @@ Latest release → <https://github.com/edison7009/EchoBird/releases/latest>
 | Linux x64 · Fedora/RHEL | `EchoBird_<ver>_Linux_x64.rpm` |
 | Linux arm64 · Fedora/RHEL | `EchoBird_<ver>_Linux_arm64.rpm` |
 
+## Architecture
+
+EchoBird is built with a modern, layered architecture:
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                     Frontend (React + TypeScript)            │
+│  ┌──────────┬──────────┬──────────┬──────────┬──────────┐  │
+│  │ AI News  │  Model   │   App    │  Local   │  Agent   │  │
+│  │  Pulse   │  Nexus   │ Manager  │   LLM    │  Chat    │  │
+│  └──────────┴──────────┴──────────┴──────────┴──────────┘  │
+└─────────────────────────────────────────────────────────────┘
+                            ↕ Tauri IPC
+┌─────────────────────────────────────────────────────────────┐
+│                    Backend (Rust + Tauri)                    │
+│  ┌──────────────────────────────────────────────────────┐  │
+│  │  Commands Layer (tool_commands, model_commands, etc) │  │
+│  └──────────────────────────────────────────────────────┘  │
+│  ┌──────────────────────────────────────────────────────┐  │
+│  │  Services Layer                                       │  │
+│  │  • tool_manager      • model_manager                  │  │
+│  │  • agent_loop        • llm_client                     │  │
+│  │  • local_llm         • process_manager                │  │
+│  └──────────────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────────┘
+                            ↕
+┌─────────────────────────────────────────────────────────────┐
+│                    Tools & Integrations                      │
+│  • Claude Code    • Codex CLI      • OpenClaw               │
+│  • Hermes Agent   • Aider          • Cursor                 │
+│  • Local LLM      • Embedded Tools (Reversi, AI Trader)     │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Key Components
+
+- **Frontend**: React + TypeScript + Tailwind CSS + Zustand
+- **Backend**: Rust + Tauri 2.0
+- **IPC**: Tauri's type-safe command system
+- **Tools**: Standardized config format in `tools/` directory
+- **Local LLM**: Built-in llama.cpp server with GPU acceleration
+
+### Data Flow
+
+1. **User Action** → Frontend component
+2. **Tauri Command** → Rust backend handler
+3. **Service Logic** → Business logic execution
+4. **External Tool** → Config file modification or process spawn
+5. **Response** → Frontend state update
+
+For more details, see:
+- [CONTRIBUTING.md](CONTRIBUTING.md) - Development guide
+- [tools/README.md](tools/README.md) - Tool integration guide
+- [tools/codex/README.md](tools/codex/README.md) - Codex proxy architecture
+
 ## License
 
 MIT — see [LICENSE](LICENSE).

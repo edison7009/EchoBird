@@ -3,9 +3,9 @@
 import { invoke } from '@tauri-apps/api/core';
 
 export async function decryptSecret(encrypted: string): Promise<string> {
-    return invoke('decrypt_secret', { encrypted });
+  return invoke('decrypt_secret', { encrypted });
 }
 
 export async function encryptSecret(plaintext: string): Promise<string> {
-    return invoke('encrypt_secret', { plaintext });
+  return invoke('encrypt_secret', { plaintext });
 }

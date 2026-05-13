@@ -9,79 +9,83 @@
 import type { BubbleChip } from '../components/chat/ChatBubble';
 
 export interface PendingFile {
-    id: string;
-    name: string;
-    type: 'file' | 'image';
-    preview?: string;   // base64 data URL for images
+  id: string;
+  name: string;
+  type: 'file' | 'image';
+  preview?: string; // base64 data URL for images
 }
 
 export interface PendingModel {
-    id: string;
-    name: string;
-    modelId?: string;
-    /** Raw ModelConfig fields needed for message text */
-    baseUrl?: string;
-    anthropicUrl?: string;
-    apiKey?: string;
+  id: string;
+  name: string;
+  modelId?: string;
+  /** Raw ModelConfig fields needed for message text */
+  baseUrl?: string;
+  anthropicUrl?: string;
+  apiKey?: string;
 }
 
 export interface BuildResult {
-    /** Full message text to send to agent */
-    messageText: string;
-    /** Chips to display below the user bubble */
-    chips: BubbleChip[];
+  /** Full message text to send to agent */
+  messageText: string;
+  /** Chips to display below the user bubble */
+  chips: BubbleChip[];
 }
 
 export function buildPendingMessage(
-    userInput: string,
-    files: PendingFile[],
-    models: PendingModel[],
-    _skills: unknown[] = [],
+  userInput: string,
+  files: PendingFile[],
+  models: PendingModel[],
+  _skills: unknown[] = []
 ): BuildResult {
-    const parts: string[] = [];
-    if (userInput.trim()) parts.push(userInput.trim());
+  const parts: string[] = [];
+  if (userInput.trim()) parts.push(userInput.trim());
 
-    const chips: BubbleChip[] = [];
+  const chips: BubbleChip[] = [];
 
-    // ── Files & images ──────────────────────────────────────────────────────
-    if (files.length > 0) {
-        const fileLines = files.map(f => {
-            if (f.type === 'image' && f.preview) {
-                return `- [Image: ${f.name}]\n  data: ${f.preview}`;
-            }
-            return `- [File: ${f.name}]`;
-        }).join('\n');
-        parts.push(`[Attached files]\n${fileLines}`);
-
-        for (const f of files) {
-            chips.push({
-                type: f.type === 'image' ? 'image' : 'file',
-                name: f.name,
-                preview: f.preview,
-            });
+  // ── Files & images ──────────────────────────────────────────────────────
+  if (files.length > 0) {
+    const fileLines = files
+      .map((f) => {
+        if (f.type === 'image' && f.preview) {
+          return `- [Image: ${f.name}]\n  data: ${f.preview}`;
         }
+        return `- [File: ${f.name}]`;
+      })
+      .join('\n');
+    parts.push(`[Attached files]\n${fileLines}`);
+
+    for (const f of files) {
+      chips.push({
+        type: f.type === 'image' ? 'image' : 'file',
+        name: f.name,
+        preview: f.preview,
+      });
     }
+  }
 
-    // ── Models ──────────────────────────────────────────────────────────────
-    if (models.length > 0) {
-        const modelInfo = models.map(pm => {
-            const lines: string[] = ['[MODEL CONFIG]', `Name: ${pm.name}`];
-            if (pm.modelId) lines.push(`Model: ${pm.modelId}`);
-            if (pm.baseUrl) lines.push(`Base URL: ${pm.baseUrl}`);
-            if (pm.anthropicUrl) lines.push(`Anthropic URL: ${pm.anthropicUrl}`);
-            if (pm.apiKey) lines.push(`API Key: ${pm.apiKey}`);
-            lines.push('[/MODEL CONFIG]');
-            return lines.join('\n');
-        }).join('\n\n');
-        parts.push(modelInfo);
+  // ── Models ──────────────────────────────────────────────────────────────
+  if (models.length > 0) {
+    const modelInfo = models
+      .map((pm) => {
+        const lines: string[] = ['[MODEL CONFIG]', `Name: ${pm.name}`];
+        if (pm.modelId) lines.push(`Model: ${pm.modelId}`);
+        if (pm.baseUrl) lines.push(`Base URL: ${pm.baseUrl}`);
+        if (pm.anthropicUrl) lines.push(`Anthropic URL: ${pm.anthropicUrl}`);
+        if (pm.apiKey) lines.push(`API Key: ${pm.apiKey}`);
+        lines.push('[/MODEL CONFIG]');
+        return lines.join('\n');
+      })
+      .join('\n\n');
+    parts.push(modelInfo);
 
-        for (const pm of models) {
-            chips.push({ type: 'model', name: pm.name, modelId: pm.modelId });
-        }
+    for (const pm of models) {
+      chips.push({ type: 'model', name: pm.name, modelId: pm.modelId });
     }
+  }
 
-    return {
-        messageText: parts.join('\n\n'),
-        chips,
-    };
+  return {
+    messageText: parts.join('\n\n'),
+    chips,
+  };
 }

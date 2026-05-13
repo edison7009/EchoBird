@@ -74,7 +74,11 @@ impl DatalogWriter {
         self.file_path = Some(dir.join(filename));
 
         let _ = writeln!(&mut self.buf, "# Turn {}", timestamp);
-        let _ = writeln!(&mut self.buf, "**env:** model={}, server={}", model_name, server_key);
+        let _ = writeln!(
+            &mut self.buf,
+            "**env:** model={}, server={}",
+            model_name, server_key
+        );
         let _ = writeln!(&mut self.buf);
         let _ = writeln!(&mut self.buf, "## User");
         let _ = writeln!(&mut self.buf, "```");
@@ -368,7 +372,10 @@ mod tests {
         w.log_text("done.");
         w.end_turn();
 
-        let path = w.file_path().expect("file path should be set").to_path_buf();
+        let path = w
+            .file_path()
+            .expect("file path should be set")
+            .to_path_buf();
         let content = std::fs::read_to_string(&path).expect("file should exist");
         assert!(content.contains("install Claude Code"));
         assert!(content.contains("Step 1"));

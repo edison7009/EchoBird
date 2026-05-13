@@ -1,15 +1,15 @@
 // Model Store: fetch remote model list + download GGUF models + install llama-server engine
 
+use futures_util::StreamExt;
 use std::path::PathBuf;
 use std::process::Command;
 use std::sync::atomic::{AtomicBool, Ordering};
-use futures_util::StreamExt;
 use tauri::Emitter;
 
-use super::types::DownloadProgress;
-use super::settings::get_download_dir;
 use super::gpu::get_gpu_info;
 use super::server::LocalLlmServer;
+use super::settings::get_download_dir;
+use super::types::DownloadProgress;
 
 // ─── Global download state ───
 
@@ -86,7 +86,10 @@ fn build_download_sources(repo: &str, file_name: &str) -> Vec<DownloadSource> {
         },
         DownloadSource {
             name: "ModelScope".to_string(),
-            url: format!("https://modelscope.cn/models/{}/resolve/master/{}", repo, file_name),
+            url: format!(
+                "https://modelscope.cn/models/{}/resolve/master/{}",
+                repo, file_name
+            ),
         },
     ]
 }
@@ -102,20 +105,38 @@ async fn test_source_speed(source: &DownloadSource) -> (String, f64) {
     let start = std::time::Instant::now();
     let mut bytes: u64 = 0;
 
-    if let Ok(resp) = client.get(&source.url).header("User-Agent", "Echobird/1.1").send().await {
+    if let Ok(resp) = client
+        .get(&source.url)
+        .header("User-Agent", "Echobird/1.1")
+        .send()
+        .await
+    {
         if resp.status().is_success() {
             let mut stream = resp.bytes_stream();
             while let Some(chunk) = stream.next().await {
-                if start.elapsed() >= test_duration { break; }
-                if let Ok(data) = chunk { bytes += data.len() as u64; }
+                if start.elapsed() >= test_duration {
+                    break;
+                }
+                if let Ok(data) = chunk {
+                    bytes += data.len() as u64;
+                }
             }
         }
     }
 
     let elapsed = start.elapsed().as_secs_f64();
-    let speed = if elapsed > 0.0 { bytes as f64 / elapsed } else { 0.0 };
-    log::info!("[ModelStore] Speed test {}: {:.0} KB/s ({:.0} KB in {:.1}s)",
-        source.name, speed / 1024.0, bytes as f64 / 1024.0, elapsed);
+    let speed = if elapsed > 0.0 {
+        bytes as f64 / elapsed
+    } else {
+        0.0
+    };
+    log::info!(
+        "[ModelStore] Speed test {}: {:.0} KB/s ({:.0} KB in {:.1}s)",
+        source.name,
+        speed / 1024.0,
+        bytes as f64 / 1024.0,
+        elapsed
+    );
     (source.name.clone(), speed)
 }
 
@@ -137,33 +158,55 @@ pub async fn download_model(
 
     let sources = build_download_sources(&repo, &file_name);
 
-    let _ = app_handle.emit("download-progress", DownloadProgress {
-        file_name: file_name.clone(), progress: 0, downloaded: 0, total: 0,
-        status: "speed_test".to_string(),
-    });
+    let _ = app_handle.emit(
+        "download-progress",
+        DownloadProgress {
+            file_name: file_name.clone(),
+            progress: 0,
+            downloaded: 0,
+            total: 0,
+            status: "speed_test".to_string(),
+        },
+    );
 
-    log::info!("[ModelStore] Speed testing {} sources for {}...", sources.len(), file_name);
-    let speed_results = futures_util::future::join_all(
-        sources.iter().map(|s| test_source_speed(s))
-    ).await;
+    log::info!(
+        "[ModelStore] Speed testing {} sources for {}...",
+        sources.len(),
+        file_name
+    );
+    let speed_results = futures_util::future::join_all(sources.iter().map(test_source_speed)).await;
 
-    let mut sorted: Vec<_> = speed_results.into_iter()
-        .filter(|(_, speed)| *speed > 0.0).collect();
+    let mut sorted: Vec<_> = speed_results
+        .into_iter()
+        .filter(|(_, speed)| *speed > 0.0)
+        .collect();
     sorted.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
 
     if sorted.is_empty() {
-        let _ = app_handle.emit("download-progress", DownloadProgress {
-            file_name: file_name.clone(), progress: 0, downloaded: 0, total: 0,
-            status: "error".to_string(),
-        });
+        let _ = app_handle.emit(
+            "download-progress",
+            DownloadProgress {
+                file_name: file_name.clone(),
+                progress: 0,
+                downloaded: 0,
+                total: 0,
+                status: "error".to_string(),
+            },
+        );
         return Err("All download sources unreachable".to_string());
     }
 
-    log::info!("[ModelStore] Fastest source: {} ({:.0} KB/s)", sorted[0].0, sorted[0].1 / 1024.0);
+    log::info!(
+        "[ModelStore] Fastest source: {} ({:.0} KB/s)",
+        sorted[0].0,
+        sorted[0].1 / 1024.0
+    );
 
     for (source_name, _) in &sorted {
         let source = sources.iter().find(|s| &s.name == source_name).unwrap();
-        match try_download_from_source(&app_handle, source, &save_path, &temp_path, &file_name).await {
+        match try_download_from_source(&app_handle, source, &save_path, &temp_path, &file_name)
+            .await
+        {
             Ok(path) => {
                 *DOWNLOAD_FILE.lock().unwrap() = None;
                 return Ok(path);
@@ -182,10 +225,16 @@ pub async fn download_model(
     }
 
     *DOWNLOAD_FILE.lock().unwrap() = None;
-    let _ = app_handle.emit("download-progress", DownloadProgress {
-        file_name: file_name.clone(), progress: 0, downloaded: 0, total: 0,
-        status: "error".to_string(),
-    });
+    let _ = app_handle.emit(
+        "download-progress",
+        DownloadProgress {
+            file_name: file_name.clone(),
+            progress: 0,
+            downloaded: 0,
+            total: 0,
+            status: "error".to_string(),
+        },
+    );
     Err("All download sources failed".to_string())
 }
 
@@ -203,10 +252,16 @@ async fn try_download_from_source(
 
     let start_byte: u64 = if temp_path.exists() {
         std::fs::metadata(temp_path).map(|m| m.len()).unwrap_or(0)
-    } else { 0 };
+    } else {
+        0
+    };
 
     if start_byte > 0 {
-        log::info!("[ModelStore] [{}] Resume mode, {} bytes already downloaded", source.name, start_byte);
+        log::info!(
+            "[ModelStore] [{}] Resume mode, {} bytes already downloaded",
+            source.name,
+            start_byte
+        );
     }
 
     let mut request = client.get(&source.url).header("User-Agent", "Echobird/1.1");
@@ -214,20 +269,29 @@ async fn try_download_from_source(
         request = request.header("Range", format!("bytes={}-", start_byte));
     }
 
-    let resp = request.send().await.map_err(|e| format!("[{}] {}", source.name, e))?;
+    let resp = request
+        .send()
+        .await
+        .map_err(|e| format!("[{}] {}", source.name, e))?;
     let status = resp.status();
     if status != reqwest::StatusCode::OK && status != reqwest::StatusCode::PARTIAL_CONTENT {
         return Err(format!("[{}] HTTP {}", source.name, status.as_u16()));
     }
 
-    let actual_start = if status == reqwest::StatusCode::OK && start_byte > 0 { 0u64 } else { start_byte };
+    let actual_start = if status == reqwest::StatusCode::OK && start_byte > 0 {
+        0u64
+    } else {
+        start_byte
+    };
     let content_length = resp.content_length().unwrap_or(0);
     let total_size = actual_start + content_length;
 
     use std::io::Write;
     let mut file = std::fs::OpenOptions::new()
-        .create(true).write(true)
-        .append(actual_start > 0).truncate(actual_start == 0)
+        .create(true)
+        .write(true)
+        .append(actual_start > 0)
+        .truncate(actual_start == 0)
         .open(temp_path)
         .map_err(|e| format!("File open error: {}", e))?;
 
@@ -240,39 +304,65 @@ async fn try_download_from_source(
             return Err("Download cancelled".to_string());
         }
         if DOWNLOAD_PAUSED.load(Ordering::SeqCst) {
-            let _ = app_handle.emit("download-progress", DownloadProgress {
-                file_name: file_name.to_string(), progress: 0, downloaded, total: total_size,
-                status: "paused".to_string(),
-            });
+            let _ = app_handle.emit(
+                "download-progress",
+                DownloadProgress {
+                    file_name: file_name.to_string(),
+                    progress: 0,
+                    downloaded,
+                    total: total_size,
+                    status: "paused".to_string(),
+                },
+            );
             return Err("Download paused".to_string());
         }
 
         let data = chunk.map_err(|e| format!("[{}] Stream error: {}", source.name, e))?;
-        file.write_all(&data).map_err(|e| format!("Write error: {}", e))?;
+        file.write_all(&data)
+            .map_err(|e| format!("Write error: {}", e))?;
         downloaded += data.len() as u64;
 
         if last_emit.elapsed() >= std::time::Duration::from_millis(250) {
             let progress = if total_size > 0 {
                 ((downloaded as f64 / total_size as f64) * 100.0) as u32
-            } else { 0 };
-            let _ = app_handle.emit("download-progress", DownloadProgress {
-                file_name: file_name.to_string(), progress, downloaded, total: total_size,
-                status: "downloading".to_string(),
-            });
+            } else {
+                0
+            };
+            let _ = app_handle.emit(
+                "download-progress",
+                DownloadProgress {
+                    file_name: file_name.to_string(),
+                    progress,
+                    downloaded,
+                    total: total_size,
+                    status: "downloading".to_string(),
+                },
+            );
             last_emit = std::time::Instant::now();
         }
     }
 
-    if save_path.exists() { let _ = std::fs::remove_file(save_path); }
+    if save_path.exists() {
+        let _ = std::fs::remove_file(save_path);
+    }
     std::fs::rename(temp_path, save_path).map_err(|e| format!("Rename error: {}", e))?;
 
-    let _ = app_handle.emit("download-progress", DownloadProgress {
-        file_name: file_name.to_string(), progress: 100,
-        downloaded: total_size, total: total_size,
-        status: "completed".to_string(),
-    });
+    let _ = app_handle.emit(
+        "download-progress",
+        DownloadProgress {
+            file_name: file_name.to_string(),
+            progress: 100,
+            downloaded: total_size,
+            total: total_size,
+            status: "completed".to_string(),
+        },
+    );
 
-    log::info!("[ModelStore] [{}] Download complete: {}", source.name, file_name);
+    log::info!(
+        "[ModelStore] [{}] Download complete: {}",
+        source.name,
+        file_name
+    );
     Ok(save_path.to_string_lossy().to_string())
 }
 
@@ -295,10 +385,16 @@ pub fn cancel_download(app_handle: &tauri::AppHandle, target_file_name: Option<S
             let _ = std::fs::remove_file(&temp_path);
             log::info!("[ModelStore] Cleaned temp file: {}", temp_path.display());
         }
-        let _ = app_handle.emit("download-progress", DownloadProgress {
-            file_name: name.clone(), progress: 0, downloaded: 0, total: 0,
-            status: "cancelled".to_string(),
-        });
+        let _ = app_handle.emit(
+            "download-progress",
+            DownloadProgress {
+                file_name: name.clone(),
+                progress: 0,
+                downloaded: 0,
+                total: 0,
+                status: "cancelled".to_string(),
+            },
+        );
     }
 
     *DOWNLOAD_FILE.lock().unwrap() = None;
@@ -322,7 +418,10 @@ pub struct EngineVersionInfo {
 
 /// Fetch engine versions: remote → cache → hardcoded fallback
 pub fn get_engine_versions() -> std::collections::HashMap<String, EngineVersionInfo> {
-    let cache_dir = dirs::home_dir().unwrap_or_default().join(".echobird").join("cache");
+    let cache_dir = dirs::home_dir()
+        .unwrap_or_default()
+        .join(".echobird")
+        .join("cache");
     let cache_path = cache_dir.join("engine-versions.json");
 
     // Try cache first (synchronous — remote fetch is done in background)
@@ -334,11 +433,14 @@ pub fn get_engine_versions() -> std::collections::HashMap<String, EngineVersionI
 
     // Fallback defaults
     let mut map = std::collections::HashMap::new();
-    map.insert("llama-server".to_string(), EngineVersionInfo {
-        version: FALLBACK_LLAMA_VERSION.to_string(),
-        cuda_version: Some(FALLBACK_CUDA_VER.to_string()),
-        changelog: None,
-    });
+    map.insert(
+        "llama-server".to_string(),
+        EngineVersionInfo {
+            version: FALLBACK_LLAMA_VERSION.to_string(),
+            cuda_version: Some(FALLBACK_CUDA_VER.to_string()),
+            changelog: None,
+        },
+    );
     map
 }
 
@@ -352,14 +454,19 @@ async fn fetch_pypi_latest(client: &reqwest::Client, package: &str) -> Option<St
         .send()
         .await
         .ok()?;
-    if !resp.status().is_success() { return None; }
+    if !resp.status().is_success() {
+        return None;
+    }
     let json: serde_json::Value = resp.json().await.ok()?;
     json["info"]["version"].as_str().map(|s| s.to_string())
 }
 
 /// Fetch engine versions from remote and cache locally (async, called on page load)
 pub async fn refresh_engine_versions() -> std::collections::HashMap<String, EngineVersionInfo> {
-    let cache_dir = dirs::home_dir().unwrap_or_default().join(".echobird").join("cache");
+    let cache_dir = dirs::home_dir()
+        .unwrap_or_default()
+        .join(".echobird")
+        .join("cache");
     let cache_path = cache_dir.join("engine-versions.json");
 
     let client = reqwest::Client::builder()
@@ -384,7 +491,10 @@ pub async fn refresh_engine_versions() -> std::collections::HashMap<String, Engi
     if let Ok(resp) = llama_result {
         if resp.status().is_success() {
             if let Ok(text) = resp.text().await {
-                if let Ok(remote_map) = serde_json::from_str::<std::collections::HashMap<String, EngineVersionInfo>>(&text) {
+                if let Ok(remote_map) = serde_json::from_str::<
+                    std::collections::HashMap<String, EngineVersionInfo>,
+                >(&text)
+                {
                     if !remote_map.is_empty() {
                         for (k, v) in remote_map {
                             map.insert(k, v);
@@ -399,21 +509,27 @@ pub async fn refresh_engine_versions() -> std::collections::HashMap<String, Engi
     // Merge vllm latest
     if let Some(ver) = vllm_ver {
         log::info!("[EngineVersions] vllm latest from PyPI: {}", ver);
-        map.insert("vllm".to_string(), EngineVersionInfo {
-            version: ver,
-            cuda_version: None,
-            changelog: None,
-        });
+        map.insert(
+            "vllm".to_string(),
+            EngineVersionInfo {
+                version: ver,
+                cuda_version: None,
+                changelog: None,
+            },
+        );
     }
 
     // Merge sglang latest
     if let Some(ver) = sglang_ver {
         log::info!("[EngineVersions] sglang latest from PyPI: {}", ver);
-        map.insert("sglang".to_string(), EngineVersionInfo {
-            version: ver,
-            cuda_version: None,
-            changelog: None,
-        });
+        map.insert(
+            "sglang".to_string(),
+            EngineVersionInfo {
+                version: ver,
+                cuda_version: None,
+                changelog: None,
+            },
+        );
     }
 
     // Write merged result to cache
@@ -431,7 +547,10 @@ pub async fn refresh_engine_versions() -> std::collections::HashMap<String, Engi
 // ─── Engine download: llama-server binary installer ───
 
 fn llama_github_base(version: &str) -> String {
-    format!("https://github.com/ggml-org/llama.cpp/releases/download/{}", version)
+    format!(
+        "https://github.com/ggml-org/llama.cpp/releases/download/{}",
+        version
+    )
 }
 
 fn llama_download_mirrors(version: &str) -> Vec<String> {
@@ -449,10 +568,20 @@ fn llama_download_mirrors(version: &str) -> Vec<String> {
 
 fn classify_gpu_vendor_for_download(name: &str) -> &'static str {
     let n = name.to_lowercase();
-    if n.contains("rtx") || n.contains("gtx") || n.contains("tesla")
-        || n.contains("quadro") || n.contains("titan") || n.contains("nvidia")
-        || n.starts_with("a100") || n.starts_with("h100") || n.starts_with("v100")
-    { "nvidia" } else { "other" }
+    if n.contains("rtx")
+        || n.contains("gtx")
+        || n.contains("tesla")
+        || n.contains("quadro")
+        || n.contains("titan")
+        || n.contains("nvidia")
+        || n.starts_with("a100")
+        || n.starts_with("h100")
+        || n.starts_with("v100")
+    {
+        "nvidia"
+    } else {
+        "other"
+    }
 }
 
 fn get_llama_platform_files(has_nvidia: bool, version: &str, cuda_ver: &str) -> Vec<String> {
@@ -490,7 +619,8 @@ async fn test_mirror_speed(url: String, name: String) -> (String, String, f64) {
     let client = match reqwest::Client::builder()
         .redirect(reqwest::redirect::Policy::limited(10))
         .timeout(std::time::Duration::from_secs(10))
-        .build() {
+        .build()
+    {
         Ok(c) => c,
         Err(_) => return (name, url, 0.0),
     };
@@ -498,20 +628,38 @@ async fn test_mirror_speed(url: String, name: String) -> (String, String, f64) {
     let start = std::time::Instant::now();
     let mut bytes: u64 = 0;
 
-    if let Ok(resp) = client.get(&url).header("User-Agent", "Echobird/1.1").send().await {
+    if let Ok(resp) = client
+        .get(&url)
+        .header("User-Agent", "Echobird/1.1")
+        .send()
+        .await
+    {
         if resp.status().is_success() {
             let mut stream = resp.bytes_stream();
             while let Some(chunk) = stream.next().await {
-                if let Ok(data) = chunk { bytes += data.len() as u64; }
-                if start.elapsed() >= std::time::Duration::from_secs(5) { break; }
+                if let Ok(data) = chunk {
+                    bytes += data.len() as u64;
+                }
+                if start.elapsed() >= std::time::Duration::from_secs(5) {
+                    break;
+                }
             }
         }
     }
 
     let elapsed = start.elapsed().as_secs_f64();
-    let speed = if elapsed > 0.0 { bytes as f64 / elapsed } else { 0.0 };
-    log::info!("[LlamaDownloader] Speed test {}: {:.0} KB/s ({} KB in {:.1}s)",
-        name, speed / 1024.0, bytes / 1024, elapsed);
+    let speed = if elapsed > 0.0 {
+        bytes as f64 / elapsed
+    } else {
+        0.0
+    };
+    log::info!(
+        "[LlamaDownloader] Speed test {}: {:.0} KB/s ({} KB in {:.1}s)",
+        name,
+        speed / 1024.0,
+        bytes / 1024,
+        elapsed
+    );
     (name, url, speed)
 }
 
@@ -520,16 +668,31 @@ pub async fn download_llama_server(app_handle: tauri::AppHandle) -> Result<Strin
     // Fetch latest version from remote config
     let versions = refresh_engine_versions().await;
     let llama_info = versions.get("llama-server");
-    let version = llama_info.map(|i| i.version.as_str()).unwrap_or(FALLBACK_LLAMA_VERSION);
-    let cuda_ver = llama_info.and_then(|i| i.cuda_version.as_deref()).unwrap_or(FALLBACK_CUDA_VER);
-    log::info!("[LlamaDownloader] Using version={}, cuda={}", version, cuda_ver);
+    let version = llama_info
+        .map(|i| i.version.as_str())
+        .unwrap_or(FALLBACK_LLAMA_VERSION);
+    let cuda_ver = llama_info
+        .and_then(|i| i.cuda_version.as_deref())
+        .unwrap_or(FALLBACK_CUDA_VER);
+    log::info!(
+        "[LlamaDownloader] Using version={}, cuda={}",
+        version,
+        cuda_ver
+    );
 
     let gpu_info = get_gpu_info();
-    let has_nvidia = gpu_info.as_ref()
+    let has_nvidia = gpu_info
+        .as_ref()
         .map(|g| classify_gpu_vendor_for_download(&g.gpu_name) == "nvidia")
         .unwrap_or(false);
-    log::info!("[LlamaDownloader] GPU vendor: {}, has_nvidia={}",
-        gpu_info.as_ref().map(|g| g.gpu_name.as_str()).unwrap_or("none"), has_nvidia);
+    log::info!(
+        "[LlamaDownloader] GPU vendor: {}, has_nvidia={}",
+        gpu_info
+            .as_ref()
+            .map(|g| g.gpu_name.as_str())
+            .unwrap_or("none"),
+        has_nvidia
+    );
 
     let file_names = get_llama_platform_files(has_nvidia, version, cuda_ver);
     let bin_dir = llama_install_dir().join("bin");
@@ -544,9 +707,8 @@ pub async fn download_llama_server(app_handle: tauri::AppHandle) -> Result<Strin
     let _ = std::fs::create_dir_all(&temp_dir);
 
     let total_files = file_names.len();
-    let mut completed_files = 0u32;
 
-    for file_name in &file_names {
+    for (completed_files, file_name) in file_names.iter().enumerate() {
         if DOWNLOAD_ABORT.load(Ordering::SeqCst) {
             let _ = std::fs::remove_dir_all(&temp_dir);
             let _ = std::fs::remove_dir_all(&bin_dir);
@@ -556,14 +718,24 @@ pub async fn download_llama_server(app_handle: tauri::AppHandle) -> Result<Strin
 
         let temp_file = temp_dir.join(file_name);
 
-        let _ = app_handle.emit("download-progress", DownloadProgress {
-            file_name: "llama-server".to_string(), progress: 0, downloaded: 0, total: 0,
-            status: "speed_test".to_string(),
-        });
+        let _ = app_handle.emit(
+            "download-progress",
+            DownloadProgress {
+                file_name: "llama-server".to_string(),
+                progress: 0,
+                downloaded: 0,
+                total: 0,
+                status: "speed_test".to_string(),
+            },
+        );
 
-        log::info!("[LlamaDownloader] Speed testing {} mirrors for {}...", mirrors.len(), file_name);
-        let speed_results = futures_util::future::join_all(
-            mirrors.iter().enumerate().map(|(i, mirror)| {
+        log::info!(
+            "[LlamaDownloader] Speed testing {} mirrors for {}...",
+            mirrors.len(),
+            file_name
+        );
+        let speed_results =
+            futures_util::future::join_all(mirrors.iter().enumerate().map(|(i, mirror)| {
                 let url = format!("{}/{}", mirror, file_name);
                 let name = if i == 0 {
                     "GitHub".to_string()
@@ -573,34 +745,65 @@ pub async fn download_llama_server(app_handle: tauri::AppHandle) -> Result<Strin
                         .unwrap_or_else(|_| format!("Mirror-{}", i))
                 };
                 test_mirror_speed(url, name)
-            })
-        ).await;
+            }))
+            .await;
 
-        let mut sorted: Vec<_> = speed_results.into_iter()
-            .filter(|(_, _, speed)| *speed > 0.0).collect();
+        let mut sorted: Vec<_> = speed_results
+            .into_iter()
+            .filter(|(_, _, speed)| *speed > 0.0)
+            .collect();
         sorted.sort_by(|a, b| b.2.partial_cmp(&a.2).unwrap_or(std::cmp::Ordering::Equal));
 
         if sorted.is_empty() {
-            let _ = app_handle.emit("download-progress", DownloadProgress {
-                file_name: "llama-server".to_string(),
-                progress: 0, downloaded: 0, total: 0, status: "error".to_string(),
-            });
+            let _ = app_handle.emit(
+                "download-progress",
+                DownloadProgress {
+                    file_name: "llama-server".to_string(),
+                    progress: 0,
+                    downloaded: 0,
+                    total: 0,
+                    status: "error".to_string(),
+                },
+            );
             *DOWNLOAD_FILE.lock().unwrap() = None;
             return Err("All download mirrors unreachable".to_string());
         }
 
-        log::info!("[LlamaDownloader] Fastest: {} ({:.0} KB/s)", sorted[0].0, sorted[0].2 / 1024.0);
+        log::info!(
+            "[LlamaDownloader] Fastest: {} ({:.0} KB/s)",
+            sorted[0].0,
+            sorted[0].2 / 1024.0
+        );
 
         let mut download_ok = false;
         for (mirror_name, mirror_url, _) in &sorted {
-            if DOWNLOAD_ABORT.load(Ordering::SeqCst) { break; }
-            log::info!("[LlamaDownloader] Downloading via {}: {}", mirror_name, mirror_url);
-            match download_engine_file(&app_handle, mirror_url, &temp_file, completed_files, total_files as u32).await {
-                Ok(_) => { download_ok = true; break; }
+            if DOWNLOAD_ABORT.load(Ordering::SeqCst) {
+                break;
+            }
+            log::info!(
+                "[LlamaDownloader] Downloading via {}: {}",
+                mirror_name,
+                mirror_url
+            );
+            match download_engine_file(
+                &app_handle,
+                mirror_url,
+                &temp_file,
+                completed_files as u32,
+                total_files as u32,
+            )
+            .await
+            {
+                Ok(_) => {
+                    download_ok = true;
+                    break;
+                }
                 Err(e) => {
                     log::warn!("[LlamaDownloader] {} failed: {}", mirror_name, e);
                     let _ = std::fs::remove_file(&temp_file);
-                    if DOWNLOAD_ABORT.load(Ordering::SeqCst) { break; }
+                    if DOWNLOAD_ABORT.load(Ordering::SeqCst) {
+                        break;
+                    }
                 }
             }
         }
@@ -614,10 +817,16 @@ pub async fn download_llama_server(app_handle: tauri::AppHandle) -> Result<Strin
 
         if !download_ok {
             let _ = std::fs::remove_dir_all(&temp_dir);
-            let _ = app_handle.emit("download-progress", DownloadProgress {
-                file_name: "llama-server".to_string(),
-                progress: 0, downloaded: 0, total: 0, status: "error".to_string(),
-            });
+            let _ = app_handle.emit(
+                "download-progress",
+                DownloadProgress {
+                    file_name: "llama-server".to_string(),
+                    progress: 0,
+                    downloaded: 0,
+                    total: 0,
+                    status: "error".to_string(),
+                },
+            );
             *DOWNLOAD_FILE.lock().unwrap() = None;
             return Err("All download mirrors failed".to_string());
         }
@@ -633,21 +842,35 @@ pub async fn download_llama_server(app_handle: tauri::AppHandle) -> Result<Strin
             {
                 use std::os::windows::process::CommandExt;
                 let status = Command::new("powershell")
-                    .args(["-NoProfile", "-Command",
-                        &format!("Expand-Archive -Path '{}' -DestinationPath '{}' -Force",
-                            temp_file.display(), extract_dir.display())])
+                    .args([
+                        "-NoProfile",
+                        "-Command",
+                        &format!(
+                            "Expand-Archive -Path '{}' -DestinationPath '{}' -Force",
+                            temp_file.display(),
+                            extract_dir.display()
+                        ),
+                    ])
                     .creation_flags(0x08000000)
                     .status()
                     .map_err(|e| format!("Extract failed: {}", e))?;
                 if !status.success() {
-                    return Err(format!("PowerShell Expand-Archive failed for {}", file_name));
+                    return Err(format!(
+                        "PowerShell Expand-Archive failed for {}",
+                        file_name
+                    ));
                 }
             }
             #[cfg(not(windows))]
             return Err("ZIP extraction is only supported on Windows".to_string());
         } else {
             let status = Command::new("tar")
-                .args(["-xzf", &temp_file.to_string_lossy(), "-C", &extract_dir.to_string_lossy()])
+                .args([
+                    "-xzf",
+                    &temp_file.to_string_lossy(),
+                    "-C",
+                    &extract_dir.to_string_lossy(),
+                ])
                 .status()
                 .map_err(|e| format!("Extract failed: {}", e))?;
             if !status.success() {
@@ -656,7 +879,6 @@ pub async fn download_llama_server(app_handle: tauri::AppHandle) -> Result<Strin
         }
 
         let _ = std::fs::remove_file(&temp_file);
-        completed_files += 1;
     }
 
     #[cfg(not(windows))]
@@ -664,15 +886,24 @@ pub async fn download_llama_server(app_handle: tauri::AppHandle) -> Result<Strin
         if let Some(exe_path) = LocalLlmServer::find_llama_server() {
             use std::os::unix::fs::PermissionsExt;
             let _ = std::fs::set_permissions(&exe_path, std::fs::Permissions::from_mode(0o755));
-            log::info!("[LlamaDownloader] Set executable permission: {}", exe_path.display());
+            log::info!(
+                "[LlamaDownloader] Set executable permission: {}",
+                exe_path.display()
+            );
         }
     }
 
     let _ = std::fs::remove_dir_all(&temp_dir);
-    let _ = app_handle.emit("download-progress", DownloadProgress {
-        file_name: "llama-server".to_string(), progress: 100, downloaded: 0, total: 0,
-        status: "completed".to_string(),
-    });
+    let _ = app_handle.emit(
+        "download-progress",
+        DownloadProgress {
+            file_name: "llama-server".to_string(),
+            progress: 100,
+            downloaded: 0,
+            total: 0,
+            status: "completed".to_string(),
+        },
+    );
 
     *DOWNLOAD_FILE.lock().unwrap() = None;
 
@@ -695,8 +926,12 @@ async fn download_engine_file(
         .build()
         .map_err(|e| e.to_string())?;
 
-    let resp = client.get(url).header("User-Agent", "Echobird/1.1")
-        .send().await.map_err(|e| e.to_string())?;
+    let resp = client
+        .get(url)
+        .header("User-Agent", "Echobird/1.1")
+        .send()
+        .await
+        .map_err(|e| e.to_string())?;
 
     if !resp.status().is_success() {
         return Err(format!("HTTP {}", resp.status().as_u16()));
@@ -705,7 +940,9 @@ async fn download_engine_file(
     let content_length = resp.content_length().unwrap_or(0);
     use std::io::Write;
     let mut file = std::fs::OpenOptions::new()
-        .create(true).write(true).truncate(true)
+        .create(true)
+        .write(true)
+        .truncate(true)
         .open(dest)
         .map_err(|e| format!("File open error: {}", e))?;
 
@@ -718,25 +955,33 @@ async fn download_engine_file(
             return Err("Download cancelled".to_string());
         }
         let data = chunk.map_err(|e| format!("Stream error: {}", e))?;
-        file.write_all(&data).map_err(|e| format!("Write error: {}", e))?;
+        file.write_all(&data)
+            .map_err(|e| format!("Write error: {}", e))?;
         downloaded += data.len() as u64;
 
         if last_emit.elapsed() >= std::time::Duration::from_millis(250) {
             let file_progress = if content_length > 0 {
                 (downloaded as f64 / content_length as f64) * 100.0
-            } else { 0.0 };
-            let overall = ((completed_files as f64 + file_progress / 100.0) / total_files as f64 * 100.0) as u32;
-            let _ = app_handle.emit("download-progress", DownloadProgress {
-                file_name: "llama-server".to_string(),
-                progress: overall, downloaded, total: content_length,
-                status: "downloading".to_string(),
-            });
+            } else {
+                0.0
+            };
+            let overall = ((completed_files as f64 + file_progress / 100.0) / total_files as f64
+                * 100.0) as u32;
+            let _ = app_handle.emit(
+                "download-progress",
+                DownloadProgress {
+                    file_name: "llama-server".to_string(),
+                    progress: overall,
+                    downloaded,
+                    total: content_length,
+                    status: "downloading".to_string(),
+                },
+            );
             last_emit = std::time::Instant::now();
         }
     }
 
     Ok(())
-
 }
 
 // ─── Engine status detection ───
@@ -753,9 +998,7 @@ fn check_python_package(package: &str) -> Option<String> {
             .output()
     };
     #[cfg(not(windows))]
-    let result = Command::new("pip3")
-        .args(["show", package])
-        .output();
+    let result = Command::new("pip3").args(["show", package]).output();
 
     if let Ok(out) = result {
         if out.status.success() {
@@ -774,7 +1017,9 @@ fn check_python_package(package: &str) -> Option<String> {
 /// Collect all installed binary directory names under the bin folder
 fn get_installed_llama_binary_names() -> Vec<String> {
     let bin_dir = llama_install_dir().join("bin");
-    if !bin_dir.exists() { return vec![]; }
+    if !bin_dir.exists() {
+        return vec![];
+    }
     let mut names: Vec<String> = Vec::new();
     if let Ok(entries) = std::fs::read_dir(&bin_dir) {
         for entry in entries.flatten() {
@@ -797,7 +1042,9 @@ fn get_installed_llama_binary_names() -> Vec<String> {
 
 /// Detect installed llama-server binary directory name for version parsing
 fn get_installed_llama_binary_name() -> Option<String> {
-    get_installed_llama_binary_names().into_iter().find(|n| n.starts_with("llama-b"))
+    get_installed_llama_binary_names()
+        .into_iter()
+        .find(|n| n.starts_with("llama-b"))
 }
 
 /// Detect installed llama-server version from directory name (e.g. "llama-b7981-bin-win-cuda-...")
@@ -819,26 +1066,49 @@ pub fn get_local_engine_status(runtime_filter: Option<&str>) -> serde_json::Valu
 
     // ── llama-server (always cheap — binary lookup, no pip) ──────────────────
     let check_llama = runtime_filter.map(|r| r == "llama-server").unwrap_or(true);
-    let llama_installed = if check_llama { LocalLlmServer::find_llama_server().is_some() } else { false };
-    let installed_ver   = if check_llama { get_installed_llama_version().unwrap_or_default() } else { String::new() };
-    let binary_names    = if check_llama { get_installed_llama_binary_names() } else { vec![] };
-    let latest_llama    = versions.get("llama-server").map(|i| i.version.as_str()).unwrap_or(FALLBACK_LLAMA_VERSION);
+    let llama_installed = if check_llama {
+        LocalLlmServer::find_llama_server().is_some()
+    } else {
+        false
+    };
+    let installed_ver = if check_llama {
+        get_installed_llama_version().unwrap_or_default()
+    } else {
+        String::new()
+    };
+    let binary_names = if check_llama {
+        get_installed_llama_binary_names()
+    } else {
+        vec![]
+    };
+    let latest_llama = versions
+        .get("llama-server")
+        .map(|i| i.version.as_str())
+        .unwrap_or(FALLBACK_LLAMA_VERSION);
 
     // ── vllm / sglang — Linux-only + only when explicitly selected ───────────
-    let _check_vllm   = runtime_filter.map(|r| r == "vllm").unwrap_or(false);
+    let _check_vllm = runtime_filter.map(|r| r == "vllm").unwrap_or(false);
     let _check_sglang = runtime_filter.map(|r| r == "sglang").unwrap_or(false);
 
     #[cfg(target_os = "linux")]
-    let vllm_version = if _check_vllm { check_python_package("vllm") } else { None };
+    let vllm_version = if _check_vllm {
+        check_python_package("vllm")
+    } else {
+        None
+    };
     #[cfg(not(target_os = "linux"))]
     let vllm_version: Option<String> = None;
 
     #[cfg(target_os = "linux")]
-    let sglang_version = if _check_sglang { check_python_package("sglang") } else { None };
+    let sglang_version = if _check_sglang {
+        check_python_package("sglang")
+    } else {
+        None
+    };
     #[cfg(not(target_os = "linux"))]
     let sglang_version: Option<String> = None;
 
-    let latest_vllm   = versions.get("vllm").map(|i| i.version.clone());
+    let latest_vllm = versions.get("vllm").map(|i| i.version.clone());
     let latest_sglang = versions.get("sglang").map(|i| i.version.clone());
 
     serde_json::json!({
@@ -870,32 +1140,44 @@ pub fn get_local_engine_status(runtime_filter: Option<&str>) -> serde_json::Valu
 /// Install engine for local use. Routes by runtime:
 /// - llama-server: binary download (auto-versioned from remote config)
 /// - vllm / sglang: pip3 install
-pub async fn install_local_engine(app_handle: tauri::AppHandle, runtime: String) -> Result<(), String> {
+pub async fn install_local_engine(
+    app_handle: tauri::AppHandle,
+    runtime: String,
+) -> Result<(), String> {
     match runtime.as_str() {
         "llama-server" => {
             // Upgrade: remove old bin directory before installing new version
             let bin_dir = llama_install_dir().join("bin");
             if bin_dir.exists() {
-                log::info!("[EngineInstaller] Removing old llama-server installation at {:?}", bin_dir);
+                log::info!(
+                    "[EngineInstaller] Removing old llama-server installation at {:?}",
+                    bin_dir
+                );
                 let _ = std::fs::remove_dir_all(&bin_dir);
             }
             download_llama_server(app_handle).await.map(|_| ())
         }
         "vllm" => {
             #[cfg(target_os = "linux")]
-            { install_pip_engine(&app_handle, "vllm", &runtime).await }
+            {
+                install_pip_engine(&app_handle, "vllm", &runtime).await
+            }
             #[cfg(not(target_os = "linux"))]
-            { Err("vllm is only supported on Linux".to_string()) }
+            {
+                Err("vllm is only supported on Linux".to_string())
+            }
         }
         "sglang" => {
             #[cfg(target_os = "linux")]
-            { install_pip_engine(&app_handle, "sglang[all]", &runtime).await }
+            {
+                install_pip_engine(&app_handle, "sglang[all]", &runtime).await
+            }
             #[cfg(not(target_os = "linux"))]
-            { Err("sglang is only supported on Linux".to_string()) }
+            {
+                Err("sglang is only supported on Linux".to_string())
+            }
         }
-        other => {
-            Err(format!("Unknown runtime: {}", other))
-        }
+        other => Err(format!("Unknown runtime: {}", other)),
     }
 }
 
@@ -911,15 +1193,22 @@ async fn install_pip_engine(
     let app = app_handle.clone();
 
     // Emit: installing started
-    let _ = app.emit("download-progress", DownloadProgress {
-        file_name: runtime.clone(),
-        progress: 5,
-        downloaded: 0,
-        total: 0,
-        status: "installing".to_string(),
-    });
+    let _ = app.emit(
+        "download-progress",
+        DownloadProgress {
+            file_name: runtime.clone(),
+            progress: 5,
+            downloaded: 0,
+            total: 0,
+            status: "installing".to_string(),
+        },
+    );
 
-    log::info!("[EngineInstaller] pip3 install {} for runtime '{}'", package, runtime);
+    log::info!(
+        "[EngineInstaller] pip3 install {} for runtime '{}'",
+        package,
+        runtime
+    );
 
     // Pip install with PyPI mirrors (prefer China mirrors for faster access)
     let result = tokio::task::spawn_blocking({
@@ -972,7 +1261,7 @@ async fn install_pip_engine(
                     // Stream stderr (pip outputs to stderr)
                     if let Some(stderr) = child.stderr.take() {
                         let reader = BufReader::new(stderr);
-                        for line in reader.lines().flatten() {
+                        for line in reader.lines().map_while(Result::ok) {
                             log::info!("[pip3] {}", line);
                         }
                     }
@@ -1022,24 +1311,30 @@ async fn install_pip_engine(
     match result {
         Ok(()) => {
             log::info!("[EngineInstaller] {} installed successfully", package);
-            let _ = app.emit("download-progress", DownloadProgress {
-                file_name: runtime.clone(),
-                progress: 100,
-                downloaded: 0,
-                total: 0,
-                status: "completed".to_string(),
-            });
+            let _ = app.emit(
+                "download-progress",
+                DownloadProgress {
+                    file_name: runtime.clone(),
+                    progress: 100,
+                    downloaded: 0,
+                    total: 0,
+                    status: "completed".to_string(),
+                },
+            );
             Ok(())
         }
         Err(e) => {
             log::error!("[EngineInstaller] {} install failed: {}", package, e);
-            let _ = app.emit("download-progress", DownloadProgress {
-                file_name: runtime.clone(),
-                progress: 0,
-                downloaded: 0,
-                total: 0,
-                status: "error".to_string(),
-            });
+            let _ = app.emit(
+                "download-progress",
+                DownloadProgress {
+                    file_name: runtime.clone(),
+                    progress: 0,
+                    downloaded: 0,
+                    total: 0,
+                    status: "error".to_string(),
+                },
+            );
             Err(e)
         }
     }

@@ -36,11 +36,16 @@ fn is_encrypted(key: &str) -> bool {
 fn get_machine_fingerprint() -> String {
     #[cfg(windows)]
     {
-        use std::process::Command;
         use std::os::windows::process::CommandExt;
+        use std::process::Command;
         const CREATE_NO_WINDOW: u32 = 0x08000000;
         if let Ok(output) = Command::new("reg")
-            .args(["query", r"HKLM\SOFTWARE\Microsoft\Cryptography", "/v", "MachineGuid"])
+            .args([
+                "query",
+                r"HKLM\SOFTWARE\Microsoft\Cryptography",
+                "/v",
+                "MachineGuid",
+            ])
             .creation_flags(CREATE_NO_WINDOW)
             .output()
         {
@@ -98,8 +103,8 @@ fn get_encryption_key() -> Result<[u8; 32], String> {
     let key_path = echobird_dir().join("config").join(".encryption_key");
 
     let file_key = if key_path.exists() {
-        let data = fs::read(&key_path)
-            .map_err(|e| format!("Failed to read encryption key: {}", e))?;
+        let data =
+            fs::read(&key_path).map_err(|e| format!("Failed to read encryption key: {}", e))?;
         if data.len() == 32 {
             data
         } else {
@@ -133,8 +138,7 @@ fn generate_key_file(key_path: &std::path::Path) -> Result<Vec<u8>, String> {
     rand::thread_rng().fill_bytes(&mut key);
 
     ensure_config_dir();
-    fs::write(key_path, &key)
-        .map_err(|e| format!("Failed to write encryption key: {}", e))?;
+    fs::write(key_path, &key).map_err(|e| format!("Failed to write encryption key: {}", e))?;
     log::info!("[ModelManager] Generated new encryption key");
     Ok(key)
 }
@@ -142,7 +146,7 @@ fn generate_key_file(key_path: &std::path::Path) -> Result<Vec<u8>, String> {
 /// Encrypt API key using AES-256-GCM.
 /// Stores "enc:v1:<hex(nonce + ciphertext)>" in models.json.
 fn encrypt_api_key(plain_key: &str) -> String {
-    use aes_gcm::{Aes256Gcm, KeyInit, aead::Aead};
+    use aes_gcm::{aead::Aead, Aes256Gcm, KeyInit};
     use rand::RngCore;
 
     if plain_key.is_empty() || is_encrypted(plain_key) || plain_key == "local" {
@@ -170,7 +174,10 @@ fn encrypt_api_key(plain_key: &str) -> String {
             let mut combined = Vec::with_capacity(12 + ciphertext.len());
             combined.extend_from_slice(&nonce_bytes);
             combined.extend_from_slice(&ciphertext);
-            let hex = combined.iter().map(|b| format!("{:02x}", b)).collect::<String>();
+            let hex = combined
+                .iter()
+                .map(|b| format!("{:02x}", b))
+                .collect::<String>();
             log::info!("[ModelManager] API key encrypted successfully");
             format!("{}{}", ENCRYPTED_PREFIX, hex)
         }
@@ -183,7 +190,7 @@ fn encrypt_api_key(plain_key: &str) -> String {
 
 /// Decrypt API key using AES-256-GCM.
 fn decrypt_api_key(stored_key: &str) -> String {
-    use aes_gcm::{Aes256Gcm, KeyInit, aead::Aead};
+    use aes_gcm::{aead::Aead, Aes256Gcm, KeyInit};
 
     if stored_key.is_empty() || !is_encrypted(stored_key) {
         return stored_key.to_string();
@@ -282,7 +289,11 @@ fn get_built_in_models() -> Vec<ModelConfig> {
         if path.exists() {
             if let Ok(content) = fs::read_to_string(&path) {
                 if let Ok(models) = serde_json::from_str::<Vec<ModelConfig>>(&content) {
-                    log::info!("[ModelManager] Loaded {} built-in models from {:?}", models.len(), path);
+                    log::info!(
+                        "[ModelManager] Loaded {} built-in models from {:?}",
+                        models.len(),
+                        path
+                    );
                     return models;
                 }
             }
@@ -397,7 +408,11 @@ pub fn add_model(input: AddModelInput) -> ModelConfig {
         anthropic_latency: None,
     };
 
-    log::info!("[ModelManager] Added model: {} ({})", new_model.name, internal_id);
+    log::info!(
+        "[ModelManager] Added model: {} ({})",
+        new_model.name,
+        internal_id
+    );
     models.push(new_model.clone());
     save_user_models(&models);
     new_model
@@ -560,7 +575,8 @@ pub async fn test_model(internal_id: &str, prompt: &str, protocol: &str) -> Test
                     let content = data["content"]
                         .as_array()
                         .and_then(|blocks| {
-                            blocks.iter()
+                            blocks
+                                .iter()
                                 .find(|b| b["type"].as_str() == Some("text"))
                                 .and_then(|b| b["text"].as_str())
                         })
@@ -579,7 +595,11 @@ pub async fn test_model(internal_id: &str, prompt: &str, protocol: &str) -> Test
                         },
                     );
 
-                    log::info!("[ModelManager] Anthropic test succeeded: {} {}ms", model.name, latency);
+                    log::info!(
+                        "[ModelManager] Anthropic test succeeded: {} {}ms",
+                        model.name,
+                        latency
+                    );
                     TestResult {
                         success: true,
                         latency,
@@ -660,7 +680,11 @@ pub async fn test_model(internal_id: &str, prompt: &str, protocol: &str) -> Test
                         },
                     );
 
-                    log::info!("[ModelManager] OpenAI test succeeded: {} {}ms", model.name, latency);
+                    log::info!(
+                        "[ModelManager] OpenAI test succeeded: {} {}ms",
+                        model.name,
+                        latency
+                    );
                     TestResult {
                         success: true,
                         latency,
@@ -746,7 +770,11 @@ pub async fn ping_model(internal_id: &str) -> PingResult {
                     ..Default::default()
                 },
             );
-            log::info!("[ModelManager] Ping succeeded: {} {}ms", model.name, latency);
+            log::info!(
+                "[ModelManager] Ping succeeded: {} {}ms",
+                model.name,
+                latency
+            );
             PingResult {
                 success: true,
                 latency,

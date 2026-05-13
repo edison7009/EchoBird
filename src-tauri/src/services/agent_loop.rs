@@ -4,22 +4,22 @@
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::sync::Arc;
+use tauri::{AppHandle, Emitter};
 use tokio::sync::Mutex;
 use tokio_util::sync::CancellationToken;
-use tauri::{AppHandle, Emitter};
 
-use crate::commands::ssh_commands::SSHPool;
-use super::llm_client::*;
 use super::agent_tools;
-use super::json_repair::repair_tool_args;
-use super::datalog::DatalogWriter;
 use super::auto_fix;
+use super::datalog::DatalogWriter;
+use super::json_repair::repair_tool_args;
+use super::llm_client::*;
+use crate::commands::ssh_commands::SSHPool;
 
 // ── Constants ──
 
 const MAX_TOOL_LOOPS: usize = 25; // Prevent infinite execution
-// Byte-based context limit: keep recent messages whose total size fits within this budget.
-// 30-message count limit was not safe when tool results are large (e.g. 8KB each × 30 = 240KB+).
+                                  // Byte-based context limit: keep recent messages whose total size fits within this budget.
+                                  // 30-message count limit was not safe when tool results are large (e.g. 8KB each × 30 = 240KB+).
 const MAX_CONTEXT_BYTES: usize = 150_000; // ~150KB total payload to LLM
 
 // ── Types emitted to frontend ──
@@ -36,9 +36,13 @@ pub enum AgentEvent {
     #[serde(rename = "tool_call_args")]
     ToolCallArgs { id: String, args: String },
     #[serde(rename = "tool_result")]
-    ToolResult { id: String, output: String, success: bool },
+    ToolResult {
+        id: String,
+        output: String,
+        success: bool,
+    },
     #[serde(rename = "done")]
-    Done { },
+    Done {},
     #[serde(rename = "error")]
     Error { message: String },
     #[serde(rename = "state")]
@@ -49,15 +53,15 @@ pub enum AgentEvent {
 pub struct AgentRequest {
     pub message: String,
     pub model_id: String,
-    pub base_url: String,        // OpenAI-compatible URL
+    pub base_url: String, // OpenAI-compatible URL
     pub api_key: String,
     pub model_name: String,
-    pub provider: String,        // initial preferred protocol: "openai" or "anthropic"
+    pub provider: String, // initial preferred protocol: "openai" or "anthropic"
     /// Optional Anthropic-compatible URL. When present the agent always tries Anthropic
     /// first and falls back to OpenAI (`base_url`) on 400 / tool-unsupported errors.
     pub anthropic_url: Option<String>,
-    pub server_ids: Vec<String>,  // selected SSH servers
-    pub skills: Vec<String>,      // skill descriptions
+    pub server_ids: Vec<String>, // selected SSH servers
+    pub skills: Vec<String>,     // skill descriptions
     /// UI locale ("en" or "zh-Hans"). Used to hint the agent's response language.
     pub locale: Option<String>,
 }
@@ -81,6 +85,12 @@ const LOOP_REPEAT_THRESHOLD: usize = 3;
 /// Ring buffer size for `recent_calls`. 8 is enough to catch tight loops
 /// without keeping arbitrary history around.
 const RECENT_CALLS_CAPACITY: usize = 8;
+
+impl Default for AgentSession {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 
 impl AgentSession {
     pub fn new() -> Self {
@@ -179,10 +189,18 @@ pub fn save_session_to_disk(server_key: &str, messages: &[Message]) {
     match serde_json::to_string_pretty(messages) {
         Ok(json) => {
             if let Err(e) = std::fs::write(&path, json) {
-                log::error!("[AgentSession] Failed to write session {}: {}", server_key, e);
+                log::error!(
+                    "[AgentSession] Failed to write session {}: {}",
+                    server_key,
+                    e
+                );
             }
         }
-        Err(e) => log::error!("[AgentSession] Failed to serialize session {}: {}", server_key, e),
+        Err(e) => log::error!(
+            "[AgentSession] Failed to serialize session {}: {}",
+            server_key,
+            e
+        ),
     }
 }
 
@@ -203,7 +221,11 @@ pub fn clear_session_from_disk(server_key: &str) {
     let path = session_file(server_key);
     if path.exists() {
         if let Err(e) = std::fs::remove_file(&path) {
-            log::error!("[AgentSession] Failed to delete session file {}: {}", server_key, e);
+            log::error!(
+                "[AgentSession] Failed to delete session file {}: {}",
+                server_key,
+                e
+            );
         } else {
             log::info!("[AgentSession] Session file deleted for {}", server_key);
         }
@@ -219,7 +241,9 @@ pub async fn run_agent(
     ssh_pool: SSHPool,
 ) -> Result<(), String> {
     // Derive server key from request
-    let server_key = request.server_ids.first()
+    let server_key = request
+        .server_ids
+        .first()
         .cloned()
         .unwrap_or_else(|| "local".to_string());
 
@@ -248,17 +272,18 @@ pub async fn run_agent(
     };
 
     // Fallback OpenAI client — built only when needed
-    let openai_fallback: Option<LlmClient> = if request.anthropic_url.is_some() && !request.base_url.is_empty() {
-        let cfg = LlmConfig {
-            provider: LlmProvider::OpenAI,
-            base_url: request.base_url.clone(),
-            api_key: decrypted_key.clone(),
-            model: request.model_name.clone(),
+    let openai_fallback: Option<LlmClient> =
+        if request.anthropic_url.is_some() && !request.base_url.is_empty() {
+            let cfg = LlmConfig {
+                provider: LlmProvider::OpenAI,
+                base_url: request.base_url.clone(),
+                api_key: decrypted_key.clone(),
+                model: request.model_name.clone(),
+            };
+            LlmClient::new(cfg).ok()
+        } else {
+            None
         };
-        LlmClient::new(cfg).ok()
-    } else {
-        None
-    };
     let mut protocol_downgraded = false;
     let tools = agent_tools::get_tool_definitions();
 
@@ -286,7 +311,12 @@ pub async fn run_agent(
     let mut datalog = DatalogWriter::new(true);
     datalog.begin_turn(&server_key, &request.message, &request.model_name);
 
-    emit_event(&app, AgentEvent::StateChange { state: "processing".into() });
+    emit_event(
+        &app,
+        AgentEvent::StateChange {
+            state: "processing".into(),
+        },
+    );
 
     // 4. ReAct loop
     let mut loop_count = 0;
@@ -296,41 +326,69 @@ pub async fn run_agent(
     loop {
         loop_count += 1;
         if loop_count > MAX_TOOL_LOOPS {
-            emit_event(&app, AgentEvent::Error {
-                message: format!("Reached maximum tool call limit ({})", MAX_TOOL_LOOPS),
-            });
+            emit_event(
+                &app,
+                AgentEvent::Error {
+                    message: format!("Reached maximum tool call limit ({})", MAX_TOOL_LOOPS),
+                },
+            );
             break;
         }
 
         // Check cancellation
         if cancel_token.is_cancelled() {
             log::info!("[AgentLoop] Cancelled by user");
-            emit_event(&app, AgentEvent::Error { message: "Cancelled by user".into() });
+            emit_event(
+                &app,
+                AgentEvent::Error {
+                    message: "Cancelled by user".into(),
+                },
+            );
             break;
         }
 
         // Get current messages (byte-budget truncation: keep most-recent messages within 150KB)
         let messages = {
             let map = session_map.lock().await;
-            let all = map.get(&server_key).map(|s| s.messages.clone()).unwrap_or_default();
+            let all = map
+                .get(&server_key)
+                .map(|s| s.messages.clone())
+                .unwrap_or_default();
             // Walk backwards accumulating until budget is exceeded, then reverse
             let mut budget = MAX_CONTEXT_BYTES;
-            let mut kept: Vec<_> = all.iter().rev().take_while(|m| {
-                let sz = serde_json::to_string(m).map(|s| s.len()).unwrap_or(256);
-                if sz > budget { return false; }
-                budget -= sz;
-                true
-            }).cloned().collect();
+            let mut kept: Vec<_> = all
+                .iter()
+                .rev()
+                .take_while(|m| {
+                    let sz = serde_json::to_string(m).map(|s| s.len()).unwrap_or(256);
+                    if sz > budget {
+                        return false;
+                    }
+                    budget -= sz;
+                    true
+                })
+                .cloned()
+                .collect();
             kept.reverse();
             if kept.len() < all.len() {
-                log::info!("[AgentLoop] Context trimmed: {} → {} messages (byte budget {}KB)",
-                    all.len(), kept.len(), MAX_CONTEXT_BYTES / 1024);
+                log::info!(
+                    "[AgentLoop] Context trimmed: {} → {} messages (byte budget {}KB)",
+                    all.len(),
+                    kept.len(),
+                    MAX_CONTEXT_BYTES / 1024
+                );
             }
             kept
         };
 
         // Call LLM
-        log::info!("[AgentLoop] Loop {}: calling LLM with {} messages (SSE retry: {}/{})", loop_count, messages.len(), sse_retry_count, MAX_SSE_RETRIES);
+        log::info!(
+            "[AgentLoop] Loop {}: calling LLM with {} messages (SSE retry: {}/{})",
+            loop_count,
+            messages.len(),
+            sse_retry_count,
+            MAX_SSE_RETRIES
+        );
         datalog.log_llm_call();
 
         let mut rx = match client.chat_stream(&messages, &tools, &system_prompt).await {
@@ -348,7 +406,12 @@ pub async fn run_agent(
                     // Silent retry — no UI signal. Mirrors ClaudeCode/OpenCode:
                     // a transient upstream blip shouldn't break the user's flow,
                     // only an exhausted retry budget surfaces as an error.
-                    log::warn!("[AgentLoop] chat_stream failed, retrying ({}/{}): {}", sse_retry_count, MAX_SSE_RETRIES, e);
+                    log::warn!(
+                        "[AgentLoop] chat_stream failed, retrying ({}/{}): {}",
+                        sse_retry_count,
+                        MAX_SSE_RETRIES,
+                        e
+                    );
                     tokio::time::sleep(std::time::Duration::from_secs(2)).await;
                     loop_count -= 1; // Don't count retries toward tool loop limit
                     continue;
@@ -365,7 +428,8 @@ pub async fn run_agent(
         let mut thinking_accumulator = String::new();
         let mut thinking_signature = String::new();
         let mut tool_calls: Vec<ToolCall> = Vec::new();
-        let mut tool_args_map: std::collections::HashMap<String, String> = std::collections::HashMap::new();
+        let mut tool_args_map: std::collections::HashMap<String, String> =
+            std::collections::HashMap::new();
         let mut stop_reason = String::new();
         let mut had_error = false;
         let mut sse_error_msg = String::new();
@@ -378,7 +442,11 @@ pub async fn run_agent(
 
         loop {
             // Per-event timeout — longer after first token (thinking models can be slow)
-            let timeout_secs = if received_any_token { INTER_TOKEN_TIMEOUT_SECS } else { FIRST_TOKEN_TIMEOUT_SECS };
+            let timeout_secs = if received_any_token {
+                INTER_TOKEN_TIMEOUT_SECS
+            } else {
+                FIRST_TOKEN_TIMEOUT_SECS
+            };
             // Race: receive next LLM token OR user cancellation
             let recv_result = tokio::select! {
                 result = tokio::time::timeout(
@@ -403,7 +471,12 @@ pub async fn run_agent(
                              If the local LLM is not responding, try restarting it.\n",
                             wait_warnings, MAX_WAIT_WARNINGS
                         );
-                        log::warn!("[AgentLoop] No token after {}s (warning {}/{})", timeout_secs, wait_warnings, MAX_WAIT_WARNINGS);
+                        log::warn!(
+                            "[AgentLoop] No token after {}s (warning {}/{})",
+                            timeout_secs,
+                            wait_warnings,
+                            MAX_WAIT_WARNINGS
+                        );
                         emit_event(&app, AgentEvent::TextDelta { text: hint });
                         continue; // Keep waiting
                     }
@@ -414,7 +487,12 @@ pub async fn run_agent(
                         format!("\u{26a0}\u{fe0f} LLM did not respond within {}s.\nThe model may be overloaded or crashed. Please restart the LLM server.", FIRST_TOKEN_TIMEOUT_SECS * (MAX_WAIT_WARNINGS as u64 + 1))
                     };
                     log::error!("[AgentLoop] LLM response timed out");
-                    emit_event(&app, AgentEvent::Error { message: timeout_msg });
+                    emit_event(
+                        &app,
+                        AgentEvent::Error {
+                            message: timeout_msg,
+                        },
+                    );
                     had_error = true;
                     sse_error_msg = String::new(); // Non-retryable
                     break;
@@ -442,16 +520,37 @@ pub async fn run_agent(
                     }
                     LlmEvent::ToolCallStart { id, name } => {
                         received_any_token = true;
-                        emit_event(&app, AgentEvent::ToolCallStart { id: id.clone(), name: name.clone() });
-                        emit_event(&app, AgentEvent::StateChange { state: "tool_calling".into() });
+                        emit_event(
+                            &app,
+                            AgentEvent::ToolCallStart {
+                                id: id.clone(),
+                                name: name.clone(),
+                            },
+                        );
+                        emit_event(
+                            &app,
+                            AgentEvent::StateChange {
+                                state: "tool_calling".into(),
+                            },
+                        );
                         tool_args_map.insert(id.clone(), String::new());
-                        tool_calls.push(ToolCall { id, name, arguments: String::new() });
+                        tool_calls.push(ToolCall {
+                            id,
+                            name,
+                            arguments: String::new(),
+                        });
                     }
                     LlmEvent::ToolCallDelta { id, args_chunk } => {
                         if let Some(args) = tool_args_map.get_mut(&id) {
                             args.push_str(&args_chunk);
                         }
-                        emit_event(&app, AgentEvent::ToolCallArgs { id, args: args_chunk });
+                        emit_event(
+                            &app,
+                            AgentEvent::ToolCallArgs {
+                                id,
+                                args: args_chunk,
+                            },
+                        );
                     }
                     LlmEvent::ToolCallEnd { id } => {
                         if let Some(final_args) = tool_args_map.get(&id) {
@@ -472,7 +571,9 @@ pub async fn run_agent(
                             }
                         }
                     }
-                    LlmEvent::Done { stop_reason: reason } => {
+                    LlmEvent::Done {
+                        stop_reason: reason,
+                    } => {
                         stop_reason = reason;
                         break;
                     }
@@ -528,11 +629,18 @@ pub async fn run_agent(
                 // retry stream appends naturally, and only an exhausted retry
                 // budget surfaces as an error.
                 sse_retry_count += 1;
-                log::warn!("[AgentLoop] SSE stream error, retrying ({}/{}): {}", sse_retry_count, MAX_SSE_RETRIES, sse_error_msg);
+                log::warn!(
+                    "[AgentLoop] SSE stream error, retrying ({}/{}): {}",
+                    sse_retry_count,
+                    MAX_SSE_RETRIES,
+                    sse_error_msg
+                );
                 // If we had partial text but no tool calls, save it to avoid losing progress
                 if !text_accumulator.is_empty() && tool_calls.is_empty() {
                     let mut map = session_map.lock().await;
-                    let sess = map.entry(server_key.clone()).or_insert_with(AgentSession::new);
+                    let sess = map
+                        .entry(server_key.clone())
+                        .or_insert_with(AgentSession::new);
                     sess.messages.push(Message {
                         role: "assistant".into(),
                         content: MessageContent::Text(text_accumulator.clone()),
@@ -544,9 +652,12 @@ pub async fn run_agent(
             }
             // Max retries exceeded or non-retryable error
             if !sse_error_msg.is_empty() {
-                emit_event(&app, AgentEvent::Error {
-                    message: format!("__CONN_FAILED__:{}\n__CONN_HINT__", MAX_SSE_RETRIES),
-                });
+                emit_event(
+                    &app,
+                    AgentEvent::Error {
+                        message: format!("__CONN_FAILED__:{}\n__CONN_HINT__", MAX_SSE_RETRIES),
+                    },
+                );
             }
             // Remove the user message that caused the error from history
             let mut map = session_map.lock().await;
@@ -573,7 +684,9 @@ pub async fn run_agent(
         // 5. Store assistant response in history
         {
             let mut map = session_map.lock().await;
-            let sess = map.entry(server_key.clone()).or_insert_with(AgentSession::new);
+            let sess = map
+                .entry(server_key.clone())
+                .or_insert_with(AgentSession::new);
             let has_thinking = !thinking_accumulator.is_empty();
             if tool_calls.is_empty() && !has_thinking {
                 // Pure text response — keep the simple Text variant.
@@ -592,10 +705,13 @@ pub async fn run_agent(
                     });
                 }
                 if !text_accumulator.is_empty() {
-                    blocks.push(ContentBlock::Text { text: text_accumulator.clone() });
+                    blocks.push(ContentBlock::Text {
+                        text: text_accumulator.clone(),
+                    });
                 }
                 for tc in &tool_calls {
-                    let input: Value = serde_json::from_str(&tc.arguments).unwrap_or(Value::Object(Default::default()));
+                    let input: Value = serde_json::from_str(&tc.arguments)
+                        .unwrap_or(Value::Object(Default::default()));
                     blocks.push(ContentBlock::ToolUse {
                         id: tc.id.clone(),
                         name: tc.name.clone(),
@@ -611,14 +727,22 @@ pub async fn run_agent(
 
         // 6. If no tool calls, we're done
         if tool_calls.is_empty() {
-            log::info!("[AgentLoop] LLM finished with no tool calls (reason: {})", stop_reason);
+            log::info!(
+                "[AgentLoop] LLM finished with no tool calls (reason: {})",
+                stop_reason
+            );
             datalog.log_text(&text_accumulator);
             break;
         }
 
         // 7. Execute tool calls and feed results back
         log::info!("[AgentLoop] Executing {} tool calls", tool_calls.len());
-        emit_event(&app, AgentEvent::StateChange { state: "executing".into() });
+        emit_event(
+            &app,
+            AgentEvent::StateChange {
+                state: "executing".into(),
+            },
+        );
 
         // Pre-validate shell_exec install commands against the user's stated
         // intent. Any command that would install a different product than
@@ -626,7 +750,9 @@ pub async fn run_agent(
         // (no actual shell call), so the model has to re-plan.
         let messages_snapshot: Vec<Message> = {
             let map = session_map.lock().await;
-            map.get(&server_key).map(|s| s.messages.clone()).unwrap_or_default()
+            map.get(&server_key)
+                .map(|s| s.messages.clone())
+                .unwrap_or_default()
         };
         let mut precomputed: std::collections::HashMap<String, agent_tools::ToolResult> =
             std::collections::HashMap::new();
@@ -635,11 +761,18 @@ pub async fn run_agent(
                 if let Ok(args) = serde_json::from_str::<Value>(&tc.arguments) {
                     if let Some(cmd) = args["command"].as_str() {
                         if let Err(msg) = validate_install_intent(cmd, &messages_snapshot) {
-                            log::warn!("[AgentLoop] Install-intent block on tool {}: {}", tc.id, msg);
-                            precomputed.insert(tc.id.clone(), agent_tools::ToolResult {
-                                success: false,
-                                output: msg,
-                            });
+                            log::warn!(
+                                "[AgentLoop] Install-intent block on tool {}: {}",
+                                tc.id,
+                                msg
+                            );
+                            precomputed.insert(
+                                tc.id.clone(),
+                                agent_tools::ToolResult {
+                                    success: false,
+                                    output: msg,
+                                },
+                            );
                         }
                     }
                 }
@@ -653,18 +786,28 @@ pub async fn run_agent(
         // (intent validator wins; no need to also flag a loop on them).
         {
             let mut map = session_map.lock().await;
-            let sess = map.entry(server_key.clone()).or_insert_with(AgentSession::new);
+            let sess = map
+                .entry(server_key.clone())
+                .or_insert_with(AgentSession::new);
             for tc in &tool_calls {
                 if precomputed.contains_key(&tc.id) {
                     continue;
                 }
                 let h = loop_args_hash(&tc.name, &tc.arguments);
                 if let Some(reason) = sess.record_call_and_detect_loop(h) {
-                    log::warn!("[AgentLoop] Loop guard tripped on tool {} ({}): {}", tc.name, tc.id, reason);
-                    precomputed.insert(tc.id.clone(), agent_tools::ToolResult {
-                        success: false,
-                        output: reason,
-                    });
+                    log::warn!(
+                        "[AgentLoop] Loop guard tripped on tool {} ({}): {}",
+                        tc.name,
+                        tc.id,
+                        reason
+                    );
+                    precomputed.insert(
+                        tc.id.clone(),
+                        agent_tools::ToolResult {
+                            success: false,
+                            output: reason,
+                        },
+                    );
                 }
             }
         }
@@ -680,7 +823,10 @@ pub async fn run_agent(
         let parallel = all_shared && tool_calls.len() > 1;
 
         if parallel {
-            log::info!("[AgentLoop] Parallel-dispatching {} read-only tools", tool_calls.len());
+            log::info!(
+                "[AgentLoop] Parallel-dispatching {} read-only tools",
+                tool_calls.len()
+            );
             for tc in &tool_calls {
                 datalog.log_tool_call(&tc.name, &tc.arguments);
             }
@@ -692,7 +838,9 @@ pub async fn run_agent(
                 let server_ids = request.server_ids.clone();
                 let pre = precomputed.get(&tc.id).cloned();
                 handles.push(tokio::spawn(async move {
-                    if let Some(p) = pre { return p; }
+                    if let Some(p) = pre {
+                        return p;
+                    }
                     agent_tools::execute_tool(&name, &args, &sshp, &server_ids).await
                 }));
             }
@@ -714,13 +862,18 @@ pub async fn run_agent(
 
             for (tc, result) in tool_calls.iter().zip(results.into_iter()) {
                 datalog.log_tool_result(&result.output, result.success);
-                emit_event(&app, AgentEvent::ToolResult {
-                    id: tc.id.clone(),
-                    output: result.output.clone(),
-                    success: result.success,
-                });
+                emit_event(
+                    &app,
+                    AgentEvent::ToolResult {
+                        id: tc.id.clone(),
+                        output: result.output.clone(),
+                        success: result.success,
+                    },
+                );
                 let mut map = session_map.lock().await;
-                let sess = map.entry(server_key.clone()).or_insert_with(AgentSession::new);
+                let sess = map
+                    .entry(server_key.clone())
+                    .or_insert_with(AgentSession::new);
                 let block = ContentBlock::ToolResult {
                     tool_use_id: tc.id.clone(),
                     content: result.output,
@@ -770,13 +923,18 @@ pub async fn run_agent(
                     if let Some((intent, server_id)) =
                         derive_verify_intent(&tc.name, &tc.arguments, &request.server_ids)
                     {
-                        log::info!("[AgentLoop] auto_fix verifying {} on {}", intent.label(), server_id);
+                        log::info!(
+                            "[AgentLoop] auto_fix verifying {} on {}",
+                            intent.label(),
+                            server_id
+                        );
                         match auto_fix::verify(&intent, &server_id, &ssh_pool).await {
                             Ok(()) => log::info!("[AgentLoop] auto_fix OK for {}", intent.label()),
                             Err(reason) => {
                                 log::warn!(
                                     "[AgentLoop] auto_fix FAILED for {}: {}",
-                                    intent.label(), reason
+                                    intent.label(),
+                                    reason
                                 );
                                 result = auto_fix::wrap_failure(result, &intent, reason);
                             }
@@ -786,38 +944,39 @@ pub async fn run_agent(
 
                 datalog.log_tool_result(&result.output, result.success);
                 // Always emit ToolResult to frontend
-                emit_event(&app, AgentEvent::ToolResult {
-                    id: tc.id.clone(),
-                    output: result.output.clone(),
-                    success: result.success,
-                });
+                emit_event(
+                    &app,
+                    AgentEvent::ToolResult {
+                        id: tc.id.clone(),
+                        output: result.output.clone(),
+                        success: result.success,
+                    },
+                );
 
                 // Always save tool result to message history — even for cancelled tools.
                 // This keeps the conversation structure valid (every tool_call must have a tool_result).
                 {
                     let mut map = session_map.lock().await;
-                    let sess = map.entry(server_key.clone()).or_insert_with(AgentSession::new);
+                    let sess = map
+                        .entry(server_key.clone())
+                        .or_insert_with(AgentSession::new);
                     match active_provider {
                         LlmProvider::OpenAI => {
                             sess.messages.push(Message {
                                 role: "tool".into(),
-                                content: MessageContent::Blocks(vec![
-                                    ContentBlock::ToolResult {
-                                        tool_use_id: tc.id.clone(),
-                                        content: result.output,
-                                    }
-                                ]),
+                                content: MessageContent::Blocks(vec![ContentBlock::ToolResult {
+                                    tool_use_id: tc.id.clone(),
+                                    content: result.output,
+                                }]),
                             });
                         }
                         LlmProvider::Anthropic => {
                             sess.messages.push(Message {
                                 role: "user".into(),
-                                content: MessageContent::Blocks(vec![
-                                    ContentBlock::ToolResult {
-                                        tool_use_id: tc.id.clone(),
-                                        content: result.output,
-                                    }
-                                ]),
+                                content: MessageContent::Blocks(vec![ContentBlock::ToolResult {
+                                    tool_use_id: tc.id.clone(),
+                                    content: result.output,
+                                }]),
                             });
                         }
                     }
@@ -835,7 +994,9 @@ pub async fn run_agent(
         if cancel_token.is_cancelled() {
             if completed_count < tool_calls.len() {
                 let mut map = session_map.lock().await;
-                let sess = map.entry(server_key.clone()).or_insert_with(AgentSession::new);
+                let sess = map
+                    .entry(server_key.clone())
+                    .or_insert_with(AgentSession::new);
                 for tc in tool_calls.iter().skip(completed_count) {
                     let cancelled_result = ContentBlock::ToolResult {
                         tool_use_id: tc.id.clone(),
@@ -861,7 +1022,12 @@ pub async fn run_agent(
         }
 
         // Continue loop — feed tool results back to LLM
-        emit_event(&app, AgentEvent::StateChange { state: "processing".into() });
+        emit_event(
+            &app,
+            AgentEvent::StateChange {
+                state: "processing".into(),
+            },
+        );
     }
 
     // 8. Done — save session to disk
@@ -874,7 +1040,12 @@ pub async fn run_agent(
     }
     datalog.end_turn();
     emit_event(&app, AgentEvent::Done {});
-    emit_event(&app, AgentEvent::StateChange { state: "idle".into() });
+    emit_event(
+        &app,
+        AgentEvent::StateChange {
+            state: "idle".into(),
+        },
+    );
 
     Ok(())
 }
@@ -1117,17 +1288,31 @@ Do NOT offer WSL2 as a workaround.\n\
         let has_remote = request.server_ids.iter().any(|s| s != "local");
         if has_remote {
             prompt.push_str("## ACTIVE TARGET SERVER (CRITICAL)\n");
-            prompt.push_str("The user has selected a REMOTE server as their target. \
+            prompt.push_str(
+                "The user has selected a REMOTE server as their target. \
                 You MUST execute ALL shell_exec, file_read, and file_write calls \
                 with the server_id shown below. NEVER omit server_id — \
                 omitting it will run commands on the LOCAL machine instead of the remote server, \
-                which is WRONG and defeats the user's intent.\n\n");
+                which is WRONG and defeats the user's intent.\n\n",
+            );
             let connections = ssh_pool.lock().await;
             for sid in &request.server_ids {
-                if sid == "local" { continue; }
-                let status = if connections.contains_key(sid) { "connected" } else { "not connected" };
-                prompt.push_str(&format!(">>> TARGET: server_id='{}' ({}) <<<\n", sid, status));
-                prompt.push_str(&format!("Every tool call MUST include: \"server_id\": \"{}\"\n\n", sid));
+                if sid == "local" {
+                    continue;
+                }
+                let status = if connections.contains_key(sid) {
+                    "connected"
+                } else {
+                    "not connected"
+                };
+                prompt.push_str(&format!(
+                    ">>> TARGET: server_id='{}' ({}) <<<\n",
+                    sid, status
+                ));
+                prompt.push_str(&format!(
+                    "Every tool call MUST include: \"server_id\": \"{}\"\n\n",
+                    sid
+                ));
             }
         }
     }
@@ -1138,12 +1323,11 @@ Do NOT offer WSL2 as a workaround.\n\
         for skill in &request.skills {
             prompt.push_str(&format!("- {}\n", skill));
         }
-        prompt.push_str("\n");
+        prompt.push('\n');
     }
 
     prompt
 }
-
 
 // -- LLM Server Down Detection --
 
@@ -1166,7 +1350,6 @@ fn format_server_down_error(err: &str) -> String {
     "⚠️ Local LLM server is offline (connection refused).\n     Please restart the local LLM server and try again.\n\n     In the sidebar: stop the LLM server, then start it again.".to_string()
 }
 
-
 // -- Tool concurrency classification --
 //
 // "Shared" tools are read-only with no observable side-effect on disk, network state,
@@ -1175,9 +1358,11 @@ fn format_server_down_error(err: &str) -> String {
 // must run sequentially because the model's next call may depend on what the
 // previous one produced (e.g. file_write then shell_exec).
 fn is_shared_tool(name: &str) -> bool {
-    matches!(name, "file_read" | "grep" | "glob" | "web_fetch" | "get_sudo_password")
+    matches!(
+        name,
+        "file_read" | "grep" | "glob" | "web_fetch" | "get_sudo_password"
+    )
 }
-
 
 // -- Install-intent validator --
 //
@@ -1223,7 +1408,9 @@ impl AgentTarget {
 fn detect_user_intent(messages: &[Message]) -> Option<AgentTarget> {
     // Walk backward; the most recent user message defines current intent.
     for msg in messages.iter().rev() {
-        if msg.role != "user" { continue; }
+        if msg.role != "user" {
+            continue;
+        }
         let text = match &msg.content {
             MessageContent::Text(t) => t.to_lowercase(),
             MessageContent::Blocks(blocks) => {
@@ -1234,7 +1421,9 @@ fn detect_user_intent(messages: &[Message]) -> Option<AgentTarget> {
                         out.push(' ');
                     }
                 }
-                if out.is_empty() { continue; }
+                if out.is_empty() {
+                    continue;
+                }
                 out
             }
         };
@@ -1246,7 +1435,10 @@ fn detect_user_intent(messages: &[Message]) -> Option<AgentTarget> {
         if text.contains("opencode") || text.contains("open code") {
             return Some(AgentTarget::OpenCode);
         }
-        if text.contains("claude code") || text.contains("claudecode") || text.contains("claude-code") {
+        if text.contains("claude code")
+            || text.contains("claudecode")
+            || text.contains("claude-code")
+        {
             return Some(AgentTarget::ClaudeCode);
         }
         if text.contains("codex") {
@@ -1267,7 +1459,11 @@ fn detect_command_target(command: &str) -> Option<AgentTarget> {
         || cmd.contains("pnpm add")
         || cmd.contains("cargo install")
         || cmd.contains("pip install")
-        || (cmd.contains("curl") && (cmd.contains("install.sh") || cmd.contains("install.ps1") || cmd.contains("| bash") || cmd.contains("| sh")));
+        || (cmd.contains("curl")
+            && (cmd.contains("install.sh")
+                || cmd.contains("install.ps1")
+                || cmd.contains("| bash")
+                || cmd.contains("| sh")));
     if !is_install_op {
         return None;
     }
@@ -1282,7 +1478,8 @@ fn detect_command_target(command: &str) -> Option<AgentTarget> {
     if cmd.contains("opencode-ai") || (cmd.contains("install") && cmd.contains(" opencode")) {
         return Some(AgentTarget::OpenCode);
     }
-    if cmd.contains(" openclaw") || cmd.ends_with("openclaw") || cmd.contains("openclaw.ai/install") {
+    if cmd.contains(" openclaw") || cmd.ends_with("openclaw") || cmd.contains("openclaw.ai/install")
+    {
         return Some(AgentTarget::OpenClaw);
     }
     None
@@ -1292,8 +1489,14 @@ fn detect_command_target(command: &str) -> Option<AgentTarget> {
 /// disagrees with what the user asked for. Returns Ok(()) when alignment is
 /// confirmed OR when either side is unidentified (skip-on-uncertainty).
 fn validate_install_intent(command: &str, messages: &[Message]) -> Result<(), String> {
-    let intent = match detect_user_intent(messages) { Some(x) => x, None => return Ok(()) };
-    let target = match detect_command_target(command) { Some(x) => x, None => return Ok(()) };
+    let intent = match detect_user_intent(messages) {
+        Some(x) => x,
+        None => return Ok(()),
+    };
+    let target = match detect_command_target(command) {
+        Some(x) => x,
+        None => return Ok(()),
+    };
     if intent == target {
         return Ok(());
     }
@@ -1353,7 +1556,10 @@ mod loop_detection_tests {
         let h = 42_u64;
         assert!(s.record_call_and_detect_loop(h).is_none(), "1st call ok");
         assert!(s.record_call_and_detect_loop(h).is_none(), "2nd call ok");
-        assert!(s.record_call_and_detect_loop(h).is_some(), "3rd call must trip");
+        assert!(
+            s.record_call_and_detect_loop(h).is_some(),
+            "3rd call must trip"
+        );
     }
 
     #[test]

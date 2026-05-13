@@ -19,7 +19,9 @@ struct CooldownSet {
 
 impl CooldownSet {
     fn new() -> Self {
-        Self { tools: HashMap::new() }
+        Self {
+            tools: HashMap::new(),
+        }
     }
 
     fn is_cooling(&self, tool_id: &str) -> bool {
@@ -31,7 +33,8 @@ impl CooldownSet {
     }
 
     fn mark(&mut self, tool_id: &str) {
-        self.tools.insert(tool_id.to_string(), tokio::time::Instant::now());
+        self.tools
+            .insert(tool_id.to_string(), tokio::time::Instant::now());
     }
 }
 
@@ -39,6 +42,12 @@ impl CooldownSet {
 pub struct ProcessManager {
     processes: HashMap<String, ProcessInfo>,
     cooldown: CooldownSet,
+}
+
+impl Default for ProcessManager {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl ProcessManager {
@@ -50,7 +59,11 @@ impl ProcessManager {
     }
 
     /// Start a tool process �?mirrors old Electron processManager.startTool logic
-    pub async fn start_tool(&mut self, tool_id: &str, start_command: Option<&str>) -> Result<(), String> {
+    pub async fn start_tool(
+        &mut self,
+        tool_id: &str,
+        start_command: Option<&str>,
+    ) -> Result<(), String> {
         if self.cooldown.is_cooling(tool_id) {
             return Err("Please wait before launching again".to_string());
         }
@@ -94,14 +107,22 @@ impl ProcessManager {
         };
         if needs_launcher {
             if let Some(launcher) = Self::find_codex_launcher() {
-                log::info!("[ProcessManager] Routing {} through dual-spoof launcher: {:?}", tool_id, launcher);
+                log::info!(
+                    "[ProcessManager] Routing {} through dual-spoof launcher: {:?}",
+                    tool_id,
+                    launcher
+                );
                 return self.start_codex_launcher(tool_id, &launcher);
             }
         }
 
         // Priority 1: If explicit command is given from frontend, use it
         if let Some(cmd) = start_command {
-            log::info!("[ProcessManager] Starting tool: {} with explicit command: {}", tool_id, cmd);
+            log::info!(
+                "[ProcessManager] Starting tool: {} with explicit command: {}",
+                tool_id,
+                cmd
+            );
             return self.start_cli_tool(tool_id, cmd);
         }
 
@@ -110,7 +131,11 @@ impl ProcessManager {
             // Extract base command (first word) for existence check
             let base_cmd = command.split_whitespace().next().unwrap_or(&command);
             if crate::utils::platform::command_exists(base_cmd).await {
-                log::info!("[ProcessManager] Starting CLI tool: {} with startCommand: {}", tool_id, command);
+                log::info!(
+                    "[ProcessManager] Starting CLI tool: {} with startCommand: {}",
+                    tool_id,
+                    command
+                );
                 return self.start_cli_tool(tool_id, &command);
             } else {
                 log::warn!("[ProcessManager] startCommand base '{}' for tool '{}' not found in PATH, skipping", base_cmd, tool_id);
@@ -119,29 +144,47 @@ impl ProcessManager {
 
         // Priority 2.9: MSIX / Store app — use shell:AppsFolder\<AUMID>
         if let Some(uri) = crate::services::tool_manager::get_tool_launch_uri(tool_id) {
-            log::info!("[ProcessManager] Launching MSIX/Store app for {}: {}", tool_id, uri);
+            log::info!(
+                "[ProcessManager] Launching MSIX/Store app for {}: {}",
+                tool_id,
+                uri
+            );
             return self.start_shell_uri(tool_id, &uri);
         }
 
         // Priority 3: GUI executable found (for desktop apps like CodeBuddy)
         if crate::services::tool_manager::get_tool_exe_path(tool_id).is_some() {
-            log::info!("[ProcessManager] Found GUI exe for {}, launching as desktop app", tool_id);
+            log::info!(
+                "[ProcessManager] Found GUI exe for {}, launching as desktop app",
+                tool_id
+            );
             return self.start_gui_tool(tool_id).await;
         }
 
         // Priority 4: VS Code extension tools — launch VS Code
         if crate::services::tool_manager::is_vscode_extension(tool_id) {
-            log::info!("[ProcessManager] Tool {} is a VS Code extension, launching VS Code", tool_id);
+            log::info!(
+                "[ProcessManager] Tool {} is a VS Code extension, launching VS Code",
+                tool_id
+            );
             return self.launch_vscode(tool_id).await;
         }
 
         // Priority 5: Fall back to CLI command from paths.json "command" field
         if let Some(command) = crate::services::tool_manager::get_tool_command(tool_id) {
             if crate::utils::platform::command_exists(&command).await {
-                log::info!("[ProcessManager] Falling back to CLI command for {}: {}", tool_id, command);
+                log::info!(
+                    "[ProcessManager] Falling back to CLI command for {}: {}",
+                    tool_id,
+                    command
+                );
                 return self.start_cli_tool(tool_id, &command);
             } else {
-                log::warn!("[ProcessManager] CLI command '{}' for tool '{}' not found in PATH", command, tool_id);
+                log::warn!(
+                    "[ProcessManager] CLI command '{}' for tool '{}' not found in PATH",
+                    command,
+                    tool_id
+                );
             }
         }
 
@@ -153,7 +196,11 @@ impl ProcessManager {
         let launcher = crate::services::tool_manager::find_tools_dir()?
             .join("codex")
             .join("codex-launcher.cjs");
-        if launcher.exists() { Some(launcher) } else { None }
+        if launcher.exists() {
+            Some(launcher)
+        } else {
+            None
+        }
     }
 
     /// True iff ~/.echobird/codex.json points at a non-OpenAI endpoint.
@@ -184,7 +231,11 @@ impl ProcessManager {
     /// mangle paths containing spaces. The launcher takes care of spawning
     /// the actual Codex binary (npm Rust CLI vs. standalone Desktop exe)
     /// based on the ECHOBIRD_CODEX_LAUNCH_MODE env var we set here.
-    fn start_codex_launcher(&mut self, tool_id: &str, launcher: &std::path::Path) -> Result<(), String> {
+    fn start_codex_launcher(
+        &mut self,
+        tool_id: &str,
+        launcher: &std::path::Path,
+    ) -> Result<(), String> {
         let home = dirs::home_dir().unwrap_or_default();
 
         // Pull api_key / base_url out of ~/.echobird/codex.json so we can
@@ -198,9 +249,12 @@ impl ProcessManager {
         if relay_path.exists() {
             if let Ok(content) = std::fs::read_to_string(&relay_path) {
                 if let Ok(cfg) = serde_json::from_str::<serde_json::Value>(&content) {
-                    api_key  = cfg.get("apiKey").and_then(|v| v.as_str()).map(String::from);
-                    base_url = cfg.get("baseUrl").and_then(|v| v.as_str()).map(String::from);
-                    env_key  = cfg.get("envKey").and_then(|v| v.as_str()).map(String::from);
+                    api_key = cfg.get("apiKey").and_then(|v| v.as_str()).map(String::from);
+                    base_url = cfg
+                        .get("baseUrl")
+                        .and_then(|v| v.as_str())
+                        .map(String::from);
+                    env_key = cfg.get("envKey").and_then(|v| v.as_str()).map(String::from);
                 }
             }
         }
@@ -208,7 +262,11 @@ impl ProcessManager {
         // Tell the launcher which Codex binary to spawn. CLI mode picks up
         // the npm-bundled Rust binary via resolveCodexBinary(); desktop
         // mode looks at tools/codexdesktop/paths.json's exe locations.
-        let launch_mode = if tool_id == "codexdesktop" { "desktop" } else { "cli" };
+        let launch_mode = if tool_id == "codexdesktop" {
+            "desktop"
+        } else {
+            "cli"
+        };
 
         #[cfg(windows)]
         {
@@ -221,9 +279,7 @@ impl ProcessManager {
             // present — cmd.exe rejects it, even though Rust hands them
             // out in debug builds.
             let launcher_str = launcher.to_string_lossy();
-            let launcher_clean = launcher_str
-                .strip_prefix(r"\\?\")
-                .unwrap_or(&launcher_str);
+            let launcher_clean = launcher_str.strip_prefix(r"\\?\").unwrap_or(&launcher_str);
 
             let mut cmd = Command::new("cmd");
             cmd.args(["/C", "node", launcher_clean]);
@@ -237,7 +293,9 @@ impl ProcessManager {
                     cmd.env(ek, key);
                 }
             }
-            if let Some(ref url) = base_url { cmd.env("OPENAI_BASE_URL", url); }
+            if let Some(ref url) = base_url {
+                cmd.env("OPENAI_BASE_URL", url);
+            }
 
             // CLI needs a visible terminal — Codex CLI's TUI renders in
             // it via stdio:inherit. Desktop is a GUI app, so hide the
@@ -250,16 +308,21 @@ impl ProcessManager {
             };
             cmd.creation_flags(flags);
 
-            log::info!("[ProcessManager] Codex launcher ({}): cmd /C node {}", launch_mode, launcher_clean);
-            return match cmd.spawn() {
+            log::info!(
+                "[ProcessManager] Codex launcher ({}): cmd /C node {}",
+                launch_mode,
+                launcher_clean
+            );
+            match cmd.spawn() {
                 Ok(child) => {
                     let pid = child.id();
                     log::info!("[ProcessManager] Codex launcher PID: {}", pid);
-                    self.processes.insert(tool_id.to_string(), ProcessInfo { pid });
+                    self.processes
+                        .insert(tool_id.to_string(), ProcessInfo { pid });
                     Ok(())
                 }
                 Err(e) => Err(format!("Failed to launch Codex launcher: {}", e)),
-            };
+            }
         }
 
         #[cfg(not(windows))]
@@ -276,13 +339,20 @@ impl ProcessManager {
                     cmd.env(ek, key);
                 }
             }
-            if let Some(ref url) = base_url { cmd.env("OPENAI_BASE_URL", url); }
+            if let Some(ref url) = base_url {
+                cmd.env("OPENAI_BASE_URL", url);
+            }
 
             match cmd.spawn() {
                 Ok(child) => {
                     let pid = child.id();
-                    log::info!("[ProcessManager] Codex launcher PID ({}): {}", launch_mode, pid);
-                    self.processes.insert(tool_id.to_string(), ProcessInfo { pid });
+                    log::info!(
+                        "[ProcessManager] Codex launcher PID ({}): {}",
+                        launch_mode,
+                        pid
+                    );
+                    self.processes
+                        .insert(tool_id.to_string(), ProcessInfo { pid });
                     Ok(())
                 }
                 Err(e) => Err(format!("Failed to launch Codex via node: {}", e)),
@@ -304,10 +374,22 @@ impl ProcessManager {
         if config_path.exists() {
             if let Ok(content) = std::fs::read_to_string(&config_path) {
                 if let Ok(config) = serde_json::from_str::<serde_json::Value>(&content) {
-                    api_key_env = config.get("apiKey").and_then(|v| v.as_str()).map(|s| s.to_string());
-                    base_url_env = config.get("baseUrl").and_then(|v| v.as_str()).map(|s| s.to_string());
-                    model_id = config.get("modelId").and_then(|v| v.as_str()).map(|s| s.to_string());
-                    custom_api_key_env_name = config.get("envKey").and_then(|v| v.as_str()).map(|s| s.to_string());
+                    api_key_env = config
+                        .get("apiKey")
+                        .and_then(|v| v.as_str())
+                        .map(|s| s.to_string());
+                    base_url_env = config
+                        .get("baseUrl")
+                        .and_then(|v| v.as_str())
+                        .map(|s| s.to_string());
+                    model_id = config
+                        .get("modelId")
+                        .and_then(|v| v.as_str())
+                        .map(|s| s.to_string());
+                    custom_api_key_env_name = config
+                        .get("envKey")
+                        .and_then(|v| v.as_str())
+                        .map(|s| s.to_string());
                 }
             }
         }
@@ -321,7 +403,6 @@ impl ProcessManager {
                 full_command = format!("{} --model echobird/{}", command, mid);
             }
         }
-
 
         #[cfg(windows)]
         {
@@ -356,14 +437,18 @@ impl ProcessManager {
             match cmd.spawn() {
                 Ok(child) => {
                     let pid = child.id();
-                    log::info!("[ProcessManager] Tool {} started with PID: {}", tool_id, pid);
-                    self.processes.insert(tool_id.to_string(), ProcessInfo { pid });
+                    log::info!(
+                        "[ProcessManager] Tool {} started with PID: {}",
+                        tool_id,
+                        pid
+                    );
+                    self.processes
+                        .insert(tool_id.to_string(), ProcessInfo { pid });
                     Ok(())
                 }
                 Err(e) => Err(format!("Spawn error: {}", e)),
             }
         }
-
 
         // Linux: TUI tools (claude/codex/opencode etc.) need a real TTY, so we
         // can't just spawn the binary as a child of the Tauri GUI. Find a
@@ -371,10 +456,12 @@ impl ProcessManager {
         // mirroring what CREATE_NEW_CONSOLE gives us on Windows.
         #[cfg(target_os = "linux")]
         {
-            let term = find_terminal_emulator()
-                .ok_or_else(|| "No terminal emulator found. Please install one of: \
+            let term = find_terminal_emulator().ok_or_else(|| {
+                "No terminal emulator found. Please install one of: \
                                 gnome-terminal, konsole, xfce4-terminal, alacritty, \
-                                kitty, wezterm, foot, tilix, or xterm.".to_string())?;
+                                kitty, wezterm, foot, tilix, or xterm."
+                    .to_string()
+            })?;
 
             let mut cmd = Command::new(&term.binary);
             cmd.args(term.prefix_args.iter().copied());
@@ -387,7 +474,11 @@ impl ProcessManager {
             // compatibility.
             let user_shell = std::env::var("SHELL").unwrap_or_else(|_| "/bin/bash".into());
             let wrapped = wrap_with_pause_on_quick_or_error(&full_command);
-            cmd.arg(&user_shell).arg("-l").arg("-i").arg("-c").arg(&wrapped);
+            cmd.arg(&user_shell)
+                .arg("-l")
+                .arg("-i")
+                .arg("-c")
+                .arg(&wrapped);
             cmd.current_dir(&home);
 
             if let Some(ref key) = api_key_env {
@@ -400,15 +491,25 @@ impl ProcessManager {
                 cmd.env("OPENAI_BASE_URL", url);
             }
 
-            let child = cmd.spawn()
-                .map_err(|e| format!("Failed to launch terminal '{}': {}", term.binary.display(), e))?;
+            let child = cmd.spawn().map_err(|e| {
+                format!(
+                    "Failed to launch terminal '{}': {}",
+                    term.binary.display(),
+                    e
+                )
+            })?;
 
             let pid = child.id();
-            log::info!("[ProcessManager] Tool {} started in {} with PID: {}", tool_id, term.binary.display(), pid);
-            self.processes.insert(tool_id.to_string(), ProcessInfo { pid });
+            log::info!(
+                "[ProcessManager] Tool {} started in {} with PID: {}",
+                tool_id,
+                term.binary.display(),
+                pid
+            );
+            self.processes
+                .insert(tool_id.to_string(), ProcessInfo { pid });
             Ok(())
         }
-
 
         // macOS: same TTY problem as Linux. The fix is simpler though —
         // Terminal.app is system-bundled so no detection is needed. We bake
@@ -469,8 +570,7 @@ impl ProcessManager {
                 .map_err(|e| format!("metadata: {}", e))?
                 .permissions();
             perms.set_mode(0o755);
-            std::fs::set_permissions(&script_path, perms)
-                .map_err(|e| format!("chmod: {}", e))?;
+            std::fs::set_permissions(&script_path, perms).map_err(|e| format!("chmod: {}", e))?;
 
             let child = Command::new("open")
                 .args(["-a", "Terminal"])
@@ -479,11 +579,16 @@ impl ProcessManager {
                 .map_err(|e| format!("Failed to launch Terminal.app: {}", e))?;
 
             let pid = child.id();
-            log::info!("[ProcessManager] Tool {} launched in Terminal.app via {}, open PID: {}", tool_id, script_path.display(), pid);
-            self.processes.insert(tool_id.to_string(), ProcessInfo { pid });
+            log::info!(
+                "[ProcessManager] Tool {} launched in Terminal.app via {}, open PID: {}",
+                tool_id,
+                script_path.display(),
+                pid
+            );
+            self.processes
+                .insert(tool_id.to_string(), ProcessInfo { pid });
             Ok(())
         }
-
 
         // Other unix (*BSD, etc.): keep the historical raw-spawn behavior as
         // a safety net. Realistically nothing hits this branch in production.
@@ -509,19 +614,26 @@ impl ProcessManager {
                 cmd.env("OPENAI_BASE_URL", url);
             }
 
-            let child = cmd.spawn()
-                .map_err(|e| format!("Spawn error: {}", e))?;
+            let child = cmd.spawn().map_err(|e| format!("Spawn error: {}", e))?;
 
             let pid = child.id();
-            log::info!("[ProcessManager] Tool {} started with PID: {}", tool_id, pid);
-            self.processes.insert(tool_id.to_string(), ProcessInfo { pid });
+            log::info!(
+                "[ProcessManager] Tool {} started with PID: {}",
+                tool_id,
+                pid
+            );
+            self.processes
+                .insert(tool_id.to_string(), ProcessInfo { pid });
             Ok(())
         }
     }
 
     /// Launch VS Code for extension-based tools
     async fn launch_vscode(&mut self, tool_id: &str) -> Result<(), String> {
-        log::info!("[ProcessManager] Launching VS Code for extension tool: {}", tool_id);
+        log::info!(
+            "[ProcessManager] Launching VS Code for extension tool: {}",
+            tool_id
+        );
 
         #[cfg(windows)]
         {
@@ -535,12 +647,22 @@ impl ProcessManager {
                 .args(["/c", "code"])
                 .creation_flags(CREATE_NEW_PROCESS_GROUP | CREATE_NO_WINDOW)
                 .spawn()
-                .map_err(|e| format!("Failed to launch VS Code: {}. Is VS Code installed and in PATH?", e))?;
+                .map_err(|e| {
+                    format!(
+                        "Failed to launch VS Code: {}. Is VS Code installed and in PATH?",
+                        e
+                    )
+                })?;
 
             let pid = output.id();
-            log::info!("[ProcessManager] VS Code launched for {} with PID: {}", tool_id, pid);
-            self.processes.insert(tool_id.to_string(), ProcessInfo { pid });
-            return Ok(());
+            log::info!(
+                "[ProcessManager] VS Code launched for {} with PID: {}",
+                tool_id,
+                pid
+            );
+            self.processes
+                .insert(tool_id.to_string(), ProcessInfo { pid });
+            Ok(())
         }
 
         #[cfg(target_os = "macos")]
@@ -551,21 +673,34 @@ impl ProcessManager {
                 .map_err(|e| format!("Failed to launch VS Code: {}. Is VS Code installed?", e))?;
 
             let pid = child.id();
-            log::info!("[ProcessManager] VS Code launched for {} with PID: {}", tool_id, pid);
-            self.processes.insert(tool_id.to_string(), ProcessInfo { pid });
-            return Ok(());
+            log::info!(
+                "[ProcessManager] VS Code launched for {} with PID: {}",
+                tool_id,
+                pid
+            );
+            self.processes
+                .insert(tool_id.to_string(), ProcessInfo { pid });
+            Ok(())
         }
 
         #[cfg(target_os = "linux")]
         {
-            let child = Command::new("code")
-                .spawn()
-                .map_err(|e| format!("Failed to launch VS Code: {}. Is VS Code installed and in PATH?", e))?;
+            let child = Command::new("code").spawn().map_err(|e| {
+                format!(
+                    "Failed to launch VS Code: {}. Is VS Code installed and in PATH?",
+                    e
+                )
+            })?;
 
             let pid = child.id();
-            log::info!("[ProcessManager] VS Code launched for {} with PID: {}", tool_id, pid);
-            self.processes.insert(tool_id.to_string(), ProcessInfo { pid });
-            return Ok(());
+            log::info!(
+                "[ProcessManager] VS Code launched for {} with PID: {}",
+                tool_id,
+                pid
+            );
+            self.processes
+                .insert(tool_id.to_string(), ProcessInfo { pid });
+            Ok(())
         }
 
         #[cfg(target_os = "android")]
@@ -590,8 +725,13 @@ impl ProcessManager {
             match result {
                 Ok(child) => {
                     let pid = child.id();
-                    log::info!("[ProcessManager] Launched {} via shell URI, PID: {}", tool_id, pid);
-                    self.processes.insert(tool_id.to_string(), ProcessInfo { pid });
+                    log::info!(
+                        "[ProcessManager] Launched {} via shell URI, PID: {}",
+                        tool_id,
+                        pid
+                    );
+                    self.processes
+                        .insert(tool_id.to_string(), ProcessInfo { pid });
                     Ok(())
                 }
                 Err(e) => Err(format!("Failed to launch via shell URI: {}", e)),
@@ -609,7 +749,11 @@ impl ProcessManager {
         let exe_path = crate::services::tool_manager::get_tool_exe_path(tool_id)
             .ok_or_else(|| format!("No executable path found for tool '{}'", tool_id))?;
 
-        log::info!("[ProcessManager] Starting GUI tool: {} at {}", tool_id, exe_path);
+        log::info!(
+            "[ProcessManager] Starting GUI tool: {} at {}",
+            tool_id,
+            exe_path
+        );
 
         #[cfg(windows)]
         {
@@ -630,8 +774,13 @@ impl ProcessManager {
 
             let pid_str = String::from_utf8_lossy(&output.stdout).trim().to_string();
             if let Ok(pid) = pid_str.parse::<u32>() {
-                log::info!("[ProcessManager] GUI tool {} started with PID: {}", tool_id, pid);
-                self.processes.insert(tool_id.to_string(), ProcessInfo { pid });
+                log::info!(
+                    "[ProcessManager] GUI tool {} started with PID: {}",
+                    tool_id,
+                    pid
+                );
+                self.processes
+                    .insert(tool_id.to_string(), ProcessInfo { pid });
                 return Ok(());
             }
             Err(format!("Failed to launch GUI tool: {}", pid_str))
@@ -645,8 +794,13 @@ impl ProcessManager {
                 .map_err(|e| format!("open error: {}", e))?;
 
             let pid = child.id();
-            log::info!("[ProcessManager] GUI tool {} started with PID: {}", tool_id, pid);
-            self.processes.insert(tool_id.to_string(), ProcessInfo { pid });
+            log::info!(
+                "[ProcessManager] GUI tool {} started with PID: {}",
+                tool_id,
+                pid
+            );
+            self.processes
+                .insert(tool_id.to_string(), ProcessInfo { pid });
             Ok(())
         }
 
@@ -657,8 +811,13 @@ impl ProcessManager {
                 .map_err(|e| format!("Spawn error: {}", e))?;
 
             let pid = child.id();
-            log::info!("[ProcessManager] GUI tool {} started with PID: {}", tool_id, pid);
-            self.processes.insert(tool_id.to_string(), ProcessInfo { pid });
+            log::info!(
+                "[ProcessManager] GUI tool {} started with PID: {}",
+                tool_id,
+                pid
+            );
+            self.processes
+                .insert(tool_id.to_string(), ProcessInfo { pid });
             Ok(())
         }
 
@@ -678,7 +837,10 @@ impl ProcessManager {
             let config = serde_json::json!({ "hasCompletedOnboarding": true });
             if let Ok(content) = serde_json::to_string_pretty(&config) {
                 let _ = std::fs::write(&claude_json, content);
-                log::info!("[ProcessManager] Created {:?} (onboarding skip)", claude_json);
+                log::info!(
+                    "[ProcessManager] Created {:?} (onboarding skip)",
+                    claude_json
+                );
             }
         }
 
@@ -692,17 +854,26 @@ impl ProcessManager {
             });
             if let Ok(content) = serde_json::to_string_pretty(&settings) {
                 let _ = std::fs::write(&settings_path, content);
-                log::info!("[ProcessManager] Created {:?} (allowedTools)", settings_path);
+                log::info!(
+                    "[ProcessManager] Created {:?} (allowedTools)",
+                    settings_path
+                );
             }
         }
     }
 
     /// Stop a running tool by PID
     pub async fn stop_tool(&mut self, tool_id: &str) -> Result<(), String> {
-        let info = self.processes.remove(tool_id)
+        let info = self
+            .processes
+            .remove(tool_id)
             .ok_or_else(|| "Tool is not running".to_string())?;
 
-        log::info!("[ProcessManager] Stopping tool: {} (PID: {})", tool_id, info.pid);
+        log::info!(
+            "[ProcessManager] Stopping tool: {} (PID: {})",
+            tool_id,
+            info.pid
+        );
 
         #[cfg(windows)]
         {
@@ -762,7 +933,9 @@ impl ProcessManager {
                 }
                 #[cfg(not(windows))]
                 {
-                    unsafe { libc::kill(info.pid as i32, libc::SIGKILL); }
+                    unsafe {
+                        libc::kill(info.pid as i32, libc::SIGKILL);
+                    }
                 }
             }
         }
@@ -785,7 +958,11 @@ impl ProcessManager {
                 Ok(out) => {
                     let stdout = String::from_utf8_lossy(&out.stdout);
                     if stdout.contains("No tasks") || stdout.trim().is_empty() {
-                        log::info!("[ProcessManager] Tool {} (PID: {}) exited externally", tool_id, info.pid);
+                        log::info!(
+                            "[ProcessManager] Tool {} (PID: {}) exited externally",
+                            tool_id,
+                            info.pid
+                        );
                         exited.push(tool_id.clone());
                     }
                 }
@@ -809,7 +986,11 @@ impl ProcessManager {
         for (tool_id, info) in &self.processes {
             let alive = unsafe { libc::kill(info.pid as i32, 0) == 0 };
             if !alive {
-                log::info!("[ProcessManager] Tool {} (PID: {}) exited externally", tool_id, info.pid);
+                log::info!(
+                    "[ProcessManager] Tool {} (PID: {}) exited externally",
+                    tool_id,
+                    info.pid
+                );
                 exited.push(tool_id.clone());
             }
         }
@@ -837,7 +1018,9 @@ fn resolve_cmd_exe() -> std::path::PathBuf {
         }
     }
     if let Ok(sysroot) = std::env::var("SystemRoot") {
-        let p = std::path::PathBuf::from(sysroot).join("System32").join("cmd.exe");
+        let p = std::path::PathBuf::from(sysroot)
+            .join("System32")
+            .join("cmd.exe");
         if p.exists() {
             return p;
         }
@@ -882,16 +1065,16 @@ struct TerminalLauncher {
 fn find_terminal_emulator() -> Option<TerminalLauncher> {
     const CANDIDATES: &[(&str, &[&str])] = &[
         ("x-terminal-emulator", &["-e"]),
-        ("gnome-terminal",      &["--"]),
-        ("konsole",             &["-e"]),
+        ("gnome-terminal", &["--"]),
+        ("konsole", &["-e"]),
         // xfce4-terminal/tilix accept argv after `-x`; `-e` wants a single string.
-        ("xfce4-terminal",      &["-x"]),
-        ("tilix",               &["-x"]),
-        ("alacritty",           &["-e"]),
-        ("kitty",               &[]),
-        ("wezterm",             &["start", "--"]),
-        ("foot",                &[]),
-        ("xterm",               &["-e"]),
+        ("xfce4-terminal", &["-x"]),
+        ("tilix", &["-x"]),
+        ("alacritty", &["-e"]),
+        ("kitty", &[]),
+        ("wezterm", &["start", "--"]),
+        ("foot", &[]),
+        ("xterm", &["-e"]),
     ];
 
     for &(name, prefix_args) in CANDIDATES {
@@ -924,4 +1107,3 @@ pub async fn start_tool(tool_id: &str, start_command: Option<&str>) -> Result<()
     let mut mgr = mgr.lock().await;
     mgr.start_tool(tool_id, start_command).await
 }
-

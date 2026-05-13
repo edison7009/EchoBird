@@ -8,8 +8,8 @@
 //   Bug 1: read_full_http_request() reads complete HTTP body (not just 64 KB)
 //   Bug 2: API key is extracted from incoming request and forwarded to llama-server
 
-use tokio::sync::watch;
 use tokio::net::TcpListener;
+use tokio::sync::watch;
 
 // ─── Entry Point ───
 
@@ -22,7 +22,8 @@ pub async fn run_unified_proxy(
     use tauri::Emitter;
 
     let addr = format!("0.0.0.0:{}", listen_port);
-    let listener = TcpListener::bind(&addr).await
+    let listener = TcpListener::bind(&addr)
+        .await
         .map_err(|e| format!("Failed to bind proxy on {}: {}", addr, e))?;
 
     // Binding succeeded — notify the frontend STDOUT panel
@@ -85,7 +86,9 @@ async fn handle_proxy_connection(
 
     // Bug 1 Fix: read the complete HTTP request (headers + full body)
     let raw = read_full_http_request(&mut stream).await?;
-    if raw.is_empty() { return Ok(()); }
+    if raw.is_empty() {
+        return Ok(());
+    }
 
     let raw_str = String::from_utf8_lossy(&raw);
 
@@ -101,7 +104,12 @@ async fn handle_proxy_connection(
     let method = parts[0];
     let path = parts[1];
 
-    log::info!("[Proxy] {} {} → forwarding to :{}", method, path, target_port);
+    log::info!(
+        "[Proxy] {} {} → forwarding to :{}",
+        method,
+        path,
+        target_port
+    );
 
     // CORS preflight
     if method == "OPTIONS" {
@@ -120,7 +128,6 @@ async fn handle_proxy_connection(
         handle_passthrough(&mut stream, &raw, target_port).await
     }
 }
-
 
 // ─── Bug 1 Fix: Complete HTTP Request Reader ───
 
@@ -141,7 +148,9 @@ async fn read_full_http_request(stream: &mut tokio::net::TcpStream) -> Result<Ve
     // Phase 1: read until we have the full headers (\r\n\r\n)
     let header_end;
     loop {
-        let n = stream.read(&mut tmp).await
+        let n = stream
+            .read(&mut tmp)
+            .await
             .map_err(|e| format!("Read error: {}", e))?;
         if n == 0 {
             // Connection closed before headers finished
@@ -180,9 +189,13 @@ async fn read_full_http_request(stream: &mut tokio::net::TcpStream) -> Result<Ve
         let mut read_so_far = 0;
 
         while read_so_far < remaining {
-            let n = stream.read(&mut body_rest[read_so_far..]).await
+            let n = stream
+                .read(&mut body_rest[read_so_far..])
+                .await
                 .map_err(|e| format!("Read body error: {}", e))?;
-            if n == 0 { break; }
+            if n == 0 {
+                break;
+            }
             read_so_far += n;
         }
 
@@ -197,7 +210,6 @@ fn find_subsequence(haystack: &[u8], needle: &[u8]) -> Option<usize> {
     haystack.windows(needle.len()).position(|w| w == needle)
 }
 
-
 // ─── Passthrough (OpenAI path) ───
 
 /// Direct passthrough: forward request to llama-server as-is.
@@ -211,24 +223,27 @@ async fn handle_passthrough(
     raw_request: &[u8],
     target_port: u16,
 ) -> Result<(), String> {
-    use tokio::io::{AsyncWriteExt, copy_bidirectional};
+    use tokio::io::{copy_bidirectional, AsyncWriteExt};
     use tokio::net::TcpStream;
 
-    let mut target = TcpStream::connect(format!("127.0.0.1:{}", target_port)).await
+    let mut target = TcpStream::connect(format!("127.0.0.1:{}", target_port))
+        .await
         .map_err(|e| format!("Connect to llama-server failed: {}", e))?;
 
     // Send the full HTTP request to llama-server
-    target.write_all(raw_request).await
+    target
+        .write_all(raw_request)
+        .await
         .map_err(|e| format!("Write to target: {}", e))?;
 
     // Bidirectional pipe: handles chunked, SSE streaming, keep-alive, etc.
     // Terminates naturally when either side closes the connection.
-    copy_bidirectional(stream, &mut target).await
+    copy_bidirectional(stream, &mut target)
+        .await
         .map_err(|e| format!("Proxy pipe error: {}", e))?;
 
     Ok(())
 }
-
 
 // ─── Anthropic Proxy ───
 
@@ -257,19 +272,30 @@ async fn handle_anthropic_proxy(
     };
 
     // Parse Anthropic request body
-    let anthropic_req: serde_json::Value = serde_json::from_str(body_str)
-        .unwrap_or_else(|e| {
-            log::warn!("[Proxy] Failed to parse Anthropic body: {} (body_len={})", e, body_str.len());
-            serde_json::json!({})
-        });
+    let anthropic_req: serde_json::Value = serde_json::from_str(body_str).unwrap_or_else(|e| {
+        log::warn!(
+            "[Proxy] Failed to parse Anthropic body: {} (body_len={})",
+            e,
+            body_str.len()
+        );
+        serde_json::json!({})
+    });
 
-    let is_stream = anthropic_req.get("stream").and_then(|v| v.as_bool()).unwrap_or(false);
+    let is_stream = anthropic_req
+        .get("stream")
+        .and_then(|v| v.as_bool())
+        .unwrap_or(false);
 
     // Convert Anthropic request → OpenAI format
     let openai_req = anthropic_to_openai(&anthropic_req);
 
-    log::info!("[Proxy] Anthropic→OpenAI: {} messages, stream={}",
-        openai_req.get("messages").and_then(|m| m.as_array()).map(|a| a.len()).unwrap_or(0),
+    log::info!(
+        "[Proxy] Anthropic→OpenAI: {} messages, stream={}",
+        openai_req
+            .get("messages")
+            .and_then(|m| m.as_array())
+            .map(|a| a.len())
+            .unwrap_or(0),
         is_stream
     );
 
@@ -299,7 +325,9 @@ async fn handle_anthropic_proxy(
             Cache-Control: no-cache\r\n\
             Connection: keep-alive\r\n\
             Access-Control-Allow-Origin: *\r\n\r\n";
-        stream.write_all(sse_headers.as_bytes()).await
+        stream
+            .write_all(sse_headers.as_bytes())
+            .await
             .map_err(|e| format!("Write SSE headers: {}", e))?;
 
         let msg_id = format!("msg_{}", chrono::Utc::now().timestamp_millis());
@@ -311,13 +339,19 @@ async fn handle_anthropic_proxy(
                 "usage": {"input_tokens": 0, "output_tokens": 0}
             }
         });
-        stream.write_all(format!("event: message_start\ndata: {}\n\n", msg_start).as_bytes()).await.ok();
+        stream
+            .write_all(format!("event: message_start\ndata: {}\n\n", msg_start).as_bytes())
+            .await
+            .ok();
 
         let block_start = serde_json::json!({
             "type": "content_block_start", "index": 0,
             "content_block": {"type": "text", "text": ""}
         });
-        stream.write_all(format!("event: content_block_start\ndata: {}\n\n", block_start).as_bytes()).await.ok();
+        stream
+            .write_all(format!("event: content_block_start\ndata: {}\n\n", block_start).as_bytes())
+            .await
+            .ok();
         stream.flush().await.ok();
 
         use futures_util::StreamExt;
@@ -329,80 +363,157 @@ async fn handle_anthropic_proxy(
             match chunk_result {
                 Ok(chunk) => {
                     partial.push_str(&String::from_utf8_lossy(&chunk));
-                    loop {
-                        if let Some(nl) = partial.find('\n') {
-                            let line = partial[..nl].trim_end_matches('\r').to_string();
-                            partial = partial[nl + 1..].to_string();
-                            if !line.starts_with("data: ") { continue; }
-                            let json_str = &line[6..];
-                            if json_str == "[DONE]" { done = true; break; }
-                            if let Ok(cj) = serde_json::from_str::<serde_json::Value>(json_str) {
-                                let delta = cj.get("choices")
-                                    .and_then(|c| c.as_array())
-                                    .and_then(|arr| arr.first())
-                                    .and_then(|c| c.get("delta"));
-                                // Text delta
-                                if let Some(text) = delta.and_then(|d| d.get("content")).and_then(|c| c.as_str()) {
-                                    if !text.is_empty() {
-                                        let ev = serde_json::json!({
-                                            "type": "content_block_delta", "index": 0,
-                                            "delta": {"type": "text_delta", "text": text}
-                                        });
-                                        if stream.write_all(format!("event: content_block_delta\ndata: {}\n\n", ev).as_bytes()).await.is_err() {
-                                            return Ok(());
-                                        }
+                    while let Some(nl) = partial.find('\n') {
+                        let line = partial[..nl].trim_end_matches('\r').to_string();
+                        partial = partial[nl + 1..].to_string();
+                        if !line.starts_with("data: ") {
+                            continue;
+                        }
+                        let json_str = &line[6..];
+                        if json_str == "[DONE]" {
+                            done = true;
+                            break;
+                        }
+                        if let Ok(cj) = serde_json::from_str::<serde_json::Value>(json_str) {
+                            let delta = cj
+                                .get("choices")
+                                .and_then(|c| c.as_array())
+                                .and_then(|arr| arr.first())
+                                .and_then(|c| c.get("delta"));
+                            // Text delta
+                            if let Some(text) = delta
+                                .and_then(|d| d.get("content"))
+                                .and_then(|c| c.as_str())
+                            {
+                                if !text.is_empty() {
+                                    let ev = serde_json::json!({
+                                        "type": "content_block_delta", "index": 0,
+                                        "delta": {"type": "text_delta", "text": text}
+                                    });
+                                    if stream
+                                        .write_all(
+                                            format!("event: content_block_delta\ndata: {}\n\n", ev)
+                                                .as_bytes(),
+                                        )
+                                        .await
+                                        .is_err()
+                                    {
+                                        return Ok(());
                                     }
                                 }
-                                // Tool call delta
-                                if let Some(tool_calls) = delta.and_then(|d| d.get("tool_calls")).and_then(|t| t.as_array()) {
-                                    for tc in tool_calls {
-                                        let idx = tc.get("index").and_then(|v| v.as_u64()).unwrap_or(0);
-                                        if let Some(id) = tc.get("id").and_then(|v| v.as_str()) {
-                                            let name = tc.get("function").and_then(|f| f.get("name")).and_then(|v| v.as_str()).unwrap_or("");
-                                            if idx > 0 {
-                                                let s = serde_json::json!({"type": "content_block_stop", "index": idx - 1});
-                                                let _ = stream.write_all(format!("event: content_block_stop\ndata: {}\n\n", s).as_bytes()).await;
-                                            }
-                                            let s = serde_json::json!({
-                                                "type": "content_block_start", "index": idx,
-                                                "content_block": {"type": "tool_use", "id": id, "name": name, "input": {}}
-                                            });
-                                            let _ = stream.write_all(format!("event: content_block_start\ndata: {}\n\n", s).as_bytes()).await;
+                            }
+                            // Tool call delta
+                            if let Some(tool_calls) = delta
+                                .and_then(|d| d.get("tool_calls"))
+                                .and_then(|t| t.as_array())
+                            {
+                                for tc in tool_calls {
+                                    let idx = tc.get("index").and_then(|v| v.as_u64()).unwrap_or(0);
+                                    if let Some(id) = tc.get("id").and_then(|v| v.as_str()) {
+                                        let name = tc
+                                            .get("function")
+                                            .and_then(|f| f.get("name"))
+                                            .and_then(|v| v.as_str())
+                                            .unwrap_or("");
+                                        if idx > 0 {
+                                            let s = serde_json::json!({"type": "content_block_stop", "index": idx - 1});
+                                            let _ = stream
+                                                .write_all(
+                                                    format!(
+                                                        "event: content_block_stop\ndata: {}\n\n",
+                                                        s
+                                                    )
+                                                    .as_bytes(),
+                                                )
+                                                .await;
                                         }
-                                        if let Some(args) = tc.get("function").and_then(|f| f.get("arguments")).and_then(|v| v.as_str()) {
-                                            if !args.is_empty() {
-                                                let ev = serde_json::json!({
-                                                    "type": "content_block_delta", "index": idx,
-                                                    "delta": {"type": "input_json_delta", "partial_json": args}
-                                                });
-                                                let _ = stream.write_all(format!("event: content_block_delta\ndata: {}\n\n", ev).as_bytes()).await;
-                                            }
+                                        let s = serde_json::json!({
+                                            "type": "content_block_start", "index": idx,
+                                            "content_block": {"type": "tool_use", "id": id, "name": name, "input": {}}
+                                        });
+                                        let _ = stream
+                                            .write_all(
+                                                format!(
+                                                    "event: content_block_start\ndata: {}\n\n",
+                                                    s
+                                                )
+                                                .as_bytes(),
+                                            )
+                                            .await;
+                                    }
+                                    if let Some(args) = tc
+                                        .get("function")
+                                        .and_then(|f| f.get("arguments"))
+                                        .and_then(|v| v.as_str())
+                                    {
+                                        if !args.is_empty() {
+                                            let ev = serde_json::json!({
+                                                "type": "content_block_delta", "index": idx,
+                                                "delta": {"type": "input_json_delta", "partial_json": args}
+                                            });
+                                            let _ = stream
+                                                .write_all(
+                                                    format!(
+                                                        "event: content_block_delta\ndata: {}\n\n",
+                                                        ev
+                                                    )
+                                                    .as_bytes(),
+                                                )
+                                                .await;
                                         }
                                     }
                                 }
                             }
-                        } else { break; }
+                        }
                     }
                     stream.flush().await.ok();
                 }
-                Err(e) => { log::warn!("[Proxy] Stream error: {}", e); break; }
+                Err(e) => {
+                    log::warn!("[Proxy] Stream error: {}", e);
+                    break;
+                }
             }
-            if done { break; }
+            if done {
+                break;
+            }
         }
 
         // Closing events
-        stream.write_all(format!("event: content_block_stop\ndata: {}\n\n",
-            serde_json::json!({"type": "content_block_stop", "index": 0})).as_bytes()).await.ok();
-        stream.write_all(format!("event: message_delta\ndata: {}\n\n",
-            serde_json::json!({
-                "type": "message_delta",
-                "delta": {"stop_reason": "end_turn", "stop_sequence": null},
-                "usage": {"output_tokens": 0}
-            })).as_bytes()).await.ok();
-        stream.write_all(format!("event: message_stop\ndata: {}\n\n",
-            serde_json::json!({"type": "message_stop"})).as_bytes()).await.ok();
+        stream
+            .write_all(
+                format!(
+                    "event: content_block_stop\ndata: {}\n\n",
+                    serde_json::json!({"type": "content_block_stop", "index": 0})
+                )
+                .as_bytes(),
+            )
+            .await
+            .ok();
+        stream
+            .write_all(
+                format!(
+                    "event: message_delta\ndata: {}\n\n",
+                    serde_json::json!({
+                        "type": "message_delta",
+                        "delta": {"stop_reason": "end_turn", "stop_sequence": null},
+                        "usage": {"output_tokens": 0}
+                    })
+                )
+                .as_bytes(),
+            )
+            .await
+            .ok();
+        stream
+            .write_all(
+                format!(
+                    "event: message_stop\ndata: {}\n\n",
+                    serde_json::json!({"type": "message_stop"})
+                )
+                .as_bytes(),
+            )
+            .await
+            .ok();
         stream.flush().await.ok();
-
     } else {
         // ── NON-STREAMING PATH ──
         let openai_data = response
@@ -417,9 +528,12 @@ async fn handle_anthropic_proxy(
              Content-Type: application/json\r\n\
              Access-Control-Allow-Origin: *\r\n\
              Content-Length: {}\r\n\r\n{}",
-            body.len(), body
+            body.len(),
+            body
         );
-        stream.write_all(resp.as_bytes()).await
+        stream
+            .write_all(resp.as_bytes())
+            .await
             .map_err(|e| format!("Write response: {}", e))?;
     }
 
@@ -457,22 +571,27 @@ fn anthropic_to_openai(body: &serde_json::Value) -> serde_json::Value {
             match msg.get("content") {
                 // Simple string content
                 Some(c) if c.is_string() => {
-                    messages.push(serde_json::json!({"role": role, "content": c.as_str().unwrap_or("")}));
+                    messages.push(
+                        serde_json::json!({"role": role, "content": c.as_str().unwrap_or("")}),
+                    );
                 }
                 // Array of content blocks
                 Some(c) if c.is_array() => {
                     let blocks = c.as_array().unwrap();
 
-                    let text_parts: Vec<&str> = blocks.iter()
+                    let text_parts: Vec<&str> = blocks
+                        .iter()
                         .filter(|b| b.get("type").and_then(|t| t.as_str()) == Some("text"))
                         .filter_map(|b| b.get("text").and_then(|t| t.as_str()))
                         .collect();
 
-                    let tool_use_blocks: Vec<&serde_json::Value> = blocks.iter()
+                    let tool_use_blocks: Vec<&serde_json::Value> = blocks
+                        .iter()
                         .filter(|b| b.get("type").and_then(|t| t.as_str()) == Some("tool_use"))
                         .collect();
 
-                    let tool_result_blocks: Vec<&serde_json::Value> = blocks.iter()
+                    let tool_result_blocks: Vec<&serde_json::Value> = blocks
+                        .iter()
                         .filter(|b| b.get("type").and_then(|t| t.as_str()) == Some("tool_result"))
                         .collect();
 
@@ -500,8 +619,11 @@ fn anthropic_to_openai(body: &serde_json::Value) -> serde_json::Value {
                         messages.push(assistant_msg);
                     } else if !tool_result_blocks.is_empty() {
                         for tr in &tool_result_blocks {
-                            let tool_call_id = tr.get("tool_use_id").and_then(|v| v.as_str()).unwrap_or("");
-                            let result_content = if let Some(s) = tr.get("content").and_then(|c| c.as_str()) {
+                            let tool_call_id =
+                                tr.get("tool_use_id").and_then(|v| v.as_str()).unwrap_or("");
+                            let result_content = if let Some(s) =
+                                tr.get("content").and_then(|c| c.as_str())
+                            {
                                 s.to_string()
                             } else if let Some(arr) = tr.get("content").and_then(|c| c.as_array()) {
                                 arr.iter()
@@ -518,7 +640,9 @@ fn anthropic_to_openai(body: &serde_json::Value) -> serde_json::Value {
                             }));
                         }
                     } else {
-                        messages.push(serde_json::json!({"role": role, "content": text_parts.join("")}));
+                        messages.push(
+                            serde_json::json!({"role": role, "content": text_parts.join("")}),
+                        );
                     }
                 }
                 _ => {
@@ -561,25 +685,49 @@ fn anthropic_to_openai(body: &serde_json::Value) -> serde_json::Value {
 
 /// Convert OpenAI Chat Completions non-streaming response → Anthropic Messages response
 fn openai_to_anthropic(data: &serde_json::Value) -> serde_json::Value {
-    let model = data.get("model").and_then(|m| m.as_str()).unwrap_or("local-model");
-    let choice = data.get("choices").and_then(|c| c.as_array()).and_then(|a| a.first());
+    let model = data
+        .get("model")
+        .and_then(|m| m.as_str())
+        .unwrap_or("local-model");
+    let choice = data
+        .get("choices")
+        .and_then(|c| c.as_array())
+        .and_then(|a| a.first());
     let message = choice.and_then(|c| c.get("message"));
-    let finish_reason = choice.and_then(|c| c.get("finish_reason")).and_then(|v| v.as_str()).unwrap_or("end_turn");
+    let finish_reason = choice
+        .and_then(|c| c.get("finish_reason"))
+        .and_then(|v| v.as_str())
+        .unwrap_or("end_turn");
 
     let mut content_blocks: Vec<serde_json::Value> = Vec::new();
 
-    if let Some(text) = message.and_then(|m| m.get("content")).and_then(|c| c.as_str()) {
+    if let Some(text) = message
+        .and_then(|m| m.get("content"))
+        .and_then(|c| c.as_str())
+    {
         if !text.is_empty() {
             content_blocks.push(serde_json::json!({"type": "text", "text": text}));
         }
     }
 
-    if let Some(tool_calls) = message.and_then(|m| m.get("tool_calls")).and_then(|t| t.as_array()) {
+    if let Some(tool_calls) = message
+        .and_then(|m| m.get("tool_calls"))
+        .and_then(|t| t.as_array())
+    {
         for tc in tool_calls {
             let id = tc.get("id").and_then(|v| v.as_str()).unwrap_or("call_0");
-            let name = tc.get("function").and_then(|f| f.get("name")).and_then(|v| v.as_str()).unwrap_or("");
-            let args_str = tc.get("function").and_then(|f| f.get("arguments")).and_then(|v| v.as_str()).unwrap_or("{}");
-            let input: serde_json::Value = serde_json::from_str(args_str).unwrap_or(serde_json::json!({}));
+            let name = tc
+                .get("function")
+                .and_then(|f| f.get("name"))
+                .and_then(|v| v.as_str())
+                .unwrap_or("");
+            let args_str = tc
+                .get("function")
+                .and_then(|f| f.get("arguments"))
+                .and_then(|v| v.as_str())
+                .unwrap_or("{}");
+            let input: serde_json::Value =
+                serde_json::from_str(args_str).unwrap_or(serde_json::json!({}));
             content_blocks.push(serde_json::json!({
                 "type": "tool_use", "id": id, "name": name, "input": input
             }));

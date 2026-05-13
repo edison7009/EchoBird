@@ -8,42 +8,36 @@
 //   proxy.rs       — Unified HTTP proxy, Anthropic↔OpenAI conversion [Bug1+2 fix]
 //   model_store.rs — Store fetch, model download (GGUF), llama-server installer
 
-pub mod types;
-pub mod settings;
 pub mod gpu;
-pub mod server;
-pub mod proxy;
 pub mod model_store;
+pub mod proxy;
+pub mod server;
+pub mod settings;
+pub mod types;
 
 // ─── Re-export public API ───
 // All callers (tauri commands, services) use `local_llm::foo` directly.
 
 pub use types::{
-    LocalServerInfo, ServerLogs, ModelSettings, GgufFile, HfModelEntry,
-    GpuInfo, SystemInfo, DownloadProgress,
+    DownloadProgress, GgufFile, GpuInfo, HfModelEntry, LocalServerInfo, ModelSettings, ServerLogs,
+    SystemInfo,
 };
 
 pub use settings::{
-    load_model_settings, save_model_settings,
-    get_models_dirs, get_download_dir, set_download_dir,
-    scan_gguf_files, scan_hf_models,
+    get_download_dir, get_models_dirs, load_model_settings, save_model_settings, scan_gguf_files,
+    scan_hf_models, set_download_dir,
 };
 
-pub use gpu::{
-    get_system_info, detect_gpu, get_gpu_info,
-};
+pub use gpu::{detect_gpu, get_gpu_info, get_system_info};
 
 pub use server::{
-    get_server_info_sync,
-    start_server, stop_server, get_server_info, get_server_logs,
+    get_server_info, get_server_info_sync, get_server_logs, start_server, stop_server,
 };
 
 // Also expose LocalLlmServer for callers using LocalLlmServer::find_llama_server()
 pub use server::LocalLlmServer;
 
 pub use model_store::{
-    fetch_store_models,
-    download_model, pause_download, cancel_download,
-    download_llama_server,
-    get_local_engine_status, install_local_engine,
+    cancel_download, download_llama_server, download_model, fetch_store_models,
+    get_local_engine_status, install_local_engine, pause_download,
 };

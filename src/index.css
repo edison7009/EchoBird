@@ -5,42 +5,42 @@
 /* ── Theme palettes ── values are space-separated RGB channels so Tailwind
    opacity modifiers (e.g. bg-cyber-accent/20) keep working. ── */
 :root,
-:root[data-theme="dark"] {
-    /* Claude Desktop dark — warm-tinted dark grays (NOT pure black) paired
+:root[data-theme='dark'] {
+  /* Claude Desktop dark — warm-tinted dark grays (NOT pure black) paired
        with off-cream text (NOT pure white) so the contrast stays gentle. */
-    --bg-base-rgb:           33 31 28;       /* #211F1C — page, warm dark */
-    --bg-terminal-rgb:       26 24 21;       /* #1A1815 — slightly deeper */
-    --bg-surface-rgb:        42 39 35;       /* #2A2723 — cards, lists */
-    --bg-elevated-rgb:       54 50 44;       /* #36322C — selected, hover */
-    --bg-deep-rgb:           26 24 21;       /* #1A1815 */
-    --bg-input-rgb:          46 43 38;       /* #2E2B26 — raised input */
-    --border-rgb:            59 54 47;       /* #3B362F — soft warm border */
-    --accent-rgb:            217 119 87;     /* Claude coral — used sparingly */
-    --accent-secondary-rgb:  192 132 100;
-    --warning-rgb:           250 204 21;
-    --error-rgb:             224 109 109;
-    --text-primary-rgb:      232 226 213;    /* #E8E2D5 — brighter warm cream, better legibility */
-    --text-secondary-rgb:    178 172 158;    /* #B2AC9E — clearer secondary, lifted from #9B968A */
-    --text-muted-rgb:        135 130 119;    /* #878277 — dim but still readable */
+  --bg-base-rgb: 33 31 28; /* #211F1C — page, warm dark */
+  --bg-terminal-rgb: 26 24 21; /* #1A1815 — slightly deeper */
+  --bg-surface-rgb: 42 39 35; /* #2A2723 — cards, lists */
+  --bg-elevated-rgb: 54 50 44; /* #36322C — selected, hover */
+  --bg-deep-rgb: 26 24 21; /* #1A1815 */
+  --bg-input-rgb: 46 43 38; /* #2E2B26 — raised input */
+  --border-rgb: 59 54 47; /* #3B362F — soft warm border */
+  --accent-rgb: 217 119 87; /* Claude coral — used sparingly */
+  --accent-secondary-rgb: 192 132 100;
+  --warning-rgb: 250 204 21;
+  --error-rgb: 224 109 109;
+  --text-primary-rgb: 232 226 213; /* #E8E2D5 — brighter warm cream, better legibility */
+  --text-secondary-rgb: 178 172 158; /* #B2AC9E — clearer secondary, lifted from #9B968A */
+  --text-muted-rgb: 135 130 119; /* #878277 — dim but still readable */
 }
 
-:root[data-theme="light"] {
-    /* Claude Desktop light — warm cream page. Title text uses warm-dark
+:root[data-theme='light'] {
+  /* Claude Desktop light — warm cream page. Title text uses warm-dark
        (NOT pure black) to feel premium and stay coherent with the cream. */
-    --bg-base-rgb:           239 238 235;    /* #EFEEEB — page */
-    --bg-terminal-rgb:       247 246 243;
-    --bg-surface-rgb:        232 230 224;    /* #E8E6E0 — cards rest here */
-    --bg-elevated-rgb:       216 213 205;    /* #D8D5CD — hover, selected, dropdowns */
-    --bg-deep-rgb:           232 230 224;
-    --bg-input-rgb:          255 255 255;
-    --border-rgb:            220 218 211;
-    --accent-rgb:            201 100 66;     /* Claude coral, slightly deeper for AA contrast */
-    --accent-secondary-rgb:  176 88 56;
-    --warning-rgb:           181 130 14;
-    --error-rgb:             198 60 60;
-    --text-primary-rgb:      46 41 36;       /* #2E2924 — warm dark (NOT pure black) */
-    --text-secondary-rgb:    92 87 80;       /* #5C5750 — clearer for body copy, lifted from #6E6E72 */
-    --text-muted-rgb:        130 124 114;    /* #827C72 — readable warm muted */
+  --bg-base-rgb: 239 238 235; /* #EFEEEB — page */
+  --bg-terminal-rgb: 247 246 243;
+  --bg-surface-rgb: 232 230 224; /* #E8E6E0 — cards rest here */
+  --bg-elevated-rgb: 216 213 205; /* #D8D5CD — hover, selected, dropdowns */
+  --bg-deep-rgb: 232 230 224;
+  --bg-input-rgb: 255 255 255;
+  --border-rgb: 220 218 211;
+  --accent-rgb: 201 100 66; /* Claude coral, slightly deeper for AA contrast */
+  --accent-secondary-rgb: 176 88 56;
+  --warning-rgb: 181 130 14;
+  --error-rgb: 198 60 60;
+  --text-primary-rgb: 46 41 36; /* #2E2924 — warm dark (NOT pure black) */
+  --text-secondary-rgb: 92 87 80; /* #5C5750 — clearer for body copy, lifted from #6E6E72 */
+  --text-muted-rgb: 130 124 114; /* #827C72 — readable warm muted */
 }
 
 /* ── Local Font Faces ──
@@ -129,13 +129,13 @@
    - --font-mono: CascadiaMono (woff2, embedded) preferred, then system
      monos as fallback. */
 :root {
-  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'PingFang SC',
-               'Noto Sans SC', 'Hiragino Sans GB', 'Microsoft YaHei',
-               'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
-               'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol';
-  --font-mono: 'CascadiaMono', 'Cascadia Code', 'JetBrains Mono', 'SF Mono',
-               Menlo, Monaco, Consolas, 'Courier New', ui-monospace, monospace,
-               'PingFang SC', 'Noto Sans SC', 'Microsoft YaHei';
+  --font-sans:
+    'Inter', -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Noto Sans SC', 'Hiragino Sans GB',
+    'Microsoft YaHei', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji',
+    'Segoe UI Emoji', 'Segoe UI Symbol';
+  --font-mono:
+    'CascadiaMono', 'Cascadia Code', 'JetBrains Mono', 'SF Mono', Menlo, Monaco, Consolas,
+    'Courier New', ui-monospace, monospace, 'PingFang SC', 'Noto Sans SC', 'Microsoft YaHei';
 }
 
 /* ── CJK readability fixes ──
@@ -145,19 +145,29 @@
    These rules upgrade them on CJK locales without touching Latin layouts. */
 :lang(zh) .text-\[10px\],
 :lang(ja) .text-\[10px\],
-:lang(ko) .text-\[10px\] { font-size: 12px; }
+:lang(ko) .text-\[10px\] {
+  font-size: 12px;
+}
 
 :lang(zh) .text-\[11px\],
 :lang(ja) .text-\[11px\],
-:lang(ko) .text-\[11px\] { font-size: 13px; }
+:lang(ko) .text-\[11px\] {
+  font-size: 13px;
+}
 
 :lang(zh) .text-xs,
 :lang(ja) .text-xs,
-:lang(ko) .text-xs { font-size: 13px; line-height: 1.55; }
+:lang(ko) .text-xs {
+  font-size: 13px;
+  line-height: 1.55;
+}
 
 :lang(zh) .text-sm,
 :lang(ja) .text-sm,
-:lang(ko) .text-sm { font-size: 14px; line-height: 1.6; }
+:lang(ko) .text-sm {
+  font-size: 14px;
+  line-height: 1.6;
+}
 
 /* Disable letter-spacing on CJK — character-level tracking is a Latin habit. */
 :lang(zh) .tracking-wide,
@@ -168,12 +178,13 @@
 :lang(ja) .tracking-widest,
 :lang(ko) .tracking-wide,
 :lang(ko) .tracking-wider,
-:lang(ko) .tracking-widest { letter-spacing: 0; }
+:lang(ko) .tracking-widest {
+  letter-spacing: 0;
+}
 
 /* ── Page titles & big buttons — Noto Sans (Latin) + Noto Sans SC (CJK) ── */
 .cjk-title {
-  font-family: 'Noto Sans', 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei',
-               system-ui, sans-serif;
+  font-family: 'Noto Sans', 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', system-ui, sans-serif;
   font-weight: 700;
   font-size: 22px;
   letter-spacing: 0.01em;
@@ -194,8 +205,7 @@
 }
 
 .cjk-btn {
-  font-family: 'Noto Sans', 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei',
-               system-ui, sans-serif;
+  font-family: 'Noto Sans', 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', system-ui, sans-serif;
   font-weight: 700;
 }
 
@@ -232,7 +242,9 @@ html {
   box-shadow: none !important;
 }
 
-html { font-size: 15px; }
+html {
+  font-size: 15px;
+}
 
 /* html/body/#root must stay transparent so the rounded outer shell in App.tsx
    carries the only visible background. Windows 11 DWM rounds undecorated
@@ -240,7 +252,11 @@ html { font-size: 15px; }
    macOS NSWindow (with decorations:false + transparent:true) do not — a
    solid body color there fills the four corners as square, defeating the
    .rounded-xl on the inner div. tauri.conf already sets transparent:true. */
-html, body, #root { background: transparent; }
+html,
+body,
+#root {
+  background: transparent;
+}
 
 /* Clip the entire window contents (including fixed-positioned modals and
    toasts that are rendered outside the .rounded-xl shell) to a rounded
@@ -268,7 +284,11 @@ body {
 }
 
 /* CJK locales need slightly looser line-height than Latin to breathe. */
-:lang(zh) body, :lang(ja) body, :lang(ko) body { line-height: 1.6; }
+:lang(zh) body,
+:lang(ja) body,
+:lang(ko) body {
+  line-height: 1.6;
+}
 
 #root {
   overflow: hidden;
@@ -297,7 +317,7 @@ pre {
   scrollbar-color: transparent transparent;
 }
 .custom-scrollbar:hover {
-  scrollbar-color: rgba(255,255,255,0.18) transparent;
+  scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
 }
 
 .custom-scrollbar::-webkit-scrollbar {
@@ -314,34 +334,33 @@ pre {
 }
 
 .custom-scrollbar:hover::-webkit-scrollbar-thumb {
-  background: rgba(255,255,255,0.18);
+  background: rgba(255, 255, 255, 0.18);
 }
 
 /* Pure-white SVG logos invert in light mode so they read on the cream
    card surface. Logos with mixed colors are skipped (the filter would
    shift their accent hues). */
-[data-theme="light"] img[src*="/icons/models/chatgpt.svg"],
-[data-theme="light"] img[src*="/icons/models/glm.svg"],
-[data-theme="light"] img[src*="/icons/models/grok.svg"],
-[data-theme="light"] img[src*="/icons/models/groq.svg"],
-[data-theme="light"] img[src*="/icons/models/granite.svg"],
-[data-theme="light"] img[src*="/icons/models/openrouter.svg"],
-[data-theme="light"] img[src*="/icons/models/kimi.svg"],
-[data-theme="light"] img[src*="/icons/models/together.svg"],
-[data-theme="light"] img[src*="/icons/tools/codex.svg"] {
-    filter: invert(1) brightness(0.88);
+[data-theme='light'] img[src*='/icons/models/chatgpt.svg'],
+[data-theme='light'] img[src*='/icons/models/glm.svg'],
+[data-theme='light'] img[src*='/icons/models/grok.svg'],
+[data-theme='light'] img[src*='/icons/models/groq.svg'],
+[data-theme='light'] img[src*='/icons/models/granite.svg'],
+[data-theme='light'] img[src*='/icons/models/openrouter.svg'],
+[data-theme='light'] img[src*='/icons/models/kimi.svg'],
+[data-theme='light'] img[src*='/icons/models/together.svg'],
+[data-theme='light'] img[src*='/icons/tools/codex.svg'] {
+  filter: invert(1) brightness(0.88);
 }
 
 /* Logos with near-black backgrounds invert in dark mode so they read on
    the near-black page. */
-[data-theme="dark"] img[src*="/icons/models/yi.svg"],
-[data-theme="dark"] img[src*="/icons/tools/opencode.svg"] {
-    filter: invert(1) brightness(0.92);
+[data-theme='dark'] img[src*='/icons/models/yi.svg'],
+[data-theme='dark'] img[src*='/icons/tools/opencode.svg'] {
+  filter: invert(1) brightness(0.92);
 }
 
 /* Cyber arrow marquee animation */
 @keyframes arrow-appear-1 {
-
   0%,
   10% {
     opacity: 0;
@@ -359,7 +378,6 @@ pre {
 }
 
 @keyframes arrow-appear-2 {
-
   0%,
   30% {
     opacity: 0;
@@ -377,7 +395,6 @@ pre {
 }
 
 @keyframes arrow-appear-3 {
-
   0%,
   50% {
     opacity: 0;
@@ -414,30 +431,57 @@ pre {
 
 /* Streaming dot pulse animation */
 @keyframes dotPulse {
-  0%, 100% { opacity: 0.2; transform: scale(0.8); }
-  50%       { opacity: 1;   transform: scale(1.2); }
+  0%,
+  100% {
+    opacity: 0.2;
+    transform: scale(0.8);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.2);
+  }
 }
 
 /* AI Pulse top progress bar — indeterminate sweep */
 @keyframes loading {
-  0%   { transform: translateX(-100%); }
-  100% { transform: translateX(400%); }
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(400%);
+  }
 }
 
 /* Agent running heartbeat animation — used on role/agent picker screens */
 @keyframes agentHeartbeat {
-  0%   { transform: scale(1); }
-  14%  { transform: scale(1.35); }
-  28%  { transform: scale(1); }
-  42%  { transform: scale(1.2); }
-  70%  { transform: scale(1); }
-  100% { transform: scale(1); }
+  0% {
+    transform: scale(1);
+  }
+  14% {
+    transform: scale(1.35);
+  }
+  28% {
+    transform: scale(1);
+  }
+  42% {
+    transform: scale(1.2);
+  }
+  70% {
+    transform: scale(1);
+  }
+  100% {
+    transform: scale(1);
+  }
 }
 
 /* Claude-Code-style spinner shimmer — bright highlight sweeps across the text */
 @keyframes spinnerShimmer {
-  0%   { background-position: 200% center; }
-  100% { background-position: -200% center; }
+  0% {
+    background-position: 200% center;
+  }
+  100% {
+    background-position: -200% center;
+  }
 }
 
 .spinner-shimmer {
@@ -460,8 +504,15 @@ pre {
 /* Spinner glyph — gentle pulse so the asterisk feels alive even between
    character swaps */
 @keyframes spinnerGlyphPulse {
-  0%, 100% { opacity: 0.65; transform: scale(0.9); }
-  50%      { opacity: 1;    transform: scale(1.1); }
+  0%,
+  100% {
+    opacity: 0.65;
+    transform: scale(0.9);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.1);
+  }
 }
 
 .spinner-glyph {
@@ -471,18 +522,37 @@ pre {
 
 /* Streaming caret for assistant messages */
 @keyframes caretBlink {
-  0%, 50%   { opacity: 1; }
-  51%, 100% { opacity: 0; }
+  0%,
+  50% {
+    opacity: 1;
+  }
+  51%,
+  100% {
+    opacity: 0;
+  }
 }
 
 /* Markdown body — applied to streamed assistant responses */
-.markdown-body > * + * { margin-top: 0.6em; }
-.markdown-body p { margin: 0; line-height: 1.55; }
+.markdown-body > * + * {
+  margin-top: 0.6em;
+}
+.markdown-body p {
+  margin: 0;
+  line-height: 1.55;
+}
 .markdown-body ul,
-.markdown-body ol { padding-left: 1.25em; }
-.markdown-body li { margin-bottom: 0.15em; }
-.markdown-body pre { margin: 0.5em 0; }
-.markdown-body table { border-collapse: collapse; }
+.markdown-body ol {
+  padding-left: 1.25em;
+}
+.markdown-body li {
+  margin-bottom: 0.15em;
+}
+.markdown-body pre {
+  margin: 0.5em 0;
+}
+.markdown-body table {
+  border-collapse: collapse;
+}
 
 /* TerminalStatusBar — tool call slides in from right */
 /* Hidden scrollbar — scroll-to-bottom button is used instead */
@@ -510,8 +580,12 @@ pre {
 
 /* TerminalStatusBar — ticker tape marquee (continuous left scroll, seamless loop) */
 @keyframes marqueeFlow {
-  from { transform: translateX(0); }
-  to   { transform: translateX(-50%); }
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
 }
 
 .marquee-text {
@@ -522,7 +596,6 @@ pre {
 
 /* DOS-style hard blink cursor */
 @keyframes blink {
-
   0%,
   49% {
     opacity: 1;
@@ -577,8 +650,13 @@ pre {
 
 /* ── Role-card skeleton shimmer (standard subtle pulse) ── */
 @keyframes shimmer-pulse {
-  0%, 100% { opacity: 0.3; }
-  50% { opacity: 0.7; }
+  0%,
+  100% {
+    opacity: 0.3;
+  }
+  50% {
+    opacity: 0.7;
+  }
 }
 
 .role-card-shimmer {
@@ -604,11 +682,13 @@ pre {
   position: fixed;
   inset: 0;
   pointer-events: none;
-  background: repeating-linear-gradient(0deg,
-      transparent,
-      transparent 2px,
-      rgba(0, 0, 0, 0.03) 2px,
-      rgba(0, 0, 0, 0.03) 4px);
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 0, 0, 0.03) 2px,
+    rgba(0, 0, 0, 0.03) 4px
+  );
   z-index: 9999;
 }
 
@@ -640,7 +720,9 @@ pre {
 
 .cyber-yellow-box.selected {
   background: rgba(250, 204, 21, 0.12);
-  box-shadow: 0 0 15px rgba(250, 204, 21, 0.4), inset 0 0 10px rgba(250, 204, 21, 0.15);
+  box-shadow:
+    0 0 15px rgba(250, 204, 21, 0.4),
+    inset 0 0 10px rgba(250, 204, 21, 0.15);
   border: 1.5px solid #facc15;
 }
 
@@ -649,13 +731,13 @@ pre {
 }
 
 /* Hide number input spinners */
-input[type=number].no-spinner::-webkit-inner-spin-button,
-input[type=number].no-spinner::-webkit-outer-spin-button {
+input[type='number'].no-spinner::-webkit-inner-spin-button,
+input[type='number'].no-spinner::-webkit-outer-spin-button {
   -webkit-appearance: none;
   margin: 0;
 }
 
-input[type=number].no-spinner {
+input[type='number'].no-spinner {
   -moz-appearance: textfield;
 }
 

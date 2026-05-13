@@ -1,0 +1,27 @@
+# Build outputs
+dist
+build
+*.local
+
+# Dependencies
+node_modules
+
+# Tauri
+src-tauri
+
+# Public assets
+public
+
+# Config files
+*.config.js
+*.config.ts
+vite.config.ts
+
+# CI/CD
+.github
+
+# Tools
+tools
+
+# Test coverage
+coverage

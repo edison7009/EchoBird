@@ -6,11 +6,16 @@ use std::process::Command;
 pub async fn command_exists(cmd: &str) -> bool {
     #[cfg(not(target_os = "android"))]
     {
-        if which::which(cmd).is_ok() { return true; }
+        if which::which(cmd).is_ok() {
+            return true;
+        }
         shell_command_path(cmd).is_some()
     }
     #[cfg(target_os = "android")]
-    { let _ = cmd; false }
+    {
+        let _ = cmd;
+        false
+    }
 }
 
 /// Get the full path of a command
@@ -23,7 +28,10 @@ pub async fn get_command_path(cmd: &str) -> Option<String> {
         shell_command_path(cmd)
     }
     #[cfg(target_os = "android")]
-    { let _ = cmd; None }
+    {
+        let _ = cmd;
+        None
+    }
 }
 
 /// Linux/macOS fallback: query the user's login-shell PATH.
@@ -83,10 +91,7 @@ fn shell_command_path(cmd: &str) -> Option<String> {
     if line.is_empty() || !std::path::Path::new(line).exists() {
         return None;
     }
-    log::info!(
-        "[platform] '{}' resolved via login shell: {}",
-        cmd, line
-    );
+    log::info!("[platform] '{}' resolved via login shell: {}", cmd, line);
     Some(line.to_string())
 }
 
@@ -132,7 +137,10 @@ pub async fn python_module_exists(module: &str) -> bool {
         Ok(Ok(output)) => output.status.success() || !output.stdout.is_empty(),
         Ok(Err(_)) => false,
         Err(_) => {
-            log::warn!("[platform] Python module check timed out for '{}' (>3s)", module);
+            log::warn!(
+                "[platform] Python module check timed out for '{}' (>3s)",
+                module
+            );
             false
         }
     }
@@ -160,9 +168,7 @@ pub async fn get_version(cmd: &str) -> Option<String> {
                 .output()
         };
         #[cfg(not(windows))]
-        let output = Command::new(&cmd_clone)
-            .arg("--version")
-            .output();
+        let output = Command::new(&cmd_clone).arg("--version").output();
 
         let _ = tx.send(output);
     });
@@ -195,7 +201,9 @@ pub async fn get_version(cmd: &str) -> Option<String> {
                     chars.next();
                     while let Some(&c) = chars.peek() {
                         chars.next();
-                        if c.is_ascii_alphabetic() { break; }
+                        if c.is_ascii_alphabetic() {
+                            break;
+                        }
                     }
                     continue;
                 }
@@ -212,15 +220,17 @@ pub async fn get_version(cmd: &str) -> Option<String> {
         // Strategy 1: find token starting with digit and containing '.' (e.g. "0.4.9")
         if let Some(ver) = line
             .split_whitespace()
-            .find(|s| s.chars().next().map_or(false, |c| c.is_ascii_digit()) && s.contains('.'))
+            .find(|s| s.chars().next().is_some_and(|c| c.is_ascii_digit()) && s.contains('.'))
         {
             return Some(ver.trim().to_string());
         }
         // Strategy 2: find v-prefixed token (e.g. "v0.1.4.post5") → strip the 'v'
-        if let Some(ver) = line
-            .split_whitespace()
-            .find(|s| s.starts_with('v') && s.len() > 1 && s.chars().nth(1).map_or(false, |c| c.is_ascii_digit()) && s.contains('.'))
-        {
+        if let Some(ver) = line.split_whitespace().find(|s| {
+            s.starts_with('v')
+                && s.len() > 1
+                && s.chars().nth(1).is_some_and(|c| c.is_ascii_digit())
+                && s.contains('.')
+        }) {
             return Some(ver[1..].trim().to_string());
         }
     }

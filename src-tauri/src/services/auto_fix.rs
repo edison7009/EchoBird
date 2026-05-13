@@ -81,9 +81,15 @@ pub async fn verify(
     ssh_pool: &SSHPool,
 ) -> Result<(), String> {
     match intent {
-        InstallIntent::ClaudeCode => verify_command_present("claude --version", server_id, ssh_pool).await,
-        InstallIntent::Codex => verify_command_present("codex --version", server_id, ssh_pool).await,
-        InstallIntent::GeminiCli => verify_command_present("gemini --version", server_id, ssh_pool).await,
+        InstallIntent::ClaudeCode => {
+            verify_command_present("claude --version", server_id, ssh_pool).await
+        }
+        InstallIntent::Codex => {
+            verify_command_present("codex --version", server_id, ssh_pool).await
+        }
+        InstallIntent::GeminiCli => {
+            verify_command_present("gemini --version", server_id, ssh_pool).await
+        }
         InstallIntent::JsonConfig(path) => verify_json_file(path, server_id, ssh_pool).await,
     }
 }
@@ -112,11 +118,7 @@ async fn verify_command_present(
     Ok(())
 }
 
-async fn verify_json_file(
-    path: &str,
-    server_id: &str,
-    ssh_pool: &SSHPool,
-) -> Result<(), String> {
+async fn verify_json_file(path: &str, server_id: &str, ssh_pool: &SSHPool) -> Result<(), String> {
     // Use python3 over jq — jq isn't always installed, python3 is on every
     // Linux/macOS we deploy to and Windows has it via the launcher when MCP
     // configs come up. Quote the path for spaces.
@@ -207,18 +209,24 @@ mod tests {
     #[test]
     fn unrelated_command_yields_none() {
         assert_eq!(detect_install_intent_from_shell("ls -la /tmp"), None);
-        assert_eq!(detect_install_intent_from_shell("pip install requests"), None);
+        assert_eq!(
+            detect_install_intent_from_shell("pip install requests"),
+            None
+        );
     }
 
     #[test]
     fn detects_mcp_config_path_unix() {
-        let i = detect_install_intent_from_write("/home/u/.config/Claude/claude_desktop_config.json");
+        let i =
+            detect_install_intent_from_write("/home/u/.config/Claude/claude_desktop_config.json");
         assert!(matches!(i, Some(InstallIntent::JsonConfig(_))));
     }
 
     #[test]
     fn detects_mcp_config_path_windows() {
-        let i = detect_install_intent_from_write(r"C:\Users\eben\AppData\Roaming\Claude\claude_desktop_config.json");
+        let i = detect_install_intent_from_write(
+            r"C:\Users\eben\AppData\Roaming\Claude\claude_desktop_config.json",
+        );
         assert!(matches!(i, Some(InstallIntent::JsonConfig(_))));
     }
 
@@ -240,9 +248,16 @@ mod tests {
             success: true,
             output: "added 1 package".to_string(),
         };
-        let wrapped = wrap_failure(original, &InstallIntent::ClaudeCode, "claude not found".into());
+        let wrapped = wrap_failure(
+            original,
+            &InstallIntent::ClaudeCode,
+            "claude not found".into(),
+        );
         assert!(!wrapped.success);
-        assert!(wrapped.output.contains("added 1 package"), "must keep original output");
+        assert!(
+            wrapped.output.contains("added 1 package"),
+            "must keep original output"
+        );
         assert!(wrapped.output.contains("VERIFICATION FAILED"));
         assert!(wrapped.output.contains("claude not found"));
         assert!(wrapped.output.contains("Claude Code"));

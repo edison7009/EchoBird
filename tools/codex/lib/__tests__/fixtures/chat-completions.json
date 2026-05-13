@@ -1,0 +1,277 @@
+{
+  "simple_text_response": {
+    "id": "chatcmpl-123",
+    "object": "chat.completion.chunk",
+    "created": 1234567890,
+    "model": "deepseek-chat",
+    "choices": [
+      {
+        "index": 0,
+        "delta": {
+          "role": "assistant",
+          "content": "Hello! I'm doing well, thank you for asking."
+        },
+        "finish_reason": null
+      }
+    ]
+  },
+  "text_delta_chunks": [
+    {
+      "id": "chatcmpl-123",
+      "object": "chat.completion.chunk",
+      "created": 1234567890,
+      "model": "deepseek-chat",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "role": "assistant",
+            "content": "Hello"
+          },
+          "finish_reason": null
+        }
+      ]
+    },
+    {
+      "id": "chatcmpl-123",
+      "object": "chat.completion.chunk",
+      "created": 1234567890,
+      "model": "deepseek-chat",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": "! How"
+          },
+          "finish_reason": null
+        }
+      ]
+    },
+    {
+      "id": "chatcmpl-123",
+      "object": "chat.completion.chunk",
+      "created": 1234567890,
+      "model": "deepseek-chat",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": " are you?"
+          },
+          "finish_reason": null
+        }
+      ]
+    },
+    {
+      "id": "chatcmpl-123",
+      "object": "chat.completion.chunk",
+      "created": 1234567890,
+      "model": "deepseek-chat",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {},
+          "finish_reason": "stop"
+        }
+      ]
+    }
+  ],
+  "tool_call_chunks": [
+    {
+      "id": "chatcmpl-456",
+      "object": "chat.completion.chunk",
+      "created": 1234567890,
+      "model": "deepseek-chat",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "role": "assistant",
+            "tool_calls": [
+              {
+                "index": 0,
+                "id": "call_abc123",
+                "type": "function",
+                "function": {
+                  "name": "get_weather",
+                  "arguments": ""
+                }
+              }
+            ]
+          },
+          "finish_reason": null
+        }
+      ]
+    },
+    {
+      "id": "chatcmpl-456",
+      "object": "chat.completion.chunk",
+      "created": 1234567890,
+      "model": "deepseek-chat",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "tool_calls": [
+              {
+                "index": 0,
+                "function": {
+                  "arguments": "{\"location\""
+                }
+              }
+            ]
+          },
+          "finish_reason": null
+        }
+      ]
+    },
+    {
+      "id": "chatcmpl-456",
+      "object": "chat.completion.chunk",
+      "created": 1234567890,
+      "model": "deepseek-chat",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "tool_calls": [
+              {
+                "index": 0,
+                "function": {
+                  "arguments": ":\"Tokyo\"}"
+                }
+              }
+            ]
+          },
+          "finish_reason": null
+        }
+      ]
+    },
+    {
+      "id": "chatcmpl-456",
+      "object": "chat.completion.chunk",
+      "created": 1234567890,
+      "model": "deepseek-chat",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {},
+          "finish_reason": "tool_calls"
+        }
+      ]
+    }
+  ],
+  "reasoning_content_chunks": [
+    {
+      "id": "chatcmpl-789",
+      "object": "chat.completion.chunk",
+      "created": 1234567890,
+      "model": "deepseek-reasoner",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "role": "assistant",
+            "reasoning_content": "Let me think"
+          },
+          "finish_reason": null
+        }
+      ]
+    },
+    {
+      "id": "chatcmpl-789",
+      "object": "chat.completion.chunk",
+      "created": 1234567890,
+      "model": "deepseek-reasoner",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "reasoning_content": " about this..."
+          },
+          "finish_reason": null
+        }
+      ]
+    },
+    {
+      "id": "chatcmpl-789",
+      "object": "chat.completion.chunk",
+      "created": 1234567890,
+      "model": "deepseek-reasoner",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": "The answer is 4."
+          },
+          "finish_reason": null
+        }
+      ]
+    },
+    {
+      "id": "chatcmpl-789",
+      "object": "chat.completion.chunk",
+      "created": 1234567890,
+      "model": "deepseek-reasoner",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {},
+          "finish_reason": "stop"
+        }
+      ]
+    }
+  ],
+  "non_stream_response": {
+    "id": "chatcmpl-999",
+    "object": "chat.completion",
+    "created": 1234567890,
+    "model": "deepseek-chat",
+    "choices": [
+      {
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "Hello! How can I help you today?"
+        },
+        "finish_reason": "stop"
+      }
+    ],
+    "usage": {
+      "prompt_tokens": 10,
+      "completion_tokens": 20,
+      "total_tokens": 30
+    }
+  },
+  "non_stream_with_tool_calls": {
+    "id": "chatcmpl-888",
+    "object": "chat.completion",
+    "created": 1234567890,
+    "model": "deepseek-chat",
+    "choices": [
+      {
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": null,
+          "tool_calls": [
+            {
+              "id": "call_xyz789",
+              "type": "function",
+              "function": {
+                "name": "get_weather",
+                "arguments": "{\"location\":\"Tokyo\"}"
+              }
+            }
+          ]
+        },
+        "finish_reason": "tool_calls"
+      }
+    ],
+    "usage": {
+      "prompt_tokens": 15,
+      "completion_tokens": 25,
+      "total_tokens": 40
+    }
+  }
+}

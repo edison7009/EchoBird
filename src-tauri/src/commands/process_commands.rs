@@ -1,7 +1,9 @@
 // Tauri Commands for process management and local LLM server
 
+use crate::services::local_llm::{
+    self, GgufFile, GpuInfo, HfModelEntry, LocalServerInfo, SystemInfo,
+};
 use crate::services::process_manager;
-use crate::services::local_llm::{self, LocalServerInfo, GgufFile, GpuInfo, HfModelEntry, SystemInfo};
 
 // ─── Process Manager ───
 
@@ -132,7 +134,11 @@ pub async fn get_store_models() -> Vec<serde_json::Value> {
 }
 
 #[tauri::command]
-pub async fn download_model(app_handle: tauri::AppHandle, repo: String, file_name: String) -> Result<String, String> {
+pub async fn download_model(
+    app_handle: tauri::AppHandle,
+    repo: String,
+    file_name: String,
+) -> Result<String, String> {
     local_llm::download_model(app_handle, repo, file_name).await
 }
 
@@ -157,6 +163,9 @@ pub fn get_local_engine_status(runtime: Option<String>) -> serde_json::Value {
 }
 
 #[tauri::command]
-pub async fn install_local_engine(app_handle: tauri::AppHandle, runtime: String) -> Result<(), String> {
+pub async fn install_local_engine(
+    app_handle: tauri::AppHandle,
+    runtime: String,
+) -> Result<(), String> {
     local_llm::install_local_engine(app_handle, runtime).await
 }

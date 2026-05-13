@@ -1,1 +1,6 @@
-export { AiCoursesProvider, AiCoursesTitleActions, AiCoursesMain, AiCoursesPanel } from './AiCourses';
+export {
+  AiCoursesProvider,
+  AiCoursesTitleActions,
+  AiCoursesMain,
+  AiCoursesPanel,
+} from './AiCourses';

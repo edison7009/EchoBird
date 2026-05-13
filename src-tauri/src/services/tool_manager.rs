@@ -5,9 +5,7 @@
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use crate::models::tool::{
-    ConfigMapping, DetectedTool, PathsConfig, ToolCategory, ToolDefinition,
-};
+use crate::models::tool::{ConfigMapping, DetectedTool, PathsConfig, ToolCategory, ToolDefinition};
 use crate::utils::platform;
 
 // ─── Path expansion (mirrors tools/utils.ts expandPath) ───
@@ -17,8 +15,8 @@ use crate::utils::platform;
 #[allow(unused)]
 fn strip_unc(s: String) -> String {
     #[cfg(target_os = "windows")]
-    if s.starts_with(r"\\?\") {
-        return s[4..].to_string();
+    if let Some(stripped) = s.strip_prefix(r"\\?\") {
+        return stripped.to_string();
     }
     s
 }
@@ -39,7 +37,12 @@ pub fn expand_path(p: &str) -> PathBuf {
         if let Some(end) = result[start + 1..].find('%') {
             let var_name = &result[start + 1..start + 1 + end];
             let replacement = std::env::var(var_name).unwrap_or_default();
-            result = format!("{}{}{}", &result[..start], replacement, &result[start + 2 + end..]);
+            result = format!(
+                "{}{}{}",
+                &result[..start],
+                replacement,
+                &result[start + 2 + end..]
+            );
         } else {
             break;
         }
@@ -79,18 +82,23 @@ pub fn find_tools_dir() -> Option<PathBuf> {
     // SOURCE tree's tools/ directly — it's always the freshest copy.
     if let Ok(exe) = std::env::current_exe() {
         let exe_str = exe.to_string_lossy().replace('\\', "/");
-        let is_cargo_target = exe_str.contains("/target/debug/") || exe_str.contains("/target/release/");
+        let is_cargo_target =
+            exe_str.contains("/target/debug/") || exe_str.contains("/target/release/");
         if is_cargo_target {
             // exe at <repo>/src-tauri/target/{debug,release}/echobird.exe
             // Walk up 4 parents: target/debug → target → src-tauri → <repo>
-            if let Some(repo_root) = exe.parent()
+            if let Some(repo_root) = exe
+                .parent()
                 .and_then(|p| p.parent())
                 .and_then(|p| p.parent())
                 .and_then(|p| p.parent())
             {
                 let src_tools = repo_root.join("tools");
                 if src_tools.is_dir() {
-                    log::info!("[ToolManager] dev mode — using source tree tools dir: {:?}", src_tools);
+                    log::info!(
+                        "[ToolManager] dev mode — using source tree tools dir: {:?}",
+                        src_tools
+                    );
                     return Some(src_tools);
                 }
             }
@@ -112,7 +120,10 @@ pub fn find_tools_dir() -> Option<PathBuf> {
             // Case 1: standard subdirectory
             let tools_dir = res_dir.join("tools");
             if tools_dir.is_dir() {
-                log::info!("[ToolManager] Found tools dir (subdirectory): {:?}", tools_dir);
+                log::info!(
+                    "[ToolManager] Found tools dir (subdirectory): {:?}",
+                    tools_dir
+                );
                 return Some(tools_dir);
             }
             // Case 2: Tauri encodes "../tools/" as _up_/tools/ inside resource_dir
@@ -128,7 +139,10 @@ pub fn find_tools_dir() -> Option<PathBuf> {
                         .filter_map(|e| e.ok())
                         .any(|e| e.path().is_dir() && e.path().join("paths.json").exists());
                     if has_tool {
-                        log::info!("[ToolManager] Found tools dir (resource_dir itself): {:?}", res_dir);
+                        log::info!(
+                            "[ToolManager] Found tools dir (resource_dir itself): {:?}",
+                            res_dir
+                        );
                         return Some(res_dir.clone());
                     }
                 }
@@ -179,7 +193,9 @@ pub fn find_tools_dir() -> Option<PathBuf> {
 
     // 3. Try relative to CARGO_MANIFEST_DIR (dev mode)
     if let Ok(manifest_dir) = std::env::var("CARGO_MANIFEST_DIR") {
-        let project_root = PathBuf::from(manifest_dir).parent().map(|p| p.to_path_buf());
+        let project_root = PathBuf::from(manifest_dir)
+            .parent()
+            .map(|p| p.to_path_buf());
         if let Some(root) = project_root {
             let tools_dir = root.join("tools");
             if tools_dir.exists() {
@@ -241,7 +257,11 @@ fn load_tool_definitions() -> Vec<ToolDefinition> {
             Ok(content) => match serde_json::from_str(&content) {
                 Ok(pc) => pc,
                 Err(e) => {
-                    log::warn!("[ToolManager] Failed to parse {}/paths.json: {}", tool_id, e);
+                    log::warn!(
+                        "[ToolManager] Failed to parse {}/paths.json: {}",
+                        tool_id,
+                        e
+                    );
                     continue;
                 }
             },
@@ -256,12 +276,20 @@ fn load_tool_definitions() -> Vec<ToolDefinition> {
             Ok(content) => match serde_json::from_str(&content) {
                 Ok(cm) => cm,
                 Err(e) => {
-                    log::warn!("[ToolManager] Failed to parse {}/config.json: {}", tool_id, e);
+                    log::warn!(
+                        "[ToolManager] Failed to parse {}/config.json: {}",
+                        tool_id,
+                        e
+                    );
                     continue;
                 }
             },
             Err(e) => {
-                log::warn!("[ToolManager] Failed to read {}/config.json: {}", tool_id, e);
+                log::warn!(
+                    "[ToolManager] Failed to read {}/config.json: {}",
+                    tool_id,
+                    e
+                );
                 continue;
             }
         };
@@ -294,13 +322,22 @@ fn load_tool_definitions() -> Vec<ToolDefinition> {
 /// Get platform-specific paths from PlatformPaths
 fn get_platform_paths(paths: &crate::models::tool::PlatformPaths) -> Vec<String> {
     #[cfg(target_os = "windows")]
-    { paths.win32.clone().unwrap_or_default() }
+    {
+        paths.win32.clone().unwrap_or_default()
+    }
     #[cfg(target_os = "macos")]
-    { paths.darwin.clone().unwrap_or_default() }
+    {
+        paths.darwin.clone().unwrap_or_default()
+    }
     #[cfg(target_os = "linux")]
-    { paths.linux.clone().unwrap_or_default() }
+    {
+        paths.linux.clone().unwrap_or_default()
+    }
     #[cfg(target_os = "android")]
-    { let _ = paths; Vec::new() }
+    {
+        let _ = paths;
+        Vec::new()
+    }
 }
 
 /// Detect if a tool is installed, returns executable path
@@ -363,7 +400,12 @@ async fn detect_tool(pc: &PathsConfig) -> Option<String> {
     if let Some(ref py_module) = pc.python_module {
         let found = platform::python_module_exists(py_module).await;
         if found {
-            log::info!("[{}] Python module '{}' detected (python -m {})", pc.name, py_module, py_module);
+            log::info!(
+                "[{}] Python module '{}' detected (python -m {})",
+                pc.name,
+                py_module,
+                py_module
+            );
             return Some(format!("python -m {}", py_module));
         }
     }
@@ -482,13 +524,21 @@ async fn find_skills_path(pc: &PathsConfig) -> Option<String> {
     // 2. Platform-specific paths
     let platform_paths = {
         #[cfg(target_os = "windows")]
-        { sp.win32.clone().unwrap_or_default() }
+        {
+            sp.win32.clone().unwrap_or_default()
+        }
         #[cfg(target_os = "macos")]
-        { sp.darwin.clone().unwrap_or_default() }
+        {
+            sp.darwin.clone().unwrap_or_default()
+        }
         #[cfg(target_os = "linux")]
-        { sp.linux.clone().unwrap_or_default() }
+        {
+            sp.linux.clone().unwrap_or_default()
+        }
         #[cfg(target_os = "android")]
-        { Vec::<String>::new() }
+        {
+            Vec::<String>::new()
+        }
     };
     for p in &platform_paths {
         let expanded = expand_path(p);
@@ -650,12 +700,14 @@ pub fn get_tool_config_mapping(tool_id: &str) -> Option<(ToolDefinition, PathBuf
 /// Get the CLI command for a tool (from paths.json "command" field)
 pub fn get_tool_command(tool_id: &str) -> Option<String> {
     let defs = get_definitions();
-    defs.iter()
-        .find(|d| d.id == tool_id)
-        .and_then(|def| {
-            let cmd = &def.paths_config.command;
-            if cmd.is_empty() { None } else { Some(cmd.clone()) }
-        })
+    defs.iter().find(|d| d.id == tool_id).and_then(|def| {
+        let cmd = &def.paths_config.command;
+        if cmd.is_empty() {
+            None
+        } else {
+            Some(cmd.clone())
+        }
+    })
 }
 
 /// Get the explicit start command for launching a tool (from paths.json "startCommand" field).
@@ -663,13 +715,13 @@ pub fn get_tool_command(tool_id: &str) -> Option<String> {
 /// (which is used for detection only). Matches old Electron getStartCommand() behavior.
 pub fn get_tool_start_command(tool_id: &str) -> Option<String> {
     let defs = get_definitions();
-    defs.iter()
-        .find(|d| d.id == tool_id)
-        .and_then(|def| {
-            def.paths_config.start_command.as_ref()
-                .filter(|sc| !sc.is_empty())
-                .cloned()
-        })
+    defs.iter().find(|d| d.id == tool_id).and_then(|def| {
+        def.paths_config
+            .start_command
+            .as_ref()
+            .filter(|sc| !sc.is_empty())
+            .cloned()
+    })
 }
 
 /// Get the executable path for a GUI tool (checks platform-specific paths from paths.json)
@@ -782,7 +834,11 @@ async fn scan_single_tool(def: ToolDefinition) -> DetectedTool {
         launch_file: pc.launch_file.clone(),
         names: pc.names.clone(),
         start_command: pc.start_command.clone(),
-        command: if pc.command.is_empty() { None } else { Some(pc.command.clone()) },
+        command: if pc.command.is_empty() {
+            None
+        } else {
+            Some(pc.command.clone())
+        },
         no_model_config: pc.no_model_config,
         launch_uri: pc.launch_uri.clone(),
     }
@@ -791,7 +847,11 @@ async fn scan_single_tool(def: ToolDefinition) -> DetectedTool {
 /// Get the launch URI (e.g. "shell:AppsFolder\\<AUMID>") for an MSIX/Store app.
 pub fn get_tool_launch_uri(tool_id: &str) -> Option<String> {
     let defs = get_definitions();
-    defs.iter().find(|d| d.id == tool_id)?.paths_config.launch_uri.clone()
+    defs.iter()
+        .find(|d| d.id == tool_id)?
+        .paths_config
+        .launch_uri
+        .clone()
 }
 
 /// Scan all installed tools — runs all detections in parallel for fast completion.
@@ -806,9 +866,7 @@ pub async fn scan_tools() -> Vec<DetectedTool> {
     // Spawn a task per tool so all detections run concurrently
     let mut handles = Vec::with_capacity(definitions.len());
     for def in definitions {
-        handles.push(tokio::spawn(async move {
-            scan_single_tool(def).await
-        }));
+        handles.push(tokio::spawn(async move { scan_single_tool(def).await }));
     }
 
     let mut results = Vec::with_capacity(handles.len());

@@ -290,7 +290,11 @@ pub fn extract_json_fields(s: &str) -> serde_json::Value {
             while i < len && !matches!(chars[i], ',' | '}' | ']' | '\n') {
                 i += 1;
             }
-            let val: String = chars[start..i].iter().collect::<String>().trim().to_string();
+            let val: String = chars[start..i]
+                .iter()
+                .collect::<String>()
+                .trim()
+                .to_string();
             if !val.is_empty() {
                 map.insert(key, serde_json::json!(val));
             }
@@ -339,7 +343,10 @@ pub fn extract_file_edit_args(raw: &str) -> Option<serde_json::Value> {
 
     // replace_all: only true if the literal `true` appears AFTER `"replace_all"`.
     let replace_all = raw.contains("\"replace_all\"")
-        && raw.rfind("\"replace_all\"").and_then(|r| raw[r..].find("true")).is_some();
+        && raw
+            .rfind("\"replace_all\"")
+            .and_then(|r| raw[r..].find("true"))
+            .is_some();
 
     Some(serde_json::json!({
         "file_path": file_path,

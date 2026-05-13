@@ -1,4 +1,4 @@
-﻿// Tool config manager �?handles model configuration for all tools
+// Tool config manager �?handles model configuration for all tools
 // Ports the old Electron model.ts/model.cjs logic into Rust
 // Each custom tool has its own apply/read function
 
@@ -52,7 +52,8 @@ fn ensure_parent(path: &Path) {
 fn extract_domain_name(url: &str) -> String {
     // Strip protocol
     let without_protocol = url
-        .strip_prefix("https://").or_else(|| url.strip_prefix("http://"))
+        .strip_prefix("https://")
+        .or_else(|| url.strip_prefix("http://"))
         .unwrap_or(url);
     // Get host part (before / or :)
     let host = without_protocol.split('/').next().unwrap_or("");
@@ -148,9 +149,7 @@ fn write_json_file(path: &Path, value: &serde_json::Value) -> Result<(), String>
 
 // ─── Known ModelInfo fields ───
 
-const KNOWN_MODEL_FIELDS: &[&str] = &[
-    "id", "name", "baseUrl", "apiKey", "model", "protocol",
-];
+const KNOWN_MODEL_FIELDS: &[&str] = &["id", "name", "baseUrl", "apiKey", "model", "protocol"];
 
 fn get_model_field(model_info: &ModelInfo, field_name: &str) -> Option<String> {
     match field_name {
@@ -232,10 +231,12 @@ fn normalize_model_info_for_tool(tool_id: &str, mut model_info: ModelInfo) -> Mo
 pub async fn restore_tool_to_official(tool_id: &str) -> ApplyResult {
     let config_path = match tool_manager::get_tool_config_mapping(tool_id) {
         Some((_, path)) => path,
-        None => return ApplyResult {
-            success: false,
-            message: format!("Unknown tool: {}", tool_id),
-        },
+        None => {
+            return ApplyResult {
+                success: false,
+                message: format!("Unknown tool: {}", tool_id),
+            }
+        }
     };
 
     if matches!(tool_id, "codex" | "codexdesktop") {
@@ -258,16 +259,26 @@ pub async fn restore_tool_to_official(tool_id: &str) -> ApplyResult {
     if !config_path.exists() {
         return ApplyResult {
             success: true,
-            message: format!("{} already at defaults — no config file to remove.", tool_id),
+            message: format!(
+                "{} already at defaults — no config file to remove.",
+                tool_id
+            ),
         };
     }
 
     match fs::remove_file(&config_path) {
         Ok(_) => {
-            log::info!("[ToolConfigManager] Restored {} — deleted {:?}", tool_id, config_path);
+            log::info!(
+                "[ToolConfigManager] Restored {} — deleted {:?}",
+                tool_id,
+                config_path
+            );
             ApplyResult {
                 success: true,
-                message: format!("{} restored — config deleted, tool will regenerate defaults on next launch.", tool_id),
+                message: format!(
+                    "{} restored — config deleted, tool will regenerate defaults on next launch.",
+                    tool_id
+                ),
             }
         }
         Err(e) => ApplyResult {
@@ -323,7 +334,10 @@ async fn apply_generic_json(tool_id: &str, model_info: &ModelInfo) -> ApplyResul
     if cm.format != "json" {
         return ApplyResult {
             success: false,
-            message: format!("Config format '{}' not supported for generic apply", cm.format),
+            message: format!(
+                "Config format '{}' not supported for generic apply",
+                cm.format
+            ),
         };
     }
 
@@ -343,17 +357,20 @@ async fn apply_generic_json(tool_id: &str, model_info: &ModelInfo) -> ApplyResul
         let value = get_model_field(model_info, model_field);
         if let Some(val) = value {
             tool_manager::set_nested_value(
-                &mut config, config_json_path,
+                &mut config,
+                config_json_path,
                 serde_json::Value::String(val),
             );
         } else if model_field.is_empty() {
             tool_manager::set_nested_value(
-                &mut config, config_json_path,
+                &mut config,
+                config_json_path,
                 serde_json::Value::String(String::new()),
             );
         } else if !KNOWN_MODEL_FIELDS.contains(&model_field.as_str()) {
             tool_manager::set_nested_value(
-                &mut config, config_json_path,
+                &mut config,
+                config_json_path,
                 serde_json::Value::String(model_field.clone()),
             );
         }
@@ -366,18 +383,24 @@ async fn apply_generic_json(tool_id: &str, model_info: &ModelInfo) -> ApplyResul
                 success: true,
                 message: format!(
                     "Model \"{}\" applied to {} successfully.",
-                    model_info.model.as_deref().unwrap_or(""), tool_id
+                    model_info.model.as_deref().unwrap_or(""),
+                    tool_id
                 ),
             }
         }
-        Err(e) => ApplyResult { success: false, message: e },
+        Err(e) => ApplyResult {
+            success: false,
+            message: e,
+        },
     }
 }
 
 fn read_generic_json(tool_id: &str) -> Option<ModelInfo> {
     let (def, config_path) = tool_manager::get_tool_config_mapping(tool_id)?;
     let cm = &def.config_mapping;
-    if cm.format != "json" { return None; }
+    if cm.format != "json" {
+        return None;
+    }
     let read_map = cm.read.as_ref()?;
     let config = read_json_file(&config_path)?;
 
@@ -385,7 +408,9 @@ fn read_generic_json(tool_id: &str) -> Option<ModelInfo> {
         for p in paths.as_ref()? {
             if let Some(val) = tool_manager::get_nested_value(&config, p) {
                 if let Some(s) = val.as_str() {
-                    if !s.is_empty() { return Some(s.to_string()); }
+                    if !s.is_empty() {
+                        return Some(s.to_string());
+                    }
                 }
             }
         }
@@ -393,10 +418,11 @@ fn read_generic_json(tool_id: &str) -> Option<ModelInfo> {
     };
 
     let model = read_field(&read_map.model);
-    if model.is_none() { return None; }
+    model.as_ref()?;
 
     Some(ModelInfo {
-        name: None, model,
+        name: None,
+        model,
         base_url: read_field(&read_map.base_url),
         api_key: read_field(&read_map.api_key),
         anthropic_url: None,
@@ -404,15 +430,20 @@ fn read_generic_json(tool_id: &str) -> Option<ModelInfo> {
     })
 }
 
-
 // ════════════════════════════════════════════════════════════════
 //  Type 2: Echobird relay JSON (OpenClaw + custom plug-and-play tools)
 //  Write to ~/.echobird/{tool_id}.json
 // ════════════════════════════════════════════════════════════════
 
-fn apply_echobird_relay(tool_id: &str, model_info: &ModelInfo, include_provider: bool) -> ApplyResult {
+fn apply_echobird_relay(
+    tool_id: &str,
+    model_info: &ModelInfo,
+    include_provider: bool,
+) -> ApplyResult {
     let config_path = echobird_dir().join(format!("{}.json", tool_id));
-    let model_id = model_info.model.as_deref()
+    let model_id = model_info
+        .model
+        .as_deref()
         .or(model_info.name.as_deref())
         .unwrap_or("");
 
@@ -437,13 +468,21 @@ fn apply_echobird_relay(tool_id: &str, model_info: &ModelInfo, include_provider:
     }
     if tool_id == "openclaw" {
         config["protocol"] = serde_json::Value::String(
-            model_info.protocol.as_deref().unwrap_or("openai").to_string()
+            model_info
+                .protocol
+                .as_deref()
+                .unwrap_or("openai")
+                .to_string(),
         );
     }
 
     match write_json_file(&config_path, &config) {
         Ok(_) => {
-            log::info!("[ToolConfigManager] {} config written to {:?}", tool_id, config_path);
+            log::info!(
+                "[ToolConfigManager] {} config written to {:?}",
+                tool_id,
+                config_path
+            );
             crate::services::tool_patcher::patch_tool(tool_id);
             let tool_display = match tool_id {
                 "openclaw" => "OpenClaw",
@@ -453,11 +492,15 @@ fn apply_echobird_relay(tool_id: &str, model_info: &ModelInfo, include_provider:
                 success: true,
                 message: format!(
                     "Model \"{}\" configured for {}. Restart to apply.",
-                    model_info.name.as_deref().unwrap_or(model_id), tool_display
+                    model_info.name.as_deref().unwrap_or(model_id),
+                    tool_display
                 ),
             }
         }
-        Err(e) => ApplyResult { success: false, message: e },
+        Err(e) => ApplyResult {
+            success: false,
+            message: e,
+        },
     }
 }
 
@@ -465,18 +508,31 @@ fn read_echobird_relay(tool_id: &str) -> Option<ModelInfo> {
     let config_path = echobird_dir().join(format!("{}.json", tool_id));
     let config = read_json_file(&config_path)?;
     let model_id = config.get("modelId")?.as_str()?.to_string();
-    if model_id.is_empty() { return None; }
+    if model_id.is_empty() {
+        return None;
+    }
 
     Some(ModelInfo {
-        name: config.get("modelName").and_then(|v| v.as_str()).map(|s| s.to_string()),
+        name: config
+            .get("modelName")
+            .and_then(|v| v.as_str())
+            .map(|s| s.to_string()),
         model: Some(model_id),
-        base_url: config.get("baseUrl").and_then(|v| v.as_str()).map(|s| s.to_string()),
-        api_key: config.get("apiKey").and_then(|v| v.as_str()).map(|s| s.to_string()),
+        base_url: config
+            .get("baseUrl")
+            .and_then(|v| v.as_str())
+            .map(|s| s.to_string()),
+        api_key: config
+            .get("apiKey")
+            .and_then(|v| v.as_str())
+            .map(|s| s.to_string()),
         anthropic_url: None,
-        protocol: config.get("protocol").and_then(|v| v.as_str()).map(|s| s.to_string()),
+        protocol: config
+            .get("protocol")
+            .and_then(|v| v.as_str())
+            .map(|s| s.to_string()),
     })
 }
-
 
 // ════════════════════════════════════════════════════════════════
 //  OpenClaw: Direct write to ~/.openclaw/openclaw.json
@@ -489,7 +545,9 @@ fn apply_openclaw(model_info: &ModelInfo) -> ApplyResult {
     let oc_dir = home.join(".openclaw");
     let oc_config_path = oc_dir.join("openclaw.json");
 
-    let model_id = model_info.model.as_deref()
+    let model_id = model_info
+        .model
+        .as_deref()
         .or(model_info.name.as_deref())
         .unwrap_or("");
 
@@ -510,8 +568,7 @@ fn apply_openclaw(model_info: &ModelInfo) -> ApplyResult {
 
     // Preserve gateway token from existing config (if any)
     let gateway = if oc_config_path.exists() {
-        read_json_file(&oc_config_path)
-            .and_then(|c| c.get("gateway").cloned())
+        read_json_file(&oc_config_path).and_then(|c| c.get("gateway").cloned())
     } else {
         None
     };
@@ -520,11 +577,22 @@ fn apply_openclaw(model_info: &ModelInfo) -> ApplyResult {
     let protocol = model_info.protocol.as_deref().unwrap_or("openai");
     let is_anthropic = protocol == "anthropic"
         || model_id.to_lowercase().contains("claude")
-        || model_info.base_url.as_deref().unwrap_or("").to_lowercase().contains("anthropic");
-    let api_type = if is_anthropic { "anthropic-messages" } else { "openai-completions" };
+        || model_info
+            .base_url
+            .as_deref()
+            .unwrap_or("")
+            .to_lowercase()
+            .contains("anthropic");
+    let api_type = if is_anthropic {
+        "anthropic-messages"
+    } else {
+        "openai-completions"
+    };
 
     // Extract provider tag from base URL
-    let base_url = model_info.base_url.as_deref()
+    let base_url = model_info
+        .base_url
+        .as_deref()
         .unwrap_or("https://api.openai.com/v1")
         .trim_end_matches('/');
     let provider_tag = extract_domain_name(base_url);
@@ -568,7 +636,10 @@ fn apply_openclaw(model_info: &ModelInfo) -> ApplyResult {
     // Write fresh config
     ensure_parent(&oc_config_path);
     if let Err(e) = write_json_file(&oc_config_path, &oc_config) {
-        return ApplyResult { success: false, message: format!("Failed to write openclaw.json: {}", e) };
+        return ApplyResult {
+            success: false,
+            message: format!("Failed to write openclaw.json: {}", e),
+        };
     }
 
     // Also write ~/.echobird/openclaw.json relay (used by Bridge/Channels)
@@ -582,13 +653,20 @@ fn apply_openclaw(model_info: &ModelInfo) -> ApplyResult {
     });
     let _ = write_json_file(&relay_path, &relay);
 
-    log::info!("[ToolConfigManager] OpenClaw config overwritten: {}/{} ({})", eb_provider, model_id, api_type);
+    log::info!(
+        "[ToolConfigManager] OpenClaw config overwritten: {}/{} ({})",
+        eb_provider,
+        model_id,
+        api_type
+    );
 
     ApplyResult {
         success: true,
         message: format!(
             "Model \"{}\" configured for OpenClaw ({}/{}).",
-            model_info.name.as_deref().unwrap_or(model_id), eb_provider, model_id
+            model_info.name.as_deref().unwrap_or(model_id),
+            eb_provider,
+            model_id
         ),
     }
 }
@@ -598,7 +676,8 @@ fn read_openclaw() -> Option<ModelInfo> {
     let config = read_json_file(&oc_config_path)?;
 
     // Read primary model: agents.defaults.model.primary = "eb_xxx/model-id"
-    let primary = config.pointer("/agents/defaults/model/primary")
+    let primary = config
+        .pointer("/agents/defaults/model/primary")
         .and_then(|v| v.as_str())?;
 
     // Parse "provider/model" format
@@ -612,15 +691,32 @@ fn read_openclaw() -> Option<ModelInfo> {
     // Get provider details from models.providers
     let provider = config.pointer(&format!("/models/providers/{}", provider_name))?;
 
-    let base_url = provider.get("baseUrl").and_then(|v| v.as_str()).map(|s| s.to_string());
-    let api_key = provider.get("apiKey").and_then(|v| v.as_str()).map(|s| s.to_string());
-    let api_type = provider.get("api").and_then(|v| v.as_str()).unwrap_or("openai-completions");
-    let protocol = if api_type.contains("anthropic") { "anthropic" } else { "openai" };
+    let base_url = provider
+        .get("baseUrl")
+        .and_then(|v| v.as_str())
+        .map(|s| s.to_string());
+    let api_key = provider
+        .get("apiKey")
+        .and_then(|v| v.as_str())
+        .map(|s| s.to_string());
+    let api_type = provider
+        .get("api")
+        .and_then(|v| v.as_str())
+        .unwrap_or("openai-completions");
+    let protocol = if api_type.contains("anthropic") {
+        "anthropic"
+    } else {
+        "openai"
+    };
 
     // Get model name from models array
-    let model_name = provider.get("models")
+    let model_name = provider
+        .get("models")
         .and_then(|m| m.as_array())
-        .and_then(|arr| arr.iter().find(|m| m.get("id").and_then(|v| v.as_str()) == Some(model_id)))
+        .and_then(|arr| {
+            arr.iter()
+                .find(|m| m.get("id").and_then(|v| v.as_str()) == Some(model_id))
+        })
         .and_then(|m| m.get("name").and_then(|v| v.as_str()))
         .map(|s| s.to_string());
 
@@ -642,8 +738,11 @@ fn read_openclaw() -> Option<ModelInfo> {
 fn apply_opencode(model_info: &ModelInfo) -> ApplyResult {
     // Write echobird relay JSON — the patched launcher reads this
     let config_path = echobird_dir().join("opencode.json");
-    let model_id = model_info.model.as_deref()
-        .or(model_info.name.as_deref()).unwrap_or("");
+    let model_id = model_info
+        .model
+        .as_deref()
+        .or(model_info.name.as_deref())
+        .unwrap_or("");
 
     if model_id.is_empty() {
         return ApplyResult {
@@ -652,9 +751,13 @@ fn apply_opencode(model_info: &ModelInfo) -> ApplyResult {
         };
     }
 
-    let base_url = model_info.base_url.as_deref()
-        .unwrap_or("https://api.openai.com/v1").trim_end_matches('/').to_string();
-    let provider_name = model_id;  // Use model ID instead of domain name
+    let base_url = model_info
+        .base_url
+        .as_deref()
+        .unwrap_or("https://api.openai.com/v1")
+        .trim_end_matches('/')
+        .to_string();
+    let provider_name = model_id; // Use model ID instead of domain name
 
     let config = serde_json::json!({
         "apiKey": model_info.api_key.as_deref().unwrap_or(""),
@@ -664,13 +767,19 @@ fn apply_opencode(model_info: &ModelInfo) -> ApplyResult {
         "providerName": provider_name,
     });
 
-    if let Err(e) = write_opencode_native_config(model_info, model_id, &base_url, &provider_name) {
-        return ApplyResult { success: false, message: e };
+    if let Err(e) = write_opencode_native_config(model_info, model_id, &base_url, provider_name) {
+        return ApplyResult {
+            success: false,
+            message: e,
+        };
     }
 
     match write_json_file(&config_path, &config) {
         Ok(_) => {
-            log::info!("[ToolConfigManager] OpenCode config written to {:?}", config_path);
+            log::info!(
+                "[ToolConfigManager] OpenCode config written to {:?}",
+                config_path
+            );
             crate::services::tool_patcher::patch_opencode();
             ApplyResult {
                 success: true,
@@ -680,7 +789,10 @@ fn apply_opencode(model_info: &ModelInfo) -> ApplyResult {
                 ),
             }
         }
-        Err(e) => ApplyResult { success: false, message: e },
+        Err(e) => ApplyResult {
+            success: false,
+            message: e,
+        },
     }
 }
 
@@ -703,7 +815,11 @@ fn write_opencode_native_config(
     if config.get("$schema").is_none() {
         config["$schema"] = serde_json::json!("https://opencode.ai/config.json");
     }
-    if !config.get("provider").map(|v| v.is_object()).unwrap_or(false) {
+    if !config
+        .get("provider")
+        .map(|v| v.is_object())
+        .unwrap_or(false)
+    {
         config["provider"] = serde_json::json!({});
     }
 
@@ -728,7 +844,10 @@ fn write_opencode_native_config(
 }
 
 fn read_opencode() -> Option<ModelInfo> {
-    let native_path = dirs::home_dir()?.join(".config").join("opencode").join("opencode.jsonc");
+    let native_path = dirs::home_dir()?
+        .join(".config")
+        .join("opencode")
+        .join("opencode.jsonc");
     if let Some(info) = read_opencode_native_config(&native_path)
         .or_else(|| read_opencode_native_config(&native_path.with_extension("json")))
     {
@@ -739,14 +858,26 @@ fn read_opencode() -> Option<ModelInfo> {
     let config_path = echobird_dir().join("opencode.json");
     let config = read_json_file(&config_path)?;
     let model_id = config.get("modelId")?.as_str()?.to_string();
-    if model_id.is_empty() { return None; }
+    if model_id.is_empty() {
+        return None;
+    }
 
     Some(ModelInfo {
-        name: config.get("modelName").and_then(|v| v.as_str()).map(|s| s.to_string()),
+        name: config
+            .get("modelName")
+            .and_then(|v| v.as_str())
+            .map(|s| s.to_string()),
         model: Some(model_id),
-        base_url: config.get("baseUrl").and_then(|v| v.as_str()).map(|s| s.to_string()),
-        api_key: config.get("apiKey").and_then(|v| v.as_str()).map(|s| s.to_string()),
-        anthropic_url: None, protocol: None,
+        base_url: config
+            .get("baseUrl")
+            .and_then(|v| v.as_str())
+            .map(|s| s.to_string()),
+        api_key: config
+            .get("apiKey")
+            .and_then(|v| v.as_str())
+            .map(|s| s.to_string()),
+        anthropic_url: None,
+        protocol: None,
     })
 }
 
@@ -766,8 +897,14 @@ fn read_opencode_native_config(path: &Path) -> Option<ModelInfo> {
             .and_then(|v| v.as_str())
             .map(|s| s.to_string()),
         model: Some(model_id.to_string()),
-        base_url: provider.pointer("/options/baseURL").and_then(|v| v.as_str()).map(|s| s.to_string()),
-        api_key: provider.pointer("/options/apiKey").and_then(|v| v.as_str()).map(|s| s.to_string()),
+        base_url: provider
+            .pointer("/options/baseURL")
+            .and_then(|v| v.as_str())
+            .map(|s| s.to_string()),
+        api_key: provider
+            .pointer("/options/apiKey")
+            .and_then(|v| v.as_str())
+            .map(|s| s.to_string()),
         anthropic_url: None,
         protocol: Some("openai".to_string()),
     })
@@ -800,24 +937,39 @@ fn restore_opencode_to_official() -> ApplyResult {
 
         let mut config = match read_jsonc_file(path) {
             Some(c) => c,
-            None => return ApplyResult {
-                success: false,
-                message: format!("Failed to parse OpenCode config: {}", path.display()),
-            },
+            None => {
+                return ApplyResult {
+                    success: false,
+                    message: format!("Failed to parse OpenCode config: {}", path.display()),
+                }
+            }
         };
 
         if let Some(provider) = config.get_mut("provider").and_then(|v| v.as_object_mut()) {
             provider.remove("echobird");
         }
-        if config.get("model").and_then(|v| v.as_str()).map(|s| s.starts_with("echobird/")).unwrap_or(false) {
+        if config
+            .get("model")
+            .and_then(|v| v.as_str())
+            .map(|s| s.starts_with("echobird/"))
+            .unwrap_or(false)
+        {
             tool_manager::delete_nested_value(&mut config, "model");
         }
-        if config.get("small_model").and_then(|v| v.as_str()).map(|s| s.starts_with("echobird/")).unwrap_or(false) {
+        if config
+            .get("small_model")
+            .and_then(|v| v.as_str())
+            .map(|s| s.starts_with("echobird/"))
+            .unwrap_or(false)
+        {
             tool_manager::delete_nested_value(&mut config, "small_model");
         }
 
         if let Err(e) = write_json_file(path, &config) {
-            return ApplyResult { success: false, message: e };
+            return ApplyResult {
+                success: false,
+                message: e,
+            };
         }
         updated_any = true;
     }
@@ -834,7 +986,6 @@ fn restore_opencode_to_official() -> ApplyResult {
         }
     }
 }
-
 
 // ════════════════════════════════════════════════════════════════
 //  Type 4a: Aider �?~/.aider.conf.yml (simple YAML key: value)
@@ -882,10 +1033,17 @@ fn run_codex_provider_sync(provider_id: &str) {
             return;
         }
     };
-    let cli_js = tools_dir.join("codex").join("codex-provider-sync").join("src").join("cli.js");
+    let cli_js = tools_dir
+        .join("codex")
+        .join("codex-provider-sync")
+        .join("src")
+        .join("cli.js");
     log::info!("[codex-sync] looking for cli.js at: {:?}", cli_js);
     if !cli_js.exists() {
-        log::warn!("[codex-sync] vendored cli.js missing at {:?}, skipping", cli_js);
+        log::warn!(
+            "[codex-sync] vendored cli.js missing at {:?}, skipping",
+            cli_js
+        );
         return;
     }
     log::info!("[codex-sync] cli.js found, proceeding with sync");
@@ -904,11 +1062,22 @@ fn run_codex_provider_sync(provider_id: &str) {
     }
 
     let node_version_output = node_version_cmd.output();
-    log::info!("[codex-sync] node version check result: {:?}", node_version_output.as_ref().map(|o| String::from_utf8_lossy(&o.stdout).to_string()));
+    log::info!(
+        "[codex-sync] node version check result: {:?}",
+        node_version_output
+            .as_ref()
+            .map(|o| String::from_utf8_lossy(&o.stdout).to_string())
+    );
     let node_ok = node_version_output
         .ok()
         .and_then(|out| String::from_utf8(out.stdout).ok())
-        .and_then(|s| s.trim().trim_start_matches('v').split('.').next().map(String::from))
+        .and_then(|s| {
+            s.trim()
+                .trim_start_matches('v')
+                .split('.')
+                .next()
+                .map(String::from)
+        })
         .and_then(|major| major.parse::<u32>().ok())
         .map(|major| major >= 24)
         .unwrap_or(false);
@@ -924,8 +1093,10 @@ fn run_codex_provider_sync(provider_id: &str) {
     let mut cmd = Command::new("node");
     cmd.arg(&cli_js)
         .arg("sync")
-        .arg("--provider").arg(provider_id)
-        .arg("--keep").arg("5")
+        .arg("--provider")
+        .arg(provider_id)
+        .arg("--keep")
+        .arg("5")
         .stdin(std::process::Stdio::null())
         .stdout(std::process::Stdio::piped())
         .stderr(std::process::Stdio::piped());
@@ -937,7 +1108,11 @@ fn run_codex_provider_sync(provider_id: &str) {
         cmd.creation_flags(CREATE_NO_WINDOW);
     }
 
-    log::info!("[codex-sync] spawning: node {:?} sync --provider {} --keep 5", cli_js, provider_id);
+    log::info!(
+        "[codex-sync] spawning: node {:?} sync --provider {} --keep 5",
+        cli_js,
+        provider_id
+    );
     let mut child = match cmd.spawn() {
         Ok(c) => c,
         Err(e) => {
@@ -946,7 +1121,11 @@ fn run_codex_provider_sync(provider_id: &str) {
         }
     };
     let pid = child.id();
-    log::info!("[codex-sync] provider sync started (pid {}) for provider={}", pid, provider_id);
+    log::info!(
+        "[codex-sync] provider sync started (pid {}) for provider={}",
+        pid,
+        provider_id
+    );
 
     let deadline = std::time::Instant::now() + std::time::Duration::from_secs(10);
     loop {
@@ -963,13 +1142,20 @@ fn run_codex_provider_sync(provider_id: &str) {
                         }
                     }
                 } else {
-                    log::error!("[codex-sync] provider sync failed with status: {:?}", status);
+                    log::error!(
+                        "[codex-sync] provider sync failed with status: {:?}",
+                        status
+                    );
                     let mut stderr_buf = String::new();
                     if let Some(mut s) = child.stderr.take() {
                         use std::io::Read;
                         let _ = s.read_to_string(&mut stderr_buf);
                     }
-                    log::warn!("[codex-sync] provider sync exited {:?}: {}", status.code(), stderr_buf.trim());
+                    log::warn!(
+                        "[codex-sync] provider sync exited {:?}: {}",
+                        status.code(),
+                        stderr_buf.trim()
+                    );
                 }
                 return;
             }
@@ -993,9 +1179,18 @@ fn codex_provider_id(base_url: &str) -> String {
     let domain = extract_domain_name(base_url)
         .to_lowercase()
         .chars()
-        .map(|c| if c.is_ascii_alphanumeric() || c == '_' || c == '-' { c } else { '_' })
+        .map(|c| {
+            if c.is_ascii_alphanumeric() || c == '_' || c == '-' {
+                c
+            } else {
+                '_'
+            }
+        })
         .collect::<String>();
-    format!("echobird_{}", if domain.is_empty() { "openai" } else { &domain })
+    format!(
+        "echobird_{}",
+        if domain.is_empty() { "openai" } else { &domain }
+    )
 }
 
 /// Kill any running Codex CLI / Codex Desktop processes before rewriting
@@ -1030,7 +1225,9 @@ fn kill_codex_if_running() {
                 .creation_flags(CREATE_NO_WINDOW)
                 .output();
             match res {
-                Ok(o) if o.status.success() => log::info!("[codex-kill] taskkill /F /IM {} OK", image),
+                Ok(o) if o.status.success() => {
+                    log::info!("[codex-kill] taskkill /F /IM {} OK", image)
+                }
                 Ok(_) => { /* exit code 128 = "no such process", expected */ }
                 Err(e) => log::warn!("[codex-kill] taskkill {} failed: {}", image, e),
             }
@@ -1042,7 +1239,10 @@ fn kill_codex_if_running() {
         // pkill -9: SIGKILL. -f: match against full command line so we
         // catch both /Applications/Codex.app/Contents/MacOS/Codex (the
         // Desktop binary) and the npm-installed CLI codex binary.
-        for pattern in &["Codex.app/Contents/MacOS/Codex", "@openai/codex.*vendor.*codex"] {
+        for pattern in &[
+            "Codex.app/Contents/MacOS/Codex",
+            "@openai/codex.*vendor.*codex",
+        ] {
             let _ = std::process::Command::new("pkill")
                 .args(["-9", "-f", pattern])
                 .output();
@@ -1073,24 +1273,34 @@ fn apply_codex(tool_id: &str, model_info: &ModelInfo) -> ApplyResult {
     let auth_path = codex_dir.join("auth.json");
     let mut content = fs::read_to_string(&config_path).unwrap_or_default();
 
-    let model_id = model_info.model.as_deref()
+    let model_id = model_info
+        .model
+        .as_deref()
         .or(model_info.name.as_deref())
         .unwrap_or("");
     if model_id.is_empty() {
-        return ApplyResult { success: false, message: "Model ID is empty".to_string() };
+        return ApplyResult {
+            success: false,
+            message: "Model ID is empty".to_string(),
+        };
     }
 
-    let base_url = model_info.base_url.as_deref()
+    let base_url = model_info
+        .base_url
+        .as_deref()
         .unwrap_or("https://api.openai.com/v1")
         .trim_end_matches('/')
         .to_string();
     let api_key = model_info.api_key.as_deref().unwrap_or("");
     if api_key.is_empty() {
-        return ApplyResult { success: false, message: "API Key is empty, cannot apply Codex config".to_string() };
+        return ApplyResult {
+            success: false,
+            message: "API Key is empty, cannot apply Codex config".to_string(),
+        };
     }
 
     let provider_id = codex_provider_id(&base_url);
-    let provider_name = model_id;  // Use model ID instead of domain name
+    let provider_name = model_id; // Use model ID instead of domain name
 
     content = toml_write_top(&content, "model_provider", &provider_id);
     content = toml_write_top(&content, "model", model_id);
@@ -1104,17 +1314,40 @@ fn apply_codex(tool_id: &str, model_info: &ModelInfo) -> ApplyResult {
     // reject this and break the conversation.
     content = toml_write_top(&content, "preferred_auth_method", "apikey");
     content = toml_write_top_raw(&content, "disable_response_storage", "true");
-    content = toml_write_table_value(&content, &format!("model_providers.{}", provider_id), "name", &provider_name);
-    content = toml_write_table_value(&content, &format!("model_providers.{}", provider_id), "base_url", &base_url);
+    content = toml_write_table_value(
+        &content,
+        &format!("model_providers.{}", provider_id),
+        "name",
+        provider_name,
+    );
+    content = toml_write_table_value(
+        &content,
+        &format!("model_providers.{}", provider_id),
+        "base_url",
+        &base_url,
+    );
     // The launcher (tools/codex/codex-launcher.cjs) runs a 127.0.0.1
     // proxy that translates Responses → Chat for third-party endpoints,
     // so we always declare "responses" here and let the launcher bridge.
-    content = toml_write_table_value(&content, &format!("model_providers.{}", provider_id), "wire_api", "responses");
-    content = toml_write_table_value_raw(&content, &format!("model_providers.{}", provider_id), "requires_openai_auth", "true");
+    content = toml_write_table_value(
+        &content,
+        &format!("model_providers.{}", provider_id),
+        "wire_api",
+        "responses",
+    );
+    content = toml_write_table_value_raw(
+        &content,
+        &format!("model_providers.{}", provider_id),
+        "requires_openai_auth",
+        "true",
+    );
 
     ensure_parent(&config_path);
     if let Err(e) = fs::write(&config_path, &content) {
-        return ApplyResult { success: false, message: format!("Codex config error: {}", e) };
+        return ApplyResult {
+            success: false,
+            message: format!("Codex config error: {}", e),
+        };
     }
 
     // Back up any existing auth.json (OAuth-token sign-ins, prior api-key
@@ -1133,8 +1366,14 @@ fn apply_codex(tool_id: &str, model_info: &ModelInfo) -> ApplyResult {
     // Write the api-key auth.json that Codex v0.130+ expects.
     let auth_payload = serde_json::json!({ "OPENAI_API_KEY": api_key });
     ensure_parent(&auth_path);
-    if let Err(e) = fs::write(&auth_path, serde_json::to_string_pretty(&auth_payload).unwrap_or_default()) {
-        return ApplyResult { success: false, message: format!("Codex auth.json error: {}", e) };
+    if let Err(e) = fs::write(
+        &auth_path,
+        serde_json::to_string_pretty(&auth_payload).unwrap_or_default(),
+    ) {
+        return ApplyResult {
+            success: false,
+            message: format!("Codex auth.json error: {}", e),
+        };
     }
 
     let relay_path = echobird_dir().join("codex.json");
@@ -1159,10 +1398,18 @@ fn apply_codex(tool_id: &str, model_info: &ModelInfo) -> ApplyResult {
     // the retag is in place. Blocks for up to 10s; usually <2s.
     run_codex_provider_sync(&provider_id);
 
-    let display = if tool_id == "codexdesktop" { "Codex Desktop" } else { "Codex CLI" };
+    let display = if tool_id == "codexdesktop" {
+        "Codex Desktop"
+    } else {
+        "Codex CLI"
+    };
     ApplyResult {
         success: true,
-        message: format!("Model \"{}\" configured for {}.", model_info.name.as_deref().unwrap_or(model_id), display),
+        message: format!(
+            "Model \"{}\" configured for {}.",
+            model_info.name.as_deref().unwrap_or(model_id),
+            display
+        ),
     }
 }
 
@@ -1171,14 +1418,24 @@ fn read_codex() -> Option<ModelInfo> {
     let content = fs::read_to_string(codex_dir.join("config.toml")).ok()?;
 
     let model = toml_read_top(&content, "model");
-    if model.is_empty() { return None; }
+    if model.is_empty() {
+        return None;
+    }
 
     let provider_id = toml_read_top(&content, "model_provider");
     let base_url = if provider_id.is_empty() {
         None
     } else {
-        let value = toml_read_table_value(&content, &format!("model_providers.{}", provider_id), "base_url");
-        if value.is_empty() { None } else { Some(value) }
+        let value = toml_read_table_value(
+            &content,
+            &format!("model_providers.{}", provider_id),
+            "base_url",
+        );
+        if value.is_empty() {
+            None
+        } else {
+            Some(value)
+        }
     };
 
     // API key now lives in ~/.codex/auth.json (preferred_auth_method=apikey).
@@ -1187,9 +1444,17 @@ fn read_codex() -> Option<ModelInfo> {
         let env_key = if provider_id.is_empty() {
             String::new()
         } else {
-            toml_read_table_value(&content, &format!("model_providers.{}", provider_id), "env_key")
+            toml_read_table_value(
+                &content,
+                &format!("model_providers.{}", provider_id),
+                "env_key",
+            )
         };
-        if env_key.is_empty() { None } else { std::env::var(&env_key).ok() }
+        if env_key.is_empty() {
+            None
+        } else {
+            std::env::var(&env_key).ok()
+        }
     });
 
     Some(ModelInfo {
@@ -1205,7 +1470,9 @@ fn read_codex() -> Option<ModelInfo> {
 fn read_codex_auth_key(codex_dir: &Path) -> Option<String> {
     let content = fs::read_to_string(codex_dir.join("auth.json")).ok()?;
     let v: serde_json::Value = serde_json::from_str(&content).ok()?;
-    v.get("OPENAI_API_KEY").and_then(|x| x.as_str()).map(String::from)
+    v.get("OPENAI_API_KEY")
+        .and_then(|x| x.as_str())
+        .map(String::from)
 }
 
 fn restore_codex_to_official(tool_id: &str, config_path: &Path) -> ApplyResult {
@@ -1227,7 +1494,10 @@ fn restore_codex_to_official(tool_id: &str, config_path: &Path) -> ApplyResult {
             // apply_codex (OAuth tokens, prior api-key, etc.), put it back.
             // Otherwise just remove our apikey blob so Codex falls through
             // to its own login flow on next launch.
-            let auth_path = config_path.parent().unwrap_or(Path::new("")).join("auth.json");
+            let auth_path = config_path
+                .parent()
+                .unwrap_or(Path::new(""))
+                .join("auth.json");
             let auth_backup_path = echobird_dir().join("codex-auth.bak.json");
             if auth_backup_path.exists() {
                 if let Ok(bak) = fs::read(&auth_backup_path) {
@@ -1244,7 +1514,14 @@ fn restore_codex_to_official(tool_id: &str, config_path: &Path) -> ApplyResult {
             }
             ApplyResult {
                 success: true,
-                message: format!("{} restored to OpenAI official provider.", if tool_id == "codexdesktop" { "Codex Desktop" } else { "Codex CLI" }),
+                message: format!(
+                    "{} restored to OpenAI official provider.",
+                    if tool_id == "codexdesktop" {
+                        "Codex Desktop"
+                    } else {
+                        "Codex CLI"
+                    }
+                ),
             }
         }
         Err(e) => ApplyResult {
@@ -1258,17 +1535,29 @@ fn apply_aider(model_info: &ModelInfo) -> ApplyResult {
     let config_path = dirs::home_dir().unwrap_or_default().join(".aider.conf.yml");
     let mut content = fs::read_to_string(&config_path).unwrap_or_default();
 
-    let model = model_info.model.as_deref().or(model_info.name.as_deref()).unwrap_or("");
-    if !model.is_empty() { content = yaml_write(&content, "model", model); }
+    let model = model_info
+        .model
+        .as_deref()
+        .or(model_info.name.as_deref())
+        .unwrap_or("");
+    if !model.is_empty() {
+        content = yaml_write(&content, "model", model);
+    }
 
     let protocol = model_info.protocol.as_deref().unwrap_or("openai");
     if protocol == "anthropic" {
-        if let Some(ref k) = model_info.api_key { content = yaml_write(&content, "anthropic-api-key", k); }
+        if let Some(ref k) = model_info.api_key {
+            content = yaml_write(&content, "anthropic-api-key", k);
+        }
         content = yaml_remove(&content, "openai-api-key");
         content = yaml_remove(&content, "openai-api-base");
     } else {
-        if let Some(ref k) = model_info.api_key { content = yaml_write(&content, "openai-api-key", k); }
-        if let Some(ref u) = model_info.base_url { content = yaml_write(&content, "openai-api-base", u); }
+        if let Some(ref k) = model_info.api_key {
+            content = yaml_write(&content, "openai-api-key", k);
+        }
+        if let Some(ref u) = model_info.base_url {
+            content = yaml_write(&content, "openai-api-base", u);
+        }
         content = yaml_remove(&content, "anthropic-api-key");
     }
 
@@ -1278,7 +1567,10 @@ fn apply_aider(model_info: &ModelInfo) -> ApplyResult {
             success: true,
             message: format!("Model \"{}\" applied to Aider ({}).", model, protocol),
         },
-        Err(e) => ApplyResult { success: false, message: format!("Aider error: {}", e) },
+        Err(e) => ApplyResult {
+            success: false,
+            message: format!("Aider error: {}", e),
+        },
     }
 }
 
@@ -1286,15 +1578,26 @@ fn read_aider() -> Option<ModelInfo> {
     let path = dirs::home_dir()?.join(".aider.conf.yml");
     let content = fs::read_to_string(&path).ok()?;
     let model = yaml_read(&content, "model");
-    if model.is_empty() { return None; }
+    if model.is_empty() {
+        return None;
+    }
     let ok = yaml_read(&content, "openai-api-key");
     let ak = yaml_read(&content, "anthropic-api-key");
-    let api_key = if !ok.is_empty() { Some(ok) } else if !ak.is_empty() { Some(ak) } else { None };
+    let api_key = if !ok.is_empty() {
+        Some(ok)
+    } else if !ak.is_empty() {
+        Some(ak)
+    } else {
+        None
+    };
     let bu = yaml_read(&content, "openai-api-base");
     Some(ModelInfo {
-        name: Some(model.clone()), model: Some(model),
+        name: Some(model.clone()),
+        model: Some(model),
         base_url: if bu.is_empty() { None } else { Some(bu) },
-        api_key, anthropic_url: None, protocol: None,
+        api_key,
+        anthropic_url: None,
+        protocol: None,
     })
 }
 
@@ -1303,11 +1606,20 @@ fn read_aider() -> Option<ModelInfo> {
 // ════════════════════════════════════════════════════════════════
 
 fn apply_zeroclaw(model_info: &ModelInfo) -> ApplyResult {
-    let config_path = dirs::home_dir().unwrap_or_default().join(".zeroclaw").join("config.toml");
+    let config_path = dirs::home_dir()
+        .unwrap_or_default()
+        .join(".zeroclaw")
+        .join("config.toml");
     let mut content = fs::read_to_string(&config_path).unwrap_or_default();
 
-    let model = model_info.model.as_deref().or(model_info.name.as_deref()).unwrap_or("");
-    if !model.is_empty() { content = toml_write_top(&content, "default_model", model); }
+    let model = model_info
+        .model
+        .as_deref()
+        .or(model_info.name.as_deref())
+        .unwrap_or("");
+    if !model.is_empty() {
+        content = toml_write_top(&content, "default_model", model);
+    }
 
     // Build ZeroClaw provider string (matches Bridge handle_set_model logic)
     if let Some(ref u) = model_info.base_url {
@@ -1343,7 +1655,10 @@ fn apply_zeroclaw(model_info: &ModelInfo) -> ApplyResult {
             success: true,
             message: format!("Model \"{}\" applied to ZeroClaw.", model),
         },
-        Err(e) => ApplyResult { success: false, message: format!("ZeroClaw error: {}", e) },
+        Err(e) => ApplyResult {
+            success: false,
+            message: format!("ZeroClaw error: {}", e),
+        },
     }
 }
 
@@ -1351,15 +1666,20 @@ fn read_zeroclaw() -> Option<ModelInfo> {
     let path = dirs::home_dir()?.join(".zeroclaw").join("config.toml");
     let content = fs::read_to_string(&path).ok()?;
     let model = toml_read_top(&content, "default_model");
-    if model.is_empty() { return None; }
+    if model.is_empty() {
+        return None;
+    }
     let key = toml_read_top(&content, "api_key");
     let prov = toml_read_top(&content, "default_provider");
     let base_url = prov.strip_prefix("custom:").map(|s| s.to_string());
 
     Some(ModelInfo {
-        name: Some(model.clone()), model: Some(model), base_url,
+        name: Some(model.clone()),
+        model: Some(model),
+        base_url,
         api_key: if key.is_empty() { None } else { Some(key) },
-        anthropic_url: None, protocol: None,
+        anthropic_url: None,
+        protocol: None,
     })
 }
 
@@ -1370,16 +1690,29 @@ fn read_zeroclaw() -> Option<ModelInfo> {
 // ════════════════════════════════════════════════════════════════
 
 fn apply_qwen_code(model_info: &ModelInfo) -> ApplyResult {
-    let config_path = dirs::home_dir().unwrap_or_default().join(".qwen").join("settings.json");
+    let config_path = dirs::home_dir()
+        .unwrap_or_default()
+        .join(".qwen")
+        .join("settings.json");
 
-    let model_id = model_info.model.as_deref()
-        .or(model_info.name.as_deref()).unwrap_or("");
+    let model_id = model_info
+        .model
+        .as_deref()
+        .or(model_info.name.as_deref())
+        .unwrap_or("");
     if model_id.is_empty() {
-        return ApplyResult { success: false, message: "Model ID is empty".to_string() };
+        return ApplyResult {
+            success: false,
+            message: "Model ID is empty".to_string(),
+        };
     }
 
-    let base_url = model_info.base_url.as_deref()
-        .unwrap_or("https://api.openai.com/v1").trim_end_matches('/').to_string();
+    let base_url = model_info
+        .base_url
+        .as_deref()
+        .unwrap_or("https://api.openai.com/v1")
+        .trim_end_matches('/')
+        .to_string();
     let api_key = model_info.api_key.as_deref().unwrap_or("");
     let protocol = model_info.protocol.as_deref().unwrap_or("openai");
 
@@ -1414,14 +1747,19 @@ fn apply_qwen_code(model_info: &ModelInfo) -> ApplyResult {
     config["env"][&env_key] = serde_json::Value::String(api_key.to_string());
 
     // Write security auth type
-    config["security"]["auth"]["selectedType"] = serde_json::Value::String(selected_type.to_string());
+    config["security"]["auth"]["selectedType"] =
+        serde_json::Value::String(selected_type.to_string());
 
     // Write active model
     config["model"]["name"] = serde_json::Value::String(model_id.to_string());
 
     match write_json_file(&config_path, &config) {
         Ok(_) => {
-            log::info!("[ToolConfigManager] QwenCode config written: {} ({})", model_id, selected_type);
+            log::info!(
+                "[ToolConfigManager] QwenCode config written: {} ({})",
+                model_id,
+                selected_type
+            );
             ApplyResult {
                 success: true,
                 message: format!(
@@ -1430,7 +1768,10 @@ fn apply_qwen_code(model_info: &ModelInfo) -> ApplyResult {
                 ),
             }
         }
-        Err(e) => ApplyResult { success: false, message: e },
+        Err(e) => ApplyResult {
+            success: false,
+            message: e,
+        },
     }
 }
 
@@ -1440,29 +1781,44 @@ fn read_qwen_code() -> Option<ModelInfo> {
 
     // Read active model name
     let model_name = config.pointer("/model/name")?.as_str()?.to_string();
-    if model_name.is_empty() { return None; }
+    if model_name.is_empty() {
+        return None;
+    }
 
     // Read auth type to determine which provider array to look at
-    let selected_type = config.pointer("/security/auth/selectedType")
-        .and_then(|v| v.as_str()).unwrap_or("openai");
+    let selected_type = config
+        .pointer("/security/auth/selectedType")
+        .and_then(|v| v.as_str())
+        .unwrap_or("openai");
 
     // Find the model entry in the provider array
-    let providers = config.pointer(&format!("/modelProviders/{}", selected_type))
+    let providers = config
+        .pointer(&format!("/modelProviders/{}", selected_type))
         .and_then(|v| v.as_array())?;
 
-    let entry = providers.iter().find(|e| {
-        e.get("id").and_then(|v| v.as_str()) == Some(&model_name)
-    }).or_else(|| providers.first())?;
+    let entry = providers
+        .iter()
+        .find(|e| e.get("id").and_then(|v| v.as_str()) == Some(&model_name))
+        .or_else(|| providers.first())?;
 
-    let base_url = entry.get("baseUrl").and_then(|v| v.as_str()).map(|s| s.to_string());
+    let base_url = entry
+        .get("baseUrl")
+        .and_then(|v| v.as_str())
+        .map(|s| s.to_string());
 
     // Resolve API key from env object via envKey reference
-    let api_key = entry.get("envKey").and_then(|v| v.as_str())
+    let api_key = entry
+        .get("envKey")
+        .and_then(|v| v.as_str())
         .and_then(|env_key| config.pointer(&format!("/env/{}", env_key)))
-        .and_then(|v| v.as_str()).map(|s| s.to_string());
+        .and_then(|v| v.as_str())
+        .map(|s| s.to_string());
 
     Some(ModelInfo {
-        name: entry.get("name").and_then(|v| v.as_str()).map(|s| s.to_string()),
+        name: entry
+            .get("name")
+            .and_then(|v| v.as_str())
+            .map(|s| s.to_string()),
         model: Some(model_name),
         base_url,
         api_key,
@@ -1482,27 +1838,45 @@ fn read_qwen_code() -> Option<ModelInfo> {
 // ════════════════════════════════════════════════════════════════
 
 fn pi_dir() -> PathBuf {
-    dirs::home_dir().unwrap_or_default().join(".pi").join("agent")
+    dirs::home_dir()
+        .unwrap_or_default()
+        .join(".pi")
+        .join("agent")
 }
 
 fn apply_pi(model_info: &ModelInfo) -> ApplyResult {
-    let model_id = model_info.model.as_deref()
-        .or(model_info.name.as_deref()).unwrap_or("");
+    let model_id = model_info
+        .model
+        .as_deref()
+        .or(model_info.name.as_deref())
+        .unwrap_or("");
     if model_id.is_empty() {
-        return ApplyResult { success: false, message: "Model ID is empty".to_string() };
+        return ApplyResult {
+            success: false,
+            message: "Model ID is empty".to_string(),
+        };
     }
 
     let protocol = model_info.protocol.as_deref().unwrap_or("openai");
     let use_anthropic = protocol == "anthropic" && model_info.anthropic_url.is_some();
     let (base_url, api_type) = if use_anthropic {
         (
-            model_info.anthropic_url.as_deref().unwrap_or("").trim_end_matches('/').to_string(),
+            model_info
+                .anthropic_url
+                .as_deref()
+                .unwrap_or("")
+                .trim_end_matches('/')
+                .to_string(),
             "anthropic-messages",
         )
     } else {
         (
-            model_info.base_url.as_deref().unwrap_or("https://api.openai.com/v1")
-                .trim_end_matches('/').to_string(),
+            model_info
+                .base_url
+                .as_deref()
+                .unwrap_or("https://api.openai.com/v1")
+                .trim_end_matches('/')
+                .to_string(),
             "openai-completions",
         )
     };
@@ -1512,8 +1886,14 @@ fn apply_pi(model_info: &ModelInfo) -> ApplyResult {
     // models.json — register/replace the echobird provider
     let models_path = pi_dir().join("models.json");
     let mut models_config = read_json_file(&models_path).unwrap_or(serde_json::json!({}));
-    if !models_config.is_object() { models_config = serde_json::json!({}); }
-    if !models_config.get("providers").map(|v| v.is_object()).unwrap_or(false) {
+    if !models_config.is_object() {
+        models_config = serde_json::json!({});
+    }
+    if !models_config
+        .get("providers")
+        .map(|v| v.is_object())
+        .unwrap_or(false)
+    {
         models_config["providers"] = serde_json::json!({});
     }
     models_config["providers"][provider_id] = serde_json::json!({
@@ -1523,25 +1903,39 @@ fn apply_pi(model_info: &ModelInfo) -> ApplyResult {
         "models": [{ "id": model_id }]
     });
     if let Err(e) = write_json_file(&models_path, &models_config) {
-        return ApplyResult { success: false, message: e };
+        return ApplyResult {
+            success: false,
+            message: e,
+        };
     }
 
     // settings.json — point defaultProvider/defaultModel at our provider
     let settings_path = pi_dir().join("settings.json");
     let mut settings = read_json_file(&settings_path).unwrap_or(serde_json::json!({}));
-    if !settings.is_object() { settings = serde_json::json!({}); }
+    if !settings.is_object() {
+        settings = serde_json::json!({});
+    }
     settings["defaultProvider"] = serde_json::Value::String(provider_id.to_string());
     settings["defaultModel"] = serde_json::Value::String(model_id.to_string());
     if let Err(e) = write_json_file(&settings_path, &settings) {
-        return ApplyResult { success: false, message: e };
+        return ApplyResult {
+            success: false,
+            message: e,
+        };
     }
 
-    log::info!("[ToolConfigManager] Pi configured: provider={}, model={}, api={}", provider_id, model_id, api_type);
+    log::info!(
+        "[ToolConfigManager] Pi configured: provider={}, model={}, api={}",
+        provider_id,
+        model_id,
+        api_type
+    );
     ApplyResult {
         success: true,
         message: format!(
             "Model \"{}\" configured for Pi ({}). Restart pi to apply.",
-            model_info.name.as_deref().unwrap_or(model_id), api_type
+            model_info.name.as_deref().unwrap_or(model_id),
+            api_type
         ),
     }
 }
@@ -1551,14 +1945,25 @@ fn read_pi() -> Option<ModelInfo> {
     let settings = read_json_file(&dir.join("settings.json"))?;
     let provider_id = settings.get("defaultProvider")?.as_str()?;
     let model_id = settings.get("defaultModel")?.as_str()?.to_string();
-    if model_id.is_empty() { return None; }
+    if model_id.is_empty() {
+        return None;
+    }
 
     let models = read_json_file(&dir.join("models.json"))?;
     let prov = models.pointer(&format!("/providers/{}", provider_id))?;
 
-    let api_type = prov.get("api").and_then(|v| v.as_str()).unwrap_or("openai-completions");
-    let base_url = prov.get("baseUrl").and_then(|v| v.as_str()).map(|s| s.to_string());
-    let api_key = prov.get("apiKey").and_then(|v| v.as_str()).map(|s| s.to_string());
+    let api_type = prov
+        .get("api")
+        .and_then(|v| v.as_str())
+        .unwrap_or("openai-completions");
+    let base_url = prov
+        .get("baseUrl")
+        .and_then(|v| v.as_str())
+        .map(|s| s.to_string());
+    let api_key = prov
+        .get("apiKey")
+        .and_then(|v| v.as_str())
+        .map(|s| s.to_string());
 
     let (base, anthro) = if api_type == "anthropic-messages" {
         (None, base_url)
@@ -1572,7 +1977,14 @@ fn read_pi() -> Option<ModelInfo> {
         base_url: base,
         api_key,
         anthropic_url: anthro,
-        protocol: Some(if api_type == "anthropic-messages" { "anthropic" } else { "openai" }.to_string()),
+        protocol: Some(
+            if api_type == "anthropic-messages" {
+                "anthropic"
+            } else {
+                "openai"
+            }
+            .to_string(),
+        ),
     })
 }
 
@@ -1583,7 +1995,11 @@ fn restore_pi_to_official() -> ApplyResult {
     // files (other providers and unrelated settings stay intact).
     let models_path = dir.join("models.json");
     if let Some(mut models) = read_json_file(&models_path) {
-        if models.get("providers").map(|v| v.is_object()).unwrap_or(false) {
+        if models
+            .get("providers")
+            .map(|v| v.is_object())
+            .unwrap_or(false)
+        {
             if let Some(obj) = models["providers"].as_object_mut() {
                 obj.remove("echobird");
             }
@@ -1614,11 +2030,16 @@ fn yaml_read(content: &str, key: &str) -> String {
     let prefix = format!("{}:", key);
     for line in content.lines() {
         let t = line.trim();
-        if t.starts_with('#') { continue; }
+        if t.starts_with('#') {
+            continue;
+        }
         if let Some(rest) = t.strip_prefix(&prefix) {
             let v = rest.trim();
-            if (v.starts_with('"') && v.ends_with('"')) || (v.starts_with('\'') && v.ends_with('\'')) {
-                if v.len() >= 2 { return v[1..v.len()-1].to_string(); }
+            if let Some(stripped) = v.strip_prefix('"').and_then(|s| s.strip_suffix('"')) {
+                return stripped.to_string();
+            }
+            if let Some(stripped) = v.strip_prefix('\'').and_then(|s| s.strip_suffix('\'')) {
+                return stripped.to_string();
             }
             return v.to_string();
         }
@@ -1638,15 +2059,19 @@ fn yaml_write(content: &str, key: &str, value: &str) -> String {
             break;
         }
     }
-    if !found { lines.push(format!("{}: {}", key, value)); }
+    if !found {
+        lines.push(format!("{}: {}", key, value));
+    }
     lines.join("\n")
 }
 
 fn yaml_remove(content: &str, key: &str) -> String {
     let prefix = format!("{}:", key);
-    content.lines()
+    content
+        .lines()
         .filter(|l| l.trim().starts_with('#') || !l.trim().starts_with(&prefix))
-        .collect::<Vec<_>>().join("\n")
+        .collect::<Vec<_>>()
+        .join("\n")
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -1657,14 +2082,16 @@ fn toml_read_top(content: &str, key: &str) -> String {
     for line in content.lines() {
         let t = line.trim();
         if t.starts_with('[') || t.starts_with('#') || t.is_empty() {
-            if t.starts_with('[') { break; } // Entered sections, stop
+            if t.starts_with('[') {
+                break;
+            } // Entered sections, stop
             continue;
         }
         if let Some((k, v)) = t.split_once('=') {
             if k.trim() == key {
                 let v = v.trim();
                 if v.starts_with('"') && v.ends_with('"') && v.len() >= 2 {
-                    return v[1..v.len()-1].to_string();
+                    return v[1..v.len() - 1].to_string();
                 }
                 return v.to_string();
             }
@@ -1680,8 +2107,12 @@ fn toml_write_top(content: &str, key: &str, value: &str) -> String {
 
     for (i, line) in lines.iter_mut().enumerate() {
         let t = line.trim();
-        if first_section.is_none() && t.starts_with('[') { first_section = Some(i); }
-        if first_section.is_some() && i >= first_section.unwrap() { continue; }
+        if first_section.is_none() && t.starts_with('[') {
+            first_section = Some(i);
+        }
+        if first_section.is_some() && i >= first_section.unwrap() {
+            continue;
+        }
         if let Some((k, _)) = t.split_once('=') {
             if k.trim() == key {
                 *line = format!("{} = \"{}\"", key, toml_escape(value));
@@ -1710,8 +2141,12 @@ fn toml_write_top_raw(content: &str, key: &str, value: &str) -> String {
 
     for (i, line) in lines.iter_mut().enumerate() {
         let t = line.trim();
-        if first_section.is_none() && t.starts_with('[') { first_section = Some(i); }
-        if first_section.is_some() && i >= first_section.unwrap() { continue; }
+        if first_section.is_none() && t.starts_with('[') {
+            first_section = Some(i);
+        }
+        if first_section.is_some() && i >= first_section.unwrap() {
+            continue;
+        }
         if let Some((k, _)) = t.split_once('=') {
             if k.trim() == key {
                 *line = format!("{} = {}", key, value);
@@ -1885,7 +2320,7 @@ fn toml_remove_tables_with_prefix(content: &str, prefix: &str) -> String {
 fn toml_unquote(value: &str) -> String {
     let v = value.trim();
     if v.starts_with('"') && v.ends_with('"') && v.len() >= 2 {
-        v[1..v.len()-1]
+        v[1..v.len() - 1]
             .replace("\\\"", "\"")
             .replace("\\\\", "\\")
     } else {

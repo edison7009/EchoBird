@@ -1,7 +1,7 @@
 // Model settings persistence (~/.echobird/config/local-model-settings.json)
 
+use super::types::{GgufFile, HfModelEntry, ModelSettings};
 use std::path::PathBuf;
-use super::types::{ModelSettings, GgufFile, HfModelEntry};
 
 fn settings_path() -> PathBuf {
     crate::utils::platform::echobird_dir()
@@ -82,11 +82,10 @@ fn scan_gguf_recursive(dir: &std::path::Path, depth: u32, results: &mut Vec<Gguf
             if path.is_file() {
                 if let Some(ext) = path.extension() {
                     if ext.to_string_lossy().to_lowercase() == "gguf" {
-                        let file_size = std::fs::metadata(&path)
-                            .map(|m| m.len())
-                            .unwrap_or(0);
+                        let file_size = std::fs::metadata(&path).map(|m| m.len()).unwrap_or(0);
                         results.push(GgufFile {
-                            file_name: path.file_name()
+                            file_name: path
+                                .file_name()
                                 .map(|n| n.to_string_lossy().to_string())
                                 .unwrap_or_default(),
                             file_path: path.to_string_lossy().to_string(),
@@ -121,7 +120,10 @@ fn scan_hf_recursive(dir: &std::path::Path, depth: u32, results: &mut Vec<HfMode
             .and_then(|v| {
                 v.get("_name_or_path")
                     .and_then(|n| n.as_str().map(String::from))
-                    .or_else(|| v.get("model_type").and_then(|n| n.as_str().map(String::from)))
+                    .or_else(|| {
+                        v.get("model_type")
+                            .and_then(|n| n.as_str().map(String::from))
+                    })
             })
             .unwrap_or_else(|| {
                 dir.file_name()
@@ -131,10 +133,12 @@ fn scan_hf_recursive(dir: &std::path::Path, depth: u32, results: &mut Vec<HfMode
 
         let total_size = std::fs::read_dir(dir)
             .map(|entries| {
-                entries.flatten()
+                entries
+                    .flatten()
                     .filter(|e| e.path().is_file())
                     .filter(|e| {
-                        e.path().extension()
+                        e.path()
+                            .extension()
                             .map(|ext| {
                                 let ext = ext.to_string_lossy().to_lowercase();
                                 ext == "safetensors" || ext == "bin" || ext == "pt"

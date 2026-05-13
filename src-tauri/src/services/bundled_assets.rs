@@ -12,25 +12,49 @@ pub const INSTALL_INDEX_JSON: &str = include_str!("../../../docs/api/tools/insta
 
 pub fn get_install_ref(tool_id: &str) -> Option<&'static str> {
     match tool_id {
-        "claudecode" => Some(include_str!("../../../docs/api/tools/install/claudecode.json")),
+        "claudecode" => Some(include_str!(
+            "../../../docs/api/tools/install/claudecode.json"
+        )),
         "codex" => Some(include_str!("../../../docs/api/tools/install/codex.json")),
-        "qwencode" => Some(include_str!("../../../docs/api/tools/install/qwencode.json")),
+        "qwencode" => Some(include_str!(
+            "../../../docs/api/tools/install/qwencode.json"
+        )),
         "aider" => Some(include_str!("../../../docs/api/tools/install/aider.json")),
         "pi" => Some(include_str!("../../../docs/api/tools/install/pi.json")),
         "hermes" => Some(include_str!("../../../docs/api/tools/install/hermes.json")),
         "nanobot" => Some(include_str!("../../../docs/api/tools/install/nanobot.json")),
-        "openclaw" => Some(include_str!("../../../docs/api/tools/install/openclaw.json")),
-        "opencode" => Some(include_str!("../../../docs/api/tools/install/opencode.json")),
-        "openfang" => Some(include_str!("../../../docs/api/tools/install/openfang.json")),
-        "picoclaw" => Some(include_str!("../../../docs/api/tools/install/picoclaw.json")),
-        "zeroclaw" => Some(include_str!("../../../docs/api/tools/install/zeroclaw.json")),
-        "claudedesktop" => Some(include_str!("../../../docs/api/tools/install/claudedesktop.json")),
-        "codexdesktop" => Some(include_str!("../../../docs/api/tools/install/codexdesktop.json")),
-        "geminidesktop" => Some(include_str!("../../../docs/api/tools/install/geminidesktop.json")),
-        "coffeecli" => Some(include_str!("../../../docs/api/tools/install/coffeecli.json")),
+        "openclaw" => Some(include_str!(
+            "../../../docs/api/tools/install/openclaw.json"
+        )),
+        "opencode" => Some(include_str!(
+            "../../../docs/api/tools/install/opencode.json"
+        )),
+        "openfang" => Some(include_str!(
+            "../../../docs/api/tools/install/openfang.json"
+        )),
+        "picoclaw" => Some(include_str!(
+            "../../../docs/api/tools/install/picoclaw.json"
+        )),
+        "zeroclaw" => Some(include_str!(
+            "../../../docs/api/tools/install/zeroclaw.json"
+        )),
+        "claudedesktop" => Some(include_str!(
+            "../../../docs/api/tools/install/claudedesktop.json"
+        )),
+        "codexdesktop" => Some(include_str!(
+            "../../../docs/api/tools/install/codexdesktop.json"
+        )),
+        "geminidesktop" => Some(include_str!(
+            "../../../docs/api/tools/install/geminidesktop.json"
+        )),
+        "coffeecli" => Some(include_str!(
+            "../../../docs/api/tools/install/coffeecli.json"
+        )),
         "vscode" => Some(include_str!("../../../docs/api/tools/install/vscode.json")),
         "cursor" => Some(include_str!("../../../docs/api/tools/install/cursor.json")),
-        "windsurf" => Some(include_str!("../../../docs/api/tools/install/windsurf.json")),
+        "windsurf" => Some(include_str!(
+            "../../../docs/api/tools/install/windsurf.json"
+        )),
         "trae" => Some(include_str!("../../../docs/api/tools/install/trae.json")),
         "traecn" => Some(include_str!("../../../docs/api/tools/install/traecn.json")),
         _ => None,
@@ -48,10 +72,27 @@ pub fn get_tool_script(name: &str) -> Option<&'static str> {
 /// IDs of every tool with a bundled install reference. Mirrors the keys of
 /// `get_install_ref` so the system prompt and AppManager stay in sync.
 pub const INSTALLABLE_TOOL_IDS: &[&str] = &[
-    "claudecode", "codex", "qwencode", "aider", "pi", "hermes",
-    "nanobot", "openclaw", "opencode", "openfang", "picoclaw", "zeroclaw",
-    "claudedesktop", "codexdesktop", "geminidesktop", "coffeecli",
-    "vscode", "cursor", "windsurf", "trae", "traecn",
+    "claudecode",
+    "codex",
+    "qwencode",
+    "aider",
+    "pi",
+    "hermes",
+    "nanobot",
+    "openclaw",
+    "opencode",
+    "openfang",
+    "picoclaw",
+    "zeroclaw",
+    "claudedesktop",
+    "codexdesktop",
+    "geminidesktop",
+    "coffeecli",
+    "vscode",
+    "cursor",
+    "windsurf",
+    "trae",
+    "traecn",
 ];
 
 /// Build the full embedded-references block to append to the system prompt.

@@ -17,9 +17,35 @@ pub struct ToolResult {
     pub output: String,
 }
 
-const EXEC_TIMEOUT_SECS: u64 = 60;       // Default: 60s for most commands (systemctl, pkill, ls, etc.)
+const EXEC_TIMEOUT_SECS: u64 = 60; // Default: 60s for most commands (systemctl, pkill, ls, etc.)
 const EXEC_TIMEOUT_LONG_SECS: u64 = 600; // Long: 10 min for installs, builds, downloads
-const MAX_OUTPUT_BYTES: usize = 8_000;   // ~8KB per tool result to keep API payload manageable
+const MAX_OUTPUT_BYTES: usize = 8_000; // ~8KB per tool result to keep API payload manageable
+
+/// Find the largest byte index <= max that is a UTF-8 character boundary.
+/// Equivalent to String::floor_char_boundary (Rust 1.91+) but works on 1.77.2.
+fn floor_char_boundary(s: &str, max: usize) -> usize {
+    if max >= s.len() {
+        return s.len();
+    }
+    let mut idx = max;
+    while idx > 0 && !s.is_char_boundary(idx) {
+        idx -= 1;
+    }
+    idx
+}
+
+/// Find the smallest byte index >= min that is a UTF-8 character boundary.
+/// Equivalent to String::ceil_char_boundary (Rust 1.91+) but works on 1.77.2.
+fn ceil_char_boundary(s: &str, min: usize) -> usize {
+    if min >= s.len() {
+        return s.len();
+    }
+    let mut idx = min;
+    while idx < s.len() && !s.is_char_boundary(idx) {
+        idx += 1;
+    }
+    idx
+}
 
 /// Return the appropriate timeout for a shell command.
 /// Long-running operations (package installs, builds, downloads) get 600s.
@@ -27,24 +53,48 @@ const MAX_OUTPUT_BYTES: usize = 8_000;   // ~8KB per tool result to keep API pay
 fn get_exec_timeout(command: &str) -> u64 {
     let cmd = command.to_lowercase();
     let long_patterns = [
-        "npm install", "npm ci", "npm run build",
-        "cargo install", "cargo build",
-        "pip install", "pip3 install",
-        "apt install", "apt-get install", "apt upgrade", "apt-get upgrade",
-        "dnf install", "dnf upgrade", "dnf update",
-        "yum install", "yum upgrade", "yum update",
-        "pacman -s", "pacman -syu", "pacman -syyu",
-        "zypper install", "zypper in ", "zypper update", "zypper up",
-        "apk add", "apk upgrade",
+        "npm install",
+        "npm ci",
+        "npm run build",
+        "cargo install",
+        "cargo build",
+        "pip install",
+        "pip3 install",
+        "apt install",
+        "apt-get install",
+        "apt upgrade",
+        "apt-get upgrade",
+        "dnf install",
+        "dnf upgrade",
+        "dnf update",
+        "yum install",
+        "yum upgrade",
+        "yum update",
+        "pacman -s",
+        "pacman -syu",
+        "pacman -syyu",
+        "zypper install",
+        "zypper in ",
+        "zypper update",
+        "zypper up",
+        "apk add",
+        "apk upgrade",
         "brew install",
-        "curl", "wget",
-        "tar ", "unzip ",
-        "huggingface-cli", "modelscope",
-        "docker pull", "docker build",
+        "curl",
+        "wget",
+        "tar ",
+        "unzip ",
+        "huggingface-cli",
+        "modelscope",
+        "docker pull",
+        "docker build",
         "nohup",
-        "install.sh", "install.ps1",
-        "cargo check", "cargo test",
-        "yarn install", "yarn build",
+        "install.sh",
+        "install.ps1",
+        "cargo check",
+        "cargo test",
+        "yarn install",
+        "yarn build",
         "git clone",
         "dpkg -i",
         "snap install",
@@ -291,10 +341,12 @@ pub async fn execute_tool(
 ) -> ToolResult {
     let args: Value = match serde_json::from_str(args_json) {
         Ok(v) => v,
-        Err(e) => return ToolResult {
-            success: false,
-            output: format!("Invalid tool arguments: {}", e),
-        },
+        Err(e) => {
+            return ToolResult {
+                success: false,
+                output: format!("Invalid tool arguments: {}", e),
+            }
+        }
     };
 
     // Determine effective server_id: if model omitted it (or said "local") but the
@@ -313,7 +365,8 @@ pub async fn execute_tool(
                 log::warn!(
                     "[AgentTools] GUARD: model omitted server_id (got '{}'), \
                      auto-redirecting to session target '{}'",
-                    sid, remote
+                    sid,
+                    remote
                 );
                 return remote.to_string();
             }
@@ -326,7 +379,10 @@ pub async fn execute_tool(
             let command = args["command"].as_str().unwrap_or("");
             let raw_sid = args["server_id"].as_str();
             if command.is_empty() {
-                return ToolResult { success: false, output: "Empty command".into() };
+                return ToolResult {
+                    success: false,
+                    output: "Empty command".into(),
+                };
             }
             let server_id = resolve_server_id(raw_sid);
             exec_shell(command, &server_id, ssh_pool).await
@@ -335,7 +391,10 @@ pub async fn execute_tool(
             let path = args["path"].as_str().unwrap_or("");
             let raw_sid = args["server_id"].as_str();
             if path.is_empty() {
-                return ToolResult { success: false, output: "Empty path".into() };
+                return ToolResult {
+                    success: false,
+                    output: "Empty path".into(),
+                };
             }
             let server_id = resolve_server_id(raw_sid);
             exec_file_read(path, &server_id, ssh_pool).await
@@ -345,7 +404,10 @@ pub async fn execute_tool(
             let content = args["content"].as_str().unwrap_or("");
             let raw_sid = args["server_id"].as_str();
             if path.is_empty() {
-                return ToolResult { success: false, output: "Empty path".into() };
+                return ToolResult {
+                    success: false,
+                    output: "Empty path".into(),
+                };
             }
             let server_id = resolve_server_id(raw_sid);
             exec_file_write(path, content, &server_id, ssh_pool).await
@@ -356,10 +418,16 @@ pub async fn execute_tool(
             let new_string = args["new_string"].as_str().unwrap_or("");
             let raw_sid = args["server_id"].as_str();
             if path.is_empty() {
-                return ToolResult { success: false, output: "Empty path".into() };
+                return ToolResult {
+                    success: false,
+                    output: "Empty path".into(),
+                };
             }
             if old_string.is_empty() {
-                return ToolResult { success: false, output: "old_string cannot be empty".into() };
+                return ToolResult {
+                    success: false,
+                    output: "old_string cannot be empty".into(),
+                };
             }
             let server_id = resolve_server_id(raw_sid);
             exec_file_edit(path, old_string, new_string, &server_id, ssh_pool).await
@@ -370,7 +438,10 @@ pub async fn execute_tool(
             let ci = args["case_insensitive"].as_bool().unwrap_or(false);
             let raw_sid = args["server_id"].as_str();
             if pattern.is_empty() {
-                return ToolResult { success: false, output: "pattern is required".into() };
+                return ToolResult {
+                    success: false,
+                    output: "pattern is required".into(),
+                };
             }
             let server_id = resolve_server_id(raw_sid);
             exec_grep(pattern, path, ci, &server_id, ssh_pool).await
@@ -380,7 +451,10 @@ pub async fn execute_tool(
             let path = args["path"].as_str();
             let raw_sid = args["server_id"].as_str();
             if pattern.is_empty() {
-                return ToolResult { success: false, output: "pattern is required".into() };
+                return ToolResult {
+                    success: false,
+                    output: "pattern is required".into(),
+                };
             }
             let server_id = resolve_server_id(raw_sid);
             exec_glob(pattern, path, &server_id, ssh_pool).await
@@ -388,7 +462,10 @@ pub async fn execute_tool(
         "web_fetch" => {
             let url = args["url"].as_str().unwrap_or("");
             if url.is_empty() {
-                return ToolResult { success: false, output: "URL is required".into() };
+                return ToolResult {
+                    success: false,
+                    output: "URL is required".into(),
+                };
             }
             exec_web_fetch(url).await
         }
@@ -402,7 +479,10 @@ pub async fn execute_tool(
             let plugin_id = args["plugin_id"].as_str().unwrap_or("");
             let port = args["port"].as_u64().unwrap_or(8090) as u16;
             if server_id.is_empty() || plugin_id.is_empty() {
-                return ToolResult { success: false, output: "server_id and plugin_id are required".into() };
+                return ToolResult {
+                    success: false,
+                    output: "server_id and plugin_id are required".into(),
+                };
             }
             exec_deploy_plugin_source(server_id, plugin_id, port, ssh_pool).await
         }
@@ -411,7 +491,10 @@ pub async fn execute_tool(
             let remote_path = args["remote_path"].as_str().unwrap_or("");
             let server_id = args["server_id"].as_str().unwrap_or("");
             if local_path.is_empty() || remote_path.is_empty() || server_id.is_empty() {
-                return ToolResult { success: false, output: "local_path, remote_path, and server_id are all required".into() };
+                return ToolResult {
+                    success: false,
+                    output: "local_path, remote_path, and server_id are all required".into(),
+                };
             }
             exec_upload_file(local_path, remote_path, server_id, ssh_pool).await
         }
@@ -420,11 +503,17 @@ pub async fn execute_tool(
             let local_path = args["local_path"].as_str().unwrap_or("");
             let server_id = args["server_id"].as_str().unwrap_or("");
             if remote_path.is_empty() || local_path.is_empty() || server_id.is_empty() {
-                return ToolResult { success: false, output: "remote_path, local_path, and server_id are all required".into() };
+                return ToolResult {
+                    success: false,
+                    output: "remote_path, local_path, and server_id are all required".into(),
+                };
             }
             exec_download_file(remote_path, local_path, server_id, ssh_pool).await
         }
-        _ => ToolResult { success: false, output: format!("Unknown tool: {}", name) },
+        _ => ToolResult {
+            success: false,
+            output: format!("Unknown tool: {}", name),
+        },
     }
 }
 
@@ -439,22 +528,28 @@ pub async fn exec_shell(command: &str, server_id: &str, ssh_pool: &SSHPool) -> T
 }
 
 async fn exec_local_shell(command: &str) -> ToolResult {
-    log::info!("[AgentTools] Local exec: {}", &command[..command.floor_char_boundary(200)]);
+    log::info!(
+        "[AgentTools] Local exec: {}",
+        &command[..floor_char_boundary(command, 200)]
+    );
 
     // Safety check: block commands that could damage Echobird or user data
     let cmd_lower = command.to_lowercase();
     let blocked_patterns = [
-        ".echobird",         // Echobird config directory
-        "echobird.exe",      // Echobird process
-        "stop-process",      // PowerShell kill
-        "taskkill",          // Windows kill all
-        "format c:",         // Format drive
-        "rd /s /q c:\\",     // Delete system drive
-        "rm -rf /",          // Linux nuke
+        ".echobird",     // Echobird config directory
+        "echobird.exe",  // Echobird process
+        "stop-process",  // PowerShell kill
+        "taskkill",      // Windows kill all
+        "format c:",     // Format drive
+        "rd /s /q c:\\", // Delete system drive
+        "rm -rf /",      // Linux nuke
     ];
     for pattern in &blocked_patterns {
         if cmd_lower.contains(pattern) {
-            log::warn!("[AgentTools] BLOCKED dangerous command: {}", &command[..command.floor_char_boundary(200)]);
+            log::warn!(
+                "[AgentTools] BLOCKED dangerous command: {}",
+                &command[..floor_char_boundary(command, 200)]
+            );
             return ToolResult {
                 success: false,
                 output: format!("Command blocked: contains '{}'. This operation could damage Echobird or user data.", pattern),
@@ -508,21 +603,29 @@ async fn exec_local_shell(command: &str) -> ToolResult {
                 combined.push_str(&stdout);
             }
             if !stderr.is_empty() {
-                if !combined.is_empty() { combined.push_str("\n--- stderr ---\n"); }
+                if !combined.is_empty() {
+                    combined.push_str("\n--- stderr ---\n");
+                }
                 combined.push_str(&stderr);
             }
             // Truncate if too long — keep the TAIL (end of output has the result)
             if combined.len() > MAX_OUTPUT_BYTES {
                 let start = combined.len() - MAX_OUTPUT_BYTES;
                 // Advance to next UTF-8 boundary
-                let start = combined.ceil_char_boundary(start);
-                combined = format!("... [output truncated, showing last {}KB]\n{}",
-                    MAX_OUTPUT_BYTES / 1024, &combined[start..]);
+                let start = ceil_char_boundary(&combined, start);
+                combined = format!(
+                    "... [output truncated, showing last {}KB]\n{}",
+                    MAX_OUTPUT_BYTES / 1024,
+                    &combined[start..]
+                );
             }
             ToolResult {
                 success: output.status.success(),
                 output: if combined.is_empty() {
-                    format!("Command completed (exit code: {})", output.status.code().unwrap_or(-1))
+                    format!(
+                        "Command completed (exit code: {})",
+                        output.status.code().unwrap_or(-1)
+                    )
                 } else {
                     combined
                 },
@@ -544,7 +647,11 @@ async fn exec_local_shell(command: &str) -> ToolResult {
 }
 
 async fn exec_ssh_shell(command: &str, server_id: &str, ssh_pool: &SSHPool) -> ToolResult {
-    log::info!("[AgentTools] SSH exec on {}: {}", server_id, &command[..command.floor_char_boundary(200)]);
+    log::info!(
+        "[AgentTools] SSH exec on {}: {}",
+        server_id,
+        &command[..floor_char_boundary(command, 200)]
+    );
 
     // Auto-connect if not in pool
     if let Err(e) = crate::commands::ssh_commands::auto_connect_ssh(ssh_pool, server_id).await {
@@ -562,10 +669,15 @@ async fn exec_ssh_shell(command: &str, server_id: &str, ssh_pool: &SSHPool) -> T
         let connections = ssh_pool.lock().await;
         match connections.get(server_id) {
             Some(c) => c.clone(),
-            None => return ToolResult {
-                success: false,
-                output: format!("SSH server '{}' not connected after auto-connect attempt.", server_id),
-            },
+            None => {
+                return ToolResult {
+                    success: false,
+                    output: format!(
+                        "SSH server '{}' not connected after auto-connect attempt.",
+                        server_id
+                    ),
+                }
+            }
         }
     }; // lock released here
 
@@ -575,15 +687,20 @@ async fn exec_ssh_shell(command: &str, server_id: &str, ssh_pool: &SSHPool) -> T
         Ok(Ok(result)) => {
             let mut output = result.stdout;
             if !result.stderr.is_empty() {
-                if !output.is_empty() { output.push_str("\n--- stderr ---\n"); }
+                if !output.is_empty() {
+                    output.push_str("\n--- stderr ---\n");
+                }
                 output.push_str(&result.stderr);
             }
             // Truncate if too long — keep the TAIL (end of output has the result)
             if output.len() > MAX_OUTPUT_BYTES {
                 let start = output.len() - MAX_OUTPUT_BYTES;
-                let start = output.ceil_char_boundary(start);
-                output = format!("... [output truncated, showing last {}KB]\n{}",
-                    MAX_OUTPUT_BYTES / 1024, &output[start..]);
+                let start = ceil_char_boundary(&output, start);
+                output = format!(
+                    "... [output truncated, showing last {}KB]\n{}",
+                    MAX_OUTPUT_BYTES / 1024,
+                    &output[start..]
+                );
             }
             ToolResult {
                 success: result.exit_status == 0,
@@ -640,7 +757,10 @@ fn exec_get_sudo_password(server_id: &str) -> ToolResult {
             if plain.is_empty() {
                 ToolResult { success: false, output: "No password saved for this server. Ask the user in <chat> for their sudo password, then run: echo '<password>' | sudo -S <command>".into() }
             } else {
-                ToolResult { success: true, output: plain }
+                ToolResult {
+                    success: true,
+                    output: plain,
+                }
             }
         }
         None => ToolResult {
@@ -657,13 +777,19 @@ async fn exec_file_read(path: &str, server_id: &str, ssh_pool: &SSHPool) -> Tool
         match tokio::fs::read_to_string(path).await {
             Ok(mut content) => {
                 if content.len() > MAX_OUTPUT_BYTES {
-                    let end = content.floor_char_boundary(MAX_OUTPUT_BYTES);
+                    let end = floor_char_boundary(&content, MAX_OUTPUT_BYTES);
                     content.truncate(end);
                     content.push_str("\n... [file truncated]");
                 }
-                ToolResult { success: true, output: content }
+                ToolResult {
+                    success: true,
+                    output: content,
+                }
             }
-            Err(e) => ToolResult { success: false, output: format!("Failed to read file: {}", e) },
+            Err(e) => ToolResult {
+                success: false,
+                output: format!("Failed to read file: {}", e),
+            },
         }
     } else {
         // Read via SSH
@@ -671,17 +797,31 @@ async fn exec_file_read(path: &str, server_id: &str, ssh_pool: &SSHPool) -> Tool
     }
 }
 
-async fn exec_file_write(path: &str, content: &str, server_id: &str, ssh_pool: &SSHPool) -> ToolResult {
+async fn exec_file_write(
+    path: &str,
+    content: &str,
+    server_id: &str,
+    ssh_pool: &SSHPool,
+) -> ToolResult {
     if server_id == "local" || server_id.is_empty() {
         // Ensure parent directory exists
         if let Some(parent) = std::path::Path::new(path).parent() {
             if let Err(e) = tokio::fs::create_dir_all(parent).await {
-                return ToolResult { success: false, output: format!("Failed to create directory: {}", e) };
+                return ToolResult {
+                    success: false,
+                    output: format!("Failed to create directory: {}", e),
+                };
             }
         }
         match tokio::fs::write(path, content).await {
-            Ok(_) => ToolResult { success: true, output: format!("Written {} bytes to {}", content.len(), path) },
-            Err(e) => ToolResult { success: false, output: format!("Failed to write file: {}", e) },
+            Ok(_) => ToolResult {
+                success: true,
+                output: format!("Written {} bytes to {}", content.len(), path),
+            },
+            Err(e) => ToolResult {
+                success: false,
+                output: format!("Failed to write file: {}", e),
+            },
         }
     } else {
         // Write via SSH (using heredoc), chunked for large files
@@ -690,7 +830,12 @@ async fn exec_file_write(path: &str, content: &str, server_id: &str, ssh_pool: &
 
         if escaped_content.len() <= CHUNK_THRESHOLD {
             // Small file: single heredoc
-            let cmd = format!("mkdir -p \"$(dirname {})\" && cat > {} << 'ECHOBIRD_EOF'\n{}\nECHOBIRD_EOF", shell_escape(path), shell_escape(path), escaped_content);
+            let cmd = format!(
+                "mkdir -p \"$(dirname {})\" && cat > {} << 'ECHOBIRD_EOF'\n{}\nECHOBIRD_EOF",
+                shell_escape(path),
+                shell_escape(path),
+                escaped_content
+            );
             exec_ssh_shell(&cmd, server_id, ssh_pool).await
         } else {
             // Large file: split into line-aligned chunks
@@ -718,19 +863,34 @@ async fn exec_file_write(path: &str, content: &str, server_id: &str, ssh_pool: &
 
             for (i, chunk) in chunks.iter().enumerate() {
                 let redirect = if i == 0 { ">" } else { ">>" };
-                let cmd = format!("cat {} {} << 'ECHOBIRD_EOF'\n{}\nECHOBIRD_EOF", redirect, shell_escape(path), chunk);
+                let cmd = format!(
+                    "cat {} {} << 'ECHOBIRD_EOF'\n{}\nECHOBIRD_EOF",
+                    redirect,
+                    shell_escape(path),
+                    chunk
+                );
                 let result = exec_ssh_shell(&cmd, server_id, ssh_pool).await;
                 if !result.success {
                     return ToolResult {
                         success: false,
-                        output: format!("Failed writing chunk {}/{}: {}", i + 1, chunks.len(), result.output),
+                        output: format!(
+                            "Failed writing chunk {}/{}: {}",
+                            i + 1,
+                            chunks.len(),
+                            result.output
+                        ),
                     };
                 }
             }
 
             ToolResult {
                 success: true,
-                output: format!("Written {} bytes to {} ({} chunks)", content.len(), path, chunks.len()),
+                output: format!(
+                    "Written {} bytes to {} ({} chunks)",
+                    content.len(),
+                    path,
+                    chunks.len()
+                ),
             }
         }
     }
@@ -838,7 +998,11 @@ async fn exec_grep(
         #[cfg(target_os = "windows")]
         {
             // PowerShell Select-String. -Pattern accepts regex.
-            let ci_flag = if case_insensitive { "-CaseSensitive:$false" } else { "-CaseSensitive" };
+            let ci_flag = if case_insensitive {
+                "-CaseSensitive:$false"
+            } else {
+                "-CaseSensitive"
+            };
             let cmd = format!(
                 "Get-ChildItem -Recurse -File -Path {p} -ErrorAction SilentlyContinue | \
                  Select-String -Pattern {pat} {ci} -ErrorAction SilentlyContinue | \
@@ -951,54 +1115,93 @@ async fn exec_deploy_plugin_source(
     port: u16,
     ssh_pool: &SSHPool,
 ) -> ToolResult {
-    log::info!("[AgentTools] Deploying plugin '{}' to server '{}' via GitHub Release download", plugin_id, server_id);
+    log::info!(
+        "[AgentTools] Deploying plugin '{}' to server '{}' via GitHub Release download",
+        plugin_id,
+        server_id
+    );
 
     // 1. Detect remote OS + architecture
-    let os_result = exec_ssh_shell("uname -s 2>/dev/null || echo windows", server_id, ssh_pool).await;
-    let arch_result = exec_ssh_shell("uname -m 2>/dev/null || echo x86_64", server_id, ssh_pool).await;
+    let os_result =
+        exec_ssh_shell("uname -s 2>/dev/null || echo windows", server_id, ssh_pool).await;
+    let arch_result =
+        exec_ssh_shell("uname -m 2>/dev/null || echo x86_64", server_id, ssh_pool).await;
     let os_name = os_result.output.trim().to_lowercase();
     let arch = arch_result.output.trim().to_lowercase();
 
     // Map plugin_id to binary name pattern
     let (_binary_name, binary_filename) = if os_name.contains("linux") {
         if arch.contains("aarch64") || arch.contains("arm64") {
-            (format!("{}-linux-aarch64", plugin_id), format!("{}-linux-aarch64", plugin_id))
+            (
+                format!("{}-linux-aarch64", plugin_id),
+                format!("{}-linux-aarch64", plugin_id),
+            )
         } else {
-            (format!("{}-linux-x86_64", plugin_id), format!("{}-linux-x86_64", plugin_id))
+            (
+                format!("{}-linux-x86_64", plugin_id),
+                format!("{}-linux-x86_64", plugin_id),
+            )
         }
     } else if os_name.contains("darwin") {
         if arch.contains("arm64") || arch.contains("aarch64") {
-            (format!("{}-darwin-aarch64", plugin_id), format!("{}-darwin-aarch64", plugin_id))
+            (
+                format!("{}-darwin-aarch64", plugin_id),
+                format!("{}-darwin-aarch64", plugin_id),
+            )
         } else {
-            (format!("{}-darwin-x86_64", plugin_id), format!("{}-darwin-x86_64", plugin_id))
+            (
+                format!("{}-darwin-x86_64", plugin_id),
+                format!("{}-darwin-x86_64", plugin_id),
+            )
         }
     } else {
-        (format!("{}-win.exe", plugin_id), format!("{}-win.exe", plugin_id))
+        (
+            format!("{}-win.exe", plugin_id),
+            format!("{}-win.exe", plugin_id),
+        )
     };
 
-    log::info!("[AgentTools] Remote: os={}, arch={}, binary={}", os_name, arch, binary_filename);
+    log::info!(
+        "[AgentTools] Remote: os={}, arch={}, binary={}",
+        os_name,
+        arch,
+        binary_filename
+    );
 
     let mut log_output = String::new();
 
     // 2. Fetch latest version dynamically from version API (falls back to compile-time version)
     let version = fetch_latest_plugin_version().await;
     // Primary: Cloudflare proxy (GFW-friendly) — bare binary, no zip
-    let primary_url = format!("https://dl.echobird.ai/releases/{}/{}", version, binary_filename);
+    let primary_url = format!(
+        "https://dl.echobird.ai/releases/{}/{}",
+        version, binary_filename
+    );
     // Fallback 1: GitHub versioned
-    let github_url = format!("https://github.com/edison7009/Echobird-MotherAgent/releases/download/{}/{}", version, binary_filename);
+    let github_url = format!(
+        "https://github.com/edison7009/Echobird-MotherAgent/releases/download/{}/{}",
+        version, binary_filename
+    );
     // Fallback 2: GitHub latest
-    let github_latest_url = format!("https://github.com/edison7009/Echobird-MotherAgent/releases/latest/download/{}", binary_filename);
+    let github_latest_url = format!(
+        "https://github.com/edison7009/Echobird-MotherAgent/releases/latest/download/{}",
+        binary_filename
+    );
 
     log_output.push_str(&format!("[1/4] Downloading {} ...\n", binary_filename));
 
     // 3. Download bare binary directly and chmod +x
     let deploy_dir = "~/echobird";
-    let download_cmd = |url: &str| format!(
-        "mkdir -p {dir} && rm -f {dir}/{bin} && \
+    let download_cmd = |url: &str| {
+        format!(
+            "mkdir -p {dir} && rm -f {dir}/{bin} && \
          curl -fSL --connect-timeout 15 --max-time 90 -o {dir}/{bin} '{url}' && \
          chmod +x {dir}/{bin}",
-        dir = deploy_dir, bin = binary_filename, url = url
-    );
+            dir = deploy_dir,
+            bin = binary_filename,
+            url = url
+        )
+    };
 
     let result = exec_ssh_shell(&download_cmd(&primary_url), server_id, ssh_pool).await;
     if !result.success {
@@ -1006,11 +1209,15 @@ async fn exec_deploy_plugin_source(
         let result2 = exec_ssh_shell(&download_cmd(&github_url), server_id, ssh_pool).await;
         if !result2.success {
             log_output.push_str("  GitHub versioned failed, trying GitHub latest...\n");
-            let result3 = exec_ssh_shell(&download_cmd(&github_latest_url), server_id, ssh_pool).await;
+            let result3 =
+                exec_ssh_shell(&download_cmd(&github_latest_url), server_id, ssh_pool).await;
             if !result3.success {
                 return ToolResult {
                     success: false,
-                    output: format!("Failed to download '{}'. Tried:\n1. {}\n2. {}\n3. {}\nError: {}", binary_filename, primary_url, github_url, github_latest_url, result3.output),
+                    output: format!(
+                        "Failed to download '{}'. Tried:\n1. {}\n2. {}\n3. {}\nError: {}",
+                        binary_filename, primary_url, github_url, github_latest_url, result3.output
+                    ),
                 };
             }
         }
@@ -1020,9 +1227,14 @@ async fn exec_deploy_plugin_source(
     // 4. Stop any existing instance
     log_output.push_str("[3/4] Starting server...\n");
     let _ = exec_ssh_shell(
-        &format!("pkill -f '{}/{}' 2>/dev/null; sleep 1", deploy_dir, binary_filename),
-        server_id, ssh_pool
-    ).await;
+        &format!(
+            "pkill -f '{}/{}' 2>/dev/null; sleep 1",
+            deploy_dir, binary_filename
+        ),
+        server_id,
+        ssh_pool,
+    )
+    .await;
 
     // 5. Start the server
     let start_result = exec_ssh_shell(
@@ -1030,33 +1242,48 @@ async fn exec_deploy_plugin_source(
             "nohup {}/{} {} > /tmp/{}.log 2>&1 & sleep 2 && pgrep -f '{}' && echo 'STARTED_OK'",
             deploy_dir, binary_filename, port, plugin_id, binary_filename
         ),
-        server_id, ssh_pool
-    ).await;
+        server_id,
+        ssh_pool,
+    )
+    .await;
 
     if start_result.output.contains("STARTED_OK") {
         log_output.push_str(&format!("[4/4] Server started on port {}\n", port));
 
         // Quick API health check
         let health = exec_ssh_shell(
-            &format!("curl -s http://localhost:{}/api/status 2>&1 || echo 'API_NOT_READY'", port),
-            server_id, ssh_pool
-        ).await;
+            &format!(
+                "curl -s http://localhost:{}/api/status 2>&1 || echo 'API_NOT_READY'",
+                port
+            ),
+            server_id,
+            ssh_pool,
+        )
+        .await;
         if !health.output.contains("API_NOT_READY") {
             log_output.push_str(&format!("  API health check: {}\n", health.output.trim()));
         }
 
         ToolResult {
             success: true,
-            output: format!("{}Plugin '{}' deployed and running on port {}.", log_output, plugin_id, port),
+            output: format!(
+                "{}Plugin '{}' deployed and running on port {}.",
+                log_output, plugin_id, port
+            ),
         }
     } else {
         let log_check = exec_ssh_shell(
             &format!("cat /tmp/{}.log 2>/dev/null | tail -10", plugin_id),
-            server_id, ssh_pool
-        ).await;
+            server_id,
+            ssh_pool,
+        )
+        .await;
         ToolResult {
             success: false,
-            output: format!("{}Server failed to start. Logs:\n{}", log_output, log_check.output),
+            output: format!(
+                "{}Server failed to start. Logs:\n{}",
+                log_output, log_check.output
+            ),
         }
     }
 }
@@ -1104,15 +1331,21 @@ async fn exec_web_fetch(url: &str) -> ToolResult {
         .build()
     {
         Ok(c) => c,
-        Err(e) => return ToolResult {
-            success: false,
-            output: format!("Failed to create HTTP client: {}", e),
-        },
+        Err(e) => {
+            return ToolResult {
+                success: false,
+                output: format!("Failed to create HTTP client: {}", e),
+            }
+        }
     };
 
-    let response = match client.get(url)
+    let response = match client
+        .get(url)
         .header("User-Agent", WEB_FETCH_USER_AGENT)
-        .header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
+        .header(
+            "Accept",
+            "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        )
         .header("Accept-Language", "en-US,en;q=0.9,zh-CN;q=0.8,zh;q=0.7")
         .send()
         .await
@@ -1120,10 +1353,15 @@ async fn exec_web_fetch(url: &str) -> ToolResult {
         Ok(r) => r,
         Err(e) => {
             // Distinguish error class so the model can decide what to do
-            let kind = if e.is_timeout() { "timeout" }
-                else if e.is_connect() { "connect_failed (DNS/TLS/network)" }
-                else if e.is_redirect() { "too_many_redirects" }
-                else { "request_error" };
+            let kind = if e.is_timeout() {
+                "timeout"
+            } else if e.is_connect() {
+                "connect_failed (DNS/TLS/network)"
+            } else if e.is_redirect() {
+                "too_many_redirects"
+            } else {
+                "request_error"
+            };
             return ToolResult {
                 success: false,
                 output: format!("web_fetch failed [{}]: {}", kind, e),
@@ -1147,24 +1385,27 @@ async fn exec_web_fetch(url: &str) -> ToolResult {
 
     let body = match response.text().await {
         Ok(t) => t,
-        Err(e) => return ToolResult {
-            success: false,
-            output: format!("Failed to read response: {}", e),
-        },
+        Err(e) => {
+            return ToolResult {
+                success: false,
+                output: format!("Failed to read response: {}", e),
+            }
+        }
     };
 
     // Strip HTML tags (rough but effective for most pages)
     let text = strip_html_tags(&body);
 
     // Collapse whitespace
-    let text: String = text
-        .split_whitespace()
-        .collect::<Vec<&str>>()
-        .join(" ");
+    let text: String = text.split_whitespace().collect::<Vec<&str>>().join(" ");
 
     // Truncate to max chars
     let truncated = if text.len() > WEB_FETCH_MAX_CHARS {
-        format!("{}...\n[Truncated: {} chars total]", &text[..WEB_FETCH_MAX_CHARS], text.len())
+        format!(
+            "{}...\n[Truncated: {} chars total]",
+            &text[..WEB_FETCH_MAX_CHARS],
+            text.len()
+        )
     } else {
         text
     };
@@ -1186,13 +1427,13 @@ fn strip_html_tags(html: &str) -> String {
     let mut i = 0;
     while i < chars.len() {
         if !in_tag && i + 7 < lower_chars.len() {
-            let window: String = lower_chars[i..i+7].iter().collect();
+            let window: String = lower_chars[i..i + 7].iter().collect();
             if window == "<script" {
                 in_script = true;
             }
         }
         if in_script && i + 8 < lower_chars.len() {
-            let window: String = lower_chars[i..i+9].iter().collect();
+            let window: String = lower_chars[i..i + 9].iter().collect();
             if window == "</script>" {
                 in_script = false;
                 i += 9;
@@ -1218,16 +1459,28 @@ fn strip_html_tags(html: &str) -> String {
 
 // ── Upload File (local → remote via SSH base64) ──
 
-async fn exec_upload_file(local_path: &str, remote_path: &str, server_id: &str, ssh_pool: &SSHPool) -> ToolResult {
-    log::info!("[AgentTools] Uploading file {} → {}:{}", local_path, server_id, remote_path);
+async fn exec_upload_file(
+    local_path: &str,
+    remote_path: &str,
+    server_id: &str,
+    ssh_pool: &SSHPool,
+) -> ToolResult {
+    log::info!(
+        "[AgentTools] Uploading file {} → {}:{}",
+        local_path,
+        server_id,
+        remote_path
+    );
 
     // Read local file
     let file_data = match std::fs::read(local_path) {
         Ok(data) => data,
-        Err(e) => return ToolResult {
-            success: false,
-            output: format!("Failed to read local file '{}': {}", local_path, e),
-        },
+        Err(e) => {
+            return ToolResult {
+                success: false,
+                output: format!("Failed to read local file '{}': {}", local_path, e),
+            }
+        }
     };
 
     let file_size = file_data.len();
@@ -1244,17 +1497,22 @@ async fn exec_upload_file(local_path: &str, remote_path: &str, server_id: &str, 
         .parent()
         .map(|p| p.to_string_lossy().to_string())
         .unwrap_or_else(|| ".".to_string());
-    let mkdir_result = exec_ssh_shell(&format!("mkdir -p {}", remote_dir), server_id, ssh_pool).await;
+    let mkdir_result =
+        exec_ssh_shell(&format!("mkdir -p {}", remote_dir), server_id, ssh_pool).await;
     if !mkdir_result.success {
         return ToolResult {
             success: false,
-            output: format!("Failed to create remote directory '{}': {}", remote_dir, mkdir_result.output),
+            output: format!(
+                "Failed to create remote directory '{}': {}",
+                remote_dir, mkdir_result.output
+            ),
         };
     }
 
     // Transfer via base64 in chunks (SSH channel has size limits)
     let chunk_size = 65536; // 64KB base64 chunks
-    let chunks: Vec<&str> = encoded.as_bytes()
+    let chunks: Vec<&str> = encoded
+        .as_bytes()
         .chunks(chunk_size)
         .map(|c| std::str::from_utf8(c).unwrap_or(""))
         .collect();
@@ -1292,8 +1550,10 @@ async fn exec_upload_file(local_path: &str, remote_path: &str, server_id: &str, 
         }
 
         // Decode the concatenated base64 in one shot
-        let decode_cmd = format!("base64 -d {}.b64 > {} && rm {}.b64",
-            remote_path, remote_path, remote_path);
+        let decode_cmd = format!(
+            "base64 -d {}.b64 > {} && rm {}.b64",
+            remote_path, remote_path, remote_path
+        );
         let decode_result = exec_ssh_shell(&decode_cmd, server_id, ssh_pool).await;
         if !decode_result.success {
             return ToolResult {
@@ -1311,21 +1571,42 @@ async fn exec_upload_file(local_path: &str, remote_path: &str, server_id: &str, 
 
     ToolResult {
         success: true,
-        output: format!("Uploaded {} bytes ({} chunks) to {}:{}\n{}",
-            file_size, chunks.len(), server_id, remote_path, verify.output),
+        output: format!(
+            "Uploaded {} bytes ({} chunks) to {}:{}\n{}",
+            file_size,
+            chunks.len(),
+            server_id,
+            remote_path,
+            verify.output
+        ),
     }
 }
 
 // ── Download File (remote → local via SSH base64) ──
 
-async fn exec_download_file(remote_path: &str, local_path: &str, server_id: &str, ssh_pool: &SSHPool) -> ToolResult {
-    log::info!("[AgentTools] Downloading file {}:{} → {}", server_id, remote_path, local_path);
+async fn exec_download_file(
+    remote_path: &str,
+    local_path: &str,
+    server_id: &str,
+    ssh_pool: &SSHPool,
+) -> ToolResult {
+    log::info!(
+        "[AgentTools] Downloading file {}:{} → {}",
+        server_id,
+        remote_path,
+        local_path
+    );
 
     // Check remote file exists and get size
     let check = exec_ssh_shell(
-        &format!("test -f {} && stat -c %s {} 2>/dev/null || stat -f %z {} 2>/dev/null", remote_path, remote_path, remote_path),
-        server_id, ssh_pool
-    ).await;
+        &format!(
+            "test -f {} && stat -c %s {} 2>/dev/null || stat -f %z {} 2>/dev/null",
+            remote_path, remote_path, remote_path
+        ),
+        server_id,
+        ssh_pool,
+    )
+    .await;
     if !check.success {
         return ToolResult {
             success: false,
@@ -1335,26 +1616,40 @@ async fn exec_download_file(remote_path: &str, local_path: &str, server_id: &str
 
     // Read remote file as base64
     let b64_result = exec_ssh_shell(
-        &format!("base64 {} 2>/dev/null || openssl base64 -in {} 2>/dev/null", remote_path, remote_path),
-        server_id, ssh_pool
-    ).await;
+        &format!(
+            "base64 {} 2>/dev/null || openssl base64 -in {} 2>/dev/null",
+            remote_path, remote_path
+        ),
+        server_id,
+        ssh_pool,
+    )
+    .await;
     if !b64_result.success || b64_result.output.trim().is_empty() {
         return ToolResult {
             success: false,
-            output: format!("Failed to read remote file as base64: {}", b64_result.output),
+            output: format!(
+                "Failed to read remote file as base64: {}",
+                b64_result.output
+            ),
         };
     }
 
     // Decode base64
-    let clean_b64: String = b64_result.output.chars().filter(|c| !c.is_whitespace()).collect();
+    let clean_b64: String = b64_result
+        .output
+        .chars()
+        .filter(|c| !c.is_whitespace())
+        .collect();
     let decoded = {
         use base64::Engine;
         match base64::engine::general_purpose::STANDARD.decode(&clean_b64) {
             Ok(data) => data,
-            Err(e) => return ToolResult {
-                success: false,
-                output: format!("Base64 decode failed: {}", e),
-            },
+            Err(e) => {
+                return ToolResult {
+                    success: false,
+                    output: format!("Base64 decode failed: {}", e),
+                }
+            }
         }
     };
 
@@ -1365,7 +1660,11 @@ async fn exec_download_file(remote_path: &str, local_path: &str, server_id: &str
         if let Err(e) = std::fs::create_dir_all(parent) {
             return ToolResult {
                 success: false,
-                output: format!("Failed to create local directory '{}': {}", parent.display(), e),
+                output: format!(
+                    "Failed to create local directory '{}': {}",
+                    parent.display(),
+                    e
+                ),
             };
         }
     }
@@ -1373,10 +1672,17 @@ async fn exec_download_file(remote_path: &str, local_path: &str, server_id: &str
     // Write to local file
     match std::fs::write(local_path, &decoded) {
         Ok(_) => {
-            log::info!("[AgentTools] Downloaded {} bytes to {}", file_size, local_path);
+            log::info!(
+                "[AgentTools] Downloaded {} bytes to {}",
+                file_size,
+                local_path
+            );
             ToolResult {
                 success: true,
-                output: format!("Downloaded {} bytes from {}:{} → {}", file_size, server_id, remote_path, local_path),
+                output: format!(
+                    "Downloaded {} bytes from {}:{} → {}",
+                    file_size, server_id, remote_path, local_path
+                ),
             }
         }
         Err(e) => ToolResult {
@@ -1385,5 +1691,3 @@ async fn exec_download_file(remote_path: &str, local_path: &str, server_id: &str
         },
     }
 }
-
-

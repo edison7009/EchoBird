@@ -1,17 +1,17 @@
 // Local LLM server lifecycle management
 // Handles: start, stop, find binary, stdout/stderr piped reading
 
-use std::path::PathBuf;
-use std::process::Command;
 #[cfg(windows)]
 use std::os::windows::process::CommandExt;
+use std::path::PathBuf;
+use std::process::Command;
 use std::sync::Arc;
-use tokio::sync::{Mutex, watch};
-use tokio::sync::OnceCell;
 use tauri::Emitter;
+use tokio::sync::OnceCell;
+use tokio::sync::{watch, Mutex};
 
-use super::types::LocalServerInfo;
 use super::proxy::run_unified_proxy;
+use super::types::LocalServerInfo;
 
 const MAX_LOGS: usize = 1000;
 
@@ -21,6 +21,12 @@ pub struct LocalLlmServer {
     pub(super) logs: Vec<String>,
     pub(super) child_pid: Option<u32>,
     pub(super) proxy_shutdown: Option<watch::Sender<bool>>,
+}
+
+impl Default for LocalLlmServer {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl LocalLlmServer {
@@ -35,34 +41,49 @@ impl LocalLlmServer {
 
     /// Find llama-server executable
     pub fn find_llama_server() -> Option<PathBuf> {
-        let exe_name = if cfg!(windows) { "llama-server.exe" } else { "llama-server" };
+        let exe_name = if cfg!(windows) {
+            "llama-server.exe"
+        } else {
+            "llama-server"
+        };
 
         // 1. Next to current exe
         if let Ok(exe_path) = std::env::current_exe() {
             if let Some(dir) = exe_path.parent() {
                 let candidate = dir.join(exe_name);
-                if candidate.exists() { return Some(candidate); }
+                if candidate.exists() {
+                    return Some(candidate);
+                }
                 let candidate = dir.join("resources").join(exe_name);
-                if candidate.exists() { return Some(candidate); }
+                if candidate.exists() {
+                    return Some(candidate);
+                }
             }
         }
 
         // 2. ~/.echobird/llama-server/bin/
         let llama_bin_dir = crate::utils::platform::echobird_dir()
-            .join("llama-server").join("bin");
+            .join("llama-server")
+            .join("bin");
         if llama_bin_dir.exists() {
             let direct = llama_bin_dir.join(exe_name);
-            if direct.exists() { return Some(direct); }
+            if direct.exists() {
+                return Some(direct);
+            }
             if let Ok(entries) = std::fs::read_dir(&llama_bin_dir) {
                 for entry in entries.flatten() {
                     if entry.file_type().map(|t| t.is_dir()).unwrap_or(false) {
                         let candidate = entry.path().join(exe_name);
-                        if candidate.exists() { return Some(candidate); }
+                        if candidate.exists() {
+                            return Some(candidate);
+                        }
                         if let Ok(sub_entries) = std::fs::read_dir(entry.path()) {
                             for sub_entry in sub_entries.flatten() {
                                 if sub_entry.file_type().map(|t| t.is_dir()).unwrap_or(false) {
                                     let candidate = sub_entry.path().join(exe_name);
-                                    if candidate.exists() { return Some(candidate); }
+                                    if candidate.exists() {
+                                        return Some(candidate);
+                                    }
                                 }
                             }
                         }
@@ -72,12 +93,18 @@ impl LocalLlmServer {
         }
 
         // 3. ~/.echobird/bin/
-        let echobird_bin = crate::utils::platform::echobird_dir().join("bin").join(exe_name);
-        if echobird_bin.exists() { return Some(echobird_bin); }
+        let echobird_bin = crate::utils::platform::echobird_dir()
+            .join("bin")
+            .join(exe_name);
+        if echobird_bin.exists() {
+            return Some(echobird_bin);
+        }
 
         // 4. System PATH (desktop only)
         #[cfg(not(target_os = "android"))]
-        if let Ok(path) = which::which(exe_name) { return Some(path); }
+        if let Ok(path) = which::which(exe_name) {
+            return Some(path);
+        }
 
         None
     }
@@ -102,7 +129,6 @@ impl LocalLlmServer {
             .map(|s| s.to_string_lossy().to_string())
             .unwrap_or_else(|| "Unknown Model".to_string());
 
-
         // Pre-flight cleanup: kill any leftover llama-server processes from
         // previous sessions that may be occupying the port. This prevents the
         // "port already in use" and stale-api-key 401 issues.
@@ -124,12 +150,19 @@ impl LocalLlmServer {
 
         let (child, needs_proxy) = match runtime {
             "vllm" => {
-                self.add_log(&format!("Starting vLLM on port {} with model: {}", port, model_name));
+                self.add_log(&format!(
+                    "Starting vLLM on port {} with model: {}",
+                    port, model_name
+                ));
                 let mut args = vec![
-                    "-m".to_string(), "vllm.entrypoints.openai.api_server".to_string(),
-                    "--model".to_string(), model_path.to_string(),
-                    "--port".to_string(), port.to_string(),
-                    "--host".to_string(), "127.0.0.1".to_string(),
+                    "-m".to_string(),
+                    "vllm.entrypoints.openai.api_server".to_string(),
+                    "--model".to_string(),
+                    model_path.to_string(),
+                    "--port".to_string(),
+                    port.to_string(),
+                    "--host".to_string(),
+                    "127.0.0.1".to_string(),
                 ];
                 if let Some(ctx) = context_size {
                     args.push("--max-model-len".to_string());
@@ -144,12 +177,19 @@ impl LocalLlmServer {
                 (c, false)
             }
             "sglang" => {
-                self.add_log(&format!("Starting SGLang on port {} with model: {}", port, model_name));
+                self.add_log(&format!(
+                    "Starting SGLang on port {} with model: {}",
+                    port, model_name
+                ));
                 let mut args = vec![
-                    "-m".to_string(), "sglang.launch_server".to_string(),
-                    "--model-path".to_string(), model_path.to_string(),
-                    "--port".to_string(), port.to_string(),
-                    "--host".to_string(), "127.0.0.1".to_string(),
+                    "-m".to_string(),
+                    "sglang.launch_server".to_string(),
+                    "--model-path".to_string(),
+                    model_path.to_string(),
+                    "--port".to_string(),
+                    port.to_string(),
+                    "--host".to_string(),
+                    "127.0.0.1".to_string(),
                 ];
                 if let Some(ctx) = context_size {
                     args.push("--context-length".to_string());
@@ -168,15 +208,24 @@ impl LocalLlmServer {
                 let exe = Self::find_llama_server()
                     .ok_or_else(|| "llama-server not found".to_string())?;
                 let internal_port = port + 100;
-                self.add_log(&format!("Starting llama-server on port {} with model: {}", port, model_name));
-                self.add_log(&format!("Internal port: {}, Proxy port: {}", internal_port, port));
+                self.add_log(&format!(
+                    "Starting llama-server on port {} with model: {}",
+                    port, model_name
+                ));
+                self.add_log(&format!(
+                    "Internal port: {}, Proxy port: {}",
+                    internal_port, port
+                ));
                 // No --api-key for local LLM: the server is localhost-only,
                 // so authentication is unnecessary and causes 401 errors when
                 // clients use a key from a previous session.
                 let mut args = vec![
-                    "-m".to_string(), model_path.to_string(),
-                    "--port".to_string(), internal_port.to_string(),
-                    "--host".to_string(), "127.0.0.1".to_string(),
+                    "-m".to_string(),
+                    model_path.to_string(),
+                    "--port".to_string(),
+                    internal_port.to_string(),
+                    "--host".to_string(),
+                    "127.0.0.1".to_string(),
                 ];
                 if let Some(layers) = gpu_layers {
                     args.push("-ngl".to_string());
@@ -236,14 +285,18 @@ impl LocalLlmServer {
             tokio::spawn(async move {
                 // Small delay to let llama-server spin up its port
                 tokio::time::sleep(std::time::Duration::from_millis(200)).await;
-                match run_unified_proxy(proxy_port, target_port, shutdown_rx, proxy_app.clone()).await {
+                match run_unified_proxy(proxy_port, target_port, shutdown_rx, proxy_app.clone())
+                    .await
+                {
                     Ok(()) => {
                         log::info!("[LocalLLM] Proxy stopped cleanly");
                     }
                     Err(e) => {
                         log::error!("[LocalLLM] Proxy error: {}", e);
-                        let _ = proxy_app.emit("local-llm-stdout",
-                            format!("[ERROR] Proxy failed to start: {}", e));
+                        let _ = proxy_app.emit(
+                            "local-llm-stdout",
+                            format!("[ERROR] Proxy failed to start: {}", e),
+                        );
                     }
                 }
             });
@@ -274,9 +327,13 @@ impl LocalLlmServer {
 
             #[cfg(not(windows))]
             {
-                unsafe { libc::kill(pid as i32, libc::SIGTERM); }
+                unsafe {
+                    libc::kill(pid as i32, libc::SIGTERM);
+                }
                 tokio::time::sleep(std::time::Duration::from_secs(2)).await;
-                unsafe { libc::kill(pid as i32, libc::SIGKILL); }
+                unsafe {
+                    libc::kill(pid as i32, libc::SIGKILL);
+                }
             }
         }
 
@@ -292,8 +349,12 @@ impl LocalLlmServer {
         Ok(())
     }
 
-    pub fn get_info(&self) -> LocalServerInfo { self.info.clone() }
-    pub fn get_logs(&self) -> Vec<String> { self.logs.clone() }
+    pub fn get_info(&self) -> LocalServerInfo {
+        self.info.clone()
+    }
+    pub fn get_logs(&self) -> Vec<String> {
+        self.logs.clone()
+    }
 
     pub(super) fn add_log(&mut self, msg: &str) {
         let timestamp = chrono::Local::now().format("%H:%M:%S").to_string();
@@ -386,11 +447,19 @@ fn spawn_output_reader(mut child: std::process::Child, pid: u32, app_handle: tau
         };
 
         if crashed {
-            log::error!("[LocalLLM] PID {} crashed unexpectedly: {:?}", pid, exit_status);
-            let _ = app.emit("local-llm-stdout",
-                "\u{26a0}\u{fe0f} LLM server process crashed! Status updated to Stopped.");
-            let _ = app.emit("local-llm-stdout",
-                "   Click START to restart the LLM server.");
+            log::error!(
+                "[LocalLLM] PID {} crashed unexpectedly: {:?}",
+                pid,
+                exit_status
+            );
+            let _ = app.emit(
+                "local-llm-stdout",
+                "\u{26a0}\u{fe0f} LLM server process crashed! Status updated to Stopped.",
+            );
+            let _ = app.emit(
+                "local-llm-stdout",
+                "   Click START to restart the LLM server.",
+            );
         } else {
             log::info!("[LocalLLM] PID {} exited cleanly", pid);
         }
@@ -405,7 +474,9 @@ fn spawn_output_reader(mut child: std::process::Child, pid: u32, app_handle: tau
                     srv.info.running = false;
                     srv.child_pid = None;
                     if crashed {
-                        srv.add_log("\u{26a0}\u{fe0f} Process crashed — server stopped unexpectedly");
+                        srv.add_log(
+                            "\u{26a0}\u{fe0f} Process crashed — server stopped unexpectedly",
+                        );
                     }
                     update_server_info_cache(&srv.info);
                     log::info!("[LocalLLM] Server state reset after PID {} exit", pid);
@@ -416,7 +487,6 @@ fn spawn_output_reader(mut child: std::process::Child, pid: u32, app_handle: tau
         }
     });
 }
-
 
 // ─── Global singleton + public async API ───
 
@@ -459,7 +529,16 @@ pub async fn start_server(
 ) -> Result<(), String> {
     let server = get_server().await;
     let mut server = server.lock().await;
-    let result = server.start(model_path, port, gpu_layers, context_size, runtime, app_handle).await;
+    let result = server
+        .start(
+            model_path,
+            port,
+            gpu_layers,
+            context_size,
+            runtime,
+            app_handle,
+        )
+        .await;
     if result.is_ok() {
         update_server_info_cache(&server.get_info());
     }

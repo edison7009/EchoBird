@@ -3,11 +3,11 @@
 // and Chinese domestic: Iluvatar, Cambricon, Biren, KunlunXin
 // Note: Moore Threads (MTT) cards are detected for display only; no special engine is bundled.
 
-use std::process::Command;
+use super::settings::{load_model_settings, save_model_settings};
+use super::types::{GpuInfo, SystemInfo};
 #[cfg(windows)]
 use std::os::windows::process::CommandExt;
-use super::types::{GpuInfo, SystemInfo};
-use super::settings::{load_model_settings, save_model_settings};
+use std::process::Command;
 
 /// Get system information: OS, architecture, and GPU details
 pub fn get_system_info() -> SystemInfo {
@@ -15,7 +15,10 @@ pub fn get_system_info() -> SystemInfo {
     let arch = std::env::consts::ARCH.to_string();
     let gpu = detect_gpu();
     let has_gpu = gpu.is_some();
-    let vendor = gpu.as_ref().map(|g| classify_gpu_vendor(&g.gpu_name)).unwrap_or("none");
+    let vendor = gpu
+        .as_ref()
+        .map(|g| classify_gpu_vendor(&g.gpu_name))
+        .unwrap_or("none");
     SystemInfo {
         os,
         arch,
@@ -54,10 +57,18 @@ pub fn get_gpu_info() -> Option<GpuInfo> {
 /// Classify GPU vendor from (already-shortened) gpu_name string
 fn classify_gpu_vendor(name: &str) -> &'static str {
     let n = name.to_lowercase();
-    if n.contains("rtx") || n.contains("gtx") || n.contains("tesla")
-        || n.contains("quadro") || n.contains("titan") || n.contains("nvidia")
-        || n.starts_with("a100") || n.starts_with("h100") || n.starts_with("v100")
-        || n.starts_with("a10") || n.starts_with("l4") || n.starts_with("l40")
+    if n.contains("rtx")
+        || n.contains("gtx")
+        || n.contains("tesla")
+        || n.contains("quadro")
+        || n.contains("titan")
+        || n.contains("nvidia")
+        || n.starts_with("a100")
+        || n.starts_with("h100")
+        || n.starts_with("v100")
+        || n.starts_with("a10")
+        || n.starts_with("l4")
+        || n.starts_with("l40")
     {
         "nvidia"
     } else if n.starts_with("rx ") || n.contains(" rx ") || n.contains("radeon")
@@ -66,12 +77,11 @@ fn classify_gpu_vendor(name: &str) -> &'static str {
         || n.starts_with("bi-")    // Iluvatar CoreX
         || n.contains("mlu")       // Cambricon
         || n.starts_with("br")     // Biren
-        || n.starts_with("k2") || n.starts_with("k3") // KunlunXin
+        || n.starts_with("k2") || n.starts_with("k3")
+    // KunlunXin
     {
         "amd"
-    } else if n.contains("arc") || n.contains("intel") || n.contains("uhd")
-        || n.contains("iris")
-    {
+    } else if n.contains("arc") || n.contains("intel") || n.contains("uhd") || n.contains("iris") {
         "intel"
     } else {
         "other"
@@ -119,12 +129,17 @@ fn detect_gpu_system() -> Option<GpuInfo> {
 #[cfg(windows)]
 fn detect_gpu_nvidia_smi() -> Option<GpuInfo> {
     let output = Command::new("nvidia-smi")
-        .args(["--query-gpu=name,memory.total", "--format=csv,noheader,nounits"])
+        .args([
+            "--query-gpu=name,memory.total",
+            "--format=csv,noheader,nounits",
+        ])
         .creation_flags(0x08000000)
         .output()
         .ok()?;
 
-    if !output.status.success() { return None; }
+    if !output.status.success() {
+        return None;
+    }
 
     let stdout = String::from_utf8_lossy(&output.stdout);
     log::info!("[GPU] nvidia-smi output: {}", stdout.trim());
@@ -136,8 +151,15 @@ fn detect_gpu_nvidia_smi() -> Option<GpuInfo> {
         if vram_mb > 0.0 {
             let vram_gb = (vram_mb / 1024.0 * 10.0).round() / 10.0;
             let short_name = shorten_gpu_name(parts[0]);
-            log::info!("[GPU] nvidia-smi detected: {} ({:.1} GB VRAM)", short_name, vram_gb);
-            return Some(GpuInfo { gpu_name: short_name, gpu_vram_gb: vram_gb });
+            log::info!(
+                "[GPU] nvidia-smi detected: {} ({:.1} GB VRAM)",
+                short_name,
+                vram_gb
+            );
+            return Some(GpuInfo {
+                gpu_name: short_name,
+                gpu_vram_gb: vram_gb,
+            });
         }
     }
     None
@@ -146,7 +168,13 @@ fn detect_gpu_nvidia_smi() -> Option<GpuInfo> {
 #[cfg(windows)]
 fn detect_gpu_wmic() -> Option<GpuInfo> {
     let output = Command::new("wmic")
-        .args(["path", "win32_VideoController", "get", "Name,AdapterRAM", "/format:csv"])
+        .args([
+            "path",
+            "win32_VideoController",
+            "get",
+            "Name,AdapterRAM",
+            "/format:csv",
+        ])
         .creation_flags(0x08000000)
         .output()
         .ok()?;
@@ -159,7 +187,9 @@ fn detect_gpu_wmic() -> Option<GpuInfo> {
 
     for line in stdout.lines() {
         let line = line.trim();
-        if line.is_empty() || line.starts_with("Node") { continue; }
+        if line.is_empty() || line.starts_with("Node") {
+            continue;
+        }
         let parts: Vec<&str> = line.split(',').collect();
         if parts.len() >= 3 {
             let adapter_ram: u64 = parts[1].trim().parse().unwrap_or(0);
@@ -171,14 +201,23 @@ fn detect_gpu_wmic() -> Option<GpuInfo> {
         }
     }
 
-    if best_name.is_empty() { return None; }
+    if best_name.is_empty() {
+        return None;
+    }
 
     let vram_gb = best_vram as f64 / (1024.0 * 1024.0 * 1024.0);
     let vram_gb = (vram_gb * 10.0).round() / 10.0;
     let short_name = shorten_gpu_name(&best_name);
-    log::info!("[GPU] wmic detected: {} ({:.1} GB VRAM)", short_name, vram_gb);
+    log::info!(
+        "[GPU] wmic detected: {} ({:.1} GB VRAM)",
+        short_name,
+        vram_gb
+    );
 
-    Some(GpuInfo { gpu_name: short_name, gpu_vram_gb: vram_gb })
+    Some(GpuInfo {
+        gpu_name: short_name,
+        gpu_vram_gb: vram_gb,
+    })
 }
 
 #[cfg(windows)]
@@ -186,8 +225,11 @@ fn detect_gpu_rocm() -> Option<GpuInfo> {
     let out = Command::new("rocm-smi")
         .args(["--showmeminfo", "vram", "--showname", "--csv"])
         .creation_flags(0x08000000)
-        .output().ok()?;
-    if !out.status.success() { return None; }
+        .output()
+        .ok()?;
+    if !out.status.success() {
+        return None;
+    }
     let s = String::from_utf8_lossy(&out.stdout);
     for line in s.lines().skip(1) {
         let p: Vec<&str> = line.split(',').map(|x| x.trim()).collect();
@@ -195,7 +237,10 @@ fn detect_gpu_rocm() -> Option<GpuInfo> {
             let mb: f64 = p[2].parse().unwrap_or(0.0);
             if mb > 0.0 {
                 let gb = (mb / 1024.0 * 10.0).round() / 10.0;
-                return Some(GpuInfo { gpu_name: shorten_gpu_name(p[1]), gpu_vram_gb: gb });
+                return Some(GpuInfo {
+                    gpu_name: shorten_gpu_name(p[1]),
+                    gpu_vram_gb: gb,
+                });
             }
         }
     }
@@ -204,8 +249,7 @@ fn detect_gpu_rocm() -> Option<GpuInfo> {
 
 #[cfg(not(windows))]
 fn detect_gpu_system() -> Option<GpuInfo> {
-    None
-        .or_else(detect_gpu_nvidia_smi_unix)
+    None.or_else(detect_gpu_nvidia_smi_unix)
         .or_else(detect_gpu_rocm)
         .or_else(detect_gpu_intel_xpu)
         .or_else(detect_gpu_apple)
@@ -218,9 +262,15 @@ fn detect_gpu_system() -> Option<GpuInfo> {
 #[cfg(not(windows))]
 fn detect_gpu_nvidia_smi_unix() -> Option<GpuInfo> {
     let out = Command::new("nvidia-smi")
-        .args(["--query-gpu=name,memory.total", "--format=csv,noheader,nounits"])
-        .output().ok()?;
-    if !out.status.success() { return None; }
+        .args([
+            "--query-gpu=name,memory.total",
+            "--format=csv,noheader,nounits",
+        ])
+        .output()
+        .ok()?;
+    if !out.status.success() {
+        return None;
+    }
     let s = String::from_utf8_lossy(&out.stdout);
     let line = s.lines().next()?.trim().to_string();
     let p: Vec<&str> = line.split(',').map(|x| x.trim()).collect();
@@ -229,7 +279,10 @@ fn detect_gpu_nvidia_smi_unix() -> Option<GpuInfo> {
         if mb > 0.0 {
             let gb = (mb / 1024.0 * 10.0).round() / 10.0;
             log::info!("[GPU] nvidia-smi: {} ({:.1}GB)", p[0], gb);
-            return Some(GpuInfo { gpu_name: shorten_gpu_name(p[0]), gpu_vram_gb: gb });
+            return Some(GpuInfo {
+                gpu_name: shorten_gpu_name(p[0]),
+                gpu_vram_gb: gb,
+            });
         }
     }
     None
@@ -239,8 +292,11 @@ fn detect_gpu_nvidia_smi_unix() -> Option<GpuInfo> {
 fn detect_gpu_rocm() -> Option<GpuInfo> {
     let out = Command::new("rocm-smi")
         .args(["--showmeminfo", "vram", "--showname", "--csv"])
-        .output().ok()?;
-    if !out.status.success() { return None; }
+        .output()
+        .ok()?;
+    if !out.status.success() {
+        return None;
+    }
     let s = String::from_utf8_lossy(&out.stdout);
     for line in s.lines().skip(1) {
         let p: Vec<&str> = line.split(',').map(|x| x.trim()).collect();
@@ -250,7 +306,10 @@ fn detect_gpu_rocm() -> Option<GpuInfo> {
                 let gb = (mb / 1024.0 * 10.0).round() / 10.0;
                 let name = shorten_gpu_name(p[1]);
                 log::info!("[GPU] rocm-smi: {} ({:.1}GB)", name, gb);
-                return Some(GpuInfo { gpu_name: name, gpu_vram_gb: gb });
+                return Some(GpuInfo {
+                    gpu_name: name,
+                    gpu_vram_gb: gb,
+                });
             }
         }
     }
@@ -259,16 +318,30 @@ fn detect_gpu_rocm() -> Option<GpuInfo> {
 
 #[cfg(not(windows))]
 fn detect_gpu_intel_xpu() -> Option<GpuInfo> {
-    let out = Command::new("xpu-smi").args(["discovery", "-j"]).output().ok()?;
-    if !out.status.success() { return None; }
+    let out = Command::new("xpu-smi")
+        .args(["discovery", "-j"])
+        .output()
+        .ok()?;
+    if !out.status.success() {
+        return None;
+    }
     let json: serde_json::Value = serde_json::from_slice(&out.stdout).ok()?;
     let dev = json.get("device_list")?.as_array()?.first()?;
-    let name = dev.get("device_name").and_then(|v| v.as_str()).unwrap_or("Intel GPU");
-    let mb = dev.get("memory_physical_size").and_then(|v| v.as_f64()).unwrap_or(0.0);
+    let name = dev
+        .get("device_name")
+        .and_then(|v| v.as_str())
+        .unwrap_or("Intel GPU");
+    let mb = dev
+        .get("memory_physical_size")
+        .and_then(|v| v.as_f64())
+        .unwrap_or(0.0);
     if mb > 0.0 {
         let gb = (mb / 1024.0 * 10.0).round() / 10.0;
         log::info!("[GPU] xpu-smi: {} ({:.1}GB)", name, gb);
-        return Some(GpuInfo { gpu_name: shorten_gpu_name(name), gpu_vram_gb: gb });
+        return Some(GpuInfo {
+            gpu_name: shorten_gpu_name(name),
+            gpu_vram_gb: gb,
+        });
     }
     None
 }
@@ -276,76 +349,130 @@ fn detect_gpu_intel_xpu() -> Option<GpuInfo> {
 #[cfg(target_os = "macos")]
 fn detect_gpu_apple() -> Option<GpuInfo> {
     let out = Command::new("system_profiler")
-        .args(["SPDisplaysDataType", "-json"]).output().ok()?;
-    if !out.status.success() { return None; }
+        .args(["SPDisplaysDataType", "-json"])
+        .output()
+        .ok()?;
+    if !out.status.success() {
+        return None;
+    }
     let json: serde_json::Value = serde_json::from_slice(&out.stdout).ok()?;
     for d in json.get("SPDisplaysDataType")?.as_array()? {
         let name = d.get("sppci_model").and_then(|v| v.as_str()).unwrap_or("");
-        if name.is_empty() { continue; }
-        let vraw = d.get("spdisplays_vram").and_then(|v| v.as_str()).unwrap_or("0 MB");
-        let mb: f64 = vraw.split_whitespace().next()
-            .and_then(|n| n.parse().ok()).unwrap_or(0.0);
+        if name.is_empty() {
+            continue;
+        }
+        let vraw = d
+            .get("spdisplays_vram")
+            .and_then(|v| v.as_str())
+            .unwrap_or("0 MB");
+        let mb: f64 = vraw
+            .split_whitespace()
+            .next()
+            .and_then(|n| n.parse().ok())
+            .unwrap_or(0.0);
         let gb = if mb >= 1024.0 { mb / 1024.0 } else { mb };
         let gb = (gb * 10.0).round() / 10.0;
         log::info!("[GPU] Apple: {} ({:.1}GB)", name, gb);
-        return Some(GpuInfo { gpu_name: shorten_gpu_name(name), gpu_vram_gb: gb });
+        return Some(GpuInfo {
+            gpu_name: shorten_gpu_name(name),
+            gpu_vram_gb: gb,
+        });
     }
     None
 }
 
 #[cfg(all(not(windows), not(target_os = "macos")))]
-fn detect_gpu_apple() -> Option<GpuInfo> { None }
-
-
+fn detect_gpu_apple() -> Option<GpuInfo> {
+    None
+}
 
 #[cfg(not(windows))]
 fn detect_gpu_iluvatar() -> Option<GpuInfo> {
-    let out = Command::new("ixsmi").args(["-q", "--display=MEMORY"]).output().ok()?;
-    if !out.status.success() { return None; }
-    let name_o = Command::new("ixsmi").args(["-q", "--display=NAME"]).output().ok()?;
+    let out = Command::new("ixsmi")
+        .args(["-q", "--display=MEMORY"])
+        .output()
+        .ok()?;
+    if !out.status.success() {
+        return None;
+    }
+    let name_o = Command::new("ixsmi")
+        .args(["-q", "--display=NAME"])
+        .output()
+        .ok()?;
     let gb = parse_vram_mb_line(&String::from_utf8_lossy(&out.stdout))?;
     let name = parse_name_colon(&String::from_utf8_lossy(&name_o.stdout))
         .unwrap_or_else(|| "Iluvatar CoreX".to_string());
     log::info!("[GPU] ixsmi: {} ({:.1}GB)", name, gb);
-    Some(GpuInfo { gpu_name: shorten_gpu_name(&name), gpu_vram_gb: gb })
+    Some(GpuInfo {
+        gpu_name: shorten_gpu_name(&name),
+        gpu_vram_gb: gb,
+    })
 }
 
 #[cfg(not(windows))]
 fn detect_gpu_cambricon() -> Option<GpuInfo> {
     let out = Command::new("cnmon").args(["info", "-j"]).output().ok()?;
-    if !out.status.success() { return None; }
+    if !out.status.success() {
+        return None;
+    }
     let json: serde_json::Value = serde_json::from_slice(&out.stdout).ok()?;
     let dev = json.get("device")?.as_array()?.first()?;
-    let name = dev.get("Product Name").or_else(|| dev.get("name"))
-        .and_then(|v| v.as_str()).unwrap_or("Cambricon MLU");
-    let mb = dev.get("Memory Info").and_then(|m| m.get("Total"))
-        .and_then(|v| v.as_f64()).unwrap_or(0.0);
+    let name = dev
+        .get("Product Name")
+        .or_else(|| dev.get("name"))
+        .and_then(|v| v.as_str())
+        .unwrap_or("Cambricon MLU");
+    let mb = dev
+        .get("Memory Info")
+        .and_then(|m| m.get("Total"))
+        .and_then(|v| v.as_f64())
+        .unwrap_or(0.0);
     if mb > 0.0 {
         let gb = (mb / 1024.0 * 10.0).round() / 10.0;
         log::info!("[GPU] cnmon: {} ({:.1}GB)", name, gb);
-        return Some(GpuInfo { gpu_name: shorten_gpu_name(name), gpu_vram_gb: gb });
+        return Some(GpuInfo {
+            gpu_name: shorten_gpu_name(name),
+            gpu_vram_gb: gb,
+        });
     }
     None
 }
 
 #[cfg(not(windows))]
 fn detect_gpu_biren() -> Option<GpuInfo> {
-    let out = Command::new("brsmi").args(["-q", "--display=MEMORY"]).output().ok()?;
-    if !out.status.success() { return None; }
-    let name_o = Command::new("brsmi").args(["-q", "--display=NAME"]).output().ok()?;
+    let out = Command::new("brsmi")
+        .args(["-q", "--display=MEMORY"])
+        .output()
+        .ok()?;
+    if !out.status.success() {
+        return None;
+    }
+    let name_o = Command::new("brsmi")
+        .args(["-q", "--display=NAME"])
+        .output()
+        .ok()?;
     let gb = parse_vram_mb_line(&String::from_utf8_lossy(&out.stdout))?;
     let name = parse_name_colon(&String::from_utf8_lossy(&name_o.stdout))
         .unwrap_or_else(|| "Biren BR".to_string());
     log::info!("[GPU] brsmi: {} ({:.1}GB)", name, gb);
-    Some(GpuInfo { gpu_name: shorten_gpu_name(&name), gpu_vram_gb: gb })
+    Some(GpuInfo {
+        gpu_name: shorten_gpu_name(&name),
+        gpu_vram_gb: gb,
+    })
 }
 
 #[cfg(not(windows))]
 fn detect_gpu_kunlunxin() -> Option<GpuInfo> {
     let out = Command::new("kunlunxin-smi")
-        .args(["--query-xpu=name,memory.total", "--format=csv,noheader,nounits"])
-        .output().ok()?;
-    if !out.status.success() { return None; }
+        .args([
+            "--query-xpu=name,memory.total",
+            "--format=csv,noheader,nounits",
+        ])
+        .output()
+        .ok()?;
+    if !out.status.success() {
+        return None;
+    }
     let s = String::from_utf8_lossy(&out.stdout);
     let line = s.lines().next()?.trim().to_string();
     let p: Vec<&str> = line.split(',').map(|x| x.trim()).collect();
@@ -354,7 +481,10 @@ fn detect_gpu_kunlunxin() -> Option<GpuInfo> {
         if mb > 0.0 {
             let gb = (mb / 1024.0 * 10.0).round() / 10.0;
             log::info!("[GPU] kunlunxin-smi: {} ({:.1}GB)", p[0], gb);
-            return Some(GpuInfo { gpu_name: shorten_gpu_name(p[0]), gpu_vram_gb: gb });
+            return Some(GpuInfo {
+                gpu_name: shorten_gpu_name(p[0]),
+                gpu_vram_gb: gb,
+            });
         }
     }
     None
@@ -367,7 +497,9 @@ fn parse_vram_mb_line(text: &str) -> Option<f64> {
         if lower.contains("total") && (lower.contains("mib") || lower.contains("mb")) {
             if let Some(n) = line.split_whitespace().find(|s| s.parse::<f64>().is_ok()) {
                 let mb: f64 = n.parse().ok()?;
-                if mb > 0.0 { return Some((mb / 1024.0 * 10.0).round() / 10.0); }
+                if mb > 0.0 {
+                    return Some((mb / 1024.0 * 10.0).round() / 10.0);
+                }
             }
         }
     }

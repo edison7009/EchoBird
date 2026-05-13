@@ -6,83 +6,83 @@ import { useI18n } from '../../hooks/useI18n';
 
 // Smart icon detection — match model name/ID to icon file
 export const getModelIcon = (name: string, modelId?: string): string | null => {
-    const text = `${name} ${modelId || ''}`.toLowerCase();
+  const text = `${name} ${modelId || ''}`.toLowerCase();
 
-    // Matching rules: keywords -> icon file
-    const iconMap: [string[], string][] = [
-        [['qwen', '通义', 'tongyi'], 'qwen'],
-        [['claude', 'anthropic', 'sonnet', 'opus', 'haiku'], 'claude'],
-        [['gpt', 'openai', 'chatgpt', 'o1', 'o3'], 'chatgpt'],
-        [['gemma'], 'google'],
-        [['gemini', 'palm'], 'gemini'],
-        [['deepseek'], 'deepseek'],
-        [['mistral', 'mixtral'], 'mistral'],
-        [['minimax'], 'minimax'],
-        [['grok', 'x.ai'], 'grok'],
-        [['groq'], 'groq'],
-        [['kimi', 'moonshot'], 'kimi'],
-        [['glm', 'zhipu', '智谱'], 'glm'],
-        [['ernie', 'wenxin', '文心'], 'ernie'],
-        [['hunyuan', '混元'], 'hunyuan'],
-        [['cohere', 'command'], 'cohere'],
-        [['perplexity', 'pplx'], 'perplexity'],
-        [['together'], 'together'],
-        [['doubao', '豆包', 'bytedance', 'volcengine', 'volces', '火山'], 'bytedance'],
-        [['xiaomi', '小米', 'mimo'], 'xiaomi'],
-        [['nemotron', 'nvidia'], 'nemotron'],
-        [['stepfun', 'step', '阶跃'], 'stepfun'],
-        [['granite', 'ibm'], 'granite'],
-        [['meta'], 'meta'],
-        [['openrouter'], 'openrouter'],
-        [['worldrouter'], 'worldrouter'],
-        [['b.ai', 'bai'], 'b-ai'],
-    ];
+  // Matching rules: keywords -> icon file
+  const iconMap: [string[], string][] = [
+    [['qwen', '通义', 'tongyi'], 'qwen'],
+    [['claude', 'anthropic', 'sonnet', 'opus', 'haiku'], 'claude'],
+    [['gpt', 'openai', 'chatgpt', 'o1', 'o3'], 'chatgpt'],
+    [['gemma'], 'google'],
+    [['gemini', 'palm'], 'gemini'],
+    [['deepseek'], 'deepseek'],
+    [['mistral', 'mixtral'], 'mistral'],
+    [['minimax'], 'minimax'],
+    [['grok', 'x.ai'], 'grok'],
+    [['groq'], 'groq'],
+    [['kimi', 'moonshot'], 'kimi'],
+    [['glm', 'zhipu', '智谱'], 'glm'],
+    [['ernie', 'wenxin', '文心'], 'ernie'],
+    [['hunyuan', '混元'], 'hunyuan'],
+    [['cohere', 'command'], 'cohere'],
+    [['perplexity', 'pplx'], 'perplexity'],
+    [['together'], 'together'],
+    [['doubao', '豆包', 'bytedance', 'volcengine', 'volces', '火山'], 'bytedance'],
+    [['xiaomi', '小米', 'mimo'], 'xiaomi'],
+    [['nemotron', 'nvidia'], 'nemotron'],
+    [['stepfun', 'step', '阶跃'], 'stepfun'],
+    [['granite', 'ibm'], 'granite'],
+    [['meta'], 'meta'],
+    [['openrouter'], 'openrouter'],
+    [['worldrouter'], 'worldrouter'],
+    [['b.ai', 'bai'], 'b-ai'],
+  ];
 
-    for (const [keywords, icon] of iconMap) {
-        if (keywords.some(kw => text.includes(kw))) {
-            if (icon === 'worldrouter') return './icons/models/worldrouter.png';
-            if (icon === 'b-ai') return './icons/models/b-ai.ico';
-            return `./icons/models/${icon}.svg`;
-        }
+  for (const [keywords, icon] of iconMap) {
+    if (keywords.some((kw) => text.includes(kw))) {
+      if (icon === 'worldrouter') return './icons/models/worldrouter.png';
+      if (icon === 'b-ai') return './icons/models/b-ai.ico';
+      return `./icons/models/${icon}.svg`;
     }
-    return null;
+  }
+  return null;
 };
 
 // Card skeleton (loading state)
 export const ModelCardSkeleton = () => (
-    <div className="h-48 p-4 bg-cyber-surface rounded-card animate-pulse">
-        <div className="h-3 w-16 bg-cyber-border rounded mb-2"></div>
-        <div className="h-5 w-32 bg-cyber-border rounded mb-4"></div>
-        <div className="space-y-2">
-            <div className="h-3 w-full bg-cyber-border/50 rounded"></div>
-            <div className="h-3 w-3/4 bg-cyber-border/50 rounded"></div>
-            <div className="h-3 w-1/2 bg-cyber-border/50 rounded"></div>
-        </div>
-        <div className="mt-4 flex gap-2">
-            <div className="h-5 w-14 bg-cyber-border/30 rounded"></div>
-            <div className="h-5 w-14 bg-cyber-border/30 rounded"></div>
-        </div>
+  <div className="h-48 p-4 bg-cyber-surface rounded-card animate-pulse">
+    <div className="h-3 w-16 bg-cyber-border rounded mb-2"></div>
+    <div className="h-5 w-32 bg-cyber-border rounded mb-4"></div>
+    <div className="space-y-2">
+      <div className="h-3 w-full bg-cyber-border/50 rounded"></div>
+      <div className="h-3 w-3/4 bg-cyber-border/50 rounded"></div>
+      <div className="h-3 w-1/2 bg-cyber-border/50 rounded"></div>
     </div>
+    <div className="mt-4 flex gap-2">
+      <div className="h-5 w-14 bg-cyber-border/30 rounded"></div>
+      <div className="h-5 w-14 bg-cyber-border/30 rounded"></div>
+    </div>
+  </div>
 );
 
 // ModelCard props interface
 export interface ModelCardProps {
-    id: string;
-    name: string;
-    type: string;            // provider / category
-    baseUrl?: string;        // API endpoint (OpenAI)
-    anthropicUrl?: string;   // API endpoint (Anthropic)
-    modelId?: string;        // model ID (provider-defined)
-    latency?: number;        // latency in ms, undefined = untested
-    protocols?: ('openai' | 'anthropic')[];  // supported API protocols
-    openaiTested?: boolean;      // OpenAI protocol tested
-    anthropicTested?: boolean;   // Anthropic protocol tested
-    isPinging?: boolean;     // currently pinging (shows decode animation)
-    selected?: boolean;
-    onClick?: () => void;
-    onEdit?: () => void;     // edit callback
-    onDelete?: () => void;   // delete callback
-    onProtocolClick?: (protocol: 'openai' | 'anthropic') => void;  // protocol tag click
+  id: string;
+  name: string;
+  type: string; // provider / category
+  baseUrl?: string; // API endpoint (OpenAI)
+  anthropicUrl?: string; // API endpoint (Anthropic)
+  modelId?: string; // model ID (provider-defined)
+  latency?: number; // latency in ms, undefined = untested
+  protocols?: ('openai' | 'anthropic')[]; // supported API protocols
+  openaiTested?: boolean; // OpenAI protocol tested
+  anthropicTested?: boolean; // Anthropic protocol tested
+  isPinging?: boolean; // currently pinging (shows decode animation)
+  selected?: boolean;
+  onClick?: () => void;
+  onEdit?: () => void; // edit callback
+  onDelete?: () => void; // delete callback
+  onProtocolClick?: (protocol: 'openai' | 'anthropic') => void; // protocol tag click
 }
 
 // Matrix decode animation — characters scramble then lock in sequence
@@ -93,218 +93,268 @@ const TARGET_TEXT = 'ECHOBIRD';
 const randomChar = () => MATRIX_CHARS[Math.floor(Math.random() * MATRIX_CHARS.length)];
 
 export const MatrixDecode = ({ duration = 2000 }: { duration?: number }) => {
-    // Initialize with random chars immediately
-    const [chars, setChars] = useState<string[]>(() =>
-        Array(TARGET_TEXT.length).fill(0).map(() => randomChar())
+  // Initialize with random chars immediately
+  const [chars, setChars] = useState<string[]>(() =>
+    Array(TARGET_TEXT.length)
+      .fill(0)
+      .map(() => randomChar())
+  );
+  const [locked, setLocked] = useState<boolean[]>(Array(TARGET_TEXT.length).fill(false));
+
+  useEffect(() => {
+    // Calculate lock interval for each character
+    const totalSteps = TARGET_TEXT.length;
+    // Reserve 20% of time for final state, allocate remaining 80% for sequential locking
+    const stepInterval = (duration * 0.8) / totalSteps;
+    // Character scramble speed (min 30ms to stay visible)
+    const tickRate = Math.max(30, stepInterval / 2);
+
+    // Random character rolling
+    const interval = setInterval(() => {
+      setChars((prev) => prev.map((_, i) => (locked[i] ? TARGET_TEXT[i] : randomChar())));
+    }, tickRate);
+
+    // Lock characters one by one
+    const lockTimers = TARGET_TEXT.split('').map(
+      (_, i) =>
+        setTimeout(
+          () => {
+            setLocked((prev) => {
+              const next = [...prev];
+              next[i] = true;
+              return next;
+            });
+            setChars((prev) => {
+              const next = [...prev];
+              next[i] = TARGET_TEXT[i];
+              return next;
+            });
+          },
+          duration * 0.2 + i * stepInterval
+        ) // Initial delay 20%
     );
-    const [locked, setLocked] = useState<boolean[]>(Array(TARGET_TEXT.length).fill(false));
 
-    useEffect(() => {
-        // Calculate lock interval for each character
-        const totalSteps = TARGET_TEXT.length;
-        // Reserve 20% of time for final state, allocate remaining 80% for sequential locking
-        const stepInterval = (duration * 0.8) / totalSteps;
-        // Character scramble speed (min 30ms to stay visible)
-        const tickRate = Math.max(30, stepInterval / 2);
+    return () => {
+      clearInterval(interval);
+      lockTimers.forEach((t) => clearTimeout(t));
+    };
+  }, [duration]);
 
-        // Random character rolling
-        const interval = setInterval(() => {
-            setChars(prev => prev.map((_, i) =>
-                locked[i] ? TARGET_TEXT[i] : randomChar()
-            ));
-        }, tickRate);
-
-        // Lock characters one by one
-        const lockTimers = TARGET_TEXT.split('').map((_, i) =>
-            setTimeout(() => {
-                setLocked(prev => {
-                    const next = [...prev];
-                    next[i] = true;
-                    return next;
-                });
-                setChars(prev => {
-                    const next = [...prev];
-                    next[i] = TARGET_TEXT[i];
-                    return next;
-                });
-            }, (duration * 0.2) + (i * stepInterval)) // Initial delay 20%
-        );
-
-        return () => {
-            clearInterval(interval);
-            lockTimers.forEach(t => clearTimeout(t));
-        };
-    }, [duration]);
-
-    return (
-        <span className="font-mono inline-flex gap-[2px] text-xs">
-            {chars.map((char, i) => (
-                <span
-                    key={i}
-                    className={`inline-block transition-all ${locked[i]
-                        ? 'text-cyber-text'
-                        : 'text-green-500 opacity-80'
-                        }`}
-                    style={{
-                        transitionDuration: `${Math.max(50, duration / 20)}ms`,
-                        textShadow: locked[i]
-                            ? '0 0 8px rgba(0, 255, 136, 0.8)'
-                            : '0 0 4px rgba(0, 255, 0, 0.5)'
-                    }}
-                >
-                    {char}
-                </span>
-            ))}
+  return (
+    <span className="font-mono inline-flex gap-[2px] text-xs">
+      {chars.map((char, i) => (
+        <span
+          key={i}
+          className={`inline-block transition-all ${
+            locked[i] ? 'text-cyber-text' : 'text-green-500 opacity-80'
+          }`}
+          style={{
+            transitionDuration: `${Math.max(50, duration / 20)}ms`,
+            textShadow: locked[i]
+              ? '0 0 8px rgba(0, 255, 136, 0.8)'
+              : '0 0 4px rgba(0, 255, 0, 0.5)',
+          }}
+        >
+          {char}
         </span>
-    );
+      ))}
+    </span>
+  );
 };
 
 // ModelCard component
-export const ModelCard = React.memo(({
-    name, type, baseUrl, anthropicUrl, modelId, latency,
-    protocols = [], openaiTested = false, anthropicTested = false,
-    isPinging = false, selected = false, isActive = false,
-    onClick, onEdit, onDelete, onProtocolClick
-}: ModelCardProps & { isActive?: boolean }) => {
+export const ModelCard = React.memo(
+  ({
+    name,
+    type: _type,
+    baseUrl,
+    anthropicUrl,
+    modelId,
+    latency,
+    protocols = [],
+    openaiTested = false,
+    anthropicTested = false,
+    isPinging = false,
+    selected = false,
+    isActive = false,
+    onClick,
+    onEdit,
+    onDelete,
+    onProtocolClick: _onProtocolClick,
+  }: ModelCardProps & { isActive?: boolean }) => {
     const iconPath = getModelIcon(name, modelId);
     const confirm = useConfirm();
     const { t } = useI18n();
 
     return (
-        <div
-            className={`h-48 p-4 border bg-cyber-surface ${(isActive || selected)
-                ? 'border-cyber-accent'
-                : 'border-transparent hover:bg-cyber-elevated'
-                } relative overflow-hidden rounded-card cursor-pointer transition-colors flex flex-col`}
-            onClick={onClick}
-        >
-            {/* Action buttons — top right */}
-            {(onEdit || onDelete) && (
-                <div className="absolute top-2 right-2 flex gap-1.5">
-                    {onDelete && (
-                        <button
-                            className="text-xs font-mono text-cyber-text-muted/70 hover:text-red-500 transition-colors"
-                            onClick={async (e) => {
-                                e.stopPropagation();
-                                const ok = await confirm({
-                                    title: t('model.deleteTitle'),
-                                    message: t('model.deleteConfirm'),
-                                    confirmText: t('btn.delete'),
-                                    cancelText: t('btn.cancel'),
-                                    type: 'danger'
-                                });
-                                if (ok) {
-                                    onDelete();
-                                }
-                            }}
-                        >
-                            [{t('btn.delete')}]
-                        </button>
-                    )}
-                    {onEdit && (
-                        <button
-                            className="text-xs font-mono text-cyber-text-muted/70 hover:text-cyber-text transition-colors"
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                onEdit();
-                            }}
-                        >
-                            [{t('btn.edit')}]
-                        </button>
-                    )}
-                </div>
+      <div
+        className={`h-48 p-4 border bg-cyber-surface ${
+          isActive || selected
+            ? 'border-cyber-accent'
+            : 'border-transparent hover:bg-cyber-elevated'
+        } relative overflow-hidden rounded-card cursor-pointer transition-colors flex flex-col`}
+        onClick={onClick}
+      >
+        {/* Action buttons — top right */}
+        {(onEdit || onDelete) && (
+          <div className="absolute top-2 right-2 flex gap-1.5">
+            {onDelete && (
+              <button
+                className="text-xs font-mono text-cyber-text-muted/70 hover:text-red-500 transition-colors"
+                onClick={async (e) => {
+                  e.stopPropagation();
+                  const ok = await confirm({
+                    title: t('model.deleteTitle'),
+                    message: t('model.deleteConfirm'),
+                    confirmText: t('btn.delete'),
+                    cancelText: t('btn.cancel'),
+                    type: 'danger',
+                  });
+                  if (ok) {
+                    onDelete();
+                  }
+                }}
+              >
+                [{t('btn.delete')}]
+              </button>
             )}
-            <div className="text-xs text-cyber-text-secondary mb-1 tracking-widest uppercase font-mono min-h-[15px]">
-                {(() => {
-                    const url = baseUrl || anthropicUrl;
-                    if (!url) return <span>&nbsp;</span>;
-                    return /localhost|127\.0\.0\.1/.test(url) ? t('model.local') : t('model.cloud');
-                })()}
-            </div>
-            <div className="text-lg font-bold mb-3 truncate h-7">{name || <span className="invisible">-</span>}</div>
-            <div className="text-xs space-y-1.5 font-mono">
-                <div className="flex items-center gap-1 truncate">
-                    <span className="text-cyber-text/60">{t('model.label')}:</span>
-                    <span className="truncate text-cyber-text/60">{modelId || '-'}</span>
-                </div>
-                <div className="flex items-center gap-1 truncate">
-                    <span className="text-cyber-text/60">{t('model.source')}:</span>
-                    <span className="truncate text-cyber-text/40">{(() => {
-                        const url = baseUrl || anthropicUrl;
-                        if (!url) return '-';
-                        try { return new URL(url).hostname; } catch { return url; }
-                    })()}</span>
-                </div>
-
-                <div className="flex items-center gap-1">
-                    <span className="text-cyber-text/60">{t('model.latency')}:</span>
-                    {isPinging ? (
-                        <MatrixDecode />
-                    ) : latency === -1 ? (
-                        <span className="text-red-500 font-bold">Error</span>
-                    ) : latency !== undefined ? (
-                        <span className={latency < 200 ? 'text-green-500' : latency < 500 ? 'text-yellow-500' : 'text-red-500'}>
-                            {latency}ms
-                        </span>
-                    ) : (
-                        <span className="text-cyber-text-muted/70 text-xs">{t('model.notTested')}</span>
-                    )}
-                </div>
-            </div>
-            {/* Protocol tags */}
-            <div className="mt-auto flex items-center gap-1.5 flex-wrap">
-                {protocols.includes('openai') && (
-                    <div className="flex items-center gap-1.5 select-none">
-                        <span className="text-cyber-text/30 font-mono text-xs">[</span>
-                        <span className={`${openaiTested
-                            ? 'font-bold font-mono tracking-widest text-cyber-text text-[10px] drop-shadow-[0_0_5px_rgb(var(--accent-rgb)/0.5)] animate-pulse'
-                            : 'font-mono tracking-widest text-cyber-text-muted/70 text-[10px]'
-                            }`}>
-                            OPENAI
-                        </span>
-                        <span className="text-cyber-text/30 font-mono text-xs">]</span>
-                    </div>
-                )}
-                {protocols.includes('anthropic') && (
-                    <div className="flex items-center gap-1.5 select-none">
-                        <span className="text-cyber-text/30 font-mono text-xs">[</span>
-                        <span className={`${anthropicTested
-                            ? 'font-bold font-mono tracking-widest text-cyber-text text-[10px] drop-shadow-[0_0_5px_rgb(var(--accent-rgb)/0.5)] animate-pulse'
-                            : 'font-mono tracking-widest text-cyber-text-muted/70 text-[10px]'
-                            }`}>
-                            ANTHROPIC
-                        </span>
-                        <span className="text-cyber-text/30 font-mono text-xs">]</span>
-                    </div>
-                )}
-                {protocols.length === 0 && (
-                    <span className="h-4 block" />
-                )}
-            </div>
-            {/* Model icon bottom-right */}
-            {iconPath && (
-                <img
-                    src={iconPath}
-                    alt={name}
-                    className={`absolute bottom-3 right-3 w-8 h-8 ${selected || isActive ? 'opacity-100' : 'opacity-60'}`}
-                    onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-                />
+            {onEdit && (
+              <button
+                className="text-xs font-mono text-cyber-text-muted/70 hover:text-cyber-text transition-colors"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onEdit();
+                }}
+              >
+                [{t('btn.edit')}]
+              </button>
             )}
+          </div>
+        )}
+        <div className="text-xs text-cyber-text-secondary mb-1 tracking-widest uppercase font-mono min-h-[15px]">
+          {(() => {
+            const url = baseUrl || anthropicUrl;
+            if (!url) return <span>&nbsp;</span>;
+            return /localhost|127\.0\.0\.1/.test(url) ? t('model.local') : t('model.cloud');
+          })()}
         </div>
+        <div className="text-lg font-bold mb-3 truncate h-7">
+          {name || <span className="invisible">-</span>}
+        </div>
+        <div className="text-xs space-y-1.5 font-mono">
+          <div className="flex items-center gap-1 truncate">
+            <span className="text-cyber-text/60">{t('model.label')}:</span>
+            <span className="truncate text-cyber-text/60">{modelId || '-'}</span>
+          </div>
+          <div className="flex items-center gap-1 truncate">
+            <span className="text-cyber-text/60">{t('model.source')}:</span>
+            <span className="truncate text-cyber-text/40">
+              {(() => {
+                const url = baseUrl || anthropicUrl;
+                if (!url) return '-';
+                try {
+                  return new URL(url).hostname;
+                } catch {
+                  return url;
+                }
+              })()}
+            </span>
+          </div>
+
+          <div className="flex items-center gap-1">
+            <span className="text-cyber-text/60">{t('model.latency')}:</span>
+            {isPinging ? (
+              <MatrixDecode />
+            ) : latency === -1 ? (
+              <span className="text-red-500 font-bold">Error</span>
+            ) : latency !== undefined ? (
+              <span
+                className={
+                  latency < 200
+                    ? 'text-green-500'
+                    : latency < 500
+                      ? 'text-yellow-500'
+                      : 'text-red-500'
+                }
+              >
+                {latency}ms
+              </span>
+            ) : (
+              <span className="text-cyber-text-muted/70 text-xs">{t('model.notTested')}</span>
+            )}
+          </div>
+        </div>
+        {/* Protocol tags */}
+        <div className="mt-auto flex items-center gap-1.5 flex-wrap">
+          {protocols.includes('openai') && (
+            <div className="flex items-center gap-1.5 select-none">
+              <span className="text-cyber-text/30 font-mono text-xs">[</span>
+              <span
+                className={`${
+                  openaiTested
+                    ? 'font-bold font-mono tracking-widest text-cyber-text text-[10px] drop-shadow-[0_0_5px_rgb(var(--accent-rgb)/0.5)] animate-pulse'
+                    : 'font-mono tracking-widest text-cyber-text-muted/70 text-[10px]'
+                }`}
+              >
+                OPENAI
+              </span>
+              <span className="text-cyber-text/30 font-mono text-xs">]</span>
+            </div>
+          )}
+          {protocols.includes('anthropic') && (
+            <div className="flex items-center gap-1.5 select-none">
+              <span className="text-cyber-text/30 font-mono text-xs">[</span>
+              <span
+                className={`${
+                  anthropicTested
+                    ? 'font-bold font-mono tracking-widest text-cyber-text text-[10px] drop-shadow-[0_0_5px_rgb(var(--accent-rgb)/0.5)] animate-pulse'
+                    : 'font-mono tracking-widest text-cyber-text-muted/70 text-[10px]'
+                }`}
+              >
+                ANTHROPIC
+              </span>
+              <span className="text-cyber-text/30 font-mono text-xs">]</span>
+            </div>
+          )}
+          {protocols.length === 0 && <span className="h-4 block" />}
+        </div>
+        {/* Model icon bottom-right */}
+        {iconPath && (
+          <img
+            src={iconPath}
+            alt={name}
+            className={`absolute bottom-3 right-3 w-8 h-8 ${selected || isActive ? 'opacity-100' : 'opacity-60'}`}
+            onError={(e) => {
+              (e.target as HTMLImageElement).style.display = 'none';
+            }}
+          />
+        )}
+      </div>
     );
-}, (prev, next) => {
+  },
+  (prev, next) => {
     // Custom comparator: skip function props (new refs each render)
     const keys: (keyof ModelCardProps)[] = [
-        'id', 'name', 'type', 'baseUrl', 'anthropicUrl', 'modelId',
-        'latency', 'openaiTested', 'anthropicTested',
-        'isPinging', 'selected',
+      'id',
+      'name',
+      'type',
+      'baseUrl',
+      'anthropicUrl',
+      'modelId',
+      'latency',
+      'openaiTested',
+      'anthropicTested',
+      'isPinging',
+      'selected',
     ];
     for (const k of keys) {
-        if ((prev as any)[k] !== (next as any)[k]) return false;
+      if ((prev as any)[k] !== (next as any)[k]) return false;
     }
     if ((prev as any).isActive !== (next as any).isActive) return false;
     // Compare protocols array by value
-    const pp = prev.protocols || [], np = next.protocols || [];
+    const pp = prev.protocols || [],
+      np = next.protocols || [];
     if (pp.length !== np.length || pp.some((v, i) => v !== np[i])) return false;
     return true;
-});
+  }
+);

@@ -1,0 +1,19 @@
+# Dependencies
+node_modules
+dist
+build
+
+# Tauri
+src-tauri/target
+src-tauri/Cargo.lock
+
+# Generated files
+*.log
+.DS_Store
+
+# Tools
+tools/
+
+# Config files that should keep their format
+package-lock.json
+pnpm-lock.yaml
