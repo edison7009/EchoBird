@@ -1,5 +1,5 @@
 {
-  "version": "2.6.0",
+  "version": "2.6.1",
   "releaseDate": "2026-05-13",
-  "releaseNotes": "release: v2.6.0 — remove macOS Intel support"
+  "releaseNotes": "v2.6.1 — Codex Auto-Skip Onboarding"
 }
