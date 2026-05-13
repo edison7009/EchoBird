@@ -1,5 +1,5 @@
 {
   "version": "2.6.4",
   "releaseDate": "2026-05-13",
-  "releaseNotes": "v2.6.4 — fix version mismatch in installer; same features as v2.6.3"
+  "releaseNotes": "chore: bump version to 2.6.4"
 }
