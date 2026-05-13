@@ -66,6 +66,6 @@ which = "7"
 libc = "0.2"
 
 [target.'cfg(windows)'.dependencies]
-windows = { version = "0.58", features = ["Win32_Foundation", "Win32_Graphics_Dwm"] }
+windows = { version = "0.62", features = ["Win32_Foundation", "Win32_Graphics_Dwm"] }
 raw-window-handle = "0.6"
 
