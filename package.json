@@ -18,7 +18,7 @@
     "copy:config": "echo no-op"
   },
   "dependencies": {
-    "@tauri-apps/api": "^2.10.1",
+    "@tauri-apps/api": "^2.11.0",
     "@tauri-apps/plugin-shell": "^2.3.5",
     "react-markdown": "^10.1.0",
     "remark-gfm": "^4.0.1",
