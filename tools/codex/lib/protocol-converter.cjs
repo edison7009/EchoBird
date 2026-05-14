@@ -338,6 +338,24 @@ function responsesToChat(body, sessions, logger) {
         }
     }
 
+    // Reorder pass: pull tool messages forward to immediately follow their
+    // matching assistant.tool_calls.
+    //
+    // Codex's input items sometimes interleave a `developer`/`user` message
+    // BETWEEN a `function_call` and its `function_call_output` (observed in
+    // browser-use / shell skill turns where Codex emits a fresh system note
+    // mid-sequence). In Responses-API this is fine — the items are
+    // independent linked-by-call_id. In Chat Completions it is NOT:
+    //
+    //   "An assistant message with 'tool_calls' must be followed by tool
+    //    messages responding to each 'tool_call_id'.
+    //    (insufficient tool messages following tool_calls message)"
+    //
+    // We move every matching tool message to sit RIGHT AFTER its
+    // assistant.tool_calls, and append any interleaved non-matching
+    // messages immediately after the last consumed tool message.
+    merged = reorderToolMessages(merged);
+
     const chatBody = {
         model: body.model,
         messages: merged,
@@ -387,6 +405,55 @@ function responsesToChat(body, sessions, logger) {
     }
 
     return chatBody;
+}
+
+// Move tool messages forward so they immediately follow their matching
+// assistant.tool_calls. Any non-tool message that was interleaved between
+// the assistant.tool_calls and the last consumed tool message gets
+// pushed to AFTER all the tool messages.
+//
+// Invariant we're maintaining: Chat Completions' strict ordering rule
+// that an `assistant` message with `tool_calls` must be followed
+// immediately by `role: "tool"` messages for every tool_call_id, with
+// no other messages in between.
+//
+// We do NOT reorder anything that isn't part of a tool-call window —
+// plain conversation order is preserved.
+function reorderToolMessages(messages) {
+    const result = [];
+    let i = 0;
+    while (i < messages.length) {
+        const msg = messages[i];
+        result.push(msg);
+        i++;
+        const isToolCallAssistant = msg.role === "assistant"
+            && Array.isArray(msg.tool_calls)
+            && msg.tool_calls.length > 0;
+        if (!isToolCallAssistant) continue;
+
+        const pending = new Set(
+            msg.tool_calls
+                .map(tc => tc?.id)
+                .filter(id => typeof id === "string" && id.length > 0)
+        );
+        if (pending.size === 0) continue;
+        const deferred = [];
+        // Scan forward, pulling matching tool messages right behind the
+        // assistant, deferring everything else until pending is drained.
+        while (i < messages.length && pending.size > 0) {
+            const next = messages[i];
+            if (next.role === "tool" && pending.has(next.tool_call_id)) {
+                result.push(next);
+                pending.delete(next.tool_call_id);
+            } else {
+                deferred.push(next);
+            }
+            i++;
+        }
+        // Flush whatever got bumped out of order.
+        for (const d of deferred) result.push(d);
+    }
+    return result;
 }
 
 function normalizeFunctionTool(tool) {
