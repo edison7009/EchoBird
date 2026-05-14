@@ -1,5 +1,5 @@
 {
-  "version": "4.6.7",
+  "version": "4.6.8",
   "releaseDate": "2026-05-14",
-  "releaseNotes": "v4.6.7: 修复鼠标 / skill 操作场景下 Codex 工具调用断流"
+  "releaseNotes": "v4.6.8: minor robustness pass on top of v4.6.7's tool-call ordering fix"
 }
