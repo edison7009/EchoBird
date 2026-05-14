@@ -49,9 +49,15 @@ function chatUsageToResponsesUsage(chatUsage) {
     };
 }
 
-function chatStreamToResponsesStream(upstreamRes, clientRes, requestMessages = [], sessions, logger) {
+function chatStreamToResponsesStream(upstreamRes, clientRes, requestMessages = [], sessions, logger, clientModel) {
     const warn = logger?.warn || (() => {});
     const responseId = sessions.newResponseId();
+    // Mirror back whatever model id Codex asked for. The real upstream
+    // model id stays buried in the proxy-to-upstream leg.
+    const stampModel = (resp) => {
+        if (clientModel) resp.model = clientModel;
+        return resp;
+    };
 
     // SSE flush: write headers immediately and disable Nagle so each
     // event hits the wire before the next read tick. Without these,
@@ -67,11 +73,11 @@ function chatStreamToResponsesStream(upstreamRes, clientRes, requestMessages = [
 
     sendSSE("response.created", {
         type: "response.created",
-        response: { id: responseId, object: "response", status: "in_progress", output: [] },
+        response: stampModel({ id: responseId, object: "response", status: "in_progress", output: [] }),
     });
     sendSSE("response.in_progress", {
         type: "response.in_progress",
-        response: { id: responseId, object: "response", status: "in_progress" },
+        response: stampModel({ id: responseId, object: "response", status: "in_progress" }),
     });
 
     let textOpen = false;
@@ -186,10 +192,10 @@ function chatStreamToResponsesStream(upstreamRes, clientRes, requestMessages = [
         finished = true;
         closeTextItem();
         closeToolCalls();
-        const completedResponse = {
+        const completedResponse = stampModel({
             id: responseId, object: "response", status: "completed",
             output: buildAssembledOutput(),
-        };
+        });
         completedResponse.usage = chatUsageToResponsesUsage(usage);
         if (finishReason) completedResponse.incomplete_details =
             finishReason === "length" ? { reason: "max_output_tokens" } : undefined;
@@ -329,7 +335,7 @@ function chatStreamToResponsesStream(upstreamRes, clientRes, requestMessages = [
     });
 }
 
-function chatToResponsesNonStream(chatResponse, requestMessages = [], sessions, logger) {
+function chatToResponsesNonStream(chatResponse, requestMessages = [], sessions, logger, clientModel) {
     const warn = logger?.warn || (() => {});
     const responseId = sessions.newResponseId();
     const choice = chatResponse.choices?.[0] || {};
@@ -379,6 +385,7 @@ function chatToResponsesNonStream(chatResponse, requestMessages = [], sessions, 
     // response was truncated rather than treating it as a clean stop.
     const status = choice.finish_reason === "length" ? "incomplete" : "completed";
     const response = { id: responseId, object: "response", status, output };
+    if (clientModel) response.model = clientModel;
     response.usage = chatUsageToResponsesUsage(chatResponse.usage);
     if (choice.finish_reason === "length") {
         response.incomplete_details = { reason: "max_output_tokens" };

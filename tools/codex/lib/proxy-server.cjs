@@ -108,11 +108,13 @@ function startProxy(sessions, logger) {
                 const chatBody = responsesToChat(reqBody, sessions, logger);
                 const isStream = chatBody.stream;
 
-                // Model ID spoofing: Codex sends the canonical display
-                // model from config.toml (e.g. "gpt-5.4"), but the real
-                // upstream expects its actual model id (e.g.
-                // "deepseek-v4-pro"). Unconditional rewrite — whatever
-                // Codex sends gets replaced.
+                // Symmetric model-id deception ("smart spoof"): whatever
+                // model id Codex put in the request is what we echo back
+                // in the response. The real provider's model id only
+                // exists in the leg between us and the upstream — Codex
+                // never sees it, and we never need to know what name
+                // Codex picked (gpt-5.4 / gpt-5.5 / anything else).
+                const clientModel = chatBody.model;
                 if (realModelId && chatBody.model !== realModelId) {
                     log(`[Proxy] Model ID rewrite: ${chatBody.model} → ${realModelId}`);
                     chatBody.model = realModelId;
@@ -176,13 +178,13 @@ function startProxy(sessions, logger) {
                             "Connection": "keep-alive",
                             "X-Accel-Buffering": "no",
                         });
-                        chatStreamToResponsesStream(upstreamRes, clientRes, requestMessages, sessions, logger);
+                        chatStreamToResponsesStream(upstreamRes, clientRes, requestMessages, sessions, logger, clientModel);
                     } else {
                         let resBody = "";
                         upstreamRes.on("data", c => resBody += c);
                         upstreamRes.on("end", () => {
                             try {
-                                const res = chatToResponsesNonStream(JSON.parse(resBody), requestMessages, sessions, logger);
+                                const res = chatToResponsesNonStream(JSON.parse(resBody), requestMessages, sessions, logger, clientModel);
                                 clientRes.writeHead(200, { "Content-Type": "application/json" });
                                 clientRes.end(JSON.stringify(res));
                             } catch (e) {
