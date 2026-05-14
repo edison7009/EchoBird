@@ -1175,22 +1175,23 @@ fn run_codex_provider_sync(provider_id: &str) {
     }
 }
 
-fn codex_provider_id(base_url: &str) -> String {
-    let domain = extract_domain_name(base_url)
-        .to_lowercase()
-        .chars()
-        .map(|c| {
-            if c.is_ascii_alphanumeric() || c == '_' || c == '-' {
-                c
-            } else {
-                '_'
-            }
-        })
-        .collect::<String>();
-    format!(
-        "echobird_{}",
-        if domain.is_empty() { "openai" } else { &domain }
-    )
+fn codex_provider_id(base_url: &str, model_id: &str) -> String {
+    // Generate a stable UUID based on base_url + model_id combination.
+    // This ensures each unique (provider, model) pair gets its own provider ID,
+    // preventing history collision when:
+    // - Same provider, different models (api.deepseek.com + v4-pro vs v4-flash)
+    // - Different providers, same domain (official vs third-party proxies)
+    // - Third-party aggregators with multiple models (openai-hub.com + deepseek vs gpt-4)
+    use std::collections::hash_map::DefaultHasher;
+    use std::hash::{Hash, Hasher};
+
+    let mut hasher = DefaultHasher::new();
+    base_url.hash(&mut hasher);
+    model_id.hash(&mut hasher);
+    let hash = hasher.finish();
+
+    // Format as echobird_<16-char-hex> for readability in logs/db
+    format!("echobird_{:016x}", hash)
 }
 
 /// Kill any running Codex CLI / Codex Desktop processes before rewriting
@@ -1311,7 +1312,7 @@ fn apply_codex(tool_id: &str, model_info: &ModelInfo) -> ApplyResult {
         };
     }
 
-    let provider_id = codex_provider_id(&base_url);
+    let provider_id = codex_provider_id(&base_url, model_id);
     let provider_name = model_id; // Use model ID instead of domain name
 
     content = toml_write_top(&content, "model_provider", &provider_id);
