@@ -66,6 +66,22 @@ function rewriteBaseUrl(providerId, currentBaseUrlHint, newUrl, logger) {
         }
     };
 
+    // Tier 0: section-scoped, match any 127.0.0.1 address (leftover from
+    // previous launcher run). If the launcher crashed or was killed before
+    // restoring the real URL, config.toml will still have a stale proxy
+    // address. We must replace it with the new proxy address, otherwise
+    // all subsequent tiers will fail (they expect the real URL).
+    if (providerId) {
+        const fullSection = `model_providers.${providerId}`;
+        const escaped = escapeRegex(fullSection);
+        const re = new RegExp(
+            `(\\[${escaped}\\][\\s\\S]*?\\bbase_url\\s*=\\s*)"http://127\\.0\\.0\\.1:[0-9]+[^"]*"`,
+            "m"
+        );
+        const hit = apply(re, `[${fullSection}] (127.0.0.1 cleanup)`);
+        if (hit) return { ok: true, tier: hit };
+    }
+
     // Tier 1: section-scoped with the full TOML section name.
     if (providerId) {
         const fullSection = `model_providers.${providerId}`;

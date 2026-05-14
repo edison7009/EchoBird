@@ -103,14 +103,18 @@ async function main() {
 
     const rewriteResult = rewriteBaseUrl(providerId, baseUrl, localUrl, logger);
     if (!rewriteResult.ok) {
-        err("config.toml base_url was NOT rewritten — Codex will bypass the proxy and hit the upstream directly.");
-        err(`Check ${CODEX_CONFIG} — expected to find a base_url line we could replace.`);
+        err("FATAL: config.toml base_url rewrite failed.");
+        err(`Cannot start Codex — it would bypass the proxy and send /responses`);
+        err(`requests directly to ${baseUrl}, which only supports /chat/completions.`);
+        err(`Check ${CODEX_CONFIG} for unexpected format.`);
+        server.close();
+        process.exit(1);
     }
 
     if (apiKey) process.env[envKey] = apiKey;
 
     launchCodex(mode, __dirname, (code) => {
-        if (rewriteResult.ok) rewriteBaseUrl(providerId, localUrl, baseUrl, logger);
+        rewriteBaseUrl(providerId, localUrl, baseUrl, logger);
         server.close();
         process.exit(code);
     }, logger);
