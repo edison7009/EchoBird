@@ -1,5 +1,5 @@
 {
   "version": "4.7.0",
-  "releaseDate": "2026-05-15",
-  "releaseNotes": "v4.7.0: 内置 Agent 错误提示更清晰,长任务更稳定"
+  "releaseDate": "2026-05-14",
+  "releaseNotes": "v4.7.0: agent UX hardening — verbatim upstream errors, per-chunk timeout, transient retry"
 }
