@@ -294,30 +294,12 @@ impl ProcessManager {
     ) -> Result<(), String> {
         let home = dirs::home_dir().unwrap_or_default();
 
-        // Pull api_key / base_url out of ~/.echobird/codex.json so we can
-        // pre-seed env vars. The launcher itself also reads this file, so
-        // the env pre-seed is mainly a backstop for the OpenAI-direct case
-        // where the launcher skips the proxy.
-        let relay_path = home.join(".echobird").join("codex.json");
-        let mut api_key: Option<String> = None;
-        let mut base_url: Option<String> = None;
-        let mut env_key: Option<String> = None;
-        if relay_path.exists() {
-            if let Ok(content) = std::fs::read_to_string(&relay_path) {
-                if let Ok(cfg) = serde_json::from_str::<serde_json::Value>(&content) {
-                    api_key = cfg.get("apiKey").and_then(|v| v.as_str()).map(String::from);
-                    base_url = cfg
-                        .get("baseUrl")
-                        .and_then(|v| v.as_str())
-                        .map(String::from);
-                    env_key = cfg.get("envKey").and_then(|v| v.as_str()).map(String::from);
-                }
-            }
-        }
-
         // Tell the launcher which Codex binary to spawn. CLI mode picks up
         // the npm-bundled Rust binary via resolveCodexBinary(); desktop
         // mode looks at tools/codexdesktop/paths.json's exe locations.
+        // Everything else (api_key, base_url, model id) the launcher
+        // reads itself from ~/.echobird/codex.json — no env preseeding,
+        // no relay duplication.
         let launch_mode = if tool_id == "codexdesktop" {
             "desktop"
         } else {
@@ -341,22 +323,11 @@ impl ProcessManager {
             cmd.args(["/C", "node", launcher_clean]);
             cmd.current_dir(&home);
             cmd.env("ECHOBIRD_CODEX_LAUNCH_MODE", launch_mode);
-            // Suppress launcher console output in CLI mode (logs still go to file)
             cmd.env("ECHOBIRD_LAUNCHER_QUIET", "1");
-            if let Some(ref key) = api_key {
-                cmd.env("OPENAI_API_KEY", key);
-                if let Some(ref ek) = env_key {
-                    cmd.env(ek, key);
-                }
-            }
-            if let Some(ref url) = base_url {
-                cmd.env("OPENAI_BASE_URL", url);
-            }
 
             // CLI needs a visible terminal — Codex CLI's TUI renders in
             // it via stdio:inherit. Desktop is a GUI app, so hide the
-            // launcher console entirely (otherwise users see a black
-            // cmd window flash open with bootstrap logs in it).
+            // launcher console entirely.
             let flags = if launch_mode == "desktop" {
                 CREATE_NO_WINDOW
             } else {
@@ -387,17 +358,7 @@ impl ProcessManager {
             cmd.arg(launcher);
             cmd.current_dir(&home);
             cmd.env("ECHOBIRD_CODEX_LAUNCH_MODE", launch_mode);
-            // Suppress launcher console output in CLI mode (logs still go to file)
             cmd.env("ECHOBIRD_LAUNCHER_QUIET", "1");
-            if let Some(ref key) = api_key {
-                cmd.env("OPENAI_API_KEY", key);
-                if let Some(ref ek) = env_key {
-                    cmd.env(ek, key);
-                }
-            }
-            if let Some(ref url) = base_url {
-                cmd.env("OPENAI_BASE_URL", url);
-            }
 
             match cmd.spawn() {
                 Ok(child) => {

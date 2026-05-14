@@ -97,41 +97,6 @@ pub fn rebuild_tray_menu(app: &tauri::AppHandle) {
 
 /// PIDs recorded in the launcher's side-channel file. `codex_pid` is
 /// populated only after the launcher has spawned its Codex child (the
-/// direct-spawn path; the desktop-via-URI fallback can't observe a PID).
-struct LauncherPids {
-    launcher_pid: u32,
-    codex_pid: Option<u32>,
-}
-
-/// Read the launcher PID file at ~/.echobird/codex-launcher.pid, return
-/// both the launcher PID and the Codex child PID (if recorded). The
-/// launcher writes this file on startup (only when its proxy is bound)
-/// and deletes it on clean exit; stale files mean the prior launcher
-/// died abnormally.
-fn read_launcher_pid_file() -> Option<LauncherPids> {
-    let pid_path = dirs::home_dir()?
-        .join(".echobird")
-        .join("codex-launcher.pid");
-    let content = std::fs::read_to_string(&pid_path).ok()?;
-    let parsed: serde_json::Value = serde_json::from_str(&content).ok()?;
-    let launcher_pid = parsed.get("pid").and_then(|v| v.as_u64())? as u32;
-    let codex_pid = parsed
-        .get("codexPid")
-        .and_then(|v| v.as_u64())
-        .map(|n| n as u32);
-    Some(LauncherPids {
-        launcher_pid,
-        codex_pid,
-    })
-}
-
-fn delete_launcher_pid_file() {
-    if let Some(home) = dirs::home_dir() {
-        let pid_path = home.join(".echobird").join("codex-launcher.pid");
-        let _ = std::fs::remove_file(pid_path);
-    }
-}
-
 /// Force-kill a single PID synchronously. Returns true if the kill
 /// command exited successfully (process was alive and killed) or false
 /// if the process was already gone. Never spawns async — we always wait.
@@ -172,42 +137,10 @@ fn force_kill_pid(pid: u32, label: &str) -> bool {
     }
 }
 
-/// Kill the orphaned codex-launcher.cjs process AND its spawned Codex
-/// child (if recorded). We identify both via ~/.echobird/codex-launcher.pid
-/// — written by the launcher on startup with `pid`, then updated with
-/// `codexPid` after the Codex child is spawned.
-///
-/// Critical invariant: we NEVER fall back to `taskkill /IM Codex.exe` /
-/// `pkill -f Codex`. A user who launched Codex independently from the
-/// terminal must not have it killed when EchoBird closes.
-fn kill_stale_codex_launchers() {
-    let Some(pids) = read_launcher_pid_file() else {
-        return;
-    };
-
-    log::info!(
-        "[Cleanup] Found launcher PID file: launcher={} codex={:?}",
-        pids.launcher_pid,
-        pids.codex_pid
-    );
-
-    // Kill Codex first so it can't reconnect to the proxy mid-teardown.
-    // Best-effort — the launcher's own onExit handler may already have
-    // killed it via SIGTERM forwarding when we kill the launcher.
-    if let Some(codex_pid) = pids.codex_pid {
-        force_kill_pid(codex_pid, "codex");
-    }
-
-    force_kill_pid(pids.launcher_pid, "codex-launcher");
-
-    delete_launcher_pid_file();
-}
-
 /// Kill the orphaned llama-server we spawned in a prior session
 /// (recorded in ~/.echobird/llama-server.pid by services::local_llm).
-/// Same defense-in-depth posture as kill_stale_codex_launchers: PID-only,
-/// never taskkill /IM llama-server.exe — user-launched instances must
-/// survive when EchoBird closes.
+/// PID-only — never taskkill /IM llama-server.exe — user-launched
+/// instances must survive when EchoBird closes.
 fn kill_stale_llama_server() {
     let Some(pid) = services::local_llm::pid_file::read_pid_file() else {
         return;
@@ -230,13 +163,12 @@ pub fn run() {
         .manage(ssh_commands::create_ssh_pool())
         .manage(services::agent_loop::create_session_map())
         .setup(|app| {
-            // Clean up orphaned processes from a previous EchoBird session
-            // that exited abnormally. Runs before any tool launch, so the
-            // new launcher always gets a fresh proxy port and llama-server
-            // can bind its port without conflict.
-            kill_stale_codex_launchers();
+            // Clean up orphaned llama-server from a previous EchoBird
+            // session. The codex launcher doesn't need this — the proxy
+            // shares a fixed port (53682) and any stale launcher gets
+            // shared by new launchers via the EADDRINUSE branch.
             kill_stale_llama_server();
-            log::info!("[Setup] Cleaned up any leftover codex-launcher / llama-server processes");
+            log::info!("[Setup] Cleaned up any leftover llama-server processes");
 
             // Initialize resource_dir for correct tools/ path resolution on all platforms
             // (especially Linux where exe is at /usr/bin but tools are at /usr/lib/com.echobird.ai/)
@@ -477,15 +409,13 @@ pub fn run() {
                     // Otherwise, let it close normally
                 }
                 tauri::RunEvent::Exit => {
-                    // PID-based cleanup: kill ONLY processes we spawned. We
-                    // deliberately never taskkill /IM or pkill -f by name —
-                    // that would also kill instances the user launched
-                    // independently from terminal/Start menu, or from
-                    // another EchoBird instance.
-                    kill_stale_codex_launchers();
+                    // Clean up llama-server (our spawned local LLM). The
+                    // codex launcher we don't touch — if it's still running
+                    // when EchoBird exits, that's fine; the user keeps
+                    // working in Codex, and any new launcher we spawn next
+                    // session will share the same FIXED proxy port.
                     kill_stale_llama_server();
-
-                    log::info!("[App] Exit: cleaned up our codex-launcher + Codex + llama-server via PID files");
+                    log::info!("[App] Exit: cleaned up llama-server");
                 }
                 _ => {}
             }
