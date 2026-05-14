@@ -1,5 +1,17 @@
 // Codex Responses↔Chat proxy — Rust port of tools/codex/lib/*.cjs.
 //
+// Phase 2-5 status note: the translator submodules (`protocol_converter`,
+// `content_mapper`, `session_store`, eventually `stream_handler`) compile
+// in isolation and are exercised by their own unit tests, but the live
+// HTTP handler in `server.rs` is still the Phase 1 placeholder — it
+// returns 501 NotImplemented and doesn't yet call the translator. That
+// means everything in the submodules is "dead code" from the linker's
+// point of view until Phase 6 wires the handler. We blanket-allow
+// dead_code module-wide while the rewrite is mid-flight; the allow gets
+// removed in Phase 7 when the whole pipeline is integrated.
+#![allow(dead_code)]
+
+//
 // Architecture
 //
 // Tauri's main process spawns a background tokio task at startup that
@@ -30,7 +42,15 @@
 //   content_mapper.rs     ← Phase 5: text/image multimodal parts
 //   onboarding_bypass.rs  ← Phase 5: ~/.codex/.codex-global-state.json patch
 
+mod content_mapper;
+mod protocol_converter;
 mod server;
+mod session_store;
+
+#[cfg(test)]
+pub use protocol_converter::responses_to_chat;
+#[cfg(test)]
+pub use session_store::SessionStore;
 
 /// Fixed port. Kept in sync with `CODEX_PROXY_PORT` in
 /// `tool_config_manager.rs` and `config-manager.cjs` (still used by the
