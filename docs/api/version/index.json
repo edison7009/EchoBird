@@ -1,5 +1,5 @@
 {
-  "version": "2.6.4",
-  "releaseDate": "2026-05-13",
-  "releaseNotes": "chore: bump version to 2.6.4"
+  "version": "4.6.0",
+  "releaseDate": "2026-05-14",
+  "releaseNotes": "fix: Codex dual deception mechanism + hash-based provider ID to prevent history collision"
 }
