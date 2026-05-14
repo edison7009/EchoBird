@@ -1423,20 +1423,26 @@ fn read_codex() -> Option<ModelInfo> {
     }
 
     let provider_id = toml_read_top(&content, "model_provider");
-    let base_url = if provider_id.is_empty() {
-        None
-    } else {
-        let value = toml_read_table_value(
-            &content,
-            &format!("model_providers.{}", provider_id),
-            "base_url",
-        );
-        if value.is_empty() {
+
+    // Read base_url from relay file first (contains original URL, not proxy).
+    // When the launcher is running, config.toml's base_url points to 127.0.0.1
+    // but we want to display the actual provider URL to the user.
+    let base_url = read_codex_relay_base_url().or_else(|| {
+        if provider_id.is_empty() {
             None
         } else {
-            Some(value)
+            let value = toml_read_table_value(
+                &content,
+                &format!("model_providers.{}", provider_id),
+                "base_url",
+            );
+            if value.is_empty() {
+                None
+            } else {
+                Some(value)
+            }
         }
-    };
+    });
 
     // API key now lives in ~/.codex/auth.json (preferred_auth_method=apikey).
     // Fall back to the legacy env_key path for configs written before this change.
@@ -1471,6 +1477,18 @@ fn read_codex_auth_key(codex_dir: &Path) -> Option<String> {
     let content = fs::read_to_string(codex_dir.join("auth.json")).ok()?;
     let v: serde_json::Value = serde_json::from_str(&content).ok()?;
     v.get("OPENAI_API_KEY")
+        .and_then(|x| x.as_str())
+        .map(String::from)
+}
+
+/// Read the original base_url from ~/.echobird/codex.json relay file.
+/// When the launcher is running, config.toml's base_url points to the proxy
+/// (127.0.0.1:port), but the relay file preserves the actual provider URL.
+fn read_codex_relay_base_url() -> Option<String> {
+    let relay_path = echobird_dir().join("codex.json");
+    let content = fs::read_to_string(relay_path).ok()?;
+    let v: serde_json::Value = serde_json::from_str(&content).ok()?;
+    v.get("baseUrl")
         .and_then(|x| x.as_str())
         .map(String::from)
 }
