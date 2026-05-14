@@ -407,51 +407,68 @@ function responsesToChat(body, sessions, logger) {
     return chatBody;
 }
 
-// Move tool messages forward so they immediately follow their matching
-// assistant.tool_calls. Any non-tool message that was interleaved between
-// the assistant.tool_calls and the last consumed tool message gets
-// pushed to AFTER all the tool messages.
+// Enforce Chat Completions' strict pairing rule: every assistant message
+// with `tool_calls` must be IMMEDIATELY followed by `role: "tool"`
+// messages for each tool_call_id, with no other messages between them.
 //
-// Invariant we're maintaining: Chat Completions' strict ordering rule
-// that an `assistant` message with `tool_calls` must be followed
-// immediately by `role: "tool"` messages for every tool_call_id, with
-// no other messages in between.
+// Two-phase algorithm:
+//   Phase 1: index every tool message by its tool_call_id.
+//   Phase 2: walk messages in order. Skip tool messages (they get pulled
+//            into place). For each assistant.tool_calls, strip out any
+//            tool_call.id that has no matching tool message (drops the
+//            whole message if no valid tool_calls remain AND no plain
+//            content), then emit the assistant followed immediately by
+//            its matching tool messages.
 //
-// We do NOT reorder anything that isn't part of a tool-call window —
-// plain conversation order is preserved.
+// Defends against three real-world misorderings observed in Codex
+// rollouts and theoretical cases:
+//   (a) developer/user/system message interleaved between function_call
+//       and function_call_output (real, hit in user's rollout 2026-05-15)
+//   (b) orphan tool messages whose assistant.tool_calls was never emitted
+//       (theoretical, would happen on partial input history)
+//   (c) orphan assistant.tool_calls whose matching tool message is
+//       missing from input (theoretical, partial history again)
+//
+// Non-tool, non-assistant-tool_calls messages keep their relative order.
 function reorderToolMessages(messages) {
-    const result = [];
-    let i = 0;
-    while (i < messages.length) {
-        const msg = messages[i];
-        result.push(msg);
-        i++;
-        const isToolCallAssistant = msg.role === "assistant"
-            && Array.isArray(msg.tool_calls)
-            && msg.tool_calls.length > 0;
-        if (!isToolCallAssistant) continue;
-
-        const pending = new Set(
-            msg.tool_calls
-                .map(tc => tc?.id)
-                .filter(id => typeof id === "string" && id.length > 0)
-        );
-        if (pending.size === 0) continue;
-        const deferred = [];
-        // Scan forward, pulling matching tool messages right behind the
-        // assistant, deferring everything else until pending is drained.
-        while (i < messages.length && pending.size > 0) {
-            const next = messages[i];
-            if (next.role === "tool" && pending.has(next.tool_call_id)) {
-                result.push(next);
-                pending.delete(next.tool_call_id);
-            } else {
-                deferred.push(next);
-            }
-            i++;
+    // Phase 1: tool message → call_id index. First occurrence wins on
+    // the off chance there are duplicates (dedup already happens at
+    // the converter level; this is belt-and-braces).
+    const toolByCallId = new Map();
+    for (const m of messages) {
+        if (m.role === "tool" && m.tool_call_id && !toolByCallId.has(m.tool_call_id)) {
+            toolByCallId.set(m.tool_call_id, m);
         }
-        // Flush whatever got bumped out of order.
-        for (const d of deferred) result.push(d);
+    }
+
+    const result = [];
+    for (const m of messages) {
+        // Tool messages are emitted along with their assistant, not here.
+        // Orphans (no matching assistant) get silently dropped — better
+        // than letting upstream reject the whole request.
+        if (m.role === "tool") continue;
+
+        // Assistant with tool_calls: filter out orphan tool_call.ids,
+        // then emit + its tools in one tight block.
+        if (m.role === "assistant" && Array.isArray(m.tool_calls) && m.tool_calls.length > 0) {
+            const valid = m.tool_calls.filter(tc => tc?.id && toolByCallId.has(tc.id));
+            if (valid.length === 0) {
+                // Every tool_call is orphan. If the assistant has plain
+                // content, keep it sans tool_calls; otherwise drop entirely.
+                if (typeof m.content === "string" && m.content.length > 0) {
+                    const { tool_calls: _, ...rest } = m;
+                    result.push(rest);
+                }
+                continue;
+            }
+            result.push(valid.length === m.tool_calls.length ? m : { ...m, tool_calls: valid });
+            for (const tc of valid) {
+                result.push(toolByCallId.get(tc.id));
+            }
+            continue;
+        }
+
+        result.push(m);
     }
     return result;
 }
