@@ -32,6 +32,7 @@ const { valueToChatContent, mapContentPart } = require("./lib/content-mapper.cjs
 const { bypassOnboarding } = require("./lib/onboarding-bypass.cjs");
 const { CODEX_CONFIG, ECHOBIRD_CONFIG } = require("./lib/config-manager.cjs");
 const { writePidFile, deletePidFile } = require("./lib/pid-file.cjs");
+const { shieldOpenAIEnvVars } = require("./lib/env-shield.cjs");
 
 // Read launcher version from package.json so the PID file's `version`
 // field is accurate without hard-coding it here.
@@ -122,6 +123,12 @@ async function main() {
     }
 
     if (apiKey) process.env[envKey] = apiKey;
+
+    // Defense-in-depth: process_manager.rs pre-seeded OPENAI_BASE_URL with
+    // the real vendor URL. Override it here so that even if Codex falls
+    // back to the env var (it shouldn't — config.toml wins — but a future
+    // version or odd config might), it still hits our proxy.
+    shieldOpenAIEnvVars(localUrl);
 
     // Write PID file ONLY when the proxy is up — that's the resource we
     // need Tauri's startup-cleanup to reclaim if EchoBird died abnormally.
