@@ -1,5 +1,5 @@
 {
-  "version": "4.6.0",
+  "version": "4.6.2",
   "releaseDate": "2026-05-14",
-  "releaseNotes": "fix: Codex dual deception mechanism + hash-based provider ID to prevent history collision"
+  "releaseNotes": "v4.6.2: Codex robustness pass — fixes #36"
 }
