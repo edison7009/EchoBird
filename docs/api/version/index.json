@@ -1,5 +1,5 @@
 {
   "version": "4.6.9",
-  "releaseDate": "2026-05-15",
-  "releaseNotes": "v4.6.9: Codex 启动不再依赖本地 Node.js 环境"
+  "releaseDate": "2026-05-14",
+  "releaseNotes": "v4.6.9: Codex 启动不再依赖本地 Node.js"
 }
