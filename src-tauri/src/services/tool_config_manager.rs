@@ -1013,7 +1013,6 @@ fn restore_opencode_to_official() -> ApplyResult {
 
 // Codex CLI and Codex Desktop share ~/.codex/config.toml.
 
-
 fn apply_codex(tool_id: &str, model_info: &ModelInfo) -> ApplyResult {
     // Architecture: model switching is JUST a relay file update +
     // auth.json update. config.toml's base_url is permanently
