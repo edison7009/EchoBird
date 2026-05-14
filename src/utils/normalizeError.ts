@@ -1,13 +1,28 @@
 import type { TKey } from '../i18n/types';
 
 /**
- * Maps a raw backend/OS error message to a user-friendly i18n key.
- * Keeps error messages concise, non-technical, and language-neutral.
+ * Maps a raw backend / OS error message to a user-friendly i18n key.
+ *
+ * Returns:
+ *   - A TKey when the message matches a known category (timeout, ssh,
+ *     cancelled, no-server, no-model, agent-failed). The caller
+ *     renders the localized string.
+ *   - `null` when the message is informative but uncategorized. The
+ *     caller renders the message text verbatim, because v4.7.0 made
+ *     the backend emit the upstream provider's real error message
+ *     ("Invalid API Key" / "Rate limit exceeded" / "You exceeded
+ *     your quota") — discarding that into a generic "请求失败" key
+ *     would hide the actionable info from the user.
+ *
+ * The caller falls back to `error.requestFailed` only when the
+ * message is empty (no info to show).
  */
-export function errorToKey(msg: string): TKey {
-  const lower = String(msg).toLowerCase();
+export function errorToKey(msg: string): TKey | null {
+  const raw = String(msg).trim();
+  if (!raw) return 'error.requestFailed';
+  const lower = raw.toLowerCase();
 
-  // User-initiated cancel/abort — check first
+  // User-initiated cancel / abort — check first
   if (
     lower === 'aborted' ||
     lower.includes('user abort') ||
@@ -18,14 +33,16 @@ export function errorToKey(msg: string): TKey {
   )
     return 'error.userCancelled';
 
-  // Connection timeout / no response (includes Windows OS error 10060 and Chinese OS text)
+  // Connection timeout / no response (includes Windows OS error 10060
+  // and Chinese OS text).
   if (
     lower.includes('10060') ||
     lower.includes('timed out') ||
     lower.includes('timeout') ||
     lower.includes('没有回应') ||
     lower.includes('没有正确答复') ||
-    lower.includes('connection timed')
+    lower.includes('connection timed') ||
+    lower.includes('stream stalled')
   )
     return 'error.connectionTimeout';
 
@@ -54,13 +71,21 @@ export function errorToKey(msg: string): TKey {
   )
     return 'error.noModelSelected';
 
-  // Generic fallback
-  return 'error.requestFailed';
+  // Uncategorized but informative — let the caller render `raw` verbatim
+  // so users see the provider's own error message.
+  return null;
 }
 
 /**
- * Convenience: translate a raw error message using the current t() function.
+ * Convenience: translate a raw error message into a display string.
+ * Falls back to the raw message itself when no category matches —
+ * preserves the verbatim upstream error introduced in v4.7.0.
  */
 export function normalizeError(msg: unknown, t: (key: TKey) => string): string {
-  return t(errorToKey(String(msg)));
+  const raw = String(msg).trim();
+  const key = errorToKey(raw);
+  if (key) return t(key);
+  // Truncate very long bodies so the chat bubble stays readable;
+  // 500 chars is more than enough for any reasonable error message.
+  return raw.length > 500 ? `${raw.slice(0, 500)}…` : raw;
 }

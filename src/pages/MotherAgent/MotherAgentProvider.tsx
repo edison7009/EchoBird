@@ -340,7 +340,14 @@ export function MotherAgentProvider({ children }: { children: React.ReactNode })
             const key = errorToKey(event.message);
             // Skip duplicate cancelled message — already added immediately in abortAgent()
             if (key !== 'error.userCancelled') {
-              setChatOutput((prev) => [...prev, { type: 'error', text: '', i18nKey: key }]);
+              // v4.7.0+: when the backend emits a provider's verbatim
+              // error ("Invalid API Key" / "Rate limit exceeded" / etc.),
+              // errorToKey returns null and we render that message
+              // straight through. Categorized errors still go via i18n.
+              const errBubble = key
+                ? { type: 'error' as const, text: '', i18nKey: key }
+                : { type: 'error' as const, text: String(event.message ?? '').slice(0, 500) };
+              setChatOutput((prev) => [...prev, errBubble]);
             }
             setIsProcessing(false);
             setAgentState('idle');
@@ -415,8 +422,14 @@ export function MotherAgentProvider({ children }: { children: React.ReactNode })
         });
       } catch (e) {
         const key = errorToKey(String(e));
-        const type = key === 'error.userCancelled' ? 'cancelled' : 'error';
-        setChatOutput((prev) => [...prev, { type, text: '', i18nKey: key }]);
+        const type: 'cancelled' | 'error' =
+          key === 'error.userCancelled' ? 'cancelled' : 'error';
+        // Same v4.7.0+ pass-through as the streaming-error case: when
+        // errorToKey can't classify, render the message verbatim.
+        const bubble: ChatMessage = key
+          ? { type, text: '', i18nKey: key }
+          : { type, text: String(e ?? '').slice(0, 500) };
+        setChatOutput((prev) => [...prev, bubble]);
         setIsProcessing(false);
       }
     },
