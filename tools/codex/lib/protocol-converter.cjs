@@ -98,9 +98,20 @@ function responsesToChat(body, sessions, logger) {
                 continue;
             }
 
-            if (t === "function_call_output" || t === "local_shell_call_output") {
-                // local_shell_call_output (Codex 0.130+ for the built-in
-                // shell tool) maps to a regular tool result in Chat.
+            // Any `*_call_output` item with a call_id maps to a Chat
+            // Completions tool message. The Responses API has a growing
+            // list of these (`function_call_output`, `local_shell_call_output`,
+            // `custom_tool_call_output`, `web_search_call_output`, …) as
+            // Codex grows new built-in skills and plugins. If we recognized
+            // only `function_call_output` we'd skip the others — yet the
+            // corresponding `function_call` items in the same input typically
+            // STILL produce an assistant.tool_calls, leaving the upstream
+            // with unanswered tool_call_ids:
+            //   "An assistant message with 'tool_calls' must be followed
+            //    by tool messages responding to each 'tool_call_id'"
+            // The generic suffix match catches every current and future
+            // variant in one place.
+            if (t && t.endsWith("_call_output")) {
                 const callId = item.call_id || item.id || "";
                 if (callId && !emittedToolResponses.has(callId)) {
                     emittedToolResponses.add(callId);
