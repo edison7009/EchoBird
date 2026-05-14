@@ -73,5 +73,5 @@ Install Codex Desktop from <https://openai.com/codex> or the Microsoft Store. Ec
 
 ## Related
 
-- `tools/codex/codex-provider-sync/` — background sync tool that keeps Codex's history visible across provider switches
 - `src-tauri/src/services/tool_config_manager.rs` — writes the canonical `~/.codex/config.toml`
+- `src-tauri/src/services/process_manager.rs` — `start_codex_native` spawns Codex CLI / Desktop after the pre-flight checks
