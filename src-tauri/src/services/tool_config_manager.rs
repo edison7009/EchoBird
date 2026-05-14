@@ -1100,11 +1100,33 @@ fn apply_codex(tool_id: &str, model_info: &ModelInfo) -> ApplyResult {
     );
 
     ensure_parent(&config_path);
-    if let Err(e) = fs::write(&config_path, &content) {
-        return ApplyResult {
-            success: false,
-            message: format!("Codex config error: {}", e),
-        };
+
+    // Minimum-touch principle: only write config.toml if it doesn't
+    // already point at our proxy port. Once canonical, Codex starts
+    // writing its own runtime state into the file ([projects.*] trust
+    // levels, [tui.*] NUX progress, [plugins.*] enablement) — those
+    // are NOT our junk, they're Codex's working memory. If we blindly
+    // overwrote every apply_codex, the user would lose project trust
+    // and have to re-approve every directory on every model switch.
+    //
+    // The canonical config we write here doesn't actually vary across
+    // model switches (provider name and base_url are both pinned), so
+    // skipping the write when already canonical is functionally
+    // equivalent to "always rewrite" — minus the wiping of Codex state.
+    //
+    // First install / corrupted / pre-canonical legacy configs fall
+    // through to the full write, which is a one-time bootstrap heal.
+    let canonical_marker = format!("http://127.0.0.1:{}/v1", CODEX_PROXY_PORT);
+    let needs_write = fs::read_to_string(&config_path)
+        .map(|existing| !existing.contains(&canonical_marker))
+        .unwrap_or(true);
+    if needs_write {
+        if let Err(e) = fs::write(&config_path, &content) {
+            return ApplyResult {
+                success: false,
+                message: format!("Codex config error: {}", e),
+            };
+        }
     }
 
     // Back up any existing auth.json (OAuth-token sign-ins, prior api-key
