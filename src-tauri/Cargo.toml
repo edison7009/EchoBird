@@ -53,6 +53,8 @@ futures-util = "0.3"
 axum = "0.8"
 tower = "0.5"
 http-body-util = "0.1"
+bytes = "1"
+tokio-stream = "0.1"
 
 # Time
 chrono = "0.4"

@@ -21,11 +21,17 @@ use std::fs;
 use std::io;
 use std::path::{Path, PathBuf};
 
+// Phase 7 will call `bypass_onboarding` from process_manager.rs just
+// before spawning Codex (currently the .cjs launcher still handles it).
+// Until then everything in this module is reachable only from tests.
+
 /// Filename inside the Codex dir.
+#[allow(dead_code)]
 pub const GLOBAL_STATE_FILE: &str = ".codex-global-state.json";
 
 /// Outcome tag for `bypass_onboarding`. The variant tells the caller
 /// whether anything actually changed on disk (useful for logging).
+#[allow(dead_code)]
 #[derive(Debug, PartialEq, Eq)]
 pub enum BypassOutcome {
     /// File was missing or out-of-date; we wrote a fresh patched
@@ -37,6 +43,7 @@ pub enum BypassOutcome {
 
 /// Patch the Codex global state file to skip onboarding. Returns the
 /// outcome on success, or an I/O error if reading/writing failed.
+#[allow(dead_code)]
 pub fn bypass_onboarding(codex_dir: &Path) -> io::Result<BypassOutcome> {
     let global_state_path = codex_dir.join(GLOBAL_STATE_FILE);
 
@@ -80,6 +87,7 @@ pub fn bypass_onboarding(codex_dir: &Path) -> io::Result<BypassOutcome> {
 /// Check whether onboarding has already been completed (per the same
 /// flags `bypass_onboarding` writes). Used as a fast pre-flight to
 /// avoid unnecessary writes / backups on every proxy start.
+#[allow(dead_code)]
 pub fn is_onboarding_complete(codex_dir: &Path) -> bool {
     let global_state_path = codex_dir.join(GLOBAL_STATE_FILE);
     let content = match fs::read_to_string(&global_state_path) {
@@ -109,6 +117,7 @@ pub fn is_onboarding_complete(codex_dir: &Path) -> bool {
 // Append a suffix to a path. Used to derive `.bak` / `.tmp` sibling
 // paths. We append textually rather than using `with_extension` because
 // the global state filename already starts with a dot.
+#[allow(dead_code)]
 fn path_with_suffix(p: &Path, suffix: &str) -> PathBuf {
     let mut s: std::ffi::OsString = p.as_os_str().to_os_string();
     s.push(suffix);
@@ -118,6 +127,7 @@ fn path_with_suffix(p: &Path, suffix: &str) -> PathBuf {
 // Apply the onboarding-skip flags to `state` in place. Returns true if
 // anything was actually changed. The list is kept in lockstep with the
 // .cjs version so both implementations produce identical files.
+#[allow(dead_code)]
 fn apply_patches(state: &mut Value) -> bool {
     let mut modified = false;
 

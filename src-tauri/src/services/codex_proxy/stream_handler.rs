@@ -331,7 +331,10 @@ impl SseEvent {
     }
 
     /// Serialize to wire format (`event: ...\ndata: {...}\n\n`). Used by
-    /// the axum bridge and by tests that want to assert exact bytes.
+    /// the axum bridge (Phase 6) when it has to emit a raw SSE chunk
+    /// for the synchronous error-envelope path, and by tests that want
+    /// to assert exact bytes.
+    #[allow(dead_code)]
     pub fn to_wire(&self) -> String {
         format!("event: {}\ndata: {}\n\n", self.event, self.data)
     }
@@ -394,6 +397,7 @@ impl StreamState {
         }
     }
 
+    #[allow(dead_code)]
     pub fn response_id(&self) -> &str {
         &self.response_id
     }

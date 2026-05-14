@@ -38,10 +38,16 @@ use super::CODEX_PROXY_PORT;
 pub const RELAY_FILENAME: &str = "codex.json";
 
 /// File name (under the Codex dir) Codex reads at startup.
+//
+// Phase 7 will call `ensure_canonical_config` from process_manager.rs
+// just before spawning Codex, replacing the equivalent check inside
+// codex-launcher.cjs. Until then these are reachable only from tests.
+#[allow(dead_code)]
 pub const CODEX_CONFIG_FILENAME: &str = "config.toml";
 
 /// The base_url Codex sees. The same value is baked into
 /// `apply_codex` over in `tool_config_manager.rs` — keep them in sync.
+#[allow(dead_code)]
 pub fn codex_proxy_url() -> String {
     format!("http://127.0.0.1:{CODEX_PROXY_PORT}/v1")
 }
@@ -51,6 +57,7 @@ pub fn codex_proxy_url() -> String {
 /// changed wire_api) breaks the protocol bridge. `apply_codex` writes
 /// the same template, and `ensure_canonical_config` rewrites if drift
 /// is detected.
+#[allow(dead_code)]
 pub fn canonical_config_toml() -> String {
     format!(
         "model_provider = \"OpenAI\"\n\
@@ -72,6 +79,7 @@ pub fn canonical_config_toml() -> String {
 }
 
 /// Default Codex config directory: env override → `~/.codex`.
+#[allow(dead_code)]
 pub fn default_codex_dir() -> Option<PathBuf> {
     if let Ok(p) = std::env::var("ECHOBIRD_CODEX_CONFIG_DIR") {
         if !p.is_empty() {
@@ -93,6 +101,7 @@ pub fn default_relay_dir() -> Option<PathBuf> {
 
 /// Outcome of `ensure_canonical_config`. The `reason` field is a stable
 /// tag suitable for logging / tests.
+#[allow(dead_code)]
 #[derive(Debug, PartialEq, Eq)]
 pub struct EnsureOutcome {
     pub wrote: bool,
@@ -102,6 +111,7 @@ pub struct EnsureOutcome {
 /// Verify config.toml at `codex_config_path` points Codex at our proxy.
 /// If missing or drifted, rewrite it to the canonical template.
 /// Idempotent: cheap when already correct, self-healing when not.
+#[allow(dead_code)]
 pub fn ensure_canonical_config(codex_config_path: &Path) -> io::Result<EnsureOutcome> {
     let template = canonical_config_toml();
     let proxy_url = codex_proxy_url();

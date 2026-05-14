@@ -1,15 +1,10 @@
 // Codex Responses↔Chat proxy — Rust port of tools/codex/lib/*.cjs.
 //
-// Phase 2-5 status note: the translator submodules (`protocol_converter`,
-// `content_mapper`, `session_store`, eventually `stream_handler`) compile
-// in isolation and are exercised by their own unit tests, but the live
-// HTTP handler in `server.rs` is still the Phase 1 placeholder — it
-// returns 501 NotImplemented and doesn't yet call the translator. That
-// means everything in the submodules is "dead code" from the linker's
-// point of view until Phase 6 wires the handler. We blanket-allow
-// dead_code module-wide while the rewrite is mid-flight; the allow gets
-// removed in Phase 7 when the whole pipeline is integrated.
-#![allow(dead_code)]
+// As of Phase 6 the handler in `server.rs` wires up every submodule,
+// so the blanket `#![allow(dead_code)]` we carried through Phases 2-5
+// has been removed. The legacy Node launcher still ships in v4.6.8 as
+// a defense-in-depth fallback (it gracefully shares the port when our
+// Rust proxy already holds it); Phase 7 deletes the .cjs files outright.
 
 //
 // Architecture
