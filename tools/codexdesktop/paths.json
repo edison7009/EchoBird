@@ -22,5 +22,10 @@
             "/Applications/Codex.app/Contents/MacOS/Codex"
         ],
         "linux": []
+    },
+    "installHints": {
+        "windowsDisplayNames": ["Codex"],
+        "windowsPublisher": "OpenAI",
+        "macosAppName": "Codex"
     }
 }

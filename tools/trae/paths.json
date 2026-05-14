@@ -19,5 +19,11 @@
             "/Applications/Trae.app/Contents/MacOS/Trae"
         ],
         "linux": []
+    },
+    "installHints": {
+        "windowsDisplayNames": ["Trae"],
+        "windowsPublisher": "Bytedance",
+        "macosAppName": "Trae",
+        "linuxDesktopNames": ["trae", "Trae"]
     }
 }

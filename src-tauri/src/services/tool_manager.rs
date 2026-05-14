@@ -5,7 +5,9 @@
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use crate::models::tool::{ConfigMapping, DetectedTool, PathsConfig, ToolCategory, ToolDefinition};
+use crate::models::tool::{
+    ConfigMapping, DetectedTool, InstallHints, PathsConfig, ToolCategory, ToolDefinition,
+};
 use crate::utils::platform;
 
 // ─── Path expansion (mirrors tools/utils.ts expandPath) ───
@@ -340,6 +342,252 @@ fn get_platform_paths(paths: &crate::models::tool::PlatformPaths) -> Vec<String>
     }
 }
 
+// ─── Install-hints scan (per platform) ───
+//
+// Fallback when paths.json's hardcoded locations miss the install — user
+// chose a non-default directory, OS uses a different package layout, etc.
+// Authoritative source per platform:
+//   Windows: HKLM/HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*
+//   macOS:   /Applications, ~/Applications, then mdfind fallback
+//   Linux:   /usr/share/applications/*.desktop, ~/.local/share/applications, flatpak exports
+
+#[cfg(windows)]
+fn scan_windows_registry(hints: &InstallHints) -> Option<String> {
+    if hints.windows_display_names.is_empty() {
+        return None;
+    }
+    use winreg::enums::{HKEY_CURRENT_USER, HKEY_LOCAL_MACHINE, KEY_READ};
+    use winreg::RegKey;
+
+    let names_lower: Vec<String> = hints
+        .windows_display_names
+        .iter()
+        .map(|s| s.to_lowercase())
+        .collect();
+    let publisher_filter = hints.windows_publisher.as_ref().map(|p| p.to_lowercase());
+
+    // Standard Uninstall hives. WOW6432Node catches 32-bit installers on 64-bit Windows.
+    let hives: &[(_, &str)] = &[
+        (
+            HKEY_LOCAL_MACHINE,
+            "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall",
+        ),
+        (
+            HKEY_LOCAL_MACHINE,
+            "SOFTWARE\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall",
+        ),
+        (
+            HKEY_CURRENT_USER,
+            "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall",
+        ),
+    ];
+
+    for (hive, path) in hives {
+        let key = RegKey::predef(*hive);
+        let uninstall = match key.open_subkey_with_flags(path, KEY_READ) {
+            Ok(k) => k,
+            Err(_) => continue,
+        };
+        for subkey_name in uninstall.enum_keys().filter_map(|x| x.ok()) {
+            let entry = match uninstall.open_subkey(&subkey_name) {
+                Ok(e) => e,
+                Err(_) => continue,
+            };
+            let display_name: String = entry.get_value("DisplayName").unwrap_or_default();
+            if display_name.is_empty() {
+                continue;
+            }
+            let dn_lower = display_name.to_lowercase();
+            // EXACT case-insensitive match. We don't substring-match because
+            // "Trae" would then match "Trae CN" and the wrong card would
+            // claim a non-default-install. If the registry uses suffixes
+            // ("Microsoft Visual Studio Code" vs "(User)"), list every
+            // variant explicitly in windowsDisplayNames.
+            if !names_lower.contains(&dn_lower) {
+                continue;
+            }
+            if let Some(ref pub_filter) = publisher_filter {
+                let pub_val: String = entry.get_value("Publisher").unwrap_or_default();
+                if !pub_val.to_lowercase().contains(pub_filter) {
+                    continue;
+                }
+            }
+            // DisplayIcon usually points at the main exe directly. Strip ",N" icon-index
+            // suffix if present (Windows convention for selecting an icon from a multi-icon exe).
+            if let Ok(icon) = entry.get_value::<String, _>("DisplayIcon") {
+                let icon_path = icon.split(',').next().unwrap_or(&icon).trim();
+                let unquoted = icon_path.trim_matches('"');
+                if !unquoted.is_empty() && Path::new(unquoted).exists() {
+                    log::info!(
+                        "[InstallHints] Registry hit (DisplayIcon): {} → {}",
+                        display_name,
+                        unquoted
+                    );
+                    return Some(unquoted.to_string());
+                }
+            }
+            // Fallback: InstallLocation is a directory; we return it as-is.
+            // detect_tool's caller knows how to handle both file and directory results.
+            if let Ok(install_loc) = entry.get_value::<String, _>("InstallLocation") {
+                let trimmed = install_loc.trim().trim_matches('"');
+                if !trimmed.is_empty() && Path::new(trimmed).exists() {
+                    log::info!(
+                        "[InstallHints] Registry hit (InstallLocation): {} → {}",
+                        display_name,
+                        trimmed
+                    );
+                    return Some(trimmed.to_string());
+                }
+            }
+        }
+    }
+    None
+}
+
+#[cfg(target_os = "macos")]
+fn scan_macos_applications(hints: &InstallHints) -> Option<String> {
+    let app_name = hints.macos_app_name.as_ref()?;
+    let normalized = if app_name.ends_with(".app") {
+        app_name.clone()
+    } else {
+        format!("{}.app", app_name)
+    };
+    // Standard install roots first — fast filesystem stat.
+    for root in ["/Applications", "/Applications/Utilities"] {
+        let candidate = PathBuf::from(root).join(&normalized);
+        if candidate.exists() {
+            log::info!("[InstallHints] macOS hit: {}", candidate.display());
+            return Some(candidate.to_string_lossy().to_string());
+        }
+    }
+    if let Some(home) = dirs::home_dir() {
+        let candidate = home.join("Applications").join(&normalized);
+        if candidate.exists() {
+            log::info!("[InstallHints] macOS hit (user): {}", candidate.display());
+            return Some(candidate.to_string_lossy().to_string());
+        }
+    }
+    // Fallback: mdfind covers non-/Applications installs (e.g. ~/Tools/Foo.app).
+    if let Ok(out) = std::process::Command::new("mdfind")
+        .args(["-name", &normalized])
+        .output()
+    {
+        let stdout = String::from_utf8_lossy(&out.stdout);
+        for line in stdout.lines() {
+            let p = line.trim();
+            if !p.is_empty() && p.ends_with(&normalized) && Path::new(p).exists() {
+                log::info!("[InstallHints] mdfind hit: {}", p);
+                return Some(p.to_string());
+            }
+        }
+    }
+    None
+}
+
+#[cfg(target_os = "linux")]
+fn scan_linux_desktop(hints: &InstallHints) -> Option<String> {
+    if hints.linux_desktop_names.is_empty() {
+        return None;
+    }
+    let names_lower: Vec<String> = hints
+        .linux_desktop_names
+        .iter()
+        .map(|s| s.to_lowercase())
+        .collect();
+
+    let mut search_dirs: Vec<PathBuf> = vec![
+        PathBuf::from("/usr/share/applications"),
+        PathBuf::from("/usr/local/share/applications"),
+        PathBuf::from("/var/lib/flatpak/exports/share/applications"),
+    ];
+    if let Some(home) = dirs::home_dir() {
+        search_dirs.push(home.join(".local/share/applications"));
+    }
+
+    for dir in &search_dirs {
+        let entries = match fs::read_dir(dir) {
+            Ok(e) => e,
+            Err(_) => continue,
+        };
+        for entry in entries.filter_map(|e| e.ok()) {
+            let path = entry.path();
+            if path.extension().and_then(|x| x.to_str()) != Some("desktop") {
+                continue;
+            }
+            let content = match fs::read_to_string(&path) {
+                Ok(c) => c,
+                Err(_) => continue,
+            };
+            // Parse the [Desktop Entry] Name= and Exec= keys (first occurrence wins).
+            let mut name = String::new();
+            let mut exec = String::new();
+            for line in content.lines() {
+                if name.is_empty() {
+                    if let Some(v) = line.strip_prefix("Name=") {
+                        name = v.trim().to_string();
+                    }
+                }
+                if exec.is_empty() {
+                    if let Some(v) = line.strip_prefix("Exec=") {
+                        exec = v.trim().to_string();
+                    }
+                }
+                if !name.is_empty() && !exec.is_empty() {
+                    break;
+                }
+            }
+            let name_lower = name.to_lowercase();
+            let filename_lower = path
+                .file_stem()
+                .and_then(|s| s.to_str())
+                .unwrap_or("")
+                .to_lowercase();
+            // Match against either visible Name= or the .desktop filename stem.
+            let hit = names_lower
+                .iter()
+                .any(|n| name_lower == *n || filename_lower == *n);
+            if !hit {
+                continue;
+            }
+            // Exec= often contains %U/%F field codes — keep only the command itself.
+            let exec_clean = exec
+                .split_whitespace()
+                .next()
+                .unwrap_or("")
+                .trim_matches('"');
+            if !exec_clean.is_empty() {
+                log::info!("[InstallHints] .desktop hit: {} → {}", name, exec_clean);
+                return Some(exec_clean.to_string());
+            }
+        }
+    }
+    None
+}
+
+/// Cross-platform dispatcher. Returns Some(path) if the install hints
+/// found the tool on disk; None otherwise (caller falls through to next
+/// detection step).
+fn scan_install_hints(pc: &PathsConfig) -> Option<String> {
+    let hints = pc.install_hints.as_ref()?;
+    #[cfg(windows)]
+    {
+        scan_windows_registry(hints)
+    }
+    #[cfg(target_os = "macos")]
+    {
+        scan_macos_applications(hints)
+    }
+    #[cfg(target_os = "linux")]
+    {
+        scan_linux_desktop(hints)
+    }
+    #[cfg(not(any(windows, target_os = "macos", target_os = "linux")))]
+    {
+        let _ = hints;
+        None
+    }
+}
+
 /// Detect if a tool is installed, returns executable path
 async fn detect_tool(pc: &PathsConfig) -> Option<String> {
     // 0. Built-in tools (always installed)
@@ -422,6 +670,20 @@ async fn detect_tool(pc: &PathsConfig) -> Option<String> {
             } else {
                 return Some(expanded.to_string_lossy().to_string());
             }
+        }
+    }
+
+    // 3.5. Install-hints fallback — catch installs at non-default paths.
+    // Windows scans the registry Uninstall hive; macOS checks /Applications +
+    // mdfind; Linux scans .desktop files. Only triggers when the hardcoded
+    // paths above missed, so default installs don't pay the lookup cost.
+    if let Some(hit) = scan_install_hints(pc) {
+        if pc.require_config_file {
+            if config_file_exists(pc) {
+                return Some(hit);
+            }
+        } else {
+            return Some(hit);
         }
     }
 

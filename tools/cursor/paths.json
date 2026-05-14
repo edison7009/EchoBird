@@ -22,5 +22,11 @@
             "/usr/bin/cursor",
             "/opt/Cursor/cursor"
         ]
+    },
+    "installHints": {
+        "windowsDisplayNames": ["Cursor"],
+        "windowsPublisher": "Anysphere",
+        "macosAppName": "Cursor",
+        "linuxDesktopNames": ["cursor", "Cursor"]
     }
 }

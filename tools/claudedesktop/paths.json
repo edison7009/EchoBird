@@ -24,5 +24,10 @@
             "/Applications/Claude.app/Contents/MacOS/Claude"
         ],
         "linux": []
+    },
+    "installHints": {
+        "windowsDisplayNames": ["Claude"],
+        "windowsPublisher": "Anthropic",
+        "macosAppName": "Claude"
     }
 }

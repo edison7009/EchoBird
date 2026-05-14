@@ -69,4 +69,7 @@ libc = "0.2"
 [target.'cfg(windows)'.dependencies]
 windows = { version = "0.62", features = ["Win32_Foundation", "Win32_Graphics_Dwm"] }
 raw-window-handle = "0.6"
+# Registry scan for tool detection — read DisplayName/InstallLocation/DisplayIcon
+# from HKLM + HKCU Uninstall keys so we find apps installed to non-default paths.
+winreg = "0.55"
 

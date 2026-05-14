@@ -20,5 +20,11 @@
             "/Applications/Trae CN.app/Contents/MacOS/Trae CN"
         ],
         "linux": []
+    },
+    "installHints": {
+        "windowsDisplayNames": ["Trae CN"],
+        "windowsPublisher": "Bytedance",
+        "macosAppName": "Trae CN",
+        "linuxDesktopNames": ["trae-cn", "Trae CN"]
     }
 }

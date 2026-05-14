@@ -22,5 +22,11 @@
             "/usr/bin/windsurf",
             "/opt/Windsurf/windsurf"
         ]
+    },
+    "installHints": {
+        "windowsDisplayNames": ["Windsurf"],
+        "windowsPublisher": "Codeium",
+        "macosAppName": "Windsurf",
+        "linuxDesktopNames": ["windsurf", "Windsurf"]
     }
 }

@@ -24,5 +24,14 @@
             "/usr/share/code/code",
             "/snap/bin/code"
         ]
+    },
+    "installHints": {
+        "windowsDisplayNames": [
+            "Microsoft Visual Studio Code",
+            "Microsoft Visual Studio Code (User)"
+        ],
+        "windowsPublisher": "Microsoft",
+        "macosAppName": "Visual Studio Code",
+        "linuxDesktopNames": ["code", "Code"]
     }
 }

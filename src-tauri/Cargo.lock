@@ -1283,6 +1283,7 @@ dependencies = [
  "uuid",
  "which",
  "windows 0.62.2",
+ "winreg",
 ]
 
 [[package]]

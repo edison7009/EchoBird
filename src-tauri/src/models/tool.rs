@@ -97,6 +97,38 @@ pub struct PathsConfig {
     /// Python module name for pip-installed tools (e.g. "nanobot" → detected via `python -m nanobot`)
     #[serde(skip_serializing_if = "Option::is_none")]
     pub python_module: Option<String>,
+    /// Platform-specific hints for detecting installs at non-standard paths.
+    /// Used by detect_install_path AFTER the hardcoded paths.json fall through —
+    /// Windows scans the registry Uninstall keys, macOS uses mdfind /
+    /// /Applications, Linux scans .desktop files.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub install_hints: Option<InstallHints>,
+}
+
+/// Platform-specific install detection hints. Each field is checked only on
+/// its target OS; unrelated fields on other OSes are ignored.
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct InstallHints {
+    /// Windows: match against `DisplayName` in
+    /// HKLM/HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*.
+    /// Multiple entries are OR-matched (e.g. "Trae CN", "Trae-CN").
+    #[serde(default)]
+    pub windows_display_names: Vec<String>,
+    /// Optional Windows `Publisher` filter (e.g. "Bytedance") for
+    /// disambiguation when display names alone could match unrelated apps.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub windows_publisher: Option<String>,
+    /// macOS: `.app` bundle name to search for. Looked up under
+    /// /Applications and ~/Applications, then via `mdfind kMDItemKind == Application`.
+    /// Either "Trae CN" or "Trae CN.app" works — we normalize.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub macos_app_name: Option<String>,
+    /// Linux: names to match against `Name=` in `.desktop` files
+    /// under /usr/share/applications, ~/.local/share/applications,
+    /// and /var/lib/flatpak/exports/share/applications.
+    #[serde(default)]
+    pub linux_desktop_names: Vec<String>,
 }
 
 // ─── config.json data structure (config read/write mapping) ───

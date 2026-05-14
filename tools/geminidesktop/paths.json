@@ -20,5 +20,10 @@
             "/Applications/Gemini.app/Contents/MacOS/Gemini"
         ],
         "linux": []
+    },
+    "installHints": {
+        "windowsDisplayNames": ["Gemini"],
+        "windowsPublisher": "Google",
+        "macosAppName": "Gemini"
     }
 }
