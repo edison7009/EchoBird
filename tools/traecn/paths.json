@@ -1,8 +1,5 @@
 {
     "name": "Trae CN",
-    "names": {
-        "zh-Hans": "Trae 国内版"
-    },
     "category": "IDE",
     "noModelConfig": true,
     "apiProtocol": [
