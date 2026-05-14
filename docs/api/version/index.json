@@ -1,5 +1,5 @@
 {
   "version": "4.6.8",
   "releaseDate": "2026-05-14",
-  "releaseNotes": "v4.6.8: minor robustness pass on top of v4.6.7's tool-call ordering fix"
+  "releaseNotes": "v4.6.8: v4.6.7 健壮性补丁,推荐直接升到这版"
 }
