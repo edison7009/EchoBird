@@ -69,9 +69,9 @@ async function main() {
         return;
     }
 
-    const { apiKey, baseUrl, modelId, providerId } = config;
+    const { apiKey, baseUrl, modelId, providerId, displayModel } = config;
     const envKey = config.envKey || "OPENAI_API_KEY";
-    log(`relay: baseUrl=${baseUrl} model=${modelId || "(default)"} provider=${providerId || "(none)"} envKey=${envKey}`);
+    log(`relay: baseUrl=${baseUrl} model=${modelId || "(default)"} displayModel=${displayModel || "(same)"} provider=${providerId || "(none)"} envKey=${envKey}`);
 
     // Retag historical sessions to the active provider BEFORE Codex starts —
     // this is what actually makes "switch model and still see old chats" work.
@@ -98,7 +98,7 @@ async function main() {
     log(`${mode} mode, third-party endpoint: ${baseUrl}`);
 
     const sessionStore = createSessionStore();
-    const { port, server } = await startProxy(baseUrl, apiKey, sessionStore, logger);
+    const { port, server } = await startProxy(baseUrl, apiKey, modelId, displayModel, sessionStore, logger);
     const localUrl = `http://127.0.0.1:${port}/v1`;
 
     const rewriteResult = rewriteBaseUrl(providerId, baseUrl, localUrl, logger);
@@ -125,7 +125,7 @@ if (require.main === module) {
     module.exports = {
         responsesToChat,
         chatToResponsesNonStream,
-        startProxy,
+        startProxy: (baseUrl, apiKey, sessions, logger) => startProxy(baseUrl, apiKey, null, null, sessions, logger),
         rewriteBaseUrl,
         valueToChatContent,
         mapContentPart,
