@@ -95,6 +95,40 @@ pub fn rebuild_tray_menu(app: &tauri::AppHandle) {
     log::info!("[Tray] Menu rebuilt: locale={}", locale);
 }
 
+/// Kill any leftover codex-launcher.cjs processes from a previous EchoBird
+/// session that exited abnormally (crash, force-kill, taskkill). The normal
+/// Exit handler cleans these up, but only fires on graceful shutdown — if
+/// the app died, the launcher (and its proxy) stays running and would
+/// conflict with the next launch. Only the launcher is killed; Codex itself
+/// is left alone so we never touch a user's terminal-launched codex.
+fn kill_stale_codex_launchers() {
+    #[cfg(target_os = "windows")]
+    {
+        use std::os::windows::process::CommandExt;
+        const CREATE_NO_WINDOW: u32 = 0x08000000;
+        let _ = std::process::Command::new("wmic")
+            .args([
+                "process",
+                "where",
+                "CommandLine like '%codex-launcher.cjs%'",
+                "delete",
+            ])
+            .creation_flags(CREATE_NO_WINDOW)
+            .stdout(std::process::Stdio::null())
+            .stderr(std::process::Stdio::null())
+            .spawn();
+    }
+
+    #[cfg(any(target_os = "macos", target_os = "linux"))]
+    {
+        let _ = std::process::Command::new("pkill")
+            .args(["-f", "codex-launcher.cjs"])
+            .stdout(std::process::Stdio::null())
+            .stderr(std::process::Stdio::null())
+            .spawn();
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -108,6 +142,12 @@ pub fn run() {
         .manage(ssh_commands::create_ssh_pool())
         .manage(services::agent_loop::create_session_map())
         .setup(|app| {
+            // Clean up orphaned codex-launcher processes from a previous
+            // EchoBird session that exited abnormally. Runs before any tool
+            // launch, so the new launcher always gets a fresh proxy port.
+            kill_stale_codex_launchers();
+            log::info!("[Setup] Cleaned up any leftover codex-launcher processes");
+
             // Initialize resource_dir for correct tools/ path resolution on all platforms
             // (especially Linux where exe is at /usr/bin but tools are at /usr/lib/com.echobird.ai/)
             if let Ok(res_dir) = app.path().resource_dir() {
