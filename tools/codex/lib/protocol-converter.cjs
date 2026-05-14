@@ -98,22 +98,26 @@ function responsesToChat(body, sessions, logger) {
                 continue;
             }
 
-            // Any `*_call_output` item with a call_id maps to a Chat
+            // Any tool-result item with a call_id maps to a Chat
             // Completions tool message. The Responses API has a growing
-            // list of these (`function_call_output`, `local_shell_call_output`,
-            // `custom_tool_call_output`, `web_search_call_output`, …) as
-            // Codex grows new built-in skills and plugins. If we recognized
-            // only `function_call_output` we'd skip the others — yet the
-            // corresponding `function_call` items in the same input typically
-            // STILL produce an assistant.tool_calls, leaving the upstream
+            // list of these — function_call_output, local_shell_call_output,
+            // custom_tool_call_output, function_shell_tool_call_output,
+            // apply_patch_tool_call_output, computer_tool_call_output,
+            // tool_search_output (no `_call_` infix!), etc.
+            //
+            // The suffix is just `_output` because some types (notably
+            // tool_search_output) skip the `_call` infix. We require
+            // call_id to avoid matching content parts like `output_text`
+            // or `output_image` which aren't tool results.
+            //
+            // If we missed any of these, the matching *_call assistant
+            // message above would still be emitted, leaving the upstream
             // with unanswered tool_call_ids:
             //   "An assistant message with 'tool_calls' must be followed
             //    by tool messages responding to each 'tool_call_id'"
-            // The generic suffix match catches every current and future
-            // variant in one place.
-            if (t && t.endsWith("_call_output")) {
-                const callId = item.call_id || item.id || "";
-                if (callId && !emittedToolResponses.has(callId)) {
+            if (t && t.endsWith("_output") && item.call_id) {
+                const callId = item.call_id;
+                if (!emittedToolResponses.has(callId)) {
                     emittedToolResponses.add(callId);
                     const out = typeof item.output === "string"
                         ? item.output
@@ -209,6 +213,69 @@ function responsesToChat(body, sessions, logger) {
                         }
                         if (rc) msg.reasoning_content = rc;
                     }
+                    messages.push(msg);
+                }
+                i++;
+                continue;
+            }
+
+            // Codex 0.130+ context compaction. Items have type "compaction"
+            // with an encrypted_content blob that ONLY OpenAI's servers can
+            // decode (uses OpenAI's keys). We can't translate the actual
+            // content for a third-party upstream, but we emit a placeholder
+            // system message so the model knows context was truncated —
+            // otherwise it might confidently claim "you didn't mention X"
+            // when X was in the compacted portion.
+            if (t === "compaction") {
+                messages.push({
+                    role: "system",
+                    content: "[Earlier portion of this conversation was compacted by Codex and is not available to the model.]",
+                });
+                i++;
+                continue;
+            }
+
+            // Generic non-function tool-call handler. Catches custom_tool_call,
+            // apply_patch_tool_call, computer_tool_call, function_shell_tool_call,
+            // code_interpreter_tool_call, file_search_tool_call, tool_search_call,
+            // etc. — every Responses item type ending in `_call` that isn't
+            // already handled by the specific branches above (function_call,
+            // local_shell_call).
+            //
+            // The upstream Chat Completions model only understands
+            // function-style tool_calls, so we wrap each non-function call
+            // as `{type:"function", function:{name, arguments}}`. The matching
+            // *_output item above closes the assistant→tool round-trip.
+            //
+            // Argument fields vary by item type: function_call uses
+            // `arguments`, custom_tool_call uses `input`, local_shell_call
+            // uses `action`. We try them in priority order and stringify if
+            // the value isn't already a string.
+            if (t && t.endsWith("_call") && item.call_id) {
+                const callId = item.call_id;
+                if (!emittedCallIds.has(callId)) {
+                    emittedCallIds.add(callId);
+                    const toolName = item.name || t.replace(/_call$/, "");
+                    const rawArgs = item.arguments ?? item.input ?? item.action ?? {};
+                    const args = typeof rawArgs === "string"
+                        ? rawArgs
+                        : JSON.stringify(rawArgs);
+                    let reasoningContent = sessions.getReasoning(callId);
+                    if (!reasoningContent && pendingReasoning) {
+                        reasoningContent = pendingReasoning;
+                        pendingReasoning = null;
+                        sessions.storeReasoning(callId, reasoningContent);
+                    }
+                    const msg = {
+                        role: "assistant",
+                        content: null,
+                        tool_calls: [{
+                            id: callId,
+                            type: "function",
+                            function: { name: toolName, arguments: args },
+                        }],
+                    };
+                    if (reasoningContent) msg.reasoning_content = reasoningContent;
                     messages.push(msg);
                 }
                 i++;
