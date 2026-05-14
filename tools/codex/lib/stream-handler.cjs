@@ -1,5 +1,33 @@
 // Chat-Completions stream → Responses SSE
 
+// Translate Chat-Completions usage shape → Responses API usage shape.
+// Codex parses ResponseCompleted strictly and crashes with
+// "missing field input_tokens" if the field is absent. Chat Completions
+// emits prompt_tokens / completion_tokens; Responses API uses
+// input_tokens / output_tokens. If the upstream returned no usage at all
+// (some third parties skip it on streaming), we still emit zero counters
+// so Codex's parser has the fields it needs.
+function chatUsageToResponsesUsage(chatUsage) {
+    const u = chatUsage || {};
+    const input = u.input_tokens ?? u.prompt_tokens ?? 0;
+    const output = u.output_tokens ?? u.completion_tokens ?? 0;
+    const total = u.total_tokens ?? (input + output);
+    const result = {
+        input_tokens: input,
+        output_tokens: output,
+        total_tokens: total,
+    };
+    // Pass through any extras the provider returned (reasoning_tokens,
+    // cached_tokens, prompt_tokens_details, etc.) so newer Codex builds
+    // that surface them still see the data.
+    for (const [k, v] of Object.entries(u)) {
+        if (k === "prompt_tokens" || k === "completion_tokens") continue;
+        if (k in result) continue;
+        result[k] = v;
+    }
+    return result;
+}
+
 function chatStreamToResponsesStream(upstreamRes, clientRes, requestMessages = [], sessions, logger) {
     const warn = logger?.warn || (() => {});
     const responseId = sessions.newResponseId();
@@ -141,7 +169,7 @@ function chatStreamToResponsesStream(upstreamRes, clientRes, requestMessages = [
             id: responseId, object: "response", status: "completed",
             output: buildAssembledOutput(),
         };
-        if (usage) completedResponse.usage = usage;
+        completedResponse.usage = chatUsageToResponsesUsage(usage);
         if (finishReason) completedResponse.incomplete_details =
             finishReason === "length" ? { reason: "max_output_tokens" } : undefined;
         // "length" means the model hit max_tokens — surface that as incomplete
@@ -330,7 +358,7 @@ function chatToResponsesNonStream(chatResponse, requestMessages = [], sessions, 
     // response was truncated rather than treating it as a clean stop.
     const status = choice.finish_reason === "length" ? "incomplete" : "completed";
     const response = { id: responseId, object: "response", status, output };
-    if (chatResponse.usage) response.usage = chatResponse.usage;
+    response.usage = chatUsageToResponsesUsage(chatResponse.usage);
     if (choice.finish_reason === "length") {
         response.incomplete_details = { reason: "max_output_tokens" };
     }
