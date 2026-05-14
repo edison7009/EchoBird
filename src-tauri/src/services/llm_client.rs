@@ -744,17 +744,24 @@ fn backoff_for_attempt(attempt: u32) -> Duration {
 ///   1. JSON `{ "error": { "message": "..." } }` (OpenAI / DeepSeek / etc.)
 ///   2. JSON `{ "error": "..." }` (some providers)
 ///   3. JSON `{ "message": "..." }` (top-level flat)
-///   4. Non-JSON body → first 200 chars verbatim
-///   5. Empty body → generic "Upstream returned <status>"
+///   4. HTML body → extract `<title>` contents (nginx / openresty error
+///      pages render `<title>500 Internal Server Error</title>` so the
+///      title is exactly the human-readable summary). Falls back to
+///      "Upstream returned HTTP <N>" if the title is empty or missing.
+///   5. Other non-JSON body → first 200 chars verbatim
+///   6. Empty body → generic "Upstream returned <status>"
 ///
 /// We deliberately drop the technical "Failed to create event source"
 /// wrapper that reqwest_eventsource emits by default — users only see
 /// the provider's own message.
 fn extract_upstream_error_message(status: u16, body: &str) -> String {
-    if body.trim().is_empty() {
+    let trimmed = body.trim();
+    if trimmed.is_empty() {
         return format!("Upstream returned HTTP {status}");
     }
-    if let Ok(parsed) = serde_json::from_str::<Value>(body) {
+
+    // JSON-shaped error envelopes (most providers)
+    if let Ok(parsed) = serde_json::from_str::<Value>(trimmed) {
         // Nested OpenAI / DeepSeek / Anthropic shape
         if let Some(msg) = parsed
             .get("error")
@@ -772,12 +779,63 @@ fn extract_upstream_error_message(status: u16, body: &str) -> String {
             return msg.to_string();
         }
     }
-    // Non-JSON or unrecognized shape — truncate to keep the UI readable.
-    let truncated: String = body.trim().chars().take(200).collect();
+
+    // HTML error pages (nginx / openresty / cloudfront etc. return
+    // verbose markup when something upstream of the LLM goes wrong —
+    // wrong route, gateway timeout, model not deployed, etc.). The
+    // <title> tag is the human-friendly one-liner; surface that
+    // instead of dumping HTML at the user.
+    if looks_like_html(trimmed) {
+        if let Some(title) = extract_html_title(trimmed) {
+            return title;
+        }
+        return format!("Upstream returned HTTP {status}");
+    }
+
+    // Other non-JSON shapes — truncate to keep the UI readable.
+    let truncated: String = trimmed.chars().take(200).collect();
     if truncated.is_empty() {
         format!("Upstream returned HTTP {status}")
     } else {
         truncated
+    }
+}
+
+/// Cheap HTML-shape detection. We don't need a real parser — just
+/// enough to decide between "JSON error envelope path" and "HTML error
+/// page path". Both `<!doctype html>` and bare `<html>` / `<head>` /
+/// `<body>` are common across the error pages we see in the wild.
+fn looks_like_html(body: &str) -> bool {
+    let head: String = body
+        .trim_start()
+        .chars()
+        .take(64)
+        .collect::<String>()
+        .to_ascii_lowercase();
+    head.starts_with("<!doctype html")
+        || head.starts_with("<html")
+        || head.starts_with("<head")
+        || head.starts_with("<body")
+        // Edge case: some servers send `<center><h1>` without an outer
+        // html element. Catch the most distinctive nginx / openresty
+        // prefixes too.
+        || head.starts_with("<center>")
+}
+
+/// Pull the text inside `<title>...</title>` from an HTML body. Case-
+/// insensitive on the tag, trims whitespace inside. Returns None if
+/// the title is empty or no title tag is present.
+fn extract_html_title(body: &str) -> Option<String> {
+    let lower = body.to_ascii_lowercase();
+    let start_tag = lower.find("<title")?;
+    // Skip past any attributes and the closing `>` of the open tag.
+    let after_open = body[start_tag..].find('>').map(|i| start_tag + i + 1)?;
+    let end_tag_rel = lower[after_open..].find("</title>")?;
+    let title = body[after_open..after_open + end_tag_rel].trim();
+    if title.is_empty() {
+        None
+    } else {
+        Some(title.to_string())
     }
 }
 
@@ -1063,5 +1121,89 @@ mod tests {
         let out = extract_upstream_error_message(500, body);
         // Not "Failed to parse" — we want the user to see something useful
         assert!(out.contains("not valid json"), "got: {out}");
+    }
+
+    // ---- HTML error page handling ----
+
+    #[test]
+    fn extracts_title_from_nginx_500_page() {
+        let body = "<html>\n<head><title>500 Internal Server Error</title></head>\n<body>\n<center><h1>500 Internal Server Error</h1></center>\n<hr><center>nginx</center>\n</body>\n</html>";
+        assert_eq!(
+            extract_upstream_error_message(500, body),
+            "500 Internal Server Error"
+        );
+    }
+
+    #[test]
+    fn extracts_title_from_openresty_404_page() {
+        let body = "<html>\n<head><title>404 Not Found</title></head>\n<body>\n<center><h1>404 Not Found</h1></center>\n<hr><center>openresty</center>\n</body>\n</html>";
+        assert_eq!(extract_upstream_error_message(404, body), "404 Not Found");
+    }
+
+    #[test]
+    fn extracts_title_from_html_with_doctype() {
+        let body = "<!DOCTYPE html>\n<html><head><title>502 Bad Gateway</title></head><body>...</body></html>";
+        assert_eq!(extract_upstream_error_message(502, body), "502 Bad Gateway");
+    }
+
+    #[test]
+    fn extracts_title_case_insensitive() {
+        let body = "<HTML><HEAD><TITLE>503 Service Unavailable</TITLE></HEAD></HTML>";
+        assert_eq!(
+            extract_upstream_error_message(503, body),
+            "503 Service Unavailable"
+        );
+    }
+
+    #[test]
+    fn extracts_title_with_attributes() {
+        let body = "<html><head><title lang=\"en\">524 Origin Timeout</title></head></html>";
+        assert_eq!(
+            extract_upstream_error_message(524, body),
+            "524 Origin Timeout"
+        );
+    }
+
+    #[test]
+    fn html_without_title_falls_back_to_generic() {
+        let body = "<html><body><h1>Service error</h1></body></html>";
+        assert_eq!(
+            extract_upstream_error_message(500, body),
+            "Upstream returned HTTP 500"
+        );
+    }
+
+    #[test]
+    fn html_with_empty_title_falls_back_to_generic() {
+        let body = "<html><head><title></title></head><body>...</body></html>";
+        assert_eq!(
+            extract_upstream_error_message(500, body),
+            "Upstream returned HTTP 500"
+        );
+    }
+
+    #[test]
+    fn looks_like_html_detects_common_shapes() {
+        assert!(looks_like_html("<html>"));
+        assert!(looks_like_html("<HTML>"));
+        assert!(looks_like_html("<!DOCTYPE html>"));
+        assert!(looks_like_html("<head>"));
+        assert!(looks_like_html("<body>"));
+        assert!(looks_like_html("<center>"));
+        assert!(looks_like_html("  \n  <html>"));
+
+        assert!(!looks_like_html("plain text"));
+        assert!(!looks_like_html("{\"error\": \"...\"}"));
+        assert!(!looks_like_html("Error: connection refused"));
+    }
+
+    #[test]
+    fn extract_title_handles_whitespace() {
+        // Some servers pad the title with whitespace inside the tag.
+        let body = "<html><head><title>   500 Internal Server Error   </title></head></html>";
+        assert_eq!(
+            extract_upstream_error_message(500, body),
+            "500 Internal Server Error"
+        );
     }
 }
