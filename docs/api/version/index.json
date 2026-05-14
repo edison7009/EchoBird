@@ -1,5 +1,5 @@
 {
-  "version": "4.6.4",
+  "version": "4.6.5",
   "releaseDate": "2026-05-14",
-  "releaseNotes": "v4.6.4: force Codex Desktop config reload — closes the issue #36 chain"
+  "releaseNotes": "v4.6.5: fix 4.6.4 regressions — zero-restart model switching, self-healing canonical config.toml, ResponseCompleted parse"
 }
