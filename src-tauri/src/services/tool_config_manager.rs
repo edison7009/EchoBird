@@ -1387,8 +1387,8 @@ fn apply_codex(tool_id: &str, model_info: &ModelInfo) -> ApplyResult {
     let relay = serde_json::json!({
         "apiKey": api_key,
         "baseUrl": base_url,
-        "modelId": model_id,
         "displayModel": display_model,
+        "actualModel": model_id,
         "modelName": model_info.name.as_deref().unwrap_or(model_id),
         "providerId": provider_id,
     });
