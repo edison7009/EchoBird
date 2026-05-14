@@ -687,14 +687,10 @@ export function AddModelModal() {
               </label>
               <input
                 type="text"
-                placeholder="api.openai.com/v1"
+                placeholder="https://x.x.com/v1"
                 value={newModelForm.baseUrl}
                 onChange={(e) => {
-                  let v = e.target.value.trim();
-                  // Auto-prepend https:// if no protocol specified
-                  if (v && !v.startsWith('http://') && !v.startsWith('https://')) {
-                    v = 'https://' + v;
-                  }
+                  let v = e.target.value;
                   v = v
                     .replace(/\/chat\/completions\/?$/i, '')
                     .replace(/\/v1\/chat\/completions\/?$/i, '/v1');
@@ -709,14 +705,10 @@ export function AddModelModal() {
               </label>
               <input
                 type="text"
-                placeholder="api.anthropic.com"
+                placeholder="https://x.x.com/anthropic"
                 value={newModelForm.anthropicUrl}
                 onChange={(e) => {
-                  let v = e.target.value.trim();
-                  // Auto-prepend https:// if no protocol specified
-                  if (v && !v.startsWith('http://') && !v.startsWith('https://')) {
-                    v = 'https://' + v;
-                  }
+                  let v = e.target.value;
                   v = v.replace(/\/v1\/messages\/?$/i, '').replace(/\/messages\/?$/i, '');
                   setNewModelForm((prev) => ({ ...prev, anthropicUrl: v }));
                 }}
