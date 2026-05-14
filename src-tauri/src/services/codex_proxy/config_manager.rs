@@ -37,12 +37,9 @@ use super::CODEX_PROXY_PORT;
 /// currently-selected Codex upstream config.
 pub const RELAY_FILENAME: &str = "codex.json";
 
-/// File name (under the Codex dir) Codex reads at startup.
-//
-// Phase 7 will call `ensure_canonical_config` from process_manager.rs
-// just before spawning Codex, replacing the equivalent check inside
-// codex-launcher.cjs. Until then these are reachable only from tests.
-#[allow(dead_code)]
+/// File name (under the Codex dir) Codex reads at startup. Used by
+/// `process_manager.rs::start_codex_native` to address `~/.codex/config.toml`
+/// for the pre-spawn self-heal check.
 pub const CODEX_CONFIG_FILENAME: &str = "config.toml";
 
 /// The base_url Codex sees. The same value is baked into
@@ -78,8 +75,9 @@ pub fn canonical_config_toml() -> String {
     )
 }
 
-/// Default Codex config directory: env override → `~/.codex`.
-#[allow(dead_code)]
+/// Default Codex config directory: env override → `~/.codex`. Called
+/// by `process_manager.rs::start_codex_native` to locate the canonical
+/// config + global-state files before spawning Codex.
 pub fn default_codex_dir() -> Option<PathBuf> {
     if let Ok(p) = std::env::var("ECHOBIRD_CODEX_CONFIG_DIR") {
         if !p.is_empty() {
@@ -101,7 +99,6 @@ pub fn default_relay_dir() -> Option<PathBuf> {
 
 /// Outcome of `ensure_canonical_config`. The `reason` field is a stable
 /// tag suitable for logging / tests.
-#[allow(dead_code)]
 #[derive(Debug, PartialEq, Eq)]
 pub struct EnsureOutcome {
     pub wrote: bool,
@@ -111,7 +108,8 @@ pub struct EnsureOutcome {
 /// Verify config.toml at `codex_config_path` points Codex at our proxy.
 /// If missing or drifted, rewrite it to the canonical template.
 /// Idempotent: cheap when already correct, self-healing when not.
-#[allow(dead_code)]
+/// Called by `process_manager.rs::start_codex_native` as a pre-spawn
+/// self-heal in case the file got edited outside EchoBird.
 pub fn ensure_canonical_config(codex_config_path: &Path) -> io::Result<EnsureOutcome> {
     let template = canonical_config_toml();
     let proxy_url = codex_proxy_url();

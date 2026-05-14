@@ -37,6 +37,7 @@
 //   content_mapper.rs     ← Phase 5: text/image multimodal parts
 //   onboarding_bypass.rs  ← Phase 5: ~/.codex/.codex-global-state.json patch
 
+mod codex_binary;
 mod config_manager;
 mod content_mapper;
 mod onboarding_bypass;
@@ -44,6 +45,15 @@ mod protocol_converter;
 mod server;
 mod session_store;
 mod stream_handler;
+
+// Re-export the Codex spawn helpers so `process_manager.rs` can call
+// into them in place of the legacy `node codex-launcher.cjs` shell-out.
+pub use codex_binary::{
+    resolve_codex_cli_binary, resolve_codex_cli_shim, resolve_desktop_binary,
+    resolve_desktop_launch_uri,
+};
+pub use config_manager::{default_codex_dir, ensure_canonical_config, CODEX_CONFIG_FILENAME};
+pub use onboarding_bypass::bypass_onboarding;
 
 #[cfg(test)]
 pub use protocol_converter::responses_to_chat;

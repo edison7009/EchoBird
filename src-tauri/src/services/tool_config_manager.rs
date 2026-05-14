@@ -68,8 +68,9 @@ const CODEX_DISPLAY_MODEL: &str = "gpt-5.4";
 /// request to pick up model switches without a Codex restart.
 ///
 /// 53682 is in the unreserved IANA ephemeral range (49152-65535) and
-/// not assigned to any well-known service. Keep in sync with the
-/// CODEX_PROXY_PORT constant in tools/codex/lib/config-manager.cjs.
+/// not assigned to any well-known service. Keep in sync with
+/// `CODEX_PROXY_PORT` in `src/services/codex_proxy/mod.rs` (used by
+/// `spawn_proxy_task` to bind the listener).
 const CODEX_PROXY_PORT: u16 = 53682;
 
 /// Extract domain name from URL for use in identifiers

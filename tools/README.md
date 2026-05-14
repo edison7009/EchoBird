@@ -11,10 +11,9 @@ tools/
 ├── claudecode/           # Claude Code CLI
 │   ├── config.json       # Model configuration mapping
 │   └── paths.json        # Installation paths per platform
-├── codex/                # Codex CLI with proxy launcher
-│   ├── codex-launcher.cjs
-│   ├── config.json
-│   └── paths.json
+├── codex/                # Codex CLI + Desktop integration assets
+│   ├── config.json       # Global toggles for the Codex integration
+│   └── paths.json        # Codex Desktop install hints (incl. Store AUMID)
 ├── reversi/              # Embedded game tool
 │   ├── config.json
 │   └── default-skills/

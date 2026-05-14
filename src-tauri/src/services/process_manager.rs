@@ -86,54 +86,32 @@ impl ProcessManager {
             crate::services::tool_manager::is_vscode_extension(tool_id),
         );
 
-        // Priority 0: Codex launcher (dual-spoof proxy + TTY preservation).
+        // Priority 0: Codex native spawn path.
         //
-        // CLI always goes through the launcher: even without a proxy, it
-        // resolves the npm-bundled Rust binary directly so the TUI gets
-        // a real TTY (the codex.cmd → node codex.js → codex.exe path on
-        // Windows drops stdin-is-a-terminal somewhere in cmd /d /s /c).
+        // CLI always goes through here: we resolve the npm-bundled Rust
+        // binary directly so the TUI gets a real TTY (the
+        // codex.cmd → node codex.js → codex.exe path on Windows drops
+        // stdin-is-a-terminal somewhere inside cmd /d /s /c).
         //
-        // Desktop only goes through the launcher when a third-party
-        // (non-OpenAI) relay is configured — that's the only case where
-        // the proxy is actually needed. Skipping the launcher otherwise
-        // preserves Desktop's normal launchUri path (Priority 2.9), which
-        // is the *only* way to start a Microsoft Store install of Codex
-        // Desktop; direct-exe spawn would fail with "not found" because
-        // Store packages live under \\WindowsApps\... not \\Programs\\.
-        let needs_launcher = match tool_id {
+        // Desktop only goes here when a third-party (non-OpenAI) relay
+        // is configured — that's the only case where the proxy is
+        // actually needed. Skipping otherwise preserves Desktop's normal
+        // launchUri path (Priority 2.9), which is the *only* way to
+        // start a Microsoft Store install of Codex Desktop; direct-exe
+        // spawn would fail with "not found" because Store packages live
+        // under \\WindowsApps\... not \\Programs\\.
+        //
+        // Phase 7: replaced the Node launcher (cmd /C node codex-launcher.cjs)
+        // with a Rust-native spawn that calls the same pre-flight helpers
+        // (ensure_canonical_config + bypass_onboarding) and resolves the
+        // Codex binary in-process. Users no longer need Node installed.
+        let needs_native_path = match tool_id {
             "codex" => true,
             "codexdesktop" => Self::codex_has_third_party_relay(),
             _ => false,
         };
-        if needs_launcher {
-            match Self::find_codex_launcher() {
-                Some(launcher) => {
-                    log::info!(
-                        "[ProcessManager] Routing {} through dual-spoof launcher: {:?}",
-                        tool_id,
-                        launcher
-                    );
-                    return self.start_codex_launcher(tool_id, &launcher);
-                }
-                None => {
-                    // Log the technical detail for diagnostics, show a
-                    // user-friendly message in the UI without leaking the
-                    // bundled file path (which users can't act on anyway).
-                    log::error!(
-                        "[ProcessManager] {} requires launcher but codex-launcher.cjs is missing from the bundled tools directory",
-                        tool_id
-                    );
-                    return Err(format!(
-                        "{} cannot start because a required EchoBird component is missing. \
-                         Try reinstalling EchoBird from the latest release.",
-                        if tool_id == "codexdesktop" {
-                            "Codex Desktop"
-                        } else {
-                            "Codex CLI"
-                        }
-                    ));
-                }
-            }
+        if needs_native_path {
+            return self.start_codex_native(tool_id);
         }
 
         // Priority 1: If explicit command is given from frontend, use it
@@ -211,18 +189,6 @@ impl ProcessManager {
         Err(format!("No executable or command found for tool '{}'. The tool may be installed but not in PATH.", tool_id))
     }
 
-    /// Locate the bundled codex-launcher.cjs under tools/codex/.
-    fn find_codex_launcher() -> Option<std::path::PathBuf> {
-        let launcher = crate::services::tool_manager::find_tools_dir()?
-            .join("codex")
-            .join("codex-launcher.cjs");
-        if launcher.exists() {
-            Some(launcher)
-        } else {
-            None
-        }
-    }
-
     /// True iff ~/.echobird/codex.json points at a non-OpenAI endpoint.
     /// Used to decide whether Codex Desktop needs to route through the
     /// dual-spoof launcher (third-party endpoints only) or can take the
@@ -280,99 +246,223 @@ impl ProcessManager {
         is_third_party
     }
 
-    /// Start Codex (CLI or Desktop) via the dual-spoof launcher.
+    /// Start Codex (CLI or Desktop) natively in Rust. Replaces the
+    /// Phase 1-6 `node codex-launcher.cjs` indirection.
     ///
-    /// We invoke `node codex-launcher.cjs` rather than calling node with the
-    /// path glued into a single argv string, so cmd.exe's quoting doesn't
-    /// mangle paths containing spaces. The launcher takes care of spawning
-    /// the actual Codex binary (npm Rust CLI vs. standalone Desktop exe)
-    /// based on the ECHOBIRD_CODEX_LAUNCH_MODE env var we set here.
-    fn start_codex_launcher(
+    /// Pre-flight: writes the canonical config.toml + patches Codex's
+    /// global-state JSON so onboarding is skipped. Both helpers are
+    /// idempotent and cheap when nothing has drifted.
+    ///
+    /// Spawn:
+    ///   • Desktop mode tries the standalone .exe first (Programs install
+    ///     or PATH), then falls back to the Microsoft Store shell URI
+    ///     from tools/codexdesktop/paths.json.
+    ///   • CLI mode tries the bundled native binary inside
+    ///     @openai/codex-<triple>/vendor/... so the Rust TUI keeps a real
+    ///     TTY. If that's missing we fall back to `codex.cmd` (loses TTY
+    ///     in some shells but still launches).
+    fn start_codex_native(&mut self, tool_id: &str) -> Result<(), String> {
+        use crate::services::codex_proxy;
+
+        // Pre-flight helpers — both no-op when state is already correct.
+        if let Some(codex_dir) = codex_proxy::default_codex_dir() {
+            let cfg_path = codex_dir.join(codex_proxy::CODEX_CONFIG_FILENAME);
+            match codex_proxy::ensure_canonical_config(&cfg_path) {
+                Ok(out) if out.wrote => {
+                    log::info!("[ProcessManager] config.toml self-healed ({})", out.reason)
+                }
+                Ok(_) => {}
+                Err(e) => {
+                    log::warn!("[ProcessManager] ensure_canonical_config failed (non-fatal): {e}")
+                }
+            }
+            if let Err(e) = codex_proxy::bypass_onboarding(&codex_dir) {
+                log::warn!("[ProcessManager] bypass_onboarding failed (non-fatal): {e}");
+            }
+        }
+
+        if tool_id == "codexdesktop" {
+            self.start_codex_desktop_native(tool_id)
+        } else {
+            self.start_codex_cli_native(tool_id)
+        }
+    }
+
+    /// Codex Desktop: try direct .exe spawn first, fall back to the
+    /// Windows Store shell URI if the binary lookup misses.
+    fn start_codex_desktop_native(&mut self, tool_id: &str) -> Result<(), String> {
+        use crate::services::codex_proxy;
+
+        if let Some(exe) = codex_proxy::resolve_desktop_binary() {
+            log::info!(
+                "[ProcessManager] Launching Codex Desktop (native exe): {:?}",
+                exe
+            );
+            return self.spawn_codex_desktop_exe(tool_id, &exe);
+        }
+
+        // Fall back to Microsoft Store launchUri.
+        let tools_dir = crate::services::tool_manager::find_tools_dir();
+        let uri = tools_dir
+            .as_deref()
+            .and_then(codex_proxy::resolve_desktop_launch_uri);
+        if let Some(uri) = uri {
+            log::info!(
+                "[ProcessManager] Launching Codex Desktop via Store URI: {}",
+                uri
+            );
+            return self.start_shell_uri(tool_id, &uri);
+        }
+
+        Err(
+            "Codex Desktop not found. Install it from https://openai.com/codex or the Microsoft Store."
+                .to_string(),
+        )
+    }
+
+    /// Spawn the Codex Desktop binary detached so EchoBird isn't pinned
+    /// to the GUI process lifetime.
+    fn spawn_codex_desktop_exe(
         &mut self,
         tool_id: &str,
-        launcher: &std::path::Path,
+        exe: &std::path::Path,
     ) -> Result<(), String> {
         let home = dirs::home_dir().unwrap_or_default();
 
-        // Tell the launcher which Codex binary to spawn. CLI mode picks up
-        // the npm-bundled Rust binary via resolveCodexBinary(); desktop
-        // mode looks at tools/codexdesktop/paths.json's exe locations.
-        // Everything else (api_key, base_url, model id) the launcher
-        // reads itself from ~/.echobird/codex.json — no env preseeding,
-        // no relay duplication.
-        let launch_mode = if tool_id == "codexdesktop" {
-            "desktop"
-        } else {
-            "cli"
+        #[cfg(windows)]
+        {
+            use std::os::windows::process::CommandExt;
+            const DETACHED_PROCESS: u32 = 0x00000008;
+            const CREATE_NO_WINDOW: u32 = 0x08000000;
+            const CREATE_NEW_PROCESS_GROUP: u32 = 0x00000200;
+
+            let mut cmd = Command::new(exe);
+            cmd.current_dir(&home);
+            cmd.creation_flags(DETACHED_PROCESS | CREATE_NO_WINDOW | CREATE_NEW_PROCESS_GROUP);
+            match cmd.spawn() {
+                Ok(child) => {
+                    let pid = child.id();
+                    log::info!("[ProcessManager] Codex Desktop PID: {pid}");
+                    self.processes
+                        .insert(tool_id.to_string(), ProcessInfo { pid });
+                    Ok(())
+                }
+                Err(e) => Err(format!("Failed to spawn Codex Desktop: {e}")),
+            }
+        }
+
+        #[cfg(target_os = "macos")]
+        {
+            // macOS app bundle: spawn the inner executable directly.
+            // (We could also use `open`, but the direct path gives us a
+            // real PID to track.)
+            let mut cmd = Command::new(exe);
+            cmd.current_dir(&home);
+            match cmd.spawn() {
+                Ok(child) => {
+                    let pid = child.id();
+                    log::info!("[ProcessManager] Codex Desktop PID: {pid}");
+                    self.processes
+                        .insert(tool_id.to_string(), ProcessInfo { pid });
+                    Ok(())
+                }
+                Err(e) => Err(format!("Failed to spawn Codex Desktop: {e}")),
+            }
+        }
+
+        #[cfg(target_os = "linux")]
+        {
+            // No Codex Desktop Linux build as of 2026-05; this branch
+            // exists for completeness only.
+            let _ = (tool_id, exe, home);
+            Err("Codex Desktop is not available on Linux.".to_string())
+        }
+    }
+
+    /// Codex CLI: spawn the npm-bundled native Rust binary in a fresh
+    /// console so the TUI gets a real TTY. Falls back to `codex.cmd`
+    /// when the bundled exe can't be located.
+    fn start_codex_cli_native(&mut self, tool_id: &str) -> Result<(), String> {
+        use crate::services::codex_proxy;
+
+        let (exe, via_shim) = match codex_proxy::resolve_codex_cli_binary() {
+            Some(p) => (p, false),
+            None => match codex_proxy::resolve_codex_cli_shim() {
+                Some(p) => {
+                    log::warn!(
+                        "[ProcessManager] Bundled Codex CLI binary not found; \
+                         falling back to shim {:?} (TTY may degrade)",
+                        p
+                    );
+                    (p, true)
+                }
+                None => {
+                    return Err(
+                        "Codex CLI not installed. Install via `npm i -g @openai/codex`."
+                            .to_string(),
+                    );
+                }
+            },
         };
+
+        let home = dirs::home_dir().unwrap_or_default();
 
         #[cfg(windows)]
         {
             use std::os::windows::process::CommandExt;
             const CREATE_NEW_PROCESS_GROUP: u32 = 0x00000200;
             const CREATE_NEW_CONSOLE: u32 = 0x00000010;
-            const CREATE_NO_WINDOW: u32 = 0x08000000;
 
             // Strip the Windows extended-length path prefix "\\?\" if
-            // present — cmd.exe rejects it, even though Rust hands them
-            // out in debug builds.
-            let launcher_str = launcher.to_string_lossy();
-            let launcher_clean = launcher_str.strip_prefix(r"\\?\").unwrap_or(&launcher_str);
+            // present — most spawn surfaces choke on it.
+            let exe_str = exe.to_string_lossy();
+            let exe_clean = exe_str.strip_prefix(r"\\?\").unwrap_or(&exe_str);
 
-            let mut cmd = Command::new("cmd");
-            cmd.args(["/C", "node", launcher_clean]);
-            cmd.current_dir(&home);
-            cmd.env("ECHOBIRD_CODEX_LAUNCH_MODE", launch_mode);
-            cmd.env("ECHOBIRD_LAUNCHER_QUIET", "1");
-
-            // CLI needs a visible terminal — Codex CLI's TUI renders in
-            // it via stdio:inherit. Desktop is a GUI app, so hide the
-            // launcher console entirely.
-            let flags = if launch_mode == "desktop" {
-                CREATE_NO_WINDOW
+            // The shim is a .cmd file; we must launch it via cmd /C to
+            // get the right invocation. Direct .exe gets spawned itself.
+            let mut cmd = if via_shim {
+                let mut c = Command::new("cmd");
+                c.args(["/C", exe_clean]);
+                c
             } else {
-                CREATE_NEW_PROCESS_GROUP | CREATE_NEW_CONSOLE
+                Command::new(exe_clean)
             };
-            cmd.creation_flags(flags);
+            cmd.current_dir(&home);
+            cmd.creation_flags(CREATE_NEW_PROCESS_GROUP | CREATE_NEW_CONSOLE);
 
-            log::info!(
-                "[ProcessManager] Codex launcher ({}): cmd /C node {}",
-                launch_mode,
-                launcher_clean
-            );
+            log::info!("[ProcessManager] Codex CLI spawn: {exe_clean}");
             match cmd.spawn() {
                 Ok(child) => {
                     let pid = child.id();
-                    log::info!("[ProcessManager] Codex launcher PID: {}", pid);
+                    log::info!("[ProcessManager] Codex CLI PID: {pid}");
                     self.processes
                         .insert(tool_id.to_string(), ProcessInfo { pid });
                     Ok(())
                 }
-                Err(e) => Err(format!("Failed to launch Codex launcher: {}", e)),
+                Err(e) => Err(format!("Failed to spawn Codex CLI: {e}")),
             }
         }
 
         #[cfg(not(windows))]
         {
-            let mut cmd = Command::new("node");
-            cmd.arg(launcher);
+            let mut cmd = if via_shim {
+                let mut c = Command::new("sh");
+                c.arg(&exe);
+                c
+            } else {
+                Command::new(&exe)
+            };
             cmd.current_dir(&home);
-            cmd.env("ECHOBIRD_CODEX_LAUNCH_MODE", launch_mode);
-            cmd.env("ECHOBIRD_LAUNCHER_QUIET", "1");
 
             match cmd.spawn() {
                 Ok(child) => {
                     let pid = child.id();
-                    log::info!(
-                        "[ProcessManager] Codex launcher PID ({}): {}",
-                        launch_mode,
-                        pid
-                    );
+                    log::info!("[ProcessManager] Codex CLI PID: {pid}");
                     self.processes
                         .insert(tool_id.to_string(), ProcessInfo { pid });
                     Ok(())
                 }
-                Err(e) => Err(format!("Failed to launch Codex via node: {}", e)),
+                Err(e) => Err(format!("Failed to spawn Codex CLI: {e}")),
             }
         }
     }
