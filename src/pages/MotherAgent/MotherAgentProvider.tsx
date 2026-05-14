@@ -422,8 +422,7 @@ export function MotherAgentProvider({ children }: { children: React.ReactNode })
         });
       } catch (e) {
         const key = errorToKey(String(e));
-        const type: 'cancelled' | 'error' =
-          key === 'error.userCancelled' ? 'cancelled' : 'error';
+        const type: 'cancelled' | 'error' = key === 'error.userCancelled' ? 'cancelled' : 'error';
         // Same v4.7.0+ pass-through as the streaming-error case: when
         // errorToKey can't classify, render the message verbatim.
         const bubble: ChatMessage = key
@@ -496,10 +495,7 @@ export function MotherAgentProvider({ children }: { children: React.ReactNode })
             if (last && last.type === 'cancelled') {
               return o; // dedup: don't stack duplicate cancelled bubbles
             }
-            return [
-              ...o,
-              { type: 'cancelled', text: '', i18nKey: 'error.userCancelled' },
-            ];
+            return [...o, { type: 'cancelled', text: '', i18nKey: 'error.userCancelled' }];
           });
           // Frontend safety net: force reset after 3s if backend doesn't respond
           abortTimeoutRef.current = setTimeout(() => {
