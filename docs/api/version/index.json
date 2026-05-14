@@ -1,5 +1,5 @@
 {
-  "version": "4.7.0",
+  "version": "4.7.1",
   "releaseDate": "2026-05-15",
-  "releaseNotes": "v4.7.0: 内置 Agent 错误提示更清晰,长任务更稳定"
+  "releaseNotes": "v4.7.1: 错误提示更清晰,第三方模型协议自动切换更稳更快"
 }
