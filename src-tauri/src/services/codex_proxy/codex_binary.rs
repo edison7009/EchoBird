@@ -28,9 +28,12 @@ use std::time::Duration;
 /// Linux (no desktop build) or when the standard install locations
 /// don't exist.
 pub fn resolve_desktop_binary() -> Option<PathBuf> {
-    // Build candidates inside a block so the outer binding is immutable
-    // (else `unused_mut` fires on Linux, where neither cfg block runs).
     let candidates: Vec<PathBuf> = {
+        // `mut` is genuinely required on Windows / macOS where the cfg
+        // blocks below push into `c`. On Linux there's no Codex Desktop
+        // build, so neither cfg matches and `c` stays empty — clippy's
+        // `unused_mut` is the expected state on that target, not a bug.
+        #[allow(unused_mut)]
         let mut c: Vec<PathBuf> = Vec::new();
 
         #[cfg(windows)]

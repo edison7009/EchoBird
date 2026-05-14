@@ -1,5 +1,5 @@
 {
-  "version": "4.6.8",
-  "releaseDate": "2026-05-14",
-  "releaseNotes": "v4.6.8: v4.6.7 健壮性补丁,推荐直接升到这版"
+  "version": "4.6.9",
+  "releaseDate": "2026-05-15",
+  "releaseNotes": "v4.6.9: Codex 启动不再依赖本地 Node.js 环境"
 }
