@@ -57,6 +57,21 @@ fn ensure_parent(path: &Path) {
 const CODEX_PROVIDER: &str = "OpenAI";
 const CODEX_DISPLAY_MODEL: &str = "gpt-5.4";
 
+/// Stable port for the Codex launcher's local proxy.
+///
+/// We bind the same port every time so `~/.codex/config.toml` can hold a
+/// permanent `base_url = "http://127.0.0.1:53682/v1"` that never needs
+/// rewriting. Switching models updates `~/.echobird/codex.json` (the
+/// relay file the proxy reads on every request) — config.toml stays
+/// untouched, so Codex never reloads it and chat history is never
+/// re-tagged. The proxy must read the relay file on each incoming
+/// request to pick up model switches without a Codex restart.
+///
+/// 53682 is in the unreserved IANA ephemeral range (49152-65535) and
+/// not assigned to any well-known service. Keep in sync with the
+/// CODEX_PROXY_PORT constant in tools/codex/lib/config-manager.cjs.
+const CODEX_PROXY_PORT: u16 = 53682;
+
 /// Extract domain name from URL for use in identifiers
 /// Example: "https://api.openai.com/v1" -> "api_openai_com"
 fn extract_domain_name(url: &str) -> String {
@@ -998,262 +1013,23 @@ fn restore_opencode_to_official() -> ApplyResult {
 
 // Codex CLI and Codex Desktop share ~/.codex/config.toml.
 
-/// Synchronously retag historical Codex sessions to the given provider.
-///
-/// When the user switches Codex's `model_provider` via apply_codex, the
-/// rollout-file metadata and `state_5.sqlite` thread rows still tag prior
-/// conversations with the OLD provider — Codex Desktop / `/resume` hide
-/// them. The vendored provider-sync CLI rewrites that metadata to the
-/// new provider so historical chats stay visible.
-///
-/// Called synchronously from apply_codex AFTER kill_codex_if_running: the
-/// kill releases state_5.sqlite's WAL lock so the CLI's exclusive lock
-/// acquires cleanly. The caller blocks for up to 10s while sync runs —
-/// sync is usually <2s, so most users feel 1–3s extra on the "apply
-/// model" click in exchange for merged history across switches.
-///
-/// Previously fired by the launcher pre-launch, but that path was unreliable:
-/// users who launched Codex Desktop directly (outside our "Open" button),
-/// or who stayed on the official OpenAI provider (launcher skipped),
-/// never got retagged. apply_codex runs on every model switch, so this
-/// placement is the only one that always fires.
-///
-/// Failures (missing node 24, lock contention, sync bug) are logged but
-/// don't fail apply_codex — the model is still applied, only history
-/// retag is skipped.
-fn run_codex_provider_sync(provider_id: &str) {
-    use std::process::Command;
-
-    // Resolve the vendored cli.js. In dev it lives under
-    // <repo>/tools/codex/codex-provider-sync/src/cli.js; in production
-    // Tauri ships it inside the resources bundle, discoverable via
-    // tool_manager::find_tools_dir().
-    let tools_dir = match crate::services::tool_manager::find_tools_dir() {
-        Some(dir) => {
-            log::info!("[codex-sync] tools dir found: {:?}", dir);
-            dir
-        }
-        None => {
-            log::warn!("[codex-sync] tools dir not found, skipping provider sync");
-            return;
-        }
-    };
-    let cli_js = tools_dir
-        .join("codex")
-        .join("codex-provider-sync")
-        .join("src")
-        .join("cli.js");
-    log::info!("[codex-sync] looking for cli.js at: {:?}", cli_js);
-    if !cli_js.exists() {
-        log::warn!(
-            "[codex-sync] vendored cli.js missing at {:?}, skipping",
-            cli_js
-        );
-        return;
-    }
-    log::info!("[codex-sync] cli.js found, proceeding with sync");
-
-    // Pre-flight: detect node version. The CLI imports `node:sqlite`
-    // which crashes on Node < 24 with a confusing ERR_UNKNOWN_BUILTIN_MODULE.
-    // Catch it here and warn-and-skip instead.
-    let mut node_version_cmd = Command::new("node");
-    node_version_cmd.arg("--version");
-
-    #[cfg(windows)]
-    {
-        use std::os::windows::process::CommandExt;
-        const CREATE_NO_WINDOW: u32 = 0x08000000;
-        node_version_cmd.creation_flags(CREATE_NO_WINDOW);
-    }
-
-    let node_version_output = node_version_cmd.output();
-    log::info!(
-        "[codex-sync] node version check result: {:?}",
-        node_version_output
-            .as_ref()
-            .map(|o| String::from_utf8_lossy(&o.stdout).to_string())
-    );
-    let node_ok = node_version_output
-        .ok()
-        .and_then(|out| String::from_utf8(out.stdout).ok())
-        .and_then(|s| {
-            s.trim()
-                .trim_start_matches('v')
-                .split('.')
-                .next()
-                .map(String::from)
-        })
-        .and_then(|major| major.parse::<u32>().ok())
-        .map(|major| major >= 24)
-        .unwrap_or(false);
-    if !node_ok {
-        log::warn!("[codex-sync] node ≥ 24 required for provider sync; older runtime detected — skipping. Old Codex sessions may not appear in the new provider's history list until you upgrade Node and re-apply the model.");
-        return;
-    }
-    log::info!("[codex-sync] node version OK (≥ 24)");
-
-    // Block until sync finishes, but cap at 10s so a hung child can't
-    // freeze the UI forever. Sync is usually <2s on a real user's data,
-    // so the 10s ceiling is a safety net, not the common path.
-    let mut cmd = Command::new("node");
-    cmd.arg(&cli_js)
-        .arg("sync")
-        .arg("--provider")
-        .arg(provider_id)
-        .arg("--keep")
-        .arg("5")
-        .stdin(std::process::Stdio::null())
-        .stdout(std::process::Stdio::piped())
-        .stderr(std::process::Stdio::piped());
-
-    #[cfg(windows)]
-    {
-        use std::os::windows::process::CommandExt;
-        const CREATE_NO_WINDOW: u32 = 0x08000000;
-        cmd.creation_flags(CREATE_NO_WINDOW);
-    }
-
-    log::info!(
-        "[codex-sync] spawning: node {:?} sync --provider {} --keep 5",
-        cli_js,
-        provider_id
-    );
-    let mut child = match cmd.spawn() {
-        Ok(c) => c,
-        Err(e) => {
-            log::error!("[codex-sync] failed to spawn provider sync: {}", e);
-            return;
-        }
-    };
-    let pid = child.id();
-    log::info!(
-        "[codex-sync] provider sync started (pid {}) for provider={}",
-        pid,
-        provider_id
-    );
-
-    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(10);
-    loop {
-        match child.try_wait() {
-            Ok(Some(status)) => {
-                if status.success() {
-                    log::info!("[codex-sync] provider sync OK (pid {})", pid);
-                    // Log stdout for debugging
-                    if let Some(mut stdout) = child.stdout.take() {
-                        let mut stdout_buf = String::new();
-                        let _ = std::io::Read::read_to_string(&mut stdout, &mut stdout_buf);
-                        if !stdout_buf.is_empty() {
-                            log::info!("[codex-sync] stdout: {}", stdout_buf.trim());
-                        }
-                    }
-                } else {
-                    log::error!(
-                        "[codex-sync] provider sync failed with status: {:?}",
-                        status
-                    );
-                    let mut stderr_buf = String::new();
-                    if let Some(mut s) = child.stderr.take() {
-                        use std::io::Read;
-                        let _ = s.read_to_string(&mut stderr_buf);
-                    }
-                    log::warn!(
-                        "[codex-sync] provider sync exited {:?}: {}",
-                        status.code(),
-                        stderr_buf.trim()
-                    );
-                }
-                return;
-            }
-            Ok(None) => {
-                if std::time::Instant::now() >= deadline {
-                    let _ = child.kill();
-                    log::warn!("[codex-sync] provider sync exceeded 10s, killed");
-                    return;
-                }
-                std::thread::sleep(std::time::Duration::from_millis(100));
-            }
-            Err(e) => {
-                log::warn!("[codex-sync] try_wait error: {}", e);
-                return;
-            }
-        }
-    }
-}
-
-/// Kill any running Codex CLI / Codex Desktop processes before rewriting
-/// config.toml + auth.json. Codex caches both files in memory at startup
-/// and never re-reads — without this kill the user's "modify" click is
-/// silently ignored until they manually quit and reopen Codex. Other
-/// switcher tools (codex-switcher, codex-auth, Codex_AccountSwitch) all
-/// do the same.
-///
-/// Bonus side-effect: state_5.sqlite's WAL lock is released, so the
-/// launcher's pre-launch provider-sync (which retags historical sessions)
-/// can acquire its exclusive lock cleanly. Without the kill, sync silently
-/// fails when Codex is open.
-///
-/// Silent / best-effort: we don't prompt and don't fail apply_codex if
-/// taskkill / pkill return nonzero (most commonly that's "no matching
-/// process to kill", which is fine). In-progress conversations are
-/// already persisted to ~/.codex/sessions/*.jsonl so users can /resume
-/// after the new launch.
-fn kill_codex_if_running() {
-    #[cfg(target_os = "windows")]
-    {
-        use std::os::windows::process::CommandExt;
-        const CREATE_NO_WINDOW: u32 = 0x08000000;
-        // taskkill matches case-insensitive, so "Codex.exe" catches both
-        // Codex Desktop and codex.exe (the CLI Rust binary). We issue
-        // both invocations because their exit codes don't compose and
-        // we want best-effort on both names independently.
-        for image in &["Codex.exe", "codex.exe"] {
-            let res = std::process::Command::new("taskkill")
-                .args(["/F", "/IM", image])
-                .creation_flags(CREATE_NO_WINDOW)
-                .output();
-            match res {
-                Ok(o) if o.status.success() => {
-                    log::info!("[codex-kill] taskkill /F /IM {} OK", image)
-                }
-                Ok(_) => { /* exit code 128 = "no such process", expected */ }
-                Err(e) => log::warn!("[codex-kill] taskkill {} failed: {}", image, e),
-            }
-        }
-    }
-
-    #[cfg(target_os = "macos")]
-    {
-        // pkill -9: SIGKILL. -f: match against full command line so we
-        // catch both /Applications/Codex.app/Contents/MacOS/Codex (the
-        // Desktop binary) and the npm-installed CLI codex binary.
-        for pattern in &[
-            "Codex.app/Contents/MacOS/Codex",
-            "@openai/codex.*vendor.*codex",
-        ] {
-            let _ = std::process::Command::new("pkill")
-                .args(["-9", "-f", pattern])
-                .output();
-        }
-    }
-
-    #[cfg(target_os = "linux")]
-    {
-        // Codex Desktop has no Linux build as of 2026-05; only the CLI
-        // (which runs as a child of the user's terminal — short-lived).
-        // We still kill in case the user has a Codex session in another
-        // terminal that holds state_5.sqlite open.
-        let _ = std::process::Command::new("pkill")
-            .args(["-9", "-f", "@openai/codex.*vendor.*codex"])
-            .output();
-    }
-}
 
 fn apply_codex(tool_id: &str, model_info: &ModelInfo) -> ApplyResult {
-    // Kill any running Codex first. Codex caches config.toml + auth.json
-    // in memory at startup, so writing them without restarting Codex is
-    // a no-op from the user's perspective. Also releases state_5.sqlite's
-    // WAL lock so the launcher's pre-launch sync can retag history cleanly.
-    kill_codex_if_running();
+    // Architecture: model switching is JUST a relay file update +
+    // auth.json update. config.toml's base_url is permanently
+    // "http://127.0.0.1:53682/v1" (CODEX_PROXY_PORT) — never changes
+    // across model switches. The proxy reads ~/.echobird/codex.json on
+    // every incoming request, so:
+    //   • No Codex kill needed (config it sees never changes).
+    //   • No history retag needed (model_provider stays "OpenAI" always,
+    //     so all sessions land in the same bucket).
+    //   • No race window where the launcher is running with stale
+    //     in-memory config.
+    //
+    // We still rewrite config.toml every call — it's a single fs::write
+    // of a ~280-byte fixed template, idempotent and cheap. That makes
+    // the canonical shape self-healing if anything (Codex itself, the
+    // user, an older build) drifted it.
 
     let codex_dir = dirs::home_dir().unwrap_or_default().join(".codex");
     let config_path = codex_dir.join("config.toml");
@@ -1278,10 +1054,10 @@ fn apply_codex(tool_id: &str, model_info: &ModelInfo) -> ApplyResult {
         .trim_end_matches('/')
         .to_string();
 
-    // Reject 127.0.0.1/localhost addresses — these are proxy addresses set by
-    // the launcher, not real provider endpoints. If the frontend accidentally
-    // passes back a proxy address it read from config.toml while the launcher
-    // was running, we must reject it to avoid breaking the proxy mechanism.
+    // Reject 127.0.0.1/localhost addresses — these are proxy addresses,
+    // not real provider endpoints. If the frontend accidentally passes
+    // back a proxy address (e.g. by reading config.toml's now-permanent
+    // 127.0.0.1 entry), we'd end up with a self-referential loop.
     if base_url.contains("127.0.0.1") || base_url.contains("localhost") {
         return ApplyResult {
             success: false,
@@ -1297,20 +1073,10 @@ fn apply_codex(tool_id: &str, model_info: &ModelInfo) -> ApplyResult {
         };
     }
 
-    // Full-file overwrite. Every apply_codex produces EXACTLY this 13-line
-    // shape, modulo the base_url value. We deliberately do NOT preserve
-    // anything from the prior config.toml — that includes Codex's own
-    // runtime tables ([projects.*] trust state, [tui.*] NUX state,
-    // [marketplaces.*], [plugins.*], [windows] sandbox setting) AND any
-    // user-added top-level keys (e.g. `notify` for coffee-cli hook). The
-    // user explicitly required this: "我要这个文件 ~/.codex/config.toml
-    // 就13行,每次都是 ... 我只修改 base_url". Codex regenerates the runtime
-    // state it needs on next launch; the user re-adds anything they
-    // configured manually. This is the only way to guarantee zero
-    // accumulation across model switches — incremental key-by-key cleanup
-    // missed cases (e.g. preferred_auth_method coming back from an older
-    // build's apply_codex, new echobird_<hash> sections from a stale
-    // binary), and partial preservation kept letting cruft re-grow.
+    // Canonical 13-line config.toml with the FIXED proxy URL. Same shape
+    // and same base_url on every apply, so the actual byte-content of
+    // this file doesn't change between model switches — only the relay
+    // file (below) does.
     let content = format!(
         "model_provider = \"{}\"\n\
          model = \"{}\"\n\
@@ -1323,7 +1089,7 @@ fn apply_codex(tool_id: &str, model_info: &ModelInfo) -> ApplyResult {
          \n\
          [model_providers.{}]\n\
          name = \"{}\"\n\
-         base_url = \"{}\"\n\
+         base_url = \"http://127.0.0.1:{}/v1\"\n\
          wire_api = \"responses\"\n\
          requires_openai_auth = true\n",
         CODEX_PROVIDER,
@@ -1331,7 +1097,7 @@ fn apply_codex(tool_id: &str, model_info: &ModelInfo) -> ApplyResult {
         CODEX_DISPLAY_MODEL,
         CODEX_PROVIDER,
         CODEX_PROVIDER,
-        base_url,
+        CODEX_PROXY_PORT,
     );
 
     ensure_parent(&config_path);
@@ -1368,6 +1134,8 @@ fn apply_codex(tool_id: &str, model_info: &ModelInfo) -> ApplyResult {
         };
     }
 
+    // The live relay — proxy reads this on every request. This is the
+    // ONLY file whose content actually varies between model switches.
     let relay_path = echobird_dir().join("codex.json");
     let relay = serde_json::json!({
         "apiKey": api_key,
@@ -1378,23 +1146,6 @@ fn apply_codex(tool_id: &str, model_info: &ModelInfo) -> ApplyResult {
         "providerId": CODEX_PROVIDER,
     });
     let _ = write_json_file(&relay_path, &relay);
-
-    // Retag historical sessions to the new provider. Applies to both
-    // Codex CLI and Desktop — they share ~/.codex/state_5.sqlite and
-    // ~/.codex/sessions/, and BOTH filter the visible session list by
-    // the active provider tag (Desktop's Recent panel, CLI's `/resume`).
-    // Without retag, switching providers hides the old history in both
-    // surfaces.
-    //
-    // Runs AFTER kill_codex_if_running (sqlite lock released) and BEFORE
-    // returning success, so no matter how the user next opens Codex,
-    // the retag is in place. Blocks for up to 10s; usually <2s.
-    // With the canonical provider name, every apply_codex produces the
-    // same tag ("OpenAI"), so the retag is mostly a no-op going forward.
-    // We still call it to clean up rows tagged with the legacy
-    // echobird_<hash> values from earlier installs — without that, those
-    // old sessions remain filtered out of Codex Desktop's Recent panel.
-    run_codex_provider_sync(CODEX_PROVIDER);
 
     let display = if tool_id == "codexdesktop" {
         "Codex Desktop"

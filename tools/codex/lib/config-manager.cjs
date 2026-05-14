@@ -9,143 +9,87 @@ const RELAY_DIR = process.env.ECHOBIRD_RELAY_DIR || path.join(os.homedir(), ".ec
 const CODEX_CONFIG = path.join(CODEX_DIR, "config.toml");
 const ECHOBIRD_CONFIG = path.join(RELAY_DIR, "codex.json");
 
+// Stable port for the local proxy. The same port is referenced by
+// CODEX_PROXY_PORT in src-tauri/src/services/tool_config_manager.rs —
+// keep them in sync. config.toml's base_url is permanently
+// "http://127.0.0.1:53682/v1", so the launcher never has to rewrite it
+// across model switches.
+const CODEX_PROXY_PORT = 53682;
+const CODEX_PROXY_URL = `http://127.0.0.1:${CODEX_PROXY_PORT}/v1`;
+
+// Canonical 13-line config.toml shape. Must match the template written
+// by apply_codex in src-tauri/src/services/tool_config_manager.rs —
+// keep them aligned. The launcher writes this defensively if the file
+// is missing or its base_url doesn't point at our proxy port (e.g. the
+// user deleted ~/.codex/ or an older build wrote something different).
+const CANONICAL_CONFIG = `model_provider = "OpenAI"
+model = "gpt-5.4"
+review_model = "gpt-5.4"
+model_reasoning_effort = "xhigh"
+disable_response_storage = true
+network_access = "enabled"
+model_context_window = 1000000
+model_auto_compact_token_limit = 900000
+
+[model_providers.OpenAI]
+name = "OpenAI"
+base_url = "${CODEX_PROXY_URL}"
+wire_api = "responses"
+requires_openai_auth = true
+`;
+
+// Verify config.toml points Codex at our proxy. If missing or drifted,
+// rewrite it to the canonical 13-line template. Idempotent: cheap when
+// already correct, self-healing when not.
+function ensureCanonicalConfig(logger) {
+    const log = logger?.log || (() => {});
+    let current;
+    try {
+        current = fs.readFileSync(CODEX_CONFIG, "utf-8");
+    } catch {
+        log(`config.toml not found at ${CODEX_CONFIG} — writing canonical template`);
+        try { fs.mkdirSync(CODEX_DIR, { recursive: true }); } catch { /* ignore */ }
+        fs.writeFileSync(CODEX_CONFIG, CANONICAL_CONFIG);
+        return { wrote: true, reason: "missing" };
+    }
+    // Quick check: does the file mention our exact proxy URL? If yes,
+    // it's compatible (Codex will hit our proxy). If not, replace the
+    // whole file — we don't merge, we own this shape end-to-end.
+    if (!current.includes(CODEX_PROXY_URL)) {
+        log(`config.toml base_url does not point at ${CODEX_PROXY_URL} — rewriting to canonical`);
+        fs.writeFileSync(CODEX_CONFIG, CANONICAL_CONFIG);
+        return { wrote: true, reason: "drifted" };
+    }
+    return { wrote: false, reason: "already-canonical" };
+}
+
 function loadEchobirdConfig() {
     try { return JSON.parse(fs.readFileSync(ECHOBIRD_CONFIG, "utf-8")); }
     catch { return null; }
 }
 
+// Read the relay file fresh. Called by the proxy on EVERY incoming
+// request so model switches take effect without restarting Codex or
+// the launcher: EchoBird's apply_codex only rewrites this JSON, and the
+// next request the proxy sees uses the new model / key / upstream URL.
+// Returns null if the file is missing or malformed — caller should
+// respond with a clear error to Codex.
+function readEchobirdRelay() {
+    return loadEchobirdConfig();
+}
+
 function isOpenAI(url) { return !!url && url.includes("api.openai.com"); }
-
-// config.toml base_url rewrite
-//
-// apply_codex writes the third-party URL inside a
-// [model_providers.<provider_id>] section. We try three tiers from
-// precise to blunt so a config that doesn't look exactly the way
-// apply_codex wrote it still gets rewritten correctly:
-//
-//   1. Section-scoped: find [model_providers.<provider_id>] and
-//      rewrite its base_url. Most precise — the case apply_codex
-//      produces.
-//   2. Host-scoped: find any base_url whose value matches the host
-//      we know is the third-party endpoint (from relay JSON).
-//      Survives user-edited TOML where section names don't match.
-//   3. First-occurrence: replace the first base_url in the file
-//      (the v4.0.2 approach). Last-resort for unusual layouts.
-//
-// Tier 1's regex uses [\s\S]*? rather than [^[]*? so it handles
-// inline arrays / tables inside the section body. Bounded by the
-// next `\n[` header to avoid leaking into the next section.
-
-function escapeRegex(s) {
-    return s.replace(/[.[\]\\^$*+?()|{}]/g, "\\$&");
-}
-
-function rewriteBaseUrl(providerId, currentBaseUrlHint, newUrl, logger) {
-    const log = logger?.log || (() => {});
-    const warn = logger?.warn || (() => {});
-    const err = logger?.err || (() => {});
-
-    let toml;
-    try {
-        toml = fs.readFileSync(CODEX_CONFIG, "utf-8");
-    } catch (e) {
-        err(`Cannot read config.toml: ${e.message}`);
-        return { ok: false, tier: null };
-    }
-
-    const apply = (regex, label) => {
-        const replaced = toml.replace(regex, (_m, prefix) => `${prefix}"${newUrl}"`);
-        if (replaced === toml) return null;
-        try {
-            // Atomic write: write to .tmp, fsync, then rename. Guarantees
-            // config.toml is never left half-written if the process is
-            // killed mid-write. fs.renameSync uses MoveFileExW on Windows
-            // (Node 10+) and rename(2) on POSIX — both are atomic when
-            // source and destination live on the same filesystem, which
-            // is always the case here (~/.codex/).
-            const tmp = `${CODEX_CONFIG}.tmp`;
-            const fd = fs.openSync(tmp, "w");
-            try {
-                fs.writeSync(fd, replaced, 0, "utf-8");
-                fs.fsyncSync(fd);
-            } finally {
-                fs.closeSync(fd);
-            }
-            fs.renameSync(tmp, CODEX_CONFIG);
-            log(`base_url rewritten via ${label} → ${newUrl}`);
-            return label;
-        } catch (e) {
-            err(`config.toml write failed: ${e.message}`);
-            // Best-effort cleanup of any leftover .tmp.
-            try { fs.unlinkSync(`${CODEX_CONFIG}.tmp`); } catch { /* ignore */ }
-            return null;
-        }
-    };
-
-    // Tier 0: section-scoped, match any 127.0.0.1 address (leftover from
-    // previous launcher run). If the launcher crashed or was killed before
-    // restoring the real URL, config.toml will still have a stale proxy
-    // address. We must replace it with the new proxy address, otherwise
-    // all subsequent tiers will fail (they expect the real URL).
-    if (providerId) {
-        const fullSection = `model_providers.${providerId}`;
-        const escaped = escapeRegex(fullSection);
-        const re = new RegExp(
-            `(\\[${escaped}\\][\\s\\S]*?\\bbase_url\\s*=\\s*)"http://127\\.0\\.0\\.1:[0-9]+[^"]*"`,
-            "m"
-        );
-        const hit = apply(re, `[${fullSection}] (127.0.0.1 cleanup)`);
-        if (hit) return { ok: true, tier: hit };
-    }
-
-    // Tier 1: section-scoped with the full TOML section name.
-    if (providerId) {
-        const fullSection = `model_providers.${providerId}`;
-        const escaped = escapeRegex(fullSection);
-        // Match [section] then non-greedy body until next [header (or EOF)
-        // — capture the base_url = " prefix so we can replace just the value.
-        const re = new RegExp(
-            `(\\[${escaped}\\][\\s\\S]*?\\bbase_url\\s*=\\s*)"[^"]*"`,
-            "m"
-        );
-        const hit = apply(re, `[${fullSection}]`);
-        if (hit) return { ok: true, tier: hit };
-    }
-
-    // Tier 2: match by host. If we know the third-party endpoint host,
-    // rewrite any base_url whose URL contains that host.
-    if (currentBaseUrlHint) {
-        try {
-            const hintHost = new URL(currentBaseUrlHint).hostname;
-            if (hintHost) {
-                const escapedHost = escapeRegex(hintHost);
-                const re = new RegExp(
-                    `(\\bbase_url\\s*=\\s*)"https?://${escapedHost}[^"]*"`,
-                    "m"
-                );
-                const hit = apply(re, `host-match ${hintHost}`);
-                if (hit) return { ok: true, tier: hit };
-            }
-        } catch { /* malformed hint URL — skip tier */ }
-    }
-
-    // Tier 3: replace the first base_url in the file. Matches v4.0.2's
-    // approach. Blunt but reliable when there's only one provider.
-    const re = /(\bbase_url\s*=\s*)"[^"]*"/m;
-    const hit = apply(re, "first-base_url (fallback)");
-    if (hit) return { ok: true, tier: hit };
-
-    warn("No base_url assignment found in config.toml — rewrite skipped");
-    return { ok: false, tier: null };
-}
 
 module.exports = {
     loadEchobirdConfig,
+    readEchobirdRelay,
     isOpenAI,
-    rewriteBaseUrl,
-    escapeRegex,
+    ensureCanonicalConfig,
     CODEX_CONFIG,
     ECHOBIRD_CONFIG,
     CODEX_DIR,
     RELAY_DIR,
+    CODEX_PROXY_PORT,
+    CODEX_PROXY_URL,
+    CANONICAL_CONFIG,
 };

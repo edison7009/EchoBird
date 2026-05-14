@@ -6,6 +6,7 @@ const {
     chatToResponsesNonStream,
     chatErrorToResponsesError,
 } = require("./stream-handler.cjs");
+const { readEchobirdRelay, CODEX_PROXY_PORT } = require("./config-manager.cjs");
 
 // Map HTTP status codes from /chat/completions upstreams onto sensible
 // "outward" status codes for Codex. The status code itself isn't checked
@@ -41,8 +42,18 @@ function sendStreamErrorEvent(clientRes, errorEnvelope) {
 // Accepts POST /v1/responses (or /responses) from Codex, translates to
 // Chat Completions format, forwards to the upstream provider, then
 // translates the response back to Responses API format.
+//
+// Architecture: the proxy binds the fixed port CODEX_PROXY_PORT and
+// reads ~/.echobird/codex.json (the relay file) on EVERY incoming
+// request. That means EchoBird can switch models by rewriting only the
+// relay JSON — no config.toml edit, no Codex restart, no launcher
+// restart. The next request the proxy sees forwards to the new model.
+//
+// config.toml's base_url is permanently "http://127.0.0.1:53682/v1"
+// (see CODEX_PROXY_PORT in config-manager.cjs / tool_config_manager.rs),
+// so Codex's view never changes either.
 
-function startProxy(realBaseUrl, apiKey, realModelId, displayModel, sessions, logger) {
+function startProxy(sessions, logger) {
     const log = logger?.log || (() => {});
     const err = logger?.err || (() => {});
 
@@ -69,14 +80,39 @@ function startProxy(realBaseUrl, apiKey, realModelId, displayModel, sessions, lo
                     clientRes.end(JSON.stringify({ error: e.message }));
                     return;
                 }
+
+                // Per-request relay read: pick up model/key/baseUrl
+                // changes made by EchoBird since the last request,
+                // without any restart.
+                const relay = readEchobirdRelay();
+                if (!relay || !relay.baseUrl || !relay.apiKey) {
+                    err("[Proxy] Relay file missing or incomplete — apply a model in EchoBird first");
+                    const errorEnvelope = chatErrorToResponsesError(
+                        503,
+                        JSON.stringify({ error: { message: "No active model configured in EchoBird. Open EchoBird and select a model.", code: "no_active_model" } }),
+                        sessions
+                    );
+                    const wantStream = (reqBody && reqBody.stream) !== false;
+                    if (wantStream) {
+                        sendStreamErrorEvent(clientRes, errorEnvelope);
+                    } else {
+                        clientRes.writeHead(503, { "Content-Type": "application/json" });
+                        clientRes.end(JSON.stringify(errorEnvelope));
+                    }
+                    return;
+                }
+                const realBaseUrl = relay.baseUrl;
+                const apiKey = relay.apiKey;
+                const realModelId = relay.actualModel || relay.modelName;
+
                 const chatBody = responsesToChat(reqBody, sessions, logger);
                 const isStream = chatBody.stream;
 
-                // Model ID spoofing: Codex sends displayModel (e.g., gpt-5.4-mini),
-                // but we rewrite it to realModelId (e.g., deepseek-v4-pro) before
-                // forwarding to the upstream provider. This allows users to use
-                // familiar model names in Codex while the actual provider gets
-                // the correct model ID it expects.
+                // Model ID spoofing: Codex sends the canonical display
+                // model from config.toml (e.g. "gpt-5.4"), but the real
+                // upstream expects its actual model id (e.g.
+                // "deepseek-v4-pro"). Unconditional rewrite — whatever
+                // Codex sends gets replaced.
                 if (realModelId && chatBody.model !== realModelId) {
                     log(`[Proxy] Model ID rewrite: ${chatBody.model} → ${realModelId}`);
                     chatBody.model = realModelId;
@@ -176,10 +212,9 @@ function startProxy(realBaseUrl, apiKey, realModelId, displayModel, sessions, lo
             });
         });
         server.on("error", reject);
-        server.listen(0, "127.0.0.1", () => {
-            const port = server.address().port;
-            log(`Proxy listening on 127.0.0.1:${port}`);
-            resolve({ port, server });
+        server.listen(CODEX_PROXY_PORT, "127.0.0.1", () => {
+            log(`Proxy listening on 127.0.0.1:${CODEX_PROXY_PORT}`);
+            resolve({ port: CODEX_PROXY_PORT, server });
         });
     });
 }

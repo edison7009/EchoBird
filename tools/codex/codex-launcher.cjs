@@ -1,30 +1,42 @@
 #!/usr/bin/env node
-// Codex Launcher — Dual-spoofing proxy that bridges Codex's Responses API
-// to third-party Chat-only endpoints.
+// Codex Launcher — local proxy + dual-spoofing for third-party providers.
 //
-// Codex v0.107+ only emits POST /v1/responses; DeepSeek / Moonshot / Qwen /
-// OpenRouter / etc. only accept POST /v1/chat/completions. There is no
-// config-file path that bridges this gap, so we run an http server on a
-// random 127.0.0.1 port and rewrite ~/.codex/config.toml to point Codex at
-// it. The proxy:
-//   • translates Responses → Chat Completions outbound
-//   • translates Chat-Completions stream → Responses-shaped SSE inbound
-//   • restores the original base_url in config.toml on exit
+// Two responsibilities, both small:
 //
-// Restored 2026-05-11. The bug that killed v4.0.2 — second tool-call turn
-// returning 400 "请求失败,请重试" — was caused by `responsesToChat`
-// silently dropping `function_call` and `function_call_output` items, which
-// emptied the messages array on every follow-up turn. That is now fixed,
-// along with SSE flush (setNoDelay + flushHeaders) so deltas reach Codex
-// immediately instead of being held by Nagle's algorithm.
+//   1. Local proxy + protocol/model deception. The proxy listens on the
+//      fixed port CODEX_PROXY_PORT (53682), translates Codex's
+//      /v1/responses to upstream /chat/completions, and rewrites the
+//      model id from the canonical display ("gpt-5.4") to the user's
+//      real model. It reads ~/.echobird/codex.json on every request, so
+//      switching models in EchoBird takes effect without restarting
+//      Codex or the launcher.
+//
+//   2. config.toml verification. base_url is permanently
+//      "http://127.0.0.1:53682/v1", written once by apply_codex. The
+//      launcher just verifies that's still the case — if not, rewrites
+//      the canonical 13-line template. No per-launch base_url
+//      modification, no kill-and-restart of Codex Desktop, no history
+//      retag (model_provider stays "OpenAI", sessions stay in one bucket).
+//
+// Anything else the codebase used to do (kill_codex_if_running,
+// run_codex_provider_sync, killExistingCodexDesktop, rewriteBaseUrl
+// tiered cleanup, exit-time URL restore) was driven by the old
+// hash-based provider id scheme, which the dual-deception design
+// retired. See memory/project_model_switching_vs_proxy.md for the
+// architectural split.
 
 const path = require("path");
 const { log, warn, err } = require("./lib/logger.cjs");
 const { createSessionStore } = require("./lib/session-store.cjs");
-const { loadEchobirdConfig, isOpenAI, rewriteBaseUrl, CODEX_DIR } = require("./lib/config-manager.cjs");
+const {
+    loadEchobirdConfig,
+    ensureCanonicalConfig,
+    CODEX_DIR,
+    CODEX_PROXY_PORT,
+    CODEX_PROXY_URL,
+} = require("./lib/config-manager.cjs");
 const { startProxy } = require("./lib/proxy-server.cjs");
 const { launchCodex } = require("./lib/codex-launcher-core.cjs");
-const { runProviderSync } = require("./lib/provider-sync.cjs");
 const { resolveDesktopBinary, resolveDesktopLaunchUri } = require("./lib/binary-resolver.cjs");
 const { responsesToChat } = require("./lib/protocol-converter.cjs");
 const { chatToResponsesNonStream } = require("./lib/stream-handler.cjs");
@@ -43,136 +55,92 @@ function getLauncherVersion() {
     } catch { return "unknown"; }
 }
 
-// Main entry point
 async function main() {
-    // ECHOBIRD_CODEX_LAUNCH_MODE is set by start_codex_launcher in
-    // process_manager.rs. "cli" (default) or "desktop". Restore-to-official
-    // doesn't need any special handling here — when the user resets via UI,
-    // ~/.echobird/codex.json is deleted, loadEchobirdConfig() returns null,
-    // and we fall straight through to a direct launch without a proxy.
-    //
-    // Provider-sync (history retag) is NOT run here — it moved back to
-    // apply_codex in tool_config_manager.rs, which runs synchronously on
-    // every model switch regardless of how the user later starts Codex
-    // (our "Open" button, desktop shortcut, Start menu, etc.). Running
-    // it here too would double the work.
     const mode = (process.env.ECHOBIRD_CODEX_LAUNCH_MODE || "cli").toLowerCase();
     const logger = { log, warn, err };
     log(`──── launcher start, mode=${mode}, pid=${process.pid} ────`);
 
-    // For desktop mode we need EITHER a direct Codex.exe / Codex.app path
-    // (preferred — child process tracking works) OR a Store launchUri
-    // (fallback — fire-and-forget + tasklist polling). Only abort if
-    // neither is available, which means Codex Desktop simply isn't
-    // installed.
+    // Desktop mode requires either a direct Codex.exe / Codex.app path
+    // OR a Store launchUri (UWP). Abort early if neither is available.
     if (mode === "desktop" && !resolveDesktopBinary() && !resolveDesktopLaunchUri(__dirname)) {
-        err("Codex Desktop not installed (no Codex.exe at the standard");
-        err("paths and no Store launchUri available either).");
+        err("Codex Desktop not installed (no Codex.exe at the standard paths");
+        err("and no Store launchUri available either).");
         err("Install Codex Desktop from https://openai.com/codex or the Microsoft Store.");
         process.exit(1);
     }
 
     const config = loadEchobirdConfig();
     if (!config) {
-        log(`No relay config at ${ECHOBIRD_CONFIG} — launching Codex ${mode} directly (official mode)`);
-        log("Skipping onboarding bypass — user should authenticate with official Codex");
+        log(`No relay at ${ECHOBIRD_CONFIG} — launching Codex ${mode} directly (official mode)`);
         launchCodex(mode, __dirname, null, logger);
         return;
     }
 
-    const { apiKey, baseUrl, displayModel, actualModel, providerId } = config;
-    const envKey = config.envKey || "OPENAI_API_KEY";
-    log(`relay: baseUrl=${baseUrl} displayModel=${displayModel || "(none)"} actualModel=${actualModel || "(none)"} provider=${providerId || "(none)"} envKey=${envKey}`);
+    log(`relay: baseUrl=${config.baseUrl} actualModel=${config.actualModel || "(none)"} provider=${config.providerId || "(none)"}`);
 
-    // Retag historical sessions to the active provider BEFORE Codex starts —
-    // this is what actually makes "switch model and still see old chats" work.
-    // Awaited so the retag finishes before Codex opens state_5.sqlite.
-    await runProviderSync(providerId, __dirname, logger);
-
-    if (isOpenAI(baseUrl)) {
-        log(`OpenAI endpoint detected — no proxy needed (${mode})`);
-        log("Skipping onboarding bypass — user should authenticate with official OpenAI");
-        if (apiKey) process.env[envKey] = apiKey;
-        launchCodex(mode, __dirname, null, logger);
-        return;
-    }
-
-    // Only bypass onboarding for third-party providers (DeepSeek, Moonshot, etc.)
-    // Official Codex/OpenAI should use normal authentication flow.
-    log(`Third-party provider detected — applying onboarding bypass`);
+    // Third-party providers need the onboarding bypass so Codex Desktop
+    // doesn't try to run its OAuth sign-in flow against our 127.0.0.1
+    // proxy on first launch.
     try {
         bypassOnboarding(CODEX_DIR, logger);
     } catch (e) {
         warn(`Onboarding bypass failed (non-fatal): ${e.message}`);
     }
 
-    log(`${mode} mode, third-party endpoint: ${baseUrl}`);
-
-    const sessionStore = createSessionStore();
-    const { port, server } = await startProxy(baseUrl, apiKey, actualModel, displayModel, sessionStore, logger);
-    const localUrl = `http://127.0.0.1:${port}/v1`;
-
-    const rewriteResult = rewriteBaseUrl(providerId, baseUrl, localUrl, logger);
-    if (!rewriteResult.ok) {
-        err("FATAL: config.toml base_url rewrite failed.");
-        err(`Cannot start Codex — it would bypass the proxy and send /responses`);
-        err(`requests directly to ${baseUrl}, which only supports /chat/completions.`);
-        err(`Check ${CODEX_CONFIG} for unexpected format.`);
-        server.close();
-        process.exit(1);
+    // Verify config.toml has the canonical shape pointing at our proxy.
+    // Self-healing: writes the 13-line template if missing or drifted.
+    // apply_codex (Rust) writes the same template on every model switch,
+    // so in steady state this is a no-op file read.
+    const ensured = ensureCanonicalConfig(logger);
+    if (ensured.wrote) {
+        log(`config.toml ${ensured.reason === "missing" ? "created" : "repaired"}`);
     }
 
-    if (apiKey) process.env[envKey] = apiKey;
+    // Start the proxy on the FIXED port. If another launcher already
+    // owns 53682 (e.g. user clicked "Open Codex" while Codex CLI is
+    // running in another terminal), share it — that launcher's proxy
+    // serves all clients fine. We still spawn Codex so the user's click
+    // does something visible.
+    const sessionStore = createSessionStore();
+    let server = null;
+    try {
+        const proxy = await startProxy(sessionStore, logger);
+        server = proxy.server;
+    } catch (e) {
+        if (e.code === "EADDRINUSE") {
+            log(`Proxy port ${CODEX_PROXY_PORT} already held by another launcher — sharing it`);
+        } else {
+            err(`Proxy bind failed: ${e.message}`);
+            process.exit(1);
+        }
+    }
 
-    // Defense-in-depth: process_manager.rs pre-seeded OPENAI_BASE_URL with
-    // the real vendor URL. Override it here so that even if Codex falls
-    // back to the env var (it shouldn't — config.toml wins — but a future
-    // version or odd config might), it still hits our proxy.
-    shieldOpenAIEnvVars(localUrl);
+    // Defense-in-depth env vars. config.toml's base_url is already our
+    // proxy, but if Codex ever falls back to OPENAI_BASE_URL we want it
+    // to land on the same address rather than leaking to vendor URLs.
+    if (config.apiKey) process.env.OPENAI_API_KEY = config.apiKey;
+    shieldOpenAIEnvVars(CODEX_PROXY_URL);
 
-    // Write PID file ONLY when the proxy is up — that's the resource we
-    // need Tauri's startup-cleanup to reclaim if EchoBird died abnormally.
-    // OpenAI-direct and no-relay-config paths don't bind a port, so they
-    // skip this entirely (their orphaned launcher would be harmless).
-    writePidFile(process.pid, getLauncherVersion());
-
-    // Safety net: if the process dies before reaching launchCodex's exit
-    // callback (e.g. uncaught exception during runProviderSync teardown),
-    // still try to clean up the PID file. process.on("exit") is sync-only
-    // — anything async (config restore, server.close) belongs in the
-    // launchCodex callback below.
-    process.on("exit", () => { deletePidFile(); });
+    // Write PID file only when WE own the proxy port — that's the
+    // resource Tauri's startup-cleanup needs to reclaim if EchoBird
+    // died abnormally. The shared-proxy fallback above leaves PID
+    // management to the launcher that actually bound 53682.
+    if (server) {
+        writePidFile(process.pid, getLauncherVersion());
+        process.on("exit", () => { deletePidFile(); });
+    }
 
     launchCodex(mode, __dirname, (code) => {
-        // Deliberately do NOT restore base_url to the real third-party URL
-        // here. If we did, the next time the user opens Codex Desktop or CLI
-        // from outside EchoBird (Start menu, taskbar, `codex` in terminal),
-        // it would read config.toml with base_url=https://api.deepseek.com
-        // (or other third-party host) + wire_api="responses" and POST
-        // /responses directly to the vendor, which returns 404 because
-        // third parties only support /chat/completions.
-        //
-        // Leaving the stale 127.0.0.1:<port> in config.toml means:
-        //   • Direct Codex launches fail fast with ECONNREFUSED on
-        //     localhost — clearly localized to the proxy being down,
-        //     instead of a misleading "DeepSeek 404".
-        //   • Next launcher run, rewriteBaseUrl's Tier 0 cleanup swaps
-        //     the stale port for the fresh proxy port (see
-        //     config-manager.cjs Tier 0 block).
-        //   • apply_codex still works correctly: it writes the real URL
-        //     unconditionally, which the launcher overwrites with the
-        //     proxy URL on its next start.
-        //   • restore_codex_to_official removes the whole echobird_
-        //     section, so it's not affected either.
-        server.close();
-        deletePidFile();
+        if (server) {
+            server.close();
+            deletePidFile();
+        }
         process.exit(code);
     }, logger, (codexPid) => {
-        // Record the spawned Codex PID so Tauri's exit-cleanup can kill
-        // ONLY our Codex on shutdown — never a Codex that the user
-        // launched independently from the terminal or Start menu.
-        updatePidFile({ codexPid });
-        log(`Codex child spawned, pid=${codexPid}, recorded in PID file`);
+        if (server) {
+            updatePidFile({ codexPid });
+            log(`Codex child spawned, pid=${codexPid}, recorded in PID file`);
+        }
     });
 }
 
@@ -185,12 +153,14 @@ if (require.main === module) {
     module.exports = {
         responsesToChat,
         chatToResponsesNonStream,
-        startProxy: (baseUrl, apiKey, sessions, logger) => startProxy(baseUrl, apiKey, null, null, sessions, logger),
-        rewriteBaseUrl,
+        startProxy: (sessions, logger) => startProxy(sessions, logger),
+        ensureCanonicalConfig,
         valueToChatContent,
         mapContentPart,
         sessionStore,
         CODEX_CONFIG,
         ECHOBIRD_CONFIG,
+        CODEX_PROXY_PORT,
+        CODEX_PROXY_URL,
     };
 }

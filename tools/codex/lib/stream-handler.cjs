@@ -1,31 +1,52 @@
 // Chat-Completions stream → Responses SSE
 
 // Translate Chat-Completions usage shape → Responses API usage shape.
-// Codex parses ResponseCompleted strictly and crashes with
-// "missing field input_tokens" if the field is absent. Chat Completions
-// emits prompt_tokens / completion_tokens; Responses API uses
-// input_tokens / output_tokens. If the upstream returned no usage at all
-// (some third parties skip it on streaming), we still emit zero counters
-// so Codex's parser has the fields it needs.
+// Codex's Rust client parses ResponseCompleted with strict serde and
+// crashes with messages like "missing field input_tokens" when fields
+// are absent. Chat Completions emits prompt_tokens/completion_tokens;
+// Responses API expects the full nested shape:
+//
+//   {
+//     input_tokens: N,
+//     input_tokens_details: { cached_tokens: N },
+//     output_tokens: N,
+//     output_tokens_details: { reasoning_tokens: N },
+//     total_tokens: N
+//   }
+//
+// All five top-level fields AND both *_details objects are mandatory.
+// We synthesize zeros when upstream omits anything (many third parties
+// skip usage on streaming, or only emit prompt_tokens/completion_tokens
+// without details).
 function chatUsageToResponsesUsage(chatUsage) {
     const u = chatUsage || {};
+
     const input = u.input_tokens ?? u.prompt_tokens ?? 0;
     const output = u.output_tokens ?? u.completion_tokens ?? 0;
     const total = u.total_tokens ?? (input + output);
-    const result = {
+
+    // Cached input tokens — newer providers nest under prompt_tokens_details.
+    const cachedTokens =
+        u.input_tokens_details?.cached_tokens ??
+        u.prompt_tokens_details?.cached_tokens ??
+        u.cached_tokens ??
+        0;
+
+    // Reasoning output tokens — for thinking models. Some providers nest under
+    // completion_tokens_details, some emit a flat reasoning_tokens.
+    const reasoningTokens =
+        u.output_tokens_details?.reasoning_tokens ??
+        u.completion_tokens_details?.reasoning_tokens ??
+        u.reasoning_tokens ??
+        0;
+
+    return {
         input_tokens: input,
+        input_tokens_details: { cached_tokens: cachedTokens },
         output_tokens: output,
+        output_tokens_details: { reasoning_tokens: reasoningTokens },
         total_tokens: total,
     };
-    // Pass through any extras the provider returned (reasoning_tokens,
-    // cached_tokens, prompt_tokens_details, etc.) so newer Codex builds
-    // that surface them still see the data.
-    for (const [k, v] of Object.entries(u)) {
-        if (k === "prompt_tokens" || k === "completion_tokens") continue;
-        if (k in result) continue;
-        result[k] = v;
-    }
-    return result;
 }
 
 function chatStreamToResponsesStream(upstreamRes, clientRes, requestMessages = [], sessions, logger) {
