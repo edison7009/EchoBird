@@ -1,5 +1,5 @@
 {
-  "version": "4.6.5",
+  "version": "4.6.6",
   "releaseDate": "2026-05-14",
-  "releaseNotes": "v4.6.5: 修复 v4.6.4 切换模型时 Codex 重启、聊天卡顿、历史会话消失"
+  "releaseNotes": "v4.6.6: skill / mouse operations no longer disconnect Codex; zero-restart model switching; better IDE detection"
 }
