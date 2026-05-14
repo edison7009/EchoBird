@@ -1,5 +1,5 @@
 {
   "version": "4.6.6",
   "releaseDate": "2026-05-14",
-  "releaseNotes": "v4.6.6: skill / mouse operations no longer disconnect Codex; zero-restart model switching; better IDE detection"
+  "releaseNotes": "v4.6.6: 修复鼠标 / skill 操作断流,切模型不重启 Codex,自动识别非默认目录 IDE,保留沙盒设置"
 }
