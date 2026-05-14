@@ -1,5 +1,5 @@
 {
-  "version": "4.6.3",
+  "version": "4.6.4",
   "releaseDate": "2026-05-14",
-  "releaseNotes": "v4.6.3: precise PID-based process cleanup + audit-driven CI"
+  "releaseNotes": "v4.6.4: force Codex Desktop config reload — closes the issue #36 chain"
 }
