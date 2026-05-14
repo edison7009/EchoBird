@@ -401,6 +401,43 @@ pub async fn run_agent(
                 break;
             }
             Err(e) => {
+                // Protocol downgrade BEFORE the silent-retry loop. When
+                // the Anthropic endpoint fails at open time with a
+                // structural error (404 — endpoint missing, 500 / 502
+                // — wrong service, HTML error page from nginx, etc.),
+                // silently retrying the same dead URL three times
+                // accomplishes nothing. Switch to the OpenAI fallback
+                // immediately and start fresh.
+                //
+                // This mirrors the mid-stream downgrade logic further
+                // down — same `is_downgrade_trigger` keywords — but
+                // catches the case where llm_client's `open_with_retry`
+                // surfaces the error before any stream events are
+                // produced. (Pre-v4.7.0 this case was caught by the
+                // mid-stream branch because the error string contained
+                // "SSE error"; v4.7.0+ extracts the verbatim upstream
+                // message instead, which surfaces here as a plain
+                // "404 Not Found" / "500 Internal Server Error".)
+                let should_downgrade = !protocol_downgraded
+                    && active_provider == LlmProvider::Anthropic
+                    && is_downgrade_trigger(&e);
+                if should_downgrade {
+                    if let Some(ref fallback) = openai_fallback {
+                        log::warn!(
+                            "[AgentLoop] Anthropic open failed ({}), downgrading to OpenAI fallback",
+                            e
+                        );
+                        client = fallback.clone();
+                        active_provider = LlmProvider::OpenAI;
+                        protocol_downgraded = true;
+                        // Reset retry budget — the new endpoint deserves
+                        // a fresh chance, and we don't want a partial
+                        // Anthropic budget to short-circuit OpenAI.
+                        sse_retry_count = 0;
+                        loop_count -= 1;
+                        continue;
+                    }
+                }
                 if sse_retry_count < MAX_SSE_RETRIES {
                     sse_retry_count += 1;
                     // Silent retry — no UI signal. Mirrors ClaudeCode/OpenCode:
