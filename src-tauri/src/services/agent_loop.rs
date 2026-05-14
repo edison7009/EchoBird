@@ -587,15 +587,31 @@ pub async fn run_agent(
                             sse_error_msg = String::new(); // Prevent retry
                             break;
                         }
-                        // Protocol downgrade conditions:
-                        //   1. 400 / Bad Request — Anthropic tool calling not supported
-                        //   2. SSE connection error — endpoint unreachable or not Anthropic-compatible
+                        // Protocol downgrade conditions — any of these
+                        // signals that the configured Anthropic endpoint
+                        // can't actually speak the protocol, so we fall
+                        // back to the OpenAI endpoint:
+                        //   • 400 / Bad Request — endpoint exists but
+                        //     rejects the body (no tool calling, wrong shape)
+                        //   • 404 / Not Found — Anthropic path doesn't exist
+                        //   • 405 / Method Not Allowed — POST blocked
+                        //   • 415 / Unsupported Media Type — content-type mismatch
+                        //   • 500 / Internal Server Error — common when the
+                        //     server is a generic OpenAI proxy that mis-handles
+                        //     the Anthropic body and returns 500
+                        //   • HTML error page titles (nginx / openresty) —
+                        //     definitive sign of misrouting
+                        //   • SSE / transport errors — endpoint unreachable
+                        //     or not speaking event-stream
+                        //
+                        // Note: v4.7.0+ llm_client extracts the upstream's
+                        // own error message ("404 Not Found" instead of
+                        // "SSE error: Invalid status code: 404") so the
+                        // keyword list below must catch the bare HTTP
+                        // status text as well as the legacy prefixed forms.
                         let should_downgrade = !protocol_downgraded
                             && active_provider == LlmProvider::Anthropic
-                            && (e.contains("400")
-                                || e.contains("Bad Request")
-                                || e.contains("SSE error")
-                                || e.contains("error sending request"));
+                            && is_downgrade_trigger(&e);
 
                         if should_downgrade {
                             if let Some(ref fallback) = openai_fallback {
@@ -1097,6 +1113,65 @@ fn truncate_for_log(s: &str) -> String {
     }
 }
 
+/// Decide whether an Anthropic-leg error message means we should
+/// downgrade to the OpenAI fallback. Triggered by any of:
+///   • Bad-request signals (Anthropic tool-call shape rejected)
+///   • 4xx Not Found / Method Not Allowed / Unsupported Media Type
+///     (endpoint structurally wrong — almost certainly not Anthropic)
+///   • 500 Internal Server Error (common when a non-Anthropic proxy
+///     receives Anthropic-shaped bodies and chokes)
+///   • HTML error pages from upstream proxies (nginx / openresty —
+///     definitive sign the request was misrouted)
+///   • SSE transport errors (endpoint unreachable or not event-stream)
+///
+/// The keyword list intentionally covers both the v4.6.x format
+/// (`"SSE error: Invalid status code: 404"`) and the v4.7.0+ verbatim
+/// format (`"404 Not Found"`) so the downgrade fires regardless of
+/// which llm_client version produced the message.
+fn is_downgrade_trigger(err: &str) -> bool {
+    // Lower-cased for case-insensitive matching of HTML titles and
+    // status-text phrases (servers vary in casing).
+    let lower = err.to_lowercase();
+    // Bad request — Anthropic body rejected.
+    if lower.contains("400") || lower.contains("bad request") {
+        return true;
+    }
+    // 4xx structural problems with the Anthropic endpoint.
+    if lower.contains("404")
+        || lower.contains("not found")
+        || lower.contains("405")
+        || lower.contains("method not allowed")
+        || lower.contains("415")
+        || lower.contains("unsupported media type")
+    {
+        return true;
+    }
+    // 500 Internal Server Error — common when a generic OpenAI proxy
+    // receives Anthropic-shaped requests and falls over.
+    if lower.contains("500")
+        || lower.contains("internal server error")
+        || lower.contains("502")
+        || lower.contains("bad gateway")
+    {
+        return true;
+    }
+    // HTML upstream proxy error page — nginx / openresty / etc. Strong
+    // signal the request was misrouted; trying OpenAI on a different
+    // path may succeed.
+    if lower.contains("nginx") || lower.contains("openresty") {
+        return true;
+    }
+    // Transport / SSE-layer failures.
+    if lower.contains("sse error")
+        || lower.contains("error sending request")
+        || lower.contains("connection refused")
+        || lower.contains("connection reset")
+    {
+        return true;
+    }
+    false
+}
+
 /// Load the system prompt from the compile-time bundled asset. No network
 /// involved — many users pick smart-install precisely because their network
 /// is unreliable, so the prompt itself must work offline.
@@ -1590,5 +1665,110 @@ mod loop_detection_tests {
             s.record_call_and_detect_loop(h);
         }
         assert!(s.recent_calls.len() <= RECENT_CALLS_CAPACITY);
+    }
+}
+
+#[cfg(test)]
+mod downgrade_trigger_tests {
+    use super::is_downgrade_trigger;
+
+    // ---- v4.7.0+ verbatim error messages ----
+
+    #[test]
+    fn verbatim_404_not_found_triggers_downgrade() {
+        // What llm_client now emits when the Anthropic endpoint returns
+        // an HTML 404 page (e.g. mimo's /anthropic path doesn't exist).
+        assert!(is_downgrade_trigger("404 Not Found"));
+        assert!(is_downgrade_trigger("Not Found"));
+    }
+
+    #[test]
+    fn verbatim_500_triggers_downgrade() {
+        assert!(is_downgrade_trigger("500 Internal Server Error"));
+        assert!(is_downgrade_trigger("Internal Server Error"));
+    }
+
+    #[test]
+    fn verbatim_502_triggers_downgrade() {
+        assert!(is_downgrade_trigger("502 Bad Gateway"));
+    }
+
+    #[test]
+    fn verbatim_405_triggers_downgrade() {
+        assert!(is_downgrade_trigger("405 Method Not Allowed"));
+    }
+
+    #[test]
+    fn upstream_proxy_signature_triggers_downgrade() {
+        // Sometimes the title gets truncated or the body fragment leaks
+        // through — the proxy server name is enough to confirm misroute.
+        assert!(is_downgrade_trigger("<html>nginx error page</html>"));
+        assert!(is_downgrade_trigger("openresty/1.21.4"));
+    }
+
+    // ---- Legacy (pre-v4.7.0) error messages ----
+
+    #[test]
+    fn legacy_sse_error_still_triggers() {
+        assert!(is_downgrade_trigger("SSE error: Invalid status code: 404"));
+        assert!(is_downgrade_trigger("SSE error: connection closed"));
+    }
+
+    #[test]
+    fn legacy_bad_request_still_triggers() {
+        assert!(is_downgrade_trigger("400 Bad Request"));
+        assert!(is_downgrade_trigger(
+            "Bad Request: tool calling not supported"
+        ));
+    }
+
+    #[test]
+    fn legacy_error_sending_request_still_triggers() {
+        assert!(is_downgrade_trigger("error sending request"));
+        assert!(is_downgrade_trigger("error sending request for url"));
+    }
+
+    // ---- Things that should NOT trigger downgrade ----
+
+    #[test]
+    fn invalid_api_key_does_not_trigger() {
+        // 401 means the credentials are wrong — same on both protocols,
+        // downgrading wouldn't help.
+        assert!(!is_downgrade_trigger("Invalid API Key"));
+        assert!(!is_downgrade_trigger("Unauthorized"));
+    }
+
+    #[test]
+    fn rate_limit_does_not_trigger() {
+        // 429 is rate-limit — llm_client retries internally; downgrade
+        // would just hit the same rate limit on the other endpoint.
+        assert!(!is_downgrade_trigger("Rate limit exceeded"));
+        assert!(!is_downgrade_trigger("Too many requests"));
+    }
+
+    #[test]
+    fn quota_exceeded_does_not_trigger() {
+        assert!(!is_downgrade_trigger("You exceeded your quota"));
+    }
+
+    #[test]
+    fn user_cancellation_does_not_trigger() {
+        assert!(!is_downgrade_trigger("Aborted"));
+        assert!(!is_downgrade_trigger("User cancelled"));
+    }
+
+    #[test]
+    fn empty_message_does_not_trigger() {
+        assert!(!is_downgrade_trigger(""));
+    }
+
+    // ---- Case-insensitive matching ----
+
+    #[test]
+    fn matching_is_case_insensitive() {
+        assert!(is_downgrade_trigger("NOT FOUND"));
+        assert!(is_downgrade_trigger("not found"));
+        assert!(is_downgrade_trigger("Not Found"));
+        assert!(is_downgrade_trigger("BAD REQUEST"));
     }
 }
