@@ -1291,6 +1291,18 @@ fn apply_codex(tool_id: &str, model_info: &ModelInfo) -> ApplyResult {
         .unwrap_or("https://api.openai.com/v1")
         .trim_end_matches('/')
         .to_string();
+
+    // Reject 127.0.0.1/localhost addresses — these are proxy addresses set by
+    // the launcher, not real provider endpoints. If the frontend accidentally
+    // passes back a proxy address it read from config.toml while the launcher
+    // was running, we must reject it to avoid breaking the proxy mechanism.
+    if base_url.contains("127.0.0.1") || base_url.contains("localhost") {
+        return ApplyResult {
+            success: false,
+            message: "Cannot apply proxy address (127.0.0.1/localhost) as provider URL. Please select a real model provider.".to_string(),
+        };
+    }
+
     let api_key = model_info.api_key.as_deref().unwrap_or("");
     if api_key.is_empty() {
         return ApplyResult {
@@ -1423,7 +1435,7 @@ fn read_codex() -> Option<ModelInfo> {
     }
 
     let provider_id = toml_read_top(&content, "model_provider");
-    let base_url = if provider_id.is_empty() {
+    let mut base_url = if provider_id.is_empty() {
         None
     } else {
         let value = toml_read_table_value(
@@ -1437,6 +1449,19 @@ fn read_codex() -> Option<ModelInfo> {
             Some(value)
         }
     };
+
+    // If base_url is a proxy address (127.0.0.1/localhost), read the real
+    // provider URL from the relay file for UI display. The launcher rewrites
+    // config.toml to point at 127.0.0.1:port while running, but the UI should
+    // show users the actual provider they configured (e.g., api.xiaomimimo.com).
+    // This does NOT affect Codex's runtime behavior — Codex always reads from
+    // config.toml, which the launcher controls. apply_codex() rejects proxy
+    // addresses to prevent accidental misconfiguration.
+    if let Some(ref url) = base_url {
+        if url.contains("127.0.0.1") || url.contains("localhost") {
+            base_url = read_codex_relay_base_url();
+        }
+    }
 
     // API key now lives in ~/.codex/auth.json (preferred_auth_method=apikey).
     // Fall back to the legacy env_key path for configs written before this change.
@@ -1465,6 +1490,15 @@ fn read_codex() -> Option<ModelInfo> {
         anthropic_url: None,
         protocol: Some("openai".to_string()),
     })
+}
+
+fn read_codex_relay_base_url() -> Option<String> {
+    let relay_path = echobird_dir().join("codex.json");
+    let content = fs::read_to_string(relay_path).ok()?;
+    let v: serde_json::Value = serde_json::from_str(&content).ok()?;
+    v.get("baseUrl")
+        .and_then(|x| x.as_str())
+        .map(String::from)
 }
 
 fn read_codex_auth_key(codex_dir: &Path) -> Option<String> {
