@@ -42,7 +42,9 @@
 //   content_mapper.rs     ← Phase 5: text/image multimodal parts
 //   onboarding_bypass.rs  ← Phase 5: ~/.codex/.codex-global-state.json patch
 
+mod config_manager;
 mod content_mapper;
+mod onboarding_bypass;
 mod protocol_converter;
 mod server;
 mod session_store;

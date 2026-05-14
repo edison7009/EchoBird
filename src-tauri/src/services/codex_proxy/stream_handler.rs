@@ -1358,7 +1358,7 @@ mod tests {
             .enumerate()
             .filter(|(_, n)| **n == "response.output_item.added")
             .map(|(i, _)| i)
-            .last()
+            .next_back()
             .unwrap();
         assert!(text_done < tool_added);
     }
