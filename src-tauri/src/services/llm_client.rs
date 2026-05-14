@@ -229,7 +229,10 @@ impl LlmClient {
             Ok(http.post(&url_owned).headers(headers).json(&body_owned))
         };
 
-        let OpenedStream { mut es, pending } = open_with_retry(make_request).await?;
+        // OpenAI is the workhorse path: full retry budget on transient
+        // 429 / 5xx / transport blips.
+        let OpenedStream { mut es, pending } =
+            open_with_retry(make_request, MAX_RETRY_ATTEMPTS).await?;
 
         let (tx, rx) = mpsc::channel(128);
 
@@ -449,11 +452,15 @@ impl LlmClient {
             Ok(http.post(&url_owned).headers(headers).json(&body_owned))
         };
 
-        // Anthropic gets verbatim-error + per-chunk timeout via
-        // `open_with_retry`; the retry side of the helper still kicks
-        // in for 429 / 5xx, which is harmless when Anthropic's own
-        // SDK would retry anyway.
-        let OpenedStream { mut es, pending } = open_with_retry(make_request).await?;
+        // Anthropic path is a "probe before falling back to OpenAI":
+        // when the user has both `anthropicUrl` + `baseUrl` configured,
+        // agent_loop tries Anthropic first and downgrades on failure.
+        // Retrying a non-existent /anthropic/messages endpoint here
+        // would burn 30-60s of connect_timeout before the downgrade
+        // can even fire (observed: mimo's /anthropic returns transport
+        // error then 404). Single attempt = fail fast = the user sees
+        // their first response in seconds instead of a minute.
+        let OpenedStream { mut es, pending } = open_with_retry(make_request, 1).await?;
 
         let (tx, rx) = mpsc::channel(128);
 
@@ -853,13 +860,20 @@ struct OpenedStream {
 ///   • The server emits a Message directly (buffered into `pending`)
 ///   • A non-retryable error fires (returns Err with the upstream's
 ///     own message extracted from the response body)
-///   • All `MAX_RETRY_ATTEMPTS` attempts have been exhausted
-async fn open_with_retry<F>(make_request: F) -> Result<OpenedStream, String>
+///   • All `max_attempts` attempts have been exhausted
+///
+/// `max_attempts` controls the retry budget. Pass `MAX_RETRY_ATTEMPTS`
+/// (3) for the OpenAI workhorse path where retries genuinely help with
+/// transient blips. Pass `1` for the Anthropic probe path where the
+/// endpoint is just a "first try before falling back" — retrying a
+/// non-existent /anthropic/messages route 3 times wastes ~30-60s per
+/// connect_timeout before the agent loop downgrades to OpenAI.
+async fn open_with_retry<F>(make_request: F, max_attempts: u32) -> Result<OpenedStream, String>
 where
     F: Fn() -> Result<reqwest::RequestBuilder, String>,
 {
     let mut last_err = String::from("All retry attempts failed");
-    for attempt in 0..MAX_RETRY_ATTEMPTS {
+    for attempt in 0..max_attempts {
         let request = make_request()?;
         let mut es = match EventSource::new(request) {
             Ok(es) => es,
@@ -887,13 +901,13 @@ where
                 let retry_after = parse_retry_after(response.headers());
                 let body = response.text().await.unwrap_or_default();
                 let message = extract_upstream_error_message(status.as_u16(), &body);
-                if is_retryable_status(status.as_u16()) && attempt + 1 < MAX_RETRY_ATTEMPTS {
+                if is_retryable_status(status.as_u16()) && attempt + 1 < max_attempts {
                     let wait = retry_after.unwrap_or_else(|| backoff_for_attempt(attempt));
                     log::info!(
                         "[LLM] Upstream {} (attempt {}/{}), retrying in {:?}: {}",
                         status,
                         attempt + 1,
-                        MAX_RETRY_ATTEMPTS,
+                        max_attempts,
                         wait,
                         message
                     );
@@ -904,12 +918,12 @@ where
                 return Err(message);
             }
             Some(Err(reqwest_eventsource::Error::Transport(e))) => {
-                if attempt + 1 < MAX_RETRY_ATTEMPTS {
+                if attempt + 1 < max_attempts {
                     let wait = backoff_for_attempt(attempt);
                     log::info!(
                         "[LLM] Transport error (attempt {}/{}), retrying in {:?}: {}",
                         attempt + 1,
-                        MAX_RETRY_ATTEMPTS,
+                        max_attempts,
                         wait,
                         e
                     );
@@ -921,7 +935,7 @@ where
             }
             Some(Err(e)) => return Err(format!("SSE setup error: {e}")),
             None => {
-                if attempt + 1 < MAX_RETRY_ATTEMPTS {
+                if attempt + 1 < max_attempts {
                     tokio::time::sleep(backoff_for_attempt(attempt)).await;
                     last_err = "Upstream closed connection immediately".to_string();
                     continue;

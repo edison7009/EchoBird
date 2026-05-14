@@ -476,14 +476,32 @@ export function MotherAgentProvider({ children }: { children: React.ReactNode })
           api.resetAgent(selectedServerId).catch(() => {});
         },
         abortAgent: () => {
+          // Idempotent on rapid multi-clicks: backend `agent_abort` is
+          // safe to invoke repeatedly (a no-op once `sess.running` is
+          // false), but each frontend click used to stack another
+          // "已取消" chat bubble — users who clicked impatiently 5-10
+          // times while waiting for the agent to unwind saw a flood of
+          // duplicates. We now skip adding a new bubble when the last
+          // chat item is already a `cancelled` one, and skip firing
+          // backend abort + restart safety-net timer while one is
+          // already pending.
+          if (abortTimeoutRef.current) {
+            // An abort is already in flight — backend will unwind in a
+            // moment, no need to spam more requests or bubbles.
+            return;
+          }
           api.abortAgent(selectedServerId).catch(() => {});
-          // Immediately show cancelled hint
-          setChatOutput((o) => [
-            ...o,
-            { type: 'cancelled', text: '', i18nKey: 'error.userCancelled' },
-          ]);
+          setChatOutput((o) => {
+            const last = o[o.length - 1];
+            if (last && last.type === 'cancelled') {
+              return o; // dedup: don't stack duplicate cancelled bubbles
+            }
+            return [
+              ...o,
+              { type: 'cancelled', text: '', i18nKey: 'error.userCancelled' },
+            ];
+          });
           // Frontend safety net: force reset after 3s if backend doesn't respond
-          if (abortTimeoutRef.current) clearTimeout(abortTimeoutRef.current);
           abortTimeoutRef.current = setTimeout(() => {
             abortTimeoutRef.current = null;
             setIsProcessing((prev) => {
