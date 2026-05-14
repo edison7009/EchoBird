@@ -9,7 +9,7 @@ const { chatStreamToResponsesStream, chatToResponsesNonStream } = require("./str
 // Chat Completions format, forwards to the upstream provider, then
 // translates the response back to Responses API format.
 
-function startProxy(realBaseUrl, apiKey, sessions, logger) {
+function startProxy(realBaseUrl, apiKey, realModelId, displayModel, sessions, logger) {
     const log = logger?.log || (() => {});
     const err = logger?.err || (() => {});
 
@@ -38,6 +38,16 @@ function startProxy(realBaseUrl, apiKey, sessions, logger) {
                 }
                 const chatBody = responsesToChat(reqBody, sessions, logger);
                 const isStream = chatBody.stream;
+
+                // Model ID spoofing: Codex sends displayModel (e.g., gpt-5.4-mini),
+                // but we rewrite it to realModelId (e.g., deepseek-v4-pro) before
+                // forwarding to the upstream provider. This allows users to use
+                // familiar model names in Codex while the actual provider gets
+                // the correct model ID it expects.
+                if (realModelId && chatBody.model !== realModelId) {
+                    log(`[Proxy] Model ID rewrite: ${chatBody.model} → ${realModelId}`);
+                    chatBody.model = realModelId;
+                }
 
                 // Normalize upstream URL. Users sometimes enter the bare
                 // host (`https://api.deepseek.com`) without `/v1`; we

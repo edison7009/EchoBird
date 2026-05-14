@@ -23,6 +23,8 @@ pub struct ModelInfo {
     pub anthropic_url: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub protocol: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub display_model: Option<String>,
 }
 
 /// Result of applying a model config
@@ -46,29 +48,30 @@ fn ensure_parent(path: &Path) {
     }
 }
 
-/// Extract domain name from URL string without url crate
-/// e.g. "https://api.deepseek.com/v1" �?"deepseek"
-/// e.g. "http://localhost:8080" �?"local"
+/// Generate unique provider ID from base_url and model_id
+/// Uses SHA256 hash to avoid collisions when:
+/// - Same domain, different models
+/// - Different providers with same domain
+fn codex_provider_id(base_url: &str, model_id: &str) -> String {
+    use sha2::{Digest, Sha256};
+    let input = format!("{}|{}", base_url, model_id);
+    let hash = Sha256::digest(input.as_bytes());
+    let hex = format!("{:x}", hash);
+    format!("echobird_{}", &hex[..16])
+}
+
+/// Extract domain name from URL for use in identifiers
+/// Example: "https://api.openai.com/v1" -> "api_openai_com"
 fn extract_domain_name(url: &str) -> String {
-    // Strip protocol
-    let without_protocol = url
-        .strip_prefix("https://")
-        .or_else(|| url.strip_prefix("http://"))
-        .unwrap_or(url);
-    // Get host part (before / or :)
-    let host = without_protocol.split('/').next().unwrap_or("");
-    let host = host.split(':').next().unwrap_or(host);
-
-    if host == "localhost" || host.starts_with("127.") || host.starts_with("192.168.") {
-        return "local".to_string();
-    }
-
-    let parts: Vec<&str> = host.split('.').collect();
-    if parts.len() >= 2 {
-        parts[parts.len() - 2].to_string()
-    } else {
-        host.to_string()
-    }
+    url.trim_start_matches("http://")
+        .trim_start_matches("https://")
+        .split('/')
+        .next()
+        .unwrap_or(url)
+        .split(':')
+        .next()
+        .unwrap_or(url)
+        .replace('.', "_")
 }
 
 /// Read JSON file, return Value or None
@@ -427,6 +430,7 @@ fn read_generic_json(tool_id: &str) -> Option<ModelInfo> {
         api_key: read_field(&read_map.api_key),
         anthropic_url: None,
         protocol: None,
+        display_model: None,
     })
 }
 
@@ -531,6 +535,7 @@ fn read_echobird_relay(tool_id: &str) -> Option<ModelInfo> {
             .get("protocol")
             .and_then(|v| v.as_str())
             .map(|s| s.to_string()),
+        display_model: None,
     })
 }
 
@@ -727,6 +732,7 @@ fn read_openclaw() -> Option<ModelInfo> {
         api_key,
         anthropic_url: None,
         protocol: Some(protocol.to_string()),
+        display_model: None,
     })
 }
 
@@ -878,6 +884,7 @@ fn read_opencode() -> Option<ModelInfo> {
             .map(|s| s.to_string()),
         anthropic_url: None,
         protocol: None,
+        display_model: None,
     })
 }
 
@@ -907,6 +914,7 @@ fn read_opencode_native_config(path: &Path) -> Option<ModelInfo> {
             .map(|s| s.to_string()),
         anthropic_url: None,
         protocol: Some("openai".to_string()),
+        display_model: None,
     })
 }
 
@@ -1175,25 +1183,6 @@ fn run_codex_provider_sync(provider_id: &str) {
     }
 }
 
-fn codex_provider_id(base_url: &str, model_id: &str) -> String {
-    // Generate a stable UUID based on base_url + model_id combination.
-    // This ensures each unique (provider, model) pair gets its own provider ID,
-    // preventing history collision when:
-    // - Same provider, different models (api.deepseek.com + v4-pro vs v4-flash)
-    // - Different providers, same domain (official vs third-party proxies)
-    // - Third-party aggregators with multiple models (openai-hub.com + deepseek vs gpt-4)
-    use std::collections::hash_map::DefaultHasher;
-    use std::hash::{Hash, Hasher};
-
-    let mut hasher = DefaultHasher::new();
-    base_url.hash(&mut hasher);
-    model_id.hash(&mut hasher);
-    let hash = hasher.finish();
-
-    // Format as echobird_<16-char-hex> for readability in logs/db
-    format!("echobird_{:016x}", hash)
-}
-
 /// Kill any running Codex CLI / Codex Desktop processes before rewriting
 /// config.toml + auth.json. Codex caches both files in memory at startup
 /// and never re-reads — without this kill the user's "modify" click is
@@ -1315,8 +1304,13 @@ fn apply_codex(tool_id: &str, model_info: &ModelInfo) -> ApplyResult {
     let provider_id = codex_provider_id(&base_url, model_id);
     let provider_name = model_id; // Use model ID instead of domain name
 
+    // display_model: what Codex sees (e.g., gpt-5.4-mini)
+    // model_id: what the actual provider expects (e.g., deepseek-v4-pro)
+    // The launcher proxy will rewrite display_model → model_id when forwarding.
+    let display_model = model_info.display_model.as_deref().unwrap_or(model_id);
+
     content = toml_write_top(&content, "model_provider", &provider_id);
-    content = toml_write_top(&content, "model", model_id);
+    content = toml_write_top(&content, "model", display_model);
     if toml_read_top(&content, "model_reasoning_effort").is_empty() {
         content = toml_write_top(&content, "model_reasoning_effort", "high");
     }
@@ -1394,6 +1388,7 @@ fn apply_codex(tool_id: &str, model_info: &ModelInfo) -> ApplyResult {
         "apiKey": api_key,
         "baseUrl": base_url,
         "modelId": model_id,
+        "displayModel": display_model,
         "modelName": model_info.name.as_deref().unwrap_or(model_id),
         "providerId": provider_id,
     });
@@ -1490,6 +1485,7 @@ fn read_codex() -> Option<ModelInfo> {
         api_key,
         anthropic_url: None,
         protocol: Some("openai".to_string()),
+        display_model: None,
     })
 }
 
@@ -1633,6 +1629,7 @@ fn read_aider() -> Option<ModelInfo> {
         api_key,
         anthropic_url: None,
         protocol: None,
+        display_model: None,
     })
 }
 
@@ -1715,6 +1712,7 @@ fn read_zeroclaw() -> Option<ModelInfo> {
         api_key: if key.is_empty() { None } else { Some(key) },
         anthropic_url: None,
         protocol: None,
+        display_model: None,
     })
 }
 
@@ -1859,6 +1857,7 @@ fn read_qwen_code() -> Option<ModelInfo> {
         api_key,
         anthropic_url: None,
         protocol: Some(selected_type.to_string()),
+        display_model: None,
     })
 }
 
@@ -2020,6 +2019,7 @@ fn read_pi() -> Option<ModelInfo> {
             }
             .to_string(),
         ),
+        display_model: None,
     })
 }
 
