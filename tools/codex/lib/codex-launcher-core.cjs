@@ -145,7 +145,24 @@ function launchCodex(mode, launcherDir, onExit, logger) {
     });
     process.on("SIGINT",  () => child.kill("SIGINT"));
     process.on("SIGTERM", () => child.kill("SIGTERM"));
-    child.on("close", (code) => { if (onExit) onExit(code || 0); else process.exit(code || 0); });
+    // SIGHUP fires on POSIX when the controlling terminal closes (e.g. user
+    // closes the terminal tab while Codex CLI is running). Without this
+    // handler the launcher dies before onExit runs, leaving config.toml
+    // pointing at the proxy and the proxy port leaked.
+    if (process.platform !== "win32") {
+        process.on("SIGHUP", () => child.kill("SIGHUP"));
+    }
+    child.on("close", (code) => {
+        try {
+            if (onExit) onExit(code || 0);
+            else process.exit(code || 0);
+        } catch (e) {
+            // Never let an onExit exception swallow the exit — without
+            // this the process can hang holding the proxy port open.
+            err(`onExit handler threw: ${e.stack || e.message}`);
+            process.exit(code || 1);
+        }
+    });
     child.on("error", (e) => {
         err(`Failed to launch Codex: ${e.message}`);
         process.exit(1);

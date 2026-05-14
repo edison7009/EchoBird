@@ -1,7 +1,40 @@
 const http = require("http");
 const https = require("https");
 const { responsesToChat } = require("./protocol-converter.cjs");
-const { chatStreamToResponsesStream, chatToResponsesNonStream } = require("./stream-handler.cjs");
+const {
+    chatStreamToResponsesStream,
+    chatToResponsesNonStream,
+    chatErrorToResponsesError,
+} = require("./stream-handler.cjs");
+
+// Map HTTP status codes from /chat/completions upstreams onto sensible
+// "outward" status codes for Codex. The status code itself isn't checked
+// by Codex (it reads the JSON envelope's status field), but we keep the
+// upstream code so logs and any non-Codex consumer still see the truth.
+function passthroughStatus(code) {
+    if (!code || code < 400 || code > 599) return 502;
+    return code;
+}
+
+// Convert a streaming error into a one-shot response.failed SSE event.
+// Called when the upstream returned non-200 while the client expected a
+// stream — we still need to emit something that looks like a stream to
+// Codex, otherwise the client hangs waiting for response.created.
+function sendStreamErrorEvent(clientRes, errorEnvelope) {
+    if (!clientRes.headersSent) {
+        clientRes.writeHead(200, {
+            "Content-Type": "text/event-stream",
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        });
+    }
+    clientRes.write(`event: response.failed\ndata: ${JSON.stringify({
+        type: "response.failed",
+        response: errorEnvelope,
+    })}\n\n`);
+    if (!clientRes.writableEnded) clientRes.end();
+}
 
 // Proxy server
 //
@@ -71,11 +104,27 @@ function startProxy(realBaseUrl, apiKey, realModelId, displayModel, sessions, lo
                 }, (upstreamRes) => {
                     if (upstreamRes.statusCode !== 200) {
                         let errBody = "";
-                        upstreamRes.on("data", c => errBody += c);
+                        upstreamRes.on("data", c => {
+                            // Cap accumulation at 16KB — error bodies are
+                            // small in practice (a JSON envelope), and we
+                            // never want a misbehaving upstream to push us
+                            // into unbounded growth.
+                            if (errBody.length < 16384) errBody += c;
+                        });
                         upstreamRes.on("end", () => {
                             err(`[Proxy] Upstream ${upstreamRes.statusCode}: ${errBody.slice(0, 500)}`);
-                            clientRes.writeHead(upstreamRes.statusCode, { "Content-Type": "application/json" });
-                            clientRes.end(errBody);
+                            const errorEnvelope = chatErrorToResponsesError(
+                                upstreamRes.statusCode, errBody, sessions
+                            );
+                            if (isStream) {
+                                sendStreamErrorEvent(clientRes, errorEnvelope);
+                            } else {
+                                clientRes.writeHead(
+                                    passthroughStatus(upstreamRes.statusCode),
+                                    { "Content-Type": "application/json" }
+                                );
+                                clientRes.end(JSON.stringify(errorEnvelope));
+                            }
                         });
                         return;
                     }
@@ -109,8 +158,18 @@ function startProxy(realBaseUrl, apiKey, realModelId, displayModel, sessions, lo
                 });
                 upstreamReq.on("error", e => {
                     err(`[Proxy] Upstream connect error: ${e.message}`);
-                    clientRes.writeHead(502);
-                    clientRes.end(JSON.stringify({ error: e.message }));
+                    const errorEnvelope = chatErrorToResponsesError(
+                        502, JSON.stringify({ error: { message: e.message, code: e.code || "connect_error" } }),
+                        sessions
+                    );
+                    if (isStream) {
+                        sendStreamErrorEvent(clientRes, errorEnvelope);
+                    } else {
+                        if (!clientRes.headersSent) {
+                            clientRes.writeHead(502, { "Content-Type": "application/json" });
+                        }
+                        clientRes.end(JSON.stringify(errorEnvelope));
+                    }
                 });
                 upstreamReq.write(JSON.stringify(chatBody));
                 upstreamReq.end();

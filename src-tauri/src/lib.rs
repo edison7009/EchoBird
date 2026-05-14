@@ -95,38 +95,87 @@ pub fn rebuild_tray_menu(app: &tauri::AppHandle) {
     log::info!("[Tray] Menu rebuilt: locale={}", locale);
 }
 
-/// Kill any leftover codex-launcher.cjs processes from a previous EchoBird
-/// session that exited abnormally (crash, force-kill, taskkill). The normal
-/// Exit handler cleans these up, but only fires on graceful shutdown — if
-/// the app died, the launcher (and its proxy) stays running and would
-/// conflict with the next launch. Only the launcher is killed; Codex itself
-/// is left alone so we never touch a user's terminal-launched codex.
+/// Read the launcher PID file at ~/.echobird/codex-launcher.pid, return
+/// the PID if the file is well-formed. The launcher writes this file on
+/// startup (only when its proxy is bound) and deletes it on clean exit.
+/// Stale files mean the prior launcher died abnormally.
+fn read_launcher_pid_file() -> Option<u32> {
+    let pid_path = dirs::home_dir()?
+        .join(".echobird")
+        .join("codex-launcher.pid");
+    let content = std::fs::read_to_string(&pid_path).ok()?;
+    let parsed: serde_json::Value = serde_json::from_str(&content).ok()?;
+    parsed.get("pid").and_then(|v| v.as_u64()).map(|n| n as u32)
+}
+
+fn delete_launcher_pid_file() {
+    if let Some(home) = dirs::home_dir() {
+        let pid_path = home.join(".echobird").join("codex-launcher.pid");
+        let _ = std::fs::remove_file(pid_path);
+    }
+}
+
+/// Kill the orphaned codex-launcher.cjs process from a previous EchoBird
+/// session that exited abnormally (crash, force-kill, taskkill). The
+/// normal Exit handler cleans these up on graceful shutdown — if the app
+/// died, the launcher (and its proxy) stays running and would conflict
+/// with the next launch.
+///
+/// We identify the orphan via ~/.echobird/codex-launcher.pid (written by
+/// the launcher on startup). This is precise: we only kill OUR launcher,
+/// never a launcher from another EchoBird instance, never a user's
+/// terminal-launched codex.
 fn kill_stale_codex_launchers() {
+    let Some(pid) = read_launcher_pid_file() else {
+        return;
+    };
+
+    log::info!("[Startup] Found stale launcher PID file: pid={}", pid);
+
     #[cfg(target_os = "windows")]
     {
         use std::os::windows::process::CommandExt;
         const CREATE_NO_WINDOW: u32 = 0x08000000;
-        let _ = std::process::Command::new("wmic")
-            .args([
-                "process",
-                "where",
-                "CommandLine like '%codex-launcher.cjs%'",
-                "delete",
-            ])
+        // taskkill /F /PID is reliable on every supported Windows version
+        // and doesn't depend on the deprecated wmic. Targets a specific
+        // PID, so we can never hit another EchoBird's launcher or any
+        // unrelated node.exe.
+        let status = std::process::Command::new("taskkill")
+            .args(["/F", "/PID", &pid.to_string()])
             .creation_flags(CREATE_NO_WINDOW)
             .stdout(std::process::Stdio::null())
             .stderr(std::process::Stdio::null())
-            .spawn();
+            .status();
+        match status {
+            Ok(s) if s.success() => {
+                log::info!("[Startup] Killed stale launcher pid={}", pid);
+            }
+            _ => {
+                log::info!("[Startup] Stale launcher pid={} already gone", pid);
+            }
+        }
     }
 
     #[cfg(any(target_os = "macos", target_os = "linux"))]
     {
-        let _ = std::process::Command::new("pkill")
-            .args(["-f", "codex-launcher.cjs"])
+        // `kill -9 <pid>` is synchronous and POSIX-portable. Failure is
+        // expected when the process already exited.
+        let status = std::process::Command::new("kill")
+            .args(["-9", &pid.to_string()])
             .stdout(std::process::Stdio::null())
             .stderr(std::process::Stdio::null())
-            .spawn();
+            .status();
+        match status {
+            Ok(s) if s.success() => {
+                log::info!("[Startup] Killed stale launcher pid={}", pid);
+            }
+            _ => {
+                log::info!("[Startup] Stale launcher pid={} already gone", pid);
+            }
+        }
     }
+
+    delete_launcher_pid_file();
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -389,27 +438,17 @@ pub fn run() {
                 tauri::RunEvent::Exit => {
                     // Clean up all spawned processes on app exit to prevent zombie processes.
                     // ProcessManager uses a global singleton, so we can't access it here.
-                    // Instead, we kill processes by name/pattern.
+                    // For the launcher we use the PID file (precise, no false matches);
+                    // for Codex / llama-server we still pattern-match because they aren't
+                    // tracked by a per-process side-channel.
+
+                    // PID-based launcher kill — runs on every OS first.
+                    kill_stale_codex_launchers();
 
                     #[cfg(target_os = "windows")]
                     {
                         use std::os::windows::process::CommandExt;
                         const CREATE_NO_WINDOW: u32 = 0x08000000;
-
-                        // 1. Kill codex-launcher node processes
-                        // The launcher spawns as "node.exe codex-launcher.cjs" and runs a local proxy.
-                        // We need to kill it to stop the proxy server.
-                        let _ = std::process::Command::new("wmic")
-                            .args([
-                                "process",
-                                "where",
-                                "CommandLine like '%codex-launcher.cjs%'",
-                                "delete",
-                            ])
-                            .creation_flags(CREATE_NO_WINDOW)
-                            .stdout(std::process::Stdio::null())
-                            .stderr(std::process::Stdio::null())
-                            .spawn();
 
                         // 2. Kill Codex processes (both Desktop and CLI)
                         let _ = std::process::Command::new("taskkill")
@@ -437,12 +476,7 @@ pub fn run() {
 
                     #[cfg(target_os = "macos")]
                     {
-                        // 1. Kill codex-launcher node processes
-                        let _ = std::process::Command::new("pkill")
-                            .args(["-f", "codex-launcher.cjs"])
-                            .stdout(std::process::Stdio::null())
-                            .stderr(std::process::Stdio::null())
-                            .spawn();
+                        // Launcher kill handled above via PID file.
 
                         // 2. Kill Codex processes
                         let _ = std::process::Command::new("pkill")
@@ -467,12 +501,7 @@ pub fn run() {
 
                     #[cfg(target_os = "linux")]
                     {
-                        // 1. Kill codex-launcher node processes
-                        let _ = std::process::Command::new("pkill")
-                            .args(["-f", "codex-launcher.cjs"])
-                            .stdout(std::process::Stdio::null())
-                            .stderr(std::process::Stdio::null())
-                            .spawn();
+                        // Launcher kill handled above via PID file.
 
                         // 2. Kill Codex CLI processes
                         let _ = std::process::Command::new("pkill")

@@ -57,11 +57,27 @@ function rewriteBaseUrl(providerId, currentBaseUrlHint, newUrl, logger) {
         const replaced = toml.replace(regex, (_m, prefix) => `${prefix}"${newUrl}"`);
         if (replaced === toml) return null;
         try {
-            fs.writeFileSync(CODEX_CONFIG, replaced, "utf-8");
+            // Atomic write: write to .tmp, fsync, then rename. Guarantees
+            // config.toml is never left half-written if the process is
+            // killed mid-write. fs.renameSync uses MoveFileExW on Windows
+            // (Node 10+) and rename(2) on POSIX — both are atomic when
+            // source and destination live on the same filesystem, which
+            // is always the case here (~/.codex/).
+            const tmp = `${CODEX_CONFIG}.tmp`;
+            const fd = fs.openSync(tmp, "w");
+            try {
+                fs.writeSync(fd, replaced, 0, "utf-8");
+                fs.fsyncSync(fd);
+            } finally {
+                fs.closeSync(fd);
+            }
+            fs.renameSync(tmp, CODEX_CONFIG);
             log(`base_url rewritten via ${label} → ${newUrl}`);
             return label;
         } catch (e) {
             err(`config.toml write failed: ${e.message}`);
+            // Best-effort cleanup of any leftover .tmp.
+            try { fs.unlinkSync(`${CODEX_CONFIG}.tmp`); } catch { /* ignore */ }
             return null;
         }
     };

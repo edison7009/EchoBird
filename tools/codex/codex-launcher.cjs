@@ -31,6 +31,16 @@ const { chatToResponsesNonStream } = require("./lib/stream-handler.cjs");
 const { valueToChatContent, mapContentPart } = require("./lib/content-mapper.cjs");
 const { bypassOnboarding } = require("./lib/onboarding-bypass.cjs");
 const { CODEX_CONFIG, ECHOBIRD_CONFIG } = require("./lib/config-manager.cjs");
+const { writePidFile, deletePidFile } = require("./lib/pid-file.cjs");
+
+// Read launcher version from package.json so the PID file's `version`
+// field is accurate without hard-coding it here.
+function getLauncherVersion() {
+    try {
+        const pkg = require(path.join(__dirname, "..", "..", "package.json"));
+        return pkg.version || "unknown";
+    } catch { return "unknown"; }
+}
 
 // Main entry point
 async function main() {
@@ -113,9 +123,23 @@ async function main() {
 
     if (apiKey) process.env[envKey] = apiKey;
 
+    // Write PID file ONLY when the proxy is up — that's the resource we
+    // need Tauri's startup-cleanup to reclaim if EchoBird died abnormally.
+    // OpenAI-direct and no-relay-config paths don't bind a port, so they
+    // skip this entirely (their orphaned launcher would be harmless).
+    writePidFile(process.pid, getLauncherVersion());
+
+    // Safety net: if the process dies before reaching launchCodex's exit
+    // callback (e.g. uncaught exception during runProviderSync teardown),
+    // still try to clean up the PID file. process.on("exit") is sync-only
+    // — anything async (config restore, server.close) belongs in the
+    // launchCodex callback below.
+    process.on("exit", () => { deletePidFile(); });
+
     launchCodex(mode, __dirname, (code) => {
         rewriteBaseUrl(providerId, localUrl, baseUrl, logger);
         server.close();
+        deletePidFile();
         process.exit(code);
     }, logger);
 }

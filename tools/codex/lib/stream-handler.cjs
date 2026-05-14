@@ -33,6 +33,8 @@ function chatStreamToResponsesStream(upstreamRes, clientRes, requestMessages = [
     let nextOutputIndex = 0;
     let buffer = "";
     let finished = false;
+    let usage = null;          // Aggregated token usage from final upstream delta.
+    let finishReason = null;   // "stop" | "length" | "tool_calls" | "content_filter"
 
     const openTextItem = () => {
         textIdx = nextOutputIndex++;
@@ -109,14 +111,45 @@ function chatStreamToResponsesStream(upstreamRes, clientRes, requestMessages = [
         }
     };
 
+    // Build the final assembled output array (mirrors what Codex saw via
+    // deltas). Used in response.completed so the response object is complete.
+    const buildAssembledOutput = () => {
+        const out = [];
+        if (textBuf) {
+            out.push({
+                id: `item_${responseId}_${textIdx >= 0 ? textIdx : 0}`,
+                type: "message",
+                role: "assistant",
+                content: [{ type: "output_text", text: textBuf }],
+            });
+        }
+        for (const slot of toolCalls.values()) {
+            out.push({
+                id: slot.id, type: "function_call", call_id: slot.id,
+                name: slot.name, arguments: slot.arguments,
+            });
+        }
+        return out;
+    };
+
     const finish = () => {
         if (finished) return;
         finished = true;
         closeTextItem();
         closeToolCalls();
-        sendSSE("response.completed", {
-            type: "response.completed",
-            response: { id: responseId, object: "response", status: "completed", output: [] },
+        const completedResponse = {
+            id: responseId, object: "response", status: "completed",
+            output: buildAssembledOutput(),
+        };
+        if (usage) completedResponse.usage = usage;
+        if (finishReason) completedResponse.incomplete_details =
+            finishReason === "length" ? { reason: "max_output_tokens" } : undefined;
+        // "length" means the model hit max_tokens — surface that as incomplete
+        // so Codex can show "(response truncated)" instead of silently cutting off.
+        if (finishReason === "length") completedResponse.status = "incomplete";
+        sendSSE(completedResponse.status === "incomplete" ? "response.incomplete" : "response.completed", {
+            type: completedResponse.status === "incomplete" ? "response.incomplete" : "response.completed",
+            response: completedResponse,
         });
         if (!clientRes.writableEnded) clientRes.end();
 
@@ -151,6 +184,26 @@ function chatStreamToResponsesStream(upstreamRes, clientRes, requestMessages = [
         }
     };
 
+    // Send a response.failed SSE event then end the stream. Used when the
+    // upstream connection drops mid-stream — without this, Codex would
+    // receive response.completed with whatever partial output we got and
+    // think the request succeeded.
+    const fail = (message, code = "upstream_error") => {
+        if (finished) return;
+        finished = true;
+        closeTextItem();
+        closeToolCalls();
+        sendSSE("response.failed", {
+            type: "response.failed",
+            response: {
+                id: responseId, object: "response", status: "failed",
+                error: { code, message },
+                output: buildAssembledOutput(),
+            },
+        });
+        if (!clientRes.writableEnded) clientRes.end();
+    };
+
     upstreamRes.on("data", (chunk) => {
         buffer += chunk.toString();
         const lines = buffer.split("\n");
@@ -162,6 +215,15 @@ function chatStreamToResponsesStream(upstreamRes, clientRes, requestMessages = [
             if (data === "[DONE]") { finish(); return; }
             let parsed;
             try { parsed = JSON.parse(data); } catch { continue; }
+
+            // Capture usage and finish_reason from any chunk that includes
+            // them. Most providers emit usage on the final chunk only;
+            // OpenAI emits it as a separate trailing event when
+            // stream_options.include_usage=true is requested. We accept
+            // both shapes here without forcing a particular caller config.
+            if (parsed.usage) usage = parsed.usage;
+            const fr = parsed.choices?.[0]?.finish_reason;
+            if (fr) finishReason = fr;
 
             const delta = parsed.choices?.[0]?.delta;
             if (!delta) continue;
@@ -214,14 +276,15 @@ function chatStreamToResponsesStream(upstreamRes, clientRes, requestMessages = [
     upstreamRes.on("error", (e) => {
         const err = logger?.err || (() => {});
         err(`[Proxy] Upstream stream error: ${e.message}`);
-        finish();
+        fail(`Upstream stream error: ${e.message}`, "upstream_stream_error");
     });
 }
 
 function chatToResponsesNonStream(chatResponse, requestMessages = [], sessions, logger) {
     const warn = logger?.warn || (() => {});
     const responseId = sessions.newResponseId();
-    const msg = chatResponse.choices?.[0]?.message || {};
+    const choice = chatResponse.choices?.[0] || {};
+    const msg = choice.message || {};
     const output = [];
     if (msg.content) {
         output.push({
@@ -263,7 +326,51 @@ function chatToResponsesNonStream(chatResponse, requestMessages = [], sessions, 
         warn(`session store update failed: ${e.message}`);
     }
 
-    return { id: responseId, object: "response", status: "completed", output };
+    // "length" finish_reason → mark as incomplete so Codex can show the
+    // response was truncated rather than treating it as a clean stop.
+    const status = choice.finish_reason === "length" ? "incomplete" : "completed";
+    const response = { id: responseId, object: "response", status, output };
+    if (chatResponse.usage) response.usage = chatResponse.usage;
+    if (choice.finish_reason === "length") {
+        response.incomplete_details = { reason: "max_output_tokens" };
+    }
+    return response;
 }
 
-module.exports = { chatStreamToResponsesStream, chatToResponsesNonStream };
+// Translate an upstream /chat/completions error response (or transport-level
+// error) into a /responses-shape error envelope that Codex can render. We
+// pull out the upstream message text where possible so users see the
+// underlying provider error verbatim (e.g. "Invalid API key", "Model not
+// found") instead of a generic 502.
+function chatErrorToResponsesError(statusCode, upstreamBody, sessions) {
+    const responseId = sessions ? sessions.newResponseId() : `resp_err_${Date.now()}`;
+    let message = `Upstream returned ${statusCode}`;
+    let code = `upstream_${statusCode}`;
+    if (typeof upstreamBody === "string" && upstreamBody.length > 0) {
+        try {
+            const parsed = JSON.parse(upstreamBody);
+            // OpenAI/DeepSeek/etc. nest the error under .error.{message,code,type}.
+            // Some providers return a flat .message or .detail at the top level.
+            const errObj = parsed.error || parsed;
+            if (typeof errObj.message === "string") message = errObj.message;
+            else if (typeof errObj.detail === "string") message = errObj.detail;
+            if (typeof errObj.code === "string") code = errObj.code;
+            else if (typeof errObj.type === "string") code = errObj.type;
+        } catch {
+            // Body wasn't JSON — surface the raw text (truncated) so the
+            // user still gets *something* instead of just the status code.
+            message = upstreamBody.slice(0, 500);
+        }
+    }
+    return {
+        id: responseId, object: "response", status: "failed",
+        error: { code, message },
+        output: [],
+    };
+}
+
+module.exports = {
+    chatStreamToResponsesStream,
+    chatToResponsesNonStream,
+    chatErrorToResponsesError,
+};
