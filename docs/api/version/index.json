@@ -1,5 +1,5 @@
 {
   "version": "4.7.1",
-  "releaseDate": "2026-05-14",
-  "releaseNotes": "v4.7.1: verbatim error messages, faster Anthropic→OpenAI fallback, cleaner stop button"
+  "releaseDate": "2026-05-15",
+  "releaseNotes": "v4.7.1: 错误提示更清晰,第三方模型协议自动切换更稳更快"
 }

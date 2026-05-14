@@ -139,17 +139,25 @@ jobs:
         run: |
           VERSION="${TAG_NAME#v}"
           DATE="$(date -u +%Y-%m-%d)"
-          # Prefer the annotated tag's subject line; fall back to a generic note for lightweight tags.
-          NOTES="$(git tag -l --format='%(contents:subject)' "$TAG_NAME")"
-          if [ -z "$NOTES" ]; then
-            NOTES="Release $TAG_NAME"
+          MANIFEST="docs/api/version/index.json"
+          # Policy: tag annotations are English (engineering audience),
+          # `releaseNotes` is Chinese (user-facing). Previously this job
+          # read the tag subject and overwrote releaseNotes — which leaked
+          # the English annotation into the in-app update prompt. We now
+          # preserve whatever releaseNotes the release commit already
+          # wrote into the manifest, and only refresh version + date.
+          # Falls back to a generic note when the manifest is malformed
+          # or missing the field.
+          EXISTING_NOTES="$(jq -r '.releaseNotes // empty' "$MANIFEST" 2>/dev/null || true)"
+          if [ -z "$EXISTING_NOTES" ]; then
+            EXISTING_NOTES="Release $TAG_NAME"
           fi
           jq -n \
             --arg v "$VERSION" \
             --arg d "$DATE" \
-            --arg n "$NOTES" \
+            --arg n "$EXISTING_NOTES" \
             '{version: $v, releaseDate: $d, releaseNotes: $n}' \
-            > docs/api/version/index.json
+            > "$MANIFEST"
 
       - name: Commit and push
         env:
