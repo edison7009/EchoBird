@@ -144,7 +144,26 @@ async function main() {
     process.on("exit", () => { deletePidFile(); });
 
     launchCodex(mode, __dirname, (code) => {
-        rewriteBaseUrl(providerId, localUrl, baseUrl, logger);
+        // Deliberately do NOT restore base_url to the real third-party URL
+        // here. If we did, the next time the user opens Codex Desktop or CLI
+        // from outside EchoBird (Start menu, taskbar, `codex` in terminal),
+        // it would read config.toml with base_url=https://api.deepseek.com
+        // (or other third-party host) + wire_api="responses" and POST
+        // /responses directly to the vendor, which returns 404 because
+        // third parties only support /chat/completions.
+        //
+        // Leaving the stale 127.0.0.1:<port> in config.toml means:
+        //   • Direct Codex launches fail fast with ECONNREFUSED on
+        //     localhost — clearly localized to the proxy being down,
+        //     instead of a misleading "DeepSeek 404".
+        //   • Next launcher run, rewriteBaseUrl's Tier 0 cleanup swaps
+        //     the stale port for the fresh proxy port (see
+        //     config-manager.cjs Tier 0 block).
+        //   • apply_codex still works correctly: it writes the real URL
+        //     unconditionally, which the launcher overwrites with the
+        //     proxy URL on its next start.
+        //   • restore_codex_to_official removes the whole echobird_
+        //     section, so it's not affected either.
         server.close();
         deletePidFile();
         process.exit(code);

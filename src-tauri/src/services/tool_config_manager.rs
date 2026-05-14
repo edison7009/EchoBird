@@ -48,17 +48,14 @@ fn ensure_parent(path: &Path) {
     }
 }
 
-/// Generate unique provider ID from base_url and model_id
-/// Uses SHA256 hash to avoid collisions when:
-/// - Same domain, different models
-/// - Different providers with same domain
-fn codex_provider_id(base_url: &str, model_id: &str) -> String {
-    use sha2::{Digest, Sha256};
-    let input = format!("{}|{}", base_url, model_id);
-    let hash = Sha256::digest(input.as_bytes());
-    let hex = format!("{:x}", hash);
-    format!("echobird_{}", &hex[..16])
-}
+/// Canonical Codex config identity. Every apply_codex run produces a
+/// config.toml with the same provider name and display model regardless
+/// of which third-party endpoint is actually behind the proxy — keeps
+/// the config file clean and avoids stale orphan sections accumulating
+/// across model switches. The launcher proxy translates the display
+/// model to the real provider's model ID when forwarding requests.
+const CODEX_PROVIDER: &str = "OpenAI";
+const CODEX_DISPLAY_MODEL: &str = "gpt-5.4";
 
 /// Extract domain name from URL for use in identifiers
 /// Example: "https://api.openai.com/v1" -> "api_openai_com"
@@ -1261,7 +1258,6 @@ fn apply_codex(tool_id: &str, model_info: &ModelInfo) -> ApplyResult {
     let codex_dir = dirs::home_dir().unwrap_or_default().join(".codex");
     let config_path = codex_dir.join("config.toml");
     let auth_path = codex_dir.join("auth.json");
-    let mut content = fs::read_to_string(&config_path).unwrap_or_default();
 
     let model_id = model_info
         .model
@@ -1301,52 +1297,41 @@ fn apply_codex(tool_id: &str, model_info: &ModelInfo) -> ApplyResult {
         };
     }
 
-    let provider_id = codex_provider_id(&base_url, model_id);
-    let provider_name = model_id; // Use model ID instead of domain name
-
-    // display_model: what Codex sees (e.g., gpt-5.4-mini)
-    // model_id: what the actual provider expects (e.g., deepseek-v4-pro)
-    // The launcher proxy will rewrite display_model → model_id when forwarding.
-    let display_model = model_info.display_model.as_deref().unwrap_or(model_id);
-
-    content = toml_write_top(&content, "model_provider", &provider_id);
-    content = toml_write_top(&content, "model", display_model);
-    if toml_read_top(&content, "model_reasoning_effort").is_empty() {
-        content = toml_write_top(&content, "model_reasoning_effort", "high");
-    }
-    // Codex v0.130+ reads OPENAI_API_KEY from ~/.codex/auth.json (written
-    // below), not from env_key, when preferred_auth_method = "apikey".
-    // disable_response_storage stops Codex from trying to persist
-    // response IDs against an OpenAI account — third-party providers
-    // reject this and break the conversation.
-    content = toml_write_top(&content, "preferred_auth_method", "apikey");
-    content = toml_write_top_raw(&content, "disable_response_storage", "true");
-    content = toml_write_table_value(
-        &content,
-        &format!("model_providers.{}", provider_id),
-        "name",
-        provider_name,
-    );
-    content = toml_write_table_value(
-        &content,
-        &format!("model_providers.{}", provider_id),
-        "base_url",
-        &base_url,
-    );
-    // The launcher (tools/codex/codex-launcher.cjs) runs a 127.0.0.1
-    // proxy that translates Responses → Chat for third-party endpoints,
-    // so we always declare "responses" here and let the launcher bridge.
-    content = toml_write_table_value(
-        &content,
-        &format!("model_providers.{}", provider_id),
-        "wire_api",
-        "responses",
-    );
-    content = toml_write_table_value_raw(
-        &content,
-        &format!("model_providers.{}", provider_id),
-        "requires_openai_auth",
-        "true",
+    // Full-file overwrite. Every apply_codex produces EXACTLY this 13-line
+    // shape, modulo the base_url value. We deliberately do NOT preserve
+    // anything from the prior config.toml — that includes Codex's own
+    // runtime tables ([projects.*] trust state, [tui.*] NUX state,
+    // [marketplaces.*], [plugins.*], [windows] sandbox setting) AND any
+    // user-added top-level keys (e.g. `notify` for coffee-cli hook). The
+    // user explicitly required this: "我要这个文件 ~/.codex/config.toml
+    // 就13行,每次都是 ... 我只修改 base_url". Codex regenerates the runtime
+    // state it needs on next launch; the user re-adds anything they
+    // configured manually. This is the only way to guarantee zero
+    // accumulation across model switches — incremental key-by-key cleanup
+    // missed cases (e.g. preferred_auth_method coming back from an older
+    // build's apply_codex, new echobird_<hash> sections from a stale
+    // binary), and partial preservation kept letting cruft re-grow.
+    let content = format!(
+        "model_provider = \"{}\"\n\
+         model = \"{}\"\n\
+         review_model = \"{}\"\n\
+         model_reasoning_effort = \"xhigh\"\n\
+         disable_response_storage = true\n\
+         network_access = \"enabled\"\n\
+         model_context_window = 1000000\n\
+         model_auto_compact_token_limit = 900000\n\
+         \n\
+         [model_providers.{}]\n\
+         name = \"{}\"\n\
+         base_url = \"{}\"\n\
+         wire_api = \"responses\"\n\
+         requires_openai_auth = true\n",
+        CODEX_PROVIDER,
+        CODEX_DISPLAY_MODEL,
+        CODEX_DISPLAY_MODEL,
+        CODEX_PROVIDER,
+        CODEX_PROVIDER,
+        base_url,
     );
 
     ensure_parent(&config_path);
@@ -1387,10 +1372,10 @@ fn apply_codex(tool_id: &str, model_info: &ModelInfo) -> ApplyResult {
     let relay = serde_json::json!({
         "apiKey": api_key,
         "baseUrl": base_url,
-        "displayModel": display_model,
+        "displayModel": CODEX_DISPLAY_MODEL,
         "actualModel": model_id,
         "modelName": model_info.name.as_deref().unwrap_or(model_id),
-        "providerId": provider_id,
+        "providerId": CODEX_PROVIDER,
     });
     let _ = write_json_file(&relay_path, &relay);
 
@@ -1404,7 +1389,12 @@ fn apply_codex(tool_id: &str, model_info: &ModelInfo) -> ApplyResult {
     // Runs AFTER kill_codex_if_running (sqlite lock released) and BEFORE
     // returning success, so no matter how the user next opens Codex,
     // the retag is in place. Blocks for up to 10s; usually <2s.
-    run_codex_provider_sync(&provider_id);
+    // With the canonical provider name, every apply_codex produces the
+    // same tag ("OpenAI"), so the retag is mostly a no-op going forward.
+    // We still call it to clean up rows tagged with the legacy
+    // echobird_<hash> values from earlier installs — without that, those
+    // old sessions remain filtered out of Codex Desktop's Recent panel.
+    run_codex_provider_sync(CODEX_PROVIDER);
 
     let display = if tool_id == "codexdesktop" {
         "Codex Desktop"
@@ -1425,8 +1415,8 @@ fn read_codex() -> Option<ModelInfo> {
     let codex_dir = dirs::home_dir()?.join(".codex");
     let content = fs::read_to_string(codex_dir.join("config.toml")).ok()?;
 
-    let model = toml_read_top(&content, "model");
-    if model.is_empty() {
+    let model_from_toml = toml_read_top(&content, "model");
+    if model_from_toml.is_empty() {
         return None;
     }
 
@@ -1458,6 +1448,18 @@ fn read_codex() -> Option<ModelInfo> {
             base_url = read_codex_relay_base_url();
         }
     }
+
+    // When we wrote the canonical OpenAI provider, config.toml's `model`
+    // is the display alias ("gpt-5.4"), not the real third-party model.
+    // The UI needs the real one to round-trip a meaningful selection back
+    // to the user — read it from the relay file. Fall back to the
+    // config.toml value for non-canonical setups (e.g., user manually
+    // edited their config to point at a different provider).
+    let model = if provider_id == CODEX_PROVIDER {
+        read_codex_relay_model().unwrap_or(model_from_toml)
+    } else {
+        model_from_toml
+    };
 
     // API key now lives in ~/.codex/auth.json (preferred_auth_method=apikey).
     // Fall back to the legacy env_key path for configs written before this change.
@@ -1496,6 +1498,16 @@ fn read_codex_relay_base_url() -> Option<String> {
     v.get("baseUrl").and_then(|x| x.as_str()).map(String::from)
 }
 
+fn read_codex_relay_model() -> Option<String> {
+    let relay_path = echobird_dir().join("codex.json");
+    let content = fs::read_to_string(relay_path).ok()?;
+    let v: serde_json::Value = serde_json::from_str(&content).ok()?;
+    v.get("actualModel")
+        .or_else(|| v.get("modelName"))
+        .and_then(|x| x.as_str())
+        .map(String::from)
+}
+
 fn read_codex_auth_key(codex_dir: &Path) -> Option<String> {
     let content = fs::read_to_string(codex_dir.join("auth.json")).ok()?;
     let v: serde_json::Value = serde_json::from_str(&content).ok()?;
@@ -1505,16 +1517,12 @@ fn read_codex_auth_key(codex_dir: &Path) -> Option<String> {
 }
 
 fn restore_codex_to_official(tool_id: &str, config_path: &Path) -> ApplyResult {
-    let mut content = fs::read_to_string(config_path).unwrap_or_default();
-    content = toml_write_top(&content, "model_provider", "openai");
-    content = toml_write_top(&content, "model", "gpt-4o");
-    // Strip the apikey overrides we wrote in apply_codex so OAuth flow
-    // works again. Removing model_reasoning_effort is intentional — gpt-4o
-    // doesn't accept it and rejects with an error if it's still there.
-    content = toml_remove_top_key(&content, "preferred_auth_method");
-    content = toml_remove_top_key(&content, "disable_response_storage");
-    content = toml_remove_top_key(&content, "model_reasoning_effort");
-    content = toml_remove_tables_with_prefix(&content, "model_providers.echobird_");
+    // Full-file overwrite, matching apply_codex's approach. The minimum
+    // config Codex needs to fall back to its built-in OpenAI OAuth flow
+    // is just `model_provider = "openai"` plus a default model; Codex
+    // regenerates everything else (projects/marketplaces/tui state) on
+    // next launch.
+    let content = "model_provider = \"openai\"\nmodel = \"gpt-4o\"\n";
 
     ensure_parent(config_path);
     match fs::write(config_path, content) {
@@ -2165,82 +2173,6 @@ fn toml_write_top(content: &str, key: &str, value: &str) -> String {
     lines.join("\n")
 }
 
-/// Like toml_write_top but emits `key = <value>` without quoting the value.
-/// Use for booleans / numbers / inline tables that must NOT be string-quoted.
-fn toml_write_top_raw(content: &str, key: &str, value: &str) -> String {
-    let mut lines: Vec<String> = content.lines().map(|l| l.to_string()).collect();
-    let mut found = false;
-    let mut first_section: Option<usize> = None;
-
-    for (i, line) in lines.iter_mut().enumerate() {
-        let t = line.trim();
-        if first_section.is_none() && t.starts_with('[') {
-            first_section = Some(i);
-        }
-        if first_section.is_some() && i >= first_section.unwrap() {
-            continue;
-        }
-        if let Some((k, _)) = t.split_once('=') {
-            if k.trim() == key {
-                *line = format!("{} = {}", key, value);
-                found = true;
-                break;
-            }
-        }
-    }
-
-    if !found {
-        let new_line = format!("{} = {}", key, value);
-        match first_section {
-            Some(i) => lines.insert(i, new_line),
-            None => lines.push(new_line),
-        }
-    }
-    lines.join("\n")
-}
-
-/// Like toml_write_table_value but emits the value unquoted.
-fn toml_write_table_value_raw(content: &str, table: &str, key: &str, value: &str) -> String {
-    let header = format!("[{}]", table);
-    let mut lines: Vec<String> = content.lines().map(|l| l.to_string()).collect();
-    let mut table_start = None;
-    let mut table_end = lines.len();
-
-    for (i, line) in lines.iter().enumerate() {
-        let t = line.trim();
-        if t.starts_with('[') && t.ends_with(']') {
-            if t == header {
-                table_start = Some(i);
-            } else if table_start.is_some() {
-                table_end = i;
-                break;
-            }
-        }
-    }
-
-    let new_line = format!("{} = {}", key, value);
-
-    if let Some(start) = table_start {
-        for line in lines.iter_mut().take(table_end).skip(start + 1) {
-            let t = line.trim();
-            if let Some((k, _)) = t.split_once('=') {
-                if k.trim() == key {
-                    *line = new_line;
-                    return lines.join("\n");
-                }
-            }
-        }
-        lines.insert(table_end, new_line);
-    } else {
-        if !lines.is_empty() && !lines.last().map(|l| l.trim().is_empty()).unwrap_or(false) {
-            lines.push(String::new());
-        }
-        lines.push(header);
-        lines.push(new_line);
-    }
-    lines.join("\n")
-}
-
 fn toml_read_table_value(content: &str, table: &str, key: &str) -> String {
     let header = format!("[{}]", table);
     let mut in_table = false;
@@ -2262,92 +2194,6 @@ fn toml_read_table_value(content: &str, table: &str, key: &str) -> String {
     }
 
     String::new()
-}
-
-fn toml_write_table_value(content: &str, table: &str, key: &str, value: &str) -> String {
-    let header = format!("[{}]", table);
-    let mut lines: Vec<String> = content.lines().map(|l| l.to_string()).collect();
-    let mut table_start = None;
-    let mut table_end = lines.len();
-
-    for (i, line) in lines.iter().enumerate() {
-        let t = line.trim();
-        if t.starts_with('[') && t.ends_with(']') {
-            if t == header {
-                table_start = Some(i);
-            } else if table_start.is_some() {
-                table_end = i;
-                break;
-            }
-        }
-    }
-
-    let new_line = format!("{} = \"{}\"", key, toml_escape(value));
-
-    if let Some(start) = table_start {
-        for line in lines.iter_mut().take(table_end).skip(start + 1) {
-            let t = line.trim();
-            if let Some((k, _)) = t.split_once('=') {
-                if k.trim() == key {
-                    *line = new_line;
-                    return lines.join("\n");
-                }
-            }
-        }
-        lines.insert(table_end, new_line);
-    } else {
-        if !lines.is_empty() && !lines.last().map(|l| l.trim().is_empty()).unwrap_or(false) {
-            lines.push(String::new());
-        }
-        lines.push(header);
-        lines.push(new_line);
-    }
-
-    lines.join("\n")
-}
-
-/// Remove a top-level `key = ...` line (the slice before the first [section]).
-/// Used by restore_codex_to_official to strip our apikey overrides without
-/// touching anything inside model_providers.* tables.
-fn toml_remove_top_key(content: &str, key: &str) -> String {
-    let mut out = Vec::new();
-    let mut in_section = false;
-    for line in content.lines() {
-        let t = line.trim();
-        if t.starts_with('[') && t.ends_with(']') {
-            in_section = true;
-        }
-        if !in_section {
-            if let Some((k, _)) = t.split_once('=') {
-                if k.trim() == key {
-                    continue; // drop this line
-                }
-            }
-        }
-        out.push(line);
-    }
-    out.join("\n")
-}
-
-fn toml_remove_tables_with_prefix(content: &str, prefix: &str) -> String {
-    let mut out = Vec::new();
-    let mut removing = false;
-
-    for line in content.lines() {
-        let t = line.trim();
-        if t.starts_with('[') && t.ends_with(']') {
-            let table = &t[1..t.len() - 1];
-            removing = table.starts_with(prefix);
-            if removing {
-                continue;
-            }
-        }
-        if !removing {
-            out.push(line);
-        }
-    }
-
-    out.join("\n")
 }
 
 fn toml_unquote(value: &str) -> String {

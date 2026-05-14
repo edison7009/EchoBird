@@ -614,17 +614,13 @@ pub fn patch_picoclaw() {
         serde_json::json!({})
     };
 
-    // Update or add the model entry in model_list
-    let model_list = existing
-        .get_mut("model_list")
-        .and_then(|v| v.as_array_mut());
-    if let Some(list) = model_list {
-        // Remove existing entry with same model_name
-        list.retain(|e| e.get("model_name").and_then(|n| n.as_str()) != Some(model_id));
-        list.push(model_entry);
-    } else {
-        existing["model_list"] = serde_json::json!([model_entry]);
-    }
+    // Always one entry — never accumulate. Each apply_picoclaw replaces
+    // the entire model_list with a single fresh entry. The previous design
+    // deduped by model_name and pushed, which left stale entries with
+    // different model_names in the array across model switches. EchoBird
+    // is the single source of truth for which model the user is running,
+    // so a one-element list is exactly what we want.
+    existing["model_list"] = serde_json::json!([model_entry]);
 
     // Set default model
     existing["agents"]["defaults"]["model"] = serde_json::Value::String(model_id.to_string());
