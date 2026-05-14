@@ -2,6 +2,7 @@ pub mod agent_loop;
 pub mod agent_tools;
 pub mod auto_fix;
 pub mod bundled_assets;
+pub mod codex_proxy;
 pub mod datalog;
 pub mod json_repair;
 pub mod llm_client;

@@ -170,6 +170,18 @@ pub fn run() {
             kill_stale_llama_server();
             log::info!("[Setup] Cleaned up any leftover llama-server processes");
 
+            // v5.0 Rust codex_proxy — Phase 1 skeleton. Binds 127.0.0.1:53682
+            // as a background task. Today returns 501 NotImplemented for every
+            // request; the legacy Node launcher (tools/codex/lib/*.cjs) is
+            // still the live Codex proxy in v4.6.x. Phase 6 will flip the
+            // switch; Phase 7 will delete the .cjs path.
+            //
+            // If port 53682 is already held by the Node launcher (from a
+            // running v4.6.x EchoBird instance, or a leftover .cjs process),
+            // the bind fails and we log + continue — no impact on EchoBird's
+            // other features.
+            services::codex_proxy::spawn_proxy_task();
+
             // Initialize resource_dir for correct tools/ path resolution on all platforms
             // (especially Linux where exe is at /usr/bin but tools are at /usr/lib/com.echobird.ai/)
             if let Ok(res_dir) = app.path().resource_dir() {

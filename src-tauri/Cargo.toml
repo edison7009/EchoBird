@@ -47,6 +47,13 @@ url = "2"
 rand = "0.8"
 futures-util = "0.3"
 
+# HTTP server for the Codex Responses↔Chat proxy (v5.0 Rust rewrite of
+# tools/codex/lib/*.cjs). Binds 127.0.0.1:53682 as a background tokio
+# task so users no longer need Node.js installed locally.
+axum = "0.8"
+tower = "0.5"
+http-body-util = "0.1"
+
 # Time
 chrono = "0.4"
 
