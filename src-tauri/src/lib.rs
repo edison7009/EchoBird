@@ -203,6 +203,20 @@ fn kill_stale_codex_launchers() {
     delete_launcher_pid_file();
 }
 
+/// Kill the orphaned llama-server we spawned in a prior session
+/// (recorded in ~/.echobird/llama-server.pid by services::local_llm).
+/// Same defense-in-depth posture as kill_stale_codex_launchers: PID-only,
+/// never taskkill /IM llama-server.exe — user-launched instances must
+/// survive when EchoBird closes.
+fn kill_stale_llama_server() {
+    let Some(pid) = services::local_llm::pid_file::read_pid_file() else {
+        return;
+    };
+    log::info!("[Cleanup] Found stale llama-server PID file: pid={}", pid);
+    force_kill_pid(pid, "llama-server");
+    services::local_llm::pid_file::delete_pid_file();
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -216,11 +230,13 @@ pub fn run() {
         .manage(ssh_commands::create_ssh_pool())
         .manage(services::agent_loop::create_session_map())
         .setup(|app| {
-            // Clean up orphaned codex-launcher processes from a previous
-            // EchoBird session that exited abnormally. Runs before any tool
-            // launch, so the new launcher always gets a fresh proxy port.
+            // Clean up orphaned processes from a previous EchoBird session
+            // that exited abnormally. Runs before any tool launch, so the
+            // new launcher always gets a fresh proxy port and llama-server
+            // can bind its port without conflict.
             kill_stale_codex_launchers();
-            log::info!("[Setup] Cleaned up any leftover codex-launcher processes");
+            kill_stale_llama_server();
+            log::info!("[Setup] Cleaned up any leftover codex-launcher / llama-server processes");
 
             // Initialize resource_dir for correct tools/ path resolution on all platforms
             // (especially Linux where exe is at /usr/bin but tools are at /usr/lib/com.echobird.ai/)
@@ -461,39 +477,15 @@ pub fn run() {
                     // Otherwise, let it close normally
                 }
                 tauri::RunEvent::Exit => {
-                    // PID-based cleanup: kill our launcher AND its Codex child
-                    // by exact PID (recorded in ~/.echobird/codex-launcher.pid).
-                    // We deliberately do NOT taskkill /IM Codex.exe or pkill -f
-                    // — that would also kill Codex instances the user launched
-                    // independently from the terminal, Start menu, or another
-                    // EchoBird instance.
+                    // PID-based cleanup: kill ONLY processes we spawned. We
+                    // deliberately never taskkill /IM or pkill -f by name —
+                    // that would also kill instances the user launched
+                    // independently from terminal/Start menu, or from
+                    // another EchoBird instance.
                     kill_stale_codex_launchers();
+                    kill_stale_llama_server();
 
-                    // llama-server still uses name-pattern kill — it's not
-                    // tracked by a side-channel side yet. TODO: route through
-                    // ProcessManager's PID map (see project_v463_backlog memory).
-                    #[cfg(target_os = "windows")]
-                    {
-                        use std::os::windows::process::CommandExt;
-                        const CREATE_NO_WINDOW: u32 = 0x08000000;
-                        let _ = std::process::Command::new("taskkill")
-                            .args(["/F", "/IM", "llama-server.exe", "/T"])
-                            .creation_flags(CREATE_NO_WINDOW)
-                            .stdout(std::process::Stdio::null())
-                            .stderr(std::process::Stdio::null())
-                            .spawn();
-                    }
-
-                    #[cfg(any(target_os = "macos", target_os = "linux"))]
-                    {
-                        let _ = std::process::Command::new("pkill")
-                            .args(["-f", "llama-server"])
-                            .stdout(std::process::Stdio::null())
-                            .stderr(std::process::Stdio::null())
-                            .spawn();
-                    }
-
-                    log::info!("[App] Exit: cleaned up our codex-launcher + Codex via PID file");
+                    log::info!("[App] Exit: cleaned up our codex-launcher + Codex + llama-server via PID files");
                 }
                 _ => {}
             }

@@ -6,6 +6,12 @@ on:
   pull_request:
     branches: [main]
 
+# Opt into Node.js 24 runner for all JavaScript-based actions before the
+# 2026-06-02 forced switch. setup-node@v4 is still on the Node 20 runner
+# by default — flipping this env makes us forward-compatible today.
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   frontend:
     runs-on: ubuntu-latest
@@ -14,7 +20,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: 'npm'
 
       - name: Install dependencies
@@ -31,6 +37,10 @@ jobs:
 
       - name: Test
         run: npm test
+
+      - name: Security audit (npm)
+        run: npm audit --audit-level=high --omit=dev
+        continue-on-error: true
 
   rust:
     runs-on: ubuntu-latest
@@ -72,3 +82,9 @@ jobs:
 
       - name: Test
         run: cargo test --manifest-path src-tauri/Cargo.toml
+
+      - name: Security audit (cargo)
+        run: |
+          cargo install cargo-audit --locked --quiet || true
+          cargo audit --file src-tauri/Cargo.lock
+        continue-on-error: true

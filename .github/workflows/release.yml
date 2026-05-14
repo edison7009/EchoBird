@@ -5,6 +5,11 @@ on:
     tags:
       - 'v*'
 
+# Opt into Node.js 24 runner for all JavaScript-based actions before the
+# 2026-06-02 forced switch (mirrors the same opt-in in ci.yml).
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   release:
     permissions:

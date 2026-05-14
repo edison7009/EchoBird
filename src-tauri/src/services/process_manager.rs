@@ -116,14 +116,21 @@ impl ProcessManager {
                     return self.start_codex_launcher(tool_id, &launcher);
                 }
                 None => {
+                    // Log the technical detail for diagnostics, show a
+                    // user-friendly message in the UI without leaking the
+                    // bundled file path (which users can't act on anyway).
                     log::error!(
-                        "[ProcessManager] {} requires launcher (third-party API configured) but codex-launcher.cjs not found",
+                        "[ProcessManager] {} requires launcher but codex-launcher.cjs is missing from the bundled tools directory",
                         tool_id
                     );
                     return Err(format!(
-                        "{} requires the Codex launcher for third-party API support, but the launcher was not found. \
-                         Please check that tools/codex/codex-launcher.cjs exists.",
-                        if tool_id == "codexdesktop" { "Codex Desktop" } else { "Codex CLI" }
+                        "{} cannot start because a required EchoBird component is missing. \
+                         Try reinstalling EchoBird from the latest release.",
+                        if tool_id == "codexdesktop" {
+                            "Codex Desktop"
+                        } else {
+                            "Codex CLI"
+                        }
                     ));
                 }
             }

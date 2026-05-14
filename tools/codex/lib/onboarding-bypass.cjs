@@ -92,24 +92,32 @@ function bypassOnboarding(codexDir, logger) {
 
     // Write back if modified
     if (modified) {
+        const tmp = globalStatePath + ".tmp";
         try {
-            // Create backup before modifying
+            // Create backup before modifying. Backup mirrors the file as
+            // it currently exists on disk — if anything goes wrong we
+            // still have the pre-bypass state.
             if (fs.existsSync(globalStatePath)) {
                 const backupPath = globalStatePath + ".bak";
                 fs.copyFileSync(globalStatePath, backupPath);
                 log(`Created backup: ${backupPath}`);
             }
 
-            // Write with pretty formatting for readability
-            fs.writeFileSync(
-                globalStatePath,
-                JSON.stringify(state, null, 2),
-                "utf-8"
-            );
+            // Atomic write: write the new payload to a sibling .tmp file
+            // and rename it onto the target. This guarantees the global
+            // state file is either fully old or fully new — never half-
+            // written — even if the launcher is SIGKILL'd mid-write.
+            // Without this, a crash between writeFileSync's open() and
+            // its final flush could leave a truncated JSON that prevents
+            // Codex from starting at all.
+            fs.writeFileSync(tmp, JSON.stringify(state, null, 2), "utf-8");
+            fs.renameSync(tmp, globalStatePath);
             log("✓ Codex onboarding bypass applied successfully");
             return true;
         } catch (e) {
             err(`Failed to write global state: ${e.message}`);
+            // Best-effort cleanup of the half-written tmp file.
+            try { fs.unlinkSync(tmp); } catch { /* ignore */ }
             return false;
         }
     } else {

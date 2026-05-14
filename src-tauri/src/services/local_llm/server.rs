@@ -129,24 +129,33 @@ impl LocalLlmServer {
             .map(|s| s.to_string_lossy().to_string())
             .unwrap_or_else(|| "Unknown Model".to_string());
 
-        // Pre-flight cleanup: kill any leftover llama-server processes from
-        // previous sessions that may be occupying the port. This prevents the
-        // "port already in use" and stale-api-key 401 issues.
-        self.add_log("Cleaning up any stale llama-server processes...");
-        #[cfg(windows)]
-        {
-            use std::os::windows::process::CommandExt;
-            let _ = Command::new("taskkill")
-                .args(["/F", "/IM", "llama-server.exe", "/T"])
-                .creation_flags(0x08000000)
-                .output();
+        // Pre-flight cleanup: kill the leftover llama-server we recorded
+        // last time (if any). Uses the PID file so we only ever kill OUR
+        // own server — user-launched llama-server instances (different
+        // project, different port, etc.) are left alone.
+        if let Some(stale_pid) = super::pid_file::read_pid_file() {
+            self.add_log(&format!(
+                "Cleaning up stale llama-server (pid={})...",
+                stale_pid
+            ));
+            #[cfg(windows)]
+            {
+                use std::os::windows::process::CommandExt;
+                let _ = Command::new("taskkill")
+                    .args(["/F", "/PID", &stale_pid.to_string()])
+                    .creation_flags(0x08000000)
+                    .output();
+            }
+            #[cfg(not(windows))]
+            {
+                unsafe {
+                    libc::kill(stale_pid as i32, libc::SIGKILL);
+                }
+            }
+            super::pid_file::delete_pid_file();
+            // Brief pause to let the OS release ports
+            tokio::time::sleep(std::time::Duration::from_millis(300)).await;
         }
-        #[cfg(not(windows))]
-        {
-            let _ = Command::new("pkill").args(["-f", "llama-server"]).output();
-        }
-        // Brief pause to let the OS release ports
-        tokio::time::sleep(std::time::Duration::from_millis(300)).await;
 
         let (child, needs_proxy) = match runtime {
             "vllm" => {
@@ -269,6 +278,10 @@ impl LocalLlmServer {
             runtime: runtime.to_string(),
         };
 
+        // Record PID so Tauri's exit-cleanup can kill OUR server by PID,
+        // and the next startup's pre-flight cleanup knows what to reap.
+        super::pid_file::write_pid_file(pid, runtime);
+
         log::info!("[LocalLLM] {} started with PID: {}", runtime, pid);
         self.add_log(&format!("{} started (PID: {})", runtime, pid));
 
@@ -341,6 +354,9 @@ impl LocalLlmServer {
             let _ = tx.send(true);
             log::info!("[LocalLLM] Proxy shutdown signal sent");
         }
+
+        // Drop the PID file — we exited cleanly, no orphan to reap.
+        super::pid_file::delete_pid_file();
 
         self.add_log("Server stopped");
         self.info = LocalServerInfo::default();

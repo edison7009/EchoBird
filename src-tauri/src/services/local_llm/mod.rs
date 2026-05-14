@@ -10,6 +10,7 @@
 
 pub mod gpu;
 pub mod model_store;
+pub mod pid_file;
 pub mod proxy;
 pub mod server;
 pub mod settings;

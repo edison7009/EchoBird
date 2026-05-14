@@ -1,71 +1,20 @@
-# Dependabot configuration for automated dependency updates
+# Dependabot configuration for EchoBird
 # https://docs.github.com/en/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file
+#
+# Routine version-update PRs for cargo and npm were retired 2026-05-14:
+# they produced ~10 PRs per week with marginal value for an active
+# project, and the actual security signal is already covered by
+# (a) `cargo audit` + `npm audit` running in CI on every push/PR, and
+# (b) GitHub Dependabot SECURITY ALERTS (a separate feature that runs
+# even without this file). Only github-actions version pinning is kept
+# here — it's low-noise and keeps the workflow files current.
 
 version: 2
 updates:
-  # Rust dependencies (Cargo)
-  - package-ecosystem: "cargo"
-    directory: "/src-tauri"
-    schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "09:00"
-      timezone: "Asia/Shanghai"
-    open-pull-requests-limit: 5
-    reviewers:
-      - "edison7009"
-    labels:
-      - "dependencies"
-      - "rust"
-    commit-message:
-      prefix: "chore(deps)"
-      include: "scope"
-    # Group minor and patch updates together
-    groups:
-      rust-minor-patch:
-        patterns:
-          - "*"
-        update-types:
-          - "minor"
-          - "patch"
-
-  # npm dependencies (package.json)
-  - package-ecosystem: "npm"
-    directory: "/"
-    schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "09:00"
-      timezone: "Asia/Shanghai"
-    open-pull-requests-limit: 5
-    reviewers:
-      - "edison7009"
-    labels:
-      - "dependencies"
-      - "javascript"
-    commit-message:
-      prefix: "chore(deps)"
-      include: "scope"
-    # Ignore major version updates for stable dependencies
-    ignore:
-      - dependency-name: "react"
-        update-types: ["version-update:semver-major"]
-      - dependency-name: "react-dom"
-        update-types: ["version-update:semver-major"]
-    # Group minor and patch updates together
-    groups:
-      npm-minor-patch:
-        patterns:
-          - "*"
-        update-types:
-          - "minor"
-          - "patch"
-
-  # GitHub Actions
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
-      interval: "weekly"
+      interval: "monthly"
       day: "monday"
       time: "09:00"
       timezone: "Asia/Shanghai"
