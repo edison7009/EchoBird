@@ -1,5 +1,5 @@
 {
-  "version": "4.6.9",
-  "releaseDate": "2026-05-14",
-  "releaseNotes": "v4.6.9: Codex 启动不再依赖本地 Node.js"
+  "version": "4.7.0",
+  "releaseDate": "2026-05-15",
+  "releaseNotes": "v4.7.0: 内置 Agent 错误提示更清晰,长任务更稳定"
 }

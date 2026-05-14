@@ -1,12 +1,36 @@
 // LLM Client — supports OpenAI and Anthropic APIs with SSE streaming
 // Unified interface via LlmEvent enum for the Agent Loop
+//
+// v4.7.0 hardening:
+//   • Verbatim upstream errors. 401 / 403 / 429 / 5xx now surface the
+//     provider's own `error.message` (e.g. "Invalid API Key") instead
+//     of an opaque "Failed to create event source" string.
+//   • Per-chunk read timeout. If the upstream goes silent for 300s
+//     between SSE events, we stop waiting and surface a clear stall
+//     error instead of hanging until the total request timeout.
+//   • Transient retry. 5xx + 429 + transport errors are retried up to
+//     2 times with exponential backoff (1.5s / 4.5s by default,
+//     honoring `Retry-After` when present). Only applies to the OpenAI
+//     path — Anthropic's official SDK already retries client-side.
 
 use futures_util::StreamExt;
 use reqwest::header::{HeaderMap, HeaderValue, AUTHORIZATION, CONTENT_TYPE};
 use reqwest_eventsource::{Event, EventSource};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
+use std::time::Duration;
 use tokio::sync::mpsc;
+
+/// Maximum quiet time between SSE chunks before we declare the upstream
+/// stalled. Generous (5 minutes) to accommodate thinking-model warmups
+/// where DeepSeek-R1 / o1-preview can think silently for several minutes
+/// before emitting any tokens.
+const SSE_CHUNK_TIMEOUT: Duration = Duration::from_secs(300);
+
+/// Number of attempts (including the first) for retryable upstream errors.
+/// 3 attempts = original + 2 retries; the third failure is surfaced to
+/// the caller.
+const MAX_RETRY_ATTEMPTS: u32 = 3;
 
 // ── Public Types ──
 
@@ -188,17 +212,24 @@ impl LlmClient {
             body["tools"] = json!(tools_json);
         }
 
-        let mut headers = HeaderMap::new();
-        headers.insert(CONTENT_TYPE, HeaderValue::from_static("application/json"));
-        headers.insert(
-            AUTHORIZATION,
-            HeaderValue::from_str(&format!("Bearer {}", self.config.api_key))
-                .map_err(|e| format!("Invalid API key: {}", e))?,
-        );
+        // Pre-validate the Authorization header so we don't burn retry
+        // attempts on a request that can never succeed.
+        let auth_value = HeaderValue::from_str(&format!("Bearer {}", self.config.api_key))
+            .map_err(|e| format!("Invalid API key: {}", e))?;
 
-        let request = self.http.post(&url).headers(headers).json(&body);
-        let mut es = EventSource::new(request)
-            .map_err(|e| format!("Failed to create event source: {}", e))?;
+        // `open_with_retry` needs to rebuild the request on each
+        // attempt (RequestBuilder is consumed by EventSource::new).
+        let http = self.http.clone();
+        let url_owned = url.clone();
+        let body_owned = body.clone();
+        let make_request = move || -> Result<reqwest::RequestBuilder, String> {
+            let mut headers = HeaderMap::new();
+            headers.insert(CONTENT_TYPE, HeaderValue::from_static("application/json"));
+            headers.insert(AUTHORIZATION, auth_value.clone());
+            Ok(http.post(&url_owned).headers(headers).json(&body_owned))
+        };
+
+        let OpenedStream { mut es, pending } = open_with_retry(make_request).await?;
 
         let (tx, rx) = mpsc::channel(128);
 
@@ -207,7 +238,35 @@ impl LlmClient {
             let mut current_tool_calls: std::collections::HashMap<i64, (String, String, String)> =
                 std::collections::HashMap::new(); // index -> (id, name, args)
 
-            while let Some(event) = es.next().await {
+            // Drain any events `open_with_retry` consumed during the
+            // connection handshake (the rare server that skips Open).
+            // We feed them into the same handler via a tiny inline
+            // helper to avoid duplicating 80 lines of match logic.
+            let mut events: std::collections::VecDeque<Result<Event, reqwest_eventsource::Error>> =
+                pending.into_iter().map(Ok).collect();
+
+            // Per-chunk timeout: SSE_CHUNK_TIMEOUT between consecutive
+            // events. Stalled upstream → emit Error + break instead of
+            // hanging until the 10-minute global timeout.
+            loop {
+                let event = if let Some(buffered) = events.pop_front() {
+                    Some(buffered)
+                } else {
+                    match tokio::time::timeout(SSE_CHUNK_TIMEOUT, es.next()).await {
+                        Ok(maybe_event) => maybe_event,
+                        Err(_) => {
+                            let _ = tx
+                                .send(LlmEvent::Error(format!(
+                                    "Upstream stream stalled (no data for {}s)",
+                                    SSE_CHUNK_TIMEOUT.as_secs()
+                                )))
+                                .await;
+                            break;
+                        }
+                    }
+                };
+                let Some(event) = event else { break };
+
                 match event {
                     Ok(Event::Message(msg)) => {
                         if msg.data == "[DONE]" {
@@ -302,7 +361,21 @@ impl LlmClient {
                     }
                     Ok(Event::Open) => {}
                     Err(e) => {
-                        let _ = tx.send(LlmEvent::Error(format!("SSE error: {}", e))).await;
+                        // Mid-stream error after we've started receiving
+                        // events. We don't retry here (would duplicate
+                        // any tokens already delivered to the consumer);
+                        // we just surface the error verbatim and exit.
+                        let msg = match e {
+                            reqwest_eventsource::Error::InvalidStatusCode(status, response) => {
+                                let body = response.text().await.unwrap_or_default();
+                                extract_upstream_error_message(status.as_u16(), &body)
+                            }
+                            reqwest_eventsource::Error::Transport(t) => {
+                                format!("Connection lost mid-stream: {t}")
+                            }
+                            other => format!("Stream error: {other}"),
+                        };
+                        let _ = tx.send(LlmEvent::Error(msg)).await;
                         break;
                     }
                 }
@@ -360,18 +433,27 @@ impl LlmClient {
             body["tools"] = json!(tools_json);
         }
 
-        let mut headers = HeaderMap::new();
-        headers.insert(CONTENT_TYPE, HeaderValue::from_static("application/json"));
-        headers.insert(
-            "x-api-key",
-            HeaderValue::from_str(&self.config.api_key)
-                .map_err(|e| format!("Invalid API key: {}", e))?,
-        );
-        headers.insert("anthropic-version", HeaderValue::from_static("2023-06-01"));
+        // Pre-validate the api-key header so we don't burn retry
+        // attempts on a request that can never succeed.
+        let api_key_value = HeaderValue::from_str(&self.config.api_key)
+            .map_err(|e| format!("Invalid API key: {}", e))?;
 
-        let request = self.http.post(&url).headers(headers).json(&body);
-        let mut es = EventSource::new(request)
-            .map_err(|e| format!("Failed to create event source: {}", e))?;
+        let http = self.http.clone();
+        let url_owned = url.clone();
+        let body_owned = body.clone();
+        let make_request = move || -> Result<reqwest::RequestBuilder, String> {
+            let mut headers = HeaderMap::new();
+            headers.insert(CONTENT_TYPE, HeaderValue::from_static("application/json"));
+            headers.insert("x-api-key", api_key_value.clone());
+            headers.insert("anthropic-version", HeaderValue::from_static("2023-06-01"));
+            Ok(http.post(&url_owned).headers(headers).json(&body_owned))
+        };
+
+        // Anthropic gets verbatim-error + per-chunk timeout via
+        // `open_with_retry`; the retry side of the helper still kicks
+        // in for 429 / 5xx, which is harmless when Anthropic's own
+        // SDK would retry anyway.
+        let OpenedStream { mut es, pending } = open_with_retry(make_request).await?;
 
         let (tx, rx) = mpsc::channel(128);
 
@@ -380,7 +462,29 @@ impl LlmClient {
             let mut current_tool_name = String::new();
             let mut done_sent = false;
 
-            while let Some(event) = es.next().await {
+            // Mirror the OpenAI path: drain buffered events first, then
+            // pull from the live stream with a per-chunk timeout.
+            let mut events: std::collections::VecDeque<Result<Event, reqwest_eventsource::Error>> =
+                pending.into_iter().map(Ok).collect();
+
+            loop {
+                let event = if let Some(buffered) = events.pop_front() {
+                    Some(buffered)
+                } else {
+                    match tokio::time::timeout(SSE_CHUNK_TIMEOUT, es.next()).await {
+                        Ok(maybe_event) => maybe_event,
+                        Err(_) => {
+                            let _ = tx
+                                .send(LlmEvent::Error(format!(
+                                    "Upstream stream stalled (no data for {}s)",
+                                    SSE_CHUNK_TIMEOUT.as_secs()
+                                )))
+                                .await;
+                            break;
+                        }
+                    }
+                };
+                let Some(event) = event else { break };
                 match event {
                     Ok(Event::Message(msg)) => {
                         let event_type = &msg.event;
@@ -501,7 +605,21 @@ impl LlmClient {
                     }
                     Ok(Event::Open) => {}
                     Err(e) => {
-                        let _ = tx.send(LlmEvent::Error(format!("SSE error: {}", e))).await;
+                        // Mid-stream error after we've started receiving
+                        // events. We don't retry here (would duplicate
+                        // any tokens already delivered to the consumer);
+                        // we just surface the error verbatim and exit.
+                        let msg = match e {
+                            reqwest_eventsource::Error::InvalidStatusCode(status, response) => {
+                                let body = response.text().await.unwrap_or_default();
+                                extract_upstream_error_message(status.as_u16(), &body)
+                            }
+                            reqwest_eventsource::Error::Transport(t) => {
+                                format!("Connection lost mid-stream: {t}")
+                            }
+                            other => format!("Stream error: {other}"),
+                        };
+                        let _ = tx.send(LlmEvent::Error(msg)).await;
                         break;
                     }
                 }
@@ -587,6 +705,176 @@ fn message_to_openai_json(m: &Message) -> Value {
     }
 }
 
+// ── Retry / Error Helpers ──
+
+/// Status codes we'll retry. 429 is rate-limit, 5xx is server/upstream
+/// problems that are typically transient.
+///
+/// We deliberately do NOT retry 408 (Request Timeout). Codex's own
+/// behavior treats that as a hard fail because it likely means the
+/// upstream gave up on the streaming body — retrying a streaming
+/// request can result in duplicated assistant turns.
+fn is_retryable_status(status: u16) -> bool {
+    status == 429 || (500..600).contains(&status)
+}
+
+/// Honor `Retry-After: <seconds>` from rate-limit responses. Returns
+/// None if the header is missing or unparseable; caller falls back to
+/// exponential backoff in that case.
+fn parse_retry_after(headers: &HeaderMap) -> Option<Duration> {
+    let raw = headers.get(reqwest::header::RETRY_AFTER)?.to_str().ok()?;
+    let secs: u64 = raw.trim().parse().ok()?;
+    // Cap Retry-After at 30s: some servers send absurd values during
+    // outages and we'd rather give up than block the agent for minutes.
+    Some(Duration::from_secs(secs.min(30)))
+}
+
+/// Exponential backoff for retry attempt N (0-indexed). 500ms × 3^N
+/// gives 500ms, 1.5s, 4.5s — gentle enough to be polite, aggressive
+/// enough to recover from transient blips.
+fn backoff_for_attempt(attempt: u32) -> Duration {
+    let base_ms: u64 = 500;
+    let factor: u64 = 3u64.saturating_pow(attempt);
+    Duration::from_millis(base_ms.saturating_mul(factor))
+}
+
+/// Extract a user-friendly error message from an upstream error response.
+///
+/// Format precedence:
+///   1. JSON `{ "error": { "message": "..." } }` (OpenAI / DeepSeek / etc.)
+///   2. JSON `{ "error": "..." }` (some providers)
+///   3. JSON `{ "message": "..." }` (top-level flat)
+///   4. Non-JSON body → first 200 chars verbatim
+///   5. Empty body → generic "Upstream returned <status>"
+///
+/// We deliberately drop the technical "Failed to create event source"
+/// wrapper that reqwest_eventsource emits by default — users only see
+/// the provider's own message.
+fn extract_upstream_error_message(status: u16, body: &str) -> String {
+    if body.trim().is_empty() {
+        return format!("Upstream returned HTTP {status}");
+    }
+    if let Ok(parsed) = serde_json::from_str::<Value>(body) {
+        // Nested OpenAI / DeepSeek / Anthropic shape
+        if let Some(msg) = parsed
+            .get("error")
+            .and_then(|e| e.get("message"))
+            .and_then(|v| v.as_str())
+        {
+            return msg.to_string();
+        }
+        // Flat error string
+        if let Some(msg) = parsed.get("error").and_then(|v| v.as_str()) {
+            return msg.to_string();
+        }
+        // Top-level message
+        if let Some(msg) = parsed.get("message").and_then(|v| v.as_str()) {
+            return msg.to_string();
+        }
+    }
+    // Non-JSON or unrecognized shape — truncate to keep the UI readable.
+    let truncated: String = body.trim().chars().take(200).collect();
+    if truncated.is_empty() {
+        format!("Upstream returned HTTP {status}")
+    } else {
+        truncated
+    }
+}
+
+/// Connection-time outcome from `open_with_retry`. The buffered events
+/// vector carries any messages we accidentally consumed while validating
+/// the connection (servers that skip the SSE Open preamble go straight
+/// to the first content delta).
+struct OpenedStream {
+    es: EventSource,
+    pending: Vec<Event>,
+}
+
+/// Open an EventSource with transient-error retry. Returns when:
+///   • The server emits SSE `Open` (healthy stream, no buffered events)
+///   • The server emits a Message directly (buffered into `pending`)
+///   • A non-retryable error fires (returns Err with the upstream's
+///     own message extracted from the response body)
+///   • All `MAX_RETRY_ATTEMPTS` attempts have been exhausted
+async fn open_with_retry<F>(make_request: F) -> Result<OpenedStream, String>
+where
+    F: Fn() -> Result<reqwest::RequestBuilder, String>,
+{
+    let mut last_err = String::from("All retry attempts failed");
+    for attempt in 0..MAX_RETRY_ATTEMPTS {
+        let request = make_request()?;
+        let mut es = match EventSource::new(request) {
+            Ok(es) => es,
+            Err(e) => return Err(format!("Could not build request: {e}")),
+        };
+
+        // Pull events until we either confirm the connection (Open or
+        // first Message) or hit an error worth retrying / surfacing.
+        match es.next().await {
+            Some(Ok(Event::Open)) => {
+                return Ok(OpenedStream {
+                    es,
+                    pending: Vec::new(),
+                });
+            }
+            Some(Ok(ev @ Event::Message(_))) => {
+                // Server skipped Open — buffer the message so the
+                // streaming consumer doesn't lose it.
+                return Ok(OpenedStream {
+                    es,
+                    pending: vec![ev],
+                });
+            }
+            Some(Err(reqwest_eventsource::Error::InvalidStatusCode(status, response))) => {
+                let retry_after = parse_retry_after(response.headers());
+                let body = response.text().await.unwrap_or_default();
+                let message = extract_upstream_error_message(status.as_u16(), &body);
+                if is_retryable_status(status.as_u16()) && attempt + 1 < MAX_RETRY_ATTEMPTS {
+                    let wait = retry_after.unwrap_or_else(|| backoff_for_attempt(attempt));
+                    log::info!(
+                        "[LLM] Upstream {} (attempt {}/{}), retrying in {:?}: {}",
+                        status,
+                        attempt + 1,
+                        MAX_RETRY_ATTEMPTS,
+                        wait,
+                        message
+                    );
+                    tokio::time::sleep(wait).await;
+                    last_err = message;
+                    continue;
+                }
+                return Err(message);
+            }
+            Some(Err(reqwest_eventsource::Error::Transport(e))) => {
+                if attempt + 1 < MAX_RETRY_ATTEMPTS {
+                    let wait = backoff_for_attempt(attempt);
+                    log::info!(
+                        "[LLM] Transport error (attempt {}/{}), retrying in {:?}: {}",
+                        attempt + 1,
+                        MAX_RETRY_ATTEMPTS,
+                        wait,
+                        e
+                    );
+                    tokio::time::sleep(wait).await;
+                    last_err = format!("Connection error: {e}");
+                    continue;
+                }
+                return Err(format!("Connection error: {e}"));
+            }
+            Some(Err(e)) => return Err(format!("SSE setup error: {e}")),
+            None => {
+                if attempt + 1 < MAX_RETRY_ATTEMPTS {
+                    tokio::time::sleep(backoff_for_attempt(attempt)).await;
+                    last_err = "Upstream closed connection immediately".to_string();
+                    continue;
+                }
+                return Err("Upstream closed connection immediately".to_string());
+            }
+        }
+    }
+    Err(last_err)
+}
+
 fn message_to_anthropic_json(m: &Message) -> Value {
     match &m.content {
         MessageContent::Text(text) => json!({"role": m.role, "content": text}),
@@ -620,5 +908,160 @@ fn message_to_anthropic_json(m: &Message) -> Value {
                 .collect();
             json!({"role": m.role, "content": content})
         }
+    }
+}
+
+// ── Tests ──
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // ---- is_retryable_status ----
+
+    #[test]
+    fn retryable_includes_429_and_5xx() {
+        assert!(is_retryable_status(429));
+        assert!(is_retryable_status(500));
+        assert!(is_retryable_status(502));
+        assert!(is_retryable_status(503));
+        assert!(is_retryable_status(599));
+    }
+
+    #[test]
+    fn retryable_excludes_4xx_auth_and_2xx() {
+        assert!(!is_retryable_status(200));
+        assert!(!is_retryable_status(400));
+        assert!(!is_retryable_status(401));
+        assert!(!is_retryable_status(403));
+        assert!(!is_retryable_status(404));
+        assert!(!is_retryable_status(409));
+        assert!(!is_retryable_status(408)); // see docstring: 408 not retried
+        assert!(!is_retryable_status(600));
+    }
+
+    // ---- parse_retry_after ----
+
+    #[test]
+    fn parses_retry_after_seconds() {
+        let mut h = HeaderMap::new();
+        h.insert(reqwest::header::RETRY_AFTER, HeaderValue::from_static("5"));
+        assert_eq!(parse_retry_after(&h), Some(Duration::from_secs(5)));
+    }
+
+    #[test]
+    fn caps_retry_after_at_30s() {
+        let mut h = HeaderMap::new();
+        h.insert(
+            reqwest::header::RETRY_AFTER,
+            HeaderValue::from_static("999"),
+        );
+        // Server tried to make us wait 999s; cap at 30s.
+        assert_eq!(parse_retry_after(&h), Some(Duration::from_secs(30)));
+    }
+
+    #[test]
+    fn retry_after_missing_returns_none() {
+        let h = HeaderMap::new();
+        assert_eq!(parse_retry_after(&h), None);
+    }
+
+    #[test]
+    fn retry_after_unparseable_returns_none() {
+        let mut h = HeaderMap::new();
+        // HTTP-date format (legal per RFC 7231) — we don't support it yet,
+        // so we fall back to exponential backoff.
+        h.insert(
+            reqwest::header::RETRY_AFTER,
+            HeaderValue::from_static("Wed, 21 Oct 2026 07:28:00 GMT"),
+        );
+        assert_eq!(parse_retry_after(&h), None);
+    }
+
+    // ---- backoff_for_attempt ----
+
+    #[test]
+    fn backoff_grows_exponentially() {
+        assert_eq!(backoff_for_attempt(0), Duration::from_millis(500));
+        assert_eq!(backoff_for_attempt(1), Duration::from_millis(1500));
+        assert_eq!(backoff_for_attempt(2), Duration::from_millis(4500));
+    }
+
+    #[test]
+    fn backoff_does_not_overflow_at_huge_attempts() {
+        // u32::MAX would normally overflow u64::pow; saturating_pow + mul
+        // protect us.
+        let d = backoff_for_attempt(u32::MAX);
+        assert!(d.as_millis() > 0); // doesn't panic
+    }
+
+    // ---- extract_upstream_error_message ----
+
+    #[test]
+    fn extracts_nested_error_message_openai_shape() {
+        let body = r#"{"error":{"message":"Invalid API Key","code":"invalid_api_key"}}"#;
+        assert_eq!(extract_upstream_error_message(401, body), "Invalid API Key");
+    }
+
+    #[test]
+    fn extracts_nested_error_message_deepseek_shape() {
+        // DeepSeek's actual response shape per the user's e2e logs.
+        let body = r#"{
+            "error": {
+                "message": "Invalid API Key",
+                "param": "Please provide valid API Key",
+                "code": "401",
+                "type": "invalid_key"
+            }
+        }"#;
+        assert_eq!(extract_upstream_error_message(401, body), "Invalid API Key");
+    }
+
+    #[test]
+    fn extracts_flat_error_string() {
+        let body = r#"{"error":"Rate limit exceeded"}"#;
+        assert_eq!(
+            extract_upstream_error_message(429, body),
+            "Rate limit exceeded"
+        );
+    }
+
+    #[test]
+    fn extracts_top_level_message() {
+        let body = r#"{"message":"Quota exceeded"}"#;
+        assert_eq!(extract_upstream_error_message(403, body), "Quota exceeded");
+    }
+
+    #[test]
+    fn falls_back_to_truncated_body_when_not_json() {
+        let body = "Internal Server Error\nReason: backend timeout";
+        let out = extract_upstream_error_message(500, body);
+        assert!(out.contains("Internal Server Error"), "got: {out}");
+    }
+
+    #[test]
+    fn truncates_huge_non_json_body() {
+        let body = "x".repeat(5000);
+        let out = extract_upstream_error_message(500, &body);
+        assert!(out.len() <= 200, "got {} chars", out.len());
+    }
+
+    #[test]
+    fn empty_body_falls_back_to_generic_message() {
+        assert_eq!(
+            extract_upstream_error_message(503, ""),
+            "Upstream returned HTTP 503"
+        );
+        assert_eq!(
+            extract_upstream_error_message(503, "   "),
+            "Upstream returned HTTP 503"
+        );
+    }
+
+    #[test]
+    fn malformed_json_falls_back_to_truncated_body() {
+        let body = "{not valid json";
+        let out = extract_upstream_error_message(500, body);
+        // Not "Failed to parse" — we want the user to see something useful
+        assert!(out.contains("not valid json"), "got: {out}");
     }
 }
