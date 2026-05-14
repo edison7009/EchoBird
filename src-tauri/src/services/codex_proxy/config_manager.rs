@@ -8,9 +8,10 @@
 //                                 and wire_api = "responses"). `apply_codex`
 //                                 in tool_config_manager.rs writes this
 //                                 whenever Codex is selected; this module
-//                                 provides a defensive read-and-rewrite-if-
-//                                 drifted helper for the proxy's startup
-//                                 path (Phase 6).
+//                                 provides a defensive read-and-rewrite-
+//                                 if-drifted helper used by
+//                                 `process_manager::start_codex_native`
+//                                 as a pre-spawn self-heal.
 //
 //   ~/.echobird/codex.json      ← The relay file. EchoBird writes the
 //                                 currently-selected model / API key /
@@ -282,18 +283,27 @@ mod tests {
 
     #[test]
     fn relay_returns_parsed_json_when_present() {
+        // Use the same field names apply_codex actually writes:
+        // baseUrl / apiKey / actualModel / modelName / providerId.
+        // `read_echobird_relay` just parses to Value — the camelCase
+        // contract lives in server.rs::read_relay_or_error — but the
+        // test fixture should reflect real schema so a schema
+        // regression in apply_codex would also flag this test.
         let dir = unique_tmpdir("relayok");
         let p = dir.join(RELAY_FILENAME);
         let payload = json!({
-            "model": "deepseek-chat",
-            "base_url": "https://api.deepseek.com/v1",
-            "api_key": "sk-test",
+            "baseUrl": "https://api.deepseek.com/v1",
+            "apiKey": "sk-test",
+            "actualModel": "deepseek-chat",
+            "modelName": "deepseek-chat",
+            "providerId": "OpenAI",
         });
         fs::write(&p, serde_json::to_string(&payload).unwrap()).unwrap();
 
         let out = read_echobird_relay(&p).expect("some");
-        assert_eq!(out["model"], "deepseek-chat");
-        assert_eq!(out["base_url"], "https://api.deepseek.com/v1");
+        assert_eq!(out["baseUrl"], "https://api.deepseek.com/v1");
+        assert_eq!(out["apiKey"], "sk-test");
+        assert_eq!(out["actualModel"], "deepseek-chat");
 
         fs::remove_dir_all(&dir).ok();
     }

@@ -57,21 +57,12 @@ fn ensure_parent(path: &Path) {
 const CODEX_PROVIDER: &str = "OpenAI";
 const CODEX_DISPLAY_MODEL: &str = "gpt-5.4";
 
-/// Stable port for the Codex launcher's local proxy.
-///
-/// We bind the same port every time so `~/.codex/config.toml` can hold a
-/// permanent `base_url = "http://127.0.0.1:53682/v1"` that never needs
-/// rewriting. Switching models updates `~/.echobird/codex.json` (the
-/// relay file the proxy reads on every request) — config.toml stays
-/// untouched, so Codex never reloads it and chat history is never
-/// re-tagged. The proxy must read the relay file on each incoming
-/// request to pick up model switches without a Codex restart.
-///
-/// 53682 is in the unreserved IANA ephemeral range (49152-65535) and
-/// not assigned to any well-known service. Keep in sync with
-/// `CODEX_PROXY_PORT` in `src/services/codex_proxy/mod.rs` (used by
-/// `spawn_proxy_task` to bind the listener).
-const CODEX_PROXY_PORT: u16 = 53682;
+// Stable proxy port. Sourced from codex_proxy (the listener owner) so
+// the constant has exactly one definition. Bound permanently so
+// ~/.codex/config.toml can hold a fixed `base_url = "http://127.0.0.1:
+// <PORT>/v1"` — model switches happen by rewriting only
+// ~/.echobird/codex.json, which the proxy reads fresh on every request.
+use crate::services::codex_proxy::CODEX_PROXY_PORT;
 
 /// Extract domain name from URL for use in identifiers
 /// Example: "https://api.openai.com/v1" -> "api_openai_com"

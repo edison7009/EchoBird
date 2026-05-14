@@ -90,6 +90,16 @@ impl SessionStore {
         Self::default()
     }
 
+    // Every accessor below acquires the inner Mutex via
+    // `.lock().unwrap_or_else(|e| e.into_inner())`. The Mutex protects
+    // only `Inner`, which is plain JSON Values + VecDeque eviction
+    // queues with no cross-field invariants — so even if a panic
+    // poisoned the lock mid-mutation, the worst case is a half-applied
+    // history entry, not memory unsafety. We prefer "keep serving" over
+    // "crash every subsequent request" because the proxy is on the
+    // user's chat hot path and a Mutex-poison crash takes Codex down
+    // until the user restarts EchoBird.
+
     /// History stashed under previous_response_id by past streaming /
     /// non-stream completion calls. Returns an empty vec if the id is
     /// unknown (which is the steady-state for the first turn of any
@@ -98,7 +108,7 @@ impl SessionStore {
         if response_id.is_empty() {
             return Vec::new();
         }
-        let inner = self.inner.lock().expect("session store mutex poisoned");
+        let inner = self.inner.lock().unwrap_or_else(|e| e.into_inner());
         inner
             .response_history
             .get(response_id)
@@ -114,7 +124,7 @@ impl SessionStore {
         if response_id.is_empty() {
             return;
         }
-        let mut inner = self.inner.lock().expect("session store mutex poisoned");
+        let mut inner = self.inner.lock().unwrap_or_else(|e| e.into_inner());
         let key = response_id.to_string();
         // If the key already exists, drop its old position from the
         // eviction queue so we don't double-count.
@@ -137,7 +147,7 @@ impl SessionStore {
         if call_id.is_empty() {
             return None;
         }
-        let inner = self.inner.lock().expect("session store mutex poisoned");
+        let inner = self.inner.lock().unwrap_or_else(|e| e.into_inner());
         inner.reasoning.get(call_id).cloned()
     }
 
@@ -148,7 +158,7 @@ impl SessionStore {
         if call_id.is_empty() || content.is_empty() {
             return;
         }
-        let mut inner = self.inner.lock().expect("session store mutex poisoned");
+        let mut inner = self.inner.lock().unwrap_or_else(|e| e.into_inner());
         let key = call_id.to_string();
         if inner.reasoning.contains_key(&key) {
             inner.reasoning_order.retain(|k| k != &key);
@@ -171,7 +181,7 @@ impl SessionStore {
             return None;
         }
         let key = fnv1a_64(&key_str);
-        let inner = self.inner.lock().expect("session store mutex poisoned");
+        let inner = self.inner.lock().unwrap_or_else(|e| e.into_inner());
         inner.turn_reasoning.get(&key).cloned()
     }
 
@@ -183,7 +193,7 @@ impl SessionStore {
             return;
         }
         let key = fnv1a_64(&key_str);
-        let mut inner = self.inner.lock().expect("session store mutex poisoned");
+        let mut inner = self.inner.lock().unwrap_or_else(|e| e.into_inner());
         if inner.turn_reasoning.contains_key(&key) {
             inner.turn_reasoning_order.retain(|k| *k != key);
         }

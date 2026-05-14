@@ -613,10 +613,9 @@ fn normalize_function_tool(tool: &Value) -> Value {
 }
 
 // ────────────────────────────────────────────────────────────────────
-// Tests — direct port of the most load-bearing cases from
-// tools/codex/lib/__tests__/responses-to-chat.test.js. Phase 4 will
-// add the session-store-dependent cases (history replay, reasoning
-// round-trip) once the real SessionStore is in.
+// Tests — direct port of the most load-bearing cases from the
+// original responses-to-chat suite, plus session-store-backed cases
+// (history replay, reasoning round-trip).
 // ────────────────────────────────────────────────────────────────────
 
 #[cfg(test)]

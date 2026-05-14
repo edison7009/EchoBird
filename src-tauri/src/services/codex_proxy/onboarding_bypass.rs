@@ -23,10 +23,13 @@ use std::path::{Path, PathBuf};
 
 // `bypass_onboarding` is called by `process_manager.rs::start_codex_native`
 // just before spawning Codex; the rest of this module exists to make
-// that call testable in isolation.
+// that call testable in isolation. The function is intentionally
+// idempotent — it returns `AlreadyBypassed` without writing when every
+// flag we care about is already set, so calling it on every spawn is
+// cheap and we don't need a separate "is_complete" pre-check.
 
 /// Filename inside the Codex dir.
-pub const GLOBAL_STATE_FILE: &str = ".codex-global-state.json";
+const GLOBAL_STATE_FILE: &str = ".codex-global-state.json";
 
 /// Outcome tag for `bypass_onboarding`. The variant tells the caller
 /// whether anything actually changed on disk (useful for logging).
@@ -81,32 +84,6 @@ pub fn bypass_onboarding(codex_dir: &Path) -> io::Result<BypassOutcome> {
     }
 }
 
-/// Check whether onboarding has already been completed (per the same
-/// flags `bypass_onboarding` writes). Used as a fast pre-flight to
-/// avoid unnecessary writes / backups on every proxy start.
-#[allow(dead_code)]
-pub fn is_onboarding_complete(codex_dir: &Path) -> bool {
-    let global_state_path = codex_dir.join(GLOBAL_STATE_FILE);
-    let content = match fs::read_to_string(&global_state_path) {
-        Ok(c) => c,
-        Err(_) => return false,
-    };
-    let state: Value = match serde_json::from_str(&content) {
-        Ok(v) => v,
-        Err(_) => return false,
-    };
-    let atom = state.get("electron-persisted-atom-state");
-    let projectless_done = atom
-        .and_then(|a| a.get("electron:onboarding-projectless-completed"))
-        .and_then(|v| v.as_bool())
-        .unwrap_or(false);
-    let has_timestamp = atom
-        .and_then(|a| a.get("last_completed_onboarding"))
-        .map(|v| !v.is_null())
-        .unwrap_or(false);
-    projectless_done && has_timestamp
-}
-
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -114,7 +91,6 @@ pub fn is_onboarding_complete(codex_dir: &Path) -> bool {
 // Append a suffix to a path. Used to derive `.bak` / `.tmp` sibling
 // paths. We append textually rather than using `with_extension` because
 // the global state filename already starts with a dot.
-#[allow(dead_code)]
 fn path_with_suffix(p: &Path, suffix: &str) -> PathBuf {
     let mut s: std::ffi::OsString = p.as_os_str().to_os_string();
     s.push(suffix);
@@ -123,8 +99,8 @@ fn path_with_suffix(p: &Path, suffix: &str) -> PathBuf {
 
 // Apply the onboarding-skip flags to `state` in place. Returns true if
 // anything was actually changed. The list is kept in lockstep with the
-// .cjs version so both implementations produce identical files.
-#[allow(dead_code)]
+// original JS version so a state file that round-tripped through
+// either implementation looks identical.
 fn apply_patches(state: &mut Value) -> bool {
     let mut modified = false;
 
@@ -352,43 +328,6 @@ mod tests {
             1_700_000_000_000_u64
         );
 
-        fs::remove_dir_all(&dir).ok();
-    }
-
-    // ---- is_onboarding_complete ----
-
-    #[test]
-    fn is_complete_returns_false_when_file_missing() {
-        let dir = unique_tmpdir("notcomplete1");
-        assert!(!is_onboarding_complete(&dir));
-        fs::remove_dir_all(&dir).ok();
-    }
-
-    #[test]
-    fn is_complete_returns_false_when_malformed_json() {
-        let dir = unique_tmpdir("notcomplete2");
-        fs::write(dir.join(GLOBAL_STATE_FILE), "not-json{").unwrap();
-        assert!(!is_onboarding_complete(&dir));
-        fs::remove_dir_all(&dir).ok();
-    }
-
-    #[test]
-    fn is_complete_returns_false_when_flags_missing() {
-        let dir = unique_tmpdir("notcomplete3");
-        fs::write(
-            dir.join(GLOBAL_STATE_FILE),
-            "{\"electron-persisted-atom-state\":{}}",
-        )
-        .unwrap();
-        assert!(!is_onboarding_complete(&dir));
-        fs::remove_dir_all(&dir).ok();
-    }
-
-    #[test]
-    fn is_complete_returns_true_after_bypass() {
-        let dir = unique_tmpdir("complete");
-        bypass_onboarding(&dir).expect("ok");
-        assert!(is_onboarding_complete(&dir));
         fs::remove_dir_all(&dir).ok();
     }
 

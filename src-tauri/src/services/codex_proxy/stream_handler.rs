@@ -314,8 +314,8 @@ pub fn chat_to_responses_non_stream(
 // ---------------------------------------------------------------------------
 
 /// One Server-Sent Event. `event` is the `event:` line, `data` becomes
-/// the JSON-serialized `data:` line. The Phase 6 axum handler converts
-/// these to `axum::response::sse::Event` 1:1.
+/// the JSON-serialized `data:` line. The axum handler converts these
+/// to `axum::response::sse::Event` 1:1.
 #[derive(Debug, Clone, PartialEq)]
 pub struct SseEvent {
     pub event: String,
@@ -330,11 +330,10 @@ impl SseEvent {
         }
     }
 
-    /// Serialize to wire format (`event: ...\ndata: {...}\n\n`). Used by
-    /// the axum bridge (Phase 6) when it has to emit a raw SSE chunk
-    /// for the synchronous error-envelope path, and by tests that want
-    /// to assert exact bytes.
-    #[allow(dead_code)]
+    /// Serialize to wire format (`event: ...\ndata: {...}\n\n`). Only
+    /// used by tests that want to assert exact bytes — the production
+    /// path goes through axum's `Sse` adapter, not this helper.
+    #[cfg(test)]
     pub fn to_wire(&self) -> String {
         format!("event: {}\ndata: {}\n\n", self.event, self.data)
     }

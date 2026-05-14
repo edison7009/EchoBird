@@ -1,11 +1,10 @@
-// Phase 6 — real /v1/responses handler.
+// /v1/responses HTTP handler.
 //
-// Replaces the Phase 1 placeholder. Accepts POST /v1/responses (or
-// /responses), reads ~/.echobird/codex.json for the active model /
-// API key / upstream base_url, translates the Codex Responses-API
-// request into a Chat Completions request, forwards it to the
-// upstream provider, then translates the response back to Responses
-// API SSE / JSON.
+// Accepts POST /v1/responses (or /responses), reads ~/.echobird/codex.json
+// for the active model / API key / upstream base_url, translates the
+// Codex Responses-API request into a Chat Completions request, forwards
+// it to the upstream provider, then translates the response back to
+// Responses API SSE / JSON.
 //
 // Per-request relay read: the file is fetched fresh every time so
 // EchoBird model switches take effect without restarting Codex or the
@@ -20,7 +19,7 @@ use std::time::Duration;
 use axum::{
     body::Bytes,
     extract::State,
-    http::{header, HeaderMap, StatusCode},
+    http::{header, StatusCode},
     response::{
         sse::{Event, KeepAlive, Sse},
         IntoResponse, Json, Response,
@@ -44,6 +43,14 @@ use super::stream_handler::{
 /// truncating. Error envelopes are small (a JSON `{ "error": ... }`);
 /// we never want a misbehaving upstream pushing us into unbounded growth.
 const UPSTREAM_ERROR_BODY_CAP: usize = 16 * 1024;
+
+/// Maximum time we'll wait for the upstream to deliver the next chunk
+/// of a streaming response. A stalled upstream (TCP open but silent)
+/// would otherwise hold a reqwest connection + spawned tokio task open
+/// forever, leaking file descriptors over many sessions. 5 minutes is
+/// generous enough to cover slow thinking-model warmups but tight
+/// enough that a truly dead connection releases its resources.
+const UPSTREAM_CHUNK_TIMEOUT: Duration = Duration::from_secs(300);
 
 #[derive(Clone)]
 struct AppState {
@@ -74,10 +81,10 @@ pub async fn run(port: u16) -> Result<(), String> {
     let listener = match tokio::net::TcpListener::bind(addr).await {
         Ok(l) => l,
         Err(e) => {
-            // Most common cause: another EchoBird instance (or the
-            // legacy Node launcher from a previous run) still holds
-            // the port. We log + bail so Tauri keeps starting; the
-            // proxy stays available via the existing process.
+            // Most common cause: another EchoBird instance is still
+            // running and holding the port. We log + bail so Tauri
+            // keeps starting; the proxy is reachable via that other
+            // instance's listener.
             return Err(format!("bind 127.0.0.1:{port} failed: {e}"));
         }
     };
@@ -386,27 +393,73 @@ async fn read_capped_body(resp: reqwest::Response) -> String {
 
 /// Wrap a Responses-shape error envelope into an HTTP response, choosing
 /// between an SSE single-event stream (stream clients) or JSON (non-stream).
+///
+/// SSE path emits three events back-to-back: `response.created`,
+/// `response.in_progress`, `response.failed`. The created+in_progress
+/// preamble matches what the happy path sends before any output, so
+/// Codex's stream client sees the same opening contract whether the
+/// turn ends in success or failure. The body flows over axum's `Sse`
+/// adapter (chunked transfer encoding) — not a fixed-Content-Length
+/// String — so the connection lifecycle matches a real streaming turn.
 fn error_response(envelope: Value, http_status: u16, is_stream: bool) -> Response {
     let status_code = StatusCode::from_u16(http_status).unwrap_or(StatusCode::BAD_GATEWAY);
     if is_stream {
-        // Codex's stream client is waiting for `response.created`; if we
-        // close the socket with just JSON it hangs. Emit a one-shot
-        // response.failed SSE event so the failure surfaces immediately.
-        let failed_event = json!({
-            "type": "response.failed",
-            "response": envelope,
-        });
-        let event_text = format!("event: response.failed\ndata: {failed_event}\n\n");
-        let mut headers = HeaderMap::new();
-        headers.insert(header::CONTENT_TYPE, "text/event-stream".parse().unwrap());
-        headers.insert(header::CACHE_CONTROL, "no-cache".parse().unwrap());
-        headers.insert("X-Accel-Buffering", "no".parse().unwrap());
+        let response_id = envelope
+            .get("id")
+            .and_then(|v| v.as_str())
+            .unwrap_or("resp_err")
+            .to_string();
+        let events = build_error_sse_events(&envelope, &response_id);
         // Always 200 OK on the SSE channel; the error sits in the
         // payload. Codex inspects the JSON envelope, not the HTTP code.
-        (StatusCode::OK, headers, event_text).into_response()
+        let stream = tokio_stream::iter(
+            events
+                .into_iter()
+                .map(|e| Ok::<Event, Infallible>(sse_event_to_axum(&e))),
+        );
+        Sse::new(stream).into_response()
     } else {
         (status_code, Json(envelope)).into_response()
     }
+}
+
+/// Build the three-event SSE envelope for the error path. Matches the
+/// happy-path opening contract (response.created → response.in_progress)
+/// so Codex's stream client doesn't sit waiting for the missing preamble
+/// before parsing the failure.
+fn build_error_sse_events(envelope: &Value, response_id: &str) -> Vec<SseEvent> {
+    vec![
+        SseEvent::new(
+            "response.created",
+            json!({
+                "type": "response.created",
+                "response": {
+                    "id": response_id,
+                    "object": "response",
+                    "status": "in_progress",
+                    "output": [],
+                },
+            }),
+        ),
+        SseEvent::new(
+            "response.in_progress",
+            json!({
+                "type": "response.in_progress",
+                "response": {
+                    "id": response_id,
+                    "object": "response",
+                    "status": "in_progress",
+                },
+            }),
+        ),
+        SseEvent::new(
+            "response.failed",
+            json!({
+                "type": "response.failed",
+                "response": envelope,
+            }),
+        ),
+    ]
 }
 
 // ---------------------------------------------------------------------------
@@ -435,9 +488,14 @@ fn stream_response(
         }
 
         let mut bytes_stream = upstream_resp.bytes_stream();
-        while let Some(chunk) = bytes_stream.next().await {
-            match chunk {
-                Ok(b) => {
+        loop {
+            // Per-chunk timeout: if the upstream goes silent for longer
+            // than UPSTREAM_CHUNK_TIMEOUT we close the stream rather than
+            // leak the connection / task / FD indefinitely.
+            let next_chunk =
+                tokio::time::timeout(UPSTREAM_CHUNK_TIMEOUT, bytes_stream.next()).await;
+            match next_chunk {
+                Ok(Some(Ok(b))) => {
                     if let Ok(s) = std::str::from_utf8(&b) {
                         state.feed_chunk(s);
                     } else {
@@ -451,10 +509,26 @@ fn stream_response(
                         return;
                     }
                 }
-                Err(e) => {
+                Ok(Some(Err(e))) => {
                     state.fail(
                         &format!("Upstream stream error: {e}"),
                         "upstream_stream_error",
+                    );
+                    let _ = forward_events(&mut state, &tx).await;
+                    return;
+                }
+                Ok(None) => {
+                    // Clean EOF — break out so finish() runs below.
+                    break;
+                }
+                Err(_elapsed) => {
+                    // Read timeout — upstream went silent past the cap.
+                    state.fail(
+                        &format!(
+                            "Upstream stream stalled (no data for {}s)",
+                            UPSTREAM_CHUNK_TIMEOUT.as_secs()
+                        ),
+                        "upstream_stall",
                     );
                     let _ = forward_events(&mut state, &tx).await;
                     return;
@@ -624,7 +698,7 @@ mod tests {
         assert_eq!(resp.status(), StatusCode::OK);
         let ct = resp
             .headers()
-            .get(header::CONTENT_TYPE)
+            .get(axum::http::header::CONTENT_TYPE)
             .map(|v| v.to_str().unwrap().to_string())
             .unwrap_or_default();
         assert!(ct.starts_with("text/event-stream"), "got: {ct}");
@@ -637,10 +711,34 @@ mod tests {
         assert_eq!(resp.status(), StatusCode::SERVICE_UNAVAILABLE);
         let ct = resp
             .headers()
-            .get(header::CONTENT_TYPE)
+            .get(axum::http::header::CONTENT_TYPE)
             .map(|v| v.to_str().unwrap().to_string())
             .unwrap_or_default();
         assert!(ct.starts_with("application/json"), "got: {ct}");
+    }
+
+    #[test]
+    fn build_error_sse_events_emits_three_event_preamble_then_failure() {
+        let envelope = json!({
+            "id": "resp_abc",
+            "object": "response",
+            "status": "failed",
+            "error": { "code": "no_active_model", "message": "no model" },
+            "output": [],
+        });
+        let events = build_error_sse_events(&envelope, "resp_abc");
+        assert_eq!(events.len(), 3, "expected 3 events, got {}", events.len());
+        assert_eq!(events[0].event, "response.created");
+        assert_eq!(events[1].event, "response.in_progress");
+        assert_eq!(events[2].event, "response.failed");
+        // Preamble events must carry status=in_progress (matches happy path)
+        assert_eq!(events[0].data["response"]["status"], "in_progress");
+        assert_eq!(events[1].data["response"]["status"], "in_progress");
+        // The failed event carries the caller-supplied envelope verbatim
+        assert_eq!(events[2].data["response"], envelope);
+        // All three reference the same response_id so Codex can stitch them
+        assert_eq!(events[0].data["response"]["id"], "resp_abc");
+        assert_eq!(events[1].data["response"]["id"], "resp_abc");
     }
 
     #[test]

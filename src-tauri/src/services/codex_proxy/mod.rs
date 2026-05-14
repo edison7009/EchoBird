@@ -1,11 +1,5 @@
-// Codex Responses↔Chat proxy — Rust port of tools/codex/lib/*.cjs.
-//
-// As of Phase 6 the handler in `server.rs` wires up every submodule,
-// so the blanket `#![allow(dead_code)]` we carried through Phases 2-5
-// has been removed. The legacy Node launcher still ships in v4.6.8 as
-// a defense-in-depth fallback (it gracefully shares the port when our
-// Rust proxy already holds it); Phase 7 deletes the .cjs files outright.
-
+// Codex Responses↔Chat proxy — the full stack that replaces the
+// v4.6.x Node launcher (tools/codex/lib/*.cjs, removed in v5.0).
 //
 // Architecture
 //
@@ -16,26 +10,29 @@
 // upstream provider, then translating the response back to Responses
 // API SSE events.
 //
-// Why we ported from Node:
+// Why the port from Node:
 //
-//   1. End users don't need Node.js installed locally — everything ships
-//      compiled inside the Tauri binary.
+//   1. End users don't need Node.js installed locally — everything
+//      ships compiled inside the Tauri binary.
 //   2. The translation dictionary (the trickiest part of integrating
-//      Codex with non-OpenAI providers) gets compiled to machine code
-//      instead of shipping as readable .cjs files, raising the bar for
-//      reverse engineering significantly.
-//   3. Tokio + axum + reqwest end-to-end means SSE forwarding has less
-//      buffering than the Node version (no shim layer between sockets).
+//      Codex with non-OpenAI providers) compiles to machine code
+//      instead of shipping as readable .cjs, raising the reverse-
+//      engineering bar significantly.
+//   3. Tokio + axum + reqwest end-to-end means SSE forwarding has
+//      less buffering than the Node version (no shim layer between
+//      sockets).
 //
-// Module layout (work in progress, Phase 1 = server skeleton only):
+// Module layout
 //
 //   mod.rs                ← this file: public entry, task spawn
-//   server.rs             ← axum router + handler entry point
-//   protocol_converter.rs ← Phase 2: Responses input items → Chat messages
-//   stream_handler.rs     ← Phase 3: Chat SSE ↔ Responses SSE
-//   session_store.rs      ← Phase 4: response_id history + reasoning cache
-//   content_mapper.rs     ← Phase 5: text/image multimodal parts
-//   onboarding_bypass.rs  ← Phase 5: ~/.codex/.codex-global-state.json patch
+//   server.rs             ← axum router + /v1/responses handler
+//   protocol_converter.rs ← Responses input items → Chat messages
+//   stream_handler.rs     ← Chat SSE ↔ Responses SSE state machine
+//   session_store.rs      ← response_id history + reasoning cache
+//   content_mapper.rs     ← text/image multimodal content parts
+//   config_manager.rs     ← ~/.codex/config.toml + ~/.echobird/codex.json
+//   onboarding_bypass.rs  ← ~/.codex/.codex-global-state.json patch
+//   codex_binary.rs       ← Codex CLI + Desktop binary path discovery
 
 mod codex_binary;
 mod config_manager;
@@ -47,7 +44,9 @@ mod session_store;
 mod stream_handler;
 
 // Re-export the Codex spawn helpers so `process_manager.rs` can call
-// into them in place of the legacy `node codex-launcher.cjs` shell-out.
+// into them directly. These cover everything the old `node codex-
+// launcher.cjs` invocation used to do (config self-heal, onboarding
+// patch, binary discovery) — entirely in-process now.
 pub use codex_binary::{
     resolve_codex_cli_binary, resolve_codex_cli_shim, resolve_desktop_binary,
     resolve_desktop_launch_uri,
@@ -65,16 +64,16 @@ pub use stream_handler::{
     SseEvent, StreamState,
 };
 
-/// Fixed port. Kept in sync with `CODEX_PROXY_PORT` in
-/// `tool_config_manager.rs` and `config-manager.cjs` (still used by the
-/// legacy .cjs launcher until Phase 7 cleanup).
+/// Fixed proxy port. `tool_config_manager` imports this for the
+/// canonical `~/.codex/config.toml` template, so there's exactly one
+/// source of truth.
 pub const CODEX_PROXY_PORT: u16 = 53682;
 
 /// Spawn the proxy as a background task on Tauri's async runtime.
 /// Called from Tauri's setup() (which is sync), returns immediately.
 /// On bind failure we log and continue — EchoBird's other features
 /// keep working even if the proxy port is taken by another EchoBird
-/// instance or a leftover Node launcher.
+/// instance still running.
 pub fn spawn_proxy_task() {
     tauri::async_runtime::spawn(async move {
         match server::run(CODEX_PROXY_PORT).await {
