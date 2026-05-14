@@ -1493,9 +1493,7 @@ fn read_codex_relay_base_url() -> Option<String> {
     let relay_path = echobird_dir().join("codex.json");
     let content = fs::read_to_string(relay_path).ok()?;
     let v: serde_json::Value = serde_json::from_str(&content).ok()?;
-    v.get("baseUrl")
-        .and_then(|x| x.as_str())
-        .map(String::from)
+    v.get("baseUrl").and_then(|x| x.as_str()).map(String::from)
 }
 
 fn read_codex_auth_key(codex_dir: &Path) -> Option<String> {
