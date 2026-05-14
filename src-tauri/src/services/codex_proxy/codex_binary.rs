@@ -28,48 +28,55 @@ use std::time::Duration;
 /// Linux (no desktop build) or when the standard install locations
 /// don't exist.
 pub fn resolve_desktop_binary() -> Option<PathBuf> {
-    let mut candidates: Vec<PathBuf> = Vec::new();
+    // Build candidates inside a block so the outer binding is immutable
+    // (else `unused_mut` fires on Linux, where neither cfg block runs).
+    let candidates: Vec<PathBuf> = {
+        let mut c: Vec<PathBuf> = Vec::new();
 
-    #[cfg(windows)]
-    {
-        if let Ok(local_app_data) = std::env::var("LOCALAPPDATA") {
-            // 1. Standalone installer default location.
-            candidates.push(
-                PathBuf::from(&local_app_data)
-                    .join("Programs")
-                    .join("Codex")
-                    .join("Codex.exe"),
-            );
-            // 2. Microsoft Store executable alias — Windows 10+ exposes
-            //    a shim here that resolves to the Store package.
-            candidates.push(
-                PathBuf::from(&local_app_data)
-                    .join("Microsoft")
-                    .join("WindowsApps")
-                    .join("Codex.exe"),
-            );
+        #[cfg(windows)]
+        {
+            if let Ok(local_app_data) = std::env::var("LOCALAPPDATA") {
+                // 1. Standalone installer default location.
+                c.push(
+                    PathBuf::from(&local_app_data)
+                        .join("Programs")
+                        .join("Codex")
+                        .join("Codex.exe"),
+                );
+                // 2. Microsoft Store executable alias — Windows 10+
+                //    exposes a shim here that resolves to the Store package.
+                c.push(
+                    PathBuf::from(&local_app_data)
+                        .join("Microsoft")
+                        .join("WindowsApps")
+                        .join("Codex.exe"),
+                );
+            }
+            // 3. PATH lookup via `where` as a last resort.
+            if let Some(p) = which_first("Codex.exe") {
+                c.push(p);
+            }
         }
-        // 3. PATH lookup via `where` as a last resort.
-        if let Some(p) = which_first("Codex.exe") {
-            candidates.push(p);
-        }
-    }
 
-    #[cfg(target_os = "macos")]
-    {
-        candidates.push(PathBuf::from(
-            "/Applications/Codex.app/Contents/MacOS/Codex",
-        ));
-        if let Some(home) = dirs::home_dir() {
-            candidates.push(
-                home.join("Applications")
-                    .join("Codex.app")
-                    .join("Contents")
-                    .join("MacOS")
-                    .join("Codex"),
-            );
+        #[cfg(target_os = "macos")]
+        {
+            c.push(PathBuf::from(
+                "/Applications/Codex.app/Contents/MacOS/Codex",
+            ));
+            if let Some(home) = dirs::home_dir() {
+                c.push(
+                    home.join("Applications")
+                        .join("Codex.app")
+                        .join("Contents")
+                        .join("MacOS")
+                        .join("Codex"),
+                );
+            }
         }
-    }
+
+        // Linux: no Codex Desktop build exists; `c` stays empty.
+        c
+    };
 
     candidates.into_iter().find(|c| c.exists())
 }
