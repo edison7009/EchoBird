@@ -1,5 +1,5 @@
 {
-  "version": "4.6.6",
+  "version": "4.6.7",
   "releaseDate": "2026-05-14",
-  "releaseNotes": "v4.6.6: 修复鼠标 / skill 操作断流,切模型不重启 Codex,自动识别非默认目录 IDE,保留沙盒设置"
+  "releaseNotes": "v4.6.7: fix Codex tool-call sequence disconnects in mouse / skill scenarios"
 }
