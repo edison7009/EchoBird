@@ -46,11 +46,17 @@ mod content_mapper;
 mod protocol_converter;
 mod server;
 mod session_store;
+mod stream_handler;
 
 #[cfg(test)]
 pub use protocol_converter::responses_to_chat;
 #[cfg(test)]
 pub use session_store::SessionStore;
+#[cfg(test)]
+pub use stream_handler::{
+    chat_error_to_responses_error, chat_to_responses_non_stream, chat_usage_to_responses_usage,
+    SseEvent, StreamState,
+};
 
 /// Fixed port. Kept in sync with `CODEX_PROXY_PORT` in
 /// `tool_config_manager.rs` and `config-manager.cjs` (still used by the
