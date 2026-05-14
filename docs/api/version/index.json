@@ -1,5 +1,5 @@
 {
   "version": "4.6.5",
   "releaseDate": "2026-05-14",
-  "releaseNotes": "v4.6.5: fix 4.6.4 regressions — zero-restart model switching, self-healing canonical config.toml, ResponseCompleted parse"
+  "releaseNotes": "v4.6.5: 修复 v4.6.4 切换模型时 Codex 重启、聊天卡顿、历史会话消失"
 }
