@@ -409,27 +409,30 @@ function responsesToChat(body, sessions, logger) {
 
 // Enforce Chat Completions' strict pairing rule: every assistant message
 // with `tool_calls` must be IMMEDIATELY followed by `role: "tool"`
-// messages for each tool_call_id, with no other messages between them.
+// messages for each matching tool_call_id, with no other messages
+// between them.
 //
 // Two-phase algorithm:
 //   Phase 1: index every tool message by its tool_call_id.
-//   Phase 2: walk messages in order. Skip tool messages (they get pulled
-//            into place). For each assistant.tool_calls, strip out any
-//            tool_call.id that has no matching tool message (drops the
-//            whole message if no valid tool_calls remain AND no plain
-//            content), then emit the assistant followed immediately by
-//            its matching tool messages.
+//   Phase 2: walk messages in order. When we hit an assistant.tool_calls,
+//            pull every matching tool message into place right after it
+//            and mark them as "already emitted" so we skip them when the
+//            walker reaches their original position.
 //
-// Defends against three real-world misorderings observed in Codex
-// rollouts and theoretical cases:
-//   (a) developer/user/system message interleaved between function_call
-//       and function_call_output (real, hit in user's rollout 2026-05-15)
-//   (b) orphan tool messages whose assistant.tool_calls was never emitted
-//       (theoretical, would happen on partial input history)
-//   (c) orphan assistant.tool_calls whose matching tool message is
-//       missing from input (theoretical, partial history again)
+// Orphans on either side (a tool_call.id with no matching tool message,
+// or a tool message with no preceding matching assistant.tool_calls)
+// are LEFT IN PLACE — many valid Codex inputs carry partial / replayed
+// items (e.g. test fixtures, isolated history slices, the very first
+// `function_call_output` of a turn before its replay) and dropping them
+// silently would break those flows. Upstream might still reject when
+// it sees the orphan, but that's a separate "incomplete history" issue
+// not an ordering one — and pre-existing behavior we shouldn't paper over.
 //
-// Non-tool, non-assistant-tool_calls messages keep their relative order.
+// Defends against the real-world misordering observed 2026-05-15:
+// developer/user/system message interleaved between function_call and
+// function_call_output (issue #38 follow-up). After this reorder, the
+// tool message lands immediately behind its assistant.tool_calls and
+// the intervening developer message floats to AFTER the tool.
 function reorderToolMessages(messages) {
     // Phase 1: tool message → call_id index. First occurrence wins on
     // the off chance there are duplicates (dedup already happens at
@@ -441,34 +444,24 @@ function reorderToolMessages(messages) {
         }
     }
 
+    const emitted = new Set();
     const result = [];
     for (const m of messages) {
-        // Tool messages are emitted along with their assistant, not here.
-        // Orphans (no matching assistant) get silently dropped — better
-        // than letting upstream reject the whole request.
-        if (m.role === "tool") continue;
-
-        // Assistant with tool_calls: filter out orphan tool_call.ids,
-        // then emit + its tools in one tight block.
-        if (m.role === "assistant" && Array.isArray(m.tool_calls) && m.tool_calls.length > 0) {
-            const valid = m.tool_calls.filter(tc => tc?.id && toolByCallId.has(tc.id));
-            if (valid.length === 0) {
-                // Every tool_call is orphan. If the assistant has plain
-                // content, keep it sans tool_calls; otherwise drop entirely.
-                if (typeof m.content === "string" && m.content.length > 0) {
-                    const { tool_calls: _, ...rest } = m;
-                    result.push(rest);
-                }
-                continue;
-            }
-            result.push(valid.length === m.tool_calls.length ? m : { ...m, tool_calls: valid });
-            for (const tc of valid) {
-                result.push(toolByCallId.get(tc.id));
-            }
-            continue;
-        }
+        // Skip tool messages we've already pulled forward to follow
+        // their assistant.tool_calls.
+        if (m.role === "tool" && m.tool_call_id && emitted.has(m.tool_call_id)) continue;
 
         result.push(m);
+
+        if (m.role === "assistant" && Array.isArray(m.tool_calls) && m.tool_calls.length > 0) {
+            for (const tc of m.tool_calls) {
+                const id = tc?.id;
+                if (id && toolByCallId.has(id) && !emitted.has(id)) {
+                    result.push(toolByCallId.get(id));
+                    emitted.add(id);
+                }
+            }
+        }
     }
     return result;
 }
