@@ -1,8 +1,120 @@
 const fs = require("fs");
 const path = require("path");
 const os = require("os");
-const { spawn } = require("child_process");
+const { spawn, execFileSync } = require("child_process");
 const { resolveCodexBinary, resolveDesktopBinary, resolveDesktopLaunchUri } = require("./binary-resolver.cjs");
+
+// Force fresh config load for Codex Desktop by killing any existing
+// instance before launch.
+//
+// Why this is necessary:
+// Codex Desktop reads ~/.codex/config.toml ONCE at process startup and
+// caches the parsed result in process memory. Our launcher rewrites
+// config.toml's base_url to point at the local proxy (127.0.0.1), but
+// if Codex Desktop is already running with stale in-memory config from
+// an earlier startup (e.g., from before the user clicked Codex in
+// EchoBird), URI activation just brings the existing window to front
+// — Codex never re-reads the modified config, and requests go to the
+// real vendor URL → 404.
+//
+// We can't change Codex's in-memory state from outside its process,
+// so the only fix is to terminate the process so URI activation
+// starts a fresh Codex that reads the rewritten config.toml.
+//
+// Trade-off: a user who launched Codex Desktop independently (terminal,
+// Start menu, another EchoBird instance) loses their open window when
+// they click Codex in this EchoBird. Acceptable because:
+//   1. They explicitly asked for EchoBird-configured Codex by clicking
+//      our button, so restarting Codex is consistent with that intent.
+//   2. Codex Desktop persists chat history to ~/.codex/sessions/, so
+//      they can resume any in-progress conversation.
+//   3. The alternative (silent 404s) is worse.
+//
+// CLI mode is NOT affected by this caching: each codex CLI invocation
+// is a short-lived process that re-reads config each run. So we only
+// kill in desktop mode.
+function killExistingCodexDesktop(logger) {
+    const log = logger?.log || (() => {});
+    const warn = logger?.warn || (() => {});
+
+    if (process.platform === "win32") {
+        let running;
+        try {
+            const out = execFileSync(
+                "tasklist",
+                ["/FI", "IMAGENAME eq Codex.exe", "/FO", "CSV", "/NH"],
+                { encoding: "utf-8", timeout: 3000, stdio: ["ignore", "pipe", "ignore"] }
+            );
+            running = out.toLowerCase().includes("codex.exe");
+        } catch (e) {
+            warn(`tasklist check failed: ${e.message} — proceeding without kill`);
+            return false;
+        }
+        if (!running) {
+            log("No existing Codex Desktop found, skipping pre-launch kill");
+            return false;
+        }
+
+        log("Existing Codex Desktop detected — terminating to force config reload");
+        try {
+            execFileSync(
+                "taskkill",
+                ["/F", "/IM", "Codex.exe", "/T"],
+                { encoding: "utf-8", timeout: 5000, stdio: ["ignore", "ignore", "ignore"] }
+            );
+        } catch (e) {
+            // taskkill returns non-zero if the process exited between
+            // tasklist and taskkill — treat as success.
+            log(`taskkill returned non-zero (likely already gone): ${e.message}`);
+        }
+
+        // Give Windows up to 1.5s to release the process. Poll instead of
+        // a fixed sleep so the common case (fast exit) doesn't add latency.
+        const deadline = Date.now() + 1500;
+        while (Date.now() < deadline) {
+            try {
+                const check = execFileSync(
+                    "tasklist",
+                    ["/FI", "IMAGENAME eq Codex.exe", "/FO", "CSV", "/NH"],
+                    { encoding: "utf-8", timeout: 1000, stdio: ["ignore", "pipe", "ignore"] }
+                );
+                if (!check.toLowerCase().includes("codex.exe")) {
+                    log("Codex Desktop terminated cleanly");
+                    return true;
+                }
+            } catch { /* ignore */ }
+            // Busy-wait a short tick. Sleep would block other event loop work,
+            // but launcher is single-purpose at this point so it's fine.
+            const tickEnd = Date.now() + 100;
+            while (Date.now() < tickEnd) { /* spin */ }
+        }
+        warn("Codex Desktop did not exit within 1.5s; proceeding anyway");
+        return true;
+    }
+
+    if (process.platform === "darwin") {
+        try {
+            execFileSync(
+                "pkill",
+                ["-f", "Codex.app/Contents/MacOS/Codex"],
+                { encoding: "utf-8", timeout: 5000, stdio: ["ignore", "ignore", "ignore"] }
+            );
+            log("Sent SIGTERM to existing Codex Desktop on macOS");
+            // Brief settle window — macOS pkill is synchronous but processes
+            // may take a moment to fully exit.
+            const deadline = Date.now() + 500;
+            while (Date.now() < deadline) { /* spin */ }
+            return true;
+        } catch {
+            // pkill exits 1 when no matches — that's our "not running" signal.
+            log("No existing Codex Desktop on macOS, skipping pre-launch kill");
+            return false;
+        }
+    }
+
+    // Linux: Codex Desktop is not distributed on Linux.
+    return false;
+}
 
 // Block until either: Codex.exe appears and then disappears (normal exit),
 // or we've waited the full deadline without ever seeing it. Used for the
@@ -62,6 +174,11 @@ function launchCodex(mode, launcherDir, onExit, logger, onSpawn) {
     let desktopViaUri = false;
 
     if (mode === "desktop") {
+        // Critical: kill any existing Codex Desktop before launch, so the
+        // new instance reads the just-rewritten config.toml. See the long
+        // comment on killExistingCodexDesktop above for the full rationale.
+        killExistingCodexDesktop(logger);
+
         codexPath = resolveDesktopBinary();
         if (!codexPath) {
             // Direct exe not found — try the Store launchUri. Common on
@@ -179,4 +296,4 @@ function launchCodex(mode, launcherDir, onExit, logger, onSpawn) {
     });
 }
 
-module.exports = { launchCodex, waitForCodexProcessLifecycle };
+module.exports = { launchCodex, waitForCodexProcessLifecycle, killExistingCodexDesktop };
