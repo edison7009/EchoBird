@@ -46,8 +46,12 @@ inspect-*.mjs
 verify-*.mjs
 ts-errors.txt
 
-# Claude Code agent config (per-machine permissions)
-.claude/settings.local.json
+# Claude Code agent — per-machine config + worktrees + plans (all local).
+# Earlier only settings.local.json was ignored, but `.claude/worktrees/*`
+# are full git worktrees that `git add -A` will pick up as embedded
+# submodule references (mode 160000) and corrupt the repo. Ignore the
+# whole directory.
+.claude/
 
 # OpenCode agent scratch dirs (regenerated locally, not part of the build)
 .opencode/
