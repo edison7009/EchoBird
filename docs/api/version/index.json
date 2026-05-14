@@ -1,5 +1,5 @@
 {
   "version": "4.6.7",
   "releaseDate": "2026-05-14",
-  "releaseNotes": "v4.6.7: fix Codex tool-call sequence disconnects in mouse / skill scenarios"
+  "releaseNotes": "v4.6.7: 修复鼠标 / skill 操作场景下 Codex 工具调用断流"
 }
