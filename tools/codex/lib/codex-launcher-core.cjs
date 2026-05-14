@@ -46,7 +46,13 @@ async function waitForCodexProcessLifecycle(logger) {
 // CLI and Desktop go through the same "wait for child to exit" path so
 // the proxy lifetime matches the Codex session — when the user closes
 // Codex, the launcher tears down the proxy and restores config.toml.
-function launchCodex(mode, launcherDir, onExit, logger) {
+//
+// `onSpawn(childPid)` is invoked after the Codex child is spawned (only
+// for the direct-spawn paths, not the desktop-via-URI path where the
+// child PID is fire-and-forget through cmd.exe). Callers use it to
+// record the PID for cross-process cleanup (so Tauri can kill OUR
+// Codex on exit instead of taskkill /IM-ing every Codex on the system).
+function launchCodex(mode, launcherDir, onExit, logger, onSpawn) {
     const log = logger?.log || (() => {});
     const err = logger?.err || (() => {});
 
@@ -143,6 +149,10 @@ function launchCodex(mode, launcherDir, onExit, logger) {
         cwd: os.homedir(),
         shell: useShell,
     });
+    if (onSpawn && child.pid) {
+        try { onSpawn(child.pid); }
+        catch (e) { err(`onSpawn callback threw: ${e.message}`); }
+    }
     process.on("SIGINT",  () => child.kill("SIGINT"));
     process.on("SIGTERM", () => child.kill("SIGTERM"));
     // SIGHUP fires on POSIX when the controlling terminal closes (e.g. user

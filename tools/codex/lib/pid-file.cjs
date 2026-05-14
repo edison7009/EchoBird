@@ -43,6 +43,28 @@ function writePidFile(pid, version) {
     }
 }
 
+// Merge `updates` into the existing PID file. Used after launchCodex
+// spawns its child so we can record the Codex PID alongside the launcher
+// PID — Tauri's exit-cleanup then knows exactly which Codex process
+// belongs to us and won't taskkill /IM Codex.exe on user-launched ones.
+//
+// No-op if the file doesn't exist (we only updated PIDs while a launcher
+// session is active; if the file was already deleted, the launcher is
+// shutting down and we don't want to recreate it).
+function updatePidFile(updates) {
+    try {
+        const existing = readPidFile();
+        if (!existing) return false;
+        const merged = { ...existing, ...updates };
+        const tmp = `${PID_FILE}.tmp`;
+        fs.writeFileSync(tmp, JSON.stringify(merged), "utf-8");
+        fs.renameSync(tmp, PID_FILE);
+        return true;
+    } catch {
+        return false;
+    }
+}
+
 function deletePidFile() {
     try { fs.unlinkSync(PID_FILE); } catch { /* missing is fine */ }
 }
@@ -58,4 +80,4 @@ function readPidFile() {
     }
 }
 
-module.exports = { writePidFile, deletePidFile, readPidFile, PID_FILE };
+module.exports = { writePidFile, updatePidFile, deletePidFile, readPidFile, PID_FILE };

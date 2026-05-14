@@ -31,7 +31,7 @@ const { chatToResponsesNonStream } = require("./lib/stream-handler.cjs");
 const { valueToChatContent, mapContentPart } = require("./lib/content-mapper.cjs");
 const { bypassOnboarding } = require("./lib/onboarding-bypass.cjs");
 const { CODEX_CONFIG, ECHOBIRD_CONFIG } = require("./lib/config-manager.cjs");
-const { writePidFile, deletePidFile } = require("./lib/pid-file.cjs");
+const { writePidFile, updatePidFile, deletePidFile } = require("./lib/pid-file.cjs");
 const { shieldOpenAIEnvVars } = require("./lib/env-shield.cjs");
 
 // Read launcher version from package.json so the PID file's `version`
@@ -148,7 +148,13 @@ async function main() {
         server.close();
         deletePidFile();
         process.exit(code);
-    }, logger);
+    }, logger, (codexPid) => {
+        // Record the spawned Codex PID so Tauri's exit-cleanup can kill
+        // ONLY our Codex on shutdown — never a Codex that the user
+        // launched independently from the terminal or Start menu.
+        updatePidFile({ codexPid });
+        log(`Codex child spawned, pid=${codexPid}, recorded in PID file`);
+    });
 }
 
 // Run main() when invoked as a script; export translation helpers so
