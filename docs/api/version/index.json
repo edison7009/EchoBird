@@ -1,5 +1,5 @@
 {
-  "version": "4.6.2",
+  "version": "4.6.3",
   "releaseDate": "2026-05-14",
-  "releaseNotes": "v4.6.2: Codex robustness pass — fixes #36"
+  "releaseNotes": "v4.6.3: precise PID-based process cleanup + audit-driven CI"
 }
