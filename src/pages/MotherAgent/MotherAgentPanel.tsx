@@ -353,7 +353,7 @@ export function MotherAgentPanel() {
             >
               <div className="mr-3">
                 <div
-                  className={`w-4 h-4 rounded-full border-2 flex items-center justify-center transition-all ${selectedServerId === 'local' ? 'border-cyber-border' : 'border-cyber-text-muted/30'}`}
+                  className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${selectedServerId === 'local' ? 'border-cyber-accent' : 'border-cyber-border'}`}
                 >
                   {selectedServerId === 'local' && (
                     <div className="w-2 h-2 rounded-full bg-cyber-accent" />
@@ -382,7 +382,7 @@ export function MotherAgentPanel() {
               >
                 <div className="mr-3">
                   <div
-                    className={`w-4 h-4 rounded-full border-2 flex items-center justify-center transition-all ${selectedServerId === server.id ? 'border-cyber-border' : 'border-cyber-text-muted/30'}`}
+                    className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${selectedServerId === server.id ? 'border-cyber-accent' : 'border-cyber-border'}`}
                   >
                     {selectedServerId === server.id && (
                       <div className="w-2 h-2 rounded-full bg-cyber-accent" />
