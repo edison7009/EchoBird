@@ -256,28 +256,28 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
               {updateStatus === 'idle' && (
                 <button
                   onClick={checkForUpdates}
-                  className="w-full h-10 text-[14px] font-semibold border border-cyber-border/40 text-cyber-text hover:bg-cyber-text/10 transition-colors rounded-button"
+                  className="w-full h-10 text-[14px] font-semibold border border-cyber-border/50 bg-cyber-input/50 text-cyber-text hover:bg-cyber-input hover:border-cyber-border transition-colors rounded-button"
                 >
                   {t('settings.checkForUpdates')}
                 </button>
               )}
 
               {updateStatus === 'checking' && (
-                <div className="w-full h-10 flex items-center justify-center text-[14px] text-cyber-text-secondary border border-cyber-border-secondary/30 rounded-button">
+                <div className="w-full h-10 flex items-center justify-center text-[14px] text-cyber-text-secondary border border-cyber-border/30 bg-cyber-input/30 rounded-button">
                   {t('settings.checking')}
                 </div>
               )}
 
               {updateStatus === 'latest' && (
-                <div className="w-full h-10 flex items-center justify-center text-[14px] text-cyber-text border border-cyber-border/30 rounded-button">
-                  ✓ {t('settings.latestVersion')}
+                <div className="w-full h-10 flex items-center justify-center gap-1.5 text-[14px] text-cyber-text border border-cyber-border/30 bg-cyber-input/30 rounded-button">
+                  <span className="text-cyber-accent">✓</span> {t('settings.latestVersion')}
                 </div>
               )}
 
               {updateStatus === 'available' && (
                 <button
                   onClick={() => api.openExternal('https://echobird.ai/')}
-                  className="flex items-center justify-center gap-1.5 w-full h-10 text-[14px] font-semibold border border-cyber-border-secondary/40 text-cyber-text hover:bg-cyber-accent-secondary/10 transition-colors rounded-button"
+                  className="flex items-center justify-center gap-1.5 w-full h-10 text-[14px] font-semibold border border-cyber-accent/50 bg-cyber-accent/10 text-cyber-accent hover:bg-cyber-accent/20 hover:border-cyber-accent transition-colors rounded-button"
                 >
                   Update to v{latestVersion} <ExternalLink size={13} />
                 </button>
@@ -286,7 +286,7 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
               {updateStatus === 'error' && (
                 <button
                   onClick={checkForUpdates}
-                  className="w-full h-10 text-[14px] border border-red-400/30 text-red-400 hover:bg-red-400/10 transition-colors rounded-button"
+                  className="w-full h-10 text-[14px] font-semibold border border-cyber-error/40 bg-cyber-error/5 text-cyber-error hover:bg-cyber-error/10 hover:border-cyber-error/60 transition-colors rounded-button"
                 >
                   {t('settings.checkFailed')}
                 </button>
