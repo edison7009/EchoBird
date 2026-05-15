@@ -1,6 +1,15 @@
 // Sidebar navigation component
 import { useState, useEffect } from 'react';
-import { Box, Cpu, Server, Activity, Newspaper, Star, GraduationCap } from 'lucide-react';
+import {
+  Box,
+  Cpu,
+  Server,
+  Activity,
+  Newspaper,
+  Star,
+  GraduationCap,
+  MessageSquare,
+} from 'lucide-react';
 import { NavItem } from './NavItem';
 import { useI18n } from '../hooks/useI18n';
 import * as api from '../api/tauri';
@@ -8,7 +17,15 @@ import * as api from '../api/tauri';
 declare const __APP_EDITION__: string;
 const isFullEdition = __APP_EDITION__ === 'full';
 
-export type PageType = 'news' | 'projects' | 'courses' | 'models' | 'apps' | 'localLlm' | 'mother';
+export type PageType =
+  | 'news'
+  | 'projects'
+  | 'courses'
+  | 'models'
+  | 'apps'
+  | 'localLlm'
+  | 'mother'
+  | 'feedback';
 
 interface SidebarProps {
   activePage: PageType;
@@ -113,6 +130,12 @@ export const Sidebar = ({
           active={activePage === 'mother'}
           onClick={() => onPageChange('mother')}
           badge={motherBadge}
+        />
+        <NavItem
+          icon={<MessageSquare size={20} />}
+          label={t('nav.feedback')}
+          active={activePage === 'feedback'}
+          onClick={() => onPageChange('feedback')}
         />
       </div>
 

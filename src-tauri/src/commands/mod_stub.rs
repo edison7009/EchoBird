@@ -22,3 +22,22 @@ pub async fn app_ready(app: tauri::AppHandle) {
         let _ = app;
     }
 }
+
+/// Pop the main webview's devtools panel for the user-facing
+/// "问题反馈 / Feedback" page. Devtools is enabled in production via the
+/// `devtools` feature on the tauri crate (Cargo.toml) — without it this
+/// is a no-op on release builds.
+#[tauri::command]
+pub async fn open_devtools(app: tauri::AppHandle) {
+    #[cfg(not(target_os = "android"))]
+    {
+        use tauri::Manager;
+        if let Some(main) = app.get_webview_window("main") {
+            main.open_devtools();
+        }
+    }
+    #[cfg(target_os = "android")]
+    {
+        let _ = app;
+    }
+}

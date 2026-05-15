@@ -350,6 +350,7 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             mod_stub::app_ready,
+            mod_stub::open_devtools,
             tool_commands::scan_tools,
             tool_commands::apply_model_to_tool,
             tool_commands::restore_tool_to_official,
