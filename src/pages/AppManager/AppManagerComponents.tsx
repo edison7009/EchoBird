@@ -316,7 +316,7 @@ export const ModelListSection: React.FC<ModelListSectionProps> = ({
         <div className="flex items-center gap-3 flex-shrink-0">
           <div
             className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
-              isOfficialPending ? 'border-cyber-border' : 'border-cyber-border'
+              isOfficialPending ? 'border-cyber-accent' : 'border-cyber-border'
             }`}
           >
             {isOfficialPending && <div className="w-2 h-2 rounded-full bg-cyber-accent" />}
@@ -337,7 +337,7 @@ export const ModelListSection: React.FC<ModelListSectionProps> = ({
           )}
         </div>
         <div className="flex-1 min-w-0 flex flex-col justify-center min-h-[2.5rem] py-0.5">
-          <div className="flex items-start gap-2">
+          <div className="flex items-center gap-2">
             <div className="text-sm font-bold truncate leading-none flex-1 min-w-0">{ep.name}</div>
             <span className="text-xs font-mono text-cyber-text-secondary/60 flex-shrink-0 pointer-events-none select-none">
               {t('agent.restore')}
