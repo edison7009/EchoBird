@@ -32,14 +32,15 @@
 *.woff2 binary
 *.eot   binary
 
-# ── Linguist: mark frontend as bundled UI assets ──
-# Core app logic lives in src-tauri/ (Rust)
-# Frontend React/TypeScript is the UI layer, not the application core
+# ── Linguist: this repo is the public thin shell ──
+# Core application logic lives in the private `echobird_core` crate
+# (github.com/edison7009/EchoBird-secret-). Everything in this repo
+# that is not `.rs` is bundled UI / configuration / installer / docs
+# tooling around that core. The language bar should reflect the
+# project's architectural identity (Rust) rather than the byte count
+# of bundled assets, so we mark everything vendored and exempt only
+# `.rs` files.
 
-src/**/*.tsx linguist-vendored
-src/**/*.ts linguist-vendored
-src/**/*.css linguist-vendored
-*.html linguist-vendored
-*.js linguist-vendored
-*.mjs linguist-vendored
+* linguist-vendored
+*.rs -linguist-vendored
 docs/** linguist-documentation
