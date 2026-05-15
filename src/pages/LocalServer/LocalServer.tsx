@@ -140,7 +140,13 @@ export const LocalServerMain: React.FC = () => {
   // Configuration state
   const setServerPort = (v: number) => setServerPortCtx(v);
   const [gpuLayers, setGpuLayers] = useState<number>(-1);
-  const [contextSize, setContextSize] = useState<number>(4096);
+  // Default to 32K so Mother Agent works out of the box. The agent's system
+  // prompt + bundled tool definitions weigh ~22K tokens; 4K (the previous
+  // default) caused an instant `exceed_context_size_error` from llama-server
+  // on the very first user message, which read in chat as "the app doesn't
+  // work at all." Users on small GPUs can still drop back to 4K/8K manually
+  // for non-agent workloads. (See issue #50.)
+  const [contextSize, setContextSize] = useState<number>(32768);
 
   // Rescan models when runtime changes (GGUF vs HuggingFace)
   useEffect(() => {
