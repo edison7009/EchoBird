@@ -221,11 +221,7 @@ export const ModelListSection: React.FC<ModelListSectionProps> = ({
       <div
         key={model.internalId}
         className={`p-3 rounded cursor-pointer transition-colors mb-2 flex items-center gap-3 border bg-cyber-surface ${
-          isSelected
-            ? isLocalServer
-              ? 'border-cyan-400'
-              : 'border-cyber-accent'
-            : 'border-transparent hover:bg-cyber-elevated'
+          isSelected ? 'border-cyber-accent' : 'border-transparent hover:bg-cyber-elevated'
         }`}
         onClick={() => selectedTool && handleSelectModel(selectedTool, model.internalId)}
       >
@@ -233,18 +229,10 @@ export const ModelListSection: React.FC<ModelListSectionProps> = ({
         <div className="flex items-center gap-3 flex-shrink-0">
           <div
             className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
-              isSelected
-                ? isLocalServer
-                  ? 'border-cyan-400'
-                  : 'border-cyber-border'
-                : 'border-cyber-border'
+              isSelected ? 'border-cyber-accent' : 'border-cyber-border'
             }`}
           >
-            {isSelected && (
-              <div
-                className={`w-2 h-2 rounded-full ${isLocalServer ? 'bg-cyan-400' : 'bg-cyber-accent'}`}
-              />
-            )}
+            {isSelected && <div className="w-2 h-2 rounded-full bg-cyber-accent" />}
           </div>
           {iconSrc ? (
             <img
@@ -256,7 +244,7 @@ export const ModelListSection: React.FC<ModelListSectionProps> = ({
               }}
             />
           ) : isLocalServer ? (
-            <div className="w-6 h-6 rounded bg-cyan-400/15 flex items-center justify-center text-cyan-400">
+            <div className="w-6 h-6 rounded bg-cyber-accent/15 flex items-center justify-center text-cyber-accent">
               <ServerIcon size={14} />
             </div>
           ) : (
@@ -268,19 +256,13 @@ export const ModelListSection: React.FC<ModelListSectionProps> = ({
 
         {/* Right: Two-row layout */}
         <div className="flex-1 min-w-0 flex flex-col justify-center min-h-[2.5rem] py-0.5">
-          <div className="flex items-start gap-2">
-            <div
-              className={`text-sm font-bold truncate leading-none flex-1 min-w-0 ${isLocalServer ? 'text-cyan-400' : ''}`}
-            >
+          <div className="flex items-center gap-2">
+            <div className="text-sm font-bold truncate leading-none flex-1 min-w-0">
               {model.name || 'Untitled Model'}
             </div>
             {showSwitcher && (
               <span
-                className={`text-[10px] font-mono cursor-pointer select-none flex-shrink-0 transition-colors ${
-                  isLocalServer
-                    ? 'text-cyan-400/60 hover:text-cyan-400'
-                    : 'text-cyber-text-muted/60 hover:text-cyber-text'
-                }`}
+                className="text-[10px] font-mono cursor-pointer select-none flex-shrink-0 transition-colors text-cyber-text-muted/60 hover:text-cyber-text"
                 onClick={(e) => {
                   e.stopPropagation();
                   const newProtocol = currentProtocol === 'openai' ? 'anthropic' : 'openai';
