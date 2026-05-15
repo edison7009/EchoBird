@@ -1079,9 +1079,11 @@ export const LocalServerPanel: React.FC = () => {
                           </div>
                         ) : (
                           <div
-                            className={`w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors ${selected ? 'border-cyber-accent' : 'border-cyber-border'}`}
+                            className={`w-4 h-4 rounded-full border-2 relative flex-shrink-0 transition-colors ${selected ? 'border-cyber-accent' : 'border-cyber-border'}`}
                           >
-                            {selected && <div className="w-2 h-2 rounded-full bg-cyber-accent" />}
+                            {selected && (
+                              <div className="w-2 h-2 rounded-full bg-cyber-accent absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
+                            )}
                           </div>
                         )}
 
@@ -1165,10 +1167,10 @@ export const LocalServerPanel: React.FC = () => {
                                 </span>
                                 <div className="flex-shrink-0 w-8 flex items-center justify-center">
                                   <div
-                                    className={`w-4 h-4 rounded-full border-2 flex items-center justify-center transition-colors ${isSelected ? 'border-cyber-accent' : 'border-cyber-border hover:border-cyber-accent/50'}`}
+                                    className={`w-4 h-4 rounded-full border-2 relative transition-colors ${isSelected ? 'border-cyber-accent' : 'border-cyber-border hover:border-cyber-accent/50'}`}
                                   >
                                     {isSelected && (
-                                      <div className="w-2 h-2 rounded-full bg-cyber-accent" />
+                                      <div className="w-2 h-2 rounded-full bg-cyber-accent absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
                                     )}
                                   </div>
                                 </div>

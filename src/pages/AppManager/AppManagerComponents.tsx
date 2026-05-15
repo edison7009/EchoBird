@@ -228,11 +228,13 @@ export const ModelListSection: React.FC<ModelListSectionProps> = ({
         {/* Left: Radio + Icon */}
         <div className="flex items-center gap-3 flex-shrink-0">
           <div
-            className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
+            className={`w-4 h-4 rounded-full border-2 relative ${
               isSelected ? 'border-cyber-accent' : 'border-cyber-border'
             }`}
           >
-            {isSelected && <div className="w-2 h-2 rounded-full bg-cyber-accent" />}
+            {isSelected && (
+              <div className="w-2 h-2 rounded-full bg-cyber-accent absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
+            )}
           </div>
           {iconSrc ? (
             <img
@@ -315,11 +317,13 @@ export const ModelListSection: React.FC<ModelListSectionProps> = ({
       >
         <div className="flex items-center gap-3 flex-shrink-0">
           <div
-            className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
+            className={`w-4 h-4 rounded-full border-2 relative ${
               isOfficialPending ? 'border-cyber-accent' : 'border-cyber-border'
             }`}
           >
-            {isOfficialPending && <div className="w-2 h-2 rounded-full bg-cyber-accent" />}
+            {isOfficialPending && (
+              <div className="w-2 h-2 rounded-full bg-cyber-accent absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
+            )}
           </div>
           {iconSrc ? (
             <img
