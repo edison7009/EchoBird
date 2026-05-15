@@ -27,7 +27,7 @@ const en: Translations = {
     'When something goes wrong, the fastest way to help us fix it: copy the recent backend logs, then file a GitHub issue and paste them in.',
   'feedback.step1.title': 'Step 1: Copy recent logs',
   'feedback.step1.desc':
-    'Click the button to copy the last 30 backend log lines to your clipboard. No scrolling or text-selecting needed.',
+    'Click the button. The last 30 backend log lines are copied to your clipboard, ready to paste into an issue.',
   'feedback.step1.button': 'Copy last 30 log lines',
   'feedback.step1.copied': 'Copied to clipboard',
   'feedback.step1.empty': 'No logs to copy yet (app just started?)',
