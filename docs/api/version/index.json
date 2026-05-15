@@ -1,5 +1,5 @@
 {
-  "version": "4.7.2",
+  "version": "4.7.6",
   "releaseDate": "2026-05-15",
   "releaseNotes": "v4.7.6: Codex 与第三方模型(小米 MiMo、DeepSeek)兼容性提升,修复部分模型切换后无法对话的问题"
 }
