@@ -69,6 +69,16 @@ pub fn responses_to_chat(body: &Value, sessions: &SessionStore) -> Value {
     // by its matching tool messages.
     merged = reorder_tool_messages(merged);
 
+    // 5a) Orphan tool-call backstop. When Codex sends function_call items
+    // without their matching function_call_output (e.g. user interrupted
+    // mid-tool-execution, or a Codex client bug like openai/codex#8479),
+    // the upstream gets assistant{tool_calls} with no role:tool follow-up
+    // and 400s with "tool_calls require matching tool messages". Synth
+    // a placeholder tool message for every unmatched call_id so the
+    // conversation stays alive — the model sees "(no result)" and can
+    // re-plan rather than dying hard.
+    ensure_tool_outputs_paired(&mut merged);
+
     // 5b) Defensive guard for thinking-model providers (MiMo, DeepSeek-V4
     // thinking variants, etc.). Anything that flowed in via
     // `previous_response_id` history replay — or a stranger path we don't
@@ -450,6 +460,93 @@ fn push_assistant_tool_calls(
     messages.push(msg);
 }
 
+/// Orphan tool-call backstop. Every `id` listed in an assistant message's
+/// `tool_calls` array must have a matching `role: "tool"` message present
+/// somewhere in the request — otherwise the upstream Chat Completions API
+/// rejects with "messages with tool_calls require matching tool messages"
+/// (or a 400 phrased similarly). Codex normally pairs them, but real-world
+/// failure modes leave orphans behind:
+///
+///   • User cancels mid-parallel-tool-call → some outputs never sent
+///   • Codex client desync (e.g. openai/codex#8479) → tool_call emitted
+///     but matching function_call_output omitted on next turn
+///   • previous_response_id history replay racing input items
+///
+/// For each orphaned call_id we splice in a `{role: "tool", tool_call_id,
+/// content: "(no result)"}` placeholder right after the assistant message
+/// that introduced it. The model sees the gap explicitly and can re-plan
+/// rather than the whole conversation dying with a 400.
+fn ensure_tool_outputs_paired(messages: &mut Vec<Value>) {
+    use std::collections::HashSet;
+
+    // First pass: collect every tool_call_id that already has a tool
+    // message somewhere. (A tool message in any position counts — Anthropic
+    // is strict about adjacency, Chat Completions APIs are lenient.)
+    let mut satisfied: HashSet<String> = HashSet::new();
+    for m in messages.iter() {
+        if m.get("role").and_then(|v| v.as_str()) == Some("tool") {
+            if let Some(id) = m.get("tool_call_id").and_then(|v| v.as_str()) {
+                satisfied.insert(id.to_string());
+            }
+        }
+    }
+
+    // Second pass: for every assistant tool_calls message, find any
+    // call_id that isn't satisfied, and remember where to splice the
+    // synthetic tool message (right after this assistant message).
+    let mut inserts: Vec<(usize, Vec<String>)> = Vec::new();
+    for (i, m) in messages.iter().enumerate() {
+        if m.get("role").and_then(|v| v.as_str()) != Some("assistant") {
+            continue;
+        }
+        let Some(tcs) = m.get("tool_calls").and_then(|v| v.as_array()) else {
+            continue;
+        };
+        let missing: Vec<String> = tcs
+            .iter()
+            .filter_map(|tc| tc.get("id").and_then(|v| v.as_str()).map(String::from))
+            .filter(|id| !satisfied.contains(id))
+            .collect();
+        if !missing.is_empty() {
+            // Mark as now-satisfied so the same call_id doesn't get a
+            // second placeholder if it appears in a later assistant.
+            for id in &missing {
+                satisfied.insert(id.clone());
+            }
+            inserts.push((i, missing));
+        }
+    }
+
+    if inserts.is_empty() {
+        return;
+    }
+
+    // Splice in reverse so earlier indices stay valid.
+    for (idx, ids) in inserts.into_iter().rev() {
+        log::warn!(
+            "[CodexProxy] Synthesizing placeholder tool messages for orphan call_ids {:?} \
+             after assistant at index {}",
+            ids,
+            idx
+        );
+        let placeholders: Vec<Value> = ids
+            .into_iter()
+            .map(|id| {
+                json!({
+                    "role": "tool",
+                    "tool_call_id": id,
+                    "content": "(no result — tool execution was interrupted)",
+                })
+            })
+            .collect();
+        // Insert each placeholder at idx+1; insertion is contiguous so
+        // they end up in `tool_calls` order right after the assistant.
+        for (offset, p) in placeholders.into_iter().enumerate() {
+            messages.insert(idx + 1 + offset, p);
+        }
+    }
+}
+
 /// Last-mile guard: every assistant message with `tool_calls` must carry
 /// a non-empty `reasoning_content` field before we send to upstream.
 /// Required by thinking-mode providers (MiMo, DeepSeek-V4 thinking, etc.)
@@ -747,11 +844,16 @@ mod tests {
         });
         let out = responses_to_chat(&body, &store());
         let msgs = out["messages"].as_array().unwrap();
-        assert_eq!(msgs.len(), 1);
+        // One assistant message groups both tool_calls; the orphan-tool
+        // backstop then appends two placeholder tool messages because no
+        // function_call_output was sent — see ensure_tool_outputs_paired.
+        assert_eq!(msgs.len(), 3);
         assert_eq!(msgs[0]["role"], "assistant");
         assert_eq!(msgs[0]["tool_calls"].as_array().unwrap().len(), 2);
         assert_eq!(msgs[0]["tool_calls"][0]["id"], "c1");
         assert_eq!(msgs[0]["tool_calls"][1]["id"], "c2");
+        assert_eq!(msgs[1]["role"], "tool");
+        assert_eq!(msgs[2]["role"], "tool");
     }
 
     #[test]
@@ -1051,6 +1153,107 @@ mod tests {
             assistant.get("reasoning_content").is_none(),
             "should not inject reasoning_content on plain assistant"
         );
+    }
+
+    // ── orphan tool-call backstop ──
+
+    #[test]
+    fn orphan_tool_call_gets_placeholder_tool_message() {
+        // Codex sent function_call without matching function_call_output
+        // (e.g. user interrupted mid-execution).
+        let body = json!({
+            "model": "deepseek-chat",
+            "input": [
+                { "type": "message", "role": "user", "content": "ls /tmp" },
+                { "type": "function_call", "call_id": "orphan_1", "name": "shell", "arguments": "{}" },
+                // NB: no function_call_output for orphan_1
+            ],
+        });
+        let out = responses_to_chat(&body, &store());
+        let msgs = out["messages"].as_array().unwrap();
+        // user, assistant{tool_calls}, tool{placeholder}
+        assert_eq!(msgs.len(), 3);
+        assert_eq!(msgs[2]["role"], "tool");
+        assert_eq!(msgs[2]["tool_call_id"], "orphan_1");
+        assert!(msgs[2]["content"].as_str().unwrap().contains("no result"));
+    }
+
+    #[test]
+    fn matched_tool_calls_get_no_placeholder() {
+        // Healthy pair — no synthesis should happen.
+        let body = json!({
+            "model": "deepseek-chat",
+            "input": [
+                { "type": "function_call", "call_id": "ok_1", "name": "shell", "arguments": "{}" },
+                { "type": "function_call_output", "call_id": "ok_1", "output": "result" },
+            ],
+        });
+        let out = responses_to_chat(&body, &store());
+        let msgs = out["messages"].as_array().unwrap();
+        assert_eq!(msgs.len(), 2);
+        assert_eq!(msgs[1]["content"], "result");
+        // Not the placeholder text
+        assert!(!msgs[1]["content"].as_str().unwrap().contains("no result"));
+    }
+
+    #[test]
+    fn partial_orphan_among_grouped_tool_calls_gets_only_missing_placeholder() {
+        // Three tool_calls grouped into one assistant, only two have outputs.
+        let body = json!({
+            "model": "deepseek-chat",
+            "input": [
+                { "type": "function_call", "call_id": "c1", "name": "a", "arguments": "{}" },
+                { "type": "function_call", "call_id": "c2", "name": "b", "arguments": "{}" },
+                { "type": "function_call", "call_id": "c3", "name": "c", "arguments": "{}" },
+                { "type": "function_call_output", "call_id": "c1", "output": "r1" },
+                { "type": "function_call_output", "call_id": "c3", "output": "r3" },
+                // c2 orphaned
+            ],
+        });
+        let out = responses_to_chat(&body, &store());
+        let msgs = out["messages"].as_array().unwrap();
+        // assistant, tool(c1), tool(c3), placeholder(c2) — order is the
+        // assistant's tool_calls order. Placeholder lands after the
+        // assistant message before next non-tool segment.
+        let tool_ids: Vec<&str> = msgs
+            .iter()
+            .filter(|m| m["role"] == "tool")
+            .map(|m| m["tool_call_id"].as_str().unwrap())
+            .collect();
+        assert_eq!(tool_ids.len(), 3);
+        assert!(tool_ids.contains(&"c1"));
+        assert!(tool_ids.contains(&"c2"));
+        assert!(tool_ids.contains(&"c3"));
+    }
+
+    #[test]
+    fn orphan_backstop_skips_when_other_position_already_satisfies() {
+        // Tool message exists somewhere in the request — even if not
+        // immediately adjacent — so we should not synthesize.
+        // (reorder_tool_messages pulls it adjacent anyway; this asserts
+        // we never *over*-synthesize.)
+        let body = json!({
+            "model": "deepseek-chat",
+            "input": [
+                { "type": "function_call", "call_id": "c1", "name": "a", "arguments": "{}" },
+                { "type": "message", "role": "developer", "content": "side note" },
+                { "type": "function_call_output", "call_id": "c1", "output": "ok" },
+            ],
+        });
+        let out = responses_to_chat(&body, &store());
+        let placeholder_count = out["messages"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter(|m| {
+                m["role"] == "tool"
+                    && m["content"]
+                        .as_str()
+                        .map(|s| s.contains("no result"))
+                        .unwrap_or(false)
+            })
+            .count();
+        assert_eq!(placeholder_count, 0);
     }
 
     #[test]
