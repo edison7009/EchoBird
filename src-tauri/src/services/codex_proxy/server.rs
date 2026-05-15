@@ -218,12 +218,21 @@ async fn handle_responses(State(state): State<AppState>, body: Bytes) -> Respons
         return error_response(envelope, passthrough_status(status.as_u16()), is_stream);
     }
 
+    // ZDR / stateless mode — Codex's request `store: false` means we
+    // must not persist the conversation under our response id. Default
+    // true matches OpenAI's default behavior.
+    let store = req_body
+        .get("store")
+        .and_then(|v| v.as_bool())
+        .unwrap_or(true);
+
     if is_stream {
         stream_response(
             upstream_resp,
             request_messages,
             client_model,
             state.sessions.clone(),
+            store,
         )
     } else {
         non_stream_response(
@@ -231,6 +240,7 @@ async fn handle_responses(State(state): State<AppState>, body: Bytes) -> Respons
             request_messages,
             client_model,
             state.sessions.clone(),
+            store,
         )
         .await
     }
@@ -636,6 +646,7 @@ fn stream_response(
     request_messages: Vec<Value>,
     client_model: Option<String>,
     sessions: SessionStore,
+    store: bool,
 ) -> Response {
     // Channel capacity is small — SSE events are tiny and the consumer
     // (axum's writer) drains them as fast as the TCP socket allows.
@@ -643,6 +654,7 @@ fn stream_response(
 
     tokio::spawn(async move {
         let mut state = StreamState::new(&sessions, client_model, request_messages);
+        state.set_store(store);
         state.start();
         // Drain initial response.created / response.in_progress events.
         if !forward_events(&mut state, &tx).await {
@@ -751,6 +763,7 @@ async fn non_stream_response(
     request_messages: Vec<Value>,
     client_model: Option<String>,
     sessions: SessionStore,
+    store: bool,
 ) -> Response {
     let body_text = match upstream_resp.text().await {
         Ok(t) => t,
@@ -786,6 +799,7 @@ async fn non_stream_response(
         request_messages,
         &sessions,
         client_model.as_deref(),
+        store,
     );
     (StatusCode::OK, Json(resp)).into_response()
 }

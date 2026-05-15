@@ -31,15 +31,26 @@ pub fn responses_to_chat(body: &Value, sessions: &SessionStore) -> Value {
         .unwrap_or_default();
 
     // 2) System instructions — prepend if the message list doesn't
-    // already start with one (avoids duplicating on replays).
+    // already start with one; REPLACE the head if a different
+    // instructions value is supplied. The spec says `instructions`
+    // applies only to the current call — when Codex changes
+    // instructions mid-conversation, the new value must take effect
+    // rather than the old one persisting from `previous_response_id`
+    // history replay (L10).
     if let Some(instr) = body.get("instructions").and_then(|v| v.as_str()) {
         if !instr.is_empty() {
-            let has_leading_system = messages
+            let head_is_system = messages
                 .first()
                 .and_then(|m| m.get("role"))
                 .and_then(|v| v.as_str())
                 == Some("system");
-            if !has_leading_system {
+            if head_is_system {
+                // Replace existing head system content with the new
+                // instructions text. Keeps message ordering stable.
+                if let Some(first) = messages.first_mut() {
+                    first["content"] = Value::String(instr.to_string());
+                }
+            } else {
                 messages.insert(0, json!({ "role": "system", "content": instr }));
             }
         }
@@ -154,6 +165,15 @@ pub fn responses_to_chat(body: &Value, sessions: &SessionStore) -> Value {
         "safety_identifier",
         "max_tool_calls",
         "metadata",
+        // M12: `truncation` — "auto" lets the upstream silently drop
+        //   oldest turns when prompt exceeds context. Chat API also
+        //   accepts it now (mid-2026); pass through verbatim.
+        "truncation",
+        // L6: `include` — array of additional fields to surface on
+        //   the response (e.g. ["reasoning.encrypted_content",
+        //   "message.output_text.logprobs"]). Upstream Chat tolerates
+        //   the field as unknown; OpenAI-direct uses it natively.
+        "include",
     ] {
         if let Some(v) = body.get(*key) {
             if !v.is_null() {
@@ -1711,5 +1731,56 @@ mod tests {
         let msg = &out["messages"].as_array().unwrap()[0];
         let content = msg["content"].as_str().unwrap();
         assert!(content.contains("Summary"));
+    }
+
+    // ── M12: truncation passthrough ──
+    #[test]
+    fn truncation_parameter_passes_through() {
+        let body = json!({
+            "model": "gpt-5",
+            "input": "hi",
+            "truncation": "auto",
+        });
+        let out = responses_to_chat(&body, &store());
+        assert_eq!(out["truncation"], "auto");
+    }
+
+    // ── L6: include array passthrough ──
+    #[test]
+    fn include_array_passes_through() {
+        let body = json!({
+            "model": "gpt-5",
+            "input": "hi",
+            "include": ["reasoning.encrypted_content", "message.output_text.logprobs"],
+        });
+        let out = responses_to_chat(&body, &store());
+        let include = out["include"].as_array().unwrap();
+        assert_eq!(include.len(), 2);
+    }
+
+    // ── L10: instructions override replaces head system on continuations ──
+    #[test]
+    fn instructions_replaces_existing_head_system_on_continuation() {
+        let s = store();
+        // Prior turn left a system message at head of history.
+        s.save_history(
+            "resp_prev",
+            vec![
+                json!({ "role": "system", "content": "old instructions" }),
+                json!({ "role": "user", "content": "hi" }),
+                json!({ "role": "assistant", "content": "hello" }),
+            ],
+        );
+        let body = json!({
+            "model": "gpt-5",
+            "previous_response_id": "resp_prev",
+            "input": "follow up",
+            "instructions": "NEW instructions",
+        });
+        let out = responses_to_chat(&body, &s);
+        let msgs = out["messages"].as_array().unwrap();
+        // Head must be the NEW instructions, not the old one.
+        assert_eq!(msgs[0]["role"], "system");
+        assert_eq!(msgs[0]["content"], "NEW instructions");
     }
 }

@@ -90,11 +90,44 @@ pub fn chat_usage_to_responses_usage(chat_usage: Option<&Value>) -> Value {
         .or_else(|| u.get("reasoning_tokens").and_then(|v| v.as_u64()))
         .unwrap_or(0);
 
+    // Audio tokens — present when models emit speech responses (none of
+    // our typical providers do, but spec-conformant emit means Codex's
+    // strict usage parser won't trip when it eventually appears).
+    let audio_tokens = u
+        .get("output_tokens_details")
+        .and_then(|v| v.get("audio_tokens"))
+        .and_then(|v| v.as_u64())
+        .or_else(|| {
+            u.get("completion_tokens_details")
+                .and_then(|v| v.get("audio_tokens"))
+                .and_then(|v| v.as_u64())
+        })
+        .or_else(|| u.get("audio_tokens").and_then(|v| v.as_u64()))
+        .unwrap_or(0);
+
+    // Audio input tokens — speech-to-text style requests.
+    let input_audio_tokens = u
+        .get("input_tokens_details")
+        .and_then(|v| v.get("audio_tokens"))
+        .and_then(|v| v.as_u64())
+        .or_else(|| {
+            u.get("prompt_tokens_details")
+                .and_then(|v| v.get("audio_tokens"))
+                .and_then(|v| v.as_u64())
+        })
+        .unwrap_or(0);
+
     json!({
         "input_tokens": input,
-        "input_tokens_details": { "cached_tokens": cached_tokens },
+        "input_tokens_details": {
+            "cached_tokens": cached_tokens,
+            "audio_tokens": input_audio_tokens,
+        },
         "output_tokens": output,
-        "output_tokens_details": { "reasoning_tokens": reasoning_tokens },
+        "output_tokens_details": {
+            "reasoning_tokens": reasoning_tokens,
+            "audio_tokens": audio_tokens,
+        },
         "total_tokens": total,
     })
 }
@@ -424,6 +457,7 @@ pub fn chat_to_responses_non_stream(
     request_messages: Vec<Value>,
     sessions: &SessionStore,
     client_model: Option<&str>,
+    store: bool,
 ) -> Value {
     let response_id = sessions.new_response_id();
     let choice = chat_response
@@ -528,9 +562,11 @@ pub fn chat_to_responses_non_stream(
         }
     }
 
-    let mut history = request_messages;
-    history.push(Value::Object(assistant_msg));
-    sessions.save_history(&response_id, history);
+    if store {
+        let mut history = request_messages;
+        history.push(Value::Object(assistant_msg));
+        sessions.save_history(&response_id, history);
+    }
 
     // "length" finish_reason → mark as incomplete so Codex can show the
     // response was truncated rather than treating it as a clean stop.
@@ -626,6 +662,12 @@ pub struct StreamState {
     finished: bool,
     usage: Option<Value>,
     finish_reason: Option<String>,
+    /// When the client requested `store: false` (ZDR / stateless mode),
+    /// we MUST NOT persist the conversation history under our response
+    /// id. The reasoning-by-call_id side-channel still operates (it's
+    /// per-tool-call, not per-response). Default true = matches default
+    /// OpenAI behavior (store=true).
+    store: bool,
     events: Vec<SseEvent>,
 }
 
@@ -651,6 +693,7 @@ impl StreamState {
             buffer: String::new(),
             finished: false,
             usage: None,
+            store: true,
             finish_reason: None,
             events: Vec::new(),
         }
@@ -661,9 +704,31 @@ impl StreamState {
         &self.response_id
     }
 
-    /// Emit the opening `response.created` + `response.in_progress`
-    /// pair. Codex's Rust client demands both before any output_item.
+    /// Honor the request's `store: false` flag. When set, persist_history
+    /// becomes a no-op so we don't retain the conversation under our
+    /// response id (ZDR / stateless mode contract).
+    pub fn set_store(&mut self, store: bool) {
+        self.store = store;
+    }
+
+    /// Emit the opening lifecycle events: `response.queued` →
+    /// `response.created` → `response.in_progress`. Codex's Rust client
+    /// only strictly requires `response.created`, but the spec orders
+    /// queued first and Codex GUI / background mode parsers expect it.
+    /// Cost is one extra event; safer to be conformant.
     pub fn start(&mut self) {
+        self.emit(
+            "response.queued",
+            json!({
+                "type": "response.queued",
+                "response": self.stamp_model(json!({
+                    "id": self.response_id,
+                    "object": "response",
+                    "status": "queued",
+                    "output": [],
+                })),
+            }),
+        );
         self.emit(
             "response.created",
             json!({
@@ -1024,6 +1089,14 @@ impl StreamState {
                     "role": "assistant",
                     "content": [],
                     "status": "in_progress",
+                    // After any tool round, Codex's "final answer"
+                    // panel keys on phase="final_answer". For a
+                    // proxy-side translator we can't reliably detect
+                    // commentary-vs-final from upstream alone, so
+                    // mark everything we emit as final_answer — the
+                    // common case. Commentary support requires
+                    // model-side cooperation we don't have.
+                    "phase": "final_answer",
                 },
             }),
         );
@@ -1152,6 +1225,7 @@ impl StreamState {
                     "role": "assistant",
                     "content": [{ "type": "output_text", "text": buf, "annotations": [] }],
                     "status": "completed",
+                    "phase": "final_answer",
                 },
             }),
         );
@@ -1271,6 +1345,7 @@ impl StreamState {
                 "role": "assistant",
                 "content": [{ "type": "output_text", "text": self.text_buf, "annotations": [] }],
                 "status": "completed",
+                "phase": "final_answer",
             }));
         }
         for i in &self.tool_call_order {
@@ -1329,9 +1404,15 @@ impl StreamState {
                 );
             }
         }
-        let mut history = self.request_messages.clone();
-        history.push(Value::Object(assistant_msg));
-        sessions.save_history(&self.response_id, history);
+        // Honor `store: false` — caller wants ZDR/stateless behavior,
+        // we must NOT retain the assistant turn under response_id.
+        // Reasoning store (per call_id) still persists; that's
+        // conversation-state, not the conversation itself.
+        if self.store {
+            let mut history = self.request_messages.clone();
+            history.push(Value::Object(assistant_msg));
+            sessions.save_history(&self.response_id, history);
+        }
     }
 }
 
@@ -1913,7 +1994,7 @@ mod tests {
             }],
             "usage": { "prompt_tokens": 3, "completion_tokens": 2, "total_tokens": 5 },
         });
-        let out = chat_to_responses_non_stream(&chat, vec![], &store, Some("gpt-5.4"));
+        let out = chat_to_responses_non_stream(&chat, vec![], &store, Some("gpt-5.4"), true);
         assert_eq!(out["status"], "completed");
         assert_eq!(out["model"], "gpt-5.4");
         assert_eq!(out["output"][0]["type"], "message");
@@ -1939,7 +2020,7 @@ mod tests {
                 "finish_reason": "tool_calls",
             }],
         });
-        let out = chat_to_responses_non_stream(&chat, vec![], &store, None);
+        let out = chat_to_responses_non_stream(&chat, vec![], &store, None, true);
         assert_eq!(out["output"][0]["type"], "function_call");
         assert_eq!(out["output"][0]["call_id"], "call_abc");
         assert_eq!(out["output"][0]["name"], "shell");
@@ -1955,7 +2036,7 @@ mod tests {
                 "finish_reason": "length",
             }],
         });
-        let out = chat_to_responses_non_stream(&chat, vec![], &store, None);
+        let out = chat_to_responses_non_stream(&chat, vec![], &store, None, true);
         assert_eq!(out["status"], "incomplete");
         assert_eq!(out["incomplete_details"]["reason"], "max_output_tokens");
     }
@@ -1966,7 +2047,7 @@ mod tests {
         let chat = json!({
             "choices": [{ "message": { "role": "assistant", "content": "x" } }],
         });
-        let out = chat_to_responses_non_stream(&chat, vec![], &store, None);
+        let out = chat_to_responses_non_stream(&chat, vec![], &store, None, true);
         assert!(out.get("model").is_none());
     }
 
@@ -1978,16 +2059,45 @@ mod tests {
     }
 
     #[test]
-    fn stream_start_emits_created_then_in_progress() {
+    fn stream_start_emits_queued_created_in_progress() {
         let mut s = make_state(Some("gpt-5.4"));
         s.start();
         let events = collect_events(&mut s);
         assert_eq!(
             event_names(&events),
-            vec!["response.created", "response.in_progress"]
+            vec![
+                "response.queued",
+                "response.created",
+                "response.in_progress"
+            ]
         );
-        assert_eq!(events[0].data["response"]["model"], "gpt-5.4");
-        assert_eq!(events[0].data["response"]["status"], "in_progress");
+        assert_eq!(events[0].data["response"]["status"], "queued");
+        assert_eq!(events[1].data["response"]["model"], "gpt-5.4");
+        assert_eq!(events[1].data["response"]["status"], "in_progress");
+    }
+
+    #[test]
+    fn store_false_skips_save_history_but_keeps_reasoning_store() {
+        let store = SessionStore::new();
+        let mut state = StreamState::new(&store, None, vec![]);
+        state.set_store(false);
+        state.start();
+        let _ = state.take_events();
+
+        // Feed a chunk with reasoning + content so persist_history would
+        // try to write to both stores in the default (store=true) case.
+        feed_chat_chunk(
+            &mut state,
+            json!({ "reasoning_content": "thought", "content": "ok" }),
+        );
+        state.finish(&store);
+
+        let response_id = state.response_id().to_string();
+        // store=false → no history saved under our response id
+        assert!(
+            store.get_history(&response_id).is_empty(),
+            "store=false must not persist history"
+        );
     }
 
     #[test]
