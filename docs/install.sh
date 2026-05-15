@@ -36,19 +36,19 @@ PLATFORM=""
 ASSET_GREP=""
 
 if [ "$OS" = "Darwin" ]; then
-  # macOS: Apple Silicon only (arm64). Universal binary was 20MB; arm64-only
-  # halves that. Intel Macs are EOL post-2020 and a shrinking minority.
+  # macOS: native build per architecture. As of v4.7.3 we again ship Intel
+  # alongside Apple Silicon — Intel Macs (2018-2020 MBP, iMac Pro, etc.)
+  # still have a non-trivial install base on Sonoma/Sequoia.
   case "$ARCH" in
     arm64)
       PLATFORM="macos"
       ASSET_GREP='(macOS_arm64|aarch64)\.dmg'
       ;;
     x86_64)
-      echo "  ${RED}Intel Mac is no longer supported.${RESET}"
-      echo "  ${YELLOW}EchoBird v4+ ships Apple Silicon (arm64) builds only.${RESET}"
-      echo "  ${YELLOW}Older v3.x universal builds remain available at:${RESET}"
-      echo "  ${YELLOW}  https://github.com/edison7009/EchoBird/releases${RESET}"
-      exit 1
+      PLATFORM="macos-intel"
+      # Pattern matches both renamed (macOS_x64) and pre-rename (_x64) names.
+      # The trailing .dmg keeps this from grabbing Windows_x64-*.exe assets.
+      ASSET_GREP='(macOS_x64|_x64)\.dmg'
       ;;
     *)
       echo "  ${RED}Unsupported macOS architecture: $ARCH${RESET}"
@@ -150,6 +150,15 @@ if [ "$OS" = "Darwin" ]; then
       echo ""
       echo "  ${GREEN}EchoBird is already up to date (v$INSTALLED_VER).${RESET}"
       echo ""
+      # Pause when there's a TTY so users running this via a .command
+      # double-click (which closes the terminal on script exit) actually
+      # see the message instead of a window that pops and vanishes.
+      # In a normal interactive shell this just waits for Enter.
+      if [ -r /dev/tty ]; then
+        printf "  ${GRAY}Press Enter to continue...${RESET}"
+        read _ < /dev/tty
+        echo ""
+      fi
       exit 0
     fi
     echo "  ${YELLOW}Upgrading v$INSTALLED_VER  →  v$LATEST_VER ...${RESET}"
@@ -230,6 +239,12 @@ elif [ "$OS" = "Linux" ]; then
       echo ""
       echo "  ${GREEN}EchoBird is already up to date (v$INSTALLED_VER).${RESET}"
       echo ""
+      # Pause when there's a TTY — see macOS branch comment above.
+      if [ -r /dev/tty ]; then
+        printf "  ${GRAY}Press Enter to continue...${RESET}"
+        read _ < /dev/tty
+        echo ""
+      fi
       exit 0
     fi
     echo "  ${YELLOW}Upgrading v$INSTALLED_VER  →  v$LATEST_VER ...${RESET}"

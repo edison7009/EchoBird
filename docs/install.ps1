@@ -82,6 +82,13 @@ if ($installedVer) {
         Write-Host ""
         Write-Host "  EchoBird is already up to date (v$installedVer)." -ForegroundColor Green
         Write-Host ""
+        # Pause before exit. `irm ... | iex` from a Start-menu Run prompt
+        # spawns a transient PowerShell window that closes the instant the
+        # script returns — without this read the user never sees the
+        # "already up to date" message. In a normal pwsh terminal this
+        # just waits one keypress before handing back the prompt.
+        Write-Host "  Press any key to continue..." -ForegroundColor DarkGray
+        try { [void][System.Console]::ReadKey($true) } catch {}
         exit 0
     }
     Write-Host "  Upgrading v$installedVer  ->  v$latestVer ..." -ForegroundColor Yellow
