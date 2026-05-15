@@ -44,8 +44,28 @@ jobs:
 
   rust:
     runs-on: ubuntu-latest
+    env:
+      # Force Cargo to use the system `git` CLI when fetching git
+      # dependencies. libgit2 cannot use the SSH agent that
+      # webfactory/ssh-agent sets up, so the closed-source
+      # echobird_core fetch would fail without this.
+      CARGO_NET_GIT_FETCH_WITH_CLI: "true"
     steps:
       - uses: actions/checkout@v6
+
+      # Load the EchoBird-secret read-only deploy key into the SSH
+      # agent so Cargo can clone the private crate during fetch.
+      - name: Setup SSH for private deps (echobird_core)
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.ECHOBIRD_SECRET_DEPLOY_KEY }}
+
+      # Cargo.toml references EchoBird-secret over HTTPS so local
+      # development can use the GitHub credential helper. In CI we
+      # have an SSH key but no HTTPS credentials, so rewrite the URL
+      # to SSH for git fetches.
+      - name: Rewrite EchoBird-secret URL to SSH
+        run: git config --global url."git@github.com:edison7009/EchoBird-secret-.git".insteadOf "https://github.com/edison7009/EchoBird-secret-.git"
 
       # Pinned to 1.93 to stop new clippy lints in every Rust release
       # (introduced as `-D warnings` failures) from spuriously breaking

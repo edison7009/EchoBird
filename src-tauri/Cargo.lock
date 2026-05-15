@@ -1306,6 +1306,17 @@ dependencies = [
 name = "echobird"
 version = "4.7.1"
 dependencies = [
+ "echobird_core",
+ "tauri",
+ "tauri-build",
+ "tauri-plugin-shell",
+]
+
+[[package]]
+name = "echobird_core"
+version = "0.1.0"
+source = "git+https://github.com/edison7009/EchoBird-secret-.git?branch=main#e2eddef82db9254b30db959ade55a22e38e2731f"
+dependencies = [
  "aes-gcm",
  "async-ssh2-tokio",
  "axum",
@@ -1328,7 +1339,6 @@ dependencies = [
  "serde_json",
  "sha2",
  "tauri",
- "tauri-build",
  "tauri-plugin-log",
  "tauri-plugin-shell",
  "tauri-plugin-window-state",
