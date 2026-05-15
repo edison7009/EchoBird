@@ -358,8 +358,12 @@ export const LocalServerMain: React.FC = () => {
         engineStatus === 'error');
     const btnBase =
       'font-bold text-base font-mono transition-all flex items-center justify-center gap-2 flex-shrink-0 rounded-lg';
+    // No border on active — `btnDisabled` and `btnStop` don't carry one,
+    // and a 1px border on only one of the three states shifts the button's
+    // box size when transitioning between idle / disabled / running. Pure
+    // bg + shadow keeps the box identical across all three.
     const btnActive =
-      'bg-cyber-accent text-white border border-cyber-accent hover:bg-cyber-accent-secondary hover:border-cyber-accent-secondary shadow-lg shadow-cyber-accent/30';
+      'bg-cyber-accent text-white hover:bg-cyber-accent-secondary shadow-lg shadow-cyber-accent/30';
     const btnDisabled = 'bg-cyber-border/60 text-cyber-text-secondary cursor-not-allowed';
     const btnStop = 'bg-red-500 text-white hover:bg-red-600 shadow-[0_0_8px_rgba(239,68,68,0.2)]';
 
@@ -698,7 +702,7 @@ function getVramFitness(
   if (userVramGb <= 0) return null;
   const ratio = requiredGb / userVramGb;
   if (ratio <= 0.7) return { label: t('vram.easy'), color: 'text-green-400' };
-  if (ratio <= 1.0) return { label: t('vram.good'), color: 'text-cyan-400' };
+  if (ratio <= 1.0) return { label: t('vram.good'), color: 'text-cyber-accent' };
   if (ratio <= 1.3) return { label: t('vram.tight'), color: 'text-yellow-400' };
   return { label: t('vram.heavy'), color: 'text-red-400' };
 }
