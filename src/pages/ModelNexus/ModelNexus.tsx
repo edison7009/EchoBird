@@ -134,15 +134,21 @@ export function ModelNexusProvider({ children }: { children: React.ReactNode }) 
           next.delete(model.internalId);
           return next;
         });
-        if (result?.success) {
-          setModelLatencies((prev) => ({ ...prev, [model.internalId]: result.latency }));
-        }
+        // -1 is the agreed-upon "tested and failed" sentinel that ModelCard
+        // turns into a red "Error" label. Leaving latency unset would
+        // collapse the failure back into "未测试" (never tested), which
+        // misleads the user who just watched the ping run.
+        setModelLatencies((prev) => ({
+          ...prev,
+          [model.internalId]: result?.success ? result.latency : -1,
+        }));
       } catch {
         setPingingModelIds((prev) => {
           const next = new Set(prev);
           next.delete(model.internalId);
           return next;
         });
+        setModelLatencies((prev) => ({ ...prev, [model.internalId]: -1 }));
       }
     }
     setPingingModelIds(new Set());
@@ -195,6 +201,10 @@ export function ModelNexusProvider({ children }: { children: React.ReactNode }) 
           setUserModels(updatedModels);
         }
       } else {
+        // Sentinel -1 so the model card shows "Error" instead of the
+        // pre-test "未测试" placeholder — see pingAllModels for the
+        // same reasoning.
+        setModelLatencies((prev) => ({ ...prev, [selectedModel]: -1 }));
         setTestOutput((prev) =>
           [
             ...prev,
@@ -204,6 +214,7 @@ export function ModelNexusProvider({ children }: { children: React.ReactNode }) 
         );
       }
     } catch (error) {
+      setModelLatencies((prev) => ({ ...prev, [selectedModel]: -1 }));
       setTestOutput((prev) => [...prev, String(error)]);
     } finally {
       setIsTesting(false);
