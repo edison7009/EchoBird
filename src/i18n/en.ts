@@ -24,11 +24,14 @@ const en: Translations = {
   'page.feedback': 'FEEDBACK',
   'feedback.title': 'Help us improve — report a problem',
   'feedback.intro':
-    'When something goes wrong, the fastest way to help us fix it is to open the debug window, copy the failing log lines, then submit a GitHub issue with them attached.',
-  'feedback.step1.title': 'Step 1: Open the debug window',
+    'When something goes wrong, the fastest way to help us fix it: copy the recent backend logs, then file a GitHub issue and paste them in.',
+  'feedback.step1.title': 'Step 1: Copy recent logs',
   'feedback.step1.desc':
-    'The debug window (DevTools) Console tab shows live application logs. Scroll to the bottom and copy the red error lines or any lines near "stream disconnected", "missing", "400", or "failed".',
-  'feedback.step1.button': 'Open debug window',
+    "Clicking the button copies the last 30 backend log lines to your clipboard — the same stream you'd see in the dev-mode terminal. No scrolling or text-selecting needed.",
+  'feedback.step1.button': 'Copy last 30 log lines',
+  'feedback.step1.copied': 'Copied to clipboard',
+  'feedback.step1.empty': 'No logs to copy yet (app just started?)',
+  'feedback.step1.failed': 'Copy failed, please try again',
   'feedback.step2.title': 'Step 2: Send us the logs',
   'feedback.step2.desc':
     'Click below to open our GitHub repo in your browser. Create a new issue, paste the logs you copied, and add a short note describing what you were doing. We will pick it up.',
