@@ -47,7 +47,12 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
-      - uses: dtolnay/rust-toolchain@stable
+      # Pinned to 1.93 to stop new clippy lints in every Rust release
+      # (introduced as `-D warnings` failures) from spuriously breaking
+      # CI when the dev environment is on an older stable. Bump
+      # deliberately when we want to adopt new lints; mirror the change
+      # in release.yml so the build matrix stays in lockstep.
+      - uses: dtolnay/rust-toolchain@1.93
         with:
           components: clippy, rustfmt
 
