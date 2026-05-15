@@ -130,11 +130,7 @@ pub(super) fn extract_reasoning_delta(delta: &Value) -> Option<String> {
 
 fn append_reasoning_value(v: &Value, out: &mut String) {
     match v {
-        Value::String(s) => {
-            if !s.is_empty() {
-                out.push_str(s);
-            }
-        }
+        Value::String(s) if !s.is_empty() => out.push_str(s),
         Value::Object(_) => {
             // {type:"text", text:"..."} | {text:"..."} | {content:"..."}
             for field in &["text", "content"] {
