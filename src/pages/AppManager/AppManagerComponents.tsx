@@ -393,7 +393,7 @@ export const ModelListSection: React.FC<ModelListSectionProps> = ({
       {/* Local models area */}
       {localModels.length > 0 && (
         <div className="mb-4">
-          <div className="text-xs text-cyan-400/80 mb-2">{t('agent.myLocalModel')}:</div>
+          <div className="text-xs text-cyber-accent/80 mb-2">{t('agent.myLocalModel')}:</div>
           {localModels.map(renderModelCard)}
         </div>
       )}
