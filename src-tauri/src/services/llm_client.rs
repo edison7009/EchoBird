@@ -410,8 +410,12 @@ impl LlmClient {
             format!("{}/v1/messages", base)
         };
 
-        // Build messages (Anthropic format)
-        let msgs: Vec<Value> = messages.iter().map(message_to_anthropic_json).collect();
+        // Build messages (Anthropic format). Normalize first so consecutive
+        // user{tool_result} messages collapse into one — required by the
+        // Anthropic API's tool_use↔tool_result pairing rule, see
+        // `normalize_anthropic_messages`.
+        let normalized = normalize_anthropic_messages(messages);
+        let msgs: Vec<Value> = normalized.iter().map(message_to_anthropic_json).collect();
 
         // Build tools
         let tools_json: Vec<Value> = tools
@@ -947,6 +951,61 @@ where
     Err(last_err)
 }
 
+/// Merge consecutive `user` messages whose content is *only* `tool_result`
+/// blocks into a single user message. Anthropic's Messages API requires
+/// that every `tool_use` from the prior assistant turn has its matching
+/// `tool_result` in the *immediately following* user message — splitting
+/// the results across N separate user messages produces:
+///     "messages.<i>.tool_use ids were found without tool_result blocks
+///      immediately after: <ids>. Each tool_use block must have a
+///      corresponding tool_result block in the next message."
+///
+/// (issue #42: 5 PowerShell tool_uses → 5 separate user{tool_result}
+/// messages → 400 about the 4 unmatched ids.)
+///
+/// Non-tool-result user messages (plain text, or mixed content) and all
+/// non-user messages pass through unchanged. Order within the merged
+/// block list is preserved.
+fn normalize_anthropic_messages(messages: &[Message]) -> Vec<Message> {
+    fn is_pure_tool_result_user(m: &Message) -> bool {
+        if m.role != "user" {
+            return false;
+        }
+        match &m.content {
+            MessageContent::Blocks(blocks) => {
+                !blocks.is_empty()
+                    && blocks
+                        .iter()
+                        .all(|b| matches!(b, ContentBlock::ToolResult { .. }))
+            }
+            _ => false,
+        }
+    }
+
+    let mut out: Vec<Message> = Vec::with_capacity(messages.len());
+    let mut i = 0;
+    while i < messages.len() {
+        if is_pure_tool_result_user(&messages[i]) {
+            // Walk forward collecting every consecutive pure-tool_result user.
+            let mut merged_blocks: Vec<ContentBlock> = Vec::new();
+            while i < messages.len() && is_pure_tool_result_user(&messages[i]) {
+                if let MessageContent::Blocks(blocks) = &messages[i].content {
+                    merged_blocks.extend(blocks.iter().cloned());
+                }
+                i += 1;
+            }
+            out.push(Message {
+                role: "user".into(),
+                content: MessageContent::Blocks(merged_blocks),
+            });
+        } else {
+            out.push(messages[i].clone());
+            i += 1;
+        }
+    }
+    out
+}
+
 fn message_to_anthropic_json(m: &Message) -> Value {
     match &m.content {
         MessageContent::Text(text) => json!({"role": m.role, "content": text}),
@@ -1219,5 +1278,150 @@ mod tests {
             extract_upstream_error_message(500, body),
             "500 Internal Server Error"
         );
+    }
+
+    // ---- normalize_anthropic_messages ----
+
+    fn tool_result_msg(ids: &[&str]) -> Message {
+        Message {
+            role: "user".into(),
+            content: MessageContent::Blocks(
+                ids.iter()
+                    .map(|id| ContentBlock::ToolResult {
+                        tool_use_id: (*id).to_string(),
+                        content: format!("result for {id}"),
+                    })
+                    .collect(),
+            ),
+        }
+    }
+
+    fn assistant_with_tool_uses(ids: &[&str]) -> Message {
+        Message {
+            role: "assistant".into(),
+            content: MessageContent::Blocks(
+                ids.iter()
+                    .map(|id| ContentBlock::ToolUse {
+                        id: (*id).to_string(),
+                        name: "shell_exec".into(),
+                        input: serde_json::json!({}),
+                    })
+                    .collect(),
+            ),
+        }
+    }
+
+    #[test]
+    fn normalize_merges_consecutive_tool_result_users_into_one() {
+        // issue #42 repro: assistant emits N tool_use blocks, agent_loop
+        // pushes N separate user{tool_result} messages.
+        let input = vec![
+            Message {
+                role: "user".into(),
+                content: MessageContent::Text("go".into()),
+            },
+            assistant_with_tool_uses(&["c1", "c2", "c3", "c4", "c5"]),
+            tool_result_msg(&["c1"]),
+            tool_result_msg(&["c2"]),
+            tool_result_msg(&["c3"]),
+            tool_result_msg(&["c4"]),
+            tool_result_msg(&["c5"]),
+        ];
+        let out = normalize_anthropic_messages(&input);
+        assert_eq!(out.len(), 3, "user, assistant, merged-user");
+        assert_eq!(out[2].role, "user");
+        if let MessageContent::Blocks(blocks) = &out[2].content {
+            assert_eq!(blocks.len(), 5);
+            for (i, b) in blocks.iter().enumerate() {
+                match b {
+                    ContentBlock::ToolResult { tool_use_id, .. } => {
+                        assert_eq!(tool_use_id, &format!("c{}", i + 1));
+                    }
+                    _ => panic!("expected ToolResult"),
+                }
+            }
+        } else {
+            panic!("expected Blocks");
+        }
+    }
+
+    #[test]
+    fn normalize_preserves_plain_text_user_unchanged() {
+        let input = vec![Message {
+            role: "user".into(),
+            content: MessageContent::Text("hello".into()),
+        }];
+        let out = normalize_anthropic_messages(&input);
+        assert_eq!(out.len(), 1);
+        match &out[0].content {
+            MessageContent::Text(s) => assert_eq!(s, "hello"),
+            _ => panic!("plain text user must not be wrapped"),
+        }
+    }
+
+    #[test]
+    fn normalize_does_not_merge_across_assistant_boundary() {
+        // tool_result → assistant → tool_result must not collapse to one user.
+        let input = vec![
+            assistant_with_tool_uses(&["a"]),
+            tool_result_msg(&["a"]),
+            Message {
+                role: "assistant".into(),
+                content: MessageContent::Text("thinking...".into()),
+            },
+            assistant_with_tool_uses(&["b"]),
+            tool_result_msg(&["b"]),
+        ];
+        let out = normalize_anthropic_messages(&input);
+        assert_eq!(out.len(), 5);
+        assert_eq!(out[1].role, "user");
+        assert_eq!(out[2].role, "assistant");
+        assert_eq!(out[4].role, "user");
+    }
+
+    #[test]
+    fn normalize_does_not_merge_with_plain_text_user() {
+        // Mixed: tool_result-user followed by plain-text user must stay separate
+        // (plain-text user isn't a tool_result message — coalescing them would
+        // discard the text).
+        let input = vec![
+            assistant_with_tool_uses(&["a", "b"]),
+            tool_result_msg(&["a"]),
+            tool_result_msg(&["b"]),
+            Message {
+                role: "user".into(),
+                content: MessageContent::Text("follow-up".into()),
+            },
+        ];
+        let out = normalize_anthropic_messages(&input);
+        assert_eq!(out.len(), 3);
+        match &out[1].content {
+            MessageContent::Blocks(b) => assert_eq!(b.len(), 2),
+            _ => panic!(),
+        }
+        match &out[2].content {
+            MessageContent::Text(s) => assert_eq!(s, "follow-up"),
+            _ => panic!(),
+        }
+    }
+
+    #[test]
+    fn normalize_handles_empty_input() {
+        let out = normalize_anthropic_messages(&[]);
+        assert!(out.is_empty());
+    }
+
+    #[test]
+    fn normalize_single_tool_result_passes_through() {
+        let input = vec![
+            assistant_with_tool_uses(&["solo"]),
+            tool_result_msg(&["solo"]),
+        ];
+        let out = normalize_anthropic_messages(&input);
+        assert_eq!(out.len(), 2);
+        match &out[1].content {
+            MessageContent::Blocks(b) => assert_eq!(b.len(), 1),
+            _ => panic!(),
+        }
     }
 }

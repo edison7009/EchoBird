@@ -69,6 +69,16 @@ pub fn responses_to_chat(body: &Value, sessions: &SessionStore) -> Value {
     // by its matching tool messages.
     merged = reorder_tool_messages(merged);
 
+    // 5b) Defensive guard for thinking-model providers (MiMo, DeepSeek-V4
+    // thinking variants, etc.). Anything that flowed in via
+    // `previous_response_id` history replay — or a stranger path we don't
+    // yet model — could be missing `reasoning_content`. We look one more
+    // time across every available SessionStore key before committing.
+    // Last-resort placeholder ensures the upstream API contract is met
+    // even when our store has nothing; without it some providers 400 with
+    // "The reasoning_content in the thinking mode must be passed back".
+    ensure_reasoning_for_tool_calls(&mut merged, sessions);
+
     // 6) Assemble the Chat Completions request body.
     let stream_default = body.get("stream").and_then(|v| v.as_bool()).unwrap_or(true);
     let mut chat_body = json!({
@@ -438,6 +448,74 @@ fn push_assistant_tool_calls(
         msg["reasoning_content"] = Value::String(r);
     }
     messages.push(msg);
+}
+
+/// Last-mile guard: every assistant message with `tool_calls` must carry
+/// a non-empty `reasoning_content` field before we send to upstream.
+/// Required by thinking-mode providers (MiMo, DeepSeek-V4 thinking, etc.)
+/// per their multi-turn API contract — see issue #42 + #40 + #41.
+///
+/// Lookup is exhaustive: we try every tool_call.id against the reasoning
+/// store, not just the first one. Falls back to a single-space placeholder
+/// when nothing is found so the upstream API doesn't 400 — the model loses
+/// some prior context but the conversation stays alive instead of dying
+/// hard. Logs a warning when the placeholder fires so we can spot which
+/// branches still leak.
+fn ensure_reasoning_for_tool_calls(messages: &mut [Value], sessions: &SessionStore) {
+    const PLACEHOLDER: &str = " ";
+
+    for msg in messages.iter_mut() {
+        let is_assistant_with_tool_calls = msg.get("role").and_then(|v| v.as_str())
+            == Some("assistant")
+            && msg
+                .get("tool_calls")
+                .and_then(|v| v.as_array())
+                .is_some_and(|a| !a.is_empty());
+        if !is_assistant_with_tool_calls {
+            continue;
+        }
+
+        // Already present and non-empty → leave alone.
+        if let Some(existing) = msg.get("reasoning_content").and_then(|v| v.as_str()) {
+            if !existing.is_empty() {
+                continue;
+            }
+        }
+
+        let tool_call_ids: Vec<String> = msg
+            .get("tool_calls")
+            .and_then(|v| v.as_array())
+            .map(|tcs| {
+                tcs.iter()
+                    .filter_map(|tc| tc.get("id").and_then(|v| v.as_str()).map(String::from))
+                    .collect()
+            })
+            .unwrap_or_default();
+
+        let mut recovered: Option<String> = None;
+        for id in &tool_call_ids {
+            if let Some(r) = sessions.get_reasoning(id) {
+                if !r.is_empty() {
+                    recovered = Some(r);
+                    break;
+                }
+            }
+        }
+
+        match recovered {
+            Some(r) => {
+                msg["reasoning_content"] = Value::String(r);
+            }
+            None => {
+                log::warn!(
+                    "[CodexProxy] reasoning_content missing for assistant tool_calls {:?}; \
+                     injecting placeholder to satisfy thinking-model API contract",
+                    tool_call_ids
+                );
+                msg["reasoning_content"] = Value::String(PLACEHOLDER.to_string());
+            }
+        }
+    }
 }
 
 // ── MiniMax legacy mode: merge system text into the first user message ──
@@ -842,5 +920,162 @@ mod tests {
         let msgs = out["messages"].as_array().unwrap();
         assert_eq!(msgs.len(), 1);
         assert_eq!(msgs[0]["content"], "real");
+    }
+
+    // ── reasoning_content defensive injection (issues #40 / #41 / #42) ──
+
+    #[test]
+    fn reasoning_recovered_from_session_store_by_first_call_id() {
+        // History replay path: prior turn's assistant came back through
+        // previous_response_id but lost reasoning_content. The store still
+        // has it under the tool-call id — last-mile guard recovers it.
+        let s = store();
+        s.store_reasoning("call_abc", "deep thought");
+        s.save_history(
+            "resp_prev",
+            vec![
+                json!({ "role": "user", "content": "go" }),
+                json!({
+                    "role": "assistant",
+                    "content": null,
+                    "tool_calls": [{
+                        "id": "call_abc",
+                        "type": "function",
+                        "function": { "name": "shell", "arguments": "{}" },
+                    }],
+                    // NB: reasoning_content omitted to simulate the leak.
+                }),
+            ],
+        );
+        let body = json!({
+            "model": "deepseek-v4-flash",
+            "previous_response_id": "resp_prev",
+            "input": [
+                { "type": "function_call_output", "call_id": "call_abc", "output": "/home" },
+            ],
+        });
+        let out = responses_to_chat(&body, &s);
+        let msgs = out["messages"].as_array().unwrap();
+        let assistant = msgs.iter().find(|m| m["role"] == "assistant").unwrap();
+        assert_eq!(assistant["reasoning_content"], "deep thought");
+    }
+
+    #[test]
+    fn reasoning_recovered_from_any_tool_call_id_not_just_first() {
+        // First id missing, second id has stored reasoning — should still recover.
+        let s = store();
+        s.store_reasoning("call_b", "second-id reasoning");
+        s.save_history(
+            "resp_x",
+            vec![json!({
+                "role": "assistant",
+                "content": null,
+                "tool_calls": [
+                    { "id": "call_a", "type": "function", "function": { "name": "f1", "arguments": "{}" } },
+                    { "id": "call_b", "type": "function", "function": { "name": "f2", "arguments": "{}" } },
+                ],
+            })],
+        );
+        let body = json!({
+            "model": "mimo-v2.5-pro",
+            "previous_response_id": "resp_x",
+            "input": [],
+        });
+        let out = responses_to_chat(&body, &s);
+        let assistant = out["messages"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|m| m["role"] == "assistant")
+            .unwrap();
+        assert_eq!(assistant["reasoning_content"], "second-id reasoning");
+    }
+
+    #[test]
+    fn reasoning_placeholder_when_store_has_nothing() {
+        // Worst case: history replay lost reasoning_content AND store
+        // has nothing under any tool-call id. We inject a placeholder so
+        // the thinking-mode API contract is satisfied — the conversation
+        // continues even when our state tracking has a hole.
+        let s = store();
+        s.save_history(
+            "resp_orphan",
+            vec![json!({
+                "role": "assistant",
+                "content": null,
+                "tool_calls": [{
+                    "id": "call_lost",
+                    "type": "function",
+                    "function": { "name": "shell", "arguments": "{}" },
+                }],
+            })],
+        );
+        let body = json!({
+            "model": "mimo-v2.5-pro",
+            "previous_response_id": "resp_orphan",
+            "input": [],
+        });
+        let out = responses_to_chat(&body, &s);
+        let assistant = out["messages"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|m| m["role"] == "assistant")
+            .unwrap();
+        // Must be a non-empty string (thinking-mode providers reject
+        // missing-or-empty reasoning_content).
+        let r = assistant["reasoning_content"].as_str().unwrap();
+        assert!(!r.is_empty());
+    }
+
+    #[test]
+    fn reasoning_injection_skips_plain_assistant_messages() {
+        // Assistant turns without tool_calls don't need reasoning_content.
+        // Injecting one would pollute non-thinking conversations.
+        let body = json!({
+            "model": "gpt-4o",
+            "input": [
+                { "type": "message", "role": "assistant", "content": "hi there" },
+            ],
+        });
+        let out = responses_to_chat(&body, &store());
+        let assistant = &out["messages"].as_array().unwrap()[0];
+        assert_eq!(assistant["role"], "assistant");
+        assert!(
+            assistant.get("reasoning_content").is_none(),
+            "should not inject reasoning_content on plain assistant"
+        );
+    }
+
+    #[test]
+    fn reasoning_already_present_is_preserved() {
+        // If history replay already carries reasoning_content, we must
+        // not clobber it with a placeholder.
+        let s = store();
+        s.save_history(
+            "resp_with",
+            vec![json!({
+                "role": "assistant",
+                "content": null,
+                "tool_calls": [{ "id": "call_z", "type": "function", "function": { "name": "f", "arguments": "{}" } }],
+                "reasoning_content": "original detailed reasoning",
+            })],
+        );
+        let body = json!({
+            "model": "mimo-v2.5-pro",
+            "previous_response_id": "resp_with",
+            "input": [],
+        });
+        let out = responses_to_chat(&body, &s);
+        let assistant = out["messages"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|m| m["role"] == "assistant")
+            .unwrap();
+        assert_eq!(
+            assistant["reasoning_content"],
+            "original detailed reasoning"
+        );
     }
 }
