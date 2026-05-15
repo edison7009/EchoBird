@@ -1,5 +1,5 @@
 {
-  "version": "4.7.3",
+  "version": "4.7.2",
   "releaseDate": "2026-05-15",
   "releaseNotes": "v4.7.3: 重新支持 Intel Mac；修复检查更新按钮和反馈复制日志的问题"
 }
