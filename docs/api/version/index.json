@@ -1,5 +1,5 @@
 {
-  "version": "4.7.6",
+  "version": "4.7.7",
   "releaseDate": "2026-05-15",
   "releaseNotes": "v4.7.7: 全面支持用户通过 EchoBird 部署本地大模型,并在 Codex 中使用"
 }
