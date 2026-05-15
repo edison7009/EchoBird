@@ -120,6 +120,76 @@ pub fn responses_to_chat(body: &Value, sessions: &SessionStore) -> Value {
         }
     }
 
+    // 6b) Pass-through fields that Chat Completions accepts verbatim.
+    // Previously dropped silently — Codex sends these on every request,
+    // and ignoring them gave users no effect when they tuned settings.
+    //
+    //   • reasoning.effort     → `reasoning_effort` (Chat side name).
+    //                            OpenAI o-series + many third-parties
+    //                            honor it. We translate `summary`
+    //                            separately by emitting reasoning
+    //                            summary events ourselves (H1).
+    //   • parallel_tool_calls  → passthrough; defaults to true upstream
+    //   • top_p, frequency_penalty, presence_penalty, seed, user,
+    //     prompt_cache_key, service_tier, safety_identifier,
+    //     max_tool_calls, metadata
+    //                          → straight passthrough on non-null
+    //   • text.format          → structured outputs (json_schema /
+    //                            text). Mapped to Chat's
+    //                            `response_format`.
+    if let Some(reasoning) = body.get("reasoning") {
+        if let Some(effort) = reasoning.get("effort").and_then(|v| v.as_str()) {
+            chat_body["reasoning_effort"] = Value::String(effort.to_string());
+        }
+    }
+    for key in &[
+        "parallel_tool_calls",
+        "top_p",
+        "frequency_penalty",
+        "presence_penalty",
+        "seed",
+        "user",
+        "prompt_cache_key",
+        "service_tier",
+        "safety_identifier",
+        "max_tool_calls",
+        "metadata",
+    ] {
+        if let Some(v) = body.get(*key) {
+            if !v.is_null() {
+                chat_body[*key] = v.clone();
+            }
+        }
+    }
+    // text.format → response_format. The Responses-API shape nests under
+    // `text.format`; Chat expects `response_format` at the top. We pass
+    // through json_schema, json_object, and text variants verbatim.
+    if let Some(text) = body.get("text") {
+        if let Some(format) = text.get("format") {
+            let format_type = format.get("type").and_then(|v| v.as_str()).unwrap_or("");
+            match format_type {
+                "json_schema" => {
+                    let mut inner = serde_json::Map::new();
+                    for k in &["name", "schema", "strict", "description"] {
+                        if let Some(v) = format.get(*k) {
+                            if !v.is_null() {
+                                inner.insert((*k).to_string(), v.clone());
+                            }
+                        }
+                    }
+                    chat_body["response_format"] = json!({
+                        "type": "json_schema",
+                        "json_schema": Value::Object(inner),
+                    });
+                }
+                "json_object" | "text" => {
+                    chat_body["response_format"] = json!({ "type": format_type });
+                }
+                _ => {}
+            }
+        }
+    }
+
     // 7) Tool definitions filter. Built-in Responses tools (local_shell,
     // web_search, file_search, computer_use_preview, custom, ...) have
     // no Chat Completions analogue — passing them through as
@@ -261,16 +331,44 @@ fn process_input_items(messages: &mut Vec<Value>, items: &[Value], sessions: &Se
         }
 
         // ── reasoning (buffer for next assistant.tool_calls) ──
+        //
+        // Read order:
+        //   1. `encrypted_content` (preferred — our /compact handler
+        //      writes the upstream summary here, and OpenAI's native
+        //      flow stores latent state here when `include` was set)
+        //   2. `summary[].text` array  (OpenAI's normal reasoning item
+        //      shape: `[{type:"summary_text",text:"..."}]`)
+        //   3. `summary` raw string  (legacy / our older synthesizer)
+        //   4. `text` / `content` fallback
         if t == "reasoning" {
-            let summary = item
-                .get("summary")
-                .or_else(|| item.get("text"))
-                .or_else(|| item.get("content"));
-            let summary_str = match summary {
-                Some(Value::String(s)) => s.clone(),
-                Some(other) => other.to_string(),
-                None => String::new(),
-            };
+            let mut summary_str = String::new();
+            if let Some(enc) = item.get("encrypted_content").and_then(|v| v.as_str()) {
+                if !enc.is_empty() && !enc.starts_with("gAAAAA") {
+                    summary_str = enc.to_string();
+                }
+            }
+            if summary_str.is_empty() {
+                if let Some(arr) = item.get("summary").and_then(|v| v.as_array()) {
+                    let parts: Vec<&str> = arr
+                        .iter()
+                        .filter_map(|p| p.get("text").and_then(|v| v.as_str()))
+                        .collect();
+                    if !parts.is_empty() {
+                        summary_str = parts.join("");
+                    }
+                }
+            }
+            if summary_str.is_empty() {
+                let raw = item
+                    .get("summary")
+                    .or_else(|| item.get("text"))
+                    .or_else(|| item.get("content"));
+                summary_str = match raw {
+                    Some(Value::String(s)) => s.clone(),
+                    Some(other) => other.to_string(),
+                    None => String::new(),
+                };
+            }
             if !summary_str.is_empty() {
                 pending_reasoning = Some(summary_str);
             }
@@ -329,7 +427,10 @@ fn process_input_items(messages: &mut Vec<Value>, items: &[Value], sessions: &Se
         // looks like real text; fall back to the generic placeholder
         // when it's empty or actually-opaque (a real OpenAI blob that
         // somehow ended up here).
-        if t == "compaction" {
+        // Alias: Codex's newer enum has `context_compaction` (with
+        // underscore) as a distinct variant for the standalone-endpoint
+        // compaction. Treat identically.
+        if t == "compaction" || t == "context_compaction" {
             let summary = item
                 .get("encrypted_content")
                 .and_then(|v| v.as_str())
@@ -345,6 +446,39 @@ fn process_input_items(messages: &mut Vec<Value>, items: &[Value], sessions: &Se
             messages.push(json!({
                 "role": "system",
                 "content": content,
+            }));
+            i += 1;
+            continue;
+        }
+
+        // ── tool_search_call / web_search_call / image_generation_call ──
+        // Codex echoes these in input when the prior turn used the
+        // built-in search/generation tools. They don't have a Chat
+        // Completions analogue — we synthesize a system note so the
+        // model knows a search/generation happened without hard-erroring
+        // on "unknown input item type". When the tool result is
+        // available (call_id present + matching *_output), the result
+        // text is what actually mattered.
+        if t == "web_search_call"
+            || t == "tool_search_call"
+            || t == "image_generation_call"
+            || t == "file_search_call"
+        {
+            let kind = t.trim_end_matches("_call");
+            let action = item.get("action").or_else(|| item.get("query"));
+            let action_str = match action {
+                Some(Value::String(s)) => s.clone(),
+                Some(other) => serde_json::to_string(other).unwrap_or_default(),
+                None => String::new(),
+            };
+            let note = if action_str.is_empty() {
+                format!("[Codex used the built-in {kind} tool earlier; result is in the next tool output below.]")
+            } else {
+                format!("[Codex used the built-in {kind} tool: {action_str}]")
+            };
+            messages.push(json!({
+                "role": "system",
+                "content": note,
             }));
             i += 1;
             continue;
@@ -441,6 +575,29 @@ fn stringify_output(v: Option<&Value>) -> String {
     match v {
         Some(Value::String(s)) => s.clone(),
         Some(Value::Null) | None => "\"\"".to_string(),
+        // Spec: function_call_output.output can be a structured array of
+        // content items (`[{type:"output_text",text:...}]` or
+        // `[{type:"input_text",text:...}]`) rather than a plain string.
+        // Join the text parts so the upstream sees natural text, not a
+        // JSON-encoded array the model has to parse.
+        Some(Value::Array(parts)) => {
+            let collected: Vec<&str> = parts
+                .iter()
+                .filter_map(|p| {
+                    p.get("text")
+                        .and_then(|v| v.as_str())
+                        .filter(|s| !s.is_empty())
+                })
+                .collect();
+            if collected.is_empty() {
+                // Array but no text parts → fall back to JSON stringify
+                // so structured non-text content (e.g. image refs) at
+                // least lands as readable JSON.
+                serde_json::to_string(v.unwrap()).unwrap_or_else(|_| "\"\"".to_string())
+            } else {
+                collected.join("")
+            }
+        }
         Some(other) => serde_json::to_string(other).unwrap_or_else(|_| "\"\"".to_string()),
     }
 }
@@ -1351,5 +1508,208 @@ mod tests {
             assistant["reasoning_content"],
             "original detailed reasoning"
         );
+    }
+
+    // ── H5: reasoning.effort pass-through ──
+    #[test]
+    fn reasoning_effort_passes_through_as_reasoning_effort() {
+        let body = json!({
+            "model": "gpt-5",
+            "input": "hi",
+            "reasoning": { "effort": "high", "summary": "auto" },
+        });
+        let out = responses_to_chat(&body, &store());
+        assert_eq!(out["reasoning_effort"], "high");
+        // summary is intentionally NOT passed through — we synthesize
+        // summary events ourselves in stream_handler.
+        assert!(out.get("summary").is_none());
+    }
+
+    // ── H6: text.format → response_format ──
+    #[test]
+    fn text_format_json_schema_maps_to_response_format() {
+        let body = json!({
+            "model": "gpt-5",
+            "input": "give me JSON",
+            "text": {
+                "format": {
+                    "type": "json_schema",
+                    "name": "weather",
+                    "strict": true,
+                    "schema": { "type": "object" },
+                }
+            },
+        });
+        let out = responses_to_chat(&body, &store());
+        assert_eq!(out["response_format"]["type"], "json_schema");
+        assert_eq!(out["response_format"]["json_schema"]["name"], "weather");
+        assert_eq!(out["response_format"]["json_schema"]["strict"], true);
+    }
+
+    #[test]
+    fn text_format_json_object_maps_to_response_format() {
+        let body = json!({
+            "model": "gpt-5",
+            "input": "hi",
+            "text": { "format": { "type": "json_object" } },
+        });
+        let out = responses_to_chat(&body, &store());
+        assert_eq!(out["response_format"]["type"], "json_object");
+    }
+
+    // ── H7: parallel_tool_calls + M10: misc pass-through ──
+    #[test]
+    fn parallel_tool_calls_and_misc_fields_pass_through() {
+        let body = json!({
+            "model": "gpt-5",
+            "input": "hi",
+            "parallel_tool_calls": false,
+            "top_p": 0.9,
+            "frequency_penalty": 0.5,
+            "presence_penalty": 0.3,
+            "seed": 42,
+            "user": "u-1",
+            "prompt_cache_key": "ck-1",
+            "service_tier": "flex",
+            "metadata": { "k": "v" },
+        });
+        let out = responses_to_chat(&body, &store());
+        assert_eq!(out["parallel_tool_calls"], false);
+        assert_eq!(out["top_p"], 0.9);
+        assert_eq!(out["frequency_penalty"], 0.5);
+        assert_eq!(out["presence_penalty"], 0.3);
+        assert_eq!(out["seed"], 42);
+        assert_eq!(out["user"], "u-1");
+        assert_eq!(out["prompt_cache_key"], "ck-1");
+        assert_eq!(out["service_tier"], "flex");
+        assert_eq!(out["metadata"]["k"], "v");
+    }
+
+    // ── H8: structured function_call_output content array ──
+    #[test]
+    fn function_call_output_with_text_part_array_joins_text() {
+        let body = json!({
+            "model": "deepseek-chat",
+            "input": [
+                {
+                    "type": "function_call",
+                    "call_id": "c1",
+                    "name": "shell",
+                    "arguments": "{}"
+                },
+                {
+                    "type": "function_call_output",
+                    "call_id": "c1",
+                    "output": [
+                        { "type": "output_text", "text": "line one\n" },
+                        { "type": "output_text", "text": "line two" }
+                    ]
+                },
+            ],
+        });
+        let out = responses_to_chat(&body, &store());
+        let tool_msg = out["messages"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|m| m["role"] == "tool")
+            .unwrap();
+        assert_eq!(tool_msg["content"], "line one\nline two");
+    }
+
+    // ── M14: reasoning.encrypted_content roundtrip on input ──
+    #[test]
+    fn input_reasoning_item_with_encrypted_content_buffers_for_next_tool_call() {
+        let body = json!({
+            "model": "deepseek-chat",
+            "input": [
+                {
+                    "type": "reasoning",
+                    "encrypted_content": "I should look at the files first.",
+                    "summary": []
+                },
+                {
+                    "type": "function_call",
+                    "call_id": "c1",
+                    "name": "shell",
+                    "arguments": "{}"
+                },
+            ],
+        });
+        let out = responses_to_chat(&body, &store());
+        let assistant = out["messages"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|m| m["role"] == "assistant")
+            .unwrap();
+        assert_eq!(
+            assistant["reasoning_content"],
+            "I should look at the files first."
+        );
+    }
+
+    #[test]
+    fn input_reasoning_item_summary_array_text_concatenated() {
+        let body = json!({
+            "model": "deepseek-chat",
+            "input": [
+                {
+                    "type": "reasoning",
+                    "summary": [
+                        { "type": "summary_text", "text": "Step 1. " },
+                        { "type": "summary_text", "text": "Step 2." }
+                    ]
+                },
+                {
+                    "type": "function_call",
+                    "call_id": "c1",
+                    "name": "shell",
+                    "arguments": "{}"
+                },
+            ],
+        });
+        let out = responses_to_chat(&body, &store());
+        let assistant = out["messages"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|m| m["role"] == "assistant")
+            .unwrap();
+        assert_eq!(assistant["reasoning_content"], "Step 1. Step 2.");
+    }
+
+    // ── L15-L17: handle web_search_call etc. + context_compaction alias ──
+    #[test]
+    fn web_search_call_input_item_becomes_system_note() {
+        let body = json!({
+            "model": "deepseek-chat",
+            "input": [
+                { "type": "web_search_call", "call_id": "ws_1", "action": { "query": "rust async" } },
+            ],
+        });
+        let out = responses_to_chat(&body, &store());
+        let msg = &out["messages"].as_array().unwrap()[0];
+        assert_eq!(msg["role"], "system");
+        let content = msg["content"].as_str().unwrap();
+        assert!(content.contains("web_search"));
+        assert!(content.contains("rust async"));
+    }
+
+    #[test]
+    fn context_compaction_aliases_to_compaction() {
+        let body = json!({
+            "model": "deepseek-chat",
+            "input": [
+                {
+                    "type": "context_compaction",
+                    "encrypted_content": "Summary: user wanted X."
+                },
+            ],
+        });
+        let out = responses_to_chat(&body, &store());
+        let msg = &out["messages"].as_array().unwrap()[0];
+        let content = msg["content"].as_str().unwrap();
+        assert!(content.contains("Summary"));
     }
 }
