@@ -1140,7 +1140,7 @@ export const LocalServerPanel: React.FC = () => {
                             return (
                               <div
                                 key={v.filePath}
-                                className={`flex items-center gap-3 p-2 rounded cursor-pointer transition-colors border ${isSelected ? 'bg-cyber-elevated border-cyber-accent' : 'border-transparent hover:bg-cyber-elevated'}`}
+                                className={`flex items-center gap-3 p-2 rounded cursor-pointer transition-colors ${isSelected ? 'bg-cyber-elevated' : 'hover:bg-cyber-elevated'}`}
                                 onClick={() => setSelectedModelPath(v.filePath)}
                               >
                                 <span
