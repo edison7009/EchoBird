@@ -1,15 +1,17 @@
 // Feedback page — guides users to capture failing logs and submit them
 // as a GitHub issue. Two-step flow:
-//   1. Open devtools (Console tab) so users can grab the failing log tail.
-//   2. Open the project repo Issues page so they can paste + describe.
-//
-// Single Main component, no Panel — this page is full-width so users have
-// room to read the instructions without distraction.
+//   1. Copy last 30 backend log lines straight to clipboard (the same
+//      stream that appears in the dev-mode CMD window, sourced from
+//      `<app_log_dir>/echobird.log`).
+//   2. Open the project repo Issues page (GitHub primary; Gitcode for
+//      zh users; email for non-zh users) so they can paste + describe.
 
-import { ExternalLink, Mail, Terminal } from 'lucide-react';
+import { useState } from 'react';
+import { Check, ClipboardCopy, ExternalLink, Mail } from 'lucide-react';
 import { open as shellOpen } from '@tauri-apps/plugin-shell';
 import { useI18n } from '../../hooks/useI18n';
-import { openDevtools } from '../../api/tauri';
+import { useToast } from '../../components/Toast';
+import { readLogTail } from '../../api/tauri';
 
 const GITHUB_ISSUES_URL = 'https://github.com/edison7009/EchoBird/issues/new';
 // Mainland China users frequently can't reach github.com — Gitcode mirror
@@ -17,12 +19,34 @@ const GITHUB_ISSUES_URL = 'https://github.com/edison7009/EchoBird/issues/new';
 const GITCODE_ISSUES_URL = 'https://gitcode.com/edison7009/EchoBird/issues/create';
 // English-locale fallback when GitHub is unreachable: direct email.
 const SUPPORT_EMAIL = 'hi@echobird.ai';
+// Lines of backend log to copy. 30 is empirically enough to capture
+// one user action + its failure trail without overflowing an issue body.
+const LOG_TAIL_LINES = 30;
 
 const openExternal = (url: string) => shellOpen(url).catch(() => window.open(url, '_blank'));
 
 export function FeedbackMain() {
   const { t, locale } = useI18n();
+  const { showToast } = useToast();
   const isZh = locale.startsWith('zh');
+  const [justCopied, setJustCopied] = useState(false);
+
+  const copyLogTail = async () => {
+    try {
+      const text = await readLogTail(LOG_TAIL_LINES);
+      if (!text) {
+        showToast('warning', t('feedback.step1.empty'));
+        return;
+      }
+      await navigator.clipboard.writeText(text);
+      setJustCopied(true);
+      window.setTimeout(() => setJustCopied(false), 2000);
+      showToast('success', t('feedback.step1.copied'));
+    } catch (e) {
+      console.error('[Feedback] copyLogTail failed', e);
+      showToast('error', t('feedback.step1.failed'));
+    }
+  };
 
   return (
     <div className="max-w-2xl mx-auto py-8 px-2 space-y-8">
@@ -33,20 +57,18 @@ export function FeedbackMain() {
 
       <section className="rounded-lg border border-cyber-border bg-cyber-bg-secondary/40 p-5 space-y-3">
         <div className="flex items-center gap-2">
-          <Terminal size={18} className="text-cyber-accent" />
+          <ClipboardCopy size={18} className="text-cyber-accent" />
           <h2 className="font-semibold">{t('feedback.step1.title')}</h2>
         </div>
         <p className="text-sm text-cyber-text-secondary leading-relaxed">
           {t('feedback.step1.desc')}
         </p>
         <button
-          onClick={() => {
-            openDevtools().catch((e) => console.error('[Feedback] open_devtools failed', e));
-          }}
+          onClick={copyLogTail}
           className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-cyber-accent/15 hover:bg-cyber-accent/25 border border-cyber-accent/40 text-cyber-accent transition-colors text-sm font-medium"
         >
-          <Terminal size={14} />
-          {t('feedback.step1.button')}
+          {justCopied ? <Check size={14} /> : <ClipboardCopy size={14} />}
+          {justCopied ? t('feedback.step1.copied') : t('feedback.step1.button')}
         </button>
       </section>
 

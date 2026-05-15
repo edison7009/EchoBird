@@ -21,11 +21,14 @@ const zhHans: Partial<Translations> = {
   'page.feedback': '问题反馈',
   'feedback.title': '反馈问题，帮我们做得更好',
   'feedback.intro':
-    '遇到问题时，下面两步能帮我们最快定位：打开调试窗口复制最后的失败日志，然后到 GitHub 仓库提交一个 issue 并附上日志。',
-  'feedback.step1.title': '步骤 1：打开调试窗口',
+    '遇到问题时，下面两步能帮我们最快定位：复制最近的后台日志，然后到 GitHub 仓库提交一个 issue 并把日志粘贴进去。',
+  'feedback.step1.title': '步骤 1：复制最近日志',
   'feedback.step1.desc':
-    '调试窗口（开发者工具）的 Console 标签里会显示运行日志。请滚到最底部，把红色错误或 "stream disconnected"、"missing"、"400"、"failed" 附近的几行选中复制下来。',
-  'feedback.step1.button': '打开调试窗口',
+    '点击下方按钮会自动把最近 30 条后台运行日志复制到剪贴板（就是开发模式 CMD 窗口里那些）。无需手动滚动或选择。',
+  'feedback.step1.button': '复制最近 30 条日志',
+  'feedback.step1.copied': '已复制到剪贴板',
+  'feedback.step1.empty': '暂无日志可复制（应用刚启动？）',
+  'feedback.step1.failed': '复制失败，请重试',
   'feedback.step2.title': '步骤 2：把日志反馈给我们',
   'feedback.step2.desc':
     '点击下方按钮跳转到我们的 GitHub 仓库，在 Issues 里新建一条，把刚才复制的日志贴进去，简单描述一下你做了什么操作。我们看到后会尽快跟进。',
