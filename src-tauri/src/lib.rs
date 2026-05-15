@@ -190,10 +190,20 @@ pub fn run() {
                 log::warn!("[Setup] Could not resolve resource_dir");
             }
 
-            // Enable file logging in all builds for diagnostics
+            // Enable file logging in all builds for diagnostics.
+            //
+            // Rotation tuned for the Feedback page's "copy last 30 lines"
+            // button: the default rotation strategy can flip the file
+            // mid-session and orphan the head of the user's window in a
+            // sibling file. We bump max_file_size to 4 MB so a normal
+            // session stays in one file, and switch to KeepAll so any
+            // rotated files stay readable by read_log_tail's
+            // multi-file walker.
             app.handle().plugin(
                 tauri_plugin_log::Builder::default()
                     .level(log::LevelFilter::Info)
+                    .max_file_size(4 * 1024 * 1024)
+                    .rotation_strategy(tauri_plugin_log::RotationStrategy::KeepAll)
                     .targets([
                         // Log to file
                         tauri_plugin_log::Target::new(tauri_plugin_log::TargetKind::LogDir {
