@@ -8,6 +8,7 @@ const zhHans: Partial<Translations> = {
   'nav.appManager': '应用管理',
   'nav.localServer': '本地大模型',
   'nav.motherAgent': '安装与修复',
+  'nav.feedback': '问题反馈',
   'page.news': 'AI 资讯',
   'page.projects': '明星项目',
   'page.courses': 'AI 公开课',
@@ -17,6 +18,20 @@ const zhHans: Partial<Translations> = {
   'page.appManager': '应用管理',
   'page.localServer': '本地大模型',
   'page.motherAgent': '安装与修复',
+  'page.feedback': '问题反馈',
+  'feedback.title': '反馈问题，帮我们做得更好',
+  'feedback.intro':
+    '遇到问题时，下面两步能帮我们最快定位：打开调试窗口复制最后的失败日志，然后到 GitHub 仓库提交一个 issue 并附上日志。',
+  'feedback.step1.title': '步骤 1：打开调试窗口',
+  'feedback.step1.desc':
+    '调试窗口（开发者工具）的 Console 标签里会显示运行日志。请滚到最底部，把红色错误或 "stream disconnected"、"missing"、"400"、"failed" 附近的几行选中复制下来。',
+  'feedback.step1.button': '打开调试窗口',
+  'feedback.step2.title': '步骤 2：把日志反馈给我们',
+  'feedback.step2.desc':
+    '点击下方按钮跳转到我们的 GitHub 仓库，在 Issues 里新建一条，把刚才复制的日志贴进去，简单描述一下你做了什么操作。我们看到后会尽快跟进。',
+  'feedback.step2.button': '提交反馈到 GitHub',
+  'feedback.step2.fallbackButton': '国内：Gitcode',
+  'feedback.networkNote': '国内访问 GitHub 可能不稳定，旁边的 Gitcode 镜像可以直接打开。',
   'pulse.archive': '历史归档',
   'pulse.fetchFailed': '加载失败',
   'pulse.loadingFirst': '正在为您加载…',

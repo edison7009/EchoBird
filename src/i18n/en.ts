@@ -10,6 +10,7 @@ const en: Translations = {
   'nav.appManager': 'App Manager',
   'nav.localServer': 'Local LLM',
   'nav.motherAgent': 'Install & Repair',
+  'nav.feedback': 'Feedback',
   // Page titles
   'page.news': 'AI NEWS',
   'page.projects': 'STAR PROJECTS',
@@ -20,6 +21,21 @@ const en: Translations = {
   'page.appManager': 'APP MANAGER',
   'page.localServer': 'LOCAL LLM',
   'page.motherAgent': 'INSTALL & REPAIR',
+  'page.feedback': 'FEEDBACK',
+  'feedback.title': 'Help us improve — report a problem',
+  'feedback.intro':
+    'When something goes wrong, the fastest way to help us fix it is to open the debug window, copy the failing log lines, then submit a GitHub issue with them attached.',
+  'feedback.step1.title': 'Step 1: Open the debug window',
+  'feedback.step1.desc':
+    'The debug window (DevTools) Console tab shows live application logs. Scroll to the bottom and copy the red error lines or any lines near "stream disconnected", "missing", "400", or "failed".',
+  'feedback.step1.button': 'Open debug window',
+  'feedback.step2.title': 'Step 2: Send us the logs',
+  'feedback.step2.desc':
+    'Click below to open our GitHub repo in your browser. Create a new issue, paste the logs you copied, and add a short note describing what you were doing. We will pick it up.',
+  'feedback.step2.button': 'Submit feedback on GitHub',
+  'feedback.step2.fallbackButton': 'Email us',
+  'feedback.networkNote':
+    "If GitHub isn't reachable, email us directly — we'll reply within a few business days.",
   // AI Pulse (News + Projects shared)
   'pulse.archive': 'ARCHIVE',
   'pulse.fetchFailed': 'Fetch failed',

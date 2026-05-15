@@ -57,6 +57,7 @@ import {
   AiCoursesMain,
   AiCoursesPanel,
 } from './pages/AiCourses';
+import { FeedbackMain } from './pages/Feedback';
 
 function SidebarConnected({ onSettingsClick }: { onSettingsClick: () => void }) {
   // Selector form (one field per call) so unrelated store fields like
@@ -233,6 +234,7 @@ function App() {
                                         {is('apps') && t('page.appManager')}
                                         {is('localLlm') && t('page.localServer')}
                                         {is('mother') && t('page.motherAgent')}
+                                        {is('feedback') && t('page.feedback')}
                                       </h2>
                                       <div className="page-kicker truncate" aria-hidden="true">
                                         {is('news') && 'PULSE'}
@@ -242,6 +244,7 @@ function App() {
                                         {is('apps') && 'STUDIO'}
                                         {is('localLlm') && 'RUNTIME'}
                                         {is('mother') && 'AGENT'}
+                                        {is('feedback') && 'SUPPORT'}
                                       </div>
                                     </div>
                                     {/* Title actions — always mounted but hidden */}
@@ -295,6 +298,9 @@ function App() {
                                     className={`flex-1 flex flex-col overflow-hidden ${is('mother') ? '' : 'hidden'}`}
                                   >
                                     <MotherAgentMain />
+                                  </div>
+                                  <div className={pageScroll(is('feedback'))}>
+                                    <FeedbackMain />
                                   </div>
                                 </section>
                               </main>

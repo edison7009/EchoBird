@@ -69,6 +69,13 @@ export async function appReady(): Promise<void> {
   return invoke('app_ready');
 }
 
+/// Pop the main webview's devtools panel — used by the "问题反馈 /
+/// Feedback" page so users can copy the failing log tail and attach it
+/// to a GitHub issue.
+export async function openDevtools(): Promise<void> {
+  return invoke('open_devtools');
+}
+
 // ─── Misc APIs ───
 
 export async function launchGame(

@@ -10,6 +10,7 @@ export type TKey =
   | 'nav.news'
   | 'nav.projects'
   | 'nav.courses'
+  | 'nav.feedback'
   // Page titles
   | 'page.modelNexus'
   | 'page.appManager'
@@ -18,6 +19,18 @@ export type TKey =
   | 'page.news'
   | 'page.projects'
   | 'page.courses'
+  | 'page.feedback'
+  // Feedback page
+  | 'feedback.title'
+  | 'feedback.intro'
+  | 'feedback.step1.title'
+  | 'feedback.step1.desc'
+  | 'feedback.step1.button'
+  | 'feedback.step2.title'
+  | 'feedback.step2.desc'
+  | 'feedback.step2.button'
+  | 'feedback.step2.fallbackButton'
+  | 'feedback.networkNote'
   // AI Courses
   | 'courses.filter'
   | 'courses.cat.all'
