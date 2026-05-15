@@ -432,8 +432,30 @@ fn looks_like_image_unsupported(msg: &str) -> bool {
         "image_url is not",
         "image is unsupported",
         "model does not support multimodal",
+        // DeepSeek's text-only chat/reasoner/v4 lineup rejects image
+        // content parts with a JSON-deserialize-error wording rather
+        // than a "model doesn't support" message. Catch the structural
+        // signal: any `image_url` mention combined with deserialize-
+        // failure vocabulary ("unknown variant", "expected", "invalid
+        // type") means the provider's strict schema doesn't accept
+        // image parts.
+        "unknown variant `image_url`",
+        "unknown variant \"image_url\"",
+        "unknown variant 'image_url'",
+        "unknown field `image_url`",
+        "invalid type: image_url",
     ];
     if en_hits.iter().any(|p| m.contains(p)) {
+        return true;
+    }
+    // Combo check: image_url referenced alongside common deserialization
+    // error verbs. Avoids false positives on benign image_url mentions.
+    if m.contains("image_url")
+        && (m.contains("expected")
+            || m.contains("deserialize")
+            || m.contains("invalid")
+            || m.contains("unknown"))
+    {
         return true;
     }
     let zh_hits = [
@@ -1860,6 +1882,18 @@ mod tests {
         let out = chat_error_to_responses_error(400, Some(body), None);
         let msg = out["error"]["message"].as_str().unwrap();
         assert!(msg.contains("vision-capable"));
+    }
+
+    #[test]
+    fn image_unsupported_deepseek_json_deserialize_wording_caught() {
+        // DeepSeek's strict schema rejects image_url with a deserialize
+        // error rather than "model doesn't support image". Issue #38
+        // (msyrain) hit this on deepseek-v4-pro.
+        let body = r#"{"error":{"message":"Failed to deserialize the JSON body into the target type: messages[372]: unknown variant `image_url`, expected `text` at line 1 column 768380","type":"invalid_request_error"}}"#;
+        let out = chat_error_to_responses_error(400, Some(body), None);
+        let msg = out["error"]["message"].as_str().unwrap();
+        assert!(msg.contains("不支持图像") || msg.contains("vision-capable"));
+        assert_eq!(out["error"]["code"], "image_unsupported");
     }
 
     #[test]
