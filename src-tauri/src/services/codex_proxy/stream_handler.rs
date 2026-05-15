@@ -212,6 +212,17 @@ pub fn chat_error_to_responses_error(
         }
     }
 
+    // Friendly-rewrite context-overflow 400s. Every provider phrases this
+    // differently ("context length exceeded", "input too long",
+    // "上下文过长", etc.) so we keyword-match across EN + zh-Hans and
+    // swap the cryptic upstream wording for actionable advice. Only on
+    // 400 — a 4xx on long context, never a 5xx (5xx means upstream
+    // crashed; preserve verbatim so users see the real reason).
+    if status_code == 400 && looks_like_context_overflow(&message) {
+        message = "对话上下文已超出模型限制，请新建对话或精简历史后再试。 / The conversation history exceeds the model's context window — please start a new chat or trim earlier turns.".to_string();
+        code = "context_length_exceeded".to_string();
+    }
+
     json!({
         "id": response_id,
         "object": "response",
@@ -219,6 +230,46 @@ pub fn chat_error_to_responses_error(
         "error": { "code": code, "message": message },
         "output": [],
     })
+}
+
+// Keyword/regex-less detection of "your context window is full" 400s.
+// Bilingual because the user base spans EN + zh. Substring match keeps
+// it cheap; false positives just mean a user-friendlier error for a
+// non-overflow 400, which is acceptable.
+fn looks_like_context_overflow(msg: &str) -> bool {
+    let m = msg.to_lowercase();
+    // English phrasings
+    let en_hits = [
+        "context length",
+        "context window",
+        "context_length",
+        "maximum context",
+        "input is too long",
+        "too many tokens",
+        "exceeds the maximum",
+        "prompt is too long",
+        "tokens exceed",
+        "tokens exceeded",
+    ];
+    if en_hits.iter().any(|p| m.contains(p)) {
+        return true;
+    }
+    // Chinese phrasings — match on raw `msg` not the lowercased copy
+    // (CJK has no case, and lowercasing doesn't affect them anyway).
+    let zh_hits = [
+        "上下文过长",
+        "上下文超长",
+        "上下文超出",
+        "输入过长",
+        "输入超长",
+        "超出最大长度",
+        "超过最大",
+        "请缩短",
+        "token 数过多",
+        "tokens 过多",
+        "上下文长度",
+    ];
+    zh_hits.iter().any(|p| msg.contains(p))
 }
 
 // ---------------------------------------------------------------------------
@@ -1192,6 +1243,69 @@ mod tests {
         let msg = out["error"]["message"].as_str().unwrap();
         assert_eq!(msg.len(), 500);
         assert_eq!(out["error"]["code"], "upstream_502");
+    }
+
+    // ---- context-overflow friendly rewrite ----
+
+    #[test]
+    fn context_overflow_400_gets_friendly_bilingual_message() {
+        let body = r#"{"error":{"message":"This model's maximum context length is 128000 tokens, however your prompt is too long","code":"context_length_exceeded"}}"#;
+        let out = chat_error_to_responses_error(400, Some(body), None);
+        let msg = out["error"]["message"].as_str().unwrap();
+        assert!(msg.contains("上下文"), "should include Chinese hint");
+        assert!(
+            msg.contains("context window"),
+            "should include English hint"
+        );
+        assert_eq!(out["error"]["code"], "context_length_exceeded");
+    }
+
+    #[test]
+    fn context_overflow_zh_phrasing_also_caught() {
+        let body = r#"{"error":{"message":"输入的内容超出最大长度，请缩短后重试"}}"#;
+        let out = chat_error_to_responses_error(400, Some(body), None);
+        let msg = out["error"]["message"].as_str().unwrap();
+        assert!(msg.contains("上下文"));
+        assert!(msg.contains("context window"));
+    }
+
+    #[test]
+    fn non_overflow_400_passes_through_unchanged() {
+        // Generic 400 (bad parameter, etc.) shouldn't get rewritten.
+        let body = r#"{"error":{"message":"Invalid value for temperature: 5.0","code":"invalid_request_error"}}"#;
+        let out = chat_error_to_responses_error(400, Some(body), None);
+        assert_eq!(
+            out["error"]["message"],
+            "Invalid value for temperature: 5.0"
+        );
+        assert_eq!(out["error"]["code"], "invalid_request_error");
+    }
+
+    #[test]
+    fn overflow_keywords_in_500_are_preserved_verbatim() {
+        // 5xx means upstream crashed — preserve verbatim so users see
+        // the real reason, even if the message happens to mention
+        // "context length" in a stack trace.
+        let body = r#"{"error":{"message":"context length panic at line 42"}}"#;
+        let out = chat_error_to_responses_error(500, Some(body), None);
+        assert_eq!(out["error"]["message"], "context length panic at line 42");
+    }
+
+    #[test]
+    fn looks_like_context_overflow_unit_cases() {
+        // EN
+        assert!(looks_like_context_overflow("Context length exceeded"));
+        assert!(looks_like_context_overflow(
+            "your input is too long for this model"
+        ));
+        assert!(looks_like_context_overflow("Too many tokens in prompt"));
+        // zh
+        assert!(looks_like_context_overflow("上下文过长，请缩短"));
+        assert!(looks_like_context_overflow("超过最大长度限制"));
+        // misses
+        assert!(!looks_like_context_overflow("Invalid API key"));
+        assert!(!looks_like_context_overflow("rate limit exceeded")); // exceeded alone isn't enough
+        assert!(!looks_like_context_overflow(""));
     }
 
     #[test]
