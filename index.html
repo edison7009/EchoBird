@@ -36,18 +36,20 @@
       font-style: italic;
       font-display: block;
     }
-    /* Match the real app palette (src/index.css):
-       dark  → #211F1C, light → #EFEEEB. The window stays hidden via Tauri
-       (visible:false in tauri.conf.json) until React mounts and calls
-       appReady(), so this background is mainly visible during the first
-       paint of the main UI. */
+    /* html/body MUST stay transparent — see src/index.css.
+       The actual app palette is painted by the .rounded-xl shell in
+       App.tsx. A solid color here filled the four corners of the OS
+       window (which is square because we force DWMWCP_DONOTROUND)
+       with the theme bg, defeating the rounded clip-path. In dark
+       theme the spill colour matched the desktop and was invisible;
+       in light theme on a coloured desktop it showed up as a square
+       halo. The window stays hidden (visible:false) until appReady()
+       so there is no flash to mask. */
     html, body {
-      background: #211F1C;
+      background: transparent;
       margin: 0;
       padding: 0;
     }
-    :root[data-theme="light"] body,
-    :root[data-theme="light"] { background: #EFEEEB; }
   </style>
 </head>
 
