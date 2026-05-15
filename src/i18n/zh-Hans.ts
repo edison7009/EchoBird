@@ -24,7 +24,7 @@ const zhHans: Partial<Translations> = {
     '遇到问题时，下面两步能帮我们最快定位：复制最近的后台日志，然后到 GitHub 仓库提交一个 issue 并把日志粘贴进去。',
   'feedback.step1.title': '步骤 1：复制最近日志',
   'feedback.step1.desc':
-    '点击下方按钮会自动把最近 30 条后台运行日志复制到剪贴板（就是开发模式 CMD 窗口里那些）。无需手动滚动或选择。',
+    '点击下方按钮会自动把最近 30 条后台运行日志复制到剪贴板，无需手动滚动或选择。',
   'feedback.step1.button': '复制最近 30 条日志',
   'feedback.step1.copied': '已复制到剪贴板',
   'feedback.step1.empty': '暂无日志可复制（应用刚启动？）',
