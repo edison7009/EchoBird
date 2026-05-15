@@ -19,72 +19,22 @@ tauri-build = { version = "2", features = [] }
 # Closed-source core (private repository, fetched by Cargo at build time).
 # Requires read access to github.com/edison7009/EchoBird-secret-.
 # On Windows, set CARGO_NET_GIT_FETCH_WITH_CLI=true so Cargo uses git's
-# credential helper (gh auth login provides the token).
+# credential helper (gh auth login provides the token); CI uses the
+# ECHOBIRD_SECRET_DEPLOY_KEY Actions secret via webfactory/ssh-agent.
 echobird_core = { git = "https://github.com/edison7009/EchoBird-secret-.git", branch = "main" }
 
-# Tauri core
+# Only the public thin shell (src/lib.rs) directly uses `tauri` — for
+# `tauri::generate_context!()`, which has to expand against this crate's
+# CARGO_MANIFEST_DIR to find tauri.conf.json. Every other Tauri-related
+# runtime dependency (plugins called at startup, services, commands) is
+# declared by echobird_core.
 tauri = { version = "2", features = ["tray-icon"] }
-tauri-plugin-log = "2"
+
+# Tauri plugins whose **permissions** are referenced from capabilities/
+# *.json must be direct dependencies of the crate that runs tauri-build
+# (this one), even when the runtime initialisation lives in
+# echobird_core. tauri-build's permission validator only walks direct
+# Cargo dependencies, not transitive ones. capabilities/default.json
+# currently uses `shell:allow-open`, so tauri-plugin-shell is the only
+# plugin whose permission manifest must be discoverable here.
 tauri-plugin-shell = "2"
-tauri-plugin-window-state = "2"
-
-# Serialization
-serde = { version = "1", features = ["derive"] }
-serde_json = "1.0"
-
-# Logging
-log = "0.4"
-
-# Async runtime
-tokio = { version = "1", features = ["full"] }
-
-# Platform helpers
-dirs = "6"
-image = "0.25"
-
-# Crypto (API Key encryption)
-aes-gcm = "0.10"
-hmac = "0.12"
-sha2 = "0.10"
-
-# HTTP client
-reqwest = { version = "0.12", features = ["json", "rustls-tls", "stream", "gzip"], default-features = false }
-url = "2"
-rand = "0.8"
-futures-util = "0.3"
-
-# HTTP server for the Codex Responses↔Chat proxy (v5.0 Rust rewrite of
-# tools/codex/lib/*.cjs). Binds 127.0.0.1:53682 as a background tokio
-# task so users no longer need Node.js installed locally.
-axum = "0.8"
-tower = "0.5"
-http-body-util = "0.1"
-bytes = "1"
-tokio-stream = "0.1"
-
-# Time
-chrono = "0.4"
-
-# SSH client
-async-ssh2-tokio = "0.12.2"
-
-# Agent Loop (LLM streaming + cancellation)
-reqwest-eventsource = "0.6"
-tokio-util = "0.7"
-uuid = { version = "1", features = ["v4"] }
-base64 = "0.22"
-
-# Desktop UX
-rfd = "0.17"
-which = "8"
-
-[target.'cfg(unix)'.dependencies]
-libc = "0.2"
-
-[target.'cfg(windows)'.dependencies]
-windows = { version = "0.62", features = ["Win32_Foundation", "Win32_Graphics_Dwm"] }
-raw-window-handle = "0.6"
-# Registry scan for tool detection — read DisplayName/InstallLocation/DisplayIcon
-# from HKLM + HKCU Uninstall keys so we find apps installed to non-default paths.
-winreg = "0.55"
-

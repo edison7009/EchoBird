@@ -1306,6 +1306,17 @@ dependencies = [
 name = "echobird"
 version = "4.7.1"
 dependencies = [
+ "echobird_core",
+ "tauri",
+ "tauri-build",
+ "tauri-plugin-shell",
+]
+
+[[package]]
+name = "echobird_core"
+version = "0.1.0"
+source = "git+https://github.com/edison7009/EchoBird-secret-.git?branch=main#299cdbba15ead44e50e19c63e74b662d873bfdd6"
+dependencies = [
  "aes-gcm",
  "async-ssh2-tokio",
  "axum",
@@ -1313,7 +1324,6 @@ dependencies = [
  "bytes",
  "chrono",
  "dirs",
- "echobird_core",
  "futures-util",
  "hmac",
  "http-body-util",
@@ -1329,7 +1339,6 @@ dependencies = [
  "serde_json",
  "sha2",
  "tauri",
- "tauri-build",
  "tauri-plugin-log",
  "tauri-plugin-shell",
  "tauri-plugin-window-state",
@@ -1343,11 +1352,6 @@ dependencies = [
  "windows 0.62.2",
  "winreg",
 ]
-
-[[package]]
-name = "echobird_core"
-version = "0.1.0"
-source = "git+https://github.com/edison7009/EchoBird-secret-.git?branch=main#54d5cec69a435d88f08de8a60d484c3469ba2c4e"
 
 [[package]]
 name = "ed25519"
