@@ -557,10 +557,11 @@ export const LocalServerMain: React.FC = () => {
               onChange={(v) => setContextSize(Number(v))}
               disabled={isRunning}
               options={[
-                { id: '2048', label: '2K' },
-                { id: '4096', label: '4K' },
-                { id: '8192', label: '8K' },
-                { id: '16384', label: '16K' },
+                // 32K is the minimum: every model in our store advertises
+                // tool calling, and Mother Agent's system prompt + tool
+                // definitions weigh ~22K tokens. Anything below 32K
+                // dead-ends users with `exceed_context_size_error` the
+                // moment they try to use the agent flow.
                 { id: '32768', label: '32K' },
                 { id: '65536', label: '64K' },
                 { id: '131072', label: '128K' },
