@@ -25,6 +25,7 @@ import {
   useMemo,
   useRef,
 } from 'react';
+import { invoke } from '@tauri-apps/api/core';
 import { open as shellOpen } from '@tauri-apps/plugin-shell';
 import { ChevronDown, ChevronRight, ExternalLink, RefreshCw } from 'lucide-react';
 import { useI18n } from '../../hooks/useI18n';
@@ -71,7 +72,8 @@ const PULSE_MIRRORS_EN: { name: string; base: string }[] = [
 
 // 7-day window gives much richer EN content (~5000 items vs ~600 for 24h)
 // after the strict CJK-title filter and project sub-filter eat into the pool.
-// Trade-off: 5.4 MB fetch every 6h, capped to MAX_ITEMS in storage.
+// Trade-off: 5.4 MB fetch every 6h. No storage cap — the on-disk archive
+// (see "Archive" section below) accumulates indefinitely.
 const FEED_FILE_ZH = 'latest-7d.json';
 const FEED_FILE_EN = 'latest-7d-en.json';
 
@@ -100,33 +102,44 @@ interface NewsItem {
 
 type PageVariant = 'news' | 'projects';
 
-// ===== Local cache =====
-// Per-locale keys: zh and en use different upstream files, so a single shared
-// cache would clobber on every locale switch. Keeping them separate also lets
-// each feed track its own refresh cadence.
+// ===== Archive (disk-backed) =====
+// History lives in ~/.echobird/pulse/YYYY/MM/DD_{lang}.json, fanned out
+// by the Rust pulse_archive service. Previous versions cached items in
+// localStorage which was capped at 3000 entries AND wiped on every Tauri
+// WebView origin reset — that's why users kept seeing "only the last
+// few days" after each app upgrade. The disk archive removes both
+// problems: there is no cap, and the data is independent of the WebView.
+//
+// The 30-min cadence and the legacy `lastFetched` timestamp still live
+// in localStorage because they're (a) tiny and (b) safe to lose — if a
+// WebView reset wipes them we simply refetch once.
 
-const ITEMS_KEY = (lang: 'zh' | 'en') => `pulse:items:${lang}`;
 const FEED_META = (lang: 'zh' | 'en') => `pulse:meta:${lang}`;
-const MAX_ITEMS = 3000;
 const REFRESH_AFTER_MS = 30 * 60 * 1000;
+
+// Legacy cache key. Items kept under this key before the disk archive
+// landed are migrated to disk on first run and then the key is removed.
+const LEGACY_ITEMS_KEY = (lang: 'zh' | 'en') => `pulse:items:${lang}`;
+const MIGRATION_DONE_KEY = (lang: 'zh' | 'en') => `pulse:migrated-to-disk:${lang}`;
 
 interface FeedMeta {
   lastFetched: number;
 }
 
-const loadItems = (lang: 'zh' | 'en'): NewsItem[] => {
+const loadItems = async (lang: 'zh' | 'en'): Promise<NewsItem[]> => {
   try {
-    const raw = localStorage.getItem(ITEMS_KEY(lang));
-    return raw ? JSON.parse(raw) : [];
-  } catch {
+    return await invoke<NewsItem[]>('pulse_load_all', { lang });
+  } catch (e) {
+    console.warn('[pulse] pulse_load_all failed', e);
     return [];
   }
 };
-const saveItems = (lang: 'zh' | 'en', items: NewsItem[]) => {
+const saveItems = async (lang: 'zh' | 'en', items: NewsItem[]): Promise<void> => {
+  if (items.length === 0) return;
   try {
-    localStorage.setItem(ITEMS_KEY(lang), JSON.stringify(items));
-  } catch {
-    /* quota */
+    await invoke('pulse_save', { lang, items });
+  } catch (e) {
+    console.warn('[pulse] pulse_save failed', e);
   }
 };
 const loadMeta = (lang: 'zh' | 'en'): FeedMeta | null => {
@@ -142,6 +155,26 @@ const saveMeta = (lang: 'zh' | 'en', m: FeedMeta) => {
     localStorage.setItem(FEED_META(lang), JSON.stringify(m));
   } catch {
     /* quota */
+  }
+};
+
+// One-shot move from the old localStorage cache into the disk archive.
+// Runs at most once per (lang, install). Failure leaves the legacy key
+// intact and the migration flag unset, so we'll retry on next launch.
+const migrateLegacyToDisk = async (lang: 'zh' | 'en'): Promise<void> => {
+  if (localStorage.getItem(MIGRATION_DONE_KEY(lang)) === '1') return;
+  try {
+    const raw = localStorage.getItem(LEGACY_ITEMS_KEY(lang));
+    if (raw) {
+      const items: NewsItem[] = JSON.parse(raw);
+      if (items.length > 0) {
+        await invoke('pulse_save', { lang, items });
+      }
+    }
+    localStorage.removeItem(LEGACY_ITEMS_KEY(lang));
+    localStorage.setItem(MIGRATION_DONE_KEY(lang), '1');
+  } catch (e) {
+    console.warn(`[pulse] migrate ${lang} failed, will retry next launch`, e);
   }
 };
 
@@ -316,8 +349,8 @@ export function AiPulseProvider({ children }: { children: React.ReactNode }) {
   const { locale } = useI18n();
   const lang: 'zh' | 'en' = locale.startsWith('zh') ? 'zh' : 'en';
 
-  const [items, setItems] = useState<NewsItem[]>(() => loadItems(lang));
-  const [initialLoading, setInitialLoading] = useState(() => loadItems(lang).length === 0);
+  const [items, setItems] = useState<NewsItem[]>([]);
+  const [initialLoading, setInitialLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
@@ -333,8 +366,18 @@ export function AiPulseProvider({ children }: { children: React.ReactNode }) {
   const selectDate = useCallback((date: string) => setSelectedDate(date), []);
 
   const sync = useCallback(async (targetLang: 'zh' | 'en', force = false) => {
+    // One-shot legacy → disk move. Cheap no-op after the first run.
+    await migrateLegacyToDisk(targetLang);
+
+    // Hydrate from disk first so the feed isn't empty while we may be
+    // waiting on a network round-trip. Doing this even when we don't
+    // plan to refetch keeps the initial paint instant after a locale
+    // flip or app relaunch.
+    const cached = await loadItems(targetLang);
+    setItems(cached);
+    if (cached.length > 0) setInitialLoading(false);
+
     const meta = loadMeta(targetLang);
-    const cached = loadItems(targetLang);
     if (!force && meta && Date.now() - meta.lastFetched < REFRESH_AFTER_MS && cached.length > 0) {
       setInitialLoading(false);
       return;
@@ -346,18 +389,13 @@ export function AiPulseProvider({ children }: { children: React.ReactNode }) {
       const feed = await fetchFeed(targetLang);
       if (my !== seq.current) return;
 
-      // Dedupe by url against THIS lang's existing cache only — never
-      // cross-pollinate zh ↔ en caches.
-      const existing = loadItems(targetLang);
-      const byUrl = new Map<string, NewsItem>();
-      for (const it of [...existing, ...feed.items]) {
-        if (!byUrl.has(it.url)) byUrl.set(it.url, it);
-      }
-      const merged = Array.from(byUrl.values())
-        .sort((a, b) => itemTs(b).localeCompare(itemTs(a)))
-        .slice(0, MAX_ITEMS);
+      // Persist the freshly-fetched window onto disk (fanned out by
+      // each item's local date) and then reload the merged view so the
+      // in-memory `items` reflects archive + new items deduped by url.
+      // The dedupe + sort is now the Rust side's job.
+      await saveItems(targetLang, feed.items);
+      const merged = await loadItems(targetLang);
 
-      saveItems(targetLang, merged);
       const now = Date.now();
       saveMeta(targetLang, { lastFetched: now });
       setItems(merged);
@@ -381,10 +419,10 @@ export function AiPulseProvider({ children }: { children: React.ReactNode }) {
   // because the date sets between zh and en feeds usually don't overlap.
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setItems(loadItems(lang));
+    setItems([]);
     setLastFetched(loadMeta(lang)?.lastFetched || null);
     setSelectedDate(null);
-    setInitialLoading(loadItems(lang).length === 0);
+    setInitialLoading(true);
     sync(lang);
   }, [lang, sync]);
 
@@ -584,6 +622,29 @@ function groupByMonth(dates: string[]): Map<string, string[]> {
     const ym = d.slice(0, 7);
     if (!map.has(ym)) map.set(ym, []);
     map.get(ym)!.push(d);
+  }
+  // Fill in-month gaps with placeholder days so the sidebar shows "0"
+  // for a day in the middle of the user's archive that has no items —
+  // the upstream is a 7-day sliding window, so a missed day can never
+  // be backfilled, and the "0" tells the user we actually checked
+  // rather than the day simply disappearing. We never extend beyond
+  // the first or last archived day of a month, because that would
+  // clutter the list with strings of days the user never reached.
+  for (const [ym, days] of map) {
+    if (days.length < 2) continue;
+    const nums = days.map((d) => parseInt(d.slice(8, 10), 10));
+    let min = nums[0];
+    let max = nums[0];
+    for (const n of nums) {
+      if (n < min) min = n;
+      if (n > max) max = n;
+    }
+    if (max - min + 1 === days.length) continue; // already dense
+    const filled: string[] = [];
+    for (let day = max; day >= min; day--) {
+      filled.push(`${ym}-${String(day).padStart(2, '0')}`);
+    }
+    map.set(ym, filled);
   }
   return map;
 }
