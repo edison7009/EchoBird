@@ -101,7 +101,15 @@ export function FeedbackMain() {
             </button>
           ) : (
             <button
-              onClick={() => openExternal(`mailto:${SUPPORT_EMAIL}`)}
+              onClick={() => {
+                // Copy the email address to clipboard rather than firing a
+                // mailto: URL — most users don't have a desktop mail client
+                // configured, and a missing handler launches OS picker noise.
+                navigator.clipboard
+                  .writeText(SUPPORT_EMAIL)
+                  .then(() => showToast('success', t('feedback.step1.copied')))
+                  .catch(() => showToast('error', t('feedback.step1.failed')));
+              }}
               className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-cyber-bg-secondary/60 hover:bg-cyber-bg-secondary border border-cyber-border text-cyber-text-secondary hover:text-cyber-text transition-colors text-sm font-medium"
             >
               <Mail size={14} />
