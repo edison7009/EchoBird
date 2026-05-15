@@ -75,7 +75,7 @@ pub async fn read_log_tail(app: tauri::AppHandle, lines: usize) -> Result<String
 
     // Newest first. We pull tail-lines off each file in reverse order
     // until we've satisfied `lines`.
-    files.sort_by(|a, b| b.1.cmp(&a.1));
+    files.sort_by_key(|f| std::cmp::Reverse(f.1));
 
     let mut collected_rev: Vec<String> = Vec::with_capacity(lines);
     for (path, _) in &files {
