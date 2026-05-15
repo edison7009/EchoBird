@@ -100,6 +100,62 @@ pub fn chat_usage_to_responses_usage(chat_usage: Option<&Value>) -> Value {
 }
 
 // ---------------------------------------------------------------------------
+// extract_reasoning_delta — best-effort reasoning capture across providers.
+// ---------------------------------------------------------------------------
+//
+// Returns the reasoning text (if any) hiding in a Chat Completions delta.
+// Tries multiple field names + shapes because thinking-mode providers
+// haven't standardized on one wire format yet:
+//
+//   • Plain strings:   delta.reasoning_content / delta.reasoning / delta.thinking
+//   • Structured objects:  { type: "text", text: "..." } / { content: "..." }
+//   • Arrays of structured parts: [{ text: "..." }, { text: "..." }]
+//
+// Returns None when no reasoning-like field is present. Concatenates all
+// matching paths so providers that emit both reasoning_content AND
+// thinking (rare but possible) don't lose either half.
+pub(super) fn extract_reasoning_delta(delta: &Value) -> Option<String> {
+    let mut out = String::new();
+    for key in &["reasoning_content", "reasoning", "thinking"] {
+        if let Some(v) = delta.get(*key) {
+            append_reasoning_value(v, &mut out);
+        }
+    }
+    if out.is_empty() {
+        None
+    } else {
+        Some(out)
+    }
+}
+
+fn append_reasoning_value(v: &Value, out: &mut String) {
+    match v {
+        Value::String(s) => {
+            if !s.is_empty() {
+                out.push_str(s);
+            }
+        }
+        Value::Object(_) => {
+            // {type:"text", text:"..."} | {text:"..."} | {content:"..."}
+            for field in &["text", "content"] {
+                if let Some(s) = v.get(*field).and_then(|x| x.as_str()) {
+                    if !s.is_empty() {
+                        out.push_str(s);
+                        return;
+                    }
+                }
+            }
+        }
+        Value::Array(parts) => {
+            for p in parts {
+                append_reasoning_value(p, out);
+            }
+        }
+        _ => {}
+    }
+}
+
+// ---------------------------------------------------------------------------
 // chat_error_to_responses_error — wrap an upstream error in Responses shape.
 // ---------------------------------------------------------------------------
 //
@@ -508,12 +564,23 @@ impl StreamState {
             None => return,
         };
 
-        // reasoning_content delta — DeepSeek-V4 / Kimi-K2.6 / etc. emit
-        // these alongside the regular content stream. Accumulate but
-        // don't forward (Codex's reasoning summary events aren't
-        // synthesized yet; round-trip via SessionStore is what matters).
-        if let Some(r) = delta.get("reasoning_content").and_then(|v| v.as_str()) {
-            self.reasoning_buf.push_str(r);
+        // Reasoning delta — thinking-mode providers stream their
+        // "internal monologue" alongside content. Accumulate but don't
+        // forward (Codex's reasoning summary events aren't synthesized
+        // yet; round-trip via SessionStore is what matters).
+        //
+        // Field-name + shape variants we've seen in the wild:
+        //   • DeepSeek-V4 / Kimi-K2.6 / MiMo-V2.5: `reasoning_content` string
+        //   • Some MiMo deployments: `reasoning` string
+        //   • Anthropic-bridged: `thinking` string
+        //   • Structured form: `reasoning_content: { type, text }`
+        //     (or array of such parts; we concatenate the text fields)
+        //
+        // Without this expanded capture, MiMo's first-turn reasoning
+        // wasn't being stored, so the second turn 400'd / silenced
+        // when the placeholder injection had to take over.
+        if let Some(r) = extract_reasoning_delta(&delta) {
+            self.reasoning_buf.push_str(&r);
         }
 
         // Text delta
@@ -1024,6 +1091,78 @@ mod tests {
         assert_eq!(out["total_tokens"], 0);
         assert_eq!(out["input_tokens_details"]["cached_tokens"], 0);
         assert_eq!(out["output_tokens_details"]["reasoning_tokens"], 0);
+    }
+
+    // ---- extract_reasoning_delta ----
+
+    #[test]
+    fn reasoning_extract_canonical_reasoning_content_string() {
+        let d = json!({ "reasoning_content": "I should call shell." });
+        assert_eq!(
+            extract_reasoning_delta(&d),
+            Some("I should call shell.".to_string())
+        );
+    }
+
+    #[test]
+    fn reasoning_extract_falls_back_to_reasoning_field() {
+        // Some MiMo deployments stream `reasoning` instead of `reasoning_content`.
+        let d = json!({ "reasoning": "let me think" });
+        assert_eq!(
+            extract_reasoning_delta(&d),
+            Some("let me think".to_string())
+        );
+    }
+
+    #[test]
+    fn reasoning_extract_falls_back_to_thinking_field() {
+        let d = json!({ "thinking": "anthropic style" });
+        assert_eq!(
+            extract_reasoning_delta(&d),
+            Some("anthropic style".to_string())
+        );
+    }
+
+    #[test]
+    fn reasoning_extract_structured_text_object() {
+        let d = json!({ "reasoning_content": { "type": "text", "text": "structured" } });
+        assert_eq!(extract_reasoning_delta(&d), Some("structured".to_string()));
+    }
+
+    #[test]
+    fn reasoning_extract_array_of_parts() {
+        let d = json!({
+            "reasoning_content": [
+                { "text": "first " },
+                { "text": "second" },
+            ]
+        });
+        assert_eq!(
+            extract_reasoning_delta(&d),
+            Some("first second".to_string())
+        );
+    }
+
+    #[test]
+    fn reasoning_extract_returns_none_when_absent() {
+        let d = json!({ "content": "regular text", "role": "assistant" });
+        assert_eq!(extract_reasoning_delta(&d), None);
+    }
+
+    #[test]
+    fn reasoning_extract_skips_empty_strings() {
+        let d = json!({ "reasoning_content": "" });
+        assert_eq!(extract_reasoning_delta(&d), None);
+    }
+
+    #[test]
+    fn reasoning_extract_concatenates_multiple_fields_when_present() {
+        // Defensive: if a provider mistakenly emits both fields we keep
+        // both halves rather than silently dropping one.
+        let d = json!({ "reasoning_content": "part1 ", "thinking": "part2" });
+        let out = extract_reasoning_delta(&d).unwrap();
+        assert!(out.contains("part1"));
+        assert!(out.contains("part2"));
     }
 
     // ---- chat_error_to_responses_error ----

@@ -462,7 +462,13 @@ fn push_assistant_tool_calls(
 /// hard. Logs a warning when the placeholder fires so we can spot which
 /// branches still leak.
 fn ensure_reasoning_for_tool_calls(messages: &mut [Value], sessions: &SessionStore) {
-    const PLACEHOLDER: &str = " ";
+    // Substantive (not whitespace) — MiMo specifically goes silent when
+    // fed a single-space stub: the model treats it as "I had a thought
+    // but it was empty," then declines to continue. A short neutral
+    // sentence keeps the contract satisfied AND gives the model
+    // something coherent to anchor against without leaking implementation
+    // details into the user-visible context.
+    const PLACEHOLDER: &str = "Continuing from previous tool call.";
 
     for msg in messages.iter_mut() {
         let is_assistant_with_tool_calls = msg.get("role").and_then(|v| v.as_str())
