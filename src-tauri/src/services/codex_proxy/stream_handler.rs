@@ -229,6 +229,13 @@ pub fn chat_error_to_responses_error(
         code = "image_unsupported".to_string();
     }
 
+    // Normalize the error code so Codex's specialized error-handling UI
+    // fires (quota / overloaded / cyber-policy). Codex matches on
+    // specific strings ("rate_limit_exceeded", "server_overloaded",
+    // "cyber_policy", etc.) — upstream provider error codes vary widely,
+    // so we map common shapes onto Codex's expected vocabulary.
+    code = normalize_error_code(&code, status_code, &message);
+
     json!({
         "id": response_id,
         "object": "response",
@@ -276,6 +283,101 @@ fn looks_like_context_overflow(msg: &str) -> bool {
         "上下文长度",
     ];
     zh_hits.iter().any(|p| msg.contains(p))
+}
+
+// Map a (raw upstream code, HTTP status, message) tuple onto an error
+// code Codex's UI recognizes. Codex's error-event consumer in
+// `codex-rs/codex-api/src/sse/responses.rs` matches on specific
+// strings: "context_length_exceeded", "rate_limit_exceeded",
+// "server_overloaded", "cyber_policy", "invalid_prompt",
+// "usage_not_included". Upstream providers use varied vocabulary
+// (DeepSeek: "insufficient_quota"; MiMo: "billing_hard_limit"; Qwen:
+// "RequestRateLimit"; etc.) — map them onto Codex's expected set so
+// the right error UI surfaces.
+//
+// Preserves the upstream code on no-match so unknown errors still
+// carry useful information for diagnostics.
+fn normalize_error_code(upstream_code: &str, status_code: u16, message: &str) -> String {
+    let low_msg = message.to_lowercase();
+    let low_code = upstream_code.to_lowercase();
+
+    // Already-normalized — pass through.
+    let canonical = [
+        "context_length_exceeded",
+        "rate_limit_exceeded",
+        "server_overloaded",
+        "cyber_policy",
+        "invalid_prompt",
+        "usage_not_included",
+        "image_unsupported",
+    ];
+    if canonical.iter().any(|c| &low_code == c) {
+        return upstream_code.to_string();
+    }
+
+    // Rate-limit / quota family.
+    let rate_limit_signals = [
+        "rate_limit",
+        "ratelimit",
+        "rate-limit",
+        "too_many_requests",
+        "insufficient_quota",
+        "insufficient_credit",
+        "quota_exceeded",
+        "billing_hard_limit",
+        "balance",
+    ];
+    if status_code == 429
+        || rate_limit_signals.iter().any(|p| low_code.contains(p))
+        || rate_limit_signals.iter().any(|p| low_msg.contains(p))
+    {
+        return "rate_limit_exceeded".to_string();
+    }
+
+    // Server overload / unavailable family.
+    let overload_signals = [
+        "server_overloaded",
+        "overloaded",
+        "service_unavailable",
+        "server_busy",
+        "try_again_later",
+    ];
+    if status_code == 503
+        || status_code == 529
+        || overload_signals.iter().any(|p| low_code.contains(p))
+        || overload_signals.iter().any(|p| low_msg.contains(p))
+    {
+        return "server_overloaded".to_string();
+    }
+
+    // Safety / content-policy family. Provider-specific names vary widely
+    // — match a broad keyword set so the cyber_policy UI fires.
+    let policy_signals = [
+        "content_policy",
+        "content_filter",
+        "safety_violation",
+        "policy_violation",
+        "cyber_policy",
+        "moderation",
+        "responsible_ai",
+        "敏感",
+        "违规",
+    ];
+    if policy_signals.iter().any(|p| low_code.contains(p))
+        || policy_signals.iter().any(|p| low_msg.contains(p))
+        || message.contains("敏感")
+        || message.contains("违规")
+    {
+        return "cyber_policy".to_string();
+    }
+
+    // Default: keep whatever upstream said. Empty codes fall back to
+    // the http status — preserves the diagnostic.
+    if upstream_code.is_empty() {
+        format!("upstream_{status_code}")
+    } else {
+        upstream_code.to_string()
+    }
 }
 
 // Detect "this model can't accept images" 400s across providers. Same
@@ -507,6 +609,13 @@ pub struct StreamState {
     text_idx: i64,
     text_buf: String,
     reasoning_buf: String,
+    /// `reasoning` output item open in the SSE stream. We synthesize the
+    /// item + summary_text events so Codex's UI gets a "thinking..."
+    /// panel when a thinking-mode upstream streams reasoning_content
+    /// deltas. Opened on first reasoning delta, closed on first
+    /// non-reasoning delta or at finish.
+    reasoning_open: bool,
+    reasoning_idx: i64,
     tool_calls: BTreeMap<i64, ToolCallSlot>,
     /// Order of tool-call insertion (chat delta index). Iterating
     /// `tool_calls.values()` in insertion order matters because Codex
@@ -534,6 +643,8 @@ impl StreamState {
             text_idx: -1,
             text_buf: String::new(),
             reasoning_buf: String::new(),
+            reasoning_open: false,
+            reasoning_idx: -1,
             tool_calls: BTreeMap::new(),
             tool_call_order: Vec::new(),
             next_output_index: 0,
@@ -658,9 +769,11 @@ impl StreamState {
         };
 
         // Reasoning delta — thinking-mode providers stream their
-        // "internal monologue" alongside content. Accumulate but don't
-        // forward (Codex's reasoning summary events aren't synthesized
-        // yet; round-trip via SessionStore is what matters).
+        // "internal monologue" alongside content. We do TWO things now:
+        //  1. Accumulate into reasoning_buf for SessionStore round-trip
+        //     (existing behavior — keeps next turn's request valid)
+        //  2. Synthesize the Responses-API reasoning_summary_* SSE
+        //     events so Codex shows a "thinking" panel in the UI
         //
         // Field-name + shape variants we've seen in the wild:
         //   • DeepSeek-V4 / Kimi-K2.6 / MiMo-V2.5: `reasoning_content` string
@@ -668,17 +781,29 @@ impl StreamState {
         //   • Anthropic-bridged: `thinking` string
         //   • Structured form: `reasoning_content: { type, text }`
         //     (or array of such parts; we concatenate the text fields)
-        //
-        // Without this expanded capture, MiMo's first-turn reasoning
-        // wasn't being stored, so the second turn 400'd / silenced
-        // when the placeholder injection had to take over.
         if let Some(r) = extract_reasoning_delta(&delta) {
+            if !self.reasoning_open {
+                self.open_reasoning_item();
+            }
             self.reasoning_buf.push_str(&r);
+            let idx = self.reasoning_idx;
+            self.emit(
+                "response.reasoning_summary_text.delta",
+                json!({
+                    "type": "response.reasoning_summary_text.delta",
+                    "output_index": idx,
+                    "summary_index": 0,
+                    "delta": r,
+                }),
+            );
         }
 
         // Text delta
         if let Some(content) = delta.get("content").and_then(|v| v.as_str()) {
             if !content.is_empty() {
+                if self.reasoning_open {
+                    self.close_reasoning_item();
+                }
                 if !self.text_open {
                     self.open_text_item();
                 }
@@ -699,6 +824,9 @@ impl StreamState {
         // Tool-call deltas. Chat splits arguments into multiple delta
         // chunks; we forward each one as a Responses arguments delta.
         if let Some(tcs) = delta.get("tool_calls").and_then(|v| v.as_array()) {
+            if self.reasoning_open {
+                self.close_reasoning_item();
+            }
             if self.text_open {
                 self.close_text_item();
             }
@@ -772,6 +900,9 @@ impl StreamState {
             return;
         }
         self.finished = true;
+        if self.reasoning_open {
+            self.close_reasoning_item();
+        }
         if self.text_open {
             self.close_text_item();
         }
@@ -786,15 +917,26 @@ impl StreamState {
         }));
         completed["usage"] = chat_usage_to_responses_usage(self.usage.as_ref());
 
-        // "length" finish_reason → max_tokens hit → surface as incomplete
-        // so Codex shows "(response truncated)" instead of clean stop.
-        let is_length = self.finish_reason.as_deref() == Some("length");
-        if is_length {
+        // Finish-reason → Responses-API status mapping.
+        //   • "length"           → incomplete (max_output_tokens)
+        //   • "content_filter"   → incomplete (content_filter) — DeepSeek
+        //                          / Qwen safety triggers fire this when
+        //                          the model refuses; surfacing the reason
+        //                          lets Codex tell the user "model
+        //                          refused" instead of silent empty output
+        //   • anything else      → completed
+        let finish = self.finish_reason.as_deref();
+        let incomplete_reason: Option<&str> = match finish {
+            Some("length") => Some("max_output_tokens"),
+            Some("content_filter") => Some("content_filter"),
+            _ => None,
+        };
+        if let Some(reason) = incomplete_reason {
             completed["status"] = Value::String("incomplete".into());
-            completed["incomplete_details"] = json!({ "reason": "max_output_tokens" });
+            completed["incomplete_details"] = json!({ "reason": reason });
         }
 
-        let event_name = if is_length {
+        let event_name = if incomplete_reason.is_some() {
             "response.incomplete"
         } else {
             "response.completed"
@@ -817,6 +959,9 @@ impl StreamState {
             return;
         }
         self.finished = true;
+        if self.reasoning_open {
+            self.close_reasoning_item();
+        }
         if self.text_open {
             self.close_text_item();
         }
@@ -850,6 +995,16 @@ impl StreamState {
         if let Some(m) = &self.client_model {
             resp["model"] = Value::String(m.clone());
         }
+        // Spec: every Response envelope carries `created_at` (Unix seconds).
+        // Codex's parser is lenient if it's missing but newer clients
+        // (and OpenAI's own SDK) expect it.
+        if resp.get("created_at").is_none() {
+            let now = std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .map(|d| d.as_secs())
+                .unwrap_or(0);
+            resp["created_at"] = json!(now);
+        }
         resp
     }
 
@@ -868,6 +1023,7 @@ impl StreamState {
                     "type": "message",
                     "role": "assistant",
                     "content": [],
+                    "status": "in_progress",
                 },
             }),
         );
@@ -877,11 +1033,87 @@ impl StreamState {
                 "type": "response.content_part.added",
                 "output_index": idx,
                 "content_index": 0,
-                "part": { "type": "output_text", "text": "" },
+                "part": { "type": "output_text", "text": "", "annotations": [] },
             }),
         );
         self.text_open = true;
         self.text_buf.clear();
+    }
+
+    fn open_reasoning_item(&mut self) {
+        self.reasoning_idx = self.next_output_index;
+        self.next_output_index += 1;
+        let idx = self.reasoning_idx;
+        let item_id = format!("rs_{}_{}", self.response_id, idx);
+        // 1. response.output_item.added — declare the reasoning item slot
+        self.emit(
+            "response.output_item.added",
+            json!({
+                "type": "response.output_item.added",
+                "output_index": idx,
+                "item": {
+                    "id": item_id,
+                    "type": "reasoning",
+                    "summary": [],
+                    "encrypted_content": null,
+                    "status": "in_progress",
+                },
+            }),
+        );
+        // 2. response.reasoning_summary_part.added — Codex shows panel
+        //    only after the part is registered.
+        self.emit(
+            "response.reasoning_summary_part.added",
+            json!({
+                "type": "response.reasoning_summary_part.added",
+                "output_index": idx,
+                "summary_index": 0,
+                "part": { "type": "summary_text", "text": "" },
+            }),
+        );
+        self.reasoning_open = true;
+    }
+
+    fn close_reasoning_item(&mut self) {
+        if !self.reasoning_open {
+            return;
+        }
+        let idx = self.reasoning_idx;
+        let buf = self.reasoning_buf.clone();
+        let item_id = format!("rs_{}_{}", self.response_id, idx);
+        self.emit(
+            "response.reasoning_summary_text.done",
+            json!({
+                "type": "response.reasoning_summary_text.done",
+                "output_index": idx,
+                "summary_index": 0,
+                "text": buf,
+            }),
+        );
+        self.emit(
+            "response.reasoning_summary_part.done",
+            json!({
+                "type": "response.reasoning_summary_part.done",
+                "output_index": idx,
+                "summary_index": 0,
+                "part": { "type": "summary_text", "text": buf },
+            }),
+        );
+        self.emit(
+            "response.output_item.done",
+            json!({
+                "type": "response.output_item.done",
+                "output_index": idx,
+                "item": {
+                    "id": item_id,
+                    "type": "reasoning",
+                    "summary": [{ "type": "summary_text", "text": buf }],
+                    "encrypted_content": null,
+                    "status": "completed",
+                },
+            }),
+        );
+        self.reasoning_open = false;
     }
 
     fn close_text_item(&mut self) {
@@ -906,7 +1138,7 @@ impl StreamState {
                 "type": "response.content_part.done",
                 "output_index": idx,
                 "content_index": 0,
-                "part": { "type": "output_text", "text": buf },
+                "part": { "type": "output_text", "text": buf, "annotations": [] },
             }),
         );
         self.emit(
@@ -918,7 +1150,8 @@ impl StreamState {
                     "id": item_id,
                     "type": "message",
                     "role": "assistant",
-                    "content": [{ "type": "output_text", "text": buf }],
+                    "content": [{ "type": "output_text", "text": buf, "annotations": [] }],
+                    "status": "completed",
                 },
             }),
         );
@@ -1013,13 +1246,31 @@ impl StreamState {
 
     fn build_assembled_output(&self) -> Vec<Value> {
         let mut out: Vec<Value> = Vec::new();
+        // Reasoning item first — the spec ordering puts thinking before
+        // assistant message + tool calls (Codex's UI also expects it
+        // first when scanning response.output[]).
+        if !self.reasoning_buf.is_empty() {
+            let idx = if self.reasoning_idx >= 0 {
+                self.reasoning_idx
+            } else {
+                0
+            };
+            out.push(json!({
+                "id": format!("rs_{}_{}", self.response_id, idx),
+                "type": "reasoning",
+                "summary": [{ "type": "summary_text", "text": self.reasoning_buf }],
+                "encrypted_content": null,
+                "status": "completed",
+            }));
+        }
         if !self.text_buf.is_empty() {
             let idx = if self.text_idx >= 0 { self.text_idx } else { 0 };
             out.push(json!({
                 "id": format!("item_{}_{}", self.response_id, idx),
                 "type": "message",
                 "role": "assistant",
-                "content": [{ "type": "output_text", "text": self.text_buf }],
+                "content": [{ "type": "output_text", "text": self.text_buf, "annotations": [] }],
+                "status": "completed",
             }));
         }
         for i in &self.tool_call_order {
@@ -1258,6 +1509,164 @@ mod tests {
         assert!(out.contains("part2"));
     }
 
+    // ---- reasoning summary SSE events (H1 + H2) ----
+
+    fn feed_chat_chunk(state: &mut StreamState, delta_json: Value) {
+        // Build a Chat-Completions SSE-style chunk line.
+        let payload = json!({
+            "choices": [{ "delta": delta_json }]
+        });
+        let line = format!("data: {}\n", payload);
+        state.feed_chunk(&line);
+    }
+
+    #[test]
+    fn reasoning_delta_emits_summary_text_events() {
+        let store = SessionStore::new();
+        let mut state = StreamState::new(&store, Some("gpt-5".into()), vec![]);
+        state.start();
+        let _ = state.take_events(); // discard the opening pair
+
+        feed_chat_chunk(&mut state, json!({ "reasoning_content": "Let me think." }));
+        let events = state.take_events();
+        let names = event_names(&events);
+
+        // Expected ordering: output_item.added (reasoning) →
+        // reasoning_summary_part.added → reasoning_summary_text.delta
+        assert!(
+            names.contains(&"response.output_item.added"),
+            "got: {names:?}"
+        );
+        assert!(
+            names.contains(&"response.reasoning_summary_part.added"),
+            "got: {names:?}"
+        );
+        assert!(
+            names.contains(&"response.reasoning_summary_text.delta"),
+            "got: {names:?}"
+        );
+
+        // The output_item.added carries type=reasoning
+        let added = events
+            .iter()
+            .find(|e| e.event == "response.output_item.added")
+            .unwrap();
+        assert_eq!(added.data["item"]["type"], "reasoning");
+        assert_eq!(added.data["item"]["status"], "in_progress");
+    }
+
+    #[test]
+    fn reasoning_finish_emits_summary_done_then_completed() {
+        let store = SessionStore::new();
+        let mut state = StreamState::new(&store, Some("gpt-5".into()), vec![]);
+        state.start();
+        let _ = state.take_events();
+
+        feed_chat_chunk(
+            &mut state,
+            json!({ "reasoning_content": "Thinking about it..." }),
+        );
+        let _ = state.take_events();
+
+        state.finish(&store);
+        let events = state.take_events();
+        let names = event_names(&events);
+
+        // On finish we must emit the done sequence + then the response.completed.
+        assert!(
+            names.contains(&"response.reasoning_summary_text.done"),
+            "got: {names:?}"
+        );
+        assert!(
+            names.contains(&"response.reasoning_summary_part.done"),
+            "got: {names:?}"
+        );
+        assert!(names.contains(&"response.completed"), "got: {names:?}");
+
+        // Assembled output should contain the reasoning item with
+        // the captured summary text.
+        let completed = events
+            .iter()
+            .find(|e| e.event == "response.completed")
+            .unwrap();
+        let output = completed.data["response"]["output"].as_array().unwrap();
+        let reasoning_item = output
+            .iter()
+            .find(|i| i["type"] == "reasoning")
+            .expect("reasoning item in output");
+        let text = reasoning_item["summary"][0]["text"].as_str().unwrap();
+        assert!(text.contains("Thinking about it"));
+    }
+
+    #[test]
+    fn reasoning_then_text_closes_reasoning_before_text() {
+        let store = SessionStore::new();
+        let mut state = StreamState::new(&store, Some("gpt-5".into()), vec![]);
+        state.start();
+        let _ = state.take_events();
+
+        feed_chat_chunk(&mut state, json!({ "reasoning_content": "deciding..." }));
+        feed_chat_chunk(&mut state, json!({ "content": "Hello!" }));
+        let events = state.take_events();
+        let names = event_names(&events);
+
+        // Position of reasoning_summary_text.done should come BEFORE
+        // the first response.output_text.delta (we close reasoning
+        // when text starts).
+        let pos_reasoning_done = names
+            .iter()
+            .position(|n| *n == "response.reasoning_summary_text.done");
+        let pos_text_delta = names
+            .iter()
+            .position(|n| *n == "response.output_text.delta");
+        assert!(pos_reasoning_done.is_some(), "{names:?}");
+        assert!(pos_text_delta.is_some(), "{names:?}");
+        assert!(
+            pos_reasoning_done.unwrap() < pos_text_delta.unwrap(),
+            "reasoning must close before text starts; {names:?}"
+        );
+    }
+
+    #[test]
+    fn response_envelope_carries_created_at() {
+        let store = SessionStore::new();
+        let mut state = StreamState::new(&store, Some("gpt-5".into()), vec![]);
+        state.start();
+        let events = state.take_events();
+        let created = events
+            .iter()
+            .find(|e| e.event == "response.created")
+            .unwrap();
+        let ts = created.data["response"]["created_at"]
+            .as_u64()
+            .expect("created_at must be a number");
+        assert!(ts > 1_700_000_000, "created_at should be a recent Unix ts");
+    }
+
+    #[test]
+    fn content_filter_finish_reason_becomes_incomplete() {
+        let store = SessionStore::new();
+        let mut state = StreamState::new(&store, Some("gpt-5".into()), vec![]);
+        state.start();
+        let _ = state.take_events();
+        feed_chat_chunk(&mut state, json!({ "content": "partial answer" }));
+        let _ = state.take_events();
+
+        // Emit the finish_reason from upstream.
+        let payload = json!({
+            "choices": [{ "delta": {}, "finish_reason": "content_filter" }]
+        });
+        state.feed_chunk(&format!("data: {}\n", payload));
+        state.finish(&store);
+        let events = state.take_events();
+        let last = events.iter().find(|e| e.event == "response.incomplete");
+        assert!(last.is_some(), "expected response.incomplete");
+        assert_eq!(
+            last.unwrap().data["response"]["incomplete_details"]["reason"],
+            "content_filter"
+        );
+    }
+
     // ---- chat_error_to_responses_error ----
 
     #[test]
@@ -1271,11 +1680,13 @@ mod tests {
     }
 
     #[test]
-    fn error_extracts_flat_detail_message() {
+    fn error_extracts_flat_detail_message_and_normalizes_code() {
+        // 429 + "rate_limit" type → normalized to "rate_limit_exceeded"
+        // so Codex's specialized rate-limit UI fires.
         let body = r#"{"detail":"Rate limit exceeded","type":"rate_limit"}"#;
         let out = chat_error_to_responses_error(429, Some(body), None);
         assert_eq!(out["error"]["message"], "Rate limit exceeded");
-        assert_eq!(out["error"]["code"], "rate_limit");
+        assert_eq!(out["error"]["code"], "rate_limit_exceeded");
     }
 
     #[test]
@@ -1400,10 +1811,94 @@ mod tests {
     }
 
     #[test]
-    fn error_default_message_when_no_body() {
+    fn error_default_message_when_no_body_normalizes_503_to_overloaded() {
+        // 503 → "server_overloaded" so Codex's retry-with-backoff UI
+        // fires instead of treating it as a generic upstream error.
         let out = chat_error_to_responses_error(503, None, None);
         assert_eq!(out["error"]["message"], "Upstream returned 503");
-        assert_eq!(out["error"]["code"], "upstream_503");
+        assert_eq!(out["error"]["code"], "server_overloaded");
+    }
+
+    // ---- normalize_error_code ----
+
+    #[test]
+    fn normalize_canonical_codes_pass_through() {
+        assert_eq!(
+            normalize_error_code("context_length_exceeded", 400, ""),
+            "context_length_exceeded"
+        );
+        assert_eq!(
+            normalize_error_code("image_unsupported", 400, ""),
+            "image_unsupported"
+        );
+    }
+
+    #[test]
+    fn normalize_quota_codes_to_rate_limit_exceeded() {
+        // Various upstream wordings for quota / billing limits all
+        // collapse to the canonical name Codex matches on.
+        assert_eq!(
+            normalize_error_code("insufficient_quota", 400, ""),
+            "rate_limit_exceeded"
+        );
+        assert_eq!(
+            normalize_error_code("billing_hard_limit_reached", 402, ""),
+            "rate_limit_exceeded"
+        );
+        // Status 429 alone is enough.
+        assert_eq!(
+            normalize_error_code("some_other_code", 429, ""),
+            "rate_limit_exceeded"
+        );
+        // Message-text signal works too (some providers put the hint in
+        // the message rather than the code).
+        assert_eq!(
+            normalize_error_code("GenericError", 400, "Your account balance is insufficient"),
+            "rate_limit_exceeded"
+        );
+    }
+
+    #[test]
+    fn normalize_overload_codes_to_server_overloaded() {
+        assert_eq!(
+            normalize_error_code("service_unavailable", 503, ""),
+            "server_overloaded"
+        );
+        assert_eq!(
+            normalize_error_code("anything", 529, ""),
+            "server_overloaded"
+        );
+        assert_eq!(
+            normalize_error_code("X", 500, "server is overloaded, try again later"),
+            "server_overloaded"
+        );
+    }
+
+    #[test]
+    fn normalize_safety_codes_to_cyber_policy() {
+        assert_eq!(
+            normalize_error_code("content_policy_violation", 400, ""),
+            "cyber_policy"
+        );
+        assert_eq!(
+            normalize_error_code("any", 400, "Request blocked by content moderation"),
+            "cyber_policy"
+        );
+        // Chinese phrasings — providers like Qwen sometimes write in zh.
+        assert_eq!(
+            normalize_error_code("any", 400, "包含敏感内容，已被过滤"),
+            "cyber_policy"
+        );
+    }
+
+    #[test]
+    fn normalize_unknown_code_passes_through() {
+        // Genuine unique error codes stay verbatim — preserves
+        // diagnostics for unknown failure modes.
+        assert_eq!(
+            normalize_error_code("invalid_api_key", 401, ""),
+            "invalid_api_key"
+        );
     }
 
     // ---- chat_to_responses_non_stream ----
