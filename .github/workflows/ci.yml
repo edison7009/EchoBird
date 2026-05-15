@@ -43,6 +43,14 @@ jobs:
         continue-on-error: true
 
   rust:
+    # Skip on Dependabot PRs. Dependabot-created PRs run in a forked
+    # security context that cannot access repository secrets, so
+    # `secrets.ECHOBIRD_SECRET_DEPLOY_KEY` arrives empty and the
+    # webfactory/ssh-agent step fails before any rust code runs.
+    # Dependabot only opens PRs for GitHub Actions / dependency version
+    # bumps (config-only, no rust diff), so the frontend job still runs
+    # and the rust job re-runs on the merge commit to main.
+    if: github.actor != 'dependabot[bot]'
     runs-on: ubuntu-latest
     env:
       # Force Cargo to use the system `git` CLI when fetching git
