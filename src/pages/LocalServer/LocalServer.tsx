@@ -1089,7 +1089,7 @@ export const LocalServerPanel: React.FC = () => {
                         )}
 
                         {/* Name + Description */}
-                        <div className="flex-1 min-w-0 flex flex-col justify-center h-10">
+                        <div className="flex-1 min-w-0 flex flex-col justify-center min-h-[2.5rem] py-0.5">
                           <div className="flex items-center justify-between gap-2">
                             <div
                               className={`text-sm font-bold truncate leading-none ${isDeleteMode ? 'text-red-400/80' : ''}`}
