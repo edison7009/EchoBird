@@ -219,6 +219,16 @@ pub fn chat_error_to_responses_error(
         code = "context_length_exceeded".to_string();
     }
 
+    // Friendly-rewrite "model can't see images" 400s. Cheap lite/flash
+    // variants (deepseek-v4-flash, mimo-v2-flash, qwen-flash, base
+    // deepseek-chat, etc.) reject image_url content with provider-
+    // specific phrasing — bilingual keyword match catches the common
+    // shapes and tells the user to switch to a vision-capable model.
+    if status_code == 400 && looks_like_image_unsupported(&message) {
+        message = "当前模型不支持图像输入，请切换到支持视觉的版本（如 *-pro / *-vl / *-omni 系列）。 / This model doesn't support image input — please switch to a vision-capable variant (e.g. *-pro, *-vl, *-omni).".to_string();
+        code = "image_unsupported".to_string();
+    }
+
     json!({
         "id": response_id,
         "object": "response",
@@ -264,6 +274,42 @@ fn looks_like_context_overflow(msg: &str) -> bool {
         "token 数过多",
         "tokens 过多",
         "上下文长度",
+    ];
+    zh_hits.iter().any(|p| msg.contains(p))
+}
+
+// Detect "this model can't accept images" 400s across providers. Same
+// bilingual substring strategy as looks_like_context_overflow — false
+// positives just yield a user-friendlier error message on a 400, which
+// is acceptable. Only matches on 400s where the upstream specifically
+// names image/vision/multimodal terms; ordinary 400s pass through.
+fn looks_like_image_unsupported(msg: &str) -> bool {
+    let m = msg.to_lowercase();
+    let en_hits = [
+        "does not support image",
+        "image not supported",
+        "image is not supported",
+        "vision is not supported",
+        "does not support vision",
+        "not multimodal",
+        "no vision",
+        "image input is not",
+        "image_url is not",
+        "image is unsupported",
+        "model does not support multimodal",
+    ];
+    if en_hits.iter().any(|p| m.contains(p)) {
+        return true;
+    }
+    let zh_hits = [
+        "不支持图像",
+        "不支持图片",
+        "不支持视觉",
+        "不支持多模态",
+        "不支持 image",
+        "图片输入不支持",
+        "图像输入不支持",
+        "不支持视频",
     ];
     zh_hits.iter().any(|p| msg.contains(p))
 }
@@ -1302,6 +1348,55 @@ mod tests {
         assert!(!looks_like_context_overflow("Invalid API key"));
         assert!(!looks_like_context_overflow("rate limit exceeded")); // exceeded alone isn't enough
         assert!(!looks_like_context_overflow(""));
+    }
+
+    // ---- image-unsupported friendly rewrite ----
+
+    #[test]
+    fn image_unsupported_400_gets_friendly_bilingual_message() {
+        let body = r#"{"error":{"message":"This model does not support image input.","code":"invalid_input"}}"#;
+        let out = chat_error_to_responses_error(400, Some(body), None);
+        let msg = out["error"]["message"].as_str().unwrap();
+        assert!(msg.contains("不支持图像"));
+        assert!(msg.contains("vision-capable"));
+        assert_eq!(out["error"]["code"], "image_unsupported");
+    }
+
+    #[test]
+    fn image_unsupported_zh_phrasing_also_caught() {
+        let body = r#"{"error":{"message":"当前模型不支持图片输入"}}"#;
+        let out = chat_error_to_responses_error(400, Some(body), None);
+        let msg = out["error"]["message"].as_str().unwrap();
+        assert!(msg.contains("vision-capable"));
+    }
+
+    #[test]
+    fn looks_like_image_unsupported_unit_cases() {
+        // EN
+        assert!(looks_like_image_unsupported(
+            "This model does not support image input"
+        ));
+        assert!(looks_like_image_unsupported("Vision is not supported"));
+        assert!(looks_like_image_unsupported("model is not multimodal"));
+        // zh
+        assert!(looks_like_image_unsupported("当前模型不支持图像"));
+        assert!(looks_like_image_unsupported("不支持图片输入"));
+        assert!(looks_like_image_unsupported("该模型不支持多模态"));
+        // misses — generic 400 about other things
+        assert!(!looks_like_image_unsupported("Invalid API key"));
+        assert!(!looks_like_image_unsupported("Context length exceeded"));
+        assert!(!looks_like_image_unsupported(""));
+    }
+
+    #[test]
+    fn image_unsupported_keywords_in_500_preserved_verbatim() {
+        // 5xx upstream crash: keep verbatim even if message names images.
+        let body = r#"{"error":{"message":"image not supported - server crashed"}}"#;
+        let out = chat_error_to_responses_error(500, Some(body), None);
+        assert_eq!(
+            out["error"]["message"],
+            "image not supported - server crashed"
+        );
     }
 
     #[test]
