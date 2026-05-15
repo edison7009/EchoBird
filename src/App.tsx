@@ -208,7 +208,7 @@ function App() {
                   <AppManagerProvider>
                     <LocalServerProvider>
                       <div
-                        className={`flex flex-col h-screen w-full bg-cyber-bg overflow-hidden ${isMaximized ? '' : 'rounded-xl'}`}
+                        className={`flex flex-col h-screen w-full bg-cyber-bg overflow-hidden ${isMaximized ? '' : 'rounded-xl border border-cyber-border'}`}
                       >
                         {/* Title bar */}
                         <TitleBar onSettingsClick={() => setShowSettings(true)} />
