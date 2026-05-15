@@ -316,11 +316,35 @@ fn process_input_items(messages: &mut Vec<Value>, items: &[Value], sessions: &Se
             continue;
         }
 
-        // ── compaction (Codex 0.130+ context compaction; opaque blob) ──
+        // ── compaction (Codex 0.130+ context compaction) ──
+        //
+        // Codex sends a compaction item back in the input when it has
+        // previously called /v1/responses/compact. OpenAI's native flow
+        // ships `encrypted_content` as an opaque blob the model server
+        // decrypts. Our /v1/responses/compact handler instead writes a
+        // plain-text upstream-generated summary into the same field
+        // (the upstream we proxy can't do real encrypted compaction).
+        //
+        // So: prefer the summary text from `encrypted_content` when it
+        // looks like real text; fall back to the generic placeholder
+        // when it's empty or actually-opaque (a real OpenAI blob that
+        // somehow ended up here).
         if t == "compaction" {
+            let summary = item
+                .get("encrypted_content")
+                .and_then(|v| v.as_str())
+                .unwrap_or("");
+            let content = if !summary.is_empty()
+                && !summary.starts_with("gAAAAA")  // common encrypted prefix
+                && summary.is_char_boundary(summary.len().min(8))
+            {
+                format!("[Summary of earlier conversation (from compaction)]\n{summary}")
+            } else {
+                "[Earlier portion of this conversation was compacted by Codex and is not available to the model.]".to_string()
+            };
             messages.push(json!({
                 "role": "system",
-                "content": "[Earlier portion of this conversation was compacted by Codex and is not available to the model.]",
+                "content": content,
             }));
             i += 1;
             continue;
@@ -925,17 +949,58 @@ mod tests {
     }
 
     #[test]
-    fn compaction_emits_placeholder_system() {
+    fn compaction_with_plain_summary_uses_it_verbatim() {
+        // Our /v1/responses/compact handler writes the upstream-generated
+        // summary into encrypted_content. process_input_items should
+        // surface that as a system message body so the model sees the
+        // real summary, not a generic placeholder.
         let body = json!({
             "model": "deepseek-chat",
             "input": [
-                { "type": "compaction", "encrypted_content": "opaque" },
+                {
+                    "type": "compaction",
+                    "encrypted_content": "User asked about Rust borrow checker. We discussed lifetimes and pointed at the Nomicon."
+                },
             ],
         });
         let out = responses_to_chat(&body, &store());
         assert_eq!(out["messages"][0]["role"], "system");
         let content = out["messages"][0]["content"].as_str().unwrap();
+        assert!(content.contains("Summary of earlier conversation"));
+        assert!(content.contains("Rust borrow checker"));
+    }
+
+    #[test]
+    fn compaction_with_empty_encrypted_content_falls_back_to_placeholder() {
+        let body = json!({
+            "model": "deepseek-chat",
+            "input": [
+                { "type": "compaction", "encrypted_content": "" },
+            ],
+        });
+        let out = responses_to_chat(&body, &store());
+        let content = out["messages"][0]["content"].as_str().unwrap();
         assert!(content.contains("compacted"));
+    }
+
+    #[test]
+    fn compaction_with_openai_opaque_blob_falls_back_to_placeholder() {
+        // A real OpenAI encrypted blob shouldn't be surfaced as if it
+        // were a readable summary. The "gAAAAA" prefix is fernet-style
+        // base64 prefix that any encrypted blob will start with.
+        let body = json!({
+            "model": "deepseek-chat",
+            "input": [
+                {
+                    "type": "compaction",
+                    "encrypted_content": "gAAAAABabcdef1234567890opaqueblob..."
+                },
+            ],
+        });
+        let out = responses_to_chat(&body, &store());
+        let content = out["messages"][0]["content"].as_str().unwrap();
+        assert!(content.contains("compacted"));
+        assert!(!content.contains("gAAAAA"));
     }
 
     #[test]

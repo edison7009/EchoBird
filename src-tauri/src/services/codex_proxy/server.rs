@@ -76,6 +76,8 @@ pub async fn run(port: u16) -> Result<(), String> {
     let app = Router::new()
         .route("/v1/responses", post(handle_responses))
         .route("/responses", post(handle_responses))
+        .route("/v1/responses/compact", post(handle_compact))
+        .route("/responses/compact", post(handle_compact))
         .with_state(state);
 
     let listener = match tokio::net::TcpListener::bind(addr).await {
@@ -232,6 +234,166 @@ async fn handle_responses(State(state): State<AppState>, body: Bytes) -> Respons
         )
         .await
     }
+}
+
+// ---------------------------------------------------------------------------
+// /v1/responses/compact — server-side conversation compaction.
+// ---------------------------------------------------------------------------
+//
+// OpenAI's Responses API exposes a `compact` endpoint that returns an
+// opaque `encrypted_content` blob the model server can later decrypt to
+// recover the original "latent state" of a conversation using far fewer
+// tokens (see https://developers.openai.com/api/docs/guides/compaction).
+// Third-party providers (DeepSeek, MiMo, etc.) have no such mechanism —
+// no encryption, no decoder, no stateful continuation.
+//
+// To make Codex's "压缩此线程" menu button work against third-party
+// upstreams, we translate the compaction request into a plain
+// "summarize this conversation" Chat Completions call. The resulting
+// summary text rides back as `encrypted_content`. When Codex echoes it
+// in the next /v1/responses request, `process_input_items` reads the
+// text field back out and uses it as a system-message body instead of
+// the generic placeholder.
+//
+// Tradeoffs vs OpenAI's native compaction:
+//   • Quality depends on the upstream model's summarization
+//   • Not as token-efficient as a true encrypted latent blob
+//   • But: Codex's compact button no longer 404s, and the user retains
+//     a real summary of pre-compaction context for the next turn
+async fn handle_compact(State(state): State<AppState>, body: Bytes) -> Response {
+    let req_body: Value = match serde_json::from_slice(&body) {
+        Ok(v) => v,
+        Err(e) => {
+            return (
+                StatusCode::BAD_REQUEST,
+                Json(json!({ "error": { "message": e.to_string(), "code": "invalid_json" } })),
+            )
+                .into_response();
+        }
+    };
+
+    // Compaction is non-streaming.
+    let relay = match read_relay_or_error(&state.sessions, false) {
+        Ok(r) => r,
+        Err(resp) => return *resp,
+    };
+    let RelayConfig {
+        base_url,
+        api_key,
+        real_model_id,
+    } = relay;
+
+    // Translate input → Chat messages (same path as /v1/responses).
+    let mut chat_body = responses_to_chat(&req_body, &state.sessions);
+
+    // Append a summarization instruction so the upstream model produces
+    // a summary instead of a chat response. Goes as the LAST user
+    // message so the model treats the prior conversation as input.
+    let summary_prompt = "Please write a concise summary of the conversation above. Preserve key decisions, pending tasks, code changes, file paths, and any important context the user will need to continue this work in a follow-up turn. Output only the summary, no preamble.";
+    if let Some(messages) = chat_body.get_mut("messages").and_then(|v| v.as_array_mut()) {
+        messages.push(json!({ "role": "user", "content": summary_prompt }));
+    }
+
+    // Compaction must be one-shot — disable streaming, drop tools so
+    // the model can't decide to call shell etc., cap output length.
+    chat_body["stream"] = Value::Bool(false);
+    chat_body.as_object_mut().map(|o| o.remove("tools"));
+    chat_body.as_object_mut().map(|o| o.remove("tool_choice"));
+    chat_body["max_tokens"] = json!(2048);
+
+    if let Some(real) = real_model_id.as_deref() {
+        let current = chat_body
+            .get("model")
+            .and_then(|v| v.as_str())
+            .unwrap_or("");
+        if !real.is_empty() && real != current {
+            log::info!("[CodexProxy] (compact) Model ID rewrite: {current} → {real}");
+            chat_body["model"] = Value::String(real.to_string());
+        }
+    }
+
+    let upstream_url = normalize_upstream_url(&base_url);
+    let upstream_req = state
+        .http_client
+        .post(&upstream_url)
+        .header(header::CONTENT_TYPE, "application/json")
+        .header(header::AUTHORIZATION, format!("Bearer {api_key}"))
+        .header(header::ACCEPT, "application/json")
+        .json(&chat_body);
+
+    let upstream_resp = match upstream_req.send().await {
+        Ok(r) => r,
+        Err(e) => {
+            log::error!("[CodexProxy] (compact) Upstream connect error: {e}");
+            let body = json!({
+                "error": { "message": e.to_string(), "code": "connect_error" }
+            })
+            .to_string();
+            let envelope = chat_error_to_responses_error(502, Some(&body), Some(&state.sessions));
+            return error_response(envelope, 502, false);
+        }
+    };
+
+    let status = upstream_resp.status();
+    if !status.is_success() {
+        let body_text = read_capped_body(upstream_resp).await;
+        log::error!(
+            "[CodexProxy] (compact) Upstream {}: {}",
+            status.as_u16(),
+            body_text.chars().take(500).collect::<String>()
+        );
+        let envelope =
+            chat_error_to_responses_error(status.as_u16(), Some(&body_text), Some(&state.sessions));
+        return error_response(envelope, passthrough_status(status.as_u16()), false);
+    }
+
+    let resp_json: Value = match upstream_resp.json().await {
+        Ok(v) => v,
+        Err(e) => {
+            log::error!("[CodexProxy] (compact) Upstream JSON parse failed: {e}");
+            let envelope = chat_error_to_responses_error(
+                502,
+                Some(&format!(
+                    r#"{{"error":{{"message":"{e}","code":"parse_error"}}}}"#
+                )),
+                Some(&state.sessions),
+            );
+            return error_response(envelope, 502, false);
+        }
+    };
+
+    // Extract the summary text from the upstream response.
+    let summary = resp_json
+        .get("choices")
+        .and_then(|v| v.get(0))
+        .and_then(|c| c.get("message"))
+        .and_then(|m| m.get("content"))
+        .and_then(|v| v.as_str())
+        .unwrap_or("")
+        .to_string();
+
+    if summary.is_empty() {
+        log::warn!("[CodexProxy] (compact) Upstream returned empty summary content");
+    }
+
+    // Build the compaction-shape Responses-API envelope. The summary
+    // text rides as `encrypted_content` — see process_input_items
+    // in protocol_converter.rs for the read-back path.
+    let response_id = state.sessions.new_response_id();
+    let envelope = json!({
+        "id": response_id,
+        "object": "response.compaction",
+        "status": "completed",
+        "output": [
+            {
+                "type": "compaction",
+                "encrypted_content": summary,
+            }
+        ],
+        "usage": resp_json.get("usage").cloned().unwrap_or(Value::Null),
+    });
+
+    (StatusCode::OK, Json(envelope)).into_response()
 }
 
 // ---------------------------------------------------------------------------
