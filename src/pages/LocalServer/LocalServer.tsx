@@ -1017,7 +1017,7 @@ export const LocalServerPanel: React.FC = () => {
                             ? 'border-red-500'
                             : 'border-transparent hover:bg-cyber-elevated'
                           : selected
-                            ? 'border-green-500'
+                            ? 'border-cyber-accent'
                             : 'border-transparent hover:bg-cyber-elevated'
                       }`}
                     >
@@ -1068,9 +1068,9 @@ export const LocalServerPanel: React.FC = () => {
                           </div>
                         ) : (
                           <div
-                            className={`w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors ${selected ? 'border-green-400' : 'border-cyber-border'}`}
+                            className={`w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors ${selected ? 'border-cyber-accent' : 'border-cyber-border'}`}
                           >
-                            {selected && <div className="w-2 h-2 rounded-full bg-green-400" />}
+                            {selected && <div className="w-2 h-2 rounded-full bg-cyber-accent" />}
                           </div>
                         )}
 
@@ -1098,7 +1098,7 @@ export const LocalServerPanel: React.FC = () => {
                             </div>
                             {!isDeleteMode &&
                               (selected ? (
-                                <span className="text-[10px] text-green-400 flex-shrink-0 font-mono font-bold">
+                                <span className="text-[10px] text-cyber-accent flex-shrink-0 font-mono font-bold">
                                   {(() => {
                                     const m = selected.fileName.match(
                                       /[-.]([Qq][0-9_]+[A-Za-z_]*)/
@@ -1129,11 +1129,11 @@ export const LocalServerPanel: React.FC = () => {
                             return (
                               <div
                                 key={v.filePath}
-                                className={`flex items-center gap-3 p-2 rounded cursor-pointer transition-colors border ${isSelected ? 'bg-cyber-elevated border-green-500' : 'border-transparent hover:bg-cyber-elevated'}`}
+                                className={`flex items-center gap-3 p-2 rounded cursor-pointer transition-colors border ${isSelected ? 'bg-cyber-elevated border-cyber-accent' : 'border-transparent hover:bg-cyber-elevated'}`}
                                 onClick={() => setSelectedModelPath(v.filePath)}
                               >
                                 <span
-                                  className={`text-xs font-mono font-bold w-14 flex-shrink-0 ${isSelected ? 'text-green-400' : 'text-cyber-text'}`}
+                                  className={`text-xs font-mono font-bold w-14 flex-shrink-0 ${isSelected ? 'text-cyber-accent' : 'text-cyber-text'}`}
                                 >
                                   {quant}
                                 </span>
@@ -1154,10 +1154,10 @@ export const LocalServerPanel: React.FC = () => {
                                 </span>
                                 <div className="flex-shrink-0 w-8 flex items-center justify-center">
                                   <div
-                                    className={`w-4 h-4 rounded-full border-2 flex items-center justify-center transition-colors ${isSelected ? 'border-green-400' : 'border-cyber-border hover:border-green-400/50'}`}
+                                    className={`w-4 h-4 rounded-full border-2 flex items-center justify-center transition-colors ${isSelected ? 'border-cyber-accent' : 'border-cyber-border hover:border-cyber-accent/50'}`}
                                   >
                                     {isSelected && (
-                                      <div className="w-2 h-2 rounded-full bg-green-400" />
+                                      <div className="w-2 h-2 rounded-full bg-cyber-accent" />
                                     )}
                                   </div>
                                 </div>
