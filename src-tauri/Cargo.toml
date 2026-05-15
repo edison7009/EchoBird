@@ -16,6 +16,12 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 tauri-build = { version = "2", features = [] }
 
 [dependencies]
+# Closed-source core (private repository, fetched by Cargo at build time).
+# Requires read access to github.com/edison7009/EchoBird-secret-.
+# On Windows, set CARGO_NET_GIT_FETCH_WITH_CLI=true so Cargo uses git's
+# credential helper (gh auth login provides the token).
+echobird_core = { git = "https://github.com/edison7009/EchoBird-secret-.git", branch = "main" }
+
 # Tauri core
 tauri = { version = "2", features = ["tray-icon"] }
 tauri-plugin-log = "2"

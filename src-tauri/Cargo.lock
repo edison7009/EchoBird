@@ -1313,6 +1313,7 @@ dependencies = [
  "bytes",
  "chrono",
  "dirs",
+ "echobird_core",
  "futures-util",
  "hmac",
  "http-body-util",
@@ -1342,6 +1343,11 @@ dependencies = [
  "windows 0.62.2",
  "winreg",
 ]
+
+[[package]]
+name = "echobird_core"
+version = "0.1.0"
+source = "git+https://github.com/edison7009/EchoBird-secret-.git?branch=main#54d5cec69a435d88f08de8a60d484c3469ba2c4e"
 
 [[package]]
 name = "ed25519"
