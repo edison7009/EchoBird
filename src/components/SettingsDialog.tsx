@@ -102,13 +102,19 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
     }
   }, [appVersion]);
 
-  // Reset status when dialog opens
+  // Reset status when dialog opens — fresh state each time the user
+  // re-opens settings. Critical: depend ONLY on `isOpen`. Listing
+  // `updateStatus` here makes the effect re-fire on every transition
+  // (idle → checking → ...) and immediately snap status back to idle,
+  // which is exactly the "check-for-updates button looks dead" bug:
+  // the click *does* fire, but the effect clobbers the 'checking'
+  // state before React can render it.
   useEffect(() => {
-    if (isOpen && updateStatus !== 'idle') {
+    if (isOpen) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setUpdateStatus('idle');
     }
-  }, [isOpen, updateStatus]);
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
