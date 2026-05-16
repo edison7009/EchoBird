@@ -4,7 +4,6 @@
         "zh-Hans": "Claude 桌面端"
     },
     "category": "Desktop",
-    "noModelConfig": true,
     "apiProtocol": [
         "anthropic"
     ],
