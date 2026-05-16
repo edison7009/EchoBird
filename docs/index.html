@@ -261,6 +261,15 @@
             letter-spacing: 0.5px;
         }
 
+        .hero .platforms .macos-hint code {
+            font-family: var(--mono);
+            background: rgba(255, 255, 255, 0.06);
+            padding: 1px 6px;
+            border-radius: 3px;
+            color: var(--accent);
+            user-select: all;
+        }
+
         .hero .cta-row {
             display: flex;
             gap: 14px;
@@ -1202,6 +1211,7 @@
                 'showcase.localllm': '本地大模型 — 在自己机器上跑',
                 'showcase.agent': '安装与修复 — 用对话搞定部署和排障',
                 'hero.platforms': 'Windows · macOS · Linux · MIT 免费',
+                'hero.macosHint': 'macOS 首次启动',
                 'hero.btn.download': '立即下载',
                 'hero.or': '或',
                 'features.title': '三个"一键",搞定整个 AI Agent 工作流',
@@ -1269,6 +1279,7 @@
                 'showcase.localllm': 'Local LLM — run models on your own machine',
                 'showcase.agent': 'Install & Repair Agent — chat-driven setup and troubleshooting',
                 'hero.platforms': 'Windows · macOS · Linux · MIT · Free',
+                'hero.macosHint': 'macOS first launch:',
                 'hero.btn.download': 'Download Now',
                 'hero.or': 'or',
                 'features.title': 'Three "1-Clicks" cover the whole AI Agent workflow',
@@ -1402,7 +1413,9 @@
             Agent —— 灵感来自《赛博朋克 2077》里那位总能帮主角搞定一切技术难题的女黑客 <strong>Songbird</strong>。
             EchoBird 可以帮你一键装好所有 AI 工具。
         </p>
-        <p class="platforms" data-i18n="hero.platforms">Windows · macOS · Linux · MIT 免费</p>
+        <p class="platforms">
+            <span data-i18n="hero.platforms">Windows · macOS · Linux · MIT 免费</span><span class="macos-hint" id="macosHint" style="display:none"> · <span data-i18n="hero.macosHint">macOS 首次启动</span> <code>xattr -cr /Applications/EchoBird.app</code></span>
+        </p>
         <!-- Two parallel install paths in one row: pkg download OR copyable one-liner.
              Only the OS-matching command row is shown (set in JS). -->
         <div class="cta-row" id="installCmd">
@@ -1785,6 +1798,11 @@
             if (unixLabel) {
                 if (/Mac OS X|Macintosh/i.test(ua)) unixLabel.textContent = 'macOS';
                 else if (/Linux/i.test(ua))         unixLabel.textContent = 'Linux';
+            }
+            // Show the macOS Gatekeeper hint only for macOS visitors.
+            if (/Mac OS X|Macintosh/i.test(ua)) {
+                const macosHint = document.getElementById('macosHint');
+                if (macosHint) macosHint.style.display = 'inline';
             }
             const row = wrap.querySelector(`[data-os="${os}"]`);
             if (row) row.style.display = 'inline-flex';
