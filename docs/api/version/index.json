@@ -1,5 +1,5 @@
 {
-  "version": "4.8.0",
+  "version": "4.8.1",
   "releaseDate": "2026-05-16",
   "releaseNotes": "v4.8.1:本地大模型页面新增 CUDA 版本匹配提示(解决 GPU 不挂载问题排查)"
 }
