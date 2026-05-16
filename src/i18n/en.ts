@@ -120,7 +120,8 @@ const en: Translations = {
   'server.tier.entry': 'Entry',
   'server.tier.recommended': 'Recommended',
   'server.tier.flagship': 'Flagship',
-  'server.tier.minSpec': 'Floor specs — production tokens/sec at Flagship only',
+  'server.tier.minSpec':
+    'Floor specs — production tokens/sec at Flagship only; CUDA driver and engine build versions must match',
   'server.local': 'LOCAL',
   'server.store': 'STORE',
   'server.selectModelDir': 'Select model directory',

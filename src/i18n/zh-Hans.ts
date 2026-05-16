@@ -105,7 +105,8 @@ const zhHans: Partial<Translations> = {
   'server.tier.entry': '入门',
   'server.tier.recommended': '推荐',
   'server.tier.flagship': '旗舰',
-  'server.tier.minSpec': '最低规格 — 生产级 Token 速率仅在旗舰档',
+  'server.tier.minSpec':
+    '最低规格 — 生产级 Token 速率仅在旗舰档「CUDA 驱动与引擎构建的版本号须一致」',
   'server.local': '本地',
   'server.store': '商店',
   'server.selectModelDir': '选择模型目录',
