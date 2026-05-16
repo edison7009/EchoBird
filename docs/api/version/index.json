@@ -1,5 +1,5 @@
 {
   "version": "4.7.8",
   "releaseDate": "2026-05-15",
-  "releaseNotes": "v4.7.8: 全面支持用户通过 EchoBird 部署本地大模型,并在 Codex 中使用;界面交互大量优化,视觉和操作更丝滑"
+  "releaseNotes": "v4.7.9: macOS 用户 Claude Desktop / Codex Desktop 现在可从 EchoBird 正常启动;本地大模型升级引擎更稳健,取消升级时旧版本完整保留"
 }
