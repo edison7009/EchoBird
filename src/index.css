@@ -355,7 +355,8 @@ pre {
 /* Logos with near-black backgrounds invert in dark mode so they read on
    the near-black page. */
 [data-theme='dark'] img[src*='/icons/models/yi.svg'],
-[data-theme='dark'] img[src*='/icons/tools/opencode.svg'] {
+[data-theme='dark'] img[src*='/icons/tools/opencode.svg'],
+[data-theme='dark'] img[src*='/icons/tools/grok.svg'] {
   filter: invert(1) brightness(0.92);
 }
 
