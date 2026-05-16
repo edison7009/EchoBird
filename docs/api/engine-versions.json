@@ -1,7 +1,0 @@
-{
-  "llama-server": {
-    "version": "b8999",
-    "cudaVersion": "13.1",
-    "changelog": "llama-quant : fix --tensor-type when default qtype is overriden (#22572)"
-  }
-}
