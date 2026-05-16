@@ -631,7 +631,7 @@ export const LocalServerMain: React.FC = () => {
           >
             {logs.length === 0 && (
               <div
-                className="flex items-center justify-center"
+                className="flex flex-col items-center justify-center gap-10 py-8"
                 style={{ minHeight: 'calc(100% - 24px)' }}
               >
                 <div className="font-mono text-center space-y-3">
@@ -640,6 +640,55 @@ export const LocalServerMain: React.FC = () => {
                   </div>
                   <div className="text-base text-cyber-text-muted/70">
                     {t('server.selectConfigStart')}
+                  </div>
+                </div>
+                <div className="w-full max-w-3xl px-4">
+                  <div className="rounded-lg border border-cyber-border/60 bg-cyber-bg-secondary/40 p-5 shadow-sm">
+                    <table className="w-full text-sm border-collapse font-sans">
+                      <thead>
+                        <tr className="text-cyber-text-secondary">
+                          <th className="px-3 pb-3 text-left border-b border-cyber-border/80 w-20 text-xs font-semibold uppercase tracking-wider"></th>
+                          <th className="px-3 pb-3 text-left border-b border-cyber-border/80 text-xs font-semibold uppercase tracking-wider">
+                            {t('server.tier.minSpec')}
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody className="text-cyber-text/90">
+                        <tr className="border-b border-cyber-border/40">
+                          <td className="px-3 py-4 font-semibold text-cyber-text-secondary text-center align-middle">
+                            {t('server.tier.entry')}
+                          </td>
+                          <td className="px-3 py-4 align-top space-y-1">
+                            <div>RTX 4090 24GB / Apple M4 Pro 48GB</div>
+                            <div className="text-cyber-text-muted/80 text-xs">
+                              Qwen3.5 9B、Granite 4.1 8B、Gemma 4 E4B
+                            </div>
+                          </td>
+                        </tr>
+                        <tr className="border-b border-cyber-border/40">
+                          <td className="px-3 py-4 font-semibold text-cyber-text-secondary text-center align-middle">
+                            {t('server.tier.recommended')}
+                          </td>
+                          <td className="px-3 py-4 align-top space-y-1">
+                            <div>RTX 5090 32GB / Apple M4 Max 64–96GB</div>
+                            <div className="text-cyber-text-muted/80 text-xs">
+                              Granite 4.1 30B(MoE)、Qwen3.6 35B-A3B(MoE)、Gemma 4 31B
+                            </div>
+                          </td>
+                        </tr>
+                        <tr>
+                          <td className="px-3 py-4 font-semibold text-cyber-text-secondary text-center align-middle">
+                            {t('server.tier.flagship')}
+                          </td>
+                          <td className="px-3 py-4 align-top space-y-1">
+                            <div>H100 80GB / H200 / A100 / Mac Studio M3 Ultra 192GB+</div>
+                            <div className="text-cyber-text-muted/80 text-xs">
+                              Qwen3.6 27B、Qwen3.5 27B Opus Distill、Nemotron 3 Nano Omni 30B-A3B
+                            </div>
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
                   </div>
                 </div>
               </div>
