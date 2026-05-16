@@ -1,5 +1,5 @@
 {
   "version": "4.7.9",
   "releaseDate": "2026-05-16",
-  "releaseNotes": "v4.7.9: macOS 用户 Claude Desktop / Codex Desktop 现在可从 EchoBird 正常启动;本地大模型升级引擎更稳健,取消升级时旧版本完整保留"
+  "releaseNotes": "v4.8.0:新增 Grok Build CLI 集成(xAI);本地大模型升级引擎更稳健;macOS 桌面端启动修复"
 }
