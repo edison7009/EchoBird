@@ -63,7 +63,8 @@ const en: Translations = {
   'settings.alwaysAsk': 'Always ask',
   // Close Dialog
   'closeDialog.title': 'CLOSE BEHAVIOR',
-  'closeDialog.hint': 'Note: If your Codex has switched models, quitting will make it unusable.',
+  'closeDialog.hint':
+    'Note: If your Codex / Claude Desktop has switched models, quitting will make it unusable.',
   // Buttons
   'btn.addModel': 'ADD MODEL',
   'btn.refresh': 'REFRESH',
@@ -180,7 +181,8 @@ const en: Translations = {
   // API Key encryption + developer hint
   'key.encrypted': 'Encrypted globally — API Key will self-destruct if environment changes',
   'key.destroyed': 'Environment change detected — API Key has self-destructed, please re-enter',
-  'hint.devInvite': 'After switching the Codex Desktop / Codex CLI model, keep EchoBird running.',
+  'hint.devInvite':
+    'After switching the Codex Desktop / Codex CLI / Claude Desktop model, keep EchoBird running.',
   // Mother Agent
   'mother.selectModel': 'Select model',
   'mother.hintInstall': 'Install {agent}',

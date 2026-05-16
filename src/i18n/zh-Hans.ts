@@ -55,7 +55,7 @@ const zhHans: Partial<Translations> = {
   'settings.closeToTray': '最小化到托盘',
   'settings.alwaysAsk': '每次询问',
   'closeDialog.title': '窗口关闭方式',
-  'closeDialog.hint': '注意:如果你的 Codex 已切换模型,退出会导致无法使用。',
+  'closeDialog.hint': '注意:如果你的 Codex / Claude 桌面端 已切换模型,退出会导致无法使用。',
   'btn.addModel': '添加模型',
   'btn.refresh': '刷新',
   'btn.cancel': '取消',
@@ -153,7 +153,8 @@ const zhHans: Partial<Translations> = {
   'store.ready': '✓ 就绪',
   'key.encrypted': '已全局加密，任何环境改变 API Key 将自毁',
   'key.destroyed': '检测到环境已改变，API Key 已自毁，请重新输入',
-  'hint.devInvite': '切换 Codex 桌面端 / Codex CLI 的模型后，请保持 EchoBird 运行。',
+  'hint.devInvite':
+    '切换 Codex 桌面端 / Codex CLI / Claude 桌面端 的模型后，请保持 EchoBird 运行。',
   'mother.selectModel': '选择模型',
   'mother.hintInstall': '安装 {agent}',
   'mother.enterMessage': '输入消息...',
