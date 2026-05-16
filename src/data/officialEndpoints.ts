@@ -35,6 +35,16 @@ export const OFFICIAL_ENDPOINTS: Record<string, OfficialEndpoint> = {
     protocol: 'anthropic',
     modelId: 'claude-sonnet-4-5',
   },
+  claudedesktop: {
+    // Restore for Claude Desktop flips deploymentMode back to '1p' and
+    // deletes the 3P profile / relay; the URL fields here are display-only
+    // (Desktop's official mode uses Anthropic OAuth, not an API key).
+    name: 'Anthropic Official',
+    baseUrl: 'https://api.anthropic.com',
+    anthropicUrl: 'https://api.anthropic.com',
+    protocol: 'anthropic',
+    modelId: 'claude-sonnet-4-5',
+  },
   codex: {
     name: 'OpenAI Official',
     baseUrl: 'https://api.openai.com/v1',
