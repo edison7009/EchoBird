@@ -45,6 +45,7 @@ demo-*.mjs
 inspect-*.mjs
 verify-*.mjs
 ts-errors.txt
+lint-output.txt
 
 # Claude Code agent — per-machine config + worktrees + plans (all local).
 # Earlier only settings.local.json was ignored, but `.claude/worktrees/*`
