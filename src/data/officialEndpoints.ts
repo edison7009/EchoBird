@@ -57,6 +57,12 @@ export const OFFICIAL_ENDPOINTS: Record<string, OfficialEndpoint> = {
     protocol: 'openai',
     modelId: 'gpt-4o',
   },
+  grok: {
+    name: 'xAI Official',
+    baseUrl: 'https://api.x.ai/v1',
+    protocol: 'openai',
+    modelId: 'grok-4',
+  },
   // OpenCode is a third-party tool, not OpenAI official
   // Community open-source tools (openclaw, zeroclaw, hermes, nanobot,
   // picoclaw, openfang, opencode) have no canonical vendor URL — restore is hidden.

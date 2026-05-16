@@ -1,0 +1,21 @@
+{
+    "id": "grok",
+    "displayName": "Grok Build (xAI)",
+    "homepage": "https://x.ai/cli",
+    "docs": "https://docs.x.ai/build/overview",
+    "install": {
+        "all_platforms (recommended)": "curl -fsSL https://x.ai/cli/install.sh | bash",
+        "note": "Grok Build is xAI's terminal coding agent. Distributed as a single binary, not via npm. The installer drops `grok` under ~/.grok/bin/. On first launch `grok` opens a browser to authenticate with xAI, or set GROK_CODE_XAI_API_KEY for non-interactive use. As of 2026-05 the CLI is in early beta gated to SuperGrok Heavy subscribers; the install script is live but the binary may require subscription auth.",
+        "windows": "Run the same `curl | bash` flow under Git for Windows / MSYS2 Bash. WSL users get the Linux binary."
+    },
+    "network_requirements": {
+        "test_urls": [
+            "https://x.ai/cli/install.sh",
+            "https://docs.x.ai/build/overview"
+        ],
+        "mirrors": {}
+    },
+    "identity_guard": {
+        "description": "Grok Build is the official xAI coding CLI (binary name `grok`). Not to be confused with the standalone Grok chat app at grok.com (web/iOS/Android), nor with third-party 'grok-cli' npm packages."
+    }
+}

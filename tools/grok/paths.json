@@ -1,0 +1,45 @@
+{
+    "name": "Grok Build",
+    "names": {
+        "zh-Hans": "Grok Build"
+    },
+    "category": "CLI Code",
+    "apiProtocol": [
+        "openai"
+    ],
+    "docs": "https://docs.x.ai/build/overview",
+    "website": "https://x.ai/cli",
+    "command": "grok",
+    "startCommand": "grok",
+    "envVar": "GROK_PATH",
+    "configDir": "~/.grok",
+    "configFile": "~/.grok/config.toml",
+    "requireConfigFile": false,
+    "paths": {
+        "win32": [
+            "%USERPROFILE%/.grok/bin/grok.exe",
+            "%USERPROFILE%/.local/bin/grok.exe",
+            "%LOCALAPPDATA%/Programs/grok/grok.exe",
+            "%USERPROFILE%/.bun/bin/grok.exe",
+            "%LOCALAPPDATA%/pnpm/grok.exe"
+        ],
+        "darwin": [
+            "~/.grok/bin/grok",
+            "/usr/local/bin/grok",
+            "/opt/homebrew/bin/grok",
+            "~/.local/bin/grok",
+            "~/.bun/bin/grok",
+            "~/.npm-global/bin/grok",
+            "~/Library/pnpm/grok"
+        ],
+        "linux": [
+            "~/.grok/bin/grok",
+            "/usr/local/bin/grok",
+            "/usr/bin/grok",
+            "~/.local/bin/grok",
+            "~/.bun/bin/grok",
+            "~/.npm-global/bin/grok",
+            "~/.local/share/pnpm/grok"
+        ]
+    }
+}

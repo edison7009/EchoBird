@@ -1,0 +1,5 @@
+{
+    "configFile": "~/.grok/config.toml",
+    "format": "toml",
+    "custom": true
+}

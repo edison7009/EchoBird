@@ -104,6 +104,10 @@ static BUNDLED: BundledAssets = BundledAssets {
             "traecn",
             include_str!("../../docs/api/tools/install/traecn.json"),
         ),
+        (
+            "grok",
+            include_str!("../../docs/api/tools/install/grok.json"),
+        ),
     ],
     tool_scripts: &[
         (
