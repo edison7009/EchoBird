@@ -1,5 +1,5 @@
 {
   "version": "4.8.2",
   "releaseDate": "2026-05-17",
-  "releaseNotes": "v4.8.2:Codex 与 Claude 桌面端新增「上游直连」开关,支持原生中转站直连;修复切换模型后 Codex 工程信任、终端状态被重置的问题"
+  "releaseNotes": "v4.8.3:本地大模型自动识别多显卡(优先 GPU、不足降级 CPU);模型中心厂商列表可云端更新"
 }
