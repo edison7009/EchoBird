@@ -117,6 +117,16 @@ export const AppManagerProvider: React.FC<AppManagerProviderProps> = ({ children
   const [codexRelayMode, setCodexRelayModeRaw] = useState<boolean>(() =>
     readBool('echobird_codex_relay_mode', false)
   );
+  // Claude Desktop routing toggle. When ON, apply_claudedesktop writes
+  // the real upstream URL + api key into the Desktop profile JSON so
+  // Desktop's gateway talks straight to the relay station. Default OFF:
+  // Desktop talks to our anthropic_proxy which does model-id rewrite
+  // and protocol translation. Kept separate from codexRelayMode so a
+  // user with a cc-vibe-only relay for Codex but a local-vllm for Claude
+  // (or vice versa) can mix the two independently.
+  const [claudeDesktopRelayMode, setClaudeDesktopRelayModeRaw] = useState<boolean>(() =>
+    readBool('echobird_claudedesktop_relay_mode', false)
+  );
 
   // Tool model config (single selection - one model per tool)
   const [toolModelConfig, setToolModelConfig] = useState<Record<string, string | null>>({
@@ -173,11 +183,15 @@ export const AppManagerProvider: React.FC<AppManagerProviderProps> = ({ children
       `[AppManager] Applying model to ${toolId}: protocol=${selectedProtocol}, url=${apiUrl}`
     );
 
-    // Codex apps honor the relay-mode toggle from the right panel.
-    // Other tools ignore the field — apply_codex is the only consumer
-    // and it short-circuits on tool_id mismatch.
+    // Codex apps + Claude Desktop honor the relay-mode toggle from the
+    // right panel. Other tools ignore the field — apply_codex and
+    // apply_claudedesktop are the only consumers and short-circuit on
+    // tool_id mismatch.
     const isCodexApp = toolId === 'codex' || toolId === 'codexdesktop';
-    const effectiveRelay = relayOverride ?? codexRelayMode;
+    const isClaudeDesktopApp = toolId === 'claudedesktop';
+    const isRelayCapableApp = isCodexApp || isClaudeDesktopApp;
+    const currentRelayMode = isClaudeDesktopApp ? claudeDesktopRelayMode : codexRelayMode;
+    const effectiveRelay = relayOverride ?? currentRelayMode;
 
     try {
       const result = await api.applyModelToTool(toolId, {
@@ -187,7 +201,7 @@ export const AppManagerProvider: React.FC<AppManagerProviderProps> = ({ children
         apiKey: model.apiKey,
         model: model.modelId || '',
         protocol: selectedProtocol,
-        ...(isCodexApp ? { relayMode: effectiveRelay } : {}),
+        ...(isRelayCapableApp ? { relayMode: effectiveRelay } : {}),
       });
 
       if (result?.success) {
@@ -231,6 +245,27 @@ export const AppManagerProvider: React.FC<AppManagerProviderProps> = ({ children
     // applyModelConfig itself is recreated on every render, so we
     // exclude it from deps to avoid an effect storm — the closure
     // captures the latest values either way via the relayOverride arg.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [toolModelConfig, t]
+  );
+
+  // Claude Desktop relay-mode setter — mirrors setCodexRelayMode but
+  // scoped to the claudedesktop tool. Re-applies on toggle flip so the
+  // user sees an immediate effect (profile JSON gets rewritten with the
+  // new gateway URL + key on the next /v1/messages request, no Desktop
+  // restart required after the first 3p activation).
+  const setClaudeDesktopRelayMode = useCallback(
+    (v: boolean) => {
+      setClaudeDesktopRelayModeRaw(v);
+      writeBool('echobird_claudedesktop_relay_mode', v);
+      const pendingInternalId = toolModelConfig['claudedesktop'];
+      if (!pendingInternalId || isOfficialModelSentinel(pendingInternalId)) return;
+      void applyModelConfig('claudedesktop', pendingInternalId, v).then((result) => {
+        if (result !== true) {
+          setApplyError(typeof result === 'string' ? result : t('key.destroyed'));
+        }
+      });
+    },
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [toolModelConfig, t]
   );
@@ -351,6 +386,8 @@ export const AppManagerProvider: React.FC<AppManagerProviderProps> = ({ children
         setModelProtocolSelection,
         codexRelayMode,
         setCodexRelayMode,
+        claudeDesktopRelayMode,
+        setClaudeDesktopRelayMode,
         handleLaunch,
         onGoToMother: handleGoToMother,
         aiInstallableIds,

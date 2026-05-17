@@ -406,12 +406,21 @@ export const AppManagerPanel: React.FC = () => {
     setModelProtocolSelection,
     codexRelayMode,
     setCodexRelayMode,
+    claudeDesktopRelayMode,
+    setClaudeDesktopRelayMode,
   } = useAppManager();
 
-  // The relay-mode toggle slot is scoped to Codex CLI / Codex Desktop —
-  // they share ~/.codex/config.toml so a single shared flag is correct.
-  // Future per-app toggles can stack into the same row container.
-  const showCodexRelayToggle = selectedTool === 'codex' || selectedTool === 'codexdesktop';
+  // Relay-mode toggle: shown for Codex CLI / Codex Desktop (shared
+  // ~/.codex/config.toml, single codexRelayMode flag) AND for Claude
+  // Desktop (separate claudeDesktopRelayMode flag, different protocol
+  // and relay-station compat). The toggle binds to whichever flag
+  // matches the currently selected app; other apps render an empty
+  // fixed-height slot so the model list below doesn't jitter on switch.
+  const isCodexApp = selectedTool === 'codex' || selectedTool === 'codexdesktop';
+  const isClaudeDesktopApp = selectedTool === 'claudedesktop';
+  const showRelayToggle = isCodexApp || isClaudeDesktopApp;
+  const relayModeValue = isClaudeDesktopApp ? claudeDesktopRelayMode : codexRelayMode;
+  const setRelayModeValue = isClaudeDesktopApp ? setClaudeDesktopRelayMode : setCodexRelayMode;
 
   return (
     <>
@@ -428,9 +437,10 @@ export const AppManagerPanel: React.FC = () => {
       </div>
 
       {/* Relay-toggle slot: always reserved height so the model list below
-          doesn't jump when switching between Codex and non-Codex apps. */}
+          doesn't jump when switching between relay-capable apps (Codex,
+          Claude Desktop) and others. */}
       <div className="px-3 h-9 flex items-center">
-        {showCodexRelayToggle && (
+        {showRelayToggle && (
           <>
             <span className="text-xs text-cyber-text-secondary mr-2">
               {t('agent.codexRelayLabel')}
@@ -438,16 +448,16 @@ export const AppManagerPanel: React.FC = () => {
             <button
               type="button"
               role="switch"
-              aria-checked={codexRelayMode}
+              aria-checked={relayModeValue}
               aria-label={t('agent.codexRelayLabel')}
-              onClick={() => setCodexRelayMode(!codexRelayMode)}
+              onClick={() => setRelayModeValue(!relayModeValue)}
               className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors outline-none focus-visible:ring-2 focus-visible:ring-cyber-accent mr-2 ${
-                codexRelayMode ? 'bg-cyber-accent' : 'bg-cyber-border'
+                relayModeValue ? 'bg-cyber-accent' : 'bg-cyber-border'
               }`}
             >
               <span
                 className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-all duration-200 ${
-                  codexRelayMode
+                  relayModeValue
                     ? 'translate-x-5 shadow-[0_1px_2px_rgba(0,0,0,0.35)]'
                     : 'translate-x-1'
                 }`}

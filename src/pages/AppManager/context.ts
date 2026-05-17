@@ -31,9 +31,14 @@ export interface AppManagerContextType {
   setModelProtocolSelection: React.Dispatch<
     React.SetStateAction<Record<string, 'openai' | 'anthropic'>>
   >;
-  /** Codex-only routing toggle (shared between Codex CLI and Codex Desktop). */
+  /** Codex routing toggle (shared between Codex CLI and Codex Desktop —
+   *  they share ~/.codex/config.toml so a single flag is correct). */
   codexRelayMode: boolean;
   setCodexRelayMode: (v: boolean) => void;
+  /** Claude Desktop routing toggle. Kept separate from Codex because the
+   *  two apps target different protocols / different relay-station compat. */
+  claudeDesktopRelayMode: boolean;
+  setClaudeDesktopRelayMode: (v: boolean) => void;
   // Launch handler
   handleLaunch: () => Promise<void>;
   // Navigation — internal handler: (toolId, toolName) => fetch install info → call prop
