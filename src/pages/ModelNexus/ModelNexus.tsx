@@ -759,7 +759,6 @@ export function AddModelModal() {
                   <button
                     type="button"
                     disabled={!newModelForm.apiKey}
-                    title={newModelForm.apiKey.startsWith('enc:v1:') ? 'Decrypt' : 'Encrypt'}
                     onClick={async () => {
                       if (newModelForm.apiKey.startsWith('enc:v1:')) {
                         try {
