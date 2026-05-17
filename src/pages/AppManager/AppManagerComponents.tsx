@@ -384,9 +384,6 @@ export const ModelListSection: React.FC<ModelListSectionProps> = ({
         </div>
       )}
       {/* Cloud models area — official endpoint goes first if registered */}
-      <div className="text-xs text-cyber-text-secondary mb-3">
-        {t('agent.selectModelFor')} {selectedToolData.name}:
-      </div>
       <div className="space-y-2">
         {official && renderOfficialCard(official)}
         {cloudModels.map(renderModelCard)}
@@ -430,13 +427,12 @@ export const AppManagerPanel: React.FC = () => {
         )}
       </div>
 
-      {showCodexRelayToggle && (
-        <>
-          <div className="px-3 pb-2 flex items-center justify-between">
-            <span
-              className="text-xs text-cyber-text-secondary font-mono"
-              title={t('agent.codexRelayHint')}
-            >
+      {/* Relay-toggle slot: always reserved height so the model list below
+          doesn't jump when switching between Codex and non-Codex apps. */}
+      <div className="px-3 h-9 flex items-center">
+        {showCodexRelayToggle && (
+          <>
+            <span className="text-xs text-cyber-text-secondary font-mono mr-2">
               {t('agent.codexRelayLabel')}
             </span>
             <button
@@ -445,7 +441,7 @@ export const AppManagerPanel: React.FC = () => {
               aria-checked={codexRelayMode}
               aria-label={t('agent.codexRelayLabel')}
               onClick={() => setCodexRelayMode(!codexRelayMode)}
-              className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors outline-none focus-visible:ring-2 focus-visible:ring-cyber-accent ${
+              className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors outline-none focus-visible:ring-2 focus-visible:ring-cyber-accent mr-2 ${
                 codexRelayMode ? 'bg-cyber-accent' : 'bg-cyber-border'
               }`}
             >
@@ -455,10 +451,24 @@ export const AppManagerPanel: React.FC = () => {
                 }`}
               />
             </button>
-          </div>
-          <div className="mx-3 border-t border-cyber-border/40" />
-        </>
-      )}
+            {/* Help icon — themed hover tooltip, not the native browser one. */}
+            <span className="group relative inline-flex">
+              <span
+                aria-label={t('agent.codexRelayHint')}
+                className="inline-flex h-4 w-4 items-center justify-center rounded-full border border-cyber-border text-[10px] text-cyber-text-secondary cursor-help select-none hover:border-cyber-accent hover:text-cyber-accent transition-colors"
+              >
+                ?
+              </span>
+              <span
+                role="tooltip"
+                className="pointer-events-none absolute left-0 top-full z-50 mt-1.5 w-56 rounded border border-cyber-accent/40 bg-cyber-bg-dark/95 px-3 py-2 text-[11px] leading-relaxed text-cyber-text shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"
+              >
+                {t('agent.codexRelayHint')}
+              </span>
+            </span>
+          </>
+        )}
+      </div>
 
       <div className="flex-1 p-2 overflow-y-auto">
         {selectedToolData ? (

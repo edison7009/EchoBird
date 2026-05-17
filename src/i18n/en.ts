@@ -96,7 +96,6 @@ const en: Translations = {
   // App Manager
   'agent.myLocalModel': 'My Local Model',
   'agent.selectTool': 'Select a tool to configure',
-  'agent.selectModelFor': 'Select a model for',
   'agent.noModelsTitle': 'No models configured.',
   'agent.noModelsHintPre': 'Go to',
   'agent.noModelsHintPost': 'to add one.',
@@ -154,7 +153,7 @@ const en: Translations = {
   'agent.modelsTab': 'MODELS',
   'agent.codexRelayLabel': 'Direct upstream',
   'agent.codexRelayHint':
-    "When on, writes the active model's URL and API key straight into ~/.codex/config.toml so Codex talks to the upstream directly, bypassing the local proxy. Use this for relay stations (e.g. cc-vibe) that already serve the Responses protocol.",
+    "Enable this if you're connecting through a native relay station or API Router.",
   'agent.installViaMother': 'AI Auto-Install',
   // ToolCard labels
   'tool.models': 'Models',

@@ -107,7 +107,6 @@ export type TKey =
   // App Manager
   | 'agent.myLocalModel'
   | 'agent.selectTool'
-  | 'agent.selectModelFor'
   | 'agent.noModelsTitle'
   | 'agent.noModelsHintPre'
   | 'agent.noModelsHintPost'

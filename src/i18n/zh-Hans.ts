@@ -78,7 +78,6 @@ const zhHans: Partial<Translations> = {
   'model.deleteConfirm': '此模型配置将被永久删除，操作不可撤销。',
   'agent.myLocalModel': '我的本地模型',
   'agent.selectTool': '选择要配置的工具',
-  'agent.selectModelFor': '为此选择模型',
   'agent.noModelsTitle': '暂未配置模型。',
   'agent.noModelsHintPre': '请前往',
   'agent.noModelsHintPost': '添加模型。',
@@ -131,8 +130,7 @@ const zhHans: Partial<Translations> = {
   'toolCat.utility': '工具',
   'agent.modelsTab': '模型',
   'agent.codexRelayLabel': '上游直连',
-  'agent.codexRelayHint':
-    '开启后把当前模型的 URL 和 API Key 直接写入 ~/.codex/config.toml，Codex 跳过本地代理直奔上游。适合 cc-vibe 等已经支持 Responses 协议的中转站。',
+  'agent.codexRelayHint': '如果你使用的是原生中转站或 API Router 接入，需开启此项。',
   'agent.installViaMother': 'AI 自动安装',
   'tool.models': '模型',
   'tool.app': '应用',
