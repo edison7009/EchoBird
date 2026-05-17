@@ -506,7 +506,6 @@ export function AiCoursesTitleActions() {
       <button
         onClick={retry}
         disabled={syncing}
-        title={t('btn.refresh')}
         className={`text-sm px-3 py-1.5 border rounded-md transition-colors flex items-center gap-2 ${
           !syncing
             ? 'border-cyber-border/50 text-cyber-text hover:bg-cyber-text/10'
