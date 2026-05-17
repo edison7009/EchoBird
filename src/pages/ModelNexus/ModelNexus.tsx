@@ -469,10 +469,19 @@ export function ModelNexusMain() {
 
 // ===== Right Panel (Provider / Relay tabs) =====
 
-// Provider / relay lists are loaded from src/data/modelDirectory.json so
-// users can edit baseUrl / anthropicUrl / modelId per vendor without touching
-// component code. Provider order is curated (roughly end-user MAU); names are
-// picked to match keyword rules in getModelIcon so the SVG resolves.
+// Right-panel Providers + Relays list. Two tiers:
+// • Remote-first: `api.getModelDirectory()` hits echobird.ai/api/model-
+//   directory/index.json (with backend-side disk cache). Lets us add a
+//   vendor or fix a baseUrl without shipping an app release.
+// • Bundled fallback: `src/data/modelDirectory.json` shipped in the app
+//   binary. Used when both remote and disk-cache are unavailable
+//   (offline, first install + firewall, etc.), and as the immediate
+//   first paint before the network round-trip lands.
+//
+// Per-entry fields (name / url / baseUrl / anthropicUrl / modelId /
+// region) and ordering rules (zh locale → 'cn' first, others → 'global'
+// first) are unchanged. Edit either the remote JSON or the bundled
+// JSON; remote wins when both are present.
 type DirectoryEntry = {
   name: string;
   url: string;
@@ -482,8 +491,8 @@ type DirectoryEntry = {
   region: 'cn' | 'global';
 };
 
-const PROVIDERS: DirectoryEntry[] = modelDirectory.providers as DirectoryEntry[];
-const RELAYS: DirectoryEntry[] = modelDirectory.relays as DirectoryEntry[];
+const BUNDLED_PROVIDERS: DirectoryEntry[] = modelDirectory.providers as DirectoryEntry[];
+const BUNDLED_RELAYS: DirectoryEntry[] = modelDirectory.relays as DirectoryEntry[];
 
 // Locale-aware reorder: zh* surfaces 'cn' entries first; everything else
 // surfaces 'global' first. Within each region we keep the curated JSON order
@@ -567,9 +576,34 @@ function ProviderRow({ entry, onAdd }: { entry: DirectoryEntry; onAdd: () => voi
 export function ModelNexusPanel() {
   const { t, locale } = useI18n();
   const [panelTab, setPanelTab] = useState<'providers' | 'relays'>('providers');
+
+  // Bundled JSON paints immediately, remote swaps in if newer content
+  // is available. Failure modes (remote down + cache miss): backend
+  // returns null, we keep the bundled state forever. No flicker, no
+  // blank panel.
+  const [providers, setProviders] = useState<DirectoryEntry[]>(BUNDLED_PROVIDERS);
+  const [relays, setRelays] = useState<DirectoryEntry[]>(BUNDLED_RELAYS);
+
+  useEffect(() => {
+    let cancelled = false;
+    api
+      .getModelDirectory()
+      .then((remote) => {
+        if (cancelled || !remote) return;
+        setProviders(remote.providers as DirectoryEntry[]);
+        setRelays(remote.relays as DirectoryEntry[]);
+      })
+      .catch(() => {
+        /* keep bundled */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const list = useMemo(
-    () => sortByLocale(panelTab === 'providers' ? PROVIDERS : RELAYS, locale),
-    [panelTab, locale]
+    () => sortByLocale(panelTab === 'providers' ? providers : relays, locale),
+    [panelTab, locale, providers, relays]
   );
   const { setNewModelForm, setEditingModelId, setShowAddModelModal } = useModelNexus();
 
