@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { Server as ServerIcon, Box as BoxIcon } from 'lucide-react';
+import { Server as ServerIcon, Box as BoxIcon, HelpCircle } from 'lucide-react';
 import { ToolCard, getModelIcon } from '../../components';
 import { useI18n } from '../../hooks/useI18n';
 import type { ModelConfig, LocalTool } from '../../api/types';
@@ -453,12 +453,11 @@ export const AppManagerPanel: React.FC = () => {
             </button>
             {/* Help icon — themed hover tooltip, not the native browser one. */}
             <span className="group relative inline-flex">
-              <span
+              <HelpCircle
+                size={14}
                 aria-label={t('agent.codexRelayHint')}
-                className="inline-flex h-4 w-4 items-center justify-center rounded-full border border-cyber-border text-[10px] text-cyber-text-secondary cursor-help select-none hover:border-cyber-accent hover:text-cyber-accent transition-colors"
-              >
-                ?
-              </span>
+                className="text-cyber-text-secondary cursor-help hover:text-cyber-accent transition-colors"
+              />
               <span
                 role="tooltip"
                 className="pointer-events-none absolute left-0 top-full z-[100] mt-1.5 w-56 rounded border border-cyber-accent/40 bg-cyber-dark px-3 py-2 text-[11px] leading-relaxed text-cyber-text shadow-cyber-card backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity"
