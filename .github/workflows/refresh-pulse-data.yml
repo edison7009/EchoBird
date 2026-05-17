@@ -41,6 +41,17 @@ jobs:
           done
           ls -lh docs/pulse/
 
+      # The upstream ZH aggregator wraps individual KOL X/Twitter posts as
+      # "news" items (~8% of the 7-day window). Those are editorial /
+      # promotional, not reporting — strip them at refresh time so every
+      # downstream mirror (worker, Tencent COS, jsDelivr-on-our-repo) sees
+      # the same clean payload. Re-emits total_items so the frontend's
+      # header counts stay consistent.
+      - name: Filter ZH pulse files (drop x.com / twitter.com)
+        run: |
+          set -euo pipefail
+          python3 scripts/filter_pulse.py docs/pulse/latest-24h.json docs/pulse/latest-7d.json
+
       - name: Set up Python
         uses: actions/setup-python@v6
         with:

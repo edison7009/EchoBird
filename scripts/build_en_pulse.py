@@ -70,6 +70,10 @@ AI_KEYWORDS = [
 ]
 AI_RE = re.compile(r"\b(" + "|".join(re.escape(k) for k in AI_KEYWORDS) + r")\b", re.IGNORECASE)
 
+# Host blocklist: x.com / twitter.com items are individual KOL posts, not news.
+# Kept in sync with scripts/filter_pulse.py (applied to the ZH feed at refresh time).
+BLOCKED_HOST_RE = re.compile(r"^https?://([^/]+\.)?(x|twitter)\.com/", re.IGNORECASE)
+
 
 # ─── HTTP helpers ─────────────────────────────────────────────────────────────
 
@@ -392,6 +396,7 @@ def main() -> int:
     items.extend(fetch_github_trending())
 
     items = dedupe_by_url(items)
+    items = [it for it in items if not BLOCKED_HOST_RE.match(it.get("url") or "")]
     # Sort newest-first by best available timestamp.
     def ts_key(it: dict) -> str:
         return it.get("published_at") or it.get("first_seen_at") or ""

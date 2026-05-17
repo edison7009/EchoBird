@@ -1,7 +1,7 @@
 {
   "generated_at": "2026-05-17T02:01:30.636Z",
   "window_hours": 24,
-  "total_items": 579,
+  "total_items": 544,
   "total_items_ai_raw": 613,
   "total_items_raw": 5039,
   "total_items_all_mode": 4729,
@@ -637,21 +637,6 @@
       "title_bilingual": "[推广] 推广一下自己的中转站。Claude/GPT 主打纯血不掺水。"
     },
     {
-      "id": "9bacc91322e59f728955413d9a5e61fcfc111b68",
-      "site_id": "opmlrss",
-      "site_name": "OPML RSS",
-      "source": "向阳乔木(@vista8)",
-      "title": "跟小龙虾（OpenClaw）比，Hermes代码质量和稳定性都好很多！\r\n\r\n搭个Hermes硅基飞书群，每个机器人用独立模型和网关，远程协同工作。\r\n\r\n1. 终端中执行 hermes profile cr...",
-      "url": "https://x.com/vista8/status/2055825358503764329",
-      "published_at": "2026-05-17T01:38:55Z",
-      "first_seen_at": "2026-05-17T02:01:30.636Z",
-      "last_seen_at": "2026-05-17T02:01:30.636Z",
-      "title_original": "跟小龙虾（OpenClaw）比，Hermes代码质量和稳定性都好很多！\r\n\r\n搭个Hermes硅基飞书群，每个机器人用独立模型和网关，远程协同工作。\r\n\r\n1. 终端中执行 hermes profile cr...",
-      "title_en": null,
-      "title_zh": "跟小龙虾（OpenClaw）比，Hermes代码质量和稳定性都好很多！\r\n\r\n搭个Hermes硅基飞书群，每个机器人用独立模型和网关，远程协同工作。\r\n\r\n1. 终端中执行 hermes profile cr...",
-      "title_bilingual": "跟小龙虾（OpenClaw）比，Hermes代码质量和稳定性都好很多！\r\n\r\n搭个Hermes硅基飞书群，每个机器人用独立模型和网关，远程协同工作。\r\n\r\n1. 终端中执行 hermes profile cr..."
-    },
-    {
       "id": "102de026858a410476fc7388fbb9bccabd24f6f6",
       "site_id": "wechat-rss",
       "site_name": "微信公众号",
@@ -802,21 +787,6 @@
       "title_bilingual": "Tomy Tutor 与 1983 年的家用电脑现状 / The Tomy Tutor and the state of 1983 home computers"
     },
     {
-      "id": "3867f69f0594c51e779a5af5c345b1360f539406",
-      "site_id": "opmlrss",
-      "site_name": "OPML RSS",
-      "source": "Jerry Liu(@jerryjliu0)",
-      "title": "Many AI agents in finance rely on extremely high quality context engineering from documents 📑\r\n\r\nThey...",
-      "url": "https://x.com/jerryjliu0/status/2055817368253997244",
-      "published_at": "2026-05-17T01:07:10Z",
-      "first_seen_at": "2026-05-17T02:01:30.636Z",
-      "last_seen_at": "2026-05-17T02:01:30.636Z",
-      "title_original": "Many AI agents in finance rely on extremely high quality context engineering from documents 📑\r\n\r\nThey...",
-      "title_en": "Many AI agents in finance rely on extremely high quality context engineering from documents 📑\r\n\r\nThey...",
-      "title_zh": "金融领域的许多人工智能代理都依赖于文档中的极高质量的上下文工程📑\r\n\r\n他们...",
-      "title_bilingual": "金融领域的许多人工智能代理都依赖于文档中的极高质量的上下文工程📑\r\n\r\n他们... / Many AI agents in finance rely on extremely high quality context engineering from documents 📑\r\n\r\nThey..."
-    },
-    {
       "id": "44941b82fbb8a1fcfbe26326fe6ce89858f7b0cb",
       "site_id": "wechat-rss",
       "site_name": "微信公众号",
@@ -860,21 +830,6 @@
       "title_en": null,
       "title_zh": "[分享创造] 把微信读书接入 ChatGPT",
       "title_bilingual": "[分享创造] 把微信读书接入 ChatGPT"
-    },
-    {
-      "id": "a37022d70c2ca0f7e8939aa3738a5605e4904056",
-      "site_id": "opmlrss",
-      "site_name": "OPML RSS",
-      "source": "meng shao(@shao__meng)",
-      "title": "Atomic Bot 发布的基于本地模型 Qwen 35B真实任务视频对比，引发 OpenClaw 和 Hermes Agent 两位大佬辩论\r\n\r\nOpenClaw 创始人 @steipete 转发了这...",
-      "url": "https://x.com/shao__meng/status/2055812741890510899",
-      "published_at": "2026-05-17T00:48:47Z",
-      "first_seen_at": "2026-05-17T02:01:30.636Z",
-      "last_seen_at": "2026-05-17T02:01:30.636Z",
-      "title_original": "Atomic Bot 发布的基于本地模型 Qwen 35B真实任务视频对比，引发 OpenClaw 和 Hermes Agent 两位大佬辩论\r\n\r\nOpenClaw 创始人 @steipete 转发了这...",
-      "title_en": null,
-      "title_zh": "Atomic Bot 发布的基于本地模型 Qwen 35B真实任务视频对比，引发 OpenClaw 和 Hermes Agent 两位大佬辩论\r\n\r\nOpenClaw 创始人 @steipete 转发了这...",
-      "title_bilingual": "Atomic Bot 发布的基于本地模型 Qwen 35B真实任务视频对比，引发 OpenClaw 和 Hermes Agent 两位大佬辩论\r\n\r\nOpenClaw 创始人 @steipete 转发了这..."
     },
     {
       "id": "17c7d36d78db1df909bae598defbef89308f5801",
@@ -950,36 +905,6 @@
       "title_en": null,
       "title_zh": "没有融资、没有流量，普通人的AI创业机会在哪里？",
       "title_bilingual": "没有融资、没有流量，普通人的AI创业机会在哪里？"
-    },
-    {
-      "id": "eba2fd0df3c520197022900c2f7704d2c22d4392",
-      "site_id": "opmlrss",
-      "site_name": "OPML RSS",
-      "source": "小互(@imxiaohu)",
-      "title": "把这两件事拼起来看，OpenAI 在搭一个「Codex 设备网络」：\r\n\r\n你的手机是入口\r\n\r\n你的笔记本、Mac Mini、备用机都是执行节点\r\n任何一台都能被远程指挥，不需要醒着，不需要 SSH\r\n\r\n这是 ...",
-      "url": "https://x.com/xiaohu/status/2055808846803906905",
-      "published_at": "2026-05-17T00:33:18Z",
-      "first_seen_at": "2026-05-17T02:01:30.636Z",
-      "last_seen_at": "2026-05-17T02:01:30.636Z",
-      "title_original": "把这两件事拼起来看，OpenAI 在搭一个「Codex 设备网络」：\r\n\r\n你的手机是入口\r\n\r\n你的笔记本、Mac Mini、备用机都是执行节点\r\n任何一台都能被远程指挥，不需要醒着，不需要 SSH\r\n\r\n这是 ...",
-      "title_en": null,
-      "title_zh": "把这两件事拼起来看，OpenAI 在搭一个「Codex 设备网络」：\r\n\r\n你的手机是入口\r\n\r\n你的笔记本、Mac Mini、备用机都是执行节点\r\n任何一台都能被远程指挥，不需要醒着，不需要 SSH\r\n\r\n这是 ...",
-      "title_bilingual": "把这两件事拼起来看，OpenAI 在搭一个「Codex 设备网络」：\r\n\r\n你的手机是入口\r\n\r\n你的笔记本、Mac Mini、备用机都是执行节点\r\n任何一台都能被远程指挥，不需要醒着，不需要 SSH\r\n\r\n这是 ..."
-    },
-    {
-      "id": "ddb45723d0247308972267fc023c6917c6591120",
-      "site_id": "opmlrss",
-      "site_name": "OPML RSS",
-      "source": "小互(@imxiaohu)",
-      "title": "OpenAI 正在偷偷做两件事\r\n\r\n把 Codex 的「远程控制」从手机控自己电脑，往「手机控任意电脑」的方向推进...\r\n\r\n5 月 14 日，OpenAI 给 ChatGPT 手机 App 加了个功能：...",
-      "url": "https://x.com/xiaohu/status/2055808836074979576",
-      "published_at": "2026-05-17T00:33:16Z",
-      "first_seen_at": "2026-05-17T02:01:30.636Z",
-      "last_seen_at": "2026-05-17T02:01:30.636Z",
-      "title_original": "OpenAI 正在偷偷做两件事\r\n\r\n把 Codex 的「远程控制」从手机控自己电脑，往「手机控任意电脑」的方向推进...\r\n\r\n5 月 14 日，OpenAI 给 ChatGPT 手机 App 加了个功能：...",
-      "title_en": null,
-      "title_zh": "OpenAI 正在偷偷做两件事\r\n\r\n把 Codex 的「远程控制」从手机控自己电脑，往「手机控任意电脑」的方向推进...\r\n\r\n5 月 14 日，OpenAI 给 ChatGPT 手机 App 加了个功能：...",
-      "title_bilingual": "OpenAI 正在偷偷做两件事\r\n\r\n把 Codex 的「远程控制」从手机控自己电脑，往「手机控任意电脑」的方向推进...\r\n\r\n5 月 14 日，OpenAI 给 ChatGPT 手机 App 加了个功能：..."
     },
     {
       "id": "99581cd0fa40406c42134ac0b1237583091d5df1",
@@ -2317,21 +2242,6 @@
       "title_bilingual": "LLM 模型尚不具备协调大量代理的能力"
     },
     {
-      "id": "3a16c103b9600a9c94084f490286bb6c668ca446",
-      "site_id": "opmlrss",
-      "site_name": "OPML RSS",
-      "source": "xAI(@xai)",
-      "title": "You can now use X Premium subscriptions in Hermes Agent, and Hermes Agent can now search X posts.\r\n\r\nh...",
-      "url": "https://x.com/xai/status/2055745332919808181",
-      "published_at": "2026-05-16T20:20:55Z",
-      "first_seen_at": "2026-05-16T20:37:37.556Z",
-      "last_seen_at": "2026-05-17T02:01:30.636Z",
-      "title_original": "You can now use X Premium subscriptions in Hermes Agent, and Hermes Agent can now search X posts.\r\n\r\nh...",
-      "title_en": "You can now use X Premium subscriptions in Hermes Agent, and Hermes Agent can now search X posts.\r\n\r\nh...",
-      "title_zh": "您现在可以在 Hermes Agent 中使用 X Premium 订阅，并且 Hermes Agent 现在可以搜索 X 帖子。\r\n\r\n哈...",
-      "title_bilingual": "您现在可以在 Hermes Agent 中使用 X Premium 订阅，并且 Hermes Agent 现在可以搜索 X 帖子。\r\n\r\n哈... / You can now use X Premium subscriptions in Hermes Agent, and Hermes Agent can now search X posts.\r\n\r\nh..."
-    },
-    {
       "id": "ca96fa4770476680c1ccf0527bb7f5edf0af8f12",
       "site_id": "iris",
       "site_name": "Info Flow",
@@ -2827,81 +2737,6 @@
       "title_bilingual": "随着企业争相大规模部署人工智能，JFrog（FROG）有望从中受益"
     },
     {
-      "id": "6d1b79e96847c3b855552f456e17aac53afad0d2",
-      "site_id": "opmlrss",
-      "site_name": "OPML RSS",
-      "source": "OpenAI Developers(@OpenAIDevs)",
-      "title": "We’ve also been tightening Codex performance across the app, especially for large repos and active c...",
-      "url": "https://x.com/OpenAIDevs/status/2055718005309575431",
-      "published_at": "2026-05-16T18:32:20Z",
-      "first_seen_at": "2026-05-16T18:49:10.096Z",
-      "last_seen_at": "2026-05-17T02:01:30.636Z",
-      "title_original": "We’ve also been tightening Codex performance across the app, especially for large repos and active c...",
-      "title_en": "We’ve also been tightening Codex performance across the app, especially for large repos and active c...",
-      "title_zh": "我们还加强了整个应用程序的 Codex 性能，特别是对于大型存储库和活跃的 c...",
-      "title_bilingual": "我们还加强了整个应用程序的 Codex 性能，特别是对于大型存储库和活跃的 c... / We’ve also been tightening Codex performance across the app, especially for large repos and active c..."
-    },
-    {
-      "id": "acc0ed3e28b42fbec53de645580f749287ca45b0",
-      "site_id": "opmlrss",
-      "site_name": "OPML RSS",
-      "source": "OpenAI Developers(@OpenAIDevs)",
-      "title": "The local server list got a cleanup pass.\r\n\r\nBetter filtering, remembered sort state, clearer empty st...",
-      "url": "https://x.com/OpenAIDevs/status/2055717993460732191",
-      "published_at": "2026-05-16T18:32:17Z",
-      "first_seen_at": "2026-05-16T18:49:10.096Z",
-      "last_seen_at": "2026-05-17T02:01:30.636Z",
-      "title_original": "The local server list got a cleanup pass.\r\n\r\nBetter filtering, remembered sort state, clearer empty st...",
-      "title_en": "The local server list got a cleanup pass.\r\n\r\nBetter filtering, remembered sort state, clearer empty st...",
-      "title_zh": "本地服务器列表获得清理通行证。\r\n\r\n更好的过滤、记住排序状态、更清晰的空状态...",
-      "title_bilingual": "本地服务器列表获得清理通行证。\r\n\r\n更好的过滤、记住排序状态、更清晰的空状态... / The local server list got a cleanup pass.\r\n\r\nBetter filtering, remembered sort state, clearer empty st..."
-    },
-    {
-      "id": "4ff65b95257464a68056e35c96a08c7ee093810b",
-      "site_id": "opmlrss",
-      "site_name": "OPML RSS",
-      "source": "OpenAI Developers(@OpenAIDevs)",
-      "title": "Improved thread panel.\r\n\r\nRelated context and controls now load and behave more cleanly from the threa...",
-      "url": "https://x.com/OpenAIDevs/status/2055717927064846802",
-      "published_at": "2026-05-16T18:32:01Z",
-      "first_seen_at": "2026-05-16T22:35:36.424Z",
-      "last_seen_at": "2026-05-17T02:01:30.636Z",
-      "title_original": "Improved thread panel.\r\n\r\nRelated context and controls now load and behave more cleanly from the threa...",
-      "title_en": "Improved thread panel.\r\n\r\nRelated context and controls now load and behave more cleanly from the threa...",
-      "title_zh": "改进了线程面板。\r\n\r\n相关上下文和控件现在可以从威胁中更清晰地加载和表现......",
-      "title_bilingual": "改进了线程面板。\r\n\r\n相关上下文和控件现在可以从威胁中更清晰地加载和表现...... / Improved thread panel.\r\n\r\nRelated context and controls now load and behave more cleanly from the threa..."
-    },
-    {
-      "id": "e61a6714a61bb93a5b7492c1f733899ed88f7405",
-      "site_id": "opmlrss",
-      "site_name": "OPML RSS",
-      "source": "OpenAI Developers(@OpenAIDevs)",
-      "title": "Git actions are easier to reach.\r\n\r\nWe moved key git controls back into the review flow, so common act...",
-      "url": "https://x.com/OpenAIDevs/status/2055717859058495596",
-      "published_at": "2026-05-16T18:31:45Z",
-      "first_seen_at": "2026-05-16T22:35:36.424Z",
-      "last_seen_at": "2026-05-17T02:01:30.636Z",
-      "title_original": "Git actions are easier to reach.\r\n\r\nWe moved key git controls back into the review flow, so common act...",
-      "title_en": "Git actions are easier to reach.\r\n\r\nWe moved key git controls back into the review flow, so common act...",
-      "title_zh": "Git 操作更容易实现。\r\n\r\n我们将关键的 git 控件移回到审核流程中，所以常见的行为......",
-      "title_bilingual": "Git 操作更容易实现。\r\n\r\n我们将关键的 git 控件移回到审核流程中，所以常见的行为...... / Git actions are easier to reach.\r\n\r\nWe moved key git controls back into the review flow, so common act..."
-    },
-    {
-      "id": "2ba80a0e291169c46e420dec2b72b1d750a1d864",
-      "site_id": "opmlrss",
-      "site_name": "OPML RSS",
-      "source": "OpenAI Developers(@OpenAIDevs)",
-      "title": "We’re having way too much fun working through your feedback.\r\n\r\n(Please, keep it coming.)\r\n\r\nKeyboard sh...",
-      "url": "https://x.com/OpenAIDevs/status/2055717793841221796",
-      "published_at": "2026-05-16T18:31:30Z",
-      "first_seen_at": "2026-05-16T18:49:10.096Z",
-      "last_seen_at": "2026-05-17T02:01:30.636Z",
-      "title_original": "We’re having way too much fun working through your feedback.\r\n\r\n(Please, keep it coming.)\r\n\r\nKeyboard sh...",
-      "title_en": "We’re having way too much fun working through your feedback.\r\n\r\n(Please, keep it coming.)\r\n\r\nKeyboard sh...",
-      "title_zh": "我们在处理您的反馈时感到非常有趣。\r\n\r\n（请继续。）\r\n\r\n键盘...",
-      "title_bilingual": "我们在处理您的反馈时感到非常有趣。\r\n\r\n（请继续。）\r\n\r\n键盘... / We’re having way too much fun working through your feedback.\r\n\r\n(Please, keep it coming.)\r\n\r\nKeyboard sh..."
-    },
-    {
       "id": "e388e1909a9b4fcc5a7b5b69569d5d8fbe633916",
       "site_id": "buzzing",
       "site_name": "Buzzing",
@@ -2915,21 +2750,6 @@
       "title_en": null,
       "title_zh": "受加沙抵制事件影响，欧洲歌唱大赛决赛拉开帷幕",
       "title_bilingual": "受加沙抵制事件影响，欧洲歌唱大赛决赛拉开帷幕"
-    },
-    {
-      "id": "5f7027b4c96c45b6d22c52fe907b3508c6284766",
-      "site_id": "buzzing",
-      "site_name": "Buzzing",
-      "source": "twitter.com",
-      "title": "OpenClaw 创始人30天内斥资130万美元购买 OpenAI 代币",
-      "url": "https://twitter.com/steipete/status/2055346265869721905",
-      "published_at": "2026-05-16T18:22:09.926Z",
-      "first_seen_at": "2026-05-16T18:49:10.096Z",
-      "last_seen_at": "2026-05-17T02:01:30.636Z",
-      "title_original": "OpenClaw 创始人30天内斥资130万美元购买 OpenAI 代币",
-      "title_en": null,
-      "title_zh": "OpenClaw 创始人30天内斥资130万美元购买 OpenAI 代币",
-      "title_bilingual": "OpenClaw 创始人30天内斥资130万美元购买 OpenAI 代币"
     },
     {
       "id": "06575050db39506e2258ee73827e0709fb559198",
@@ -3652,21 +3472,6 @@
       "title_bilingual": "SANA-WM：一个用于生成1分钟720p视频的26亿级开源世界模型"
     },
     {
-      "id": "da47763820c654ceae74fd874561458c5ae35fdc",
-      "site_id": "opmlrss",
-      "site_name": "OPML RSS",
-      "source": "Geek(@geekbb)",
-      "title": "为新闻编辑室提供一套 AI 辅助的中间流程管理系统，覆盖线索归并、证据组织、风险审查、签发审批、勘误和发布后监测。\r\n\r\nhttps://t.co/s86WaG9inw",
-      "url": "https://x.com/geekbb/status/2055670608487485646",
-      "published_at": "2026-05-16T15:24:00Z",
-      "first_seen_at": "2026-05-16T16:44:43.184Z",
-      "last_seen_at": "2026-05-17T02:01:30.636Z",
-      "title_original": "为新闻编辑室提供一套 AI 辅助的中间流程管理系统，覆盖线索归并、证据组织、风险审查、签发审批、勘误和发布后监测。\r\n\r\nhttps://t.co/s86WaG9inw",
-      "title_en": null,
-      "title_zh": "为新闻编辑室提供一套 AI 辅助的中间流程管理系统，覆盖线索归并、证据组织、风险审查、签发审批、勘误和发布后监测。\r\n\r\nhttps://t.co/s86WaG9inw",
-      "title_bilingual": "为新闻编辑室提供一套 AI 辅助的中间流程管理系统，覆盖线索归并、证据组织、风险审查、签发审批、勘误和发布后监测。\r\n\r\nhttps://t.co/s86WaG9inw"
-    },
-    {
       "id": "b51806e8841f47315279ea044be75518eef5c691",
       "site_id": "newsnow",
       "site_name": "NewsNow",
@@ -4027,21 +3832,6 @@
       "title_bilingual": "美国政府公开策划起诉劳尔·卡斯特罗作为入侵古巴的前奏 / US Government openly schemes to indict Raúl Castro as prelude to invading Cuba"
     },
     {
-      "id": "7155322abaabab58b02fa1dd223a19db2482c127",
-      "site_id": "opmlrss",
-      "site_name": "OPML RSS",
-      "source": "Geek(@geekbb)",
-      "title": "一个专为 AI 编码设计的 macOS 终端，把工作区管理、分屏和 AI agent 启动流程整合到一起。支持横竖分屏，一键启动 Claude Code、Codex、Gemini CLI 等七个 AI...",
-      "url": "https://x.com/geekbb/status/2055655509059928551",
-      "published_at": "2026-05-16T14:24:00Z",
-      "first_seen_at": "2026-05-16T14:47:16.893Z",
-      "last_seen_at": "2026-05-17T02:01:30.636Z",
-      "title_original": "一个专为 AI 编码设计的 macOS 终端，把工作区管理、分屏和 AI agent 启动流程整合到一起。支持横竖分屏，一键启动 Claude Code、Codex、Gemini CLI 等七个 AI...",
-      "title_en": null,
-      "title_zh": "一个专为 AI 编码设计的 macOS 终端，把工作区管理、分屏和 AI agent 启动流程整合到一起。支持横竖分屏，一键启动 Claude Code、Codex、Gemini CLI 等七个 AI...",
-      "title_bilingual": "一个专为 AI 编码设计的 macOS 终端，把工作区管理、分屏和 AI agent 启动流程整合到一起。支持横竖分屏，一键启动 Claude Code、Codex、Gemini CLI 等七个 AI..."
-    },
-    {
       "id": "5594c25b450c0c2d62bb5f639a93d3ed5525e8a1",
       "site_id": "buzzing",
       "site_name": "Buzzing",
@@ -4297,51 +4087,6 @@
       "title_bilingual": "Stera：一款开源基础设施，可将iPhone拍摄的照片转化为用于构建世界模型的空间数据"
     },
     {
-      "id": "eb0ce9c730f3d0d09e182fd4338ef4cb145b251a",
-      "site_id": "opmlrss",
-      "site_name": "OPML RSS",
-      "source": "Viking(@vikingmute)",
-      "title": "今天换微信支付证书，发现 better-wechatpay 已经有248个 star 了，\r\nhttps://t.co/mBSFAvZfgN\r\n\r\n如果大家要接入微信支付，可以试试我写的开源库，因为官方没有...",
-      "url": "https://x.com/vikingmute/status/2055635406629281841",
-      "published_at": "2026-05-16T13:04:07Z",
-      "first_seen_at": "2026-05-16T14:47:16.893Z",
-      "last_seen_at": "2026-05-17T02:01:30.636Z",
-      "title_original": "今天换微信支付证书，发现 better-wechatpay 已经有248个 star 了，\r\nhttps://t.co/mBSFAvZfgN\r\n\r\n如果大家要接入微信支付，可以试试我写的开源库，因为官方没有...",
-      "title_en": null,
-      "title_zh": "今天换微信支付证书，发现 better-wechatpay 已经有248个 star 了，\r\nhttps://t.co/mBSFAvZfgN\r\n\r\n如果大家要接入微信支付，可以试试我写的开源库，因为官方没有...",
-      "title_bilingual": "今天换微信支付证书，发现 better-wechatpay 已经有248个 star 了，\r\nhttps://t.co/mBSFAvZfgN\r\n\r\n如果大家要接入微信支付，可以试试我写的开源库，因为官方没有..."
-    },
-    {
-      "id": "761c452cbb536cbfba02a001846b7c8cdff3aa9e",
-      "site_id": "opmlrss",
-      "site_name": "OPML RSS",
-      "source": "向阳乔木(@vista8)",
-      "title": "https://t.co/neUWrkWzHI\r\n\r\nM芯片下载aarch64.dmg，Intel芯片下载x64.dmg",
-      "url": "https://x.com/vista8/status/2055634049763525019",
-      "published_at": "2026-05-16T12:58:43Z",
-      "first_seen_at": "2026-05-16T14:47:16.893Z",
-      "last_seen_at": "2026-05-17T02:01:30.636Z",
-      "title_original": "https://t.co/neUWrkWzHI\r\n\r\nM芯片下载aarch64.dmg，Intel芯片下载x64.dmg",
-      "title_en": null,
-      "title_zh": "https://t.co/neUWrkWzHI\r\n\r\nM芯片下载aarch64.dmg，Intel芯片下载x64.dmg",
-      "title_bilingual": "https://t.co/neUWrkWzHI\r\n\r\nM芯片下载aarch64.dmg，Intel芯片下载x64.dmg"
-    },
-    {
-      "id": "7928d5894461fe642b87359563ddec86daf70a99",
-      "site_id": "opmlrss",
-      "site_name": "OPML RSS",
-      "source": "向阳乔木(@vista8)",
-      "title": "测了几款 CleanShotX 的平替软件。\r\n\r\nBetter Shot、Shottr、iShot都还行，最接近的是Better Shot，且完全免费，真不错。\r\n\r\n明年就不用续订SetApp了，Mole...",
-      "url": "https://x.com/vista8/status/2055633836051161531",
-      "published_at": "2026-05-16T12:57:53Z",
-      "first_seen_at": "2026-05-16T14:47:16.893Z",
-      "last_seen_at": "2026-05-17T02:01:30.636Z",
-      "title_original": "测了几款 CleanShotX 的平替软件。\r\n\r\nBetter Shot、Shottr、iShot都还行，最接近的是Better Shot，且完全免费，真不错。\r\n\r\n明年就不用续订SetApp了，Mole...",
-      "title_en": null,
-      "title_zh": "测了几款 CleanShotX 的平替软件。\r\n\r\nBetter Shot、Shottr、iShot都还行，最接近的是Better Shot，且完全免费，真不错。\r\n\r\n明年就不用续订SetApp了，Mole...",
-      "title_bilingual": "测了几款 CleanShotX 的平替软件。\r\n\r\nBetter Shot、Shottr、iShot都还行，最接近的是Better Shot，且完全免费，真不错。\r\n\r\n明年就不用续订SetApp了，Mole..."
-    },
-    {
       "id": "c7a94f37a3a20e333b41da561cc723ec83e235f3",
       "site_id": "techurls",
       "site_name": "TechURLs",
@@ -4505,21 +4250,6 @@
       "title_en": "Europe built sovereign clouds to escape US control. Forgot about the processors",
       "title_zh": "欧洲建设主权云以摆脱美国的控制，却忽略了处理器的问题",
       "title_bilingual": "欧洲建设主权云以摆脱美国的控制，却忽略了处理器的问题 / Europe built sovereign clouds to escape US control. Forgot about the processors"
-    },
-    {
-      "id": "ce6d72a18f6dc2c8663af17b7506d629d3e4061c",
-      "site_id": "techurls",
-      "site_name": "TechURLs",
-      "source": "Hacker News",
-      "title": "OpenClaw Creator Spent $1.3M on OpenAI Tokens in 30 Days",
-      "url": "https://twitter.com/steipete/status/2055346265869721905",
-      "published_at": null,
-      "first_seen_at": "2026-05-16T12:57:21.392Z",
-      "last_seen_at": "2026-05-16T18:49:10.096Z",
-      "title_original": "OpenClaw Creator Spent $1.3M on OpenAI Tokens in 30 Days",
-      "title_en": "OpenClaw Creator Spent $1.3M on OpenAI Tokens in 30 Days",
-      "title_zh": "OpenClaw 创始人30天内斥资130万美元购买 OpenAI 代币",
-      "title_bilingual": "OpenClaw 创始人30天内斥资130万美元购买 OpenAI 代币 / OpenClaw Creator Spent $1.3M on OpenAI Tokens in 30 Days"
     },
     {
       "id": "e3234758eca946e3f3f6694142c35a7cfa22e331",
@@ -4912,21 +4642,6 @@
       "title_bilingual": "可怜那些面临“歧视”的人工智能数据中心 阿尔瓦·马哈达维"
     },
     {
-      "id": "bb966e04b10945b4062a568b2ed11ce6cbbd360e",
-      "site_id": "opmlrss",
-      "site_name": "OPML RSS",
-      "source": "Geek(@geekbb)",
-      "title": "架设一个兼容 Anthropic Messages API 的代理，把 Claude Code 的请求路由到你配置的 LLM 提供商。支持 10 种提供商：OpenRouter、DeepSeek、Op...",
-      "url": "https://x.com/geekbb/status/2055622038396846105",
-      "published_at": "2026-05-16T12:11:00Z",
-      "first_seen_at": "2026-05-16T12:57:21.392Z",
-      "last_seen_at": "2026-05-17T02:01:30.636Z",
-      "title_original": "架设一个兼容 Anthropic Messages API 的代理，把 Claude Code 的请求路由到你配置的 LLM 提供商。支持 10 种提供商：OpenRouter、DeepSeek、Op...",
-      "title_en": null,
-      "title_zh": "架设一个兼容 Anthropic Messages API 的代理，把 Claude Code 的请求路由到你配置的 LLM 提供商。支持 10 种提供商：OpenRouter、DeepSeek、Op...",
-      "title_bilingual": "架设一个兼容 Anthropic Messages API 的代理，把 Claude Code 的请求路由到你配置的 LLM 提供商。支持 10 种提供商：OpenRouter、DeepSeek、Op..."
-    },
-    {
       "id": "a31341d7568dd64576975a77ca81b60fa106801c",
       "site_id": "zeli",
       "site_name": "Zeli",
@@ -5075,21 +4790,6 @@
       "title_en": null,
       "title_zh": "[酷工作] [实习] [可远程] Agent 工程师",
       "title_bilingual": "[酷工作] [实习] [可远程] Agent 工程师"
-    },
-    {
-      "id": "3a210a69abd640d0f0fe941d8763996d4934f677",
-      "site_id": "opmlrss",
-      "site_name": "OPML RSS",
-      "source": "meng shao(@shao__meng)",
-      "title": "Animate Text Skill：让 Agent 能创建好看的文字动画\r\n\r\n这个 Skill 把 \"反复复杂模糊的风格描述\" 翻译成 \"可执行规格\"，把 24 种精心打磨的文字动画固化为机器可读的 ...",
-      "url": "https://x.com/shao__meng/status/2055610047175238118",
-      "published_at": "2026-05-16T11:23:21Z",
-      "first_seen_at": "2026-05-16T12:57:21.392Z",
-      "last_seen_at": "2026-05-17T02:01:30.636Z",
-      "title_original": "Animate Text Skill：让 Agent 能创建好看的文字动画\r\n\r\n这个 Skill 把 \"反复复杂模糊的风格描述\" 翻译成 \"可执行规格\"，把 24 种精心打磨的文字动画固化为机器可读的 ...",
-      "title_en": null,
-      "title_zh": "Animate Text Skill：让 Agent 能创建好看的文字动画\r\n\r\n这个 Skill 把 \"反复复杂模糊的风格描述\" 翻译成 \"可执行规格\"，把 24 种精心打磨的文字动画固化为机器可读的 ...",
-      "title_bilingual": "Animate Text Skill：让 Agent 能创建好看的文字动画\r\n\r\n这个 Skill 把 \"反复复杂模糊的风格描述\" 翻译成 \"可执行规格\"，把 24 种精心打磨的文字动画固化为机器可读的 ..."
     },
     {
       "id": "a951bf9220cc0275ae011445e3aea5974e771f78",
@@ -5810,21 +5510,6 @@
       "title_en": null,
       "title_zh": "Frontier AI 打破了公开 CTF 赛制的常规",
       "title_bilingual": "Frontier AI 打破了公开 CTF 赛制的常规"
-    },
-    {
-      "id": "d96b75ec222be46bcbe6cf7557083813c4b68f2c",
-      "site_id": "opmlrss",
-      "site_name": "OPML RSS",
-      "source": "Geek(@geekbb)",
-      "title": "GitHub 官方推出的 Copilot 桌面应用，专为 Agent 驱动的开发流程设计。它可以同时运行多个 AI Agent 工作流，原生集成 GitHub Issues、Pull Requests...",
-      "url": "https://x.com/geekbb/status/2055582433681244540",
-      "published_at": "2026-05-16T09:33:37Z",
-      "first_seen_at": "2026-05-16T10:54:24.336Z",
-      "last_seen_at": "2026-05-17T02:01:30.636Z",
-      "title_original": "GitHub 官方推出的 Copilot 桌面应用，专为 Agent 驱动的开发流程设计。它可以同时运行多个 AI Agent 工作流，原生集成 GitHub Issues、Pull Requests...",
-      "title_en": null,
-      "title_zh": "GitHub 官方推出的 Copilot 桌面应用，专为 Agent 驱动的开发流程设计。它可以同时运行多个 AI Agent 工作流，原生集成 GitHub Issues、Pull Requests...",
-      "title_bilingual": "GitHub 官方推出的 Copilot 桌面应用，专为 Agent 驱动的开发流程设计。它可以同时运行多个 AI Agent 工作流，原生集成 GitHub Issues、Pull Requests..."
     },
     {
       "id": "e78026540a9874fbaeee839ea998be60c2c410bf",
@@ -6667,21 +6352,6 @@
       "title_bilingual": "笔记软件，新颖创意"
     },
     {
-      "id": "c0fc7b7359f28cdc03d0b07f2307d4eac3af841d",
-      "site_id": "opmlrss",
-      "site_name": "OPML RSS",
-      "source": "Geek(@geekbb)",
-      "title": "AI 写出来的技术文档动辄几千字，全在终端里滚，没人愿意看。md2html 让 AI 自动把这些 Markdown 转成带侧边栏目录、图表、时间线、卡片和警告框的 HTML 页面，一个文件就能发给团队...",
-      "url": "https://x.com/geekbb/status/2055562646884167759",
-      "published_at": "2026-05-16T08:15:00Z",
-      "first_seen_at": "2026-05-16T09:20:25.631Z",
-      "last_seen_at": "2026-05-17T02:01:30.636Z",
-      "title_original": "AI 写出来的技术文档动辄几千字，全在终端里滚，没人愿意看。md2html 让 AI 自动把这些 Markdown 转成带侧边栏目录、图表、时间线、卡片和警告框的 HTML 页面，一个文件就能发给团队...",
-      "title_en": null,
-      "title_zh": "AI 写出来的技术文档动辄几千字，全在终端里滚，没人愿意看。md2html 让 AI 自动把这些 Markdown 转成带侧边栏目录、图表、时间线、卡片和警告框的 HTML 页面，一个文件就能发给团队...",
-      "title_bilingual": "AI 写出来的技术文档动辄几千字，全在终端里滚，没人愿意看。md2html 让 AI 自动把这些 Markdown 转成带侧边栏目录、图表、时间线、卡片和警告框的 HTML 页面，一个文件就能发给团队..."
-    },
-    {
       "id": "8c3479c16ffec30279c0376e728a83379708d9d9",
       "site_id": "iris",
       "site_name": "Info Flow",
@@ -6695,21 +6365,6 @@
       "title_en": "Using Rust to parse Godot .tres files and walk the resource graph",
       "title_zh": "使用 Rust 解析 Godot 的 .tres 文件并遍历资源图",
       "title_bilingual": "使用 Rust 解析 Godot 的 .tres 文件并遍历资源图 / Using Rust to parse Godot .tres files and walk the resource graph"
-    },
-    {
-      "id": "0ae325810b8e2bd4ac80614764056d2477e1aa9a",
-      "site_id": "opmlrss",
-      "site_name": "OPML RSS",
-      "source": "歸藏(guizang.ai)(@op7418)",
-      "title": "我终于知道昨天 OpenAI 官方的人回复我是啥意思了!\r\n\r\nCodex 除了用 ChatGPT 连接和远程控制以外，还可以在 Codex 再控制你的另一台电脑。\r\n\r\n这样你就可以在 ChatGPT 上直...",
-      "url": "https://x.com/op7418/status/2055561525633642762",
-      "published_at": "2026-05-16T08:10:32Z",
-      "first_seen_at": "2026-05-16T09:20:25.631Z",
-      "last_seen_at": "2026-05-17T02:01:30.636Z",
-      "title_original": "我终于知道昨天 OpenAI 官方的人回复我是啥意思了!\r\n\r\nCodex 除了用 ChatGPT 连接和远程控制以外，还可以在 Codex 再控制你的另一台电脑。\r\n\r\n这样你就可以在 ChatGPT 上直...",
-      "title_en": null,
-      "title_zh": "我终于知道昨天 OpenAI 官方的人回复我是啥意思了!\r\n\r\nCodex 除了用 ChatGPT 连接和远程控制以外，还可以在 Codex 再控制你的另一台电脑。\r\n\r\n这样你就可以在 ChatGPT 上直...",
-      "title_bilingual": "我终于知道昨天 OpenAI 官方的人回复我是啥意思了!\r\n\r\nCodex 除了用 ChatGPT 连接和远程控制以外，还可以在 Codex 再控制你的另一台电脑。\r\n\r\n这样你就可以在 ChatGPT 上直..."
     },
     {
       "id": "2c279f1bb2399ff785590cac3d59f371f4be13bd",
@@ -6800,21 +6455,6 @@
       "title_en": null,
       "title_zh": "[职场话题] ai coding 后已经慢慢丧失了对程序员这份职业的热爱了",
       "title_bilingual": "[职场话题] ai coding 后已经慢慢丧失了对程序员这份职业的热爱了"
-    },
-    {
-      "id": "d779402b3bff533d6424b7b2160d9970c67946e1",
-      "site_id": "opmlrss",
-      "site_name": "OPML RSS",
-      "source": "meng shao(@shao__meng)",
-      "title": "OpenAI 发布了首个面向中文开发者生态的布道型技术职位，兼具全栈工程能力与内容创作属性，来降低中国及华语地区企业和开发者使用 OpenAI 产品（尤其是 Codex 和前沿模型）的门槛，并驱动技术...",
-      "url": "https://x.com/shao__meng/status/2055557960756003086",
-      "published_at": "2026-05-16T07:56:22Z",
-      "first_seen_at": "2026-05-16T09:20:25.631Z",
-      "last_seen_at": "2026-05-17T02:01:30.636Z",
-      "title_original": "OpenAI 发布了首个面向中文开发者生态的布道型技术职位，兼具全栈工程能力与内容创作属性，来降低中国及华语地区企业和开发者使用 OpenAI 产品（尤其是 Codex 和前沿模型）的门槛，并驱动技术...",
-      "title_en": null,
-      "title_zh": "OpenAI 发布了首个面向中文开发者生态的布道型技术职位，兼具全栈工程能力与内容创作属性，来降低中国及华语地区企业和开发者使用 OpenAI 产品（尤其是 Codex 和前沿模型）的门槛，并驱动技术...",
-      "title_bilingual": "OpenAI 发布了首个面向中文开发者生态的布道型技术职位，兼具全栈工程能力与内容创作属性，来降低中国及华语地区企业和开发者使用 OpenAI 产品（尤其是 Codex 和前沿模型）的门槛，并驱动技术..."
     },
     {
       "id": "6e42ba5f45fc47fba34da0bacb286a48cb9c16d9",
@@ -7147,21 +6787,6 @@
       "title_bilingual": "搭建自己的内容分发网络 / Starting my own Content Delivery Network"
     },
     {
-      "id": "e67dba0b8609cadec47218859efb8f3b9f8df341",
-      "site_id": "opmlrss",
-      "site_name": "OPML RSS",
-      "source": "宝玉(@dotey)",
-      "title": "Codex Side Chat System Prompt:\r\n\r\nYou are in a side conversation, not the main thread.\r\n\r\nThis side conv...",
-      "url": "https://x.com/dotey/status/2055551934317122014",
-      "published_at": "2026-05-16T07:32:26Z",
-      "first_seen_at": "2026-05-16T07:48:29Z",
-      "last_seen_at": "2026-05-16T14:47:16.893Z",
-      "title_original": "Codex Side Chat System Prompt:\r\n\r\nYou are in a side conversation, not the main thread.\r\n\r\nThis side conv...",
-      "title_en": "Codex Side Chat System Prompt:\r\n\r\nYou are in a side conversation, not the main thread.\r\n\r\nThis side conv...",
-      "title_zh": "Codex 旁聊系统提示：\r\n\r\n您处于副线对话中，而不是主线程中。\r\n\r\n此侧转...",
-      "title_bilingual": "Codex 旁聊系统提示：\r\n\r\n您处于副线对话中，而不是主线程中。\r\n\r\n此侧转... / Codex Side Chat System Prompt:\r\n\r\nYou are in a side conversation, not the main thread.\r\n\r\nThis side conv..."
-    },
-    {
       "id": "d48f08a216170a2ca892a99186d530aae47bb594",
       "site_id": "iris",
       "site_name": "Info Flow",
@@ -7295,21 +6920,6 @@
       "title_en": null,
       "title_zh": "Crustimate - 免费工具，助您优化领英个人资料，让AI招聘人员更容易发现您",
       "title_bilingual": "Crustimate - 免费工具，助您优化领英个人资料，让AI招聘人员更容易发现您"
-    },
-    {
-      "id": "e888709c94033a1c4c2644ab2455dceac6cfc278",
-      "site_id": "opmlrss",
-      "site_name": "OPML RSS",
-      "source": "AI产品黄叔(@PMbackttfuture)",
-      "title": "感恩观猹的起号活动\r\n开了个新号\r\n发到第9条的时候找到感觉\r\n第10条在Skill里融入了富贵的情绪\r\n爆了\r\n\r\n体验到别人疯狂给投流的爽感\r\n终于算是理解了一些\r\n什么叫替别人说出他们想说的话",
-      "url": "https://x.com/PMbackttfuture/status/2055544753064657381",
-      "published_at": "2026-05-16T07:03:53Z",
-      "first_seen_at": "2026-05-16T07:48:29Z",
-      "last_seen_at": "2026-05-17T02:01:30.636Z",
-      "title_original": "感恩观猹的起号活动\r\n开了个新号\r\n发到第9条的时候找到感觉\r\n第10条在Skill里融入了富贵的情绪\r\n爆了\r\n\r\n体验到别人疯狂给投流的爽感\r\n终于算是理解了一些\r\n什么叫替别人说出他们想说的话",
-      "title_en": null,
-      "title_zh": "感恩观猹的起号活动\r\n开了个新号\r\n发到第9条的时候找到感觉\r\n第10条在Skill里融入了富贵的情绪\r\n爆了\r\n\r\n体验到别人疯狂给投流的爽感\r\n终于算是理解了一些\r\n什么叫替别人说出他们想说的话",
-      "title_bilingual": "感恩观猹的起号活动\r\n开了个新号\r\n发到第9条的时候找到感觉\r\n第10条在Skill里融入了富贵的情绪\r\n爆了\r\n\r\n体验到别人疯狂给投流的爽感\r\n终于算是理解了一些\r\n什么叫替别人说出他们想说的话"
     },
     {
       "id": "ca19c564139d635f6672d323c9ae89c449a2da24",
@@ -7822,21 +7432,6 @@
       "title_bilingual": "深企十方融海「双双入选」背后：深圳 AI 企业竞逐体系化能力"
     },
     {
-      "id": "2486a21b0870e448dfd2344354b614e14b4c0b17",
-      "site_id": "opmlrss",
-      "site_name": "OPML RSS",
-      "source": "Yangyi(@Yangyixxxx)",
-      "title": "我看了一下，目前我每个月从Claude max的套餐里大概会用掉100-120亿的token，大概$7200\r\nClaude只收了$200一个零头\r\n\r\n感觉主力切codex之后，可能也用不了太久了，哈哈\r\n...",
-      "url": "https://x.com/yangyi/status/2055519690597003731",
-      "published_at": "2026-05-16T05:24:18Z",
-      "first_seen_at": "2026-05-16T07:48:29Z",
-      "last_seen_at": "2026-05-17T02:01:30.636Z",
-      "title_original": "我看了一下，目前我每个月从Claude max的套餐里大概会用掉100-120亿的token，大概$7200\r\nClaude只收了$200一个零头\r\n\r\n感觉主力切codex之后，可能也用不了太久了，哈哈\r\n...",
-      "title_en": null,
-      "title_zh": "我看了一下，目前我每个月从Claude max的套餐里大概会用掉100-120亿的token，大概$7200\r\nClaude只收了$200一个零头\r\n\r\n感觉主力切codex之后，可能也用不了太久了，哈哈\r\n...",
-      "title_bilingual": "我看了一下，目前我每个月从Claude max的套餐里大概会用掉100-120亿的token，大概$7200\r\nClaude只收了$200一个零头\r\n\r\n感觉主力切codex之后，可能也用不了太久了，哈哈\r\n..."
-    },
-    {
       "id": "630078dc148b547d49a8096d1206582f772d7217",
       "site_id": "buzzing",
       "site_name": "Buzzing",
@@ -7925,21 +7520,6 @@
       "title_en": "CVE-2026-40369: Arbitrary Kernel Address Increment via NtQuerySystemInformation",
       "title_zh": "CVE-2026-40369：通过 NtQuerySystemInformation 实现内核地址任意递增",
       "title_bilingual": "CVE-2026-40369：通过 NtQuerySystemInformation 实现内核地址任意递增 / CVE-2026-40369: Arbitrary Kernel Address Increment via NtQuerySystemInformation"
-    },
-    {
-      "id": "456313f4f937f44fbba0f6007d6cc2735ee77cf6",
-      "site_id": "opmlrss",
-      "site_name": "OPML RSS",
-      "source": "Yangyi(@Yangyixxxx)",
-      "title": "帮转，这是个很好的机会\r\n桌面Agent会有很多很多不一样的可能性\r\n但我更期待的是Deepseek直接做OS\r\n挑战将完全不一样",
-      "url": "https://x.com/yangyi/status/2055511188503666848",
-      "published_at": "2026-05-16T04:50:31Z",
-      "first_seen_at": "2026-05-16T05:27:46.028Z",
-      "last_seen_at": "2026-05-17T02:01:30.636Z",
-      "title_original": "帮转，这是个很好的机会\r\n桌面Agent会有很多很多不一样的可能性\r\n但我更期待的是Deepseek直接做OS\r\n挑战将完全不一样",
-      "title_en": null,
-      "title_zh": "帮转，这是个很好的机会\r\n桌面Agent会有很多很多不一样的可能性\r\n但我更期待的是Deepseek直接做OS\r\n挑战将完全不一样",
-      "title_bilingual": "帮转，这是个很好的机会\r\n桌面Agent会有很多很多不一样的可能性\r\n但我更期待的是Deepseek直接做OS\r\n挑战将完全不一样"
     },
     {
       "id": "9f035527310b2feb81200b145c85493de98911e0",
@@ -8060,21 +7640,6 @@
       "title_en": null,
       "title_zh": "[推广] 前端入门选手，做了 1 个 ai 网站",
       "title_bilingual": "[推广] 前端入门选手，做了 1 个 ai 网站"
-    },
-    {
-      "id": "f0df5d7992c912d3914918206e8358bce3635652",
-      "site_id": "opmlrss",
-      "site_name": "OPML RSS",
-      "source": "宝玉(@dotey)",
-      "title": "帮转 DeepSeek 招 Agent Harness 产品经理\r\n\r\n职位描述\r\n\r\n团队使命\r\n\r\nModel + Harness = Agent\r\n\r\n我们正在把 DeepSeek 的前沿模型能力，转化为领先的...",
-      "url": "https://x.com/dotey/status/2055504619279675668",
-      "published_at": "2026-05-16T04:24:25Z",
-      "first_seen_at": "2026-05-16T05:27:46.028Z",
-      "last_seen_at": "2026-05-16T14:47:16.893Z",
-      "title_original": "帮转 DeepSeek 招 Agent Harness 产品经理\r\n\r\n职位描述\r\n\r\n团队使命\r\n\r\nModel + Harness = Agent\r\n\r\n我们正在把 DeepSeek 的前沿模型能力，转化为领先的...",
-      "title_en": null,
-      "title_zh": "帮转 DeepSeek 招 Agent Harness 产品经理\r\n\r\n职位描述\r\n\r\n团队使命\r\n\r\nModel + Harness = Agent\r\n\r\n我们正在把 DeepSeek 的前沿模型能力，转化为领先的...",
-      "title_bilingual": "帮转 DeepSeek 招 Agent Harness 产品经理\r\n\r\n职位描述\r\n\r\n团队使命\r\n\r\nModel + Harness = Agent\r\n\r\n我们正在把 DeepSeek 的前沿模型能力，转化为领先的..."
     },
     {
       "id": "0ea18d00ac710344efab417f9f99d915d2f8c295",
@@ -8257,36 +7822,6 @@
       "title_bilingual": "AI打工人的“第一笔工资”：16.88美元"
     },
     {
-      "id": "e671706f2b91aa359b89ab54680795ced6f16ad8",
-      "site_id": "opmlrss",
-      "site_name": "OPML RSS",
-      "source": "Yangyi(@Yangyixxxx)",
-      "title": "人类有了AI之后反而更忙了\r\n生产力提升短期内仿佛没有带来自由\r\n而是进一步加剧了内卷\r\n\r\n你变得更累了，还是更自由了？",
-      "url": "https://x.com/yangyi/status/2055496829958250566",
-      "published_at": "2026-05-16T03:53:28Z",
-      "first_seen_at": "2026-05-16T05:27:46.028Z",
-      "last_seen_at": "2026-05-17T02:01:30.636Z",
-      "title_original": "人类有了AI之后反而更忙了\r\n生产力提升短期内仿佛没有带来自由\r\n而是进一步加剧了内卷\r\n\r\n你变得更累了，还是更自由了？",
-      "title_en": null,
-      "title_zh": "人类有了AI之后反而更忙了\r\n生产力提升短期内仿佛没有带来自由\r\n而是进一步加剧了内卷\r\n\r\n你变得更累了，还是更自由了？",
-      "title_bilingual": "人类有了AI之后反而更忙了\r\n生产力提升短期内仿佛没有带来自由\r\n而是进一步加剧了内卷\r\n\r\n你变得更累了，还是更自由了？"
-    },
-    {
-      "id": "e335cfae386b68dcff0b3556ccca38e1f18b3553",
-      "site_id": "opmlrss",
-      "site_name": "OPML RSS",
-      "source": "歸藏(guizang.ai)(@op7418)",
-      "title": "再把  Hermes 爱马仕 也接进来，这次 Codepilot 重构就差不多了，就得收尾了",
-      "url": "https://x.com/op7418/status/2055496585191280894",
-      "published_at": "2026-05-16T03:52:29Z",
-      "first_seen_at": "2026-05-16T05:27:46.028Z",
-      "last_seen_at": "2026-05-17T02:01:30.636Z",
-      "title_original": "再把  Hermes 爱马仕 也接进来，这次 Codepilot 重构就差不多了，就得收尾了",
-      "title_en": null,
-      "title_zh": "再把  Hermes 爱马仕 也接进来，这次 Codepilot 重构就差不多了，就得收尾了",
-      "title_bilingual": "再把  Hermes 爱马仕 也接进来，这次 Codepilot 重构就差不多了，就得收尾了"
-    },
-    {
       "id": "906d2dfc7c5b353dfb67e89cc02d49494ccd116b",
       "site_id": "zeli",
       "site_name": "Zeli",
@@ -8360,21 +7895,6 @@
       "title_en": null,
       "title_zh": "星巴克将在印度开设其首家专门从事技术岗位招聘的公司办事处",
       "title_bilingual": "星巴克将在印度开设其首家专门从事技术岗位招聘的公司办事处"
-    },
-    {
-      "id": "641af16c54e4a833e8582c6378cf09728a36beac",
-      "site_id": "opmlrss",
-      "site_name": "OPML RSS",
-      "source": "宝玉(@dotey)",
-      "title": "谢谢各位推荐 Zed，确实很好，内存占用也很小。还能登录 OpenAI 和 GitHub，共用 Token。https://t.co/fpja4LpaqN",
-      "url": "https://x.com/dotey/status/2055489040531570740",
-      "published_at": "2026-05-16T03:22:31Z",
-      "first_seen_at": "2026-05-16T05:27:46.028Z",
-      "last_seen_at": "2026-05-16T14:47:16.893Z",
-      "title_original": "谢谢各位推荐 Zed，确实很好，内存占用也很小。还能登录 OpenAI 和 GitHub，共用 Token。https://t.co/fpja4LpaqN",
-      "title_en": null,
-      "title_zh": "谢谢各位推荐 Zed，确实很好，内存占用也很小。还能登录 OpenAI 和 GitHub，共用 Token。https://t.co/fpja4LpaqN",
-      "title_bilingual": "谢谢各位推荐 Zed，确实很好，内存占用也很小。还能登录 OpenAI 和 GitHub，共用 Token。https://t.co/fpja4LpaqN"
     },
     {
       "id": "776bffe4078cf56bb10204dba2e7eb7df86b7b26",
@@ -8467,21 +7987,6 @@
       "title_bilingual": "Show HN: LightningTrack – 专为人工智能辅助开发打造的缺陷跟踪系统"
     },
     {
-      "id": "4b709eaf0080db25d566a741ec964a76fa9c9bbb",
-      "site_id": "opmlrss",
-      "site_name": "OPML RSS",
-      "source": "Hailuo AI (MiniMax)(@Hailuo_AI)",
-      "title": "Get ready!\r\nHailuo AI Film Party kicks off tomorrow! 🙌",
-      "url": "https://x.com/Hailuo_AI/status/2055481718786900235",
-      "published_at": "2026-05-16T02:53:25Z",
-      "first_seen_at": "2026-05-16T05:27:46.028Z",
-      "last_seen_at": "2026-05-17T02:01:30.636Z",
-      "title_original": "Get ready!\r\nHailuo AI Film Party kicks off tomorrow! 🙌",
-      "title_en": "Get ready!\r\nHailuo AI Film Party kicks off tomorrow! 🙌",
-      "title_zh": "准备！\r\n海洛AI电影派对明天开幕！ 🙌",
-      "title_bilingual": "准备！\r\n海洛AI电影派对明天开幕！ 🙌 / Get ready!\r\nHailuo AI Film Party kicks off tomorrow! 🙌"
-    },
-    {
       "id": "c05c1cf9857ebeae60a1ae483b922c1e8ff6b4f8",
       "site_id": "iris",
       "site_name": "Info Flow",
@@ -8495,21 +8000,6 @@
       "title_en": null,
       "title_zh": "[程序员] 人在国外租了间房，然后房里有电脑，在国内有什么远程方案可以使用这台电脑? 主要是用 Claude 网页版和 code",
       "title_bilingual": "[程序员] 人在国外租了间房，然后房里有电脑，在国内有什么远程方案可以使用这台电脑? 主要是用 Claude 网页版和 code"
-    },
-    {
-      "id": "e2635ee22c891285b4917ec459a71a10a2ed0fb1",
-      "site_id": "opmlrss",
-      "site_name": "OPML RSS",
-      "source": "Yangyi(@Yangyixxxx)",
-      "title": "最近有个客户的产品我认为很适合跑pinterest\r\n所以准备搭个pinterest自动化矩阵\r\n选域名总是个体力活 于是让牛马AI搞了个批量查域名的\r\n所有要重复做三遍以上的 都值得一个skill",
-      "url": "https://x.com/yangyi/status/2055481046582562910",
-      "published_at": "2026-05-16T02:50:45Z",
-      "first_seen_at": "2026-05-16T05:27:46.028Z",
-      "last_seen_at": "2026-05-17T02:01:30.636Z",
-      "title_original": "最近有个客户的产品我认为很适合跑pinterest\r\n所以准备搭个pinterest自动化矩阵\r\n选域名总是个体力活 于是让牛马AI搞了个批量查域名的\r\n所有要重复做三遍以上的 都值得一个skill",
-      "title_en": null,
-      "title_zh": "最近有个客户的产品我认为很适合跑pinterest\r\n所以准备搭个pinterest自动化矩阵\r\n选域名总是个体力活 于是让牛马AI搞了个批量查域名的\r\n所有要重复做三遍以上的 都值得一个skill",
-      "title_bilingual": "最近有个客户的产品我认为很适合跑pinterest\r\n所以准备搭个pinterest自动化矩阵\r\n选域名总是个体力活 于是让牛马AI搞了个批量查域名的\r\n所有要重复做三遍以上的 都值得一个skill"
     },
     {
       "id": "70d040cf5d16b076fce0268d031432a9d239d38b",
@@ -8555,21 +8045,6 @@
       "title_en": null,
       "title_zh": "人工智能生成的关于美国干预的幻想，揭示了绝望如何缩小了古巴的政治视野 - The Conversation",
       "title_bilingual": "人工智能生成的关于美国干预的幻想，揭示了绝望如何缩小了古巴的政治视野 - The Conversation"
-    },
-    {
-      "id": "71238492567f16d8f8f4cbbf115e62f6405b6553",
-      "site_id": "opmlrss",
-      "site_name": "OPML RSS",
-      "source": "歸藏(guizang.ai)(@op7418)",
-      "title": "尝试一下将 PPT Skills 作为产品去迭代和发布。\r\n\r\n藏师傅 PPT Skills 截图美化逻辑更新\r\n\r\n不需要消耗 GPT-Image 2.0 即可生成了！\r\n\r\n现在内置了跟当前颜色和主题相吻合的...",
-      "url": "https://x.com/op7418/status/2055477163579891897",
-      "published_at": "2026-05-16T02:35:19Z",
-      "first_seen_at": "2026-05-16T05:27:46.028Z",
-      "last_seen_at": "2026-05-17T02:01:30.636Z",
-      "title_original": "尝试一下将 PPT Skills 作为产品去迭代和发布。\r\n\r\n藏师傅 PPT Skills 截图美化逻辑更新\r\n\r\n不需要消耗 GPT-Image 2.0 即可生成了！\r\n\r\n现在内置了跟当前颜色和主题相吻合的...",
-      "title_en": null,
-      "title_zh": "尝试一下将 PPT Skills 作为产品去迭代和发布。\r\n\r\n藏师傅 PPT Skills 截图美化逻辑更新\r\n\r\n不需要消耗 GPT-Image 2.0 即可生成了！\r\n\r\n现在内置了跟当前颜色和主题相吻合的...",
-      "title_bilingual": "尝试一下将 PPT Skills 作为产品去迭代和发布。\r\n\r\n藏师傅 PPT Skills 截图美化逻辑更新\r\n\r\n不需要消耗 GPT-Image 2.0 即可生成了！\r\n\r\n现在内置了跟当前颜色和主题相吻合的..."
     },
     {
       "id": "588ea3b2aee04f939fc9495f5587cb77e71453a7",

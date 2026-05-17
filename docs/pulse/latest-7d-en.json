@@ -1,7 +1,7 @@
 {
 "generated_at": "2026-05-17T04:18:55.000Z",
 "window_hours": 168,
-"total_items": 849,
+"total_items": 826,
 "total_items_ai_raw": 849,
 "total_items_raw": 849,
 "total_items_all_mode": 849,
@@ -1796,21 +1796,6 @@
 "title_bilingual": "Qwen 27b MTP Config, Llama.cpp Single 3090"
 },
 {
-"id": "db39d0a902dd81892680f754de711a2e6565957f",
-"site_id": "hackernews",
-"site_name": "Hacker News",
-"source": "Hacker News (4pts, 0c)",
-"title": "What an \"agent-native cloud\" needs to look like",
-"url": "https://twitter.com/QuinnyPig/status/2055497559813304735",
-"published_at": "2026-05-16T16:54:54Z",
-"first_seen_at": "2026-05-16T16:54:54Z",
-"last_seen_at": "2026-05-17T04:18:55.000Z",
-"title_original": "What an \"agent-native cloud\" needs to look like",
-"title_en": "What an \"agent-native cloud\" needs to look like",
-"title_zh": null,
-"title_bilingual": "What an \"agent-native cloud\" needs to look like"
-},
-{
 "id": "a34c4c0ead62d99470174d58665967df08204afa",
 "site_id": "hackernews",
 "site_name": "Hacker News",
@@ -2696,21 +2681,6 @@
 "title_bilingual": "Designing, Refining, and Maintaining Agent Skills at Perplexity"
 },
 {
-"id": "fde8760e0dc782943bf20733c7c7b408940a3889",
-"site_id": "hackernews",
-"site_name": "Hacker News",
-"source": "Hacker News (146pts, 176c)",
-"title": "OpenClaw Creator Spent $1.3M on OpenAI Tokens in 30 Days",
-"url": "https://twitter.com/steipete/status/2055346265869721905",
-"published_at": "2026-05-16T11:34:04Z",
-"first_seen_at": "2026-05-16T11:34:04Z",
-"last_seen_at": "2026-05-17T04:18:55.000Z",
-"title_original": "OpenClaw Creator Spent $1.3M on OpenAI Tokens in 30 Days",
-"title_en": "OpenClaw Creator Spent $1.3M on OpenAI Tokens in 30 Days",
-"title_zh": null,
-"title_bilingual": "OpenClaw Creator Spent $1.3M on OpenAI Tokens in 30 Days"
-},
-{
 "id": "5263c9749ca2136cb8ac16a62508d80e4354c186",
 "site_id": "hackernews",
 "site_name": "Hacker News",
@@ -3131,21 +3101,6 @@
 "title_bilingual": "EY retracts study after researchers discover AI hallucinations"
 },
 {
-"id": "8d08beefdb8a24f0e8c53c23ab67a4a498af389e",
-"site_id": "hackernews",
-"site_name": "Hacker News",
-"source": "Hacker News (5pts, 1c)",
-"title": "OpenAI super PAC paying for an army of Twitter bots to engage with their content",
-"url": "https://twitter.com/TheMidasProj/status/2055411833184399448",
-"published_at": "2026-05-16T05:37:49Z",
-"first_seen_at": "2026-05-16T05:37:49Z",
-"last_seen_at": "2026-05-17T04:18:55.000Z",
-"title_original": "OpenAI super PAC paying for an army of Twitter bots to engage with their content",
-"title_en": "OpenAI super PAC paying for an army of Twitter bots to engage with their content",
-"title_zh": null,
-"title_bilingual": "OpenAI super PAC paying for an army of Twitter bots to engage with their content"
-},
-{
 "id": "77bc7896e2f470d94845b216d63a3839393be58b",
 "site_id": "hackernews",
 "site_name": "Hacker News",
@@ -3354,21 +3309,6 @@
 "title_en": "Agentic Memory – The Follow Up",
 "title_zh": null,
 "title_bilingual": "Agentic Memory – The Follow Up"
-},
-{
-"id": "649abc2e8e1e03cfa75a9263284f0367b5a98a9c",
-"site_id": "hackernews",
-"site_name": "Hacker News",
-"source": "Hacker News (3pts, 0c)",
-"title": "AI for the Real World: A Conversation with Yann LeCun",
-"url": "https://twitter.com/AnneliesGamble/status/2054219457451733382",
-"published_at": "2026-05-16T02:20:38Z",
-"first_seen_at": "2026-05-16T02:20:38Z",
-"last_seen_at": "2026-05-17T04:18:55.000Z",
-"title_original": "AI for the Real World: A Conversation with Yann LeCun",
-"title_en": "AI for the Real World: A Conversation with Yann LeCun",
-"title_zh": null,
-"title_bilingual": "AI for the Real World: A Conversation with Yann LeCun"
 },
 {
 "id": "4a573dcc0bf7ffd24b14e9cf325036ac62311764",
@@ -4074,21 +4014,6 @@
 "title_en": "First AI Solar EBike",
 "title_zh": null,
 "title_bilingual": "First AI Solar EBike"
-},
-{
-"id": "07144252052c587400851db4757c2843bb3e0e78",
-"site_id": "hackernews",
-"site_name": "Hacker News",
-"source": "Hacker News (1911pts, 1108c)",
-"title": "I believe there are entire companies right now under AI psychosis",
-"url": "https://twitter.com/mitchellh/status/2055380239711457578",
-"published_at": "2026-05-15T20:26:47Z",
-"first_seen_at": "2026-05-15T20:26:47Z",
-"last_seen_at": "2026-05-17T04:18:55.000Z",
-"title_original": "I believe there are entire companies right now under AI psychosis",
-"title_en": "I believe there are entire companies right now under AI psychosis",
-"title_zh": null,
-"title_bilingual": "I believe there are entire companies right now under AI psychosis"
 },
 {
 "id": "347d4cff5349ac4db067b821885eeace9a56063d",
@@ -4944,21 +4869,6 @@
 "title_en": "AI Agents Modulate Their Language When Framed as Being Watched",
 "title_zh": null,
 "title_bilingual": "AI Agents Modulate Their Language When Framed as Being Watched"
-},
-{
-"id": "d142cec0aeb54daca41da59d91b31487443b9133",
-"site_id": "hackernews",
-"site_name": "Hacker News",
-"source": "Hacker News (7pts, 1c)",
-"title": "Anthropic deleting my API org in 36h, 6 support escalations ignored",
-"url": "https://twitter.com/lenzoai/status/2055221609992995006",
-"published_at": "2026-05-15T15:03:50Z",
-"first_seen_at": "2026-05-15T15:03:50Z",
-"last_seen_at": "2026-05-17T04:18:55.000Z",
-"title_original": "Anthropic deleting my API org in 36h, 6 support escalations ignored",
-"title_en": "Anthropic deleting my API org in 36h, 6 support escalations ignored",
-"title_zh": null,
-"title_bilingual": "Anthropic deleting my API org in 36h, 6 support escalations ignored"
 },
 {
 "id": "6ad0741a309182215f59fd5637e80aa24fffd73d",
@@ -6566,21 +6476,6 @@
 "title_bilingual": "An AI Agent Progresses Towards Idiocy, Not Expertise"
 },
 {
-"id": "c7159a4475d044b09c59a9a309b2746324e1893b",
-"site_id": "hackernews",
-"site_name": "Hacker News",
-"source": "Hacker News (38pts, 13c)",
-"title": "Codex is now available on mobile via ChatGPT app",
-"url": "https://twitter.com/openai/status/2055016850849993072",
-"published_at": "2026-05-14T20:17:43Z",
-"first_seen_at": "2026-05-14T20:17:43Z",
-"last_seen_at": "2026-05-17T04:18:55.000Z",
-"title_original": "Codex is now available on mobile via ChatGPT app",
-"title_en": "Codex is now available on mobile via ChatGPT app",
-"title_zh": null,
-"title_bilingual": "Codex is now available on mobile via ChatGPT app"
-},
-{
 "id": "6668308c6bc6b707678ab1c76a3549e17f9c0ee0",
 "site_id": "hackernews",
 "site_name": "Hacker News",
@@ -6789,21 +6684,6 @@
 "title_en": "Show HN: Visualizing Tiny LLMs from OpenAI's Parameter Golf",
 "title_zh": null,
 "title_bilingual": "Show HN: Visualizing Tiny LLMs from OpenAI's Parameter Golf"
-},
-{
-"id": "3bbb62e878dfce5676de41efd73a94bdaf14c514",
-"site_id": "hackernews",
-"site_name": "Hacker News",
-"source": "Hacker News (9pts, 1c)",
-"title": "Anthropic moves Claude Code SDK and claude -p out of subscription plans",
-"url": "https://twitter.com/ClaudeDevs/status/2054610152817619388",
-"published_at": "2026-05-14T18:37:01Z",
-"first_seen_at": "2026-05-14T18:37:01Z",
-"last_seen_at": "2026-05-17T04:18:55.000Z",
-"title_original": "Anthropic moves Claude Code SDK and claude -p out of subscription plans",
-"title_en": "Anthropic moves Claude Code SDK and claude -p out of subscription plans",
-"title_zh": null,
-"title_bilingual": "Anthropic moves Claude Code SDK and claude -p out of subscription plans"
 },
 {
 "id": "9deca43ba3a155975cbb1a57b56c86dd9ba91d32",
@@ -7179,21 +7059,6 @@
 "title_en": "Interrogatory LLM",
 "title_zh": null,
 "title_bilingual": "Interrogatory LLM"
-},
-{
-"id": "09731d44e8adc5ac1f61eab922b1b1aa085e6da7",
-"site_id": "hackernews",
-"site_name": "Hacker News",
-"source": "Hacker News (1pts, 1c)",
-"title": "I let Claude autonomously create a graphic novel",
-"url": "https://twitter.com/deepwhitman/status/2054466408835350985",
-"published_at": "2026-05-14T15:49:50Z",
-"first_seen_at": "2026-05-14T15:49:50Z",
-"last_seen_at": "2026-05-17T04:18:55.000Z",
-"title_original": "I let Claude autonomously create a graphic novel",
-"title_en": "I let Claude autonomously create a graphic novel",
-"title_zh": null,
-"title_bilingual": "I let Claude autonomously create a graphic novel"
 },
 {
 "id": "d25a1d5801d79069baf468fe4c2fa3144cc4f4ef",
@@ -7644,21 +7509,6 @@
 "title_en": "DiscordMcp: Controlling Servers Through MCP",
 "title_zh": null,
 "title_bilingual": "DiscordMcp: Controlling Servers Through MCP"
-},
-{
-"id": "0356a92d6de6314ae8e6008de63c9ee9838919eb",
-"site_id": "hackernews",
-"site_name": "Hacker News",
-"source": "Hacker News (63pts, 82c)",
-"title": "The Whole Anthropic Kerfuffle",
-"url": "https://twitter.com/josevalim/status/2054887621336174799",
-"published_at": "2026-05-14T13:08:00Z",
-"first_seen_at": "2026-05-14T13:08:00Z",
-"last_seen_at": "2026-05-17T04:18:55.000Z",
-"title_original": "The Whole Anthropic Kerfuffle",
-"title_en": "The Whole Anthropic Kerfuffle",
-"title_zh": null,
-"title_bilingual": "The Whole Anthropic Kerfuffle"
 },
 {
 "id": "b1aaf70fe681e4700ec8e0b9463337fe38fb02fd",
@@ -8126,21 +7976,6 @@
 "title_bilingual": "Gloop – A Self-Modifying AI Agent and TS Library"
 },
 {
-"id": "3957d76d5718ec711b4179c17a27bf415f70006f",
-"site_id": "hackernews",
-"site_name": "Hacker News",
-"source": "Hacker News (1pts, 0c)",
-"title": "Bridge Launches Computer Agent Beta",
-"url": "https://twitter.com/bridge_surf/status/2054600056263623046",
-"published_at": "2026-05-14T07:58:52Z",
-"first_seen_at": "2026-05-14T07:58:52Z",
-"last_seen_at": "2026-05-17T04:18:55.000Z",
-"title_original": "Bridge Launches Computer Agent Beta",
-"title_en": "Bridge Launches Computer Agent Beta",
-"title_zh": null,
-"title_bilingual": "Bridge Launches Computer Agent Beta"
-},
-{
 "id": "2d1a137b52774648547ab354e3cc048e3194b4fc",
 "site_id": "hackernews",
 "site_name": "Hacker News",
@@ -8606,21 +8441,6 @@
 "title_bilingual": "OpenAI Daybreak"
 },
 {
-"id": "e41a7420392bc5b3f2a22e32b395bc85982bd9ea",
-"site_id": "hackernews",
-"site_name": "Hacker News",
-"source": "Hacker News (2pts, 0c)",
-"title": "Where the Microsoft-OpenAI economics currently stand, incl capex",
-"url": "https://twitter.com/amir/status/2054669172240707676",
-"published_at": "2026-05-13T23:37:52Z",
-"first_seen_at": "2026-05-13T23:37:52Z",
-"last_seen_at": "2026-05-17T04:18:55.000Z",
-"title_original": "Where the Microsoft-OpenAI economics currently stand, incl capex",
-"title_en": "Where the Microsoft-OpenAI economics currently stand, incl capex",
-"title_zh": null,
-"title_bilingual": "Where the Microsoft-OpenAI economics currently stand, incl capex"
-},
-{
 "id": "246f25ac7348b74937cf5bd13ca8530c66173499",
 "site_id": "hackernews",
 "site_name": "Hacker News",
@@ -8891,21 +8711,6 @@
 "title_bilingual": "Show HN: Vibe-coding video games with Claude (Day 30: Chess)"
 },
 {
-"id": "bb8d80a4ebdcafa263c6e56db73dd6b0accee7ce",
-"site_id": "hackernews",
-"site_name": "Hacker News",
-"source": "Hacker News (7pts, 4c)",
-"title": "Claude helped recover 5 BTC that was thought lost for 11 years",
-"url": "https://twitter.com/cprkrn/status/2054586810475364536",
-"published_at": "2026-05-13T20:04:35Z",
-"first_seen_at": "2026-05-13T20:04:35Z",
-"last_seen_at": "2026-05-17T04:18:55.000Z",
-"title_original": "Claude helped recover 5 BTC that was thought lost for 11 years",
-"title_en": "Claude helped recover 5 BTC that was thought lost for 11 years",
-"title_zh": null,
-"title_bilingual": "Claude helped recover 5 BTC that was thought lost for 11 years"
-},
-{
 "id": "58a97317009919c7a15a7c41889e567d1bfe2b4d",
 "site_id": "hackernews",
 "site_name": "Hacker News",
@@ -8951,21 +8756,6 @@
 "title_bilingual": "CC-Ledger: anatomy of your Claude Code spend"
 },
 {
-"id": "8810627a654f2b9fd6b34b60f47957fe93da043c",
-"site_id": "hackernews",
-"site_name": "Hacker News",
-"source": "Hacker News (50pts, 41c)",
-"title": "New Claude Code programmatic usage restrictions",
-"url": "https://twitter.com/i/status/2054610152817619388",
-"published_at": "2026-05-13T19:38:39Z",
-"first_seen_at": "2026-05-13T19:38:39Z",
-"last_seen_at": "2026-05-17T04:18:55.000Z",
-"title_original": "New Claude Code programmatic usage restrictions",
-"title_en": "New Claude Code programmatic usage restrictions",
-"title_zh": null,
-"title_bilingual": "New Claude Code programmatic usage restrictions"
-},
-{
 "id": "65eb1bb5c716e71d1a76a516b6e903227ea3d4e7",
 "site_id": "hackernews",
 "site_name": "Hacker News",
@@ -8981,21 +8771,6 @@
 "title_bilingual": "Ask HN: Is Anthropic doing too much vibe coding?"
 },
 {
-"id": "3f4ad8b1266a7cc080a6a196e6a3d0e9acee2f96",
-"site_id": "hackernews",
-"site_name": "Hacker News",
-"source": "Hacker News (10pts, 8c)",
-"title": "Claude Code weekly limits increasing 50% till July 13",
-"url": "https://twitter.com/ClaudeDevs/status/2054639777685934564",
-"published_at": "2026-05-13T19:38:12Z",
-"first_seen_at": "2026-05-13T19:38:12Z",
-"last_seen_at": "2026-05-17T04:18:55.000Z",
-"title_original": "Claude Code weekly limits increasing 50% till July 13",
-"title_en": "Claude Code weekly limits increasing 50% till July 13",
-"title_zh": null,
-"title_bilingual": "Claude Code weekly limits increasing 50% till July 13"
-},
-{
 "id": "f1181801779994ea3fffbf465976ddc109ac010e",
 "site_id": "hackernews",
 "site_name": "Hacker News",
@@ -9009,21 +8784,6 @@
 "title_en": "OpenAI Flips the Script",
 "title_zh": null,
 "title_bilingual": "OpenAI Flips the Script"
-},
-{
-"id": "3f5e460986131fbf02c17a7d8f10e713c129ceb0",
-"site_id": "hackernews",
-"site_name": "Hacker News",
-"source": "Hacker News (59pts, 50c)",
-"title": "Claude subscription changes coverage of `claude -p`",
-"url": "https://x.com/i/trending/2054617957440143639",
-"published_at": "2026-05-13T19:25:58Z",
-"first_seen_at": "2026-05-13T19:25:58Z",
-"last_seen_at": "2026-05-17T04:18:55.000Z",
-"title_original": "Claude subscription changes coverage of `claude -p`",
-"title_en": "Claude subscription changes coverage of `claude -p`",
-"title_zh": null,
-"title_bilingual": "Claude subscription changes coverage of `claude -p`"
 },
 {
 "id": "18547eac86f0bbe685a26c8039c4427c67a5b53f",
@@ -9251,21 +9011,6 @@
 "title_bilingual": "What is your AIQ? How good are you at using Claude Code/Codex?"
 },
 {
-"id": "44ec7a4b420eadfd0d302c3c182c1853ffa24745",
-"site_id": "hackernews",
-"site_name": "Hacker News",
-"source": "Hacker News (4pts, 0c)",
-"title": "I don't use any of my SaaS AI tools. Here's what I built instead with MCPs",
-"url": "https://twitter.com/sharkymark123/status/2053154200679600617",
-"published_at": "2026-05-13T16:13:20Z",
-"first_seen_at": "2026-05-13T16:13:20Z",
-"last_seen_at": "2026-05-17T04:18:55.000Z",
-"title_original": "I don't use any of my SaaS AI tools. Here's what I built instead with MCPs",
-"title_en": "I don't use any of my SaaS AI tools. Here's what I built instead with MCPs",
-"title_zh": null,
-"title_bilingual": "I don't use any of my SaaS AI tools. Here's what I built instead with MCPs"
-},
-{
 "id": "566d39428675a76cffaa3d3bf85367a55136b119",
 "site_id": "hackernews",
 "site_name": "Hacker News",
@@ -9354,21 +9099,6 @@
 "title_en": "Anthropic, OpenAI tokens plunge as firms say pre-IPO share transfers are invalid",
 "title_zh": null,
 "title_bilingual": "Anthropic, OpenAI tokens plunge as firms say pre-IPO share transfers are invalid"
-},
-{
-"id": "cc3da07e449f294d508c62e2548c3f204ed25e51",
-"site_id": "hackernews",
-"site_name": "Hacker News",
-"source": "Hacker News (3pts, 0c)",
-"title": "Google DeepMind reimagines the mouse pointer",
-"url": "https://twitter.com/GoogleDeepMind/status/2054246119635300451",
-"published_at": "2026-05-13T15:17:09Z",
-"first_seen_at": "2026-05-13T15:17:09Z",
-"last_seen_at": "2026-05-17T04:18:55.000Z",
-"title_original": "Google DeepMind reimagines the mouse pointer",
-"title_en": "Google DeepMind reimagines the mouse pointer",
-"title_zh": null,
-"title_bilingual": "Google DeepMind reimagines the mouse pointer"
 },
 {
 "id": "04dfb49fb6a3268f984d9e8b22db303dfa5d9e2b",
@@ -9534,21 +9264,6 @@
 "title_en": "I tried to put an on-device LLM in an iOS Share Extension. It didn't fit",
 "title_zh": null,
 "title_bilingual": "I tried to put an on-device LLM in an iOS Share Extension. It didn't fit"
-},
-{
-"id": "031330e59d89a4b50f5b13b2919b1d539493c679",
-"site_id": "hackernews",
-"site_name": "Hacker News",
-"source": "Hacker News (1pts, 0c)",
-"title": "Fast mode for Claude Opus 4.7 is now available in research preview",
-"url": "https://twitter.com/ClaudeDevs/status/2054266327771275435",
-"published_at": "2026-05-13T13:27:00Z",
-"first_seen_at": "2026-05-13T13:27:00Z",
-"last_seen_at": "2026-05-17T04:18:55.000Z",
-"title_original": "Fast mode for Claude Opus 4.7 is now available in research preview",
-"title_en": "Fast mode for Claude Opus 4.7 is now available in research preview",
-"title_zh": null,
-"title_bilingual": "Fast mode for Claude Opus 4.7 is now available in research preview"
 },
 {
 "id": "b91f30d4d6485cb2ca82666b4ebbd3c5cd16194a",
@@ -9864,21 +9579,6 @@
 "title_en": "What is your AI agent constantly doing wrong?",
 "title_zh": null,
 "title_bilingual": "What is your AI agent constantly doing wrong?"
-},
-{
-"id": "9313c2dab3b7c6b5368ec1f9d9c3f7578e77cc11",
-"site_id": "hackernews",
-"site_name": "Hacker News",
-"source": "Hacker News (2pts, 0c)",
-"title": "Flux Matching – Generalizing diffusion models to non-scoring func vector fields",
-"url": "https://twitter.com/Xiaojie_Qiu/status/2054256268295213528",
-"published_at": "2026-05-13T10:29:18Z",
-"first_seen_at": "2026-05-13T10:29:18Z",
-"last_seen_at": "2026-05-17T04:18:55.000Z",
-"title_original": "Flux Matching – Generalizing diffusion models to non-scoring func vector fields",
-"title_en": "Flux Matching – Generalizing diffusion models to non-scoring func vector fields",
-"title_zh": null,
-"title_bilingual": "Flux Matching – Generalizing diffusion models to non-scoring func vector fields"
 },
 {
 "id": "b94bc47723a9aeffc24f9eb3c4d308a863f0c572",
@@ -10659,21 +10359,6 @@
 "title_en": "Anthropic warns against secondary platforms offering access to its shares",
 "title_zh": null,
 "title_bilingual": "Anthropic warns against secondary platforms offering access to its shares"
-},
-{
-"id": "0572db031e65c9b8b3f5391676bde4f634490143",
-"site_id": "hackernews",
-"site_name": "Hacker News",
-"source": "Hacker News (2pts, 0c)",
-"title": "Why is Anthropic's training data disclosure AI-generated?",
-"url": "https://twitter.com/TheMidasProj/status/2054276553622851818",
-"published_at": "2026-05-12T19:11:41Z",
-"first_seen_at": "2026-05-12T19:11:41Z",
-"last_seen_at": "2026-05-17T04:18:55.000Z",
-"title_original": "Why is Anthropic's training data disclosure AI-generated?",
-"title_en": "Why is Anthropic's training data disclosure AI-generated?",
-"title_zh": null,
-"title_bilingual": "Why is Anthropic's training data disclosure AI-generated?"
 },
 {
 "id": "0dcfb0d7b9fd7284b94620660952eb0f657188ce",
@@ -11546,21 +11231,6 @@
 "title_bilingual": "Show HN: World Cup History MCP – every FIFA tournament 1930–2026"
 },
 {
-"id": "eef41ee11c5c87c65d08f145351fa65f9f62813f",
-"site_id": "hackernews",
-"site_name": "Hacker News",
-"source": "Hacker News (3pts, 0c)",
-"title": "Satya Nadella: \"I don't want to be IBM and OpenAI to be Microsoft\" (2022)",
-"url": "https://twitter.com/TechEmails/status/2053971603214766214",
-"published_at": "2026-05-12T05:51:32Z",
-"first_seen_at": "2026-05-12T05:51:32Z",
-"last_seen_at": "2026-05-17T04:18:55.000Z",
-"title_original": "Satya Nadella: \"I don't want to be IBM and OpenAI to be Microsoft\" (2022)",
-"title_en": "Satya Nadella: \"I don't want to be IBM and OpenAI to be Microsoft\" (2022)",
-"title_zh": null,
-"title_bilingual": "Satya Nadella: \"I don't want to be IBM and OpenAI to be Microsoft\" (2022)"
-},
-{
 "id": "a09c4cda80b830e497361e9450df47bfdcbd6adc",
 "site_id": "hackernews",
 "site_name": "Hacker News",
@@ -11874,21 +11544,6 @@
 "title_en": "Why 157,000 developers are hedging against Anthropic with OpenCode",
 "title_zh": null,
 "title_bilingual": "Why 157,000 developers are hedging against Anthropic with OpenCode"
-},
-{
-"id": "c89b298a00a118a370aec8b283a989200bc840d5",
-"site_id": "hackernews",
-"site_name": "Hacker News",
-"source": "Hacker News (8pts, 4c)",
-"title": "Officially canceling our Anthropic plan, it's [too expensive]",
-"url": "https://twitter.com/morganlinton/status/2053165575824887938",
-"published_at": "2026-05-11T17:41:36Z",
-"first_seen_at": "2026-05-11T17:41:36Z",
-"last_seen_at": "2026-05-17T04:18:55.000Z",
-"title_original": "Officially canceling our Anthropic plan, it's [too expensive]",
-"title_en": "Officially canceling our Anthropic plan, it's [too expensive]",
-"title_zh": null,
-"title_bilingual": "Officially canceling our Anthropic plan, it's [too expensive]"
 },
 {
 "id": "38ca3e126a30934263d1fb25c0e69e96d6d926bc",

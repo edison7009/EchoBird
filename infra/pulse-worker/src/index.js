@@ -2,8 +2,13 @@
 // behind a single edge endpoint at echobird.ai. Pure pass-through with edge cache.
 //
 // Routes:
-//   /pulse/<file>     → SuYxh/ai-news-aggregator (per-item AI news, ~600/day)
-//                       e.g. /pulse/latest-24h.json, /pulse/latest-7d.json
+//   /pulse/<file>     → edison7009/EchoBird docs/pulse (refreshed every 6h by
+//                       .github/workflows/refresh-pulse-data.yml — which mirrors
+//                       the SuYxh/ai-news-aggregator ZH feed, builds the EN feed
+//                       via scripts/build_en_pulse.py, and runs scripts/filter_pulse.py
+//                       to strip x.com / twitter.com items).
+//                       e.g. /pulse/latest-24h.json, /pulse/latest-7d.json,
+//                            /pulse/latest-7d-en.json
 //   /courses/<file>   → dair-ai/ML-YouTube-Courses (~80 curated AI courses)
 //                       e.g. /courses/README.md
 //
@@ -12,7 +17,7 @@
 const ROUTES = [
     {
         prefix: '/pulse/',
-        upstream: 'https://raw.githubusercontent.com/SuYxh/ai-news-aggregator/main/data',
+        upstream: 'https://raw.githubusercontent.com/edison7009/EchoBird/main/docs/pulse',
         defaultFile: 'latest-24h.json',
         defaultContentType: 'application/json; charset=utf-8',
         ttl: file => {

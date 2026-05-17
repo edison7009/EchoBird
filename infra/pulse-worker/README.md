@@ -7,8 +7,18 @@ EchoBird desktop app, served from `echobird.ai`. Edge-cached, CORS open, GET onl
 
 | Path                           | Upstream                                                                  | Used by             |
 |--------------------------------|---------------------------------------------------------------------------|---------------------|
-| `/pulse/latest-24h.json` (etc) | [SuYxh/ai-news-aggregator](https://github.com/SuYxh/ai-news-aggregator)   | AI 资讯 / 明星项目 |
+| `/pulse/latest-24h.json` (etc) | `edison7009/EchoBird` → `docs/pulse/*` (refreshed every 6h by [refresh-pulse-data.yml](../../.github/workflows/refresh-pulse-data.yml)) | AI 资讯 / 明星项目 |
 | `/courses/README.md`           | [dair-ai/ML-YouTube-Courses](https://github.com/dair-ai/ML-YouTube-Courses) | AI 公开课           |
+
+The pulse workflow:
+1. Mirrors the ZH feed from [SuYxh/ai-news-aggregator](https://github.com/SuYxh/ai-news-aggregator).
+2. Builds the EN feed via [scripts/build_en_pulse.py](../../scripts/build_en_pulse.py).
+3. Runs [scripts/filter_pulse.py](../../scripts/filter_pulse.py) to strip
+   blocklisted hosts (currently `x.com` / `twitter.com`) before commit.
+
+Sourcing through our own repo means all five frontend mirrors (worker,
+Tencent COS, jsDelivr-on-our-repo, raw-on-our-repo, plus the upstream
+GitHub Pages fallback) see the same filtered payload.
 
 Add a new source by appending an entry to `ROUTES` in [src/index.js](src/index.js)
 and a matching pattern in [wrangler.toml](wrangler.toml).
