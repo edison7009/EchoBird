@@ -446,8 +446,10 @@ export const AppManagerPanel: React.FC = () => {
               }`}
             >
               <span
-                className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${
-                  codexRelayMode ? 'translate-x-5' : 'translate-x-1'
+                className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-all duration-200 ${
+                  codexRelayMode
+                    ? 'translate-x-5 shadow-[0_0_4px_1px_rgba(var(--accent-rgb),0.55)]'
+                    : 'translate-x-1'
                 }`}
               />
             </button>
@@ -463,6 +465,12 @@ export const AppManagerPanel: React.FC = () => {
                 role="tooltip"
                 className="pointer-events-none absolute right-0 top-full z-[100] mt-1.5 w-56 rounded border border-cyber-accent/40 bg-cyber-dark px-3 py-2 text-[11px] leading-relaxed text-cyber-text shadow-cyber-card backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity"
               >
+                {/* Caret — rotated square poking up out of the tooltip's top edge,
+                    aligned roughly under the ? glyph at the right side. */}
+                <span
+                  aria-hidden="true"
+                  className="absolute -top-1 right-2 h-2 w-2 rotate-45 border-l border-t border-cyber-accent/40 bg-cyber-dark"
+                />
                 {t('agent.codexRelayHint')}
               </span>
             </span>
