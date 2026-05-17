@@ -461,7 +461,7 @@ export const AppManagerPanel: React.FC = () => {
               </span>
               <span
                 role="tooltip"
-                className="pointer-events-none absolute left-0 top-full z-50 mt-1.5 w-56 rounded border border-cyber-accent/40 bg-cyber-bg-dark/95 px-3 py-2 text-[11px] leading-relaxed text-cyber-text shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"
+                className="pointer-events-none absolute left-0 top-full z-[100] mt-1.5 w-56 rounded border border-cyber-accent/40 bg-cyber-dark px-3 py-2 text-[11px] leading-relaxed text-cyber-text shadow-cyber-card backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity"
               >
                 {t('agent.codexRelayHint')}
               </span>
