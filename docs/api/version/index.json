@@ -1,5 +1,5 @@
 {
-  "version": "4.8.2",
+  "version": "4.8.3",
   "releaseDate": "2026-05-17",
   "releaseNotes": "v4.8.3:本地大模型自动识别多显卡(优先 GPU、不足降级 CPU);模型中心厂商列表可云端更新"
 }
