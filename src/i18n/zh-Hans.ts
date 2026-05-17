@@ -130,6 +130,9 @@ const zhHans: Partial<Translations> = {
   'toolCat.desktop': '桌面端',
   'toolCat.utility': '工具',
   'agent.modelsTab': '模型',
+  'agent.codexRelayLabel': '上游直连',
+  'agent.codexRelayHint':
+    '开启后把当前模型的 URL 和 API Key 直接写入 ~/.codex/config.toml，Codex 跳过本地代理直奔上游。适合 cc-vibe 等已经支持 Responses 协议的中转站。',
   'agent.installViaMother': 'AI 自动安装',
   'tool.models': '模型',
   'tool.app': '应用',

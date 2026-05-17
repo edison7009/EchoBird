@@ -117,6 +117,8 @@ export type TKey =
   | 'agent.modelsTab'
   | 'agent.installViaMother'
   | 'agent.restore'
+  | 'agent.codexRelayLabel'
+  | 'agent.codexRelayHint'
   // Tool categories
   | 'toolCat.all'
   | 'toolCat.agents'

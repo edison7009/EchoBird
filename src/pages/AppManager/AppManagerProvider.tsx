@@ -108,6 +108,15 @@ export const AppManagerProvider: React.FC<AppManagerProviderProps> = ({ children
     setAgreedConfigPolicyRaw(v);
     writeBool('echobird_appmgr_apply_config', v);
   };
+  // Codex-only routing toggle. When ON, apply_codex writes the real
+  // upstream URL + api key to ~/.codex/* instead of the 127.0.0.1
+  // proxy URL — Codex talks to relay stations (cc-vibe.com etc.)
+  // directly. Default OFF: legacy behavior, proxy in the path.
+  // Both Codex CLI and Codex Desktop share ~/.codex/config.toml, so
+  // this is a single flag for the whole Codex family, not per-app.
+  const [codexRelayMode, setCodexRelayModeRaw] = useState<boolean>(() =>
+    readBool('echobird_codex_relay_mode', false)
+  );
 
   // Tool model config (single selection - one model per tool)
   const [toolModelConfig, setToolModelConfig] = useState<Record<string, string | null>>({
@@ -133,10 +142,14 @@ export const AppManagerProvider: React.FC<AppManagerProviderProps> = ({ children
   // Get selected tool data
   const selectedToolData = detectedTools.find((t) => t.id === selectedTool);
 
-  // Apply model config to backend (internalized from App.tsx)
+  // Apply model config to backend (internalized from App.tsx).
+  // `relayOverride` lets callers (most importantly setCodexRelayMode)
+  // bypass the captured codexRelayMode value when re-applying after
+  // a toggle flip — React would otherwise stale-close on the old value.
   const applyModelConfig = async (
     toolId: string,
-    internalId: string
+    internalId: string,
+    relayOverride?: boolean
   ): Promise<true | string | false> => {
     const model = userModels.find((m) => m.internalId === internalId);
     if (!model) {
@@ -160,6 +173,12 @@ export const AppManagerProvider: React.FC<AppManagerProviderProps> = ({ children
       `[AppManager] Applying model to ${toolId}: protocol=${selectedProtocol}, url=${apiUrl}`
     );
 
+    // Codex apps honor the relay-mode toggle from the right panel.
+    // Other tools ignore the field — apply_codex is the only consumer
+    // and it short-circuits on tool_id mismatch.
+    const isCodexApp = toolId === 'codex' || toolId === 'codexdesktop';
+    const effectiveRelay = relayOverride ?? codexRelayMode;
+
     try {
       const result = await api.applyModelToTool(toolId, {
         id: model.internalId,
@@ -168,6 +187,7 @@ export const AppManagerProvider: React.FC<AppManagerProviderProps> = ({ children
         apiKey: model.apiKey,
         model: model.modelId || '',
         protocol: selectedProtocol,
+        ...(isCodexApp ? { relayMode: effectiveRelay } : {}),
       });
 
       if (result?.success) {
@@ -187,6 +207,33 @@ export const AppManagerProvider: React.FC<AppManagerProviderProps> = ({ children
       return false;
     }
   };
+
+  // Relay-mode setter: flipping the toggle while a Codex app already
+  // has an active model needs to rewrite ~/.codex/config.toml + auth.json
+  // with the new shape immediately. Otherwise the user sees no effect
+  // until the next launch. Fire-and-forget: errors surface via the
+  // existing applyError modal on the next launch click.
+  const setCodexRelayMode = useCallback(
+    (v: boolean) => {
+      setCodexRelayModeRaw(v);
+      writeBool('echobird_codex_relay_mode', v);
+      const codexToolId = (['codex', 'codexdesktop'] as const).find((id) => !!toolModelConfig[id]);
+      if (!codexToolId) return;
+      const pendingInternalId = toolModelConfig[codexToolId];
+      if (!pendingInternalId || isOfficialModelSentinel(pendingInternalId)) return;
+      void applyModelConfig(codexToolId, pendingInternalId, v).then((result) => {
+        if (result !== true) {
+          setApplyError(typeof result === 'string' ? result : t('key.destroyed'));
+        }
+      });
+    },
+    // Re-bind whenever the currently-selected model can change.
+    // applyModelConfig itself is recreated on every render, so we
+    // exclude it from deps to avoid an effect storm — the closure
+    // captures the latest values either way via the relayOverride arg.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [toolModelConfig, t]
+  );
 
   // Restore = delete the tool's config file. The tool itself regenerates
   // a vendor-default config on next launch, so restore is symmetric with
@@ -302,6 +349,8 @@ export const AppManagerProvider: React.FC<AppManagerProviderProps> = ({ children
         userModels,
         modelProtocolSelection,
         setModelProtocolSelection,
+        codexRelayMode,
+        setCodexRelayMode,
         handleLaunch,
         onGoToMother: handleGoToMother,
         aiInstallableIds,

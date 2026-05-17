@@ -113,6 +113,14 @@ export interface ApplyModelInput {
   apiKey: string;
   model: string;
   protocol?: string;
+  /**
+   * Codex-only. When true, write the real upstream URL and API key
+   * straight into ~/.codex/config.toml + auth.json so Codex talks to
+   * the upstream directly. Bypasses our local protocol-bridging proxy.
+   * Used for relay stations that already speak the Responses protocol.
+   * Other tools ignore this field.
+   */
+  relayMode?: boolean;
 }
 
 // ─── App Settings Types ───

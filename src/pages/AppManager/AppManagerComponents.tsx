@@ -407,7 +407,14 @@ export const AppManagerPanel: React.FC = () => {
     handleSelectModel,
     modelProtocolSelection,
     setModelProtocolSelection,
+    codexRelayMode,
+    setCodexRelayMode,
   } = useAppManager();
+
+  // The relay-mode toggle slot is scoped to Codex CLI / Codex Desktop —
+  // they share ~/.codex/config.toml so a single shared flag is correct.
+  // Future per-app toggles can stack into the same row container.
+  const showCodexRelayToggle = selectedTool === 'codex' || selectedTool === 'codexdesktop';
 
   return (
     <>
@@ -422,6 +429,36 @@ export const AppManagerPanel: React.FC = () => {
           <span className="text-[10px] text-cyber-text">{selectedToolData.name}</span>
         )}
       </div>
+
+      {showCodexRelayToggle && (
+        <>
+          <div className="px-3 pb-2 flex items-center justify-between">
+            <span
+              className="text-xs text-cyber-text-secondary font-mono"
+              title={t('agent.codexRelayHint')}
+            >
+              {t('agent.codexRelayLabel')}
+            </span>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={codexRelayMode}
+              aria-label={t('agent.codexRelayLabel')}
+              onClick={() => setCodexRelayMode(!codexRelayMode)}
+              className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors outline-none focus-visible:ring-2 focus-visible:ring-cyber-accent ${
+                codexRelayMode ? 'bg-cyber-accent' : 'bg-cyber-border'
+              }`}
+            >
+              <span
+                className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${
+                  codexRelayMode ? 'translate-x-5' : 'translate-x-1'
+                }`}
+              />
+            </button>
+          </div>
+          <div className="mx-3 border-t border-cyber-border/40" />
+        </>
+      )}
 
       <div className="flex-1 p-2 overflow-y-auto">
         {selectedToolData ? (

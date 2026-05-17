@@ -152,6 +152,9 @@ const en: Translations = {
   'toolCat.utility': 'Utilities',
   // Agent Worker tabs
   'agent.modelsTab': 'MODELS',
+  'agent.codexRelayLabel': 'Direct upstream',
+  'agent.codexRelayHint':
+    "When on, writes the active model's URL and API key straight into ~/.codex/config.toml so Codex talks to the upstream directly, bypassing the local proxy. Use this for relay stations (e.g. cc-vibe) that already serve the Responses protocol.",
   'agent.installViaMother': 'AI Auto-Install',
   // ToolCard labels
   'tool.models': 'Models',

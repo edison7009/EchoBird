@@ -31,6 +31,9 @@ export interface AppManagerContextType {
   setModelProtocolSelection: React.Dispatch<
     React.SetStateAction<Record<string, 'openai' | 'anthropic'>>
   >;
+  /** Codex-only routing toggle (shared between Codex CLI and Codex Desktop). */
+  codexRelayMode: boolean;
+  setCodexRelayMode: (v: boolean) => void;
   // Launch handler
   handleLaunch: () => Promise<void>;
   // Navigation — internal handler: (toolId, toolName) => fetch install info → call prop
