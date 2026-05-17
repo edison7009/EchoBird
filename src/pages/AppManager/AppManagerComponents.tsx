@@ -457,7 +457,7 @@ export const AppManagerPanel: React.FC = () => {
             <span className="group relative inline-flex items-center">
               <span
                 aria-label={t('agent.codexRelayHint')}
-                className="inline-flex h-5 items-center justify-center rounded bg-cyber-elevated px-1.5 font-sans text-xs font-medium leading-none text-cyber-text-secondary cursor-help select-none hover:bg-cyber-accent/15 hover:text-cyber-accent transition-colors"
+                className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-cyber-elevated font-sans text-xs font-medium leading-none text-cyber-text-secondary cursor-help select-none hover:bg-cyber-accent/15 hover:text-cyber-accent transition-colors"
               >
                 ?
               </span>
