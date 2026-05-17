@@ -153,7 +153,7 @@ const en: Translations = {
   'agent.modelsTab': 'MODELS',
   'agent.codexRelayLabel': 'Direct upstream',
   'agent.codexRelayHint':
-    "Enable this if you're connecting through a native relay station or API Router.",
+    "Enable this if you're connecting through a native relay station or a native API Router.",
   'agent.installViaMother': 'AI Auto-Install',
   // ToolCard labels
   'tool.models': 'Models',

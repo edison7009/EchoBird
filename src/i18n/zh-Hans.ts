@@ -130,7 +130,7 @@ const zhHans: Partial<Translations> = {
   'toolCat.utility': '工具',
   'agent.modelsTab': '模型',
   'agent.codexRelayLabel': '上游直连',
-  'agent.codexRelayHint': '如果你使用的是原生中转站或 API Router 接入，需开启此项。',
+  'agent.codexRelayHint': '如果你使用的是原生中转站或 API Router 原生中转，需开启此项。',
   'agent.installViaMother': 'AI 自动安装',
   'tool.models': '模型',
   'tool.app': '应用',
