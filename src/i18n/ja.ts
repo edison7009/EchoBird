@@ -278,6 +278,8 @@ const ja: Partial<Translations> = {
   'error.noModelSelected': 'モデルが選択されていません。先にモデルを選択してください。',
   'error.requestFailed': 'リクエストに失敗しました。もう一度お試しください。',
   'error.userCancelled': 'キャンセルされました。',
+  'error.providerReturnedHtml':
+    'モデルのエンドポイントがストリーミング API 応答ではなく HTML ページを返しました。Base URL、API キー、/v1 パスの要否、ブラウザログインの有無を確認してください。',
   'app.name': 'EchoBird',
   'mother.hintShowSpecs': 'サーバーのハードウェア構成を確認',
   'mother.hintShowSpecsLocal': 'ローカル機のハードウェア構成を確認',

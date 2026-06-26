@@ -46,6 +46,15 @@ export function errorToKey(msg: string): TKey | null {
   )
     return 'error.connectionTimeout';
 
+  // The streaming client expects text/event-stream. Some OpenAI-compatible
+  // relays return an HTML error/login page instead, which bubbles up as a
+  // low-level SSE header error.
+  if (
+    lower.includes('sse setup error') &&
+    lower.includes('invalid header value') &&
+    lower.includes('text/html')
+  )
+    return 'error.providerReturnedHtml';
   // SSH / host unreachable / network errors
   if (
     lower.includes('ssh') ||

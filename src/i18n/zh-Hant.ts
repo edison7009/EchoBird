@@ -271,6 +271,8 @@ const zhHant: Partial<Translations> = {
   'error.noModelSelected': '未選擇模型，請先選擇一個模型。',
   'error.requestFailed': '請求失敗，請重試。',
   'error.userCancelled': '已取消。',
+  'error.providerReturnedHtml':
+    '模型介面返回了 HTML 頁面，而不是串流 API 回應。請檢查 Base URL、API Key，以及該服務是否需要 /v1 路徑或網頁登入。',
   'app.name': 'EchoBird',
   'mother.hintShowSpecs': '查看伺服器的硬體配置',
   'mother.hintShowSpecsLocal': '查看本機的硬體配置',

@@ -285,6 +285,8 @@ const en: Translations = {
   'error.noModelSelected': 'No model selected, please select a model first.',
   'error.requestFailed': 'Request failed, please try again.',
   'error.userCancelled': 'Cancelled.',
+  'error.providerReturnedHtml':
+    'The model endpoint returned an HTML page instead of a streaming API response. Check the Base URL, API key, and whether the provider requires a /v1 path or browser login.',
   // 我的AI生涯 / My AI Career
   'page.aiCareer': 'My AI Career',
   'aiCareer.editAvatar': 'Change avatar',

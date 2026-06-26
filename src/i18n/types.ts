@@ -298,6 +298,7 @@ export type TKey =
   | 'error.noModelSelected'
   | 'error.requestFailed'
   | 'error.userCancelled'
+  | 'error.providerReturnedHtml'
   // 我的AI生涯 / My AI Career
   | 'nav.aiCareer'
   | 'page.aiCareer'
