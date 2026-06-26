@@ -280,6 +280,12 @@ const ja: Partial<Translations> = {
   'error.userCancelled': 'キャンセルされました。',
   'error.providerReturnedHtml':
     'モデルのエンドポイントがストリーミング API 応答ではなく HTML ページを返しました。Base URL、API キー、/v1 パスの要否、ブラウザログインの有無を確認してください。',
+  'error.providerAuthFailed':
+    'モデルプロバイダーが API キーまたはアカウント権限を拒否しました。API キーが正しく有効で、このモデルを利用できるか確認してください。',
+  'error.providerEndpointInvalid':
+    'モデルのエンドポイントが見つからないか解決できません。Base URL、特に /v1 パスが必要かを確認してください。',
+  'error.providerRateLimited':
+    'レート制限、クォータ、または請求の問題によりモデルプロバイダーがリクエストを拒否しました。プランと残高を確認し、後でもう一度お試しください。',
   'app.name': 'EchoBird',
   'mother.hintShowSpecs': 'サーバーのハードウェア構成を確認',
   'mother.hintShowSpecsLocal': 'ローカル機のハードウェア構成を確認',

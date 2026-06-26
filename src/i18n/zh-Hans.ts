@@ -253,6 +253,12 @@ const zhHans: Partial<Translations> = {
   'error.userCancelled': '已取消。',
   'error.providerReturnedHtml':
     '模型接口返回了 HTML 页面，而不是流式 API 响应。请检查 Base URL、API Key，以及该服务是否需要 /v1 路径或网页登录。',
+  'error.providerAuthFailed':
+    '模型服务拒绝了 API Key 或账号权限。请检查 Key 是否正确、未过期，并且有权限使用该模型。',
+  'error.providerEndpointInvalid':
+    '模型接口地址不可用或无法解析。请检查 Base URL，尤其确认该服务是否需要 /v1 路径。',
+  'error.providerRateLimited':
+    '模型服务因限流、额度或计费问题拒绝了请求。请检查套餐、余额，稍后再试。',
   'app.name': 'EchoBird',
   'mother.hintShowSpecs': '查看服务器的硬件配置',
   'mother.hintShowSpecsLocal': '查看本机的硬件配置',

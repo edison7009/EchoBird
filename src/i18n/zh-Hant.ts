@@ -273,6 +273,12 @@ const zhHant: Partial<Translations> = {
   'error.userCancelled': '已取消。',
   'error.providerReturnedHtml':
     '模型介面返回了 HTML 頁面，而不是串流 API 回應。請檢查 Base URL、API Key，以及該服務是否需要 /v1 路徑或網頁登入。',
+  'error.providerAuthFailed':
+    '模型服務拒絕了 API Key 或帳號權限。請檢查 Key 是否正確、未過期，並且有權限使用該模型。',
+  'error.providerEndpointInvalid':
+    '模型介面位址不可用或無法解析。請檢查 Base URL，尤其確認該服務是否需要 /v1 路徑。',
+  'error.providerRateLimited':
+    '模型服務因限流、額度或計費問題拒絕了請求。請檢查方案、餘額，稍後再試。',
   'app.name': 'EchoBird',
   'mother.hintShowSpecs': '查看伺服器的硬體配置',
   'mother.hintShowSpecsLocal': '查看本機的硬體配置',

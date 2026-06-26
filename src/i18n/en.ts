@@ -287,6 +287,12 @@ const en: Translations = {
   'error.userCancelled': 'Cancelled.',
   'error.providerReturnedHtml':
     'The model endpoint returned an HTML page instead of a streaming API response. Check the Base URL, API key, and whether the provider requires a /v1 path or browser login.',
+  'error.providerAuthFailed':
+    'The model provider rejected the API key or account permissions. Check that the API key is correct, active, and allowed to use this model.',
+  'error.providerEndpointInvalid':
+    'The model endpoint could not be found or resolved. Check the Base URL, especially whether the provider requires a /v1 path.',
+  'error.providerRateLimited':
+    'The model provider rejected the request because of rate limits, quota, or billing. Check your plan, balance, and retry later.',
   // 我的AI生涯 / My AI Career
   'page.aiCareer': 'My AI Career',
   'aiCareer.editAvatar': 'Change avatar',

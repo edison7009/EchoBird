@@ -299,6 +299,9 @@ export type TKey =
   | 'error.requestFailed'
   | 'error.userCancelled'
   | 'error.providerReturnedHtml'
+  | 'error.providerAuthFailed'
+  | 'error.providerEndpointInvalid'
+  | 'error.providerRateLimited'
   // 我的AI生涯 / My AI Career
   | 'nav.aiCareer'
   | 'page.aiCareer'
