@@ -17,7 +17,7 @@ import { useNavigationStore } from '../../stores/navigationStore';
 export function MotherAgentProvider({ children }: { children: React.ReactNode }) {
   // From stores (replaces drilled props)
   const { detectedTools: _detectedTools } = useToolsStore();
-  const { motherPrefill: initialMessage } = useNavigationStore();
+  const { activePage, motherPrefill: initialMessage } = useNavigationStore();
   const onAgentRunningChange = useNavigationStore((s) => s.setAgentRunning);
   const { t: _t, locale } = useI18n(); // locale for agent hint; t for error messages
   const [models, setModels] = useState<ModelConfig[]>([]);
@@ -65,15 +65,16 @@ export function MotherAgentProvider({ children }: { children: React.ReactNode })
   const [chatInputFocused, setChatInputFocused] = useState(false);
   const [chatCursorPos, setChatCursorPos] = useState(0);
   const chatEndRef = useRef<HTMLDivElement>(null!);
-  const chatInputRef = useRef<HTMLInputElement>(null!);
+  const chatInputRef = useRef<HTMLTextAreaElement>(null!);
   const abortTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    if (!initialMessage) return;
+    if (!initialMessage || activePage !== 'mother') return;
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setChatInput(initialMessage);
-    setTimeout(() => chatInputRef.current?.focus(), 100);
-  }, [initialMessage]);
+    const id = setTimeout(() => chatInputRef.current?.focus(), 100);
+    return () => clearTimeout(id);
+  }, [activePage, initialMessage]);
 
   // SSH servers shared state (persisted via backend)
   const [sshServers, setSSHServers] = useState<

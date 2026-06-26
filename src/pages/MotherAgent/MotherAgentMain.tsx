@@ -27,6 +27,7 @@ export function MotherAgentMain() {
     agentModelData: _agentModelData,
     agentState: _agentState,
     chatEndRef,
+    chatInputRef,
     handleChatSend,
     sendMessage,
 
@@ -72,7 +73,6 @@ export function MotherAgentMain() {
   }, [clearChat]);
 
   const [_serverModel, setServerModel] = useState<string | null>(null);
-  const chatInputRef = useRef<HTMLTextAreaElement>(null!);
   const _fileInputRef = useRef<HTMLInputElement>(null!);
   const _imageInputRef = useRef<HTMLInputElement>(null!);
 
