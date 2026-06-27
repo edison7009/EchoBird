@@ -105,6 +105,7 @@ const zhHant: Partial<Translations> = {
   'btn.cancel': '取消',
   'btn.delete': '刪除',
   'btn.edit': '編輯',
+  'btn.duplicate': '複製',
   'btn.launchApp': '啟動應用',
   'btn.modifyOnly': '僅修改',
   'btn.start': '啟動',

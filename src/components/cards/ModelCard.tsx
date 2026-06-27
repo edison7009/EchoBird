@@ -85,6 +85,7 @@ export interface ModelCardProps {
   onClick?: () => void;
   onEdit?: () => void; // edit callback
   onDelete?: () => void; // delete callback
+  onDuplicate?: () => void; // duplicate callback — seeds Add-Model modal from this config
   onProtocolClick?: (protocol: 'openai' | 'anthropic') => void; // protocol tag click
 }
 
@@ -183,6 +184,7 @@ export const ModelCard = React.memo(
     onClick,
     onEdit,
     onDelete,
+    onDuplicate,
     onProtocolClick: _onProtocolClick,
   }: ModelCardProps & { isActive?: boolean }) => {
     const iconPath = getModelIcon(name, modelId);
@@ -199,7 +201,7 @@ export const ModelCard = React.memo(
         onClick={onClick}
       >
         {/* Action buttons — top right */}
-        {(onEdit || onDelete) && (
+        {(onEdit || onDelete || onDuplicate) && (
           <div className="absolute top-2 right-2 flex gap-1.5">
             {onDelete && (
               <button
@@ -219,6 +221,17 @@ export const ModelCard = React.memo(
                 }}
               >
                 [{t('btn.delete')}]
+              </button>
+            )}
+            {onDuplicate && (
+              <button
+                className="text-xs font-mono text-cyber-text-muted/70 hover:text-cyber-text transition-colors"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDuplicate();
+                }}
+              >
+                [{t('btn.duplicate')}]
               </button>
             )}
             {onEdit && (

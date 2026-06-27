@@ -109,6 +109,7 @@ const ja: Partial<Translations> = {
   'btn.cancel': 'キャンセル',
   'btn.delete': '削除',
   'btn.edit': '編集',
+  'btn.duplicate': '複製',
   'btn.launchApp': 'アプリを起動',
   'btn.modifyOnly': '変更のみ',
   'btn.start': '起動',

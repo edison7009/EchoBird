@@ -400,6 +400,49 @@ export function ModelNexusMain() {
     [setUserModels]
   );
 
+  const handleCardDuplicate = useCallback(
+    async (model: (typeof userModels)[0]) => {
+      // Reload fresh model data from disk first: ModelCard is memoized with a
+      // comparator that skips function props and never compares apiKey, so the
+      // duplicate callback can close over a stale model whose key was since
+      // rotated/encrypted. Mirror handleCardEdit so we seed the latest secret.
+      let freshModel = model;
+      try {
+        const freshModels = await api.getModels();
+        const found = freshModels.find((m) => m.internalId === model.internalId);
+        if (found) {
+          freshModel = found;
+          setUserModels(freshModels);
+        }
+      } catch {
+        /* fallback to stale model */
+      }
+
+      // Seed the Add-Model modal from the source config so the user only edits
+      // the name and model id. editingModelId stays null → the modal's Save
+      // branch calls api.addModel and creates a brand-new config (not update).
+      setEditingModelId(null);
+      // Mirror handleCardEdit: if the source key is an enc:v1: secret that has
+      // self-destructed after an environment change, flag it so the modal shows
+      // the destroyed state and the user re-enters it instead of saving a copy
+      // with unusable ciphertext.
+      if (freshModel.apiKey?.startsWith('enc:v1:') && api.isKeyDestroyed) {
+        api.isKeyDestroyed(freshModel.internalId).then((destroyed) => setKeyDestroyed(destroyed));
+      } else {
+        setKeyDestroyed(false);
+      }
+      setNewModelForm({
+        name: freshModel.name ? `${freshModel.name} copy` : '',
+        baseUrl: freshModel.baseUrl,
+        anthropicUrl: freshModel.anthropicUrl || '',
+        apiKey: freshModel.apiKey,
+        modelId: freshModel.modelId || '',
+      });
+      setShowAddModelModal(true);
+    },
+    [setEditingModelId, setKeyDestroyed, setNewModelForm, setShowAddModelModal, setUserModels]
+  );
+
   return (
     <div className="flex-1 overflow-y-auto">
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
@@ -438,6 +481,7 @@ export function ModelNexusMain() {
                   onClick={() => handleCardClick(model)}
                   onProtocolClick={(protocol) => handleCardProtocolClick(model, protocol)}
                   onEdit={isDemo ? undefined : () => handleCardEdit(model)}
+                  onDuplicate={isDemo ? undefined : () => handleCardDuplicate(model)}
                   onDelete={isDemo ? undefined : () => handleCardDelete(model.internalId)}
                 />
               );

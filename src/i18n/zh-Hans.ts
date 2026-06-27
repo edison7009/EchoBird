@@ -85,6 +85,7 @@ const zhHans: Partial<Translations> = {
   'btn.cancel': '取消',
   'btn.delete': '删除',
   'btn.edit': '编辑',
+  'btn.duplicate': '复制',
   'btn.launchApp': '启动应用',
   'btn.modifyOnly': '仅修改',
   'btn.start': '启动',

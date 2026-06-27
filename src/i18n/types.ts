@@ -93,6 +93,7 @@ export type TKey =
   | 'btn.cancel'
   | 'btn.delete'
   | 'btn.edit'
+  | 'btn.duplicate'
   | 'btn.launchApp'
   | 'btn.modifyOnly'
   | 'btn.start'

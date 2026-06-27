@@ -96,6 +96,7 @@ const en: Translations = {
   'btn.cancel': 'CANCEL',
   'btn.delete': 'DELETE',
   'btn.edit': 'EDIT',
+  'btn.duplicate': 'DUPLICATE',
   'btn.launchApp': 'LAUNCH APP',
   'btn.modifyOnly': 'MODIFY ONLY',
   'btn.start': 'START',
