@@ -1,11 +1,11 @@
 {
   "version": "5.4.3",
   "releaseDate": "2026-07-06",
-  "releaseNotes": "## 新增：Kimi Code 工具\n\nMoonshot AI（月之暗面）的终端 coding agent，应用管理中可检测、切换模型、一键装机。\n\n## 修复\n\n- macOS 12.2 及更早版本打开 Markdown 页面崩溃\n\n## 优化\n\n- 窗口隐藏时停止后台状态轮询",
+  "releaseNotes": "## 修复\n\n- Kimi Code 切换模型不生效（v5.4.3 引入的回归）：切换后 `~/.kimi-code/config.toml` 不更新，启动显示「未设置模型，运行 /login 或 /provider」\n- Windows 上 `curl` 安装的 `kimi` 启动失败：检测到的安装目录未注入 PATH",
   "releaseNotesI18n": {
-    "zh-cn": "## 新增：Kimi Code 工具\n\nMoonshot AI（月之暗面）的终端 coding agent，应用管理中可检测、切换模型、一键装机。\n\n## 修复\n\n- macOS 12.2 及更早版本打开 Markdown 页面崩溃\n\n## 优化\n\n- 窗口隐藏时停止后台状态轮询",
-    "en": "## New: Kimi Code tool\n\nMoonshot AI's terminal coding agent — detect, switch models, and one-click install from App Manager.\n\n## Fixes\n\n- Crash opening Markdown pages on macOS 12.2 and earlier\n\n## Improvements\n\n- Pause background polling when the window is hidden",
-    "zh-tw": "## 新增：Kimi Code 工具\n\nMoonshot AI（月之暗面）的終端 coding agent，應用管理中可偵測、切換模型、一鍵安裝。\n\n## 修復\n\n- macOS 12.2 及更早版本開啟 Markdown 頁面崩潰\n\n## 改善\n\n- 視窗隱藏時停止背景狀態輪詢",
-    "ja": "## 新機能：Kimi Code ツール\n\nMoonshot AI のターミナル coding agent。アプリマネージャーから検出・モデル切替・ワンクリックインストールが可能。\n\n## 修正\n\n- macOS 12.2 以前で Markdown ページを開くとクラッシュする問題\n\n## 改善\n\n- ウィンドウ非表示時にバックグラウンドポーリングを停止"
+    "zh-cn": "## 修复\n\n- Kimi Code 切换模型不生效（v5.4.3 引入的回归）：切换后 `~/.kimi-code/config.toml` 不更新，启动显示「未设置模型，运行 /login 或 /provider」\n- Windows 上 `curl` 安装的 `kimi` 启动失败：检测到的安装目录未注入 PATH",
+    "en": "## Fixes\n\n- Kimi Code model switching had no effect (a regression in v5.4.3): switching didn't update `~/.kimi-code/config.toml`, and the app showed \"not set, run /login or /provider\" on launch\n- `kimi` installed via `curl` failed to start on Windows: the detected install dir wasn't injected into PATH",
+    "zh-tw": "## 修復\n\n- Kimi Code 切換模型不生效（v5.4.3 引入的回歸）：切換後 `~/.kimi-code/config.toml` 不更新，啟動顯示「未設定模型，執行 /login 或 /provider」\n- Windows 上 `curl` 安裝的 `kimi` 啟動失敗：偵測到的安裝目錄未注入 PATH",
+    "ja": "## 修正\n\n- Kimi Code のモデル切替が反映されない不具合（v5.4.3 で発生した回帰）：切替しても `~/.kimi-code/config.toml` が更新されず、起動時に「未設定、/login または /provider を実行」と表示される\n- Windows で `curl` でインストールした `kimi` が起動失敗：検出したインストール先が PATH に注入されない"
   }
 }
