@@ -861,6 +861,8 @@ pub fn run() {
             skill_commands::delete_skill,
             skill_commands::update_skill,
             model_commands::query_model_usage,
+            model_commands::volc_sso_login,
+            model_commands::check_volc_sso,
             process_commands::start_tool,
             process_commands::start_llm_server,
             process_commands::stop_llm_server,

@@ -78,6 +78,14 @@ export async function queryModelUsage(internalId: string): Promise<UsageResult> 
   return invoke('query_model_usage', { internalId });
 }
 
+export async function volcSsoLogin(): Promise<boolean> {
+  return invoke('volc_sso_login');
+}
+
+export async function checkVolcSso(): Promise<boolean> {
+  return invoke('check_volc_sso');
+}
+
 /** Shape of one entry in the Model Center right-panel Providers/Relays list. */
 export interface ModelDirectoryEntry {
   name: string;

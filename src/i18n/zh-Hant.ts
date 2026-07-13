@@ -169,6 +169,7 @@ const zhHant: Partial<Translations> = {
   'model.config': '設定',
   'model.usage': '用量',
   'model.noUsageData': '暫無用量資料',
+  'model.reauth': '二次驗證',
   'model.balance': '餘額',
   'model.countdown.days': '{d}天{h}時{m}分後重置',
   'model.countdown.hours': '{h}時{m}分後重置',

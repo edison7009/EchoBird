@@ -12,6 +12,7 @@ pub mod openrouter;
 pub mod siliconflow;
 pub mod stepfun;
 pub mod sub2api;
+pub mod volcengine;
 pub mod zenmux;
 pub mod zhipu;
 
@@ -68,6 +69,7 @@ pub enum Provider {
     ZenMux(zenmux::ZenMuxProvider),
     Zhipu(zhipu::ZhipuProvider),
     Sub2Api(sub2api::Sub2ApiProvider),
+    Volcengine(volcengine::VolcengineProvider),
 }
 
 impl Provider {
@@ -83,6 +85,7 @@ impl Provider {
             Provider::ZenMux(p) => p.query_usage(api_key, base_url).await,
             Provider::Zhipu(p) => p.query_usage(api_key, base_url).await,
             Provider::Sub2Api(p) => p.query_usage(api_key, base_url).await,
+            Provider::Volcengine(p) => p.query_usage(api_key, base_url).await,
         }
     }
 }
@@ -118,6 +121,9 @@ pub fn detect_provider(base_url: &str) -> Option<Provider> {
     if zhipu::ZhipuProvider.can_handle(&url) {
         return Some(Provider::Zhipu(zhipu::ZhipuProvider));
     }
+    if volcengine::VolcengineProvider.can_handle(&url) {
+        return Some(Provider::Volcengine(volcengine::VolcengineProvider));
+    }
     if sub2api::Sub2ApiProvider.can_handle(&url) {
         return Some(Provider::Sub2Api(sub2api::Sub2ApiProvider));
     }
@@ -127,14 +133,6 @@ pub fn detect_provider(base_url: &str) -> Option<Provider> {
 
 /// Main entry point - query usage for a model
 pub async fn query_model_usage(base_url: &str, api_key: &str) -> Result<UsageResult, String> {
-    if api_key.trim().is_empty() {
-        return Ok(UsageResult {
-            success: false,
-            data: None,
-            error: Some("API key is empty".to_string()),
-        });
-    }
-
     let provider = match detect_provider(base_url) {
         Some(p) => p,
         None => {
@@ -145,6 +143,18 @@ pub async fn query_model_usage(base_url: &str, api_key: &str) -> Result<UsageRes
             });
         }
     };
+
+    // Volcengine usage is SSO-based (arkcli) and does not use the api_key, so
+    // skip the empty-key guard - otherwise a Volcengine model with no/destroyed
+    // key reports "API key is empty" instead of reaching the SSO flow.
+    let is_sso_provider = matches!(provider, Provider::Volcengine(_));
+    if !is_sso_provider && api_key.trim().is_empty() {
+        return Ok(UsageResult {
+            success: false,
+            data: None,
+            error: Some("API key is empty".to_string()),
+        });
+    }
 
     provider.query_usage(api_key, base_url).await
 }
@@ -163,4 +173,21 @@ pub(crate) fn parse_f64(value: &serde_json::Value) -> Option<f64> {
     value
         .as_f64()
         .or_else(|| value.as_str().and_then(|s| s.parse().ok()))
+}
+
+/// Build an `arkcli` command with CREATE_NO_WINDOW on Windows.
+///
+/// EchoBird is a GUI process; spawning a console subprocess (arkcli) without
+/// this flag flashes a terminal window on Windows. Same pattern as
+/// codex_binary / agent_tools / gpu. Used by the Volcengine usage provider
+/// and the SSO login/whoami commands.
+pub(crate) fn arkcli_command() -> std::process::Command {
+    let mut cmd = std::process::Command::new("arkcli");
+    #[cfg(target_os = "windows")]
+    {
+        use std::os::windows::process::CommandExt;
+        const CREATE_NO_WINDOW: u32 = 0x08000000;
+        cmd.creation_flags(CREATE_NO_WINDOW);
+    }
+    cmd
 }

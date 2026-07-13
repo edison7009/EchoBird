@@ -33,6 +33,10 @@ export interface ModelNexusCtx {
   modelUsageData: Record<string, ModelUsageData>;
   setModelUsageData: React.Dispatch<React.SetStateAction<Record<string, ModelUsageData>>>;
   isRefreshingUsage: boolean;
+  // Volcengine SSO
+  volcSsoValid: boolean;
+  setVolcSsoValid: React.Dispatch<React.SetStateAction<boolean>>;
+  volcSsoLogin: () => Promise<void>;
   // Test
   testInput: string;
   setTestInput: (v: string) => void;

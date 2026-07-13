@@ -149,6 +149,7 @@ const zhHans: Partial<Translations> = {
   'model.config': '配置',
   'model.usage': '用量',
   'model.noUsageData': '暂无用量数据',
+  'model.reauth': '二次验证',
   'model.balance': '余额',
   'model.countdown.days': '{d}天{h}时{m}分钟后重置',
   'model.countdown.hours': '{h}时{m}分钟后重置',

@@ -173,6 +173,7 @@ const ja: Partial<Translations> = {
   'model.config': '設定',
   'model.usage': '使用量',
   'model.noUsageData': '使用量データなし',
+  'model.reauth': '再認証',
   'model.balance': '残高',
   'model.countdown.days': '{d}日{h}時間{m}分後にリセット',
   'model.countdown.hours': '{h}時間{m}分後にリセット',

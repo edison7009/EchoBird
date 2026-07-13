@@ -157,6 +157,7 @@ export type TKey =
   | 'model.config'
   | 'model.usage'
   | 'model.noUsageData'
+  | 'model.reauth'
   | 'model.balance'
   | 'model.countdown.days'
   | 'model.countdown.hours'

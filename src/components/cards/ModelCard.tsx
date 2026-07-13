@@ -30,6 +30,7 @@ export const getModelIcon = (name: string, modelId?: string): string | null => {
     [['perplexity', 'pplx'], 'perplexity'],
     [['together'], 'together'],
     [['volcengine', 'volces', '火山', 'ark.cn-beijing'], 'volcengine'],
+    [['byteplus', 'bytepluses'], 'byteplus'],
     [['doubao', '豆包', 'bytedance'], 'bytedance'],
     [['xiaomi', '小米', 'mimo'], 'xiaomi'],
     [['nemotron', 'nvidia'], 'nemotron'],
@@ -57,6 +58,7 @@ export const getModelIcon = (name: string, modelId?: string): string | null => {
       if (icon === 'agnes') return './icons/models/agnes.png';
       if (icon === 'compshare') return './icons/models/compshare.png';
       if (icon === 'ccvibe') return './icons/models/ccvibe.png';
+      if (icon === 'byteplus') return './icons/models/byteplus.png';
       return `./icons/models/${icon}.svg`;
     }
   }
@@ -96,6 +98,8 @@ export interface ModelCardProps {
   selected?: boolean;
   viewMode?: 'config' | 'usage'; // display mode
   usageData?: ModelUsageData; // usage quota data
+  volcSsoExpired?: boolean; // show [二次验证] button (Volcengine SSO needed)
+  onReauth?: () => void; // SSO re-login callback
   onClick?: () => void;
   onEdit?: () => void; // edit callback
   onDelete?: () => void; // delete callback
@@ -219,6 +223,8 @@ export const ModelCard = React.memo(
     isActive = false,
     viewMode = 'config',
     usageData,
+    volcSsoExpired,
+    onReauth,
     onClick,
     onEdit,
     onDelete,
@@ -285,9 +291,20 @@ export const ModelCard = React.memo(
             </div>
           )
         ) : (
-          // Usage mode: [刷新]
+          // Usage mode: [二次验证] [刷新]
           <div className="absolute top-2 right-2 flex gap-1.5">
-            {onRefresh && (
+            {volcSsoExpired && onReauth && (
+              <button
+                className="text-xs font-mono text-cyber-text-muted/70 hover:text-cyber-accent transition-colors"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onReauth();
+                }}
+              >
+                [{t('model.reauth')}]
+              </button>
+            )}
+            {onRefresh && !volcSsoExpired && (
               <button
                 className="text-xs font-mono text-cyber-text-muted/70 hover:text-cyber-text transition-colors"
                 onClick={(e) => {

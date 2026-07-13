@@ -28,6 +28,8 @@ export function ModelNexusProvider({ children }: { children: React.ReactNode }) 
   const [viewMode, setViewMode] = useState<'config' | 'usage'>('config');
   const [modelUsageData, setModelUsageData] = useState<Record<string, ModelUsageData>>({});
   const [isRefreshingUsage, setIsRefreshingUsage] = useState(false);
+  // Volcengine SSO state
+  const [volcSsoValid, setVolcSsoValid] = useState(false);
 
   // Modal state
   const [showAddModelModal, setShowAddModelModal] = useState(false);
@@ -194,6 +196,11 @@ export function ModelNexusProvider({ children }: { children: React.ReactNode }) 
 
     try {
       const result = await api.queryModelUsage(model.internalId);
+      // SSO expired -> show [二次验证] button
+      if (result.error === 'SSO_EXPIRED' || result.error === 'ARKCLI_NOT_FOUND') {
+        setVolcSsoValid(false);
+        return;
+      }
       if (result.success && result.data) {
         const data = result.data;
         setModelUsageData((prev) => ({
@@ -205,6 +212,29 @@ export function ModelNexusProvider({ children }: { children: React.ReactNode }) 
       /* silent */
     }
   };
+
+  // Volcengine SSO: check on mount + login handler
+  const checkVolcSso = useCallback(async () => {
+    try {
+      const valid = await api.checkVolcSso();
+      setVolcSsoValid(valid);
+    } catch {
+      setVolcSsoValid(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    checkVolcSso();
+  }, [checkVolcSso]);
+
+  const volcSsoLogin = useCallback(async () => {
+    try {
+      await api.volcSsoLogin();
+      await checkVolcSso();
+    } catch {
+      /* silent */
+    }
+  }, [checkVolcSso]);
 
   // Model test function
   const handleTestModel = async () => {
@@ -286,6 +316,9 @@ export function ModelNexusProvider({ children }: { children: React.ReactNode }) 
         modelUsageData,
         setModelUsageData,
         isRefreshingUsage,
+        volcSsoValid,
+        setVolcSsoValid,
+        volcSsoLogin,
         testInput,
         setTestInput,
         testOutput,
@@ -419,6 +452,8 @@ export function ModelNexusMain() {
     keyDestroyed: _keyDestroyed,
     setKeyDestroyed,
     refreshSingleUsage,
+    volcSsoValid,
+    volcSsoLogin,
   } = useModelNexus();
 
   // Stable handlers for model card interactions
@@ -541,6 +576,15 @@ export function ModelNexusMain() {
                     isActive={selectedModel === model.internalId}
                     viewMode={viewMode}
                     usageData={modelUsageData[model.internalId]}
+                    volcSsoExpired={
+                      viewMode === 'usage' &&
+                      !volcSsoValid &&
+                      (model.baseUrl.includes('volces.com') ||
+                        model.baseUrl.includes('volcengine') ||
+                        model.baseUrl.includes('ark.cn-beijing') ||
+                        (model.anthropicUrl || '').includes('volces.com'))
+                    }
+                    onReauth={volcSsoLogin}
                     onClick={() => handleCardClick(model)}
                     onProtocolClick={(protocol) => handleCardProtocolClick(model, protocol)}
                     onEdit={isDemo ? undefined : () => handleCardEdit(model)}
