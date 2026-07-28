@@ -63,6 +63,20 @@ pub struct ModelInfo {
     /// Only consumed by `apply_claudecode`; other tools ignore it.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub one_m_context: Option<bool>,
+    /// Real context window (in tokens) of the selected model. Consumed by
+    /// `apply_codex` to write `model_context_window` /
+    /// `model_auto_compact_token_limit` matching the model's actual token
+    /// budget. `None` → the apply path falls back to a per-model registry
+    /// lookup (and ultimately the 1M historic default) so callers that don't
+    /// supply it keep working.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub context_window: Option<u64>,
+    /// Real input modalities of the selected model (e.g. `["text","image",
+    /// "video"]`). Consumed by `apply_zcode` to write the provider model
+    /// block's `modalities.input`. `None` → the apply path falls back to a
+    /// per-model registry lookup (and ultimately the text-only default).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub input_modalities: Option<Vec<String>>,
 }
 
 /// Result of applying a model config
@@ -200,6 +214,47 @@ fn write_json_file(path: &Path, value: &serde_json::Value) -> Result<(), String>
 // ─── Known ModelInfo fields ───
 
 const KNOWN_MODEL_FIELDS: &[&str] = &["id", "name", "baseUrl", "apiKey", "model", "protocol"];
+
+// ─── Per-model capability registry ───
+//
+// Some tool configs must reflect a model's real context window and input
+// modalities rather than a one-size-fits-all default. Codex's
+// `model_context_window` / `model_auto_compact_token_limit` and ZCode's
+// `modalities.input` are the two places a wrong default silently caps or
+// mis-advertises a third-party model. The values below are sourced from the
+// provider's official model specs so apply_codex / apply_zcode stay
+// data-driven — no model-id branching inside the apply logic.
+
+pub(crate) const DEFAULT_CODEX_CONTEXT_WINDOW: u64 = 1_000_000;
+
+/// Look up a model's real context window (in tokens). Returns
+/// `DEFAULT_CODEX_CONTEXT_WINDOW` for models the registry does not list —
+/// the historic Codex default — so unknown models keep working as before.
+fn model_context_window_for(model_id: &str) -> u64 {
+    match model_id {
+        "MiniMax-M3" => 1_000_000,
+        "MiniMax-M2.7" => 204_800,
+        _ => DEFAULT_CODEX_CONTEXT_WINDOW,
+    }
+}
+
+/// Derive the auto-compact token limit (90% of the context window) that
+/// Codex writes as `model_auto_compact_token_limit`. Keeping it proportional
+/// to the real window stops Codex from trying to compact at 900k on a model
+/// whose entire window is only 204,800 tokens.
+fn codex_compact_limit_for(context_window: u64) -> u64 {
+    context_window * 9 / 10
+}
+
+/// Look up a model's real input modalities. Returns `["text"]` for models the
+/// registry does not list so ZCode's `modalities.input` keeps the safe
+/// text-only default for unknown ids.
+fn model_input_modalities_for(model_id: &str) -> &'static [&'static str] {
+    match model_id {
+        "MiniMax-M3" => &["text", "image", "video"],
+        _ => &["text"],
+    }
+}
 
 fn get_model_field(model_info: &ModelInfo, field_name: &str) -> Option<String> {
     match field_name {
@@ -544,6 +599,8 @@ fn read_generic_json(tool_id: &str) -> Option<ModelInfo> {
         responses_passthrough: None,
         web_search: None,
         one_m_context: None,
+        context_window: None,
+        input_modalities: None,
     })
 }
 
@@ -653,6 +710,8 @@ fn read_echobird_relay(tool_id: &str) -> Option<ModelInfo> {
         responses_passthrough: None,
         web_search: None,
         one_m_context: None,
+        context_window: None,
+        input_modalities: None,
     })
 }
 
@@ -854,6 +913,8 @@ fn read_openclaw() -> Option<ModelInfo> {
         responses_passthrough: None,
         web_search: None,
         one_m_context: None,
+        context_window: None,
+        input_modalities: None,
     })
 }
 
@@ -1010,6 +1071,8 @@ fn read_opencode() -> Option<ModelInfo> {
         responses_passthrough: None,
         web_search: None,
         one_m_context: None,
+        context_window: None,
+        input_modalities: None,
     })
 }
 
@@ -1044,6 +1107,8 @@ fn read_opencode_native_config(path: &Path) -> Option<ModelInfo> {
         responses_passthrough: None,
         web_search: None,
         one_m_context: None,
+        context_window: None,
+        input_modalities: None,
     })
 }
 
@@ -1307,6 +1372,10 @@ fn apply_zcode(model_info: &ModelInfo) -> ApplyResult {
 
     let provider_id = "echobird";
     let display_name = model_info.name.as_deref().unwrap_or(model_id);
+    // Resolve the real input modalities for the selected model so ZCode's
+    // `modalities.input` reflects image/video support when the model has it,
+    // instead of declaring every model text-only.
+    let input_modalities = model_input_modalities_for(model_id);
     config["provider"][provider_id] = serde_json::json!({
         "name": display_name,
         "kind": kind,
@@ -1319,7 +1388,7 @@ fn apply_zcode(model_info: &ModelInfo) -> ApplyResult {
         "models": {
             model_id: {
                 "name": display_name,
-                "modalities": { "input": ["text"], "output": ["text"] }
+                "modalities": { "input": input_modalities, "output": ["text"] }
             }
         }
     });
@@ -1364,6 +1433,28 @@ fn read_zcode() -> Option<ModelInfo> {
         "openai"
     };
 
+    // Round-trip the real input modalities from the provider's model block so
+    // the model-picker UI reflects image/video support when present. Falls back
+    // to the registry's value for the model id when the config block omits
+    // modalities (e.g. written by an older EchoBird that hard-coded text-only).
+    let config_input_modalities = provider
+        .pointer(&format!("/models/{}/modalities/input", model_id))
+        .and_then(|v| v.as_array())
+        .map(|arr| {
+            arr.iter()
+                .filter_map(|m| m.as_str().map(String::from))
+                .collect::<Vec<String>>()
+        })
+        .filter(|v| !v.is_empty());
+    let input_modalities = config_input_modalities.or_else(|| {
+        let reg = model_input_modalities_for(model_id);
+        if reg.len() == 1 && reg[0] == "text" {
+            None
+        } else {
+            Some(reg.iter().map(|s| s.to_string()).collect())
+        }
+    });
+
     Some(ModelInfo {
         name: provider
             .pointer(&format!("/models/{}/name", model_id))
@@ -1386,6 +1477,8 @@ fn read_zcode() -> Option<ModelInfo> {
         responses_passthrough: None,
         web_search: None,
         one_m_context: None,
+        context_window: None,
+        input_modalities,
     })
 }
 
@@ -1742,6 +1835,8 @@ fn read_openscience() -> Option<ModelInfo> {
         responses_passthrough: None,
         web_search: None,
         one_m_context: None,
+        context_window: None,
+        input_modalities: None,
     })
 }
 
@@ -1844,10 +1939,16 @@ fn restore_openscience_to_official() -> ApplyResult {
 /// Codex's `gpt-5.5` display alias (CODEX_DISPLAY_MODEL); a Responses
 /// direct-connect session passes the real upstream model id (e.g.
 /// `glm-5.2`) so Codex talks to the third party in its own id.
+///
+/// `context_window` is the real token limit of the selected model. Codex
+/// writes it as `model_context_window` and derives
+/// `model_auto_compact_token_limit` as 90% of it, so a model whose window
+/// is smaller than the historic 1M default is not over-claimed.
 pub(crate) fn write_codex_canonical_fields(
     content: &str,
     codex_base_url: &str,
     model: &str,
+    context_window: u64,
 ) -> String {
     // Preserve the input's trailing-newline convention. `toml_write_*`
     // helpers go through `content.lines().collect().join("\n")` which
@@ -1874,8 +1975,12 @@ pub(crate) fn write_codex_canonical_fields(
     c = toml_delete_top(&c, "review_model");
     // Top-level raw (bool, int).
     c = toml_write_top_raw(&c, "disable_response_storage", "true");
-    c = toml_write_top_raw(&c, "model_context_window", "1000000");
-    c = toml_write_top_raw(&c, "model_auto_compact_token_limit", "900000");
+    c = toml_write_top_raw(&c, "model_context_window", &context_window.to_string());
+    c = toml_write_top_raw(
+        &c,
+        "model_auto_compact_token_limit",
+        &codex_compact_limit_for(context_window).to_string(),
+    );
 
     // [model_providers.OpenAI] string keys.
     let table = format!("model_providers.{}", CODEX_PROVIDER);
@@ -1966,6 +2071,11 @@ fn apply_codex(tool_id: &str, model_info: &ModelInfo) -> ApplyResult {
         raw_api_key
     };
 
+    // Resolve the real context window for the selected model so Codex writes
+    // `model_context_window` / `model_auto_compact_token_limit` matching the
+    // model's actual token budget rather than the historic 1M default.
+    let context_window = model_context_window_for(model_id);
+
     // Resolve the URL + model id Codex itself will see in its config.toml.
     // Three routing modes:
     //   • Bridge (default): base_url = our proxy port; model = "gpt-5.5"
@@ -2008,7 +2118,8 @@ fn apply_codex(tool_id: &str, model_info: &ModelInfo) -> ApplyResult {
     // runtime state (`[projects.*]` trust, `[tui.*]` NUX, `[plugins.*]`)
     // and any unrelated user-edited top-level keys stay untouched.
     let existing = fs::read_to_string(&config_path).unwrap_or_default();
-    let mut new_content = write_codex_canonical_fields(&existing, &codex_base_url, codex_model);
+    let mut new_content =
+        write_codex_canonical_fields(&existing, &codex_base_url, codex_model, context_window);
 
     // web_search: user toggle. `Some(false)` → "disabled" (Codex removes
     // its built-in search tool); ON → "live" — unrestricted live retrieval,
@@ -2079,6 +2190,7 @@ fn apply_codex(tool_id: &str, model_info: &ModelInfo) -> ApplyResult {
         "providerId": CODEX_PROVIDER,
         "relayMode": relay_mode,
         "responsesPassthrough": responses_passthrough,
+        "contextWindow": context_window,
     });
     let _ = write_json_file(&relay_path, &relay);
 
@@ -2148,6 +2260,19 @@ fn read_codex() -> Option<ModelInfo> {
         model_from_toml
     };
 
+    // Round-trip the real context window from the relay file so the
+    // model-picker reflects what apply_codex wrote. Falls back to the
+    // per-model registry lookup (and ultimately None) when the relay file
+    // is missing or pre-dates the contextWindow field.
+    let context_window = read_codex_relay_context_window().or_else(|| {
+        if provider_id == CODEX_PROVIDER {
+            let cw = model_context_window_for(&model);
+            (cw != DEFAULT_CODEX_CONTEXT_WINDOW).then_some(cw)
+        } else {
+            None
+        }
+    });
+
     // API key now lives in ~/.codex/auth.json (preferred_auth_method=apikey).
     // Fall back to the legacy env_key path for configs written before this change.
     let api_key = read_codex_auth_key(&codex_dir).or_else(|| {
@@ -2179,6 +2304,8 @@ fn read_codex() -> Option<ModelInfo> {
         responses_passthrough: None,
         web_search: None,
         one_m_context: None,
+        context_window,
+        input_modalities: None,
     })
 }
 
@@ -2187,6 +2314,13 @@ fn read_codex_relay_base_url() -> Option<String> {
     let content = fs::read_to_string(relay_path).ok()?;
     let v: serde_json::Value = serde_json::from_str(&content).ok()?;
     v.get("baseUrl").and_then(|x| x.as_str()).map(String::from)
+}
+
+fn read_codex_relay_context_window() -> Option<u64> {
+    let relay_path = echobird_dir().join("codex.json");
+    let content = fs::read_to_string(relay_path).ok()?;
+    let v: serde_json::Value = serde_json::from_str(&content).ok()?;
+    v.get("contextWindow").and_then(|x| x.as_u64())
 }
 
 fn read_codex_relay_model() -> Option<String> {
@@ -2682,6 +2816,8 @@ fn read_claudedesktop() -> Option<ModelInfo> {
         responses_passthrough: None,
         web_search: None,
         one_m_context: None,
+        context_window: None,
+        input_modalities: None,
     })
 }
 
@@ -2976,6 +3112,8 @@ fn read_claudecode() -> Option<ModelInfo> {
         responses_passthrough: None,
         web_search: None,
         one_m_context: None,
+        context_window: None,
+        input_modalities: None,
     })
 }
 
@@ -3194,6 +3332,8 @@ fn read_aider() -> Option<ModelInfo> {
         responses_passthrough: None,
         web_search: None,
         one_m_context: None,
+        context_window: None,
+        input_modalities: None,
     })
 }
 
@@ -3229,6 +3369,8 @@ fn read_vibe_trading() -> Option<ModelInfo> {
         responses_passthrough: None,
         web_search: None,
         one_m_context: None,
+        context_window: None,
+        input_modalities: None,
     })
 }
 
@@ -3372,6 +3514,8 @@ fn read_workbuddy() -> Option<ModelInfo> {
         responses_passthrough: None,
         web_search: None,
         one_m_context: None,
+        context_window: None,
+        input_modalities: None,
     })
 }
 
@@ -3592,6 +3736,8 @@ fn read_grok() -> Option<ModelInfo> {
         responses_passthrough: None,
         web_search: None,
         one_m_context: None,
+        context_window: None,
+        input_modalities: None,
     })
 }
 
@@ -3741,6 +3887,8 @@ fn read_qwen_code() -> Option<ModelInfo> {
         responses_passthrough: None,
         web_search: None,
         one_m_context: None,
+        context_window: None,
+        input_modalities: None,
     })
 }
 
@@ -3898,6 +4046,8 @@ fn read_pi() -> Option<ModelInfo> {
         responses_passthrough: None,
         web_search: None,
         one_m_context: None,
+        context_window: None,
+        input_modalities: None,
     })
 }
 
@@ -4148,6 +4298,8 @@ fn read_kimicode() -> Option<ModelInfo> {
         responses_passthrough: None,
         web_search: None,
         one_m_context: None,
+        context_window: None,
+        input_modalities: None,
     })
 }
 
@@ -4653,6 +4805,7 @@ mod tests {
             stale,
             "https://ark.cn-beijing.volces.com/api/coding/v1",
             "glm-5.2",
+            DEFAULT_CODEX_CONTEXT_WINDOW,
         );
         assert!(
             !out.contains("review_model"),
@@ -4671,7 +4824,12 @@ mod tests {
         let stale = "model = \"gpt-5.5\"\n\
                      review_model = \"gpt-5.5\"\n\
                      [model_providers.OpenAI]\n";
-        let out = write_codex_canonical_fields(stale, "http://127.0.0.1:53682/v1", "gpt-5.5");
+        let out = write_codex_canonical_fields(
+            stale,
+            "http://127.0.0.1:53682/v1",
+            "gpt-5.5",
+            DEFAULT_CODEX_CONTEXT_WINDOW,
+        );
         assert!(!out.contains("review_model"));
     }
 
@@ -4688,6 +4846,8 @@ mod tests {
             responses_passthrough: None,
             web_search: None,
             one_m_context: None,
+            context_window: None,
+            input_modalities: None,
         }
     }
 
@@ -4775,5 +4935,70 @@ mod tests {
                 var
             );
         }
+    }
+
+    // ── Per-model context window + compaction (Codex) ──
+    // apply_codex must write the real model_context_window and a proportional
+    // model_auto_compact_token_limit (90% of the window) so a model whose
+    // window is smaller than the historic 1M default is not over-claimed.
+
+    #[test]
+    fn model_context_window_for_known_model() {
+        assert_eq!(model_context_window_for("MiniMax-M2.7"), 204_800);
+    }
+
+    #[test]
+    fn model_context_window_for_unknown_model_defaults_to_1m() {
+        assert_eq!(
+            model_context_window_for("glm-5.2"),
+            DEFAULT_CODEX_CONTEXT_WINDOW
+        );
+    }
+
+    #[test]
+    fn codex_compact_limit_is_90_percent_of_window() {
+        assert_eq!(codex_compact_limit_for(1_000_000), 900_000);
+        assert_eq!(codex_compact_limit_for(204_800), 184_320);
+    }
+
+    #[test]
+    fn write_codex_canonical_fields_writes_model_context_window() {
+        // A 204,800-token model must get model_context_window = 204800 and
+        // model_auto_compact_token_limit = 184320 (90%), not the historic
+        // 1,000,000 / 900,000 defaults.
+        let out = write_codex_canonical_fields(
+            "model = \"gpt-5.5\"\n[model_providers.OpenAI]\n",
+            "http://127.0.0.1:53682/v1",
+            "gpt-5.5",
+            204_800,
+        );
+        assert!(out.contains("model_context_window = 204800"), "got: {out}");
+        assert!(
+            out.contains("model_auto_compact_token_limit = 184320"),
+            "got: {out}"
+        );
+        assert!(
+            !out.contains("model_context_window = 1000000"),
+            "got: {out}"
+        );
+        assert!(
+            !out.contains("model_auto_compact_token_limit = 900000"),
+            "got: {out}"
+        );
+    }
+
+    // ── Per-model input modalities (ZCode) ──
+    // apply_zcode must declare the real input modalities for a multimodal
+    // model instead of forcing text-only.
+
+    #[test]
+    fn model_input_modalities_for_multimodal_model() {
+        let m = model_input_modalities_for("MiniMax-M3");
+        assert_eq!(m, &["text", "image", "video"]);
+    }
+
+    #[test]
+    fn model_input_modalities_for_unknown_model_defaults_to_text() {
+        assert_eq!(model_input_modalities_for("glm-5.2"), &["text"]);
     }
 }

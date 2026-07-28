@@ -133,14 +133,32 @@ pub fn ensure_canonical_config(
     let proxy_url = codex_proxy_url();
     let provider_section = "[model_providers.OpenAI]";
 
-    // File missing → bootstrap with the full canonical template.
+    // Read the context window the relay file carries for the active model so
+    // the pre-spawn self-heal writes the same `model_context_window` /
+    // `model_auto_compact_token_limit` apply_codex wrote — not the historic
+    // 1M default. Falls back to 1M when the relay file is missing or pre-dates
+    // the contextWindow field (same behavior as before).
+    let context_window = read_echobird_relay(relay_config_path)
+        .and_then(|v| v.get("contextWindow").and_then(|x| x.as_u64()))
+        .unwrap_or(crate::services::tool_config_manager::DEFAULT_CODEX_CONTEXT_WINDOW);
+
+    // File missing → bootstrap with the full canonical template, then run it
+    // through write_codex_canonical_fields so the context window matches the
+    // relay file (the template's 1M default is overwritten with the real
+    // value when a relay file with a smaller window exists).
     let existing = match fs::read_to_string(codex_config_path) {
         Ok(c) => c,
         Err(_) => {
             if let Some(parent) = codex_config_path.parent() {
                 fs::create_dir_all(parent)?;
             }
-            fs::write(codex_config_path, template)?;
+            let bootstrapped = crate::services::tool_config_manager::write_codex_canonical_fields(
+                &template,
+                &proxy_url,
+                crate::services::tool_config_manager::CODEX_DISPLAY_MODEL,
+                context_window,
+            );
+            fs::write(codex_config_path, bootstrapped)?;
             return Ok(EnsureOutcome {
                 wrote: true,
                 reason: "missing",
@@ -162,6 +180,7 @@ pub fn ensure_canonical_config(
         &existing,
         &proxy_url,
         crate::services::tool_config_manager::CODEX_DISPLAY_MODEL,
+        context_window,
     );
 
     if new_content == existing {
@@ -706,6 +725,101 @@ mod tests {
         assert!(after.contains("disable_response_storage = true"));
         assert!(after.contains("model_context_window = 1000000"));
         assert!(after.contains("model_auto_compact_token_limit = 900000"));
+
+        fs::remove_dir_all(&dir).ok();
+    }
+
+    // ── Relay-driven context window ──
+    // When the relay file carries a contextWindow for the active model, the
+    // pre-spawn self-heal must write that value (and a proportional
+    // auto-compact limit) instead of the historic 1M / 900K defaults.
+
+    #[test]
+    fn ensure_writes_relay_context_window_when_present() {
+        let dir = unique_tmpdir("relayctx");
+        let cfg = dir.join(CODEX_CONFIG_FILENAME);
+        let relay = dir.join(RELAY_FILENAME);
+        // Drifted config with the 1M default; relay says 204,800.
+        fs::write(
+            &cfg,
+            "model_provider = \"OpenAI\"\n\
+             model = \"gpt-5.5\"\n\
+             model_context_window = 1000000\n\
+             model_auto_compact_token_limit = 900000\n\
+             [model_providers.OpenAI]\n\
+             name = \"OpenAI\"\n\
+             base_url = \"http://127.0.0.1:53682/v1\"\n\
+             wire_api = \"responses\"\n\
+             requires_openai_auth = true\n",
+        )
+        .unwrap();
+        fs::write(
+            &relay,
+            json!({
+                "baseUrl": "https://api.minimax.io/v1",
+                "actualModel": "MiniMax-M2.7",
+                "contextWindow": 204800,
+                "relayMode": false,
+            })
+            .to_string(),
+        )
+        .unwrap();
+
+        let out = ensure_canonical_config(&cfg, &relay).expect("ok");
+        assert!(out.wrote);
+        let after = fs::read_to_string(&cfg).unwrap();
+        assert!(
+            after.contains("model_context_window = 204800"),
+            "got: {after}"
+        );
+        assert!(
+            after.contains("model_auto_compact_token_limit = 184320"),
+            "got: {after}"
+        );
+        assert!(
+            !after.contains("model_context_window = 1000000"),
+            "got: {after}"
+        );
+
+        fs::remove_dir_all(&dir).ok();
+    }
+
+    #[test]
+    fn ensure_falls_back_to_1m_when_relay_has_no_context_window() {
+        let dir = unique_tmpdir("relaynocctx");
+        let cfg = dir.join(CODEX_CONFIG_FILENAME);
+        let relay = dir.join(RELAY_FILENAME);
+        fs::write(
+            &cfg,
+            "model_provider = \"OpenAI\"\n\
+             model = \"gpt-5.5\"\n\
+             [model_providers.OpenAI]\n\
+             base_url = \"http://127.0.0.1:53682/v1\"\n",
+        )
+        .unwrap();
+        // Older relay file written before contextWindow was added.
+        fs::write(
+            &relay,
+            json!({
+                "baseUrl": "https://api.openai.com/v1",
+                "actualModel": "gpt-4o",
+                "relayMode": false,
+            })
+            .to_string(),
+        )
+        .unwrap();
+
+        let out = ensure_canonical_config(&cfg, &relay).expect("ok");
+        assert!(out.wrote);
+        let after = fs::read_to_string(&cfg).unwrap();
+        assert!(
+            after.contains("model_context_window = 1000000"),
+            "got: {after}"
+        );
+        assert!(
+            after.contains("model_auto_compact_token_limit = 900000"),
+            "got: {after}"
+        );
 
         fs::remove_dir_all(&dir).ok();
     }
