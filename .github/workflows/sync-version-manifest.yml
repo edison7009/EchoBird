@@ -43,7 +43,7 @@ jobs:
           fi
 
       - name: Checkout main
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           ref: main
           fetch-depth: 0
