@@ -337,7 +337,11 @@ pub(super) fn read_zcode() -> Option<ModelInfo> {
 }
 
 pub(super) fn restore_zcode_to_official() -> ApplyResult {
-    let path = zcode_config_path();
+    restore_zcode_to_official_at(&zcode_config_dir())
+}
+
+pub(super) fn restore_zcode_to_official_at(dir: &std::path::Path) -> ApplyResult {
+    let path = dir.join("config.json");
     let mut updated = false;
     if path.exists() {
         let mut config = match read_jsonc_file(&path) {
@@ -371,7 +375,7 @@ pub(super) fn restore_zcode_to_official() -> ApplyResult {
         updated = true;
     }
 
-    let personal_path = zcode_personal_config_path();
+    let personal_path = dir.join("provider_config.json");
     if personal_path.exists() {
         let mut root = match read_json_file(&personal_path) {
             Some(config) if config.get("schemaVersion").and_then(|v| v.as_u64()) == Some(1) => {

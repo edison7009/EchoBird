@@ -5,6 +5,7 @@ import { useGrokAccounts } from './useGrokAccounts';
 import { accountError } from '../../utils/accountError';
 import { ClaudeCodeLoginDialog } from './ClaudeCodeLoginDialog';
 import { useWorkBuddyAccounts } from './useWorkBuddyAccounts';
+import { useZCodeAccounts } from './useZCodeAccounts';
 import { useClaudeCodeAccounts } from './useClaudeCodeAccounts';
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useCodexAccounts } from './useCodexAccounts';
@@ -334,8 +335,16 @@ export const AppManagerProvider: React.FC<AppManagerProviderProps> = ({ children
     setApplyError
   );
 
+  const zcodeAccounts = useZCodeAccounts(
+    accountsEnabled && selectedTool === 'zcode',
+    !!toolModelConfig.zcode,
+    () => setToolModelConfig((prev) => ({ ...prev, zcode: null })),
+    setApplyError
+  );
+
   // Set tool model (single selection) - UI state update
   const handleSelectModel = (toolId: string, modelId: string) => {
+    if (toolId === 'zcode') zcodeAccounts.select(null);
     if (toolId === 'cursor') cursorAccounts.select(null);
     if (toolId === 'grokbot') grokBotAccounts.select(null);
     if (toolId === 'dsh') deepSeekAccounts.select(null);
@@ -571,11 +580,13 @@ export const AppManagerProvider: React.FC<AppManagerProviderProps> = ({ children
   // Launch handler
   const handleLaunch = async () => {
     if (!selectedTool || isLaunching) return;
+    if (selectedTool === 'zcode' && zcodeAccounts.busy) return;
     setIsLaunching(true);
     const switchingClaudeAccount = selectedTool === 'claudecode' && !!claudeCodeAccounts.selectedId;
     if (
       !switchingClaudeAccount &&
       !(workBuddyEdition && workBuddyAccounts.selectedId) &&
+      !(selectedTool === 'zcode' && zcodeAccounts.selectedId) &&
       !(selectedTool === 'dsh' && deepSeekAccounts.selectedId) &&
       !(selectedTool === 'grok' && grokAccounts.selectedId) &&
       !(selectedTool === 'manus' && manusAccounts.selectedId) &&
@@ -683,6 +694,20 @@ export const AppManagerProvider: React.FC<AppManagerProviderProps> = ({ children
         setIsLaunching(false);
         return;
       }
+    } else if (selectedTool === 'zcode' && zcodeAccounts.selectedId) {
+      try {
+        await api.switchZCodeAccount(zcodeAccounts.selectedId);
+        setDetectedTools((prev) =>
+          prev.map((tool) => (tool.id === 'zcode' ? { ...tool, activeModel: '' } : tool))
+        );
+        await zcodeAccounts.reload();
+        if (launchAfterApply) await api.startTool('zcode', toolData?.startCommand);
+      } catch (error) {
+        setApplyError(accountError(error, t));
+      } finally {
+        setIsLaunching(false);
+      }
+      return;
     } else if (workBuddyEdition && workBuddyAccounts.selectedId) {
       try {
         await api.switchWorkBuddyAccount(workBuddyEdition, workBuddyAccounts.selectedId);
@@ -820,6 +845,7 @@ export const AppManagerProvider: React.FC<AppManagerProviderProps> = ({ children
         handleRestoreModel,
         claudeCodeAccounts,
         workBuddyAccounts,
+        zcodeAccounts,
         deepSeekAccounts,
         grokAccounts,
         manusAccounts,

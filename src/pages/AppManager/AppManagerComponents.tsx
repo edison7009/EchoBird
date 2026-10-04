@@ -7,6 +7,7 @@ import { ManusAccountSection } from './ManusAccountSection';
 import { ModelSwitchDivider } from './ModelSwitchDivider';
 import { QuotaCountdown } from './QuotaCountdown';
 import { WorkBuddyAccountSection } from './WorkBuddyAccountSection';
+import { ZCodeAccountSection } from './ZCodeAccountSection';
 import { ClaudeCodeAccountSection } from './ClaudeCodeAccountSection';
 import React, { useEffect, useMemo, useState } from 'react';
 import { RoutingToggle } from '../../components/RoutingToggle';
@@ -986,6 +987,7 @@ export const AppManagerPanel: React.FC = () => {
               {showCodexAccounts && <CodexAccountSection showDivider={hasVisibleModels} />}
               {selectedTool === 'dsh' && <DeepSeekAccountSection showDivider={hasVisibleModels} />}
               {selectedTool === 'grok' && <GrokAccountSection showDivider={hasVisibleModels} />}
+              {selectedTool === 'zcode' && <ZCodeAccountSection showDivider={hasVisibleModels} />}
               {(selectedTool === 'workbuddy' || selectedTool === 'workbuddyai') && (
                 <WorkBuddyAccountSection showDivider={hasVisibleModels} />
               )}
@@ -1054,6 +1056,7 @@ export const AppManagerBottom: React.FC = () => {
     selectedCodexAccountId,
     claudeCodeAccounts,
     workBuddyAccounts,
+    zcodeAccounts,
     deepSeekAccounts,
     grokAccounts,
     manusAccounts,
@@ -1079,6 +1082,7 @@ export const AppManagerBottom: React.FC = () => {
   const isBuiltInApp = selectedTool === 'reversi' || selectedTool === 'translator';
   const hasModelSelected = !!(selectedTool && toolModelConfig[selectedTool]);
   const hasAccountSelected =
+    (selectedTool === 'zcode' && !!zcodeAccounts.selectedId) ||
     ((selectedTool === 'codex' || selectedTool === 'chatgptdesktop') && !!selectedCodexAccountId) ||
     (selectedTool === 'claudecode' && !!claudeCodeAccounts.selectedId) ||
     (selectedTool === 'dsh' && !!deepSeekAccounts.selectedId) ||
@@ -1101,6 +1105,7 @@ export const AppManagerBottom: React.FC = () => {
   const buttonDisabled =
     !selectedToolData ||
     isLaunching ||
+    (selectedTool === 'zcode' && zcodeAccounts.busy) ||
     (selectedTool === 'grok' && grokAccounts.busy) ||
     (selectedTool === 'manus' && manusAccounts.busy) ||
     (selectedTool === 'grokbot' && grokBotAccounts.busy) ||

@@ -280,6 +280,46 @@ export async function deleteClaudeCodeAccount(accountId: string): Promise<void> 
   return invoke('delete_claude_code_account', { accountId });
 }
 
+export type ZCodeProvider = 'bigmodel' | 'zai';
+export interface ZCodeAccount {
+  id: string;
+  email: string;
+  provider: ZCodeProvider;
+  active: boolean;
+  plan: string | null;
+  subscriptionEndAt?: number | null;
+  quotaWindows?: { remainingPercent: number; resetAt: number | null }[];
+  remainingPercent: number | null;
+  resetAt: number | null;
+}
+export interface ZCodeLogin {
+  loginId: string;
+  verificationUri: string;
+  expiresAt: number;
+  pollIntervalSeconds: number;
+}
+export function listZCodeAccounts(): Promise<ZCodeAccount[]> {
+  return invoke('list_zcode_accounts');
+}
+export function startZCodeLogin(provider: ZCodeProvider): Promise<ZCodeLogin> {
+  return invoke('start_zcode_login', { provider });
+}
+export function pollZCodeLogin(loginId: string): Promise<ZCodeAccount | null> {
+  return invoke('poll_zcode_login', { loginId });
+}
+export function cancelZCodeLogin(loginId: string): Promise<void> {
+  return invoke('cancel_zcode_login', { loginId });
+}
+export function switchZCodeAccount(accountId: string): Promise<ZCodeAccount> {
+  return invoke('switch_zcode_account', { accountId });
+}
+export function refreshZCodeAccountQuota(accountId: string): Promise<ZCodeAccount> {
+  return invoke('refresh_zcode_account_quota', { accountId });
+}
+export function deleteZCodeAccount(accountId: string): Promise<void> {
+  return invoke('delete_zcode_account', { accountId });
+}
+
 export type WorkBuddyEdition = 'workbuddy' | 'workbuddyai';
 export interface WorkBuddyAccount {
   id: string;

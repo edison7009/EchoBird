@@ -30,6 +30,13 @@ vi.mock('@tauri-apps/plugin-dialog', () => ({
 }));
 vi.mock('../../api/tauri', () => {
   const names = [
+    'listZCodeAccounts',
+    'startZCodeLogin',
+    'pollZCodeLogin',
+    'cancelZCodeLogin',
+    'switchZCodeAccount',
+    'refreshZCodeAccountQuota',
+    'deleteZCodeAccount',
     'startCodexLogin',
     'cancelCodexLogin',
     'listCodexAccounts',
@@ -107,6 +114,7 @@ function Harness() {
   return null;
 }
 const listNames = [
+  'listZCodeAccounts',
   'listCodexAccounts',
   'listClaudeCodeAccounts',
   'listWorkBuddyAccounts',
@@ -118,6 +126,7 @@ const listNames = [
   'listAntigravityAccounts',
 ] as const;
 const listFor = {
+  zcode: 'listZCodeAccounts',
   codex: 'listCodexAccounts',
   chatgptdesktop: 'listCodexAccounts',
   claudecode: 'listClaudeCodeAccounts',
@@ -451,6 +460,10 @@ it.each(Object.keys(listFor) as Tool[])(
     await mount(tool);
     expect(api[listFor[tool]]).toHaveBeenCalledTimes(1);
     const actions = [
+      api.startZCodeLogin,
+      api.refreshZCodeAccountQuota,
+      api.switchZCodeAccount,
+      api.deleteZCodeAccount,
       api.startCodexLogin,
       api.startClaudeCodeLogin,
       api.startWorkBuddyLogin,
@@ -503,7 +516,7 @@ it.each(['claudecode', 'workbuddy', 'dsh', 'chatgptdesktop'] as const)(
     expect(state.applyError).toBeNull();
   }
 );
-it.each(['claudecode', 'workbuddy', 'dsh'] as Tool[])(
+it.each(['claudecode', 'workbuddy', 'dsh', 'zcode'] as Tool[])(
   '%s: passive read failure must not show dialog',
   async (tool) => {
     vi.mocked(api[listFor[tool]]).mockRejectedValueOnce(new Error('accountError.read'));
@@ -677,4 +690,157 @@ it('DeepSeek: adding an account must not automatically refresh quota', async () 
     await state.deepSeekAccounts.add();
   });
   expect(api.refreshDeepSeekAccountQuota).not.toHaveBeenCalled();
+});
+
+const zcodeRow: api.ZCodeAccount = {
+  id: 'bigmodel:one',
+  provider: 'bigmodel',
+  email: 'one@example.test',
+  active: true,
+  plan: 'Pro',
+  remainingPercent: 40,
+  resetAt: null,
+  subscriptionEndAt: 1900000000,
+  quotaWindows: [
+    { remainingPercent: 40, resetAt: 1890000000 },
+    { remainingPercent: 70, resetAt: 1890200000 },
+  ],
+};
+function zcodeLogin(): api.ZCodeLogin {
+  return {
+    loginId: 'zcode-login',
+    verificationUri: 'https://bigmodel.cn/login',
+    expiresAt: Date.now() / 1000 + 60,
+    pollIntervalSeconds: 1,
+  };
+}
+it('ZCode: region choice is passive, login saves without refresh or apply, selection excludes API models', async () => {
+  await mount('zcode');
+  act(() => state.zcodeAccounts.setProvider('zai'));
+  expect(api.startZCodeLogin).not.toHaveBeenCalled();
+  expect(api.listZCodeAccounts).toHaveBeenCalledTimes(1);
+  act(() => state.handleSelectModel('zcode', 'api-model'));
+  vi.mocked(api.startZCodeLogin).mockResolvedValue(zcodeLogin());
+  vi.mocked(api.pollZCodeLogin).mockResolvedValue(zcodeRow);
+  vi.mocked(api.cancelZCodeLogin).mockResolvedValue(undefined);
+  vi.mocked(api.listZCodeAccounts).mockResolvedValue([zcodeRow]);
+  await act(async () => {
+    await state.zcodeAccounts.add();
+  });
+  expect(api.startZCodeLogin).toHaveBeenCalledWith('zai');
+  expect(api.openExternal).toHaveBeenCalledWith('https://bigmodel.cn/login');
+  expect(state.zcodeAccounts.selectedId).toBe(zcodeRow.id);
+  expect(state.toolModelConfig.zcode).toBeNull();
+  expect(api.switchZCodeAccount).not.toHaveBeenCalled();
+  expect(api.refreshZCodeAccountQuota).not.toHaveBeenCalled();
+  act(() => state.handleSelectModel('zcode', 'api-model'));
+  expect(state.zcodeAccounts.selectedId).toBeNull();
+  act(() => state.zcodeAccounts.select(zcodeRow.id));
+  expect(state.toolModelConfig.zcode).toBeNull();
+});
+it.each(['page', 'tool', 'timeout'] as const)(
+  'ZCode: %s cancels login and ignores a late result',
+  async (exit) => {
+    let finish!: (row: api.ZCodeAccount) => void;
+    vi.mocked(api.startZCodeLogin).mockResolvedValue(zcodeLogin());
+    vi.mocked(api.pollZCodeLogin).mockReturnValue(
+      new Promise((resolve) => {
+        finish = resolve;
+      })
+    );
+    vi.mocked(api.cancelZCodeLogin).mockResolvedValue(undefined);
+    await mount('zcode');
+    let task!: Promise<void>;
+    await act(async () => {
+      task = state.zcodeAccounts.add();
+    });
+    act(() => state.zcodeAccounts.setProvider('zai'));
+    expect(state.zcodeAccounts.provider).toBe('bigmodel');
+    if (exit === 'timeout') {
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(60_000);
+      });
+      expect(state.applyError).toBe('accountError.expired');
+    } else {
+      act(() =>
+        exit === 'page'
+          ? useNavigationStore.getState().setActivePage('models')
+          : state.setSelectedTool(null)
+      );
+      await tick();
+    }
+    expect(api.cancelZCodeLogin).toHaveBeenCalledWith('zcode-login');
+    await act(async () => {
+      finish(zcodeRow);
+      await task;
+    });
+    expect(state.zcodeAccounts.accounts).toEqual([]);
+    expect(api.listZCodeAccounts).toHaveBeenCalledTimes(1);
+    expect(api.switchZCodeAccount).not.toHaveBeenCalled();
+  }
+);
+it('ZCode: passive reload preserves cached rows and apply failure does not launch', async () => {
+  vi.mocked(api.listZCodeAccounts).mockResolvedValue([zcodeRow]);
+  await mount('zcode');
+  act(() => useNavigationStore.getState().setActivePage('models'));
+  await tick();
+  vi.mocked(api.listZCodeAccounts).mockRejectedValueOnce(new Error('accountError.read'));
+  act(() => useNavigationStore.getState().setActivePage('apps'));
+  await tick();
+  expect(state.zcodeAccounts.accounts).toEqual([zcodeRow]);
+  expect(state.applyError).toBeNull();
+  act(() => {
+    state.zcodeAccounts.select(zcodeRow.id);
+    state.setLaunchAfterApply(true);
+  });
+  vi.mocked(api.switchZCodeAccount).mockRejectedValueOnce(new Error('accountError.write'));
+  await act(async () => {
+    await state.handleLaunch();
+  });
+  expect(state.applyError).toBe('accountError.write');
+  expect(api.startTool).not.toHaveBeenCalled();
+  vi.mocked(api.switchZCodeAccount).mockResolvedValue(zcodeRow);
+  await act(async () => {
+    await state.handleLaunch();
+  });
+  expect(api.switchZCodeAccount).toHaveBeenCalledWith(zcodeRow.id);
+  expect(api.startTool).toHaveBeenCalledWith('zcode', undefined);
+  expect(api.refreshZCodeAccountQuota).not.toHaveBeenCalled();
+});
+it('ZCode: explicit quota failure remains visible and cached, delete uses the shared confirmation flow', async () => {
+  vi.mocked(api.listZCodeAccounts).mockResolvedValue([zcodeRow]);
+  await mount('zcode');
+  vi.mocked(api.refreshZCodeAccountQuota).mockRejectedValueOnce(new Error('accountError.network'));
+  await act(async () => {
+    await state.zcodeAccounts.refresh(zcodeRow);
+  });
+  expect(state.applyError).toBe('accountError.network');
+  expect(state.zcodeAccounts.accounts).toEqual([zcodeRow]);
+  let finish!: (row: api.ZCodeAccount) => void;
+  vi.mocked(api.refreshZCodeAccountQuota).mockReturnValueOnce(
+    new Promise((resolve) => {
+      finish = resolve;
+    })
+  );
+  let refresh!: Promise<void>;
+  await act(async () => {
+    refresh = state.zcodeAccounts.refresh(zcodeRow);
+  });
+  expect(state.zcodeAccounts.refreshing.has(zcodeRow.id)).toBe(true);
+  const updated = { ...zcodeRow, plan: 'Max', subscriptionEndAt: 1910000000 };
+  await act(async () => {
+    finish(updated);
+    await refresh;
+  });
+  expect(state.zcodeAccounts.refreshing.size).toBe(0);
+  expect(state.zcodeAccounts.accounts).toEqual([updated]);
+  expect(api.startZCodeLogin).not.toHaveBeenCalled();
+  expect(api.switchZCodeAccount).not.toHaveBeenCalled();
+  vi.mocked(api.deleteZCodeAccount).mockResolvedValue(undefined);
+  await act(async () => {
+    await state.zcodeAccounts.remove(zcodeRow);
+  });
+  expect(api.deleteZCodeAccount).toHaveBeenCalledWith(zcodeRow.id);
+  expect(state.zcodeAccounts.accounts).toEqual([]);
+  expect(state.zcodeAccounts.selectedId).toBeNull();
 });

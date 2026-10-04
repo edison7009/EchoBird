@@ -3,6 +3,7 @@ import type { useAntigravityAccounts } from './useAntigravityAccounts';
 import type { useDeepSeekAccounts } from './useDeepSeekAccounts';
 import type { useGrokAccounts } from './useGrokAccounts';
 import type { useWorkBuddyAccounts } from './useWorkBuddyAccounts';
+import type { useZCodeAccounts } from './useZCodeAccounts';
 import type { useClaudeCodeAccounts } from './useClaudeCodeAccounts';
 import { createContext, useContext } from 'react';
 import type { ModelConfig, LocalTool } from '../../api/types';
@@ -26,6 +27,7 @@ export interface AppManagerContextType {
   handleRestoreModel: (toolId: string) => Promise<void>;
   claudeCodeAccounts: ReturnType<typeof useClaudeCodeAccounts>;
   workBuddyAccounts: ReturnType<typeof useWorkBuddyAccounts>;
+  zcodeAccounts: ReturnType<typeof useZCodeAccounts>;
   deepSeekAccounts: ReturnType<typeof useDeepSeekAccounts>;
   grokAccounts: ReturnType<typeof useGrokAccounts>;
   manusAccounts: ReturnType<typeof useGrokAccounts>;

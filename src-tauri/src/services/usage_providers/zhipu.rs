@@ -15,7 +15,7 @@ fn usage_url(base_url: &str) -> Option<String> {
     ))
 }
 
-pub(super) fn parse_response(body: &Value) -> UsageResult {
+pub(crate) fn parse_response(body: &Value) -> UsageResult {
     if body["success"] == false {
         return UsageResult::failure(
             "Zhipu rejected the quota query; check the key and subscription",

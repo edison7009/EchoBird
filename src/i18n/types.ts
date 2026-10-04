@@ -248,6 +248,8 @@ export type TKey =
   | 'agent.currentSelection'
   | 'agent.modelSwitch'
   | 'agent.addCurrentAccount'
+  | 'agent.zcodeSwitchProvider'
+  | 'agent.zcodeTrial'
   | 'agent.waitingForBrowser'
   | 'agent.refreshAccount'
   | 'agent.baseCredits'

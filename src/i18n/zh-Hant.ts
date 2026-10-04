@@ -288,6 +288,8 @@ const zhHant: Partial<Translations> = {
   'agent.currentSelection': '目前選擇',
   'agent.modelSwitch': '模型切換',
   'agent.addCurrentAccount': '新增帳號',
+  'agent.zcodeSwitchProvider': '切換登入平台（目前為 {provider}）',
+  'agent.zcodeTrial': '體驗',
   'agent.waitingForBrowser': '等待瀏覽器操作({seconds})',
   'agent.refreshAccount': '重新整理帳號額度',
   'agent.baseCredits': '套餐基礎積分',

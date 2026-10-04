@@ -9,8 +9,36 @@ export const AccountSectionButton: React.FC<{
   onClick: () => void;
   disabled?: boolean;
   colorClassName?: string;
-}> = ({ iconSrc, busy, remainingSeconds, onClick, disabled, colorClassName = '' }) => {
+  secondary?: React.ReactNode;
+}> = ({ iconSrc, busy, remainingSeconds, onClick, disabled, colorClassName = '', secondary }) => {
   const { t } = useI18n();
+  const label = busy
+    ? t('agent.waitingForBrowser').replace('{seconds}', String(remainingSeconds))
+    : t('agent.addCurrentAccount');
+  if (secondary) {
+    return (
+      <div
+        className={`account-pill ${colorClassName} relative mb-2 flex h-12 w-full items-center justify-center rounded-full px-3 transition-opacity ${disabled || busy ? 'opacity-50' : 'hover:opacity-90'}`}
+      >
+        <button
+          type="button"
+          aria-label={label}
+          onClick={onClick}
+          disabled={disabled || busy}
+          className="absolute inset-0 rounded-full"
+        />
+        <span className="pointer-events-none flex items-center gap-2.5">
+          <img src={iconSrc} alt="" className="h-6 w-6" />
+          <span className="flex flex-col items-center">
+            <span className="text-[17px] font-bold leading-6">{label}</span>
+            <span className="pointer-events-auto relative flex h-4 items-center text-[12px] font-normal leading-4 text-cyber-text-secondary">
+              {secondary}
+            </span>
+          </span>
+        </span>
+      </div>
+    );
+  }
   return (
     <button
       type="button"
@@ -33,7 +61,7 @@ export const AccountSectionButton: React.FC<{
 export const AccountSectionRow: React.FC<{
   selected: boolean;
   email: string;
-  plan?: string | null;
+  plan?: React.ReactNode;
   planPrefix?: React.ReactNode;
   widePlan?: boolean;
   secondary?: React.ReactNode;

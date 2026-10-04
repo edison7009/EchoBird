@@ -268,6 +268,8 @@ const zhHans: Partial<Translations> = {
   'agent.currentSelection': '当前选择',
   'agent.modelSwitch': '模型切换',
   'agent.addCurrentAccount': '添加账号',
+  'agent.zcodeSwitchProvider': '切换登录平台（当前为 {provider}）',
+  'agent.zcodeTrial': '体验',
   'agent.waitingForBrowser': '等待浏览器操作({seconds})',
   'agent.refreshAccount': '刷新账号额度',
   'agent.baseCredits': '套餐基础积分',

@@ -687,6 +687,37 @@ use crate::services::workbuddy_accounts::{
     self, Account as WorkBuddyAccount, Edition as WorkBuddyEdition, LoginStart as WorkBuddyLogin,
 };
 
+use crate::services::zcode_accounts::{self, Account as ZCodeAccount, LoginStart as ZCodeLogin};
+
+#[tauri::command]
+pub async fn list_zcode_accounts() -> Result<Vec<ZCodeAccount>, String> {
+    zcode_accounts::list().await
+}
+#[tauri::command]
+pub async fn start_zcode_login(provider: String) -> Result<ZCodeLogin, String> {
+    zcode_accounts::start_login(&provider).await
+}
+#[tauri::command]
+pub async fn poll_zcode_login(login_id: String) -> Result<Option<ZCodeAccount>, String> {
+    zcode_accounts::poll_login(&login_id).await
+}
+#[tauri::command]
+pub fn cancel_zcode_login(login_id: String) -> Result<(), String> {
+    zcode_accounts::cancel_login(&login_id)
+}
+#[tauri::command]
+pub async fn switch_zcode_account(account_id: String) -> Result<ZCodeAccount, String> {
+    zcode_accounts::switch(&account_id).await
+}
+#[tauri::command]
+pub async fn refresh_zcode_account_quota(account_id: String) -> Result<ZCodeAccount, String> {
+    zcode_accounts::refresh(&account_id).await
+}
+#[tauri::command]
+pub async fn delete_zcode_account(account_id: String) -> Result<(), String> {
+    zcode_accounts::delete(&account_id).await
+}
+
 #[tauri::command]
 pub async fn list_workbuddy_accounts(
     edition: WorkBuddyEdition,

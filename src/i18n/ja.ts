@@ -300,6 +300,8 @@ const ja: Partial<Translations> = {
   'agent.currentSelection': '現在の選択',
   'agent.modelSwitch': 'モデル切り替え',
   'agent.addCurrentAccount': 'アカウントを追加',
+  'agent.zcodeSwitchProvider': 'ログイン先を切り替え（現在は {provider}）',
+  'agent.zcodeTrial': '体験',
   'agent.waitingForBrowser': 'ブラウザ操作を待機中({seconds})',
   'agent.refreshAccount': 'アカウントの使用量を更新',
   'agent.baseCredits': '基本クレジット',

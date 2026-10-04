@@ -301,6 +301,8 @@ const en: Translations = {
   'agent.currentSelection': 'Current selection',
   'agent.modelSwitch': 'Model switching',
   'agent.addCurrentAccount': 'Add Account',
+  'agent.zcodeSwitchProvider': 'Switch login provider (currently {provider})',
+  'agent.zcodeTrial': 'Trial',
   'agent.waitingForBrowser': 'Waiting for browser ({seconds})',
   'agent.refreshAccount': 'Refresh account quota',
   'agent.baseCredits': 'Base credits',

@@ -43,3 +43,4 @@ pub mod usage_providers;
 pub mod windows_path;
 
 pub mod workbuddy_accounts;
+pub mod zcode_accounts;

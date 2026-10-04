@@ -59,6 +59,10 @@ use vibe_trading::{apply_vibe_trading, read_vibe_trading};
 use workbuddy::{apply_workbuddy, read_workbuddy};
 use zcode::{apply_zcode, read_zcode, restore_zcode_to_official};
 
+pub(crate) fn restore_zcode_account_config(dir: &std::path::Path) -> ApplyResult {
+    zcode::restore_zcode_to_official_at(dir)
+}
+
 /// Model info to apply to a tool
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
