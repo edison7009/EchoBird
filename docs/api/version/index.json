@@ -1,11 +1,11 @@
 {
   "version": "5.8.6",
   "releaseDate": "2026-10-02",
-  "releaseNotes": "本次修复：\n- 修复 Antigravity 账号行显示不下的问题：紧凑显示 Gemini 和 Claude 的额度与重置倒计时，相同时间只显示一次。\n\n同时包含上一版功能：\n- 国内版 WorkBuddy 账号支持一键领取每日奖励，账号列表显示领取状态。\n- WorkBuddy 账号列表分别显示基础积分、加量包和平台奖励余额，并更新国内版套餐等级。\n- ChatGPT 账号列表更新套餐名称、订阅倒计时及多周期额度显示。",
+  "releaseNotes": "- 恢复 ZCode 账号管理，支持 BigModel 和 Z.ai 登录及账号切换，点击服务名称或切换图标即可切换登录服务。\n- 优化 ZCode 套餐、额度及倒计时显示，体验账号不再重复显示订阅倒计时。\n- 恢复 ChatGPT / Codex CLI 的 Web Search 开关和提示，可自行选择是否开启。\n- 统一 Web Search 与 Claude 系列模型开关的上下间距。",
   "releaseNotesI18n": {
-    "zh-cn": "本次修复：\n- 修复 Antigravity 账号行显示不下的问题：紧凑显示 Gemini 和 Claude 的额度与重置倒计时，相同时间只显示一次。\n\n同时包含上一版功能：\n- 国内版 WorkBuddy 账号支持一键领取每日奖励，账号列表显示领取状态。\n- WorkBuddy 账号列表分别显示基础积分、加量包和平台奖励余额，并更新国内版套餐等级。\n- ChatGPT 账号列表更新套餐名称、订阅倒计时及多周期额度显示。",
-    "en": "Fixed in this release:\n- Fix Antigravity account-row overflow with compact Gemini and Claude quota countdowns; show a shared reset time only once.\n\nAlso includes features from the previous release:\n- Claim daily rewards with one click for WorkBuddy China accounts and see the claim status in the account list.\n- Show base credits, add-on credits, and platform reward balances separately for WorkBuddy, with updated China plan names.\n- Update ChatGPT account plan names, subscription countdowns, and multi-window quota display.",
-    "zh-tw": "本次修正：\n- 修正 Antigravity 帳號列顯示不下的問題：精簡顯示 Gemini 和 Claude 的額度與重置倒數計時，相同時間只顯示一次。\n\n同時包含上一版功能：\n- 中國版 WorkBuddy 帳號支援一鍵領取每日獎勵，帳號列表顯示領取狀態。\n- WorkBuddy 帳號列表分別顯示基礎積分、加量包和平台獎勵餘額，並更新中國版方案等級。\n- ChatGPT 帳號列表更新方案名稱、訂閱倒數計時及多週期額度顯示。",
-    "ja": "今回の修正：\n- Antigravity のアカウント行がはみ出す問題を修正。Gemini と Claude の利用枠とリセットまでの時間をコンパクトに表示し、共通の時刻は一度だけ表示します。\n\n前のリリースの機能も含まれます：\n- 中国版 WorkBuddy アカウントで毎日の特典をワンクリックで受け取り、アカウント一覧で受け取り状態を確認できます。\n- WorkBuddy の基本クレジット、追加パック、プラットフォーム特典の残高を個別に表示し、中国版プラン名を更新しました。\n- ChatGPT のプラン名、サブスクリプションの残り時間、複数期間の利用枠表示を更新しました。"
+    "zh-cn": "- 恢复 ZCode 账号管理，支持 BigModel 和 Z.ai 登录及账号切换，点击服务名称或切换图标即可切换登录服务。\n- 优化 ZCode 套餐、额度及倒计时显示，体验账号不再重复显示订阅倒计时。\n- 恢复 ChatGPT / Codex CLI 的 Web Search 开关和提示，可自行选择是否开启。\n- 统一 Web Search 与 Claude 系列模型开关的上下间距。",
+    "en": "- Restore ZCode account management with BigModel and Z.ai login and account switching. Click the service name or switch icon to choose the login service.\n- Improve ZCode plan, quota, and countdown display; trial accounts no longer show a duplicate subscription countdown.\n- Restore the Web Search switch and help text for ChatGPT / Codex CLI so users can choose whether to enable it.\n- Make vertical spacing consistent around Web Search and Claude model switches.",
+    "zh-tw": "- 恢復 ZCode 帳號管理，支援 BigModel 和 Z.ai 登入及帳號切換，點擊服務名稱或切換圖示即可切換登入服務。\n- 改善 ZCode 方案、額度及倒數計時顯示，體驗帳號不再重複顯示訂閱倒數計時。\n- 恢復 ChatGPT / Codex CLI 的 Web Search 開關和提示，可自行選擇是否開啟。\n- 統一 Web Search 與 Claude 系列模型開關的上下間距。",
+    "ja": "- ZCode のアカウント管理を復元し、BigModel と Z.ai のログインとアカウント切り替えに対応しました。サービス名または切り替えアイコンをクリックしてログイン先を選べます。\n- ZCode のプラン、利用枠、残り時間の表示を改善し、体験アカウントで重複していた契約残り時間の表示をなくしました。\n- ChatGPT / Codex CLI の Web Search スイッチと説明を復元し、有効・無効を選べるようにしました。\n- Web Search と Claude 系モデルのスイッチ上下の間隔を統一しました。"
   }
 }
