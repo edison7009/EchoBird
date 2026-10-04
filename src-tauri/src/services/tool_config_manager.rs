@@ -85,6 +85,9 @@ pub struct ModelInfo {
     /// Anthropic-compatible relay instead of EchoBird's model-id router.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub relay_mode: Option<bool>,
+    /// Codex CLI / ChatGPT desktop. None keeps the provider default.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub web_search: Option<bool>,
     /// Claude Code relay-only. When `Some(true)` AND `relay_mode` is on,
     /// append `[1m]` to the 1M-capable env vars (`ANTHROPIC_MODEL` /
     /// `ANTHROPIC_DEFAULT_SONNET_MODEL` / `ANTHROPIC_DEFAULT_OPUS_MODEL` / `ANTHROPIC_DEFAULT_FABLE_MODEL`)

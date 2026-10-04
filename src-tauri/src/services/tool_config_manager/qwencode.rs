@@ -145,6 +145,7 @@ pub(super) fn read_qwen_code() -> Option<ModelInfo> {
         protocol: Some(selected_type.to_string()),
         display_model: None,
         relay_mode: None,
+        web_search: None,
         one_m_context: None,
     })
 }

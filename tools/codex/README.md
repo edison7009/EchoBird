@@ -7,11 +7,15 @@ This directory holds the Codex CLI and ChatGPT desktop integration assets:
 
 ## How it works
 
-When a user selects a model, EchoBird writes the provider's real base URL,
+When a user applies a model, EchoBird writes the provider's real base URL,
 API key, and model ID to `~/.codex/config.toml` and `~/.codex/auth.json`.
 Codex CLI and ChatGPT then call the provider's Responses endpoint directly.
-`wire_api = "responses"` and `web_search = "live"` are always enabled; there
-are no Responses or Web Search switches in App Manager.
+`wire_api = "responses"` stays enabled. App Manager's Web Search switch defaults
+to on and remembers a shared preference for both clients: on writes
+`web_search = "live"`, off writes `web_search = "disabled"`. Flipping it applies
+the setting to the selected API model immediately; subsequent model applies
+keep that choice. Without a selected API model, it only saves the preference.
+Navigating between tools or pages does not apply configuration.
 
 Providers used with this integration must implement the Responses API. The
 former local Responses-to-Chat translation proxy has been removed.

@@ -109,6 +109,7 @@ pub(super) fn read_vibe_trading() -> Option<ModelInfo> {
         protocol: None,
         display_model: None,
         relay_mode: None,
+        web_search: None,
         one_m_context: None,
     })
 }

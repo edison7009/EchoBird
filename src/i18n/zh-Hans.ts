@@ -294,6 +294,9 @@ const zhHans: Partial<Translations> = {
   'aiDesktop.emptyDesktop': '暂无已安装应用，可切换到“未安装”添加应用。',
   'aiDesktop.emptyInstall': '所有应用均已安装。',
   'agent.codexRelayLabel': 'API Router',
+  'agent.codexWebSearchLabel': 'Web Search',
+  'agent.codexWebSearchHint':
+    '部分第三方模型 web_search 需要二次开通或另外计费（仔细阅读你购买模型的官方文档，确认是否支持及如何开通 web_search 能力）',
   'agent.codexRelayHint':
     '由 API 中转站或 API Router 提供的数据转发方案，第三方模型开启则全量接入，但可能会被 Claude 判定为“外乡人”。',
   'agent.claude1mHint':

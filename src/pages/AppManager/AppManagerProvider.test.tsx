@@ -39,6 +39,8 @@ vi.mock('../../api/tauri', () => ({
   startTool: vi.fn().mockResolvedValue({ success: true }),
   listCodexAccounts: vi.fn(),
   cancelCodexLogin: vi.fn(),
+  startCodexLogin: vi.fn(),
+  refreshCodexAccountQuota: vi.fn(),
   getModels: vi.fn().mockResolvedValue([]),
   getInstallIndex: vi.fn().mockResolvedValue('{"ids":[]}'),
   listGrokBotAccounts: vi.fn().mockRejectedValue(new Error('accountError.read')),
@@ -76,6 +78,188 @@ vi.mock('../../api/tauri', () => ({
   switchManusAccount: vi.fn(),
   refreshManusAccount: vi.fn(),
 }));
+
+describe.each(['codex', 'chatgptdesktop'])('%s Web Search preference', (tool) => {
+  let renderer: ReactTestRenderer;
+  let context: ReturnType<typeof useAppManager>;
+  let storage: Map<string, string>;
+  function Harness() {
+    const state = useAppManager();
+    useLayoutEffect(() => {
+      context = state;
+    });
+    return null;
+  }
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.useFakeTimers();
+    storage = new Map();
+    vi.stubGlobal('localStorage', {
+      getItem: (key: string) => storage.get(key) ?? null,
+      setItem: (key: string, value: string) => storage.set(key, value),
+    });
+    useNavigationStore.getState().setActivePage('apps');
+    useToolsStore.getState().setDetectedTools(
+      ['codex', 'chatgptdesktop'].map((id) => ({
+        id,
+        name: id,
+        category: 'Desktop',
+        installed: true,
+        apiProtocol: ['openai'],
+      }))
+    );
+    vi.mocked(api.listCodexAccounts).mockResolvedValue([]);
+    vi.mocked(api.getModels).mockResolvedValue([
+      {
+        internalId: 'fixture',
+        name: 'Fixture',
+        modelId: 'fixture-model',
+        baseUrl: 'https://provider.example/v1',
+        apiKey: 'fixture',
+      },
+      ...['deepseek.com', 'xiaomimimo.com'].map((domain) => ({
+        internalId: domain,
+        name: domain,
+        modelId: 'fixture-model',
+        baseUrl: `https://api.${domain}/v1`,
+        apiKey: 'fixture',
+      })),
+    ]);
+    vi.mocked(api.applyModelToTool).mockResolvedValue({ success: true, message: 'ok' });
+  });
+  afterEach(() => {
+    act(() => renderer?.unmount());
+    useToolsStore.getState().setDetectedTools([]);
+    vi.mocked(api.getModels).mockResolvedValue([]);
+    vi.stubGlobal('localStorage', undefined);
+    vi.useRealTimers();
+  });
+  const mount = async () => {
+    await act(async () => {
+      renderer = create(
+        <AppManagerProvider>
+          <Harness />
+        </AppManagerProvider>
+      );
+    });
+    await act(async () => {
+      context.setSelectedTool(tool);
+    });
+    act(() => {
+      context.handleSelectModel(tool, 'fixture');
+      context.setAgreedConfigPolicy(true);
+      context.setLaunchAfterApply(false);
+    });
+  };
+  it('restores the default-on preference without inferring provider capabilities', async () => {
+    await mount();
+    for (const id of ['fixture', 'deepseek.com', 'xiaomimimo.com']) {
+      act(() => context.handleSelectModel(tool, id));
+      expect(context.codexWebSearch).toBe(true);
+      await act(async () => {
+        await context.handleLaunch();
+        await vi.advanceTimersByTimeAsync(3000);
+      });
+      expect(api.applyModelToTool).toHaveBeenLastCalledWith(
+        tool,
+        expect.objectContaining({ webSearch: true })
+      );
+    }
+  });
+  it('keeps navigation passive and preserves off across repeat apply, tool switches and remounts', async () => {
+    await mount();
+    await act(async () => context.setCodexWebSearch(false));
+    expect(api.applyModelToTool).toHaveBeenCalledExactlyOnceWith(
+      tool,
+      expect.objectContaining({ webSearch: false })
+    );
+    vi.mocked(api.applyModelToTool).mockClear();
+    const other = tool === 'codex' ? 'chatgptdesktop' : 'codex';
+    await act(async () => {
+      context.setSelectedTool(other);
+      context.handleSelectModel(other, 'fixture');
+    });
+    act(() => context.setViewMode('install'));
+    act(() => useNavigationStore.getState().setActivePage('myProjects'));
+    expect(api.applyModelToTool).not.toHaveBeenCalled();
+    expect(api.startTool).not.toHaveBeenCalled();
+    expect(api.startCodexLogin).not.toHaveBeenCalled();
+    expect(api.refreshCodexAccountQuota).not.toHaveBeenCalled();
+    expect(openDialog).not.toHaveBeenCalled();
+    expect(context.applyError).toBeNull();
+    act(() => renderer.unmount());
+    act(() => useNavigationStore.getState().setActivePage('apps'));
+    await mount();
+    expect(context.codexWebSearch).toBe(false);
+    for (let i = 0; i < 2; i++) {
+      await act(async () => {
+        await context.handleLaunch();
+        await vi.advanceTimersByTimeAsync(3000);
+      });
+      expect(api.applyModelToTool).toHaveBeenLastCalledWith(
+        tool,
+        expect.objectContaining({ webSearch: false })
+      );
+    }
+    await act(async () => {
+      context.setSelectedTool(other);
+    });
+    act(() => context.handleSelectModel(other, 'fixture'));
+    await act(async () => context.setCodexWebSearch(true));
+    expect(api.applyModelToTool).toHaveBeenLastCalledWith(
+      other,
+      expect.objectContaining({ webSearch: true })
+    );
+    expect(api.startTool).not.toHaveBeenCalled();
+  });
+  it('shows explicit apply failures without losing the saved choice or launching', async () => {
+    await mount();
+    vi.mocked(api.applyModelToTool).mockResolvedValueOnce({
+      success: false,
+      message: 'Config unavailable',
+    });
+    await act(async () => context.setCodexWebSearch(false));
+    expect(context.applyError).toBe('Config unavailable');
+    expect(context.isLaunching).toBe(false);
+    expect(context.codexWebSearch).toBe(false);
+    expect(storage.get('echobird_codex_web_search')).toBe('false');
+    expect(api.startTool).not.toHaveBeenCalled();
+  });
+  it('blocks overlapping flips while the selected API model is being updated', async () => {
+    await mount();
+    let resolve!: (value: { success: boolean; message: string }) => void;
+    vi.mocked(api.applyModelToTool).mockImplementationOnce(
+      () =>
+        new Promise((r) => {
+          resolve = r;
+        })
+    );
+    act(() => context.setCodexWebSearch(false));
+    expect(context.isLaunching).toBe(true);
+    act(() => context.setCodexWebSearch(true));
+    expect(context.codexWebSearch).toBe(false);
+    expect(api.applyModelToTool).toHaveBeenCalledTimes(1);
+    await act(async () => {
+      resolve({ success: true, message: 'ok' });
+    });
+    expect(context.isLaunching).toBe(false);
+  });
+  it('only saves the preference when an account or uninstalled client is selected', async () => {
+    await mount();
+    act(() => context.setSelectedCodexAccountId('saved-account'));
+    await act(async () => context.setCodexWebSearch(false));
+    expect(api.applyModelToTool).not.toHaveBeenCalled();
+    act(() => context.handleSelectModel(tool, 'fixture'));
+    act(() =>
+      useToolsStore
+        .getState()
+        .setDetectedTools([{ id: tool, name: tool, category: 'Desktop', installed: false }])
+    );
+    await act(async () => context.setCodexWebSearch(true));
+    expect(api.applyModelToTool).not.toHaveBeenCalled();
+    expect(storage.get('echobird_codex_web_search')).toBe('true');
+  });
+});
 
 describe.each(['cline', 'clinedesktop'])('%s API model workflow', (tool) => {
   let renderer: ReactTestRenderer;

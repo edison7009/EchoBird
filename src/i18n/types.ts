@@ -269,6 +269,8 @@ export type TKey =
   | 'agent.installViaMother'
   | 'agent.restore'
   | 'agent.codexRelayLabel'
+  | 'agent.codexWebSearchLabel'
+  | 'agent.codexWebSearchHint'
   | 'agent.codexRelayHint'
   | 'agent.claude1mHint'
   // Tool categories

@@ -81,6 +81,7 @@ fn migrate_legacy_proxy_config_from(codex_dir: &Path, relay_path: &Path) -> io::
         protocol: Some("openai".to_string()),
         display_model: None,
         relay_mode: None,
+        web_search: None,
         one_m_context: None,
     };
     let state_dir = relay_path.parent().unwrap_or_else(|| Path::new(""));

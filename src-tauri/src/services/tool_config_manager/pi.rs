@@ -154,6 +154,7 @@ pub(super) fn read_pi() -> Option<ModelInfo> {
         ),
         display_model: None,
         relay_mode: None,
+        web_search: None,
         one_m_context: None,
     })
 }

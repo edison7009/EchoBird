@@ -314,6 +314,9 @@ const zhHant: Partial<Translations> = {
   'aiDesktop.emptyDesktop': '暫無已安裝應用，可切換到「未安裝」新增應用。',
   'aiDesktop.emptyInstall': '所有應用均已安裝。',
   'agent.codexRelayLabel': 'API Router',
+  'agent.codexWebSearchLabel': 'Web Search',
+  'agent.codexWebSearchHint':
+    '部分第三方模型 web_search 需要另行開通或計費（仔細閱讀你購買模型的官方文件，確認是否支援及如何開通 web_search 能力）',
   'agent.codexRelayHint':
     '由 API 中轉站或 API Router 提供的資料轉發方案，第三方模型開啟則全量接入，但可能會被 Claude 判定為“外鄉人”。',
   'agent.claude1mHint':

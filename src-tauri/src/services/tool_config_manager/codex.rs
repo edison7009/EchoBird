@@ -45,13 +45,14 @@ fn codex_compact_limit_for(context_window: u64) -> u64 {
     context_window * 9 / 10
 }
 
-fn codex_web_search_mode(base_url: &str) -> &'static str {
-    if codex_catalog::url_matches_domain(base_url, "deepseek.com")
-        || codex_catalog::url_matches_domain(base_url, "xiaomimimo.com")
-    {
-        "disabled"
-    } else {
+fn codex_web_search_mode(base_url: &str, enabled: Option<bool>) -> &'static str {
+    if enabled.unwrap_or_else(|| {
+        !codex_catalog::url_matches_domain(base_url, "deepseek.com")
+            && !codex_catalog::url_matches_domain(base_url, "xiaomimimo.com")
+    }) {
         "live"
+    } else {
+        "disabled"
     }
 }
 
@@ -83,6 +84,7 @@ fn write_codex_canonical_fields(
     codex_base_url: &str,
     model: &str,
     context_window: u64,
+    web_search: Option<bool>,
 ) -> String {
     // Preserve the input's trailing-newline convention. `toml_write_*`
     // helpers go through `content.lines().collect().join("\n")` which
@@ -119,7 +121,11 @@ fn write_codex_canonical_fields(
         "model_auto_compact_token_limit",
         &codex_compact_limit_for(context_window).to_string(),
     );
-    c = toml_write_top(&c, "web_search", codex_web_search_mode(codex_base_url));
+    c = toml_write_top(
+        &c,
+        "web_search",
+        codex_web_search_mode(codex_base_url, web_search),
+    );
 
     // MiMo's official Codex configuration requires this top-level capability
     // flag for model_reasoning_effort to take effect. Remove the pair first so
@@ -260,8 +266,13 @@ pub(crate) fn apply_codex_at(
     // runtime state (`[projects.*]` trust, `[tui.*]` NUX, `[plugins.*]`)
     // and any unrelated user-edited top-level keys stay untouched.
     let existing = fs::read_to_string(&config_path).unwrap_or_default();
-    let mut new_content =
-        write_codex_canonical_fields(&existing, &base_url, model_id, context_window);
+    let mut new_content = write_codex_canonical_fields(
+        &existing,
+        &base_url,
+        model_id,
+        context_window,
+        model_info.web_search,
+    );
 
     // Model catalog — direct third-party providers (DeepSeek / MiniMax / MiMo)
     // need `model_catalog_json` so Codex knows the real model's context window,
@@ -412,6 +423,7 @@ pub(super) fn read_codex() -> Option<ModelInfo> {
         protocol: Some("openai".to_string()),
         display_model: None,
         relay_mode: None,
+        web_search: None,
         one_m_context: None,
     })
 }
@@ -516,6 +528,73 @@ mod tests {
     use super::*;
 
     #[test]
+    fn web_search_choice_survives_repeated_apply_for_both_clients() {
+        let fixture =
+            std::env::temp_dir().join(format!("codex-web-search-{}", uuid::Uuid::new_v4()));
+        let codex_dir = fixture.join("codex");
+        let state_dir = fixture.join("state");
+        fs::create_dir_all(&codex_dir).unwrap();
+        fs::write(
+            codex_dir.join("config.toml"),
+            "# keep\n[projects.fixture]\ntrust_level = \"trusted\"\n",
+        )
+        .unwrap();
+        for tool in ["codex", "chatgptdesktop"] {
+            for enabled in [false, false, true, false] {
+                let info: ModelInfo = serde_json::from_value(serde_json::json!({
+                    "model": "fixture-model",
+                    "baseUrl": "https://provider.example/v1",
+                    "apiKey": "fixture-key",
+                    "webSearch": enabled
+                }))
+                .unwrap();
+                let result = apply_codex_at(tool, &info, &codex_dir, &state_dir);
+                assert!(result.success, "{}", result.message);
+                let content = fs::read_to_string(codex_dir.join("config.toml")).unwrap();
+                assert_eq!(
+                    toml_read_top(&content, "web_search"),
+                    if enabled { "live" } else { "disabled" }
+                );
+                assert_eq!(content.matches("web_search =").count(), 1);
+                assert!(content.contains("# keep"));
+                assert_eq!(
+                    toml_read_table_value(&content, "projects.fixture", "trust_level"),
+                    "trusted"
+                );
+                assert_eq!(
+                    toml_read_table_value(&content, "model_providers.OpenAI", "wire_api"),
+                    "responses"
+                );
+                assert_eq!(
+                    toml_read_table_value(&content, "model_providers.OpenAI", "base_url"),
+                    "https://provider.example/v1"
+                );
+            }
+        }
+        fs::remove_dir_all(fixture).unwrap();
+    }
+
+    #[test]
+    fn explicit_web_search_choice_overrides_provider_defaults() {
+        for base_url in [
+            "https://api.deepseek.com",
+            "https://api.xiaomimimo.com/v1",
+            "https://provider.example/v1",
+        ] {
+            for (enabled, expected) in [(true, "live"), (false, "disabled")] {
+                let out = write_codex_canonical_fields(
+                    "",
+                    base_url,
+                    "fixture",
+                    DEFAULT_CODEX_CONTEXT_WINDOW,
+                    Some(enabled),
+                );
+                assert_eq!(toml_read_top(&out, "web_search"), expected);
+            }
+        }
+    }
+
+    #[test]
     fn write_codex_canonical_fields_evicts_stale_review_model_on_direct_connect() {
         // Regression: an older EchoBird version wrote `review_model =
         // "gpt-5.5"`. Our write helpers never delete, so it survived every
@@ -534,6 +613,7 @@ mod tests {
             "https://ark.cn-beijing.volces.com/api/coding/v1",
             "glm-5.2",
             DEFAULT_CODEX_CONTEXT_WINDOW,
+            None,
         );
         assert!(
             !out.contains("review_model"),
@@ -555,6 +635,7 @@ mod tests {
             "https://provider.example/v1",
             "provider-model",
             DEFAULT_CODEX_CONTEXT_WINDOW,
+            None,
         );
         assert!(!out.contains("review_model"));
     }
@@ -573,6 +654,7 @@ mod tests {
             "https://provider.example/v1",
             "provider-model",
             DEFAULT_CODEX_CONTEXT_WINDOW,
+            None,
         );
         assert!(
             !out.contains("model_catalog_json"),
@@ -631,6 +713,7 @@ mod tests {
             "https://provider.example/v1",
             "provider-model",
             DEFAULT_CODEX_CONTEXT_WINDOW,
+            None,
         );
         assert!(
             !out.contains("disable_response_storage"),
@@ -648,6 +731,7 @@ mod tests {
             "http://127.0.0.1:53682/v1",
             "gpt-5.5",
             204_800,
+            None,
         );
         assert!(out.contains("model_context_window = 204800"), "got: {out}");
         assert!(
@@ -677,6 +761,7 @@ mod tests {
                 base_url,
                 "provider-model",
                 DEFAULT_CODEX_CONTEXT_WINDOW,
+                None,
             );
             assert!(out.contains("web_search = \"disabled\""), "got: {out}");
         }
@@ -689,6 +774,7 @@ mod tests {
             "https://api.xiaomimimo.com/v1",
             "mimo-v2.5-pro",
             DEFAULT_CODEX_CONTEXT_WINDOW,
+            None,
         );
         assert!(mimo.contains("model_supports_reasoning_summaries = true"));
         assert!(mimo.contains("model_reasoning_summary = \"none\""));
@@ -698,6 +784,7 @@ mod tests {
             "https://provider.example/v1",
             "provider-model",
             DEFAULT_CODEX_CONTEXT_WINDOW,
+            None,
         );
         assert!(!other.contains("model_supports_reasoning_summaries"));
         assert!(!other.contains("model_reasoning_summary"));

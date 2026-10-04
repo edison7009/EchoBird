@@ -150,6 +150,7 @@ pub(super) fn read_opencode() -> Option<ModelInfo> {
         protocol: None,
         display_model: None,
         relay_mode: None,
+        web_search: None,
         one_m_context: None,
     })
 }
@@ -182,6 +183,7 @@ pub(super) fn read_opencode_native_config(path: &Path) -> Option<ModelInfo> {
         protocol: Some("openai".to_string()),
         display_model: None,
         relay_mode: None,
+        web_search: None,
         one_m_context: None,
     })
 }

@@ -118,6 +118,8 @@ export interface ApplyModelInput {
   /** Claude Desktop / Claude Code only. Connect directly to the selected
    * Anthropic-compatible relay instead of EchoBird's model-id router. */
   relayMode?: boolean;
+  /** Codex CLI / ChatGPT desktop: enable live web search on model apply. */
+  webSearch?: boolean;
   /**
    * Claude Code relay-only. When true (and `relayMode` is on), append `[1m]`
    * to the model id written to the 1M-capable env vars (`ANTHROPIC_MODEL` /

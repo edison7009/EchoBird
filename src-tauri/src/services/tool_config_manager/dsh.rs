@@ -319,6 +319,7 @@ fn read_at(home: &Path) -> Option<ModelInfo> {
         protocol: Some(protocol.to_string()),
         display_model: None,
         relay_mode: None,
+        web_search: None,
         one_m_context: None,
     })
 }

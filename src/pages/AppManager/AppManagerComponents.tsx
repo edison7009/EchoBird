@@ -761,7 +761,7 @@ export const CodexAccountSection: React.FC<{ showDivider?: boolean }> = ({
   } = useAppManager();
 
   return (
-    <section className={showDivider ? 'mb-3' : undefined}>
+    <section>
       <AccountSectionButton
         iconSrc="/icons/tools/codex.svg"
         busy={isAddingCodexAccount}
@@ -873,6 +873,9 @@ export const AppManagerPanel: React.FC = () => {
     setClaudeDesktop1mMode,
     claude1mMode,
     setClaude1mMode,
+    codexWebSearch,
+    setCodexWebSearch,
+    isLaunching,
   } = useAppManager();
 
   // API Router ("relay-mode") toggle: shown for Claude Desktop AND Claude Code
@@ -894,8 +897,9 @@ export const AppManagerPanel: React.FC = () => {
       (model.internalId !== 'smart-router' || smartRouterEnabled)
   );
 
-  const routingControls = (showRelayToggle || show1mToggle) && (
-    <div className="px-3 h-9 flex items-center gap-2">
+  const showWebSearchToggle = showCodexAccounts;
+  const routingControls = (showRelayToggle || show1mToggle || showWebSearchToggle) && (
+    <div className="px-3 flex items-center gap-2">
       {showRelayToggle && (
         <RoutingToggle
           key="relay"
@@ -912,6 +916,16 @@ export const AppManagerPanel: React.FC = () => {
           hint={t('agent.claude1mHint')}
           checked={isClaudeDesktopApp ? claudeDesktop1mMode : claude1mMode}
           onChange={isClaudeDesktopApp ? setClaudeDesktop1mMode : setClaude1mMode}
+        />
+      )}
+      {showWebSearchToggle && (
+        <RoutingToggle
+          key="web-search"
+          label={t('agent.codexWebSearchLabel')}
+          hint={t('agent.codexWebSearchHint')}
+          checked={codexWebSearch}
+          disabled={isLaunching}
+          onChange={setCodexWebSearch}
         />
       )}
     </div>
@@ -932,8 +946,6 @@ export const AppManagerPanel: React.FC = () => {
           </span>
         )}
       </div>
-
-      {!isClaudeCodeApp && routingControls}
 
       <div className="flex-1 p-2 overflow-y-auto">
         {selectedToolData ? (
@@ -984,7 +996,9 @@ export const AppManagerPanel: React.FC = () => {
             </div>
           ) : (
             <div className="flex h-full flex-col gap-2">
-              {showCodexAccounts && <CodexAccountSection showDivider={hasVisibleModels} />}
+              {showCodexAccounts && (
+                <CodexAccountSection showDivider={hasVisibleModels || showWebSearchToggle} />
+              )}
               {selectedTool === 'dsh' && <DeepSeekAccountSection showDivider={hasVisibleModels} />}
               {selectedTool === 'grok' && <GrokAccountSection showDivider={hasVisibleModels} />}
               {selectedTool === 'zcode' && <ZCodeAccountSection showDivider={hasVisibleModels} />}
@@ -992,13 +1006,11 @@ export const AppManagerPanel: React.FC = () => {
                 <WorkBuddyAccountSection showDivider={hasVisibleModels} />
               )}
               {isClaudeCodeApp && (
-                <>
-                  <ClaudeCodeAccountSection
-                    showDivider={hasVisibleModels || showRelayToggle || show1mToggle}
-                  />
-                  {routingControls}
-                </>
+                <ClaudeCodeAccountSection
+                  showDivider={hasVisibleModels || showRelayToggle || show1mToggle}
+                />
               )}
+              {routingControls}
               <div className="flex-1">
                 <ModelListSection
                   smartRouterEnabled={smartRouterEnabled}

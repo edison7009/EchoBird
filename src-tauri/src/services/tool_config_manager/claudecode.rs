@@ -316,6 +316,7 @@ pub(super) fn read_claudecode() -> Option<ModelInfo> {
         protocol: Some("anthropic".to_string()),
         display_model: None,
         relay_mode: None,
+        web_search: None,
         one_m_context: None,
     })
 }
@@ -445,6 +446,7 @@ mod tests {
             protocol: Some("anthropic".to_string()),
             display_model: None,
             relay_mode,
+            web_search: None,
             one_m_context: None,
         }
     }

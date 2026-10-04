@@ -427,6 +427,57 @@ describe('PageAwareHint', () => {
   });
 });
 
+describe.each(['codex', 'chatgptdesktop'])('%s Web Search control', (client) => {
+  it.each([
+    { installed: true, account: null, pending: false, hasModels: true },
+    { installed: true, account: null, pending: true, hasModels: true },
+    { installed: true, account: 'account', pending: false, hasModels: false },
+    { installed: false, account: null, pending: false, hasModels: false },
+  ])(
+    'restores visibility for the selected tool and disables pending changes: %j',
+    async ({ installed, account, pending, hasModels }) => {
+      const { AppManagerPanel } = await import('./AppManagerComponents');
+      const { ModelNexusContext } = await import('../ModelNexus/context');
+      const { ConfirmDialogProvider } = await import('../../components/ConfirmDialog');
+      const context = {
+        selectedTool: client,
+        selectedToolData: { ...tool, id: client, installed },
+        userModels: hasModels ? models : [],
+        toolModelConfig: {},
+        codexAccounts: [],
+        selectedCodexAccountId: account,
+        refreshingCodexAccountIds: new Set(),
+        codexWebSearch: false,
+        isLaunching: pending,
+      } as unknown as AppManagerContextType;
+      const markup = renderToStaticMarkup(
+        <ConfirmDialogProvider>
+          <ModelNexusContext.Provider value={{} as React.ContextType<typeof ModelNexusContext>}>
+            <AppManagerContext.Provider value={context}>
+              <AppManagerPanel />
+            </AppManagerContext.Provider>
+          </ModelNexusContext.Provider>
+        </ConfirmDialogProvider>
+      );
+      const toggle = markup.match(/<button[^>]*role="switch"[^>]*>/)?.[0];
+      if (installed) {
+        expect(toggle).toContain('aria-label="agent.codexWebSearchLabel"');
+        expect(toggle).toContain('aria-checked="false"');
+        expect(toggle?.includes('disabled=""')).toBe(pending);
+        expect(markup).toContain('aria-label="agent.codexWebSearchHint"');
+        expect(markup.indexOf('agent.modelSwitch')).toBeLessThan(markup.indexOf('role="switch"'));
+        if (hasModels)
+          expect(markup.indexOf('role="switch"')).toBeLessThan(markup.indexOf('Cloud Model'));
+      } else {
+        expect(toggle).toBeUndefined();
+      }
+      expect(markup).not.toContain('agent.codexRelayLabel');
+      expect(markup).not.toContain('role="tooltip"');
+      expect(markup).not.toContain('cursor-help');
+    }
+  );
+});
+
 describe('Claude Desktop 1M control', () => {
   it.each([false, true])('shows the independent switch with API Router=%s', async (relay) => {
     const { AppManagerPanel } = await import('./AppManagerComponents');
@@ -434,7 +485,8 @@ describe('Claude Desktop 1M control', () => {
     const { ConfirmDialogProvider } = await import('../../components/ConfirmDialog');
     const context = {
       selectedTool: 'claudedesktop',
-      selectedToolData: null,
+      selectedToolData: { ...tool, id: 'claudedesktop' },
+      toolModelConfig: {},
       userModels: [],
       claudeDesktopRelayMode: relay,
       claudeDesktop1mMode: true,

@@ -329,6 +329,9 @@ const ja: Partial<Translations> = {
     'インストール済みのアプリはありません。「未インストール」から追加できます。',
   'aiDesktop.emptyInstall': 'すべてのアプリがインストールされています。',
   'agent.codexRelayLabel': 'API Router',
+  'agent.codexWebSearchLabel': 'Web Search',
+  'agent.codexWebSearchHint':
+    '一部のサードパーティモデルでは web_search の個別の有効化または追加課金が必要です（購入したモデルの公式ドキュメントをよく読み、web_search への対応可否と有効化方法を確認してください）',
   'agent.codexRelayHint':
     'API 中継または API Router が提供するデータ転送方式。サードパーティモデルで有効にするとフル接続になりますが、Claude に「よそ者」と判定される場合があります。',
   'agent.claude1mHint':

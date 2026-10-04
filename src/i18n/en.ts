@@ -321,6 +321,9 @@ const en: Translations = {
     'Delete the saved snapshot for {email}? This does not sign out the current app.',
   'agent.configWarning': 'Configuration warning',
   'agent.codexRelayLabel': 'API Router',
+  'agent.codexWebSearchLabel': 'Web Search',
+  'agent.codexWebSearchHint':
+    'Some third-party models require web_search to be separately enabled or billed. (Carefully read the official documentation of the model you purchased to confirm whether web_search is supported and how to enable it.)',
   'agent.codexRelayHint':
     'A data-forwarding scheme provided by an API relay or API Router. Enabling it for a third-party model gives direct, full integration, but Claude may treat it as an "outsider".',
   'agent.claude1mHint':

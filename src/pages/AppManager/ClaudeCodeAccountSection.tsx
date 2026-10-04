@@ -10,7 +10,7 @@ export const ClaudeCodeAccountSection: React.FC<{ showDivider?: boolean }> = ({
   const { accounts, selectedId, select, busy, remainingSeconds, refreshing, add, refresh, remove } =
     claudeCodeAccounts;
   return (
-    <section className={showDivider ? 'mb-3' : undefined}>
+    <section>
       <AccountSectionButton
         iconSrc="/icons/tools/claudecode.svg"
         colorClassName="claude-account-pill"

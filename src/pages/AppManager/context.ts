@@ -53,6 +53,8 @@ export interface AppManagerContextType {
   isScanning: boolean;
   scanTools: () => Promise<void>;
   userModels: ModelConfig[];
+  codexWebSearch: boolean;
+  setCodexWebSearch: (v: boolean) => void;
   /** Claude Desktop routing toggle. Kept separate from Codex because the
    *  two apps target different protocols / different relay-station compat. */
   claudeDesktopRelayMode: boolean;

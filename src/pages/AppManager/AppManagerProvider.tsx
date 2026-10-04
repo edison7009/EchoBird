@@ -222,6 +222,9 @@ export const AppManagerProvider: React.FC<AppManagerProviderProps> = ({ children
   const [claudeDesktopRelayMode, setClaudeDesktopRelayModeRaw] = useState<boolean>(() =>
     readBool('echobird_claudedesktop_relay_mode', false)
   );
+  const [codexWebSearch, setCodexWebSearchRaw] = useState<boolean>(() =>
+    readBool('echobird_codex_web_search', true)
+  );
   // Claude Code routing toggle. When ON, apply_claudecode writes the real
   // upstream URL + key + model id straight into ~/.claude/settings.json so
   // Claude Code talks to the relay station directly. Default OFF: settings.json
@@ -369,7 +372,8 @@ export const AppManagerProvider: React.FC<AppManagerProviderProps> = ({ children
     toolId: string,
     internalId: string,
     relayOverride?: boolean,
-    oneMOverride?: boolean
+    oneMOverride?: boolean,
+    webSearchOverride?: boolean
   ): Promise<true | string | false> => {
     const model = userModels.find((m) => m.internalId === internalId);
     if (!model) {
@@ -430,6 +434,9 @@ export const AppManagerProvider: React.FC<AppManagerProviderProps> = ({ children
         protocol: selectedProtocol,
         ...(isRelayCapableApp ? { relayMode: effectiveRelay } : {}),
         ...(isClaudeApp ? { oneMContext: effective1m } : {}),
+        ...(['codex', 'chatgptdesktop'].includes(toolId)
+          ? { webSearch: webSearchOverride ?? codexWebSearch }
+          : {}),
       });
 
       if (result?.success) {
@@ -458,6 +465,25 @@ export const AppManagerProvider: React.FC<AppManagerProviderProps> = ({ children
       console.error('[AppManager] Error applying model to tool:', error);
       return false;
     }
+  };
+
+  // Restore the shared Web Search preference and apply it on an explicit flip.
+  const setCodexWebSearch = (value: boolean) => {
+    if (isLaunching) return;
+    setCodexWebSearchRaw(value);
+    writeBool('echobird_codex_web_search', value);
+    if (!isCodexTool || !selectedTool || !selectedToolData?.installed || selectedCodexAccountId)
+      return;
+    const modelId = toolModelConfig[selectedTool];
+    if (!modelId || isOfficialModelSentinel(modelId)) return;
+    setIsLaunching(true);
+    setApplyError(null);
+    void applyModelConfig(selectedTool, modelId, undefined, undefined, value)
+      .then((result) => {
+        if (result !== true)
+          setApplyError(typeof result === 'string' ? result : t('key.destroyed'));
+      })
+      .finally(() => setIsLaunching(false));
   };
 
   // Claude Desktop relay-mode setter. Re-applies on toggle flip so the
@@ -870,6 +896,8 @@ export const AppManagerProvider: React.FC<AppManagerProviderProps> = ({ children
         isScanning,
         scanTools,
         userModels,
+        codexWebSearch,
+        setCodexWebSearch,
         claudeDesktopRelayMode,
         setClaudeDesktopRelayMode,
         claudeCodeRelayMode,
