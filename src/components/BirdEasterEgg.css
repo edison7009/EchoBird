@@ -45,3 +45,13 @@
   user-select: none;
   transition: opacity 220ms ease;
 }
+
+.bird-easter-egg-standing {
+  position: absolute;
+  inset: 0;
+  transition: opacity 220ms ease;
+}
+
+.bird-easter-egg-standing img {
+  transition: none;
+}

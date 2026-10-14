@@ -57,13 +57,16 @@ export function BirdEasterEgg({ sidebarRef, perchRef }: BirdEasterEggProps) {
   const logoRef = useRef<HTMLButtonElement>(null);
   const [anchors, setAnchors] = useState<Anchors | null>(null);
   const [phase, setPhase] = useState<Phase>('idle');
-  const [action, setAction] = useState<number | null>(null);
+  const [action, setAction] = useState<{ index: number; ready: boolean } | null>(null);
   const [assetsAvailable, setAssetsAvailable] = useState(true);
   const allowed = enabled && visible && assetsAvailable && anchors !== null;
   const [previousAllowed, setPreviousAllowed] = useState(allowed);
   if (allowed !== previousAllowed) {
     setPreviousAllowed(allowed);
-    if (!allowed) setPhase('idle');
+    if (!allowed) {
+      setPhase('idle');
+      setAction(null);
+    }
   }
   const active = allowed && phase !== 'idle';
 
@@ -109,7 +112,8 @@ export function BirdEasterEgg({ sidebarRef, perchRef }: BirdEasterEggProps) {
     }
     const [duration, next] = steps[phase];
     const timer = setTimeout(() => {
-      if (next === 'landing') setAction(null);
+      if (next === 'landing' || next === 'inbound') setAction(null);
+      if (next === 'takeoff') setAction((current) => (current?.ready ? current : null));
       setPhase(next);
     }, duration);
     return () => clearTimeout(timer);
@@ -122,7 +126,7 @@ export function BirdEasterEgg({ sidebarRef, perchRef }: BirdEasterEggProps) {
     const play = () => {
       if (!remaining.length) remaining = [0, 1, 2];
       const next = remaining.splice(Math.floor(Math.random() * remaining.length), 1)[0];
-      setAction(next);
+      setAction({ index: next, ready: false });
       timer = setTimeout(rest, standingClips[next][1]);
     };
     const rest = () => {
@@ -146,11 +150,21 @@ export function BirdEasterEgg({ sidebarRef, perchRef }: BirdEasterEggProps) {
   const standing = phase === 'landing' || phase === 'standing';
   const moving = phase === 'outbound' || phase === 'inbound';
   const position = anchors && (atPerch ? anchors.perch : anchors.home);
-  const clip =
-    (phase === 'standing' || phase === 'takeoff') && action !== null
-      ? standingClips[action][0]
-      : 'idle';
   const assetError = () => setAssetsAvailable(false);
+  const actionLoaded = (image: HTMLImageElement) => {
+    const requested = action;
+    if (!requested || requested.ready) return;
+    void image
+      .decode()
+      .then(() => {
+        if (image.isConnected) {
+          setAction((current) => (current === requested ? { ...current, ready: true } : current));
+        }
+      })
+      .catch(() => {
+        if (image.isConnected) assetError();
+      });
+  };
 
   return (
     <>
@@ -203,7 +217,10 @@ export function BirdEasterEgg({ sidebarRef, perchRef }: BirdEasterEggProps) {
                   aria-label={t('app.name')}
                   disabled={phase !== 'standing'}
                   tabIndex={phase === 'standing' ? 0 : -1}
-                  onClick={() => setPhase('takeoff')}
+                  onClick={() => {
+                    setAction((current) => (current?.ready ? current : null));
+                    setPhase('takeoff');
+                  }}
                   style={{
                     width: atPerch ? 64 : 46,
                     height: atPerch ? 64 : 46,
@@ -222,14 +239,26 @@ export function BirdEasterEgg({ sidebarRef, perchRef }: BirdEasterEggProps) {
                       transform: returning ? 'scaleX(-1)' : undefined,
                     }}
                   />
-                  <img
-                    key={clip}
-                    src={`${assetRoot}standing-${clip}.${clip === 'idle' ? 'png' : 'webp'}`}
-                    alt=""
-                    draggable={false}
-                    onError={assetError}
-                    style={{ opacity: standing ? 1 : 0 }}
-                  />
+                  <div className="bird-easter-egg-standing" style={{ opacity: standing ? 1 : 0 }}>
+                    <img
+                      src={`${assetRoot}standing-idle.png`}
+                      alt=""
+                      draggable={false}
+                      onError={assetError}
+                      style={{ opacity: action?.ready ? 0 : 1 }}
+                    />
+                    {action && (
+                      <img
+                        key={action.index}
+                        src={`${assetRoot}standing-${standingClips[action.index][0]}.webp`}
+                        alt=""
+                        draggable={false}
+                        onError={assetError}
+                        onLoad={(event) => actionLoaded(event.currentTarget)}
+                        style={{ opacity: action.ready ? 1 : 0 }}
+                      />
+                    )}
+                  </div>
                 </button>
               </div>
             </div>

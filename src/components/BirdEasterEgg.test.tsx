@@ -70,6 +70,31 @@ function logo() {
 function bird() {
   return view.root.findByProps({ className: 'bird-easter-egg-bird' });
 }
+function idleFrame() {
+  return view.root.findByProps({ src: '/brand/animations/echobird-standing-idle.png' });
+}
+function actionFrame() {
+  return bird().findAllByType('img')[2];
+}
+function standingLayer() {
+  return view.root.findByProps({ className: 'bird-easter-egg-standing' });
+}
+function deferredDecode() {
+  let resolve!: () => void;
+  let reject!: (error: Error) => void;
+  const promise = new Promise<void>((yes, no) => {
+    resolve = yes;
+    reject = no;
+  });
+  return { resolve, reject, image: { isConnected: true, decode: vi.fn(() => promise) } };
+}
+async function readyAction() {
+  const frame = actionFrame();
+  await act(async () => {
+    frame.props.onLoad({ currentTarget: { isConnected: true, decode: () => Promise.resolve() } });
+  });
+  return frame;
+}
 function advance(ms: number) {
   act(() => {
     vi.advanceTimersByTime(ms);
@@ -108,7 +133,7 @@ describe('BirdEasterEgg', () => {
     }
   );
 
-  it('fades the logo, hovers before moving, stands for 30 seconds, and restores the logo after returning', () => {
+  it('fades the logo, hovers before moving, stands for 30 seconds, and restores the logo after returning', async () => {
     mount();
     launch();
     expect(phase()).toBe('logo-out');
@@ -135,11 +160,12 @@ describe('BirdEasterEgg', () => {
     expect(bird().props.disabled).toBe(false);
     advance(29999);
     expect(phase()).toBe('standing');
-    const standingFrame = bird().findAllByType('img')[1];
+    const standingFrame = await readyAction();
     advance(1);
     expect(phase()).toBe('takeoff');
-    expect(bird().findAllByType('img')[1]).toBe(standingFrame);
-    expect(standingFrame.props.style.opacity).toBe(0);
+    expect(actionFrame()).toBe(standingFrame);
+    expect(standingFrame.props.style.opacity).toBe(1);
+    expect(standingLayer().props.style.opacity).toBe(0);
     advance(220);
     expect(phase()).toBe('inbound');
     expect(view.root.findByProps({ className: 'bird-easter-egg-x' }).props.style.transform).toBe(
@@ -161,22 +187,191 @@ describe('BirdEasterEgg', () => {
     expect(vi.getTimerCount()).toBe(1);
   });
 
-  it('plays all three independent standing actions with quiet pauses between them', () => {
+  it('plays all three independent standing actions with quiet pauses between them', async () => {
     mount();
     launch();
     arrive();
-    const source = () => bird().findAllByType('img')[1].props.src;
-    expect(source()).toContain('standing-idle.png');
+    expect(idleFrame().props.style.opacity).toBe(1);
     advance(600);
-    expect(source()).toContain('standing-look.webp');
+    expect((await readyAction()).props.src).toContain('standing-look.webp');
     advance(2000);
-    expect(source()).toContain('standing-idle.png');
+    expect(idleFrame().props.style.opacity).toBe(1);
+    expect(actionFrame()).toBeUndefined();
     advance(600);
-    expect(source()).toContain('standing-preen.webp');
+    expect((await readyAction()).props.src).toContain('standing-preen.webp');
     advance(3000);
-    expect(source()).toContain('standing-idle.png');
+    expect(idleFrame().props.style.opacity).toBe(1);
     advance(600);
-    expect(source()).toContain('standing-ruffle.webp');
+    expect((await readyAction()).props.src).toContain('standing-ruffle.webp');
+  });
+
+  it('keeps the already decoded idle frame mounted while the next action loads', () => {
+    mount();
+    launch();
+    arrive();
+    const idle = view.root.findByProps({ src: '/brand/animations/echobird-standing-idle.png' });
+    advance(600);
+    expect(view.root.findByProps({ src: '/brand/animations/echobird-standing-idle.png' })).toBe(
+      idle
+    );
+    expect(idle.props.style.opacity).toBe(1);
+    const pending = view.root.findByProps({ src: '/brand/animations/echobird-standing-look.webp' });
+    expect(pending.props.style.opacity).toBe(0);
+  });
+
+  it('keeps the bird opaque until decoding completes, then switches to the ready action and back without replacing idle', async () => {
+    mount();
+    launch();
+    arrive();
+    const idle = idleFrame();
+    advance(600);
+    const pending = actionFrame();
+    const decode = deferredDecode();
+    act(() => {
+      pending.props.onLoad({ currentTarget: decode.image });
+    });
+    advance(250);
+    expect(idleFrame()).toBe(idle);
+    expect(idle.props.style.opacity).toBe(1);
+    expect(pending.props.style.opacity).toBe(0);
+    expect(standingLayer().props.style.opacity).toBe(1);
+    await act(async () => {
+      decode.resolve();
+    });
+    expect(idle.props.style.opacity).toBe(0);
+    expect(actionFrame()).toBe(pending);
+    expect(pending.props.style.opacity).toBe(1);
+    advance(1750);
+    expect(idleFrame()).toBe(idle);
+    expect(idle.props.style.opacity).toBe(1);
+    expect(actionFrame()).toBeUndefined();
+  });
+
+  it('ignores an earlier decode completion and starts a fresh image when an action repeats', async () => {
+    mount();
+    launch();
+    arrive();
+    advance(600);
+    const first = actionFrame();
+    const firstSource = first.props.src;
+    const decode = deferredDecode();
+    act(() => {
+      first.props.onLoad({ currentTarget: decode.image });
+    });
+    advance(2000);
+    advance(600);
+    const newer = actionFrame();
+    await act(async () => {
+      decode.resolve();
+    });
+    expect(actionFrame()).toBe(newer);
+    expect(newer.props.style.opacity).toBe(0);
+    expect(idleFrame().props.style.opacity).toBe(1);
+    await readyAction();
+    advance(3000);
+    advance(600);
+    await readyAction();
+    advance(2000);
+    advance(600);
+    expect(actionFrame()).not.toBe(first);
+    expect(actionFrame().props.src).toBe(firstSource);
+    expect(actionFrame().props.style.opacity).toBe(0);
+    expect(idleFrame().props.style.opacity).toBe(1);
+  });
+
+  it('recalls during decoding by fading the displayed idle frame and ignoring the pending action', async () => {
+    mount();
+    launch();
+    arrive();
+    advance(600);
+    const idle = idleFrame();
+    const decode = deferredDecode();
+    act(() => {
+      actionFrame().props.onLoad({ currentTarget: decode.image });
+    });
+    act(() => {
+      bird().props.onClick();
+    });
+    expect(phase()).toBe('takeoff');
+    expect(idleFrame()).toBe(idle);
+    expect(idle.props.style.opacity).toBe(1);
+    expect(standingLayer().props.style.opacity).toBe(0);
+    expect(actionFrame()).toBeUndefined();
+    await act(async () => {
+      decode.resolve();
+    });
+    expect(actionFrame()).toBeUndefined();
+    returnHome();
+    expect(phase()).toBe('idle');
+    expect(vi.getTimerCount()).toBe(1);
+  });
+
+  it.each(['disabled', 'hidden'])(
+    'ignores a late decode rejection after the image is disconnected by %s',
+    async (reason) => {
+      mount();
+      launch();
+      arrive();
+      advance(600);
+      const decode = deferredDecode();
+      act(() => {
+        actionFrame().props.onLoad({ currentTarget: decode.image });
+      });
+      if (reason === 'disabled')
+        act(() => {
+          useEasterEggStore.getState().setEnabled(false);
+        });
+      else visibility('hidden');
+      decode.image.isConnected = false;
+      if (reason === 'disabled')
+        act(() => {
+          useEasterEggStore.getState().setEnabled(true);
+        });
+      else visibility('visible');
+      await act(async () => {
+        decode.reject(new Error('old decode aborted'));
+      });
+      expect(phase()).toBe('idle');
+      expect(logo().props.disabled).toBe(false);
+      expect(vi.getTimerCount()).toBe(1);
+      launch();
+      expect(phase()).toBe('logo-out');
+    }
+  );
+
+  it('restores the static logo on a current decode failure and cleans up pending decoding on unmount', async () => {
+    mount();
+    launch();
+    arrive();
+    advance(600);
+    const failed = deferredDecode();
+    act(() => {
+      actionFrame().props.onLoad({ currentTarget: failed.image });
+    });
+    await act(async () => {
+      failed.reject(new Error('invalid image'));
+    });
+    expect(phase()).toBe('idle');
+    expect(vi.getTimerCount()).toBe(0);
+    act(() => {
+      view.unmount();
+    });
+    mount();
+    launch();
+    arrive();
+    advance(600);
+    const late = deferredDecode();
+    act(() => {
+      actionFrame().props.onLoad({ currentTarget: late.image });
+    });
+    act(() => {
+      view.unmount();
+    });
+    late.image.isConnected = false;
+    await act(async () => {
+      late.resolve();
+    });
+    expect(vi.getTimerCount()).toBe(0);
   });
 
   it('returns early when the perched bird is clicked and starts a fresh automatic interval afterwards', () => {
@@ -195,18 +390,19 @@ describe('BirdEasterEgg', () => {
     expect(phase()).toBe('logo-out');
   });
 
-  it('fades the currently playing standing action out when recalled and begins the next visit at rest', () => {
+  it('fades the currently playing standing action out when recalled and begins the next visit at rest', async () => {
     mount();
     launch();
     arrive();
     advance(600);
-    const standingFrame = bird().findAllByType('img')[1];
+    const standingFrame = await readyAction();
     expect(standingFrame.props.src).toContain('standing-look.webp');
     act(() => {
       bird().props.onClick();
     });
-    expect(bird().findAllByType('img')[1]).toBe(standingFrame);
-    expect(standingFrame.props.style.opacity).toBe(0);
+    expect(actionFrame()).toBe(standingFrame);
+    expect(standingFrame.props.style.opacity).toBe(1);
+    expect(standingLayer().props.style.opacity).toBe(0);
     expect(bird().findAllByType('img')[0].props.style.opacity).toBe(1);
     returnHome();
     launch();
