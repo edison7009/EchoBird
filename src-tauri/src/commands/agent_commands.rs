@@ -506,6 +506,7 @@ mod conversation_context_tests {
             let histories = HistoryStore::new(fixture.0.join("histories"));
             let (mut agents, mut parasites) = contexts();
             let snapshot = HistorySnapshot {
+                search_session_id: None,
                 messages: agents["conversation"].messages.clone(),
                 summary: Some(HistorySummary {
                     through: 0,

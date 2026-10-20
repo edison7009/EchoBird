@@ -94,6 +94,24 @@ EchoBird offers **4 scenarios** sharing a **unified model data hub** — **confi
 - **My AI Projects** — onboard and manage your own vibe-coded apps and games inside EchoBird
 - **App Manager** — one-click launch and management for every AI / Agent app & game
 
+### Built-in agent web search
+
+The **Install & Repair Agent** can search for current documentation and troubleshooting
+with [Parallel Search MCP](https://docs.parallel.ai/integrations/mcp/search-mcp).
+Search uses Fast mode, with no account or API key needed. The agent receives source
+URLs and excerpts through `web_search`; `parallel_fetch` extracts relevant passages
+when it needs to read a public page. The existing direct `web_fetch` tool remains
+available, including for internal pages. This applies to EchoBird's built-in agent;
+selecting Claude Code continues to use Claude Code's own tools.
+
+Queries, fetched URLs and the optional extraction objective are sent to Parallel.
+Avoid including credentials or private machine details. Free anonymous usage is
+rate limited; service errors are returned to the agent without switching providers.
+To disable both Parallel tools, close EchoBird and add `"agentWebSearch": false`
+to your existing `~/.echobird/settings.json` object, preserving its other settings.
+Remove that setting or set it to `true` to enable them again. Opening the agent does
+not contact Parallel; requests run only when the agent calls a search/extraction tool.
+
 ### Shared foundation
 
 - **Model Nexus** — a unified data hub for OpenAI / Anthropic / local LLMs / API Routers; configure once and all 4 scenarios pick it up; one-click latency check before you commit

@@ -22,6 +22,15 @@ pub struct AppSettings {
     // settings.json small.
     #[serde(default, rename = "displayName")]
     pub display_name: Option<String>,
+    /// Built-in agent's anonymous Parallel tools. Missing means enabled.
+    #[serde(default, rename = "agentWebSearch")]
+    pub agent_web_search: Option<bool>,
+}
+
+impl AppSettings {
+    pub(crate) fn agent_search_enabled(&self) -> bool {
+        self.agent_web_search.unwrap_or(true)
+    }
 }
 
 fn settings_path() -> std::path::PathBuf {
@@ -251,6 +260,28 @@ mod tests {
         assert_eq!(settings.theme_mode.as_deref(), Some("dark"));
         assert!(settings.color_theme.is_none());
         assert!(!path.exists());
+    }
+
+    #[test]
+    fn parallel_search_default_and_saved_disable_are_read_without_writes() {
+        let path =
+            std::env::temp_dir().join(format!("echobird-search-{}.json", uuid::Uuid::new_v4()));
+        assert!(read_settings(&path).agent_search_enabled());
+        assert!(!path.exists());
+        for (content, enabled) in [
+            (r#"{}"#, true),
+            (r#"{"agentWebSearch":false,"themeMode":"light"}"#, false),
+            (r#"{"agentWebSearch":true}"#, true),
+        ] {
+            std::fs::write(&path, content).unwrap();
+            let settings = read_settings(&path);
+            assert_eq!(settings.agent_search_enabled(), enabled);
+            let saved = serde_json::to_string(&settings).unwrap();
+            let reloaded: AppSettings = serde_json::from_str(&saved).unwrap();
+            assert_eq!(reloaded.agent_search_enabled(), enabled);
+            assert_eq!(std::fs::read_to_string(&path).unwrap(), content);
+        }
+        std::fs::remove_file(path).unwrap();
     }
 
     #[test]

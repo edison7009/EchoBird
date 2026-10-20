@@ -9,6 +9,8 @@ const MAX_SUMMARY_BYTES: usize = 12_000;
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct HistorySnapshot {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub search_session_id: Option<String>,
     pub messages: Vec<Message>,
     pub summary: Option<HistorySummary>,
 }
@@ -157,6 +159,7 @@ impl HistoryStore {
                 version: 1,
                 revision: 0,
                 snapshot: HistorySnapshot {
+                    search_session_id: None,
                     messages: serde_json::from_slice(&bytes).map_err(|error| {
                         format!("Saved conversation is damaged; file was preserved: {error}")
                     })?,
@@ -401,6 +404,7 @@ mod tests {
 
     fn snapshot(text: &str) -> HistorySnapshot {
         HistorySnapshot {
+            search_session_id: None,
             messages: vec![
                 Message {
                     role: "user".into(),
@@ -510,6 +514,7 @@ mod tests {
         invalid.summary.as_mut().unwrap().text = "界".repeat(4_001);
         assert!(store.save("a", &invalid).is_err());
         let large = HistorySnapshot {
+            search_session_id: None,
             messages: vec![Message {
                 role: "user".into(),
                 content: MessageContent::Text("x".repeat(MAX_STORE_BYTES + 1)),
@@ -518,6 +523,7 @@ mod tests {
         };
         assert!(store.save("a", &large).is_err());
         let opaque = HistorySnapshot {
+            search_session_id: None,
             messages: vec![Message {
                 role: "assistant".into(),
                 content: MessageContent::Blocks(vec![serde_json::from_value(
