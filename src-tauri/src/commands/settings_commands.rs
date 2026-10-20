@@ -177,7 +177,7 @@ pub fn get_avatar() -> Option<String> {
 
 #[cfg(test)]
 mod tests {
-    use super::{read_my_projects, read_settings, save_my_projects_at};
+    use super::{read_my_projects, read_settings, save_my_projects_at, AppSettings};
 
     #[test]
     fn project_registry_refuses_to_overwrite_unreadable_or_malformed_data() {
