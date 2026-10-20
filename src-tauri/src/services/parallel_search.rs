@@ -230,8 +230,9 @@ fn string_list(value: &Value, min: usize, max: usize, length: usize) -> Result<V
         .filter(|items| (min..=max).contains(&items.len()))
         .ok_or_else(|| format!("Expected an array with {min} to {max} entries"))?;
     if items.iter().any(|item| {
-        item.as_str()
-            .is_none_or(|text| text.trim().is_empty() || text.chars().count() > length)
+        item.as_str().map_or(true, |text| {
+            text.trim().is_empty() || text.chars().count() > length
+        })
     }) {
         return Err("Array entries must be nonempty strings within the tool's length limit".into());
     }
