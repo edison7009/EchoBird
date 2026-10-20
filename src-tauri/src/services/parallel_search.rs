@@ -145,6 +145,17 @@ impl SearchClient {
             {
                 success = false;
             }
+            // JSON maps put excerpts before url. Keep attribution ahead of the
+            // payload so clipping a long multibyte excerpt cannot erase it.
+            let sources: Vec<&str> = value["results"]
+                .as_array()
+                .into_iter()
+                .flatten()
+                .filter_map(|result| result["url"].as_str())
+                .collect();
+            if !sources.is_empty() {
+                output = format!("Sources:\n{}\n\n{output}", sources.join("\n"));
+            }
         }
         if output.len() > MAX_OUTPUT_BYTES {
             let mut end = MAX_OUTPUT_BYTES;
@@ -291,6 +302,9 @@ mod tests {
             ]}),
             "tools/call" if args["objective"] == "quota" => {
                 json!({"isError":true,"content":[{"type":"text","text":"Free anonymous quota exceeded; retry later"}]})
+            }
+            "tools/call" if args["objective"] == "unicode" => {
+                json!({"content":[{"type":"text","text":"long source excerpt"}],"structuredContent":{"results":[{"url":"https://nodejs.org/en/download","title":"Download Node.js","excerpts":["文".repeat(20_000)]}]}})
             }
             "tools/call" => {
                 json!({"content":[{"type":"text","text":"source excerpt"}],"structuredContent":{"results":[{"url":"https://nodejs.org/en/download","title":"Download Node.js","excerpts":["Install the current LTS release."]}]}})
@@ -440,6 +454,26 @@ mod tests {
             .iter()
             .filter(|r| r["method"] == "tools/call")
             .collect()
+    }
+
+    #[tokio::test]
+    async fn parallel_search_long_unicode_keeps_source_url_before_truncation() {
+        let (client, _capture, server) = fixture().await;
+        let session = AgentSession::new();
+        let result = dispatch(
+            &client,
+            &session.search_context(true, "model"),
+            "web_search",
+            &QUERY.replace("Find official Node.js installation instructions", "unicode"),
+        )
+        .await;
+        assert!(result.success, "{}", result.output);
+        assert!(result
+            .output
+            .starts_with("Sources:\nhttps://nodejs.org/en/download\n"));
+        assert!(result.output.ends_with("[Parallel result truncated]"));
+        assert!(result.output.len() <= MAX_OUTPUT_BYTES + 64);
+        server.abort();
     }
 
     #[tokio::test]
