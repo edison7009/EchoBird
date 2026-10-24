@@ -335,6 +335,38 @@ const BUNDLED_PROVIDERS: DirectoryEntry[] = modelDirectory.providers as Director
 
 const BUNDLED_RELAYS: DirectoryEntry[] = modelDirectory.relays as DirectoryEntry[];
 
+const MINIMAX_TEXT_MODEL_IDS = ['MiniMax-M3.1-Flash', 'MiniMax-M3'];
+
+/**
+ * Keep remote and disk-cached directory payloads aligned with the current
+ * direct MiniMax text presets. This only touches the add-model directory;
+ * saved model configurations (including custom and legacy IDs) are never
+ * migrated here, and non-text entries are left untouched.
+ */
+function normalizeDirectoryEntry(entry: DirectoryEntry): DirectoryEntry {
+  const isMiniMaxEndpoint = (value: string) =>
+    /^https:\/\/api\.(?:minimax\.io|minimax\.cn|minimaxi\.com)\/(?:v1|anthropic)/i.test(value);
+  const isMiniMax =
+    /^minimax(?:\s|$)/i.test(entry.name) ||
+    isMiniMaxEndpoint(entry.baseUrl) ||
+    isMiniMaxEndpoint(entry.anthropicUrl);
+  if (!isMiniMax) return entry;
+  return {
+    ...entry,
+    baseUrl: entry.region === 'cn' ? 'https://api.minimaxi.com/v1' : 'https://api.minimax.io/v1',
+    anthropicUrl:
+      entry.region === 'cn'
+        ? 'https://api.minimaxi.com/anthropic'
+        : 'https://api.minimax.io/anthropic',
+    modelId: MINIMAX_TEXT_MODEL_IDS[0],
+    modelIds: [...MINIMAX_TEXT_MODEL_IDS],
+  };
+}
+
+function normalizeDirectoryEntries(entries: DirectoryEntry[]): DirectoryEntry[] {
+  return entries.map(normalizeDirectoryEntry);
+}
+
 // Locale-aware reorder: zh* surfaces 'cn' entries first; everything else
 // surfaces 'global' first. Within each region we keep the curated JSON order
 // (Array.prototype.sort is stable in modern engines).
@@ -376,8 +408,8 @@ export function ModelNexusPanel() {
       .getModelDirectory()
       .then((remote) => {
         if (cancelled || !remote) return;
-        setProviders(remote.providers as DirectoryEntry[]);
-        setRelays(remote.relays as DirectoryEntry[]);
+        setProviders(normalizeDirectoryEntries(remote.providers as DirectoryEntry[]));
+        setRelays(normalizeDirectoryEntries(remote.relays as DirectoryEntry[]));
       })
       .catch(() => {
         /* keep bundled */

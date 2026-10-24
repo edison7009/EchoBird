@@ -24,27 +24,17 @@
       "url": "https://www.minimax.io",
       "baseUrl": "https://api.minimax.io/v1",
       "anthropicUrl": "https://api.minimax.io/anthropic",
-      "modelId": "MiniMax-M3",
-      "modelIds": [
-        "MiniMax-M3.1-Flash",
-        "MiniMax-M3.1-Flash-Preview",
-        "MiniMax-M3",
-        "MiniMax-M2.7"
-      ],
+      "modelId": "MiniMax-M3.1-Flash",
+      "modelIds": ["MiniMax-M3.1-Flash", "MiniMax-M3"],
       "region": "global"
     },
     {
       "name": "MiniMax CN",
       "url": "https://www.minimax.cn",
-      "baseUrl": "https://api.minimax.cn/v1",
-      "anthropicUrl": "https://api.minimax.cn/anthropic",
-      "modelId": "MiniMax-M3",
-      "modelIds": [
-        "MiniMax-M3.1-Flash",
-        "MiniMax-M3.1-Flash-Preview",
-        "MiniMax-M3",
-        "MiniMax-M2.7"
-      ],
+      "baseUrl": "https://api.minimaxi.com/v1",
+      "anthropicUrl": "https://api.minimaxi.com/anthropic",
+      "modelId": "MiniMax-M3.1-Flash",
+      "modelIds": ["MiniMax-M3.1-Flash", "MiniMax-M3"],
       "region": "cn"
     },
     {
