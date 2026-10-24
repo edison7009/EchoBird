@@ -166,6 +166,8 @@ export interface ApplyModelInput {
 // ─── App Settings Types ───
 
 export interface AppSettings {
+  /** Built-in Install & Repair Agent's Parallel tools. Defaults to enabled. */
+  agentWebSearch?: boolean | null;
   locale?: string;
   themeMode?: 'light' | 'dark';
   colorTheme?: string;

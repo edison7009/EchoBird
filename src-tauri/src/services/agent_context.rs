@@ -306,6 +306,7 @@ mod tests {
     fn latest_request_takes_priority_over_optional_notes_and_summary() {
         let request = "Current task details ".repeat(14_000);
         let snapshot = HistorySnapshot {
+            search_session_id: None,
             messages: vec![user("old task".into()), user(request.clone())],
             summary: Some(HistorySummary {
                 through: 1,
@@ -318,6 +319,7 @@ mod tests {
         ));
         assert!(serde_json::to_vec(&projected).unwrap().len() <= CONTEXT_BYTES);
         let oversized = HistorySnapshot {
+            search_session_id: None,
             messages: vec![user("超长当前请求\n".repeat(50_000))],
             summary: None,
         };
@@ -354,6 +356,7 @@ mod tests {
                 }]),
             };
             let mut snapshot = HistorySnapshot {
+                search_session_id: None,
                 messages: vec![
                     user("Original request".into()),
                     calls.clone(),
@@ -379,6 +382,7 @@ mod tests {
             assert_eq!(serde_json::to_vec(&snapshot.messages).unwrap(), once);
         }
         let mut snapshot = HistorySnapshot {
+            search_session_id: None,
             messages: vec![calls],
             summary: None,
         };
@@ -391,6 +395,7 @@ mod tests {
     #[test]
     fn small_history_needs_no_extra_model_call() {
         let snapshot = HistorySnapshot {
+            search_session_id: None,
             messages: vec![user("Remember the current task".into())],
             summary: None,
         };
@@ -404,6 +409,7 @@ mod tests {
             .map(|i| user(format!("step {i}: {}", "事实".repeat(1600))))
             .collect();
         let snapshot = HistorySnapshot {
+            search_session_id: None,
             messages,
             summary: None,
         };
@@ -412,6 +418,7 @@ mod tests {
         assert!(through > 0 && through < snapshot.messages.len() - 3);
         assert!(transcript.contains("step 0"));
         let compacted = HistorySnapshot {
+            search_session_id: None,
             messages: snapshot.messages.clone(),
             summary: Some(
                 checked_summary(through, "Goal, verified progress, remaining errors".into())
@@ -429,6 +436,7 @@ mod tests {
     #[test]
     fn archive_boundary_keeps_tool_use_and_results_together() {
         let mut snapshot = HistorySnapshot {
+            search_session_id: None,
             messages: vec![user("x".repeat(110_000))],
             summary: None,
         };
@@ -457,6 +465,7 @@ mod tests {
     #[test]
     fn original_history_pages_recover_unicode_and_omit_private_reasoning() {
         let snapshot = HistorySnapshot {
+            search_session_id: None,
             messages: vec![Message {
                 role: "assistant".into(),
                 content: MessageContent::Blocks(vec![

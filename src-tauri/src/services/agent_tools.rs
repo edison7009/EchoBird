@@ -372,6 +372,30 @@ pub fn get_tool_definitions() -> Vec<super::llm_client::ToolDef> {
 
 // ── Execution ──
 
+pub fn get_tool_definitions_with_search(enabled: bool) -> Vec<super::llm_client::ToolDef> {
+    let mut tools = get_tool_definitions();
+    tools.extend(super::parallel_search::tool_definitions(enabled));
+    tools
+}
+
+pub async fn execute_tool_with_search(
+    name: &str,
+    args_json: &str,
+    ssh_pool: &SSHPool,
+    session_server_ids: &[String],
+    output_scope: &str,
+    search: (
+        &super::parallel_search::SearchClient,
+        &super::parallel_search::SearchContext,
+    ),
+) -> ToolResult {
+    if matches!(name, "web_search" | "parallel_fetch") {
+        search.0.execute(name, args_json, search.1).await
+    } else {
+        execute_tool(name, args_json, ssh_pool, session_server_ids, output_scope).await
+    }
+}
+
 pub async fn execute_tool(
     name: &str,
     args_json: &str,

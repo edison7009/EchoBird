@@ -17,6 +17,7 @@ use super::auto_fix;
 use super::datalog::DatalogWriter;
 use super::json_repair::repair_tool_args;
 use super::llm_client::*;
+use super::parallel_search::{SearchClient, SearchContext};
 use crate::commands::ssh_commands::SSHPool;
 
 // ── Constants ──
@@ -115,6 +116,29 @@ impl Default for AgentSession {
 }
 
 impl AgentSession {
+    pub(crate) fn push_tool_result(&mut self, id: &str, output: String, provider: LlmProvider) {
+        self.messages.push(Message {
+            role: match provider {
+                LlmProvider::OpenAI => "tool",
+                LlmProvider::Anthropic => "user",
+            }
+            .into(),
+            content: MessageContent::Blocks(vec![ContentBlock::ToolResult {
+                tool_use_id: id.into(),
+                content: output,
+            }]),
+        });
+    }
+
+    pub(crate) fn search_context(&self, enabled: bool, model_name: &str) -> SearchContext {
+        SearchContext {
+            enabled,
+            session_id: self.id.clone(),
+            model_name: model_name.into(),
+            cancel: self.cancel_token.clone(),
+        }
+    }
+
     pub fn new() -> Self {
         Self {
             id: uuid::Uuid::new_v4().to_string(),
@@ -132,17 +156,25 @@ impl AgentSession {
     }
 
     pub fn restore(scope: &str) -> Result<Self, String> {
-        let mut history = HistoryStore::standard().load(scope)?;
+        Ok(Self::from_history(HistoryStore::standard().load(scope)?))
+    }
+
+    pub(crate) fn from_history(mut history: HistorySnapshot) -> Self {
         agent_context::recover_interrupted_history(&mut history);
-        Ok(Self {
+        Self {
+            id: history
+                .search_session_id
+                .filter(|id| uuid::Uuid::parse_str(id).is_ok())
+                .unwrap_or_else(|| uuid::Uuid::new_v4().to_string()),
             messages: history.messages,
             summary: history.summary,
             ..Self::new()
-        })
+        }
     }
 
-    fn snapshot(&self) -> HistorySnapshot {
+    pub(crate) fn snapshot(&self) -> HistorySnapshot {
         HistorySnapshot {
+            search_session_id: Some(self.id.clone()),
             messages: self.messages.clone(),
             summary: self.summary.clone(),
         }
@@ -290,7 +322,9 @@ pub async fn run_agent(
     let thinking_origin = client.thinking_origin();
     let summary_client = client.summary_client();
 
-    let tools = agent_tools::get_tool_definitions();
+    let search_enabled = crate::commands::settings_commands::get_settings().agent_search_enabled();
+    let tools = agent_tools::get_tool_definitions_with_search(search_enabled);
+    let search_client = Arc::new(SearchClient::default());
 
     // 2. Build system prompt
     let system_prompt = build_system_prompt(&request, &ssh_pool).await;
@@ -309,7 +343,7 @@ pub async fn run_agent(
     };
 
     // 3. Add user message to per-server session history
-    let (cancel_token, turn_start) = {
+    let (cancel_token, turn_start, search_context) = {
         let mut map = session_map.lock().await;
         if !map.contains_key(&server_key) {
             map.insert(server_key.clone(), AgentSession::restore(&server_key)?);
@@ -321,7 +355,11 @@ pub async fn run_agent(
             content: MessageContent::Text(request.message.clone()),
         });
         let _ = save_checkpoint(&server_key, sess);
-        (sess.cancel_token.clone(), turn_start)
+        (
+            sess.cancel_token.clone(),
+            turn_start,
+            sess.search_context(search_enabled, &request.model_name),
+        )
     };
 
     // Per-turn datalog — markdown trace under ~/.echobird/datalog/<server>/.
@@ -851,11 +889,21 @@ pub async fn run_agent(
                 let server_ids = request.server_ids.clone();
                 let output_scope = server_key.clone();
                 let pre = precomputed.get(&tc.id).cloned();
+                let search_client = search_client.clone();
+                let search_context = search_context.clone();
                 handles.push(tokio::spawn(async move {
                     if let Some(p) = pre {
                         return p;
                     }
-                    agent_tools::execute_tool(&name, &args, &sshp, &server_ids, &output_scope).await
+                    agent_tools::execute_tool_with_search(
+                        &name,
+                        &args,
+                        &sshp,
+                        &server_ids,
+                        &output_scope,
+                        (&search_client, &search_context),
+                    )
+                    .await
                 }));
             }
 
@@ -897,20 +945,7 @@ pub async fn run_agent(
                 let sess = map
                     .entry(server_key.clone())
                     .or_insert_with(AgentSession::new);
-                let block = ContentBlock::ToolResult {
-                    tool_use_id: tc.id.clone(),
-                    content: result.output,
-                };
-                match active_provider {
-                    LlmProvider::OpenAI => sess.messages.push(Message {
-                        role: "tool".into(),
-                        content: MessageContent::Blocks(vec![block]),
-                    }),
-                    LlmProvider::Anthropic => sess.messages.push(Message {
-                        role: "user".into(),
-                        content: MessageContent::Blocks(vec![block]),
-                    }),
-                }
+                sess.push_tool_result(&tc.id, result.output, active_provider);
                 completed_count += 1;
                 let _ = save_checkpoint(&server_key, sess);
             }
@@ -931,7 +966,7 @@ pub async fn run_agent(
                     (pre, false)
                 } else {
                     tokio::select! {
-                        r = agent_tools::execute_tool(&tc.name, &tc.arguments, &ssh_pool, &request.server_ids, &server_key) => (r, false),
+                        r = agent_tools::execute_tool_with_search(&tc.name, &tc.arguments, &ssh_pool, &request.server_ids, &server_key, (&search_client, &search_context)) => (r, false),
                         _ = cancel_token.cancelled() => {
                             log::info!("[AgentLoop] Tool cancelled by user: {}", tc.name);
                             (agent_tools::ToolResult { output: "Cancelled by user".to_string(), success: false }, true)
@@ -1000,26 +1035,7 @@ pub async fn run_agent(
                     let sess = map
                         .entry(server_key.clone())
                         .or_insert_with(AgentSession::new);
-                    match active_provider {
-                        LlmProvider::OpenAI => {
-                            sess.messages.push(Message {
-                                role: "tool".into(),
-                                content: MessageContent::Blocks(vec![ContentBlock::ToolResult {
-                                    tool_use_id: tc.id.clone(),
-                                    content: result.output,
-                                }]),
-                            });
-                        }
-                        LlmProvider::Anthropic => {
-                            sess.messages.push(Message {
-                                role: "user".into(),
-                                content: MessageContent::Blocks(vec![ContentBlock::ToolResult {
-                                    tool_use_id: tc.id.clone(),
-                                    content: result.output,
-                                }]),
-                            });
-                        }
-                    }
+                    sess.push_tool_result(&tc.id, result.output, active_provider);
                     let _ = save_checkpoint(&server_key, sess);
                 }
                 completed_count += 1;
@@ -1671,6 +1687,8 @@ fn is_shared_tool(name: &str) -> bool {
             | "grep"
             | "glob"
             | "web_fetch"
+            | "web_search"
+            | "parallel_fetch"
             | "get_sudo_password"
             | "tool_output_read"
             | "conversation_history_read"
@@ -2304,6 +2322,7 @@ mod conversation_tests {
             .join(format!("echobird-handoff-{}", uuid::Uuid::new_v4()));
         let histories = HistoryStore::new(directory.clone());
         let source = HistorySnapshot {
+            search_session_id: None,
             messages: vec![Message {
                 role: "user".into(),
                 content: MessageContent::Text("Keep exact task restrictions".into()),
