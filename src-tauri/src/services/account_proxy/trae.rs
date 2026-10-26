@@ -317,6 +317,47 @@ fn native_output_limit(row: &Value) -> Option<u64> {
         .max()
 }
 
+/// Trae 把展示与能力信息放在 `display_config` 里，且该字段可能是对象或 JSON 字符串。
+fn display_config(row: &Value) -> Value {
+    match &row["display_config"] {
+        Value::Object(_) => row["display_config"].clone(),
+        Value::String(text) => serde_json::from_str(text).unwrap_or(Value::Null),
+        _ => Value::Null,
+    }
+}
+
+/// 读取推理档位。
+///
+/// 新版本用 `reasoning_effort_config { support_thinking, options, default_level }`，
+/// 旧版本用 `reasoning_effort_options`。只读旧字段会让新模型的能力被判成空，
+/// 客户端一旦携带 `reasoning_effort` 就会被本地拦成 400。
+fn reasoning_options(node: &Value) -> Option<Vec<String>> {
+    let config = &node["reasoning_effort_config"];
+    if config["support_thinking"] == true {
+        if let Some(options) = config["options"].as_array() {
+            let levels: Vec<String> = options
+                .iter()
+                .filter_map(Value::as_str)
+                .map(str::trim)
+                .filter(|level| !level.is_empty())
+                .map(str::to_string)
+                .collect();
+            if !levels.is_empty() {
+                return Some(levels);
+            }
+        }
+    }
+    let legacy: Vec<String> = node["reasoning_effort_options"]
+        .as_array()?
+        .iter()
+        .filter_map(Value::as_str)
+        .map(str::trim)
+        .filter(|level| !level.is_empty())
+        .map(str::to_string)
+        .collect();
+    (!legacy.is_empty()).then_some(legacy)
+}
+
 fn cache() -> &'static Mutex<Catalogs> {
     static CACHE: OnceLock<Mutex<Catalogs>> = OnceLock::new();
     CACHE.get_or_init(|| {
@@ -560,10 +601,18 @@ async fn catalog(
 ) -> Result<Catalog, ProxyError> {
     let client = http_client()?;
     let base = base(provider, credentials)?;
+    // 与 Trae 客户端 model_list_by_function 使用的 function 集合保持一致。
+    // solo_agent / solo_agent_lite / builder 等分支承载了新发布的模型，
+    // 只查旧的那几个会让整代模型在目录里缺失。
     let mut functions = vec![
         "solo_work_remote",
         "solo_work_lite",
+        "solo_agent",
+        "solo_agent_lite",
         "solo_agent_remote",
+        "solo_design_lite",
+        "solo_design_remote",
+        "builder",
         "chat_v3",
     ];
     if provider == AccountProvider::Traecn {
@@ -614,23 +663,26 @@ async fn catalog(
             let Some(id) = row["config_name"].as_str().filter(|id| !id.is_empty()) else {
                 continue;
             };
-            if !visible_chat_model(id) || row["hidden"] == true || row["disabled"] == true {
+            if !visible_chat_model(id)
+                || row["hidden"] == true
+                || row["disabled"] == true
+                || row["is_invisible_to_user"] == true
+                || row["config_switch"] == false
+                || row["usage"].as_str() == Some("custom_model")
+            {
                 continue;
             }
+            let display = display_config(row);
             let detail = &row["model_detail_list"][0];
-            let reasoning = detail["reasoning_effort_options"]
-                .as_array()
-                .or_else(|| row["reasoning_effort_options"].as_array())
-                .into_iter()
-                .flatten()
-                .filter_map(Value::as_str)
-                .map(str::to_string)
-                .collect();
+            let reasoning = reasoning_options(row)
+                .or_else(|| reasoning_options(detail))
+                .unwrap_or_default();
             models.entry(id.into()).or_insert_with(|| Model {
                 function: function.into(),
                 max_tokens: native_output_limit(row),
                 multimodal: row["multimodal"] == true
                     || detail["multimodal"] == true
+                    || display["multimodal"] == true
                     || row["metadata"]["capabilities"]["vision"] == true,
                 reasoning,
             });
@@ -816,10 +868,24 @@ fn prepare(body: &Value, id: &str, model: &Model) -> Result<Value, ProxyError> {
         .as_str()
         .or_else(|| body["reasoning"]["effort"].as_str())
     {
-        if !model.reasoning.iter().any(|value| value == effort) {
-            return Err(unsupported("reasoning_effort"));
+        match model.reasoning.iter().find(|value| *value == effort) {
+            Some(_) => output["reasoning_effort"] = json!(effort),
+            // 模型未声明该档位时静默丢弃，而不是让整个请求失败。
+            // 目录数据可能滞后于服务端能力，客户端也会发来通用档位名
+            // （low/medium/max 等），硬拒绝会让本可成功的请求全部 400。
+            None => {
+                if model.reasoning.is_empty() {
+                    log::debug!(
+                        "[TraeProxy] dropping reasoning_effort={effort}: model declares no levels"
+                    );
+                } else {
+                    log::debug!(
+                        "[TraeProxy] dropping unknown reasoning_effort={effort}, supported: {:?}",
+                        model.reasoning
+                    );
+                }
+            }
         }
-        output["reasoning_effort"] = json!(effort);
     }
     Ok(output)
 }
@@ -1359,13 +1425,21 @@ mod tests {
             ("tool_choice", json!("required")),
             ("response_format", json!({"type":"json_object"})),
             ("max_tokens", json!(128)),
-            ("reasoning_effort", json!("low")),
         ] {
             let mut body = json!({"messages":[]});
             body[name] = value;
             let error = prepare(&body, "wire-id", &metadata()).unwrap_err();
             assert_eq!(error.error_code.as_deref(), Some("unsupported_parameter"));
             assert!(error.model_scope);
+        }
+        // 未知/缺省档位不再让请求失败，而是静默丢弃该参数。
+        for effort in ["low", "medium", "max", "none"] {
+            let body = json!({"messages":[],"reasoning_effort":effort});
+            let output = prepare(&body, "wire-id", &metadata()).unwrap();
+            assert!(
+                output.get("reasoning_effort").is_none(),
+                "unknown effort {effort} must be dropped"
+            );
         }
         let body = json!({"messages":[],"max_tokens":32000});
         let output = prepare(&body, "wire-id", &metadata()).unwrap();
@@ -1380,6 +1454,50 @@ mod tests {
             prepare(&image, "wire-id", &unknown).unwrap()["messages"],
             image["messages"]
         );
+    }
+
+    #[test]
+    fn reasoning_options_reads_current_config_and_legacy_field() {
+        // 新版本：support_thinking + options
+        assert_eq!(
+            reasoning_options(&json!({
+                "reasoning_effort_config": {
+                    "support_thinking": true,
+                    "options": ["light", "high", "extra_high"],
+                    "default_level": "high"
+                }
+            })),
+            Some(vec!["light".into(), "high".into(), "extra_high".into()])
+        );
+        // support_thinking=false 时应回退到 legacy 字段；两者都没有则 None
+        assert_eq!(
+            reasoning_options(&json!({
+                "reasoning_effort_config": {"support_thinking": false, "options": ["high"]}
+            })),
+            None
+        );
+        // 旧版本字段仍兼容
+        assert_eq!(
+            reasoning_options(&json!({"reasoning_effort_options": ["high"]})),
+            Some(vec!["high".into()])
+        );
+        // 空数组视为未声明
+        assert_eq!(reasoning_options(&json!({"reasoning_effort_options": []})), None);
+        assert_eq!(reasoning_options(&json!({})), None);
+    }
+
+    #[test]
+    fn display_config_accepts_object_and_json_string() {
+        assert_eq!(
+            display_config(&json!({"display_config":{"multimodal":true}}))["multimodal"],
+            true
+        );
+        assert_eq!(
+            display_config(&json!({"display_config":"{\"multimodal\":true}"}))["multimodal"],
+            true
+        );
+        assert!(display_config(&json!({})).is_null());
+        assert!(display_config(&json!({"display_config":"not-json"})).is_null());
     }
 
     #[test]
