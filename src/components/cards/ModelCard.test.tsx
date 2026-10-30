@@ -2,6 +2,10 @@ import { describe, it, expect } from 'vitest';
 import { getModelIcon } from './ModelCard';
 
 describe('getModelIcon', () => {
+  it('maps the Tencent Hunyuan model id to the existing Hunyuan icon', () => {
+    expect(getModelIcon('', 'hy')).toBe('./icons/models/hunyuan.svg');
+  });
+
   it('uses the new Agnes SVG for directory rows and model cards', () => {
     expect(getModelIcon('Agnes AI', '')).toBe('./icons/models/agnes.svg');
     expect(getModelIcon('Agnes AI', 'agnes-2.5-flash')).toBe('./icons/models/agnes.svg');
