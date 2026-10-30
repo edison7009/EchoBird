@@ -61,7 +61,7 @@ export const getModelIcon = (name: string, modelId?: string): string | null => {
     [['longcat', '美团', 'meituan', '龙猫'], 'longcat'],
     [['glm', 'zhipu', '智谱', 'z.ai', 'bigmodel'], 'glm'],
     [['ernie', 'wenxin', '文心'], 'ernie'],
-    [['hunyuan', '混元'], 'hunyuan'],
+    [['hunyuan', '混元', 'hy'], 'hunyuan'],
     [['cohere', 'command'], 'cohere'],
     [['perplexity', 'pplx'], 'perplexity'],
     [['together'], 'together'],
