@@ -750,6 +750,9 @@ fn scan_windows_registry(hints: &InstallHints) -> Option<String> {
         .map(|s| s.to_lowercase())
         .collect();
     let publisher_filter = hints.windows_publisher.as_ref().map(|p| p.to_lowercase());
+    // The executable name can differ from the product name (Dola ships Cici.exe);
+    // the caller then resolves this directory against the catalog's paths.
+    let mut install_dir_hit = None;
 
     let entries = SCAN_DISCOVERY
         .try_with(|snapshot| snapshot.registry.clone())
@@ -848,8 +851,14 @@ fn scan_windows_registry(hints: &InstallHints) -> Option<String> {
                 return Some(exe);
             }
         }
+        install_dir_hit = install_dir_hit.or_else(|| {
+            install_dir_candidates
+                .iter()
+                .find(|dir| dir.is_dir())
+                .map(|dir| dir.to_string_lossy().into_owned())
+        });
     }
-    None
+    install_dir_hit
 }
 
 /// Read a GUI installer's DisplayVersion using the same name/publisher
@@ -1203,7 +1212,20 @@ fn find_tool_executable(pc: &PathsConfig, include_hints: bool) -> Option<String>
             include_hints
                 .then(|| scan_install_hints(pc))
                 .flatten()
-                .and_then(|p| resolve(&p))
+                .and_then(|hit| {
+                    // An install root can hold a launcher above the declared runtime.
+                    #[cfg(windows)]
+                    if Path::new(&hit).is_file() {
+                        if let Some(found) = Path::new(&hit)
+                            .parent()
+                            .and_then(Path::to_str)
+                            .and_then(&resolve)
+                        {
+                            return Some(found);
+                        }
+                    }
+                    resolve(&hit)
+                })
         })
         .or_else(|| {
             // Hermes' CLI has the same leaf name as its Linux/macOS GUI.
@@ -2537,7 +2559,16 @@ fn resolve_install_directory(hit_path: &Path, platform_paths: &[String]) -> Opti
                 names.push(name.to_owned());
             }
         }
-        for name in names {
+        // Keep each declared `<directory>\<executable>` tail ahead of bare file
+        // names, so a runtime in `app\` wins over its launcher in the install root.
+        let declared_tails = platform_paths.iter().filter_map(|path| {
+            let path = Path::new(path);
+            Some(Path::new(path.parent()?.file_name()?).join(path.file_name()?))
+        });
+        let candidates: Vec<PathBuf> = declared_tails
+            .chain(names.iter().map(PathBuf::from))
+            .collect();
+        for name in candidates {
             let candidate = root.join(&name);
             if candidate.is_file() {
                 log::info!(
@@ -2938,6 +2969,84 @@ mod tests {
             .await;
         assert_eq!(super::scan_windows_registry_version(&hints), None);
         std::fs::remove_dir_all(&root).unwrap();
+    }
+
+    #[cfg(windows)]
+    #[tokio::test]
+    async fn custom_directory_installs_resolve_the_declared_runtime() {
+        use std::{collections::HashMap, sync::Arc};
+        let root = std::env::temp_dir().join(format!("自定义目录-{}", uuid::Uuid::new_v4()));
+        let entry = |name: &str, publisher: &str, dir: &std::path::Path, icon: &str| {
+            HashMap::from([
+                ("DisplayName".to_string(), name.to_string()),
+                ("Publisher".to_string(), publisher.to_string()),
+                (
+                    "DisplayIcon".to_string(),
+                    format!("\"{}\"", dir.join(icon).display()),
+                ),
+                ("InstallLocation".to_string(), String::new()),
+                (
+                    "UninstallString".to_string(),
+                    format!("\"{}\"", dir.join("uninstall.exe").display()),
+                ),
+            ])
+        };
+        let doubao = root.join("DoubaoWork");
+        let dola = root.join("Cici");
+        let trae = root.join("Trae");
+        for (dir, files) in [
+            (&doubao, vec!["DoubaoWork.exe", "icon.ico", "uninstall.exe"]),
+            (&dola, vec!["Cici.exe", "icon.ico", "uninstall.exe"]),
+            (&trae, vec!["Trae.exe"]),
+        ] {
+            std::fs::create_dir_all(dir.join("app")).unwrap();
+            for file in files {
+                std::fs::write(dir.join(file), "launcher").unwrap();
+            }
+        }
+        std::fs::write(doubao.join("app/DoubaoWork.exe"), "runtime").unwrap();
+        std::fs::write(dola.join("app/Cici.exe"), "runtime").unwrap();
+        let snapshot = Arc::new(super::DiscoverySnapshot {
+            registry: Arc::new(vec![
+                entry(
+                    "豆包工作",
+                    "Beijing Chuntian Zhiyun Technology Co., Ltd.",
+                    &doubao,
+                    "icon.ico",
+                ),
+                entry("Dola", "SPRING (SG) PTE. LTD.", &dola, "icon.ico"),
+                entry("TRAE (User)", "Trae", &trae, "Trae.exe"),
+            ]),
+            msix: None,
+        });
+        // Default locations must miss so an installed client cannot satisfy the test.
+        let catalog = |json: &str| {
+            let json = json.replace("%LOCALAPPDATA%", "%LOCALAPPDATA%-missing");
+            serde_json::from_str::<PathsConfig>(&json).unwrap()
+        };
+        let doubao_catalog = catalog(include_str!("../../../tools/doubaowork/paths.json"));
+        let dola_catalog = catalog(include_str!("../../../tools/dola/paths.json"));
+        let trae_catalog = catalog(include_str!("../../../tools/trae/paths.json"));
+        let found = super::SCAN_DISCOVERY
+            .scope(snapshot, async {
+                [
+                    super::find_tool_executable(&doubao_catalog, true),
+                    super::find_tool_executable(&dola_catalog, true),
+                    super::find_tool_executable(&trae_catalog, true),
+                ]
+            })
+            .await;
+        let found = found.map(|path| path.map(PathBuf::from));
+        assert_eq!(
+            found[0].as_deref(),
+            Some(doubao.join("app").join("DoubaoWork.exe").as_path())
+        );
+        assert_eq!(
+            found[1].as_deref(),
+            Some(dola.join("app").join("Cici.exe").as_path())
+        );
+        assert_eq!(found[2].as_deref(), Some(trae.join("Trae.exe").as_path()));
+        std::fs::remove_dir_all(root).unwrap();
     }
 
     #[test]

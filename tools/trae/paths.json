@@ -17,7 +17,7 @@
         "linux": ["/usr/share/trae/trae", "/usr/bin/trae"]
     },
     "installHints": {
-        "windowsDisplayNames": ["Trae"],
+        "windowsDisplayNames": ["Trae", "Trae (User)"],
         "macosAppName": "Trae",
         "linuxDesktopNames": ["Trae", "trae"]
     }

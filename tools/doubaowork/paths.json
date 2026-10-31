@@ -27,7 +27,6 @@
     },
     "installHints": {
         "windowsDisplayNames": ["豆包工作", "Doubao Work", "DoubaoWork"],
-        "windowsPublisher": "北京春田知韵科技有限公司",
         "macosAppName": "DoubaoWork"
     }
 }
