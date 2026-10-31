@@ -255,6 +255,41 @@ fn is_system_injected(text: &str) -> bool {
     SYSTEM_INJECTION_TAGS.iter().any(|tag| t.starts_with(tag))
 }
 
+/// The title a Claude user text block contributes, by the rule Claude Code's
+/// own session list uses: anything opening with a lowercase XML-style tag is
+/// harness wrapping (IDE context, reminders, hook output, …) rather than a
+/// typed prompt, as is the "[Request interrupted by user]" marker. That one
+/// rule covers wrappers no list has seen yet. A slash command is remembered as
+/// a fallback; a `!` shell line reads as `! <command>`.
+fn claude_prompt_title(text: &str, command_fallback: &mut String) -> Option<String> {
+    use std::sync::OnceLock;
+    static COMMAND: OnceLock<regex::Regex> = OnceLock::new();
+    static BASH: OnceLock<regex::Regex> = OnceLock::new();
+    static WRAPPER: OnceLock<regex::Regex> = OnceLock::new();
+    let command_pattern =
+        COMMAND.get_or_init(|| regex::Regex::new(r"<command-name>(.*?)</command-name>").unwrap());
+    let bash_pattern =
+        BASH.get_or_init(|| regex::Regex::new(r"<bash-input>([\s\S]*?)</bash-input>").unwrap());
+    let wrapper_pattern = WRAPPER.get_or_init(|| {
+        regex::Regex::new(r"^(?:<[a-z][\w-]*[\s>/]|\[Request interrupted by user[^\]]*\])").unwrap()
+    });
+    let text = text.replace(['\r', '\n'], " ");
+    let text = text.trim();
+    if text.is_empty() {
+        return None;
+    }
+    if let Some(command) = command_pattern.captures(text) {
+        if command_fallback.is_empty() {
+            *command_fallback = command[1].trim().to_string();
+        }
+        return None;
+    }
+    if let Some(shell) = bash_pattern.captures(text) {
+        return Some(format!("! {}", shell[1].trim()));
+    }
+    (!wrapper_pattern.is_match(text) && !is_system_injected(text)).then(|| text.to_string())
+}
+
 /// Replace newlines with spaces while preserving the complete title.
 fn make_title(raw: &str) -> String {
     raw.replace('\n', " ")
@@ -309,6 +344,14 @@ fn parse_agent_jsonl_checked(
     let mut seen_messages = HashSet::new();
     let mut real_user_messages = 0u32;
     let mut usage_by_message = HashMap::new();
+    // Titles Claude Code writes into the transcript itself: `custom-title`
+    // (a rename, also written by Claude's desktop app) and `ai-title`
+    // (generated). The last row of each kind wins.
+    let mut custom_title = String::new();
+    let mut ai_title = String::new();
+    // A slash command (`<command-name>/x</command-name>`) names the session
+    // only when no typed prompt follows it.
+    let mut command_fallback = String::new();
 
     for line in reader.lines() {
         let line = line.map_err(|e| e.to_string())?;
@@ -324,6 +367,29 @@ fn parse_agent_jsonl_checked(
             if cwd.is_empty() && !c.is_empty() {
                 cwd = c.to_string();
             }
+        }
+        let row_title = |key: &str| {
+            value
+                .get(key)
+                .and_then(|v| v.as_str())
+                .map(str::trim)
+                .filter(|t| !t.is_empty())
+                .map(str::to_string)
+        };
+        match value.get("type").and_then(|v| v.as_str()).unwrap_or("") {
+            "custom-title" => {
+                if let Some(t) = row_title("customTitle") {
+                    custom_title = t;
+                }
+                continue;
+            }
+            "ai-title" => {
+                if let Some(t) = row_title("aiTitle") {
+                    ai_title = t;
+                }
+                continue;
+            }
+            _ => {}
         }
 
         let mut msg_obj = value.get("message").and_then(|v| v.as_object());
@@ -407,27 +473,31 @@ fn parse_agent_jsonl_checked(
                 real_user_messages += 1;
             }
         }
-        if role != "user" || !title.is_empty() {
+        // Rows the CLI itself marks as not typed by the user never name the session.
+        let flagged = |key: &str| value.get(key).and_then(|v| v.as_bool()) == Some(true);
+        if role != "user" || !title.is_empty() || flagged("isMeta") || flagged("isCompactSummary") {
             continue;
         }
-        if let Some(content_str) = msg_obj.get("content").and_then(|v| v.as_str()) {
-            if !is_system_injected(content_str) {
-                title = make_title(content_str);
-            }
-        } else if let Some(arr) = msg_obj.get("content").and_then(|v| v.as_array()) {
-            for block in arr {
-                let bt = block.get("type").and_then(|v| v.as_str()).unwrap_or("");
-                if bt != "text" && bt != "input_text" {
-                    continue;
-                }
-                if let Some(text) = block.get("text").and_then(|v| v.as_str()) {
-                    if is_system_injected(text) {
-                        continue;
-                    }
-                    title = make_title(text);
-                    break;
-                }
-            }
+        let texts: Vec<&str> = match msg_obj.get("content") {
+            Some(serde_json::Value::String(text)) => vec![text.as_str()],
+            // Only text blocks can be a prompt; a tool result riding in the row is skipped.
+            Some(serde_json::Value::Array(blocks)) => blocks
+                .iter()
+                .filter(|b| {
+                    matches!(
+                        b.get("type").and_then(|v| v.as_str()),
+                        Some("text" | "input_text")
+                    )
+                })
+                .filter_map(|b| b.get("text").and_then(|v| v.as_str()))
+                .collect(),
+            _ => Vec::new(),
+        };
+        if let Some(prompt) = texts
+            .into_iter()
+            .find_map(|text| claude_prompt_title(text, &mut command_fallback))
+        {
+            title = prompt;
         }
     }
 
@@ -456,6 +526,16 @@ fn parse_agent_jsonl_checked(
         return Ok(None);
     }
 
+    // A rename wins over a generated title, and both over the first prompt,
+    // so the row reads as it does in Claude Code's own session list.
+    if !custom_title.is_empty() {
+        title = custom_title;
+    } else if !ai_title.is_empty() {
+        title = ai_title;
+    }
+    if title.is_empty() {
+        title = command_fallback;
+    }
     if title.is_empty() {
         title = "Claude Code Session".to_string();
     }
@@ -3514,6 +3594,68 @@ mod tests {
         let s = parse_agent_jsonl(&f, Family::Claude).unwrap();
         assert_eq!(s.name, "帮我把这个文件重构一下");
         let _ = std::fs::remove_file(&f);
+    }
+
+    #[test]
+    fn parse_agent_jsonl_prefers_claude_own_titles() {
+        let dir = std::env::temp_dir().join("echobird_ai_career_test_native_title");
+        let _ = std::fs::create_dir_all(&dir);
+        let f = dir.join("titled.jsonl");
+        let body = "{\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"first prompt\"}}\n\
+                    {\"type\":\"ai-title\",\"aiTitle\":\"Generated title\",\"sessionId\":\"s1\"}\n\
+                    {\"type\":\"custom-title\",\"customTitle\":\"Renamed title\",\"sessionId\":\"s1\"}\n";
+        std::fs::write(&f, body).unwrap();
+        assert_eq!(
+            parse_agent_jsonl(&f, Family::Claude).unwrap().name,
+            "Renamed title"
+        );
+        let body =
+            "{\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"first prompt\"}}\n\
+                    {\"type\":\"ai-title\",\"aiTitle\":\"Generated title\",\"sessionId\":\"s1\"}\n";
+        std::fs::write(&f, body).unwrap();
+        assert_eq!(
+            parse_agent_jsonl(&f, Family::Claude).unwrap().name,
+            "Generated title"
+        );
+        let _ = std::fs::remove_file(&f);
+    }
+
+    #[test]
+    fn parse_agent_jsonl_skips_rows_the_cli_marks_as_not_typed() {
+        let dir = std::env::temp_dir().join("echobird_ai_career_test_wrappers");
+        let _ = std::fs::create_dir_all(&dir);
+        let f = dir.join("wrappers.jsonl");
+        let body = "{\"type\":\"user\",\"isMeta\":true,\"message\":{\"role\":\"user\",\"content\":\"Caveat: generated while running local commands.\"}}\n\
+                    {\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\"<some-new-wrapper>hook output</some-new-wrapper>\"}]}}\n\
+                    {\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"[Request interrupted by user]\"}}\n\
+                    {\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\"<ide_opened_file>a.rs</ide_opened_file>\"},{\"type\":\"text\",\"text\":\"把工作中动画对齐竖线\"}]}}\n";
+        std::fs::write(&f, body).unwrap();
+        assert_eq!(
+            parse_agent_jsonl(&f, Family::Claude).unwrap().name,
+            "把工作中动画对齐竖线"
+        );
+        let _ = std::fs::remove_file(&f);
+    }
+
+    #[test]
+    fn claude_title_falls_back_to_slash_command_and_reads_shell_lines() {
+        let mut fallback = String::new();
+        assert_eq!(
+            claude_prompt_title(
+                "<command-name>/model</command-name>\n<command-message>model</command-message>",
+                &mut fallback
+            ),
+            None
+        );
+        assert_eq!(fallback, "/model");
+        assert_eq!(
+            claude_prompt_title("<bash-input>git status</bash-input>", &mut fallback).as_deref(),
+            Some("! git status")
+        );
+        assert_eq!(
+            claude_prompt_title("Use <b>bold</b> here", &mut fallback).as_deref(),
+            Some("Use <b>bold</b> here")
+        );
     }
 
     #[test]
