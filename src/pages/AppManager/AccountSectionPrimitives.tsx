@@ -133,9 +133,11 @@ export const AccountSectionActions: React.FC<{
   email: string;
   refreshing?: boolean;
   disabled?: boolean;
+  /** Defaults to `disabled`. */
+  deleteDisabled?: boolean;
   onRefresh?: () => void;
   onDelete: () => void;
-}> = ({ email, refreshing, disabled, onRefresh, onDelete }) => {
+}> = ({ email, refreshing, disabled, deleteDisabled = disabled, onRefresh, onDelete }) => {
   const { t } = useI18n();
   return (
     <>
@@ -160,7 +162,7 @@ export const AccountSectionActions: React.FC<{
       <button
         type="button"
         aria-label={`${t('btn.delete')} ${email}`}
-        disabled={disabled}
+        disabled={deleteDisabled}
         onClick={(event) => {
           event.stopPropagation();
           onDelete();

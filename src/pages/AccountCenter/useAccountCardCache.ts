@@ -187,19 +187,42 @@ export function useAccountCardCache(
     }
   }, [active, locale, pending, providers, snapshot]);
 
+  // Clearing a row only tidies the page: the plugin keeps its saved account,
+  // so reinstalling the plugin shows it again.
+  const forget = (providerId: string, accountId: string) => {
+    setSaved((previous) => {
+      if (!previous?.providers[providerId]) return previous;
+      const next: Snapshot = {
+        ...previous,
+        providers: {
+          ...previous.providers,
+          [providerId]: previous.providers[providerId].filter(({ id }) => id !== accountId),
+        },
+      };
+      try {
+        localStorage.setItem(CACHE_KEY, JSON.stringify(next));
+      } catch {
+        // The row stays cleared for this session.
+      }
+      return next;
+    });
+  };
+
   return {
     loading: pending || !snapshot,
     providers: providers.map((provider) => ({
       ...provider,
       accounts: (snapshot?.providers[provider.id] ?? []).map((summary): AccountCardData => {
         const live = provider.accounts.find((account) => account.id === summary.id);
+        const cachedOnly = !live && Boolean(provider.pluginMissing);
         return {
           ...summary,
           pending: !live,
+          cachedOnly,
           refreshing: live?.refreshing ?? false,
           authorizationFailed: live?.authorizationFailed ?? summary.authorizationFailed,
           refresh: live?.refresh ?? idleAction,
-          remove: live?.remove ?? idleAction,
+          remove: live?.remove ?? (cachedOnly ? () => forget(provider.id, summary.id) : idleAction),
           claim: summary.claimable ? (live?.claim ?? idleAction) : undefined,
         };
       }),

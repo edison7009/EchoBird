@@ -53,6 +53,8 @@ export interface AccountCardData {
   metrics: AccountMetric[];
   refreshing: boolean;
   pending?: boolean;
+  /** A cached row whose account plugin is no longer installed. */
+  cachedOnly?: boolean;
   authorizationFailed: boolean;
   refresh: (onError?: (error: unknown) => void) => Promise<void>;
   claim?: (onError?: (error: unknown) => void) => Promise<unknown>;
@@ -70,6 +72,8 @@ export interface AccountProvider {
   icon: string;
   website?: string;
   installed: boolean;
+  /** The application's account plugin is not installed or enabled. */
+  pluginMissing?: boolean;
   busy: boolean;
   loading: boolean;
   loaded?: boolean;
@@ -217,6 +221,7 @@ export function accountCenterProviders(
       website: context.detectedTools.find((tool) => toolIds.includes(tool.id) && tool.website)
         ?.website,
       installed,
+      pluginMissing: communityAccountApplications.includes(id) && !accountPluginAvailable(id),
       busy: group.busy,
       loading: group.loading,
       loaded: group.loaded,

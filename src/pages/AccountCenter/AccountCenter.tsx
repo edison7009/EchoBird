@@ -118,6 +118,7 @@ export function AccountCard({
             email={identity}
             refreshing={account.refreshing}
             disabled={account.pending}
+            deleteDisabled={account.pending && !account.cachedOnly}
             onRefresh={account.refresh}
             onDelete={account.remove}
           />

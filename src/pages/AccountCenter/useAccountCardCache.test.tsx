@@ -45,6 +45,27 @@ function provider(id: string, accounts: AccountCardData[], patch: Partial<Accoun
   } satisfies AccountProvider;
 }
 
+describe('rows of an uninstalled account plugin', () => {
+  it('can be cleared but not refreshed', async () => {
+    snapshot([provider('claudeCode', [account('a'), account('b')])]);
+    await mount([provider('claudeCode', [], { loaded: false, pluginMissing: true })]);
+    const [row] = current.providers[0].accounts;
+    expect(row.pending).toBe(true);
+    expect(row.cachedOnly).toBe(true);
+    await act(async () => {
+      row.remove();
+    });
+    expect(current.providers[0].accounts.map(({ id }) => id)).toEqual(['b']);
+    expect(JSON.parse(values.get(STORAGE_KEY)!).providers.claudeCode).toHaveLength(1);
+  });
+
+  it('stay locked while a plugin is installed but still loading', async () => {
+    snapshot([provider('claudeCode', [account('a')])]);
+    await mount([provider('claudeCode', [], { loaded: false })]);
+    expect(current.providers[0].accounts[0].cachedOnly).toBe(false);
+  });
+});
+
 function snapshot(providers: AccountProvider[], locale = 'en') {
   const cached = Object.fromEntries(
     providers.map((entry) => [
