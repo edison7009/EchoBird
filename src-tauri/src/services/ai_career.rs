@@ -269,7 +269,7 @@ fn claude_prompt_title(text: &str, command_fallback: &mut String) -> Option<Stri
     let command_pattern =
         COMMAND.get_or_init(|| regex::Regex::new(r"<command-name>(.*?)</command-name>").unwrap());
     let bash_pattern =
-        BASH.get_or_init(|| regex::Regex::new(r"<bash-input>([\s\S]*?)</bash-input>").unwrap());
+        BASH.get_or_init(|| regex::Regex::new(r"^<bash-input>([\s\S]*?)</bash-input>").unwrap());
     let wrapper_pattern = WRAPPER.get_or_init(|| {
         regex::Regex::new(r"^(?:<[a-z][\w-]*[\s>/]|\[Request interrupted by user[^\]]*\])").unwrap()
     });
@@ -278,7 +278,12 @@ fn claude_prompt_title(text: &str, command_fallback: &mut String) -> Option<Stri
     if text.is_empty() {
         return None;
     }
-    if let Some(command) = command_pattern.captures(text) {
+    // Only a row that opens with a tag is the CLI's own slash-command or shell record; a typed prompt
+    // that merely mentions those tags stays a prompt. Older CLIs put <command-message> before the name.
+    if let Some(command) = command_pattern
+        .captures(text)
+        .filter(|_| text.starts_with("<command-"))
+    {
         if command_fallback.is_empty() {
             *command_fallback = command[1].trim().to_string();
         }
@@ -450,32 +455,9 @@ fn parse_agent_jsonl_checked(
                 message_count += 1;
             }
         }
-        if role == "user" {
-            let is_real_user = match msg_obj.get("content") {
-                Some(content) if content.is_string() => content
-                    .as_str()
-                    .is_some_and(|text| !is_system_injected(text)),
-                Some(content) if content.is_array() => content.as_array().is_some_and(|arr| {
-                    arr.iter().any(|block| {
-                        let bt = block.get("type").and_then(|v| v.as_str()).unwrap_or("");
-                        if bt != "text" && bt != "input_text" {
-                            return false;
-                        }
-                        block
-                            .get("text")
-                            .and_then(|v| v.as_str())
-                            .is_some_and(|text| !is_system_injected(text))
-                    })
-                }),
-                _ => false,
-            };
-            if is_real_user {
-                real_user_messages += 1;
-            }
-        }
-        // Rows the CLI itself marks as not typed by the user never name the session.
+        // Rows the CLI itself marks as not typed by the user are not user input.
         let flagged = |key: &str| value.get(key).and_then(|v| v.as_bool()) == Some(true);
-        if role != "user" || !title.is_empty() || flagged("isMeta") || flagged("isCompactSummary") {
+        if role != "user" || flagged("isMeta") || flagged("isCompactSummary") {
             continue;
         }
         let texts: Vec<&str> = match msg_obj.get("content") {
@@ -493,10 +475,19 @@ fn parse_agent_jsonl_checked(
                 .collect(),
             _ => Vec::new(),
         };
-        if let Some(prompt) = texts
+        let mut command = String::new();
+        let prompt = texts
             .into_iter()
-            .find_map(|text| claude_prompt_title(text, &mut command_fallback))
-        {
+            .find_map(|text| claude_prompt_title(text, &mut command));
+        // One rule decides both whether the user typed anything (the compaction-sub-task filter below)
+        // and what names the session, so a kept session never falls back to a placeholder.
+        if prompt.is_some() || !command.is_empty() {
+            real_user_messages += 1;
+        }
+        if command_fallback.is_empty() {
+            command_fallback = command;
+        }
+        if let Some(prompt) = prompt.filter(|_| title.is_empty()) {
             title = prompt;
         }
     }
@@ -3635,6 +3626,51 @@ mod tests {
             "把工作中动画对齐竖线"
         );
         let _ = std::fs::remove_file(&f);
+    }
+
+    #[test]
+    fn parse_agent_jsonl_keeps_command_only_and_drops_wrapper_only_sessions() {
+        let dir = std::env::temp_dir().join("echobird_ai_career_test_command_only");
+        let _ = std::fs::create_dir_all(&dir);
+        let f = dir.join("command.jsonl");
+        std::fs::write(&f, "{\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"<command-name>/usage</command-name>\"}}\n").unwrap();
+        assert_eq!(
+            parse_agent_jsonl(&f, Family::Claude).unwrap().name,
+            "/usage"
+        );
+        std::fs::write(&f, "{\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"<some-hook-output>ran</some-hook-output>\"}}\n\
+                            {\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"[Request interrupted by user]\"}}\n\
+                            {\"type\":\"user\",\"isMeta\":true,\"message\":{\"role\":\"user\",\"content\":\"Caveat: generated while running local commands.\"}}\n").unwrap();
+        assert!(parse_agent_jsonl(&f, Family::Claude).is_none());
+        let _ = std::fs::remove_file(&f);
+    }
+
+    #[test]
+    fn claude_title_ignores_tags_mentioned_inside_a_prompt() {
+        let mut older = String::new();
+        assert_eq!(
+            claude_prompt_title(
+                "<command-message>usage</command-message>\n<command-name>/usage</command-name>",
+                &mut older
+            ),
+            None
+        );
+        assert_eq!(older, "/usage");
+        let mut untouched = String::new();
+        assert_eq!(
+            claude_prompt_title(
+                "why is <command-name>/init</command-name> in the log?",
+                &mut untouched
+            )
+            .as_deref(),
+            Some("why is <command-name>/init</command-name> in the log?")
+        );
+        assert_eq!(
+            claude_prompt_title("run <bash-input>ls</bash-input> for me", &mut untouched)
+                .as_deref(),
+            Some("run <bash-input>ls</bash-input> for me")
+        );
+        assert!(untouched.is_empty());
     }
 
     #[test]
