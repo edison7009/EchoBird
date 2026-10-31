@@ -13,8 +13,8 @@
         "windows_winget": "winget install --id 9PLM9XGG6VKS --source msstore --accept-package-agreements --accept-source-agreements",
         "windows_download": "Open https://openai.com/codex/ in the browser, click the Windows download. Saves to %USERPROFILE%\\Downloads by default.",
         "macos_download": "Open https://openai.com/codex/ in the browser, click the macOS download (.dmg). Saves to ~/Downloads by default.",
-        "linux": "Linux preview: download the x64 / ARM64 .deb or .rpm linked at https://learn.chatgpt.com/docs/linux/linux-app. Supported desktops: Ubuntu 24.04/26.04 LTS, Debian 13, Fedora 43/44. From Downloads install the selected .deb with apt or .rpm with dnf; launch `chatgpt`. The package registers the signed OpenAI update repository.",
-        "note": "GUI desktop application. Windows uses the Microsoft Store package; macOS uses the official Apple Silicon build. Linux preview uses the official .deb / .rpm for the supported distribution and architecture. Report installer location for manual downloads and verify the app opens."
+        "linux": "Linux preview: download the x64 / ARM64 .deb or .rpm linked at https://learn.chatgpt.com/docs/linux/linux-app. Supported desktops: Ubuntu 24.04/26.04 LTS, Debian 13, Fedora 43/44 and current Arch Linux. From Downloads install the selected .deb with apt or .rpm with dnf; on Arch download the official install-arch.sh from the same page and run it with sudo bash (it performs a full system upgrade and asks for confirmation). Launch `chatgpt`. Installation registers the signed OpenAI update repository.",
+        "note": "GUI desktop application. Windows uses the Microsoft Store package; macOS uses the official Apple Silicon build. Linux preview uses the official .deb / .rpm, or the official Arch install script, for the supported distribution and architecture. Report installer location for manual downloads and verify the app opens."
     },
     "install_flow": {
         "summary": "Detect OS and architecture → install the Store / macOS / Linux package → verify the app opens.",
@@ -22,7 +22,7 @@
             "Detect OS and architecture first. macOS requires the Apple Silicon build; Linux preview supports the distributions and architectures listed in the Linux docs.",
             "Windows: prefer `winget install --id 9PLM9XGG6VKS --source msstore` if available. Verify the package install result; no manual installer wizard is required for this path.",
             "macOS: download the official app linked from https://learn.chatgpt.com/docs/app to ~/Downloads, report its path, and open it for the user to install.",
-            "Linux: use https://learn.chatgpt.com/docs/linux/linux-app to select the matching .deb / .rpm. Install with apt / dnf from the download directory. Let the user run sudo if elevation is unavailable.",
+            "Linux: use https://learn.chatgpt.com/docs/linux/linux-app to select the matching .deb / .rpm. Install with apt / dnf from the download directory. On Arch, download the official install-arch.sh and run it with sudo bash; it upgrades the whole system, so tell the user before running it. Let the user run sudo if elevation is unavailable.",
             "Verify ChatGPT is present in the application menu and opens; the Linux launcher is `chatgpt`. Sign-in takes place inside the app."
         ],
         "tell_user": [
