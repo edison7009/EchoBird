@@ -1086,14 +1086,14 @@ img[src$='/icons/tools/opendesign.png'] {
   animation: spinnerShimmer 2.4s linear infinite;
 }
 
-/* Four-dot working mark: a 75-frame sheet stepped inside a fixed box, so the
+/* Three-dot working mark: a 110-frame sheet stepped inside a fixed box, so the
    animation never moves the row */
 @keyframes spinnerMark {
   from {
     transform: translateY(0);
   }
   to {
-    transform: translateY(-98.66666667%);
+    transform: translateY(-99.09090909%);
   }
 }
 
@@ -1101,8 +1101,8 @@ img[src$='/icons/tools/opendesign.png'] {
   position: relative;
   display: block;
   flex: none;
-  width: 20px;
-  height: 20px;
+  width: 18px;
+  height: 18px;
   overflow: hidden;
 }
 
@@ -1110,7 +1110,7 @@ img[src$='/icons/tools/opendesign.png'] {
   display: block;
   width: 100%;
   height: auto;
-  animation: spinnerMark 2.5s steps(75, jump-none) infinite;
+  animation: spinnerMark 3.666663s steps(110, jump-none) infinite;
 }
 
 @media (prefers-reduced-motion: reduce) {
