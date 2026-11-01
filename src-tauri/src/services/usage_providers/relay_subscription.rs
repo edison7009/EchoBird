@@ -10,15 +10,21 @@
 //! detect_provider so official providers (DeepSeek/Kimi/...) match first.
 //! Any unmatched base_url (relay/proxy) is tried against /v1/usage; if the
 //! response matches the usage schema, we render bars, otherwise (404, bad
-//! key, non-JSON, wrong shape) we silently show "暂无用量数据".
+//! key, non-JSON, wrong shape) the standard new-api queries get their turn,
+//! and a site answering neither silently shows "暂无用量数据".
 
 use super::{
-    api_url, now_millis, parse_f64, parse_reset_time, ModelUsageData, QuotaPeriod, UsageProvider,
-    UsageQuota, UsageResult,
+    api_url, new_api, now_millis, parse_f64, parse_reset_time, ModelUsageData, QuotaPeriod,
+    UsageProvider, UsageQuota, UsageResult,
 };
 use chrono::TimeZone;
 use reqwest;
+use sha2::{Digest, Sha256};
+use std::collections::HashMap;
+use std::future::Future;
+use std::sync::{Arc, Mutex, OnceLock, PoisonError};
 use std::time::Duration;
+use tokio::sync::OnceCell;
 
 pub struct RelaySubscriptionProvider;
 
@@ -159,21 +165,45 @@ fn parse_balance_quota(body: &serde_json::Value) -> Option<UsageQuota> {
     UsageQuota::balance(balance, unit)
 }
 
-/// Empty result: no usage data. This is the catch-all fallback provider, so
-/// every failure mode (unreachable host, non-2xx, non-JSON, or a 200 that isn't
-/// compatible usage response) collapses to this - the UI shows "暂无用量数据" instead of a
-/// provider-specific error toast.
-fn no_data() -> UsageResult {
-    UsageResult {
-        success: false,
-        data: None,
-        error: None,
+/// The relay could not be reached at all, so no other query is worth waiting for.
+struct Unreachable;
+
+type SharedRead = Arc<OnceCell<UsageResult>>;
+
+/// Models on one key refresh together, and relays limit these queries per IP,
+/// so requests running at the same time share one read. Nothing outlives it:
+/// the next refresh always asks again.
+async fn share_read(
+    origin: &str,
+    api_key: &str,
+    read: impl Future<Output = UsageResult>,
+) -> UsageResult {
+    static READS: OnceLock<Mutex<HashMap<String, SharedRead>>> = OnceLock::new();
+    let reads = READS.get_or_init(Mutex::default);
+    let key = format!("{origin}\n{:x}", Sha256::digest(api_key.as_bytes()));
+    let shared = reads
+        .lock()
+        .unwrap_or_else(PoisonError::into_inner)
+        .entry(key.clone())
+        .or_default()
+        .clone();
+    let usage = shared.get_or_init(|| read).await.clone();
+    let mut reads = reads.lock().unwrap_or_else(PoisonError::into_inner);
+    if reads
+        .get(&key)
+        .is_some_and(|current| Arc::ptr_eq(current, &shared))
+    {
+        reads.remove(&key);
     }
+    usage
 }
 
-#[async_trait::async_trait]
-impl UsageProvider for RelaySubscriptionProvider {
-    async fn query_usage(&self, api_key: &str, base_url: &str) -> Result<UsageResult, String> {
+impl RelaySubscriptionProvider {
+    async fn query_compatible_usage(
+        &self,
+        api_key: &str,
+        base_url: &str,
+    ) -> Result<UsageResult, Unreachable> {
         let usage_url = build_usage_url(base_url);
         let client = reqwest::Client::new();
         let resp = match client
@@ -185,21 +215,21 @@ impl UsageProvider for RelaySubscriptionProvider {
             .await
         {
             Ok(r) => r,
-            // Can't reach the endpoint (DNS / network / timeout) -> no data.
-            Err(_) => return Ok(no_data()),
+            // DNS / network / timeout: the site is down, whatever it runs.
+            Err(_) => return Err(Unreachable),
         };
 
-        // Any non-2xx (404, 401/403, 5xx, ...) -> no data. As a
-        // guess fallback we can't tell a bad key from an incompatible endpoint, so
-        // we never surface a specific error; the UI shows "暂无用量数据".
+        // Any non-2xx (404, 401/403, 5xx, ...) -> no data. As a guess we can't
+        // tell a bad key from an incompatible endpoint, so this query surfaces no
+        // specific error; the UI shows "暂无用量数据" unless another query answers.
         if !resp.status().is_success() {
-            return Ok(no_data());
+            return Ok(UsageResult::no_data());
         }
 
         let body: serde_json::Value = match resp.json().await {
             Ok(b) => b,
             // 200 but not JSON / wrong shape -> no data.
-            Err(_) => return Ok(no_data()),
+            Err(_) => return Ok(UsageResult::no_data()),
         };
 
         // Prefer the structured `subscription` object: it carries explicit
@@ -223,7 +253,7 @@ impl UsageProvider for RelaySubscriptionProvider {
             .is_some_and(|value| !value.is_null())
             || body.get("mode").and_then(|value| value.as_str()) == Some("quota_limited")
         {
-            return Ok(no_data());
+            return Ok(UsageResult::no_data());
         }
 
         // Wallet / API-call mode exposes a remaining balance instead of enforced
@@ -251,7 +281,7 @@ impl UsageProvider for RelaySubscriptionProvider {
             .to_string();
         let plan_limit = parse_plan_limit(&plan_name);
         if plan_limit <= 0.0 {
-            return Ok(no_data());
+            return Ok(UsageResult::no_data());
         }
         let Some(actual_cost) = body
             .get("usage")
@@ -259,11 +289,11 @@ impl UsageProvider for RelaySubscriptionProvider {
             .and_then(|u| u.get("actual_cost"))
             .and_then(parse_f64)
         else {
-            return Ok(no_data());
+            return Ok(UsageResult::no_data());
         };
         let percentage = actual_cost / plan_limit * 100.0;
         if !percentage.is_finite() {
-            return Ok(no_data());
+            return Ok(UsageResult::no_data());
         }
 
         Ok(UsageResult {
@@ -279,6 +309,26 @@ impl UsageProvider for RelaySubscriptionProvider {
                 last_updated: Some(now_millis()),
             }),
             error: None,
+        })
+    }
+
+    async fn read_usage(&self, api_key: &str, base_url: &str) -> UsageResult {
+        match self.query_compatible_usage(api_key, base_url).await {
+            Ok(usage) if usage.success => usage,
+            Ok(_) => new_api::query_usage(api_key, base_url).await,
+            Err(Unreachable) => UsageResult::no_data(),
+        }
+    }
+}
+
+#[async_trait::async_trait]
+impl UsageProvider for RelaySubscriptionProvider {
+    async fn query_usage(&self, api_key: &str, base_url: &str) -> Result<UsageResult, String> {
+        let read = self.read_usage(api_key, base_url);
+        // Both queries read from the site root, so the site identifies the read.
+        Ok(match new_api::site_origin(base_url) {
+            Some(origin) => share_read(&origin, api_key, read).await,
+            None => read.await,
         })
     }
 

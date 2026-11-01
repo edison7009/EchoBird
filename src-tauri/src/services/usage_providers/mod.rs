@@ -7,6 +7,7 @@ use serde::{Deserialize, Serialize};
 pub mod deepseek;
 pub mod kimi;
 pub mod minimax;
+pub mod new_api;
 pub mod novita;
 pub mod opencode;
 pub mod openrouter;
@@ -93,6 +94,16 @@ impl UsageResult {
         }
     }
 
+    /// Nothing to show and nothing to report: the UI says "暂无用量数据" rather
+    /// than raising an error, for sites that simply do not offer this query.
+    fn no_data() -> Self {
+        Self {
+            success: false,
+            data: None,
+            error: None,
+        }
+    }
+
     fn failure(message: impl Into<String>) -> Self {
         Self {
             success: false,
@@ -137,6 +148,14 @@ async fn fetch_usage(url: &str, authorization: &str) -> Result<serde_json::Value
     .await
 }
 
+fn usage_status_error(status: reqwest::StatusCode) -> String {
+    match status.as_u16() {
+        401 => "Usage authentication failed (HTTP 401)".to_string(),
+        403 => "Usage access denied; check the key and subscription (HTTP 403)".to_string(),
+        _ => format!("Usage API error (HTTP {status})"),
+    }
+}
+
 async fn send_usage_request(request: reqwest::RequestBuilder) -> Result<serde_json::Value, String> {
     let response = request
         .header("Accept", "application/json")
@@ -147,11 +166,7 @@ async fn send_usage_request(request: reqwest::RequestBuilder) -> Result<serde_js
         .map_err(|_| "Unable to reach the usage API".to_string())?;
     let status = response.status();
     if !status.is_success() {
-        return Err(match status.as_u16() {
-            401 => "Usage authentication failed (HTTP 401)".to_string(),
-            403 => "Usage access denied; check the key and subscription (HTTP 403)".to_string(),
-            _ => format!("Usage API error (HTTP {status})"),
-        });
+        return Err(usage_status_error(status));
     }
     response
         .json()
