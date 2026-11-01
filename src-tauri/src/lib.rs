@@ -1486,6 +1486,16 @@ pub fn run() {
                     }
                     // Otherwise, let it close normally
                 }
+                // Hidden helper windows (background plugins, voice tools) would
+                // otherwise keep the process alive with a tray icon that has no
+                // window left to restore.
+                tauri::RunEvent::WindowEvent {
+                    label,
+                    event: tauri::WindowEvent::Destroyed,
+                    ..
+                } if label == "main" => {
+                    app_handle.exit(0);
+                }
                 tauri::RunEvent::Exit => {
                     services::smart_router::statistics::shutdown();
                     services::voice_input::shutdown(app_handle);
