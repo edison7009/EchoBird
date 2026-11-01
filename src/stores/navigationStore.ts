@@ -6,7 +6,7 @@
 import { create } from 'zustand';
 import type { PageType } from '../components';
 
-export type DeveloperTab = 'pets' | 'plugins' | 'statistics';
+export type DeveloperTab = 'pets' | 'plugins' | 'statistics' | 'usageIsland';
 
 interface NavigationState {
   activePage: PageType;

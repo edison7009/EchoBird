@@ -37,6 +37,7 @@ import type { ModelConfig } from '../../api/types';
 import { AppManagerContext } from './context';
 import { useToolsStore } from '../../stores/toolsStore';
 import { useNavigationStore } from '../../stores/navigationStore';
+import { useUsageIslandVisible } from '../../stores/usageIslandStore';
 import { useModelNexus } from '../ModelNexus/context';
 import { useFreeModels } from '../FreeModels/provider';
 import { getOfficialEndpoint, isOfficialModelSentinel } from '../../data/officialEndpoints';
@@ -80,6 +81,7 @@ export const AppManagerProvider: React.FC<AppManagerProviderProps> = ({ children
   const installedPlugins = usePluginsStore((state) => state.installed);
   const loadPlugins = usePluginsStore((state) => state.load);
   const developerMode = useNavigationStore((state) => state.developerMode);
+  const developerTab = useNavigationStore((state) => state.developerTab);
   const pluginProviders = useMemo(
     () => pluginToolProviders(installedPlugins, developerMode),
     [installedPlugins, developerMode]
@@ -195,6 +197,11 @@ export const AppManagerProvider: React.FC<AppManagerProviderProps> = ({ children
     clineSelectionRevision.current += 1;
     accountNavigation.current = { tool: selectedTool, page: activePage };
   }, [selectedTool, activePage]);
+  const usageIslandOpen = useUsageIslandVisible();
+  const accountPage =
+    usageIslandOpen ||
+    activePage === 'accounts' ||
+    (activePage === 'developer' && developerMode && developerTab === 'usageIsland');
   const accountsEnabled =
     isActive && detectedTools.some((tool) => tool.id === selectedTool && tool.installed);
   const pluginAvailable = (id: string) => hasAccountPlugin(id, installedPlugins, developerMode);
@@ -205,7 +212,7 @@ export const AppManagerProvider: React.FC<AppManagerProviderProps> = ({ children
   const accountGroupEnabled = (...ids: string[]) =>
     ids.every((id) => !communityAccountApplications.includes(id) || pluginAvailable(id)) &&
     !usingCachedTools &&
-    (activePage === 'accounts'
+    (accountPage
       ? !ids.some((id) => communityAccountApplications.includes(id)) ||
         detectedTools.some((tool) => ids.includes(tool.id) && tool.installed)
       : accountsEnabled && ids.includes(selectedTool ?? ''));
@@ -231,7 +238,7 @@ export const AppManagerProvider: React.FC<AppManagerProviderProps> = ({ children
     !!(selectedTool && toolModelConfig[selectedTool]),
     () => setToolModelConfig((prev) => ({ ...prev, codex: null, chatgptdesktop: null })),
     setApplyError,
-    activePage === 'accounts' ? 'accounts' : (selectedTool ?? '')
+    accountPage ? 'accounts' : (selectedTool ?? '')
   );
   const {
     accounts: codexAccounts,
@@ -430,7 +437,7 @@ export const AppManagerProvider: React.FC<AppManagerProviderProps> = ({ children
     ),
     clearMinimaxModel,
     setApplyError,
-    activePage === 'accounts' ? 'accounts' : (selectedTool ?? '')
+    accountPage ? 'accounts' : (selectedTool ?? '')
   );
   const qoderEdition: api.QoderEdition = selectedTool === 'qodercn' ? 'qodercn' : 'qoder';
   const clearQoderGlobalModel = useCallback(() => {
@@ -445,7 +452,7 @@ export const AppManagerProvider: React.FC<AppManagerProviderProps> = ({ children
     !!toolModelConfig.qoder,
     clearQoderGlobalModel,
     setApplyError,
-    activePage === 'accounts' ? 'accounts' : (selectedTool ?? '')
+    accountPage ? 'accounts' : (selectedTool ?? '')
   );
   const qoderCnAccounts = useQoderAccounts(
     'qodercn',
@@ -453,7 +460,7 @@ export const AppManagerProvider: React.FC<AppManagerProviderProps> = ({ children
     !!toolModelConfig.qodercn,
     clearQoderCnModel,
     setApplyError,
-    activePage === 'accounts' ? 'accounts' : (selectedTool ?? '')
+    accountPage ? 'accounts' : (selectedTool ?? '')
   );
   const qoderAccounts = qoderEdition === 'qodercn' ? qoderCnAccounts : qoderGlobalAccounts;
   const clearDuMateModel = useCallback(() => {
@@ -517,14 +524,14 @@ export const AppManagerProvider: React.FC<AppManagerProviderProps> = ({ children
     accountGroupEnabled('qwenwork'),
     clearQwenWorkModel,
     setApplyError,
-    activePage === 'accounts' ? 'accounts' : (selectedTool ?? '')
+    accountPage ? 'accounts' : (selectedTool ?? '')
   );
   const qwenWorkCnAccounts = useQwenWorkAccounts(
     'qwenworkcn',
     accountGroupEnabled('qwenworkcn'),
     clearQwenWorkCnModel,
     setApplyError,
-    activePage === 'accounts' ? 'accounts' : (selectedTool ?? '')
+    accountPage ? 'accounts' : (selectedTool ?? '')
   );
   const qwenWorkAccounts =
     qwenWorkEdition === 'qwenworkcn' ? qwenWorkCnAccounts : qwenWorkGlobalAccounts;
@@ -579,7 +586,7 @@ export const AppManagerProvider: React.FC<AppManagerProviderProps> = ({ children
     ),
     clearClineModel,
     setApplyError,
-    activePage === 'accounts' ? 'accounts' : (selectedTool ?? '')
+    accountPage ? 'accounts' : (selectedTool ?? '')
   );
 
   const clearKiloModel = useCallback(
@@ -595,7 +602,7 @@ export const AppManagerProvider: React.FC<AppManagerProviderProps> = ({ children
     ),
     clearKiloModel,
     setApplyError,
-    activePage === 'accounts' ? 'accounts' : (selectedTool ?? '')
+    accountPage ? 'accounts' : (selectedTool ?? '')
   );
   const clearCopilotModel = useCallback(
     () => setToolModelConfig((prev) => ({ ...prev, copilot: null, copilotdesktop: null })),
@@ -611,11 +618,10 @@ export const AppManagerProvider: React.FC<AppManagerProviderProps> = ({ children
     clearCopilotModel,
     setApplyError,
     selectedTool === 'copilotdesktop' ||
-      (activePage === 'accounts' &&
-        !detectedTools.some((tool) => tool.id === 'copilot' && tool.installed))
+      (accountPage && !detectedTools.some((tool) => tool.id === 'copilot' && tool.installed))
       ? 'copilotdesktop'
       : 'copilot',
-    activePage === 'accounts' ? 'accounts' : (selectedTool ?? '')
+    accountPage ? 'accounts' : (selectedTool ?? '')
   );
 
   const clearGrokBotModel = useCallback(
@@ -648,7 +654,7 @@ export const AppManagerProvider: React.FC<AppManagerProviderProps> = ({ children
   }, [activePage, selectedTool, cursorAccounts.selectedId]);
   const antigravityAccounts = useAntigravityAccounts(
     accountGroupEnabled('antigravity', 'antigravitydesktop'),
-    activePage === 'accounts'
+    accountPage
       ? 'antigravitydesktop'
       : selectedTool === 'antigravity'
         ? 'antigravity'
@@ -669,18 +675,18 @@ export const AppManagerProvider: React.FC<AppManagerProviderProps> = ({ children
       detectedTools.some(
         (tool) => pluginAccountProvider?.applications.includes(tool.id) && tool.installed
       ) &&
-      (activePage === 'accounts' || (accountsEnabled && selectedTool === pluginAccountTool)),
+      (accountPage || (accountsEnabled && selectedTool === pluginAccountTool)),
     !!toolModelConfig[pluginAccountTool],
     () => setToolModelConfig((prev) => ({ ...prev, [pluginAccountTool]: null })),
     setApplyError,
-    activePage === 'accounts' ? 'plugin' : pluginAccountTool
+    accountPage ? 'plugin' : pluginAccountTool
   );
   const kimiAccounts = useKimiAccounts(
     accountGroupEnabled('kimicode', 'kimidesktop'),
     !!kimiModel,
     () => setToolModelConfig((prev) => ({ ...prev, [kimiTool]: null })),
     setApplyError,
-    activePage === 'accounts' ? 'kimi' : kimiTool
+    accountPage ? 'kimi' : kimiTool
   );
   useEffect(() => {
     kimiSelectionRevision.current += 1;
@@ -715,7 +721,7 @@ export const AppManagerProvider: React.FC<AppManagerProviderProps> = ({ children
     devinTool,
     accountGroupEnabled('devin', 'devincli'),
     setApplyError,
-    activePage === 'accounts' ? 'devin' : devinTool
+    accountPage ? 'devin' : devinTool
   );
   const devinRevision = useRef(0);
   useEffect(() => {

@@ -3,7 +3,7 @@ import type { AccountCardData, AccountMetric, AccountProvider } from './accountC
 
 const CACHE_KEY = 'echobird_account_card_cache';
 
-type CachedAccount = Pick<
+export type CachedAccount = Pick<
   AccountCardData,
   | 'id'
   | 'identity'
@@ -80,6 +80,10 @@ function readSnapshot(locale: string): Snapshot | null {
     // Account loading remains usable when browser storage is unavailable.
   }
   return null;
+}
+
+export function readCachedAccounts(locale: string): Record<string, CachedAccount[]> {
+  return readSnapshot(locale)?.providers ?? {};
 }
 
 function summarize(account: AccountCardData): CachedAccount {

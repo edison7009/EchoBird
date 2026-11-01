@@ -18,6 +18,7 @@ pub mod qwenwork_account_commands;
 pub mod settings_commands;
 pub mod smart_router_commands;
 pub mod tool_commands;
+pub mod usage_island_commands;
 pub mod voice_input_commands;
 
 pub mod agent_commands;

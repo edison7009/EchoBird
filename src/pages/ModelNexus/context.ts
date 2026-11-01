@@ -100,7 +100,7 @@ export interface ModelNexusCtx {
   openZhipuTeamModal: (modelId: string) => Promise<void>;
   pingAllModels: () => Promise<void>;
   refreshAllUsage: () => Promise<void>;
-  refreshSingleUsage: (modelId: string) => Promise<void>; // Single model refresh
+  refreshSingleUsage: (modelId: string, options?: { silent?: boolean }) => Promise<void>; // Single model refresh
   handleTestModel: () => Promise<void>;
 }
 

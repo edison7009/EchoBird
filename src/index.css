@@ -355,7 +355,8 @@
 .view-mode-tab[aria-pressed='true'],
 .view-mode-tab[aria-selected='true'],
 .view-mode-tabs[data-sliding='true']::before,
-.voice-island.voice-theme-auto {
+.voice-island.voice-theme-auto,
+.usage-island.usage-island-theme-auto {
   background-color: color-mix(
     in srgb,
     rgb(var(--view-mode-accent-rgb)) 30%,
@@ -378,7 +379,8 @@
 :root[data-theme='light'] .view-mode-tab[aria-pressed='true'],
 :root[data-theme='light'] .view-mode-tab[aria-selected='true'],
 :root[data-theme='light'] .view-mode-tabs[data-sliding='true']::before,
-:root[data-theme='light'] .voice-island.voice-theme-auto {
+:root[data-theme='light'] .voice-island.voice-theme-auto,
+:root[data-theme='light'] .usage-island.usage-island-theme-auto {
   background-color: color-mix(
     in srgb,
     rgb(var(--bg-elevated-rgb)) 94%,
@@ -409,7 +411,8 @@
   .view-mode-tab[aria-pressed='true'],
   .view-mode-tab[aria-selected='true'],
   .view-mode-tabs[data-sliding='true']::before,
-  .voice-island.voice-theme-auto {
+  .voice-island.voice-theme-auto,
+  .usage-island.usage-island-theme-auto {
     animation: none;
     transition: none;
   }

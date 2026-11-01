@@ -1,0 +1,265 @@
+import { useMemo, useState } from 'react';
+import { Box, Check, Plus, RefreshCw, TriangleAlert } from 'lucide-react';
+import { MiniSelect } from '../../components/MiniSelect';
+import { ViewModeTabs } from '../../components/ViewModeTabs';
+import { useI18n } from '../../hooks/useI18n';
+import type { TKey } from '../../i18n';
+import { ACCOUNT_NAME_MASK, useAccountPrivacyStore } from '../../stores/accountPrivacyStore';
+import {
+  USAGE_ISLAND_LIMIT,
+  usageIslandExpandModes,
+  usageIslandRefreshMinutes,
+  usageIslandStyles,
+  usageIslandThemes,
+  useUsageIslandStore,
+  useUsageIslandVisible,
+} from '../../stores/usageIslandStore';
+import { usageIslandDemoItems } from './usageIslandData';
+import { UsageIslandSlots } from './UsageIslandSlots';
+import { UsageIslandThumbnail, UsageIslandView } from './UsageIslandView';
+import {
+  useUsageIslandActive,
+  useUsageIslandItems,
+  useUsageIslandRefresh,
+  useUsageSources,
+} from './useUsageIslandData';
+import '../FreeModels/FreeModels.css';
+import '../VoiceInput/VoiceInput.css';
+import './UsageIsland.css';
+
+export function UsageIslandMain() {
+  const { t } = useI18n();
+  const active = useUsageIslandActive();
+  const config = useUsageIslandStore();
+  const { update } = config;
+  const sources = useUsageSources(active);
+  const items = useUsageIslandItems(sources);
+  const visible = useUsageIslandVisible();
+  const { refreshing, refresh } = useUsageIslandRefresh(items, active && !visible);
+  const [demoNow] = useState(() => Date.now() / 1000);
+  const demoItems = useMemo(
+    () => usageIslandDemoItems(config.style, demoNow),
+    [config.style, demoNow]
+  );
+  const [demoPick, setDemoPick] = useState<string | null>(null);
+  return (
+    <div className="flex-1 overflow-y-auto pr-1 pb-3">
+      <div className="usage-island-page">
+        <section className="usage-island-stage" aria-label={t('developer.usageIsland')}>
+          <UsageIslandView
+            items={demoItems}
+            settings={config}
+            pick={demoPick}
+            onPick={setDemoPick}
+          />
+          <UsageIslandSlots sources={sources} />
+        </section>
+        <div className="usage-island-lower">
+          <div className="usage-island-styles">
+            {usageIslandStyles.map((style) => (
+              <button
+                key={style}
+                type="button"
+                className="usage-island-style rounded-card"
+                aria-label={t(`usageIsland.style.${style}` as TKey)}
+                aria-pressed={config.style === style}
+                onClick={() => update({ style })}
+              >
+                <UsageIslandThumbnail style={style} />
+              </button>
+            ))}
+          </div>
+          <div className="voice-card rounded-card usage-island-settings">
+            <div className="voice-row">
+              <span>{t('voice.theme')}</span>
+              <ViewModeTabs
+                value={config.theme}
+                onChange={(theme) => update({ theme })}
+                options={usageIslandThemes.map((theme) => ({
+                  value: theme,
+                  label: t(`voice.${theme}` as TKey),
+                }))}
+              />
+            </div>
+            <div className="voice-row">
+              <span>{t('usageIsland.expandMode')}</span>
+              <ViewModeTabs
+                value={config.expandMode}
+                onChange={(expandMode) => update({ expandMode })}
+                options={usageIslandExpandModes.map((mode) => ({
+                  value: mode,
+                  label: t(`usageIsland.expandMode.${mode}` as TKey),
+                }))}
+              />
+            </div>
+            <div className="voice-row">
+              <span>{t('usageIsland.refresh')}</span>
+              <span className="usage-island-refresh">
+                <button
+                  type="button"
+                  className="voice-text-button"
+                  disabled={refreshing || !items.length}
+                  onClick={() => void refresh(true)}
+                >
+                  <RefreshCw size={14} className={refreshing ? 'animate-spin' : ''} />
+                  {t('accountCenter.refreshAll')}
+                </button>
+                <MiniSelect
+                  value={String(config.refreshMinutes)}
+                  dropUp
+                  onChange={(value) => update({ refreshMinutes: Number(value) })}
+                  options={usageIslandRefreshMinutes.map((minutes) => ({
+                    id: String(minutes),
+                    label: minutes
+                      ? t('usageIsland.refresh.minutes').replace('{n}', String(minutes))
+                      : t('usageIsland.refresh.manual'),
+                  }))}
+                />
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function UsageSourceRow({
+  name,
+  detail,
+  icon,
+  value,
+  missing,
+  selected,
+  disabled,
+  onToggle,
+}: {
+  name: string;
+  detail: string;
+  icon: string | null;
+  value?: string;
+  missing?: boolean;
+  selected: boolean;
+  disabled: boolean;
+  onToggle: () => void;
+}) {
+  return (
+    <div
+      className={`relative overflow-hidden p-[11px] rounded-card transition-colors flex items-center gap-3 border-2 ${
+        selected
+          ? 'border-cyber-accent/70 bg-cyber-accent/10'
+          : 'border-transparent bg-cyber-surface/60 hover:bg-cyber-elevated/70'
+      }`}
+    >
+      <button
+        type="button"
+        aria-label={`${name} — ${detail}`}
+        aria-pressed={selected}
+        disabled={disabled}
+        onClick={onToggle}
+        className="absolute inset-0 rounded-card focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-cyber-accent"
+      />
+      <div className="relative z-10 pointer-events-none flex items-center gap-3 shrink-0">
+        {selected ? (
+          <Check size={22} className="text-cyber-accent" />
+        ) : (
+          <Plus size={22} className={disabled ? 'opacity-40' : 'text-cyber-text-muted'} />
+        )}
+        {missing ? (
+          <TriangleAlert size={22} className="text-cyber-text-muted" />
+        ) : icon ? (
+          <img src={icon} alt="" className="w-6 h-6 object-contain" />
+        ) : (
+          <Box size={22} className="text-cyber-text" />
+        )}
+      </div>
+      <div className="relative z-10 pointer-events-none flex-1 min-w-0 flex flex-col justify-center min-h-[2.5rem] py-0.5">
+        <div className="flex items-center gap-2">
+          <div className="text-sm font-bold truncate leading-none flex-1 min-w-0">{name}</div>
+          {value && (
+            <span className="text-[10px] text-cyber-text-secondary shrink-0 whitespace-nowrap tabular-nums">
+              {value}
+            </span>
+          )}
+        </div>
+        <div className="mt-1 text-[10px] leading-tight truncate text-cyber-text-secondary/70">
+          {detail}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export function UsageIslandPanel() {
+  const { t } = useI18n();
+  const active = useUsageIslandActive();
+  const hidden = useAccountPrivacyStore((privacy) => privacy.hidden);
+  const selected = useUsageIslandStore((state) => state.sources);
+  const toggleSource = useUsageIslandStore((state) => state.toggleSource);
+  const sources = useUsageSources(active);
+  const [tab, setTab] = useState<'account' | 'model'>('account');
+  const rows = sources.filter((source) => source.kind === tab);
+  const missing = selected.filter(
+    (key) => key.startsWith(`${tab}:`) && !sources.some((source) => source.key === key)
+  );
+  const full = selected.length >= USAGE_ISLAND_LIMIT;
+  return (
+    <div className="flex h-full flex-col overflow-hidden">
+      <div className="h-10 shrink-0 px-2 mb-2 flex items-center justify-between gap-2">
+        <div className="min-w-0 w-fit">
+          <ViewModeTabs
+            value={tab}
+            onChange={setTab}
+            options={[
+              { value: 'account', label: t('usageIsland.accounts') },
+              { value: 'model', label: t('usageIsland.models') },
+            ]}
+          />
+        </div>
+        <span
+          className="shrink-0 pr-1 text-sm font-mono tabular-nums text-cyber-text-secondary"
+          role="status"
+          aria-label={t('usageIsland.count')
+            .replace('{n}', String(selected.length))
+            .replace('{max}', String(USAGE_ISLAND_LIMIT))}
+        >
+          {selected.length}/{USAGE_ISLAND_LIMIT}
+        </span>
+      </div>
+      <div className="flex-1 px-2 pt-0.5 pb-2 overflow-y-auto space-y-2">
+        {rows.map((source) => {
+          const isSelected = selected.includes(source.key);
+          return (
+            <UsageSourceRow
+              key={source.key}
+              name={source.name}
+              detail={source.kind === 'account' && hidden ? ACCOUNT_NAME_MASK : source.detail}
+              icon={source.icon}
+              value={source.value}
+              selected={isSelected}
+              disabled={!isSelected && full}
+              onToggle={() => toggleSource(source.key)}
+            />
+          );
+        })}
+        {missing.map((key) => (
+          <UsageSourceRow
+            key={key}
+            name={t('voice.missingSource')}
+            detail=""
+            icon={null}
+            missing
+            selected
+            disabled={false}
+            onToggle={() => toggleSource(key)}
+          />
+        ))}
+        {!rows.length && !missing.length && (
+          <div className="flex min-h-16 items-center justify-center rounded bg-cyber-surface/60 text-xs text-cyber-text-muted">
+            {t(tab === 'account' ? 'accountCenter.empty' : 'usageIsland.noModels')}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

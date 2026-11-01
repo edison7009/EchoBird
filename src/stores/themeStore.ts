@@ -97,7 +97,7 @@ const apply = (resolved: Resolved, colorTheme: ColorThemeId, instant: boolean) =
     const kill = document.createElement('style');
     // Preserve the shared flowing backgrounds while theme colors swap instantly.
     kill.textContent =
-      '*:not(.voice-island.voice-theme-auto), *:not(.view-mode-tabs[data-sliding="true"])::before, *::after { transition: none !important; animation: none !important; }';
+      '*:not(.voice-island.voice-theme-auto, .usage-island.usage-island-theme-auto), *:not(.view-mode-tabs[data-sliding="true"])::before, *::after { transition: none !important; animation: none !important; }';
     document.head.appendChild(kill);
     document.documentElement.dataset.theme = resolved;
     applyColorTheme(colorTheme, resolved);

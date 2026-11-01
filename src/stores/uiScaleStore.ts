@@ -114,6 +114,7 @@ export const useUiScaleStore = create<UiScaleStore>((set, get) => ({
             applied = true;
             if (getCurrentWindow().label === 'main') {
               await emitTo('voice-island', UI_SCALE_CHANGED_EVENT, scale).catch(() => {});
+              await emitTo('usage-island', UI_SCALE_CHANGED_EVENT, scale).catch(() => {});
             }
           }
           set({ preference: request.preference, scale, failed: false });
@@ -139,7 +140,7 @@ export async function initializeUiScale(): Promise<() => void> {
   const win = getCurrentWindow();
   let synced = false;
   const sync =
-    win.label === 'voice-island'
+    win.label === 'voice-island' || win.label === 'usage-island'
       ? await listen<number>(UI_SCALE_CHANGED_EVENT, ({ payload }) => {
           if (Number.isFinite(payload) && payload >= 0.7 && payload <= 1.5) {
             synced = true;

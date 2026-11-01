@@ -19,6 +19,7 @@ it('uses the shared title tabs and preserves selection when revisiting the devel
     'developer.pets',
     'developer.plugins',
     'developer.statistics',
+    'developer.usageIsland',
   ]);
   act(() => view.root.findAllByType('button')[2].props.onClick());
   navigation.getState().setActivePage('apps');

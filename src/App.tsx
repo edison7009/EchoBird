@@ -43,11 +43,18 @@ import {
 // Shared providers remain mounted; display modules load on first use.
 import { ModelNexusProvider } from './pages/ModelNexus/provider';
 import { AppManagerProvider } from './pages/AppManager/AppManagerProvider';
+import { UsageIslandHost } from './pages/UsageIsland/UsageIslandHost';
 import { LocalServerProvider } from './pages/LocalServer/provider';
 import { MotherAgentProvider } from './pages/MotherAgent/MotherAgentProvider';
 import { AiPulseProvider } from './pages/AiPulse/provider';
 import { FreeModelsProvider, useFreeModels } from './pages/FreeModels/provider';
 import { VoiceInputProvider } from './pages/VoiceInput/provider';
+const UsageIslandMain = lazy(() =>
+  import('./pages/UsageIsland/UsageIsland').then((module) => ({ default: module.UsageIslandMain }))
+);
+const UsageIslandPanel = lazy(() =>
+  import('./pages/UsageIsland/UsageIsland').then((module) => ({ default: module.UsageIslandPanel }))
+);
 const VoiceInputMain = lazy(() =>
   import('./pages/VoiceInput/VoiceInput').then((module) => ({ default: module.VoiceInputMain }))
 );
@@ -382,6 +389,7 @@ function AppContent() {
                 <AppManagerProvider>
                   <LocalServerProvider>
                     <VoiceInputProvider>
+                      <UsageIslandHost />
                       <div
                         className={`relative isolate flex flex-col h-screen w-full bg-cyber-bg overflow-hidden ${isMaximized || IS_MACOS ? '' : 'rounded-xl'}`}
                       >
@@ -553,6 +561,23 @@ function AppContent() {
                                         />
                                       </OnFirstVisit>
                                     </div>
+                                    <div
+                                      className={pageBlock(
+                                        developerMode &&
+                                          is('developer') &&
+                                          developerTab === 'usageIsland'
+                                      )}
+                                    >
+                                      <OnFirstVisit
+                                        active={
+                                          developerMode &&
+                                          is('developer') &&
+                                          developerTab === 'usageIsland'
+                                        }
+                                      >
+                                        <UsageIslandMain />
+                                      </OnFirstVisit>
+                                    </div>
                                     <div className={pageBlock(is('localLlm'))}>
                                       <OnFirstVisit active={is('localLlm')}>
                                         <LocalServerMain />
@@ -627,6 +652,23 @@ function AppContent() {
                                       }
                                     >
                                       <PluginHubPanel />
+                                    </OnFirstVisit>
+                                  </div>
+                                  <div
+                                    className={page(
+                                      developerMode &&
+                                        is('developer') &&
+                                        developerTab === 'usageIsland'
+                                    )}
+                                  >
+                                    <OnFirstVisit
+                                      active={
+                                        developerMode &&
+                                        is('developer') &&
+                                        developerTab === 'usageIsland'
+                                      }
+                                    >
+                                      <UsageIslandPanel />
                                     </OnFirstVisit>
                                   </div>
                                   <div className={page(is('voice'))}>

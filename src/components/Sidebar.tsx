@@ -13,6 +13,7 @@ import {
   Users,
   Mic,
   Download,
+  Gauge,
 } from 'lucide-react';
 import { NavItem } from './NavItem';
 import { RoutingToggle } from './RoutingToggle';
@@ -21,6 +22,7 @@ import { useI18n } from '../hooks/useI18n';
 import type { TKey } from '../i18n';
 import type { SmartRouterConfig } from '../api/smartRouter';
 import { useLocalServerStatusStore } from '../stores/localServerStatusStore';
+import { useUsageIslandStore } from '../stores/usageIslandStore';
 import { useVoiceInputStore, voiceBusy } from '../stores/voiceInputStore';
 import { BirdEasterEgg } from './BirdEasterEgg';
 import { useSidebarStore } from '../stores/sidebarStore';
@@ -91,7 +93,7 @@ function SidebarToggle({
       </button>
     );
   return (
-    <div className="flex items-center gap-4 p-2">
+    <div className="flex items-center gap-4 px-2 py-1">
       <span className="whitespace-nowrap">{label}</span>
       <RoutingToggle
         label={ariaLabel}
@@ -134,6 +136,9 @@ export const Sidebar = ({
     (state) => !state.snapshot || voiceBusy(state.snapshot.phase)
   );
   const saveVoice = useVoiceInputStore((state) => state.save);
+  const hasUsageSources = useUsageIslandStore((state) => state.sources.length > 0);
+  const usageIslandEnabled = useUsageIslandStore((state) => state.enabled);
+  const updateUsageIsland = useUsageIslandStore((state) => state.update);
   const showSmartRouterToggle = smartRouterGroups.some((router) => router.candidateIds.length > 0);
   const changeVoice = async (enabled: boolean) => {
     if (voiceDisabled || voicePending) return;
@@ -147,7 +152,7 @@ export const Sidebar = ({
       id="app-sidebar"
       ref={sidebarRef}
       data-collapsed={collapsed}
-      className={`relative flex shrink-0 flex-col pb-6 transition-[width,padding,margin] duration-200 ease-out motion-reduce:transition-none ${collapsed ? 'w-16 -ml-4 px-2' : 'w-64 px-6'}`}
+      className={`relative flex shrink-0 flex-col pb-5 transition-[width,padding,margin] duration-200 ease-out motion-reduce:transition-none ${collapsed ? 'w-16 -ml-4 px-2' : 'w-64 px-6'}`}
     >
       <div
         className={`mb-7 flex-shrink-0 flex items-center ${collapsed ? 'relative justify-center' : 'gap-2 overflow-hidden'}`}
@@ -271,7 +276,7 @@ export const Sidebar = ({
       </div>
 
       <div className="flex-shrink-0 pt-4 text-[14px] text-cyber-text-secondary">
-        <div className="space-y-2 text-[15px] font-medium">
+        <div className="space-y-1 text-[15px] font-medium">
           {collapsed && updateAvailable && (
             <button
               type="button"
@@ -296,6 +301,16 @@ export const Sidebar = ({
               disabled={voiceDisabled}
               pending={voicePending}
               onChange={changeVoice}
+            />
+          )}
+          {developerMode && hasUsageSources && (
+            <SidebarToggle
+              collapsed={collapsed}
+              label={t('developer.usageIsland')}
+              ariaLabel={t('usageIsland.enable')}
+              icon={<Gauge size={20} />}
+              checked={usageIslandEnabled}
+              onChange={(enabled) => updateUsageIsland({ enabled })}
             />
           )}
           {showSmartRouterToggle && (

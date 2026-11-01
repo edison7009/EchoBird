@@ -16,6 +16,7 @@ import { VoiceIsland } from './pages/VoiceInput/VoiceIsland';
 import { SelectionTranslation } from './pages/VoiceInput/SelectionTranslation';
 const isVoiceIsland = getCurrentWindow().label === 'voice-island';
 const isVoiceTranslation = getCurrentWindow().label === 'voice-translation';
+const isUsageIsland = getCurrentWindow().label === 'usage-island';
 
 // ── Object.hasOwn polyfill ───────────────────────────────────────────────────
 // ES2022 runtime API; native in Safari 15.4+ (macOS 12.3+), absent in Safari
@@ -120,7 +121,7 @@ async function bootBrandImage(): Promise<void> {
 // second fires after the paint that draws our first frame. This is what
 // makes the window appear with the real UI already on screen.
 function showWindowAfterFirstPaint(): void {
-  if (isVoiceIsland || isVoiceTranslation) return;
+  if (isVoiceIsland || isVoiceTranslation || isUsageIsland) return;
   requestAnimationFrame(() => {
     requestAnimationFrame(() => {
       api.appReady();
@@ -166,6 +167,23 @@ function renderBootError(err: unknown): void {
 }
 
 async function bootAndRender(): Promise<void> {
+  if (isUsageIsland) {
+    document.documentElement.classList.add('usage-island-window');
+    const [locale, , disposeUiScale, { UsageIslandWindow }] = await Promise.all([
+      bootI18n(),
+      bootFonts(),
+      initializeUiScale(),
+      import('./pages/UsageIsland/UsageIslandWindow'),
+    ]);
+    import.meta.hot?.dispose(disposeUiScale);
+    document.documentElement.lang = locale;
+    ReactDOM.createRoot(document.getElementById('root')!).render(
+      <I18nProvider initialLocale={locale}>
+        <UsageIslandWindow />
+      </I18nProvider>
+    );
+    return;
+  }
   if (isVoiceIsland || isVoiceTranslation) {
     document.documentElement.classList.add(
       isVoiceTranslation ? 'voice-translation-window' : 'voice-island-window'

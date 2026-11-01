@@ -27,14 +27,19 @@ export function compactCountdown(resetAt: number, now: number): string {
   return `${minutes}m`;
 }
 
-export function compactModelUsage(usage: ModelUsageData, now: number): string {
+export function primaryQuota(usage: ModelUsageData): UsageQuota | undefined {
   const quotas = usage.quotas.filter((quota) => quota.balance == null);
-  const primary =
+  return (
     quotas.find((quota) => quota.period === 'fiveHour') ??
     quotas.find((quota) => quota.period === 'daily') ??
-    quotas[0];
+    quotas[0]
+  );
+}
+
+export function compactModelUsage(usage: ModelUsageData, now: number): string {
+  const primary = primaryQuota(usage);
   if (!primary) return '';
-  const weekly = quotas.find((quota) => quota.period === 'weekly');
+  const weekly = usage.quotas.find((quota) => quota.balance == null && quota.period === 'weekly');
   // Legacy quotas may carry placeholder reset times without a known period.
   const countdown = primary.period ? compactCountdown(primary.resetAt, now) : '';
   const prefix = primary.period === 'weekly' ? '7d ' : primary.period === 'monthly' ? '1mo ' : '';

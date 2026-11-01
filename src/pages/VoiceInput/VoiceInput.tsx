@@ -20,7 +20,6 @@ import {
 import { open as shellOpen } from '@tauri-apps/plugin-shell';
 import {
   AudioLines,
-  Box,
   Check,
   Copy,
   FilePenLine,
@@ -28,7 +27,6 @@ import {
   Keyboard,
   Mic,
   Plus,
-  Trash2,
   X,
 } from 'lucide-react';
 import { useI18n } from '../../hooks/useI18n';
@@ -61,6 +59,7 @@ import { isSmartRouterId } from '../../utils/smartRouter';
 import { copyText } from '../../utils/copyText';
 import { useVoiceAccounts } from './provider';
 import { ShortcutRecorder } from './ShortcutRecorder';
+import { VoiceChannelCard } from './VoiceChannelCard';
 import { IslandContent } from './VoiceIsland';
 import { VoiceReplay } from './VoiceReplay';
 import { voicePalettes, voicePaletteColor } from './voicePalettes';
@@ -154,7 +153,8 @@ export function VoiceInputMain() {
     return (
       <VoiceChannelCard
         index={index}
-        channel={channel}
+        label={index === 0 ? t('voice.primary') : t('voice.backup') + ' ' + index}
+        filled={!!channel}
         name={channel ? label(channel) : ''}
         detail={model?.modelId || t(source ? 'voice.accountInput' : 'voice.apiInput')}
         icon={
@@ -168,6 +168,7 @@ export function VoiceInputMain() {
         active={config.shortcutEnabled && !!channel && snapshot.activeChannel === index && !overlay}
         handle={channel ? handle : undefined}
         overlay={overlay}
+        removeLabel={t('voice.removeChannel')}
         onRemove={() =>
           update(
             'channels',
@@ -572,89 +573,6 @@ export function VoiceInputMain() {
           </div>
         </section>
       </div>
-    </div>
-  );
-}
-
-function VoiceChannelCard({
-  index,
-  channel,
-  name,
-  detail,
-  icon,
-  disabled,
-  active,
-  handle,
-  overlay,
-  onRemove,
-}: {
-  index: number;
-  channel?: VoiceChannel;
-  name: string;
-  detail: string;
-  icon: string | null;
-  disabled: boolean;
-  active: boolean;
-  handle?: ReactNode;
-  overlay: boolean;
-  onRemove: () => void;
-}) {
-  const { t } = useI18n();
-  const position = index === 0 ? t('voice.primary') : t('voice.backup') + ' ' + index;
-  return (
-    <div
-      role={overlay ? undefined : 'listitem'}
-      aria-label={position}
-      aria-hidden={overlay || undefined}
-      className={
-        'free-model-route-node voice-channel relative min-h-[80px] rounded-card flex items-center' +
-        (active ? ' is-active' : '') +
-        (overlay ? ' is-dragging shadow-2xl' : '')
-      }
-    >
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-0 overflow-hidden rounded-[inherit]"
-      >
-        <span className="free-model-route-priority is-compact absolute font-mono font-semibold">
-          {index + 1}
-        </span>
-      </div>
-      {handle && (
-        <span className="voice-channel-drag-handle absolute inset-0 rounded-[inherit]">
-          {handle}
-        </span>
-      )}
-      {channel && (
-        <div className="relative z-10 pointer-events-none flex w-full items-center gap-2.5">
-          {icon ? (
-            <img src={icon} alt="" className="h-12 w-12 shrink-0 object-contain" />
-          ) : (
-            <Box size={48} className="shrink-0 text-cyber-text-secondary" />
-          )}
-          <div className="flex min-w-0 flex-1 flex-col gap-1">
-            <div className="flex h-5 min-w-0 items-center gap-2">
-              <span className="min-w-0 flex-1 text-sm !leading-5 font-semibold text-cyber-text truncate">
-                {name}
-              </span>
-            </div>
-            <div className="flex min-w-0 items-center gap-1">
-              <span className="min-w-0 flex-1 text-xs text-cyber-text-secondary truncate">
-                {detail}
-              </span>
-            </div>
-          </div>
-          <button
-            type="button"
-            className="voice-channel-remove pointer-events-auto"
-            aria-label={t('voice.removeChannel')}
-            disabled={disabled}
-            onClick={onRemove}
-          >
-            <Trash2 size={18} />
-          </button>
-        </div>
-      )}
     </div>
   );
 }

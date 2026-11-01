@@ -1289,6 +1289,28 @@ it('Account Center: cached apps wait for current detection before loading accoun
   expectPassiveAccountNavigation();
 });
 
+it('Usage Island: only its developer tab loads saved accounts, without querying quota', async () => {
+  useToolsStore
+    .getState()
+    .setDetectedTools([{ id: 'codex', name: 'Codex', category: 'Desktop', installed: true }]);
+  useNavigationStore.getState().setDeveloperMode(true);
+  useNavigationStore.getState().setActivePage('developer');
+  useNavigationStore.getState().setDeveloperTab('statistics');
+  await act(async () => {
+    renderer = create(
+      <AppManagerProvider>
+        <Harness center />
+      </AppManagerProvider>
+    );
+  });
+  await tick();
+  expect(api.listCodexAccounts).not.toHaveBeenCalled();
+  act(() => useNavigationStore.getState().setDeveloperTab('usageIsland'));
+  await tick();
+  expect(api.listCodexAccounts).toHaveBeenCalledTimes(1);
+  expectPassiveAccountNavigation();
+});
+
 it('Smart Access: cached apps wait for current detection before loading native accounts', async () => {
   vi.mocked(api.listDuMateAccounts).mockResolvedValue([]);
   vi.mocked(api.listDoubaoAccounts).mockResolvedValue([]);

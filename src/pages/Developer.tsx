@@ -17,6 +17,7 @@ export function DeveloperTitleActions() {
           { value: 'pets', label: t('developer.pets') },
           { value: 'plugins', label: t('developer.plugins') },
           { value: 'statistics', label: t('developer.statistics') },
+          { value: 'usageIsland', label: t('developer.usageIsland') },
         ]}
       />
     </div>

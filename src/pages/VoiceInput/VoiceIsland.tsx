@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useSyncExternalStore } from 'react';
+import { useEffect } from 'react';
 import { LoaderCircle, Mic, Square } from 'lucide-react';
 import { emit, listen } from '@tauri-apps/api/event';
 import { getCurrentWindow } from '@tauri-apps/api/window';
@@ -11,6 +11,7 @@ import {
   type ThemeSelection,
 } from '../../stores/themeStore';
 import { useI18n } from '../../hooks/useI18n';
+import { useSystemDark } from '../../hooks/useSystemDark';
 import type { TKey } from '../../i18n';
 import { VoiceAppIcon } from './VoiceAppIcon';
 import { VoiceFlow } from './VoiceFlow';
@@ -26,17 +27,7 @@ export function IslandContent({
 }) {
   const { t } = useI18n();
   const resolvedTheme = useThemeStore((theme) => theme.resolved);
-  const systemAppearance = useMemo(() => {
-    const query = window.matchMedia('(prefers-color-scheme: dark)');
-    return {
-      getSnapshot: () => query.matches,
-      subscribe: (notify: () => void) => {
-        query.addEventListener('change', notify);
-        return () => query.removeEventListener('change', notify);
-      },
-    };
-  }, []);
-  const systemDark = useSyncExternalStore(systemAppearance.subscribe, systemAppearance.getSnapshot);
+  const systemDark = useSystemDark();
   const state = useVoiceInputStore();
   const { config } = snapshot;
   const islandTheme =

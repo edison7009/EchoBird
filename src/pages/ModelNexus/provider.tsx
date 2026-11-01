@@ -370,7 +370,7 @@ export function ModelNexusProvider({ children }: { children: React.ReactNode }) 
   }, [userModels, showToast, t]);
 
   // Refresh usage for a single model
-  const refreshSingleUsage = async (modelId: string) => {
+  const refreshSingleUsage = async (modelId: string, options?: { silent?: boolean }) => {
     const model = userModels.find((m) => m.internalId === modelId);
     if (!model) return;
 
@@ -397,11 +397,11 @@ export function ModelNexusProvider({ children }: { children: React.ReactNode }) 
           next.delete(model.internalId);
           return next;
         });
-      } else if (result.error) {
+      } else if (result.error && !options?.silent) {
         showToast('error', result.error);
       }
     } catch (error) {
-      if (revision === (usageAccessRevision.current[modelId] ?? 0)) {
+      if (!options?.silent && revision === (usageAccessRevision.current[modelId] ?? 0)) {
         showToast('error', typeof error === 'string' ? error : t('error.requestFailed'));
       }
     } finally {
