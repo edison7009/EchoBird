@@ -1,8 +1,9 @@
 use crate::services::usage_island;
 use tauri::{AppHandle, WebviewWindow};
 
+// Async keeps these off the main thread: building a window there deadlocks on Windows.
 #[tauri::command]
-pub fn usage_island_set_visible(
+pub async fn usage_island_set_visible(
     app: AppHandle,
     window: WebviewWindow,
     visible: bool,
@@ -14,7 +15,7 @@ pub fn usage_island_set_visible(
 }
 
 #[tauri::command]
-pub fn usage_island_resize(
+pub async fn usage_island_resize(
     window: WebviewWindow,
     width: f64,
     height: f64,

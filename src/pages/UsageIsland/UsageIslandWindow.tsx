@@ -90,6 +90,11 @@ export function UsageIslandWindow() {
   const onPointerMove = (event: PointerEvent) => {
     const start = press.current;
     if (!start) return;
+    // The release can land outside once the window shrinks; never drag without a press.
+    if (!(event.buttons & 1)) {
+      press.current = null;
+      return;
+    }
     if (Math.hypot(event.clientX - start.x, event.clientY - start.y) < DRAG_DISTANCE) return;
     press.current = null;
     void getCurrentWindow()
