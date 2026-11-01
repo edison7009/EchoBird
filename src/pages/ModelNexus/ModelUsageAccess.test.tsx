@@ -54,7 +54,9 @@ describe('Zhipu Team usage access', () => {
     });
   }
   const saveButton = () =>
-    renderer.root.findAllByType('button').find((button) => button.children.includes('btn.save'))!;
+    renderer.root
+      .findAllByType('button')
+      .find((button) => button.children.includes('model.enterSave'))!;
   afterEach(() => {
     act(() => renderer?.unmount());
     vi.clearAllMocks();

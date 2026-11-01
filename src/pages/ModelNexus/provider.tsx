@@ -734,21 +734,24 @@ function UsageAccessModal({
           >
             {accessUrl}
           </button>
-          <div className="flex justify-end gap-3 pt-5">
-            <button
-              className="text-xs font-mono text-cyber-text-secondary hover:text-cyber-text px-3 py-1"
-              onClick={onClose}
-            >
-              [{t('btn.cancel')}]
-            </button>
-            <button
-              className="text-xs font-mono text-cyber-accent hover:opacity-80 px-3 py-1 disabled:opacity-40"
-              onClick={handleSave}
-              disabled={saving || !valid}
-            >
-              [{t('btn.save')}]
-            </button>
-          </div>
+        </div>
+        <div className="flex border-t border-cyber-border">
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex-1 border-r border-cyber-border px-4 py-3 text-[14px] font-semibold text-cyber-text-secondary transition-all hover:bg-cyber-elevated hover:text-cyber-text"
+          >
+            {t('model.escCancel')}
+          </button>
+          <button
+            type="button"
+            onClick={handleSave}
+            disabled={saving || !valid}
+            aria-busy={saving || undefined}
+            className="flex-1 px-4 py-3 text-[14px] font-semibold text-cyber-text transition-all enabled:hover:bg-cyber-text/10 disabled:text-cyber-text-muted"
+          >
+            {t('model.enterSave')}
+          </button>
         </div>
       </div>
     </div>
