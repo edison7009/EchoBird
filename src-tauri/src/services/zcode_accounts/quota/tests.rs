@@ -102,6 +102,8 @@ fn confirmed_empty_plan_is_distinct_from_unknown_and_active_trial() {
 
 #[test]
 fn paid_tiers_and_billing_cycles_keep_subscription_and_quota_deadlines_separate() {
+    // A 5-hour window resets within five hours of the reply.
+    let session_reset = chrono::Utc::now().timestamp() + 3600;
     for provider in ["bigmodel", "zai"] {
         for tier in ["Lite", "Pro", "Max"] {
             for (cycle, end) in [
@@ -115,7 +117,7 @@ fn paid_tiers_and_billing_cycles_keep_subscription_and_quota_deadlines_separate(
                 let subscription = current_subscription(&list).unwrap().unwrap();
                 apply_paid(&mut saved, subscription, Some(json!({"limits":[
                     {"type":"CREDIT_LIMIT","unit":6,"percentage":75,"nextResetTime":1894060800000_i64},
-                    {"type":"CREDIT_LIMIT","unit":3,"percentage":"25.5","nextResetTime":1893474000000_i64},
+                    {"type":"CREDIT_LIMIT","unit":3,"percentage":"25.5","nextResetTime":session_reset * 1000},
                     {"type":"TIME_LIMIT","percentage":90}
                 ]}))).unwrap();
                 assert_eq!(saved.plan.as_deref(), Some(tier));
@@ -123,7 +125,7 @@ fn paid_tiers_and_billing_cycles_keep_subscription_and_quota_deadlines_separate(
                 assert_eq!(saved.quota_windows.len(), 2);
                 assert_eq!(saved.quota_windows[0].remaining_percent, 74.5);
                 assert_eq!(saved.quota_windows[1].remaining_percent, 25.0);
-                assert_eq!(saved.reset_at, Some(1_893_474_000));
+                assert_eq!(saved.reset_at, Some(session_reset));
                 assert_ne!(saved.reset_at, saved.subscription_end_at);
             }
         }

@@ -58,3 +58,22 @@ fn missing_and_invalid_counters_are_unknown_and_known_zero_is_retained() {
     assert!(account.quota.is_empty());
     assert!(account.plan.is_none());
 }
+
+#[test]
+fn a_single_bucket_without_a_resource_type_is_the_credit_pool() {
+    let mut account = account();
+    update(
+        &mut account,
+        &json!({"usageBreakdownList":[{"usageLimitWithPrecision":10.0,"currentUsageWithPrecision":4.0}]}),
+    );
+    assert_eq!(account.quota.len(), 1);
+    assert_eq!(account.quota[0].remaining, Some(6.));
+    update(
+        &mut account,
+        &json!({"usageBreakdownList":[
+            {"usageLimit":10,"currentUsage":4},
+            {"resourceType":"TOKEN","usageLimit":99,"currentUsage":0}
+        ]}),
+    );
+    assert!(account.quota.is_empty());
+}

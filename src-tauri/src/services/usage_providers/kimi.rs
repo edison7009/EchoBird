@@ -15,12 +15,32 @@ fn usage_url(base_url: &str) -> Option<String> {
 
 fn parse_window(detail: &Value, period: QuotaPeriod) -> Option<UsageQuota> {
     let limit = parse_f64(&detail["limit"]).filter(|value| value.is_finite() && *value > 0.0)?;
-    let remaining = parse_f64(&detail["remaining"])?;
+    let used = parse_f64(&detail["remaining"])
+        .map(|remaining| limit - remaining)
+        .or_else(|| parse_f64(&detail["used"]))?;
     UsageQuota::window(
         period,
-        (1.0 - remaining / limit) * 100.0,
+        used / limit * 100.0,
         parse_reset_time(&detail["resetTime"]),
     )
+}
+
+/// `limits` lists each rate window with its length; only the 5-hour one is the
+/// session limit. A window that cannot be read is not ruled out, as replies
+/// without one predate other limits.
+fn is_five_hour_window(window: &Value) -> bool {
+    let unit = window["timeUnit"]
+        .as_str()
+        .or_else(|| window["time_unit"].as_str())
+        .map(|unit| unit.trim_start_matches("TIME_UNIT_").to_ascii_uppercase());
+    let minutes = match (parse_f64(&window["duration"]), unit.as_deref()) {
+        (Some(count), Some("MINUTE" | "MINUTES")) => count,
+        (Some(count), Some("HOUR" | "HOURS")) => count * 60.0,
+        (Some(count), Some("DAY" | "DAYS")) => count * 1440.0,
+        (Some(count), Some("WEEK" | "WEEKS")) => count * 10080.0,
+        _ => return true,
+    };
+    minutes == 300.0
 }
 
 fn parse_ratio_window(detail: &Value, period: QuotaPeriod) -> Option<UsageQuota> {
@@ -37,6 +57,7 @@ fn parse_quotas(body: &Value) -> Vec<UsageQuota> {
         body["limits"]
             .as_array()?
             .iter()
+            .filter(|item| is_five_hour_window(&item["window"]))
             .find_map(|item| parse_window(&item["detail"], QuotaPeriod::FiveHour))
     });
     let weekly = parse_ratio_window(&usages["limit_7d"], QuotaPeriod::Weekly)
@@ -105,6 +126,29 @@ mod tests {
         assert_eq!(quotas[0].reset_at, 0);
         assert!((quotas[1].percentage - 20.0).abs() < 0.001);
         assert_eq!(quotas[1].reset_at, 0);
+    }
+
+    #[test]
+    fn legacy_limits_use_only_the_five_hour_window_and_accept_used_counts() {
+        let quotas = parse_quotas(&json!({"limits":[
+            {"window":{"duration":1,"timeUnit":"TIME_UNIT_DAY"},
+             "detail":{"limit":100,"remaining":1}},
+            {"window":{"duration":300,"timeUnit":"TIME_UNIT_MINUTE"},
+             "detail":{"limit":"100","used":"15"}},
+            {"window":{"duration":"300","timeUnit":"TIME_UNIT_MINUTE"},
+             "detail":{"limit":100,"remaining":1}}
+        ]}));
+        assert_eq!(quotas.len(), 1);
+        assert_eq!(quotas[0].period, Some(QuotaPeriod::FiveHour));
+        assert!((quotas[0].percentage - 15.0).abs() < 0.001);
+        let hours = parse_quotas(&json!({"limits":[
+            {"window":{"duration":5,"time_unit":"HOUR"},"detail":{"limit":10,"remaining":4}}
+        ]}));
+        assert!((hours[0].percentage - 60.0).abs() < 0.001);
+        assert!(parse_quotas(&json!({"limits":[
+            {"window":{"duration":7,"timeUnit":"TIME_UNIT_DAY"},"detail":{"limit":10,"remaining":4}}
+        ]}))
+        .is_empty());
     }
 
     #[test]

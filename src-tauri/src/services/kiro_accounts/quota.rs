@@ -113,10 +113,13 @@ pub(super) fn update(account: &mut Account, value: &Value) {
         account.quota.clear();
         return;
     };
+    // Some plans list their one bucket without a resource type.
+    let unlabeled_only = rows.len() == 1 && text(&rows[0], "resourceType").is_none();
     account.quota = rows
         .iter()
         .filter(|row| {
-            text(row, "resourceType").is_some_and(|kind| kind.eq_ignore_ascii_case("CREDIT"))
+            unlabeled_only
+                || text(row, "resourceType").is_some_and(|kind| kind.eq_ignore_ascii_case("CREDIT"))
         })
         .flat_map(|row| {
             let mut quotas = vec![bucket(

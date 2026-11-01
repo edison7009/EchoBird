@@ -724,18 +724,70 @@ async fn user_data(saved: &Saved) -> Result<Value, String> {
         .map_err(|_| "accountError.format".into())
 }
 
+fn signed(value: &Value) -> Option<f64> {
+    value
+        .as_f64()
+        .or_else(|| value.as_str()?.trim().parse().ok())
+        .filter(|value: &f64| value.is_finite())
+}
+
+fn count(value: &Value) -> Option<f64> {
+    signed(value).filter(|value| *value >= 0.0)
+}
+
+fn reset_date(value: &Value) -> Option<i64> {
+    if let Some(seconds) = value.as_i64().filter(|seconds| *seconds > 0) {
+        return Some(if seconds > 1_000_000_000_000 {
+            seconds / 1000
+        } else {
+            seconds
+        });
+    }
+    let text = value.as_str()?.trim();
+    chrono::DateTime::parse_from_rfc3339(text)
+        .map(|time| time.timestamp())
+        .ok()
+        .or_else(|| {
+            let date = chrono::NaiveDate::parse_from_str(text, "%Y-%m-%d").ok()?;
+            Some(date.and_hms_opt(0, 0, 0)?.and_utc().timestamp())
+        })
+}
+
+/// The monthly allowance as remaining, total and reset. Paid plans count premium
+/// requests; Free counts chat messages and completions separately, of which the
+/// more used one is the limit the user meets first.
+fn monthly_quota(data: &Value) -> (Option<f64>, Option<f64>, Option<i64>) {
+    let premium = &data["quota_snapshots"]["premium_interactions"];
+    let paid = count(&premium["entitlement"])
+        .filter(|total| *total > 0.0)
+        // Overage leaves premium requests below zero, which still means used up.
+        .zip(signed(&premium["remaining"]).map(|remaining| remaining.max(0.0)));
+    let quota = paid.or_else(|| {
+        ["chat", "completions"]
+            .iter()
+            .filter_map(|kind| {
+                let total = count(&data["monthly_quotas"][kind]).filter(|total| *total > 0.0)?;
+                Some((total, count(&data["limited_user_quotas"][kind])?.min(total)))
+            })
+            .min_by(|a, b| (a.1 / a.0).total_cmp(&(b.1 / b.0)))
+    });
+    let reset_at = reset_date(&data["quota_reset_date_utc"])
+        .or_else(|| reset_date(&data["quota_reset_date"]))
+        .or_else(|| reset_date(&data["limited_user_reset_date"]));
+    match quota {
+        Some((total, remaining)) => (Some(remaining), Some(total), reset_at),
+        None => (None, None, reset_at),
+    }
+}
+
 pub async fn refresh(id: &str) -> Result<Account, String> {
     let mut saved = read_saved(id)?;
     let data = user_data(&saved).await?;
     saved.summary.plan = data["copilot_plan"].as_str().map(str::to_string);
-    let quota = &data["quota_snapshots"]["premium_interactions"];
-    saved.summary.remaining = quota["remaining"].as_f64();
-    saved.summary.total = quota["entitlement"].as_f64();
-    saved.summary.reset_at = data["quota_reset_date"]
-        .as_str()
-        .and_then(|date| chrono::NaiveDate::parse_from_str(date, "%Y-%m-%d").ok())
-        .and_then(|date| date.and_hms_opt(0, 0, 0))
-        .map(|date| date.and_utc().timestamp());
+    let (remaining, total, reset_at) = monthly_quota(&data);
+    saved.summary.remaining = remaining;
+    saved.summary.total = total;
+    saved.summary.reset_at = reset_at;
     if let Some(api) = data["endpoints"]["api"].as_str() {
         saved.base_url = Some(valid_api_url(api)?);
     }
@@ -780,6 +832,42 @@ pub async fn proxy_credentials(id: &str, force_refresh: bool) -> Result<Value, S
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn paid_plans_use_premium_requests_and_free_uses_its_most_used_allowance() {
+        assert_eq!(
+            monthly_quota(&json!({
+                "quota_reset_date":"2026-09-15",
+                "quota_snapshots":{"premium_interactions":{"entitlement":300,"remaining":"45"}},
+                "monthly_quotas":{"chat":50},"limited_user_quotas":{"chat":1}
+            })),
+            (Some(45.0), Some(300.0), Some(1789430400))
+        );
+        assert_eq!(
+            monthly_quota(&json!({
+                "quota_snapshots":{"premium_interactions":{"unlimited":true,"entitlement":0}},
+                "monthly_quotas":{"chat":50,"completions":2000},
+                "limited_user_quotas":{"chat":40,"completions":"500"},
+                "limited_user_reset_date":"2026-09-15"
+            })),
+            (Some(500.0), Some(2000.0), Some(1789430400))
+        );
+        assert_eq!(
+            monthly_quota(&json!({
+                "quota_snapshots":{"premium_interactions":{"entitlement":300,"remaining":-12}},
+                "monthly_quotas":{"chat":50},"limited_user_quotas":{"chat":40}
+            })),
+            (Some(0.0), Some(300.0), None)
+        );
+        assert_eq!(
+            monthly_quota(&json!({"quota_reset_date_utc":"2026-09-15T08:00:00Z"})),
+            (None, None, Some(1789459200))
+        );
+        assert_eq!(
+            monthly_quota(&json!({"monthly_quotas":{"chat":0},"limited_user_quotas":{"chat":0}})),
+            (None, None, None)
+        );
+    }
 
     #[test]
     fn current_auth_tokens_select_the_exact_signed_in_identity() {
