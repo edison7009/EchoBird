@@ -5,7 +5,7 @@ mod app_icon_cache;
 mod audio;
 pub mod config;
 mod dictation_target;
-mod island_input;
+pub(crate) mod island_input;
 mod monitor;
 mod native;
 #[cfg(windows)]

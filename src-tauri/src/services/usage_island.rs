@@ -1,9 +1,118 @@
+#[cfg(any(windows, target_os = "macos"))]
+use crate::services::voice_input::island_input::CursorTracker;
+#[cfg(any(windows, target_os = "macos"))]
+use std::sync::{Mutex, Once};
+#[cfg(any(windows, target_os = "macos"))]
+use std::time::Duration;
+#[cfg(any(windows, target_os = "macos"))]
+use tauri::Emitter;
 use tauri::{AppHandle, Manager, PhysicalPosition, PhysicalRect, PhysicalSize, WebviewWindow};
 
 pub const WINDOW_LABEL: &str = "usage-island";
 const COLLAPSED_SIZE: f64 = 60.0;
 // The voice island keeps the bottom of the screen, so this one starts at the top.
 const TOP_GAP: f64 = 24.0;
+
+#[cfg(any(windows, target_os = "macos"))]
+const HOVER_EVENT: &str = "usage-island-hover";
+
+/// The part of the window the island covers, in logical window coordinates.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct HitArea {
+    pub x: f64,
+    pub y: f64,
+    pub width: f64,
+    pub height: f64,
+}
+
+const LOGO_AREA: HitArea = HitArea {
+    x: 0.0,
+    y: 0.0,
+    width: COLLAPSED_SIZE,
+    height: COLLAPSED_SIZE,
+};
+
+#[cfg(any(windows, target_os = "macos"))]
+static HIT_AREA: Mutex<HitArea> = Mutex::new(LOGO_AREA);
+
+impl HitArea {
+    #[cfg(any(windows, target_os = "macos", test))]
+    fn contains(&self, x: f64, y: f64) -> bool {
+        let (x, y) = (x - self.x, y - self.y);
+        if !(0.0..self.width).contains(&x) || !(0.0..self.height).contains(&y) {
+            return false;
+        }
+        let radius = self.width.min(self.height) / 2.0;
+        let dx = x - x.clamp(radius, self.width - radius);
+        let dy = y - y.clamp(radius, self.height - radius);
+        dx * dx + dy * dy <= radius * radius
+    }
+}
+
+// The window stays at its open size, so everything outside the island passes the
+// mouse through. The page cannot see the cursor leave once it does, so hover lives here.
+#[cfg(any(windows, target_os = "macos"))]
+fn track_cursor(app: &AppHandle) {
+    static STARTED: Once = Once::new();
+    STARTED.call_once(|| {
+        let app = app.clone();
+        std::thread::spawn(move || {
+            let mut tracker = CursorTracker::default();
+            let mut hovered = false;
+            loop {
+                let Some(window) = app.get_webview_window(WINDOW_LABEL) else {
+                    tracker = CursorTracker::default();
+                    hovered = false;
+                    std::thread::sleep(Duration::from_millis(200));
+                    continue;
+                };
+                let area = *HIT_AREA.lock().unwrap();
+                let inside = tracker.update_region(&window, |x, y| area.contains(x, y));
+                if inside != hovered {
+                    hovered = inside;
+                    let _ = window.emit_to(WINDOW_LABEL, HOVER_EVENT, inside);
+                }
+                std::thread::sleep(Duration::from_millis(16));
+            }
+        });
+    });
+}
+
+#[cfg(target_os = "linux")]
+fn apply_input_region(window: &WebviewWindow, area: HitArea) {
+    use gtk::{
+        cairo::{RectangleInt, Region},
+        prelude::*,
+    };
+    let island = window.clone();
+    let _ = window.run_on_main_thread(move || {
+        let Ok(widget) = island.gtk_window() else {
+            log::warn!("[UsageIsland] could not configure the island input region");
+            return;
+        };
+        let region = Region::create();
+        let rectangle = RectangleInt::new(
+            area.x.floor() as i32,
+            area.y.floor() as i32,
+            area.width.ceil() as i32,
+            area.height.ceil() as i32,
+        );
+        if region.union_rectangle(&rectangle).is_ok() {
+            widget.realize();
+            widget.input_shape_combine_region(Some(&region));
+        }
+    });
+}
+
+pub fn set_hit_area(window: &WebviewWindow, area: HitArea) {
+    #[cfg(any(windows, target_os = "macos"))]
+    {
+        let _ = window;
+        *HIT_AREA.lock().unwrap() = area;
+    }
+    #[cfg(target_os = "linux")]
+    apply_input_region(window, area);
+}
 
 fn default_position(area: &PhysicalRect<i32, u32>, scale: f64) -> PhysicalPosition<i32> {
     PhysicalPosition::new(
@@ -17,17 +126,12 @@ fn fitted_position(
     position: PhysicalPosition<i32>,
     current: PhysicalSize<u32>,
     target: PhysicalSize<u32>,
-    centered: bool,
+    anchor: (f64, f64),
     area: &PhysicalRect<i32, u32>,
 ) -> PhysicalPosition<i32> {
-    let (x, y) = if centered {
-        (
-            position.x + (current.width as i32 - target.width as i32) / 2,
-            position.y + (current.height as i32 - target.height as i32) / 2,
-        )
-    } else {
-        (position.x, position.y)
-    };
+    let shift = |from: u32, to: u32, part: f64| ((f64::from(from) - f64::from(to)) * part) as i32;
+    let x = position.x + shift(current.width, target.width, anchor.0);
+    let y = position.y + shift(current.height, target.height, anchor.1);
     let right = area.position.x + area.size.width as i32 - target.width as i32;
     let bottom = area.position.y + area.size.height as i32 - target.height as i32;
     PhysicalPosition::new(
@@ -58,6 +162,14 @@ fn show(app: &AppHandle) -> Result<(), String> {
     .visible(false)
     .build()
     .map_err(|error| error.to_string())?;
+    set_hit_area(&window, LOGO_AREA);
+    #[cfg(any(windows, target_os = "macos"))]
+    {
+        window
+            .set_ignore_cursor_events(true)
+            .map_err(|error| error.to_string())?;
+        track_cursor(app);
+    }
     if let Some(monitor) = app
         .get_webview_window("main")
         .and_then(|main| main.current_monitor().ok().flatten())
@@ -85,7 +197,7 @@ pub fn resize(
     window: &WebviewWindow,
     width: f64,
     height: f64,
-    centered: bool,
+    anchor: (f64, f64),
 ) -> Result<(), String> {
     let scale = window.scale_factor().map_err(|error| error.to_string())?;
     let target = PhysicalSize::new(
@@ -101,7 +213,7 @@ pub fn resize(
         .current_monitor()
         .map_err(|error| error.to_string())?;
     if let Some(monitor) = monitor {
-        let next = fitted_position(position, current, target, centered, monitor.work_area());
+        let next = fitted_position(position, current, target, anchor, monitor.work_area());
         window
             .set_position(next)
             .map_err(|error| error.to_string())?;
@@ -118,6 +230,35 @@ mod tests {
             position: PhysicalPosition::new(-1920, 40),
             size: PhysicalSize::new(1920, 1000),
         }
+    }
+
+    #[test]
+    fn only_the_visible_island_captures_the_mouse() {
+        let logo = HitArea {
+            x: 276.0,
+            ..LOGO_AREA
+        };
+        assert!(logo.contains(306.0, 30.0));
+        assert!(!logo.contains(278.0, 2.0));
+        assert!(!logo.contains(100.0, 30.0));
+        let open = HitArea {
+            x: 0.0,
+            y: 0.0,
+            width: 336.0,
+            height: 60.0,
+        };
+        assert!(open.contains(100.0, 30.0));
+        assert!(open.contains(30.0, 2.0));
+        assert!(!open.contains(2.0, 2.0));
+        assert!(!open.contains(335.0, 59.0));
+        let dial = HitArea {
+            x: 0.0,
+            y: 0.0,
+            width: 216.0,
+            height: 216.0,
+        };
+        assert!(dial.contains(108.0, 2.0));
+        assert!(!dial.contains(4.0, 4.0));
     }
 
     #[test]
@@ -139,10 +280,34 @@ mod tests {
                 PhysicalPosition::new(-1000, 100),
                 PhysicalSize::new(60, 60),
                 PhysicalSize::new(400, 60),
-                false,
+                (0.0, 0.0),
                 &area(),
             ),
             PhysicalPosition::new(-1000, 100)
+        );
+    }
+
+    #[test]
+    fn reversed_expansion_keeps_the_logo_at_the_far_edge() {
+        assert_eq!(
+            fitted_position(
+                PhysicalPosition::new(-1000, 100),
+                PhysicalSize::new(60, 60),
+                PhysicalSize::new(400, 60),
+                (1.0, 0.0),
+                &area(),
+            ),
+            PhysicalPosition::new(-1340, 100)
+        );
+        assert_eq!(
+            fitted_position(
+                PhysicalPosition::new(-1000, 500),
+                PhysicalSize::new(60, 60),
+                PhysicalSize::new(60, 254),
+                (0.0, 1.0),
+                &area(),
+            ),
+            PhysicalPosition::new(-1000, 306)
         );
     }
 
@@ -153,7 +318,7 @@ mod tests {
                 PhysicalPosition::new(-100, 1000),
                 PhysicalSize::new(60, 60),
                 PhysicalSize::new(400, 60),
-                false,
+                (0.0, 0.0),
                 &area(),
             ),
             PhysicalPosition::new(-400, 980)
@@ -166,7 +331,7 @@ mod tests {
             PhysicalPosition::new(-1000, 300),
             PhysicalSize::new(60, 60),
             PhysicalSize::new(216, 216),
-            true,
+            (0.5, 0.5),
             &area(),
         );
         assert_eq!(opened, PhysicalPosition::new(-1078, 222));
@@ -175,7 +340,7 @@ mod tests {
                 opened,
                 PhysicalSize::new(216, 216),
                 PhysicalSize::new(60, 60),
-                true,
+                (0.5, 0.5),
                 &area(),
             ),
             PhysicalPosition::new(-1000, 300)

@@ -15,10 +15,11 @@ import {
 } from '../../stores/usageIslandStore';
 import type { AccountCardData, AccountProvider } from '../AccountCenter/accountCenterData';
 import { UsageIslandMain, UsageIslandPanel } from './UsageIsland';
-import { UsageIslandView } from './UsageIslandView';
+import { UsageIslandView, type IslandLayout } from './UsageIslandView';
 import {
   accountSources,
   accountSourceKey,
+  compactValue,
   modelSourceKey,
   modelSources,
   type UsageIslandItem,
@@ -116,7 +117,10 @@ const renderView = async (style: UsageIslandStyle, items: UsageIslandItem[]) => 
   const { theme } = island.getState();
   await act(async () => {
     view = create(
-      <UsageIslandView items={items} settings={{ style, theme, expandMode: 'always' }} />
+      <UsageIslandView
+        items={items}
+        settings={{ style, reversed: [], theme, expandMode: 'always' }}
+      />
     );
   });
 };
@@ -142,6 +146,7 @@ beforeEach(() => {
     enabled: false,
     pick: null,
     style: 'row',
+    reversed: [],
     theme: 'dark',
     expandMode: 'hover',
     refreshMinutes: 0,
@@ -417,7 +422,7 @@ it('turns the logo into the picked ring in the horizontal and vertical styles on
       view = create(
         <UsageIslandView
           items={items}
-          settings={{ style, theme: 'dark', expandMode: 'always' }}
+          settings={{ style, reversed: [], theme: 'dark', expandMode: 'always' }}
           pick={pick}
           onPick={onPick}
         />
@@ -441,6 +446,133 @@ it('turns the logo into the picked ring in the horizontal and vertical styles on
     expect(logo().findAllByType('img')).toHaveLength(1);
     await act(async () => view!.unmount());
   }
+  view = undefined;
+});
+
+it('reverses one style at a time without changing the selected style', async () => {
+  await render();
+  const direction = (name: string, label: string) =>
+    view!.root
+      .findByProps({ 'aria-label': `usageIsland.style.${name}`, role: 'group' })
+      .findByProps({ 'aria-label': `usageIsland.direction.${label}` });
+  await act(async () => direction('column', 'up').props.onClick());
+  expect(island.getState()).toMatchObject({ style: 'row', reversed: ['column'] });
+  expect(direction('column', 'up').props['aria-pressed']).toBe(true);
+  expect(direction('column', 'down').props['aria-pressed']).toBe(false);
+  expect(direction('row', 'right').props['aria-pressed']).toBe(true);
+  await act(async () => direction('column', 'up').props.onClick());
+  expect(island.getState().reversed).toEqual(['column']);
+  const flags = () =>
+    view!.root.findByProps({ className: 'usage-island-fit' }).props['data-reversed'];
+  expect(flags()).toBe(false);
+  await act(async () => island.getState().update({ style: 'column' }));
+  expect(flags()).toBe(true);
+  await act(async () => direction('column', 'down').props.onClick());
+  expect(island.getState().reversed).toEqual([]);
+});
+
+it('keeps the logo in place while the window resizes in either direction', async () => {
+  const anchors: [number, number][] = [];
+  const onLayout = (layout: IslandLayout) => anchors.push([layout.anchorX, layout.anchorY]);
+  const cases: [UsageIslandStyle, boolean, [number, number]][] = [
+    ['row', false, [0, 0]],
+    ['row', true, [1, 0]],
+    ['line', true, [1, 0]],
+    ['column', false, [0, 0]],
+    ['column', true, [0, 1]],
+    ['dial', false, [0.5, 0.5]],
+    ['dial', true, [0.5, 0.5]],
+  ];
+  for (const [style, reversed, expected] of cases) {
+    await act(async () => {
+      view = create(
+        <UsageIslandView
+          items={accountItems()}
+          settings={{
+            style,
+            reversed: reversed ? [style] : [],
+            theme: 'dark',
+            expandMode: 'always',
+          }}
+          onLayout={onLayout}
+        />
+      );
+    });
+    expect(anchors[anchors.length - 1]).toEqual(expected);
+    await act(async () => view!.unmount());
+  }
+  view = undefined;
+});
+
+it('keeps the demo open whatever the floating island expand mode is', async () => {
+  island.setState({ expandMode: 'hover' });
+  await render();
+  const shell = () =>
+    view!.root.findAll(
+      (node) => node.type === 'div' && String(node.props.className).startsWith('usage-island ')
+    )[0];
+  expect(shell().props['data-expanded']).toBe(true);
+  await act(async () => island.getState().update({ expandMode: 'click', theme: 'light' }));
+  expect(shell().props['data-expanded']).toBe(true);
+  expect(shell().props.className).toContain('usage-island-theme-light');
+});
+
+it('shortens long balances for the logo and leaves short or unknown values alone', () => {
+  expect(
+    [
+      '12.40',
+      '$12.40',
+      '999.6',
+      '2,000',
+      '500',
+      '1,250',
+      '$12,400',
+      '3,400,000',
+      '2.5B',
+      '—',
+      'N/A',
+    ].map(compactValue)
+  ).toEqual(['12.40', '$12.40', '1000', '2K', '500', '1.3K', '$12.4K', '3.4M', '2.5B', '—', 'N/A']);
+});
+
+it('shows the icon and value instead of an empty ring for a picked balance', async () => {
+  testProviders.current = [
+    provider({ accounts: [account({ metrics: [{ label: 'Balance', value: '2,000' }] })] }),
+  ];
+  const [item] = accountItems();
+  await act(async () => {
+    view = create(
+      <UsageIslandView
+        items={[item]}
+        settings={{ style: 'row', reversed: [], theme: 'dark', expandMode: 'always' }}
+        pick={item.key}
+      />
+    );
+  });
+  const logo = view!.root.findByProps({ className: 'usage-island-logo' });
+  expect(logo.findAll((node) => node.props.className === 'usage-island-gauge')).toEqual([]);
+  expect(logo.findAll((node) => node.type === 'span' && node.children[0] === '2K')).toHaveLength(1);
+});
+
+it('lets a host that tracks the cursor decide hover', async () => {
+  const mount = async (hover: boolean | null) => {
+    await act(async () => {
+      view = create(
+        <UsageIslandView
+          items={accountItems()}
+          settings={{ style: 'row', reversed: [], theme: 'dark', expandMode: 'hover' }}
+          hover={hover}
+        />
+      );
+    });
+    const state = view!.root.findAll(
+      (node) => node.type === 'div' && String(node.props.className).startsWith('usage-island ')
+    )[0].props['data-expanded'];
+    await act(async () => view!.unmount());
+    return state;
+  };
+  expect(await mount(true)).toBe(true);
+  expect(await mount(false)).toBe(false);
   view = undefined;
 });
 

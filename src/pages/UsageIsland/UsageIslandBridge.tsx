@@ -14,6 +14,7 @@ import { useUsageIslandItems, useUsageIslandRefresh, useUsageSources } from './u
 /** Keeps the floating window in step; only the main window owns accounts and models. */
 export default function UsageIslandBridge() {
   const style = useUsageIslandStore((state) => state.style);
+  const reversed = useUsageIslandStore((state) => state.reversed);
   const theme = useUsageIslandStore((state) => state.theme);
   const expandMode = useUsageIslandStore((state) => state.expandMode);
   const pick = useUsageIslandStore((state) => state.pick);
@@ -21,7 +22,7 @@ export default function UsageIslandBridge() {
   const items = useUsageIslandItems(useUsageSources(true));
   useUsageIslandRefresh(items, true);
   const payload: UsageIslandPayload = {
-    settings: { style, theme, expandMode },
+    settings: { style, reversed, theme, expandMode },
     pick,
     items: items.map(({ kind, key, name, detail, icon, percent, value, lines }) => ({
       kind,

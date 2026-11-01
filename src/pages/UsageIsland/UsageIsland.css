@@ -36,6 +36,54 @@
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 14px;
 }
+.usage-island-style-card {
+  position: relative;
+  display: grid;
+  min-width: 0;
+}
+.usage-island-direction {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: flex;
+  gap: 2px;
+  padding: 2px;
+  border-radius: 10px;
+  background: rgb(var(--bg-elevated-rgb) / 0.6);
+}
+.usage-island-direction::before {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  background: rgb(var(--accent-rgb) / 0.2);
+  transition: transform 0.22s cubic-bezier(0.2, 0.75, 0.25, 1);
+}
+.usage-island-direction[data-reversed='false']::before {
+  transform: translateX(32px);
+}
+.usage-island-direction button {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  color: rgb(var(--text-muted-rgb));
+  transition: color 0.15s ease;
+}
+.usage-island-direction button:hover {
+  color: rgb(var(--text-primary-rgb));
+}
+.usage-island-direction button[aria-pressed='true'] {
+  color: rgb(var(--accent-rgb));
+}
+.usage-island-direction button:focus-visible {
+  outline: 1px solid rgb(var(--accent-rgb));
+}
 .usage-island-style {
   display: flex;
   flex-direction: column;
@@ -97,10 +145,16 @@
   min-width: 60px;
   height: 60px;
 }
+.usage-island-track[data-reversed='true'][data-layout='row'] {
+  justify-content: flex-end;
+}
 .usage-island-track[data-layout='column'] {
   align-items: flex-start;
   width: 60px;
   height: var(--usage-island-height);
+}
+.usage-island-track[data-reversed='true'][data-layout='column'] {
+  align-items: flex-end;
 }
 .usage-island-track[data-layout='dial'] {
   justify-content: center;
@@ -163,10 +217,32 @@
   height: 100%;
   animation: voice-app-icon-turn 0.45s linear;
 }
+.usage-island-logo-value {
+  display: grid;
+  justify-items: center;
+  gap: 1px;
+  font-size: 11px;
+  line-height: 12px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.usage-island-logo-value .usage-island-icon {
+  width: 24px;
+  height: 24px;
+}
 .usage-island-toggle img {
   width: 30px;
   height: 30px;
   object-fit: contain;
+}
+.usage-island[data-reversed='true'][data-layout='row'] .usage-island-toggle {
+  left: auto;
+  right: 6px;
+}
+.usage-island[data-reversed='true'][data-layout='column'] .usage-island-toggle {
+  top: auto;
+  bottom: 6px;
 }
 .usage-island-toggle:focus-visible {
   outline: 1px solid currentColor;
@@ -286,6 +362,15 @@
   gap: 0;
   width: auto;
   max-width: none;
+}
+.usage-island[data-reversed='true'][data-layout='row'] .usage-island-tools {
+  right: 60px;
+  left: auto;
+  flex-direction: row-reverse;
+}
+.usage-island[data-reversed='true'][data-layout='column'] .usage-island-tools {
+  inset: 8px 0 60px;
+  flex-direction: column-reverse;
 }
 .usage-island[data-layout='column'] .usage-island-tool {
   flex: 0 0 62px;
@@ -425,6 +510,9 @@
     opacity 0.18s ease,
     visibility 0.18s;
 }
+.usage-island[data-reversed='true'] .usage-island-dial {
+  --usage-island-dial-turn: -150deg;
+}
 .usage-island[data-expanded='true'] .usage-island-dial {
   rotate: none;
   scale: none;
@@ -477,7 +565,7 @@
     grid-template-columns: minmax(0, 1fr);
     height: auto;
   }
-  .usage-island-fit {
+  .usage-island-stage .usage-island-fit {
     min-height: 216px;
     align-items: center;
   }
@@ -493,7 +581,8 @@
   .usage-island[data-layout='dial'],
   .usage-island-tools,
   .usage-island-dial,
-  .usage-island-dial-item {
+  .usage-island-dial-item,
+  .usage-island-direction::before {
     transition: none;
   }
   .usage-island-logo {
@@ -522,6 +611,12 @@
 .usage-island-window-root .usage-island-fit[data-layout='dial'] {
   align-items: center;
   justify-content: center;
+}
+.usage-island-window-root .usage-island-fit[data-reversed='true'][data-layout='row'] {
+  justify-content: flex-end;
+}
+.usage-island-window-root .usage-island-fit[data-reversed='true'][data-layout='column'] {
+  align-items: flex-end;
 }
 .usage-island-window-root .usage-island-track {
   flex: none;

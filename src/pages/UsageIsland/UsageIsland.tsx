@@ -1,5 +1,18 @@
 import { useMemo, useState } from 'react';
-import { Box, Check, Plus, RefreshCw, TriangleAlert } from 'lucide-react';
+import {
+  ArrowDown,
+  ArrowLeft,
+  ArrowRight,
+  ArrowUp,
+  Box,
+  Check,
+  Plus,
+  RefreshCw,
+  RotateCcw,
+  RotateCw,
+  TriangleAlert,
+  type LucideIcon,
+} from 'lucide-react';
 import { MiniSelect } from '../../components/MiniSelect';
 import { ViewModeTabs } from '../../components/ViewModeTabs';
 import { useI18n } from '../../hooks/useI18n';
@@ -13,6 +26,7 @@ import {
   usageIslandThemes,
   useUsageIslandStore,
   useUsageIslandVisible,
+  type UsageIslandStyle,
 } from '../../stores/usageIslandStore';
 import { usageIslandDemoItems } from './usageIslandData';
 import { UsageIslandSlots } from './UsageIslandSlots';
@@ -26,6 +40,28 @@ import {
 import '../FreeModels/FreeModels.css';
 import '../VoiceInput/VoiceInput.css';
 import './UsageIsland.css';
+
+type Direction = { icon: LucideIcon; label: TKey };
+
+// [forward, reversed] for each style.
+const directions: Record<UsageIslandStyle, [Direction, Direction]> = {
+  row: [
+    { icon: ArrowRight, label: 'usageIsland.direction.right' },
+    { icon: ArrowLeft, label: 'usageIsland.direction.left' },
+  ],
+  column: [
+    { icon: ArrowDown, label: 'usageIsland.direction.down' },
+    { icon: ArrowUp, label: 'usageIsland.direction.up' },
+  ],
+  dial: [
+    { icon: RotateCw, label: 'usageIsland.direction.clockwise' },
+    { icon: RotateCcw, label: 'usageIsland.direction.counterClockwise' },
+  ],
+  line: [
+    { icon: ArrowRight, label: 'usageIsland.direction.right' },
+    { icon: ArrowLeft, label: 'usageIsland.direction.left' },
+  ],
+};
 
 export function UsageIslandMain() {
   const { t } = useI18n();
@@ -48,7 +84,7 @@ export function UsageIslandMain() {
         <section className="usage-island-stage" aria-label={t('developer.usageIsland')}>
           <UsageIslandView
             items={demoItems}
-            settings={config}
+            settings={{ ...config, expandMode: 'always' }}
             pick={demoPick}
             onPick={setDemoPick}
           />
@@ -56,18 +92,46 @@ export function UsageIslandMain() {
         </section>
         <div className="usage-island-lower">
           <div className="usage-island-styles">
-            {usageIslandStyles.map((style) => (
-              <button
-                key={style}
-                type="button"
-                className="usage-island-style rounded-card"
-                aria-label={t(`usageIsland.style.${style}` as TKey)}
-                aria-pressed={config.style === style}
-                onClick={() => update({ style })}
-              >
-                <UsageIslandThumbnail style={style} />
-              </button>
-            ))}
+            {usageIslandStyles.map((style) => {
+              const reversed = config.reversed.includes(style);
+              const styleLabel = t(`usageIsland.style.${style}` as TKey);
+              return (
+                <div key={style} className="usage-island-style-card">
+                  <button
+                    type="button"
+                    className="usage-island-style rounded-card"
+                    aria-label={styleLabel}
+                    aria-pressed={config.style === style}
+                    onClick={() => update({ style })}
+                  >
+                    <UsageIslandThumbnail style={style} reversed={reversed} />
+                  </button>
+                  <div
+                    className="usage-island-direction"
+                    role="group"
+                    aria-label={styleLabel}
+                    data-reversed={reversed}
+                  >
+                    {[true, false].map((option) => {
+                      const { icon: Icon, label } = directions[style][option ? 1 : 0];
+                      return (
+                        <button
+                          key={label}
+                          type="button"
+                          aria-label={t(label)}
+                          aria-pressed={reversed === option}
+                          onClick={() => {
+                            if (reversed !== option) config.toggleReversed(style);
+                          }}
+                        >
+                          <Icon size={18} aria-hidden="true" />
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
           </div>
           <div className="voice-card rounded-card usage-island-settings">
             <div className="voice-row">

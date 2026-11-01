@@ -19,7 +19,8 @@ pub async fn usage_island_resize(
     window: WebviewWindow,
     width: f64,
     height: f64,
-    centered: bool,
+    anchor_x: f64,
+    anchor_y: f64,
 ) -> Result<(), String> {
     if window.label() != usage_island::WINDOW_LABEL {
         return Err("Only the usage island can resize itself".into());
@@ -27,5 +28,33 @@ pub async fn usage_island_resize(
     if !width.is_finite() || !height.is_finite() || width < 1.0 || height < 1.0 {
         return Err("Invalid usage island size".into());
     }
-    usage_island::resize(&window, width, height, centered)
+    usage_island::resize(
+        &window,
+        width,
+        height,
+        (anchor_x.clamp(0.0, 1.0), anchor_y.clamp(0.0, 1.0)),
+    )
+}
+
+#[tauri::command]
+pub async fn usage_island_set_hit_area(
+    window: WebviewWindow,
+    x: f64,
+    y: f64,
+    width: f64,
+    height: f64,
+) -> Result<(), String> {
+    if window.label() != usage_island::WINDOW_LABEL {
+        return Err("Only the usage island can set its hit area".into());
+    }
+    usage_island::set_hit_area(
+        &window,
+        usage_island::HitArea {
+            x,
+            y,
+            width,
+            height,
+        },
+    );
+    Ok(())
 }

@@ -1449,6 +1449,7 @@ pub fn run() {
             commands::voice_input_commands::voice_input_devices,
             commands::usage_island_commands::usage_island_set_visible,
             commands::usage_island_commands::usage_island_resize,
+            commands::usage_island_commands::usage_island_set_hit_area,
             commands::voice_input_commands::voice_input_save,
             commands::voice_input_commands::voice_input_start,
             commands::voice_input_commands::voice_input_record,

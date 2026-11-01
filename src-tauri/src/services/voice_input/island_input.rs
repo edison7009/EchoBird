@@ -20,7 +20,7 @@ fn contains(x: f64, y: f64) -> bool {
 
 #[cfg(any(windows, target_os = "macos", test))]
 #[derive(Default)]
-pub(super) struct CursorTracker {
+pub(crate) struct CursorTracker {
     ignored: Option<bool>,
 }
 
@@ -32,12 +32,22 @@ impl CursorTracker {
 
     #[cfg(any(windows, target_os = "macos"))]
     pub(super) fn update(&mut self, window: &tauri::WebviewWindow) {
+        self.update_region(window, contains);
+    }
+
+    /// Lets the mouse through outside `region`, given in logical window coordinates.
+    #[cfg(any(windows, target_os = "macos"))]
+    pub(crate) fn update_region(
+        &mut self,
+        window: &tauri::WebviewWindow,
+        region: impl Fn(f64, f64) -> bool,
+    ) -> bool {
         let inside = window
             .cursor_position()
             .and_then(|cursor| {
                 let origin = window.inner_position()?;
                 let scale = window.scale_factor()?;
-                Ok(contains(
+                Ok(region(
                     (cursor.x - f64::from(origin.x)) / scale,
                     (cursor.y - f64::from(origin.y)) / scale,
                 ))
@@ -47,6 +57,7 @@ impl CursorTracker {
         if self.ignored != Some(ignore) && window.set_ignore_cursor_events(ignore).is_ok() {
             self.ignored = Some(ignore);
         }
+        inside
     }
 }
 

@@ -49,6 +49,28 @@ export const accountSourceKey = (providerId: string, accountId: string) =>
   `account:${providerId}:${accountId}`;
 export const modelSourceKey = (modelId: string) => `model:${modelId}`;
 
+/** Fits a balance in the logo slot, keeping any currency mark around the number. */
+export function compactValue(value: string) {
+  const parts = /^([^\d-]*)(-?[\d,]*\.?\d+)(.*)$/.exec(value.trim());
+  if (!parts) return value;
+  const [, prefix, digits, suffix] = parts;
+  const amount = Number(digits.replace(/,/g, ''));
+  const size = Math.abs(amount);
+  const scaled = (divisor: number, unit: string) =>
+    `${Number((amount / divisor).toFixed(1))}${unit}`;
+  const short =
+    size >= 1e9
+      ? scaled(1e9, 'B')
+      : size >= 1e6
+        ? scaled(1e6, 'M')
+        : size >= 1e3
+          ? scaled(1e3, 'K')
+          : size >= 100
+            ? String(Math.round(amount))
+            : digits;
+  return `${prefix}${short}${suffix}`;
+}
+
 function withLines(lines: UsageLine[]) {
   const shown = (lines.length ? lines.slice(0, MAX_LINES) : [unknownLine]).map((line) => ({
     ...line,
@@ -158,7 +180,7 @@ const demoSources: (Omit<UsageIslandItem, 'percent' | 'value' | 'lines'> & {
     ],
   },
 ];
-const DEMO_BALANCE = '$12.40';
+const DEMO_BALANCE = '12.40';
 // The stage has a fixed height, so each style previews what fits it.
 const demoCounts: Record<UsageIslandStyle, number> = { row: 3, column: 2, dial: 6, line: 2 };
 

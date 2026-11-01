@@ -18,6 +18,8 @@ export interface UsageIslandConfig {
   // The source shown in place of the logo; the horizontal and vertical styles use it.
   pick: string | null;
   style: UsageIslandStyle;
+  // Styles opening the other way: left, up or counter-clockwise.
+  reversed: UsageIslandStyle[];
   theme: UsageIslandTheme;
   expandMode: UsageIslandExpandMode;
   // Zero leaves quota refresh to the explicit button.
@@ -28,6 +30,7 @@ export interface UsageIslandConfig {
 interface UsageIslandState extends UsageIslandConfig {
   update: (patch: Partial<Omit<UsageIslandConfig, 'sources'>>) => void;
   toggleSource: (key: string) => void;
+  toggleReversed: (style: UsageIslandStyle) => void;
   setSources: (sources: string[]) => void;
 }
 
@@ -35,6 +38,7 @@ const defaults: UsageIslandConfig = {
   enabled: false,
   pick: null,
   style: 'row',
+  reversed: [],
   theme: 'dark',
   expandMode: 'hover',
   refreshMinutes: 0,
@@ -53,6 +57,7 @@ function readConfig(): UsageIslandConfig {
       enabled: saved?.enabled === true,
       pick: typeof saved?.pick === 'string' ? saved.pick : null,
       style: oneOf(usageIslandStyles, saved?.style, defaults.style),
+      reversed: usageIslandStyles.filter((style) => saved?.reversed?.includes(style)),
       theme: oneOf(usageIslandThemes, saved?.theme, defaults.theme),
       expandMode: oneOf(usageIslandExpandModes, saved?.expandMode, defaults.expandMode),
       refreshMinutes: oneOf(usageIslandRefreshMinutes, saved?.refreshMinutes, 0),
@@ -69,11 +74,11 @@ function readConfig(): UsageIslandConfig {
 }
 
 function writeConfig(state: UsageIslandConfig) {
-  const { enabled, pick, style, theme, expandMode, refreshMinutes, sources } = state;
+  const { enabled, pick, style, reversed, theme, expandMode, refreshMinutes, sources } = state;
   try {
     localStorage.setItem(
       STORAGE_KEY,
-      JSON.stringify({ enabled, pick, style, theme, expandMode, refreshMinutes, sources })
+      JSON.stringify({ enabled, pick, style, reversed, theme, expandMode, refreshMinutes, sources })
     );
   } catch {
     // Keep this session's island if local storage is unavailable.
@@ -91,6 +96,15 @@ export const useUsageIslandStore = create<UsageIslandState>((set, get) => ({
     if (sources.includes(key)) set({ sources: sources.filter((source) => source !== key) });
     else if (sources.length < USAGE_ISLAND_LIMIT) set({ sources: [...sources, key] });
     else return;
+    writeConfig(get());
+  },
+  toggleReversed: (style) => {
+    const { reversed } = get();
+    set({
+      reversed: reversed.includes(style)
+        ? reversed.filter((entry) => entry !== style)
+        : [...reversed, style],
+    });
     writeConfig(get());
   },
   setSources: (sources) => {

@@ -7,7 +7,7 @@ import { ACCOUNT_NAME_MASK, useAccountPrivacyStore } from '../../stores/accountP
 import type { UsageIslandConfig, UsageIslandStyle } from '../../stores/usageIslandStore';
 import { quotaTone } from '../../utils/quotaColors';
 import { QuotaCountdown } from '../AppManager/QuotaCountdown';
-import type { UsageIslandItem } from './usageIslandData';
+import { compactValue, type UsageIslandItem } from './usageIslandData';
 
 const LOGO_SIZE = 60;
 const COLUMN_ITEM_HEIGHT = 62;
@@ -27,13 +27,15 @@ interface ItemDisplay {
   tone: string;
 }
 
-export type IslandSettings = Pick<UsageIslandConfig, 'style' | 'theme' | 'expandMode'>;
+export type IslandSettings = Pick<UsageIslandConfig, 'style' | 'reversed' | 'theme' | 'expandMode'>;
 
 export interface IslandLayout {
   expanded: boolean;
   width: number;
   height: number;
-  centered: boolean;
+  // Which part of the window stays put when it resizes: 0 start, 0.5 center, 1 end.
+  anchorX: number;
+  anchorY: number;
 }
 
 const islandLayout = (style: UsageIslandStyle) => (style === 'line' ? 'row' : style);
@@ -178,6 +180,7 @@ export function UsageIslandView({
   settings,
   pick = null,
   onPick,
+  hover = null,
   available,
   onLayout,
 }: {
@@ -185,6 +188,8 @@ export function UsageIslandView({
   settings: IslandSettings;
   pick?: string | null;
   onPick?: (key: string | null) => void;
+  /** Set by hosts that track the cursor themselves. */
+  hover?: boolean | null;
   /** Fixed width for hosts that follow the island instead of containing it. */
   available?: number;
   onLayout?: (layout: IslandLayout) => void;
@@ -195,6 +200,7 @@ export function UsageIslandView({
   const [hovered, setHovered] = useState(false);
   const [pinned, setPinned] = useState(false);
   const { style, theme, expandMode } = settings;
+  const reversed = settings.reversed.includes(style);
   const layout = islandLayout(style);
   const { root, tools, fit } = useIslandFit(layout);
   const width = available ?? fit.available;
@@ -204,7 +210,8 @@ export function UsageIslandView({
   const surface =
     theme === 'auto' ? resolved : theme === 'system' ? (systemDark ? 'dark' : 'light') : theme;
   const expanded =
-    items.length > 0 && (expandMode === 'always' || pinned || (expandMode === 'hover' && hovered));
+    items.length > 0 &&
+    (expandMode === 'always' || pinned || (expandMode === 'hover' && (hover ?? hovered)));
   const fullSize = {
     width:
       layout === 'dial' ? DIAL_SIZE : layout === 'column' ? LOGO_SIZE : fit.content + TOOLS_INSET,
@@ -229,11 +236,12 @@ export function UsageIslandView({
       expanded,
       width: fullSize.width,
       height: fullSize.height,
-      centered: layout === 'dial',
+      anchorX: layout === 'dial' ? 0.5 : layout === 'row' && reversed ? 1 : 0,
+      anchorY: layout === 'dial' ? 0.5 : layout === 'column' && reversed ? 1 : 0,
     });
-  }, [onLayout, expanded, fullSize.width, fullSize.height, layout]);
+  }, [onLayout, expanded, fullSize.width, fullSize.height, layout, reversed]);
   return (
-    <div ref={root} className="usage-island-fit" data-layout={layout}>
+    <div ref={root} className="usage-island-fit" data-layout={layout} data-reversed={reversed}>
       <div
         className="usage-island-track"
         style={
@@ -244,12 +252,14 @@ export function UsageIslandView({
           } as CSSProperties
         }
         data-layout={layout}
+        data-reversed={reversed}
       >
         <div
           className={`usage-island usage-island-theme-${surface}${
             theme === 'auto' ? ' usage-island-theme-auto' : ''
           }`}
           data-layout={layout}
+          data-reversed={reversed}
           data-expanded={expanded}
           data-density={style === 'line' ? lineDensity(width, items.length) : undefined}
           onPointerEnter={(event) => {
@@ -323,7 +333,12 @@ export function UsageIslandView({
               className="usage-island-logo"
               data-tone={picked ? quotaTone(picked.percent) : undefined}
             >
-              {picked ? (
+              {picked?.percent === null ? (
+                <span className="usage-island-logo-value">
+                  <SourceIcon icon={picked.icon} />
+                  <span>{compactValue(picked.value)}</span>
+                </span>
+              ) : picked ? (
                 <Gauge percent={picked.percent} icon={picked.icon} />
               ) : (
                 <img src="/brand/bird.png" alt="" draggable={false} />
@@ -340,7 +355,13 @@ function ThumbnailMark({ x, y }: { x: number; y: number }) {
   return <circle cx={x} cy={y} r="5" fill="none" stroke="currentColor" strokeWidth="2" />;
 }
 
-export function UsageIslandThumbnail({ style }: { style: UsageIslandStyle }) {
+export function UsageIslandThumbnail({
+  style,
+  reversed,
+}: {
+  style: UsageIslandStyle;
+  reversed: boolean;
+}) {
   const layout = islandLayout(style);
   if (layout === 'dial')
     return (
@@ -363,8 +384,8 @@ export function UsageIslandThumbnail({ style }: { style: UsageIslandStyle }) {
     return (
       <svg viewBox="0 0 120 64" aria-hidden="true">
         <rect x="47" y="1" width="26" height="62" rx="13" fill="currentColor" opacity="0.14" />
-        <circle cx="60" cy="13" r="7" fill="currentColor" />
-        {[28, 47].map((y) => (
+        <circle cx="60" cy={reversed ? 51 : 13} r="7" fill="currentColor" />
+        {(reversed ? [9, 28] : [28, 47]).map((y) => (
           <g key={y}>
             <ThumbnailMark x={60} y={y} />
             <rect x="55" y={y + 8} width="10" height="2.5" rx="1.25" fill="currentColor" />
@@ -375,16 +396,16 @@ export function UsageIslandThumbnail({ style }: { style: UsageIslandStyle }) {
   return (
     <svg viewBox="0 0 120 64" aria-hidden="true">
       <rect x="2" y="18" width="116" height="28" rx="14" fill="currentColor" opacity="0.14" />
-      <circle cx="16" cy="32" r="9" fill="currentColor" />
+      <circle cx={reversed ? 104 : 16} cy="32" r="9" fill="currentColor" />
       {style === 'line'
-        ? [32, 60, 88].map((x) => (
+        ? (reversed ? [10, 38, 66] : [32, 60, 88]).map((x) => (
             <g key={x}>
               <circle cx={x + 2} cy="27.5" r="2.5" fill="currentColor" opacity="0.7" />
               <rect x={x + 6} y="26" width="16" height="3" rx="1.5" fill="currentColor" />
               <rect x={x} y="35" width="22" height="3" rx="1.5" fill="currentColor" />
             </g>
           ))
-        : [37, 65, 93].map((x) => (
+        : (reversed ? [15, 43, 71] : [37, 65, 93]).map((x) => (
             <g key={x}>
               <ThumbnailMark x={x} y={32} />
               <rect
