@@ -117,7 +117,7 @@ it('merges the MiniMax editions into one provider with switchable variants', asy
   const labels = renderer!.root
     .findAll((node) => node.type === 'button')
     .map((node) => node.props['aria-label']);
-  expect(labels).toEqual(['Add model: MiniMax', 'Add model: Other']);
+  expect(labels).toEqual(['btn.addModel', 'Add model: MiniMax', 'Add model: Other']);
   expect(shellOpen).not.toHaveBeenCalled();
   act(() => button('Add model: MiniMax').props.onClick());
   const form = setNewModelForm.mock.calls[0][0];
@@ -127,6 +127,34 @@ it('merges the MiniMax editions into one provider with switchable variants', asy
     'MiniMax EN',
     'MiniMax CN',
   ]);
+});
+
+it('opens a blank add-model form from the first provider tile', async () => {
+  vi.mocked(api.getModelDirectory).mockResolvedValue({
+    providers: [
+      {
+        name: 'Provider',
+        url: 'https://fixture.test',
+        baseUrl: 'https://fixture.test/v1',
+        anthropicUrl: '',
+        region: 'global' as const,
+      },
+    ],
+    relays: [],
+  });
+  await act(async () => {
+    renderer = create(<ModelNexusPanel />);
+  });
+  act(() => button('btn.addModel').props.onClick());
+  expect(setNewModelForm).toHaveBeenCalledExactlyOnceWith({
+    name: '',
+    baseUrl: '',
+    anthropicUrl: '',
+    apiKey: '',
+    modelId: '',
+  });
+  expect(setEditingModelId).toHaveBeenCalledExactlyOnceWith(null);
+  expect(setShowAddModelModal).toHaveBeenCalledExactlyOnceWith(true);
 });
 
 it('keeps sponsored relays as full cards and lists providers compactly', async () => {

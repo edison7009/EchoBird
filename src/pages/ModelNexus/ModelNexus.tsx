@@ -28,7 +28,7 @@ import {
   sortableKeyboardCoordinates,
   arrayMove,
 } from '@dnd-kit/sortable';
-import { X, Lock, Unlock, RefreshCw, GripVertical, Box, ExternalLink } from 'lucide-react';
+import { X, Lock, Unlock, RefreshCw, GripVertical, Box, ExternalLink, Plus } from 'lucide-react';
 import { DirectoryRow } from '../../components/DirectoryRow';
 import { SortableCard } from '../../components/SortableCard';
 import { ModelCard, ModelCardSkeleton, getModelIcon } from '../../components';
@@ -51,6 +51,8 @@ import { useNavigationStore } from '../../stores/navigationStore';
 import type { TKey } from '../../i18n/types';
 import './ModelNexus.css';
 export { ModelNexusProvider } from './provider';
+
+const BLANK_MODEL_FORM = { name: '', baseUrl: '', anthropicUrl: '', apiKey: '', modelId: '' };
 
 const isZhipuCnUrl = (baseUrl: string, anthropicUrl?: string | null) => {
   try {
@@ -269,13 +271,7 @@ export function ModelNexusMain() {
                 <div
                   className={`h-40 border border-dashed border-cyber-border flex flex-col items-center justify-center hover:border-cyber-border cursor-default transition-all rounded-card text-cyber-text-secondary hover:text-cyber-text`}
                   onClick={() => {
-                    setNewModelForm({
-                      name: '',
-                      baseUrl: '',
-                      anthropicUrl: '',
-                      apiKey: '',
-                      modelId: '',
-                    });
+                    setNewModelForm(BLANK_MODEL_FORM);
                     setEditingModelId(null);
                     setShowAddModelModal(true);
                   }}
@@ -411,24 +407,33 @@ function groupProviders(entries: DirectoryEntry[]): ProviderItem[] {
   );
 }
 
+// Without an icon name the tile is the blank "add model" entry.
 function ProviderTile({
   name,
   iconName,
   onAdd,
 }: {
   name: string;
-  iconName: string;
+  iconName?: string;
   onAdd: () => void;
 }) {
-  const iconSrc = getModelIcon(iconName, '');
+  const iconSrc = iconName ? getModelIcon(iconName, '') : null;
   return (
     <button
       type="button"
       onClick={onAdd}
-      aria-label={`Add model: ${name}`}
+      aria-label={iconName ? `Add model: ${name}` : name}
       className="group flex min-w-0 items-center gap-2 rounded-lg p-2 text-left transition-colors hover:bg-cyber-elevated/50"
     >
-      {iconSrc ? (
+      {!iconName ? (
+        <span className="flex h-5 w-5 flex-shrink-0 items-center justify-center text-cyber-text-muted">
+          <Plus
+            size={22}
+            strokeWidth={2.5}
+            className="flex-shrink-0 transition-all group-hover:scale-110 group-hover:text-cyber-text"
+          />
+        </span>
+      ) : iconSrc ? (
         <img
           src={iconSrc}
           alt=""
@@ -506,6 +511,12 @@ export function ModelNexusPanel() {
     [setNewModelForm, setEditingModelId, setShowAddModelModal]
   );
 
+  const openBlankModel = () => {
+    setNewModelForm(BLANK_MODEL_FORM);
+    setEditingModelId(null);
+    setShowAddModelModal(true);
+  };
+
   return (
     <div className="flex-1 px-2 pb-2 overflow-y-auto">
       {sections.map((section) => (
@@ -526,6 +537,7 @@ export function ModelNexusPanel() {
             </div>
           ) : (
             <div className="grid grid-cols-2 gap-x-2 gap-y-0.5">
+              <ProviderTile name={t('btn.addModel')} onAdd={openBlankModel} />
               {groupProviders(section.entries).map((item) => (
                 <ProviderTile
                   key={item.name}
