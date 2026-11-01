@@ -150,27 +150,40 @@ function UsageLines({ item, name }: { item: UsageIslandItem; name: string }) {
   );
 }
 
-function Dial({ items, displays }: { items: UsageIslandItem[]; displays: ItemDisplay[] }) {
+function Dial({
+  items,
+  displays,
+  pick,
+  onPick,
+}: {
+  items: UsageIslandItem[];
+  displays: ItemDisplay[];
+  pick: string | null;
+  onPick?: (key: string | null) => void;
+}) {
   const slice = (Math.PI * 2) / items.length;
   return items.map((item, index) => {
     const display = displays[index];
     const angle = -Math.PI / 2 + index * slice;
     return (
-      <span
-        key={item.key}
-        role="listitem"
-        className="usage-island-dial-item"
-        data-tone={display.tone}
-        data-usage-source={item.key}
-        aria-label={`${item.name} ${display.label} ${item.value}`}
-        style={{
-          left: Math.round(DIAL_CENTER + DIAL_ITEM_RADIUS * Math.cos(angle)),
-          top: Math.round(DIAL_CENTER + DIAL_ITEM_RADIUS * Math.sin(angle)),
-        }}
-      >
-        <Gauge percent={item.percent} icon={item.icon} />
-        <span className="usage-island-amount">{item.value}</span>
-      </span>
+      <div key={item.key} role="listitem" className="usage-island-item">
+        <button
+          type="button"
+          className="usage-island-dial-item"
+          data-tone={display.tone}
+          data-usage-source={item.key}
+          aria-label={`${item.name} ${display.label} ${item.value}`}
+          aria-pressed={item.key === pick}
+          style={{
+            left: Math.round(DIAL_CENTER + DIAL_ITEM_RADIUS * Math.cos(angle)),
+            top: Math.round(DIAL_CENTER + DIAL_ITEM_RADIUS * Math.sin(angle)),
+          }}
+          onClick={() => onPick?.(item.key === pick ? null : item.key)}
+        >
+          <Gauge percent={item.percent} icon={item.icon} />
+          <span className="usage-island-amount">{item.value}</span>
+        </button>
+      </div>
     );
   });
 }
@@ -204,14 +217,15 @@ export function UsageIslandView({
   const layout = islandLayout(style);
   const { root, tools, fit } = useIslandFit(layout);
   const width = available ?? fit.available;
-  const pickable = style === 'row' || style === 'column';
-  const picked = pickable ? items.find((item) => item.key === pick) : undefined;
+  const picked = items.find((item) => item.key === pick);
   const systemDark = useSystemDark();
   const surface =
     theme === 'auto' ? resolved : theme === 'system' ? (systemDark ? 'dark' : 'light') : theme;
   const expanded =
     items.length > 0 &&
-    (expandMode === 'always' || pinned || (expandMode === 'hover' && (hover ?? hovered)));
+    (expandMode === 'always' ||
+      (expandMode === 'click' && pinned) ||
+      (expandMode === 'hover' && (hover ?? hovered)));
   const fullSize = {
     width:
       layout === 'dial' ? DIAL_SIZE : layout === 'column' ? LOGO_SIZE : fit.content + TOOLS_INSET,
@@ -271,7 +285,7 @@ export function UsageIslandView({
         >
           {layout === 'dial' ? (
             <div className="usage-island-dial" role="list" aria-hidden={!expanded}>
-              <Dial items={items} displays={displays} />
+              <Dial items={items} displays={displays} pick={pick} onPick={onPick} />
             </div>
           ) : (
             <div ref={tools} className="usage-island-tools" role="list" aria-hidden={!expanded}>
@@ -291,7 +305,7 @@ export function UsageIslandView({
                     </>
                   );
                 const label = `${item.name} ${display.label} ${item.value}`;
-                return pickable ? (
+                return (
                   <div key={item.key} role="listitem" className="usage-island-item">
                     <button
                       type="button"
@@ -304,17 +318,6 @@ export function UsageIslandView({
                     >
                       {content}
                     </button>
-                  </div>
-                ) : (
-                  <div
-                    key={item.key}
-                    role="listitem"
-                    className="usage-island-tool"
-                    data-tone={display.tone}
-                    data-usage-source={item.key}
-                    aria-label={label}
-                  >
-                    {content}
                   </div>
                 );
               })}

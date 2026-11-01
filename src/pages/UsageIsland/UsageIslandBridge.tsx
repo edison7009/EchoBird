@@ -20,7 +20,7 @@ export default function UsageIslandBridge() {
   const pick = useUsageIslandStore((state) => state.pick);
   const hidden = useAccountPrivacyStore((privacy) => privacy.hidden);
   const items = useUsageIslandItems(useUsageSources(true));
-  useUsageIslandRefresh(items, true);
+  useUsageIslandRefresh(items, true, true);
   const payload: UsageIslandPayload = {
     settings: { style, reversed, theme, expandMode },
     pick,

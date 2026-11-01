@@ -10,22 +10,18 @@ import { useAppManager } from '../AppManager/context';
 import { useModelNexus } from '../ModelNexus/context';
 import { accountSources, modelSources, type UsageSource } from './usageIslandData';
 
-const isUsageIslandPage = () => {
-  const navigation = useNavigationStore.getState();
-  return (
-    navigation.developerMode &&
-    navigation.activePage === 'developer' &&
-    navigation.developerTab === 'usageIsland'
-  );
-};
+// Leaves time for saved accounts and models to load.
+const FIRST_REFRESH_DELAY = 5000;
+
+type Navigation = ReturnType<typeof useNavigationStore.getState>;
+
+const onUsageIslandPage = (navigation: Navigation) =>
+  navigation.developerMode &&
+  navigation.activePage === 'developer' &&
+  navigation.developerTab === 'usageIsland';
 
 export function useUsageIslandActive() {
-  return useNavigationStore(
-    (state) =>
-      state.developerMode &&
-      state.activePage === 'developer' &&
-      state.developerTab === 'usageIsland'
-  );
+  return useNavigationStore(onUsageIslandPage);
 }
 
 export function useUsageSources(active: boolean): UsageSource[] {
@@ -52,17 +48,17 @@ export function useUsageIslandItems(sources: UsageSource[]) {
 }
 
 /** Only one caller may pass `timed`: the page while closed, the bridge while open. */
-export function useUsageIslandRefresh(items: UsageSource[], timed: boolean) {
+export function useUsageIslandRefresh(items: UsageSource[], timed: boolean, startSoon = false) {
   const { t } = useI18n();
   const { showToast } = useToast();
-  const refreshMinutes = useUsageIslandStore((state) => state.refreshMinutes);
+  const refreshSeconds = useUsageIslandStore((state) => state.refreshSeconds);
   const [refreshing, setRefreshing] = useState(false);
   const refreshPending = useRef(false);
   const latestItems = useRef(items);
   useEffect(() => {
     latestItems.current = items;
   });
-  const live = () => isUsageIslandPage() || usageIslandVisible();
+  const live = () => onUsageIslandPage(useNavigationStore.getState()) || usageIslandVisible();
   const refresh = async (manual: boolean) => {
     if (refreshPending.current || !latestItems.current.length) return;
     if (!useRewardClaimStore.getState().tryStart()) return;
@@ -94,11 +90,17 @@ export function useUsageIslandRefresh(items: UsageSource[], timed: boolean) {
   useEffect(() => {
     latestRefresh.current = refresh;
   });
-  // The first tick waits a full interval, so opening the page never queries quota.
+  // Opening the page never queries quota, so its first tick waits a full interval. The
+  // floating island has nothing to show until then, as model usage lives in memory.
   useEffect(() => {
-    if (!timed || !refreshMinutes) return;
-    const timer = setInterval(() => void latestRefresh.current(false), refreshMinutes * 60_000);
-    return () => clearInterval(timer);
-  }, [timed, refreshMinutes]);
+    if (!timed || !refreshSeconds) return;
+    const run = () => void latestRefresh.current(false);
+    const first = startSoon ? setTimeout(run, FIRST_REFRESH_DELAY) : undefined;
+    const timer = setInterval(run, refreshSeconds * 1000);
+    return () => {
+      clearTimeout(first);
+      clearInterval(timer);
+    };
+  }, [timed, startSoon, refreshSeconds]);
   return { refreshing, refresh };
 }

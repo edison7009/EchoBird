@@ -87,6 +87,7 @@ const zhHant: Partial<Translations> = {
   'usageIsland.noModels': '暫無可新增的模型',
   'usageIsland.refresh': '重新整理',
   'usageIsland.refresh.manual': '手動',
+  'usageIsland.refresh.seconds': '{n} 秒',
   'usageIsland.refresh.minutes': '{n} 分鐘',
   'usageIsland.removeSource': '移除來源',
   'usageIsland.style.row': '橫向',

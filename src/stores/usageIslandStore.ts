@@ -7,7 +7,7 @@ export const USAGE_ISLAND_LIMIT = 6;
 export const usageIslandStyles = ['row', 'column', 'dial', 'line'] as const;
 export const usageIslandThemes = ['auto', 'dark', 'light', 'system'] as const;
 export const usageIslandExpandModes = ['hover', 'click', 'always'] as const;
-export const usageIslandRefreshMinutes = [0, 5, 15, 30, 60] as const;
+export const usageIslandRefreshSeconds = [0, 30, 180, 900] as const;
 
 export type UsageIslandStyle = (typeof usageIslandStyles)[number];
 export type UsageIslandTheme = (typeof usageIslandThemes)[number];
@@ -23,7 +23,7 @@ export interface UsageIslandConfig {
   theme: UsageIslandTheme;
   expandMode: UsageIslandExpandMode;
   // Zero leaves quota refresh to the explicit button.
-  refreshMinutes: number;
+  refreshSeconds: number;
   sources: string[];
 }
 
@@ -41,7 +41,7 @@ const defaults: UsageIslandConfig = {
   reversed: [],
   theme: 'dark',
   expandMode: 'hover',
-  refreshMinutes: 0,
+  refreshSeconds: 0,
   sources: [],
 };
 
@@ -60,7 +60,7 @@ function readConfig(): UsageIslandConfig {
       reversed: usageIslandStyles.filter((style) => saved?.reversed?.includes(style)),
       theme: oneOf(usageIslandThemes, saved?.theme, defaults.theme),
       expandMode: oneOf(usageIslandExpandModes, saved?.expandMode, defaults.expandMode),
-      refreshMinutes: oneOf(usageIslandRefreshMinutes, saved?.refreshMinutes, 0),
+      refreshSeconds: oneOf(usageIslandRefreshSeconds, saved?.refreshSeconds, 0),
       sources: Array.isArray(saved?.sources)
         ? [...new Set(saved.sources.filter((key): key is string => typeof key === 'string'))].slice(
             0,
@@ -74,11 +74,11 @@ function readConfig(): UsageIslandConfig {
 }
 
 function writeConfig(state: UsageIslandConfig) {
-  const { enabled, pick, style, reversed, theme, expandMode, refreshMinutes, sources } = state;
+  const { enabled, pick, style, reversed, theme, expandMode, refreshSeconds, sources } = state;
   try {
     localStorage.setItem(
       STORAGE_KEY,
-      JSON.stringify({ enabled, pick, style, reversed, theme, expandMode, refreshMinutes, sources })
+      JSON.stringify({ enabled, pick, style, reversed, theme, expandMode, refreshSeconds, sources })
     );
   } catch {
     // Keep this session's island if local storage is unavailable.

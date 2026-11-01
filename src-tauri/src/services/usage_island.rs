@@ -15,6 +15,9 @@ const TOP_GAP: f64 = 24.0;
 
 #[cfg(any(windows, target_os = "macos"))]
 const HOVER_EVENT: &str = "usage-island-hover";
+// The hit area grows over IPC, so a quick sweep off the logo must not count as leaving.
+#[cfg(any(windows, target_os = "macos"))]
+const LEAVE_TICKS: u32 = 6;
 
 /// The part of the window the island covers, in logical window coordinates.
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -59,16 +62,19 @@ fn track_cursor(app: &AppHandle) {
         std::thread::spawn(move || {
             let mut tracker = CursorTracker::default();
             let mut hovered = false;
+            let mut outside = 0;
             loop {
                 let Some(window) = app.get_webview_window(WINDOW_LABEL) else {
                     tracker = CursorTracker::default();
                     hovered = false;
+                    outside = 0;
                     std::thread::sleep(Duration::from_millis(200));
                     continue;
                 };
                 let area = *HIT_AREA.lock().unwrap();
                 let inside = tracker.update_region(&window, |x, y| area.contains(x, y));
-                if inside != hovered {
+                outside = if inside { 0 } else { outside + 1 };
+                if (inside && !hovered) || (hovered && outside >= LEAVE_TICKS) {
                     hovered = inside;
                     let _ = window.emit_to(WINDOW_LABEL, HOVER_EVENT, inside);
                 }

@@ -18,11 +18,18 @@ export function ModelQuotaSummary({
   const now = useUsageClock(
     usage.quotas.some((quota) => quota.balance == null && !!quota.period && quota.resetAt > 0)
   );
-  const balance = usage.quotas.find((quota) => quota.balance != null);
-  const summary = balance
-    ? `${t(balanceLabelKey(balance))}${balance.balance!.toFixed(2)}`
+  const balances = usage.quotas.filter((quota) => quota.balance != null);
+  const summary = balances.length
+    ? balances
+        .map(
+          (quota) =>
+            `${t(balanceLabelKey(quota))}${quota.balance!.toFixed(2)}${
+              balances.length > 1 && quota.balanceUnit ? ` ${quota.balanceUnit}` : ''
+            }`
+        )
+        .join(' · ')
     : compactModelUsage(usage, now);
-  const label = balance
+  const label = balances.length
     ? summary
     : usage.quotas
         .map(

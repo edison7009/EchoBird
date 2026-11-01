@@ -215,12 +215,21 @@
   place-items: center;
   width: 100%;
   height: 100%;
-  animation: voice-app-icon-turn 0.45s linear;
+  animation: usage-island-logo-turn 0.45s linear;
 }
+@keyframes usage-island-logo-turn {
+  from {
+    transform: perspective(480px) rotateY(0deg);
+  }
+  to {
+    transform: perspective(480px) rotateY(360deg);
+  }
+}
+/* An even height keeps it on whole pixels, so it does not jump when the turn ends. */
 .usage-island-logo-value {
   display: grid;
   justify-items: center;
-  gap: 1px;
+  gap: 2px;
   font-size: 11px;
   line-height: 12px;
   font-weight: 600;
@@ -272,6 +281,7 @@
   display: contents;
 }
 .usage-island-tool {
+  text-align: left;
   flex: 0 1 auto;
   display: flex;
   align-items: center;
@@ -373,6 +383,7 @@
   flex-direction: column-reverse;
 }
 .usage-island[data-layout='column'] .usage-island-tool {
+  text-align: left;
   flex: 0 0 62px;
   flex-direction: column;
   justify-content: center;

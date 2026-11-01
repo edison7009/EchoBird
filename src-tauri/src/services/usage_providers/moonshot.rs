@@ -19,7 +19,7 @@ fn parse_balance(body: &Value, currency: &str) -> UsageResult {
     // A reply may leave out either marker; only one that says so is a refusal.
     let refused_code = body
         .get("code")
-        .is_some_and(|code| code.as_i64() != Some(0));
+        .is_some_and(|code| code.as_i64() != Some(0) && code.as_str() != Some("0"));
     if refused_code || body["status"] == false {
         return UsageResult::failure("Kimi rejected the balance query; check the key");
     }
@@ -77,6 +77,12 @@ mod tests {
         ] {
             assert_eq!(regional_balance_api(base), None, "{base}");
         }
+    }
+
+    #[test]
+    fn a_success_code_sent_as_text_is_not_a_refusal() {
+        let result = parse_balance(&json!({"code":"0","data":{"available_balance":1.5}}), "CNY");
+        assert!(result.success);
     }
 
     #[test]

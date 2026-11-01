@@ -87,6 +87,7 @@ const en: Translations = {
   'usageIsland.noModels': 'No models to add',
   'usageIsland.refresh': 'Refresh',
   'usageIsland.refresh.manual': 'Manual',
+  'usageIsland.refresh.seconds': '{n} sec',
   'usageIsland.refresh.minutes': '{n} min',
   'usageIsland.removeSource': 'Remove source',
   'usageIsland.style.row': 'Horizontal',

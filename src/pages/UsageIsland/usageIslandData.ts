@@ -43,6 +43,9 @@ export interface UsageSource extends UsageIslandItem {
 
 const NO_VALUE = '—';
 const MAX_LINES = 2;
+// One decimal is kept, so these already read as the next unit.
+const ROUNDS_TO_MILLION = 999_950;
+const ROUNDS_TO_BILLION = 999_950_000;
 const unknownLine: UsageLine = { label: '', percent: null, value: NO_VALUE, resetAt: null };
 
 export const accountSourceKey = (providerId: string, accountId: string) =>
@@ -59,9 +62,9 @@ export function compactValue(value: string) {
   const scaled = (divisor: number, unit: string) =>
     `${Number((amount / divisor).toFixed(1))}${unit}`;
   const short =
-    size >= 1e9
+    size >= ROUNDS_TO_BILLION
       ? scaled(1e9, 'B')
-      : size >= 1e6
+      : size >= ROUNDS_TO_MILLION
         ? scaled(1e6, 'M')
         : size >= 1e3
           ? scaled(1e3, 'K')
@@ -93,11 +96,16 @@ function accountLines(account: Pick<AccountCardData, 'metrics' | 'authorizationF
 }
 
 function modelLines(t: (key: TKey) => string, usage?: ModelUsageData) {
-  const balance = usage?.quotas.find((quota) => quota.balance != null);
-  if (balance)
-    return withLines([
-      { ...unknownLine, label: t(balanceLabelKey(balance)), value: balance.balance!.toFixed(2) },
-    ]);
+  const balances = usage?.quotas.filter((quota) => quota.balance != null) ?? [];
+  if (balances.length)
+    return withLines(
+      balances.map((quota) => ({
+        ...unknownLine,
+        label: t(balanceLabelKey(quota)),
+        // The island hides balance labels, so a minus sign marks money already spent.
+        value: `${quota.spent && quota.balance! > 0 ? '-' : ''}${quota.balance!.toFixed(2)}`,
+      }))
+    );
   const primary = usage && primaryQuota(usage);
   if (!primary) return withLines([]);
   const quotas = usage.quotas.filter((quota) => quota !== primary && quota.balance == null);

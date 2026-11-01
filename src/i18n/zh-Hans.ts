@@ -86,6 +86,7 @@ const zhHans: Partial<Translations> = {
   'usageIsland.noModels': '暂无可添加的模型',
   'usageIsland.refresh': '刷新',
   'usageIsland.refresh.manual': '手动',
+  'usageIsland.refresh.seconds': '{n} 秒',
   'usageIsland.refresh.minutes': '{n} 分钟',
   'usageIsland.removeSource': '移除来源',
   'usageIsland.style.row': '横向',

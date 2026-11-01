@@ -9,6 +9,7 @@ import * as kimiApi from '../../api/kimiAccounts';
 import * as codeArtsApi from '../../api/codeArtsAccounts';
 import { useToolsStore } from '../../stores/toolsStore';
 import { useNavigationStore } from '../../stores/navigationStore';
+import { useUsageIslandStore } from '../../stores/usageIslandStore';
 import { useAccountPrivacyStore } from '../../stores/accountPrivacyStore';
 import { AppManagerProvider } from '../../pages/AppManager/AppManagerProvider';
 import { useAppManager } from '../../pages/AppManager/context';
@@ -1309,6 +1310,26 @@ it('Usage Island: only its developer tab loads saved accounts, without querying 
   await tick();
   expect(api.listCodexAccounts).toHaveBeenCalledTimes(1);
   expectPassiveAccountNavigation();
+});
+
+it('Usage Island: the open window loads saved accounts on other pages without querying quota', async () => {
+  useToolsStore
+    .getState()
+    .setDetectedTools([{ id: 'codex', name: 'Codex', category: 'Desktop', installed: true }]);
+  useNavigationStore.getState().setDeveloperMode(true);
+  useNavigationStore.getState().setActivePage('apps');
+  useUsageIslandStore.setState({ enabled: true, sources: ['model:m'] });
+  await act(async () => {
+    renderer = create(
+      <AppManagerProvider>
+        <Harness center />
+      </AppManagerProvider>
+    );
+  });
+  await tick();
+  expect(api.listCodexAccounts).toHaveBeenCalledTimes(1);
+  expectPassiveAccountNavigation();
+  useUsageIslandStore.setState({ enabled: false, sources: [] });
 });
 
 it('Smart Access: cached apps wait for current detection before loading native accounts', async () => {

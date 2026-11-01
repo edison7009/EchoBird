@@ -149,7 +149,7 @@ beforeEach(() => {
     reversed: [],
     theme: 'dark',
     expandMode: 'hover',
-    refreshMinutes: 0,
+    refreshSeconds: 0,
     sources: [],
   });
   navigation.setState({
@@ -244,11 +244,11 @@ it('refreshes selected sources once on request and reports failures', async () =
 
 it('refreshes on the chosen interval only while the page is open and stays quiet on failure', async () => {
   refreshAccount.mockRejectedValue(new Error('offline'));
-  island.setState({ sources: [accountSourceKey('claude', 'a')], refreshMinutes: 5 });
+  island.setState({ sources: [accountSourceKey('claude', 'a')], refreshSeconds: 180 });
   await render();
   expect(refreshAccount).not.toHaveBeenCalled();
   await act(async () => {
-    await vi.advanceTimersByTimeAsync(5 * 60_000);
+    await vi.advanceTimersByTimeAsync(180_000);
   });
   expect(refreshAccount).toHaveBeenCalledTimes(1);
   expect(showToast).not.toHaveBeenCalled();
@@ -305,6 +305,7 @@ it('shows remaining allowance like the account page and leaves balances alone', 
     (key) => key
   );
   expect(spent.lines[0].label).toBe('model.quota.used');
+  expect(spent).toMatchObject({ percent: null, value: '-3.00' });
 });
 
 it('keeps two quota lines with reset times for accounts and models', () => {
@@ -413,7 +414,7 @@ it('follows the system appearance independently of the app theme', async () => {
   expect(surface()).toContain('usage-island-theme-auto');
 });
 
-it('turns the logo into the picked ring in the horizontal and vertical styles only', async () => {
+it('turns the logo into the picked ring in every style', async () => {
   const onPick = vi.fn();
   const items = accountItems();
   const key = accountSourceKey('claude', 'a');
@@ -441,11 +442,16 @@ it('turns the logo into the picked ring in the horizontal and vertical styles on
   await act(async () => view!.root.findByProps({ 'data-usage-source': key }).props.onClick());
   expect(onPick).toHaveBeenLastCalledWith(null);
   await act(async () => view!.unmount());
-  for (const style of ['line', 'dial'] as const) {
-    await mount(style, key);
-    expect(logo().findAllByType('img')).toHaveLength(1);
-    await act(async () => view!.unmount());
-  }
+  await mount('dial', key);
+  expect(logo().findAll((node) => node.props.className === 'usage-island-gauge')).toHaveLength(1);
+  await act(async () => view!.root.findByProps({ 'data-usage-source': key }).props.onClick());
+  expect(onPick).toHaveBeenLastCalledWith(null);
+  await act(async () => view!.unmount());
+  await mount('line', key);
+  expect(logo().findAll((node) => node.props.className === 'usage-island-gauge')).toHaveLength(1);
+  await act(async () => view!.root.findByProps({ 'data-usage-source': key }).props.onClick());
+  expect(onPick).toHaveBeenLastCalledWith(null);
+  await act(async () => view!.unmount());
   view = undefined;
 });
 
@@ -515,6 +521,49 @@ it('keeps the demo open whatever the floating island expand mode is', async () =
   await act(async () => island.getState().update({ expandMode: 'click', theme: 'light' }));
   expect(shell().props['data-expanded']).toBe(true);
   expect(shell().props.className).toContain('usage-island-theme-light');
+});
+
+it('moves up a unit when rounding would print 1000K or 1000M', () => {
+  expect(['999,949', '999,990', '999,990,000'].map(compactValue)).toEqual(['999.9K', '1M', '1B']);
+});
+
+it('keeps every wallet on the island when an account holds two', () => {
+  const [model] = modelSources(
+    [{ internalId: 'm', name: 'M', modelId: 'm' } as ModelConfig],
+    {
+      m: {
+        quotas: [
+          { percentage: 0, resetAt: 0, balance: 5, balanceUnit: 'CNY' },
+          { percentage: 0, resetAt: 0, balance: 2, balanceUnit: 'USD' },
+        ],
+      },
+    },
+    new Set(),
+    refreshModel,
+    (key) => key
+  );
+  expect(model.lines.map((line) => line.value)).toEqual(['5.00', '2.00']);
+});
+
+it('drops a click pin once the island follows hover', async () => {
+  const shell = () =>
+    view!.root.findAll(
+      (node) => node.type === 'div' && String(node.props.className).startsWith('usage-island ')
+    )[0];
+  const mount = (expandMode: 'click' | 'hover') => (
+    <UsageIslandView
+      items={accountItems()}
+      settings={{ style: 'row', reversed: [], theme: 'dark', expandMode }}
+      hover={false}
+    />
+  );
+  await act(async () => {
+    view = create(mount('click'));
+  });
+  await act(async () => button('usageIsland.expand').props.onClick());
+  expect(shell().props['data-expanded']).toBe(true);
+  await act(async () => view!.update(mount('hover')));
+  expect(shell().props['data-expanded']).toBe(false);
 });
 
 it('shortens long balances for the logo and leaves short or unknown values alone', () => {
@@ -605,7 +654,7 @@ it('hands the timer to the floating window while it is open', async () => {
   island.setState({
     enabled: true,
     sources: [accountSourceKey('claude', 'a')],
-    refreshMinutes: 5,
+    refreshSeconds: 180,
   });
   await render();
   await act(async () => {

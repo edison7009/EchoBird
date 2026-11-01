@@ -21,7 +21,7 @@ import { ACCOUNT_NAME_MASK, useAccountPrivacyStore } from '../../stores/accountP
 import {
   USAGE_ISLAND_LIMIT,
   usageIslandExpandModes,
-  usageIslandRefreshMinutes,
+  usageIslandRefreshSeconds,
   usageIslandStyles,
   usageIslandThemes,
   useUsageIslandStore,
@@ -169,14 +169,16 @@ export function UsageIslandMain() {
                   {t('accountCenter.refreshAll')}
                 </button>
                 <MiniSelect
-                  value={String(config.refreshMinutes)}
+                  value={String(config.refreshSeconds)}
                   dropUp
-                  onChange={(value) => update({ refreshMinutes: Number(value) })}
-                  options={usageIslandRefreshMinutes.map((minutes) => ({
-                    id: String(minutes),
-                    label: minutes
-                      ? t('usageIsland.refresh.minutes').replace('{n}', String(minutes))
-                      : t('usageIsland.refresh.manual'),
+                  onChange={(value) => update({ refreshSeconds: Number(value) })}
+                  options={usageIslandRefreshSeconds.map((seconds) => ({
+                    id: String(seconds),
+                    label: !seconds
+                      ? t('usageIsland.refresh.manual')
+                      : seconds < 60
+                        ? t('usageIsland.refresh.seconds').replace('{n}', String(seconds))
+                        : t('usageIsland.refresh.minutes').replace('{n}', String(seconds / 60)),
                   }))}
                 />
               </span>

@@ -199,9 +199,10 @@ export const AppManagerProvider: React.FC<AppManagerProviderProps> = ({ children
   }, [selectedTool, activePage]);
   const usageIslandOpen = useUsageIslandVisible();
   const accountPage =
-    usageIslandOpen ||
     activePage === 'accounts' ||
     (activePage === 'developer' && developerMode && developerTab === 'usageIsland');
+  // The floating island needs saved accounts on every page, but tool pages keep their own target.
+  const accountDataNeeded = accountPage || usageIslandOpen;
   const accountsEnabled =
     isActive && detectedTools.some((tool) => tool.id === selectedTool && tool.installed);
   const pluginAvailable = (id: string) => hasAccountPlugin(id, installedPlugins, developerMode);
@@ -212,7 +213,7 @@ export const AppManagerProvider: React.FC<AppManagerProviderProps> = ({ children
   const accountGroupEnabled = (...ids: string[]) =>
     ids.every((id) => !communityAccountApplications.includes(id) || pluginAvailable(id)) &&
     !usingCachedTools &&
-    (accountPage
+    (accountDataNeeded
       ? !ids.some((id) => communityAccountApplications.includes(id)) ||
         detectedTools.some((tool) => ids.includes(tool.id) && tool.installed)
       : accountsEnabled && ids.includes(selectedTool ?? ''));
@@ -675,7 +676,7 @@ export const AppManagerProvider: React.FC<AppManagerProviderProps> = ({ children
       detectedTools.some(
         (tool) => pluginAccountProvider?.applications.includes(tool.id) && tool.installed
       ) &&
-      (accountPage || (accountsEnabled && selectedTool === pluginAccountTool)),
+      (accountDataNeeded || (accountsEnabled && selectedTool === pluginAccountTool)),
     !!toolModelConfig[pluginAccountTool],
     () => setToolModelConfig((prev) => ({ ...prev, [pluginAccountTool]: null })),
     setApplyError,

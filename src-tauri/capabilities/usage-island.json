@@ -1,0 +1,12 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "usage-island",
+  "description": "only what the floating usage island needs",
+  "windows": ["usage-island"],
+  "permissions": [
+    "core:default",
+    "core:webview:allow-set-webview-zoom",
+    "core:window:allow-show",
+    "core:window:allow-start-dragging"
+  ]
+}
