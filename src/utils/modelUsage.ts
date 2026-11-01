@@ -8,6 +8,10 @@ export const quotaPeriodKeys: Record<NonNullable<UsageQuota['period']>, TKey> = 
   monthly: 'model.quota.monthly',
 };
 
+export function balanceLabelKey(quota: UsageQuota): TKey {
+  return quota.spent ? 'model.quota.used' : 'model.balance';
+}
+
 export function quotaPercent(quota: UsageQuota): number | null {
   if (!Number.isFinite(quota.percentage)) return null;
   const used = Math.min(100, Math.max(0, quota.percentage));

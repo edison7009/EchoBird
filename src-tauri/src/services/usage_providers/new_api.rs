@@ -94,6 +94,21 @@ fn parse_remaining_quota(usage: &Value) -> Option<f64> {
     }
 }
 
+/// An unlimited key on a panel that keeps its owner's quota private has no
+/// balance to tell; what it has spent is the one figure left to show.
+fn spent_quota(usage: &Value, display: &DisplayUnit) -> Option<UsageQuota> {
+    let data = usage.get("data")?;
+    if data.get("unlimited_quota").and_then(Value::as_bool) != Some(true) {
+        return None;
+    }
+    let used = data.get("total_used").and_then(parse_f64)?;
+    let quota = balance_quota(used, display)?;
+    Some(UsageQuota {
+        spent: true,
+        ..quota
+    })
+}
+
 /// Token counts run to many digits, which the balance line has no room for.
 fn balance_quota(quota: f64, display: &DisplayUnit) -> Option<UsageQuota> {
     let amount = quota / display.quota_per_amount;
@@ -169,7 +184,10 @@ async fn read_usage(api_key: &str, origin: &str) -> UsageResult {
     if key_has_expired(&usage) {
         return UsageResult::failure("The API key has expired");
     }
-    match parse_remaining_quota(&usage).and_then(|quota| balance_quota(quota, &display)) {
+    let quota = parse_remaining_quota(&usage)
+        .and_then(|quota| balance_quota(quota, &display))
+        .or_else(|| spent_quota(&usage, &display));
+    match quota {
         Some(quota) => UsageResult::from_quotas(vec![quota]),
         None => UsageResult::no_data(),
     }
@@ -427,6 +445,38 @@ mod tests {
             let relay = new_api(bad_site, data);
             assert_no_data(&query(&relay, &unique_key()).await);
         }
+    }
+
+    #[tokio::test]
+    async fn an_unlimited_key_without_its_owners_quota_shows_what_it_spent() {
+        let site = json!({"quota_per_unit":500000,"quota_display_type":"CNY",
+            "usd_exchange_rate":6.71});
+        for (data, expected) in [
+            (
+                json!({"total_available":0,"total_used":0,"unlimited_quota":true}),
+                0.0,
+            ),
+            (
+                json!({"total_available":0,"total_used":1500000,"unlimited_quota":true}),
+                20.13,
+            ),
+        ] {
+            let result = query(&new_api(site.clone(), data), &unique_key()).await;
+            let (amount, unit) = balance(&result);
+            assert!((amount - expected).abs() < 1e-9, "{amount} != {expected}");
+            assert_eq!(unit, "CNY");
+            assert!(result.data.unwrap().quotas[0].spent);
+        }
+
+        // The balance stays the answer whenever the panel gives one.
+        let data = json!({"total_available":0,"total_used":1500000,"unlimited_quota":true,
+            "user_quota":{"total_available":500000}});
+        let result = query(&new_api(site.clone(), data), &unique_key()).await;
+        assert!(!result.data.unwrap().quotas[0].spent);
+
+        // A limited key whose remainder is unreadable has not spent its way into a balance.
+        let data = json!({"total_used":1500000,"unlimited_quota":false});
+        assert_no_data(&query(&new_api(site, data), &unique_key()).await);
     }
 
     #[tokio::test]

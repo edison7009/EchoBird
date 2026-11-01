@@ -40,6 +40,9 @@ pub struct UsageQuota {
     // Balance display (for providers like DeepSeek that show remaining balance)
     pub balance: Option<f64>,         // Remaining balance (e.g., 10.50 USD)
     pub balance_unit: Option<String>, // Currency unit (e.g., "USD", "CNY", "Credits")
+    // The amount is what was spent, for keys that have no balance to report.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub spent: bool,
 }
 
 impl UsageQuota {
@@ -50,6 +53,7 @@ impl UsageQuota {
             period: None,
             balance: Some(amount),
             balance_unit: Some(unit.to_string()),
+            spent: false,
         })
     }
 
@@ -60,6 +64,7 @@ impl UsageQuota {
             period: Some(period),
             balance: None,
             balance_unit: None,
+            spent: false,
         })
     }
 }

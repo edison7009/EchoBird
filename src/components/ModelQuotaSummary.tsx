@@ -1,7 +1,12 @@
 import type { ModelUsageData } from '../api/models';
 import type { TKey } from '../i18n';
 import { useUsageClock } from '../hooks/useUsageClock';
-import { compactModelUsage, formatQuotaPercent, quotaPeriodKeys } from '../utils/modelUsage';
+import {
+  balanceLabelKey,
+  compactModelUsage,
+  formatQuotaPercent,
+  quotaPeriodKeys,
+} from '../utils/modelUsage';
 
 export function ModelQuotaSummary({
   usage,
@@ -15,7 +20,7 @@ export function ModelQuotaSummary({
   );
   const balance = usage.quotas.find((quota) => quota.balance != null);
   const summary = balance
-    ? `${t('model.balance')}${balance.balance!.toFixed(2)}`
+    ? `${t(balanceLabelKey(balance))}${balance.balance!.toFixed(2)}`
     : compactModelUsage(usage, now);
   const label = balance
     ? summary

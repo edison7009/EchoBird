@@ -291,6 +291,15 @@ it('shows remaining allowance like the account page and leaves balances alone', 
     (key) => key
   );
   expect(model).toMatchObject({ percent: null, value: '12.50' });
+  expect(model.lines[0].label).toBe('model.balance');
+  const [spent] = modelSources(
+    [{ internalId: 'm', name: 'M', modelId: 'm' } as ModelConfig],
+    { m: { quotas: [{ percentage: 0, resetAt: 0, balance: 3, spent: true }] } },
+    new Set(),
+    refreshModel,
+    (key) => key
+  );
+  expect(spent.lines[0].label).toBe('model.quota.used');
 });
 
 it('keeps two quota lines with reset times for accounts and models', () => {

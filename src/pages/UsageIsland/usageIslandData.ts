@@ -3,6 +3,7 @@ import type { ModelConfig } from '../../api/types';
 import { getModelIcon } from '../../components/cards';
 import { isSmartRouterId } from '../../utils/smartRouter';
 import {
+  balanceLabelKey,
   formatQuotaPercent,
   primaryQuota,
   quotaPercent,
@@ -73,7 +74,7 @@ function modelLines(t: (key: TKey) => string, usage?: ModelUsageData) {
   const balance = usage?.quotas.find((quota) => quota.balance != null);
   if (balance)
     return withLines([
-      { ...unknownLine, label: t('model.balance'), value: balance.balance!.toFixed(2) },
+      { ...unknownLine, label: t(balanceLabelKey(balance)), value: balance.balance!.toFixed(2) },
     ]);
   const primary = usage && primaryQuota(usage);
   if (!primary) return withLines([]);

@@ -105,6 +105,8 @@ export interface UsageQuota {
   period?: 'fiveHour' | 'daily' | 'weekly' | 'monthly';
   balance?: number;
   balanceUnit?: string;
+  // The amount is what was spent, for keys that have no balance to report.
+  spent?: boolean;
 }
 
 export interface ModelUsageData {

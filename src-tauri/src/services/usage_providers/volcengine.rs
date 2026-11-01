@@ -332,6 +332,7 @@ fn parse_usage(raw: &serde_json::Value) -> Option<Vec<UsageQuota>> {
                 reset_at: *reset,
                 balance: None,
                 balance_unit: None,
+                spent: false,
             });
         }
     }

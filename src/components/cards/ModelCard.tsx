@@ -9,7 +9,12 @@ import type { TKey } from '../../i18n/types';
 import { useUsageClock } from '../../hooks/useUsageClock';
 import { LatencyIndicator } from '../LatencyIndicator';
 import { modelLatencyColor } from '../../utils/modelLatency';
-import { formatQuotaPercent, quotaPercent, quotaPeriodKeys } from '../../utils/modelUsage';
+import {
+  balanceLabelKey,
+  formatQuotaPercent,
+  quotaPercent,
+  quotaPeriodKeys,
+} from '../../utils/modelUsage';
 import { quotaColorClasses, quotaTone } from '../../utils/quotaColors';
 
 // Smart icon detection — match model name/ID to icon file
@@ -335,7 +340,7 @@ export const ModelCard = React.memo(
                       // Balance display (for providers like DeepSeek) - centered, one line
                       <div className="flex items-center justify-center gap-2">
                         <span className="text-cyber-text font-bold text-2xl">
-                          {t('model.balance')}
+                          {t(balanceLabelKey(quota))}
                         </span>
                         <span className="text-cyber-text font-bold text-2xl">
                           {quota.balance.toFixed(2)} {quota.balanceUnit || 'CNY'}

@@ -114,6 +114,7 @@ pub(crate) fn parse_response(body: &Value) -> UsageResult {
             period,
             balance: None,
             balance_unit: None,
+            spent: false,
         });
     }
     // A window the card cannot name is dropped beside named ones; alone it is

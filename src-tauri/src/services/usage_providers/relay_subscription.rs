@@ -387,6 +387,7 @@ impl RelaySubscriptionProvider {
                     reset_at: 0,
                     balance: None,
                     balance_unit: None,
+                    spent: false,
                 }],
                 last_updated: Some(now_millis()),
             }),

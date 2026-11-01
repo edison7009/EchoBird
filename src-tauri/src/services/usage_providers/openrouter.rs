@@ -62,6 +62,7 @@ fn parse_key_limit(body: &Value) -> Option<UsageQuota> {
             period: None,
             balance: None,
             balance_unit: None,
+            spent: false,
         }),
     }
 }
