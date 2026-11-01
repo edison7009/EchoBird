@@ -8,6 +8,7 @@
 import { invoke } from '@tauri-apps/api/core';
 export { switchDevinAccount } from './devin';
 import { listen, type UnlistenFn } from '@tauri-apps/api/event';
+import { open as openShell } from '@tauri-apps/plugin-shell';
 import type { DetectedTool, ApplyModelInput, AppSettings } from './types';
 
 // ─── Re-export domain modules ───
@@ -142,8 +143,7 @@ export function onSelfUpdateProgress(
 // ─── Shell APIs (uses Tauri shell plugin) ───
 
 export async function openExternal(url: string): Promise<void> {
-  const { open } = await import('@tauri-apps/plugin-shell');
-  await open(url);
+  await openShell(url);
 }
 
 export async function openFolder(path: string): Promise<void> {
