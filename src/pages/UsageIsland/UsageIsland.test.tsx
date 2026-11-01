@@ -554,6 +554,17 @@ it('shows the icon and value instead of an empty ring for a picked balance', asy
   expect(logo.findAll((node) => node.type === 'span' && node.children[0] === '2K')).toHaveLength(1);
 });
 
+it('never lets an island image start a native drag', async () => {
+  for (const style of ['row', 'column', 'dial', 'line'] as const) {
+    await renderView(style, accountItems());
+    const images = view!.root.findAllByType('img');
+    expect(images.length).toBeGreaterThan(1);
+    expect(images.every((image) => image.props.draggable === false)).toBe(true);
+    await act(async () => view!.unmount());
+  }
+  view = undefined;
+});
+
 it('lets a host that tracks the cursor decide hover', async () => {
   const mount = async (hover: boolean | null) => {
     await act(async () => {

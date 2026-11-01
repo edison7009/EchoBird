@@ -70,7 +70,7 @@ function lineDensity(available: number, count: number) {
 
 function SourceIcon({ icon }: { icon: string | null }) {
   return icon ? (
-    <img src={icon} alt="" className="usage-island-icon" />
+    <img src={icon} alt="" className="usage-island-icon" draggable={false} />
   ) : (
     <Box aria-hidden="true" className="usage-island-icon" />
   );
