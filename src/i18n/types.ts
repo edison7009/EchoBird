@@ -25,7 +25,6 @@ export type TKey =
   | 'usageIsland.noModels'
   | 'usageIsland.refresh'
   | 'usageIsland.refresh.manual'
-  | 'usageIsland.refresh.seconds'
   | 'usageIsland.refresh.minutes'
   | 'usageIsland.removeSource'
   | 'usageIsland.style.row'

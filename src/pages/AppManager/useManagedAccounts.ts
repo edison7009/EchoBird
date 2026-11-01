@@ -4,6 +4,7 @@ import { useConfirm } from '../../components/ConfirmDialog';
 import { useI18n } from '../../hooks/useI18n';
 import { useNavigationStore } from '../../stores/navigationStore';
 import { useRewardClaimStore } from '../../stores/rewardClaimStore';
+import { useUsageIslandVisible } from '../../stores/usageIslandStore';
 
 export const BROWSER_LOGIN_TIMEOUT_SECONDS = 10 * 60;
 
@@ -47,6 +48,11 @@ export function useManagedAccounts<A extends ManagedAccount, L extends ManagedLo
 ) {
   const { t } = useI18n();
   const activePage = useNavigationStore((state) => state.activePage);
+  // While the floating island keeps every group loaded, moving between pages without
+  // accounts is not a new visit. Leaving the app or account page still is.
+  const islandOpen = useUsageIslandVisible();
+  const visitedPage =
+    islandOpen && activePage !== 'apps' && activePage !== 'accounts' ? 'background' : activePage;
   const confirm = useConfirm();
   const [rows, setRows] = useState<Record<string, A[]>>({});
   const [selection, setSelection] = useState<Record<string, string | null>>({});
@@ -59,7 +65,7 @@ export function useManagedAccounts<A extends ManagedAccount, L extends ManagedLo
   const [loadedScopes, setLoadedScopes] = useState(new Set<string>());
   const [listFailed, setListFailed] = useState(false);
   const [mutationRevision, setMutationRevision] = useState(0);
-  const navigation = `${scope}:${activePage}:${navigationKey}:${enabled}`;
+  const navigation = `${scope}:${visitedPage}:${navigationKey}:${enabled}`;
   // A repeated visit is pending before its zero-delay account read starts.
   const listKey = useMemo(() => Symbol(navigation), [navigation]);
   const [refreshing, setRefreshing] = useState(new Set<string>());
@@ -208,7 +214,7 @@ export function useManagedAccounts<A extends ManagedAccount, L extends ManagedLo
       if (previous?.login.loginId)
         void previous.client.cancel(previous.login.loginId).catch(() => {});
     };
-  }, [activePage, enabled, navigationKey, reload, scope, stop]);
+  }, [visitedPage, enabled, navigationKey, reload, scope, stop]);
 
   const select = (id: string | null) => {
     revision.current += 1;

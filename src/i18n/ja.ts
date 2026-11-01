@@ -88,7 +88,6 @@ const ja: Partial<Translations> = {
   'usageIsland.noModels': '追加できるモデルはありません',
   'usageIsland.refresh': '更新',
   'usageIsland.refresh.manual': '手動',
-  'usageIsland.refresh.seconds': '{n} 秒',
   'usageIsland.refresh.minutes': '{n} 分',
   'usageIsland.removeSource': 'ソースを削除',
   'usageIsland.style.row': '横',

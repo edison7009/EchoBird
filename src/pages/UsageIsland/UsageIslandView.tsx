@@ -9,10 +9,10 @@ import { quotaTone } from '../../utils/quotaColors';
 import { QuotaCountdown } from '../AppManager/QuotaCountdown';
 import { compactValue, type UsageIslandItem } from './usageIslandData';
 
-const LOGO_SIZE = 60;
-const COLUMN_ITEM_HEIGHT = 62;
+const LOGO_SIZE = 48;
+const COLUMN_ITEM_HEIGHT = 54;
 // Logo slot plus the end padding, and the gap between sources; both mirror the CSS.
-const TOOLS_INSET = 72;
+const TOOLS_INSET = 60;
 const TOOLS_GAP = 12;
 // Per-source widths below which a line source drops its countdown, then its second quota.
 const LINE_FULL_WIDTH = 180;
@@ -79,14 +79,14 @@ function SourceIcon({ icon }: { icon: string | null }) {
 function Gauge({ percent, icon }: { percent: number | null; icon: string | null }) {
   return (
     <span className="usage-island-gauge">
-      <svg viewBox="0 0 36 36" aria-hidden="true">
-        <circle className="usage-island-gauge-track" cx="18" cy="18" r="16.5" pathLength="100" />
+      <svg viewBox="0 0 32 32" aria-hidden="true">
+        <circle className="usage-island-gauge-track" cx="16" cy="16" r="14.5" pathLength="100" />
         {!!percent && (
           <circle
             className="usage-island-gauge-value"
-            cx="18"
-            cy="18"
-            r="16.5"
+            cx="16"
+            cy="16"
+            r="14.5"
             pathLength="100"
             strokeDasharray={`${percent} 100`}
           />
@@ -194,6 +194,7 @@ export function UsageIslandView({
   pick = null,
   onPick,
   hover = null,
+  masked = false,
   available,
   onLayout,
 }: {
@@ -203,6 +204,8 @@ export function UsageIslandView({
   onPick?: (key: string | null) => void;
   /** Set by hosts that track the cursor themselves. */
   hover?: boolean | null;
+  /** The host already applied the privacy setting, as a separate window cannot follow it. */
+  masked?: boolean;
   /** Fixed width for hosts that follow the island instead of containing it. */
   available?: number;
   onLayout?: (layout: IslandLayout) => void;
@@ -238,7 +241,7 @@ export function UsageIslandView({
   };
   const displays = items.map((item): ItemDisplay => {
     const account = item.kind === 'account';
-    const label = account && hidden ? ACCOUNT_NAME_MASK : item.detail;
+    const label = account && hidden && !masked ? ACCOUNT_NAME_MASK : item.detail;
     return {
       label,
       name: account ? label || item.name : item.name,

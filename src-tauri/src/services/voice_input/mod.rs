@@ -8,6 +8,8 @@ mod dictation_target;
 pub(crate) mod island_input;
 mod monitor;
 mod native;
+#[cfg(any(windows, target_os = "macos"))]
+pub(crate) use native::left_mouse_down;
 #[cfg(windows)]
 mod paste_windows;
 mod pipeline;

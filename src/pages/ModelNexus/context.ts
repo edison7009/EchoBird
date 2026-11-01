@@ -36,6 +36,11 @@ export interface DirectoryVariant {
 
 export type ModelModalDestination = 'modelNexus' | 'freeRouter' | 'voiceInput';
 
+export interface UsageRefreshOptions {
+  silent?: boolean;
+  onError?: (error: unknown) => void;
+}
+
 export interface ModelNexusCtx {
   // Models
   userModels: ModelConfig[];
@@ -100,7 +105,7 @@ export interface ModelNexusCtx {
   openZhipuTeamModal: (modelId: string) => Promise<void>;
   pingAllModels: () => Promise<void>;
   refreshAllUsage: () => Promise<void>;
-  refreshSingleUsage: (modelId: string, options?: { silent?: boolean }) => Promise<void>; // Single model refresh
+  refreshSingleUsage: (modelId: string, options?: UsageRefreshOptions) => Promise<void>; // Single model refresh
   handleTestModel: () => Promise<void>;
 }
 

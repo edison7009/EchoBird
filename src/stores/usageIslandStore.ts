@@ -7,7 +7,7 @@ export const USAGE_ISLAND_LIMIT = 6;
 export const usageIslandStyles = ['row', 'column', 'dial', 'line'] as const;
 export const usageIslandThemes = ['auto', 'dark', 'light', 'system'] as const;
 export const usageIslandExpandModes = ['hover', 'click', 'always'] as const;
-export const usageIslandRefreshSeconds = [0, 30, 180, 900] as const;
+export const usageIslandRefreshSeconds = [0, 300, 900, 1800, 3600] as const;
 
 export type UsageIslandStyle = (typeof usageIslandStyles)[number];
 export type UsageIslandTheme = (typeof usageIslandThemes)[number];

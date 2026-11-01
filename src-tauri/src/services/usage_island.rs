@@ -1,17 +1,24 @@
 #[cfg(any(windows, target_os = "macos"))]
 use crate::services::voice_input::island_input::CursorTracker;
+use std::sync::atomic::{AtomicU64, Ordering};
 #[cfg(any(windows, target_os = "macos"))]
-use std::sync::{Mutex, Once};
-#[cfg(any(windows, target_os = "macos"))]
+use std::sync::Once;
+use std::sync::{Mutex, PoisonError};
 use std::time::Duration;
 #[cfg(any(windows, target_os = "macos"))]
 use tauri::Emitter;
 use tauri::{AppHandle, Manager, PhysicalPosition, PhysicalRect, PhysicalSize, WebviewWindow};
 
 pub const WINDOW_LABEL: &str = "usage-island";
-const COLLAPSED_SIZE: f64 = 60.0;
-// The voice island keeps the bottom of the screen, so this one starts at the top.
-const TOP_GAP: f64 = 24.0;
+// Each resize shifts from the current size, so two at once would shift twice; the drop
+// check reads the same position.
+static MOVING: Mutex<()> = Mutex::new(());
+// How long the window must rest after a drag before it is pulled back on screen.
+const DROP_SETTLE: Duration = Duration::from_millis(250);
+const COLLAPSED_SIZE: f64 = 48.0;
+// Clear margin around the island, so the window edge does not cut off its shadow.
+const SHADOW_PADDING: f64 = 24.0;
+const WINDOW_SIZE: f64 = COLLAPSED_SIZE + SHADOW_PADDING * 2.0;
 
 #[cfg(any(windows, target_os = "macos"))]
 const HOVER_EVENT: &str = "usage-island-hover";
@@ -29,8 +36,8 @@ pub struct HitArea {
 }
 
 const LOGO_AREA: HitArea = HitArea {
-    x: 0.0,
-    y: 0.0,
+    x: SHADOW_PADDING,
+    y: SHADOW_PADDING,
     width: COLLAPSED_SIZE,
     height: COLLAPSED_SIZE,
 };
@@ -120,11 +127,12 @@ pub fn set_hit_area(window: &WebviewWindow, area: HitArea) {
     apply_input_region(window, area);
 }
 
+// The voice island keeps the bottom of the screen, so this one starts at the top.
 fn default_position(area: &PhysicalRect<i32, u32>, scale: f64) -> PhysicalPosition<i32> {
     PhysicalPosition::new(
-        (f64::from(area.position.x) + (f64::from(area.size.width) - COLLAPSED_SIZE * scale) / 2.0)
+        (f64::from(area.position.x) + (f64::from(area.size.width) - WINDOW_SIZE * scale) / 2.0)
             .round() as i32,
-        (f64::from(area.position.y) + TOP_GAP * scale).round() as i32,
+        area.position.y,
     )
 }
 
@@ -156,7 +164,7 @@ fn show(app: &AppHandle) -> Result<(), String> {
         tauri::WebviewUrl::App("index.html".into()),
     )
     .title("EchoBird")
-    .inner_size(COLLAPSED_SIZE, COLLAPSED_SIZE)
+    .inner_size(WINDOW_SIZE, WINDOW_SIZE)
     .decorations(false)
     .transparent(true)
     .shadow(false)
@@ -169,6 +177,7 @@ fn show(app: &AppHandle) -> Result<(), String> {
     .build()
     .map_err(|error| error.to_string())?;
     set_hit_area(&window, LOGO_AREA);
+    keep_on_screen_after_drags(&window);
     #[cfg(any(windows, target_os = "macos"))]
     {
         window
@@ -189,6 +198,53 @@ fn show(app: &AppHandle) -> Result<(), String> {
     Ok(())
 }
 
+// The window keeps its open size, so a drag can leave part of it off screen, where the
+// island would later open. Once the drag ends, pull the whole window back.
+fn keep_on_screen_after_drags(window: &WebviewWindow) {
+    static MOVES: AtomicU64 = AtomicU64::new(0);
+    let island = window.clone();
+    window.on_window_event(move |event| {
+        if !matches!(event, tauri::WindowEvent::Moved(_)) {
+            return;
+        }
+        let latest = MOVES.fetch_add(1, Ordering::SeqCst) + 1;
+        let island = island.clone();
+        tauri::async_runtime::spawn(async move {
+            loop {
+                tokio::time::sleep(DROP_SETTLE).await;
+                if MOVES.load(Ordering::SeqCst) != latest {
+                    return;
+                }
+                #[cfg(any(windows, target_os = "macos"))]
+                if crate::services::voice_input::left_mouse_down() {
+                    continue;
+                }
+                break;
+            }
+            let _ = keep_on_screen(&island);
+        });
+    });
+}
+
+fn keep_on_screen(window: &WebviewWindow) -> Result<(), String> {
+    let _moving = MOVING.lock().unwrap_or_else(PoisonError::into_inner);
+    let Some(monitor) = window
+        .current_monitor()
+        .map_err(|error| error.to_string())?
+    else {
+        return Ok(());
+    };
+    let position = window.outer_position().map_err(|error| error.to_string())?;
+    let size = window.outer_size().map_err(|error| error.to_string())?;
+    let next = fitted_position(position, size, size, (0.0, 0.0), monitor.work_area());
+    if next != position {
+        window
+            .set_position(next)
+            .map_err(|error| error.to_string())?;
+    }
+    Ok(())
+}
+
 pub fn set_visible(app: &AppHandle, visible: bool) -> Result<(), String> {
     if visible {
         return show(app);
@@ -205,6 +261,7 @@ pub fn resize(
     height: f64,
     anchor: (f64, f64),
 ) -> Result<(), String> {
+    let _moving = MOVING.lock().unwrap_or_else(PoisonError::into_inner);
     let scale = window.scale_factor().map_err(|error| error.to_string())?;
     let target = PhysicalSize::new(
         (width * scale).ceil() as u32,
@@ -271,11 +328,11 @@ mod tests {
     fn starts_at_the_top_center_of_the_work_area_at_any_scale() {
         assert_eq!(
             default_position(&area(), 1.0),
-            PhysicalPosition::new(-990, 64)
+            PhysicalPosition::new(-1008, 40)
         );
         assert_eq!(
             default_position(&area(), 2.0),
-            PhysicalPosition::new(-1020, 88)
+            PhysicalPosition::new(-1056, 40)
         );
     }
 
@@ -329,6 +386,17 @@ mod tests {
             ),
             PhysicalPosition::new(-400, 980)
         );
+    }
+
+    #[test]
+    fn a_window_dropped_past_an_edge_comes_back_whole() {
+        let size = PhysicalSize::new(400, 120);
+        let fit =
+            |x, y| fitted_position(PhysicalPosition::new(x, y), size, size, (0.0, 0.0), &area());
+        assert_eq!(fit(-300, 500), PhysicalPosition::new(-400, 500));
+        assert_eq!(fit(-2000, 10), PhysicalPosition::new(-1920, 40));
+        assert_eq!(fit(-1000, 980), PhysicalPosition::new(-1000, 920));
+        assert_eq!(fit(-1000, 500), PhysicalPosition::new(-1000, 500));
     }
 
     #[test]

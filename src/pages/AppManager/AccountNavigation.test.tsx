@@ -1332,6 +1332,92 @@ it('Usage Island: the open window loads saved accounts on other pages without qu
   useUsageIslandStore.setState({ enabled: false, sources: [] });
 });
 
+it('Usage Island: the open window keeps background groups through page and tool changes', async () => {
+  useToolsStore.getState().setDetectedTools(
+    ['codex', 'cursor', 'kilo'].map((id) => ({
+      id,
+      name: id,
+      category: 'Desktop',
+      installed: true,
+    }))
+  );
+  useNavigationStore.getState().setDeveloperMode(true);
+  useNavigationStore.getState().setActivePage('apps');
+  useUsageIslandStore.setState({ enabled: true, sources: ['model:m'] });
+  try {
+    await act(async () => {
+      renderer = create(
+        <AppManagerProvider>
+          <Harness />
+        </AppManagerProvider>
+      );
+    });
+    act(() => state.setSelectedTool('cursor'));
+    await tick();
+    const loads = () => vi.mocked(api.listCodexAccounts).mock.calls.length;
+    const loaded = loads();
+    expect(loaded).toBeGreaterThan(0);
+    act(() => state.setSelectedTool('kilo'));
+    await tick();
+    expect(loads()).toBe(loaded);
+    // Leaving the app page is still a new visit; moving among other pages is not.
+    act(() => useNavigationStore.getState().setActivePage('models'));
+    await tick();
+    expect(loads()).toBe(loaded + 1);
+    act(() => useNavigationStore.getState().setActivePage('aiNews'));
+    await tick();
+    act(() => useNavigationStore.getState().setActivePage('voice'));
+    await tick();
+    expect(loads()).toBe(loaded + 1);
+    expectPassiveAccountNavigation();
+  } finally {
+    useUsageIslandStore.setState({ enabled: false, sources: [] });
+  }
+});
+
+it('Usage Island: tool pages keep their own Antigravity target while the window is open', async () => {
+  vi.mocked(api.startAntigravityLogin).mockResolvedValue({
+    loginId: 'login-1',
+    verificationUri: 'https://example.test',
+    expiresAt: Date.now() / 1000 + 60,
+    pollIntervalSeconds: 1,
+  } as never);
+  vi.mocked(api.pollAntigravityLogin).mockImplementation(() => new Promise<never>(() => {}));
+  useToolsStore.getState().setDetectedTools(
+    ['antigravity', 'antigravitydesktop'].map((id) => ({
+      id,
+      name: id,
+      category: 'CLI Code',
+      noModelConfig: true,
+      installed: true,
+    }))
+  );
+  useNavigationStore.getState().setDeveloperMode(true);
+  useNavigationStore.getState().setActivePage('apps');
+  useUsageIslandStore.setState({ enabled: true, sources: ['model:m'] });
+  try {
+    await act(async () => {
+      renderer = create(
+        <AppManagerProvider>
+          <Harness />
+        </AppManagerProvider>
+      );
+    });
+    act(() => state.setSelectedTool('antigravity'));
+    await tick();
+    await act(async () => void state.antigravityAccounts.add());
+    await tick();
+    expect(api.startAntigravityLogin).toHaveBeenCalledTimes(1);
+    expect(api.cancelAntigravityLogin).not.toHaveBeenCalled();
+    // The desktop app is a different target, so its page ends the CLI page's login.
+    act(() => state.setSelectedTool('antigravitydesktop'));
+    await tick();
+    expect(api.cancelAntigravityLogin).toHaveBeenCalledExactlyOnceWith('login-1');
+  } finally {
+    useUsageIslandStore.setState({ enabled: false, sources: [] });
+  }
+});
+
 it('Smart Access: cached apps wait for current detection before loading native accounts', async () => {
   vi.mocked(api.listDuMateAccounts).mockResolvedValue([]);
   vi.mocked(api.listDoubaoAccounts).mockResolvedValue([]);

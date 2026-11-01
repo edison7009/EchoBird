@@ -174,11 +174,9 @@ export function UsageIslandMain() {
                   onChange={(value) => update({ refreshSeconds: Number(value) })}
                   options={usageIslandRefreshSeconds.map((seconds) => ({
                     id: String(seconds),
-                    label: !seconds
-                      ? t('usageIsland.refresh.manual')
-                      : seconds < 60
-                        ? t('usageIsland.refresh.seconds').replace('{n}', String(seconds))
-                        : t('usageIsland.refresh.minutes').replace('{n}', String(seconds / 60)),
+                    label: seconds
+                      ? t('usageIsland.refresh.minutes').replace('{n}', String(seconds / 60))
+                      : t('usageIsland.refresh.manual'),
                   }))}
                 />
               </span>

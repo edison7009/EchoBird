@@ -12,6 +12,8 @@ import { accountSources, modelSources, type UsageSource } from './usageIslandDat
 
 // Leaves time for saved accounts and models to load.
 const FIRST_REFRESH_DELAY = 5000;
+// Sites limit these queries, so a timed refresh skips a failing source's next turn.
+const FAILURE_COOLDOWN = 10 * 60_000;
 
 type Navigation = ReturnType<typeof useNavigationStore.getState>;
 
@@ -47,13 +49,23 @@ export function useUsageIslandItems(sources: UsageSource[]) {
   return selected.flatMap((key) => sources.filter((source) => source.key === key).slice(0, 1));
 }
 
-/** Only one caller may pass `timed`: the page while closed, the bridge while open. */
-export function useUsageIslandRefresh(items: UsageSource[], timed: boolean, startSoon = false) {
+/**
+ * Only one caller may pass `timed`: the page while closed, the bridge while open. With
+ * `ticked` the caller drives the interval itself, as `refresh(false)`.
+ */
+export function useUsageIslandRefresh(
+  items: UsageSource[],
+  timed: boolean,
+  startSoon = false,
+  ticked = false
+) {
   const { t } = useI18n();
   const { showToast } = useToast();
   const refreshSeconds = useUsageIslandStore((state) => state.refreshSeconds);
   const [refreshing, setRefreshing] = useState(false);
+  const hasItems = items.length > 0;
   const refreshPending = useRef(false);
+  const cooldowns = useRef(new Map<string, number>());
   const latestItems = useRef(items);
   useEffect(() => {
     latestItems.current = items;
@@ -61,19 +73,27 @@ export function useUsageIslandRefresh(items: UsageSource[], timed: boolean, star
   const live = () => onUsageIslandPage(useNavigationStore.getState()) || usageIslandVisible();
   const refresh = async (manual: boolean) => {
     if (refreshPending.current || !latestItems.current.length) return;
-    if (!useRewardClaimStore.getState().tryStart()) return;
+    // Timed refreshes only give way: holding this lock would starve claims and account batches.
+    const rewards = useRewardClaimStore.getState();
+    if (manual ? !rewards.tryStart() : rewards.running) return;
     refreshPending.current = true;
     setRefreshing(true);
     const failures = new Set<string>();
     try {
       for (const { key } of latestItems.current) {
         if (!live()) break;
+        if (!manual && (cooldowns.current.get(key) ?? 0) > Date.now()) continue;
         const source = latestItems.current.find((item) => item.key === key);
-        try {
-          await source?.refresh?.(manual, () => failures.add(key));
-        } catch {
+        const failed = () => {
           failures.add(key);
+          cooldowns.current.set(key, Date.now() + FAILURE_COOLDOWN);
+        };
+        try {
+          await source?.refresh?.(manual, failed);
+        } catch {
+          failed();
         }
+        if (!failures.has(key)) cooldowns.current.delete(key);
       }
       if (manual && failures.size && live())
         showToast(
@@ -81,7 +101,7 @@ export function useUsageIslandRefresh(items: UsageSource[], timed: boolean, star
           t('accountCenter.batchRefreshFailed').replace('{n}', String(failures.size))
         );
     } finally {
-      useRewardClaimStore.getState().finish();
+      if (manual) useRewardClaimStore.getState().finish();
       refreshPending.current = false;
       setRefreshing(false);
     }
@@ -93,14 +113,14 @@ export function useUsageIslandRefresh(items: UsageSource[], timed: boolean, star
   // Opening the page never queries quota, so its first tick waits a full interval. The
   // floating island has nothing to show until then, as model usage lives in memory.
   useEffect(() => {
-    if (!timed || !refreshSeconds) return;
-    const run = () => void latestRefresh.current(false);
-    const first = startSoon ? setTimeout(run, FIRST_REFRESH_DELAY) : undefined;
-    const timer = setInterval(run, refreshSeconds * 1000);
-    return () => {
-      clearTimeout(first);
-      clearInterval(timer);
-    };
-  }, [timed, startSoon, refreshSeconds]);
+    if (!timed || ticked || !refreshSeconds) return;
+    const timer = setInterval(() => void latestRefresh.current(false), refreshSeconds * 1000);
+    return () => clearInterval(timer);
+  }, [timed, ticked, refreshSeconds]);
+  useEffect(() => {
+    if (!timed || !startSoon || !refreshSeconds || !hasItems) return;
+    const first = setTimeout(() => void latestRefresh.current(false), FIRST_REFRESH_DELAY);
+    return () => clearTimeout(first);
+  }, [timed, startSoon, refreshSeconds, hasItems]);
   return { refreshing, refresh };
 }

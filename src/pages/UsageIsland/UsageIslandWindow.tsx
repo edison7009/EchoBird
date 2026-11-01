@@ -6,6 +6,7 @@ import {
   USAGE_ISLAND_PICK_EVENT,
   USAGE_ISLAND_REQUEST_EVENT,
   USAGE_ISLAND_STATE_EVENT,
+  USAGE_ISLAND_TICK_EVENT,
   resizeUsageIsland,
   setUsageIslandHitArea,
 } from '../../api/usageIsland';
@@ -24,10 +25,14 @@ import './UsageIsland.css';
 export interface UsageIslandPayload {
   settings: IslandSettings;
   pick: string | null;
+  /** The island stays visible, so it keeps the refresh time for the main window. */
+  refreshSeconds: number;
   items: UsageIslandItem[];
 }
 
-const COLLAPSED_SIZE = 60;
+const COLLAPSED_SIZE = 48;
+// Room for the island's shadow, which the window edge would otherwise cut off.
+const SHADOW_PADDING = 24;
 const DRAG_DISTANCE = 4;
 // The window follows the content; only a screen-sized limit applies here.
 const MAX_CONTENT_WIDTH = 1600;
@@ -72,15 +77,29 @@ export function UsageIslandWindow() {
   useEffect(() => {
     if (ready) void getCurrentWindow().show();
   }, [ready]);
+  const refreshSeconds = state?.refreshSeconds ?? 0;
+  useEffect(() => {
+    if (!refreshSeconds) return;
+    const timer = setInterval(
+      () => void emitTo('main', USAGE_ISLAND_TICK_EVENT, {}).catch(() => {}),
+      refreshSeconds * 1000
+    );
+    return () => clearInterval(timer);
+  }, [refreshSeconds]);
   const onLayout = useCallback(
     ({ expanded, width, height, anchorX, anchorY }: IslandLayout) => {
       // Moving a window on hover flashes its old frame, so it keeps its open size.
-      void resizeUsageIsland(width * scale, height * scale, anchorX, anchorY).catch(() => {});
+      void resizeUsageIsland(
+        (width + SHADOW_PADDING * 2) * scale,
+        (height + SHADOW_PADDING * 2) * scale,
+        anchorX,
+        anchorY
+      ).catch(() => {});
       const area = expanded
-        ? [0, 0, width, height]
+        ? [SHADOW_PADDING, SHADOW_PADDING, width, height]
         : [
-            (width - COLLAPSED_SIZE) * anchorX,
-            (height - COLLAPSED_SIZE) * anchorY,
+            SHADOW_PADDING + (width - COLLAPSED_SIZE) * anchorX,
+            SHADOW_PADDING + (height - COLLAPSED_SIZE) * anchorY,
             COLLAPSED_SIZE,
             COLLAPSED_SIZE,
           ];
@@ -124,7 +143,8 @@ export function UsageIslandWindow() {
           pick={state.pick}
           onPick={onPick}
           hover={hover}
-          available={MAX_CONTENT_WIDTH}
+          masked
+          available={Math.min(MAX_CONTENT_WIDTH, window.screen.availWidth / scale)}
           onLayout={onLayout}
         />
       )}

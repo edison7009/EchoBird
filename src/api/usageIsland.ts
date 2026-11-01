@@ -5,6 +5,7 @@ export const USAGE_ISLAND_STATE_EVENT = 'usage-island-state';
 export const USAGE_ISLAND_REQUEST_EVENT = 'usage-island-request';
 export const USAGE_ISLAND_PICK_EVENT = 'usage-island-pick';
 export const USAGE_ISLAND_HOVER_EVENT = 'usage-island-hover';
+export const USAGE_ISLAND_TICK_EVENT = 'usage-island-tick';
 
 export const setUsageIslandVisible = (visible: boolean) =>
   invoke<void>('usage_island_set_visible', { visible });

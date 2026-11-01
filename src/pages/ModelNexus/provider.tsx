@@ -10,7 +10,7 @@ import { useI18n } from '../../hooks/useI18n';
 import * as api from '../../api/tauri';
 import type { ModelConfig } from '../../api/types';
 import { ModelNexusContext } from './context';
-import type { NewModelForm } from './context';
+import type { NewModelForm, UsageRefreshOptions } from './context';
 import type { ModelUsageData } from '../../api/tauri';
 
 // ===== Provider =====
@@ -370,7 +370,7 @@ export function ModelNexusProvider({ children }: { children: React.ReactNode }) 
   }, [userModels, showToast, t]);
 
   // Refresh usage for a single model
-  const refreshSingleUsage = async (modelId: string, options?: { silent?: boolean }) => {
+  const refreshSingleUsage = async (modelId: string, options?: UsageRefreshOptions) => {
     const model = userModels.find((m) => m.internalId === modelId);
     if (!model) return;
 
@@ -397,10 +397,12 @@ export function ModelNexusProvider({ children }: { children: React.ReactNode }) 
           next.delete(model.internalId);
           return next;
         });
-      } else if (result.error && !options?.silent) {
-        showToast('error', result.error);
+      } else if (result.error) {
+        options?.onError?.(result.error);
+        if (!options?.silent) showToast('error', result.error);
       }
     } catch (error) {
+      options?.onError?.(error);
       if (!options?.silent && revision === (usageAccessRevision.current[modelId] ?? 0)) {
         showToast('error', typeof error === 'string' ? error : t('error.requestFailed'));
       }

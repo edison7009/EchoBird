@@ -128,7 +128,7 @@ fn key_has_expired(usage: &Value) -> bool {
     usage
         .pointer("/data/expires_at")
         .and_then(Value::as_i64)
-        .is_some_and(|expires_at| expires_at > 0 && expires_at * 1000 <= now_millis())
+        .is_some_and(|expires_at| expires_at > 0 && expires_at.saturating_mul(1000) <= now_millis())
 }
 
 fn is_refusal(usage: &Value) -> bool {

@@ -14,7 +14,9 @@ import {
   type UsageIslandStyle,
 } from '../../stores/usageIslandStore';
 import type { AccountCardData, AccountProvider } from '../AccountCenter/accountCenterData';
+import { USAGE_ISLAND_TICK_EVENT } from '../../api/usageIsland';
 import { UsageIslandMain, UsageIslandPanel } from './UsageIsland';
+import UsageIslandBridge from './UsageIslandBridge';
 import { UsageIslandView, type IslandLayout } from './UsageIslandView';
 import {
   accountSources,
@@ -30,6 +32,19 @@ const refreshModel = vi.hoisted(() => vi.fn(async () => {}));
 const showToast = vi.hoisted(() => vi.fn());
 const testProviders = vi.hoisted(() => ({ current: [] as unknown[] }));
 const systemDark = vi.hoisted(() => ({ current: true }));
+const events = vi.hoisted(() => ({
+  listeners: new Map<string, (event: { payload: unknown }) => void>(),
+  emitTo: vi.fn(async (..._args: unknown[]) => {}),
+}));
+
+vi.mock('@tauri-apps/api/event', () => ({
+  emit: vi.fn(async () => {}),
+  emitTo: events.emitTo,
+  listen: vi.fn(async (name: string, handler: (event: { payload: unknown }) => void) => {
+    events.listeners.set(name, handler);
+    return () => events.listeners.delete(name);
+  }),
+}));
 
 vi.mock('react-dom', () => ({ createPortal: (children: unknown) => children }));
 vi.mock('@dnd-kit/core', async (original) => ({
@@ -237,18 +252,21 @@ it('refreshes selected sources once on request and reports failures', async () =
   await render();
   await act(async () => buttonWithText('accountCenter.refreshAll').props.onClick());
   expect(refreshAccount).toHaveBeenCalledTimes(1);
-  expect(refreshModel).toHaveBeenCalledExactlyOnceWith('model-1', { silent: false });
+  expect(refreshModel).toHaveBeenCalledExactlyOnceWith(
+    'model-1',
+    expect.objectContaining({ silent: false })
+  );
   expect(showToast).toHaveBeenCalledExactlyOnceWith('error', 'accountCenter.batchRefreshFailed');
   expect(useRewardClaimStore.getState().running).toBe(false);
 });
 
 it('refreshes on the chosen interval only while the page is open and stays quiet on failure', async () => {
   refreshAccount.mockRejectedValue(new Error('offline'));
-  island.setState({ sources: [accountSourceKey('claude', 'a')], refreshSeconds: 180 });
+  island.setState({ sources: [accountSourceKey('claude', 'a')], refreshSeconds: 300 });
   await render();
   expect(refreshAccount).not.toHaveBeenCalled();
   await act(async () => {
-    await vi.advanceTimersByTimeAsync(180_000);
+    await vi.advanceTimersByTimeAsync(300_000);
   });
   expect(refreshAccount).toHaveBeenCalledTimes(1);
   expect(showToast).not.toHaveBeenCalled();
@@ -566,6 +584,73 @@ it('drops a click pin once the island follows hover', async () => {
   expect(shell().props['data-expanded']).toBe(false);
 });
 
+it('keeps the scale of token balances', () => {
+  const [model] = modelSources(
+    [{ internalId: 'm', name: 'M', modelId: 'm' } as ModelConfig],
+    { m: { quotas: [{ percentage: 0, resetAt: 0, balance: 1.5, balanceUnit: 'M Tokens' }] } },
+    new Set(),
+    refreshModel,
+    (key) => key
+  );
+  expect(model.value).toBe('1.50M');
+  expect(compactValue(model.value)).toBe('1.50M');
+});
+
+it('rests a failing source between timed refreshes but not on request', async () => {
+  refreshAccount.mockImplementation(async () => {});
+  refreshAccount.mockRejectedValueOnce(new Error('rate limited'));
+  island.setState({ sources: [accountSourceKey('claude', 'a')], refreshSeconds: 300 });
+  await render();
+  const advance = async (ms: number) => {
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(ms);
+    });
+  };
+  await advance(300_000);
+  expect(refreshAccount).toHaveBeenCalledTimes(1);
+  await advance(300_000);
+  expect(refreshAccount).toHaveBeenCalledTimes(1);
+  await act(async () => buttonWithText('accountCenter.refreshAll').props.onClick());
+  expect(refreshAccount).toHaveBeenCalledTimes(2);
+  await advance(300_000);
+  expect(refreshAccount).toHaveBeenCalledTimes(3);
+});
+
+it('lets timed refreshes give way to the reward lock without holding it', async () => {
+  island.setState({ sources: [accountSourceKey('claude', 'a')], refreshSeconds: 300 });
+  let locked = false;
+  refreshAccount.mockImplementationOnce(async () => {
+    locked = useRewardClaimStore.getState().running;
+  });
+  await render();
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(300_000);
+  });
+  expect(refreshAccount).toHaveBeenCalledTimes(1);
+  expect(locked).toBe(false);
+  useRewardClaimStore.setState({ running: true });
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(300_000);
+  });
+  expect(refreshAccount).toHaveBeenCalledTimes(1);
+});
+
+it('leaves account names to a host that already masked them', async () => {
+  privacy.setState({ hidden: true });
+  await act(async () => {
+    view = create(
+      <UsageIslandView
+        items={accountItems()}
+        settings={{ style: 'line', reversed: [], theme: 'dark', expandMode: 'always' }}
+        masked
+      />
+    );
+  });
+  expect(view!.root.findByProps({ className: 'usage-island-line-name' }).props.children).toBe(
+    'me@example.com'
+  );
+});
+
 it('shortens long balances for the logo and leaves short or unknown values alone', () => {
   expect(
     [
@@ -654,13 +739,40 @@ it('hands the timer to the floating window while it is open', async () => {
   island.setState({
     enabled: true,
     sources: [accountSourceKey('claude', 'a')],
-    refreshSeconds: 180,
+    refreshSeconds: 300,
   });
   await render();
   await act(async () => {
     await vi.advanceTimersByTimeAsync(10 * 60_000);
   });
   expect(refreshAccount).not.toHaveBeenCalled();
+});
+
+it('refreshes on ticks from the floating window instead of its own timer', async () => {
+  island.setState({
+    enabled: true,
+    sources: [accountSourceKey('claude', 'a')],
+    refreshSeconds: 300,
+  });
+  navigation.setState({ activePage: 'apps' });
+  await act(async () => {
+    view = create(<UsageIslandBridge />);
+  });
+  const advance = async (ms: number) => {
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(ms);
+    });
+  };
+  await advance(5_000);
+  expect(refreshAccount).toHaveBeenCalledTimes(1);
+  await advance(20 * 60_000);
+  expect(refreshAccount).toHaveBeenCalledTimes(1);
+  const states = events.emitTo.mock.calls.filter((call) => call[1] === 'usage-island-state');
+  expect(JSON.parse(states[states.length - 1][2] as string)).toMatchObject({
+    refreshSeconds: 300,
+  });
+  await act(async () => events.listeners.get(USAGE_ISLAND_TICK_EVENT)!({ payload: {} }));
+  expect(refreshAccount).toHaveBeenCalledTimes(2);
 });
 
 it('uses cached rows only until the saved accounts have been read', () => {

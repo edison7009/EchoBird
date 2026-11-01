@@ -13,6 +13,7 @@ import type { TKey } from '../../i18n';
 import type { UsageIslandStyle } from '../../stores/usageIslandStore';
 import type { AccountCardData, AccountProvider } from '../AccountCenter/accountCenterData';
 import type { CachedAccount } from '../AccountCenter/useAccountCardCache';
+import type { UsageRefreshOptions } from '../ModelNexus/context';
 
 type RefreshError = (error: unknown) => void;
 
@@ -43,6 +44,8 @@ export interface UsageSource extends UsageIslandItem {
 
 const NO_VALUE = '—';
 const MAX_LINES = 2;
+// Large token balances arrive scaled, with the scale in their unit.
+const TOKEN_SCALE = /^([KMB]) Tokens$/;
 // One decimal is kept, so these already read as the next unit.
 const ROUNDS_TO_MILLION = 999_950;
 const ROUNDS_TO_BILLION = 999_950_000;
@@ -103,7 +106,9 @@ function modelLines(t: (key: TKey) => string, usage?: ModelUsageData) {
         ...unknownLine,
         label: t(balanceLabelKey(quota)),
         // The island hides balance labels, so a minus sign marks money already spent.
-        value: `${quota.spent && quota.balance! > 0 ? '-' : ''}${quota.balance!.toFixed(2)}`,
+        value: `${quota.spent && quota.balance! > 0 ? '-' : ''}${quota.balance!.toFixed(2)}${
+          TOKEN_SCALE.exec(quota.balanceUnit ?? '')?.[1] ?? ''
+        }`,
       }))
     );
   const primary = usage && primaryQuota(usage);
@@ -250,7 +255,7 @@ export function modelSources(
   models: ModelConfig[],
   usage: Record<string, ModelUsageData>,
   refreshing: Set<string>,
-  refresh: (modelId: string, options?: { silent?: boolean }) => Promise<void>,
+  refresh: (modelId: string, options?: UsageRefreshOptions) => Promise<void>,
   t: (key: TKey) => string
 ): UsageSource[] {
   return models
@@ -269,6 +274,6 @@ export function modelSources(
       ...modelLines(t, usage[model.internalId]),
       refresh: refreshing.has(model.internalId)
         ? undefined
-        : (manual) => refresh(model.internalId, { silent: !manual }),
+        : (manual, onError) => refresh(model.internalId, { silent: !manual, onError }),
     }));
 }

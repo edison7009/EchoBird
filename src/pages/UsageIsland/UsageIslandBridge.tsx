@@ -4,6 +4,7 @@ import {
   USAGE_ISLAND_PICK_EVENT,
   USAGE_ISLAND_REQUEST_EVENT,
   USAGE_ISLAND_STATE_EVENT,
+  USAGE_ISLAND_TICK_EVENT,
   USAGE_ISLAND_WINDOW,
 } from '../../api/usageIsland';
 import { ACCOUNT_NAME_MASK, useAccountPrivacyStore } from '../../stores/accountPrivacyStore';
@@ -18,12 +19,19 @@ export default function UsageIslandBridge() {
   const theme = useUsageIslandStore((state) => state.theme);
   const expandMode = useUsageIslandStore((state) => state.expandMode);
   const pick = useUsageIslandStore((state) => state.pick);
+  const refreshSeconds = useUsageIslandStore((state) => state.refreshSeconds);
   const hidden = useAccountPrivacyStore((privacy) => privacy.hidden);
   const items = useUsageIslandItems(useUsageSources(true));
-  useUsageIslandRefresh(items, true, true);
+  // The browser slows timers in a window hidden to the tray, so the island keeps time.
+  const { refresh } = useUsageIslandRefresh(items, true, true, true);
+  const latestRefresh = useRef(refresh);
+  useEffect(() => {
+    latestRefresh.current = refresh;
+  });
   const payload: UsageIslandPayload = {
     settings: { style, reversed, theme, expandMode },
     pick,
+    refreshSeconds,
     items: items.map(({ kind, key, name, detail, icon, percent, value, lines }) => ({
       kind,
       key,
@@ -49,6 +57,7 @@ export default function UsageIslandBridge() {
       listen<string | null>(USAGE_ISLAND_PICK_EVENT, ({ payload: key }) => {
         useUsageIslandStore.getState().update({ pick: key });
       }),
+      listen(USAGE_ISLAND_TICK_EVENT, () => void latestRefresh.current(false)),
     ];
     return () => stops.forEach((stop) => void stop.then((unlisten) => unlisten()).catch(() => {}));
   }, []);

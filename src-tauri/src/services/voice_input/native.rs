@@ -280,7 +280,7 @@ extern "C" {
 }
 
 #[cfg(any(windows, target_os = "macos"))]
-pub(super) fn left_mouse_down() -> bool {
+pub(crate) fn left_mouse_down() -> bool {
     #[cfg(windows)]
     unsafe {
         use windows::Win32::UI::Input::KeyboardAndMouse::{GetAsyncKeyState, VK_LBUTTON};

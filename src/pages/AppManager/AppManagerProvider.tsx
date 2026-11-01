@@ -217,6 +217,10 @@ export const AppManagerProvider: React.FC<AppManagerProviderProps> = ({ children
       ? !ids.some((id) => communityAccountApplications.includes(id)) ||
         detectedTools.some((tool) => ids.includes(tool.id) && tool.installed)
       : accountsEnabled && ids.includes(selectedTool ?? ''));
+  // Groups the open island keeps loaded on other tools' pages share one key, so tool clicks
+  // don't reload them.
+  const toolNavigation = (...ids: string[]) =>
+    accountPage ? 'accounts' : ids.includes(selectedTool ?? '') ? (selectedTool ?? '') : '';
   const [isLaunching, setIsLaunching] = useState(false);
   const launchGeneration = useRef(0);
   const previewLaunch = useRef(false);
@@ -239,7 +243,7 @@ export const AppManagerProvider: React.FC<AppManagerProviderProps> = ({ children
     !!(selectedTool && toolModelConfig[selectedTool]),
     () => setToolModelConfig((prev) => ({ ...prev, codex: null, chatgptdesktop: null })),
     setApplyError,
-    accountPage ? 'accounts' : (selectedTool ?? '')
+    toolNavigation('codex', 'chatgptdesktop')
   );
   const {
     accounts: codexAccounts,
@@ -438,7 +442,7 @@ export const AppManagerProvider: React.FC<AppManagerProviderProps> = ({ children
     ),
     clearMinimaxModel,
     setApplyError,
-    accountPage ? 'accounts' : (selectedTool ?? '')
+    toolNavigation('minimaxcode', 'minimaxdesktop')
   );
   const qoderEdition: api.QoderEdition = selectedTool === 'qodercn' ? 'qodercn' : 'qoder';
   const clearQoderGlobalModel = useCallback(() => {
@@ -453,7 +457,7 @@ export const AppManagerProvider: React.FC<AppManagerProviderProps> = ({ children
     !!toolModelConfig.qoder,
     clearQoderGlobalModel,
     setApplyError,
-    accountPage ? 'accounts' : (selectedTool ?? '')
+    toolNavigation('qoder')
   );
   const qoderCnAccounts = useQoderAccounts(
     'qodercn',
@@ -461,7 +465,7 @@ export const AppManagerProvider: React.FC<AppManagerProviderProps> = ({ children
     !!toolModelConfig.qodercn,
     clearQoderCnModel,
     setApplyError,
-    accountPage ? 'accounts' : (selectedTool ?? '')
+    toolNavigation('qodercn')
   );
   const qoderAccounts = qoderEdition === 'qodercn' ? qoderCnAccounts : qoderGlobalAccounts;
   const clearDuMateModel = useCallback(() => {
@@ -525,14 +529,14 @@ export const AppManagerProvider: React.FC<AppManagerProviderProps> = ({ children
     accountGroupEnabled('qwenwork'),
     clearQwenWorkModel,
     setApplyError,
-    accountPage ? 'accounts' : (selectedTool ?? '')
+    toolNavigation('qwenwork')
   );
   const qwenWorkCnAccounts = useQwenWorkAccounts(
     'qwenworkcn',
     accountGroupEnabled('qwenworkcn'),
     clearQwenWorkCnModel,
     setApplyError,
-    accountPage ? 'accounts' : (selectedTool ?? '')
+    toolNavigation('qwenworkcn')
   );
   const qwenWorkAccounts =
     qwenWorkEdition === 'qwenworkcn' ? qwenWorkCnAccounts : qwenWorkGlobalAccounts;
@@ -587,7 +591,7 @@ export const AppManagerProvider: React.FC<AppManagerProviderProps> = ({ children
     ),
     clearClineModel,
     setApplyError,
-    accountPage ? 'accounts' : (selectedTool ?? '')
+    toolNavigation('cline', 'clinedesktop')
   );
 
   const clearKiloModel = useCallback(
@@ -603,7 +607,7 @@ export const AppManagerProvider: React.FC<AppManagerProviderProps> = ({ children
     ),
     clearKiloModel,
     setApplyError,
-    accountPage ? 'accounts' : (selectedTool ?? '')
+    toolNavigation('kilo', 'kilodesktop')
   );
   const clearCopilotModel = useCallback(
     () => setToolModelConfig((prev) => ({ ...prev, copilot: null, copilotdesktop: null })),
@@ -622,7 +626,7 @@ export const AppManagerProvider: React.FC<AppManagerProviderProps> = ({ children
       (accountPage && !detectedTools.some((tool) => tool.id === 'copilot' && tool.installed))
       ? 'copilotdesktop'
       : 'copilot',
-    accountPage ? 'accounts' : (selectedTool ?? '')
+    toolNavigation('copilot', 'copilotdesktop')
   );
 
   const clearGrokBotModel = useCallback(
