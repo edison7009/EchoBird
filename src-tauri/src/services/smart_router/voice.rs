@@ -42,6 +42,8 @@ pub(super) async fn handle(State(state): State<AppState>, request: Request) -> R
     }
 }
 
+// The error is the finished HTTP reply, returned straight to the handler.
+#[allow(clippy::result_large_err)]
 async fn read_upload(request: Request, key: &str) -> Result<Upload, Response> {
     if !is_authorized(request.headers(), key) {
         return Err(openai_error(

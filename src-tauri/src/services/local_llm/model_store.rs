@@ -338,7 +338,7 @@ async fn download_model_inner(
             .map(|s| s.to_string_lossy().to_string())
             .unwrap_or_else(|| file_name.clone());
         let save_path = PathBuf::from(&download_dir).join(&basename);
-        let temp_path = save_path.with_file_name(format!("{}.downloading", &basename));
+        let temp_path = save_path.with_file_name(format!("{}.downloading", basename));
 
         // Skip shards already fully present on disk (e.g. resuming after
         // app restart, or partial completion before). isDownloaded check

@@ -181,6 +181,8 @@ async fn send_usage_request(request: reqwest::RequestBuilder) -> Result<serde_js
 }
 
 /// Provider trait - each provider implements this
+// The attribute macro adds `must_use` to a future that already has it.
+#[allow(clippy::double_must_use)]
 #[async_trait::async_trait]
 pub trait UsageProvider {
     /// Query usage from provider API

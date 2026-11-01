@@ -154,6 +154,7 @@ mod tests {
     async fn fixture(final_text: &'static str) -> (Value, tokio::task::JoinHandle<Vec<u8>>) {
         let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
         let endpoint = format!("ws://{}/voice/fixture", listener.local_addr().unwrap());
+        #[allow(clippy::result_large_err)] // The websocket callback fixes this signature.
         let task = tokio::spawn(async move {
             let (tcp, _) = listener.accept().await.unwrap();
             let mut socket = tokio_tungstenite::accept_hdr_async(

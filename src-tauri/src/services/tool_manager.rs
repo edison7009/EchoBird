@@ -1219,7 +1219,7 @@ fn find_tool_executable(pc: &PathsConfig, include_hints: bool) -> Option<String>
                         if let Some(found) = Path::new(&hit)
                             .parent()
                             .and_then(Path::to_str)
-                            .and_then(&resolve)
+                            .and_then(resolve)
                         {
                             return Some(found);
                         }
