@@ -42,7 +42,8 @@
 }
 
 .router-terminal .router-terminal-groups > .view-mode-tab[aria-pressed='true'] {
-  color: rgb(var(--text-primary-rgb));
+  /* Sits on the terminal's fixed black surface in every theme. */
+  color: #e8e2d5;
   background: transparent;
   animation: none;
 }
