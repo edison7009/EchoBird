@@ -7,6 +7,7 @@ use serde::{Deserialize, Serialize};
 pub mod deepseek;
 pub mod kimi;
 pub mod minimax;
+pub mod moonshot;
 pub mod new_api;
 pub mod novita;
 pub mod opencode;
@@ -191,6 +192,7 @@ pub trait UsageProvider {
 pub enum Provider {
     DeepSeek(deepseek::DeepSeekProvider),
     Kimi(kimi::KimiProvider),
+    Moonshot(moonshot::MoonshotProvider),
     MiniMax(minimax::MiniMaxProvider),
     Novita(novita::NovitaProvider),
     OpenCode(opencode::OpenCodeProvider),
@@ -208,6 +210,7 @@ impl Provider {
         match self {
             Provider::DeepSeek(p) => p.query_usage(api_key, base_url).await,
             Provider::Kimi(p) => p.query_usage(api_key, base_url).await,
+            Provider::Moonshot(p) => p.query_usage(api_key, base_url).await,
             Provider::MiniMax(p) => p.query_usage(api_key, base_url).await,
             Provider::Novita(p) => p.query_usage(api_key, base_url).await,
             Provider::OpenCode(p) => p.query_usage(api_key, base_url).await,
@@ -231,6 +234,9 @@ pub fn detect_provider(base_url: &str) -> Option<Provider> {
     }
     if kimi::KimiProvider.can_handle(&url) {
         return Some(Provider::Kimi(kimi::KimiProvider));
+    }
+    if moonshot::MoonshotProvider.can_handle(&url) {
+        return Some(Provider::Moonshot(moonshot::MoonshotProvider));
     }
     if minimax::MiniMaxProvider.can_handle(&url) {
         return Some(Provider::MiniMax(minimax::MiniMaxProvider));

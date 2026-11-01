@@ -165,6 +165,88 @@ fn parse_balance_quota(body: &serde_json::Value) -> Option<UsageQuota> {
     UsageQuota::balance(balance, unit)
 }
 
+/// Vendors' own API hosts, which are not relays. Those without a usage query
+/// of their own here would only be sent the key on relay paths that cannot
+/// exist, so they show no usage data without a request. Hosts that customers
+/// can run their own services under are matched exactly, never by domain.
+const VENDOR_DOMAINS: &[&str] = &[
+    "agnes-ai.com",
+    "anthropic.com",
+    "ant-ling.com",
+    "bigmodel.cn",
+    "cerebras.ai",
+    "cohere.ai",
+    "deepseek.com",
+    "fireworks.ai",
+    "groq.com",
+    "kilo.ai",
+    "kimi.ai",
+    "kimi.com",
+    "longcat.chat",
+    "minimax.io",
+    "minimax.cn",
+    "minimaxi.com",
+    "mistral.ai",
+    "modelarts-maas.com",
+    "modelscope.cn",
+    "moonshot.ai",
+    "moonshot.cn",
+    "nousresearch.com",
+    "novita.ai",
+    "ollama.com",
+    "openai.com",
+    "opencode.ai",
+    "openrouter.ai",
+    "opentyphoon.ai",
+    "perplexity.ai",
+    "sambanova.ai",
+    "siliconflow.cn",
+    "siliconflow.com",
+    "stepfun.ai",
+    "stepfun.com",
+    "tencentcloudmaas.com",
+    "together.xyz",
+    "x.ai",
+    "xf-yun.com",
+    "xiaomimimo.com",
+    "z.ai",
+    "zenmux.ai",
+];
+const VENDOR_HOSTS: &[&str] = &[
+    "api.inference.wandb.ai",
+    "api.lkeap.cloud.tencent.com",
+    "api.scaleway.ai",
+    "ark.ap-southeast.bytepluses.com",
+    "ark.cn-beijing.volces.com",
+    "coding-intl.dashscope.aliyuncs.com",
+    "coding.dashscope.aliyuncs.com",
+    "dashscope-intl.aliyuncs.com",
+    "dashscope.aliyuncs.com",
+    "generativelanguage.googleapis.com",
+    "inference.baseten.co",
+    "integrate.api.nvidia.com",
+    "qianfan.baidubce.com",
+    "token-plan.ap-southeast-1.maas.aliyuncs.com",
+    "token-plan.cn-beijing.maas.aliyuncs.com",
+];
+
+/// The model directories list these vendors; a vendor added there without a
+/// usage query of its own also belongs here.
+fn is_vendor_api(base_url: &str) -> bool {
+    let Some(url) = url::Url::parse(base_url).ok() else {
+        return false;
+    };
+    // Domain hosts come back lowercased; a fully qualified trailing dot does not.
+    let Some(host) = url.host_str().map(|host| host.trim_end_matches('.')) else {
+        return false;
+    };
+    VENDOR_HOSTS.contains(&host)
+        || VENDOR_DOMAINS.iter().any(|domain| {
+            host.strip_suffix(domain)
+                .is_some_and(|rest| rest.is_empty() || rest.ends_with('.'))
+        })
+}
+
 /// The relay could not be reached at all, so no other query is worth waiting for.
 struct Unreachable;
 
@@ -324,6 +406,9 @@ impl RelaySubscriptionProvider {
 #[async_trait::async_trait]
 impl UsageProvider for RelaySubscriptionProvider {
     async fn query_usage(&self, api_key: &str, base_url: &str) -> Result<UsageResult, String> {
+        if is_vendor_api(base_url) {
+            return Ok(UsageResult::no_data());
+        }
         let read = self.read_usage(api_key, base_url);
         // Both queries read from the site root, so the site identifies the read.
         Ok(match new_api::site_origin(base_url) {
@@ -568,6 +653,54 @@ mod tests {
             "usage":{"today":{"actual_cost":"NaN"}}
         });
         assert!(parse_subscription_quotas(&invalid_today, "https://cc-vibe.com/v1").is_none());
+    }
+
+    #[test]
+    fn vendor_api_hosts_are_recognised_by_domain_or_exact_host() {
+        for base in [
+            "https://token-plan-sgp.xiaomimimo.com/v1",
+            "https://token-plan-ams.xiaomimimo.com/anthropic",
+            "https://api.xiaomimimo.com/v1",
+            "https://ark.cn-beijing.volces.com/api/plan/v3",
+            "https://ark.ap-southeast.bytepluses.com/api/coding/v3",
+            "https://opencode.ai/zen/v1",
+            "https://api.openai.com/v1",
+            "https://token-plan.cn-beijing.maas.aliyuncs.com/compatible-mode/v1",
+            "https://qianfan.baidubce.com/v2/coding",
+            "https://API.Anthropic.com",
+            "https://api.openai.com./v1",
+            "https://api.sambanova.ai/v1",
+            "https://api.inference.wandb.ai/v1",
+            "https://coding.dashscope.aliyuncs.com/v1",
+        ] {
+            assert!(is_vendor_api(base), "{base}");
+        }
+        for base in [
+            "https://cc-vibe.com/v1",
+            "https://relay.example/v1",
+            "https://openai.com.relay.example/v1",
+            "https://notopenai.com/v1",
+            "https://my-app.cn-hangzhou.fcapp.run/v1",
+            "https://bucket.oss-cn-beijing.aliyuncs.com/v1",
+            "https://someone.baidubce.com/v1",
+            "https://bucket.tos-cn-beijing.volces.com/v1",
+            "https://app.bytepluses.com/v1",
+            "https://notz.ai/v1",
+            "not a url",
+        ] {
+            assert!(!is_vendor_api(base), "{base}");
+        }
+    }
+
+    #[tokio::test]
+    async fn a_vendor_api_without_its_own_usage_query_is_not_asked_at_all() {
+        let result = RelaySubscriptionProvider
+            .query_usage("sk-fixture", "https://token-plan-cn.xiaomimimo.com/v1")
+            .await
+            .unwrap();
+        assert!(!result.success);
+        assert!(result.data.is_none());
+        assert!(result.error.is_none());
     }
 
     #[test]
