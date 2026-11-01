@@ -58,11 +58,24 @@
 
 很多朋友让我帮他们安装 **Claude Code**、**OpenClaw**、**Hermes Agent**……不但每个人的系统都不一样,甚至有些人还抠门到不愿花钱买大模型,安装和解释起来都特别费劲。于是我开发了这个叫「EchoBird」的 Agent —— 灵感来自《赛博朋克 2077》里那位聪慧过人、总能帮主角搞定一切技术难题的天才女助理 **Songbird**…
 
-<p align="center">
-  <img src="docs/screenshots/app-desktop-overview.webp" alt="EchoBird 应用桌面 — 账号与模型切换" width="820" />
-  <br/>
-  <sub><strong>应用桌面 — 账号与模型切换</strong></sub>
-</p>
+<table>
+  <tr>
+    <td align="center" width="50%">
+      <picture>
+        <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/desktop-cn-dark.png">
+        <img alt="应用桌面 — 中文" src="docs/screenshots/desktop-cn-light.png" width="100%">
+      </picture>
+      <br><sub>中文</sub>
+    </td>
+    <td align="center" width="50%">
+      <picture>
+        <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/desktop-en-dark.png">
+        <img alt="应用桌面 — English" src="docs/screenshots/desktop-en-light.png" width="100%">
+      </picture>
+      <br><sub>English</sub>
+    </td>
+  </tr>
+</table>
 
 ## 亮点
 
@@ -146,24 +159,10 @@ Gemini Desktop · Coffee CLI
 
 ### 应用桌面 —— 所有 AI / Agent 应用一键启动与管理
 
-<table>
-  <tr>
-    <td align="center" width="50%">
-      <picture>
-        <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/desktop-cn-dark.png">
-        <img alt="应用桌面 — 中文" src="docs/screenshots/desktop-cn-light.png" width="100%">
-      </picture>
-      <br><sub>中文</sub>
-    </td>
-    <td align="center" width="50%">
-      <picture>
-        <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/desktop-en-dark.png">
-        <img alt="应用桌面 — English" src="docs/screenshots/desktop-en-light.png" width="100%">
-      </picture>
-      <br><sub>English</sub>
-    </td>
-  </tr>
-</table>
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/desktop-cn-dark.png">
+  <img alt="应用桌面" src="docs/screenshots/desktop-cn-light.png" width="100%">
+</picture>
 
 ### 本地大模型 —— 在自己机器上跑
 

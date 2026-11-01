@@ -59,11 +59,24 @@ Sponsorship contact: [hi@echobird.ai](mailto:hi@echobird.ai)
 
 Friends kept asking me to install **Claude Code**, **OpenClaw**, **Hermes Agent**… every machine was different, and some refused to pay for an LLM. Setup and explanations took forever. So I built **EchoBird** — an Agent inspired by **Songbird**, the genius netrunner from _Cyberpunk 2077_ who solves any tech problem for V…
 
-<p align="center">
-  <img src="docs/screenshots/app-desktop-overview.webp" alt="EchoBird App Desktop — account and model switching" width="820" />
-  <br/>
-  <sub><strong>App Desktop — account and model switching</strong></sub>
-</p>
+<table>
+  <tr>
+    <td align="center" width="50%">
+      <picture>
+        <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/desktop-cn-dark.png">
+        <img alt="App Desktop — 中文" src="docs/screenshots/desktop-cn-light.png" width="100%">
+      </picture>
+      <br><sub>中文</sub>
+    </td>
+    <td align="center" width="50%">
+      <picture>
+        <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/desktop-en-dark.png">
+        <img alt="App Desktop — English" src="docs/screenshots/desktop-en-light.png" width="100%">
+      </picture>
+      <br><sub>English</sub>
+    </td>
+  </tr>
+</table>
 
 ## Highlights
 
@@ -150,24 +163,10 @@ Gemini Desktop · Coffee CLI
 
 ### App Desktop — one-click launch and management for every AI / Agent app
 
-<table>
-  <tr>
-    <td align="center" width="50%">
-      <picture>
-        <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/desktop-cn-dark.png">
-        <img alt="App Desktop — 中文" src="docs/screenshots/desktop-cn-light.png" width="100%">
-      </picture>
-      <br><sub>中文</sub>
-    </td>
-    <td align="center" width="50%">
-      <picture>
-        <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/desktop-en-dark.png">
-        <img alt="App Desktop — English" src="docs/screenshots/desktop-en-light.png" width="100%">
-      </picture>
-      <br><sub>English</sub>
-    </td>
-  </tr>
-</table>
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/desktop-en-dark.png">
+  <img alt="App Desktop" src="docs/screenshots/desktop-en-light.png" width="100%">
+</picture>
 
 ### Local LLM — run models on your own machine
 
