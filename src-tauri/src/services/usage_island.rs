@@ -215,15 +215,25 @@ fn keep_on_screen_after_drags(window: &WebviewWindow) {
                 if MOVES.load(Ordering::SeqCst) != latest {
                     return;
                 }
-                #[cfg(any(windows, target_os = "macos"))]
-                if crate::services::voice_input::left_mouse_down() {
-                    continue;
+                if !still_dragging() {
+                    break;
                 }
-                break;
             }
             let _ = keep_on_screen(&island);
         });
     });
+}
+
+// Linux cannot read the button state here, so there the pause after the last move decides.
+fn still_dragging() -> bool {
+    #[cfg(any(windows, target_os = "macos"))]
+    {
+        crate::services::voice_input::left_mouse_down()
+    }
+    #[cfg(not(any(windows, target_os = "macos")))]
+    {
+        false
+    }
 }
 
 fn keep_on_screen(window: &WebviewWindow) -> Result<(), String> {
