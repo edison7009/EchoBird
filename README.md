@@ -4,7 +4,7 @@
 
 <h1 align="center">EchoBird</h1>
 
-<p align="center">Multi-account switching for <strong>ChatGPT, Codex CLI, and Claude Code</strong> · Multi-model smart routing with automatic failover · One-click AI tool setup</p>
+<p align="center">All-in-one AI desktop app: one-click install for Claude Code, Codex CLI, DeepSeek and more, manage AI accounts and quotas, smart model routing with auto-failover, voice input, and run local LLMs. Bonus: a Token Pet that grows as you use AI.</p>
 
 <p align="center">
   <a href="https://github.com/edison7009/EchoBird/releases">
@@ -148,12 +148,26 @@ Gemini Desktop · Coffee CLI
   <img alt="Model Nexus" src="docs/screenshots/model-en-light.png" width="100%">
 </picture>
 
-### App Manager — one-click launch and management for every AI / Agent app
+### App Desktop — one-click launch and management for every AI / Agent app
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/app-en-dark.png">
-  <img alt="App Manager" src="docs/screenshots/app-en-light.png" width="100%">
-</picture>
+<table>
+  <tr>
+    <td align="center" width="50%">
+      <picture>
+        <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/desktop-cn-dark.png">
+        <img alt="App Desktop — 中文" src="docs/screenshots/desktop-cn-light.png" width="100%">
+      </picture>
+      <br><sub>中文</sub>
+    </td>
+    <td align="center" width="50%">
+      <picture>
+        <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/desktop-en-dark.png">
+        <img alt="App Desktop — English" src="docs/screenshots/desktop-en-light.png" width="100%">
+      </picture>
+      <br><sub>English</sub>
+    </td>
+  </tr>
+</table>
 
 ### Local LLM — run models on your own machine
 

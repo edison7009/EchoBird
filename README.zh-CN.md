@@ -4,7 +4,7 @@
 
 <h1 align="center">EchoBird</h1>
 
-<p align="center"><strong>ChatGPT、Codex CLI、Claude Code 多账号切换</strong> · 多模型智能路由与故障自动切换 · AI 工具一键安装</p>
+<p align="center">一站式 AI 桌面应用：一键安装 Claude Code、Codex CLI、DeepSeek 等工具，管理 AI 账号与额度，多模型智能路由并自动故障切换，支持语音输入和运行本地大模型。彩蛋：一只随你使用 AI 而成长的 Token 宠物。</p>
 
 <p align="center">
   <a href="https://github.com/edison7009/EchoBird/releases">
@@ -144,12 +144,26 @@ Gemini Desktop · Coffee CLI
   <img alt="模型中心" src="docs/screenshots/model-cn-light.png" width="100%">
 </picture>
 
-### 应用管理 —— 所有 AI / Agent 应用一键启动与管理
+### 应用桌面 —— 所有 AI / Agent 应用一键启动与管理
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/app-cn-dark.png">
-  <img alt="应用管理" src="docs/screenshots/app-cn-light.png" width="100%">
-</picture>
+<table>
+  <tr>
+    <td align="center" width="50%">
+      <picture>
+        <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/desktop-cn-dark.png">
+        <img alt="应用桌面 — 中文" src="docs/screenshots/desktop-cn-light.png" width="100%">
+      </picture>
+      <br><sub>中文</sub>
+    </td>
+    <td align="center" width="50%">
+      <picture>
+        <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/desktop-en-dark.png">
+        <img alt="应用桌面 — English" src="docs/screenshots/desktop-en-light.png" width="100%">
+      </picture>
+      <br><sub>English</sub>
+    </td>
+  </tr>
+</table>
 
 ### 本地大模型 —— 在自己机器上跑
 
