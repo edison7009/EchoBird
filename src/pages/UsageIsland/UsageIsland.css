@@ -399,7 +399,10 @@
   width: 16px;
   height: 16px;
 }
+/* Lowercase text sits 1px below the icon center in its line box. */
 .usage-island-line-name {
+  position: relative;
+  top: -1px;
   min-width: 0;
   overflow: hidden;
   font-size: 13px;
