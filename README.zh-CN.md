@@ -61,17 +61,21 @@
 <table>
   <tr>
     <td align="center" width="50%">
-      <picture>
-        <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/desktop-cn-dark.png">
-        <img alt="应用桌面 — 中文" src="docs/screenshots/desktop-cn-light.png" width="100%">
-      </picture>
+      <a href="docs/screenshots/desktop-cn-light.png">
+        <picture>
+          <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/desktop-cn-dark.png">
+          <img alt="应用桌面 — 中文" src="docs/screenshots/desktop-cn-light.png" width="100%">
+        </picture>
+      </a>
       <br><sub>中文</sub>
     </td>
     <td align="center" width="50%">
-      <picture>
-        <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/desktop-en-dark.png">
-        <img alt="应用桌面 — English" src="docs/screenshots/desktop-en-light.png" width="100%">
-      </picture>
+      <a href="docs/screenshots/desktop-en-light.png">
+        <picture>
+          <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/desktop-en-dark.png">
+          <img alt="应用桌面 — English" src="docs/screenshots/desktop-en-light.png" width="100%">
+        </picture>
+      </a>
       <br><sub>English</sub>
     </td>
   </tr>
