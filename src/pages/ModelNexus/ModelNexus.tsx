@@ -238,14 +238,14 @@ export function ModelNexusMain() {
           onDragCancel={handleDragCancel}
           autoScroll={false}
         >
-          <div className="model-nexus-grid grid gap-4">
+          <div className="model-nexus-grid model-nexus-grid-fill grid gap-4">
             {/* Show skeleton when loading */}
             {isLoadingModels ? (
               <>
-                <ModelCardSkeleton viewMode={viewMode} />
-                <ModelCardSkeleton viewMode={viewMode} />
-                <ModelCardSkeleton viewMode={viewMode} />
-                <ModelCardSkeleton viewMode={viewMode} />
+                <ModelCardSkeleton />
+                <ModelCardSkeleton />
+                <ModelCardSkeleton />
+                <ModelCardSkeleton />
               </>
             ) : (
               <>
@@ -267,7 +267,7 @@ export function ModelNexusMain() {
 
                 {/* Add new model button */}
                 <div
-                  className={`${viewMode === 'config' ? 'h-40' : 'h-48'} border border-dashed border-cyber-border flex flex-col items-center justify-center hover:border-cyber-border cursor-default transition-all rounded-card text-cyber-text-secondary hover:text-cyber-text`}
+                  className={`h-40 border border-dashed border-cyber-border flex flex-col items-center justify-center hover:border-cyber-border cursor-default transition-all rounded-card text-cyber-text-secondary hover:text-cyber-text`}
                   onClick={() => {
                     setNewModelForm({
                       name: '',

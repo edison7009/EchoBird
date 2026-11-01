@@ -117,10 +117,8 @@ export const getModelIcon = (name: string, modelId?: string): string | null => {
 };
 
 // Card skeleton (loading state)
-export const ModelCardSkeleton = ({ viewMode = 'config' }: { viewMode?: 'config' | 'usage' }) => (
-  <div
-    className={`${viewMode === 'config' ? 'h-40' : 'h-48'} p-4 bg-cyber-surface/60 rounded-card animate-pulse`}
-  >
+export const ModelCardSkeleton = () => (
+  <div className="h-40 p-4 bg-cyber-surface/60 rounded-card animate-pulse">
     <div className="h-5 w-32 bg-cyber-border rounded mb-4"></div>
     <div className="space-y-2">
       <div className="h-3 w-full bg-cyber-border/50 rounded"></div>
@@ -216,14 +214,10 @@ export const ModelCard = React.memo(
 
     return (
       <div
-        className={`${viewMode === 'config' ? 'h-40' : 'h-48'} p-4 border border-transparent bg-cyber-surface/60 hover:bg-cyber-elevated/70 relative overflow-hidden rounded-card cursor-default transition-colors flex flex-col`}
+        className={`h-40 p-4 border border-transparent bg-cyber-surface/60 hover:bg-cyber-elevated/70 relative overflow-hidden rounded-card cursor-default transition-colors flex flex-col`}
       >
-        <div
-          className={`-mx-2 -mt-2 mb-3 flex items-center gap-2 ${viewMode === 'usage' ? 'flex-wrap' : ''}`}
-        >
-          <div
-            className={`flex-1 flex items-center gap-2 ${viewMode === 'usage' ? 'min-w-[6rem]' : 'min-w-0'}`}
-          >
+        <div className="-mx-2 -mt-2 mb-3 flex items-center gap-2">
+          <div className="flex-1 flex items-center gap-2 min-w-0">
             {dragHandle}
             {/* Show provider logo in usage mode (based on baseUrl) */}
             {viewMode === 'usage' &&
