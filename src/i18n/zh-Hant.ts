@@ -666,8 +666,7 @@ const zhHant: Partial<Translations> = {
   'agent.waitingForBrowser': '等待瀏覽器操作({seconds})',
   'agent.refreshAccount': '重新整理帳號額度',
   'agent.warmUpAccount': '預熱帳號',
-  'agent.warmUpAccountHint':
-    '現在就開始這個帳號的 5 小時倒數，不用切換帳號，也不會打斷正在使用的帳號。\n會透過已安裝的 Claude Code 發送一則極短的訊息，消耗很少額度；倒數已在進行時只重新整理額度。',
+  'agent.warmUpAccountHint': '預熱：5小時額度重置後，開啟下一輪倒數計時。',
   'agent.baseCredits': '套餐積分',
   'agent.additionalCredits': '額外積分',
   'agent.organizationCredits': '組織資源包',

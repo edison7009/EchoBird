@@ -233,6 +233,15 @@
   --usage-island-low: #a16207;
   --usage-island-critical: #c2312c;
 }
+/* Over the pale colors of the flowing surface, quotas need the deepest tones to stay legible. */
+.usage-island-theme-iridescent {
+  --usage-island-bg: #ff7f7f;
+  --usage-island-fg: #000;
+  --usage-island-track: rgb(0 0 0 / 0.18);
+  --usage-island-healthy: #14532d;
+  --usage-island-low: #713f12;
+  --usage-island-critical: #7f1d1d;
+}
 .usage-island-theme-auto {
   --usage-island-fg: rgb(var(--text-primary-rgb));
   --usage-island-track: color-mix(in srgb, currentColor 18%, transparent);
@@ -398,20 +407,27 @@
   object-fit: contain;
   filter: none !important;
 }
+/* Shared columns line up the countdowns however wide each percentage is. */
 .usage-island-rows {
   display: grid;
-  gap: 2px;
+  grid-template-columns: auto auto;
+  align-items: baseline;
+  gap: 2px 5px;
   min-width: 0;
 }
 .usage-island-row {
-  display: flex;
-  align-items: baseline;
-  gap: 5px;
-  min-width: 0;
+  display: contents;
   font-size: 12px;
   line-height: 15px;
   font-weight: 600;
   white-space: nowrap;
+}
+.usage-island-row > :only-child {
+  grid-column: 1 / -1;
+}
+.usage-island-row .usage-island-reset {
+  color: var(--usage-color);
+  opacity: 1;
 }
 .usage-island-amount {
   color: var(--usage-color);
@@ -519,7 +535,7 @@
   opacity: 0.65;
 }
 /* Stronger than the CJK size upgrade, so the countdown matches the rest of the row. */
-.usage-island-line-head .usage-island-reset > span {
+.usage-island-reset > span {
   display: inline;
   color: inherit;
   font-size: inherit;
@@ -571,6 +587,11 @@
     .usage-island-toggle .usage-island-gauge
   ) {
   padding: 1px;
+}
+.usage-island[data-layout='dial'][data-expanded='false']:has(
+    .usage-island-toggle .usage-island-gauge
+  )::before {
+  inset: 1px;
 }
 .usage-island[data-expanded='true'][data-layout='dial'] {
   width: 216px;

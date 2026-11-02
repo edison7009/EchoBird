@@ -440,6 +440,34 @@ it('follows the system appearance independently of the app theme', async () => {
   await act(async () => island.getState().update({ theme: 'auto' }));
   expect(surface()).toContain('usage-island-theme-dark');
   expect(surface()).toContain('usage-island-theme-auto');
+  await act(async () => island.getState().update({ theme: 'iridescent' }));
+  expect(surface()).toContain('usage-island-theme-light');
+  expect(surface()).toContain('voice-theme-iridescent');
+  expect(surface()).not.toContain('usage-island-theme-auto');
+});
+
+it('shows each countdown beside its percent in the horizontal style', async () => {
+  const resetAt = Date.now() / 1000 + 2 * 3600;
+  const item = (lines: UsageIslandItem['lines']): UsageIslandItem => ({
+    kind: 'account',
+    key: 'a',
+    name: 'Claude',
+    detail: 'me@example.com',
+    icon: null,
+    percent: 82,
+    value: '82%',
+    lines,
+  });
+  await renderView('row', [
+    item([
+      { label: '5h', percent: 82, value: '82%', resetAt },
+      { label: '7d', percent: 64, value: '64%', resetAt: null },
+    ]),
+  ]);
+  const shown = JSON.stringify(view!.toJSON());
+  expect(shown).toContain('2h0m');
+  expect(shown).not.toContain('5h');
+  expect(shown).toContain('7d');
 });
 
 it('turns the logo into the picked ring in every style', async () => {

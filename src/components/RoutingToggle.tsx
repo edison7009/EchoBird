@@ -60,8 +60,6 @@ export function RoutingHint({
   const [position, setPosition] = useState<{
     left: number;
     top: number;
-    caret: number;
-    above: boolean;
   } | null>(null);
   useEffect(() => {
     if (!open) return;
@@ -75,12 +73,7 @@ export function RoutingHint({
       );
       const above = anchor.bottom + 6 + tooltip.height > window.innerHeight - 8;
       const top = Math.max(8, above ? anchor.top - tooltip.height - 6 : anchor.bottom + 6);
-      setPosition({
-        left,
-        top,
-        above,
-        caret: Math.max(8, Math.min(anchor.left + anchor.width / 2 - left - 4, tooltip.width - 16)),
-      });
+      setPosition({ left, top });
     };
     place();
     window.addEventListener('resize', place);
@@ -138,16 +131,12 @@ export function RoutingHint({
               left: position?.left ?? 0,
               top: position?.top ?? 0,
               visibility: position ? 'visible' : 'hidden',
-              width: 'min(288px, calc(100vw - 16px))',
+              width: 'max-content',
+              maxWidth: 'min(520px, calc(100vw - 16px))',
               maxHeight: 'calc(100vh - 16px)',
             }}
-            className="fixed z-[10000] rounded border border-cyber-accent/40 bg-cyber-elevated px-3 py-2 text-[11px] leading-relaxed text-cyber-text shadow-cyber-card backdrop-blur-sm"
+            className="fixed z-[10000] rounded-md border border-cyber-border bg-cyber-elevated px-2.5 py-1.5 text-xs leading-relaxed text-cyber-text shadow-lg"
           >
-            <span
-              aria-hidden="true"
-              style={{ left: position?.caret ?? 0 }}
-              className={`absolute h-2 w-2 rotate-45 border-cyber-accent/40 bg-cyber-elevated ${position?.above ? '-bottom-1 border-r border-b' : '-top-1 border-l border-t'}`}
-            />
             <span className="block overflow-y-auto" style={{ maxHeight: 'calc(100vh - 34px)' }}>
               {content ?? hint}
             </span>

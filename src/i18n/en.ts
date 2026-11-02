@@ -683,8 +683,7 @@ const en: Translations = {
   'agent.waitingForBrowser': 'Waiting for browser ({seconds})',
   'agent.refreshAccount': 'Refresh account quota',
   'agent.warmUpAccount': 'Warm up account',
-  'agent.warmUpAccountHint':
-    "Starts this account's 5-hour countdown now, without switching accounts or interrupting the one you are using.\nSends one very short message through the installed Claude Code, which uses a tiny amount of quota. If the countdown is already running, this only refreshes the quota.",
+  'agent.warmUpAccountHint': 'Warm up: start the next countdown after the 5-hour quota resets.',
   'agent.baseCredits': 'Plan credits',
   'agent.additionalCredits': 'Extra credits',
   'agent.organizationCredits': 'Organization credits',

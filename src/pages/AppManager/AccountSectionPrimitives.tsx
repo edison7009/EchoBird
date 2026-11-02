@@ -1,5 +1,5 @@
 import React from 'react';
-import { Check, Flame, Gift, LoaderCircle, RefreshCw, Trash2, X } from 'lucide-react';
+import { Check, Gift, LoaderCircle, RefreshCw, Trash2, X, Zap } from 'lucide-react';
 import { useI18n } from '../../hooks/useI18n';
 import { accountPlanLabel } from './accountPlanLabel';
 import { ACCOUNT_NAME_MASK, useAccountPrivacyStore } from '../../stores/accountPrivacyStore';
@@ -184,7 +184,7 @@ export const AccountSectionWarmUpButton: React.FC<{
           onClick={onWarmUp}
           className="account-icon-button flex h-5 w-5 items-center justify-center rounded-full disabled:opacity-40"
         >
-          <Flame size={12} aria-hidden="true" />
+          <Zap size={12} aria-hidden="true" />
         </button>
       </RoutingHint>
     </span>

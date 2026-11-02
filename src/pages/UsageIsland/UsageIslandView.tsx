@@ -103,10 +103,15 @@ function UsageRows({ item }: { item: UsageIslandItem }) {
     <span className="usage-island-rows">
       {item.lines.map((line, index) => (
         <span key={index} className="usage-island-row" data-tone={quotaTone(line.percent)}>
-          {line.label && line.percent !== null && (
-            <span className="usage-island-line-label">{line.label}</span>
-          )}
           <span className="usage-island-amount">{line.value}</span>
+          {line.resetAt != null ? (
+            <span className="usage-island-reset">
+              <QuotaCountdown resetAt={line.resetAt} compact small />
+            </span>
+          ) : (
+            line.label &&
+            line.percent !== null && <span className="usage-island-line-label">{line.label}</span>
+          )}
         </span>
       ))}
     </span>
@@ -224,7 +229,13 @@ export function UsageIslandView({
   const picked = items.find((item) => item.key === pick);
   const systemDark = useSystemDark();
   const surface =
-    theme === 'auto' ? resolved : theme === 'system' ? (systemDark ? 'dark' : 'light') : theme;
+    theme === 'auto'
+      ? resolved
+      : theme === 'iridescent' || (theme === 'system' && !systemDark)
+        ? 'light'
+        : theme === 'system'
+          ? 'dark'
+          : theme;
   const expanded =
     items.length > 0 &&
     (expandMode === 'always' ||
@@ -274,7 +285,11 @@ export function UsageIslandView({
       >
         <div
           className={`usage-island usage-island-theme-${surface}${
-            theme === 'auto' ? ' usage-island-theme-auto' : ''
+            theme === 'auto'
+              ? ' usage-island-theme-auto'
+              : theme === 'iridescent'
+                ? ' usage-island-theme-iridescent voice-theme-iridescent'
+                : ''
           }`}
           data-layout={layout}
           data-reversed={reversed}

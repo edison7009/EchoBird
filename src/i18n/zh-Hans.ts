@@ -630,8 +630,7 @@ const zhHans: Partial<Translations> = {
   'agent.waitingForBrowser': '等待浏览器操作({seconds})',
   'agent.refreshAccount': '刷新账号额度',
   'agent.warmUpAccount': '预热账号',
-  'agent.warmUpAccountHint':
-    '现在就开始这个账号的 5 小时倒计时，不用切换账号，也不会打断正在用的账号。\n会通过已安装的 Claude Code 发一条极短的消息，消耗很少额度；倒计时已在走时只刷新额度。',
+  'agent.warmUpAccountHint': '预热：5小时额度重置后，开启下一轮倒计时。',
   'agent.baseCredits': '套餐积分',
   'agent.additionalCredits': '额外积分',
   'agent.organizationCredits': '组织资源包',
