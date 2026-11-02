@@ -1228,8 +1228,7 @@ fn find_tool_executable(pc: &PathsConfig, include_hints: bool) -> Option<String>
                 })
         })
         .or_else(|| {
-            // Hermes' CLI has the same leaf name as its Linux/macOS GUI.
-            if !include_hints || pc.name == "Hermes Desktop" {
+            if !include_hints || !searches_path(&pc.name) {
                 return None;
             }
             filenames_of(&paths).iter().find_map(|name| {
@@ -1257,6 +1256,12 @@ fn find_tool_executable(pc: &PathsConfig, include_hints: bool) -> Option<String>
                 .filter(|p| p.is_file())
                 .map(|p| p.to_string_lossy().into_owned())
         })
+}
+
+/// PATH holds command-line tools. Hermes' and Claude's CLIs have the same leaf
+/// name as their desktop apps, so a PATH hit would be the wrong program.
+fn searches_path(tool_name: &str) -> bool {
+    !matches!(tool_name, "Hermes Desktop" | "Claude Desktop")
 }
 
 fn devin_resources(executable: &Path) -> Option<PathBuf> {
@@ -3382,6 +3387,14 @@ mod tests {
         let resolved = root.canonicalize().unwrap();
         assert!(resolved.starts_with(std::env::temp_dir().canonicalize().unwrap()));
         fs::remove_dir_all(resolved).unwrap();
+    }
+
+    #[test]
+    fn claude_desktop_is_never_resolved_to_the_cli_on_path() {
+        let definition: PathsConfig =
+            serde_json::from_str(include_str!("../../../tools/claudedesktop/paths.json")).unwrap();
+        assert!(!super::searches_path(&definition.name));
+        assert!(super::searches_path("Fixture GUI"));
     }
 
     #[test]
