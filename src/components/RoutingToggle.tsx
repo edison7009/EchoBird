@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { ToggleSwitch } from './ToggleSwitch';
 
@@ -44,7 +44,7 @@ export function RoutingToggle({
   );
 }
 
-export function RoutingHint({ hint }: { hint: string }) {
+export function RoutingHint({ hint, content }: { hint: string; content?: ReactNode }) {
   const [open, setOpen] = useState(false);
   const anchorRef = useRef<HTMLSpanElement>(null);
   const tooltipRef = useRef<HTMLSpanElement>(null);
@@ -138,7 +138,7 @@ export function RoutingHint({ hint }: { hint: string }) {
               className={`absolute h-2 w-2 rotate-45 border-cyber-accent/40 bg-cyber-elevated ${position?.above ? '-bottom-1 border-r border-b' : '-top-1 border-l border-t'}`}
             />
             <span className="block overflow-y-auto" style={{ maxHeight: 'calc(100vh - 34px)' }}>
-              {hint}
+              {content ?? hint}
             </span>
           </span>,
           document.body

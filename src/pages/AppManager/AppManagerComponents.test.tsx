@@ -974,15 +974,15 @@ describe.each(['codex', 'chatgptdesktop'])('%s Web Search control', (client) => 
           </ModelNexusContext.Provider>
         </ConfirmDialogProvider>
       );
-      const toggle = markup.match(/<button[^>]*role="switch"[^>]*>/)?.[0];
+      const toggle = markup.match(/<button[^>]*aria-pressed="[^>]*>/)?.[0];
       if (installed) {
         expect(toggle).toContain('aria-label="agent.codexWebSearchLabel"');
-        expect(toggle).toContain(`aria-checked="${webSearch}"`);
+        expect(toggle).toContain(`aria-pressed="${webSearch}"`);
         expect(toggle?.includes('disabled=""')).toBe(pending);
-        expect(markup).toContain('aria-label="agent.codexWebSearchHint"');
-        expect(markup.indexOf('agent.modelSwitch')).toBeLessThan(markup.indexOf('role="switch"'));
+        expect(markup).toContain('agent.codexWebSearchHint');
+        expect(markup.indexOf('agent.modelSwitch')).toBeLessThan(markup.indexOf('aria-pressed='));
         if (hasModels)
-          expect(markup.indexOf('role="switch"')).toBeLessThan(markup.indexOf('Cloud Model'));
+          expect(markup.indexOf('aria-pressed=')).toBeLessThan(markup.indexOf('Cloud Model'));
       } else {
         expect(toggle).toBeUndefined();
       }
@@ -1029,12 +1029,12 @@ describe('ZCode model capability controls', () => {
         ['Image', true],
       ]) {
         const toggle = markup.match(new RegExp(`<button[^>]*aria-label="${label}"[^>]*>`))?.[0];
-        expect(toggle).toContain(`aria-checked="${checked}"`);
+        expect(toggle).toContain(`aria-pressed="${checked}"`);
         expect(toggle?.includes('disabled=""')).toBe(pending);
       }
       expect(markup).not.toContain('role="tooltip"');
-      expect(markup).toContain('aria-label="agent.codexWebSearchHint"');
-      expect(markup).toContain('aria-label="agent.imageInputHint"');
+      expect(markup).toContain('agent.codexWebSearchHint');
+      expect(markup).toContain('agent.imageInputHint');
       expect(markup).not.toContain('aria-label="1M"');
     }
   );
@@ -1097,9 +1097,9 @@ describe.each(['claudedesktop', 'claudecode'])('%s model controls', (client) => 
       );
       expect(markup).not.toContain('agent.codexRelayLabel');
       expect(markup).not.toContain('agent.codexRelayHint');
-      expect(markup).toMatch(/aria-checked="true" aria-label="1M"/);
+      expect(markup).toMatch(/aria-pressed="true" aria-label="1M"/);
       expect(markup).toContain('agent.claude1mHint');
-      expect(markup).toMatch(/aria-checked="false" aria-label="agent.codexWebSearchLabel"/);
+      expect(markup).toMatch(/aria-pressed="false" aria-label="agent.codexWebSearchLabel"/);
       const search = markup.match(/<button[^>]*aria-label="agent.codexWebSearchLabel"[^>]*>/)?.[0];
       expect(search?.includes('disabled=""')).toBe(pending);
       if (client === 'claudedesktop') expect(markup).toContain('Anthropic Official');
@@ -1194,11 +1194,11 @@ describe.each(['workbuddy', 'workbuddyai'])('%s image control', (client) => {
       </ConfirmDialogProvider>
     );
     const toggle = markup.match(/<button[^>]*aria-label="Image"[^>]*>/)?.[0];
-    expect(toggle).toContain('aria-checked="false"');
+    expect(toggle).toContain('aria-pressed="false"');
     expect(toggle?.includes('disabled=""')).toBe(pending);
-    expect(markup).toContain('aria-label="agent.imageInputHint"');
-    expect(markup).toContain('aria-label="agent.oneMContextHint"');
-    expect(markup).toMatch(/aria-checked="true" aria-label="1M"/);
+    expect(markup).toContain('agent.imageInputHint');
+    expect(markup).toContain('agent.oneMContextHint');
+    expect(markup).toMatch(/aria-pressed="true" aria-label="1M"/);
     expect(markup).not.toContain('agent.codexWebSearchLabel');
     expect(markup).not.toContain('role="tooltip"');
   });
@@ -1229,12 +1229,12 @@ describe.each(['mimocode', 'mimodesktop'])('%s capability controls', (client) =>
     );
     for (const label of ['Image', '1M']) {
       const toggle = markup.match(new RegExp(`<button[^>]*aria-label="${label}"[^>]*>`))?.[0];
-      expect(toggle).toContain('aria-checked="true"');
+      expect(toggle).toContain('aria-pressed="true"');
       expect(toggle?.includes('disabled=""')).toBe(pending);
     }
     expect(markup).not.toContain('agent.claude1mHint');
-    expect(markup).toContain('aria-label="agent.oneMContextHint"');
-    expect(markup).toContain('aria-label="agent.imageInputHint"');
+    expect(markup).toContain('agent.oneMContextHint');
+    expect(markup).toContain('agent.imageInputHint');
     expect(markup).not.toContain('agent.codexWebSearchLabel');
     expect(markup).not.toContain('role="tooltip"');
   });
@@ -1271,12 +1271,12 @@ describe.each(['minimaxcode', 'minimaxdesktop'])('%s capability controls', (clie
     );
     for (const label of ['Image', '1M']) {
       const toggle = markup.match(new RegExp(`<button[^>]*aria-label="${label}"[^>]*>`))?.[0];
-      expect(toggle).toContain('aria-checked="true"');
+      expect(toggle).toContain('aria-pressed="true"');
       expect(toggle?.includes('disabled=""')).toBe(pending);
     }
     expect(markup).not.toContain('agent.claude1mHint');
-    expect(markup).toContain('aria-label="agent.oneMContextHint"');
-    expect(markup).toContain('aria-label="agent.imageInputHint"');
+    expect(markup).toContain('agent.oneMContextHint');
+    expect(markup).toContain('agent.imageInputHint');
     expect(markup).not.toContain('agent.codexWebSearchLabel');
     expect(markup).not.toContain('role="tooltip"');
   });
@@ -1313,12 +1313,12 @@ describe.each(['qoder', 'qodercn'])('%s capability controls', (client) => {
     );
     for (const label of ['Image', '1M']) {
       const toggle = markup.match(new RegExp(`<button[^>]*aria-label="${label}"[^>]*>`))?.[0];
-      expect(toggle).toContain('aria-checked="true"');
+      expect(toggle).toContain('aria-pressed="true"');
       expect(toggle?.includes('disabled=""')).toBe(pending);
     }
     expect(markup).not.toContain('agent.claude1mHint');
-    expect(markup).toContain('aria-label="agent.oneMContextHint"');
-    expect(markup).toContain('aria-label="agent.imageInputHint"');
+    expect(markup).toContain('agent.oneMContextHint');
+    expect(markup).toContain('agent.imageInputHint');
     expect(markup).not.toContain('agent.codexWebSearchLabel');
     expect(markup).not.toContain('role="tooltip"');
   });
@@ -1355,12 +1355,12 @@ describe.each(['dsh'])('%s capability controls', (client) => {
     );
     for (const label of ['Image', '1M']) {
       const toggle = markup.match(new RegExp(`<button[^>]*aria-label="${label}"[^>]*>`))?.[0];
-      expect(toggle).toContain('aria-checked="true"');
+      expect(toggle).toContain('aria-pressed="true"');
       expect(toggle?.includes('disabled=""')).toBe(pending);
     }
     expect(markup).not.toContain('agent.claude1mHint');
-    expect(markup).toContain('aria-label="agent.oneMContextHint"');
-    expect(markup).toContain('aria-label="agent.imageInputHint"');
+    expect(markup).toContain('agent.oneMContextHint');
+    expect(markup).toContain('agent.imageInputHint');
     expect(markup).not.toContain('agent.codexWebSearchLabel');
     expect(markup).not.toContain('role="tooltip"');
   });

@@ -24,7 +24,7 @@ import { DoubaoAccountSection } from './DoubaoAccountSection';
 import { QwenWorkAccountSection } from './QwenWorkAccountSection';
 import { ClaudeCodeAccountSection } from './ClaudeCodeAccountSection';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { RoutingToggle } from '../../components/RoutingToggle';
+import { CapabilityToggles, type CapabilityToggle } from './CapabilityToggles';
 import { ModelListCard } from '../../components/ModelListCard';
 import { ViewModeTabs } from '../../components/ViewModeTabs';
 import { PageActionButton } from '../../components/PageActionButton';
@@ -997,101 +997,83 @@ export const AppManagerPanel: React.FC = () => {
       : isZCodeApp
         ? zcodeWebSearch
         : codexWebSearch;
-  const routingControls = (show1mToggle || showWebSearchToggle || showImageToggle) && (
-    <div className="px-3 flex flex-wrap items-center gap-2">
-      {showWebSearchToggle && (
-        <RoutingToggle
-          key="web-search"
-          label={t('agent.codexWebSearchLabel')}
-          hint={t('agent.codexWebSearchHint')}
-          checked={webSearchValue}
-          disabled={isLaunching}
-          onChange={
-            showCodexAccounts
-              ? setCodexWebSearch
-              : isZCodeApp
-                ? (value) => setZCodeCapability('webSearch', value)
-                : (value) =>
-                    setClaudeWebSearch(isClaudeDesktopApp ? 'claudedesktop' : 'claudecode', value)
-          }
-        />
-      )}
-      {showImageToggle && (
-        <RoutingToggle
-          label="Image"
-          hint={t('agent.imageInputHint')}
-          checked={
-            isZCodeApp
-              ? zcodeImageInput
-              : isMimoTool
-                ? mimoImageInput
-                : isMinimaxTool
-                  ? minimaxImageInput
-                  : isQoderTool
-                    ? qoderImageInput
-                    : isDshTool
-                      ? dshImageInput
-                      : workBuddyImageInput
-          }
-          disabled={isLaunching}
-          onChange={
-            isZCodeApp
-              ? (value) => setZCodeCapability('imageInput', value)
-              : isMimoTool
-                ? (value) => setMimoCapability('imageInput', value)
-                : isMinimaxTool
-                  ? (value) => setMinimaxCapability('imageInput', value)
-                  : isQoderTool
-                    ? (value) => setQoderCapability('imageInput', value)
-                    : isDshTool
-                      ? (value) => setDshCapability('imageInput', value)
-                      : setWorkBuddyImageInput
-          }
-        />
-      )}
-      {show1mToggle && (
-        <RoutingToggle
-          key="1m"
-          label="1M"
-          hint={t(
-            isMimoTool || isMinimaxTool || isQoderTool || isDshTool || isWorkBuddyApp
-              ? 'agent.oneMContextHint'
-              : 'agent.claude1mHint'
-          )}
-          checked={
-            isMimoTool
-              ? mimo1mMode
-              : isMinimaxTool
-                ? minimax1mMode
-                : isQoderTool
-                  ? qoder1mMode
-                  : isDshTool
-                    ? dsh1mMode
-                    : isWorkBuddyApp
-                      ? workBuddy1mMode
-                      : isClaudeDesktopApp
-                        ? claudeDesktop1mMode
-                        : claude1mMode
-          }
-          onChange={
-            isMimoTool
-              ? (value) => setMimoCapability('oneMContext', value)
-              : isMinimaxTool
-                ? (value) => setMinimaxCapability('oneMContext', value)
-                : isQoderTool
-                  ? (value) => setQoderCapability('oneMContext', value)
-                  : isDshTool
-                    ? (value) => setDshCapability('oneMContext', value)
-                    : isWorkBuddyApp
-                      ? setWorkBuddy1mMode
-                      : isClaudeDesktopApp
-                        ? setClaudeDesktop1mMode
-                        : setClaude1mMode
-          }
-          disabled={isLaunching}
-        />
-      )}
-    </div>
+  const capabilityToggles: CapabilityToggle[] = [];
+  if (showWebSearchToggle)
+    capabilityToggles.push({
+      label: t('agent.codexWebSearchLabel'),
+      hint: t('agent.codexWebSearchHint'),
+      checked: webSearchValue,
+      onChange: showCodexAccounts
+        ? setCodexWebSearch
+        : isZCodeApp
+          ? (value) => setZCodeCapability('webSearch', value)
+          : (value) =>
+              setClaudeWebSearch(isClaudeDesktopApp ? 'claudedesktop' : 'claudecode', value),
+    });
+  if (showImageToggle)
+    capabilityToggles.push({
+      label: 'Image',
+      hint: t('agent.imageInputHint'),
+      checked: isZCodeApp
+        ? zcodeImageInput
+        : isMimoTool
+          ? mimoImageInput
+          : isMinimaxTool
+            ? minimaxImageInput
+            : isQoderTool
+              ? qoderImageInput
+              : isDshTool
+                ? dshImageInput
+                : workBuddyImageInput,
+      onChange: isZCodeApp
+        ? (value) => setZCodeCapability('imageInput', value)
+        : isMimoTool
+          ? (value) => setMimoCapability('imageInput', value)
+          : isMinimaxTool
+            ? (value) => setMinimaxCapability('imageInput', value)
+            : isQoderTool
+              ? (value) => setQoderCapability('imageInput', value)
+              : isDshTool
+                ? (value) => setDshCapability('imageInput', value)
+                : setWorkBuddyImageInput,
+    });
+  if (show1mToggle)
+    capabilityToggles.push({
+      label: '1M',
+      hint: t(
+        isMimoTool || isMinimaxTool || isQoderTool || isDshTool || isWorkBuddyApp
+          ? 'agent.oneMContextHint'
+          : 'agent.claude1mHint'
+      ),
+      checked: isMimoTool
+        ? mimo1mMode
+        : isMinimaxTool
+          ? minimax1mMode
+          : isQoderTool
+            ? qoder1mMode
+            : isDshTool
+              ? dsh1mMode
+              : isWorkBuddyApp
+                ? workBuddy1mMode
+                : isClaudeDesktopApp
+                  ? claudeDesktop1mMode
+                  : claude1mMode,
+      onChange: isMimoTool
+        ? (value) => setMimoCapability('oneMContext', value)
+        : isMinimaxTool
+          ? (value) => setMinimaxCapability('oneMContext', value)
+          : isQoderTool
+            ? (value) => setQoderCapability('oneMContext', value)
+            : isDshTool
+              ? (value) => setDshCapability('oneMContext', value)
+              : isWorkBuddyApp
+                ? setWorkBuddy1mMode
+                : isClaudeDesktopApp
+                  ? setClaudeDesktop1mMode
+                  : setClaude1mMode,
+    });
+  const routingControls = capabilityToggles.length > 0 && (
+    <CapabilityToggles toggles={capabilityToggles} disabled={isLaunching} />
   );
 
   return (
