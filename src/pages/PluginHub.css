@@ -266,6 +266,7 @@
   }
 }
 .ph-card-copy {
+  flex: 1;
   min-width: 0;
   display: flex;
   flex-direction: column;
@@ -284,6 +285,26 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+.ph-card-copy > .ph-card-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: inherit;
+  font-size: inherit;
+}
+.ph-card-title strong {
+  min-width: 0;
+}
+.ph-card-status {
+  flex-shrink: 0;
+  margin-left: auto;
+  color: var(--ph-muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+.ph-card-status.enabled {
+  color: #16a34a;
 }
 .ph-card > p {
   margin: 14px 0 18px;

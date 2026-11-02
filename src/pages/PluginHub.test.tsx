@@ -1,4 +1,4 @@
-import { act, create, type ReactTestRenderer } from 'react-test-renderer';
+import { type ReactTestInstance, act, create, type ReactTestRenderer } from 'react-test-renderer';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import * as api from '../api/plugins';
 import type { InstalledPlugin, PluginCandidate, PluginRegistry } from '../api/plugins';
@@ -547,6 +547,20 @@ it('shows cold-load skeletons instead of an empty installed list and preserves c
   expect(JSON.stringify(view.toJSON())).toContain('plugins.empty');
   expect(api.previewPlugin).not.toHaveBeenCalled();
   expect(api.getPluginRegistry).not.toHaveBeenCalled();
+});
+
+it('shows plugin status on the title row and the update action beside the toggle', async () => {
+  const older = { ...installed, manifest: { ...installed.manifest, version: '0.0.1' } };
+  vi.mocked(api.listPlugins).mockResolvedValue([older]);
+  await mount();
+  const card = view.root.findAllByType('article')[0];
+  const status = card.findByProps({ className: 'ph-card-status enabled' });
+  expect(status.parent?.props.className).toBe('ph-card-title');
+  const [update, toggle] = card.findByProps({ className: 'ph-card-installed' }).children;
+  expect((update as ReactTestInstance).props.className).toBe('ph-install');
+  expect((toggle as ReactTestInstance).props.hideLabel).toBe(true);
+  act(() => store.setState({ installed: [{ ...older, enabled: false }] }));
+  expect(card.findByProps({ className: 'ph-card-status ' })).toBeTruthy();
 });
 
 it('keeps a single selected card highlighted when switching plugins without running them', async () => {

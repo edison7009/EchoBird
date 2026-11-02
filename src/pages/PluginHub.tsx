@@ -702,7 +702,14 @@ export function PluginHubMain({ active }: { active: boolean }) {
                     }
                   />
                   <span className="ph-card-copy">
-                    <strong>{manifest.displayName}</strong>
+                    <span className="ph-card-title">
+                      <strong>{manifest.displayName}</strong>
+                      {installed && (
+                        <span className={`ph-card-status ${installed.enabled ? 'enabled' : ''}`}>
+                          {t(installed.enabled ? 'plugins.enabled' : 'plugins.disabled')}
+                        </span>
+                      )}
+                    </span>
                     <span>
                       {t('plugins.developer')}
                       {manifest.publisher}
@@ -714,14 +721,6 @@ export function PluginHubMain({ active }: { active: boolean }) {
                   <span className="ph-muted">{manifest.version}</span>
                   {installed ? (
                     <div className="ph-card-installed">
-                      <span>{t(installed.enabled ? 'plugins.enabled' : 'plugins.disabled')}</span>
-                      <RoutingToggle
-                        label={manifest.displayName}
-                        hideLabel
-                        checked={installed.enabled}
-                        pending={store.busy}
-                        onChange={(enabled) => void store.enable(id, enabled).catch(() => {})}
-                      />
                       {gt(manifest.version, installed.manifest.version) && (
                         <button
                           className="ph-install"
@@ -731,6 +730,13 @@ export function PluginHubMain({ active }: { active: boolean }) {
                           {t('plugins.update')}
                         </button>
                       )}
+                      <RoutingToggle
+                        label={manifest.displayName}
+                        hideLabel
+                        checked={installed.enabled}
+                        pending={store.busy}
+                        onChange={(enabled) => void store.enable(id, enabled).catch(() => {})}
+                      />
                     </div>
                   ) : (
                     <button
