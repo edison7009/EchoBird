@@ -690,6 +690,7 @@ export type TKey =
   | 'key.destroyed'
   // App hints
   | 'hint.responsesRequired'
+  | 'hint.claudeHistoryMerged'
   | 'hint.localHistoryPreserved'
   | 'hint.cliRecommendation'
   | 'hint.appReorder'

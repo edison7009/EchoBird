@@ -1578,9 +1578,11 @@ export const PageAwareHint: React.FC = () => {
       ? 'aiDesktop.installHint'
       : selectedTool === 'chatgptdesktop' || selectedTool === 'codex'
         ? 'hint.responsesRequired'
-        : ['claudedesktop', 'workbuddy', 'workbuddyai'].includes(selectedTool ?? '')
-          ? 'hint.localHistoryPreserved'
-          : null;
+        : selectedTool === 'claudedesktop'
+          ? 'hint.claudeHistoryMerged'
+          : ['workbuddy', 'workbuddyai'].includes(selectedTool ?? '')
+            ? 'hint.localHistoryPreserved'
+            : null;
   return (
     <div className="flex-1 text-[15px] font-medium text-cyber-accent">
       {key ? t(key) : activePage === 'apps' && <RandomAppTip />}

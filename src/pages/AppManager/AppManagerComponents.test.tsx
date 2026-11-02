@@ -829,7 +829,7 @@ describe('PageAwareHint', () => {
   };
 
   it.each([
-    ['claudedesktop', 'hint.localHistoryPreserved'],
+    ['claudedesktop', 'hint.claudeHistoryMerged'],
     ['claudecode', 'hint.appReorder'],
   ])('shows the selected app hint for %s API models', async (toolId, hint) => {
     const markup = await renderHint(toolId);
@@ -850,9 +850,10 @@ describe('PageAwareHint', () => {
     const markup = await renderHint('claudecode', 'saved-account');
     expect(markup).toContain('hint.appReorder');
   });
-  it('shows the local history hint when a Claude Desktop account is selected', async () => {
+  it('shows the Claude Code history hint when a Claude Desktop account is selected', async () => {
     const markup = await renderHint('claudedesktop', 'saved-account');
-    expect(markup).toContain('hint.localHistoryPreserved');
+    expect(markup).toContain('hint.claudeHistoryMerged');
+    expect(markup).not.toContain('hint.localHistoryPreserved');
   });
 
   it('shows the app reorder hint for other tools', async () => {

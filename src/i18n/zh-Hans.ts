@@ -689,6 +689,8 @@ const zhHans: Partial<Translations> = {
   'key.destroyed': '检测到环境已改变，API Key 已自毁，请重新输入',
   'hint.responsesRequired':
     'ChatGPT / Codex CLI 切换模型时，第三方模型必须支持 Responses 才能成功接入。',
+  'hint.claudeHistoryMerged':
+    '通过 EchoBird 为 Claude 桌面端切换账号或模型时，自动合并 Claude Code 对话记录。',
   'hint.localHistoryPreserved': '切换账号或模型，本地对话记录自动保留。',
   'hint.cliRecommendation':
     '小技巧：桌面版应用往往因界面调度、界面识别等，比 CLI 版消耗更多 Token、等待更久。（推荐使用 Coffee CLI 启动 CLI 版，还原桌面版的体验。）',
