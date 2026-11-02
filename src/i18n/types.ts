@@ -27,6 +27,7 @@ export type TKey =
   | 'usageIsland.refresh.manual'
   | 'usageIsland.refresh.minutes'
   | 'usageIsland.removeSource'
+  | 'usageIsland.scale'
   | 'usageIsland.style.row'
   | 'usageIsland.style.column'
   | 'usageIsland.style.dial'

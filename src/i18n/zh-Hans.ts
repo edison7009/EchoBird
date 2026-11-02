@@ -88,6 +88,7 @@ const zhHans: Partial<Translations> = {
   'usageIsland.refresh.manual': '手动',
   'usageIsland.refresh.minutes': '{n} 分钟',
   'usageIsland.removeSource': '移除来源',
+  'usageIsland.scale': '用量岛大小',
   'usageIsland.style.row': '横向',
   'usageIsland.style.column': '上下',
   'usageIsland.style.dial': '圆盘',

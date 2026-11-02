@@ -89,6 +89,7 @@ const en: Translations = {
   'usageIsland.refresh.manual': 'Manual',
   'usageIsland.refresh.minutes': '{n} min',
   'usageIsland.removeSource': 'Remove source',
+  'usageIsland.scale': 'Usage island size',
   'usageIsland.style.row': 'Horizontal',
   'usageIsland.style.column': 'Vertical',
   'usageIsland.style.dial': 'Dial',

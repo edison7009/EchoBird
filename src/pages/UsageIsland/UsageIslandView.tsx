@@ -51,7 +51,8 @@ function useIslandFit(layout: string) {
     const observer = new ResizeObserver(() =>
       setFit({
         available: stage.clientWidth,
-        content: Math.ceil(content.getBoundingClientRect().width),
+        // Computed, because the page preview scales by a transform that layout must not include.
+        content: Math.ceil(parseFloat(getComputedStyle(content).width)),
       })
     );
     observer.observe(stage);

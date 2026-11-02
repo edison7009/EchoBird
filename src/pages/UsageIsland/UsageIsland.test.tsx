@@ -18,6 +18,7 @@ import { USAGE_ISLAND_TICK_EVENT } from '../../api/usageIsland';
 import { UsageIslandMain, UsageIslandPanel } from './UsageIsland';
 import UsageIslandBridge from './UsageIslandBridge';
 import { UsageIslandView, type IslandLayout } from './UsageIslandView';
+import { UsageIslandWindow } from './UsageIslandWindow';
 import {
   accountSources,
   accountSourceKey,
@@ -36,7 +37,12 @@ const events = vi.hoisted(() => ({
   listeners: new Map<string, (event: { payload: unknown }) => void>(),
   emitTo: vi.fn(async (..._args: unknown[]) => {}),
 }));
+const setZoom = vi.hoisted(() => vi.fn(async () => {}));
 
+vi.mock('@tauri-apps/api/webview', () => ({ getCurrentWebview: () => ({ setZoom }) }));
+vi.mock('@tauri-apps/api/window', () => ({
+  getCurrentWindow: () => ({ show: vi.fn(async () => {}) }),
+}));
 vi.mock('@tauri-apps/api/event', () => ({
   emit: vi.fn(async () => {}),
   emitTo: events.emitTo,
@@ -70,6 +76,8 @@ vi.mock('../../hooks/useI18n', () => ({
 }));
 vi.mock('../../hooks/useSystemDark', () => ({ useSystemDark: () => systemDark.current }));
 vi.mock('../../stores/themeStore', () => ({
+  THEME_CHANGED_EVENT: 'theme-changed',
+  THEME_REQUEST_EVENT: 'theme-request',
   useThemeStore: (select: (state: { resolved: string }) => unknown) => select({ resolved: 'dark' }),
 }));
 vi.mock('../../components/cards', () => ({ getModelIcon: () => '/icons/models/test.svg' }));
@@ -165,6 +173,7 @@ beforeEach(() => {
     theme: 'dark',
     expandMode: 'hover',
     refreshSeconds: 0,
+    scale: 100,
     sources: [],
   });
   navigation.setState({
@@ -773,6 +782,41 @@ it('refreshes on ticks from the floating window instead of its own timer', async
   });
   await act(async () => events.listeners.get(USAGE_ISLAND_TICK_EVENT)!({ payload: {} }));
   expect(refreshAccount).toHaveBeenCalledTimes(2);
+});
+
+it('sizes the preview and saves the choice from an unlabelled slider', async () => {
+  await render();
+  const slider = view!.root.findByProps({ type: 'range' });
+  expect(slider.props).toMatchObject({ min: 70, max: 150, step: 10, value: 100 });
+  expect(slider.parent!.children).toHaveLength(1);
+  await act(async () => slider.props.onChange({ target: { value: '130' } }));
+  expect(island.getState().scale).toBe(130);
+  expect(view!.root.findByProps({ className: 'usage-island-preview' }).props.style).toEqual({
+    '--usage-island-scale': 1.3,
+  });
+  expect(JSON.parse(vi.mocked(localStorage.setItem).mock.lastCall![1])).toMatchObject({
+    scale: 130,
+  });
+  expect(refreshAccount).not.toHaveBeenCalled();
+});
+
+it('sends the island scale to the floating window, which zooms by it alone', async () => {
+  island.setState({ enabled: true, sources: [accountSourceKey('claude', 'a')], scale: 120 });
+  navigation.setState({ activePage: 'apps' });
+  await act(async () => {
+    view = create(<UsageIslandBridge />);
+  });
+  const states = events.emitTo.mock.calls.filter((call) => call[1] === 'usage-island-state');
+  const payload = states[states.length - 1][2] as string;
+  expect(JSON.parse(payload)).toMatchObject({ scale: 120 });
+  act(() => view!.unmount());
+  vi.stubGlobal('window', { screen: { availWidth: 1920 } });
+  await act(async () => {
+    view = create(<UsageIslandWindow />);
+  });
+  expect(setZoom).not.toHaveBeenCalled();
+  await act(async () => events.listeners.get('usage-island-state')!({ payload }));
+  expect(setZoom).toHaveBeenCalledExactlyOnceWith(1.2);
 });
 
 it('uses cached rows only until the saved accounts have been read', () => {

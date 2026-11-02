@@ -10,6 +10,14 @@
   height: 328px;
   padding: 8px 0;
 }
+/* Laid out at the unscaled width, so the scaled result still fills its half of the stage. */
+.usage-island-preview {
+  justify-self: start;
+  width: calc(100% / var(--usage-island-scale));
+  min-width: 0;
+  transform: scale(var(--usage-island-scale));
+  transform-origin: left center;
+}
 .usage-island-slots {
   display: grid;
   grid-template-rows: repeat(3, 80px);
@@ -119,7 +127,7 @@
 }
 .usage-island-settings {
   display: grid;
-  grid-template-rows: repeat(3, 1fr);
+  grid-template-rows: repeat(4, 1fr);
   align-items: center;
   gap: 8px;
 }
@@ -590,6 +598,10 @@
   .usage-island-stage {
     grid-template-columns: minmax(0, 1fr);
     height: auto;
+  }
+  .usage-island-preview {
+    height: calc(216px * var(--usage-island-scale));
+    transform-origin: left top;
   }
   .usage-island-stage .usage-island-fit {
     min-height: 216px;

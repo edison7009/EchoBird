@@ -8,6 +8,7 @@ export const usageIslandStyles = ['row', 'column', 'dial', 'line'] as const;
 export const usageIslandThemes = ['auto', 'dark', 'light', 'system'] as const;
 export const usageIslandExpandModes = ['hover', 'click', 'always'] as const;
 export const usageIslandRefreshSeconds = [0, 300, 900, 1800, 3600] as const;
+export const usageIslandScales = [70, 80, 90, 100, 110, 120, 130, 140, 150] as const;
 
 export type UsageIslandStyle = (typeof usageIslandStyles)[number];
 export type UsageIslandTheme = (typeof usageIslandThemes)[number];
@@ -24,6 +25,8 @@ export interface UsageIslandConfig {
   expandMode: UsageIslandExpandMode;
   // Zero leaves quota refresh to the explicit button.
   refreshSeconds: number;
+  // Percent of the island's own size, separate from the interface scale.
+  scale: number;
   sources: string[];
 }
 
@@ -42,6 +45,7 @@ const defaults: UsageIslandConfig = {
   theme: 'dark',
   expandMode: 'hover',
   refreshSeconds: 0,
+  scale: 100,
   sources: [],
 };
 
@@ -61,6 +65,7 @@ function readConfig(): UsageIslandConfig {
       theme: oneOf(usageIslandThemes, saved?.theme, defaults.theme),
       expandMode: oneOf(usageIslandExpandModes, saved?.expandMode, defaults.expandMode),
       refreshSeconds: oneOf(usageIslandRefreshSeconds, saved?.refreshSeconds, 0),
+      scale: oneOf(usageIslandScales, saved?.scale, 100),
       sources: Array.isArray(saved?.sources)
         ? [...new Set(saved.sources.filter((key): key is string => typeof key === 'string'))].slice(
             0,
@@ -74,11 +79,22 @@ function readConfig(): UsageIslandConfig {
 }
 
 function writeConfig(state: UsageIslandConfig) {
-  const { enabled, pick, style, reversed, theme, expandMode, refreshSeconds, sources } = state;
+  const { enabled, pick, style, reversed, theme, expandMode, refreshSeconds, scale, sources } =
+    state;
   try {
     localStorage.setItem(
       STORAGE_KEY,
-      JSON.stringify({ enabled, pick, style, reversed, theme, expandMode, refreshSeconds, sources })
+      JSON.stringify({
+        enabled,
+        pick,
+        style,
+        reversed,
+        theme,
+        expandMode,
+        refreshSeconds,
+        scale,
+        sources,
+      })
     );
   } catch {
     // Keep this session's island if local storage is unavailable.

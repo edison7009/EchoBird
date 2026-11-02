@@ -169,13 +169,11 @@ function renderBootError(err: unknown): void {
 async function bootAndRender(): Promise<void> {
   if (isUsageIsland) {
     document.documentElement.classList.add('usage-island-window');
-    const [locale, , disposeUiScale, { UsageIslandWindow }] = await Promise.all([
+    const [locale, , { UsageIslandWindow }] = await Promise.all([
       bootI18n(),
       bootFonts(),
-      initializeUiScale(),
       import('./pages/UsageIsland/UsageIslandWindow'),
     ]);
-    import.meta.hot?.dispose(disposeUiScale);
     document.documentElement.lang = locale;
     ReactDOM.createRoot(document.getElementById('root')!).render(
       <I18nProvider initialLocale={locale}>

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type CSSProperties } from 'react';
 import {
   ArrowDown,
   ArrowLeft,
@@ -22,6 +22,7 @@ import {
   USAGE_ISLAND_LIMIT,
   usageIslandExpandModes,
   usageIslandRefreshSeconds,
+  usageIslandScales,
   usageIslandStyles,
   usageIslandThemes,
   useUsageIslandStore,
@@ -63,6 +64,9 @@ const directions: Record<UsageIslandStyle, [Direction, Direction]> = {
   ],
 };
 
+const MIN_SCALE = usageIslandScales[0];
+const MAX_SCALE = usageIslandScales[usageIslandScales.length - 1];
+
 export function UsageIslandMain() {
   const { t } = useI18n();
   const active = useUsageIslandActive();
@@ -82,12 +86,17 @@ export function UsageIslandMain() {
     <div className="flex-1 overflow-y-auto pr-1 pb-3">
       <div className="usage-island-page">
         <section className="usage-island-stage" aria-label={t('developer.usageIsland')}>
-          <UsageIslandView
-            items={demoItems}
-            settings={{ ...config, expandMode: 'always' }}
-            pick={demoPick}
-            onPick={setDemoPick}
-          />
+          <div
+            className="usage-island-preview"
+            style={{ '--usage-island-scale': config.scale / 100 } as CSSProperties}
+          >
+            <UsageIslandView
+              items={demoItems}
+              settings={{ ...config, expandMode: 'always' }}
+              pick={demoPick}
+              onPick={setDemoPick}
+            />
+          </div>
           <UsageIslandSlots sources={sources} />
         </section>
         <div className="usage-island-lower">
@@ -180,6 +189,24 @@ export function UsageIslandMain() {
                   }))}
                 />
               </span>
+            </div>
+            <div className="voice-row">
+              <input
+                type="range"
+                min={MIN_SCALE}
+                max={MAX_SCALE}
+                step={10}
+                value={config.scale}
+                aria-label={t('usageIsland.scale')}
+                aria-valuetext={`${config.scale}%`}
+                className="ui-scale-slider relative block w-full"
+                style={
+                  {
+                    '--ui-scale-progress': `${((config.scale - MIN_SCALE) / (MAX_SCALE - MIN_SCALE)) * 100}%`,
+                  } as CSSProperties
+                }
+                onChange={(event) => update({ scale: Number(event.target.value) })}
+              />
             </div>
           </div>
         </div>

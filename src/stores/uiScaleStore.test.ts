@@ -66,18 +66,21 @@ describe('UI scale', () => {
   it('publishes only an applied main-window scale, including automatic display changes', async () => {
     native.monitor.mockResolvedValue(monitor(1366, 728));
     await module.initializeUiScale();
-    expect(native.emit).toHaveBeenCalledWith('voice-island', module.UI_SCALE_CHANGED_EVENT, 0.8);
     expect(native.emit).toHaveBeenLastCalledWith(
-      'usage-island',
+      'voice-island',
       module.UI_SCALE_CHANGED_EVENT,
       0.8
     );
     await module.useUiScaleStore.getState().setPreference(90);
-    expect(native.emit).toHaveBeenCalledWith('voice-island', module.UI_SCALE_CHANGED_EVENT, 0.9);
     expect(native.emit).toHaveBeenLastCalledWith(
-      'usage-island',
+      'voice-island',
       module.UI_SCALE_CHANGED_EVENT,
       0.9
+    );
+    expect(native.emit).not.toHaveBeenCalledWith(
+      'usage-island',
+      module.UI_SCALE_CHANGED_EVENT,
+      expect.anything()
     );
   });
 

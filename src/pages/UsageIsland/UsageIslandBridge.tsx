@@ -20,6 +20,7 @@ export default function UsageIslandBridge() {
   const expandMode = useUsageIslandStore((state) => state.expandMode);
   const pick = useUsageIslandStore((state) => state.pick);
   const refreshSeconds = useUsageIslandStore((state) => state.refreshSeconds);
+  const scale = useUsageIslandStore((state) => state.scale);
   const hidden = useAccountPrivacyStore((privacy) => privacy.hidden);
   const items = useUsageIslandItems(useUsageSources(true));
   // The browser slows timers in a window hidden to the tray, so the island keeps time.
@@ -32,6 +33,7 @@ export default function UsageIslandBridge() {
     settings: { style, reversed, theme, expandMode },
     pick,
     refreshSeconds,
+    scale,
     items: items.map(({ kind, key, name, detail, icon, percent, value, lines }) => ({
       kind,
       key,

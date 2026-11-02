@@ -90,6 +90,7 @@ const ja: Partial<Translations> = {
   'usageIsland.refresh.manual': '手動',
   'usageIsland.refresh.minutes': '{n} 分',
   'usageIsland.removeSource': 'ソースを削除',
+  'usageIsland.scale': '使用量アイランドのサイズ',
   'usageIsland.style.row': '横',
   'usageIsland.style.column': '縦',
   'usageIsland.style.dial': 'ダイヤル',

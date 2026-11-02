@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type PointerEvent } from 'react';
 import { emit, emitTo, listen } from '@tauri-apps/api/event';
+import { getCurrentWebview } from '@tauri-apps/api/webview';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import {
   USAGE_ISLAND_HOVER_EVENT,
@@ -16,7 +17,6 @@ import {
   useThemeStore,
   type ThemeSelection,
 } from '../../stores/themeStore';
-import { useUiScaleStore } from '../../stores/uiScaleStore';
 import type { UsageIslandItem } from './usageIslandData';
 import { UsageIslandView, type IslandLayout, type IslandSettings } from './UsageIslandView';
 import '../VoiceInput/VoiceInput.css';
@@ -27,6 +27,7 @@ export interface UsageIslandPayload {
   pick: string | null;
   /** The island stays visible, so it keeps the refresh time for the main window. */
   refreshSeconds: number;
+  scale: number;
   items: UsageIslandItem[];
 }
 
@@ -39,9 +40,11 @@ const MAX_CONTENT_WIDTH = 1600;
 
 export function UsageIslandWindow() {
   const [state, setState] = useState<UsageIslandPayload | null>(null);
-  const scale = useUiScaleStore((store) => store.scale);
+  const scale = (state?.scale ?? 100) / 100;
   const [hover, setHover] = useState<boolean | null>(null);
   const press = useRef<{ x: number; y: number } | null>(null);
+  // The first frame must already be at the saved size.
+  const zoomed = useRef(Promise.resolve());
   const ready = state !== null;
   useEffect(() => {
     let stopped = false;
@@ -75,7 +78,13 @@ export function UsageIslandWindow() {
     };
   }, []);
   useEffect(() => {
-    if (ready) void getCurrentWindow().show();
+    if (!ready) return;
+    zoomed.current = getCurrentWebview()
+      .setZoom(scale)
+      .catch(() => {});
+  }, [ready, scale]);
+  useEffect(() => {
+    if (ready) void zoomed.current.then(() => getCurrentWindow().show());
   }, [ready]);
   const refreshSeconds = state?.refreshSeconds ?? 0;
   useEffect(() => {
