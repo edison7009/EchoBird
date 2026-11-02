@@ -27,10 +27,10 @@ export function CapabilityToggles({
           aria-label={label}
           disabled={disabled}
           onClick={() => onChange(!checked)}
-          className={`view-mode-tab h-[24px] min-w-[44px] rounded-full px-[10px] text-xs font-medium whitespace-nowrap outline-none transition-[color] focus-visible:ring-2 focus-visible:ring-cyber-accent disabled:opacity-50 ${
+          className={`view-mode-tab h-[24px] min-w-[44px] rounded-full px-[10px] text-xs font-medium whitespace-nowrap border outline-none transition-[color,background-color] focus-visible:ring-2 focus-visible:ring-cyber-accent disabled:opacity-50 ${
             checked
-              ? 'text-cyber-text'
-              : 'bg-cyber-elevated text-cyber-text-secondary enabled:hover:text-cyber-text'
+              ? 'border-transparent text-cyber-text'
+              : 'border-cyber-border text-cyber-text-secondary enabled:hover:border-transparent enabled:hover:bg-cyber-elevated enabled:hover:text-cyber-text'
           }`}
         >
           {label}

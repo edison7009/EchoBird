@@ -2,6 +2,8 @@ import React from 'react';
 import { useAppManager } from './context';
 import { AccountSectionButton, AccountSectionRow } from './AccountSectionPrimitives';
 import { QuotaCountdown } from './QuotaCountdown';
+import { QuotaPercent } from './QuotaPercent';
+import { quotaTextClass } from '../../utils/quotaColors';
 import { isFreePlan } from './accountPlanLabel';
 import { useI18n } from '../../hooks/useI18n';
 import { ACCOUNT_NAME_MASK, useAccountPrivacyStore } from '../../stores/accountPrivacyStore';
@@ -49,7 +51,7 @@ export const ManusAccountSection: React.FC<{ tool?: 'manus' | 'cue' }> = ({ tool
                 secondary={
                   missingWeekly ? undefined : weekly ? (
                     <span
-                      className={`flex h-[16px] items-center justify-between ${subscriptionEndAt ? 'w-full min-w-0' : ''}`}
+                      className={`flex h-[16px] items-center justify-between ${subscriptionEndAt ? 'w-full min-w-0' : ''} ${quotaTextClass(weekly.remainingPercent)}`}
                     >
                       <span
                         role="progressbar"
@@ -58,7 +60,7 @@ export const ManusAccountSection: React.FC<{ tool?: 'manus' | 'cue' }> = ({ tool
                         aria-valuemax={100}
                         aria-valuenow={weekly.remainingPercent ?? undefined}
                         aria-valuetext={weekly.remainingPercent == null ? '—' : undefined}
-                        className={`h-1.5 ${subscriptionEndAt ? 'min-w-0' : 'min-w-[56px]'} max-w-[80px] flex-1 overflow-hidden rounded-full bg-cyber-border`}
+                        className={`h-1.5 ${subscriptionEndAt ? 'min-w-0' : 'min-w-[56px]'} max-w-[80px] flex-1 overflow-hidden rounded-full account-quota-track`}
                       >
                         <span
                           className="quota-progress-fill block h-full rounded-full bg-cyber-bg"
@@ -66,9 +68,7 @@ export const ManusAccountSection: React.FC<{ tool?: 'manus' | 'cue' }> = ({ tool
                         />
                       </span>
                       <span className="ml-[6px] w-[30px] flex-shrink-0 text-right text-[12px] font-semibold leading-[16px] text-cyber-text">
-                        {weekly.remainingPercent == null
-                          ? '—'
-                          : `${Math.round(weekly.remainingPercent)}%`}
+                        <QuotaPercent percent={weekly.remainingPercent} />
                       </span>
                       <QuotaCountdown resetAt={weekly.resetAt} />
                     </span>

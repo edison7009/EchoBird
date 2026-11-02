@@ -892,6 +892,11 @@ html.is-macos .page-scroll::-webkit-scrollbar {
   background-color: rgb(255 255 255 / 0.22);
 }
 
+/* Tints with its quota, at the strength of the Account Center bars. */
+.account-pill .account-quota-track {
+  background-color: color-mix(in srgb, currentColor 20%, transparent);
+}
+
 [data-theme='light'] .workbuddy-account-pill {
   background-color: rgb(183 232 217 / 0.85);
   color: #145c49;

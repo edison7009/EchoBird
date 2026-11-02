@@ -628,7 +628,7 @@ describe('CodexAccountSection', () => {
     expect(markup).toContain('32%');
     expect(markup).not.toContain('5h 65%');
     expect(markup).not.toContain('7d 32%');
-    expect(markup).not.toContain('bg-cyber-border');
+    expect(markup).not.toContain('account-quota-track');
     expect(markup).toContain('aria-checked="true"');
     expect(markup).toContain('agent.refreshAccount');
     expect(markup).not.toContain('role="tooltip"');
@@ -660,7 +660,7 @@ describe('CodexAccountSection', () => {
         <CodexAccountSection showDivider={false} />
       </AppManagerContext.Provider>
     );
-    expect(markup).toContain('bg-cyber-border');
+    expect(markup).toContain('account-quota-track');
     expect(markup).toContain('31%');
     expect(markup).not.toContain('7d 31%');
     const row = renderToStaticMarkup(

@@ -2,6 +2,8 @@ import { Fragment } from 'react';
 import { useAppManager } from './context';
 import { AccountSectionButton, AccountSectionRow } from './AccountSectionPrimitives';
 import { QuotaCountdown } from './QuotaCountdown';
+import { QuotaPercent } from './QuotaPercent';
+import { quotaTextClass } from '../../utils/quotaColors';
 import { devinQuotaLabel } from './devinAccountDisplay';
 
 export function DevinAccountSection() {
@@ -34,8 +36,10 @@ export function DevinAccountSection() {
                   ? account.quotaWindows.map((window, index) => (
                       <Fragment key={window.label}>
                         {index > 0 && <span aria-hidden="true">·</span>}
-                        <span className="flex flex-shrink-0 items-center gap-0.5">
-                          {`${Math.round(window.remainingPercent)}%`}
+                        <span
+                          className={`flex flex-shrink-0 items-center gap-0.5 ${quotaTextClass(window.remainingPercent)}`}
+                        >
+                          <QuotaPercent percent={window.remainingPercent} />
                           {window.resetAt ? (
                             <QuotaCountdown resetAt={window.resetAt} compact small />
                           ) : (

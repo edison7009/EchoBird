@@ -2,6 +2,8 @@ import React from 'react';
 import { useAppManager } from './context';
 import { AccountSectionButton, AccountSectionRow } from './AccountSectionPrimitives';
 import { QuotaCountdown } from './QuotaCountdown';
+import { QuotaPercent } from './QuotaPercent';
+import { quotaTextClass } from '../../utils/quotaColors';
 import { ACCOUNT_NAME_MASK, useAccountPrivacyStore } from '../../stores/accountPrivacyStore';
 
 export const CursorAccountSection: React.FC<{ tool: 'cursor' | 'cursorcli' | 'grokbot' }> = ({
@@ -49,7 +51,9 @@ export const CursorAccountSection: React.FC<{ tool: 'cursor' | 'cursorcli' | 'gr
             onDelete={() => void remove(account)}
             secondary={
               account.usage?.remainingPercent == null ? undefined : (
-                <span className="flex h-[16px] items-center justify-between">
+                <span
+                  className={`flex h-[16px] items-center justify-between ${quotaTextClass(account.usage?.remainingPercent)}`}
+                >
                   <span
                     role="progressbar"
                     aria-label={hidden ? ACCOUNT_NAME_MASK : account.email}
@@ -57,7 +61,7 @@ export const CursorAccountSection: React.FC<{ tool: 'cursor' | 'cursorcli' | 'gr
                     aria-valuemax={100}
                     aria-valuenow={account.usage?.remainingPercent ?? undefined}
                     aria-valuetext={account.usage?.remainingPercent == null ? '—' : undefined}
-                    className="h-1.5 min-w-[56px] max-w-[80px] flex-1 overflow-hidden rounded-full bg-cyber-border"
+                    className="h-1.5 min-w-[56px] max-w-[80px] flex-1 overflow-hidden rounded-full account-quota-track"
                   >
                     <span
                       className="quota-progress-fill block h-full rounded-full bg-cyber-bg"
@@ -65,9 +69,7 @@ export const CursorAccountSection: React.FC<{ tool: 'cursor' | 'cursorcli' | 'gr
                     />
                   </span>
                   <span className="ml-[6px] w-[30px] flex-shrink-0 text-right text-[12px] font-semibold leading-[16px] text-cyber-text">
-                    {account.usage?.remainingPercent == null
-                      ? '—'
-                      : `${Math.round(account.usage.remainingPercent)}%`}
+                    <QuotaPercent percent={account.usage?.remainingPercent} />
                   </span>
                   <QuotaCountdown resetAt={account.usage?.resetAt} />
                 </span>

@@ -7,7 +7,8 @@ import type { TKey } from '../../i18n/types';
 import { RoutingHint } from '../../components/RoutingToggle';
 
 export const AccountSectionButton: React.FC<{
-  iconSrc: string;
+  /** Left out when another button beside it already shows the product. */
+  iconSrc?: string;
   busy: boolean;
   remainingSeconds: number;
   onClick: () => void;
@@ -47,7 +48,7 @@ export const AccountSectionButton: React.FC<{
         className={`account-pill ${colorClassName} relative mb-2 flex h-12 w-full items-center justify-center rounded-full pl-3 pr-10`}
       >
         <span className="pointer-events-none flex min-w-0 items-center gap-2.5 opacity-50">
-          <img src={iconSrc} alt="" className="h-6 w-6 flex-shrink-0" />
+          {iconSrc && <img src={iconSrc} alt="" className="h-6 w-6 flex-shrink-0" />}
           <span className="flex min-w-0 flex-col items-center text-center">
             <span className={`${secondary ? 'text-[14px]' : 'text-[17px]'} font-bold leading-5`}>
               {label}
@@ -86,7 +87,7 @@ export const AccountSectionButton: React.FC<{
           className="absolute inset-0 rounded-full"
         />
         <span className="pointer-events-none flex items-center gap-2.5">
-          <img src={iconSrc} alt="" className="h-6 w-6" />
+          {iconSrc && <img src={iconSrc} alt="" className="h-6 w-6" />}
           <span className="flex flex-col items-center">
             <span className="text-[17px] font-bold leading-6">{label}</span>
             <span className="pointer-events-auto relative flex h-4 items-center text-[12px] font-normal leading-4 text-cyber-text-secondary">
@@ -111,7 +112,7 @@ export const AccountSectionButton: React.FC<{
           className="absolute inset-0 rounded-full"
         />
         <span className="pointer-events-none flex translate-y-px items-center gap-2.5">
-          <img src={iconSrc} alt="" className="h-6 w-6" />
+          {iconSrc && <img src={iconSrc} alt="" className="h-6 w-6" />}
           <span>{label}</span>
           <span className="pointer-events-auto relative flex">
             <RoutingHint
@@ -133,7 +134,7 @@ export const AccountSectionButton: React.FC<{
       className={`account-pill ${colorClassName} mb-2 flex h-12 w-full items-center justify-center rounded-full px-3 text-[17px] font-bold leading-6 transition-opacity hover:opacity-90 disabled:opacity-50`}
     >
       <span className="flex translate-y-px items-center gap-2.5">
-        <img src={iconSrc} alt="" className="h-6 w-6" />
+        {iconSrc && <img src={iconSrc} alt="" className="h-6 w-6" />}
         <span>{label}</span>
       </span>
     </button>

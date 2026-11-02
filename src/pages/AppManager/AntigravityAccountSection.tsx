@@ -1,7 +1,9 @@
-import React from 'react';
+import React, { Fragment } from 'react';
 import { useAppManager } from './context';
 import { AccountSectionButton, AccountSectionRow } from './AccountSectionPrimitives';
 import { QuotaCountdown } from './QuotaCountdown';
+import { QuotaPercent } from './QuotaPercent';
+import { quotaTextClass } from '../../utils/quotaColors';
 
 export const AntigravityAccountSection: React.FC = () => {
   const { antigravityAccounts, isLaunching, selectedTool } = useAppManager();
@@ -30,8 +32,16 @@ export const AntigravityAccountSection: React.FC = () => {
           const gemini = minimum(account, 'gemini');
           const claude = minimum(account, 'claude');
           const parts = [
-            gemini == null ? null : `Gemini ${Math.round(gemini.remainingPercent)}%`,
-            claude == null ? null : `Claude ${Math.round(claude.remainingPercent)}%`,
+            gemini && (
+              <span className={quotaTextClass(gemini.remainingPercent)}>
+                Gemini <QuotaPercent percent={gemini.remainingPercent} />
+              </span>
+            ),
+            claude && (
+              <span className={quotaTextClass(claude.remainingPercent)}>
+                Claude <QuotaPercent percent={claude.remainingPercent} />
+              </span>
+            ),
           ].filter(Boolean);
           const hasResetTime = gemini?.resetAt || claude?.resetAt;
           const sharedResetAt =
@@ -46,8 +56,8 @@ export const AntigravityAccountSection: React.FC = () => {
                 hasResetTime ? (
                   <span className="flex min-w-0 items-center gap-1 overflow-hidden whitespace-nowrap text-[11px] leading-[16px]">
                     {gemini && (
-                      <span>
-                        G {Math.round(gemini.remainingPercent)}%
+                      <span className={quotaTextClass(gemini.remainingPercent)}>
+                        G <QuotaPercent percent={gemini.remainingPercent} />
                         {!sharedResetAt && (
                           <>
                             {' '}
@@ -58,8 +68,8 @@ export const AntigravityAccountSection: React.FC = () => {
                     )}
                     {gemini && claude && <span>·</span>}
                     {claude && (
-                      <span>
-                        C {Math.round(claude.remainingPercent)}%
+                      <span className={quotaTextClass(claude.remainingPercent)}>
+                        C <QuotaPercent percent={claude.remainingPercent} />
                         {!sharedResetAt && (
                           <>
                             {' '}
@@ -75,7 +85,14 @@ export const AntigravityAccountSection: React.FC = () => {
                     )}
                   </span>
                 ) : parts.length ? (
-                  parts.join(' · ')
+                  <span>
+                    {parts.map((part, index) => (
+                      <Fragment key={index}>
+                        {index > 0 && ' · '}
+                        {part}
+                      </Fragment>
+                    ))}
+                  </span>
                 ) : undefined
               }
               refreshing={refreshing.has(account.id)}

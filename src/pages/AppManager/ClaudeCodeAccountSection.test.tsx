@@ -57,6 +57,7 @@ describe('Claude Code account card', () => {
     expect(markup).toContain('Max 5X');
     expect(markup).toContain('37%');
     expect(markup).toContain('82%');
+    expect(markup).toContain('items-center gap-0.5 text-green-500');
     expect(markup).not.toContain('5h:');
     expect(markup).not.toContain('7d:');
     expect(markup).not.toContain('w-[64px]');

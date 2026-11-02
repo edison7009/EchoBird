@@ -731,7 +731,7 @@ const zhHant: Partial<Translations> = {
   'hint.responsesRequired':
     'ChatGPT / Codex CLI 切換模型時，第三方模型必須支援 Responses 才能成功接入。',
   'hint.claudeHistoryMerged':
-    '透過 EchoBird 為 Claude 桌面端切換帳號或模型時，自動合併 Claude Code 對話記錄。',
+    '透過 EchoBird 為 Claude 桌面端切換帳號或模型時，自動合併所有對話記錄，也包含 Claude Code。',
   'hint.localHistoryPreserved': '切換帳號或模型，本機對話記錄自動保留。',
   'hint.cliRecommendation':
     '小技巧：桌面版應用程式通常因介面調度、介面辨識等，比 CLI 版消耗更多 Token、等待更久。（推薦使用 Coffee CLI 啟動 CLI 版，還原桌面版的體驗。）',

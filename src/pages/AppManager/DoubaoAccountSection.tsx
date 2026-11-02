@@ -8,6 +8,8 @@ import {
   AccountSectionRow,
 } from './AccountSectionPrimitives';
 import { QuotaCountdown } from './QuotaCountdown';
+import { QuotaPercent } from './QuotaPercent';
+import { quotaTextClass } from '../../utils/quotaColors';
 import { doubaoRemainingPercent } from './doubaoAccountDisplay';
 import { openAccountPlugins } from './openAccountPlugins';
 
@@ -66,10 +68,11 @@ export function DoubaoAccountSection() {
                 {account.quota?.windows.map((window, index) => {
                   const percent = doubaoRemainingPercent(window);
                   return (
-                    <span key={index} className="flex flex-shrink-0 items-center gap-1">
-                      <span>
-                        {window.unlimited ? '∞' : percent == null ? '—' : `${Math.round(percent)}%`}
-                      </span>
+                    <span
+                      key={index}
+                      className={`flex flex-shrink-0 items-center gap-1 ${quotaTextClass(window.unlimited ? null : percent)}`}
+                    >
+                      {window.unlimited ? <span>∞</span> : <QuotaPercent percent={percent} />}
                       <QuotaCountdown resetAt={window.resetAt} compact small />
                     </span>
                   );

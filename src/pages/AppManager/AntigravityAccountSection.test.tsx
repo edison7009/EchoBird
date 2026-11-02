@@ -58,8 +58,10 @@ describe.each(['antigravity', 'antigravitydesktop'] as const)('%s account contro
     const markup = JSON.stringify(renderer.toJSON());
     expect(markup).toContain(`/icons/tools/${tool}.png`);
     expect(markup.match(/Ultra/g)).toHaveLength(1);
-    expect(markup).toContain('Gemini 0%');
-    expect(markup).toContain('Claude 75%');
+    expect(markup).toContain('"Gemini ",{"type":"span"');
+    expect(markup).toContain('"0%"');
+    expect(markup).toContain('"Claude ",{"type":"span"');
+    expect(markup).toContain('"75%"');
     expect(
       renderer.root.findByProps({ role: 'radio' }).findAllByType('button')[0].props.disabled
     ).toBe(true);
@@ -92,11 +94,14 @@ describe.each(['antigravity', 'antigravitydesktop'] as const)('%s account contro
     expect(countdowns.every((countdown) => countdown.props.compact && countdown.props.small)).toBe(
       true
     );
-    const quotaLabels = renderer.root
-      .findAllByType('span')
-      .map((span) => span.children.filter((child) => typeof child === 'string').join(''));
-    expect(quotaLabels).toContain('G 0% ');
-    expect(quotaLabels).toContain('C 75% ');
+    const quotaLabels = renderer.root.findAllByType('span').map((span) =>
+      span.children
+        .filter((child) => typeof child === 'string')
+        .join('')
+        .trim()
+    );
+    expect(quotaLabels).toContain('G');
+    expect(quotaLabels).toContain('C');
     act(() => renderer.unmount());
   });
 

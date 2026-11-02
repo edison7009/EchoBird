@@ -606,6 +606,8 @@
     scale 0.42s cubic-bezier(0.2, 0.75, 0.25, 1),
     opacity 0.18s ease,
     visibility 0.18s;
+  /* Staying on one layer spares the sources a repaint, and a small jump, as the turn ends. */
+  will-change: rotate, scale;
 }
 .usage-island[data-reversed='true'] .usage-island-dial {
   --usage-island-dial-turn: -150deg;
@@ -628,6 +630,7 @@
   margin: -35px 0 0 -32px;
   rotate: var(--usage-island-dial-turn);
   transition: rotate 0.42s cubic-bezier(0.2, 0.75, 0.25, 1);
+  will-change: rotate;
 }
 .usage-island[data-expanded='true'] .usage-island-dial-item {
   rotate: none;

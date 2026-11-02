@@ -31,3 +31,8 @@ export function quotaTone(percent: number | null | undefined): keyof typeof quot
   if (percent > 10) return 'low';
   return 'critical';
 }
+
+/** Rounded first, so a quota reads the same color as the whole percent shown for it. */
+export function quotaTextClass(percent: number | null | undefined): string {
+  return quotaColorClasses[quotaTone(percent == null ? percent : Math.round(percent))].text;
+}

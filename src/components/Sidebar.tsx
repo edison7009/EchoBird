@@ -93,7 +93,7 @@ function SidebarToggle({
       </button>
     );
   return (
-    <div className="flex items-center gap-4 px-2 py-1">
+    <div className="flex items-center justify-between gap-4 px-2 py-1">
       <span className="whitespace-nowrap">{label}</span>
       <RoutingToggle
         label={ariaLabel}
@@ -291,6 +291,16 @@ export const Sidebar = ({
               />
             </button>
           )}
+          {developerMode && hasUsageSources && (
+            <SidebarToggle
+              collapsed={collapsed}
+              label={t('developer.usageIsland')}
+              ariaLabel={t('usageIsland.enable')}
+              icon={<Gauge size={20} />}
+              checked={usageIslandEnabled}
+              onChange={(enabled) => updateUsageIsland({ enabled })}
+            />
+          )}
           {hasVoiceChannels && (
             <SidebarToggle
               collapsed={collapsed}
@@ -301,16 +311,6 @@ export const Sidebar = ({
               disabled={voiceDisabled}
               pending={voicePending}
               onChange={changeVoice}
-            />
-          )}
-          {developerMode && hasUsageSources && (
-            <SidebarToggle
-              collapsed={collapsed}
-              label={t('developer.usageIsland')}
-              ariaLabel={t('usageIsland.enable')}
-              icon={<Gauge size={20} />}
-              checked={usageIslandEnabled}
-              onChange={(enabled) => updateUsageIsland({ enabled })}
             />
           )}
           {showSmartRouterToggle && (

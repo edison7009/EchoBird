@@ -84,8 +84,8 @@ describe('ZCode account section', () => {
       }
       expect(markup).toContain('(5h0m)');
       expect(markup).toContain('(7d0h)');
-      expect(markup).toContain('"75","%"');
-      expect(markup).toContain('"25","%"');
+      expect(markup).toContain('"75%"');
+      expect(markup).toContain('"25%"');
       expect(markup).not.toMatch(/"title"|tooltip|cursor-/);
       act(() => {
         vi.advanceTimersByTime(60_000);

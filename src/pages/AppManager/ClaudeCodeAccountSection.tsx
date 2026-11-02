@@ -8,6 +8,8 @@ import {
   AccountSectionWarmUpButton,
 } from './AccountSectionPrimitives';
 import { QuotaCountdown } from './QuotaCountdown';
+import { QuotaPercent } from './QuotaPercent';
+import { quotaTextClass } from '../../utils/quotaColors';
 import { isFreePlan } from './accountPlanLabel';
 import { openAccountPlugins } from './openAccountPlugins';
 import { useI18n } from '../../hooks/useI18n';
@@ -43,7 +45,6 @@ export const ClaudeCodeAccountSection: React.FC<{ showDivider?: boolean; desktop
       />
       {desktop && installed && !busy && accounts.length > 0 && (
         <AccountSectionButton
-          iconSrc="/icons/tools/claudedesktop.svg"
           colorClassName="claude-account-pill"
           busy={false}
           remainingSeconds={0}
@@ -81,8 +82,10 @@ export const ClaudeCodeAccountSection: React.FC<{ showDivider?: boolean; desktop
                 account.fiveHour == null && account.sevenDay == null ? undefined : (
                   <span className="flex h-[16px] min-w-0 items-center gap-1 overflow-hidden whitespace-nowrap text-[11px] font-semibold leading-[16px] text-cyber-text">
                     {account.fiveHour && (
-                      <span className="flex flex-shrink-0 items-center gap-0.5">
-                        {`${account.fiveHour.remainingPercent}%`}
+                      <span
+                        className={`flex flex-shrink-0 items-center gap-0.5 ${quotaTextClass(account.fiveHour.remainingPercent)}`}
+                      >
+                        <QuotaPercent percent={account.fiveHour.remainingPercent} />
                         {account.fiveHour?.resetAt ? (
                           <QuotaCountdown
                             resetAt={account.fiveHour?.resetAt}
@@ -97,8 +100,10 @@ export const ClaudeCodeAccountSection: React.FC<{ showDivider?: boolean; desktop
                     )}
                     {account.fiveHour && account.sevenDay && <span aria-hidden="true">·</span>}
                     {account.sevenDay && (
-                      <span className="flex flex-shrink-0 items-center gap-0.5">
-                        {`${account.sevenDay.remainingPercent}%`}
+                      <span
+                        className={`flex flex-shrink-0 items-center gap-0.5 ${quotaTextClass(account.sevenDay.remainingPercent)}`}
+                      >
+                        <QuotaPercent percent={account.sevenDay.remainingPercent} />
                         {account.sevenDay?.resetAt ? (
                           <QuotaCountdown
                             resetAt={account.sevenDay?.resetAt}

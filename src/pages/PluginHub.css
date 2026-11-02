@@ -321,8 +321,10 @@
   gap: 7px;
   font-size: 12px;
 }
+/* Holds the height of .ph-install, so the row stays put when that button goes away. */
 .ph-card-bottom {
   justify-content: space-between;
+  min-height: 26px;
 }
 .ph-install {
   color: rgb(var(--accent-rgb));
@@ -460,6 +462,9 @@
 .ph-secondary {
   border: 1px solid var(--ph-line);
   color: var(--ph-secondary);
+  transition:
+    color 0.15s,
+    background 0.15s;
 }
 .ph-main button:disabled,
 .ph-details button:disabled,
@@ -533,7 +538,7 @@
 .ph-modal-footer > .ph-secondary {
   border-right: 1px solid var(--ph-line);
 }
-.ph-modal-footer > .ph-secondary:enabled:hover {
+.ph-secondary:enabled:hover {
   color: var(--ph-text);
   background: var(--ph-elevated);
 }

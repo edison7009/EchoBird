@@ -9,6 +9,8 @@ import {
 } from './AccountSectionPrimitives';
 import { ModelSwitchDivider } from './ModelSwitchDivider';
 import { QuotaCountdown } from './QuotaCountdown';
+import { QuotaPercent } from './QuotaPercent';
+import { quotaTextClass } from '../../utils/quotaColors';
 import { isFreePlan, minimaxPlanLabel } from './accountPlanLabel';
 import { minimaxCreditBuckets, minimaxRewardStatus } from './minimaxAccountDisplay';
 
@@ -87,11 +89,14 @@ export function MinimaxAccountSection({ showDivider = true }: { showDivider?: bo
                 <span className="flex h-4 min-w-0 items-center gap-2 overflow-hidden whitespace-nowrap text-[11px] font-semibold">
                   {account.quota?.windows.length ? (
                     account.quota.windows.map((window, index) => (
-                      <span key={index} className="flex flex-shrink-0 items-baseline gap-1">
+                      <span
+                        key={index}
+                        className={`flex flex-shrink-0 items-baseline gap-1 ${quotaTextClass(Math.max(0, Math.min(100, 100 - window.usedPercent)))}`}
+                      >
                         <span>{window.name}</span>
-                        <span>
-                          {Math.round(Math.max(0, Math.min(100, 100 - window.usedPercent)))}%
-                        </span>
+                        <QuotaPercent
+                          percent={Math.max(0, Math.min(100, 100 - window.usedPercent))}
+                        />
                         <QuotaCountdown resetAt={window.resetsAt} compact small />
                       </span>
                     ))

@@ -9,6 +9,8 @@ import { ClineAccountSection } from './ClineAccountSection';
 import { ManusAccountSection } from './ManusAccountSection';
 import { ModelSwitchDivider } from './ModelSwitchDivider';
 import { QuotaCountdown } from './QuotaCountdown';
+import { QuotaPercent } from './QuotaPercent';
+import { quotaTextClass } from '../../utils/quotaColors';
 import { codexPlanLabel } from './codexPlanLabel';
 import { WorkBuddyAccountSection } from './WorkBuddyAccountSection';
 import { TraeAccountSection } from './TraeAccountSection';
@@ -877,22 +879,27 @@ export const CodexAccountSection: React.FC<{ showDivider?: boolean }> = ({
                     account.quotaWindows.length > 1 ? (
                     <span className="flex h-[16px] min-w-0 items-center gap-1 overflow-hidden whitespace-nowrap text-[11px] font-semibold leading-[16px] text-cyber-text">
                       {account.quotaWindows.map((window, index) => (
-                        <span key={index} className="flex flex-shrink-0 items-center">
-                          {window.remainingPercent}%
+                        <span
+                          key={index}
+                          className={`flex flex-shrink-0 items-center ${quotaTextClass(window.remainingPercent)}`}
+                        >
+                          <QuotaPercent percent={window.remainingPercent} />
                           <QuotaCountdown resetAt={window.resetAt} compact small parenthesized />
                         </span>
                       ))}
                     </span>
                   ) : (
-                    <span className="flex h-[16px] items-center justify-between">
-                      <span className="h-1.5 min-w-[56px] max-w-[80px] flex-1 overflow-hidden rounded-full bg-cyber-border">
+                    <span
+                      className={`flex h-[16px] items-center justify-between ${quotaTextClass(quotaPercent)}`}
+                    >
+                      <span className="h-1.5 min-w-[56px] max-w-[80px] flex-1 overflow-hidden rounded-full account-quota-track">
                         <span
                           className="quota-progress-fill block h-full rounded-full bg-cyber-bg"
                           style={{ width: `${quotaPercent ?? 0}%` }}
                         />
                       </span>
                       <span className="ml-[6px] w-[30px] flex-shrink-0 text-right text-[12px] font-semibold leading-[16px] text-cyber-text">
-                        {quotaPercent == null ? '—' : `${quotaPercent}%`}
+                        <QuotaPercent percent={quotaPercent} />
                       </span>
                       <QuotaCountdown resetAt={quotaResetAt} />
                     </span>
@@ -1396,9 +1403,9 @@ export const AppManagerBottom: React.FC = () => {
             aria-label={t('cliLaunch.title')}
             disabled={isLaunching}
             onClick={() => setCliSettingsOpen(true)}
-            className="-mr-5 flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-lg border border-cyber-border text-cyber-text-secondary transition-colors enabled:hover:text-cyber-text disabled:opacity-40"
+            className="-mr-5 flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-lg text-cyber-text-secondary transition-colors enabled:hover:text-cyber-text disabled:opacity-40"
           >
-            <Settings size={22} aria-hidden="true" />
+            <Settings size={28} aria-hidden="true" />
           </button>
         )}
         {/* Launch button */}

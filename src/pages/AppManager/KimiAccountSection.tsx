@@ -7,6 +7,8 @@ import { accountPlanLabel } from './accountPlanLabel';
 import { useAppManager } from './context';
 import { ModelSwitchDivider } from './ModelSwitchDivider';
 import { QuotaCountdown } from './QuotaCountdown';
+import { QuotaPercent } from './QuotaPercent';
+import { quotaTextClass } from '../../utils/quotaColors';
 
 export function kimiQuotaLabel(name: string, t: (key: TKey) => string): string {
   const labels: Record<string, TKey> = {
@@ -46,8 +48,13 @@ export function KimiAccountSection({ showDivider = true }: { showDivider?: boole
       return (
         <span className="flex h-[16px] min-w-0 items-center gap-1 overflow-hidden whitespace-nowrap text-[11px] font-semibold leading-[16px] text-cyber-text">
           {account.quotaWindows.map((window) => (
-            <span key={window.name} className="flex flex-shrink-0 items-center">
-              {kimiQuotaLabel(window.name, t)} {Math.round(window.remainingPercent)}%
+            <span
+              key={window.name}
+              className={`flex flex-shrink-0 items-center ${quotaTextClass(window.remainingPercent)}`}
+            >
+              <span>
+                {kimiQuotaLabel(window.name, t)} <QuotaPercent percent={window.remainingPercent} />
+              </span>
               <QuotaCountdown resetAt={window.resetAt} compact small parenthesized />
             </span>
           ))}
