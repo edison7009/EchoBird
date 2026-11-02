@@ -1,4 +1,6 @@
 import * as api from '../../api/tauri';
+import { useConfirm } from '../../components/ConfirmDialog';
+import { useI18n } from '../../hooks/useI18n';
 import { useManagedAccounts } from './useManagedAccounts';
 
 export function useClaudeDesktopAccounts(
@@ -7,7 +9,9 @@ export function useClaudeDesktopAccounts(
   clearModel: () => void,
   showError: (error: string) => void
 ) {
-  return useManagedAccounts<api.ClaudeCodeAccount, api.ClaudeDesktopLogin>(
+  const { t } = useI18n();
+  const confirm = useConfirm();
+  const managed = useManagedAccounts<api.ClaudeCodeAccount, api.ClaudeDesktopLogin>(
     'claudedesktop',
     enabled,
     hasModel,
@@ -23,4 +27,16 @@ export function useClaudeDesktopAccounts(
       label: (account) => account.email,
     }
   );
+  return {
+    ...managed,
+    // A snapshot only works after the user quits the client while signed in.
+    add: async () => {
+      const ready = await confirm({
+        type: 'warning',
+        title: t('agent.accountSnapshotNoticeTitle'),
+        message: t('agent.accountSnapshotNotice'),
+      });
+      if (ready) await managed.add();
+    },
+  };
 }

@@ -568,6 +568,8 @@ export type TKey =
   | 'agent.addCurrentAccount'
   | 'agent.accountSnapshot'
   | 'agent.accountSnapshotHint'
+  | 'agent.accountSnapshotNoticeTitle'
+  | 'agent.accountSnapshotNotice'
   | 'agent.accountSnapshotSaving'
   | 'agent.zcodeSwitchProvider'
   | 'agent.minimaxRegionCn'

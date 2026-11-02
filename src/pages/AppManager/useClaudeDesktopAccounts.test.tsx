@@ -14,7 +14,8 @@ vi.mock('../../api/tauri', () => ({
   startTool: vi.fn(),
 }));
 vi.mock('../../hooks/useI18n', () => ({ useI18n: () => ({ t: (key: string) => key }) }));
-vi.mock('../../components/ConfirmDialog', () => ({ useConfirm: () => async () => true }));
+const confirm = vi.hoisted(() => vi.fn());
+vi.mock('../../components/ConfirmDialog', () => ({ useConfirm: () => confirm }));
 
 const saved: api.ClaudeCodeAccount = {
   id: 'saved',
@@ -48,6 +49,7 @@ async function mount(enabled = true) {
 beforeEach(() => {
   vi.clearAllMocks();
   vi.useFakeTimers();
+  confirm.mockResolvedValue(true);
   vi.mocked(api.listClaudeDesktopAccounts).mockResolvedValue([saved]);
   vi.mocked(api.startClaudeDesktopLogin).mockResolvedValue({
     loginId: 'login',
@@ -179,4 +181,31 @@ it('saves a snapshot within the shared 60-second deadline and never launches the
   expect(api.startTool).not.toHaveBeenCalled();
   expect(api.refreshClaudeDesktopAccount).not.toHaveBeenCalled();
   expect(showError).not.toHaveBeenCalled();
+});
+
+it('warns before a snapshot and starts nothing unless the user confirms', async () => {
+  await mount();
+  confirm.mockResolvedValue(false);
+  await act(async () => {
+    await state.add();
+  });
+  expect(confirm).toHaveBeenCalledWith({
+    type: 'warning',
+    title: 'agent.accountSnapshotNoticeTitle',
+    message: 'agent.accountSnapshotNotice',
+  });
+  expect(api.startClaudeDesktopLogin).not.toHaveBeenCalled();
+  expect(state.busy).toBe(false);
+  confirm.mockResolvedValue(true);
+  let task!: Promise<void>;
+  act(() => {
+    task = state.add();
+  });
+  await tick();
+  expect(api.startClaudeDesktopLogin).toHaveBeenCalledTimes(1);
+  act(() => state.cancelLogin());
+  await tick(2000);
+  await act(async () => {
+    await task;
+  });
 });
