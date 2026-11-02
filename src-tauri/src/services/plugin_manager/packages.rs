@@ -157,9 +157,9 @@ pub async fn download(url: &str, limit: u64) -> Result<Vec<u8>, String> {
         .get(url)
         .send()
         .await
-        .map_err(|e| e.to_string())?
+        .map_err(|e| error_details(&e))?
         .error_for_status()
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| error_details(&e))?;
     if response
         .content_length()
         .is_some_and(|length| length > limit)
@@ -167,13 +167,47 @@ pub async fn download(url: &str, limit: u64) -> Result<Vec<u8>, String> {
         return Err("Download exceeds limit".into());
     }
     let mut bytes = Vec::new();
-    while let Some(chunk) = response.chunk().await.map_err(|e| e.to_string())? {
+    while let Some(chunk) = response.chunk().await.map_err(|e| error_details(&e))? {
         if bytes.len() as u64 + chunk.len() as u64 > limit {
             return Err("Download exceeds limit".into());
         }
         bytes.extend_from_slice(&chunk);
     }
     Ok(bytes)
+}
+
+pub(super) fn error_details(error: &dyn std::error::Error) -> String {
+    let mut details = error.to_string();
+    let mut source = error.source();
+    while let Some(cause) = source {
+        let cause_text = cause.to_string();
+        if !details.contains(&cause_text) {
+            details.push_str(": ");
+            details.push_str(&cause_text);
+        }
+        source = cause.source();
+    }
+    details
+}
+
+pub(super) async fn download_with_fallback(
+    url: &str,
+    fallback: Option<&str>,
+    limit: u64,
+) -> Result<Vec<u8>, String> {
+    let primary_error = match download(url, limit).await {
+        Ok(bytes) => return Ok(bytes),
+        Err(error) => error,
+    };
+    match fallback {
+        Some(fallback) => download(fallback, limit).await.map_err(|fallback_error| {
+            format!(
+                "GitCode: {primary_error}
+GitHub: {fallback_error}"
+            )
+        }),
+        None => Err(primary_error),
+    }
 }
 
 pub fn bundled_registry() -> Result<Registry, String> {
@@ -187,13 +221,8 @@ pub async fn registry(region: &str, refresh: bool) -> Result<Registry, String> {
         _ => return Err("Unknown plugin region".into()),
     };
     if refresh {
-        let bytes = match download(url, 1024 * 1024).await {
-            Ok(bytes) => bytes,
-            Err(_) if region == "china" => {
-                download(super::INTERNATIONAL_INDEX, 1024 * 1024).await?
-            }
-            Err(error) => return Err(error),
-        };
+        let fallback = (region == "china").then_some(super::INTERNATIONAL_INDEX);
+        let bytes = download_with_fallback(url, fallback, 1024 * 1024).await?;
         Registry::parse(&bytes)
     } else {
         bundled_registry()
@@ -386,28 +415,18 @@ impl PluginManager {
                     .into_iter()
                     .next()
                     .ok_or("No compatible plugin release")?;
-                let downloaded = download(
+                let fallback = (region == "china")
+                    .then(|| release.downloads.get("international"))
+                    .flatten();
+                let bytes = download_with_fallback(
                     release
                         .downloads
                         .get(region)
                         .ok_or("Missing regional download")?,
+                    fallback.map(String::as_str),
                     MAX_PACKAGE_BYTES,
                 )
-                .await;
-                let bytes = match downloaded {
-                    Ok(bytes) => bytes,
-                    Err(_) if region == "china" => {
-                        download(
-                            release
-                                .downloads
-                                .get("international")
-                                .ok_or("Missing fallback download")?,
-                            MAX_PACKAGE_BYTES,
-                        )
-                        .await?
-                    }
-                    Err(error) => return Err(error),
-                };
+                .await?;
                 verified_archive(&bytes, &release.sha256, &target)?;
                 Ok((
                     plugin.repository,

@@ -569,3 +569,46 @@ fn application_tools_require_a_service_for_the_same_application() {
     value["echobird"]["worker"]["runtime"] = "native".into();
     assert!(parse(&value).validate().is_err());
 }
+
+#[tokio::test]
+async fn failed_mirror_fallback_reports_both_sources() {
+    let error = packages::download_with_fallback(
+        "http://gitcode.invalid/index.json",
+        Some("not-a-url"),
+        1024,
+    )
+    .await
+    .unwrap_err();
+    let lines: Vec<_> = error.lines().collect();
+    assert_eq!(lines.len(), 2, "{error}");
+    assert!(lines[0].starts_with("GitCode: "), "{error}");
+    assert!(lines[1].starts_with("GitHub: "), "{error}");
+}
+
+#[tokio::test]
+async fn download_without_fallback_reports_the_single_source_failure() {
+    let error = packages::download_with_fallback("http://github.invalid/index.json", None, 1024)
+        .await
+        .unwrap_err();
+    assert_eq!(error, "Expected a public HTTPS URL");
+}
+
+#[tokio::test]
+async fn network_errors_keep_their_underlying_cause() {
+    let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+    let address = listener.local_addr().unwrap();
+    drop(listener);
+
+    let error = reqwest::Client::builder()
+        .no_proxy()
+        .build()
+        .unwrap()
+        .get(format!("http://{address}/"))
+        .send()
+        .await
+        .unwrap_err();
+    let details = packages::error_details(&error);
+
+    assert!(details.starts_with(&error.to_string()), "{details}");
+    assert!(details.len() > error.to_string().len(), "{details}");
+}

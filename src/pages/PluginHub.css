@@ -523,6 +523,7 @@
   color: rgb(var(--accent-rgb));
   font-size: 13px;
   overflow-wrap: anywhere;
+  white-space: pre-line;
   margin: 12px 0;
 }
 @container plugin-main (max-width: 780px) {
