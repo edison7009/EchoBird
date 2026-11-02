@@ -1220,6 +1220,12 @@ export const AppManagerProvider: React.FC<AppManagerProviderProps> = ({ children
     const noModelConfig = !!toolData?.noModelConfig;
     const pickWorkingDirectory = async () => {
       if (toolData?.category !== 'CLI Code' || toolData.noCwdPrompt) return undefined;
+      try {
+        const launchSettings = await api.getCliLaunchSettings();
+        if (launchSettings?.[selectedTool]?.directoryMode === 'fixed') return undefined;
+      } catch (error) {
+        console.warn('[AppManager] CLI launch settings unavailable:', error);
+      }
       const picked = await openDialog({ directory: true, multiple: false });
       return typeof picked === 'string' && picked ? picked : null;
     };
@@ -1281,12 +1287,8 @@ export const AppManagerProvider: React.FC<AppManagerProviderProps> = ({ children
           prev.map((tool) => (tool.id === selectedTool ? { ...tool, activeModel: '' } : tool))
         );
         if (launchAfterApply) {
-          let cwd: string | undefined;
-          if (toolData?.category === 'CLI Code' && !toolData.noCwdPrompt) {
-            const picked = await openDialog({ directory: true, multiple: false });
-            if (typeof picked !== 'string' || !picked) return;
-            cwd = picked;
-          }
+          const cwd = await pickWorkingDirectory();
+          if (cwd === null) return;
           await api.startTool(selectedTool, toolData?.startCommand, cwd);
         }
       } catch (error) {

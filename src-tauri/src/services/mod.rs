@@ -19,6 +19,7 @@ pub use plugin_accounts::bindings::{
     claude_code_accounts, claude_code_oauth, claude_desktop_accounts, doubao_accounts,
     trae_accounts, workbuddy_accounts,
 };
+pub mod cli_launch;
 pub mod cline_accounts;
 pub mod cline_native;
 pub mod codearts_accounts;

@@ -283,6 +283,21 @@ impl ProcessManager {
             return Ok(());
         }
 
+        // A normal launch honors the CLI launch settings; opening a client for
+        // login keeps its plain default.
+        let launch = if restart {
+            crate::services::cli_launch::resolve(tool_id, start_command, cwd)?
+        } else {
+            crate::services::cli_launch::ResolvedLaunch {
+                command: start_command.map(str::to_string),
+                cwd: cwd.map(str::to_string),
+                terminal: crate::services::cli_launch::AUTO_TERMINAL.to_string(),
+            }
+        };
+        let start_command = launch.command.as_deref();
+        let cwd = launch.cwd.as_deref();
+        let terminal = launch.terminal.as_str();
+
         // Priority 1: If explicit command is given from frontend, use it
         if let Some(cmd) = start_command {
             log::info!(
@@ -290,7 +305,7 @@ impl ProcessManager {
                 tool_id,
                 cmd
             );
-            return self.start_cli_tool(tool_id, cmd, cwd);
+            return self.start_cli_tool(tool_id, cmd, cwd, terminal);
         }
 
         // Priority 2: CLI tools with startCommand in paths.json (e.g. "openclaw gateway")
@@ -311,7 +326,7 @@ impl ProcessManager {
                     tool_id,
                     command
                 );
-                return self.start_cli_tool(tool_id, &command, cwd);
+                return self.start_cli_tool(tool_id, &command, cwd, terminal);
             } else {
                 log::warn!("[ProcessManager] startCommand base '{}' for tool '{}' not found in PATH, skipping", base_cmd, tool_id);
             }
@@ -377,7 +392,7 @@ impl ProcessManager {
                     tool_id,
                     command
                 );
-                return self.start_cli_tool(tool_id, &command, cwd);
+                return self.start_cli_tool(tool_id, &command, cwd, terminal);
             } else {
                 log::warn!(
                     "[ProcessManager] CLI command '{}' for tool '{}' not found in PATH",
@@ -484,7 +499,14 @@ impl ProcessManager {
         tool_id: &str,
         command: &str,
         cwd: Option<&str>,
+        terminal: &str,
     ) -> Result<(), String> {
+        if terminal == crate::services::cli_launch::COFFEE_TERMINAL {
+            let pid = crate::services::cli_launch::start_in_coffee(tool_id, cwd)?;
+            self.processes
+                .insert(tool_id.to_string(), ProcessInfo::new(pid));
+            return Ok(());
+        }
         if tool_id == "cursorcli" && command != "cursor-agent" {
             return Err(
                 "Cursor CLI must launch through cursor-agent, not an ambiguous agent command"
@@ -606,8 +628,37 @@ impl ProcessManager {
             // (npm-installed tools like openclaw.cmd, codex.cmd, opencode.cmd).
             // Resolve cmd.exe via %COMSPEC% / %SystemRoot%\System32 instead of
             // relying on PATH — some users have System32 stripped from PATH.
-            let independent_terminal = literal_executable.is_none() && tool_id != "kilo";
-            let mut cmd = if let Some(executable) = &literal_executable {
+            let shell = crate::services::cli_launch::windows_shell(terminal)?;
+            let independent_terminal =
+                shell.is_some() || (literal_executable.is_none() && tool_id != "kilo");
+            let mut cmd = if let Some(shell) = &shell {
+                let mut line = full_command.clone();
+                let mut native_env = None;
+                if let Some(executable) = &literal_executable {
+                    line = shell.program_line(executable);
+                } else if tool_id == "kilo" {
+                    let runtime = crate::services::tool_manager::get_kilo_runtime_path()
+                        .ok_or("Kilo CLI executable not found")?;
+                    let arguments = kilo_model_arguments(model_id.as_deref())
+                        .iter()
+                        .map(|argument| shell.quote(argument))
+                        .collect::<Vec<_>>();
+                    line = std::iter::once(shell.program_line(&runtime))
+                        .chain(arguments)
+                        .collect::<Vec<_>>()
+                        .join(" ");
+                    native_env = Some(kilo_native_command(&runtime, model_id.as_deref()));
+                }
+                let mut launcher = windows_shell_terminal(shell, &line, &work_dir);
+                if let Some(native) = &native_env {
+                    for (key, value) in native.get_envs() {
+                        if let Some(value) = value {
+                            launcher.env(key, value);
+                        }
+                    }
+                }
+                launcher
+            } else if let Some(executable) = &literal_executable {
                 copilot_native_command(executable)
             } else if tool_id == "kilo" {
                 let runtime = crate::services::tool_manager::get_kilo_runtime_path()
@@ -724,7 +775,13 @@ impl ProcessManager {
                 env_pairs.push(("OPENAI_BASE_URL".to_string(), url.clone()));
             }
 
-            let pid = Self::spawn_in_unix_terminal(tool_id, &work_dir, &full_command, &env_pairs)?;
+            let pid = Self::spawn_in_unix_terminal(
+                tool_id,
+                &work_dir,
+                &full_command,
+                &env_pairs,
+                terminal,
+            )?;
             log::info!(
                 "[ProcessManager] Tool {} started in terminal with PID: {}",
                 tool_id,
@@ -749,11 +806,14 @@ impl ProcessManager {
         cwd: &std::path::Path,
         full_command: &str,
         env_pairs: &[(String, String)],
+        terminal: &str,
     ) -> Result<u32, String> {
         // `tool_id` only names the macOS launch script; reference it on the
         // other targets so they don't warn about an unused parameter.
         #[cfg(not(target_os = "macos"))]
         let _ = tool_id;
+        #[cfg(all(unix, not(target_os = "linux"), not(target_os = "macos")))]
+        let _ = terminal;
 
         // Linux: find a terminal emulator and run the command through the
         // user's login+interactive shell inside it. `-l -i` sources
@@ -761,7 +821,10 @@ impl ProcessManager {
         // flags (not `-ilc`) keep fish-shell happy.
         #[cfg(target_os = "linux")]
         {
-            let term = find_terminal_emulator().ok_or_else(|| {
+            let term = find_terminal_emulator(terminal).ok_or_else(|| {
+                if terminal != crate::services::cli_launch::AUTO_TERMINAL {
+                    return format!("Terminal not found: {terminal}");
+                }
                 "No terminal emulator found. Please install one of: \
                  gnome-terminal, konsole, xfce4-terminal, alacritty, \
                  kitty, wezterm, foot, tilix, or xterm."
@@ -845,11 +908,43 @@ impl ProcessManager {
             perms.set_mode(0o755);
             std::fs::set_permissions(&script_path, perms).map_err(|e| format!("chmod: {}", e))?;
 
-            let child = Command::new("open")
-                .args(["-a", "Terminal"])
-                .arg(&script_path)
+            let script_file = script_path.to_string_lossy();
+            let run_script = format!("exec sh {}", shell_single_quote(&script_file));
+            let mut opener = match terminal {
+                crate::services::cli_launch::AUTO_TERMINAL => {
+                    let mut opener = Command::new("open");
+                    opener.args(["-a", "Terminal"]).arg(&script_path);
+                    opener
+                }
+                "iterm2" => {
+                    // Shell quoting adds backslashes, so AppleScript escaping comes last.
+                    let shell_line = format!("sh -c {}", shell_single_quote(&run_script));
+                    let quoted = shell_line.replace('\\', "\\\\").replace('"', "\\\"");
+                    let mut opener = Command::new("osascript");
+                    opener.args([
+                        "-e",
+                        "tell application \"iTerm\" to activate",
+                        "-e",
+                        &format!(
+                            "tell application \"iTerm\" to create window with default profile command \"{quoted}\""
+                        ),
+                    ]);
+                    opener
+                }
+                app => {
+                    let (name, flags) = crate::services::cli_launch::macos_terminal_app(app)
+                        .ok_or_else(|| format!("Terminal not found: {app}"))?;
+                    let mut opener = Command::new("open");
+                    opener
+                        .args(["-na", name, "--args"])
+                        .args(flags.iter().copied())
+                        .args(["sh", "-c", &run_script]);
+                    opener
+                }
+            };
+            let child = opener
                 .spawn()
-                .map_err(|e| format!("Failed to launch Terminal.app: {}", e))?;
+                .map_err(|e| format!("Failed to launch terminal: {}", e))?;
             Ok(child.id())
         }
 
@@ -1465,15 +1560,20 @@ fn resolve_cmd_exe() -> std::path::PathBuf {
 }
 
 #[cfg(windows)]
-fn windows_cli_terminal(command: &str, cwd: &std::path::Path) -> Command {
-    // CREATE_NEW_CONSOLE alone still inherits a development client's log pipes.
-    // Start-Process gives interactive TUIs their own console handles.
+fn windows_console_launcher() -> Command {
     let powershell = std::env::var_os("SystemRoot")
         .map(|root| {
             std::path::PathBuf::from(root).join("System32/WindowsPowerShell/v1.0/powershell.exe")
         })
         .unwrap_or_else(|| "powershell.exe".into());
-    let mut launcher = crate::utils::process::command(powershell);
+    crate::utils::process::command(powershell)
+}
+
+#[cfg(windows)]
+fn windows_cli_terminal(command: &str, cwd: &std::path::Path) -> Command {
+    // CREATE_NEW_CONSOLE alone still inherits a development client's log pipes.
+    // Start-Process gives interactive TUIs their own console handles.
+    let mut launcher = windows_console_launcher();
     launcher
         .args([
             "-NoProfile",
@@ -1482,6 +1582,29 @@ fn windows_cli_terminal(command: &str, cwd: &std::path::Path) -> Command {
             "$ErrorActionPreference='Stop'; $child=Start-Process -FilePath $env:ECHOBIRD_CLI_CMD_EXE -ArgumentList ('/D /S /C \"' + $env:ECHOBIRD_CLI_COMMAND + '\"') -WorkingDirectory $env:ECHOBIRD_CLI_CWD -WindowStyle Normal -PassThru; Write-Output $child.Id",
         ])
         .env("ECHOBIRD_CLI_CMD_EXE", resolve_cmd_exe())
+        .env("ECHOBIRD_CLI_COMMAND", command)
+        .env("ECHOBIRD_CLI_CWD", cwd);
+    launcher
+}
+
+/// Same detached console as `windows_cli_terminal`, hosted by the chosen shell.
+/// The shell stays open after the client exits, as its own window would.
+#[cfg(windows)]
+fn windows_shell_terminal(
+    shell: &crate::services::cli_launch::WindowsShell,
+    command: &str,
+    cwd: &std::path::Path,
+) -> Command {
+    let mut launcher = windows_console_launcher();
+    launcher
+        .args([
+            "-NoProfile",
+            "-NonInteractive",
+            "-Command",
+            "$ErrorActionPreference='Stop'; $child=Start-Process -FilePath $env:ECHOBIRD_CLI_SHELL -ArgumentList $env:ECHOBIRD_CLI_ARGUMENTS -WorkingDirectory $env:ECHOBIRD_CLI_CWD -WindowStyle Normal -PassThru; Write-Output $child.Id",
+        ])
+        .env("ECHOBIRD_CLI_SHELL", shell.program())
+        .env("ECHOBIRD_CLI_ARGUMENTS", shell.arguments(command))
         .env("ECHOBIRD_CLI_COMMAND", command)
         .env("ECHOBIRD_CLI_CWD", cwd);
     launcher
@@ -1601,7 +1724,7 @@ struct TerminalLauncher {
 // at whatever the user picked, so it's the most user-respecting choice. The
 // rest are fallbacks ordered roughly by ubiquity.
 #[cfg(target_os = "linux")]
-fn find_terminal_emulator() -> Option<TerminalLauncher> {
+fn find_terminal_emulator(preferred: &str) -> Option<TerminalLauncher> {
     const CANDIDATES: &[(&str, &[&str])] = &[
         ("x-terminal-emulator", &["-e"]),
         ("gnome-terminal", &["--"]),
@@ -1611,12 +1734,17 @@ fn find_terminal_emulator() -> Option<TerminalLauncher> {
         ("tilix", &["-x"]),
         ("alacritty", &["-e"]),
         ("kitty", &[]),
+        ("ghostty", &["-e"]),
         ("wezterm", &["start", "--"]),
         ("foot", &[]),
         ("xterm", &["-e"]),
     ];
 
+    let auto = preferred == crate::services::cli_launch::AUTO_TERMINAL;
     for &(name, prefix_args) in CANDIDATES {
+        if !auto && name != preferred {
+            continue;
+        }
         if let Ok(path) = which::which(name) {
             return Some(TerminalLauncher {
                 binary: path,
@@ -2238,7 +2366,14 @@ mod tests {
     fn cursor_cli_rejects_other_product_commands_before_reading_configuration_or_spawning() {
         let mut manager = super::ProcessManager::new();
         for command in ["agent", "agent update", "grok", "Cursor.exe"] {
-            assert!(manager.start_cli_tool("cursorcli", command, None).is_err());
+            assert!(manager
+                .start_cli_tool(
+                    "cursorcli",
+                    command,
+                    None,
+                    crate::services::cli_launch::AUTO_TERMINAL
+                )
+                .is_err());
         }
         assert!(manager.processes.is_empty());
     }
@@ -3051,6 +3186,46 @@ try {
 
     #[cfg(windows)]
     use super::openscience_windows_data_dir_for;
+
+    /// Opens one real console per installed shell, so it runs on demand only:
+    /// `cargo test windows_shell_terminal -- --ignored`.
+    #[cfg(windows)]
+    #[test]
+    #[ignore]
+    fn windows_shell_terminal_runs_commands_in_each_shell() {
+        use std::time::{Duration, Instant};
+        let dir = std::env::temp_dir().join(format!("echobird-shells-{}", uuid::Uuid::new_v4()));
+        let cwd = dir.join("项目 folder & O'Brien");
+        std::fs::create_dir_all(&cwd).unwrap();
+        let powershell = "Set-Content -LiteralPath shell.txt -Value $PWD.Path; exit";
+        let cases = [
+            ("pwsh", powershell),
+            ("powershell", powershell),
+            ("cmd", "cd > shell.txt & exit"),
+            ("git-bash", "cygpath -w \"$PWD\" > shell.txt; exit"),
+        ];
+        for (terminal, command) in cases {
+            let Ok(Some(shell)) = crate::services::cli_launch::windows_shell(terminal) else {
+                eprintln!("{terminal} is not installed; skipped");
+                continue;
+            };
+            let output = super::windows_shell_terminal(&shell, command, &cwd)
+                .output()
+                .unwrap();
+            assert!(output.status.success(), "{terminal}: {output:?}");
+            let marker = cwd.join("shell.txt");
+            let deadline = Instant::now() + Duration::from_secs(20);
+            while !marker.exists() && Instant::now() < deadline {
+                std::thread::sleep(Duration::from_millis(100));
+            }
+            std::thread::sleep(Duration::from_millis(300));
+            let bytes = std::fs::read(&marker).unwrap_or_else(|_| panic!("{terminal} did not run"));
+            let text = String::from_utf8_lossy(&bytes);
+            assert!(!text.is_empty(), "{terminal} wrote nothing");
+            std::fs::remove_file(marker).unwrap();
+        }
+        std::fs::remove_dir_all(dir).unwrap();
+    }
 
     #[cfg(windows)]
     #[test]

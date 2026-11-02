@@ -50,6 +50,7 @@ import { useIsomorphicLayoutEffect } from '@dnd-kit/utilities';
 import { Box as BoxIcon, ExternalLink, RefreshCw, Settings } from 'lucide-react';
 import { getModelIcon } from '../../components';
 import { useConfirm } from '../../components/ConfirmDialog';
+import { CliLaunchDialog } from './CliLaunchDialog';
 import { useI18n } from '../../hooks/useI18n';
 import * as api from '../../api/tauri';
 import type { ModelConfig, LocalTool } from '../../api/types';
@@ -1302,6 +1303,7 @@ export const AppManagerBottom: React.FC = () => {
     onGoToMother,
   } = useAppManager();
 
+  const [cliSettingsOpen, setCliSettingsOpen] = useState(false);
   const noModelConfig = !!selectedToolData?.noModelConfig;
   // This preview has no desktop installer or native launch integration yet.
   const isCatalogOnly = selectedTool === 'claudeduet';
@@ -1313,6 +1315,8 @@ export const AppManagerBottom: React.FC = () => {
   const isInstallAction = isUninstalled || (activePage === 'apps' && viewMode === 'install');
   const isPlugin = !!selectedToolData?.plugin;
   const isBuiltInApp = selectedTool === 'reversi' || selectedTool === 'translator' || isPlugin;
+  const showCliSettings =
+    selectedToolData?.category === 'CLI Code' && !isCatalogOnly && !isInstallAction && !isPlugin;
   const hasModelSelected = !!(selectedTool && toolModelConfig[selectedTool]);
   const codeArtsAccountSelected = selectedTool === 'codearts' && !!codeArtsAccounts.selectedId;
   const hasAccountSelected =
@@ -1404,6 +1408,17 @@ export const AppManagerBottom: React.FC = () => {
         {/* Page-aware hint copy: direct Responses clients get a compatibility
             reminder; Claude proxy clients get the keep-running reminder. */}
         <PageAwareHint />
+        {showCliSettings && (
+          <button
+            type="button"
+            aria-label={t('cliLaunch.title')}
+            disabled={isLaunching}
+            onClick={() => setCliSettingsOpen(true)}
+            className="-mr-5 flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-lg border border-cyber-border text-cyber-text-secondary transition-colors enabled:hover:text-cyber-text disabled:opacity-40"
+          >
+            <Settings size={22} aria-hidden="true" />
+          </button>
+        )}
         {/* Launch button */}
         <div className="relative w-64 h-14 flex-shrink-0">
           {!isCatalogOnly && (
@@ -1537,6 +1552,13 @@ export const AppManagerBottom: React.FC = () => {
           </label>
         </div>
       </div>
+      {cliSettingsOpen && selectedTool && (
+        <CliLaunchDialog
+          initialTool={selectedTool}
+          toolLabel={(tool) => toolDisplayName(tool, locale)}
+          onClose={() => setCliSettingsOpen(false)}
+        />
+      )}
     </div>
   );
 };

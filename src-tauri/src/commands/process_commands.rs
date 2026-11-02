@@ -27,6 +27,29 @@ pub async fn start_tool(
     Ok(())
 }
 
+// ─── CLI launch settings ───
+
+#[tauri::command]
+pub async fn get_cli_launch_settings(
+) -> std::collections::HashMap<String, crate::services::cli_launch::CliLaunchSettings> {
+    crate::services::cli_launch::load()
+}
+
+#[tauri::command]
+pub async fn save_cli_launch_settings(
+    settings: std::collections::HashMap<String, crate::services::cli_launch::CliLaunchSettings>,
+) -> Result<(), String> {
+    crate::services::cli_launch::save(&settings)
+}
+
+#[tauri::command]
+pub async fn get_cli_launch_options(
+) -> Result<crate::services::cli_launch::CliLaunchOptions, String> {
+    tauri::async_runtime::spawn_blocking(crate::services::cli_launch::options)
+        .await
+        .map_err(|e| format!("Terminal detection failed: {e}"))
+}
+
 // ─── Local LLM Server ───
 
 #[tauri::command]

@@ -453,6 +453,31 @@ it('MiniMax CLI selects the common working directory before applying an account'
   expect(state.isLaunching).toBe(false);
 });
 
+it('a fixed launch folder skips the picker and leaves the folder to the backend', async () => {
+  await mount('minimaxcode');
+  handlers.set('get_cli_launch_settings', () => ({
+    minimaxcode: { preset: '', directoryMode: 'fixed', directory: 'D:/work', terminal: 'auto' },
+  }));
+  await act(async () => {
+    await state.handleLaunch();
+  });
+  expect(folderPicker).not.toHaveBeenCalled();
+  expect(calls('switch_minimax_account')).toHaveLength(1);
+  expect(calls('start_tool')[0][1]).toMatchObject({ toolId: 'minimaxcode', cwd: null });
+});
+
+it('unreadable launch settings fall back to asking for a folder', async () => {
+  await mount('minimaxcode');
+  handlers.set('get_cli_launch_settings', () => {
+    throw new Error('unreadable');
+  });
+  await act(async () => {
+    await state.handleLaunch();
+  });
+  expect(folderPicker).toHaveBeenCalledTimes(1);
+  expect(calls('start_tool')[0][1]).toMatchObject({ cwd: 'E:/fixture-project' });
+});
+
 it('MiniMax CLI cancellation prevents both account apply and launch', async () => {
   await mount('minimaxcode');
   folderPicker.mockResolvedValue(null);

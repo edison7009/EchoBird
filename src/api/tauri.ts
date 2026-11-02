@@ -116,6 +116,33 @@ export async function startTool(
   });
 }
 
+export interface CliLaunchSettings {
+  preset: string;
+  directoryMode: 'ask' | 'fixed';
+  directory: string;
+  terminal: string;
+}
+
+export interface CliLaunchOptions {
+  terminals: string[];
+  presets: Record<string, { id: string; command: string }[]>;
+  coffeeTools: string[];
+}
+
+export async function getCliLaunchSettings(): Promise<Record<string, CliLaunchSettings>> {
+  return invoke('get_cli_launch_settings');
+}
+
+export async function saveCliLaunchSettings(
+  settings: Record<string, CliLaunchSettings>
+): Promise<void> {
+  return invoke('save_cli_launch_settings', { settings });
+}
+
+export async function getCliLaunchOptions(): Promise<CliLaunchOptions> {
+  return invoke('get_cli_launch_options');
+}
+
 // ─── In-app self-update (Windows): download installer, launch it, exit ───
 
 export interface SelfUpdateProgress {
