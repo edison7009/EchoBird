@@ -209,3 +209,55 @@ it('warns before a snapshot and starts nothing unless the user confirms', async 
     await task;
   });
 });
+
+it('prepares the next account only after a warning and opens Claude once it is saved', async () => {
+  vi.mocked(api.startTool).mockResolvedValue(undefined);
+  await mount();
+  confirm.mockResolvedValue(false);
+  await act(async () => {
+    await state.addNext();
+  });
+  expect(api.startClaudeDesktopLogin).not.toHaveBeenCalled();
+  expect(api.startTool).not.toHaveBeenCalled();
+  confirm.mockResolvedValue(true);
+  vi.mocked(api.pollClaudeDesktopLogin).mockResolvedValue({
+    account: saved,
+    awaitingClientExit: false,
+    expiresAt: null,
+  });
+  let task!: Promise<void>;
+  act(() => {
+    task = state.addNext();
+  });
+  await tick(2000);
+  await act(async () => {
+    await task;
+  });
+  expect(confirm).toHaveBeenLastCalledWith({
+    type: 'warning',
+    title: 'agent.accountSnapshotNextTitle',
+    message: 'agent.accountSnapshotNextNotice',
+  });
+  expect(api.startClaudeDesktopLogin).toHaveBeenCalledExactlyOnceWith(true);
+  expect(api.startTool).toHaveBeenCalledExactlyOnceWith('claudedesktop');
+  expect(showError).not.toHaveBeenCalled();
+  act(() => {
+    task = state.add();
+  });
+  await tick(2000);
+  await act(async () => {
+    await task;
+  });
+  expect(api.startClaudeDesktopLogin).toHaveBeenLastCalledWith(false);
+  expect(api.startTool).toHaveBeenCalledTimes(1);
+});
+
+it('leaves Claude closed when preparing the next account fails', async () => {
+  await mount();
+  vi.mocked(api.startClaudeDesktopLogin).mockRejectedValue(new Error('accountError.closeClient'));
+  await act(async () => {
+    await state.addNext();
+  });
+  expect(showError).toHaveBeenCalled();
+  expect(api.startTool).not.toHaveBeenCalled();
+});

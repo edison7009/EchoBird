@@ -659,10 +659,14 @@ const en: Translations = {
   'agent.addCurrentAccount': 'Add Account',
   'agent.accountSnapshot': 'Account Snapshot',
   'agent.accountSnapshotHint':
-    "Claude Desktop can't be signed in from here, so its accounts switch by snapshot: sign in to Claude Desktop, quit it completely (right-click the tray icon and quit; closing the window is not enough), then click Account Snapshot. To add more accounts, sign in to the new account in Claude Desktop, quit it the same way and click Account Snapshot again. Switching accounts also needs it quit first. Force-stopping Claude Desktop loses its sign-in, so the snapshot fails.",
+    "Claude Desktop can't be signed in from here, so its accounts switch by snapshot: sign in to Claude Desktop, quit it completely (right-click the tray icon and quit; closing the window is not enough), then click Account Snapshot. To add more accounts, click Sign In to Next Account. Do not sign out inside Claude, or the saved account stops working. Switching accounts also needs it quit first. Force-stopping Claude Desktop loses its sign-in, so the snapshot fails.",
   'agent.accountSnapshotNoticeTitle': 'Before taking a snapshot',
   'agent.accountSnapshotNotice':
     'Quit the Claude Desktop app, but do not sign out of your account: stay signed in and quit from the tray icon (closing the window is not enough). After quitting, wait 30 to 60 seconds while Claude Desktop finishes saving its data in the background and exits completely, then click Confirm. The snapshot is more likely to succeed.',
+  'agent.accountSnapshotNext': 'Sign In to Next Account',
+  'agent.accountSnapshotNextTitle': 'Sign in to the next account',
+  'agent.accountSnapshotNextNotice':
+    'Quit Claude Desktop completely from the tray icon and wait 30 to 60 seconds. After you confirm, EchoBird saves the current account, clears the sign-in from this device and opens Claude Desktop; the saved account stays valid. After signing in to the next account, quit the same way and click Account Snapshot.',
   'agent.accountSnapshotSaving': 'Saving snapshot',
   'agent.zcodeSwitchProvider': 'Switch login provider (currently {provider})',
   'agent.minimaxRegionCn': 'China',

@@ -642,10 +642,14 @@ const zhHant: Partial<Translations> = {
   'agent.addCurrentAccount': '新增帳號',
   'agent.accountSnapshot': '帳號快照',
   'agent.accountSnapshotHint':
-    '由於 Claude 桌面端的限制，無法在這裡直接登入帳號，只能用帳號快照切換帳號：先在 Claude 桌面端登入帳號，再完全結束 Claude 桌面端（右鍵匣圖示結束，只關視窗不算），然後點「帳號快照」儲存。新增多個帳號，需在 Claude 桌面端完成新帳號登入，同樣結束後再點「帳號快照」。切換帳號同樣需要先結束。強制結束處理程序會遺失登入資訊，無法快照。',
+    '由於 Claude 桌面端的限制，無法在這裡直接登入帳號，只能用帳號快照切換帳號：先在 Claude 桌面端登入帳號，再完全結束 Claude 桌面端（右鍵匣圖示結束，只關視窗不算），然後點「帳號快照」儲存。新增多個帳號，請點「登入下一個帳號」，不要在 Claude 裡登出，否則已儲存的帳號會失效。切換帳號同樣需要先結束。強制結束處理程序會遺失登入資訊，無法快照。',
   'agent.accountSnapshotNoticeTitle': '帳號快照須知',
   'agent.accountSnapshotNotice':
     '快照前請結束 Claude 桌面端程式，但不要登出帳號：保持登入狀態，右鍵匣圖示結束（只關視窗不算）。Claude 桌面端結束後，請靜待 30 到 60 秒，此時 Claude 桌面端在背景整理完資料、完全結束，再點擊「確認」，快照成功率更高。',
+  'agent.accountSnapshotNext': '登入下一個帳號',
+  'agent.accountSnapshotNextTitle': '登入下一個帳號',
+  'agent.accountSnapshotNextNotice':
+    '請先完全結束 Claude 桌面端（右鍵匣圖示結束），並靜待 30 到 60 秒。確認後 EchoBird 會儲存目前帳號，再清除本機登入並開啟 Claude 桌面端；原帳號不會失效。登入下一個帳號後，同樣結束，再點「帳號快照」。',
   'agent.accountSnapshotSaving': '正在儲存快照',
   'agent.zcodeSwitchProvider': '切換登入平台（目前為 {provider}）',
   'agent.minimaxRegionCn': '中國版',

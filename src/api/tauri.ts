@@ -267,8 +267,8 @@ export interface ClaudeDesktopLoginPoll {
 export function listClaudeDesktopAccounts(): Promise<ClaudeCodeAccount[]> {
   return invoke('list_claude_desktop_accounts');
 }
-export function startClaudeDesktopLogin(): Promise<ClaudeDesktopLogin> {
-  return invoke('start_claude_desktop_login');
+export function startClaudeDesktopLogin(next = false): Promise<ClaudeDesktopLogin> {
+  return invoke('start_claude_desktop_login', { next });
 }
 export function pollClaudeDesktopLogin(loginId: string): Promise<ClaudeDesktopLoginPoll> {
   return invoke('poll_claude_desktop_login', { loginId });

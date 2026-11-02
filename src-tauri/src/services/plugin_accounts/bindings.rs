@@ -103,8 +103,9 @@ pub mod claude_desktop_accounts {
     pub async fn list() -> Result<Vec<Account>, String> {
         super::super::list("claudedesktop", false).await
     }
-    pub async fn start_login(_app: tauri::AppHandle) -> Result<LoginStart, String> {
-        invoke("claudedesktop", "login.start", json!({})).await
+    /// Saves the signed-in account; with `next`, also clears it from this device.
+    pub async fn start_login(_app: tauri::AppHandle, next: bool) -> Result<LoginStart, String> {
+        invoke("claudedesktop", "login.start", json!({"next":next})).await
     }
     pub async fn poll_login(_app: &tauri::AppHandle, id: &str) -> Result<LoginPoll, String> {
         invoke("claudedesktop", "login.poll", json!({"loginId":id})).await

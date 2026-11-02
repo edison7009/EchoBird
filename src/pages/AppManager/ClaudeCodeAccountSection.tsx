@@ -34,6 +34,19 @@ export const ClaudeCodeAccountSection: React.FC<{ showDivider?: boolean; desktop
         }
         onCancel={() => group.cancelLogin()}
       />
+      {desktop && installed && !busy && accounts.length > 0 && (
+        <AccountSectionButton
+          iconSrc="/icons/tools/claudedesktop.svg"
+          colorClassName="claude-account-pill"
+          busy={false}
+          remainingSeconds={0}
+          idleLabel="agent.accountSnapshotNext"
+          onClick={() =>
+            void claudeDesktopAccounts.addNext().catch((error) => setApplyError(String(error)))
+          }
+          onCancel={() => {}}
+        />
+      )}
       {accounts.length > 0 && (
         <div className="space-y-2">
           {accounts.map((account) => (

@@ -41,6 +41,7 @@ function renderAccount(
   context.claudeDesktopAccounts = {
     ...context.claudeCodeAccounts,
     awaitingClientExit: desktop && busy && awaitingExit,
+    addNext: async () => {},
   } as AppManagerContextType['claudeDesktopAccounts'];
   return renderToStaticMarkup(
     <AppManagerContext.Provider value={context}>
@@ -120,7 +121,10 @@ describe('Claude Code account card', () => {
     expect(desktop).not.toContain('cursor-');
     // The hint sits beside, not inside, the button that saves the snapshot.
     expect(desktop).not.toMatch(/<button[^>]*>(?:(?!<\/button>).)*agent\.accountSnapshotHint/s);
+    expect(desktop).toContain('agent.accountSnapshotNext');
+    expect(renderAccount(37, true, true)).not.toContain('agent.accountSnapshotNext');
     const code = renderAccount(37);
+    expect(code).not.toContain('agent.accountSnapshotNext');
     expect(code).toContain('plugins.category.account');
     expect(code).not.toContain('agent.accountSnapshot');
   });
