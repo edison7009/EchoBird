@@ -570,27 +570,142 @@ fn application_tools_require_a_service_for_the_same_application() {
     assert!(parse(&value).validate().is_err());
 }
 
-#[tokio::test]
-async fn failed_mirror_fallback_reports_both_sources() {
-    let error = packages::download_with_fallback(
-        "http://gitcode.invalid/index.json",
-        Some("not-a-url"),
-        1024,
-    )
-    .await
-    .unwrap_err();
-    let lines: Vec<_> = error.lines().collect();
-    assert_eq!(lines.len(), 2, "{error}");
-    assert!(lines[0].starts_with("GitCode: "), "{error}");
-    assert!(lines[1].starts_with("GitHub: "), "{error}");
+async fn fetch_from(
+    sources: &[(&str, Result<Vec<u8>, String>)],
+    calls: &Mutex<Vec<String>>,
+    url: String,
+) -> Result<Vec<u8>, String> {
+    calls.lock().unwrap().push(url.clone());
+    sources
+        .iter()
+        .find(|(source, _)| *source == url)
+        .map(|(_, result)| result.clone())
+        .unwrap()
+}
+
+fn empty_index() -> Vec<u8> {
+    serde_json::to_vec(&json!({
+        "schemaVersion": 1,
+        "name": "EchoBird Plugin Hub",
+        "plugins": []
+    }))
+    .unwrap()
 }
 
 #[tokio::test]
-async fn download_without_fallback_reports_the_single_source_failure() {
-    let error = packages::download_with_fallback("http://github.invalid/index.json", None, 1024)
-        .await
-        .unwrap_err();
-    assert_eq!(error, "Expected a public HTTPS URL");
+async fn failed_mirror_fallback_reports_both_sources() {
+    let calls = Mutex::new(Vec::new());
+    let sources = [
+        ("mirror", Err("mirror down".to_string())),
+        ("origin", Err("origin down".to_string())),
+    ];
+    let error = packages::try_sources(
+        "mirror",
+        Some("origin"),
+        |url| fetch_from(&sources, &calls, url),
+        |bytes| Ok(bytes.to_vec()),
+    )
+    .await
+    .unwrap_err();
+    assert_eq!(error, "GitCode: mirror down\nGitHub: origin down");
+}
+
+#[tokio::test]
+async fn source_without_fallback_reports_its_own_failure() {
+    let calls = Mutex::new(Vec::new());
+    let sources = [("origin", Err("origin down".to_string()))];
+    let error = packages::try_sources(
+        "origin",
+        None,
+        |url| fetch_from(&sources, &calls, url),
+        |bytes| Ok(bytes.to_vec()),
+    )
+    .await
+    .unwrap_err();
+    assert_eq!(error, "origin down");
+    assert_eq!(*calls.lock().unwrap(), ["origin"]);
+}
+
+#[tokio::test]
+async fn accepted_mirror_response_does_not_touch_the_fallback() {
+    let calls = Mutex::new(Vec::new());
+    let sources = [("mirror", Ok(empty_index()))];
+    packages::try_sources(
+        "mirror",
+        Some("origin"),
+        |url| fetch_from(&sources, &calls, url),
+        Registry::parse,
+    )
+    .await
+    .unwrap();
+    assert_eq!(*calls.lock().unwrap(), ["mirror"]);
+}
+
+#[tokio::test]
+async fn unusable_mirror_index_falls_back_to_the_origin() {
+    let calls = Mutex::new(Vec::new());
+    let sources = [
+        ("mirror", Ok(b"<html>gateway</html>".to_vec())),
+        ("origin", Ok(empty_index())),
+    ];
+    let registry = packages::try_sources(
+        "mirror",
+        Some("origin"),
+        |url| fetch_from(&sources, &calls, url),
+        Registry::parse,
+    )
+    .await
+    .unwrap();
+    assert!(registry.plugins.is_empty());
+    assert_eq!(*calls.lock().unwrap(), ["mirror", "origin"]);
+}
+
+#[tokio::test]
+async fn stale_mirror_package_falls_back_and_installs_the_verified_bytes() {
+    use sha2::{Digest, Sha256};
+    let fixture = Fixture::new();
+    let target = fixture.root.join("fallback");
+    let good = archive(&[("ui/index.html", b"approved")]);
+    let digest = hex::encode(Sha256::digest(&good));
+    let calls = Mutex::new(Vec::new());
+    let sources = [
+        ("mirror", Ok(archive(&[("ui/index.html", b"stale")]))),
+        ("origin", Ok(good)),
+    ];
+    packages::try_sources(
+        "mirror",
+        Some("origin"),
+        |url| fetch_from(&sources, &calls, url),
+        |bytes| packages::verified_archive(bytes, &digest, &target),
+    )
+    .await
+    .unwrap();
+    assert_eq!(*calls.lock().unwrap(), ["mirror", "origin"]);
+    assert_eq!(fs::read(target.join("ui/index.html")).unwrap(), b"approved");
+}
+
+#[tokio::test]
+async fn rejected_content_from_both_sources_reports_both() {
+    let fixture = Fixture::new();
+    let target = fixture.root.join("rejected");
+    let calls = Mutex::new(Vec::new());
+    let sources = [
+        ("mirror", Ok(b"stale".to_vec())),
+        ("origin", Ok(b"tampered".to_vec())),
+    ];
+    let error = packages::try_sources(
+        "mirror",
+        Some("origin"),
+        |url| fetch_from(&sources, &calls, url),
+        |bytes| packages::verified_archive(bytes, &"0".repeat(64), &target),
+    )
+    .await
+    .unwrap_err();
+    assert_eq!(
+        error,
+        "GitCode: Plugin package SHA-256 mismatch\nGitHub: Plugin package SHA-256 mismatch"
+    );
+    assert!(!target.exists());
 }
 
 #[tokio::test]

@@ -7,6 +7,7 @@ use sha2::{Digest, Sha256};
 use std::{
     collections::HashSet,
     fs,
+    future::Future,
     io::{Cursor, Read},
     path::Path,
     time::Duration,
@@ -149,6 +150,7 @@ pub async fn download(url: &str, limit: u64) -> Result<Vec<u8>, String> {
         return Err("Expected a public HTTPS URL".into());
     }
     let client = reqwest::Client::builder()
+        .connect_timeout(Duration::from_secs(15))
         .timeout(Duration::from_secs(120))
         .user_agent("EchoBird-Plugin-Hub")
         .build()
@@ -190,24 +192,44 @@ pub(super) fn error_details(error: &dyn std::error::Error) -> String {
     details
 }
 
-pub(super) async fn download_with_fallback(
+pub(super) async fn try_sources<T, Fut>(
+    url: &str,
+    fallback: Option<&str>,
+    fetch: impl Fn(String) -> Fut,
+    accept: impl Fn(&[u8]) -> Result<T, String>,
+) -> Result<T, String>
+where
+    Fut: Future<Output = Result<Vec<u8>, String>>,
+{
+    let primary_error = match fetch(url.to_string())
+        .await
+        .and_then(|bytes| accept(&bytes))
+    {
+        Ok(value) => return Ok(value),
+        Err(error) => error,
+    };
+    let Some(fallback) = fallback else {
+        return Err(primary_error);
+    };
+    fetch(fallback.to_string())
+        .await
+        .and_then(|bytes| accept(&bytes))
+        .map_err(|fallback_error| format!("GitCode: {primary_error}\nGitHub: {fallback_error}"))
+}
+
+async fn download_accepted<T>(
     url: &str,
     fallback: Option<&str>,
     limit: u64,
-) -> Result<Vec<u8>, String> {
-    let primary_error = match download(url, limit).await {
-        Ok(bytes) => return Ok(bytes),
-        Err(error) => error,
-    };
-    match fallback {
-        Some(fallback) => download(fallback, limit).await.map_err(|fallback_error| {
-            format!(
-                "GitCode: {primary_error}
-GitHub: {fallback_error}"
-            )
-        }),
-        None => Err(primary_error),
-    }
+    accept: impl Fn(&[u8]) -> Result<T, String>,
+) -> Result<T, String> {
+    try_sources(
+        url,
+        fallback,
+        |source| async move { download(&source, limit).await },
+        accept,
+    )
+    .await
 }
 
 pub fn bundled_registry() -> Result<Registry, String> {
@@ -222,8 +244,7 @@ pub async fn registry(region: &str, refresh: bool) -> Result<Registry, String> {
     };
     if refresh {
         let fallback = (region == "china").then_some(super::INTERNATIONAL_INDEX);
-        let bytes = download_with_fallback(url, fallback, 1024 * 1024).await?;
-        Registry::parse(&bytes)
+        download_accepted(url, fallback, 1024 * 1024, Registry::parse).await
     } else {
         bundled_registry()
     }
@@ -418,16 +439,16 @@ impl PluginManager {
                 let fallback = (region == "china")
                     .then(|| release.downloads.get("international"))
                     .flatten();
-                let bytes = download_with_fallback(
+                download_accepted(
                     release
                         .downloads
                         .get(region)
                         .ok_or("Missing regional download")?,
                     fallback.map(String::as_str),
                     MAX_PACKAGE_BYTES,
+                    |bytes| verified_archive(bytes, &release.sha256, &target),
                 )
                 .await?;
-                verified_archive(&bytes, &release.sha256, &target)?;
                 Ok((
                     plugin.repository,
                     Some(release.commit.clone()),
