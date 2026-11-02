@@ -606,14 +606,9 @@ const zhHans: Partial<Translations> = {
   'agent.addCurrentAccount': '添加账号',
   'agent.accountSnapshot': '账号快照',
   'agent.accountSnapshotHint':
-    '由于 Claude 桌面端的限制，无法在这里直接账号登录，只能用账号快照切换账号：先在 Claude 桌面端登录账号，再完全退出 Claude 桌面端（右键托盘图标退出，只关窗口不算），然后点「账号快照」保存。添加多账号，请点「登录下一个账号」，不要在 Claude 里退出登录，否则已保存的账号会失效。切换账号同样需要先退出。强制结束进程会丢失登录信息，无法快照。',
+    '由于 Claude 桌面端的限制，只能通过「账号快照」添加账号。\n\n1. 首次添加账号\n保持账号已登录，完全退出 Claude 桌面端（右键托盘图标退出，不要用任务管理器强制结束），等待 30 到 60 秒，再点击「账号快照」。\n\n2. 添加更多账号\n在上一个账号已登录的状态下，同样完全退出 Claude 桌面端，点击「环境重置+登录」，Claude 会自动打开，登录新账号。登录完成后，保持登录，再次完全退出并等待 30 到 60 秒，点击「账号快照」完成保存。\n\n注意：不要在 Claude 里点「退出登录」，否则已保存的账号会失效。',
   'agent.accountSnapshotNoticeTitle': '账号快照须知',
-  'agent.accountSnapshotNotice':
-    '快照前请退出 Claude 桌面端程序，但不要退出账号：保持登录状态，右键托盘图标退出（只关窗口不算）。Claude 桌面端退出后，请静待 30 到 60 秒，此时 Claude 桌面端在后台整理完数据、完全退出，再点击「确认」，快照成功率更高。',
-  'agent.accountSnapshotNext': '登录下一个账号',
-  'agent.accountSnapshotNextTitle': '登录下一个账号',
-  'agent.accountSnapshotNextNotice':
-    '请先完全退出 Claude 桌面端（右键托盘图标退出），并静待 30 到 60 秒。确认后 EchoBird 会保存当前账号，再清除本机登录并打开 Claude 桌面端；原账号不会失效。登录下一个账号后，同样退出，再点「账号快照」。',
+  'agent.accountSnapshotNext': '环境重置+登录',
   'agent.accountSnapshotSaving': '正在保存快照',
   'agent.zcodeSwitchProvider': '切换登录平台（当前为 {provider}）',
   'agent.minimaxRegionCn': '国内版',

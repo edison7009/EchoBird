@@ -19,6 +19,8 @@ export const AccountSectionButton: React.FC<{
   idleLabel?: TKey;
   /** Explains the action with the shared "?" beside the label. */
   hint?: string;
+  /** Keep the hint's line breaks, for instructions written as steps. */
+  hintLineBreaks?: boolean;
 }> = ({
   iconSrc,
   busy,
@@ -31,6 +33,7 @@ export const AccountSectionButton: React.FC<{
   waitingLabel,
   idleLabel,
   hint,
+  hintLineBreaks,
 }) => {
   const { t } = useI18n();
   const label = busy
@@ -111,7 +114,12 @@ export const AccountSectionButton: React.FC<{
           <img src={iconSrc} alt="" className="h-6 w-6" />
           <span>{label}</span>
           <span className="pointer-events-auto relative flex">
-            <RoutingHint hint={hint} />
+            <RoutingHint
+              hint={hint}
+              content={
+                hintLineBreaks ? <span className="whitespace-pre-line">{hint}</span> : undefined
+              }
+            />
           </span>
         </span>
       </div>

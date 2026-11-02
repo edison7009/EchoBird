@@ -659,14 +659,9 @@ const en: Translations = {
   'agent.addCurrentAccount': 'Add Account',
   'agent.accountSnapshot': 'Account Snapshot',
   'agent.accountSnapshotHint':
-    "Claude Desktop can't be signed in from here, so its accounts switch by snapshot: sign in to Claude Desktop, quit it completely (right-click the tray icon and quit; closing the window is not enough), then click Account Snapshot. To add more accounts, click Sign In to Next Account. Do not sign out inside Claude, or the saved account stops working. Switching accounts also needs it quit first. Force-stopping Claude Desktop loses its sign-in, so the snapshot fails.",
+    'Claude Desktop accounts can only be added by Account Snapshot.\n\n1. Add your first account\nStay signed in and quit Claude Desktop completely (right-click the tray icon and quit; do not end it in Task Manager). Wait 30 to 60 seconds, then click Account Snapshot.\n\n2. Add more accounts\nWith the previous account still signed in, quit Claude Desktop the same way and click Reset & Sign In. Claude opens; sign in to the new account. Then stay signed in, quit it completely again, wait 30 to 60 seconds and click Account Snapshot to save it.\n\nNote: do not sign out inside Claude, or the saved account stops working.',
   'agent.accountSnapshotNoticeTitle': 'Before taking a snapshot',
-  'agent.accountSnapshotNotice':
-    'Quit the Claude Desktop app, but do not sign out of your account: stay signed in and quit from the tray icon (closing the window is not enough). After quitting, wait 30 to 60 seconds while Claude Desktop finishes saving its data in the background and exits completely, then click Confirm. The snapshot is more likely to succeed.',
-  'agent.accountSnapshotNext': 'Sign In to Next Account',
-  'agent.accountSnapshotNextTitle': 'Sign in to the next account',
-  'agent.accountSnapshotNextNotice':
-    'Quit Claude Desktop completely from the tray icon and wait 30 to 60 seconds. After you confirm, EchoBird saves the current account, clears the sign-in from this device and opens Claude Desktop; the saved account stays valid. After signing in to the next account, quit the same way and click Account Snapshot.',
+  'agent.accountSnapshotNext': 'Reset & Sign In',
   'agent.accountSnapshotSaving': 'Saving snapshot',
   'agent.zcodeSwitchProvider': 'Switch login provider (currently {provider})',
   'agent.minimaxRegionCn': 'China',

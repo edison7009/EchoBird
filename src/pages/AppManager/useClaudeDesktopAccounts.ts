@@ -35,25 +35,23 @@ export function useClaudeDesktopAccounts(
       label: (account) => account.email,
     }
   );
+  // Both actions show the same steps as the hint beside the snapshot button.
+  const confirmSnapshot = () =>
+    confirm({
+      type: 'warning',
+      title: t('agent.accountSnapshotNoticeTitle'),
+      message: t('agent.accountSnapshotHint'),
+      preserveLineBreaks: true,
+    });
   return {
     ...managed,
     // A snapshot only works after the user quits the client while signed in.
     add: async () => {
-      const ready = await confirm({
-        type: 'warning',
-        title: t('agent.accountSnapshotNoticeTitle'),
-        message: t('agent.accountSnapshotNotice'),
-      });
-      if (ready) await managed.add();
+      if (await confirmSnapshot()) await managed.add();
     },
     // Signing out inside Claude Desktop would revoke the saved session.
     addNext: async () => {
-      const ready = await confirm({
-        type: 'warning',
-        title: t('agent.accountSnapshotNextTitle'),
-        message: t('agent.accountSnapshotNextNotice'),
-      });
-      if (!ready) return;
+      if (!(await confirmSnapshot())) return;
       next.current = true;
       prepared.current = false;
       try {

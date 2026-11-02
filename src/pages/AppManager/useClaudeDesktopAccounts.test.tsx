@@ -192,7 +192,8 @@ it('warns before a snapshot and starts nothing unless the user confirms', async 
   expect(confirm).toHaveBeenCalledWith({
     type: 'warning',
     title: 'agent.accountSnapshotNoticeTitle',
-    message: 'agent.accountSnapshotNotice',
+    message: 'agent.accountSnapshotHint',
+    preserveLineBreaks: true,
   });
   expect(api.startClaudeDesktopLogin).not.toHaveBeenCalled();
   expect(state.busy).toBe(false);
@@ -235,8 +236,9 @@ it('prepares the next account only after a warning and opens Claude once it is s
   });
   expect(confirm).toHaveBeenLastCalledWith({
     type: 'warning',
-    title: 'agent.accountSnapshotNextTitle',
-    message: 'agent.accountSnapshotNextNotice',
+    title: 'agent.accountSnapshotNoticeTitle',
+    message: 'agent.accountSnapshotHint',
+    preserveLineBreaks: true,
   });
   expect(api.startClaudeDesktopLogin).toHaveBeenCalledExactlyOnceWith(true);
   expect(api.startTool).toHaveBeenCalledExactlyOnceWith('claudedesktop');

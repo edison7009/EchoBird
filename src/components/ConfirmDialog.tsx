@@ -12,6 +12,8 @@ export interface ConfirmOptions {
   confirmText?: string;
   cancelText?: string;
   type?: 'danger' | 'warning' | 'normal' | 'info'; // danger=red, warning=yellow, normal=green, info=blue (Mother Agent)
+  /** Keep the message's line breaks, for instructions written as steps. */
+  preserveLineBreaks?: boolean;
 }
 
 // Context type — single function returning Promise<boolean>
@@ -150,7 +152,9 @@ export const ConfirmDialogProvider: React.FC<{ children: React.ReactNode }> = ({
 
             {/* Message */}
             <div className="px-5 pb-5">
-              <p className="text-xs text-cyber-text-secondary leading-relaxed font-mono">
+              <p
+                className={`${options.preserveLineBreaks ? 'whitespace-pre-line ' : ''}text-xs text-cyber-text-secondary leading-relaxed font-mono`}
+              >
                 {options.message || t('common.areYouSure')}
               </p>
             </div>

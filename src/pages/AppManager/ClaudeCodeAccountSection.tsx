@@ -26,6 +26,7 @@ export const ClaudeCodeAccountSection: React.FC<{ showDivider?: boolean; desktop
         // Claude Desktop cannot be signed in from here; it saves snapshots instead.
         idleLabel={desktop ? 'agent.accountSnapshot' : 'plugins.category.account'}
         hint={desktop && installed ? t('agent.accountSnapshotHint') : undefined}
+        hintLineBreaks={desktop}
         waitingLabel={desktop ? t('agent.accountSnapshotSaving') : undefined}
         onClick={() =>
           void (installed ? group.add() : openAccountPlugins()).catch((error) =>
