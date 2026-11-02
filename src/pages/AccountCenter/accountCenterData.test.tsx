@@ -1563,16 +1563,29 @@ describe('Account Center display data', () => {
       accounts: [],
     });
   });
-  it('uses the shared browser waiting label for Claude desktop', () => {
+  it('labels Claude desktop as account snapshots instead of browser sign-in', () => {
     const state = context();
     state.claudeDesktopAccounts.busy = true;
+    const groups = providers(state);
+    expect(groups.find((provider) => provider.id === 'claudedesktop')).toMatchObject({
+      addLabel: 'agent.accountSnapshot',
+      waitingLabel: 'agent.accountSnapshotSaving',
+      busy: true,
+    });
     expect(
-      providers(state).find((provider) => provider.id === 'claudedesktop')?.waitingLabel
-    ).toBeUndefined();
+      groups
+        .filter((provider) => provider.id !== 'claudedesktop')
+        .every((provider) => provider.addLabel === undefined)
+    ).toBe(true);
   });
   it('keeps Manus on shared browser waiting even if an older backend reports native progress', () => {
     const state = context();
-    expect(providers(state).every((provider) => provider.waitingLabel === undefined)).toBe(true);
+    const signIn = (provider: { id: string }) => provider.id !== 'claudedesktop';
+    expect(
+      providers(state)
+        .filter(signIn)
+        .every((provider) => provider.waitingLabel === undefined)
+    ).toBe(true);
     state.manusAccounts.awaitingClientExit = true;
     state.manusAccounts.busy = true;
     state.manusAccounts.remainingSeconds = 30;
@@ -1584,7 +1597,7 @@ describe('Account Center display data', () => {
     });
     expect(
       groups
-        .filter((provider) => provider.id !== 'manus')
+        .filter((provider) => provider.id !== 'manus' && signIn(provider))
         .every((provider) => provider.waitingLabel === undefined)
     ).toBe(true);
   });

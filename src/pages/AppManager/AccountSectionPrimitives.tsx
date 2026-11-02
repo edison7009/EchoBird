@@ -4,6 +4,7 @@ import { useI18n } from '../../hooks/useI18n';
 import { accountPlanLabel } from './accountPlanLabel';
 import { ACCOUNT_NAME_MASK, useAccountPrivacyStore } from '../../stores/accountPrivacyStore';
 import type { TKey } from '../../i18n/types';
+import { RoutingHint } from '../../components/RoutingToggle';
 
 export const AccountSectionButton: React.FC<{
   iconSrc: string;
@@ -16,6 +17,8 @@ export const AccountSectionButton: React.FC<{
   secondary?: React.ReactNode;
   waitingLabel?: string;
   idleLabel?: TKey;
+  /** Explains the action with the shared "?" beside the label. */
+  hint?: string;
 }> = ({
   iconSrc,
   busy,
@@ -27,6 +30,7 @@ export const AccountSectionButton: React.FC<{
   secondary,
   waitingLabel,
   idleLabel,
+  hint,
 }) => {
   const { t } = useI18n();
   const label = busy
@@ -85,6 +89,29 @@ export const AccountSectionButton: React.FC<{
             <span className="pointer-events-auto relative flex h-4 items-center text-[12px] font-normal leading-4 text-cyber-text-secondary">
               {secondary}
             </span>
+          </span>
+        </span>
+      </div>
+    );
+  }
+  if (hint) {
+    // The "?" sits outside the click target, so reading it never starts the action.
+    return (
+      <div
+        className={`account-pill ${colorClassName} relative mb-2 flex h-12 w-full items-center justify-center rounded-full px-3 text-[17px] font-bold leading-6 transition-opacity ${disabled ? 'opacity-50' : 'hover:opacity-90'}`}
+      >
+        <button
+          type="button"
+          aria-label={label}
+          onClick={onClick}
+          disabled={disabled}
+          className="absolute inset-0 rounded-full"
+        />
+        <span className="pointer-events-none flex translate-y-px items-center gap-2.5">
+          <img src={iconSrc} alt="" className="h-6 w-6" />
+          <span>{label}</span>
+          <span className="pointer-events-auto relative flex">
+            <RoutingHint hint={hint} />
           </span>
         </span>
       </div>

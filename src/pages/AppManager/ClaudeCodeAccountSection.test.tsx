@@ -1,9 +1,12 @@
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { ClaudeCodeAccountSection } from './ClaudeCodeAccountSection';
 import { AppManagerContext, type AppManagerContextType } from './context';
 import type { ClaudeCodeAccount } from '../../api/tauri';
+
+const plugin = vi.hoisted(() => ({ installed: true }));
+vi.mock('../../hooks/useAccountPlugin', () => ({ useAccountPlugin: () => plugin.installed }));
 
 function renderAccount(
   quotaPercent: number | null,
@@ -93,11 +96,12 @@ describe('Claude Code account card', () => {
     expect(markup).toContain('agent.waitingForBrowser');
     expect(markup).not.toContain('agent.addCurrentAccount');
   });
-  it('reuses the Claude layout while waiting for the isolated login browser', () => {
+  it('reuses the Claude layout while saving a desktop snapshot', () => {
     const markup = renderAccount(null, true, true);
     expect(markup).toContain('/icons/tools/claudedesktop.svg');
     expect(markup).toContain('claude-account-pill');
-    expect(markup).toContain('agent.waitingForBrowser');
+    expect(markup).toContain('agent.accountSnapshotSaving');
+    expect(markup).not.toContain('agent.waitingForBrowser');
     expect(markup).not.toContain('agent.claudeDesktopExitClient');
     expect(markup).not.toContain('—');
     expect(markup).toContain('82%');
@@ -107,10 +111,27 @@ describe('Claude Code account card', () => {
     expect(markup).not.toContain('cursor-');
     expect(markup).not.toContain('title=');
   });
-  it('uses the same browser waiting label throughout desktop authorization', () => {
-    const markup = renderAccount(null, true, true, false);
-    expect(markup).not.toContain('agent.claudeDesktopLoginClient');
-    expect(markup).toContain('agent.waitingForBrowser');
-    expect(markup).not.toContain('agent.claudeDesktopExitClient');
+  it('labels Claude desktop as account snapshots and explains them with the shared hint', () => {
+    const desktop = renderAccount(37, false, true);
+    expect(desktop).toContain('agent.accountSnapshot');
+    expect(desktop).toContain('aria-label="agent.accountSnapshotHint"');
+    expect(desktop).not.toContain('plugins.category.account');
+    expect(desktop).not.toContain('title=');
+    expect(desktop).not.toContain('cursor-');
+    // The hint sits beside, not inside, the button that saves the snapshot.
+    expect(desktop).not.toMatch(/<button[^>]*>(?:(?!<\/button>).)*agent\.accountSnapshotHint/s);
+    const code = renderAccount(37);
+    expect(code).toContain('plugins.category.account');
+    expect(code).not.toContain('agent.accountSnapshot');
+  });
+  it('keeps the snapshot label but drops its explanation while the plugin is missing', () => {
+    plugin.installed = false;
+    try {
+      const markup = renderAccount(37, false, true);
+      expect(markup).toContain('agent.accountSnapshot');
+      expect(markup).not.toContain('agent.accountSnapshotHint');
+    } finally {
+      plugin.installed = true;
+    }
   });
 });

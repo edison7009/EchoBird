@@ -81,6 +81,8 @@ export interface AccountProvider {
   mutationRevision?: number;
   remainingSeconds: number;
   waitingLabel?: string;
+  /** Replaces "Add Account" for providers whose accounts are added differently. */
+  addLabel?: string;
   add: () => void;
   cancelLogin: () => void;
   accounts: AccountCardData[];
@@ -328,21 +330,26 @@ export function accountCenterProviders(
         ],
       })
     ),
-    provider(
-      'claudedesktop',
-      context.detectedTools.find((tool) => tool.id === 'claudedesktop')?.name ?? 'Claude Desktop',
-      '/icons/tools/claudedesktop.svg',
-      ['claudedesktop'],
-      context.claudeDesktopAccounts,
-      (account) => ({
-        identity: account.email,
-        plan: account.plan,
-        metrics: [
-          quota(account.fiveHour?.remainingPercent, account.fiveHour?.resetAt, '5h'),
-          quota(account.sevenDay?.remainingPercent, account.sevenDay?.resetAt, '7d'),
-        ],
-      })
-    ),
+    {
+      // Claude Desktop cannot be signed in from here; it saves snapshots instead.
+      ...provider(
+        'claudedesktop',
+        context.detectedTools.find((tool) => tool.id === 'claudedesktop')?.name ?? 'Claude Desktop',
+        '/icons/tools/claudedesktop.svg',
+        ['claudedesktop'],
+        context.claudeDesktopAccounts,
+        (account) => ({
+          identity: account.email,
+          plan: account.plan,
+          metrics: [
+            quota(account.fiveHour?.remainingPercent, account.fiveHour?.resetAt, '5h'),
+            quota(account.sevenDay?.remainingPercent, account.sevenDay?.resetAt, '7d'),
+          ],
+        })
+      ),
+      addLabel: t('agent.accountSnapshot'),
+      waitingLabel: t('agent.accountSnapshotSaving'),
+    },
     provider(
       'dsh',
       'DeepSeek Harness',

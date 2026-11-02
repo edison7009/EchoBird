@@ -242,7 +242,7 @@ const en: Translations = {
     'The desktop GlobalShortcuts portal is unavailable or permission was denied.',
   'accountError.clientOwnsLogin':
     'This account is signed in to the running client and its login has expired. Close the client and try again.',
-  'accountError.closeClient': 'Save your work and close the client, then try switching again.',
+  'accountError.closeClient': 'Save your work and close the client, then try again.',
   'accountError.stopClient': 'Could not stop the client. Please try again.',
   'accountError.stopClaudeDesktop': 'Could not stop Claude. Please try again.',
   'accountError.initializeClient': 'Open the client once before adding an account.',
@@ -657,6 +657,10 @@ const en: Translations = {
   'agent.currentSelection': 'Current selection',
   'agent.modelSwitch': 'Model switching',
   'agent.addCurrentAccount': 'Add Account',
+  'agent.accountSnapshot': 'Account Snapshot',
+  'agent.accountSnapshotHint':
+    "Claude Desktop can't be signed in from here, so its accounts switch by snapshot: sign in to Claude Desktop, then click Account Snapshot to save the account. To add more accounts, sign in to the new account in Claude Desktop, then click Account Snapshot. EchoBird closes Claude Desktop to take the snapshot.",
+  'agent.accountSnapshotSaving': 'Saving snapshot',
   'agent.zcodeSwitchProvider': 'Switch login provider (currently {provider})',
   'agent.minimaxRegionCn': 'China',
   'agent.minimaxRegionGlobal': 'International',

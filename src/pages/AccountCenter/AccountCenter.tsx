@@ -610,7 +610,7 @@ export function AccountCenterPanel() {
                           '{seconds}',
                           String(provider.remainingSeconds)
                         )
-                      : `${t('agent.addCurrentAccount')} ${provider.name}`,
+                      : `${provider.addLabel ?? t('agent.addCurrentAccount')} ${provider.name}`,
                     disabled,
                     busy: provider.busy,
                   }}

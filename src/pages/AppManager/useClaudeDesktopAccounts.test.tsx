@@ -11,6 +11,7 @@ vi.mock('../../api/tauri', () => ({
   cancelClaudeDesktopLogin: vi.fn(),
   refreshClaudeDesktopAccount: vi.fn(),
   deleteClaudeDesktopAccount: vi.fn(),
+  startTool: vi.fn(),
 }));
 vi.mock('../../hooks/useI18n', () => ({ useI18n: () => ({ t: (key: string) => key }) }));
 vi.mock('../../components/ConfirmDialog', () => ({ useConfirm: () => async () => true }));
@@ -153,4 +154,29 @@ it('cancels on timeout and never imports a late account after leaving the tool',
   });
   expect(state.accounts).toEqual([saved]);
   expect(api.cancelClaudeDesktopLogin).toHaveBeenCalledWith('next');
+});
+
+it('saves a snapshot within the shared 60-second deadline and never launches the client itself', async () => {
+  await mount();
+  vi.mocked(api.listClaudeDesktopAccounts).mockResolvedValue([saved, captured]);
+  vi.mocked(api.pollClaudeDesktopLogin).mockResolvedValue({
+    account: captured,
+    awaitingClientExit: false,
+    expiresAt: null,
+  });
+  let task!: Promise<void>;
+  act(() => {
+    task = state.add();
+  });
+  await tick();
+  expect(state.remainingSeconds).toBeLessThanOrEqual(60);
+  await tick(2000);
+  await act(async () => {
+    await task;
+  });
+  expect(state.accounts.map((a) => a.id)).toEqual(['saved', 'new']);
+  // A snapshot only reads Claude Desktop's sign-in; the page starts nothing.
+  expect(api.startTool).not.toHaveBeenCalled();
+  expect(api.refreshClaudeDesktopAccount).not.toHaveBeenCalled();
+  expect(showError).not.toHaveBeenCalled();
 });

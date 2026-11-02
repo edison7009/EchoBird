@@ -1,5 +1,5 @@
 import * as api from '../../api/tauri';
-import { BROWSER_LOGIN_TIMEOUT_SECONDS, useManagedAccounts } from './useManagedAccounts';
+import { useManagedAccounts } from './useManagedAccounts';
 
 export function useClaudeDesktopAccounts(
   enabled: boolean,
@@ -21,7 +21,6 @@ export function useClaudeDesktopAccounts(
       remove: (account) => api.deleteClaudeDesktopAccount(account.id),
       refresh: (account) => api.refreshClaudeDesktopAccount(account.id),
       label: (account) => account.email,
-      loginTimeoutSeconds: BROWSER_LOGIN_TIMEOUT_SECONDS,
     }
   );
 }

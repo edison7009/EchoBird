@@ -5,6 +5,7 @@ import { ModelSwitchDivider } from './ModelSwitchDivider';
 import { AccountSectionButton, AccountSectionRow } from './AccountSectionPrimitives';
 import { QuotaCountdown } from './QuotaCountdown';
 import { openAccountPlugins } from './openAccountPlugins';
+import { useI18n } from '../../hooks/useI18n';
 export const ClaudeCodeAccountSection: React.FC<{ showDivider?: boolean; desktop?: boolean }> = ({
   showDivider = true,
   desktop = false,
@@ -14,6 +15,7 @@ export const ClaudeCodeAccountSection: React.FC<{ showDivider?: boolean; desktop
   const { accounts, selectedId, select, busy, remainingSeconds, refreshing, refresh, remove } =
     group;
   const installed = useAccountPlugin(desktop ? 'claudedesktop' : 'claudecode');
+  const { t } = useI18n();
   return (
     <section>
       <AccountSectionButton
@@ -21,7 +23,10 @@ export const ClaudeCodeAccountSection: React.FC<{ showDivider?: boolean; desktop
         colorClassName="claude-account-pill"
         busy={busy}
         remainingSeconds={remainingSeconds}
-        idleLabel="plugins.category.account"
+        // Claude Desktop cannot be signed in from here; it saves snapshots instead.
+        idleLabel={desktop ? 'agent.accountSnapshot' : 'plugins.category.account'}
+        hint={desktop && installed ? t('agent.accountSnapshotHint') : undefined}
+        waitingLabel={desktop ? t('agent.accountSnapshotSaving') : undefined}
         onClick={() =>
           void (installed ? group.add() : openAccountPlugins()).catch((error) =>
             setApplyError(String(error))

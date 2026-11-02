@@ -3053,7 +3053,7 @@ it.each(communityProviderTools)(
     );
     await act(async () => {
       expect(renderer.root.findByType(AccountSectionButton).props.idleLabel).toBe(
-        'plugins.category.account'
+        tool === 'claudedesktop' ? 'agent.accountSnapshot' : 'plugins.category.account'
       );
       renderer.root.findByType(AccountSectionButton).props.onClick();
     });

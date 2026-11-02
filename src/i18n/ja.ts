@@ -242,8 +242,7 @@ const ja: Partial<Translations> = {
     'デスクトップのグローバルキーサービスが利用できないか許可されませんでした。',
   'accountError.clientOwnsLogin':
     'このアカウントは実行中のクライアントで使用中で、ログインの有効期限が切れています。クライアントを閉じてから再試行してください。',
-  'accountError.closeClient':
-    '作業を保存してクライアントを閉じてから、アカウントを再度切り替えてください。',
+  'accountError.closeClient': '作業を保存してクライアントを閉じてから、再試行してください。',
   'accountError.stopClient': 'クライアントを終了できませんでした。再試行してください。',
   'accountError.stopClaudeDesktop': 'Claude を終了できませんでした。再試行してください。',
   'accountError.initializeClient': 'アカウントを追加する前に、クライアントを一度起動してください。',
@@ -673,6 +672,10 @@ const ja: Partial<Translations> = {
   'agent.currentSelection': '現在の選択',
   'agent.modelSwitch': 'モデル切り替え',
   'agent.addCurrentAccount': 'アカウントを追加',
+  'agent.accountSnapshot': 'アカウントスナップショット',
+  'agent.accountSnapshotHint':
+    'Claude デスクトップの制限により、ここから直接ログインできないため、アカウントはスナップショットで切り替えます。Claude デスクトップでログインしてから「アカウントスナップショット」をクリックして保存します。複数のアカウントを追加するには、Claude デスクトップで新しいアカウントにログインしてから「アカウントスナップショット」をクリックします。スナップショットの際、EchoBird が Claude デスクトップを自動で閉じます。',
+  'agent.accountSnapshotSaving': 'スナップショットを保存中',
   'agent.zcodeSwitchProvider': 'ログイン先を切り替え（現在は {provider}）',
   'agent.minimaxRegionCn': '中国版',
   'agent.minimaxRegionGlobal': '国際版',
