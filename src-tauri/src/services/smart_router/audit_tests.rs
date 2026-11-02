@@ -825,6 +825,22 @@ async fn a_chat_reply_finishing_with_error_falls_back_without_streaming() {
 }
 
 #[test]
+fn time_already_waited_shortens_the_next_candidates_window() {
+    let base = UPSTREAM_FIRST_CONTENT_TIMEOUT;
+    let window = |waited| shortened_first_content_timeout(base, Duration::from_secs(waited));
+    assert_eq!(base, Duration::from_secs(20));
+    assert_eq!(window(0), Duration::from_secs(20));
+    assert_eq!(window(2), Duration::from_secs(20));
+    assert_eq!(window(20), Duration::from_secs(15));
+    assert_eq!(window(35), Duration::from_secs(10));
+    assert_eq!(
+        Duration::from_secs(20 + 15 + 10),
+        FALLBACK_TIME_BUDGET,
+        "three silent candidates must each get their window inside the budget"
+    );
+}
+
+#[test]
 fn only_the_claude_subscription_keeps_the_billing_line() {
     let mut subscription = audit_candidate("subscription");
     subscription.account_source = Some(crate::models::model::AccountSource {

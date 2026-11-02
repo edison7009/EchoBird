@@ -57,7 +57,7 @@ const MAX_ROUTE_ATTEMPTS: usize = 20;
 const FALLBACK_TIME_BUDGET: Duration = Duration::from_secs(45);
 const UPSTREAM_HEADER_TIMEOUT: Duration = Duration::from_secs(30);
 const UPSTREAM_FIRST_BYTE_TIMEOUT: Duration = Duration::from_secs(120);
-const UPSTREAM_FIRST_CONTENT_TIMEOUT: Duration = Duration::from_secs(30);
+const UPSTREAM_FIRST_CONTENT_TIMEOUT: Duration = Duration::from_secs(20);
 const UPSTREAM_STREAM_IDLE_TIMEOUT: Duration = Duration::from_secs(120);
 const UPSTREAM_FINISH_ERROR: &str = "upstream_finish_error";
 const TRANSIENT_COOLDOWN: Duration = Duration::from_secs(30);
@@ -1649,7 +1649,7 @@ async fn route_with_policy(
         let first_content_limit = if final_candidate {
             policy.first_byte_timeout
         } else {
-            policy.first_content_timeout
+            shortened_first_content_timeout(policy.first_content_timeout, routing_started.elapsed())
         };
         let first_content_deadline = tokio::time::Instant::now() + first_content_limit;
         let sent = tokio::time::timeout(
@@ -3787,6 +3787,17 @@ fn cooldown_for_failure(
                 .min(MAX_TRANSIENT_COOLDOWN)
         }
         FailureClass::RequestIncompatible => Duration::ZERO,
+    }
+}
+
+/// Time already spent waiting comes off the next candidate; a quick refusal costs nothing.
+fn shortened_first_content_timeout(base: Duration, waited: Duration) -> Duration {
+    if waited >= base * 7 / 4 {
+        base / 2
+    } else if waited >= base {
+        base * 3 / 4
+    } else {
+        base
     }
 }
 
