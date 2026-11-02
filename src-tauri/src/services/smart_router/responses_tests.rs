@@ -563,6 +563,34 @@ async fn hosted_tools_skip_incompatible_chat_fallback_and_reach_native_backup() 
 }
 
 #[tokio::test]
+async fn the_last_chat_candidate_answers_without_hosted_tools() {
+    let only = MockServer::new(
+        vec![endpoint_missing(StatusCode::NOT_FOUND)],
+        vec![chat_ok("answered without search")],
+    )
+    .await;
+    let state = AppState::for_tests().unwrap();
+    let request = json!({"model":SMART_ROUTER_MODEL_ID,"input":"search question",
+        "tools":[{"type":"web_search"},{"type":"function","name":"exec","parameters":{}}],
+        "tool_choice":{"type":"web_search"},"stream":false});
+    let response = route_responses_with_candidates(
+        &state,
+        &HeaderMap::new(),
+        request,
+        vec![only.candidate("hosted-last-chat")],
+    )
+    .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let calls = only.calls();
+    assert_eq!(calls.len(), 2);
+    assert_eq!(calls[0].0, "/v1/responses");
+    assert_eq!(calls[1].0, "/v1/chat/completions");
+    assert_eq!(calls[1].1["tools"].as_array().unwrap().len(), 1);
+    assert_eq!(calls[1].1["tools"][0]["function"]["name"], "exec");
+    assert!(calls[1].1.get("tool_choice").is_none());
+}
+
+#[tokio::test]
 async fn continuation_keeps_original_candidate_after_reorder_but_full_history_uses_new_order() {
     let first = MockServer::new(
         vec![

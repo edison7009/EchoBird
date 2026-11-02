@@ -23,12 +23,26 @@ pub(crate) fn catalog(request: &Value) -> Result<BTreeMap<String, Value>, ProxyE
             .as_array()
             .into_iter()
             .flatten()
-            .filter(|item| item["type"] == "additional_tools")
+            .filter(|item| {
+                matches!(
+                    item["type"].as_str(),
+                    Some("additional_tools" | "tool_search_output")
+                )
+            })
             .flat_map(|item| item["tools"].as_array().into_iter().flatten()),
     ) {
         collect(tool, "", &mut catalog)?;
     }
     Ok(catalog)
+}
+
+/// Tools the Responses host runs itself; a Chat model has nothing to run them with.
+pub(crate) fn is_hosted(kind: &str) -> bool {
+    kind.starts_with("web_search")
+        || matches!(
+            kind,
+            "file_search" | "code_interpreter" | "image_generation" | "mcp" | "tool_search"
+        )
 }
 
 fn collect(
@@ -47,6 +61,9 @@ fn collect(
         for child in tool["tools"].as_array().into_iter().flatten() {
             collect(child, namespace, catalog)?;
         }
+        return Ok(());
+    }
+    if is_hosted(tool["type"].as_str().unwrap_or_default()) {
         return Ok(());
     }
     if tool["type"] != "function" && tool["type"] != "custom" {

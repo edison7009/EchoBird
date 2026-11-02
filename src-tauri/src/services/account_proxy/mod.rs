@@ -85,6 +85,14 @@ pub(crate) use providers::{context_limit_error, stream_error};
 pub use responses::{chat_to_responses, chat_to_responses_with_tools, responses_to_chat};
 pub(crate) use responses::{normalize_responses_tool_rounds, GoogleThought};
 
+pub(crate) fn declares_hosted_tools(body: &Value) -> bool {
+    body["tools"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .any(|tool| tools::is_hosted(tool["type"].as_str().unwrap_or_default()))
+}
+
 pub(crate) fn chat_request_to_responses(body: &Value, model: &str) -> Value {
     protocol::chat_to_responses(body, model)
 }

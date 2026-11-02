@@ -246,6 +246,13 @@ impl GoogleThought {
     }
 }
 
+fn empty_chat_content(content: &Value) -> bool {
+    content.as_str().is_some_and(str::is_empty)
+        || content
+            .as_array()
+            .is_some_and(|parts| parts.iter().all(|part| part["text"] == ""))
+}
+
 /// Responses clients enter the same Chat-based router, including tool-result turns.
 pub fn responses_to_chat(input: &Value) -> Result<Value, ProxyError> {
     if input
@@ -282,6 +289,10 @@ pub fn responses_to_chat(input: &Value) -> Result<Value, ProxyError> {
                         }
                         json!(parts)
                     };
+                    // Strict Chat upstreams refuse an interrupted turn's empty reply.
+                    if item["role"] == "assistant" && empty_chat_content(&content) {
+                        continue;
+                    }
                     if let Some(previous) = messages.last_mut().filter(|previous| {
                         item["role"] == "assistant"
                             && previous["role"] == "assistant"
@@ -345,7 +356,18 @@ pub fn responses_to_chat(input: &Value) -> Result<Value, ProxyError> {
                     }
                     messages.push(json!({"role":"tool","tool_call_id":item["call_id"],"content":item["output"]}));
                 }
-                "reasoning" | "additional_tools" => {}
+                "reasoning" | "additional_tools" | "tool_search_output" => {}
+                // Records of work the previous model's host already finished.
+                // A native compaction stays refused: dropping it loses the turns it replaced.
+                "web_search_call"
+                | "file_search_call"
+                | "code_interpreter_call"
+                | "image_generation_call"
+                | "mcp_call"
+                | "mcp_list_tools"
+                | "mcp_approval_request"
+                | "mcp_approval_response"
+                | "tool_search_call" => {}
                 _ => {
                     return Err(ProxyError::new(
                         StatusCode::BAD_REQUEST,
@@ -404,7 +426,10 @@ pub fn responses_to_chat(input: &Value) -> Result<Value, ProxyError> {
     if let Some(value) = input.get("max_output_tokens") {
         output["max_tokens"] = value.clone();
     }
-    if let Some(choice) = input.get("tool_choice") {
+    if let Some(choice) = input
+        .get("tool_choice")
+        .filter(|choice| !tools::is_hosted(choice["type"].as_str().unwrap_or_default()))
+    {
         output["tool_choice"] = if choice.is_object() {
             json!({"type":"function","function":{"name":tools::alias(choice["namespace"].as_str().unwrap_or_default(),choice["name"].as_str().unwrap_or_default())}})
         } else {
@@ -521,6 +546,9 @@ impl Encoder {
         let mut chunks = Vec::new();
         for choice in value["choices"].as_array().into_iter().flatten().take(1) {
             if let Some(reason) = choice["finish_reason"].as_str() {
+                if reason == "error" {
+                    return Err("Upstream stream finished with an error".into());
+                }
                 self.finish_reason = reason.into();
             }
             let delta = choice
@@ -1649,11 +1677,76 @@ mod tests {
             super::super::protocol::chat_to_responses(&chat, "native")["input"],
             request["input"]
         );
-        let unsupported = json!({"input":"hello","tools":[{"type":"web_search"}]});
+        let unsupported = json!({"input":"hello","tools":[{"type":"computer_use_preview"}]});
         assert_eq!(
             responses_to_chat(&unsupported).unwrap_err().status,
             StatusCode::BAD_REQUEST
         );
+    }
+
+    #[test]
+    fn hosted_tools_and_their_records_do_not_block_a_chat_model() {
+        let request = json!({"tool_choice":{"type":"web_search"},
+        "tools":[{"type":"web_search"},{"type":"function","name":"exec","parameters":{}}],
+        "input":[
+            {"type":"message","role":"user","content":"Find it"},
+            {"type":"web_search_call","id":"ws_1","status":"completed","action":{"type":"search","query":"fixture"}},
+            {"type":"tool_search_call","id":"ts_1","call_id":"ts_1","arguments":{}},
+            {"type":"tool_search_output","call_id":"ts_1","tools":[{"type":"function","name":"deferred","parameters":{}}]},
+            {"type":"message","role":"assistant","content":[{"type":"output_text","text":"Found it"}]}
+        ]});
+        let chat = responses_to_chat(&request).unwrap();
+        let roles: Vec<_> = chat["messages"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|message| message["role"].as_str().unwrap())
+            .collect();
+        assert_eq!(roles, ["user", "assistant"]);
+        let names: Vec<_> = chat["tools"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|tool| tool["function"]["name"].as_str().unwrap())
+            .collect();
+        assert_eq!(names, ["deferred", "exec"]);
+        assert!(chat.get("tool_choice").is_none());
+    }
+
+    #[test]
+    fn a_chat_error_finish_does_not_complete_the_response() {
+        let mut encoder = Encoder::new();
+        let frame = json!({"choices":[{"delta":{"content":"partial"},"finish_reason":"error"}]});
+        assert!(encoder.decode(&frame.to_string()).is_err());
+    }
+
+    #[test]
+    fn a_native_compaction_is_still_refused_rather_than_lost() {
+        let request = json!({"input":[{"type":"compaction","encrypted_content":"sealed"}]});
+        assert_eq!(
+            responses_to_chat(&request).unwrap_err().status,
+            StatusCode::BAD_REQUEST
+        );
+    }
+
+    #[test]
+    fn an_interrupted_empty_reply_is_not_sent_to_chat() {
+        let request = json!({"input":[
+            {"type":"message","role":"user","content":"First"},
+            {"type":"reasoning","id":"rs_1","summary":[]},
+            {"type":"message","role":"assistant","content":""},
+            {"type":"message","role":"assistant","content":[]},
+            {"type":"message","role":"assistant","content":[{"type":"output_text","text":""}]},
+            {"type":"message","role":"user","content":"Second"}
+        ]});
+        let chat = responses_to_chat(&request).unwrap();
+        let roles: Vec<_> = chat["messages"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|message| message["role"].as_str().unwrap())
+            .collect();
+        assert_eq!(roles, ["user", "user"]);
     }
 
     #[tokio::test]

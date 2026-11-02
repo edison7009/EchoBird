@@ -698,6 +698,157 @@ async fn stream_timeout_after_output_closes_upstream_without_replay_or_binding()
 }
 
 #[tokio::test]
+async fn stream_timeout_gives_the_last_candidate_its_full_first_byte_window() {
+    for protocol in [RouteProtocol::Chat, RouteProtocol::Responses] {
+        let (tx, rx) = tokio::sync::mpsc::channel::<Result<Bytes, Infallible>>(4);
+        tokio::spawn(async move {
+            tx.send(Ok(Bytes::from(timeout_stream_frame(protocol, "metadata"))))
+                .await
+                .unwrap();
+            tokio::time::sleep(Duration::from_millis(120)).await;
+            tx.send(Ok(Bytes::from(timeout_stream_frame(protocol, "text"))))
+                .await
+                .unwrap();
+            tx.send(Ok(Bytes::from_static(
+                timeout_terminal(protocol).as_bytes(),
+            )))
+            .await
+            .unwrap();
+        });
+        let state = timeout_state(Body::from_stream(ReceiverStream::new(rx)), protocol);
+        let response = route_with_policy(
+            &state,
+            &HeaderMap::new(),
+            json!({"messages":[],"input":"hello","stream":true}),
+            vec![audit_candidate("first")],
+            RoutePolicy {
+                first_content_timeout: Duration::from_millis(30),
+                ..RoutePolicy::default()
+            },
+            protocol,
+        )
+        .await;
+        assert_eq!(response.status(), StatusCode::OK);
+        assert_eq!(
+            response.headers()["X-EchoBird-Routed-Via"],
+            "first/first-model"
+        );
+        let output = response.into_body().collect().await.unwrap().to_bytes();
+        assert!(String::from_utf8_lossy(&output).contains("output"));
+        assert!(state.route_memory.lock().unwrap().candidates.is_empty());
+    }
+}
+
+#[tokio::test]
+async fn a_chat_stream_finishing_with_error_falls_back_before_any_output() {
+    let first = Body::from("data: {\"choices\":[{\"delta\":{},\"finish_reason\":\"error\"}]}\n\n");
+    let state = timeout_state(first, RouteProtocol::Chat);
+    let response = route_with_policy(
+        &state,
+        &HeaderMap::new(),
+        json!({"messages":[],"stream":true}),
+        vec![audit_candidate("first"), audit_candidate("second")],
+        RoutePolicy::default(),
+        RouteProtocol::Chat,
+    )
+    .await;
+    assert_eq!(
+        response.headers()["X-EchoBird-Routed-Via"],
+        "second/second-model"
+    );
+    response.into_body().collect().await.unwrap();
+    assert_eq!(
+        state.route_memory.lock().unwrap().candidates["first"].failure,
+        Some(FailureClass::Transient)
+    );
+}
+
+#[tokio::test]
+async fn a_chat_stream_finishing_with_error_after_output_is_reported_and_marked() {
+    let first = Body::from_stream(stream::iter([
+        Ok::<_, Infallible>(Bytes::from(timeout_stream_frame(
+            RouteProtocol::Chat,
+            "text",
+        ))),
+        Ok(Bytes::from_static(
+            b"data: {\"choices\":[{\"delta\":{},\"finish_reason\":\"error\"}]}\n\n",
+        )),
+    ]));
+    let state = timeout_state(first, RouteProtocol::Chat);
+    let response = route_with_policy(
+        &state,
+        &HeaderMap::new(),
+        json!({"messages":[],"stream":true}),
+        vec![audit_candidate("first"), audit_candidate("second")],
+        RoutePolicy::default(),
+        RouteProtocol::Chat,
+    )
+    .await;
+    assert_eq!(
+        response.headers()["X-EchoBird-Routed-Via"],
+        "first/first-model"
+    );
+    let anthropic = openai_stream_to_anthropic(response);
+    let output = anthropic.into_body().collect().await.unwrap().to_bytes();
+    let output = String::from_utf8_lossy(&output);
+    assert!(output.contains("event: error"));
+    assert!(output.contains(UPSTREAM_FINISH_ERROR));
+    assert!(!output.contains("end_turn"));
+    assert_eq!(
+        state.route_memory.lock().unwrap().candidates["first"].failure,
+        Some(FailureClass::Transient)
+    );
+}
+
+#[tokio::test]
+async fn a_chat_reply_finishing_with_error_falls_back_without_streaming() {
+    let first = audit_chat_json(
+        json!({"choices":[{"message":{"role":"assistant","content":"partial"},"finish_reason":"error"}]}),
+    );
+    let second = audit_chat_json(
+        json!({"choices":[{"message":{"role":"assistant","content":"backup"},"finish_reason":"stop"}]}),
+    );
+    let state = audit_fixtures(first, second);
+    let response = route_with_policy(
+        &state,
+        &HeaderMap::new(),
+        json!({"messages":[]}),
+        vec![audit_candidate("first"), audit_candidate("second")],
+        RoutePolicy::default(),
+        RouteProtocol::Chat,
+    )
+    .await;
+    assert_eq!(
+        response.headers()["X-EchoBird-Routed-Via"],
+        "second/second-model"
+    );
+}
+
+#[test]
+fn only_the_claude_subscription_keeps_the_billing_line() {
+    let mut subscription = audit_candidate("subscription");
+    subscription.account_source = Some(crate::models::model::AccountSource {
+        provider: AccountProvider::ClaudeCode,
+        account_id: "fixture".into(),
+    });
+    assert!(!drops_billing_line(&subscription, RouteProtocol::Chat));
+    assert!(drops_billing_line(
+        &audit_candidate("api"),
+        RouteProtocol::Chat
+    ));
+    assert!(!drops_billing_line(
+        &audit_candidate("api"),
+        RouteProtocol::Responses
+    ));
+    let mut other = audit_candidate("other");
+    other.account_source = Some(crate::models::model::AccountSource {
+        provider: AccountProvider::Antigravity,
+        account_id: "fixture".into(),
+    });
+    assert!(drops_billing_line(&other, RouteProtocol::Chat));
+}
+
+#[tokio::test]
 async fn stream_timeout_bound_continuation_never_switches_models() {
     let (tx, rx) = tokio::sync::mpsc::channel::<Result<Bytes, Infallible>>(1);
     tx.send(Ok(Bytes::from(timeout_stream_frame(
@@ -720,7 +871,7 @@ async fn stream_timeout_bound_continuation_never_switches_models() {
             json!({"input":"continue","previous_response_id":"resp_previous","stream":true}),
             vec![first, audit_candidate("second")],
             RoutePolicy {
-                first_content_timeout: Duration::from_millis(50),
+                first_byte_timeout: Duration::from_millis(50),
                 ..RoutePolicy::default()
             },
             RouteProtocol::Responses,

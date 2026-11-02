@@ -28,6 +28,7 @@ pub use messages_handler::{
 };
 pub use server::AppState;
 
+pub(crate) mod billing_line;
 mod messages_handler;
 mod server;
 

@@ -41,6 +41,7 @@ pub(super) async fn send(
     candidate: &Candidate,
     body: &Value,
     protocol: RouteProtocol,
+    final_candidate: bool,
 ) -> Result<Response, String> {
     let responses_model = candidate.model_id == RESPONSES_MODEL;
     let streaming = body["stream"].as_bool().unwrap_or(false);
@@ -48,7 +49,7 @@ pub(super) async fn send(
         (RouteProtocol::Chat, true) => {
             account_proxy::chat_request_to_responses(body, &candidate.model_id)
         }
-        (RouteProtocol::Responses, false) => match responses_chat_request(body) {
+        (RouteProtocol::Responses, false) => match responses_chat_request(body, final_candidate) {
             Ok(chat) => chat,
             Err(error) => return Ok(error.into_response()),
         },
@@ -124,7 +125,7 @@ pub(super) async fn send(
     .await
     .map_err(|error| error.to_string())?;
     if protocol == RouteProtocol::Responses {
-        let chat = responses_chat_request(body).map_err(|error| error.to_string())?;
+        let chat = responses_chat_request(body, false).map_err(|error| error.to_string())?;
         responses_from_chat(converted, &chat)
             .await
             .map_err(|error| error.to_string())
@@ -270,6 +271,7 @@ mod tests {
                     &json!({"model":model,"stream":false,"max_tokens":128,
                         "messages":[{"role":"user","content":"Reply with the word OK."}]}),
                     RouteProtocol::Chat,
+                    true,
                 ),
             )
             .await
@@ -309,6 +311,7 @@ mod tests {
                 &json!({"model":model,"stream":true,"max_tokens":128,
                     "messages":[{"role":"user","content":"Reply with the word OK."}]}),
                 RouteProtocol::Chat,
+                true,
             )
             .await
             .unwrap();
@@ -341,6 +344,7 @@ mod tests {
             &json!({"model":RESPONSES_MODEL,"stream":false,
                 "input":"Reply with the word OK."}),
             RouteProtocol::Responses,
+            true,
         )
         .await
         .unwrap();

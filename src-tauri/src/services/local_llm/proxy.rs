@@ -847,6 +847,9 @@ pub(crate) fn anthropic_to_openai(body: &serde_json::Value) -> serde_json::Value
             match msg.get("content") {
                 // Simple string content
                 Some(c) if c.is_string() => {
+                    if role == "assistant" && c.as_str().is_some_and(str::is_empty) {
+                        continue;
+                    }
                     messages.push(
                         serde_json::json!({"role": role, "content": c.as_str().unwrap_or("")}),
                     );
@@ -940,12 +943,17 @@ pub(crate) fn anthropic_to_openai(body: &serde_json::Value) -> serde_json::Value
                             .iter()
                             .filter_map(anthropic_user_content_part)
                             .collect();
+                        // Strict Chat upstreams refuse an interrupted turn's empty reply.
+                        if role == "assistant" && content.iter().all(|part| part["text"] == "") {
+                            continue;
+                        }
                         messages.push(serde_json::json!({
                             "role": role,
                             "content": openai_user_content(content)
                         }));
                     }
                 }
+                _ if role == "assistant" => {}
                 _ => {
                     messages.push(serde_json::json!({"role": role, "content": ""}));
                 }
@@ -1094,6 +1102,28 @@ pub(crate) fn openai_to_anthropic(data: &serde_json::Value) -> serde_json::Value
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn an_interrupted_empty_reply_is_not_sent_to_chat() {
+        let converted = anthropic_to_openai(&serde_json::json!({
+            "messages": [
+                {"role": "user", "content": "First"},
+                {"role": "assistant", "content": ""},
+                {"role": "assistant", "content": [{"type": "thinking", "thinking": "partial"}]},
+                {"role": "assistant", "content": [{"type": "text", "text": ""}]},
+                {"role": "assistant"},
+                {"role": "user", "content": "Second"},
+                {"role": "assistant", "content": [{"type": "text", "text": "Kept"}]}
+            ]
+        }));
+        let roles: Vec<_> = converted["messages"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|message| message["role"].as_str().unwrap())
+            .collect();
+        assert_eq!(roles, ["user", "user", "assistant"]);
+    }
 
     #[test]
     fn converts_anthropic_image_and_document_inputs() {

@@ -165,6 +165,12 @@ async fn handle_messages_with(
         req_body["model"] = Value::String(bare);
     }
 
+    let model = req_body["model"].as_str().unwrap_or_default();
+    let router_upstream = crate::services::smart_router::is_router_url(&relay.base_url);
+    if !super::billing_line::keeps_billing_line(model, router_upstream) {
+        super::billing_line::strip_from_anthropic(&mut req_body);
+    }
+
     // URL composition matches llm_client.rs:404 — handle every shape
     // users (and our model directory templates) realistically put in
     // the relay's anthropic URL:

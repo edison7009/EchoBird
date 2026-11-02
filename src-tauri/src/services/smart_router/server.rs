@@ -59,6 +59,7 @@ const UPSTREAM_HEADER_TIMEOUT: Duration = Duration::from_secs(30);
 const UPSTREAM_FIRST_BYTE_TIMEOUT: Duration = Duration::from_secs(120);
 const UPSTREAM_FIRST_CONTENT_TIMEOUT: Duration = Duration::from_secs(30);
 const UPSTREAM_STREAM_IDLE_TIMEOUT: Duration = Duration::from_secs(120);
+const UPSTREAM_FINISH_ERROR: &str = "upstream_finish_error";
 const TRANSIENT_COOLDOWN: Duration = Duration::from_secs(30);
 const MAX_TRANSIENT_COOLDOWN: Duration = Duration::from_secs(5 * 60);
 const RATE_LIMIT_COOLDOWN: Duration = Duration::from_secs(60);
@@ -1149,6 +1150,15 @@ pub(crate) async fn route_live_account_probe(
     Ok(route_chat_with_policy(&state, &HeaderMap::new(), body, vec![candidate], policy).await)
 }
 
+/// Only the Claude subscription reads Claude Code's billing line.
+fn drops_billing_line(candidate: &Candidate, protocol: RouteProtocol) -> bool {
+    protocol == RouteProtocol::Chat
+        && !candidate
+            .account_source
+            .as_ref()
+            .is_some_and(|source| source.provider == AccountProvider::ClaudeCode)
+}
+
 async fn send_candidate(
     state: &AppState,
     headers: &HeaderMap,
@@ -1156,7 +1166,11 @@ async fn send_candidate(
     mut body: Value,
     protocol: RouteProtocol,
     refreshed_credentials: Option<Value>,
+    final_candidate: bool,
 ) -> Result<Response, String> {
+    if drops_billing_line(candidate, protocol) {
+        crate::services::anthropic_proxy::billing_line::strip_from_chat(&mut body);
+    }
     #[cfg(test)]
     if let Some(responses) = &state.fixture_responses {
         if let Some(credentials) = refreshed_credentials {
@@ -1210,6 +1224,7 @@ async fn send_candidate(
             &candidate.model_id,
             body.clone(),
             protocol,
+            final_candidate,
         )
         .await;
         let mut response = match result {
@@ -1222,7 +1237,7 @@ async fn send_candidate(
         return Ok(response);
     }
     if zen_free::is_candidate(candidate) {
-        return zen_free::send(state, headers, candidate, &body, protocol).await;
+        return zen_free::send(state, headers, candidate, &body, protocol, final_candidate).await;
     }
     if protocol == RouteProtocol::Responses {
         let continuing = has_previous_response(&body);
@@ -1248,7 +1263,7 @@ async fn send_candidate(
                 return Ok(response);
             }
         }
-        body = match responses_chat_request(&body) {
+        body = match responses_chat_request(&body, final_candidate) {
             Ok(chat) => chat,
             Err(error) => return Ok(error.into_response()),
         };
@@ -1367,6 +1382,7 @@ async fn send_account_request(
     model: &str,
     body: Value,
     protocol: RouteProtocol,
+    final_candidate: bool,
 ) -> Result<Response, crate::services::account_proxy::ProxyError> {
     if protocol == RouteProtocol::Responses {
         if let Some(mut response) = crate::services::account_proxy::route_responses(
@@ -1381,7 +1397,7 @@ async fn send_account_request(
             response.extensions_mut().insert(NativeResponses);
             return Ok(response);
         }
-        let chat = responses_chat_request(&body)?;
+        let chat = responses_chat_request(&body, final_candidate)?;
         let response = crate::services::account_proxy::route(
             source.provider,
             credentials,
@@ -1404,12 +1420,23 @@ async fn send_account_request(
 
 fn responses_chat_request(
     body: &Value,
+    final_candidate: bool,
 ) -> Result<Value, crate::services::account_proxy::ProxyError> {
+    let conversion_error = |mut error: crate::services::account_proxy::ProxyError| {
+        error.error_code = Some("responses_conversion_unsupported".into());
+        error
+    };
+    // A later native candidate can still run hosted tools; only the last goes without.
+    if !final_candidate && crate::services::account_proxy::declares_hosted_tools(body) {
+        return Err(conversion_error(
+            crate::services::account_proxy::ProxyError::new(
+                StatusCode::BAD_REQUEST,
+                "Hosted tools require a native Responses model",
+            ),
+        ));
+    }
     let mut chat =
-        crate::services::account_proxy::responses_to_chat(body).map_err(|mut error| {
-            error.error_code = Some("responses_conversion_unsupported".into());
-            error
-        })?;
+        crate::services::account_proxy::responses_to_chat(body).map_err(conversion_error)?;
     // Collect after headers, within the router's existing completion budget.
     chat["stream"] = json!(true);
     Ok(chat)
@@ -1617,10 +1644,17 @@ async fn route_with_policy(
         upstream_body["model"] = Value::String(candidate.model_id.clone());
         let activity_guard =
             RouteActivityGuard::begin_for(&candidate.internal_id, state.activity.clone());
-        let first_content_deadline = tokio::time::Instant::now() + policy.first_content_timeout;
+        // A slow start is worth cutting only while another candidate can answer.
+        let final_candidate = available.len() == 0 || attempts.len() + 1 >= policy.max_attempts;
+        let first_content_limit = if final_candidate {
+            policy.first_byte_timeout
+        } else {
+            policy.first_content_timeout
+        };
+        let first_content_deadline = tokio::time::Instant::now() + first_content_limit;
         let sent = tokio::time::timeout(
             if stream_requested {
-                header_timeout.min(policy.first_content_timeout)
+                header_timeout.min(first_content_limit)
             } else {
                 header_timeout
             },
@@ -1631,6 +1665,7 @@ async fn route_with_policy(
                 upstream_body,
                 protocol,
                 refreshed_credentials,
+                final_candidate,
             ),
         )
         .await;
@@ -2020,11 +2055,13 @@ async fn route_with_policy(
                                 let result =
                                     result.or_else(|error| {
                                         match proxy_error_from_chain(&error).filter(|error| {
-                                            error.error_code.as_deref()
-                                                == Some("stream_idle_timeout")
+                                            matches!(
+                                                error.error_code.as_deref(),
+                                                Some("stream_idle_timeout" | UPSTREAM_FINISH_ERROR)
+                                            )
                                         }) {
                                             Some(error) => {
-                                                Ok(stream_timeout_event(protocol, error))
+                                                Ok(stream_failure_event(protocol, error))
                                             }
                                             None => Err(error),
                                         }
@@ -2192,7 +2229,9 @@ async fn route_with_policy(
                     return response;
                 }
                 let response_value = serde_json::from_slice::<Value>(&bytes).ok();
-                if response_value.as_ref().is_some_and(empty_chat_response) {
+                if response_value.as_ref().is_some_and(|value| {
+                    empty_chat_response(value) || chat_finished_with_error(value)
+                }) {
                     mark_failure(state, &candidate, FailureClass::Transient, None);
                     attempts.push(AttemptRecord {
                         candidate_id: candidate.internal_id.clone(),
@@ -2395,7 +2434,9 @@ impl AnthropicSseAdapter {
         }
         let chunk: Value = serde_json::from_str(data)
             .map_err(|error| format!("Invalid Smart Router stream: {error}"))?;
-        if chunk["error"]["code"] == "stream_idle_timeout" {
+        if chunk["error"]["code"] == "stream_idle_timeout"
+            || chunk["error"]["code"] == UPSTREAM_FINISH_ERROR
+        {
             self.finished = true;
             return Ok(vec![anthropic_sse_event(
                 "error",
@@ -2953,6 +2994,9 @@ impl StreamCompletion {
                 continue;
             }
             self.accounted |= positive_token_usage(&value["usage"]);
+            if chat_finished_with_error(&value) {
+                return Err(std::io::Error::other(upstream_finish_error()));
+            }
             if let Some(choices) = value["choices"].as_array() {
                 for choice in choices {
                     if chat_message_has_content(&choice["delta"]) {
@@ -3191,7 +3235,25 @@ fn stream_timeout_error(code: &str, message: &str) -> crate::services::account_p
     error
 }
 
-fn stream_timeout_event(
+fn chat_finished_with_error(response: &Value) -> bool {
+    response["choices"].as_array().is_some_and(|choices| {
+        choices
+            .iter()
+            .any(|choice| choice["finish_reason"] == "error")
+    })
+}
+
+fn upstream_finish_error() -> crate::services::account_proxy::ProxyError {
+    let mut error = crate::services::account_proxy::ProxyError::new(
+        StatusCode::BAD_GATEWAY,
+        "Upstream stream finished with an error",
+    );
+    error.error_code = Some(UPSTREAM_FINISH_ERROR.into());
+    error.error_type = Some("server_error".into());
+    error
+}
+
+fn stream_failure_event(
     protocol: RouteProtocol,
     error: &crate::services::account_proxy::ProxyError,
 ) -> Bytes {
@@ -7078,7 +7140,7 @@ mod tests {
     async fn converted_responses_try_backup_before_creation_and_preserve_resource_limit() {
         for streaming in [false, true] {
             let request = json!({"model":SMART_ROUTER_MODEL_ID,"input":"hello","stream":streaming});
-            let chat = responses_chat_request(&request).unwrap();
+            let chat = responses_chat_request(&request, false).unwrap();
             let mut error = crate::services::account_proxy::ProxyError::new(
                 StatusCode::TOO_MANY_REQUESTS,
                 "Trae account is rate limited",
