@@ -61,10 +61,11 @@ impl Login {
         features: Option<NewWindowFeatures>,
     ) -> Result<tauri::WebviewWindow, String> {
         self.check()?;
-        if !allowed(&url, domains) {
+        let root = features.is_none();
+        // Popup requests are checked by `navigate` before they reach here.
+        if root && !allowed(&url, domains) {
             return Err("accountError.authResponse".into());
         }
-        let root = features.is_none();
         let label = if root {
             self.prefix()
         } else {
@@ -73,7 +74,7 @@ impl Login {
         let popup_login = self.clone();
         let popup_app = app.clone();
         let navigation_login = self.clone();
-        let mut builder = WebviewWindowBuilder::new(app, label, WebviewUrl::External(url))
+        let mut builder = WebviewWindowBuilder::new(app, label, initial_page(root, url))
             .title(title)
             .inner_size(950.0, 730.0)
             .incognito(true)
@@ -243,6 +244,19 @@ pub(crate) fn unseal(value: &str) -> Result<String, String> {
         .map_err(|_| "accountError.keychain".into())
 }
 
+/// The page a new login window is built with. A popup must start blank: the
+/// browser attaches it to its opener and loads the requested page itself,
+/// through the navigation check. Loading the page here would detach it, so
+/// sign-in results could not reach the opener. The runtime does not navigate
+/// a window built blank, so the navigation allowlist needs no exception.
+fn initial_page(root: bool, url: url::Url) -> WebviewUrl {
+    if root {
+        WebviewUrl::External(url)
+    } else {
+        WebviewUrl::External(url::Url::parse("about:blank").expect("static URL"))
+    }
+}
+
 fn allowed(url: &url::Url, domains: &[&str]) -> bool {
     url.scheme() == "https"
         && url.username().is_empty()
@@ -258,6 +272,20 @@ fn allowed(url: &url::Url, domains: &[&str]) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn popups_start_blank_and_blank_pages_stay_outside_the_allowlist() {
+        let url: url::Url = "https://manus.im/login".parse().unwrap();
+        let page = |root| match initial_page(root, url.clone()) {
+            WebviewUrl::External(page) => page.to_string(),
+            _ => unreachable!(),
+        };
+        assert_eq!(page(true), "https://manus.im/login");
+        assert_eq!(page(false), "about:blank");
+        for blank in ["about:blank", "about:srcdoc", "data:text/html,x"] {
+            assert!(!allowed(&blank.parse().unwrap(), &["manus.im"]), "{blank}");
+        }
+    }
 
     #[test]
     fn login_navigation_accepts_only_the_actual_https_provider_hosts() {
