@@ -263,6 +263,8 @@ export interface ClaudeDesktopLoginPoll {
   account: ClaudeCodeAccount | null;
   awaitingClientExit: boolean;
   expiresAt: number | null;
+  /** Reported by plugin 0.1.0-preview.10 and later once the sign-in is cleared. */
+  cleared?: boolean;
 }
 export function listClaudeDesktopAccounts(): Promise<ClaudeCodeAccount[]> {
   return invoke('list_claude_desktop_accounts');

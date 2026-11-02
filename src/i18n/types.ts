@@ -570,6 +570,7 @@ export type TKey =
   | 'agent.accountSnapshotHint'
   | 'agent.accountSnapshotNoticeTitle'
   | 'agent.accountSnapshotNext'
+  | 'agent.accountSnapshotNextUnsupported'
   | 'agent.accountSnapshotSaving'
   | 'agent.zcodeSwitchProvider'
   | 'agent.minimaxRegionCn'

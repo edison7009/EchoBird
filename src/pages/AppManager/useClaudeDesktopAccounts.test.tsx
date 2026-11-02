@@ -225,6 +225,7 @@ it('prepares the next account only after a warning and opens Claude once it is s
     account: saved,
     awaitingClientExit: false,
     expiresAt: null,
+    cleared: true,
   });
   let task!: Promise<void>;
   act(() => {
@@ -242,6 +243,8 @@ it('prepares the next account only after a warning and opens Claude once it is s
   });
   expect(api.startClaudeDesktopLogin).toHaveBeenCalledExactlyOnceWith(true);
   expect(api.startTool).toHaveBeenCalledExactlyOnceWith('claudedesktop');
+  // The device is signed out; no saved account may stay selected for Apply.
+  expect(state.selectedId).toBeNull();
   expect(showError).not.toHaveBeenCalled();
   act(() => {
     task = state.add();
@@ -261,5 +264,47 @@ it('leaves Claude closed when preparing the next account fails', async () => {
     await state.addNext();
   });
   expect(showError).toHaveBeenCalled();
+  expect(api.startTool).not.toHaveBeenCalled();
+});
+
+it('reports an outdated plugin instead of opening Claude still signed in', async () => {
+  await mount();
+  vi.mocked(api.pollClaudeDesktopLogin).mockResolvedValue({
+    account: saved,
+    awaitingClientExit: false,
+    expiresAt: null,
+  });
+  let task!: Promise<void>;
+  act(() => {
+    task = state.addNext();
+  });
+  await tick(2000);
+  await act(async () => {
+    await task;
+  });
+  expect(api.startTool).not.toHaveBeenCalled();
+  expect(showError).toHaveBeenCalledExactlyOnceWith('agent.accountSnapshotNextUnsupported');
+});
+
+it('never opens Claude for a reset the user cancelled', async () => {
+  vi.mocked(api.startTool).mockResolvedValue(undefined);
+  await mount();
+  let finish!: (value: api.ClaudeDesktopLoginPoll) => void;
+  vi.mocked(api.pollClaudeDesktopLogin).mockReturnValue(
+    new Promise((resolve) => {
+      finish = resolve;
+    })
+  );
+  let task!: Promise<void>;
+  act(() => {
+    task = state.addNext();
+  });
+  await tick();
+  act(() => state.cancelLogin());
+  await act(async () => {
+    finish({ account: saved, awaitingClientExit: false, expiresAt: null, cleared: true });
+    await task;
+  });
+  expect(api.cancelClaudeDesktopLogin).toHaveBeenCalledWith('login');
   expect(api.startTool).not.toHaveBeenCalled();
 });

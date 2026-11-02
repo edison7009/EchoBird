@@ -99,6 +99,9 @@ pub mod claude_desktop_accounts {
         account: Option<Account>,
         awaiting_client_exit: bool,
         expires_at: Option<i64>,
+        /// The plugin removed the sign-in from this device for the next account.
+        #[serde(default)]
+        cleared: bool,
     }
     pub async fn list() -> Result<Vec<Account>, String> {
         super::super::list("claudedesktop", false).await
