@@ -127,9 +127,54 @@
 }
 .usage-island-settings {
   display: grid;
-  grid-template-rows: repeat(4, 1fr);
+  grid-template-rows: repeat(3, 1fr) auto;
   align-items: center;
   gap: 8px;
+}
+.usage-island-scale {
+  container-type: inline-size;
+  width: 100%;
+  min-width: 0;
+}
+.usage-island-scale-ticks {
+  position: relative;
+  height: 20px;
+  font-size: 12px;
+  line-height: 14px;
+  font-variant-numeric: tabular-nums;
+  color: rgb(var(--text-secondary-rgb));
+}
+/* Thumb centers stop 7px short of each end of the track. */
+.usage-island-scale-ticks > span {
+  position: absolute;
+  top: 0;
+  left: calc(7px + (100% - 14px) * var(--usage-island-tick));
+  padding-top: 6px;
+  transform: translateX(-50%);
+}
+.usage-island-scale-ticks > span::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 1px;
+  height: 4px;
+  background: rgb(var(--border-rgb));
+}
+.usage-island-scale-ticks > span[data-active='true'] {
+  color: rgb(var(--accent-rgb));
+}
+.usage-island-scale-ticks > span[data-active='true']::before {
+  background: rgb(var(--accent-rgb));
+}
+/* Too narrow for all nine labels: every step keeps its tick, every other one its label,
+   and the active label always shows, in place of its neighbours. */
+@container (max-width: 279px) {
+  .usage-island-scale-ticks > span:nth-child(even):not([data-active='true']),
+  .usage-island-scale-ticks > span:has(+ [data-active='true']),
+  .usage-island-scale-ticks > span[data-active='true'] + span {
+    color: transparent;
+  }
 }
 .usage-island-refresh {
   display: flex;
@@ -511,21 +556,39 @@
 }
 
 .usage-island[data-layout='dial'] {
+  --usage-island-logo: 48px;
   display: grid;
   place-items: center;
   height: 48px;
+  background-clip: content-box;
   transition:
     width 0.42s cubic-bezier(0.2, 0.75, 0.25, 1),
-    height 0.42s cubic-bezier(0.2, 0.75, 0.25, 1);
+    height 0.42s cubic-bezier(0.2, 0.75, 0.25, 1),
+    padding 0.42s cubic-bezier(0.2, 0.75, 0.25, 1);
+}
+/* The surface sits just inside the ring, so its edge cannot show around the ring. */
+.usage-island[data-layout='dial'][data-expanded='false']:has(
+    .usage-island-toggle .usage-island-gauge
+  ) {
+  padding: 1px;
 }
 .usage-island[data-expanded='true'][data-layout='dial'] {
   width: 216px;
   height: 216px;
 }
+.usage-island[data-layout='dial'] .usage-island-gauge .usage-island-icon {
+  inset: 10px;
+  width: 28px;
+  height: 28px;
+}
 .usage-island[data-layout='dial'] .usage-island-toggle {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
+}
+/* The ring fills the whole center circle, so it reaches past the 40px toggle. */
+.usage-island[data-layout='dial'] .usage-island-toggle .usage-island-gauge {
+  margin: -4px;
 }
 .usage-island-dial {
   --usage-island-dial-turn: 150deg;
@@ -561,8 +624,8 @@
   align-items: center;
   gap: 2px;
   width: 64px;
-  height: 54px;
-  margin: -27px 0 0 -32px;
+  height: 70px;
+  margin: -35px 0 0 -32px;
   rotate: var(--usage-island-dial-turn);
   transition: rotate 0.42s cubic-bezier(0.2, 0.75, 0.25, 1);
 }

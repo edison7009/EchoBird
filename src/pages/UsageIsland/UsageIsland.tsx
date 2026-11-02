@@ -191,22 +191,39 @@ export function UsageIslandMain() {
               </span>
             </div>
             <div className="voice-row">
-              <input
-                type="range"
-                min={MIN_SCALE}
-                max={MAX_SCALE}
-                step={10}
-                value={config.scale}
-                aria-label={t('usageIsland.scale')}
-                aria-valuetext={`${config.scale}%`}
-                className="ui-scale-slider relative block w-full"
-                style={
-                  {
-                    '--ui-scale-progress': `${((config.scale - MIN_SCALE) / (MAX_SCALE - MIN_SCALE)) * 100}%`,
-                  } as CSSProperties
-                }
-                onChange={(event) => update({ scale: Number(event.target.value) })}
-              />
+              <div className="usage-island-scale">
+                <input
+                  type="range"
+                  min={MIN_SCALE}
+                  max={MAX_SCALE}
+                  step={10}
+                  value={config.scale}
+                  aria-label={t('usageIsland.scale')}
+                  aria-valuetext={`${config.scale}%`}
+                  className="ui-scale-slider relative block w-full"
+                  style={
+                    {
+                      '--ui-scale-progress': `${((config.scale - MIN_SCALE) / (MAX_SCALE - MIN_SCALE)) * 100}%`,
+                    } as CSSProperties
+                  }
+                  onChange={(event) => update({ scale: Number(event.target.value) })}
+                />
+                <div className="usage-island-scale-ticks" aria-hidden="true">
+                  {usageIslandScales.map((scale) => (
+                    <span
+                      key={scale}
+                      data-active={scale === config.scale}
+                      style={
+                        {
+                          '--usage-island-tick': (scale - MIN_SCALE) / (MAX_SCALE - MIN_SCALE),
+                        } as CSSProperties
+                      }
+                    >
+                      {scale}%
+                    </span>
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
         </div>

@@ -9,6 +9,7 @@ import { useNavigationStore as navigation } from '../../stores/navigationStore';
 import { useRewardClaimStore } from '../../stores/rewardClaimStore';
 import {
   USAGE_ISLAND_LIMIT,
+  usageIslandScales,
   useUsageIslandStore as island,
   usageIslandVisible,
   type UsageIslandStyle,
@@ -784,13 +785,22 @@ it('refreshes on ticks from the floating window instead of its own timer', async
   expect(refreshAccount).toHaveBeenCalledTimes(2);
 });
 
-it('sizes the preview and saves the choice from an unlabelled slider', async () => {
+it('sizes the preview and saves the choice from a slider marked with each step', async () => {
   await render();
   const slider = view!.root.findByProps({ type: 'range' });
   expect(slider.props).toMatchObject({ min: 70, max: 150, step: 10, value: 100 });
-  expect(slider.parent!.children).toHaveLength(1);
+  const ticks = () =>
+    view!.root.findByProps({ className: 'usage-island-scale-ticks' }).findAllByType('span');
+  expect(ticks().map((tick) => tick.children.join(''))).toEqual(
+    usageIslandScales.map((scale) => `${scale}%`)
+  );
   await act(async () => slider.props.onChange({ target: { value: '130' } }));
   expect(island.getState().scale).toBe(130);
+  expect(
+    ticks()
+      .filter((tick) => tick.props['data-active'])
+      .map((tick) => tick.children.join(''))
+  ).toEqual(['130%']);
   expect(view!.root.findByProps({ className: 'usage-island-preview' }).props.style).toEqual({
     '--usage-island-scale': 1.3,
   });
