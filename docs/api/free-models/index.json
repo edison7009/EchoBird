@@ -1,7 +1,7 @@
 {
   "$schema-comment": "Remote-updatable free model catalog.",
   "version": 1,
-  "updatedAt": "2026-10-20",
+  "updatedAt": "2026-11-02",
   "models": [
     {
       "id": "kilo:kilo-auto/free",
@@ -264,38 +264,6 @@
       "providerId": "opencode-zen-free",
       "provider": "OpenCode Zen Free",
       "modelId": "big-pickle",
-      "baseUrl": "https://opencode.ai/inference/v1",
-      "freeType": "renewing-quota",
-      "freeTier": "Public free access. No account or personal API key required; availability and limits are set by the provider.",
-      "rateLimits": "Provider-managed limits; remaining quota is not available.",
-      "notes": "Leave the API key empty. A shared public credential is supplied automatically. Free access is subject to upstream limits and policies.",
-      "docsUrl": "https://opencode.ai/docs/zen",
-      "cardRequired": false,
-      "phoneRequired": false,
-      "commercialOk": null,
-      "verifiedAt": "2026-10-15"
-    },
-    {
-      "id": "opencode-zen-free:space-bunny-free",
-      "providerId": "opencode-zen-free",
-      "provider": "OpenCode Zen Free",
-      "modelId": "space-bunny-free",
-      "baseUrl": "https://opencode.ai/inference/v1",
-      "freeType": "renewing-quota",
-      "freeTier": "Public free access. No account or personal API key required; availability and limits are set by the provider.",
-      "rateLimits": "Provider-managed limits; remaining quota is not available.",
-      "notes": "Leave the API key empty. A shared public credential is supplied automatically. Free access is subject to upstream limits and policies.",
-      "docsUrl": "https://opencode.ai/docs/zen",
-      "cardRequired": false,
-      "phoneRequired": false,
-      "commercialOk": null,
-      "verifiedAt": "2026-10-15"
-    },
-    {
-      "id": "opencode-zen-free:muse-spark-1.3-contributor-free",
-      "providerId": "opencode-zen-free",
-      "provider": "OpenCode Zen Free",
-      "modelId": "muse-spark-1.3-contributor-free",
       "baseUrl": "https://opencode.ai/inference/v1",
       "freeType": "renewing-quota",
       "freeTier": "Public free access. No account or personal API key required; availability and limits are set by the provider.",

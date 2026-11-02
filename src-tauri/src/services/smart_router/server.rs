@@ -310,6 +310,8 @@ struct RouteMemory {
     credential_refreshes: HashMap<String, Arc<CredentialRefresh>>,
     #[serde(skip)]
     unsupported_responses: HashMap<String, u64>,
+    #[serde(skip)]
+    zen_refused_until: HashMap<String, u64>,
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
@@ -343,6 +345,7 @@ impl Default for RouteMemory {
             recovering: HashMap::new(),
             credential_refreshes: HashMap::new(),
             unsupported_responses: HashMap::new(),
+            zen_refused_until: HashMap::new(),
         }
     }
 }
@@ -1584,14 +1587,28 @@ async fn route_with_policy(
         });
     }
     if available.is_empty() {
+        let now = now_ms();
+        let refused = state.route_memory.lock().ok().is_some_and(|memory| {
+            configured_candidates.iter().any(|candidate| {
+                memory
+                    .zen_refused_until
+                    .get(&candidate.internal_id)
+                    .is_some_and(|until| *until > now)
+            })
+        });
         return openai_error(
             StatusCode::SERVICE_UNAVAILABLE,
-            "All Auto Router models are cooling down",
+            if refused {
+                zen_free::REFUSED_MESSAGE
+            } else {
+                "All Auto Router models are cooling down"
+            },
         );
     }
 
     let stream_requested = body.get("stream").and_then(Value::as_bool).unwrap_or(false);
     let mut attempts = Vec::new();
+    let mut zen_refused = false;
     let mut incompatible_response = None;
     let routing_started = Instant::now();
 
@@ -1812,6 +1829,15 @@ async fn route_with_policy(
                 retry_after,
                 model_scope,
             ) {
+                if zen_free::is_refusal(&response_body) {
+                    zen_refused = true;
+                    if let Ok(mut memory) = state.route_memory.lock() {
+                        let wait = retry_after.unwrap_or_default().as_millis() as u64;
+                        memory
+                            .zen_refused_until
+                            .insert(candidate.internal_id.clone(), now_ms().saturating_add(wait));
+                    }
+                }
                 if failure == FailureClass::RequestIncompatible {
                     incompatible_response = Some(upstream_response(
                         status,
@@ -2343,7 +2369,11 @@ async fn route_with_policy(
     log::error!("[SmartRouter] all candidates failed: {detail}");
     json_error(
         StatusCode::SERVICE_UNAVAILABLE,
-        "All Auto Router models failed",
+        if zen_refused {
+            zen_free::REFUSED_MESSAGE
+        } else {
+            "All Auto Router models failed"
+        },
         Some(detail),
     )
 }

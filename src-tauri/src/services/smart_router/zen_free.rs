@@ -10,14 +10,10 @@ use rand::RngCore;
 use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
 
-use super::{
-    responses_chat_request, responses_from_chat, AppState, Candidate, NativeResponses,
-    RouteProtocol,
-};
+use super::{responses_chat_request, responses_from_chat, AppState, Candidate, RouteProtocol};
 use crate::services::{account_proxy, free_model_directory};
 
 const BASE_URL: &str = "https://opencode.ai/inference/v1";
-const RESPONSES_MODEL: &str = "muse-spark-1.3-contributor-free";
 const CORE_TOOLS: [(&str, &str); 5] = [
     ("bash", "command"),
     ("edit", "filePath"),
@@ -25,6 +21,8 @@ const CORE_TOOLS: [(&str, &str); 5] = [
     ("grep", "pattern"),
     ("read", "filePath"),
 ];
+
+pub(super) const REFUSED_MESSAGE: &str = "All Auto Router models failed. OpenCode Zen refused its free model: free access works only in the OpenCode app, or today's free allowance is used up. Choose another model or use a personal API key.";
 
 static COUNTER: AtomicU64 = AtomicU64::new(0);
 static SESSIONS: OnceLock<Mutex<HashMap<String, String>>> = OnceLock::new();
@@ -35,6 +33,16 @@ pub(super) fn is_candidate(candidate: &Candidate) -> bool {
             == Some(free_model_directory::KeylessAuth::Public)
 }
 
+/// Zen names its free-tier refusals with these error types.
+pub(super) fn is_refusal(body: &[u8]) -> bool {
+    serde_json::from_slice::<Value>(body).is_ok_and(|value| {
+        matches!(
+            value.pointer("/error/type").and_then(Value::as_str),
+            Some("FreeUsageLimitError" | "FreeTierError")
+        )
+    })
+}
+
 pub(super) async fn send(
     state: &AppState,
     headers: &HeaderMap,
@@ -43,46 +51,30 @@ pub(super) async fn send(
     protocol: RouteProtocol,
     final_candidate: bool,
 ) -> Result<Response, String> {
-    let responses_model = candidate.model_id == RESPONSES_MODEL;
     let streaming = body["stream"].as_bool().unwrap_or(false);
-    let mut request_body = match (protocol, responses_model) {
-        (RouteProtocol::Chat, true) => {
-            account_proxy::chat_request_to_responses(body, &candidate.model_id)
-        }
-        (RouteProtocol::Responses, false) => match responses_chat_request(body, final_candidate) {
+    let mut request_body = if protocol == RouteProtocol::Responses {
+        match responses_chat_request(body, final_candidate) {
             Ok(chat) => chat,
             Err(error) => return Ok(error.into_response()),
-        },
-        _ => body.clone(),
-    };
-    if responses_model {
-        account_proxy::normalize_responses_tool_rounds(&mut request_body);
+        }
     } else {
-        account_proxy::strip_response_metadata(&mut request_body);
-    }
+        body.clone()
+    };
+    account_proxy::strip_response_metadata(&mut request_body);
     request_body["model"] = json!(candidate.model_id);
     request_body["stream"] = json!(true);
-    inject_core_tools(&mut request_body, responses_model);
+    inject_core_tools(&mut request_body);
 
     let session = session_id(headers, body);
-    let user_agent = if responses_model {
-        "opencode/1.19.0 ai-sdk/provider-utils/4.0.40 runtime/bun/1.3.14"
-    } else {
-        "opencode/1.19.0 ai-sdk/provider-utils/4.0.23 runtime/bun/1.3.14"
-    };
     let upstream = state
         .http_client
-        .post(format!(
-            "{BASE_URL}/{}",
-            if responses_model {
-                "responses"
-            } else {
-                "chat/completions"
-            }
-        ))
+        .post(format!("{BASE_URL}/chat/completions"))
         .header(header::CONTENT_TYPE, "application/json")
         .header(header::ACCEPT, "*/*")
-        .header(header::USER_AGENT, user_agent)
+        .header(
+            header::USER_AGENT,
+            "opencode/1.19.0 ai-sdk/provider-utils/4.0.23 runtime/bun/1.3.14",
+        )
         .header("x-opencode-project", "global")
         .header("x-opencode-session", &session)
         .header("x-opencode-session-id", &session)
@@ -102,25 +94,10 @@ pub(super) async fn send(
         *response.headers_mut() = response_headers;
         return Ok(response);
     }
-    if protocol == RouteProtocol::Responses && responses_model {
-        let status = upstream.status();
-        let response_headers = upstream.headers().clone();
-        let mut response = Response::new(Body::from_stream(upstream.bytes_stream()));
-        *response.status_mut() = status;
-        *response.headers_mut() = response_headers;
-        response.extensions_mut().insert(NativeResponses);
-        return account_proxy::responses_response(response, streaming)
-            .map_err(|error| error.to_string());
-    }
     let converted = account_proxy::convert_public_model_stream(
         upstream,
         &candidate.model_id,
-        if protocol == RouteProtocol::Responses {
-            true
-        } else {
-            streaming
-        },
-        responses_model,
+        protocol == RouteProtocol::Responses || streaming,
     )
     .await
     .map_err(|error| error.to_string())?;
@@ -134,7 +111,7 @@ pub(super) async fn send(
     }
 }
 
-fn inject_core_tools(body: &mut Value, responses: bool) {
+fn inject_core_tools(body: &mut Value) {
     let Some(object) = body.as_object_mut() else {
         return;
     };
@@ -143,14 +120,7 @@ fn inject_core_tools(body: &mut Value, responses: bool) {
         return;
     };
     for (name, parameter) in CORE_TOOLS {
-        let present = tools.iter().any(|tool| {
-            if responses {
-                tool["name"] == name
-            } else {
-                tool["function"]["name"] == name
-            }
-        });
-        if present {
+        if tools.iter().any(|tool| tool["function"]["name"] == name) {
             continue;
         }
         let mut parameters = json!({
@@ -159,17 +129,11 @@ fn inject_core_tools(body: &mut Value, responses: bool) {
             "additionalProperties":false
         });
         parameters["properties"][parameter] = json!({"type":"string"});
-        let definition = json!({
+        tools.push(json!({"type":"function", "function":{
             "name":name,
             "description":"Not available. Never call this tool.",
             "parameters":parameters
-        });
-        tools.push(if responses {
-            json!({"type":"function", "name":name,
-                "description":definition["description"], "parameters":parameters})
-        } else {
-            json!({"type":"function", "function":definition})
-        });
+        }}));
     }
 }
 
@@ -231,7 +195,7 @@ mod tests {
     #[test]
     fn public_request_has_core_tools_with_parameters_and_stable_session() {
         let mut chat = json!({"model":"big-pickle","messages":[{"role":"user","content":"hi"}]});
-        inject_core_tools(&mut chat, false);
+        inject_core_tools(&mut chat);
         assert_eq!(chat["tools"].as_array().unwrap().len(), 5);
         assert_eq!(
             chat["tools"][0]["function"]["parameters"]["properties"]["command"]["type"],
@@ -241,17 +205,13 @@ mod tests {
         assert_eq!(session_id(&HeaderMap::new(), &chat), session);
         assert_eq!(session.len(), 30);
         assert!(session.starts_with("ses_"));
-        let mut responses = json!({"model":RESPONSES_MODEL,"input":"hi"});
-        inject_core_tools(&mut responses, true);
-        assert_eq!(responses["tools"].as_array().unwrap().len(), 5);
-        assert_eq!(responses["tools"][0]["name"], "bash");
     }
 
     #[tokio::test]
-    #[ignore = "Calls three public upstream models; run explicitly for live verification"]
+    #[ignore = "Calls public upstream models; run explicitly for live verification"]
     async fn live_public_models_return_chat_completions() {
         let state = AppState::for_tests().unwrap();
-        for model in ["big-pickle", "space-bunny-free", RESPONSES_MODEL] {
+        for model in ["big-pickle", "glm-5.3-flash-free"] {
             let candidate = Candidate {
                 internal_id: format!("live-{model}"),
                 model_id: model.into(),
@@ -292,9 +252,9 @@ mod tests {
 
     #[tokio::test]
     #[ignore = "Calls public upstream models; run explicitly for live verification"]
-    async fn live_public_streams_and_native_responses_complete() {
+    async fn live_public_streams_complete() {
         let state = AppState::for_tests().unwrap();
-        for model in ["big-pickle", "space-bunny-free", RESPONSES_MODEL] {
+        for model in ["big-pickle", "glm-5.3-flash-free"] {
             let candidate = Candidate {
                 internal_id: format!("live-stream-{model}"),
                 model_id: model.into(),
@@ -328,30 +288,5 @@ mod tests {
             assert!(status.is_success(), "{model}: {status} {text}");
             assert!(text.contains("[DONE]"), "{model}: {text}");
         }
-        let candidate = Candidate {
-            internal_id: "live-muse-responses".into(),
-            model_id: RESPONSES_MODEL.into(),
-            base_url: BASE_URL.into(),
-            api_key: String::new(),
-            account_source: None,
-            fingerprint: String::new(),
-            attempt: None,
-        };
-        let response = send(
-            &state,
-            &HeaderMap::new(),
-            &candidate,
-            &json!({"model":RESPONSES_MODEL,"stream":false,
-                "input":"Reply with the word OK."}),
-            RouteProtocol::Responses,
-            true,
-        )
-        .await
-        .unwrap();
-        let status = response.status();
-        let bytes = response.into_body().collect().await.unwrap().to_bytes();
-        let body: Value = serde_json::from_slice(&bytes).unwrap();
-        assert!(status.is_success(), "{status} {body}");
-        assert_eq!(body["status"], "completed");
     }
 }

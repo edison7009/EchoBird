@@ -93,22 +93,19 @@ pub(crate) fn declares_hosted_tools(body: &Value) -> bool {
         .any(|tool| tools::is_hosted(tool["type"].as_str().unwrap_or_default()))
 }
 
-pub(crate) fn chat_request_to_responses(body: &Value, model: &str) -> Value {
-    protocol::chat_to_responses(body, model)
-}
-
 pub(crate) async fn convert_public_model_stream(
     response: reqwest::Response,
     model: &str,
     streaming: bool,
-    responses: bool,
 ) -> Result<Response, ProxyError> {
-    let protocol = if responses {
-        protocol::WireProtocol::Responses
-    } else {
-        protocol::WireProtocol::Chat
-    };
-    providers::converted(response, protocol, model, streaming, true).await
+    providers::converted(
+        response,
+        protocol::WireProtocol::Chat,
+        model,
+        streaming,
+        true,
+    )
+    .await
 }
 
 pub(crate) fn forget_preparation_metadata(provider: AccountProvider, account_id: &str) {

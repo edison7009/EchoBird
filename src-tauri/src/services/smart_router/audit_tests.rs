@@ -2050,3 +2050,98 @@ fn audit_anthropic_adapter_keeps_refusal_text() {
         .collect::<String>();
     assert!(wire.contains("\"text\":\"cannot help\""));
 }
+
+fn zen_refusal(status: StatusCode, kind: &str) -> Response {
+    Response::builder()
+        .status(status)
+        .header(header::RETRY_AFTER, "3600")
+        .body(Body::from(
+            json!({"type":"error","error":{"type":kind,"message":"Free usage limit reached."}})
+                .to_string(),
+        ))
+        .unwrap()
+}
+
+#[tokio::test]
+async fn a_zen_free_refusal_is_named_only_when_every_model_failed() {
+    for (status, kind, named) in [
+        (StatusCode::TOO_MANY_REQUESTS, "FreeUsageLimitError", true),
+        (StatusCode::FORBIDDEN, "FreeTierError", true),
+        (StatusCode::TOO_MANY_REQUESTS, "rate_limit_error", false),
+    ] {
+        let state = audit_fixtures(
+            zen_refusal(status, kind),
+            zen_refusal(StatusCode::TOO_MANY_REQUESTS, "rate_limit_error"),
+        );
+        let response = route_chat_with_candidates(
+            &state,
+            &HeaderMap::new(),
+            json!({"messages":[]}),
+            vec![audit_candidate("first"), audit_candidate("second")],
+        )
+        .await;
+        assert_eq!(response.status(), StatusCode::SERVICE_UNAVAILABLE, "{kind}");
+        let bytes = response.into_body().collect().await.unwrap().to_bytes();
+        let body: Value = serde_json::from_slice(&bytes).unwrap();
+        let message = body["error"]["message"].as_str().unwrap();
+        assert!(
+            message.starts_with("All Auto Router models failed"),
+            "{message}"
+        );
+        assert_eq!(message.contains("OpenCode Zen"), named, "{kind}: {message}");
+        assert_eq!(body["error"]["attempts"].as_array().unwrap().len(), 2);
+
+        // The next message arrives while both models cool down.
+        let response = route_chat_with_candidates(
+            &state,
+            &HeaderMap::new(),
+            json!({"messages":[]}),
+            vec![audit_candidate("first"), audit_candidate("second")],
+        )
+        .await;
+        assert_eq!(response.status(), StatusCode::SERVICE_UNAVAILABLE, "{kind}");
+        let bytes = response.into_body().collect().await.unwrap().to_bytes();
+        let body: Value = serde_json::from_slice(&bytes).unwrap();
+        let message = body["error"]["message"].as_str().unwrap();
+        assert_eq!(message.contains("OpenCode Zen"), named, "{kind}: {message}");
+        assert_eq!(
+            message.contains("cooling down"),
+            !named,
+            "{kind}: {message}"
+        );
+
+        // A group without the refused model keeps the plain answer.
+        if named {
+            let response = route_chat_with_candidates(
+                &state,
+                &HeaderMap::new(),
+                json!({"messages":[]}),
+                vec![audit_candidate("second")],
+            )
+            .await;
+            let bytes = response.into_body().collect().await.unwrap().to_bytes();
+            let body: Value = serde_json::from_slice(&bytes).unwrap();
+            let message = body["error"]["message"].as_str().unwrap();
+            assert!(message.contains("cooling down"), "{kind}: {message}");
+        }
+    }
+
+    let state = audit_fixtures(
+        zen_refusal(StatusCode::TOO_MANY_REQUESTS, "FreeUsageLimitError"),
+        audit_chat_json(
+            json!({"choices":[{"message":{"role":"assistant","content":"backup"},"finish_reason":"stop"}]}),
+        ),
+    );
+    let response = route_chat_with_candidates(
+        &state,
+        &HeaderMap::new(),
+        json!({"messages":[]}),
+        vec![audit_candidate("first"), audit_candidate("second")],
+    )
+    .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    assert_eq!(
+        response.headers()["X-EchoBird-Routed-Via"],
+        "second/second-model"
+    );
+}

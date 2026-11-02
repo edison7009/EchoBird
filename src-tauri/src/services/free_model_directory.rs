@@ -327,14 +327,7 @@ mod tests {
             .filter(|model| model["providerId"] == "opencode-zen-free")
             .map(|model| model["modelId"].as_str().unwrap())
             .collect();
-        assert_eq!(
-            zen_models,
-            [
-                "big-pickle",
-                "space-bunny-free",
-                "muse-spark-1.3-contributor-free"
-            ]
-        );
+        assert_eq!(zen_models, ["big-pickle"]);
         assert_eq!(
             keyless_auth_in_catalog(
                 &catalog,
@@ -344,19 +337,11 @@ mod tests {
             Some(KeylessAuth::Anonymous)
         );
         assert_eq!(
-            keyless_auth_in_catalog(
-                &catalog,
-                "https://opencode.ai/inference/v1/",
-                "space-bunny-free"
-            ),
+            keyless_auth_in_catalog(&catalog, "https://opencode.ai/inference/v1/", "big-pickle"),
             Some(KeylessAuth::Public)
         );
         assert_eq!(
-            keyless_auth_in_catalog(
-                &catalog,
-                "https://opencode.ai:443/zen/v1/",
-                "space-bunny-free"
-            ),
+            keyless_auth_in_catalog(&catalog, "https://opencode.ai:443/zen/v1/", "big-pickle"),
             None
         );
         assert_eq!(
@@ -394,7 +379,7 @@ mod tests {
                 None
             );
             assert_eq!(
-                keyless_auth_in_catalog(&catalog, endpoint, "space-bunny-free"),
+                keyless_auth_in_catalog(&catalog, endpoint, "big-pickle"),
                 None
             );
         }
