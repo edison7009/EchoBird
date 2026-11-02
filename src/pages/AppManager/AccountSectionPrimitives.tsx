@@ -1,5 +1,5 @@
 import React from 'react';
-import { Check, Gift, LoaderCircle, RefreshCw, Trash2, X } from 'lucide-react';
+import { Check, Flame, Gift, LoaderCircle, RefreshCw, Trash2, X } from 'lucide-react';
 import { useI18n } from '../../hooks/useI18n';
 import { accountPlanLabel } from './accountPlanLabel';
 import { ACCOUNT_NAME_MASK, useAccountPrivacyStore } from '../../stores/accountPrivacyStore';
@@ -161,6 +161,32 @@ export const AccountSectionRewardButton: React.FC<{
     >
       {claimed ? <Check size={12} aria-hidden="true" /> : <Gift size={12} aria-hidden="true" />}
     </button>
+  );
+};
+
+export const AccountSectionWarmUpButton: React.FC<{
+  email: string;
+  disabled?: boolean;
+  onWarmUp: () => void;
+}> = ({ email, disabled, onWarmUp }) => {
+  const { t } = useI18n();
+  const hidden = useAccountPrivacyStore((state) => state.hidden);
+  const hint = t('agent.warmUpAccountHint');
+  return (
+    // React events bubble out of the tooltip's portal, so reading it must stop here.
+    <span className="flex" onClick={(event) => event.stopPropagation()}>
+      <RoutingHint hint={hint} content={<span className="whitespace-pre-line">{hint}</span>}>
+        <button
+          type="button"
+          aria-label={`${t('agent.warmUpAccount')} ${hidden ? ACCOUNT_NAME_MASK : email}`}
+          disabled={disabled}
+          onClick={onWarmUp}
+          className="account-icon-button flex h-5 w-5 items-center justify-center rounded-full disabled:opacity-40"
+        >
+          <Flame size={12} aria-hidden="true" />
+        </button>
+      </RoutingHint>
+    </span>
   );
 };
 

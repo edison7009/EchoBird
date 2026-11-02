@@ -697,6 +697,9 @@ const ja: Partial<Translations> = {
   'agent.minimaxPurchasedCredits': '購入クレジット',
   'agent.waitingForBrowser': 'ブラウザ操作を待機中({seconds})',
   'agent.refreshAccount': 'アカウントの使用量を更新',
+  'agent.warmUpAccount': 'アカウントをウォームアップ',
+  'agent.warmUpAccountHint':
+    'アカウントを切り替えず、使用中のアカウントも中断せずに、このアカウントの 5 時間カウントダウンを今すぐ開始します。\nインストール済みの Claude Code からごく短いメッセージを 1 通送信し、使用量をわずかに消費します。カウントダウン中の場合は使用量の更新のみ行います。',
   'agent.baseCredits': 'プランクレジット',
   'agent.additionalCredits': '追加クレジット',
   'agent.organizationCredits': '組織クレジット',
@@ -711,6 +714,8 @@ const ja: Partial<Translations> = {
   'accountError.claim': '毎日のクレジットを受け取れませんでした。後ほど再試行してください。',
   'accountError.claimUnavailable':
     'このアカウントまたはキャンペーンでは毎日のクレジットを受け取れません。',
+  'accountError.claudeCodeRequired':
+    'このアカウントをウォームアップするには Claude Code をインストールしてください。',
   'agent.credits': 'クレジット',
   'agent.availableCredits': '利用可能なクレジット',
   'agent.refreshAccountFailed': '{email} の使用量更新に失敗しました: {error}',

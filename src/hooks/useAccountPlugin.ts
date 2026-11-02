@@ -56,7 +56,8 @@ export function pluginToolProviders(
 export function hasAccountPlugin(
   application: string,
   plugins: InstalledPlugin[],
-  active: boolean
+  active: boolean,
+  operation?: string
 ): boolean {
   return (
     active &&
@@ -65,8 +66,10 @@ export function hasAccountPlugin(
         plugin.enabled &&
         (plugin.manifest.echobird.worker?.runtime === 'native' ||
           !!plugin.manifest.tools?.length) &&
-        plugin.manifest.echobird.contributes.providers?.some((provider) =>
-          provider.applications.includes(application)
+        plugin.manifest.echobird.contributes.providers?.some(
+          (provider) =>
+            provider.applications.includes(application) &&
+            (!operation || provider.operations?.includes(operation))
         )
     )
   );
@@ -89,18 +92,19 @@ export function accountProxySources(): typeof accountProxyProviders {
   ];
 }
 
-export function accountPluginAvailable(application: string): boolean {
+export function accountPluginAvailable(application: string, operation?: string): boolean {
   return hasAccountPlugin(
     application,
     usePluginsStore.getState().installed,
-    useNavigationStore.getState().developerMode
+    useNavigationStore.getState().developerMode,
+    operation
   );
 }
 
-export function useAccountPlugin(application: string): boolean {
+export function useAccountPlugin(application: string, operation?: string): boolean {
   const plugins = usePluginsStore((state) => state.installed);
   const active = useNavigationStore((state) => state.developerMode);
-  return hasAccountPlugin(application, plugins, active);
+  return hasAccountPlugin(application, plugins, active, operation);
 }
 
 export function useAccountProviderFilter() {

@@ -23,6 +23,22 @@ async fn invoke<T: serde::de::DeserializeOwned>(
     serde_json::from_value(value).map_err(|_| "Invalid account plugin result".into())
 }
 
+/// Warm-ups run through the installed Claude Code, which a Claude Desktop plugin
+/// cannot locate by itself.
+async fn warm_up_claude<T: serde::de::DeserializeOwned>(
+    application: &str,
+    id: &str,
+) -> Result<T, String> {
+    let executable = crate::services::tool_manager::get_tool_exe_path("claudecode")
+        .ok_or("accountError.claudeCodeRequired")?;
+    invoke(
+        application,
+        "account.warmup",
+        json!({"accountId":id,"executable":executable}),
+    )
+    .await
+}
+
 pub mod claude_code_accounts {
     use super::*;
     #[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
@@ -52,6 +68,9 @@ pub mod claude_code_accounts {
     }
     pub async fn refresh(id: &str) -> Result<ClaudeCodeAccount, String> {
         invoke("claudecode", "account.refresh", json!({"accountId":id})).await
+    }
+    pub async fn warm_up(id: &str) -> Result<ClaudeCodeAccount, String> {
+        warm_up_claude("claudecode", id).await
     }
     pub async fn delete(id: &str) -> Result<(), String> {
         invoke("claudecode", "account.remove", json!({"accountId":id})).await
@@ -121,6 +140,9 @@ pub mod claude_desktop_accounts {
     }
     pub async fn refresh(id: &str) -> Result<Account, String> {
         invoke("claudedesktop", "account.refresh", json!({"accountId":id})).await
+    }
+    pub async fn warm_up(id: &str) -> Result<Account, String> {
+        warm_up_claude("claudedesktop", id).await
     }
     pub async fn delete(id: &str) -> Result<(), String> {
         invoke("claudedesktop", "account.remove", json!({"accountId":id})).await

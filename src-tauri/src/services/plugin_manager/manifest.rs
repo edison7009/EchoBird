@@ -285,6 +285,7 @@ impl Manifest {
                             "login.poll",
                             "login.cancel",
                             "account.refresh",
+                            "account.warmup",
                             "account.claim",
                             "account.apply",
                             "account.remove",

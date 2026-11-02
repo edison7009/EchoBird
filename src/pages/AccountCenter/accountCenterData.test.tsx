@@ -4,6 +4,9 @@ import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 import { describe, expect, it, vi } from 'vitest';
 import { AppManagerContext, type AppManagerContextType } from '../AppManager/context';
 import { useNavigationStore } from '../../stores/navigationStore';
+import { usePluginsStore } from '../../stores/pluginsStore';
+import { installedAccountPlugins } from '../../test/accountPlugins';
+import type { useClaudeCodeAccounts } from '../AppManager/useClaudeCodeAccounts';
 import { useAccountPrivacyStore } from '../../stores/accountPrivacyStore';
 import { useRewardClaimStore } from '../../stores/rewardClaimStore';
 import { AccountSectionRow } from '../AppManager/AccountSectionPrimitives';
@@ -2226,6 +2229,57 @@ describe('Account Center display data', () => {
         { label: '5h', value: '0%', percent: 0, resetAt: 123 },
         { label: '7d', value: '—', percent: undefined, resetAt: undefined },
       ]);
+    }
+  );
+
+  it.each(['claudecode', 'claudedesktop'])(
+    'offers %s warm-up only when the plugin declares it, never for Free',
+    async (id) => {
+      const state = context();
+      const group = (id === 'claudecode'
+        ? state.claudeCodeAccounts
+        : state.claudeDesktopAccounts) as unknown as ReturnType<typeof useClaudeCodeAccounts>;
+      group.warmUp = vi.fn().mockResolvedValue(undefined);
+      const row = { id: 'idle', email: 'idle@example.test', plan: 'Max', active: false };
+      group.accounts = [row];
+      const account = () => providers(state).find((p) => p.id === id)!.accounts[0];
+      const { installed } = usePluginsStore.getState();
+      const { developerMode } = useNavigationStore.getState();
+      useNavigationStore.setState({ developerMode: true });
+      usePluginsStore.setState({ installed: installedAccountPlugins() });
+      expect(account().warmUp).toBeUndefined();
+      usePluginsStore.setState({
+        installed: installedAccountPlugins().map((plugin) => ({
+          ...plugin,
+          manifest: {
+            ...plugin.manifest,
+            echobird: {
+              ...plugin.manifest.echobird,
+              contributes: {
+                ...plugin.manifest.echobird.contributes,
+                providers: plugin.manifest.echobird.contributes.providers?.map((provider) => ({
+                  ...provider,
+                  operations: [...(provider.operations ?? []), 'account.warmup'],
+                })),
+              },
+            },
+          },
+        })),
+      });
+      try {
+        const onError = vi.fn();
+        await account().warmUp!(onError);
+        expect(group.warmUp).toHaveBeenCalledWith(row, onError);
+        const provider = providers(state).find((p) => p.id === id)!;
+        expect(
+          renderToStaticMarkup(<AccountCard provider={provider} account={account()} />)
+        ).toContain('aria-label="agent.warmUpAccount idle@example.test"');
+        group.accounts = [{ ...row, plan: 'Free' }];
+        expect(account().warmUp).toBeUndefined();
+      } finally {
+        usePluginsStore.setState({ installed });
+        useNavigationStore.setState({ developerMode });
+      }
     }
   );
 

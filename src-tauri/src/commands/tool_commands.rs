@@ -422,6 +422,13 @@ pub async fn refresh_claude_code_account_quota(
 }
 
 #[tauri::command]
+pub async fn warm_up_claude_code_account(
+    account_id: String,
+) -> Result<crate::services::claude_code_accounts::ClaudeCodeAccount, String> {
+    crate::services::claude_code_accounts::warm_up(&account_id).await
+}
+
+#[tauri::command]
 pub async fn delete_claude_code_account(account_id: String) -> Result<(), String> {
     finish_account_deletion(
         AccountProvider::ClaudeCode,
@@ -737,6 +744,12 @@ pub async fn refresh_claude_desktop_account(
     account_id: String,
 ) -> Result<crate::services::claude_desktop_accounts::Account, String> {
     crate::services::claude_desktop_accounts::refresh(&account_id).await
+}
+#[tauri::command]
+pub async fn warm_up_claude_desktop_account(
+    account_id: String,
+) -> Result<crate::services::claude_desktop_accounts::Account, String> {
+    crate::services::claude_desktop_accounts::warm_up(&account_id).await
 }
 #[tauri::command]
 pub async fn delete_claude_desktop_account(account_id: String) -> Result<(), String> {

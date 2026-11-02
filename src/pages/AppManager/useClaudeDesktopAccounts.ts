@@ -54,6 +54,8 @@ export function useClaudeDesktopAccounts(
     });
   return {
     ...managed,
+    warmUp: (account: api.ClaudeCodeAccount, onError?: (error: unknown) => void) =>
+      managed.refresh(account, (target) => api.warmUpClaudeDesktopAccount(target.id), onError),
     cancelLogin: () => {
       abandoned.current = true;
       managed.cancelLogin();

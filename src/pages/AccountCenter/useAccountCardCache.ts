@@ -228,6 +228,7 @@ export function useAccountCardCache(
           refresh: live?.refresh ?? idleAction,
           remove: live?.remove ?? (cachedOnly ? () => forget(provider.id, summary.id) : idleAction),
           claim: summary.claimable ? (live?.claim ?? idleAction) : undefined,
+          warmUp: live?.warmUp,
         };
       }),
     })),

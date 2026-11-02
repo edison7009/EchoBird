@@ -25,5 +25,10 @@ export function useClaudeCodeAccounts(
       label: (account) => account.email,
     }
   );
-  return { ...managed, setSelectedId: managed.select };
+  return {
+    ...managed,
+    setSelectedId: managed.select,
+    warmUp: (account: api.ClaudeCodeAccount, onError?: (error: unknown) => void) =>
+      managed.refresh(account, (target) => api.warmUpClaudeCodeAccount(target.id), onError),
+  };
 }

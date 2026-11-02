@@ -682,6 +682,9 @@ const en: Translations = {
   'agent.minimaxPurchasedCredits': 'Purchased credits',
   'agent.waitingForBrowser': 'Waiting for browser ({seconds})',
   'agent.refreshAccount': 'Refresh account quota',
+  'agent.warmUpAccount': 'Warm up account',
+  'agent.warmUpAccountHint':
+    "Starts this account's 5-hour countdown now, without switching accounts or interrupting the one you are using.\nSends one very short message through the installed Claude Code, which uses a tiny amount of quota. If the countdown is already running, this only refreshes the quota.",
   'agent.baseCredits': 'Plan credits',
   'agent.additionalCredits': 'Extra credits',
   'agent.organizationCredits': 'Organization credits',
@@ -695,6 +698,7 @@ const en: Translations = {
   'agent.dailyCreditsUnclaimed': 'Unclaimed',
   'accountError.claim': 'Could not claim daily credits. Please try again later.',
   'accountError.claimUnavailable': 'Daily credits are not available for this account or activity.',
+  'accountError.claudeCodeRequired': 'Install Claude Code to warm up this account.',
   'agent.credits': 'credits',
   'agent.availableCredits': 'Available credits',
   'agent.refreshAccountFailed': 'Failed to refresh quota for {email}: {error}',

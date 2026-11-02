@@ -2,8 +2,13 @@ import { useAccountPlugin } from '../../hooks/useAccountPlugin';
 import React from 'react';
 import { useAppManager } from './context';
 import { ModelSwitchDivider } from './ModelSwitchDivider';
-import { AccountSectionButton, AccountSectionRow } from './AccountSectionPrimitives';
+import {
+  AccountSectionButton,
+  AccountSectionRow,
+  AccountSectionWarmUpButton,
+} from './AccountSectionPrimitives';
 import { QuotaCountdown } from './QuotaCountdown';
+import { isFreePlan } from './accountPlanLabel';
 import { openAccountPlugins } from './openAccountPlugins';
 import { useI18n } from '../../hooks/useI18n';
 export const ClaudeCodeAccountSection: React.FC<{ showDivider?: boolean; desktop?: boolean }> = ({
@@ -15,6 +20,7 @@ export const ClaudeCodeAccountSection: React.FC<{ showDivider?: boolean; desktop
   const { accounts, selectedId, select, busy, remainingSeconds, refreshing, refresh, remove } =
     group;
   const installed = useAccountPlugin(desktop ? 'claudedesktop' : 'claudecode');
+  const warmable = useAccountPlugin(desktop ? 'claudedesktop' : 'claudecode', 'account.warmup');
   const { t } = useI18n();
   return (
     <section>
@@ -62,6 +68,15 @@ export const ClaudeCodeAccountSection: React.FC<{ showDivider?: boolean; desktop
               onSelect={() => select(account.id)}
               onRefresh={() => void refresh(account)}
               onDelete={() => void remove(account)}
+              leadingAction={
+                warmable && !isFreePlan(account.plan) ? (
+                  <AccountSectionWarmUpButton
+                    email={account.email}
+                    disabled={refreshing.has(account.id)}
+                    onWarmUp={() => void group.warmUp(account)}
+                  />
+                ) : undefined
+              }
               secondary={
                 account.fiveHour == null && account.sevenDay == null ? undefined : (
                   <span className="flex h-[16px] min-w-0 items-center gap-1 overflow-hidden whitespace-nowrap text-[11px] font-semibold leading-[16px] text-cyber-text">

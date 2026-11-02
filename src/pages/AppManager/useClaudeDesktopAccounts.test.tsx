@@ -10,6 +10,7 @@ vi.mock('../../api/tauri', () => ({
   pollClaudeDesktopLogin: vi.fn(),
   cancelClaudeDesktopLogin: vi.fn(),
   refreshClaudeDesktopAccount: vi.fn(),
+  warmUpClaudeDesktopAccount: vi.fn(),
   deleteClaudeDesktopAccount: vi.fn(),
   startTool: vi.fn(),
 }));
@@ -307,4 +308,43 @@ it('never opens Claude for a reset the user cancelled', async () => {
   });
   expect(api.cancelClaudeDesktopLogin).toHaveBeenCalledWith('login');
   expect(api.startTool).not.toHaveBeenCalled();
+});
+
+it('warms up only when asked, without selecting and with the refresh pending state', async () => {
+  await mount();
+  expect(api.warmUpClaudeDesktopAccount).not.toHaveBeenCalled();
+  expect(api.refreshClaudeDesktopAccount).not.toHaveBeenCalled();
+  const warmed = { ...saved, fiveHour: { remainingPercent: 100, resetAt: 1791561600 } };
+  let finish!: (account: api.ClaudeCodeAccount) => void;
+  vi.mocked(api.warmUpClaudeDesktopAccount).mockReturnValue(
+    new Promise((resolve) => {
+      finish = resolve;
+    })
+  );
+  const selected = state.selectedId;
+  void state.warmUp(saved);
+  await tick();
+  expect(state.refreshing.has('saved')).toBe(true);
+  void state.warmUp(saved);
+  await tick();
+  expect(api.warmUpClaudeDesktopAccount).toHaveBeenCalledTimes(1);
+  await act(async () => finish(warmed));
+  expect(state.refreshing.has('saved')).toBe(false);
+  expect(state.accounts[0].fiveHour?.resetAt).toBe(1791561600);
+  expect(state.selectedId).toBe(selected);
+  expect(api.refreshClaudeDesktopAccount).not.toHaveBeenCalled();
+  expect(clearModel).not.toHaveBeenCalled();
+});
+
+it('shows an explicit warm-up failure and keeps the row', async () => {
+  await mount();
+  vi.mocked(api.warmUpClaudeDesktopAccount).mockRejectedValue(
+    new Error('accountError.claudeCodeRequired')
+  );
+  await act(async () => {
+    await state.warmUp(saved);
+  });
+  expect(showError).toHaveBeenCalledTimes(1);
+  expect(state.accounts).toEqual([saved]);
+  expect(state.authorizationFailedIds.has('saved')).toBe(false);
 });

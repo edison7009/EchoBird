@@ -21,6 +21,7 @@ import { useAppManager } from '../AppManager/context';
 import {
   AccountSectionActions,
   AccountSectionRewardButton,
+  AccountSectionWarmUpButton,
 } from '../AppManager/AccountSectionPrimitives';
 import {
   useWorkBuddyClaimedToday,
@@ -112,6 +113,13 @@ export function AccountCard({
                 (currentClaimStatus && account.claimDisabled)
               }
               onClaim={() => void account.claim!()}
+            />
+          )}
+          {account.warmUp && (
+            <AccountSectionWarmUpButton
+              email={identity}
+              disabled={account.pending || account.refreshing}
+              onWarmUp={() => void account.warmUp!()}
             />
           )}
           <AccountSectionActions

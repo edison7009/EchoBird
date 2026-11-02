@@ -44,7 +44,16 @@ export function RoutingToggle({
   );
 }
 
-export function RoutingHint({ hint, content }: { hint: string; content?: ReactNode }) {
+export function RoutingHint({
+  hint,
+  content,
+  children,
+}: {
+  hint: string;
+  content?: ReactNode;
+  /** Shows the tooltip for this control instead of the "?" glyph. */
+  children?: ReactNode;
+}) {
   const [open, setOpen] = useState(false);
   const anchorRef = useRef<HTMLSpanElement>(null);
   const tooltipRef = useRef<HTMLSpanElement>(null);
@@ -110,12 +119,14 @@ export function RoutingHint({ hint, content }: { hint: string; content?: ReactNo
       onMouseEnter={showTip}
       onMouseLeave={scheduleHide}
     >
-      <span
-        aria-label={hint}
-        className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-cyber-elevated font-sans text-xs font-medium leading-none text-cyber-text-secondary select-none hover:bg-cyber-accent/15 hover:text-cyber-accent transition-colors"
-      >
-        ?
-      </span>
+      {children ?? (
+        <span
+          aria-label={hint}
+          className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-cyber-elevated font-sans text-xs font-medium leading-none text-cyber-text-secondary select-none hover:bg-cyber-accent/15 hover:text-cyber-accent transition-colors"
+        >
+          ?
+        </span>
+      )}
       {open &&
         createPortal(
           <span

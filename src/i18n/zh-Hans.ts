@@ -629,6 +629,9 @@ const zhHans: Partial<Translations> = {
   'agent.minimaxPurchasedCredits': '购买积分',
   'agent.waitingForBrowser': '等待浏览器操作({seconds})',
   'agent.refreshAccount': '刷新账号额度',
+  'agent.warmUpAccount': '预热账号',
+  'agent.warmUpAccountHint':
+    '现在就开始这个账号的 5 小时倒计时，不用切换账号，也不会打断正在用的账号。\n会通过已安装的 Claude Code 发一条极短的消息，消耗很少额度；倒计时已在走时只刷新额度。',
   'agent.baseCredits': '套餐积分',
   'agent.additionalCredits': '额外积分',
   'agent.organizationCredits': '组织资源包',
@@ -642,6 +645,7 @@ const zhHans: Partial<Translations> = {
   'agent.dailyCreditsUnclaimed': '未领取',
   'accountError.claim': '领取每日积分失败，请稍后重试。',
   'accountError.claimUnavailable': '该账号或活动暂不支持领取每日积分。',
+  'accountError.claudeCodeRequired': '请先安装 Claude Code，再预热这个账号。',
   'agent.credits': '积分',
   'agent.availableCredits': '可用积分',
   'agent.refreshAccountFailed': '刷新 {email} 的额度失败：{error}',

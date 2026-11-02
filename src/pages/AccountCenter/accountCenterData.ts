@@ -58,6 +58,7 @@ export interface AccountCardData {
   authorizationFailed: boolean;
   refresh: (onError?: (error: unknown) => void) => Promise<void>;
   claim?: (onError?: (error: unknown) => void) => Promise<unknown>;
+  warmUp?: (onError?: (error: unknown) => void) => Promise<unknown>;
   claimDisabled?: boolean;
   dailyClaimedAt?: number | null;
   dailyClaimed?: boolean;
@@ -206,6 +207,7 @@ export function accountCenterProviders(
       | 'metrics'
       | 'subscriptionEndAt'
       | 'claim'
+      | 'warmUp'
       | 'claimDisabled'
       | 'dailyClaimedAt'
       | 'dailyClaimed'
@@ -328,6 +330,10 @@ export function accountCenterProviders(
           quota(account.fiveHour?.remainingPercent, account.fiveHour?.resetAt, '5h'),
           quota(account.sevenDay?.remainingPercent, account.sevenDay?.resetAt, '7d'),
         ],
+        warmUp:
+          accountPluginAvailable('claudecode', 'account.warmup') && !isFreePlan(account.plan)
+            ? (onError) => context.claudeCodeAccounts.warmUp(account, onError)
+            : undefined,
       })
     ),
     {
@@ -345,6 +351,10 @@ export function accountCenterProviders(
             quota(account.fiveHour?.remainingPercent, account.fiveHour?.resetAt, '5h'),
             quota(account.sevenDay?.remainingPercent, account.sevenDay?.resetAt, '7d'),
           ],
+          warmUp:
+            accountPluginAvailable('claudedesktop', 'account.warmup') && !isFreePlan(account.plan)
+              ? (onError) => context.claudeDesktopAccounts.warmUp(account, onError)
+              : undefined,
         })
       ),
       addLabel: t('agent.accountSnapshot'),

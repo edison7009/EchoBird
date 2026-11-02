@@ -5,6 +5,7 @@ import {
   AccountSectionButton,
   AccountSectionRewardButton,
   AccountSectionRow,
+  AccountSectionWarmUpButton,
 } from './AccountSectionPrimitives';
 import { AccountPrivacyButton } from '../../components/AccountPrivacyButton';
 import { useAccountPrivacyStore } from '../../stores/accountPrivacyStore';
@@ -15,6 +16,57 @@ vi.mock('../../hooks/useI18n', () => ({
       key === 'agent.waitingForBrowser' ? 'Waiting for browser ({seconds})' : key,
   }),
 }));
+
+describe('account warm-up button', () => {
+  it('sits left of refresh, warms up once and never selects the row', () => {
+    const select = vi.fn();
+    const warmUp = vi.fn();
+    const renderer = create(
+      <AccountSectionRow
+        selected={false}
+        email="idle@example.test"
+        onSelect={select}
+        onDelete={() => {}}
+        onRefresh={() => {}}
+        leadingAction={<AccountSectionWarmUpButton email="idle@example.test" onWarmUp={warmUp} />}
+      />
+    );
+    try {
+      const buttons = renderer.root.findAllByType('button');
+      expect(buttons.map((button) => button.props['aria-label'])).toEqual([
+        'agent.warmUpAccount idle@example.test',
+        'agent.refreshAccount idle@example.test',
+        'btn.delete idle@example.test',
+      ]);
+      const guard = renderer.root.findAll(
+        (node) => node.type === 'span' && typeof node.props.onClick === 'function'
+      )[0];
+      const stopPropagation = vi.fn();
+      act(() => buttons[0].props.onClick());
+      act(() => guard.props.onClick({ stopPropagation }));
+      expect(warmUp).toHaveBeenCalledTimes(1);
+      expect(stopPropagation).toHaveBeenCalledTimes(1);
+      expect(select).not.toHaveBeenCalled();
+    } finally {
+      act(() => renderer.unmount());
+    }
+  });
+
+  it('disables while pending and hides the account name in privacy mode', () => {
+    useAccountPrivacyStore.setState({ hidden: true });
+    const renderer = create(
+      <AccountSectionWarmUpButton email="idle@example.test" disabled onWarmUp={() => {}} />
+    );
+    try {
+      const button = renderer.root.findByType('button');
+      expect(button.props.disabled).toBe(true);
+      expect(button.props['aria-label']).not.toContain('idle@example.test');
+    } finally {
+      act(() => renderer.unmount());
+      useAccountPrivacyStore.setState({ hidden: false });
+    }
+  });
+});
 
 describe('account login cancellation button', () => {
   it.each([undefined, 'Please quit the Cue app ({seconds})'])(

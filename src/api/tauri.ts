@@ -251,6 +251,10 @@ export async function switchClaudeCodeAccount(accountId: string): Promise<Claude
 export async function refreshClaudeCodeAccountQuota(accountId: string): Promise<ClaudeCodeAccount> {
   return invoke('refresh_claude_code_account_quota', { accountId });
 }
+
+export async function warmUpClaudeCodeAccount(accountId: string): Promise<ClaudeCodeAccount> {
+  return invoke('warm_up_claude_code_account', { accountId });
+}
 export async function deleteClaudeCodeAccount(accountId: string): Promise<void> {
   return invoke('delete_claude_code_account', { accountId });
 }
@@ -283,6 +287,10 @@ export function switchClaudeDesktopAccount(accountId: string): Promise<ClaudeCod
 }
 export function refreshClaudeDesktopAccount(accountId: string): Promise<ClaudeCodeAccount> {
   return invoke('refresh_claude_desktop_account', { accountId });
+}
+
+export function warmUpClaudeDesktopAccount(accountId: string): Promise<ClaudeCodeAccount> {
+  return invoke('warm_up_claude_desktop_account', { accountId });
 }
 export function deleteClaudeDesktopAccount(accountId: string): Promise<void> {
   return invoke('delete_claude_desktop_account', { accountId });
