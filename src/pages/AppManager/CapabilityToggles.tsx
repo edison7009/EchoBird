@@ -41,7 +41,7 @@ export function CapabilityToggles({
           hint={
             merged
               ? toggles.map(({ label, hint }) => `${label}: ${hint}`).join(' ')
-              : toggles.map(({ hint }) => hint).join(' ')
+              : toggles[0].hint
           }
           content={
             merged ? (

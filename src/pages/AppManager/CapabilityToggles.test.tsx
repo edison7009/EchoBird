@@ -1,7 +1,7 @@
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import renderer, { act } from 'react-test-renderer';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { CapabilityToggles, type CapabilityToggle } from './CapabilityToggles';
 
 vi.mock('react-dom', async (importOriginal) => ({
@@ -15,6 +15,8 @@ const toggles = (onChange: CapabilityToggle['onChange'] = vi.fn()): CapabilityTo
 ];
 
 const glyphs = (markup: string) => markup.match(/>\?<\/span>/g) ?? [];
+
+afterEach(() => vi.unstubAllGlobals());
 
 describe('CapabilityToggles', () => {
   it('keeps each button independently pressed without a switch or sliding group', () => {
@@ -65,7 +67,6 @@ describe('CapabilityToggles', () => {
     for (const text of ['Web Search', 'search hint', '1M', 'context hint']) {
       expect(tooltip.findAll((node) => node.children.includes(text))).not.toHaveLength(0);
     }
-    vi.unstubAllGlobals();
   });
 
   it('keeps a lone hint unchanged', () => {
