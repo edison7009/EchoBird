@@ -132,7 +132,7 @@ export const TitleBar: React.FC<TitleBarProps> = ({
   return (
     <>
       <div
-        className="h-8 flex items-center justify-between select-none flex-shrink-0 cursor-default"
+        className="h-10 flex items-center justify-between select-none flex-shrink-0 cursor-default"
         onMouseDown={(e) => {
           // Use startDragging for Linux (WebkitAppRegion doesn't work on Linux GTK)
           // Also works cross-platform as a reliable fallback
@@ -199,14 +199,19 @@ export const TitleBar: React.FC<TitleBarProps> = ({
             aria-label={t('settings.title')}
             className="h-full px-4 flex items-center justify-center text-cyber-text-secondary hover:bg-cyber-text/20 hover:text-cyber-text transition-colors"
           >
-            <Settings size={13} />
+            <Settings size={16} strokeWidth={1.75} />
           </button>
           <button
             onClick={handleMinimizeToTray}
             aria-label={t('settings.closeToTray')}
             className="h-full px-4 flex items-center justify-center hover:bg-cyber-text/20 transition-colors"
           >
-            <img src="/brand/bird.png" alt="" draggable={false} className="h-4 w-4 select-none" />
+            <img
+              src="/brand/bird.png"
+              alt=""
+              draggable={false}
+              className="h-[18px] w-[18px] select-none"
+            />
           </button>
           {/* Window controls — Windows/Linux only. macOS uses native traffic
               lights on the left (titleBarStyle: Overlay), so we omit our custom
@@ -217,19 +222,23 @@ export const TitleBar: React.FC<TitleBarProps> = ({
                 onClick={handleMinimize}
                 className="h-full px-4 flex items-center justify-center text-cyber-text-secondary hover:bg-cyber-text/20 hover:text-cyber-text transition-colors"
               >
-                <Minus size={14} />
+                <Minus size={16} strokeWidth={1.75} />
               </button>
               <button
                 onClick={handleMaximize}
                 className="h-full px-4 flex items-center justify-center text-cyber-text-secondary hover:bg-cyber-text/20 hover:text-cyber-text transition-colors"
               >
-                {isMaximized ? <Minimize2 size={13} /> : <Maximize2 size={13} />}
+                {isMaximized ? (
+                  <Minimize2 size={15} strokeWidth={1.75} />
+                ) : (
+                  <Maximize2 size={15} strokeWidth={1.75} />
+                )}
               </button>
               <button
                 onClick={handleClose}
                 className="h-full px-4 flex items-center justify-center text-cyber-text-secondary hover:bg-red-500/20 hover:text-red-400 transition-colors"
               >
-                <X size={14} />
+                <X size={16} strokeWidth={1.75} />
               </button>
             </>
           )}
