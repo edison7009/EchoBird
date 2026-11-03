@@ -305,7 +305,7 @@ pub async fn translate(app: &AppHandle, source: String, language: String) -> Res
     let request = async {
         let model = pipeline::resolve_model(
             config
-                .optimization_model
+                .selection_model
                 .as_deref()
                 .ok_or("voice.error.optimizationModel")?,
         )?;
@@ -337,15 +337,13 @@ mod tests {
         assert!(!config.selection_active());
         config.selection_translation_enabled = true;
         assert!(!config.selection_active());
-        config.optimization_enabled = true;
-        assert!(!config.selection_active());
-        config.optimization_model = Some("existing-text-model".into());
+        config.selection_model = Some("existing-text-model".into());
         assert!(config.selection_active());
         assert!(config.channels.is_empty());
         assert!(!super::super::island_visible(&config));
         assert!(!config.hotkey_active());
-        config.optimization_enabled = false;
-        config.normalize_optimization_mode();
+        config.selection_model = Some(String::new());
+        config.normalize_selection();
         assert!(!config.selection_translation_enabled);
     }
     #[test]

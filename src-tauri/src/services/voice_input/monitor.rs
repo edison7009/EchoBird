@@ -54,7 +54,13 @@ pub fn start(app: &AppHandle) {
         #[cfg(any(windows, target_os = "macos"))]
         let mut cursor = super::island_input::CursorTracker::default();
         while !voice.stopped.load(Ordering::Acquire) {
-            let enabled = super::island_visible(&voice.saved.lock().unwrap().config);
+            let (enabled, zoom) = {
+                let saved = voice.saved.lock().unwrap();
+                (
+                    super::island_visible(&saved.config),
+                    saved.config.island_zoom(),
+                )
+            };
             if enabled && !enabled_before {
                 foreground = Some(app_icon::Monitor::new());
                 escape = native::ModifierMonitor::escape();
@@ -64,7 +70,7 @@ pub fn start(app: &AppHandle) {
             if enabled {
                 #[cfg(any(windows, target_os = "macos"))]
                 if let Some(window) = app.get_webview_window("voice-island") {
-                    cursor.update(&window);
+                    cursor.update(&window, zoom);
                 }
                 let pressed = escape.as_ref().is_some_and(native::ModifierMonitor::down);
                 if pressed && !pressed_before {

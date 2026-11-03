@@ -42,10 +42,9 @@ pub struct Config {
     pub shortcut: Binding,
     pub island_theme: String,
     pub island_palette: String,
-    pub optimization_enabled: bool,
-    pub optimization_model: Option<String>,
-    pub optimization_mode: String,
-    pub translation_language: String,
+    pub island_scale: u32,
+    #[serde(alias = "optimizationModel")]
+    pub selection_model: Option<String>,
     pub selection_translation_enabled: bool,
     pub selection_translation_language: String,
 }
@@ -65,10 +64,8 @@ impl Default for Config {
             },
             island_theme: "auto".into(),
             island_palette: "white".into(),
-            optimization_enabled: false,
-            optimization_model: None,
-            optimization_mode: "faithful".into(),
-            translation_language: "off".into(),
+            island_scale: 100,
+            selection_model: None,
             selection_translation_enabled: false,
             selection_translation_language: "zh-Hans".into(),
         }
@@ -94,26 +91,28 @@ impl Config {
         self.shortcut_enabled && self.hotkey_enabled
     }
 
-    pub fn translation_target(&self) -> Option<&'static str> {
-        language_name(&self.translation_language)
-    }
-
     pub fn selection_active(&self) -> bool {
         self.selection_translation_enabled
-            && self.optimization_enabled
             && self
-                .optimization_model
+                .selection_model
                 .as_ref()
                 .is_some_and(|id| !id.is_empty())
     }
 
-    pub fn normalize_optimization_mode(&mut self) {
-        if self.optimization_mode == "custom" {
-            self.optimization_mode = "semantic".into();
-        }
-        if !self.optimization_enabled || self.optimization_model.is_none() {
+    pub fn normalize_selection(&mut self) {
+        if !self
+            .selection_model
+            .as_ref()
+            .is_some_and(|id| !id.is_empty())
+        {
+            self.selection_model = None;
             self.selection_translation_enabled = false;
         }
+    }
+
+    /// The island's own zoom, independent of the main window's interface scale.
+    pub fn island_zoom(&self) -> f64 {
+        f64::from(self.island_scale) / 100.0
     }
 
     pub fn disable_without_channels(&mut self) {
@@ -167,10 +166,8 @@ impl Config {
         ) || !matches!(
             self.island_palette.as_str(),
             "white" | "aurora" | "ocean" | "sunset" | "iris"
-        ) || !matches!(
-            self.optimization_mode.as_str(),
-            "faithful" | "semantic" | "terms"
-        ) || (self.translation_language != "off" && self.translation_target().is_none())
+        ) || !(70..=150).contains(&self.island_scale)
+            || self.island_scale % 10 != 0
         {
             return Err("voice.error.config".into());
         }
@@ -216,7 +213,7 @@ pub fn load(path: &Path) -> Result<Saved, String> {
         Ok(bytes) => {
             let mut saved: Saved =
                 serde_json::from_slice(&bytes).map_err(|_| "voice.error.config")?;
-            saved.config.normalize_optimization_mode();
+            saved.config.normalize_selection();
             saved.config.validate()?;
             saved.config.disable_without_channels();
             Ok(saved)

@@ -131,51 +131,6 @@
   align-items: center;
   gap: 8px;
 }
-.usage-island-scale {
-  container-type: inline-size;
-  width: 100%;
-  min-width: 0;
-}
-.usage-island-scale-ticks {
-  position: relative;
-  height: 20px;
-  font-size: 12px;
-  line-height: 14px;
-  font-variant-numeric: tabular-nums;
-  color: rgb(var(--text-secondary-rgb));
-}
-/* Thumb centers stop 7px short of each end of the track. */
-.usage-island-scale-ticks > span {
-  position: absolute;
-  top: 0;
-  left: calc(7px + (100% - 14px) * var(--usage-island-tick));
-  padding-top: 6px;
-  transform: translateX(-50%);
-}
-.usage-island-scale-ticks > span::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 50%;
-  width: 1px;
-  height: 4px;
-  background: rgb(var(--border-rgb));
-}
-.usage-island-scale-ticks > span[data-active='true'] {
-  color: rgb(var(--accent-rgb));
-}
-.usage-island-scale-ticks > span[data-active='true']::before {
-  background: rgb(var(--accent-rgb));
-}
-/* Too narrow for all nine labels: every step keeps its tick, every other one its label,
-   and the active label always shows, in place of its neighbours. */
-@container (max-width: 279px) {
-  .usage-island-scale-ticks > span:nth-child(even):not([data-active='true']),
-  .usage-island-scale-ticks > span:has(+ [data-active='true']),
-  .usage-island-scale-ticks > span[data-active='true'] + span {
-    color: transparent;
-  }
-}
 .usage-island-refresh {
   display: flex;
   align-items: center;

@@ -18,17 +18,7 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { open as shellOpen } from '@tauri-apps/plugin-shell';
-import {
-  AudioLines,
-  Check,
-  Copy,
-  FilePenLine,
-  Languages,
-  Keyboard,
-  Mic,
-  Plus,
-  X,
-} from 'lucide-react';
+import { AudioLines, Check, Copy, Languages, Keyboard, Mic, Plus, X } from 'lucide-react';
 import { useI18n } from '../../hooks/useI18n';
 import type { TKey } from '../../i18n';
 import type { VoiceChannel, VoiceConfig } from '../../api/voiceInput';
@@ -36,6 +26,7 @@ import { useVoiceInputStore, voiceBusy } from '../../stores/voiceInputStore';
 import { useNavigationStore } from '../../stores/navigationStore';
 import { useAccountPrivacyStore, ACCOUNT_NAME_MASK } from '../../stores/accountPrivacyStore';
 import { RemoteModelSelector } from '../../components/RemoteModelSelector';
+import { IslandScaleSlider } from '../../components/IslandScaleSlider';
 import { MiniSelect } from '../../components/MiniSelect';
 import { ViewModeTabs } from '../../components/ViewModeTabs';
 import { ModelListCard } from '../../components/ModelListCard';
@@ -50,6 +41,7 @@ import * as modelApi from '../../api/models';
 import {
   getVoiceModels,
   selectionLanguages,
+  voiceIslandScales,
   voiceProtocols,
   type VoiceDirectoryEntry,
 } from '../../api/voiceInput';
@@ -74,7 +66,7 @@ export function VoiceInputMain() {
   const state = useVoiceInputStore();
   const accounts = useVoiceAccounts();
   const { userModels } = useModelNexus();
-  const { models: optimizationModels } = useMotherAgent();
+  const { models: textModels } = useMotherAgent();
   const sourceModels = [...state.models, ...userModels];
   const hidden = useAccountPrivacyStore((privacy) => privacy.hidden);
   const active = useNavigationStore((navigation) => navigation.activePage === 'voice');
@@ -99,7 +91,6 @@ export function VoiceInputMain() {
       </div>
     );
   const config = snapshot.config;
-  const shortcutHint = t('voice.changeShortcutHint').split('{mic}');
   const busy = saving || voiceActive;
   const channelLayoutKey = active && !voiceActive ? 'active' : 'hidden';
   const channels = orderedChannels ?? config.channels;
@@ -112,6 +103,7 @@ export function VoiceInputMain() {
     state.error ||
     (copyFailed ? 'voice.error.copy' : replayFailed ? 'voice.error.replay' : result.error);
   const emptySources = channels.length === 0;
+  const selectionModel = config.selectionModel || null;
   const visibleError = error === 'voice.error.noChannels' ? null : error;
   const copied = copyState?.text === resultText && copyState?.success === true;
   const update = <K extends keyof VoiceConfig>(key: K, value: VoiceConfig[K]) => {
@@ -295,6 +287,16 @@ export function VoiceInputMain() {
                   ))}
                 </div>
               </div>
+              <div className="voice-row voice-scale-row">
+                <span>{t('voice.islandScale')}</span>
+                <IslandScaleSlider
+                  scales={voiceIslandScales}
+                  value={config.islandScale ?? 100}
+                  label={t('voice.islandScale')}
+                  disabled={busy}
+                  onChange={(scale) => update('islandScale', scale)}
+                />
+              </div>
             </fieldset>
           </section>
           <DndContext
@@ -387,130 +389,51 @@ export function VoiceInputMain() {
             ))}
           </div>
         </section>
-        <section className="voice-card voice-optimization-card rounded-card">
+        <section className="voice-card voice-shortcut-card rounded-card">
           <div className="voice-section-heading">
             <h3>
-              <FilePenLine size={18} />
-              {t('voice.optimization')}
+              <Keyboard size={18} />
+              {t('voice.shortcut')}
             </h3>
-            <fieldset disabled={busy || !active} className="voice-optimization-model">
-              <RemoteModelSelector
-                key={`${active}:${voiceActive}:${config.optimizationEnabled}`}
-                models={[
-                  { id: '', name: t('voice.optimizationOff') },
-                  ...optimizationModels.map((model) => ({
-                    id: model.internalId,
-                    name: model.name,
-                    icon: getModelIcon('', model.modelId),
-                    iconKind: isSmartRouterId(model.internalId) ? ('router' as const) : undefined,
-                  })),
+          </div>
+          <div className="voice-shortcut-controls">
+            <fieldset
+              aria-label={t('voice.shortcutMode')}
+              disabled={busy}
+              className="m-0 min-w-0 shrink-0 border-0 p-0 disabled:opacity-40"
+            >
+              <ViewModeTabs
+                value={config.hotkeyMode ?? 'hold'}
+                options={[
+                  { value: 'hold', label: t('voice.shortcutHold') },
+                  { value: 'toggle', label: t('voice.shortcutToggle') },
                 ]}
-                currentModelId={config.optimizationEnabled ? config.optimizationModel : ''}
-                loading={false}
-                onSelect={(id) => {
-                  if (active && !busy)
-                    void save(
-                      id
-                        ? { optimizationEnabled: true, optimizationModel: id }
-                        : { optimizationEnabled: false }
-                    );
-                }}
-                placeholder={t('voice.selectModel')}
+                onChange={(value) => update('hotkeyMode', value)}
               />
             </fieldset>
-          </div>
-          <fieldset
-            disabled={busy || !config.optimizationEnabled}
-            data-enabled={config.optimizationEnabled}
-            className="voice-optimization"
-          >
-            <div className="voice-row">
-              <span>{t('voice.optimizationMode')}</span>
-              <MiniSelect
-                value={config.optimizationMode}
-                disabled={busy || !config.optimizationEnabled}
-                onChange={(value) =>
-                  update('optimizationMode', value as VoiceConfig['optimizationMode'])
-                }
-                options={(['faithful', 'semantic', 'terms'] as const).map((mode) => ({
-                  id: mode,
-                  label: t(`voice.${mode}` as TKey),
-                }))}
-              />
-            </div>
-            <div className="voice-row">
-              <span>{t('voice.autoTranslate')}</span>
-              <MiniSelect
-                value={config.translationLanguage}
-                dropUp
-                disabled={busy || !config.optimizationEnabled}
-                onChange={(value) =>
-                  update('translationLanguage', value as VoiceConfig['translationLanguage'])
-                }
-                options={(
-                  ['off', 'zh-Hans', 'zh-Hant', 'en', 'ja', 'ko', 'fr', 'de', 'es'] as const
-                ).map((language) => ({
-                  id: language,
-                  label: t(`voice.translation.${language}` as TKey),
-                }))}
-              />
-            </div>
-          </fieldset>
-        </section>
-        <section className="voice-card voice-shortcut-card rounded-card">
-          <div className="voice-row voice-shortcut-row">
-            <span>
-              <span className="voice-shortcut-heading">
-                <span className="voice-shortcut-title">
-                  <Keyboard size={17} aria-hidden="true" />
-                  {t('voice.shortcut')}
-                </span>
-                <span className="voice-shortcut-hint">
-                  {shortcutHint[0]}
-                  <Mic size={13} aria-hidden="true" className="voice-shortcut-hint-icon" />
-                  {shortcutHint[1]}
-                </span>
-              </span>
-              <span className="voice-shortcut-description">{t('voice.shortcutCaution')}</span>
-            </span>
-            <div className="voice-shortcut-controls">
-              <fieldset
-                aria-label={t('voice.shortcutMode')}
+            <div className="voice-shortcut-control">
+              <ShortcutRecorder
+                key={String(active)}
+                active={active}
+                enabled={config.hotkeyEnabled}
+                binding={config.shortcut}
                 disabled={busy}
-                className="m-0 min-w-0 shrink-0 border-0 p-0 disabled:opacity-40"
-              >
-                <ViewModeTabs
-                  value={config.hotkeyMode ?? 'hold'}
-                  options={[
-                    { value: 'hold', label: t('voice.shortcutHold') },
-                    { value: 'toggle', label: t('voice.shortcutToggle') },
-                  ]}
-                  onChange={(value) => update('hotkeyMode', value)}
-                />
-              </fieldset>
-              <div className="voice-shortcut-control">
-                <ShortcutRecorder
-                  key={String(active)}
-                  active={active}
-                  enabled={config.hotkeyEnabled}
-                  binding={config.shortcut}
+                onSave={(shortcut) => save({ shortcut, hotkeyEnabled: true })}
+              />
+              {config.hotkeyEnabled && (
+                <button
+                  type="button"
+                  className="voice-shortcut-clear"
+                  aria-label={t('voice.disableShortcut')}
                   disabled={busy}
-                  onSave={(shortcut) => save({ shortcut, hotkeyEnabled: true })}
-                />
-                {config.hotkeyEnabled && (
-                  <button
-                    type="button"
-                    className="voice-shortcut-clear"
-                    aria-label={t('voice.disableShortcut')}
-                    disabled={busy}
-                    onClick={() => update('hotkeyEnabled', false)}
-                  >
-                    <X size={16} />
-                  </button>
-                )}
-              </div>
+                  onClick={() => update('hotkeyEnabled', false)}
+                >
+                  <X size={16} />
+                </button>
+              )}
             </div>
           </div>
+          <p className="voice-shortcut-description">{t('voice.shortcutCaution')}</p>
           {snapshot.shortcutDescription && (
             <span className="voice-status">{snapshot.shortcutDescription}</span>
           )}
@@ -522,18 +445,31 @@ export function VoiceInputMain() {
               <span>
                 {t('voice.selection')}
                 <span className="voice-shortcut-hint">
-                  {t(
-                    config.optimizationEnabled && config.optimizationModel
-                      ? 'voice.selectionHint'
-                      : 'voice.selectionRequiresModel'
-                  )}
+                  {t(selectionModel ? 'voice.selectionHint' : 'voice.selectionRequiresModel')}
                 </span>
               </span>
             </span>
             <div className="voice-selection-controls">
+              <fieldset disabled={busy || !active} className="voice-selection-model">
+                <RemoteModelSelector
+                  key={`${active}:${voiceActive}`}
+                  models={textModels.map((model) => ({
+                    id: model.internalId,
+                    name: model.name,
+                    icon: getModelIcon('', model.modelId),
+                    iconKind: isSmartRouterId(model.internalId) ? ('router' as const) : undefined,
+                  }))}
+                  currentModelId={selectionModel ?? ''}
+                  loading={false}
+                  onSelect={(id) => {
+                    if (active && !busy && id) update('selectionModel', id);
+                  }}
+                  placeholder={t('voice.selectModel')}
+                />
+              </fieldset>
               <MiniSelect
                 value={config.selectionTranslationLanguage ?? 'zh-Hans'}
-                disabled={busy || !config.optimizationEnabled || !config.optimizationModel}
+                disabled={busy || !selectionModel}
                 dropUp
                 options={selectionLanguages.map((language) => ({
                   id: language,
@@ -548,24 +484,17 @@ export function VoiceInputMain() {
               />
               <fieldset
                 aria-label={t('voice.selection')}
-                disabled={busy || !config.optimizationEnabled || !config.optimizationModel}
+                disabled={busy || !selectionModel}
                 className="m-0 min-w-0 shrink-0 border-0 p-0 disabled:opacity-40"
               >
                 <ViewModeTabs
-                  value={
-                    config.selectionTranslationEnabled &&
-                    config.optimizationEnabled &&
-                    config.optimizationModel
-                      ? 'on'
-                      : 'off'
-                  }
+                  value={config.selectionTranslationEnabled && selectionModel ? 'on' : 'off'}
                   options={[
                     { value: 'on', label: t('voice.selectionOn') },
                     { value: 'off', label: t('voice.selectionOff') },
                   ]}
                   onChange={(value) => {
-                    if (config.optimizationEnabled && config.optimizationModel)
-                      update('selectionTranslationEnabled', value === 'on');
+                    if (selectionModel) update('selectionTranslationEnabled', value === 'on');
                   }}
                 />
               </fieldset>

@@ -825,7 +825,7 @@ it('sizes the preview and saves the choice from a slider marked with each step',
   const slider = view!.root.findByProps({ type: 'range' });
   expect(slider.props).toMatchObject({ min: 70, max: 150, step: 10, value: 100 });
   const ticks = () =>
-    view!.root.findByProps({ className: 'usage-island-scale-ticks' }).findAllByType('span');
+    view!.root.findByProps({ className: 'island-scale-ticks' }).findAllByType('span');
   expect(ticks().map((tick) => tick.children.join(''))).toEqual(
     usageIslandScales.map((scale) => `${scale}%`)
   );

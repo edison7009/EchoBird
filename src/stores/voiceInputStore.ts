@@ -3,9 +3,7 @@ import * as api from '../api/voiceInput';
 import type { ModelConfig } from '../api/types';
 
 export const voiceBusy = (phase?: string) =>
-  ['starting', 'recording', 'testing', 'transcribing', 'optimizing', 'inserting'].includes(
-    phase ?? ''
-  );
+  ['starting', 'recording', 'testing', 'transcribing', 'inserting'].includes(phase ?? '');
 
 interface VoiceInputState {
   models: ModelConfig[];

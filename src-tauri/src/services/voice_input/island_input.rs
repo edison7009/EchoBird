@@ -31,8 +31,8 @@ impl CursorTracker {
     }
 
     #[cfg(any(windows, target_os = "macos"))]
-    pub(super) fn update(&mut self, window: &tauri::WebviewWindow) {
-        self.update_region(window, contains);
+    pub(super) fn update(&mut self, window: &tauri::WebviewWindow, zoom: f64) {
+        self.update_region(window, |x, y| contains(x / zoom, y / zoom));
     }
 
     /// Lets the mouse through outside `region`, given in logical window coordinates.
@@ -62,31 +62,27 @@ impl CursorTracker {
 }
 
 #[cfg(any(windows, target_os = "macos"))]
-pub(super) fn configure(window: &tauri::WebviewWindow) -> tauri::Result<()> {
+pub(super) fn configure(window: &tauri::WebviewWindow, _zoom: f64) -> tauri::Result<()> {
     window.set_ignore_cursor_events(true)
 }
 
+/// Rows of the capsule's input mask in logical window pixels at `zoom`.
 #[cfg(any(target_os = "linux", test))]
-fn input_rows() -> Vec<(i32, i32, i32)> {
-    (0..BODY_HEIGHT as i32)
-        .filter_map(|row| {
-            let inset = (0..BODY_WIDTH as i32 / 2).find(|column| {
-                contains(
-                    SHADOW_PADDING + f64::from(*column) + 0.5,
-                    SHADOW_PADDING + f64::from(row) + 0.5,
-                )
-            })?;
-            Some((
-                SHADOW_PADDING as i32 + inset,
-                SHADOW_PADDING as i32 + row,
-                BODY_WIDTH as i32 - inset * 2,
-            ))
+fn input_rows(zoom: f64) -> Vec<(i32, i32, i32)> {
+    let inside =
+        |x: i32, y: i32| contains((f64::from(x) + 0.5) / zoom, (f64::from(y) + 0.5) / zoom);
+    (0..(WINDOW_HEIGHT * zoom).ceil() as i32)
+        .filter_map(|y| {
+            let mut columns = (0..(WINDOW_WIDTH * zoom).ceil() as i32).filter(|&x| inside(x, y));
+            let left = columns.next()?;
+            let right = columns.next_back().unwrap_or(left);
+            Some((left, y, right - left + 1))
         })
         .collect()
 }
 
 #[cfg(target_os = "linux")]
-pub(super) fn configure(window: &tauri::WebviewWindow) -> tauri::Result<()> {
+pub(super) fn configure(window: &tauri::WebviewWindow, zoom: f64) -> tauri::Result<()> {
     use gtk::{
         cairo::{RectangleInt, Region},
         prelude::*,
@@ -98,7 +94,7 @@ pub(super) fn configure(window: &tauri::WebviewWindow) -> tauri::Result<()> {
             return;
         };
         let region = Region::create();
-        for (x, y, width) in input_rows() {
+        for (x, y, width) in input_rows(zoom) {
             if let Err(error) = region.union_rectangle(&RectangleInt::new(x, y, width, 1)) {
                 log::warn!("[VoiceInput] could not create the island input region: {error}");
                 return;
@@ -157,14 +153,17 @@ mod tests {
 
     #[test]
     fn linux_input_mask_matches_the_visible_capsule_without_its_shadow_or_corners() {
-        let rows = input_rows();
-        assert_eq!(rows.len(), 44);
-        for y in 0..WINDOW_HEIGHT as i32 {
-            for x in 0..WINDOW_WIDTH as i32 {
-                let masked = rows
-                    .iter()
-                    .any(|&(left, top, width)| y == top && x >= left && x < left + width);
-                assert_eq!(masked, contains(f64::from(x) + 0.5, f64::from(y) + 0.5));
+        for zoom in [0.7, 1.0, 1.5] {
+            let rows = input_rows(zoom);
+            assert!(rows.len().abs_diff((BODY_HEIGHT * zoom).round() as usize) <= 1);
+            for y in 0..(WINDOW_HEIGHT * zoom) as i32 {
+                for x in 0..(WINDOW_WIDTH * zoom) as i32 {
+                    let masked = rows
+                        .iter()
+                        .any(|&(left, top, width)| y == top && x >= left && x < left + width);
+                    let inside = contains((f64::from(x) + 0.5) / zoom, (f64::from(y) + 0.5) / zoom);
+                    assert_eq!(masked, inside, "zoom={zoom} x={x} y={y}");
+                }
             }
         }
     }

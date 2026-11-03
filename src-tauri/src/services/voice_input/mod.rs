@@ -152,7 +152,7 @@ impl Runtime {
     fn active(&self) -> bool {
         matches!(
             self.phase.as_str(),
-            "starting" | "recording" | "testing" | "transcribing" | "optimizing" | "inserting"
+            "starting" | "recording" | "testing" | "transcribing" | "inserting"
         )
     }
 }
@@ -285,7 +285,7 @@ pub fn devices() -> Result<Vec<String>, String> {
 }
 
 pub async fn save(app: &AppHandle, mut config: Config) -> Result<Snapshot, String> {
-    config.normalize_optimization_mode();
+    config.normalize_selection();
     config.disable_without_channels();
     config.validate()?;
     if !native::modifier(&config.shortcut) {
@@ -308,6 +308,7 @@ pub async fn save(app: &AppHandle, mut config: Config) -> Result<Snapshot, Strin
     };
     let mut saved = voice.saved.lock().unwrap().clone();
     let mode_changed = saved.config.hotkey_mode != config.hotkey_mode;
+    let zoom_changed = saved.config.island_scale != config.island_scale;
     saved.config = config.clone();
     if let Err(error) = config::save(&voice.path, &saved) {
         if let Some(registration) = &replacement {
@@ -334,6 +335,13 @@ pub async fn save(app: &AppHandle, mut config: Config) -> Result<Snapshot, Strin
     }
     *voice.saved.lock().unwrap() = saved;
     selection::close(app);
+    if zoom_changed {
+        if let Some(window) = app.get_webview_window("voice-island") {
+            if resize_island(&window, config.island_zoom()).is_err() {
+                voice.runtime.lock().unwrap().error = Some("voice.error.island".into());
+            }
+        }
+    }
     if island_visible(&config) {
         if let Err(error) = show_island(app) {
             voice.runtime.lock().unwrap().error = Some(error);
@@ -670,23 +678,6 @@ async fn stop_capture(app: &AppHandle, shortcut_only: bool) -> Result<Snapshot, 
             Err(_) => warning = Some("voice.error.plugin".into()),
         }
     }
-    if !text.trim().is_empty() && config.optimization_enabled {
-        {
-            let mut runtime = voice.runtime.lock().unwrap();
-            if runtime.generation != generation {
-                return Ok(snapshot_after_unlock(app, runtime));
-            }
-            runtime.phase = "optimizing".into();
-        }
-        publish(app);
-        match tokio::select! {
-            _ = cancel.cancelled() => return Ok(snapshot(app)),
-            result = tokio::time::timeout(Duration::from_secs(45), pipeline::optimize(&config, &text, &audio)) => result,
-        } {
-            Ok(Ok(optimized)) => text = optimized,
-            _ => warning = Some("voice.error.optimization".into()),
-        }
-    }
     if let Some(extensions) = &extensions {
         match tokio::select! {
             _=cancel.cancelled()=>return Ok(snapshot(app)),
@@ -819,7 +810,7 @@ fn shortcut_action(mode: &str, phase: &str, origin: &str, down: bool) -> Option<
     } else if (down || mode == "toggle")
         && !matches!(
             phase,
-            "starting" | "recording" | "testing" | "transcribing" | "optimizing" | "inserting"
+            "starting" | "recording" | "testing" | "transcribing" | "inserting"
         )
     {
         Some(ShortcutAction::Start)
@@ -884,7 +875,9 @@ fn island_visible(config: &Config) -> bool {
 fn island_position(
     area: &tauri::PhysicalRect<i32, u32>,
     scale: f64,
+    zoom: f64,
 ) -> tauri::PhysicalPosition<i32> {
+    let scale = scale * zoom;
     tauri::PhysicalPosition::new(
         (f64::from(area.position.x) + (f64::from(area.size.width) - ISLAND_WIDTH * scale) / 2.0)
             .round() as i32,
@@ -895,6 +888,24 @@ fn island_position(
     )
 }
 
+/// Applies a new island zoom while keeping the capsule's bottom center in place.
+fn resize_island(window: &tauri::WebviewWindow, zoom: f64) -> tauri::Result<()> {
+    let scale = window.scale_factor()?;
+    let size = window.outer_size()?;
+    let position = window.outer_position()?;
+    let width = (ISLAND_WIDTH * zoom * scale).round();
+    let height = (ISLAND_HEIGHT * zoom * scale).round();
+    let center = f64::from(position.x) + f64::from(size.width) / 2.0;
+    let bottom = f64::from(position.y) + f64::from(size.height);
+    window.set_size(tauri::PhysicalSize::new(width as u32, height as u32))?;
+    window.set_zoom(zoom)?;
+    island_input::configure(window, zoom)?;
+    window.set_position(tauri::PhysicalPosition::new(
+        (center - width / 2.0).round() as i32,
+        (bottom - height).round() as i32,
+    ))
+}
+
 fn show_island(app: &AppHandle) -> Result<(), String> {
     let status = snapshot(app);
     if !island_visible(&status.config) {
@@ -903,13 +914,14 @@ fn show_island(app: &AppHandle) -> Result<(), String> {
     if let Some(window) = app.get_webview_window("voice-island") {
         return window.show().map_err(|_| "voice.error.island".into());
     }
+    let zoom = status.config.island_zoom();
     let window = tauri::WebviewWindowBuilder::new(
         app,
         "voice-island",
         tauri::WebviewUrl::App("index.html".into()),
     )
     .title("EchoBird")
-    .inner_size(ISLAND_WIDTH, ISLAND_HEIGHT)
+    .inner_size(ISLAND_WIDTH * zoom, ISLAND_HEIGHT * zoom)
     .decorations(false)
     .transparent(true)
     .shadow(false)
@@ -921,7 +933,8 @@ fn show_island(app: &AppHandle) -> Result<(), String> {
     .visible(false)
     .build()
     .map_err(|_| "voice.error.island")?;
-    island_input::configure(&window).map_err(|_| "voice.error.island")?;
+    window.set_zoom(zoom).map_err(|_| "voice.error.island")?;
+    island_input::configure(&window, zoom).map_err(|_| "voice.error.island")?;
     let moved_app = app.clone();
     window.on_window_event(move |event| {
         if matches!(event, tauri::WindowEvent::Moved(_)) {
@@ -933,7 +946,11 @@ fn show_island(app: &AppHandle) -> Result<(), String> {
         .and_then(|main| main.current_monitor().ok().flatten())
         .or_else(|| window.current_monitor().ok().flatten())
     {
-        let _ = window.set_position(island_position(monitor.work_area(), monitor.scale_factor()));
+        let _ = window.set_position(island_position(
+            monitor.work_area(),
+            monitor.scale_factor(),
+            zoom,
+        ));
     }
     Ok(())
 }

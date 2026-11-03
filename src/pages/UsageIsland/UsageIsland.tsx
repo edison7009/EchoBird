@@ -13,6 +13,7 @@ import {
   TriangleAlert,
   type LucideIcon,
 } from 'lucide-react';
+import { IslandScaleSlider } from '../../components/IslandScaleSlider';
 import { MiniSelect } from '../../components/MiniSelect';
 import { ViewModeTabs } from '../../components/ViewModeTabs';
 import { useI18n } from '../../hooks/useI18n';
@@ -63,9 +64,6 @@ const directions: Record<UsageIslandStyle, [Direction, Direction]> = {
     { icon: ArrowLeft, label: 'usageIsland.direction.left' },
   ],
 };
-
-const MIN_SCALE = usageIslandScales[0];
-const MAX_SCALE = usageIslandScales[usageIslandScales.length - 1];
 
 export function UsageIslandMain() {
   const { t } = useI18n();
@@ -191,39 +189,12 @@ export function UsageIslandMain() {
               </span>
             </div>
             <div className="voice-row">
-              <div className="usage-island-scale">
-                <input
-                  type="range"
-                  min={MIN_SCALE}
-                  max={MAX_SCALE}
-                  step={10}
-                  value={config.scale}
-                  aria-label={t('usageIsland.scale')}
-                  aria-valuetext={`${config.scale}%`}
-                  className="ui-scale-slider relative block w-full"
-                  style={
-                    {
-                      '--ui-scale-progress': `${((config.scale - MIN_SCALE) / (MAX_SCALE - MIN_SCALE)) * 100}%`,
-                    } as CSSProperties
-                  }
-                  onChange={(event) => update({ scale: Number(event.target.value) })}
-                />
-                <div className="usage-island-scale-ticks" aria-hidden="true">
-                  {usageIslandScales.map((scale) => (
-                    <span
-                      key={scale}
-                      data-active={scale === config.scale}
-                      style={
-                        {
-                          '--usage-island-tick': (scale - MIN_SCALE) / (MAX_SCALE - MIN_SCALE),
-                        } as CSSProperties
-                      }
-                    >
-                      {scale}%
-                    </span>
-                  ))}
-                </div>
-              </div>
+              <IslandScaleSlider
+                scales={usageIslandScales}
+                value={config.scale}
+                label={t('usageIsland.scale')}
+                onChange={(scale) => update({ scale })}
+              />
             </div>
           </div>
         </div>

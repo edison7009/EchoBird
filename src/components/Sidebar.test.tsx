@@ -376,7 +376,7 @@ describe('Sidebar', () => {
     expect(baseProps.onSmartRouterChange).not.toHaveBeenCalled();
   });
 
-  it.each(['starting', 'testing', 'recording', 'transcribing', 'optimizing', 'inserting'] as const)(
+  it.each(['starting', 'testing', 'recording', 'transcribing', 'inserting'] as const)(
     'blocks the global toggle while %s without writing or interrupting audio',
     async (phase) => {
       voice.setState({ snapshot: voiceSnapshot({ phase, config: sourceConfig }) });

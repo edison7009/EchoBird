@@ -7,10 +7,8 @@ import {
   type Monitor,
 } from '@tauri-apps/api/window';
 import { getCurrentWebview } from '@tauri-apps/api/webview';
-import { emitTo, listen } from '@tauri-apps/api/event';
 
 export type UiScalePreference = 'auto' | number;
-export const UI_SCALE_CHANGED_EVENT = 'echobird-ui-scale-changed';
 const STORAGE_KEY = 'echobird-ui-scale';
 let applied = false;
 let queued: { preference: UiScalePreference; persist: boolean } | undefined;
@@ -112,9 +110,6 @@ export const useUiScaleStore = create<UiScaleStore>((set, get) => ({
           if (!applied || scale !== get().scale) {
             await getCurrentWebview().setZoom(scale);
             applied = true;
-            if (getCurrentWindow().label === 'main') {
-              await emitTo('voice-island', UI_SCALE_CHANGED_EVENT, scale).catch(() => {});
-            }
           }
           set({ preference: request.preference, scale, failed: false });
           if (request.persist && !queued) {
@@ -137,16 +132,6 @@ export const useUiScaleStore = create<UiScaleStore>((set, get) => ({
 
 export async function initializeUiScale(): Promise<() => void> {
   const win = getCurrentWindow();
-  let synced = false;
-  const sync =
-    win.label === 'voice-island'
-      ? await listen<number>(UI_SCALE_CHANGED_EVENT, ({ payload }) => {
-          if (Number.isFinite(payload) && payload >= 0.7 && payload <= 1.5) {
-            synced = true;
-            void useUiScaleStore.getState().setPreference(payload * 100, false);
-          }
-        }).catch(() => undefined)
-      : undefined;
   let preference: UiScalePreference = 'auto';
   try {
     const saved = localStorage.getItem(STORAGE_KEY);
@@ -156,8 +141,7 @@ export async function initializeUiScale(): Promise<() => void> {
   } catch {
     // Unavailable storage must not prevent the first window from opening.
   }
-  if (!synced) await useUiScaleStore.getState().setPreference(preference, false);
-  else await applying;
+  await useUiScaleStore.getState().setPreference(preference, false);
 
   let timer: ReturnType<typeof setTimeout> | undefined;
   const refresh = () => {
@@ -171,7 +155,6 @@ export async function initializeUiScale(): Promise<() => void> {
   };
   const listeners = await Promise.allSettled([win.onMoved(refresh), win.onScaleChanged(refresh)]);
   return () => {
-    sync?.();
     clearTimeout(timer);
     for (const listener of listeners) {
       if (listener.status === 'fulfilled') listener.value();

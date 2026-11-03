@@ -3,8 +3,8 @@
   grid-template-columns: repeat(2, minmax(0, 1fr));
   grid-template-areas:
     'stage stage'
-    'microphone optimization'
-    'shortcut shortcut';
+    'microphone shortcut'
+    'selection selection';
   gap: 14px;
 }
 .voice-routing-stage {
@@ -79,32 +79,22 @@
 .voice-microphone-card {
   grid-area: microphone;
 }
-.voice-optimization-card {
-  grid-area: optimization;
-}
 .voice-shortcut-card {
   grid-area: shortcut;
 }
-.voice-row.voice-shortcut-row {
+.voice-scale-row {
   flex-wrap: nowrap;
-  min-height: 44px;
+  gap: 16px;
 }
-.voice-shortcut-row > span {
-  flex: 1;
-  min-width: 0;
+.voice-scale-row > span {
+  flex-shrink: 0;
 }
-.voice-shortcut-heading {
-  display: block;
-}
-.voice-shortcut-title {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  vertical-align: middle;
+.voice-scale-row > .island-scale {
+  max-width: 300px;
+  padding-top: 14px;
 }
 .voice-shortcut-description {
-  display: block;
-  margin-top: 4px;
+  margin: 16px 0 0;
   color: rgb(var(--text-secondary-rgb));
   font-size: 12px;
   line-height: 1.5;
@@ -113,8 +103,6 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  flex: 0 1 340px;
-  max-width: 55%;
   min-width: 0;
 }
 .voice-shortcut-control {
@@ -216,8 +204,7 @@
   outline-offset: 3px;
 }
 .voice-card button:disabled,
-.voice-routing-stage button:disabled,
-.voice-optimization:disabled {
+.voice-routing-stage button:disabled {
   opacity: 0.45;
 }
 .voice-mic-controls {
@@ -343,41 +330,22 @@
   max-width: 100%;
   min-width: 0;
 }
-.voice-optimization {
-  display: grid;
-  gap: 17px;
+.voice-selection-model {
   min-width: 0;
-}
-.voice-optimization-model {
-  min-width: 0;
-  max-width: 48%;
+  width: 220px;
   font-size: 14px;
 }
-.voice-optimization .voice-row {
-  min-height: 40px;
-}
-.voice-optimization .voice-row > div {
-  min-width: 0;
-}
-.voice-optimization:disabled button {
-  opacity: 1;
+.voice-selection-model .font-mono {
+  font-family: inherit;
+  font-size: inherit;
 }
 /* Brief config saves keep their interaction lock without flashing the settings. */
 .voice-grid[data-saving='true'] .voice-card button:disabled,
 .voice-grid[data-saving='true'] .voice-routing-stage button:disabled,
 .voice-grid[data-saving='true'] .voice-device-select > button,
-.voice-grid[data-saving='true'] .voice-optimization:disabled,
 .voice-input-panel[data-saving='true'] button:disabled,
 .voice-input-panel[data-saving='true'] span.opacity-40 {
   opacity: 1;
-}
-.voice-grid[data-saving='true'] .voice-optimization[data-enabled='false'] {
-  opacity: 0.45;
-}
-.voice-optimization .font-mono,
-.voice-optimization-model .font-mono {
-  font-family: inherit;
-  font-size: inherit;
 }
 .voice-error {
   font-size: 14px;
@@ -683,7 +651,7 @@
   object-fit: contain;
 }
 .voice-selection-settings {
-  grid-column: 1 / -1;
+  grid-area: selection;
 }
 .voice-selection-label,
 .voice-selection-controls {

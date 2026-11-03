@@ -186,12 +186,13 @@ async function bootAndRender(): Promise<void> {
     document.documentElement.classList.add(
       isVoiceTranslation ? 'voice-translation-window' : 'voice-island-window'
     );
+    // The island's zoom is its own setting, applied natively by the backend.
     const [locale, , disposeUiScale] = await Promise.all([
       bootI18n(),
       bootFonts(),
-      initializeUiScale(),
+      isVoiceTranslation ? initializeUiScale() : undefined,
     ]);
-    import.meta.hot?.dispose(disposeUiScale);
+    if (disposeUiScale) import.meta.hot?.dispose(disposeUiScale);
     document.documentElement.lang = locale;
     ReactDOM.createRoot(document.getElementById('root')!).render(
       <I18nProvider initialLocale={locale}>

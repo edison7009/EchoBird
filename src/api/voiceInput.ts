@@ -51,12 +51,10 @@ export interface VoiceConfig {
   shortcut: VoiceBinding;
   islandTheme: 'auto' | 'dark' | 'light' | 'system' | 'iridescent';
   islandPalette: VoicePalette;
-  optimizationEnabled: boolean;
-  optimizationModel: string | null;
-  optimizationMode: 'faithful' | 'semantic' | 'terms';
-  translationLanguage: 'off' | 'zh-Hans' | 'zh-Hant' | 'en' | 'ja' | 'ko' | 'fr' | 'de' | 'es';
+  islandScale?: number;
+  selectionModel?: string | null;
   selectionTranslationEnabled?: boolean;
-  selectionTranslationLanguage?: Exclude<VoiceConfig['translationLanguage'], 'off'>;
+  selectionTranslationLanguage?: (typeof selectionLanguages)[number];
 }
 export interface VoiceUsage {
   characters: number;
@@ -72,7 +70,6 @@ export interface VoiceSnapshot {
     | 'recording'
     | 'testing'
     | 'transcribing'
-    | 'optimizing'
     | 'inserting'
     | 'done'
     | 'error';
@@ -91,6 +88,7 @@ export interface VoiceSnapshot {
   origin: 'page' | 'test' | 'shortcut' | 'island';
 }
 export const getVoiceState = () => invoke<VoiceSnapshot>('voice_input_state');
+export const voiceIslandScales = [70, 80, 90, 100, 110, 120, 130, 140, 150] as const;
 export const selectionLanguages = [
   'zh-Hans',
   'zh-Hant',

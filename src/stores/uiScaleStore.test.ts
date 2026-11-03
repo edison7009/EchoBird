@@ -63,58 +63,13 @@ afterEach(() => {
 });
 
 describe('UI scale', () => {
-  it('publishes only an applied main-window scale, including automatic display changes', async () => {
+  it('keeps the voice island out of the interface scale', async () => {
     native.monitor.mockResolvedValue(monitor(1366, 728));
     await module.initializeUiScale();
-    expect(native.emit).toHaveBeenLastCalledWith(
-      'voice-island',
-      module.UI_SCALE_CHANGED_EVENT,
-      0.8
-    );
     await module.useUiScaleStore.getState().setPreference(90);
-    expect(native.emit).toHaveBeenLastCalledWith(
-      'voice-island',
-      module.UI_SCALE_CHANGED_EVENT,
-      0.9
-    );
-    expect(native.emit).not.toHaveBeenCalledWith(
-      'usage-island',
-      module.UI_SCALE_CHANGED_EVENT,
-      expect.anything()
-    );
-  });
-
-  it('restores and syncs the floating island scale without resizing, saving or rebroadcasting', async () => {
-    native.label = 'voice-island';
-    storage.getItem.mockReturnValue('80');
-    const dispose = await module.initializeUiScale();
-    expect(native.zoom).toHaveBeenCalledExactlyOnceWith(0.8);
-    const callback = native.listen.mock.calls[0][1];
-    await callback({ payload: 1.2 });
-    await Promise.resolve();
-    expect(native.zoom).toHaveBeenLastCalledWith(1.2);
-    for (const payload of [0, 4, '1.2', NaN]) await callback({ payload });
-    expect(native.zoom).toHaveBeenCalledTimes(2);
-    expect(native.setSize).not.toHaveBeenCalled();
-    expect(native.setMinSize).not.toHaveBeenCalled();
-    expect(native.setPosition).not.toHaveBeenCalled();
-    expect(storage.setItem).not.toHaveBeenCalled();
+    expect(native.zoom).toHaveBeenLastCalledWith(0.9);
     expect(native.emit).not.toHaveBeenCalled();
-    dispose();
-    expect(native.listen.mock.results[0].value).toBeDefined();
-    expect(await native.listen.mock.results[0].value).toHaveBeenCalledOnce();
-  });
-
-  it('keeps a newer scale event received while the floating listener is registering', async () => {
-    native.label = 'voice-island';
-    storage.getItem.mockReturnValue('80');
-    native.listen.mockImplementationOnce(async (_event, callback) => {
-      callback({ payload: 1.1 });
-      return vi.fn();
-    });
-    await module.initializeUiScale();
-    expect(native.zoom.mock.calls).toEqual([[1.1]]);
-    expect(storage.setItem).not.toHaveBeenCalled();
+    expect(native.listen).not.toHaveBeenCalled();
   });
 
   it.each([

@@ -277,7 +277,7 @@ it.each([
     const config = {
       ...voiceSnapshot().config,
       shortcutEnabled,
-      optimizationEnabled: true,
+      selectionModel: 'text-model',
       channels: [
         { kind: 'model' as const, id: 'speech-one' },
         { kind: 'model' as const, id: 'speech-two' },

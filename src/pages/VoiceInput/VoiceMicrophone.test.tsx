@@ -72,6 +72,7 @@ vi.mock('../ModelNexus/context', () => ({
 }));
 vi.mock('../../api/voiceInput', () => ({
   selectionLanguages: ['zh-Hans', 'zh-Hant', 'en', 'ja', 'ko', 'fr', 'de', 'es'],
+  voiceIslandScales: [70, 80, 90, 100, 110, 120, 130, 140, 150],
   openSelectionTranslation: vi.fn().mockResolvedValue(undefined),
   closeSelectionTranslation: vi.fn().mockResolvedValue(undefined),
   startVoice: vi.fn(),
@@ -129,11 +130,10 @@ function button(label: string) {
 describe('selection translation entry', () => {
   const configured = () => ({
     ...voiceSnapshot().config,
-    optimizationEnabled: true,
-    optimizationModel: 'saved-text-model',
+    selectionModel: 'saved-text-model',
     selectionTranslationEnabled: true,
   });
-  it('requires an enabled optimization model and performs no passive translation', () => {
+  it('requires a selection model and performs no passive translation', () => {
     act(() => {
       renderer = create(<VoiceInputMain />);
     });
@@ -443,13 +443,7 @@ describe('localized shortcut transitions', () => {
       vi.mocked(api.saveVoiceConfig).mockRejectedValueOnce('voice.error.save');
       await act(async () => tabs().props.onChange('hold'));
       expect(tabs().props.value).toBe('toggle');
-      for (const phase of [
-        'starting',
-        'recording',
-        'transcribing',
-        'optimizing',
-        'inserting',
-      ] as const) {
+      for (const phase of ['starting', 'recording', 'transcribing', 'inserting'] as const) {
         act(() =>
           voice.setState({
             snapshot: voiceSnapshot({ config: { ...config, hotkeyMode: 'toggle' }, phase }),
@@ -477,15 +471,14 @@ describe('localized shortcut transitions', () => {
       });
       const card = () =>
         renderer.root.findByProps({ className: 'voice-card voice-shortcut-card rounded-card' });
-      const row = () => card().findByProps({ className: 'voice-row voice-shortcut-row' });
       const control = () =>
-        row().findByProps({ className: 'voice-shortcut-control' }).findAllByType('button')[0];
+        card().findByProps({ className: 'voice-shortcut-control' }).findAllByType('button')[0];
       const originalCard = card();
-      const originalLabel = row().findAllByType('span')[0];
+      const originalLabel = card().findByType('h3');
       const originalContent = surroundingContent(originalCard);
       const stable = () => {
         expect(card()).toBe(originalCard);
-        expect(row().findAllByType('span')[0]).toBe(originalLabel);
+        expect(card().findByType('h3')).toBe(originalLabel);
         expect(surroundingContent(card())).toEqual(originalContent);
         expect(card().findAllByType('input')).toHaveLength(0);
       };
@@ -493,17 +486,10 @@ describe('localized shortcut transitions', () => {
         left: translate('voice.leftSide', locale),
         right: translate('voice.rightSide', locale),
       };
-      expect(originalLabel.findByProps({ className: 'voice-shortcut-title' }).children).toContain(
-        translate('voice.shortcut', locale)
-      );
+      expect(originalLabel.children).toContain(translate('voice.shortcut', locale));
       expect(
-        originalLabel.findByProps({ className: 'voice-shortcut-description' }).children
+        originalCard.findByProps({ className: 'voice-shortcut-description' }).children
       ).toEqual([translate('voice.shortcutCaution', locale)]);
-      const hint = originalLabel.findByProps({ className: 'voice-shortcut-hint' });
-      expect(hint.children.filter((child) => typeof child === 'string').join('')).toBe(
-        translate('voice.changeShortcutHint', locale).replace('{mic}', '')
-      );
-      expect(hint.findByType('svg').props['aria-hidden']).toBe('true');
       expect(control().children).toEqual([translate('voice.enableShortcut', locale)]);
       expect(button(translate('voice.disableShortcut', locale))).toBeUndefined();
       act(() => control().props.onClick());
@@ -851,93 +837,40 @@ it('anchors three curved routes to the preview and remeasures or hides them as s
   expect(window.removeEventListener).toHaveBeenCalledWith('resize', resize);
 });
 
-describe('model refinement settings', () => {
-  it('uses one header menu to enable a model or turn refinement off without losing its settings', async () => {
-    const config = {
-      ...voiceSnapshot().config,
-      optimizationModel: 'text-model',
-      optimizationMode: 'semantic' as const,
-      translationLanguage: 'fr' as const,
-    };
-    mother.models = [{ internalId: 'text-model', name: 'DeepSeek', modelId: 'deepseek-chat' }];
-    voice.setState({ snapshot: voiceSnapshot({ config }) });
-    let revision = 1;
-    vi.mocked(api.saveVoiceConfig).mockImplementation(async (saved) =>
-      voiceSnapshot({ config: saved, revision: ++revision })
-    );
+describe('selection model and island size', () => {
+  it('removes text refinement and keeps only the selection model, language and switch', () => {
     act(() => {
       renderer = create(<VoiceInputMain />);
     });
-    const selector = () => renderer.root.findByType(RemoteModelSelector);
-    const card = renderer.root.findByProps({
-      className: 'voice-card voice-optimization-card rounded-card',
+    const json = JSON.stringify(renderer.toJSON());
+    for (const removed of [
+      'voice.optimization',
+      'voice.optimizationMode',
+      'voice.autoTranslate',
+      'voice-optimization',
+    ])
+      expect(json).not.toContain(removed);
+    const row = renderer.root.findByProps({
+      className: 'voice-card voice-selection-settings rounded-card',
     });
-    expect(
-      card.findByProps({ className: 'voice-section-heading' }).findByType(RemoteModelSelector)
-    ).toBe(selector());
-    expect(
-      card
-        .findByProps({ className: 'voice-optimization' })
-        .findAllByProps({ className: 'voice-row' })
-    ).toHaveLength(2);
-    expect(card.findAllByProps({ role: 'switch' })).toHaveLength(0);
-    expect(selector().props.currentModelId).toBe('');
-    expect(selector().props.models[0]).toEqual({ id: '', name: 'voice.optimizationOff' });
+    expect(row.findAllByType(RemoteModelSelector)).toHaveLength(1);
+    expect(row.findByType(MiniSelect).props.disabled).toBe(true);
     expect(api.saveVoiceConfig).not.toHaveBeenCalled();
-    await act(async () => selector().props.onSelect('text-model'));
-    expect(api.saveVoiceConfig).toHaveBeenLastCalledWith({ ...config, optimizationEnabled: true });
-    expect(selector().props.currentModelId).toBe('text-model');
-    await act(async () => selector().props.onSelect(''));
-    expect(api.saveVoiceConfig).toHaveBeenLastCalledWith(config);
-    expect(selector().props.currentModelId).toBe('');
-    expect(card.findByProps({ className: 'voice-optimization' }).props.disabled).toBe(true);
-    expect(api.startVoice).not.toHaveBeenCalled();
-    expect(api.recordVoice).not.toHaveBeenCalled();
   });
 
-  it('keeps the off selection after a failed enable and prevents changes while recording', async () => {
-    act(() => {
-      renderer = create(<VoiceInputMain />);
-    });
-    const selector = () => renderer.root.findByType(RemoteModelSelector);
-    expect(selector().props.models).toEqual([{ id: '', name: 'voice.optimizationOff' }]);
-    vi.mocked(api.saveVoiceConfig).mockRejectedValueOnce('voice.error.save');
-    await act(async () => selector().props.onSelect('text-model'));
-    expect(selector().props.currentModelId).toBe('');
-    expect(voice.getState().snapshot?.config.optimizationEnabled).toBe(false);
-    act(() => voice.getState().accept(voiceSnapshot({ phase: 'recording', revision: 3 })));
-    expect(
-      renderer.root.findByProps({ className: 'voice-optimization-model' }).props.disabled
-    ).toBe(true);
-    act(() => selector().props.onSelect('another-model'));
-    expect(api.saveVoiceConfig).toHaveBeenCalledTimes(1);
-    expect(api.recordVoice).not.toHaveBeenCalled();
-  });
-
-  const enable = () => {
-    voice.setState({
-      snapshot: voiceSnapshot({
-        config: { ...voiceSnapshot().config, optimizationEnabled: true },
-      }),
-    });
-    let revision = 1;
-    vi.mocked(api.saveVoiceConfig).mockImplementation(async (config) =>
-      voiceSnapshot({ config, revision: ++revision })
-    );
-  };
-
-  it('uses Mother Agent model icons and router entries without its Claude Code engine or selection state', async () => {
-    enable();
+  it('uses Mother Agent model icons and router entries and saves only the selection model', async () => {
     mother.models = [
       { internalId: 'text-model', name: 'DeepSeek', modelId: 'deepseek-chat' },
       { internalId: 'smart-router', name: 'Router', modelId: 'auto' },
     ];
+    vi.mocked(api.saveVoiceConfig).mockImplementation(async (saved) =>
+      voiceSnapshot({ config: saved, revision: 2 })
+    );
     act(() => {
       renderer = create(<VoiceInputMain />);
     });
     const selector = renderer.root.findByType(RemoteModelSelector);
     expect(selector.props.models).toEqual([
-      { id: '', name: 'voice.optimizationOff' },
       expect.objectContaining({
         id: 'text-model',
         name: 'DeepSeek',
@@ -945,8 +878,6 @@ describe('model refinement settings', () => {
       }),
       expect.objectContaining({ id: 'smart-router', name: 'Router', iconKind: 'router' }),
     ]);
-    expect(selector.props.extras).toBeUndefined();
-    expect(api.saveVoiceConfig).not.toHaveBeenCalled();
     act(() => selector.findByType('button').props.onClick());
     expect(JSON.stringify(renderer.toJSON())).not.toContain('Claude Code');
     const option = selector
@@ -955,195 +886,19 @@ describe('model refinement settings', () => {
     await act(async () => option.parent!.props.onClick());
     expect(api.saveVoiceConfig).toHaveBeenCalledExactlyOnceWith({
       ...voiceSnapshot().config,
-      optimizationEnabled: true,
-      optimizationModel: 'text-model',
+      selectionModel: 'text-model',
     });
+    expect(renderer.root.findByProps({ 'aria-label': 'voice.selection' }).props.disabled).toBe(
+      false
+    );
     expect(mother.setAgentModel).not.toHaveBeenCalled();
     expect(mother.setParasiteAgent).not.toHaveBeenCalled();
+    expect(api.openSelectionTranslation).not.toHaveBeenCalled();
     expect(api.recordVoice).not.toHaveBeenCalled();
     expect(api.startVoice).not.toHaveBeenCalled();
   });
 
-  it('offers three fixed modes and never renders or saves editing-rule input', async () => {
-    enable();
-    act(() => {
-      renderer = create(<VoiceInputMain />);
-    });
-    const modes = () =>
-      renderer.root
-        .findAllByType(MiniSelect)
-        .find((select) =>
-          select.props.options.some((option: { id: string }) => option.id === 'semantic')
-        )!;
-    expect(modes().props.options).toEqual([
-      { id: 'faithful', label: 'voice.faithful' },
-      { id: 'semantic', label: 'voice.semantic' },
-      { id: 'terms', label: 'voice.terms' },
-    ]);
-    for (const mode of ['semantic', 'terms', 'faithful'] as const) {
-      await act(async () => modes().props.onChange(mode));
-      expect(voice.getState().snapshot?.config.optimizationMode).toBe(mode);
-      expect(renderer.root.findAllByType('textarea')).toHaveLength(0);
-    }
-    expect(JSON.stringify(vi.mocked(api.saveVoiceConfig).mock.calls)).not.toContain(
-      'optimizationRules'
-    );
-    expect(api.recordVoice).not.toHaveBeenCalled();
-    expect(api.startVoice).not.toHaveBeenCalled();
-  });
-
-  it.each(['zh-Hans', 'zh-Hant', 'en', 'ja'] as const)(
-    'offers the nine translation choices in %s without starting voice or saving on entry',
-    async (locale) => {
-      await loadLocale(locale);
-      localization.locale = locale;
-      enable();
-      act(() => {
-        renderer = create(<VoiceInputMain />);
-      });
-      const translation = renderer.root
-        .findAllByType(MiniSelect)
-        .find((select) =>
-          select.props.options.some((option: { id: string }) => option.id === 'fr')
-        )!;
-      expect(translation.props.value).toBe('off');
-      expect(translation.props.dropUp).toBe(true);
-      expect(translation.props.options).toEqual(
-        ['off', 'zh-Hans', 'zh-Hant', 'en', 'ja', 'ko', 'fr', 'de', 'es'].map((id) => ({
-          id,
-          label: translate(`voice.translation.${id}` as TKey, locale),
-        }))
-      );
-      expect(
-        renderer.root.findAllByType('input').filter((input) => input.props.type === 'number')
-      ).toHaveLength(0);
-      act(() => translation.findByType('button').props.onClick());
-      expect(api.saveVoiceConfig).not.toHaveBeenCalled();
-      await act(async () => translation.props.onChange('es'));
-      expect(api.saveVoiceConfig).toHaveBeenCalledExactlyOnceWith({
-        ...voiceSnapshot().config,
-        optimizationEnabled: true,
-        translationLanguage: 'es',
-      });
-      expect(api.recordVoice).not.toHaveBeenCalled();
-      expect(api.startVoice).not.toHaveBeenCalled();
-      expect(mother.setAgentModel).not.toHaveBeenCalled();
-    }
-  );
-
-  it('keeps translation disabled with refinement off and retains its target through a failed save', async () => {
-    act(() => {
-      renderer = create(<VoiceInputMain />);
-    });
-    const translation = () =>
-      renderer.root
-        .findAllByType(MiniSelect)
-        .find((select) =>
-          select.props.options.some((option: { id: string }) => option.id === 'fr')
-        )!;
-    expect(translation().props.disabled).toBe(true);
-    act(() => translation().findByType('button').props.onClick());
-    expect(
-      translation()
-        .findAllByType('div')
-        .filter((node) => node.children.includes('voice.translation.fr'))
-    ).toHaveLength(0);
-    expect(api.saveVoiceConfig).not.toHaveBeenCalled();
-    act(() => enable());
-    const menu = translation();
-    const config = voice.getState().snapshot!.config;
-    vi.mocked(api.saveVoiceConfig).mockRejectedValueOnce(new Error('save failed'));
-    await act(async () => menu.props.onChange('fr'));
-    expect(voice.getState().snapshot!.config).toEqual(config);
-    expect(translation()).toBe(menu);
-    expect(translation().props.value).toBe('off');
-    expect(renderer.root.findByProps({ role: 'alert' }).children).toContain('Error: save failed');
-    expect(api.recordVoice).not.toHaveBeenCalled();
-    expect(api.startVoice).not.toHaveBeenCalled();
-  });
-
-  it.each(['microphone', 'optimizationMode', 'optimizationModel', 'translationLanguage'] as const)(
-    'keeps the page mounted and locked through a delayed %s save',
-    async (setting) => {
-      enable();
-      voice.setState({ devices: ['USB microphone'] });
-      mother.models = [{ internalId: 'text-model', name: 'DeepSeek', modelId: 'deepseek-chat' }];
-      let complete!: (snapshot: ReturnType<typeof voiceSnapshot>) => void;
-      vi.mocked(api.saveVoiceConfig).mockImplementationOnce(
-        () => new Promise((resolve) => (complete = resolve))
-      );
-      act(() => {
-        renderer = create(<VoiceInputMain />);
-      });
-      const selector = renderer.root.findByType(RemoteModelSelector);
-      const sections = renderer.root.findAllByType('section');
-      const grid = () => renderer.root.findByProps({ className: 'voice-grid' });
-      const value =
-        setting === 'microphone'
-          ? 'USB microphone'
-          : setting === 'optimizationMode'
-            ? 'semantic'
-            : setting === 'translationLanguage'
-              ? 'fr'
-              : 'text-model';
-      const select =
-        setting === 'optimizationModel'
-          ? selector
-          : renderer.root
-              .findAllByType(MiniSelect)
-              .find((node) =>
-                node.props.options.some((option: { id: string }) => option.id === value)
-              )!;
-      act(() => select.findByType('button').props.onClick());
-      const option =
-        setting === 'optimizationModel'
-          ? select.findByType('img').parent!
-          : select
-              .findAllByType('div')
-              .find((node) =>
-                node.children.includes(
-                  setting === 'microphone'
-                    ? value
-                    : setting === 'translationLanguage'
-                      ? 'voice.translation.fr'
-                      : 'voice.semantic'
-                )
-              )!;
-      act(() => option.props.onClick());
-      expect(voice.getState().saving).toBe(true);
-      expect(renderer.root.findByType(RemoteModelSelector)).toBe(selector);
-      expect(grid().props['data-saving']).toBe(true);
-      expect(renderer.root.findAllByType('section')).toEqual(sections);
-      expect(renderer.root.findAllByType('fieldset').every((node) => node.props.disabled)).toBe(
-        true
-      );
-      expect(button('voice.testMicrophone').props.disabled).toBe(true);
-      act(() => {
-        renderer.root.findByType(RemoteModelSelector).props.onSelect('another-model');
-        button('voice.testMicrophone').props.onClick();
-      });
-      expect(api.saveVoiceConfig).toHaveBeenCalledTimes(1);
-      const config = vi.mocked(api.saveVoiceConfig).mock.calls[0][0];
-      expect(config[setting]).toBe(value);
-      await act(async () => complete(voiceSnapshot({ config, revision: 2 })));
-      expect(voice.getState().snapshot?.config[setting]).toBe(value);
-      expect(grid().props['data-saving']).toBe(false);
-      expect(renderer.root.findByType(RemoteModelSelector)).toBe(selector);
-      expect(renderer.root.findAllByType('section')).toEqual(sections);
-      expect(
-        renderer.root
-          .findAllByType('fieldset')
-          .filter((node) => node.props['aria-label'] !== 'voice.selection')
-          .every((node) => !node.props.disabled)
-      ).toBe(true);
-      expect(api.recordVoice).not.toHaveBeenCalled();
-      expect(api.startVoice).not.toHaveBeenCalled();
-      expect(mother.setAgentModel).not.toHaveBeenCalled();
-    }
-  );
-
-  it('retains saved selections after a failed setting save without remounting the model menu', async () => {
-    enable();
+  it('retains the saved model after a failed save without remounting the model menu', async () => {
     let fail!: (reason: Error) => void;
     vi.mocked(api.saveVoiceConfig).mockImplementationOnce(
       () => new Promise((_, reject) => (fail = reject))
@@ -1155,19 +910,15 @@ describe('model refinement settings', () => {
     const config = voice.getState().snapshot!.config;
     act(() => selector.props.onSelect('text-model'));
     expect(voice.getState().saving).toBe(true);
-    expect(renderer.root.findByType(RemoteModelSelector)).toBe(selector);
     await act(async () => fail(new Error('save failed')));
     expect(voice.getState().snapshot!.config).toEqual(config);
     expect(renderer.root.findByType(RemoteModelSelector)).toBe(selector);
     expect(renderer.root.findByProps({ role: 'alert' }).children).toContain('Error: save failed');
-    expect(button('voice.testMicrophone').props.disabled).toBe(false);
     expect(api.saveVoiceConfig).toHaveBeenCalledTimes(1);
     expect(api.recordVoice).not.toHaveBeenCalled();
-    expect(api.startVoice).not.toHaveBeenCalled();
   });
 
-  it('closes model menus on leaving and blocks changes while hidden or voice is busy', async () => {
-    enable();
+  it('closes the model menu on leaving and blocks changes while hidden or voice is busy', async () => {
     mother.models = [{ internalId: 'text-model', name: 'DeepSeek', modelId: 'deepseek-chat' }];
     useNavigationStore.setState({ activePage: 'voice' });
     act(() => {
@@ -1178,20 +929,40 @@ describe('model refinement settings', () => {
     expect(selector().findAllByType('img')).toHaveLength(1);
     act(() => useNavigationStore.setState({ activePage: 'models' }));
     expect(selector().findAllByType('img')).toHaveLength(0);
-    act(() => voice.setState({ snapshot: voiceSnapshot() }));
     await act(async () => selector().props.onSelect('text-model'));
-    act(() =>
-      voice.setState({
-        snapshot: voiceSnapshot({
-          config: { ...voiceSnapshot().config, optimizationEnabled: true },
-          phase: 'recording',
-        }),
-      })
-    );
+    act(() => useNavigationStore.setState({ activePage: 'voice' }));
+    act(() => voice.setState({ snapshot: voiceSnapshot({ phase: 'recording' }) }));
     await act(async () => selector().props.onSelect('text-model'));
     expect(api.saveVoiceConfig).not.toHaveBeenCalled();
     expect(api.recordVoice).not.toHaveBeenCalled();
-    expect(api.startVoice).not.toHaveBeenCalled();
+  });
+
+  it('saves the island size from its own slider and locks it while voice is busy', async () => {
+    vi.mocked(api.saveVoiceConfig).mockImplementation(async (saved) =>
+      voiceSnapshot({ config: saved, revision: 2 })
+    );
+    act(() => {
+      renderer = create(<VoiceInputMain />);
+    });
+    const slider = () => renderer.root.findByProps({ type: 'range' });
+    expect(slider().props).toMatchObject({
+      min: 70,
+      max: 150,
+      step: 10,
+      value: 100,
+      'aria-label': 'voice.islandScale',
+    });
+    await act(async () => slider().props.onChange({ target: { value: '130' } }));
+    expect(api.saveVoiceConfig).toHaveBeenCalledExactlyOnceWith({
+      ...voiceSnapshot().config,
+      islandScale: 130,
+    });
+    expect(slider().props.value).toBe(130);
+    act(() => voice.setState({ snapshot: voiceSnapshot({ phase: 'transcribing' }) }));
+    expect(slider().props.disabled).toBe(true);
+    await act(async () => slider().props.onChange({ target: { value: '90' } }));
+    expect(api.saveVoiceConfig).toHaveBeenCalledTimes(1);
+    expect(api.recordVoice).not.toHaveBeenCalled();
   });
 });
 
@@ -1237,7 +1008,7 @@ describe('island speech entry', () => {
     expect(api.showMainWindow).not.toHaveBeenCalled();
   });
 
-  it.each(['idle', 'recording', 'transcribing', 'optimizing'] as const)(
+  it.each(['idle', 'recording', 'transcribing', 'inserting'] as const)(
     'restores the existing main window on the second press while %s without changing speech',
     async (phase) => {
       const snapshot = voiceSnapshot({
