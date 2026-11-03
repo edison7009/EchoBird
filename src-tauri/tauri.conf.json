@@ -55,8 +55,8 @@
     ],
     "windows": {
       "nsis": {
-        "template": "installer.nsi",
         "installerIcon": "icons/icon.ico",
+        "uninstallerIcon": "icons/icon.ico",
         "startMenuFolder": "EchoBird"
       }
     }
