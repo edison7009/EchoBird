@@ -61,6 +61,9 @@ pub fn start(app: &AppHandle) {
                     saved.config.island_zoom(),
                 )
             };
+            // Only the Windows and macOS cursor tracker uses the island zoom.
+            #[cfg(not(any(windows, target_os = "macos")))]
+            let _ = zoom;
             if enabled && !enabled_before {
                 foreground = Some(app_icon::Monitor::new());
                 escape = native::ModifierMonitor::escape();
