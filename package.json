@@ -8,7 +8,8 @@
   "scripts": {
     "tools:sync": "robocopy tools D:\\build-output\\debug\\_up_\\tools /E /XO /NFL /NDL || exit 0",
     "dev": "npm run tools:sync && cargo tauri dev",
-    "build": "cargo tauri build",
+    "build": "npm run tauri -- build",
+    "tauri": "npx --yes @tauri-apps/cli@2.12.4",
     "preview": "vite preview",
     "test": "vitest run --passWithNoTests && node --test scripts/tests/website_download.test.mjs scripts/tests/plugin_sdk.test.mjs",
     "typecheck": "tsc --noEmit",

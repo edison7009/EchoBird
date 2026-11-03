@@ -131,6 +131,13 @@ jobs:
           ANTIGRAVITY_OAUTH_CLIENT_SECRET: ${{ secrets.ANTIGRAVITY_OAUTH_CLIENT_SECRET }}
         run: test -n "$ANTIGRAVITY_OAUTH_CLIENT_ID" && test -n "$ANTIGRAVITY_OAUTH_CLIENT_SECRET"
 
+      # The pinned Tauri CLI lives once, in package.json's `tauri` script. tauri-action
+      # adds `--` before args for npm scripts, so pass the npx command itself.
+      - name: Read the pinned Tauri CLI
+        id: tauri-cli
+        shell: bash
+        run: echo "script=$(node -p "require('./package.json').scripts.tauri")" >> "$GITHUB_OUTPUT"
+
       - name: Build the app
         uses: tauri-apps/tauri-action@v0
         env:
@@ -145,7 +152,7 @@ jobs:
           # stays a draft (created that way) until the operator flips it public
           # as the last step via `gh release edit <tag> --draft=false`.
           releaseId: ${{ needs.create-release.outputs.release_id }}
-          tauriScript: npx --yes @tauri-apps/cli@2.10.1
+          tauriScript: ${{ steps.tauri-cli.outputs.script }}
           args: ${{ matrix.args }}
 
   rename-assets:
