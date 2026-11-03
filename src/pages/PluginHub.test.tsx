@@ -151,6 +151,9 @@ it.each([false, true])(
         .props.onChange({ target: { value: '中文来源' } })
     );
     expect(view.root.findAllByType('article')).toHaveLength(1);
+    act(() => store.setState({ region: 'cnb' }));
+    expect(view.root.findAllByType('article')).toHaveLength(1);
+    expect(descriptions()).toContain('中文来源说明');
     act(() => store.setState({ region: 'international' }));
     expect(view.root.findAllByType('article')).toHaveLength(0);
     act(() =>
@@ -397,6 +400,11 @@ it('keeps search with toolbar actions and shows the source selector only on disc
   act(() => view.root.findAllByProps({ role: 'menuitemradio' })[1].props.onClick());
   expect(store.getState().region).toBe('china');
   expect(view.root.findAllByProps({ role: 'menu' })).toHaveLength(0);
+  act(() => toolbar.findByProps({ 'aria-label': 'plugins.sources' }).props.onClick());
+  const sources = view.root.findAllByProps({ role: 'menuitemradio' });
+  expect(sources).toHaveLength(3);
+  act(() => sources[2].props.onClick());
+  expect(store.getState().region).toBe('cnb');
   act(() => button('plugins.installed').props.onClick());
   expect(view.root.findAllByProps({ 'aria-label': 'plugins.sources' })).toHaveLength(0);
   expect(view.root.findAllByType('select')).toHaveLength(0);

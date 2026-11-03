@@ -211,10 +211,15 @@ where
     let Some(fallback) = fallback else {
         return Err(primary_error);
     };
+    let mirror = if url.starts_with("https://cnb.cool/") {
+        "CNB"
+    } else {
+        "GitCode"
+    };
     fetch(fallback.to_string())
         .await
         .and_then(|bytes| accept(&bytes))
-        .map_err(|fallback_error| format!("GitCode: {primary_error}\nGitHub: {fallback_error}"))
+        .map_err(|fallback_error| format!("{mirror}: {primary_error}\nGitHub: {fallback_error}"))
 }
 
 async fn download_accepted<T>(
@@ -236,18 +241,55 @@ pub fn bundled_registry() -> Result<Registry, String> {
     Registry::parse(include_bytes!("../../../../src/data/pluginIndex.json"))
 }
 
+/// The index entry each source reads: CNB uses the China entries.
+pub fn index_region(region: &str) -> &str {
+    if region == "cnb" {
+        "china"
+    } else {
+        region
+    }
+}
+
+/// Points the China downloads and icons at the CNB copy of the same files.
+pub fn use_cnb(registry: &mut Registry) {
+    let move_to_cnb = |url: &mut String| {
+        if let Some(path) = url.strip_prefix(super::GITCODE_RAW) {
+            *url = format!("{}{path}", super::CNB_RAW);
+        }
+    };
+    for plugin in &mut registry.plugins {
+        if let Some(icon) = plugin
+            .icons
+            .as_mut()
+            .and_then(|icons| icons.get_mut("china"))
+        {
+            move_to_cnb(icon);
+        }
+        for release in &mut plugin.releases {
+            if let Some(url) = release.downloads.get_mut("china") {
+                move_to_cnb(url);
+            }
+        }
+    }
+}
+
 pub async fn registry(region: &str, refresh: bool) -> Result<Registry, String> {
     let url = match region {
         "international" => super::INTERNATIONAL_INDEX,
         "china" => super::CHINA_INDEX,
+        "cnb" => super::CNB_INDEX,
         _ => return Err("Unknown plugin region".into()),
     };
-    if refresh {
-        let fallback = (region == "china").then_some(super::INTERNATIONAL_INDEX);
-        download_accepted(url, fallback, 1024 * 1024, Registry::parse).await
+    let mut registry = if refresh {
+        let fallback = (region != "international").then_some(super::INTERNATIONAL_INDEX);
+        download_accepted(url, fallback, 1024 * 1024, Registry::parse).await?
     } else {
-        bundled_registry()
+        bundled_registry()?
+    };
+    if region == "cnb" {
+        use_cnb(&mut registry);
     }
+    Ok(registry)
 }
 
 async fn git(args: &[&str]) -> Result<std::process::Output, String> {
@@ -436,13 +478,13 @@ impl PluginManager {
                     .into_iter()
                     .next()
                     .ok_or("No compatible plugin release")?;
-                let fallback = (region == "china")
+                let fallback = (region != "international")
                     .then(|| release.downloads.get("international"))
                     .flatten();
                 download_accepted(
                     release
                         .downloads
-                        .get(region)
+                        .get(index_region(region))
                         .ok_or("Missing regional download")?,
                     fallback.map(String::as_str),
                     MAX_PACKAGE_BYTES,

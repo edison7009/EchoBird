@@ -18,6 +18,12 @@ pub const INTERNATIONAL_INDEX: &str =
     "https://raw.githubusercontent.com/edison7009/echobird-plugin/main/index.json";
 pub const CHINA_INDEX: &str =
     "https://api.gitcode.com/api/v5/repos/edison7009/echobird-plugin/raw/index.json";
+pub const CNB_INDEX: &str = "https://cnb.cool/echobird/echobird-plugin/-/git/raw/main/index.json";
+/// The CNB mirror holds the same files as GitCode. The index only lists GitCode
+/// and GitHub addresses, so CNB serves the China entries from the same paths.
+pub const GITCODE_RAW: &str =
+    "https://api.gitcode.com/api/v5/repos/edison7009/echobird-plugin/raw/";
+pub const CNB_RAW: &str = "https://cnb.cool/echobird/echobird-plugin/-/git/raw/main/";
 pub const MAX_PACKAGE_BYTES: u64 = 20 * 1024 * 1024;
 
 #[derive(Clone, Serialize, Deserialize)]

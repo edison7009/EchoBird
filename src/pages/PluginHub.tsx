@@ -40,6 +40,7 @@ import type {
   PluginManifest,
   PluginSource,
   PluginRegistry,
+  PluginIndexRegion,
   PluginRegion,
 } from '../api/plugins';
 import './PluginHub.css';
@@ -48,6 +49,20 @@ import { PluginProductControls } from './PluginProductControls';
 const categories = ['application', 'account', 'appearance', 'feature', 'other'] as const;
 const accountNoticeKey = 'echobird-plugin-account-notice-dismissed';
 
+const sourceLabel = {
+  international: 'plugins.international',
+  china: 'plugins.china',
+  cnb: 'plugins.cnb',
+} as const satisfies Record<PluginRegion, TKey>;
+const sourceRepository: Record<PluginRegion, string> = {
+  international: 'https://github.com/edison7009/echobird-plugin',
+  china: 'https://gitcode.com/edison7009/echobird-plugin',
+  cnb: 'https://cnb.cool/echobird/echobird-plugin',
+};
+
+const indexRegion = (region: PluginRegion): PluginIndexRegion =>
+  region === 'cnb' ? 'china' : region;
+
 function pluginDescription(
   manifest: PluginManifest,
   registry: PluginRegistry,
@@ -55,7 +70,7 @@ function pluginDescription(
 ): string {
   return (
     registry.plugins.find((plugin) => plugin.id === `${manifest.publisher}.${manifest.name}`)
-      ?.descriptions?.[region] ?? manifest.description
+      ?.descriptions?.[indexRegion(region)] ?? manifest.description
   );
 }
 
@@ -526,7 +541,7 @@ export function PluginHubMain({ active }: { active: boolean }) {
               disabled={store.loading || store.busy}
               onClick={() => setMenu(menu === 'source' ? null : 'source')}
             >
-              {t(store.region === 'china' ? 'plugins.china' : 'plugins.international')}
+              {t(sourceLabel[store.region])}
               <ChevronDown size={13} />
             </PageActionButton>
             {menu === 'source' && (
@@ -536,7 +551,7 @@ export function PluginHubMain({ active }: { active: boolean }) {
                 aria-label={t('plugins.sources')}
                 onKeyDown={moveMenuFocus}
               >
-                {(['international', 'china'] as const).map((region) => (
+                {(['international', 'china', 'cnb'] as const).map((region) => (
                   <button
                     key={region}
                     role="menuitemradio"
@@ -546,7 +561,7 @@ export function PluginHubMain({ active }: { active: boolean }) {
                       setMenu(null);
                     }}
                   >
-                    {t(region === 'china' ? 'plugins.china' : 'plugins.international')}
+                    {t(sourceLabel[region])}
                     {store.region === region && <Check size={14} className="ph-menu-check" />}
                   </button>
                 ))}
@@ -555,14 +570,12 @@ export function PluginHubMain({ active }: { active: boolean }) {
             <button
               type="button"
               className="ph-source-link"
-              aria-label={`${t('plugins.source')}: ${t(store.region === 'china' ? 'plugins.china' : 'plugins.international')}`}
+              aria-label={`${t('plugins.source')}: ${t(sourceLabel[store.region])}`}
               onClick={() => {
                 setMenu(null);
-                void openExternal(
-                  store.region === 'china'
-                    ? 'https://gitcode.com/edison7009/echobird-plugin'
-                    : 'https://github.com/edison7009/echobird-plugin'
-                ).catch((error) => showToast('error', String(error)));
+                void openExternal(sourceRepository[store.region]).catch((error) =>
+                  showToast('error', String(error))
+                );
               }}
             >
               <ExternalLink size={18} aria-hidden="true" />
@@ -697,7 +710,7 @@ export function PluginHubMain({ active }: { active: boolean }) {
                     icon={
                       installed?.icon ??
                       store.registry.plugins.find((plugin) => plugin.id === id)?.icons?.[
-                        store.region
+                        indexRegion(store.region)
                       ]
                     }
                   />
@@ -812,7 +825,7 @@ export function PluginHubPanel() {
           icon={
             installed?.icon ??
             store.registry.plugins.find((plugin) => plugin.id === store.selected)?.icons?.[
-              store.region
+              indexRegion(store.region)
             ]
           }
         />

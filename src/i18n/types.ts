@@ -47,6 +47,7 @@ export type TKey =
   | 'plugins.category.other'
   | 'plugins.checking'
   | 'plugins.china'
+  | 'plugins.cnb'
   | 'plugins.chooseFolder'
   | 'plugins.clear'
   | 'plugins.clipboardPermission'

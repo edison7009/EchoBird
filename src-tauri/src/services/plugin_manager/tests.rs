@@ -654,6 +654,76 @@ async fn failed_mirror_fallback_reports_both_sources() {
 }
 
 #[tokio::test]
+async fn failed_cnb_fallback_names_cnb() {
+    let calls = Mutex::new(Vec::new());
+    let cnb = format!("{}index.json", super::CNB_RAW);
+    let sources = [
+        (cnb.as_str(), Err("mirror down".to_string())),
+        ("origin", Err("origin down".to_string())),
+    ];
+    let error = packages::try_sources(
+        &cnb,
+        Some("origin"),
+        |url| fetch_from(&sources, &calls, url),
+        |bytes| Ok(bytes.to_vec()),
+    )
+    .await
+    .unwrap_err();
+    assert_eq!(
+        error,
+        "CNB: mirror down
+GitHub: origin down"
+    );
+}
+
+#[test]
+fn cnb_serves_the_china_files_from_the_same_paths() {
+    assert_eq!(super::CNB_INDEX, format!("{}index.json", super::CNB_RAW));
+    assert_eq!(packages::index_region("cnb"), "china");
+    assert_eq!(packages::index_region("china"), "china");
+    assert_eq!(packages::index_region("international"), "international");
+    let mut registry = packages::bundled_registry().unwrap();
+    let original = registry.clone();
+    packages::use_cnb(&mut registry);
+    let mut moved = 0;
+    for (plugin, before) in registry.plugins.iter().zip(&original.plugins) {
+        let icons = plugin
+            .icons
+            .iter()
+            .zip(&before.icons)
+            .flat_map(|(after, before)| {
+                [
+                    (&after["international"], &before["international"]),
+                    (&after["china"], &before["china"]),
+                ]
+            });
+        let downloads = plugin
+            .releases
+            .iter()
+            .zip(&before.releases)
+            .flat_map(|(after, before)| {
+                [
+                    (
+                        &after.downloads["international"],
+                        &before.downloads["international"],
+                    ),
+                    (&after.downloads["china"], &before.downloads["china"]),
+                ]
+            });
+        for (after, before) in icons.chain(downloads) {
+            match before.strip_prefix(super::GITCODE_RAW) {
+                Some(path) => {
+                    assert_eq!(after, &format!("{}{path}", super::CNB_RAW));
+                    moved += 1;
+                }
+                None => assert_eq!(after, before),
+            }
+        }
+    }
+    assert!(moved > 0);
+}
+
+#[tokio::test]
 async fn source_without_fallback_reports_its_own_failure() {
     let calls = Mutex::new(Vec::new());
     let sources = [("origin", Err("origin down".to_string()))];

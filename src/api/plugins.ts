@@ -93,8 +93,8 @@ export interface PluginRegistry {
     id: string;
     repository: string;
     clientIcon?: string;
-    descriptions?: Record<PluginRegion, string>;
-    icons?: Partial<Record<PluginRegion, string>>;
+    descriptions?: Record<PluginIndexRegion, string>;
+    icons?: Partial<Record<PluginIndexRegion, string>>;
     releases: {
       manifest: PluginManifest;
       commit: string;
@@ -111,7 +111,9 @@ export interface PluginCandidate {
   revision: string | null;
 }
 
-export type PluginRegion = 'international' | 'china';
+export type PluginRegion = 'international' | 'china' | 'cnb';
+/** CNB mirrors GitCode, so it reads the China entries of the index. */
+export type PluginIndexRegion = Exclude<PluginRegion, 'cnb'>;
 export type PluginSource = 'directory' | 'repository' | 'catalog';
 
 export const listPlugins = () => invoke<InstalledPlugin[]>('plugin_list');

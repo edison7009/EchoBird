@@ -18,7 +18,7 @@ const bundledRegistry = bundledIndex as PluginRegistry;
 function savedRegion(): PluginRegion | null {
   try {
     const saved = localStorage.getItem('echobird_plugin_region');
-    if (saved === 'china' || saved === 'international') return saved;
+    if (saved === 'china' || saved === 'cnb' || saved === 'international') return saved;
   } catch {
     /* Use the interface language when storage is unavailable. */
   }

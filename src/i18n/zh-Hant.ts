@@ -36,6 +36,7 @@ const zhHant: Partial<Translations> = {
   'plugins.sources': '外掛來源',
   'plugins.international': 'GitHub',
   'plugins.china': 'GitCode (CN)',
+  'plugins.cnb': 'CNB (CN)',
   'plugins.install': '安裝',
   'plugins.update': '更新',
   'plugins.checkUpdates': '檢查更新',

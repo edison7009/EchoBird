@@ -36,6 +36,7 @@ const ja: Partial<Translations> = {
   'plugins.sources': 'プラグインソース',
   'plugins.international': 'GitHub',
   'plugins.china': 'GitCode (CN)',
+  'plugins.cnb': 'CNB (CN)',
   'plugins.install': 'インストール',
   'plugins.update': '更新',
   'plugins.checkUpdates': '更新を確認',

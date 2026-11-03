@@ -35,6 +35,7 @@ const en: Translations = {
   'plugins.sources': 'Plugin source',
   'plugins.international': 'GitHub',
   'plugins.china': 'GitCode (CN)',
+  'plugins.cnb': 'CNB (CN)',
   'plugins.install': 'Install',
   'plugins.update': 'Update',
   'plugins.checkUpdates': 'Check for updates',

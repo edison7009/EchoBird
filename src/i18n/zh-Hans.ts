@@ -34,6 +34,7 @@ const zhHans: Partial<Translations> = {
   'plugins.sources': '插件源',
   'plugins.international': 'GitHub',
   'plugins.china': 'GitCode (CN)',
+  'plugins.cnb': 'CNB (CN)',
   'plugins.install': '安装',
   'plugins.update': '更新',
   'plugins.checkUpdates': '检查更新',
