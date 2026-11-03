@@ -11,18 +11,18 @@
     ],
     "install": {
         "windows_winget": "winget install --id Anthropic.Claude --accept-package-agreements --accept-source-agreements",
-        "windows_download": "Open https://claude.com/download and select Windows x64 or arm64. Save the official installer under Downloads.",
-        "macos_download": "Open https://claude.com/download and get the macOS installer. Save it under ~/Downloads.",
+        "windows_download": "Open the official latest installer in the default browser: x64 https://claude.ai/api/desktop/win32/x64/setup/latest/redirect, arm64 https://claude.ai/api/desktop/win32/arm64/setup/latest/redirect. The browser saves it under Downloads.",
+        "macos_download": "Open the official latest universal DMG in the default browser: `open \"https://claude.ai/api/desktop/darwin/universal/dmg/latest/redirect\"`. The browser saves it under ~/Downloads.",
         "linux": "Linux beta supports Ubuntu 22.04+ / Debian 12+, x86_64 or arm64. Follow https://code.claude.com/docs/en/desktop-linux to register Anthropic’s signed apt repository, then run `sudo apt update` and `sudo apt install claude-desktop`. Fedora/Arch are not officially supported by Desktop.",
-        "note": "Use the official download links or package-manager manifest. WinGet still downloads from Anthropic’s CDN; it does not guarantee access on a blocked network. Linux launches with `claude-desktop` and updates through apt. A GUI session is required."
+        "note": "Use the official download links or package-manager manifest. WinGet still downloads from Anthropic’s CDN; it does not guarantee access on a blocked network. Linux launches with `claude-desktop` and updates through apt. A GUI session is required. The claude.ai download links answer browsers only and return 403 to curl or wget, so open them in the default browser. Older claude.ai/downloads links are outdated."
     },
     "install_flow": {
         "summary": "Detect OS and architecture → install the official package → verify the desktop app launches.",
         "agent_steps": [
             "Check OS and architecture. Linux requires Ubuntu 22.04+ or Debian 12+ on x86_64/arm64 and a desktop session.",
-            "Windows: use winget Anthropic.Claude when available; otherwise select the matching official installer at https://claude.com/download. macOS: use that page’s macOS download.",
+            "Windows: use winget Anthropic.Claude when available; otherwise open the official latest installer in the default browser (https://claude.ai/api/desktop/win32/x64/setup/latest/redirect for x64, https://claude.ai/api/desktop/win32/arm64/setup/latest/redirect for arm64). macOS: run `open \"https://claude.ai/api/desktop/darwin/universal/dmg/latest/redirect\"` to download the latest universal DMG in the default browser. Do not fetch these links with curl or wget (claude.ai answers them with 403), and do not use older claude.ai/downloads links.",
             "Linux: read https://code.claude.com/docs/en/desktop-linux for the signed apt repository commands and key fingerprint; verify the signing key, add the repository, then install claude-desktop. The docs also provide a direct .deb fallback. Let the user run sudo commands if elevation is unavailable.",
-            "For manual Windows/macOS downloads, report the full saved path and open the installer for the user to finish. For package-manager installs, inspect the exit result.",
+            "For browser downloads, wait for the installer to appear in Downloads, report its full path and open it for the user to finish. For package-manager installs, inspect the exit result.",
             "Verify Claude appears in the application menu and opens. First sign-in remains in Claude. On Linux, verify the installed package and `claude-desktop` launcher.",
             "If an official download is unreachable, diagnose that host and use the user’s configured proxy; do not assume WinGet bypasses the blocked host."
         ],
