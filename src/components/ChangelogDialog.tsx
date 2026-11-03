@@ -195,7 +195,7 @@ export const ChangelogDialog: React.FC<ChangelogDialogProps> = ({
 
       {/* Dialog */}
       <div
-        className={`relative flex max-h-[80vh] w-[clamp(640px,70vw,1100px)] max-w-[92vw] flex-col border border-cyber-border/30 bg-cyber-surface shadow-2xl rounded-xl overflow-hidden transition-[opacity,transform] duration-200 ${
+        className={`relative flex max-h-[80vh] w-[clamp(560px,56vw,860px)] max-w-[92vw] flex-col border border-cyber-border/30 bg-cyber-surface shadow-2xl rounded-xl overflow-hidden transition-[opacity,transform] duration-200 ${
           isAnimatingOut ? 'scale-95 opacity-0' : 'scale-100 opacity-100'
         }`}
         onClick={(e) => e.stopPropagation()}

@@ -132,10 +132,10 @@ export function RoutingHint({
               top: position?.top ?? 0,
               visibility: position ? 'visible' : 'hidden',
               width: 'max-content',
-              maxWidth: 'min(520px, calc(100vw - 16px))',
+              maxWidth: 'min(320px, calc(100vw - 16px))',
               maxHeight: 'calc(100vh - 16px)',
             }}
-            className="fixed z-[10000] rounded-md border border-cyber-border bg-cyber-elevated px-2.5 py-1.5 text-xs leading-relaxed text-cyber-text shadow-lg"
+            className="fixed z-[10000] rounded-md border border-cyber-border bg-cyber-elevated px-3 py-2 text-sm leading-relaxed text-cyber-text shadow-lg"
           >
             <span className="block overflow-y-auto" style={{ maxHeight: 'calc(100vh - 34px)' }}>
               {content ?? hint}
