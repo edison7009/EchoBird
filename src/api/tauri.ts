@@ -270,30 +270,40 @@ export interface ClaudeDesktopLoginPoll {
   /** Reported by plugin 0.1.0-preview.10 and later once the sign-in is cleared. */
   cleared?: boolean;
 }
+// The plugin reports the shared "close the client" error; Claude Desktop must be
+// quit from its tray because closing the window only hides it.
+function withClaudeDesktopQuitError<T>(result: Promise<T>): Promise<T> {
+  return result.catch((error: unknown) => {
+    const raw = error instanceof Error ? error.message : String(error);
+    throw raw.split('|', 1)[0] === 'accountError.closeClient'
+      ? new Error('accountError.quitClaudeDesktop')
+      : error;
+  });
+}
 export function listClaudeDesktopAccounts(): Promise<ClaudeCodeAccount[]> {
   return invoke('list_claude_desktop_accounts');
 }
 export function startClaudeDesktopLogin(next = false): Promise<ClaudeDesktopLogin> {
-  return invoke('start_claude_desktop_login', { next });
+  return withClaudeDesktopQuitError(invoke('start_claude_desktop_login', { next }));
 }
 export function pollClaudeDesktopLogin(loginId: string): Promise<ClaudeDesktopLoginPoll> {
-  return invoke('poll_claude_desktop_login', { loginId });
+  return withClaudeDesktopQuitError(invoke('poll_claude_desktop_login', { loginId }));
 }
 export function cancelClaudeDesktopLogin(loginId: string): Promise<void> {
   return invoke('cancel_claude_desktop_login', { loginId });
 }
 export function switchClaudeDesktopAccount(accountId: string): Promise<ClaudeCodeAccount> {
-  return invoke('switch_claude_desktop_account', { accountId });
+  return withClaudeDesktopQuitError(invoke('switch_claude_desktop_account', { accountId }));
 }
 export function refreshClaudeDesktopAccount(accountId: string): Promise<ClaudeCodeAccount> {
-  return invoke('refresh_claude_desktop_account', { accountId });
+  return withClaudeDesktopQuitError(invoke('refresh_claude_desktop_account', { accountId }));
 }
 
 export function warmUpClaudeDesktopAccount(accountId: string): Promise<ClaudeCodeAccount> {
-  return invoke('warm_up_claude_desktop_account', { accountId });
+  return withClaudeDesktopQuitError(invoke('warm_up_claude_desktop_account', { accountId }));
 }
 export function deleteClaudeDesktopAccount(accountId: string): Promise<void> {
-  return invoke('delete_claude_desktop_account', { accountId });
+  return withClaudeDesktopQuitError(invoke('delete_claude_desktop_account', { accountId }));
 }
 
 export type ZCodeProvider = 'bigmodel' | 'zai';

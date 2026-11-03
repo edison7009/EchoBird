@@ -233,6 +233,7 @@ const zhHant: Partial<Translations> = {
   'voice.error.portal': '桌面全域快捷鍵服務無法使用或尚未授權。',
   'accountError.clientOwnsLogin': '該帳號正在用戶端中使用，登入已過期。請關閉用戶端後重試。',
   'accountError.closeClient': '請儲存工作並關閉用戶端，然後重試。',
+  'accountError.quitClaudeDesktop': '請右鍵匣圖示結束 Claude 桌面端，等待 30 到 60 秒後重試。',
   'accountError.stopClient': '關閉用戶端失敗，請重試。',
   'accountError.stopClaudeDesktop': '關閉 Claude 失敗，請重試。',
   'accountError.initializeClient': '請先開啟一次用戶端，再新增帳號。',

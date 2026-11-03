@@ -232,6 +232,7 @@ const zhHans: Partial<Translations> = {
   'voice.error.portal': '桌面全局快捷键服务不可用或授权未通过。',
   'accountError.clientOwnsLogin': '该账号正在客户端中使用，登录已过期。请关闭客户端后重试。',
   'accountError.closeClient': '请保存工作并关闭客户端，然后重试。',
+  'accountError.quitClaudeDesktop': '请右键托盘图标退出 Claude 桌面端，等待 30 到 60 秒后重试。',
   'accountError.stopClient': '关闭客户端失败，请重试。',
   'accountError.stopClaudeDesktop': '关闭 Claude 失败，请重试。',
   'accountError.initializeClient': '请先打开一次客户端，再添加账号。',

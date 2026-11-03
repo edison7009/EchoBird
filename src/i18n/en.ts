@@ -244,6 +244,8 @@ const en: Translations = {
   'accountError.clientOwnsLogin':
     'This account is signed in to the running client and its login has expired. Close the client and try again.',
   'accountError.closeClient': 'Save your work and close the client, then try again.',
+  'accountError.quitClaudeDesktop':
+    'Quit Claude Desktop from its tray icon, wait 30 to 60 seconds, then try again.',
   'accountError.stopClient': 'Could not stop the client. Please try again.',
   'accountError.stopClaudeDesktop': 'Could not stop Claude. Please try again.',
   'accountError.initializeClient': 'Open the client once before adding an account.',

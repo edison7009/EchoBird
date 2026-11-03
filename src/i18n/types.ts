@@ -229,6 +229,7 @@ export type TKey =
   | 'voice.error.portal'
   | 'accountError.clientOwnsLogin'
   | 'accountError.closeClient'
+  | 'accountError.quitClaudeDesktop'
   | 'accountError.stopClient'
   | 'accountError.stopClaudeDesktop'
   | 'accountError.initializeClient'

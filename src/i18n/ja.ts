@@ -244,6 +244,8 @@ const ja: Partial<Translations> = {
   'accountError.clientOwnsLogin':
     'このアカウントは実行中のクライアントで使用中で、ログインの有効期限が切れています。クライアントを閉じてから再試行してください。',
   'accountError.closeClient': '作業を保存してクライアントを閉じてから、再試行してください。',
+  'accountError.quitClaudeDesktop':
+    'トレイアイコンを右クリックして Claude デスクトップを終了し、30〜60 秒待ってから再試行してください。',
   'accountError.stopClient': 'クライアントを終了できませんでした。再試行してください。',
   'accountError.stopClaudeDesktop': 'Claude を終了できませんでした。再試行してください。',
   'accountError.initializeClient': 'アカウントを追加する前に、クライアントを一度起動してください。',
