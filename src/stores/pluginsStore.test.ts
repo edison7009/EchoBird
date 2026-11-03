@@ -154,12 +154,30 @@ it('only enabled, installed pages become desktop tools without overwriting built
 });
 
 it('passive loading reads installed metadata without fetching the Hub or changing enablement', async () => {
+  // The host parses the bundled index for this system; nothing is downloaded.
+  const local: PluginRegistry = { schemaVersion: 1, name: 'EchoBird Plugin Hub', plugins: [] };
+  local.plugins.push({ id: 'fixture.local', repository: 'https://example.com', releases: [] });
+  store.setState({ region: 'china' });
   vi.mocked(api.listPlugins).mockResolvedValue([plugin]);
+  vi.mocked(api.getPluginRegistry).mockResolvedValue(local);
   await store.getState().load();
   expect(store.getState().installed).toEqual([plugin]);
-  expect(api.getPluginRegistry).not.toHaveBeenCalled();
+  expect(store.getState().registry).toBe(local);
+  expect(api.getPluginRegistry).toHaveBeenCalledExactlyOnceWith('china', false);
+  await store.getState().load();
+  expect(api.getPluginRegistry).toHaveBeenCalledOnce();
   expect(api.setPluginEnabled).not.toHaveBeenCalled();
   expect(api.installPlugin).not.toHaveBeenCalled();
+});
+
+it('a failed bundled index read never hides installed plugins or shows an error', async () => {
+  vi.mocked(api.listPlugins).mockResolvedValue([plugin]);
+  vi.mocked(api.getPluginRegistry).mockRejectedValue(new Error('unreadable'));
+  await store.getState().load();
+  expect(store.getState().installed).toEqual([plugin]);
+  expect(store.getState().registry.plugins).toEqual([]);
+  expect(store.getState().error).toBeNull();
+  expect(store.getState().loading).toBe(false);
 });
 
 it('failed loading preserves cached entries and explicit failures do not invent success', async () => {

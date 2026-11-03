@@ -13,7 +13,9 @@ import { useNavigationStore } from './navigationStore';
 import { detectLocale, resolveLocale } from '../i18n';
 
 const active = () => useNavigationStore.getState().developerMode;
-const bundledRegistry = bundledIndex as PluginRegistry;
+// The host parses the bundled index and drops releases for other systems, so the catalog
+// starts empty and lists only what this system can install once that list arrives.
+const unloadedRegistry: PluginRegistry = { ...(bundledIndex as PluginRegistry), plugins: [] };
 
 function savedRegion(): PluginRegion | null {
   try {
@@ -91,7 +93,7 @@ export const usePluginsStore = create<PluginsState>((set, get) => {
   };
   return {
     installed: [],
-    registry: bundledRegistry,
+    registry: unloadedRegistry,
     region: regionPreference ?? defaultRegion(detectLocale()),
     regionChosen: regionPreference !== null,
     syncRegion: (locale) => {
@@ -107,12 +109,30 @@ export const usePluginsStore = create<PluginsState>((set, get) => {
       if (!active() || get().loading || get().busy) return;
       const revision = get().revision;
       set({ loading: true });
+      // The bundled index is read locally; only the explicit refresh downloads one. It loads
+      // beside the installed list, so a failure here never hides installed plugins.
+      const bundled = get().registry.plugins.length
+        ? null
+        : Promise.resolve()
+            .then(() => api.getPluginRegistry(get().region, false))
+            .then(
+              (registry) => {
+                if (
+                  registry?.plugins?.length &&
+                  revision === get().revision &&
+                  !get().registry.plugins.length
+                )
+                  set({ registry });
+              },
+              () => {}
+            );
       try {
         const installed = await api.listPlugins();
         if (revision === get().revision) set({ installed, loaded: true, error: null });
       } catch (error) {
         if (revision === get().revision) set({ error: String(error) });
       } finally {
+        await bundled;
         if (revision === get().revision) set({ loading: false });
       }
     },
