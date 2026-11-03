@@ -1,7 +1,7 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "EchoBird",
-  "version": "6.1.4",
+  "version": "6.1.5",
   "identifier": "com.echobird.ai",
   "build": {
     "frontendDist": "../dist",
@@ -32,9 +32,7 @@
       "csp": null,
       "assetProtocol": {
         "enable": true,
-        "scope": [
-          "**"
-        ]
+        "scope": ["**"]
       }
     }
   },
@@ -47,9 +45,7 @@
     "longDescription": "EchoBird - The Nexus for Models, Agents & Vibe Coding. One hub to manage AI models, coding tools, and intelligent agents.",
     "homepage": "https://echobird.ai/",
     "category": "DeveloperTool",
-    "resources": [
-      "../tools/"
-    ],
+    "resources": ["../tools/"],
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
