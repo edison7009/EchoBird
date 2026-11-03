@@ -75,6 +75,8 @@ export function VoiceInputMain() {
   const [replayErrorId, setReplayErrorId] = useState<number | null>(null);
   const [activeDragId, setActiveDragId] = useState<string | null>(null);
   const [orderedChannels, setOrderedChannels] = useState<VoiceChannel[] | null>(null);
+  // Dragging previews locally; the slow config save runs once on release.
+  const [scaleDraft, setScaleDraft] = useState<number | null>(null);
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
@@ -287,16 +289,6 @@ export function VoiceInputMain() {
                   ))}
                 </div>
               </div>
-              <div className="voice-row voice-scale-row">
-                <span>{t('voice.islandScale')}</span>
-                <IslandScaleSlider
-                  scales={voiceIslandScales}
-                  value={config.islandScale ?? 100}
-                  label={t('voice.islandScale')}
-                  disabled={busy}
-                  onChange={(scale) => update('islandScale', scale)}
-                />
-              </div>
             </fieldset>
           </section>
           <DndContext
@@ -437,6 +429,23 @@ export function VoiceInputMain() {
           {snapshot.shortcutDescription && (
             <span className="voice-status">{snapshot.shortcutDescription}</span>
           )}
+        </section>
+        <section className="voice-card voice-scale-card rounded-card">
+          <div className="voice-row voice-scale-row">
+            <span>{t('voice.islandScale')}</span>
+            <IslandScaleSlider
+              scales={voiceIslandScales}
+              value={scaleDraft ?? config.islandScale ?? 100}
+              label={t('voice.islandScale')}
+              disabled={voiceActive}
+              onChange={setScaleDraft}
+              onCommit={() => {
+                if (scaleDraft === null) return;
+                setScaleDraft(null);
+                if (scaleDraft !== (config.islandScale ?? 100)) update('islandScale', scaleDraft);
+              }}
+            />
+          </div>
         </section>
         <section className="voice-card voice-selection-settings rounded-card">
           <div className="voice-row">

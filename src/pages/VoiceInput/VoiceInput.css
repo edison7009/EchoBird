@@ -4,6 +4,7 @@
   grid-template-areas:
     'stage stage'
     'microphone shortcut'
+    'scale scale'
     'selection selection';
   gap: 14px;
 }
@@ -82,16 +83,33 @@
 .voice-shortcut-card {
   grid-area: shortcut;
 }
+.voice-scale-card {
+  grid-area: scale;
+}
 .voice-scale-row {
   flex-wrap: nowrap;
-  gap: 16px;
+  gap: 24px;
 }
 .voice-scale-row > span {
   flex-shrink: 0;
 }
 .voice-scale-row > .island-scale {
-  max-width: 300px;
   padding-top: 14px;
+}
+/* Settings controls share one 38px height with the tabs beside them. */
+.voice-grid .view-mode-tabs {
+  height: 38px;
+}
+.voice-grid .view-mode-tab {
+  padding-block: 0;
+}
+.voice-selection-model > div > button {
+  height: 38px;
+  padding: 0 12px;
+  border: 1px solid rgb(var(--border-rgb));
+  border-radius: 6px;
+  background: rgb(var(--bg-surface-rgb) / 0.6);
+  font-size: 14px;
 }
 .voice-shortcut-description {
   margin: 16px 0 0;
@@ -113,7 +131,7 @@
   flex: 1;
 }
 .voice-shortcut-control > button {
-  height: 40px;
+  height: 38px;
 }
 .voice-shortcut-control > button:first-child {
   flex: 1;
@@ -381,7 +399,7 @@
 }
 .voice-result-content {
   flex: none;
-  max-height: 42px;
+  max-height: 84px;
   overflow-y: auto;
   overscroll-behavior: contain;
 }
@@ -596,11 +614,35 @@
 }
 .voice-island-root {
   display: flex;
+  flex-direction: column;
   width: 100vw;
   height: 100vh;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-end;
+  gap: 10px;
   padding: 24px;
+}
+/* Matches the window's reserved 280×104 area above the capsule. */
+.voice-island-transcript {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  width: fit-content;
+  max-width: 280px;
+  max-height: 104px;
+  padding: 10px 14px;
+  overflow: hidden;
+  border: 1px solid rgb(var(--border-rgb));
+  border-radius: 18px;
+  background: rgb(var(--bg-elevated-rgb));
+  color: rgb(var(--text-primary-rgb));
+}
+/* Newest words stay visible; older lines scroll out of the top. */
+.voice-island-transcript p {
+  font-size: 14px;
+  line-height: 21px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }
 .voice-island-root .voice-island {
   width: 176px;

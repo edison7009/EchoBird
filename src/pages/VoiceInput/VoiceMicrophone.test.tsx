@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import { act, create, type ReactTestInstance, type ReactTestRenderer } from 'react-test-renderer';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { VoiceInputMain } from './VoiceInput';
-import { IslandContent, VoiceIsland } from './VoiceIsland';
+import { IslandContent, IslandTranscript, VoiceIsland } from './VoiceIsland';
 import { VoiceFlow } from './VoiceFlow';
 import { listen } from '@tauri-apps/api/event';
 import { voiceSnapshot } from './testFixtures';
@@ -937,7 +937,7 @@ describe('selection model and island size', () => {
     expect(api.recordVoice).not.toHaveBeenCalled();
   });
 
-  it('saves the island size from its own slider and locks it while voice is busy', async () => {
+  it('drags the island size locally, saves once on release and locks it while voice is busy', async () => {
     vi.mocked(api.saveVoiceConfig).mockImplementation(async (saved) =>
       voiceSnapshot({ config: saved, revision: 2 })
     );
@@ -952,16 +952,21 @@ describe('selection model and island size', () => {
       value: 100,
       'aria-label': 'voice.islandScale',
     });
-    await act(async () => slider().props.onChange({ target: { value: '130' } }));
+    for (const value of ['110', '120', '130'])
+      act(() => slider().props.onChange({ target: { value } }));
+    expect(slider().props.value).toBe(130);
+    expect(slider().props.disabled).toBe(false);
+    expect(api.saveVoiceConfig).not.toHaveBeenCalled();
+    await act(async () => slider().props.onPointerUp());
     expect(api.saveVoiceConfig).toHaveBeenCalledExactlyOnceWith({
       ...voiceSnapshot().config,
       islandScale: 130,
     });
     expect(slider().props.value).toBe(130);
+    await act(async () => slider().props.onBlur());
+    expect(api.saveVoiceConfig).toHaveBeenCalledTimes(1);
     act(() => voice.setState({ snapshot: voiceSnapshot({ phase: 'transcribing' }) }));
     expect(slider().props.disabled).toBe(true);
-    await act(async () => slider().props.onChange({ target: { value: '90' } }));
-    expect(api.saveVoiceConfig).toHaveBeenCalledTimes(1);
     expect(api.recordVoice).not.toHaveBeenCalled();
   });
 });
@@ -1524,4 +1529,32 @@ describe('independent island appearance', () => {
       expect(api.saveVoiceConfig).not.toHaveBeenCalled();
     }
   );
+});
+
+describe('live island transcript', () => {
+  it.each(['recording', 'transcribing'] as const)(
+    'shows interim text above the capsule while %s',
+    (phase) => {
+      act(() => {
+        renderer = create(
+          <IslandTranscript snapshot={voiceSnapshot({ phase, text: '一边说一边出字' })} />
+        );
+      });
+      expect(renderer.root.findByType('p').children).toEqual(['一边说一边出字']);
+      expect(api.saveVoiceConfig).not.toHaveBeenCalled();
+    }
+  );
+
+  it.each([
+    ['recording', '  '],
+    ['idle', 'old'],
+    ['inserting', 'final'],
+    ['done', 'final'],
+    ['error', 'partial'],
+  ] as const)('stays hidden while %s with %j', (phase, text) => {
+    act(() => {
+      renderer = create(<IslandTranscript snapshot={voiceSnapshot({ phase, text })} />);
+    });
+    expect(renderer.toJSON()).toBeNull();
+  });
 });

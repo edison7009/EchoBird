@@ -148,6 +148,20 @@ export function VoiceIsland() {
     };
   }, []);
   return (
-    <div className="voice-island-root">{snapshot && <IslandContent snapshot={snapshot} />}</div>
+    <div className="voice-island-root">
+      {snapshot && <IslandTranscript snapshot={snapshot} />}
+      {snapshot && <IslandContent snapshot={snapshot} />}
+    </div>
+  );
+}
+
+/** Live transcript above the floating capsule; only while speech is being recognized. */
+export function IslandTranscript({ snapshot }: { snapshot: VoiceSnapshot }) {
+  const live = snapshot.phase === 'recording' || snapshot.phase === 'transcribing';
+  if (!live || !snapshot.text.trim()) return null;
+  return (
+    <div className="voice-island-transcript" aria-live="polite">
+      <p>{snapshot.text}</p>
+    </div>
   );
 }

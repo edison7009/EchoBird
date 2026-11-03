@@ -7,19 +7,27 @@ use tokio::sync::oneshot;
 use tokio_tungstenite::tungstenite::Message;
 use tokio_util::sync::CancellationToken;
 
+/// Receives each interim transcript, which revises the whole text so far.
+pub type Partial = Box<dyn FnMut(&str) + Send>;
+
 pub struct Session {
     finish: oneshot::Sender<Vec<u8>>,
     result: tauri::async_runtime::JoinHandle<Result<String, String>>,
 }
 
 impl Session {
-    pub fn start(account_id: String, recorder: Recorder, cancel: CancellationToken) -> Self {
+    pub fn start(
+        account_id: String,
+        recorder: Recorder,
+        cancel: CancellationToken,
+        partial: Partial,
+    ) -> Self {
         let (finish, ending) = oneshot::channel();
         let result = tauri::async_runtime::spawn(async move {
             tokio::select! {
                 biased;
                 _ = cancel.cancelled() => Err("voice.error.cancelled".into()),
-                result = run(account_id, recorder, ending) => result,
+                result = run(account_id, recorder, ending, partial) => result,
             }
         });
         Self { finish, result }
@@ -53,6 +61,7 @@ async fn run(
     account_id: String,
     recorder: Recorder,
     ending: oneshot::Receiver<Vec<u8>>,
+    partial: Partial,
 ) -> Result<String, String> {
     let source = AccountSource {
         provider: AccountProvider::WorkBuddy,
@@ -73,6 +82,7 @@ async fn run(
             }
         },
         ending,
+        partial,
     )
     .await
 }
@@ -82,6 +92,7 @@ async fn transfer<F, Fut>(
     ready: stream::Event,
     mut read_chunk: F,
     mut ending: oneshot::Receiver<Vec<u8>>,
+    mut partial: Partial,
 ) -> Result<String, String>
 where
     F: FnMut() -> Fut,
@@ -135,6 +146,7 @@ where
                     }
                     if !event.text.is_empty() {
                         log::debug!("[VoiceInput] realtime partial characters={}", event.text.chars().count());
+                        partial(&event.text);
                     }
                 }
             }
@@ -241,15 +253,22 @@ mod tests {
             tokio::time::sleep(Duration::from_millis(250)).await;
             ending.send(pcm).unwrap();
         });
+        let partials = std::sync::Arc::new(std::sync::Mutex::new(Vec::<String>::new()));
+        let seen = partials.clone();
         let text = transfer(
             socket,
             ready,
             || std::future::ready(Ok(chunks.pop_front().unwrap_or_default())),
             ended,
+            Box::new(move |text| seen.lock().unwrap().push(text.into())),
         )
         .await
         .unwrap();
         assert_eq!(text, "最终的完整长句，包括最后一句。");
+        let received = partials.lock().unwrap().clone();
+        assert!(received.contains(&"早期结果".to_string()));
+        assert_eq!(received.last().unwrap(), "修订的中间结果");
+        assert!(!received.iter().any(|text| text.is_empty()));
         assert_eq!(server.await.unwrap(), expected);
     }
 
@@ -264,7 +283,14 @@ mod tests {
         .unwrap();
         let (ending, ended) = oneshot::channel();
         ending.send(vec![0; 3200]).unwrap();
-        let result = transfer(socket, ready, || std::future::ready(Ok(Vec::new())), ended).await;
+        let result = transfer(
+            socket,
+            ready,
+            || std::future::ready(Ok(Vec::new())),
+            ended,
+            Box::new(|_| {}),
+        )
+        .await;
         assert_eq!(result, Err("voice.error.noTranscript".into()));
         assert_eq!(server.await.unwrap().len(), 3200);
     }
@@ -286,6 +312,7 @@ mod tests {
                 ready,
                 || std::future::ready(Ok(vec![1; 3200])),
                 ended,
+                Box::new(|_| {}),
             ),
         )
         .await;
@@ -336,6 +363,7 @@ mod tests {
             ready,
             || std::future::ready(Ok(chunks.pop_front().unwrap_or_default())),
             ended,
+            Box::new(|_| {}),
         )
         .await
         .unwrap();

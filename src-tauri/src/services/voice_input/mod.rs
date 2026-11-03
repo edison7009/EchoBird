@@ -106,6 +106,18 @@ impl Runtime {
             .ok_or_else(|| "voice.error.noAudio".into())
     }
 
+    fn accept_partial(&mut self, generation: u64, text: &str) -> bool {
+        if generation != self.generation
+            || self.cancel.is_cancelled()
+            || !matches!(self.phase.as_str(), "recording" | "transcribing")
+            || self.text == text
+        {
+            return false;
+        }
+        self.text = text.into();
+        true
+    }
+
     fn active_channel(&self) -> Option<usize> {
         if matches!(self.phase.as_str(), "recording" | "transcribing")
             && !self.cancel.is_cancelled()
@@ -143,6 +155,7 @@ impl Runtime {
         self.generation += 1;
         self.cancel.cancel();
         self.target = None;
+        self.text.clear();
         self.phase = "idle".into();
         self.started = None;
         self.level = 0.0;
@@ -493,10 +506,12 @@ pub async fn begin(app: &AppHandle, origin: &str) -> Result<Snapshot, String> {
             .filter(|channel| channel.kind == "workbuddy")
         {
             let cancel = voice.runtime.lock().unwrap().cancel.clone();
+            let partial_app = app.clone();
             *voice.stream.lock().unwrap() = Some(streaming::Session::start(
                 channel.id.clone(),
                 voice.recorder.clone(),
                 cancel,
+                Box::new(move |text| show_partial(&partial_app, generation, text)),
             ));
             voice.runtime.lock().unwrap().active_channel = Some(0);
         }
@@ -520,6 +535,18 @@ pub async fn begin(app: &AppHandle, origin: &str) -> Result<Snapshot, String> {
     Ok(snapshot(app))
 }
 
+/// Shows an interim transcript while speaking; the final result still replaces it.
+fn show_partial(app: &AppHandle, generation: u64, text: &str) {
+    {
+        let voice = shared(app);
+        let mut runtime = voice.runtime.lock().unwrap();
+        if !runtime.accept_partial(generation, text) {
+            return;
+        }
+    }
+    publish(app);
+}
+
 fn fail(app: &AppHandle, generation: u64, error: String, audio: Option<Bytes>) {
     let voice = shared(app);
     {
@@ -531,6 +558,7 @@ fn fail(app: &AppHandle, generation: u64, error: String, audio: Option<Bytes>) {
         runtime.cancel.cancel();
         runtime.target = None;
         runtime.phase = "error".into();
+        runtime.text.clear();
         runtime.error = Some(error);
         runtime.level = 0.0;
         runtime.started = None;

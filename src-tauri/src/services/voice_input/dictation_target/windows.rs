@@ -373,21 +373,26 @@ impl Target {
                 original,
             } => {
                 if !input.matches(native::input_target()) {
+                    log::info!("[VoiceInput] foreground input skipped reason=focus_moved");
                     return Err(UNAVAILABLE.into());
                 }
                 let _apartment = Apartment::new().ok_or(UNAVAILABLE)?;
                 let element = reference.resolve().map_err(|_| UNAVAILABLE)?;
-                let value = unsafe {
-                    element.GetCurrentPatternAs::<IUIAutomationValuePattern>(UIA_ValuePatternId)
-                }
-                .map_err(|_| UNAVAILABLE)?;
-                if unsafe { value.CurrentValue() }.map_err(|_| UNAVAILABLE)? != original
-                    || !unsafe { element.CurrentHasKeyboardFocus() }
-                        .map_err(|_| UNAVAILABLE)?
-                        .as_bool()
+                if !unsafe { element.CurrentHasKeyboardFocus() }
+                    .map_err(|_| UNAVAILABLE)?
+                    .as_bool()
                 {
+                    log::info!("[VoiceInput] foreground input skipped reason=control_unfocused");
                     return Err(UNAVAILABLE.into());
                 }
+                // Pasting lands at the caret of this same focused control, so edits
+                // made while speaking (drafts, auto-formatting) must not block it.
+                let changed = unsafe {
+                    element.GetCurrentPatternAs::<IUIAutomationValuePattern>(UIA_ValuePatternId)
+                }
+                .and_then(|value| unsafe { value.CurrentValue() })
+                .map_or(true, |current| current != original);
+                log::info!("[VoiceInput] foreground value_changed={changed}");
                 log::info!("[VoiceInput] input route=foreground_automation");
                 native::insert(text, Some(input), cancel)
             }

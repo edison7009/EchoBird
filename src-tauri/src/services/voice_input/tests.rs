@@ -2,32 +2,30 @@ use super::*;
 
 #[test]
 fn island_defaults_to_bottom_center_of_the_work_area_across_monitors_and_dpi() {
-    for (x, y, width, height, scale, expected_x, expected_y) in [
-        (0, 0, 1920, 1040, 1.0, 848, 916),
-        (48, 40, 1872, 1000, 1.0, 872, 916),
-        (-1920, 80, 1920, 1000, 1.5, -1128, 894),
-        (2560, -1440, 2560, 1360, 2.0, 3616, -328),
-        (0, 0, 1920, 1030, 1.25, 820, 875),
-        (-10, -20, 320, 100, 1.0, 38, -20),
+    for (x, y, width, height, scale) in [
+        (0, 0, 1920, 1040, 1.0),
+        (48, 40, 1872, 1000, 1.0),
+        (-1920, 80, 1920, 1000, 1.5),
+        (2560, -1440, 2560, 1360, 2.0),
+        (0, 0, 1920, 1030, 1.25),
     ] {
         let area = tauri::PhysicalRect {
             position: tauri::PhysicalPosition::new(x, y),
             size: tauri::PhysicalSize::new(width, height),
         };
-        assert_eq!(
-            island_position(&area, scale, 1.0),
-            tauri::PhysicalPosition::new(expected_x, expected_y)
-        );
         let position = island_position(&area, scale, 1.0);
         let center = f64::from(position.x)
-            + (island_input::SHADOW_PADDING + island_input::BODY_WIDTH / 2.0) * scale;
+            + (island_input::BODY_LEFT + island_input::BODY_WIDTH / 2.0) * scale;
         assert!((center - (f64::from(x) + f64::from(width) / 2.0)).abs() <= 0.5);
-        if f64::from(height) >= (ISLAND_HEIGHT + island_input::BOTTOM_GAP) * scale {
-            let bottom = f64::from(position.y)
-                + (island_input::SHADOW_PADDING + island_input::BODY_HEIGHT) * scale;
-            assert!((f64::from(y) + f64::from(height) - bottom - 56.0 * scale).abs() <= 0.5);
-        }
+        let bottom =
+            f64::from(position.y) + (island_input::BODY_TOP + island_input::BODY_HEIGHT) * scale;
+        assert!((f64::from(y) + f64::from(height) - bottom - 56.0 * scale).abs() <= 0.5);
     }
+    let tiny = tauri::PhysicalRect {
+        position: tauri::PhysicalPosition::new(-10, -20),
+        size: tauri::PhysicalSize::new(320, 100),
+    };
+    assert_eq!(island_position(&tiny, 1.0, 1.0).y, -20);
 }
 
 fn cancel_runtime(phase: &str, origin: &str) -> Runtime {
@@ -1130,10 +1128,31 @@ fn retired_optimization_settings_keep_the_selection_model_and_island_scale_is_bo
         };
         let position = island_position(&area, 1.0, zoom);
         let center = f64::from(position.x)
-            + (island_input::SHADOW_PADDING + island_input::BODY_WIDTH / 2.0) * zoom;
+            + (island_input::BODY_LEFT + island_input::BODY_WIDTH / 2.0) * zoom;
         assert!((center - 960.0).abs() <= 0.5);
-        let bottom = f64::from(position.y)
-            + (island_input::SHADOW_PADDING + island_input::BODY_HEIGHT) * zoom;
+        let bottom =
+            f64::from(position.y) + (island_input::BODY_TOP + island_input::BODY_HEIGHT) * zoom;
         assert!((1040.0 - bottom - 56.0 * zoom).abs() <= 0.5);
     }
+}
+
+#[test]
+fn interim_transcripts_only_update_the_current_live_recording() {
+    let mut runtime = cancel_runtime("recording", "island");
+    let generation = runtime.generation;
+    assert!(runtime.accept_partial(generation, "早期"));
+    assert!(!runtime.accept_partial(generation, "早期"));
+    assert!(runtime.accept_partial(generation, "早期结果"));
+    assert_eq!(runtime.text, "早期结果");
+    assert!(!runtime.accept_partial(generation + 1, "旧的一次"));
+    runtime.phase = "transcribing".into();
+    assert!(runtime.accept_partial(generation, "修订结果"));
+    for phase in ["inserting", "done", "error", "idle"] {
+        runtime.phase = phase.into();
+        assert!(!runtime.accept_partial(generation, phase));
+    }
+    runtime.phase = "recording".into();
+    assert!(runtime.cancel(None));
+    assert!(runtime.text.is_empty());
+    assert!(!runtime.accept_partial(generation, "取消后迟到"));
 }

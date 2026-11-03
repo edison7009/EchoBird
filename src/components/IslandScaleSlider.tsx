@@ -8,12 +8,15 @@ export function IslandScaleSlider({
   label,
   disabled = false,
   onChange,
+  onCommit,
 }: {
   scales: readonly number[];
   value: number;
   label: string;
   disabled?: boolean;
   onChange: (value: number) => void;
+  /** Called once a drag or key press ends, for settings that save asynchronously. */
+  onCommit?: () => void;
 }) {
   const min = scales[0];
   const max = scales[scales.length - 1];
@@ -33,6 +36,9 @@ export function IslandScaleSlider({
           { '--ui-scale-progress': `${((value - min) / (max - min)) * 100}%` } as CSSProperties
         }
         onChange={(event) => onChange(Number(event.target.value))}
+        onPointerUp={onCommit}
+        onKeyUp={onCommit}
+        onBlur={onCommit}
       />
       <div className="island-scale-ticks" aria-hidden="true">
         {scales.map((scale) => (

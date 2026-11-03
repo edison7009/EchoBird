@@ -1,14 +1,20 @@
 pub(super) const BODY_WIDTH: f64 = 176.0;
 pub(super) const BODY_HEIGHT: f64 = 44.0;
 pub(super) const SHADOW_PADDING: f64 = 24.0;
-pub(super) const WINDOW_WIDTH: f64 = BODY_WIDTH + SHADOW_PADDING * 2.0;
-pub(super) const WINDOW_HEIGHT: f64 = BODY_HEIGHT + SHADOW_PADDING * 2.0;
+// Room above the capsule for the live transcript bubble while speaking.
+pub(super) const BUBBLE_WIDTH: f64 = 280.0;
+pub(super) const BUBBLE_HEIGHT: f64 = 104.0;
+const BUBBLE_GAP: f64 = 10.0;
+pub(super) const WINDOW_WIDTH: f64 = BUBBLE_WIDTH + SHADOW_PADDING * 2.0;
+pub(super) const BODY_LEFT: f64 = (WINDOW_WIDTH - BODY_WIDTH) / 2.0;
+pub(super) const BODY_TOP: f64 = SHADOW_PADDING + BUBBLE_HEIGHT + BUBBLE_GAP;
+pub(super) const WINDOW_HEIGHT: f64 = BODY_TOP + BODY_HEIGHT + SHADOW_PADDING;
 // Keep the visible capsule's existing 56px bottom inset after shrinking its host.
 pub(super) const BOTTOM_GAP: f64 = 56.0 - SHADOW_PADDING;
 
 fn contains(x: f64, y: f64) -> bool {
-    let x = x - SHADOW_PADDING;
-    let y = y - SHADOW_PADDING;
+    let x = x - BODY_LEFT;
+    let y = y - BODY_TOP;
     if !(0.0..BODY_WIDTH).contains(&x) || !(0.0..BODY_HEIGHT).contains(&y) {
         return false;
     }
@@ -124,6 +130,11 @@ mod tests {
             (0.0, 0.0, false),
             (223.0, 91.0, false),
         ] {
+            // Points are given relative to the capsule's shadow box.
+            let (x, y) = (
+                x + BODY_LEFT - SHADOW_PADDING,
+                y + BODY_TOP - SHADOW_PADDING,
+            );
             for (origin_x, origin_y, scale) in [
                 (-1920.0, -400.0, 1.0),
                 (50.0, 80.0, 1.25),
