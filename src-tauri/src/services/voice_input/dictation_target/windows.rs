@@ -386,18 +386,34 @@ impl Target {
                     return Err(UNAVAILABLE.into());
                 }
                 // Pasting lands at the caret of this same focused control, so edits
-                // made while speaking (drafts, auto-formatting) must not block it.
-                let changed = unsafe {
+                // made while speaking (drafts, auto-formatting) must not block it. A
+                // value that no longer contains the captured text means the editor now
+                // shows other content, such as another conversation in the same page.
+                let current = unsafe {
                     element.GetCurrentPatternAs::<IUIAutomationValuePattern>(UIA_ValuePatternId)
                 }
                 .and_then(|value| unsafe { value.CurrentValue() })
-                .map_or(true, |current| current != original);
+                .map_err(|_| UNAVAILABLE)?
+                .to_string();
+                if !kept_original(&original, &current) {
+                    log::info!("[VoiceInput] foreground input skipped reason=content_replaced");
+                    return Err(UNAVAILABLE.into());
+                }
+                let changed = current != original;
                 log::info!("[VoiceInput] foreground value_changed={changed}");
                 log::info!("[VoiceInput] input route=foreground_automation");
                 native::insert(text, Some(input), cancel)
             }
         }
     }
+}
+
+/// Whether an editor still holds the text captured when dictation began.
+fn kept_original(original: &str, current: &str) -> bool {
+    let normalize = |text: &str| text.replace("\r\n", "\n").replace('\r', "\n");
+    let original = normalize(original);
+    let original = original.trim();
+    original.is_empty() || normalize(current).contains(original)
 }
 
 #[cfg(test)]

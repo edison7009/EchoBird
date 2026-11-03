@@ -957,7 +957,14 @@ describe('selection model and island size', () => {
     expect(slider().props.value).toBe(130);
     expect(slider().props.disabled).toBe(false);
     expect(api.saveVoiceConfig).not.toHaveBeenCalled();
-    await act(async () => slider().props.onPointerUp());
+    act(() => slider().props.onPointerDown());
+    const release = vi
+      .mocked(window.addEventListener)
+      .mock.calls.filter((call) => call[0] === 'pointerup')
+      .pop();
+    expect(release?.[2]).toEqual({ once: true });
+    // Released outside the slider: only the window listener sees it.
+    await act(async () => (release![1] as () => void)());
     expect(api.saveVoiceConfig).toHaveBeenCalledExactlyOnceWith({
       ...voiceSnapshot().config,
       islandScale: 130,

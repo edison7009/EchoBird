@@ -1,4 +1,4 @@
-import type { CSSProperties } from 'react';
+import { useEffect, useRef, type CSSProperties } from 'react';
 import './IslandScaleSlider.css';
 
 /** Floating-island size slider with a labelled tick for every step. */
@@ -18,6 +18,10 @@ export function IslandScaleSlider({
   /** Called once a drag or key press ends, for settings that save asynchronously. */
   onCommit?: () => void;
 }) {
+  const commit = useRef(onCommit);
+  useEffect(() => {
+    commit.current = onCommit;
+  });
   const min = scales[0];
   const max = scales[scales.length - 1];
   return (
@@ -36,7 +40,11 @@ export function IslandScaleSlider({
           { '--ui-scale-progress': `${((value - min) / (max - min)) * 100}%` } as CSSProperties
         }
         onChange={(event) => onChange(Number(event.target.value))}
-        onPointerUp={onCommit}
+        onPointerDown={() => {
+          // A release outside the slider still ends the drag; read the latest
+          // handler then, since this one predates the dragged value.
+          window.addEventListener('pointerup', () => commit.current?.(), { once: true });
+        }}
         onKeyUp={onCommit}
         onBlur={onCommit}
       />

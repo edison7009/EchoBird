@@ -239,3 +239,20 @@ fn changed_closed_and_cancelled_targets_do_not_write_to_another_field() {
     );
     assert_eq!(b.text(), "untouched");
 }
+
+#[test]
+fn foreground_paste_accepts_edits_around_the_captured_text_but_not_replaced_content() {
+    assert!(kept_original("", "anything"));
+    assert!(kept_original("draft", "draft"));
+    assert!(kept_original("draft", "draft typed while speaking"));
+    assert!(kept_original(
+        "line one\r\nline two",
+        "line one\nline two\n"
+    ));
+    assert!(kept_original("  draft\n", "prefix draft"));
+    assert!(!kept_original("conversation A draft", ""));
+    assert!(!kept_original(
+        "conversation A draft",
+        "conversation B draft"
+    ));
+}
