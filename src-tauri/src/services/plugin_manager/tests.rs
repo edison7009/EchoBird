@@ -403,6 +403,49 @@ fn plugin_source_descriptions_round_trip_without_changing_releases() {
 }
 
 #[test]
+fn plugin_registry_skips_only_the_release_this_client_cannot_use() {
+    let bundled = include_bytes!("../../../../src/data/pluginIndex.json");
+    let baseline = Registry::parse(bundled).unwrap();
+    let total = baseline.plugins.len();
+    let target = baseline
+        .plugins
+        .iter()
+        .max_by_key(|plugin| plugin.releases.len())
+        .unwrap();
+    let (id, kept) = (target.id.clone(), target.releases.len());
+    let newest = target.releases[0].manifest.version.clone();
+    assert!(
+        kept > 1,
+        "the catalog needs a plugin with two releases here"
+    );
+
+    let mut value: serde_json::Value = serde_json::from_slice(bundled).unwrap();
+    let entry = value["plugins"]
+        .as_array_mut()
+        .unwrap()
+        .iter_mut()
+        .find(|plugin| plugin["id"] == id.as_str())
+        .unwrap();
+    let release = entry["releases"]
+        .as_array_mut()
+        .unwrap()
+        .iter_mut()
+        .find(|release| release["manifest"]["version"] == newest.as_str())
+        .unwrap();
+    release["manifest"]["displayName"] = " ".into();
+
+    let parsed = Registry::parse(&serde_json::to_vec(&value).unwrap()).unwrap();
+    assert_eq!(parsed.plugins.len(), total);
+    let plugin = parsed
+        .plugins
+        .iter()
+        .find(|plugin| plugin.id == id)
+        .unwrap();
+    assert_eq!(plugin.releases.len(), kept - 1);
+    assert!(plugin.releases.iter().all(|r| r.manifest.version != newest));
+}
+
+#[test]
 fn plugin_registry_icons_are_optional_and_require_public_urls_in_both_regions() {
     let bundled = include_bytes!("../../../../src/data/pluginIndex.json");
     let mut value: serde_json::Value = serde_json::from_slice(bundled).unwrap();

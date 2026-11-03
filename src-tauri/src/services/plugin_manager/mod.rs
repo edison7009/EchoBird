@@ -112,15 +112,17 @@ impl Registry {
                 return Err("Invalid registry plugin".into());
             }
             let mut versions = std::collections::HashSet::new();
+            // A release this client cannot use is skipped, so a newer plugin capability
+            // never takes the whole catalog away from people on an older client.
             plugin.releases.retain(|r| {
-                r.manifest
-                    .echobird
-                    .platforms
-                    .iter()
-                    .any(|p| p == manifest::platform())
+                r.manifest.validate().is_ok()
+                    && r.manifest
+                        .echobird
+                        .platforms
+                        .iter()
+                        .any(|p| p == manifest::platform())
             });
             for release in &plugin.releases {
-                release.manifest.validate()?;
                 let version =
                     semver::Version::parse(&release.manifest.version).map_err(|e| e.to_string())?;
                 if release.manifest.id() != plugin.id
