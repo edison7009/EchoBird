@@ -143,6 +143,7 @@ const ja: Partial<Translations> = {
   'voice.light': 'ライト',
   'voice.iridescent': '虹彩',
   'voice.islandScale': 'サイズ',
+  'voice.translucent': '半透明',
   'voice.palette': '配色',
   'voice.palette.white': '標準',
   'voice.palette.aurora': 'オーロラ',

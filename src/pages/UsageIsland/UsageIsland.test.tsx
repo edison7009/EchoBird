@@ -440,9 +440,10 @@ it('follows the system appearance independently of the app theme', async () => {
   await act(async () => island.getState().update({ theme: 'auto' }));
   expect(surface()).toContain('usage-island-theme-dark');
   expect(surface()).toContain('usage-island-theme-auto');
-  await act(async () => island.getState().update({ theme: 'iridescent' }));
-  expect(surface()).toContain('usage-island-theme-light');
-  expect(surface()).toContain('voice-theme-iridescent');
+  await act(async () => island.getState().update({ theme: 'translucent' }));
+  expect(surface()).toContain('usage-island-theme-dark');
+  expect(surface()).toContain('usage-island-theme-translucent');
+  expect(surface()).not.toContain('voice-theme-iridescent');
   expect(surface()).not.toContain('usage-island-theme-auto');
 });
 

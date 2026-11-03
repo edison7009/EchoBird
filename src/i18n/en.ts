@@ -142,6 +142,7 @@ const en: Translations = {
   'voice.light': 'Light',
   'voice.iridescent': 'Prism',
   'voice.islandScale': 'Size',
+  'voice.translucent': 'Translucent',
   'voice.palette': 'Colors',
   'voice.palette.white': 'Default',
   'voice.palette.aurora': 'Aurora',

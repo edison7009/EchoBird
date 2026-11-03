@@ -231,9 +231,9 @@ export function UsageIslandView({
   const surface =
     theme === 'auto'
       ? resolved
-      : theme === 'iridescent' || (theme === 'system' && !systemDark)
+      : theme === 'system' && !systemDark
         ? 'light'
-        : theme === 'system'
+        : theme === 'system' || theme === 'translucent'
           ? 'dark'
           : theme;
   const expanded =
@@ -287,8 +287,8 @@ export function UsageIslandView({
           className={`usage-island usage-island-theme-${surface}${
             theme === 'auto'
               ? ' usage-island-theme-auto'
-              : theme === 'iridescent'
-                ? ' usage-island-theme-iridescent voice-theme-iridescent'
+              : theme === 'translucent'
+                ? ' usage-island-theme-translucent'
                 : ''
           }`}
           data-layout={layout}

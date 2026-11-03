@@ -139,6 +139,7 @@ export type TKey =
   | 'voice.light'
   | 'voice.iridescent'
   | 'voice.islandScale'
+  | 'voice.translucent'
   | 'voice.palette'
   | 'voice.palette.white'
   | 'voice.palette.aurora'

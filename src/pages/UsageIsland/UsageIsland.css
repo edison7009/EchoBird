@@ -188,14 +188,9 @@
   --usage-island-low: #a16207;
   --usage-island-critical: #c2312c;
 }
-/* Over the pale colors of the flowing surface, quotas need the deepest tones to stay legible. */
-.usage-island-theme-iridescent {
-  --usage-island-bg: #ff7f7f;
-  --usage-island-fg: #000;
-  --usage-island-track: rgb(0 0 0 / 0.18);
-  --usage-island-healthy: #14532d;
-  --usage-island-low: #713f12;
-  --usage-island-critical: #7f1d1d;
+/* The dark theme's text, icons and quota colors over a see-through black. */
+.usage-island-theme-translucent {
+  --usage-island-bg: rgb(0 0 0 / 0.3);
 }
 .usage-island-theme-auto {
   --usage-island-fg: rgb(var(--text-primary-rgb));
@@ -315,6 +310,7 @@
 }
 .usage-island [data-tone='unknown'] {
   --usage-color: currentColor;
+  --usage-track: var(--usage-island-track);
 }
 .usage-island [data-tone='healthy'] {
   --usage-color: var(--usage-island-healthy);
@@ -324,6 +320,10 @@
 }
 .usage-island [data-tone='critical'] {
   --usage-color: var(--usage-island-critical);
+}
+/* Like the account quota bars, a colored quota tints its empty track too. */
+.usage-island :is([data-tone='healthy'], [data-tone='low'], [data-tone='critical']) {
+  --usage-track: color-mix(in srgb, var(--usage-color) 20%, transparent);
 }
 .usage-island-gauge {
   position: relative;
@@ -335,7 +335,9 @@
   display: block;
   width: 100%;
   height: 100%;
-  transform: rotate(-90deg);
+  /* Starts at 12 o'clock; the used part clears clockwise, so what remains
+     runs counterclockwise from the top. */
+  transform: rotate(-90deg) scaleY(-1);
 }
 .usage-island-gauge circle {
   fill: none;
@@ -343,7 +345,7 @@
   stroke-linecap: round;
 }
 .usage-island-gauge-track {
-  stroke: var(--usage-island-track);
+  stroke: var(--usage-track, var(--usage-island-track));
 }
 .usage-island-gauge-value {
   stroke: var(--usage-color);
@@ -519,7 +521,7 @@
   height: 3px;
   overflow: hidden;
   border-radius: 99px;
-  background: var(--usage-island-track);
+  background: var(--usage-track, var(--usage-island-track));
 }
 .usage-island-line-track > span {
   display: block;

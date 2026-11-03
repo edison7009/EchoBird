@@ -5,7 +5,7 @@ const STORAGE_KEY = 'echobird_usage_island';
 
 export const USAGE_ISLAND_LIMIT = 6;
 export const usageIslandStyles = ['row', 'column', 'dial', 'line'] as const;
-export const usageIslandThemes = ['auto', 'iridescent', 'dark', 'light', 'system'] as const;
+export const usageIslandThemes = ['auto', 'translucent', 'dark', 'light', 'system'] as const;
 export const usageIslandExpandModes = ['hover', 'click', 'always'] as const;
 export const usageIslandRefreshSeconds = [0, 300, 900, 1800, 3600] as const;
 export const usageIslandScales = [70, 80, 90, 100, 110, 120, 130, 140, 150] as const;
@@ -62,7 +62,12 @@ function readConfig(): UsageIslandConfig {
       pick: typeof saved?.pick === 'string' ? saved.pick : null,
       style: oneOf(usageIslandStyles, saved?.style, defaults.style),
       reversed: usageIslandStyles.filter((style) => saved?.reversed?.includes(style)),
-      theme: oneOf(usageIslandThemes, saved?.theme, defaults.theme),
+      // The flowing theme was replaced by the translucent one.
+      theme: oneOf(
+        usageIslandThemes,
+        (saved?.theme as string) === 'iridescent' ? 'translucent' : saved?.theme,
+        defaults.theme
+      ),
       expandMode: oneOf(usageIslandExpandModes, saved?.expandMode, defaults.expandMode),
       refreshSeconds: oneOf(usageIslandRefreshSeconds, saved?.refreshSeconds, 0),
       scale: oneOf(usageIslandScales, saved?.scale, 100),

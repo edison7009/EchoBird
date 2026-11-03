@@ -139,6 +139,7 @@ const zhHans: Partial<Translations> = {
   'voice.light': '浅色',
   'voice.iridescent': '流彩',
   'voice.islandScale': '大小',
+  'voice.translucent': '半透明',
   'voice.palette': '配色',
   'voice.palette.white': '默认',
   'voice.palette.aurora': '极光',

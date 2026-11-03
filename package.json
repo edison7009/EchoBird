@@ -11,7 +11,7 @@
     "build": "npm run tauri -- build",
     "tauri": "npx --yes @tauri-apps/cli@2.12.4",
     "preview": "vite preview",
-    "test": "vitest run --passWithNoTests && node --test scripts/tests/website_download.test.mjs scripts/tests/plugin_sdk.test.mjs",
+    "test": "vitest run --passWithNoTests && node --test scripts/tests/website_download.test.mjs scripts/tests/plugin_sdk.test.mjs scripts/tests/usage_island_styles.test.mjs",
     "typecheck": "tsc --noEmit",
     "lint": "eslint \"src/**/*.{ts,tsx}\" --report-unused-disable-directives --max-warnings 0",
     "lint:fix": "eslint \"src/**/*.{ts,tsx}\" --fix",
