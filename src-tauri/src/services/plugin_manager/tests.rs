@@ -598,7 +598,66 @@ async fn plugin_live_community_account_packages_install_without_executing_code()
         let root = fixture.manager.package_root(plugin).unwrap();
         let worker = plugin.manifest.echobird.worker.as_ref().unwrap();
         assert_eq!(worker.runtime.as_deref(), Some("native"));
-        assert_eq!(&fs::read(root.join(&worker.entry)).unwrap()[..2], b"MZ");
+        assert_native_worker(&fs::read(root.join(&worker.entry)).unwrap());
+    }
+    assert_eq!(fixture.manager.list().unwrap().len(), 8);
+}
+
+fn assert_native_worker(bytes: &[u8]) {
+    if cfg!(windows) {
+        assert_eq!(&bytes[..2], b"MZ");
+    } else if cfg!(target_os = "macos") {
+        assert_eq!(&bytes[..4], &[0xcf, 0xfa, 0xed, 0xfe]);
+    } else {
+        assert_eq!(&bytes[..4], b"\x7fELF");
+    }
+}
+
+#[tokio::test]
+#[ignore = "Downloads reviewed native preview ZIPs and installs only into temporary storage"]
+async fn plugin_live_platform_account_previews_install_as_a_batch() {
+    let fixture = Fixture::new();
+    let url = format!(
+        "https://raw.githubusercontent.com/edison7009/echobird-plugin/1fe4f6c60c68e1464a4a57e93295ba48ef179cd1/previews/{}-{}/index.json",
+        manifest::platform(), manifest::architecture()
+    );
+    let index = Registry::parse(&packages::download(&url, 1024 * 1024).await.unwrap()).unwrap();
+    assert_eq!(index.plugins.len(), 8);
+    for plugin in index.plugins {
+        let release = &plugin.releases[0];
+        assert_eq!(
+            release.manifest.architectures.as_deref().unwrap(),
+            &[manifest::architecture()]
+        );
+        let bytes = packages::download(&release.downloads["international"], MAX_PACKAGE_BYTES)
+            .await
+            .unwrap();
+        let source = fixture.root.join(&plugin.id);
+        assert!(packages::verified_archive(&bytes, &"0".repeat(64), &source).is_err());
+        assert!(!source.exists());
+        packages::verified_archive(&bytes, &release.sha256, &source).unwrap();
+        assert_eq!(Manifest::read(&source).unwrap(), release.manifest);
+        let candidate = fixture
+            .manager
+            .preview(
+                "directory",
+                source.to_str().unwrap(),
+                "international",
+                tokio_util::sync::CancellationToken::new(),
+            )
+            .await
+            .unwrap();
+        let installed = fixture.manager.install(&candidate.token).unwrap();
+        let installed = installed
+            .iter()
+            .find(|installed| installed.id == plugin.id)
+            .unwrap();
+        assert_eq!(installed.manifest, release.manifest);
+        let root = fixture.manager.package_root(installed).unwrap();
+        assert_native_worker(
+            &fs::read(root.join(&release.manifest.echobird.worker.as_ref().unwrap().entry))
+                .unwrap(),
+        );
     }
     assert_eq!(fixture.manager.list().unwrap().len(), 8);
 }

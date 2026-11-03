@@ -164,6 +164,15 @@ jobs:
               output.write(f'ECHOBIRD_NATIVE_TEST_EXE={executable}\n')
           PY
 
+      - name: Verify all native account preview packages install
+        if: runner.os != 'Windows'
+        timeout-minutes: 10
+        shell: bash
+        run: |
+          fixture_test='services::plugin_manager::tests::plugin_live_platform_account_previews_install_as_a_batch'
+          "$ECHOBIRD_NATIVE_TEST_EXE" --list --ignored --exact "$fixture_test" | grep -Fx "$fixture_test: test"
+          "$ECHOBIRD_NATIVE_TEST_EXE" --ignored --exact "$fixture_test"
+
       - name: Verify macOS native credential storage
         if: runner.os == 'macOS'
         timeout-minutes: 5
