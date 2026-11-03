@@ -534,9 +534,11 @@
   flex: none;
   opacity: 0.65;
 }
-/* Stronger than the CJK size upgrade, so the countdown matches the rest of the row. */
-.usage-island-reset > span {
+/* Stronger than the CJK size upgrade (:lang(zh) .text-[10px]), so the countdown
+   keeps the row's size and sits on its baseline. */
+.usage-island .usage-island-reset > span {
   display: inline;
+  vertical-align: baseline;
   color: inherit;
   font-size: inherit;
   font-weight: inherit;

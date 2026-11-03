@@ -59,7 +59,9 @@ export const modelSourceKey = (modelId: string) => `model:${modelId}`;
 export function compactValue(value: string) {
   const parts = /^([^\d-]*)(-?[\d,]*\.?\d+)(.*)$/.exec(value.trim());
   if (!parts) return value;
-  const [, prefix, digits, suffix] = parts;
+  const [, mark, digits, suffix] = parts;
+  // Chinese locales write US dollars as "US$"; the slot only has room for "$".
+  const prefix = mark.replace(/^US\$/, '$');
   const amount = Number(digits.replace(/,/g, ''));
   const size = Math.abs(amount);
   const scaled = (divisor: number, unit: string) =>

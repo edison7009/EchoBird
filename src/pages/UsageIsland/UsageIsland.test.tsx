@@ -707,6 +707,13 @@ it('shortens long balances for the logo and leaves short or unknown values alone
   ).toEqual(['12.40', '$12.40', '1000', '2K', '500', '1.3K', '$12.4K', '3.4M', '2.5B', '—', 'N/A']);
 });
 
+it('shortens the Chinese US dollar mark in the slot', () => {
+  const zhDollars = new Intl.NumberFormat('zh-CN', { style: 'currency', currency: 'USD' });
+  expect(compactValue(zhDollars.format(0))).toBe('$0.00');
+  expect(compactValue(zhDollars.format(12400))).toBe('$12.4K');
+  expect(compactValue('¥8.50')).toBe('¥8.50');
+});
+
 it('shows the icon and value instead of an empty ring for a picked balance', async () => {
   testProviders.current = [
     provider({ accounts: [account({ metrics: [{ label: 'Balance', value: '2,000' }] })] }),
