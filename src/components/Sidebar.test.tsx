@@ -322,12 +322,16 @@ describe('Sidebar', () => {
         finish = resolve;
       })
     );
-    act(() => toggle().props.onClick());
+    act(() => {
+      void toggle().props.onClick();
+    });
     const enabled = { ...sourceConfig, shortcutEnabled: true };
     expect(voiceApi.saveVoiceConfig).toHaveBeenCalledExactlyOnceWith(enabled);
     expect(toggle().props['aria-busy']).toBe(true);
     expect(toggle().props.disabled).toBe(true);
-    act(() => toggle().props.onClick());
+    act(() => {
+      void toggle().props.onClick();
+    });
     expect(voiceApi.saveVoiceConfig).toHaveBeenCalledTimes(1);
     await act(async () => finish(voiceSnapshot({ config: enabled, revision: 2 })));
     expect(toggle().props['aria-checked']).toBe(true);

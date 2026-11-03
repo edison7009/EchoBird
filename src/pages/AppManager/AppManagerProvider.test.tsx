@@ -341,6 +341,7 @@ vi.mock('./useDeepSeekAccounts', async () => {
   };
 });
 vi.mock('../../api/tauri', () => ({
+  getCliLaunchSettings: vi.fn().mockResolvedValue({}),
   listQoderAccounts: vi.fn().mockResolvedValue([]),
   startQoderLogin: vi.fn(),
   refreshQoderAccountQuota: vi.fn(),

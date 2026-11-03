@@ -142,6 +142,9 @@ beforeEach(() => {
     ['get_tool_install_index', () => '{"ids":[]}'],
     ['list_minimax_accounts', () => [mini, miniGlobal]],
     ['list_qoder_accounts', (args) => [qoder(args.edition as 'qoder' | 'qodercn')]],
+    // Claiming everything reaches the other provider's rows as well.
+    ['claim_minimax_daily_credits', (args) => (args.accountId === mini.id ? mini : miniGlobal)],
+    ['claim_qoder_daily_credits', (args) => qoder(args.edition as 'qoder' | 'qodercn')],
   ]);
   invoke.mockImplementation(async (command: string, args?: Record<string, unknown>) =>
     handlers.get(command)?.(args ?? {})

@@ -220,6 +220,12 @@ fn command_at(agent: &ParasiteAgent, executable: Option<&str>) -> tokio::process
     crate::utils::process::async_command(executable.unwrap_or(agent.command))
 }
 
+#[cfg(not(test))]
+const PROBE_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(5);
+// Test fixtures run through cmd.exe beside the rest of the suite.
+#[cfg(test)]
+const PROBE_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(60);
+
 async fn probe(agent: &ParasiteAgent, mut cmd: tokio::process::Command) -> bool {
     cmd.args(agent.detect_args);
     cmd.stdin(Stdio::null())
@@ -230,7 +236,7 @@ async fn probe(agent: &ParasiteAgent, mut cmd: tokio::process::Command) -> bool 
         return false;
     };
 
-    match tokio::time::timeout(std::time::Duration::from_secs(5), child.wait()).await {
+    match tokio::time::timeout(PROBE_TIMEOUT, child.wait()).await {
         Ok(Ok(status)) => status.success(),
         _ => {
             stop_child(&mut child).await;
@@ -794,7 +800,7 @@ $inputText = [Console]::In.ReadToEnd()
         let message = "multiline & %SystemRoot% \"quoted\"\n".repeat(32768);
         for mode in ["duplex", "early-error", "json-error"] {
             let outcome = tokio::time::timeout(
-                Duration::from_secs(15),
+                Duration::from_secs(60),
                 run_child(
                     fixture.turn(&args, mode),
                     &message,

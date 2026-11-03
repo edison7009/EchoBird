@@ -69,6 +69,7 @@ vi.mock('@tauri-apps/plugin-dialog', () => ({
 }));
 vi.mock('../../api/tauri', () => {
   const names = [
+    'getCliLaunchSettings',
     'listDuMateAccounts',
     'listDoubaoAccounts',
     'listOpenDesignAccounts',

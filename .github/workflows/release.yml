@@ -20,7 +20,7 @@ jobs:
   create-release:
     permissions:
       contents: write
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     outputs:
       release_id: ${{ steps.create.outputs.release_id }}
     steps:
@@ -79,7 +79,7 @@ jobs:
 
           # Linux: deb + rpm only. AppImage bundles full webkit/gtk runtime
           # (~80MB each); deb/rpm rely on system webkit2gtk (~11MB each).
-          - platform: 'ubuntu-latest'
+          - platform: 'ubuntu-24.04'
             rust-target: 'x86_64-unknown-linux-gnu'
             args: '--bundles deb,rpm'
 
@@ -153,7 +153,7 @@ jobs:
     # release counter, version-less updater bundle). Rename every asset on the
     # release in place via the GitHub API — non-destructive, no re-upload.
     needs: release
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: write
     steps:

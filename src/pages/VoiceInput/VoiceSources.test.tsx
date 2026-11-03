@@ -328,7 +328,9 @@ it.each([
     const add = renderer.root.findByProps({ 'aria-label': 'freeModels.customAdd' });
     expect(remove.every((button) => !button.props.disabled)).toBe(true);
     expect(add.props.disabled).toBe(false);
-    act(() => toggle.props.onClick());
+    act(() => {
+      void toggle.props.onClick();
+    });
     expect(voice.getState().saving).toBe(true);
     expect(main.props['data-saving']).toBe(true);
     expect(panel.props['data-saving']).toBe(true);

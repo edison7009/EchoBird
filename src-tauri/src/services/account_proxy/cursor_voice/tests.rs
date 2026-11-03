@@ -267,9 +267,9 @@ async fn native_h2_is_duplex_paced_and_sends_exact_config_audio_stop() {
     assert_eq!(&frames[1][6..], &audio[44..684]);
     assert_eq!(frames.len(), 112);
     drop(frames);
+    // The span, not absolute times: the fixture's clock starts after the request reaches it.
     let times = fixture.observed.audio_times.lock().unwrap();
-    assert!(times[0] >= Duration::from_millis(15));
-    assert!(times.last().unwrap() >= &Duration::from_millis(2150));
+    assert!(*times.last().unwrap() - times[0] >= Duration::from_millis(2100));
 }
 
 #[tokio::test]

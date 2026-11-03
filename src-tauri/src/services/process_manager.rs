@@ -2621,8 +2621,9 @@ mod tests {
             command.args(["-c", "read input; case \"$input\" in *fixture-user*) ;; *) exit 7;; esac; printf '%s\\n' '{\"machineToken\":\"fixture-token\",\"machineType\":\"fixture-type\",\"machineCode\":\"fixture-code\"}'; exec sleep 30"]);
             command
         };
+        // A cold PowerShell start alone can take this long on a busy machine.
         let identity = tokio::time::timeout(
-            std::time::Duration::from_secs(10),
+            std::time::Duration::from_secs(60),
             super::read_qoder_identity(command, Some("fixture-user")),
         )
         .await
