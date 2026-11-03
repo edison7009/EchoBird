@@ -430,23 +430,6 @@ export function VoiceInputMain() {
             <span className="voice-status">{snapshot.shortcutDescription}</span>
           )}
         </section>
-        <section className="voice-card voice-scale-card rounded-card">
-          <div className="voice-row voice-scale-row">
-            <span>{t('voice.islandScale')}</span>
-            <IslandScaleSlider
-              scales={voiceIslandScales}
-              value={scaleDraft ?? config.islandScale ?? 100}
-              label={t('voice.islandScale')}
-              disabled={voiceActive}
-              onChange={setScaleDraft}
-              onCommit={() => {
-                if (scaleDraft === null) return;
-                setScaleDraft(null);
-                if (scaleDraft !== (config.islandScale ?? 100)) update('islandScale', scaleDraft);
-              }}
-            />
-          </div>
-        </section>
         <section className="voice-card voice-selection-settings rounded-card">
           <div className="voice-row">
             <span className="voice-selection-label">
@@ -508,6 +491,22 @@ export function VoiceInputMain() {
                 />
               </fieldset>
             </div>
+          </div>
+        </section>
+        <section className="voice-scale-card">
+          <div className="voice-row voice-scale-row">
+            <IslandScaleSlider
+              scales={voiceIslandScales}
+              value={scaleDraft ?? config.islandScale ?? 100}
+              label={t('voice.islandScale')}
+              disabled={voiceActive}
+              onChange={setScaleDraft}
+              onCommit={() => {
+                if (scaleDraft === null) return;
+                setScaleDraft(null);
+                if (scaleDraft !== (config.islandScale ?? 100)) update('islandScale', scaleDraft);
+              }}
+            />
           </div>
         </section>
       </div>

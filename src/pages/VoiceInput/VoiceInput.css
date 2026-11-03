@@ -4,8 +4,8 @@
   grid-template-areas:
     'stage stage'
     'microphone shortcut'
-    'scale scale'
-    'selection selection';
+    'selection selection'
+    'scale scale';
   gap: 14px;
 }
 .voice-routing-stage {
@@ -83,18 +83,15 @@
 .voice-shortcut-card {
   grid-area: shortcut;
 }
+/* Sits directly on the page, inset to line up with the card contents above. */
 .voice-scale-card {
   grid-area: scale;
+  min-width: 0;
+  padding: 4px 18px 0;
 }
 .voice-scale-row {
   flex-wrap: nowrap;
   gap: 24px;
-}
-.voice-scale-row > span {
-  flex-shrink: 0;
-}
-.voice-scale-row > .island-scale {
-  padding-top: 14px;
 }
 /* Settings controls share one 38px height with the tabs beside them. */
 .voice-grid .view-mode-tabs {
@@ -111,8 +108,12 @@
   background: rgb(var(--bg-surface-rgb) / 0.6);
   font-size: 14px;
 }
+/* Occupies the same band as the microphone meter beside it, so both cards line up. */
 .voice-shortcut-description {
-  margin: 16px 0 0;
+  display: flex;
+  align-items: center;
+  height: 42px;
+  margin: 16px 0 10px;
   color: rgb(var(--text-secondary-rgb));
   font-size: 12px;
   line-height: 1.5;
