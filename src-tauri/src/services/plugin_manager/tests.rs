@@ -57,6 +57,49 @@ fn manifest_value() -> serde_json::Value {
 }
 
 #[test]
+fn plugin_architecture_filters_catalog_releases_and_local_manifests() {
+    let current = manifest::architecture();
+    let other = if current == "x64" { "arm64" } else { "x64" };
+    let mut compatible = manifest_value();
+    compatible["architectures"] = json!([current]);
+    compatible["echobird"]["manifestVersion"] = json!(2);
+    let parse = |value: &serde_json::Value| {
+        serde_json::from_value::<manifest::Manifest>(value.clone()).unwrap()
+    };
+    assert!(parse(&manifest_value()).validate().is_ok());
+    assert!(parse(&compatible).validate().is_ok());
+    let mut incompatible = compatible.clone();
+    incompatible["version"] = "9.0.0".into();
+    incompatible["architectures"] = json!([other]);
+    assert!(parse(&incompatible).validate().is_err());
+    for invalid in [json!([]), json!([current, current]), json!(["invalid"])] {
+        let mut value = compatible.clone();
+        value["architectures"] = invalid;
+        assert!(parse(&value).validate().is_err());
+    }
+    let release = |manifest: serde_json::Value| {
+        json!({
+            "manifest":manifest,"commit":"a".repeat(40),"sha256":"b".repeat(64),
+            "downloads":{"international":"https://example.com/plugin.zip","china":"https://example.com/plugin.zip"}
+        })
+    };
+    let index = json!({"schemaVersion":1,"name":"EchoBird Plugin Hub","plugins":[{
+        "id":"fixture.game","repository":"https://example.com/fixture/game",
+        "releases":[release(incompatible.clone()),release(compatible)]
+    }]});
+    let registry = Registry::parse(&serde_json::to_vec(&index).unwrap()).unwrap();
+    assert_eq!(registry.plugins[0].releases.len(), 1);
+    assert_eq!(registry.plugins[0].releases[0].manifest.version, "1.0.0");
+    let fixture = Fixture::new();
+    fs::write(
+        fixture.source.join("package.json"),
+        serde_json::to_vec(&incompatible).unwrap(),
+    )
+    .unwrap();
+    assert!(manifest::Manifest::read(&fixture.source).is_err());
+}
+
+#[test]
 fn provider_contributions_reference_a_page_and_unique_application_targets() {
     let mut value = manifest_value();
     value["echobird"]["contributes"]["providers"] = json!([{

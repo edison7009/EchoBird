@@ -21,6 +21,7 @@ export interface PluginManifest {
   license: string;
   repository: string;
   icon?: string;
+  architectures?: ('x64' | 'arm64')[];
   category?: PluginCategory;
   categories?: PluginCategory[];
   tools?: { id: string; directory: string }[];

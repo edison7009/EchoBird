@@ -13,6 +13,8 @@ pub struct Manifest {
     pub repository: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub icon: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub architectures: Option<Vec<String>>,
     pub echobird: Extension,
     #[serde(flatten)]
     pub metadata: BTreeMap<String, serde_json::Value>,
@@ -152,6 +154,14 @@ pub fn platform() -> &'static str {
     }
 }
 
+pub fn architecture() -> &'static str {
+    match std::env::consts::ARCH {
+        "x86_64" => "x64",
+        "aarch64" => "arm64",
+        other => other,
+    }
+}
+
 impl Manifest {
     pub fn id(&self) -> String {
         format!("{}.{}", self.publisher, self.name)
@@ -210,7 +220,10 @@ impl Manifest {
             return Err("Invalid plugin metadata".into());
         }
         let extension = &self.echobird;
-        if extension.manifest_version != 1 || extension.api_version != "0.1-draft" {
+        if ![1, 2].contains(&extension.manifest_version)
+            || (extension.manifest_version == 2) != self.architectures.is_some()
+            || extension.api_version != "0.1-draft"
+        {
             return Err("Unsupported plugin API version".into());
         }
         let unique = |items: &[String]| {
@@ -225,6 +238,16 @@ impl Manifest {
             || !extension.platforms.iter().any(|p| p == platform())
         {
             return Err("Plugin does not support this platform".into());
+        }
+        if self.architectures.as_ref().is_some_and(|architectures| {
+            architectures.is_empty()
+                || !unique(architectures)
+                || architectures
+                    .iter()
+                    .any(|a| !["x64", "arm64"].contains(&a.as_str()))
+                || !architectures.iter().any(|a| a == architecture())
+        }) {
+            return Err("Plugin does not support this architecture".into());
         }
         if !unique(&extension.permissions)
             || extension.permissions.iter().any(|p| {
