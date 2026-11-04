@@ -729,6 +729,8 @@ html.is-macos #root {
 
 /* Native traffic lights stay at 100% while the rest of the WebView scales. */
 html.is-macos .app-titlebar {
+  /* h-10 is 37.5px at our 15px root size; native lights center at 20px. */
+  height: 40px;
   zoom: calc(1 / var(--ui-scale, 1));
 }
 

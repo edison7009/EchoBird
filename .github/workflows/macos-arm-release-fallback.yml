@@ -18,7 +18,7 @@ permissions:
 
 jobs:
   build:
-    runs-on: macos-15-intel
+    runs-on: macos-26-intel
     steps:
       - name: Validate tag and resolve existing draft
         id: draft
@@ -38,6 +38,19 @@ jobs:
         uses: actions/checkout@v6
         with:
           ref: ${{ inputs.tag }}
+
+      # AppKit chooses traffic-light metrics from the linked SDK. SDK 15
+      # produces smaller buttons centered at y=24 with our inset; SDK 26+
+      # matches Coffee CLI and the 40px frontend titlebar (center y=20).
+      - name: Require modern macOS SDK for native window controls
+        run: |
+          set -euo pipefail
+          SDK_VERSION="$(xcrun --sdk macosx --show-sdk-version)"
+          if [[ "${SDK_VERSION%%.*}" -lt 26 ]]; then
+            echo "::error::macOS SDK 26+ is required for correctly sized and aligned native window buttons (found $SDK_VERSION)."
+            exit 1
+          fi
+          echo "Building with macOS SDK $SDK_VERSION"
 
       - name: Setup Node.js
         uses: actions/setup-node@v6
@@ -96,3 +109,6 @@ jobs:
           trap 'hdiutil detach "$TMP/mount" >/dev/null 2>&1 || true; rm -rf "$TMP"' EXIT
           APP="$TMP/mount/EchoBird.app"
           test "$(/usr/bin/lipo -archs "$APP/Contents/MacOS/echobird")" = arm64
+          SDK_VERSION="$(xcrun vtool -show-build "$APP/Contents/MacOS/echobird" | awk '$1 == "sdk" { print $2; exit }')"
+          test -n "$SDK_VERSION"
+          test "${SDK_VERSION%%.*}" -ge 26

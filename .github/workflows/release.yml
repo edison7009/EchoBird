@@ -60,20 +60,14 @@ jobs:
             rust-target: 'x86_64-pc-windows-msvc'
             args: ''
 
-          # macOS: native build per architecture. Rosetta 2 only runs the
-          # OTHER way (Intel binaries on ARM Macs) — Intel Macs cannot
-          # run ARM-only apps, so we ship both. macos-latest is ARM,
-          # macos-15-intel is GitHub's current Intel runner label
-          # (replaced macos-13, which was fully unsupported on 2025-12-08
-          # per https://github.blog/changelog/2025-09-19-... — the v4.7.3
-          # tag briefly used `macos-13` and its job queued indefinitely
-          # because the runner image was gone; we burned v4.7.3 over that
-          # and jumped straight to v4.7.4).
-          - platform: 'macos-latest'
+          # Use SDK 26+ on both architectures so AppKit gives the native
+          # traffic lights the same size/alignment as Coffee CLI. Keep the
+          # Intel fallback on this image too; SDK 15 changes these metrics.
+          - platform: 'macos-26'
             rust-target: 'aarch64-apple-darwin'
             args: '--target aarch64-apple-darwin --bundles dmg'
 
-          - platform: 'macos-15-intel'
+          - platform: 'macos-26-intel'
             rust-target: 'x86_64-apple-darwin'
             args: '--target x86_64-apple-darwin --bundles dmg'
 
@@ -92,6 +86,20 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v6
 
+      # AppKit chooses traffic-light metrics from the linked SDK. SDK 15
+      # produces smaller buttons centered at y=24 with our inset; SDK 26+
+      # matches Coffee CLI and the 40px frontend titlebar (center y=20).
+      - name: Require modern macOS SDK for native window controls
+        if: runner.os == 'macOS'
+        run: |
+          set -euo pipefail
+          SDK_VERSION="$(xcrun --sdk macosx --show-sdk-version)"
+          if [[ "${SDK_VERSION%%.*}" -lt 26 ]]; then
+            echo "::error::macOS SDK 26+ is required for correctly sized and aligned native window buttons (found $SDK_VERSION)."
+            exit 1
+          fi
+          echo "Building with macOS SDK $SDK_VERSION"
+
       - name: Setup Node.js
         uses: actions/setup-node@v6
         with:
@@ -104,7 +112,7 @@ jobs:
           cache: 'npm'
 
       # Pinned to 1.93 — see comment in ci.yml. Keep both files in
-       # lockstep so a deliberate bump touches both.
+      # lockstep so a deliberate bump touches both.
       - name: Install Rust 1.93 (pinned)
         uses: dtolnay/rust-toolchain@1.93
         with:
@@ -154,6 +162,17 @@ jobs:
           releaseId: ${{ needs.create-release.outputs.release_id }}
           tauriScript: ${{ steps.tauri-cli.outputs.script }}
           args: ${{ matrix.args }}
+
+      - name: Verify packaged macOS SDK
+        if: runner.os == 'macOS'
+        env:
+          RUST_TARGET: ${{ matrix.rust-target }}
+        run: |
+          set -euo pipefail
+          APP="src-tauri/target/$RUST_TARGET/release/bundle/macos/EchoBird.app"
+          SDK_VERSION="$(xcrun vtool -show-build "$APP/Contents/MacOS/echobird" | awk '$1 == "sdk" { print $2; exit }')"
+          test -n "$SDK_VERSION"
+          test "${SDK_VERSION%%.*}" -ge 26
 
   rename-assets:
     # Tauri's bundler uses inconsistent filenames (no platform label, RPM "-1"
