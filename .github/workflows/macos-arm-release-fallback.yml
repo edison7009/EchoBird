@@ -80,8 +80,19 @@ jobs:
           tauriScript: ${{ steps.tauri-cli.outputs.script }}
           args: '--target aarch64-apple-darwin --bundles dmg'
 
-      - name: Verify ARM executable architecture
+      - name: Verify ARM package upload
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          TAG: ${{ inputs.tag }}
         run: |
           set -euo pipefail
-          APP=src-tauri/target/aarch64-apple-darwin/release/bundle/macos/EchoBird.app
-          test "$(lipo -archs "$APP/Contents/MacOS/echobird")" = arm64
+          NAME="EchoBird_$(node -p "require('./package.json').version")_aarch64.dmg"
+          URL="$(gh release view "$TAG" --repo "$REPO" --json assets --jq ".assets[] | select(.name == \"$NAME\") | .browser_download_url")"
+          test -n "$URL"
+          TMP="$(mktemp -d)"
+          curl --fail --location --output "$TMP/EchoBird.dmg" "$URL"
+          hdiutil attach -readonly -nobrowse -mountpoint "$TMP/mount" "$TMP/EchoBird.dmg"
+          trap 'hdiutil detach "$TMP/mount" >/dev/null 2>&1 || true; rm -rf "$TMP"' EXIT
+          APP="$TMP/mount/EchoBird.app"
+          test "$(/usr/bin/lipo -archs "$APP/Contents/MacOS/echobird")" = arm64
