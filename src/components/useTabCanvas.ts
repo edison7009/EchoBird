@@ -1,12 +1,15 @@
 import type { MutableRefObject } from 'react';
 import type { ViewModeTabPosition } from './ViewModeTabGroup';
 import { paintTabCanvas } from './tabCanvas';
+import { requestFlowFrame, cancelFlowFrame } from './flowFrames';
 
 // Returns one owner for the canvas, observers, animation and layout restoration.
 export function mountTabCanvas(
   group: HTMLDivElement,
-  remembered?: MutableRefObject<ViewModeTabPosition | null>
+  remembered?: MutableRefObject<ViewModeTabPosition | null>,
+  independent = false
 ) {
+  const selector = independent ? '.capability-toggle' : '.view-mode-tab';
   const canvas = document.createElement('canvas');
   canvas.className = 'view-mode-canvas';
   canvas.setAttribute('aria-hidden', 'true');
@@ -32,6 +35,7 @@ export function mountTabCanvas(
   let disposed = false;
   let from: ViewModeTabPosition | null = null;
   let target: ViewModeTabPosition | null = null;
+  let regions: ViewModeTabPosition[] = [];
   let current: ViewModeTabPosition | null = null;
   let started = 0;
   let width = 0;
@@ -47,14 +51,18 @@ export function mountTabCanvas(
     palette.wave = theme.color;
     palette.border = bordered ? getComputedStyle(group).borderTopColor : 'transparent';
   };
-  const visible = () => !document.hidden && width > 0 && height > 0 && target !== null;
+  const visible = () =>
+    !document.hidden &&
+    width > 0 &&
+    height > 0 &&
+    (independent ? regions.length > 0 : target !== null);
   const paint = (now: number) => {
     frame = 0;
-    if (disposed || !visible() || !target) return;
+    if (disposed || !visible()) return;
     const progress = motion.matches ? 1 : Math.min(1, (now - started) / 220);
     const ease = 1 - (1 - progress) ** 3;
-    current = { ...target };
-    if (from && progress < 1) {
+    if (target) current = { ...target };
+    if (!independent && from && current && target && progress < 1) {
       for (const key of ['x', 'y', 'width', 'height'] as const)
         current[key] = from[key] + (target[key] - from[key]) * ease;
     }
@@ -63,27 +71,47 @@ export function mountTabCanvas(
       width,
       height,
       devicePixelRatio || 1,
-      current,
+      independent ? regions : current!,
       palette,
       motion.matches ? 0 : (now % 3000) / 3000
     );
-    if (!motion.matches) frame = requestAnimationFrame(paint);
+    if (!motion.matches) frame = requestFlowFrame(paint);
   };
   const requestPaint = () => {
-    if (!frame && !disposed && visible()) frame = requestAnimationFrame(paint);
+    if (!frame && !disposed && visible()) frame = requestFlowFrame(paint);
   };
   const update = () => {
     const selected = group.querySelector<HTMLElement>(
-      '.view-mode-tab[aria-pressed="true"], .view-mode-tab[aria-selected="true"]'
+      `${selector}[aria-pressed="true"], ${selector}[aria-selected="true"]`
     );
     canvas.style.left = `${group.scrollLeft}px`;
     canvas.style.top = `${group.scrollTop}px`;
     const bounds = group.getBoundingClientRect();
     width = bounds.width;
     height = bounds.height;
+    if (independent) {
+      regions = Array.from(group.querySelectorAll<HTMLElement>(`${selector}[aria-pressed="true"]`))
+        .filter((button) => button.offsetWidth && button.offsetHeight)
+        .map((button) => {
+          const rect = button.getBoundingClientRect();
+          return {
+            x: rect.left - bounds.left,
+            y: rect.top - bounds.top,
+            width: rect.width,
+            height: rect.height,
+          };
+        });
+      readColors();
+      if (!visible()) {
+        if (frame) cancelFlowFrame(frame);
+        frame = 0;
+        canvas.getContext('2d')?.clearRect(0, 0, canvas.width, canvas.height);
+      } else requestPaint();
+      return;
+    }
     if (!selected || !selected.offsetWidth || !selected.offsetHeight || !width || !height) {
       target = null;
-      if (frame) cancelAnimationFrame(frame);
+      if (frame) cancelFlowFrame(frame);
       frame = 0;
       canvas.getContext('2d')?.clearRect(0, 0, canvas.width, canvas.height);
       return;
@@ -123,10 +151,11 @@ export function mountTabCanvas(
   };
   const resize = new ResizeObserver(update);
   resize.observe(group);
-  group.querySelectorAll('.view-mode-tab').forEach((tab) => resize.observe(tab));
+  group.querySelectorAll(selector).forEach((tab) => resize.observe(tab));
   const attributes = new MutationObserver(update);
   attributes.observe(group, {
     subtree: true,
+    childList: independent,
     attributes: true,
     attributeFilter: ['aria-pressed', 'aria-selected'],
   });
@@ -144,7 +173,7 @@ export function mountTabCanvas(
   update();
   return () => {
     disposed = true;
-    if (frame) cancelAnimationFrame(frame);
+    if (frame) cancelFlowFrame(frame);
     resize.disconnect();
     attributes.disconnect();
     theme.disconnect();

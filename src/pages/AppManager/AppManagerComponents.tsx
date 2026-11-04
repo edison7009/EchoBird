@@ -1401,9 +1401,7 @@ export const AppManagerBottom: React.FC = () => {
   return (
     <div className="flex-shrink-0 flex flex-col mt-2">
       <div className="mx-2 border-t border-cyber-border"></div>
-      <div
-        className={`flex items-center justify-end gap-8 px-6 pt-5 ${showUninstallHint ? 'pb-4' : 'pb-1'}`}
-      >
+      <div className="flex items-center justify-end gap-8 px-6 pt-5 pb-1">
         {/* Page-aware hint copy: direct Responses clients get a compatibility
             reminder; Claude proxy clients get the keep-running reminder. */}
         <PageAwareHint />
@@ -1448,7 +1446,7 @@ export const AppManagerBottom: React.FC = () => {
                   )
                 )
               }
-              className="absolute top-full left-1/2 -translate-x-1/2 mt-2 max-w-full whitespace-nowrap text-xs text-cyber-text-secondary hover:text-cyber-accent transition-colors"
+              className="absolute top-full left-1/2 -translate-x-1/2 mt-1 max-w-full whitespace-nowrap text-xs text-cyber-text-secondary hover:text-cyber-accent transition-colors"
             >
               {t('mother.hintUninstall').replace(
                 '{agent}',

@@ -425,6 +425,17 @@ html.is-macos .usage-island.usage-island-theme-auto {
   pointer-events: none;
   z-index: 0;
 }
+.capability-toggles[data-tab-renderer='canvas'] > .capability-toggle {
+  position: relative;
+  z-index: 1;
+}
+.capability-toggles[data-tab-renderer='canvas'] > .capability-toggle[aria-pressed='true'] {
+  background: transparent;
+  animation: none;
+}
+.capability-toggles[data-disabled='true'] > .view-mode-canvas {
+  opacity: 0.5;
+}
 .view-mode-canvas-colors {
   position: absolute;
   visibility: hidden;

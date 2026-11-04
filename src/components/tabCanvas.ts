@@ -33,7 +33,7 @@ export function paintTabCanvas(
   width: number,
   height: number,
   scale: number,
-  selection: ViewModeTabPosition,
+  selection: ViewModeTabPosition | ViewModeTabPosition[],
   palette: TabCanvasPalette,
   phase: number
 ) {
@@ -51,27 +51,36 @@ export function paintTabCanvas(
   context.clip();
   // The fill and outline share this bitmap and its pixel grid. There is no
   // separately rounded inner height or composited CSS background to line up.
-  context.fillStyle = palette.surface;
-  context.fillRect(selection.x, selection.y, selection.width, selection.height);
-  context.save();
-  context.beginPath();
-  context.rect(selection.x, selection.y, selection.width, selection.height);
-  context.clip();
-  for (const edge of [0, 1]) {
-    const x = selection.x + selection.width * ((phase + edge * 0.5) % 1);
-    const y = selection.y + selection.height * edge;
+  for (const region of Array.isArray(selection) ? selection : [selection]) {
     context.save();
-    context.translate(x, y);
-    context.scale(Math.max(1, selection.width), Math.max(1, selection.height));
-    const wave = context.createRadialGradient(0, 0, 0, 0, 0, 1);
-    wave.addColorStop(0, palette.wave);
-    wave.addColorStop(1, 'transparent');
-    context.globalAlpha = 0.38;
-    context.fillStyle = wave;
-    context.fillRect(-2, -2, 4, 4);
+    if (Array.isArray(selection)) {
+      context.beginPath();
+      roundedRect(context, region.x, region.y, region.width, region.height, region.height / 2);
+      context.clip();
+    }
+    context.fillStyle = palette.surface;
+    context.fillRect(region.x, region.y, region.width, region.height);
+    context.save();
+    context.beginPath();
+    context.rect(region.x, region.y, region.width, region.height);
+    context.clip();
+    for (const edge of [0, 1]) {
+      const x = region.x + region.width * ((phase + edge * 0.5) % 1);
+      const y = region.y + region.height * edge;
+      context.save();
+      context.translate(x, y);
+      context.scale(Math.max(1, region.width), Math.max(1, region.height));
+      const wave = context.createRadialGradient(0, 0, 0, 0, 0, 1);
+      wave.addColorStop(0, palette.wave);
+      wave.addColorStop(1, 'transparent');
+      context.globalAlpha = 0.38;
+      context.fillStyle = wave;
+      context.fillRect(-2, -2, 4, 4);
+      context.restore();
+    }
+    context.restore();
     context.restore();
   }
-  context.restore();
   if (palette.border !== 'transparent') {
     context.beginPath();
     roundedRect(

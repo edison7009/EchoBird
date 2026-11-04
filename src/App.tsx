@@ -408,7 +408,9 @@ function AppContent() {
                           <SidebarConnected onSettingsClick={() => setShowSettings(true)} />
 
                           {/* Main content wrapper — transparent against page bg, Claude-style */}
-                          <div className="min-w-0 flex-1 flex flex-col overflow-hidden">
+                          <div
+                            className={`min-w-0 flex-1 flex flex-col ${is('apps') ? 'overflow-visible' : 'overflow-hidden'}`}
+                          >
                             {/* Main + Right panel row */}
                             <RouterStatisticsProvider>
                               <ResizablePanels>

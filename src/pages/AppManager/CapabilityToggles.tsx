@@ -1,3 +1,6 @@
+import { useLayoutEffect, useRef } from 'react';
+import { IS_MACOS } from '../../utils/platform';
+import { mountTabCanvas } from '../../components/useTabCanvas';
 import { RoutingHint } from '../../components/RoutingToggle';
 
 export interface CapabilityToggle {
@@ -17,8 +20,16 @@ export function CapabilityToggles({
   disabled?: boolean;
 }) {
   const merged = toggles.length > 1;
+  const root = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    if (IS_MACOS && root.current) return mountTabCanvas(root.current, undefined, true);
+  }, []);
   return (
-    <div className="flex items-center gap-2 px-3">
+    <div
+      ref={root}
+      data-disabled={disabled}
+      className="capability-toggles relative isolate flex items-center gap-2 px-3"
+    >
       {toggles.map(({ label, checked, onChange }) => (
         <button
           key={label}
@@ -27,7 +38,7 @@ export function CapabilityToggles({
           aria-label={label}
           disabled={disabled}
           onClick={() => onChange(!checked)}
-          className={`view-mode-tab h-[24px] min-w-[44px] rounded-full px-[10px] text-xs font-medium whitespace-nowrap border outline-none transition-[color,background-color] focus-visible:ring-2 focus-visible:ring-cyber-accent disabled:opacity-50 ${
+          className={`capability-toggle ${IS_MACOS ? '' : 'view-mode-tab'} h-[24px] min-w-[44px] rounded-full px-[10px] text-xs font-medium whitespace-nowrap border outline-none transition-[color,background-color] focus-visible:ring-2 focus-visible:ring-cyber-accent disabled:opacity-50 ${
             checked
               ? 'border-transparent text-cyber-text'
               : 'border-cyber-border text-cyber-text-secondary enabled:hover:border-transparent enabled:hover:bg-cyber-elevated enabled:hover:text-cyber-text'

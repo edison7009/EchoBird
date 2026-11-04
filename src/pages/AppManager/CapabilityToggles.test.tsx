@@ -1,8 +1,19 @@
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import renderer, { act } from 'react-test-renderer';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { CapabilityToggles, type CapabilityToggle } from './CapabilityToggles';
+
+const platform = vi.hoisted(() => ({ IS_MACOS: false }));
+const canvas = vi.hoisted(() => ({ mount: vi.fn(), cleanup: vi.fn() }));
+vi.mock('../../utils/platform', () => platform);
+vi.mock('../../components/useTabCanvas', () => ({ mountTabCanvas: canvas.mount }));
+beforeEach(() => {
+  platform.IS_MACOS = false;
+  canvas.mount.mockClear();
+  canvas.cleanup.mockClear();
+  canvas.mount.mockReturnValue(canvas.cleanup);
+});
 
 vi.mock('react-dom', async (importOriginal) => ({
   ...(await importOriginal<typeof import('react-dom')>()),
@@ -74,4 +85,20 @@ describe('CapabilityToggles', () => {
     expect(glyphs(markup)).toHaveLength(1);
     expect(markup).toContain('aria-label="search hint"');
   });
+});
+
+it('uses one macOS canvas for multiple independent checked capabilities', () => {
+  platform.IS_MACOS = true;
+  const root = {};
+  const tree = renderer.create(
+    <CapabilityToggles toggles={toggles().map((toggle) => ({ ...toggle, checked: true }))} />,
+    { createNodeMock: (node) => (node.type === 'div' ? root : null) }
+  );
+  expect(canvas.mount).toHaveBeenCalledOnce();
+  expect(canvas.mount).toHaveBeenCalledWith(root, undefined, true);
+  const buttons = tree.root.findAllByType('button');
+  expect(buttons.every((button) => button.props['aria-pressed'] === true)).toBe(true);
+  expect(buttons.every((button) => !button.props.className.includes('view-mode-tab'))).toBe(true);
+  act(() => tree.unmount());
+  expect(canvas.cleanup).toHaveBeenCalledOnce();
 });
