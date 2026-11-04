@@ -28,6 +28,25 @@ fn cbc_key(password: &[u8], iterations: u32) -> [u8; 16] {
     key
 }
 
+#[cfg(any(target_os = "macos", test))]
+fn macos_password(
+    name: &str,
+    mut query: impl FnMut(&str, &str) -> Result<Option<String>, String>,
+) -> Result<String, String> {
+    let service = format!("{name} Safe Storage");
+    for account in [name.to_owned(), format!("{name} Key")] {
+        if let Some(password) = query(&service, &account)? {
+            let password = password.trim_end_matches(['\r', '\n']);
+            return if password.is_empty() {
+                Err("accountError.keychain".into())
+            } else {
+                Ok(password.to_owned())
+            };
+        }
+    }
+    Err("accountError.keychain".into())
+}
+
 pub(super) fn cipher(dir: &Path) -> Result<Cipher, String> {
     #[cfg(unix)]
     let name = dir
@@ -91,25 +110,21 @@ pub(super) fn cipher_with_name(dir: &Path, name: &str) -> Result<Cipher, String>
     #[cfg(target_os = "macos")]
     {
         let _ = dir;
-        let output = crate::utils::process::command("/usr/bin/security")
-            .args([
-                "find-generic-password",
-                "-s",
-                &format!("{name} Safe Storage"),
-                "-a",
-                name,
-                "-w",
-            ])
-            .output()
-            .map_err(|_| "accountError.keychain")?;
-        if !output.status.success() {
-            return Err("accountError.keychain".into());
-        }
-        let password = String::from_utf8(output.stdout).map_err(|_| "accountError.keychain")?;
-        let password = password.trim_end_matches(['\r', '\n']);
-        if password.is_empty() {
-            return Err("accountError.keychain".into());
-        }
+        let password = macos_password(name, |service, account| {
+            let output = crate::utils::process::command("/usr/bin/security")
+                .args(["find-generic-password", "-s", service, "-a", account, "-w"])
+                .output()
+                .map_err(|_| "accountError.keychain")?;
+            // security returns 44 for errSecItemNotFound. Denied or locked
+            // keychains must stop here instead of triggering another prompt.
+            match output.status.code() {
+                Some(0) => String::from_utf8(output.stdout)
+                    .map(Some)
+                    .map_err(|_| "accountError.keychain".into()),
+                Some(44) => Ok(None),
+                _ => Err("accountError.keychain".into()),
+            }
+        })?;
         Ok(Cipher::Cbc {
             key: cbc_key(password.as_bytes(), 1003),
             prefix: *b"v10",
@@ -381,6 +396,36 @@ pub(super) fn test_ciphers() -> Vec<Cipher> {
 mod tests {
     use super::*;
 
+    #[test]
+    fn macos_keychain_lookup_keeps_service_and_supports_both_account_names() {
+        for expected in ["Claude", "Claude Key"] {
+            let mut accounts = Vec::new();
+            let password = macos_password("Claude", |service, account| {
+                assert_eq!(service, "Claude Safe Storage");
+                accounts.push(account.to_owned());
+                Ok((account == expected).then(|| "fixture-password\n".into()))
+            })
+            .unwrap();
+            assert_eq!(password, "fixture-password");
+            assert_eq!(accounts.last().unwrap(), expected);
+            assert_eq!(accounts.len(), if expected == "Claude" { 1 } else { 2 });
+        }
+    }
+
+    #[test]
+    fn macos_keychain_failure_never_falls_back_after_denial_or_empty_password() {
+        for result in [Err("accountError.keychain".into()), Ok(Some(String::new()))] {
+            let mut calls = 0;
+            assert!(macos_password("Claude", |_, _| {
+                calls += 1;
+                result.clone()
+            })
+            .is_err());
+            assert_eq!(calls, 1);
+        }
+        assert!(macos_password("Claude", |_, _| Ok(None)).is_err());
+    }
+
     #[cfg(unix)]
     #[test]
     #[ignore = "Requires the isolated native credential fixture configured by CI"]
@@ -389,14 +434,24 @@ mod tests {
             std::env::var("ECHOBIRD_NATIVE_CREDENTIAL_TEST").as_deref(),
             Ok("1")
         );
-        let key = cipher(Path::new("EchoBird Native Storage Test")).unwrap();
         let expected = if cfg!(target_os = "macos") {
             "djEwCTpDbc8erpLeOOa4QeXX3hTJLw1RJaPhtqn8lNRG/ug="
         } else {
             "djExfP9LPCqfuh6gHB6yEZQaljVJQLFbyL1I9lBu1VrKmpA="
         };
-        assert_eq!(decrypt(&key, expected).unwrap(), "native-token-中文");
-        assert_eq!(encrypt(&key, "native-token-中文").unwrap(), expected);
+        let names: &[&str] = if cfg!(target_os = "macos") {
+            &[
+                "EchoBird Native Storage Test",
+                "EchoBird Native Storage Alternate Test",
+            ]
+        } else {
+            &["EchoBird Native Storage Test"]
+        };
+        for name in names {
+            let key = cipher(Path::new(name)).unwrap();
+            assert_eq!(decrypt(&key, expected).unwrap(), "native-token-中文");
+            assert_eq!(encrypt(&key, "native-token-中文").unwrap(), expected);
+        }
     }
 
     #[test]

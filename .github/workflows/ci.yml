@@ -205,6 +205,7 @@ jobs:
           security unlock-keychain -p 'fixture-keychain-password' "$fixture_keychain"
           security list-keychains -d user -s "$fixture_keychain" "${original_keychains[@]}"
           security add-generic-password -s "$service" -a "$account" -w 'test-safe-storage-password' -T /usr/bin/security "$fixture_keychain"
+          security add-generic-password -s 'EchoBird Native Storage Alternate Test Safe Storage' -a 'EchoBird Native Storage Alternate Test Key' -w 'test-safe-storage-password' -T /usr/bin/security "$fixture_keychain"
           fixture_test='services::electron_storage::tests::reads_native_os_credential_fixture'
           "$ECHOBIRD_NATIVE_TEST_EXE" --list --ignored --exact "$fixture_test" | grep -Fx "$fixture_test: test"
           "$ECHOBIRD_NATIVE_TEST_EXE" --ignored --exact "$fixture_test"
