@@ -173,6 +173,15 @@ jobs:
           "$ECHOBIRD_NATIVE_TEST_EXE" --list --ignored --exact "$fixture_test" | grep -Fx "$fixture_test: test"
           "$ECHOBIRD_NATIVE_TEST_EXE" --ignored --exact "$fixture_test"
 
+      - name: Verify published account catalog installs
+        if: runner.os != 'Windows'
+        timeout-minutes: 10
+        shell: bash
+        run: |
+          fixture_test='services::plugin_manager::tests::plugin_live_community_account_packages_install_without_executing_code'
+          "$ECHOBIRD_NATIVE_TEST_EXE" --list --ignored --exact "$fixture_test" | grep -Fx "$fixture_test: test"
+          "$ECHOBIRD_NATIVE_TEST_EXE" --ignored --exact "$fixture_test"
+
       - name: Verify macOS native credential storage
         if: runner.os == 'macOS'
         timeout-minutes: 5

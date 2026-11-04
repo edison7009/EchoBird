@@ -587,12 +587,13 @@ async fn plugin_live_community_account_packages_install_without_executing_code()
             .preview(
                 "catalog",
                 &id,
-                "china",
+                "international",
                 tokio_util::sync::CancellationToken::new(),
             )
             .await
             .unwrap();
         assert!(candidate.manifest.echobird.contributes.pages.is_empty());
+        assert_eq!(candidate.manifest.echobird.manifest_version, 2);
         let plugins = fixture.manager.install(&candidate.token).unwrap();
         let plugin = plugins.iter().find(|plugin| plugin.id == id).unwrap();
         let root = fixture.manager.package_root(plugin).unwrap();
