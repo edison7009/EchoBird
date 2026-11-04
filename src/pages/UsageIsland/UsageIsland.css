@@ -188,10 +188,6 @@
   --usage-island-low: #a16207;
   --usage-island-critical: #c2312c;
 }
-/* The dark theme's text, icons and quota colors over a see-through black. */
-.usage-island-theme-translucent {
-  --usage-island-bg: rgb(0 0 0 / 0.3);
-}
 .usage-island-theme-auto {
   --usage-island-fg: rgb(var(--text-primary-rgb));
   --usage-island-track: color-mix(in srgb, currentColor 18%, transparent);

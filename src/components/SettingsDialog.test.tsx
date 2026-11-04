@@ -34,7 +34,11 @@ beforeEach(() => {
   mocks.get.mockResolvedValue({});
   mocks.save.mockResolvedValue(undefined);
   vi.stubGlobal('window', { addEventListener: vi.fn(), removeEventListener: vi.fn() });
-  vi.stubGlobal('document', { addEventListener: vi.fn(), removeEventListener: vi.fn() });
+  vi.stubGlobal('document', {
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+    documentElement: { style: { setProperty: vi.fn() } },
+  });
   vi.stubGlobal('localStorage', { getItem: vi.fn(), setItem: vi.fn() });
   useEasterEggStore.setState({ enabled: true });
   useRewardClaimStore.setState({ enabled: false });

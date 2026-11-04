@@ -111,6 +111,10 @@ export const useUiScaleStore = create<UiScaleStore>((set, get) => ({
             await getCurrentWebview().setZoom(scale);
             applied = true;
           }
+          // Native macOS traffic lights ignore WebView zoom; CSS counter-zooms the titlebar.
+          if (typeof document !== 'undefined') {
+            document.documentElement.style.setProperty('--ui-scale', String(scale));
+          }
           set({ preference: request.preference, scale, failed: false });
           if (request.persist && !queued) {
             // Startup restores the saved window as-is; explicit changes resize it once.

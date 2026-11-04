@@ -45,6 +45,7 @@ beforeEach(async () => {
   native.listen.mockResolvedValue(vi.fn());
   storage = { getItem: vi.fn().mockReturnValue(null), setItem: vi.fn() };
   vi.stubGlobal('localStorage', storage);
+  vi.stubGlobal('document', { documentElement: { style: { setProperty: vi.fn() } } });
   native.monitor.mockResolvedValue(monitor(1920, 1040));
   native.zoom.mockResolvedValue(undefined);
   native.moved.mockResolvedValue(vi.fn());
@@ -63,6 +64,20 @@ afterEach(() => {
 });
 
 describe('UI scale', () => {
+  it('keeps titlebar compensation at the last successfully applied zoom', async () => {
+    await module.useUiScaleStore.getState().setPreference(150, false);
+    expect(document.documentElement.style.setProperty).toHaveBeenLastCalledWith(
+      '--ui-scale',
+      '1.5'
+    );
+    native.zoom.mockRejectedValueOnce(new Error('zoom failed'));
+    await module.useUiScaleStore.getState().setPreference(80, false);
+    expect(document.documentElement.style.setProperty).toHaveBeenCalledTimes(1);
+    expect(module.useUiScaleStore.getState().scale).toBe(1.5);
+    await module.useUiScaleStore.getState().setPreference(100, false);
+    expect(document.documentElement.style.setProperty).toHaveBeenLastCalledWith('--ui-scale', '1');
+  });
+
   it('keeps the voice island out of the interface scale', async () => {
     native.monitor.mockResolvedValue(monitor(1366, 728));
     await module.initializeUiScale();

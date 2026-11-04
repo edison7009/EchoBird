@@ -14,6 +14,9 @@ import { ERROR_MESSAGES, pickErrorLang } from './components/errorMessages';
 import { initializeWindowVisibility } from './utils/windowVisibility';
 import { VoiceIsland } from './pages/VoiceInput/VoiceIsland';
 import { SelectionTranslation } from './pages/VoiceInput/SelectionTranslation';
+import { handleDesktopContextMenu } from './utils/desktopInteraction';
+
+document.addEventListener('contextmenu', handleDesktopContextMenu);
 const isVoiceIsland = getCurrentWindow().label === 'voice-island';
 const isVoiceTranslation = getCurrentWindow().label === 'voice-translation';
 const isUsageIsland = getCurrentWindow().label === 'usage-island';

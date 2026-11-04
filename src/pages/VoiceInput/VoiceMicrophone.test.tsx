@@ -1527,11 +1527,11 @@ describe('independent island appearance', () => {
           <IslandContent snapshot={voiceSnapshot({ config, phase: 'recording', level: 0.5 })} />
         );
       });
-      expect(renderer.root.findByType(VoiceFlow).props.theme).toBe('light');
-      system.change(true);
       expect(renderer.root.findByType(VoiceFlow).props.theme).toBe(
-        mode === 'system' ? 'dark' : 'light'
+        mode === 'system' ? 'light' : 'dark'
       );
+      system.change(true);
+      expect(renderer.root.findByType(VoiceFlow).props.theme).toBe('dark');
       expect(api.recordVoice).not.toHaveBeenCalled();
       expect(api.saveVoiceConfig).not.toHaveBeenCalled();
     }

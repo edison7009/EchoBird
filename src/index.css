@@ -346,6 +346,20 @@
     height 220ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
+/* Keep text on a stable compositing layer in WKWebView when the animated
+   highlight moves underneath it. Otherwise macOS can rerasterize the labels
+   with visibly different antialiasing at the start/end of a transition. */
+html.is-macos .view-mode-tab {
+  -webkit-backface-visibility: hidden;
+  transform: translateZ(0);
+}
+
+html.is-macos .view-mode-tabs[data-sliding='true']::before,
+html.is-macos .voice-island.voice-theme-auto,
+html.is-macos .usage-island.usage-island-theme-auto {
+  will-change: transform;
+}
+
 .settings-segment-tabs[data-sliding='true']::before {
   bottom: 0;
   height: auto;
@@ -709,7 +723,27 @@ html.window-maximized #root {
    shell would then double-round and leave opaque corner wedges, so drop it. The
    .is-macos class is set on <html> in main.tsx before the first paint. */
 html.is-macos #root {
+  border-radius: 0;
   clip-path: none;
+}
+
+/* Native traffic lights stay at 100% while the rest of the WebView scales. */
+html.is-macos .app-titlebar {
+  zoom: calc(1 / var(--ui-scale, 1));
+}
+
+/* Desktop chrome should not create a page-wide text selection on drag. */
+body {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+input,
+textarea,
+[contenteditable='true'],
+[contenteditable='plaintext-only'] {
+  -webkit-user-select: text;
+  user-select: text;
 }
 
 body {
@@ -1383,4 +1417,15 @@ textarea:-webkit-autofill:focus {
   background: rgba(239, 68, 68, 0.12);
   box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.12);
   color: #ef4444;
+}
+
+/* Both translucent modes use the dark surface at 15% opacity, regardless
+   of the app/system appearance. Keep legacy IDs for saved configurations. */
+.voice-island.voice-theme-iridescent,
+.usage-island.usage-island-theme-translucent {
+  --usage-island-fg: #ececec;
+  --usage-island-track: #3d3d3d;
+  color: #ececec;
+  background: rgb(32 32 32 / 0.15);
+  box-shadow: none;
 }

@@ -4,6 +4,7 @@ import {
   type ComponentPropsWithoutRef,
   type MutableRefObject,
 } from 'react';
+import { IS_MACOS } from '../utils/platform';
 
 export interface ViewModeTabPosition {
   x: number;
@@ -40,12 +41,24 @@ export function ViewModeTabGroup({
         return;
       }
       if (!selected.offsetWidth || !selected.offsetHeight) return;
-      const next = {
+      let next = {
         x: selected.offsetLeft,
         y: selected.offsetTop,
         width: selected.offsetWidth,
         height: selected.offsetHeight,
       };
+      if (IS_MACOS) {
+        // WebKit can lay tabs out on fractional CSS pixels. offset* rounds
+        // those values and can leave a seam beside the composited highlight.
+        const bounds = selected.getBoundingClientRect();
+        const parent = group.getBoundingClientRect();
+        next = {
+          x: bounds.left - parent.left - group.clientLeft,
+          y: bounds.top - parent.top - group.clientTop,
+          width: bounds.width,
+          height: bounds.height,
+        };
+      }
       const previous = positionRef?.current ?? localPosition.current;
       if (!group.dataset.sliding && previous) {
         place(previous);

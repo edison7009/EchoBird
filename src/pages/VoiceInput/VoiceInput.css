@@ -453,32 +453,6 @@
   background: #faf9f6;
   color: #292929;
 }
-.voice-theme-iridescent {
-  position: relative;
-  isolation: isolate;
-  background: #ff7f7f;
-  color: #000;
-}
-.voice-theme-iridescent::before {
-  content: '';
-  position: absolute;
-  z-index: -1;
-  inset: 0;
-  border-radius: inherit;
-  pointer-events: none;
-  background: linear-gradient(45deg, #ff7f7f, #ffbf7f, #ffff7f, #7fff7f, #7fffff, #7f7fff);
-  background-size: 400% 400%;
-  animation: voice-iridescent-flow 8s linear infinite;
-}
-@keyframes voice-iridescent-flow {
-  0%,
-  100% {
-    background-position: 0% 50%;
-  }
-  50% {
-    background-position: 100% 50%;
-  }
-}
 .voice-island-control {
   display: flex;
   align-items: center;
@@ -817,9 +791,6 @@ html.voice-translation-window,
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  .voice-theme-iridescent::before {
-    animation: none;
-  }
   .voice-translation-card {
     animation: none;
   }

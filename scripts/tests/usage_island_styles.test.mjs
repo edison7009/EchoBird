@@ -32,9 +32,15 @@ test('tints the empty ring and bar with the quota color, like the account quota 
     assert.ok(rule(selector).includes('var(--usage-track, var(--usage-island-track))'), selector);
 });
 
-test('keeps the dark text and quota colors on the translucent theme', () => {
-  assert.equal(
-    rule('.usage-island-theme-translucent'),
-    '.usage-island-theme-translucent {\n  --usage-island-bg: rgb(0 0 0 / 0.3);\n'
-  );
+test('shares a 15% dark surface without glass filters or edge layers', () => {
+  const shared = readFileSync(new URL('../../src/index.css', import.meta.url), 'utf8');
+  const start = shared.indexOf('/* Both translucent modes');
+  assert.ok(start >= 0);
+  const material = shared.slice(start);
+  assert.match(material, /background: rgb\(32 32 32 \/ 0.15\)/);
+  assert.match(material, /color: #ececec/);
+  assert.match(material, /box-shadow: none/);
+  assert.ok(!material.includes('backdrop-filter'));
+  assert.ok(!material.includes('::before'));
+  assert.ok(!material.includes('::after'));
 });

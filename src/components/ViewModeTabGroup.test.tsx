@@ -2,12 +2,16 @@ import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { ViewModeTabGroup, type ViewModeTabPosition } from './ViewModeTabGroup';
 
+const platform = vi.hoisted(() => ({ IS_MACOS: false }));
+vi.mock('../utils/platform', () => platform);
+
 let renderer: ReactTestRenderer;
 let selected: {
   offsetLeft: number;
   offsetTop: number;
   offsetWidth: number;
   offsetHeight: number;
+  getBoundingClientRect?: () => { left: number; top: number; width: number; height: number };
 } | null;
 let root: ReturnType<typeof makeRoot>;
 let observers: {
@@ -20,11 +24,13 @@ function makeRoot() {
   const values = new Map<string, string>();
   return {
     values,
+    clientLeft: 1,
+    clientTop: 1,
     dataset: {} as Record<string, string>,
     style: { setProperty: (key: string, value: string) => values.set(key, value) },
     querySelector: () => selected,
     querySelectorAll: () => (selected ? [selected] : []),
-    getBoundingClientRect: vi.fn(() => Object.fromEntries(values)),
+    getBoundingClientRect: vi.fn((): Record<string, string | number> => Object.fromEntries(values)),
   };
 }
 function render(positionRef?: { current: ViewModeTabPosition | null }) {
@@ -45,6 +51,7 @@ function render(positionRef?: { current: ViewModeTabPosition | null }) {
   });
 }
 beforeEach(() => {
+  platform.IS_MACOS = false;
   selected = { offsetLeft: 0, offsetTop: 0, offsetWidth: 32, offsetHeight: 30 };
   root = makeRoot();
   observers = [];
@@ -130,4 +137,24 @@ it('retains the ordinary selected-button fallback until a visible selection can 
   selected = null;
   render();
   expect(root.dataset.sliding).toBeUndefined();
+});
+
+it('keeps fractional macOS highlight geometry flush with the selected tab inside the border', () => {
+  platform.IS_MACOS = true;
+  root.getBoundingClientRect.mockReturnValue({ left: 100.25, top: 20.5 });
+  selected = {
+    offsetLeft: 59,
+    offsetTop: 0,
+    offsetWidth: 66,
+    offsetHeight: 34,
+    getBoundingClientRect: () => ({ left: 160.75, top: 21.5, width: 66.375, height: 34.25 }),
+  };
+  render();
+  expect(Object.fromEntries(root.values)).toEqual({
+    '--view-mode-x': '59.5px',
+    '--view-mode-y': '0px',
+    '--view-mode-width': '66.375px',
+    '--view-mode-height': '34.25px',
+  });
+  expect(onSelect).not.toHaveBeenCalled();
 });
