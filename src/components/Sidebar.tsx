@@ -154,7 +154,7 @@ export const Sidebar = ({
       id="app-sidebar"
       ref={sidebarRef}
       data-collapsed={collapsed}
-      className={`relative flex shrink-0 flex-col pb-5 transition-[width,padding,margin] duration-200 ease-out motion-reduce:transition-none ${collapsed ? 'w-16 -ml-4 px-2' : 'w-64 px-6'}`}
+      className={`relative flex shrink-0 flex-col pb-1 transition-[width,padding,margin] duration-200 ease-out motion-reduce:transition-none ${collapsed ? 'w-16 -ml-4 px-2' : 'w-64 px-6'}`}
     >
       <div
         className={`mb-7 flex-shrink-0 flex items-center ${collapsed ? 'relative justify-center' : 'gap-2 overflow-hidden'}`}

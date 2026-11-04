@@ -15,6 +15,7 @@ interface ModelListCardProps {
   selectionDisabled?: boolean;
   selected?: boolean;
   disabled?: boolean;
+  compact?: boolean;
   subtitle?: string;
   badge?: ReactNode;
   secondaryBadge?: ReactNode;
@@ -34,6 +35,7 @@ export function ModelListCard({
   selectionDisabled = false,
   selected = false,
   disabled = false,
+  compact = false,
   subtitle = model.modelId || '',
   badge,
   secondaryBadge,
@@ -52,7 +54,7 @@ export function ModelListCard({
   return (
     <div
       aria-disabled={disabled || undefined}
-      className={`relative overflow-hidden p-[11px] rounded-card transition-colors flex items-center gap-3 border-2 ${
+      className={`relative overflow-hidden ${compact ? 'h-12 px-[11px] py-1' : 'p-[11px]'} rounded-card transition-colors flex items-center gap-3 border-2 ${
         disabled ? 'opacity-50' : ''
       } ${selected ? 'border-cyber-accent/70 bg-cyber-accent/10' : 'border-transparent bg-cyber-surface/60 hover:bg-cyber-elevated/70'}`}
     >
@@ -88,7 +90,9 @@ export function ModelListCard({
           </div>
         )}
       </div>
-      <div className="relative z-10 pointer-events-none flex-1 min-w-0 flex flex-col justify-center min-h-[2.5rem] py-0.5">
+      <div
+        className={`relative z-10 pointer-events-none flex-1 min-w-0 ${compact ? 'grid grid-cols-[minmax(0,1fr)] auto-rows-[16px] items-center' : 'flex flex-col justify-center min-h-[2.5rem] py-0.5'}`}
+      >
         <div className="flex items-center gap-2">
           <div className="text-sm font-bold truncate leading-none flex-1 min-w-0">
             {model.name || 'Untitled Model'}
@@ -96,7 +100,9 @@ export function ModelListCard({
           {!isLocalModel && usage && <ModelQuotaSummary usage={usage} t={t} />}
           {badge}
         </div>
-        <div className="flex items-center gap-2 mt-1 text-[10px] leading-tight">
+        <div
+          className={`flex items-center gap-2 ${compact ? 'h-[16px]' : 'mt-1'} text-[10px] leading-tight`}
+        >
           <span className="flex-1 min-w-0 truncate text-cyber-text-secondary/70">{subtitle}</span>
           {secondaryBadge}
           {!isLocalModel && (onRefreshUsage || (canManage && (onDeleteModel || onEditModel))) && (

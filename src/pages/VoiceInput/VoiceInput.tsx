@@ -720,6 +720,7 @@ export function VoiceInputPanel() {
               )
               .map((model) => (
                 <ModelListCard
+                  compact
                   key={model.internalId}
                   model={model}
                   t={t}

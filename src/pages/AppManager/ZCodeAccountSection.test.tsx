@@ -77,10 +77,10 @@ describe('ZCode account section', () => {
       expect(markup.match(new RegExp(`"${expectedPlan}"`, 'g'))).toHaveLength(1);
       if (plan === 'Trial' || plan === 'Free' || plan === 'No Plan') {
         expect(markup).not.toContain('30d0h');
-        expect(markup).toContain('grid-cols-[16px_minmax(0,1fr)_44px]');
+        expect(markup).toContain('grid-cols-[minmax(0,1fr)_44px]');
       } else {
         expect(markup).toContain('30d0h');
-        expect(markup).toContain('grid-cols-[16px_minmax(0,1fr)_100px]');
+        expect(markup).toContain('grid-cols-[minmax(0,1fr)_100px]');
       }
       expect(markup).toContain('(5h0m)');
       expect(markup).toContain('(7d0h)');

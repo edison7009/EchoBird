@@ -270,7 +270,7 @@ describe('TRAE account rows', () => {
       const expired = fixture([
         { ...saved, edition, subscriptionEndAt: Date.now() / 1000 - 1 },
       ]).html();
-      expect(expired).not.toContain('grid-cols-[16px_minmax(0,1fr)_100px]');
+      expect(expired).not.toContain('grid-cols-[minmax(0,1fr)_100px]');
       expect(expired).not.toContain('w-[calc(100%+40px)]');
     }
   });

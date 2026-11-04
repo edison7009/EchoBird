@@ -224,7 +224,7 @@ function UsageSourceRow({
 }) {
   return (
     <div
-      className={`relative overflow-hidden p-[11px] rounded-card transition-colors flex items-center gap-3 border-2 ${
+      className={`relative overflow-hidden h-12 shrink-0 px-[11px] py-1 rounded-card transition-colors flex items-center gap-3 border-2 ${
         selected
           ? 'border-cyber-accent/70 bg-cyber-accent/10'
           : 'border-transparent bg-cyber-surface/60 hover:bg-cyber-elevated/70'
@@ -252,7 +252,7 @@ function UsageSourceRow({
           <Box size={22} className="text-cyber-text" />
         )}
       </div>
-      <div className="relative z-10 pointer-events-none flex-1 min-w-0 flex flex-col justify-center min-h-[2.5rem] py-0.5">
+      <div className="relative z-10 pointer-events-none flex-1 min-w-0 grid grid-cols-[minmax(0,1fr)] auto-rows-[16px] items-center">
         <div className="flex items-center gap-2">
           <div className="text-sm font-bold truncate leading-none flex-1 min-w-0">{name}</div>
           {value && (
@@ -261,7 +261,7 @@ function UsageSourceRow({
             </span>
           )}
         </div>
-        <div className="mt-1 text-[10px] leading-tight truncate text-cyber-text-secondary/70">
+        <div className="text-[10px] leading-tight truncate text-cyber-text-secondary/70">
           {detail}
         </div>
       </div>
@@ -334,7 +334,7 @@ export function UsageIslandPanel() {
           />
         ))}
         {!rows.length && !missing.length && (
-          <div className="flex min-h-16 items-center justify-center rounded bg-cyber-surface/60 text-xs text-cyber-text-muted">
+          <div className="flex h-12 items-center justify-center rounded-card bg-cyber-surface/60 text-xs text-cyber-text-muted">
             {t(tab === 'account' ? 'accountCenter.empty' : 'usageIsland.noModels')}
           </div>
         )}

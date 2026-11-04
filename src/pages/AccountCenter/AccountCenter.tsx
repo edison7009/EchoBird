@@ -585,7 +585,7 @@ export function AccountCenterPanel() {
           </span>
           <span className="flex-1 h-px bg-cyber-border/60" />
         </h3>
-        <div className="flex min-h-16 items-center justify-center rounded bg-cyber-surface/60 text-xs text-cyber-text-muted">
+        <div className="flex h-12 items-center justify-center rounded-card bg-cyber-surface/60 text-xs text-cyber-text-muted">
           {t('accountCenter.noSubscriptionProviders')}
         </div>
       </section>

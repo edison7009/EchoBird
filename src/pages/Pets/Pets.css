@@ -158,11 +158,11 @@
   align-items: center;
   gap: 12px;
   width: 100%;
-  min-height: 70px;
+  height: 3rem;
   flex-shrink: 0;
   border: 2px solid transparent;
   border-radius: 8px;
-  padding: 9px 11px;
+  padding: 3px 11px;
   text-align: left;
   background: rgb(var(--bg-surface-rgb) / 0.6);
   color: rgb(var(--text-primary-rgb));
@@ -179,33 +179,41 @@
 }
 .pets-thumbnail {
   display: flex;
-  width: 40px;
-  height: 40px;
+  width: 1.5rem;
+  height: 1.5rem;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
   color: rgb(var(--text-secondary-rgb));
 }
-.pets-thumbnail img {
+.pets-thumbnail img,
+.pets-thumbnail > svg {
   width: 100%;
   height: 100%;
   object-fit: contain;
 }
 .pets-identity {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-auto-rows: 16px;
+  align-items: center;
   min-width: 0;
   flex: 1;
-  gap: 3px;
+  gap: 0;
 }
 .pets-identity strong {
   font-size: 14px;
+  line-height: 16px;
   font-weight: 600;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 .pets-identity small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  line-height: 16px;
   font-size: 12px;
   color: rgb(var(--text-muted-rgb));
 }

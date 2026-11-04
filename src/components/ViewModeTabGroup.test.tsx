@@ -2,6 +2,9 @@ import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { ViewModeTabGroup, type ViewModeTabPosition } from './ViewModeTabGroup';
 
+const canvas = vi.hoisted(() => ({ mount: vi.fn(), cleanup: vi.fn() }));
+vi.mock('./useTabCanvas', () => ({ mountTabCanvas: canvas.mount }));
+
 const platform = vi.hoisted(() => ({ IS_MACOS: false }));
 vi.mock('../utils/platform', () => platform);
 
@@ -52,6 +55,7 @@ function render(positionRef?: { current: ViewModeTabPosition | null }) {
 }
 beforeEach(() => {
   platform.IS_MACOS = false;
+  canvas.mount.mockReturnValue(canvas.cleanup);
   selected = { offsetLeft: 0, offsetTop: 0, offsetWidth: 32, offsetHeight: 30 };
   root = makeRoot();
   observers = [];
@@ -139,22 +143,15 @@ it('retains the ordinary selected-button fallback until a visible selection can 
   expect(root.dataset.sliding).toBeUndefined();
 });
 
-it('keeps fractional macOS highlight geometry flush with the selected tab inside the border', () => {
+it('delegates macOS paint to one canvas owner and releases it on exit', () => {
   platform.IS_MACOS = true;
-  root.getBoundingClientRect.mockReturnValue({ left: 100.25, top: 20.5 });
-  selected = {
-    offsetLeft: 59,
-    offsetTop: 0,
-    offsetWidth: 66,
-    offsetHeight: 34,
-    getBoundingClientRect: () => ({ left: 160.75, top: 21.5, width: 66.375, height: 34.25 }),
-  };
-  render();
-  expect(Object.fromEntries(root.values)).toEqual({
-    '--view-mode-x': '59.5px',
-    '--view-mode-y': '0px',
-    '--view-mode-width': '66.375px',
-    '--view-mode-height': '34.25px',
-  });
+  const positionRef = { current: null as ViewModeTabPosition | null };
+  render(positionRef);
+  expect(canvas.mount).toHaveBeenCalledWith(root, positionRef);
+  expect(root.dataset.sliding).toBeUndefined();
+  expect(observers).toHaveLength(0);
   expect(onSelect).not.toHaveBeenCalled();
+  act(() => renderer.unmount());
+  renderer = undefined as unknown as ReactTestRenderer;
+  expect(canvas.cleanup).toHaveBeenCalledOnce();
 });

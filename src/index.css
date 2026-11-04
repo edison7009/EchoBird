@@ -408,6 +408,42 @@ html.is-macos .usage-island.usage-island-theme-auto {
   animation: none;
 }
 
+.view-mode-tabs[data-tab-renderer='canvas'] > .view-mode-tab {
+  position: relative;
+  z-index: 1;
+  background: transparent !important;
+  animation: none;
+}
+.view-mode-tabs[data-tab-renderer='canvas']::before {
+  content: none;
+}
+.view-mode-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 0;
+}
+.view-mode-canvas-colors {
+  position: absolute;
+  visibility: hidden;
+  pointer-events: none;
+  background-color: color-mix(
+    in srgb,
+    rgb(var(--view-mode-accent-rgb)) 30%,
+    rgb(var(--bg-base-rgb))
+  );
+  color: rgb(var(--view-mode-wave-rgb));
+}
+:root[data-theme='light'] .view-mode-canvas-colors {
+  background-color: color-mix(
+    in srgb,
+    rgb(var(--bg-elevated-rgb)) 94%,
+    rgb(var(--view-mode-accent-rgb))
+  );
+}
+
 @keyframes view-mode-gradient-flow {
   from {
     background-position:
@@ -855,6 +891,13 @@ html.is-macos .page-scroll::-webkit-scrollbar {
   display: none;
   width: 0;
   height: 0;
+}
+
+/* Keep the navigation rail centered when height changes trigger overflow.
+   Modern WebKit's scrollbar-width takes precedence over the hidden pseudo
+   scrollbar above; a thin native gutter would shift only the scrolling icons. */
+html.is-macos #app-sidebar .page-scroll {
+  scrollbar-width: none;
 }
 
 /* Pure-white SVG logos invert in light mode so they read on the cream

@@ -674,6 +674,7 @@ export const ModelListSection: React.FC<ModelListSectionProps> = ({
 
     return (
       <ModelListCard
+        compact
         key={model.internalId}
         model={model}
         selected={isSelected}
@@ -749,7 +750,7 @@ export const ModelListSection: React.FC<ModelListSectionProps> = ({
 
     return (
       <div
-        className={`relative overflow-hidden p-[11px] rounded-card cursor-pointer transition-colors flex items-center gap-3 border-2 ${
+        className={`relative overflow-hidden h-12 px-[11px] py-1 rounded-card cursor-default transition-colors flex items-center gap-3 border-2 ${
           isOfficialPending
             ? 'border-cyber-accent/70 bg-cyber-accent/10'
             : 'bg-cyber-surface border-transparent hover:bg-cyber-elevated'
@@ -772,14 +773,14 @@ export const ModelListSection: React.FC<ModelListSectionProps> = ({
             </div>
           )}
         </div>
-        <div className="relative z-10 flex-1 min-w-0 flex flex-col justify-center min-h-[2.5rem] py-0.5">
+        <div className="relative z-10 flex-1 min-w-0 grid grid-cols-[minmax(0,1fr)] auto-rows-[16px] items-center">
           <div className="flex items-center gap-2">
             <div className="text-sm font-bold truncate leading-none flex-1 min-w-0">{ep.name}</div>
             <span className="text-xs font-mono text-cyber-text-secondary/60 flex-shrink-0 pointer-events-none select-none">
               {t('agent.restore')}
             </span>
           </div>
-          <div className="text-[10px] text-cyber-text-secondary truncate leading-tight mt-1 opacity-70">
+          <div className="text-[10px] text-cyber-text-secondary truncate leading-tight opacity-70">
             {apiPath}
           </div>
         </div>
@@ -1390,10 +1391,19 @@ export const AppManagerBottom: React.FC = () => {
     void handleLaunch();
   };
 
+  const showUninstallHint =
+    activePage === 'apps' &&
+    !isCatalogOnly &&
+    selectedToolData?.installed &&
+    !isInstallAction &&
+    !isBuiltInApp;
+
   return (
     <div className="flex-shrink-0 flex flex-col mt-2">
       <div className="mx-2 border-t border-cyber-border"></div>
-      <div className="flex items-center justify-end gap-8 px-6 py-5">
+      <div
+        className={`flex items-center justify-end gap-8 px-6 pt-5 ${showUninstallHint ? 'pb-4' : 'pb-1'}`}
+      >
         {/* Page-aware hint copy: direct Responses clients get a compatibility
             reminder; Claude proxy clients get the keep-running reminder. */}
         <PageAwareHint />
@@ -1427,29 +1437,25 @@ export const AppManagerBottom: React.FC = () => {
                   : t('btn.modifyOnly')}
             </button>
           )}
-          {activePage === 'apps' &&
-            !isCatalogOnly &&
-            selectedToolData?.installed &&
-            !isInstallAction &&
-            !isBuiltInApp && (
-              <button
-                type="button"
-                onClick={() =>
-                  goToMother(
-                    t('mother.hintUninstall').replace(
-                      '{agent}',
-                      toolDisplayName(selectedToolData, locale)
-                    )
+          {showUninstallHint && (
+            <button
+              type="button"
+              onClick={() =>
+                goToMother(
+                  t('mother.hintUninstall').replace(
+                    '{agent}',
+                    toolDisplayName(selectedToolData, locale)
                   )
-                }
-                className="absolute top-full left-1/2 -translate-x-1/2 mt-2 max-w-full whitespace-nowrap text-xs text-cyber-text-secondary hover:text-cyber-accent transition-colors"
-              >
-                {t('mother.hintUninstall').replace(
-                  '{agent}',
-                  toolDisplayName(selectedToolData, locale)
-                )}
-              </button>
-            )}
+                )
+              }
+              className="absolute top-full left-1/2 -translate-x-1/2 mt-2 max-w-full whitespace-nowrap text-xs text-cyber-text-secondary hover:text-cyber-accent transition-colors"
+            >
+              {t('mother.hintUninstall').replace(
+                '{agent}',
+                toolDisplayName(selectedToolData, locale)
+              )}
+            </button>
+          )}
         </div>
         {/* Reserve the controls' space while installing so the action stays aligned.
             Account selections only need the launch choice; apps without model

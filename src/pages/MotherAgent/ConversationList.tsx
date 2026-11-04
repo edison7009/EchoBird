@@ -37,7 +37,7 @@ export function ConversationList() {
         type="button"
         onClick={() => !isProcessing && createConversation()}
         disabled={isProcessing}
-        className="w-full h-9 px-3 text-[14px] font-semibold border border-cyber-border rounded-button transition-colors flex items-center justify-center gap-2 text-cyber-text-secondary hover:text-cyber-text hover:bg-cyber-elevated disabled:opacity-40"
+        className="w-full h-12 px-3 text-[14px] font-semibold border border-cyber-border rounded-card transition-colors flex items-center justify-center gap-2 text-cyber-text-secondary hover:text-cyber-text hover:bg-cyber-elevated disabled:opacity-40"
       >
         <Plus size={14} />
         {t('mother.newConversation')}
@@ -53,7 +53,7 @@ export function ConversationList() {
           return (
             <div
               key={conversation.id}
-              className={`relative w-full p-3 pr-9 rounded-card border-2 text-left transition-colors ${active ? 'border-cyber-accent/70 bg-cyber-accent/10' : 'border-transparent bg-cyber-surface/60 hover:bg-cyber-elevated/70'} ${isProcessing ? 'opacity-40' : ''}`}
+              className={`relative w-full h-12 shrink-0 px-[11px] py-1 pr-9 grid grid-cols-[minmax(0,1fr)] auto-rows-[16px] items-center rounded-card border-2 text-left transition-colors ${active ? 'border-cyber-accent/70 bg-cyber-accent/10' : 'border-transparent bg-cyber-surface/60 hover:bg-cyber-elevated/70'} ${isProcessing ? 'opacity-40' : ''}`}
             >
               <button
                 type="button"
@@ -63,10 +63,10 @@ export function ConversationList() {
                 aria-label={conversation.title || t('mother.newConversation')}
                 className="absolute inset-0 rounded-card focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-cyber-accent"
               />
-              <div className="relative pointer-events-none text-sm font-semibold text-cyber-text truncate">
+              <div className="relative pointer-events-none text-sm leading-[16px] font-semibold text-cyber-text truncate">
                 {conversation.title || t('mother.newConversation')}
               </div>
-              <div className="relative pointer-events-none mt-1 text-xs text-cyber-text-secondary truncate">
+              <div className="relative pointer-events-none leading-[16px] text-xs text-cyber-text-secondary truncate">
                 {t('mother.conversationMessageCount').replace('{count}', String(messageCount))}
                 {' · '}
                 {formatUpdatedTime(conversation.updatedAt)}

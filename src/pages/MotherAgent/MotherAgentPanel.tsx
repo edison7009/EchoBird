@@ -349,17 +349,17 @@ export function MotherAgentPanel() {
             {/* Local server — always first */}
             <div
               onClick={() => !isProcessing && selectServer('local')}
-              className={`p-[11px] rounded transition-colors select-none flex items-center border-2 ${isProcessing && selectedServerId !== 'local' ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'} ${
+              className={`h-12 shrink-0 px-[11px] py-1 rounded-card transition-colors select-none flex items-center border-2 ${isProcessing && selectedServerId !== 'local' ? 'opacity-40' : 'cursor-default'} ${
                 selectedServerId === 'local'
                   ? 'border-cyber-accent/70 bg-cyber-accent/10'
                   : 'border-transparent bg-cyber-surface/60 hover:bg-cyber-elevated/70'
               }`}
             >
-              <div className="flex-1 min-w-0">
-                <div className="text-xs text-cyber-text-secondary mb-0.5 tracking-widest uppercase font-mono">
+              <div className="flex-1 min-w-0 grid grid-cols-[minmax(0,1fr)] auto-rows-[16px] items-center">
+                <div className="text-xs text-cyber-text-secondary leading-[16px] tracking-widest uppercase font-mono">
                   {t('mother.local')}
                 </div>
-                <div className="text-sm font-bold truncate text-cyber-text font-mono">
+                <div className="text-sm leading-[16px] font-bold truncate text-cyber-text font-mono">
                   127.0.0.1
                 </div>
               </div>
@@ -369,14 +369,14 @@ export function MotherAgentPanel() {
               <div
                 key={server.id}
                 onClick={() => !isProcessing && selectServer(server.id)}
-                className={`p-[11px] rounded transition-colors select-none flex items-center border-2 ${isProcessing && selectedServerId !== server.id ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'} ${
+                className={`h-12 shrink-0 px-[11px] py-1 rounded-card transition-colors select-none flex items-center border-2 ${isProcessing && selectedServerId !== server.id ? 'opacity-40' : 'cursor-default'} ${
                   selectedServerId === server.id
                     ? 'border-cyber-accent/70 bg-cyber-accent/10'
                     : 'border-transparent bg-cyber-surface/60 hover:bg-cyber-elevated/70'
                 }`}
               >
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-1 mb-0.5">
+                <div className="flex-1 min-w-0 grid grid-cols-[minmax(0,1fr)] auto-rows-[16px] items-center">
+                  <div className="flex min-w-0 items-center gap-1 leading-[16px]">
                     <span className="text-xs text-cyber-text-secondary tracking-widest uppercase font-mono truncate flex-1 min-w-0">
                       {server.alias || t('mother.local')}
                     </span>
@@ -424,7 +424,7 @@ export function MotherAgentPanel() {
                       [{t('btn.edit')}]
                     </button>
                   </div>
-                  <div className="text-sm font-bold truncate text-cyber-text font-mono">
+                  <div className="text-sm leading-[16px] font-bold truncate text-cyber-text font-mono">
                     {server.username ? `${server.username}@` : ''}
                     {server.host}
                     {server.port !== '22' ? `:${server.port}` : ''}
@@ -446,7 +446,7 @@ export function MotherAgentPanel() {
                 setSSHTestResult(null);
                 setShowSSHModal(true);
               }}
-              className="w-full p-4 border border-dashed border-cyber-border/30 rounded hover:border-cyber-border/60 hover:bg-cyber-text/5 transition-all text-cyber-text/60 hover:text-cyber-text text-[14px] font-semibold"
+              className="w-full h-12 px-[11px] border border-dashed border-cyber-border/30 rounded-card hover:border-cyber-border/60 hover:bg-cyber-text/5 transition-all text-cyber-text/60 hover:text-cyber-text text-[14px] font-semibold"
             >
               + {t('mother.addServer')}
             </button>

@@ -45,7 +45,7 @@ export const AccountSectionButton: React.FC<{
   if (busy) {
     return (
       <div
-        className={`account-pill ${colorClassName} relative mb-2 flex h-12 w-full items-center justify-center rounded-full pl-3 pr-10`}
+        className={`account-pill ${colorClassName} relative mb-2 flex h-12 w-full items-center justify-center rounded-card pl-3 pr-10`}
       >
         <span className="pointer-events-none flex min-w-0 items-center gap-2.5 opacity-50">
           {iconSrc && <img src={iconSrc} alt="" className="h-6 w-6 flex-shrink-0" />}
@@ -77,14 +77,14 @@ export const AccountSectionButton: React.FC<{
   if (secondary) {
     return (
       <div
-        className={`account-pill ${colorClassName} relative mb-2 flex h-12 w-full items-center justify-center rounded-full px-3 transition-opacity ${disabled || busy ? 'opacity-50' : 'hover:opacity-90'}`}
+        className={`account-pill ${colorClassName} relative mb-2 flex h-12 w-full items-center justify-center rounded-card px-3 transition-opacity ${disabled || busy ? 'opacity-50' : 'hover:opacity-90'}`}
       >
         <button
           type="button"
           aria-label={label}
           onClick={onClick}
           disabled={disabled || busy}
-          className="absolute inset-0 rounded-full"
+          className="absolute inset-0 rounded-card"
         />
         <span className="pointer-events-none flex items-center gap-2.5">
           {iconSrc && <img src={iconSrc} alt="" className="h-6 w-6" />}
@@ -102,14 +102,14 @@ export const AccountSectionButton: React.FC<{
     // The "?" sits outside the click target, so reading it never starts the action.
     return (
       <div
-        className={`account-pill ${colorClassName} relative mb-2 flex h-12 w-full items-center justify-center rounded-full px-3 text-[17px] font-bold leading-6 transition-opacity ${disabled ? 'opacity-50' : 'hover:opacity-90'}`}
+        className={`account-pill ${colorClassName} relative mb-2 flex h-12 w-full items-center justify-center rounded-card px-3 text-[17px] font-bold leading-6 transition-opacity ${disabled ? 'opacity-50' : 'hover:opacity-90'}`}
       >
         <button
           type="button"
           aria-label={label}
           onClick={onClick}
           disabled={disabled}
-          className="absolute inset-0 rounded-full"
+          className="absolute inset-0 rounded-card"
         />
         <span className="pointer-events-none flex translate-y-px items-center gap-2.5">
           {iconSrc && <img src={iconSrc} alt="" className="h-6 w-6" />}
@@ -131,7 +131,7 @@ export const AccountSectionButton: React.FC<{
       type="button"
       onClick={onClick}
       disabled={disabled || busy}
-      className={`account-pill ${colorClassName} mb-2 flex h-12 w-full items-center justify-center rounded-full px-3 text-[17px] font-bold leading-6 transition-opacity hover:opacity-90 disabled:opacity-50`}
+      className={`account-pill ${colorClassName} mb-2 flex h-12 w-full items-center justify-center rounded-card px-3 text-[17px] font-bold leading-6 transition-opacity hover:opacity-90 disabled:opacity-50`}
     >
       <span className="flex translate-y-px items-center gap-2.5">
         {iconSrc && <img src={iconSrc} alt="" className="h-6 w-6" />}
@@ -284,11 +284,8 @@ export const AccountSectionRow: React.FC<{
           onSelect();
         }
       }}
-      className={`account-pill ${colorClassName} grid h-12 ${planPrefix ? 'grid-cols-[16px_minmax(0,1fr)_100px]' : widePlan ? 'grid-cols-[16px_minmax(0,1fr)_72px]' : leadingAction ? 'grid-cols-[16px_minmax(0,1fr)_60px]' : 'grid-cols-[16px_minmax(0,1fr)_44px]'} items-center gap-2 rounded-full border border-transparent px-3 transition-opacity hover:opacity-90`}
+      className={`account-pill ${colorClassName} grid h-12 ${planPrefix ? 'grid-cols-[minmax(0,1fr)_100px]' : widePlan ? 'grid-cols-[minmax(0,1fr)_72px]' : leadingAction ? 'grid-cols-[minmax(0,1fr)_60px]' : 'grid-cols-[minmax(0,1fr)_44px]'} items-center gap-2 rounded-card border-2 ${selected ? 'border-cyber-accent/70' : 'border-transparent'} px-3 transition-opacity hover:opacity-90`}
     >
-      <span className="flex h-[16px] w-[16px] items-center justify-center rounded-full border-2 border-cyber-bg">
-        {selected && <span className="h-[8px] w-[8px] rounded-full bg-cyber-bg" />}
-      </span>
       <span
         className={`grid min-w-0 ${singleLine ? 'grid-cols-[minmax(0,1fr)_auto] gap-2' : 'grid-cols-[minmax(0,1fr)] auto-rows-[16px]'} items-center`}
       >

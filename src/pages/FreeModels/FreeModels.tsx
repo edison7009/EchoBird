@@ -1657,19 +1657,21 @@ function FreeModelProviderRow({
   const openDocs = () => shellOpen(websiteUrl).catch(() => window.open(websiteUrl, '_blank'));
 
   return (
-    <div className="relative flex items-stretch rounded overflow-hidden bg-cyber-surface/60">
+    <div
+      className={`relative flex h-12 shrink-0 items-stretch rounded-card overflow-hidden border-2 ${selected ? 'border-cyber-accent/70 bg-cyber-accent/10' : 'border-transparent bg-cyber-surface/60'}`}
+    >
       <button
         type="button"
         onClick={onAdd}
         aria-label={`${t('freeModels.addToRouter')}: ${group.name}`}
         aria-pressed={selected}
-        className="group/left flex-1 min-h-[64px] bg-gradient-to-r from-transparent to-transparent hover:from-cyber-text/15 hover:to-transparent transition-[background-image] duration-200"
+        className="group/left flex-1 min-h-0 bg-gradient-to-r from-transparent to-transparent hover:from-cyber-text/15 hover:to-transparent transition-[background-image] duration-200"
       />
       <button
         type="button"
         onClick={openDocs}
         aria-label={`${t('freeModels.docs')}: ${group.name}`}
-        className="group/right flex-1 min-h-[64px] bg-gradient-to-l from-transparent to-transparent hover:from-cyber-text/15 hover:to-transparent transition-[background-image] duration-200"
+        className="group/right flex-1 min-h-0 bg-gradient-to-l from-transparent to-transparent hover:from-cyber-text/15 hover:to-transparent transition-[background-image] duration-200"
       />
 
       <div className="pointer-events-none absolute inset-0 flex items-center gap-3 px-3">
@@ -1702,12 +1704,12 @@ function FreeModelProviderRow({
             </div>
           )}
         </div>
-        <div className="flex-1 min-w-0 flex flex-col justify-center">
+        <div className="flex-1 min-w-0 grid grid-cols-[minmax(0,1fr)] auto-rows-[16px] items-center">
           <div className="flex min-w-0 items-center gap-2 text-sm font-bold leading-none">
             <span className="min-w-0 truncate">{group.name}</span>
             {keyless && <KeylessModelLabel />}
           </div>
-          <div className="text-[10px] text-cyber-text-secondary truncate leading-tight mt-1 opacity-70">
+          <div className="text-[10px] text-cyber-text-secondary truncate leading-tight opacity-70">
             {hostname}
           </div>
         </div>
@@ -1928,6 +1930,8 @@ export function FreeModelsPanel() {
                   const adding = addingId === model.internalId;
                   return (
                     <ModelListCard
+                      compact
+                      selected={selected}
                       key={model.internalId}
                       model={model}
                       onSelect={() => void addSavedModel(model)}

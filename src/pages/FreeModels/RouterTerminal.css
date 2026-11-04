@@ -54,6 +54,11 @@
   animation: none;
 }
 
+:root .router-terminal .view-mode-canvas-colors {
+  background-color: #020504;
+  color: transparent;
+}
+
 .router-terminal-protection {
   height: 44px;
   flex-shrink: 0;

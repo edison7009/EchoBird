@@ -727,7 +727,7 @@ describe('CodexAccountSection', () => {
         <CodexAccountSection showDivider={false} />
       </AppManagerContext.Provider>
     );
-    expect(markup).toContain('grid-cols-[16px_minmax(0,1fr)_72px]');
+    expect(markup).toContain('grid-cols-[minmax(0,1fr)_72px]');
     expect(markup).toContain('>Enterprise</span>');
   });
 });
