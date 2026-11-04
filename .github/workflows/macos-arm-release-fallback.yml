@@ -1,0 +1,87 @@
+name: macOS ARM Release Fallback
+
+# Use an Intel Mac when hosted Apple Silicon runners cannot acquire capacity.
+# Build the existing release tag; never replace its source or publish the draft.
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Existing draft release tag (for example v6.1.9)'
+        required: true
+        type: string
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: macos-15-intel
+    steps:
+      - name: Validate tag and resolve existing draft
+        id: draft
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          TAG: ${{ inputs.tag }}
+        run: |
+          set -euo pipefail
+          [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          ID=$(gh api --paginate "repos/${REPO}/releases" \
+            --jq ".[] | select(.tag_name == \"${TAG}\" and .draft == true) | .id")
+          test -n "$ID"
+          echo "release_id=$ID" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout release tag
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.tag }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install Rust 1.93
+        uses: dtolnay/rust-toolchain@1.93
+        with:
+          targets: aarch64-apple-darwin
+
+      - name: Rust cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: './src-tauri -> target'
+          key: macos-arm-fallback
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Verify Antigravity OAuth build credentials
+        env:
+          ANTIGRAVITY_OAUTH_CLIENT_ID: ${{ secrets.ANTIGRAVITY_OAUTH_CLIENT_ID }}
+          ANTIGRAVITY_OAUTH_CLIENT_SECRET: ${{ secrets.ANTIGRAVITY_OAUTH_CLIENT_SECRET }}
+        run: test -n "$ANTIGRAVITY_OAUTH_CLIENT_ID" && test -n "$ANTIGRAVITY_OAUTH_CLIENT_SECRET"
+
+      - name: Read the pinned Tauri CLI
+        id: tauri-cli
+        run: echo "script=$(node -p "require('./package.json').scripts.tauri")" >> "$GITHUB_OUTPUT"
+
+      - name: Build ARM app and upload to existing draft
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ANTIGRAVITY_OAUTH_CLIENT_ID: ${{ secrets.ANTIGRAVITY_OAUTH_CLIENT_ID }}
+          ANTIGRAVITY_OAUTH_CLIENT_SECRET: ${{ secrets.ANTIGRAVITY_OAUTH_CLIENT_SECRET }}
+        with:
+          releaseId: ${{ steps.draft.outputs.release_id }}
+          tauriScript: ${{ steps.tauri-cli.outputs.script }}
+          args: '--target aarch64-apple-darwin --bundles dmg'
+
+      - name: Verify ARM executable architecture
+        run: |
+          set -euo pipefail
+          APP=src-tauri/target/aarch64-apple-darwin/release/bundle/macos/EchoBird.app
+          test "$(lipo -archs "$APP/Contents/MacOS/echobird")" = arm64
