@@ -614,10 +614,10 @@ fn initial_window_state(
 ) -> WindowStateRecord {
     // Leave room around a first-run window, including native macOS decorations.
     // Sizes in tauri.conf.json are logical; work areas and saved state are physical.
-    let width = (1400.0 * scale_factor)
+    let width = (1150.0 * scale_factor)
         .min(f64::from(area.size.width) * 0.9)
         .max((960.0 * scale_factor).min(f64::from(area.size.width))) as u32;
-    let height = (900.0 * scale_factor)
+    let height = (790.0 * scale_factor)
         .min(f64::from(area.size.height) * 0.9)
         .max((600.0 * scale_factor).min(f64::from(area.size.height))) as u32;
     fit_window_state_to_work_area(
@@ -1592,16 +1592,16 @@ mod window_state_tests {
     #[test]
     fn first_window_keeps_default_size_on_a_large_display() {
         let initial = initial_window_state(&area(3840, 2080), 2.0);
-        assert_eq!((initial.width, initial.height), (2800, 1800));
-        assert_eq!((initial.x, initial.y), (520, 140));
+        assert_eq!((initial.width, initial.height), (2300, 1580));
+        assert_eq!((initial.x, initial.y), (770, 250));
         assert!(!initial.maximized);
     }
 
     #[test]
     fn first_window_fits_a_laptop_with_system_scaling() {
         let initial = initial_window_state(&area(1920, 1032), 1.5);
-        assert_eq!((initial.width, initial.height), (1728, 928));
-        assert_eq!((initial.x, initial.y), (96, 52));
+        assert_eq!((initial.width, initial.height), (1725, 928));
+        assert_eq!((initial.x, initial.y), (97, 52));
     }
 
     #[test]

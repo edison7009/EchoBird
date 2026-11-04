@@ -383,7 +383,7 @@
   transition: color 150ms ease;
 }
 
-.free-model-route-picker > div > button[aria-expanded] > span {
+.free-model-route-picker > div > button[aria-expanded] > span:first-child {
   flex: 1;
 }
 

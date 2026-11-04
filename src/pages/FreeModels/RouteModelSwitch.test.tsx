@@ -1176,6 +1176,7 @@ describe('Direct route card model selection', () => {
         modelId: 'hy3',
       });
       expect(savedModels[0].accountSource).toEqual(source);
+      expect(textOf(picker('hy3'))).toContain('model.free');
       expect(accountApi.getAccountProxyModels).toHaveBeenCalledExactlyOnceWith(source);
       expect(api.queryModelUsage).not.toHaveBeenCalled();
       expect(api.setSmartRouterCandidates).not.toHaveBeenCalled();

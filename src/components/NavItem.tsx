@@ -1,5 +1,6 @@
 // NavItem component
 import React from 'react';
+import { RoutingHint } from './RoutingToggle';
 
 export interface NavItemProps {
   id?: string;
@@ -29,7 +30,7 @@ export const NavItem = React.memo(
         : color === 'secondary' || color === 'blue'
           ? 'bg-cyber-elevated/75 text-cyber-text'
           : 'bg-cyber-elevated/75 text-cyber-text';
-    return (
+    const button = (
       <button
         id={id}
         type="button"
@@ -54,6 +55,13 @@ export const NavItem = React.memo(
           </span>
         )}
       </button>
+    );
+    return collapsed ? (
+      <RoutingHint hint={label} placement="right" navigation>
+        {button}
+      </RoutingHint>
+    ) : (
+      button
     );
   }
 );

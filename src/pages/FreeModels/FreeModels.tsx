@@ -376,6 +376,7 @@ function RouteModelCard({
     >
       <ModelIdCombobox
         compact
+        showSelectedFreeLabel
         selectOnly
         value={model.modelId}
         options={modelIdOptions}

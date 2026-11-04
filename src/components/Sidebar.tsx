@@ -16,7 +16,7 @@ import {
   Gauge,
 } from 'lucide-react';
 import { NavItem } from './NavItem';
-import { RoutingToggle } from './RoutingToggle';
+import { RoutingHint, RoutingToggle } from './RoutingToggle';
 import { useToast } from './Toast';
 import { useI18n } from '../hooks/useI18n';
 import type { TKey } from '../i18n';
@@ -77,20 +77,22 @@ function SidebarToggle({
 }) {
   if (collapsed)
     return (
-      <button
-        type="button"
-        role="switch"
-        aria-label={ariaLabel}
-        aria-checked={checked}
-        aria-busy={pending}
-        disabled={disabled || pending}
-        className={`mx-auto flex h-10 w-10 shrink-0 items-center justify-center rounded-lg transition-colors ${disabled ? 'disabled:opacity-40' : ''} ${checked ? 'bg-cyber-accent/15 text-cyber-accent' : 'text-cyber-text-secondary hover:bg-cyber-elevated/50 hover:text-cyber-text'}`}
-        onClick={() => {
-          if (!disabled && !pending) return onChange(!checked);
-        }}
-      >
-        {icon}
-      </button>
+      <RoutingHint hint={label} placement="right" navigation>
+        <button
+          type="button"
+          role="switch"
+          aria-label={ariaLabel}
+          aria-checked={checked}
+          aria-busy={pending}
+          disabled={disabled || pending}
+          className={`mx-auto flex h-10 w-10 shrink-0 items-center justify-center rounded-lg transition-colors ${disabled ? 'disabled:opacity-40' : ''} ${checked ? 'bg-cyber-accent/15 text-cyber-accent' : 'text-cyber-text-secondary hover:bg-cyber-elevated/50 hover:text-cyber-text'}`}
+          onClick={() => {
+            if (!disabled && !pending) return onChange(!checked);
+          }}
+        >
+          {icon}
+        </button>
+      </RoutingHint>
     );
   return (
     <div className="flex items-center justify-between gap-4 px-2 py-1">

@@ -1017,3 +1017,27 @@ it('keeps compact route choices usable for short and long IDs, within the viewpo
   update({ disabled: false });
   expect(menus()).toHaveLength(0);
 });
+
+it('retains the free badge after selection and clears it when switching to a paid model', () => {
+  mountControlled({
+    value: 'paid-model',
+    options: ['hy3', 'paid-model'],
+    freeModelIds: ['hy3'],
+    freeLabel: '免费',
+    showSelectedFreeLabel: true,
+  });
+  const badge = () =>
+    button('Route model').findAllByProps({
+      className: 'shrink-0 font-sans text-cyber-accent',
+    });
+  expect(badge()).toHaveLength(0);
+  act(() => button('Open from card').props.onClick());
+  act(() => options()[0].props.onMouseDown({ button: 0, preventDefault: vi.fn() }));
+  expect(props.onChange).toHaveBeenCalledExactlyOnceWith('hy3');
+  expect(badge()[0].children).toEqual(['免费']);
+  expect(menus()).toHaveLength(0);
+  act(() => button('Open from card').props.onClick());
+  act(() => options()[1].props.onMouseDown({ button: 0, preventDefault: vi.fn() }));
+  expect(props.onChange).toHaveBeenLastCalledWith('paid-model');
+  expect(badge()).toHaveLength(0);
+});

@@ -126,7 +126,12 @@ describe('Sidebar', () => {
     expect(baseProps.onPageChange).toHaveBeenCalledExactlyOnceWith('voice');
     act(() => useSidebarStore.getState().setCollapsed(false));
     expect(rail.props.className).toContain('w-64');
-    expect(items.every((item) => item.findByType('span').props.className !== 'sr-only')).toBe(true);
+    const expandedItems = renderer.root
+      .findAllByType('button')
+      .filter((button) => button.props['aria-label'] && button.props.role !== 'switch');
+    expect(
+      expandedItems.every((item) => item.findByType('span').props.className !== 'sr-only')
+    ).toBe(true);
     expect(voiceApi.saveVoiceConfig).not.toHaveBeenCalled();
   });
 

@@ -20,7 +20,7 @@ it.each([null, 'false', 'true'])(
   async (value) => {
     if (value !== null) saved.set(key, value);
     const { useSidebarStore } = await import('./sidebarStore');
-    expect(useSidebarStore.getState().collapsed).toBe(value === 'true');
+    expect(useSidebarStore.getState().collapsed).toBe(value !== 'false');
     expect(storage.setItem).not.toHaveBeenCalled();
   }
 );
@@ -52,7 +52,7 @@ it('keeps layout controls usable when local preferences are unavailable', async 
     throw new Error('unavailable');
   });
   const { useSidebarStore } = await import('./sidebarStore');
-  expect(useSidebarStore.getState().collapsed).toBe(false);
+  expect(useSidebarStore.getState().collapsed).toBe(true);
   expect(() => useSidebarStore.getState().setCollapsed(true)).not.toThrow();
   expect(useSidebarStore.getState().collapsed).toBe(true);
   useSidebarStore.getState().setCollapsed(false);

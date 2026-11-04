@@ -48,8 +48,12 @@ export function RoutingHint({
   hint,
   content,
   children,
+  placement = 'bottom',
+  navigation = false,
 }: {
   hint: string;
+  placement?: 'bottom' | 'right';
+  navigation?: boolean;
   content?: ReactNode;
   /** Shows the tooltip for this control instead of the "?" glyph. */
   children?: ReactNode;
@@ -67,6 +71,19 @@ export function RoutingHint({
       const anchor = anchorRef.current?.getBoundingClientRect();
       const tooltip = tooltipRef.current?.getBoundingClientRect();
       if (!anchor || !tooltip) return;
+      if (placement === 'right') {
+        setPosition({
+          left: Math.max(8, Math.min(anchor.right + 8, window.innerWidth - tooltip.width - 8)),
+          top: Math.max(
+            8,
+            Math.min(
+              anchor.top + (anchor.height - tooltip.height) / 2,
+              window.innerHeight - tooltip.height - 8
+            )
+          ),
+        });
+        return;
+      }
       const left = Math.max(
         8,
         Math.min(anchor.right - tooltip.width, window.innerWidth - tooltip.width - 8)
@@ -82,7 +99,7 @@ export function RoutingHint({
       window.removeEventListener('resize', place);
       window.removeEventListener('scroll', place, true);
     };
-  }, [open, hint]);
+  }, [open, hint, placement]);
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Clear any pending close timer on unmount so it can't fire after teardown.
@@ -108,7 +125,11 @@ export function RoutingHint({
   return (
     <span
       ref={anchorRef}
-      className="relative inline-flex items-center"
+      className={
+        navigation
+          ? 'relative flex items-center justify-center'
+          : 'relative inline-flex items-center'
+      }
       onMouseEnter={showTip}
       onMouseLeave={scheduleHide}
     >
@@ -135,7 +156,7 @@ export function RoutingHint({
               maxWidth: 'min(320px, calc(100vw - 16px))',
               maxHeight: 'calc(100vh - 16px)',
             }}
-            className="fixed z-[10000] rounded-md border border-cyber-border bg-cyber-elevated px-3 py-2 text-sm leading-relaxed text-cyber-text shadow-lg"
+            className={`fixed z-[10000] rounded-md border border-cyber-border bg-cyber-elevated px-3 py-2 ${navigation ? 'text-[15px] font-medium' : 'text-sm'} leading-relaxed text-cyber-text shadow-lg`}
           >
             <span className="block overflow-y-auto" style={{ maxHeight: 'calc(100vh - 34px)' }}>
               {content ?? hint}

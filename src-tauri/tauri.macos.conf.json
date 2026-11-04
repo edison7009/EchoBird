@@ -1,12 +1,15 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
+  "bundle": {
+    "icon": ["icons/icon-macos.png", "icons/icon-macos.icns"]
+  },
   "app": {
     "windows": [
       {
         "label": "main",
         "title": "EchoBird",
-        "width": 1400,
-        "height": 900,
+        "width": 1150,
+        "height": 790,
         "minWidth": 960,
         "minHeight": 600,
         "resizable": true,

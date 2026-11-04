@@ -18,6 +18,8 @@ interface ModelIdComboboxProps {
   paidModelIds?: readonly string[];
   inferFreeFromId?: boolean;
   freeLabel?: string;
+  /** Keep the selected free badge visible on compact route cards. */
+  showSelectedFreeLabel?: boolean;
   inlineActions?: boolean;
   actionHint?: string;
   disabled?: boolean;
@@ -71,6 +73,7 @@ export function ModelIdCombobox({
   paidModelIds,
   inferFreeFromId = true,
   freeLabel = 'Free',
+  showSelectedFreeLabel = false,
   inlineActions = false,
   actionHint,
   disabled = false,
@@ -341,6 +344,9 @@ export function ModelIdCombobox({
           className="inline-flex min-w-0 max-w-full items-center gap-1 text-left text-xs text-cyber-text-secondary hover:text-cyber-text disabled:opacity-50 focus-visible:outline focus-visible:outline-1 focus-visible:outline-cyber-accent"
         >
           <span className="min-w-0 truncate">{label(value) || placeholder}</span>
+          {showSelectedFreeLabel && freeIds.has(value) && (
+            <span className="shrink-0 font-sans text-cyber-accent">{freeLabel}</span>
+          )}
           <ChevronDown
             size={12}
             className={`shrink-0 transition-transform ${isOpen ? 'rotate-180' : ''}`}
