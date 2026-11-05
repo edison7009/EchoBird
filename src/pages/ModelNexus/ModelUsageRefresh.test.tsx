@@ -206,6 +206,17 @@ describe('Model usage refresh and credential changes', () => {
     expect(context.modelUsageData.model).toBeUndefined();
     expect(context.refreshingUsageIds.size).toBe(0);
   });
+  it('keeps the model and quota visible when durable deletion fails', async () => {
+    await open();
+    act(() => context.setModelUsageData({ model: balance(17) }));
+    vi.mocked(api.deleteModel).mockRejectedValueOnce('Cannot save models');
+    await act(async () => {
+      await context.handleCardDelete('model');
+    });
+    expect(context.userModels).toHaveLength(1);
+    expect(context.modelUsageData.model).toEqual(balance(17));
+    expect(showToast).toHaveBeenCalledWith('error', 'Cannot save models');
+  });
   it('reports mixed batch failures once, updates successes and keeps failed caches', async () => {
     vi.mocked(api.getModels).mockResolvedValue([
       original,

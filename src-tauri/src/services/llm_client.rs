@@ -810,7 +810,7 @@ fn compatible_history(messages: &[Message], config: &LlmConfig) -> Vec<Message> 
                         ContentBlock::RedactedThinking { origin, .. } => {
                             config.provider == LlmProvider::Anthropic
                                 && !uses_deepseek_history(config)
-                                && origin.as_ref().map_or(true, |origin| origin == &target)
+                                && origin.as_ref().is_none_or(|origin| origin == &target)
                         }
                         _ => true,
                     });
@@ -1588,15 +1588,15 @@ mod tests {
             let valid = messages.iter().all(|message| {
                 if anthropic {
                     matches!(message["role"].as_str(), Some("user" | "assistant"))
-                        && message["content"].as_array().map_or(true, |blocks| {
+                        && message["content"].as_array().is_none_or(|blocks| {
                             blocks.iter().all(|block| {
                                 block["type"] != "thinking" || block["signature"].as_str().is_some()
                             })
                         })
                 } else {
-                    message["content"].as_array().map_or(true, |blocks| {
-                        blocks.iter().all(|block| block["type"] == "text")
-                    })
+                    message["content"]
+                        .as_array()
+                        .is_none_or(|blocks| blocks.iter().all(|block| block["type"] == "text"))
                 }
             });
             if !valid || missing_reasoning {

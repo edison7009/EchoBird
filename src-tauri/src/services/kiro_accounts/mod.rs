@@ -334,7 +334,7 @@ pub async fn list_accounts(edition: Edition) -> Result<Vec<Account>, String> {
                     if current_id(&credentials, &store).is_some_and(|id| {
                         store
                             .get(&id)
-                            .map_or(true, |saved| native_is_newer(&credentials, saved))
+                            .is_none_or(|saved| native_is_newer(&credentials, saved))
                     }) {
                         let _ = capture(source, &credentials, &mut store);
                     }

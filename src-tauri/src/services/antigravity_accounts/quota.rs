@@ -221,9 +221,10 @@ fn verified_quotas(models: Vec<ModelQuota>, response: &Value) -> Vec<ModelQuota>
             continue;
         };
         let key = id.to_lowercase();
-        if measured.get(&key).map_or(true, |kept| {
-            quota.remaining_percent < kept.remaining_percent
-        }) {
+        if measured
+            .get(&key)
+            .is_none_or(|kept| quota.remaining_percent < kept.remaining_percent)
+        {
             measured.insert(key, quota);
         }
     }

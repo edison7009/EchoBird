@@ -1064,7 +1064,7 @@ mod tests {
         if !routed
             || value["choices"][0]["message"]["content"]
                 .as_str()
-                .map_or(true, |text| text.trim().is_empty())
+                .is_none_or(|text| text.trim().is_empty())
         {
             return Err("local router response lacked routing evidence or assistant text".into());
         }
@@ -1248,7 +1248,7 @@ mod tests {
                     }
                 } else if reply["content"]
                     .as_str()
-                    .map_or(true, |text| text.trim().is_empty())
+                    .is_none_or(|text| text.trim().is_empty())
                 {
                     return Err(format!("phase={phase} has no assistant text"));
                 }

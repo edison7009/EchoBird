@@ -13,7 +13,7 @@ let storage: Map<string, string>;
 const setItem = vi.fn((key: string, value: string) => storage.set(key, value));
 beforeEach(() => {
   vi.useFakeTimers();
-  vi.setSystemTime(new Date('2026-10-29T04:00:00Z'));
+  vi.setSystemTime(new Date(2026, 9, 29, 12, 0, 0));
   storage = new Map();
   setItem.mockClear();
   vi.stubGlobal('localStorage', { getItem: (key: string) => storage.get(key) ?? null, setItem });

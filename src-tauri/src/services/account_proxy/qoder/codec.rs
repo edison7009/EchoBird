@@ -34,14 +34,14 @@ pub(super) fn encode(text: &str) -> String {
     if bits > 0 {
         result.push(ALPHABET[((acc << (6 - bits)) & 63) as usize] as char);
     }
-    while result.len() % 4 != 0 {
+    while !result.len().is_multiple_of(4) {
         result.push('$');
     }
     swap(&result)
 }
 #[cfg(test)]
 pub(super) fn decode(wire: &str) -> Result<String, String> {
-    if !wire.is_ascii() || wire.len() % 4 != 0 {
+    if !wire.is_ascii() || !wire.len().is_multiple_of(4) {
         return Err("Invalid request encoding".into());
     }
     let raw = swap(wire);

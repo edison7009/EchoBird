@@ -820,7 +820,7 @@ fn apply_balance(saved: &mut Saved, data: &Value) {
     let plans = data["plans"].as_array();
     let active_plan = plans.and_then(|plans| {
         plans.iter().find(|p| {
-            p["status"] == "active" && unix_seconds(&p["ends_at"]).map_or(true, |end| end > now())
+            p["status"] == "active" && unix_seconds(&p["ends_at"]).is_none_or(|end| end > now())
         })
     });
     saved.subscription_end_at = active_plan.and_then(|p| unix_seconds(&p["ends_at"]));
@@ -838,7 +838,7 @@ fn apply_balance(saved: &mut Saved, data: &Value) {
         .into_iter()
         .flatten()
         .filter(|b| {
-            unix_seconds(&b["expires_at"]).map_or(true, |end| end > now())
+            unix_seconds(&b["expires_at"]).is_none_or(|end| end > now())
                 && !plans.into_iter().flatten().any(|p| {
                     let owner = if b["user_plan_id"].is_string() {
                         p["user_plan_id"] == b["user_plan_id"]

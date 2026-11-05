@@ -90,7 +90,7 @@ describe('default theme and saved preferences', () => {
     });
     await vi.waitFor(() => expect(api.saveSettings).toHaveBeenCalledOnce());
     const saved = api.saveSettings.mock.calls[0][0];
-    expect(saved.themeMode).toBeUndefined();
+    expect(saved.themeMode).toBeNull();
     expect(root.dataset.theme).toBe('light');
     api.getSettings.mockResolvedValue(saved);
     vi.resetModules();

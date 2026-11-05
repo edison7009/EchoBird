@@ -6,7 +6,7 @@ import { useRewardClaimStore } from '../../stores/rewardClaimStore';
 import { usageIslandVisible, useUsageIslandStore } from '../../stores/usageIslandStore';
 import { accountCenterProviders } from '../AccountCenter/accountCenterData';
 import { readCachedAccounts } from '../AccountCenter/useAccountCardCache';
-import { useAppManager } from '../AppManager/context';
+import { useAccounts } from '../../features/accounts/context';
 import { useModelNexus } from '../ModelNexus/context';
 import { accountSources, modelSources, type UsageSource } from './usageIslandData';
 
@@ -27,7 +27,7 @@ export function useUsageIslandActive() {
 }
 
 export function useUsageSources(active: boolean): UsageSource[] {
-  const context = useAppManager();
+  const context = useAccounts();
   const models = useModelNexus();
   const { t, locale } = useI18n();
   // Read on entry: the account page owns this cache and keeps writing it.

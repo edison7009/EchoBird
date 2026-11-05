@@ -301,7 +301,7 @@ fn validate_responses(body: &Value) -> Result<(), ProxyError> {
                 ));
             }
             if tool["type"] == "function"
-                && !tool["name"].as_str().is_some_and(|name| !name.is_empty())
+                && tool["name"].as_str().is_none_or(|name| name.is_empty())
             {
                 return Err(unsupported("A function tool must have a name"));
             }

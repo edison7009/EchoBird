@@ -64,7 +64,7 @@ fn browser_session_ready(cookies: &[serde_json::Value]) -> bool {
                     )
                     && cookie["expirationDate"]
                         .as_f64()
-                        .map_or(true, |expiry| expiry > now)
+                        .is_none_or(|expiry| expiry > now)
             })
         })
 }

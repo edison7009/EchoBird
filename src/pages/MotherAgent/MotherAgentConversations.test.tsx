@@ -969,6 +969,47 @@ describe('Mother Agent saved conversation workflow', () => {
     expect(state.conversations.find((c) => c.sessionKey === secondKey)?.messages).toHaveLength(2);
   });
 
+  it('publishes SSH changes only after durable storage and keeps failed rows', async () => {
+    vi.mocked(api.loadSSHServers).mockResolvedValueOnce([]);
+    await mount();
+    const server = {
+      id: 'durable',
+      host: 'fixture.invalid',
+      port: '22',
+      username: 'fixture',
+      password: 'fixture',
+    };
+    const revision = useNavigationStore.getState().sshServersVersion;
+    vi.mocked(api.saveSSHServer).mockRejectedValueOnce('Cannot save SSH');
+    await act(async () => {
+      expect(await state.addSSHServer(server)).toBe(false);
+    });
+    expect(state.sshServers).toEqual([]);
+    expect(useNavigationStore.getState().sshServersVersion).toBe(revision);
+    expect(showToast).toHaveBeenCalledWith('error', 'Cannot save SSH');
+    vi.mocked(api.saveSSHServer).mockResolvedValueOnce({ ...server, port: 22 });
+    await act(async () => {
+      expect(await state.addSSHServer(server)).toBe(true);
+    });
+    expect(state.sshServers).toHaveLength(1);
+    act(() => state.selectServer(server.id));
+    vi.mocked(api.removeSSHServerFromDisk).mockRejectedValueOnce('Cannot remove SSH');
+    const savedRevision = useNavigationStore.getState().sshServersVersion;
+    await act(async () => {
+      await state.removeSSHServer(server.id);
+    });
+    expect(state.sshServers).toHaveLength(1);
+    expect(state.selectedServerId).toBe(server.id);
+    expect(useNavigationStore.getState().sshServersVersion).toBe(savedRevision);
+    expect(showToast).toHaveBeenCalledWith('error', 'Cannot remove SSH');
+    vi.mocked(api.removeSSHServerFromDisk).mockResolvedValueOnce(true);
+    await act(async () => {
+      await state.removeSSHServer(server.id);
+    });
+    expect(state.sshServers).toEqual([]);
+    expect(state.selectedServerId).toBe('local');
+  });
+
   it('blocks new, select, server changes, delete, and duplicate send even before the pending render', async () => {
     await mount();
     const first = state.activeConversationId;

@@ -29,7 +29,7 @@ pub(crate) async fn transcribe(
         || &audio[32..40] != b"\x02\0\x10\0data"
         || audio[4..8] != ((audio.len() - 8) as u32).to_le_bytes()
         || audio[40..44] != ((audio.len() - 44) as u32).to_le_bytes()
-        || (audio.len() - 44) % 2 != 0
+        || !(audio.len() - 44).is_multiple_of(2)
     {
         return Err(ProxyError::new(
             StatusCode::BAD_REQUEST,

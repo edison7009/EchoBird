@@ -84,7 +84,7 @@ vi.mock('../../stores/themeStore', () => ({
 vi.mock('../../components/cards', () => ({ getModelIcon: () => '/icons/models/test.svg' }));
 vi.mock('../../components/Toast', () => ({ useToast: () => ({ showToast }) }));
 vi.mock('../../components/MiniSelect', () => ({ MiniSelect: () => null }));
-vi.mock('../AppManager/context', () => ({ useAppManager: () => ({}) }));
+vi.mock('../../features/accounts/context', () => ({ useAccounts: () => ({}) }));
 vi.mock('../AccountCenter/accountCenterData', () => ({
   accountCenterProviders: () => testProviders.current,
 }));

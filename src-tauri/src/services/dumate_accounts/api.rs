@@ -310,7 +310,7 @@ fn parse_quota(v: &Value, now: i64) -> Result<Quota, String> {
     let subscriptions = v["subscription"].as_array().ok_or("accountError.format")?;
     let incremental = v["incremental"].as_array().ok_or("accountError.format")?;
     let active = |p: &&Value| {
-        p["status"] == "active" && timestamp(&p["expireDate"]).map_or(true, |end| end > now)
+        p["status"] == "active" && timestamp(&p["expireDate"]).is_none_or(|end| end > now)
     };
     let current = subscriptions.iter().find(active);
     let plan = match current.and_then(|p| text(p, "packageType")) {

@@ -1,9 +1,10 @@
+import { useModelRepository } from '../../hooks/useModelRepository';
 import { isSmartRouterId } from '../../utils/smartRouter';
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useI18n } from '../../hooks/useI18n';
 import { listen } from '@tauri-apps/api/event';
 import * as api from '../../api/tauri';
-import type { ModelConfig, AgentEvent, ParasiteEvent, ReasoningEffort } from '../../api/types';
+import type { AgentEvent, ParasiteEvent, ReasoningEffort } from '../../api/types';
 import { useChatPersistence } from '../../hooks/useChatPersistence';
 import type { DiskMsg } from '../../hooks/useChatPersistence';
 import { errorToKey } from '../../utils/normalizeError';
@@ -44,7 +45,8 @@ export function MotherAgentProvider({ children }: { children: React.ReactNode })
   const confirm = useConfirm();
   const { showToast } = useToast();
   const { routerEnabled } = useFreeModels();
-  const [savedModels, setModels] = useState<ModelConfig[]>([]);
+  const modelDirectory = useModelRepository();
+  const savedModels = modelDirectory.models;
   const models = useMemo(
     () => savedModels.filter((model) => !isSmartRouterId(model.internalId) || routerEnabled),
     [savedModels, routerEnabled]
@@ -230,6 +232,7 @@ export function MotherAgentProvider({ children }: { children: React.ReactNode })
       .catch(() => {});
   }, []);
 
+  const sshMutationPending = useRef(false);
   const addSSHServer = useCallback(
     async (server: {
       id: string;
@@ -239,29 +242,37 @@ export function MotherAgentProvider({ children }: { children: React.ReactNode })
       password?: string;
       alias?: string;
     }) => {
-      setSSHServers((prev) => [
-        ...prev,
-        {
-          id: server.id,
-          host: server.host,
-          port: server.port,
-          username: server.username,
-          alias: server.alias,
-        },
-      ]);
-      await api
-        .saveSSHServer(
+      if (sshMutationPending.current) return false;
+      sshMutationPending.current = true;
+      try {
+        await api.saveSSHServer(
           server.id,
           server.host,
           parseInt(server.port) || 22,
           server.username,
           server.password || '',
-          server.alias
-        )
-        .catch(() => {});
-      useNavigationStore.getState().bumpSshServersVersion();
+          server.alias ?? ''
+        );
+        setSSHServers((prev) => [
+          ...prev.filter((saved) => saved.id !== server.id),
+          {
+            id: server.id,
+            host: server.host,
+            port: server.port,
+            username: server.username,
+            alias: server.alias,
+          },
+        ]);
+        useNavigationStore.getState().bumpSshServersVersion();
+        return true;
+      } catch (error) {
+        showToast('error', typeof error === 'string' ? error : String(error));
+        return false;
+      } finally {
+        sshMutationPending.current = false;
+      }
     },
-    []
+    [showToast]
   );
   // Shared mapper: ChatMessage → disk format
   const toDisk = useCallback((m: ChatMessage): DiskMsg | null => {
@@ -367,44 +378,38 @@ export function MotherAgentProvider({ children }: { children: React.ReactNode })
   );
   const removeSSHServer = useCallback(
     async (id: string) => {
-      if (resettingRef.current || runningRef.current || isProcessing) return;
-      setSSHServers((prev) => prev.filter((s) => s.id !== id));
-      if (selectedServerId === id) selectStoredServer('local');
-      await api.removeSSHServerFromDisk(id).catch(() => {});
-      useNavigationStore.getState().bumpSshServersVersion();
+      if (resettingRef.current || runningRef.current || isProcessing || sshMutationPending.current)
+        return;
+      sshMutationPending.current = true;
+      try {
+        await api.removeSSHServerFromDisk(id);
+        setSSHServers((prev) => prev.filter((s) => s.id !== id));
+        if (selectedServerId === id) selectStoredServer('local');
+        useNavigationStore.getState().bumpSshServersVersion();
+      } catch (error) {
+        showToast('error', typeof error === 'string' ? error : String(error));
+      } finally {
+        sshMutationPending.current = false;
+      }
     },
-    [isProcessing, selectedServerId, selectStoredServer]
+    [isProcessing, selectedServerId, selectStoredServer, showToast]
   );
 
-  // Load models from config — refresh on mount and on window focus
-  const modelLoadRequest = useRef(0);
-  const loadModels = useCallback(() => {
-    if (!api.getModels) return;
-    const request = ++modelLoadRequest.current;
-    api
-      .getModels()
-      .then((loaded) => {
-        if (request !== modelLoadRequest.current) return;
-        setModels(loaded);
-        if (agentModel && loaded.length > 0 && !loaded.some((m) => m.internalId === agentModel)) {
-          setAgentModel(null);
-        } else if (loaded.length === 0) {
-          setAgentModel(null);
-        }
-      })
-      .catch((e) => console.error('Load models failed:', e));
-  }, [agentModel, setAgentModel]);
-
   useEffect(() => {
-    loadModels();
-    window.addEventListener('focus', loadModels);
-    window.addEventListener('models-changed', loadModels);
+    let cancelled = false;
+    queueMicrotask(() => {
+      if (
+        !cancelled &&
+        modelDirectory.loaded &&
+        agentModel &&
+        !savedModels.some((model) => model.internalId === agentModel)
+      )
+        setAgentModel(null);
+    });
     return () => {
-      window.removeEventListener('focus', loadModels);
-      window.removeEventListener('models-changed', loadModels);
-      modelLoadRequest.current += 1;
+      cancelled = true;
     };
-  }, [loadModels]);
+  }, [modelDirectory.loaded, savedModels, agentModel, setAgentModel]);
 
   const agentModelData = models.find((m) => m.internalId === agentModel);
 

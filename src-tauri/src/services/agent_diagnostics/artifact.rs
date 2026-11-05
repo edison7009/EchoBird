@@ -59,7 +59,7 @@ pub(super) fn inspect(args: Args) -> Result<Value, String> {
         let base = (block + 8)
             .checked_add(offset)
             .ok_or("ASAR offset overflow")?;
-        if base.checked_add(size).map_or(true, |end| end > length) || args.offset as u64 > size {
+        if base.checked_add(size).is_none_or(|end| end > length) || args.offset as u64 > size {
             return Err("ASAR member outside archive bounds".into());
         }
         let count = (size - args.offset as u64).min(if args.search.is_some() {

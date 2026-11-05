@@ -232,8 +232,7 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
     setProtectionPending(true);
     setOptionalError(false);
     try {
-      const settings = await api.getSettings();
-      await api.saveSettings({ ...settings, [OPTIONAL_PAGE_SETTINGS[page]]: value });
+      await api.saveSettings({ [OPTIONAL_PAGE_SETTINGS[page]]: value });
       setOptionalPages({ [page]: value });
       if (page === 'localLlm' && !value) {
         useLocalServerStatusStore.getState().setRunning(false);
@@ -263,8 +262,7 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
     setDeveloperPending(true);
     setDeveloperError(false);
     try {
-      const settings = await api.getSettings();
-      await api.saveSettings({ ...settings, developerMode: value });
+      await api.saveSettings({ developerMode: value });
       setDeveloperMode(value);
     } catch {
       setDeveloperError(true);
@@ -290,8 +288,7 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
     setProtectionPending(true);
     setProtectionError(false);
     try {
-      const settings = await api.getSettings();
-      await api.saveSettings({ ...settings, sensitiveInfoProtection: value });
+      await api.saveSettings({ sensitiveInfoProtection: value });
       setProtectionEnabled(value);
       useProtectionStore.getState().publish(value);
       useProtectionStore.setState({ saveError: false });
@@ -318,12 +315,10 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
   // Save closeToTray setting when it changes
   const handleCloseToTrayChange = useCallback(async (value: boolean | null) => {
     setCloseToTray(value);
-    const settings = await api.getSettings();
     // Mark the close behavior as explicitly chosen. This both suppresses the
     // first-time onboarding dialog and — critically — prevents that dialog from
     // later overwriting an explicit "always ask" (null) selection.
     await api.saveSettings({
-      ...settings,
       closeToTray: value,
       closeWindowBehaviorSet: true,
     });

@@ -518,7 +518,7 @@ fn category_expiry(details: &[CreditDetail], kind: u8, balance: Option<f64>) -> 
     let now = chrono::Utc::now().timestamp();
     if expiry <= now
         || active.iter().any(|detail| {
-            detail.expires_at != Some(expiry) || detail.granted_at.map_or(true, |at| at > expiry)
+            detail.expires_at != Some(expiry) || detail.granted_at.is_none_or(|at| at > expiry)
         })
     {
         return None;
@@ -539,7 +539,7 @@ fn category_total(details: &[CreditDetail], kind: u8, balance: Option<f64>) -> O
         if expiry <= now {
             continue;
         }
-        if detail.granted_at.map_or(true, |at| at > expiry)
+        if detail.granted_at.is_none_or(|at| at > expiry)
             || detail.remaining > detail.granted + f64::EPSILON * detail.granted.max(1.0)
         {
             return None;

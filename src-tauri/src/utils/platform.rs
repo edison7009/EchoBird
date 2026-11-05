@@ -1,29 +1,20 @@
-// Platform detection and command utilities — mirrors old utils.ts
+// Platform detection and command utilities.
+mod probe;
+use probe::version_output;
 
 /// Check if a command exists on PATH
 pub async fn command_exists(cmd: &str) -> bool {
-    #[cfg(not(target_os = "android"))]
-    {
-        if which::which(cmd).is_ok() {
-            return true;
-        }
-        shell_command_path(cmd).is_some()
-    }
-    #[cfg(target_os = "android")]
-    {
-        let _ = cmd;
-        false
-    }
+    get_command_path(cmd).await.is_some()
 }
 
-/// Get the full path of a command
+/// Resolve once instead of probing existence and starting the shell again for its path.
 pub async fn get_command_path(cmd: &str) -> Option<String> {
     #[cfg(not(target_os = "android"))]
     {
-        if let Ok(p) = which::which(cmd) {
-            return Some(p.to_string_lossy().to_string());
+        if let Ok(path) = which::which(cmd) {
+            return Some(path.to_string_lossy().into_owned());
         }
-        shell_command_path(cmd)
+        shell_command_path(cmd).await
     }
     #[cfg(target_os = "android")]
     {
@@ -32,113 +23,62 @@ pub async fn get_command_path(cmd: &str) -> Option<String> {
     }
 }
 
-/// Linux/macOS fallback: query the user's login-shell PATH.
-/// Tauri GUI processes inherit a stripped PATH (no rc-file additions like nvm, asdf,
-/// conda, ~/.local/bin extensions). Spawning `$SHELL -lc 'command -v <cmd>'` runs the
-/// user's login shell, sources their rc files, and reports the real PATH resolution.
-///
-/// IMPORTANT: This function has a 2-second timeout to prevent hanging the UI if the
-/// user's shell config is slow or broken. If the timeout is hit, we return None and
-/// fall back to the system PATH.
 #[cfg(any(target_os = "linux", target_os = "macos"))]
-fn shell_command_path(cmd: &str) -> Option<String> {
-    // Defense-in-depth: only forward simple command names into the shell
+async fn shell_command_path(cmd: &str) -> Option<String> {
+    let shell = std::env::var("SHELL").unwrap_or_else(|_| "/bin/bash".to_string());
+    shell_command_path_with(cmd, &shell, std::time::Duration::from_secs(2)).await
+}
+
+#[cfg(any(target_os = "linux", target_os = "macos"))]
+async fn shell_command_path_with(
+    cmd: &str,
+    shell: &str,
+    timeout: std::time::Duration,
+) -> Option<String> {
     if cmd.is_empty()
         || !cmd
             .chars()
-            .all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_' || c == '.')
+            .all(|c| c.is_ascii_alphanumeric() || matches!(c, '-' | '_' | '.'))
     {
         return None;
     }
-    let shell = std::env::var("SHELL").unwrap_or_else(|_| "/bin/bash".to_string());
-
-    // Spawn the shell command with a timeout to prevent hanging
-    use std::sync::mpsc;
-    use std::thread;
-    use std::time::Duration;
-
-    let (tx, rx) = mpsc::channel();
-    let cmd_clone = cmd.to_string();
-    let shell_clone = shell.clone();
-
-    thread::spawn(move || {
-        let output = crate::utils::process::command(&shell_clone)
-            .args(["-lc", &format!("command -v {} 2>/dev/null", cmd_clone)])
-            .output();
-        let _ = tx.send(output);
-    });
-
-    // Wait up to 2 seconds for the shell command to complete
-    let output = match rx.recv_timeout(Duration::from_secs(2)) {
-        Ok(Ok(output)) => output,
-        Ok(Err(e)) => {
-            log::warn!("[platform] Shell command failed for '{}': {}", cmd, e);
-            return None;
-        }
-        Err(_) => {
-            log::warn!("[platform] Shell command timed out for '{}' (>2s) - user's shell config may be slow", cmd);
+    // A scan may contain many missing tools. Waiting here does not occupy Tokio workers.
+    static PROBES: tokio::sync::Semaphore = tokio::sync::Semaphore::const_new(4);
+    let _permit = PROBES.acquire().await.ok()?;
+    let mut command = crate::utils::process::command(shell);
+    command.args(["-lc", &format!("command -v {cmd} 2>/dev/null")]);
+    let output = match version_output(command, timeout).await {
+        Ok(output) => output,
+        Err(error) => {
+            log::warn!("[platform] Shell resolution failed for '{cmd}': {error}");
             return None;
         }
     };
-
     if !output.status.success() {
         return None;
     }
     let stdout = String::from_utf8_lossy(&output.stdout);
     let line = stdout.lines().next().unwrap_or("").trim();
-    if line.is_empty() || !std::path::Path::new(line).exists() {
-        return None;
-    }
-    log::info!("[platform] '{}' resolved via login shell: {}", cmd, line);
-    Some(line.to_string())
+    (!line.is_empty() && std::path::Path::new(line).is_file()).then(|| line.to_owned())
 }
 
 #[cfg(not(any(target_os = "linux", target_os = "macos")))]
 #[allow(dead_code)]
-fn shell_command_path(_cmd: &str) -> Option<String> {
-    // Windows: GUI apps inherit the system PATH via the registry, so `which` is
-    // already authoritative. No fallback needed.
+async fn shell_command_path(_cmd: &str) -> Option<String> {
     None
 }
 
-/// Check if a Python module is installed (pip-installed CLI tools)
-/// Runs `python -m {module} --version` and checks exit code
-/// Has a 3-second timeout to prevent hanging.
+/// Check a pip-installed CLI without leaving a timed-out Python process behind.
 pub async fn python_module_exists(module: &str) -> bool {
-    use std::sync::mpsc;
-    use std::thread;
-    use std::time::Duration;
-
-    let (tx, rx) = mpsc::channel();
-    let module_clone = module.to_string();
-
-    thread::spawn(move || {
-        #[cfg(windows)]
-        let result = {
-            crate::utils::process::command("python")
-                .args(["-m", &module_clone, "--version"])
-                .output()
-        };
-        #[cfg(not(windows))]
-        let result = crate::utils::process::command("python3")
-            .args(["-m", &module_clone, "--version"])
-            .output();
-
-        let _ = tx.send(result);
-    });
-
-    // Wait up to 3 seconds for the Python module check to complete
-    match rx.recv_timeout(Duration::from_secs(3)) {
-        Ok(Ok(output)) => output.status.success() || !output.stdout.is_empty(),
-        Ok(Err(_)) => false,
-        Err(_) => {
-            log::warn!(
-                "[platform] Python module check timed out for '{}' (>3s)",
-                module
-            );
-            false
-        }
-    }
+    #[cfg(windows)]
+    let python = "python";
+    #[cfg(not(windows))]
+    let python = "python3";
+    let mut command = crate::utils::process::command(python);
+    command.args(["-m", module, "--version"]);
+    version_output(command, std::time::Duration::from_secs(3))
+        .await
+        .is_ok_and(|output| output.status.success() || !output.stdout.is_empty())
 }
 
 /// Get command version by running `cmd --version`
@@ -228,81 +168,6 @@ fn version_command(cmd: &str) -> std::process::Command {
     command
 }
 
-struct VersionProbe {
-    child: tokio::process::Child,
-    pid: u32,
-    completed: bool,
-}
-
-impl Drop for VersionProbe {
-    fn drop(&mut self) {
-        if self.completed {
-            return;
-        }
-        #[cfg(windows)]
-        if let Some(handle) = self.child.raw_handle() {
-            let handle = unsafe { std::os::windows::io::BorrowedHandle::borrow_raw(handle) };
-            if let Ok((created, exited)) =
-                crate::services::process_manager::owned_windows_process_times(&handle)
-            {
-                let _ = crate::services::process_manager::stop_owned_windows_tree(
-                    self.pid, created, exited,
-                );
-            }
-        }
-        #[cfg(unix)]
-        unsafe {
-            libc::kill(-(self.pid as i32), libc::SIGKILL);
-        }
-        let _ = self.child.start_kill();
-    }
-}
-
-async fn version_output(
-    command: std::process::Command,
-    timeout: std::time::Duration,
-) -> std::io::Result<std::process::Output> {
-    use std::process::Stdio;
-    use tokio::io::AsyncReadExt;
-
-    #[cfg(unix)]
-    let command = {
-        use std::os::unix::process::CommandExt;
-        let mut command = command;
-        command.process_group(0);
-        command
-    };
-    let mut command = tokio::process::Command::from(command);
-    let child = command
-        .kill_on_drop(true)
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
-        .spawn()?;
-    let mut child = VersionProbe {
-        pid: child.id().unwrap(),
-        child,
-        completed: false,
-    };
-    let mut stdout = child.child.stdout.take().unwrap();
-    let mut stderr = child.child.stderr.take().unwrap();
-    let mut out = Vec::new();
-    let mut err = Vec::new();
-    let result = tokio::time::timeout(timeout, async {
-        // Keep the leader's identity until its inherited pipes are closed too.
-        tokio::try_join!(stdout.read_to_end(&mut out), stderr.read_to_end(&mut err))?;
-        let status = child.child.wait().await?;
-        Ok(std::process::Output {
-            status,
-            stdout: out,
-            stderr: err,
-        })
-    })
-    .await
-    .map_err(|_| std::io::Error::new(std::io::ErrorKind::TimedOut, "version probe timed out"))?;
-    child.completed = result.is_ok();
-    result
-}
-
 /// Get user home directory
 pub fn home_dir() -> String {
     dirs::home_dir()
@@ -334,6 +199,66 @@ pub fn echobird_dir() -> std::path::PathBuf {
 #[cfg(test)]
 mod version_tests {
     use std::{fs, path::Path, time::Duration};
+
+    #[cfg(unix)]
+    #[tokio::test(flavor = "current_thread")]
+    async fn shell_resolution_is_nonblocking_bounded_and_kills_timed_out_children() {
+        use std::os::unix::fs::PermissionsExt;
+        let root = std::env::temp_dir().join(format!("echobird-shell-{}", uuid::Uuid::new_v4()));
+        fs::create_dir_all(&root).unwrap();
+        let script = root.join("shell");
+        fs::write(&script, "#!/bin/sh\nprintf '/bin/sh\\n'\n").unwrap();
+        fs::set_permissions(&script, fs::Permissions::from_mode(0o700)).unwrap();
+        assert_eq!(
+            super::shell_command_path_with(
+                "fixture",
+                script.to_str().unwrap(),
+                Duration::from_secs(1)
+            )
+            .await
+            .as_deref(),
+            Some("/bin/sh")
+        );
+        assert!(super::shell_command_path_with(
+            "fixture;exit",
+            script.to_str().unwrap(),
+            Duration::from_secs(1)
+        )
+        .await
+        .is_none());
+        let pid = root.join("child.pid");
+        fs::write(
+            &script,
+            format!(
+                "#!/bin/sh\nsleep 30 &\necho $! > '{}'\nwait\n",
+                pid.display()
+            ),
+        )
+        .unwrap();
+        let (result, tick) = tokio::join!(
+            super::shell_command_path_with(
+                "fixture",
+                script.to_str().unwrap(),
+                Duration::from_secs(1)
+            ),
+            async {
+                tokio::time::sleep(Duration::from_millis(100)).await;
+                std::time::Instant::now()
+            }
+        );
+        assert!(result.is_none());
+        assert!(
+            tick.elapsed() >= Duration::from_millis(50),
+            "runtime timer must run while the shell is pending"
+        );
+        let child: u32 = fs::read_to_string(pid).unwrap().trim().parse().unwrap();
+        let deadline = std::time::Instant::now() + Duration::from_secs(3);
+        while running(child) && std::time::Instant::now() < deadline {
+            tokio::time::sleep(Duration::from_millis(10)).await;
+        }
+        assert!(!running(child));
+        fs::remove_dir_all(root).unwrap();
+    }
 
     #[test]
     fn cline_version_probe_disables_automatic_updates_without_changing_other_tools() {

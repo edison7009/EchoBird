@@ -1,7 +1,17 @@
+import { modelRepository } from '../stores/modelRepository';
 // Model APIs — CRUD, test, ping, encryption
 import { invoke } from '@tauri-apps/api/core';
 import type { AccountSource, ModelConfig, ModelTestResult, PingResult } from './types';
 import type { VoiceDirectoryEntry } from './voiceInput';
+
+// Scoped consumers such as Voice Input retain their own query projections.
+function notifyScopedModels() {
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(
+      new CustomEvent('models-changed', { detail: { repositoryUpdated: true } })
+    );
+  }
+}
 
 export async function getModels(): Promise<ModelConfig[]> {
   return invoke('get_models');
@@ -46,13 +56,17 @@ export async function addModel(input: {
   scope?: 'modelCenter' | 'smartRouter' | 'voiceInput';
 }): Promise<ModelConfig> {
   const result = await invoke<ModelConfig>('add_model', { input });
-  window.dispatchEvent(new Event('models-changed'));
+  modelRepository.ingest([result]);
+  modelRepository.invalidate();
+  notifyScopedModels();
   return result;
 }
 
 export async function deleteModel(internalId: string): Promise<boolean> {
   const result = await invoke<boolean>('delete_model', { internalId });
-  window.dispatchEvent(new Event('models-changed'));
+  if (result) modelRepository.remove(internalId);
+  modelRepository.invalidate();
+  notifyScopedModels();
   return result;
 }
 
@@ -68,7 +82,9 @@ export async function updateModel(
   }
 ): Promise<ModelConfig | null> {
   const result = await invoke<ModelConfig | null>('update_model', { internalId, updates });
-  window.dispatchEvent(new Event('models-changed'));
+  if (result) modelRepository.ingest([result]);
+  modelRepository.invalidate();
+  notifyScopedModels();
   return result;
 }
 
@@ -83,7 +99,7 @@ export async function testModel(
 /** Persist a user-defined model display order (full visible list of
  *  internal_ids in the new order). */
 export async function reorderModels(orderedIds: string[]): Promise<boolean> {
-  return invoke('reorder_models', { orderedIds });
+  return modelRepository.reorder(orderedIds, () => invoke('reorder_models', { orderedIds }));
 }
 
 export async function pingModel(internalId: string, batchId?: string): Promise<PingResult> {

@@ -527,7 +527,7 @@ impl PluginRuntime {
             return Err("SDK result exceeds 1 MiB".into());
         }
         let mut pending = self.pending.lock().unwrap();
-        if !pending.get(id).is_some_and(|p| p.label == label) {
+        if pending.get(id).is_none_or(|p| p.label != label) {
             return Err("Unknown SDK request".into());
         }
         let request = pending.remove(id).unwrap();

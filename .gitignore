@@ -71,6 +71,8 @@ scripts/*
 !scripts/build_en_pulse.py
 !scripts/filter_pulse.py
 !scripts/refresh_free_models.py
+!scripts/verify-dependency-patches.mjs
+!scripts/sync-catalogs.mjs
 !scripts/tests/
 scripts/tests/*
 !scripts/tests/test_refresh_free_models.py
@@ -78,6 +80,8 @@ scripts/tests/*
 !scripts/tests/website_download.test.mjs
 !scripts/tests/plugin_sdk.test.mjs
 !scripts/tests/usage_island_styles.test.mjs
+!scripts/tests/dependency_patches.test.mjs
+!scripts/tests/catalogs.test.mjs
 
 # llama-server binaries (downloaded during CI build)
 electron/tools/llama-server/bin/

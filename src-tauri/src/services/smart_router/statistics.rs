@@ -409,7 +409,7 @@ impl Collector {
                     .data
                     .identities
                     .get(id)
-                    .is_some_and(|identity| group.map_or(true, |group| group == identity.group))
+                    .is_some_and(|identity| group.is_none_or(|group| group == identity.group))
                 {
                     rows.entry(id.clone()).or_default().add(counts);
                 }
@@ -417,7 +417,7 @@ impl Collector {
             for (hour, groups) in &values.hours {
                 let mut hour_totals = Totals::default();
                 for (id, counts) in groups {
-                    if group.map_or(true, |group| group == id) {
+                    if group.is_none_or(|group| group == id) {
                         hour_totals.add(counts);
                     }
                 }
@@ -434,7 +434,7 @@ impl Collector {
             .data
             .identities
             .iter()
-            .filter(|(_, identity)| group.map_or(true, |group| group == identity.group))
+            .filter(|(_, identity)| group.is_none_or(|group| group == identity.group))
             .map(|(id, identity)| Row {
                 id: id.clone(),
                 identity: identity.clone(),

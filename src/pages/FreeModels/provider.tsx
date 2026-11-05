@@ -1,7 +1,10 @@
+import { modelRepository } from '../../stores/modelRepository';
 import {
   createContext,
   useCallback,
   useContext,
+  useMemo,
+  useSyncExternalStore,
   useEffect,
   useRef,
   useState,
@@ -140,7 +143,32 @@ export function FreeModelsProvider({ children }: { children: ReactNode }) {
     }
   }, []);
   const [catalog, setCatalog] = useState<FreeModelDirectory>(emptyCatalog);
-  const [customModels, setCustomModels] = useState<RouteModelNode[]>([]);
+  const [routeNodes, setCustomModels] = useState<RouteModelNode[]>([]);
+  const { entities, removedIds } = useSyncExternalStore(
+    modelRepository.subscribe,
+    modelRepository.getSnapshot
+  );
+  const customModels = useMemo(
+    () =>
+      routeNodes
+        .filter((node) => !removedIds.has(node.internalId))
+        .map((node) => {
+          const model = entities[node.internalId];
+          return model
+            ? {
+                ...node,
+                provider: model.name,
+                modelId: model.modelId ?? '',
+                baseUrl: model.baseUrl,
+                anthropicUrl: model.anthropicUrl,
+                apiKey: model.apiKey,
+                accountSource: model.accountSource,
+                scope: model.scope,
+              }
+            : node;
+        }),
+    [routeNodes, entities, removedIds]
+  );
   const [proxyAccounts, setProxyAccounts] = useState<
     Partial<Record<AccountProvider, ProxyAccount[]>>
   >({});
@@ -218,12 +246,14 @@ export function FreeModelsProvider({ children }: { children: ReactNode }) {
 
   const loadRouter = useCallback(async (preferredId = activeRouterRef.current) => {
     routerLoadedRef.current = false;
+    const modelRevision = modelRepository.getSnapshot().revision;
     const groups = await api.listSmartRouters();
     const router = groups.find((group) => group.id === preferredId) ?? groups[0];
     if (!router) throw new Error('No smart router configured');
     const configuredModels = await api.getSmartRouterCandidates(
       ...(router.id === 'smart-router' ? [] : [router.id])
     );
+    modelRepository.ingest(configuredModels, modelRevision);
     activeRouterRef.current = router.id;
     setRouters(groups);
     setActiveRouterId(router.id);
@@ -492,6 +522,7 @@ export function FreeModelsProvider({ children }: { children: ReactNode }) {
   const updateSelectedModel = useCallback(
     (model: RouteModelInput) => {
       if (groupTransition.current) return;
+      modelRepository.ingest([{ ...model, apiKey: model.apiKey ?? '' }]);
       routerMutationRef.current = routerMutationRef.current
         .catch(() => undefined)
         .then(async () => {
@@ -535,6 +566,7 @@ export function FreeModelsProvider({ children }: { children: ReactNode }) {
             throw new Error(`Smart router model not found: ${id}`);
           const updated = await api.updateModel(id, { modelId });
           if (!updated) throw new Error(`Smart router model not found: ${id}`);
+          modelRepository.ingest([updated]);
           setCustomModels((current) =>
             current.map((entry) =>
               entry.id === id ? { ...entry, modelId: updated.modelId ?? modelId } : entry

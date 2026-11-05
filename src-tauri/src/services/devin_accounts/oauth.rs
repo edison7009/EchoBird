@@ -52,7 +52,7 @@ async fn callback(
     Query(q): Query<HashMap<String, String>>,
 ) -> (axum::http::StatusCode, &'static str) {
     use axum::http::StatusCode;
-    if q.get("state") != Some(&flow.state) || q.get("code").map_or(true, |s| s.is_empty()) {
+    if q.get("state") != Some(&flow.state) || q.get("code").is_none_or(|s| s.is_empty()) {
         return (StatusCode::BAD_REQUEST, "Invalid sign-in callback");
     }
     if flow.busy.swap(true, Ordering::SeqCst) {

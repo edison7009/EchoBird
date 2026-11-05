@@ -137,8 +137,6 @@ it('uses existing group selection without writes; protection saves merge the lat
   await act(async () => toggle().props.onClick());
   expect(mocks.save).toHaveBeenCalledExactlyOnceWith({
     sensitiveInfoProtection: false,
-    developerMode: false,
-    locale: 'ja',
   });
   expect(useProtectionStore.getState().enabled).toBe(false);
   await act(async () => useProtectionStore.getState().publish(true));

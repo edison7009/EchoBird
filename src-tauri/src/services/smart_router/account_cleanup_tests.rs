@@ -108,6 +108,7 @@ fn deleting_an_account_removes_its_routes_and_only_router_owned_models_for_every
         let mut deleted_models = Vec::new();
         let remaining = remove_account_candidates_at(&path, &models, &source, |id| {
             deleted_models.push(id.to_owned());
+            Ok(())
         })
         .unwrap()
         .unwrap();

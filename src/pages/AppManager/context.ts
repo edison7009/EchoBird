@@ -1,33 +1,10 @@
-import type { useCursorAccounts } from './useCursorAccounts';
-import type { useAntigravityAccounts } from './useAntigravityAccounts';
-import type { useDeepSeekAccounts } from './useDeepSeekAccounts';
-import type { useGrokAccounts } from './useGrokAccounts';
-import type { useWorkBuddyAccounts } from './useWorkBuddyAccounts';
-import type { useTraeAccounts } from './useTraeAccounts';
-import type { useKiroAccounts } from './useKiroAccounts';
-import type { useZCodeAccounts } from './useZCodeAccounts';
-import type { useKimiAccounts } from './useKimiAccounts';
-import type { useCodeArtsAccounts } from './useCodeArtsAccounts';
-import type { useDevinAccounts } from './useDevinAccounts';
-import type { useOpenDesignAccounts } from './useOpenDesignAccounts';
-import type { useMinimaxAccounts } from './useMinimaxAccounts';
-import type { useClineAccounts } from './useClineAccounts';
-import type { useQoderAccounts } from './useQoderAccounts';
-import type { useDuMateAccounts } from './useDuMateAccounts';
-import type { useDoubaoAccounts } from './useDoubaoAccounts';
-import type { useQwenWorkAccounts } from './useQwenWorkAccounts';
-import type { useClaudeCodeAccounts } from './useClaudeCodeAccounts';
-import type { useClaudeDesktopAccounts } from './useClaudeDesktopAccounts';
-import type { useCodexAccounts } from './useCodexAccounts';
-import type { useKiloAccounts, useCopilotAccounts } from './useClientAccounts';
-import type { usePluginToolAccounts } from './usePluginToolAccounts';
+import type { AccountDirectoryContextType } from '../../features/accounts/context';
 import { createContext, useContext } from 'react';
 import type { ModelConfig, LocalTool } from '../../api/types';
-import type { CodexAccount } from '../../api/tauri';
 
 // ===== Context =====
 
-export interface AppManagerContextType {
+export interface AppManagerContextType extends AccountDirectoryContextType {
   smartRouterEnabled: boolean;
   // Internalized state
   selectedTool: string | null;
@@ -41,57 +18,6 @@ export interface AppManagerContextType {
   handleSelectModel: (toolId: string, modelId: string) => void;
   /** Restore the tool's config back to its official vendor endpoint */
   handleRestoreModel: (toolId: string) => Promise<void>;
-  accountCardOrder: string[];
-  setAccountCardOrder: (order: string[]) => void;
-  claudeCodeAccounts: ReturnType<typeof useClaudeCodeAccounts>;
-  claudeDesktopAccounts: ReturnType<typeof useClaudeDesktopAccounts>;
-  workBuddyAccounts: ReturnType<typeof useWorkBuddyAccounts>;
-  kiroAccounts: ReturnType<typeof useKiroAccounts>;
-  traeAccounts: ReturnType<typeof useTraeAccounts>;
-  traeAccountGroups: Record<'trae' | 'traecn', ReturnType<typeof useTraeAccounts>>;
-  workBuddyAccountGroups: Record<
-    'workbuddy' | 'workbuddyai',
-    ReturnType<typeof useWorkBuddyAccounts>
-  >;
-  zcodeAccounts: ReturnType<typeof useZCodeAccounts>;
-  kimiAccounts: ReturnType<typeof useKimiAccounts>;
-  pluginAccounts: ReturnType<typeof usePluginToolAccounts>;
-  codeArtsAccounts: ReturnType<typeof useCodeArtsAccounts>;
-  devinAccounts: ReturnType<typeof useDevinAccounts>;
-  openDesignAccounts: ReturnType<typeof useOpenDesignAccounts>;
-  minimaxAccounts: ReturnType<typeof useMinimaxAccounts>;
-  clineAccounts: ReturnType<typeof useClineAccounts>;
-  qoderAccounts: ReturnType<typeof useQoderAccounts>;
-  qoderAccountGroups: Record<'qoder' | 'qodercn', ReturnType<typeof useQoderAccounts>>;
-  dumateAccounts: ReturnType<typeof useDuMateAccounts>;
-  doubaoAccounts: ReturnType<typeof useDoubaoAccounts>;
-  doubaoAccountGroups: Record<'doubaowork' | 'dola', ReturnType<typeof useDoubaoAccounts>>;
-  qwenWorkAccounts: ReturnType<typeof useQwenWorkAccounts>;
-  qwenWorkAccountGroups: Record<'qwenwork' | 'qwenworkcn', ReturnType<typeof useQwenWorkAccounts>>;
-  deepSeekAccounts: ReturnType<typeof useDeepSeekAccounts>;
-  grokAccounts: ReturnType<typeof useGrokAccounts>;
-  kiloAccounts: ReturnType<typeof useKiloAccounts>;
-  copilotAccounts: ReturnType<typeof useCopilotAccounts>;
-  manusAccounts: ReturnType<typeof useGrokAccounts>;
-  cueAccounts: ReturnType<typeof useGrokAccounts>;
-  grokBotAccounts: ReturnType<typeof useCursorAccounts>;
-  cursorAccounts: ReturnType<typeof useCursorAccounts>;
-  antigravityAccounts: ReturnType<typeof useAntigravityAccounts>;
-  codexAccounts: CodexAccount[];
-  selectedCodexAccountId: string | null;
-  setSelectedCodexAccountId: (id: string | null) => void;
-  isLoadingCodexAccounts: boolean;
-  codexAccountsLoaded: boolean;
-  codexAccountsReadFailed: boolean;
-  codexAccountsMutationRevision: number;
-  isAddingCodexAccount: boolean;
-  codexOAuthRemainingSeconds: number;
-  refreshingCodexAccountIds: Set<string>;
-  codexAuthorizationFailedIds: Set<string>;
-  addCodexAccount: () => Promise<void>;
-  cancelCodexLogin: () => void;
-  refreshCodexAccountQuota: ReturnType<typeof useCodexAccounts>['refresh'];
-  deleteCodexAccount: (account: CodexAccount) => Promise<void>;
   selectedToolData: LocalTool | undefined;
   applyError: string | null;
   setApplyError: (v: string | null) => void;

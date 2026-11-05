@@ -1,3 +1,4 @@
+import { useToast } from '../../components/Toast';
 import { useState } from 'react';
 import { X, ChevronDown } from 'lucide-react';
 import { useConfirm } from '../../components/ConfirmDialog';
@@ -21,6 +22,7 @@ export function MotherAgentPanel() {
     parasiteAgent,
   } = useMotherAgent();
   const confirm = useConfirm();
+  const { showToast } = useToast();
   const { t } = useI18n();
 
   // When parasite (Claude Code) is active, server selection is meaningless:
@@ -206,8 +208,8 @@ export function MotherAgentPanel() {
                           try {
                             const encrypted = await api.encryptSecret(sshForm.password);
                             setSSHForm((f) => ({ ...f, password: encrypted }));
-                          } catch {
-                            // stay plaintext on failure
+                          } catch (error) {
+                            showToast('error', String(error));
                           }
                         }
                       }}
@@ -299,20 +301,19 @@ export function MotherAgentPanel() {
                   if (!sshForm.host.trim()) return;
                   const host = sshForm.host.trim();
                   const username = sshForm.username.trim();
-                  // Auto-overwrite: remove existing server with same host + username
+                  // Replace the existing record in one durable write.
                   const existing = sshServers.find(
                     (s) => s.host === host && s.username === username
                   );
-                  if (existing) await removeSSHServer(existing.id);
                   const newServer = {
-                    id: Date.now().toString(),
+                    id: existing?.id ?? Date.now().toString(),
                     host,
                     port: sshForm.port || '22',
                     username,
                     password: sshForm.password,
                     alias: sshForm.alias.trim() || undefined,
                   };
-                  await addSSHServer(newServer);
+                  if (!(await addSSHServer(newServer))) return;
                   setSSHForm({
                     host: '',
                     port: '22',

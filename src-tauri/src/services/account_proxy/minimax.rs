@@ -315,9 +315,9 @@ fn request(credentials: &Value, model: &str, body: &Value) -> Result<Value, Prox
         if tools.iter().any(|tool| {
             tool["type"] != "function"
                 || tool["function"]["strict"] == true
-                || !tool["function"]["name"]
+                || tool["function"]["name"]
                     .as_str()
-                    .is_some_and(|name| !name.trim().is_empty())
+                    .is_none_or(|name| name.trim().is_empty())
         }) {
             return Err(unsupported("tools"));
         }

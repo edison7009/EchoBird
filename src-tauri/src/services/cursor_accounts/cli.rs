@@ -34,7 +34,7 @@ fn native_credentials(config: &Path) -> Result<Option<Credentials>, String> {
 }
 
 fn native_from_values(auth: &Value, config: &Value) -> Result<Option<Credentials>, String> {
-    if auth.get("accessToken").map_or(true, Value::is_null) {
+    if auth.get("accessToken").is_none_or(Value::is_null) {
         return Ok(None);
     }
     let mut login = login_credentials(auth)?;

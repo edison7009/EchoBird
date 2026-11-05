@@ -448,9 +448,8 @@ fn parse_agent_jsonl_checked(
                 .filter(|id| !id.is_empty());
             if !tool_result_only
                 && !synthetic_assistant
-                && identity.map_or(true, |id| {
-                    seen_messages.insert((role.to_string(), id.to_string()))
-                })
+                && identity
+                    .is_none_or(|id| seen_messages.insert((role.to_string(), id.to_string())))
             {
                 message_count += 1;
             }
@@ -1806,7 +1805,7 @@ fn collect_dsh_paths(
                     _ => continue,
                 };
                 let mtime = metadata.modified()?;
-                if selected.as_ref().map_or(true, |(current, time, _)| {
+                if selected.as_ref().is_none_or(|(current, time, _)| {
                     priority > *current || (priority == *current && mtime > *time)
                 }) {
                     selected = Some((priority, mtime, path));
@@ -2437,17 +2436,17 @@ fn message_heatmap_at_checked(
         .duration_since(UNIX_EPOCH)
         .map(|d| d.as_secs() as i64)
         .unwrap_or(0);
-    if selected_family.map_or(true, |family| family == Family::OpenCode) {
+    if selected_family.is_none_or(|family| family == Family::OpenCode) {
         collect_drizzle_heatmap_entries_checked(
             &Family::OpenCode.root(home).join("opencode.db"),
             cutoff_secs,
             &mut out,
         )?;
     }
-    if selected_family.map_or(true, |family| family == Family::MiMo) {
+    if selected_family.is_none_or(|family| family == Family::MiMo) {
         collect_drizzle_heatmap_entries_checked(&mimo_db_path(home), cutoff_secs, &mut out)?;
     }
-    if selected_family.map_or(true, |family| family == Family::Hermes) {
+    if selected_family.is_none_or(|family| family == Family::Hermes) {
         collect_hermes_heatmap_entries_checked(
             &Family::Hermes.root(home).join("state.db"),
             cutoff_secs,

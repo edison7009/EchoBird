@@ -42,10 +42,7 @@ pub async fn fetch_model_directory() -> Value {
     let cache_path = cache_dir.join("model-directory.json");
 
     // 1. Try remote.
-    if let Ok(resp) = reqwest::Client::builder()
-        .timeout(std::time::Duration::from_secs(8))
-        .build()
-        .unwrap_or_default()
+    if let Ok(resp) = super::http_transport::catalog()
         .get(remote_url)
         .header("User-Agent", "Echobird/1.1")
         .send()

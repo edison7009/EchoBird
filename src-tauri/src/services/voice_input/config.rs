@@ -100,11 +100,7 @@ impl Config {
     }
 
     pub fn normalize_selection(&mut self) {
-        if !self
-            .selection_model
-            .as_ref()
-            .is_some_and(|id| !id.is_empty())
-        {
+        if self.selection_model.as_ref().is_none_or(|id| id.is_empty()) {
             self.selection_model = None;
             self.selection_translation_enabled = false;
         }
@@ -167,7 +163,7 @@ impl Config {
             self.island_palette.as_str(),
             "white" | "aurora" | "ocean" | "sunset" | "iris"
         ) || !(70..=150).contains(&self.island_scale)
-            || self.island_scale % 10 != 0
+            || !self.island_scale.is_multiple_of(10)
         {
             return Err("voice.error.config".into());
         }

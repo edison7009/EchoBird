@@ -81,7 +81,7 @@ fn encode_selection(value: &str) -> Vec<u8> {
 fn decode_selection(bytes: &[u8]) -> Result<String, String> {
     match bytes.first() {
         Some(1) => Ok(bytes[1..].iter().map(|b| char::from(*b)).collect()),
-        Some(0) if (bytes.len() - 1) % 2 == 0 => String::from_utf16(
+        Some(0) if (bytes.len() - 1).is_multiple_of(2) => String::from_utf16(
             &bytes[1..]
                 .chunks_exact(2)
                 .map(|c| u16::from_le_bytes([c[0], c[1]]))

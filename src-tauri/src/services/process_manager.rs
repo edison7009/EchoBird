@@ -1,3 +1,6 @@
+#[cfg(any(target_os = "macos", all(test, unix)))]
+mod terminal_handoff;
+
 // Process Manager �?mirrors old processManager.ts
 // Manages tool processes: start/stop CLI & GUI tools, monitor PIDs
 
@@ -802,19 +805,12 @@ impl ProcessManager {
     /// upstream config out-of-band).
     #[cfg(not(windows))]
     fn spawn_in_unix_terminal(
-        tool_id: &str,
+        _tool_id: &str,
         cwd: &std::path::Path,
         full_command: &str,
         env_pairs: &[(String, String)],
         terminal: &str,
     ) -> Result<u32, String> {
-        // `tool_id` only names the macOS launch script; reference it on the
-        // other targets so they don't warn about an unused parameter.
-        #[cfg(not(target_os = "macos"))]
-        let _ = tool_id;
-        #[cfg(all(unix, not(target_os = "linux"), not(target_os = "macos")))]
-        let _ = terminal;
-
         // Linux: find a terminal emulator and run the command through the
         // user's login+interactive shell inside it. `-l -i` sources
         // .bashrc/.zshrc where npm/bun/cargo PATH entries live; separate
@@ -870,15 +866,9 @@ impl ProcessManager {
         // after launch, acceptable since users close the tab themselves.
         #[cfg(target_os = "macos")]
         {
-            use std::os::unix::fs::PermissionsExt;
-
             let cache_dir = dirs::cache_dir()
                 .unwrap_or_else(|| dirs::home_dir().unwrap_or_default().join(".cache"))
                 .join("echobird");
-            std::fs::create_dir_all(&cache_dir)
-                .map_err(|e| format!("Failed to create cache dir: {}", e))?;
-
-            let script_path = cache_dir.join(format!("launch-{}.sh", tool_id));
 
             let mut script = String::from("#!/bin/bash\n");
             for (k, v) in env_pairs {
@@ -899,14 +889,8 @@ impl ProcessManager {
                 shell_single_quote(&via_posix)
             ));
 
-            std::fs::write(&script_path, &script)
-                .map_err(|e| format!("Failed to write launch script: {}", e))?;
-
-            let mut perms = std::fs::metadata(&script_path)
-                .map_err(|e| format!("metadata: {}", e))?
-                .permissions();
-            perms.set_mode(0o755);
-            std::fs::set_permissions(&script_path, perms).map_err(|e| format!("chmod: {}", e))?;
+            let handoff = terminal_handoff::Handoff::create(&cache_dir, &script)?;
+            let script_path = handoff.launcher();
 
             let script_file = script_path.to_string_lossy();
             let run_script = format!("exec sh {}", shell_single_quote(&script_file));
@@ -945,6 +929,7 @@ impl ProcessManager {
             let child = opener
                 .spawn()
                 .map_err(|e| format!("Failed to launch terminal: {}", e))?;
+            handoff.retain();
             Ok(child.id())
         }
 

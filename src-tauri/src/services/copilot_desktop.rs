@@ -26,10 +26,10 @@ fn same_executable(actual: &Path, expected: &Path) -> bool {
 
 #[cfg(any(target_os = "linux", test))]
 fn appimage_process_matches(actual: &Path, expected: &Path, environment: &[u8]) -> bool {
-    if !expected
+    if expected
         .extension()
-        .is_some_and(|extension| extension == "AppImage")
-        || !actual.file_name().is_some_and(|name| name == "github")
+        .is_none_or(|extension| extension != "AppImage")
+        || actual.file_name().is_none_or(|name| name != "github")
         || !actual.to_string_lossy().contains("/.mount_")
     {
         return false;

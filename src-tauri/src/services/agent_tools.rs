@@ -1023,7 +1023,15 @@ fn exec_get_sudo_password(server_id: &str) -> ToolResult {
         };
     }
 
-    let servers = read_servers_from_disk();
+    let servers = match read_servers_from_disk() {
+        Ok(servers) => servers,
+        Err(error) => {
+            return ToolResult {
+                success: false,
+                output: error,
+            }
+        }
+    };
     match servers.iter().find(|s| s.id == server_id) {
         Some(server) => {
             let plain = model_manager::decrypt_key_for_use(&server.password);

@@ -1586,26 +1586,17 @@ async fn detect_tool(pc: &PathsConfig) -> Option<String> {
 
     // 2. Check PATH for command
     if !pc.command.is_empty() {
-        let found_in_path = platform::command_exists(&pc.command).await;
-        if found_in_path {
+        if let Some(path) = platform::get_command_path(&pc.command).await {
             if pc.name == "Cursor CLI" {
-                return platform::get_command_path(&pc.command)
-                    .await
-                    .filter(|path| valid_executable(pc, Path::new(path)));
+                return valid_executable(pc, Path::new(&path)).then_some(path);
             }
-            if pc.require_config_file {
-                if config_file_exists(pc) {
-                    let path = platform::get_command_path(&pc.command).await;
-                    return path.or(Some(pc.command.clone()));
-                }
-                log::info!(
-                    "[{}] Command found in PATH but config file missing",
-                    pc.name
-                );
-            } else {
-                let path = platform::get_command_path(&pc.command).await;
-                return path.or(Some(pc.command.clone()));
+            if !pc.require_config_file || config_file_exists(pc) {
+                return Some(path);
             }
+            log::info!(
+                "[{}] Command found in PATH but config file missing",
+                pc.name
+            );
         }
     }
 

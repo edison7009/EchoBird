@@ -7,17 +7,15 @@ use std::time::Instant;
 use crate::models::model::{ModelConfig, ModelType, PingResult, TestResult};
 use crate::utils::platform::echobird_dir;
 
+#[cfg(test)]
+#[path = "model_manager/persistence_tests.rs"]
+mod persistence_tests;
+
 // ─── Config paths ───
 
 /// Models config file: ~/.echobird/config/models.json
 fn models_config_path() -> std::path::PathBuf {
     echobird_dir().join("config").join("models.json")
-}
-
-/// Ensure ~/.echobird/config/ exists
-fn ensure_config_dir() {
-    let config_dir = echobird_dir().join("config");
-    let _ = fs::create_dir_all(&config_dir);
 }
 
 // ─── User-defined display order ───
@@ -50,13 +48,11 @@ fn load_model_order() -> Vec<String> {
     }
 }
 
-fn save_model_order(ordered_ids: &[String]) {
-    ensure_config_dir();
-    let path = model_order_path();
-    let content = serde_json::to_string_pretty(ordered_ids).unwrap_or_default();
-    if let Err(e) = fs::write(&path, content) {
-        log::error!("[ModelManager] Failed to save model order: {}", e);
-    }
+fn save_model_order(ordered_ids: &[String]) -> Result<(), String> {
+    super::json_store::mutate(&model_order_path(), |saved: &mut Vec<String>| {
+        *saved = ordered_ids.to_vec();
+        Ok(((), true))
+    })
 }
 
 /// Sort models by the persisted user order. Known ids follow the stored rank;
@@ -90,283 +86,41 @@ fn apply_user_order(mut models: Vec<ModelConfig>, order: &[String]) -> Vec<Model
 
 /// Persist a user-defined model display order (the frontend sends every
 /// visible internal_id in the new order). Returns false for an empty payload.
-pub fn reorder_models(ordered_ids: Vec<String>) -> bool {
+pub fn reorder_models(ordered_ids: Vec<String>) -> Result<bool, String> {
     if ordered_ids.is_empty() {
-        return false;
+        return Ok(false);
     }
-    save_model_order(&ordered_ids);
+    save_model_order(&ordered_ids)?;
     log::info!(
         "[ModelManager] Saved model order ({} ids)",
         ordered_ids.len()
     );
-    true
+    Ok(true)
 }
 
 // ─── API Key encryption (AES-256-GCM) ───
 
-const ENCRYPTED_PREFIX: &str = "enc:v1:";
+#[cfg(test)]
+use super::secret_store::{derive_encryption_key, machine_fingerprint_with, ENCRYPTED_PREFIX};
 
-/// Check if a key is already encrypted
 fn is_encrypted(key: &str) -> bool {
-    key.starts_with(ENCRYPTED_PREFIX)
+    key.starts_with("enc:v1:")
+}
+fn decrypt_api_key(key: &str) -> String {
+    super::secret_store::decrypt(key).unwrap_or_default()
 }
 
-/// Get stable machine fingerprint (does NOT change on app upgrade/reinstall)
-/// Windows: HKLM\SOFTWARE\Microsoft\Cryptography\MachineGuid
-/// macOS: IOPlatformUUID via ioreg
-/// Linux: /etc/machine-id
-fn get_machine_fingerprint() -> String {
-    static FINGERPRINT: std::sync::Mutex<Option<String>> = std::sync::Mutex::new(None);
-    machine_fingerprint_with(
-        &FINGERPRINT,
-        probe_machine_fingerprint,
-        fallback_machine_fingerprint,
-    )
+pub fn decrypt_key_for_use(key: &str) -> String {
+    decrypt_api_key(key)
 }
 
-fn machine_fingerprint_with(
-    cache: &std::sync::Mutex<Option<String>>,
-    probe: impl FnOnce() -> Option<String>,
-    fallback: impl FnOnce() -> String,
-) -> String {
-    let mut cached = cache
-        .lock()
-        .unwrap_or_else(|poisoned| poisoned.into_inner());
-    if let Some(fingerprint) = cached.as_ref() {
-        return fingerprint.clone();
-    }
-    if let Some(fingerprint) = probe() {
-        if !fingerprint.is_empty() {
-            *cached = Some(fingerprint.clone());
-        }
-        return fingerprint;
-    }
-    drop(cached);
-    fallback()
-}
-
-fn probe_machine_fingerprint() -> Option<String> {
-    #[cfg(windows)]
-    {
-        if let Ok(output) = crate::utils::process::command("reg")
-            .args([
-                "query",
-                r"HKLM\SOFTWARE\Microsoft\Cryptography",
-                "/v",
-                "MachineGuid",
-            ])
-            .output()
-        {
-            let text = String::from_utf8_lossy(&output.stdout);
-            // Output format: "    MachineGuid    REG_SZ    <guid>"
-            if let Some(line) = text.lines().find(|l| l.contains("MachineGuid")) {
-                if let Some(guid) = line.split_whitespace().last() {
-                    return Some(guid.to_string());
-                }
-            }
-        }
-    }
-
-    #[cfg(target_os = "macos")]
-    {
-        if let Ok(output) = crate::utils::process::command("ioreg")
-            .args(["-rd1", "-c", "IOPlatformExpertDevice"])
-            .output()
-        {
-            let text = String::from_utf8_lossy(&output.stdout);
-            for line in text.lines() {
-                if line.contains("IOPlatformUUID") {
-                    if let Some(uuid) = line.split('"').nth(3) {
-                        return Some(uuid.to_string());
-                    }
-                }
-            }
-        }
-    }
-
-    #[cfg(target_os = "linux")]
-    {
-        if let Ok(id) = std::fs::read_to_string("/etc/machine-id") {
-            let trimmed = id.trim().to_string();
-            if !trimmed.is_empty() {
-                return Some(trimmed);
-            }
-        }
-    }
-
-    None
-}
-
-fn fallback_machine_fingerprint() -> String {
-    // Fallback: hostname via env var
-    std::env::var("COMPUTERNAME")
-        .or_else(|_| std::env::var("HOSTNAME"))
-        .unwrap_or_else(|_| "echobird-fallback".to_string())
-}
-
-/// Get or create the persistent encryption key, derived with machine fingerprint.
-/// Actual AES key = HMAC-SHA256(random_file_key, machine_fingerprint)
-/// This ensures: same machine + same file = works; different machine = self-destruct.
-fn get_encryption_key() -> Result<[u8; 32], String> {
-    let key_path = echobird_dir().join("config").join(".encryption_key");
-
-    let file_key = if key_path.exists() {
-        let data =
-            fs::read(&key_path).map_err(|e| format!("Failed to read encryption key: {}", e))?;
-        if data.len() == 32 {
-            data
-        } else {
-            log::warn!("[ModelManager] Invalid encryption key file, regenerating");
-            generate_key_file(&key_path)?
-        }
-    } else {
-        generate_key_file(&key_path)?
-    };
-
-    // Derive actual key: HMAC-SHA256(file_key, machine_fingerprint + username)
-    let fingerprint = get_machine_fingerprint();
-    let username = std::env::var("USERNAME")
-        .or_else(|_| std::env::var("USER"))
-        .unwrap_or_else(|_| "default".to_string());
-    derive_encryption_key(&file_key, &fingerprint, &username)
-}
-
-fn derive_encryption_key(
-    file_key: &[u8],
-    fingerprint: &str,
-    username: &str,
-) -> Result<[u8; 32], String> {
-    use hmac::Mac;
-    type HmacSha256 = hmac::Hmac<sha2::Sha256>;
-
-    let identity = format!("{}|{}", fingerprint, username);
-
-    let mut mac = <HmacSha256 as Mac>::new_from_slice(file_key)
-        .map_err(|e| format!("HMAC init error: {}", e))?;
-    hmac::Mac::update(&mut mac, identity.as_bytes());
-    let result = mac.finalize().into_bytes();
-
-    let mut derived_key = [0u8; 32];
-    derived_key.copy_from_slice(&result);
-    Ok(derived_key)
-}
-
-fn generate_key_file(key_path: &std::path::Path) -> Result<Vec<u8>, String> {
-    use rand::RngCore;
-    let mut key = vec![0u8; 32];
-    rand::thread_rng().fill_bytes(&mut key);
-
-    ensure_config_dir();
-    fs::write(key_path, &key).map_err(|e| format!("Failed to write encryption key: {}", e))?;
-    log::info!("[ModelManager] Generated new encryption key");
-    Ok(key)
-}
-
-/// Encrypt API key using AES-256-GCM.
-/// Stores "enc:v1:<hex(nonce + ciphertext)>" in models.json.
-fn encrypt_api_key(plain_key: &str) -> String {
-    use aes_gcm::{aead::Aead, Aes256Gcm, KeyInit};
-    use rand::RngCore;
-
-    if plain_key.is_empty() || is_encrypted(plain_key) || plain_key == "local" {
-        return plain_key.to_string();
-    }
-
-    let key_bytes = match get_encryption_key() {
-        Ok(k) => k,
-        Err(e) => {
-            log::error!("[ModelManager] Encryption key error: {}", e);
-            return plain_key.to_string();
-        }
-    };
-
-    let cipher = Aes256Gcm::new((&key_bytes).into());
-
-    // Generate random 12-byte nonce
-    let mut nonce_bytes = [0u8; 12];
-    rand::thread_rng().fill_bytes(&mut nonce_bytes);
-    let nonce = aes_gcm::Nonce::from_slice(&nonce_bytes);
-
-    match cipher.encrypt(nonce, plain_key.as_bytes()) {
-        Ok(ciphertext) => {
-            // Concatenate nonce + ciphertext, encode as hex
-            let mut combined = Vec::with_capacity(12 + ciphertext.len());
-            combined.extend_from_slice(&nonce_bytes);
-            combined.extend_from_slice(&ciphertext);
-            let hex = combined
-                .iter()
-                .map(|b| format!("{:02x}", b))
-                .collect::<String>();
-            log::info!("[ModelManager] API key encrypted successfully");
-            format!("{}{}", ENCRYPTED_PREFIX, hex)
-        }
-        Err(e) => {
-            log::error!("[ModelManager] AES encryption failed: {}", e);
-            plain_key.to_string()
-        }
-    }
-}
-
-/// Decrypt API key using AES-256-GCM.
-fn decrypt_api_key(stored_key: &str) -> String {
-    use aes_gcm::{aead::Aead, Aes256Gcm, KeyInit};
-
-    if stored_key.is_empty() || !is_encrypted(stored_key) {
-        return stored_key.to_string();
-    }
-
-    let hex_data = &stored_key[ENCRYPTED_PREFIX.len()..];
-
-    // Decode hex to bytes
-    let combined: Vec<u8> = match (0..hex_data.len())
-        .step_by(2)
-        .map(|i| u8::from_str_radix(&hex_data[i..i + 2], 16))
-        .collect::<Result<Vec<u8>, _>>()
-    {
-        Ok(bytes) => bytes,
-        Err(e) => {
-            log::error!("[ModelManager] Hex decode failed: {}", e);
-            return String::new();
-        }
-    };
-
-    if combined.len() < 13 {
-        log::error!("[ModelManager] Encrypted data too short");
-        return String::new();
-    }
-
-    let key_bytes = match get_encryption_key() {
-        Ok(k) => k,
-        Err(e) => {
-            log::error!("[ModelManager] Encryption key error: {}", e);
-            return String::new();
-        }
-    };
-
-    let cipher = Aes256Gcm::new((&key_bytes).into());
-    let nonce = aes_gcm::Nonce::from_slice(&combined[..12]);
-    let ciphertext = &combined[12..];
-
-    match cipher.decrypt(nonce, ciphertext) {
-        Ok(plaintext) => String::from_utf8(plaintext).unwrap_or_else(|_| {
-            log::error!("[ModelManager] Decrypted key is not valid UTF-8");
-            String::new()
-        }),
-        Err(e) => {
-            log::error!("[ModelManager] AES decryption failed: {}", e);
-            String::new()
-        }
-    }
-}
-
-/// Get usable plaintext API key (auto-decrypts if needed)
-pub fn decrypt_key_for_use(api_key: &str) -> String {
-    decrypt_api_key(api_key)
-}
-
-/// Encrypt a key/password for storage (public, reused by SSH)
-pub fn encrypt_key_for_storage(plain_key: &str) -> String {
-    encrypt_api_key(plain_key)
+/// Compatibility for native adapters which validate the envelope before saving.
+/// Errors never downgrade to plaintext; new consumers use secret_store::encrypt directly.
+pub fn encrypt_key_for_storage(plain: &str) -> String {
+    super::secret_store::encrypt(plain).unwrap_or_else(|error| {
+        log::error!("[SecretStore] {error}");
+        String::new()
+    })
 }
 
 // ─── Model CRUD ───
@@ -487,43 +241,27 @@ fn persist_initial_router_defaults_at(
 ) -> Result<(), String> {
     let defaults = initial_router_defaults(catalog)?;
     let path = root.join("config").join("models.json");
-    let mut models: Vec<ModelConfig> = match fs::read(&path) {
-        Ok(content) => serde_json::from_slice(&content)
-            .map_err(|error| format!("Failed to parse saved models: {error}"))?,
-        Err(error) if error.kind() == std::io::ErrorKind::NotFound => Vec::new(),
-        Err(error) => return Err(format!("Failed to read saved models: {error}")),
-    };
-    let original_len = models.len();
-    for model in defaults {
-        if !models
-            .iter()
-            .any(|saved| saved.internal_id == model.internal_id)
-        {
-            models.push(model);
+    super::json_store::mutate(&path, |models: &mut Vec<ModelConfig>| {
+        let original_len = models.len();
+        for model in defaults {
+            if !models
+                .iter()
+                .any(|saved| saved.internal_id == model.internal_id)
+            {
+                models.push(model);
+            }
         }
-    }
-    super::free_model_directory::seed_catalog_cache_at(root, catalog)?;
-    if models.len() != original_len {
-        fs::create_dir_all(path.parent().expect("model path has a parent"))
-            .map_err(|error| format!("Failed to create model configuration: {error}"))?;
-        save_updated_models_at(&path, &models)?;
-    }
-    Ok(())
+        super::free_model_directory::seed_catalog_cache_at(root, catalog)?;
+        Ok(((), models.len() != original_len))
+    })
 }
 
 /// Read raw user models from disk
 fn get_raw_user_models() -> Vec<ModelConfig> {
-    let path = models_config_path();
-    if !path.exists() {
-        return Vec::new();
-    }
-    match fs::read_to_string(&path) {
-        Ok(content) => serde_json::from_str(&content).unwrap_or_default(),
-        Err(e) => {
-            log::error!("[ModelManager] Failed to load user models: {}", e);
-            Vec::new()
-        }
-    }
+    super::json_store::read(&models_config_path()).unwrap_or_else(|error| {
+        log::error!("[ModelManager] {error}");
+        Vec::new()
+    })
 }
 
 /// Get user models
@@ -565,7 +303,17 @@ fn get_built_in_models() -> Vec<ModelConfig> {
 
 /// Get all models (local server + user + built-in)
 pub fn get_models() -> Vec<ModelConfig> {
-    let user_models = get_user_models()
+    models_from_user(get_user_models())
+}
+
+pub fn get_models_checked() -> Result<Vec<ModelConfig>, String> {
+    Ok(models_from_user(super::json_store::read(
+        &models_config_path(),
+    )?))
+}
+
+fn models_from_user(models: Vec<ModelConfig>) -> Vec<ModelConfig> {
+    let user_models = models
         .into_iter()
         .filter(|model| model.scope == crate::models::model::ModelScope::ModelCenter)
         .collect::<Vec<_>>();
@@ -628,16 +376,6 @@ fn detect_model_type(url: &str) -> Option<ModelType> {
     }
 }
 
-/// Save user models to disk
-fn save_user_models(models: &[ModelConfig]) {
-    ensure_config_dir();
-    let path = models_config_path();
-    let content = serde_json::to_string_pretty(models).unwrap_or_default();
-    if let Err(e) = fs::write(&path, content) {
-        log::error!("[ModelManager] Failed to save models: {}", e);
-    }
-}
-
 /// Add a new model
 #[derive(Debug, Default, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -658,18 +396,16 @@ pub struct AddModelInput {
     pub scope: crate::models::model::ModelScope,
 }
 
-pub fn add_model(input: AddModelInput) -> ModelConfig {
-    let mut models = get_user_models();
-    let new_model = new_model_from(input, generate_internal_id());
+pub fn add_model(input: AddModelInput) -> Result<ModelConfig, String> {
+    add_model_at(&models_config_path(), input)
+}
 
-    log::info!(
-        "[ModelManager] Added model: {} ({})",
-        new_model.name,
-        new_model.internal_id
-    );
-    models.push(new_model.clone());
-    save_user_models(&models);
-    new_model
+fn add_model_at(path: &std::path::Path, input: AddModelInput) -> Result<ModelConfig, String> {
+    super::json_store::mutate(path, |models: &mut Vec<ModelConfig>| {
+        let model = new_model_from(input, generate_internal_id());
+        models.push(model.clone());
+        Ok((model, true))
+    })
 }
 
 fn new_model_from(input: AddModelInput, internal_id: String) -> ModelConfig {
@@ -709,18 +445,17 @@ fn new_model_from(input: AddModelInput, internal_id: String) -> ModelConfig {
 }
 
 /// Delete a user model by internal ID
-pub fn delete_model(internal_id: &str) -> bool {
-    let mut models = get_user_models();
-    let original_len = models.len();
-    models.retain(|m| m.internal_id != internal_id);
+pub fn delete_model(internal_id: &str) -> Result<bool, String> {
+    delete_model_at(&models_config_path(), internal_id)
+}
 
-    if models.len() == original_len {
-        return false; // Not found
-    }
-
-    save_user_models(&models);
-    log::info!("[ModelManager] Deleted model: {}", internal_id);
-    true
+fn delete_model_at(path: &std::path::Path, internal_id: &str) -> Result<bool, String> {
+    super::json_store::mutate(path, |models: &mut Vec<ModelConfig>| {
+        let before = models.len();
+        models.retain(|m| m.internal_id != internal_id);
+        let changed = before != models.len();
+        Ok((changed, changed))
+    })
 }
 
 /// Update model fields
@@ -761,48 +496,21 @@ fn update_model_at(
     internal_id: &str,
     updates: UpdateModelInput,
 ) -> Result<Option<ModelConfig>, String> {
-    let content = match fs::read(path) {
-        Ok(content) => content,
-        Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(None),
-        Err(error) => return Err(format!("Failed to read models: {error}")),
-    };
-    let mut models: Vec<ModelConfig> = serde_json::from_slice(&content)
-        .map_err(|error| format!("Failed to parse models: {error}"))?;
-    let Some(index) = models.iter().position(|m| m.internal_id == internal_id) else {
-        return Ok(None);
-    };
-    apply_model_updates(&mut models[index], updates);
-
-    let updated = models[index].clone();
-    save_updated_models_at(path, &models)?;
-    log::info!("[ModelManager] Updated model: {}", internal_id);
-    Ok(Some(updated))
+    super::json_store::mutate(path, |models: &mut Vec<ModelConfig>| {
+        let Some(model) = models.iter_mut().find(|m| m.internal_id == internal_id) else {
+            return Ok((None, false));
+        };
+        apply_model_updates(model, updates);
+        Ok((Some(model.clone()), true))
+    })
 }
 
+#[cfg(test)]
 fn save_updated_models_at(path: &std::path::Path, models: &[ModelConfig]) -> Result<(), String> {
-    use std::io::Write;
-
-    let content = serde_json::to_vec_pretty(models)
-        .map_err(|error| format!("Failed to serialize models: {error}"))?;
-    let temporary = path.with_extension(format!("{}.tmp", uuid::Uuid::new_v4()));
-    let result = (|| {
-        let mut options = fs::OpenOptions::new();
-        options.write(true).create_new(true);
-        #[cfg(unix)]
-        {
-            use std::os::unix::fs::OpenOptionsExt;
-            options.mode(0o600);
-        }
-        let mut file = options.open(&temporary)?;
-        file.write_all(&content)?;
-        file.sync_all()?;
-        drop(file);
-        fs::rename(&temporary, path)
-    })();
-    if result.is_err() {
-        let _ = fs::remove_file(temporary);
-    }
-    result.map_err(|error| format!("Failed to save models: {error}"))
+    super::json_store::mutate(path, |saved: &mut Vec<ModelConfig>| {
+        *saved = models.to_vec();
+        Ok(((), true))
+    })
 }
 
 fn apply_model_updates(model: &mut ModelConfig, updates: UpdateModelInput) {
@@ -1510,7 +1218,12 @@ mod tests {
         persist_initial_router_defaults_at(&directory.0, &catalog).unwrap();
         assert_eq!(fs::read(&path).unwrap(), saved_models);
         assert_eq!(fs::read(cache_path).unwrap(), saved_catalog);
-        assert_eq!(fs::read_dir(path.parent().unwrap()).unwrap().count(), 1);
+        let mut files: Vec<_> = fs::read_dir(path.parent().unwrap())
+            .unwrap()
+            .map(|entry| entry.unwrap().file_name())
+            .collect();
+        files.sort();
+        assert_eq!(files, ["models.json", "models.json.write-lock"]);
     }
 
     #[test]
@@ -1680,7 +1393,7 @@ mod tests {
         }
         assert_eq!(
             fs::read_dir(fixture.0.parent().unwrap()).unwrap().count(),
-            1
+            2
         );
     }
 
@@ -1702,11 +1415,11 @@ mod tests {
             ..Default::default()
         };
         let error = update_model_at(&fixture.0, "saved", update()).unwrap_err();
-        assert!(error.starts_with("Failed to save models:"));
+        assert!(error.starts_with("Cannot save configuration"));
         assert_eq!(fs::read(&fixture.0).unwrap(), previous);
         assert_eq!(
             fs::read_dir(fixture.0.parent().unwrap()).unwrap().count(),
-            1
+            2
         );
 
         drop(lock);
@@ -1748,7 +1461,7 @@ mod tests {
             },
         )
         .unwrap_err();
-        assert!(error.starts_with("Failed to parse models:"));
+        assert!(error.starts_with("Invalid configuration"));
         assert_eq!(fs::read(&fixture.0).unwrap(), previous);
     }
 

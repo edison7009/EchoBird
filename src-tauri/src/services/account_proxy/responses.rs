@@ -70,7 +70,7 @@ pub(super) fn repaired_chat_messages(body: &Value) -> Vec<Value> {
         } else {
             let calls = message["tool_calls"].as_array();
             if message["role"] != "assistant"
-                || calls.map_or(true, Vec::is_empty)
+                || calls.is_none_or(Vec::is_empty)
                 || round.has_results
             {
                 finish_tool_round(&mut round, &mut output, false);
@@ -605,7 +605,7 @@ impl Encoder {
                 };
                 if self.output[index]["summary"]
                     .as_array()
-                    .map_or(true, |summary| summary.is_empty())
+                    .is_none_or(|summary| summary.is_empty())
                 {
                     let part = json!({"type":"summary_text","text":""});
                     self.output[index]["summary"] = json!([part]);

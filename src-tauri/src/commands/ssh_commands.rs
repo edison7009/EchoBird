@@ -39,31 +39,10 @@ fn ssh_config_path() -> std::path::PathBuf {
         .join("ssh_servers.json")
 }
 
-fn ensure_config_dir() {
-    let dir = crate::utils::platform::echobird_dir().join("config");
-    let _ = std::fs::create_dir_all(&dir);
-}
+mod storage;
 
-pub fn read_servers_from_disk() -> Vec<SSHServer> {
-    let path = ssh_config_path();
-    if !path.exists() {
-        return Vec::new();
-    }
-    match std::fs::read_to_string(&path) {
-        Ok(content) => serde_json::from_str(&content).unwrap_or_default(),
-        Err(e) => {
-            log::error!("[SSH] Failed to read ssh_servers.json: {}", e);
-            Vec::new()
-        }
-    }
-}
-
-fn write_servers_to_disk(servers: &[SSHServer]) {
-    ensure_config_dir();
-    let content = serde_json::to_string_pretty(servers).unwrap_or_default();
-    if let Err(e) = std::fs::write(ssh_config_path(), content) {
-        log::error!("[SSH] Failed to write ssh_servers.json: {}", e);
-    }
+pub fn read_servers_from_disk() -> Result<Vec<SSHServer>, String> {
+    crate::services::json_store::read(&ssh_config_path())
 }
 
 // ── Persistence Commands ──
@@ -71,7 +50,7 @@ fn write_servers_to_disk(servers: &[SSHServer]) {
 /// Load all saved SSH servers (passwords remain encrypted, not exposed)
 #[tauri::command]
 pub async fn load_ssh_servers() -> Result<Vec<SSHServer>, String> {
-    let servers = read_servers_from_disk();
+    let servers = read_servers_from_disk()?;
     log::info!("[SSH] Loaded {} saved servers", servers.len());
     Ok(servers)
 }
@@ -86,47 +65,23 @@ pub async fn save_ssh_server(
     password: String,
     alias: Option<String>,
 ) -> Result<SSHServer, String> {
-    let mut servers = read_servers_from_disk();
-
-    // On upsert: preserve existing alias if none provided
-    let existing_alias = servers
-        .iter()
-        .find(|s| s.id == id)
-        .and_then(|s| s.alias.clone());
-
-    let server = SSHServer {
-        id: id.clone(),
-        host,
-        port,
-        username,
-        password,
-        alias: alias.filter(|a| !a.is_empty()).or(existing_alias),
-    };
-
-    // Upsert: replace if exists, add if new
-    if let Some(idx) = servers.iter().position(|s| s.id == id) {
-        servers[idx] = server.clone();
-    } else {
-        servers.push(server.clone());
-    }
-
-    write_servers_to_disk(&servers);
-    log::info!("[SSH] Saved server: {}", id);
-    Ok(server)
+    storage::upsert(
+        &ssh_config_path(),
+        SSHServer {
+            id,
+            host,
+            port,
+            username,
+            password,
+            alias,
+        },
+    )
 }
 
 /// Remove a saved SSH server
 #[tauri::command]
 pub async fn remove_ssh_server(id: String) -> Result<bool, String> {
-    let mut servers = read_servers_from_disk();
-    let before = servers.len();
-    servers.retain(|s| s.id != id);
-    if servers.len() == before {
-        return Ok(false);
-    }
-    write_servers_to_disk(&servers);
-    log::info!("[SSH] Removed server: {}", id);
-    Ok(true)
+    storage::remove(&ssh_config_path(), &id)
 }
 
 // ── Connection Commands ──
@@ -163,7 +118,7 @@ pub async fn auto_connect_ssh(pool: &SSHPool, server_id: &str) -> Result<(), Str
     }
 
     // Load credentials from disk
-    let servers = read_servers_from_disk();
+    let servers = read_servers_from_disk()?;
     let server = servers
         .iter()
         .find(|s| s.id == server_id)

@@ -449,12 +449,7 @@ pub async fn request(
         return Err("Account operation is not declared by this plugin".into());
     }
     let worker = worker(&plugin, application).await?;
-    let client = reqwest::Client::builder()
-        .no_proxy()
-        .redirect(reqwest::redirect::Policy::none())
-        .timeout(Duration::from_secs(120))
-        .build()
-        .map_err(|e| e.to_string())?;
+    let client = super::http_transport::local_worker()?;
     tokio::select! {
         biased;
         _=generation.cancelled()=>Err("Developer preview is paused".into()),

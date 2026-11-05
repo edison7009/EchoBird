@@ -240,10 +240,10 @@ fn load_config_unlocked() -> Result<StoredConfig, String> {
     }
 
     if config.api_key.trim().is_empty() {
-        config.api_key = model_manager::encrypt_key_for_storage(&generate_api_key());
+        config.api_key = super::secret_store::encrypt(&generate_api_key())?;
         save_config_unlocked(&config)?;
     } else if !config.api_key.is_empty() && !config.api_key.starts_with("enc:v1:") {
-        config.api_key = model_manager::encrypt_key_for_storage(&config.api_key);
+        config.api_key = super::secret_store::encrypt(&config.api_key)?;
         save_config_unlocked(&config)?;
     }
 
@@ -447,7 +447,7 @@ pub fn remove_candidate(internal_id: &str) -> Result<PublicConfig, String> {
     let config = set_candidate_ids(remaining)?;
     if delete_owned_model
         && !profiles::candidate_used_elsewhere(internal_id)
-        && !model_manager::delete_model(internal_id)
+        && !model_manager::delete_model(internal_id)?
     {
         return Err(format!("Smart Router candidate not found: {internal_id}"));
     }
@@ -458,7 +458,7 @@ fn remove_account_candidates_at(
     path: &Path,
     models: &[ModelConfig],
     source: &crate::models::model::AccountSource,
-    mut delete_model: impl FnMut(&str),
+    mut delete_model: impl FnMut(&str) -> Result<(), String>,
 ) -> Result<Option<Vec<String>>, String> {
     let content = match fs::read(path) {
         Ok(content) => content,
@@ -485,7 +485,7 @@ fn remove_account_candidates_at(
     save_config_at(path, &config)?;
     for model in models {
         if removed.contains(model.internal_id.as_str()) && router_owns_model(model) {
-            delete_model(&model.internal_id);
+            delete_model(&model.internal_id)?;
         }
     }
     Ok(Some(config.candidate_ids))
@@ -502,7 +502,7 @@ pub(crate) fn remove_account_candidates(
         profiles::with(&id, || -> Result<(), String> {
             if let Some(remaining) =
                 remove_account_candidates_at(&config_path(), &models, source, |id| {
-                    model_manager::delete_model(id);
+                    model_manager::delete_model(id).map(|_| ())
                 })?
             {
                 server::retain_candidate_memory(&remaining);

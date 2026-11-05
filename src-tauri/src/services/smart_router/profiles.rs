@@ -358,9 +358,9 @@ pub async fn save(settings: Settings) -> Result<PublicConfig, String> {
         } else {
             None
         };
-        let changed_port = previous.as_ref().map_or(true, |c| {
-            c.port.unwrap_or(SMART_ROUTER_PORT) != settings.port
-        });
+        let changed_port = previous
+            .as_ref()
+            .is_none_or(|c| c.port.unwrap_or(SMART_ROUTER_PORT) != settings.port);
         // Validate the port before changing the file or stopping a listener.
         let listener = if changed_port || !servers.contains_key(&id) {
             let listener = std::net::TcpListener::bind(("127.0.0.1", settings.port))
@@ -374,7 +374,7 @@ pub async fn save(settings: Settings) -> Result<PublicConfig, String> {
         config.name = settings.name.trim().into();
         config.model_id = settings.model_id.trim().into();
         config.port = Some(settings.port);
-        config.api_key = model_manager::encrypt_key_for_storage(&settings.api_key);
+        config.api_key = crate::services::secret_store::encrypt(&settings.api_key)?;
         if model_manager::decrypt_key_for_use(&config.api_key) != settings.api_key {
             return Err("Smart router API key could not be encrypted".into());
         }

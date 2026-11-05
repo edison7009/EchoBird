@@ -1803,15 +1803,24 @@
             "category": "application",
             "categories": ["application", "account"],
             "tools": [
-              { "id": "commandcode", "directory": "tools/commandcode" },
-              { "id": "commandcodecli", "directory": "tools/commandcodecli" }
+              {
+                "id": "commandcode",
+                "directory": "tools/commandcode"
+              },
+              {
+                "id": "commandcodecli",
+                "directory": "tools/commandcodecli"
+              }
             ],
             "echobird": {
               "manifestVersion": 1,
               "apiVersion": "0.1-draft",
               "platforms": ["windows", "macos", "linux"],
               "permissions": ["account.code"],
-              "worker": { "runtime": "node", "entry": "service.mjs" },
+              "worker": {
+                "runtime": "node",
+                "entry": "service.mjs"
+              },
               "contributes": {
                 "pages": [],
                 "providers": [
@@ -1857,15 +1866,24 @@
             "category": "application",
             "categories": ["application", "account"],
             "tools": [
-              { "id": "commandcode", "directory": "tools/commandcode" },
-              { "id": "commandcodecli", "directory": "tools/commandcodecli" }
+              {
+                "id": "commandcode",
+                "directory": "tools/commandcode"
+              },
+              {
+                "id": "commandcodecli",
+                "directory": "tools/commandcodecli"
+              }
             ],
             "echobird": {
               "manifestVersion": 1,
               "apiVersion": "0.1-draft",
               "platforms": ["windows", "macos", "linux"],
               "permissions": ["account.code"],
-              "worker": { "runtime": "node", "entry": "service.mjs" },
+              "worker": {
+                "runtime": "node",
+                "entry": "service.mjs"
+              },
               "contributes": {
                 "pages": [],
                 "providers": [
@@ -1911,15 +1929,24 @@
             "category": "application",
             "categories": ["application", "account"],
             "tools": [
-              { "id": "commandcode", "directory": "tools/commandcode" },
-              { "id": "commandcodecli", "directory": "tools/commandcodecli" }
+              {
+                "id": "commandcode",
+                "directory": "tools/commandcode"
+              },
+              {
+                "id": "commandcodecli",
+                "directory": "tools/commandcodecli"
+              }
             ],
             "echobird": {
               "manifestVersion": 1,
               "apiVersion": "0.1-draft",
               "platforms": ["windows", "macos", "linux"],
               "permissions": ["account.code"],
-              "worker": { "runtime": "node", "entry": "service.mjs" },
+              "worker": {
+                "runtime": "node",
+                "entry": "service.mjs"
+              },
               "contributes": {
                 "pages": [],
                 "providers": [
@@ -1965,15 +1992,24 @@
             "category": "application",
             "categories": ["application", "account"],
             "tools": [
-              { "id": "commandcode", "directory": "tools/commandcode" },
-              { "id": "commandcodecli", "directory": "tools/commandcodecli" }
+              {
+                "id": "commandcode",
+                "directory": "tools/commandcode"
+              },
+              {
+                "id": "commandcodecli",
+                "directory": "tools/commandcodecli"
+              }
             ],
             "echobird": {
               "manifestVersion": 1,
               "apiVersion": "0.1-draft",
               "platforms": ["windows", "macos", "linux"],
               "permissions": ["account.code"],
-              "worker": { "runtime": "node", "entry": "service.mjs" },
+              "worker": {
+                "runtime": "node",
+                "entry": "service.mjs"
+              },
               "contributes": {
                 "pages": [],
                 "providers": [
@@ -2019,15 +2055,24 @@
             "category": "application",
             "categories": ["application", "account"],
             "tools": [
-              { "id": "commandcode", "directory": "tools/commandcode" },
-              { "id": "commandcodecli", "directory": "tools/commandcodecli" }
+              {
+                "id": "commandcode",
+                "directory": "tools/commandcode"
+              },
+              {
+                "id": "commandcodecli",
+                "directory": "tools/commandcodecli"
+              }
             ],
             "echobird": {
               "manifestVersion": 1,
               "apiVersion": "0.1-draft",
               "platforms": ["windows", "macos", "linux"],
               "permissions": ["account.code"],
-              "worker": { "runtime": "node", "entry": "service.mjs" },
+              "worker": {
+                "runtime": "node",
+                "entry": "service.mjs"
+              },
               "contributes": {
                 "pages": [],
                 "providers": [
@@ -2073,15 +2118,24 @@
             "category": "application",
             "categories": ["application", "account"],
             "tools": [
-              { "id": "commandcode", "directory": "tools/commandcode" },
-              { "id": "commandcodecli", "directory": "tools/commandcodecli" }
+              {
+                "id": "commandcode",
+                "directory": "tools/commandcode"
+              },
+              {
+                "id": "commandcodecli",
+                "directory": "tools/commandcodecli"
+              }
             ],
             "echobird": {
               "manifestVersion": 1,
               "apiVersion": "0.1-draft",
               "platforms": ["windows", "macos", "linux"],
               "permissions": ["account.code"],
-              "worker": { "runtime": "node", "entry": "service.mjs" },
+              "worker": {
+                "runtime": "node",
+                "entry": "service.mjs"
+              },
               "contributes": {
                 "pages": [],
                 "providers": [
@@ -2126,13 +2180,21 @@
             "icon": "icon.svg",
             "category": "application",
             "categories": ["application", "account"],
-            "tools": [{ "id": "commandcode", "directory": "tools/commandcode" }],
+            "tools": [
+              {
+                "id": "commandcode",
+                "directory": "tools/commandcode"
+              }
+            ],
             "echobird": {
               "manifestVersion": 1,
               "apiVersion": "0.1-draft",
               "platforms": ["windows", "macos", "linux"],
               "permissions": ["account.code"],
-              "worker": { "runtime": "node", "entry": "service.mjs" },
+              "worker": {
+                "runtime": "node",
+                "entry": "service.mjs"
+              },
               "contributes": {
                 "pages": [],
                 "providers": [
@@ -2177,13 +2239,21 @@
             "icon": "icon.png",
             "category": "application",
             "categories": ["application", "account"],
-            "tools": [{ "id": "commandcode", "directory": "tools/commandcode" }],
+            "tools": [
+              {
+                "id": "commandcode",
+                "directory": "tools/commandcode"
+              }
+            ],
             "echobird": {
               "manifestVersion": 1,
               "apiVersion": "0.1-draft",
               "platforms": ["windows", "macos", "linux"],
               "permissions": ["account.code"],
-              "worker": { "runtime": "node", "entry": "service.mjs" },
+              "worker": {
+                "runtime": "node",
+                "entry": "service.mjs"
+              },
               "contributes": {
                 "pages": [],
                 "providers": [
@@ -6316,7 +6386,12 @@
                     "default": ""
                   }
                 ],
-                "commands": [{ "id": "format", "title": "Format text" }],
+                "commands": [
+                  {
+                    "id": "format",
+                    "title": "Format text"
+                  }
+                ],
                 "textProcessors": [
                   {
                     "id": "clean-output",

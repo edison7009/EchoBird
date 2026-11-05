@@ -13,7 +13,7 @@ fn points(value: &Value) -> bool {
 }
 
 fn panel(value: &Value, now: i64) -> Result<Eligibility, String> {
-    if !value["scene"].as_u64().is_some_and(|scene| scene <= 4) {
+    if value["scene"].as_u64().is_none_or(|scene| scene > 4) {
         return Err("accountError.format".into());
     }
     let days = value["days"]
@@ -106,7 +106,7 @@ pub(super) async fn status(
 }
 
 fn receipt(value: &Value, day_no: u8, now: i64) -> Result<DailyReward, String> {
-    if !value["claim_id"].as_str().is_some_and(|id| !id.is_empty())
+    if value["claim_id"].as_str().is_none_or(|id| id.is_empty())
         || !matches!(value["claim_result"].as_u64(), Some(1 | 2))
         || value["day_no"].as_u64() != Some(u64::from(day_no))
         || !(1..=7).contains(&day_no)

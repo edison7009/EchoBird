@@ -57,8 +57,7 @@ export function RouterTerminal() {
     useProtectionStore.setState({ pending: true, saveError: false });
     setSettingError(false);
     try {
-      const settings = await api.getSettings();
-      await api.saveSettings({ ...settings, sensitiveInfoProtection: value });
+      await api.saveSettings({ sensitiveInfoProtection: value });
       useProtectionStore.getState().publish(value);
     } catch {
       useProtectionStore.setState({ saveError: true });

@@ -129,11 +129,7 @@ fn active_user_id_at(
         .ok_or("Sign in to Qoder before configuring its model")?;
     let plain = electron_storage::decrypt_bytes(cipher, &bytes)?;
     let auth: Value = serde_json::from_slice(&plain).map_err(|_| "accountError.format")?;
-    if auth["schemaVersion"] != 1
-        || !auth["token"]
-            .as_str()
-            .is_some_and(|token| !token.is_empty())
-    {
+    if auth["schemaVersion"] != 1 || auth["token"].as_str().is_none_or(|token| token.is_empty()) {
         return Err("accountError.format".into());
     }
     auth["user"]["id"]

@@ -90,14 +90,11 @@ fn read_settings(path: &std::path::Path) -> AppSettings {
 
 /// Write app settings to ~/.echobird/settings.json
 #[tauri::command]
-pub async fn save_settings(mut settings: AppSettings, app: tauri::AppHandle) -> Result<(), String> {
-    preserve_protection_setting(&settings_path(), &mut settings)?;
-    let dir = echobird_dir();
-    if !dir.exists() {
-        std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
-    }
-    let json = serde_json::to_string_pretty(&settings).map_err(|e| e.to_string())?;
-    std::fs::write(settings_path(), json).map_err(|e| e.to_string())?;
+pub async fn save_settings(
+    settings: serde_json::Value,
+    app: tauri::AppHandle,
+) -> Result<(), String> {
+    let settings = patch_settings_at(&settings_path(), settings)?;
     if settings.local_llm_enabled == Some(false) {
         crate::services::local_llm::server::stop_server_if_running().await?;
     }
@@ -117,6 +114,37 @@ pub async fn save_settings(mut settings: AppSettings, app: tauri::AppHandle) -> 
     Ok(())
 }
 
+fn patch_settings_at(
+    path: &std::path::Path,
+    patch: serde_json::Value,
+) -> Result<AppSettings, String> {
+    let patch = patch.as_object().ok_or("Invalid settings patch")?;
+    for key in [
+        "developerMode",
+        "aiNewsEnabled",
+        "aiCareerEnabled",
+        "localLlmEnabled",
+        "sensitiveInfoProtection",
+    ] {
+        if patch.get(key).is_some_and(|value| !value.is_boolean()) {
+            return Err("Invalid settings flag".into());
+        }
+    }
+    crate::services::json_store::mutate(path, |saved: &mut serde_json::Value| {
+        if saved.is_null() {
+            *saved = serde_json::to_value(read_settings(path)).map_err(|e| e.to_string())?;
+        }
+        let object = saved.as_object_mut().ok_or("Invalid saved settings")?;
+        for (key, value) in patch {
+            object.insert(key.clone(), value.clone());
+        }
+        let settings: AppSettings =
+            serde_json::from_value(saved.clone()).map_err(|_| "Invalid settings")?;
+        Ok((settings, true))
+    })
+}
+
+#[cfg(test)]
 fn preserve_protection_setting(
     path: &std::path::Path,
     settings: &mut AppSettings,
@@ -187,6 +215,42 @@ pub fn get_avatar() -> Option<String> {
 #[cfg(test)]
 mod tests {
     use super::read_settings;
+
+    #[test]
+    fn field_patches_are_atomic_preserve_unknowns_and_clear_system_theme_explicitly() {
+        let root = std::env::temp_dir().join(format!("echobird-settings-{}", uuid::Uuid::new_v4()));
+        std::fs::create_dir_all(&root).unwrap();
+        let path = root.join("settings.json");
+        std::fs::write(&path, r#"{"themeMode":"dark","future":{"keep":true}}"#).unwrap();
+        let first = path.clone();
+        let a = std::thread::spawn(move || {
+            super::patch_settings_at(&first, serde_json::json!({"locale":"ja"})).unwrap()
+        });
+        let second = path.clone();
+        let b = std::thread::spawn(move || {
+            super::patch_settings_at(&second, serde_json::json!({"aiNewsEnabled":false})).unwrap()
+        });
+        a.join().unwrap();
+        b.join().unwrap();
+        super::patch_settings_at(&path, serde_json::json!({"themeMode":null})).unwrap();
+        let saved: serde_json::Value =
+            serde_json::from_slice(&std::fs::read(&path).unwrap()).unwrap();
+        assert_eq!(saved["locale"], "ja");
+        assert_eq!(saved["aiNewsEnabled"], false);
+        assert_eq!(saved["future"]["keep"], true);
+        assert!(saved["themeMode"].is_null());
+        let bytes = std::fs::read(&path).unwrap();
+        assert!(super::patch_settings_at(
+            &path,
+            serde_json::json!({"sensitiveInfoProtection":null})
+        )
+        .is_err());
+        assert_eq!(std::fs::read(&path).unwrap(), bytes);
+        std::fs::write(&path, "broken").unwrap();
+        assert!(super::patch_settings_at(&path, serde_json::json!({"locale":"en"})).is_err());
+        assert_eq!(std::fs::read(&path).unwrap(), b"broken");
+        std::fs::remove_dir_all(root).unwrap();
+    }
 
     #[test]
     fn optional_page_preferences_round_trip_and_other_updates_preserve_disabled_choices() {

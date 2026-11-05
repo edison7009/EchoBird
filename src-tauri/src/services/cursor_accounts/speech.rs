@@ -103,9 +103,7 @@ pub(crate) fn should_rotate(
 ) -> Result<bool, String> {
     let expiry = claims(token)?["exp"].as_i64();
     Ok(force
-        || expiry.map_or(true, |expiry| {
-            expiry <= chrono::Utc::now().timestamp() + 300
-        })
+        || expiry.is_none_or(|expiry| expiry <= chrono::Utc::now().timestamp() + 300)
         || rejected.is_some_and(|value| value["accessToken"].as_str() == Some(token)))
 }
 

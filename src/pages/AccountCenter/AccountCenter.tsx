@@ -17,7 +17,7 @@ import {
   arrayMove,
 } from '@dnd-kit/sortable';
 import { Gift, GripVertical, LoaderCircle, RefreshCw, Users } from 'lucide-react';
-import { useAppManager } from '../AppManager/context';
+import { useAccounts } from '../../features/accounts/context';
 import {
   AccountSectionActions,
   AccountSectionRewardButton,
@@ -300,7 +300,7 @@ export function AccountCard({
 }
 
 export function AccountCenterMain() {
-  const context = useAppManager();
+  const context = useAccounts();
   const hidden = useAccountPrivacyStore((state) => state.hidden);
   const { t, locale } = useI18n();
   const activePage = useNavigationStore((state) => state.activePage);
@@ -424,7 +424,7 @@ export function AccountCenterMain() {
 }
 
 export function AccountCenterTitleActions() {
-  const context = useAppManager();
+  const context = useAccounts();
   const { t, locale } = useI18n();
   const activePage = useNavigationStore((state) => state.activePage);
   const rewardBatchRunning = useRewardClaimStore((state) => state.running);
@@ -562,7 +562,7 @@ export function AccountCenterTitleActions() {
 }
 
 export function AccountCenterPanel() {
-  const context = useAppManager();
+  const context = useAccounts();
   const { t, locale } = useI18n();
   const providers = accountCenterProviders(context, t, locale).sort(
     (a, b) => Number(b.installed) - Number(a.installed)

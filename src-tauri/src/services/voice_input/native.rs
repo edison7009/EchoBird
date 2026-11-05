@@ -65,9 +65,7 @@ impl InputTarget {
     pub fn matches(self, current: Option<Self>) -> bool {
         current.is_some_and(|current| {
             self.window == current.window
-                && self
-                    .focus
-                    .map_or(true, |focus| current.focus == Some(focus))
+                && self.focus.is_none_or(|focus| current.focus == Some(focus))
         })
     }
 }

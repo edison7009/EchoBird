@@ -57,7 +57,7 @@ pub(super) fn validate(body: &Value) -> Result<(), ProxyError> {
             "stream_options"
                 if value.as_object().is_some_and(|options| {
                     options.keys().all(|key| key == "include_usage")
-                        && options.get("include_usage").map_or(true, Value::is_boolean)
+                        && options.get("include_usage").is_none_or(Value::is_boolean)
                 }) => {}
             "stop" if value.as_array().is_some_and(Vec::is_empty) => (),
             key if key.starts_with("_echobird_") => (),
@@ -68,9 +68,9 @@ pub(super) fn validate(body: &Value) -> Result<(), ProxyError> {
             }
         }
     }
-    if !body["messages"]
+    if body["messages"]
         .as_array()
-        .is_some_and(|messages| !messages.is_empty())
+        .is_none_or(|messages| messages.is_empty())
     {
         return Err(unsupported("Chat messages must be a nonempty array"));
     }
@@ -344,10 +344,7 @@ pub(super) fn build(
             return Err(unsupported("Unsupported Chat message role"));
         }
         let assistant = role == "assistant";
-        if turns
-            .last()
-            .map_or(true, |turn| turn.assistant != assistant)
-        {
+        if turns.last().is_none_or(|turn| turn.assistant != assistant) {
             turns.push(Turn {
                 assistant,
                 ..Turn::default()

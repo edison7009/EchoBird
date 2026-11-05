@@ -364,7 +364,7 @@ fn invalidate_matching(path: Option<&Path>) {
                 let Some(standby) = entry.upgrade() else {
                     return false;
                 };
-                if path.map_or(true, |path| path == key) {
+                if path.is_none_or(|path| path == key) {
                     standbys.push(standby);
                 }
                 true

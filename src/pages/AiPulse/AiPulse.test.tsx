@@ -22,7 +22,7 @@ const news = (id: string, title: string, day = '14'): NewsItem => ({
   title,
   source: 'AI Lab',
   url: `https://example.com/${id}`,
-  published_at: `2026-10-${day}T02:00:00Z`,
+  published_at: new Date(2026, 9, Number(day), 12).toISOString(),
 });
 const chinese = news('zh', '中文 AI 资讯');
 const english = news('en', 'Global AI news');
@@ -71,7 +71,7 @@ function deferred<T>() {
 beforeEach(() => {
   vi.clearAllMocks();
   vi.useFakeTimers();
-  vi.setSystemTime(new Date('2026-10-14T08:00:00Z'));
+  vi.setSystemTime(new Date(2026, 9, 14, 15));
   locale = 'zh-Hans';
   archive = { zh: [chinese, older, project], en: [english] };
   storage = new Map(

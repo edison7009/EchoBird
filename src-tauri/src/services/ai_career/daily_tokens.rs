@@ -343,7 +343,7 @@ impl CodexUsage {
                 });
             if self
                 .previous_owned_checkpoint
-                .map_or(true, |(before, _)| ordinal > before)
+                .is_none_or(|(before, _)| ordinal > before)
             {
                 self.previous_owned_checkpoint = Some((ordinal, total));
             }
@@ -886,7 +886,7 @@ fn daily_tokens_at_checked(
             }
             if let Some(id) = sample.id {
                 let key = format!("{}:{id}", family.as_id());
-                let replace = calls.get(&key).map_or(true, |existing| {
+                let replace = calls.get(&key).is_none_or(|existing| {
                     if family == Family::Claude {
                         sample.entry.ts >= existing.ts
                     } else {

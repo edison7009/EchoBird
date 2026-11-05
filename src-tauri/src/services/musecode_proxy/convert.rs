@@ -218,7 +218,7 @@ fn validate_output(output: &[Value], finish: &str) -> Result<(), String> {
             return Err("Upstream truncated a tool call".into());
         }
         for field in ["call_id", "name"] {
-            if item[field].as_str().map_or(true, str::is_empty) {
+            if item[field].as_str().is_none_or(str::is_empty) {
                 return Err(format!("Missing upstream tool {field}"));
             }
         }

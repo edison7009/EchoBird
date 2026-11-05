@@ -362,21 +362,21 @@ pub(super) async fn obtain_locked(
         current(path, id)?
     };
     let mut owners = owners(path, id, &mut credentials, targets).await?;
-    let rejected_current = rejected.map_or(true, |rejected| {
+    let rejected_current = rejected.is_none_or(|rejected| {
         rejected["credentialGeneration"].as_str().map_or_else(
             || rejected["accessToken"].as_str() == credentials.access().ok(),
             |generation| generation == pair(&credentials),
         )
     });
-    let due = credentials.expiry().map_or(true, |expiry| {
-        expiry <= chrono::Utc::now().timestamp() + 120
-    });
+    let due = credentials
+        .expiry()
+        .is_none_or(|expiry| expiry <= chrono::Utc::now().timestamp() + 120);
     if (force && rejected_current) || due {
         if running && !owners.is_empty() {
             if force
-                || !credentials
+                || credentials
                     .expiry()
-                    .is_some_and(|expiry| expiry > chrono::Utc::now().timestamp() + 15)
+                    .is_none_or(|expiry| expiry <= chrono::Utc::now().timestamp() + 15)
             {
                 return Err("accountError.closeClient".into());
             }

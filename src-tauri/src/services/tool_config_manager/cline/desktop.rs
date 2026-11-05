@@ -21,7 +21,7 @@ pub(super) fn select(mut selection: Value, provider: &str, model: &str) -> Resul
 }
 
 fn decode_utf16(bytes: &[u8]) -> Result<String, String> {
-    if bytes.len() % 2 != 0 {
+    if !bytes.len().is_multiple_of(2) {
         return Err("Invalid Cline Desktop model selection encoding".into());
     }
     String::from_utf16(

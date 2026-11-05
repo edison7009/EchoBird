@@ -88,7 +88,7 @@ it('keeps global protection available with developer preview off and merges only
   expect(developerSwitch().props['aria-checked']).toBe(false);
   expect(mocks.save).not.toHaveBeenCalled();
   await act(async () => protectionSwitch().props.onClick());
-  expect(mocks.save).toHaveBeenCalledExactlyOnceWith({ ...saved, sensitiveInfoProtection: false });
+  expect(mocks.save).toHaveBeenCalledExactlyOnceWith({ sensitiveInfoProtection: false });
   expect(useNavigationStore.getState().developerMode).toBe(false);
 });
 
@@ -190,8 +190,6 @@ it('persists developer mode only after an explicit change and keeps the control 
   expect(developerSwitch().props.disabled).toBe(true);
   expect(useNavigationStore.getState().developerMode).toBe(false);
   expect(mocks.save).toHaveBeenCalledExactlyOnceWith({
-    locale: 'ja',
-    sensitiveInfoProtection: true,
     developerMode: true,
   });
   await act(async () => {
@@ -830,7 +828,7 @@ it.each([
     expect(optionalSwitch(label).props['aria-checked']).toBe(true);
     useNavigationStore.getState().setActivePage(page);
     await act(async () => optionalSwitch(label).props.onClick());
-    expect(mocks.save).toHaveBeenCalledExactlyOnceWith({ ...saved, [key]: false });
+    expect(mocks.save).toHaveBeenCalledExactlyOnceWith({ [key]: false });
     expect(useNavigationStore.getState().optionalPages[page]).toBe(false);
     expect(useNavigationStore.getState().activePage).toBe('apps');
   }

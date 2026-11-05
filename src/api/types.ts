@@ -178,7 +178,7 @@ export interface AppSettings {
   localLlmEnabled?: boolean;
   sensitiveInfoProtection?: boolean;
   locale?: string;
-  themeMode?: 'light' | 'dark';
+  themeMode?: 'light' | 'dark' | null;
   colorTheme?: string;
   closeToTray?: boolean | null; // null = always ask, true = minimize to tray, false = quit directly
   closeWindowBehaviorSet?: boolean; // Track if user has made a choice about close behavior

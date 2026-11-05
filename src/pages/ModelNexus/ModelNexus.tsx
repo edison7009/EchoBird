@@ -118,6 +118,8 @@ export function ModelNexusTitleActions() {
 }
 
 export function ModelNexusMain() {
+  const { showToast } = useToast();
+  const orderPending = useRef(false);
   const { t } = useI18n();
   const {
     userModels,
@@ -134,7 +136,6 @@ export function ModelNexusMain() {
     setEditingModelId,
     setNewModelForm,
     setShowAddModelModal,
-    setUserModels,
     keyDestroyed: _keyDestroyed,
     handleCardEdit,
     handleCardDelete,
@@ -147,7 +148,7 @@ export function ModelNexusMain() {
 
   // Drag-reorder: pointer (5px activation so plain clicks pass through) +
   // keyboard (a11y). On drop, reorder in place and persist the full visible
-  // order — a failed write just reverts on next reload (best-effort).
+  // order. Persistence failures restore the prior order and remain visible.
   // autoScroll is disabled on purpose: the grid lives in an overflow-y-auto
   // container and edge-drag auto-scroll felt janky. A DragOverlay (portal)
   // floats the dragged card above everything, so the scroll container never
@@ -173,15 +174,18 @@ export function ModelNexusMain() {
     setActiveDragId(null);
     const activeId = String(event.active.id);
     const overId = String(event.over?.id ?? '');
-    if (!overId || activeId === overId) return;
+    if (orderPending.current || !overId || activeId === overId) return;
     const oldIndex = userModels.findIndex((m) => m.internalId === activeId);
     const newIndex = userModels.findIndex((m) => m.internalId === overId);
     if (oldIndex < 0 || newIndex < 0) return;
     const next = arrayMove(userModels, oldIndex, newIndex);
-    setUserModels(next);
-    api.reorderModels(next.map((m) => m.internalId)).catch((err) => {
-      console.error('reorderModels failed:', err);
-    });
+    orderPending.current = true;
+    void api
+      .reorderModels(next.map((m) => m.internalId))
+      .catch((error) => showToast('error', String(error)))
+      .finally(() => {
+        orderPending.current = false;
+      });
   };
 
   const handleDragCancel = () => setActiveDragId(null);
@@ -881,13 +885,6 @@ export function AddModelModal() {
                             const plain = await api.decryptSecret(newModelForm.apiKey);
                             const newKey = plain || '';
                             setNewModelForm((prev) => ({ ...prev, apiKey: newKey }));
-                            if (editingModelId) {
-                              setUserModels((prev) =>
-                                prev.map((m) =>
-                                  m.internalId === editingModelId ? { ...m, apiKey: newKey } : m
-                                )
-                              );
-                            }
                           } catch {
                             setNewModelForm((prev) => ({ ...prev, apiKey: '' }));
                           }
@@ -895,15 +892,8 @@ export function AddModelModal() {
                           try {
                             const encrypted = await api.encryptSecret(newModelForm.apiKey);
                             setNewModelForm((prev) => ({ ...prev, apiKey: encrypted }));
-                            if (editingModelId) {
-                              setUserModels((prev) =>
-                                prev.map((m) =>
-                                  m.internalId === editingModelId ? { ...m, apiKey: encrypted } : m
-                                )
-                              );
-                            }
-                          } catch {
-                            // stay plaintext on failure
+                          } catch (error) {
+                            showToast('error', String(error));
                           }
                         }
                       }}
@@ -1019,7 +1009,13 @@ export function AddModelModal() {
                       throw error;
                     }
                   } else {
-                    setUserModels((prev) => [...prev, newModel]);
+                    setUserModels((prev) =>
+                      prev.some((model) => model.internalId === newModel.internalId)
+                        ? prev.map((model) =>
+                            model.internalId === newModel.internalId ? newModel : model
+                          )
+                        : [...prev, newModel]
+                    );
                   }
                 }
 

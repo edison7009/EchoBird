@@ -19,8 +19,8 @@ pub fn get_cached_upstream_model_catalog(
 
 /// Get all models (user + built-in + local)
 #[tauri::command]
-pub fn get_models() -> Vec<ModelConfig> {
-    model_manager::get_models()
+pub fn get_models() -> Result<Vec<ModelConfig>, String> {
+    model_manager::get_models_checked()
 }
 
 /// Add a new model
@@ -31,18 +31,18 @@ pub async fn add_model(input: AddModelInput) -> Result<ModelConfig, String> {
         if input
             .model_id
             .as_deref()
-            .map_or(true, |id| id.trim().is_empty())
+            .is_none_or(|id| id.trim().is_empty())
         {
             return Err("Model ID is required".into());
         }
     }
-    Ok(model_manager::add_model(input))
+    model_manager::add_model(input)
 }
 
 /// Delete a model by internal ID
 #[tauri::command]
-pub fn delete_model(internal_id: String) -> bool {
-    let deleted = model_manager::delete_model(&internal_id);
+pub fn delete_model(internal_id: String) -> Result<bool, String> {
+    let deleted = model_manager::delete_model(&internal_id)?;
     if deleted {
         if let Err(error) = usage_providers::zhipu_team::save_access(&internal_id, None) {
             log::warn!("Failed to clear deleted model's team access: {error}");
@@ -53,7 +53,7 @@ pub fn delete_model(internal_id: String) -> bool {
             crate::services::smart_router::forget_candidate_memory(&internal_id);
         }
     }
-    deleted
+    Ok(deleted)
 }
 
 /// Update a model
@@ -89,7 +89,7 @@ fn validate_model_update(existing: &ModelConfig, updates: &UpdateModelInput) -> 
             .model_id
             .as_deref()
             .or(existing.model_id.as_deref())
-            .map_or(true, |id| id.trim().is_empty())
+            .is_none_or(|id| id.trim().is_empty())
     {
         return Err("Model ID is required".into());
     }
@@ -99,7 +99,7 @@ fn validate_model_update(existing: &ModelConfig, updates: &UpdateModelInput) -> 
 /// Persist a user-defined model display order (full visible list of
 /// internal_ids in the new order).
 #[tauri::command]
-pub fn reorder_models(ordered_ids: Vec<String>) -> bool {
+pub fn reorder_models(ordered_ids: Vec<String>) -> Result<bool, String> {
     model_manager::reorder_models(ordered_ids)
 }
 

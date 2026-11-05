@@ -33,7 +33,9 @@ pub(crate) fn private_dir(path: &Path) -> Result<(), String> {
     Ok(())
 }
 
-pub(crate) struct DirectoryLock(PathBuf);
+pub(crate) struct DirectoryLock {
+    _lock: super::json_store::FileLock,
+}
 impl DirectoryLock {
     pub(crate) fn acquire(anchor: &Path) -> Result<Self, String> {
         private_dir(anchor.parent().ok_or("accountError.home")?)?;
@@ -43,14 +45,15 @@ impl DirectoryLock {
         if !anchor.parent().is_some_and(Path::is_dir) {
             return Err("accountError.home".into());
         }
-        let lock = PathBuf::from(format!("{}.lock", anchor.display()));
-        fs::create_dir(&lock).map_err(|_| "accountError.busy")?;
-        Ok(Self(lock))
-    }
-}
-impl Drop for DirectoryLock {
-    fn drop(&mut self) {
-        let _ = fs::remove_dir(&self.0);
+        // Respect legacy locks without unlinking an older client's lock directory.
+        if fs::symlink_metadata(PathBuf::from(format!("{}.lock", anchor.display()))).is_ok() {
+            return Err("accountError.busy".into());
+        }
+        // Native clients may use their own .lock sidecars; keep our inode distinct.
+        let lock = PathBuf::from(format!("{}.echobird-lock", anchor.display()));
+        let lock =
+            super::json_store::FileLock::acquire(&lock, false).map_err(|_| "accountError.busy")?;
+        Ok(Self { _lock: lock })
     }
 }
 
@@ -209,6 +212,62 @@ impl Drop for Transaction {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn lock_process_fixture() {
+        let Some(root) = std::env::var_os("ECHOBIRD_NATIVE_LOCK_FIXTURE") else {
+            return;
+        };
+        let root = PathBuf::from(root);
+        let _guard = DirectoryLock::acquire(&root.join("config")).unwrap();
+        fs::write(root.join("ready"), b"locked").unwrap();
+        loop {
+            std::thread::sleep(std::time::Duration::from_millis(50));
+        }
+    }
+
+    #[test]
+    fn process_exit_releases_native_lock_without_unlinking_another_writers_inode() {
+        let root = std::env::temp_dir().join(format!("echobird-lock-{}", uuid::Uuid::new_v4()));
+        fs::create_dir_all(&root).unwrap();
+        struct Child(std::process::Child);
+        impl Drop for Child {
+            fn drop(&mut self) {
+                let _ = self.0.kill();
+                let _ = self.0.wait();
+            }
+        }
+        let mut child = Child(
+            crate::utils::process::command(std::env::current_exe().unwrap())
+                .args([
+                    "--exact",
+                    "services::native_account_files::tests::lock_process_fixture",
+                    "--nocapture",
+                ])
+                .env("ECHOBIRD_NATIVE_LOCK_FIXTURE", &root)
+                .spawn()
+                .unwrap(),
+        );
+        let deadline = std::time::Instant::now() + std::time::Duration::from_secs(10);
+        while !root.join("ready").exists() && std::time::Instant::now() < deadline {
+            std::thread::sleep(std::time::Duration::from_millis(10));
+        }
+        assert!(
+            root.join("ready").exists(),
+            "lock fixture must acquire the real lock"
+        );
+        assert!(DirectoryLock::acquire(&root.join("config")).is_err());
+        child.0.kill().unwrap();
+        child.0.wait().unwrap();
+        let recovered = DirectoryLock::acquire(&root.join("config")).unwrap();
+        assert!(DirectoryLock::acquire(&root.join("config")).is_err());
+        drop(recovered);
+        assert!(root.join("config.echobird-lock").is_file());
+        fs::create_dir(root.join("legacy.lock")).unwrap();
+        assert!(DirectoryLock::acquire(&root.join("legacy")).is_err());
+        assert!(root.join("legacy.lock").is_dir());
+        fs::remove_dir_all(root).unwrap();
+    }
 
     #[cfg(unix)]
     #[test]

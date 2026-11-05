@@ -32,14 +32,7 @@ export const I18nProvider: React.FC<I18nProviderProps> = ({ children, initialLoc
   const setLocale = useCallback((newLocale: string) => {
     setLocaleState(newLocale);
     // Persist to Rust backend
-    api
-      .getSettings()
-      .then((settings) => {
-        api.saveSettings({ ...settings, locale: newLocale }).catch(() => {});
-      })
-      .catch(() => {
-        api.saveSettings({ locale: newLocale }).catch(() => {});
-      });
+    void api.saveSettings({ locale: newLocale }).catch(() => {});
   }, []);
 
   const t = useCallback((key: TKey) => translate(key, ready ? locale : 'en'), [locale, ready]);

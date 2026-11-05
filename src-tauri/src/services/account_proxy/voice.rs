@@ -69,7 +69,7 @@ pub(crate) fn parse_selector(selector: &str) -> Result<(AccountSource, Option<&s
         || account_id.len() != 64
         || !account_id.bytes().all(|byte| byte.is_ascii_hexdigit())
         || if provider == AccountProvider::Kilo {
-            model.map_or(true, |value| value.trim().is_empty())
+            model.is_none_or(|value| value.trim().is_empty())
         } else {
             model.is_some()
         }

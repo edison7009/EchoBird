@@ -99,10 +99,10 @@ fn save(key: &str, auth: &Value) -> Result<Account, String> {
     if row["oidc_issuer"] != "https://auth.x.ai"
         || row["user_id"]
             .as_str()
-            .map_or(true, |id| id.trim().is_empty())
+            .is_none_or(|id| id.trim().is_empty())
         || row["key"]
             .as_str()
-            .map_or(true, |token| token.trim().is_empty())
+            .is_none_or(|token| token.trim().is_empty())
     {
         return Err("accountError.invalidAccount".into());
     }

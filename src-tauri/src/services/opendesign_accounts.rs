@@ -129,7 +129,7 @@ fn account_from_profile(profile: &Value) -> Result<Saved, String> {
 fn native_at(path: &Path) -> Result<Option<Saved>, String> {
     let config = read_config(path)?;
     let profile = &config["profiles"]["prod"];
-    if profile["runtimeKey"].as_str().map_or(true, str::is_empty) {
+    if profile["runtimeKey"].as_str().is_none_or(str::is_empty) {
         return Ok(None);
     }
     for (key, expected) in [("apiUrl", CONTROL), ("linkUrl", LINK)] {

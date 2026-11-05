@@ -1,0 +1,1691 @@
+{
+  "schemaVersion": 1,
+  "tools": [
+    {
+      "id": "aider",
+      "apiProtocols": ["openai", "anthropic"],
+      "installReference": true,
+      "platforms": {
+        "windows": {
+          "pathHints": [
+            "%USERPROFILE%\\.local\\bin\\aider.exe",
+            "%APPDATA%\\Python\\Scripts\\aider.exe",
+            "%LOCALAPPDATA%\\Programs\\Python\\Python312\\Scripts\\aider.exe",
+            "%LOCALAPPDATA%\\Programs\\Python\\Python311\\Scripts\\aider.exe",
+            "%LOCALAPPDATA%\\Programs\\Python\\Python310\\Scripts\\aider.exe"
+          ],
+          "nativeVerified": false
+        },
+        "macos": {
+          "pathHints": ["/usr/local/bin/aider", "/opt/homebrew/bin/aider", "~/.local/bin/aider"],
+          "nativeVerified": false
+        },
+        "linux": {
+          "pathHints": ["/usr/local/bin/aider", "/usr/bin/aider", "~/.local/bin/aider"],
+          "nativeVerified": false
+        }
+      }
+    },
+    {
+      "id": "antigravity",
+      "apiProtocols": [],
+      "installReference": true,
+      "platforms": {
+        "windows": {
+          "pathHints": ["%LOCALAPPDATA%\\agy\\bin\\agy.exe"],
+          "nativeVerified": false
+        },
+        "macos": {
+          "pathHints": ["~/.local/bin/agy", "/usr/local/bin/agy", "/opt/homebrew/bin/agy"],
+          "nativeVerified": false
+        },
+        "linux": {
+          "pathHints": ["~/.local/bin/agy", "/usr/local/bin/agy"],
+          "nativeVerified": false
+        }
+      }
+    },
+    {
+      "id": "antigravitydesktop",
+      "apiProtocols": [],
+      "installReference": true,
+      "platforms": {
+        "windows": {
+          "pathHints": [
+            "%LOCALAPPDATA%\\Programs\\antigravity\\Antigravity.exe",
+            "%PROGRAMFILES%\\Antigravity\\Antigravity.exe"
+          ],
+          "nativeVerified": false
+        },
+        "macos": {
+          "pathHints": [
+            "/Applications/Antigravity.app/Contents/MacOS/Antigravity",
+            "~/Applications/Antigravity.app/Contents/MacOS/Antigravity"
+          ],
+          "nativeVerified": false
+        },
+        "linux": {
+          "pathHints": ["/usr/bin/antigravity", "/opt/Antigravity/antigravity"],
+          "nativeVerified": false
+        }
+      }
+    },
+    {
+      "id": "chatgptdesktop",
+      "apiProtocols": ["openai"],
+      "installReference": true,
+      "platforms": {
+        "windows": {
+          "pathHints": [
+            "%LOCALAPPDATA%\\Programs\\ChatGPT\\ChatGPT.exe",
+            "%LOCALAPPDATA%\\Programs\\Codex\\Codex.exe",
+            "%LOCALAPPDATA%\\Microsoft\\WindowsApps\\ChatGPT.exe",
+            "%LOCALAPPDATA%\\Microsoft\\WindowsApps\\Codex.exe"
+          ],
+          "nativeVerified": false
+        },
+        "macos": {
+          "pathHints": [
+            "/Applications/ChatGPT.app/Contents/MacOS/ChatGPT",
+            "/Applications/Codex.app/Contents/MacOS/Codex",
+            "~/Applications/ChatGPT.app/Contents/MacOS/ChatGPT",
+            "~/Applications/Codex.app/Contents/MacOS/Codex"
+          ],
+          "nativeVerified": false
+        },
+        "linux": {
+          "pathHints": [],
+          "nativeVerified": false
+        }
+      }
+    },
+    {
+      "id": "clashverge",
+      "apiProtocols": [],
+      "installReference": true,
+      "platforms": {
+        "windows": {
+          "pathHints": [
+            "%ProgramFiles%\\Clash Verge\\Clash Verge.exe",
+            "%LOCALAPPDATA%\\Programs\\Clash Verge\\Clash Verge.exe"
+          ],
+          "nativeVerified": false
+        },
+        "macos": {
+          "pathHints": [
+            "/Applications/Clash Verge.app/Contents/MacOS/Clash Verge",
+            "/Applications/Clash Verge.app/Contents/MacOS/clash-verge"
+          ],
+          "nativeVerified": false
+        },
+        "linux": {
+          "pathHints": ["/usr/bin/clash-verge", "/opt/clash-verge/clash-verge"],
+          "nativeVerified": false
+        }
+      }
+    },
+    {
+      "id": "claudecode",
+      "apiProtocols": ["anthropic"],
+      "installReference": true,
+      "platforms": {
+        "windows": {
+          "pathHints": [
+            "%USERPROFILE%\\.local\\bin\\claude.exe",
+            "%APPDATA%\\npm\\claude.cmd",
+            "%USERPROFILE%\\.bun\\bin\\claude.exe",
+            "%LOCALAPPDATA%\\Microsoft\\WinGet\\Links\\claude.exe",
+            "%LOCALAPPDATA%\\pnpm\\claude.exe"
+          ],
+          "nativeVerified": false
+        },
+        "macos": {
+          "pathHints": [
+            "/usr/local/bin/claude",
+            "/opt/homebrew/bin/claude",
+            "~/.local/bin/claude",
+            "~/.bun/bin/claude",
+            "~/.npm-global/bin/claude",
+            "~/Library/pnpm/claude"
+          ],
+          "nativeVerified": false
+        },
+        "linux": {
+          "pathHints": [
+            "/usr/local/bin/claude",
+            "/usr/bin/claude",
+            "~/.local/bin/claude",
+            "~/.bun/bin/claude",
+            "~/.npm-global/bin/claude",
+            "~/.local/share/pnpm/claude"
+          ],
+          "nativeVerified": false
+        }
+      }
+    },
+    {
+      "id": "claudedesktop",
+      "apiProtocols": ["anthropic"],
+      "installReference": true,
+      "platforms": {
+        "windows": {
+          "pathHints": [
+            "%LOCALAPPDATA%\\AnthropicClaude\\Claude.exe",
+            "%LOCALAPPDATA%\\Programs\\Claude\\Claude.exe"
+          ],
+          "nativeVerified": false
+        },
+        "macos": {
+          "pathHints": ["/Applications/Claude.app/Contents/MacOS/Claude"],
+          "nativeVerified": false
+        },
+        "linux": {
+          "pathHints": ["/usr/bin/claude-desktop"],
+          "nativeVerified": false
+        }
+      }
+    },
+    {
+      "id": "claudeduet",
+      "apiProtocols": [],
+      "installReference": false,
+      "platforms": {
+        "windows": {
+          "pathHints": [],
+          "nativeVerified": false
+        },
+        "macos": {
+          "pathHints": [],
+          "nativeVerified": false
+        },
+        "linux": {
+          "pathHints": [],
+          "nativeVerified": false
+        }
+      }
+    },
+    {
+      "id": "claudescience",
+      "apiProtocols": ["anthropic"],
+      "installReference": true,
+      "platforms": {
+        "windows": {
+          "pathHints": ["%LOCALAPPDATA%/Programs/ClaudeScience/claude-science.exe"],
+          "nativeVerified": false
+        },
+        "macos": {
+          "pathHints": [
+            "/Applications/Claude Science.app/Contents/Resources/bin/claude-science",
+            "/Applications/Claude Science.app/Contents/MacOS/Claude Science"
+          ],
+          "nativeVerified": false
+        },
+        "linux": {
+          "pathHints": [
+            "~/.local/bin/claude-science",
+            "/usr/local/bin/claude-science",
+            "/usr/bin/claude-science"
+          ],
+          "nativeVerified": false
+        }
+      }
+    },
+    {
+      "id": "cline",
+      "apiProtocols": ["openai", "anthropic"],
+      "installReference": true,
+      "platforms": {
+        "windows": {
+          "pathHints": [
+            "%APPDATA%\\npm\\cline.cmd",
+            "%LOCALAPPDATA%\\pnpm\\cline.cmd",
+            "%USERPROFILE%\\.bun\\bin\\cline.exe"
+          ],
+          "nativeVerified": false
+        },
+        "macos": {
+          "pathHints": [
+            "/usr/local/bin/cline",
+            "/opt/homebrew/bin/cline",
+            "~/.local/bin/cline",
+            "~/.npm-global/bin/cline",
+            "~/.bun/bin/cline",
+            "~/.local/share/pnpm/cline"
+          ],
+          "nativeVerified": false
+        },
+        "linux": {
+          "pathHints": [
+            "/usr/local/bin/cline",
+            "/usr/bin/cline",
+            "~/.local/bin/cline",
+            "~/.npm-global/bin/cline",
+            "~/.bun/bin/cline",
+            "~/.local/share/pnpm/cline"
+          ],
+          "nativeVerified": false
+        }
+      }
+    },
+    {
+      "id": "clinedesktop",
+      "apiProtocols": ["openai", "anthropic"],
+      "installReference": true,
+      "platforms": {
+        "windows": {
+          "pathHints": [
+            "%LOCALAPPDATA%\\Cline\\cline-app.exe",
+            "%PROGRAMFILES%\\Cline\\cline-app.exe"
+          ],
+          "nativeVerified": false
+        },
+        "macos": {
+          "pathHints": [
+            "/Applications/Cline.app/Contents/MacOS/cline-app",
+            "~/Applications/Cline.app/Contents/MacOS/cline-app"
+          ],
+          "nativeVerified": false
+        },
+        "linux": {
+          "pathHints": ["/usr/bin/cline-app"],
+          "nativeVerified": false
+        }
+      }
+    },
+    {
+      "id": "codearts",
+      "apiProtocols": ["openai", "anthropic"],
+      "installReference": true,
+      "platforms": {
+        "windows": {
+          "pathHints": [
+            "%LOCALAPPDATA%\\Programs\\CodeArts\\CodeArts.exe",
+            "%PROGRAMFILES%\\CodeArts\\CodeArts.exe"
+          ],
+          "nativeVerified": false
+        },
+        "macos": {
+          "pathHints": [
+            "/Applications/CodeArts.app/Contents/MacOS/CodeArts",
+            "~/Applications/CodeArts.app/Contents/MacOS/CodeArts"
+          ],
+          "nativeVerified": false
+        },
+        "linux": {
+          "pathHints": [],
+          "nativeVerified": false
+        }
+      }
+    },
+    {
+      "id": "codex",
+      "apiProtocols": ["openai"],
+      "installReference": true,
+      "platforms": {
+        "windows": {
+          "pathHints": [
+            "%APPDATA%\\npm\\codex.cmd",
+            "%USERPROFILE%\\scoop\\shims\\codex.exe",
+            "%USERPROFILE%\\.bun\\bin\\codex.exe",
+            "%USERPROFILE%\\.local\\bin\\codex.exe",
+            "%LOCALAPPDATA%\\pnpm\\codex.exe"
+          ],
+          "nativeVerified": false
+        },
+        "macos": {
+          "pathHints": [
+            "/usr/local/bin/codex",
+            "/opt/homebrew/bin/codex",
+            "~/.bun/bin/codex",
+            "~/.local/bin/codex",
+            "~/.npm-global/bin/codex",
+            "~/Library/pnpm/codex"
+          ],
+          "nativeVerified": false
+        },
+        "linux": {
+          "pathHints": [
+            "/usr/local/bin/codex",
+            "/usr/bin/codex",
+            "~/.bun/bin/codex",
+            "~/.local/bin/codex",
+            "~/.npm-global/bin/codex",
+            "~/.local/share/pnpm/codex"
+          ],
+          "nativeVerified": false
+        }
+      }
+    },
+    {
+      "id": "coffeecli",
+      "apiProtocols": ["openai"],
+      "installReference": true,
+      "platforms": {
+        "windows": {
+          "pathHints": ["%LOCALAPPDATA%\\Coffee CLI\\coffee-cli.exe"],
+          "nativeVerified": false
+        },
+        "macos": {
+          "pathHints": [
+            "/Applications/Coffee CLI.app/Contents/MacOS/Coffee CLI",
+            "/Applications/Coffee CLI.app/Contents/MacOS/coffee-cli"
+          ],
+          "nativeVerified": false
+        },
+        "linux": {
+          "pathHints": [
+            "/opt/Coffee CLI/coffee-cli",
+            "/opt/coffee-cli/coffee-cli",
+            "/usr/bin/coffee-cli",
+            "/usr/local/bin/coffee-cli",
+            "~/.local/bin/coffee-cli"
+          ],
+          "nativeVerified": false
+        }
+      }
+    },
+    {
+      "id": "copilot",
+      "apiProtocols": ["openai", "anthropic"],
+      "installReference": true,
+      "platforms": {
+        "windows": {
+          "pathHints": [
+            "%APPDATA%\\npm\\copilot.cmd",
+            "%LOCALAPPDATA%\\Microsoft\\WinGet\\Links\\copilot.exe",
+            "%USERPROFILE%\\.local\\bin\\copilot.exe",
+            "%USERPROFILE%\\scoop\\shims\\copilot.exe",
+            "%USERPROFILE%\\.bun\\bin\\copilot.exe",
+            "%LOCALAPPDATA%\\pnpm\\copilot.cmd"
+          ],
+          "nativeVerified": false
+        },
+        "macos": {
+          "pathHints": [
+            "/opt/homebrew/bin/copilot",
+            "/usr/local/bin/copilot",
+            "~/.local/bin/copilot",
+            "~/.npm-global/bin/copilot",
+            "~/.bun/bin/copilot",
+            "~/Library/pnpm/copilot"
+          ],
+          "nativeVerified": false
+        },
+        "linux": {
+          "pathHints": [
+            "/usr/local/bin/copilot",
+            "/usr/bin/copilot",
+            "~/.local/bin/copilot",
+            "~/.npm-global/bin/copilot",
+            "~/.bun/bin/copilot",
+            "~/.local/share/pnpm/copilot"
+          ],
+          "nativeVerified": false
+        }
+      }
+    },
+    {
+      "id": "copilotdesktop",
+      "apiProtocols": ["openai", "anthropic"],
+      "installReference": true,
+      "platforms": {
+        "windows": {
+          "pathHints": ["%LOCALAPPDATA%\\Programs\\GitHub Copilot\\github.exe"],
+          "nativeVerified": false
+        },
+        "macos": {
+          "pathHints": ["/Applications/GitHub Copilot.app", "~/Applications/GitHub Copilot.app"],
+          "nativeVerified": false
+        },
+        "linux": {
+          "pathHints": [
+            "~/Applications/GitHub-Copilot-linux-x64.AppImage",
+            "~/Applications/GitHub-Copilot-linux-arm64.AppImage"
+          ],
+          "nativeVerified": false
+        }
+      }
+    },
+    {
+      "id": "cue",
+      "apiProtocols": [],
+      "installReference": true,
+      "platforms": {
+        "windows": {
+          "pathHints": ["%LOCALAPPDATA%\\Programs\\Cue\\Cue.exe"],
+          "nativeVerified": false
+        },
+        "macos": {
+          "pathHints": ["/Applications/Cue.app/Contents/MacOS/Cue"],
+          "nativeVerified": false
+        },
+        "linux": {
+          "pathHints": [],
+          "nativeVerified": false
+        }
+      }
+    },
+    {
+      "id": "cursor",
+      "apiProtocols": ["openai"],
+      "installReference": true,
+      "platforms": {
+        "windows": {
+          "pathHints": ["%LOCALAPPDATA%\\Programs\\cursor\\Cursor.exe"],
+          "nativeVerified": false
+        },
+        "macos": {
+          "pathHints": ["/Applications/Cursor.app/Contents/MacOS/Cursor"],
+          "nativeVerified": false
+        },
+        "linux": {
+          "pathHints": ["/usr/bin/cursor", "/opt/Cursor/cursor"],
+          "nativeVerified": false
+        }
+      }
+    },
+    {
+      "id": "cursorcli",
+      "apiProtocols": [],
+      "installReference": true,
+      "platforms": {
+        "windows": {
+          "pathHints": ["%LOCALAPPDATA%\\cursor-agent\\cursor-agent.cmd"],
+          "nativeVerified": false
+        },
+        "macos": {
+          "pathHints": [
+            "~/.local/bin/cursor-agent",
+            "/usr/local/bin/cursor-agent",
+            "/opt/homebrew/bin/cursor-agent"
+          ],
+          "nativeVerified": false
+        },
+        "linux": {
+          "pathHints": [
+            "~/.local/bin/cursor-agent",
+            "/usr/local/bin/cursor-agent",
+            "/usr/bin/cursor-agent"
+          ],
+          "nativeVerified": false
+        }
+      }
+    },
+    {
+      "id": "devin",
+      "apiProtocols": [],
+      "installReference": true,
+      "platforms": {
+        "windows": {
+          "pathHints": [
+            "%LOCALAPPDATA%\\Programs\\Devin\\Devin.exe",
+            "%ProgramFiles%\\Devin\\Devin.exe"
+          ],
+          "nativeVerified": false
+        },
+        "macos": {
+          "pathHints": [
+            "/Applications/Devin.app/Contents/MacOS/Electron",
+            "/Applications/Devin.app/Contents/MacOS/Devin",
+            "~/Applications/Devin.app/Contents/MacOS/Electron"
+          ],
+          "nativeVerified": false
+        },
+        "linux": {
+          "pathHints": ["/usr/share/devin/devin", "/opt/Devin/devin", "~/.local/share/Devin/devin"],
+          "nativeVerified": false
+        }
+      }
+    },
+    {
+      "id": "devincli",
+      "apiProtocols": [],
+      "installReference": true,
+      "platforms": {
+        "windows": {
+          "pathHints": ["%LOCALAPPDATA%\\devin\\cli\\bin\\devin.exe"],
+          "nativeVerified": false
+        },
+        "macos": {
+          "pathHints": ["~/.local/bin/devin", "/opt/homebrew/bin/devin", "/usr/local/bin/devin"],
+          "nativeVerified": false
+        },
+        "linux": {
+          "pathHints": ["~/.local/bin/devin", "/usr/local/bin/devin", "/usr/bin/devin"],
+          "nativeVerified": false
+        }
+      }
+    },
+    {
+      "id": "dola",
+      "apiProtocols": [],
+      "installReference": true,
+      "platforms": {
+        "windows": {
+          "pathHints": [
+            "%LOCALAPPDATA%\\Cici\\Application\\app\\Cici.exe",
+            "%LOCALAPPDATA%\\Cici\\Application\\Cici.exe"
+          ],
+          "nativeVerified": false
+        },
+        "macos": {
+          "pathHints": [
+            "/Applications/Cici.app/Contents/MacOS/Cici",
+            "~/Applications/Cici.app/Contents/MacOS/Cici"
+          ],
+          "nativeVerified": false
+        },
+        "linux": {
+          "pathHints": [],
+          "nativeVerified": false
+        }
+      }
+    },
+    {
+      "id": "doubaowork",
+      "apiProtocols": [],
+      "installReference": true,
+      "platforms": {
+        "windows": {
+          "pathHints": [
+            "%LOCALAPPDATA%\\DoubaoWork\\Application\\app\\DoubaoWork.exe",
+            "%LOCALAPPDATA%\\DoubaoWork\\Application\\DoubaoWork.exe"
+          ],
+          "nativeVerified": false
+        },
+        "macos": {
+          "pathHints": [
+            "/Applications/DoubaoWork.app/Contents/MacOS/DoubaoWork",
+            "~/Applications/DoubaoWork.app/Contents/MacOS/DoubaoWork"
+          ],
+          "nativeVerified": false
+        },
+        "linux": {
+          "pathHints": [],
+          "nativeVerified": false
+        }
+      }
+    },
+    {
+      "id": "dsh",
+      "apiProtocols": ["anthropic", "openai"],
+      "installReference": true,
+      "platforms": {
+        "windows": {
+          "pathHints": ["%LOCALAPPDATA%\\Programs\\DeepSeek Harness\\DeepSeek Harness.exe"],
+          "nativeVerified": false
+        },
+        "macos": {
+          "pathHints": [
+            "/Applications/DeepSeek Harness.app/Contents/MacOS/DeepSeek Harness",
+            "~/Applications/DeepSeek Harness.app/Contents/MacOS/DeepSeek Harness"
+          ],
+          "nativeVerified": false
+        },
+        "linux": {
+          "pathHints": [],
+          "nativeVerified": false
+        }
+      }
+    },
+    {
+      "id": "dumate",
+      "apiProtocols": [],
+      "installReference": true,
+      "platforms": {
+        "windows": {
+          "pathHints": [
+            "%LOCALAPPDATA%\\Programs\\DuMate\\DuMate.exe",
+            "%PROGRAMFILES%\\DuMate\\DuMate.exe"
+          ],
+          "nativeVerified": false
+        },
+        "macos": {
+          "pathHints": [
+            "/Applications/DuMate.app/Contents/MacOS/DuMate",
+            "~/Applications/DuMate.app/Contents/MacOS/DuMate"
+          ],
+          "nativeVerified": false
+        },
+        "linux": {
+          "pathHints": [],
+          "nativeVerified": false
+        }
+      }
+    },
+    {
+      "id": "geminidesktop",
+      "apiProtocols": ["openai"],
+      "installReference": true,
+      "platforms": {
+        "windows": {
+          "pathHints": [],
+          "nativeVerified": false
+        },
+        "macos": {
+          "pathHints": ["/Applications/Gemini.app/Contents/MacOS/Gemini"],
+          "nativeVerified": false
+        },
+        "linux": {
+          "pathHints": [],
+          "nativeVerified": false
+        }
+      }
+    },
+    {
+      "id": "grok",
+      "apiProtocols": ["openai"],
+      "installReference": true,
+      "platforms": {
+        "windows": {
+          "pathHints": [
+            "%USERPROFILE%\\.grok\\bin\\grok.exe",
+            "%USERPROFILE%\\.local\\bin\\grok.exe",
+            "%LOCALAPPDATA%\\Programs\\grok\\grok.exe",
+            "%USERPROFILE%\\.bun\\bin\\grok.exe",
+            "%LOCALAPPDATA%\\pnpm\\grok.exe"
+          ],
+          "nativeVerified": false
+        },
+        "macos": {
+          "pathHints": [
+            "~/.grok/bin/grok",
+            "/usr/local/bin/grok",
+            "/opt/homebrew/bin/grok",
+            "~/.local/bin/grok",
+            "~/.bun/bin/grok",
+            "~/.npm-global/bin/grok",
+            "~/Library/pnpm/grok"
+          ],
+          "nativeVerified": false
+        },
+        "linux": {
+          "pathHints": [
+            "~/.grok/bin/grok",
+            "/usr/local/bin/grok",
+            "/usr/bin/grok",
+            "~/.local/bin/grok",
+            "~/.bun/bin/grok",
+            "~/.npm-global/bin/grok",
+            "~/.local/share/pnpm/grok"
+          ],
+          "nativeVerified": false
+        }
+      }
+    },
+    {
+      "id": "grokbot",
+      "apiProtocols": [],
+      "installReference": true,
+      "platforms": {
+        "windows": {
+          "pathHints": ["%LOCALAPPDATA%\\Programs\\Grok Bot\\Grok Bot.exe"],
+          "nativeVerified": false
+        },
+        "macos": {
+          "pathHints": ["/Applications/Grok Bot.app/Contents/MacOS/Grok Bot"],
+          "nativeVerified": false
+        },
+        "linux": {
+          "pathHints": ["/opt/Grok Bot/grok-bot"],
+          "nativeVerified": false
+        }
+      }
+    },
+    {
+      "id": "hermes",
+      "apiProtocols": ["openai"],
+      "installReference": true,
+      "platforms": {
+        "windows": {
+          "pathHints": [
+            "%LOCALAPPDATA%\\hermes\\hermes-agent\\apps\\desktop\\release\\win-unpacked\\Hermes.exe",
+            "%LOCALAPPDATA%\\hermes\\hermes-agent\\apps\\desktop\\release\\win-arm64-unpacked\\Hermes.exe"
+          ],
+          "nativeVerified": false
+        },
+        "macos": {
+          "pathHints": [
+            "/Applications/Hermes Agent.app/Contents/MacOS/Hermes Agent",
+            "~/Applications/Hermes Agent.app/Contents/MacOS/Hermes Agent",
+            "/Applications/Hermes.app/Contents/MacOS/Hermes",
+            "~/Applications/Hermes.app/Contents/MacOS/Hermes",
+            "~/.hermes/hermes-agent/apps/desktop/release/mac-arm64/Hermes.app/Contents/MacOS/Hermes",
+            "~/.hermes/hermes-agent/apps/desktop/release/mac-x64/Hermes.app/Contents/MacOS/Hermes",
+            "~/.hermes/hermes-agent/apps/desktop/release/mac/Hermes.app/Contents/MacOS/Hermes",
+            "~/.hermes/hermes-agent/apps/desktop/release/mac-universal/Hermes.app/Contents/MacOS/Hermes"
+          ],
+          "nativeVerified": false
+        },
+        "linux": {
+          "pathHints": [
+            "~/.hermes/hermes-agent/apps/desktop/release/linux-unpacked/hermes",
+            "~/.hermes/hermes-agent/apps/desktop/release/linux-unpacked/Hermes",
+            "~/.hermes/hermes-agent/apps/desktop/release/linux-arm64-unpacked/hermes",
+            "~/.hermes/hermes-agent/apps/desktop/release/linux-arm64-unpacked/Hermes"
+          ],
+          "nativeVerified": false
+        }
+      }
+    },
+    {
+      "id": "kilo",
+      "apiProtocols": ["openai"],
+      "installReference": true,
+      "platforms": {
+        "windows": {
+          "pathHints": [
+            "%APPDATA%\\npm\\kilo.cmd",
+            "%LOCALAPPDATA%\\pnpm\\kilo.exe",
+            "%LOCALAPPDATA%\\pnpm\\kilo.cmd",
+            "%USERPROFILE%\\.bun\\bin\\kilo.exe",
+            "%USERPROFILE%\\.kilo\\bin\\kilo.exe",
+            "%LOCALAPPDATA%\\KiloDesktop"
+          ],
+          "nativeVerified": false
+        },
+        "macos": {
+          "pathHints": [
+            "~/.kilo/bin/kilo",
+            "/usr/local/bin/kilo",
+            "/opt/homebrew/bin/kilo",
+            "~/.bun/bin/kilo",
+            "~/.local/bin/kilo",
+            "~/.npm-global/bin/kilo",
+            "~/.local/share/pnpm/kilo"
+          ],
+          "nativeVerified": false
+        },
+        "linux": {
+          "pathHints": [
+            "~/.kilo/bin/kilo",
+            "/usr/local/bin/kilo",
+            "/usr/bin/kilo",
+            "~/.bun/bin/kilo",
+            "~/.local/bin/kilo",
+            "~/.npm-global/bin/kilo",
+            "~/.local/share/pnpm/kilo"
+          ],
+          "nativeVerified": false
+        }
+      }
+    },
+    {
+      "id": "kilodesktop",
+      "apiProtocols": ["openai"],
+      "installReference": true,
+      "platforms": {
+        "windows": {
+          "pathHints": [
+            "%LOCALAPPDATA%\\KiloDesktop\\kilo-desktop.exe",
+            "%LOCALAPPDATA%\\KiloDesktop"
+          ],
+          "nativeVerified": false
+        },
+        "macos": {
+          "pathHints": ["/Applications/Kilo.app", "~/Applications/Kilo.app"],
+          "nativeVerified": false
+        },
+        "linux": {
+          "pathHints": [
+            "/usr/bin/kilo-desktop",
+            "/opt/Kilo/kilo-desktop",
+            "/opt/kilo-desktop/kilo-desktop",
+            "~/.local/bin/kilo-desktop"
+          ],
+          "nativeVerified": false
+        }
+      }
+    },
+    {
+      "id": "kimicode",
+      "apiProtocols": ["openai", "anthropic"],
+      "installReference": true,
+      "platforms": {
+        "windows": {
+          "pathHints": [
+            "%USERPROFILE%\\.kimi-code\\bin\\kimi.exe",
+            "%APPDATA%\\npm\\kimi.cmd",
+            "%USERPROFILE%\\.bun\\bin\\kimi.exe",
+            "%LOCALAPPDATA%\\pnpm\\kimi.exe",
+            "%USERPROFILE%\\.npm-global\\kimi.cmd"
+          ],
+          "nativeVerified": false
+        },
+        "macos": {
+          "pathHints": [
+            "~/.kimi-code/bin/kimi",
+            "/opt/homebrew/bin/kimi",
+            "/usr/local/bin/kimi",
+            "~/.bun/bin/kimi",
+            "~/.local/bin/kimi",
+            "~/.npm-global/bin/kimi",
+            "~/Library/pnpm/kimi"
+          ],
+          "nativeVerified": false
+        },
+        "linux": {
+          "pathHints": [
+            "~/.kimi-code/bin/kimi",
+            "/usr/local/bin/kimi",
+            "/usr/bin/kimi",
+            "~/.bun/bin/kimi",
+            "~/.local/bin/kimi",
+            "~/.npm-global/bin/kimi",
+            "~/.local/share/pnpm/kimi"
+          ],
+          "nativeVerified": false
+        }
+      }
+    },
+    {
+      "id": "kimidesktop",
+      "apiProtocols": ["openai", "anthropic"],
+      "installReference": true,
+      "platforms": {
+        "windows": {
+          "pathHints": ["%LOCALAPPDATA%\\Programs\\Kimi Code\\Kimi Code.exe"],
+          "nativeVerified": false
+        },
+        "macos": {
+          "pathHints": [
+            "/Applications/Kimi Code.app/Contents/MacOS/Kimi Code",
+            "~/Applications/Kimi Code.app/Contents/MacOS/Kimi Code"
+          ],
+          "nativeVerified": false
+        },
+        "linux": {
+          "pathHints": [],
+          "nativeVerified": false
+        }
+      }
+    },
+    {
+      "id": "kirocli",
+      "apiProtocols": [],
+      "installReference": true,
+      "platforms": {
+        "windows": {
+          "pathHints": [
+            "%LOCALAPPDATA%\\Kiro-Cli\\kiro-cli.exe",
+            "%ProgramFiles%\\Kiro-Cli\\kiro-cli.exe"
+          ],
+          "nativeVerified": false
+        },
+        "macos": {
+          "pathHints": [
+            "~/.local/bin/kiro-cli",
+            "/usr/local/bin/kiro-cli",
+            "/opt/homebrew/bin/kiro-cli",
+            "/Applications/Kiro CLI.app/Contents/MacOS/kiro-cli"
+          ],
+          "nativeVerified": false
+        },
+        "linux": {
+          "pathHints": ["~/.local/bin/kiro-cli", "/usr/local/bin/kiro-cli", "/usr/bin/kiro-cli"],
+          "nativeVerified": false
+        }
+      }
+    },
+    {
+      "id": "kirocrew",
+      "apiProtocols": [],
+      "installReference": true,
+      "platforms": {
+        "windows": {
+          "pathHints": ["%LOCALAPPDATA%\\Programs\\KiroCrew\\KiroCrew.exe"],
+          "nativeVerified": false
+        },
+        "macos": {
+          "pathHints": ["/Applications/KiroCrew.app", "~/Applications/KiroCrew.app"],
+          "nativeVerified": false
+        },
+        "linux": {
+          "pathHints": [
+            "/opt/KiroCrew/kirocrew",
+            "/opt/KiroCrew/kirocrew-desktop",
+            "/usr/bin/kirocrew-desktop",
+            "~/.local/bin/KiroCrew.AppImage"
+          ],
+          "nativeVerified": false
+        }
+      }
+    },
+    {
+      "id": "manus",
+      "apiProtocols": [],
+      "installReference": true,
+      "platforms": {
+        "windows": {
+          "pathHints": ["%LOCALAPPDATA%\\Programs\\Manus\\Manus.exe"],
+          "nativeVerified": false
+        },
+        "macos": {
+          "pathHints": ["/Applications/Manus.app/Contents/MacOS/Manus"],
+          "nativeVerified": false
+        },
+        "linux": {
+          "pathHints": [],
+          "nativeVerified": false
+        }
+      }
+    },
+    {
+      "id": "mimocode",
+      "apiProtocols": ["openai"],
+      "installReference": true,
+      "platforms": {
+        "windows": {
+          "pathHints": [
+            "%APPDATA%\\npm\\mimo.cmd",
+            "%USERPROFILE%\\.bun\\bin\\mimo.exe",
+            "%LOCALAPPDATA%\\pnpm\\mimo.exe",
+            "%USERPROFILE%\\.mimocode\\bin\\mimo.exe"
+          ],
+          "nativeVerified": false
+        },
+        "macos": {
+          "pathHints": [
+            "~/.mimocode/bin/mimo",
+            "/usr/local/bin/mimo",
+            "/opt/homebrew/bin/mimo",
+            "~/.bun/bin/mimo",
+            "~/.local/bin/mimo",
+            "~/.npm-global/bin/mimo",
+            "~/.local/share/pnpm/mimo"
+          ],
+          "nativeVerified": false
+        },
+        "linux": {
+          "pathHints": [
+            "~/.mimocode/bin/mimo",
+            "/usr/local/bin/mimo",
+            "/usr/bin/mimo",
+            "~/.bun/bin/mimo",
+            "~/.local/bin/mimo",
+            "~/.npm-global/bin/mimo",
+            "~/.local/share/pnpm/mimo"
+          ],
+          "nativeVerified": false
+        }
+      }
+    },
+    {
+      "id": "mimodesktop",
+      "apiProtocols": ["openai"],
+      "installReference": true,
+      "platforms": {
+        "windows": {
+          "pathHints": [
+            "%LOCALAPPDATA%\\Programs\\Xiaomi MiMo\\Xiaomi MiMo.exe",
+            "%LOCALAPPDATA%\\Programs\\xiaomi-mimo-desktop\\Xiaomi MiMo.exe"
+          ],
+          "nativeVerified": false
+        },
+        "macos": {
+          "pathHints": [
+            "/Applications/Xiaomi MiMo.app/Contents/MacOS/Xiaomi MiMo",
+            "~/Applications/Xiaomi MiMo.app/Contents/MacOS/Xiaomi MiMo"
+          ],
+          "nativeVerified": false
+        },
+        "linux": {
+          "pathHints": [
+            "~/.local/bin/mimodesktop.AppImage",
+            "~/Applications/XiaomiMiMo-latest-x64.AppImage"
+          ],
+          "nativeVerified": false
+        }
+      }
+    },
+    {
+      "id": "minimaxcode",
+      "apiProtocols": ["openai", "anthropic"],
+      "installReference": true,
+      "platforms": {
+        "windows": {
+          "pathHints": [
+            "%USERPROFILE%\\.minimax-code\\mcode.cmd",
+            "%APPDATA%\\npm\\mcode.cmd",
+            "%LOCALAPPDATA%\\pnpm\\mcode.cmd"
+          ],
+          "nativeVerified": false
+        },
+        "macos": {
+          "pathHints": [
+            "~/.minimax-code/bin/mcode",
+            "/usr/local/bin/mcode",
+            "/opt/homebrew/bin/mcode",
+            "~/.local/bin/mcode",
+            "~/.npm-global/bin/mcode"
+          ],
+          "nativeVerified": false
+        },
+        "linux": {
+          "pathHints": [
+            "~/.minimax-code/bin/mcode",
+            "/usr/local/bin/mcode",
+            "/usr/bin/mcode",
+            "~/.local/bin/mcode",
+            "~/.npm-global/bin/mcode"
+          ],
+          "nativeVerified": false
+        }
+      }
+    },
+    {
+      "id": "minimaxdesktop",
+      "apiProtocols": ["openai", "anthropic"],
+      "installReference": true,
+      "platforms": {
+        "windows": {
+          "pathHints": ["%LOCALAPPDATA%\\Programs\\MiniMax Code\\MiniMax Code.exe"],
+          "nativeVerified": false
+        },
+        "macos": {
+          "pathHints": [
+            "/Applications/MiniMax Code.app/Contents/MacOS/MiniMax Code",
+            "~/Applications/MiniMax Code.app/Contents/MacOS/MiniMax Code"
+          ],
+          "nativeVerified": false
+        },
+        "linux": {
+          "pathHints": [],
+          "nativeVerified": false
+        }
+      }
+    },
+    {
+      "id": "muse",
+      "apiProtocols": [],
+      "installReference": true,
+      "platforms": {
+        "windows": {
+          "pathHints": [],
+          "nativeVerified": false
+        },
+        "macos": {
+          "pathHints": [
+            "/Applications/Muse.app/Contents/MacOS/Muse",
+            "~/Applications/Muse.app/Contents/MacOS/Muse"
+          ],
+          "nativeVerified": false
+        },
+        "linux": {
+          "pathHints": [],
+          "nativeVerified": false
+        }
+      }
+    },
+    {
+      "id": "musecode",
+      "apiProtocols": ["openai"],
+      "installReference": true,
+      "platforms": {
+        "windows": {
+          "pathHints": ["%LOCALAPPDATA%\\Programs\\muse\\muse.cmd"],
+          "nativeVerified": false
+        },
+        "macos": {
+          "pathHints": ["~/.local/bin/muse"],
+          "nativeVerified": false
+        },
+        "linux": {
+          "pathHints": ["~/.local/bin/muse"],
+          "nativeVerified": false
+        }
+      }
+    },
+    {
+      "id": "omp",
+      "apiProtocols": ["openai", "anthropic"],
+      "installReference": true,
+      "platforms": {
+        "windows": {
+          "pathHints": [
+            "%LOCALAPPDATA%\\omp\\omp.exe",
+            "%USERPROFILE%\\.bun\\bin\\omp.exe",
+            "%USERPROFILE%\\.bun\\bin\\omp.cmd"
+          ],
+          "nativeVerified": false
+        },
+        "macos": {
+          "pathHints": [
+            "~/.local/bin/omp",
+            "~/.bun/bin/omp",
+            "/opt/homebrew/bin/omp",
+            "/usr/local/bin/omp"
+          ],
+          "nativeVerified": false
+        },
+        "linux": {
+          "pathHints": [
+            "~/.local/bin/omp",
+            "~/.bun/bin/omp",
+            "/usr/local/bin/omp",
+            "/usr/bin/omp",
+            "/home/linuxbrew/.linuxbrew/bin/omp",
+            "~/.nix-profile/bin/omp"
+          ],
+          "nativeVerified": false
+        }
+      }
+    },
+    {
+      "id": "openclaw",
+      "apiProtocols": ["openai", "anthropic"],
+      "installReference": true,
+      "platforms": {
+        "windows": {
+          "pathHints": [
+            "%APPDATA%\\npm\\openclaw.cmd",
+            "%LOCALAPPDATA%\\OpenClaw\\bin\\openclaw.exe",
+            "%USERPROFILE%\\scoop\\shims\\openclaw.exe",
+            "%LOCALAPPDATA%\\pnpm\\openclaw.exe",
+            "%USERPROFILE%\\.local\\bin\\openclaw.exe"
+          ],
+          "nativeVerified": false
+        },
+        "macos": {
+          "pathHints": [
+            "/usr/local/bin/openclaw",
+            "/opt/homebrew/bin/openclaw",
+            "~/Library/pnpm/openclaw",
+            "~/.local/bin/openclaw",
+            "~/.bun/bin/openclaw",
+            "~/.npm-global/bin/openclaw"
+          ],
+          "nativeVerified": false
+        },
+        "linux": {
+          "pathHints": [
+            "/usr/local/bin/openclaw",
+            "/usr/bin/openclaw",
+            "~/.local/share/pnpm/openclaw",
+            "~/.local/bin/openclaw",
+            "~/.bun/bin/openclaw",
+            "~/.npm-global/bin/openclaw"
+          ],
+          "nativeVerified": false
+        }
+      }
+    },
+    {
+      "id": "opencode",
+      "apiProtocols": ["openai", "anthropic"],
+      "installReference": true,
+      "platforms": {
+        "windows": {
+          "pathHints": [
+            "%APPDATA%\\npm\\opencode.cmd",
+            "%LOCALAPPDATA%\\Programs\\opencode\\opencode.exe",
+            "%USERPROFILE%\\scoop\\shims\\opencode.exe",
+            "%PROGRAMDATA%\\chocolatey\\bin\\opencode.exe",
+            "%ChocolateyInstall%\\bin\\opencode.exe",
+            "%PROGRAMFILES%\\opencode\\opencode.exe",
+            "%USERPROFILE%\\.bun\\bin\\opencode.exe",
+            "%USERPROFILE%\\.opencode\\bin\\opencode.exe",
+            "%LOCALAPPDATA%\\pnpm\\opencode.exe"
+          ],
+          "nativeVerified": false
+        },
+        "macos": {
+          "pathHints": [
+            "/usr/local/bin/opencode",
+            "/opt/homebrew/bin/opencode",
+            "~/.bun/bin/opencode",
+            "~/.local/bin/opencode",
+            "~/.opencode/bin/opencode",
+            "~/.npm-global/bin/opencode",
+            "~/.local/share/pnpm/opencode"
+          ],
+          "nativeVerified": false
+        },
+        "linux": {
+          "pathHints": [
+            "/usr/local/bin/opencode",
+            "/usr/bin/opencode",
+            "~/.bun/bin/opencode",
+            "~/.local/bin/opencode",
+            "~/.opencode/bin/opencode",
+            "~/.npm-global/bin/opencode",
+            "~/.local/share/pnpm/opencode"
+          ],
+          "nativeVerified": false
+        }
+      }
+    },
+    {
+      "id": "opencodedesktop",
+      "apiProtocols": ["openai", "anthropic"],
+      "installReference": true,
+      "platforms": {
+        "windows": {
+          "pathHints": [
+            "%LOCALAPPDATA%\\Programs\\OpenCode\\OpenCode.exe",
+            "%LOCALAPPDATA%\\Programs\\opencode\\OpenCode.exe",
+            "%LOCALAPPDATA%\\Programs\\OpenCode Beta\\OpenCode Beta.exe"
+          ],
+          "nativeVerified": false
+        },
+        "macos": {
+          "pathHints": [
+            "/Applications/OpenCode.app/Contents/MacOS/OpenCode",
+            "/Applications/OpenCode Beta.app/Contents/MacOS/OpenCode Beta"
+          ],
+          "nativeVerified": false
+        },
+        "linux": {
+          "pathHints": [
+            "/usr/bin/ai.opencode.desktop",
+            "/opt/OpenCode/ai.opencode.desktop",
+            "/opt/OpenCode/opencode",
+            "~/.local/bin/opencode-desktop"
+          ],
+          "nativeVerified": false
+        }
+      }
+    },
+    {
+      "id": "opendesign",
+      "apiProtocols": ["openai", "anthropic"],
+      "installReference": true,
+      "platforms": {
+        "windows": {
+          "pathHints": ["%LOCALAPPDATA%\\Programs\\Open Design\\Open Design.exe"],
+          "nativeVerified": false
+        },
+        "macos": {
+          "pathHints": [
+            "/Applications/Open Design.app/Contents/MacOS/Open Design",
+            "~/Applications/Open Design.app/Contents/MacOS/Open Design"
+          ],
+          "nativeVerified": false
+        },
+        "linux": {
+          "pathHints": ["~/.local/bin/open-design"],
+          "nativeVerified": false
+        }
+      }
+    },
+    {
+      "id": "openscience",
+      "apiProtocols": ["anthropic", "openai"],
+      "installReference": true,
+      "platforms": {
+        "windows": {
+          "pathHints": [
+            "%LOCALAPPDATA%\\Programs\\OpenScience\\openscience.exe",
+            "%LOCALAPPDATA%\\Programs\\openscience\\openscience.exe"
+          ],
+          "nativeVerified": false
+        },
+        "macos": {
+          "pathHints": [
+            "/Applications/OpenScience.app/Contents/MacOS/OpenScience",
+            "~/Applications/OpenScience.app/Contents/MacOS/OpenScience"
+          ],
+          "nativeVerified": false
+        },
+        "linux": {
+          "pathHints": ["~/.local/bin/OpenScience.AppImage", "~/Applications/OpenScience.AppImage"],
+          "nativeVerified": false
+        }
+      }
+    },
+    {
+      "id": "pi",
+      "apiProtocols": ["openai"],
+      "installReference": true,
+      "platforms": {
+        "windows": {
+          "pathHints": [
+            "%APPDATA%\\npm\\pi.cmd",
+            "%USERPROFILE%\\.local\\bin\\pi.exe",
+            "%USERPROFILE%\\.bun\\bin\\pi.exe",
+            "%LOCALAPPDATA%\\pnpm\\pi.exe"
+          ],
+          "nativeVerified": false
+        },
+        "macos": {
+          "pathHints": [
+            "/usr/local/bin/pi",
+            "/opt/homebrew/bin/pi",
+            "~/.bun/bin/pi",
+            "~/.local/bin/pi",
+            "~/.npm-global/bin/pi",
+            "~/Library/pnpm/pi"
+          ],
+          "nativeVerified": false
+        },
+        "linux": {
+          "pathHints": [
+            "/usr/local/bin/pi",
+            "/usr/bin/pi",
+            "~/.local/bin/pi",
+            "~/.bun/bin/pi",
+            "~/.npm-global/bin/pi",
+            "~/.local/share/pnpm/pi"
+          ],
+          "nativeVerified": false
+        }
+      }
+    },
+    {
+      "id": "qoder",
+      "apiProtocols": ["openai", "anthropic"],
+      "installReference": true,
+      "platforms": {
+        "windows": {
+          "pathHints": [
+            "%LOCALAPPDATA%\\Programs\\Qoder\\Qoder.exe",
+            "%PROGRAMFILES%\\Qoder\\Qoder.exe",
+            "%LOCALAPPDATA%\\Programs\\Qoder IDE\\Qoder IDE.exe",
+            "%PROGRAMFILES%\\Qoder IDE\\Qoder IDE.exe"
+          ],
+          "nativeVerified": false
+        },
+        "macos": {
+          "pathHints": [
+            "/Applications/Qoder.app/Contents/MacOS/Qoder",
+            "~/Applications/Qoder.app/Contents/MacOS/Qoder",
+            "/Applications/Qoder IDE.app/Contents/MacOS/Qoder",
+            "~/Applications/Qoder IDE.app/Contents/MacOS/Qoder"
+          ],
+          "nativeVerified": false
+        },
+        "linux": {
+          "pathHints": [
+            "/opt/Qoder/qoder",
+            "/usr/bin/qoder",
+            "/usr/share/qoder-ide/qoder-ide",
+            "/usr/share/qoder/qoder",
+            "/usr/bin/qoder-ide"
+          ],
+          "nativeVerified": false
+        }
+      }
+    },
+    {
+      "id": "qodercn",
+      "apiProtocols": ["openai", "anthropic"],
+      "installReference": true,
+      "platforms": {
+        "windows": {
+          "pathHints": [
+            "%LOCALAPPDATA%\\Programs\\Qoder CN\\Qoder CN.exe",
+            "%PROGRAMFILES%\\Qoder CN\\Qoder CN.exe",
+            "%LOCALAPPDATA%\\Programs\\Qoder CN IDE\\Qoder CN IDE.exe",
+            "%PROGRAMFILES%\\Qoder CN IDE\\Qoder CN IDE.exe"
+          ],
+          "nativeVerified": false
+        },
+        "macos": {
+          "pathHints": [
+            "/Applications/Qoder CN.app/Contents/MacOS/Qoder CN",
+            "~/Applications/Qoder CN.app/Contents/MacOS/Qoder CN",
+            "/Applications/Qoder CN IDE.app/Contents/MacOS/Qoder CN",
+            "~/Applications/Qoder CN IDE.app/Contents/MacOS/Qoder CN"
+          ],
+          "nativeVerified": false
+        },
+        "linux": {
+          "pathHints": [
+            "/opt/Qoder CN/qoder-cn",
+            "/usr/bin/qoder-cn",
+            "/usr/share/qoder-cn-ide/qoder-cn-ide",
+            "/usr/share/qoder-cn/qoder-cn",
+            "/usr/bin/qoder-cn-ide"
+          ],
+          "nativeVerified": false
+        }
+      }
+    },
+    {
+      "id": "qwencode",
+      "apiProtocols": ["openai", "anthropic"],
+      "installReference": true,
+      "platforms": {
+        "windows": {
+          "pathHints": [
+            "%LOCALAPPDATA%\\qwen-code\\bin\\qwen.cmd",
+            "%APPDATA%\\npm\\qwen.cmd",
+            "%USERPROFILE%\\.local\\bin\\qwen.exe",
+            "%USERPROFILE%\\.bun\\bin\\qwen.exe",
+            "%USERPROFILE%\\scoop\\shims\\qwen.exe",
+            "%LOCALAPPDATA%\\pnpm\\qwen.exe"
+          ],
+          "nativeVerified": false
+        },
+        "macos": {
+          "pathHints": [
+            "/usr/local/bin/qwen",
+            "/opt/homebrew/bin/qwen",
+            "~/.bun/bin/qwen",
+            "~/.local/bin/qwen",
+            "~/.npm-global/bin/qwen",
+            "~/Library/pnpm/qwen"
+          ],
+          "nativeVerified": false
+        },
+        "linux": {
+          "pathHints": [
+            "/usr/local/bin/qwen",
+            "/usr/bin/qwen",
+            "~/.bun/bin/qwen",
+            "~/.local/bin/qwen",
+            "~/.npm-global/bin/qwen",
+            "~/.local/share/pnpm/qwen"
+          ],
+          "nativeVerified": false
+        }
+      }
+    },
+    {
+      "id": "qwenwork",
+      "apiProtocols": [],
+      "installReference": true,
+      "platforms": {
+        "windows": {
+          "pathHints": ["%LOCALAPPDATA%\\Programs\\QwenWork", "%PROGRAMFILES%\\QwenWork"],
+          "nativeVerified": false
+        },
+        "macos": {
+          "pathHints": [
+            "/Applications/QwenWork.app/Contents/MacOS/QwenWork",
+            "~/Applications/QwenWork.app/Contents/MacOS/QwenWork"
+          ],
+          "nativeVerified": false
+        },
+        "linux": {
+          "pathHints": [],
+          "nativeVerified": false
+        }
+      }
+    },
+    {
+      "id": "qwenworkcn",
+      "apiProtocols": [],
+      "installReference": true,
+      "platforms": {
+        "windows": {
+          "pathHints": ["%LOCALAPPDATA%\\Programs\\QwenWorkCN", "%PROGRAMFILES%\\QwenWorkCN"],
+          "nativeVerified": false
+        },
+        "macos": {
+          "pathHints": [
+            "/Applications/QwenWorkCN.app/Contents/MacOS/QwenWorkCN",
+            "~/Applications/QwenWorkCN.app/Contents/MacOS/QwenWorkCN"
+          ],
+          "nativeVerified": false
+        },
+        "linux": {
+          "pathHints": ["/opt/apps/QwenWorkCN/qwen-work-cn"],
+          "nativeVerified": false
+        }
+      }
+    },
+    {
+      "id": "trae",
+      "apiProtocols": ["openai", "anthropic"],
+      "installReference": true,
+      "platforms": {
+        "windows": {
+          "pathHints": ["%LOCALAPPDATA%\\Programs\\Trae\\Trae.exe"],
+          "nativeVerified": false
+        },
+        "macos": {
+          "pathHints": ["/Applications/Trae.app", "/Applications/Trae.app/Contents/MacOS/Trae"],
+          "nativeVerified": false
+        },
+        "linux": {
+          "pathHints": ["/usr/share/trae/trae", "/usr/bin/trae"],
+          "nativeVerified": false
+        }
+      }
+    },
+    {
+      "id": "traecn",
+      "apiProtocols": ["openai", "anthropic"],
+      "installReference": true,
+      "platforms": {
+        "windows": {
+          "pathHints": [
+            "%LOCALAPPDATA%\\Programs\\Trae CN\\Trae CN.exe",
+            "%LOCALAPPDATA%\\Programs\\Trae-CN\\Trae CN.exe"
+          ],
+          "nativeVerified": false
+        },
+        "macos": {
+          "pathHints": [
+            "/Applications/Trae CN.app",
+            "/Applications/Trae CN.app/Contents/MacOS/Trae CN"
+          ],
+          "nativeVerified": false
+        },
+        "linux": {
+          "pathHints": ["/usr/share/trae-cn/trae-cn", "/usr/bin/trae-cn"],
+          "nativeVerified": false
+        }
+      }
+    },
+    {
+      "id": "vibe-trading",
+      "apiProtocols": ["openai"],
+      "installReference": true,
+      "platforms": {
+        "windows": {
+          "pathHints": [
+            "%USERPROFILE%\\.local\\bin\\vibe-trading.exe",
+            "%APPDATA%\\Python\\Scripts\\vibe-trading.exe",
+            "%LOCALAPPDATA%\\Programs\\Python\\Python313\\Scripts\\vibe-trading.exe",
+            "%LOCALAPPDATA%\\Programs\\Python\\Python312\\Scripts\\vibe-trading.exe",
+            "%LOCALAPPDATA%\\Programs\\Python\\Python311\\Scripts\\vibe-trading.exe"
+          ],
+          "nativeVerified": false
+        },
+        "macos": {
+          "pathHints": [
+            "/usr/local/bin/vibe-trading",
+            "/opt/homebrew/bin/vibe-trading",
+            "~/.local/bin/vibe-trading"
+          ],
+          "nativeVerified": false
+        },
+        "linux": {
+          "pathHints": [
+            "/usr/local/bin/vibe-trading",
+            "/usr/bin/vibe-trading",
+            "~/.local/bin/vibe-trading"
+          ],
+          "nativeVerified": false
+        }
+      }
+    },
+    {
+      "id": "vscode",
+      "apiProtocols": ["openai", "anthropic"],
+      "installReference": true,
+      "platforms": {
+        "windows": {
+          "pathHints": [
+            "%LOCALAPPDATA%\\Programs\\Microsoft VS Code\\Code.exe",
+            "%ProgramFiles%\\Microsoft VS Code\\Code.exe"
+          ],
+          "nativeVerified": false
+        },
+        "macos": {
+          "pathHints": ["/Applications/Visual Studio Code.app/Contents/MacOS/Electron"],
+          "nativeVerified": false
+        },
+        "linux": {
+          "pathHints": ["/usr/bin/code", "/usr/share/code/code", "/snap/bin/code"],
+          "nativeVerified": false
+        }
+      }
+    },
+    {
+      "id": "workbuddy",
+      "apiProtocols": ["openai"],
+      "installReference": true,
+      "platforms": {
+        "windows": {
+          "pathHints": ["%LOCALAPPDATA%\\Programs\\WorkBuddy\\WorkBuddy.exe"],
+          "nativeVerified": false
+        },
+        "macos": {
+          "pathHints": [
+            "/Applications/WorkBuddy.app",
+            "/Applications/WorkBuddy.app/Contents/MacOS/WorkBuddy"
+          ],
+          "nativeVerified": false
+        },
+        "linux": {
+          "pathHints": [],
+          "nativeVerified": false
+        }
+      }
+    },
+    {
+      "id": "workbuddyai",
+      "apiProtocols": ["openai"],
+      "installReference": true,
+      "platforms": {
+        "windows": {
+          "pathHints": ["%LOCALAPPDATA%\\Programs\\WorkBuddyAI\\WorkBuddyAI.exe"],
+          "nativeVerified": false
+        },
+        "macos": {
+          "pathHints": [
+            "/Applications/WorkBuddy AI.app",
+            "/Applications/WorkBuddy AI.app/Contents/MacOS/WorkBuddy AI"
+          ],
+          "nativeVerified": false
+        },
+        "linux": {
+          "pathHints": [],
+          "nativeVerified": false
+        }
+      }
+    },
+    {
+      "id": "zcode",
+      "apiProtocols": ["openai", "anthropic"],
+      "installReference": true,
+      "platforms": {
+        "windows": {
+          "pathHints": ["%LOCALAPPDATA%\\Programs\\ZCode\\ZCode.exe"],
+          "nativeVerified": false
+        },
+        "macos": {
+          "pathHints": ["/Applications/ZCode.app/Contents/MacOS/ZCode"],
+          "nativeVerified": false
+        },
+        "linux": {
+          "pathHints": ["/opt/ZCode/zcode", "~/.local/bin/zcode"],
+          "nativeVerified": false
+        }
+      }
+    }
+  ]
+}

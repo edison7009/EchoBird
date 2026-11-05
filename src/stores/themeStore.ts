@@ -151,15 +151,10 @@ export const useThemeStore = create<ThemeStore>((set, get) => ({
       colorTheme: get().colorTheme,
       ...(pluginTheme ? { pluginTheme } : {}),
     }).catch(() => {});
-    api
-      .getSettings()
-      .then((s) => {
-        const current = get();
-        return api.saveSettings({
-          ...s,
-          themeMode: current.mode === 'system' ? undefined : current.mode,
-          colorTheme: current.colorTheme,
-        });
+    void api
+      .saveSettings({
+        themeMode: get().mode === 'system' ? null : (get().mode as 'light' | 'dark'),
+        colorTheme: get().colorTheme,
       })
       .catch(() => {});
   },
@@ -173,15 +168,10 @@ export const useThemeStore = create<ThemeStore>((set, get) => ({
       colorTheme,
       ...(hadPluginTheme ? { pluginTheme: null } : {}),
     }).catch(() => {});
-    api
-      .getSettings()
-      .then((s) => {
-        const current = get();
-        return api.saveSettings({
-          ...s,
-          themeMode: current.mode === 'system' ? undefined : current.mode,
-          colorTheme: current.colorTheme,
-        });
+    void api
+      .saveSettings({
+        themeMode: get().mode === 'system' ? null : (get().mode as 'light' | 'dark'),
+        colorTheme: get().colorTheme,
       })
       .catch(() => {});
   },

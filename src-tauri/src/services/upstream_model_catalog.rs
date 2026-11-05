@@ -95,7 +95,7 @@ fn usable_key(raw: &str) -> Result<String, String> {
             .join(".encryption_key");
         if std::fs::read(key_path)
             .ok()
-            .map_or(true, |key| key.len() != 32)
+            .is_none_or(|key| key.len() != 32)
         {
             return Err(INVALID_KEY.into());
         }

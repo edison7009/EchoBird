@@ -19,7 +19,7 @@ import { AppBackground } from './components/AppBackground';
 import { OnFirstVisit } from './components/OnFirstVisit';
 import { ResizablePanels } from './components/ResizablePanels';
 import { useModelNexus } from './pages/ModelNexus/context';
-import { getSettings, hideMainWindow } from './api/tauri';
+import { getSettings } from './api/tauri';
 
 import { useI18n } from './hooks/useI18n';
 import { useAutoClaimRewards } from './hooks/useAutoClaimRewards';
@@ -327,47 +327,23 @@ function AppContent() {
   // The Rust menu handler emits these events; on Windows/Linux there is no app
   // menu, so they simply never fire.
   useEffect(() => {
+    let disposed = false;
     const unlistens: Array<() => void> = [];
-    listen('menu-open-settings', () => setShowSettings(true)).then((u) => unlistens.push(u));
-    listen('menu-open-feedback', () => setActivePage('feedback')).then((u) => unlistens.push(u));
-    return () => unlistens.forEach((u) => u());
-  }, [setActivePage]);
-
-  // Intercept window close to support "minimize to tray" behavior
-  useEffect(() => {
-    const win = getCurrentWindow();
-    const setupCloseHandler = async () => {
-      const unlisten = await win.onCloseRequested(async (event) => {
-        // Check user settings
-        const settings = await getSettings();
-        const closeToTray = settings.closeToTray ?? false;
-
-        if (closeToTray) {
-          // Prevent default close and hide window instead
-          event.preventDefault();
-          await hideMainWindow();
-        }
-        // Otherwise let the window close normally
-      });
-
-      return unlisten;
+    const retain = (unlisten: () => void) => {
+      if (disposed) unlisten();
+      else unlistens.push(unlisten);
     };
-
-    let unlistenFn: (() => void) | null = null;
-    setupCloseHandler()
-      .then((fn) => {
-        unlistenFn = fn;
-      })
-      .catch((err) => {
-        console.error('[App] Failed to setup close handler:', err);
-      });
-
+    void listen('menu-open-settings', () => setShowSettings(true))
+      .then(retain)
+      .catch(console.error);
+    void listen('menu-open-feedback', () => setActivePage('feedback'))
+      .then(retain)
+      .catch(console.error);
     return () => {
-      if (unlistenFn) {
-        unlistenFn();
-      }
+      disposed = true;
+      unlistens.forEach((unlisten) => unlisten());
     };
-  }, []);
+  }, [setActivePage]);
 
   // Mirror isMaximized to <html> so the global #root clip-path in index.css
   // can drop its rounded corners when the window is maximized. Necessary

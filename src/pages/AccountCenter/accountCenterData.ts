@@ -1,5 +1,5 @@
 import { accountPluginAvailable, communityAccountApplications } from '../../hooks/useAccountPlugin';
-import type { AppManagerContextType } from '../AppManager/context';
+import type { AccountDirectoryContextType } from '../../features/accounts/context';
 import type { ManagedAccount } from '../AppManager/useManagedAccounts';
 import type { AntigravityQuota, TraeAccount, WorkBuddyAccount } from '../../api/tauri';
 import type { TKey } from '../../i18n';
@@ -125,7 +125,7 @@ const LOGIN_NEEDS_CLIENT = [
 ];
 
 export function accountCenterProviders(
-  context: AppManagerContextType,
+  context: AccountDirectoryContextType,
   t: (key: TKey) => string,
   locale: string
 ): AccountProvider[] {

@@ -65,7 +65,7 @@ fn pcm(audio: &[u8]) -> Result<&[u8], ProxyError> {
         || word(32) != 2
         || word(34) != 16
         || dword(40) != audio.len() - 44
-        || (audio.len() - 44) % 2 != 0
+        || !(audio.len() - 44).is_multiple_of(2)
     {
         return Err(invalid());
     }

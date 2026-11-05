@@ -112,7 +112,7 @@ impl Credentials {
                 self.auth["user"]["id"].as_str(),
             ]
             .iter()
-            .any(|value| value.map_or(true, |value| value.trim().is_empty()))
+            .any(|value| value.is_none_or(|value| value.trim().is_empty()))
             || api::timestamp(&self.auth["expiresAt"]).is_none()
             || (self.auth["user"]["isBiz"] == true
                 && api::text(&self.auth["user"], &["teamId"]).is_none())

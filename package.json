@@ -6,19 +6,20 @@
   "license": "MIT",
   "type": "module",
   "scripts": {
-    "tools:sync": "robocopy tools D:\\build-output\\debug\\_up_\\tools /E /XO /NFL /NDL || exit 0",
-    "dev": "npm run tools:sync && cargo tauri dev",
+    "dev": "npm run tauri -- dev",
     "build": "npm run tauri -- build",
     "tauri": "npx --yes @tauri-apps/cli@2.12.4",
     "preview": "vite preview",
-    "test": "vitest run --passWithNoTests && node --test scripts/tests/website_download.test.mjs scripts/tests/plugin_sdk.test.mjs scripts/tests/usage_island_styles.test.mjs",
+    "test": "vitest run --passWithNoTests && node --test scripts/tests/website_download.test.mjs scripts/tests/plugin_sdk.test.mjs scripts/tests/usage_island_styles.test.mjs scripts/tests/dependency_patches.test.mjs scripts/tests/catalogs.test.mjs && node scripts/sync-catalogs.mjs",
     "typecheck": "tsc --noEmit",
     "lint": "eslint \"src/**/*.{ts,tsx}\" --report-unused-disable-directives --max-warnings 0",
     "lint:fix": "eslint \"src/**/*.{ts,tsx}\" --fix",
     "format": "prettier --write \"src/**/*.{ts,tsx,css,json}\"",
     "format:check": "prettier --check \"src/**/*.{ts,tsx,css,json}\"",
     "copy:config": "echo no-op",
-    "postinstall": "patch-package"
+    "postinstall": "patch-package --error-on-fail && node scripts/verify-dependency-patches.mjs && node scripts/sync-catalogs.mjs",
+    "catalog:generate": "node scripts/sync-catalogs.mjs --write && prettier --write \"src/data/*.json\"",
+    "catalog:check": "node scripts/sync-catalogs.mjs"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

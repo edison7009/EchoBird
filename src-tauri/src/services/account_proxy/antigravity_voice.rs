@@ -413,7 +413,7 @@ fn collapse_cjk_spaces(text: &str) -> String {
             {
                 continue;
             }
-            output.extend(std::iter::repeat(' ').take(count));
+            output.extend(std::iter::repeat_n(' ', count));
         } else {
             output.push(character);
             previous = Some(character);

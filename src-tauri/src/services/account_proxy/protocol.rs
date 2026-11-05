@@ -608,7 +608,7 @@ impl ChatDecoder {
             if (!event.is_empty() && event != kind)
                 || response["object"] != "response"
                 || response["status"] != kind.trim_start_matches("response.")
-                || !response["id"].as_str().is_some_and(|id| !id.is_empty())
+                || response["id"].as_str().is_none_or(|id| id.is_empty())
             {
                 return Err("Responses terminal event has no matching terminal response".into());
             }

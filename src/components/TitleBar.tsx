@@ -101,7 +101,6 @@ export const TitleBar: React.FC<TitleBarProps> = ({ onFeedbackClick, onChangelog
     // silently cancels "always ask".
     if (!settings.closeWindowBehaviorSet) {
       await saveSettings({
-        ...settings,
         closeToTray: choice === 'tray',
         closeWindowBehaviorSet: true,
       });

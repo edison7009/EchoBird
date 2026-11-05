@@ -98,7 +98,7 @@ fn current_subscription(data: &Value) -> Result<Option<&Value>, String> {
         }
         if item["status"] == "VALID"
             && item["inCurrentPeriod"] == true
-            && subscription_end(item).map_or(true, |end| end > now())
+            && subscription_end(item).is_none_or(|end| end > now())
         {
             return Ok(Some(item));
         }

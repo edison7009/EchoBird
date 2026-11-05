@@ -1,8 +1,9 @@
+import { AppManagerContext, type AppManagerContextType } from '../AppManager/context';
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 import { describe, expect, it, vi } from 'vitest';
-import { AppManagerContext, type AppManagerContextType } from '../AppManager/context';
+import { AccountDirectoryContext } from '../../features/accounts/context';
 import { useNavigationStore } from '../../stores/navigationStore';
 import { usePluginsStore } from '../../stores/pluginsStore';
 import { installedAccountPlugins } from '../../test/accountPlugins';
@@ -617,7 +618,9 @@ describe('Account Center display data', () => {
     act(() => {
       sidebarRenderer = create(
         <AppManagerContext.Provider value={state}>
-          <OpenDesignAccountSection />
+          <AccountDirectoryContext.Provider value={state}>
+            <OpenDesignAccountSection />
+          </AccountDirectoryContext.Provider>
         </AppManagerContext.Provider>
       );
     });
@@ -648,7 +651,9 @@ describe('Account Center display data', () => {
     act(() => {
       sidebarRenderer = create(
         <AppManagerContext.Provider value={state}>
-          <OpenDesignAccountSection />
+          <AccountDirectoryContext.Provider value={state}>
+            <OpenDesignAccountSection />
+          </AccountDirectoryContext.Provider>
         </AppManagerContext.Provider>
       );
     });
@@ -680,15 +685,17 @@ describe('Account Center display data', () => {
       act(() => {
         renderer = create(
           <AppManagerContext.Provider value={state}>
-            <AccountCenterTitleActions />
-            <AccountCard provider={provider} account={account} />
-            <AccountSectionRow
-              email={account.identity}
-              selected={false}
-              plan={account.plan}
-              onSelect={vi.fn()}
-              onDelete={account.remove}
-            />
+            <AccountDirectoryContext.Provider value={state}>
+              <AccountCenterTitleActions />
+              <AccountCard provider={provider} account={account} />
+              <AccountSectionRow
+                email={account.identity}
+                selected={false}
+                plan={account.plan}
+                onSelect={vi.fn()}
+                onDelete={account.remove}
+              />
+            </AccountDirectoryContext.Provider>
           </AppManagerContext.Provider>
         );
       });
@@ -1368,7 +1375,9 @@ describe('Account Center display data', () => {
       act(() => {
         renderer = create(
           <AppManagerContext.Provider value={state}>
-            <AccountCenterTitleActions />
+            <AccountDirectoryContext.Provider value={state}>
+              <AccountCenterTitleActions />
+            </AccountDirectoryContext.Provider>
           </AppManagerContext.Provider>
         );
       });
@@ -1430,7 +1439,9 @@ describe('Account Center display data', () => {
         act(() => {
           renderer = create(
             <AppManagerContext.Provider value={state}>
-              <AccountCenterTitleActions />
+              <AccountDirectoryContext.Provider value={state}>
+                <AccountCenterTitleActions />
+              </AccountDirectoryContext.Provider>
             </AppManagerContext.Provider>
           );
         });

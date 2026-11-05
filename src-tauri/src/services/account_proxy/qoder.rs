@@ -548,7 +548,7 @@ fn prepare(body: &Value, model: &Value) -> Result<Value, ProxyError> {
     if let Some(reasoning) = body.get("reasoning").filter(|v| !v.is_null()) {
         if reasoning
             .as_object()
-            .map_or(true, |object| object.keys().any(|key| key != "effort"))
+            .is_none_or(|object| object.keys().any(|key| key != "effort"))
         {
             return Err(unsupported("reasoning"));
         }

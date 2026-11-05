@@ -77,10 +77,7 @@ pub async fn fetch_store_models() -> Vec<serde_json::Value> {
     let cache_path = cache_dir.join("store-models.json");
 
     // 1. Try remote
-    if let Ok(resp) = reqwest::Client::builder()
-        .timeout(std::time::Duration::from_secs(8))
-        .build()
-        .unwrap_or_default()
+    if let Ok(resp) = crate::services::http_transport::catalog()
         .get(remote_url)
         .header("User-Agent", "Echobird/1.1")
         .send()

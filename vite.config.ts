@@ -2,6 +2,15 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
 import pkg from './package.json';
+import { execFileSync } from 'node:child_process';
+
+// Required compatibility patches must also be checked when Vite is invoked directly.
+execFileSync(process.execPath, ['scripts/verify-dependency-patches.mjs'], {
+  cwd: __dirname,
+  stdio: 'inherit',
+});
+
+execFileSync(process.execPath, ['scripts/sync-catalogs.mjs'], { cwd: __dirname, stdio: 'inherit' });
 
 export default defineConfig({
   base: './',
@@ -30,6 +39,7 @@ export default defineConfig({
   },
   server: {
     port: 5173,
+    strictPort: true,
     open: false,
     watch: {
       ignored: ['**/src-tauri/target/**', '**/dist/**', '**/build/**'],

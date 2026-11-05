@@ -53,10 +53,10 @@ pub(super) fn valid(saved: &Saved, id: &str) -> Result<(), String> {
         || saved.auth["oidc_issuer"] != "https://auth.x.ai"
         || saved.auth["user_id"]
             .as_str()
-            .map_or(true, |id| id.trim().is_empty())
+            .is_none_or(|id| id.trim().is_empty())
         || saved.auth["key"]
             .as_str()
-            .map_or(true, |key| key.trim().is_empty())
+            .is_none_or(|key| key.trim().is_empty())
     {
         return Err("accountError.invalidAccount".into());
     }

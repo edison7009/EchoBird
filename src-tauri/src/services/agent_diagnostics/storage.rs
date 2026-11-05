@@ -187,7 +187,7 @@ pub(super) fn inspect(args: Args) -> Result<Value, String> {
                 .collect::<Result<Vec<_>, _>>()
                 .map_err(|e| e.to_string())?
                 .into_iter()
-                .filter(|p| p.file_name().map_or(true, |n| n != "LOCK"))
+                .filter(|p| p.file_name().is_none_or(|n| n != "LOCK"))
                 .filter(|p| !p.is_dir())
                 .collect();
             let copy = copy_files(paths)?;
@@ -236,7 +236,7 @@ fn decode(bytes: &[u8], chromium: bool) -> Value {
     if chromium && bytes.first() == Some(&1) {
         return json!({"encoding":"chromium-latin1","text":bytes[1..].iter().map(|b|char::from(*b)).collect::<String>()});
     }
-    if chromium && bytes.first() == Some(&0) && (bytes.len() - 1) % 2 == 0 {
+    if chromium && bytes.first() == Some(&0) && (bytes.len() - 1).is_multiple_of(2) {
         if let Ok(text) = String::from_utf16(
             &bytes[1..]
                 .chunks_exact(2)

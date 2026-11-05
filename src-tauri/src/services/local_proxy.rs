@@ -103,9 +103,9 @@ fn replace_port(content: &str, old: u16, new: u16) -> String {
         for (index, _) in result.match_indices(&from) {
             let end = index + from.len();
             let boundary = result[end..].chars().next();
-            if boundary.map_or(true, |c| {
-                c.is_whitespace() || matches!(c, '/' | '"' | '\'' | '?' | '#')
-            }) {
+            if boundary
+                .is_none_or(|c| c.is_whitespace() || matches!(c, '/' | '"' | '\'' | '?' | '#'))
+            {
                 output.push_str(&result[start..index]);
                 output.push_str(&to);
                 start = end;

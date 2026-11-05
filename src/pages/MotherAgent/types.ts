@@ -73,7 +73,7 @@ export interface MotherAgentCtx {
     username: string;
     password: string;
     alias?: string;
-  }) => void;
+  }) => Promise<boolean>;
   removeSSHServer: (id: string) => void;
   selectedServerId: string;
   selectServer: (id: string) => void;

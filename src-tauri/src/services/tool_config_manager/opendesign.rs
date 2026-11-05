@@ -135,7 +135,7 @@ fn open_storage(path: &Path) -> Result<rusty_leveldb::DB, String> {
 fn decode(bytes: &[u8]) -> Result<Value, String> {
     let text = match bytes.first() {
         Some(1) => bytes[1..].iter().map(|b| char::from(*b)).collect(),
-        Some(0) if (bytes.len() - 1) % 2 == 0 => String::from_utf16(
+        Some(0) if (bytes.len() - 1).is_multiple_of(2) => String::from_utf16(
             &bytes[1..]
                 .chunks_exact(2)
                 .map(|c| u16::from_le_bytes([c[0], c[1]]))

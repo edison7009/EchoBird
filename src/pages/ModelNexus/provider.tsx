@@ -1,3 +1,4 @@
+import { useModelRepository } from '../../hooks/useModelRepository';
 import { isSmartRouterId } from '../../utils/smartRouter';
 // Model Nexus Page — Model cards, debug console, add/edit modal
 // Extracted from App.tsx with Provider pattern for shared state
@@ -33,16 +34,18 @@ export const isVolcengineUrl = (baseUrl: string, anthropicUrl?: string | null) =
   }
 };
 
-const visibleModelNexusModels = (models: ModelConfig[]) =>
-  models.filter(
-    (model) => model.internalId !== 'local-server' && !isSmartRouterId(model.internalId)
-  );
+const visibleModelNexusModel = (model: ModelConfig) =>
+  model.internalId !== 'local-server' &&
+  !isSmartRouterId(model.internalId) &&
+  (!model.scope || model.scope === 'modelCenter');
+const visibleModelNexusModels = (models: ModelConfig[]) => models.filter(visibleModelNexusModel);
 
 export function ModelNexusProvider({ children }: { children: React.ReactNode }) {
   const { t } = useI18n();
   // Models state
-  const [userModels, setUserModels] = useState<ModelConfig[]>([]);
-  const [isLoadingModels, setIsLoadingModels] = useState(true);
+  const repository = useModelRepository(visibleModelNexusModel);
+  const { models: userModels, setModels: setUserModels } = repository;
+  const isLoadingModels = repository.loading;
   const [selectedModel, setSelectedModel] = useState<string | null>('gpt4o');
   const [pingingModelIds, setPingingModelIds] = useState<Set<string>>(new Set());
 
@@ -151,7 +154,7 @@ export function ModelNexusProvider({ children }: { children: React.ReactNode }) 
       // Reload fresh model data from disk to get latest apiKey state
       let freshModel = model;
       try {
-        const freshModels = await api.getModels();
+        const freshModels = await repository.reload();
         const found = freshModels.find((m) => m.internalId === model.internalId);
         if (found) {
           freshModel = found;
@@ -180,16 +183,27 @@ export function ModelNexusProvider({ children }: { children: React.ReactNode }) 
       });
       setShowAddModelModal(true);
     },
-    [setEditingModelId, setKeyDestroyed, setNewModelForm, setShowAddModelModal, setUserModels]
+    [
+      repository,
+      setEditingModelId,
+      setKeyDestroyed,
+      setNewModelForm,
+      setShowAddModelModal,
+      setUserModels,
+    ]
   );
 
   const handleCardDelete = useCallback(
     async (modelId: string) => {
-      await api.deleteModel(modelId);
-      invalidateModelUsage(modelId);
-      setUserModels((prev) => prev.filter((m) => m.internalId !== modelId));
+      try {
+        await api.deleteModel(modelId);
+        invalidateModelUsage(modelId);
+        setUserModels((prev) => prev.filter((m) => m.internalId !== modelId));
+      } catch (error) {
+        showToast('error', typeof error === 'string' ? error : String(error));
+      }
     },
-    [setUserModels, invalidateModelUsage]
+    [setUserModels, invalidateModelUsage, showToast]
   );
 
   // Test state
@@ -207,23 +221,6 @@ export function ModelNexusProvider({ children }: { children: React.ReactNode }) 
 
   // Derived
   const selectedModelData = userModels.find((m) => m.internalId === selectedModel);
-
-  // Load models from config
-  useEffect(() => {
-    const loadModels = async () => {
-      setIsLoadingModels(true);
-      if (api.getModels) {
-        try {
-          const models = await api.getModels();
-          setUserModels(visibleModelNexusModels(models));
-        } catch (error) {
-          console.error('Load models failed:', error);
-        }
-      }
-      setIsLoadingModels(false);
-    };
-    loadModels();
-  }, []);
 
   // Auto-fill Model ID and API Key for local models
   useEffect(() => {
@@ -491,10 +488,7 @@ export function ModelNexusProvider({ children }: { children: React.ReactNode }) 
           result.response || 'No response',
         ]);
         // Reload model list to refresh test status
-        if (api.getModels) {
-          const updatedModels = await api.getModels();
-          setUserModels(visibleModelNexusModels(updatedModels));
-        }
+        await repository.reload();
       } else {
         // Sentinel -1 so the model card shows "Error" instead of the
         // pre-test "未测试" placeholder — see pingAllModels for the

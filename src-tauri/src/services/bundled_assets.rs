@@ -126,70 +126,9 @@ pub fn get_tool_script(name: &str) -> Option<&'static str> {
     }
 }
 
-/// IDs of every tool with a bundled install reference. Mirrors the keys of
-/// `get_install_ref` so the system prompt and AppManager stay in sync.
-pub const INSTALLABLE_TOOL_IDS: &[&str] = &[
-    "devin",
-    "devincli",
-    "codearts",
-    "claudecode",
-    "codex",
-    "qwencode",
-    "musecode",
-    "aider",
-    "pi",
-    "omp",
-    "hermes",
-    "openclaw",
-    "opencode",
-    "cline",
-    "clinedesktop",
-    "antigravity",
-    "antigravitydesktop",
-    "mimocode",
-    "minimaxcode",
-    "minimaxdesktop",
-    "qoder",
-    "qodercn",
-    "qwenworkcn",
-    "dumate",
-    "doubaowork",
-    "dola",
-    "qwenwork",
-    "kilo",
-    "kilodesktop",
-    "copilot",
-    "copilotdesktop",
-    "kimicode",
-    "kimidesktop",
-    "claudedesktop",
-    "chatgptdesktop",
-    "geminidesktop",
-    "opencodedesktop",
-    "mimodesktop",
-    "coffeecli",
-    "claudescience",
-    "openscience",
-    "vscode",
-    "cursor",
-    "cursorcli",
-    "clashverge",
-    "trae",
-    "traecn",
-    "kirocrew",
-    "kirocli",
-    "grok",
-    "grokbot",
-    "manus",
-    "cue",
-    "muse",
-    "vibe-trading",
-    "workbuddy",
-    "workbuddyai",
-    "zcode",
-    "opendesign",
-    "dsh",
-];
+// IDs of every tool with a bundled install reference. Mirrors the keys of
+// `get_install_ref` so the system prompt and AppManager stay in sync.
+include!(concat!(env!("OUT_DIR"), "/install_ids.rs"));
 
 /// Build the full embedded-references block to append to the system prompt.
 /// The agent reads from this instead of `web_fetch`-ing echobird.ai.

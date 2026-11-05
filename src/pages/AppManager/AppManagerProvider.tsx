@@ -1,49 +1,20 @@
-import {
-  communityAccountApplications,
-  hasAccountPlugin,
-  pluginToolProviders,
-} from '../../hooks/useAccountPlugin';
-import { usePluginToolAccounts } from './usePluginToolAccounts';
-import { useCursorAccounts } from './useCursorAccounts';
-import { useAntigravityAccounts } from './useAntigravityAccounts';
-import { useDeepSeekAccounts } from './useDeepSeekAccounts';
-import { useGrokAccounts } from './useGrokAccounts';
-import { useKiloAccounts, useCopilotAccounts } from './useClientAccounts';
+import { isSmartRouterId } from '../../utils/smartRouter';
 import { accountError } from '../../utils/accountError';
+import { useApplicationLauncher } from '../../features/accounts/useApplicationLauncher';
+import { AccountDirectoryContext } from '../../features/accounts/context';
+import { useAccountDirectory } from '../../features/accounts/useAccountDirectory';
+import { useModelRepository } from '../../hooks/useModelRepository';
+import { pluginToolProviders } from '../../hooks/useAccountPlugin';
 import { ClaudeCodeLoginDialog } from './ClaudeCodeLoginDialog';
-import { useWorkBuddyAccounts } from './useWorkBuddyAccounts';
-import { useTraeAccounts } from './useTraeAccounts';
-import { useKiroAccounts } from './useKiroAccounts';
-import { useZCodeAccounts } from './useZCodeAccounts';
-import { useKimiAccounts } from './useKimiAccounts';
-import { useCodeArtsAccounts } from './useCodeArtsAccounts';
-import { switchCodeArtsAccount } from '../../api/codeArtsAccounts';
-import { switchKimiAccount } from '../../api/kimiAccounts';
-import { useDevinAccounts } from './useDevinAccounts';
-import { useOpenDesignAccounts } from './useOpenDesignAccounts';
-import { useMinimaxAccounts } from './useMinimaxAccounts';
-import { useClineAccounts } from './useClineAccounts';
-import { useQoderAccounts } from './useQoderAccounts';
-import { useDuMateAccounts } from './useDuMateAccounts';
-import { useDoubaoAccounts } from './useDoubaoAccounts';
-import { useQwenWorkAccounts } from './useQwenWorkAccounts';
-import { useClaudeCodeAccounts } from './useClaudeCodeAccounts';
-import { useClaudeDesktopAccounts } from './useClaudeDesktopAccounts';
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { useCodexAccounts } from './useCodexAccounts';
 import { useI18n } from '../../hooks/useI18n';
 import * as api from '../../api/tauri';
-import type { ModelConfig } from '../../api/types';
 import { AppManagerContext } from './context';
 import { useToolsStore } from '../../stores/toolsStore';
 import { useNavigationStore } from '../../stores/navigationStore';
-import { useUsageIslandVisible } from '../../stores/usageIslandStore';
-import { useModelNexus } from '../ModelNexus/context';
 import { useFreeModels } from '../FreeModels/provider';
 import { getOfficialEndpoint, isOfficialModelSentinel } from '../../data/officialEndpoints';
-import { open as openDialog } from '@tauri-apps/plugin-dialog';
 import { pluginTools, usePluginsStore } from '../../stores/pluginsStore';
-import { launchPlugin } from '../../api/plugins';
 
 // ===== Provider =====
 
@@ -128,41 +99,32 @@ export const AppManagerProvider: React.FC<AppManagerProviderProps> = ({ children
   });
 
   // Reload application models on entry and after model changes.
-  const [userModels, setUserModels] = useState<ModelConfig[]>([]);
-  const { userModels: modelNexusModels } = useModelNexus();
-  const { routerEnabled, routerBaseUrl, routers } = useFreeModels();
+  const { models: userModels, loaded: modelsLoaded } = useModelRepository(undefined, isActive);
+  const { routerEnabled, routers } = useFreeModels();
   const routerIdsKey = JSON.stringify(routers?.map((router) => router.id) ?? []);
   useEffect(() => {
-    if (!api.getModels || !isActive) return;
-    // Guard against out-of-order resolution: rapid navigation can
-    // overlap getModels() calls, and a slower earlier one resolving last would
-    // clobber userModels with stale data.
-    let ignore = false;
-    api
-      .getModels()
-      .then((models) => {
-        if (ignore) return;
-        setUserModels(models);
-        setToolModelConfig((prev) => {
-          const configuredRouterIds: string[] = JSON.parse(routerIdsKey);
-          const removed = Object.keys(prev).filter(
-            (toolId) =>
-              prev[toolId] &&
-              !isOfficialModelSentinel(prev[toolId]!) &&
-              !configuredRouterIds.includes(prev[toolId]!) &&
-              !models.some((model) => model.internalId === prev[toolId])
-          );
-          if (removed.length === 0) return prev;
-          const next = { ...prev };
-          removed.forEach((toolId) => (next[toolId] = null));
-          return next;
-        });
-      })
-      .catch((e) => console.error('Load models failed:', e));
+    if (!isActive || !modelsLoaded) return;
+    const configuredRouterIds: string[] = JSON.parse(routerIdsKey);
+    let cancelled = false;
+    queueMicrotask(() => {
+      if (cancelled) return;
+      setToolModelConfig((previous) => {
+        const removed = Object.keys(previous).filter(
+          (id) =>
+            previous[id] &&
+            !isOfficialModelSentinel(previous[id]!) &&
+            (isSmartRouterId(previous[id]!) && routers !== undefined
+              ? !configuredRouterIds.includes(previous[id]!)
+              : !userModels.some((model) => model.internalId === previous[id]))
+        );
+        if (!removed.length) return previous;
+        return { ...previous, ...Object.fromEntries(removed.map((id) => [id, null])) };
+      });
+    });
     return () => {
-      ignore = true;
+      cancelled = true;
     };
-  }, [isActive, modelNexusModels, routerEnabled, routerBaseUrl, routerIdsKey]);
+  }, [isActive, modelsLoaded, userModels, routerIdsKey, routers]);
 
   // AI-installable IDs from bundled install/index.json (offline-first).
   const [aiInstallableIds, setAiInstallableIds] = useState<string[]>([]);
@@ -191,36 +153,6 @@ export const AppManagerProvider: React.FC<AppManagerProviderProps> = ({ children
       !detectedTools.some((tool) => tool.id === selectedToolId))
       ? null
       : selectedToolId;
-  const clineSelectionRevision = useRef(0);
-  const accountNavigation = useRef({ tool: selectedTool, page: activePage });
-  useEffect(() => {
-    clineSelectionRevision.current += 1;
-    accountNavigation.current = { tool: selectedTool, page: activePage };
-  }, [selectedTool, activePage]);
-  const usageIslandOpen = useUsageIslandVisible();
-  const accountPage =
-    activePage === 'accounts' ||
-    (activePage === 'developer' && developerMode && developerTab === 'usageIsland');
-  // The floating island needs saved accounts on every page, but tool pages keep their own target.
-  const accountDataNeeded = accountPage || usageIslandOpen;
-  const accountsEnabled =
-    isActive && detectedTools.some((tool) => tool.id === selectedTool && tool.installed);
-  const pluginAvailable = (id: string) => hasAccountPlugin(id, installedPlugins, developerMode);
-  // Account Management lists EchoBird's saved accounts whether or not the
-  // client is installed; the built-in account backends read client files only
-  // when it is. Plugin-provided accounts keep the install requirement because
-  // their list runs in the plugin, outside that guard.
-  const accountGroupEnabled = (...ids: string[]) =>
-    ids.every((id) => !communityAccountApplications.includes(id) || pluginAvailable(id)) &&
-    !usingCachedTools &&
-    (accountDataNeeded
-      ? !ids.some((id) => communityAccountApplications.includes(id)) ||
-        detectedTools.some((tool) => ids.includes(tool.id) && tool.installed)
-      : accountsEnabled && ids.includes(selectedTool ?? ''));
-  // Groups the open island keeps loaded on other tools' pages share one key, so tool clicks
-  // don't reload them.
-  const toolNavigation = (...ids: string[]) =>
-    accountPage ? 'accounts' : ids.includes(selectedTool ?? '') ? (selectedTool ?? '') : '';
   const [isLaunching, setIsLaunching] = useState(false);
   const launchGeneration = useRef(0);
   const previewLaunch = useRef(false);
@@ -237,33 +169,6 @@ export const AppManagerProvider: React.FC<AppManagerProviderProps> = ({ children
       }),
     []
   );
-  const isCodexTool = selectedTool === 'codex' || selectedTool === 'chatgptdesktop';
-  const codexManaged = useCodexAccounts(
-    accountGroupEnabled('codex', 'chatgptdesktop'),
-    !!(selectedTool && toolModelConfig[selectedTool]),
-    () => setToolModelConfig((prev) => ({ ...prev, codex: null, chatgptdesktop: null })),
-    setApplyError,
-    toolNavigation('codex', 'chatgptdesktop')
-  );
-  const {
-    accounts: codexAccounts,
-    selectedId: selectedCodexAccountId,
-    select: selectCodexAccount,
-    loading: isLoadingCodexAccounts,
-    loaded: codexAccountsLoaded,
-    readFailed: codexAccountsReadFailed,
-    mutationRevision: codexAccountsMutationRevision,
-    busy: isAddingCodexAccount,
-    remainingSeconds: codexOAuthRemainingSeconds,
-    refreshing: refreshingCodexAccountIds,
-    authorizationFailedIds: codexAuthorizationFailedIds,
-    reload: loadCodexAccounts,
-    add: addCodexAccount,
-    cancelLogin: cancelCodexLogin,
-    remove: deleteCodexAccount,
-    refresh: refreshCodexAccountQuota,
-  } = codexManaged;
-
   // Bottom-bar checkbox states are persisted across sessions — users get tired of
   // re-checking the same boxes every launch. Default both to true so picking an app
   // and clicking the big button "just launches it"; users who only want to rewrite
@@ -371,382 +276,104 @@ export const AppManagerProvider: React.FC<AppManagerProviderProps> = ({ children
     setSelectedTool(null);
     setApplyError(null);
   };
-  const clearClaudeCodeModel = useCallback(() => {
-    setToolModelConfig((prev) => ({ ...prev, claudecode: null }));
-  }, []);
-  const claudeCodeAccounts = useClaudeCodeAccounts(
-    accountGroupEnabled('claudecode'),
-    !!toolModelConfig.claudecode,
-    clearClaudeCodeModel,
-    setApplyError
-  );
-  const clearClaudeDesktopModel = useCallback(() => {
-    setToolModelConfig((prev) => ({ ...prev, claudedesktop: null }));
-  }, []);
-  const claudeDesktopAccounts = useClaudeDesktopAccounts(
-    accountGroupEnabled('claudedesktop'),
-    !!toolModelConfig.claudedesktop,
-    clearClaudeDesktopModel,
-    setApplyError
-  );
-
-  const workBuddyEdition =
-    selectedTool === 'workbuddy' || selectedTool === 'workbuddyai' ? selectedTool : null;
   const mimoTool =
     selectedTool === 'mimocode' || selectedTool === 'mimodesktop' ? selectedTool : null;
   const mimoValues = mimoCapabilities[mimoTool ?? 'mimodesktop'];
-  const clearWorkBuddyModel = useCallback((edition: api.WorkBuddyEdition) => {
-    setToolModelConfig((prev) => ({ ...prev, [edition]: null }));
-  }, []);
-  const workBuddyCnAccounts = useWorkBuddyAccounts(
-    'workbuddy',
-    !!toolModelConfig.workbuddy,
-    clearWorkBuddyModel,
-    setApplyError,
-    accountGroupEnabled('workbuddy')
-  );
-  const workBuddyAiAccounts = useWorkBuddyAccounts(
-    'workbuddyai',
-    !!toolModelConfig.workbuddyai,
-    clearWorkBuddyModel,
-    setApplyError,
-    accountGroupEnabled('workbuddyai')
-  );
-  const workBuddyAccounts =
-    workBuddyEdition === 'workbuddyai' ? workBuddyAiAccounts : workBuddyCnAccounts;
-
-  const traeCnAccounts = useTraeAccounts('traecn', accountGroupEnabled('traecn'), setApplyError);
-  const traeGlobalAccounts = useTraeAccounts('trae', accountGroupEnabled('trae'), setApplyError);
-  const traeAccounts = selectedTool === 'trae' ? traeGlobalAccounts : traeCnAccounts;
-  const kiroEdition =
-    selectedTool === 'kirocli' && accountGroupEnabled('kirocli')
-      ? 'kirocli'
-      : accountGroupEnabled('kirocrew')
-        ? 'kirocrew'
-        : 'kirocli';
-  const kiroAccounts = useKiroAccounts(
-    kiroEdition,
-    accountGroupEnabled('kirocrew', 'kirocli'),
-    setApplyError
-  );
-
-  const clearMinimaxModel = useCallback(() => {
-    setToolModelConfig((prev) => ({ ...prev, minimaxcode: null, minimaxdesktop: null }));
-  }, []);
-  const minimaxAccounts = useMinimaxAccounts(
-    accountGroupEnabled('minimaxcode', 'minimaxdesktop'),
-    !!(
-      selectedTool &&
-      ['minimaxcode', 'minimaxdesktop'].includes(selectedTool) &&
-      toolModelConfig[selectedTool]
-    ),
-    clearMinimaxModel,
-    setApplyError,
-    toolNavigation('minimaxcode', 'minimaxdesktop')
-  );
-  const qoderEdition: api.QoderEdition = selectedTool === 'qodercn' ? 'qodercn' : 'qoder';
-  const clearQoderGlobalModel = useCallback(() => {
-    setToolModelConfig((prev) => ({ ...prev, qoder: null }));
-  }, []);
-  const clearQoderCnModel = useCallback(() => {
-    setToolModelConfig((prev) => ({ ...prev, qodercn: null }));
-  }, []);
-  const qoderGlobalAccounts = useQoderAccounts(
-    'qoder',
-    accountGroupEnabled('qoder'),
-    !!toolModelConfig.qoder,
-    clearQoderGlobalModel,
-    setApplyError,
-    toolNavigation('qoder')
-  );
-  const qoderCnAccounts = useQoderAccounts(
-    'qodercn',
-    accountGroupEnabled('qodercn'),
-    !!toolModelConfig.qodercn,
-    clearQoderCnModel,
-    setApplyError,
-    toolNavigation('qodercn')
-  );
-  const qoderAccounts = qoderEdition === 'qodercn' ? qoderCnAccounts : qoderGlobalAccounts;
-  const clearDuMateModel = useCallback(() => {
-    setToolModelConfig((prev) => ({ ...prev, dumate: null }));
-  }, []);
-  const dumateAccounts = useDuMateAccounts(
-    accountGroupEnabled('dumate') ||
-      (!usingCachedTools &&
-        activePage === 'freeModels' &&
-        detectedTools.some((tool) => tool.id === 'dumate' && tool.installed)),
-    clearDuMateModel,
-    setApplyError,
-    activePage === 'freeModels' ? 'dumate' : (selectedTool ?? '')
-  );
-  const doubaoEdition: api.DoubaoEdition = selectedTool === 'dola' ? 'dola' : 'doubaowork';
-  const clearDoubaoWorkModel = useCallback(() => {
-    setToolModelConfig((prev) => ({ ...prev, doubaowork: null }));
-  }, []);
-  const clearDolaModel = useCallback(() => {
-    setToolModelConfig((prev) => ({ ...prev, dola: null }));
-  }, []);
-  const doubaoWorkAccounts = useDoubaoAccounts(
-    'doubaowork',
-    accountGroupEnabled('doubaowork') ||
-      (pluginAvailable('doubaowork') &&
-        !usingCachedTools &&
-        activePage === 'freeModels' &&
-        detectedTools.some((tool) => tool.id === 'doubaowork' && tool.installed)),
-    !!toolModelConfig.doubaowork,
-    clearDoubaoWorkModel,
-    setApplyError,
-    activePage === 'freeModels' ? 'doubaowork' : (selectedTool ?? '')
-  );
-  const dolaAccounts = useDoubaoAccounts(
-    'dola',
-    accountGroupEnabled('dola') ||
-      (pluginAvailable('dola') &&
-        !usingCachedTools &&
-        activePage === 'freeModels' &&
-        detectedTools.some((tool) => tool.id === 'dola' && tool.installed)),
-    !!toolModelConfig.dola,
-    clearDolaModel,
-    setApplyError,
-    activePage === 'freeModels' ? 'dola' : (selectedTool ?? '')
-  );
-  const doubaoAccounts = doubaoEdition === 'dola' ? dolaAccounts : doubaoWorkAccounts;
-  const doubaoSelectionRevision = useRef(0);
-  useEffect(() => {
-    doubaoSelectionRevision.current += 1;
-  }, [activePage, selectedTool, doubaoAccounts.selectedId]);
-  const qwenWorkEdition: api.QwenWorkEdition =
-    selectedTool === 'qwenworkcn' ? 'qwenworkcn' : 'qwenwork';
-  const clearQwenWorkModel = useCallback(() => {
-    setToolModelConfig((prev) => ({ ...prev, qwenwork: null }));
-  }, []);
-  const clearQwenWorkCnModel = useCallback(() => {
-    setToolModelConfig((prev) => ({ ...prev, qwenworkcn: null }));
-  }, []);
-  const qwenWorkGlobalAccounts = useQwenWorkAccounts(
-    'qwenwork',
-    accountGroupEnabled('qwenwork'),
-    clearQwenWorkModel,
-    setApplyError,
-    toolNavigation('qwenwork')
-  );
-  const qwenWorkCnAccounts = useQwenWorkAccounts(
-    'qwenworkcn',
-    accountGroupEnabled('qwenworkcn'),
-    clearQwenWorkCnModel,
-    setApplyError,
-    toolNavigation('qwenworkcn')
-  );
-  const qwenWorkAccounts =
-    qwenWorkEdition === 'qwenworkcn' ? qwenWorkCnAccounts : qwenWorkGlobalAccounts;
-
-  const clearDeepSeekModel = useCallback(() => {
-    setToolModelConfig((prev) => ({ ...prev, dsh: null }));
-  }, []);
-  const deepSeekAccounts = useDeepSeekAccounts(
-    accountGroupEnabled('dsh'),
-    !!toolModelConfig.dsh,
-    clearDeepSeekModel,
-    setApplyError
-  );
-  const clearGrokModel = useCallback(
-    () => setToolModelConfig((prev) => ({ ...prev, grok: null })),
-    []
-  );
   const selectedToolData = detectedTools.find(
     (t) => t.id === selectedTool && (!isActive || t.installed === (viewMode === 'desktop'))
   );
-  const grokAccounts = useGrokAccounts(
-    accountGroupEnabled('grok'),
-    !!toolModelConfig.grok,
-    clearGrokModel,
-    setApplyError
-  );
-  const manusAccounts = useGrokAccounts(
-    accountGroupEnabled('manus'),
-    false,
-    () => {},
-    setApplyError,
-    'manus'
-  );
-  const cueAccounts = useGrokAccounts(
-    accountGroupEnabled('cue'),
-    false,
-    () => {},
-    setApplyError,
-    'cue'
-  );
-
-  const clearClineModel = useCallback(() => {
-    clineSelectionRevision.current += 1;
-    setToolModelConfig((prev) => ({ ...prev, cline: null, clinedesktop: null }));
-  }, []);
-  const clineAccounts = useClineAccounts(
-    accountGroupEnabled('cline', 'clinedesktop'),
-    !!(
-      selectedTool &&
-      ['cline', 'clinedesktop'].includes(selectedTool) &&
-      toolModelConfig[selectedTool]
-    ),
-    clearClineModel,
-    setApplyError,
-    toolNavigation('cline', 'clinedesktop')
-  );
-
-  const clearKiloModel = useCallback(
-    () => setToolModelConfig((prev) => ({ ...prev, kilo: null, kilodesktop: null })),
-    []
-  );
-  const kiloAccounts = useKiloAccounts(
-    accountGroupEnabled('kilo', 'kilodesktop'),
-    !!(
-      selectedTool &&
-      ['kilo', 'kilodesktop'].includes(selectedTool) &&
-      toolModelConfig[selectedTool]
-    ),
-    clearKiloModel,
-    setApplyError,
-    toolNavigation('kilo', 'kilodesktop')
-  );
-  const clearCopilotModel = useCallback(
-    () => setToolModelConfig((prev) => ({ ...prev, copilot: null, copilotdesktop: null })),
-    []
-  );
-  const copilotAccounts = useCopilotAccounts(
-    accountGroupEnabled('copilot', 'copilotdesktop'),
-    !!(
-      selectedTool &&
-      ['copilot', 'copilotdesktop'].includes(selectedTool) &&
-      toolModelConfig[selectedTool]
-    ),
-    clearCopilotModel,
-    setApplyError,
-    selectedTool === 'copilotdesktop' ||
-      (accountPage && !detectedTools.some((tool) => tool.id === 'copilot' && tool.installed))
-      ? 'copilotdesktop'
-      : 'copilot',
-    toolNavigation('copilot', 'copilotdesktop')
-  );
-
-  const clearGrokBotModel = useCallback(
-    () => setToolModelConfig((prev) => ({ ...prev, grokbot: null })),
-    []
-  );
-  const grokBotAccounts = useCursorAccounts(
-    'grokbot',
-    accountGroupEnabled('grokbot'),
-    clearGrokBotModel,
-    setApplyError
-  );
-
-  const clearCursorModel = useCallback(
-    () => setToolModelConfig((prev) => ({ ...prev, cursor: null, cursorcli: null })),
-    []
-  );
-  const cursorAccounts = useCursorAccounts(
-    selectedTool === 'cursorcli' ||
-      !detectedTools.some((tool) => tool.id === 'cursor' && tool.installed)
-      ? 'cursorcli'
-      : 'cursor',
-    accountGroupEnabled('cursor', 'cursorcli'),
-    clearCursorModel,
-    setApplyError
-  );
-  const cursorRevision = useRef(0);
-  useEffect(() => {
-    cursorRevision.current += 1;
-  }, [activePage, selectedTool, cursorAccounts.selectedId]);
-  const antigravityAccounts = useAntigravityAccounts(
-    accountGroupEnabled('antigravity', 'antigravitydesktop'),
-    accountPage
-      ? 'antigravitydesktop'
-      : selectedTool === 'antigravity'
-        ? 'antigravity'
-        : 'antigravitydesktop',
-    setApplyError
-  );
-
-  const kimiTool = selectedTool === 'kimicode' ? 'kimicode' : 'kimidesktop';
-  const kimiModel = toolModelConfig[kimiTool];
-  const kimiSelectionRevision = useRef(0);
-  const pluginAccountProvider =
-    pluginProviders.find((entry) => entry.application === selectedTool) ?? pluginProviders[0];
-  const pluginAccountTool = pluginAccountProvider?.application ?? '';
-  const pluginAccounts = usePluginToolAccounts(
+  const {
+    clineSelectionRevisionRef,
+    accountNavigation,
+    pluginAvailable,
+    isCodexTool,
+    codexManaged,
+    claudeCodeAccounts,
+    claudeDesktopAccounts,
+    workBuddyEdition,
+    workBuddyCnAccounts,
+    workBuddyAiAccounts,
+    workBuddyAccounts,
+    traeCnAccounts,
+    traeGlobalAccounts,
+    traeAccounts,
+    kiroAccounts,
+    minimaxAccounts,
+    qoderEdition,
+    qoderGlobalAccounts,
+    qoderCnAccounts,
+    qoderAccounts,
+    dumateAccounts,
+    doubaoEdition,
+    doubaoWorkAccounts,
+    dolaAccounts,
+    doubaoAccounts,
+    doubaoSelectionRevisionRef,
+    qwenWorkEdition,
+    qwenWorkGlobalAccounts,
+    qwenWorkCnAccounts,
+    qwenWorkAccounts,
+    deepSeekAccounts,
+    grokAccounts,
+    manusAccounts,
+    cueAccounts,
+    clineAccounts,
+    kiloAccounts,
+    copilotAccounts,
+    grokBotAccounts,
+    cursorAccounts,
+    cursorRevisionRef,
+    antigravityAccounts,
+    kimiSelectionRevisionRef,
     pluginAccountProvider,
-    !!pluginAccountTool &&
-      !usingCachedTools &&
-      detectedTools.some(
-        (tool) => pluginAccountProvider?.applications.includes(tool.id) && tool.installed
-      ) &&
-      (accountDataNeeded || (accountsEnabled && selectedTool === pluginAccountTool)),
-    !!toolModelConfig[pluginAccountTool],
-    () => setToolModelConfig((prev) => ({ ...prev, [pluginAccountTool]: null })),
+    pluginAccountTool,
+    pluginAccounts,
+    kimiAccounts,
+    zcodeAccounts,
+    codeArtsAccounts,
+    codeArtsSelectionRevisionRef,
+    devinAccounts,
+    devinRevisionRef,
+    openDesignAccounts,
+    codexAccounts,
+    selectedCodexAccountId,
+    selectCodexAccount,
+    isLoadingCodexAccounts,
+    codexAccountsLoaded,
+    codexAccountsReadFailed,
+    codexAccountsMutationRevision,
+    isAddingCodexAccount,
+    codexOAuthRemainingSeconds,
+    refreshingCodexAccountIds,
+    codexAuthorizationFailedIds,
+    loadCodexAccounts,
+    addCodexAccount,
+    cancelCodexLogin,
+    deleteCodexAccount,
+    refreshCodexAccountQuota,
+  } = useAccountDirectory({
+    selectedTool,
+    activePage,
+    isActive,
+    developerMode,
+    developerTab,
+    detectedTools,
+    installedPlugins,
+    pluginProviders,
+    usingCachedTools,
+    toolModelConfig,
+    setToolModelConfig,
     setApplyError,
-    accountPage ? 'plugin' : pluginAccountTool
-  );
-  const kimiAccounts = useKimiAccounts(
-    accountGroupEnabled('kimicode', 'kimidesktop'),
-    !!kimiModel,
-    () => setToolModelConfig((prev) => ({ ...prev, [kimiTool]: null })),
-    setApplyError,
-    accountPage ? 'kimi' : kimiTool
-  );
-  useEffect(() => {
-    kimiSelectionRevision.current += 1;
-  }, [selectedTool, activePage, kimiAccounts.selectedId, kimiModel]);
-  const zcodeAccounts = useZCodeAccounts(
-    accountGroupEnabled('zcode'),
-    !!toolModelConfig.zcode,
-    () => setToolModelConfig((prev) => ({ ...prev, zcode: null })),
-    setApplyError
-  );
-  const codeArtsAccounts = useCodeArtsAccounts(
-    accountGroupEnabled('codearts') ||
-      (!usingCachedTools &&
-        activePage === 'freeModels' &&
-        detectedTools.some((tool) => tool.id === 'codearts' && tool.installed)),
-    !!toolModelConfig.codearts,
-    () => setToolModelConfig((prev) => ({ ...prev, codearts: null })),
-    setApplyError,
-    `${activePage}:${selectedTool ?? ''}`
-  );
-  const codeArtsModel = toolModelConfig.codearts;
-  const codeArtsSelectionRevision = useRef(0);
-  useEffect(() => {
-    codeArtsSelectionRevision.current += 1;
-  }, [activePage, selectedTool, codeArtsAccounts.selectedId, codeArtsModel]);
-  const devinTool =
-    selectedTool === 'devincli' ||
-    !detectedTools.some((tool) => tool.id === 'devin' && tool.installed)
-      ? 'devincli'
-      : 'devin';
-  const devinAccounts = useDevinAccounts(
-    devinTool,
-    accountGroupEnabled('devin', 'devincli'),
-    setApplyError,
-    accountPage ? 'devin' : devinTool
-  );
-  const devinRevision = useRef(0);
-  useEffect(() => {
-    devinRevision.current += 1;
-  }, [activePage, selectedTool, devinAccounts.selectedId]);
-  const openDesignAccounts = useOpenDesignAccounts(
-    accountGroupEnabled('opendesign'),
-    !!toolModelConfig.opendesign,
-    () => setToolModelConfig((prev) => ({ ...prev, opendesign: null })),
-    setApplyError
-  );
+  });
 
   // Set tool model (single selection) - UI state update
   const handleSelectModel = (toolId: string, modelId: string) => {
     if (toolId === 'codearts') {
-      codeArtsSelectionRevision.current += 1;
+      codeArtsSelectionRevisionRef.current += 1;
       codeArtsAccounts.select(null);
     }
     if (toolId === 'cline' || toolId === 'clinedesktop') {
-      clineSelectionRevision.current += 1;
+      clineSelectionRevisionRef.current += 1;
       clineAccounts.select(null);
     }
     if (toolId === 'minimaxcode' || toolId === 'minimaxdesktop') minimaxAccounts.select(null);
@@ -1127,855 +754,324 @@ export const AppManagerProvider: React.FC<AppManagerProviderProps> = ({ children
     }
   };
 
-  // Launch handler
-  const handleLaunch = async () => {
-    if (!selectedTool || isLaunching) return;
-    if (['cursor', 'cursorcli'].includes(selectedTool) && cursorAccounts.busy) return;
-    if (selectedTool === 'codearts' && codeArtsAccounts.busy) return;
-    if (selectedTool === 'zcode' && zcodeAccounts.busy) return;
-    if (['kimicode', 'kimidesktop'].includes(selectedTool) && kimiAccounts.busy) return;
-    if (selectedTool === pluginAccountTool && pluginAccounts.busy) return;
-    if (['devin', 'devincli'].includes(selectedTool ?? '') && devinAccounts.busy) return;
-    if (selectedTool === 'opendesign' && openDesignAccounts.busy) return;
-    if (selectedTool === 'claudedesktop' && claudeDesktopAccounts.busy) return;
-    if (selectedTool === 'cue' && cueAccounts.busy) return;
-    if (['cline', 'clinedesktop'].includes(selectedTool) && clineAccounts.busy) return;
-    if (['kilo', 'kilodesktop'].includes(selectedTool) && kiloAccounts.busy) return;
-    if (['copilot', 'copilotdesktop'].includes(selectedTool) && copilotAccounts.busy) return;
-    if ((selectedTool === 'trae' || selectedTool === 'traecn') && traeAccounts.busy) return;
-    if (['minimaxcode', 'minimaxdesktop'].includes(selectedTool) && minimaxAccounts.busy) return;
-    if (['qoder', 'qodercn'].includes(selectedTool) && qoderAccounts.busy) return;
-    if (selectedTool === 'dumate' && dumateAccounts.busy) return;
-    if (['doubaowork', 'dola'].includes(selectedTool) && doubaoAccounts.busy) return;
-    if (['qwenwork', 'qwenworkcn'].includes(selectedTool) && qwenWorkAccounts.busy) return;
-    if ((selectedTool === 'kirocrew' || selectedTool === 'kirocli') && kiroAccounts.busy) return;
-    const generation = ++launchGeneration.current;
-    const previewGeneration = useNavigationStore.getState().developerGeneration;
-    const finishLaunch = () => {
-      if (launchGeneration.current === generation) {
-        previewLaunch.current = false;
-        setIsLaunching(false);
-      }
-    };
-    const startCooldown = () => {
-      setTimeout(finishLaunch, 3000);
-    };
-    setIsLaunching(true);
-    const switchingClaudeAccount =
-      (selectedTool === 'claudecode' && !!claudeCodeAccounts.selectedId) ||
-      (selectedTool === 'claudedesktop' && !!claudeDesktopAccounts.selectedId);
-    if (
-      selectedTool !== 'vscode' &&
-      selectedTool !== 'copilotdesktop' &&
-      !workBuddyEdition &&
-      !switchingClaudeAccount &&
-      !((selectedTool === 'trae' || selectedTool === 'traecn') && traeAccounts.selectedId) &&
-      !(['minimaxcode', 'minimaxdesktop'].includes(selectedTool) && minimaxAccounts.selectedId) &&
-      !(['qoder', 'qodercn'].includes(selectedTool) && qoderAccounts.selectedId) &&
-      !(selectedTool === 'dumate' && dumateAccounts.selectedId) &&
-      !(['doubaowork', 'dola'].includes(selectedTool) && doubaoAccounts.selectedId) &&
-      !(['qwenwork', 'qwenworkcn'].includes(selectedTool) && qwenWorkAccounts.selectedId) &&
-      !((selectedTool === 'kirocrew' || selectedTool === 'kirocli') && kiroAccounts.selectedId) &&
-      !(selectedTool === 'zcode' && zcodeAccounts.selectedId) &&
-      !(selectedTool === 'codearts' && codeArtsAccounts.selectedId) &&
-      !(['kimicode', 'kimidesktop'].includes(selectedTool) && kimiAccounts.selectedId) &&
-      !(selectedTool === pluginAccountTool && pluginAccounts.selectedId) &&
-      !(['devin', 'devincli'].includes(selectedTool ?? '') && devinAccounts.selectedId) &&
-      !(selectedTool === 'opendesign' && openDesignAccounts.selectedId) &&
-      !(selectedTool === 'dsh' && deepSeekAccounts.selectedId) &&
-      !(selectedTool === 'grok' && grokAccounts.selectedId) &&
-      !(['cline', 'clinedesktop'].includes(selectedTool) && clineAccounts.selectedId) &&
-      !(['kilo', 'kilodesktop'].includes(selectedTool) && kiloAccounts.selectedId) &&
-      !(['copilot', 'copilotdesktop'].includes(selectedTool) && copilotAccounts.selectedId) &&
-      !(selectedTool === 'manus' && manusAccounts.selectedId) &&
-      !(selectedTool === 'cue' && cueAccounts.selectedId) &&
-      !(['cursor', 'cursorcli'].includes(selectedTool) && cursorAccounts.selectedId) &&
-      !(selectedTool === 'grokbot' && grokBotAccounts.selectedId) &&
-      !(
-        (selectedTool === 'antigravity' || selectedTool === 'antigravitydesktop') &&
-        antigravityAccounts.selectedId
-      )
-    )
-      startCooldown();
+  const handleLaunch = useApplicationLauncher({
+    clineSelectionRevisionRef,
+    accountNavigation,
+    isCodexTool,
+    claudeCodeAccounts,
+    claudeDesktopAccounts,
+    workBuddyEdition,
+    workBuddyAccounts,
+    traeAccounts,
+    kiroAccounts,
+    minimaxAccounts,
+    qoderEdition,
+    qoderAccounts,
+    dumateAccounts,
+    doubaoEdition,
+    doubaoAccounts,
+    doubaoSelectionRevisionRef,
+    qwenWorkEdition,
+    qwenWorkAccounts,
+    deepSeekAccounts,
+    grokAccounts,
+    manusAccounts,
+    cueAccounts,
+    clineAccounts,
+    kiloAccounts,
+    copilotAccounts,
+    grokBotAccounts,
+    cursorAccounts,
+    cursorRevisionRef,
+    antigravityAccounts,
+    kimiSelectionRevisionRef,
+    pluginAccountProvider,
+    pluginAccountTool,
+    pluginAccounts,
+    kimiAccounts,
+    zcodeAccounts,
+    codeArtsAccounts,
+    codeArtsSelectionRevisionRef,
+    devinAccounts,
+    devinRevisionRef,
+    openDesignAccounts,
+    selectedCodexAccountId,
+    loadCodexAccounts,
+    selectedTool,
+    isLaunching,
+    launchGeneration,
+    previewLaunch,
+    setIsLaunching,
+    setApplyError,
+    detectedTools,
+    userModels,
+    toolModelConfig,
+    setToolModelConfig,
+    setDetectedTools,
+    launchAfterApply,
+    agreedConfigPolicy,
+    activePage,
+    locale,
+    t,
+    applyRestore,
+    applyModelConfig,
+  });
 
-    const toolData = detectedTools.find((t) => t.id === selectedTool);
-    previewLaunch.current = !!toolData?.plugin;
-    if (toolData?.plugin) {
-      try {
-        const model = userModels.find(
-          (model) => model.internalId === toolModelConfig[selectedTool]
-        );
-        await launchPlugin(toolData.plugin.id, toolData.plugin.pageId, model);
-      } catch (error) {
-        if (
-          launchGeneration.current === generation &&
-          previewGeneration === useNavigationStore.getState().developerGeneration
-        )
-          setApplyError(String(error));
-      } finally {
-        finishLaunch();
-      }
-      return;
-    }
-    const noModelConfig = !!toolData?.noModelConfig;
-    const pickWorkingDirectory = async () => {
-      if (toolData?.category !== 'CLI Code' || toolData.noCwdPrompt) return undefined;
-      try {
-        const launchSettings = await api.getCliLaunchSettings();
-        if (launchSettings?.[selectedTool]?.directoryMode === 'fixed') return undefined;
-      } catch (error) {
-        console.warn('[AppManager] CLI launch settings unavailable:', error);
-      }
-      const picked = await openDialog({ directory: true, multiple: false });
-      return typeof picked === 'string' && picked ? picked : null;
-    };
-
-    // An account switch honors "launch directly"; only model flows force-launch.
-    let accountApplied = false;
-    // An OpenAI account and a third-party API model are one exclusive choice.
-    // Selecting an account restores the official provider before writing that
-    // account's auth snapshot; selecting a model clears the account choice.
-    if (
-      (selectedTool === 'antigravity' || selectedTool === 'antigravitydesktop') &&
-      antigravityAccounts.selectedId
-    ) {
-      try {
-        await api.switchAntigravityAccount(antigravityAccounts.selectedId);
-        await antigravityAccounts.reload();
-        accountApplied = true;
-      } catch (error) {
-        setApplyError(accountError(error, t));
-        finishLaunch();
-        return;
-      }
-      startCooldown();
-    } else if (isCodexTool && selectedCodexAccountId) {
-      const restoreResult = await applyRestore(selectedTool);
-      if (restoreResult !== true) {
-        setApplyError(
-          typeof restoreResult === 'string' ? accountError(restoreResult, t) : t('key.destroyed')
-        );
-        finishLaunch();
-        return;
-      }
-      try {
-        await api.switchCodexAccount(selectedCodexAccountId);
-        await loadCodexAccounts();
-        accountApplied = true;
-      } catch (error) {
-        setApplyError(accountError(error, t));
-        finishLaunch();
-        return;
-      }
-    } else if (
-      ((selectedTool === 'kilo' || selectedTool === 'kilodesktop') && kiloAccounts.selectedId) ||
-      ((selectedTool === 'copilot' || selectedTool === 'copilotdesktop') &&
-        copilotAccounts.selectedId)
-    ) {
-      try {
-        if (selectedTool === 'kilo' || selectedTool === 'kilodesktop') {
-          await api.switchKiloAccount(kiloAccounts.selectedId!, selectedTool);
-          await kiloAccounts.reload();
-        } else {
-          await api.switchCopilotAccount(
-            copilotAccounts.selectedId!,
-            selectedTool as api.CopilotTool
-          );
-          await copilotAccounts.reload();
-        }
-        setDetectedTools((prev) =>
-          prev.map((tool) => (tool.id === selectedTool ? { ...tool, activeModel: '' } : tool))
-        );
-        if (launchAfterApply) {
-          const cwd = await pickWorkingDirectory();
-          if (cwd === null) return;
-          await api.startTool(selectedTool, toolData?.startCommand, cwd);
-        }
-      } catch (error) {
-        setApplyError(accountError(error, t));
-      } finally {
-        finishLaunch();
-      }
-      return;
-    } else if (selectedTool === 'dsh' && deepSeekAccounts.selectedId) {
-      try {
-        await api.switchDeepSeekAccount(deepSeekAccounts.selectedId, locale);
-        setDetectedTools((prev) =>
-          prev.map((tool) => (tool.id === 'dsh' ? { ...tool, activeModel: '' } : tool))
-        );
-        await deepSeekAccounts.reload();
-        if (launchAfterApply) await api.startTool('dsh');
-      } catch (error) {
-        setApplyError(accountError(error, t));
-      } finally {
-        finishLaunch();
-      }
-      return;
-    } else if (selectedTool === 'grokbot' && grokBotAccounts.selectedId) {
-      try {
-        await api.switchGrokBotAccount(grokBotAccounts.selectedId);
-        await grokBotAccounts.reload();
-        if (launchAfterApply) await api.startTool('grokbot');
-      } catch (error) {
-        setApplyError(accountError(error, t));
-      } finally {
-        finishLaunch();
-      }
-      return;
-    } else if (['cursor', 'cursorcli'].includes(selectedTool) && cursorAccounts.selectedId) {
-      const revision = cursorRevision.current;
-      const current = () =>
-        revision === cursorRevision.current &&
-        accountNavigation.current.tool === selectedTool &&
-        accountNavigation.current.page === activePage;
-      try {
-        const cwd = launchAfterApply ? await pickWorkingDirectory() : undefined;
-        if (cwd === null || !current()) return;
-        if (selectedTool === 'cursorcli')
-          await api.switchCursorAccount(cursorAccounts.selectedId, 'cursorcli');
-        else await api.switchCursorAccount(cursorAccounts.selectedId);
-        if (current()) await cursorAccounts.reload();
-        if (launchAfterApply && current()) {
-          if (selectedTool === 'cursorcli')
-            await api.startTool(selectedTool, toolData?.startCommand, cwd);
-          else await api.startTool('cursor');
-        }
-      } catch (error) {
-        if (current()) setApplyError(accountError(error, t));
-      } finally {
-        finishLaunch();
-      }
-      return;
-    } else if (
-      (selectedTool === 'manus' && manusAccounts.selectedId) ||
-      (selectedTool === 'cue' && cueAccounts.selectedId)
-    ) {
-      try {
-        await (selectedTool === 'cue' ? cueAccounts : manusAccounts).switchAccount();
-        if (launchAfterApply) await api.startTool(selectedTool);
-      } catch (error) {
-        setApplyError(accountError(error, t));
-      } finally {
-        finishLaunch();
-      }
-      return;
-    } else if (selectedTool === 'grok' && grokAccounts.selectedId) {
-      try {
-        const restored = await applyRestore('grok');
-        if (restored !== true)
-          throw new Error(typeof restored === 'string' ? restored : t('key.destroyed'));
-        await grokAccounts.switchAccount();
-        accountApplied = true;
-        startCooldown();
-      } catch (error) {
-        setApplyError(accountError(error, t));
-        finishLaunch();
-        return;
-      }
-    } else if (['cline', 'clinedesktop'].includes(selectedTool) && clineAccounts.selectedId) {
-      const selectionRevision = clineSelectionRevision.current;
-      const current = () =>
-        selectionRevision === clineSelectionRevision.current &&
-        accountNavigation.current.tool === selectedTool &&
-        accountNavigation.current.page === activePage;
-      try {
-        const cwd = launchAfterApply ? await pickWorkingDirectory() : undefined;
-        if (cwd === null || !current()) return;
-        await api.switchClineAccount(clineAccounts.selectedId, selectedTool as api.ClineTool);
-        setDetectedTools((prev) =>
-          prev.map((tool) =>
-            ['cline', 'clinedesktop'].includes(tool.id) ? { ...tool, activeModel: '' } : tool
-          )
-        );
-        if (selectionRevision === clineSelectionRevision.current)
-          setToolModelConfig((prev) => ({ ...prev, cline: null, clinedesktop: null }));
-        await clineAccounts.reload();
-        if (launchAfterApply && current())
-          await api.startTool(selectedTool, toolData?.startCommand, cwd);
-      } catch (error) {
-        if (current()) setApplyError(accountError(error, t));
-      } finally {
-        finishLaunch();
-      }
-      return;
-    } else if (
-      ['minimaxcode', 'minimaxdesktop'].includes(selectedTool) &&
-      minimaxAccounts.selectedId
-    ) {
-      try {
-        const cwd = launchAfterApply ? await pickWorkingDirectory() : undefined;
-        if (cwd === null) return;
-        await api.switchMinimaxAccount(minimaxAccounts.selectedId, selectedTool as api.MinimaxTool);
-        setDetectedTools((prev) =>
-          prev.map((tool) =>
-            ['minimaxcode', 'minimaxdesktop'].includes(tool.id)
-              ? { ...tool, activeModel: '' }
-              : tool
-          )
-        );
-        await minimaxAccounts.reload();
-        if (launchAfterApply) await api.startTool(selectedTool, toolData?.startCommand, cwd);
-      } catch (error) {
-        setApplyError(accountError(error, t));
-      } finally {
-        finishLaunch();
-      }
-      return;
-    } else if (['doubaowork', 'dola'].includes(selectedTool) && doubaoAccounts.selectedId) {
-      const navigation = accountNavigation.current;
-      const selectionRevision = doubaoSelectionRevision.current;
-      const current = () =>
-        accountNavigation.current === navigation &&
-        doubaoSelectionRevision.current === selectionRevision;
-      try {
-        await api.switchDoubaoAccount(doubaoEdition, doubaoAccounts.selectedId);
-        if (current()) {
-          await doubaoAccounts.reload();
-          if (launchAfterApply && current())
-            await api.startTool(selectedTool, toolData?.startCommand);
-        }
-      } catch (error) {
-        if (current()) setApplyError(accountError(error, t));
-      } finally {
-        finishLaunch();
-      }
-      return;
-    } else if (selectedTool === 'dumate' && dumateAccounts.selectedId) {
-      const navigation = accountNavigation.current;
-      const current = () => accountNavigation.current === navigation;
-      try {
-        await api.switchDuMateAccount(dumateAccounts.selectedId);
-        if (current()) {
-          await dumateAccounts.reload();
-          if (launchAfterApply && current())
-            await api.startTool(selectedTool, toolData?.startCommand);
-        }
-      } catch (error) {
-        if (current()) setApplyError(accountError(error, t));
-      } finally {
-        finishLaunch();
-      }
-      return;
-    } else if (['qwenwork', 'qwenworkcn'].includes(selectedTool) && qwenWorkAccounts.selectedId) {
-      const navigation = accountNavigation.current;
-      const current = () => accountNavigation.current === navigation;
-      try {
-        await api.switchQwenWorkAccount(qwenWorkEdition, qwenWorkAccounts.selectedId);
-        if (current()) {
-          await qwenWorkAccounts.reload();
-          if (launchAfterApply && current())
-            await api.startTool(selectedTool, toolData?.startCommand);
-        }
-      } catch (error) {
-        if (current()) setApplyError(accountError(error, t));
-      } finally {
-        finishLaunch();
-      }
-      return;
-    } else if (['qoder', 'qodercn'].includes(selectedTool) && qoderAccounts.selectedId) {
-      try {
-        await api.switchQoderAccount(
-          qoderEdition,
-          qoderAccounts.selectedId,
-          selectedTool as api.QoderTool
-        );
-        await qoderAccounts.reload();
-        if (launchAfterApply) await api.startTool(selectedTool, toolData?.startCommand);
-      } catch (error) {
-        setApplyError(accountError(error, t));
-      } finally {
-        finishLaunch();
-      }
-      return;
-    } else if (selectedTool === 'codearts' && codeArtsAccounts.selectedId) {
-      const selectionRevision = codeArtsSelectionRevision.current;
-      const current = () =>
-        selectionRevision === codeArtsSelectionRevision.current &&
-        accountNavigation.current.tool === selectedTool &&
-        accountNavigation.current.page === activePage;
-      try {
-        const cwd = launchAfterApply ? await pickWorkingDirectory() : undefined;
-        if (cwd === null || !current()) return;
-        await switchCodeArtsAccount(codeArtsAccounts.selectedId);
-        if (current()) {
-          await codeArtsAccounts.reload();
-        }
-        if (launchAfterApply && current())
-          await api.startTool(selectedTool, toolData?.startCommand, cwd);
-      } catch (error) {
-        if (current()) setApplyError(accountError(error, t));
-      } finally {
-        finishLaunch();
-      }
-      return;
-    } else if (
-      (selectedTool === 'devin' || selectedTool === 'devincli') &&
-      devinAccounts.selectedId
-    ) {
-      const revision = devinRevision.current;
-      const current = () =>
-        revision === devinRevision.current &&
-        accountNavigation.current.tool === selectedTool &&
-        accountNavigation.current.page === activePage;
-      try {
-        const cwd = launchAfterApply ? await pickWorkingDirectory() : undefined;
-        if (cwd === null || !current()) return;
-        await api.switchDevinAccount(devinAccounts.selectedId, selectedTool);
-        if (current()) await devinAccounts.reload();
-        if (launchAfterApply && current())
-          await api.startTool(selectedTool, toolData?.startCommand, cwd);
-      } catch (error) {
-        if (current()) setApplyError(accountError(error, t));
-      } finally {
-        finishLaunch();
-      }
-      return;
-    } else if (selectedTool === 'opendesign' && openDesignAccounts.selectedId) {
-      try {
-        await api.switchOpenDesignAccount(openDesignAccounts.selectedId);
-        setDetectedTools((prev) =>
-          prev.map((tool) => (tool.id === 'opendesign' ? { ...tool, activeModel: '' } : tool))
-        );
-        await openDesignAccounts.reload();
-        if (launchAfterApply) await api.startTool('opendesign');
-      } catch (error) {
-        setApplyError(accountError(error, t));
-      } finally {
-        finishLaunch();
-      }
-      return;
-    } else if (selectedTool === pluginAccountTool && pluginAccounts.selectedId) {
-      const current = () =>
-        accountNavigation.current.tool === selectedTool &&
-        accountNavigation.current.page === activePage;
-      try {
-        const cwd = launchAfterApply ? await pickWorkingDirectory() : undefined;
-        if (cwd === null || !current()) return;
-        await pluginAccounts.apply(pluginAccounts.selectedId);
-        setDetectedTools((prev) =>
-          prev.map((tool) =>
-            pluginAccountProvider?.applications.includes(tool.id)
-              ? { ...tool, activeModel: '' }
-              : tool
-          )
-        );
-        if (current()) {
-          setToolModelConfig((prev) => ({
-            ...prev,
-            ...Object.fromEntries(
-              (pluginAccountProvider?.applications ?? []).map((id) => [id, null])
-            ),
-          }));
-          await pluginAccounts.reload();
-        }
-        if (launchAfterApply && current())
-          await api.startTool(selectedTool, toolData?.startCommand, cwd);
-      } catch (error) {
-        if (current()) setApplyError(accountError(error, t));
-      } finally {
-        finishLaunch();
-      }
-      return;
-    } else if (['kimicode', 'kimidesktop'].includes(selectedTool) && kimiAccounts.selectedId) {
-      const selectionRevision = kimiSelectionRevision.current;
-      const current = () =>
-        selectionRevision === kimiSelectionRevision.current &&
-        accountNavigation.current.tool === selectedTool &&
-        accountNavigation.current.page === activePage;
-      try {
-        const cwd = launchAfterApply ? await pickWorkingDirectory() : undefined;
-        if (cwd === null || !current()) return;
-        await switchKimiAccount(kimiAccounts.selectedId);
-        setDetectedTools((prev) =>
-          prev.map((tool) =>
-            ['kimicode', 'kimidesktop'].includes(tool.id) ? { ...tool, activeModel: '' } : tool
-          )
-        );
-        if (current()) {
-          setToolModelConfig((prev) => ({ ...prev, kimicode: null, kimidesktop: null }));
-          await kimiAccounts.reload();
-        }
-        if (launchAfterApply && current())
-          await api.startTool(selectedTool, toolData?.startCommand, cwd);
-      } catch (error) {
-        if (current()) setApplyError(accountError(error, t));
-      } finally {
-        finishLaunch();
-      }
-      return;
-    } else if (selectedTool === 'zcode' && zcodeAccounts.selectedId) {
-      try {
-        await api.switchZCodeAccount(zcodeAccounts.selectedId);
-        setDetectedTools((prev) =>
-          prev.map((tool) => (tool.id === 'zcode' ? { ...tool, activeModel: '' } : tool))
-        );
-        await zcodeAccounts.reload();
-        if (launchAfterApply) await api.startTool('zcode', toolData?.startCommand);
-      } catch (error) {
-        setApplyError(accountError(error, t));
-      } finally {
-        finishLaunch();
-      }
-      return;
-    } else if (workBuddyEdition && workBuddyAccounts.selectedId) {
-      try {
-        await api.switchWorkBuddyAccount(workBuddyEdition, workBuddyAccounts.selectedId);
-        await workBuddyAccounts.reload();
-        if (launchAfterApply) await api.startTool(workBuddyEdition, toolData?.startCommand);
-      } catch (error) {
-        setApplyError(accountError(error, t));
-      } finally {
-        finishLaunch();
-      }
-      return;
-    } else if (
-      (selectedTool === 'kirocrew' || selectedTool === 'kirocli') &&
-      kiroAccounts.selectedId
-    ) {
-      try {
-        await api.switchKiroAccount(selectedTool, kiroAccounts.selectedId);
-        await kiroAccounts.reload();
-        accountApplied = true;
-      } catch (error) {
-        setApplyError(accountError(error, t));
-        finishLaunch();
-        return;
-      }
-    } else if ((selectedTool === 'trae' || selectedTool === 'traecn') && traeAccounts.selectedId) {
-      try {
-        await api.switchTraeAccount(selectedTool, traeAccounts.selectedId);
-        await traeAccounts.reload();
-        if (launchAfterApply) await api.startTool(selectedTool, toolData?.startCommand);
-      } catch (error) {
-        setApplyError(accountError(error, t));
-      } finally {
-        finishLaunch();
-      }
-      return;
-    } else if (selectedTool === 'claudedesktop' && claudeDesktopAccounts.selectedId) {
-      try {
-        await api.switchClaudeDesktopAccount(claudeDesktopAccounts.selectedId);
-        const restored = await applyRestore(selectedTool);
-        if (restored !== true)
-          throw new Error(typeof restored === 'string' ? restored : t('key.destroyed'));
-        await claudeDesktopAccounts.reload();
-        if (launchAfterApply) await api.startTool(selectedTool, toolData?.startCommand);
-      } catch (error) {
-        setApplyError(accountError(error, t));
-      } finally {
-        finishLaunch();
-      }
-      return;
-    } else if (selectedTool === 'claudecode' && claudeCodeAccounts.selectedId) {
-      try {
-        const restored = await applyRestore(selectedTool);
-        if (restored !== true)
-          throw new Error(typeof restored === 'string' ? restored : t('key.destroyed'));
-        await api.switchClaudeCodeAccount(claudeCodeAccounts.selectedId);
-        await claudeCodeAccounts.reload();
-        accountApplied = true;
-        startCooldown();
-      } catch (error) {
-        setApplyError(accountError(error, t));
-        finishLaunch();
-        return;
-      }
-    } else if (!noModelConfig && agreedConfigPolicy && toolModelConfig[selectedTool]) {
-      const pending = toolModelConfig[selectedTool]!;
-      const applyResult = isOfficialModelSentinel(pending)
-        ? await applyRestore(selectedTool)
-        : await applyModelConfig(selectedTool, pending);
-      if (applyResult !== true) {
-        setApplyError(typeof applyResult === 'string' ? applyResult : t('key.destroyed'));
-        finishLaunch();
-        return;
-      }
-    }
-    // Launch tool when "launch directly" is checked, or unconditionally for desktop apps
-    if (
-      launchAfterApply ||
-      (!accountApplied &&
-        (noModelConfig || ['qoder', 'qodercn', 'claudescience'].includes(selectedTool)))
-    ) {
-      // CLI clients may request a working directory before launch.
-      let cwd: string | undefined;
-      try {
-        const picked = await pickWorkingDirectory();
-        if (picked === null) {
-          finishLaunch();
-          return;
-        }
-        cwd = picked;
-      } catch (e) {
-        console.error('[AppManager] folder picker failed:', e);
-        setApplyError(e instanceof Error ? e.message : String(e));
-        finishLaunch();
-        return;
-      }
-      try {
-        await api.startTool(selectedTool, toolData?.startCommand, cwd);
-      } catch (err) {
-        console.error('Failed to launch tool:', err);
-        setApplyError(err instanceof Error ? err.message : String(err));
-      } finally {
-        if ((selectedTool === 'kirocrew' || selectedTool === 'kirocli') && kiroAccounts.selectedId)
-          finishLaunch();
-      }
-    } else if ((selectedTool === 'kirocrew' || selectedTool === 'kirocli') && accountApplied) {
-      finishLaunch();
-    }
-    if (selectedTool === 'vscode' || selectedTool === 'copilotdesktop' || workBuddyEdition)
-      startCooldown();
+  const accountDirectoryView = {
+    accountCardOrder,
+    setAccountCardOrder,
+    claudeCodeAccounts: {
+      ...claudeCodeAccounts,
+      accounts: pluginAvailable('claudecode')
+        ? orderedAccounts('claudecode', claudeCodeAccounts.accounts)
+        : [],
+    },
+    claudeDesktopAccounts: {
+      ...claudeDesktopAccounts,
+      accounts: pluginAvailable('claudedesktop')
+        ? orderedAccounts('claudedesktop', claudeDesktopAccounts.accounts)
+        : [],
+    },
+    workBuddyAccounts: {
+      ...workBuddyAccounts,
+      accounts: pluginAvailable(workBuddyEdition ?? 'workbuddy')
+        ? orderedAccounts(workBuddyEdition ?? 'workbuddy', workBuddyAccounts.accounts)
+        : [],
+    },
+    workBuddyAccountGroups: {
+      workbuddy: {
+        ...workBuddyCnAccounts,
+        accounts: pluginAvailable('workbuddy')
+          ? orderedAccounts('workbuddy', workBuddyCnAccounts.accounts)
+          : [],
+      },
+      workbuddyai: {
+        ...workBuddyAiAccounts,
+        accounts: pluginAvailable('workbuddyai')
+          ? orderedAccounts('workbuddyai', workBuddyAiAccounts.accounts)
+          : [],
+      },
+    },
+    kiroAccounts: {
+      ...kiroAccounts,
+      accounts: orderedAccounts('kiro', kiroAccounts.accounts),
+    },
+    traeAccounts: {
+      ...traeAccounts,
+      accounts: orderedAccounts(selectedTool === 'trae' ? 'trae' : 'traecn', traeAccounts.accounts),
+    },
+    traeAccountGroups: {
+      trae: {
+        ...traeGlobalAccounts,
+        accounts: orderedAccounts('trae', traeGlobalAccounts.accounts),
+      },
+      traecn: {
+        ...traeCnAccounts,
+        accounts: orderedAccounts('traecn', traeCnAccounts.accounts),
+      },
+    },
+    zcodeAccounts: {
+      ...zcodeAccounts,
+      accounts: orderedAccounts('zcode', zcodeAccounts.accounts),
+    },
+    pluginAccounts,
+    kimiAccounts: {
+      ...kimiAccounts,
+      accounts: orderedAccounts('kimi', kimiAccounts.accounts),
+    },
+    codeArtsAccounts: {
+      ...codeArtsAccounts,
+      accounts: orderedAccounts('codearts', codeArtsAccounts.accounts),
+    },
+    devinAccounts: {
+      ...devinAccounts,
+      accounts: orderedAccounts('devin', devinAccounts.accounts),
+    },
+    openDesignAccounts: {
+      ...openDesignAccounts,
+      accounts: orderedAccounts('opendesign', openDesignAccounts.accounts),
+    },
+    minimaxAccounts: {
+      ...minimaxAccounts,
+      accounts: orderedAccounts('minimax', minimaxAccounts.accounts),
+    },
+    qoderAccounts: {
+      ...qoderAccounts,
+      accounts: orderedAccounts(qoderEdition, qoderAccounts.accounts),
+    },
+    dumateAccounts: {
+      ...dumateAccounts,
+      accounts: orderedAccounts('dumate', dumateAccounts.accounts),
+    },
+    doubaoAccounts: {
+      ...doubaoAccounts,
+      accounts: pluginAvailable(doubaoEdition)
+        ? orderedAccounts(doubaoEdition, doubaoAccounts.accounts)
+        : [],
+    },
+    doubaoAccountGroups: {
+      doubaowork: {
+        ...doubaoWorkAccounts,
+        accounts: pluginAvailable('doubaowork')
+          ? orderedAccounts('doubaowork', doubaoWorkAccounts.accounts)
+          : [],
+      },
+      dola: {
+        ...dolaAccounts,
+        accounts: pluginAvailable('dola') ? orderedAccounts('dola', dolaAccounts.accounts) : [],
+      },
+    },
+    qwenWorkAccounts: {
+      ...qwenWorkAccounts,
+      accounts: orderedAccounts(qwenWorkEdition, qwenWorkAccounts.accounts),
+    },
+    qwenWorkAccountGroups: {
+      qwenwork: {
+        ...qwenWorkGlobalAccounts,
+        accounts: orderedAccounts('qwenwork', qwenWorkGlobalAccounts.accounts),
+      },
+      qwenworkcn: {
+        ...qwenWorkCnAccounts,
+        accounts: orderedAccounts('qwenworkcn', qwenWorkCnAccounts.accounts),
+      },
+    },
+    qoderAccountGroups: {
+      qoder: {
+        ...qoderGlobalAccounts,
+        accounts: orderedAccounts('qoder', qoderGlobalAccounts.accounts),
+      },
+      qodercn: {
+        ...qoderCnAccounts,
+        accounts: orderedAccounts('qodercn', qoderCnAccounts.accounts),
+      },
+    },
+    deepSeekAccounts: {
+      ...deepSeekAccounts,
+      accounts: orderedAccounts('dsh', deepSeekAccounts.accounts),
+    },
+    grokAccounts: { ...grokAccounts, accounts: orderedAccounts('grok', grokAccounts.accounts) },
+    clineAccounts: {
+      ...clineAccounts,
+      accounts: orderedAccounts('cline', clineAccounts.accounts),
+    },
+    kiloAccounts: { ...kiloAccounts, accounts: orderedAccounts('kilo', kiloAccounts.accounts) },
+    copilotAccounts: {
+      ...copilotAccounts,
+      accounts: orderedAccounts('copilot', copilotAccounts.accounts),
+    },
+    manusAccounts: {
+      ...manusAccounts,
+      accounts: orderedAccounts('manus', manusAccounts.accounts),
+    },
+    cueAccounts: {
+      ...cueAccounts,
+      accounts: orderedAccounts('cue', cueAccounts.accounts),
+    },
+    grokBotAccounts: {
+      ...grokBotAccounts,
+      accounts: orderedAccounts('grokbot', grokBotAccounts.accounts),
+    },
+    cursorAccounts: {
+      ...cursorAccounts,
+      accounts: orderedAccounts('cursor', cursorAccounts.accounts),
+    },
+    antigravityAccounts: {
+      ...antigravityAccounts,
+      accounts: orderedAccounts('antigravity', antigravityAccounts.accounts),
+    },
+    codexAccounts: orderedAccounts('codex', codexAccounts),
+    selectedCodexAccountId,
+    setSelectedCodexAccountId: selectCodexAccount,
+    isLoadingCodexAccounts,
+    codexAccountsLoaded,
+    codexAccountsReadFailed,
+    codexAccountsMutationRevision,
+    isAddingCodexAccount,
+    codexOAuthRemainingSeconds,
+    refreshingCodexAccountIds,
+    codexAuthorizationFailedIds,
+    addCodexAccount,
+    cancelCodexLogin,
+    refreshCodexAccountQuota,
+    deleteCodexAccount,
+    detectedTools,
+    isScanning,
+    isLaunching,
+    applyError,
+    setApplyError,
   };
 
   return (
-    <AppManagerContext.Provider
-      value={{
-        smartRouterEnabled: routerEnabled,
-        selectedTool,
-        setSelectedTool,
-        launchAfterApply,
-        setLaunchAfterApply,
-        isLaunching,
-        agreedConfigPolicy,
-        setAgreedConfigPolicy,
-        toolModelConfig,
-        handleSelectModel,
-        handleRestoreModel,
-        accountCardOrder,
-        setAccountCardOrder,
-        claudeCodeAccounts: {
-          ...claudeCodeAccounts,
-          accounts: pluginAvailable('claudecode')
-            ? orderedAccounts('claudecode', claudeCodeAccounts.accounts)
-            : [],
-        },
-        claudeDesktopAccounts: {
-          ...claudeDesktopAccounts,
-          accounts: pluginAvailable('claudedesktop')
-            ? orderedAccounts('claudedesktop', claudeDesktopAccounts.accounts)
-            : [],
-        },
-        workBuddyAccounts: {
-          ...workBuddyAccounts,
-          accounts: pluginAvailable(workBuddyEdition ?? 'workbuddy')
-            ? orderedAccounts(workBuddyEdition ?? 'workbuddy', workBuddyAccounts.accounts)
-            : [],
-        },
-        workBuddyAccountGroups: {
-          workbuddy: {
-            ...workBuddyCnAccounts,
-            accounts: pluginAvailable('workbuddy')
-              ? orderedAccounts('workbuddy', workBuddyCnAccounts.accounts)
-              : [],
-          },
-          workbuddyai: {
-            ...workBuddyAiAccounts,
-            accounts: pluginAvailable('workbuddyai')
-              ? orderedAccounts('workbuddyai', workBuddyAiAccounts.accounts)
-              : [],
-          },
-        },
-        kiroAccounts: {
-          ...kiroAccounts,
-          accounts: orderedAccounts('kiro', kiroAccounts.accounts),
-        },
-        traeAccounts: {
-          ...traeAccounts,
-          accounts: orderedAccounts(
-            selectedTool === 'trae' ? 'trae' : 'traecn',
-            traeAccounts.accounts
-          ),
-        },
-        traeAccountGroups: {
-          trae: {
-            ...traeGlobalAccounts,
-            accounts: orderedAccounts('trae', traeGlobalAccounts.accounts),
-          },
-          traecn: {
-            ...traeCnAccounts,
-            accounts: orderedAccounts('traecn', traeCnAccounts.accounts),
-          },
-        },
-        zcodeAccounts: {
-          ...zcodeAccounts,
-          accounts: orderedAccounts('zcode', zcodeAccounts.accounts),
-        },
-        pluginAccounts,
-        kimiAccounts: {
-          ...kimiAccounts,
-          accounts: orderedAccounts('kimi', kimiAccounts.accounts),
-        },
-        codeArtsAccounts: {
-          ...codeArtsAccounts,
-          accounts: orderedAccounts('codearts', codeArtsAccounts.accounts),
-        },
-        devinAccounts: {
-          ...devinAccounts,
-          accounts: orderedAccounts('devin', devinAccounts.accounts),
-        },
-        openDesignAccounts: {
-          ...openDesignAccounts,
-          accounts: orderedAccounts('opendesign', openDesignAccounts.accounts),
-        },
-        minimaxAccounts: {
-          ...minimaxAccounts,
-          accounts: orderedAccounts('minimax', minimaxAccounts.accounts),
-        },
-        qoderAccounts: {
-          ...qoderAccounts,
-          accounts: orderedAccounts(qoderEdition, qoderAccounts.accounts),
-        },
-        dumateAccounts: {
-          ...dumateAccounts,
-          accounts: orderedAccounts('dumate', dumateAccounts.accounts),
-        },
-        doubaoAccounts: {
-          ...doubaoAccounts,
-          accounts: pluginAvailable(doubaoEdition)
-            ? orderedAccounts(doubaoEdition, doubaoAccounts.accounts)
-            : [],
-        },
-        doubaoAccountGroups: {
-          doubaowork: {
-            ...doubaoWorkAccounts,
-            accounts: pluginAvailable('doubaowork')
-              ? orderedAccounts('doubaowork', doubaoWorkAccounts.accounts)
-              : [],
-          },
-          dola: {
-            ...dolaAccounts,
-            accounts: pluginAvailable('dola') ? orderedAccounts('dola', dolaAccounts.accounts) : [],
-          },
-        },
-        qwenWorkAccounts: {
-          ...qwenWorkAccounts,
-          accounts: orderedAccounts(qwenWorkEdition, qwenWorkAccounts.accounts),
-        },
-        qwenWorkAccountGroups: {
-          qwenwork: {
-            ...qwenWorkGlobalAccounts,
-            accounts: orderedAccounts('qwenwork', qwenWorkGlobalAccounts.accounts),
-          },
-          qwenworkcn: {
-            ...qwenWorkCnAccounts,
-            accounts: orderedAccounts('qwenworkcn', qwenWorkCnAccounts.accounts),
-          },
-        },
-        qoderAccountGroups: {
-          qoder: {
-            ...qoderGlobalAccounts,
-            accounts: orderedAccounts('qoder', qoderGlobalAccounts.accounts),
-          },
-          qodercn: {
-            ...qoderCnAccounts,
-            accounts: orderedAccounts('qodercn', qoderCnAccounts.accounts),
-          },
-        },
-        deepSeekAccounts: {
-          ...deepSeekAccounts,
-          accounts: orderedAccounts('dsh', deepSeekAccounts.accounts),
-        },
-        grokAccounts: { ...grokAccounts, accounts: orderedAccounts('grok', grokAccounts.accounts) },
-        clineAccounts: {
-          ...clineAccounts,
-          accounts: orderedAccounts('cline', clineAccounts.accounts),
-        },
-        kiloAccounts: { ...kiloAccounts, accounts: orderedAccounts('kilo', kiloAccounts.accounts) },
-        copilotAccounts: {
-          ...copilotAccounts,
-          accounts: orderedAccounts('copilot', copilotAccounts.accounts),
-        },
-        manusAccounts: {
-          ...manusAccounts,
-          accounts: orderedAccounts('manus', manusAccounts.accounts),
-        },
-        cueAccounts: {
-          ...cueAccounts,
-          accounts: orderedAccounts('cue', cueAccounts.accounts),
-        },
-        grokBotAccounts: {
-          ...grokBotAccounts,
-          accounts: orderedAccounts('grokbot', grokBotAccounts.accounts),
-        },
-        cursorAccounts: {
-          ...cursorAccounts,
-          accounts: orderedAccounts('cursor', cursorAccounts.accounts),
-        },
-        antigravityAccounts: {
-          ...antigravityAccounts,
-          accounts: orderedAccounts('antigravity', antigravityAccounts.accounts),
-        },
-        codexAccounts: orderedAccounts('codex', codexAccounts),
-        selectedCodexAccountId,
-        setSelectedCodexAccountId: selectCodexAccount,
-        isLoadingCodexAccounts,
-        codexAccountsLoaded,
-        codexAccountsReadFailed,
-        codexAccountsMutationRevision,
-        isAddingCodexAccount,
-        codexOAuthRemainingSeconds,
-        refreshingCodexAccountIds,
-        codexAuthorizationFailedIds,
-        addCodexAccount,
-        cancelCodexLogin,
-        refreshCodexAccountQuota,
-        deleteCodexAccount,
-        selectedToolData,
-        applyError,
-        setApplyError,
-        detectedTools,
-        setDetectedTools,
-        isScanning,
-        scanTools,
-        userModels,
-        codexWebSearch,
-        zcodeWebSearch,
-        zcodeImageInput,
-        setZCodeCapability,
-        workBuddyImageInput: workBuddyCapabilities[workBuddyEdition ?? 'workbuddy'].imageInput,
-        setWorkBuddyImageInput: (value) => setWorkBuddyCapability('imageInput', value),
-        workBuddy1mMode: workBuddyCapabilities[workBuddyEdition ?? 'workbuddy'].oneMContext,
-        setWorkBuddy1mMode: (value) => setWorkBuddyCapability('oneMContext', value),
-        mimoImageInput: mimoValues.imageInput,
-        mimo1mMode: mimoValues.oneMContext,
-        setMimoCapability,
-        minimaxImageInput: minimaxCapabilities.imageInput,
-        minimax1mMode: minimaxCapabilities.oneMContext,
-        setMinimaxCapability,
-        qoderImageInput: qoderCapabilities[qoderEdition].imageInput,
-        qoder1mMode: qoderCapabilities[qoderEdition].oneMContext,
-        setQoderCapability,
-        dshImageInput: dshCapabilities.imageInput,
-        dsh1mMode: dshCapabilities.oneMContext,
-        setDshCapability,
-        setCodexWebSearch,
-        claudeDesktopWebSearch,
-        claudeCodeWebSearch,
-        setClaudeWebSearch,
-        claudeDesktop1mMode,
-        setClaudeDesktop1mMode,
-        claude1mMode,
-        setClaude1mMode,
-        handleLaunch,
-        onGoToMother: handleGoToMother,
-        aiInstallableIds: [
-          ...aiInstallableIds,
-          ...pluginProviders.map((entry) => entry.application),
-        ],
-        viewMode,
-        setViewMode,
-      }}
-    >
-      {children}
-      {claudeCodeAccounts.login && (
-        <ClaudeCodeLoginDialog
-          submitting={claudeCodeAccounts.submitting}
-          error={claudeCodeAccounts.loginError}
-          onClose={claudeCodeAccounts.cancelLogin}
-          onSubmit={claudeCodeAccounts.completeLogin}
-        />
-      )}
-    </AppManagerContext.Provider>
+    <AccountDirectoryContext.Provider value={accountDirectoryView}>
+      <AppManagerContext.Provider
+        value={{
+          smartRouterEnabled: routerEnabled,
+          selectedTool,
+          setSelectedTool,
+          launchAfterApply,
+          setLaunchAfterApply,
+          agreedConfigPolicy,
+          setAgreedConfigPolicy,
+          toolModelConfig,
+          handleSelectModel,
+          handleRestoreModel,
+          ...accountDirectoryView,
+          selectedToolData,
+          applyError,
+          setApplyError,
+          detectedTools,
+          setDetectedTools,
+          isScanning,
+          scanTools,
+          userModels,
+          codexWebSearch,
+          zcodeWebSearch,
+          zcodeImageInput,
+          setZCodeCapability,
+          workBuddyImageInput: workBuddyCapabilities[workBuddyEdition ?? 'workbuddy'].imageInput,
+          setWorkBuddyImageInput: (value) => setWorkBuddyCapability('imageInput', value),
+          workBuddy1mMode: workBuddyCapabilities[workBuddyEdition ?? 'workbuddy'].oneMContext,
+          setWorkBuddy1mMode: (value) => setWorkBuddyCapability('oneMContext', value),
+          mimoImageInput: mimoValues.imageInput,
+          mimo1mMode: mimoValues.oneMContext,
+          setMimoCapability,
+          minimaxImageInput: minimaxCapabilities.imageInput,
+          minimax1mMode: minimaxCapabilities.oneMContext,
+          setMinimaxCapability,
+          qoderImageInput: qoderCapabilities[qoderEdition].imageInput,
+          qoder1mMode: qoderCapabilities[qoderEdition].oneMContext,
+          setQoderCapability,
+          dshImageInput: dshCapabilities.imageInput,
+          dsh1mMode: dshCapabilities.oneMContext,
+          setDshCapability,
+          setCodexWebSearch,
+          claudeDesktopWebSearch,
+          claudeCodeWebSearch,
+          setClaudeWebSearch,
+          claudeDesktop1mMode,
+          setClaudeDesktop1mMode,
+          claude1mMode,
+          setClaude1mMode,
+          handleLaunch,
+          onGoToMother: handleGoToMother,
+          aiInstallableIds: [
+            ...aiInstallableIds,
+            ...pluginProviders.map((entry) => entry.application),
+          ],
+          viewMode,
+          setViewMode,
+        }}
+      >
+        {children}
+        {claudeCodeAccounts.login && (
+          <ClaudeCodeLoginDialog
+            submitting={claudeCodeAccounts.submitting}
+            error={claudeCodeAccounts.loginError}
+            onClose={claudeCodeAccounts.cancelLogin}
+            onSubmit={claudeCodeAccounts.completeLogin}
+          />
+        )}
+      </AppManagerContext.Provider>
+    </AccountDirectoryContext.Provider>
   );
 };
