@@ -12,6 +12,7 @@ interface RoutingToggleProps {
   className?: string;
   checked: boolean;
   disabled?: boolean;
+  dimWhenDisabled?: boolean;
   pending?: boolean;
   onChange: (v: boolean) => void;
 }
@@ -23,6 +24,7 @@ export function RoutingToggle({
   className = '',
   checked,
   disabled = false,
+  dimWhenDisabled = true,
   pending = false,
   onChange,
 }: RoutingToggleProps) {
@@ -37,7 +39,7 @@ export function RoutingToggle({
         ariaLabel={label}
         disabled={disabled}
         pending={pending}
-        className={`${hideLabel ? '' : 'mr-2'} ${disabled ? 'disabled:opacity-50' : ''}`}
+        className={`${hideLabel ? '' : 'mr-2'} ${disabled && dimWhenDisabled ? 'disabled:opacity-50' : ''}`}
       />
       {hint && <RoutingHint hint={hint} />}
     </div>

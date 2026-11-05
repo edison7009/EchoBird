@@ -861,6 +861,10 @@ it('serializes optional and master-switch saves and ignores stale reads after re
   await act(async () => optionalSwitch('aiCareer').props.onClick());
   expect(optionalSwitch('aiNews').props.disabled).toBe(true);
   expect(developerSwitch().props.disabled).toBe(true);
+  // Saving locks the controls without fading them out and back in.
+  for (const control of view.root.findAllByProps({ role: 'switch' })) {
+    expect(control.props.className).not.toContain('disabled:opacity-50');
+  }
   await act(async () => optionalSwitch('aiNews').props.onClick());
   expect(mocks.save).toHaveBeenCalledOnce();
   await act(async () => view.update(<SettingsDialog {...props} isOpen={false} />));

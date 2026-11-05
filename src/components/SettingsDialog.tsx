@@ -706,6 +706,7 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
                       <RoutingToggle
                         label={t('settings.sensitiveInfoProtection')}
                         hideLabel
+                        dimWhenDisabled={!settingsReady}
                         className="flex-row-reverse gap-1.5"
                         hint={t('settings.sensitiveInfoProtectionHint')}
                         checked={protectionEnabled}
@@ -730,6 +731,7 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
                     <RoutingToggle
                       label={t('nav.aiNews')}
                       hideLabel
+                      dimWhenDisabled={!settingsReady}
                       checked={optionalPages.aiNews}
                       disabled={!settingsReady || developerPending || protectionPending}
                       pending={optionalPending === 'aiNews'}
@@ -746,6 +748,7 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
                     <RoutingToggle
                       label={t('nav.aiCareer')}
                       hideLabel
+                      dimWhenDisabled={!settingsReady}
                       checked={optionalPages.aiCareer}
                       disabled={!settingsReady || developerPending || protectionPending}
                       pending={optionalPending === 'aiCareer'}
@@ -763,6 +766,7 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
                       <RoutingToggle
                         label={t('settings.developerMode')}
                         hideLabel
+                        dimWhenDisabled={!settingsReady}
                         className="flex-row-reverse gap-1.5"
                         hint={t('settings.developerModeHint')}
                         checked={developerMode}
@@ -787,6 +791,7 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
                     <RoutingToggle
                       label={t('nav.localServer')}
                       hideLabel
+                      dimWhenDisabled={!settingsReady}
                       checked={optionalPages.localLlm}
                       disabled={!settingsReady || developerPending || protectionPending}
                       pending={optionalPending === 'localLlm'}

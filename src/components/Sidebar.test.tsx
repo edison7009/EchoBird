@@ -52,6 +52,35 @@ const sourceConfig = {
 const routerGroups = [{ candidateIds: ['one'], groupEnabled: true }];
 
 describe('Sidebar', () => {
+  it.each([false, true])(
+    'opens settings from the final footer button (collapsed=%s) without changing quick switches',
+    (collapsed) => {
+      useSidebarStore.setState({ collapsed });
+      voice.setState({ snapshot: voiceSnapshot({ config: sourceConfig }) });
+      const onSettingsClick = vi.fn();
+      act(() => {
+        renderer = create(
+          <Sidebar
+            {...baseProps}
+            smartRouterGroups={routerGroups}
+            onSettingsClick={onSettingsClick}
+          />
+        );
+      });
+      const settings = renderer.root.findByProps({ 'aria-label': 'settings.title' });
+      const buttons = renderer.root.findAllByType('button');
+      expect(buttons[buttons.length - 1]).toBe(settings);
+      const switches = renderer.root.findAllByProps({ role: 'switch' });
+      expect(switches).toHaveLength(2);
+      act(() => settings.props.onClick());
+      expect(onSettingsClick).toHaveBeenCalledOnce();
+      expect(baseProps.onPageChange).not.toHaveBeenCalled();
+      expect(baseProps.onSmartRouterChange).not.toHaveBeenCalled();
+      expect(voiceApi.saveVoiceConfig).not.toHaveBeenCalled();
+      expect(voiceApi.getVoiceState).not.toHaveBeenCalled();
+      expect(renderer.root.findAllByProps({ role: 'switch' })).toEqual(switches);
+    }
+  );
   it('keeps the collapsed assistant spinning while working without marking another page active', () => {
     useSidebarStore.setState({ collapsed: true });
     act(() => {
@@ -107,7 +136,7 @@ describe('Sidebar', () => {
     const items = renderer.root
       .findAllByType('button')
       .filter((button) => button.props['aria-label'] && button.props.role !== 'switch');
-    expect(items).toHaveLength(9);
+    expect(items).toHaveLength(10);
     expect(items.every((item) => item.findByType('span').props.className === 'sr-only')).toBe(true);
     expect(renderer.root.findAllByProps({ 'aria-current': 'page' })).toHaveLength(1);
     expect(renderer.root.findByProps({ 'aria-current': 'page' }).props['aria-label']).toBe(
@@ -126,7 +155,7 @@ describe('Sidebar', () => {
     act(() => items.find((item) => item.props['aria-label'] === 'voice.input')!.props.onClick());
     expect(baseProps.onPageChange).toHaveBeenCalledExactlyOnceWith('voice');
     act(() => useSidebarStore.getState().setCollapsed(false));
-    expect(rail.props.className).toContain('w-64');
+    expect(rail.props.className).toContain('w-48');
     const expandedItems = renderer.root
       .findAllByType('button')
       .filter((button) => button.props['aria-label'] && button.props.role !== 'switch');
@@ -219,7 +248,7 @@ describe('Sidebar', () => {
       renderer.root
         .findAllByType('button')
         .filter((button) => button.props['aria-label'] && button.props.role !== 'switch')
-    ).toHaveLength(9);
+    ).toHaveLength(10);
     expect(baseProps.onPageChange).not.toHaveBeenCalled();
   });
 

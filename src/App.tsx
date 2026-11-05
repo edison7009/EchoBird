@@ -402,7 +402,6 @@ function AppContent() {
                         <AppBackground />
                         {/* Title bar */}
                         <TitleBar
-                          onSettingsClick={() => setShowSettings(true)}
                           onFeedbackClick={() => setActivePage('feedback')}
                           onChangelogClick={() => {
                             setShowVoiceGuideOnClose(false);

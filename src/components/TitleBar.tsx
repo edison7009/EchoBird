@@ -1,15 +1,6 @@
 // Custom frameless window title bar
 import React, { useState, useEffect } from 'react';
-import {
-  Settings,
-  Minus,
-  Maximize2,
-  Minimize2,
-  X,
-  PanelLeft,
-  ArrowLeft,
-  ArrowRight,
-} from 'lucide-react';
+import { Minus, Maximize2, Minimize2, X, PanelLeft, ArrowLeft, ArrowRight } from 'lucide-react';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { getSettings, hideMainWindow, saveSettings } from '../api/tauri';
 import { CloseWindowDialog } from './CloseWindowDialog';
@@ -22,16 +13,11 @@ const navigationButtonClass =
   'h-full w-8 flex items-center justify-center rounded text-cyber-text-secondary enabled:hover:bg-cyber-elevated/50 enabled:hover:text-cyber-text disabled:text-cyber-text-muted disabled:opacity-40 transition-colors';
 
 interface TitleBarProps {
-  onSettingsClick?: () => void;
   onFeedbackClick?: () => void;
   onChangelogClick?: () => void;
 }
 
-export const TitleBar: React.FC<TitleBarProps> = ({
-  onSettingsClick,
-  onFeedbackClick,
-  onChangelogClick,
-}) => {
+export const TitleBar: React.FC<TitleBarProps> = ({ onFeedbackClick, onChangelogClick }) => {
   const { t } = useI18n();
   const collapsed = useSidebarStore((state) => state.collapsed);
   const setCollapsed = useSidebarStore((state) => state.setCollapsed);
@@ -195,13 +181,6 @@ export const TitleBar: React.FC<TitleBarProps> = ({
             {t('nav.feedback')}
           </button>
           <button
-            onClick={onSettingsClick}
-            aria-label={t('settings.title')}
-            className="h-full px-4 flex items-center justify-center text-cyber-text-secondary hover:bg-cyber-text/20 hover:text-cyber-text transition-colors"
-          >
-            <Settings size={16} strokeWidth={1.75} />
-          </button>
-          <button
             onClick={handleMinimizeToTray}
             aria-label={t('settings.closeToTray')}
             className="h-full px-4 flex items-center justify-center hover:bg-cyber-text/20 transition-colors"
@@ -215,7 +194,7 @@ export const TitleBar: React.FC<TitleBarProps> = ({
           </button>
           {/* Window controls — Windows/Linux only. macOS uses native traffic
               lights on the left (titleBarStyle: Overlay), so we omit our custom
-              minimize/maximize/close here and keep just Feedback + Settings. */}
+              minimize/maximize/close here and keep the remaining header actions. */}
           {!IS_MACOS && (
             <>
               <button

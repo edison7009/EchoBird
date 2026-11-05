@@ -65,18 +65,22 @@ export function paintTabCanvas(
     context.rect(region.x, region.y, region.width, region.height);
     context.clip();
     for (const edge of [0, 1]) {
-      const x = region.x + region.width * ((phase + edge * 0.5) % 1);
-      const y = region.y + region.height * edge;
-      context.save();
-      context.translate(x, y);
-      context.scale(Math.max(1, region.width), Math.max(1, region.height));
-      const wave = context.createRadialGradient(0, 0, 0, 0, 0, 1);
-      wave.addColorStop(0, palette.wave);
-      wave.addColorStop(1, 'transparent');
-      context.globalAlpha = 0.38;
-      context.fillStyle = wave;
-      context.fillRect(-2, -2, 4, 4);
-      context.restore();
+      // Draw neighboring copies so the light leaving one edge is already
+      // entering the other. Wrapping its center alone causes a visible jump.
+      for (const tile of [-1, 0, 1]) {
+        const x = region.x + region.width * (((phase + edge * 0.5) % 1) + tile);
+        const y = region.y + region.height * edge;
+        context.save();
+        context.translate(x, y);
+        context.scale(Math.max(1, region.width), Math.max(1, region.height));
+        const wave = context.createRadialGradient(0, 0, 0, 0, 0, 1);
+        wave.addColorStop(0, palette.wave);
+        wave.addColorStop(1, 'transparent');
+        context.globalAlpha = 0.38;
+        context.fillStyle = wave;
+        context.fillRect(-2, -2, 4, 4);
+        context.restore();
+      }
     }
     context.restore();
     context.restore();

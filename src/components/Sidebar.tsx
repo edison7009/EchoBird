@@ -14,6 +14,7 @@ import {
   Mic,
   Download,
   Gauge,
+  Settings,
 } from 'lucide-react';
 import { NavItem } from './NavItem';
 import { RoutingHint, RoutingToggle } from './RoutingToggle';
@@ -156,7 +157,7 @@ export const Sidebar = ({
       id="app-sidebar"
       ref={sidebarRef}
       data-collapsed={collapsed}
-      className={`relative flex shrink-0 flex-col pb-1 transition-[width,padding,margin] duration-200 ease-out motion-reduce:transition-none ${collapsed ? 'w-16 -ml-4 px-2' : 'w-64 px-6'}`}
+      className={`relative flex shrink-0 flex-col pb-1 transition-[width,padding,margin] duration-200 ease-out motion-reduce:transition-none ${collapsed ? 'w-16 -ml-4 px-2' : 'w-48 -ml-2 px-2'}`}
     >
       <div
         className={`mb-7 flex-shrink-0 flex items-center ${collapsed ? 'relative justify-center' : 'gap-2 overflow-hidden'}`}
@@ -176,7 +177,7 @@ export const Sidebar = ({
           </button>
         )}
       </div>
-      <div className="flex-1 min-h-0 overflow-y-auto page-scroll space-y-5 text-[15px]">
+      <div className="flex-1 min-h-0 overflow-y-auto page-scroll space-y-3 text-[15px]">
         <NavItem
           collapsed={collapsed}
           icon={<House size={20} />}
@@ -338,6 +339,17 @@ export const Sidebar = ({
             <span className="text-cyber-accent font-semibold">{t('status.running')}</span>
           </div>
         )}
+        <div className="mt-2 border-t border-cyber-border/50 pt-2">
+          <button
+            type="button"
+            aria-label={t('settings.title')}
+            onClick={onSettingsClick}
+            className={`flex h-10 items-center rounded-lg font-medium text-cyber-text-secondary transition-colors hover:bg-cyber-elevated/50 hover:text-cyber-text ${collapsed ? 'mx-auto w-10 justify-center' : 'w-full gap-3 px-2'}`}
+          >
+            <Settings size={20} strokeWidth={1.75} />
+            <span className={collapsed ? 'sr-only' : undefined}>{t('settings.title')}</span>
+          </button>
+        </div>
       </div>
     </nav>
   );
