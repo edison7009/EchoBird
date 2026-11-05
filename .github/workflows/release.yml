@@ -166,7 +166,10 @@ jobs:
           set -euo pipefail
           # Tauri's npm wrapper writes the package under the host target
           # directory even when --target selects the Rust architecture.
-          APP="src-tauri/target/release/bundle/macos/EchoBird.app"
+          APP="src-tauri/target/$RUST_TARGET/release/bundle/macos/EchoBird.app"
+          if [ ! -d "$APP" ]; then APP="src-tauri/target/release/bundle/macos/EchoBird.app"; fi
+          ARCH=$(lipo -archs "$APP/Contents/MacOS/echobird")
+          if [[ "$RUST_TARGET" = aarch64-* ]]; then test "$ARCH" = arm64; else test "$ARCH" = x86_64; fi
           SDK_VERSION="$(xcrun vtool -show-build "$APP/Contents/MacOS/echobird" | awk '$1 == "sdk" { print $2; exit }')"
           test -n "$SDK_VERSION"
           test "${SDK_VERSION%%.*}" -ge 26
@@ -193,7 +196,8 @@ jobs:
               formats = {'dmg': f'macOS_{arch}.dmg'}
           else:
               formats = {'deb': f'Linux_{arch}.deb', 'rpm': f'Linux_{arch}.rpm'}
-          bundle = Path('src-tauri/target/release/bundle')
+          bundle = Path('src-tauri/target') / target / 'release/bundle'
+          if not bundle.exists(): bundle = Path('src-tauri/target/release/bundle')
           out = Path(os.environ['RUNNER_TEMP']) / 'echobird-installers'
           out.mkdir(exist_ok=True)
           for extension, suffix in formats.items():
