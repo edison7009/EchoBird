@@ -50,7 +50,7 @@ it.each([false, true])(
       view = create(<Harness automatic={automatic} />);
     });
     expect(view.root.findAllByProps({ 'data-guide': true })).toHaveLength(0);
-    expect(fetch).toHaveBeenCalledTimes(1);
+    expect(fetch).toHaveBeenCalledTimes(3);
     const dismiss = view.root.findByType('button').props.onClick;
     act(() => {
       dismiss();
@@ -65,7 +65,7 @@ it.each([false, true])(
     });
     expect(closed).toHaveBeenCalledOnce();
     expect(view.root.findAllByProps({ 'data-guide': true })).toHaveLength(automatic ? 1 : 0);
-    expect(fetch).toHaveBeenCalledTimes(1);
+    expect(fetch).toHaveBeenCalledTimes(3);
     if (automatic) act(() => view.root.findByProps({ 'data-guide': true }).props.onClick());
     await act(async () => {
       view.update(<Harness automatic={false} />);

@@ -11,6 +11,7 @@ import { listen } from '@tauri-apps/api/event';
 import { IS_MACOS } from './utils/platform';
 import { Sidebar, PageType, ToastProvider, ConfirmDialogProvider } from './components';
 import { isNewerVersion } from './utils/version';
+import { fetchLatestManifest } from './services/updateManifest';
 import { DownloadProvider } from './components/DownloadContext';
 import { DownloadBar } from './components/DownloadBar';
 import { TitleBar } from './components/TitleBar';
@@ -279,12 +280,9 @@ function AppContent() {
         }
       }
       try {
-        const res = await fetch('https://echobird.ai/api/version/index.json');
-        if (res.ok && appVersion) {
-          const data = await res.json();
-          if (data.version && isNewerVersion(data.version, appVersion)) {
-            setUpdateAvailable(data.version);
-          }
+        const data = await fetchLatestManifest();
+        if (data && appVersion && isNewerVersion(data.version, appVersion)) {
+          setUpdateAvailable(data.version);
         }
       } catch {
         /* network error — ignore silently */

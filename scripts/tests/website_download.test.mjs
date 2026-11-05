@@ -60,6 +60,72 @@ test('the download follows the published version manifest', async () => {
   );
 });
 
+test('mainland requests redirect to the current CNB mirror asset', async () => {
+  const calls = [];
+  mock.method(globalThis, 'fetch', async (url) => {
+    calls.push(String(url));
+    if (String(url).includes('cnb.cool')) {
+      return Response.json({
+        version: '6.2.0',
+        files: { 'EchoBird_6.2.0_Windows_x64-setup.exe': { size: 12, sha256: 'x' } },
+      });
+    }
+    throw new Error(`unexpected fetch ${url}`);
+  });
+  const request = new Request('https://echobird.ai/download/windows');
+  Object.defineProperty(request, 'cf', { value: { country: 'CN' } });
+  const response = await worker.fetch(
+    request,
+    createEnv(() => Response.json({ version: '6.2.0' }))
+  );
+  assert.equal(response.status, 302);
+  assert.equal(response.headers.get('X-EchoBird-Source'), 'cnb');
+  assert.equal(
+    response.headers.get('Location'),
+    'https://cnb.cool/echobird/echobird-releases/-/git/raw/main/EchoBird_6.2.0_Windows_x64-setup.exe'
+  );
+  assert.equal(calls.length, 2);
+});
+
+test('mainland requests use a mirror version newer than the website manifest', async () => {
+  mock.method(globalThis, 'fetch', async (url) => {
+    if (String(url).includes('cnb.cool')) {
+      return Response.json({
+        version: '6.2.0',
+        files: { 'EchoBird_6.2.0_Windows_x64-setup.exe': { size: 12, sha256: 'x' } },
+      });
+    }
+    if (String(url).includes('gitcode.com')) return new Response('missing', { status: 404 });
+    throw new Error(`unexpected fetch ${url}`);
+  });
+  const request = new Request('https://echobird.ai/download/windows');
+  Object.defineProperty(request, 'cf', { value: { country: 'CN' } });
+  const response = await worker.fetch(
+    request,
+    createEnv(() => Response.json({ version: '6.1.9' }))
+  );
+  assert.equal(response.status, 302);
+  assert.equal(response.headers.get('X-EchoBird-Version'), '6.2.0');
+  assert.match(response.headers.get('Location'), /EchoBird_6\.2\.0_Windows_x64-setup\.exe$/);
+});
+
+test('source=github bypasses domestic mirrors', async () => {
+  mock.method(globalThis, 'fetch', async (url) => {
+    assert.equal(
+      String(url),
+      'https://github.com/edison7009/EchoBird/releases/download/v6.2.0/EchoBird_6.2.0_Windows_x64-setup.exe'
+    );
+    return new Response('installer');
+  });
+  const request = new Request('https://echobird.ai/download/windows?source=github');
+  const response = await worker.fetch(
+    request,
+    createEnv(() => Response.json({ version: '6.2.0' }))
+  );
+  assert.equal(response.status, 200);
+  assert.equal(await response.text(), 'installer');
+});
+
 test('HEAD checks the installer without transferring its body', async () => {
   mock.method(globalThis, 'fetch', async (_url, options) => {
     assert.equal(options.method, 'HEAD');

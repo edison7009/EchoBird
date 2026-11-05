@@ -59,7 +59,7 @@ if (-not $latestVer) {
             $latestVer = $manifest.version
             # Asset name pattern is stable since release.yml's rename-assets job.
             # See .github/workflows/release.yml — keep in sync.
-            $downloadUrl = "https://github.com/edison7009/EchoBird/releases/download/v$latestVer/EchoBird_${latestVer}_Windows_x64-setup.exe"
+            $downloadUrl = "https://echobird.ai/download/windows"
         }
     } catch {
         # Silent — the unified "both lookups failed" message below covers it.

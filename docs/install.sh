@@ -33,6 +33,7 @@ ARCH=$(uname -m)
 # Matching both ensures `curl | sh` never reports "no asset" during the brief
 # window where rename-assets hasn't run yet.
 PLATFORM=""
+DOWNLOAD_PLATFORM=""
 ASSET_GREP=""
 
 if [ "$OS" = "Darwin" ]; then
@@ -42,10 +43,12 @@ if [ "$OS" = "Darwin" ]; then
   case "$ARCH" in
     arm64)
       PLATFORM="macos"
+      DOWNLOAD_PLATFORM="macos-arm"
       ASSET_GREP='(macOS_arm64|aarch64)\.dmg'
       ;;
     x86_64)
       PLATFORM="macos-intel"
+      DOWNLOAD_PLATFORM="macos-intel"
       # Pattern matches both renamed (macOS_x64) and pre-rename (_x64) names.
       # The trailing .dmg keeps this from grabbing Windows_x64-*.exe assets.
       ASSET_GREP='(macOS_x64|_x64)\.dmg'
@@ -76,17 +79,21 @@ elif [ "$OS" = "Linux" ]; then
   if command -v dpkg > /dev/null 2>&1; then
     if [ "$LINUX_ARCH" = "arm64" ]; then
       PLATFORM="linux-arm64-deb"
+      DOWNLOAD_PLATFORM="linux-arm64-deb"
       ASSET_GREP='(Linux_arm64|arm64)\.deb'
     else
       PLATFORM="linux-x64-deb"
+      DOWNLOAD_PLATFORM="linux-deb"
       ASSET_GREP='(Linux_x64|amd64)\.deb'
     fi
   elif command -v rpm > /dev/null 2>&1; then
     if [ "$LINUX_ARCH" = "arm64" ]; then
       PLATFORM="linux-arm64-rpm"
+      DOWNLOAD_PLATFORM="linux-arm64-rpm"
       ASSET_GREP='(Linux_arm64\.rpm|aarch64\.rpm)'
     else
       PLATFORM="linux-x64-rpm"
+      DOWNLOAD_PLATFORM="linux-rpm"
       ASSET_GREP='(Linux_x64\.rpm|x86_64\.rpm)'
     fi
   else
@@ -145,7 +152,7 @@ if [ -z "$LATEST_VER" ] || [ -z "$DOWNLOAD_URL" ]; then
       *)                ASSET_NAME="" ;;
     esac
     if [ -n "$ASSET_NAME" ]; then
-      DOWNLOAD_URL="https://github.com/edison7009/EchoBird/releases/download/v${LATEST_VER}/${ASSET_NAME}"
+      DOWNLOAD_URL="https://echobird.ai/download/${DOWNLOAD_PLATFORM}"
     fi
   fi
 fi

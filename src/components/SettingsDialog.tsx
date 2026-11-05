@@ -23,6 +23,7 @@ import { useBackgroundStore } from '../stores/backgroundStore';
 import { useI18n } from '../hooks/useI18n';
 import * as api from '../api/tauri';
 import { isNewerVersion } from '../utils/version';
+import { fetchLatestManifest } from '../services/updateManifest';
 import { useThemeStore, type ThemeMode } from '../stores/themeStore';
 import { COLOR_THEMES, type ColorThemeId } from '../data/colorThemes';
 import { useUiScaleStore } from '../stores/uiScaleStore';
@@ -314,11 +315,9 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
     let cancelled = false;
     void (async () => {
       try {
-        const res = await fetch('https://echobird.ai/api/version/index.json');
-        if (!res.ok) return;
-        const data = await res.json();
+        const data = await fetchLatestManifest();
         if (cancelled) return;
-        if (data.version && isNewerVersion(data.version, appVersion)) {
+        if (data?.version && isNewerVersion(data.version, appVersion)) {
           setLatestVersion(data.version);
           setUpdateStatus('available');
         } else {

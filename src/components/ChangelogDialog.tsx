@@ -10,12 +10,9 @@ import remarkGfm from 'remark-gfm';
 import { useI18n } from '../hooks/useI18n';
 import { mdComponents } from '../pages/MotherAgent/mdComponents';
 import { VoiceInputGuide } from './VoiceInputGuide';
+import { fetchLatestManifest, type UpdateManifest } from '../services/updateManifest';
 
-const VERSION_MANIFEST_URL = 'https://echobird.ai/api/version/index.json';
-
-interface Manifest {
-  version?: string;
-  releaseDate?: string;
+interface Manifest extends UpdateManifest {
   // Legacy single-blob notes ("## 中文 / ## English / ## 日本語"), kept for
   // manifests written before the per-language split.
   releaseNotes?: string;
@@ -141,9 +138,8 @@ export const ChangelogDialog: React.FC<ChangelogDialogProps> = ({
     let cancelled = false;
     void (async () => {
       try {
-        const res = await fetch(VERSION_MANIFEST_URL);
-        if (!res.ok) throw new Error(String(res.status));
-        const data = (await res.json()) as Manifest;
+        const data = (await fetchLatestManifest()) as Manifest | null;
+        if (!data) throw new Error('manifest unavailable');
         if (cancelled) return;
         setManifest(data);
         setStatus('ready');
