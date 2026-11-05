@@ -12,11 +12,12 @@ import {
   RefreshCw,
   Users,
   Mic,
-  Download,
   Gauge,
   Settings,
 } from 'lucide-react';
 import { NavItem } from './NavItem';
+import { UpdateDownloadButton } from './UpdateDownloadButton';
+import { useSelfUpdateDownload } from '../hooks/useSelfUpdateDownload';
 import { RoutingHint, RoutingToggle } from './RoutingToggle';
 import { useToast } from './Toast';
 import { useI18n } from '../hooks/useI18n';
@@ -123,6 +124,14 @@ export const Sidebar = ({
 }: SidebarProps) => {
   const { t } = useI18n();
   const { showToast } = useToast();
+  const updateDownload = useSelfUpdateDownload();
+  const downloadButton = updateAvailable ? (
+    <UpdateDownloadButton
+      version={updateAvailable}
+      progress={updateDownload.progress}
+      onClick={() => void updateDownload.download(updateAvailable)}
+    />
+  ) : null;
   const collapsed = useSidebarStore((state) => state.collapsed);
   const developerMode = useNavigationStore((state) => state.developerMode);
   const optionalPages = useNavigationStore((state) => state.optionalPages);
@@ -165,16 +174,6 @@ export const Sidebar = ({
         <BirdEasterEgg sidebarRef={sidebarRef} perchRef={perchRef} />
         {!collapsed && (
           <span className="brand-mark flex-shrink-0 text-cyber-text">{t('app.name')}</span>
-        )}
-        {updateAvailable && !collapsed && (
-          <button
-            type="button"
-            onClick={onSettingsClick}
-            aria-label={t('settings.updates')}
-            className="flex-shrink-0 text-[11px] font-mono text-red-400 hover:opacity-70 transition-opacity animate-pulse leading-none"
-          >
-            {t('settings.updates')}
-          </button>
         )}
       </div>
       <div className="flex-1 min-h-0 overflow-y-auto page-scroll space-y-3 text-[15px]">
@@ -286,20 +285,7 @@ export const Sidebar = ({
 
       <div className="flex-shrink-0 pt-4 text-[14px] text-cyber-text-secondary">
         <div className="space-y-1 text-[15px] font-medium">
-          {collapsed && updateAvailable && (
-            <button
-              type="button"
-              aria-label={t('settings.updates')}
-              onClick={onSettingsClick}
-              className="mx-auto flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-red-400 transition-colors hover:bg-cyber-elevated/50"
-            >
-              <Download
-                size={20}
-                aria-hidden="true"
-                className="animate-pulse motion-reduce:animate-none"
-              />
-            </button>
-          )}
+          {collapsed && downloadButton}
           {developerMode && hasUsageSources && (
             <SidebarToggle
               collapsed={collapsed}
@@ -339,16 +325,17 @@ export const Sidebar = ({
             <span className="text-cyber-accent font-semibold">{t('status.running')}</span>
           </div>
         )}
-        <div className="mt-2 border-t border-cyber-border/50 pt-2">
+        <div className="mt-2 flex items-center gap-1 border-t border-cyber-border/50 pt-2">
           <button
             type="button"
             aria-label={t('settings.title')}
             onClick={onSettingsClick}
-            className={`flex h-10 items-center rounded-lg font-medium text-cyber-text-secondary transition-colors hover:bg-cyber-elevated/50 hover:text-cyber-text ${collapsed ? 'mx-auto w-10 justify-center' : 'w-full gap-3 px-2'}`}
+            className={`flex h-10 items-center rounded-lg font-medium text-cyber-text-secondary transition-colors hover:bg-cyber-elevated/50 hover:text-cyber-text ${collapsed ? 'mx-auto w-10 justify-center' : 'min-w-0 flex-1 gap-3 px-2'}`}
           >
             <Settings size={20} strokeWidth={1.75} />
             <span className={collapsed ? 'sr-only' : undefined}>{t('settings.title')}</span>
           </button>
+          {!collapsed && downloadButton}
         </div>
       </div>
     </nav>

@@ -1,9 +1,8 @@
-// SettingsDialog — Global settings modal (gear button in title bar)
+// SettingsDialog — Global settings modal (gear button in sidebar)
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   X,
   Globe,
-  Download,
   ExternalLink,
   Check,
   Palette,
@@ -25,8 +24,6 @@ import { ViewModeTabGroup } from './ViewModeTabGroup';
 import { useBackgroundStore } from '../stores/backgroundStore';
 import { useI18n } from '../hooks/useI18n';
 import * as api from '../api/tauri';
-import { isNewerVersion } from '../utils/version';
-import { fetchLatestManifest } from '../services/updateManifest';
 import { useThemeStore, type ThemeMode } from '../stores/themeStore';
 import { COLOR_THEMES, type ColorThemeId } from '../data/colorThemes';
 import { useUiScaleStore } from '../stores/uiScaleStore';
@@ -72,15 +69,7 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
   const { t } = useI18n();
   const [isAnimatingOut, setIsAnimatingOut] = useState(false);
   const [activeTab, setActiveTab] = useState<SettingsTab>('general');
-  const [updateStatus, setUpdateStatus] = useState<'latest' | 'available'>('latest');
-  const [latestVersion, setLatestVersion] = useState<string | null>(null);
   const [appVersion, setAppVersion] = useState<string>('');
-  // In-app self-update (Windows) progress state.
-  const [installing, setInstalling] = useState(false);
-  const [installPhase, setInstallPhase] = useState<
-    'speed_test' | 'downloading' | 'launching' | 'error' | null
-  >(null);
-  const [installPct, setInstallPct] = useState(0);
   const [closeToTray, setCloseToTray] = useState<boolean | null>(false);
   const [settingsReady, setSettingsReady] = useState(false);
   const [protectionEnabled, setProtectionEnabled] = useState(false);
@@ -358,63 +347,6 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
   }, [isOpen, handleClose]);
-
-  // Auto-check for updates when the dialog opens — no manual button. Version
-  // truth is the canonical manifest (echobird.ai/api/version/index.json). Any
-  // failure (offline / unreachable) silently stays on "latest" — no error UI,
-  // just no update offered.
-  useEffect(() => {
-    if (!isOpen || !appVersion) return;
-    let cancelled = false;
-    void (async () => {
-      try {
-        const data = await fetchLatestManifest();
-        if (cancelled) return;
-        if (data?.version && isNewerVersion(data.version, appVersion)) {
-          setLatestVersion(data.version);
-          setUpdateStatus('available');
-        } else {
-          setUpdateStatus('latest');
-        }
-      } catch {
-        /* offline / unreachable — stay on "latest", no update offered */
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [isOpen, appVersion]);
-
-  // Click "Update to vX": on Windows, download + launch the installer in-app
-  // (the app exits as the wizard opens); elsewhere — or if the download fails —
-  // open the download page in the browser instead.
-  const handleUpdate = useCallback(async () => {
-    if (!latestVersion) return;
-    const downloadPage = 'https://echobird.ai/';
-    if (!navigator.userAgent.includes('Windows')) {
-      await api.openExternal(downloadPage);
-      return;
-    }
-    setInstalling(true);
-    setInstallPhase('speed_test');
-    setInstallPct(0);
-    let unlisten: (() => void) | undefined;
-    try {
-      unlisten = await api.onSelfUpdateProgress((p) => {
-        setInstallPhase(p.status);
-        setInstallPct(p.percent);
-      });
-      await api.downloadAndInstallUpdate(latestVersion);
-      // Success: the installer launched and the app is about to exit — leave
-      // the progress UI as-is until the window closes.
-    } catch {
-      await api.openExternal(downloadPage);
-      setInstalling(false);
-      setInstallPhase(null);
-    } finally {
-      unlisten?.();
-    }
-  }, [latestVersion]);
 
   if (!isOpen) return null;
 
@@ -813,53 +745,6 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
                     {t('settings.optionalFeaturesError')}
                   </p>
                 )}
-
-                <div className="h-px bg-cyber-border/50" />
-
-                <div className="space-y-2.5">
-                  <div className="flex items-center gap-2">
-                    <Download size={14} className="text-cyber-text-secondary" />
-                    <span className="text-[14px] font-medium text-cyber-text-secondary">
-                      {t('settings.updates')}
-                    </span>
-                  </div>
-                  <div className="h-10 flex items-center">
-                    {installing ? (
-                      <div className="relative w-full h-10 overflow-hidden border border-cyber-accent/40 bg-cyber-surface rounded-button">
-                        <div
-                          className="absolute inset-y-0 left-0 bg-cyber-accent/20 transition-[width] duration-200"
-                          style={{
-                            width: `${
-                              installPhase === 'launching'
-                                ? 100
-                                : installPhase === 'speed_test'
-                                  ? 8
-                                  : installPct
-                            }%`,
-                          }}
-                        />
-                        <div className="relative flex items-center justify-center h-full text-[13px] font-medium text-cyber-text">
-                          {installPhase === 'launching'
-                            ? t('settings.updateLaunching')
-                            : installPhase === 'speed_test'
-                              ? `${t('settings.updateDownloading')}…`
-                              : `${t('settings.updateDownloading')} ${installPct}%`}
-                        </div>
-                      </div>
-                    ) : updateStatus === 'available' ? (
-                      <button
-                        onClick={handleUpdate}
-                        className="flex items-center justify-center gap-1.5 w-full h-10 text-[14px] font-semibold border border-cyber-accent/50 bg-cyber-surface text-cyber-accent hover:border-cyber-accent transition-colors rounded-button"
-                      >
-                        {t('settings.updateTo')} v{latestVersion} <Download size={13} />
-                      </button>
-                    ) : (
-                      <div className="w-full h-10 flex items-center justify-center gap-1.5 text-[14px] text-cyber-text border border-cyber-border/30 bg-cyber-surface rounded-button">
-                        <span className="text-cyber-accent">✓</span> {t('settings.latestVersion')}
-                      </div>
-                    )}
-                  </div>
-                </div>
               </div>
             ) : activeTab === 'appearance' ? (
               <div className="space-y-5">

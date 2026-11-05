@@ -455,6 +455,10 @@ const en: Translations = {
   'feedback.networkNote':
     "If GitHub isn't reachable, email us directly — we'll reply within a few business days.",
   // Settings
+  'plugins.latestVersion': 'Already on the latest version',
+  'updates.download': 'Download update',
+  'updates.downloading': 'Downloading update',
+  'updates.failed': 'Download failed. Please try again.',
   'settings.title': 'SETTINGS',
   'settings.general': 'GENERAL',
   'settings.version': 'VERSION',
@@ -472,11 +476,6 @@ const en: Translations = {
   'settings.themeLight': 'Light',
   'settings.themeDark': 'Dark',
   'settings.themeSystem': 'System',
-  'settings.updates': 'UPDATES',
-  'settings.latestVersion': 'Already on the latest version',
-  'settings.updateTo': 'Update to',
-  'settings.updateDownloading': 'Downloading',
-  'settings.updateLaunching': 'Launching installer…',
   'settings.closeWindowBehavior': 'CLOSE WINDOW BEHAVIOR',
   'settings.closeDirectly': 'Quit directly',
   'settings.closeToTray': 'Minimize to tray',

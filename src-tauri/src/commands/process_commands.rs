@@ -118,7 +118,7 @@ pub async fn clear_llm_custom_command() -> Result<(), String> {
     local_llm::custom_command::clear()
 }
 
-// ─── In-app self-update (Windows): download installer + launch + exit ───
+// ─── Self-update: download installer and finish according to the platform ───
 
 #[tauri::command]
 pub async fn download_and_install_update(

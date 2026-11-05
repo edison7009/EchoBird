@@ -143,17 +143,15 @@ export async function getCliLaunchOptions(): Promise<CliLaunchOptions> {
   return invoke('get_cli_launch_options');
 }
 
-// ─── In-app self-update (Windows): download installer, launch it, exit ───
+// ─── Self-update downloads and platform-specific completion ───
 
 export interface SelfUpdateProgress {
-  status: 'speed_test' | 'downloading' | 'launching' | 'error';
+  status: 'speed_test' | 'downloading' | 'launching' | 'downloaded' | 'error';
   percent: number;
 }
 
-/// Windows-only. Downloads the installer from GitHub releases, launches its
-/// wizard, then exits so the installer can replace our files.
-/// Rejects on non-Windows or download failure — the caller falls back to
-/// opening the download page in the browser.
+/// Download to system Downloads. Windows launches its wizard and exits;
+/// macOS/Linux open the containing folder and keep running.
 export async function downloadAndInstallUpdate(version: string): Promise<void> {
   return invoke('download_and_install_update', { version });
 }

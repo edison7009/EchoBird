@@ -879,3 +879,13 @@ it('serializes optional and master-switch saves and ignores stale reads after re
   await act(async () => finishRead({ aiCareerEnabled: true }));
   expect(optionalSwitch('aiCareer').props['aria-checked']).toBe(false);
 });
+
+it('has no update section and does not fetch an update manifest on opening', async () => {
+  const fetch = vi.fn();
+  vi.stubGlobal('fetch', fetch);
+  await act(async () => {
+    view = create(<SettingsDialog {...props} />);
+  });
+  expect(JSON.stringify(view.toJSON())).not.toContain('settings.updates');
+  expect(fetch).not.toHaveBeenCalled();
+});

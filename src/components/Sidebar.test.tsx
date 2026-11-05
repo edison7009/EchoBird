@@ -53,6 +53,29 @@ const routerGroups = [{ candidateIds: ['one'], groupEnabled: true }];
 
 describe('Sidebar', () => {
   it.each([false, true])(
+    'keeps the update download next to footer Settings only when expanded (collapsed=%s)',
+    (collapsed) => {
+      useSidebarStore.setState({ collapsed });
+      act(() => {
+        renderer = create(
+          <Sidebar {...baseProps} smartRouterGroups={routerGroups} updateAvailable="6.2.1" />
+        );
+      });
+      const settings = renderer.root.findByProps({ 'aria-label': 'settings.title' });
+      const download = renderer.root.findByProps({ 'aria-label': 'updates.download 6.2.1' });
+      const footer = settings.parent!;
+      expect(footer.findAllByProps({ 'aria-label': 'updates.download 6.2.1' })).toHaveLength(
+        collapsed ? 0 : 1
+      );
+      const controls = renderer.root.findAllByType('button');
+      const switchIndex = controls.findIndex((button) => button.props.role === 'switch');
+      if (collapsed) expect(controls.indexOf(download)).toBeLessThan(switchIndex);
+      expect(download.props.disabled).toBe(false);
+      expect(baseProps.onPageChange).not.toHaveBeenCalled();
+      expect(baseProps.onSmartRouterChange).not.toHaveBeenCalled();
+    }
+  );
+  it.each([false, true])(
     'opens settings from the final footer button (collapsed=%s) without changing quick switches',
     (collapsed) => {
       useSidebarStore.setState({ collapsed });

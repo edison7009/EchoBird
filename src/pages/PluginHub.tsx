@@ -863,7 +863,7 @@ export function PluginHubPanel() {
                 if (result !== 'cancelled')
                   showToast(
                     'success',
-                    t(result === 'updated' ? 'plugins.updated' : 'settings.latestVersion')
+                    t(result === 'updated' ? 'plugins.updated' : 'plugins.latestVersion')
                   );
               } catch (error) {
                 showToast('error', String(error));
