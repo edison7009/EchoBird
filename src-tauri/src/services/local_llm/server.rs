@@ -566,6 +566,9 @@ pub async fn start_server(
 ) -> Result<(), String> {
     let server = get_server().await;
     let mut server = server.lock().await;
+    if crate::commands::settings_commands::get_settings().local_llm_enabled == Some(false) {
+        return Err("Local models are disabled in Settings".into());
+    }
     let result = server
         .start(
             model_path,
@@ -590,6 +593,18 @@ pub async fn stop_server() -> Result<(), String> {
         update_server_info_cache(&server.get_info());
     }
     result
+}
+
+/// Only the child/proxy owned by this manager is stopped; external servers
+/// are never searched for or terminated when the optional page is disabled.
+pub async fn stop_server_if_running() -> Result<(), String> {
+    let server = get_server().await;
+    let mut server = server.lock().await;
+    if server.get_info().running {
+        server.stop().await?;
+        update_server_info_cache(&server.get_info());
+    }
+    Ok(())
 }
 
 pub async fn get_server_info() -> LocalServerInfo {
@@ -754,6 +769,18 @@ fn append_multi_gpu_args(args: &mut Vec<String>, runtime: &str, gpu_count: usize
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[tokio::test]
+    async fn disabling_an_idle_local_engine_is_idempotent_without_process_discovery() {
+        assert!(!get_server_info().await.running);
+        stop_server_if_running().await.unwrap();
+        stop_server_if_running().await.unwrap();
+        let server = get_server().await;
+        let server = server.lock().await;
+        assert!(server.child_pid.is_none());
+        assert!(!server.info.running);
+        assert!(server.proxy_shutdown.is_none());
+    }
 
     #[test]
     fn minicpm5_2b_default_args_disable_min_p_for_official_files() {

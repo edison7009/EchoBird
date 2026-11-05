@@ -94,6 +94,7 @@ export type TKey =
   | 'plugins.version'
   | 'settings.developerMode'
   | 'settings.developerModeError'
+  | 'settings.optionalFeaturesError'
   | 'settings.developerModeHint'
   | 'voice.error.plugin'
   | 'voice.guide.description'

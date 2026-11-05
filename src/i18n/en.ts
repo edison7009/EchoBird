@@ -98,6 +98,7 @@ const en: Translations = {
   'settings.developerMode': 'Developer preview',
   'settings.developerModeHint':
     'Developer preview is primarily for development and testing. Some features may not suit everyday use. Turning it off pauses all features on the developer page and reduces resource overhead. Preview features may change or be removed in future versions, and more fun features will be added over time.',
+  'settings.optionalFeaturesError': 'Could not save this feature setting. Please try again.',
   'settings.developerModeError':
     'Unable to load or save developer preview. Reopen Settings and try again.',
   'voice.selection': 'Selection translation / questions',

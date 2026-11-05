@@ -99,6 +99,7 @@ const ja: Partial<Translations> = {
   'settings.developerMode': '開発者プレビュー',
   'settings.developerModeHint':
     '開発者プレビューは主に開発・テスト向けで、一部の機能は日常利用に適さない場合があります。オフにすると開発者ページのすべての機能が一時停止し、リソース消費を抑えられます。プレビュー機能は今後のバージョンで変更・削除される場合があり、より楽しい機能も順次追加されます。',
+  'settings.optionalFeaturesError': '機能設定を保存できませんでした。もう一度お試しください。',
   'settings.developerModeError':
     '開発者プレビューの設定を読み込み、または保存できません。設定を開き直して再試行してください。',
   'voice.selection': '選択文字の翻訳/質問',

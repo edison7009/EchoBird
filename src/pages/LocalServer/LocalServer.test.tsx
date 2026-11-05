@@ -115,9 +115,11 @@ describe('Local model page navigation', () => {
     vi.useRealTimers();
   });
 
-  it('positive control: scans local models on entry without installing or downloading', async () => {
+  it('positive control: scans the selected runtime on entry without installing or downloading', async () => {
     await open(true, true);
-    expect(api.scanGgufFiles).toHaveBeenCalledWith('/models');
+    // Hardware detection selects vLLM; the obsolete llama.cpp scan is canceled.
+    expect(context.runtime).toBe('vllm');
+    expect(api.scanGgufFiles).not.toHaveBeenCalled();
     expect(api.scanHfModels).toHaveBeenCalledWith('/models');
     expect(api.installLocalEngine).not.toHaveBeenCalled();
     expect(api.downloadModel).not.toHaveBeenCalled();

@@ -33,6 +33,7 @@ beforeEach(() => {
   voice.setState(voice.getInitialState());
   useSidebarStore.setState({ collapsed: false });
   useNavigationStore.setState(useNavigationStore.getInitialState());
+  useNavigationStore.setState({ optionalPagesReady: true });
 });
 
 afterEach(() => act(() => renderer?.unmount()));
@@ -223,7 +224,10 @@ describe('Sidebar', () => {
   });
 
   it('places AI news immediately above My AI Career', () => {
-    const markup = renderToStaticMarkup(<Sidebar {...baseProps} smartRouterGroups={[]} />);
+    act(() => {
+      renderer = create(<Sidebar {...baseProps} smartRouterGroups={[]} />);
+    });
+    const markup = JSON.stringify(renderer.toJSON());
     expect(markup.indexOf('nav.aiNews')).toBeGreaterThan(-1);
     expect(markup.indexOf('nav.aiNews')).toBeLessThan(markup.indexOf('nav.aiCareer'));
   });
@@ -423,4 +427,25 @@ describe('Sidebar', () => {
     expect(voiceApi.startVoice).not.toHaveBeenCalled();
     expect(showToast).not.toHaveBeenCalled();
   });
+});
+
+it('hides optional pages before settings load and independently removes only disabled entries', () => {
+  useNavigationStore.setState({ optionalPagesReady: false });
+  act(() => {
+    renderer = create(<Sidebar {...baseProps} smartRouterGroups={[]} />);
+  });
+  const render = () => JSON.stringify(renderer.toJSON());
+  for (const label of ['nav.aiNews', 'nav.aiCareer', 'nav.localServer'])
+    expect(render()).not.toContain(label);
+  act(() =>
+    useNavigationStore.getState().setOptionalPages({ aiNews: true, aiCareer: true, localLlm: true })
+  );
+  for (const label of ['nav.aiNews', 'nav.aiCareer', 'nav.localServer'])
+    expect(render()).toContain(label);
+  act(() => useNavigationStore.getState().setOptionalPages({ aiNews: false, localLlm: false }));
+  expect(render()).not.toContain('nav.aiNews');
+  expect(render()).not.toContain('nav.localServer');
+  expect(render()).toContain('nav.aiCareer');
+  expect(render()).toContain('nav.modelNexus');
+  expect(baseProps.onPageChange).not.toHaveBeenCalled();
 });

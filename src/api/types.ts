@@ -173,6 +173,9 @@ export interface ApplyModelInput {
 
 export interface AppSettings {
   developerMode?: boolean;
+  aiNewsEnabled?: boolean;
+  aiCareerEnabled?: boolean;
+  localLlmEnabled?: boolean;
   sensitiveInfoProtection?: boolean;
   locale?: string;
   themeMode?: 'light' | 'dark';

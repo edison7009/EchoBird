@@ -4,6 +4,13 @@
 
 use crate::services::ai_career::{self, DailyTokenResponse, Family, HeatmapEntry, SavedSession};
 
+fn ensure_enabled() -> Result<(), String> {
+    if super::settings_commands::get_settings().ai_career_enabled == Some(false) {
+        return Err("AI career is disabled in Settings".into());
+    }
+    Ok(())
+}
+
 /// One page of a single family's session history, newest first. The frontend
 /// requests one family at a time (the selected family card) and pages in more
 /// on scroll via `offset`.
@@ -14,9 +21,12 @@ pub async fn ai_career_family_history(
     limit: usize,
 ) -> Result<Vec<SavedSession>, String> {
     let fam = Family::from_id(&family).ok_or_else(|| format!("unknown family: {family}"))?;
-    tauri::async_runtime::spawn_blocking(move || ai_career::family_history(fam, offset, limit))
-        .await
-        .map_err(|e| format!("history task join failed: {e}"))?
+    tauri::async_runtime::spawn_blocking(move || {
+        ensure_enabled()?;
+        ai_career::family_history(fam, offset, limit)
+    })
+    .await
+    .map_err(|e| format!("history task join failed: {e}"))?
 }
 
 /// Contribution-heatmap entries across all six families (drives the heatmap
@@ -24,9 +34,12 @@ pub async fn ai_career_family_history(
 #[tauri::command]
 pub async fn ai_career_heatmap(family: Option<String>) -> Result<Vec<HeatmapEntry>, String> {
     let family = parse_family(family)?;
-    tauri::async_runtime::spawn_blocking(move || ai_career::message_heatmap(family))
-        .await
-        .map_err(|e| format!("heatmap task join failed: {e}"))?
+    tauri::async_runtime::spawn_blocking(move || {
+        ensure_enabled()?;
+        ai_career::message_heatmap(family)
+    })
+    .await
+    .map_err(|e| format!("heatmap task join failed: {e}"))?
 }
 
 /// Total on-disk byte size across all session files — the frontend divides
@@ -35,9 +48,12 @@ pub async fn ai_career_heatmap(family: Option<String>) -> Result<Vec<HeatmapEntr
 #[tauri::command]
 pub async fn ai_career_token_bytes(family: Option<String>) -> Result<u64, String> {
     let family = parse_family(family)?;
-    tauri::async_runtime::spawn_blocking(move || ai_career::estimate_token_bytes(family))
-        .await
-        .map_err(|e| format!("token estimate task join failed: {e}"))?
+    tauri::async_runtime::spawn_blocking(move || {
+        ensure_enabled()?;
+        ai_career::estimate_token_bytes(family)
+    })
+    .await
+    .map_err(|e| format!("token estimate task join failed: {e}"))?
 }
 
 fn parse_family(family: Option<String>) -> Result<Option<Family>, String> {
@@ -49,9 +65,12 @@ fn parse_family(family: Option<String>) -> Result<Option<Family>, String> {
 #[tauri::command]
 pub async fn ai_career_daily_tokens(family: Option<String>) -> Result<DailyTokenResponse, String> {
     let family = parse_family(family)?;
-    tauri::async_runtime::spawn_blocking(move || ai_career::daily_tokens(family))
-        .await
-        .map_err(|e| format!("daily token task join failed: {e}"))?
+    tauri::async_runtime::spawn_blocking(move || {
+        ensure_enabled()?;
+        ai_career::daily_tokens(family)
+    })
+    .await
+    .map_err(|e| format!("daily token task join failed: {e}"))?
 }
 
 #[tauri::command]

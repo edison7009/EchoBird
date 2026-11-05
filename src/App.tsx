@@ -27,6 +27,7 @@ import { useAutoClaimRewards } from './hooks/useAutoClaimRewards';
 // Zustand stores
 import { useToolsStore } from './stores/toolsStore';
 import { useNavigationStore } from './stores/navigationStore';
+import { optionalPagesFromSettings } from './stores/optionalPages';
 import { DeveloperTitleActions } from './pages/Developer';
 const PetsMain = lazy(() =>
   import('./pages/Pets/Pets').then((module) => ({ default: module.PetsMain }))
@@ -230,14 +231,21 @@ function AppContent() {
   const developerMode = useNavigationStore((state) => state.developerMode);
   const developerTab = useNavigationStore((state) => state.developerTab);
   const setDeveloperMode = useNavigationStore((state) => state.setDeveloperMode);
+  const optionalPages = useNavigationStore((state) => state.optionalPages);
+  const optionalPagesReady = useNavigationStore((state) => state.optionalPagesReady);
+  const enabledPages = optionalPagesReady
+    ? optionalPages
+    : { aiNews: false, aiCareer: false, localLlm: false };
 
   useEffect(() => {
     let active = true;
     void getSettings()
       .then((settings) => {
-        if (active && !useNavigationStore.getState().developerModeReady) {
+        if (!active) return;
+        if (!useNavigationStore.getState().developerModeReady)
           setDeveloperMode(settings.developerMode !== false);
-        }
+        if (!useNavigationStore.getState().optionalPagesReady)
+          useNavigationStore.getState().setOptionalPages(optionalPagesFromSettings(settings));
       })
       .catch(() => {});
     return () => {
@@ -385,7 +393,7 @@ function AppContent() {
             <MotherAgentProvider>
               <ModelNexusProvider>
                 <AppManagerProvider>
-                  <LocalServerProvider>
+                  <LocalServerProvider enabled={enabledPages.localLlm}>
                     <VoiceInputProvider>
                       <UsageIslandHost />
                       <div
@@ -463,16 +471,20 @@ function AppContent() {
                                           <FreeModelsTitleActions />
                                         </OnFirstVisit>
                                       </span>
-                                      <span className={page(is('aiCareer'))}>
-                                        <OnFirstVisit active={is('aiCareer')}>
-                                          <AiCareerTitleActions />
-                                        </OnFirstVisit>
-                                      </span>
-                                      <span className={page(is('aiNews'))}>
-                                        <OnFirstVisit active={is('aiNews')}>
-                                          <AiPulseTitleActions />
-                                        </OnFirstVisit>
-                                      </span>
+                                      {enabledPages.aiCareer && (
+                                        <span className={page(is('aiCareer'))}>
+                                          <OnFirstVisit active={is('aiCareer')}>
+                                            <AiCareerTitleActions />
+                                          </OnFirstVisit>
+                                        </span>
+                                      )}
+                                      {enabledPages.aiNews && (
+                                        <span className={page(is('aiNews'))}>
+                                          <OnFirstVisit active={is('aiNews')}>
+                                            <AiPulseTitleActions />
+                                          </OnFirstVisit>
+                                        </span>
+                                      )}
                                       <span className={page(is('apps'))}>
                                         <OnFirstVisit active={is('apps')}>
                                           <AppManagerTitleActions />
@@ -578,26 +590,32 @@ function AppContent() {
                                         <UsageIslandMain />
                                       </OnFirstVisit>
                                     </div>
-                                    <div className={pageBlock(is('localLlm'))}>
-                                      <OnFirstVisit active={is('localLlm')}>
-                                        <LocalServerMain />
-                                      </OnFirstVisit>
-                                    </div>
-                                    <div className={pageBlock(is('aiCareer'))}>
-                                      <OnFirstVisit active={is('aiCareer')}>
-                                        <AiCareerMain />
-                                      </OnFirstVisit>
-                                    </div>
+                                    {enabledPages.localLlm && (
+                                      <div className={pageBlock(is('localLlm'))}>
+                                        <OnFirstVisit active={is('localLlm')}>
+                                          <LocalServerMain />
+                                        </OnFirstVisit>
+                                      </div>
+                                    )}
+                                    {enabledPages.aiCareer && (
+                                      <div className={pageBlock(is('aiCareer'))}>
+                                        <OnFirstVisit active={is('aiCareer')}>
+                                          <AiCareerMain />
+                                        </OnFirstVisit>
+                                      </div>
+                                    )}
                                     <div className={pageBlock(is('voice'))}>
                                       <OnFirstVisit active={is('voice')}>
                                         <VoiceInputMain />
                                       </OnFirstVisit>
                                     </div>
-                                    <div className={pageBlock(is('aiNews'))}>
-                                      <OnFirstVisit active={is('aiNews')}>
-                                        <AiNewsMain />
-                                      </OnFirstVisit>
-                                    </div>
+                                    {enabledPages.aiNews && (
+                                      <div className={pageBlock(is('aiNews'))}>
+                                        <OnFirstVisit active={is('aiNews')}>
+                                          <AiNewsMain />
+                                        </OnFirstVisit>
+                                      </div>
+                                    )}
                                     {/* MotherAgent: always mounted, hidden via CSS to preserve chat state */}
                                     <div
                                       className={`flex-1 flex flex-col overflow-hidden ${is('mother') ? '' : 'hidden'}`}
@@ -697,21 +715,27 @@ function AppContent() {
                                       <AppManagerPanel />
                                     </OnFirstVisit>
                                   </div>
-                                  <div className={page(is('localLlm'))}>
-                                    <OnFirstVisit active={is('localLlm')}>
-                                      <LocalServerPanel />
-                                    </OnFirstVisit>
-                                  </div>
-                                  <div className={page(is('aiCareer'))}>
-                                    <OnFirstVisit active={is('aiCareer')}>
-                                      <AiCareerFamilyPanel />
-                                    </OnFirstVisit>
-                                  </div>
-                                  <div className={page(is('aiNews'))}>
-                                    <OnFirstVisit active={is('aiNews')}>
-                                      <AiPulsePanel />
-                                    </OnFirstVisit>
-                                  </div>
+                                  {enabledPages.localLlm && (
+                                    <div className={page(is('localLlm'))}>
+                                      <OnFirstVisit active={is('localLlm')}>
+                                        <LocalServerPanel />
+                                      </OnFirstVisit>
+                                    </div>
+                                  )}
+                                  {enabledPages.aiCareer && (
+                                    <div className={page(is('aiCareer'))}>
+                                      <OnFirstVisit active={is('aiCareer')}>
+                                        <AiCareerFamilyPanel />
+                                      </OnFirstVisit>
+                                    </div>
+                                  )}
+                                  {enabledPages.aiNews && (
+                                    <div className={page(is('aiNews'))}>
+                                      <OnFirstVisit active={is('aiNews')}>
+                                        <AiPulsePanel />
+                                      </OnFirstVisit>
+                                    </div>
+                                  )}
                                   {/* MotherAgent panel: always mounted, hidden via CSS */}
                                   <div className={!is('mother') ? 'hidden' : 'contents'}>
                                     <OnFirstVisit active={is('mother')}>
@@ -728,11 +752,13 @@ function AppContent() {
                                 <AppManagerBottom />
                               </OnFirstVisit>
                             </div>
-                            <div className={page(is('localLlm'))}>
-                              <OnFirstVisit active={is('localLlm')}>
-                                <LocalServerBottom />
-                              </OnFirstVisit>
-                            </div>
+                            {enabledPages.localLlm && (
+                              <div className={page(is('localLlm'))}>
+                                <OnFirstVisit active={is('localLlm')}>
+                                  <LocalServerBottom />
+                                </OnFirstVisit>
+                              </div>
+                            )}
 
                             {/* Download bar */}
                             <div className="flex-shrink-0 pt-2">
@@ -780,8 +806,9 @@ function AppContent() {
 
 function App() {
   const activePage = useNavigationStore((s) => s.activePage);
+  const newsEnabled = useNavigationStore((s) => s.optionalPagesReady && s.optionalPages.aiNews);
   return (
-    <AiPulseProvider active={activePage === 'aiNews'}>
+    <AiPulseProvider enabled={newsEnabled} active={activePage === 'aiNews'}>
       <PluginProductBridge />
       <AppContent />
     </AiPulseProvider>

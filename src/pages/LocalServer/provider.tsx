@@ -11,7 +11,10 @@ import type { GgufFileEntry } from './context';
 
 // ─── Provider ───
 
-export const LocalServerProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const LocalServerProvider: React.FC<{ children: React.ReactNode; enabled?: boolean }> = ({
+  children,
+  enabled = true,
+}) => {
   const [selectedModelPath, setSelectedModelPath] = useState<string | null>(null);
   const [ggufFiles, setGgufFiles] = useState<GgufFileEntry[]>([]);
   const [isScanning, setIsScanning] = useState(false);
@@ -24,7 +27,7 @@ export const LocalServerProvider: React.FC<{ children: React.ReactNode }> = ({ c
   const docVisible = useDocumentVisible();
   const localPage = useNavigationStore((state) => state.activePage === 'localLlm');
   useEffect(() => {
-    if (!docVisible) return;
+    if (!enabled || !docVisible) return;
     let cancelled = false;
     let timer: ReturnType<typeof setTimeout>;
     const poll = async () => {
@@ -46,21 +49,31 @@ export const LocalServerProvider: React.FC<{ children: React.ReactNode }> = ({ c
       cancelled = true;
       clearTimeout(timer);
     };
-  }, [docVisible, localPage, setServerRunning]);
+  }, [enabled, docVisible, localPage, setServerRunning]);
   const [serverPort, setServerPort] = useState(11434);
   const [serverModelName, setServerModelName] = useState('');
   const [serverApiKey, setServerApiKey] = useState('');
 
   const scanRuntime = useRef(runtime);
   const scanRequest = useRef(0);
+  const enabledRef = useRef(enabled);
+  useEffect(() => {
+    enabledRef.current = enabled;
+    return () => {
+      enabledRef.current = false;
+    };
+  }, [enabled]);
   const rescanModels = useCallback(async (rt = scanRuntime.current) => {
+    if (!enabledRef.current) return;
     const request = ++scanRequest.current;
     setIsScanning(true);
     try {
       const dirs = await api.getModelsDirs();
+      if (!enabledRef.current || request !== scanRequest.current) return;
       const allFiles: GgufFileEntry[] = [];
       const isHfRuntime = rt === 'vllm' || rt === 'sglang';
       for (const dir of dirs) {
+        if (!enabledRef.current || request !== scanRequest.current) return;
         if (isHfRuntime) {
           // Scan HuggingFace model directories
           const models = await api.scanHfModels(dir);
@@ -94,11 +107,12 @@ export const LocalServerProvider: React.FC<{ children: React.ReactNode }> = ({ c
   }, []);
 
   const [activated, setActivated] = useState(localPage);
-  if (localPage && !activated) setActivated(true);
+  if (!enabled && activated) setActivated(false);
+  if (enabled && localPage && !activated) setActivated(true);
   // Scan the current format and ignore earlier requests after switching engines.
   const previousRuntime = useRef(runtime);
   useEffect(() => {
-    if (!activated) return;
+    if (!enabled || !activated) return;
     scanRuntime.current = runtime;
     if (previousRuntime.current !== runtime) {
       setSelectedModelPath(null);
@@ -111,7 +125,7 @@ export const LocalServerProvider: React.FC<{ children: React.ReactNode }> = ({ c
     return () => {
       requests.current++;
     };
-  }, [runtime, rescanModels, activated]);
+  }, [enabled, runtime, rescanModels, activated]);
 
   return (
     <LocalServerContext.Provider

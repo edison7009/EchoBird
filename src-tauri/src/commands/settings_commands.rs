@@ -10,6 +10,24 @@ pub struct AppSettings {
         skip_serializing_if = "Option::is_none"
     )]
     pub developer_mode: Option<bool>,
+    #[serde(
+        default,
+        rename = "aiNewsEnabled",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub ai_news_enabled: Option<bool>,
+    #[serde(
+        default,
+        rename = "aiCareerEnabled",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub ai_career_enabled: Option<bool>,
+    #[serde(
+        default,
+        rename = "localLlmEnabled",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub local_llm_enabled: Option<bool>,
     #[serde(default)]
     pub locale: Option<String>,
     // The TS side sends/expects camelCase `themeMode` (light | dark | undefined).
@@ -72,7 +90,7 @@ fn read_settings(path: &std::path::Path) -> AppSettings {
 
 /// Write app settings to ~/.echobird/settings.json
 #[tauri::command]
-pub fn save_settings(mut settings: AppSettings, app: tauri::AppHandle) -> Result<(), String> {
+pub async fn save_settings(mut settings: AppSettings, app: tauri::AppHandle) -> Result<(), String> {
     preserve_protection_setting(&settings_path(), &mut settings)?;
     let dir = echobird_dir();
     if !dir.exists() {
@@ -80,6 +98,9 @@ pub fn save_settings(mut settings: AppSettings, app: tauri::AppHandle) -> Result
     }
     let json = serde_json::to_string_pretty(&settings).map_err(|e| e.to_string())?;
     std::fs::write(settings_path(), json).map_err(|e| e.to_string())?;
+    if settings.local_llm_enabled == Some(false) {
+        crate::services::local_llm::server::stop_server_if_running().await?;
+    }
     crate::services::developer_preview::configure(&app, settings.developer_mode_enabled());
 
     // Update tray menu locale if locale changed
@@ -120,6 +141,15 @@ fn preserve_protection_setting(
     if settings.developer_mode.is_none() {
         settings.developer_mode = saved.developer_mode;
     }
+    if settings.ai_news_enabled.is_none() {
+        settings.ai_news_enabled = saved.ai_news_enabled;
+    }
+    if settings.ai_career_enabled.is_none() {
+        settings.ai_career_enabled = saved.ai_career_enabled;
+    }
+    if settings.local_llm_enabled.is_none() {
+        settings.local_llm_enabled = saved.local_llm_enabled;
+    }
     Ok(())
 }
 
@@ -157,6 +187,39 @@ pub fn get_avatar() -> Option<String> {
 #[cfg(test)]
 mod tests {
     use super::read_settings;
+
+    #[test]
+    fn optional_page_preferences_round_trip_and_other_updates_preserve_disabled_choices() {
+        let root = std::env::temp_dir().join(format!("optional-pages-{}", uuid::Uuid::new_v4()));
+        std::fs::create_dir_all(&root).unwrap();
+        let path = root.join("settings.json");
+        let defaults = read_settings(&path);
+        assert_ne!(defaults.ai_news_enabled, Some(false));
+        assert_ne!(defaults.ai_career_enabled, Some(false));
+        assert_ne!(defaults.local_llm_enabled, Some(false));
+        assert!(!path.exists());
+        let original = br#"{"aiNewsEnabled":false,"aiCareerEnabled":false,"localLlmEnabled":false,"locale":"ja"}"#;
+        std::fs::write(&path, original).unwrap();
+        let saved = read_settings(&path);
+        assert_eq!(saved.ai_news_enabled, Some(false));
+        assert_eq!(saved.ai_career_enabled, Some(false));
+        assert_eq!(saved.local_llm_enabled, Some(false));
+        let mut update = super::AppSettings {
+            locale: Some("en".into()),
+            ..Default::default()
+        };
+        super::preserve_protection_setting(&path, &mut update).unwrap();
+        let value = serde_json::to_value(&update).unwrap();
+        for key in ["aiNewsEnabled", "aiCareerEnabled", "localLlmEnabled"] {
+            assert_eq!(value[key], false);
+        }
+        update.ai_news_enabled = Some(true);
+        super::preserve_protection_setting(&path, &mut update).unwrap();
+        assert_eq!(update.ai_news_enabled, Some(true));
+        assert_eq!(update.ai_career_enabled, Some(false));
+        assert_eq!(std::fs::read(&path).unwrap(), original);
+        std::fs::remove_dir_all(root).unwrap();
+    }
 
     #[test]
     fn developer_mode_defaults_on_and_preserves_explicit_choices() {

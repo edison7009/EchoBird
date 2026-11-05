@@ -171,3 +171,28 @@ it('keeps app signals and passive preference operations outside page history', (
   expect(fetch).not.toHaveBeenCalled();
   expect(setItem).not.toHaveBeenCalled();
 });
+
+it.each(['aiNews', 'aiCareer', 'localLlm'] as const)(
+  'disabling %s redirects its current page, removes history and blocks stale navigation',
+  (page) => {
+    const nav = navigation.getState();
+    nav.setOptionalPages({ aiNews: true, aiCareer: true, localLlm: true });
+    nav.setActivePage('models');
+    nav.setActivePage(page);
+    nav.setActivePage('voice');
+    nav.goBack();
+    nav.setOptionalPages({ [page]: false });
+    expect(navigation.getState().activePage).toBe('apps');
+    expect(navigation.getState().backHistory).not.toContain(page);
+    expect(navigation.getState().forwardHistory).not.toContain(page);
+    nav.setActivePage(page);
+    expect(navigation.getState().activePage).toBe('apps');
+    nav.goBack();
+    nav.goForward();
+    expect(navigation.getState().activePage).not.toBe(page);
+    nav.setOptionalPages({ [page]: true });
+    expect(navigation.getState().activePage).not.toBe(page);
+    nav.setActivePage(page);
+    expect(navigation.getState().activePage).toBe(page);
+  }
+);

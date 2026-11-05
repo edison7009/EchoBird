@@ -351,7 +351,7 @@ function easterEggSwitch() {
     .parent!.parent!.findByProps({ role: 'switch' });
 }
 
-it('places opt-in reward claiming below startup and preserves the setting through reopening', async () => {
+it('groups general preferences before optional features and preserves rewards through reopening', async () => {
   await act(async () => {
     view = create(<SettingsDialog {...props} />);
   });
@@ -368,10 +368,13 @@ it('places opt-in reward claiming below startup and preserves the setting throug
       .filter((value) => typeof value === 'string' && value !== '?')
   ).toEqual([
     'settings.launchAtStartup',
-    'settings.easterEgg',
     'settings.autoClaimRewards',
-    'settings.developerMode',
     'settings.sensitiveInfoProtection',
+    'nav.aiNews',
+    'nav.aiCareer',
+    'settings.developerMode',
+    'nav.localServer',
+    'settings.easterEgg',
   ]);
   expect(localStorage.setItem).not.toHaveBeenCalled();
   await act(async () => control().props.onClick());
@@ -390,15 +393,19 @@ function EasterEggObserver() {
   return <span data-easter-egg-state>{String(enabled)}</span>;
 }
 
-it('keeps global protection independent in General beside developer preview', async () => {
+it('keeps global protection independent in the three-column General preferences', async () => {
   await act(async () => {
     view = create(<SettingsDialog {...props} />);
   });
-  expect(view.root.findAllByProps({ role: 'switch' })).toHaveLength(5);
+  expect(view.root.findAllByProps({ role: 'switch' })).toHaveLength(8);
   expect(
     view.root.findAllByProps({ 'aria-label': 'settings.sensitiveInfoProtection' })
   ).toHaveLength(1);
-  expect(view.root.findAllByProps({ className: 'grid grid-cols-2 gap-8' })).toHaveLength(1);
+  expect(
+    view.root.findAllByProps({
+      className: 'grid grid-cols-1 min-[700px]:grid-cols-2 min-[880px]:grid-cols-3 gap-x-4 gap-y-6',
+    })
+  ).toHaveLength(1);
   expect(mocks.save).not.toHaveBeenCalled();
 });
 
@@ -791,3 +798,80 @@ it.each([false, true])(
     expect(mocks.save).toHaveBeenCalledExactlyOnceWith({ developerMode: false });
   }
 );
+
+const optionalSwitch = (page: 'aiNews' | 'aiCareer' | 'localServer') =>
+  view.root
+    .findAllByProps({ role: 'switch' })
+    .find((node) => node.props['aria-label'] === `nav.${page}`)!;
+
+it.each([
+  ['aiNews', 'aiNews', 'aiNewsEnabled'],
+  ['aiCareer', 'aiCareer', 'aiCareerEnabled'],
+  ['localLlm', 'localServer', 'localLlmEnabled'],
+] as const)(
+  'saves only an explicit %s change, retaining other switches and settings',
+  async (page, label, key) => {
+    const saved = {
+      locale: 'ja',
+      aiNewsEnabled: true,
+      aiCareerEnabled: true,
+      localLlmEnabled: true,
+    };
+    mocks.get.mockResolvedValue(saved);
+    vi.stubGlobal('window', {
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+    });
+    await act(async () => {
+      view = create(<SettingsDialog {...props} />);
+    });
+    expect(mocks.save).not.toHaveBeenCalled();
+    expect(optionalSwitch(label).props['aria-checked']).toBe(true);
+    useNavigationStore.getState().setActivePage(page);
+    await act(async () => optionalSwitch(label).props.onClick());
+    expect(mocks.save).toHaveBeenCalledExactlyOnceWith({ ...saved, [key]: false });
+    expect(useNavigationStore.getState().optionalPages[page]).toBe(false);
+    expect(useNavigationStore.getState().activePage).toBe('apps');
+  }
+);
+
+it('keeps optional pages enabled on a failed save and reports the explicit failure', async () => {
+  await act(async () => {
+    view = create(<SettingsDialog {...props} />);
+  });
+  mocks.save.mockRejectedValueOnce(new Error('disk full'));
+  useNavigationStore.getState().setActivePage('aiNews');
+  await act(async () => optionalSwitch('aiNews').props.onClick());
+  expect(useNavigationStore.getState().optionalPages.aiNews).toBe(true);
+  expect(useNavigationStore.getState().activePage).toBe('aiNews');
+  expect(JSON.stringify(view.toJSON())).toContain('settings.optionalFeaturesError');
+});
+
+it('serializes optional and master-switch saves and ignores stale reads after reopening', async () => {
+  await act(async () => {
+    view = create(<SettingsDialog {...props} />);
+  });
+  let finishSave!: () => void;
+  mocks.save.mockReturnValueOnce(
+    new Promise<void>((resolve) => {
+      finishSave = resolve;
+    })
+  );
+  await act(async () => optionalSwitch('aiCareer').props.onClick());
+  expect(optionalSwitch('aiNews').props.disabled).toBe(true);
+  expect(developerSwitch().props.disabled).toBe(true);
+  await act(async () => optionalSwitch('aiNews').props.onClick());
+  expect(mocks.save).toHaveBeenCalledOnce();
+  await act(async () => view.update(<SettingsDialog {...props} isOpen={false} />));
+  let finishRead!: (value: object) => void;
+  mocks.get.mockReturnValueOnce(
+    new Promise((resolve) => {
+      finishRead = resolve;
+    })
+  );
+  await act(async () => view.update(<SettingsDialog {...props} />));
+  await act(async () => finishSave());
+  await act(async () => finishRead({ aiCareerEnabled: true }));
+  expect(optionalSwitch('aiCareer').props['aria-checked']).toBe(false);
+});

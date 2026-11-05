@@ -5,6 +5,7 @@
 
 import { create } from 'zustand';
 import type { PageType } from '../components';
+import { optionalPagesFromSettings, type OptionalPages } from './optionalPages';
 
 export type DeveloperTab = 'pets' | 'plugins' | 'statistics' | 'usageIsland';
 
@@ -13,6 +14,9 @@ interface NavigationState {
   developerMode: boolean;
   developerModeReady: boolean;
   developerGeneration: number;
+  optionalPages: OptionalPages;
+  optionalPagesReady: boolean;
+  optionalPagesRevision: number;
   developerTab: DeveloperTab;
   accountPluginsRequest: number | null;
   accountPluginsRequestId: number;
@@ -28,6 +32,7 @@ interface NavigationState {
 
   setActivePage: (page: PageType) => void;
   setDeveloperMode: (enabled: boolean) => void;
+  setOptionalPages: (pages: Partial<OptionalPages>) => void;
   setDeveloperTab: (tab: DeveloperTab) => void;
   openAccountPlugins: () => void;
   consumeAccountPluginsRequest: (requestId: number) => void;
@@ -40,8 +45,15 @@ interface NavigationState {
   bumpSshServersVersion: () => void;
 }
 
+function pageEnabled(state: NavigationState, page: PageType): boolean {
+  if (page === 'developer') return state.developerMode;
+  if (page === 'aiNews' || page === 'aiCareer' || page === 'localLlm')
+    return state.optionalPages[page];
+  return true;
+}
+
 function visitPage(state: NavigationState, page: PageType): Partial<NavigationState> {
-  if (page === 'developer' && !state.developerMode) return state;
+  if (!pageEnabled(state, page)) return state;
   if (state.activePage === page) return state;
   return {
     activePage: page,
@@ -57,6 +69,9 @@ export const useNavigationStore = create<NavigationState>((set) => ({
   developerMode: false,
   developerModeReady: false,
   developerGeneration: 0,
+  optionalPages: optionalPagesFromSettings({}),
+  optionalPagesReady: false,
+  optionalPagesRevision: 0,
   developerTab: 'pets',
   accountPluginsRequest: null,
   accountPluginsRequestId: 0,
@@ -69,6 +84,26 @@ export const useNavigationStore = create<NavigationState>((set) => ({
   sshServersVersion: 0,
 
   setActivePage: (page) => set((state) => visitPage(state, page)),
+  setOptionalPages: (pages) =>
+    set((state) => {
+      const next = { ...state, optionalPages: { ...state.optionalPages, ...pages } };
+      if (
+        state.optionalPagesReady &&
+        Object.keys(pages).every(
+          (page) =>
+            state.optionalPages[page as keyof OptionalPages] === pages[page as keyof OptionalPages]
+        )
+      )
+        return state;
+      return {
+        optionalPages: next.optionalPages,
+        optionalPagesReady: true,
+        optionalPagesRevision: state.optionalPagesRevision + 1,
+        activePage: pageEnabled(next, state.activePage) ? state.activePage : 'apps',
+        backHistory: state.backHistory.filter((page) => pageEnabled(next, page)),
+        forwardHistory: state.forwardHistory.filter((page) => pageEnabled(next, page)),
+      };
+    }),
   setDeveloperMode: (enabled) =>
     set((state) => ({
       developerMode: enabled,

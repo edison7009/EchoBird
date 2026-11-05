@@ -14,6 +14,9 @@ import {
   Gift,
   CodeXml,
   ShieldCheck,
+  Newspaper,
+  Trophy,
+  Server,
 } from 'lucide-react';
 import { getVersion } from '@tauri-apps/api/app';
 import { enable, disable, isEnabled } from '@tauri-apps/plugin-autostart';
@@ -32,6 +35,12 @@ import { useRewardClaimStore } from '../stores/rewardClaimStore';
 import { RoutingToggle } from './RoutingToggle';
 import { ToggleSwitch } from './ToggleSwitch';
 import { useNavigationStore } from '../stores/navigationStore';
+import {
+  OPTIONAL_PAGE_SETTINGS,
+  optionalPagesFromSettings,
+  type OptionalPage,
+} from '../stores/optionalPages';
+import { useLocalServerStatusStore } from '../stores/localServerStatusStore';
 import { useProtectionStore } from '../stores/protectionStore';
 import { usePluginProductStore } from '../stores/pluginProductStore';
 
@@ -96,6 +105,11 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
   const [developerPending, setDeveloperPending] = useState(false);
   const [developerError, setDeveloperError] = useState(false);
   const developerChange = useRef({ revision: 0, pending: false });
+  const optionalPages = useNavigationStore((state) => state.optionalPages);
+  const setOptionalPages = useNavigationStore((state) => state.setOptionalPages);
+  const optionalChange = useRef({ pending: false });
+  const [optionalPending, setOptionalPending] = useState<OptionalPage | null>(null);
+  const [optionalError, setOptionalError] = useState(false);
   const easterEgg = useEasterEggStore((state) => state.enabled);
   const setEasterEgg = useEasterEggStore((state) => state.setEnabled);
   const autoClaimRewards = useRewardClaimStore((state) => state.enabled);
@@ -150,6 +164,7 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
   useEffect(() => {
     let active = true;
     const developerReadRevision = developerChange.current.revision;
+    const optionalReadRevision = useNavigationStore.getState().optionalPagesRevision;
     const protectionReadRevision = protectionChange.current.revision;
     const sharedProtectionRevision = useProtectionStore.getState().revision;
     if (isOpen) {
@@ -183,6 +198,12 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
           ) {
             setProtectionEnabled(settings.sensitiveInfoProtection === true);
           }
+          if (
+            !optionalChange.current.pending &&
+            optionalReadRevision === useNavigationStore.getState().optionalPagesRevision
+          ) {
+            setOptionalPages(optionalPagesFromSettings(settings));
+          }
           setSettingsReady(true);
           // null ("always ask") is a real selectable value, not a missing
           // field — the backend stores it as Option<bool>=None. When the user
@@ -206,11 +227,42 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
     return () => {
       active = false;
     };
-  }, [isOpen, setDeveloperMode]);
+  }, [isOpen, setDeveloperMode, setOptionalPages]);
+
+  const handleOptionalChange = async (page: OptionalPage, value: boolean) => {
+    if (
+      !settingsReady ||
+      useProtectionStore.getState().pending ||
+      developerChange.current.pending ||
+      protectionChange.current.pending ||
+      optionalChange.current.pending
+    )
+      return;
+    optionalChange.current.pending = true;
+    setOptionalPending(page);
+    setProtectionPending(true);
+    setOptionalError(false);
+    try {
+      const settings = await api.getSettings();
+      await api.saveSettings({ ...settings, [OPTIONAL_PAGE_SETTINGS[page]]: value });
+      setOptionalPages({ [page]: value });
+      if (page === 'localLlm' && !value) {
+        useLocalServerStatusStore.getState().setRunning(false);
+        window.dispatchEvent(new Event('models-changed'));
+      }
+    } catch {
+      setOptionalError(true);
+    } finally {
+      optionalChange.current.pending = false;
+      setOptionalPending(null);
+      setProtectionPending(false);
+    }
+  };
 
   const handleDeveloperChange = async (value: boolean) => {
     if (
       !settingsReady ||
+      optionalChange.current.pending ||
       useProtectionStore.getState().pending ||
       developerChange.current.pending ||
       protectionChange.current.pending
@@ -238,6 +290,7 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
   const handleProtectionChange = async (value: boolean) => {
     if (
       !settingsReady ||
+      optionalChange.current.pending ||
       useProtectionStore.getState().pending ||
       protectionChange.current.pending ||
       developerChange.current.pending
@@ -377,7 +430,7 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
       {/* Dialog */}
       <div
         ref={dialogRef}
-        className={`relative flex h-[72vh] w-[clamp(640px,62vw,1000px)] max-w-[92vw] overflow-hidden rounded-xl border border-cyber-border/30 bg-cyber-bg shadow-2xl transition-all duration-200 ${
+        className={`relative flex h-[72vh] w-[clamp(800px,62vw,1000px)] max-w-[92vw] overflow-hidden rounded-xl border border-cyber-border/30 bg-cyber-bg shadow-2xl transition-all duration-200 ${
           isAnimatingOut ? 'scale-95 opacity-0' : 'scale-100 opacity-100'
         }`}
         onClick={(e) => e.stopPropagation()}
@@ -620,8 +673,8 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
 
                 <div className="h-px bg-cyber-border/50" />
 
-                <div className="grid grid-cols-2 gap-8">
-                  <div className="flex items-center justify-between px-3">
+                <div className="grid grid-cols-1 min-[700px]:grid-cols-2 min-[880px]:grid-cols-3 gap-x-4 gap-y-6">
+                  <div className="flex items-center justify-between px-2">
                     <div className="flex items-center gap-2">
                       <Power size={14} className="text-cyber-text-secondary" />
                       <span className="text-[14px] font-medium text-cyber-text-secondary">
@@ -633,16 +686,7 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
                       onChange={handleLaunchAtStartupChange}
                     />
                   </div>
-                  <div className="flex items-center justify-between px-3">
-                    <div className="flex items-center gap-2">
-                      <Sparkles size={14} className="text-cyber-text-secondary" />
-                      <span className="text-[14px] font-medium text-cyber-text-secondary">
-                        {t('settings.easterEgg')}
-                      </span>
-                    </div>
-                    <ToggleSwitch checked={easterEgg} onChange={setEasterEgg} />
-                  </div>
-                  <div className="flex items-center justify-between px-3">
+                  <div className="flex items-center justify-between px-2">
                     <div className="flex items-center gap-2">
                       <Gift size={14} className="text-cyber-text-secondary" />
                       <span className="text-[14px] font-medium text-cyber-text-secondary">
@@ -651,32 +695,7 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
                     </div>
                     <ToggleSwitch checked={autoClaimRewards} onChange={setAutoClaimRewards} />
                   </div>
-                  <div className="px-3">
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-2">
-                        <CodeXml size={14} className="text-cyber-text-secondary" />
-                        <span className="text-[14px] font-medium text-cyber-text-secondary">
-                          {t('settings.developerMode')}
-                        </span>
-                      </div>
-                      <RoutingToggle
-                        label={t('settings.developerMode')}
-                        hideLabel
-                        className="flex-row-reverse gap-1.5"
-                        hint={t('settings.developerModeHint')}
-                        checked={developerMode}
-                        disabled={!settingsReady || protectionPending}
-                        pending={developerPending}
-                        onChange={(value) => void handleDeveloperChange(value)}
-                      />
-                    </div>
-                    {developerError && (
-                      <p role="alert" className="mt-1 text-xs text-red-400">
-                        {t('settings.developerModeError')}
-                      </p>
-                    )}
-                  </div>
-                  <div className="px-3">
+                  <div className="px-2">
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex items-center gap-2">
                         <ShieldCheck size={14} className="text-cyber-text-secondary" />
@@ -701,7 +720,94 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
                       </p>
                     )}
                   </div>
+                  <div className="flex items-center justify-between gap-2 px-2">
+                    <div className="flex items-center gap-2">
+                      <Newspaper size={14} className="shrink-0 text-cyber-text-secondary" />
+                      <span className="text-[14px] font-medium text-cyber-text-secondary">
+                        {t('nav.aiNews')}
+                      </span>
+                    </div>
+                    <RoutingToggle
+                      label={t('nav.aiNews')}
+                      hideLabel
+                      checked={optionalPages.aiNews}
+                      disabled={!settingsReady || developerPending || protectionPending}
+                      pending={optionalPending === 'aiNews'}
+                      onChange={(value) => void handleOptionalChange('aiNews', value)}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between gap-2 px-2">
+                    <div className="flex items-center gap-2">
+                      <Trophy size={14} className="shrink-0 text-cyber-text-secondary" />
+                      <span className="text-[14px] font-medium text-cyber-text-secondary">
+                        {t('nav.aiCareer')}
+                      </span>
+                    </div>
+                    <RoutingToggle
+                      label={t('nav.aiCareer')}
+                      hideLabel
+                      checked={optionalPages.aiCareer}
+                      disabled={!settingsReady || developerPending || protectionPending}
+                      pending={optionalPending === 'aiCareer'}
+                      onChange={(value) => void handleOptionalChange('aiCareer', value)}
+                    />
+                  </div>
+                  <div className="px-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <CodeXml size={14} className="text-cyber-text-secondary" />
+                        <span className="text-[14px] font-medium text-cyber-text-secondary">
+                          {t('settings.developerMode')}
+                        </span>
+                      </div>
+                      <RoutingToggle
+                        label={t('settings.developerMode')}
+                        hideLabel
+                        className="flex-row-reverse gap-1.5"
+                        hint={t('settings.developerModeHint')}
+                        checked={developerMode}
+                        disabled={!settingsReady || protectionPending}
+                        pending={developerPending}
+                        onChange={(value) => void handleDeveloperChange(value)}
+                      />
+                    </div>
+                    {developerError && (
+                      <p role="alert" className="mt-1 text-xs text-red-400">
+                        {t('settings.developerModeError')}
+                      </p>
+                    )}
+                  </div>
+                  <div className="flex items-center justify-between gap-2 px-2">
+                    <div className="flex items-center gap-2">
+                      <Server size={14} className="shrink-0 text-cyber-text-secondary" />
+                      <span className="text-[14px] font-medium text-cyber-text-secondary">
+                        {t('nav.localServer')}
+                      </span>
+                    </div>
+                    <RoutingToggle
+                      label={t('nav.localServer')}
+                      hideLabel
+                      checked={optionalPages.localLlm}
+                      disabled={!settingsReady || developerPending || protectionPending}
+                      pending={optionalPending === 'localLlm'}
+                      onChange={(value) => void handleOptionalChange('localLlm', value)}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between px-2">
+                    <div className="flex items-center gap-2">
+                      <Sparkles size={14} className="text-cyber-text-secondary" />
+                      <span className="text-[14px] font-medium text-cyber-text-secondary">
+                        {t('settings.easterEgg')}
+                      </span>
+                    </div>
+                    <ToggleSwitch checked={easterEgg} onChange={setEasterEgg} />
+                  </div>
                 </div>
+                {optionalError && (
+                  <p role="alert" className="text-xs text-red-400">
+                    {t('settings.optionalFeaturesError')}
+                  </p>
+                )}
 
                 <div className="h-px bg-cyber-border/50" />
 

@@ -254,3 +254,21 @@ it('does not aggregate unchanged token samples for unrelated scope writes', asyn
   expect(setItem).toHaveBeenCalledOnce();
   aggregate.mockRestore();
 });
+
+it('releases memory on disable and ignores late cache results without erasing the saved archive', async () => {
+  const store = await restart();
+  const { useNavigationStore } = await import('./navigationStore');
+  store.getState().cacheDashboard(null, [{ ts: 1_791_676_800, count: 12 }], 100);
+  expect(store.getState().cachedScopes.overview?.dashboard).toBeDefined();
+  const persisted = saved;
+  setItem.mockClear();
+  useNavigationStore.getState().setOptionalPages({ aiCareer: false });
+  expect(store.getState().cachedScopes).toEqual({});
+  store.getState().cacheDashboard(null, [{ ts: 1_791_676_800, count: 99 }], 999);
+  expect(store.getState().cachedScopes).toEqual({});
+  expect(setItem).not.toHaveBeenCalled();
+  expect(saved).toBe(persisted);
+  useNavigationStore.getState().setOptionalPages({ aiCareer: true });
+  store.getState().cacheDashboard(null, [{ ts: 1_791_676_800, count: 13 }], 101);
+  expect(store.getState().cachedScopes.overview?.dashboard?.tokenBytes).toBe(101);
+});

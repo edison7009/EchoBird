@@ -98,6 +98,7 @@ const zhHant: Partial<Translations> = {
   'settings.developerMode': '開發者預覽',
   'settings.developerModeHint':
     '開發者預覽主要用於開發與測試，部分功能未必適合日常使用。關閉後，將暫停開發者頁面的所有功能，減少資源開銷。預覽中的功能可能在後續版本中調整或移除，未來也會加入更多有趣的功能。',
+  'settings.optionalFeaturesError': '功能設定儲存失敗，請重試。',
   'settings.developerModeError': '無法讀取或儲存開發者預覽設定，請重新開啟設定後再試。',
   'voice.selection': '劃詞翻譯/提問',
   'voice.selectionAction': '翻譯',

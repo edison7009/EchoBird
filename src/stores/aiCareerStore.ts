@@ -1,6 +1,7 @@
 // AI-career dashboard selection and explicit refresh signal.
 
 import { create } from 'zustand';
+import { useNavigationStore } from './navigationStore';
 import type {
   AiCareerFamily,
   DailyTokenEntry,
@@ -188,7 +189,7 @@ interface AiCareerState {
 }
 
 export const useAiCareerStore = create<AiCareerState>((set) => {
-  const restored = readSnapshots();
+  const restored = useNavigationStore.getState().optionalPages.aiCareer ? readSnapshots() : {};
   let compact = persistedSnapshots(restored);
   let savedPayload = JSON.stringify({ version: CACHE_VERSION, data: compact });
   const cache = <K extends keyof CareerSnapshot>(
@@ -197,6 +198,7 @@ export const useAiCareerStore = create<AiCareerState>((set) => {
     value: CareerSnapshot[K]
   ) =>
     set((state) => {
+      if (!useNavigationStore.getState().optionalPages.aiCareer) return state;
       const scope = family ?? 'overview';
       if (sameField(field, state.cachedScopes[scope]?.[field], value)) return state;
       const cachedScopes = {
@@ -234,4 +236,11 @@ export const useAiCareerStore = create<AiCareerState>((set) => {
     cacheDailyTokens: (family, data) => cache(family, 'dailyTokens', data),
     cacheSessions: (family, sessions) => cache(family, 'sessions', sessions.slice(0, 20)),
   };
+});
+
+// The display layers unmount on disable; discard their shared in-memory
+// snapshots too, without deleting persisted summaries or native history.
+useNavigationStore.subscribe((state, previous) => {
+  if (previous.optionalPages.aiCareer && !state.optionalPages.aiCareer)
+    useAiCareerStore.setState({ cachedScopes: {}, refreshing: false });
 });

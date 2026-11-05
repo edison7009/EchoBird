@@ -124,6 +124,8 @@ export const Sidebar = ({
   const { showToast } = useToast();
   const collapsed = useSidebarStore((state) => state.collapsed);
   const developerMode = useNavigationStore((state) => state.developerMode);
+  const optionalPages = useNavigationStore((state) => state.optionalPages);
+  const optionalPagesReady = useNavigationStore((state) => state.optionalPagesReady);
   const sidebarRef = useRef<HTMLElement>(null);
   const perchRef = useRef<HTMLDivElement>(null);
   const serverRunning = useLocalServerStatusStore((state) => state.running);
@@ -237,20 +239,24 @@ export const Sidebar = ({
         />
         {/* Divider — primary actions above; news, career and project tools below */}
         <div ref={perchRef} className="border-t border-cyber-border/50" />
-        <NavItem
-          collapsed={collapsed}
-          icon={<Newspaper size={20} />}
-          label={t('nav.aiNews')}
-          active={activePage === 'aiNews'}
-          onClick={() => onPageChange('aiNews')}
-        />
-        <NavItem
-          collapsed={collapsed}
-          icon={<Trophy size={20} />}
-          label={t('nav.aiCareer')}
-          active={activePage === 'aiCareer'}
-          onClick={() => onPageChange('aiCareer')}
-        />
+        {optionalPagesReady && optionalPages.aiNews && (
+          <NavItem
+            collapsed={collapsed}
+            icon={<Newspaper size={20} />}
+            label={t('nav.aiNews')}
+            active={activePage === 'aiNews'}
+            onClick={() => onPageChange('aiNews')}
+          />
+        )}
+        {optionalPagesReady && optionalPages.aiCareer && (
+          <NavItem
+            collapsed={collapsed}
+            icon={<Trophy size={20} />}
+            label={t('nav.aiCareer')}
+            active={activePage === 'aiCareer'}
+            onClick={() => onPageChange('aiCareer')}
+          />
+        )}
         {developerMode && (
           <NavItem
             collapsed={collapsed}
@@ -260,7 +266,7 @@ export const Sidebar = ({
             onClick={() => onPageChange('developer')}
           />
         )}
-        {isFullEdition && (
+        {isFullEdition && optionalPagesReady && optionalPages.localLlm && (
           <NavItem
             collapsed={collapsed}
             icon={<Server size={20} />}

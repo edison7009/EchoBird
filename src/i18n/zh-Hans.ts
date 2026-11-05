@@ -97,6 +97,7 @@ const zhHans: Partial<Translations> = {
   'settings.developerMode': '开发者预览',
   'settings.developerModeHint':
     '开发者预览主要用于开发与测试，部分功能未必适合日常使用。关闭后，将暂停开发者页面的所有功能，减少资源开销。预览中的功能可能在后续版本中调整或移除，未来也会加入更多有趣的功能。',
+  'settings.optionalFeaturesError': '功能设置保存失败，请重试。',
   'settings.developerModeError': '无法读取或保存开发者预览设置，请重新打开设置后重试。',
   'voice.selection': '划词翻译/提问',
   'voice.selectionAction': '翻译',

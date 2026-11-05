@@ -107,3 +107,73 @@ it('does not let an old poll undo an explicit start or stop', async () => {
   );
   expect(useLocalServerStatusStore.getState().running).toBe(true);
 });
+
+it('performs no status polling or disk scans while disabled, including after a previous visit', async () => {
+  const render = (enabled: boolean) => (
+    <LocalServerProvider enabled={enabled}>
+      <span />
+    </LocalServerProvider>
+  );
+  await act(async () => {
+    view = create(render(false));
+  });
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(60_000);
+  });
+  expect(api.getLlmServerInfo).not.toHaveBeenCalled();
+  expect(api.getModelsDirs).not.toHaveBeenCalled();
+  expect(vi.getTimerCount()).toBe(0);
+  await act(async () => {
+    view.update(render(true));
+  });
+  expect(api.getLlmServerInfo).toHaveBeenCalledOnce();
+  await act(async () => useNavigationStore.getState().setActivePage('localLlm'));
+  expect(api.scanGgufFiles).toHaveBeenCalledOnce();
+  await act(async () => {
+    view.update(render(false));
+  });
+  const reads = vi.mocked(api.getLlmServerInfo).mock.calls.length;
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(60_000);
+  });
+  expect(api.getLlmServerInfo).toHaveBeenCalledTimes(reads);
+  expect(vi.getTimerCount()).toBe(0);
+  await act(async () => useNavigationStore.getState().setActivePage('apps'));
+  await act(async () => {
+    view.update(render(true));
+  });
+  expect(api.scanGgufFiles).toHaveBeenCalledOnce();
+});
+
+it('does not scan another directory or publish a late status after disabling during pending work', async () => {
+  useNavigationStore.setState({ activePage: 'localLlm' });
+  vi.mocked(api.getModelsDirs).mockResolvedValue(['/first', '/second']);
+  let finishScan!: (files: []) => void;
+  let finishStatus!: (info: Awaited<ReturnType<typeof api.getLlmServerInfo>>) => void;
+  vi.mocked(api.scanGgufFiles).mockReturnValueOnce(
+    new Promise((resolve) => {
+      finishScan = resolve;
+    })
+  );
+  vi.mocked(api.getLlmServerInfo).mockReturnValueOnce(
+    new Promise((resolve) => {
+      finishStatus = resolve;
+    })
+  );
+  await mount();
+  expect(api.scanGgufFiles).toHaveBeenCalledExactlyOnceWith('/first');
+  await act(async () => {
+    view.update(
+      <LocalServerProvider enabled={false}>
+        <span />
+      </LocalServerProvider>
+    );
+  });
+  await act(async () => {
+    finishScan([]);
+    finishStatus({ running: true } as Awaited<ReturnType<typeof api.getLlmServerInfo>>);
+  });
+  expect(api.scanGgufFiles).toHaveBeenCalledOnce();
+  expect(useLocalServerStatusStore.getState().running).toBe(false);
+  expect(vi.getTimerCount()).toBe(0);
+});

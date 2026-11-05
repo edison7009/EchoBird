@@ -121,9 +121,11 @@ const FEED_SOURCE_KEY = 'pulse:feed-source';
 export function AiPulseProvider({
   children,
   active,
+  enabled = true,
 }: {
   children: React.ReactNode;
   active: boolean;
+  enabled?: boolean;
 }) {
   const { locale } = useI18n();
   // Content routing intentionally narrower than UI routing: only zh-Hans
@@ -217,10 +219,17 @@ export function AiPulseProvider({
   }, []);
 
   const retry = useCallback(() => {
-    if (active) void sync(lang, true);
-  }, [active, sync, lang]);
+    if (enabled && active) void sync(lang, true);
+  }, [enabled, active, sync, lang]);
 
   useEffect(() => {
+    if (!enabled) {
+      // Release the archived feed in memory when the whole feature is disabled.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setItems([]);
+      setInitialLoading(true);
+      return;
+    }
     if (!active) return;
     if (loadedLang.current !== lang) {
       loadedLang.current = lang;
@@ -229,14 +238,13 @@ export function AiPulseProvider({
       setInitialLoading(true);
     }
     // Navigation starts archive hydration and its pending indicator together.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     void sync(lang);
     return () => {
       seq.current += 1;
       requestRef.current?.abort();
       requestRef.current = null;
     };
-  }, [active, lang, sync]);
+  }, [enabled, active, lang, sync]);
 
   const value = useMemo<AiPulseContextValue>(
     () => ({
