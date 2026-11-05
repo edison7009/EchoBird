@@ -71,7 +71,26 @@ jobs:
         env:
           TOKEN: ${{ secrets.CNB_TOKEN }}
         run: |
-          set -euo pipefail; test -n "$TOKEN"; auth=$(printf 'cnb:%s' "$TOKEN" | base64 -w0); cd out
+          set -euo pipefail
+          python3 - <<'PYCNB'
+          import json, os, urllib.request, urllib.error
+          token = os.environ['TOKEN']
+          if not token: raise SystemExit('CNB_TOKEN is missing')
+          headers = {'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json'}
+          url = 'https://api.cnb.cool/echobird/echobird-releases'
+          try:
+              urllib.request.urlopen(urllib.request.Request(url, headers=headers), timeout=30).close()
+          except urllib.error.HTTPError as error:
+              if error.code != 404: raise SystemExit(f'CNB repository lookup failed (HTTP {error.code}); check token scope')
+              request = urllib.request.Request('https://api.cnb.cool/echobird/-/repos', headers=headers,
+                  data=json.dumps({'name': 'echobird-releases', 'visibility': 'public',
+                      'description': 'Official EchoBird installer mirror'}).encode(), method='POST')
+              try: urllib.request.urlopen(request, timeout=30).close()
+              except urllib.error.HTTPError as error: raise SystemExit(f'CNB repository creation failed (HTTP {error.code}); verify echobird organization and token permission')
+          PYCNB
+          auth=$(printf 'cnb:%s' "$TOKEN" | base64 -w0)
+          echo "::add-mask::$auth"
+          cd out
           for i in 1 2 3; do git -c http.extraHeader="Authorization: Basic $auth" push --force https://cnb.cool/echobird/echobird-releases.git main && exit 0; sleep $((i*15)); done; exit 1
 
       - name: Push to GitCode
@@ -80,7 +99,32 @@ jobs:
         env:
           TOKEN: ${{ secrets.GITCODE_TOKEN }}
         run: |
-          set -euo pipefail; test -n "$TOKEN"; auth=$(printf 'edison7009:%s' "$TOKEN" | base64 -w0); cd out
+          set -euo pipefail
+          python3 - <<'PYGITCODE'
+          import json, os, urllib.request, urllib.error, urllib.parse
+          token = os.environ['TOKEN']
+          if not token: raise SystemExit('GITCODE_TOKEN is missing')
+          query = urllib.parse.urlencode({'access_token': token})
+          root = 'https://api.gitcode.com/api/v5'
+          def request(path, data=None):
+              req = urllib.request.Request(root + path + '?' + query, data=data,
+                  headers={'Accept': 'application/json'})
+              return urllib.request.urlopen(req, timeout=30)
+          try:
+              with request('/user') as response: user = json.load(response)
+          except urllib.error.HTTPError as error: raise SystemExit(f'GitCode token validation failed (HTTP {error.code})')
+          if user.get('login') != 'edison7009': raise SystemExit('GitCode token belongs to a different owner; mirror expects edison7009')
+          try: request('/repos/edison7009/echobird-releases').close()
+          except urllib.error.HTTPError as error:
+              if error.code != 404: raise SystemExit(f'GitCode repository lookup failed (HTTP {error.code})')
+              data = urllib.parse.urlencode({'name': 'echobird-releases', 'path': 'echobird-releases',
+                  'private': 'false', 'description': 'Official EchoBird installer mirror'}).encode()
+              try: request('/user/repos', data).close()
+              except urllib.error.HTTPError as error: raise SystemExit(f'GitCode repository creation failed (HTTP {error.code}); check token scope')
+          PYGITCODE
+          auth=$(printf 'edison7009:%s' "$TOKEN" | base64 -w0)
+          echo "::add-mask::$auth"
+          cd out
           for i in 1 2 3; do git -c http.extraHeader="Authorization: Basic $auth" push --force https://gitcode.com/edison7009/echobird-releases.git main && exit 0; sleep $((i*15)); done; exit 1
 
       - name: Check mirrors serve the files
