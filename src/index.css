@@ -897,17 +897,16 @@ html.is-macos .scrollbar-stable {
   scrollbar-gutter: auto;
 }
 
-/* Use native overlay scrolling on macOS without reserving a gutter. */
-html.is-macos .page-scroll::-webkit-scrollbar {
+/* The navigation rail keeps scrolling available without showing a gutter on
+   any platform; a visible scrollbar changes the icon column's x-position. */
+#app-sidebar .page-scroll::-webkit-scrollbar {
   display: none;
   width: 0;
   height: 0;
 }
 
-/* Keep the navigation rail centered when height changes trigger overflow.
-   Modern WebKit's scrollbar-width takes precedence over the hidden pseudo
-   scrollbar above; a thin native gutter would shift only the scrolling icons. */
-html.is-macos #app-sidebar .page-scroll {
+/* Keep the navigation rail centered when height changes trigger overflow. */
+#app-sidebar .page-scroll {
   scrollbar-width: none;
 }
 
