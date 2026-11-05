@@ -169,7 +169,9 @@ jobs:
           RUST_TARGET: ${{ matrix.rust-target }}
         run: |
           set -euo pipefail
-          APP="src-tauri/target/$RUST_TARGET/release/bundle/macos/EchoBird.app"
+          # Tauri's npm wrapper writes the package under the host target
+          # directory even when --target selects the Rust architecture.
+          APP="src-tauri/target/release/bundle/macos/EchoBird.app"
           SDK_VERSION="$(xcrun vtool -show-build "$APP/Contents/MacOS/echobird" | awk '$1 == "sdk" { print $2; exit }')"
           test -n "$SDK_VERSION"
           test "${SDK_VERSION%%.*}" -ge 26
