@@ -829,22 +829,24 @@ describe('PageAwareHint', () => {
   };
 
   it.each([
+    ['chatgptdesktop', 'hint.chatgptHistoryMerged'],
     ['claudedesktop', 'hint.claudeHistoryMerged'],
     ['claudecode', 'hint.appReorder'],
   ])('shows the selected app hint for %s API models', async (toolId, hint) => {
     const markup = await renderHint(toolId);
     expect(markup).toContain(hint);
+    if (toolId === 'chatgptdesktop') {
+      expect(markup).toContain('hint.responsesRequired');
+      expect(markup).not.toContain('hint.localHistoryPreserved');
+    }
   });
 
-  it.each(['chatgptdesktop', 'codex'])(
-    'shows the Responses compatibility reminder for %s',
-    async (toolId) => {
-      const markup = await renderHint(toolId);
-      expect(markup).toContain('hint.responsesRequired');
-      expect(markup).toContain('hint.localHistoryPreserved');
-      expect(markup).not.toContain('hint.appReorder');
-    }
-  );
+  it('shows the Responses compatibility reminder for Codex CLI', async () => {
+    const markup = await renderHint('codex');
+    expect(markup).toContain('hint.responsesRequired');
+    expect(markup).not.toContain('hint.localHistoryPreserved');
+    expect(markup).not.toContain('hint.appReorder');
+  });
 
   it('shows the app reorder hint when a Claude Code account is selected', async () => {
     const markup = await renderHint('claudecode', 'saved-account');

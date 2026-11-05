@@ -759,6 +759,8 @@ const ja: Partial<Translations> = {
     'ChatGPT / Codex CLI に接続するには、サードパーティモデルが Responses をサポートしている必要があります。',
   'hint.claudeHistoryMerged':
     'EchoBird で Claude デスクトップのアカウントやモデルを切り替えると、Claude Code を含むすべての会話履歴が自動的に統合されます。',
+  'hint.chatgptHistoryMerged':
+    'EchoBird で ChatGPT デスクトップのアカウントやモデルを切り替えると、Codex CLI を含むすべての会話履歴が自動的に統合されます。',
   'hint.localHistoryPreserved':
     'アカウントやモデルを切り替えても、ローカルの会話履歴は自動で保持されます。',
   'hint.cliRecommendation':

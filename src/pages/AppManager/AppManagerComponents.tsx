@@ -1584,25 +1584,28 @@ export const PageAwareHint: React.FC = () => {
   const { t } = useI18n();
   const { viewMode, selectedTool } = useAppManager();
   const activePage = useNavigationStore((s) => s.activePage);
-  const key =
+  const hintKeys: TKey[] =
     viewMode === 'install'
-      ? 'aiDesktop.installHint'
-      : selectedTool === 'chatgptdesktop' || selectedTool === 'codex'
-        ? 'hint.responsesRequired'
-        : selectedTool === 'claudedesktop'
-          ? 'hint.claudeHistoryMerged'
-          : ['workbuddy', 'workbuddyai'].includes(selectedTool ?? '')
-            ? 'hint.localHistoryPreserved'
-            : null;
+      ? ['aiDesktop.installHint']
+      : selectedTool === 'chatgptdesktop'
+        ? ['hint.chatgptHistoryMerged', 'hint.responsesRequired']
+        : selectedTool === 'codex'
+          ? ['hint.responsesRequired']
+          : selectedTool === 'claudedesktop'
+            ? ['hint.claudeHistoryMerged']
+            : ['workbuddy', 'workbuddyai'].includes(selectedTool ?? '')
+              ? ['hint.localHistoryPreserved']
+              : [];
   return (
     <div className="flex-1 text-[15px] font-medium text-cyber-accent">
-      {key ? t(key) : activePage === 'apps' && <RandomAppTip />}
-      {key === 'hint.responsesRequired' && (
-        <>
-          <br />
-          {t('hint.localHistoryPreserved')}
-        </>
-      )}
+      {hintKeys.length
+        ? hintKeys.map((hintKey, index) => (
+            <React.Fragment key={hintKey}>
+              {index > 0 && <br />}
+              {t(hintKey)}
+            </React.Fragment>
+          ))
+        : activePage === 'apps' && <RandomAppTip />}
     </div>
   );
 };

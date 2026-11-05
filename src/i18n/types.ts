@@ -687,6 +687,7 @@ export type TKey =
   // App hints
   | 'hint.responsesRequired'
   | 'hint.claudeHistoryMerged'
+  | 'hint.chatgptHistoryMerged'
   | 'hint.localHistoryPreserved'
   | 'hint.cliRecommendation'
   | 'hint.appReorder'

@@ -739,6 +739,8 @@ const en: Translations = {
     'Third-party models must support Responses to connect successfully with ChatGPT / Codex CLI.',
   'hint.claudeHistoryMerged':
     'When EchoBird switches Claude Desktop accounts or models, it merges all your conversations automatically, including Claude Code.',
+  'hint.chatgptHistoryMerged':
+    'When EchoBird switches ChatGPT Desktop accounts or models, it automatically merges all conversation history, including Codex CLI.',
   'hint.localHistoryPreserved':
     'Local conversation history is automatically retained when switching accounts or models.',
   'hint.cliRecommendation':

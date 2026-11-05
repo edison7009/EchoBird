@@ -6,9 +6,9 @@ import {
   CodeXml,
   Trophy,
   Newspaper,
-  Monitor,
+  House,
   Waypoints,
-  Sparkles,
+  MessagesSquare,
   RefreshCw,
   Users,
   Mic,
@@ -177,7 +177,7 @@ export const Sidebar = ({
       <div className="flex-1 min-h-0 overflow-y-auto page-scroll space-y-5 text-[15px]">
         <NavItem
           collapsed={collapsed}
-          icon={<Monitor size={20} />}
+          icon={<House size={20} />}
           label={t('nav.appManager')}
           active={activePage === 'apps'}
           onClick={() => onPageChange('apps')}
@@ -222,7 +222,7 @@ export const Sidebar = ({
                 <RefreshCw size={20} className="animate-spin" />
               </span>
             ) : (
-              <Sparkles size={20} />
+              <MessagesSquare size={20} />
             )
           }
           label={t('nav.motherAgent')}

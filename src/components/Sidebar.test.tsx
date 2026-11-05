@@ -7,7 +7,7 @@ import { voiceSnapshot } from '../pages/VoiceInput/testFixtures';
 import * as voiceApi from '../api/voiceInput';
 import { useSidebarStore } from '../stores/sidebarStore';
 import { useNavigationStore } from '../stores/navigationStore';
-import { Mic, RefreshCw, Sparkles, Waypoints } from 'lucide-react';
+import { Mic, RefreshCw, MessagesSquare, Waypoints } from 'lucide-react';
 
 vi.mock('./BirdEasterEgg', () => ({ BirdEasterEgg: () => null }));
 const showToast = vi.hoisted(() => vi.fn());
@@ -70,7 +70,7 @@ describe('Sidebar', () => {
     expect(baseProps.onPageChange).not.toHaveBeenCalled();
     act(() => useSidebarStore.getState().setCollapsed(false));
     expect(assistant().findByType(RefreshCw).props).toMatchObject({ size: 14 });
-    expect(assistant().findByType(Sparkles)).toBeDefined();
+    expect(assistant().findByType(MessagesSquare)).toBeDefined();
     act(() => useSidebarStore.getState().setCollapsed(true));
     expect(assistant().findByType(RefreshCw).props).toMatchObject({
       size: 20,
@@ -80,7 +80,7 @@ describe('Sidebar', () => {
       renderer.update(<Sidebar {...baseProps} smartRouterGroups={[]} agentRunning={false} />)
     );
     expect(assistant().findAllByType(RefreshCw)).toHaveLength(0);
-    expect(assistant().findByType(Sparkles)).toBeDefined();
+    expect(assistant().findByType(MessagesSquare)).toBeDefined();
   });
   it('shows the developer entry only when enabled and removes the separate projects entry', () => {
     act(() => {
