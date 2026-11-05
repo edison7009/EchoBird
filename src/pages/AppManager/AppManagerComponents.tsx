@@ -1596,13 +1596,12 @@ export const PageAwareHint: React.FC = () => {
               ? ['hint.localHistoryPreserved']
               : [];
   return (
-    <div className="flex-1 text-[15px] font-medium text-cyber-accent">
+    <div className="min-w-0 flex-1 truncate text-[15px] font-medium text-cyber-accent">
       {hintKeys.length
-        ? hintKeys.map((hintKey, index) => (
-            <React.Fragment key={hintKey}>
-              {index > 0 && <br />}
+        ? hintKeys.map((hintKey) => (
+            <div key={hintKey} className="truncate">
               {t(hintKey)}
-            </React.Fragment>
+            </div>
           ))
         : activePage === 'apps' && <RandomAppTip />}
     </div>

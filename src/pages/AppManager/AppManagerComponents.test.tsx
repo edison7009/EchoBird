@@ -888,7 +888,10 @@ describe('PageAwareHint', () => {
     act(() => {
       renderer = create(render());
     });
-    const text = () => (renderer!.toJSON() as ReactTestRendererJSON).children?.join('');
+    const renderedText = (node: ReactTestRendererJSON | string): string =>
+      typeof node === 'string' ? node : (node.children ?? []).map(renderedText).join('');
+    const text = () =>
+      (renderer!.toJSON() as ReactTestRendererJSON).children?.map(renderedText).join('');
     expect(text()).toBe('hint.appReorder');
     expect(vi.getTimerCount()).toBe(1);
     act(() => {
