@@ -10,6 +10,11 @@ on:
         description: Existing unpublished release tag to build
         required: true
         type: string
+      platforms:
+        description: Platforms to rebuild
+        type: choice
+        options: [all, macos-arm]
+        default: all
 
 # Opt into Node.js 24 runner for all JavaScript-based actions before the
 # 2026-06-02 forced switch (mirrors the same opt-in in ci.yml).
@@ -152,6 +157,7 @@ jobs:
         run: test -n "$ANTIGRAVITY_OAUTH_CLIENT_ID" && test -n "$ANTIGRAVITY_OAUTH_CLIENT_SECRET"
 
       - name: Build the app
+        if: inputs.platforms != 'macos-arm' || matrix.rust-target == 'aarch64-apple-darwin'
         shell: bash
         env:
           ANTIGRAVITY_OAUTH_CLIENT_ID: ${{ secrets.ANTIGRAVITY_OAUTH_CLIENT_ID }}
@@ -159,15 +165,21 @@ jobs:
         run: npm run tauri -- build ${{ matrix.args }}
 
       - name: Verify packaged macOS SDK
-        if: runner.os == 'macOS'
+        if: runner.os == 'macOS' && (inputs.platforms != 'macos-arm' || matrix.rust-target == 'aarch64-apple-darwin')
         env:
           RUST_TARGET: ${{ matrix.rust-target }}
         run: |
           set -euo pipefail
-          # Tauri's npm wrapper writes the package under the host target
-          # directory even when --target selects the Rust architecture.
-          APP="src-tauri/target/$RUST_TARGET/release/bundle/macos/EchoBird.app"
-          if [ ! -d "$APP" ]; then APP="src-tauri/target/release/bundle/macos/EchoBird.app"; fi
+          VERSION="${{ inputs.tag || github.ref_name }}"
+          VERSION="${VERSION#v}"
+          if [[ "$RUST_TARGET" = aarch64-* ]]; then DMG_ARCH=aarch64; else DMG_ARCH=x64; fi
+          DMG=$(find src-tauri/target -name "EchoBird_${VERSION}_${DMG_ARCH}.dmg" -type f | head -1)
+          test -n "$DMG"
+          MOUNT="$RUNNER_TEMP/echobird-sdk-check"
+          mkdir -p "$MOUNT"
+          hdiutil attach "$DMG" -readonly -nobrowse -mountpoint "$MOUNT"
+          trap 'hdiutil detach "$MOUNT" -quiet' EXIT
+          APP="$MOUNT/EchoBird.app"
           ARCH=$(lipo -archs "$APP/Contents/MacOS/echobird")
           if [[ "$RUST_TARGET" = aarch64-* ]]; then test "$ARCH" = arm64; else test "$ARCH" = x86_64; fi
           SDK_VERSION="$(xcrun vtool -show-build "$APP/Contents/MacOS/echobird" | awk '$1 == "sdk" { print $2; exit }')"
@@ -175,6 +187,7 @@ jobs:
           test "${SDK_VERSION%%.*}" -ge 26
 
       - name: Upload verified installers to the draft
+        if: inputs.platforms != 'macos-arm' || matrix.rust-target == 'aarch64-apple-darwin'
         shell: bash
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
