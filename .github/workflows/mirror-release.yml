@@ -81,12 +81,15 @@ jobs:
           try:
               urllib.request.urlopen(urllib.request.Request(url, headers=headers), timeout=30).close()
           except urllib.error.HTTPError as error:
-              if error.code != 404: raise SystemExit(f'CNB repository lookup failed (HTTP {error.code}); check token scope')
-              request = urllib.request.Request('https://api.cnb.cool/echobird/-/repos', headers=headers,
-                  data=json.dumps({'name': 'echobird-releases', 'visibility': 'public',
-                      'description': 'Official EchoBird installer mirror'}).encode(), method='POST')
-              try: urllib.request.urlopen(request, timeout=30).close()
-              except urllib.error.HTTPError as error: raise SystemExit(f'CNB repository creation failed (HTTP {error.code}); verify echobird organization and token permission')
+              if error.code in (401, 403):
+                  print('CNB metadata API unavailable; trying the existing repository with Git credentials')
+              elif error.code == 404:
+                  request = urllib.request.Request('https://api.cnb.cool/echobird/-/repos', headers=headers,
+                      data=json.dumps({'name': 'echobird-releases', 'visibility': 'public',
+                          'description': 'Official EchoBird installer mirror'}).encode(), method='POST')
+                  try: urllib.request.urlopen(request, timeout=30).close()
+                  except urllib.error.HTTPError as error: raise SystemExit(f'CNB repository creation failed (HTTP {error.code}); verify echobird organization and token permission')
+              else: raise SystemExit(f'CNB repository lookup failed (HTTP {error.code})')
           PYCNB
           auth=$(printf 'cnb:%s' "$TOKEN" | base64 -w0)
           echo "::add-mask::$auth"
@@ -110,17 +113,16 @@ jobs:
               req = urllib.request.Request(root + path + '?' + query, data=data,
                   headers={'Accept': 'application/json'})
               return urllib.request.urlopen(req, timeout=30)
-          try:
-              with request('/user') as response: user = json.load(response)
-          except urllib.error.HTTPError as error: raise SystemExit(f'GitCode token validation failed (HTTP {error.code})')
-          if user.get('login') != 'edison7009': raise SystemExit('GitCode token belongs to a different owner; mirror expects edison7009')
           try: request('/repos/edison7009/echobird-releases').close()
           except urllib.error.HTTPError as error:
-              if error.code != 404: raise SystemExit(f'GitCode repository lookup failed (HTTP {error.code})')
-              data = urllib.parse.urlencode({'name': 'echobird-releases', 'path': 'echobird-releases',
-                  'private': 'false', 'description': 'Official EchoBird installer mirror'}).encode()
-              try: request('/user/repos', data).close()
-              except urllib.error.HTTPError as error: raise SystemExit(f'GitCode repository creation failed (HTTP {error.code}); check token scope')
+              if error.code in (401, 403):
+                  print('GitCode metadata API unavailable; trying the existing repository with Git credentials')
+              elif error.code == 404:
+                  data = urllib.parse.urlencode({'name': 'echobird-releases', 'path': 'echobird-releases',
+                      'private': 'false', 'description': 'Official EchoBird installer mirror'}).encode()
+                  try: request('/user/repos', data).close()
+                  except urllib.error.HTTPError as error: raise SystemExit(f'GitCode repository creation failed (HTTP {error.code}); check token scope')
+              else: raise SystemExit(f'GitCode repository lookup failed (HTTP {error.code})')
           PYGITCODE
           auth=$(printf 'edison7009:%s' "$TOKEN" | base64 -w0)
           echo "::add-mask::$auth"
