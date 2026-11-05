@@ -52,9 +52,9 @@ fn appimage_process_matches(actual: &Path, expected: &Path, environment: &[u8]) 
 /// Only the APPIMAGE field is compared; process environment is never exposed.
 #[cfg(target_os = "linux")]
 pub(crate) fn verified_appimage_pid(executable: &Path) -> Option<u32> {
-    if !executable
+    if executable
         .extension()
-        .is_some_and(|extension| extension == "AppImage")
+        .is_none_or(|extension| extension != "AppImage")
     {
         return None;
     }

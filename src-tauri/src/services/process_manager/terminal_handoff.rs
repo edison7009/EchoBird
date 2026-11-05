@@ -53,6 +53,7 @@ impl Handoff {
         self.directory.join("launch.command")
     }
 
+    #[cfg(target_os = "macos")]
     pub(super) fn retain(mut self) {
         self.retained = true;
         let directory = self.directory.clone();
