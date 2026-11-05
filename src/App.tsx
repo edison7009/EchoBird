@@ -412,9 +412,9 @@ function AppContent() {
                           {/* Sidebar */}
                           <SidebarConnected onSettingsClick={() => setShowSettings(true)} />
 
-                          {/* Main content wrapper — transparent against page bg, Claude-style */}
+                          {/* Align 2.5rem page/panel headers with the 1.75rem sidebar brand row. */}
                           <div
-                            className={`min-w-0 flex-1 flex flex-col ${is('apps') ? 'overflow-visible' : 'overflow-hidden'}`}
+                            className={`min-w-0 flex-1 flex flex-col -mt-1.5 ${is('apps') ? 'overflow-visible' : 'overflow-hidden'}`}
                           >
                             {/* Main + Right panel row */}
                             <RouterStatisticsProvider>
@@ -422,7 +422,7 @@ function AppContent() {
                                 <main className="min-w-0 flex-1 flex flex-col overflow-hidden">
                                   <section className="flex-1 flex flex-col overflow-hidden pr-2">
                                     {/* Shared page title bar — fixed-height row so the title sits at the same baseline whether the page has tall action buttons or none */}
-                                    <div className="page-title-bar mb-5 flex-shrink-0 flex items-center gap-3 h-10">
+                                    <div className="page-title-bar mb-3 flex-shrink-0 flex items-center gap-3 h-10">
                                       <div className="flex items-baseline gap-3 flex-1 min-w-0">
                                         <h2 className="cjk-title flex-shrink-0">
                                           {is('models') && t('page.modelNexus')}
