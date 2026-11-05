@@ -78,7 +78,6 @@ export const ZCodeAccountSection: React.FC<{ showDivider?: boolean }> = ({
                   </span>
                 ) : null
               }
-              widePlan={(account.plan?.length ?? 0) >= 8}
               planPrefix={
                 subscriptionEndAt ? (
                   <QuotaCountdown resetAt={subscriptionEndAt} compact />

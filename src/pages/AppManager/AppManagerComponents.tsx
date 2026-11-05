@@ -863,7 +863,6 @@ export const CodexAccountSection: React.FC<{ showDivider?: boolean }> = ({
                 selected={selectedCodexAccountId === account.id}
                 email={account.email}
                 plan={planLabel}
-                widePlan={planLabel.length >= 8}
                 planPrefix={
                   account.subscriptionEndAt ? (
                     <QuotaCountdown resetAt={account.subscriptionEndAt} compact />

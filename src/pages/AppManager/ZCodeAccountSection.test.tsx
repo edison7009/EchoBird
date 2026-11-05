@@ -52,7 +52,7 @@ function element(context: AppManagerContextType) {
 }
 describe('ZCode account section', () => {
   it.each(['Trial', 'Free', 'No Plan', 'Lite', 'Pro', 'Max', 'Team'])(
-    'shows %s once and reserves subscription countdown space only for paid accounts',
+    'shows %s once and a subscription countdown only for paid accounts',
     (plan) => {
       vi.useFakeTimers();
       vi.setSystemTime(new Date('2030-01-01T00:00:00Z'));
@@ -77,11 +77,11 @@ describe('ZCode account section', () => {
       expect(markup.match(new RegExp(`"${expectedPlan}"`, 'g'))).toHaveLength(1);
       if (plan === 'Trial' || plan === 'Free' || plan === 'No Plan') {
         expect(markup).not.toContain('30d0h');
-        expect(markup).toContain('grid-cols-[minmax(0,1fr)_44px]');
       } else {
         expect(markup).toContain('30d0h');
-        expect(markup).toContain('grid-cols-[minmax(0,1fr)_100px]');
       }
+      expect(markup).toContain('auto-rows-[16px] content-center');
+      expect(markup).not.toContain('grid-cols-[minmax(0,1fr)_100px]');
       expect(markup).toContain('(5h0m)');
       expect(markup).toContain('(7d0h)');
       expect(markup).toContain('"75%"');

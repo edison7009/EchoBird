@@ -260,10 +260,11 @@ describe('TRAE account rows', () => {
     }
   });
 
-  it('borrows only the unused CN action width and does not reserve expired subscription space', () => {
+  it('fits quota into its own row without borrowing subscription space', () => {
     const subscriptionEndAt = Date.now() / 1000 + 30 * 86400;
     const cn = fixture([{ ...saved, subscriptionEndAt }]).html();
-    expect(cn).toContain('w-[calc(100%+40px)] flex-shrink-0');
+    expect(cn).not.toContain('w-[calc(100%+40px)]');
+    expect(cn).not.toContain('-mr-10');
     const global = fixture([{ ...saved, edition: 'trae', subscriptionEndAt }]).html();
     expect(global).not.toContain('w-[calc(100%+40px)]');
     for (const edition of ['traecn', 'trae'] as const) {

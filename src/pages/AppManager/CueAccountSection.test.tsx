@@ -67,9 +67,8 @@ describe('Manus and Cue subscription countdown', () => {
       const markup = JSON.stringify(renderer!.toJSON());
       const displayed = hasExpiry && plan.toLowerCase() !== 'free';
       expect(markup.includes('30d0h')).toBe(displayed);
-      expect(markup).toContain(
-        displayed ? 'grid-cols-[minmax(0,1fr)_100px]' : 'grid-cols-[minmax(0,1fr)_44px]'
-      );
+      expect(markup).toContain('auto-rows-[16px] content-center');
+      expect(markup).not.toContain('grid-cols-[minmax(0,1fr)_100px]');
       if (tool === 'cue') {
         expect(markup).toContain('3h0m');
         expect(markup).toContain('80%');

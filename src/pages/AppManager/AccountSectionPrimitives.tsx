@@ -242,7 +242,6 @@ export const AccountSectionRow: React.FC<{
   email: string;
   plan?: React.ReactNode;
   planPrefix?: React.ReactNode;
-  widePlan?: boolean;
   singleLine?: boolean;
   authorizationFailed?: boolean;
   secondary?: React.ReactNode;
@@ -257,7 +256,6 @@ export const AccountSectionRow: React.FC<{
   email,
   plan,
   planPrefix,
-  widePlan,
   singleLine,
   authorizationFailed,
   secondary,
@@ -271,6 +269,19 @@ export const AccountSectionRow: React.FC<{
   const { t } = useI18n();
   const hidden = useAccountPrivacyStore((state) => state.hidden);
   const identity = hidden ? ACCOUNT_NAME_MASK : email;
+  const quota = (
+    <span
+      className={`${singleLine ? '' : 'min-w-0 flex-1 overflow-hidden '}flex h-[16px] items-center gap-2 text-[12px] leading-[16px] text-cyber-text`}
+    >
+      {authorizationFailed ? (
+        <span role="status" className="truncate font-semibold">
+          {t('accountCenter.authFailed')}
+        </span>
+      ) : (
+        (secondary ?? <span className="truncate text-[11px]">{t('model.noUsageData')}</span>)
+      )}
+    </span>
+  );
   return (
     <div
       role="radio"
@@ -284,33 +295,35 @@ export const AccountSectionRow: React.FC<{
           onSelect();
         }
       }}
-      className={`account-pill ${colorClassName} grid h-12 ${planPrefix ? 'grid-cols-[minmax(0,1fr)_100px]' : widePlan ? 'grid-cols-[minmax(0,1fr)_72px]' : leadingAction ? 'grid-cols-[minmax(0,1fr)_60px]' : 'grid-cols-[minmax(0,1fr)_44px]'} items-center gap-2 rounded-card border-2 ${selected ? 'border-cyber-accent/70' : 'border-transparent'} px-3 transition-opacity hover:opacity-90`}
+      className={`account-pill ${colorClassName} grid h-12 ${singleLine ? (leadingAction ? 'grid-cols-[minmax(0,1fr)_60px] gap-2' : 'grid-cols-[minmax(0,1fr)_44px] gap-2') : 'grid-cols-[minmax(0,1fr)] auto-rows-[16px] content-center'} items-center rounded-card border-2 ${selected ? 'border-cyber-accent/70' : 'border-transparent'} px-3 transition-opacity hover:opacity-90`}
     >
       <span
-        className={`grid min-w-0 ${singleLine ? 'grid-cols-[minmax(0,1fr)_auto] gap-2' : 'grid-cols-[minmax(0,1fr)] auto-rows-[16px]'} items-center`}
+        className={`min-w-0 items-center gap-2 ${singleLine ? 'grid grid-cols-[minmax(0,1fr)_auto]' : 'flex'}`}
       >
-        <span className="block truncate text-[13px] font-semibold text-cyber-text">{identity}</span>
-        <span className="flex h-[16px] items-center gap-2 text-[12px] leading-[16px] text-cyber-text">
-          {authorizationFailed ? (
-            <span role="status" className="truncate font-semibold">
-              {t('accountCenter.authFailed')}
-            </span>
-          ) : (
-            (secondary ?? <span className="truncate text-[11px]">{t('model.noUsageData')}</span>)
-          )}
+        <span className="block min-w-0 flex-1 truncate text-[13px] font-semibold text-cyber-text">
+          {identity}
         </span>
-      </span>
-      <span className="grid min-w-0 grid-cols-1 auto-rows-[16px] items-center justify-items-center">
-        {!singleLine && (
+        {singleLine ? (
+          quota
+        ) : (
           <span
-            className={`${planPrefix ? 'flex items-center gap-2 ' : ''}justify-self-end whitespace-nowrap text-[12px] font-semibold text-cyber-text`}
+            className={`${planPrefix ? 'flex items-center gap-2 ' : ''}shrink-0 whitespace-nowrap text-[12px] font-semibold text-cyber-text`}
           >
             {planPrefix}
             {(typeof plan === 'string' ? accountPlanLabel(plan) : plan) || '—'}
           </span>
         )}
+      </span>
+      <span
+        className={
+          singleLine
+            ? 'grid min-w-0 grid-cols-1 auto-rows-[16px] items-center justify-items-center'
+            : 'flex min-w-0 items-center gap-2'
+        }
+      >
+        {!singleLine && quota}
         <span
-          className={`flex items-center justify-self-end ${leadingAction ? 'gap-0' : 'gap-1.5'}`}
+          className={`flex shrink-0 items-center justify-self-end ${leadingAction ? 'gap-0' : 'gap-1.5'}`}
         >
           {leadingAction}
           <AccountSectionActions

@@ -709,7 +709,7 @@ describe('CodexAccountSection', () => {
     expect(markup).toContain(`>${label}</span>`);
   });
 
-  it('reserves enough room for a long plan without a subscription countdown', async () => {
+  it('fits a long plan at its natural width without a subscription countdown', async () => {
     const { CodexAccountSection } = await import('./AppManagerComponents');
     const context: Partial<AppManagerContextType> = {
       codexAccounts: [
@@ -727,7 +727,8 @@ describe('CodexAccountSection', () => {
         <CodexAccountSection showDivider={false} />
       </AppManagerContext.Provider>
     );
-    expect(markup).toContain('grid-cols-[minmax(0,1fr)_72px]');
+    expect(markup).toContain('shrink-0 whitespace-nowrap');
+    expect(markup).not.toContain('grid-cols-[minmax(0,1fr)_72px]');
     expect(markup).toContain('>Enterprise</span>');
   });
 });

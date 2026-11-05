@@ -63,10 +63,10 @@ export function ConversationList() {
                 aria-label={conversation.title || t('mother.newConversation')}
                 className="absolute inset-0 rounded-card focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-cyber-accent"
               />
-              <div className="relative pointer-events-none text-sm leading-[16px] font-semibold text-cyber-text truncate">
+              <div className="relative pointer-events-none text-[13px] leading-[16px] font-semibold text-cyber-text truncate">
                 {conversation.title || t('mother.newConversation')}
               </div>
-              <div className="relative pointer-events-none leading-[16px] text-xs text-cyber-text-secondary truncate">
+              <div className="relative pointer-events-none leading-[16px] text-[10px] text-cyber-text-secondary truncate">
                 {t('mother.conversationMessageCount').replace('{count}', String(messageCount))}
                 {' · '}
                 {formatUpdatedTime(conversation.updatedAt)}

@@ -127,7 +127,7 @@ export const TraeAccountSection: React.FC = () => {
                     account.rewardEnabled === true
                   ) ? undefined : (
                     <span
-                      className={`flex h-[16px] min-w-0 items-center gap-1 text-[11px] font-semibold whitespace-nowrap ${!grouped ? 'overflow-hidden' : ''} ${selectedTool === 'traecn' && subscriptionEndAt ? '-mr-10 w-[calc(100%+40px)] flex-shrink-0' : grouped ? 'w-full' : ''}`}
+                      className={`flex h-[16px] min-w-0 items-center gap-1 text-[11px] font-semibold whitespace-nowrap ${grouped ? 'w-full' : 'overflow-hidden'}`}
                     >
                       {grouped ? (
                         <>

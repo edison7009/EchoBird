@@ -61,10 +61,12 @@ describe('WorkBuddy account card', () => {
   it.each(['体验版', '标准版', '高级版', '旗舰版', 'Free', 'Pro', 'Team', null])(
     'shows the account tier %s above the actions',
     (plan) => {
-      expect(renderAccount({ plan })).toMatch(
-        new RegExp(
-          `>${plan || '—'}</span><span[^>]*><button[^>]*aria-label="agent.dailyCreditsClaimed test@example.com"`
-        )
+      const markup = renderAccount({ plan });
+      const planIndex = markup.indexOf(`>${plan || '—'}</span>`);
+      expect(planIndex).toBeGreaterThan(-1);
+      expect(planIndex).toBeLessThan(markup.indexOf('aria-label="agent.baseCredits"'));
+      expect(markup.indexOf('aria-label="agent.baseCredits"')).toBeLessThan(
+        markup.indexOf('aria-label="agent.dailyCreditsClaimed test@example.com"')
       );
     }
   );
