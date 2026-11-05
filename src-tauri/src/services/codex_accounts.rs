@@ -280,6 +280,20 @@ fn account_id_from_auth(auth: &Value) -> Option<String> {
         })
 }
 
+// Native workspace routing reads tokens.account_id directly, unlike our
+// account list, which can derive the same identity from the access token.
+fn ensure_native_account_id(auth: &mut Value) -> Result<bool, String> {
+    if auth
+        .get("tokens")
+        .is_some_and(|tokens| non_empty_string(tokens.get("account_id")).is_some())
+    {
+        return Ok(false);
+    }
+    let account_id = account_id_from_auth(auth).ok_or("accountError.invalidAccount")?;
+    auth["tokens"]["account_id"] = Value::String(account_id);
+    Ok(true)
+}
+
 fn token_payload(auth: &Value, key: &str) -> Option<Value> {
     auth.get("tokens")
         .and_then(|tokens| tokens.get(key))
@@ -802,7 +816,7 @@ fn auth_from_oauth_token_response(token_response: &Value) -> Result<Value, Strin
     let id_token = non_empty_string(token_response.get("id_token"))
         .ok_or_else(|| "accountError.authResponse".to_string())?;
     let refresh_token = non_empty_string(token_response.get("refresh_token"));
-    Ok(serde_json::json!({
+    let mut auth = serde_json::json!({
         "auth_mode": "chatgpt",
         "tokens": {
             "id_token": id_token,
@@ -811,7 +825,9 @@ fn auth_from_oauth_token_response(token_response: &Value) -> Result<Value, Strin
             "account_id": Value::Null,
         },
         "last_refresh": chrono::Utc::now().to_rfc3339(),
-    }))
+    });
+    ensure_native_account_id(&mut auth)?;
+    Ok(auth)
 }
 
 fn store_oauth_token_response(token_response: &Value) -> Result<CodexAccountSummary, String> {
@@ -1152,9 +1168,16 @@ fn switch_account_at(
 
     let saved_path = store_dir.join(format!("{account_id}.json"));
     let raw = fs::read(&saved_path).map_err(|_| "accountError.invalidAccount".to_string())?;
-    let auth: Value = serde_json::from_slice(&raw)
+    let mut auth: Value = serde_json::from_slice(&raw)
         .map_err(|error| format!("accountError.invalidAccount|{error}"))?;
     let metadata = metadata_from_auth(&auth, &raw)?;
+    let raw = if ensure_native_account_id(&mut auth)? {
+        let repaired = serde_json::to_vec_pretty(&auth).map_err(|_| "accountError.format")?;
+        write_private_file(&saved_path, &repaired)?;
+        repaired
+    } else {
+        raw
+    };
 
     let keychain_is_current = read_oauth_snapshot(auth_path).is_none()
         && read_keychain_raw(auth_path.parent().unwrap_or(Path::new("")))?.is_some();
@@ -2160,16 +2183,93 @@ mod tests {
     #[test]
     fn oauth_creation_records_native_last_refresh() {
         let before = chrono::Utc::now();
+        let access_token = jwt(json!({
+            "https://api.openai.com/auth": { "chatgpt_account_id": "fixture-account" }
+        }));
         let auth = auth_from_oauth_token_response(&json!({
-            "access_token":"fixture-access", "id_token":"fixture-id", "refresh_token":"fixture-refresh"
-        })).unwrap();
+            "access_token": access_token, "id_token":"fixture-id", "refresh_token":"fixture-refresh"
+        }))
+        .unwrap();
         assert_recent_last_refresh(&auth, before);
         assert_eq!(auth["auth_mode"], "chatgpt");
-        assert_eq!(auth["tokens"]["access_token"], "fixture-access");
+        assert_eq!(auth["tokens"]["access_token"], access_token);
         assert_eq!(auth["tokens"]["id_token"], "fixture-id");
         assert_eq!(auth["tokens"]["refresh_token"], "fixture-refresh");
-        assert_eq!(auth["tokens"]["account_id"], Value::Null);
+        assert_eq!(auth["tokens"]["account_id"], "fixture-account");
         assert!(auth_from_oauth_token_response(&json!({"access_token":"fixture"})).is_err());
+        assert!(auth_from_oauth_token_response(&json!({
+            "access_token":"opaque-access", "id_token":"fixture-id"
+        }))
+        .is_err());
+    }
+
+    #[test]
+    fn explicit_switch_repairs_legacy_workspace_id_but_listing_never_writes() {
+        for missing in [None, Some(Value::Null), Some(json!(" "))] {
+            let root = temp_dir("legacy-workspace");
+            let auth_path = root.join("native/auth.json");
+            let backup = root.join("backup.json");
+            let store = root.join("accounts");
+            let mut auth: Value = serde_json::from_slice(&oauth(
+                "fixture@example.test",
+                "fixture-account",
+                "fixture-refresh",
+            ))
+            .unwrap();
+            match missing {
+                Some(value) => auth["tokens"]["account_id"] = value,
+                None => {
+                    auth["tokens"].as_object_mut().unwrap().remove("account_id");
+                }
+            }
+            auth["native_setting"] = json!({"keep": true});
+            auth["tokens"]["oauth_provenance"] = json!({"issuer": "fixture"});
+            let original = serde_json::to_vec_pretty(&auth).unwrap();
+            let metadata = save_snapshot(&original, &auth, &store).unwrap();
+            let saved_path = store.join(format!("{}.json", metadata.id));
+
+            let listed = list_accounts_at(&auth_path, &store).unwrap();
+            assert_eq!(listed.len(), 1);
+            assert!(!listed[0].active);
+            assert_eq!(fs::read(&saved_path).unwrap(), original);
+            assert!(!auth_path.exists());
+            assert!(!backup.exists());
+
+            let applied = switch_account_at(&metadata.id, &auth_path, &backup, &store).unwrap();
+            assert_eq!(applied.id, metadata.id);
+            assert!(applied.active);
+            let repaired = fs::read(&auth_path).unwrap();
+            let native: Value = serde_json::from_slice(&repaired).unwrap();
+            assert_eq!(native["tokens"]["account_id"], "fixture-account");
+            auth["tokens"]["account_id"] = json!("fixture-account");
+            assert_eq!(native, auth);
+            assert_eq!(fs::read(&saved_path).unwrap(), repaired);
+            assert!(!backup.exists());
+            assert!(list_accounts_at(&auth_path, &store).unwrap()[0].active);
+            fs::remove_dir_all(root).unwrap();
+        }
+    }
+
+    #[test]
+    fn explicit_workspace_selection_is_preserved_and_missing_identity_is_rejected() {
+        let mut auth: Value = serde_json::from_slice(&oauth(
+            "fixture@example.test",
+            "selected-workspace",
+            "fixture-refresh",
+        ))
+        .unwrap();
+        auth["tokens"]["access_token"] = json!(jwt(json!({
+            "https://api.openai.com/auth": { "chatgpt_account_id": "other-workspace" }
+        })));
+        let original = auth.clone();
+        assert!(!ensure_native_account_id(&mut auth).unwrap());
+        assert_eq!(auth, original);
+
+        auth["tokens"]["account_id"] = Value::Null;
+        auth["tokens"]["access_token"] = json!("opaque-access");
+        let original = auth.clone();
+        assert!(ensure_native_account_id(&mut auth).is_err());
+        assert_eq!(auth, original);
     }
 
     #[test]
