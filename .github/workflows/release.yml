@@ -4,6 +4,12 @@ on:
   push:
     tags:
       - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing unpublished release tag to build
+        required: true
+        type: string
 
 # Opt into Node.js 24 runner for all JavaScript-based actions before the
 # 2026-06-02 forced switch (mirrors the same opt-in in ci.yml).
@@ -29,9 +35,13 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REPO: ${{ github.repository }}
-          TAG: ${{ github.ref_name }}
+          TAG: ${{ inputs.tag || github.ref_name }}
         run: |
           set -euo pipefail
+          [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          if [ "$(gh release view "$TAG" --repo "$REPO" --json isDraft -q .isDraft 2>/dev/null || echo missing)" = false ]; then
+            echo "::error::Refusing to replace a published release"; exit 1
+          fi
           # Reuse an existing draft for this tag (safe on workflow re-runs),
           # otherwise create one. Either path yields a single release id.
           ID=$(gh api --paginate "repos/${REPO}/releases" \
@@ -85,6 +95,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.tag || github.ref_name }}
 
       # AppKit chooses traffic-light metrics from the linked SDK. SDK 15
       # produces smaller buttons centered at y=24 with our inset; SDK 26+
@@ -139,29 +151,12 @@ jobs:
           ANTIGRAVITY_OAUTH_CLIENT_SECRET: ${{ secrets.ANTIGRAVITY_OAUTH_CLIENT_SECRET }}
         run: test -n "$ANTIGRAVITY_OAUTH_CLIENT_ID" && test -n "$ANTIGRAVITY_OAUTH_CLIENT_SECRET"
 
-      # The pinned Tauri CLI lives once, in package.json's `tauri` script. tauri-action
-      # adds `--` before args for npm scripts, so pass the npx command itself.
-      - name: Read the pinned Tauri CLI
-        id: tauri-cli
-        shell: bash
-        run: echo "script=$(node -p "require('./package.json').scripts.tauri")" >> "$GITHUB_OUTPUT"
-
       - name: Build the app
-        uses: tauri-apps/tauri-action@v0
+        shell: bash
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           ANTIGRAVITY_OAUTH_CLIENT_ID: ${{ secrets.ANTIGRAVITY_OAUTH_CLIENT_ID }}
           ANTIGRAVITY_OAUTH_CLIENT_SECRET: ${{ secrets.ANTIGRAVITY_OAUTH_CLIENT_SECRET }}
-        with:
-          # Upload to the single draft created by `create-release` above.
-          # Using releaseId (instead of tagName/releaseDraft) makes tauri-action
-          # upload to the EXISTING release rather than create its own — this is
-          # what removes the duplicate-draft race across the matrix. The release
-          # stays a draft (created that way) until the operator flips it public
-          # as the last step via `gh release edit <tag> --draft=false`.
-          releaseId: ${{ needs.create-release.outputs.release_id }}
-          tauriScript: ${{ steps.tauri-cli.outputs.script }}
-          args: ${{ matrix.args }}
+        run: npm run tauri -- build ${{ matrix.args }}
 
       - name: Verify packaged macOS SDK
         if: runner.os == 'macOS'
@@ -176,6 +171,47 @@ jobs:
           test -n "$SDK_VERSION"
           test "${SDK_VERSION%%.*}" -ge 26
 
+      - name: Upload verified installers to the draft
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          TAG: ${{ inputs.tag || github.ref_name }}
+          RUST_TARGET: ${{ matrix.rust-target }}
+        run: |
+          set -euo pipefail
+          test "$(gh release view "$TAG" --repo "$REPO" --json isDraft -q .isDraft)" = true
+          python - <<'PYUPLOAD'
+          from pathlib import Path
+          import os, shutil, subprocess, time, hashlib
+          target = os.environ['RUST_TARGET']
+          version = os.environ['TAG'].removeprefix('v')
+          arch = 'arm64' if target.startswith('aarch64') else 'x64'
+          if 'windows' in target:
+              formats = {'exe': f'Windows_{arch}-setup.exe', 'msi': f'Windows_{arch}.msi'}
+          elif 'darwin' in target:
+              formats = {'dmg': f'macOS_{arch}.dmg'}
+          else:
+              formats = {'deb': f'Linux_{arch}.deb', 'rpm': f'Linux_{arch}.rpm'}
+          bundle = Path('src-tauri/target/release/bundle')
+          out = Path(os.environ['RUNNER_TEMP']) / 'echobird-installers'
+          out.mkdir(exist_ok=True)
+          for extension, suffix in formats.items():
+              files = list(bundle.rglob('*.' + extension))
+              if len(files) != 1: raise SystemExit(f'Expected one {extension} installer, found {len(files)}')
+              package = files[0]
+              if package.stat().st_size == 0: raise SystemExit('Empty installer')
+              upload = out / f'EchoBird_{version}_{suffix}'
+              shutil.copy2(package, upload)
+              print(upload.name, upload.stat().st_size, hashlib.sha256(upload.read_bytes()).hexdigest(), flush=True)
+              for attempt in range(3):
+                  result = subprocess.run(['gh', 'release', 'upload', os.environ['TAG'],
+                      '--repo', os.environ['REPO'], str(upload), '--clobber'])
+                  if result.returncode == 0: break
+                  if attempt == 2: raise SystemExit(result.returncode)
+                  time.sleep(10)
+          PYUPLOAD
+
   rename-assets:
     # Tauri's bundler uses inconsistent filenames (no platform label, RPM "-1"
     # release counter, version-less updater bundle). Rename every asset on the
@@ -189,7 +225,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REPO: ${{ github.repository }}
-          TAG: ${{ github.ref_name }}
+          TAG: ${{ inputs.tag || github.ref_name }}
         run: |
           set -euo pipefail
           VER="${TAG#v}"
