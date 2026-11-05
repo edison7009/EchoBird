@@ -456,7 +456,7 @@ export function ModelIdCombobox({
                     <>
                       <span className="min-w-0 truncate">{label(opt)}</span>
                       <span
-                        className={`shrink-0 font-sans ${free ? 'text-cyber-accent' : 'text-cyber-text-muted'}`}
+                        className={`shrink-0 font-sans ${free ? 'text-green-500' : 'text-cyber-text-muted'}`}
                       >
                         {free ? freeLabel : `${multiplier}×`}
                       </span>

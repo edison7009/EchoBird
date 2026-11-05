@@ -123,10 +123,10 @@ it('clamps window/sidebar changes without losing the preferred width or writing 
   mount();
   available = 700;
   act(() => resize());
-  expect(width()).toBe(308);
+  expect(width()).toBe(314);
   available = 600;
   act(() => resize());
-  expect(width()).toBe(208);
+  expect(width()).toBe(214);
   available = 1100;
   act(() => resize());
   expect(width()).toBe(500);

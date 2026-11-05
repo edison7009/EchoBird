@@ -216,3 +216,39 @@ test('network failure returns an error without attachment headers', async () => 
   assert.equal(response.status, 503);
   assert.equal(response.headers.get('Content-Disposition'), null);
 });
+
+for (const source of ['cnb', 'gitcode']) {
+  for (const [platform, installer] of [
+    ['windows', 'Windows_x64-setup.exe'],
+    ['windows-msi', 'Windows_x64.msi'],
+    ['macos-arm', 'macOS_arm64.dmg'],
+    ['macos-intel', 'macOS_x64.dmg'],
+    ['linux-deb', 'Linux_x64.deb'],
+    ['linux-rpm', 'Linux_x64.rpm'],
+    ['linux-arm64-deb', 'Linux_arm64.deb'],
+    ['linux-arm64-rpm', 'Linux_arm64.rpm'],
+  ]) {
+    test(`${source} serves the matching ${platform} installer`, async () => {
+      const { default: isolatedWorker } = await import(
+        `../../docs/_worker.js?mirror=${source}&platform=${platform}`
+      );
+      const filename = `EchoBird_6.2.1_${installer}`;
+      mock.method(globalThis, 'fetch', async () =>
+        Response.json({
+          version: '6.2.1',
+          files: { [filename]: { size: 123, sha256: 'fixture' } },
+        })
+      );
+      const response = await isolatedWorker.fetch(
+        new Request(`https://echobird.ai/download/${platform}?source=${source}`),
+        createEnv(() => Response.json({ version: '6.2.1' }))
+      );
+      assert.equal(response.status, 302);
+      assert.equal(response.headers.get('X-EchoBird-Source'), source);
+      const location = new URL(response.headers.get('Location'));
+      assert.equal(location.hostname, source === 'cnb' ? 'cnb.cool' : 'api.gitcode.com');
+      assert.equal(decodeURIComponent(location.pathname.split('/').at(-1)), filename);
+      assert.equal(response.headers.get('X-EchoBird-Size'), '123');
+    });
+  }
+}

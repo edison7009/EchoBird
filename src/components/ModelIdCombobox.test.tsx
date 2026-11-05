@@ -327,7 +327,7 @@ it('shows reliable positive multipliers without rounding and prioritizes the fre
   act(() => input().props.onFocus());
   const badges = (index: number) => options()[index].findAllByType('span');
   expect(badges(0).map((node) => node.children)).toEqual([['free-id'], ['免费']]);
-  expect(badges(0)[1].props.className).toContain('text-cyber-accent');
+  expect(badges(0)[1].props.className).toContain('text-green-500');
   expect(badges(1).map((node) => node.children)).toEqual([['zero-id'], ['免费']]);
   expect(badges(2).map((node) => node.children)).toEqual([['Paid display name'], ['0.79×']]);
   expect(badges(2)[1].props.className).toContain('text-cyber-text-muted');
@@ -704,7 +704,7 @@ it('stably puts free models first without changing a manually entered ID', () =>
   for (const row of options().slice(0, 5)) {
     const badge = row.findAllByType('span')[1];
     expect(badge.children).toEqual(['免费']);
-    expect(badge.props.className).toContain('text-cyber-accent');
+    expect(badge.props.className).toContain('text-green-500');
   }
   expect(input().props.value).toBe('manual/Unlisted-ID');
   expect(props.onChange).not.toHaveBeenCalled();

@@ -7,7 +7,7 @@ const DEFAULT_WIDTH = 300; // Existing w-80 at the app's 15px root font size.
 const MIN_WIDTH = 260;
 const MAX_WIDTH = 520;
 const CENTER_MIN_WIDTH = 380;
-const GAP = 12;
+const GAP = 6;
 
 function readWidth() {
   try {

@@ -8,6 +8,7 @@ import * as voiceApi from '../api/voiceInput';
 import { useSidebarStore } from '../stores/sidebarStore';
 import { useNavigationStore } from '../stores/navigationStore';
 import { Mic, RefreshCw, MessagesSquare, Waypoints } from 'lucide-react';
+import { RoutingHint } from './RoutingToggle';
 
 vi.mock('./BirdEasterEgg', () => ({ BirdEasterEgg: () => null }));
 const showToast = vi.hoisted(() => vi.fn());
@@ -93,6 +94,14 @@ describe('Sidebar', () => {
       const settings = renderer.root.findByProps({ 'aria-label': 'settings.title' });
       const buttons = renderer.root.findAllByType('button');
       expect(buttons[buttons.length - 1]).toBe(settings);
+      const hints = renderer.root
+        .findAllByType(RoutingHint)
+        .filter((hint) => hint.props.hint === 'settings.title');
+      expect(hints).toHaveLength(collapsed ? 1 : 0);
+      if (collapsed) {
+        expect(hints[0].props.placement).toBe('right');
+        expect(hints[0].props.navigation).toBe(true);
+      }
       const switches = renderer.root.findAllByProps({ role: 'switch' });
       expect(switches).toHaveLength(2);
       act(() => settings.props.onClick());

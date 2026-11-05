@@ -209,6 +209,7 @@
 }
 .ph-card-installed,
 .ph-card .ph-install {
+  flex-shrink: 0;
   position: relative;
   z-index: 1;
 }
@@ -326,7 +327,14 @@
   justify-content: space-between;
   min-height: 26px;
 }
+.ph-card-bottom > .ph-muted {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .ph-install {
+  white-space: nowrap;
   color: rgb(var(--accent-rgb));
   font-size: 13px;
   padding: 3px 10px;

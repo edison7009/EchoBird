@@ -161,6 +161,17 @@ export const Sidebar = ({
     if (error) showToast('error', error.startsWith('voice.') ? t(error as TKey) : error);
   };
 
+  const settingsButton = (
+    <button
+      type="button"
+      aria-label={t('settings.title')}
+      onClick={onSettingsClick}
+      className={`flex h-10 items-center rounded-lg font-medium text-cyber-text-secondary transition-colors hover:bg-cyber-elevated/50 hover:text-cyber-text ${collapsed ? 'mx-auto w-10 justify-center' : 'min-w-0 flex-1 gap-3 px-2'}`}
+    >
+      <Settings size={20} strokeWidth={1.75} />
+      <span className={collapsed ? 'sr-only' : undefined}>{t('settings.title')}</span>
+    </button>
+  );
   return (
     <nav
       id="app-sidebar"
@@ -325,16 +336,16 @@ export const Sidebar = ({
             <span className="text-cyber-accent font-semibold">{t('status.running')}</span>
           </div>
         )}
-        <div className="mt-2 flex items-center gap-1 border-t border-cyber-border/50 pt-2">
-          <button
-            type="button"
-            aria-label={t('settings.title')}
-            onClick={onSettingsClick}
-            className={`flex h-10 items-center rounded-lg font-medium text-cyber-text-secondary transition-colors hover:bg-cyber-elevated/50 hover:text-cyber-text ${collapsed ? 'mx-auto w-10 justify-center' : 'min-w-0 flex-1 gap-3 px-2'}`}
-          >
-            <Settings size={20} strokeWidth={1.75} />
-            <span className={collapsed ? 'sr-only' : undefined}>{t('settings.title')}</span>
-          </button>
+        <div
+          className={`mt-2 flex items-center gap-1 border-t border-cyber-border/50 pt-2 ${collapsed ? 'justify-center' : ''}`}
+        >
+          {collapsed ? (
+            <RoutingHint hint={t('settings.title')} placement="right" navigation>
+              {settingsButton}
+            </RoutingHint>
+          ) : (
+            settingsButton
+          )}
           {!collapsed && downloadButton}
         </div>
       </div>
