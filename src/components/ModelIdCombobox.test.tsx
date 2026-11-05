@@ -1028,7 +1028,7 @@ it('retains the free badge after selection and clears it when switching to a pai
   });
   const badge = () =>
     button('Route model').findAllByProps({
-      className: 'shrink-0 font-sans text-cyber-accent',
+      className: 'shrink-0 font-sans text-green-500',
     });
   expect(badge()).toHaveLength(0);
   act(() => button('Open from card').props.onClick());

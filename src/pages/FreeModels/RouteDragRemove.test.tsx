@@ -464,7 +464,7 @@ describe('Remove router candidates by dragging', () => {
             const index = savedModels.findIndex((candidate) => candidate.internalId === model.id);
             return {
               getBoundingClientRect: () => {
-                const columns = stageWidth >= 528 ? 3 : stageWidth >= 344 ? 2 : 1;
+                const columns = Math.max(1, Math.floor((stageWidth + 24) / 264));
                 const x = stageWidth / 2 + ((index % columns) - (columns - 1) / 2) * 200;
                 return rect(40 + x - 80, 50 + 204 + Math.floor(index / columns) * 116, 160, 80);
               },
@@ -652,18 +652,35 @@ describe('Remove router candidates by dragging', () => {
     expectNoRemoval();
   });
 
+  it('adds columns beyond three on wide stages and reconnects without changing candidates', async () => {
+    const geometry = await openGeometry(8, 1400);
+    const grid = () =>
+      renderer.root.findByProps({ className: 'free-model-node-grid relative z-10' });
+    expect(grid().props.style.gridTemplateColumns).toMatch(/^repeat\(5,/);
+    expect(visiblePaths().length).toBeGreaterThan(0);
+    const reads = vi.mocked(api.getSmartRouterCandidates).mock.calls.length;
+    await geometry.resize(2000);
+    expect(grid().props.style.gridTemplateColumns).toMatch(/^repeat\(7,/);
+    expect(visiblePaths().length).toBeGreaterThan(0);
+    await geometry.resize(240);
+    expect(grid().props.style.gridTemplateColumns).toMatch(/^repeat\(1,/);
+    expect(visiblePaths().every((path) => !/[AH]/.test(path))).toBe(true);
+    expect(api.getSmartRouterCandidates).toHaveBeenCalledTimes(reads);
+    expectNoRemoval();
+  });
+
   it('keeps odd-column and single-column connections clean after a stage resize', async () => {
     const geometry = await openGeometry(4);
-    await geometry.resize(620);
+    await geometry.resize(790);
     const grid = renderer.root.findByProps({ className: 'free-model-node-grid relative z-10' });
     expect(grid.props.style.gridTemplateColumns).toMatch(/^repeat\(3,/);
     let paths = visiblePaths();
     expect(paths.filter((path) => path.includes(' A '))).toEqual([
-      'M 110 201 V 184 A 12 12 0 0 1 122 172',
-      'M 510 201 V 184 A 12 12 0 0 0 498 172',
+      'M 195 201 V 184 A 12 12 0 0 1 207 172',
+      'M 595 201 V 184 A 12 12 0 0 0 583 172',
     ]);
     expect(paths.every((path) => !path.includes(' C '))).toBe(true);
-    expect(paths).toContain('M 110 317 V 287');
+    expect(paths).toContain('M 195 317 V 287');
     await geometry.resize(240);
     expect(grid.props.style.gridTemplateColumns).toMatch(/^repeat\(1,/);
     paths = visiblePaths();

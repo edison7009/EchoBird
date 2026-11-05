@@ -345,7 +345,7 @@ export function ModelIdCombobox({
         >
           <span className="min-w-0 truncate">{label(value) || placeholder}</span>
           {showSelectedFreeLabel && freeIds.has(value) && (
-            <span className="shrink-0 font-sans text-cyber-accent">{freeLabel}</span>
+            <span className="shrink-0 font-sans text-green-500">{freeLabel}</span>
           )}
           <ChevronDown
             size={12}

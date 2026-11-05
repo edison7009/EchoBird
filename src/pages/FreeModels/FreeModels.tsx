@@ -96,6 +96,7 @@ import { RouterGroups } from './RouterGroups';
 export { FreeModelsProvider, useFreeModels } from './provider';
 
 const NODE_COLUMN_GAP = 24;
+const NODE_MIN_WIDTH = 240;
 
 const NODE_ROW_GAP = 36;
 
@@ -1203,11 +1204,9 @@ function FreeModelsContent({
     setNodeColumns(
       Math.max(
         1,
-        Math.min(
-          3,
-          Math.floor(
-            (stageBox.width - NODE_SIDE_PADDING * 2 + NODE_COLUMN_GAP) / (160 + NODE_COLUMN_GAP)
-          )
+        Math.floor(
+          (stageBox.width - NODE_SIDE_PADDING * 2 + NODE_COLUMN_GAP) /
+            (NODE_MIN_WIDTH + NODE_COLUMN_GAP)
         )
       )
     );
