@@ -81,9 +81,13 @@ export function UsageIslandMain() {
   );
   const [demoPick, setDemoPick] = useState<string | null>(null);
   return (
-    <div className="flex-1 overflow-y-auto pr-1 pb-3">
+    <div className="usage-island-editor flex-1 overflow-y-auto pr-1 pb-3">
       <div className="usage-island-page">
-        <section className="usage-island-stage" aria-label={t('developer.usageIsland')}>
+        <section
+          className="usage-island-stage"
+          aria-label={t('developer.usageIsland')}
+          style={{ '--usage-island-scale': config.scale / 100 } as CSSProperties}
+        >
           <div
             className="usage-island-preview"
             style={{ '--usage-island-scale': config.scale / 100 } as CSSProperties}
@@ -95,8 +99,8 @@ export function UsageIslandMain() {
               onPick={setDemoPick}
             />
           </div>
-          <UsageIslandSlots sources={sources} />
         </section>
+        <UsageIslandSlots sources={sources} />
         <div className="usage-island-lower">
           <div className="usage-island-styles">
             {usageIslandStyles.map((style) => {
