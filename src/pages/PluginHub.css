@@ -176,7 +176,7 @@
 }
 .ph-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 16rem), 1fr));
   gap: 12px;
 }
 .ph-card {
@@ -551,14 +551,4 @@
   overflow-wrap: anywhere;
   white-space: pre-line;
   margin: 12px 0;
-}
-@container plugin-main (max-width: 780px) {
-  .ph-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-@container plugin-main (max-width: 480px) {
-  .ph-grid {
-    grid-template-columns: minmax(0, 1fr);
-  }
 }

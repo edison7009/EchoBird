@@ -1,14 +1,8 @@
 .model-nexus-grid {
-  grid-template-columns: repeat(
-    auto-fit,
-    minmax(min(100%, max(16rem, calc((100% - 2rem) / 3))), 1fr)
-  );
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr));
 }
 
-/* Keep three columns with few models, so one card does not stretch across two. */
+/* Keep empty tracks with few models, so one card does not fill the entire row. */
 .model-nexus-grid-fill {
-  grid-template-columns: repeat(
-    auto-fill,
-    minmax(min(100%, max(16rem, calc((100% - 2rem) / 3))), 1fr)
-  );
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 16rem), 1fr));
 }
