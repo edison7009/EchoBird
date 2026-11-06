@@ -133,8 +133,8 @@ export const RemoteModelSelector: React.FC<RemoteModelSelectorProps> = ({
             {currentModel && renderIcon(currentModel, 'w-3.5 h-3.5', 14)}
             <span className="truncate max-w-[140px]">{displayText}</span>
             <ChevronDown
-              size={11}
-              className={`flex-shrink-0 opacity-60 transition-transform ${isOpen ? 'rotate-180' : ''}`}
+              size={12}
+              className={`h-3 w-3 flex-shrink-0 opacity-60 ${isOpen ? 'rotate-180' : ''}`}
             />
           </>
         )}

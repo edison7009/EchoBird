@@ -869,11 +869,9 @@ const en: Translations = {
   'mother.hintInstallCuda': 'Help me install CUDA modules',
   'mother.hintInstallGit': 'Help me install Git',
   'mother.hintUnlockCodexPlugins': '',
-  'mother.parasiteTipInstalled':
-    "I'm an AI assistant — short memory, sharp install skills, here to launch you into AI. Once your Claude Code is configured with a model, pick it on the right to keep talking here.",
-  'mother.parasiteTipNotInstalled':
-    "I'm an AI assistant — short memory, sharp install skills, here to launch you into AI. Install Claude Code and configure a model, then pick it on the right to keep talking here.",
-  'mother.contextUsage': 'Context usage {used}KB / {total}KB ({pct}%)',
+  'mother.contextUsage': 'Context usage {used}KB / {total} ({pct}%)',
+  'mother.contextSize': 'Context size',
+  'mother.contextSizeLocked': 'Fixed for this conversation',
   'terminal.thinking': 'thinking',
   'ssh.winNote':
     'Windows SSH deployment is more complex than Linux/macOS. Recommended: install EchoBird on the Windows machine first, then use AI Assistant to set up local SSH access for you.',

@@ -46,6 +46,9 @@ export function MotherAgentMain() {
     parasiteAgent,
     setParasiteAgent,
     parasiteAvailable,
+    contextSize,
+    contextSizeEditable,
+    setContextSize,
   } = useMotherAgent();
   // A first-visit chunk can arrive after the provider's prefill focus timer.
   const initialInput = useRef(chatInput);
@@ -76,7 +79,7 @@ export function MotherAgentMain() {
   );
 
   // Estimated UTF-8 byte footprint of the current chat — shown in the
-  // "?" hint so users can see how close they are to the
+  // usage ring so users can see how close they are to the
   // agent_loop trim threshold (MAX_CONTEXT_BYTES in echobird_core).
   // estimateContextBytes re-encodes the whole transcript; recomputing it on
   // every streamed token is O(n^2) and only updates a coarse usage estimate, so
@@ -356,16 +359,6 @@ export function MotherAgentMain() {
             className="w-full bg-transparent px-2 py-1 text-sm text-cyber-text font-sans font-medium outline-none placeholder:text-cyber-text-muted disabled:opacity-30 resize-none"
           />
           <div className="flex items-center justify-end gap-1.5">
-            {/* Soft nudge sits LEFT of the model selector so it doesn't
-                interrupt the natural "pick model → send" action flow on the
-                right. Hidden once the user is already in parasite mode. */}
-            {parasiteAgent !== PARASITE_CLAUDE_ID && (
-              <ParasiteHint
-                ccInstalled={parasiteAvailable.includes(PARASITE_CLAUDE_ID)}
-                contextBytes={contextBytes}
-                contextMaxBytes={MA_CONTEXT_MAX_BYTES}
-              />
-            )}
             <RemoteModelSelector
               models={modelList}
               currentModelId={parasiteAgent || agentModel}
@@ -412,6 +405,15 @@ export function MotherAgentMain() {
               disabled={isResetting || !isMotherActive}
               onChange={setReasoningEffort}
             />
+            {/* This estimate belongs to EchoBird's own context loop. */}
+            {parasiteAgent !== PARASITE_CLAUDE_ID && (
+              <ContextUsage
+                contextBytes={contextBytes}
+                contextSize={contextSize}
+                editable={contextSizeEditable}
+                onContextSizeChange={setContextSize}
+              />
+            )}
             {isProcessing ? (
               <button
                 onClick={() => abortAgent()}
@@ -445,6 +447,9 @@ const PARASITE_CLAUDE_ID = 'claudecode';
 // Used only for visualization — the actual trim happens server-side. Keep
 // this value in sync with the Rust constant whenever it changes.
 const MA_CONTEXT_MAX_BYTES = 300_000;
+export const MOTHER_CONTEXT_OPTIONS = [
+  8192, 16384, 32768, 65536, 131072, 262144, 524288, 1048576,
+] as const;
 
 // Rough UTF-8 byte estimate of what gets serialized into the LLM payload.
 // Doesn't have to match Rust's tally exactly — it just needs to grow at the
@@ -470,47 +475,139 @@ function estimateContextBytes(messages: readonly ChatMessage[]): number {
   return total;
 }
 
-// ===== Parasite Hint =====
-// Themed "?" glyph next to the model selector that nudges the user toward
-// Claude Code when they're chatting with EchoBird's own short-memory loop.
-// Tooltip copy adapts to whether CC is already installed (action: switch)
-// vs not installed (action: install first). Matches the visual pattern of
-// AppManager's relay-mode "?" — bottom-anchored caret since we live in the
-// bottom toolbar.
-
-interface ParasiteHintProps {
-  ccInstalled: boolean;
+// ===== Context usage =====
+interface ContextUsageProps {
   contextBytes: number;
-  contextMaxBytes: number;
+  contextSize?: number;
+  editable: boolean;
+  onContextSizeChange: (size: number) => void;
 }
 
-function ParasiteHint({ ccInstalled, contextBytes, contextMaxBytes }: ParasiteHintProps) {
+function ContextUsage({
+  contextBytes,
+  contextSize,
+  editable,
+  onContextSizeChange,
+}: ContextUsageProps) {
   const { t } = useI18n();
-  const baseTip = ccInstalled
-    ? t('mother.parasiteTipInstalled')
-    : t('mother.parasiteTipNotInstalled');
-  const ratio = contextBytes / contextMaxBytes;
-  const pct = Math.min(100, Math.round(ratio * 100));
+  const [open, setOpen] = useState(false);
+  const canEdit = editable && contextSize !== undefined;
+  const contextMaxBytes = contextSize ? contextSize * 4 : MA_CONTEXT_MAX_BYTES;
+  const ratio = Math.max(0, Math.min(1, contextBytes / contextMaxBytes));
+  const pct = Math.round(ratio * 100);
+  const formatSize = (size: number) =>
+    size >= 1_048_576 ? `${size / 1_048_576}M` : `${size / 1024}K`;
+  const totalLabel = contextSize
+    ? formatSize(contextSize)
+    : `${Math.round(contextMaxBytes / 1024)}K`;
+  const contextIndex = Math.max(
+    0,
+    MOTHER_CONTEXT_OPTIONS.findIndex((size) => size === contextSize)
+  );
+  const contextProgress = `calc(9px + (100% - 18px) * ${contextIndex / (MOTHER_CONTEXT_OPTIONS.length - 1)})`;
+  const contextColorClass =
+    ratio === 0
+      ? 'text-cyber-text-secondary'
+      : ratio <= 0.7
+        ? 'text-green-500'
+        : ratio <= 0.9
+          ? 'text-cyber-warning'
+          : 'text-cyber-error';
   const usageLine = t('mother.contextUsage')
     .replace('{used}', Math.round(contextBytes / 1024).toString())
-    .replace('{total}', Math.round(contextMaxBytes / 1024).toString())
+    .replace('{total}', totalLabel)
     .replace('{pct}', pct.toString());
-  const ariaLabel = `${baseTip} ${usageLine}`;
-
+  useEffect(() => {
+    if (!open) return;
+    const close = (event: MouseEvent) => {
+      if (!(event.target as HTMLElement).closest('[data-context-usage]')) setOpen(false);
+    };
+    const escape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setOpen(false);
+    };
+    document.addEventListener('mousedown', close);
+    document.addEventListener('keydown', escape);
+    return () => {
+      document.removeEventListener('mousedown', close);
+      document.removeEventListener('keydown', escape);
+    };
+  }, [open]);
   return (
-    <span className="group relative inline-flex h-8 shrink-0 items-center cursor-default">
+    <span
+      data-context-usage
+      className="group relative inline-flex h-8 shrink-0 items-center cursor-default"
+    >
       <span
-        aria-label={ariaLabel}
-        className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-cyber-elevated font-sans text-xs font-medium leading-none text-cyber-text-secondary select-none hover:bg-cyber-accent/15 hover:text-cyber-accent transition-colors"
+        onClick={() => canEdit && setOpen((value) => !value)}
+        role="progressbar"
+        aria-label={usageLine}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={pct}
+        tabIndex={0}
+        aria-haspopup={canEdit ? 'dialog' : undefined}
+        aria-expanded={canEdit ? open : undefined}
+        data-open={canEdit && open ? true : undefined}
+        className="composer-tool-trigger inline-flex h-8 w-8 min-w-8 shrink-0 items-center justify-center rounded-button p-0 text-cyber-text-secondary focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyber-accent"
       >
-        ?
+        <svg width="18" height="18" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+          <circle cx="10" cy="10" r="7" stroke="currentColor" strokeWidth="2" opacity="0.2" />
+          <circle
+            cx="10"
+            cy="10"
+            r="7"
+            pathLength="100"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeDasharray={`${ratio * 100} 100`}
+            transform="rotate(-90 10 10)"
+            className={contextColorClass}
+          />
+        </svg>
       </span>
       <span
         role="tooltip"
-        className="app-tooltip pointer-events-none absolute right-0 bottom-full z-[100] mb-2 w-max max-w-64 rounded-md border px-2.5 py-1.5 text-xs leading-relaxed shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"
+        className={`app-tooltip mother-context-popover absolute right-0 bottom-full z-[100] mb-2 rounded-md border px-2.5 py-1.5 text-xs leading-relaxed shadow-lg transition-opacity ${canEdit && open ? 'pointer-events-auto opacity-100' : 'pointer-events-none opacity-0 group-hover:opacity-100 group-focus-within:opacity-100'}`}
       >
-        <span className="block">{baseTip}</span>
-        <span className="mt-1 block border-t border-white/15 pt-1 text-white/75">{usageLine}</span>
+        <span className="block">{usageLine}</span>
+        {canEdit && open && (
+          <div
+            className="relative mt-1 h-8"
+            style={{ '--context-progress': contextProgress } as React.CSSProperties}
+          >
+            <div aria-hidden="true" className="mother-reasoning-track">
+              <div className="mother-context-fill" />
+              {MOTHER_CONTEXT_OPTIONS.map((size, position) => (
+                <span
+                  key={size}
+                  className="mother-reasoning-stop"
+                  style={{
+                    left: `calc(9px + (100% - 18px) * ${position / (MOTHER_CONTEXT_OPTIONS.length - 1)})`,
+                  }}
+                />
+              ))}
+            </div>
+            <input
+              type="range"
+              min={0}
+              max={MOTHER_CONTEXT_OPTIONS.length - 1}
+              step={1}
+              value={contextIndex}
+              aria-label={t('mother.contextSize')}
+              aria-valuetext={formatSize(contextSize!)}
+              onChange={(event) =>
+                onContextSizeChange(
+                  MOTHER_CONTEXT_OPTIONS[Number(event.currentTarget.value)] ??
+                    MOTHER_CONTEXT_OPTIONS[0]
+                )
+              }
+              className="mother-reasoning-slider mother-context-slider relative block w-full"
+            />
+          </div>
+        )}
+        {!canEdit && (
+          <span className="mt-1 block text-white/60">{t('mother.contextSizeLocked')}</span>
+        )}
       </span>
     </span>
   );

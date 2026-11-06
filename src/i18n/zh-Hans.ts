@@ -773,11 +773,9 @@ const zhHans: Partial<Translations> = {
   'mother.hintInstallCuda': '帮我安装CUDA模块',
   'mother.hintInstallGit': '帮我安装 Git',
   'mother.hintUnlockCodexPlugins': '帮我安装 ChatGPT 汉化插件',
-  'mother.parasiteTipInstalled':
-    '我是 AI 助手，只有短暂的记忆和娴熟的安装能力，助你在 AI 领域启航。如果你的 Claude Code 配好了模型，在右侧选择它继续和你对话。',
-  'mother.parasiteTipNotInstalled':
-    '我是 AI 助手，只有短暂的记忆和娴熟的安装能力，助你在 AI 领域启航。建议先安装并为 Claude Code 配置模型，然后在右侧选择它继续和你对话。',
-  'mother.contextUsage': '上下文用量 {used}KB / {total}KB（{pct}%）',
+  'mother.contextUsage': '上下文用量 {used}KB / {total}（{pct}%）',
+  'mother.contextSize': '上下文大小',
+  'mother.contextSizeLocked': '此对话已固定',
   'terminal.thinking': '思考中',
   'ssh.winNote':
     'Windows 部署 SSH 较为复杂。建议在服务器端下载安装 EchoBird，然后通过“AI 助手”部署本机 SSH。',

@@ -735,11 +735,10 @@ export type TKey =
   | 'mother.displayName'
   | 'mother.optional'
   | 'mother.displayNamePlaceholder'
-  // Parasite "?" tooltip (next to model selector)
-  | 'mother.parasiteTipInstalled'
-  | 'mother.parasiteTipNotInstalled'
-  // Context-usage line in the "?" tooltip — {used}/{total}/{pct} placeholders
+  // Context usage — {used}/{total}/{pct} placeholders
   | 'mother.contextUsage'
+  | 'mother.contextSize'
+  | 'mother.contextSizeLocked'
   // Terminal status bar
   | 'terminal.thinking'
   // SSH Guide

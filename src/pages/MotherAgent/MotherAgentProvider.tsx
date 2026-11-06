@@ -349,11 +349,21 @@ export function MotherAgentProvider({ children }: { children: React.ReactNode })
     createConversation: createStoredConversation,
     selectConversation: selectStoredConversation,
     activeConversationId,
+    updateActiveConversation,
     deleteConversation: deleteStoredConversation,
     conversations,
   } = persistence;
   const selectedServerId = activeConversation.serverId;
   const sessionKey = activeConversation.sessionKey;
+  const contextSize = activeConversation.contextSize;
+  const setContextSize = useCallback(
+    (size: number) => {
+      if (activeConversation.messages.length > 0 || activeConversation.contextSize === undefined)
+        return;
+      updateActiveConversation({ contextSize: size });
+    },
+    [activeConversation, updateActiveConversation]
+  );
 
   const selectServer = useCallback(
     (id: string) => {
@@ -656,6 +666,7 @@ export function MotherAgentProvider({ children }: { children: React.ReactNode })
           skills: [],
           locale: locale || undefined,
           ...(run.reasoningEffort ? { reasoning_effort: run.reasoningEffort } : {}),
+          ...(contextSize ? { context_size: contextSize } : {}),
         });
       } catch (e) {
         if (runningRef.current !== run) return;
@@ -677,6 +688,7 @@ export function MotherAgentProvider({ children }: { children: React.ReactNode })
       selectedServerId,
       sessionKey,
       activeConversation.id,
+      contextSize,
       locale,
       parasiteAgent,
       setChatOutput,
@@ -751,6 +763,10 @@ export function MotherAgentProvider({ children }: { children: React.ReactNode })
         chatOutput,
         conversations: persistence.conversations,
         activeConversationId: persistence.activeConversationId,
+        contextSize: activeConversation.contextSize,
+        contextSizeEditable:
+          activeConversation.contextSize !== undefined && activeConversation.messages.length === 0,
+        setContextSize,
         createConversation,
         selectConversation,
         deleteConversation,

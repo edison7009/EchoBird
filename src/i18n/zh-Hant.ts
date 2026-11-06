@@ -808,11 +808,9 @@ const zhHant: Partial<Translations> = {
   'mother.hintDetectCuda': '檢測 CUDA 模組狀態',
   'mother.hintInstallCuda': '幫我安裝 CUDA 模組',
   'mother.hintInstallGit': '幫我安裝 Git',
-  'mother.parasiteTipInstalled':
-    '我是 AI 助手，只有短暫的記憶和嫻熟的安裝能力，助你在 AI 領域啟航。如果你的 Claude Code 配好了模型，在右側選擇它繼續和你對話。',
-  'mother.parasiteTipNotInstalled':
-    '我是 AI 助手，只有短暫的記憶和嫻熟的安裝能力，助你在 AI 領域啟航。建議先安裝並為 Claude Code 設定模型，然後在右側選擇它繼續和你對話。',
-  'mother.contextUsage': '上下文用量 {used}KB / {total}KB（{pct}%）',
+  'mother.contextUsage': '上下文用量 {used}KB / {total}（{pct}%）',
+  'mother.contextSize': '上下文大小',
+  'mother.contextSizeLocked': '此對話已固定',
   'terminal.thinking': '思考中',
   'ssh.winNote':
     'Windows 部署 SSH 較為複雜。建議在伺服器端下載安裝 EchoBird，然後透過「AI 助理」部署本機 SSH。',

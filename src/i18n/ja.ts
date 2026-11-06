@@ -849,11 +849,9 @@ const ja: Partial<Translations> = {
   'mother.hintDetectCuda': 'CUDA モジュールの状態を確認',
   'mother.hintInstallCuda': 'CUDA モジュールのインストールを支援',
   'mother.hintInstallGit': 'Git のインストールを支援',
-  'mother.parasiteTipInstalled':
-    'AI アシスタントです。短い記憶と確かなインストール能力で、AI の世界へのスタートをお手伝いします。Claude Code にモデルを設定済みであれば、右側で選択すると会話を続けられます。',
-  'mother.parasiteTipNotInstalled':
-    'AI アシスタントです。短い記憶と確かなインストール能力で、AI の世界へのスタートをお手伝いします。まず Claude Code をインストールしてモデルを設定し、その後右側で選択して会話を続けてください。',
-  'mother.contextUsage': 'コンテキスト使用量 {used}KB / {total}KB（{pct}%）',
+  'mother.contextUsage': 'コンテキスト使用量 {used}KB / {total}（{pct}%）',
+  'mother.contextSize': 'コンテキストサイズ',
+  'mother.contextSizeLocked': 'この会話では固定',
   'terminal.thinking': '思考中',
   'ssh.winNote':
     'Windows での SSH 展開は Linux / macOS より複雑です。サーバー側に EchoBird を先にインストールし、「AI アシスタント」から SSH を設定するのを推奨します。',

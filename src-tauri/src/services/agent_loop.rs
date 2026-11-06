@@ -76,6 +76,10 @@ pub struct AgentRequest {
     pub locale: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub reasoning_effort: Option<String>,
+    /// Token context window selected for a new conversation. Omitted for
+    /// legacy conversations, which retain the historical byte budget.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub context_size: Option<u32>,
 }
 
 impl AgentRequest {
@@ -338,6 +342,8 @@ pub async fn run_agent(
         },
     );
 
+    let context_bytes = agent_context::context_bytes_for_tokens(request.context_size);
+
     // 4. ReAct loop
     let mut loop_count = 0;
     let mut sse_retry_count = 0;
@@ -383,7 +389,9 @@ pub async fn run_agent(
         // One bounded handoff attempt per explicit turn. Failure leaves the
         // complete transcript intact and the existing working window usable.
         if !summary_attempted {
-            if let Some((through, transcript)) = agent_context::summary_candidate(&snapshot) {
+            if let Some((through, transcript)) =
+                agent_context::summary_candidate(&snapshot, context_bytes)
+            {
                 summary_attempted = true;
                 match summarize_history(&summary_client, through, &transcript, &cancel_token).await
                 {
@@ -404,7 +412,7 @@ pub async fn run_agent(
         if cancel_token.is_cancelled() {
             break;
         }
-        let mut messages = agent_context::working_messages(&snapshot, &memories);
+        let mut messages = agent_context::working_messages(&snapshot, &memories, context_bytes);
         ensure_tool_results_paired(&mut messages);
 
         // Call LLM. Logging the model name + active provider here turns
@@ -2575,6 +2583,7 @@ mod conversation_tests {
         assert!(request.conversation_id.is_none());
         assert!(request.request_id.is_none());
         assert!(request.reasoning_effort.is_none());
+        assert!(request.context_size.is_none());
         assert_eq!(request.session_key(), "server-a");
         request.server_ids.clear();
         assert_eq!(request.session_key(), "local");

@@ -2,8 +2,18 @@ use super::agent_history::{HistorySnapshot, HistorySummary};
 use super::llm_client::{ContentBlock, Message, MessageContent};
 
 pub const CONTEXT_BYTES: usize = 300_000;
-const COMPACT_AT_BYTES: usize = 220_000;
-const SUMMARY_INPUT_BYTES: usize = 120_000;
+const MIN_CONTEXT_BYTES: usize = 16 * 1024;
+const MAX_CONTEXT_BYTES: usize = 4 * 1024 * 1024;
+
+/// Convert the UI's token window to the conservative byte budget used by the
+/// history projector. Four bytes per token leaves room for JSON and UTF-8
+/// overhead while keeping the existing legacy budget when no value is sent.
+pub fn context_bytes_for_tokens(tokens: Option<u32>) -> usize {
+    tokens
+        .map(|value| (value as usize).saturating_mul(4))
+        .unwrap_or(CONTEXT_BYTES)
+        .clamp(MIN_CONTEXT_BYTES, MAX_CONTEXT_BYTES)
+}
 
 /// A crash can happen after a call was saved but before its outcome was saved.
 /// Mark that outcome unknown instead of pretending it ran or repeating it.
@@ -83,13 +93,18 @@ fn message_bytes(message: &Message) -> usize {
 }
 
 /// Select a completed prefix, keeping recent steps and tool pairs together.
-pub fn summary_candidate(snapshot: &HistorySnapshot) -> Option<(usize, String)> {
+pub fn summary_candidate(
+    snapshot: &HistorySnapshot,
+    context_bytes: usize,
+) -> Option<(usize, String)> {
     let start = snapshot
         .summary
         .as_ref()
         .map_or(0, |summary| summary.through);
     let remaining = &snapshot.messages[start..];
-    if remaining.iter().map(message_bytes).sum::<usize>() < COMPACT_AT_BYTES {
+    let compact_at = context_bytes.saturating_mul(11) / 15;
+    let summary_input_bytes = context_bytes.saturating_mul(2) / 5;
+    if remaining.iter().map(message_bytes).sum::<usize>() < compact_at {
         return None;
     }
     let mut pending = std::collections::HashSet::new();
@@ -100,7 +115,7 @@ pub fn summary_candidate(snapshot: &HistorySnapshot) -> Option<(usize, String)> 
             break;
         }
         let size = message_bytes(message);
-        if bytes + size > SUMMARY_INPUT_BYTES && through > start {
+        if bytes + size > summary_input_bytes && through > start {
             break;
         }
         bytes += size;
@@ -120,7 +135,7 @@ pub fn summary_candidate(snapshot: &HistorySnapshot) -> Option<(usize, String)> 
         if pending.is_empty() {
             through = index + 1;
         }
-        if bytes >= SUMMARY_INPUT_BYTES {
+        if bytes >= summary_input_bytes {
             break;
         }
     }
@@ -135,7 +150,7 @@ pub fn summary_candidate(snapshot: &HistorySnapshot) -> Option<(usize, String)> 
         });
     let text = render_history(&snapshot.messages[start..through], start);
     // A pathological single message stays recoverable in the original history.
-    let end = boundary(&text, SUMMARY_INPUT_BYTES.min(text.len()));
+    let end = boundary(&text, summary_input_bytes.min(text.len()));
     transcript.push_str(&text[..end]);
     if end < text.len() {
         transcript
@@ -145,7 +160,11 @@ pub fn summary_candidate(snapshot: &HistorySnapshot) -> Option<(usize, String)> 
 }
 
 /// Project history without rewriting the original transcript or learned notes.
-pub fn working_messages(snapshot: &HistorySnapshot, memories: &str) -> Vec<Message> {
+pub fn working_messages(
+    snapshot: &HistorySnapshot,
+    memories: &str,
+    context_bytes: usize,
+) -> Vec<Message> {
     let mut prefix = Vec::new();
     if !memories.is_empty() {
         prefix.push(Message { role: "user".into(), content: MessageContent::Text(format!(
@@ -163,12 +182,12 @@ pub fn working_messages(snapshot: &HistorySnapshot, memories: &str) -> Vec<Messa
     // Optional historical context must never displace the newest request.
     if snapshot.messages.last().is_some_and(|latest| {
         message_bytes(latest) + prefix.iter().map(message_bytes).sum::<usize>() + 512
-            > CONTEXT_BYTES
+            > context_bytes
     }) {
         prefix.clear();
     }
     let mut budget =
-        CONTEXT_BYTES.saturating_sub(prefix.iter().map(message_bytes).sum::<usize>() + 512);
+        context_bytes.saturating_sub(prefix.iter().map(message_bytes).sum::<usize>() + 512);
     if let Some(latest) = snapshot
         .messages
         .last()
@@ -177,7 +196,10 @@ pub fn working_messages(snapshot: &HistorySnapshot, memories: &str) -> Vec<Messa
         // Preserve visible intent even for a single entry exceeding the window.
         let visible = render_history(std::slice::from_ref(latest), snapshot.messages.len() - 1);
         // Allow for the maximum JSON escaping expansion of control characters.
-        let end = boundary(&visible, ((CONTEXT_BYTES - 512) / 6).min(visible.len()));
+        let end = boundary(
+            &visible,
+            (context_bytes.saturating_sub(512) / 6).min(visible.len()),
+        );
         let excerpt = format!("[Newest message exceeds the working window. This is an excerpt; use conversation_history_read for its full content before acting on omitted details.]\n{}", &visible[..end]);
         prefix.push(Message {
             role: "user".into(),
@@ -303,6 +325,14 @@ mod tests {
     }
 
     #[test]
+    fn context_size_uses_four_bytes_per_token_and_preserves_legacy_default() {
+        assert_eq!(context_bytes_for_tokens(None), CONTEXT_BYTES);
+        assert_eq!(context_bytes_for_tokens(Some(8_192)), 32_768);
+        assert_eq!(context_bytes_for_tokens(Some(1_048_576)), 4_194_304);
+        assert_eq!(context_bytes_for_tokens(Some(1)), MIN_CONTEXT_BYTES);
+    }
+
+    #[test]
     fn latest_request_takes_priority_over_optional_notes_and_summary() {
         let request = "Current task details ".repeat(14_000);
         let snapshot = HistorySnapshot {
@@ -312,7 +342,7 @@ mod tests {
                 text: "s".repeat(12_000),
             }),
         };
-        let projected = working_messages(&snapshot, &"m".repeat(8_000));
+        let projected = working_messages(&snapshot, &"m".repeat(8_000), CONTEXT_BYTES);
         assert!(projected.iter().any(
             |message| matches!(&message.content, MessageContent::Text(text) if text == &request)
         ));
@@ -321,7 +351,7 @@ mod tests {
             messages: vec![user("超长当前请求\n".repeat(50_000))],
             summary: None,
         };
-        let projected = working_messages(&oversized, "saved facts");
+        let projected = working_messages(&oversized, "saved facts", CONTEXT_BYTES);
         let serialized = serde_json::to_string(&projected).unwrap();
         assert!(serialized.len() <= CONTEXT_BYTES);
         assert!(serialized.contains("conversation_history_read"));
@@ -394,8 +424,8 @@ mod tests {
             messages: vec![user("Remember the current task".into())],
             summary: None,
         };
-        assert!(summary_candidate(&snapshot).is_none());
-        assert_eq!(working_messages(&snapshot, "").len(), 1);
+        assert!(summary_candidate(&snapshot, CONTEXT_BYTES).is_none());
+        assert_eq!(working_messages(&snapshot, "", CONTEXT_BYTES).len(), 1);
     }
 
     #[test]
@@ -408,7 +438,7 @@ mod tests {
             summary: None,
         };
         let original = serde_json::to_vec(&snapshot.messages).unwrap();
-        let (through, transcript) = summary_candidate(&snapshot).unwrap();
+        let (through, transcript) = summary_candidate(&snapshot, CONTEXT_BYTES).unwrap();
         assert!(through > 0 && through < snapshot.messages.len() - 3);
         assert!(transcript.contains("step 0"));
         let compacted = HistorySnapshot {
@@ -418,7 +448,7 @@ mod tests {
                     .unwrap(),
             ),
         };
-        let projected = working_messages(&compacted, "User prefers Chinese");
+        let projected = working_messages(&compacted, "User prefers Chinese", CONTEXT_BYTES);
         assert!(
             matches!(&projected.last().unwrap().content, MessageContent::Text(text) if text.contains("step 39"))
         );
@@ -450,7 +480,7 @@ mod tests {
         snapshot
             .messages
             .extend((0..8).map(|_| user("z".repeat(20_000))));
-        let (through, _) = summary_candidate(&snapshot).unwrap();
+        let (through, _) = summary_candidate(&snapshot, CONTEXT_BYTES).unwrap();
         assert_ne!(through, 2);
     }
 

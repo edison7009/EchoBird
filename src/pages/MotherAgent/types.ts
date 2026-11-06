@@ -39,6 +39,9 @@ export interface MotherAgentCtx {
   chatOutput: ChatMessage[];
   conversations: ChatConversation<ChatMessage>[];
   activeConversationId: string;
+  contextSize?: number;
+  contextSizeEditable: boolean;
+  setContextSize: (size: number) => void;
   createConversation: () => void;
   selectConversation: (id: string) => void;
   deleteConversation: (id: string) => Promise<void>;

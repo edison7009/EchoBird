@@ -17,6 +17,8 @@ export interface ChatConversation<T> {
   updatedAt: number;
   messages: T[];
   messageCount?: number;
+  /** Token context window chosen before the first message; absent on legacy history. */
+  contextSize?: number;
 }
 
 interface ConversationState<T> {
@@ -39,6 +41,7 @@ function newConversation<T>(serverId: string): ChatConversation<T> {
     updatedAt: Date.now(),
     messages: [],
     messageCount: 0,
+    contextSize: 32768,
   };
 }
 
@@ -219,6 +222,7 @@ export function useChatPersistence<T>({
               title: c.title,
               createdAt: c.createdAt,
               updatedAt: c.updatedAt,
+              ...(c.contextSize ? { contextSize: c.contextSize } : {}),
               messageCount: bodies.has(c.id)
                 ? countDiskMessages(bodies.get(c.id)!)
                 : (c.messageCount ?? c.messages.length),
@@ -313,6 +317,23 @@ export function useChatPersistence<T>({
       });
     },
     [toDisk, update, countMessage]
+  );
+
+  const updateActiveConversation = useCallback(
+    (patch: Partial<ChatConversation<T>>) => {
+      const prev = stateRef.current;
+      const active = prev.conversations.find((c) => c.id === prev.activeConversationId);
+      if (!active) return;
+      update({
+        ...prev,
+        conversations: prev.conversations.map((conversation) =>
+          conversation.id === active.id
+            ? { ...conversation, ...patch, updatedAt: Date.now() }
+            : conversation
+        ),
+      });
+    },
+    [update]
   );
 
   const selectConversation = useCallback(
@@ -423,6 +444,7 @@ export function useChatPersistence<T>({
       .filter((c) => c.serverId === activeConversation.serverId)
       .sort((a, b) => b.updatedAt - a.updatedAt),
     setMessages,
+    updateActiveConversation,
     selectConversation,
     createConversation,
     selectServer,

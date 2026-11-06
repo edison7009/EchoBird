@@ -276,6 +276,8 @@ export interface AgentRequest {
   /** UI locale code (e.g. "zh-Hans", "en"). Hints the agent's response language. */
   locale?: string;
   reasoning_effort?: ReasoningEffort;
+  /** Token context window selected before this conversation started. */
+  context_size?: number;
 }
 
 export type AgentEvent = { conversation_id?: string; request_id?: string } & (
