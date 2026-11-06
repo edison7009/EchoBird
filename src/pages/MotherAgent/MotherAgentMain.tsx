@@ -336,7 +336,7 @@ export function MotherAgentMain() {
 
       {/* Rich input area — Claude-style elevated rounded card */}
       <div className="flex-shrink-0 mt-1 mb-1">
-        <div className="bg-cyber-elevated/75 rounded-2xl p-2.5">
+        <div className="mother-composer rounded-[26px] p-2.5">
           <textarea
             ref={chatInputRef}
             value={chatInput}

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode, type RefObject } from 'react';
+import { useCallback, useEffect, useRef, useState, type ReactNode, type RefObject } from 'react';
 import { createPortal } from 'react-dom';
 import {
   DndContext,
@@ -74,8 +74,53 @@ export function VoiceInputMain() {
   const [replayErrorId, setReplayErrorId] = useState<number | null>(null);
   const [activeDragId, setActiveDragId] = useState<string | null>(null);
   const [orderedChannels, setOrderedChannels] = useState<VoiceChannel[] | null>(null);
-  // Dragging previews locally; the slow config save runs once on release.
+  // Keep the thumb responsive while asynchronous saves apply the latest desktop size.
   const [scaleDraft, setScaleDraft] = useState<number | null>(null);
+  const queuedScale = useRef<number | null>(null);
+  const scaleSaving = useRef(false);
+  const scaleMounted = useRef(true);
+  const flushScale = useCallback(async function flushScale() {
+    const current = useVoiceInputStore.getState();
+    if (
+      useNavigationStore.getState().activePage !== 'voice' ||
+      current.pending ||
+      voiceBusy(current.snapshot?.phase)
+    ) {
+      queuedScale.current = null;
+      setScaleDraft(null);
+      return;
+    }
+    if (queuedScale.current === null || current.saving || scaleSaving.current) return;
+    const scale = queuedScale.current;
+    queuedScale.current = null;
+    if (scale === (current.snapshot?.config.islandScale ?? 100)) {
+      setScaleDraft(null);
+      return;
+    }
+    scaleSaving.current = true;
+    const success = await current.save({ islandScale: scale });
+    scaleSaving.current = false;
+    if (!scaleMounted.current) return;
+    if (!success) queuedScale.current = null;
+    setScaleDraft(queuedScale.current);
+    if (success) void flushScale();
+  }, []);
+  useEffect(() => {
+    scaleMounted.current = true;
+    // External saves can temporarily hold the store lock. Resume only a size
+    // explicitly queued by dragging, using the latest saved configuration.
+    const resume = () => {
+      void flushScale();
+    };
+    const stopVoice = useVoiceInputStore.subscribe(resume);
+    const stopNavigation = useNavigationStore.subscribe(resume);
+    return () => {
+      scaleMounted.current = false;
+      queuedScale.current = null;
+      stopVoice();
+      stopNavigation();
+    };
+  }, [flushScale]);
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
@@ -499,11 +544,10 @@ export function VoiceInputMain() {
               value={scaleDraft ?? config.islandScale ?? 100}
               label={t('voice.islandScale')}
               disabled={voiceActive}
-              onChange={setScaleDraft}
-              onCommit={() => {
-                if (scaleDraft === null) return;
-                setScaleDraft(null);
-                if (scaleDraft !== (config.islandScale ?? 100)) update('islandScale', scaleDraft);
+              onChange={(scale) => {
+                queuedScale.current = scale;
+                setScaleDraft(scale);
+                void flushScale();
               }}
             />
           </div>

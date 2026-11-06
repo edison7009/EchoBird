@@ -10,7 +10,6 @@ export function ReasoningEnergy({ active }: { active: boolean }) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const rendererRef = useRef<ReasoningEnergyRenderer | null>(null);
   const activeRef = useRef(active);
-  const [initiallyActive] = useState(active);
   const visible = useDocumentVisible();
   const [started, setStarted] = useState(active);
   const [ready, setReady] = useState<boolean | null>(null);
@@ -77,9 +76,7 @@ export function ReasoningEnergy({ active }: { active: boolean }) {
     <div
       aria-hidden="true"
       className="mother-reasoning-energy"
-      data-active={
-        (active && visible && (ready === true || (ready === null && initiallyActive))) || undefined
-      }
+      data-active={(active && visible && ready === true) || undefined}
       data-unavailable={ready === false || undefined}
     >
       <div className="mother-reasoning-energy-base" />

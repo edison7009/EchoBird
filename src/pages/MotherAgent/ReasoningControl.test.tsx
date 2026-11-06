@@ -72,7 +72,7 @@ describe('Mother reasoning control', () => {
     expect(onChange).toHaveBeenLastCalledWith(undefined);
     render('max');
     expect(renderer!.root.findByType('input').props['aria-valuetext']).toBe('Max');
-    expect(renderer!.root.findByType('button').props.className).toContain('text-cyber-accent');
+    expect(renderer!.root.findByProps({ 'data-max': true })).toBeDefined();
     const markup = JSON.stringify(renderer!.toJSON());
     expect(markup).not.toContain('cursor-');
     expect(markup).not.toContain('title');

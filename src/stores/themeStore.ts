@@ -72,6 +72,20 @@ const applyColorTheme = (id: ColorThemeId, resolved: Resolved) => {
   // Match the character background's neutral-palette fallback without changing primary buttons.
   const neutral = Math.max(...channels) - Math.min(...channels) < 18;
   root.style.setProperty('--view-mode-accent-rgb', neutral ? 'var(--accent-rgb)' : tabColor);
+  // Max-effort text needs a vivid foreground, not a pastel surface mixed with white.
+  const low = Math.min(...channels);
+  const range = Math.max(...channels) - low;
+  const emphasis = channels
+    .map((channel) => Math.round(90 + (127 * (channel - low)) / (range || 1)))
+    .join(' ');
+  const useAccent = neutral || pluginTheme !== null;
+  root.style.setProperty('--reasoning-accent-rgb', useAccent ? 'var(--accent-rgb)' : emphasis);
+  root.style.setProperty(
+    '--reasoning-accent-on-light',
+    useAccent
+      ? 'rgb(var(--accent-rgb))'
+      : 'color-mix(in srgb, rgb(var(--reasoning-accent-rgb)) 45%, rgb(var(--text-primary-rgb)))'
+  );
   // Light chromatic fills are pastel; keep their labels on the theme's dark text.
   root.style.setProperty(
     '--view-mode-label-rgb',

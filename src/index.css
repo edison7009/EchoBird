@@ -155,6 +155,62 @@
   outline-offset: 3px;
 }
 
+.mother-composer {
+  background: color-mix(in srgb, rgb(var(--bg-surface-rgb)) 70%, rgb(var(--bg-base-rgb)));
+  box-shadow: inset 0 0 0 1px rgb(var(--border-rgb) / 0.3);
+}
+
+.selection-popover {
+  font-family: var(--font-sans);
+  border-radius: 16px;
+  box-shadow:
+    0 8px 24px rgb(0 0 0 / 0.14),
+    inset 0 0 0 1px rgb(255 255 255 / 0.12);
+}
+
+.selection-popover .text-cyber-text {
+  color: #fff;
+}
+
+.selection-popover .text-cyber-text-secondary,
+.selection-popover .text-cyber-text-muted {
+  color: rgb(255 255 255 / 0.75);
+}
+
+.composer-tool-trigger {
+  color: rgb(var(--text-secondary-rgb));
+  border-radius: 6px;
+}
+
+.composer-tool-trigger:enabled:hover,
+.composer-tool-trigger[data-open='true'] {
+  background: rgb(var(--bg-elevated-rgb) / 0.45);
+  color: rgb(var(--text-primary-rgb));
+}
+
+.selection-menu-row {
+  font-family: inherit;
+  border-radius: 8px;
+  color: inherit;
+}
+
+.selection-menu-row[data-selected='true'] {
+  background: rgb(255 255 255 / 0.08);
+}
+
+.selection-menu-row:not([aria-disabled='true']):hover {
+  background: rgb(255 255 255 / 0.12);
+}
+
+.mother-reasoning-control[data-max] .mother-reasoning-label,
+.mother-reasoning-control[data-max] .mother-reasoning-trigger {
+  color: rgb(var(--reasoning-accent-rgb, var(--accent-rgb)));
+}
+
+:root[data-theme='light'] .mother-reasoning-control[data-max] .mother-reasoning-trigger {
+  color: var(--reasoning-accent-on-light, rgb(var(--accent-rgb)));
+}
+
 .mother-reasoning-slider {
   appearance: none;
   height: 32px;
@@ -174,13 +230,9 @@
   height: 26px;
   margin-top: 1px;
   border: 1px solid rgb(var(--border-rgb) / 0.6);
-  border-radius: 5px;
-  background-color: rgb(var(--text-primary-rgb));
+  border-radius: 7px;
+  background-color: color-mix(in srgb, rgb(var(--tooltip-bg-rgb, 37 38 37)) 15%, white);
   box-shadow: 0 1px 4px rgb(0 0 0 / 0.22);
-}
-
-:root[data-theme='light'] .mother-reasoning-slider::-webkit-slider-thumb {
-  background-color: rgb(var(--bg-terminal-rgb));
 }
 
 .mother-reasoning-slider:focus-visible {
@@ -226,7 +278,7 @@
 .mother-reasoning-energy-base {
   position: absolute;
   inset: 0;
-  background: linear-gradient(rgb(255 255 255 / 0.1), rgb(255 255 255 / 0.1)), #20201f;
+  background: rgb(var(--bg-terminal-rgb));
   opacity: 0;
   transition: opacity 850ms linear;
 }
@@ -252,16 +304,12 @@
   display: block;
   width: 100%;
   height: 100%;
+  color: rgb(var(--reasoning-accent-rgb, var(--accent-rgb)));
 }
 
-:root[data-theme='light'] .mother-reasoning-energy-base {
-  background: linear-gradient(rgb(11 11 11 / 0.1), rgb(11 11 11 / 0.1)), #fff;
-}
-
-:root[data-theme='light'] .mother-reasoning-energy-field {
-  opacity: 1;
-  mix-blend-mode: normal;
-  mask-image: linear-gradient(to right, transparent, black 45%);
+:root[data-theme='light'] .mother-reasoning-energy-base,
+:root[data-theme='light'] .mother-reasoning-control[data-max] .mother-reasoning-track {
+  background: var(--tooltip-surface-color);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -927,9 +975,17 @@ html.is-macos .scrollbar-stable {
   color: #ffffff;
 }
 
-/* Tips keep white text on the active palette's opaque dark surface in both modes. */
+/* Daylight tips use a slightly lighter shade of the same dark theme surface. */
+:root {
+  --tooltip-surface-color: rgb(var(--tooltip-bg-rgb, 37 38 37));
+}
+
+:root[data-theme='light'] {
+  --tooltip-surface-color: color-mix(in srgb, rgb(var(--tooltip-bg-rgb, 37 38 37)) 88%, white);
+}
+
 .app-tooltip {
-  background-color: rgb(var(--tooltip-bg-rgb, 37 38 37));
+  background-color: var(--tooltip-surface-color);
   color: #ffffff;
   border-color: rgb(255 255 255 / 0.12);
 }

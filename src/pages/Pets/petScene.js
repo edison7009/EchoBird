@@ -359,7 +359,8 @@ export function createPetScene(canvas) {
     }
   }
   const scene = new THREE.Scene();
-  scene.add(new THREE.AmbientLight(0xffffff, 1.65));
+  const ambient = new THREE.AmbientLight(0xffffff, 1.65);
+  scene.add(ambient);
   const light = new THREE.DirectionalLight(0xfff5e7, 2.5);
   light.position.set(-30, 55, 60);
   scene.add(light);
@@ -475,6 +476,12 @@ export function createPetScene(canvas) {
   function draw(width, height, pet = current, miniature = false) {
     if (disposed || width < 1 || height < 1) return;
     paintPalette(pet);
+    // A bright surrounding interface needs softer, fuller illumination. Keep
+    // thumbnails in their fixed studio light so cached collection icons stay stable.
+    const daylight = !miniature && canvas.ownerDocument?.documentElement?.dataset.theme === 'light';
+    ambient.intensity = daylight ? 2.8 : 1.65;
+    light.intensity = daylight ? 2.7 : 2.5;
+    fill.intensity = daylight ? 1.25 : 0.6;
     hideObjects();
     let object, frame;
     if (!miniature && (mode === 'hatch' || mode === 'crack')) {
@@ -631,6 +638,9 @@ export function createPetScene(canvas) {
   }
   const observer = new ResizeObserver(render);
   observer.observe(canvas);
+  const root = canvas.ownerDocument?.documentElement;
+  const appearanceObserver = root ? new MutationObserver(render) : null;
+  appearanceObserver?.observe(root, { attributes: true, attributeFilter: ['data-theme'] });
   return {
     show(pet) {
       stop();
@@ -688,6 +698,7 @@ export function createPetScene(canvas) {
       stop();
       disposed = true;
       observer.disconnect();
+      appearanceObserver?.disconnect();
       for (const geometry of geometries) geometry.dispose();
       for (const { mesh } of growthMeshes.values()) mesh.dispose();
       growthMaterial.dispose();

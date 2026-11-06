@@ -40,7 +40,11 @@ export function ReasoningControl({ levels, value, disabled, onChange }: Props) {
   }, [isOpen]);
 
   return (
-    <div ref={containerRef} className="relative shrink-0">
+    <div
+      ref={containerRef}
+      className="mother-reasoning-control relative shrink-0"
+      data-max={value === 'max' || undefined}
+    >
       <button
         ref={triggerRef}
         type="button"
@@ -48,8 +52,9 @@ export function ReasoningControl({ levels, value, disabled, onChange }: Props) {
         aria-label={`${t('mother.reasoning.title')}: ${label}`}
         aria-expanded={isOpen && !unavailable}
         aria-haspopup="dialog"
+        data-open={(isOpen && !unavailable) || undefined}
         onClick={() => !unavailable && setIsOpen((open) => !open)}
-        className={`inline-grid h-8 items-center whitespace-nowrap px-2 py-1 text-xs font-mono rounded-button transition-all disabled:opacity-50 ${value === 'max' ? 'text-cyber-accent hover:bg-cyber-accent/10 hover:brightness-110' : 'text-cyber-text-secondary hover:bg-cyber-text/10 hover:text-cyber-text'}`}
+        className="composer-tool-trigger mother-reasoning-trigger inline-grid h-8 items-center whitespace-nowrap px-2 py-1 text-xs font-sans rounded-button transition-all disabled:opacity-50"
       >
         {choices.map((effort) => (
           <span
@@ -66,14 +71,14 @@ export function ReasoningControl({ levels, value, disabled, onChange }: Props) {
         <div
           role="dialog"
           aria-label={t('mother.reasoning.title')}
-          className="absolute bottom-full mb-2 right-0 z-50 w-[220px] rounded-xl bg-cyber-surface p-3 shadow-xl"
+          className="app-tooltip selection-popover mother-reasoning-popup absolute bottom-full mb-2 right-0 z-50 w-[220px] p-3"
         >
           <div className="mb-1 flex items-center justify-between gap-3 text-xs">
             <span className="text-cyber-text-secondary">{t('mother.reasoning.title')}</span>
             <span className="overflow-hidden">
               <span
                 key={value || 'default'}
-                className={`mother-reasoning-label block ${value === 'max' ? 'text-cyber-accent' : 'text-cyber-text'}`}
+                className="mother-reasoning-label block text-cyber-text"
               >
                 {label}
               </span>

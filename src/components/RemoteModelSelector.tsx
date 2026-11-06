@@ -93,12 +93,10 @@ export const RemoteModelSelector: React.FC<RemoteModelSelectorProps> = ({
     models.find((m) => m.id === currentModelId) || extras?.find((e) => e.id === currentModelId);
   const displayText = currentModel?.name || placeholder;
 
-  // Tailwind JIT-friendly static class strings (Mother Agent secondary accent)
+  // Shared composer controls use the same quiet hover surface.
   const triggerClass =
-    'flex h-8 max-w-full items-center gap-1.5 px-2 py-1 text-xs font-mono text-cyber-text transition-colors rounded hover:bg-cyber-elevated disabled:cursor-default';
+    'composer-tool-trigger flex h-8 max-w-full items-center gap-1.5 px-2 py-1 text-xs font-sans transition-colors';
   const spinClass = 'animate-spin text-cyber-text/70';
-  const selectedItemClass = 'text-cyber-text bg-cyber-text/10';
-  const unselectedItemClass = 'text-cyber-text hover:bg-cyber-text/10 hover:text-cyber-text';
   const checkClass = 'flex-shrink-0 ml-1 text-cyber-text';
 
   const renderIcon = (option: ModelOption, sizeClass: string, iconSize: number) => {
@@ -125,6 +123,7 @@ export const RemoteModelSelector: React.FC<RemoteModelSelectorProps> = ({
         type="button"
         onClick={() => !loading && setIsOpen(!isOpen)}
         disabled={loading}
+        data-open={isOpen || undefined}
         className={triggerClass}
       >
         {loading ? (
@@ -149,8 +148,7 @@ export const RemoteModelSelector: React.FC<RemoteModelSelectorProps> = ({
             maxWidth: menuBounds.maxWidth,
             maxHeight: menuBounds.maxHeight,
           }}
-          className="absolute bottom-full mb-1 right-0 w-max overflow-y-auto
-                    bg-cyber-elevated rounded-lg shadow-2xl
+          className="app-tooltip selection-popover absolute bottom-full mb-1 right-0 w-max overflow-y-auto p-1.5
                     animate-in fade-in slide-in-from-bottom-2 duration-150
                     z-50"
         >
@@ -163,8 +161,8 @@ export const RemoteModelSelector: React.FC<RemoteModelSelectorProps> = ({
                 }
                 setIsOpen(false);
               }}
-              className={`flex items-center gap-2 px-3 py-2 cursor-pointer text-xs font-mono transition-colors
-                                ${model.id === currentModelId ? selectedItemClass : unselectedItemClass}`}
+              data-selected={model.id === currentModelId || undefined}
+              className="selection-menu-row flex items-center gap-2 px-3 py-2 text-xs font-sans transition-colors"
             >
               {renderIcon(model, 'w-4 h-4', 16)}
               <span className="min-w-0 flex-1 whitespace-normal break-words">{model.name}</span>
@@ -172,7 +170,7 @@ export const RemoteModelSelector: React.FC<RemoteModelSelectorProps> = ({
             </div>
           ))}
           {models.length === 0 && (!extras || extras.length === 0) && (
-            <div className="px-3 py-2 text-xs text-cyber-text-secondary font-mono">
+            <div className="px-3 py-2 text-xs text-cyber-text-secondary font-sans">
               No models configured
             </div>
           )}
@@ -187,15 +185,14 @@ export const RemoteModelSelector: React.FC<RemoteModelSelectorProps> = ({
           )}
           {extras?.map((extra) => {
             const isCurrent = extra.id === currentModelId;
-            const rowBase = 'flex items-center gap-2 px-3 py-2 text-xs font-mono transition-colors';
-            const rowState = extra.disabled
-              ? 'text-cyber-text-muted opacity-50 cursor-not-allowed'
-              : isCurrent
-                ? `cursor-pointer ${selectedItemClass}`
-                : `cursor-pointer ${unselectedItemClass}`;
+            const rowBase =
+              'selection-menu-row flex items-center gap-2 px-3 py-2 text-xs font-sans transition-colors';
+            const rowState = extra.disabled ? 'opacity-50' : '';
             return (
               <div
                 key={extra.id}
+                aria-disabled={extra.disabled || undefined}
+                data-selected={isCurrent || undefined}
                 onClick={() => {
                   if (extra.disabled || isCurrent) return;
                   onSelect(extra.id);

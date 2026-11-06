@@ -55,6 +55,14 @@ describe('default theme and saved preferences', () => {
     });
     expect(root.dataset.theme).toBe('dark');
     expect(root.style.setProperty).toHaveBeenCalledWith('--bg-base-rgb', '28 29 28');
+    expect(root.style.setProperty).toHaveBeenCalledWith(
+      '--reasoning-accent-rgb',
+      'var(--accent-rgb)'
+    );
+    expect(root.style.setProperty).toHaveBeenCalledWith(
+      '--reasoning-accent-on-light',
+      'rgb(var(--accent-rgb))'
+    );
     media.addEventListener.mock.calls[0][1]();
     expect(store.getState().resolved).toBe('dark');
     expect(api.saveSettings).not.toHaveBeenCalled();
@@ -65,6 +73,10 @@ describe('default theme and saved preferences', () => {
     await store.getState().init();
     expect(store.getState()).toMatchObject({ mode, resolved: mode, colorTheme: 'aurora' });
     expect(root.style.setProperty).toHaveBeenCalledWith('--tooltip-bg-rgb', '27 55 59');
+    expect(root.style.setProperty).toHaveBeenCalledWith(
+      '--reasoning-accent-rgb',
+      mode === 'light' ? '90 217 195' : '90 204 217'
+    );
     expect(root.style.setProperty).toHaveBeenCalledWith(
       '--view-mode-label-rgb',
       'var(--text-primary-rgb)'

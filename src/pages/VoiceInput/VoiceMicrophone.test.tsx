@@ -937,45 +937,110 @@ describe('selection model and island size', () => {
     expect(api.recordVoice).not.toHaveBeenCalled();
   });
 
-  it('drags the island size locally, saves once on release and locks it while voice is busy', async () => {
-    vi.mocked(api.saveVoiceConfig).mockImplementation(async (saved) =>
-      voiceSnapshot({ config: saved, revision: 2 })
+  it('applies size while dragging and serially saves the latest value without waiting for release', async () => {
+    const saves: { config: api.VoiceConfig; resolve: (value: api.VoiceSnapshot) => void }[] = [];
+    vi.mocked(api.saveVoiceConfig).mockImplementation(
+      (config) => new Promise((resolve) => saves.push({ config, resolve }))
     );
     act(() => {
       renderer = create(<VoiceInputMain />);
     });
     const slider = () => renderer.root.findByProps({ type: 'range' });
-    expect(slider().props).toMatchObject({
-      min: 70,
-      max: 150,
-      step: 10,
-      value: 100,
-      'aria-label': 'voice.islandScale',
-    });
-    for (const value of ['110', '120', '130'])
-      act(() => slider().props.onChange({ target: { value } }));
+    expect(slider().props).toMatchObject({ min: 70, max: 150, step: 10, value: 100 });
+    expect(api.saveVoiceConfig).not.toHaveBeenCalled();
+    act(() => slider().props.onChange({ target: { value: '110' } }));
+    expect(saves).toHaveLength(1);
+    expect(saves[0].config.islandScale).toBe(110);
+    for (const value of ['120', '130']) act(() => slider().props.onChange({ target: { value } }));
     expect(slider().props.value).toBe(130);
     expect(slider().props.disabled).toBe(false);
-    expect(api.saveVoiceConfig).not.toHaveBeenCalled();
-    act(() => slider().props.onPointerDown());
-    const release = vi
-      .mocked(window.addEventListener)
-      .mock.calls.filter((call) => call[0] === 'pointerup')
-      .pop();
-    expect(release?.[2]).toEqual({ once: true });
-    // Released outside the slider: only the window listener sees it.
-    await act(async () => (release![1] as () => void)());
-    expect(api.saveVoiceConfig).toHaveBeenCalledExactlyOnceWith({
-      ...voiceSnapshot().config,
-      islandScale: 130,
-    });
+    expect(saves).toHaveLength(1);
+    await act(async () =>
+      saves[0].resolve(voiceSnapshot({ config: saves[0].config, revision: 2 }))
+    );
+    expect(saves).toHaveLength(2);
+    expect(saves[1].config.islandScale).toBe(130);
     expect(slider().props.value).toBe(130);
-    await act(async () => slider().props.onBlur());
+    await act(async () =>
+      saves[1].resolve(voiceSnapshot({ config: saves[1].config, revision: 3 }))
+    );
+    expect(slider().props.value).toBe(130);
+    expect(api.saveVoiceConfig).toHaveBeenCalledTimes(2);
+    expect(api.recordVoice).not.toHaveBeenCalled();
+  });
+
+  it('waits for another save and merges the final size into the latest config', async () => {
+    vi.mocked(api.saveVoiceConfig).mockImplementation(async (config) =>
+      voiceSnapshot({ config, revision: 3 })
+    );
+    voice.setState({ saving: true });
+    act(() => {
+      renderer = create(<VoiceInputMain />);
+    });
+    const slider = () => renderer.root.findByProps({ type: 'range' });
+    for (const value of ['120', '150']) act(() => slider().props.onChange({ target: { value } }));
+    expect(slider().props.value).toBe(150);
+    expect(api.saveVoiceConfig).not.toHaveBeenCalled();
+    const config = { ...voiceSnapshot().config, microphone: 'new microphone' };
+    await act(async () =>
+      voice.setState({
+        snapshot: voiceSnapshot({ config, revision: 2 }),
+        saving: false,
+      })
+    );
+    expect(api.saveVoiceConfig).toHaveBeenCalledExactlyOnceWith({ ...config, islandScale: 150 });
+    expect(slider().props.value).toBe(150);
+  });
+
+  it('restores the saved size on failure without an automatic retry', async () => {
+    vi.mocked(api.saveVoiceConfig).mockRejectedValueOnce(new Error('scale save failed'));
+    act(() => {
+      renderer = create(<VoiceInputMain />);
+    });
+    const slider = () => renderer.root.findByProps({ type: 'range' });
+    await act(async () => slider().props.onChange({ target: { value: '140' } }));
+    expect(slider().props.value).toBe(100);
     expect(api.saveVoiceConfig).toHaveBeenCalledTimes(1);
+    expect(voice.getState().error).toContain('scale save failed');
     act(() => voice.setState({ snapshot: voiceSnapshot({ phase: 'transcribing' }) }));
     expect(slider().props.disabled).toBe(true);
     expect(api.recordVoice).not.toHaveBeenCalled();
   });
+
+  it.each(['navigation', 'recording'])(
+    'discards queued size changes on %s and does not save on passive re-entry',
+    async (reason) => {
+      let finish!: (value: api.VoiceSnapshot) => void;
+      vi.mocked(api.saveVoiceConfig).mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            finish = resolve;
+          })
+      );
+      act(() => {
+        renderer = create(<VoiceInputMain />);
+      });
+      const slider = () => renderer.root.findByProps({ type: 'range' });
+      act(() => slider().props.onChange({ target: { value: '110' } }));
+      act(() => slider().props.onChange({ target: { value: '150' } }));
+      act(() => {
+        if (reason === 'navigation') useNavigationStore.setState({ activePage: 'models' });
+        else voice.setState({ snapshot: voiceSnapshot({ phase: 'recording' }) });
+      });
+      await act(async () =>
+        finish(
+          voiceSnapshot({
+            config: { ...voiceSnapshot().config, islandScale: 110 },
+            revision: 2,
+          })
+        )
+      );
+      act(() => useNavigationStore.setState({ activePage: 'voice' }));
+      expect(slider().props.value).toBe(110);
+      expect(api.saveVoiceConfig).toHaveBeenCalledTimes(1);
+      expect(api.recordVoice).not.toHaveBeenCalled();
+    }
+  );
 });
 
 function LiveIsland() {

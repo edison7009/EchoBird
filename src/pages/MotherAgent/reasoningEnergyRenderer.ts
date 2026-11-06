@@ -255,42 +255,29 @@ export function createReasoningEnergyRenderer(
   };
   const palette = () => {
     if (disposed) return;
-    const light = document.documentElement.dataset.theme === 'light';
-    const accent = getComputedStyle(canvas)
-      .getPropertyValue('--accent-rgb')
-      .trim()
-      .split(/\s+/)
-      .map(Number);
-    const low = Math.min(...accent);
-    const chroma = Math.max(...accent) - low;
-    const hue = accent.map((channel) => (channel - low) / chroma);
-    // Keep the light palette; tint dark highlights with the accent instead of white.
+    const accent = (getComputedStyle(canvas).color.match(/[\d.]+/g) ?? []).slice(0, 3).map(Number);
+    if (accent.length !== 3) return;
+    // The animation sits on a dark tip surface in both modes. Keep Coffee
+    // CLI's night palette; the surrounding tip alone becomes lighter by day.
     const tint = (channels: number[]) => {
-      const rgb = channels.slice(0, 3);
-      const low = Math.min(...rgb);
-      const peak = Math.max(...rgb);
-      const chroma = peak - low;
+      const peak = Math.max(...channels.slice(0, 3));
       return channels.map((channel, index) =>
-        index < 3
-          ? light
-            ? (low + chroma * hue[index]) / 255
-            : (peak * accent[index]) / (255 * 255)
-          : channel / 255
+        index < 3 ? (peak * accent[index]) / (255 * 255) : channel / 255
       );
     };
     gl.useProgram(program);
-    gl.uniform3fv(uniform.fg, tint(light ? [251, 237, 241] : [160, 150, 235]));
-    gl.uniform3fv(uniform.fg2, tint(light ? [198, 192, 243] : [255, 255, 255]));
-    gl.uniform4fv(uniform.charge0, tint(light ? [136, 142, 221, 255] : [158, 128, 235, 255]));
-    gl.uniform4fv(uniform.charge1, tint(light ? [137, 100, 196, 255] : [89, 64, 153, 255]));
-    gl.uniform4fv(uniform.tintA, tint(light ? [190, 215, 244, 71] : [0, 0, 0, 0]));
-    gl.uniform4fv(uniform.tintB, tint(light ? [241, 187, 205, 71] : [0, 0, 0, 0]));
-    gl.uniform1f(uniform.bedFill, light ? 1 : 0);
-    gl.uniform1f(uniform.chargeMax, light ? 0.92 : 0.85);
-    gl.uniform1f(uniform.chargeRamp, light ? 0.5 : 1.1);
-    gl.uniform1f(uniform.inkFloor, light ? 0.28 : 0.08);
-    gl.uniform1f(uniform.inkCeil, light ? 1 : 0.85);
-    gl.uniform1f(uniform.energyGain, light ? 1.18 : 1);
+    gl.uniform3fv(uniform.fg, tint([160, 150, 235]));
+    gl.uniform3fv(uniform.fg2, tint([255, 255, 255]));
+    gl.uniform4fv(uniform.charge0, tint([158, 128, 235, 255]));
+    gl.uniform4fv(uniform.charge1, tint([89, 64, 153, 255]));
+    gl.uniform4fv(uniform.tintA, [0, 0, 0, 0]);
+    gl.uniform4fv(uniform.tintB, [0, 0, 0, 0]);
+    gl.uniform1f(uniform.bedFill, 0);
+    gl.uniform1f(uniform.chargeMax, 0.85);
+    gl.uniform1f(uniform.chargeRamp, 1.1);
+    gl.uniform1f(uniform.inkFloor, 0.08);
+    gl.uniform1f(uniform.inkCeil, 0.85);
+    gl.uniform1f(uniform.energyGain, 1);
     draw();
   };
   gl.clearColor(0, 0, 0, 0);
