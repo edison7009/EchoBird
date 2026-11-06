@@ -28,7 +28,6 @@ export const ClaudeCodeAccountSection: React.FC<{ showDivider?: boolean; desktop
     <section>
       <AccountSectionButton
         iconSrc={desktop ? '/icons/tools/claudedesktop.svg' : '/icons/tools/claudecode.svg'}
-        colorClassName="claude-account-pill"
         busy={busy}
         remainingSeconds={remainingSeconds}
         // Claude Desktop cannot be signed in from here; it saves snapshots instead.
@@ -45,7 +44,6 @@ export const ClaudeCodeAccountSection: React.FC<{ showDivider?: boolean; desktop
       />
       {desktop && installed && !busy && accounts.length > 0 && (
         <AccountSectionButton
-          colorClassName="claude-account-pill"
           busy={false}
           remainingSeconds={0}
           idleLabel="agent.accountSnapshotNext"
@@ -60,7 +58,6 @@ export const ClaudeCodeAccountSection: React.FC<{ showDivider?: boolean; desktop
           {accounts.map((account) => (
             <AccountSectionRow
               key={account.id}
-              colorClassName="claude-account-pill"
               selected={selectedId === account.id}
               email={account.email}
               plan={account.plan}

@@ -214,7 +214,7 @@ export function FreeModelsTitleActions() {
 
       {showHelp && (
         <div className="fixed inset-0 z-[9998] flex items-center justify-center">
-          <div className="absolute inset-0 bg-black/60" onClick={() => setShowHelp(false)} />
+          <div className="absolute inset-0" onClick={() => setShowHelp(false)} />
           <div className="relative w-[520px] max-w-[90vw] border border-cyber-border/30 bg-cyber-surface shadow-2xl rounded-xl overflow-hidden">
             <div className="h-px w-full bg-cyber-border" />
             <button

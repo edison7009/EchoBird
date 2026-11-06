@@ -62,7 +62,7 @@
   text-align: center;
 }
 .pet-reward-dialog::backdrop {
-  background: #0009;
+  background: transparent;
 }
 .pet-reward-perspective {
   --reward-color: #84d5b1;

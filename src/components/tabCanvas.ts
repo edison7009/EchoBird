@@ -76,7 +76,7 @@ export function paintTabCanvas(
         const wave = context.createRadialGradient(0, 0, 0, 0, 0, 1);
         wave.addColorStop(0, palette.wave);
         wave.addColorStop(1, 'transparent');
-        context.globalAlpha = 0.38;
+        context.globalAlpha = 0.55;
         context.fillStyle = wave;
         context.fillRect(-2, -2, 4, 4);
         context.restore();

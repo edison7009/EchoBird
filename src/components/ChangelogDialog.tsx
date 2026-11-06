@@ -187,7 +187,7 @@ export const ChangelogDialog: React.FC<ChangelogDialogProps> = ({
       }`}
     >
       {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/60" onClick={handleClose} />
+      <div className="absolute inset-0" onClick={handleClose} />
 
       {/* Dialog */}
       <div

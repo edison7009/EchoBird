@@ -1599,17 +1599,11 @@ export const PageAwareHint: React.FC = () => {
               : [];
   return (
     <div className="min-w-0 flex-1 text-[15px] font-medium text-cyber-accent">
-      {hintKeys.length
-        ? hintKeys.map((hintKey) => (
-            <div key={hintKey} className="line-clamp-2 break-words">
-              {t(hintKey)}
-            </div>
-          ))
-        : activePage === 'apps' && (
-            <div className="line-clamp-2 break-words">
-              <RandomAppTip />
-            </div>
-          )}
+      {(hintKeys.length > 0 || activePage === 'apps') && (
+        <div className="line-clamp-2 break-words">
+          {hintKeys.length ? hintKeys.map((hintKey) => t(hintKey)).join(' ') : <RandomAppTip />}
+        </div>
+      )}
     </div>
   );
 };
@@ -1624,7 +1618,7 @@ export const AppManagerErrorModal: React.FC = () => {
 
   return (
     <div className="fixed inset-0 z-[9998] flex items-center justify-center">
-      <div className="absolute inset-0 bg-black/60" onClick={() => setApplyError(null)} />
+      <div className="absolute inset-0" onClick={() => setApplyError(null)} />
       <div className="relative w-[360px] max-w-[90vw] border border-red-500/40 bg-cyber-surface shadow-2xl rounded-xl overflow-hidden">
         <div className="h-[2px] w-full bg-red-500/60" />
         <div className="px-5 pt-4 pb-2 flex items-center gap-2">

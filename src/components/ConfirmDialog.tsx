@@ -111,7 +111,7 @@ export const ConfirmDialogProvider: React.FC<{ children: React.ReactNode }> = ({
           }`}
         >
           {/* Backdrop */}
-          <div className="absolute inset-0 bg-black/60" onClick={() => closeWith(false)} />
+          <div className="absolute inset-0" onClick={() => closeWith(false)} />
 
           {/* Dialog box */}
           <div

@@ -121,6 +121,10 @@ export function RoutingHint({
   // tooltip doesn't dismiss it.
   const scheduleHide = () => {
     if (closeTimer.current) clearTimeout(closeTimer.current);
+    if (navigation) {
+      setOpen(false);
+      return;
+    }
     closeTimer.current = setTimeout(() => setOpen(false), 160);
   };
 
@@ -148,8 +152,8 @@ export function RoutingHint({
           <span
             ref={tooltipRef}
             role="tooltip"
-            onMouseEnter={showTip}
-            onMouseLeave={scheduleHide}
+            onMouseEnter={navigation ? undefined : showTip}
+            onMouseLeave={navigation ? undefined : scheduleHide}
             style={{
               left: position?.left ?? 0,
               top: position?.top ?? 0,
@@ -158,7 +162,7 @@ export function RoutingHint({
               maxWidth: 'min(320px, calc(100vw - 16px))',
               maxHeight: 'calc(100vh - 16px)',
             }}
-            className={`fixed z-[10000] rounded-md border border-cyber-border bg-cyber-elevated px-3 py-2 ${navigation ? 'text-[15px] font-medium' : 'text-sm'} leading-relaxed text-cyber-text shadow-lg`}
+            className={`app-tooltip fixed z-[10000] px-3 py-2 leading-relaxed ${navigation ? 'pointer-events-none rounded-lg text-[15px] font-medium' : 'rounded-md border text-sm shadow-lg'}`}
           >
             <span className="block overflow-y-auto" style={{ maxHeight: 'calc(100vh - 34px)' }}>
               {content ?? hint}

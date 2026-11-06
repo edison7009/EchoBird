@@ -64,6 +64,11 @@ describe('default theme and saved preferences', () => {
     api.getSettings.mockResolvedValue({ themeMode: mode, colorTheme: 'aurora' });
     await store.getState().init();
     expect(store.getState()).toMatchObject({ mode, resolved: mode, colorTheme: 'aurora' });
+    expect(root.style.setProperty).toHaveBeenCalledWith('--tooltip-bg-rgb', '27 55 59');
+    expect(root.style.setProperty).toHaveBeenCalledWith(
+      '--view-mode-label-rgb',
+      'var(--text-primary-rgb)'
+    );
     expect(root.dataset.theme).toBe(mode);
     expect(api.saveSettings).not.toHaveBeenCalled();
   });
@@ -112,6 +117,26 @@ describe('default theme and saved preferences', () => {
       colorTheme: 'aurora',
     });
   });
+
+  it.each(['light', 'dark'] as const)(
+    'keeps the neutral palette tab wave on the theme accent in %s mode',
+    async (mode) => {
+      await store.getState().init();
+      store.getState().sync({ mode, colorTheme: 'oatgray' });
+      expect(root.style.setProperty).toHaveBeenCalledWith(
+        '--view-mode-accent-rgb',
+        'var(--accent-rgb)'
+      );
+      expect(root.style.setProperty).toHaveBeenCalledWith(
+        '--view-mode-wave-rgb',
+        'var(--view-mode-accent-rgb)'
+      );
+      expect(root.style.setProperty).toHaveBeenCalledWith('--view-mode-label-rgb', '255 255 255');
+      if (mode === 'light')
+        expect(root.style.setProperty).toHaveBeenCalledWith('--bg-base-rgb', '255 255 255');
+      expect(api.saveSettings).not.toHaveBeenCalled();
+    }
+  );
 
   it('syncs another window without rereading, saving or rebroadcasting settings', async () => {
     await store.getState().init();
@@ -162,9 +187,11 @@ describe('plugin palettes', () => {
     store.getState().setPluginTheme(palette);
     expect(root.style.setProperty).toHaveBeenCalledWith('--accent-rgb', '68 85 102');
     expect(root.style.setProperty).toHaveBeenCalledWith('--bg-base-rgb', '1 2 3');
+    expect(root.style.setProperty).toHaveBeenCalledWith('--tooltip-bg-rgb', '1 2 3');
     expect(api.saveSettings).not.toHaveBeenCalled();
     store.getState().setPluginTheme(null);
     expect(root.style.removeProperty).toHaveBeenCalledWith('--accent-rgb');
+    expect(root.style.setProperty).toHaveBeenCalledWith('--tooltip-bg-rgb', '37 38 37');
     expect(root.style.setProperty).toHaveBeenLastCalledWith(
       '--view-mode-wave-rgb',
       'var(--view-mode-accent-rgb)'
@@ -176,6 +203,7 @@ describe('plugin palettes', () => {
     store.getState().setPluginTheme(palette);
     store.getState().setMode('light');
     expect(root.style.setProperty).toHaveBeenCalledWith('--accent-rgb', '17 34 51');
+    expect(root.style.setProperty).toHaveBeenCalledWith('--tooltip-bg-rgb', '1 2 3');
     store.getState().setColorTheme('aurora');
     expect(events.emit).toHaveBeenLastCalledWith('echobird-theme-changed', {
       mode: 'light',

@@ -101,7 +101,8 @@ describe('Claude Code account card', () => {
   it('reuses the Claude layout while saving a desktop snapshot', () => {
     const markup = renderAccount(null, true, true);
     expect(markup).toContain('/icons/tools/claudedesktop.svg');
-    expect(markup).toContain('claude-account-pill');
+    expect(markup).toContain('account-pill');
+    expect(markup).not.toContain('claude-account-pill');
     expect(markup).toContain('agent.accountSnapshotSaving');
     expect(markup).not.toContain('agent.waitingForBrowser');
     expect(markup).not.toContain('agent.claudeDesktopExitClient');

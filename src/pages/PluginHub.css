@@ -493,7 +493,7 @@
   background: var(--ph-surface);
 }
 .ph-modal::backdrop {
-  background: #0008;
+  background: transparent;
 }
 .ph-modal-heading {
   display: flex;

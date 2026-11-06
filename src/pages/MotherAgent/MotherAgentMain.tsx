@@ -507,12 +507,10 @@ function ParasiteHint({ ccInstalled, contextBytes, contextMaxBytes }: ParasiteHi
       </span>
       <span
         role="tooltip"
-        className="pointer-events-none absolute right-0 bottom-full z-[100] mb-2 w-max max-w-64 rounded-md border border-cyber-border bg-cyber-elevated px-2.5 py-1.5 text-xs leading-relaxed text-cyber-text shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"
+        className="app-tooltip pointer-events-none absolute right-0 bottom-full z-[100] mb-2 w-max max-w-64 rounded-md border px-2.5 py-1.5 text-xs leading-relaxed shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"
       >
         <span className="block">{baseTip}</span>
-        <span className="mt-1 block border-t border-cyber-border/40 pt-1 text-cyber-text-secondary">
-          {usageLine}
-        </span>
+        <span className="mt-1 block border-t border-white/15 pt-1 text-white/75">{usageLine}</span>
       </span>
     </span>
   );

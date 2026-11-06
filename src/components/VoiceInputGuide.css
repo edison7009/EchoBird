@@ -6,7 +6,7 @@
 .voice-guide-backdrop {
   position: absolute;
   inset: 0;
-  background: #0005;
+  background: transparent;
 }
 .voice-guide-target {
   position: absolute;

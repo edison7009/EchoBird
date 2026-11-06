@@ -352,7 +352,7 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
       }`}
     >
       {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/55" onClick={handleClose} />
+      <div className="absolute inset-0" onClick={handleClose} />
 
       {/* Dialog */}
       <div

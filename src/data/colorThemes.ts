@@ -41,11 +41,11 @@ export const COLOR_THEMES: ColorTheme[] = [
     labelEn: 'Oat gray',
     labelJa: 'オートグレー',
     light: {
-      shell: '#EFE9DF',
-      canvas: '#EFEEEB',
-      secondary: '#E8E6E0',
-      tertiary: '#D8D5CD',
-      input: '#E5E3DC',
+      shell: '#F7F7F7',
+      canvas: '#FFFFFF',
+      secondary: '#F2F2F2',
+      tertiary: '#E5E5E5',
+      input: '#F5F5F5',
     },
     dark: {
       shell: '#202120',

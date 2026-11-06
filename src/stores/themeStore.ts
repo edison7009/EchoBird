@@ -59,15 +59,25 @@ const applyColorTheme = (id: ColorThemeId, resolved: Resolved) => {
   root.style.setProperty('--bg-elevated-rgb', hexToRgbChannels(variant.tertiary));
   root.style.setProperty('--bg-deep-rgb', hexToRgbChannels(variant.shell));
   root.style.setProperty('--bg-input-rgb', hexToRgbChannels(variant.input));
+  // Tips always use this palette's dark surface, even in light mode.
+  const pluginTooltip = pluginTheme?.dark.surface ?? pluginTheme?.dark.background;
+  root.style.setProperty(
+    '--tooltip-bg-rgb',
+    hexToRgbChannels(
+      pluginTooltip && /^#[0-9a-f]{6}$/i.test(pluginTooltip) ? pluginTooltip : theme.dark.secondary
+    )
+  );
   const tabColor = hexToRgbChannels(variant.tertiary);
   const channels = tabColor.split(' ').map(Number);
   // Match the character background's neutral-palette fallback without changing primary buttons.
   const neutral = Math.max(...channels) - Math.min(...channels) < 18;
   root.style.setProperty('--view-mode-accent-rgb', neutral ? 'var(--accent-rgb)' : tabColor);
+  // Light chromatic fills are pastel; keep their labels on the theme's dark text.
   root.style.setProperty(
-    '--view-mode-wave-rgb',
-    neutral && resolved === 'light' ? '255 246 235' : 'var(--view-mode-accent-rgb)'
+    '--view-mode-label-rgb',
+    neutral ? '255 255 255' : 'var(--text-primary-rgb)'
   );
+  root.style.setProperty('--view-mode-wave-rgb', 'var(--view-mode-accent-rgb)');
   if (pluginTheme) {
     for (const [key, value] of Object.entries(pluginTheme[resolved])) {
       const property = pluginColorKeys[key];

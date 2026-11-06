@@ -97,7 +97,7 @@ export function MotherAgentPanel() {
           }}
         >
           {/* Backdrop */}
-          <div className="absolute inset-0 bg-black/60" onClick={() => setShowSSHModal(false)} />
+          <div className="absolute inset-0" onClick={() => setShowSSHModal(false)} />
 
           <div
             className="relative w-[400px] max-w-[90vw] border border-cyber-border/30 bg-cyber-surface shadow-2xl rounded-xl overflow-hidden"

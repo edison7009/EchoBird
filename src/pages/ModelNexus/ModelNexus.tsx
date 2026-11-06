@@ -677,7 +677,7 @@ export function AddModelModal() {
       }}
     >
       {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/60" onClick={closeModelModal} />
+      <div className="absolute inset-0" onClick={closeModelModal} />
 
       <div
         role="dialog"

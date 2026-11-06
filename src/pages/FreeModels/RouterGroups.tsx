@@ -113,7 +113,7 @@ function RouterSettingsModal({
         if (e.key === 'Escape') close();
       }}
     >
-      <div className="absolute inset-0 bg-black/60" onClick={close} />
+      <div className="absolute inset-0" onClick={close} />
       <form
         role="dialog"
         aria-modal="true"

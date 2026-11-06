@@ -9,6 +9,14 @@ describe('color themes', () => {
       for (const variant of [theme.light, theme.dark])
         expect(Object.values(variant).every((color) => /^#[0-9A-F]{6}$/i.test(color))).toBe(true);
   });
+  it('pairs the default dark palette with neutral white and gray daylight surfaces', () => {
+    const { light } = getColorTheme('oatgray');
+    expect(light.canvas).toBe('#FFFFFF');
+    for (const color of Object.values(light)) {
+      const channels = [1, 3, 5].map((start) => parseInt(color.slice(start, start + 2), 16));
+      expect(new Set(channels).size).toBe(1);
+    }
+  });
   it('uses the oat gray artwork as the default', () => {
     expect(isColorThemeId('oatgray')).toBe(true);
     expect(getColorTheme('oatgray').labelZh).toBe('燕麦暖灰');

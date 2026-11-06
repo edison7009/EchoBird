@@ -28,23 +28,21 @@
 }
 
 :root[data-theme='light'] {
-  /* Claude Desktop light — warm cream page. Title text uses warm-dark
-       (NOT pure black) to feel premium and stay coherent with the cream. */
-  --bg-base-rgb: 239 238 235; /* #EFEEEB — page */
-  --bg-terminal-rgb: 247 246 243;
-  --bg-surface-rgb: 232 230 224; /* #E8E6E0 — cards rest here */
-  --bg-elevated-rgb: 216 213 205; /* #D8D5CD — hover, selected, dropdowns */
-  --bg-deep-rgb: 232 230 224;
-  --bg-input-rgb: 229 227 220; /* #E5E3DC — theme-tinted input */
-  --border-rgb: 220 218 211;
-  --accent-rgb: 201 100 66; /* Claude coral, slightly deeper for AA contrast */
+  /* Neutral white and gray surfaces, paired with the existing coral accent. */
+  --bg-base-rgb: 255 255 255;
+  --bg-terminal-rgb: 247 247 247;
+  --bg-surface-rgb: 242 242 242;
+  --bg-elevated-rgb: 229 229 229;
+  --bg-deep-rgb: 247 247 247;
+  --bg-input-rgb: 245 245 245;
+  --border-rgb: 222 222 222;
+  --accent-rgb: 201 100 66;
   --accent-secondary-rgb: 176 88 56;
-  --view-mode-wave-rgb: 255 246 235;
   --warning-rgb: 181 130 14;
   --error-rgb: 198 60 60;
-  --text-primary-rgb: 46 41 36; /* #2E2924 — warm dark (NOT pure black) */
-  --text-secondary-rgb: 92 87 80; /* #5C5750 — clearer for body copy, lifted from #6E6E72 */
-  --text-muted-rgb: 130 124 114; /* #827C72 — readable warm muted */
+  --text-primary-rgb: 38 38 38;
+  --text-secondary-rgb: 89 89 89;
+  --text-muted-rgb: 117 117 117;
 }
 
 /* Coffee-CLI's static material patterns, recolored by the active EchoBird palette. */
@@ -373,12 +371,12 @@ html.is-macos .usage-island.usage-island-theme-auto {
 .usage-island.usage-island-theme-auto {
   background-color: color-mix(
     in srgb,
-    rgb(var(--view-mode-accent-rgb)) 30%,
+    rgb(var(--view-mode-accent-rgb)) 78%,
     rgb(var(--bg-base-rgb))
   );
   --view-mode-wave-stops:
-    rgb(var(--view-mode-wave-rgb) / 0.5) 0%, rgb(var(--view-mode-wave-rgb) / 0.46) 20%,
-    rgb(var(--view-mode-wave-rgb) / 0.32) 45%, rgb(var(--view-mode-wave-rgb) / 0.12) 70%,
+    rgb(var(--view-mode-wave-rgb) / 0.7) 0%, rgb(var(--view-mode-wave-rgb) / 0.64) 20%,
+    rgb(var(--view-mode-wave-rgb) / 0.44) 45%, rgb(var(--view-mode-wave-rgb) / 0.16) 70%,
     rgb(var(--view-mode-wave-rgb) / 0.03) 85%, rgb(var(--view-mode-wave-rgb) / 0) 100%;
   background-image:
     radial-gradient(ellipse 45% 80% at 50% 0%, var(--view-mode-wave-stops)),
@@ -392,14 +390,8 @@ html.is-macos .usage-island.usage-island-theme-auto {
 
 :root[data-theme='light'] .view-mode-tab[aria-pressed='true'],
 :root[data-theme='light'] .view-mode-tab[aria-selected='true'],
-:root[data-theme='light'] .view-mode-tabs[data-sliding='true']::before,
-:root[data-theme='light'] .voice-island.voice-theme-auto,
-:root[data-theme='light'] .usage-island.usage-island-theme-auto {
-  background-color: color-mix(
-    in srgb,
-    rgb(var(--bg-elevated-rgb)) 94%,
-    rgb(var(--view-mode-accent-rgb))
-  );
+:root[data-theme='light'] .capability-toggle[aria-pressed='true'] {
+  color: rgb(var(--view-mode-label-rgb, 255 255 255));
 }
 
 .view-mode-tabs[data-sliding='true'] > .view-mode-tab[aria-pressed='true'],
@@ -442,17 +434,10 @@ html.is-macos .usage-island.usage-island-theme-auto {
   pointer-events: none;
   background-color: color-mix(
     in srgb,
-    rgb(var(--view-mode-accent-rgb)) 30%,
+    rgb(var(--view-mode-accent-rgb)) 78%,
     rgb(var(--bg-base-rgb))
   );
   color: rgb(var(--view-mode-wave-rgb));
-}
-:root[data-theme='light'] .view-mode-canvas-colors {
-  background-color: color-mix(
-    in srgb,
-    rgb(var(--bg-elevated-rgb)) 94%,
-    rgb(var(--view-mode-accent-rgb))
-  );
 }
 
 @keyframes view-mode-gradient-flow {
@@ -930,10 +915,10 @@ html.is-macos .scrollbar-stable {
   color: rgb(52 211 153);
 }
 
-/* Account pills use a compact inverse black/white treatment. Keep every
-   child tied to the pill's current color so icons remain visible on hover. */
+/* Solid themed surfaces keep light account pills distinct from the page.
+   Keep the dark treatment and provider-specific colors below unchanged. */
 [data-theme='light'] .account-pill {
-  background-color: rgb(255 255 255 / 0.85);
+  background-color: rgb(var(--bg-surface-rgb));
   color: #000000;
 }
 
@@ -942,14 +927,11 @@ html.is-macos .scrollbar-stable {
   color: #ffffff;
 }
 
-[data-theme='dark'] .claude-account-pill {
-  background-color: rgb(21 21 21 / 0.85);
-  color: #f0efec;
-}
-
-[data-theme='light'] .claude-account-pill {
-  background-color: rgb(252 252 251 / 0.85);
-  color: #0b0b0b;
+/* Tips keep white text on the active palette's opaque dark surface in both modes. */
+.app-tooltip {
+  background-color: rgb(var(--tooltip-bg-rgb, 37 38 37));
+  color: #ffffff;
+  border-color: rgb(255 255 255 / 0.12);
 }
 
 .account-pill .text-cyber-text {

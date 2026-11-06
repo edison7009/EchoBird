@@ -668,7 +668,7 @@ function UsageAccessModal({
         if (e.key === 'Escape') onClose();
       }}
     >
-      <div className="absolute inset-0 bg-black/60" onClick={onClose} />
+      <div className="absolute inset-0" onClick={onClose} />
       <div
         className="relative w-[450px] max-w-[90vw] border border-cyber-border/30 bg-cyber-surface shadow-2xl rounded-xl overflow-hidden"
         onClick={(e) => e.stopPropagation()}

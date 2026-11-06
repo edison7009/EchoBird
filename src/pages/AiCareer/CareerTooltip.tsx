@@ -15,7 +15,7 @@ export const CareerTooltip = forwardRef<HTMLDivElement, CareerTooltipProps>(func
     <div
       ref={ref}
       role="tooltip"
-      className={`pointer-events-none ${fixed ? 'fixed' : 'absolute'} z-20 -translate-x-1/2 -translate-y-full rounded-md border border-cyber-border bg-cyber-elevated px-2 py-1 text-xs text-cyber-text whitespace-nowrap shadow-lg`}
+      className={`app-tooltip pointer-events-none ${fixed ? 'fixed' : 'absolute'} z-20 -translate-x-1/2 -translate-y-full rounded-md border px-2 py-1 text-xs whitespace-nowrap shadow-lg`}
       style={{ left, top }}
     >
       {text}

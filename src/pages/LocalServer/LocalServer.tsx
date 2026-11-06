@@ -989,7 +989,7 @@ export const LocalServerMain: React.FC = () => {
       {/* Engine version picker modal — opened only on Windows+NVIDIA */}
       {enginePickerOpen && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70"
+          className="fixed inset-0 z-50 flex items-center justify-center"
           onClick={() => setEnginePickerOpen(false)}
         >
           <div
@@ -1048,7 +1048,7 @@ export const LocalServerMain: React.FC = () => {
       {/* Custom launch command modal (gear) — full-command override + reset */}
       {customCmdOpen && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70"
+          className="fixed inset-0 z-50 flex items-center justify-center"
           onClick={() => setCustomCmdOpen(false)}
         >
           <div
