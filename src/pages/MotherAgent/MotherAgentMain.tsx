@@ -539,6 +539,12 @@ function ContextUsage({
     >
       <span
         onClick={() => canEdit && setOpen((value) => !value)}
+        onKeyDown={(event) => {
+          if (canEdit && (event.key === 'Enter' || event.key === ' ')) {
+            event.preventDefault();
+            setOpen((value) => !value);
+          }
+        }}
         role="progressbar"
         aria-label={usageLine}
         aria-valuemin={0}

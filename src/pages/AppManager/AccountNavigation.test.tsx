@@ -27,6 +27,8 @@ import { open as shellOpen } from '@tauri-apps/plugin-shell';
 import { TraeAccountSection } from './TraeAccountSection';
 
 vi.hoisted(() => vi.stubGlobal('__APP_EDITION__', 'full'));
+const batchToast = vi.hoisted(() => vi.fn());
+vi.mock('../../components/Toast', () => ({ useOptionalToast: () => batchToast }));
 vi.mock('../../api/codeArtsAccounts', async (original) => ({
   ...(await original<typeof import('../../api/codeArtsAccounts')>()),
   listCodeArtsAccounts: vi.fn(),
@@ -45,6 +47,8 @@ vi.mock('../../hooks/useI18n', () => {
     'accountCenter.batchAuthFailed': 'Authorization failed: {n}',
     'accountCenter.batchRefreshFailed': 'Refresh failed: {n}',
     'accountCenter.batchClaimFailed': 'Claim failed: {n}',
+    'accountCenter.batchRefreshSummary': 'Refreshed {success} accounts; {failed} failed',
+    'accountCenter.batchWarmUpSummary': 'Warmed {success} accounts; {failed} failed',
   };
   const t = (k: string) => summaries[k] ?? k;
   return { useI18n: () => ({ t, locale: 'en' }) };
@@ -144,6 +148,7 @@ vi.mock('../../api/tauri', () => {
     'pollWorkBuddyLogin',
     'refreshWorkBuddyAccountQuota',
     'claimWorkBuddyDailyCredits',
+    'warmUpClaudeCodeAccount',
     'switchWorkBuddyAccount',
     'listDeepSeekAccounts',
     'deleteDeepSeekAccount',
@@ -4273,4 +4278,144 @@ it('Kiro: an explicit switch failure preserves rows and prevents launch', async 
   expect(state.kiroAccounts.accounts).toEqual([row]);
   expect(api.startTool).not.toHaveBeenCalled();
   expect(folderPicker).not.toHaveBeenCalled();
+});
+
+it.each(['manus', 'cue'] as const)(
+  'header refresh targets %s accounts and never Grok',
+  async (tool) => {
+    vi.stubGlobal('window', new EventTarget());
+    const row = { id: 'selected', email: 'test@example.test', active: true, plan: 'Pro' };
+    vi.mocked(api[listFor[tool]]).mockResolvedValue([row] as never);
+    vi.mocked(api[refreshFor[tool]]).mockResolvedValue(row as never);
+    await mount(tool);
+    await act(async () => {
+      await state.refreshSelectedTool();
+    });
+    expect(api[refreshFor[tool]]).toHaveBeenCalledExactlyOnceWith('selected');
+    expect(api.refreshGrokAccount).not.toHaveBeenCalled();
+    expect(batchToast).not.toHaveBeenCalled();
+    expect(state.applyError).toBeNull();
+    vi.unstubAllGlobals();
+  }
+);
+
+it('header refresh processes all ten accounts and reports five failures only once', async () => {
+  vi.stubGlobal('window', new EventTarget());
+  const rows = Array.from({ length: 10 }, (_, id) => ({
+    id: String(id),
+    email: `fixture${id}@example.test`,
+    active: id === 0,
+    plan: 'Plus',
+  }));
+  vi.mocked(api.listCodexAccounts).mockResolvedValue(rows as never);
+  vi.mocked(api.refreshCodexAccountQuota).mockImplementation(async (id) => {
+    if (Number(id) % 2) throw new Error('quota request failed');
+    return rows[Number(id)] as never;
+  });
+  await mount('chatgptdesktop');
+  await act(async () => {
+    await state.refreshSelectedTool();
+  });
+  expect(api.refreshCodexAccountQuota).toHaveBeenCalledTimes(10);
+  expect(batchToast).toHaveBeenCalledExactlyOnceWith('warning', 'Refreshed 5 accounts; 5 failed');
+  expect(state.applyError).toBeNull();
+  vi.unstubAllGlobals();
+});
+
+it('header model cooldown requires a successful usage response and is shared across tools', async () => {
+  const events = new EventTarget();
+  vi.stubGlobal('window', events);
+  let success = false;
+  const refreshUsage = vi.fn((event: Event) => {
+    (event as CustomEvent).detail.respond(Promise.resolve(success));
+  });
+  events.addEventListener('echobird-refresh-model-usage', refreshUsage);
+  await mount('chatgptdesktop');
+  await act(async () => {
+    await state.refreshSelectedTool();
+  });
+  success = true;
+  await act(async () => {
+    await state.refreshSelectedTool();
+  });
+  expect(refreshUsage).toHaveBeenCalledTimes(2);
+  act(() => state.setSelectedTool('codex'));
+  await tick();
+  await act(async () => {
+    await state.refreshSelectedTool();
+  });
+  expect(refreshUsage).toHaveBeenCalledTimes(2);
+  await act(async () => {
+    vi.advanceTimersByTime(30_001);
+  });
+  await act(async () => {
+    await state.refreshSelectedTool();
+  });
+  expect(refreshUsage).toHaveBeenCalledTimes(3);
+  vi.unstubAllGlobals();
+});
+
+it('header refresh ignores duplicate clicks and stops queued accounts after leaving the tool', async () => {
+  vi.stubGlobal('window', new EventTarget());
+  const rows = ['first', 'second'].map((id) => ({
+    id,
+    email: `${id}@example.test`,
+    plan: 'Plus',
+    active: false,
+  }));
+  vi.mocked(api.listCodexAccounts).mockResolvedValue(rows as never);
+  let complete!: (row: api.CodexAccount) => void;
+  vi.mocked(api.refreshCodexAccountQuota).mockReturnValue(
+    new Promise((resolve) => {
+      complete = resolve;
+    })
+  );
+  await mount('chatgptdesktop');
+  let pending!: Promise<void>;
+  await act(async () => {
+    pending = state.refreshSelectedTool();
+    void state.refreshSelectedTool();
+  });
+  expect(api.refreshCodexAccountQuota).toHaveBeenCalledTimes(1);
+  act(() => state.setSelectedTool('claudecode'));
+  await tick();
+  await act(async () => {
+    complete(rows[0] as never);
+    await pending;
+  });
+  expect(api.refreshCodexAccountQuota).toHaveBeenCalledTimes(1);
+  expect(batchToast).not.toHaveBeenCalled();
+  expect(state.isRefreshingSelectedTool).toBe(false);
+  vi.unstubAllGlobals();
+});
+
+it('header warm-up reuses Account Center plan eligibility and aggregates callback failures', async () => {
+  const rows = ['free', 'pro', 'failed'].map((id) => ({
+    id,
+    email: `${id}@example.test`,
+    plan: id === 'free' ? 'Free' : 'Pro',
+    active: false,
+  }));
+  vi.mocked(api.listClaudeCodeAccounts).mockResolvedValue(rows as never);
+  vi.mocked(api.warmUpClaudeCodeAccount).mockImplementation(async (id) => {
+    if (id === 'failed') throw new Error('warmup failed');
+    return rows.find((row) => row.id === id) as never;
+  });
+  await mount('claudecode');
+  act(() => {
+    const installed = structuredClone(usePluginsStore.getState().installed);
+    for (const plugin of installed) {
+      for (const provider of plugin.manifest.echobird.contributes.providers ?? []) {
+        provider.operations = [...(provider.operations ?? []), 'account.warmup'];
+      }
+    }
+    usePluginsStore.setState({ installed });
+  });
+  await act(async () => {
+    await state.warmUpSelectedTool();
+  });
+  expect(api.warmUpClaudeCodeAccount).toHaveBeenCalledTimes(2);
+  expect(api.warmUpClaudeCodeAccount).not.toHaveBeenCalledWith('free');
+  expect(batchToast).toHaveBeenCalledExactlyOnceWith('warning', 'Warmed 1 accounts; 1 failed');
+  expect(state.applyError).toBeNull();
 });

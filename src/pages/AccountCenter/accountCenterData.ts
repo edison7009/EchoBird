@@ -824,6 +824,12 @@ export function accountCenterProviders(
             (account) => ({
               identity: account.email,
               plan: account.plan,
+              claim: context.pluginAccounts.claimDaily
+                ? (onError) => context.pluginAccounts.claimDaily!(account, onError)
+                : undefined,
+              warmUp: context.pluginAccounts.warmUp
+                ? (onError) => context.pluginAccounts.warmUp!(account, onError)
+                : undefined,
               metrics: [
                 credits(
                   t('model.balance'),

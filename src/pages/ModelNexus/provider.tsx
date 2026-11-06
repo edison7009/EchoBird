@@ -301,14 +301,14 @@ export function ModelNexusProvider({ children }: { children: React.ReactNode }) 
   };
 
   // Refresh usage for all models
-  const refreshAllUsage = useCallback(async () => {
-    if (usageBatchPending.current) return;
+  const refreshAllUsageWithResult = useCallback(async () => {
+    if (usageBatchPending.current) return false;
     const models = userModels.filter(
       (model) =>
         usageRequests.current.get(model.internalId) !==
         (usageAccessRevision.current[model.internalId] ?? 0)
     );
-    if (!models.length) return;
+    if (!models.length) return userModels.length === 0;
     usageBatchPending.current = true;
     setIsRefreshingUsage(true);
     const revisions = models.map((model) => usageAccessRevision.current[model.internalId] ?? 0);
@@ -346,6 +346,7 @@ export function ModelNexusProvider({ children }: { children: React.ReactNode }) 
           `${t('model.quota.refreshFailed').replace('{n}', String(failed.length))} ${failed.map((model) => model.name).join(', ')}`
         );
       }
+      return failed.length === 0 && models.length === userModels.length;
     } finally {
       models.forEach((model, i) => {
         if (usageRequests.current.get(model.internalId) === revisions[i]) {
@@ -366,13 +367,20 @@ export function ModelNexusProvider({ children }: { children: React.ReactNode }) 
     }
   }, [userModels, showToast, t]);
 
+  const refreshAllUsage = useCallback(async () => {
+    await refreshAllUsageWithResult();
+  }, [refreshAllUsageWithResult]);
   useEffect(() => {
-    const refresh = () => {
-      void refreshAllUsage();
+    if (typeof window === 'undefined') return;
+    const refresh = (event: Event) => {
+      const result = refreshAllUsageWithResult();
+      (event as CustomEvent<{ respond?: (result: Promise<boolean>) => void }>).detail?.respond?.(
+        result
+      );
     };
     window.addEventListener('echobird-refresh-model-usage', refresh);
     return () => window.removeEventListener('echobird-refresh-model-usage', refresh);
-  }, [refreshAllUsage]);
+  }, [refreshAllUsageWithResult]);
 
   // Refresh usage for a single model
   const refreshSingleUsage = async (modelId: string, options?: UsageRefreshOptions) => {

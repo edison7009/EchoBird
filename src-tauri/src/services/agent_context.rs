@@ -5,9 +5,9 @@ pub const CONTEXT_BYTES: usize = 300_000;
 const MIN_CONTEXT_BYTES: usize = 16 * 1024;
 const MAX_CONTEXT_BYTES: usize = 4 * 1024 * 1024;
 
-/// Convert the UI's token window to the conservative byte budget used by the
-/// history projector. Four bytes per token leaves room for JSON and UTF-8
-/// overhead while keeping the existing legacy budget when no value is sent.
+/// Approximate the UI's token window as a byte budget for the history projector.
+/// Four bytes per token is a heuristic, not an exact tokenizer count. Omitted
+/// values retain the existing legacy budget.
 pub fn context_bytes_for_tokens(tokens: Option<u32>) -> usize {
     tokens
         .map(|value| (value as usize).saturating_mul(4))
@@ -330,6 +330,29 @@ mod tests {
         assert_eq!(context_bytes_for_tokens(Some(8_192)), 32_768);
         assert_eq!(context_bytes_for_tokens(Some(1_048_576)), 4_194_304);
         assert_eq!(context_bytes_for_tokens(Some(1)), MIN_CONTEXT_BYTES);
+    }
+
+    #[test]
+    fn selected_windows_bound_projection_and_control_compaction() {
+        let snapshot = HistorySnapshot {
+            messages: (0..40)
+                .map(|i| user(format!("step {i}: {}", "x".repeat(8_000))))
+                .collect(),
+            summary: None,
+        };
+        let small = context_bytes_for_tokens(Some(8_192));
+        let large = context_bytes_for_tokens(Some(1_048_576));
+        let projected = working_messages(&snapshot, "", small);
+        assert!(serde_json::to_vec(&projected).unwrap().len() <= small);
+        assert!(
+            matches!(&projected.last().unwrap().content, MessageContent::Text(text) if text.starts_with("step 39:"))
+        );
+        assert!(summary_candidate(&snapshot, small).is_some());
+        assert!(summary_candidate(&snapshot, large).is_none());
+        assert_eq!(
+            working_messages(&snapshot, "", large).len(),
+            snapshot.messages.len()
+        );
     }
 
     #[test]

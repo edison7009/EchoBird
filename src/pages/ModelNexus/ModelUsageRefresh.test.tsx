@@ -371,3 +371,70 @@ describe('Model usage refresh and credential changes', () => {
     }
   );
 });
+
+it('header bridge waits for real usage completion and reports failures for immediate retry', async () => {
+  vi.stubGlobal('window', new EventTarget());
+  try {
+    // Reuse this suite's provider harness through a real bridge listener.
+    let context!: ReturnType<typeof useModelNexus>;
+    const BridgeHarness = () => {
+      context = useModelNexus();
+      return null;
+    };
+    let renderer!: ReactTestRenderer;
+    vi.mocked(api.getModels).mockResolvedValue([{ ...original }]);
+    let complete!: (result: api.UsageResult) => void;
+    vi.mocked(api.queryModelUsage).mockReturnValueOnce(
+      new Promise((resolve) => {
+        complete = resolve;
+      })
+    );
+    await act(async () => {
+      renderer = create(
+        <ModelNexusProvider>
+          <BridgeHarness />
+        </ModelNexusProvider>
+      );
+    });
+    let result!: Promise<boolean>;
+    await act(async () => {
+      window.dispatchEvent(
+        new CustomEvent('echobird-refresh-model-usage', {
+          detail: {
+            respond: (value: Promise<boolean>) => {
+              result = value;
+            },
+          },
+        })
+      );
+    });
+    expect(context.isRefreshingUsage).toBe(true);
+    let done = false;
+    void result.then(() => {
+      done = true;
+    });
+    await Promise.resolve();
+    expect(done).toBe(false);
+    await act(async () => {
+      complete({ success: false, error: 'offline' });
+      expect(await result).toBe(false);
+    });
+    vi.mocked(api.queryModelUsage).mockResolvedValue({ success: true, data: { quotas: [] } });
+    await act(async () => {
+      window.dispatchEvent(
+        new CustomEvent('echobird-refresh-model-usage', {
+          detail: {
+            respond: (value: Promise<boolean>) => {
+              result = value;
+            },
+          },
+        })
+      );
+      expect(await result).toBe(true);
+    });
+    expect(api.queryModelUsage).toHaveBeenCalledTimes(2);
+    act(() => renderer.unmount());
+  } finally {
+    vi.unstubAllGlobals();
+  }
+});

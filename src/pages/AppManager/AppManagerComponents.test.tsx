@@ -1123,6 +1123,8 @@ describe.each(['grokbot', 'cursor', 'manus', 'cue'] as const)('%s account-only p
     const context = {
       selectedTool: client,
       selectedToolData: { ...tool, id: client, name: client, noModelConfig: true },
+      selectedToolAction: null,
+      isRefreshingSelectedTool: false,
       userModels: models,
       toolModelConfig: { [client]: 'cloud-model' },
       [client === 'cursor'

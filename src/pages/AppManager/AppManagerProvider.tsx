@@ -6,13 +6,15 @@ import { useAccountDirectory } from '../../features/accounts/useAccountDirectory
 import { useModelRepository } from '../../hooks/useModelRepository';
 import { pluginToolProviders } from '../../hooks/useAccountPlugin';
 import { ClaudeCodeLoginDialog } from './ClaudeCodeLoginDialog';
-import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useCallback, useRef, useMemo } from 'react';
 import { useI18n } from '../../hooks/useI18n';
 import * as api from '../../api/tauri';
 import { AppManagerContext } from './context';
 import { useToolsStore } from '../../stores/toolsStore';
 import { useNavigationStore } from '../../stores/navigationStore';
 import { useFreeModels } from '../FreeModels/provider';
+import { accountCenterProviders } from '../AccountCenter/accountCenterData';
+import { useRewardClaimStore } from '../../stores/rewardClaimStore';
 import { useOptionalToast } from '../../components/Toast';
 import { getOfficialEndpoint, isOfficialModelSentinel } from '../../data/officialEndpoints';
 import { pluginTools, usePluginsStore } from '../../stores/pluginsStore';
@@ -374,18 +376,36 @@ export const AppManagerProvider: React.FC<AppManagerProviderProps> = ({ children
 
   const [isRefreshingSelectedTool, setIsRefreshingSelectedTool] = useState(false);
   const [selectedToolAction, setSelectedToolAction] = useState<'claim' | 'warmUp' | null>(null);
-  const modelsRefreshTime = useRef(0);
+  const modelsRefreshTime = useRef<number | null>(null);
+  const toolActionPending = useRef(false);
+  const toolActionScope = useRef({ key: '' });
+  const scopeKey = `${activePage}:${selectedTool}`;
+  useLayoutEffect(() => {
+    toolActionScope.current = { key: scopeKey };
+    return () => {
+      toolActionScope.current = { key: 'left' };
+    };
+  }, [scopeKey]);
   type RefreshAccount = { id: string };
   type RefreshGroup = {
     accounts: RefreshAccount[];
     reload: () => Promise<unknown>;
-    refresh: (account: RefreshAccount) => Promise<unknown>;
+    refresh: (
+      account: RefreshAccount,
+      operation?: undefined,
+      onError?: (error: unknown) => void
+    ) => Promise<unknown>;
   };
   const refreshSelectedTool = useCallback(async () => {
-    if (!selectedTool || isRefreshingSelectedTool) return;
+    if (!selectedTool || !isActive || toolActionPending.current) return;
+    if (!useRewardClaimStore.getState().tryStart()) return;
+    toolActionPending.current = true;
+    const scope = toolActionScope.current;
+    const current = () => toolActionScope.current === scope;
     const now = Date.now();
     setIsRefreshingSelectedTool(true);
-    const refreshModels = now - modelsRefreshTime.current >= 30_000;
+    const refreshModels =
+      modelsRefreshTime.current === null || now - modelsRefreshTime.current >= 30_000;
     const accountGroup = (() => {
       switch (selectedTool) {
         case 'codex':
@@ -421,9 +441,11 @@ export const AppManagerProvider: React.FC<AppManagerProviderProps> = ({ children
         case 'dsh':
           return deepSeekAccounts as unknown as RefreshGroup;
         case 'grok':
-        case 'manus':
-        case 'cue':
           return grokAccounts as unknown as RefreshGroup;
+        case 'manus':
+          return manusAccounts as unknown as RefreshGroup;
+        case 'cue':
+          return cueAccounts as unknown as RefreshGroup;
         case 'cline':
         case 'clinedesktop':
           return clineAccounts as unknown as RefreshGroup;
@@ -463,40 +485,78 @@ export const AppManagerProvider: React.FC<AppManagerProviderProps> = ({ children
     const refreshAccounts = async () => {
       if (!accountGroup) return;
       const listed = await accountGroup.reload();
+      if (!current()) return;
       const accounts = Array.isArray(listed) ? (listed as RefreshAccount[]) : accountGroup.accounts;
-      const results = await Promise.allSettled(
-        accounts.map((account) => accountGroup.refresh(account))
-      );
-      const failed = results.filter((result) => result.status === 'rejected').length;
-      if (failed) {
+      let failed = 0;
+      let completed = 0;
+      // The managed lifecycle reports errors through its callback and limits
+      // concurrency for some providers. Serial execution avoids silently skipping rows.
+      for (const account of accounts) {
+        if (!current()) break;
+        let error = false;
+        try {
+          await accountGroup.refresh(account, undefined, () => {
+            error = true;
+          });
+        } catch {
+          error = true;
+        }
+        completed += 1;
+        if (error) failed += 1;
+      }
+      if (failed && current()) {
         showToast(
           'warning',
           t('accountCenter.batchRefreshSummary')
-            .replace('{success}', String(accounts.length - failed))
+            .replace('{success}', String(completed - failed))
             .replace('{failed}', String(failed))
         );
       }
     };
     try {
-      const modelTasks = refreshModels
-        ? [
-            reloadModels(),
-            Promise.resolve().then(() =>
-              window.dispatchEvent(new Event('echobird-refresh-model-usage'))
-            ),
-          ]
-        : [Promise.resolve(), Promise.resolve()];
-      const modelResults = await Promise.allSettled(modelTasks);
-      await refreshAccounts();
-      if (refreshModels && modelResults.every((result) => result.status === 'fulfilled')) {
-        modelsRefreshTime.current = Date.now();
-      }
+      const models = async () => {
+        if (!refreshModels) return;
+        let usageResult: Promise<boolean> | undefined;
+        const results = await Promise.allSettled([
+          reloadModels(),
+          (async () => {
+            window.dispatchEvent(
+              new CustomEvent('echobird-refresh-model-usage', {
+                detail: {
+                  respond: (result: Promise<boolean>) => {
+                    usageResult = result;
+                  },
+                },
+              })
+            );
+            return usageResult ? await usageResult : false;
+          })(),
+        ]);
+        if (results[0].status === 'rejected' && current()) {
+          setApplyError(accountError(results[0].reason, t));
+        }
+        if (
+          results[0].status === 'fulfilled' &&
+          results[1].status === 'fulfilled' &&
+          results[1].value === true
+        ) {
+          modelsRefreshTime.current = Date.now();
+        }
+      };
+      const results = await Promise.allSettled([models(), refreshAccounts()]);
+      const failure = results.find((result) => result.status === 'rejected');
+      if (failure?.status === 'rejected' && current())
+        setApplyError(accountError(failure.reason, t));
+    } catch (error) {
+      if (current()) setApplyError(accountError(error, t));
     } finally {
+      toolActionPending.current = false;
+      useRewardClaimStore.getState().finish();
       setIsRefreshingSelectedTool(false);
     }
   }, [
     selectedTool,
-    isRefreshingSelectedTool,
+    isActive,
     reloadModels,
     codexManaged,
     claudeCodeAccounts,
@@ -511,6 +571,8 @@ export const AppManagerProvider: React.FC<AppManagerProviderProps> = ({ children
     qwenWorkAccounts,
     deepSeekAccounts,
     grokAccounts,
+    manusAccounts,
+    cueAccounts,
     clineAccounts,
     kiloAccounts,
     copilotAccounts,
@@ -527,92 +589,6 @@ export const AppManagerProvider: React.FC<AppManagerProviderProps> = ({ children
     showToast,
     t,
   ]);
-
-  type BatchAccount = { id: string };
-  type BatchGroup = {
-    accounts: BatchAccount[];
-    claimDaily?: (account: BatchAccount) => Promise<unknown>;
-    warmUp?: (account: BatchAccount) => Promise<unknown>;
-  };
-  const selectedBatchGroup = useCallback((): BatchGroup | undefined => {
-    switch (selectedTool) {
-      case 'claudecode':
-        return claudeCodeAccounts as unknown as BatchGroup;
-      case 'claudedesktop':
-        return claudeDesktopAccounts as unknown as BatchGroup;
-      case 'workbuddy':
-      case 'workbuddyai':
-        return workBuddyAccounts as unknown as BatchGroup;
-      case 'trae':
-      case 'traecn':
-        return traeAccounts as unknown as BatchGroup;
-      case 'minimaxcode':
-      case 'minimaxdesktop':
-        return minimaxAccounts as unknown as BatchGroup;
-      case 'qoder':
-      case 'qodercn':
-        return qoderAccounts as unknown as BatchGroup;
-      case 'dumate':
-        return dumateAccounts as unknown as BatchGroup;
-      case 'doubaowork':
-      case 'dola':
-        return doubaoAccounts as unknown as BatchGroup;
-      case 'codearts':
-        return codeArtsAccounts as unknown as BatchGroup;
-      default:
-        if (selectedTool === pluginAccountProvider?.application)
-          return pluginAccounts as unknown as BatchGroup;
-        return undefined;
-    }
-  }, [
-    selectedTool,
-    claudeCodeAccounts,
-    claudeDesktopAccounts,
-    workBuddyAccounts,
-    traeAccounts,
-    minimaxAccounts,
-    qoderAccounts,
-    dumateAccounts,
-    doubaoAccounts,
-    codeArtsAccounts,
-    pluginAccountProvider,
-    pluginAccounts,
-  ]);
-  const runSelectedToolAction = useCallback(
-    async (action: 'claim' | 'warmUp') => {
-      if (!selectedTool || selectedToolAction) return;
-      const group = selectedBatchGroup();
-      const operation = group?.[action === 'claim' ? 'claimDaily' : 'warmUp'];
-      if (!group || !operation || !group.accounts.length) return;
-      setSelectedToolAction(action);
-      try {
-        const results = await Promise.allSettled(
-          group.accounts.map((account) => operation(account))
-        );
-        const failed = results.filter((result) => result.status === 'rejected').length;
-        if (failed) {
-          const prefix = action === 'claim' ? 'batchClaim' : 'batchWarmUp';
-          showToast(
-            'warning',
-            t(`accountCenter.${prefix}Summary` as const)
-              .replace('{success}', String(group.accounts.length - failed))
-              .replace('{failed}', String(failed))
-          );
-        }
-      } finally {
-        setSelectedToolAction(null);
-      }
-    },
-    [selectedTool, selectedToolAction, selectedBatchGroup, showToast, t]
-  );
-  const claimSelectedTool = useCallback(
-    () => runSelectedToolAction('claim'),
-    [runSelectedToolAction]
-  );
-  const warmUpSelectedTool = useCallback(
-    () => runSelectedToolAction('warmUp'),
-    [runSelectedToolAction]
-  );
 
   // Set tool model (single selection) - UI state update
   const handleSelectModel = (toolId: string, modelId: string) => {
@@ -1248,6 +1224,81 @@ export const AppManagerProvider: React.FC<AppManagerProviderProps> = ({ children
     applyError,
     setApplyError,
   };
+
+  const latestAccountDirectory = useRef(accountDirectoryView);
+  useLayoutEffect(() => {
+    latestAccountDirectory.current = accountDirectoryView;
+  });
+  const runSelectedToolAction = useCallback(
+    async (action: 'claim' | 'warmUp') => {
+      if (!selectedTool || !isActive || toolActionPending.current) return;
+      if (!useRewardClaimStore.getState().tryStart()) return;
+      toolActionPending.current = true;
+      const scope = toolActionScope.current;
+      const current = () => toolActionScope.current === scope;
+      const providerId =
+        (
+          {
+            chatgptdesktop: 'codex',
+            minimaxcode: 'minimax',
+            minimaxdesktop: 'minimax',
+          } as Record<string, string>
+        )[selectedTool] ?? selectedTool;
+      const findProvider = () =>
+        accountCenterProviders(latestAccountDirectory.current, t, locale).find(
+          (provider) => provider.id === providerId || provider.id === `plugin:${selectedTool}`
+        );
+      setSelectedToolAction(action);
+      let failed = 0;
+      let completed = 0;
+      try {
+        const targets = findProvider()?.accounts ?? [];
+        for (const target of targets) {
+          if (!current()) break;
+          const account = findProvider()?.accounts.find((row) => row.id === target.id);
+          const operation = account?.[action === 'claim' ? 'claim' : 'warmUp'];
+          if (!account || account.pending || account.refreshing || !operation) continue;
+          let error = false;
+          let deviceClaimed: unknown;
+          try {
+            deviceClaimed = await operation(() => {
+              error = true;
+            });
+          } catch {
+            error = true;
+          }
+          completed += 1;
+          if (error) failed += 1;
+          // Some reward providers claim once per device rather than per account.
+          if (action === 'claim' && deviceClaimed === true) break;
+        }
+        if (failed && current()) {
+          const prefix = action === 'claim' ? 'batchClaim' : 'batchWarmUp';
+          showToast(
+            'warning',
+            t(`accountCenter.${prefix}Summary` as const)
+              .replace('{success}', String(completed - failed))
+              .replace('{failed}', String(failed))
+          );
+        }
+      } catch (error) {
+        if (current()) setApplyError(accountError(error, t));
+      } finally {
+        toolActionPending.current = false;
+        useRewardClaimStore.getState().finish();
+        setSelectedToolAction(null);
+      }
+    },
+    [selectedTool, isActive, t, locale, showToast]
+  );
+  const claimSelectedTool = useCallback(
+    () => runSelectedToolAction('claim'),
+    [runSelectedToolAction]
+  );
+  const warmUpSelectedTool = useCallback(
+    () => runSelectedToolAction('warmUp'),
+    [runSelectedToolAction]
+  );
 
   return (
     <AccountDirectoryContext.Provider value={accountDirectoryView}>

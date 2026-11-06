@@ -1000,8 +1000,6 @@ export const AppManagerPanel: React.FC = () => {
   const supportsClaim =
     pluginClaim ||
     selectedTool === 'workbuddy' ||
-    selectedTool === 'workbuddyai' ||
-    selectedTool === 'trae' ||
     selectedTool === 'traecn' ||
     isMinimaxTool ||
     isQoderTool ||
@@ -1117,7 +1115,7 @@ export const AppManagerPanel: React.FC = () => {
             <button
               type="button"
               aria-label={t('agent.warmUpAccount')}
-              disabled={selectedToolAction !== null}
+              disabled={selectedToolAction !== null || isRefreshingSelectedTool}
               onClick={() => void warmUpSelectedTool()}
               className="account-icon-button flex h-7 w-7 items-center justify-center rounded-full transition-colors hover:bg-cyber-elevated/45 disabled:opacity-40"
             >
@@ -1128,7 +1126,7 @@ export const AppManagerPanel: React.FC = () => {
             <button
               type="button"
               aria-label={t('accountCenter.claimAll')}
-              disabled={selectedToolAction !== null}
+              disabled={selectedToolAction !== null || isRefreshingSelectedTool}
               onClick={() => void claimSelectedTool()}
               className="account-icon-button flex h-7 w-7 items-center justify-center rounded-full transition-colors hover:bg-cyber-elevated/45 disabled:opacity-40"
             >
@@ -1138,7 +1136,7 @@ export const AppManagerPanel: React.FC = () => {
           <button
             type="button"
             aria-label={t('btn.refresh')}
-            disabled={!selectedToolData || isRefreshingSelectedTool}
+            disabled={!selectedToolData || isRefreshingSelectedTool || selectedToolAction !== null}
             onClick={() => void refreshSelectedTool()}
             className="account-icon-button flex h-7 w-7 items-center justify-center rounded-full transition-colors hover:bg-cyber-elevated/45 disabled:opacity-40"
           >

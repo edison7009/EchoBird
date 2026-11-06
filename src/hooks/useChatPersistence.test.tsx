@@ -646,3 +646,26 @@ it('preserves unsaved messages when saving and subsequent deletion cleanup both 
   mount();
   expect(state.messages).toEqual(latest);
 });
+
+it('persists the selected context window separately for each conversation and preserves legacy metadata', () => {
+  mount();
+  expect(state.activeConversation.contextSize).toBe(32768);
+  act(() => state.updateActiveConversation({ contextSize: 131072 }));
+  const first = state.activeConversation.id;
+  act(() => state.createConversation('local'));
+  expect(state.activeConversation.contextSize).toBe(32768);
+  act(() => state.selectConversation(first));
+  expect(state.activeConversation.contextSize).toBe(131072);
+  unmount();
+  mount();
+  expect(state.activeConversation.contextSize).toBe(131072);
+  unmount();
+  storage.clear();
+  const legacy = conversation('legacy-window', 'local', Date.now());
+  storage.set(
+    CONVERSATIONS_STORAGE_KEY,
+    JSON.stringify({ version: 1, activeConversationId: legacy.id, conversations: [legacy] })
+  );
+  mount();
+  expect(state.activeConversation.contextSize).toBeUndefined();
+});

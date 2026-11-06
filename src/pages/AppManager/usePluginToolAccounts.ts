@@ -61,12 +61,20 @@ export function usePluginToolAccounts(
     ...managed,
     provider,
     claimDaily: provider?.operations?.includes('account.claim')
-      ? (account: PluginToolAccount) =>
-          call<PluginToolAccount>('account.claim', { accountId: account.id })
+      ? (account: PluginToolAccount, onError?: (error: unknown) => void) =>
+          managed.refresh(
+            account,
+            (row) => call<PluginToolAccount>('account.claim', { accountId: row.id }),
+            onError
+          )
       : undefined,
     warmUp: provider?.operations?.includes('account.warmup')
-      ? (account: PluginToolAccount) =>
-          call<PluginToolAccount>('account.warmup', { accountId: account.id })
+      ? (account: PluginToolAccount, onError?: (error: unknown) => void) =>
+          managed.refresh(
+            account,
+            (row) => call<PluginToolAccount>('account.warmup', { accountId: row.id }),
+            onError
+          )
       : undefined,
     apply: (accountId: string) => call('account.apply', { accountId }),
   };

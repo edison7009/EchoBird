@@ -573,3 +573,31 @@ describe('Mother Agent welcome screen', () => {
     expect(api.getMotherHints).not.toHaveBeenCalled();
   });
 });
+
+it('opens the context slider by keyboard, changes its value, and hides it for a locked conversation', () => {
+  state = {
+    ...state,
+    parasiteAgent: null,
+    contextSize: 32768,
+    contextSizeEditable: true,
+    setContextSize: vi.fn(),
+  };
+  act(() => {
+    renderer = create(<MotherAgentMain />);
+  });
+  const ring = () => renderer!.root.findByProps({ role: 'progressbar' });
+  expect(ring().props['aria-valuenow']).toBe(0);
+  expect(renderer!.root.findAllByProps({ type: 'range' })).toHaveLength(0);
+  act(() => {
+    ring().props.onKeyDown({ key: 'Enter', preventDefault: vi.fn() });
+  });
+  const slider = renderer!.root.findByProps({ type: 'range' });
+  act(() => slider.props.onChange({ currentTarget: { value: '4' } }));
+  expect(state.setContextSize).toHaveBeenCalledExactlyOnceWith(131072);
+  state = { ...state, contextSize: 131072, contextSizeEditable: false };
+  act(() => {
+    renderer!.update(<MotherAgentMain />);
+  });
+  expect(renderer!.root.findAllByProps({ type: 'range' })).toHaveLength(0);
+  expect(ring().props['aria-haspopup']).toBeUndefined();
+});
