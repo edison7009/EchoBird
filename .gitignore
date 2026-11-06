@@ -71,6 +71,7 @@ scripts/*
 !scripts/build_en_pulse.py
 !scripts/filter_pulse.py
 !scripts/refresh_free_models.py
+!scripts/vendor-website-assets.py
 !scripts/verify-dependency-patches.mjs
 !scripts/sync-catalogs.mjs
 !scripts/release-notes.mjs

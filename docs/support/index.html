@@ -8,14 +8,10 @@
     <meta name="description"
         content="如果 EchoBird 帮到你,请 EchoBird 团队喝杯咖啡。Paddle 安全结账,支持信用卡 / Apple Pay / Google Pay / 微信支付。">
     <link rel="icon" href="../icon.png" type="image/png">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-    <link
-        href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;700;800&family=JetBrains+Mono:wght@400;500;600&family=Inter:wght@300;400;500;600;700;800&display=swap"
-        rel="stylesheet">
+    <link rel="stylesheet" href="/assets/vendor/fontawesome.css">
+    <link rel="stylesheet" href="/assets/vendor/fonts.css">
 
-    <script src="https://cdn.paddle.com/paddle/v2/paddle.js"></script>
+    <script id="paddle-sdk" async src="https://cdn.paddle.com/paddle/v2/paddle.js"></script>
 
     <style>
         :root {
@@ -762,7 +758,12 @@
             $warn.classList.add("show");
             document.querySelectorAll(".tier-btn").forEach(b => b.disabled = true);
             console.warn("[Paddle] PADDLE_CONFIG 未填全 — 检查 clientToken 和 prices.CNY / prices.USD");
-        } else {
+        }
+
+        // The payment SDK must not delay rendering the page. Enable checkout
+        // only after the SDK has loaded and initialized successfully.
+        function initializeCheckout() {
+            if (!configReady) return;
             try {
                 Paddle.Environment.set(PADDLE_CONFIG.environment);
                 Paddle.Initialize({
@@ -776,12 +777,17 @@
                         });
                     },
                 });
+                document.querySelectorAll(".tier-btn").forEach(b => b.disabled = false);
                 logEvent("Paddle.Initialize", { env: PADDLE_CONFIG.environment });
             } catch (e) {
                 logEvent("Paddle.Initialize FAILED", { error: String(e) });
                 console.error(e);
             }
         }
+
+        document.querySelectorAll(".tier-btn").forEach(b => b.disabled = true);
+        if (window.Paddle) initializeCheckout();
+        else document.getElementById("paddle-sdk").addEventListener("load", initializeCheckout, { once: true });
 
         document.querySelectorAll(".tier-btn").forEach(btn => {
             btn.addEventListener("click", () => {

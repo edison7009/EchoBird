@@ -39,13 +39,8 @@
         }
     </script>
     <link rel="icon" href="./icon.png" type="image/png">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-    <link rel="stylesheet" media="screen" href="https://fontlibrary.org//face/cmu-concrete">
-    <link
-        href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Noto+Serif+SC:wght@500;600;700;900&family=JetBrains+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap"
-        rel="stylesheet">
+    <link rel="stylesheet" href="/assets/vendor/fontawesome.css">
+    <link rel="stylesheet" href="/assets/vendor/fonts.css">
     <style>
         :root {
             --bg: #14120f;
@@ -201,7 +196,7 @@
             position: absolute;
             inset: 0;
             z-index: -3;
-            background-image: url("./screenshots/echobird-dove-hero-engraved.png");
+            background-image: url("./screenshots/echobird-dove-hero-engraved.webp");
             background-size: cover;
             background-position: 70% 42%;
             transform: scale(1.03);
@@ -1222,13 +1217,14 @@
         }
 
         /* ── Reveal animation ── */
-        .reveal {
+        /* Content is visible without JS; only observed offscreen items animate. */
+        .reveal.pending {
             opacity: 0;
             transform: translateY(30px);
-            transition: opacity 0.6s ease, transform 0.6s ease;
         }
 
-        .reveal.visible {
+        .reveal {
+            transition: opacity 0.6s ease, transform 0.6s ease;
             opacity: 1;
             transform: translateY(0);
         }
@@ -1584,7 +1580,8 @@
         };
 
         function detectLocale() {
-            const saved = localStorage.getItem('echobird.lang');
+            let saved;
+            try { saved = localStorage.getItem('echobird.lang'); } catch {}
             if (saved && I18N[saved]) return saved;
             const nav = (navigator.language || 'en').toLowerCase();
             return nav.startsWith('zh') ? 'zh-CN' : 'en';
@@ -1620,7 +1617,7 @@
         }
 
         function setLocale(lang) {
-            localStorage.setItem('echobird.lang', lang);
+            try { localStorage.setItem('echobird.lang', lang); } catch {}
             applyI18n(lang);
         }
 
@@ -1719,7 +1716,7 @@
             <!-- Monitor: image only, no toolbar -->
             <div class="showcase-screen">
                 <div class="showcase-img-wrap" id="showcase-img-wrap">
-                    <img id="showcase-img" src="./screenshots/desktop-cn-dark.png" alt="EchoBird preview">
+                    <img id="showcase-img" src="./screenshots/desktop-cn-dark.png" alt="EchoBird preview" loading="lazy" decoding="async">
                 </div>
             </div>
 
@@ -2082,11 +2079,14 @@
     <script>
         // Reveal on scroll
         (function () {
+            if (typeof window.IntersectionObserver !== 'function' || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
             const obs = new IntersectionObserver((entries) => {
                 entries.forEach(e => {
                     if (e.isIntersecting) {
-                        e.target.classList.add('visible');
+                        e.target.classList.remove('pending');
                         obs.unobserve(e.target);
+                    } else {
+                        e.target.classList.add('pending');
                     }
                 });
             }, { threshold: 0.12 });
@@ -2112,8 +2112,8 @@
                 if (img.getAttribute('src') !== next) {
                     wrap.classList.add('swapping');
                     const swap = () => {
+                        img.onload = img.onerror = () => wrap.classList.remove('swapping');
                         img.src = next;
-                        img.onload = () => wrap.classList.remove('swapping');
                     };
                     setTimeout(swap, 120);
                 }

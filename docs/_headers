@@ -3,3 +3,19 @@
   Access-Control-Allow-Methods: GET, HEAD, OPTIONS
   Access-Control-Allow-Headers: Content-Type
   Cache-Control: public, max-age=1800, s-maxage=1800
+
+# Content-addressed font subsets can be reused across pages and deployments.
+/assets/vendor/fonts/*
+  Cache-Control: public, max-age=31536000, immutable
+
+/assets/vendor/webfonts/*
+  Cache-Control: public, max-age=604800
+
+/assets/vendor/*.css
+  Cache-Control: public, max-age=3600, must-revalidate
+
+/screenshots/*
+  Cache-Control: public, max-age=86400
+
+/icons/*
+  Cache-Control: public, max-age=86400
