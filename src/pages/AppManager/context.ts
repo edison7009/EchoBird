@@ -69,6 +69,11 @@ export interface AppManagerContextType extends AccountDirectoryContextType {
   aiInstallableIds: string[];
   viewMode: 'desktop' | 'install';
   setViewMode: (mode: 'desktop' | 'install') => void;
+  refreshSelectedTool: () => Promise<void>;
+  isRefreshingSelectedTool: boolean;
+  claimSelectedTool: () => Promise<void>;
+  warmUpSelectedTool: () => Promise<void>;
+  selectedToolAction: 'claim' | 'warmUp' | null;
 }
 
 export const AppManagerContext = createContext<AppManagerContextType | null>(null);

@@ -26,6 +26,9 @@ export const useToast = () => {
   return context;
 };
 
+/** Optional bridge for providers that can also be rendered in isolated tests. */
+export const useOptionalToast = () => useContext(ToastContext)?.showToast ?? (() => {});
+
 export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
 

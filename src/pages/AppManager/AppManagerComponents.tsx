@@ -49,7 +49,7 @@ import {
   arrayMove,
 } from '@dnd-kit/sortable';
 import { useIsomorphicLayoutEffect } from '@dnd-kit/utilities';
-import { Box as BoxIcon, ExternalLink, RefreshCw, Settings } from 'lucide-react';
+import { Box as BoxIcon, ExternalLink, Gift, RefreshCw, Settings, Zap } from 'lucide-react';
 import { getModelIcon } from '../../components';
 import { useConfirm } from '../../components/ConfirmDialog';
 import { CliLaunchDialog } from './CliLaunchDialog';
@@ -967,6 +967,11 @@ export const AppManagerPanel: React.FC = () => {
     setDshCapability,
     isLaunching,
     pluginAccounts,
+    refreshSelectedTool,
+    isRefreshingSelectedTool,
+    claimSelectedTool,
+    warmUpSelectedTool,
+    selectedToolAction,
   } = useAppManager();
 
   const isClaudeDesktopApp = selectedTool === 'claudedesktop';
@@ -987,6 +992,23 @@ export const AppManagerPanel: React.FC = () => {
     isQoderTool ||
     isDshTool ||
     isWorkBuddyApp;
+  const pluginWarmUp =
+    selectedTool === pluginAccounts?.provider?.application && !!pluginAccounts.warmUp;
+  const pluginClaim =
+    selectedTool === pluginAccounts?.provider?.application && !!pluginAccounts.claimDaily;
+  const supportsWarmUp = isClaudeCodeApp || isClaudeDesktopApp || pluginWarmUp;
+  const supportsClaim =
+    pluginClaim ||
+    selectedTool === 'workbuddy' ||
+    selectedTool === 'workbuddyai' ||
+    selectedTool === 'trae' ||
+    selectedTool === 'traecn' ||
+    isMinimaxTool ||
+    isQoderTool ||
+    selectedTool === 'dumate' ||
+    selectedTool === 'doubaowork' ||
+    selectedTool === 'dola' ||
+    selectedTool === 'codearts';
   const showCodexAccounts = selectedTool === 'codex' || selectedTool === 'chatgptdesktop';
   const selectedToolProtocols = selectedToolData?.apiProtocol || ['openai', 'anthropic'];
   const hasVisibleModels = userModels.some(
@@ -1087,16 +1109,42 @@ export const AppManagerPanel: React.FC = () => {
     <>
       {/* Header */}
       <div className="h-10 px-2 flex items-center justify-between bg-transparent">
-        <div className="flex gap-1">
-          <span className="px-3 py-1.5 text-xs font-bold text-cyber-text">
-            {t('agent.currentSelection')}
-          </span>
+        <span className="min-w-0 truncate px-3 py-1.5 text-sm font-semibold text-cyber-text">
+          {selectedToolData ? toolDisplayName(selectedToolData, locale) : ''}
+        </span>
+        <div className="flex shrink-0 items-center gap-1">
+          {supportsWarmUp && (
+            <button
+              type="button"
+              aria-label={t('agent.warmUpAccount')}
+              disabled={selectedToolAction !== null}
+              onClick={() => void warmUpSelectedTool()}
+              className="account-icon-button flex h-7 w-7 items-center justify-center rounded-full transition-colors hover:bg-cyber-elevated/45 disabled:opacity-40"
+            >
+              <Zap size={12} className={selectedToolAction === 'warmUp' ? 'animate-pulse' : ''} />
+            </button>
+          )}
+          {supportsClaim && (
+            <button
+              type="button"
+              aria-label={t('accountCenter.claimAll')}
+              disabled={selectedToolAction !== null}
+              onClick={() => void claimSelectedTool()}
+              className="account-icon-button flex h-7 w-7 items-center justify-center rounded-full transition-colors hover:bg-cyber-elevated/45 disabled:opacity-40"
+            >
+              <Gift size={12} className={selectedToolAction === 'claim' ? 'animate-pulse' : ''} />
+            </button>
+          )}
+          <button
+            type="button"
+            aria-label={t('btn.refresh')}
+            disabled={!selectedToolData || isRefreshingSelectedTool}
+            onClick={() => void refreshSelectedTool()}
+            className="account-icon-button flex h-7 w-7 items-center justify-center rounded-full transition-colors hover:bg-cyber-elevated/45 disabled:opacity-40"
+          >
+            <RefreshCw size={12} className={isRefreshingSelectedTool ? 'animate-spin' : ''} />
+          </button>
         </div>
-        {selectedToolData && (
-          <span className="text-[10px] text-cyber-text">
-            {toolDisplayName(selectedToolData, locale)}
-          </span>
-        )}
       </div>
 
       <div className="flex-1 p-2 overflow-y-auto">

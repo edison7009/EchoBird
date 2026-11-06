@@ -294,6 +294,9 @@ const en: Translations = {
   'accountCenter.noSubscriptionProviders': 'No providers listed yet',
   'accountCenter.claimAll': 'Claim all rewards',
   'accountCenter.refreshAll': 'Refresh quotas',
+  'accountCenter.batchRefreshSummary': 'Refreshed {success} accounts; {failed} failed',
+  'accountCenter.batchClaimSummary': 'Claimed rewards for {success} accounts; {failed} failed',
+  'accountCenter.batchWarmUpSummary': 'Warmed up {success} accounts; {failed} failed',
   'nav.freeModels': 'Smart Router',
   'nav.appManager': 'App Desktop',
   'nav.collapseSidebar': 'Collapse sidebar',
@@ -639,7 +642,6 @@ const en: Translations = {
   'toolCat.creative': 'Creative',
   // Agent Worker tabs
   'agent.modelsTab': 'MODELS',
-  'agent.currentSelection': 'Current selection',
   'agent.modelSwitch': 'Model switching',
   'agent.addCurrentAccount': 'Add Account',
   'agent.accountSnapshot': 'Account Snapshot',

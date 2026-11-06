@@ -366,6 +366,14 @@ export function ModelNexusProvider({ children }: { children: React.ReactNode }) 
     }
   }, [userModels, showToast, t]);
 
+  useEffect(() => {
+    const refresh = () => {
+      void refreshAllUsage();
+    };
+    window.addEventListener('echobird-refresh-model-usage', refresh);
+    return () => window.removeEventListener('echobird-refresh-model-usage', refresh);
+  }, [refreshAllUsage]);
+
   // Refresh usage for a single model
   const refreshSingleUsage = async (modelId: string, options?: UsageRefreshOptions) => {
     const model = userModels.find((m) => m.internalId === modelId);

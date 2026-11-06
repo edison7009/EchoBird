@@ -22,6 +22,7 @@ export interface PluginToolProvider {
   providerId: string;
   name: string;
   icon: string;
+  operations?: string[];
 }
 
 /** Applications contributed by enabled plugins, with their account provider. */
@@ -46,6 +47,7 @@ export function pluginToolProviders(
                 providerId: provider.id,
                 name: provider.title,
                 icon: plugin.icon ?? '',
+                operations: provider.operations,
               },
             ]
           : [];

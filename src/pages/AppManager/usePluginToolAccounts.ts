@@ -60,6 +60,14 @@ export function usePluginToolAccounts(
   return {
     ...managed,
     provider,
+    claimDaily: provider?.operations?.includes('account.claim')
+      ? (account: PluginToolAccount) =>
+          call<PluginToolAccount>('account.claim', { accountId: account.id })
+      : undefined,
+    warmUp: provider?.operations?.includes('account.warmup')
+      ? (account: PluginToolAccount) =>
+          call<PluginToolAccount>('account.warmup', { accountId: account.id })
+      : undefined,
     apply: (accountId: string) => call('account.apply', { accountId }),
   };
 }

@@ -13,6 +13,7 @@ import { AppManagerContext } from './context';
 import { useToolsStore } from '../../stores/toolsStore';
 import { useNavigationStore } from '../../stores/navigationStore';
 import { useFreeModels } from '../FreeModels/provider';
+import { useOptionalToast } from '../../components/Toast';
 import { getOfficialEndpoint, isOfficialModelSentinel } from '../../data/officialEndpoints';
 import { pluginTools, usePluginsStore } from '../../stores/pluginsStore';
 
@@ -24,6 +25,7 @@ interface AppManagerProviderProps {
 
 export const AppManagerProvider: React.FC<AppManagerProviderProps> = ({ children }) => {
   const { t, locale } = useI18n();
+  const showToast = useOptionalToast();
   const [accountCardOrder, setAccountCardOrder] = useState<string[]>(() => {
     try {
       const raw = localStorage.getItem('echobird_account_card_order');
@@ -99,7 +101,11 @@ export const AppManagerProvider: React.FC<AppManagerProviderProps> = ({ children
   });
 
   // Reload application models on entry and after model changes.
-  const { models: userModels, loaded: modelsLoaded } = useModelRepository(undefined, isActive);
+  const {
+    models: userModels,
+    loaded: modelsLoaded,
+    reload: reloadModels,
+  } = useModelRepository(undefined, isActive);
   const { routerEnabled, routers } = useFreeModels();
   const routerIdsKey = JSON.stringify(routers?.map((router) => router.id) ?? []);
   useEffect(() => {
@@ -365,6 +371,248 @@ export const AppManagerProvider: React.FC<AppManagerProviderProps> = ({ children
     setToolModelConfig,
     setApplyError,
   });
+
+  const [isRefreshingSelectedTool, setIsRefreshingSelectedTool] = useState(false);
+  const [selectedToolAction, setSelectedToolAction] = useState<'claim' | 'warmUp' | null>(null);
+  const modelsRefreshTime = useRef(0);
+  type RefreshAccount = { id: string };
+  type RefreshGroup = {
+    accounts: RefreshAccount[];
+    reload: () => Promise<unknown>;
+    refresh: (account: RefreshAccount) => Promise<unknown>;
+  };
+  const refreshSelectedTool = useCallback(async () => {
+    if (!selectedTool || isRefreshingSelectedTool) return;
+    const now = Date.now();
+    setIsRefreshingSelectedTool(true);
+    const refreshModels = now - modelsRefreshTime.current >= 30_000;
+    const accountGroup = (() => {
+      switch (selectedTool) {
+        case 'codex':
+        case 'chatgptdesktop':
+          return codexManaged as unknown as RefreshGroup;
+        case 'claudecode':
+          return claudeCodeAccounts as unknown as RefreshGroup;
+        case 'claudedesktop':
+          return claudeDesktopAccounts as unknown as RefreshGroup;
+        case 'workbuddy':
+        case 'workbuddyai':
+          return workBuddyAccounts as unknown as RefreshGroup;
+        case 'trae':
+        case 'traecn':
+          return traeAccounts as unknown as RefreshGroup;
+        case 'kirocrew':
+        case 'kirocli':
+          return kiroAccounts as unknown as RefreshGroup;
+        case 'minimaxcode':
+        case 'minimaxdesktop':
+          return minimaxAccounts as unknown as RefreshGroup;
+        case 'qoder':
+        case 'qodercn':
+          return qoderAccounts as unknown as RefreshGroup;
+        case 'dumate':
+          return dumateAccounts as unknown as RefreshGroup;
+        case 'doubaowork':
+        case 'dola':
+          return doubaoAccounts as unknown as RefreshGroup;
+        case 'qwenwork':
+        case 'qwenworkcn':
+          return qwenWorkAccounts as unknown as RefreshGroup;
+        case 'dsh':
+          return deepSeekAccounts as unknown as RefreshGroup;
+        case 'grok':
+        case 'manus':
+        case 'cue':
+          return grokAccounts as unknown as RefreshGroup;
+        case 'cline':
+        case 'clinedesktop':
+          return clineAccounts as unknown as RefreshGroup;
+        case 'kilo':
+        case 'kilodesktop':
+          return kiloAccounts as unknown as RefreshGroup;
+        case 'copilot':
+        case 'copilotdesktop':
+          return copilotAccounts as unknown as RefreshGroup;
+        case 'grokbot':
+          return grokBotAccounts as unknown as RefreshGroup;
+        case 'cursor':
+        case 'cursorcli':
+          return cursorAccounts as unknown as RefreshGroup;
+        case 'antigravity':
+        case 'antigravitydesktop':
+          return antigravityAccounts as unknown as RefreshGroup;
+        case 'kimi':
+        case 'kimicode':
+        case 'kimidesktop':
+          return kimiAccounts as unknown as RefreshGroup;
+        case 'zcode':
+          return zcodeAccounts as unknown as RefreshGroup;
+        case 'codearts':
+          return codeArtsAccounts as unknown as RefreshGroup;
+        case 'devin':
+        case 'devincli':
+          return devinAccounts as unknown as RefreshGroup;
+        case 'opendesign':
+          return openDesignAccounts as unknown as RefreshGroup;
+        default:
+          if (selectedTool === pluginAccountProvider?.application)
+            return pluginAccounts as unknown as RefreshGroup;
+          return undefined;
+      }
+    })();
+    const refreshAccounts = async () => {
+      if (!accountGroup) return;
+      const listed = await accountGroup.reload();
+      const accounts = Array.isArray(listed) ? (listed as RefreshAccount[]) : accountGroup.accounts;
+      const results = await Promise.allSettled(
+        accounts.map((account) => accountGroup.refresh(account))
+      );
+      const failed = results.filter((result) => result.status === 'rejected').length;
+      if (failed) {
+        showToast(
+          'warning',
+          t('accountCenter.batchRefreshSummary')
+            .replace('{success}', String(accounts.length - failed))
+            .replace('{failed}', String(failed))
+        );
+      }
+    };
+    try {
+      const modelTasks = refreshModels
+        ? [
+            reloadModels(),
+            Promise.resolve().then(() =>
+              window.dispatchEvent(new Event('echobird-refresh-model-usage'))
+            ),
+          ]
+        : [Promise.resolve(), Promise.resolve()];
+      const modelResults = await Promise.allSettled(modelTasks);
+      await refreshAccounts();
+      if (refreshModels && modelResults.every((result) => result.status === 'fulfilled')) {
+        modelsRefreshTime.current = Date.now();
+      }
+    } finally {
+      setIsRefreshingSelectedTool(false);
+    }
+  }, [
+    selectedTool,
+    isRefreshingSelectedTool,
+    reloadModels,
+    codexManaged,
+    claudeCodeAccounts,
+    claudeDesktopAccounts,
+    workBuddyAccounts,
+    traeAccounts,
+    kiroAccounts,
+    minimaxAccounts,
+    qoderAccounts,
+    dumateAccounts,
+    doubaoAccounts,
+    qwenWorkAccounts,
+    deepSeekAccounts,
+    grokAccounts,
+    clineAccounts,
+    kiloAccounts,
+    copilotAccounts,
+    grokBotAccounts,
+    cursorAccounts,
+    antigravityAccounts,
+    kimiAccounts,
+    zcodeAccounts,
+    codeArtsAccounts,
+    devinAccounts,
+    openDesignAccounts,
+    pluginAccountProvider,
+    pluginAccounts,
+    showToast,
+    t,
+  ]);
+
+  type BatchAccount = { id: string };
+  type BatchGroup = {
+    accounts: BatchAccount[];
+    claimDaily?: (account: BatchAccount) => Promise<unknown>;
+    warmUp?: (account: BatchAccount) => Promise<unknown>;
+  };
+  const selectedBatchGroup = useCallback((): BatchGroup | undefined => {
+    switch (selectedTool) {
+      case 'claudecode':
+        return claudeCodeAccounts as unknown as BatchGroup;
+      case 'claudedesktop':
+        return claudeDesktopAccounts as unknown as BatchGroup;
+      case 'workbuddy':
+      case 'workbuddyai':
+        return workBuddyAccounts as unknown as BatchGroup;
+      case 'trae':
+      case 'traecn':
+        return traeAccounts as unknown as BatchGroup;
+      case 'minimaxcode':
+      case 'minimaxdesktop':
+        return minimaxAccounts as unknown as BatchGroup;
+      case 'qoder':
+      case 'qodercn':
+        return qoderAccounts as unknown as BatchGroup;
+      case 'dumate':
+        return dumateAccounts as unknown as BatchGroup;
+      case 'doubaowork':
+      case 'dola':
+        return doubaoAccounts as unknown as BatchGroup;
+      case 'codearts':
+        return codeArtsAccounts as unknown as BatchGroup;
+      default:
+        if (selectedTool === pluginAccountProvider?.application)
+          return pluginAccounts as unknown as BatchGroup;
+        return undefined;
+    }
+  }, [
+    selectedTool,
+    claudeCodeAccounts,
+    claudeDesktopAccounts,
+    workBuddyAccounts,
+    traeAccounts,
+    minimaxAccounts,
+    qoderAccounts,
+    dumateAccounts,
+    doubaoAccounts,
+    codeArtsAccounts,
+    pluginAccountProvider,
+    pluginAccounts,
+  ]);
+  const runSelectedToolAction = useCallback(
+    async (action: 'claim' | 'warmUp') => {
+      if (!selectedTool || selectedToolAction) return;
+      const group = selectedBatchGroup();
+      const operation = group?.[action === 'claim' ? 'claimDaily' : 'warmUp'];
+      if (!group || !operation || !group.accounts.length) return;
+      setSelectedToolAction(action);
+      try {
+        const results = await Promise.allSettled(
+          group.accounts.map((account) => operation(account))
+        );
+        const failed = results.filter((result) => result.status === 'rejected').length;
+        if (failed) {
+          const prefix = action === 'claim' ? 'batchClaim' : 'batchWarmUp';
+          showToast(
+            'warning',
+            t(`accountCenter.${prefix}Summary` as const)
+              .replace('{success}', String(group.accounts.length - failed))
+              .replace('{failed}', String(failed))
+          );
+        }
+      } finally {
+        setSelectedToolAction(null);
+      }
+    },
+    [selectedTool, selectedToolAction, selectedBatchGroup, showToast, t]
+  );
+  const claimSelectedTool = useCallback(
+    () => runSelectedToolAction('claim'),
+    [runSelectedToolAction]
+  );
+  const warmUpSelectedTool = useCallback(
+    () => runSelectedToolAction('warmUp'),
+    [runSelectedToolAction]
+  );
 
   // Set tool model (single selection) - UI state update
   const handleSelectModel = (toolId: string, modelId: string) => {
@@ -1060,6 +1308,11 @@ export const AppManagerProvider: React.FC<AppManagerProviderProps> = ({ children
           ],
           viewMode,
           setViewMode,
+          refreshSelectedTool,
+          isRefreshingSelectedTool,
+          claimSelectedTool,
+          warmUpSelectedTool,
+          selectedToolAction,
         }}
       >
         {children}
