@@ -358,7 +358,7 @@ export function MotherAgentMain() {
             rows={2}
             className="w-full bg-transparent px-2 py-1 text-sm text-cyber-text font-sans font-medium outline-none placeholder:text-cyber-text-muted disabled:opacity-30 resize-none"
           />
-          <div className="flex items-center justify-end gap-1.5">
+          <div className="mother-composer-controls flex items-center justify-end gap-1">
             <RemoteModelSelector
               models={modelList}
               currentModelId={parasiteAgent || agentModel}
