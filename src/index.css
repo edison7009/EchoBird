@@ -825,6 +825,15 @@ html.is-macos #root {
   clip-path: none;
 }
 
+/* Windows and Linux use the same frameless WebView as macOS, so add the
+   subtle native-looking edge inside the transparent window shell ourselves. */
+html:not(.is-macos):not(.window-maximized) .app-window-shell {
+  border: 1px solid rgb(var(--border-rgb) / 0.62);
+  box-shadow:
+    inset 0 0 0 1px rgb(255 255 255 / 0.035),
+    0 0 18px rgb(0 0 0 / 0.2);
+}
+
 /* Native traffic lights stay at 100% while the rest of the WebView scales. */
 html.is-macos .app-titlebar {
   /* h-10 is 37.5px at our 15px root size; native lights center at 20px. */

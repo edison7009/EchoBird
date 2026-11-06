@@ -373,7 +373,7 @@ function AppContent() {
                     <VoiceInputProvider>
                       <UsageIslandHost />
                       <div
-                        className={`relative isolate flex flex-col h-screen w-full bg-cyber-bg overflow-hidden ${isMaximized || IS_MACOS ? '' : 'rounded-xl'}`}
+                        className={`app-window-shell relative isolate flex flex-col h-screen w-full bg-cyber-bg overflow-hidden ${isMaximized || IS_MACOS ? '' : 'rounded-xl'}`}
                       >
                         <AppBackground />
                         {/* Title bar */}
