@@ -81,7 +81,7 @@ describe('WorkBuddy account card', () => {
       expect(markup).toContain('agent.rewardCredits');
       expect(markup.includes('agent.dailyCreditsClaimed')).toBe(edition === 'workbuddy');
       expect(markup).toContain('aria-checked="true"');
-      expect(markup).toContain('grid h-12');
+      expect(markup).toContain('grid h-14');
       expect(markup).not.toContain('title=');
       expect(markup).not.toContain('tooltip');
       expect(markup).not.toContain('cursor-');

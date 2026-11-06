@@ -34,7 +34,7 @@ export function DirectoryRow({
     }
   })();
   return (
-    <div className="relative flex h-12 shrink-0 items-stretch rounded-card border-2 border-transparent overflow-hidden bg-cyber-surface/60">
+    <div className="relative flex h-14 shrink-0 items-stretch rounded-card border-2 border-transparent overflow-hidden bg-cyber-surface/60">
       {add && (
         <button
           type="button"
@@ -72,14 +72,14 @@ export function DirectoryRow({
             <img
               src={iconSrc}
               alt=""
-              className="w-6 h-6"
+              className="w-8 h-8"
               onError={(event) => {
                 event.currentTarget.style.display = 'none';
               }}
             />
           ) : (
-            <div className="w-6 h-6 flex items-center justify-center text-cyber-text">
-              <Box size={22} />
+            <div className="w-8 h-8 flex items-center justify-center text-cyber-text">
+              <Box size={32} />
             </div>
           )}
         </div>

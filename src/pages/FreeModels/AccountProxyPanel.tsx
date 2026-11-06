@@ -7,8 +7,6 @@ import {
   type ProxyAccount,
 } from '../../api/accountProxy';
 import type { AccountProvider } from '../../api/types';
-import { AccountAccessRiskNotice } from '../../components/AccountAccessRiskNotice';
-import { useAccountAccessRisk } from '../../stores/accountAccessRiskStore';
 import { useI18n } from '../../hooks/useI18n';
 import { useNavigationStore } from '../../stores/navigationStore';
 import { useModelNexus } from '../ModelNexus/context';
@@ -50,7 +48,6 @@ export function AccountProxyPanel({
   const context = useModelNexus();
   const available = useAccountProviderFilter();
   const { t } = useI18n();
-  const { acknowledged } = useAccountAccessRisk();
   const activePage = useNavigationStore((state) => state.activePage);
   const [accountCounts, setAccountCounts] = useState<Partial<Record<AccountProvider, number>>>({});
 
@@ -92,35 +89,26 @@ export function AccountProxyPanel({
 
   return (
     <div className={voice ? 'space-y-2' : 'flex-1 px-2 pt-0.5 pb-2 overflow-y-auto space-y-2'}>
-      <AccountAccessRiskNotice />
       {sortedProviders.map((provider) => (
         <button
           key={provider.id}
           type="button"
-          disabled={disabled || !acknowledged}
+          disabled={disabled}
           onClick={() => {
-            if (!disabled && acknowledged)
+            if (!disabled)
               openAccountModelForm(provider.id, context, voice ? 'voiceInput' : 'freeRouter');
           }}
           aria-label={`${t(voice ? 'voice.accountInput' : 'freeModels.addToRouter')}: ${provider.name}`}
-          className="w-full h-12 shrink-0 flex items-center gap-3 px-[11px] border-2 border-transparent bg-cyber-surface/60 rounded-card text-left enabled:hover:bg-cyber-elevated/70 disabled:opacity-40 disabled:grayscale transition-colors"
+          className="w-full h-14 shrink-0 flex items-center gap-3 px-[11px] border-2 border-transparent bg-cyber-surface/60 rounded-card text-left enabled:hover:bg-cyber-elevated/70 disabled:opacity-40 disabled:grayscale transition-colors"
         >
           <img
             src={accountProviderIconSrc(provider.icon)}
             alt=""
-            className="w-6 h-6 shrink-0 object-contain"
+            className="w-8 h-8 shrink-0 object-contain"
           />
           <span className="flex-1 min-w-0 text-base font-bold text-cyber-text truncate">
             {provider.name}
           </span>
-          {!voice &&
-            ['antigravity', 'claudeCode', 'qoder', 'qoderCn', 'doubaowork', 'dola'].includes(
-              provider.id
-            ) && (
-              <span className="shrink-0 whitespace-nowrap font-medium text-cyber-accent text-[10px] leading-none">
-                {t('accountProxy.highRisk')}
-              </span>
-            )}
           <span className="shrink-0 text-xs text-cyber-text-secondary tabular-nums whitespace-nowrap">
             {counts[provider.id] === undefined
               ? '—'

@@ -32,9 +32,8 @@ import { ViewModeTabs } from '../../components/ViewModeTabs';
 import { ModelListCard } from '../../components/ModelListCard';
 import { SortableCard } from '../../components/SortableCard';
 import { DirectoryRow } from '../../components/DirectoryRow';
-import { useAccountAccessRisk } from '../../stores/accountAccessRiskStore';
 import { getModelIcon } from '../../components/cards';
-import { AccountProxyPanel, openAccountModelForm } from '../FreeModels/AccountProxyPanel';
+import { AccountProxyPanel } from '../FreeModels/AccountProxyPanel';
 import { accountSpeechProviders, speechSourceFromSelector } from '../../api/accountProxy';
 import modelDirectory from '../../data/modelDirectory.json';
 import * as modelApi from '../../api/models';
@@ -611,7 +610,6 @@ export function VoiceInputPanel() {
   );
   const state = useVoiceInputStore();
   const accounts = useVoiceAccounts();
-  const { acknowledged } = useAccountAccessRisk();
   const models = useModelNexus();
   const active = useNavigationStore((navigation) => navigation.activePage === 'voice');
   const unavailable = !state.snapshot || state.pending || voiceBusy(state.snapshot?.phase);
@@ -672,17 +670,15 @@ export function VoiceInputPanel() {
     models.setShowApiKey(false);
     models.setShowAddModelModal(true);
   };
-  const openAccount = () => {
-    if (!disabled && acknowledged) openAccountModelForm('workBuddy', models, 'voiceInput');
-  };
   return (
     <div
       className="voice-input-panel flex h-full flex-col overflow-hidden"
-      data-saving={state.saving && !unavailable && (tab === 'model' || acknowledged)}
+      data-saving={state.saving && !unavailable}
     >
       <div className="h-10 shrink-0 px-2 mb-2 flex items-center justify-between gap-2">
-        <div className="min-w-0 w-fit">
+        <div className="min-w-0 flex-1">
           <ViewModeTabs
+            fullWidth
             value={tab}
             onChange={setTab}
             options={[
@@ -691,15 +687,6 @@ export function VoiceInputPanel() {
             ]}
           />
         </div>
-        <button
-          type="button"
-          disabled={disabled || (tab === 'account' && !acknowledged)}
-          aria-label={t('freeModels.customAdd')}
-          onClick={() => (tab === 'account' ? openAccount() : openModel())}
-          className="w-9 h-9 shrink-0 flex items-center justify-center border border-cyber-border rounded-button text-cyber-text-secondary enabled:hover:text-cyber-text enabled:hover:bg-cyber-elevated disabled:opacity-40 transition-colors"
-        >
-          <Plus size={16} />
-        </button>
       </div>
       <div className="flex-1 px-2 pt-0.5 pb-2 overflow-y-auto space-y-2">
         {tab === 'account' ? (

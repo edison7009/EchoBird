@@ -13,7 +13,7 @@ export function AiCareerFamilyPanel() {
   const selectedFamily = useAiCareerStore((s) => s.selectedFamily);
   const setSelectedFamily = useAiCareerStore((s) => s.setSelectedFamily);
   const cardClass = (selected: boolean) =>
-    'w-full h-12 shrink-0 flex border-2 rounded-card transition-colors ' +
+    'w-full h-14 shrink-0 flex border-2 rounded-card transition-colors ' +
     (selected
       ? 'border-cyber-accent/70 bg-cyber-accent/10'
       : 'border-transparent bg-cyber-surface/60 hover:bg-cyber-elevated/70');
@@ -49,7 +49,7 @@ export function AiCareerFamilyPanel() {
               onClick={() => setSelectedFamily(family.id)}
               className="flex-1 min-w-0 flex items-center gap-3 px-[11px] text-left"
             >
-              <FamilyIcon family={family.id} className="w-6 h-6" />
+              <FamilyIcon family={family.id} className="w-8 h-8" />
               <span className="text-base font-bold text-cyber-text truncate">
                 {family.name} {t('aiCareer.familySuffix')}
               </span>

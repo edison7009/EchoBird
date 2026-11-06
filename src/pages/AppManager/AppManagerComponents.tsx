@@ -750,7 +750,7 @@ export const ModelListSection: React.FC<ModelListSectionProps> = ({
 
     return (
       <div
-        className={`relative overflow-hidden h-12 px-[11px] py-1 rounded-card cursor-default transition-colors flex items-center gap-3 border-2 ${
+        className={`relative overflow-hidden h-14 px-[11px] py-1 rounded-card cursor-default transition-colors flex items-center gap-3 border-2 ${
           isOfficialPending
             ? 'border-cyber-accent/70 bg-cyber-accent/10'
             : 'bg-cyber-surface border-transparent hover:bg-cyber-elevated'
@@ -762,14 +762,14 @@ export const ModelListSection: React.FC<ModelListSectionProps> = ({
             <img
               src={iconSrc}
               alt=""
-              className="w-6 h-6"
+              className="w-8 h-8"
               onError={(e) => {
                 (e.target as HTMLImageElement).style.display = 'none';
               }}
             />
           ) : (
-            <div className="w-6 h-6 rounded bg-cyber-text/15 flex items-center justify-center text-cyber-text">
-              <BoxIcon size={14} />
+            <div className="w-8 h-8 rounded bg-cyber-text/15 flex items-center justify-center text-cyber-text">
+              <BoxIcon size={24} />
             </div>
           )}
         </div>

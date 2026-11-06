@@ -77,6 +77,7 @@ export function MotherAgentPanel() {
       {/* Header with tabs */}
       <div className="h-10 px-2 flex items-center justify-between bg-transparent">
         <ViewModeTabs
+          fullWidth
           value={panelTab}
           onChange={setPanelTab}
           options={[
@@ -350,7 +351,7 @@ export function MotherAgentPanel() {
             {/* Local server — always first */}
             <div
               onClick={() => !isProcessing && selectServer('local')}
-              className={`h-12 shrink-0 px-[11px] py-1 rounded-card transition-colors select-none flex items-center border-2 ${isProcessing && selectedServerId !== 'local' ? 'opacity-40' : 'cursor-default'} ${
+              className={`h-14 shrink-0 px-[11px] py-1 rounded-card transition-colors select-none flex items-center border-2 ${isProcessing && selectedServerId !== 'local' ? 'opacity-40' : 'cursor-default'} ${
                 selectedServerId === 'local'
                   ? 'border-cyber-accent/70 bg-cyber-accent/10'
                   : 'border-transparent bg-cyber-surface/60 hover:bg-cyber-elevated/70'
@@ -370,7 +371,7 @@ export function MotherAgentPanel() {
               <div
                 key={server.id}
                 onClick={() => !isProcessing && selectServer(server.id)}
-                className={`h-12 shrink-0 px-[11px] py-1 rounded-card transition-colors select-none flex items-center border-2 ${isProcessing && selectedServerId !== server.id ? 'opacity-40' : 'cursor-default'} ${
+                className={`h-14 shrink-0 px-[11px] py-1 rounded-card transition-colors select-none flex items-center border-2 ${isProcessing && selectedServerId !== server.id ? 'opacity-40' : 'cursor-default'} ${
                   selectedServerId === server.id
                     ? 'border-cyber-accent/70 bg-cyber-accent/10'
                     : 'border-transparent bg-cyber-surface/60 hover:bg-cyber-elevated/70'

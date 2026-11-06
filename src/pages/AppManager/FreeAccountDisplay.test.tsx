@@ -216,7 +216,7 @@ it.each(['Pro', null])(
         expect(html).not.toContain('role="progressbar"');
         expect(html).not.toContain('>0%<');
       }
-      expect(desktop).toContain('grid h-12');
+      expect(desktop).toContain('grid h-14');
       expect(card).toContain('flex h-44 flex-col gap-2 rounded-card');
     }
   }

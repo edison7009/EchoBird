@@ -295,7 +295,7 @@ export const AccountSectionRow: React.FC<{
           onSelect();
         }
       }}
-      className={`account-pill ${colorClassName} grid h-12 ${singleLine ? (leadingAction ? 'grid-cols-[minmax(0,1fr)_60px] gap-2' : 'grid-cols-[minmax(0,1fr)_44px] gap-2') : 'grid-cols-[minmax(0,1fr)] auto-rows-[16px] content-center'} items-center rounded-card border-2 ${selected ? 'border-cyber-accent/70' : 'border-transparent'} px-3 transition-opacity hover:opacity-90`}
+      className={`account-pill ${colorClassName} grid h-14 ${singleLine ? (leadingAction ? 'grid-cols-[minmax(0,1fr)_60px] gap-2' : 'grid-cols-[minmax(0,1fr)_44px] gap-2') : 'grid-cols-[minmax(0,1fr)] auto-rows-[16px] content-center'} items-center rounded-card border-2 ${selected ? 'border-cyber-accent/70' : 'border-transparent'} px-3 transition-opacity hover:opacity-90`}
     >
       <span
         className={`min-w-0 items-center gap-2 ${singleLine ? 'grid grid-cols-[minmax(0,1fr)_auto]' : 'flex'}`}

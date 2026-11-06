@@ -6,7 +6,6 @@ import { AccountProxyPanel } from './AccountProxyPanel';
 import * as api from '../../api/accountProxy';
 import type { AccountProvider } from '../../api/types';
 import { useNavigationStore } from '../../stores/navigationStore';
-import { useAccountAccessRiskStore } from '../../stores/accountAccessRiskStore';
 import { loadLocale, translate, type TKey } from '../../i18n';
 
 const { context, confirm } = vi.hoisted(() => ({
@@ -62,7 +61,6 @@ function count(provider: AccountProvider) {
 }
 beforeEach(async () => {
   enableAccountPlugins();
-  useAccountAccessRiskStore.setState({ acknowledged: true, hydrated: true });
   locale = 'zh-Hans';
   await loadLocale(locale);
   useNavigationStore.setState({ activePage: 'freeModels' });
@@ -93,18 +91,6 @@ it('updates zero, singular, plural and unknown account counts across all languag
       ...expected,
       '—',
     ]);
-    for (const provider of api.accountProxyProviders) {
-      const labels = row(provider.id)
-        .findAllByType('span')
-        .filter((span) => span.children.includes(translate('accountProxy.highRisk', language)));
-      expect(labels).toHaveLength(
-        ['antigravity', 'claudeCode', 'qoder', 'qoderCn', 'doubaowork', 'dola'].includes(
-          provider.id
-        )
-          ? 1
-          : 0
-      );
-    }
   }
   expect(api.listProxyAccounts).toHaveBeenCalledTimes(reads);
   expect(api.getAccountProxyModels).not.toHaveBeenCalled();
@@ -378,7 +364,7 @@ it('reuses the speech-capable provider rows and supplied counts without a second
   expect(context.setModelModalDestination).toHaveBeenCalledWith('voiceInput');
 });
 
-it('keeps speech source actions disabled while pending or before risk acknowledgement', async () => {
+it('keeps speech source actions disabled while pending and enables them afterward', async () => {
   useNavigationStore.setState({ activePage: 'voice' });
   await act(async () => {
     renderer = create(<AccountProxyPanel voice disabled accounts={[]} />);
@@ -387,12 +373,11 @@ it('keeps speech source actions disabled while pending or before risk acknowledg
   act(() => row('workBuddyAi').props.onClick());
   expect(context.setShowAddModelModal).not.toHaveBeenCalled();
   await act(async () => {
-    useAccountAccessRiskStore.setState({ acknowledged: false });
     renderer.update(<AccountProxyPanel voice accounts={[]} />);
   });
-  expect(row('workBuddyAi').props.disabled).toBe(true);
+  expect(row('workBuddyAi').props.disabled).toBe(false);
   act(() => row('workBuddyAi').props.onClick());
-  expect(context.setShowAddModelModal).not.toHaveBeenCalled();
+  expect(context.setShowAddModelModal).toHaveBeenCalledOnce();
   expect(api.listProxyAccounts).not.toHaveBeenCalled();
 });
 

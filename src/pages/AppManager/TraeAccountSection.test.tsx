@@ -104,7 +104,7 @@ describe('TRAE account rows', () => {
     (plan) => {
       const html = fixture([{ ...saved, plan }]).html();
       expect(html.match(new RegExp(`>${plan.replace('+', '\\+')}</span>`, 'g'))).toHaveLength(1);
-      expect(html).toContain('grid h-12');
+      expect(html).toContain('grid h-14');
       expect(html).toContain('aria-checked="true"');
       expect(html).toContain('agent.refreshAccount Saved');
       expect(html).toContain('btn.delete Saved');

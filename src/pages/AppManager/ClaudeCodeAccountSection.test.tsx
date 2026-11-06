@@ -64,7 +64,7 @@ describe('Claude Code account card', () => {
     expect(markup).not.toContain('width:');
     expect(markup).not.toContain('h-1.5');
     expect(markup).toContain('aria-checked="true"');
-    expect(markup).toContain('grid h-12');
+    expect(markup).toContain('grid h-14');
     expect(markup).not.toContain('title=');
     expect(markup).not.toContain('tooltip');
     expect(markup).not.toContain('cursor-');
@@ -108,7 +108,7 @@ describe('Claude Code account card', () => {
     expect(markup).not.toContain('—');
     expect(markup).toContain('82%');
     expect(markup).not.toContain('5h:');
-    expect(markup).toContain('grid h-12');
+    expect(markup).toContain('grid h-14');
     expect(markup.match(/Max 5X/g)).toHaveLength(1);
     expect(markup).not.toContain('cursor-');
     expect(markup).not.toContain('title=');

@@ -81,8 +81,7 @@ import { useI18n } from '../../hooks/useI18n';
 import { useDocumentVisible } from '../../hooks/useDocumentVisible';
 import { useNavigationStore } from '../../stores/navigationStore';
 import { ACCOUNT_NAME_MASK, useAccountPrivacyStore } from '../../stores/accountPrivacyStore';
-import { AccountProxyPanel, openAccountModelForm } from './AccountProxyPanel';
-import { useAccountAccessRisk } from '../../stores/accountAccessRiskStore';
+import { AccountProxyPanel } from './AccountProxyPanel';
 import { modelLatencyColor } from '../../utils/modelLatency';
 import { useModelNexus } from '../ModelNexus/context';
 import { accountProxyIdentityLabel, accountProxyPlanLabel } from '../AppManager/accountPlanLabel';
@@ -98,7 +97,7 @@ export { FreeModelsProvider, useFreeModels } from './provider';
 const NODE_COLUMN_GAP = 24;
 const NODE_MIN_WIDTH = 240;
 
-const NODE_ROW_GAP = 36;
+const NODE_ROW_GAP = NODE_COLUMN_GAP;
 
 const NODE_SIDE_PADDING = 0;
 
@@ -1657,7 +1656,7 @@ function FreeModelProviderRow({
 
   return (
     <div
-      className={`relative flex h-12 shrink-0 items-stretch rounded-card overflow-hidden border-2 ${selected ? 'border-cyber-accent/70 bg-cyber-accent/10' : 'border-transparent bg-cyber-surface/60'}`}
+      className={`relative flex h-14 shrink-0 items-stretch rounded-card overflow-hidden border-2 ${selected ? 'border-cyber-accent/70 bg-cyber-accent/10' : 'border-transparent bg-cyber-surface/60'}`}
     >
       <button
         type="button"
@@ -1692,14 +1691,14 @@ function FreeModelProviderRow({
             <img
               src={iconSrc}
               alt=""
-              className="w-6 h-6"
+              className="w-8 h-8"
               onError={(event) => {
                 (event.target as HTMLImageElement).style.display = 'none';
               }}
             />
           ) : (
-            <div className="w-6 h-6 flex items-center justify-center text-cyber-text">
-              <Box size={22} />
+            <div className="w-8 h-8 flex items-center justify-center text-cyber-text">
+              <Box size={32} />
             </div>
           )}
         </div>
@@ -1728,7 +1727,6 @@ export function FreeModelsPanel() {
   const { showToast } = useToast();
   const confirm = useConfirm();
   const [activeTab, setActiveTab] = useState<'saved' | 'account' | 'free'>('saved');
-  const { acknowledged: accountRiskAcknowledged } = useAccountAccessRisk();
   const [addingId, setAddingId] = useState<string | null>(null);
   const setActivePage = useNavigationStore((state) => state.setActivePage);
   const modelContext = useModelNexus();
@@ -1758,8 +1756,6 @@ export function FreeModelsPanel() {
     setEditingModelId,
     setModelModalDestination,
     setShowAddModelModal,
-    setKeyDestroyed,
-    setShowApiKey,
   } = modelContext;
   const providerGroups = useMemo(() => {
     const groups = new Map<string, FreeModelProviderGroup>();
@@ -1803,15 +1799,6 @@ export function FreeModelsPanel() {
     [setEditingModelId, setModelModalDestination, setNewModelForm, setShowAddModelModal]
   );
 
-  const openCustomModel = () => {
-    setNewModelForm({ name: '', baseUrl: '', anthropicUrl: '', apiKey: '', modelId: '' });
-    setEditingModelId(null);
-    setKeyDestroyed(false);
-    setShowApiKey(false);
-    setModelModalDestination('freeRouter');
-    setShowAddModelModal(true);
-  };
-
   const addSavedModel = async (model: (typeof userModels)[number]) => {
     if (addingId || selectedIds.has(model.internalId)) return;
     setAddingId(model.internalId);
@@ -1839,7 +1826,7 @@ export function FreeModelsPanel() {
       <div className="h-10 shrink-0 px-2 mb-2 flex items-center justify-between gap-2">
         <ViewModeTabGroup
           role="tablist"
-          className={`view-mode-tabs min-w-0 flex border border-cyber-border rounded-button overflow-hidden ${compactTabs ? 'flex-1' : ''}`}
+          className={`view-mode-tabs min-w-0 flex border border-cyber-border rounded-button overflow-hidden flex-1`}
         >
           {(['saved', 'account', 'free'] as const).map((tab, index, tabs) => (
             <button
@@ -1867,8 +1854,8 @@ export function FreeModelsPanel() {
                   );
                 tabButtons?.[next]?.focus();
               }}
-              className={`view-mode-tab min-w-0 whitespace-nowrap py-1.5 transition-[color] ${
-                compactTabs ? 'flex-auto px-[2px] text-[12px] font-sans' : 'px-3 text-sm font-mono'
+              className={`view-mode-tab flex-1 min-w-0 whitespace-nowrap py-1.5 transition-[color] ${
+                compactTabs ? 'px-[2px] text-[12px] font-sans' : 'px-3 text-sm font-mono'
               } ${
                 activeTab === tab
                   ? 'bg-cyber-elevated text-cyber-text'
@@ -1885,19 +1872,6 @@ export function FreeModelsPanel() {
             </button>
           ))}
         </ViewModeTabGroup>
-        <button
-          type="button"
-          disabled={activeTab === 'account' && !accountRiskAcknowledged}
-          onClick={() => {
-            if (activeTab === 'account') {
-              if (accountRiskAcknowledged) openAccountModelForm('codex', modelContext);
-            } else openCustomModel();
-          }}
-          aria-label={t('freeModels.customAdd')}
-          className="w-9 h-9 shrink-0 flex items-center justify-center border border-cyber-border rounded-button text-cyber-text-secondary enabled:hover:text-cyber-text enabled:hover:bg-cyber-elevated disabled:opacity-40 transition-colors"
-        >
-          <Plus size={16} />
-        </button>
       </div>
       <div
         role="tabpanel"

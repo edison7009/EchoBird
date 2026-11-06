@@ -444,6 +444,17 @@ describe('Independent smart router groups', () => {
     expect(api.updateModel).not.toHaveBeenCalled();
   });
 
+  it('cycles through groups with side arrows without saving settings', async () => {
+    await open();
+    await act(async () => button('freeModels.router.previous').props.onClick());
+    expect(context.activeRouterId).toBe(secondId);
+    await act(async () => button('freeModels.router.next').props.onClick());
+    expect(context.activeRouterId).toBe('smart-router');
+    expect(api.saveSmartRouter).not.toHaveBeenCalled();
+    expect(api.setSmartRouterGroupEnabled).not.toHaveBeenCalled();
+    expect(confirm).not.toHaveBeenCalled();
+  });
+
   it('uses numbered tabs to replace one fixed detail panel without writes or redundant loads', async () => {
     const firstName = 'First router with a long custom name';
     groups[0].name = firstName;

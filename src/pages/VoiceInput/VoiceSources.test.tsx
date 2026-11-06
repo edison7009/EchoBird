@@ -16,7 +16,6 @@ import { open } from '@tauri-apps/plugin-shell';
 import { DirectoryRow } from '../../components/DirectoryRow';
 import { ViewModeTabs } from '../../components/ViewModeTabs';
 import { AccountProxyPanel } from '../FreeModels/AccountProxyPanel';
-import { useAccountAccessRiskStore } from '../../stores/accountAccessRiskStore';
 import bundled from '../../data/modelDirectory.json';
 import remote from '../../../docs/api/model-directory/index.json';
 
@@ -83,7 +82,6 @@ beforeAll(async () => {
 beforeEach(() => {
   enableAccountPlugins();
   vi.clearAllMocks();
-  useAccountAccessRiskStore.setState({ acknowledged: false, hydrated: false });
   stored = new Map();
   setItem = vi.fn((key: string, value: string) => stored.set(key, value));
   vi.stubGlobal('localStorage', { getItem: (key: string) => stored.get(key) ?? null, setItem });
@@ -136,9 +134,6 @@ it('has two compact tabs; navigation does not open a form, log in, refresh quota
 it('opens the shared account form only on explicit selection and uses the speech destination', async () => {
   await mount();
   act(() =>
-    renderer.root.findByProps({ type: 'checkbox' }).props.onChange({ target: { checked: true } })
-  );
-  act(() =>
     renderer.root.findByProps({ 'aria-label': 'voice.accountInput: WorkBuddy' }).props.onClick()
   );
   expect(context.setNewModelForm).toHaveBeenCalledWith(
@@ -149,7 +144,7 @@ it('opens the shared account form only on explicit selection and uses the speech
   expect(account.add).not.toHaveBeenCalled();
 });
 it.each([0, 3])(
-  'shares risk confirmation and revocation with smart access with %i sources',
+  'allows direct account selection without confirmation with %i sources',
   async (count) => {
     voice.setState({
       snapshot: voiceSnapshot({
@@ -175,34 +170,18 @@ it.each([0, 3])(
       renderer.root.findByProps({ 'aria-label': 'voice.accountInput: WorkBuddy' });
     const routerRow = () =>
       renderer.root.findByProps({ 'aria-label': 'freeModels.addToRouter: WorkBuddy' });
-    expect(checkboxes().map((box) => box.props.checked)).toEqual([false, false]);
-    expect(voiceRow().props.disabled).toBe(true);
-    expect(routerRow().props.disabled).toBe(true);
+    expect(checkboxes()).toHaveLength(0);
+    expect(renderer.root.findAllByProps({ 'aria-haspopup': 'dialog' })).toHaveLength(0);
+    expect(voiceRow().props.disabled).toBe(false);
+    expect(routerRow().props.disabled).toBe(false);
+    expect(context.setShowAddModelModal).not.toHaveBeenCalled();
+    expect(confirm).not.toHaveBeenCalled();
+    expect(setItem).not.toHaveBeenCalled();
     act(() => {
       voiceRow().props.onClick();
       routerRow().props.onClick();
     });
-    expect(context.setShowAddModelModal).not.toHaveBeenCalled();
-    await act(async () => checkboxes()[0].props.onChange({ target: { checked: true } }));
-    expect(checkboxes().map((box) => box.props.checked)).toEqual([true, true]);
-    expect(voiceRow().props.disabled).toBe(false);
-    expect(routerRow().props.disabled).toBe(false);
-    const notices = renderer.root.findAllByProps({ 'aria-haspopup': 'dialog' });
-    await act(async () => {
-      await notices[0].props.onClick();
-      await notices[1].props.onClick();
-    });
-    expect(confirm).toHaveBeenCalledTimes(2);
-    expect(confirm.mock.calls[0]).toEqual(confirm.mock.calls[1]);
-    expect(confirm.mock.calls[0][0].message).toBe('accountProxy.riskMessage');
-    await act(async () => checkboxes()[1].props.onChange({ target: { checked: false } }));
-    expect(checkboxes().map((box) => box.props.checked)).toEqual([false, false]);
-    expect(voiceRow().props.disabled).toBe(true);
-    expect(routerRow().props.disabled).toBe(true);
-    expect(setItem.mock.calls).toEqual([
-      ['echobird-account-proxy-risk-acknowledged', 'true'],
-      ['echobird-account-proxy-risk-acknowledged', 'false'],
-    ]);
+    expect(context.setShowAddModelModal).toHaveBeenCalledTimes(2);
     expect(api.addModel).not.toHaveBeenCalled();
     expect(voiceApi.saveVoiceConfig).not.toHaveBeenCalled();
     expect(voiceApi.startVoice).not.toHaveBeenCalled();
@@ -214,13 +193,10 @@ it('opens account and API model forms with three sources without changing the co
     channels: [1, 2, 3].map((index) => ({ kind: 'model' as const, id: `speech-${index}` })),
   };
   voice.setState({ snapshot: voiceSnapshot({ config }) });
-  useAccountAccessRiskStore.setState({ acknowledged: true, hydrated: true });
   await mount();
   const row = renderer.root.findByProps({ 'aria-label': 'voice.accountInput: WorkBuddy' });
   expect(row.props.disabled).toBe(false);
-  expect(renderer.root.findByProps({ 'aria-label': 'freeModels.customAdd' }).props.disabled).toBe(
-    false
-  );
+  expect(renderer.root.findAllByProps({ 'aria-label': 'freeModels.customAdd' })).toHaveLength(0);
   act(() => row.props.onClick());
   expect(context.setShowAddModelModal).toHaveBeenCalledOnce();
   await modelTab();
@@ -273,7 +249,6 @@ it.each([
 ] as const)(
   'keeps the page stable for master=%s, tab=%s, failed=%s during a delayed sidebar toggle',
   async (shortcutEnabled, tab, failed) => {
-    useAccountAccessRiskStore.setState({ acknowledged: true, hydrated: true });
     const config = {
       ...voiceSnapshot().config,
       shortcutEnabled,
@@ -325,9 +300,8 @@ it.each([
       `voice-routing-lines${shortcutEnabled ? '' : ' is-disabled'}`
     );
     const remove = renderer.root.findAllByProps({ 'aria-label': 'voice.removeChannel' });
-    const add = renderer.root.findByProps({ 'aria-label': 'freeModels.customAdd' });
+    expect(renderer.root.findAllByProps({ 'aria-label': 'freeModels.customAdd' })).toHaveLength(0);
     expect(remove.every((button) => !button.props.disabled)).toBe(true);
-    expect(add.props.disabled).toBe(false);
     act(() => {
       void toggle.props.onClick();
     });
@@ -340,11 +314,9 @@ it.each([
     );
     expect(toggle.props.disabled).toBe(true);
     expect(remove.every((button) => button.props.disabled)).toBe(true);
-    expect(add.props.disabled).toBe(true);
     act(() => {
       toggle.props.onClick();
       remove[0].props.onClick();
-      add.props.onClick();
     });
     const saved = { ...config, shortcutEnabled: !shortcutEnabled };
     expect(voiceApi.saveVoiceConfig).toHaveBeenCalledExactlyOnceWith(saved);
@@ -383,10 +355,9 @@ it.each([
   }
 );
 
-it.each(['recording', 'pending', 'risk'] as const)(
+it.each(['recording', 'pending'] as const)(
   'preserves unavailable panel feedback for %s even while saving',
   async (reason) => {
-    useAccountAccessRiskStore.setState({ acknowledged: reason !== 'risk', hydrated: true });
     voice.setState({
       saving: true,
       pending: reason === 'pending',
@@ -415,7 +386,6 @@ it.each(['recording', 'pending', 'risk'] as const)(
 
 it('uses saved account access when native clients are uninstalled', async () => {
   tools.setState({ detectedTools: [] });
-  useAccountAccessRiskStore.setState({ acknowledged: true, hydrated: true });
   await mount();
   const row = renderer.root.findByProps({ 'aria-label': 'voice.accountInput: WorkBuddy AI' });
   expect(row.props.disabled).toBe(false);

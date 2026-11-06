@@ -605,7 +605,7 @@ it('Open Design: the actual panel keeps accounts and the official model section 
   });
   const markup = JSON.stringify(renderer.toJSON());
   expect(markup).toContain('/icons/tools/opendesign.png');
-  expect(markup).toContain('agent.modelSwitch');
+  expect(markup).not.toContain('agent.modelSwitch');
   expect(markup).toContain('Open Design Official');
   expect(api.applyModelToTool).not.toHaveBeenCalled();
   expect(api.restoreToolToOfficial).not.toHaveBeenCalled();
@@ -951,7 +951,7 @@ it.each(['kilo', 'copilot'] as const)(
     });
     const identity = family === 'kilo' ? kiloFixture.email : copilotFixture.login;
     const radio = renderer.root.findByProps({ role: 'radio' });
-    expect(radio.props.className).toContain('h-12');
+    expect(radio.props.className).toContain('h-14');
     const preventDefault = vi.fn();
     act(() =>
       radio.props.onKeyDown({ key: 'Enter', target: {}, currentTarget: radio, preventDefault })

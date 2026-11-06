@@ -359,9 +359,6 @@ export function AiPulsePanel() {
 
   return (
     <>
-      <div className="px-3 py-2 mb-1 bg-transparent">
-        <div className="text-[15px] font-semibold text-cyber-text">{t('pulse.archive')}</div>
-      </div>
       <div className="flex-1 px-2 overflow-y-auto pb-4 page-scroll">
         {cachedDates.length === 0 ? (
           <div className="px-3 py-8 text-center text-[14px] text-cyber-text-muted leading-relaxed">

@@ -163,7 +163,7 @@ describe('Cline shared account workflow', () => {
       const markup = JSON.stringify(renderer.toJSON());
       expect(markup).toContain(balanceMicros == null ? 'model.noUsageData' : '$0.00');
       expect(markup).not.toContain('progressbar');
-      expect(renderer.root.findByProps({ role: 'radio' }).props.className).toContain('grid h-12');
+      expect(renderer.root.findByProps({ role: 'radio' }).props.className).toContain('grid h-14');
       expect(calls('refresh_cline_account')).toHaveLength(0);
       expect(calls('switch_cline_account')).toHaveLength(0);
     }

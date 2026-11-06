@@ -9,10 +9,10 @@ import {
   type RefObject,
 } from 'react';
 import { createPortal } from 'react-dom';
-import { Lock, Plus, SquarePen, Trash2, Unlock, Waypoints, X } from 'lucide-react';
+import { Lock, Plus, SquarePen, Trash2, Unlock, X } from 'lucide-react';
 import * as api from '../../api/tauri';
 import { RoutingToggle } from '../../components/RoutingToggle';
-import { ViewModeTabGroup, type ViewModeTabPosition } from '../../components/ViewModeTabGroup';
+import { type ViewModeTabPosition } from '../../components/ViewModeTabGroup';
 import { useConfirm } from '../../components/ConfirmDialog';
 import { useToast } from '../../components/Toast';
 import { useI18n } from '../../hooks/useI18n';
@@ -325,7 +325,7 @@ function RouterSettingsModal({
 export function RouterGroups({
   hubRef,
   restoreFocusRef,
-  tabPositionRef,
+  tabPositionRef: _tabPositionRef,
   refreshAction,
 }: {
   hubRef: RefObject<HTMLDivElement>;
@@ -424,11 +424,10 @@ export function RouterGroups({
   };
   const groupNavigation = (
     <div className="free-model-router-group-toolbar overflow-hidden rounded-button border border-cyber-border">
-      <ViewModeTabGroup
+      <div
         role="tablist"
         aria-label={t('freeModels.router.title')}
-        className="free-model-router-tabs view-mode-tabs"
-        positionRef={tabPositionRef}
+        className="free-model-router-tabs"
       >
         {routers.map((router, index) => (
           <button
@@ -459,12 +458,12 @@ export function RouterGroups({
                 );
               tabs?.[next]?.focus();
             }}
-            className={`free-model-router-tab view-mode-tab text-xs ${router.id === activeRouterId ? 'bg-cyber-elevated text-cyber-text' : routerEnabled && router.groupEnabled ? 'font-bold text-cyber-accent hover:text-cyber-text' : 'text-cyber-text-secondary hover:text-cyber-text'}`}
+            className={`free-model-router-tab text-xs transition-colors ${router.id === activeRouterId ? 'bg-cyber-accent text-white font-semibold hover:bg-cyber-accent-secondary' : routerEnabled && router.groupEnabled ? 'font-bold text-cyber-accent hover:text-cyber-text' : 'text-cyber-text-secondary hover:text-cyber-text'}`}
           >
             {index + 1}
           </button>
         ))}
-      </ViewModeTabGroup>
+      </div>
       {canAdd && (
         <button
           type="button"
@@ -498,7 +497,7 @@ export function RouterGroups({
         aria-label={`${t('freeModels.router.edit')} ${router.name}`}
         disabled={busy}
         onClick={() => void edit(router.id)}
-        className={`hover:text-cyber-text ${list ? 'flex h-7 items-center justify-center' : 'flex h-8 w-8 items-center justify-center rounded-button border border-cyber-border text-cyber-text-secondary'}`}
+        className={`hover:text-cyber-text ${list ? 'flex h-7 items-center justify-center' : 'flex h-7 w-7 items-center justify-center text-cyber-text-secondary'}`}
       >
         <SquarePen size={15} />
       </button>
@@ -509,7 +508,7 @@ export function RouterGroups({
         aria-label={`${t('freeModels.router.delete')} ${router.name}`}
         disabled={busy || routers.length <= 1}
         onClick={() => void remove(router)}
-        className={`hover:text-red-400 ${routers.length <= 1 ? 'opacity-30' : ''} ${list ? 'flex h-7 items-center justify-center' : 'flex h-8 w-8 items-center justify-center rounded-button border border-cyber-border text-cyber-text-secondary'}`}
+        className={`hover:text-red-400 ${routers.length <= 1 ? 'opacity-30' : ''} ${list ? 'flex h-7 items-center justify-center' : 'flex h-7 w-7 items-center justify-center text-cyber-text-secondary'}`}
       >
         <Trash2 size={15} />
       </button>
@@ -517,15 +516,20 @@ export function RouterGroups({
     const details = (
       <>
         <div
-          className={`free-model-router-heading flex min-w-0 items-center gap-2 ${list ? '' : 'free-model-router-card-heading'}`}
+          className={`free-model-router-heading flex min-w-0 items-center gap-2 ${list ? 'justify-center' : 'free-model-router-card-heading'}`}
         >
-          <Waypoints size={list ? 20 : 22} className="shrink-0 text-cyber-accent" aria-hidden />
           <span
             className={`truncate font-semibold text-cyber-text ${list ? 'text-sm' : 'flex-1 text-lg leading-none'}`}
           >
             {router.name}
           </span>
-          {!list && toggle}
+          {!list && (
+            <div className="flex shrink-0 items-center gap-1">
+              {editButton}
+              {deleteButton}
+              <div className="ml-1.5">{toggle}</div>
+            </div>
+          )}
         </div>
         <div className={`free-model-router-endpoints gap-3 ${list ? 'grid grid-cols-2' : 'flex'}`}>
           {[
@@ -593,13 +597,7 @@ export function RouterGroups({
               {toggle}
             </>
           ) : (
-            <>
-              {groupNavigation}
-              <div className="flex shrink-0 items-center gap-1 text-cyber-text-muted">
-                {deleteButton}
-                {editButton}
-              </div>
-            </>
+            <>{groupNavigation}</>
           )}
         </div>
       </div>
@@ -609,6 +607,40 @@ export function RouterGroups({
     <>
       {layout === 'cards' ? (
         <div className="free-model-router-switcher relative z-10" aria-busy={busy || undefined}>
+          {routers.length > 1 &&
+            ([-1, 1] as const).map((direction) => (
+              <button
+                key={direction}
+                type="button"
+                disabled={busy}
+                aria-label={t(
+                  direction < 0 ? 'freeModels.router.previous' : 'freeModels.router.next'
+                )}
+                onClick={() => {
+                  const index = routers.findIndex((router) => router.id === activeRouterId);
+                  const next = (index + direction + routers.length) % routers.length;
+                  selectTab(routers[next].id);
+                }}
+                className={`free-model-router-page-arrow absolute top-1/2 -translate-y-1/2 flex h-20 w-16 items-center justify-center text-cyber-accent disabled:opacity-30 ${direction < 0 ? 'right-full mr-4' : 'left-full ml-4'}`}
+              >
+                <svg
+                  aria-hidden="true"
+                  width="48"
+                  height="48"
+                  viewBox="0 0 48 48"
+                  fill="none"
+                  className={`free-model-router-page-chevron ${direction < 0 ? 'is-previous' : ''}`}
+                >
+                  <path
+                    d={direction < 0 ? 'M 31 8 L 15 24 L 31 40' : 'M 17 8 L 33 24 L 17 40'}
+                    stroke="currentColor"
+                    strokeWidth="8"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </button>
+            ))}
           {routers.filter((router) => router.id === activeRouterId).map(hub)}
         </div>
       ) : (

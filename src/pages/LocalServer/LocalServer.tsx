@@ -1108,37 +1108,6 @@ function formatSize(bytes: number): string {
   return (bytes / 1e3).toFixed(0) + ' KB';
 }
 
-// Estimate VRAM needed from file size (rough: fileSize * 1.2)
-function estimateVramGb(fileSize: number): number {
-  return Math.round((fileSize / 1e9) * 1.2 * 10) / 10;
-}
-
-// Parse VRAM string like "24 GB" to number
-function parseVramString(vramStr: string): number {
-  const match = vramStr.match(/(\d+\.?\d*)/);
-  return match ? parseFloat(match[1]) : 0;
-}
-
-// Get VRAM fitness label and color
-function getVramFitness(
-  requiredGb: number,
-  userVramGb: number,
-  t: ReturnType<typeof useI18n>['t']
-): { label: string; color: string } | null {
-  if (userVramGb <= 0) return null;
-  const ratio = requiredGb / userVramGb;
-  if (ratio <= 0.7) return { label: t('vram.easy'), color: 'text-green-400' };
-  if (ratio <= 1.0) return { label: t('vram.good'), color: 'text-cyber-accent' };
-  if (ratio <= 1.3) return { label: t('vram.tight'), color: 'text-yellow-400' };
-  // ratio 1.3-3.0 = "heavy" (8GB rig running a 12GB model — slow but
-  // technically possible via offload / smaller quant). ratio > 3.0 = the
-  // user's hardware is fundamentally too small for this variant; show a
-  // stronger label so the multi-shard flagships don't look like a mere
-  // "your fan will spin" warning.
-  if (ratio <= 3.0) return { label: t('vram.heavy'), color: 'text-red-400' };
-  return { label: t('vram.impossible'), color: 'text-red-400' };
-}
-
 // Known model names for icon detection
 const KNOWN_MODELS = [
   'minicpm',
@@ -1215,9 +1184,6 @@ export const LocalServerPanel: React.FC = () => {
     if (hasNewCompletion) rescanModels();
   }, [downloads, rescanModels]);
 
-  // GPU info — VRAM size drives runtime defaults, Compute option, and model-card fitness colors
-  const [gpuVramGb, setGpuVramGb] = useState(0);
-
   // Local model dirs (mutable copy for add/remove)
   const [localDirs, setLocalDirs] = useState<string[]>(modelsDirs);
   useEffect(() => {
@@ -1225,30 +1191,11 @@ export const LocalServerPanel: React.FC = () => {
     setLocalDirs(modelsDirs);
   }, [modelsDirs]);
 
-  // Load download dir + GPU info on mount
+  // Load download directory on mount
   useEffect(() => {
     api
       .getDownloadDir()
       .then(setDownloadDir)
-      .catch(() => {});
-    // Try cached GPU info first, then detect
-    api
-      .getGpuInfo()
-      .then((info) => {
-        if (info) {
-          setGpuVramGb(info.gpuVramGb);
-        } else {
-          // Auto-detect on first visit
-          api
-            .detectGpu()
-            .then((detected) => {
-              if (detected) {
-                setGpuVramGb(detected.gpuVramGb);
-              }
-            })
-            .catch(() => {});
-        }
-      })
       .catch(() => {});
   }, []);
 
@@ -1454,6 +1401,7 @@ export const LocalServerPanel: React.FC = () => {
       {/* ===== Tab Header ===== */}
       <div className="h-10 px-2 flex items-center justify-between bg-transparent">
         <ViewModeTabs
+          fullWidth
           value={activeTab}
           onChange={setActiveTab}
           options={[
@@ -1461,10 +1409,6 @@ export const LocalServerPanel: React.FC = () => {
             { value: 'store', label: t('server.store') },
           ]}
         />
-        {/* VRAM total — sums across all GPUs (e.g. 4× H100 → 320GB) */}
-        {gpuVramGb > 0 && (
-          <span className="text-[10px] text-cyber-text-muted font-mono">{gpuVramGb}GB</span>
-        )}
       </div>
 
       {/* ===== Content Area ===== */}
@@ -1605,13 +1549,13 @@ export const LocalServerPanel: React.FC = () => {
                           <img
                             src={`./icons/models/${group.icon}.svg`}
                             alt={group.modelName}
-                            className="w-6 h-6 flex-shrink-0"
+                            className="w-8 h-8 flex-shrink-0"
                             onError={(e) => {
                               (e.target as HTMLImageElement).style.display = 'none';
                             }}
                           />
                         ) : (
-                          <HardDrive className="w-6 h-6 text-cyber-text-secondary flex-shrink-0" />
+                          <HardDrive className="w-8 h-8 text-cyber-text-secondary flex-shrink-0" />
                         )}
 
                         {/* Name + Description */}
@@ -1664,19 +1608,7 @@ export const LocalServerPanel: React.FC = () => {
                                   {quant}
                                 </span>
                                 <span className="text-[10px] text-cyber-text-secondary flex-1 whitespace-nowrap">
-                                  {estimateVramGb(v.fileSize)} GB · {formatSize(v.fileSize)}
-                                </span>
-                                <span className="text-[10px] w-10 text-center flex-shrink-0">
-                                  {(() => {
-                                    const fit = getVramFitness(
-                                      estimateVramGb(v.fileSize),
-                                      gpuVramGb,
-                                      t
-                                    );
-                                    return fit ? (
-                                      <span className={`font-bold ${fit.color}`}>{fit.label}</span>
-                                    ) : null;
-                                  })()}
+                                  {formatSize(v.fileSize)}
                                 </span>
                                 <div className="flex-shrink-0 w-8 flex items-center justify-center">
                                   <div
@@ -1765,14 +1697,14 @@ export const LocalServerPanel: React.FC = () => {
                           <img
                             src={`./icons/models/${icon}.svg`}
                             alt={model.name}
-                            className="w-6 h-6 flex-shrink-0"
+                            className="w-8 h-8 flex-shrink-0"
                             onError={(e) => {
                               const target = e.target as HTMLImageElement;
                               target.style.display = 'none';
                             }}
                           />
                         ) : (
-                          <HardDrive className="w-6 h-6 flex-shrink-0 text-cyber-text-secondary" />
+                          <HardDrive className="w-8 h-8 flex-shrink-0 text-cyber-text-secondary" />
                         )}
                         <div className="flex-1 min-w-0 flex flex-col justify-center">
                           <div className="flex items-center justify-between gap-2">
@@ -1820,23 +1752,11 @@ export const LocalServerPanel: React.FC = () => {
                                   <span className="text-xs font-mono font-bold text-cyber-text w-14 flex-shrink-0 whitespace-nowrap">
                                     {variant.quantization.replace(/^UD-/, '')}
                                   </span>
-                                  {/* VRAM + Size. min-w-0 + truncate ensures a long label can't
-                                      shove the fitness chip and download button off the row. */}
+                                  {/* File size */}
                                   <span className="text-[10px] text-cyber-text-secondary flex-1 min-w-0 truncate">
-                                    {variant.recommendedVRAM} · {formatSize(variant.fileSize)}
+                                    {formatSize(variant.fileSize)}
                                   </span>
-                                  {/* Fitness label */}
-                                  <span className="text-[10px] w-10 text-center flex-shrink-0">
-                                    {(() => {
-                                      const reqGb = parseVramString(variant.recommendedVRAM);
-                                      const fit = getVramFitness(reqGb, gpuVramGb, t);
-                                      return fit ? (
-                                        <span className={`font-bold ${fit.color}`}>
-                                          {fit.label}
-                                        </span>
-                                      ) : null;
-                                    })()}
-                                  </span>
+
                                   {/* Action: fixed width to prevent layout shift */}
                                   <div className="flex-shrink-0 w-8 flex items-center justify-center">
                                     {variantDownloaded ? (

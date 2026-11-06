@@ -987,7 +987,7 @@ describe.each(['codex', 'chatgptdesktop'])('%s Web Search control', (client) => 
         expect(toggle).toContain(`aria-pressed="${webSearch}"`);
         expect(toggle?.includes('disabled=""')).toBe(pending);
         expect(markup).toContain('agent.codexWebSearchHint');
-        expect(markup.indexOf('agent.modelSwitch')).toBeLessThan(markup.indexOf('aria-pressed='));
+        expect(markup).not.toContain('agent.modelSwitch');
         if (hasModels)
           expect(markup.indexOf('aria-pressed=')).toBeLessThan(markup.indexOf('Cloud Model'));
       } else {

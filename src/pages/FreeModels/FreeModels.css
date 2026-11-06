@@ -17,7 +17,7 @@
 
 .free-model-router-hub-bar {
   display: grid;
-  grid-template-columns: minmax(80px, max-content) minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr) minmax(0, max-content) auto;
   align-items: center;
   gap: 12px 16px;
   width: 100%;
@@ -26,32 +26,10 @@
 }
 
 .free-model-router-switcher {
-  width: min(100%, 380px);
-  min-height: 196px;
+  width: min(100%, 268px);
+  min-height: 0;
   margin-inline: auto;
   padding-bottom: 6px;
-}
-
-.free-model-router-group-toolbar {
-  display: flex;
-  align-items: flex-start;
-  min-width: 0;
-  min-height: 32px;
-}
-
-.free-model-router-tabs {
-  display: flex;
-  flex-wrap: wrap;
-  min-width: 0;
-}
-
-.free-model-router-tab {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 30px;
-  flex: 0 0 32px;
 }
 
 .free-model-router-list-button {
@@ -65,17 +43,21 @@
     background-color 150ms ease;
 }
 
-.free-model-router-list-button:enabled:hover:not([aria-pressed='true']) {
+.free-model-router-list-button:enabled:hover:not([aria-pressed='true']):not(
+    [aria-selected='true']
+  ) {
   color: rgb(var(--text-primary-rgb));
   background-color: rgb(var(--bg-elevated-rgb));
 }
 
 .free-model-router-group {
+  background: rgb(var(--bg-surface-rgb) / 0.6);
+  border-color: transparent;
   display: flex;
   flex-direction: column;
   gap: 14px;
   width: 100%;
-  min-height: 190px;
+  min-height: 0;
   padding: 16px 20px 20px;
   flex-shrink: 0;
 }
@@ -90,28 +72,28 @@
   min-height: 32px;
 }
 
-/* Each address box starts at its own width and shares the rest, so the longer
-   OpenAI address gets the room instead of wrapping beside a half-empty box. */
+.free-model-router-group .free-model-router-endpoints {
+  flex-direction: column;
+}
+
 .free-model-router-card-endpoint {
-  flex: 1 1 auto;
-  padding: 8px 12px;
+  background: rgb(var(--bg-base-rgb) / 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  flex: 1 1 0;
+  padding: 10px 12px;
 }
 
 .free-model-router-card-endpoint > span:first-child {
-  display: flex;
-  height: 20px;
-  align-items: center;
+  flex-shrink: 0;
 }
 
 .free-model-router-card-endpoint > span:last-child {
-  margin-top: 4px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.free-model-router-card-actions {
-  margin-top: auto;
 }
 
 .free-model-router-hub-bar .free-model-router-heading > span {
@@ -494,5 +476,55 @@
   .free-model-scan-dots span {
     animation: none;
     visibility: visible;
+  }
+}
+
+.free-model-router-group-toolbar {
+  display: flex;
+  align-items: flex-start;
+  min-width: 0;
+  min-height: 32px;
+}
+
+.free-model-router-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.free-model-router-tab {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 30px;
+  flex: 0 0 32px;
+}
+
+.free-model-router-card-actions {
+  margin-top: auto;
+}
+
+.free-model-router-page-chevron {
+  display: block;
+  flex-shrink: 0;
+  transition: transform 180ms ease;
+}
+
+.free-model-router-page-arrow:enabled:hover .free-model-router-page-chevron {
+  transform: translateX(4px);
+}
+
+.free-model-router-page-arrow:enabled:hover .free-model-router-page-chevron.is-previous {
+  transform: translateX(-4px);
+}
+
+.free-model-router-page-arrow:enabled:active .free-model-router-page-chevron {
+  scale: 0.94;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .free-model-router-page-chevron {
+    transition: none;
   }
 }

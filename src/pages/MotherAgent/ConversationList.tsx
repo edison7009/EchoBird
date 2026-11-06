@@ -53,7 +53,7 @@ export function ConversationList() {
           return (
             <div
               key={conversation.id}
-              className={`relative w-full h-12 shrink-0 px-[11px] py-1 pr-9 grid grid-cols-[minmax(0,1fr)] auto-rows-[16px] items-center rounded-card border-2 text-left transition-colors ${active ? 'border-cyber-accent/70 bg-cyber-accent/10' : 'border-transparent bg-cyber-surface/60 hover:bg-cyber-elevated/70'} ${isProcessing ? 'opacity-40' : ''}`}
+              className={`relative w-full h-14 shrink-0 px-[11px] py-1 pr-9 grid grid-cols-[minmax(0,1fr)] auto-rows-[16px] items-center rounded-card border-2 text-left transition-colors ${active ? 'border-cyber-accent/70 bg-cyber-accent/10' : 'border-transparent bg-cyber-surface/60 hover:bg-cyber-elevated/70'} ${isProcessing ? 'opacity-40' : ''}`}
             >
               <button
                 type="button"

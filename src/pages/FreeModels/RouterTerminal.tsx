@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import * as api from '../../api/tauri';
 import { RoutingToggle } from '../../components/RoutingToggle';
-import { ViewModeTabGroup } from '../../components/ViewModeTabGroup';
 import { useDocumentVisible } from '../../hooks/useDocumentVisible';
 import { useI18n } from '../../hooks/useI18n';
 import { useNavigationStore } from '../../stores/navigationStore';
@@ -78,10 +77,10 @@ export function RouterTerminal() {
   return (
     <div className="router-terminal">
       <div className="router-terminal-toolbar">
-        <ViewModeTabGroup
+        <div
           role="group"
           aria-label={t('freeModels.router.title')}
-          className="router-terminal-groups view-mode-tabs"
+          className="router-terminal-groups"
         >
           {routers.map((router, index) => (
             <button
@@ -96,7 +95,7 @@ export function RouterTerminal() {
               {router.id === activeRouterId ? <span>{router.name}</span> : index + 1}
             </button>
           ))}
-        </ViewModeTabGroup>
+        </div>
         <div className="router-terminal-controls">
           {!realtime && (
             <span role="status" className="router-terminal-demo-notice">

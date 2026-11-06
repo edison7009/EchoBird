@@ -228,7 +228,7 @@ function UsageSourceRow({
 }) {
   return (
     <div
-      className={`relative overflow-hidden h-12 shrink-0 px-[11px] py-1 rounded-card transition-colors flex items-center gap-3 border-2 ${
+      className={`relative overflow-hidden h-14 shrink-0 px-[11px] py-1 rounded-card transition-colors flex items-center gap-3 border-2 ${
         selected
           ? 'border-cyber-accent/70 bg-cyber-accent/10'
           : 'border-transparent bg-cyber-surface/60 hover:bg-cyber-elevated/70'
@@ -249,11 +249,11 @@ function UsageSourceRow({
           <Plus size={22} className={disabled ? 'opacity-40' : 'text-cyber-text-muted'} />
         )}
         {missing ? (
-          <TriangleAlert size={22} className="text-cyber-text-muted" />
+          <TriangleAlert size={32} className="text-cyber-text-muted" />
         ) : icon ? (
-          <img src={icon} alt="" className="w-6 h-6 object-contain" />
+          <img src={icon} alt="" className="w-8 h-8 object-contain" />
         ) : (
-          <Box size={22} className="text-cyber-text" />
+          <Box size={32} className="text-cyber-text" />
         )}
       </div>
       <div className="relative z-10 pointer-events-none flex-1 min-w-0 grid grid-cols-[minmax(0,1fr)] auto-rows-[16px] items-center">
@@ -289,8 +289,9 @@ export function UsageIslandPanel() {
   return (
     <div className="flex h-full flex-col overflow-hidden">
       <div className="h-10 shrink-0 px-2 mb-2 flex items-center justify-between gap-2">
-        <div className="min-w-0 w-fit">
+        <div className="min-w-0 flex-1">
           <ViewModeTabs
+            fullWidth
             value={tab}
             onChange={setTab}
             options={[
@@ -299,15 +300,6 @@ export function UsageIslandPanel() {
             ]}
           />
         </div>
-        <span
-          className="shrink-0 pr-1 text-sm font-mono tabular-nums text-cyber-text-secondary"
-          role="status"
-          aria-label={t('usageIsland.count')
-            .replace('{n}', String(selected.length))
-            .replace('{max}', String(USAGE_ISLAND_LIMIT))}
-        >
-          {selected.length}/{USAGE_ISLAND_LIMIT}
-        </span>
       </div>
       <div className="flex-1 px-2 pt-0.5 pb-2 overflow-y-auto space-y-2">
         {rows.map((source) => {

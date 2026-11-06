@@ -30,6 +30,7 @@
   flex: 0 0 auto;
   min-width: 44px;
   height: 44px;
+  border-radius: 8px 8px 0 0;
   padding: 0 12px;
   color: rgb(var(--text-secondary-rgb));
   white-space: nowrap;
@@ -44,19 +45,8 @@
 .router-terminal .router-terminal-groups > .view-mode-tab[aria-pressed='true'] {
   /* Sits on the terminal's fixed black surface in every theme. */
   color: #e8e2d5;
-  background: transparent;
-  animation: none;
-}
-
-:root .router-terminal .router-terminal-groups[data-sliding='true']::before {
   background: #020504;
-  border-radius: 6px 6px 0 0;
   animation: none;
-}
-
-:root .router-terminal .view-mode-canvas-colors {
-  background-color: #020504;
-  color: transparent;
 }
 
 .router-terminal-protection {
