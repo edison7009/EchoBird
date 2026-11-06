@@ -1085,6 +1085,13 @@ html.is-macos .scrollbar-stable {
   opacity: 1;
 }
 
+/* The outer App Desktop panel already supplies the section gap. When an
+   account section has no rows, its add-account pill is the last child, so its
+   own bottom margin would otherwise double the distance before capabilities. */
+section > .account-pill:last-child {
+  margin-bottom: 0;
+}
+
 /* Logos with near-black backgrounds invert in dark mode so they read on
    the near-black page. */
 [data-theme='dark'] img[src*='/icons/models/yi.svg'],
