@@ -53,7 +53,7 @@ export function ConversationList() {
           return (
             <div
               key={conversation.id}
-              className={`relative w-full h-14 shrink-0 px-[11px] py-1 pr-9 grid grid-cols-[minmax(0,1fr)] auto-rows-[16px] content-center items-center rounded-card border-2 text-left transition-colors ${active ? 'border-cyber-accent/70 bg-cyber-accent/10' : 'border-transparent bg-cyber-surface/60 hover:bg-cyber-elevated/70'} ${isProcessing ? 'opacity-40' : ''}`}
+              className={`relative flex w-full h-14 shrink-0 items-center gap-3 px-[11px] py-1 pr-10 rounded-card border-2 text-left transition-colors ${active ? 'border-cyber-accent/70 bg-cyber-accent/10' : 'border-transparent bg-cyber-surface/60 hover:bg-cyber-elevated/70'} ${isProcessing ? 'opacity-40' : ''}`}
             >
               <button
                 type="button"
@@ -63,13 +63,15 @@ export function ConversationList() {
                 aria-label={conversation.title || t('mother.newConversation')}
                 className="absolute inset-0 rounded-card focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-cyber-accent"
               />
-              <div className="relative pointer-events-none text-[13px] leading-[16px] font-semibold text-cyber-text truncate">
-                {conversation.title || t('mother.newConversation')}
-              </div>
-              <div className="relative pointer-events-none leading-[16px] text-[10px] text-cyber-text-secondary truncate">
-                {t('mother.conversationMessageCount').replace('{count}', String(messageCount))}
-                {' · '}
-                {formatUpdatedTime(conversation.updatedAt)}
+              <div className="relative z-10 min-w-0 flex-1 pointer-events-none grid grid-rows-[16px_16px] items-center">
+                <div className="truncate text-sm font-bold leading-4 text-cyber-text">
+                  {conversation.title || t('mother.newConversation')}
+                </div>
+                <div className="truncate text-[10px] leading-4 text-cyber-text-secondary">
+                  {t('mother.conversationMessageCount').replace('{count}', String(messageCount))}
+                  {' · '}
+                  {formatUpdatedTime(conversation.updatedAt)}
+                </div>
               </div>
               <button
                 type="button"
@@ -79,9 +81,9 @@ export function ConversationList() {
                   event.stopPropagation();
                   if (!isProcessing) void deleteConversation(conversation.id);
                 }}
-                className="absolute right-3 top-1/2 -translate-y-1/2 p-0.5 text-cyber-text-secondary hover:text-red-500 transition-colors"
+                className="absolute right-3 top-1/2 z-10 flex h-5 w-5 -translate-y-1/2 items-center justify-center p-0 text-cyber-text-secondary transition-colors hover:text-red-500"
               >
-                <Trash2 size={20} />
+                <Trash2 size={16} />
               </button>
             </div>
           );
