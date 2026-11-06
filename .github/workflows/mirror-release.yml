@@ -24,6 +24,10 @@ jobs:
       GH_TOKEN: ${{ github.token }}
       EXPECTED_ASSETS: 8
     steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: main
+
       - name: Resolve tag
         id: tag
         run: |
@@ -57,6 +61,14 @@ jobs:
             --arg notes "$(jq -r '.body // ""' ../release.json)" \
             --arg source "https://github.com/$GITHUB_REPOSITORY/releases/tag/$tag" \
             '{version:$version,tag:$tag,releaseDate:$published,publishedAt:$published,releaseNotes:$notes,source:$source,files:{}}' > manifest.json
+          node --input-type=module - <<'JS'
+          import { readFileSync, writeFileSync } from 'node:fs';
+          import { notesForRelease } from '../scripts/release-notes.mjs';
+          const manifest = JSON.parse(readFileSync('manifest.json', 'utf8'));
+          const release = JSON.parse(readFileSync('../release.json', 'utf8'));
+          const canonical = JSON.parse(readFileSync('../docs/api/version/index.json', 'utf8'));
+          writeFileSync('manifest.json', JSON.stringify({ ...manifest, ...notesForRelease(release, canonical) }, null, 2) + '\n');
+          JS
           while read -r name; do
             size=$(stat -c %s "$name"); sha=$(sha256sum "$name" | cut -d' ' -f1)
             jq --arg n "$name" --argjson s "$size" --arg h "$sha" '.files[$n]={size:$s,sha256:$h}' manifest.json > m.tmp && mv m.tmp manifest.json

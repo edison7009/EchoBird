@@ -1,0 +1,62 @@
+name: Refresh mirror release notes
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Published release whose mirror notes need refreshing
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mirror-release
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        provider: [cnb, gitcode]
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: main
+      - name: Prepare canonical notes
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ inputs.tag }}
+        run: |
+          set -euo pipefail
+          [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          gh api "repos/$GITHUB_REPOSITORY/releases/tags/$TAG" > release.json
+          test "$(jq -r .draft release.json)" = false
+      - name: Refresh only the mirror manifest
+        env:
+          PROVIDER: ${{ matrix.provider }}
+          TOKEN: ${{ matrix.provider == 'cnb' && secrets.CNB_TOKEN || secrets.GITCODE_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [ "$PROVIDER" = cnb ]; then
+            remote=https://cnb.cool/echobird/echobird-releases.git
+            auth=$(printf 'cnb:%s' "$TOKEN" | base64 -w0)
+          else
+            remote=https://gitcode.com/edison7009/echobird-releases.git
+            auth=$(printf 'edison7009:%s' "$TOKEN" | base64 -w0)
+          fi
+          echo "::add-mask::$auth"
+          git -c http.extraHeader="Authorization: Basic $auth" clone --depth=1 --filter=blob:none --no-checkout "$remote" mirror
+          git -C mirror -c http.extraHeader="Authorization: Basic $auth" sparse-checkout set --no-cone /manifest.json
+          git -C mirror -c http.extraHeader="Authorization: Basic $auth" checkout main
+          node scripts/refresh-mirror-notes.mjs release.json docs/api/version/index.json mirror/manifest.json
+          git -C mirror config user.name chatgpt
+          git -C mirror config user.email noreply@openai.com
+          git -C mirror add manifest.json
+          if git -C mirror diff --cached --quiet; then exit 0; fi
+          git -C mirror commit -m "fix: use localized release notes in update manifests"
+          git -C mirror -c http.extraHeader="Authorization: Basic $auth" push origin main

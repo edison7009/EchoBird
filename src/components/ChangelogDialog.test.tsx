@@ -3,7 +3,10 @@ import { useLayoutEffect, useState } from 'react';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { ChangelogDialog } from './ChangelogDialog';
 
-vi.mock('../hooks/useI18n', () => ({ useI18n: () => ({ t: (key: string) => key, locale: 'en' }) }));
+const language = vi.hoisted(() => ({ locale: 'en' }));
+vi.mock('../hooks/useI18n', () => ({
+  useI18n: () => ({ t: (key: string) => key, locale: language.locale }),
+}));
 vi.mock('../pages/MotherAgent/mdComponents', () => ({ mdComponents: {} }));
 vi.mock('./VoiceInputGuide', () => ({
   VoiceInputGuide: ({ onClose }: { onClose: () => void }) => (
@@ -33,6 +36,7 @@ function Harness({ automatic = false }: { automatic?: boolean }) {
 }
 beforeEach(() => {
   vi.useFakeTimers();
+  language.locale = 'en';
   closed.mockClear();
   vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('offline')));
   vi.stubGlobal('window', { addEventListener: vi.fn(), removeEventListener: vi.fn() });
@@ -91,3 +95,42 @@ it('cleans up a pending close when the application unmounts', async () => {
   expect(closed).not.toHaveBeenCalled();
   expect(vi.getTimerCount()).toBe(0);
 });
+
+it.each([
+  ['zh-Hans', '中文日志'],
+  ['en', 'English notes'],
+  ['zh-Hant', '繁體日誌'],
+  ['ja', '日本語ログ'],
+])(
+  'shows only the active %s locale when mirrors contain GitHub presentation HTML',
+  async (locale, heading) => {
+    language.locale = locale;
+    const notes = {
+      'zh-cn': '## 中文日志',
+      en: '## English notes',
+      'zh-tw': '## 繁體日誌',
+      ja: '## 日本語ログ',
+    };
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: string) =>
+        Response.json(
+          url.startsWith('https://echobird.ai')
+            ? { version: '6.2.1', releaseNotesI18n: notes }
+            : {
+                version: '6.2.1',
+                releaseDate: '2026-11-06T00:08:40Z',
+                releaseNotes:
+                  '<details><summary>中文</summary>## 镜像旧中文</details><details><summary>English</summary>## Mirror English</details>',
+              }
+        )
+      )
+    );
+    await act(async () => {
+      view = create(<Harness />);
+    });
+    expect(view.root.findAllByType('h2').map((node) => node.children.join(''))).toEqual([heading]);
+    expect(JSON.stringify(view.toJSON())).not.toContain('<details>');
+    expect(JSON.stringify(view.toJSON())).not.toContain('T00:08:40Z');
+  }
+);
