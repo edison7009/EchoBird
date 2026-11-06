@@ -6,20 +6,18 @@
   gap: 12px;
   min-width: 0;
 }
-/* Reserve the dial at the chosen scale; switching styles never changes height. */
+/* Keep the editor preview fixed; only the floating window uses the saved scale. */
 .usage-island-stage {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   align-items: center;
-  height: calc(216px * var(--usage-island-scale) + 24px);
+  height: 240px;
   min-width: 0;
 }
 .usage-island-preview {
   justify-self: center;
-  width: calc(100% / var(--usage-island-scale));
+  width: 100%;
   min-width: 0;
-  transform: scale(var(--usage-island-scale));
-  transform-origin: center;
 }
 .usage-island-slots {
   display: grid;

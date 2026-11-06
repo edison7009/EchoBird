@@ -821,7 +821,7 @@ it('refreshes on ticks from the floating window instead of its own timer', async
   expect(refreshAccount).toHaveBeenCalledTimes(2);
 });
 
-it('sizes the preview and saves the choice from a slider marked with each step', async () => {
+it('keeps the editor preview fixed while saving the floating scale from each slider step', async () => {
   await render();
   const slider = view!.root.findByProps({ type: 'range' });
   expect(slider.props).toMatchObject({ min: 70, max: 150, step: 10, value: 100 });
@@ -837,11 +837,18 @@ it('sizes the preview and saves the choice from a slider marked with each step',
       .filter((tick) => tick.props['data-active'])
       .map((tick) => tick.children.join(''))
   ).toEqual(['130%']);
-  expect(view!.root.findByProps({ className: 'usage-island-preview' }).props.style).toEqual({
-    '--usage-island-scale': 1.3,
-  });
+  expect(view!.root.findByProps({ className: 'usage-island-preview' }).props.style).toBeUndefined();
+  expect(view!.root.findByProps({ className: 'usage-island-stage' }).props.style).toBeUndefined();
+  for (const scale of [70, 150]) {
+    await act(async () => slider.props.onChange({ target: { value: String(scale) } }));
+    expect(island.getState().scale).toBe(scale);
+    expect(
+      view!.root.findByProps({ className: 'usage-island-preview' }).props.style
+    ).toBeUndefined();
+    expect(view!.root.findByProps({ className: 'usage-island-stage' }).props.style).toBeUndefined();
+  }
   expect(JSON.parse(vi.mocked(localStorage.setItem).mock.lastCall![1])).toMatchObject({
-    scale: 130,
+    scale: 150,
   });
   expect(refreshAccount).not.toHaveBeenCalled();
 });

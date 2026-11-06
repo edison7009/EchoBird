@@ -621,7 +621,7 @@ export function RouterGroups({
                   const next = (index + direction + routers.length) % routers.length;
                   selectTab(routers[next].id);
                 }}
-                className={`free-model-router-page-arrow absolute top-1/2 -translate-y-1/2 flex h-20 w-16 items-center justify-center text-cyber-accent disabled:opacity-30 ${direction < 0 ? 'right-full mr-4' : 'left-full ml-4'}`}
+                className={`free-model-router-page-arrow absolute top-1/2 -translate-y-1/2 flex h-20 w-16 items-center justify-center text-cyber-accent ${direction < 0 ? 'right-full mr-4' : 'left-full ml-4'}`}
               >
                 <svg
                   aria-hidden="true"

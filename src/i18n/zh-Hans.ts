@@ -592,7 +592,7 @@ const zhHans: Partial<Translations> = {
   'agent.addCurrentAccount': '添加账号',
   'agent.accountSnapshot': '账号快照',
   'agent.accountSnapshotHint':
-    '由于 Claude 桌面端的限制，只能通过「账号快照」添加账号。\n\n1. 首次添加账号\n保持账号已登录，完全退出 Claude 桌面端（右键托盘图标退出，不要用任务管理器强制结束），等待 30 到 60 秒，再点击「账号快照」。\n\n2. 添加更多账号\n在上一个账号已登录的状态下，同样完全退出 Claude 桌面端，点击「重置环境 + 登录」，Claude 会自动打开，登录新账号。登录完成后，保持登录，再次完全退出并等待 30 到 60 秒，点击「账号快照」完成保存。\n\n注意：不要在 Claude 里点「退出登录」，否则已保存的账号会失效。',
+    'Claude桌面端账号管理采用「快照」模式：更安全、更稳定。\n\n1. 首次添加账号\n保持账号已登录，完全退出 Claude 桌面端（右键托盘图标退出，不要用任务管理器强制结束），等待 30 到 60 秒，再点击「账号快照」。\n\n2. 添加更多账号\n在上一个账号已登录的状态下，同样完全退出 Claude 桌面端，点击「重置环境 + 登录」，Claude 会自动打开，登录新账号。登录完成后，保持登录，再次完全退出并等待 30 到 60 秒，点击「账号快照」完成保存。\n\n注意：不要在 Claude 里点「退出登录」，否则已保存的账号会失效。',
   'agent.accountSnapshotNoticeTitle': '账号快照须知',
   'agent.accountSnapshotNext': '重置环境 + 登录',
   'agent.accountSnapshotNextUnsupported':

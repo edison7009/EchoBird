@@ -1,4 +1,4 @@
-import { useMemo, useState, type CSSProperties } from 'react';
+import { useMemo, useState } from 'react';
 import {
   ArrowDown,
   ArrowLeft,
@@ -83,15 +83,8 @@ export function UsageIslandMain() {
   return (
     <div className="usage-island-editor flex-1 overflow-y-auto pr-1 pb-3">
       <div className="usage-island-page">
-        <section
-          className="usage-island-stage"
-          aria-label={t('developer.usageIsland')}
-          style={{ '--usage-island-scale': config.scale / 100 } as CSSProperties}
-        >
-          <div
-            className="usage-island-preview"
-            style={{ '--usage-island-scale': config.scale / 100 } as CSSProperties}
-          >
+        <section className="usage-island-stage" aria-label={t('developer.usageIsland')}>
+          <div className="usage-island-preview">
             <UsageIslandView
               items={demoItems}
               settings={{ ...config, expandMode: 'always' }}

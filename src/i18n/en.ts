@@ -644,7 +644,7 @@ const en: Translations = {
   'agent.addCurrentAccount': 'Add Account',
   'agent.accountSnapshot': 'Account Snapshot',
   'agent.accountSnapshotHint':
-    'Claude Desktop accounts can only be added by Account Snapshot.\n\n1. Add your first account\nStay signed in and quit Claude Desktop completely (right-click the tray icon and quit; do not end it in Task Manager). Wait 30 to 60 seconds, then click Account Snapshot.\n\n2. Add more accounts\nWith the previous account still signed in, quit Claude Desktop the same way and click Reset & Sign In. Claude opens; sign in to the new account. Then stay signed in, quit it completely again, wait 30 to 60 seconds and click Account Snapshot to save it.\n\nNote: do not sign out inside Claude, or the saved account stops working.',
+    'Claude Desktop account management uses snapshot mode: safer and more stable.\n\n1. Add your first account\nStay signed in and quit Claude Desktop completely (right-click the tray icon and quit; do not end it in Task Manager). Wait 30 to 60 seconds, then click Account Snapshot.\n\n2. Add more accounts\nWith the previous account still signed in, quit Claude Desktop the same way and click Reset & Sign In. Claude opens; sign in to the new account. Then stay signed in, quit it completely again, wait 30 to 60 seconds and click Account Snapshot to save it.\n\nNote: do not sign out inside Claude, or the saved account stops working.',
   'agent.accountSnapshotNoticeTitle': 'Before taking a snapshot',
   'agent.accountSnapshotNext': 'Reset & Sign In',
   'agent.accountSnapshotNextUnsupported':

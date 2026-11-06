@@ -455,6 +455,40 @@ describe('Independent smart router groups', () => {
     expect(confirm).not.toHaveBeenCalled();
   });
 
+  it('blocks repeat arrow navigation without dimming either arrow while loading', async () => {
+    await open();
+    let resolve!: (value: api.SmartRouterConfig[]) => void;
+    vi.mocked(api.listSmartRouters).mockImplementationOnce(
+      () =>
+        new Promise((done) => {
+          resolve = done;
+        })
+    );
+    const previous = button('freeModels.router.previous');
+    const next = button('freeModels.router.next');
+    const reads = vi.mocked(api.listSmartRouters).mock.calls.length;
+    await act(async () => previous.props.onClick());
+    expect(context.groupPending).toBe(true);
+    for (const [label, original] of [
+      ['freeModels.router.previous', previous],
+      ['freeModels.router.next', next],
+    ] as const) {
+      expect(button(label)).toBe(original);
+      expect(button(label).props.disabled).toBe(true);
+      expect(button(label).props.className).not.toMatch(/opacity|animate/);
+    }
+    await act(async () => next.props.onClick());
+    expect(api.listSmartRouters).toHaveBeenCalledTimes(reads + 1);
+    await act(async () => resolve(groups));
+    expect(context.activeRouterId).toBe(secondId);
+    expect(button('freeModels.router.previous').props.disabled).toBe(false);
+    expect(button('freeModels.router.next').props.disabled).toBe(false);
+    expect(api.saveSmartRouter).not.toHaveBeenCalled();
+    expect(api.setSmartRouterGroupEnabled).not.toHaveBeenCalled();
+    expect(api.setSmartRouterCandidates).not.toHaveBeenCalled();
+    expect(confirm).not.toHaveBeenCalled();
+  });
+
   it('uses numbered tabs to replace one fixed detail panel without writes or redundant loads', async () => {
     const firstName = 'First router with a long custom name';
     groups[0].name = firstName;

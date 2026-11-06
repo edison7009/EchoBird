@@ -505,22 +505,20 @@
   margin-top: auto;
 }
 
+/* Loading disables activation, not the hover feedback: :enabled:hover would
+   reset both chevrons during a group change and make the hovered one jump. */
 .free-model-router-page-chevron {
   display: block;
   flex-shrink: 0;
   transition: transform 180ms ease;
 }
 
-.free-model-router-page-arrow:enabled:hover .free-model-router-page-chevron {
+.free-model-router-page-arrow:hover .free-model-router-page-chevron {
   transform: translateX(4px);
 }
 
-.free-model-router-page-arrow:enabled:hover .free-model-router-page-chevron.is-previous {
+.free-model-router-page-arrow:hover .free-model-router-page-chevron.is-previous {
   transform: translateX(-4px);
-}
-
-.free-model-router-page-arrow:enabled:active .free-model-router-page-chevron {
-  scale: 0.94;
 }
 
 @media (prefers-reduced-motion: reduce) {
