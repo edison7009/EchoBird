@@ -1404,144 +1404,146 @@ export const AppManagerBottom: React.FC = () => {
         {/* Page-aware hint copy: direct Responses clients get a compatibility
             reminder; Claude proxy clients get the keep-running reminder. */}
         <PageAwareHint />
-        {showCliSettings && (
-          <button
-            type="button"
-            aria-label={t('cliLaunch.title')}
-            disabled={isLaunching}
-            onClick={() => setCliSettingsOpen(true)}
-            className="-mr-5 flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-lg text-cyber-text-secondary transition-colors enabled:hover:text-cyber-text disabled:opacity-40"
-          >
-            <Settings size={28} aria-hidden="true" />
-          </button>
-        )}
-        {/* Launch button */}
-        <div className="relative w-64 h-14 flex-shrink-0">
-          {!isCatalogOnly && (
-            <button
-              onClick={handlePrimaryClick}
-              disabled={buttonDisabled}
-              className={`w-full h-14 text-lg font-bold font-mono tracking-widest transition-colors rounded-lg cjk-btn border shadow-lg ${
-                buttonDisabled
-                  ? 'bg-cyber-border text-cyber-text-secondary border-transparent shadow-none cursor-not-allowed'
-                  : 'bg-cyber-accent text-white border-cyber-accent hover:bg-cyber-accent-secondary hover:border-cyber-accent-secondary shadow-cyber-accent/30'
-              }`}
-            >
-              {isInstallAction
-                ? t('btn.installOneClick')
-                : willLaunch
-                  ? t('btn.launchApp')
-                  : t('btn.modifyOnly')}
-            </button>
-          )}
-          {showUninstallHint && (
+        <div className="flex shrink-0 self-end items-center gap-8">
+          {showCliSettings && (
             <button
               type="button"
-              onClick={() =>
-                goToMother(
-                  t('mother.hintUninstall').replace(
-                    '{agent}',
-                    toolDisplayName(selectedToolData, locale)
-                  )
-                )
-              }
-              className="absolute top-full left-1/2 -translate-x-1/2 mt-1 max-w-full whitespace-nowrap text-xs text-cyber-text-secondary hover:text-cyber-accent transition-colors"
+              aria-label={t('cliLaunch.title')}
+              disabled={isLaunching}
+              onClick={() => setCliSettingsOpen(true)}
+              className="-mr-5 flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-lg text-cyber-text-secondary transition-colors enabled:hover:text-cyber-text disabled:opacity-40"
             >
-              {t('mother.hintUninstall').replace(
-                '{agent}',
-                toolDisplayName(selectedToolData, locale)
-              )}
+              <Settings size={28} aria-hidden="true" />
             </button>
           )}
-        </div>
-        {/* Reserve the controls' space while installing so the action stays aligned.
+          {/* Launch button */}
+          <div className="relative w-64 h-14 flex-shrink-0">
+            {!isCatalogOnly && (
+              <button
+                onClick={handlePrimaryClick}
+                disabled={buttonDisabled}
+                className={`w-full h-14 text-lg font-bold font-mono tracking-widest transition-colors rounded-lg cjk-btn border shadow-lg ${
+                  buttonDisabled
+                    ? 'bg-cyber-border text-cyber-text-secondary border-transparent shadow-none cursor-not-allowed'
+                    : 'bg-cyber-accent text-white border-cyber-accent hover:bg-cyber-accent-secondary hover:border-cyber-accent-secondary shadow-cyber-accent/30'
+                }`}
+              >
+                {isInstallAction
+                  ? t('btn.installOneClick')
+                  : willLaunch
+                    ? t('btn.launchApp')
+                    : t('btn.modifyOnly')}
+              </button>
+            )}
+            {showUninstallHint && (
+              <button
+                type="button"
+                onClick={() =>
+                  goToMother(
+                    t('mother.hintUninstall').replace(
+                      '{agent}',
+                      toolDisplayName(selectedToolData, locale)
+                    )
+                  )
+                }
+                className="absolute top-full left-1/2 -translate-x-1/2 mt-1 max-w-full whitespace-nowrap text-xs text-cyber-text-secondary hover:text-cyber-accent transition-colors"
+              >
+                {t('mother.hintUninstall').replace(
+                  '{agent}',
+                  toolDisplayName(selectedToolData, locale)
+                )}
+              </button>
+            )}
+          </div>
+          {/* Reserve the controls' space while installing so the action stays aligned.
             Account selections only need the launch choice; apps without model
             configuration disable both controls. */}
-        <div
-          className={`flex flex-col gap-2 ${
-            isCatalogOnly || isInstallAction || isPlugin ? 'invisible pointer-events-none' : ''
-          }`}
-        >
-          {/* Apply & Launch checkbox */}
-          <label
-            className={`flex items-center gap-2 select-none ${
-              launchOptionDisabled ? 'opacity-40 pointer-events-none' : ''
+          <div
+            className={`flex flex-col gap-2 ${
+              isCatalogOnly || isInstallAction || isPlugin ? 'invisible pointer-events-none' : ''
             }`}
-            onClick={() => {
-              if (!launchOptionDisabled) setLaunchAfterApply(!launchAfterApply);
-            }}
           >
-            <div
-              className={`w-3.5 h-3.5 border flex items-center justify-center transition-all flex-shrink-0 ${
-                launchAfterApply
-                  ? 'border-cyber-border bg-cyber-text/20'
-                  : 'border-cyber-border hover:border-cyber-text-muted'
+            {/* Apply & Launch checkbox */}
+            <label
+              className={`flex items-center gap-2 select-none ${
+                launchOptionDisabled ? 'opacity-40 pointer-events-none' : ''
               }`}
+              onClick={() => {
+                if (!launchOptionDisabled) setLaunchAfterApply(!launchAfterApply);
+              }}
             >
-              {launchAfterApply && (
-                <svg
-                  width="8"
-                  height="8"
-                  viewBox="0 0 10 10"
-                  fill="none"
-                  className="text-cyber-text"
-                >
-                  <path
-                    d="M2 5L4 7L8 3"
-                    stroke="currentColor"
-                    strokeWidth="1.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-              )}
-            </div>
-            <span
-              className={`text-xs font-mono transition-colors ${launchAfterApply ? 'text-cyber-text' : 'text-cyber-text-secondary'}`}
-            >
-              {t('agent.applyAndLaunch')}
-            </span>
-          </label>
-          {/* Config policy agreement */}
-          <label
-            className={`flex items-center gap-2 select-none ${
-              configOptionDisabled ? 'opacity-40 pointer-events-none' : ''
-            }`}
-            onClick={() => {
-              if (!configOptionDisabled) setAgreedConfigPolicy(!agreedConfigPolicy);
-            }}
-          >
-            <div
-              className={`w-3.5 h-3.5 border flex items-center justify-center transition-all flex-shrink-0 ${
-                agreedConfigPolicy
-                  ? 'border-cyber-border bg-cyber-text/20'
-                  : 'border-cyber-border hover:border-cyber-text-muted'
+              <div
+                className={`w-3.5 h-3.5 border flex items-center justify-center transition-all flex-shrink-0 ${
+                  launchAfterApply
+                    ? 'border-cyber-border bg-cyber-text/20'
+                    : 'border-cyber-border hover:border-cyber-text-muted'
+                }`}
+              >
+                {launchAfterApply && (
+                  <svg
+                    width="8"
+                    height="8"
+                    viewBox="0 0 10 10"
+                    fill="none"
+                    className="text-cyber-text"
+                  >
+                    <path
+                      d="M2 5L4 7L8 3"
+                      stroke="currentColor"
+                      strokeWidth="1.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                )}
+              </div>
+              <span
+                className={`text-xs font-mono transition-colors ${launchAfterApply ? 'text-cyber-text' : 'text-cyber-text-secondary'}`}
+              >
+                {t('agent.applyAndLaunch')}
+              </span>
+            </label>
+            {/* Config policy agreement */}
+            <label
+              className={`flex items-center gap-2 select-none ${
+                configOptionDisabled ? 'opacity-40 pointer-events-none' : ''
               }`}
+              onClick={() => {
+                if (!configOptionDisabled) setAgreedConfigPolicy(!agreedConfigPolicy);
+              }}
             >
-              {agreedConfigPolicy && (
-                <svg
-                  width="8"
-                  height="8"
-                  viewBox="0 0 10 10"
-                  fill="none"
-                  className="text-cyber-text"
-                >
-                  <path
-                    d="M2 5L4 7L8 3"
-                    stroke="currentColor"
-                    strokeWidth="1.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-              )}
-            </div>
-            <span
-              className={`text-xs font-mono transition-colors ${agreedConfigPolicy ? 'text-cyber-text' : 'text-cyber-text-secondary'}`}
-            >
-              {t('agent.appliedVia')}
-            </span>
-          </label>
+              <div
+                className={`w-3.5 h-3.5 border flex items-center justify-center transition-all flex-shrink-0 ${
+                  agreedConfigPolicy
+                    ? 'border-cyber-border bg-cyber-text/20'
+                    : 'border-cyber-border hover:border-cyber-text-muted'
+                }`}
+              >
+                {agreedConfigPolicy && (
+                  <svg
+                    width="8"
+                    height="8"
+                    viewBox="0 0 10 10"
+                    fill="none"
+                    className="text-cyber-text"
+                  >
+                    <path
+                      d="M2 5L4 7L8 3"
+                      stroke="currentColor"
+                      strokeWidth="1.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                )}
+              </div>
+              <span
+                className={`text-xs font-mono transition-colors ${agreedConfigPolicy ? 'text-cyber-text' : 'text-cyber-text-secondary'}`}
+              >
+                {t('agent.appliedVia')}
+              </span>
+            </label>
+          </div>
         </div>
       </div>
       {cliSettingsOpen && selectedTool && (
@@ -1596,14 +1598,18 @@ export const PageAwareHint: React.FC = () => {
               ? ['hint.localHistoryPreserved']
               : [];
   return (
-    <div className="min-w-0 flex-1 truncate text-[15px] font-medium text-cyber-accent">
+    <div className="min-w-0 flex-1 text-[15px] font-medium text-cyber-accent">
       {hintKeys.length
         ? hintKeys.map((hintKey) => (
-            <div key={hintKey} className="truncate">
+            <div key={hintKey} className="line-clamp-2 break-words">
               {t(hintKey)}
             </div>
           ))
-        : activePage === 'apps' && <RandomAppTip />}
+        : activePage === 'apps' && (
+            <div className="line-clamp-2 break-words">
+              <RandomAppTip />
+            </div>
+          )}
     </div>
   );
 };
