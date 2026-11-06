@@ -90,7 +90,7 @@ export function RouterTerminal() {
               aria-pressed={router.id === activeRouterId}
               disabled={groupPending}
               onClick={() => void selectRouter(router.id)}
-              className="view-mode-tab text-sm font-mono transition-[color]"
+              className="view-mode-tab text-sm cjk-btn transition-[color]"
             >
               {router.id === activeRouterId ? <span>{router.name}</span> : index + 1}
             </button>

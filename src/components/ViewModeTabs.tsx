@@ -21,7 +21,7 @@ export function ViewModeTabs<T extends string>({
           type="button"
           onClick={() => onChange(option.value)}
           aria-pressed={value === option.value}
-          className={`view-mode-tab ${fullWidth ? 'flex-1 min-w-0' : ''} px-3 py-1.5 text-sm font-sans font-semibold transition-[color] ${
+          className={`view-mode-tab ${fullWidth ? 'flex-1 min-w-0' : ''} px-3 py-1.5 text-sm cjk-btn transition-[color] ${
             value === option.value
               ? 'bg-cyber-elevated text-cyber-text'
               : 'text-cyber-text-secondary hover:text-cyber-text'

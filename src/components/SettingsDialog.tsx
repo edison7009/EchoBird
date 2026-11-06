@@ -25,7 +25,7 @@ import { useBackgroundStore } from '../stores/backgroundStore';
 import { useI18n } from '../hooks/useI18n';
 import * as api from '../api/tauri';
 import { useThemeStore, type ThemeMode } from '../stores/themeStore';
-import { COLOR_THEMES, type ColorThemeId } from '../data/colorThemes';
+import { COLOR_THEME_GRID, getColorTheme, type ColorThemeId } from '../data/colorThemes';
 import { useUiScaleStore } from '../stores/uiScaleStore';
 import { useEasterEggStore } from '../stores/easterEggStore';
 import { useRewardClaimStore } from '../stores/rewardClaimStore';
@@ -586,9 +586,9 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
                         key={String(value)}
                         onClick={() => handleCloseToTrayChange(value)}
                         aria-pressed={closeToTray === value}
-                        className={`view-mode-tab flex-1 h-11 flex items-center justify-center text-[13px] transition-[color] ${
+                        className={`view-mode-tab cjk-btn flex-1 h-11 flex items-center justify-center text-[13px] transition-[color] ${
                           closeToTray === value
-                            ? 'bg-cyber-elevated text-cyber-text font-semibold'
+                            ? 'bg-cyber-elevated text-cyber-text'
                             : 'text-cyber-text-secondary hover:text-cyber-text'
                         }`}
                       >
@@ -845,7 +845,7 @@ const ThemeSegmented: React.FC<{
             type="button"
             onClick={() => onChange(o.id)}
             aria-pressed={active}
-            className={`view-mode-tab whitespace-nowrap px-3 py-1.5 text-[12px] font-semibold transition-[color] ${
+            className={`view-mode-tab cjk-btn whitespace-nowrap px-3 py-1.5 text-[12px] transition-[color] ${
               active
                 ? 'bg-cyber-elevated text-cyber-text'
                 : 'text-cyber-text-muted hover:text-cyber-text-secondary'
@@ -866,7 +866,8 @@ const ColorThemePicker: React.FC<{
   onChange: (theme: ColorThemeId) => void;
 }> = ({ value, mode, locale, onChange }) => (
   <div className="grid max-h-[360px] grid-cols-6 gap-x-3 gap-y-3.5 overflow-y-auto pr-1">
-    {COLOR_THEMES.map((theme) => {
+    {COLOR_THEME_GRID.flat().map((id) => {
+      const theme = getColorTheme(id);
       const active = value === theme.id;
       const label = locale.startsWith('zh')
         ? theme.labelZh
@@ -888,15 +889,12 @@ const ColorThemePicker: React.FC<{
             }`}
           >
             <span
-              className="block h-full flex-1"
+              className="block h-full w-full"
               style={{
-                backgroundImage: `linear-gradient(135deg, ${mode === 'dark' ? theme.dark.canvas : theme.light.canvas}, ${mode === 'dark' ? theme.dark.tertiary : theme.light.tertiary})`,
-              }}
-            />
-            <span
-              className="block h-full flex-1"
-              style={{
-                backgroundImage: `linear-gradient(135deg, ${mode === 'system' ? theme.dark.canvas : mode === 'dark' ? theme.dark.tertiary : theme.light.tertiary}, ${mode === 'system' ? theme.dark.tertiary : mode === 'dark' ? theme.dark.canvas : theme.light.canvas})`,
+                backgroundImage:
+                  mode === 'system'
+                    ? `linear-gradient(135deg, ${theme.light.canvas} 0%, ${theme.light.tertiary} 35%, ${theme.dark.tertiary} 65%, ${theme.dark.canvas} 100%)`
+                    : `linear-gradient(135deg, ${theme[mode].canvas} 0%, ${theme[mode].secondary} 45%, ${theme[mode].tertiary} 100%)`,
               }}
             />
             {active && (

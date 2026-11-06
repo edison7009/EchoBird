@@ -144,7 +144,7 @@ export function DailyActivityChart({
                   );
                 tabButtons?.[next]?.focus();
               }}
-              className={`view-mode-tab px-3 py-1.5 text-sm font-mono transition-[color] ${
+              className={`view-mode-tab px-3 py-1.5 text-sm cjk-btn transition-[color] ${
                 metric === mode
                   ? 'bg-cyber-elevated text-cyber-text'
                   : 'text-cyber-text-secondary hover:text-cyber-text'

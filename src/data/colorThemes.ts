@@ -16,7 +16,13 @@ export type ColorThemeId =
   | 'inkwash'
   | 'sakura'
   | 'copper'
-  | 'midnight';
+  | 'midnight'
+  | 'limestone'
+  | 'charcoal'
+  | 'honey'
+  | 'olive'
+  | 'pine'
+  | 'mint';
 
 export interface ColorThemeVariant {
   shell: string;
@@ -395,9 +401,138 @@ export const COLOR_THEMES: ColorTheme[] = [
       input: '#223C5C',
     },
   },
+  {
+    id: 'limestone',
+    labelZh: '石灰岩',
+    labelEn: 'Limestone',
+    labelJa: 'ライムストーン',
+    light: {
+      shell: '#EDEBE6',
+      canvas: '#F8F7F3',
+      secondary: '#F0EEE8',
+      tertiary: '#D7D1C5',
+      input: '#EAE7DF',
+    },
+    dark: {
+      shell: '#252522',
+      canvas: '#1E1F1C',
+      secondary: '#30312C',
+      tertiary: '#45463C',
+      input: '#383A32',
+    },
+  },
+  {
+    id: 'charcoal',
+    labelZh: '石墨',
+    labelEn: 'Graphite',
+    labelJa: 'グラファイト',
+    light: {
+      shell: '#E1E3E5',
+      canvas: '#F4F5F6',
+      secondary: '#E8EAEC',
+      tertiary: '#BABFC6',
+      input: '#DFE2E6',
+    },
+    dark: {
+      shell: '#1D2025',
+      canvas: '#111419',
+      secondary: '#252A32',
+      tertiary: '#363E4A',
+      input: '#2E3540',
+    },
+  },
+  {
+    id: 'honey',
+    labelZh: '琥珀蜜',
+    labelEn: 'Amber honey',
+    labelJa: 'アンバーハニー',
+    light: {
+      shell: '#F2E3CA',
+      canvas: '#FCF6EA',
+      secondary: '#F5E9D2',
+      tertiary: '#DEC08B',
+      input: '#EFDFC0',
+    },
+    dark: {
+      shell: '#30261D',
+      canvas: '#211B14',
+      secondary: '#3D3021',
+      tertiary: '#5D472B',
+      input: '#4B3A26',
+    },
+  },
+  {
+    id: 'olive',
+    labelZh: '橄榄',
+    labelEn: 'Olive',
+    labelJa: 'オリーブ',
+    light: {
+      shell: '#E5E7D6',
+      canvas: '#F5F6EB',
+      secondary: '#EBEEDC',
+      tertiary: '#C3CBA3',
+      input: '#DFE5CB',
+    },
+    dark: {
+      shell: '#272B1E',
+      canvas: '#1A1E14',
+      secondary: '#333C25',
+      tertiary: '#4F6037',
+      input: '#414E2F',
+    },
+  },
+  {
+    id: 'pine',
+    labelZh: '松针',
+    labelEn: 'Pine',
+    labelJa: 'パイン',
+    light: {
+      shell: '#DBE7DF',
+      canvas: '#F0F7F2',
+      secondary: '#E1EDE5',
+      tertiary: '#A8C6B2',
+      input: '#D4E5DB',
+    },
+    dark: {
+      shell: '#192A22',
+      canvas: '#102018',
+      secondary: '#223B2D',
+      tertiary: '#355B42',
+      input: '#2B4B37',
+    },
+  },
+  {
+    id: 'mint',
+    labelZh: '薄荷雾',
+    labelEn: 'Mint mist',
+    labelJa: 'ミントミスト',
+    light: {
+      shell: '#E2EFEB',
+      canvas: '#F4FAF7',
+      secondary: '#E8F4EF',
+      tertiary: '#C0DED3',
+      input: '#DEEFE7',
+    },
+    dark: {
+      shell: '#243330',
+      canvas: '#1B2825',
+      secondary: '#30443E',
+      tertiary: '#46665B',
+      input: '#3A544B',
+    },
+  },
 ];
 
 export const isColorThemeId = (value: unknown): value is ColorThemeId =>
   COLOR_THEMES.some((theme) => theme.id === value);
 export const getColorTheme = (id: ColorThemeId): ColorTheme =>
   COLOR_THEMES.find((theme) => theme.id === id) ?? COLOR_THEMES[0];
+
+// Six color families across, with softer to deeper tones down each column.
+// Fixed positions keep every theme in the same place in light/dark/system mode.
+export const COLOR_THEME_GRID: readonly (readonly ColorThemeId[])[] = [
+  ['oatgray', 'saffron', 'forest', 'mint', 'oceanic', 'sakura'],
+  ['limestone', 'honey', 'sage', 'jade', 'cobalt', 'rosewood'],
+  ['inkwash', 'terracotta', 'olive', 'aurora', 'indigo', 'lavender'],
+  ['charcoal', 'ember', 'pine', 'copper', 'midnight', 'twilight'],
+];

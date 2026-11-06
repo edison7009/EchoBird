@@ -1854,8 +1854,8 @@ export function FreeModelsPanel() {
                   );
                 tabButtons?.[next]?.focus();
               }}
-              className={`view-mode-tab flex-1 min-w-0 whitespace-nowrap py-1.5 transition-[color] ${
-                compactTabs ? 'px-[2px] text-[12px] font-sans' : 'px-3 text-sm font-mono'
+              className={`view-mode-tab cjk-btn flex-1 min-w-0 whitespace-nowrap py-1.5 transition-[color] ${
+                compactTabs ? 'px-[2px] text-[12px]' : 'px-3 text-sm'
               } ${
                 activeTab === tab
                   ? 'bg-cyber-elevated text-cyber-text'
