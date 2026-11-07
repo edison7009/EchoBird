@@ -432,9 +432,9 @@ function ProviderTile({
       {!iconName ? (
         <span className="flex h-5 w-5 flex-shrink-0 items-center justify-center text-cyber-text-muted">
           <Plus
-            size={22}
-            strokeWidth={2.5}
-            className="flex-shrink-0 transition-all group-hover:scale-110 group-hover:text-cyber-text"
+            size={20}
+            strokeWidth={2}
+            className="flex-shrink-0 transition-colors group-hover:text-cyber-text"
           />
         </span>
       ) : iconSrc ? (

@@ -510,6 +510,15 @@ pub async fn list<T: serde::de::DeserializeOwned>(
 }
 
 pub async fn prepare_history(application: &str, only_if_stopped: bool) -> Result<(), String> {
+    // Model configuration may be written while the desktop is still running.
+    // Defer history preparation until launch has stopped it; account switching
+    // retains its separate requirement for a graceful, manual exit.
+    if available(application)
+        && only_if_stopped
+        && super::process_manager::desktop_tool_is_running(application).await?
+    {
+        return Ok(());
+    }
     if available(application) {
         call(
             application,
