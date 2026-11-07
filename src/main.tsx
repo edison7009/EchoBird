@@ -15,11 +15,20 @@ import { initializeWindowVisibility } from './utils/windowVisibility';
 import { VoiceIsland } from './pages/VoiceInput/VoiceIsland';
 import { SelectionTranslation } from './pages/VoiceInput/SelectionTranslation';
 import { handleDesktopContextMenu } from './utils/desktopInteraction';
+import { preloadDesktopToolIcons } from './utils/toolIcons';
+import { useToolsStore } from './stores/toolsStore';
 
 document.addEventListener('contextmenu', handleDesktopContextMenu);
 const isVoiceIsland = getCurrentWindow().label === 'voice-island';
 const isVoiceTranslation = getCurrentWindow().label === 'voice-translation';
 const isUsageIsland = getCurrentWindow().label === 'usage-island';
+// Start cached desktop icons alongside fonts/theme, without delaying window
+// visibility or loading desktop artwork in auxiliary windows.
+if (!isVoiceIsland && !isVoiceTranslation && !isUsageIsland) {
+  void preloadDesktopToolIcons(
+    useToolsStore.getState().detectedTools.filter((tool) => tool.installed)
+  );
+}
 
 // ── Object.hasOwn polyfill ───────────────────────────────────────────────────
 // ES2022 runtime API; native in Safari 15.4+ (macOS 12.3+), absent in Safari

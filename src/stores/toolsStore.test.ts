@@ -140,7 +140,7 @@ async function restartWithCache(tools: LocalTool[]) {
   store = (await import('./toolsStore')).useToolsStore;
 }
 
-it('restores the last desktop and resolved icons synchronously without scanning', async () => {
+it('restores metadata synchronously and can warm cached icons without scanning or writing', async () => {
   const tools = [{ ...tool('cached'), icon: './icons/tools/cached.svg' }];
   await restartWithCache(tools);
   expect(store.getState().detectedTools).toEqual(tools);
@@ -149,6 +149,11 @@ it('restores the last desktop and resolved icons synchronously without scanning'
   expect(store.getState().usingCachedTools).toBe(true);
   expect(api.scanTools).not.toHaveBeenCalled();
   expect(PendingImage.instances).toHaveLength(0);
+  const { preloadDesktopToolIcons } = await import('../utils/toolIcons');
+  const warming = preloadDesktopToolIcons(store.getState().detectedTools);
+  expect(PendingImage.instances.map((image) => image.src)).toEqual(['./icons/tools/cached.svg']);
+  PendingImage.instances[0].resolve();
+  await warming;
   expect(setItem).not.toHaveBeenCalled();
 });
 

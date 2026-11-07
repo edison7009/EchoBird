@@ -66,6 +66,7 @@ import { DevinAccountSection } from './DevinAccountSection';
 import { OpenDesignAccountSection } from './OpenDesignAccountSection';
 import { useNavigationStore } from '../../stores/navigationStore';
 import { useModelNexus } from '../ModelNexus/context';
+import { useDesktopTools } from './useDesktopTools';
 import {
   getOfficialEndpoint,
   officialModelSentinel,
@@ -208,6 +209,7 @@ interface DesktopIconProps {
 const DesktopIcon: React.FC<DesktopIconProps> = ({ tool, selected, onClick, dragProps }) => {
   const { locale } = useI18n();
   const iconSrc = tool.icon;
+  const [failedSrc, setFailedSrc] = useState<string | null>(null);
   const displayName = toolDisplayName(tool, locale);
 
   return (
@@ -224,13 +226,14 @@ const DesktopIcon: React.FC<DesktopIconProps> = ({ tool, selected, onClick, drag
     >
       {/* The icon alone is the graphic — no tile background behind it; the
           icon itself renders at the tile size. */}
-      <span className="relative flex items-center justify-center">
-        {iconSrc ? (
+      <span className="relative flex h-14 w-14 shrink-0 items-center justify-center">
+        {iconSrc && failedSrc !== iconSrc ? (
           <img
             src={iconSrc}
             alt=""
             draggable={false}
             decoding="sync"
+            onError={() => setFailedSrc(iconSrc)}
             className="w-14 h-14 object-contain"
           />
         ) : (
@@ -419,7 +422,19 @@ export const AppManagerMain: React.FC = () => {
       ? uninstalledOrdered
       : uninstalledOrdered.filter((tool) => tool.category === activeUninstalledCat);
   const orderedTools = viewMode === 'desktop' ? installedOrdered : uninstalledOrdered;
-  const visibleTools = viewMode === 'desktop' ? installedOrdered : visibleUninstalled;
+  const candidateTools = viewMode === 'desktop' ? installedOrdered : visibleUninstalled;
+  const preparedDesktop = useDesktopTools(candidateTools, dragScope);
+  const visibleTools = preparedDesktop.tools;
+  const initialLoading =
+    (isScanning && detectedTools.length === 0) ||
+    (preparedDesktop.pending && visibleTools.length === 0);
+  const loadingKey = preparedDesktop.pending ? preparedDesktop.key : 'scan';
+  const [skeletonKey, setSkeletonKey] = useState('');
+  useEffect(() => {
+    if (!initialLoading) return;
+    const timer = setTimeout(() => setSkeletonKey(loadingKey), 120);
+    return () => clearTimeout(timer);
+  }, [initialLoading, loadingKey]);
   const activeDragTool = visibleTools.find((tool) => tool.id === activeDragId);
 
   useEffect(
@@ -456,12 +471,14 @@ export const AppManagerMain: React.FC = () => {
   }, [visibleTools]);
 
   const handleDragStart = (event: DragStartEvent) => {
+    if (preparedDesktop.pending) return;
     dropAnimations.current.forEach((animation) => animation.cancel());
     dropAnimations.current = [];
     setActiveDragId(String(event.active.id));
   };
   const handleDragEnd = (event: DragEndEvent) => {
     setActiveDragId(null);
+    if (preparedDesktop.pending) return;
     const activeId = String(event.active.id);
     const overId = String(event.over?.id ?? '');
     if (!overId || activeId === overId) return;
@@ -516,16 +533,21 @@ export const AppManagerMain: React.FC = () => {
   );
 
   return (
-    <div className="flex-1 flex flex-col overflow-hidden">
-      {isScanning && detectedTools.length === 0 ? (
-        <div className={gridClass}>
-          {Array.from({ length: 8 }).map((_, i) => (
+    <div className="flex-1 flex flex-col overflow-hidden" aria-busy={initialLoading || undefined}>
+      {initialLoading ? (
+        <div
+          className={gridClass}
+          style={{ visibility: skeletonKey === loadingKey ? 'visible' : 'hidden' }}
+        >
+          {Array.from({ length: candidateTools.length || 8 }).map((_, i) => (
             <div
               key={i}
-              className="flex flex-col items-center gap-1.5 px-2 py-3 rounded-xl animate-pulse"
+              className="flex flex-col items-center gap-1.5 border-2 border-transparent px-1.5 py-3 rounded-xl animate-pulse motion-reduce:animate-none"
             >
               <span className="w-14 h-14 rounded-xl bg-cyber-border/30" />
-              <span className="w-12 h-3 bg-cyber-border/30 rounded" />
+              <span className="flex h-8 items-center">
+                <span className="w-12 h-3 bg-cyber-border/30 rounded" />
+              </span>
             </div>
           ))}
         </div>
