@@ -4,6 +4,7 @@ import { useAppManager } from './context';
 import { useI18n } from '../../hooks/useI18n';
 import { useUsageClock } from '../../hooks/useUsageClock';
 import {
+  AccountSection,
   AccountSectionButton,
   AccountSectionRewardButton,
   AccountSectionRow,
@@ -42,7 +43,7 @@ export const TraeAccountSection: React.FC = () => {
       ? t('model.noUsageData')
       : `${currency === 'USD' ? '$' : ''}${value.toLocaleString(undefined, { maximumFractionDigits: 2, useGrouping: false })}`;
   return (
-    <section>
+    <AccountSection>
       <AccountSectionButton
         iconSrc={`/icons/tools/${selectedTool}.svg`}
         busy={busy}
@@ -221,6 +222,6 @@ export const TraeAccountSection: React.FC = () => {
           })}
         </div>
       )}
-    </section>
+    </AccountSection>
   );
 };

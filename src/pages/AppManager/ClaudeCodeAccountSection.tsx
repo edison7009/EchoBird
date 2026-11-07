@@ -3,6 +3,7 @@ import React from 'react';
 import { useAppManager } from './context';
 import { ModelSwitchDivider } from './ModelSwitchDivider';
 import {
+  AccountSection,
   AccountSectionButton,
   AccountSectionRow,
   AccountSectionWarmUpButton,
@@ -25,7 +26,7 @@ export const ClaudeCodeAccountSection: React.FC<{ showDivider?: boolean; desktop
   const warmable = useAccountPlugin(desktop ? 'claudedesktop' : 'claudecode', 'account.warmup');
   const { t } = useI18n();
   return (
-    <section className={desktop ? 'space-y-2' : undefined}>
+    <AccountSection>
       <AccountSectionButton
         iconSrc={desktop ? '/icons/tools/claudedesktop.svg' : '/icons/tools/claudecode.svg'}
         busy={busy}
@@ -35,7 +36,6 @@ export const ClaudeCodeAccountSection: React.FC<{ showDivider?: boolean; desktop
         hint={desktop && installed ? t('agent.accountSnapshotHint') : undefined}
         hintLineBreaks={desktop}
         waitingLabel={desktop ? t('agent.accountSnapshotSaving') : undefined}
-        className={desktop ? '!mb-0' : undefined}
         onClick={() =>
           void (installed ? group.add() : openAccountPlugins()).catch((error) =>
             setApplyError(String(error))
@@ -48,7 +48,6 @@ export const ClaudeCodeAccountSection: React.FC<{ showDivider?: boolean; desktop
           busy={false}
           remainingSeconds={0}
           idleLabel="agent.accountSnapshotNext"
-          className="!mb-0"
           onClick={() =>
             void claudeDesktopAccounts.addNext().catch((error) => setApplyError(String(error)))
           }
@@ -123,6 +122,6 @@ export const ClaudeCodeAccountSection: React.FC<{ showDivider?: boolean; desktop
         </div>
       )}
       {showDivider && <ModelSwitchDivider />}
-    </section>
+    </AccountSection>
   );
 };

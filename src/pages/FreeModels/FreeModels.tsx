@@ -734,13 +734,12 @@ function routeCatalogBinding(model: RouteModelNode) {
 }
 
 export function FreeModelsMain() {
-  const { activeRouterId, layout } = useFreeModels();
+  const { layout } = useFreeModels();
   const routerFocusRef = useRef(false);
   const routerTabPositionRef = useRef<ViewModeTabPosition | null>(null);
   return (
     <>
       <FreeModelsContent
-        key={activeRouterId}
         routerFocusRef={routerFocusRef}
         routerTabPositionRef={routerTabPositionRef}
       />
@@ -784,8 +783,17 @@ function FreeModelsContent({
   } = useFreeModels();
   const [removingIds, setRemovingIds] = useState<Set<string>>(() => new Set());
   const removalRequests = useRef(new Set<string>());
+  const currentRouterScope = useRef<object | null>(null);
+  useLayoutEffect(() => {
+    currentRouterScope.current = {};
+    return () => {
+      currentRouterScope.current = null;
+    };
+  }, [activeRouterId]);
   const autoToggleRef = useRef(new Map<string, 'pause' | 'resume'>());
   const removeFromList = async (id: string) => {
+    const scope = currentRouterScope.current;
+    if (!scope) return;
     if (removalRequests.current.has(id)) return;
     removalRequests.current.add(id);
     setRemovingIds(new Set(removalRequests.current));
@@ -797,10 +805,12 @@ function FreeModelsContent({
         cancelText: t('btn.cancel'),
         type: 'danger',
       });
-      if (accepted) await removeSelectedModel(id);
+      if (accepted && currentRouterScope.current === scope) await removeSelectedModel(id);
     } finally {
-      removalRequests.current.delete(id);
-      setRemovingIds(new Set(removalRequests.current));
+      if (currentRouterScope.current === scope) {
+        removalRequests.current.delete(id);
+        setRemovingIds(new Set(removalRequests.current));
+      }
     }
   };
   const [routeCatalogs, setRouteCatalogs] = useState<Map<string, RouteModelCatalog>>(
@@ -811,6 +821,15 @@ function FreeModelsContent({
   const catalogRequests = useRef(new Map<string, object>());
   const catalogRevisions = useRef(new Map<string, number>());
   const loadedCatalogs = useRef(new Set<string>());
+  // Keep the router chrome mounted, but discard group-scoped view state before
+  // rendering another group. In-flight catalog replies are invalidated below.
+  const [viewRouterId, setViewRouterId] = useState(activeRouterId);
+  if (viewRouterId !== activeRouterId) {
+    setViewRouterId(activeRouterId);
+    setRemovingIds(new Set());
+    setRouteCatalogs(new Map());
+    setRefreshingCatalogs(new Set());
+  }
   const catalogBindingsKey = JSON.stringify(
     [
       ...new Set(
@@ -866,7 +885,13 @@ function FreeModelsContent({
       requests.clear();
       setRefreshingCatalogs(new Set());
     };
-  }, [catalogBindingsKey]);
+  }, [catalogBindingsKey, activeRouterId]);
+
+  useEffect(() => {
+    removalRequests.current.clear();
+    autoToggleRef.current.clear();
+    loadedCatalogs.current.clear();
+  }, [activeRouterId]);
 
   const refreshRouteCatalog = async (model: RouteModelNode) => {
     const binding = routeCatalogBinding(model);
@@ -1115,7 +1140,7 @@ function FreeModelsContent({
     candidateTogglePending,
     setCandidateEnabled,
   ]);
-  useEffect(() => () => setActiveDragId(null), [setActiveDragId, activePage]);
+  useEffect(() => () => setActiveDragId(null), [setActiveDragId, activePage, activeRouterId]);
   const activeDragModel = selectedModels.find((model) => model.id === activeDragId);
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -1471,7 +1496,7 @@ function FreeModelsContent({
         ) : (
           <>
             <DndContext
-              key={activePage === 'freeModels' ? 'active' : 'hidden'}
+              key={`${activeRouterId}:${activePage === 'freeModels' ? 'active' : 'hidden'}`}
               sensors={sensors}
               modifiers={layout === 'list' ? [restrictRouteToVerticalAxis] : undefined}
               collisionDetection={routeCollisionDetection}

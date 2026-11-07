@@ -1,12 +1,16 @@
 import React from 'react';
 import { useAppManager } from './context';
 import { ModelSwitchDivider } from './ModelSwitchDivider';
-import { AccountSectionButton, AccountSectionRow } from './AccountSectionPrimitives';
+import {
+  AccountSection,
+  AccountSectionButton,
+  AccountSectionRow,
+} from './AccountSectionPrimitives';
 
 export const GrokAccountSection: React.FC<{ showDivider?: boolean }> = ({ showDivider = true }) => {
   const { grokAccounts, isLaunching } = useAppManager();
   return (
-    <section>
+    <AccountSection>
       <AccountSectionButton
         iconSrc="/icons/tools/grok.svg"
         busy={grokAccounts.busy}
@@ -33,6 +37,6 @@ export const GrokAccountSection: React.FC<{ showDivider?: boolean }> = ({ showDi
         </div>
       )}
       {showDivider && <ModelSwitchDivider />}
-    </section>
+    </AccountSection>
   );
 };

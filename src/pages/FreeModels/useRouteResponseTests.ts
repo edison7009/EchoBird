@@ -22,6 +22,11 @@ export function useRouteResponseTests(models: RouteModelNode[], active: boolean,
   const [savedResults, setSavedResults] = useState<
     Record<string, { binding: string; result: SmartRouterProbeResult }>
   >({});
+  const [resultRouterId, setResultRouterId] = useState(routerId);
+  if (resultRouterId !== routerId) {
+    setResultRouterId(routerId);
+    setSavedResults({});
+  }
   const generation = useRef(0);
   const running = useRef(false);
   const requests = useRef(new Map<string, string>());

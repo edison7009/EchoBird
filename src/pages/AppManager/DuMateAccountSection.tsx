@@ -3,6 +3,7 @@ import { useI18n } from '../../hooks/useI18n';
 import { useUsageClock } from '../../hooks/useUsageClock';
 import { useAppManager } from './context';
 import {
+  AccountSection,
   AccountSectionButton,
   AccountSectionRewardButton,
   AccountSectionRow,
@@ -19,7 +20,7 @@ export function DuMateAccountSection() {
       ? '—'
       : new Intl.NumberFormat(locale, { maximumFractionDigits: 2, useGrouping: false }).format(v);
   return (
-    <section>
+    <AccountSection>
       <AccountSectionButton
         iconSrc="/icons/tools/dumate.svg"
         busy={group.busy}
@@ -84,6 +85,6 @@ export function DuMateAccountSection() {
           );
         })}
       </div>
-    </section>
+    </AccountSection>
   );
 }

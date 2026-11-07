@@ -1,7 +1,11 @@
 import React from 'react';
 import { useAppManager } from './context';
 import { ModelSwitchDivider } from './ModelSwitchDivider';
-import { AccountSectionButton, AccountSectionRow } from './AccountSectionPrimitives';
+import {
+  AccountSection,
+  AccountSectionButton,
+  AccountSectionRow,
+} from './AccountSectionPrimitives';
 export const DeepSeekAccountSection: React.FC<{ showDivider?: boolean }> = ({
   showDivider = true,
 }) => {
@@ -9,7 +13,7 @@ export const DeepSeekAccountSection: React.FC<{ showDivider?: boolean }> = ({
   const { accounts, selectedId, select, busy, remainingSeconds, refreshing, add, refresh, remove } =
     deepSeekAccounts;
   return (
-    <section>
+    <AccountSection>
       <AccountSectionButton
         iconSrc="/icons/tools/dsh.png"
         colorClassName="deepseek-account-pill"
@@ -56,6 +60,6 @@ export const DeepSeekAccountSection: React.FC<{ showDivider?: boolean }> = ({
         </div>
       )}
       {showDivider && <ModelSwitchDivider />}
-    </section>
+    </AccountSection>
   );
 };

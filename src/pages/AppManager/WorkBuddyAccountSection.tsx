@@ -4,6 +4,7 @@ import { Gift } from 'lucide-react';
 import { useAppManager } from './context';
 import { ModelSwitchDivider } from './ModelSwitchDivider';
 import {
+  AccountSection,
   AccountSectionButton,
   AccountSectionRewardButton,
   AccountSectionRow,
@@ -35,7 +36,7 @@ export const WorkBuddyAccountSection: React.FC<{ showDivider?: boolean }> = ({
       : value.toLocaleString(undefined, { maximumFractionDigits: 2, useGrouping: false });
   const installed = useAccountPlugin(selectedTool ?? 'workbuddy');
   return (
-    <section>
+    <AccountSection>
       <AccountSectionButton
         iconSrc={`/icons/tools/${selectedTool}.png`}
         colorClassName="workbuddy-account-pill"
@@ -136,6 +137,6 @@ export const WorkBuddyAccountSection: React.FC<{ showDivider?: boolean }> = ({
         </div>
       )}
       {showDivider && <ModelSwitchDivider />}
-    </section>
+    </AccountSection>
   );
 };

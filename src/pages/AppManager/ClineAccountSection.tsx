@@ -1,6 +1,10 @@
 import { useI18n } from '../../hooks/useI18n';
 import { useAppManager } from './context';
-import { AccountSectionButton, AccountSectionRow } from './AccountSectionPrimitives';
+import {
+  AccountSection,
+  AccountSectionButton,
+  AccountSectionRow,
+} from './AccountSectionPrimitives';
 import { ModelSwitchDivider } from './ModelSwitchDivider';
 import { QuotaCountdown } from './QuotaCountdown';
 import { clineBalanceLabel } from './clineAccountDisplay';
@@ -9,7 +13,7 @@ export function ClineAccountSection({ showDivider = true }: { showDivider?: bool
   const { clineAccounts: group, isLaunching } = useAppManager();
   const { t, locale } = useI18n();
   return (
-    <section>
+    <AccountSection>
       <AccountSectionButton
         iconSrc="/icons/tools/clinedesktop.png"
         busy={group.busy}
@@ -57,6 +61,6 @@ export function ClineAccountSection({ showDivider = true }: { showDivider?: bool
         ))}
       </div>
       {showDivider && <ModelSwitchDivider />}
-    </section>
+    </AccountSection>
   );
 }

@@ -1,6 +1,10 @@
 import { Fragment } from 'react';
 import { useAppManager } from './context';
-import { AccountSectionButton, AccountSectionRow } from './AccountSectionPrimitives';
+import {
+  AccountSection,
+  AccountSectionButton,
+  AccountSectionRow,
+} from './AccountSectionPrimitives';
 import { QuotaCountdown } from './QuotaCountdown';
 import { QuotaPercent } from './QuotaPercent';
 import { quotaTextClass } from '../../utils/quotaColors';
@@ -9,7 +13,7 @@ import { devinQuotaLabel } from './devinAccountDisplay';
 export function DevinAccountSection() {
   const { devinAccounts: group, isLaunching } = useAppManager();
   return (
-    <section>
+    <AccountSection>
       <AccountSectionButton
         iconSrc="/icons/tools/devin.png"
         busy={group.busy}
@@ -56,6 +60,6 @@ export function DevinAccountSection() {
           />
         ))}
       </div>
-    </section>
+    </AccountSection>
   );
 }

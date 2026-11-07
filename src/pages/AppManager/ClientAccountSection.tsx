@@ -1,7 +1,11 @@
 import React from 'react';
 import { useAppManager } from './context';
 import { ModelSwitchDivider } from './ModelSwitchDivider';
-import { AccountSectionButton, AccountSectionRow } from './AccountSectionPrimitives';
+import {
+  AccountSection,
+  AccountSectionButton,
+  AccountSectionRow,
+} from './AccountSectionPrimitives';
 
 export const ClientAccountSection: React.FC<{
   provider: 'kilo' | 'copilot';
@@ -10,7 +14,7 @@ export const ClientAccountSection: React.FC<{
   const { kiloAccounts, copilotAccounts, isLaunching } = useAppManager();
   const group = provider === 'kilo' ? kiloAccounts : copilotAccounts;
   return (
-    <section>
+    <AccountSection>
       <AccountSectionButton
         iconSrc={`/icons/tools/${provider}.png`}
         busy={group.busy}
@@ -69,6 +73,6 @@ export const ClientAccountSection: React.FC<{
         </div>
       )}
       {showDivider && <ModelSwitchDivider />}
-    </section>
+    </AccountSection>
   );
 };

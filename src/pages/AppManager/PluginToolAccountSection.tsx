@@ -1,4 +1,8 @@
-import { AccountSectionButton, AccountSectionRow } from './AccountSectionPrimitives';
+import {
+  AccountSection,
+  AccountSectionButton,
+  AccountSectionRow,
+} from './AccountSectionPrimitives';
 import { accountPlanLabel } from './accountPlanLabel';
 import { useAppManager } from './context';
 import { ModelSwitchDivider } from './ModelSwitchDivider';
@@ -8,7 +12,7 @@ export function PluginToolAccountSection({ showDivider = true }: { showDivider?:
   const { accounts, selectedId, select, busy, remainingSeconds, refreshing, add, refresh, remove } =
     pluginAccounts;
   return (
-    <section>
+    <AccountSection>
       <AccountSectionButton
         iconSrc={pluginAccounts.provider?.icon ?? ''}
         busy={busy}
@@ -34,6 +38,6 @@ export function PluginToolAccountSection({ showDivider = true }: { showDivider?:
         ))}
       </div>
       {showDivider && <ModelSwitchDivider />}
-    </section>
+    </AccountSection>
   );
 }

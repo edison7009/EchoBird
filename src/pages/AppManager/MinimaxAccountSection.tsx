@@ -3,6 +3,7 @@ import { useI18n } from '../../hooks/useI18n';
 import { useUsageClock } from '../../hooks/useUsageClock';
 import { useAppManager } from './context';
 import {
+  AccountSection,
   AccountSectionButton,
   AccountSectionRewardButton,
   AccountSectionRow,
@@ -43,7 +44,7 @@ export function MinimaxAccountSection({ showDivider = true }: { showDivider?: bo
   const { t, locale } = useI18n();
   const now = useUsageClock(group.accounts.some((account) => account.dailyReward != null));
   return (
-    <section>
+    <AccountSection>
       <AccountSectionButton
         iconSrc="/icons/tools/minimaxdesktop.svg"
         busy={group.busy}
@@ -139,6 +140,6 @@ export function MinimaxAccountSection({ showDivider = true }: { showDivider?: bo
         ))}
       </div>
       {showDivider && <ModelSwitchDivider />}
-    </section>
+    </AccountSection>
   );
 }

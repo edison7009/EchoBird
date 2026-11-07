@@ -1,7 +1,11 @@
 import { Gift } from 'lucide-react';
 import { useI18n } from '../../hooks/useI18n';
 import { useAppManager } from './context';
-import { AccountSectionButton, AccountSectionRow } from './AccountSectionPrimitives';
+import {
+  AccountSection,
+  AccountSectionButton,
+  AccountSectionRow,
+} from './AccountSectionPrimitives';
 import { QuotaCountdown } from './QuotaCountdown';
 import {
   qwenWorkIdentity,
@@ -19,7 +23,7 @@ export function QwenWorkAccountSection() {
           value
         );
   return (
-    <section>
+    <AccountSection>
       <AccountSectionButton
         iconSrc={`/icons/tools/${selectedTool}.svg`}
         busy={group.busy}
@@ -71,6 +75,6 @@ export function QwenWorkAccountSection() {
           );
         })}
       </div>
-    </section>
+    </AccountSection>
   );
 }

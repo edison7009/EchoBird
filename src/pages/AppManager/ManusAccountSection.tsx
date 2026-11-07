@@ -1,6 +1,10 @@
 import React from 'react';
 import { useAppManager } from './context';
-import { AccountSectionButton, AccountSectionRow } from './AccountSectionPrimitives';
+import {
+  AccountSection,
+  AccountSectionButton,
+  AccountSectionRow,
+} from './AccountSectionPrimitives';
 import { QuotaCountdown } from './QuotaCountdown';
 import { QuotaPercent } from './QuotaPercent';
 import { quotaTextClass } from '../../utils/quotaColors';
@@ -14,7 +18,7 @@ export const ManusAccountSection: React.FC<{ tool?: 'manus' | 'cue' }> = ({ tool
   const { t } = useI18n();
   const hidden = useAccountPrivacyStore((state) => state.hidden);
   return (
-    <section>
+    <AccountSection>
       <AccountSectionButton
         iconSrc={`/icons/tools/${tool}.png`}
         busy={accounts.busy}
@@ -86,6 +90,6 @@ export const ManusAccountSection: React.FC<{ tool?: 'manus' | 'cue' }> = ({ tool
           })}
         </div>
       )}
-    </section>
+    </AccountSection>
   );
 };

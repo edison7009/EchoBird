@@ -1,7 +1,11 @@
 import { isSmartRouterId, SMART_ROUTER_SWITCH_TOOLS } from '../../utils/smartRouter';
 import { CursorAccountSection } from './CursorAccountSection';
 import { AntigravityAccountSection } from './AntigravityAccountSection';
-import { AccountSectionButton, AccountSectionRow } from './AccountSectionPrimitives';
+import {
+  AccountSection,
+  AccountSectionButton,
+  AccountSectionRow,
+} from './AccountSectionPrimitives';
 import { DeepSeekAccountSection } from './DeepSeekAccountSection';
 import { GrokAccountSection } from './GrokAccountSection';
 import { ClientAccountSection } from './ClientAccountSection';
@@ -838,7 +842,7 @@ export const CodexAccountSection: React.FC<{ showDivider?: boolean }> = ({
   } = useAppManager();
 
   return (
-    <section>
+    <AccountSection>
       <AccountSectionButton
         iconSrc="/icons/tools/codex.svg"
         busy={isAddingCodexAccount}
@@ -911,7 +915,7 @@ export const CodexAccountSection: React.FC<{ showDivider?: boolean }> = ({
         </div>
       )}
       {showDivider && <ModelSwitchDivider />}
-    </section>
+    </AccountSection>
   );
 };
 

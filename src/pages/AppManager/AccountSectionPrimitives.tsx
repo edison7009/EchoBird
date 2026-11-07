@@ -6,6 +6,11 @@ import { ACCOUNT_NAME_MASK, useAccountPrivacyStore } from '../../stores/accountP
 import type { TKey } from '../../i18n/types';
 import { RoutingHint } from '../../components/RoutingToggle';
 
+/** Own internal spacing; the surrounding panel owns spacing to capability toggles/models. */
+export const AccountSection: React.FC<React.PropsWithChildren> = ({ children }) => (
+  <section className="flex flex-col gap-2 [&>div:empty]:hidden">{children}</section>
+);
+
 export const AccountSectionButton: React.FC<{
   /** Left out when another button beside it already shows the product. */
   iconSrc?: string;
@@ -47,7 +52,7 @@ export const AccountSectionButton: React.FC<{
   if (busy) {
     return (
       <div
-        className={`account-pill ${colorClassName} ${className} relative mb-2 flex h-12 w-full items-center justify-center rounded-card pl-3 pr-10`}
+        className={`account-pill ${colorClassName} ${className} relative flex h-12 w-full items-center justify-center rounded-card pl-3 pr-10`}
       >
         <span className="pointer-events-none flex min-w-0 items-center gap-2.5 opacity-50">
           {iconSrc && <img src={iconSrc} alt="" className="h-6 w-6 flex-shrink-0" />}
@@ -79,7 +84,7 @@ export const AccountSectionButton: React.FC<{
   if (secondary) {
     return (
       <div
-        className={`account-pill ${colorClassName} ${className} relative mb-2 flex h-12 w-full items-center justify-center rounded-card px-3 transition-opacity ${disabled || busy ? 'opacity-50' : 'hover:opacity-90'}`}
+        className={`account-pill ${colorClassName} ${className} relative flex h-12 w-full items-center justify-center rounded-card px-3 transition-opacity ${disabled || busy ? 'opacity-50' : 'hover:opacity-90'}`}
       >
         <button
           type="button"
@@ -104,7 +109,7 @@ export const AccountSectionButton: React.FC<{
     // The "?" sits outside the click target, so reading it never starts the action.
     return (
       <div
-        className={`account-pill ${colorClassName} ${className} relative mb-2 flex h-12 w-full items-center justify-center rounded-card px-3 text-[17px] font-bold leading-6 transition-opacity ${disabled ? 'opacity-50' : 'hover:opacity-90'}`}
+        className={`account-pill ${colorClassName} ${className} relative flex h-12 w-full items-center justify-center rounded-card px-3 text-[17px] font-bold leading-6 transition-opacity ${disabled ? 'opacity-50' : 'hover:opacity-90'}`}
       >
         <button
           type="button"
@@ -133,7 +138,7 @@ export const AccountSectionButton: React.FC<{
       type="button"
       onClick={onClick}
       disabled={disabled || busy}
-      className={`account-pill ${colorClassName} ${className} mb-2 flex h-12 w-full items-center justify-center rounded-card px-3 text-[17px] font-bold leading-6 transition-opacity hover:opacity-90 disabled:opacity-50`}
+      className={`account-pill ${colorClassName} ${className} flex h-12 w-full items-center justify-center rounded-card px-3 text-[17px] font-bold leading-6 transition-opacity hover:opacity-90 disabled:opacity-50`}
     >
       <span className="flex translate-y-px items-center gap-2.5">
         {iconSrc && <img src={iconSrc} alt="" className="h-6 w-6" />}

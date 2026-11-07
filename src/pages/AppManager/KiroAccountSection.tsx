@@ -1,7 +1,11 @@
 import React from 'react';
 import { useAppManager } from './context';
 import { useI18n } from '../../hooks/useI18n';
-import { AccountSectionButton, AccountSectionRow } from './AccountSectionPrimitives';
+import {
+  AccountSection,
+  AccountSectionButton,
+  AccountSectionRow,
+} from './AccountSectionPrimitives';
 import { QuotaCountdown } from './QuotaCountdown';
 
 export const KiroAccountSection: React.FC = () => {
@@ -18,7 +22,7 @@ export const KiroAccountSection: React.FC = () => {
           : 'agent.credits'
     );
   return (
-    <section>
+    <AccountSection>
       <AccountSectionButton
         iconSrc={`/icons/tools/${selectedTool}.svg`}
         busy={busy}
@@ -72,6 +76,6 @@ export const KiroAccountSection: React.FC = () => {
           ))}
         </div>
       )}
-    </section>
+    </AccountSection>
   );
 };

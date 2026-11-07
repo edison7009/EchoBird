@@ -444,6 +444,34 @@ describe('Independent smart router groups', () => {
     expect(api.updateModel).not.toHaveBeenCalled();
   });
 
+  it('ignores a late settings read after changing groups and permits a new edit', async () => {
+    let resolve!: (settings: api.SmartRouterSettings) => void;
+    vi.mocked(api.getSmartRouterSettings).mockReturnValueOnce(
+      new Promise((done) => {
+        resolve = done;
+      })
+    );
+    await open();
+    await act(async () => {
+      button('freeModels.router.edit First').props.onClick();
+    });
+    await act(async () => context.selectRouter(secondId));
+    await act(async () =>
+      resolve({
+        id: 'smart-router',
+        name: 'First',
+        modelId: 'auto',
+        port: 62185,
+        apiKey: 'fixture',
+      })
+    );
+    expect(renderer.root.findAllByProps({ role: 'dialog' })).toHaveLength(0);
+    expect(button('freeModels.router.next').props.disabled).toBe(false);
+    await act(async () => button('freeModels.router.edit Second').props.onClick());
+    expect(renderer.root.findAllByProps({ role: 'dialog' })).toHaveLength(1);
+    expect(api.saveSmartRouter).not.toHaveBeenCalled();
+  });
+
   it('cycles through groups with side arrows without saving settings', async () => {
     await open();
     await act(async () => button('freeModels.router.previous').props.onClick());

@@ -2,6 +2,7 @@ import { useI18n } from '../../hooks/useI18n';
 import { useUsageClock } from '../../hooks/useUsageClock';
 import { useAppManager } from './context';
 import {
+  AccountSection,
   AccountSectionButton,
   AccountSectionRewardButton,
   AccountSectionRow,
@@ -16,7 +17,7 @@ export function QoderAccountSection({ showDivider = false }: { showDivider?: boo
   const { t, locale } = useI18n();
   const now = useUsageClock(group.accounts.some((account) => account.dailyReward != null));
   return (
-    <section>
+    <AccountSection>
       <AccountSectionButton
         iconSrc="/icons/tools/qoder.svg"
         busy={group.busy}
@@ -79,6 +80,6 @@ export function QoderAccountSection({ showDivider = false }: { showDivider?: boo
         ))}
       </div>
       {showDivider && <ModelSwitchDivider />}
-    </section>
+    </AccountSection>
   );
 }

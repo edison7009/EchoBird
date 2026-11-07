@@ -1,6 +1,10 @@
 import React, { Fragment } from 'react';
 import { useAppManager } from './context';
-import { AccountSectionButton, AccountSectionRow } from './AccountSectionPrimitives';
+import {
+  AccountSection,
+  AccountSectionButton,
+  AccountSectionRow,
+} from './AccountSectionPrimitives';
 import { QuotaCountdown } from './QuotaCountdown';
 import { QuotaPercent } from './QuotaPercent';
 import { quotaTextClass } from '../../utils/quotaColors';
@@ -18,7 +22,7 @@ export const AntigravityAccountSection: React.FC = () => {
     );
   };
   return (
-    <section>
+    <AccountSection>
       <AccountSectionButton
         iconSrc={`/icons/tools/${selectedTool}.png`}
         busy={busy}
@@ -104,6 +108,6 @@ export const AntigravityAccountSection: React.FC = () => {
           );
         })}
       </div>
-    </section>
+    </AccountSection>
   );
 };

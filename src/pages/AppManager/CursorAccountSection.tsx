@@ -1,6 +1,10 @@
 import React from 'react';
 import { useAppManager } from './context';
-import { AccountSectionButton, AccountSectionRow } from './AccountSectionPrimitives';
+import {
+  AccountSection,
+  AccountSectionButton,
+  AccountSectionRow,
+} from './AccountSectionPrimitives';
 import { QuotaCountdown } from './QuotaCountdown';
 import { QuotaPercent } from './QuotaPercent';
 import { quotaTextClass } from '../../utils/quotaColors';
@@ -24,7 +28,7 @@ export const CursorAccountSection: React.FC<{ tool: 'cursor' | 'cursorcli' | 'gr
     remove,
   } = tool === 'grokbot' ? grokBotAccounts : cursorAccounts;
   return (
-    <section>
+    <AccountSection>
       <AccountSectionButton
         iconSrc={tool === 'grokbot' ? '/icons/tools/grokbot.png' : '/icons/tools/cursor.svg'}
         busy={busy}
@@ -78,6 +82,6 @@ export const CursorAccountSection: React.FC<{ tool: 'cursor' | 'cursorcli' | 'gr
           />
         ))}
       </div>
-    </section>
+    </AccountSection>
   );
 };

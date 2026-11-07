@@ -2,7 +2,11 @@ import React from 'react';
 import { ArrowLeftRight } from 'lucide-react';
 import { useI18n } from '../../hooks/useI18n';
 import { useAppManager } from './context';
-import { AccountSectionButton, AccountSectionRow } from './AccountSectionPrimitives';
+import {
+  AccountSection,
+  AccountSectionButton,
+  AccountSectionRow,
+} from './AccountSectionPrimitives';
 import { ModelSwitchDivider } from './ModelSwitchDivider';
 import { QuotaCountdown } from './QuotaCountdown';
 import { QuotaPercent } from './QuotaPercent';
@@ -51,7 +55,7 @@ export const ZCodeAccountSection: React.FC<{ showDivider?: boolean }> = ({
   const { t } = useI18n();
   const { accounts, selectedId, select, refreshing, refresh, remove } = zcodeAccounts;
   return (
-    <section>
+    <AccountSection>
       <ZCodeAccountButton />
       <div className="space-y-2">
         {accounts.map((account) => {
@@ -125,6 +129,6 @@ export const ZCodeAccountSection: React.FC<{ showDivider?: boolean }> = ({
         })}
       </div>
       {showDivider && <ModelSwitchDivider />}
-    </section>
+    </AccountSection>
   );
 };

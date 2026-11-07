@@ -2,7 +2,11 @@ import { ArrowLeftRight } from 'lucide-react';
 import type { KimiAccount } from '../../api/kimiAccounts';
 import type { TKey } from '../../i18n';
 import { useI18n } from '../../hooks/useI18n';
-import { AccountSectionButton, AccountSectionRow } from './AccountSectionPrimitives';
+import {
+  AccountSection,
+  AccountSectionButton,
+  AccountSectionRow,
+} from './AccountSectionPrimitives';
 import { accountPlanLabel } from './accountPlanLabel';
 import { useAppManager } from './context';
 import { ModelSwitchDivider } from './ModelSwitchDivider';
@@ -69,7 +73,7 @@ export function KimiAccountSection({ showDivider = true }: { showDivider?: boole
     return '—';
   };
   return (
-    <section>
+    <AccountSection>
       <AccountSectionButton
         iconSrc="/icons/tools/kimidesktop.png"
         busy={busy}
@@ -96,6 +100,6 @@ export function KimiAccountSection({ showDivider = true }: { showDivider?: boole
         ))}
       </div>
       {showDivider && <ModelSwitchDivider />}
-    </section>
+    </AccountSection>
   );
 }

@@ -1,5 +1,9 @@
 import { useAppManager } from './context';
-import { AccountSectionButton, AccountSectionRow } from './AccountSectionPrimitives';
+import {
+  AccountSection,
+  AccountSectionButton,
+  AccountSectionRow,
+} from './AccountSectionPrimitives';
 import { QuotaCountdown } from './QuotaCountdown';
 import { QuotaPercent } from './QuotaPercent';
 import { quotaTextClass } from '../../utils/quotaColors';
@@ -9,7 +13,7 @@ import { ModelSwitchDivider } from './ModelSwitchDivider';
 export function OpenDesignAccountSection({ showDivider = false }: { showDivider?: boolean }) {
   const { openDesignAccounts: group, isLaunching } = useAppManager();
   return (
-    <section>
+    <AccountSection>
       <AccountSectionButton
         iconSrc="/icons/tools/opendesign.png"
         busy={group.busy}
@@ -56,6 +60,6 @@ export function OpenDesignAccountSection({ showDivider = false }: { showDivider?
         ))}
       </div>
       {showDivider && <ModelSwitchDivider />}
-    </section>
+    </AccountSection>
   );
 }

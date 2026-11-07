@@ -85,6 +85,27 @@ describe('explicit Smart Router response tests', () => {
     vi.restoreAllMocks();
   });
 
+  it('discards completed results after leaving and returning to the same group', async () => {
+    models = [models[0]];
+    await render();
+    await act(async () => {
+      void hook.test();
+    });
+    await reply(0, { latencyMs: 42, error: null });
+    expect(hook.results.api.latencyMs).toBe(42);
+    routerId = 'second';
+    await render();
+    routerId = 'first';
+    await render();
+    expect(hook.results).toEqual({});
+    expect(api.testSmartRouterCandidate).toHaveBeenCalledOnce();
+    await act(async () => {
+      void hook.test();
+    });
+    await reply(1, { latencyMs: 18, error: null });
+    expect(hook.results.api.latencyMs).toBe(18);
+  });
+
   it('does nothing on navigation; tests every selected binding with at most two requests', async () => {
     active = false;
     await render();

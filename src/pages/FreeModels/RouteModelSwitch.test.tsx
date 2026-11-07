@@ -995,6 +995,65 @@ describe('Direct route card model selection', () => {
     expect(showToast).not.toHaveBeenCalled();
   });
 
+  it('keeps arrow and hub identity across groups while discarding late catalog results', async () => {
+    const routers = [config(), { ...config(), id: 'second', name: 'Second', port: 62186 }];
+    vi.spyOn(api, 'listSmartRouters').mockResolvedValue(routers);
+    const request = deferred<modelApi.UpstreamModelCatalog>();
+    vi.mocked(modelApi.fetchUpstreamModelCatalog).mockReturnValueOnce(request.promise);
+    await open();
+    await act(async () => context.setLayout('cards'));
+    const next = renderer.root.findByProps({ 'aria-label': 'freeModels.router.next' });
+    const hub = renderer.root.findAll(
+      (node) =>
+        node.type === 'div' && String(node.props.className).includes('free-model-router-hub ')
+    )[0];
+    clickCard('free-old');
+    expect(modelApi.fetchUpstreamModelCatalog).toHaveBeenCalledOnce();
+    await act(async () => next.props.onClick());
+    expect(context.activeRouterId).toBe('second');
+    expect(renderer.root.findByProps({ 'aria-label': 'freeModels.router.next' })).toBe(next);
+    expect(
+      renderer.root.findAll(
+        (node) =>
+          node.type === 'div' && String(node.props.className).includes('free-model-router-hub ')
+      )[0]
+    ).toBe(hub);
+    await act(async () =>
+      request.resolve({ models: [{ id: 'late-first-group' }], requiresApiKey: false })
+    );
+    expect(picker('free-old').props.options).not.toContain('late-first-group');
+    expectNoConfigurationChanges();
+  });
+
+  it('ignores old removal confirmation after a group round trip but permits a new removal', async () => {
+    vi.spyOn(api, 'listSmartRouters').mockResolvedValue([
+      config(),
+      { ...config(), id: 'second', name: 'Second', port: 62186 },
+    ]);
+    const confirmation = deferred<boolean>();
+    confirm.mockReturnValueOnce(confirmation.promise);
+    await open();
+    await act(async () => context.setLayout('list'));
+    const removeFirst = () =>
+      renderer.root
+        .findAllByType('button')
+        .find((node) => String(node.props['aria-label']).startsWith('btn.remove:'))!
+        .props.onClick();
+    await act(async () => {
+      removeFirst();
+    });
+    expect(confirm).toHaveBeenCalledOnce();
+    await act(async () => context.selectRouter('second'));
+    await act(async () => context.selectRouter('smart-router'));
+    await act(async () => confirmation.resolve(true));
+    expect(api.removeSmartRouterCandidate).not.toHaveBeenCalled();
+    confirm.mockResolvedValueOnce(true);
+    await act(async () => {
+      removeFirst();
+    });
+    expect(api.removeSmartRouterCandidate).toHaveBeenCalledExactlyOnceWith('account-model');
+  });
+
   it.each([undefined, '', '   ', 'Pro'])('shows only an actual Cline plan: %s', async (plan) => {
     savedModels = [{ ...account, accountSource: { provider: 'cline', accountId: 'account-one' } }];
     savedOrder = [account.internalId];

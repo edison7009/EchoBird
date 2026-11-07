@@ -1,5 +1,6 @@
 import { useI18n } from '../../hooks/useI18n';
 import {
+  AccountSection,
   AccountSectionButton,
   AccountSectionRewardButton,
   AccountSectionRow,
@@ -16,7 +17,7 @@ export function CodeArtsAccountSection({ showDivider = true }: { showDivider?: b
   const { t, locale } = useI18n();
   const claimedToday = useWorkBuddyClaimedToday(managed.accounts.length > 0);
   return (
-    <section>
+    <AccountSection>
       <AccountSectionButton
         iconSrc="/icons/tools/codearts.png"
         busy={managed.busy}
@@ -89,6 +90,6 @@ export function CodeArtsAccountSection({ showDivider = true }: { showDivider?: b
         })}
       </div>
       {showDivider && <ModelSwitchDivider />}
-    </section>
+    </AccountSection>
   );
 }

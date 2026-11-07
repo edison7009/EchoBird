@@ -18,6 +18,7 @@ import { useToast } from '../../components/Toast';
 import { useI18n } from '../../hooks/useI18n';
 import { copyText } from '../../utils/copyText';
 import { useFreeModels } from './provider';
+import { useRouterCardFade } from './useRouterCardFade';
 
 const MAX_ROUTER_GROUPS = 7;
 
@@ -349,8 +350,15 @@ export function RouterGroups({
   } = useFreeModels();
   const [settings, setSettings] = useState<api.SmartRouterSettings | null>(null);
   const [reading, setReading] = useState(false);
+  const [settingsRouterId, setSettingsRouterId] = useState(activeRouterId);
+  if (settingsRouterId !== activeRouterId) {
+    setSettingsRouterId(activeRouterId);
+    setSettings(null);
+    setReading(false);
+  }
   const request = useRef(0);
   const selectedTabRef = useRef<HTMLButtonElement>(null);
+  const cardDetailsRef = useRouterCardFade(activeRouterId, layout === 'cards');
   const busy = groupPending || reading;
   const canAdd = routers.length < MAX_ROUTER_GROUPS;
   useLayoutEffect(() => {
@@ -373,7 +381,7 @@ export function RouterGroups({
   const invalidateRequest = useCallback(() => {
     request.current++;
   }, []);
-  useEffect(() => invalidateRequest, [invalidateRequest]);
+  useEffect(() => invalidateRequest, [activeRouterId, invalidateRequest]);
   const edit = async (id: string) => {
     const attempt = ++request.current;
     setReading(true);
@@ -564,7 +572,7 @@ export function RouterGroups({
     );
     return (
       <div
-        key={router.id}
+        key={list ? router.id : 'card'}
         ref={hubRef}
         data-router-id={list ? router.id : undefined}
         className={`free-model-router-hub relative z-10 rounded-xl ${list ? 'free-model-router-hub-bar' : 'free-model-router-group'}`}
@@ -578,8 +586,9 @@ export function RouterGroups({
             aria-labelledby={`router-group-tab-${router.id}`}
             data-router-id={router.id}
             className="free-model-router-card-details"
+            ref={cardDetailsRef}
           >
-            {details}
+            <div className="free-model-router-card-content">{details}</div>
           </div>
         )}
         <div

@@ -63,9 +63,19 @@
 }
 
 .free-model-router-card-details {
+  position: relative;
+}
+
+.free-model-router-card-content {
   display: flex;
   flex-direction: column;
   gap: 14px;
+}
+
+.free-model-router-card-snapshot {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
 }
 
 .free-model-router-card-heading {
@@ -505,14 +515,13 @@
   margin-top: auto;
 }
 
-/* Loading disables activation, not the hover feedback: :enabled:hover would
-   reset both chevrons during a group change and make the hovered one jump. */
 .free-model-router-page-chevron {
   display: block;
   flex-shrink: 0;
   transition: transform 180ms ease;
 }
 
+/* Keep the expanded pose while loading as well as after selection. */
 .free-model-router-page-arrow:hover .free-model-router-page-chevron {
   transform: translateX(4px);
 }

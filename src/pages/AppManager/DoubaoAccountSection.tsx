@@ -3,6 +3,7 @@ import { Gift } from 'lucide-react';
 import { useI18n } from '../../hooks/useI18n';
 import { useAppManager } from './context';
 import {
+  AccountSection,
   AccountSectionButton,
   AccountSectionRewardButton,
   AccountSectionRow,
@@ -18,7 +19,7 @@ export function DoubaoAccountSection() {
   const { t, locale } = useI18n();
   const installed = useAccountPlugin(selectedTool ?? 'doubaowork');
   return (
-    <section>
+    <AccountSection>
       <AccountSectionButton
         iconSrc={`/icons/tools/${selectedTool}.png`}
         busy={group.busy}
@@ -112,6 +113,6 @@ export function DoubaoAccountSection() {
           />
         ))}
       </div>
-    </section>
+    </AccountSection>
   );
 }
