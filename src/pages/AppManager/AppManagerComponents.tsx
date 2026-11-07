@@ -1104,7 +1104,7 @@ export const AppManagerPanel: React.FC = () => {
   );
 
   return (
-    <>
+    <div className="flex h-full min-h-0 flex-col">
       {/* Header */}
       <div className="h-10 px-2 flex items-center justify-between bg-transparent">
         <span className="min-w-0 truncate px-3 py-1.5 text-sm font-semibold text-cyber-text">
@@ -1145,7 +1145,7 @@ export const AppManagerPanel: React.FC = () => {
         </div>
       </div>
 
-      <div className="flex-1 p-2 overflow-y-auto">
+      <div className="min-h-0 flex-1 overflow-y-auto px-2 pb-2 pt-0">
         {selectedToolData ? (
           // Not installed yet — offer the tool's website or repository
           // alongside the bottom bar's one-click install action.
@@ -1287,7 +1287,7 @@ export const AppManagerPanel: React.FC = () => {
           </div>
         )}
       </div>
-    </>
+    </div>
   );
 };
 
