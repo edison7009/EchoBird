@@ -713,6 +713,12 @@ html.is-macos .usage-island.usage-island-theme-auto {
   font-weight: 700;
 }
 
+/* Microsoft YaHei has no medium face, so 700 lands on its heavy bold. Regular
+   is closer to the macOS PingFang tab labels. */
+html.is-windows .view-mode-tab.cjk-btn {
+  font-weight: 400;
+}
+
 /* Brand wordmark — sidebar logo. Always "EchoBird" in every locale
    (the previous "百灵鸟" Chinese name was retired to keep one brand
    voice across UI). Lora italic matches the boot splash exactly. */

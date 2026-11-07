@@ -8,7 +8,7 @@ import { initializeUiScale } from './stores/uiScaleStore';
 import { detectLocale, loadLocale, resolveLocale } from './i18n';
 import * as api from './api/tauri';
 import { getCurrentWindow } from '@tauri-apps/api/window';
-import { IS_MACOS } from './utils/platform';
+import { IS_LINUX, IS_MACOS } from './utils/platform';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { ERROR_MESSAGES, pickErrorLang } from './components/errorMessages';
 import { initializeWindowVisibility } from './utils/windowVisibility';
@@ -51,6 +51,7 @@ if (typeof Obj.hasOwn !== 'function') {
 // borderless rounded shell; native decorations own the window corners) applies
 // without a flash. Windows/Linux keep the custom frameless chrome unchanged.
 if (IS_MACOS) document.documentElement.classList.add('is-macos');
+if (!IS_MACOS && !IS_LINUX) document.documentElement.classList.add('is-windows');
 
 // 1. Theme — must run before any CSS reads --bg-base-rgb. Sync.
 useThemeStore.getState().init();
