@@ -28,6 +28,7 @@ export function ViewModeTabGroup({
     const group = groupRef.current;
     if (!group) return;
     if (IS_MACOS) return mountTabCanvas(group, positionRef ?? localPosition);
+    let frame = 0;
     const place = (value: ViewModeTabPosition) => {
       group.style.setProperty('--view-mode-x', `${value.x}px`);
       group.style.setProperty('--view-mode-y', `${value.y}px`);
@@ -63,11 +64,43 @@ export function ViewModeTabGroup({
       if (positionRef) positionRef.current = next;
     };
     update();
-    if (typeof ResizeObserver === 'undefined') return;
-    const observer = new ResizeObserver(update);
-    observer.observe(group);
-    group.querySelectorAll('.view-mode-tab').forEach((tab) => observer.observe(tab));
-    return () => observer.disconnect();
+    // ResizeObserver covers first paint and responsive width changes. The
+    // attribute observer covers a same-size tab switch, which does not resize
+    // anything in WebView2 and previously left the selected tab on its flat
+    // fallback background until another layout pass occurred.
+    const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(update);
+    observer?.observe(group);
+    group.querySelectorAll('.view-mode-tab').forEach((tab) => observer?.observe(tab));
+    const attributes =
+      typeof MutationObserver === 'undefined'
+        ? null
+        : new MutationObserver(() => {
+            if (typeof requestAnimationFrame === 'undefined') {
+              update();
+              return;
+            }
+            if (frame) cancelAnimationFrame(frame);
+            frame = requestAnimationFrame(() => {
+              frame = 0;
+              update();
+            });
+          });
+    attributes?.observe(group, {
+      subtree: true,
+      attributes: true,
+      attributeFilter: ['aria-pressed', 'aria-selected'],
+    });
+    if (typeof requestAnimationFrame !== 'undefined') {
+      frame = requestAnimationFrame(() => {
+        frame = 0;
+        update();
+      });
+    }
+    return () => {
+      if (frame) cancelAnimationFrame(frame);
+      observer?.disconnect();
+      attributes?.disconnect();
+    };
   }, [children, positionRef]);
 
   return (

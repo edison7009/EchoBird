@@ -22,6 +22,7 @@ let observers: {
   observe: ReturnType<typeof vi.fn>;
   disconnect: ReturnType<typeof vi.fn>;
 }[];
+let attributeObservers: (() => void)[];
 const onSelect = vi.fn();
 function makeRoot() {
   const values = new Map<string, string>();
@@ -59,6 +60,7 @@ beforeEach(() => {
   selected = { offsetLeft: 0, offsetTop: 0, offsetWidth: 32, offsetHeight: 30 };
   root = makeRoot();
   observers = [];
+  attributeObservers = [];
   vi.stubGlobal(
     'ResizeObserver',
     class {
@@ -66,6 +68,16 @@ beforeEach(() => {
       disconnect = vi.fn();
       constructor(update: () => void) {
         observers.push({ update, observe: this.observe, disconnect: this.disconnect });
+      }
+    }
+  );
+  vi.stubGlobal(
+    'MutationObserver',
+    class {
+      observe = vi.fn();
+      disconnect = vi.fn();
+      constructor(update: () => void) {
+        attributeObservers.push(update);
       }
     }
   );
@@ -141,6 +153,14 @@ it('retains the ordinary selected-button fallback until a visible selection can 
   selected = null;
   render();
   expect(root.dataset.sliding).toBeUndefined();
+});
+
+it('recomputes a same-size selection change through the attribute observer', () => {
+  render();
+  selected = { offsetLeft: 96, offsetTop: 0, offsetWidth: 32, offsetHeight: 30 };
+  act(() => attributeObservers[0]());
+  expect(root.values.get('--view-mode-x')).toBe('96px');
+  expect(root.values.get('--view-mode-width')).toBe('32px');
 });
 
 it('delegates macOS paint to one canvas owner and releases it on exit', () => {
