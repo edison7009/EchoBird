@@ -22,30 +22,46 @@ export function UpdateDownloadButton({
       onClick={onClick}
       className="relative mx-auto flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-red-400 transition-colors hover:bg-cyber-elevated/50"
     >
-      <Download
-        size={20}
-        aria-hidden="true"
-        className={
-          progress?.status === 'speed_test' ? 'animate-pulse motion-reduce:animate-none' : undefined
-        }
-      />
-      {progress && (
+      {progress ? (
         <svg
           aria-hidden="true"
-          className="absolute inset-0 h-full w-full -rotate-90"
-          viewBox="0 0 40 40"
+          className={
+            progress.status === 'speed_test'
+              ? 'h-[15px] w-[15px] motion-safe:animate-spin motion-reduce:animate-none'
+              : 'h-[15px] w-[15px]'
+          }
+          viewBox="0 0 24 24"
         >
           <circle
-            cx="20"
-            cy="20"
-            r="17"
+            cx="12"
+            cy="12"
+            r="9"
             fill="none"
             stroke="currentColor"
-            strokeWidth="2"
-            pathLength="100"
-            strokeDasharray={`${percent} 100`}
+            strokeOpacity="0.22"
+            strokeWidth="2.6"
+          />
+          <circle
+            cx="12"
+            cy="12"
+            r="9"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.6"
+            strokeLinecap="round"
+            transform="rotate(-90 12 12)"
+            strokeDasharray={
+              progress.status === 'speed_test'
+                ? `${2 * Math.PI * 9 * 0.25} ${2 * Math.PI * 9}`
+                : 2 * Math.PI * 9
+            }
+            strokeDashoffset={
+              progress.status === 'speed_test' ? 0 : 2 * Math.PI * 9 * (1 - percent / 100)
+            }
           />
         </svg>
+      ) : (
+        <Download size={20} aria-hidden="true" />
       )}
     </button>
   );
