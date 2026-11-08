@@ -323,6 +323,36 @@ it('keeps the background and Easter Egg controls independent', async () => {
   expect(mocks.save).not.toHaveBeenCalled();
 });
 
+it('offers carbon and basalt as separate appearance backgrounds', async () => {
+  await act(async () => {
+    view = create(<SettingsDialog {...props} />);
+  });
+  await tab('settings.appearance');
+  const labels = view.root
+    .findAllByType('button')
+    .map((button) => button.props.children)
+    .filter((value) => typeof value === 'string' && value.startsWith('settings.background'));
+  expect(labels).toEqual([
+    'settings.backgroundNone',
+    'settings.backgroundCharacters',
+    'settings.backgroundCarbon',
+    'settings.backgroundBasalt',
+    'settings.backgroundMonogram',
+  ]);
+  const select = async (label: string, mode: string) => {
+    const button = view.root
+      .findAllByType('button')
+      .find((candidate) => candidate.props.children === label)!;
+    await act(async () => {
+      button.props.onClick();
+    });
+    expect(useBackgroundStore.getState().mode).toBe(mode);
+    expect(localStorage.setItem).toHaveBeenLastCalledWith('echobird_background', mode);
+  };
+  await select('settings.backgroundBasalt', 'basalt');
+  await select('settings.backgroundCarbon', 'carbon');
+});
+
 it('preserves the background through passive navigation and reopening without writes', async () => {
   useBackgroundStore.setState({ mode: 'monogram' });
   await act(async () => {

@@ -444,6 +444,7 @@ const zhHans: Partial<Translations> = {
   'settings.backgroundNone': '无背景',
   'settings.backgroundCharacters': '字符流',
   'settings.backgroundCarbon': '碳纤维',
+  'settings.backgroundBasalt': '碳岩',
   'settings.backgroundMonogram': '老花纹',
   'settings.themeLight': '浅色',
   'settings.themeDark': '深色',

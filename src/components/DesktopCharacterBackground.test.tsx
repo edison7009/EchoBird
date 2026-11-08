@@ -149,14 +149,29 @@ describe('application character background lifecycle', () => {
     expect(mocks.selectedTool).toBe('claude');
   });
 
-  it.each(['none', 'carbon', 'monogram'] as const)('does not create graphics for %s', (mode) => {
-    useBackgroundStore.setState({ mode });
-    mount();
-    expect(mocks.create).not.toHaveBeenCalled();
-    expect(attached).toHaveLength(0);
-    if (mode === 'none') expect(view!.toJSON()).toBeNull();
-    else expect(view!.root.findByType('div').props['data-app-background']).toBe(mode);
-  });
+  it.each(['none', 'carbon', 'basalt', 'monogram'] as const)(
+    'does not create graphics for %s',
+    (mode) => {
+      useBackgroundStore.setState({ mode });
+      mount();
+      expect(mocks.create).not.toHaveBeenCalled();
+      expect(attached).toHaveLength(0);
+      if (mode === 'none') {
+        expect(view!.toJSON()).toBeNull();
+        return;
+      }
+      const node = view!.root.findByType('div');
+      expect(node.props['data-app-background']).toBe(mode);
+      const className = String(node.props.className);
+      if (mode === 'basalt') {
+        expect(className).toContain('app-background-basalt');
+        expect(className).not.toContain('app-background-material');
+      } else {
+        expect(className).toContain('app-background-material');
+        expect(className).toContain(`app-background-${mode}`);
+      }
+    }
+  );
 
   it('stops while the window is hidden and resumes when visible', () => {
     mount('claude');

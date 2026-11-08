@@ -45,9 +45,9 @@
   --text-muted-rgb: 117 117 117;
 }
 
-/* Coffee-CLI's static material patterns, recolored by the active EchoBird palette. */
+/* Shared mask treatment used by monogram. Carbon paints its own fine twill. */
 .app-background-material {
-  --material-mask: url('/backgrounds/carbon.svg');
+  --material-mask: none;
   --material-size: 13px 22.75px;
   --material-ink: rgb(var(--view-mode-accent-rgb));
   --material-opacity: 0.2;
@@ -64,6 +64,17 @@
   --material-opacity: 0.16;
 }
 
+/* Quiet graphite twill. Fine crossed threads, not a tiled hex or chevron. */
+.app-background-material.app-background-carbon {
+  --material-ink: color-mix(in srgb, rgb(198 206 214) 90%, rgb(var(--view-mode-accent-rgb)));
+  background: linear-gradient(
+    118deg,
+    transparent 14%,
+    rgb(255 255 255 / 0.03) 48%,
+    transparent 78%
+  );
+}
+
 :root[data-theme='light'] .app-background-material {
   --material-ink: color-mix(
     in srgb,
@@ -75,6 +86,51 @@
 
 :root[data-theme='light'] .app-background-monogram {
   --material-opacity: 0.38;
+}
+
+:root[data-theme='light'] .app-background-material.app-background-carbon {
+  --material-ink: color-mix(
+    in srgb,
+    rgb(var(--text-primary-rgb)) 90%,
+    rgb(var(--view-mode-accent-rgb))
+  );
+  background: linear-gradient(
+    118deg,
+    transparent 14%,
+    rgb(var(--text-primary-rgb) / 0.035) 48%,
+    transparent 78%
+  );
+}
+
+.app-background-material.app-background-carbon::before {
+  background:
+    repeating-linear-gradient(
+      34deg,
+      color-mix(in srgb, var(--material-ink) 8%, transparent) 0 1px,
+      transparent 1px 3px
+    ),
+    repeating-linear-gradient(
+      -28deg,
+      color-mix(in srgb, var(--material-ink) 3.5%, transparent) 0 1px,
+      transparent 1px 4px
+    );
+  -webkit-mask-image: none;
+  mask-image: none;
+  opacity: 1;
+}
+
+:root[data-theme='light'] .app-background-material.app-background-carbon::before {
+  background:
+    repeating-linear-gradient(
+      34deg,
+      color-mix(in srgb, var(--material-ink) 13%, transparent) 0 1px,
+      transparent 1px 3px
+    ),
+    repeating-linear-gradient(
+      -28deg,
+      color-mix(in srgb, var(--material-ink) 6%, transparent) 0 1px,
+      transparent 1px 4px
+    );
 }
 
 .app-background-material::before {
@@ -99,8 +155,62 @@
   opacity: var(--material-opacity);
 }
 
+/* Matte carbon-rock: charcoal vignette, film grain, and soft stone pools.
+   Separate from the carbon twill so the two materials stay distinct. */
+.app-background-basalt {
+  background-color: rgb(var(--bg-base-rgb));
+  background-image:
+    radial-gradient(128% 96% at 50% 34%, rgb(var(--bg-elevated-rgb) / 0.9), transparent 66%),
+    radial-gradient(155% 130% at 50% 50%, transparent 32%, rgb(0 0 0 / 0.46) 100%);
+  isolation: isolate;
+}
+
+.app-background-basalt::before {
+  content: '';
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  background-image: url('/backgrounds/basalt.svg');
+  background-size: 180px 180px;
+  mix-blend-mode: overlay;
+  opacity: 0.14;
+  pointer-events: none;
+}
+
+.app-background-basalt::after {
+  content: '';
+  position: absolute;
+  z-index: 0;
+  inset: -18%;
+  background:
+    radial-gradient(closest-side at 14% 30%, rgb(0 0 0 / 0.9), transparent 72%),
+    radial-gradient(closest-side at 86% 20%, rgb(0 0 0 / 0.72), transparent 70%),
+    radial-gradient(closest-side at 76% 84%, rgb(0 0 0 / 0.8), transparent 72%),
+    radial-gradient(closest-side at 18% 82%, rgb(0 0 0 / 0.62), transparent 68%),
+    radial-gradient(closest-side at 48% 42%, rgb(var(--bg-elevated-rgb) / 0.95), transparent 70%);
+  filter: blur(56px);
+  opacity: 0.12;
+  pointer-events: none;
+}
+
+:root[data-theme='light'] .app-background-basalt {
+  background-image:
+    radial-gradient(120% 90% at 50% 28%, rgb(255 255 255 / 0.72), transparent 58%),
+    radial-gradient(145% 120% at 50% 50%, transparent 46%, rgb(var(--text-muted-rgb) / 0.2) 100%);
+}
+
+:root[data-theme='light'] .app-background-basalt::before {
+  mix-blend-mode: multiply;
+  opacity: 0.16;
+}
+
+:root[data-theme='light'] .app-background-basalt::after {
+  opacity: 0.05;
+}
+
 @media (forced-colors: active), (prefers-contrast: more) {
-  .app-background-material {
+  .app-background-material,
+  .app-background-basalt {
     display: none;
   }
 }
