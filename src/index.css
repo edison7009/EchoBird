@@ -155,36 +155,7 @@
   opacity: var(--material-opacity);
 }
 
-/* Matte charcoal stone. The tile is grayscale rock mottling, not a flat wash
-   or colored light. Separate from the carbon twill. */
-.app-background-basalt {
-  isolation: isolate;
-  overflow: hidden;
-  background-color: #0c0c0e;
-  background-image: url('/backgrounds/basalt.svg');
-  background-size: 720px 720px;
-}
-
-.app-background-basalt::after {
-  content: '';
-  position: absolute;
-  z-index: 1;
-  inset: 0;
-  pointer-events: none;
-  background: radial-gradient(ellipse 100% 92% at 50% 46%, transparent 62%, rgb(0 0 0 / 0.2) 100%);
-}
-
-:root[data-theme='light'] .app-background-basalt {
-  background-color: rgb(var(--bg-base-rgb));
-  background-image: none;
-}
-
-:root[data-theme='light'] .app-background-basalt::after {
-  opacity: 0.14;
-  mix-blend-mode: multiply;
-  background-image: url('/backgrounds/basalt.svg');
-  background-size: 720px 720px;
-}
+/* Basalt is an empty placeholder until its new material lands. */
 
 @media (forced-colors: active), (prefers-contrast: more) {
   .app-background-material,
