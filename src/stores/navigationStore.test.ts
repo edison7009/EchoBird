@@ -4,22 +4,24 @@ import { useNavigationStore as navigation } from './navigationStore';
 beforeEach(() => navigation.setState(navigation.getInitialState(), true));
 afterEach(() => vi.unstubAllGlobals());
 
-it('keeps developer pages inaccessible until enabled', () => {
+it('routes legacy developer destinations into their owning page without a preview setting', () => {
   navigation.getState().setActivePage('developer');
-  expect(navigation.getState().activePage).toBe('apps');
-  expect(navigation.getState().backHistory).toEqual([]);
-  navigation.getState().setDeveloperMode(true);
-  navigation.getState().setDeveloperTab('plugins');
+  expect(navigation.getState()).toMatchObject({ activePage: 'apps', appsTab: 'pets' });
+  navigation.getState().setDeveloperTab('statistics');
   navigation.getState().setActivePage('developer');
-  expect(navigation.getState().activePage).toBe('developer');
+  expect(navigation.getState()).toMatchObject({
+    activePage: 'freeModels',
+    smartAccessTab: 'statistics',
+  });
 });
 
 it('opens the complete plugin list from an account entry and preserves back navigation', () => {
   const { openAccountPlugins, consumeAccountPluginsRequest, goBack } = navigation.getState();
   openAccountPlugins();
   expect(navigation.getState()).toMatchObject({
-    developerMode: true,
-    activePage: 'developer',
+    developerMode: false,
+    activePage: 'apps',
+    appsTab: 'plugins',
     developerTab: 'plugins',
     backHistory: ['apps'],
     accountPluginsRequest: expect.any(Number),
@@ -196,3 +198,47 @@ it.each(['aiNews', 'aiCareer', 'localLlm'] as const)(
     expect(navigation.getState().activePage).toBe(page);
   }
 );
+
+it('restores exact merged tabs and tool view through back and forward without settings writes', () => {
+  const write = vi.fn();
+  const fetch = vi.fn();
+  vi.stubGlobal('localStorage', { setItem: write });
+  vi.stubGlobal('fetch', fetch);
+  const nav = navigation.getState();
+  nav.setAppsTab('install');
+  nav.setAppsTab('pets');
+  nav.setAppsTab('plugins');
+  nav.setSmartAccessTab('statistics');
+  nav.setSmartAccessTab('configuration');
+  nav.goBack();
+  expect(navigation.getState()).toMatchObject({
+    activePage: 'freeModels',
+    smartAccessTab: 'statistics',
+  });
+  nav.goBack();
+  expect(navigation.getState()).toMatchObject({ activePage: 'apps', appsTab: 'plugins' });
+  nav.goBack();
+  expect(navigation.getState().appsTab).toBe('pets');
+  nav.goBack();
+  expect(navigation.getState()).toMatchObject({ appsTab: 'install', toolTab: 'install' });
+  nav.goForward();
+  expect(navigation.getState().appsTab).toBe('pets');
+  nav.goForward();
+  expect(navigation.getState().appsTab).toBe('plugins');
+  nav.setAppsTab('usageIsland');
+  expect(navigation.getState().forwardHistory).toEqual([]);
+  expect(write).not.toHaveBeenCalled();
+  expect(fetch).not.toHaveBeenCalled();
+});
+
+it('reissues an explicit marketplace request while already on Plugins without duplicating history', () => {
+  const nav = navigation.getState();
+  nav.openAccountPlugins();
+  const first = navigation.getState().accountPluginsRequest!;
+  nav.consumeAccountPluginsRequest(first);
+  nav.openAccountPlugins();
+  expect(navigation.getState().accountPluginsRequest).toBe(first + 1);
+  expect(navigation.getState().backHistory).toEqual(['apps']);
+  nav.goBack();
+  expect(navigation.getState().appsTab).toBe('desktop');
+});

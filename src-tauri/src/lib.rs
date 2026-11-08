@@ -600,6 +600,9 @@ pub fn run() {
                 app.handle(),
                 statistics_settings.developer_mode_enabled(),
             );
+            services::smart_router::statistics::configure(
+                statistics_settings.statistics_recording_enabled(),
+            );
             // Clean up orphaned llama-server from a previous EchoBird session.
             kill_stale_llama_server();
             log::info!("[Setup] Cleaned up any leftover llama-server processes");

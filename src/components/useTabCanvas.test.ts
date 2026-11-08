@@ -15,6 +15,7 @@ it.each([false, true])(
     let selectedX = 1;
     let hidden = false;
     let reduced = false;
+    let hasSelection = true;
     const tasks = new Map<number, FrameRequestCallback>();
     let serial = 0;
     const observers: { callback: () => void; disconnect: ReturnType<typeof vi.fn> }[] = [];
@@ -39,6 +40,7 @@ it.each([false, true])(
       getBoundingClientRect: () => ({ left: selectedX, top: 1, width: 50, height: 30 }),
     };
     const style = {
+      borderTopWidth: '1px',
       borderTopColor: 'rgb(80,80,80)',
       borderTopLeftRadius: '6px',
       backgroundColor: 'rgb(100,60,50)',
@@ -54,7 +56,7 @@ it.each([false, true])(
       append: vi.fn(),
       addEventListener: vi.fn(),
       removeEventListener: vi.fn(),
-      querySelector: () => selected,
+      querySelector: () => (hasSelection ? selected : null),
       querySelectorAll: (selector: string) =>
         independent && selector.includes('aria-pressed')
           ? selectedX < 0
@@ -145,6 +147,23 @@ it.each([false, true])(
     width = 120;
     observers[0].callback();
     expect(tasks.size).toBe(1);
+    if (!independent) {
+      hasSelection = false;
+      observers[1].callback();
+      let last = vi.mocked(paintTabCanvas).mock.calls.slice(-1)[0];
+      expect(last[4]).toEqual([]);
+      expect(last[5].border).toBe('rgb(80,80,80)');
+      expect(tasks.size).toBe(0);
+      style.borderTopColor = 'rgb(90,90,90)';
+      observers[2].callback();
+      last = vi.mocked(paintTabCanvas).mock.calls.slice(-1)[0];
+      expect(last[4]).toEqual([]);
+      expect(last[5].border).toBe('rgb(90,90,90)');
+      expect(tasks.size).toBe(0);
+      hasSelection = true;
+      observers[1].callback();
+      expect(tasks.size).toBe(1);
+    }
     if (independent) {
       selectedX = -1;
       observers[1].callback();

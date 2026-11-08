@@ -179,7 +179,8 @@ beforeEach(() => {
   });
   navigation.setState({
     developerMode: true,
-    activePage: 'developer',
+    activePage: 'apps',
+    appsTab: 'usageIsland',
     developerTab: 'usageIsland',
   });
 });

@@ -13,7 +13,8 @@ beforeEach(() => {
     {
       ...nav.getInitialState(),
       developerMode: true,
-      activePage: 'developer',
+      activePage: 'apps',
+      appsTab: 'pets',
       developerTab: 'pets',
     },
     true
@@ -65,7 +66,7 @@ it('preserves existing preview balances and rejects invalid or background credit
   setItem.mockClear();
   for (const total of [-1, NaN, Infinity, Number.MAX_SAFE_INTEGER + 1])
     expect(pets.getState().creditRouter({ ledgerId: 'a', total })).toBe(false);
-  nav.setState({ activePage: 'apps' });
+  nav.getState().setAppsTab('desktop');
   expect(pets.getState().creditRouter({ ledgerId: 'a', total: 20 })).toBe(false);
   expect(setItem).not.toHaveBeenCalled();
 });

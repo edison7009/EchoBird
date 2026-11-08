@@ -28,7 +28,7 @@ beforeEach(() => {
   vi.stubGlobal('localStorage', { setItem: vi.fn() });
   pets.setState(pets.getInitialState(), true);
   pets.setState({ loaded: true });
-  nav.setState({ developerMode: true, activePage: 'developer', developerTab: 'pets' });
+  nav.setState({ developerMode: true, activePage: 'apps', appsTab: 'pets', developerTab: 'pets' });
 });
 afterEach(() => {
   act(() => view?.unmount());

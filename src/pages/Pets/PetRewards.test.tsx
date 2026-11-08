@@ -27,7 +27,7 @@ beforeEach(() => {
       nextClaimAt: Date.now() + REWARD_INTERVAL,
     },
   });
-  nav.setState({ developerMode: true, activePage: 'developer', developerTab: 'pets' });
+  nav.setState({ developerMode: true, activePage: 'apps', appsTab: 'pets', developerTab: 'pets' });
 });
 afterEach(() => {
   act(() => view?.unmount());

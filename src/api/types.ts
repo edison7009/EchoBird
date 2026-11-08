@@ -173,6 +173,7 @@ export interface ApplyModelInput {
 
 export interface AppSettings {
   developerMode?: boolean;
+  statisticsRecording?: boolean;
   aiNewsEnabled?: boolean;
   aiCareerEnabled?: boolean;
   localLlmEnabled?: boolean;

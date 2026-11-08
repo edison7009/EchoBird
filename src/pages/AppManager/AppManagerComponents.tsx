@@ -33,6 +33,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { CapabilityToggles, type CapabilityToggle } from './CapabilityToggles';
 import { ModelListCard } from '../../components/ModelListCard';
 import { ViewModeTabs } from '../../components/ViewModeTabs';
+import { ViewModeTabGroup } from '../../components/ViewModeTabGroup';
 import { PageActionButton } from '../../components/PageActionButton';
 import {
   DndContext,
@@ -79,37 +80,60 @@ import {
 export const AppManagerTitleActions: React.FC = () => {
   const { t } = useI18n();
   const { scanTools, isScanning, viewMode, setViewMode } = useAppManager();
+  const appsTab = useNavigationStore((state) => state.appsTab);
+  const setAppsTab = useNavigationStore((state) => state.setAppsTab);
 
   return (
     <div className="ml-auto flex-shrink-0 flex items-center gap-3">
-      {/* Custom scan paths — opens ~/.echobird/tool-paths.json so users can
-          register install locations EchoBird's bundled defaults missed.
-          Shares the refresh button's chrome and height. */}
-      <PageActionButton
-        icon={Settings}
-        onClick={() => {
-          void api.openToolPathsConfig().catch(() => {});
-        }}
-        aria-label={t('btn.editPaths')}
-      >
-        {t('btn.editPaths')}
-      </PageActionButton>
-      <ViewModeTabs
-        value={viewMode}
-        onChange={setViewMode}
-        options={[
-          { value: 'desktop', label: t('aiDesktop.desktopView') },
-          { value: 'install', label: t('aiDesktop.installView') },
-        ]}
-      />
-      <PageActionButton
-        icon={RefreshCw}
-        spinning={isScanning}
-        onClick={scanTools}
-        disabled={isScanning}
-      >
-        {t('btn.refresh')}
-      </PageActionButton>
+      <div className="flex items-center gap-2">
+        {(appsTab === 'desktop' || appsTab === 'install') && (
+          <>
+            <PageActionButton
+              icon={Settings}
+              onClick={() => {
+                void api.openToolPathsConfig().catch(() => {});
+              }}
+              aria-label={t('btn.editPaths')}
+            >
+              {t('btn.editPaths')}
+            </PageActionButton>
+            <PageActionButton
+              icon={RefreshCw}
+              spinning={isScanning}
+              onClick={scanTools}
+              disabled={isScanning}
+            >
+              {t('btn.refresh')}
+            </PageActionButton>
+          </>
+        )}
+        <ViewModeTabs
+          dividers
+          value={appsTab === 'desktop' || appsTab === 'install' ? viewMode : null}
+          onChange={setViewMode}
+          options={[
+            { value: 'desktop', label: t('aiDesktop.desktopView') },
+            { value: 'install', label: t('aiDesktop.installView') },
+          ]}
+        />
+      </div>
+      <div className="flex items-center gap-2">
+        {(['pets', 'plugins', 'usageIsland'] as const).map((tab) => (
+          <ViewModeTabGroup
+            key={tab}
+            className="view-mode-tabs h-9 overflow-hidden rounded-button border border-cyber-border"
+          >
+            <PageActionButton
+              aria-pressed={appsTab === tab}
+              className="view-mode-tab"
+              style={{ borderWidth: 0, height: '100%' }}
+              onClick={() => setAppsTab(tab)}
+            >
+              {t(`developer.${tab}`)}
+            </PageActionButton>
+          </ViewModeTabGroup>
+        ))}
+      </div>
     </div>
   );
 };
@@ -1656,7 +1680,9 @@ const RandomAppTip: React.FC = () => {
 export const PageAwareHint: React.FC = () => {
   const { t } = useI18n();
   const { viewMode, selectedTool } = useAppManager();
-  const activePage = useNavigationStore((s) => s.activePage);
+  const toolsActive = useNavigationStore(
+    (s) => s.activePage === 'apps' && (s.appsTab === 'desktop' || s.appsTab === 'install')
+  );
   const hintKeys: TKey[] =
     viewMode === 'install'
       ? ['aiDesktop.installHint']
@@ -1671,7 +1697,7 @@ export const PageAwareHint: React.FC = () => {
               : [];
   return (
     <div className="min-w-0 flex-1 text-[15px] font-medium text-cyber-accent">
-      {(hintKeys.length > 0 || activePage === 'apps') && (
+      {toolsActive && (
         <div className="line-clamp-2 break-words">
           {hintKeys.length ? hintKeys.map((hintKey) => t(hintKey)).join(' ') : <RandomAppTip />}
         </div>

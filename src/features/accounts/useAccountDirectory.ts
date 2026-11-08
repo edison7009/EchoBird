@@ -39,7 +39,7 @@ interface DirectoryOptions {
   activePage: ReturnType<typeof useNavigationStore.getState>['activePage'];
   isActive: boolean;
   developerMode: boolean;
-  developerTab: string;
+  appsTab: string;
   detectedTools: LocalTool[];
   installedPlugins: ReturnType<typeof usePluginsStore.getState>['installed'];
   pluginProviders: ReturnType<typeof pluginToolProviders>;
@@ -54,7 +54,7 @@ export function useAccountDirectory({
   activePage,
   isActive,
   developerMode,
-  developerTab,
+  appsTab,
   detectedTools,
   installedPlugins,
   pluginProviders,
@@ -71,8 +71,7 @@ export function useAccountDirectory({
   }, [selectedTool, activePage]);
   const usageIslandOpen = useUsageIslandVisible();
   const accountPage =
-    activePage === 'accounts' ||
-    (activePage === 'developer' && developerMode && developerTab === 'usageIsland');
+    activePage === 'accounts' || (activePage === 'apps' && appsTab === 'usageIsland');
   // The floating island needs saved accounts on every page, but tool pages keep their own target.
   const accountDataNeeded = accountPage || usageIslandOpen;
   const accountsEnabled =

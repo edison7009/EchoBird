@@ -926,7 +926,8 @@ describe('PageAwareHint', () => {
     expect(vi.getTimerCount()).toBe(1);
     act(() =>
       useNavigationStore.setState({
-        activePage: 'developer',
+        activePage: 'apps',
+        appsTab: 'plugins',
         developerMode: true,
         developerTab: 'plugins',
       })
@@ -937,7 +938,7 @@ describe('PageAwareHint', () => {
     expect(vi.getTimerCount()).toBe(0);
 
     vi.mocked(Math.random).mockReturnValue(0.99);
-    act(() => useNavigationStore.setState({ activePage: 'apps' }));
+    act(() => useNavigationStore.getState().setAppsTab('desktop'));
     expect(text()).toBe('hint.voiceSelection');
     expect(vi.getTimerCount()).toBe(1);
     act(() => renderer!.unmount());

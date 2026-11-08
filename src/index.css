@@ -394,6 +394,27 @@
   isolation: isolate;
 }
 
+.view-mode-dividers > .view-mode-tab {
+  position: relative;
+}
+
+/* Keep inactive segments distinct without changing their width or hit areas. */
+.view-mode-dividers > .view-mode-tab + .view-mode-tab::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 25%;
+  bottom: 25%;
+  width: 1px;
+  background-color: rgb(var(--border-rgb) / 0.65);
+  pointer-events: none;
+}
+
+.view-mode-dividers > .view-mode-tab[aria-pressed='true']::after,
+.view-mode-dividers > .view-mode-tab[aria-pressed='true'] + .view-mode-tab::after {
+  content: none;
+}
+
 .view-mode-tabs[data-sliding='true']::before {
   content: '';
   position: absolute;

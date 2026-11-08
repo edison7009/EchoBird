@@ -114,6 +114,10 @@ export function mountTabCanvas(
       if (frame) cancelFlowFrame(frame);
       frame = 0;
       canvas.getContext('2d')?.clearRect(0, 0, canvas.width, canvas.height);
+      // No selected tab still needs the segmented control's outline, without
+      // keeping an animation alive or painting a selected background.
+      readColors();
+      paintTabCanvas(canvas, width, height, devicePixelRatio || 1, [], palette, 0);
       return;
     }
     const rect = selected.getBoundingClientRect();
@@ -160,6 +164,10 @@ export function mountTabCanvas(
     attributeFilter: ['aria-pressed', 'aria-selected'],
   });
   const theme = new MutationObserver(() => {
+    if (!independent && !target) {
+      update();
+      return;
+    }
     readColors();
     requestPaint();
   });

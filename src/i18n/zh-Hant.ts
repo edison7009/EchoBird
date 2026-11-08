@@ -95,6 +95,8 @@ const zhHant: Partial<Translations> = {
   'usageIsland.style.column': '上下',
   'usageIsland.style.dial': '圓盤',
   'usageIsland.style.line': '線條',
+  'settings.routerStatistics': '記錄統計',
+  'settings.routerStatisticsError': '無法讀取或儲存統計記錄設定，請重試。',
   'settings.developerMode': '開發者預覽',
   'settings.developerModeHint':
     '開發者預覽主要用於開發與測試，部分功能未必適合日常使用。關閉後，將暫停開發者頁面的所有功能，減少資源開銷。預覽中的功能可能在後續版本中調整或移除，未來也會加入更多有趣的功能。',
@@ -889,7 +891,7 @@ const zhHant: Partial<Translations> = {
   'statistics.recent': '最近',
   'statistics.paused': '已暫停',
   'statistics.privacy':
-    '本機記錄呼叫、防護次數與 Token 用量，不儲存原文或存取憑證。明細保留 14 天，用於寵物養成的 TokenPet 由智慧接入的 Token 消耗轉換而來，累計帳本長期保留。「開發者預覽」可在「設定 → 一般」關閉，以停止記錄並減少資源開銷。',
+    '本機記錄呼叫、防護次數與 Token 用量，不儲存原文或存取憑證。明細保留 14 天，用於寵物養成的 TokenPet 由智慧接入的 Token 消耗轉換而來，累計帳本長期保留。',
   'statistics.cancelled': '已取消',
   'statistics.storageError': '儲存失敗，新增統計暫存在記憶體中',
   'statistics.capped': '已達到本機統計上限，部分來源未計入',

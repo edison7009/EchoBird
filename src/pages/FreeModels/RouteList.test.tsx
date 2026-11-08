@@ -233,7 +233,10 @@ describe('Smart Router list layout and candidate pause', () => {
     vi.stubGlobal('cancelAnimationFrame', vi.fn());
     vi.spyOn(console, 'error').mockImplementation(() => undefined);
     useAccountPrivacyStore.setState({ hidden: false });
-    useNavigationStore.setState({ activePage: 'freeModels' });
+    useNavigationStore.setState({
+      ...useNavigationStore.getInitialState(),
+      activePage: 'freeModels',
+    });
     vi.mocked(api.getSmartRouterConfig).mockImplementation(async () => config());
     vi.mocked(api.getSmartRouterCandidates).mockImplementation(async () =>
       models.filter((model) => order.includes(model.internalId))
@@ -484,7 +487,7 @@ describe('Smart Router list layout and candidate pause', () => {
     }
   );
 
-  it('places the only icon layout switch between privacy and help in the title bar', async () => {
+  it('groups the layout switch and privacy before title actions', async () => {
     await open();
     const group = renderer.root.find(
       (node) => node.type === 'div' && node.props['aria-label'] === 'freeModels.layout.label'
@@ -495,11 +498,12 @@ describe('Smart Router list layout and candidate pause', () => {
     expect(titleGroups).toHaveLength(1);
     expect(titleGroups[0]).toBe(group);
     const controls = renderer.root.findByType('header').findAllByType('button');
-    expect(controls.map((node) => node.props['aria-label'] ?? node.children[1])).toEqual([
+    expect(controls.map((node) => node.props['aria-label'] ?? node.children.join(''))).toEqual([
       'freeModels.hideAccountNames',
       'freeModels.layout.cards',
       'freeModels.layout.list',
       'freeModels.layout.terminal',
+      'developer.statistics',
       'freeModels.help',
     ]);
     expect(group.findAllByType('svg')).toHaveLength(3);
@@ -509,6 +513,51 @@ describe('Smart Router list layout and candidate pause', () => {
       false,
     ]);
     expect(JSON.stringify(renderer.toJSON())).not.toMatch(/freeModels\.(view|super)\./);
+  });
+
+  it('selects Statistics inside Smart Access and preserves back navigation', async () => {
+    await open();
+    const statisticsButtons = () =>
+      renderer.root
+        .findByType('header')
+        .findAllByType('button')
+        .filter((node) => node.children.includes('developer.statistics'));
+    expect(statisticsButtons()).toHaveLength(1);
+    const selected = [...context.selectedIds];
+    const saved = context.customModels;
+    act(() => useNavigationStore.getState().setDeveloperMode(true));
+    const buttons = renderer.root.findByType('header').findAllByType('button');
+    expect(buttons.slice(-2).map((node) => node.children.join(''))).toEqual([
+      'developer.statistics',
+      'freeModels.help',
+    ]);
+    expect(buttons.slice(-2).flatMap((node) => node.findAllByType('svg'))).toHaveLength(0);
+    act(() => statisticsButtons()[0].props.onClick());
+    expect(
+      renderer.root
+        .findByType('header')
+        .findAllByType('button')
+        .filter((node) => node.props['aria-pressed'] === true)
+        .map((node) => node.children.join(''))
+    ).toEqual(['developer.statistics']);
+    expect(useNavigationStore.getState()).toMatchObject({
+      activePage: 'freeModels',
+      smartAccessTab: 'statistics',
+      developerMode: true,
+      backHistory: ['freeModels'],
+    });
+    noModelWrites();
+    expect(api.setSmartRouterCandidateEnabled).not.toHaveBeenCalled();
+    expect(api.setSmartRouterCandidates).not.toHaveBeenCalled();
+    expect(routerProbe.testSmartRouterCandidate).not.toHaveBeenCalled();
+    expect(accountApi.getAccountProxyModels).not.toHaveBeenCalled();
+    act(() => useNavigationStore.getState().goBack());
+    expect(useNavigationStore.getState().activePage).toBe('freeModels');
+    expect([...context.selectedIds]).toEqual(selected);
+    expect(context.customModels).toBe(saved);
+    act(() => useNavigationStore.getState().setDeveloperMode(false));
+    expect(statisticsButtons()).toHaveLength(1);
+    noModelWrites();
   });
 
   it('defaults to cards and switches only presentation without fetching or changing routing', async () => {

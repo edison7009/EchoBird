@@ -3064,12 +3064,13 @@ it.each(communityProviderTools)(
       renderer.root.findByType(AccountSectionButton).props.onClick();
     });
     expect(useNavigationStore.getState()).toMatchObject({
-      developerMode: true,
-      activePage: 'developer',
+      developerMode: false,
+      activePage: 'apps',
+      appsTab: 'plugins',
       developerTab: 'plugins',
       accountPluginsRequest: expect.any(Number),
     });
-    expect(api.saveSettings).toHaveBeenCalledWith({ developerMode: true, locale: 'en' });
+    expect(api.saveSettings).not.toHaveBeenCalled();
     expect(api.openExternal).not.toHaveBeenCalled();
     for (const action of [
       api.startClaudeCodeLogin,

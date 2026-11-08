@@ -56,7 +56,7 @@ export const AppManagerProvider: React.FC<AppManagerProviderProps> = ({ children
   const installedPlugins = usePluginsStore((state) => state.installed);
   const loadPlugins = usePluginsStore((state) => state.load);
   const developerMode = useNavigationStore((state) => state.developerMode);
-  const developerTab = useNavigationStore((state) => state.developerTab);
+  const appsTab = useNavigationStore((state) => state.appsTab);
   const pluginProviders = useMemo(
     () => pluginToolProviders(installedPlugins, developerMode),
     [installedPlugins, developerMode]
@@ -82,7 +82,7 @@ export const AppManagerProvider: React.FC<AppManagerProviderProps> = ({ children
     if (developerMode) void loadPlugins();
   }, [developerMode, loadPlugins]);
   const { activePage, goToMother } = useNavigationStore();
-  const isActive = activePage === 'apps';
+  const isActive = activePage === 'apps' && (appsTab === 'desktop' || appsTab === 'install');
 
   // Wrapped navigation: build prefill and go to Mother Agent (model check happens there)
   const handleGoToMother = useCallback(
@@ -277,10 +277,10 @@ export const AppManagerProvider: React.FC<AppManagerProviderProps> = ({ children
   const [claudeDesktop1mMode, setClaudeDesktop1mModeRaw] = useState<boolean>(() =>
     readBool('echobird_claudedesktop_1m_mode', false)
   );
-  const [viewMode, setViewModeRaw] = useState<'desktop' | 'install'>('desktop');
+  const viewMode = useNavigationStore((state) => state.toolTab);
   const setViewMode = (mode: 'desktop' | 'install') => {
+    useNavigationStore.getState().setAppsTab(mode);
     if (mode === viewMode) return;
-    setViewModeRaw(mode);
     setSelectedTool(null);
     setApplyError(null);
   };
@@ -364,7 +364,7 @@ export const AppManagerProvider: React.FC<AppManagerProviderProps> = ({ children
     activePage,
     isActive,
     developerMode,
-    developerTab,
+    appsTab,
     detectedTools,
     installedPlugins,
     pluginProviders,

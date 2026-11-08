@@ -11,6 +11,7 @@ import { emptyStatisticsCounts } from './routerStatisticsData';
 
 const mocks = vi.hoisted(() => ({ snapshot: vi.fn(), catalog: vi.fn(), visible: true }));
 vi.mock('../api/routerStatistics', () => ({
+  ROUTER_STATISTICS_CHANGED: 'router-statistics-settings-changed',
   getSmartRouterStatistics: (...args: unknown[]) => mocks.snapshot(...args),
   getSmartRouterStatisticsCatalog: () => mocks.catalog(),
 }));
@@ -42,13 +43,19 @@ async function mount() {
 }
 async function activate(tab: 'statistics' | 'plugins' = 'statistics') {
   await act(async () =>
-    useNavigationStore.setState({ developerMode: true, activePage: 'developer', developerTab: tab })
+    useNavigationStore.setState({
+      developerMode: true,
+      activePage: tab === 'statistics' ? 'freeModels' : 'apps',
+      smartAccessTab: 'statistics',
+      appsTab: 'plugins',
+      developerTab: tab,
+    })
   );
 }
 beforeEach(() => {
   vi.resetAllMocks();
   vi.stubGlobal('window', globalThis);
-  vi.stubGlobal('document', { addEventListener: vi.fn(), removeEventListener: vi.fn() });
+  vi.stubGlobal('document', new EventTarget());
   mocks.visible = true;
   mocks.snapshot.mockResolvedValue(empty);
   mocks.catalog.mockResolvedValue({ groups: [], sources: [], capped: false });
@@ -185,7 +192,11 @@ it('ignores old reads when disabling and re-enabling are batched before a render
   await act(async () => {
     useNavigationStore.getState().setDeveloperMode(false);
     useNavigationStore.getState().setDeveloperMode(true);
-    useNavigationStore.setState({ activePage: 'developer', developerTab: 'statistics' });
+    useNavigationStore.setState({
+      activePage: 'freeModels',
+      smartAccessTab: 'statistics',
+      developerTab: 'statistics',
+    });
   });
   await act(async () => finish({ ...empty, since: 1, totals: { ...empty.totals, calls: 999 } }));
   expect(mocks.snapshot).toHaveBeenCalledTimes(2);
@@ -440,4 +451,25 @@ it('selects account and API sources from the same list without extra reads and h
   expect(
     view.root.findByProps({ className: 'rs-detail-identity' }).findByType('strong').children
   ).toEqual(['******']);
+});
+
+it('refreshes the visible snapshot after an explicit recording change and stays quiet on another tab', async () => {
+  vi.useFakeTimers();
+  await activate();
+  await mount();
+  expect(mocks.snapshot).toHaveBeenCalledOnce();
+  mocks.snapshot.mockResolvedValue({ ...empty, recording: true });
+  await act(async () => {
+    document.dispatchEvent(new Event('router-statistics-settings-changed'));
+  });
+  expect(mocks.snapshot).toHaveBeenCalledTimes(2);
+  await act(async () => {
+    vi.advanceTimersByTime(10_000);
+  });
+  expect(mocks.snapshot).toHaveBeenCalledTimes(3);
+  await activate('plugins');
+  await act(async () => {
+    document.dispatchEvent(new Event('router-statistics-settings-changed'));
+  });
+  expect(mocks.snapshot).toHaveBeenCalledTimes(3);
 });

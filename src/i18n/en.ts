@@ -95,6 +95,8 @@ const en: Translations = {
   'usageIsland.style.column': 'Vertical',
   'usageIsland.style.dial': 'Dial',
   'usageIsland.style.line': 'Lines',
+  'settings.routerStatistics': 'Record statistics',
+  'settings.routerStatisticsError': 'Unable to load or save statistics recording settings.',
   'settings.developerMode': 'Developer preview',
   'settings.developerModeHint':
     'Developer preview is primarily for development and testing. Some features may not suit everyday use. Turning it off pauses all features on the developer page and reduces resource overhead. Preview features may change or be removed in future versions, and more fun features will be added over time.',
@@ -952,7 +954,7 @@ const en: Translations = {
   'statistics.recent': 'Recent',
   'statistics.paused': 'Paused',
   'statistics.privacy':
-    'Local call/protection counts and reported token usage; no content or credentials stored. Details are retained for 14 days. TokenPet for pet progression is earned from Smart Access token usage, and its cumulative ledger is retained long term. Disable Developer preview in Settings → GENERAL to stop recording and reduce resource use.',
+    'Local call/protection counts and reported token usage; no content or credentials stored. Details are retained for 14 days. TokenPet for pet progression is earned from Smart Access token usage, and its cumulative ledger is retained long term.',
   'statistics.cancelled': 'Cancelled',
   'statistics.storageError': 'New counts could not be saved; they remain in memory.',
   'statistics.capped': 'The local statistics limit was reached; some sources were not counted.',

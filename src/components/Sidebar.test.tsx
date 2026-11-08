@@ -144,7 +144,7 @@ describe('Sidebar', () => {
     expect(assistant().findAllByType(RefreshCw)).toHaveLength(0);
     expect(assistant().findByType(MessagesSquare)).toBeDefined();
   });
-  it('shows the developer entry only when enabled and removes the separate projects entry', () => {
+  it('keeps the retired developer entry hidden regardless of the legacy runtime gate', () => {
     act(() => {
       renderer = create(<Sidebar {...baseProps} smartRouterGroups={[]} />);
     });
@@ -152,7 +152,7 @@ describe('Sidebar', () => {
       renderer.root.findAllByType('button').map((node) => node.props['aria-label']);
     expect(labels()).not.toContain('nav.developer');
     act(() => useNavigationStore.getState().setDeveloperMode(true));
-    expect(JSON.stringify(renderer.toJSON())).toContain('nav.developer');
+    expect(JSON.stringify(renderer.toJSON())).not.toContain('nav.developer');
     act(() => useNavigationStore.getState().setDeveloperMode(false));
     expect(JSON.stringify(renderer.toJSON())).not.toContain('nav.developer');
   });

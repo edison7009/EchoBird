@@ -22,7 +22,8 @@ vi.mock('../../api/tauri', () => ({ getSettings: mocks.get, saveSettings: mocks.
 vi.mock('../../hooks/useI18n', () => ({ useI18n: () => ({ t: (s: string) => s }) }));
 vi.mock('../../hooks/useDocumentVisible', () => ({ useDocumentVisible: () => mocks.visible }));
 vi.mock('../../stores/navigationStore', () => ({
-  useNavigationStore: (read: (s: object) => unknown) => read({ activePage: 'freeModels' }),
+  useNavigationStore: (read: (s: object) => unknown) =>
+    read({ activePage: 'freeModels', smartAccessTab: 'configuration' }),
 }));
 vi.mock('./provider', () => ({
   useFreeModels: () => ({

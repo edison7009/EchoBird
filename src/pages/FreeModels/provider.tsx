@@ -124,7 +124,9 @@ export function useFreeModels() {
 export function FreeModelsProvider({ children }: { children: ReactNode }) {
   const { t } = useI18n();
   const { showToast } = useToast();
-  const activePage = useNavigationStore((state) => state.activePage);
+  const configurationActive = useNavigationStore(
+    (state) => state.activePage === 'freeModels' && state.smartAccessTab === 'configuration'
+  );
   const [activeDragId, setActiveDragId] = useState<string | null>(null);
   const [layout, setLayoutState] = useState<'cards' | 'list' | 'terminal'>(() => {
     try {
@@ -210,7 +212,7 @@ export function FreeModelsProvider({ children }: { children: ReactNode }) {
   );
 
   useEffect(() => {
-    if (activePage !== 'freeModels') return;
+    if (!configurationActive) return;
     const providers: AccountProvider[] = JSON.parse(accountProvidersKey);
     if (providers.length === 0) return;
     let ignore = false;
@@ -229,7 +231,7 @@ export function FreeModelsProvider({ children }: { children: ReactNode }) {
     return () => {
       ignore = true;
     };
-  }, [activePage, accountProvidersKey]);
+  }, [configurationActive, accountProvidersKey]);
 
   useEffect(() => {
     let cancelled = false;
@@ -373,13 +375,13 @@ export function FreeModelsProvider({ children }: { children: ReactNode }) {
   );
 
   useEffect(() => {
-    if (routerLoadedRef.current && activePage !== 'freeModels') return;
+    if (routerLoadedRef.current && !configurationActive) return;
     // Keep reads and their state updates in the mutation queue, so a late
     // page-entry response cannot overwrite a newer addition or priority order.
     const load = routerMutationRef.current.catch(() => undefined).then(() => loadRouter());
     routerMutationRef.current = load;
     void load.catch((error) => console.error('Load smart router config failed:', error));
-  }, [activePage, loadRouter]);
+  }, [configurationActive, loadRouter]);
 
   const setRouterEnabled = useCallback(
     async (enabled: boolean) => {

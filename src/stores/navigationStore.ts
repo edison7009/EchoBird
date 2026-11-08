@@ -7,10 +7,26 @@ import { create } from 'zustand';
 import type { PageType } from '../components';
 import { optionalPagesFromSettings, type OptionalPages } from './optionalPages';
 
+export type AppsTab = 'desktop' | 'install' | 'pets' | 'plugins' | 'usageIsland';
+export type SmartAccessTab = 'configuration' | 'statistics';
+interface Location {
+  page: PageType;
+  appsTab: AppsTab;
+  smartAccessTab: SmartAccessTab;
+  toolTab: 'desktop' | 'install';
+}
+
 export type DeveloperTab = 'pets' | 'plugins' | 'statistics' | 'usageIsland';
 
 interface NavigationState {
   activePage: PageType;
+  appsTab: AppsTab;
+  smartAccessTab: SmartAccessTab;
+  toolTab: 'desktop' | 'install';
+  backLocations: Location[];
+  forwardLocations: Location[];
+  setAppsTab: (tab: AppsTab) => void;
+  setSmartAccessTab: (tab: SmartAccessTab) => void;
   developerMode: boolean;
   developerModeReady: boolean;
   developerGeneration: number;
@@ -52,20 +68,71 @@ function pageEnabled(state: NavigationState, page: PageType): boolean {
   return true;
 }
 
-function visitPage(state: NavigationState, page: PageType): Partial<NavigationState> {
-  if (!pageEnabled(state, page)) return state;
-  if (state.activePage === page) return state;
+function location(state: NavigationState): Location {
   return {
-    activePage: page,
+    page: state.activePage,
+    appsTab: state.appsTab,
+    smartAccessTab: state.smartAccessTab,
+    toolTab: state.toolTab,
+  };
+}
+function restoreTabs(entry: Location) {
+  return { appsTab: entry.appsTab, smartAccessTab: entry.smartAccessTab, toolTab: entry.toolTab };
+}
+function visitLocation(state: NavigationState, next: Location): Partial<NavigationState> {
+  if (!pageEnabled(state, next.page)) return state;
+  if (
+    state.activePage === next.page &&
+    state.appsTab === next.appsTab &&
+    state.smartAccessTab === next.smartAccessTab &&
+    state.toolTab === next.toolTab
+  )
+    return state;
+  return {
+    activePage: next.page,
+    appsTab: next.appsTab,
+    smartAccessTab: next.smartAccessTab,
+    toolTab: next.toolTab,
     backHistory: [...state.backHistory, state.activePage],
     forwardHistory: [],
+    backLocations: [...state.backLocations, location(state)],
+    forwardLocations: [],
     motherPrefill: undefined,
     motherPrefillCursor: undefined,
   };
 }
+function visitPage(state: NavigationState, page: PageType): Partial<NavigationState> {
+  if (page === 'developer') {
+    const tab = state.developerTab;
+    return visitLocation(state, {
+      ...location(state),
+      page: tab === 'statistics' ? 'freeModels' : 'apps',
+      ...(tab === 'statistics' ? { smartAccessTab: 'statistics' as const } : { appsTab: tab }),
+    });
+  }
+  return visitLocation(state, { ...location(state), page });
+}
 
 export const useNavigationStore = create<NavigationState>((set) => ({
   activePage: 'apps',
+  appsTab: 'desktop',
+  smartAccessTab: 'configuration',
+  toolTab: 'desktop',
+  backLocations: [],
+  forwardLocations: [],
+  setAppsTab: (appsTab) =>
+    set((state) =>
+      visitLocation(state, {
+        ...location(state),
+        page: 'apps',
+        appsTab,
+        toolTab: appsTab === 'desktop' || appsTab === 'install' ? appsTab : state.toolTab,
+      })
+    ),
+  setSmartAccessTab: (smartAccessTab) =>
+    set((state) =>
+      visitLocation(state, { ...location(state), page: 'freeModels', smartAccessTab })
+    ),
   developerMode: false,
   developerModeReady: false,
   developerGeneration: 0,
@@ -99,6 +166,8 @@ export const useNavigationStore = create<NavigationState>((set) => ({
         optionalPages: next.optionalPages,
         optionalPagesReady: true,
         optionalPagesRevision: state.optionalPagesRevision + 1,
+        backLocations: state.backLocations.filter((entry) => pageEnabled(next, entry.page)),
+        forwardLocations: state.forwardLocations.filter((entry) => pageEnabled(next, entry.page)),
         activePage: pageEnabled(next, state.activePage) ? state.activePage : 'apps',
         backHistory: state.backHistory.filter((page) => pageEnabled(next, page)),
         forwardHistory: state.forwardHistory.filter((page) => pageEnabled(next, page)),
@@ -115,19 +184,32 @@ export const useNavigationStore = create<NavigationState>((set) => ({
         forwardHistory: state.forwardHistory.filter((page) => page !== 'developer'),
       }),
     })),
-  setDeveloperTab: (developerTab) => set({ developerTab }),
+  setDeveloperTab: (developerTab) =>
+    set((state) => {
+      const destination = visitLocation(state, {
+        ...location(state),
+        page: developerTab === 'statistics' ? 'freeModels' : 'apps',
+        ...(developerTab === 'statistics'
+          ? { smartAccessTab: 'statistics' as const }
+          : { appsTab: developerTab }),
+      });
+      return { ...(destination === state ? {} : destination), developerTab };
+    }),
   openAccountPlugins: () =>
     set((state) => {
       const next = {
         ...state,
-        developerMode: true,
-        developerModeReady: true,
-        developerGeneration: state.developerGeneration + Number(!state.developerMode),
         developerTab: 'plugins' as const,
+        appsTab: 'plugins' as const,
         accountPluginsRequestId: state.accountPluginsRequestId + 1,
         accountPluginsRequest: state.accountPluginsRequestId + 1,
       };
-      return { ...next, ...visitPage(next, 'developer') };
+      const destination = visitLocation(state, {
+        ...location(state),
+        page: 'apps',
+        appsTab: 'plugins',
+      });
+      return { ...next, ...(destination === state ? {} : destination) };
     }),
   consumeAccountPluginsRequest: (requestId) =>
     set((state) =>
@@ -138,7 +220,10 @@ export const useNavigationStore = create<NavigationState>((set) => ({
       const page = state.backHistory[state.backHistory.length - 1];
       if (!page) return state;
       return {
+        ...restoreTabs(state.backLocations[state.backLocations.length - 1] ?? location(state)),
         activePage: page,
+        backLocations: state.backLocations.slice(0, -1),
+        forwardLocations: [...state.forwardLocations, location(state)],
         backHistory: state.backHistory.slice(0, -1),
         forwardHistory: [...state.forwardHistory, state.activePage],
         motherPrefill: undefined,
@@ -150,7 +235,12 @@ export const useNavigationStore = create<NavigationState>((set) => ({
       const page = state.forwardHistory[state.forwardHistory.length - 1];
       if (!page) return state;
       return {
+        ...restoreTabs(
+          state.forwardLocations[state.forwardLocations.length - 1] ?? location(state)
+        ),
         activePage: page,
+        forwardLocations: state.forwardLocations.slice(0, -1),
+        backLocations: [...state.backLocations, location(state)],
         backHistory: [...state.backHistory, state.activePage],
         forwardHistory: state.forwardHistory.slice(0, -1),
         motherPrefill: undefined,

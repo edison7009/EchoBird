@@ -94,6 +94,8 @@ const zhHans: Partial<Translations> = {
   'usageIsland.style.column': '上下',
   'usageIsland.style.dial': '圆盘',
   'usageIsland.style.line': '线条',
+  'settings.routerStatistics': '记录统计',
+  'settings.routerStatisticsError': '无法读取或保存统计记录设置，请重试。',
   'settings.developerMode': '开发者预览',
   'settings.developerModeHint':
     '开发者预览主要用于开发与测试，部分功能未必适合日常使用。关闭后，将暂停开发者页面的所有功能，减少资源开销。预览中的功能可能在后续版本中调整或移除，未来也会加入更多有趣的功能。',
@@ -890,7 +892,7 @@ const zhHans: Partial<Translations> = {
   'statistics.recent': '最近',
   'statistics.paused': '已暂停',
   'statistics.privacy':
-    '本机记录调用、保护次数与 Token 用量，不保存正文或访问凭据。明细保留 14 天，宠物养成用的 TokenPet 由智能接入 Token 消耗转换累计账本长期保留。「开发者预览」可在「设置 → 通用」关闭，以停止记录并减少资源开销。',
+    '本机记录调用、保护次数与 Token 用量，不保存正文或访问凭据。明细保留 14 天，宠物养成用的 TokenPet 由智能接入 Token 消耗转换累计账本长期保留。',
   'statistics.cancelled': '已取消',
   'statistics.storageError': '保存失败，新增统计暂存在内存中',
   'statistics.capped': '已达到本机统计上限，部分来源未计入',

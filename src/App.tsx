@@ -1,3 +1,5 @@
+import { useUsageIslandStore } from './stores/usageIslandStore';
+import { initializeMergedPageFeatures } from './stores/mergedPagesMigration';
 // App.tsx — Tauri application shell (lightweight router)
 // Layout matches the original v1.1.0 structure exactly.
 // Pages extracted to src/pages/ with Provider pattern.
@@ -28,7 +30,6 @@ import { useAutoClaimRewards } from './hooks/useAutoClaimRewards';
 import { useToolsStore } from './stores/toolsStore';
 import { useNavigationStore } from './stores/navigationStore';
 import { optionalPagesFromSettings } from './stores/optionalPages';
-import { DeveloperTitleActions } from './pages/Developer';
 const PetsMain = lazy(() =>
   import('./pages/Pets/Pets').then((module) => ({ default: module.PetsMain }))
 );
@@ -228,9 +229,11 @@ function AppContent() {
   const setActivePage = useNavigationStore((s) => s.setActivePage);
   const setUpdateAvailable = useNavigationStore((s) => s.setUpdateAvailable);
   const scanTools = useToolsStore((s) => s.scanTools);
-  const developerMode = useNavigationStore((state) => state.developerMode);
-  const developerTab = useNavigationStore((state) => state.developerTab);
-  const setDeveloperMode = useNavigationStore((state) => state.setDeveloperMode);
+  const featuresReady = useNavigationStore(
+    (state) => state.developerModeReady && state.developerMode
+  );
+  const appsTab = useNavigationStore((state) => state.appsTab);
+  const smartAccessTab = useNavigationStore((state) => state.smartAccessTab);
   const optionalPages = useNavigationStore((state) => state.optionalPages);
   const optionalPagesReady = useNavigationStore((state) => state.optionalPagesReady);
   const enabledPages = optionalPagesReady
@@ -239,19 +242,23 @@ function AppContent() {
 
   useEffect(() => {
     let active = true;
+    let stopMigration: (() => void) | undefined;
+    const islandAtRead = useUsageIslandStore.getState();
     void getSettings()
       .then((settings) => {
         if (!active) return;
-        if (!useNavigationStore.getState().developerModeReady)
-          setDeveloperMode(settings.developerMode !== false);
+        stopMigration = initializeMergedPageFeatures(settings, islandAtRead);
         if (!useNavigationStore.getState().optionalPagesReady)
           useNavigationStore.getState().setOptionalPages(optionalPagesFromSettings(settings));
       })
-      .catch(() => {});
+      .catch(() => {
+        if (active) stopMigration = initializeMergedPageFeatures(null, islandAtRead);
+      });
     return () => {
       active = false;
+      stopMigration?.();
     };
-  }, [setDeveloperMode]);
+  }, []);
 
   // ── Post-mount work — the window is already shown (main.tsx fires
   // appReady after first paint). Scan installed tools and check for app
@@ -359,6 +366,13 @@ function AppContent() {
   }, [activePage]);
 
   const is = (p: PageType) => activePage === p;
+  const appsToolsActive = is('apps') && (appsTab === 'desktop' || appsTab === 'install');
+  const routerActive = is('freeModels') && smartAccessTab === 'configuration';
+  const feature = (tab: 'pets' | 'plugins' | 'usageIsland' | 'statistics') =>
+    featuresReady &&
+    (tab === 'statistics'
+      ? is('freeModels') && smartAccessTab === 'statistics'
+      : is('apps') && appsTab === tab);
 
   return (
     <ToastProvider>
@@ -390,7 +404,7 @@ function AppContent() {
 
                           {/* Align 2.5rem page/panel headers with the 1.75rem sidebar brand row. */}
                           <div
-                            className={`min-w-0 flex-1 flex flex-col -mt-1.5 ${is('apps') ? 'overflow-visible' : 'overflow-hidden'}`}
+                            className={`min-w-0 flex-1 flex flex-col -mt-1.5 ${appsToolsActive ? 'overflow-visible' : 'overflow-hidden'}`}
                           >
                             {/* Main + Right panel row */}
                             <RouterStatisticsProvider>
@@ -406,7 +420,6 @@ function AppContent() {
                                           {is('freeModels') && t('page.freeModels')}
 
                                           {is('apps') && t('page.appManager')}
-                                          {is('developer') && t('page.developer')}
                                           {is('aiCareer') && t('page.aiCareer')}
                                           {is('voice') && t('voice.input')}
                                           {is('aiNews') && t('page.aiNews')}
@@ -420,7 +433,6 @@ function AppContent() {
                                           {is('freeModels') &&
                                             (locale.startsWith('zh') ? 'ACCESS' : 'ROUTER')}
                                           {is('apps') && 'DESKTOP'}
-                                          {is('developer') && 'DEVELOPER'}
                                           {is('aiCareer') && 'CAREER'}
                                           {is('voice') && 'VOICE'}
                                           {is('aiNews') && 'NEWS'}
@@ -429,7 +441,6 @@ function AppContent() {
                                           {is('feedback') && 'SUPPORT'}
                                         </div>
                                       </div>
-                                      {is('developer') && <DeveloperTitleActions />}
                                       {/* Title actions — always mounted but hidden */}
                                       <span className={page(is('models'))}>
                                         <OnFirstVisit active={is('models')}>
@@ -485,83 +496,37 @@ function AppContent() {
                                       </OnFirstVisit>
                                     </div>
                                     <div
-                                      className={
-                                        is('freeModels') ? 'flex-1 overflow-y-auto' : 'hidden'
-                                      }
+                                      className={routerActive ? 'flex-1 overflow-y-auto' : 'hidden'}
                                     >
-                                      <OnFirstVisit active={is('freeModels')}>
+                                      <OnFirstVisit active={routerActive}>
                                         <FreeModelsMain />
                                       </OnFirstVisit>
                                     </div>
 
-                                    <div className={pageBlock(is('apps'))}>
-                                      <OnFirstVisit active={is('apps')}>
+                                    <div className={pageBlock(appsToolsActive)}>
+                                      <OnFirstVisit active={appsToolsActive}>
                                         <AppManagerMain />
                                       </OnFirstVisit>
                                     </div>
-                                    {developerMode &&
-                                      is('developer') &&
-                                      developerTab === 'pets' && (
-                                        <div className={pageBlock(true)}>
-                                          <OnFirstVisit active>
-                                            <PetsMain />
-                                          </OnFirstVisit>
-                                        </div>
-                                      )}
-                                    <div
-                                      className={pageBlock(
-                                        developerMode &&
-                                          is('developer') &&
-                                          developerTab === 'statistics'
-                                      )}
-                                    >
-                                      <OnFirstVisit
-                                        active={
-                                          developerMode &&
-                                          is('developer') &&
-                                          developerTab === 'statistics'
-                                        }
-                                      >
+                                    {feature('pets') && (
+                                      <div className={pageBlock(true)}>
+                                        <OnFirstVisit active>
+                                          <PetsMain />
+                                        </OnFirstVisit>
+                                      </div>
+                                    )}
+                                    <div className={pageBlock(feature('statistics'))}>
+                                      <OnFirstVisit active={feature('statistics')}>
                                         <RouterStatisticsMain />
                                       </OnFirstVisit>
                                     </div>
-                                    <div
-                                      className={pageBlock(
-                                        developerMode &&
-                                          is('developer') &&
-                                          developerTab === 'plugins'
-                                      )}
-                                    >
-                                      <OnFirstVisit
-                                        active={
-                                          developerMode &&
-                                          is('developer') &&
-                                          developerTab === 'plugins'
-                                        }
-                                      >
-                                        <PluginHubMain
-                                          active={
-                                            developerMode &&
-                                            is('developer') &&
-                                            developerTab === 'plugins'
-                                          }
-                                        />
+                                    <div className={pageBlock(feature('plugins'))}>
+                                      <OnFirstVisit active={feature('plugins')}>
+                                        <PluginHubMain active={feature('plugins')} />
                                       </OnFirstVisit>
                                     </div>
-                                    <div
-                                      className={pageBlock(
-                                        developerMode &&
-                                          is('developer') &&
-                                          developerTab === 'usageIsland'
-                                      )}
-                                    >
-                                      <OnFirstVisit
-                                        active={
-                                          developerMode &&
-                                          is('developer') &&
-                                          developerTab === 'usageIsland'
-                                        }
-                                      >
+                                    <div className={pageBlock(feature('usageIsland'))}>
+                                      <OnFirstVisit active={feature('usageIsland')}>
                                         <UsageIslandMain />
                                       </OnFirstVisit>
                                     </div>
@@ -608,59 +573,25 @@ function AppContent() {
                                 </main>
 
                                 <aside className="flex flex-col">
-                                  {developerMode && is('developer') && developerTab === 'pets' && (
+                                  {feature('pets') && (
                                     <div className={page(true)}>
                                       <OnFirstVisit active>
                                         <PetsPanel />
                                       </OnFirstVisit>
                                     </div>
                                   )}
-                                  <div
-                                    className={page(
-                                      developerMode &&
-                                        is('developer') &&
-                                        developerTab === 'statistics'
-                                    )}
-                                  >
-                                    <OnFirstVisit
-                                      active={
-                                        developerMode &&
-                                        is('developer') &&
-                                        developerTab === 'statistics'
-                                      }
-                                    >
+                                  <div className={page(feature('statistics'))}>
+                                    <OnFirstVisit active={feature('statistics')}>
                                       <RouterStatisticsPanel />
                                     </OnFirstVisit>
                                   </div>
-                                  <div
-                                    className={page(
-                                      developerMode && is('developer') && developerTab === 'plugins'
-                                    )}
-                                  >
-                                    <OnFirstVisit
-                                      active={
-                                        developerMode &&
-                                        is('developer') &&
-                                        developerTab === 'plugins'
-                                      }
-                                    >
+                                  <div className={page(feature('plugins'))}>
+                                    <OnFirstVisit active={feature('plugins')}>
                                       <PluginHubPanel />
                                     </OnFirstVisit>
                                   </div>
-                                  <div
-                                    className={page(
-                                      developerMode &&
-                                        is('developer') &&
-                                        developerTab === 'usageIsland'
-                                    )}
-                                  >
-                                    <OnFirstVisit
-                                      active={
-                                        developerMode &&
-                                        is('developer') &&
-                                        developerTab === 'usageIsland'
-                                      }
-                                    >
+                                  <div className={page(feature('usageIsland'))}>
+                                    <OnFirstVisit active={feature('usageIsland')}>
                                       <UsageIslandPanel />
                                     </OnFirstVisit>
                                   </div>
@@ -679,14 +610,14 @@ function AppContent() {
                                       <AccountCenterPanel />
                                     </OnFirstVisit>
                                   </div>
-                                  <div className={page(is('freeModels'))}>
-                                    <OnFirstVisit active={is('freeModels')}>
+                                  <div className={page(routerActive)}>
+                                    <OnFirstVisit active={routerActive}>
                                       <FreeModelsPanel />
                                     </OnFirstVisit>
                                   </div>
 
-                                  <div className={page(is('apps'))}>
-                                    <OnFirstVisit active={is('apps')}>
+                                  <div className={page(appsToolsActive)}>
+                                    <OnFirstVisit active={appsToolsActive}>
                                       <AppManagerPanel />
                                     </OnFirstVisit>
                                   </div>
@@ -722,8 +653,8 @@ function AppContent() {
                             </RouterStatisticsProvider>
 
                             {/* Bottom bars — always mounted, CSS hidden */}
-                            <div className={page(is('apps'))}>
-                              <OnFirstVisit active={is('apps')}>
+                            <div className={page(appsToolsActive)}>
+                              <OnFirstVisit active={appsToolsActive}>
                                 <AppManagerBottom />
                               </OnFirstVisit>
                             </div>
@@ -745,7 +676,7 @@ function AppContent() {
 
                       {/* Modals */}
                       <ModelDialogs />
-                      <OnFirstVisit active={is('apps')}>
+                      <OnFirstVisit active={appsToolsActive}>
                         <AppManagerErrorModal />
                       </OnFirstVisit>
                     </VoiceInputProvider>

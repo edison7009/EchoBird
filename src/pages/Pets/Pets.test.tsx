@@ -58,7 +58,8 @@ beforeEach(() => {
     {
       ...nav.getInitialState(),
       developerMode: true,
-      activePage: 'developer',
+      activePage: 'apps',
+      appsTab: 'pets',
       developerTab: 'pets',
     },
     true

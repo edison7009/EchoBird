@@ -48,11 +48,13 @@ export function AccountProxyPanel({
   const context = useModelNexus();
   const available = useAccountProviderFilter();
   const { t } = useI18n();
-  const activePage = useNavigationStore((state) => state.activePage);
+  const configurationActive = useNavigationStore(
+    (state) => state.activePage === 'freeModels' && state.smartAccessTab === 'configuration'
+  );
   const [accountCounts, setAccountCounts] = useState<Partial<Record<AccountProvider, number>>>({});
 
   useEffect(() => {
-    if (voice || activePage !== 'freeModels') return;
+    if (voice || !configurationActive) return;
     let ignore = false;
     void Promise.resolve().then(async () => {
       if (ignore) return;
@@ -73,7 +75,7 @@ export function AccountProxyPanel({
     return () => {
       ignore = true;
     };
-  }, [activePage, voice, available]);
+  }, [configurationActive, voice, available]);
 
   const providers = (voice ? accountSpeechProviders : accountProxySources()).filter(available);
   const counts: Partial<Record<AccountProvider, number>> = voice

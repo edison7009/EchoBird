@@ -86,7 +86,6 @@ pub fn command_allowed(command: &str) -> bool {
 
 pub fn configure(app: &tauri::AppHandle, enabled: bool) {
     gate().configure(enabled);
-    super::smart_router::statistics::configure(enabled);
     if !enabled {
         app.state::<super::plugin_runtime::PluginRuntime>()
             .pause(app);

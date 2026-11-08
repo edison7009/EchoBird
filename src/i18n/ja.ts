@@ -96,6 +96,8 @@ const ja: Partial<Translations> = {
   'usageIsland.style.column': '縦',
   'usageIsland.style.dial': 'ダイヤル',
   'usageIsland.style.line': 'ライン',
+  'settings.routerStatistics': '統計を記録',
+  'settings.routerStatisticsError': '統計の記録設定を読み込み、または保存できません。',
   'settings.developerMode': '開発者プレビュー',
   'settings.developerModeHint':
     '開発者プレビューは主に開発・テスト向けで、一部の機能は日常利用に適さない場合があります。オフにすると開発者ページのすべての機能が一時停止し、リソース消費を抑えられます。プレビュー機能は今後のバージョンで変更・削除される場合があり、より楽しい機能も順次追加されます。',
@@ -932,7 +934,7 @@ const ja: Partial<Translations> = {
   'statistics.recent': '最近',
   'statistics.paused': '一時停止',
   'statistics.privacy':
-    '呼び出し・保護回数と報告されたToken使用量をローカルに記録し、本文や認証情報は保存しません。明細は14日間保存します。ペット育成用のTokenPetはスマートアクセスのToken消費量から換算され、累計台帳は長期保存します。「設定 → 一般」で「開発者プレビュー」をオフにすると記録を停止し、リソース消費を抑えられます。',
+    '呼び出し・保護回数と報告されたToken使用量をローカルに記録し、本文や認証情報は保存しません。明細は14日間保存します。ペット育成用のTokenPetはスマートアクセスのToken消費量から換算され、累計台帳は長期保存します。「設定 → 一般」で',
   'statistics.cancelled': 'キャンセル',
   'statistics.storageError': '保存できませんでした。新しい集計はメモリに保持されています',
   'statistics.capped': 'ローカル集計の上限に達したため、一部の接続先は集計されていません',

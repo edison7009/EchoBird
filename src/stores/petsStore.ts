@@ -22,7 +22,7 @@ import {
 const STORAGE_KEY = 'echobird-pet-preview-v2';
 const active = () => {
   const nav = useNavigationStore.getState();
-  return nav.developerMode && nav.activePage === 'developer' && nav.developerTab === 'pets';
+  return nav.developerMode && nav.activePage === 'apps' && nav.appsTab === 'pets';
 };
 const initialPets = (): PreviewPet[] => [{ id: 1, kind: 'mecha', level: 0, color: 0 }];
 function validCredits(value: RouterTokenCredits | null | undefined): value is RouterTokenCredits {

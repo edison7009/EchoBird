@@ -24,7 +24,9 @@ function useStatisticsState() {
   const generation = useNavigationStore((state) => state.developerGeneration);
   const active = useNavigationStore(
     (state) =>
-      state.developerMode && state.activePage === 'developer' && state.developerTab === 'statistics'
+      state.developerMode &&
+      state.activePage === 'freeModels' &&
+      state.smartAccessTab === 'statistics'
   );
   const visible = useDocumentVisible();
   const [days, setDays] = useState('1');
@@ -122,6 +124,13 @@ function useStatisticsState() {
     const timer = window.setInterval(() => read.current(), 10_000);
     return () => window.clearInterval(timer);
   }, [active, visible, snapshot?.recording, generation]);
+
+  useEffect(() => {
+    if (!active || !visible) return;
+    const changed = () => forceRead.current();
+    document.addEventListener(api.ROUTER_STATISTICS_CHANGED, changed);
+    return () => document.removeEventListener(api.ROUTER_STATISTICS_CHANGED, changed);
+  }, [active, visible]);
 
   const refreshAll = useCallback(() => {
     forceRead.current();

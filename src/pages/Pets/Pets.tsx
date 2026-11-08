@@ -15,8 +15,7 @@ import './Pets.css';
 
 function usePetsActive() {
   return useNavigationStore(
-    (state) =>
-      state.developerMode && state.activePage === 'developer' && state.developerTab === 'pets'
+    (state) => state.developerMode && state.activePage === 'apps' && state.appsTab === 'pets'
   );
 }
 

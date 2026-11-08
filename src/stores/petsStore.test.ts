@@ -28,7 +28,7 @@ beforeEach(() => {
 });
 afterEach(() => vi.unstubAllGlobals());
 const enter = () =>
-  nav.setState({ developerMode: true, activePage: 'developer', developerTab: 'pets' });
+  nav.setState({ developerMode: true, activePage: 'apps', appsTab: 'pets', developerTab: 'pets' });
 
 it('only loads on an active visit and persists the first daily clock without enabling statistics', () => {
   const fetch = vi.fn();

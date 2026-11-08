@@ -625,7 +625,23 @@ export function RouterGroups({
                 aria-label={t(
                   direction < 0 ? 'freeModels.router.previous' : 'freeModels.router.next'
                 )}
-                onClick={() => {
+                onClick={(event) => {
+                  if (busy) return;
+                  const chevron = event?.currentTarget?.querySelector<SVGSVGElement>(
+                    '.free-model-router-page-chevron'
+                  );
+                  if (chevron) {
+                    chevron.getAnimations().forEach((animation) => animation.cancel());
+                    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+                    chevron.animate(
+                      [
+                        { filter: 'brightness(1)', offset: 0 },
+                        { filter: 'brightness(1.8)', offset: 0.2 },
+                        { filter: 'brightness(1)', offset: 1 },
+                      ],
+                      { duration: reduced ? 200 : 160, easing: 'cubic-bezier(.2,.7,.3,1)' }
+                    );
+                  }
                   const index = routers.findIndex((router) => router.id === activeRouterId);
                   const next = (index + direction + routers.length) % routers.length;
                   selectTab(routers[next].id);
@@ -638,7 +654,7 @@ export function RouterGroups({
                   height="48"
                   viewBox="0 0 48 48"
                   fill="none"
-                  className={`free-model-router-page-chevron ${direction < 0 ? 'is-previous' : ''}`}
+                  className="free-model-router-page-chevron"
                 >
                   <path
                     d={direction < 0 ? 'M 31 8 L 15 24 L 31 40' : 'M 17 8 L 33 24 L 17 40'}

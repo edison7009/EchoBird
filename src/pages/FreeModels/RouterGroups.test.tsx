@@ -472,12 +472,33 @@ describe('Independent smart router groups', () => {
     expect(api.saveSmartRouter).not.toHaveBeenCalled();
   });
 
-  it('cycles through groups with side arrows without saving settings', async () => {
+  it('flashes only arrow brightness while cycling without saving settings or moving the arrow', async () => {
     await open();
-    await act(async () => button('freeModels.router.previous').props.onClick());
+    let reduced = false;
+    vi.stubGlobal('window', { setTimeout, matchMedia: () => ({ matches: reduced }) });
+    const cancel = vi.fn();
+    const animate = vi.fn();
+    const chevron = { getAnimations: () => [{ cancel }], animate };
+    const event = { currentTarget: { querySelector: () => chevron } };
+    await act(async () => button('freeModels.router.previous').props.onClick(event));
     expect(context.activeRouterId).toBe(secondId);
-    await act(async () => button('freeModels.router.next').props.onClick());
+    await act(async () => button('freeModels.router.next').props.onClick(event));
     expect(context.activeRouterId).toBe('smart-router');
+    expect(animate).toHaveBeenCalledTimes(2);
+    for (const [frames, timing] of animate.mock.calls) {
+      expect(frames).toEqual([
+        { filter: 'brightness(1)', offset: 0 },
+        { filter: 'brightness(1.8)', offset: 0.2 },
+        { filter: 'brightness(1)', offset: 1 },
+      ]);
+      expect(timing.duration).toBe(160);
+    }
+    reduced = true;
+    await act(async () => button('freeModels.router.previous').props.onClick(event));
+    expect(context.activeRouterId).toBe(secondId);
+    expect(animate).toHaveBeenCalledTimes(3);
+    expect(animate.mock.calls[2][1].duration).toBe(200);
+    expect(cancel).toHaveBeenCalledTimes(3);
     expect(api.saveSmartRouter).not.toHaveBeenCalled();
     expect(api.setSmartRouterGroupEnabled).not.toHaveBeenCalled();
     expect(confirm).not.toHaveBeenCalled();

@@ -5,15 +5,17 @@ export function ViewModeTabs<T extends string>({
   options,
   onChange,
   fullWidth = false,
+  dividers = false,
 }: {
   fullWidth?: boolean;
-  value: T;
+  dividers?: boolean;
+  value: T | null;
   options: readonly { value: T; label: string }[];
   onChange: (value: T) => void;
 }) {
   return (
     <ViewModeTabGroup
-      className={`view-mode-tabs flex border border-cyber-border rounded-button overflow-hidden ${fullWidth ? 'w-full' : ''}`}
+      className={`view-mode-tabs flex border border-cyber-border rounded-button overflow-hidden ${dividers ? 'view-mode-dividers' : ''} ${fullWidth ? 'w-full' : ''}`}
     >
       {options.map((option) => (
         <button

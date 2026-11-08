@@ -1,3 +1,4 @@
+export const ROUTER_STATISTICS_CHANGED = 'router-statistics-settings-changed';
 import { invoke } from '@tauri-apps/api/core';
 
 export interface RouterTokenUsage {

@@ -22,7 +22,8 @@ beforeEach(() => {
     {
       ...nav.getInitialState(),
       developerMode: true,
-      activePage: 'developer',
+      activePage: 'apps',
+      appsTab: 'pets',
       developerTab: 'pets',
     },
     true
@@ -227,7 +228,7 @@ it('does not claim, reveal or use while upgrading or outside the active pet page
   pets.setState({ busy: false });
   pets.getState().claimReward();
   setItem.mockClear();
-  nav.setState({ developerTab: 'statistics' });
+  nav.getState().setSmartAccessTab('statistics');
   expect(pets.getState().claimReward()).toBe(false);
   expect(pets.getState().revealReward()).toBe(false);
   expect(pets.getState().useReward()).toBe(false);

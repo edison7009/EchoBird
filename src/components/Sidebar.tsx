@@ -3,7 +3,6 @@ import { useRef, type ReactNode } from 'react';
 import {
   Box,
   Server,
-  CodeXml,
   Trophy,
   Newspaper,
   House,
@@ -266,15 +265,6 @@ export const Sidebar = ({
             label={t('nav.aiCareer')}
             active={activePage === 'aiCareer'}
             onClick={() => onPageChange('aiCareer')}
-          />
-        )}
-        {developerMode && (
-          <NavItem
-            collapsed={collapsed}
-            icon={<CodeXml size={20} />}
-            label={t('nav.developer')}
-            active={activePage === 'developer'}
-            onClick={() => onPageChange('developer')}
           />
         )}
         {isFullEdition && optionalPagesReady && optionalPages.localLlm && (

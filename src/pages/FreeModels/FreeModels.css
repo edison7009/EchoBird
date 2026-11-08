@@ -518,20 +518,4 @@
 .free-model-router-page-chevron {
   display: block;
   flex-shrink: 0;
-  transition: transform 180ms ease;
-}
-
-/* Keep the expanded pose while loading as well as after selection. */
-.free-model-router-page-arrow:hover .free-model-router-page-chevron {
-  transform: translateX(4px);
-}
-
-.free-model-router-page-arrow:hover .free-model-router-page-chevron.is-previous {
-  transform: translateX(-4px);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .free-model-router-page-chevron {
-    transition: none;
-  }
 }

@@ -92,6 +92,8 @@ export type TKey =
   | 'plugins.checkUpdates'
   | 'plugins.updated'
   | 'plugins.version'
+  | 'settings.routerStatistics'
+  | 'settings.routerStatisticsError'
   | 'settings.developerMode'
   | 'settings.developerModeError'
   | 'settings.optionalFeaturesError'

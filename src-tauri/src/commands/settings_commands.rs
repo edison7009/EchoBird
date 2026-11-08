@@ -12,6 +12,12 @@ pub struct AppSettings {
     pub developer_mode: Option<bool>,
     #[serde(
         default,
+        rename = "statisticsRecording",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub statistics_recording: Option<bool>,
+    #[serde(
+        default,
         rename = "aiNewsEnabled",
         skip_serializing_if = "Option::is_none"
     )]
@@ -55,8 +61,14 @@ pub struct AppSettings {
 }
 
 impl AppSettings {
+    pub fn statistics_recording_enabled(&self) -> bool {
+        self.statistics_recording
+            .unwrap_or(self.developer_mode.unwrap_or(true))
+    }
     pub fn developer_mode_enabled(&self) -> bool {
-        self.developer_mode.unwrap_or(true)
+        // Legacy persisted field is retained for compatibility. These features now
+        // belong to Apps and Smart Access, with their own enable settings.
+        true
     }
 }
 
@@ -99,6 +111,7 @@ pub async fn save_settings(
         crate::services::local_llm::server::stop_server_if_running().await?;
     }
     crate::services::developer_preview::configure(&app, settings.developer_mode_enabled());
+    crate::services::smart_router::statistics::configure(settings.statistics_recording_enabled());
 
     // Update tray menu locale if locale changed
     if let Some(locale) = &settings.locale {
@@ -121,6 +134,7 @@ fn patch_settings_at(
     let patch = patch.as_object().ok_or("Invalid settings patch")?;
     for key in [
         "developerMode",
+        "statisticsRecording",
         "aiNewsEnabled",
         "aiCareerEnabled",
         "localLlmEnabled",
@@ -165,6 +179,9 @@ fn preserve_protection_setting(
     let saved: AppSettings = serde_json::from_value(saved).map_err(|_| "Invalid settings")?;
     if settings.sensitive_info_protection.is_none() {
         settings.sensitive_info_protection = saved.sensitive_info_protection;
+    }
+    if settings.statistics_recording.is_none() {
+        settings.statistics_recording = saved.statistics_recording;
     }
     if settings.developer_mode.is_none() {
         settings.developer_mode = saved.developer_mode;
@@ -286,7 +303,7 @@ mod tests {
     }
 
     #[test]
-    fn developer_mode_defaults_on_and_preserves_explicit_choices() {
+    fn retired_developer_gate_does_not_block_merged_pages_and_preserves_legacy_data() {
         let root =
             std::env::temp_dir().join(format!("developer-settings-{}", uuid::Uuid::new_v4()));
         std::fs::create_dir(&root).unwrap();
@@ -314,25 +331,31 @@ mod tests {
             false
         );
         std::fs::write(&path, r#"{"developerMode":false}"#).unwrap();
-        assert!(!read_settings(&path).developer_mode_enabled());
+        assert!(read_settings(&path).developer_mode_enabled());
+        assert!(!read_settings(&path).statistics_recording_enabled());
         let mut update = super::AppSettings::default();
         super::preserve_protection_setting(&path, &mut update).unwrap();
-        assert!(!update.developer_mode_enabled());
+        assert!(update.developer_mode_enabled());
         std::fs::remove_file(path).unwrap();
         std::fs::remove_dir(root).unwrap();
     }
 
     #[test]
-    fn developer_preview_is_the_master_switch_and_legacy_statistics_flags_are_ignored() {
+    fn statistics_recording_is_independent_and_preserves_the_previous_effective_off_state() {
         let root =
             std::env::temp_dir().join(format!("statistics-settings-{}", uuid::Uuid::new_v4()));
         std::fs::create_dir(&root).unwrap();
         let path = root.join("settings.json");
         assert!(read_settings(&path).developer_mode_enabled());
         assert!(!path.exists());
+        std::fs::write(&path, r#"{"routerStatistics":false,"developerMode":true}"#).unwrap();
+        assert!(
+            read_settings(&path).statistics_recording_enabled(),
+            "ignored historical flags must not be revived"
+        );
         std::fs::write(
             &path,
-            r#"{"routerStatistics":false,"sensitiveInfoProtection":false,"developerMode":true}"#,
+            r#"{"statisticsRecording":false,"sensitiveInfoProtection":false,"developerMode":true}"#,
         )
         .unwrap();
         let mut update = super::AppSettings {
@@ -342,21 +365,22 @@ mod tests {
         super::preserve_protection_setting(&path, &mut update).unwrap();
         assert_eq!(update.developer_mode, Some(true));
         assert_eq!(update.sensitive_info_protection, Some(false));
-        assert!(serde_json::to_value(&update)
-            .unwrap()
-            .get("routerStatistics")
-            .is_none());
+        assert_eq!(update.statistics_recording, Some(false));
+        assert!(!update.statistics_recording_enabled());
+        assert!(update.developer_mode_enabled());
         update.developer_mode = Some(false);
         super::preserve_protection_setting(&path, &mut update).unwrap();
         assert_eq!(update.developer_mode, Some(false));
-        std::fs::write(&path, r#"{"routerStatistics":true,"developerMode":false}"#).unwrap();
+        std::fs::write(
+            &path,
+            r#"{"statisticsRecording":true,"developerMode":false}"#,
+        )
+        .unwrap();
         assert_eq!(read_settings(&path).developer_mode, Some(false));
         let original = std::fs::read(&path).unwrap();
         let settings = read_settings(&path);
-        assert!(serde_json::to_value(settings)
-            .unwrap()
-            .get("routerStatistics")
-            .is_none());
+        assert!(settings.statistics_recording_enabled());
+        assert!(settings.developer_mode_enabled());
         assert_eq!(
             std::fs::read(&path).unwrap(),
             original,

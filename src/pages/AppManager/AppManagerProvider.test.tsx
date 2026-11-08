@@ -16,6 +16,17 @@ import type { InstalledPlugin } from '../../api/plugins';
 import cursorCliDefinition from '../../../tools/cursorcli/paths.json';
 import { enableAccountPlugins } from '../../test/accountPlugins';
 
+// Each scenario starts on the native tool view; merged tab choices are otherwise remembered across mounts.
+beforeEach(() =>
+  useNavigationStore.setState({
+    appsTab: 'desktop',
+    toolTab: 'desktop',
+    smartAccessTab: 'configuration',
+    backLocations: [],
+    forwardLocations: [],
+  })
+);
+
 vi.mock('../../api/plugins', () => ({
   listPlugins: vi.fn().mockResolvedValue([]),
   launchPlugin: vi.fn().mockResolvedValue(undefined),
@@ -1651,7 +1662,7 @@ describe('Muse Code API model workflow', () => {
     });
     await act(async () => useNavigationStore.getState().setDeveloperTab('statistics'));
     expect(api.getModels).not.toHaveBeenCalled();
-    await act(async () => useNavigationStore.getState().setActivePage('apps'));
+    await act(async () => useNavigationStore.getState().setAppsTab('desktop'));
     expect(api.getModels).toHaveBeenCalledOnce();
     expect(context.userModels.some((model) => model.internalId === 'fixture')).toBe(true);
     await act(async () => useNavigationStore.getState().setDeveloperTab('plugins'));

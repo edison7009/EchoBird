@@ -40,7 +40,6 @@ import { open as shellOpen } from '@tauri-apps/plugin-shell';
 import {
   Box,
   Check,
-  CircleHelp,
   ExternalLink,
   KeyRound,
   GripVertical,
@@ -167,6 +166,8 @@ export function FreeModelsTitleActions() {
   const { t } = useI18n();
   const { layout, setLayout, activeDragId } = useFreeModels();
   const [showHelp, setShowHelp] = useState(false);
+  const smartAccessTab = useNavigationStore((state) => state.smartAccessTab);
+  const setSmartAccessTab = useNavigationStore((state) => state.setSmartAccessTab);
 
   useEffect(() => {
     if (!showHelp) return;
@@ -179,38 +180,55 @@ export function FreeModelsTitleActions() {
 
   return (
     <div className="flex shrink-0 items-center gap-3">
-      <AccountPrivacyButton />
-      <ViewModeTabGroup
-        role="group"
-        aria-label={t('freeModels.layout.label')}
-        className="view-mode-tabs flex h-9 overflow-hidden rounded-button border border-cyber-border"
-      >
-        {(['cards', 'list', 'terminal'] as const).map((mode) => {
-          const Icon = mode === 'cards' ? LayoutGrid : mode === 'list' ? List : Terminal;
-          return (
-            <button
-              key={mode}
-              type="button"
-              aria-label={t(
-                mode === 'cards'
-                  ? 'freeModels.layout.cards'
-                  : mode === 'list'
-                    ? 'freeModels.layout.list'
-                    : 'freeModels.layout.terminal'
-              )}
-              aria-pressed={layout === mode}
-              disabled={activeDragId !== null}
-              onClick={() => setLayout(mode)}
-              className={`view-mode-tab flex w-9 items-center justify-center transition-[color] ${layout === mode ? 'bg-cyber-elevated text-cyber-text' : 'text-cyber-text-secondary hover:text-cyber-text'}`}
-            >
-              <Icon size={16} aria-hidden="true" />
-            </button>
-          );
-        })}
-      </ViewModeTabGroup>
-      <PageActionButton icon={CircleHelp} onClick={() => setShowHelp(true)} className="font-mono">
-        {t('freeModels.help')}
-      </PageActionButton>
+      <div className="flex items-center gap-2">
+        {smartAccessTab === 'configuration' && <AccountPrivacyButton />}
+        <ViewModeTabGroup
+          role="group"
+          aria-label={t('freeModels.layout.label')}
+          className="view-mode-tabs view-mode-dividers flex h-9 overflow-hidden rounded-button border border-cyber-border"
+        >
+          {(['cards', 'list', 'terminal'] as const).map((mode) => {
+            const Icon = mode === 'cards' ? LayoutGrid : mode === 'list' ? List : Terminal;
+            return (
+              <button
+                key={mode}
+                type="button"
+                aria-label={t(
+                  mode === 'cards'
+                    ? 'freeModels.layout.cards'
+                    : mode === 'list'
+                      ? 'freeModels.layout.list'
+                      : 'freeModels.layout.terminal'
+                )}
+                aria-pressed={smartAccessTab === 'configuration' && layout === mode}
+                disabled={activeDragId !== null}
+                onClick={() => {
+                  setSmartAccessTab('configuration');
+                  setLayout(mode);
+                }}
+                className={`view-mode-tab flex w-9 items-center justify-center transition-[color] ${smartAccessTab === 'configuration' && layout === mode ? 'bg-cyber-elevated text-cyber-text' : 'text-cyber-text-secondary hover:text-cyber-text'}`}
+              >
+                <Icon size={16} aria-hidden="true" />
+              </button>
+            );
+          })}
+        </ViewModeTabGroup>
+      </div>
+      <div className="flex items-center gap-2">
+        <ViewModeTabGroup className="view-mode-tabs h-9 overflow-hidden rounded-button border border-cyber-border">
+          <PageActionButton
+            onClick={() => setSmartAccessTab('statistics')}
+            aria-pressed={smartAccessTab === 'statistics'}
+            className="view-mode-tab font-mono"
+            style={{ borderWidth: 0, height: '100%' }}
+          >
+            {t('developer.statistics')}
+          </PageActionButton>
+        </ViewModeTabGroup>
+        <PageActionButton onClick={() => setShowHelp(true)} className="font-mono">
+          {t('freeModels.help')}
+        </PageActionButton>
+      </div>
 
       {showHelp && (
         <div className="fixed inset-0 z-[9998] flex items-center justify-center">
@@ -755,7 +773,9 @@ function FreeModelsContent({
   routerFocusRef: { current: boolean };
   routerTabPositionRef: { current: ViewModeTabPosition | null };
 }) {
-  const activePage = useNavigationStore((state) => state.activePage);
+  const configurationActive = useNavigationStore(
+    (state) => state.activePage === 'freeModels' && state.smartAccessTab === 'configuration'
+  );
   const appManager = useContext(AppManagerContext);
   const { t } = useI18n();
   const docVisible = useDocumentVisible();
@@ -1086,7 +1106,7 @@ function FreeModelsContent({
   }, [customModels, selectedIds]);
   const responseTests = useRouteResponseTests(
     selectedModels,
-    activePage === 'freeModels' && layout === 'list',
+    configurationActive && layout === 'list',
     activeRouterId
   );
   const accountStatusByModel = useMemo(() => {
@@ -1140,7 +1160,10 @@ function FreeModelsContent({
     candidateTogglePending,
     setCandidateEnabled,
   ]);
-  useEffect(() => () => setActiveDragId(null), [setActiveDragId, activePage, activeRouterId]);
+  useEffect(
+    () => () => setActiveDragId(null),
+    [setActiveDragId, configurationActive, activeRouterId]
+  );
   const activeDragModel = selectedModels.find((model) => model.id === activeDragId);
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -1183,7 +1206,7 @@ function FreeModelsContent({
 
   useEffect(() => {
     let cancelled = false;
-    if (!showRouteActivity || !routerEnabled || !docVisible || activePage !== 'freeModels') return;
+    if (!showRouteActivity || !routerEnabled || !docVisible || !configurationActive) return;
     let pending = false;
     let errorReported = false;
     const pollActivity = async () => {
@@ -1212,7 +1235,7 @@ function FreeModelsContent({
       cancelled = true;
       window.clearInterval(timer);
     };
-  }, [showRouteActivity, routerEnabled, docVisible, activePage, activeRouterId]);
+  }, [showRouteActivity, routerEnabled, docVisible, configurationActive, activeRouterId]);
 
   const setNodeRef = useCallback((id: string, node: HTMLDivElement | null) => {
     if (node) nodeRefs.current.set(id, node);
@@ -1366,7 +1389,7 @@ function FreeModelsContent({
   }, [pausedIds]);
 
   useLayoutEffect(() => {
-    if (layout !== 'cards' || !docVisible || activePage !== 'freeModels') return;
+    if (layout !== 'cards' || !docVisible || !configurationActive) return;
     const frame = requestAnimationFrame(updatePaths);
     const stage = stageRef.current;
     if (!stage) return () => cancelAnimationFrame(frame);
@@ -1377,7 +1400,7 @@ function FreeModelsContent({
       cancelAnimationFrame(frame);
       observer.disconnect();
     };
-  }, [selectedModels, nodeColumns, updatePaths, layout, docVisible, activePage]);
+  }, [selectedModels, nodeColumns, updatePaths, layout, docVisible, configurationActive]);
 
   const activityIsVisible =
     routerActivity.candidateId !== null &&
@@ -1449,7 +1472,7 @@ function FreeModelsContent({
         )}
 
         <RouterGroups
-          key={activePage}
+          key={String(configurationActive)}
           hubRef={hubRef}
           restoreFocusRef={routerFocusRef}
           tabPositionRef={routerTabPositionRef}
@@ -1496,7 +1519,7 @@ function FreeModelsContent({
         ) : (
           <>
             <DndContext
-              key={`${activeRouterId}:${activePage === 'freeModels' ? 'active' : 'hidden'}`}
+              key={`${activeRouterId}:${configurationActive ? 'active' : 'hidden'}`}
               sensors={sensors}
               modifiers={layout === 'list' ? [restrictRouteToVerticalAxis] : undefined}
               collisionDetection={routeCollisionDetection}

@@ -19,8 +19,8 @@ type Navigation = ReturnType<typeof useNavigationStore.getState>;
 
 const onUsageIslandPage = (navigation: Navigation) =>
   navigation.developerMode &&
-  navigation.activePage === 'developer' &&
-  navigation.developerTab === 'usageIsland';
+  navigation.activePage === 'apps' &&
+  navigation.appsTab === 'usageIsland';
 
 export function useUsageIslandActive() {
   return useNavigationStore(onUsageIslandPage);

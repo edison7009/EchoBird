@@ -13,9 +13,11 @@ import './RouterTerminal.css';
 export function RouterTerminal() {
   const { t } = useI18n();
   const { routers, activeRouterId, selectRouter, groupPending } = useFreeModels();
-  const activePage = useNavigationStore((s) => s.activePage);
+  const configurationActive = useNavigationStore(
+    (state) => state.activePage === 'freeModels' && state.smartAccessTab === 'configuration'
+  );
   const visible = useDocumentVisible();
-  const active = visible && activePage === 'freeModels';
+  const active = visible && configurationActive;
   const enabled = useProtectionStore((s) => s.enabled);
   const canvas = useRef<HTMLCanvasElement>(null);
   const playback = useRef<TerminalPlayback>({
