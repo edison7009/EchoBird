@@ -1,4 +1,5 @@
 import { isSmartRouterId, SMART_ROUTER_SWITCH_TOOLS } from '../../utils/smartRouter';
+import { isDirectModelAllowedForTool } from '../../utils/directModelPolicy';
 import { CursorAccountSection } from './CursorAccountSection';
 import { AntigravityAccountSection } from './AntigravityAccountSection';
 import {
@@ -652,6 +653,7 @@ function isModelCompatibleWithTool(
   toolProtocols: string[],
   selectedTool: string | null
 ): boolean {
+  if (!isDirectModelAllowedForTool(model, selectedTool)) return false;
   const requiresResponses = selectedTool === 'codex' || selectedTool === 'chatgptdesktop';
   if (requiresResponses && model.internalId === 'local-server') return false;
 

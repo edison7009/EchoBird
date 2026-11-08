@@ -562,6 +562,7 @@ const ja: Partial<Translations> = {
   'agent.badge.switch': '切替対応',
   'agent.badge.local': 'ローカル',
   'agent.selectTool': '設定するツールを選択',
+  'agent.directModelUnavailable': 'このアプリの直接接続用モデル一覧から選び直してください。',
   'agent.noModelsHint': '{modelNexus}でモデルを追加',
   'agent.applyAndLaunch': 'アプリを直接起動',
   'agent.appliedVia': 'モデル設定を変更',

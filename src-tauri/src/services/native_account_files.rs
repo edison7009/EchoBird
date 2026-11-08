@@ -150,14 +150,24 @@ fn replace(temporary: &Path, path: &Path) -> std::io::Result<()> {
 
 pub(crate) struct Transaction {
     original: Vec<(PathBuf, Option<Vec<u8>>, bool)>,
+    published: Vec<Option<Vec<u8>>>,
+    guarded: bool,
     committed: bool,
 }
 impl Transaction {
     pub(crate) fn new() -> Self {
         Self {
             original: Vec::new(),
+            published: Vec::new(),
+            guarded: false,
             committed: false,
         }
+    }
+    /// Leave externally edited files alone when rolling back this operation.
+    pub(crate) fn guarded() -> Self {
+        let mut transaction = Self::new();
+        transaction.guarded = true;
+        transaction
     }
     pub(crate) fn replace(&mut self, path: &Path, bytes: &[u8]) -> Result<(), String> {
         self.replace_with(path, bytes, false)
@@ -169,6 +179,7 @@ impl Transaction {
         if let Some(bytes) = read_optional(path)? {
             fs::remove_file(path).map_err(|_| "accountError.write")?;
             self.original.push((path.to_path_buf(), Some(bytes), false));
+            self.published.push(None);
         }
         Ok(())
     }
@@ -185,6 +196,7 @@ impl Transaction {
             write(path, bytes)?;
         }
         self.original.push((path.to_path_buf(), old, preserve_link));
+        self.published.push(Some(bytes.to_vec()));
         Ok(())
     }
     pub(crate) fn commit(mut self) {
@@ -196,7 +208,13 @@ impl Drop for Transaction {
         if self.committed {
             return;
         }
-        for (path, original, preserve_link) in self.original.iter().rev() {
+        for (index, (path, original, preserve_link)) in self.original.iter().enumerate().rev() {
+            if self.guarded && read_optional(path).ok().as_ref() != Some(&self.published[index]) {
+                log::warn!(
+                    "Native configuration changed externally; skipping rollback for that file"
+                );
+                continue;
+            }
             let restored = match original {
                 Some(bytes) if *preserve_link => write_private_file(path, bytes),
                 Some(bytes) => write(path, bytes),
@@ -212,6 +230,32 @@ impl Drop for Transaction {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn guarded_rollback_preserves_external_edits_and_restores_untouched_files() {
+        let root = std::env::temp_dir().join(format!("native-guard-{}", uuid::Uuid::new_v4()));
+        fs::create_dir(&root).unwrap();
+        let changed = root.join("changed");
+        let untouched = root.join("untouched");
+        let removed = root.join("removed");
+        fs::write(&changed, b"old").unwrap();
+        fs::write(&untouched, b"old").unwrap();
+        fs::write(&removed, b"old").unwrap();
+        {
+            let mut transaction = Transaction::guarded();
+            transaction.replace_private_file(&changed, b"ours").unwrap();
+            transaction
+                .replace_private_file(&untouched, b"ours")
+                .unwrap();
+            transaction.remove(&removed).unwrap();
+            fs::write(&changed, b"external").unwrap();
+            fs::write(&removed, b"external").unwrap();
+        }
+        assert_eq!(fs::read(&changed).unwrap(), b"external");
+        assert_eq!(fs::read(&untouched).unwrap(), b"old");
+        assert_eq!(fs::read(&removed).unwrap(), b"external");
+        fs::remove_dir_all(root).unwrap();
+    }
 
     #[test]
     fn lock_process_fixture() {

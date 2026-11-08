@@ -3,10 +3,11 @@
 use super::{
     echobird_dir, ensure_parent, toml_delete_table_value, toml_delete_top, toml_read_table_value,
     toml_read_top, toml_write_table_value, toml_write_table_value_raw, toml_write_top,
-    toml_write_top_raw, write_json_file, ApplyResult, ModelInfo,
+    toml_write_top_raw, ApplyResult, ModelInfo,
 };
 use crate::services::codex_accounts;
 use crate::services::codex_catalog;
+use crate::services::native_account_files::Transaction;
 use std::fs;
 use std::path::Path;
 
@@ -328,6 +329,16 @@ pub(crate) fn apply_codex_at(
         .unwrap_or_else(|| model_context_window_for(model_id));
 
     ensure_parent(&config_path);
+    let _selection_lock =
+        match crate::services::native_account_files::DirectoryLock::acquire_existing(&config_path) {
+            Ok(lock) => lock,
+            Err(error) => {
+                return ApplyResult {
+                    success: false,
+                    message: format!("Codex configuration is busy: {error}"),
+                }
+            }
+        };
 
     // Canonicalize every field we own. Overwrite-in-place
     // if present, insert if missing. Manual edits or other tools may have
@@ -335,7 +346,16 @@ pub(crate) fn apply_codex_at(
     // canonical shape end-to-end, not just `base_url`. Codex's own
     // runtime state (`[projects.*]` trust, `[tui.*]` NUX, `[plugins.*]`)
     // and any unrelated user-edited top-level keys stay untouched.
-    let existing = fs::read_to_string(&config_path).unwrap_or_default();
+    let existing = match fs::read_to_string(&config_path) {
+        Ok(content) => content,
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => String::new(),
+        Err(error) => {
+            return ApplyResult {
+                success: false,
+                message: format!("Codex config read error: {error}"),
+            }
+        }
+    };
     if existing.parse::<toml_edit::DocumentMut>().is_err() {
         return ApplyResult {
             success: false,
@@ -366,6 +386,7 @@ pub(crate) fn apply_codex_at(
             }
         }
     };
+    let mut catalog_change = None;
     if !switch_models.is_empty() || catalog_template.is_some() {
         let catalog_path = codex_catalog::models_json_path(codex_dir);
         // Direct providers keep their single-model catalog. Smart Access adds
@@ -383,19 +404,23 @@ pub(crate) fn apply_codex_at(
                 codex_web_search_mode(&base_url, model_info.web_search) == "live",
             )
         };
-        // Abort before changing config/auth if the required capability
-        // catalog cannot be written.
-        if let Err(error) = write_json_file(&catalog_path, &catalog) {
-            return ApplyResult {
-                success: false,
-                message: format!("Codex model catalog error: {error}"),
-            };
-        }
+        catalog_change = Some(Some(catalog));
         new_content = toml_write_top(
             &new_content,
             "model_catalog_json",
             &catalog_path.to_string_lossy(),
         );
+        if !switch_models.is_empty() {
+            // Let the selected catalog row own context and reasoning. A global
+            // 1M override otherwise defeats smaller per-candidate windows.
+            for key in [
+                "model_context_window",
+                "model_auto_compact_token_limit",
+                "model_reasoning_effort",
+            ] {
+                new_content = toml_delete_top(&new_content, key);
+            }
+        }
     } else {
         // Leaving a bundled vendor for a non-bundled vendor:
         // the canonical write evicted the `model_catalog_json` line, so Codex
@@ -409,31 +434,16 @@ pub(crate) fn apply_codex_at(
         if codex_catalog_referenced(&existing, &catalog_path.to_string_lossy())
             && catalog_path.exists()
         {
-            let _ = fs::remove_file(&catalog_path);
+            catalog_change = Some(None);
         }
     }
 
-    // Only write if content actually changed — avoids touching mtime
-    // for no-op applies and avoids unnecessary fs traffic.
-    if new_content != existing {
-        if let Err(e) = fs::write(&config_path, &new_content) {
-            return ApplyResult {
-                success: false,
-                message: format!("Codex config error: {}", e),
-            };
-        }
-    }
-
-    // Write the api-key auth.json that Codex v0.130+ expects.
-    let auth_payload = serde_json::json!({ "OPENAI_API_KEY": api_key });
-    ensure_parent(&auth_path);
-    if let Err(e) = fs::write(
-        &auth_path,
-        serde_json::to_string_pretty(&auth_payload).unwrap_or_default(),
-    ) {
+    if let Err(message) =
+        publish_codex_files(codex_dir, &existing, &new_content, catalog_change, api_key)
+    {
         return ApplyResult {
             success: false,
-            message: format!("Codex auth.json error: {}", e),
+            message,
         };
     }
 
@@ -457,6 +467,49 @@ pub(crate) fn apply_codex_at(
             display
         ),
     }
+}
+
+/// Publish one explicit selection; roll back only files still equal to our write.
+fn publish_codex_files(
+    codex_dir: &Path,
+    previous_config: &str,
+    config: &str,
+    catalog_change: Option<Option<serde_json::Value>>,
+    api_key: &str,
+) -> Result<(), String> {
+    let live =
+        crate::services::native_account_files::read_optional(&codex_dir.join("config.toml"))?;
+    if live.as_deref().unwrap_or_default() != previous_config.as_bytes() {
+        return Err("Codex configuration changed during selection; try again".into());
+    }
+    let mut transaction = Transaction::guarded();
+    let catalog = codex_catalog::models_json_path(codex_dir);
+    match catalog_change {
+        Some(Some(value)) => transaction
+            .replace_private_file(
+                &catalog,
+                &serde_json::to_vec_pretty(&value).expect("Codex catalog JSON"),
+            )
+            .map_err(|error| format!("Codex model catalog error: {error}"))?,
+        Some(None) => transaction
+            .remove(&catalog)
+            .map_err(|error| format!("Codex model catalog error: {error}"))?,
+        None => {}
+    }
+    if config != previous_config {
+        transaction
+            .replace_private_file(&codex_dir.join("config.toml"), config.as_bytes())
+            .map_err(|error| format!("Codex config error: {error}"))?;
+    }
+    transaction
+        .replace_private_file(
+            &codex_dir.join("auth.json"),
+            &serde_json::to_vec_pretty(&serde_json::json!({"OPENAI_API_KEY":api_key}))
+                .expect("Codex auth JSON"),
+        )
+        .map_err(|error| format!("Codex auth.json error: {error}"))?;
+    transaction.commit();
+    Ok(())
 }
 
 pub(super) fn read_codex() -> Option<ModelInfo> {
@@ -657,6 +710,82 @@ pub(super) fn restore_codex_to_official(tool_id: &str, config_path: &Path) -> Ap
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn selection_rejects_a_config_edited_after_it_was_read() {
+        let root = super::super::switching::TestDir::new();
+        let dir = root.path();
+        fs::write(dir.join("config.toml"), "user edit").unwrap();
+        fs::write(dir.join("auth.json"), b"original auth").unwrap();
+        fs::write(dir.join("models.json"), b"original catalog").unwrap();
+        assert!(
+            publish_codex_files(dir, "previous", "ours", Some(None), "fixture")
+                .unwrap_err()
+                .contains("changed during selection")
+        );
+        assert_eq!(fs::read(dir.join("config.toml")).unwrap(), b"user edit");
+        assert_eq!(fs::read(dir.join("auth.json")).unwrap(), b"original auth");
+        assert_eq!(
+            fs::read(dir.join("models.json")).unwrap(),
+            b"original catalog"
+        );
+    }
+
+    #[test]
+    fn auth_failure_restores_catalog_and_config_including_catalog_removal() {
+        let root = super::super::switching::TestDir::new();
+        let dir = root.path();
+        fs::write(dir.join("config.toml"), "model = \"original\"\n").unwrap();
+        fs::write(dir.join("models.json"), b"original catalog").unwrap();
+        // A directory is a deterministic write failure on every OS, even as root.
+        fs::create_dir(dir.join("auth.json")).unwrap();
+        for change in [Some(Some(serde_json::json!({"models":[]}))), Some(None)] {
+            let result = publish_codex_files(
+                dir,
+                "model = \"original\"\n",
+                "model = \"new\"\n",
+                change,
+                "fixture",
+            );
+            assert!(result.unwrap_err().contains("Codex auth.json error"));
+            assert_eq!(
+                fs::read_to_string(dir.join("config.toml")).unwrap(),
+                "model = \"original\"\n"
+            );
+            assert_eq!(
+                fs::read(dir.join("models.json")).unwrap(),
+                b"original catalog"
+            );
+        }
+        fs::remove_file(dir.join("models.json")).unwrap();
+        assert!(publish_codex_files(
+            dir,
+            "model = \"original\"\n",
+            "new",
+            Some(Some(serde_json::json!({"models":[]}))),
+            "fixture"
+        )
+        .is_err());
+        assert!(!dir.join("models.json").exists());
+        fs::remove_dir(dir.join("auth.json")).unwrap();
+        publish_codex_files(
+            dir,
+            "model = \"original\"\n",
+            "model = \"new\"\n",
+            Some(Some(serde_json::json!({"models":[]}))),
+            "fixture",
+        )
+        .unwrap();
+        assert_eq!(
+            fs::read_to_string(dir.join("config.toml")).unwrap(),
+            "model = \"new\"\n"
+        );
+        assert_eq!(
+            serde_json::from_slice::<serde_json::Value>(&fs::read(dir.join("auth.json")).unwrap())
+                .unwrap()["OPENAI_API_KEY"],
+            "fixture"
+        );
+    }
 
     #[test]
     fn web_search_choice_survives_repeated_apply_for_both_clients() {
@@ -1587,6 +1716,13 @@ mod switch_tests {
                         "responses"
                     );
                     assert_eq!(toml_read_top(&content, "model"), "auto");
+                    for key in [
+                        "model_context_window",
+                        "model_auto_compact_token_limit",
+                        "model_reasoning_effort",
+                    ] {
+                        assert_eq!(toml_read_top(&content, key), "");
+                    }
                     assert_eq!(
                         toml_read_top(&content, "web_search"),
                         if enabled { "live" } else { "disabled" }

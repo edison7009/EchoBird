@@ -148,10 +148,12 @@ pub(crate) fn build_router_catalog(
     web_search: bool,
 ) -> Value {
     // Reuse the established Codex prompt and wire capability schema. Upstream
-    // capabilities are heterogeneous, so do not advertise images or Responses Lite.
+    // capabilities are heterogeneous; keep auto and unknown rows on the legacy
+    // text-only fallback. Known explicit rows retain their native capabilities.
     let mut template: Value =
         serde_json::from_str(MINIMAX_TEMPLATE).expect("bundled Codex template");
     template["input_modalities"] = json!(["text"]);
+    template["supports_image_detail_original"] = json!(false);
     template["supports_reasoning_summaries"] = json!(false);
     template["supports_search_tool"] = json!(web_search);
     template["supports_parallel_tool_calls"] = json!(false);
@@ -165,12 +167,72 @@ pub(crate) fn build_router_catalog(
         .iter()
         .enumerate()
         .map(|(index, model)| {
-            let mut entry =
-                build_catalog(&template, &model.id, &model.name, 1_000_000)["models"][0].clone();
+            let mut entry = model.codex_catalog.clone().unwrap_or_else(|| {
+                build_catalog(&template, &model.id, &model.name, 1_000_000)["models"][0].clone()
+            });
+            entry["slug"] = json!(model.id);
+            entry["display_name"] = json!(model.name);
+            entry["description"] = json!(format!("{} via EchoBird", model.name));
+            // The local router does not implement the separate compact API.
+            entry["use_responses_lite"] = json!(false);
+            entry["prefer_websockets"] = json!(false);
+            entry["supports_search_tool"] =
+                json!(web_search && entry["supports_search_tool"].as_bool().unwrap_or(false));
             entry["priority"] = json!(index);
             entry
         })
         .collect();
+    let mut entries = entries;
+    if entries.len() > 1 {
+        let context = entries[1..]
+            .iter()
+            .filter_map(|entry| entry["context_window"].as_u64())
+            .min()
+            .unwrap_or(1_000_000);
+        entries[0]["context_window"] = json!(context);
+        entries[0]["max_context_window"] = json!(context);
+        let levels = entries[0]["supported_reasoning_levels"]
+            .as_array()
+            .cloned()
+            .unwrap_or_default();
+        entries[0]["supported_reasoning_levels"] = json!(levels
+            .into_iter()
+            .filter(|level| {
+                entries[1..].iter().all(|entry| {
+                    entry["supported_reasoning_levels"]
+                        .as_array()
+                        .is_some_and(|levels| {
+                            levels
+                                .iter()
+                                .any(|candidate| candidate["effort"] == level["effort"])
+                        })
+                })
+            })
+            .collect::<Vec<_>>());
+        let default = entries[0]["default_reasoning_level"].clone();
+        if !entries[0]["supported_reasoning_levels"]
+            .as_array()
+            .is_some_and(|levels| levels.iter().any(|level| level["effort"] == default))
+        {
+            if let Some(effort) = entries[0]["supported_reasoning_levels"][0]["effort"]
+                .as_str()
+                .map(String::from)
+            {
+                entries[0]["default_reasoning_level"] = json!(effort);
+            } else {
+                entries[0]
+                    .as_object_mut()
+                    .unwrap()
+                    .remove("default_reasoning_level");
+            }
+        }
+        entries[0]["supports_search_tool"] = json!(
+            web_search
+                && entries[1..]
+                    .iter()
+                    .all(|entry| entry["supports_search_tool"] == true)
+        );
+    }
     json!({"models":entries})
 }
 

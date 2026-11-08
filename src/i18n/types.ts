@@ -534,6 +534,7 @@ export type TKey =
   | 'agent.badge.switch'
   | 'agent.badge.local'
   | 'agent.selectTool'
+  | 'agent.directModelUnavailable'
   | 'agent.noModelsHint'
   | 'agent.applyAndLaunch'
   | 'agent.appliedVia'

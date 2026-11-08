@@ -500,6 +500,7 @@ const zhHans: Partial<Translations> = {
   'agent.badge.switch': '可切换',
   'agent.badge.local': '本地',
   'agent.selectTool': '选择要配置的工具',
+  'agent.directModelUnavailable': '请从此客户端的直连模型列表中重新选择模型。',
   'agent.noModelsHint': '在 {modelNexus} 添加模型',
   'agent.applyAndLaunch': '直接启动应用',
   'agent.appliedVia': '修改模型配置',

@@ -566,6 +566,7 @@ const en: Translations = {
   'agent.badge.switch': 'Switch',
   'agent.badge.local': 'Local',
   'agent.selectTool': 'Select a tool to configure',
+  'agent.directModelUnavailable': 'Choose another model from this app’s direct model list.',
   'agent.noModelsHint': 'Add models in {modelNexus}',
   'agent.applyAndLaunch': 'Launch app directly',
   'agent.appliedVia': 'Update model config',

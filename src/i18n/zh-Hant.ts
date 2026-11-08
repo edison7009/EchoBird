@@ -535,6 +535,7 @@ const zhHant: Partial<Translations> = {
   'agent.badge.switch': '可切換',
   'agent.badge.local': '本地',
   'agent.selectTool': '選擇要設定的工具',
+  'agent.directModelUnavailable': '請從此用戶端的直連模型清單中重新選擇模型。',
   'agent.noModelsHint': '在 {modelNexus} 新增模型',
   'agent.applyAndLaunch': '直接啟動應用',
   'agent.appliedVia': '修改模型設定',

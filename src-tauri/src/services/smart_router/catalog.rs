@@ -8,6 +8,7 @@ pub(crate) const SELECTOR_PREFIX: &str = "claude-fable-echobird-";
 pub(crate) struct SwitchModel {
     pub id: String,
     pub name: String,
+    pub codex_catalog: Option<serde_json::Value>,
 }
 
 #[cfg(test)]
@@ -27,14 +28,17 @@ pub(crate) fn with_test_models_at<T>(base_url: &str, run: impl FnOnce() -> T) ->
                 SwitchModel {
                     id: "auto".into(),
                     name: "Auto Router".into(),
+                    codex_catalog: None,
                 },
                 SwitchModel {
                     id: selector("first"),
                     name: "First model".into(),
+                    codex_catalog: None,
                 },
                 SwitchModel {
                     id: selector("second"),
                     name: "Second model".into(),
+                    codex_catalog: None,
                 },
             ],
         ),
@@ -87,6 +91,7 @@ pub(super) fn models(
     let mut models = vec![SwitchModel {
         id: model_id.into(),
         name: name.into(),
+        codex_catalog: None,
     }];
     models.extend(ids.iter().filter_map(|id| {
         let model = candidates
@@ -95,6 +100,43 @@ pub(super) fn models(
         Some(SwitchModel {
             id: selector(id),
             name: display_name(model.model_id.as_deref().unwrap_or_default(), &model.name),
+            // Account gateways and resellers must not inherit native-vendor
+            // capabilities merely because their model has the same name.
+            codex_catalog: model
+                .account_source
+                .is_none()
+                .then(|| {
+                    crate::services::codex_catalog::template_for_model(
+                        &model.base_url,
+                        model.model_id.as_deref().unwrap_or_default(),
+                    )
+                    .filter(|template| {
+                        template["slug"].as_str() == model.model_id.as_deref()
+                            || (crate::services::codex_catalog::url_matches_domain(
+                                &model.base_url,
+                                "deepseek.com",
+                            ) && matches!(
+                                model.model_id.as_deref(),
+                                Some("deepseek-flash" | "deepseek-v4-pro")
+                            ))
+                    })
+                    .map(|template| {
+                        let context = template["context_window"].as_u64().unwrap_or(
+                            match model.model_id.as_deref() {
+                                Some("deepseek-flash" | "deepseek-v4-pro") => 1_048_576,
+                                _ => 1_000_000,
+                            },
+                        );
+                        crate::services::codex_catalog::build_catalog(
+                            &template,
+                            model.model_id.as_deref().unwrap_or_default(),
+                            &model.name,
+                            context,
+                        )["models"][0]
+                            .clone()
+                    })
+                })
+                .flatten(),
         })
     }));
     models
@@ -103,6 +145,57 @@ pub(super) fn models(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn native_capabilities_follow_candidate_identity_not_display_name() {
+        let candidate = |id: &str, model: &str, base: &str| {
+            serde_json::from_value::<ModelConfig>(serde_json::json!({
+            "internalId":id,"name":"Same label","modelId":model,"baseUrl":base,"apiKey":"fixture"
+        })).unwrap()
+        };
+        let candidates = vec![
+            candidate("small", "glm-5-turbo", "https://open.bigmodel.cn/api/v1"),
+            candidate("vision", "deepseek-flash", "https://api.deepseek.com/v1"),
+            candidate("reseller", "deepseek-flash", "https://reseller.invalid/v1"),
+            candidate("paused", "deepseek-flash", "https://api.deepseek.com/v1"),
+        ];
+        let listed = models(
+            "auto",
+            "Router",
+            &["small".into(), "vision".into(), "reseller".into()],
+            &candidates,
+        );
+        assert_eq!(listed.len(), 4);
+        assert_eq!(listed[1].id, selector("small"));
+        assert!(listed[1].codex_catalog.is_some());
+        assert!(listed[3].codex_catalog.is_none());
+        let catalog = crate::services::codex_catalog::build_router_catalog(&listed, false);
+        let entries = &catalog["models"];
+        assert_eq!(entries[1]["context_window"], 204_800);
+        assert_eq!(entries[2]["context_window"], 1_048_576);
+        assert_eq!(entries[0]["context_window"], 204_800);
+        assert_eq!(
+            entries[2]["input_modalities"],
+            serde_json::json!(["text", "image"])
+        );
+        assert_eq!(entries[0]["input_modalities"], serde_json::json!(["text"]));
+        assert_eq!(entries[3]["input_modalities"], serde_json::json!(["text"]));
+        assert_eq!(entries[2]["slug"], selector("vision"));
+        assert!(entries[2]["supported_reasoning_levels"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|l| l["effort"] == "max"));
+        assert!(!entries[0]["supported_reasoning_levels"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|l| l["effort"] == "medium"));
+        for entry in entries.as_array().unwrap() {
+            assert_eq!(entry["use_responses_lite"], false);
+            assert_eq!(entry["supports_search_tool"], false);
+        }
+    }
 
     #[test]
     fn picker_contains_only_active_models_in_this_group_and_keeps_duplicate_upstream_ids_distinct()

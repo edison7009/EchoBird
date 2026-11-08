@@ -1,4 +1,5 @@
 import { isSmartRouterId } from '../../utils/smartRouter';
+import { isDirectModelAllowedForTool } from '../../utils/directModelPolicy';
 import { accountError } from '../../utils/accountError';
 import { useApplicationLauncher } from '../../features/accounts/useApplicationLauncher';
 import { AccountDirectoryContext } from '../../features/accounts/context';
@@ -641,6 +642,8 @@ export const AppManagerProvider: React.FC<AppManagerProviderProps> = ({ children
       console.error('Model not found:', internalId);
       return false;
     }
+
+    if (!isDirectModelAllowedForTool(model, toolId)) return t('agent.directModelUnavailable');
 
     const toolData = detectedTools.find((t) => t.id === toolId);
     const toolProtocols = toolData?.apiProtocol || ['openai'];

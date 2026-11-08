@@ -116,6 +116,79 @@ it('CodeArts shows API models without an Official restore card', async () => {
 
 describe('ModelListSection', () => {
   it.each([
+    ['claudecode', 'gpt-6.1-sol', 'claude-opus-5-5'],
+    ['claudedesktop', ' GPT-6.1-SOL ', 'claude-opus-5-5'],
+    ['codex', 'claude-opus-5-5', 'gpt-6.1-sol'],
+    ['chatgptdesktop', ' CLAUDE-OPUS-5-5 ', 'gpt-6.1-sol'],
+  ])(
+    'filters direct model IDs for %s while preserving routed models',
+    async (toolId, hiddenId, allowedId) => {
+      vi.stubGlobal('__APP_EDITION__', 'full');
+      const { ModelListSection } = await import('./AppManagerComponents');
+      const apply = vi.spyOn(api, 'applyModelToTool');
+      const select = vi.fn();
+      const dual = { ...models[0], anthropicUrl: 'https://cloud.example/anthropic' };
+      const titleOnly = `${hiddenId.trim()} display title`;
+      const unknownTitle = `${hiddenId.trim()} alias without ID`;
+      const markup = renderToStaticMarkup(
+        <ModelListSection
+          selectedToolData={{ ...tool, id: toolId, apiProtocol: ['openai', 'anthropic'] }}
+          userModels={[
+            { ...dual, internalId: 'hidden', name: 'Hidden direct model', modelId: hiddenId },
+            { ...dual, internalId: 'allowed', name: 'Allowed direct model', modelId: allowedId },
+            { ...dual, internalId: 'title-only', name: titleOnly, modelId: 'deepseek-flash' },
+            { ...dual, internalId: 'unknown', name: unknownTitle, modelId: undefined },
+            { ...dual, internalId: 'smart-router', name: 'Default route', modelId: hiddenId },
+            { ...dual, internalId: 'smart-router-fixture', name: 'Named route', modelId: hiddenId },
+          ]}
+          toolModelConfig={{ [toolId]: 'hidden' }}
+          selectedTool={toolId}
+          handleSelectModel={select}
+          t={(key) => key}
+        />
+      );
+      expect(markup).not.toContain('Hidden direct model');
+      for (const visible of [
+        'Allowed direct model',
+        titleOnly,
+        unknownTitle,
+        'Default route',
+        'Named route',
+      ]) {
+        expect(markup).toContain(visible);
+      }
+      expect(select).not.toHaveBeenCalled();
+      expect(apply).not.toHaveBeenCalled();
+    }
+  );
+
+  it.each(['opencode', 'vscode', 'claudescience'])(
+    'keeps both model families available to unrelated client %s',
+    async (toolId) => {
+      vi.stubGlobal('__APP_EDITION__', 'full');
+      const { ModelListSection } = await import('./AppManagerComponents');
+      const markup = renderToStaticMarkup(
+        <ModelListSection
+          selectedToolData={{ ...tool, id: toolId, apiProtocol: ['openai', 'anthropic'] }}
+          userModels={['gpt-6.1-sol', 'claude-opus-5-5'].map((id) => ({
+            ...models[0],
+            internalId: id,
+            name: id,
+            modelId: id,
+            anthropicUrl: 'https://cloud.example/anthropic',
+          }))}
+          toolModelConfig={{}}
+          selectedTool={toolId}
+          handleSelectModel={vi.fn()}
+          t={(key) => key}
+        />
+      );
+      expect(markup).toContain('gpt-6.1-sol');
+      expect(markup).toContain('claude-opus-5-5');
+    }
+  );
+
+  it.each([
     ['qoder', qoderDefinition],
     ['qodercn', qoderCnDefinition],
   ])('shows configured API models for %s', async (toolId, definition) => {

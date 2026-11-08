@@ -1600,6 +1600,107 @@ describe.each(['cline', 'clinedesktop'])('%s API model workflow', (tool) => {
   });
 });
 
+describe('direct model family policy', () => {
+  let renderer: ReactTestRenderer;
+  let context: ReturnType<typeof useAppManager>;
+  function Harness() {
+    const state = useAppManager();
+    useLayoutEffect(() => {
+      context = state;
+    });
+    return null;
+  }
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.useFakeTimers();
+    const storage = new Map<string, string>();
+    vi.stubGlobal('localStorage', {
+      getItem: (key: string) => storage.get(key) ?? null,
+      setItem: (key: string, value: string) => storage.set(key, value),
+    });
+    useNavigationStore.getState().setActivePage('apps');
+    vi.mocked(api.listCodexAccounts).mockResolvedValue([]);
+    vi.mocked(api.listClaudeDesktopAccounts).mockResolvedValue([]);
+    vi.mocked(api.applyModelToTool).mockResolvedValue({ success: true, message: 'ok' });
+    vi.mocked(api.startTool).mockResolvedValue(undefined);
+    vi.mocked(openDialog).mockResolvedValue('/fixture');
+  });
+  afterEach(() => {
+    act(() => renderer?.unmount());
+    useToolsStore.getState().setDetectedTools([]);
+    vi.mocked(api.getModels).mockResolvedValue([]);
+    vi.useRealTimers();
+  });
+  it.each([
+    ['claudecode', 'gpt-6.1-sol', 'claude-opus-5-5'],
+    ['claudedesktop', 'gpt-6.1-sol', 'claude-opus-5-5'],
+    ['codex', 'claude-opus-5-5', 'gpt-6.1-sol'],
+    ['chatgptdesktop', 'claude-opus-5-5', 'gpt-6.1-sol'],
+  ])(
+    'blocks a saved hidden choice for %s before any apply, launch or dialog',
+    async (toolId, hiddenId, allowedId) => {
+      useToolsStore.getState().setDetectedTools([
+        {
+          id: toolId,
+          name: toolId,
+          category: ['codex', 'claudecode'].includes(toolId) ? 'CLI Code' : 'Desktop',
+          installed: true,
+          apiProtocol: ['openai', 'anthropic'],
+        },
+      ]);
+      vi.mocked(api.getModels).mockResolvedValue(
+        [hiddenId, allowedId].map((id) => ({
+          internalId: id,
+          name: id,
+          modelId: id,
+          apiKey: 'fixture-key',
+          baseUrl: 'https://fixture.test/v1',
+          anthropicUrl: 'https://fixture.test/anthropic',
+        }))
+      );
+      await act(async () => {
+        renderer = create(
+          <AppManagerProvider>
+            <Harness />
+          </AppManagerProvider>
+        );
+      });
+      act(() => {
+        context.setSelectedTool(toolId);
+        context.setLaunchAfterApply(true);
+        context.handleSelectModel(toolId, hiddenId);
+      });
+      expect(context.toolModelConfig[toolId]).toBe(hiddenId);
+      expect(api.applyModelToTool).not.toHaveBeenCalled();
+      expect(openDialog).not.toHaveBeenCalled();
+      await act(async () => {
+        await context.handleLaunch();
+      });
+      expect(context.applyError).toBe('agent.directModelUnavailable');
+      expect(context.toolModelConfig[toolId]).toBe(hiddenId);
+      expect(context.isLaunching).toBe(false);
+      expect(api.applyModelToTool).not.toHaveBeenCalled();
+      expect(api.startTool).not.toHaveBeenCalled();
+      expect(api.restoreToolToOfficial).not.toHaveBeenCalled();
+      expect(openDialog).not.toHaveBeenCalled();
+      expect(api.refreshCodexAccountQuota).not.toHaveBeenCalled();
+      act(() => context.handleSelectModel(toolId, allowedId));
+      await act(async () => {
+        await context.handleLaunch();
+      });
+      expect(api.applyModelToTool).toHaveBeenCalledExactlyOnceWith(
+        toolId,
+        expect.objectContaining({ model: allowedId })
+      );
+      expect(api.startTool).toHaveBeenCalledExactlyOnceWith(
+        toolId,
+        undefined,
+        ['codex', 'claudecode'].includes(toolId) ? '/fixture' : undefined
+      );
+    }
+  );
+});
+
 describe('Muse Code API model workflow', () => {
   let renderer: ReactTestRenderer;
   let context: ReturnType<typeof useAppManager>;
