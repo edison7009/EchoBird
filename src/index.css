@@ -155,7 +155,18 @@
   opacity: var(--material-opacity);
 }
 
-/* Basalt is an empty placeholder until its new material lands. */
+/* Approved fine-sand basalt: static grain and pores over the current palette.
+   Transparent shadows/highlights retain the theme's underlying base color. */
+.app-background-basalt {
+  background-image: url('/backgrounds/basalt-dark.png');
+  background-position: center;
+  background-size: cover;
+  background-repeat: no-repeat;
+}
+
+:root[data-theme='light'] .app-background-basalt {
+  background-image: url('/backgrounds/basalt-light.png');
+}
 
 @media (forced-colors: active), (prefers-contrast: more) {
   .app-background-material,

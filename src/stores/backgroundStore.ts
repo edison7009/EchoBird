@@ -6,12 +6,18 @@ const STORAGE_KEY = 'echobird_background';
 function readMode(): BackgroundMode {
   try {
     const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved === 'none' || saved === 'carbon' || saved === 'basalt' || saved === 'monogram')
+    if (
+      saved === 'none' ||
+      saved === 'characters' ||
+      saved === 'carbon' ||
+      saved === 'basalt' ||
+      saved === 'monogram'
+    )
       return saved;
   } catch {
     // Unavailable storage leaves the current default intact.
   }
-  return 'characters';
+  return 'basalt';
 }
 
 export const useBackgroundStore = create<{

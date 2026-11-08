@@ -15,12 +15,12 @@ beforeEach(() => {
 afterEach(() => vi.unstubAllGlobals());
 
 it.each([undefined, 'invalid', 'false'])(
-  'keeps character flow as the default for %s',
+  'defaults to basalt without writing preferences for %s',
   async (value) => {
     if (value) saved.set('echobird_background', value);
     saved.set('echobird_easter_egg', 'false');
     const { useBackgroundStore } = await import('./backgroundStore');
-    expect(useBackgroundStore.getState().mode).toBe('characters');
+    expect(useBackgroundStore.getState().mode).toBe('basalt');
     expect(write).not.toHaveBeenCalled();
   }
 );
@@ -51,7 +51,7 @@ it('keeps explicit choices usable if storage cannot be read or written', async (
     },
   });
   const { useBackgroundStore } = await import('./backgroundStore');
-  expect(useBackgroundStore.getState().mode).toBe('characters');
+  expect(useBackgroundStore.getState().mode).toBe('basalt');
   expect(() => useBackgroundStore.getState().setMode('none')).not.toThrow();
   expect(useBackgroundStore.getState().mode).toBe('none');
 });
