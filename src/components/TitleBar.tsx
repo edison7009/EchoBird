@@ -33,6 +33,17 @@ export const TitleBar: React.FC<TitleBarProps> = ({ onFeedbackClick, onChangelog
   const [showCloseDialog, setShowCloseDialog] = useState(false);
 
   useEffect(() => {
+    let active = true;
+    const unlisten = getCurrentWindow().listen('main-window-close-requested', () => {
+      if (active) setShowCloseDialog(true);
+    });
+    return () => {
+      active = false;
+      unlisten.then((fn) => fn()).catch(() => {});
+    };
+  }, []);
+
+  useEffect(() => {
     // Sync initial state and listen for resize/maximize events
     getCurrentWindow()
       .isMaximized()

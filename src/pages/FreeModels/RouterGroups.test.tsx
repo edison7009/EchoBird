@@ -8,7 +8,7 @@ import { copyText } from '../../utils/copyText';
 import { useNavigationStore } from '../../stores/navigationStore';
 import { FreeModelsProvider, useFreeModels } from './provider';
 import { RouterGroups } from './RouterGroups';
-import type { ViewModeTabPosition } from '../../components/ViewModeTabGroup';
+import { ViewModeTabGroup, type ViewModeTabPosition } from '../../components/ViewModeTabGroup';
 
 const { confirm, showToast } = vi.hoisted(() => ({ confirm: vi.fn(), showToast: vi.fn() }));
 vi.mock('../../hooks/useI18n', () => ({ useI18n: () => ({ t: (key: string) => key }) }));
@@ -589,6 +589,26 @@ describe('Independent smart router groups', () => {
     expect(api.updateModel).not.toHaveBeenCalled();
     expect(confirm).not.toHaveBeenCalled();
     expect(showToast).not.toHaveBeenCalled();
+  });
+
+  it('uses the shared flowing highlight for all seven numbered tabs and retains their controls while switching', async () => {
+    populateGroups(7);
+    await open();
+    const group = renderer.root.findByType(ViewModeTabGroup);
+    const tabs = group.findAllByProps({ role: 'tab' });
+    expect(group.props.positionRef).toBeDefined();
+    expect(tabs.map((tab) => tab.children)).toEqual(
+      ['1', '2', '3', '4', '5', '6', '7'].map((number) => [number])
+    );
+    expect(tabs.every((tab) => tab.props.className.split(' ').includes('view-mode-tab'))).toBe(
+      true
+    );
+    await act(async () => button('freeModels.router.previous').props.onClick());
+    expect(renderer.root.findByType(ViewModeTabGroup)).toBe(group);
+    expect(group.findAllByProps({ role: 'tab' })).toEqual(tabs);
+    expect(tabs[6].props['aria-selected']).toBe(true);
+    expect(tabs.slice(0, 6).every((tab) => !tab.props['aria-selected'])).toBe(true);
+    expect(api.saveSmartRouter).not.toHaveBeenCalled();
   });
 
   it('uses numbered tabs to replace one fixed detail panel without writes or redundant loads', async () => {

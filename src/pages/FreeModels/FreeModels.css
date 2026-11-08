@@ -491,15 +491,10 @@
 
 .free-model-router-group-toolbar {
   display: flex;
+  flex-wrap: nowrap;
   align-items: flex-start;
   min-width: 0;
   min-height: 32px;
-}
-
-.free-model-router-tabs {
-  display: flex;
-  flex-wrap: wrap;
-  min-width: 0;
 }
 
 .free-model-router-tab {
@@ -511,9 +506,9 @@
   flex: 0 0 32px;
 }
 
-/* Keep selection immediate in WebView2 when color transitions are interrupted. */
-html.is-windows .free-model-router-tab {
-  transition-property: color;
+.free-model-router-group-toolbar > .view-mode-tab {
+  flex: 1 1 32px;
+  min-width: 0;
 }
 
 .free-model-router-card-actions {

@@ -1,6 +1,7 @@
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { TitleBar } from './TitleBar';
+import { CloseWindowDialog } from './CloseWindowDialog';
 import { useSidebarStore } from '../stores/sidebarStore';
 import { useNavigationStore as navigation } from '../stores/navigationStore';
 
@@ -11,10 +12,12 @@ const windowApi = vi.hoisted(() => ({
   minimize: vi.fn(async () => {}),
   maximize: vi.fn(async () => {}),
   destroy: vi.fn(async () => {}),
+  listen: vi.fn(),
 }));
 const lifecycleApi = vi.hoisted(() => ({
   hideMainWindow: vi.fn(async () => {}),
   getSettings: vi.fn(),
+  saveSettings: vi.fn(async () => {}),
 }));
 vi.mock('@tauri-apps/api/window', () => ({ getCurrentWindow: () => windowApi }));
 vi.mock('../api/tauri', () => lifecycleApi);
@@ -27,6 +30,7 @@ let view: ReactTestRenderer;
 beforeEach(() => {
   vi.clearAllMocks();
   platform.IS_MACOS = false;
+  windowApi.listen.mockResolvedValue(vi.fn());
   useSidebarStore.setState({ collapsed: false });
   navigation.setState(navigation.getInitialState(), true);
   lifecycleApi.getSettings.mockResolvedValue({
@@ -156,4 +160,69 @@ it('uses the native visibility bridge when closing to the tray', async () => {
   expect(lifecycleApi.hideMainWindow).toHaveBeenCalledTimes(1);
   expect(windowApi.destroy).not.toHaveBeenCalled();
   expect(windowApi.startDragging).not.toHaveBeenCalled();
+});
+
+it.each([true, false])(
+  'opens the existing dialog for native close requests (macOS=%s) without replacing always-ask',
+  async (macOS) => {
+    platform.IS_MACOS = macOS;
+    lifecycleApi.getSettings.mockResolvedValue({ closeWindowBehaviorSet: true, closeToTray: null });
+    await act(async () => {
+      view = create(<TitleBar />);
+    });
+    expect(windowApi.listen).toHaveBeenCalledWith(
+      'main-window-close-requested',
+      expect.any(Function)
+    );
+    const requestClose = windowApi.listen.mock.calls[0][1];
+    const dialog = () => view.root.findByType(CloseWindowDialog);
+    expect(lifecycleApi.getSettings).not.toHaveBeenCalled();
+    act(() => {
+      requestClose();
+      requestClose();
+    });
+    expect(dialog().props.isOpen).toBe(true);
+    expect(windowApi.destroy).not.toHaveBeenCalled();
+    expect(lifecycleApi.hideMainWindow).not.toHaveBeenCalled();
+    await act(async () => dialog().props.onClose(null));
+    expect(dialog().props.isOpen).toBe(false);
+    expect(lifecycleApi.getSettings).not.toHaveBeenCalled();
+    act(() => requestClose());
+    await act(async () => dialog().props.onClose('tray'));
+    expect(lifecycleApi.hideMainWindow).toHaveBeenCalledOnce();
+    expect(windowApi.destroy).not.toHaveBeenCalled();
+    act(() => requestClose());
+    expect(dialog().props.isOpen).toBe(true);
+    await act(async () => dialog().props.onClose('direct'));
+    expect(windowApi.destroy).toHaveBeenCalledOnce();
+    expect(lifecycleApi.saveSettings).not.toHaveBeenCalled();
+  }
+);
+
+it('persists a first native close choice and releases a late listener after unmount', async () => {
+  let finish!: (unlisten: () => void) => void;
+  const unlisten = vi.fn();
+  windowApi.listen.mockImplementationOnce(
+    () =>
+      new Promise((resolve) => {
+        finish = resolve;
+      })
+  );
+  lifecycleApi.getSettings.mockResolvedValue({ closeWindowBehaviorSet: false, closeToTray: null });
+  await act(async () => {
+    view = create(<TitleBar />);
+  });
+  const requestClose = windowApi.listen.mock.calls[0][1];
+  act(() => requestClose());
+  await act(async () => view.root.findByType(CloseWindowDialog).props.onClose('tray'));
+  expect(lifecycleApi.saveSettings).toHaveBeenCalledWith({
+    closeToTray: true,
+    closeWindowBehaviorSet: true,
+  });
+  expect(lifecycleApi.hideMainWindow).toHaveBeenCalledOnce();
+  act(() => view.unmount());
+  await act(async () => finish(unlisten));
+  expect(unlisten).toHaveBeenCalledOnce();
+  act(() => requestClose());
+  expect(windowApi.destroy).not.toHaveBeenCalled();
 });

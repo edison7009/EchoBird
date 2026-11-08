@@ -341,8 +341,10 @@ describe('ModelListSection', () => {
           const supportsSwitch =
             card.props.model.internalId === 'smart-router' && SMART_ROUTER_SWITCH_TOOLS.has(toolId);
           expect(badge.includes('可切换')).toBe(supportsSwitch);
-          if (card.props.model.internalId === 'smart-router')
+          if (card.props.model.internalId === 'smart-router') {
             expect(card.props.selected).toBe(true);
+            expect(badge).not.toMatch(/\b(?:bg-|rounded|px-|py-)/);
+          }
         }
       } finally {
         act(() => renderer?.unmount());

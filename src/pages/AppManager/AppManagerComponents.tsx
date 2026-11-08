@@ -734,10 +734,10 @@ export const ModelListSection: React.FC<ModelListSectionProps> = ({
         badge={
           badge && (
             <span
-              className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-medium leading-none ${
+              className={`shrink-0 text-[10px] font-medium leading-none ${
                 badge === 'smart'
-                  ? 'bg-cyber-accent/10 text-cyber-accent'
-                  : 'bg-cyber-text/10 text-cyber-text-secondary'
+                  ? 'text-cyber-accent'
+                  : 'rounded px-1.5 py-0.5 bg-cyber-text/10 text-cyber-text-secondary'
               }`}
             >
               {t(badge === 'smart' ? 'agent.badge.smart' : 'agent.badge.local')}
@@ -748,7 +748,7 @@ export const ModelListSection: React.FC<ModelListSectionProps> = ({
           badge === 'smart' &&
           selectedTool &&
           SMART_ROUTER_SWITCH_TOOLS.has(selectedTool) && (
-            <span className="model-switch-badge shrink-0 rounded px-1.5 py-0.5 text-[10px] font-medium leading-none bg-emerald-500/10 text-emerald-700">
+            <span className="model-switch-label shrink-0 text-[10px] font-medium leading-none text-emerald-700">
               {t('agent.badge.switch')}
             </span>
           )

@@ -12,7 +12,7 @@ import { createPortal } from 'react-dom';
 import { Lock, Plus, SquarePen, Trash2, Unlock, X } from 'lucide-react';
 import * as api from '../../api/tauri';
 import { RoutingToggle } from '../../components/RoutingToggle';
-import { type ViewModeTabPosition } from '../../components/ViewModeTabGroup';
+import { ViewModeTabGroup, type ViewModeTabPosition } from '../../components/ViewModeTabGroup';
 import { useConfirm } from '../../components/ConfirmDialog';
 import { useToast } from '../../components/Toast';
 import { useI18n } from '../../hooks/useI18n';
@@ -326,7 +326,7 @@ function RouterSettingsModal({
 export function RouterGroups({
   hubRef,
   restoreFocusRef,
-  tabPositionRef: _tabPositionRef,
+  tabPositionRef,
   refreshAction,
 }: {
   hubRef: RefObject<HTMLDivElement>;
@@ -431,59 +431,58 @@ export function RouterGroups({
     }
   };
   const groupNavigation = (
-    <div className="free-model-router-group-toolbar overflow-hidden rounded-button border border-cyber-border">
-      <div
-        role="tablist"
-        aria-label={t('freeModels.router.title')}
-        className="free-model-router-tabs"
-      >
-        {routers.map((router, index) => (
-          <button
-            key={router.id}
-            type="button"
-            role="tab"
-            ref={router.id === activeRouterId ? selectedTabRef : undefined}
-            id={`router-group-tab-${router.id}`}
-            aria-label={router.name}
-            aria-selected={router.id === activeRouterId}
-            aria-controls={`router-group-panel-${router.id}`}
-            tabIndex={router.id === activeRouterId ? 0 : -1}
-            disabled={busy}
-            onClick={() => selectTab(router.id)}
-            onKeyDown={(event) => {
-              if (busy || !['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
-              event.preventDefault();
-              const next =
-                event.key === 'Home'
-                  ? 0
-                  : event.key === 'End'
-                    ? routers.length - 1
-                    : (index + (event.key === 'ArrowRight' ? 1 : routers.length - 1)) %
-                      routers.length;
-              const tabs =
-                event.currentTarget.parentElement?.querySelectorAll<HTMLButtonElement>(
-                  '[role="tab"]'
-                );
-              tabs?.[next]?.focus();
-            }}
-            className={`free-model-router-tab text-xs transition-colors ${router.id === activeRouterId ? 'bg-cyber-accent text-white font-semibold hover:bg-cyber-accent-secondary' : routerEnabled && router.groupEnabled ? 'font-bold text-cyber-accent hover:text-cyber-text' : 'text-cyber-text-secondary hover:text-cyber-text'}`}
-          >
-            {index + 1}
-          </button>
-        ))}
-      </div>
+    <ViewModeTabGroup
+      role="tablist"
+      aria-label={t('freeModels.router.title')}
+      className="view-mode-tabs free-model-router-group-toolbar overflow-hidden rounded-button border border-cyber-border"
+      positionRef={tabPositionRef}
+    >
+      {routers.map((router, index) => (
+        <button
+          key={router.id}
+          type="button"
+          role="tab"
+          ref={router.id === activeRouterId ? selectedTabRef : undefined}
+          id={`router-group-tab-${router.id}`}
+          aria-label={router.name}
+          aria-selected={router.id === activeRouterId}
+          aria-controls={`router-group-panel-${router.id}`}
+          tabIndex={router.id === activeRouterId ? 0 : -1}
+          disabled={busy}
+          onClick={() => selectTab(router.id)}
+          onKeyDown={(event) => {
+            if (busy || !['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+            event.preventDefault();
+            const next =
+              event.key === 'Home'
+                ? 0
+                : event.key === 'End'
+                  ? routers.length - 1
+                  : (index + (event.key === 'ArrowRight' ? 1 : routers.length - 1)) %
+                    routers.length;
+            const tabs =
+              event.currentTarget.parentElement?.querySelectorAll<HTMLButtonElement>(
+                '[role="tab"]'
+              );
+            tabs?.[next]?.focus();
+          }}
+          className={`view-mode-tab free-model-router-tab text-xs transition-[color] ${router.id === activeRouterId ? 'text-white font-semibold' : routerEnabled && router.groupEnabled ? 'font-bold text-cyber-accent hover:text-cyber-text' : 'text-cyber-text-secondary hover:text-cyber-text'}`}
+        >
+          {index + 1}
+        </button>
+      ))}
       {canAdd && (
         <button
           type="button"
           disabled={busy}
           onClick={add}
           aria-label={t('freeModels.router.add')}
-          className="free-model-router-tab text-cyber-text-secondary hover:bg-cyber-elevated hover:text-cyber-text"
+          className="free-model-router-tab relative z-[1] text-cyber-text-secondary hover:bg-cyber-elevated hover:text-cyber-text"
         >
           <Plus size={16} />
         </button>
       )}
-    </div>
+    </ViewModeTabGroup>
   );
   const hub = (router: api.SmartRouterConfig) => {
     const list = layout === 'list';

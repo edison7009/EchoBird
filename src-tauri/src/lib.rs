@@ -814,9 +814,8 @@ pub fn run() {
                 }
             }
 
-            // Note: Window close interception is now handled in the frontend (App.tsx)
-            // using getCurrentWindow().onCloseRequested() API, which is the recommended
-            // approach in Tauri 2.0 for cross-platform compatibility.
+            // app_lifecycle owns native close policy and requests the existing
+            // frontend close dialog when confirmation is required.
 
             // Restore previous window size + position (saved at ~/.echobird/window-state.json).
             // Manual because the tauri-plugin-window-state plugin intercepts

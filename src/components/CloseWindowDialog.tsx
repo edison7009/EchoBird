@@ -1,5 +1,6 @@
 // CloseWindowDialog — First-time close behavior selection dialog
 import React, { useState, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { useI18n } from '../hooks/useI18n';
 
 interface CloseWindowDialogProps {
@@ -27,17 +28,21 @@ export const CloseWindowDialog: React.FC<CloseWindowDialogProps> = ({ isOpen, on
   useEffect(() => {
     if (!isOpen) return;
     const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') handleClose(null);
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        handleClose(null);
+      }
     };
-    window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
+    window.addEventListener('keydown', handler, true);
+    return () => window.removeEventListener('keydown', handler, true);
   }, [isOpen, handleClose]);
 
   if (!isOpen) return null;
 
-  return (
+  return createPortal(
     <div
-      className={`fixed inset-0 z-[9998] flex items-center justify-center transition-all duration-200 ${
+      className={`fixed inset-0 z-[10000] flex items-center justify-center transition-all duration-200 ${
         isAnimatingOut ? 'opacity-0' : 'opacity-100'
       }`}
     >
@@ -84,6 +89,7 @@ export const CloseWindowDialog: React.FC<CloseWindowDialogProps> = ({ isOpen, on
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
