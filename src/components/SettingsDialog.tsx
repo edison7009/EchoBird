@@ -754,6 +754,7 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
                       { value: 'none', label: t('settings.backgroundNone') },
                       { value: 'characters', label: t('settings.backgroundCharacters') },
                       { value: 'carbon', label: t('settings.backgroundCarbon') },
+                      { value: 'basalt', label: t('settings.backgroundBasalt') },
                       { value: 'monogram', label: t('settings.backgroundMonogram') },
                     ]}
                   />

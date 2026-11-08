@@ -470,6 +470,7 @@ const en: Translations = {
   'settings.backgroundNone': 'None',
   'settings.backgroundCharacters': 'Character flow',
   'settings.backgroundCarbon': 'Carbon',
+  'settings.backgroundBasalt': 'Basalt',
   'settings.backgroundMonogram': 'Monogram',
   'settings.themeLight': 'Light',
   'settings.themeDark': 'Dark',

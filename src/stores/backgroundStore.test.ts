@@ -25,7 +25,7 @@ it.each([undefined, 'invalid', 'false'])(
   }
 );
 
-it.each(['none', 'characters', 'carbon', 'monogram'] as const)(
+it.each(['none', 'characters', 'carbon', 'basalt', 'monogram'] as const)(
   'restores %s after restart independently of the Easter Egg preference',
   async (mode) => {
     saved.set('echobird_easter_egg', 'false');

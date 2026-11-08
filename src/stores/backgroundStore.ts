@@ -1,12 +1,13 @@
 import { create } from 'zustand';
 
-export type BackgroundMode = 'none' | 'characters' | 'carbon' | 'monogram';
+export type BackgroundMode = 'none' | 'characters' | 'carbon' | 'basalt' | 'monogram';
 const STORAGE_KEY = 'echobird_background';
 
 function readMode(): BackgroundMode {
   try {
     const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved === 'none' || saved === 'carbon' || saved === 'monogram') return saved;
+    if (saved === 'none' || saved === 'carbon' || saved === 'basalt' || saved === 'monogram')
+      return saved;
   } catch {
     // Unavailable storage leaves the current default intact.
   }

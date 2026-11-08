@@ -503,6 +503,7 @@ const ja: Partial<Translations> = {
   'settings.backgroundNone': 'なし',
   'settings.backgroundCharacters': '文字フロー',
   'settings.backgroundCarbon': 'カーボン',
+  'settings.backgroundBasalt': '玄武岩',
   'settings.backgroundMonogram': 'モノグラム',
   'settings.themeLight': 'ライト',
   'settings.themeDark': 'ダーク',

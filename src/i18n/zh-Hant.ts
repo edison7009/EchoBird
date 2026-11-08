@@ -480,6 +480,7 @@ const zhHant: Partial<Translations> = {
   'settings.backgroundNone': '無背景',
   'settings.backgroundCharacters': '字元流',
   'settings.backgroundCarbon': '碳纖維',
+  'settings.backgroundBasalt': '碳岩',
   'settings.backgroundMonogram': '老花紋',
   'settings.themeLight': '淺色',
   'settings.themeDark': '深色',

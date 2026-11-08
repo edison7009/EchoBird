@@ -334,6 +334,7 @@ export type TKey =
   | 'settings.backgroundNone'
   | 'settings.backgroundCharacters'
   | 'settings.backgroundCarbon'
+  | 'settings.backgroundBasalt'
   | 'settings.backgroundMonogram'
   | 'settings.themeLight'
   | 'settings.themeDark'
