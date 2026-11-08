@@ -155,57 +155,67 @@
   opacity: var(--material-opacity);
 }
 
-/* Matte carbon-rock: charcoal vignette, film grain, and soft stone pools.
+/* Direction A charcoal atmosphere: cool base, center lift, soft bokeh, film grain.
    Separate from the carbon twill so the two materials stay distinct. */
 .app-background-basalt {
-  background-color: rgb(var(--bg-base-rgb));
-  background-image:
-    radial-gradient(128% 96% at 50% 34%, rgb(var(--bg-elevated-rgb) / 0.9), transparent 66%),
-    radial-gradient(155% 130% at 50% 50%, transparent 32%, rgb(0 0 0 / 0.46) 100%);
   isolation: isolate;
+  overflow: hidden;
+  background-color: #09090a;
+  background-image:
+    radial-gradient(
+      ellipse 80% 55% at 50% 28%,
+      rgb(255 255 255 / 0.045) 0%,
+      rgb(255 255 255 / 0) 62%
+    ),
+    linear-gradient(180deg, #101012 0%, #0b0b0c 45%, #09090a 100%);
 }
 
 .app-background-basalt::before {
   content: '';
   position: absolute;
-  z-index: 1;
-  inset: 0;
-  background-image: url('/backgrounds/basalt.svg');
-  background-size: 180px 180px;
-  mix-blend-mode: overlay;
-  opacity: 0.14;
+  z-index: 0;
+  inset: -20%;
   pointer-events: none;
+  opacity: 0.06;
+  background:
+    radial-gradient(circle at 12% 40%, rgb(255 140 80 / 0.55) 0%, transparent 42%),
+    radial-gradient(circle at 88% 35%, rgb(180 160 255 / 0.35) 0%, transparent 40%),
+    radial-gradient(circle at 70% 78%, rgb(255 255 255 / 0.25) 0%, transparent 36%),
+    radial-gradient(circle at 30% 75%, rgb(255 180 120 / 0.2) 0%, transparent 38%);
+  filter: blur(60px);
+  transform: scale(1.05);
 }
 
 .app-background-basalt::after {
   content: '';
   position: absolute;
-  z-index: 0;
-  inset: -18%;
-  background:
-    radial-gradient(closest-side at 14% 30%, rgb(0 0 0 / 0.9), transparent 72%),
-    radial-gradient(closest-side at 86% 20%, rgb(0 0 0 / 0.72), transparent 70%),
-    radial-gradient(closest-side at 76% 84%, rgb(0 0 0 / 0.8), transparent 72%),
-    radial-gradient(closest-side at 18% 82%, rgb(0 0 0 / 0.62), transparent 68%),
-    radial-gradient(closest-side at 48% 42%, rgb(var(--bg-elevated-rgb) / 0.95), transparent 70%);
-  filter: blur(56px);
-  opacity: 0.12;
+  z-index: 1;
+  inset: 0;
   pointer-events: none;
+  opacity: 0.1;
+  mix-blend-mode: soft-light;
+  background-image: url('/backgrounds/basalt.svg');
+  background-size: 180px 180px;
 }
 
 :root[data-theme='light'] .app-background-basalt {
+  background-color: rgb(var(--bg-base-rgb));
   background-image:
-    radial-gradient(120% 90% at 50% 28%, rgb(255 255 255 / 0.72), transparent 58%),
-    radial-gradient(145% 120% at 50% 50%, transparent 46%, rgb(var(--text-muted-rgb) / 0.2) 100%);
+    radial-gradient(
+      ellipse 78% 52% at 50% 22%,
+      rgb(255 255 255 / 0.85) 0%,
+      rgb(255 255 255 / 0) 64%
+    ),
+    linear-gradient(180deg, rgb(var(--bg-base-rgb)) 0%, rgb(var(--bg-terminal-rgb)) 100%);
 }
 
 :root[data-theme='light'] .app-background-basalt::before {
-  mix-blend-mode: multiply;
-  opacity: 0.16;
+  opacity: 0.04;
 }
 
 :root[data-theme='light'] .app-background-basalt::after {
-  opacity: 0.05;
+  mix-blend-mode: multiply;
+  opacity: 0.07;
 }
 
 @media (forced-colors: active), (prefers-contrast: more) {
