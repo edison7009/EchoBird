@@ -155,8 +155,8 @@
   opacity: var(--material-opacity);
 }
 
-/* Direction A charcoal atmosphere: cool base, center lift, soft bokeh, film grain.
-   Separate from the carbon twill so the two materials stay distinct. */
+/* Matte charcoal stone: cool base, a very faint center lift, and fine film grain.
+   No colored bokeh. Separate from the carbon twill. */
 .app-background-basalt {
   isolation: isolate;
   overflow: hidden;
@@ -164,26 +164,10 @@
   background-image:
     radial-gradient(
       ellipse 80% 55% at 50% 28%,
-      rgb(255 255 255 / 0.045) 0%,
+      rgb(255 255 255 / 0.028) 0%,
       rgb(255 255 255 / 0) 62%
     ),
     linear-gradient(180deg, #101012 0%, #0b0b0c 45%, #09090a 100%);
-}
-
-.app-background-basalt::before {
-  content: '';
-  position: absolute;
-  z-index: 0;
-  inset: -20%;
-  pointer-events: none;
-  opacity: 0.06;
-  background:
-    radial-gradient(circle at 12% 40%, rgb(255 140 80 / 0.55) 0%, transparent 42%),
-    radial-gradient(circle at 88% 35%, rgb(180 160 255 / 0.35) 0%, transparent 40%),
-    radial-gradient(circle at 70% 78%, rgb(255 255 255 / 0.25) 0%, transparent 36%),
-    radial-gradient(circle at 30% 75%, rgb(255 180 120 / 0.2) 0%, transparent 38%);
-  filter: blur(60px);
-  transform: scale(1.05);
 }
 
 .app-background-basalt::after {
@@ -203,14 +187,10 @@
   background-image:
     radial-gradient(
       ellipse 78% 52% at 50% 22%,
-      rgb(255 255 255 / 0.85) 0%,
+      rgb(255 255 255 / 0.55) 0%,
       rgb(255 255 255 / 0) 64%
     ),
     linear-gradient(180deg, rgb(var(--bg-base-rgb)) 0%, rgb(var(--bg-terminal-rgb)) 100%);
-}
-
-:root[data-theme='light'] .app-background-basalt::before {
-  opacity: 0.04;
 }
 
 :root[data-theme='light'] .app-background-basalt::after {
