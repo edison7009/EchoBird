@@ -511,6 +511,11 @@
   flex: 0 0 32px;
 }
 
+/* Keep selection immediate in WebView2 when color transitions are interrupted. */
+html.is-windows .free-model-router-tab {
+  transition-property: color;
+}
+
 .free-model-router-card-actions {
   margin-top: auto;
 }

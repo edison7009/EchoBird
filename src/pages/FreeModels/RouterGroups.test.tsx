@@ -3,6 +3,7 @@ import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { readText as readClipboardText } from '@tauri-apps/plugin-clipboard-manager';
 import * as api from '../../api/tauri';
+import type { ModelConfig } from '../../api/types';
 import { copyText } from '../../utils/copyText';
 import { useNavigationStore } from '../../stores/navigationStore';
 import { FreeModelsProvider, useFreeModels } from './provider';
@@ -46,6 +47,7 @@ describe('Independent smart router groups', () => {
     }
   >;
   const restoreFocusRef = { current: false };
+  let onCommit: (() => void) | undefined;
   const secondId = 'smart-router-734b8fb0-218f-4eb7-ac33-57901df8f983';
   function Harness() {
     const value = useFreeModels();
@@ -53,10 +55,10 @@ describe('Independent smart router groups', () => {
     const tabPositionRef = useRef<ViewModeTabPosition | null>(null);
     useLayoutEffect(() => {
       context = value;
+      onCommit?.();
     });
     return (
       <RouterGroups
-        key={value.activeRouterId}
         hubRef={hubRef}
         restoreFocusRef={restoreFocusRef}
         tabPositionRef={tabPositionRef}
@@ -134,6 +136,7 @@ describe('Independent smart router groups', () => {
       groups.map((group) => [`router-group-tab-${group.id}`, { offsetParent: {}, focus: vi.fn() }])
     );
     restoreFocusRef.current = false;
+    onCommit = undefined;
     useNavigationStore.setState({ activePage: 'freeModels' });
     vi.stubGlobal('window', { setTimeout });
     vi.stubGlobal('document', {
@@ -536,6 +539,56 @@ describe('Independent smart router groups', () => {
     expect(api.setSmartRouterGroupEnabled).not.toHaveBeenCalled();
     expect(api.setSmartRouterCandidates).not.toHaveBeenCalled();
     expect(confirm).not.toHaveBeenCalled();
+  });
+
+  it('commits one numbered selection per successful arrow switch without restoring an older selection', async () => {
+    populateGroups(7);
+    await open();
+    const tabs = () => renderer.root.findAllByProps({ role: 'tab' });
+    const originalTabs = tabs();
+    const selections: string[] = [];
+    const recordSelection = () => {
+      const selected = tabs().filter((tab) => tab.props['aria-selected']);
+      expect(selected).toHaveLength(1);
+      expect(selected[0].props['aria-controls']).toBe(
+        renderer.root.findByProps({ role: 'tabpanel' }).props.id
+      );
+      expect(tabs()).toEqual(originalTabs);
+      const id = context.activeRouterId;
+      if (selections[selections.length - 1] !== id) selections.push(id);
+    };
+    onCommit = recordSelection;
+    recordSelection();
+    let finish!: (models: ModelConfig[]) => void;
+    vi.mocked(api.getSmartRouterCandidates).mockImplementationOnce(
+      () => new Promise((resolve) => (finish = resolve))
+    );
+    const reads = vi.mocked(api.getSmartRouterCandidates).mock.calls.length;
+    await act(async () => {
+      button('freeModels.router.next').props.onClick();
+      button('freeModels.router.next').props.onClick();
+    });
+    expect(context.groupPending).toBe(true);
+    expect(selections).toEqual([groups[0].id]);
+    expect(api.getSmartRouterCandidates).toHaveBeenCalledTimes(reads + 1);
+    await act(async () => finish([]));
+    expect(selections).toEqual([groups[0].id, groups[1].id]);
+    for (const direction of ['previous', 'previous', 'next'])
+      await act(async () => button(`freeModels.router.${direction}`).props.onClick());
+    expect(selections).toEqual([
+      groups[0].id,
+      groups[1].id,
+      groups[0].id,
+      groups[6].id,
+      groups[0].id,
+    ]);
+    expect(api.saveSmartRouter).not.toHaveBeenCalled();
+    expect(api.setSmartRouterEnabled).not.toHaveBeenCalled();
+    expect(api.setSmartRouterGroupEnabled).not.toHaveBeenCalled();
+    expect(api.setSmartRouterCandidates).not.toHaveBeenCalled();
+    expect(api.updateModel).not.toHaveBeenCalled();
+    expect(confirm).not.toHaveBeenCalled();
+    expect(showToast).not.toHaveBeenCalled();
   });
 
   it('uses numbered tabs to replace one fixed detail panel without writes or redundant loads', async () => {
