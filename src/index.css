@@ -155,19 +155,14 @@
   opacity: var(--material-opacity);
 }
 
-/* Matte charcoal stone: cool base, a very faint center lift, and fine film grain.
-   No colored bokeh. Separate from the carbon twill. */
+/* Matte charcoal stone. The tile is grayscale rock mottling, not a flat wash
+   or colored light. Separate from the carbon twill. */
 .app-background-basalt {
   isolation: isolate;
   overflow: hidden;
-  background-color: #09090a;
-  background-image:
-    radial-gradient(
-      ellipse 80% 55% at 50% 28%,
-      rgb(255 255 255 / 0.028) 0%,
-      rgb(255 255 255 / 0) 62%
-    ),
-    linear-gradient(180deg, #101012 0%, #0b0b0c 45%, #09090a 100%);
+  background-color: #0c0c0e;
+  background-image: url('/backgrounds/basalt.svg');
+  background-size: 720px 720px;
 }
 
 .app-background-basalt::after {
@@ -176,26 +171,19 @@
   z-index: 1;
   inset: 0;
   pointer-events: none;
-  opacity: 0.1;
-  mix-blend-mode: soft-light;
-  background-image: url('/backgrounds/basalt.svg');
-  background-size: 180px 180px;
+  background: radial-gradient(ellipse 100% 92% at 50% 46%, transparent 62%, rgb(0 0 0 / 0.2) 100%);
 }
 
 :root[data-theme='light'] .app-background-basalt {
   background-color: rgb(var(--bg-base-rgb));
-  background-image:
-    radial-gradient(
-      ellipse 78% 52% at 50% 22%,
-      rgb(255 255 255 / 0.55) 0%,
-      rgb(255 255 255 / 0) 64%
-    ),
-    linear-gradient(180deg, rgb(var(--bg-base-rgb)) 0%, rgb(var(--bg-terminal-rgb)) 100%);
+  background-image: none;
 }
 
 :root[data-theme='light'] .app-background-basalt::after {
+  opacity: 0.14;
   mix-blend-mode: multiply;
-  opacity: 0.07;
+  background-image: url('/backgrounds/basalt.svg');
+  background-size: 720px 720px;
 }
 
 @media (forced-colors: active), (prefers-contrast: more) {
