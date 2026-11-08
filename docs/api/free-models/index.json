@@ -1,7 +1,7 @@
 {
   "$schema-comment": "Remote-updatable free model catalog.",
   "version": 1,
-  "updatedAt": "2026-11-02",
+  "updatedAt": "2026-11-08",
   "models": [
     {
       "id": "kilo:kilo-auto/free",
@@ -2638,6 +2638,22 @@
       "phoneRequired": false,
       "commercialOk": true,
       "verifiedAt": "2026-10-20"
+    },
+    {
+      "id": "openrouter:stealth/crouton-alpha",
+      "providerId": "openrouter",
+      "provider": "OpenRouter",
+      "modelId": "stealth/crouton-alpha",
+      "baseUrl": "https://openrouter.ai/api/v1",
+      "freeType": "renewing-quota",
+      "freeTier": "A rotating catalog of models whose IDs end in :free, available behind one OpenRouter API key",
+      "rateLimits": "20 req/min; 50 req/day under 10 credits purchased lifetime, 1000 req/day once 10+ credits purchased (one-time, not a subscription)",
+      "notes": "ToS (Jul 2026) prohibits reselling API access or building a competing service — platform-wide, not just the free models; per-model terms still apply",
+      "docsUrl": "https://openrouter.ai/docs/api-reference/limits",
+      "cardRequired": false,
+      "phoneRequired": false,
+      "commercialOk": true,
+      "verifiedAt": "2026-11-08"
     }
   ]
 }
