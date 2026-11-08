@@ -8,6 +8,8 @@
 
 mod app_lifecycle;
 pub mod commands;
+#[cfg(target_os = "macos")]
+mod macos_appearance;
 pub mod models;
 pub mod services;
 pub mod utils;
@@ -757,6 +759,7 @@ pub fn run() {
             // the custom frameless title bar, so they are left untouched.
             #[cfg(target_os = "macos")]
             {
+                macos_appearance::install(app);
                 let menu_locale = settings_commands::get_settings()
                     .locale
                     .unwrap_or_else(|| "en".to_string());
