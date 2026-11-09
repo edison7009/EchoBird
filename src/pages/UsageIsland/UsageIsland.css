@@ -606,7 +606,7 @@
   gap: 2px;
   width: 64px;
   height: 70px;
-  margin: -35px 0 0 -32px;
+  margin: -32px 0 0 -32px;
   rotate: var(--usage-island-dial-turn);
   transition: rotate 0.42s cubic-bezier(0.2, 0.75, 0.25, 1);
   will-change: rotate;
