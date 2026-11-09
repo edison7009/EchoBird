@@ -1643,10 +1643,8 @@ textarea:-webkit-autofill:focus {
   color: #ef4444;
 }
 
-/* Both translucent modes use the dark surface at 15% opacity, regardless
-   of the app/system appearance. Keep legacy IDs for saved configurations. */
-.voice-island.voice-theme-iridescent,
-.usage-island.usage-island-theme-translucent {
+/* Legacy translucent styling remains for the voice island only. */
+.voice-island.voice-theme-iridescent {
   --usage-island-fg: #ececec;
   --usage-island-track: #3d3d3d;
   color: #ececec;

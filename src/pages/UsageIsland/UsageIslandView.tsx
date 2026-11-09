@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react';
-import { Box } from 'lucide-react';
+import { Box, Gift, RefreshCw, Zap } from 'lucide-react';
 import { useI18n } from '../../hooks/useI18n';
 import { useSystemDark } from '../../hooks/useSystemDark';
 import { useThemeStore } from '../../stores/themeStore';
@@ -7,10 +7,13 @@ import { ACCOUNT_NAME_MASK, useAccountPrivacyStore } from '../../stores/accountP
 import type { UsageIslandConfig, UsageIslandStyle } from '../../stores/usageIslandStore';
 import { quotaTone } from '../../utils/quotaColors';
 import { QuotaCountdown } from '../AppManager/QuotaCountdown';
-import { compactValue, type UsageIslandItem } from './usageIslandData';
+import { compactValue, type UsageIslandAction, type UsageIslandItem } from './usageIslandData';
 
 const LOGO_SIZE = 48;
 const COLUMN_ITEM_HEIGHT = 54;
+const LIST_ITEM_HEIGHT = 64;
+const LIST_ITEM_GAP = 12;
+const LIST_WIDTH = 280;
 // Logo slot plus the end padding, and the gap between sources; both mirror the CSS.
 const TOOLS_INSET = 60;
 const TOOLS_GAP = 12;
@@ -27,12 +30,17 @@ interface ItemDisplay {
   tone: string;
 }
 
-export type IslandSettings = Pick<UsageIslandConfig, 'style' | 'reversed' | 'theme' | 'expandMode'>;
+export type IslandSettings = Pick<
+  UsageIslandConfig,
+  'style' | 'reversed' | 'theme' | 'expandMode'
+> &
+  Partial<Pick<UsageIslandConfig, 'opacity' | 'showSmartAccess'>>;
 
 export interface IslandLayout {
   expanded: boolean;
   width: number;
   height: number;
+  radius?: number;
   // Which part of the window stays put when it resizes: 0 start, 0.5 center, 1 end.
   anchorX: number;
   anchorY: number;
@@ -77,9 +85,17 @@ function SourceIcon({ icon }: { icon: string | null }) {
   );
 }
 
-function Gauge({ percent, icon }: { percent: number | null; icon: string | null }) {
+function Gauge({
+  percent,
+  icon,
+  smartActive = false,
+}: {
+  percent: number | null;
+  icon: string | null;
+  smartActive?: boolean;
+}) {
   return (
-    <span className="usage-island-gauge">
+    <span className="usage-island-gauge" data-smart-active={smartActive || undefined}>
       <svg viewBox="0 0 32 32" aria-hidden="true">
         <circle className="usage-island-gauge-track" cx="16" cy="16" r="14.5" pathLength="100" />
         {!!percent && (
@@ -118,11 +134,19 @@ function UsageRows({ item }: { item: UsageIslandItem }) {
   );
 }
 
-function UsageLines({ item, name }: { item: UsageIslandItem; name: string }) {
+function UsageLines({
+  item,
+  name,
+  icon = true,
+}: {
+  item: UsageIslandItem;
+  name: string;
+  icon?: boolean;
+}) {
   return (
     <span className="usage-island-lines">
       <span className="usage-island-line-title">
-        <SourceIcon icon={item.icon} />
+        {icon && <SourceIcon icon={item.icon} />}
         <span className="usage-island-line-name">{name}</span>
       </span>
       <span className="usage-island-line-quotas">
@@ -186,12 +210,67 @@ function Dial({
           }}
           onClick={() => onPick?.(item.key === pick ? null : item.key)}
         >
-          <Gauge percent={item.percent} icon={item.icon} />
+          <Gauge percent={item.percent} icon={item.icon} smartActive={item.smartActive} />
           <span className="usage-island-amount">{item.value}</span>
         </button>
       </div>
     );
   });
+}
+
+export interface UsageIslandActions {
+  warmUp: boolean;
+  claim: boolean;
+  refresh: boolean;
+  blocked: boolean;
+  running: UsageIslandAction | null;
+}
+
+function ListActions({
+  actions,
+  onAction,
+}: {
+  actions?: UsageIslandActions;
+  onAction?: (action: UsageIslandAction) => void;
+}) {
+  const { t } = useI18n();
+  return (
+    <div className="usage-island-list-actions">
+      {(
+        [
+          ['warmUp', Zap, 'agent.warmUpAccount'],
+          ['claim', Gift, 'accountCenter.claimAll'],
+          ['refresh', RefreshCw, 'btn.refresh'],
+        ] as const
+      ).map(
+        ([action, Icon, label]) =>
+          (action === 'refresh' || actions?.[action]) && (
+            <button
+              key={action}
+              type="button"
+              aria-label={t(label)}
+              disabled={!actions?.[action] || actions.blocked || !onAction}
+              onClick={(event) => {
+                event.stopPropagation();
+                onAction?.(action);
+              }}
+            >
+              <Icon
+                size={14}
+                aria-hidden="true"
+                className={
+                  actions?.running === action
+                    ? action === 'refresh'
+                      ? 'animate-spin'
+                      : 'animate-pulse'
+                    : undefined
+                }
+              />
+            </button>
+          )
+      )}
+    </div>
+  );
 }
 
 export function UsageIslandView({
@@ -203,6 +282,8 @@ export function UsageIslandView({
   masked = false,
   available,
   onLayout,
+  onAction,
+  actions,
 }: {
   items: UsageIslandItem[];
   settings: IslandSettings;
@@ -215,6 +296,8 @@ export function UsageIslandView({
   /** Fixed width for hosts that follow the island instead of containing it. */
   available?: number;
   onLayout?: (layout: IslandLayout) => void;
+  onAction?: (action: UsageIslandAction) => void;
+  actions?: UsageIslandActions;
 }) {
   const { t } = useI18n();
   const resolved = useThemeStore((theme) => theme.resolved);
@@ -222,6 +305,7 @@ export function UsageIslandView({
   const [hovered, setHovered] = useState(false);
   const [pinned, setPinned] = useState(false);
   const { style, theme, expandMode } = settings;
+  const effectiveTheme = (theme as string) === 'translucent' ? 'dark' : theme;
   const reversed = settings.reversed.includes(style);
   const layout = islandLayout(style);
   const { root, tools, fit } = useIslandFit(layout);
@@ -229,26 +313,35 @@ export function UsageIslandView({
   const picked = items.find((item) => item.key === pick);
   const systemDark = useSystemDark();
   const surface =
-    theme === 'auto'
+    effectiveTheme === 'auto'
       ? resolved
-      : theme === 'system' && !systemDark
+      : effectiveTheme === 'system' && !systemDark
         ? 'light'
-        : theme === 'system' || theme === 'translucent'
+        : effectiveTheme === 'system'
           ? 'dark'
-          : theme;
+          : effectiveTheme;
   const expanded =
     items.length > 0 &&
     (expandMode === 'always' ||
       (expandMode === 'click' && pinned) ||
       (expandMode === 'hover' && (hover ?? hovered)));
+  const vertical = layout === 'column' || layout === 'list';
   const fullSize = {
     width:
-      layout === 'dial' ? DIAL_SIZE : layout === 'column' ? LOGO_SIZE : fit.content + TOOLS_INSET,
+      layout === 'dial'
+        ? DIAL_SIZE
+        : layout === 'list'
+          ? Math.min(LIST_WIDTH, width || LIST_WIDTH)
+          : layout === 'column'
+            ? LOGO_SIZE
+            : fit.content + TOOLS_INSET,
     height:
       layout === 'dial'
         ? DIAL_SIZE
-        : layout === 'column'
-          ? LOGO_SIZE + items.length * COLUMN_ITEM_HEIGHT + 8
+        : vertical
+          ? LOGO_SIZE +
+            items.length * (layout === 'list' ? LIST_ITEM_HEIGHT : COLUMN_ITEM_HEIGHT) +
+            (layout === 'list' ? Math.max(0, items.length - 1) * LIST_ITEM_GAP + 12 : 8)
           : LOGO_SIZE,
   };
   const displays = items.map((item): ItemDisplay => {
@@ -265,10 +358,11 @@ export function UsageIslandView({
       expanded,
       width: fullSize.width,
       height: fullSize.height,
+      ...(layout === 'list' ? { radius: 24 } : {}),
       anchorX: layout === 'dial' ? 0.5 : layout === 'row' && reversed ? 1 : 0,
-      anchorY: layout === 'dial' ? 0.5 : layout === 'column' && reversed ? 1 : 0,
+      anchorY: layout === 'dial' ? 0.5 : vertical && reversed ? 1 : 0,
     });
-  }, [onLayout, expanded, fullSize.width, fullSize.height, layout, reversed]);
+  }, [onLayout, expanded, fullSize.width, fullSize.height, layout, reversed, vertical]);
   return (
     <div ref={root} className="usage-island-fit" data-layout={layout} data-reversed={reversed}>
       <div
@@ -278,6 +372,7 @@ export function UsageIslandView({
             '--usage-island-width': `${fullSize.width}px`,
             '--usage-island-height': `${fullSize.height}px`,
             '--usage-island-tools-max': width ? `${width - TOOLS_INSET}px` : 'none',
+            '--usage-island-surface-opacity': `${settings.opacity ?? 100}%`,
           } as CSSProperties
         }
         data-layout={layout}
@@ -285,11 +380,7 @@ export function UsageIslandView({
       >
         <div
           className={`usage-island usage-island-theme-${surface}${
-            theme === 'auto'
-              ? ' usage-island-theme-auto'
-              : theme === 'translucent'
-                ? ' usage-island-theme-translucent'
-                : ''
+            theme === 'auto' ? ' usage-island-theme-auto' : ''
           }`}
           data-layout={layout}
           data-reversed={reversed}
@@ -302,6 +393,7 @@ export function UsageIslandView({
             if (event.pointerType === 'mouse') setHovered(false);
           }}
         >
+          {layout === 'list' && expanded && <ListActions actions={actions} onAction={onAction} />}
           {layout === 'dial' ? (
             <div className="usage-island-dial" role="list" aria-hidden={!expanded}>
               <Dial items={items} displays={displays} pick={pick} onPick={onPick} />
@@ -311,11 +403,18 @@ export function UsageIslandView({
               {items.map((item, index) => {
                 const display = displays[index];
                 const content =
-                  style === 'line' ? (
-                    <UsageLines item={item} name={display.name} />
+                  style === 'line' || style === 'list' ? (
+                    <>
+                      {style === 'list' && <SourceIcon icon={item.icon} />}
+                      <UsageLines item={item} name={display.name} icon={style !== 'list'} />
+                    </>
                   ) : (
                     <>
-                      <Gauge percent={item.percent} icon={item.icon} />
+                      <Gauge
+                        percent={item.percent}
+                        icon={item.icon}
+                        smartActive={item.smartActive}
+                      />
                       {layout === 'column' ? (
                         <span className="usage-island-amount">{item.value}</span>
                       ) : (
@@ -331,6 +430,7 @@ export function UsageIslandView({
                       className="usage-island-tool"
                       data-tone={display.tone}
                       data-usage-source={item.key}
+                      data-smart-active={item.smartActive || undefined}
                       aria-label={label}
                       aria-pressed={item.key === pick}
                       onClick={() => onPick?.(item.key === pick ? null : item.key)}
@@ -400,6 +500,21 @@ export function UsageIslandThumbnail({
             />
           );
         })}
+      </svg>
+    );
+  if (layout === 'list')
+    return (
+      <svg viewBox="0 0 120 64" aria-hidden="true">
+        <rect x="30" y="1" width="60" height="62" rx="10" fill="currentColor" opacity="0.14" />
+        <circle cx="40" cy={reversed ? 54 : 10} r="5" fill="currentColor" />
+        <RefreshCw x={74} y={reversed ? 49 : 5} size={10} style={{ width: 10, height: 10 }} />
+        {(reversed ? [10, 27] : [27, 44]).map((y) => (
+          <g key={y}>
+            <circle cx="40" cy={y} r="3" fill="currentColor" opacity="0.7" />
+            <rect x="47" y={y - 2} width="32" height="3" rx="1.5" fill="currentColor" />
+            <rect x="37" y={y + 6} width="42" height="2" rx="1" fill="currentColor" />
+          </g>
+        ))}
       </svg>
     );
   if (layout === 'column')

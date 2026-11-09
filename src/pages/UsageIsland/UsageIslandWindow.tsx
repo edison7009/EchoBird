@@ -3,6 +3,7 @@ import { emit, emitTo, listen } from '@tauri-apps/api/event';
 import { getCurrentWebview } from '@tauri-apps/api/webview';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import {
+  USAGE_ISLAND_ACTION_EVENT,
   USAGE_ISLAND_HOVER_EVENT,
   USAGE_ISLAND_PICK_EVENT,
   USAGE_ISLAND_REQUEST_EVENT,
@@ -18,12 +19,18 @@ import {
   type ThemeSelection,
 } from '../../stores/themeStore';
 import type { UsageIslandItem } from './usageIslandData';
-import { UsageIslandView, type IslandLayout, type IslandSettings } from './UsageIslandView';
+import {
+  UsageIslandView,
+  type IslandLayout,
+  type IslandSettings,
+  type UsageIslandActions,
+} from './UsageIslandView';
 import '../VoiceInput/VoiceInput.css';
 import './UsageIsland.css';
 
 export interface UsageIslandPayload {
   settings: IslandSettings;
+  actions?: UsageIslandActions;
   pick: string | null;
   /** The island stays visible, so it keeps the refresh time for the main window. */
   refreshSeconds: number;
@@ -46,6 +53,15 @@ export function UsageIslandWindow() {
   // The first frame must already be at the saved size.
   const zoomed = useRef(Promise.resolve());
   const ready = state !== null;
+  const layoutRevision = useRef(0);
+  const layoutQueue = useRef(Promise.resolve());
+  const windowGeometry = useRef<string | null>(null);
+  useEffect(
+    () => () => {
+      layoutRevision.current += 1;
+    },
+    []
+  );
   useEffect(() => {
     let stopped = false;
     const stops: (() => void)[] = [];
@@ -96,14 +112,15 @@ export function UsageIslandWindow() {
     return () => clearInterval(timer);
   }, [refreshSeconds]);
   const onLayout = useCallback(
-    ({ expanded, width, height, anchorX, anchorY }: IslandLayout) => {
-      // Moving a window on hover flashes its old frame, so it keeps its open size.
-      void resizeUsageIsland(
+    ({ expanded, width, height, radius, anchorX, anchorY }: IslandLayout) => {
+      const revision = ++layoutRevision.current;
+      const geometry = [
         (width + SHADOW_PADDING * 2) * scale,
         (height + SHADOW_PADDING * 2) * scale,
         anchorX,
-        anchorY
-      ).catch(() => {});
+        anchorY,
+      ] as const;
+      const signature = JSON.stringify(geometry);
       const area = expanded
         ? [SHADOW_PADDING, SHADOW_PADDING, width, height]
         : [
@@ -113,7 +130,24 @@ export function UsageIslandWindow() {
             COLLAPSED_SIZE,
           ];
       const [x, y, areaWidth, areaHeight] = area.map((value) => value * scale);
-      void setUsageIslandHitArea(x, y, areaWidth, areaHeight).catch(() => {});
+      const hitRadius =
+        (expanded ? (radius ?? Math.min(width, height) / 2) : COLLAPSED_SIZE / 2) * scale;
+      // Keep native resize/hit updates in order and discard obsolete transition frames.
+      // Open/close only changes the hit area; the native window keeps its full size.
+      layoutQueue.current = layoutQueue.current
+        .catch(() => {})
+        .then(async () => {
+          if (revision !== layoutRevision.current) return;
+          await zoomed.current;
+          if (revision !== layoutRevision.current) return;
+          if (signature !== windowGeometry.current) {
+            await resizeUsageIsland(...geometry);
+            windowGeometry.current = signature;
+          }
+          if (revision !== layoutRevision.current) return;
+          await setUsageIslandHitArea(x, y, areaWidth, areaHeight, hitRadius);
+        })
+        .catch(() => {});
     },
     [scale]
   );
@@ -151,6 +185,10 @@ export function UsageIslandWindow() {
           settings={state.settings}
           pick={state.pick}
           onPick={onPick}
+          actions={state.actions}
+          onAction={(action) => {
+            void emitTo('main', USAGE_ISLAND_ACTION_EVENT, action).catch(() => {});
+          }}
           hover={hover}
           masked
           available={Math.min(MAX_CONTENT_WIDTH, window.screen.availWidth / scale)}

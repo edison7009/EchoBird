@@ -16,6 +16,7 @@ import {
 import { IslandScaleSlider } from '../../components/IslandScaleSlider';
 import { MiniSelect } from '../../components/MiniSelect';
 import { ViewModeTabs } from '../../components/ViewModeTabs';
+import { ToggleSwitch } from '../../components/ToggleSwitch';
 import { useI18n } from '../../hooks/useI18n';
 import type { TKey } from '../../i18n';
 import { ACCOUNT_NAME_MASK, useAccountPrivacyStore } from '../../stores/accountPrivacyStore';
@@ -23,11 +24,13 @@ import {
   USAGE_ISLAND_LIMIT,
   usageIslandExpandModes,
   usageIslandRefreshSeconds,
+  usageIslandOpacities,
   usageIslandScales,
   usageIslandStyles,
   usageIslandThemes,
   useUsageIslandStore,
   useUsageIslandVisible,
+  type UsageIslandOpacity,
   type UsageIslandStyle,
 } from '../../stores/usageIslandStore';
 import { usageIslandDemoItems } from './usageIslandData';
@@ -55,6 +58,10 @@ const directions: Record<UsageIslandStyle, [Direction, Direction]> = {
     { icon: ArrowDown, label: 'usageIsland.direction.down' },
     { icon: ArrowUp, label: 'usageIsland.direction.up' },
   ],
+  list: [
+    { icon: ArrowDown, label: 'usageIsland.direction.down' },
+    { icon: ArrowUp, label: 'usageIsland.direction.up' },
+  ],
   dial: [
     { icon: RotateCw, label: 'usageIsland.direction.clockwise' },
     { icon: RotateCcw, label: 'usageIsland.direction.counterClockwise' },
@@ -73,11 +80,15 @@ export function UsageIslandMain() {
   const sources = useUsageSources(active);
   const items = useUsageIslandItems(sources);
   const visible = useUsageIslandVisible();
-  const { refreshing, refresh } = useUsageIslandRefresh(items, active && !visible);
+  const { refreshing, refresh, actions, run } = useUsageIslandRefresh(items, active && !visible);
   const [demoNow] = useState(() => Date.now() / 1000);
   const demoItems = useMemo(
-    () => usageIslandDemoItems(config.style, demoNow),
-    [config.style, demoNow]
+    () =>
+      usageIslandDemoItems(config.style, demoNow).map((item, index) => ({
+        ...item,
+        smartActive: config.showSmartAccess && index === 0,
+      })),
+    [config.style, config.showSmartAccess, demoNow]
   );
   const [demoPick, setDemoPick] = useState<string | null>(null);
   return (
@@ -90,6 +101,8 @@ export function UsageIslandMain() {
               settings={{ ...config, expandMode: 'always' }}
               pick={demoPick}
               onPick={setDemoPick}
+              actions={actions}
+              onAction={(action) => void run(action)}
             />
           </div>
         </section>
@@ -137,61 +150,83 @@ export function UsageIslandMain() {
               );
             })}
           </div>
-          <div className="voice-card rounded-card usage-island-settings">
-            <div className="voice-row">
-              <span>{t('voice.theme')}</span>
-              <ViewModeTabs
-                value={config.theme}
-                onChange={(theme) => update({ theme })}
-                options={usageIslandThemes.map((theme) => ({
-                  value: theme,
-                  label: t(`voice.${theme}` as TKey),
-                }))}
-              />
-            </div>
-            <div className="voice-row">
-              <span>{t('usageIsland.expandMode')}</span>
-              <ViewModeTabs
-                value={config.expandMode}
-                onChange={(expandMode) => update({ expandMode })}
-                options={usageIslandExpandModes.map((mode) => ({
-                  value: mode,
-                  label: t(`usageIsland.expandMode.${mode}` as TKey),
-                }))}
-              />
-            </div>
-            <div className="voice-row">
-              <span>{t('usageIsland.refresh')}</span>
-              <span className="usage-island-refresh">
-                <button
-                  type="button"
-                  className="voice-text-button"
-                  disabled={refreshing || !items.length}
-                  onClick={() => void refresh(true)}
-                >
-                  <RefreshCw size={14} className={refreshing ? 'animate-spin' : ''} />
-                  {t('accountCenter.refreshAll')}
-                </button>
-                <MiniSelect
-                  value={String(config.refreshSeconds)}
-                  dropUp
-                  onChange={(value) => update({ refreshSeconds: Number(value) })}
-                  options={usageIslandRefreshSeconds.map((seconds) => ({
-                    id: String(seconds),
-                    label: seconds
-                      ? t('usageIsland.refresh.minutes').replace('{n}', String(seconds / 60))
-                      : t('usageIsland.refresh.manual'),
+          <div className="usage-island-settings">
+            <div className="voice-card rounded-card usage-island-settings-group">
+              <div className="voice-row">
+                <span>{t('voice.theme')}</span>
+                <ViewModeTabs
+                  value={config.theme}
+                  onChange={(theme) => update({ theme })}
+                  options={usageIslandThemes.map((theme) => ({
+                    value: theme,
+                    label: t(`voice.${theme}` as TKey),
                   }))}
                 />
-              </span>
+              </div>
+              <div className="voice-row">
+                <span>{t('usageIsland.expandMode')}</span>
+                <ViewModeTabs
+                  value={config.expandMode}
+                  onChange={(expandMode) => update({ expandMode })}
+                  options={usageIslandExpandModes.map((mode) => ({
+                    value: mode,
+                    label: t(`usageIsland.expandMode.${mode}` as TKey),
+                  }))}
+                />
+              </div>
+              <div className="voice-row usage-island-slider-row">
+                <span>{t('usageIsland.opacity')}</span>
+                <IslandScaleSlider
+                  scales={usageIslandOpacities}
+                  value={config.opacity}
+                  label={t('usageIsland.opacity')}
+                  onChange={(opacity) => update({ opacity: opacity as UsageIslandOpacity })}
+                />
+              </div>
             </div>
-            <div className="voice-row">
-              <IslandScaleSlider
-                scales={usageIslandScales}
-                value={config.scale}
-                label={t('usageIsland.scale')}
-                onChange={(scale) => update({ scale })}
-              />
+            <div className="voice-card rounded-card usage-island-settings-group">
+              <div className="voice-row">
+                <span>{t('usageIsland.refresh')}</span>
+                <span className="usage-island-refresh">
+                  <button
+                    type="button"
+                    className="voice-text-button"
+                    disabled={actions.blocked || refreshing || !items.some((item) => item.refresh)}
+                    onClick={() => void refresh(true)}
+                  >
+                    <RefreshCw size={14} className={refreshing ? 'animate-spin' : ''} />
+                    {t('accountCenter.refreshAll')}
+                  </button>
+                  <MiniSelect
+                    value={String(config.refreshSeconds)}
+                    dropUp
+                    onChange={(value) => update({ refreshSeconds: Number(value) })}
+                    options={usageIslandRefreshSeconds.map((seconds) => ({
+                      id: String(seconds),
+                      label: seconds
+                        ? t('usageIsland.refresh.minutes').replace('{n}', String(seconds / 60))
+                        : t('usageIsland.refresh.manual'),
+                    }))}
+                  />
+                </span>
+              </div>
+              <div className="voice-row">
+                <span>{t('usageIsland.showSmartAccess')}</span>
+                <ToggleSwitch
+                  checked={config.showSmartAccess}
+                  ariaLabel={t('usageIsland.showSmartAccess')}
+                  onChange={(showSmartAccess) => update({ showSmartAccess })}
+                />
+              </div>
+              <div className="voice-row usage-island-slider-row">
+                <span>{t('usageIsland.scale')}</span>
+                <IslandScaleSlider
+                  scales={usageIslandScales}
+                  value={config.scale}
+                  label={t('usageIsland.scale')}
+                  onChange={(scale) => update({ scale })}
+                />
+              </div>
             </div>
           </div>
         </div>

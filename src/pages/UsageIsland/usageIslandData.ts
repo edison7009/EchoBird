@@ -1,5 +1,5 @@
 import type { ModelUsageData } from '../../api/models';
-import type { ModelConfig } from '../../api/types';
+import type { AccountSource, ModelConfig } from '../../api/types';
 import { getModelIcon } from '../../components/cards';
 import { isSmartRouterId } from '../../utils/smartRouter';
 import {
@@ -26,6 +26,8 @@ export interface UsageLine {
   resetAt: number | null;
 }
 
+export type UsageIslandAction = 'warmUp' | 'claim' | 'refresh';
+
 export interface UsageIslandItem {
   kind: 'account' | 'model';
   key: string;
@@ -35,9 +37,18 @@ export interface UsageIslandItem {
   percent: number | null;
   value: string;
   lines: UsageLine[];
+  smartActive?: boolean;
 }
 
 export interface UsageSource extends UsageIslandItem {
+  canWarmUp?: boolean;
+  canClaim?: boolean;
+  busy?: boolean;
+  providerId?: string;
+  candidateId?: string;
+  accountSource?: AccountSource;
+  warmUp?: (onError?: (error: unknown) => void) => Promise<unknown>;
+  claim?: (onError?: (error: unknown) => void) => Promise<unknown>;
   /** Absent while the source is cached only or already busy. */
   refresh?: (manual: boolean, onError: RefreshError) => Promise<unknown>;
 }
@@ -197,7 +208,13 @@ const demoSources: (Omit<UsageIslandItem, 'percent' | 'value' | 'lines'> & {
 ];
 const DEMO_BALANCE = '12.40';
 // The stage has a fixed height, so each style previews what fits it.
-const demoCounts: Record<UsageIslandStyle, number> = { row: 3, column: 2, dial: 6, line: 2 };
+const demoCounts: Record<UsageIslandStyle, number> = {
+  row: 3,
+  column: 2,
+  list: 2,
+  dial: 6,
+  line: 2,
+};
 
 export function usageIslandDemoItems(style: UsageIslandStyle, now: number): UsageIslandItem[] {
   return demoSources.slice(0, demoCounts[style]).map(({ quotas, ...source }) => ({
@@ -238,12 +255,29 @@ export function accountSources(
       icon: provider.icon,
       ...accountLines(account),
       refresh,
+      providerId: provider.id,
+      accountSource: undefined,
+      warmUp: 'warmUp' in account ? account.warmUp : undefined,
+      claim: 'claim' in account ? account.claim : undefined,
+      canWarmUp: provider.installed && 'warmUp' in account && Boolean(account.warmUp),
+      canClaim:
+        provider.installed &&
+        'claim' in account &&
+        Boolean(account.claim && !account.claimDisabled),
+      busy:
+        provider.busy ||
+        (provider.loading && !provider.loaded) ||
+        ('refreshing' in account && (account.refreshing || account.pending === true)),
     });
     return [
       ...provider.accounts.map((account) =>
         source(
           account,
-          provider.busy || account.pending || account.refreshing
+          !provider.installed ||
+            provider.busy ||
+            (provider.loading && !provider.loaded) ||
+            account.pending ||
+            account.refreshing
             ? undefined
             : (_manual, onError) => account.refresh(onError)
         )
@@ -270,6 +304,8 @@ export function modelSources(
     .map((model) => ({
       kind: 'model',
       key: modelSourceKey(model.internalId),
+      candidateId: model.internalId,
+      accountSource: model.accountSource,
       name: model.name,
       detail: model.modelId || '',
       icon: getModelIcon(model.name, model.modelId),
@@ -277,5 +313,6 @@ export function modelSources(
       refresh: refreshing.has(model.internalId)
         ? undefined
         : (manual, onError) => refresh(model.internalId, { silent: !manual, onError }),
+      busy: refreshing.has(model.internalId),
     }));
 }

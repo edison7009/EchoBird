@@ -43,9 +43,20 @@ pub async fn usage_island_set_hit_area(
     y: f64,
     width: f64,
     height: f64,
+    radius: Option<f64>,
 ) -> Result<(), String> {
     if window.label() != usage_island::WINDOW_LABEL {
         return Err("Only the usage island can set its hit area".into());
+    }
+    let radius = radius.unwrap_or(width.min(height) / 2.0);
+    if ![x, y, width, height, radius]
+        .iter()
+        .all(|value| value.is_finite())
+        || width <= 0.0
+        || height <= 0.0
+        || radius < 0.0
+    {
+        return Err("Invalid usage island hit area".into());
     }
     usage_island::set_hit_area(
         &window,
@@ -54,6 +65,7 @@ pub async fn usage_island_set_hit_area(
             y,
             width,
             height,
+            radius,
         },
     );
     Ok(())

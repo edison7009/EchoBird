@@ -10,12 +10,17 @@ import { useRewardClaimStore } from '../../stores/rewardClaimStore';
 import {
   USAGE_ISLAND_LIMIT,
   usageIslandScales,
+  usageIslandStyles,
   useUsageIslandStore as island,
   usageIslandVisible,
   type UsageIslandStyle,
 } from '../../stores/usageIslandStore';
 import type { AccountCardData, AccountProvider } from '../AccountCenter/accountCenterData';
-import { USAGE_ISLAND_TICK_EVENT } from '../../api/usageIsland';
+import {
+  USAGE_ISLAND_TICK_EVENT,
+  resizeUsageIsland,
+  setUsageIslandHitArea,
+} from '../../api/usageIsland';
 import { UsageIslandMain, UsageIslandPanel } from './UsageIsland';
 import UsageIslandBridge from './UsageIslandBridge';
 import { UsageIslandView, type IslandLayout } from './UsageIslandView';
@@ -39,6 +44,12 @@ const events = vi.hoisted(() => ({
   emitTo: vi.fn(async (..._args: unknown[]) => {}),
 }));
 const setZoom = vi.hoisted(() => vi.fn(async () => {}));
+
+vi.mock('../../api/usageIsland', async (original) => ({
+  ...(await original<typeof import('../../api/usageIsland')>()),
+  resizeUsageIsland: vi.fn(async () => {}),
+  setUsageIslandHitArea: vi.fn(async () => {}),
+}));
 
 vi.mock('@tauri-apps/api/webview', () => ({ getCurrentWebview: () => ({ setZoom }) }));
 vi.mock('@tauri-apps/api/window', () => ({
@@ -208,6 +219,10 @@ it('previews demo data on a fixed stage whatever sources are selected', async ()
   expect(shown()).toHaveLength(6);
   await act(async () => island.getState().update({ style: 'line' }));
   expect(shown()).toEqual(['demo:chatgpt', 'demo:claude']);
+  await act(async () => button('usageIsland.style.list').props.onClick());
+  expect(shown()).toEqual(['demo:chatgpt', 'demo:claude']);
+  expect(refreshAccount).not.toHaveBeenCalled();
+  expect(refreshModel).not.toHaveBeenCalled();
 });
 
 it('fills six numbered slots in order and removes a source from its card', async () => {
@@ -379,54 +394,60 @@ it('keeps two quota lines with reset times for accounts and models', () => {
   expect(model).toMatchObject({ percent: 80, value: '80%' });
 });
 
-it('renders one bar per quota line in the line style and none for a balance', async () => {
-  testProviders.current = [
-    provider({
-      accounts: [
-        account({
-          metrics: [
-            { label: 'Five hour', value: '83%', percent: 83 },
-            { label: 'Weekly', value: '38%', percent: 38 },
-          ],
-        }),
-      ],
-    }),
-    provider({
-      id: 'kimi',
-      name: 'Kimi',
-      accounts: [account({ id: 'b', metrics: [{ label: 'Balance', value: '$12.40' }] })],
-    }),
-  ];
-  await renderView('line', accountItems());
-  const bars = (key: string) =>
-    view!.root
-      .findByProps({ 'data-usage-source': key })
-      .findAll((node) => node.props.className === 'usage-island-line-track');
-  expect(bars(accountSourceKey('claude', 'a'))).toHaveLength(2);
-  expect(bars(accountSourceKey('kimi', 'b'))).toHaveLength(0);
-});
+it.each(['line', 'list'] as const)(
+  'renders quota bars and bare balances in %s style',
+  async (style) => {
+    testProviders.current = [
+      provider({
+        accounts: [
+          account({
+            metrics: [
+              { label: 'Five hour', value: '83%', percent: 83 },
+              { label: 'Weekly', value: '38%', percent: 38 },
+            ],
+          }),
+        ],
+      }),
+      provider({
+        id: 'kimi',
+        name: 'Kimi',
+        accounts: [account({ id: 'b', metrics: [{ label: 'Balance', value: '$12.40' }] })],
+      }),
+    ];
+    await renderView(style, accountItems());
+    const bars = (key: string) =>
+      view!.root
+        .findByProps({ 'data-usage-source': key })
+        .findAll((node) => node.props.className === 'usage-island-line-track');
+    expect(bars(accountSourceKey('claude', 'a'))).toHaveLength(2);
+    expect(bars(accountSourceKey('kimi', 'b'))).toHaveLength(0);
+  }
+);
 
-it('names each source above its quota in the line style', async () => {
-  await renderView('line', [
-    ...accountItems(),
-    ...modelSources(
-      [{ internalId: 'model-1', name: 'Model One', modelId: 'one' } as ModelConfig],
-      {},
-      new Set(),
-      refreshModel,
-      (key) => key
-    ),
-  ]);
-  const name = (key: string) =>
-    view!.root
-      .findByProps({ 'data-usage-source': key })
-      .findByProps({ className: 'usage-island-line-name' }).props.children;
-  expect(name(accountSourceKey('claude', 'a'))).toBe('me@example.com');
-  expect(name(modelSourceKey('model-1'))).toBe('Model One');
-  await act(async () => privacy.setState({ hidden: true }));
-  expect(name(accountSourceKey('claude', 'a'))).toBe(ACCOUNT_NAME_MASK);
-  expect(name(modelSourceKey('model-1'))).toBe('Model One');
-});
+it.each(['line', 'list'] as const)(
+  'names and masks sources above their quotas in %s style',
+  async (style) => {
+    await renderView(style, [
+      ...accountItems(),
+      ...modelSources(
+        [{ internalId: 'model-1', name: 'Model One', modelId: 'one' } as ModelConfig],
+        {},
+        new Set(),
+        refreshModel,
+        (key) => key
+      ),
+    ]);
+    const name = (key: string) =>
+      view!.root
+        .findByProps({ 'data-usage-source': key })
+        .findByProps({ className: 'usage-island-line-name' }).props.children;
+    expect(name(accountSourceKey('claude', 'a'))).toBe('me@example.com');
+    expect(name(modelSourceKey('model-1'))).toBe('Model One');
+    await act(async () => privacy.setState({ hidden: true }));
+    expect(name(accountSourceKey('claude', 'a'))).toBe(ACCOUNT_NAME_MASK);
+    expect(name(modelSourceKey('model-1'))).toBe('Model One');
+  }
+);
 
 it('follows the system appearance independently of the app theme', async () => {
   island.setState({ theme: 'system' });
@@ -441,9 +462,9 @@ it('follows the system appearance independently of the app theme', async () => {
   await act(async () => island.getState().update({ theme: 'auto' }));
   expect(surface()).toContain('usage-island-theme-dark');
   expect(surface()).toContain('usage-island-theme-auto');
-  await act(async () => island.getState().update({ theme: 'translucent' }));
+  await act(async () => island.getState().update({ theme: 'dark' }));
   expect(surface()).toContain('usage-island-theme-dark');
-  expect(surface()).toContain('usage-island-theme-translucent');
+  expect(surface()).not.toContain('usage-island-theme-translucent');
   expect(surface()).not.toContain('voice-theme-iridescent');
   expect(surface()).not.toContain('usage-island-theme-auto');
 });
@@ -544,6 +565,8 @@ it('keeps the logo in place while the window resizes in either direction', async
     ['line', true, [1, 0]],
     ['column', false, [0, 0]],
     ['column', true, [0, 1]],
+    ['list', false, [0, 0]],
+    ['list', true, [0, 1]],
     ['dial', false, [0.5, 0.5]],
     ['dial', true, [0.5, 0.5]],
   ];
@@ -736,7 +759,7 @@ it('shows the icon and value instead of an empty ring for a picked balance', asy
 });
 
 it('never lets an island image start a native drag', async () => {
-  for (const style of ['row', 'column', 'dial', 'line'] as const) {
+  for (const style of usageIslandStyles) {
     await renderView(style, accountItems());
     const images = view!.root.findAllByType('img');
     expect(images.length).toBeGreaterThan(1);
@@ -824,10 +847,12 @@ it('refreshes on ticks from the floating window instead of its own timer', async
 
 it('keeps the editor preview fixed while saving the floating scale from each slider step', async () => {
   await render();
-  const slider = view!.root.findByProps({ type: 'range' });
+  const slider = view!.root
+    .findAllByProps({ type: 'range' })
+    .find((node) => node.props.max === 150)!;
   expect(slider.props).toMatchObject({ min: 70, max: 150, step: 10, value: 100 });
   const ticks = () =>
-    view!.root.findByProps({ className: 'island-scale-ticks' }).findAllByType('span');
+    slider.parent!.findByProps({ className: 'island-scale-ticks' }).findAllByType('span');
   expect(ticks().map((tick) => tick.children.join(''))).toEqual(
     usageIslandScales.map((scale) => `${scale}%`)
   );
@@ -904,4 +929,443 @@ it('marks busy or auth-failed accounts as not refreshable or unknown', () => {
     {}
   );
   expect(failed).toMatchObject({ percent: null, value: '—' });
+});
+
+it('sizes a six-source list and preserves click selection, collapse and empty behavior', async () => {
+  const items = Array.from({ length: 6 }, (_, index) => ({
+    ...accountItems()[0],
+    key: `test:${index}`,
+  }));
+  const onLayout = vi.fn();
+  const onPick = vi.fn();
+  const mount = (entries: UsageIslandItem[], pick: string | null = null) => (
+    <UsageIslandView
+      items={entries}
+      settings={{ style: 'list', reversed: [], theme: 'dark', expandMode: 'click' }}
+      pick={pick}
+      onPick={onPick}
+      onLayout={onLayout}
+      available={1000}
+    />
+  );
+  await act(async () => {
+    view = create(mount(items));
+  });
+  expect(onLayout).toHaveBeenLastCalledWith({
+    expanded: false,
+    width: 280,
+    height: 504,
+    radius: 24,
+    anchorX: 0,
+    anchorY: 0,
+  });
+  await act(async () => button('usageIsland.expand').props.onClick());
+  expect(onLayout).toHaveBeenLastCalledWith({
+    expanded: true,
+    width: 280,
+    height: 504,
+    radius: 24,
+    anchorX: 0,
+    anchorY: 0,
+  });
+  const source = () => view!.root.findByProps({ 'data-usage-source': 'test:0' });
+  await act(async () => source().props.onClick());
+  expect(onPick).toHaveBeenLastCalledWith('test:0');
+  await act(async () => view!.update(mount(items, 'test:0')));
+  expect(source().props['aria-pressed']).toBe(true);
+  await act(async () => source().props.onClick());
+  expect(onPick).toHaveBeenLastCalledWith(null);
+  await act(async () => button('usageIsland.collapse').props.onClick());
+  expect(onLayout.mock.lastCall![0].expanded).toBe(false);
+  await act(async () => view!.update(mount([])));
+  expect(button('usageIsland.expand').props.disabled).toBe(true);
+  expect(onLayout.mock.lastCall![0].expanded).toBe(false);
+  expect(refreshAccount).not.toHaveBeenCalled();
+  expect(refreshModel).not.toHaveBeenCalled();
+});
+
+const clickListAction = async (label: string) => {
+  const stopPropagation = vi.fn();
+  await act(async () => button(label).props.onClick({ stopPropagation }));
+  expect(stopPropagation).toHaveBeenCalledOnce();
+};
+
+it('runs list actions only on selected sources with the matching capability', async () => {
+  const warmA = vi.fn(async () => {});
+  const warmB = vi.fn(async () => {});
+  const claimA = vi.fn(async () => {});
+  const claimB = vi.fn(async () => {});
+  const refreshA = vi.fn(async () => {});
+  const refreshB = vi.fn(async () => {});
+  testProviders.current = [
+    provider({
+      accounts: [
+        account({ id: 'a', warmUp: warmA, claim: claimA, refresh: refreshA }),
+        account({ id: 'b', warmUp: warmB, claim: claimB, refresh: refreshB }),
+      ],
+    }),
+  ];
+  island.setState({
+    style: 'list',
+    sources: [accountSourceKey('claude', 'a'), modelSourceKey('model-1')],
+  });
+  await render();
+  expect(warmA).not.toHaveBeenCalled();
+  expect(claimA).not.toHaveBeenCalled();
+  expect(refreshA).not.toHaveBeenCalled();
+  await clickListAction('agent.warmUpAccount');
+  expect(warmA).toHaveBeenCalledOnce();
+  expect(warmB).not.toHaveBeenCalled();
+  await clickListAction('accountCenter.claimAll');
+  expect(claimA).toHaveBeenCalledOnce();
+  expect(claimB).not.toHaveBeenCalled();
+  await clickListAction('btn.refresh');
+  expect(refreshA).toHaveBeenCalledOnce();
+  expect(refreshB).not.toHaveBeenCalled();
+  expect(refreshModel).toHaveBeenCalledExactlyOnceWith(
+    'model-1',
+    expect.objectContaining({ silent: false })
+  );
+  expect(island.getState()).toMatchObject({
+    pick: null,
+    sources: [accountSourceKey('claude', 'a'), modelSourceKey('model-1')],
+  });
+});
+
+it('stops device claims only for that provider while continuing other selected providers', async () => {
+  const deviceClaim = vi.fn(async () => true);
+  const skippedClaim = vi.fn(async () => {});
+  const otherClaim = vi.fn(async () => {});
+  testProviders.current = [
+    provider({
+      accounts: [
+        account({ id: 'a', claim: deviceClaim }),
+        account({ id: 'b', claim: skippedClaim }),
+      ],
+    }),
+    provider({ id: 'workbuddy', accounts: [account({ id: 'c', claim: otherClaim })] }),
+  ];
+  island.setState({
+    style: 'list',
+    sources: [
+      accountSourceKey('claude', 'a'),
+      accountSourceKey('claude', 'b'),
+      accountSourceKey('workbuddy', 'c'),
+    ],
+  });
+  await render();
+  await clickListAction('accountCenter.claimAll');
+  expect(deviceClaim).toHaveBeenCalledOnce();
+  expect(skippedClaim).not.toHaveBeenCalled();
+  expect(otherClaim).toHaveBeenCalledOnce();
+});
+
+it('locks list actions during a request and excludes sources changed during that request', async () => {
+  let finish!: () => void;
+  const first = vi.fn(
+    () =>
+      new Promise<void>((resolve) => {
+        finish = resolve;
+      })
+  );
+  const removed = vi.fn(async () => {});
+  const added = vi.fn(async () => {});
+  testProviders.current = [
+    provider({
+      accounts: [
+        account({ id: 'a', warmUp: first }),
+        account({ id: 'b', warmUp: removed }),
+        account({ id: 'c', warmUp: added }),
+      ],
+    }),
+  ];
+  island.setState({
+    style: 'list',
+    sources: [accountSourceKey('claude', 'a'), accountSourceKey('claude', 'b')],
+  });
+  await render();
+  await clickListAction('agent.warmUpAccount');
+  expect(button('agent.warmUpAccount').props.disabled).toBe(true);
+  expect(button('btn.refresh').props.disabled).toBe(true);
+  expect(useRewardClaimStore.getState().running).toBe(true);
+  await clickListAction('agent.warmUpAccount');
+  expect(first).toHaveBeenCalledOnce();
+  await act(async () =>
+    island.getState().setSources([accountSourceKey('claude', 'a'), accountSourceKey('claude', 'c')])
+  );
+  await act(async () => finish());
+  expect(removed).not.toHaveBeenCalled();
+  expect(added).not.toHaveBeenCalled();
+  expect(useRewardClaimStore.getState().running).toBe(false);
+  expect(button('agent.warmUpAccount').props.disabled).toBe(false);
+});
+
+it('summarizes list failures while continuing the selected batch', async () => {
+  const failed = vi.fn(async () => {
+    throw new Error('failed');
+  });
+  const next = vi.fn(async () => {});
+  testProviders.current = [
+    provider({
+      accounts: [account({ id: 'a', warmUp: failed }), account({ id: 'b', warmUp: next })],
+    }),
+  ];
+  island.setState({
+    style: 'list',
+    sources: [accountSourceKey('claude', 'a'), accountSourceKey('claude', 'b')],
+  });
+  await render();
+  await clickListAction('agent.warmUpAccount');
+  expect(next).toHaveBeenCalledOnce();
+  expect(showToast).toHaveBeenCalledExactlyOnceWith('warning', 'accountCenter.batchWarmUpSummary');
+  expect(useRewardClaimStore.getState().running).toBe(false);
+});
+
+it('stops remaining list operations and ignores late failures after leaving the island', async () => {
+  let reject!: (error: Error) => void;
+  const first = vi.fn(
+    () =>
+      new Promise<void>((_resolve, fail) => {
+        reject = fail;
+      })
+  );
+  const next = vi.fn(async () => {});
+  testProviders.current = [
+    provider({ accounts: [account({ id: 'a', claim: first }), account({ id: 'b', claim: next })] }),
+  ];
+  island.setState({
+    style: 'list',
+    sources: [accountSourceKey('claude', 'a'), accountSourceKey('claude', 'b')],
+  });
+  await render();
+  await clickListAction('accountCenter.claimAll');
+  await act(async () => navigation.setState({ activePage: 'accounts' }));
+  await act(async () => navigation.setState({ activePage: 'apps' }));
+  await act(async () => reject(new Error('late failure')));
+  expect(next).not.toHaveBeenCalled();
+  expect(showToast).not.toHaveBeenCalled();
+  expect(useRewardClaimStore.getState().running).toBe(false);
+});
+
+it('uses shared busy and capability state for list buttons without passive work', async () => {
+  const claim = vi.fn(async () => {});
+  const warmUp = vi.fn(async () => {});
+  testProviders.current = [
+    provider({ accounts: [account({ claim, warmUp, claimDisabled: true, refreshing: true })] }),
+  ];
+  island.setState({ style: 'list', sources: [accountSourceKey('claude', 'a')] });
+  await render();
+  expect(button('accountCenter.claimAll')).toBeUndefined();
+  expect(button('agent.warmUpAccount').props.disabled).toBe(true);
+  expect(button('btn.refresh').props.disabled).toBe(true);
+  await clickListAction('agent.warmUpAccount');
+  expect(warmUp).not.toHaveBeenCalled();
+  expect(claim).not.toHaveBeenCalled();
+  expect(refreshAccount).not.toHaveBeenCalled();
+});
+
+it('bridges explicit list actions and serializes capabilities without account callbacks', async () => {
+  const warmUp = vi.fn(async () => {});
+  testProviders.current = [provider({ accounts: [account({ warmUp })] })];
+  island.setState({
+    enabled: true,
+    style: 'list',
+    expandMode: 'always',
+    sources: [accountSourceKey('claude', 'a')],
+    scale: 120,
+  });
+  await act(async () => {
+    view = create(<UsageIslandBridge />);
+  });
+  const states = () => events.emitTo.mock.calls.filter((call) => call[1] === 'usage-island-state');
+  const calls = states();
+  const payload = calls[calls.length - 1][2] as string;
+  expect(JSON.parse(payload)).toMatchObject({
+    actions: { warmUp: true, claim: false, refresh: true, blocked: false },
+  });
+  expect(JSON.parse(payload).items[0]).not.toHaveProperty('warmUp'); // callbacks stay in main
+  const dispatch = events.listeners.get('usage-island-action')!;
+  await act(async () => dispatch({ payload: 'unexpected' }));
+  expect(warmUp).not.toHaveBeenCalled();
+  await act(async () => dispatch({ payload: 'warmUp' }));
+  expect(warmUp).toHaveBeenCalledOnce();
+  await act(async () => view!.unmount());
+  vi.stubGlobal('window', { screen: { availWidth: 1920 } });
+  await act(async () => {
+    view = create(<UsageIslandWindow />);
+  });
+  await act(async () => events.listeners.get('usage-island-state')!({ payload }));
+  await clickListAction('agent.warmUpAccount');
+  expect(events.emitTo).toHaveBeenCalledWith('main', 'usage-island-action', 'warmUp');
+  expect(setZoom).toHaveBeenCalledWith(1.2);
+});
+
+it('keeps one source icon outside the list identity and quota text', async () => {
+  await renderView('list', accountItems());
+  const row = view!.root.findByProps({ 'data-usage-source': accountSourceKey('claude', 'a') });
+  const icons = row.findAllByType('img');
+  expect(icons).toHaveLength(1);
+  expect(row.findByProps({ className: 'usage-island-lines' }).findAllByType('img')).toHaveLength(0);
+  const title = row.findByProps({ className: 'usage-island-line-title' });
+  expect(title.findAllByType('img')).toHaveLength(0);
+  expect(title.findByProps({ className: 'usage-island-line-name' }).children).toEqual([
+    'me@example.com',
+  ]);
+  expect(row.findByProps({ className: 'usage-island-line-value' }).children).toEqual(['42%']);
+});
+
+it('respects another page batch lock before dispatching a list account operation', async () => {
+  const warmUp = vi.fn(async () => {});
+  testProviders.current = [provider({ accounts: [account({ warmUp })] })];
+  island.setState({ style: 'list', sources: [accountSourceKey('claude', 'a')] });
+  useRewardClaimStore.setState({ running: true });
+  await render();
+  expect(button('agent.warmUpAccount').props.disabled).toBe(true);
+  await clickListAction('agent.warmUpAccount');
+  expect(warmUp).not.toHaveBeenCalled();
+  await act(async () => useRewardClaimStore.getState().finish());
+  await clickListAction('agent.warmUpAccount');
+  expect(warmUp).toHaveBeenCalledOnce();
+});
+
+it.each(['hover', 'click'] as const)(
+  'keeps list geometry stable through %s expansion and payload updates',
+  async (expandMode) => {
+    const onLayout = vi.fn();
+    const mount = (hover: boolean, value = '42%') => (
+      <UsageIslandView
+        items={accountItems().map((item) => ({ ...item, value }))}
+        settings={{ style: 'list', reversed: [], theme: 'dark', expandMode }}
+        available={1200}
+        hover={hover}
+        onLayout={onLayout}
+      />
+    );
+    await act(async () => {
+      view = create(mount(false));
+    });
+    expect(onLayout.mock.lastCall![0]).toMatchObject({ expanded: false, width: 280, radius: 24 });
+    if (expandMode === 'click') await act(async () => button('usageIsland.expand').props.onClick());
+    else await act(async () => view!.update(mount(true)));
+    const stable = { expanded: true, width: 280, height: 124, radius: 24, anchorX: 0, anchorY: 0 };
+    expect(onLayout).toHaveBeenLastCalledWith(stable);
+    const calls = onLayout.mock.calls.length;
+    // Both payload and DOM hover events can change while native hit testing owns hover.
+    await act(async () => view!.update(mount(expandMode === 'hover', '41%')));
+    const shell = view!.root.findAll(
+      (node) => node.type === 'div' && String(node.props.className).startsWith('usage-island ')
+    )[0];
+    await act(async () => shell.props.onPointerLeave({ pointerType: 'mouse' }));
+    expect(onLayout.mock.calls).toHaveLength(calls);
+    expect(shell.props['data-expanded']).toBe(true);
+    if (expandMode === 'click')
+      await act(async () => button('usageIsland.collapse').props.onClick());
+    else await act(async () => view!.update(mount(false)));
+    expect(onLayout.mock.lastCall![0].expanded).toBe(false);
+  }
+);
+
+it.each([70, 100, 150])(
+  'sends the actual list radius at %s percent without resizing on each open or close',
+  async (scale) => {
+    vi.stubGlobal('window', { screen: { availWidth: 1920 } });
+    const payload = JSON.stringify({
+      settings: { style: 'list', reversed: [], theme: 'dark', expandMode: 'hover' },
+      pick: null,
+      scale,
+      refreshSeconds: 0,
+      items: accountItems(),
+    });
+    await act(async () => {
+      view = create(<UsageIslandWindow />);
+    });
+    await act(async () => events.listeners.get('usage-island-state')!({ payload }));
+    const factor = scale / 100;
+    expect(setUsageIslandHitArea).toHaveBeenLastCalledWith(
+      24 * factor,
+      24 * factor,
+      48 * factor,
+      48 * factor,
+      24 * factor
+    );
+    await act(async () => events.listeners.get('usage-island-hover')!({ payload: true }));
+    expect(setUsageIslandHitArea).toHaveBeenLastCalledWith(
+      24 * factor,
+      24 * factor,
+      280 * factor,
+      124 * factor,
+      24 * factor
+    );
+    expect(resizeUsageIsland).toHaveBeenCalledTimes(1);
+    const size = vi.mocked(resizeUsageIsland).mock.lastCall;
+    expect(size).toEqual([328 * factor, 172 * factor, 0, 0]);
+    await act(async () => events.listeners.get('usage-island-hover')!({ payload: false }));
+    expect(setUsageIslandHitArea).toHaveBeenLastCalledWith(
+      24 * factor,
+      24 * factor,
+      48 * factor,
+      48 * factor,
+      24 * factor
+    );
+    // Native window's target size remains unchanged as only its mouse hit area changes.
+    expect(vi.mocked(resizeUsageIsland).mock.lastCall).toEqual(size);
+    expect(resizeUsageIsland).toHaveBeenCalledTimes(1);
+  }
+);
+
+it('applies only the latest hit region when native resize finishes after hover changes', async () => {
+  let finish!: () => void;
+  vi.mocked(resizeUsageIsland).mockImplementationOnce(
+    () =>
+      new Promise<void>((resolve) => {
+        finish = resolve;
+      })
+  );
+  vi.stubGlobal('window', { screen: { availWidth: 1920 } });
+  const payload = JSON.stringify({
+    settings: { style: 'list', reversed: [], theme: 'dark', expandMode: 'hover' },
+    pick: null,
+    scale: 100,
+    refreshSeconds: 0,
+    items: accountItems(),
+  });
+  await act(async () => {
+    view = create(<UsageIslandWindow />);
+  });
+  await act(async () => events.listeners.get('usage-island-state')!({ payload }));
+  expect(resizeUsageIsland).toHaveBeenCalledTimes(1);
+  expect(setUsageIslandHitArea).not.toHaveBeenCalled();
+  await act(async () => events.listeners.get('usage-island-hover')!({ payload: true }));
+  await act(async () => finish());
+  expect(resizeUsageIsland).toHaveBeenCalledTimes(1);
+  expect(setUsageIslandHitArea).toHaveBeenCalledExactlyOnceWith(24, 24, 280, 124, 24);
+});
+
+it('marks active Smart Access sources and applies the saved surface opacity', async () => {
+  const [item] = accountItems();
+  await act(async () => {
+    view = create(
+      <UsageIslandView
+        items={[{ ...item, smartActive: true }]}
+        settings={{
+          style: 'list',
+          reversed: [],
+          theme: 'dark',
+          expandMode: 'always',
+          opacity: 60,
+          showSmartAccess: true,
+        }}
+      />
+    );
+  });
+  const row = view!.root
+    .findAllByProps({ 'data-smart-active': true })
+    .find((node) => node.props['data-usage-source'] === item.key)!;
+  expect(row.props['data-usage-source']).toBe(item.key);
+  expect(view!.root.findAllByProps({ 'data-smart-active': true })).toHaveLength(1);
+  expect(
+    view!.root.findByProps({ className: 'usage-island-logo' }).props['data-smart-active']
+  ).toBeUndefined();
+  const track = view!.root.findByProps({ className: 'usage-island-track' });
+  expect(track.props.style['--usage-island-surface-opacity']).toBe('60%');
 });

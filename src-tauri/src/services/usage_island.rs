@@ -33,6 +33,7 @@ pub struct HitArea {
     pub y: f64,
     pub width: f64,
     pub height: f64,
+    pub radius: f64,
 }
 
 const LOGO_AREA: HitArea = HitArea {
@@ -40,6 +41,7 @@ const LOGO_AREA: HitArea = HitArea {
     y: SHADOW_PADDING,
     width: COLLAPSED_SIZE,
     height: COLLAPSED_SIZE,
+    radius: COLLAPSED_SIZE / 2.0,
 };
 
 #[cfg(any(windows, target_os = "macos"))]
@@ -52,7 +54,7 @@ impl HitArea {
         if !(0.0..self.width).contains(&x) || !(0.0..self.height).contains(&y) {
             return false;
         }
-        let radius = self.width.min(self.height) / 2.0;
+        let radius = self.radius.clamp(0.0, self.width.min(self.height) / 2.0);
         let dx = x - x.clamp(radius, self.width - radius);
         let dy = y - y.clamp(radius, self.height - radius);
         dx * dx + dy * dy <= radius * radius
@@ -319,6 +321,7 @@ mod tests {
             y: 0.0,
             width: 336.0,
             height: 60.0,
+            radius: 30.0,
         };
         assert!(open.contains(100.0, 30.0));
         assert!(open.contains(30.0, 2.0));
@@ -329,9 +332,45 @@ mod tests {
             y: 0.0,
             width: 216.0,
             height: 216.0,
+            radius: 108.0,
         };
         assert!(dial.contains(108.0, 2.0));
         assert!(!dial.contains(4.0, 4.0));
+    }
+
+    #[test]
+    fn list_header_and_rows_remain_inside_at_every_island_scale() {
+        for scale in [0.7, 1.0, 1.5] {
+            let list = HitArea {
+                x: SHADOW_PADDING * scale,
+                y: SHADOW_PADDING * scale,
+                width: 320.0 * scale,
+                height: 504.0 * scale,
+                radius: 24.0 * scale,
+            };
+            let point =
+                |x, y| list.contains((SHADOW_PADDING + x) * scale, (SHADOW_PADDING + y) * scale);
+            let old_capsule = HitArea {
+                radius: list.width / 2.0,
+                ..list
+            };
+            assert!(!old_capsule.contains(
+                (SHADOW_PADDING + 24.0) * scale,
+                (SHADOW_PADDING + 24.0) * scale
+            ));
+            // The former capsule excluded the stationary logo and both top actions.
+            assert!(point(24.0, 24.0));
+            assert!(point(264.0, 24.0));
+            assert!(point(294.0, 24.0));
+            assert!(point(16.0, 80.0));
+            assert!(point(304.0, 424.0));
+            // Reversed lists keep the logo and controls along their bottom edge.
+            assert!(point(24.0, 480.0));
+            assert!(point(294.0, 480.0));
+            assert!(!point(1.0, 1.0));
+            assert!(!point(319.0, 503.0));
+            assert!(!point(-1.0, 100.0));
+        }
     }
 
     #[test]

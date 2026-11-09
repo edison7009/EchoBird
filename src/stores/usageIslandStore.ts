@@ -4,14 +4,16 @@ import { useNavigationStore } from './navigationStore';
 const STORAGE_KEY = 'echobird_usage_island';
 
 export const USAGE_ISLAND_LIMIT = 6;
-export const usageIslandStyles = ['row', 'column', 'dial', 'line'] as const;
-export const usageIslandThemes = ['auto', 'translucent', 'dark', 'light', 'system'] as const;
+export const usageIslandStyles = ['row', 'column', 'dial', 'list', 'line'] as const;
+export const usageIslandThemes = ['auto', 'dark', 'light', 'system'] as const;
+export const usageIslandOpacities = [20, 30, 40, 50, 60, 70, 80, 90, 100] as const;
 export const usageIslandExpandModes = ['hover', 'click', 'always'] as const;
 export const usageIslandRefreshSeconds = [0, 300, 900, 1800, 3600] as const;
 export const usageIslandScales = [70, 80, 90, 100, 110, 120, 130, 140, 150] as const;
 
 export type UsageIslandStyle = (typeof usageIslandStyles)[number];
 export type UsageIslandTheme = (typeof usageIslandThemes)[number];
+export type UsageIslandOpacity = (typeof usageIslandOpacities)[number];
 export type UsageIslandExpandMode = (typeof usageIslandExpandModes)[number];
 
 export interface UsageIslandConfig {
@@ -25,6 +27,10 @@ export interface UsageIslandConfig {
   expandMode: UsageIslandExpandMode;
   // Zero leaves quota refresh to the explicit button.
   refreshSeconds: number;
+  // Surface opacity percentage, separate from the interface scale.
+  opacity: UsageIslandOpacity;
+  // Show active Smart Access model/account activity in the island.
+  showSmartAccess: boolean;
   // Percent of the island's own size, separate from the interface scale.
   scale: number;
   sources: string[];
@@ -45,6 +51,8 @@ const defaults: UsageIslandConfig = {
   theme: 'dark',
   expandMode: 'hover',
   refreshSeconds: 0,
+  opacity: 100,
+  showSmartAccess: false,
   scale: 100,
   sources: [],
 };
@@ -62,14 +70,18 @@ function readConfig(): UsageIslandConfig {
       pick: typeof saved?.pick === 'string' ? saved.pick : null,
       style: oneOf(usageIslandStyles, saved?.style, defaults.style),
       reversed: usageIslandStyles.filter((style) => saved?.reversed?.includes(style)),
-      // The flowing theme was replaced by the translucent one.
+      // Transparent theme was replaced by an explicit opacity control.
       theme: oneOf(
         usageIslandThemes,
-        (saved?.theme as string) === 'iridescent' ? 'translucent' : saved?.theme,
+        (saved?.theme as string) === 'translucent' || (saved?.theme as string) === 'iridescent'
+          ? 'dark'
+          : saved?.theme,
         defaults.theme
       ),
       expandMode: oneOf(usageIslandExpandModes, saved?.expandMode, defaults.expandMode),
       refreshSeconds: oneOf(usageIslandRefreshSeconds, saved?.refreshSeconds, 0),
+      opacity: oneOf(usageIslandOpacities, saved?.opacity, 100),
+      showSmartAccess: saved?.showSmartAccess === true,
       scale: oneOf(usageIslandScales, saved?.scale, 100),
       sources: Array.isArray(saved?.sources)
         ? [...new Set(saved.sources.filter((key): key is string => typeof key === 'string'))].slice(
@@ -84,8 +96,19 @@ function readConfig(): UsageIslandConfig {
 }
 
 function writeConfig(state: UsageIslandConfig) {
-  const { enabled, pick, style, reversed, theme, expandMode, refreshSeconds, scale, sources } =
-    state;
+  const {
+    enabled,
+    pick,
+    style,
+    reversed,
+    theme,
+    expandMode,
+    refreshSeconds,
+    opacity,
+    showSmartAccess,
+    scale,
+    sources,
+  } = state;
   try {
     localStorage.setItem(
       STORAGE_KEY,
@@ -97,6 +120,8 @@ function writeConfig(state: UsageIslandConfig) {
         theme,
         expandMode,
         refreshSeconds,
+        opacity,
+        showSmartAccess,
         scale,
         sources,
       })
