@@ -72,25 +72,13 @@ pub(super) fn configure(window: &tauri::WebviewWindow, _zoom: f64) -> tauri::Res
     window.set_ignore_cursor_events(true)
 }
 
-/// A click on an ordinary macOS window activates the whole app, which raises the
-/// main window and takes focus from the app being dictated into; `focusable(false)`
-/// only stops the island itself from becoming key, so it also opts out of activation.
+#[cfg(target_os = "macos")]
+mod macos;
+
 #[cfg(target_os = "macos")]
 pub(super) fn configure(window: &tauri::WebviewWindow, _zoom: f64) -> tauri::Result<()> {
-    use objc2::{msg_send, runtime::AnyObject, runtime::Bool, sel};
     window.set_ignore_cursor_events(true)?;
-    let island = window.ns_window()? as usize;
-    window.run_on_main_thread(move || {
-        // SAFETY: the pointer is the live NSWindow of this webview window, messaged on the main thread.
-        let island = unsafe { &*(island as *const AnyObject) };
-        let supported: Bool =
-            unsafe { msg_send![island, respondsToSelector: sel!(_setPreventsActivation:)] };
-        if supported.as_bool() {
-            let _: () = unsafe { msg_send![island, _setPreventsActivation: Bool::YES] };
-        } else {
-            log::warn!("[VoiceInput] the island cannot opt out of app activation");
-        }
-    })
+    macos::configure(window)
 }
 
 /// Rows of the capsule's input mask in logical window pixels at `zoom`.
