@@ -1,11 +1,16 @@
 use super::{native, Edit, InputTarget, MAX_FIELD_BYTES, UNAVAILABLE};
 use core_foundation::base::{CFEqual, CFGetTypeID, CFRange, CFRelease, CFTypeRef, TCFType};
+use core_foundation::boolean::CFBoolean;
+use core_foundation::dictionary::{CFDictionary, CFDictionaryRef};
 use core_foundation::string::{CFString, CFStringGetTypeID, CFStringRef};
+use std::sync::atomic::{AtomicBool, Ordering};
 use tokio_util::sync::CancellationToken;
 
 #[link(name = "ApplicationServices", kind = "framework")]
 extern "C" {
     fn AXIsProcessTrusted() -> bool;
+    fn AXIsProcessTrustedWithOptions(options: CFDictionaryRef) -> bool;
+    static kAXTrustedCheckOptionPrompt: CFStringRef;
     fn AXUIElementCreateApplication(pid: i32) -> CFTypeRef;
     fn AXUIElementCopyAttributeValue(
         element: CFTypeRef,
@@ -21,6 +26,52 @@ extern "C" {
     ) -> i32;
     fn AXUIElementSetMessagingTimeout(element: CFTypeRef, timeout: f32) -> i32;
     fn AXValueGetValue(value: CFTypeRef, kind: i32, output: *mut std::ffi::c_void) -> bool;
+}
+
+#[link(name = "Carbon", kind = "framework")]
+extern "C" {
+    fn IsSecureEventInputEnabled() -> u8;
+}
+
+/// Whether typing now could reach a password field: macOS turns on secure input
+/// while any one has focus, including in apps whose fields AX cannot see.
+pub(super) fn secure_input(input: InputTarget) -> bool {
+    if unsafe { IsSecureEventInputEnabled() } != 0 {
+        return true;
+    }
+    let app = unsafe { AXUIElementCreateApplication(input.window as i32) };
+    if app.is_null() {
+        return false;
+    }
+    let app = Owned(app);
+    unsafe { AXUIElementSetMessagingTimeout(app.0, 0.25) };
+    attribute(&app, "AXFocusedUIElement")
+        .and_then(|element| attribute(&element, "AXSubrole"))
+        .and_then(|role| string(&role))
+        .as_deref()
+        == Some("AXSecureTextField")
+}
+
+pub(super) fn trusted() -> bool {
+    unsafe { AXIsProcessTrusted() }
+}
+
+/// Shows the system's request to allow EchoBird under Accessibility, at most once per
+/// launch, so a dictation that could not be written tells the user what to turn on.
+pub(super) fn request_trust() {
+    static ASKED: AtomicBool = AtomicBool::new(false);
+    ask_once(&ASKED, || {
+        // SAFETY: a constant CFString exported by ApplicationServices.
+        let prompt = unsafe { CFString::wrap_under_get_rule(kAXTrustedCheckOptionPrompt) };
+        let options = CFDictionary::from_CFType_pairs(&[(prompt, CFBoolean::true_value())]);
+        unsafe { AXIsProcessTrustedWithOptions(options.as_concrete_TypeRef()) };
+    });
+}
+
+fn ask_once(asked: &AtomicBool, ask: impl FnOnce()) {
+    if !asked.swap(true, Ordering::AcqRel) {
+        ask();
+    }
 }
 
 struct Owned(CFTypeRef);
@@ -169,5 +220,20 @@ impl Target {
             return Err(UNAVAILABLE.into());
         }
         native::insert(text, Some(self.input), cancel)
+    }
+}
+
+#[cfg(test)]
+mod trust_tests {
+    use super::*;
+
+    #[test]
+    fn the_accessibility_request_is_shown_once_per_launch() {
+        let asked = AtomicBool::new(false);
+        let mut shown = 0;
+        for _ in 0..3 {
+            ask_once(&asked, || shown += 1);
+        }
+        assert_eq!(shown, 1);
     }
 }

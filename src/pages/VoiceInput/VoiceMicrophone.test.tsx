@@ -1637,6 +1637,29 @@ describe('island speech entry', () => {
     expect(api.startVoice).not.toHaveBeenCalled();
   });
 
+  it.each(['zh-Hans', 'zh-Hant', 'en', 'ja'] as const)(
+    'tells the user to allow Accessibility when the text could not be written (%s)',
+    async (locale) => {
+      await loadLocale(locale);
+      localization.locale = locale;
+      voice.setState({
+        snapshot: voiceSnapshot({
+          phase: 'done',
+          origin: 'island',
+          text: '你好',
+          error: 'voice.error.accessibility',
+        }),
+      });
+      act(() => {
+        renderer = create(<LiveIsland />);
+      });
+      const status = renderer.root.findByProps({ role: 'status' }).children.join('');
+      expect(status).toBe(translate('voice.error.accessibility', locale));
+      expect(status).toContain('EchoBird');
+      expect(status).not.toBe('voice.error.accessibility');
+    }
+  );
+
   it('shows an empty recognition result as an error instead of a completed dictation', () => {
     voice.setState({
       snapshot: voiceSnapshot({

@@ -227,6 +227,8 @@ const en: Translations = {
   'voice.error.transcribe': 'Speech recognition failed.',
   'voice.error.optimizationModel': 'Select a model for selection translation and questions.',
   'voice.error.focus': 'The input focus changed. Copy the retained transcript to insert it.',
+  'voice.error.accessibility':
+    'Allow EchoBird in System Settings → Privacy & Security → Accessibility to write into the original input. Your transcript is retained; copy and paste it.',
   'voice.error.target':
     'Could not write to the original input. Your transcript is retained; copy and paste it.',
   'voice.error.insert': 'Could not insert text. The transcript is retained for copying.',

@@ -93,6 +93,7 @@ fn cancellation_and_missing_targets_never_fall_through_to_current_focus() {
     );
 }
 
+// macOS answers an untrusted process with the Accessibility error first.
 #[cfg(not(target_os = "macos"))]
 #[test]
 fn an_unavailable_background_target_never_types_into_another_window() {
@@ -111,4 +112,22 @@ fn an_unavailable_background_target_never_types_into_another_window() {
         ),
         Err(UNAVAILABLE.into())
     );
+}
+
+#[test]
+fn an_app_only_target_types_only_while_that_app_is_still_in_front() {
+    // macOS knows the original app but not its field.
+    let original = InputTarget {
+        window: 42,
+        focus: None,
+    };
+    assert!(original.matches(Some(InputTarget {
+        window: 42,
+        focus: None,
+    })));
+    assert!(!original.matches(Some(InputTarget {
+        window: 7,
+        focus: None,
+    })));
+    assert!(!original.matches(None));
 }

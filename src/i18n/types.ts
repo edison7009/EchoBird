@@ -219,6 +219,7 @@ export type TKey =
   | 'voice.error.transcribe'
   | 'voice.error.optimizationModel'
   | 'voice.error.focus'
+  | 'voice.error.accessibility'
   | 'voice.error.target'
   | 'voice.error.insert'
   | 'voice.error.cancelled'

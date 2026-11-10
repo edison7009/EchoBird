@@ -13,10 +13,11 @@ mod platform;
 mod platform;
 
 const UNAVAILABLE: &str = "voice.error.target";
+#[cfg(target_os = "macos")]
+const UNTRUSTED: &str = "voice.error.accessibility";
 const MAX_FIELD_BYTES: usize = 1_048_576;
 
 pub(super) struct Target {
-    #[cfg(not(target_os = "macos"))]
     foreground: Option<InputTarget>,
     background: Option<platform::Target>,
 }
@@ -29,7 +30,6 @@ pub(super) fn capture(foreground: Option<InputTarget>) -> Option<Target> {
         background.is_some()
     );
     (foreground.is_some() || background.is_some()).then_some(Target {
-        #[cfg(not(target_os = "macos"))]
         foreground,
         background,
     })
@@ -47,17 +47,30 @@ pub(super) fn insert(
         return Err("voice.error.insert".into());
     }
     let target = target.ok_or(UNAVAILABLE)?;
+    // Without Accessibility access macOS hides every other app's fields and keys.
+    #[cfg(target_os = "macos")]
+    if !platform::trusted() {
+        platform::request_trust();
+        return Err(UNTRUSTED.into());
+    }
     if let Some(background) = target.background {
         // A failed write may already have reached the provider. Never replay it
         // through keyboard input, which could duplicate text or write into B.
         log::info!("[VoiceInput] input route=captured_control");
         return background.insert(text, cancel);
     }
-    #[cfg(not(target_os = "macos"))]
+    // No editable control was exposed (macOS WeChat, for one): type into the
+    // original app only while it is still in front. On macOS that is the app itself.
     if target
         .foreground
         .is_some_and(|original| original.matches(native::input_target()))
     {
+        // Never type a transcript into a password field.
+        #[cfg(target_os = "macos")]
+        if target.foreground.is_some_and(platform::secure_input) {
+            log::info!("[VoiceInput] input skipped secure_input=true");
+            return Err(UNAVAILABLE.into());
+        }
         log::info!("[VoiceInput] input route=foreground");
         return native::insert(text, target.foreground, cancel);
     }

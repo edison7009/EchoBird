@@ -223,6 +223,8 @@ const zhHant: Partial<Translations> = {
   'voice.error.transcribe': '語音辨識失敗。',
   'voice.error.optimizationModel': '請先為劃詞翻譯/提問選擇模型。',
   'voice.error.focus': '輸入位置已變更，請複製保留的文字後輸入。',
+  'voice.error.accessibility':
+    '需要在「系統設定 → 隱私權與安全性 → 輔助使用」中允許 EchoBird，才能寫入原來的輸入位置。辨識結果已保留，可複製後貼上。',
   'voice.error.target': '無法寫入原來的輸入位置，辨識結果已保留，可複製後貼上。',
   'voice.error.insert': '文字回填失敗，已保留辨識結果供複製。',
   'voice.error.cancelled': '已取消',

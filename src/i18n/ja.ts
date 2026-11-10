@@ -227,6 +227,8 @@ const ja: Partial<Translations> = {
   'voice.error.transcribe': '音声認識に失敗しました。',
   'voice.error.optimizationModel': '選択テキストの翻訳・質問に使うモデルを選択してください。',
   'voice.error.focus': '入力先のフォーカスが変わりました。保持されたテキストをコピーしてください。',
+  'voice.error.accessibility':
+    '元の入力位置に書き込むには、「システム設定 → プライバシーとセキュリティ → アクセシビリティ」で EchoBird を許可してください。認識結果は保持されています。コピーして貼り付けてください。',
   'voice.error.target':
     '元の入力位置に書き込めませんでした。認識結果は保持されています。コピーして貼り付けてください。',
   'voice.error.insert': 'テキストを入力できません。結果をコピーできます。',
