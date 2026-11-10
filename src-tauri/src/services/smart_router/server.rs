@@ -1334,6 +1334,22 @@ async fn responses_from_chat(
     )
 }
 
+/// OpenAI-compatible upstreams only report streamed usage on request; without
+/// it Smart Access statistics and TokenPet credits never see streamed turns.
+/// Only recorded turns ask (probes stay minimal); an explicit client choice is kept.
+fn request_stream_usage(body: &mut Value) {
+    if body["stream"] != true {
+        return;
+    }
+    match body.get_mut("stream_options") {
+        Some(Value::Object(options)) => {
+            options.entry("include_usage").or_insert(Value::Bool(true));
+        }
+        None | Some(Value::Null) => body["stream_options"] = json!({"include_usage": true}),
+        Some(_) => {}
+    }
+}
+
 async fn send_api_request(
     state: &AppState,
     headers: &HeaderMap,
@@ -1344,6 +1360,9 @@ async fn send_api_request(
     let mut body = body.clone();
     if protocol == RouteProtocol::Chat {
         crate::services::account_proxy::strip_response_metadata(&mut body);
+        if state.request_statistics.is_some() {
+            request_stream_usage(&mut body);
+        }
     } else {
         crate::services::account_proxy::normalize_responses_tool_rounds(&mut body);
     }

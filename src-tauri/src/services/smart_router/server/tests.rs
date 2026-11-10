@@ -2942,3 +2942,97 @@ async fn terminal_observes_real_replacements_without_changing_upstream_payload()
     assert!(super::super::terminal::ticket(group).is_none());
     fs::remove_dir_all(root).unwrap();
 }
+
+#[tokio::test]
+async fn streamed_api_turns_request_usage_so_pet_credits_accrue() {
+    // OpenAI-compatible upstreams (DeepSeek, Qwen, ...) only report streamed
+    // usage when asked; without it Smart Access turns never earn TokenPet.
+    let root = std::env::temp_dir().join(format!("stream-usage-{}", uuid::Uuid::new_v4()));
+    fs::create_dir_all(&root).unwrap();
+    let captured = Arc::new(Mutex::new(Vec::<Value>::new()));
+    let addr = spawn_mock(Router::new().route(
+        "/v1/chat/completions",
+        post({
+            let captured = captured.clone();
+            move |Json(body): Json<Value>| {
+                let usage = body["stream_options"]["include_usage"] == true;
+                captured.lock().unwrap().push(body);
+                async move {
+                    let mut text = String::from(
+                        "data: {\"choices\":[{\"index\":0,\"delta\":{\"content\":\"hi\"},\"finish_reason\":null}]}\n\n\
+                         data: {\"choices\":[{\"index\":0,\"delta\":{},\"finish_reason\":\"stop\"}]}\n\n",
+                    );
+                    if usage {
+                        text.push_str("data: {\"choices\":[],\"usage\":{\"prompt_tokens\":10,\"completion_tokens\":5,\"total_tokens\":15}}\n\n");
+                    }
+                    text.push_str("data: [DONE]\n\n");
+                    Response::builder()
+                        .header(header::CONTENT_TYPE, "text/event-stream")
+                        .body(Body::from(text))
+                        .unwrap()
+                }
+            }
+        }),
+    ))
+    .await;
+    let collector = super::super::statistics::Collector::open(root.join("counts.json")).unwrap();
+    collector.configure(true);
+    let mut state = AppState::for_tests().unwrap();
+    state.http_client = reqwest::Client::builder().no_proxy().build().unwrap();
+    state.config_path = root.join("stream-usage.json");
+    state.protection_settings_path = root.join("settings.json");
+    state.statistics_collector = Some(collector.clone());
+    for (protocol, body) in [
+        (
+            ClientProtocol::Chat,
+            json!({"model":"auto","stream":true,"messages":[{"role":"user","content":"hello"}]}),
+        ),
+        (
+            ClientProtocol::Messages,
+            json!({"model":"auto","stream":true,"max_tokens":64,
+                "messages":[{"role":"user","content":"hello"}]}),
+        ),
+    ] {
+        let response = protected_route(
+            &state,
+            &HeaderMap::new(),
+            body,
+            vec![candidate(addr, "stream-usage")],
+            protocol,
+        )
+        .await;
+        assert_eq!(response.status(), StatusCode::OK);
+        let _ = response.into_body().collect().await.unwrap();
+    }
+    // A client's explicit opt-out stays untouched.
+    let response = protected_route(
+        &state,
+        &HeaderMap::new(),
+        json!({"model":"auto","stream":true,"stream_options":{"include_usage":false},
+            "messages":[{"role":"user","content":"hello"}]}),
+        vec![candidate(addr, "stream-usage")],
+        ClientProtocol::Chat,
+    )
+    .await;
+    let _ = response.into_body().collect().await.unwrap();
+    collector.flush().unwrap();
+    assert_eq!(collector.token_credits().unwrap().total, 30);
+    // Unrecorded turns leave the client's request as sent.
+    collector.configure(false);
+    let response = protected_route(
+        &state,
+        &HeaderMap::new(),
+        json!({"model":"auto","stream":true,"messages":[{"role":"user","content":"hello"}]}),
+        vec![candidate(addr, "stream-usage")],
+        ClientProtocol::Chat,
+    )
+    .await;
+    let _ = response.into_body().collect().await.unwrap();
+    let sent = captured.lock().unwrap().clone();
+    assert_eq!(sent.len(), 4);
+    assert_eq!(sent[0]["stream_options"]["include_usage"], true);
+    assert_eq!(sent[1]["stream_options"]["include_usage"], true);
+    assert_eq!(sent[2]["stream_options"]["include_usage"], false);
+    assert!(sent[3].get("stream_options").is_none());
+    fs::remove_dir_all(root).unwrap();
+}
