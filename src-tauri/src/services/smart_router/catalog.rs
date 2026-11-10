@@ -57,6 +57,25 @@ pub(super) fn display_name(model_id: &str, title: &str) -> String {
     format!("{model_id} · {title}")
 }
 
+/// "<upstream model> · <provider host>" for a client's model subtitle.
+pub(super) fn description(model_id: &str, base_url: &str) -> String {
+    let host = base_url
+        .split("://")
+        .last()
+        .unwrap_or_default()
+        .split(['/', '?', '#'])
+        .next()
+        .unwrap_or_default()
+        .rsplit('@')
+        .next()
+        .unwrap_or_default();
+    if host.is_empty() {
+        model_id.to_string()
+    } else {
+        format!("{model_id} · {host}")
+    }
+}
+
 pub(crate) fn models_for_url(base_url: &str) -> Result<Vec<SwitchModel>, String> {
     #[cfg(test)]
     if let Ok((url, models)) = TEST_MODELS.try_with(Clone::clone) {
@@ -227,6 +246,15 @@ mod tests {
         assert_eq!(native["models"][0]["display_name"], "My router");
         assert_eq!(native["models"][1]["display_name"], "same-model · 哈哈哈哈");
         assert_eq!(native["models"][1]["slug"], selector("second"));
+    }
+
+    #[test]
+    fn description_names_upstream_model_and_host_without_credentials() {
+        assert_eq!(
+            description("glm-5", "https://user:secret@open.bigmodel.cn/api/v1?x=1"),
+            "glm-5 · open.bigmodel.cn"
+        );
+        assert_eq!(description("glm-5", ""), "glm-5");
     }
 
     #[test]

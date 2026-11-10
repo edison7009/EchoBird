@@ -590,7 +590,7 @@ async fn handle_models(State(state): State<AppState>, headers: HeaderMap) -> Res
     let candidates = resolve_candidates(config.candidate_ids);
     let mut data = vec![json!({"id":config.model_id,"object":"model","created":0,
         "owned_by":"echobird","display_name":"Auto","type":"model",
-        "created_at":"1970-01-01T00:00:00Z"})];
+        "description":"EchoBird · Smart Access","created_at":"1970-01-01T00:00:00Z"})];
     let stored_models = model_manager::get_user_models();
     data.extend(candidates.iter().map(|candidate| {
         let name = stored_models
@@ -599,8 +599,12 @@ async fn handle_models(State(state): State<AppState>, headers: HeaderMap) -> Res
             .map(|m| m.name.as_str())
             .unwrap_or(&candidate.model_id);
         let name = super::catalog::display_name(&candidate.model_id, name);
+        // Claude Desktop shows this under the name instead of the tier blurb
+        // its selector's tier word would otherwise pick.
+        let description = super::catalog::description(&candidate.model_id, &candidate.base_url);
         json!({"id":super::catalog::selector(&candidate.internal_id),"object":"model",
             "created":0,"owned_by":"echobird","display_name":name,"name":name,
+            "description":description,
             "type":"model","created_at":"1970-01-01T00:00:00Z"})
     }));
     Json(json!({

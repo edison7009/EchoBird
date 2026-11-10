@@ -157,6 +157,23 @@ fn desktop_model_id<'a>(real_id: &'a str, anthropic_url: &str) -> &'a str {
     }
 }
 
+/// Desktop's tier for a published name, read from its Claude tier word.
+fn desktop_tier(name: &str) -> Option<&'static str> {
+    let model = name.rsplit('/').next().unwrap_or(name).to_ascii_lowercase();
+    ["opus", "sonnet", "haiku", "fable"]
+        .into_iter()
+        .find(|tier| model.split(['-', '.', '_']).any(|part| part == *tier))
+}
+
+fn newest_claude_model(tier: &str) -> &'static str {
+    match tier {
+        "sonnet" => "claude-sonnet-5-5",
+        "haiku" => "claude-haiku-5-5",
+        "fable" => "claude-fable-5-1",
+        _ => "claude-opus-5-5",
+    }
+}
+
 pub(super) fn apply_claudedesktop(model_info: &ModelInfo) -> ApplyResult {
     let paths = match resolve_claudedesktop_paths() {
         Some(p) => p,
@@ -326,13 +343,15 @@ fn apply_claudedesktop_at(
         .filter(|name| !name.trim().is_empty())
         .unwrap_or(real_model_id);
     // prefer1m selects the 1M variant without decorating the model ID.
-    // We deliberately do NOT set `anthropicFamilyTier` / `isFamilyDefault`.
-    // They were added to try to make the 1M variant the default, which turned
-    // out to be an unfixable Desktop-side bug. Worse, hardcoding a tier
-    // mislabels models: the name may be the real upstream id
-    // (e.g. a Sonnet model), so tagging it "opus" makes Desktop's opus alias
-    // resolve to a Sonnet model. The tier alias is optional — Desktop keeps the
-    // model usable without it.
+    // The tier comes from the published name, never a hardcoded one, so a
+    // Sonnet upstream is never tagged as Opus. Desktop's Code tab fills
+    // ANTHROPIC_DEFAULT_<TIER>_MODEL from the tagged entry, and gives Claude
+    // Code `behavesAs` (that tier's Claude prompt and defaults) only from this
+    // list. A real Claude upstream is known to Claude Code by its own id.
+    let tier = desktop_tier(base_model_id);
+    let behaves_as = (base_model_id != real_model_id.trim())
+        .then(|| tier.map(newest_claude_model))
+        .flatten();
     let mut model_entry = serde_json::Map::new();
     model_entry.insert(
         "name".to_string(),
@@ -347,17 +366,45 @@ fn apply_claudedesktop_at(
         "prefer1m".to_string(),
         serde_json::Value::Bool(model_info.one_m_context.unwrap_or(false)),
     );
-    let model_entry = serde_json::Value::Object(model_entry);
-    let mut inference_models = serde_json::json!([model_entry]);
-    // The auto row uses Desktop's Claude alias; concrete rows keep their stable selectors.
+    if let Some(behaves_as) = behaves_as {
+        model_entry.insert("behavesAs".to_string(), serde_json::json!(behaves_as));
+    }
+    let mut first_entry = model_entry.clone();
+    if let Some(tier) = tier {
+        first_entry.insert("anthropicFamilyTier".to_string(), serde_json::json!(tier));
+        first_entry.insert("isFamilyDefault".to_string(), serde_json::json!(true));
+    }
+    let smart_access = !switch_models.is_empty();
+    let mut inference_models = vec![serde_json::Value::Object(first_entry)];
+    // The auto row uses Desktop's Claude alias and stays first (a new
+    // session's default). Concrete rows keep their stable selectors, carry
+    // no tier of their own, and run as the auto row's tier.
     for model in switch_models
         .into_iter()
         .filter(|model| model.id != real_model_id)
     {
-        let mut entry = inference_models[0].clone();
-        entry["name"] = serde_json::json!(model.id);
-        entry["labelOverride"] = serde_json::json!(model.name);
-        inference_models.as_array_mut().unwrap().push(entry);
+        let mut entry = model_entry.clone();
+        entry.insert("name".to_string(), serde_json::json!(model.id));
+        entry.insert("labelOverride".to_string(), serde_json::json!(model.name));
+        if !entry.contains_key("behavesAs") {
+            entry.insert(
+                "behavesAs".to_string(),
+                serde_json::json!(newest_claude_model(tier.unwrap_or("opus"))),
+            );
+        }
+        inference_models.push(serde_json::Value::Object(entry));
+    }
+    // With a list present Desktop skips `/v1/models` unless told otherwise.
+    // Smart Access serves its own list with descriptions, so Desktop takes the
+    // subtitles from it instead of the selector's tier word; the list itself
+    // stays ours. Direct providers keep the probe off.
+    if smart_access {
+        profile["modelDiscoveryEnabled"] = serde_json::json!(true);
+    } else {
+        profile
+            .as_object_mut()
+            .unwrap()
+            .remove("modelDiscoveryEnabled");
     }
     let updates = serde_json::json!({
         "disableDeploymentModeChooser": true,
@@ -660,6 +707,18 @@ mod tests {
                         "Actual model display name"
                     );
                     assert_eq!(profile["inferenceModels"][0]["prefer1m"], one_m);
+                    let entry = &profile["inferenceModels"][0];
+                    let (tier, behaves_as) = match expected {
+                        "claude-opus" => (json!("opus"), json!("claude-opus-5-5")),
+                        "anthropic/claude-sonnet-5" | "sonnet" => (json!("sonnet"), json!(null)),
+                        "vendor/Haiku-5" => (json!("haiku"), json!(null)),
+                        "fable-5-1" => (json!("fable"), json!(null)),
+                        _ => (json!("opus"), json!(null)),
+                    };
+                    assert_eq!(entry["anthropicFamilyTier"], tier, "{model}");
+                    assert_eq!(entry["isFamilyDefault"], true);
+                    assert_eq!(entry["behavesAs"], behaves_as, "{model}");
+                    assert!(profile.get("modelDiscoveryEnabled").is_none());
                     let saved = read_json_file(&relay_path).unwrap();
                     assert_eq!(saved["actualModel"], model);
                     assert_eq!(saved["relayMode"], true);
@@ -830,6 +889,18 @@ mod switch_tests {
             let value = read_json_file(&profile).unwrap();
             assert_eq!(value["inferenceModels"].as_array().unwrap().len(), 3);
             assert_eq!(value["inferenceModels"][1]["labelOverride"], "First model");
+            let models = value["inferenceModels"].as_array().unwrap();
+            assert_eq!(models[0]["name"], "claude-opus");
+            assert_eq!(models[0]["anthropicFamilyTier"], "opus");
+            assert_eq!(models[0]["isFamilyDefault"], true);
+            for entry in models {
+                assert_eq!(entry["behavesAs"], "claude-opus-5-5");
+            }
+            for entry in &models[1..] {
+                assert!(entry.get("anthropicFamilyTier").is_none());
+                assert!(entry.get("isFamilyDefault").is_none());
+            }
+            assert_eq!(value["modelDiscoveryEnabled"], true);
             assert_eq!(
                 value["inferenceModels"][1]["name"],
                 crate::services::smart_router::catalog::selector("first")
@@ -843,6 +914,10 @@ mod switch_tests {
                     .len(),
                 1
             );
+            assert!(read_json_file(&profile)
+                .unwrap()
+                .get("modelDiscoveryEnabled")
+                .is_none());
             assert!(restore_claudedesktop_at(&paths, &relay).success);
         });
     }
