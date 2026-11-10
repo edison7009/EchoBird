@@ -13,6 +13,8 @@ interface VoiceInputState {
   saving: boolean;
   pending: boolean;
   error: string | null;
+  /** When this window's own start reached listening; a stop just after it is the tail of a double click. */
+  listeningSince: number;
   accept: (snapshot: api.VoiceSnapshot) => void;
   load: () => Promise<void>;
   save: (changes: Partial<api.VoiceConfig>) => Promise<boolean>;
@@ -30,6 +32,7 @@ export const useVoiceInputStore = create<VoiceInputState>((set, get) => ({
   saving: false,
   pending: false,
   error: null,
+  listeningSince: -Infinity,
   accept: (snapshot) =>
     set((state) => {
       if (state.snapshot && snapshot.revision < state.snapshot.revision) return {};
@@ -96,6 +99,7 @@ export const useVoiceInputStore = create<VoiceInputState>((set, get) => ({
     set({ pending: true, error: null });
     try {
       get().accept(await api.recordVoice());
+      if (get().snapshot?.phase === 'recording') set({ listeningSince: performance.now() });
     } catch (error) {
       set({ error: String(error) });
     } finally {
@@ -103,7 +107,12 @@ export const useVoiceInputStore = create<VoiceInputState>((set, get) => ({
     }
   },
   stop: async () => {
-    if (!['recording', 'testing'].includes(get().snapshot?.phase ?? '') || get().pending) return;
+    if (
+      !['recording', 'testing'].includes(get().snapshot?.phase ?? '') ||
+      get().pending ||
+      performance.now() - get().listeningSince <= 300
+    )
+      return;
     set({ pending: true, error: null });
     try {
       get().accept(await api.stopVoice());

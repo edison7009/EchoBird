@@ -37,6 +37,8 @@ export function IslandContent({
   const phase = preview ? 'idle' : snapshot.phase;
   const recording = phase === 'recording';
   const ready = !voiceBusy(phase);
+  // Connecting before listening and waiting for the result both show the spinner and take no clicks.
+  const waiting = !preview && (state.pending || (!recording && !ready));
   const error = !preview && (snapshot.error || state.error);
   const idle = phase === 'idle' || phase === 'done';
   const speaking = ['recording', 'testing'].includes(snapshot.phase);
@@ -92,21 +94,22 @@ export function IslandContent({
         className="voice-island-control voice-island-confirm"
         aria-label={t(recording ? 'voice.stop' : 'voice.speak')}
         aria-hidden={preview || undefined}
+        aria-busy={waiting || undefined}
         disabled={
           preview ||
-          state.pending ||
+          waiting ||
           state.saving ||
           snapshot.selectionOpen ||
           (!recording && (!ready || !config.shortcutEnabled))
         }
         onClick={() => void (recording ? state.stop() : state.record())}
       >
-        {recording ? (
-          <Square size={13} fill="currentColor" />
-        ) : ready ? (
-          <Mic size={16} />
-        ) : (
+        {waiting ? (
           <LoaderCircle size={16} className="motion-safe:animate-spin" />
+        ) : recording ? (
+          <Square size={13} fill="currentColor" />
+        ) : (
+          <Mic size={16} />
         )}
       </button>
     </div>

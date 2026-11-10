@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
+import { LoaderCircle, Mic, Square } from 'lucide-react';
 import { act, create, type ReactTestInstance, type ReactTestRenderer } from 'react-test-renderer';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from 'vitest';
 import { VoiceInputMain } from './VoiceInput';
 import { IslandContent, IslandTranscript, VoiceIsland } from './VoiceIsland';
 import { VoiceFlow } from './VoiceFlow';
@@ -87,8 +88,10 @@ vi.mock('../../api/voiceInput', () => ({
 }));
 
 let renderer: ReactTestRenderer;
+let now: MockInstance<typeof performance.now>;
 beforeEach(() => {
   vi.clearAllMocks();
+  now = vi.spyOn(performance, 'now').mockReturnValue(0);
   startDragging.mockReset().mockResolvedValue(undefined);
   vi.mocked(api.showMainWindow).mockReset().mockResolvedValue(undefined);
   mother.models = [];
@@ -110,6 +113,7 @@ beforeEach(() => {
   voice.setState({ snapshot: voiceSnapshot() });
 });
 afterEach(() => {
+  now.mockRestore();
   act(() => renderer?.unmount());
   vi.unstubAllGlobals();
 });
@@ -1302,11 +1306,226 @@ describe('island speech entry', () => {
     expect(api.recordVoice).toHaveBeenCalledExactlyOnceWith();
     expect(api.startVoice).not.toHaveBeenCalled();
     expect(button('voice.speak')).toBeUndefined();
+    now.mockReturnValue(1500);
     await act(async () =>
       renderer.root.findByProps({ 'aria-label': 'voice.stop' }).props.onClick()
     );
     expect(api.stopVoice).toHaveBeenCalledExactlyOnceWith();
     expect(button('voice.speak')).toBeDefined();
+  });
+
+  describe('waiting phases', () => {
+    const config = () => ({ ...voiceSnapshot().config, shortcutEnabled: true });
+    const control = () =>
+      renderer.root.findByProps({ className: 'voice-island-control voice-island-confirm' });
+    const spinning = () => renderer.root.findAllByType(LoaderCircle).length === 1;
+    const deferred = () => {
+      let settle!: {
+        resolve: (value: api.VoiceSnapshot) => void;
+        reject: (error: unknown) => void;
+      };
+      const promise = new Promise<api.VoiceSnapshot>((resolve, reject) => {
+        settle = { resolve, reject };
+      });
+      return { promise, ...settle };
+    };
+    const click = () => act(async () => control().props.onClick());
+    const publish = (snapshot: api.VoiceSnapshot) => act(() => voice.getState().accept(snapshot));
+
+    it('shows one spinner while connecting and ignores repeated starts', async () => {
+      voice.setState({ snapshot: voiceSnapshot({ config: config() }) });
+      const started = deferred();
+      vi.mocked(api.recordVoice).mockReturnValue(started.promise);
+      act(() => {
+        renderer = create(<LiveIsland />);
+      });
+      expect(spinning()).toBe(false);
+      await click();
+      expect(spinning()).toBe(true);
+      expect(control().props.disabled).toBe(true);
+      expect(control().props['aria-busy']).toBe(true);
+      await click();
+      publish(
+        voiceSnapshot({ config: config(), phase: 'starting', origin: 'island', revision: 2 })
+      );
+      expect(spinning()).toBe(true);
+      await click();
+      await click();
+      expect(api.recordVoice).toHaveBeenCalledOnce();
+      now.mockReturnValue(1000);
+      await act(async () =>
+        started.resolve(
+          voiceSnapshot({ config: config(), phase: 'recording', origin: 'island', revision: 3 })
+        )
+      );
+      expect(spinning()).toBe(false);
+      expect(renderer.root.findAllByType(Square)).toHaveLength(1);
+      expect(control().props.disabled).toBe(false);
+      expect(control().props['aria-busy']).toBeUndefined();
+      // The second press of a double click lands just after listening starts.
+      now.mockReturnValue(1200);
+      await click();
+      expect(api.stopVoice).not.toHaveBeenCalled();
+      expect(api.recordVoice).toHaveBeenCalledOnce();
+      expect(api.startVoice).not.toHaveBeenCalled();
+      expect(api.cancelVoice).not.toHaveBeenCalled();
+    });
+
+    it('shows one spinner while waiting for the result and ignores repeated stops', async () => {
+      voice.setState({
+        snapshot: voiceSnapshot({ config: config(), phase: 'recording', origin: 'island' }),
+      });
+      const stopped = deferred();
+      vi.mocked(api.stopVoice).mockReturnValue(stopped.promise);
+      act(() => {
+        renderer = create(<LiveIsland />);
+      });
+      now.mockReturnValue(5000);
+      await click();
+      expect(api.stopVoice).toHaveBeenCalledOnce();
+      expect(spinning()).toBe(true);
+      expect(renderer.root.findAllByType(Square)).toHaveLength(0);
+      expect(control().props.disabled).toBe(true);
+      await click();
+      publish(
+        voiceSnapshot({ config: config(), phase: 'transcribing', origin: 'island', revision: 2 })
+      );
+      expect(spinning()).toBe(true);
+      await click();
+      publish(
+        voiceSnapshot({ config: config(), phase: 'inserting', origin: 'island', revision: 3 })
+      );
+      await click();
+      expect(api.stopVoice).toHaveBeenCalledOnce();
+      expect(api.recordVoice).not.toHaveBeenCalled();
+      await act(async () =>
+        stopped.resolve(
+          voiceSnapshot({ config: config(), phase: 'done', origin: 'island', revision: 4 })
+        )
+      );
+      expect(spinning()).toBe(false);
+      expect(renderer.root.findAllByType(Mic)).toHaveLength(1);
+      expect(control().props.disabled).toBe(false);
+    });
+
+    it('becomes clickable again after a failed connection', async () => {
+      voice.setState({ snapshot: voiceSnapshot({ config: config() }) });
+      const started = deferred();
+      vi.mocked(api.recordVoice).mockReturnValueOnce(started.promise);
+      act(() => {
+        renderer = create(<LiveIsland />);
+      });
+      await click();
+      await click();
+      await act(async () => started.reject('voice.error.microphone'));
+      expect(spinning()).toBe(false);
+      expect(control().props.disabled).toBe(false);
+      expect(renderer.root.findByProps({ role: 'status' }).children).toContain(
+        'voice.error.microphone'
+      );
+      vi.mocked(api.recordVoice).mockResolvedValueOnce(
+        voiceSnapshot({ config: config(), phase: 'recording', origin: 'island', revision: 2 })
+      );
+      await click();
+      expect(api.recordVoice).toHaveBeenCalledTimes(2);
+    });
+
+    it.each([
+      ['a recognition failure or timeout', 'error', 'voice.error.transcribe'],
+      ['a cancellation', 'idle', null],
+    ] as const)('leaves the result wait after %s', async (_, phase, error) => {
+      voice.setState({
+        snapshot: voiceSnapshot({ config: config(), phase: 'recording', origin: 'island' }),
+      });
+      const stopped = deferred();
+      vi.mocked(api.stopVoice).mockReturnValue(stopped.promise);
+      act(() => {
+        renderer = create(<LiveIsland />);
+      });
+      now.mockReturnValue(5000);
+      await click();
+      publish(
+        voiceSnapshot({ config: config(), phase: 'transcribing', origin: 'island', revision: 2 })
+      );
+      expect(spinning()).toBe(true);
+      await act(async () =>
+        stopped.resolve(voiceSnapshot({ config: config(), phase, error, revision: 3 }))
+      );
+      expect(spinning()).toBe(false);
+      expect(control().props.disabled).toBe(false);
+      vi.mocked(api.recordVoice).mockResolvedValueOnce(
+        voiceSnapshot({ config: config(), phase: 'recording', origin: 'island', revision: 4 })
+      );
+      await click();
+      expect(api.recordVoice).toHaveBeenCalledOnce();
+      expect(api.stopVoice).toHaveBeenCalledOnce();
+    });
+
+    it('stops at once when the island opens on a recording already under way', async () => {
+      voice.setState({
+        snapshot: voiceSnapshot({ config: config(), phase: 'recording', origin: 'shortcut' }),
+      });
+      vi.mocked(api.stopVoice).mockResolvedValueOnce(
+        voiceSnapshot({ config: config(), phase: 'done', origin: 'shortcut', revision: 2 })
+      );
+      now.mockReturnValue(10);
+      act(() => {
+        renderer = create(<LiveIsland />);
+      });
+      await click();
+      expect(api.stopVoice).toHaveBeenCalledOnce();
+      // A start seen by the island still opens the window for the next recording.
+      vi.mocked(api.recordVoice).mockResolvedValueOnce(
+        voiceSnapshot({ config: config(), phase: 'recording', origin: 'island', revision: 3 })
+      );
+      await click();
+      now.mockReturnValue(100);
+      await click();
+      expect(api.stopVoice).toHaveBeenCalledOnce();
+      vi.mocked(api.stopVoice).mockResolvedValueOnce(
+        voiceSnapshot({ config: config(), phase: 'done', origin: 'island', revision: 4 })
+      );
+      now.mockReturnValue(500);
+      await click();
+      expect(api.stopVoice).toHaveBeenCalledTimes(2);
+    });
+
+    it('stops at once when listening was started by the shortcut', async () => {
+      voice.setState({ snapshot: voiceSnapshot({ config: config() }) });
+      vi.mocked(api.stopVoice).mockResolvedValueOnce(
+        voiceSnapshot({ config: config(), phase: 'done', origin: 'shortcut', revision: 3 })
+      );
+      act(() => {
+        renderer = create(<LiveIsland />);
+      });
+      now.mockReturnValue(10);
+      publish(
+        voiceSnapshot({ config: config(), phase: 'recording', origin: 'shortcut', revision: 2 })
+      );
+      await click();
+      expect(api.stopVoice).toHaveBeenCalledOnce();
+      expect(api.recordVoice).not.toHaveBeenCalled();
+    });
+
+    it('lets a rejected stop be retried while still listening', async () => {
+      voice.setState({
+        snapshot: voiceSnapshot({ config: config(), phase: 'recording', origin: 'island' }),
+      });
+      vi.mocked(api.stopVoice).mockRejectedValueOnce('voice.error.microphone');
+      act(() => {
+        renderer = create(<LiveIsland />);
+      });
+      now.mockReturnValue(5000);
+      await click();
+      expect(spinning()).toBe(false);
+      expect(renderer.root.findAllByType(Square)).toHaveLength(1);
+      expect(control().props.disabled).toBe(false);
+      vi.mocked(api.stopVoice).mockResolvedValueOnce(
+        voiceSnapshot({ config: config(), phase: 'done', origin: 'island', revision: 2 })
+      );
+      await click();
+      expect(api.stopVoice).toHaveBeenCalledTimes(2);
+    });
   });
 
   it('blocks speech when disabled and keeps the settings preview read-only', async () => {
