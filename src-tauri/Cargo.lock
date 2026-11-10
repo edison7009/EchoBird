@@ -1855,6 +1855,7 @@ dependencies = [
  "md-5",
  "objc2",
  "objc2-app-kit",
+ "objc2-foundation",
  "pbkdf2 0.12.2",
  "plist",
  "rand 0.8.6",

@@ -229,11 +229,62 @@ fn bgra_image(
 
 #[cfg(target_os = "macos")]
 fn native_icon(pid: u64) -> Option<DynamicImage> {
-    let app = objc2_app_kit::NSRunningApplication::runningApplicationWithProcessIdentifier(
-        i32::try_from(pid).ok()?,
-    )?;
-    let data = app.icon()?.TIFFRepresentation()?;
-    image::load_from_memory(&data.to_vec()).ok()
+    let pid = i32::try_from(pid).ok()?;
+    // The icon thread has no run loop to drain AppKit's autoreleased objects.
+    objc2::rc::autoreleasepool(|_| {
+        let app =
+            objc2_app_kit::NSRunningApplication::runningApplicationWithProcessIdentifier(pid)?;
+        let icon = app.icon()?;
+        render_macos_icon(&icon)
+    })
+}
+
+/// Draws the icon into an 8-bit RGBA bitmap at the island's size. Its TIFF
+/// representation can be a 16-bit floating-point image that `image` cannot decode
+/// (macOS 27), and is tens of megabytes for a 64px icon.
+#[cfg(target_os = "macos")]
+fn render_macos_icon(icon: &objc2_app_kit::NSImage) -> Option<DynamicImage> {
+    use objc2::AnyThread;
+    use objc2_app_kit::{
+        NSBitmapImageFileType, NSBitmapImageRep, NSCompositingOperation, NSDeviceRGBColorSpace,
+        NSGraphicsContext,
+    };
+    use objc2_foundation::{NSDictionary, NSPoint, NSRect, NSSize};
+    let side = ICON_SIZE as isize;
+    // SAFETY: a null plane pointer asks AppKit to allocate the pixel buffer.
+    let bitmap = unsafe {
+        NSBitmapImageRep::initWithBitmapDataPlanes_pixelsWide_pixelsHigh_bitsPerSample_samplesPerPixel_hasAlpha_isPlanar_colorSpaceName_bytesPerRow_bitsPerPixel(
+            NSBitmapImageRep::alloc(),
+            std::ptr::null_mut(),
+            side,
+            side,
+            8,
+            4,
+            true,
+            false,
+            NSDeviceRGBColorSpace,
+            0,
+            0,
+        )
+    }?;
+    let context = NSGraphicsContext::graphicsContextWithBitmapImageRep(&bitmap)?;
+    // The current context is per thread; restore this thread's previous one.
+    NSGraphicsContext::saveGraphicsState_class();
+    NSGraphicsContext::setCurrentContext(Some(&context));
+    let size = f64::from(ICON_SIZE);
+    icon.drawInRect_fromRect_operation_fraction(
+        NSRect::new(NSPoint::new(0.0, 0.0), NSSize::new(size, size)),
+        NSRect::ZERO,
+        NSCompositingOperation::Copy,
+        1.0,
+    );
+    context.flushGraphics();
+    NSGraphicsContext::restoreGraphicsState_class();
+    // SAFETY: an empty property dictionary is valid for PNG output.
+    let png = unsafe {
+        bitmap.representationUsingType_properties(NSBitmapImageFileType::PNG, &NSDictionary::new())
+    }?;
+    image::load_from_memory(&png.to_vec()).ok()
 }
 
 #[cfg(target_os = "linux")]
@@ -299,4 +350,30 @@ pub(super) fn x11_icon(values: &[u32]) -> Option<image::RgbaImage> {
         })
         .collect();
     image::RgbaImage::from_raw(width, height, rgba)
+}
+
+#[cfg(all(test, target_os = "macos"))]
+mod macos_tests {
+    use super::*;
+
+    #[test]
+    fn application_icons_render_as_8_bit_images_at_island_size() {
+        // Finder's bundle icon has the same multi-resolution representations as a
+        // running app's icon; its TIFF form is 16-bit float on macOS 27.
+        let icon = objc2_app_kit::NSWorkspace::sharedWorkspace().iconForFile(
+            &objc2_foundation::NSString::from_str("/System/Library/CoreServices/Finder.app"),
+        );
+        let image = render_macos_icon(&icon).expect("the icon renders");
+        assert_eq!((image.width(), image.height()), (ICON_SIZE, ICON_SIZE));
+        let visible = image
+            .to_rgba8()
+            .pixels()
+            .filter(|pixel| pixel[3] > 0)
+            .count();
+        assert!(
+            visible > (ICON_SIZE * ICON_SIZE / 2) as usize,
+            "visible={visible}"
+        );
+        assert!(encode_image(image).is_some_and(|icon| icon.starts_with("data:image/png;base64,")));
+    }
 }
