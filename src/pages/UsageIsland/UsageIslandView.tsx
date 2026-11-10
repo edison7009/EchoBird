@@ -3,6 +3,7 @@ import { Box, Gift, RefreshCw, Zap } from 'lucide-react';
 import { useI18n } from '../../hooks/useI18n';
 import { useSystemDark } from '../../hooks/useSystemDark';
 import { useThemeStore } from '../../stores/themeStore';
+import { useBackgroundStore, type BackgroundMode } from '../../stores/backgroundStore';
 import { ACCOUNT_NAME_MASK, useAccountPrivacyStore } from '../../stores/accountPrivacyStore';
 import type { UsageIslandConfig, UsageIslandStyle } from '../../stores/usageIslandStore';
 import { quotaTone } from '../../utils/quotaColors';
@@ -11,12 +12,19 @@ import { compactValue, type UsageIslandAction, type UsageIslandItem } from './us
 
 const LOGO_SIZE = 48;
 const COLUMN_ITEM_HEIGHT = 54;
-const LIST_ITEM_HEIGHT = 64;
-const LIST_ITEM_GAP = 12;
+const LIST_ITEM_HEIGHT = 52;
+const LIST_ITEM_GAP = 6;
+// Extra space under the logo so it sits as far from the first row as rows do apart.
+const LIST_HEADER_EXTRA = 8;
 const LIST_WIDTH = 280;
 // Logo slot plus the end padding, and the gap between sources; both mirror the CSS.
 const TOOLS_INSET = 60;
-const TOOLS_GAP = 12;
+// Line style: the Smart Access band bleeds 10px past its column, so the tools
+// start 64px in and end 20px from the edge, leaving the band 10px clear of the
+// 44px logo button and of the island edge.
+const LINE_TOOLS_INSET = 84;
+// Line-style column gap; keep in sync with UsageIsland.css.
+const TOOLS_GAP = 28;
 // Per-source widths below which a line source drops its countdown, then its second quota.
 const LINE_FULL_WIDTH = 180;
 const LINE_MIN_WIDTH = 118;
@@ -34,7 +42,10 @@ export type IslandSettings = Pick<
   UsageIslandConfig,
   'style' | 'reversed' | 'theme' | 'expandMode'
 > &
-  Partial<Pick<UsageIslandConfig, 'opacity' | 'showSmartAccess'>>;
+  Partial<Pick<UsageIslandConfig, 'opacity' | 'showSmartAccess'>> & {
+    /** App background; the floating window cannot read the main window's store. */
+    background?: BackgroundMode;
+  };
 
 export interface IslandLayout {
   expanded: boolean;
@@ -72,7 +83,7 @@ function useIslandFit(layout: string) {
 
 function lineDensity(available: number, count: number) {
   if (!available) return undefined;
-  const share = (available - TOOLS_INSET - TOOLS_GAP * (count - 1)) / count;
+  const share = (available - LINE_TOOLS_INSET - TOOLS_GAP * (count - 1)) / count;
   if (share < LINE_MIN_WIDTH) return 'tight';
   return share < LINE_FULL_WIDTH ? 'compact' : undefined;
 }
@@ -304,10 +315,20 @@ export function UsageIslandView({
   const hidden = useAccountPrivacyStore((privacy) => privacy.hidden);
   const [hovered, setHovered] = useState(false);
   const [pinned, setPinned] = useState(false);
+  const appBackground = useBackgroundStore((state) => state.mode);
   const { style, theme, expandMode } = settings;
+  const background = settings.background ?? appBackground;
+  // The theme surface carries the app's static texture; Character Flow is an
+  // animated scene that does not suit the island, so it stays solid.
+  const texture =
+    theme === 'auto' &&
+    (background === 'carbon' || background === 'basalt' || background === 'monogram')
+      ? background
+      : null;
   const effectiveTheme = (theme as string) === 'translucent' ? 'dark' : theme;
   const reversed = settings.reversed.includes(style);
   const layout = islandLayout(style);
+  const toolsInset = style === 'line' ? LINE_TOOLS_INSET : TOOLS_INSET;
   const { root, tools, fit } = useIslandFit(layout);
   const width = available ?? fit.available;
   const picked = items.find((item) => item.key === pick);
@@ -334,14 +355,16 @@ export function UsageIslandView({
           ? Math.min(LIST_WIDTH, width || LIST_WIDTH)
           : layout === 'column'
             ? LOGO_SIZE
-            : fit.content + TOOLS_INSET,
+            : fit.content + toolsInset,
     height:
       layout === 'dial'
         ? DIAL_SIZE
         : vertical
           ? LOGO_SIZE +
             items.length * (layout === 'list' ? LIST_ITEM_HEIGHT : COLUMN_ITEM_HEIGHT) +
-            (layout === 'list' ? Math.max(0, items.length - 1) * LIST_ITEM_GAP + 12 : 8)
+            (layout === 'list'
+              ? Math.max(0, items.length - 1) * LIST_ITEM_GAP + 12 + LIST_HEADER_EXTRA
+              : 8)
           : LOGO_SIZE,
   };
   const displays = items.map((item): ItemDisplay => {
@@ -371,7 +394,7 @@ export function UsageIslandView({
           {
             '--usage-island-width': `${fullSize.width}px`,
             '--usage-island-height': `${fullSize.height}px`,
-            '--usage-island-tools-max': width ? `${width - TOOLS_INSET}px` : 'none',
+            '--usage-island-tools-max': width ? `${width - toolsInset}px` : 'none',
             '--usage-island-surface-opacity': `${settings.opacity ?? 100}%`,
           } as CSSProperties
         }
@@ -385,6 +408,7 @@ export function UsageIslandView({
           data-layout={layout}
           data-reversed={reversed}
           data-expanded={expanded}
+          data-style={style}
           data-density={style === 'line' ? lineDensity(width, items.length) : undefined}
           onPointerEnter={(event) => {
             if (event.pointerType === 'mouse') setHovered(true);
@@ -393,6 +417,17 @@ export function UsageIslandView({
             if (event.pointerType === 'mouse') setHovered(false);
           }}
         >
+          {texture && (
+            <span
+              aria-hidden="true"
+              data-island-texture={texture}
+              className={`usage-island-texture ${
+                texture === 'basalt'
+                  ? 'app-background-basalt'
+                  : `app-background-material app-background-${texture}`
+              }`}
+            />
+          )}
           {layout === 'list' && expanded && <ListActions actions={actions} onAction={onAction} />}
           {layout === 'dial' ? (
             <div className="usage-island-dial" role="list" aria-hidden={!expanded}>
@@ -445,10 +480,18 @@ export function UsageIslandView({
           <button
             type="button"
             className="usage-island-toggle"
-            aria-label={t(expanded ? 'usageIsland.collapse' : 'usageIsland.expand')}
+            aria-label={
+              picked ? picked.name : t(expanded ? 'usageIsland.collapse' : 'usageIsland.expand')
+            }
+            aria-pressed={picked ? true : undefined}
             aria-expanded={expanded}
-            disabled={!items.length || expandMode === 'always'}
-            onClick={() => setPinned(!expanded)}
+            disabled={!items.length || (expandMode === 'always' && !picked)}
+            onClick={() => {
+              // A picked source shown in the logo slot is cleared first; the
+              // next click goes back to expanding or collapsing.
+              if (picked) onPick?.(null);
+              else setPinned(!expanded);
+            }}
           >
             <span
               key={picked?.key ?? 'logo'}
@@ -461,7 +504,11 @@ export function UsageIslandView({
                   <span>{compactValue(picked.value)}</span>
                 </span>
               ) : picked ? (
-                <Gauge percent={picked.percent} icon={picked.icon} />
+                <Gauge
+                  percent={picked.percent}
+                  icon={picked.icon}
+                  smartActive={picked.smartActive}
+                />
               ) : (
                 <img src="/brand/bird.png" alt="" draggable={false} />
               )}

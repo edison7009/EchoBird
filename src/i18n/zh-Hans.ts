@@ -91,7 +91,7 @@ const zhHans: Partial<Translations> = {
   'usageIsland.removeSource': '移除来源',
   'usageIsland.opacity': '透明度',
   'usageIsland.opacity.percent': '{n}%',
-  'usageIsland.showSmartAccess': '显示智能接入',
+  'usageIsland.showSmartAccess': '智能接入状态',
   'usageIsland.smartAccessActive': '智能接入使用中',
   'usageIsland.scale': '用量岛大小',
   'usageIsland.style.row': '横向',

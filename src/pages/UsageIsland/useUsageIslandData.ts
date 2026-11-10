@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { create } from 'zustand';
 import { getSmartRouterActivity } from '../../api/smartRouter';
 import { useToast } from '../../components/Toast';
 import { useI18n } from '../../hooks/useI18n';
@@ -135,6 +136,11 @@ export function useUsageIslandSmartActivity(enabled: boolean, items: UsageSource
   return enabled ? activeKeys : new Set<string>();
 }
 
+/** One usage batch at a time across the settings page and the floating-island
+ *  bridge: both run in the main window, and a page refresh must not overlap the
+ *  island's timed refresh (or the reverse). Timed runs skip while it is held. */
+export const useUsageIslandBatchStore = create<{ running: boolean }>(() => ({ running: false }));
+
 export function useUsageIslandRefresh(
   items: UsageSource[],
   timed: boolean,
@@ -146,6 +152,7 @@ export function useUsageIslandRefresh(
   const refreshSeconds = useUsageIslandStore((state) => state.refreshSeconds);
   const [running, setRunning] = useState<UsageIslandAction | null>(null);
   const batchRunning = useRewardClaimStore((state) => state.running);
+  const sharedRunning = useUsageIslandBatchStore((state) => state.running);
   const mounted = useRef(true);
   const generation = useRef(0);
   useEffect(() => {
@@ -171,6 +178,7 @@ export function useUsageIslandRefresh(
   const run = async (action: UsageIslandAction, manual = true) => {
     if (!mounted.current || !live()) return;
     if (batchPending.current || !latestItems.current.length) return;
+    if (useUsageIslandBatchStore.getState().running) return;
     if (manual && latestItems.current.some((item) => item.busy)) return;
     // Timed refreshes only give way: holding this lock would starve claims and account batches.
     const rewards = useRewardClaimStore.getState();
@@ -178,6 +186,7 @@ export function useUsageIslandRefresh(
     const scope = generation.current;
     const current = () => mounted.current && generation.current === scope && live();
     batchPending.current = true;
+    useUsageIslandBatchStore.setState({ running: true });
     setRunning(action);
     const failures = new Set<string>();
     const claimedProviders = new Set<string>();
@@ -233,6 +242,7 @@ export function useUsageIslandRefresh(
     } finally {
       if (manual) useRewardClaimStore.getState().finish();
       batchPending.current = false;
+      useUsageIslandBatchStore.setState({ running: false });
       if (mounted.current) setRunning(null);
     }
   };
@@ -261,7 +271,7 @@ export function useUsageIslandRefresh(
       warmUp: items.some((item) => item.canWarmUp),
       claim: items.some((item) => item.canClaim),
       refresh: items.some((item) => Boolean(item.refresh)),
-      blocked: batchRunning || running !== null || items.some((item) => item.busy),
+      blocked: batchRunning || sharedRunning || running !== null || items.some((item) => item.busy),
       running,
     },
   };

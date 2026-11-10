@@ -9,6 +9,7 @@ import {
   USAGE_ISLAND_WINDOW,
 } from '../../api/usageIsland';
 import { ACCOUNT_NAME_MASK, useAccountPrivacyStore } from '../../stores/accountPrivacyStore';
+import { useBackgroundStore } from '../../stores/backgroundStore';
 import { useUsageIslandStore } from '../../stores/usageIslandStore';
 import type { UsageIslandAction } from './usageIslandData';
 import type { UsageIslandPayload } from './UsageIslandWindow';
@@ -30,6 +31,7 @@ export default function UsageIslandBridge() {
   const scale = useUsageIslandStore((state) => state.scale);
   const opacity = useUsageIslandStore((state) => state.opacity);
   const showSmartAccess = useUsageIslandStore((state) => state.showSmartAccess);
+  const background = useBackgroundStore((state) => state.mode);
   const hidden = useAccountPrivacyStore((privacy) => privacy.hidden);
   const items = useUsageIslandItems(useUsageSources(true));
   const smartActiveKeys = useUsageIslandSmartActivity(showSmartAccess, items);
@@ -42,7 +44,7 @@ export default function UsageIslandBridge() {
     latestRun.current = run;
   });
   const payload: UsageIslandPayload = {
-    settings: { style, reversed, theme, expandMode, opacity, showSmartAccess },
+    settings: { style, reversed, theme, expandMode, opacity, showSmartAccess, background },
     pick,
     refreshSeconds,
     scale,

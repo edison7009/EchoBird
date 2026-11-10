@@ -93,7 +93,7 @@ const ja: Partial<Translations> = {
   'usageIsland.removeSource': 'ソースを削除',
   'usageIsland.opacity': '不透明度',
   'usageIsland.opacity.percent': '{n}%',
-  'usageIsland.showSmartAccess': 'スマートアクセスを表示',
+  'usageIsland.showSmartAccess': 'スマートアクセス状態',
   'usageIsland.smartAccessActive': 'スマートアクセス使用中',
   'usageIsland.scale': '使用量アイランドのサイズ',
   'usageIsland.style.row': '横',

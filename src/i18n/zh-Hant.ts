@@ -92,7 +92,7 @@ const zhHant: Partial<Translations> = {
   'usageIsland.removeSource': '移除來源',
   'usageIsland.opacity': '透明度',
   'usageIsland.opacity.percent': '{n}%',
-  'usageIsland.showSmartAccess': '顯示智能接入',
+  'usageIsland.showSmartAccess': '智能接入狀態',
   'usageIsland.smartAccessActive': '智能接入使用中',
   'usageIsland.scale': '用量島大小',
   'usageIsland.style.row': '橫向',

@@ -92,7 +92,7 @@ const en: Translations = {
   'usageIsland.removeSource': 'Remove source',
   'usageIsland.opacity': 'Opacity',
   'usageIsland.opacity.percent': '{n}%',
-  'usageIsland.showSmartAccess': 'Show Smart Access',
+  'usageIsland.showSmartAccess': 'Smart Access Status',
   'usageIsland.smartAccessActive': 'Smart Access active',
   'usageIsland.scale': 'Usage island size',
   'usageIsland.style.row': 'Horizontal',

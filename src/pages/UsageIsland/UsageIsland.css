@@ -142,10 +142,10 @@
 }
 .usage-island-settings-group {
   display: grid;
-  grid-template-rows: repeat(3, minmax(0, 1fr));
+  /* Rows keep their own height so every row is separated by the same gap. */
+  align-content: start;
   align-items: center;
-  height: 100%;
-  gap: 8px;
+  gap: 12px;
   min-width: 0;
 }
 .usage-island-slider-row {
@@ -227,10 +227,24 @@
   height: 48px;
   border-radius: 999px;
   color: var(--usage-island-fg);
-  --usage-island-surface-opacity: 100%;
+  /* Below full opacity the backdrop shows through; a surface-colored halo,
+     strongest when most transparent, keeps the text legible on any wallpaper. */
+  text-shadow:
+    0 0 2px
+      color-mix(
+        in srgb,
+        var(--usage-island-bg) calc(100% - var(--usage-island-surface-opacity, 100%)),
+        transparent
+      ),
+    0 0 6px
+      color-mix(
+        in srgb,
+        var(--usage-island-bg) calc(100% - var(--usage-island-surface-opacity, 100%)),
+        transparent
+      );
   background: color-mix(
     in srgb,
-    var(--usage-island-bg) var(--usage-island-surface-opacity),
+    var(--usage-island-bg) var(--usage-island-surface-opacity, 100%),
     transparent
   );
   overflow: hidden;
@@ -241,11 +255,29 @@
   user-select: none;
 }
 .usage-island.usage-island-theme-auto {
+  /* The theme surface is a solid fill; the tab wave is too subtle to read
+     on the island's narrow layouts. */
+  background-image: none;
+  animation: none;
   background-color: color-mix(
     in srgb,
-    var(--usage-island-bg) var(--usage-island-surface-opacity),
+    var(--usage-island-bg) var(--usage-island-surface-opacity, 100%),
     transparent
   );
+}
+/* App texture under the theme surface: above the fill, below all content,
+   fading with the surface opacity. */
+.usage-island.usage-island-theme-auto {
+  isolation: isolate;
+}
+.usage-island-texture {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  overflow: hidden;
+  pointer-events: none;
+  opacity: var(--usage-island-surface-opacity, 100%);
 }
 .usage-island[data-expanded='true'][data-layout='row'] {
   width: 100%;
@@ -382,33 +414,84 @@
   stroke-width: 3;
   stroke-linecap: round;
 }
-.usage-island-gauge[data-smart-active='true']::before {
+.usage-island-gauge[data-smart-active='true']::before,
+.usage-island[data-layout='list'] .usage-island-tool[data-smart-active='true']::before,
+.usage-island[data-style='line'] .usage-island-tool[data-smart-active='true']::before {
   content: '';
   position: absolute;
+  /* Coffee CLI's moving diagonal stripes, translucent so the content stays
+     readable. A square 20px tile repeats seamlessly at any element width. */
+  background-image: linear-gradient(
+    45deg,
+    var(--usage-island-smart-dark) 25%,
+    var(--usage-island-smart-light) 25% 50%,
+    var(--usage-island-smart-dark) 50% 75%,
+    var(--usage-island-smart-light) 75%
+  );
+  background-size: 20px 20px;
+  will-change: background-position;
+  animation: usage-island-smart-gauge 0.8s linear infinite;
+}
+.usage-island-gauge[data-smart-active='true'],
+.usage-island-tool[data-smart-active='true'] {
+  --usage-island-smart-light: rgb(var(--accent-rgb) / 0.5);
+  --usage-island-smart-dark: color-mix(
+    in srgb,
+    color-mix(in srgb, rgb(var(--accent-rgb)) 60%, black) 50%,
+    transparent
+  );
+}
+/* Dark text sits on a light surface, so its stripes stay pale. */
+.usage-island-theme-light .usage-island-gauge[data-smart-active='true'],
+.usage-island-theme-light .usage-island-tool[data-smart-active='true'] {
+  --usage-island-smart-light: rgb(var(--accent-rgb) / 0.14);
+  --usage-island-smart-dark: rgb(var(--accent-rgb) / 0.3);
+}
+.usage-island-gauge[data-smart-active='true']::before {
   inset: 2px;
   z-index: 0;
   border-radius: 50%;
-  background: linear-gradient(
-    120deg,
-    rgb(var(--accent-rgb)) 0%,
-    rgb(var(--accent-rgb)) 32%,
-    color-mix(in srgb, rgb(var(--accent-rgb)) 48%, white) 50%,
-    rgb(var(--accent-rgb)) 68%,
-    rgb(var(--accent-rgb)) 100%
-  );
-  background-size: 240% 100%;
-  will-change: background-position;
-  animation: usage-island-smart-gauge 1.25s linear infinite;
 }
 .usage-island-gauge[data-smart-active='true'] .usage-island-icon {
   z-index: 2;
 }
+.usage-island[data-layout='list'] .usage-island-tool[data-smart-active='true'],
+.usage-island[data-style='line'] .usage-island-tool[data-smart-active='true'] {
+  position: relative;
+  isolation: isolate;
+}
+/* Detailed list fills the whole row and line fills the whole column; the
+   stripe layer bleeds past the content so the text keeps its position. */
+.usage-island[data-layout='list'] .usage-island-tool[data-smart-active='true']::before,
+.usage-island[data-style='line'] .usage-island-tool[data-smart-active='true']::before {
+  z-index: -1;
+}
+.usage-island[data-layout='list'] .usage-island-tool[data-smart-active='true']::before {
+  /* Square band across the full island width; the island clips its corners. */
+  inset: 0 calc(-1 * var(--usage-island-list-inset)) 0 calc(-1 * var(--usage-island-list-icon-left));
+}
+/* Line style: a square band through the full island height. */
+.usage-island[data-style='line'] .usage-island-tool[data-smart-active='true'] {
+  align-self: stretch;
+}
+.usage-island[data-style='line'] .usage-island-tools {
+  left: 64px;
+  gap: 28px;
+}
+.usage-island[data-style='line'][data-layout='row'][data-reversed='true'] .usage-island-tools {
+  right: 64px;
+  left: auto;
+}
+/* The band pads its own text by 10px and still leaves 18px to the next column. */
+.usage-island[data-style='line'] .usage-island-tool[data-smart-active='true']::before {
+  inset: 0 -10px;
+}
 @keyframes usage-island-smart-gauge {
   from {
-    background-position: 0% 50%;
+    background-position: 0 0;
   }
   to {
-    background-position: 200% 50%;
+    background-position: 20px 0;
   }
 }
 
@@ -513,17 +596,19 @@
   height: 100%;
 }
 .usage-island[data-layout='list'] .usage-island-tools {
-  inset: 48px var(--usage-island-list-inset) 12px var(--usage-island-list-icon-left);
+  inset: 56px var(--usage-island-list-inset) 12px var(--usage-island-list-icon-left);
   flex-direction: column;
-  gap: 12px;
+  /* 52px rows + 6px gap leave 30px between every pair of icons, matching the
+     space from the 28px logo (ends at y=38) to the first row icon (y=68). */
+  gap: 6px;
   width: auto;
   max-width: none;
 }
 .usage-island[data-layout='list'] .usage-island-tool {
-  flex: 0 0 64px;
+  flex: 0 0 52px;
   width: 100%;
   gap: 10px;
-  padding: 8px 0;
+  padding: 0;
   border-radius: 12px;
 }
 .usage-island[data-layout='list'] .usage-island-tool > .usage-island-icon {
@@ -569,7 +654,7 @@
   bottom: 4px;
 }
 .usage-island[data-reversed='true'][data-layout='list'] .usage-island-tools {
-  inset: 12px var(--usage-island-list-inset) 48px var(--usage-island-list-icon-left);
+  inset: 12px var(--usage-island-list-inset) 56px var(--usage-island-list-icon-left);
   flex-direction: column-reverse;
 }
 
@@ -818,7 +903,8 @@
   .usage-island-logo {
     animation: none;
   }
-  .usage-island-gauge[data-smart-active='true']::before {
+  .usage-island-gauge[data-smart-active='true']::before,
+  .usage-island-tool[data-smart-active='true']::before {
     animation: none;
   }
 }

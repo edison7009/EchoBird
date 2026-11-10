@@ -23,6 +23,7 @@ import {
 } from '../../api/usageIsland';
 import { UsageIslandMain, UsageIslandPanel } from './UsageIsland';
 import UsageIslandBridge from './UsageIslandBridge';
+import { useUsageIslandBatchStore } from './useUsageIslandData';
 import { UsageIslandView, type IslandLayout } from './UsageIslandView';
 import { UsageIslandWindow } from './UsageIslandWindow';
 import {
@@ -168,6 +169,7 @@ const buttonWithText = (text: string) =>
   )[0];
 
 beforeEach(() => {
+  useUsageIslandBatchStore.setState({ running: false });
   vi.useFakeTimers();
   vi.stubGlobal('localStorage', { getItem: () => null, setItem: vi.fn() });
   vi.stubGlobal('document', { addEventListener: vi.fn(), removeEventListener: vi.fn() });
@@ -954,7 +956,7 @@ it('sizes a six-source list and preserves click selection, collapse and empty be
   expect(onLayout).toHaveBeenLastCalledWith({
     expanded: false,
     width: 280,
-    height: 504,
+    height: 410,
     radius: 24,
     anchorX: 0,
     anchorY: 0,
@@ -963,7 +965,7 @@ it('sizes a six-source list and preserves click selection, collapse and empty be
   expect(onLayout).toHaveBeenLastCalledWith({
     expanded: true,
     width: 280,
-    height: 504,
+    height: 410,
     radius: 24,
     anchorX: 0,
     anchorY: 0,
@@ -975,6 +977,7 @@ it('sizes a six-source list and preserves click selection, collapse and empty be
   expect(source().props['aria-pressed']).toBe(true);
   await act(async () => source().props.onClick());
   expect(onPick).toHaveBeenLastCalledWith(null);
+  await act(async () => view!.update(mount(items)));
   await act(async () => button('usageIsland.collapse').props.onClick());
   expect(onLayout.mock.lastCall![0].expanded).toBe(false);
   await act(async () => view!.update(mount([])));
@@ -1247,7 +1250,7 @@ it.each(['hover', 'click'] as const)(
     expect(onLayout.mock.lastCall![0]).toMatchObject({ expanded: false, width: 280, radius: 24 });
     if (expandMode === 'click') await act(async () => button('usageIsland.expand').props.onClick());
     else await act(async () => view!.update(mount(true)));
-    const stable = { expanded: true, width: 280, height: 124, radius: 24, anchorX: 0, anchorY: 0 };
+    const stable = { expanded: true, width: 280, height: 120, radius: 24, anchorX: 0, anchorY: 0 };
     expect(onLayout).toHaveBeenLastCalledWith(stable);
     const calls = onLayout.mock.calls.length;
     // Both payload and DOM hover events can change while native hit testing owns hover.
@@ -1293,12 +1296,12 @@ it.each([70, 100, 150])(
       24 * factor,
       24 * factor,
       280 * factor,
-      124 * factor,
+      120 * factor,
       24 * factor
     );
     expect(resizeUsageIsland).toHaveBeenCalledTimes(1);
     const size = vi.mocked(resizeUsageIsland).mock.lastCall;
-    expect(size).toEqual([328 * factor, 172 * factor, 0, 0]);
+    expect(size).toEqual([328 * factor, 168 * factor, 0, 0]);
     await act(async () => events.listeners.get('usage-island-hover')!({ payload: false }));
     expect(setUsageIslandHitArea).toHaveBeenLastCalledWith(
       24 * factor,
@@ -1338,7 +1341,7 @@ it('applies only the latest hit region when native resize finishes after hover c
   await act(async () => events.listeners.get('usage-island-hover')!({ payload: true }));
   await act(async () => finish());
   expect(resizeUsageIsland).toHaveBeenCalledTimes(1);
-  expect(setUsageIslandHitArea).toHaveBeenCalledExactlyOnceWith(24, 24, 280, 124, 24);
+  expect(setUsageIslandHitArea).toHaveBeenCalledExactlyOnceWith(24, 24, 280, 120, 24);
 });
 
 it('marks active Smart Access sources and applies the saved surface opacity', async () => {
@@ -1368,4 +1371,86 @@ it('marks active Smart Access sources and applies the saved surface opacity', as
   ).toBeUndefined();
   const track = view!.root.findByProps({ className: 'usage-island-track' });
   expect(track.props.style['--usage-island-surface-opacity']).toBe('60%');
+});
+
+it.each([
+  ['auto', 'carbon', 'carbon'],
+  ['auto', 'basalt', 'basalt'],
+  ['auto', 'monogram', 'monogram'],
+  ['auto', 'characters', null],
+  ['auto', 'none', null],
+  ['dark', 'carbon', null],
+] as const)(
+  'theme %s with app background %s shows texture %s',
+  async (theme, background, expected) => {
+    const [item] = accountItems();
+    await act(async () => {
+      view = create(
+        <UsageIslandView
+          items={[item]}
+          settings={{ style: 'row', reversed: [], theme, expandMode: 'always', background }}
+        />
+      );
+    });
+    const textures = view!.root
+      .findAll((node) => typeof node.type === 'string' && node.props['data-island-texture'])
+      .map((node) => node.props['data-island-texture']);
+    expect(textures).toEqual(expected ? [expected] : []);
+  }
+);
+
+it.each(['click', 'always'] as const)(
+  'clicking the picked source in the logo slot restores the logo in %s mode',
+  async (expandMode) => {
+    const [item] = accountItems();
+    const onPick = vi.fn();
+    await act(async () => {
+      view = create(
+        <UsageIslandView
+          items={[item]}
+          pick={item.key}
+          onPick={onPick}
+          settings={{ style: 'list', reversed: [], theme: 'dark', expandMode }}
+        />
+      );
+    });
+    const toggle = view!.root.findByProps({ className: 'usage-island-toggle' });
+    expect(toggle.props.disabled).toBe(false);
+    expect(toggle.props['aria-label']).toBe(item.name);
+    await act(async () => toggle.props.onClick());
+    expect(onPick).toHaveBeenCalledExactlyOnceWith(null);
+  }
+);
+
+it('keeps the page refresh and the island timed refresh from overlapping', async () => {
+  island.setState({
+    enabled: true,
+    sources: [accountSourceKey('claude', 'a')],
+    refreshSeconds: 300,
+  });
+  let finish = () => {};
+  refreshAccount.mockImplementationOnce(() => new Promise<void>((resolve) => (finish = resolve)));
+  let bridge: ReactTestRenderer | undefined;
+  await act(async () => {
+    bridge = create(<UsageIslandBridge />);
+  });
+  await render();
+  await act(async () => events.listeners.get('usage-island-tick')!({ payload: undefined }));
+  expect(refreshAccount).toHaveBeenCalledTimes(1);
+  const pageRefresh = () => buttonWithText('accountCenter.refreshAll');
+  expect(pageRefresh().props.disabled).toBe(true);
+  await act(async () => pageRefresh().props.onClick());
+  expect(refreshAccount).toHaveBeenCalledTimes(1);
+  await act(async () => finish());
+  expect(pageRefresh().props.disabled).toBe(false);
+  await act(async () => pageRefresh().props.onClick());
+  expect(refreshAccount).toHaveBeenCalledTimes(2);
+  // A manual page refresh in flight makes the island's tick skip, not stack.
+  refreshAccount.mockImplementationOnce(() => new Promise<void>((resolve) => (finish = resolve)));
+  await act(async () => pageRefresh().props.onClick());
+  expect(refreshAccount).toHaveBeenCalledTimes(3);
+  await act(async () => events.listeners.get('usage-island-tick')!({ payload: undefined }));
+  expect(refreshAccount).toHaveBeenCalledTimes(3);
+  await act(async () => finish());
+  await act(async () => bridge!.unmount());
 });
