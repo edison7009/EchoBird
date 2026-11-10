@@ -136,6 +136,7 @@ libc = "0.2"
 
 [target.'cfg(target_os = "macos")'.dependencies]
 core-foundation = "0.10"
+objc2 = "0.6"
 objc2-app-kit = { version = "0.3", default-features = false, features = ["std", "libc", "NSWorkspace", "NSRunningApplication", "NSImage"] }
 
 [target.'cfg(target_os = "linux")'.dependencies]

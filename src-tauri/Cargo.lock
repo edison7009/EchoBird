@@ -1853,6 +1853,7 @@ dependencies = [
  "libc",
  "log",
  "md-5",
+ "objc2",
  "objc2-app-kit",
  "pbkdf2 0.12.2",
  "plist",

@@ -958,6 +958,8 @@ fn show_island(app: &AppHandle) -> Result<(), String> {
     .resizable(false)
     .focusable(false)
     .focused(false)
+    // The app stays inactive while dictating, so the first click must reach the island.
+    .accept_first_mouse(true)
     .visible(false)
     .build()
     .map_err(|_| "voice.error.island")?;
