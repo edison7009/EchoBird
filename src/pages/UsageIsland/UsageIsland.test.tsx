@@ -956,7 +956,7 @@ it('sizes a six-source list and preserves click selection, collapse and empty be
   expect(onLayout).toHaveBeenLastCalledWith({
     expanded: false,
     width: 280,
-    height: 410,
+    height: 396,
     radius: 24,
     anchorX: 0,
     anchorY: 0,
@@ -965,7 +965,7 @@ it('sizes a six-source list and preserves click selection, collapse and empty be
   expect(onLayout).toHaveBeenLastCalledWith({
     expanded: true,
     width: 280,
-    height: 410,
+    height: 396,
     radius: 24,
     anchorX: 0,
     anchorY: 0,
@@ -1250,7 +1250,7 @@ it.each(['hover', 'click'] as const)(
     expect(onLayout.mock.lastCall![0]).toMatchObject({ expanded: false, width: 280, radius: 24 });
     if (expandMode === 'click') await act(async () => button('usageIsland.expand').props.onClick());
     else await act(async () => view!.update(mount(true)));
-    const stable = { expanded: true, width: 280, height: 120, radius: 24, anchorX: 0, anchorY: 0 };
+    const stable = { expanded: true, width: 280, height: 106, radius: 24, anchorX: 0, anchorY: 0 };
     expect(onLayout).toHaveBeenLastCalledWith(stable);
     const calls = onLayout.mock.calls.length;
     // Both payload and DOM hover events can change while native hit testing owns hover.
@@ -1296,12 +1296,12 @@ it.each([70, 100, 150])(
       24 * factor,
       24 * factor,
       280 * factor,
-      120 * factor,
+      106 * factor,
       24 * factor
     );
     expect(resizeUsageIsland).toHaveBeenCalledTimes(1);
     const size = vi.mocked(resizeUsageIsland).mock.lastCall;
-    expect(size).toEqual([328 * factor, 168 * factor, 0, 0]);
+    expect(size).toEqual([328 * factor, 154 * factor, 0, 0]);
     await act(async () => events.listeners.get('usage-island-hover')!({ payload: false }));
     expect(setUsageIslandHitArea).toHaveBeenLastCalledWith(
       24 * factor,
@@ -1341,7 +1341,7 @@ it('applies only the latest hit region when native resize finishes after hover c
   await act(async () => events.listeners.get('usage-island-hover')!({ payload: true }));
   await act(async () => finish());
   expect(resizeUsageIsland).toHaveBeenCalledTimes(1);
-  expect(setUsageIslandHitArea).toHaveBeenCalledExactlyOnceWith(24, 24, 280, 120, 24);
+  expect(setUsageIslandHitArea).toHaveBeenCalledExactlyOnceWith(24, 24, 280, 106, 24);
 });
 
 it('marks active Smart Access sources and applies the saved surface opacity', async () => {

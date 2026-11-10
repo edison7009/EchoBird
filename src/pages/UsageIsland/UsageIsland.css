@@ -595,11 +595,13 @@
   width: 100%;
   height: 100%;
 }
+.usage-island[data-expanded='true'][data-layout='list'] .usage-island-toggle {
+  top: 7px;
+  height: 34px;
+}
 .usage-island[data-layout='list'] .usage-island-tools {
-  inset: 56px var(--usage-island-list-inset) 12px var(--usage-island-list-icon-left);
+  inset: 42px var(--usage-island-list-inset) 12px var(--usage-island-list-icon-left);
   flex-direction: column;
-  /* 52px rows + 6px gap leave 30px between every pair of icons, matching the
-     space from the 28px logo (ends at y=38) to the first row icon (y=68). */
   gap: 6px;
   width: auto;
   max-width: none;
@@ -624,7 +626,7 @@
 .usage-island-list-actions {
   position: absolute;
   top: 10px;
-  right: calc(var(--usage-island-list-inset) - 7px);
+  right: var(--usage-island-list-inset);
   display: flex;
   align-items: center;
   gap: 6px;
@@ -653,8 +655,12 @@
   top: auto;
   bottom: 4px;
 }
+.usage-island[data-expanded='true'][data-reversed='true'][data-layout='list'] .usage-island-toggle {
+  top: auto;
+  bottom: 7px;
+}
 .usage-island[data-reversed='true'][data-layout='list'] .usage-island-tools {
-  inset: 12px var(--usage-island-list-inset) 56px var(--usage-island-list-icon-left);
+  inset: 12px var(--usage-island-list-inset) 42px var(--usage-island-list-icon-left);
   flex-direction: column-reverse;
 }
 

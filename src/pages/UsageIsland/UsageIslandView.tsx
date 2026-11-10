@@ -14,8 +14,8 @@ const LOGO_SIZE = 48;
 const COLUMN_ITEM_HEIGHT = 54;
 const LIST_ITEM_HEIGHT = 52;
 const LIST_ITEM_GAP = 6;
-// Extra space under the logo so it sits as far from the first row as rows do apart.
-const LIST_HEADER_EXTRA = 8;
+// Compact header; keep in sync with the detailed list's CSS inset.
+const LIST_HEADER_HEIGHT = 42;
 const LIST_WIDTH = 280;
 // Logo slot plus the end padding, and the gap between sources; both mirror the CSS.
 const TOOLS_INSET = 60;
@@ -267,7 +267,7 @@ function ListActions({
               }}
             >
               <Icon
-                size={14}
+                size={18}
                 aria-hidden="true"
                 className={
                   actions?.running === action
@@ -360,11 +360,9 @@ export function UsageIslandView({
       layout === 'dial'
         ? DIAL_SIZE
         : vertical
-          ? LOGO_SIZE +
+          ? (layout === 'list' ? LIST_HEADER_HEIGHT : LOGO_SIZE) +
             items.length * (layout === 'list' ? LIST_ITEM_HEIGHT : COLUMN_ITEM_HEIGHT) +
-            (layout === 'list'
-              ? Math.max(0, items.length - 1) * LIST_ITEM_GAP + 12 + LIST_HEADER_EXTRA
-              : 8)
+            (layout === 'list' ? Math.max(0, items.length - 1) * LIST_ITEM_GAP + 12 : 8)
           : LOGO_SIZE,
   };
   const displays = items.map((item): ItemDisplay => {
