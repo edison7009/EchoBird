@@ -1,3 +1,4 @@
+import cueIcon from './assets/cue.png';
 import type { LocalTool, ModelConfig } from '../api/types';
 import type { ModelUsageData } from '../api/models';
 
@@ -22,7 +23,8 @@ export const demoTools: LocalTool[] = [
   name,
   category: 'Desktop',
   installed: true,
-  icon: `/icons/tools/${id}.${extension}`,
+  // Use the client's tight Cue artwork; the published catalog icon has legacy transparent padding.
+  icon: id === 'cue' ? cueIcon : `/icons/tools/${id}.${extension}`,
 }));
 
 export const demoModels: ModelConfig[] = [

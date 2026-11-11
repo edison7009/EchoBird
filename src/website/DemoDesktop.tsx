@@ -157,10 +157,6 @@ export function DemoDesktop() {
               className="demo-account-panel flex w-[296px] shrink-0 flex-col gap-2"
               aria-label={copy.panel}
             >
-              <div className="mb-3 flex h-10 items-center justify-between text-xs">
-                <strong>{copy.selection}</strong>
-                <span>{tool.name}</span>
-              </div>
               <AccountSection>
                 <AccountSectionButton
                   iconSrc={tool.icon}
@@ -182,24 +178,22 @@ export function DemoDesktop() {
                   />
                 ))}
               </AccountSection>
-              <div className="mt-3">
-                <CapabilityToggles
-                  toggles={[
-                    {
-                      label: 'Web Search',
-                      hint: t('agent.codexWebSearchHint'),
-                      checked: webSearch,
-                      onChange: setWebSearch,
-                    },
-                    {
-                      label: '1M',
-                      hint: t('agent.claude1mHint'),
-                      checked: oneM,
-                      onChange: setOneM,
-                    },
-                  ]}
-                />
-              </div>
+              <CapabilityToggles
+                toggles={[
+                  {
+                    label: 'Web Search',
+                    hint: t('agent.codexWebSearchHint'),
+                    checked: webSearch,
+                    onChange: setWebSearch,
+                  },
+                  {
+                    label: '1M',
+                    hint: t('agent.claude1mHint'),
+                    checked: oneM,
+                    onChange: setOneM,
+                  },
+                ]}
+              />
               {models.map((model) => (
                 <ModelListCard
                   compact

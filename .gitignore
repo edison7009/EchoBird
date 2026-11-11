@@ -17,6 +17,7 @@ node_modules/
 # Build output
 dist/
 dist-electron/
+/build/website/
 out/
 release/
 

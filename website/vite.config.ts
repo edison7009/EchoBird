@@ -12,7 +12,7 @@ export default defineConfig({
   define: { __APP_EDITION__: JSON.stringify('full'), __APP_VERSION__: JSON.stringify('demo') },
   css: { postcss: path.resolve(__dirname, '..') },
   build: {
-    outDir: '../dist/website',
+    outDir: '../build/website',
     emptyOutDir: true,
     rollupOptions: {
       input: {

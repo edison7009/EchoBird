@@ -3,7 +3,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
-const built = path.join(root, 'dist/website');
+const built = path.join(root, 'build/website');
 const output = path.join(root, 'docs');
 const manifestPath = path.join(root, 'website/generated-files.json');
 async function filesIn(dir, prefix = '') {
