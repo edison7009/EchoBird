@@ -87,6 +87,22 @@ fn track_cursor(app: &AppHandle) {
                     hovered = inside;
                     let _ = window.emit_to(WINDOW_LABEL, HOVER_EVENT, inside);
                 }
+                let pointer = if inside {
+                    window
+                        .cursor_position()
+                        .and_then(|cursor| {
+                            let origin = window.inner_position()?;
+                            let scale = window.scale_factor()?;
+                            Ok([
+                                (cursor.x - f64::from(origin.x)) / scale,
+                                (cursor.y - f64::from(origin.y)) / scale,
+                            ])
+                        })
+                        .ok()
+                } else {
+                    None
+                };
+                let _ = window.emit_to(WINDOW_LABEL, "usage-island-pointer", pointer);
                 std::thread::sleep(Duration::from_millis(16));
             }
         });
@@ -209,6 +225,7 @@ fn keep_on_screen_after_drags(window: &WebviewWindow) {
         if !matches!(event, tauri::WindowEvent::Moved(_)) {
             return;
         }
+        super::usage_island_tooltip::hide(island.app_handle());
         let latest = MOVES.fetch_add(1, Ordering::SeqCst) + 1;
         let island = island.clone();
         tauri::async_runtime::spawn(async move {
@@ -261,6 +278,7 @@ pub fn set_visible(app: &AppHandle, visible: bool) -> Result<(), String> {
     if visible {
         return show(app);
     }
+    super::usage_island_tooltip::close(app);
     match app.get_webview_window(WINDOW_LABEL) {
         Some(window) => window.destroy().map_err(|error| error.to_string()),
         None => Ok(()),

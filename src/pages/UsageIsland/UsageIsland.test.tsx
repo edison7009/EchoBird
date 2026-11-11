@@ -1454,3 +1454,215 @@ it('keeps the page refresh and the island timed refresh from overlapping', async
   await act(async () => finish());
   await act(async () => bridge!.unmount());
 });
+
+const tooltipAnchor = () =>
+  ({
+    getBoundingClientRect: () => ({ left: 140, top: 310, width: 32, height: 32 }),
+    querySelector: () => null,
+    matches: () => true,
+  }) as unknown as HTMLElement;
+
+it.each(['row', 'column', 'dial'] as const)(
+  'shows cached source details on hover and keyboard focus in %s only',
+  async (style) => {
+    const changed = vi.fn();
+    const picked = vi.fn();
+    const sources = accountItems();
+    await act(async () => {
+      view = create(
+        <UsageIslandView
+          items={sources}
+          settings={{ style, reversed: [], theme: 'dark', expandMode: 'always' }}
+          onPick={picked}
+          onTooltipChange={changed}
+        />
+      );
+    });
+    expect(changed).not.toHaveBeenCalled();
+    const source = () => view!.root.findByProps({ 'data-usage-source': sources[0].key });
+    await act(async () =>
+      source().props.onPointerEnter({ pointerType: 'touch', currentTarget: tooltipAnchor() })
+    );
+    expect(changed).not.toHaveBeenCalled();
+    await act(async () =>
+      source().props.onPointerEnter({ pointerType: 'mouse', currentTarget: tooltipAnchor() })
+    );
+    expect(changed.mock.lastCall![0]).toMatchObject({
+      item: {
+        key: sources[0].key,
+        name: 'Claude',
+        detail: 'me@example.com',
+        lines: sources[0].lines,
+      },
+      anchor: { x: 140, y: 310, width: 32, height: 32 },
+      width: 276,
+      theme: 'dark',
+    });
+    expect(picked).not.toHaveBeenCalled();
+    expect(refreshAccount).not.toHaveBeenCalled();
+    expect(refreshModel).not.toHaveBeenCalled();
+    await act(async () => source().props.onPointerLeave());
+    expect(changed).toHaveBeenLastCalledWith(null);
+    await act(async () => source().props.onFocus({ currentTarget: tooltipAnchor() }));
+    expect(changed.mock.lastCall![0].item.key).toBe(sources[0].key);
+    await act(async () => source().props.onKeyDown({ key: 'Escape' }));
+    expect(changed).toHaveBeenLastCalledWith(null);
+    await act(async () => source().props.onClick());
+    expect(picked).toHaveBeenLastCalledWith(sources[0].key);
+  }
+);
+
+it.each(['list', 'line'] as const)(
+  'adds no hover/focus detail surface to detailed %s mode',
+  async (style) => {
+    const changed = vi.fn();
+    const sources = accountItems();
+    await act(async () => {
+      view = create(
+        <UsageIslandView
+          items={sources}
+          settings={{ style, reversed: [], theme: 'dark', expandMode: 'always' }}
+          onTooltipChange={changed}
+        />
+      );
+    });
+    const source = view!.root.findByProps({ 'data-usage-source': sources[0].key });
+    expect(source.props.onPointerEnter).toBeUndefined();
+    expect(source.props.onFocus).toBeUndefined();
+    expect(changed).not.toHaveBeenCalled();
+  }
+);
+
+it('clears tooltip anchors on style changes, source removal, collapse, native leave and unmount', async () => {
+  const changed = vi.fn();
+  const sources = accountItems();
+  const mount = (style: UsageIslandStyle, items = sources, hover: boolean | null = true) => (
+    <UsageIslandView
+      items={items}
+      settings={{ style, reversed: [], theme: 'dark', expandMode: 'hover' }}
+      hover={hover}
+      onTooltipChange={changed}
+    />
+  );
+  await act(async () => {
+    view = create(mount('row'));
+  });
+  const enter = async () =>
+    act(async () =>
+      view!.root
+        .findByProps({ 'data-usage-source': sources[0].key })
+        .props.onPointerEnter({ pointerType: 'mouse', currentTarget: tooltipAnchor() })
+    );
+  await enter();
+  await act(async () => view!.update(mount('list')));
+  expect(changed).toHaveBeenLastCalledWith(null);
+  await act(async () => view!.update(mount('row')));
+  expect(changed).toHaveBeenLastCalledWith(null);
+  await enter();
+  await act(async () => view!.update(mount('row', [], true)));
+  expect(changed).toHaveBeenLastCalledWith(null);
+  await act(async () => view!.update(mount('row')));
+  await enter();
+  await act(async () => view!.update(mount('row', sources, false)));
+  expect(changed).toHaveBeenLastCalledWith(null);
+  await act(async () => view!.update(mount('row')));
+  expect(changed).toHaveBeenLastCalledWith(null);
+  await enter();
+  await act(async () => view!.unmount());
+  expect(changed).toHaveBeenLastCalledWith(null);
+  view = undefined;
+});
+
+it('keeps account identities masked in the detail payload and dismisses before pointer actions', async () => {
+  privacy.setState({ hidden: true });
+  const changed = vi.fn();
+  const sources = accountItems();
+  await act(async () => {
+    view = create(
+      <UsageIslandView
+        items={sources}
+        settings={{ style: 'row', reversed: [], theme: 'light', expandMode: 'always' }}
+        onTooltipChange={changed}
+      />
+    );
+  });
+  const source = () => view!.root.findByProps({ 'data-usage-source': sources[0].key });
+  await act(async () =>
+    source().props.onPointerEnter({ pointerType: 'mouse', currentTarget: tooltipAnchor() })
+  );
+  expect(changed.mock.lastCall![0].item.detail).toBe(ACCOUNT_NAME_MASK);
+  expect(JSON.stringify(changed.mock.lastCall![0])).not.toContain('me@example.com');
+  expect(changed.mock.lastCall![0].theme).toBe('light');
+  await act(async () => source().props.onPointerDown());
+  expect(changed).toHaveBeenLastCalledWith(null);
+});
+
+it('uses native pointer samples while the floating window is inactive and ignores DOM-only exits', async () => {
+  const changed = vi.fn();
+  const sources = accountItems();
+  const element = tooltipAnchor();
+  Object.assign(element, { dataset: { usageTipSource: sources[0].key }, closest: () => element });
+  vi.stubGlobal('document', {
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+    elementFromPoint: vi.fn(() => element),
+  });
+  await act(async () => {
+    view = create(
+      <UsageIslandView
+        items={sources}
+        settings={{ style: 'column', reversed: [], theme: 'dark', expandMode: 'always' }}
+        tooltipResetKey={1.5}
+        onTooltipChange={changed}
+      />
+    );
+  });
+  await act(async () => events.listeners.get('usage-island-pointer')!({ payload: [210, 465] }));
+  expect(document.elementFromPoint).toHaveBeenLastCalledWith(140, 310);
+  expect(changed.mock.lastCall![0]).toMatchObject({ item: { key: sources[0].key }, side: true });
+  const count = changed.mock.calls.length;
+  await act(async () => events.listeners.get('usage-island-pointer')!({ payload: [210, 465] }));
+  expect(changed).toHaveBeenCalledTimes(count);
+  await act(async () => events.listeners.get('usage-island-pointer')!({ payload: null }));
+  expect(changed).toHaveBeenLastCalledWith(null);
+  expect(refreshAccount).not.toHaveBeenCalled();
+  expect(refreshModel).not.toHaveBeenCalled();
+});
+
+it.each([
+  [192, 210, 'above'],
+  [192, 374, 'below'],
+  [110, 292, 'left'],
+  [274, 292, 'right'],
+] as const)(
+  'sends dial clearance and outward placement for a ring at %s,%s',
+  async (x, y, direction) => {
+    const changed = vi.fn();
+    const sources = accountItems();
+    await act(async () => {
+      view = create(
+        <UsageIslandView
+          items={sources}
+          settings={{ style: 'dial', reversed: [], theme: 'dark', expandMode: 'always' }}
+          onTooltipChange={changed}
+        />
+      );
+    });
+    const element = {
+      getBoundingClientRect: () => ({ left: x, top: y, width: 32, height: 32 }),
+      querySelector: () => null,
+      closest: () => ({
+        getBoundingClientRect: () => ({ left: 100, top: 200, width: 216, height: 216 }),
+      }),
+    } as unknown as HTMLElement;
+    await act(async () =>
+      view!.root
+        .findByProps({ 'data-usage-source': sources[0].key })
+        .props.onPointerEnter({ pointerType: 'mouse', currentTarget: element })
+    );
+    expect(changed.mock.lastCall![0]).toMatchObject({
+      direction,
+      clearance: { x: 100, y: 200, width: 216, height: 216 },
+    });
+  }
+);

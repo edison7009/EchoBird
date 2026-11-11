@@ -8,6 +8,11 @@ import { ACCOUNT_NAME_MASK, useAccountPrivacyStore } from '../../stores/accountP
 import type { UsageIslandConfig, UsageIslandStyle } from '../../stores/usageIslandStore';
 import { quotaTone } from '../../utils/quotaColors';
 import { QuotaCountdown } from '../AppManager/QuotaCountdown';
+import {
+  useUsageTooltip,
+  UsageTooltipOverlay,
+  type UsageTooltipRequest,
+} from './UsageIslandTooltip';
 import { compactValue, type UsageIslandAction, type UsageIslandItem } from './usageIslandData';
 
 const LOGO_SIZE = 48;
@@ -196,11 +201,13 @@ function Dial({
   displays,
   pick,
   onPick,
+  tooltip,
 }: {
   items: UsageIslandItem[];
   displays: ItemDisplay[];
   pick: string | null;
   onPick?: (key: string | null) => void;
+  tooltip: ReturnType<typeof useUsageTooltip>;
 }) {
   const slice = (Math.PI * 2) / items.length;
   return items.map((item, index) => {
@@ -211,6 +218,7 @@ function Dial({
         <button
           type="button"
           className="usage-island-dial-item"
+          {...tooltip.handlers(item.key)}
           data-tone={display.tone}
           data-usage-source={item.key}
           aria-label={`${item.name} ${display.label} ${item.value}`}
@@ -295,6 +303,8 @@ export function UsageIslandView({
   onLayout,
   onAction,
   actions,
+  onTooltipChange,
+  tooltipResetKey,
 }: {
   items: UsageIslandItem[];
   settings: IslandSettings;
@@ -309,6 +319,8 @@ export function UsageIslandView({
   onLayout?: (layout: IslandLayout) => void;
   onAction?: (action: UsageIslandAction) => void;
   actions?: UsageIslandActions;
+  onTooltipChange?: (tooltip: UsageTooltipRequest | null) => void;
+  tooltipResetKey?: number;
 }) {
   const { t } = useI18n();
   const resolved = useThemeStore((theme) => theme.resolved);
@@ -374,6 +386,17 @@ export function UsageIslandView({
       tone: quotaTone(item.percent),
     };
   });
+  const tooltip = useUsageTooltip({
+    items: items.map((item, index) => ({ ...item, detail: displays[index].label })),
+    style,
+    expanded,
+    nativeHover: hover,
+    theme: surface === 'light' ? 'light' : 'dark',
+    resetLabel: t('accountCenter.reset'),
+    onChange: onTooltipChange,
+    resetKey: tooltipResetKey,
+    zoom: tooltipResetKey,
+  });
   useEffect(() => {
     onLayout?.({
       expanded,
@@ -429,7 +452,13 @@ export function UsageIslandView({
           {layout === 'list' && expanded && <ListActions actions={actions} onAction={onAction} />}
           {layout === 'dial' ? (
             <div className="usage-island-dial" role="list" aria-hidden={!expanded}>
-              <Dial items={items} displays={displays} pick={pick} onPick={onPick} />
+              <Dial
+                items={items}
+                displays={displays}
+                pick={pick}
+                onPick={onPick}
+                tooltip={tooltip}
+              />
             </div>
           ) : (
             <div ref={tools} className="usage-island-tools" role="list" aria-hidden={!expanded}>
@@ -461,6 +490,7 @@ export function UsageIslandView({
                     <button
                       type="button"
                       className="usage-island-tool"
+                      {...tooltip.handlers(item.key)}
                       data-tone={display.tone}
                       data-usage-source={item.key}
                       data-smart-active={item.smartActive || undefined}
@@ -478,6 +508,7 @@ export function UsageIslandView({
           <button
             type="button"
             className="usage-island-toggle"
+            {...(picked ? tooltip.handlers(picked.key, true) : {})}
             aria-label={
               picked ? picked.name : t(expanded ? 'usageIsland.collapse' : 'usageIsland.expand')
             }
@@ -514,6 +545,7 @@ export function UsageIslandView({
           </button>
         </div>
       </div>
+      {!onTooltipChange && tooltip.request && <UsageTooltipOverlay request={tooltip.request} />}
     </div>
   );
 }

@@ -22,9 +22,10 @@ document.addEventListener('contextmenu', handleDesktopContextMenu);
 const isVoiceIsland = getCurrentWindow().label === 'voice-island';
 const isVoiceTranslation = getCurrentWindow().label === 'voice-translation';
 const isUsageIsland = getCurrentWindow().label === 'usage-island';
+const isUsageIslandTooltip = getCurrentWindow().label === 'usage-island-tooltip';
 // Start cached desktop icons alongside fonts/theme, without delaying window
 // visibility or loading desktop artwork in auxiliary windows.
-if (!isVoiceIsland && !isVoiceTranslation && !isUsageIsland) {
+if (!isVoiceIsland && !isVoiceTranslation && !isUsageIsland && !isUsageIslandTooltip) {
   void preloadDesktopToolIcons(
     useToolsStore.getState().detectedTools.filter((tool) => tool.installed)
   );
@@ -180,6 +181,15 @@ function renderBootError(err: unknown): void {
 }
 
 async function bootAndRender(): Promise<void> {
+  if (isUsageIslandTooltip) {
+    document.documentElement.classList.add('usage-island-tooltip-window');
+    const [, { UsageIslandTooltipWindow }] = await Promise.all([
+      bootFonts(),
+      import('./pages/UsageIsland/UsageIslandTooltipWindow'),
+    ]);
+    ReactDOM.createRoot(document.getElementById('root')!).render(<UsageIslandTooltipWindow />);
+    return;
+  }
   if (isUsageIsland) {
     document.documentElement.classList.add('usage-island-window');
     const [locale, , { UsageIslandWindow }] = await Promise.all([

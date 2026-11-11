@@ -88,6 +88,7 @@ pub(crate) mod devin_protocol;
 pub mod kimi_accounts;
 pub mod opendesign_accounts;
 pub mod usage_island;
+pub mod usage_island_tooltip;
 pub mod voice_input;
 pub mod zcode_accounts;
 pub(crate) mod zcode_paths;

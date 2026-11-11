@@ -419,7 +419,7 @@
 .usage-island[data-style='line'] .usage-island-tool[data-smart-active='true']::before {
   content: '';
   position: absolute;
-  /* Coffee CLI's moving diagonal stripes, translucent so the content stays
+  /* Moving diagonal stripes, translucent so the content stays
      readable. A square 20px tile repeats seamlessly at any element width. */
   background-image: linear-gradient(
     45deg,
@@ -950,4 +950,160 @@
 .usage-island-window-root .usage-island-track[data-layout='row'],
 .usage-island-window-root .usage-island-track[data-layout='list'] {
   width: var(--usage-island-width);
+}
+
+/* Read-only detail cards for the three compact gauge layouts. */
+.usage-island-tip-overlay {
+  position: fixed;
+  z-index: 10000;
+  pointer-events: none;
+}
+.usage-island-tooltip {
+  position: relative;
+  box-sizing: border-box;
+  padding: 14px;
+  border: 1px solid color-mix(in srgb, var(--usage-island-fg) 16%, var(--usage-island-bg));
+  border-radius: 13px;
+  background: var(--usage-island-bg);
+  color: var(--usage-island-fg);
+  box-shadow: 0 8px 20px #0005;
+  font-size: 12px;
+  line-height: 16px;
+  pointer-events: none;
+  user-select: none;
+}
+.usage-island-tooltip::after {
+  position: absolute;
+  left: var(--usage-tip-arrow-x);
+  width: 9px;
+  height: 9px;
+  content: '';
+  background: var(--usage-island-bg);
+  border: inherit;
+  transform: translateX(-50%) rotate(45deg);
+}
+.usage-island-tooltip[data-placement='above']::after {
+  bottom: -5px;
+  border-top: 0;
+  border-left: 0;
+}
+.usage-island-tooltip[data-placement='below']::after {
+  top: -5px;
+  border-right: 0;
+  border-bottom: 0;
+}
+.usage-island-tip-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-sizing: border-box;
+  height: 48px;
+  padding-bottom: 12px;
+}
+.usage-island-tip-head > :first-child {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+}
+.usage-island-tip-head > div {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+.usage-island-tip-head strong,
+.usage-island-tip-head span,
+.usage-island-tip-row-head > span {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.usage-island-tip-head strong {
+  font-size: 13px;
+  font-weight: 700;
+}
+.usage-island-tip-head span {
+  opacity: 0.65;
+  font-size: 10px;
+  line-height: 14px;
+}
+.usage-island-tip-row {
+  --usage-tip-color: var(--usage-island-fg);
+  box-sizing: border-box;
+  padding-top: 10px;
+  border-top: 1px solid color-mix(in srgb, currentColor 12%, transparent);
+}
+.usage-island-tip-row[data-tone='healthy'] {
+  --usage-tip-color: var(--usage-island-healthy);
+}
+.usage-island-tip-row[data-tone='low'] {
+  --usage-tip-color: var(--usage-island-low);
+}
+.usage-island-tip-row[data-tone='critical'] {
+  --usage-tip-color: var(--usage-island-critical);
+}
+.usage-island-tip-row-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-weight: 600;
+}
+.usage-island-tip-row-head > strong {
+  flex: none;
+  color: var(--usage-tip-color);
+  font-variant-numeric: tabular-nums;
+}
+.usage-island-tip-track {
+  height: 5px;
+  margin-top: 8px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--usage-island-track);
+}
+.usage-island-tip-track > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--usage-tip-color);
+}
+.usage-island-tip-reset {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 7px;
+  opacity: 0.65;
+  font-size: 10px;
+  line-height: 14px;
+}
+.usage-island-tip-reset > span {
+  color: inherit;
+}
+.usage-island-tooltip-window,
+.usage-island-tooltip-window body,
+.usage-island-tooltip-window #root {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+  background: transparent !important;
+}
+.usage-island-tip-native {
+  width: max-content;
+}
+.usage-island-tooltip[data-placement='left']::after,
+.usage-island-tooltip[data-placement='right']::after {
+  top: var(--usage-tip-arrow-x);
+  bottom: auto;
+  transform: translateY(-50%) rotate(45deg);
+}
+.usage-island-tooltip[data-placement='left']::after {
+  left: auto;
+  right: -5px;
+  border-left: 0;
+  border-bottom: 0;
+}
+.usage-island-tooltip[data-placement='right']::after {
+  left: -5px;
+  border-right: 0;
+  border-top: 0;
 }

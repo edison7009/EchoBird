@@ -1,0 +1,7 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "usage-island-tooltip",
+  "description": "passive usage detail surface",
+  "windows": ["usage-island-tooltip"],
+  "permissions": ["core:default", "core:webview:allow-set-webview-zoom"]
+}

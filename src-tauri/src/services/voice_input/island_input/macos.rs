@@ -38,7 +38,10 @@ extern "C-unwind" fn send_event(this: &AnyObject, _: Sel, event: &AnyObject) {
     let _: () = unsafe { msg_send![super(this, parent), sendEvent: event] };
 }
 
-fn nonactivating_class(superclass: &'static AnyClass) -> &'static AnyClass {
+fn nonactivating_class(
+    superclass: &'static AnyClass,
+    event_superclass: &'static AnyClass,
+) -> &'static AnyClass {
     CLASS
         .get_or_init(|| {
             let mut class = ClassBuilder::new(c"EchoBirdVoiceIslandWindow", superclass).unwrap();
@@ -66,7 +69,7 @@ fn nonactivating_class(superclass: &'static AnyClass) -> &'static AnyClass {
             }
             IslandClass {
                 class: class.register(),
-                event_superclass: superclass.superclass().expect("window parent class"),
+                event_superclass,
             }
         })
         .class
@@ -82,7 +85,12 @@ pub(super) fn configure(window: &tauri::WebviewWindow) -> tauri::Result<()> {
         // Its replacement class is an ivar-free subclass
         // of its original class, preserving the allocation and inherited state.
         let island = unsafe { &*(island as *const AnyObject) };
-        let class = nonactivating_class(island.class());
+        // Wry may add another subclass above Tao. Dispatch to AppKit itself,
+        // since skipping just one level can still select Tao's dynamic handler.
+        let class = nonactivating_class(
+            island.class(),
+            AnyClass::get(c"NSWindow").expect("AppKit NSWindow"),
+        );
         if island.class() != class {
             unsafe { AnyObject::set_class(island, class) };
         }
@@ -140,8 +148,8 @@ mod tests {
                 native_event as extern "C-unwind" fn(_, _, _),
             );
         }
-        let mut base =
-            ClassBuilder::new(c"EchoBirdVoiceIslandTestWindow", native.register()).unwrap();
+        let native = native.register();
+        let mut base = ClassBuilder::new(c"EchoBirdVoiceIslandTestWindow", native).unwrap();
         base.add_ivar::<u64>(c"savedState");
         unsafe {
             base.add_method(
@@ -191,8 +199,12 @@ mod tests {
         let panel: Bool = unsafe { msg_send![&*object, _isNonactivatingPanel] };
         assert!(key.as_bool());
         assert!(!panel.as_bool());
-        let class = nonactivating_class(base);
-        assert_eq!(class.superclass(), Some(base));
+        let wrapper = ClassBuilder::new(c"EchoBirdVoiceIslandTestWebviewWindow", base)
+            .unwrap()
+            .register();
+        unsafe { AnyObject::set_class(&object, wrapper) };
+        let class = nonactivating_class(wrapper, native);
+        assert_eq!(class.superclass(), Some(wrapper));
         assert_eq!(class.instance_size(), base.instance_size());
         unsafe { AnyObject::set_class(&object, class) };
         let key: Bool = unsafe { msg_send![&*object, canBecomeKeyWindow] };
@@ -202,7 +214,7 @@ mod tests {
         assert!(!main.as_bool());
         assert!(panel.as_bool());
         assert_eq!(unsafe { *state.load::<u64>(&object) }, 42);
-        assert_eq!(nonactivating_class(base), class);
+        assert_eq!(nonactivating_class(wrapper, native), class);
         // Mouse-down preserves native dragging and reaches AppKit once, without
         // re-entering the inherited dynamic-superclass handler. Other events do not drag.
         let _: () = unsafe { msg_send![&*object, sendEvent: &*event] };

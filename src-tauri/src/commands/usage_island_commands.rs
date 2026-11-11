@@ -1,5 +1,40 @@
 use crate::services::usage_island;
+use crate::services::usage_island_tooltip;
 use tauri::{AppHandle, WebviewWindow};
+
+#[tauri::command]
+pub async fn usage_island_tooltip_ready(
+    app: AppHandle,
+    window: WebviewWindow,
+    revision: u64,
+) -> Result<(), String> {
+    if window.label() != usage_island_tooltip::WINDOW_LABEL {
+        return Err("Only the usage tooltip can confirm its snapshot".into());
+    }
+    usage_island_tooltip::ready(&app, revision)
+}
+
+#[tauri::command]
+pub async fn usage_island_tooltip(
+    app: AppHandle,
+    window: WebviewWindow,
+    tooltip: Option<usage_island_tooltip::Request>,
+) -> Result<(), String> {
+    if window.label() != usage_island::WINDOW_LABEL {
+        return Err("Only the usage island can show its tooltip".into());
+    }
+    usage_island_tooltip::show(&app, &window, tooltip)
+}
+
+#[tauri::command]
+pub fn usage_island_tooltip_state(
+    window: WebviewWindow,
+) -> Result<Option<usage_island_tooltip::Snapshot>, String> {
+    if window.label() != usage_island_tooltip::WINDOW_LABEL {
+        return Err("Only the usage tooltip can read its snapshot".into());
+    }
+    Ok(usage_island_tooltip::snapshot())
+}
 
 // Async keeps these off the main thread: building a window there deadlocks on Windows.
 #[tauri::command]

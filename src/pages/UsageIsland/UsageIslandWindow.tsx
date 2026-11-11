@@ -11,6 +11,7 @@ import {
   USAGE_ISLAND_TICK_EVENT,
   resizeUsageIsland,
   setUsageIslandHitArea,
+  showUsageIslandTooltip,
 } from '../../api/usageIsland';
 import {
   THEME_CHANGED_EVENT,
@@ -18,6 +19,7 @@ import {
   useThemeStore,
   type ThemeSelection,
 } from '../../stores/themeStore';
+import type { UsageTooltipRequest } from './UsageIslandTooltip';
 import type { UsageIslandItem } from './usageIslandData';
 import {
   UsageIslandView,
@@ -151,6 +153,12 @@ export function UsageIslandWindow() {
     },
     [scale]
   );
+  const onTooltipChange = useCallback(
+    (tooltip: UsageTooltipRequest | null) => {
+      void showUsageIslandTooltip(tooltip ? { ...tooltip, zoom: scale } : null).catch(() => {});
+    },
+    [scale]
+  );
   const onPick = useCallback((key: string | null) => {
     void emitTo('main', USAGE_ISLAND_PICK_EVENT, key).catch(() => {});
   }, []);
@@ -172,6 +180,7 @@ export function UsageIslandWindow() {
     <div
       className="usage-island-window-root"
       onPointerDown={(event) => {
+        void showUsageIslandTooltip(null).catch(() => {});
         if (event.button === 0) press.current = { x: event.clientX, y: event.clientY };
       }}
       onPointerMove={onPointerMove}
@@ -193,6 +202,8 @@ export function UsageIslandWindow() {
           masked
           available={Math.min(MAX_CONTENT_WIDTH, window.screen.availWidth / scale)}
           onLayout={onLayout}
+          onTooltipChange={onTooltipChange}
+          tooltipResetKey={scale}
         />
       )}
     </div>
