@@ -272,6 +272,15 @@
   background: rgb(255 255 255 / 0.12);
 }
 
+/* Model menus mark the saved choice with a check, keeping its surface quiet. */
+.model-selection-menu .selection-menu-row[data-selected='true'] {
+  background: transparent;
+}
+.model-selection-menu .selection-menu-row:not([aria-disabled='true']):hover,
+.model-selection-menu .selection-menu-row[data-active='true'] {
+  background: rgb(255 255 255 / 0.12);
+}
+
 .mother-reasoning-control[data-max] .mother-reasoning-label,
 .mother-reasoning-control[data-max] .mother-reasoning-trigger {
   color: rgb(var(--reasoning-accent-rgb, var(--accent-rgb)));

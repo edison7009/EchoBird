@@ -161,14 +161,14 @@ it('preserves arbitrary API model input and its plain-text paste action', () => 
 it('preserves API browse, search, keyboard selection and the positioned body portal', () => {
   mount({ value: 'gpt-a', options: ['gpt-a', 'gpt-b', 'claude-a', 'gpt-a'] });
   act(() => input().props.onFocus());
-  expect(options().map((node) => node.children[0])).toEqual(['gpt-a', 'gpt-b', 'claude-a']);
+  expect(optionTexts()).toEqual(['gpt-a', 'gpt-b', 'claude-a']);
   expect(portal.mock.calls[portal.mock.calls.length - 1]?.[1]).toBe(body);
   expect(menus()[0].props.style).toMatchObject({ left: 12, width: 240, top: 131, maxHeight: 240 });
   expect(menus()[0].props.className).toContain('z-[9999]');
   expect(menus()[0].props.className).not.toContain('model-id-combobox-menu');
   expect(menus()[0].props.style.transformOrigin).toBeUndefined();
   act(() => input().props.onChange({ target: { value: 'gpt' } }));
-  expect(options().map((node) => node.children[0])).toEqual(['gpt-a', 'gpt-b']);
+  expect(optionTexts()).toEqual(['gpt-a', 'gpt-b']);
   key('ArrowDown');
   key('ArrowDown');
   expect(key('Enter')).toHaveBeenCalledOnce();
@@ -346,7 +346,7 @@ it('opens controlled compact choices from the card, focuses the trigger, and clo
   expect(menus()).toHaveLength(0);
   expect(focus).not.toHaveBeenCalled();
   act(() => button('Open from card').props.onClick());
-  expect(options().map((node) => node.children[0])).toEqual(['one', 'two']);
+  expect(optionTexts()).toEqual(['one', 'two']);
   expect(button('Route model').props['aria-expanded']).toBe(true);
   expect(focus).toHaveBeenCalledOnce();
   expect(props.onOpenChange).not.toHaveBeenCalled();
@@ -469,11 +469,11 @@ it('clears a hovered option when card mousedown and click close then reopen, whi
 
   await clickCard();
   act(() => options()[1].props.onMouseEnter());
-  expect(options()[1].props.className.split(' ')).toContain('bg-cyber-text/10');
+  expect(options()[1].props['data-active']).toBe(true);
   await clickCard();
   expect(menus()).toHaveLength(0);
   await clickCard();
-  expect(options()[1].props.className.split(' ')).not.toContain('bg-cyber-text/10');
+  expect(options()[1].props['data-active']).toBeUndefined();
   press('Enter');
   expect(props.onChange).not.toHaveBeenCalled();
   press('ArrowDown');
@@ -561,12 +561,12 @@ it('keeps all cached compact choices through display-label updates and viewport 
   expect(options()).toHaveLength(40);
   expect(menu.props.style.maxHeight).toBe(360);
   expect(menu.props.className).toContain('overflow-y-auto');
-  expect(options()[39].children).toEqual(['Short name']);
+  expect(optionTexts()[39]).toBe('Short name');
 
   const longLabel = 'provider/a-long-display-label-with-a-version-and-release-identifier';
   await updateControlled({ optionLabels: { [ids[39]]: longLabel } });
   expect(menus()[0]).toBe(menu);
-  expect(options()[39].children).toEqual([longLabel]);
+  expect(optionTexts()[39]).toBe(longLabel);
   expect(menus()[0].props.style.width).toBe('max-content');
   expect(props.onChange).not.toHaveBeenCalled();
 
@@ -577,7 +577,7 @@ it('keeps all cached compact choices through display-label updates and viewport 
   });
   expect(options()).toHaveLength(40);
   expect(menus()[0]).toBe(menu);
-  expect(options()[39].children).toEqual([longLabel]);
+  expect(optionTexts()[39]).toBe(longLabel);
   const resize = vi
     .mocked(window.addEventListener)
     .mock.calls.find(([name]) => name === 'resize')?.[1] as (() => void) | undefined;
@@ -623,11 +623,7 @@ it('shows labels while select-only choices preserve distinct IDs with duplicate 
   expect(props.onChange).not.toHaveBeenCalled();
   expect(renderer.root.findAllByType('button')).toHaveLength(1);
   act(() => input().props.onFocus());
-  expect(options().map((node) => node.children[0])).toEqual([
-    'Same account',
-    'Same account',
-    'unlabelled-id',
-  ]);
+  expect(optionTexts()).toEqual(['Same account', 'Same account', 'unlabelled-id']);
   const preventDefault = vi.fn();
   act(() => options()[1].props.onMouseDown({ button: 0, preventDefault }));
   expect(props.onChange).toHaveBeenCalledExactlyOnceWith('second-id');
@@ -641,7 +637,7 @@ it('searches display labels and still commits the selected ID', () => {
     optionLabels: { 'opaque-one': 'Claude account', 'opaque-two': 'Codex account' },
   });
   act(() => input().props.onChange({ target: { value: 'codex' } }));
-  expect(options().map((node) => node.children[0])).toEqual(['Codex account']);
+  expect(optionTexts()).toEqual(['Codex account']);
   key('ArrowDown');
   key('Enter');
   expect(props.onChange).toHaveBeenLastCalledWith('opaque-two');
@@ -963,12 +959,12 @@ it('keeps compact route choices usable for short and long IDs, within the viewpo
   };
   expect(JSON.stringify(renderer.toJSON())).toContain(shortId);
   act(() => trigger().props.onClick());
-  expect(options().map((node) => node.children[0])).toEqual([shortId, longId]);
+  expect(optionTexts()).toEqual([shortId, longId]);
   expect(portal.mock.calls[portal.mock.calls.length - 1]?.[1]).toBe(body);
   const menuPosition = menus()[0].props.style;
   expect(menuPosition.left).toBeGreaterThanOrEqual(8);
   expect(menuPosition.width).toBe('max-content');
-  expect(menuPosition.minWidth).toBe('min(52px, calc(100vw - 16px))');
+  expect(menuPosition.minWidth).toBe('min(200px, calc(100vw - 16px))');
   expect(menuPosition.maxWidth).toBe('calc(100vw - 16px)');
   expect(menuPosition['--model-menu-left']).toBe('740px');
   expect(menuPosition.top).toBeUndefined();
@@ -996,7 +992,7 @@ it('keeps compact route choices usable for short and long IDs, within the viewpo
   expect(JSON.stringify(renderer.toJSON())).toContain(longId);
   expect(menus()).toHaveLength(0);
   press('ArrowDown');
-  expect(options().map((node) => node.children[0])).toEqual([shortId, longId]);
+  expect(optionTexts()).toEqual([shortId, longId]);
   press('ArrowDown');
   expect(press('Enter')).toHaveBeenCalledOnce();
   expect(vi.mocked(props.onChange).mock.calls.map(([id]) => id)).toEqual([longId, shortId]);

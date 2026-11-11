@@ -228,6 +228,7 @@ describe('Direct route card model selection', () => {
   function textOf(node: ReactTestInstance): string {
     return node.children
       .map((child) => (typeof child === 'string' ? child : textOf(child)))
+      .filter(Boolean)
       .join(' ');
   }
   function visibilityButton() {
@@ -1154,9 +1155,11 @@ describe('Direct route card model selection', () => {
     expectNoPassiveChanges();
     await openMenu('cmodel');
     const selected = renderer.root.find(
-      (node) => node.type === 'div' && node.children[0] === 'Cantus' && node.props.onMouseDown
+      (node) => node.type === 'div' && node.props.onMouseDown && textOf(node) === 'Cantus'
     );
-    expect(selected.props.className).toContain('bg-cyber-text/15');
+    expect(selected.props['data-selected']).toBe(true);
+    expect(selected.findAllByType('svg')).toHaveLength(1);
+    expect(selected.props.className).not.toContain('bg-cyber-text/15');
     await act(async () => selected.props.onMouseDown({ button: 0, preventDefault: vi.fn() }));
     expect(savedModels).toEqual(original);
     expect(writeCache).toHaveBeenCalledExactlyOnceWith({ provider: 'qoder', accountId: 'shared' }, [

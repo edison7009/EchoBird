@@ -148,7 +148,7 @@ export const RemoteModelSelector: React.FC<RemoteModelSelectorProps> = ({
             maxWidth: menuBounds.maxWidth,
             maxHeight: menuBounds.maxHeight,
           }}
-          className="app-tooltip selection-popover absolute bottom-full mb-1 right-0 w-max overflow-y-auto p-1.5
+          className="app-tooltip selection-popover model-selection-menu absolute bottom-full mb-1 right-0 w-max overflow-y-auto p-1.5
                     animate-in fade-in slide-in-from-bottom-2 duration-150
                     z-50"
         >
@@ -164,7 +164,6 @@ export const RemoteModelSelector: React.FC<RemoteModelSelectorProps> = ({
               data-selected={model.id === currentModelId || undefined}
               className="selection-menu-row flex items-center gap-2 px-3 py-2 text-xs font-sans transition-colors"
             >
-              {renderIcon(model, 'w-4 h-4', 16)}
               <span className="min-w-0 flex-1 whitespace-normal break-words">{model.name}</span>
               {model.id === currentModelId && <Check size={12} className={checkClass} />}
             </div>
@@ -200,7 +199,6 @@ export const RemoteModelSelector: React.FC<RemoteModelSelectorProps> = ({
                 }}
                 className={`${rowBase} ${rowState}`}
               >
-                {renderIcon(extra, 'w-4 h-4', 16)}
                 <span className="min-w-0 flex-1 whitespace-normal break-words">{extra.name}</span>
                 {extra.disabled && extra.disabledLabel && (
                   <span className="flex-shrink-0 text-[10px] text-cyber-text-muted">

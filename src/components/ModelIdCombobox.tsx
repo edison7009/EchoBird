@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback, type RefObject } from 'react';
 import { createPortal } from 'react-dom';
-import { ChevronDown, RefreshCw } from 'lucide-react';
+import { Check, ChevronDown, RefreshCw } from 'lucide-react';
 import { isFreeModelOption } from '../utils/modelOptions';
 import './ModelIdCombobox.css';
 
@@ -415,7 +415,9 @@ export function ModelIdCombobox({
                 position: 'fixed',
                 left: menuPos.left,
                 width: compact ? 'max-content' : menuPos.width,
-                minWidth: compact ? `min(${menuPos.width}px, calc(100vw - 16px))` : undefined,
+                minWidth: compact
+                  ? `min(${Math.max(200, menuPos.width)}px, calc(100vw - 16px))`
+                  : undefined,
                 maxWidth: compact ? 'calc(100vw - 16px)' : undefined,
                 top: menuPos.dropUp ? undefined : menuPos.below,
                 bottom: menuPos.dropUp ? menuPos.above : undefined,
@@ -424,7 +426,7 @@ export function ModelIdCombobox({
                 '--model-menu-left': compact ? `${menuPos.left}px` : undefined,
               } as React.CSSProperties
             }
-            className={`overflow-y-auto z-[9999] bg-cyber-surface border border-cyber-border/60 rounded-button shadow-lg cursor-default ${compact ? `model-id-combobox-menu${menuPos.dropUp ? ' is-drop-up' : ''}` : ''}`}
+            className={`overflow-y-auto z-[9999] cursor-default ${compact ? `app-tooltip selection-popover model-selection-menu p-1.5 model-id-combobox-menu${menuPos.dropUp ? ' is-drop-up' : ''}` : 'bg-cyber-surface border border-cyber-border/60 rounded-button shadow-lg'}`}
           >
             {filtered.map((opt, idx) => {
               const free = freeIds.has(opt);
@@ -444,15 +446,37 @@ export function ModelIdCombobox({
                     pick(opt);
                   }}
                   onMouseEnter={() => setActiveIdx(idx)}
-                  className={`px-2 py-1.5 text-xs font-mono transition-colors ${free || hasMultiplier ? 'flex items-center gap-2' : 'truncate'} ${
-                    opt === value
-                      ? 'bg-cyber-text/15 text-cyber-text'
-                      : idx === activeIdx
-                        ? 'bg-cyber-text/10 text-cyber-text'
-                        : 'text-cyber-text hover:bg-cyber-text/10'
-                  }`}
+                  data-selected={compact && opt === value ? true : undefined}
+                  data-active={compact && idx === activeIdx ? true : undefined}
+                  className={
+                    compact
+                      ? 'selection-menu-row flex items-center gap-2 px-3 py-2 text-xs font-sans transition-colors'
+                      : `px-2 py-1.5 text-xs font-mono transition-colors ${free || hasMultiplier ? 'flex items-center gap-2' : 'truncate'} ${
+                          opt === value
+                            ? 'bg-cyber-text/15 text-cyber-text'
+                            : idx === activeIdx
+                              ? 'bg-cyber-text/10 text-cyber-text'
+                              : 'text-cyber-text hover:bg-cyber-text/10'
+                        }`
+                  }
                 >
-                  {free || hasMultiplier ? (
+                  {compact ? (
+                    <>
+                      <span className="min-w-0 flex-1 whitespace-normal break-words">
+                        {label(opt)}
+                      </span>
+                      {(free || hasMultiplier) && (
+                        <span
+                          className={`shrink-0 ${free ? 'text-green-500' : 'text-cyber-text-muted'}`}
+                        >
+                          {free ? freeLabel : `${multiplier}×`}
+                        </span>
+                      )}
+                      {opt === value && (
+                        <Check size={12} className="ml-1 shrink-0 text-cyber-text" />
+                      )}
+                    </>
+                  ) : free || hasMultiplier ? (
                     <>
                       <span className="min-w-0 truncate">{label(opt)}</span>
                       <span
