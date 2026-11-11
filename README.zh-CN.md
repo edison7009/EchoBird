@@ -120,7 +120,7 @@ EchoBird 的**智能路由（Smart Router）**用一个本地 API 汇总多个�
 
 智能路由切换的是已配置的模型 API，不会自动轮换已保存的登录账号。ChatGPT / Codex CLI 接入第三方模型需要 **Responses API**，当前智能路由尚未提供此接口；这两个工具请使用账号切换，或直接接入支持 Responses 的服务商。
 
-[在官网了解多账号切换与智能路由](https://echobird.ai/#accounts-and-routing)。
+[在官网了解多账号切换与智能路由](https://echobird.ai/zh/#smart-access)。
 
 ## 支持的工具 —— 一键安装、一键切换模型
 

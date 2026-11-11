@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="icon" type="image/png" href="assets/icon.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <meta
+      name="description"
+      content="EchoBird 使用文档：从新手上手到应用、账号、模型、智能接入、AI 助手、语音、用量岛与 TokenPet 的组合工作流。"
+    />
+    <title>使用文档 · EchoBird</title>
+    <link rel="stylesheet" href="./docs.css" />
+  </head>
+  <body>
+    <a class="skip-link" href="#doc-main">跳到正文</a>
+    <header class="docs-header">
+      <div class="docs-header-inner">
+        <a class="docs-brand" href="./"
+          ><img src="/brand/bird.png" width="34" height="34" alt="" /><span>EchoBird</span
+          ><span class="docs-brand-label">文档</span></a
+        >
+        <div class="docs-search">
+          <label class="visually-hidden" for="doc-search">搜索文档</label>
+          <input
+            id="doc-search"
+            type="search"
+            placeholder="搜索页面、操作或问题"
+            autocomplete="off"
+            aria-controls="doc-search-results"
+            aria-expanded="false"
+            aria-autocomplete="list"
+            role="combobox"
+            aria-haspopup="listbox"
+          />
+          <kbd class="search-key" aria-hidden="true">/</kbd>
+          <div class="doc-search-panel" hidden>
+            <p class="search-caption" role="status"></p>
+            <div id="doc-search-results" role="listbox" aria-label="搜索结果"></div>
+            <p class="search-hint">上下选择 · Enter 打开 · Esc 关闭</p>
+          </div>
+        </div>
+        <nav class="docs-top-links" aria-label="官网导航">
+          <a href="./">首页</a
+          ><a
+            href="https://github.com/edison7009/EchoBird"
+            target="_blank"
+            rel="noopener noreferrer"
+            >GitHub</a
+          ><a class="site-language" data-site-language href="/en/docs/" lang="en" hreflang="en"
+            >English</a
+          ><a href="./#download">更多下载</a>
+        </nav>
+        <button
+          class="docs-menu-button"
+          type="button"
+          aria-controls="doc-sidebar"
+          aria-expanded="false"
+        >
+          目录
+        </button>
+      </div>
+    </header>
+    <div class="docs-layout">
+      <aside class="docs-sidebar" id="doc-sidebar" aria-label="文档目录">
+        <div class="sidebar-heading">使用指南</div>
+        <nav id="doc-chapters" aria-label="文档章节">
+          <!--doc-chapters-start--><!--doc-chapters-end-->
+        </nav>
+        <a class="docs-help" href="mailto:hi@echobird.ai">联系 EchoBird</a>
+      </aside>
+      <button class="sidebar-backdrop" type="button" aria-label="关闭目录" hidden></button>
+      <main id="doc-main" tabindex="-1">
+        <article class="doc-article">
+          <div class="doc-breadcrumb" aria-label="当前位置">
+            <span>使用文档</span><span>/</span><span id="doc-group"></span>
+          </div>
+          <h1 id="doc-title"></h1>
+          <p class="doc-summary" id="doc-summary"></p>
+          <div class="doc-body" id="doc-body"><!--doc-body-start--><!--doc-body-end--></div>
+          <nav class="doc-pagination" aria-label="相邻文档">
+            <!--doc-pagination-start--><!--doc-pagination-end-->
+          </nav>
+        </article>
+        <footer class="docs-footer">
+          <span>© 2026 EchoBird</span
+          ><a
+            href="https://github.com/edison7009/EchoBird/issues"
+            target="_blank"
+            rel="noopener noreferrer"
+            >反馈文档问题</a
+          >
+        </footer>
+      </main>
+      <aside class="doc-toc" aria-label="本页内容">
+        <div>本页内容</div>
+        <nav id="doc-outline"><!--doc-outline-start--><!--doc-outline-end--></nav>
+      </aside>
+    </div>
+    <div class="visually-hidden" id="doc-announcement" aria-live="polite"></div>
+    <noscript
+      ><p class="no-script">
+        请启用 JavaScript 以浏览文档目录和正文。你也可以通过 hi@echobird.ai 联系我们。
+      </p></noscript
+    >
+    <script type="module" src="./docs.js"></script>
+  </body>
+</html>

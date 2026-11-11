@@ -73,6 +73,12 @@ jobs:
       - name: Test
         run: npm test
 
+      - name: Build public website
+        run: npm run website:build
+
+      - name: Test public website
+        run: npm run website:test
+
       - name: Security audit (npm)
         run: npm audit --audit-level=high --omit=dev
         continue-on-error: true

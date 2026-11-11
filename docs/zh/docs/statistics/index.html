@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="zh-CN" data-site-locale="zh">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="icon" type="image/png" href="/assets/icon-DOE4HP7g.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+
+    <title>请求统计 · EchoBird 文档</title>
+    <script type="module" crossorigin src="/assets/docs-dlKkM4St.js"></script>
+    <link rel="modulepreload" crossorigin href="/assets/modulepreload-polyfill-B5Qt9EMX.js">
+    <link rel="modulepreload" crossorigin href="/assets/site-translations-vK9rWEuP.js">
+    <link rel="stylesheet" crossorigin href="/assets/docs-D68cp78D.css">
+  <!--site-seo-start--><link rel="canonical" href="https://echobird.ai/zh/docs/statistics/" /><link rel="alternate" hreflang="zh-CN" href="https://echobird.ai/zh/docs/statistics/" /><link rel="alternate" hreflang="en" href="https://echobird.ai/docs/statistics/" /><link rel="alternate" hreflang="x-default" href="https://echobird.ai/docs/statistics/" /><meta property="og:locale" content="zh_CN" /><meta property="og:title" content="请求统计 · EchoBird 文档" /><meta property="og:description" content="观察调用、完成率、故障切换和耗时，定位线路问题。" /><!--site-seo-end--><meta name="description" content="观察调用、完成率、故障切换和耗时，定位线路问题。" /></head>
+  <body>
+    <a class="skip-link" href="#doc-main">跳到正文</a>
+    <header class="docs-header">
+      <div class="docs-header-inner">
+        <a class="docs-brand" href="/zh/"
+          ><img src="/brand/bird.png" width="34" height="34" alt="" /><span>EchoBird</span
+          ><span class="docs-brand-label">文档</span></a
+        >
+        <div class="docs-search">
+          <label class="visually-hidden" for="doc-search">搜索文档</label>
+          <input
+            id="doc-search"
+            type="search"
+            placeholder="搜索页面、操作或问题"
+            autocomplete="off"
+            aria-controls="doc-search-results"
+            aria-expanded="false"
+            aria-autocomplete="list"
+            role="combobox"
+            aria-haspopup="listbox"
+          />
+          <kbd class="search-key" aria-hidden="true">/</kbd>
+          <div class="doc-search-panel" hidden>
+            <p class="search-caption" role="status"></p>
+            <div id="doc-search-results" role="listbox" aria-label="搜索结果"></div>
+            <p class="search-hint">上下选择 · Enter 打开 · Esc 关闭</p>
+          </div>
+        </div>
+        <nav class="docs-top-links" aria-label="官网导航">
+          <a href="/zh/">首页</a
+          ><a
+            href="https://github.com/edison7009/EchoBird"
+            target="_blank"
+            rel="noopener noreferrer"
+            >GitHub</a
+          ><a class="site-language" data-site-language href="/docs/statistics/" lang="en" hreflang="en">English</a><a href="/zh/#download">更多下载</a>
+        </nav>
+        <button
+          class="docs-menu-button"
+          type="button"
+          aria-controls="doc-sidebar"
+          aria-expanded="false"
+        >目录</button>
+      </div>
+    </header>
+    <div class="docs-layout">
+      <aside class="docs-sidebar" id="doc-sidebar" aria-label="目录">
+        <div class="sidebar-heading">使用指南</div>
+        <nav id="doc-chapters" aria-label="使用指南">
+          <!--doc-chapters-start--><section class="doc-nav-group"><h2>开始使用</h2><a href="/zh/docs/">认识 EchoBird</a><a href="/zh/docs/quick-start/">第一次使用</a><a href="/zh/docs/navigation/">界面与页面导航</a></section><section class="doc-nav-group"><h2>核心工作流</h2><a href="/zh/docs/apps/">应用桌面与商店</a><a href="/zh/docs/accounts/">账号中心</a><a href="/zh/docs/models/">模型中心</a><a href="/zh/docs/smart-access/">智能接入</a><a href="/zh/docs/statistics/" aria-current="page">请求统计</a><a href="/zh/docs/assistant/">AI 助手</a><a href="/zh/docs/local-models/">本地大模型</a></section><section class="doc-nav-group"><h2>桌面与扩展</h2><a href="/zh/docs/voice/">语音输入与划词</a><a href="/zh/docs/usage-island/">用量岛</a><a href="/zh/docs/pets/">宠物与 TokenPet</a><a href="/zh/docs/plugins/">插件</a><a href="/zh/docs/news/">AI 动态</a><a href="/zh/docs/career/">AI 生涯</a></section><section class="doc-nav-group"><h2>帮助与参考</h2><a href="/zh/docs/settings/">设置与个性化</a><a href="/zh/docs/workflows/">组合使用教程</a><a href="/zh/docs/support/">意见反馈与更新日志</a><a href="/zh/docs/troubleshooting/">常见问题与排查</a></section><!--doc-chapters-end-->
+        </nav>
+        <a class="docs-help" href="mailto:hi@echobird.ai">联系 EchoBird</a>
+      </aside>
+      <button class="sidebar-backdrop" type="button" aria-label="关闭目录" hidden></button>
+      <main id="doc-main" tabindex="-1">
+        <article class="doc-article">
+          <div class="doc-breadcrumb" aria-label="当前位置">
+            <span>使用文档</span><span>/</span><span id="doc-group">核心工作流</span>
+          </div>
+          <h1 id="doc-title">请求统计</h1>
+          <p class="doc-summary" id="doc-summary">观察调用、完成率、故障切换和耗时，定位线路问题。</p>
+          <div class="doc-body" id="doc-body"><!--doc-body-start--><section aria-labelledby="open-statistics"><h2 id="open-statistics">在哪里看统计</h2><p>在智能接入顶部进入统计页面。可以按今天、7 天、14 天等时间范围，以及全部或具体接入方案观察数据。工作中先让工具产生真实请求，再回来看，才容易理解每项指标。</p></section><section aria-labelledby="statistics-metrics"><h2 id="statistics-metrics">怎样理解这些数字</h2><div class="doc-table" data-columns="2"><table><thead><tr><th scope="col">指标</th><th scope="col">解读方式</th></tr></thead><tbody><tr><td>调用次数</td><td>客户端发起的请求，不应直接等同于上游尝试次数</td></tr><tr><td>完成率</td><td>基于已有成功或失败结果的请求计算</td></tr><tr><td>故障转移成功</td><td>某次请求更换上游后最终成功，不代表每次尝试都成功</td></tr><tr><td>平均耗时与趋势</td><td>帮助比较所选时间范围内的实际表现</td></tr><tr><td>来源分布与最近使用</td><td>观察请求主要落在哪些来源以及最近活动</td></tr></tbody></table></div></section><section aria-labelledby="statistics-debug"><h2 id="statistics-debug">发现异常时怎么排查</h2><ol class="doc-steps"><li>先核对当前选择的时间范围和方案，避免在错误范围里查找请求。</li><li>观察失败来源与切换结果：首选来源失败、备用最终成功，和整次请求失败是不同情况。</li><li>回到智能接入确认该来源的模型 ID、启用状态与优先级。</li><li>需要时在账号或模型中心明确刷新状态、测试服务，再重新发送请求验证。</li></ol></section><section aria-labelledby="statistics-limits"><h2 id="statistics-limits">统计和账单并非同一件事</h2><p>这里用于了解经过接入的请求情况，不是所有厂商的完整账单，也不是精确扣费系统。未记录到请求不代表账号余额为零，尝试次数也不能直接当作付费次数。</p><p>设置中的统计记录开关、本机存储状态和所选范围都会影响可见数据。分享统计页面前，可以隐藏账号名称，避免展示真实身份。</p></section><!--doc-body-end--></div>
+          <nav class="doc-pagination" aria-label="相邻文档">
+            <!--doc-pagination-start--><a class="doc-previous" href="/zh/docs/smart-access/"><small>上一章</small><strong>智能接入</strong></a><a class="doc-next" href="/zh/docs/assistant/"><small>下一章</small><strong>AI 助手</strong></a><!--doc-pagination-end-->
+          </nav>
+        </article>
+        <footer class="docs-footer">
+          <span>© 2026 EchoBird</span
+          ><a
+            href="https://github.com/edison7009/EchoBird/issues"
+            target="_blank"
+            rel="noopener noreferrer"
+            >反馈文档问题</a
+          >
+        </footer>
+      </main>
+      <aside class="doc-toc" aria-label="本页内容">
+        <div>本页内容</div>
+        <nav id="doc-outline"><!--doc-outline-start--><a href="/zh/docs/statistics/#open-statistics" data-heading="open-statistics">在哪里看统计</a><a href="/zh/docs/statistics/#statistics-metrics" data-heading="statistics-metrics">怎样理解这些数字</a><a href="/zh/docs/statistics/#statistics-debug" data-heading="statistics-debug">发现异常时怎么排查</a><a href="/zh/docs/statistics/#statistics-limits" data-heading="statistics-limits">统计和账单并非同一件事</a><!--doc-outline-end--></nav>
+      </aside>
+    </div>
+    <div class="visually-hidden" id="doc-announcement" aria-live="polite"></div>
+    <noscript
+      ><p class="no-script">
+        请启用 JavaScript 以浏览文档目录和正文。你也可以通过 hi@echobird.ai 联系我们。
+      </p></noscript
+    >
+  </body>
+</html>

@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="zh-CN" data-site-locale="zh">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="icon" type="image/png" href="/assets/icon-DOE4HP7g.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+
+    <title>本地大模型 · EchoBird 文档</title>
+    <script type="module" crossorigin src="/assets/docs-dlKkM4St.js"></script>
+    <link rel="modulepreload" crossorigin href="/assets/modulepreload-polyfill-B5Qt9EMX.js">
+    <link rel="modulepreload" crossorigin href="/assets/site-translations-vK9rWEuP.js">
+    <link rel="stylesheet" crossorigin href="/assets/docs-D68cp78D.css">
+  <!--site-seo-start--><link rel="canonical" href="https://echobird.ai/zh/docs/local-models/" /><link rel="alternate" hreflang="zh-CN" href="https://echobird.ai/zh/docs/local-models/" /><link rel="alternate" hreflang="en" href="https://echobird.ai/docs/local-models/" /><link rel="alternate" hreflang="x-default" href="https://echobird.ai/docs/local-models/" /><meta property="og:locale" content="zh_CN" /><meta property="og:title" content="本地大模型 · EchoBird 文档" /><meta property="og:description" content="下载或扫描模型文件，准备运行引擎，再启动自己的模型服务。" /><!--site-seo-end--><meta name="description" content="下载或扫描模型文件，准备运行引擎，再启动自己的模型服务。" /></head>
+  <body>
+    <a class="skip-link" href="#doc-main">跳到正文</a>
+    <header class="docs-header">
+      <div class="docs-header-inner">
+        <a class="docs-brand" href="/zh/"
+          ><img src="/brand/bird.png" width="34" height="34" alt="" /><span>EchoBird</span
+          ><span class="docs-brand-label">文档</span></a
+        >
+        <div class="docs-search">
+          <label class="visually-hidden" for="doc-search">搜索文档</label>
+          <input
+            id="doc-search"
+            type="search"
+            placeholder="搜索页面、操作或问题"
+            autocomplete="off"
+            aria-controls="doc-search-results"
+            aria-expanded="false"
+            aria-autocomplete="list"
+            role="combobox"
+            aria-haspopup="listbox"
+          />
+          <kbd class="search-key" aria-hidden="true">/</kbd>
+          <div class="doc-search-panel" hidden>
+            <p class="search-caption" role="status"></p>
+            <div id="doc-search-results" role="listbox" aria-label="搜索结果"></div>
+            <p class="search-hint">上下选择 · Enter 打开 · Esc 关闭</p>
+          </div>
+        </div>
+        <nav class="docs-top-links" aria-label="官网导航">
+          <a href="/zh/">首页</a
+          ><a
+            href="https://github.com/edison7009/EchoBird"
+            target="_blank"
+            rel="noopener noreferrer"
+            >GitHub</a
+          ><a class="site-language" data-site-language href="/docs/local-models/" lang="en" hreflang="en">English</a><a href="/zh/#download">更多下载</a>
+        </nav>
+        <button
+          class="docs-menu-button"
+          type="button"
+          aria-controls="doc-sidebar"
+          aria-expanded="false"
+        >目录</button>
+      </div>
+    </header>
+    <div class="docs-layout">
+      <aside class="docs-sidebar" id="doc-sidebar" aria-label="目录">
+        <div class="sidebar-heading">使用指南</div>
+        <nav id="doc-chapters" aria-label="使用指南">
+          <!--doc-chapters-start--><section class="doc-nav-group"><h2>开始使用</h2><a href="/zh/docs/">认识 EchoBird</a><a href="/zh/docs/quick-start/">第一次使用</a><a href="/zh/docs/navigation/">界面与页面导航</a></section><section class="doc-nav-group"><h2>核心工作流</h2><a href="/zh/docs/apps/">应用桌面与商店</a><a href="/zh/docs/accounts/">账号中心</a><a href="/zh/docs/models/">模型中心</a><a href="/zh/docs/smart-access/">智能接入</a><a href="/zh/docs/statistics/">请求统计</a><a href="/zh/docs/assistant/">AI 助手</a><a href="/zh/docs/local-models/" aria-current="page">本地大模型</a></section><section class="doc-nav-group"><h2>桌面与扩展</h2><a href="/zh/docs/voice/">语音输入与划词</a><a href="/zh/docs/usage-island/">用量岛</a><a href="/zh/docs/pets/">宠物与 TokenPet</a><a href="/zh/docs/plugins/">插件</a><a href="/zh/docs/news/">AI 动态</a><a href="/zh/docs/career/">AI 生涯</a></section><section class="doc-nav-group"><h2>帮助与参考</h2><a href="/zh/docs/settings/">设置与个性化</a><a href="/zh/docs/workflows/">组合使用教程</a><a href="/zh/docs/support/">意见反馈与更新日志</a><a href="/zh/docs/troubleshooting/">常见问题与排查</a></section><!--doc-chapters-end-->
+        </nav>
+        <a class="docs-help" href="mailto:hi@echobird.ai">联系 EchoBird</a>
+      </aside>
+      <button class="sidebar-backdrop" type="button" aria-label="关闭目录" hidden></button>
+      <main id="doc-main" tabindex="-1">
+        <article class="doc-article">
+          <div class="doc-breadcrumb" aria-label="当前位置">
+            <span>使用文档</span><span>/</span><span id="doc-group">核心工作流</span>
+          </div>
+          <h1 id="doc-title">本地大模型</h1>
+          <p class="doc-summary" id="doc-summary">下载或扫描模型文件，准备运行引擎，再启动自己的模型服务。</p>
+          <div class="doc-body" id="doc-body"><!--doc-body-start--><section aria-labelledby="local-entry"><h2 id="local-entry">先分清模型文件与引擎</h2><p>本地大模型页面管理模型文件、推理引擎和服务进程。它属于完整版本，并受设置中的可选页面开关控制。</p><p>模型文件是权重，运行引擎负责加载并提供服务。下载完成不等于服务已经启动，装好引擎也不等于已经下载模型。常见本地文件使用 GGUF 格式。</p></section><section aria-labelledby="local-run"><h2 id="local-run">从第一个本地模型开始</h2><ol class="doc-steps"><li>在商店查看模型和硬件参考，选择适合这台机器的量化版本；已经有文件时，在本地添加模型目录并扫描。</li><li>选择运行时，检测并安装对应引擎。需要时通过已有入口选择版本或升级。</li><li>选择模型、端口、算力与上下文长度。先用保守配置跑通，再调整模型规模和上下文。</li><li>点击启动，等待输出并核对服务状态、地址与访问密钥。失败时先看日志，不要连续重复启动。</li><li>服务正常后，再让 AI 助手或其他支持的模型入口使用它。</li><li>不使用时点击停止，释放运行服务占用的资源。离开页面不等于停止服务。</li></ol></section><section aria-labelledby="local-platform"><h2 id="local-platform">系统与运行时怎么选</h2><div class="doc-table" data-columns="2"><table><thead><tr><th scope="col">运行路径</th><th scope="col">适用情况</th></tr></thead><tbody><tr><td>llama.cpp</td><td>三平台基础运行路径；性能取决于硬件和构建</td></tr><tr><td>macOS Metal</td><td>可利用相应 Apple 硬件加速</td></tr><tr><td>NVIDIA CUDA</td><td>使用受支持的 NVIDIA 环境和对应构建</td></tr><tr><td>CPU</td><td>没有合适 GPU 时的基础路径，速度取决于模型与硬件</td></tr><tr><td>vLLM / SGLang</td><td>当前界面仅在 Linux 且检测到 NVIDIA / AMD GPU 时提供相应选项</td></tr></tbody></table></div><p>更长上下文、更大模型通常需要更多内存。给系统和其他工作程序留出空间，比只看模型文件大小更稳妥。</p></section><section aria-labelledby="local-files"><h2 id="local-files">目录、模型与自定义命令</h2><p>移除扫描目录，只是从目录列表中移除，不会删除磁盘上的模型文件。下载完成后可以重新扫描。</p><p>高级用户可设置自定义引擎路径和启动参数。第一次使用先保留能工作的默认流程，不要同时改未知参数、端口和模型格式，否则难以确定失败来源。</p></section><section aria-labelledby="local-use"><h2 id="local-use">与 AI 助手组合</h2><p>先确认本地服务成功，再在助手里选择可用模型来源。模型运行与任务执行分成两步，便于排查：找不到模型先看文件与扫描，连不上先看进程、端口和密钥，内存不足先减小模型或上下文。</p><p>推理在本机运行，不代表所有任务都离线。助手下载依赖、访问网页或调用外部服务时，仍可能使用网络。</p></section><!--doc-body-end--></div>
+          <nav class="doc-pagination" aria-label="相邻文档">
+            <!--doc-pagination-start--><a class="doc-previous" href="/zh/docs/assistant/"><small>上一章</small><strong>AI 助手</strong></a><a class="doc-next" href="/zh/docs/voice/"><small>下一章</small><strong>语音输入与划词</strong></a><!--doc-pagination-end-->
+          </nav>
+        </article>
+        <footer class="docs-footer">
+          <span>© 2026 EchoBird</span
+          ><a
+            href="https://github.com/edison7009/EchoBird/issues"
+            target="_blank"
+            rel="noopener noreferrer"
+            >反馈文档问题</a
+          >
+        </footer>
+      </main>
+      <aside class="doc-toc" aria-label="本页内容">
+        <div>本页内容</div>
+        <nav id="doc-outline"><!--doc-outline-start--><a href="/zh/docs/local-models/#local-entry" data-heading="local-entry">先分清模型文件与引擎</a><a href="/zh/docs/local-models/#local-run" data-heading="local-run">从第一个本地模型开始</a><a href="/zh/docs/local-models/#local-platform" data-heading="local-platform">系统与运行时怎么选</a><a href="/zh/docs/local-models/#local-files" data-heading="local-files">目录、模型与自定义命令</a><a href="/zh/docs/local-models/#local-use" data-heading="local-use">与 AI 助手组合</a><!--doc-outline-end--></nav>
+      </aside>
+    </div>
+    <div class="visually-hidden" id="doc-announcement" aria-live="polite"></div>
+    <noscript
+      ><p class="no-script">
+        请启用 JavaScript 以浏览文档目录和正文。你也可以通过 hi@echobird.ai 联系我们。
+      </p></noscript
+    >
+  </body>
+</html>

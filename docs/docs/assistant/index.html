@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en" data-site-locale="en">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="icon" type="image/png" href="/assets/icon-DOE4HP7g.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+
+    <title>AI Assistant · EchoBird Docs</title>
+    <script type="module" crossorigin src="/assets/docs-dlKkM4St.js"></script>
+    <link rel="modulepreload" crossorigin href="/assets/modulepreload-polyfill-B5Qt9EMX.js">
+    <link rel="modulepreload" crossorigin href="/assets/site-translations-vK9rWEuP.js">
+    <link rel="stylesheet" crossorigin href="/assets/docs-D68cp78D.css">
+  <!--site-seo-start--><link rel="canonical" href="https://echobird.ai/docs/assistant/" /><link rel="alternate" hreflang="zh-CN" href="https://echobird.ai/zh/docs/assistant/" /><link rel="alternate" hreflang="en" href="https://echobird.ai/docs/assistant/" /><link rel="alternate" hreflang="x-default" href="https://echobird.ai/docs/assistant/" /><meta property="og:locale" content="en_US" /><meta property="og:title" content="AI Assistant · EchoBird Docs" /><meta property="og:description" content="Describe your goal and let the assistant check environments, install tools, or perform real tasks." /><!--site-seo-end--><meta name="description" content="Describe your goal and let the assistant check environments, install tools, or perform real tasks." /></head>
+  <body>
+    <a class="skip-link" href="#doc-main">Skip to content</a>
+    <header class="docs-header">
+      <div class="docs-header-inner">
+        <a class="docs-brand" href="/"
+          ><img src="/brand/bird.png" width="34" height="34" alt="" /><span>EchoBird</span
+          ><span class="docs-brand-label">Docs</span></a
+        >
+        <div class="docs-search">
+          <label class="visually-hidden" for="doc-search">Search documentation</label>
+          <input
+            id="doc-search"
+            type="search"
+            placeholder="Search pages, steps, or questions"
+            autocomplete="off"
+            aria-controls="doc-search-results"
+            aria-expanded="false"
+            aria-autocomplete="list"
+            role="combobox"
+            aria-haspopup="listbox"
+          />
+          <kbd class="search-key" aria-hidden="true">/</kbd>
+          <div class="doc-search-panel" hidden>
+            <p class="search-caption" role="status"></p>
+            <div id="doc-search-results" role="listbox" aria-label="Search results"></div>
+            <p class="search-hint">Up/Down to select · Enter to open · Esc to close</p>
+          </div>
+        </div>
+        <nav class="docs-top-links" aria-label="Website navigation">
+          <a href="/">Home</a
+          ><a
+            href="https://github.com/edison7009/EchoBird"
+            target="_blank"
+            rel="noopener noreferrer"
+            >GitHub</a
+          ><a class="site-language" data-site-language href="/zh/docs/assistant/" lang="zh" hreflang="zh">中文</a><a href="/#download">Download</a>
+        </nav>
+        <button
+          class="docs-menu-button"
+          type="button"
+          aria-controls="doc-sidebar"
+          aria-expanded="false"
+        >Menu</button>
+      </div>
+    </header>
+    <div class="docs-layout">
+      <aside class="docs-sidebar" id="doc-sidebar" aria-label="Menu">
+        <div class="sidebar-heading">User guide</div>
+        <nav id="doc-chapters" aria-label="User guide">
+          <!--doc-chapters-start--><section class="doc-nav-group"><h2>Get started</h2><a href="/docs/">Meet EchoBird</a><a href="/docs/quick-start/">Quick Start</a><a href="/docs/navigation/">Interface and Navigation</a></section><section class="doc-nav-group"><h2>Core workflows</h2><a href="/docs/apps/">App Desktop and Store</a><a href="/docs/accounts/">Accounts</a><a href="/docs/models/">Models</a><a href="/docs/smart-access/">Smart Routes</a><a href="/docs/statistics/">Request Statistics</a><a href="/docs/assistant/" aria-current="page">AI Assistant</a><a href="/docs/local-models/">Local LLM</a></section><section class="doc-nav-group"><h2>Desktop and extensions</h2><a href="/docs/voice/">Voice input and text selection</a><a href="/docs/usage-island/">Usage Island</a><a href="/docs/pets/">Pets and TokenPet</a><a href="/docs/plugins/">Plugins</a><a href="/docs/news/">AI Latest News</a><a href="/docs/career/">My AI Career</a></section><section class="doc-nav-group"><h2>Help and reference</h2><a href="/docs/settings/">Settings and Personalization</a><a href="/docs/workflows/">Workflow Guides</a><a href="/docs/support/">Feedback and Release Notes</a><a href="/docs/troubleshooting/">Troubleshooting</a></section><!--doc-chapters-end-->
+        </nav>
+        <a class="docs-help" href="mailto:hi@echobird.ai">Contact EchoBird</a>
+      </aside>
+      <button class="sidebar-backdrop" type="button" aria-label="Close contents" hidden></button>
+      <main id="doc-main" tabindex="-1">
+        <article class="doc-article">
+          <div class="doc-breadcrumb" aria-label="当前位置">
+            <span>Documentation</span><span>/</span><span id="doc-group">Core workflows</span>
+          </div>
+          <h1 id="doc-title">AI Assistant</h1>
+          <p class="doc-summary" id="doc-summary">Describe your goal and let the assistant check environments, install tools, or perform real tasks.</p>
+          <div class="doc-body" id="doc-body"><!--doc-body-start--><section aria-labelledby="assistant-first"><h2 id="assistant-first">Prepare a working model before starting</h2><ol class="doc-steps"><li>Open AI Assistant. In normal conversation mode, first choose a configured model that works.</li><li>Confirm whether the target is this computer or an SSH server added on the right. The target determines the context for subsequent operations.</li><li>Explain what you want to do, which tool is involved, and the result you expect. Include the specific error if needed.</li><li>After sending, watch the working status, tool calls, and results. Expand tool cards to inspect arguments and output.</li></ol></section><section aria-labelledby="assistant-prompts"><h2 id="assistant-prompts">Requests that work better than “fix this for me”</h2><ul><li>“Check the installation and launch environment for Claude Code on this computer, and tell me what problems you find first.”</li><li>“Help me install Git, then check that it is available in the terminal.”</li><li>“This tool reports the following error when it starts: … Please investigate the cause and explain what you fixed.”</li><li>“Inspect this computer’s hardware and explain what kinds of local models it can run.”</li></ul><p>The assistant chooses steps based on the model, task, and environment. Finding a route, installing a runtime, and configuring PATH in the website animation are examples, not a mandatory pipeline for every task.</p></section><section aria-labelledby="assistant-progress"><h2 id="assistant-progress">Confirm what the assistant actually did</h2><p>AI Assistant can run real commands and operate on files. Tool output can tell you more than the final summary about whether installation finished, which files changed, or whether an error was resolved. After installation, return to App Desktop, refresh detection, and launch the tool to verify it.</p><p>You can stop a running task, but stopping does not undo commands already executed. Not every task prompts for confirmation at every step. Define the goal and permitted scope first, and do not casually paste unknown commands or credentials into the assistant.</p></section><section aria-labelledby="assistant-conversations"><h2 id="assistant-conversations">Conversations and settings for each turn</h2><p>Create, switch, and delete conversations to keep projects or tasks separate. Deleting a conversation requires confirmation, but does not uninstall tools that were installed during it. Settings such as the model and reasoning effort are generally determined when you send a message. A running task uses the settings submitted for that turn; later adjustments mainly affect the next turn.</p></section><section aria-labelledby="assistant-connect"><h2 id="assistant-connect">Connect to an existing agent</h2><p>Connect mode currently supports an installed Claude Code CLI. In this mode, Claude Code handles the turn using its own environment, tools, memory, and model configuration. EchoBird hides its model selector.</p><p>To change that model, manage it in App Desktop or Claude Code’s own settings. Do not assume that model selection in normal assistant mode applies to Connect mode.</p></section><section aria-labelledby="assistant-ssh"><h2 id="assistant-ssh">Run tasks on your own server</h2><p>Add an SSH server on the right by entering its host, port, username, and authentication details. Test the connection before selecting it for a task. The remote machine must already have an accessible SSH service; this feature does not purchase or create a cloud server for you.</p><p>Deleting a server removes only its saved connection entry, not software on the remote machine. Follow the actual prompts when system privileges are needed. Local steps that require a password may be handed over to a native terminal.</p></section><!--doc-body-end--></div>
+          <nav class="doc-pagination" aria-label="Adjacent articles">
+            <!--doc-pagination-start--><a class="doc-previous" href="/docs/statistics/"><small>Previous</small><strong>Request Statistics</strong></a><a class="doc-next" href="/docs/local-models/"><small>Next</small><strong>Local LLM</strong></a><!--doc-pagination-end-->
+          </nav>
+        </article>
+        <footer class="docs-footer">
+          <span>© 2026 EchoBird</span
+          ><a
+            href="https://github.com/edison7009/EchoBird/issues"
+            target="_blank"
+            rel="noopener noreferrer"
+            >Report a docs issue</a
+          >
+        </footer>
+      </main>
+      <aside class="doc-toc" aria-label="On this page">
+        <div>On this page</div>
+        <nav id="doc-outline"><!--doc-outline-start--><a href="/docs/assistant/#assistant-first" data-heading="assistant-first">Prepare a working model before starting</a><a href="/docs/assistant/#assistant-prompts" data-heading="assistant-prompts">Requests that work better than “fix this for me”</a><a href="/docs/assistant/#assistant-progress" data-heading="assistant-progress">Confirm what the assistant actually did</a><a href="/docs/assistant/#assistant-conversations" data-heading="assistant-conversations">Conversations and settings for each turn</a><a href="/docs/assistant/#assistant-connect" data-heading="assistant-connect">Connect to an existing agent</a><a href="/docs/assistant/#assistant-ssh" data-heading="assistant-ssh">Run tasks on your own server</a><!--doc-outline-end--></nav>
+      </aside>
+    </div>
+    <div class="visually-hidden" id="doc-announcement" aria-live="polite"></div>
+    <noscript
+      ><p class="no-script">
+        Enable JavaScript for documentation navigation and search, or contact hi@echobird.ai.
+      </p></noscript
+    >
+  </body>
+</html>

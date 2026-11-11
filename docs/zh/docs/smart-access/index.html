@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="zh-CN" data-site-locale="zh">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="icon" type="image/png" href="/assets/icon-DOE4HP7g.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+
+    <title>智能接入 · EchoBird 文档</title>
+    <script type="module" crossorigin src="/assets/docs-dlKkM4St.js"></script>
+    <link rel="modulepreload" crossorigin href="/assets/modulepreload-polyfill-B5Qt9EMX.js">
+    <link rel="modulepreload" crossorigin href="/assets/site-translations-vK9rWEuP.js">
+    <link rel="stylesheet" crossorigin href="/assets/docs-D68cp78D.css">
+  <!--site-seo-start--><link rel="canonical" href="https://echobird.ai/zh/docs/smart-access/" /><link rel="alternate" hreflang="zh-CN" href="https://echobird.ai/zh/docs/smart-access/" /><link rel="alternate" hreflang="en" href="https://echobird.ai/docs/smart-access/" /><link rel="alternate" hreflang="x-default" href="https://echobird.ai/docs/smart-access/" /><meta property="og:locale" content="zh_CN" /><meta property="og:title" content="智能接入 · EchoBird 文档" /><meta property="og:description" content="组织多个模型与账号来源，实时选模型，为客户端保留一个稳定入口。" /><!--site-seo-end--><meta name="description" content="组织多个模型与账号来源，实时选模型，为客户端保留一个稳定入口。" /></head>
+  <body>
+    <a class="skip-link" href="#doc-main">跳到正文</a>
+    <header class="docs-header">
+      <div class="docs-header-inner">
+        <a class="docs-brand" href="/zh/"
+          ><img src="/brand/bird.png" width="34" height="34" alt="" /><span>EchoBird</span
+          ><span class="docs-brand-label">文档</span></a
+        >
+        <div class="docs-search">
+          <label class="visually-hidden" for="doc-search">搜索文档</label>
+          <input
+            id="doc-search"
+            type="search"
+            placeholder="搜索页面、操作或问题"
+            autocomplete="off"
+            aria-controls="doc-search-results"
+            aria-expanded="false"
+            aria-autocomplete="list"
+            role="combobox"
+            aria-haspopup="listbox"
+          />
+          <kbd class="search-key" aria-hidden="true">/</kbd>
+          <div class="doc-search-panel" hidden>
+            <p class="search-caption" role="status"></p>
+            <div id="doc-search-results" role="listbox" aria-label="搜索结果"></div>
+            <p class="search-hint">上下选择 · Enter 打开 · Esc 关闭</p>
+          </div>
+        </div>
+        <nav class="docs-top-links" aria-label="官网导航">
+          <a href="/zh/">首页</a
+          ><a
+            href="https://github.com/edison7009/EchoBird"
+            target="_blank"
+            rel="noopener noreferrer"
+            >GitHub</a
+          ><a class="site-language" data-site-language href="/docs/smart-access/" lang="en" hreflang="en">English</a><a href="/zh/#download">更多下载</a>
+        </nav>
+        <button
+          class="docs-menu-button"
+          type="button"
+          aria-controls="doc-sidebar"
+          aria-expanded="false"
+        >目录</button>
+      </div>
+    </header>
+    <div class="docs-layout">
+      <aside class="docs-sidebar" id="doc-sidebar" aria-label="目录">
+        <div class="sidebar-heading">使用指南</div>
+        <nav id="doc-chapters" aria-label="使用指南">
+          <!--doc-chapters-start--><section class="doc-nav-group"><h2>开始使用</h2><a href="/zh/docs/">认识 EchoBird</a><a href="/zh/docs/quick-start/">第一次使用</a><a href="/zh/docs/navigation/">界面与页面导航</a></section><section class="doc-nav-group"><h2>核心工作流</h2><a href="/zh/docs/apps/">应用桌面与商店</a><a href="/zh/docs/accounts/">账号中心</a><a href="/zh/docs/models/">模型中心</a><a href="/zh/docs/smart-access/" aria-current="page">智能接入</a><a href="/zh/docs/statistics/">请求统计</a><a href="/zh/docs/assistant/">AI 助手</a><a href="/zh/docs/local-models/">本地大模型</a></section><section class="doc-nav-group"><h2>桌面与扩展</h2><a href="/zh/docs/voice/">语音输入与划词</a><a href="/zh/docs/usage-island/">用量岛</a><a href="/zh/docs/pets/">宠物与 TokenPet</a><a href="/zh/docs/plugins/">插件</a><a href="/zh/docs/news/">AI 动态</a><a href="/zh/docs/career/">AI 生涯</a></section><section class="doc-nav-group"><h2>帮助与参考</h2><a href="/zh/docs/settings/">设置与个性化</a><a href="/zh/docs/workflows/">组合使用教程</a><a href="/zh/docs/support/">意见反馈与更新日志</a><a href="/zh/docs/troubleshooting/">常见问题与排查</a></section><!--doc-chapters-end-->
+        </nav>
+        <a class="docs-help" href="mailto:hi@echobird.ai">联系 EchoBird</a>
+      </aside>
+      <button class="sidebar-backdrop" type="button" aria-label="关闭目录" hidden></button>
+      <main id="doc-main" tabindex="-1">
+        <article class="doc-article">
+          <div class="doc-breadcrumb" aria-label="当前位置">
+            <span>使用文档</span><span>/</span><span id="doc-group">核心工作流</span>
+          </div>
+          <h1 id="doc-title">智能接入</h1>
+          <p class="doc-summary" id="doc-summary">组织多个模型与账号来源，实时选模型，为客户端保留一个稳定入口。</p>
+          <div class="doc-body" id="doc-body"><!--doc-body-start--><p class="doc-lead">智能接入把模型选择留在你手里：客户端连接一个本地入口，你在 EchoBird 中管理后面的来源、模型 ID 与尝试顺序。</p><section aria-labelledby="routing-model"><h2 id="routing-model">一个方案，一条有顺序的线路</h2><p>方案中的编号表示优先级。请求先尝试靠前的来源；限流、额度耗尽或临时不可用时，再尝试后面的来源。冷却结束后会恢复按优先级尝试。</p><p>这与同时请求多个模型不同，也不会把不同厂商的额度合并。来源能否使用、能够访问哪些模型，仍由它自己的授权、套餐和服务能力决定。</p></section><section aria-labelledby="create-route"><h2 id="create-route">建立你的第一个方案</h2><ol class="doc-steps"><li>进入智能接入，从「我的模型」「账号接入」或「免费模型」选择来源。已经保存在模型中心的配置可以直接引用。</li><li>给方案取清楚的名字，核对它使用的本地端口、接入密钥与模型标识。端口应未被占用，使用当前界面实际显示的地址。</li><li>把最常用的模型放在前面，备用来源放在后面；拖动调整后会自动保存，从下一次请求生效，不会中途替换正在回答的模型。</li><li>展开来源的模型选择器，选择它真实可用的模型 ID。必要时先获取或刷新服务提供的列表。</li><li>到应用桌面选择支持模型切换的工具，选择这个方案并执行配置应用。</li><li>在工具里发起一次真实请求，再看接入状态与统计，确认请求已走到期望来源。</li></ol></section><section aria-labelledby="source-labels"><h2 id="source-labels">免费与免密钥有什么区别</h2><div class="doc-table" data-columns="3"><table><thead><tr><th scope="col">标记</th><th scope="col">表达的含义</th><th scope="col">不代表什么</th></tr></thead><tbody><tr><td>免费</td><td>该目录中的具体模型选项标为免费</td><td>该供应商全部模型都免费、无限量或永久可用</td></tr><tr><td>免密钥</td><td>该入口不要求你自己填写 API Key</td><td>它一定没有限流、没有条件或适合所有任务</td></tr><tr><td>账号接入</td><td>使用账号接入所提供的模型目录和授权</td><td>任何订阅账号都能调用所有厂商的模型</td></tr></tbody></table></div></section><section aria-labelledby="route-views"><h2 id="route-views">卡片、列表与终端</h2><p>卡片适合观察来源与选择模型 ID；列表便于排序、启用或暂停条目；终端可以观察编组请求信息。若终端明确提示当前为示意数据，它不代表你已经产生了真实请求或费用。</p><p>从方案中移除一个来源，只移除这份引用，原始模型或账号仍保留。删除方案后，如果外部工具还指向原地址，应主动改成其他可用入口。</p></section><section aria-labelledby="route-endpoints"><h2 id="route-endpoints">OpenAI 与 Anthropic 地址怎么用</h2><p>方案会提供本机 OpenAI 兼容和 Anthropic 兼容入口，供不同客户端使用。复制当前方案显示的地址与密钥，不要根据示例端口猜地址，也不要手动把一个协议地址的后缀改成另一个协议。</p><aside class="doc-note"><strong>使用本地入口时，让 EchoBird 保持运行</strong><p>完全退出 EchoBird 后，本地接入地址不可用。最小化到托盘与退出应用不同；如果工具突然连不上，先检查 EchoBird 是否仍运行、方案和端口是否正确。</p></aside></section><section aria-labelledby="route-workflow"><h2 id="route-workflow">实际效果：保持入口，调整来源</h2><p>例如，为编程工具建立「日常编程」方案：首选模型负责常规任务，另一家可用服务作为备用，再按需要加入符合要求的免费来源。工作中调整后方模型和顺序，比在每个客户端反复改接口更集中。仍要检查重要任务的输出，备用切换不能保证所有模型质量相同。</p></section><!--doc-body-end--></div>
+          <nav class="doc-pagination" aria-label="相邻文档">
+            <!--doc-pagination-start--><a class="doc-previous" href="/zh/docs/models/"><small>上一章</small><strong>模型中心</strong></a><a class="doc-next" href="/zh/docs/statistics/"><small>下一章</small><strong>请求统计</strong></a><!--doc-pagination-end-->
+          </nav>
+        </article>
+        <footer class="docs-footer">
+          <span>© 2026 EchoBird</span
+          ><a
+            href="https://github.com/edison7009/EchoBird/issues"
+            target="_blank"
+            rel="noopener noreferrer"
+            >反馈文档问题</a
+          >
+        </footer>
+      </main>
+      <aside class="doc-toc" aria-label="本页内容">
+        <div>本页内容</div>
+        <nav id="doc-outline"><!--doc-outline-start--><a href="/zh/docs/smart-access/#routing-model" data-heading="routing-model">一个方案，一条有顺序的线路</a><a href="/zh/docs/smart-access/#create-route" data-heading="create-route">建立你的第一个方案</a><a href="/zh/docs/smart-access/#source-labels" data-heading="source-labels">免费与免密钥有什么区别</a><a href="/zh/docs/smart-access/#route-views" data-heading="route-views">卡片、列表与终端</a><a href="/zh/docs/smart-access/#route-endpoints" data-heading="route-endpoints">OpenAI 与 Anthropic 地址怎么用</a><a href="/zh/docs/smart-access/#route-workflow" data-heading="route-workflow">实际效果：保持入口，调整来源</a><!--doc-outline-end--></nav>
+      </aside>
+    </div>
+    <div class="visually-hidden" id="doc-announcement" aria-live="polite"></div>
+    <noscript
+      ><p class="no-script">
+        请启用 JavaScript 以浏览文档目录和正文。你也可以通过 hi@echobird.ai 联系我们。
+      </p></noscript
+    >
+  </body>
+</html>

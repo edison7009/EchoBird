@@ -1,0 +1,210 @@
+/* Shared candidate styles. Only an explicit data attribute enables a proposal. */
+[data-button-design] .download-primary {
+  color: var(--option-ink, #eeeae0);
+}
+[data-button-design] .download-content {
+  background: var(--option-surface, #111212);
+  border-color: var(--option-border, #ffffff28);
+}
+[data-button-design] .download-content .download-ext {
+  color: var(--option-muted, #a3a397);
+}
+[data-button-design] .download-platform-icon img {
+  filter: var(--option-icon, invert(1));
+}
+[data-button-design] .download-content::before,
+[data-button-design] .download-content::after,
+[data-button-design] .download-primary::before,
+[data-button-design] .download-primary::after {
+  content: none;
+  animation: none;
+}
+[data-button-design='a'],
+[data-button-design='f'] {
+  --option-surface: #f5f5ef;
+  --option-ink: #1b1e1f;
+  --option-muted: #66685f;
+  --option-border: #ffffffc0;
+  --option-icon: none;
+}
+[data-button-design='a'] .download-primary::after,
+[data-button-design='b'] .download-primary::after {
+  content: '';
+  position: absolute;
+  inset: -1.5px;
+  z-index: -1;
+  border-radius: 6.5px;
+  pointer-events: none;
+  background: var(--download-spectrum);
+  background-size: 170% 170%;
+  mask-image: linear-gradient(to top, #000 0, #000 3px, transparent 28%);
+  animation: option-color-drift 8s ease-in-out infinite;
+}
+[data-button-design='a'] .download-primary::before,
+[data-button-design='b'] .download-primary::before {
+  content: '';
+  position: absolute;
+  left: 14px;
+  right: 14px;
+  bottom: -5px;
+  height: 10px;
+  z-index: -1;
+  border-radius: 50%;
+  pointer-events: none;
+  background: var(--download-spectrum);
+  background-size: 170% 170%;
+  filter: blur(7px);
+  opacity: 0.3;
+  animation: option-color-drift 8s ease-in-out infinite;
+}
+[data-button-design='b'] .download-primary::before {
+  opacity: 0.22;
+}
+[data-button-design='c'] .download-primary::after {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  z-index: -1;
+  border-radius: 6px;
+  pointer-events: none;
+  background: var(--download-spectrum);
+  background-size: 170% 170%;
+  animation: option-color-drift 8s ease-in-out infinite;
+}
+[data-button-design='d'] {
+  --option-surface: #1a1d1e;
+  --option-border: transparent;
+}
+[data-button-design='d'] .download-content::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: linear-gradient(
+    125deg,
+    #1a1d1e 20%,
+    #302b3e 35%,
+    #244652 45%,
+    #49402f 52%,
+    #24292e 64%,
+    #1a1d1e 78%
+  );
+  background-size: 240% 100%;
+  animation: option-inner-light 9s ease-in-out infinite;
+}
+[data-button-design='e'] {
+  --option-ink: #15191c;
+  --option-muted: #303844;
+  --option-icon: none;
+}
+[data-button-design='e'] .download-content::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  background: var(--download-spectrum);
+}
+[data-button-design='e'] .download-content::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -15px;
+  right: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: repeating-linear-gradient(-45deg, #ffffff54 0 5px, #ffffff12 5px 10px);
+  animation: download-update-stripes 0.8s linear infinite;
+}
+[data-button-design='f'] {
+  --option-surface: linear-gradient(125deg, #fff4ef, #f0fbfb 45%, #ebeaff 75%, #fff6f0);
+  --option-border: #fff9;
+}
+[data-button-design='f'] .download-content {
+  box-shadow:
+    inset 0 1px 0 #fff9,
+    inset 0 -1px 0 #d4cee966;
+}
+@keyframes option-color-drift {
+  0%,
+  100% {
+    background-position: 0% 0%;
+  }
+  50% {
+    background-position: 100% 100%;
+  }
+}
+@keyframes option-inner-light {
+  0%,
+  100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-button-design] .download-content::before,
+  [data-button-design] .download-content::after,
+  [data-button-design] .download-primary::before,
+  [data-button-design] .download-primary::after {
+    animation: none;
+  }
+}
+
+/* Selected A restores the early bottom-spectrum treatment without an outline. */
+[data-button-design='a'] {
+  --option-surface: #dededb;
+  --option-border: transparent;
+  --option-github-surface: #252725;
+}
+[data-button-design='a'] .actions {
+  --download-spectrum: linear-gradient(
+    90deg,
+    #ff4d4d,
+    #ffa24d,
+    #ffe14d,
+    #4dff88,
+    #4dd2ff,
+    #6b6bff,
+    #d24dff,
+    #ff4d4d,
+    #ffa24d,
+    #ffe14d,
+    #4dff88,
+    #4dd2ff,
+    #6b6bff,
+    #d24dff,
+    #ff4d4d
+  );
+}
+[data-button-design='a'] .download-primary::after {
+  content: '';
+  inset: auto 1px -2px;
+  height: 4px;
+  border-radius: 0 0 4px 4px;
+  mask-image: linear-gradient(to right, transparent, #000 4%, #000 96%, transparent);
+  background-size: 200% 100%;
+  animation: download-spectrum-flow 6s linear infinite;
+}
+[data-button-design='a'] .download-primary::before {
+  left: 12px;
+  right: 12px;
+  bottom: -6px;
+  height: 12px;
+  filter: blur(7px);
+  opacity: 0.55;
+  background-size: 200% 100%;
+  animation: download-spectrum-flow 6s linear infinite;
+}
+[data-button-design='a'] .github-star {
+  border-color: transparent;
+  background: var(--option-github-surface);
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-button-design='a'] .download-primary::before,
+  [data-button-design='a'] .download-primary::after {
+    animation: none;
+  }
+}

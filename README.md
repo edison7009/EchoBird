@@ -121,7 +121,7 @@ EchoBird's **Smart Router** puts multiple model providers behind one local API. 
 
 Smart Router switches between configured model APIs; it does not automatically rotate saved login accounts. ChatGPT / Codex CLI third-party models require the **Responses API**, which Smart Router does not currently expose. For those tools, use account switching or a Responses-compatible provider directly.
 
-[Explore account switching and smart routing on the website](https://echobird.ai/#accounts-and-routing).
+[Explore account switching and smart routing on the website](https://echobird.ai/#smart-access).
 
 ## Supported tools — install & switch models in one click
 

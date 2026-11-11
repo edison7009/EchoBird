@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en" data-site-locale="en">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="icon" type="image/png" href="/assets/icon-DOE4HP7g.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+
+    <title>Request Statistics · EchoBird Docs</title>
+    <script type="module" crossorigin src="/assets/docs-dlKkM4St.js"></script>
+    <link rel="modulepreload" crossorigin href="/assets/modulepreload-polyfill-B5Qt9EMX.js">
+    <link rel="modulepreload" crossorigin href="/assets/site-translations-vK9rWEuP.js">
+    <link rel="stylesheet" crossorigin href="/assets/docs-D68cp78D.css">
+  <!--site-seo-start--><link rel="canonical" href="https://echobird.ai/docs/statistics/" /><link rel="alternate" hreflang="zh-CN" href="https://echobird.ai/zh/docs/statistics/" /><link rel="alternate" hreflang="en" href="https://echobird.ai/docs/statistics/" /><link rel="alternate" hreflang="x-default" href="https://echobird.ai/docs/statistics/" /><meta property="og:locale" content="en_US" /><meta property="og:title" content="Request Statistics · EchoBird Docs" /><meta property="og:description" content="Inspect calls, completion rates, failover, and response times to diagnose route problems." /><!--site-seo-end--><meta name="description" content="Inspect calls, completion rates, failover, and response times to diagnose route problems." /></head>
+  <body>
+    <a class="skip-link" href="#doc-main">Skip to content</a>
+    <header class="docs-header">
+      <div class="docs-header-inner">
+        <a class="docs-brand" href="/"
+          ><img src="/brand/bird.png" width="34" height="34" alt="" /><span>EchoBird</span
+          ><span class="docs-brand-label">Docs</span></a
+        >
+        <div class="docs-search">
+          <label class="visually-hidden" for="doc-search">Search documentation</label>
+          <input
+            id="doc-search"
+            type="search"
+            placeholder="Search pages, steps, or questions"
+            autocomplete="off"
+            aria-controls="doc-search-results"
+            aria-expanded="false"
+            aria-autocomplete="list"
+            role="combobox"
+            aria-haspopup="listbox"
+          />
+          <kbd class="search-key" aria-hidden="true">/</kbd>
+          <div class="doc-search-panel" hidden>
+            <p class="search-caption" role="status"></p>
+            <div id="doc-search-results" role="listbox" aria-label="Search results"></div>
+            <p class="search-hint">Up/Down to select · Enter to open · Esc to close</p>
+          </div>
+        </div>
+        <nav class="docs-top-links" aria-label="Website navigation">
+          <a href="/">Home</a
+          ><a
+            href="https://github.com/edison7009/EchoBird"
+            target="_blank"
+            rel="noopener noreferrer"
+            >GitHub</a
+          ><a class="site-language" data-site-language href="/zh/docs/statistics/" lang="zh" hreflang="zh">中文</a><a href="/#download">Download</a>
+        </nav>
+        <button
+          class="docs-menu-button"
+          type="button"
+          aria-controls="doc-sidebar"
+          aria-expanded="false"
+        >Menu</button>
+      </div>
+    </header>
+    <div class="docs-layout">
+      <aside class="docs-sidebar" id="doc-sidebar" aria-label="Menu">
+        <div class="sidebar-heading">User guide</div>
+        <nav id="doc-chapters" aria-label="User guide">
+          <!--doc-chapters-start--><section class="doc-nav-group"><h2>Get started</h2><a href="/docs/">Meet EchoBird</a><a href="/docs/quick-start/">Quick Start</a><a href="/docs/navigation/">Interface and Navigation</a></section><section class="doc-nav-group"><h2>Core workflows</h2><a href="/docs/apps/">App Desktop and Store</a><a href="/docs/accounts/">Accounts</a><a href="/docs/models/">Models</a><a href="/docs/smart-access/">Smart Routes</a><a href="/docs/statistics/" aria-current="page">Request Statistics</a><a href="/docs/assistant/">AI Assistant</a><a href="/docs/local-models/">Local LLM</a></section><section class="doc-nav-group"><h2>Desktop and extensions</h2><a href="/docs/voice/">Voice input and text selection</a><a href="/docs/usage-island/">Usage Island</a><a href="/docs/pets/">Pets and TokenPet</a><a href="/docs/plugins/">Plugins</a><a href="/docs/news/">AI Latest News</a><a href="/docs/career/">My AI Career</a></section><section class="doc-nav-group"><h2>Help and reference</h2><a href="/docs/settings/">Settings and Personalization</a><a href="/docs/workflows/">Workflow Guides</a><a href="/docs/support/">Feedback and Release Notes</a><a href="/docs/troubleshooting/">Troubleshooting</a></section><!--doc-chapters-end-->
+        </nav>
+        <a class="docs-help" href="mailto:hi@echobird.ai">Contact EchoBird</a>
+      </aside>
+      <button class="sidebar-backdrop" type="button" aria-label="Close contents" hidden></button>
+      <main id="doc-main" tabindex="-1">
+        <article class="doc-article">
+          <div class="doc-breadcrumb" aria-label="当前位置">
+            <span>Documentation</span><span>/</span><span id="doc-group">Core workflows</span>
+          </div>
+          <h1 id="doc-title">Request Statistics</h1>
+          <p class="doc-summary" id="doc-summary">Inspect calls, completion rates, failover, and response times to diagnose route problems.</p>
+          <div class="doc-body" id="doc-body"><!--doc-body-start--><section aria-labelledby="open-statistics"><h2 id="open-statistics">Where to find statistics</h2><p>Open Statistics at the top of Smart Routes. View data for ranges such as today, 7 days, or 14 days, and for all schemes or one specific scheme. Make real requests from a tool first, then return to see what each metric represents.</p></section><section aria-labelledby="statistics-metrics"><h2 id="statistics-metrics">Understand the numbers</h2><div class="doc-table" data-columns="2"><table><thead><tr><th scope="col">Metric</th><th scope="col">How to read it</th></tr></thead><tbody><tr><td>Calls</td><td>Requests initiated by clients, not necessarily the number of upstream attempts</td></tr><tr><td>Completion rate</td><td>Calculated from requests with recorded success or failure results</td></tr><tr><td>Successful failover</td><td>A request ultimately succeeded after changing upstream sources; not every attempt necessarily succeeded</td></tr><tr><td>Average duration and trends</td><td>Help compare actual performance over the selected period</td></tr><tr><td>Source distribution and recent usage</td><td>Show which sources handle requests and recent activity</td></tr></tbody></table></div></section><section aria-labelledby="statistics-debug"><h2 id="statistics-debug">Investigate unexpected results</h2><ol class="doc-steps"><li>Check the selected time range and scheme first, so you are not looking for requests in the wrong scope.</li><li>Inspect failed sources and failover results. A preferred source failing before a backup succeeds is different from the entire request failing.</li><li>Return to Smart Routes and check the source’s model ID, enabled state, and priority.</li><li>When needed, explicitly refresh status or test the service in Accounts or Models, then send another request to verify the result.</li></ol></section><section aria-labelledby="statistics-limits"><h2 id="statistics-limits">Statistics are not a bill</h2><p>This page helps you understand requests that pass through the router. It is not a complete statement from every provider or an exact billing system. Missing request records do not mean the account balance is zero, and attempt counts cannot be treated directly as paid-call counts.</p><p>The statistics recording switch in Settings, local storage state, and selected scope all affect the data you can see. Before sharing statistics, you can hide account names to avoid exposing real identities.</p></section><!--doc-body-end--></div>
+          <nav class="doc-pagination" aria-label="Adjacent articles">
+            <!--doc-pagination-start--><a class="doc-previous" href="/docs/smart-access/"><small>Previous</small><strong>Smart Routes</strong></a><a class="doc-next" href="/docs/assistant/"><small>Next</small><strong>AI Assistant</strong></a><!--doc-pagination-end-->
+          </nav>
+        </article>
+        <footer class="docs-footer">
+          <span>© 2026 EchoBird</span
+          ><a
+            href="https://github.com/edison7009/EchoBird/issues"
+            target="_blank"
+            rel="noopener noreferrer"
+            >Report a docs issue</a
+          >
+        </footer>
+      </main>
+      <aside class="doc-toc" aria-label="On this page">
+        <div>On this page</div>
+        <nav id="doc-outline"><!--doc-outline-start--><a href="/docs/statistics/#open-statistics" data-heading="open-statistics">Where to find statistics</a><a href="/docs/statistics/#statistics-metrics" data-heading="statistics-metrics">Understand the numbers</a><a href="/docs/statistics/#statistics-debug" data-heading="statistics-debug">Investigate unexpected results</a><a href="/docs/statistics/#statistics-limits" data-heading="statistics-limits">Statistics are not a bill</a><!--doc-outline-end--></nav>
+      </aside>
+    </div>
+    <div class="visually-hidden" id="doc-announcement" aria-live="polite"></div>
+    <noscript
+      ><p class="no-script">
+        Enable JavaScript for documentation navigation and search, or contact hi@echobird.ai.
+      </p></noscript
+    >
+  </body>
+</html>

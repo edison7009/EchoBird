@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en" data-site-locale="en">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="icon" type="image/png" href="/assets/icon-DOE4HP7g.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+
+    <title>Smart Routes · EchoBird Docs</title>
+    <script type="module" crossorigin src="/assets/docs-dlKkM4St.js"></script>
+    <link rel="modulepreload" crossorigin href="/assets/modulepreload-polyfill-B5Qt9EMX.js">
+    <link rel="modulepreload" crossorigin href="/assets/site-translations-vK9rWEuP.js">
+    <link rel="stylesheet" crossorigin href="/assets/docs-D68cp78D.css">
+  <!--site-seo-start--><link rel="canonical" href="https://echobird.ai/docs/smart-access/" /><link rel="alternate" hreflang="zh-CN" href="https://echobird.ai/zh/docs/smart-access/" /><link rel="alternate" hreflang="en" href="https://echobird.ai/docs/smart-access/" /><link rel="alternate" hreflang="x-default" href="https://echobird.ai/docs/smart-access/" /><meta property="og:locale" content="en_US" /><meta property="og:title" content="Smart Routes · EchoBird Docs" /><meta property="og:description" content="Organize model and account sources, switch models in real time, and keep one stable endpoint for your client." /><!--site-seo-end--><meta name="description" content="Organize model and account sources, switch models in real time, and keep one stable endpoint for your client." /></head>
+  <body>
+    <a class="skip-link" href="#doc-main">Skip to content</a>
+    <header class="docs-header">
+      <div class="docs-header-inner">
+        <a class="docs-brand" href="/"
+          ><img src="/brand/bird.png" width="34" height="34" alt="" /><span>EchoBird</span
+          ><span class="docs-brand-label">Docs</span></a
+        >
+        <div class="docs-search">
+          <label class="visually-hidden" for="doc-search">Search documentation</label>
+          <input
+            id="doc-search"
+            type="search"
+            placeholder="Search pages, steps, or questions"
+            autocomplete="off"
+            aria-controls="doc-search-results"
+            aria-expanded="false"
+            aria-autocomplete="list"
+            role="combobox"
+            aria-haspopup="listbox"
+          />
+          <kbd class="search-key" aria-hidden="true">/</kbd>
+          <div class="doc-search-panel" hidden>
+            <p class="search-caption" role="status"></p>
+            <div id="doc-search-results" role="listbox" aria-label="Search results"></div>
+            <p class="search-hint">Up/Down to select · Enter to open · Esc to close</p>
+          </div>
+        </div>
+        <nav class="docs-top-links" aria-label="Website navigation">
+          <a href="/">Home</a
+          ><a
+            href="https://github.com/edison7009/EchoBird"
+            target="_blank"
+            rel="noopener noreferrer"
+            >GitHub</a
+          ><a class="site-language" data-site-language href="/zh/docs/smart-access/" lang="zh" hreflang="zh">中文</a><a href="/#download">Download</a>
+        </nav>
+        <button
+          class="docs-menu-button"
+          type="button"
+          aria-controls="doc-sidebar"
+          aria-expanded="false"
+        >Menu</button>
+      </div>
+    </header>
+    <div class="docs-layout">
+      <aside class="docs-sidebar" id="doc-sidebar" aria-label="Menu">
+        <div class="sidebar-heading">User guide</div>
+        <nav id="doc-chapters" aria-label="User guide">
+          <!--doc-chapters-start--><section class="doc-nav-group"><h2>Get started</h2><a href="/docs/">Meet EchoBird</a><a href="/docs/quick-start/">Quick Start</a><a href="/docs/navigation/">Interface and Navigation</a></section><section class="doc-nav-group"><h2>Core workflows</h2><a href="/docs/apps/">App Desktop and Store</a><a href="/docs/accounts/">Accounts</a><a href="/docs/models/">Models</a><a href="/docs/smart-access/" aria-current="page">Smart Routes</a><a href="/docs/statistics/">Request Statistics</a><a href="/docs/assistant/">AI Assistant</a><a href="/docs/local-models/">Local LLM</a></section><section class="doc-nav-group"><h2>Desktop and extensions</h2><a href="/docs/voice/">Voice input and text selection</a><a href="/docs/usage-island/">Usage Island</a><a href="/docs/pets/">Pets and TokenPet</a><a href="/docs/plugins/">Plugins</a><a href="/docs/news/">AI Latest News</a><a href="/docs/career/">My AI Career</a></section><section class="doc-nav-group"><h2>Help and reference</h2><a href="/docs/settings/">Settings and Personalization</a><a href="/docs/workflows/">Workflow Guides</a><a href="/docs/support/">Feedback and Release Notes</a><a href="/docs/troubleshooting/">Troubleshooting</a></section><!--doc-chapters-end-->
+        </nav>
+        <a class="docs-help" href="mailto:hi@echobird.ai">Contact EchoBird</a>
+      </aside>
+      <button class="sidebar-backdrop" type="button" aria-label="Close contents" hidden></button>
+      <main id="doc-main" tabindex="-1">
+        <article class="doc-article">
+          <div class="doc-breadcrumb" aria-label="当前位置">
+            <span>Documentation</span><span>/</span><span id="doc-group">Core workflows</span>
+          </div>
+          <h1 id="doc-title">Smart Routes</h1>
+          <p class="doc-summary" id="doc-summary">Organize model and account sources, switch models in real time, and keep one stable endpoint for your client.</p>
+          <div class="doc-body" id="doc-body"><!--doc-body-start--><p class="doc-lead">Smart Routes keeps model choice in your hands: the client connects to a local endpoint, while you manage the sources, model IDs, and attempt order behind it in EchoBird.</p><section aria-labelledby="routing-model"><h2 id="routing-model">One scheme, an ordered route</h2><p>The numbers in a scheme indicate priority. Requests try sources nearer the front first. If a source is rate-limited, out of quota, or temporarily unavailable, later sources are tried next. Once the cooldown ends, attempts return to priority order.</p><p>This is different from requesting several models simultaneously, and does not pool quotas from different providers. Whether a source is usable and which models it can access still depend on its own authorization, plan, and service capabilities.</p></section><section aria-labelledby="create-route"><h2 id="create-route">Create your first scheme</h2><ol class="doc-steps"><li>Open Smart Routes and choose a source from My Models, Account Access, or Free Models. Configurations already saved in Models can be referenced directly.</li><li>Give the scheme a clear name and check its local port, access key, and model identifier. The port must be available; use the actual address displayed in the current interface.</li><li>Place your usual model first and backup sources later. Dragging to reorder saves automatically and takes effect on the next request; it does not replace the model in the middle of an answer.</li><li>Open a source’s model selector and choose an ID it can actually use. Fetch or refresh the service’s model list first if needed.</li><li>In App Desktop, select a tool that supports model switching, choose this scheme, and apply the configuration.</li><li>Send a real request in the tool, then check the access status and statistics to confirm that the request reached the expected source.</li></ol></section><section aria-labelledby="source-labels"><h2 id="source-labels">Free versus keyless</h2><div class="doc-table" data-columns="3"><table><thead><tr><th scope="col">Label</th><th scope="col">What it means</th><th scope="col">What it does not mean</th></tr></thead><tbody><tr><td>Free</td><td>The specific model option in the directory is marked as free</td><td>Every model from that provider is free, unlimited, or permanently available</td></tr><tr><td>Keyless</td><td>This endpoint does not require you to supply your own API Key</td><td>It has no rate limits or conditions, or suits every task</td></tr><tr><td>Account Access</td><td>Uses the model directory and authorization provided by an account integration</td><td>Any subscription account can call every provider’s models</td></tr></tbody></table></div></section><section aria-labelledby="route-views"><h2 id="route-views">Cards, lists, and the terminal</h2><p>Cards help you inspect sources and select model IDs. Lists make it easier to reorder, enable, or pause entries. The terminal shows grouped request information. If the terminal explicitly identifies its data as illustrative, it does not mean you have already made real requests or incurred charges.</p><p>Removing a source from a scheme removes only that reference; the original model or account remains saved. After deleting a scheme, update any external tool that still points to its old address to use another working endpoint.</p></section><section aria-labelledby="route-endpoints"><h2 id="route-endpoints">Use the OpenAI and Anthropic addresses</h2><p>A scheme provides local OpenAI-compatible and Anthropic-compatible endpoints for different clients. Copy the address and key displayed for the current scheme. Do not guess an address from an example port, or manually change one protocol’s URL suffix into another.</p><aside class="doc-note"><strong>Keep EchoBird running when using a local endpoint</strong><p>After you fully quit EchoBird, the local endpoint is unavailable. Minimizing to the tray is different from quitting. If a tool suddenly cannot connect, first check that EchoBird is still running and that the scheme and port are correct.</p></aside></section><section aria-labelledby="route-workflow"><h2 id="route-workflow">The practical result: keep the endpoint, adjust the sources</h2><p>For example, create an “Everyday coding” scheme for your coding tool: use a preferred model for routine tasks, another available service as backup, and suitable free sources when needed. Adjusting the models and their order centrally is more convenient than repeatedly changing endpoints in each client. Still review important outputs; failover does not guarantee that every model delivers the same quality.</p></section><!--doc-body-end--></div>
+          <nav class="doc-pagination" aria-label="Adjacent articles">
+            <!--doc-pagination-start--><a class="doc-previous" href="/docs/models/"><small>Previous</small><strong>Models</strong></a><a class="doc-next" href="/docs/statistics/"><small>Next</small><strong>Request Statistics</strong></a><!--doc-pagination-end-->
+          </nav>
+        </article>
+        <footer class="docs-footer">
+          <span>© 2026 EchoBird</span
+          ><a
+            href="https://github.com/edison7009/EchoBird/issues"
+            target="_blank"
+            rel="noopener noreferrer"
+            >Report a docs issue</a
+          >
+        </footer>
+      </main>
+      <aside class="doc-toc" aria-label="On this page">
+        <div>On this page</div>
+        <nav id="doc-outline"><!--doc-outline-start--><a href="/docs/smart-access/#routing-model" data-heading="routing-model">One scheme, an ordered route</a><a href="/docs/smart-access/#create-route" data-heading="create-route">Create your first scheme</a><a href="/docs/smart-access/#source-labels" data-heading="source-labels">Free versus keyless</a><a href="/docs/smart-access/#route-views" data-heading="route-views">Cards, lists, and the terminal</a><a href="/docs/smart-access/#route-endpoints" data-heading="route-endpoints">Use the OpenAI and Anthropic addresses</a><a href="/docs/smart-access/#route-workflow" data-heading="route-workflow">The practical result: keep the endpoint, adjust the sources</a><!--doc-outline-end--></nav>
+      </aside>
+    </div>
+    <div class="visually-hidden" id="doc-announcement" aria-live="polite"></div>
+    <noscript
+      ><p class="no-script">
+        Enable JavaScript for documentation navigation and search, or contact hi@echobird.ai.
+      </p></noscript
+    >
+  </body>
+</html>

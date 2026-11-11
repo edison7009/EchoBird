@@ -1,0 +1,5 @@
+/en / 301
+/en/ / 301
+/en/* /:splat 301
+/support /zh/#relays 301
+/support/ /zh/#relays 301

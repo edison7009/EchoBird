@@ -1,0 +1,62 @@
+html,
+body,
+#root {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+}
+body[data-demo='usage-island'] {
+  background: transparent;
+  overflow: hidden;
+}
+.website-usage-demo {
+  position: relative;
+  height: 100%;
+  overflow: hidden;
+  color: rgb(var(--text-primary-rgb));
+}
+.usage-demo-scene {
+  position: absolute;
+  inset: 0;
+  opacity: 1;
+  transition: opacity 300ms ease;
+  animation: usage-scene-enter 250ms ease both;
+}
+.usage-demo-scene[data-fading='true'] {
+  opacity: 0;
+  animation: none;
+}
+.usage-demo-scene .usage-island-stage {
+  position: absolute;
+  width: 480px;
+  height: 280px;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%) scale(1.15);
+}
+.usage-demo-scene .usage-island {
+  box-shadow: 0 12px 26px #0004;
+}
+.usage-demo-scene .usage-island-preview {
+  pointer-events: none;
+  user-select: none;
+}
+@keyframes usage-scene-enter {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@media (max-width: 480px) {
+  .usage-demo-scene .usage-island-stage {
+    transform: translate(-50%, -50%) scale(0.7);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .usage-demo-scene {
+    animation: none;
+    transition: none;
+  }
+}

@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="zh-CN" data-site-locale="zh">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="icon" type="image/png" href="/assets/icon-DOE4HP7g.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+
+    <title>语音输入与划词 · EchoBird 文档</title>
+    <script type="module" crossorigin src="/assets/docs-dlKkM4St.js"></script>
+    <link rel="modulepreload" crossorigin href="/assets/modulepreload-polyfill-B5Qt9EMX.js">
+    <link rel="modulepreload" crossorigin href="/assets/site-translations-vK9rWEuP.js">
+    <link rel="stylesheet" crossorigin href="/assets/docs-D68cp78D.css">
+  <!--site-seo-start--><link rel="canonical" href="https://echobird.ai/zh/docs/voice/" /><link rel="alternate" hreflang="zh-CN" href="https://echobird.ai/zh/docs/voice/" /><link rel="alternate" hreflang="en" href="https://echobird.ai/docs/voice/" /><link rel="alternate" hreflang="x-default" href="https://echobird.ai/docs/voice/" /><meta property="og:locale" content="zh_CN" /><meta property="og:title" content="语音输入与划词 · EchoBird 文档" /><meta property="og:description" content="配置识别通道、麦克风与快捷键，把口述内容送回输入框。" /><!--site-seo-end--><meta name="description" content="配置识别通道、麦克风与快捷键，把口述内容送回输入框。" /></head>
+  <body>
+    <a class="skip-link" href="#doc-main">跳到正文</a>
+    <header class="docs-header">
+      <div class="docs-header-inner">
+        <a class="docs-brand" href="/zh/"
+          ><img src="/brand/bird.png" width="34" height="34" alt="" /><span>EchoBird</span
+          ><span class="docs-brand-label">文档</span></a
+        >
+        <div class="docs-search">
+          <label class="visually-hidden" for="doc-search">搜索文档</label>
+          <input
+            id="doc-search"
+            type="search"
+            placeholder="搜索页面、操作或问题"
+            autocomplete="off"
+            aria-controls="doc-search-results"
+            aria-expanded="false"
+            aria-autocomplete="list"
+            role="combobox"
+            aria-haspopup="listbox"
+          />
+          <kbd class="search-key" aria-hidden="true">/</kbd>
+          <div class="doc-search-panel" hidden>
+            <p class="search-caption" role="status"></p>
+            <div id="doc-search-results" role="listbox" aria-label="搜索结果"></div>
+            <p class="search-hint">上下选择 · Enter 打开 · Esc 关闭</p>
+          </div>
+        </div>
+        <nav class="docs-top-links" aria-label="官网导航">
+          <a href="/zh/">首页</a
+          ><a
+            href="https://github.com/edison7009/EchoBird"
+            target="_blank"
+            rel="noopener noreferrer"
+            >GitHub</a
+          ><a class="site-language" data-site-language href="/docs/voice/" lang="en" hreflang="en">English</a><a href="/zh/#download">更多下载</a>
+        </nav>
+        <button
+          class="docs-menu-button"
+          type="button"
+          aria-controls="doc-sidebar"
+          aria-expanded="false"
+        >目录</button>
+      </div>
+    </header>
+    <div class="docs-layout">
+      <aside class="docs-sidebar" id="doc-sidebar" aria-label="目录">
+        <div class="sidebar-heading">使用指南</div>
+        <nav id="doc-chapters" aria-label="使用指南">
+          <!--doc-chapters-start--><section class="doc-nav-group"><h2>开始使用</h2><a href="/zh/docs/">认识 EchoBird</a><a href="/zh/docs/quick-start/">第一次使用</a><a href="/zh/docs/navigation/">界面与页面导航</a></section><section class="doc-nav-group"><h2>核心工作流</h2><a href="/zh/docs/apps/">应用桌面与商店</a><a href="/zh/docs/accounts/">账号中心</a><a href="/zh/docs/models/">模型中心</a><a href="/zh/docs/smart-access/">智能接入</a><a href="/zh/docs/statistics/">请求统计</a><a href="/zh/docs/assistant/">AI 助手</a><a href="/zh/docs/local-models/">本地大模型</a></section><section class="doc-nav-group"><h2>桌面与扩展</h2><a href="/zh/docs/voice/" aria-current="page">语音输入与划词</a><a href="/zh/docs/usage-island/">用量岛</a><a href="/zh/docs/pets/">宠物与 TokenPet</a><a href="/zh/docs/plugins/">插件</a><a href="/zh/docs/news/">AI 动态</a><a href="/zh/docs/career/">AI 生涯</a></section><section class="doc-nav-group"><h2>帮助与参考</h2><a href="/zh/docs/settings/">设置与个性化</a><a href="/zh/docs/workflows/">组合使用教程</a><a href="/zh/docs/support/">意见反馈与更新日志</a><a href="/zh/docs/troubleshooting/">常见问题与排查</a></section><!--doc-chapters-end-->
+        </nav>
+        <a class="docs-help" href="mailto:hi@echobird.ai">联系 EchoBird</a>
+      </aside>
+      <button class="sidebar-backdrop" type="button" aria-label="关闭目录" hidden></button>
+      <main id="doc-main" tabindex="-1">
+        <article class="doc-article">
+          <div class="doc-breadcrumb" aria-label="当前位置">
+            <span>使用文档</span><span>/</span><span id="doc-group">桌面与扩展</span>
+          </div>
+          <h1 id="doc-title">语音输入与划词</h1>
+          <p class="doc-summary" id="doc-summary">配置识别通道、麦克风与快捷键，把口述内容送回输入框。</p>
+          <div class="doc-body" id="doc-body"><!--doc-body-start--><section aria-labelledby="voice-setup"><h2 id="voice-setup">先把一条语音通道跑通</h2><ol class="doc-steps"><li>进入语音输入，添加一个受支持的账号来源，或配置单独的语音识别 API 模型。普通聊天模型不一定支持语音识别。</li><li>核对语音 API 地址、模型与授权。最多可以设置三个不同通道，第一条主用，后面的备用；拖动可以调整顺序。</li><li>选择默认或指定麦克风，点击测试，观察音量是否随说话变化。测试完成后停止。</li><li>先识别一句短句，确认文字正常，再设置不与常用软件冲突的快捷键。</li></ol></section><section aria-labelledby="voice-use"><h2 id="voice-use">在正在工作的输入框里使用</h2><ol class="doc-steps"><li>先把光标放在聊天框、编辑器或其他可输入位置。</li><li>通过话筒或快捷键开始录音。快捷键可选择长按或点按的输入方式。</li><li>结束录音后等待识别与输入完成，检查回填文字，再决定是否发送。</li><li>如果焦点变化或系统不允许回填，复制保留的识别结果，再手动粘贴；需要时可以回听录音。</li></ol></section><section aria-labelledby="voice-island"><h2 id="voice-island">语音岛显示什么</h2><p>语音岛展示录音、识别、回填与完成状态。可以按桌面习惯调整主题、配色和大小。它与用量岛是不同的功能：语音岛围绕输入过程，用量岛围绕账号和模型用量。</p></section><section aria-labelledby="selection"><h2 id="selection">划词翻译与提问</h2><p>先配置可用的文本模型，再开启划词翻译或提问。选中文字后，可在选区附近发起操作并选择翻译目标语言。单次选中文字上限为 16000 字符，长文可以分段。</p><p>系统无法取得选中文字时，可以先复制，再用粘贴并翻译。失败时原文保留，可以重试；没有配置文本模型时，不会自动得到翻译结果。</p></section><section aria-labelledby="voice-permissions"><h2 id="voice-permissions">没有声音、快捷键无效或不能回填</h2><ul><li>麦克风没有音量：先检查选中的设备、系统输入音量与麦克风权限。</li><li>快捷键无效：检查按键冲突和系统键盘监听权限。macOS 回填还可能需要辅助功能权限。</li><li>Linux / Wayland：快捷键、选区和回填取决于桌面的 portal 或桥接支持，按实际环境配置。</li><li>识别请求失败：核对通道的服务类型、地址、凭据与网络。远程语音 API 不是完全离线识别。</li></ul></section><section aria-labelledby="voice-workflow"><h2 id="voice-workflow">推荐组合</h2><p>在 AI 助手的输入框放好光标，口述完整任务，检查识别文字后再发送；阅读外语资料时先划词翻译，再把已经理解的要求交给助手。语音输入负责减少打字，发送前的检查仍能帮助你避免错词改变任务含义。</p></section><!--doc-body-end--></div>
+          <nav class="doc-pagination" aria-label="相邻文档">
+            <!--doc-pagination-start--><a class="doc-previous" href="/zh/docs/local-models/"><small>上一章</small><strong>本地大模型</strong></a><a class="doc-next" href="/zh/docs/usage-island/"><small>下一章</small><strong>用量岛</strong></a><!--doc-pagination-end-->
+          </nav>
+        </article>
+        <footer class="docs-footer">
+          <span>© 2026 EchoBird</span
+          ><a
+            href="https://github.com/edison7009/EchoBird/issues"
+            target="_blank"
+            rel="noopener noreferrer"
+            >反馈文档问题</a
+          >
+        </footer>
+      </main>
+      <aside class="doc-toc" aria-label="本页内容">
+        <div>本页内容</div>
+        <nav id="doc-outline"><!--doc-outline-start--><a href="/zh/docs/voice/#voice-setup" data-heading="voice-setup">先把一条语音通道跑通</a><a href="/zh/docs/voice/#voice-use" data-heading="voice-use">在正在工作的输入框里使用</a><a href="/zh/docs/voice/#voice-island" data-heading="voice-island">语音岛显示什么</a><a href="/zh/docs/voice/#selection" data-heading="selection">划词翻译与提问</a><a href="/zh/docs/voice/#voice-permissions" data-heading="voice-permissions">没有声音、快捷键无效或不能回填</a><a href="/zh/docs/voice/#voice-workflow" data-heading="voice-workflow">推荐组合</a><!--doc-outline-end--></nav>
+      </aside>
+    </div>
+    <div class="visually-hidden" id="doc-announcement" aria-live="polite"></div>
+    <noscript
+      ><p class="no-script">
+        请启用 JavaScript 以浏览文档目录和正文。你也可以通过 hi@echobird.ai 联系我们。
+      </p></noscript
+    >
+  </body>
+</html>

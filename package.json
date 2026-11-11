@@ -19,7 +19,10 @@
     "copy:config": "echo no-op",
     "postinstall": "patch-package --error-on-fail && node scripts/verify-dependency-patches.mjs && node scripts/sync-catalogs.mjs",
     "catalog:generate": "node scripts/sync-catalogs.mjs --write && prettier --write \"src/data/*.json\"",
-    "catalog:check": "node scripts/sync-catalogs.mjs"
+    "catalog:check": "node scripts/sync-catalogs.mjs",
+    "website:dev": "vite --config website/vite.config.ts",
+    "website:build": "vite build --config website/vite.config.ts && node scripts/prepare-website.mjs",
+    "website:test": "node --test website/*.test.mjs scripts/tests/website_download.test.mjs"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

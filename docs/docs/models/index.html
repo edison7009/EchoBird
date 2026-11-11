@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en" data-site-locale="en">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="icon" type="image/png" href="/assets/icon-DOE4HP7g.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+
+    <title>Models · EchoBird Docs</title>
+    <script type="module" crossorigin src="/assets/docs-dlKkM4St.js"></script>
+    <link rel="modulepreload" crossorigin href="/assets/modulepreload-polyfill-B5Qt9EMX.js">
+    <link rel="modulepreload" crossorigin href="/assets/site-translations-vK9rWEuP.js">
+    <link rel="stylesheet" crossorigin href="/assets/docs-D68cp78D.css">
+  <!--site-seo-start--><link rel="canonical" href="https://echobird.ai/docs/models/" /><link rel="alternate" hreflang="zh-CN" href="https://echobird.ai/zh/docs/models/" /><link rel="alternate" hreflang="en" href="https://echobird.ai/docs/models/" /><link rel="alternate" hreflang="x-default" href="https://echobird.ai/docs/models/" /><meta property="og:locale" content="en_US" /><meta property="og:title" content="Models · EchoBird Docs" /><meta property="og:description" content="Organize API addresses, keys, and model IDs, test the connection, then use the model in your tools." /><!--site-seo-end--><meta name="description" content="Organize API addresses, keys, and model IDs, test the connection, then use the model in your tools." /></head>
+  <body>
+    <a class="skip-link" href="#doc-main">Skip to content</a>
+    <header class="docs-header">
+      <div class="docs-header-inner">
+        <a class="docs-brand" href="/"
+          ><img src="/brand/bird.png" width="34" height="34" alt="" /><span>EchoBird</span
+          ><span class="docs-brand-label">Docs</span></a
+        >
+        <div class="docs-search">
+          <label class="visually-hidden" for="doc-search">Search documentation</label>
+          <input
+            id="doc-search"
+            type="search"
+            placeholder="Search pages, steps, or questions"
+            autocomplete="off"
+            aria-controls="doc-search-results"
+            aria-expanded="false"
+            aria-autocomplete="list"
+            role="combobox"
+            aria-haspopup="listbox"
+          />
+          <kbd class="search-key" aria-hidden="true">/</kbd>
+          <div class="doc-search-panel" hidden>
+            <p class="search-caption" role="status"></p>
+            <div id="doc-search-results" role="listbox" aria-label="Search results"></div>
+            <p class="search-hint">Up/Down to select · Enter to open · Esc to close</p>
+          </div>
+        </div>
+        <nav class="docs-top-links" aria-label="Website navigation">
+          <a href="/">Home</a
+          ><a
+            href="https://github.com/edison7009/EchoBird"
+            target="_blank"
+            rel="noopener noreferrer"
+            >GitHub</a
+          ><a class="site-language" data-site-language href="/zh/docs/models/" lang="zh" hreflang="zh">中文</a><a href="/#download">Download</a>
+        </nav>
+        <button
+          class="docs-menu-button"
+          type="button"
+          aria-controls="doc-sidebar"
+          aria-expanded="false"
+        >Menu</button>
+      </div>
+    </header>
+    <div class="docs-layout">
+      <aside class="docs-sidebar" id="doc-sidebar" aria-label="Menu">
+        <div class="sidebar-heading">User guide</div>
+        <nav id="doc-chapters" aria-label="User guide">
+          <!--doc-chapters-start--><section class="doc-nav-group"><h2>Get started</h2><a href="/docs/">Meet EchoBird</a><a href="/docs/quick-start/">Quick Start</a><a href="/docs/navigation/">Interface and Navigation</a></section><section class="doc-nav-group"><h2>Core workflows</h2><a href="/docs/apps/">App Desktop and Store</a><a href="/docs/accounts/">Accounts</a><a href="/docs/models/" aria-current="page">Models</a><a href="/docs/smart-access/">Smart Routes</a><a href="/docs/statistics/">Request Statistics</a><a href="/docs/assistant/">AI Assistant</a><a href="/docs/local-models/">Local LLM</a></section><section class="doc-nav-group"><h2>Desktop and extensions</h2><a href="/docs/voice/">Voice input and text selection</a><a href="/docs/usage-island/">Usage Island</a><a href="/docs/pets/">Pets and TokenPet</a><a href="/docs/plugins/">Plugins</a><a href="/docs/news/">AI Latest News</a><a href="/docs/career/">My AI Career</a></section><section class="doc-nav-group"><h2>Help and reference</h2><a href="/docs/settings/">Settings and Personalization</a><a href="/docs/workflows/">Workflow Guides</a><a href="/docs/support/">Feedback and Release Notes</a><a href="/docs/troubleshooting/">Troubleshooting</a></section><!--doc-chapters-end-->
+        </nav>
+        <a class="docs-help" href="mailto:hi@echobird.ai">Contact EchoBird</a>
+      </aside>
+      <button class="sidebar-backdrop" type="button" aria-label="Close contents" hidden></button>
+      <main id="doc-main" tabindex="-1">
+        <article class="doc-article">
+          <div class="doc-breadcrumb" aria-label="当前位置">
+            <span>Documentation</span><span>/</span><span id="doc-group">Core workflows</span>
+          </div>
+          <h1 id="doc-title">Models</h1>
+          <p class="doc-summary" id="doc-summary">Organize API addresses, keys, and model IDs, test the connection, then use the model in your tools.</p>
+          <div class="doc-body" id="doc-body"><!--doc-body-start--><section aria-labelledby="model-fields"><h2 id="model-fields">What the four fields mean</h2><div class="doc-table" data-columns="3"><table><thead><tr><th scope="col">Field</th><th scope="col">Purpose</th><th scope="col">Examples and notes</th></tr></thead><tbody><tr><td>Name</td><td>Helps you recognize a configuration</td><td>For example, “Everyday writing” or “Backup coding”; it need not match the model ID</td></tr><tr><td>Endpoint address</td><td>The API endpoint actually provided by the service</td><td>Distinguish OpenAI-compatible, Anthropic-compatible, and regional endpoints</td></tr><tr><td>API Key</td><td>A credential for calling the service</td><td>Obtain it from the provider; it is not your website sign-in password</td></tr><tr><td>Model ID</td><td>The model identifier accepted by the service</td><td>Prefer the model list returned by that service rather than guessing from a product nickname</td></tr></tbody></table></div></section><section aria-labelledby="save-model"><h2 id="save-model">Add and verify a model</h2><ol class="doc-steps"><li>Open Models and choose a service from the provider or relay directory, or enter your own service through the available form.</li><li>Check its region, plan, and protocol version. A company’s subscription endpoint and general API endpoint are not necessarily interchangeable.</li><li>Enter the real address and key. Services that support model discovery can return candidate IDs; for other services, use the IDs in their actual documentation.</li><li>Choose a recognizable name and save. Click Test Latency at the top of Config view to check the endpoint’s connection status and latency.</li><li>Then select a supported tool in App Desktop and apply the configuration, or add it to a Smart Routes scheme. Send a request in the real tool or AI Assistant to verify the model’s reply.</li></ol></section><section aria-labelledby="test-vs-usage"><h2 id="test-vs-usage">Connection tests, replies, and usage answer different questions</h2><p>Test Latency at the top of Config view checks an endpoint’s connection and latency. It is not a chat test, and cannot on its own confirm that the API Key, model ID, or reply content works correctly. To verify a model, send a request in a real tool or AI Assistant. Usage view queries the balance or quota information exposed by the service.</p><p>Actual model requests may be billed under the provider’s rules. A model that replies does not necessarily expose a balance API. Some usage queries need additional settings or authorization, and a failed query does not by itself prove the model is unusable.</p></section><section aria-labelledby="maintain-models"><h2 id="maintain-models">Edit, reorder, and delete</h2><p>Put your usual configurations first and use clear names to distinguish work, everyday, and backup sources. After editing, verify that the address, model ID, and credentials still match, then confirm that the target tool uses the configuration you intended.</p><p>Deleting a local entry does not delete the provider account or remotely revoke its API Key. Replace or revoke a key with the provider, then update the configurations that need it in EchoBird.</p></section><section aria-labelledby="saved-not-applied"><h2 id="saved-not-applied">A common misunderstanding: saving did not change the tool</h2><p>Models is a configuration library. Saving creates the entry; it does not automatically switch every external client to that model. Next, select the tool in App Desktop and apply the configuration, or reference it in Smart Routes and connect the tool to that scheme.</p><p>Compatible endpoints do not imply identical capabilities. Tool calling, image input, context length, and model parameters still require support from the tool, model, and integration adapter.</p></section><!--doc-body-end--></div>
+          <nav class="doc-pagination" aria-label="Adjacent articles">
+            <!--doc-pagination-start--><a class="doc-previous" href="/docs/accounts/"><small>Previous</small><strong>Accounts</strong></a><a class="doc-next" href="/docs/smart-access/"><small>Next</small><strong>Smart Routes</strong></a><!--doc-pagination-end-->
+          </nav>
+        </article>
+        <footer class="docs-footer">
+          <span>© 2026 EchoBird</span
+          ><a
+            href="https://github.com/edison7009/EchoBird/issues"
+            target="_blank"
+            rel="noopener noreferrer"
+            >Report a docs issue</a
+          >
+        </footer>
+      </main>
+      <aside class="doc-toc" aria-label="On this page">
+        <div>On this page</div>
+        <nav id="doc-outline"><!--doc-outline-start--><a href="/docs/models/#model-fields" data-heading="model-fields">What the four fields mean</a><a href="/docs/models/#save-model" data-heading="save-model">Add and verify a model</a><a href="/docs/models/#test-vs-usage" data-heading="test-vs-usage">Connection tests, replies, and usage answer different questions</a><a href="/docs/models/#maintain-models" data-heading="maintain-models">Edit, reorder, and delete</a><a href="/docs/models/#saved-not-applied" data-heading="saved-not-applied">A common misunderstanding: saving did not change the tool</a><!--doc-outline-end--></nav>
+      </aside>
+    </div>
+    <div class="visually-hidden" id="doc-announcement" aria-live="polite"></div>
+    <noscript
+      ><p class="no-script">
+        Enable JavaScript for documentation navigation and search, or contact hi@echobird.ai.
+      </p></noscript
+    >
+  </body>
+</html>
