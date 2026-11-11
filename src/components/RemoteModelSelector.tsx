@@ -32,6 +32,8 @@ interface RemoteModelSelectorProps {
    *  extras don't fire onSelect but still appear in the menu so the user
    *  knows the option exists and what it'd take to enable it. */
   extras?: ExtraOption[];
+  /** Keep existing consumers unchanged; the assistant can choose a text-only list. */
+  showMenuIcons?: boolean;
 }
 
 export const RemoteModelSelector: React.FC<RemoteModelSelectorProps> = ({
@@ -41,6 +43,7 @@ export const RemoteModelSelector: React.FC<RemoteModelSelectorProps> = ({
   onSelect,
   placeholder = 'Select model',
   extras,
+  showMenuIcons = true,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [menuBounds, setMenuBounds] = useState({ maxWidth: 200, maxHeight: 480 });
@@ -164,6 +167,7 @@ export const RemoteModelSelector: React.FC<RemoteModelSelectorProps> = ({
               data-selected={model.id === currentModelId || undefined}
               className="selection-menu-row flex items-center gap-2 px-3 py-2 text-xs font-sans transition-colors"
             >
+              {showMenuIcons && renderIcon(model, 'w-4 h-4', 16)}
               <span className="min-w-0 flex-1 whitespace-normal break-words">{model.name}</span>
               {model.id === currentModelId && <Check size={12} className={checkClass} />}
             </div>
@@ -199,6 +203,7 @@ export const RemoteModelSelector: React.FC<RemoteModelSelectorProps> = ({
                 }}
                 className={`${rowBase} ${rowState}`}
               >
+                {showMenuIcons && renderIcon(extra, 'w-4 h-4', 16)}
                 <span className="min-w-0 flex-1 whitespace-normal break-words">{extra.name}</span>
                 {extra.disabled && extra.disabledLabel && (
                   <span className="flex-shrink-0 text-[10px] text-cyber-text-muted">
