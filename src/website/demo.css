@@ -96,6 +96,36 @@ body,
   height: 22px;
 }
 
+/* Keep the scaled hero sidebar readable without changing native client typography. */
+#root .demo-account-panel {
+  font-family:
+    -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  font-weight: 500;
+}
+#root .demo-account-panel .text-sm,
+#root .demo-account-panel .text-\[13px\] {
+  font-size: 20px;
+  line-height: 1.2;
+}
+#root .demo-account-panel .text-\[10px\],
+#root .demo-account-panel .text-\[11px\] {
+  font-size: 16px;
+  font-weight: 500;
+}
+#root .demo-account-panel .text-\[12px\] {
+  font-size: 18px;
+}
+#root .demo-account-panel .text-cyber-text-secondary\/70 {
+  color: rgb(var(--text-secondary-rgb));
+}
+#root .demo-account-panel button.account-pill {
+  font-size: 20px;
+}
+#root .demo-account-panel button svg {
+  min-width: 14px;
+  min-height: 14px;
+}
+
 /* Two sample accounts make room for taller, easier-to-read account and model cards. */
 #root .demo-account-panel .h-14 {
   height: 72px;
