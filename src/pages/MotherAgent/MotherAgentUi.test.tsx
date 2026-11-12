@@ -330,6 +330,7 @@ it('changes model selection without clear advice or a legacy clear-chat listener
     renderer = create(<MotherAgentMain />);
   });
   const selector = renderer!.root.findByType(RemoteModelSelector);
+  expect(selector.props.showMenuIcons).toBe(true);
   act(() => selector.props.onSelect('anthropic-model'));
   expect(state.setAgentModel).toHaveBeenCalledExactlyOnceWith('anthropic-model');
   expect(state.setParasiteAgent).toHaveBeenCalledExactlyOnceWith(null);

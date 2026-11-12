@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback, type RefObject } from 'react';
 import { createPortal } from 'react-dom';
-import { Check, ChevronDown, RefreshCw } from 'lucide-react';
+import { ChevronDown, RefreshCw } from 'lucide-react';
 import { isFreeModelOption } from '../utils/modelOptions';
 import './ModelIdCombobox.css';
 
@@ -415,10 +415,7 @@ export function ModelIdCombobox({
                 position: 'fixed',
                 left: menuPos.left,
                 width: compact ? 'max-content' : menuPos.width,
-                minWidth: compact
-                  ? `min(${Math.max(200, menuPos.width)}px, calc(100vw - 16px))`
-                  : undefined,
-                maxWidth: compact ? 'calc(100vw - 16px)' : undefined,
+                maxWidth: compact ? 'min(320px, calc(100vw - 16px))' : undefined,
                 top: menuPos.dropUp ? undefined : menuPos.below,
                 bottom: menuPos.dropUp ? menuPos.above : undefined,
                 maxHeight: menuPos.maxHeight,
@@ -450,7 +447,7 @@ export function ModelIdCombobox({
                   data-active={compact && idx === activeIdx ? true : undefined}
                   className={
                     compact
-                      ? 'selection-menu-row flex items-center gap-2 px-3 py-2 text-xs font-sans transition-colors'
+                      ? 'selection-menu-row grid grid-cols-[minmax(0,1fr)_3rem] items-center gap-2 px-3 py-2 text-xs font-sans transition-colors'
                       : `px-2 py-1.5 text-xs font-mono transition-colors ${free || hasMultiplier ? 'flex items-center gap-2' : 'truncate'} ${
                           opt === value
                             ? 'bg-cyber-text/15 text-cyber-text'
@@ -462,18 +459,13 @@ export function ModelIdCombobox({
                 >
                   {compact ? (
                     <>
-                      <span className="min-w-0 flex-1 whitespace-normal break-words">
-                        {label(opt)}
-                      </span>
+                      <span className="min-w-0 truncate">{label(opt)}</span>
                       {(free || hasMultiplier) && (
                         <span
-                          className={`shrink-0 ${free ? 'text-green-500' : 'text-cyber-text-muted'}`}
+                          className={`col-start-2 text-right whitespace-nowrap ${free ? 'text-green-500' : 'text-cyber-text-muted'}`}
                         >
                           {free ? freeLabel : `${multiplier}×`}
                         </span>
-                      )}
-                      {opt === value && (
-                        <Check size={12} className="ml-1 shrink-0 text-cyber-text" />
                       )}
                     </>
                   ) : free || hasMultiplier ? (

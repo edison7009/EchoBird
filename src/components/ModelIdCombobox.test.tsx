@@ -589,7 +589,7 @@ it('keeps all cached compact choices through display-label updates and viewport 
   expect(menu.props.style.bottom).toBe(121);
   expect(menu.props.style.maxHeight).toBe(91);
   expect(menu.props.style.bottom + menu.props.style.maxHeight).toBe(212);
-  expect(menu.props.style.maxWidth).toBe('calc(100vw - 16px)');
+  expect(menu.props.style.maxWidth).toBe('min(320px, calc(100vw - 16px))');
   expect(options()).toHaveLength(40);
 
   Object.assign(window, { innerWidth: 800, innerHeight: 800 });
@@ -960,12 +960,18 @@ it('keeps compact route choices usable for short and long IDs, within the viewpo
   expect(JSON.stringify(renderer.toJSON())).toContain(shortId);
   act(() => trigger().props.onClick());
   expect(optionTexts()).toEqual([shortId, longId]);
+  for (const row of options()) {
+    expect(row.props.className).toContain('grid-cols-[minmax(0,1fr)_3rem]');
+    expect(row.findAllByType('span')[0].props.className).toContain('truncate');
+  }
+  expect(options()[0].props['data-selected']).toBe(true);
+  expect(options()[1].props['data-selected']).toBeUndefined();
+  expect(options().flatMap((row) => row.findAllByType('svg'))).toHaveLength(0);
   expect(portal.mock.calls[portal.mock.calls.length - 1]?.[1]).toBe(body);
   const menuPosition = menus()[0].props.style;
   expect(menuPosition.left).toBeGreaterThanOrEqual(8);
   expect(menuPosition.width).toBe('max-content');
-  expect(menuPosition.minWidth).toBe('min(200px, calc(100vw - 16px))');
-  expect(menuPosition.maxWidth).toBe('calc(100vw - 16px)');
+  expect(menuPosition.maxWidth).toBe('min(320px, calc(100vw - 16px))');
   expect(menuPosition['--model-menu-left']).toBe('740px');
   expect(menuPosition.top).toBeUndefined();
   expect(menuPosition.transformOrigin).toBe('bottom');

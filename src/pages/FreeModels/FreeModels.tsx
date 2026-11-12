@@ -1053,23 +1053,21 @@ function FreeModelsContent({
           : cached) ??
         fetchedModels ??
         [];
+      const options = accountModelPickerOptions(
+        models,
+        model.modelId,
+        accountFor(model)?.modelLabels
+      );
       return [
-        ...new Set([
-          model.modelId,
-          ...accountModelPickerOptions(models, model.modelId, accountFor(model)?.modelLabels),
-        ]),
+        ...new Set([...(options.includes(model.modelId) ? [] : [model.modelId]), ...options]),
       ].filter(Boolean);
     }
     const catalog = routeCatalogFor(model);
+    const options = catalog
+      ? catalog.models.map((entry) => entry.id)
+      : freeModels.filter((entry) => entry.baseUrl === model.baseUrl).map((entry) => entry.modelId);
     return [
-      ...new Set([
-        model.modelId,
-        ...(catalog
-          ? catalog.models.map((entry) => entry.id)
-          : freeModels
-              .filter((entry) => entry.baseUrl === model.baseUrl)
-              .map((entry) => entry.modelId)),
-      ]),
+      ...new Set([...(options.includes(model.modelId) ? [] : [model.modelId]), ...options]),
     ].filter(Boolean);
   };
   const switchModel = async (id: string, modelId: string) => {

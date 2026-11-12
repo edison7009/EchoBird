@@ -360,7 +360,7 @@ export function MotherAgentMain() {
           />
           <div className="mother-composer-controls flex items-center justify-end gap-1">
             <RemoteModelSelector
-              showMenuIcons={false}
+              showMenuIcons
               models={modelList}
               currentModelId={parasiteAgent || agentModel}
               loading={false}

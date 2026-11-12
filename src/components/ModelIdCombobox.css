@@ -1,8 +1,15 @@
 .model-id-combobox-menu {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
   --model-menu-offset: -4px;
   --model-menu-shift: min(0px, calc(100vw - var(--model-menu-left) - 8px - 100%));
   transform: translateX(var(--model-menu-shift));
   animation: model-id-menu-enter 170ms ease-out;
+}
+
+.model-id-combobox-menu .selection-menu-row {
+  flex-shrink: 0;
 }
 
 .model-id-combobox-menu.is-drop-up {
@@ -22,6 +29,47 @@
 
 @media (prefers-reduced-motion: reduce) {
   .model-id-combobox-menu {
+    animation: none;
+  }
+}
+
+/* Match the Usage Island current-account stripe treatment. */
+.model-selection-menu.model-id-combobox-menu .selection-menu-row[data-selected='true'] {
+  --model-selected-light: rgb(var(--accent-rgb) / 0.5);
+  --model-selected-dark: color-mix(
+    in srgb,
+    color-mix(in srgb, rgb(var(--accent-rgb)) 60%, black) 50%,
+    transparent
+  );
+  background-image: linear-gradient(
+    45deg,
+    var(--model-selected-dark) 25%,
+    var(--model-selected-light) 25% 50%,
+    var(--model-selected-dark) 50% 75%,
+    var(--model-selected-light) 75%
+  );
+  background-size: 20px 20px;
+  animation: model-selected-stripes 0.8s linear infinite;
+}
+
+:root[data-theme='light']
+  .model-selection-menu.model-id-combobox-menu
+  .selection-menu-row[data-selected='true'] {
+  --model-selected-light: rgb(var(--accent-rgb) / 0.14);
+  --model-selected-dark: rgb(var(--accent-rgb) / 0.3);
+}
+
+@keyframes model-selected-stripes {
+  from {
+    background-position: 0 0;
+  }
+  to {
+    background-position: 20px 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .model-selection-menu.model-id-combobox-menu .selection-menu-row[data-selected='true'] {
     animation: none;
   }
 }

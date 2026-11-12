@@ -461,12 +461,25 @@ describe('Direct route card model selection', () => {
     expect(picker('free-old').props.options).toEqual(['free-old', 'remote-free', 'remote-paid']);
     expectNoPassiveChanges();
     await select('free-old', 'remote-paid');
+    expect(picker('remote-paid').props.options).toEqual(['remote-free', 'remote-paid']);
     expect(api.updateModel).toHaveBeenCalledExactlyOnceWith(free.internalId, {
       modelId: 'remote-paid',
     });
     expect(savedModels.find((model) => model.internalId === free.internalId)?.apiKey).toBe(
       free.apiKey
     );
+  });
+
+  it('keeps cached account model order after selecting a later model', async () => {
+    vi.mocked(accountApi.getCachedAccountProxyModels).mockReturnValue([
+      'account-old',
+      'account-new',
+    ]);
+    await open();
+    expect(picker('account-old').props.options).toEqual(['account-old', 'account-new']);
+    expectNoPassiveChanges();
+    await select('account-old', 'account-new');
+    expect(picker('account-new').props.options).toEqual(['account-old', 'account-new']);
   });
 
   it('opens saved account and API model menus without refresh icons and loads their directories on demand', async () => {
@@ -1158,7 +1171,7 @@ describe('Direct route card model selection', () => {
       (node) => node.type === 'div' && node.props.onMouseDown && textOf(node) === 'Cantus'
     );
     expect(selected.props['data-selected']).toBe(true);
-    expect(selected.findAllByType('svg')).toHaveLength(1);
+    expect(selected.findAllByType('svg')).toHaveLength(0);
     expect(selected.props.className).not.toContain('bg-cyber-text/15');
     await act(async () => selected.props.onMouseDown({ button: 0, preventDefault: vi.fn() }));
     expect(savedModels).toEqual(original);

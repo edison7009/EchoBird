@@ -258,6 +258,10 @@
   color: rgb(var(--text-primary-rgb));
 }
 
+.mother-composer .model-selection-menu .selection-menu-row + .selection-menu-row {
+  margin-top: 4px;
+}
+
 .selection-menu-row {
   font-family: inherit;
   border-radius: 8px;
@@ -272,12 +276,16 @@
   background: rgb(255 255 255 / 0.12);
 }
 
-/* Model menus mark the saved choice with a check, keeping its surface quiet. */
-.model-selection-menu .selection-menu-row[data-selected='true'] {
+.model-selection-menu:not(.model-id-combobox-menu) .selection-menu-row[data-selected='true'] {
   background: transparent;
 }
-.model-selection-menu .selection-menu-row:not([aria-disabled='true']):hover,
-.model-selection-menu .selection-menu-row[data-active='true'] {
+
+.model-selection-menu:not(.model-id-combobox-menu)
+  .selection-menu-row:not([aria-disabled='true']):hover,
+.model-selection-menu:not(.model-id-combobox-menu) .selection-menu-row[data-active='true'],
+.model-id-combobox-menu
+  .selection-menu-row:not([aria-disabled='true']):not([data-selected='true']):hover,
+.model-id-combobox-menu .selection-menu-row[data-active='true']:not([data-selected='true']) {
   background: rgb(255 255 255 / 0.12);
 }
 
