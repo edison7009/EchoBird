@@ -210,3 +210,20 @@ it('groups editions by the directory field and labels tabs by edition', async ()
     ['Fixture Home', 'Home'],
   ]);
 });
+
+it('opens one Sidrune relay before CC Vibe with both address tabs', async () => {
+  vi.mocked(api.getModelDirectory).mockResolvedValue(null);
+  await act(async () => {
+    renderer = create(<ModelNexusPanel />);
+  });
+  const rows = renderer!.root.findAllByType(DirectoryRow).map((row) => row.props.name);
+  expect(rows.slice(0, 2)).toEqual(['Sidrune AI', 'CC Vibe']);
+  expect(rows.filter((name) => name.includes('Sidrune'))).toHaveLength(1);
+  expect(setNewModelForm).not.toHaveBeenCalled();
+  act(() => button('Add model: Sidrune AI').props.onClick());
+  expect(setNewModelForm.mock.calls[0][0].directoryVariants).toMatchObject([
+    { label: 'cn', baseUrl: 'https://cn.sidrune.ai/v1', anthropicUrl: 'https://cn.sidrune.ai' },
+    { label: 'cn2', baseUrl: 'https://cn2.sidrune.ai/v1', anthropicUrl: 'https://cn2.sidrune.ai' },
+  ]);
+  expect(setShowAddModelModal).toHaveBeenCalledExactlyOnceWith(true);
+});

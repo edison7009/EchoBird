@@ -15,6 +15,7 @@ export const homeEnglish = {
   'hero.star': 'Star',
   'hero.history':
     'Since 2026.01 &nbsp; · &nbsp; Rust rebuild 2026.03 &nbsp; · &nbsp; Smart Routes 2026.08',
+  'relay.sidrune': 'Claude / GPT model access with $3 trial credit on signup. CC Max at about 15% of official pricing, GPT from 1.5%.',
   'relay.ccvibe': 'APIs for Claude, GPT and other coding models',
   'relay.88api': 'Claude Opus 5.5, GPT-6.1 Sol and more',
   'relay.groo': 'GPT-6.1 Sol, Claude Opus 5.5 and more',

@@ -857,6 +857,11 @@
 }
 
 /* The island keeps its own surface, so logos follow it instead of the app theme. */
+.usage-island-theme-light img[src*='/icons/models/sidrune.svg'] {
+  filter: none !important;
+}
+
+.usage-island-theme-dark img[src*='/icons/models/sidrune.svg'],
 .usage-island-theme-dark img[src*='/icons/models/yi.svg'],
 .usage-island-theme-dark img[src*='/icons/models/ollama.svg'],
 .usage-island-theme-dark img[src*='/icons/models/agnes.svg'],

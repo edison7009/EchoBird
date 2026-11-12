@@ -1200,6 +1200,7 @@ section > .account-pill:last-child {
 
 /* Logos with near-black backgrounds invert in dark mode so they read on
    the near-black page. */
+[data-theme='dark'] img[src*='/icons/models/sidrune.svg'],
 [data-theme='dark'] img[src*='/icons/models/yi.svg'],
 [data-theme='dark'] img[src*='/icons/models/ollama.svg'],
 [data-theme='dark'] img[src*='/icons/models/agnes.svg'],

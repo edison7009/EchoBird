@@ -104,6 +104,7 @@ export const getModelIcon = (name: string, modelId?: string): string | null => {
     // its own name only, so it never outranks a recognized model brand above.
     [['88api'], '88api'],
     [['grooroute'], 'grooroute'],
+    [['sidrune', 'fluxion'], 'sidrune'],
   ];
 
   for (const [keywords, icon] of iconMap) {

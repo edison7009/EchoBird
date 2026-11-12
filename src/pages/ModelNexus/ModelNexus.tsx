@@ -379,7 +379,7 @@ function RelayRow({ entry, onAdd }: { entry: DirectoryEntry; onAdd: () => void }
 // the same endpoints, so grouping does not wait for the remote update.
 function editionInfo(entry: DirectoryEntry): Pick<DirectoryEntry, 'group' | 'edition'> {
   if (entry.group) return entry;
-  const bundled = BUNDLED_PROVIDERS.find(
+  const bundled = [...BUNDLED_PROVIDERS, ...BUNDLED_RELAYS].find(
     (b) => b.baseUrl === entry.baseUrl && b.anthropicUrl === entry.anthropicUrl
   );
   return { group: bundled?.group, edition: bundled?.edition };
@@ -535,8 +535,12 @@ export function ModelNexusPanel() {
           {section.key === 'relays' ? (
             // Sponsored relays keep their full cards.
             <div className="space-y-2">
-              {section.entries.map((entry) => (
-                <RelayRow key={entry.name} entry={entry} onAdd={() => openAddModel([entry])} />
+              {groupProviders(section.entries).map((item) => (
+                <RelayRow
+                  key={item.name}
+                  entry={{ ...item.entries[0], name: item.name }}
+                  onAdd={() => openAddModel(item.entries)}
+                />
               ))}
             </div>
           ) : (
