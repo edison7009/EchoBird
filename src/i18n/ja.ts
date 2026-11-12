@@ -496,6 +496,8 @@ const ja: Partial<Translations> = {
   'plugins.latestVersion': '最新版を使用中です',
   'updates.download': '更新をダウンロード',
   'updates.downloading': '更新をダウンロード中',
+  'updates.connecting': '接続中',
+  'updates.restarting': '再起動中',
   'updates.failed': 'ダウンロードに失敗しました。再試行してください。',
   'settings.title': '設定',
   'settings.general': '一般',

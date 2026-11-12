@@ -473,6 +473,8 @@ const zhHant: Partial<Translations> = {
   'plugins.latestVersion': '已是最新版本',
   'updates.download': '下載更新',
   'updates.downloading': '正在下載更新',
+  'updates.connecting': '正在連線',
+  'updates.restarting': '正在重新啟動',
   'updates.failed': '下載失敗，請重試。',
   'settings.title': '設定',
   'settings.general': '一般',

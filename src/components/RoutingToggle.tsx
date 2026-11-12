@@ -54,7 +54,7 @@ export function RoutingHint({
   navigation = false,
 }: {
   hint: string;
-  placement?: 'bottom' | 'right';
+  placement?: 'bottom' | 'right' | 'top';
   navigation?: boolean;
   content?: ReactNode;
   /** Shows the tooltip for this control instead of the "?" glyph. */
@@ -83,6 +83,19 @@ export function RoutingHint({
               window.innerHeight - tooltip.height - 8
             )
           ),
+        });
+        return;
+      }
+      if (placement === 'top') {
+        setPosition({
+          left: Math.max(
+            8,
+            Math.min(
+              anchor.left + (anchor.width - tooltip.width) / 2,
+              window.innerWidth - tooltip.width - 8
+            )
+          ),
+          top: Math.max(8, anchor.top - tooltip.height - 8),
         });
         return;
       }

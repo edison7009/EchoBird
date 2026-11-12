@@ -326,6 +326,8 @@ export type TKey =
   | 'plugins.latestVersion'
   | 'updates.download'
   | 'updates.downloading'
+  | 'updates.connecting'
+  | 'updates.restarting'
   | 'updates.failed'
   | 'settings.title'
   | 'settings.general'

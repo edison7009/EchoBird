@@ -437,6 +437,8 @@ const zhHans: Partial<Translations> = {
   'plugins.latestVersion': '已是最新版本',
   'updates.download': '下载更新',
   'updates.downloading': '正在下载更新',
+  'updates.connecting': '正在连接',
+  'updates.restarting': '正在重启',
   'updates.failed': '下载失败，请重试。',
   'settings.title': '设置',
   'settings.general': '通用',

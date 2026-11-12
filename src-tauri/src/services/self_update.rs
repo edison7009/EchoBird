@@ -1,6 +1,8 @@
 //! Explicit self-update downloads: version-matched mirrors and website fallback.
-//! Save a verified installer in Downloads. Windows launches its visible wizard;
-//! macOS and Linux reveal the containing folder and keep EchoBird running.
+//! Save a verified installer in Downloads. Windows runs it silently (`/S`), the
+//! Tauri NSIS template relaunches EchoBird afterwards (`/R`), and a failed
+//! silent run falls back to the visible wizard; macOS and
+//! Linux reveal the containing folder and keep EchoBird running.
 
 use futures_util::{future::join_all, StreamExt};
 use sha2::{Digest, Sha256};
@@ -234,13 +236,26 @@ fn download_destination(dir: &Path, asset: &str) -> PathBuf {
     dir.join(format!("{stem}-{}.{ext}", uuid::Uuid::new_v4()))
 }
 
+/// `cmd` arguments that run the installer silently (`/S`, relaunching with
+/// `/R`) and open its visible wizard when the silent run fails, so a failed
+/// update never leaves the user without EchoBird or an explanation.
+#[cfg_attr(not(target_os = "windows"), allow(dead_code))]
+fn installer_command_line(path: &Path) -> Result<String, String> {
+    let path = path.to_string_lossy();
+    // cmd cannot escape these inside a quoted path.
+    if path.contains(['"', '%', '\n', '\r']) {
+        return Err("Installer path cannot be launched safely".into());
+    }
+    Ok(format!(
+        "/d /c start \"\" /wait \"{path}\" /S /R || start \"\" \"{path}\""
+    ))
+}
+
 #[cfg(target_os = "windows")]
 fn spawn_installer(path: &Path) -> Result<(), String> {
     use std::os::windows::process::CommandExt;
-    const DETACHED_PROCESS: u32 = 0x00000008;
-    const CREATE_NEW_PROCESS_GROUP: u32 = 0x00000200;
-    std::process::Command::new(path)
-        .creation_flags(DETACHED_PROCESS | CREATE_NEW_PROCESS_GROUP)
+    crate::utils::process::command("cmd")
+        .raw_arg(installer_command_line(path)?)
         .spawn()
         .map(|_| ())
         .map_err(|e| format!("Failed to launch installer: {e}"))
@@ -388,6 +403,17 @@ mod tests {
         }
         assert!(platform("linux", "x86_64", false, false).is_err());
         assert!(platform("macos", "riscv64", false, false).is_err());
+    }
+    #[test]
+    fn installs_silently_and_falls_back_to_the_wizard() {
+        let path = Path::new(r"C:\Users\A B\Downloads\EchoBird_6.3.1_Windows_x64-setup.exe");
+        assert_eq!(
+            installer_command_line(path).unwrap(),
+            r#"/d /c start "" /wait "C:\Users\A B\Downloads\EchoBird_6.3.1_Windows_x64-setup.exe" /S /R || start "" "C:\Users\A B\Downloads\EchoBird_6.3.1_Windows_x64-setup.exe""#
+        );
+        for unsafe_path in [r#"C:\a"b\setup.exe"#, r"C:\%TEMP%\setup.exe"] {
+            assert!(installer_command_line(Path::new(unsafe_path)).is_err());
+        }
     }
     #[test]
     fn rejects_unsafe_versions_and_incomplete_or_corrupt_files() {

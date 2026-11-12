@@ -150,7 +150,7 @@ export interface SelfUpdateProgress {
   percent: number;
 }
 
-/// Download to system Downloads. Windows launches its wizard and exits;
+/// Download to system Downloads. Windows installs silently, exits and relaunches;
 /// macOS/Linux open the containing folder and keep running.
 export async function downloadAndInstallUpdate(version: string): Promise<void> {
   return invoke('download_and_install_update', { version });

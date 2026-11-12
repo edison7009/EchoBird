@@ -63,9 +63,9 @@ describe('Sidebar', () => {
         );
       });
       const settings = renderer.root.findByProps({ 'aria-label': 'settings.title' });
-      const download = renderer.root.findByProps({ 'aria-label': 'updates.download 6.2.1' });
+      const download = renderer.root.findByProps({ 'aria-label': 'updates.download v6.2.1' });
       const footer = settings.parent!;
-      expect(footer.findAllByProps({ 'aria-label': 'updates.download 6.2.1' })).toHaveLength(
+      expect(footer.findAllByProps({ 'aria-label': 'updates.download v6.2.1' })).toHaveLength(
         collapsed ? 0 : 1
       );
       const controls = renderer.root.findAllByType('button');

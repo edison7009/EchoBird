@@ -463,6 +463,8 @@ const en: Translations = {
   'plugins.latestVersion': 'Already on the latest version',
   'updates.download': 'Download update',
   'updates.downloading': 'Downloading update',
+  'updates.connecting': 'Connecting',
+  'updates.restarting': 'Restarting',
   'updates.failed': 'Download failed. Please try again.',
   'settings.title': 'SETTINGS',
   'settings.general': 'GENERAL',

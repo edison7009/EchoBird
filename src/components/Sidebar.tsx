@@ -124,14 +124,15 @@ export const Sidebar = ({
   const { t } = useI18n();
   const { showToast } = useToast();
   const updateDownload = useSelfUpdateDownload();
+  const collapsed = useSidebarStore((state) => state.collapsed);
   const downloadButton = updateAvailable ? (
     <UpdateDownloadButton
       version={updateAvailable}
       progress={updateDownload.progress}
+      collapsed={collapsed}
       onClick={() => void updateDownload.download(updateAvailable)}
     />
   ) : null;
-  const collapsed = useSidebarStore((state) => state.collapsed);
   const developerMode = useNavigationStore((state) => state.developerMode);
   const optionalPages = useNavigationStore((state) => state.optionalPages);
   const optionalPagesReady = useNavigationStore((state) => state.optionalPagesReady);
