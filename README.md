@@ -49,6 +49,15 @@
       Thanks to <strong>GrooRoute Pro</strong> for sponsoring this project! Official Claude and GPT models are now available. We invite everyone with a curious mind to explore advanced AI, including GPT-6.1 Sol, Claude Opus 5.5, Claude Sonnet 5.5, Claude Fable 5.1, GPT-6 Sol, GPT-6 Astra, GPT-6 Luna, DeepSeek V4.1 Flash and Grok 4.7. Connect directly from mainland China and get started with a single line of configuration — <a href="https://grooroute.pro/sign-up?aff=FWGVPMYENJQ8">sign up here</a>.
     </td>
   </tr>
+  <tr>
+    <td width="150" align="center">
+      <a href="https://cn.sidrune.ai/register?promo=ECHOBIRD_20261112"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/sponsors/sidrune-white.png"><img src="docs/sponsors/sidrune-black.png" width="92" alt="Sidrune AI" /></picture></a>
+    </td>
+    <td>
+      <a href="https://cn.sidrune.ai/register?promo=ECHOBIRD_20261112"><strong>Sidrune AI</strong></a><br/>
+      Access Claude, GPT and other AI models through one API. Register through the link for $3 in trial credits, limited to 200 new users while available. CC Max (Claude-Max-cc group, Claude Code only) costs about 15% of official pricing. GPT promotional pricing starts at 1.5%, subject to available models and groups. Invoices and corporate transfers supported.
+    </td>
+  </tr>
 </table>
 
 Sponsorship contact: [hi@echobird.ai](mailto:hi@echobird.ai)

@@ -619,6 +619,24 @@
   ],
   "relays": [
     {
+      "name": "Sidrune AI cn",
+      "url": "https://cn.sidrune.ai/register?promo=ECHOBIRD_20261112",
+      "baseUrl": "https://cn.sidrune.ai/v1",
+      "anthropicUrl": "https://cn.sidrune.ai",
+      "region": "cn",
+      "group": "Sidrune AI",
+      "edition": "cn"
+    },
+    {
+      "name": "Sidrune AI cn2",
+      "url": "https://cn.sidrune.ai/register?promo=ECHOBIRD_20261112",
+      "baseUrl": "https://cn2.sidrune.ai/v1",
+      "anthropicUrl": "https://cn2.sidrune.ai",
+      "region": "cn",
+      "group": "Sidrune AI",
+      "edition": "cn2"
+    },
+    {
       "name": "CC Vibe",
       "url": "https://echobird.ai/ccvibe/",
       "baseUrl": "https://cc-vibe.com/v1",
