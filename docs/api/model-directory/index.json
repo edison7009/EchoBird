@@ -619,6 +619,20 @@
   ],
   "relays": [
     {
+      "name": "88API",
+      "url": "https://88api.ai/sign-up?aff=knFS",
+      "baseUrl": "https://api.88api.ai/v1",
+      "anthropicUrl": "https://api.88api.ai",
+      "region": "cn"
+    },
+    {
+      "name": "GrooRoute Pro",
+      "url": "https://grooroute.pro/sign-up?aff=FWGVPMYENJQ8",
+      "baseUrl": "https://grooroute.pro/v1",
+      "anthropicUrl": "https://grooroute.pro",
+      "region": "cn"
+    },
+    {
       "name": "Sidrune AI cn",
       "url": "https://cn.sidrune.ai/register?promo=ECHOBIRD_20261112",
       "baseUrl": "https://cn.sidrune.ai/v1",
@@ -641,20 +655,6 @@
       "url": "https://echobird.ai/ccvibe/",
       "baseUrl": "https://cc-vibe.com/v1",
       "anthropicUrl": "https://cc-vibe.com",
-      "region": "cn"
-    },
-    {
-      "name": "88API",
-      "url": "https://88api.ai/sign-up?aff=knFS",
-      "baseUrl": "https://api.88api.ai/v1",
-      "anthropicUrl": "https://api.88api.ai",
-      "region": "cn"
-    },
-    {
-      "name": "GrooRoute Pro",
-      "url": "https://grooroute.pro/sign-up?aff=FWGVPMYENJQ8",
-      "baseUrl": "https://grooroute.pro/v1",
-      "anthropicUrl": "https://grooroute.pro",
       "region": "cn"
     }
   ]

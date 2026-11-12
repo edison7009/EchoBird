@@ -217,7 +217,7 @@ it('opens one Sidrune relay before CC Vibe with both address tabs', async () => 
     renderer = create(<ModelNexusPanel />);
   });
   const rows = renderer!.root.findAllByType(DirectoryRow).map((row) => row.props.name);
-  expect(rows.slice(0, 2)).toEqual(['Sidrune AI', 'CC Vibe']);
+  expect(rows.slice(0, 4)).toEqual(['88API', 'GrooRoute Pro', 'Sidrune AI', 'CC Vibe']);
   expect(rows.filter((name) => name.includes('Sidrune'))).toHaveLength(1);
   expect(setNewModelForm).not.toHaveBeenCalled();
   act(() => button('Add model: Sidrune AI').props.onClick());
