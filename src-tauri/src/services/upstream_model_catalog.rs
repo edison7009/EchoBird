@@ -149,15 +149,6 @@ pub fn get_cached(input: CatalogInput) -> Result<Option<ModelCatalog>, String> {
         .cloned())
 }
 
-fn unsupported_plan(url: &Url) -> bool {
-    let host = url.host_str().unwrap_or_default();
-    let path = url.path();
-    ((host.ends_with(".volces.com") || host.ends_with(".bytepluses.com"))
-        && path.starts_with("/api/coding"))
-        || (host == "qianfan.baidubce.com"
-            && (path.starts_with("/v2/coding") || path.starts_with("/anthropic/coding")))
-}
-
 fn needs_key(url: &Url) -> bool {
     matches!(
         url.host_str(),
@@ -246,9 +237,6 @@ pub async fn fetch(input: CatalogInput) -> Result<ModelCatalog, String> {
         fingerprint,
     } = source(&input)?;
     let primary = base.as_ref().or(anthropic.as_ref()).ok_or(INVALID_URL)?;
-    if unsupported_plan(primary) {
-        return Err(UNSUPPORTED.into());
-    }
     if key.is_empty() && needs_key(primary) {
         return Ok(ModelCatalog {
             models: Vec::new(),
@@ -263,7 +251,7 @@ pub async fn fetch(input: CatalogInput) -> Result<ModelCatalog, String> {
         .map_err(|_| REQUEST_FAILED.to_string())?;
     let mut candidates = endpoints(primary, base.is_none());
     if base.is_some() {
-        if let Some(anthropic) = anthropic.as_ref().filter(|url| !unsupported_plan(url)) {
+        if let Some(anthropic) = anthropic.as_ref() {
             candidates.extend(endpoints(anthropic, true));
         }
     }
@@ -821,7 +809,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn mandatory_keys_and_known_unavailable_coding_catalogs_return_before_network() {
+    async fn mandatory_keys_return_before_network() {
         for url in [
             "https://api.openai.com/v1",
             "https://api.anthropic.com",
@@ -830,13 +818,6 @@ mod tests {
             let catalog = fetch(input(url, "")).await.unwrap();
             assert!(catalog.requires_api_key);
             assert!(catalog.models.is_empty());
-        }
-        for url in [
-            "https://ark.cn-beijing.volces.com/api/coding/v3",
-            "https://ark.ap-southeast.bytepluses.com/api/coding/v3",
-            "https://qianfan.baidubce.com/v2/coding",
-        ] {
-            assert_eq!(fetch(input(url, "key")).await.unwrap_err(), UNSUPPORTED);
         }
     }
 

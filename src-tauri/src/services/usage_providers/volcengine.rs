@@ -124,7 +124,7 @@ async fn signed_ark_request(
     action: &str,
     body: &serde_json::Value,
 ) -> Result<serde_json::Value, String> {
-    let host = format!("ark.{region}.volcengineapi.com");
+    let host = "open.volcengineapi.com";
     let body_str = serde_json::to_string(body).unwrap_or_else(|_| "{}".to_string());
     let now = chrono::Utc::now();
     let amz_date = now.format("%Y%m%dT%H%M%SZ").to_string();
@@ -157,7 +157,7 @@ async fn signed_ark_request(
     let resp = client
         .post(&url)
         .header("Content-Type", "application/json; charset=utf-8")
-        .header("Host", &host)
+        .header("Host", host)
         .header("X-Date", &amz_date)
         .header("X-Content-Sha256", &content_hash)
         .header("Authorization", &authorization)

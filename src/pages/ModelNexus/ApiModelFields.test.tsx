@@ -300,7 +300,9 @@ it.each([
     else await advance();
     expect(current.modelId).toBe(expected);
     expect(field().props.options).toEqual(['stable-preset', 'other-preset']);
-    expect(showToast).toHaveBeenCalledExactlyOnceWith('error', 'model.catalogUnsupported');
+    if (editing)
+      expect(showToast).toHaveBeenCalledExactlyOnceWith('error', 'model.catalogUnsupported');
+    else expect(showToast).not.toHaveBeenCalled();
     expect(api.addModel).not.toHaveBeenCalled();
     expect(api.updateModel).not.toHaveBeenCalled();
     expect(api.queryModelUsage).not.toHaveBeenCalled();
@@ -381,6 +383,8 @@ it('keeps the initial options when cache reading and the Add directory request b
   await advance();
   expect(field().props.options).toEqual(['fallback-fixture']);
   expect(current.modelId).toBe('manual-fixture');
+  expect(showToast).not.toHaveBeenCalled();
+  await refresh();
   expect(showToast).toHaveBeenCalledExactlyOnceWith('error', 'model.catalogFailed');
 });
 
@@ -513,3 +517,26 @@ it('pastes an exact model ID and ignores clipboard responses after the modal clo
   expect(current.modelId).toBe('provider/My-Custom-ID');
   expect(api.fetchUpstreamModelCatalog).not.toHaveBeenCalled();
 });
+
+it.each(['UPSTREAM_MODELS_UNSUPPORTED', 'UPSTREAM_MODELS_HTTP_401', 'UPSTREAM_MODELS_HTTP_503'])(
+  'opens Volcengine without an error toast when automatic discovery fails with %s',
+  async (error) => {
+    vi.mocked(api.fetchUpstreamModelCatalog).mockRejectedValue(error);
+    await open({
+      baseUrl: 'https://ark.cn-beijing.volces.com/api/coding/v3',
+      anthropicUrl: 'https://ark.cn-beijing.volces.com/api/coding',
+      apiKey: '',
+      modelId: 'manual-fixture',
+      modelIdOptions: ['manual-fixture'],
+    });
+    await advance();
+    expect(showToast).not.toHaveBeenCalled();
+    expect(current.modelId).toBe('manual-fixture');
+    expect(field().props.options).toEqual(['manual-fixture']);
+    expect(api.addModel).not.toHaveBeenCalled();
+    expect(api.updateModel).not.toHaveBeenCalled();
+    expect(api.queryModelUsage).not.toHaveBeenCalled();
+    await refresh();
+    expect(showToast).toHaveBeenCalledOnce();
+  }
+);

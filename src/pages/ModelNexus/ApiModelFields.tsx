@@ -96,53 +96,58 @@ export function ApiModelFields({
     [source, setForm, editing, input.apiKey, initialFreeIds]
   );
 
-  const refresh = useCallback(async () => {
-    if (!active || !validEndpoint || running.current === source) return;
-    clearTimeout(timer.current);
-    const attempt = ++revision.current;
-    running.current = source;
-    setPendingSource(source);
-    try {
-      const next = await api.fetchUpstreamModelCatalog(input);
-      if (attempt === revision.current) applyCatalog(next);
-    } catch (error) {
-      if (
-        attempt !== revision.current ||
-        !latest.current.active ||
-        latest.current.source !== source
-      )
-        return;
-      const code = String(error);
-      if (code === 'UPSTREAM_MODELS_UNSUPPORTED' && !editing) {
-        const preset =
-          sameEndpoint(initial.baseUrl, input.baseUrl) &&
-          sameEndpoint(initial.anthropicUrl, input.anthropicUrl)
-            ? initial.options?.[0]
-            : undefined;
-        if (preset)
-          setForm((current) =>
-            JSON.stringify(catalogInput(current)) === source && !current.modelId
-              ? { ...current, modelId: preset }
-              : current
-          );
+  const refresh = useCallback(
+    async (showErrors = true) => {
+      if (!active || !validEndpoint || running.current === source) return;
+      clearTimeout(timer.current);
+      const attempt = ++revision.current;
+      running.current = source;
+      setPendingSource(source);
+      try {
+        const next = await api.fetchUpstreamModelCatalog(input);
+        if (attempt === revision.current) applyCatalog(next);
+      } catch (error) {
+        if (
+          attempt !== revision.current ||
+          !latest.current.active ||
+          latest.current.source !== source
+        )
+          return;
+        const code = String(error);
+        if (code === 'UPSTREAM_MODELS_UNSUPPORTED' && !editing) {
+          const preset =
+            sameEndpoint(initial.baseUrl, input.baseUrl) &&
+            sameEndpoint(initial.anthropicUrl, input.anthropicUrl)
+              ? initial.options?.[0]
+              : undefined;
+          if (preset)
+            setForm((current) =>
+              JSON.stringify(catalogInput(current)) === source && !current.modelId
+                ? { ...current, modelId: preset }
+                : current
+            );
+        }
+        if (!showErrors) return;
+        const { t: translate, showToast: toast } = latest.current;
+        const message =
+          code === 'UPSTREAM_MODELS_UNSUPPORTED'
+            ? translate('model.catalogUnsupported')
+            : code === 'UPSTREAM_MODELS_KEY_INVALID' ||
+                /^UPSTREAM_MODELS_HTTP_(401|403)$/.test(code)
+              ? translate('model.catalogKeyInvalid')
+              : code === 'UPSTREAM_MODELS_INVALID_URL'
+                ? translate('model.catalogInvalidUrl')
+                : translate('model.catalogFailed');
+        toast('error', message);
+      } finally {
+        if (attempt === revision.current) {
+          running.current = null;
+          setPendingSource(null);
+        }
       }
-      const { t: translate, showToast: toast } = latest.current;
-      const message =
-        code === 'UPSTREAM_MODELS_UNSUPPORTED'
-          ? translate('model.catalogUnsupported')
-          : code === 'UPSTREAM_MODELS_KEY_INVALID' || /^UPSTREAM_MODELS_HTTP_(401|403)$/.test(code)
-            ? translate('model.catalogKeyInvalid')
-            : code === 'UPSTREAM_MODELS_INVALID_URL'
-              ? translate('model.catalogInvalidUrl')
-              : translate('model.catalogFailed');
-      toast('error', message);
-    } finally {
-      if (attempt === revision.current) {
-        running.current = null;
-        setPendingSource(null);
-      }
-    }
-  }, [active, validEndpoint, source, input, applyCatalog, initial, editing, setForm]);
+    },
+    [active, validEndpoint, source, input, applyCatalog, initial, editing, setForm]
+  );
 
   useEffect(() => {
     const attempt = ++revision.current;
@@ -159,7 +164,7 @@ export function ApiModelFields({
         // A cache miss or unreadable key must not interrupt opening an edit form.
       }
     );
-    if (!editing) timer.current = setTimeout(() => void refresh(), 800);
+    if (!editing) timer.current = setTimeout(() => void refresh(false), 800);
     return () => {
       clearTimeout(timer.current);
       revision.current += 1;
