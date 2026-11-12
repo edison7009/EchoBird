@@ -1,6 +1,6 @@
 {
   "name": "echobird",
-  "version": "6.3.1",
+  "version": "6.3.2",
   "description": "All-in-one AI desktop app with one-click installs for Claude Code, Codex CLI, DeepSeek and more. Manage AI accounts and quotas, route models with automatic failover, use voice input, and run local LLMs. Grow a Token Pet as you use AI.",
   "author": "Echo Bird Team",
   "license": "MIT",
