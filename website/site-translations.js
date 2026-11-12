@@ -19,7 +19,7 @@ export const homeEnglish = {
   'relay.ccvibe': 'APIs for Claude, GPT and other coding models',
   'relay.88api': 'Claude Opus 5.5, GPT-6.1 Sol and more',
   'relay.groo': 'GPT-6.1 Sol, Claude Opus 5.5 and more',
-  'relay.contact': 'Become a sponsor: <a href="mailto:hi@echobird.ai">hi@echobird.ai</a>',
+  'relay.contact': 'Become a sponsor: <a href="mailto:hi@echobird.ai">hi@echobird.ai</a> (Ordered by sponsorship date)',
   'usage.title': 'Usage Island<br />Keep usage on your desktop',
   'usage.body':
     'Keep account quotas, model balances, and reset times in a compact Usage Island. Five layouts unfold to fit the way you work, with usage always close at hand.',
