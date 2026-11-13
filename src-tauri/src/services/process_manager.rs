@@ -254,10 +254,11 @@ impl ProcessManager {
             crate::services::tool_manager::is_vscode_extension(tool_id),
         );
 
-        // Merge for both official and third-party launches, after desktop
-        // shutdown and before choosing the native/Store/CLI launch route.
+        // History preparation must not block a model-switch restart while
+        // Claude is still exiting. The plugin rechecks that it is stopped
+        // before touching history, including when the host check misses it.
         if tool_id == "claudedesktop" && restart {
-            crate::services::plugin_accounts::prepare_history("claudedesktop", false).await?;
+            crate::services::plugin_accounts::prepare_history("claudedesktop", true).await?;
         }
         if matches!(tool_id, "codex" | "chatgptdesktop") {
             if let Some(codex_dir) = crate::services::codex_runtime::default_codex_dir() {
