@@ -6,7 +6,7 @@
    opacity modifiers (e.g. bg-cyber-accent/20) keep working. ── */
 :root,
 :root[data-theme='dark'] {
-  --switch-thumb-rgb: var(--bg-base-rgb);
+  --switch-on-rgb: 0 122 255;
   /* Claude Desktop dark — warm-tinted dark grays (NOT pure black) paired
        with off-cream text (NOT pure white) so the contrast stays gentle. */
   --bg-base-rgb: 33 31 28; /* #211F1C — page, warm dark */
