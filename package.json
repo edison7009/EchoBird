@@ -16,7 +16,6 @@
     "lint:fix": "eslint \"src/**/*.{ts,tsx}\" --fix",
     "format": "prettier --write \"src/**/*.{ts,tsx,css,json}\"",
     "format:check": "prettier --check \"src/**/*.{ts,tsx,css,json}\"",
-    "copy:config": "echo no-op",
     "postinstall": "patch-package --error-on-fail && node scripts/verify-dependency-patches.mjs && node scripts/sync-catalogs.mjs",
     "catalog:generate": "node scripts/sync-catalogs.mjs --write && prettier --write \"src/data/*.json\"",
     "catalog:check": "node scripts/sync-catalogs.mjs",

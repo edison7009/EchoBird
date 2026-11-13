@@ -67,10 +67,6 @@ export async function listCodexAccounts(): Promise<CodexAccount[]> {
   return invoke('list_codex_accounts');
 }
 
-export async function captureCurrentCodexAccount(): Promise<CodexAccount> {
-  return invoke('capture_current_codex_account');
-}
-
 export function startCodexLogin(): Promise<string> {
   return invoke('start_codex_login');
 }

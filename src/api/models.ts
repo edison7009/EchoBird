@@ -170,11 +170,6 @@ export function hasVolcAksk(internalId: string): Promise<boolean> {
   return invoke('has_volc_aksk', { internalId });
 }
 
-/** Remove stored Volcengine AK/SK for a specific model. */
-export function clearVolcAksk(internalId: string): Promise<boolean> {
-  return invoke('clear_volc_aksk', { internalId });
-}
-
 /** Read stored AK/SK (plaintext) for a model, to pre-fill the config modal. */
 export function getVolcAksk(
   internalId: string

@@ -100,12 +100,6 @@ export interface PingResult {
   error?: string;
 }
 
-export interface ToggleEncryptionResult {
-  success: boolean;
-  apiKey: string;
-  encrypted: boolean;
-}
-
 // ─── Local LLM Types ───
 
 export interface LocalServerInfo {
@@ -128,22 +122,7 @@ export interface HfModelEntry {
   totalSize: number;
 }
 
-export interface ModelSettings {
-  modelsDirs: string[];
-  downloadDir?: string;
-  gpuName?: string;
-  gpuVramGb?: number;
-}
-
 // ─── Tool Config Types ───
-
-export interface ToolModelInfo {
-  id: string;
-  name: string;
-  baseUrl: string;
-  apiKey: string;
-  model: string;
-}
 
 export interface ApplyModelInput {
   id: string;
