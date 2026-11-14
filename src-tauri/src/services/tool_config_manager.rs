@@ -17,6 +17,7 @@ pub(crate) mod dsh;
 mod generic;
 mod grok;
 pub(crate) mod hermes;
+mod jsonc;
 mod kilo;
 pub(crate) mod kimicode;
 mod mimo_capabilities;

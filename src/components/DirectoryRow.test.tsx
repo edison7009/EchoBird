@@ -1,4 +1,3 @@
-import React from 'react';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 import { expect, it, vi } from 'vitest';
 import { DirectoryRow } from './DirectoryRow';

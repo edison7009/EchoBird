@@ -1,4 +1,3 @@
-import React from 'react';
 import { act, create } from 'react-test-renderer';
 import { expect, it, vi } from 'vitest';
 import { DeepSeekAccountSection } from './DeepSeekAccountSection';

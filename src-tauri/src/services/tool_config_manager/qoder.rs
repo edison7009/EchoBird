@@ -1,4 +1,4 @@
-use super::{ApplyResult, ModelInfo};
+use super::{jsonc::set, ApplyResult, ModelInfo};
 use crate::services::qoder_accounts::Edition;
 use crate::services::{
     native_account_files::{DirectoryLock, Transaction},
@@ -10,7 +10,7 @@ use crate::services::{
     tool_manager,
 };
 use jsonc_parser::{
-    cst::{CstInputValue, CstObject, CstRootNode},
+    cst::{CstInputValue, CstRootNode},
     ParseOptions,
 };
 use serde_json::{json, Value};
@@ -55,30 +55,6 @@ fn storage_path(edition: Edition) -> Result<PathBuf, String> {
         dirs::config_dir().ok_or("accountError.home")?
     };
     Ok(root.join(name).join("Local Storage/leveldb"))
-}
-
-fn input(value: &Value) -> CstInputValue {
-    match value {
-        Value::Null => CstInputValue::Null,
-        Value::Bool(value) => CstInputValue::Bool(*value),
-        Value::Number(value) => CstInputValue::Number(value.to_string()),
-        Value::String(value) => CstInputValue::String(value.clone()),
-        Value::Array(values) => CstInputValue::Array(values.iter().map(input).collect()),
-        Value::Object(values) => CstInputValue::Object(
-            values
-                .iter()
-                .map(|(key, value)| (key.clone(), input(value)))
-                .collect(),
-        ),
-    }
-}
-
-fn set(object: &CstObject, key: &str, value: &Value) {
-    if let Some(property) = object.get(key) {
-        property.set_value(input(value));
-    } else {
-        object.append(key, input(value));
-    }
 }
 
 fn provider(info: &ModelInfo) -> Result<(Value, String), String> {

@@ -19,6 +19,7 @@ import {
   AccountSection,
   AccountSectionButton,
   AccountSectionRow,
+  AccountQuotaWindows,
 } from './AccountSectionPrimitives';
 import { DeepSeekAccountSection } from './DeepSeekAccountSection';
 import { GrokAccountSection } from './GrokAccountSection';
@@ -964,17 +965,7 @@ export const CodexAccountSection: React.FC<{ showDivider?: boolean }> = ({
                   !account.quotaWindows?.some((window) => window.remainingPercent != null) &&
                   quotaPercent == null ? undefined : account.quotaWindows &&
                     account.quotaWindows.length > 1 ? (
-                    <span className="flex h-[16px] min-w-0 items-center gap-1 overflow-hidden whitespace-nowrap text-[11px] font-semibold leading-[16px] text-cyber-text">
-                      {account.quotaWindows.map((window, index) => (
-                        <span
-                          key={index}
-                          className={`flex flex-shrink-0 items-center ${quotaTextClass(window.remainingPercent)}`}
-                        >
-                          <QuotaPercent percent={window.remainingPercent} />
-                          <QuotaCountdown resetAt={window.resetAt} compact small parenthesized />
-                        </span>
-                      ))}
-                    </span>
+                    <AccountQuotaWindows windows={account.quotaWindows} />
                   ) : (
                     <span
                       className={`flex h-[16px] items-center justify-between ${quotaTextClass(quotaPercent)}`}

@@ -1,5 +1,4 @@
 import { AppManagerContext, type AppManagerContextType } from '../AppManager/context';
-import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 import { describe, expect, it, vi } from 'vitest';

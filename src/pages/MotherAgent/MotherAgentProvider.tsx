@@ -431,6 +431,19 @@ export function MotherAgentProvider({ children }: { children: React.ReactNode })
   // Chat scroll is managed by MotherAgentMain so the user can scroll up
   // freely while the agent is streaming.
 
+  const appendAssistantText = useCallback(
+    (text: string) => {
+      setChatOutput((prev) => {
+        const last = prev[prev.length - 1];
+        if (last?.type === 'assistant') {
+          return [...prev.slice(0, -1), { ...last, text: last.text + text }];
+        }
+        return [...prev, { type: 'assistant', text }];
+      });
+    },
+    [setChatOutput]
+  );
+
   // Subscribe to parasite events — shape mirrors agent_event so the chat
   // renderer (ChatBubble) needs no special handling. Tool-call surface is
   // intentionally absent in parasite mode: the wrapped CLI agent runs its
@@ -446,13 +459,7 @@ export function MotherAgentProvider({ children }: { children: React.ReactNode })
         if (event.request_id !== run.requestId) return;
         switch (event.type) {
           case 'text_delta':
-            setChatOutput((prev) => {
-              const last = prev[prev.length - 1];
-              if (last && last.type === 'assistant') {
-                return [...prev.slice(0, -1), { ...last, text: last.text + event.text }];
-              }
-              return [...prev, { type: 'assistant', text: event.text }];
-            });
+            appendAssistantText(event.text);
             break;
           case 'done':
             finishRun();
@@ -488,7 +495,7 @@ export function MotherAgentProvider({ children }: { children: React.ReactNode })
       cancelled = true;
       unlisten?.();
     };
-  }, [setChatOutput, finishRun]);
+  }, [setChatOutput, finishRun, appendAssistantText]);
 
   // Subscribe to agent events
   useEffect(() => {
@@ -502,13 +509,7 @@ export function MotherAgentProvider({ children }: { children: React.ReactNode })
         if (event.request_id !== run.requestId) return;
         switch (event.type) {
           case 'text_delta':
-            setChatOutput((prev) => {
-              const last = prev[prev.length - 1];
-              if (last && last.type === 'assistant') {
-                return [...prev.slice(0, -1), { ...last, text: last.text + event.text }];
-              }
-              return [...prev, { type: 'assistant', text: event.text }];
-            });
+            appendAssistantText(event.text);
             break;
           case 'thinking':
             // Reasoning is private — not surfaced into the chat stream
@@ -579,7 +580,7 @@ export function MotherAgentProvider({ children }: { children: React.ReactNode })
       unlisten?.();
     };
     // Subscribe-once on mount — the Tauri listener is torn down on unmount.
-  }, [setChatOutput, finishRun]);
+  }, [setChatOutput, finishRun, appendAssistantText]);
 
   // Internal send function
   const handleChatSendInternal = useCallback(

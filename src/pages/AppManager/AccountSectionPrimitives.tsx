@@ -1,10 +1,33 @@
 import React from 'react';
+import { QuotaCountdown } from './QuotaCountdown';
+import { QuotaPercent } from './QuotaPercent';
+import { quotaTextClass } from '../../utils/quotaColors';
 import { Check, Gift, LoaderCircle, RefreshCw, Trash2, X, Zap } from 'lucide-react';
 import { useI18n } from '../../hooks/useI18n';
 import { accountPlanLabel } from './accountPlanLabel';
 import { ACCOUNT_NAME_MASK, useAccountPrivacyStore } from '../../stores/accountPrivacyStore';
 import type { TKey } from '../../i18n/types';
 import { RoutingHint } from '../../components/RoutingToggle';
+
+export function AccountQuotaWindows({
+  windows,
+}: {
+  windows: ReadonlyArray<{ remainingPercent: number; resetAt?: number | null }>;
+}) {
+  return (
+    <span className="flex h-[16px] min-w-0 items-center gap-1 overflow-hidden whitespace-nowrap text-[11px] font-semibold leading-[16px] text-cyber-text">
+      {windows.map((window, index) => (
+        <span
+          key={index}
+          className={`flex flex-shrink-0 items-center ${quotaTextClass(window.remainingPercent)}`}
+        >
+          <QuotaPercent percent={window.remainingPercent} />
+          <QuotaCountdown resetAt={window.resetAt} compact small parenthesized />
+        </span>
+      ))}
+    </span>
+  );
+}
 
 /** Own internal spacing; the surrounding panel owns spacing to capability toggles/models. */
 export const AccountSection: React.FC<React.PropsWithChildren> = ({ children }) => (

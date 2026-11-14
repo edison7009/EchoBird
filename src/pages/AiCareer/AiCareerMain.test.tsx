@@ -1,4 +1,3 @@
-import React from 'react';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { open as openDialog } from '@tauri-apps/plugin-dialog';
