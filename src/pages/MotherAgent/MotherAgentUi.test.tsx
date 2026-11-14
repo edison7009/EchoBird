@@ -109,7 +109,7 @@ it('focuses an existing prefill when the first-visit input mounts late', () => {
   state = { ...state, chatInput: 'Install the selected application' };
   act(() => {
     renderer = create(<MotherAgentMain />, {
-      createNodeMock: (element) => (element.type === 'textarea' ? { focus } : null),
+      createNodeMock: (element) => (element.type === 'textarea' ? { focus, style: {} } : null),
     });
   });
   expect(focus).toHaveBeenCalledOnce();
@@ -135,7 +135,7 @@ it.each([false, true])(
     act(() => {
       renderer = create(<MotherAgentMain />, {
         createNodeMock: (element) =>
-          element.type === 'textarea' ? { focus, setSelectionRange } : null,
+          element.type === 'textarea' ? { focus, setSelectionRange, style: {} } : null,
       });
     });
     if (busy) {
@@ -151,6 +151,58 @@ it.each([false, true])(
     expect(state.handleChatSend).not.toHaveBeenCalled();
   }
 );
+
+it('fits typed and prefilled drafts, shrinks after clearing, and resizes on return', () => {
+  let notifyResize: () => void = () => {};
+  vi.stubGlobal(
+    'ResizeObserver',
+    class {
+      constructor(callback: () => void) {
+        notifyResize = callback;
+      }
+      observe() {}
+      disconnect() {}
+    }
+  );
+  const input = {
+    style: { height: '' },
+    scrollHeight: 48,
+    scrollTop: 0,
+    clientWidth: 400,
+  };
+  act(() => {
+    renderer = create(<MotherAgentMain />, {
+      createNodeMock: (element) => (element.type === 'textarea' ? input : null),
+    });
+  });
+  expect(input.style.height).toBe('48px');
+  input.scrollHeight = 168;
+  state = { ...state, chatInput: 'A long multiline draft' };
+  act(() => renderer!.update(<MotherAgentMain />));
+  expect(input.style.height).toBe('168px');
+  input.clientWidth = 240;
+  input.scrollHeight = 208;
+  input.scrollTop = 12;
+  act(() => notifyResize());
+  expect(input.style.height).toBe('208px');
+  expect(input.scrollTop).toBe(12);
+  input.scrollHeight = 48;
+  state = { ...state, chatInput: '' };
+  act(() => renderer!.update(<MotherAgentMain />));
+  expect(input.style.height).toBe('48px');
+  activePage = 'settings';
+  act(() => renderer!.update(<MotherAgentMain />));
+  input.scrollHeight = 128;
+  state = { ...state, chatInput: 'Prefilled while hidden' };
+  act(() => renderer!.update(<MotherAgentMain />));
+  activePage = 'mother';
+  act(() => renderer!.update(<MotherAgentMain />));
+  expect(input.style.height).toBe('128px');
+  expect(state.setChatInput).not.toHaveBeenCalled();
+  expect(renderer!.root.findByType('textarea').props.style.maxHeight).toBe(
+    'max(48px, calc(50vh - 60px))'
+  );
+});
 
 it('keeps automatic memory operations out of the visible conversation', () => {
   state = {

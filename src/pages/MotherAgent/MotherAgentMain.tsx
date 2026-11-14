@@ -114,6 +114,34 @@ export function MotherAgentMain() {
     setShowScrollBtn(false);
   }, []);
 
+  // Fit drafts before paint, including prefills and clearing after send.
+  useLayoutEffect(() => {
+    const input = chatInputRef.current;
+    if (!input || !isMotherActive) return;
+    const resize = (contentChanged: boolean) => {
+      const previousScrollTop = input.scrollTop;
+      input.style.height = 'auto';
+      input.style.height = `${input.scrollHeight}px`;
+      const followCaret =
+        contentChanged &&
+        document.activeElement === input &&
+        input.selectionStart === input.value.length &&
+        input.selectionEnd === input.value.length;
+      input.scrollTop = followCaret ? input.scrollHeight : previousScrollTop;
+      if (stickToBottomRef.current) snapToBottom();
+    };
+    resize(true);
+    // Side panels and window resizing can change wrapping without editing the draft.
+    let width = input.clientWidth;
+    const observer = new ResizeObserver(() => {
+      if (input.clientWidth === width) return;
+      width = input.clientWidth;
+      resize(false);
+    });
+    observer.observe(input);
+    return () => observer.disconnect();
+  }, [chatInput, chatInputRef, isMotherActive, snapToBottom]);
+
   // Reset pagination + re-arm sticky when the conversation changes
   useEffect(() => {
     paginationGenerationRef.current += 1;
@@ -356,6 +384,7 @@ export function MotherAgentMain() {
             placeholder={t('mother.enterMessage')}
             disabled={isProcessing}
             rows={2}
+            style={{ minHeight: 48, maxHeight: 'max(48px, calc(50vh - 60px))', overflowY: 'auto' }}
             className="w-full bg-transparent px-2 py-1 text-sm text-cyber-text font-sans font-medium outline-none placeholder:text-cyber-text-muted disabled:opacity-30 resize-none"
           />
           <div className="mother-composer-controls flex items-center justify-end gap-1">
