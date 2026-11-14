@@ -216,6 +216,15 @@ pub(super) fn capture(input: Option<InputTarget>) -> Option<Target> {
     let selected_text =
         writable(&element, "AXSelectedTextRange") && writable(&element, "AXSelectedText");
     let whole_value = writable(&element, "AXValue");
+    log::info!(
+        "[VoiceInput] macOS target pid={} role={} range_known={} value_known={} selected_text={} whole_value={}",
+        input.window,
+        attribute(&element, "AXRole").and_then(|role| string(&role)).unwrap_or_default(),
+        range.is_some(),
+        edit.is_some(),
+        selected_text,
+        whole_value
+    );
     Some(Target {
         input,
         app,
@@ -228,6 +237,33 @@ pub(super) fn capture(input: Option<InputTarget>) -> Option<Target> {
 }
 
 impl Target {
+    fn owns_focus(&self) -> bool {
+        let Some(focused) = attribute(&self.app, "AXFocusedUIElement") else {
+            return false;
+        };
+        let Some(range) = attribute(&self.element, "AXSelectedTextRange") else {
+            return false;
+        };
+        native::foreground() == Some(self.input.window)
+            && unsafe { CFEqual(focused.0, self.element.0) } != 0
+            && self
+                .range
+                .as_ref()
+                .is_some_and(|original| unsafe { CFEqual(range.0, original.0) } != 0)
+    }
+
+    fn confirm(&self, expected: &str, cancel: &CancellationToken) -> Result<(), String> {
+        let expected = expected.replace("\r\n", "\n").replace('\r', "\n");
+        super::confirm_paste(cancel, &mut || {
+            attribute(&self.element, "AXValue")
+                .and_then(|value| string(&value))
+                .is_some_and(|actual| {
+                    let actual = actual.replace("\r\n", "\n").replace('\r', "\n");
+                    actual == expected || actual.strip_suffix('\n') == Some(expected.as_str())
+                })
+        })
+    }
+
     pub(super) fn insert(self, text: &str, cancel: &CancellationToken) -> Result<(), String> {
         if cancel.is_cancelled() {
             return Err("voice.error.cancelled".into());
@@ -239,6 +275,9 @@ impl Target {
         {
             return Err(UNAVAILABLE.into());
         }
+        if unsafe { IsSecureEventInputEnabled() } != 0 {
+            return Err(UNAVAILABLE.into());
+        }
         if let Some(edit) = &self.edit {
             let current = attribute(&self.element, "AXValue")
                 .and_then(|value| string(&value))
@@ -246,6 +285,13 @@ impl Target {
             let replacement = edit.replace(&current, text)?;
             if cancel.is_cancelled() {
                 return Err("voice.error.cancelled".into());
+            }
+            // Normal keyboard events reach the editor's input handlers. Prefer
+            // them while the original field and selection still own focus.
+            if self.owns_focus() {
+                log::info!("[VoiceInput] macOS input route=focused_keyboard");
+                native::insert(text, Some(self.input), cancel)?;
+                return self.confirm(&replacement, cancel);
             }
             if self.selected_text {
                 set(
@@ -257,26 +303,23 @@ impl Target {
                     return Err("voice.error.cancelled".into());
                 }
                 let text = CFString::new(text);
-                return set(&self.element, "AXSelectedText", text.as_CFTypeRef());
+                log::info!("[VoiceInput] macOS input route=selected_text");
+                set(&self.element, "AXSelectedText", text.as_CFTypeRef())?;
+                return self.confirm(&replacement, cancel);
             }
             if self.whole_value {
                 let value = CFString::new(&replacement);
-                return set(&self.element, "AXValue", value.as_CFTypeRef());
+                log::info!("[VoiceInput] macOS input route=whole_value");
+                set(&self.element, "AXValue", value.as_CFTypeRef())?;
+                return self.confirm(&replacement, cancel);
             }
         }
         // Keep the existing keyboard path only when the exact original field
         // and its selection still own focus. Never activate an application.
-        let focused = attribute(&self.app, "AXFocusedUIElement").ok_or(UNAVAILABLE)?;
-        let range = attribute(&self.element, "AXSelectedTextRange").ok_or(UNAVAILABLE)?;
-        if native::foreground() != Some(self.input.window)
-            || unsafe { CFEqual(focused.0, self.element.0) } == 0
-            || unsafe { CFEqual(range.0, self.range.as_ref().ok_or(UNAVAILABLE)?.0) } == 0
-        {
+        if !self.owns_focus() {
             return Err(UNAVAILABLE.into());
         }
-        if unsafe { IsSecureEventInputEnabled() } != 0 {
-            return Err(UNAVAILABLE.into());
-        }
+        log::info!("[VoiceInput] macOS input route=focused_keyboard_unreadable");
         native::insert(text, Some(self.input), cancel)
     }
 }

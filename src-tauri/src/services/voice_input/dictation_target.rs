@@ -109,7 +109,7 @@ fn insertion_observed(before: &str, after: &str, text: &str) -> bool {
         && normalize(after).matches(&text).count() > normalize(before).matches(&text).count()
 }
 
-#[cfg(any(windows, test))]
+#[cfg(any(windows, target_os = "macos", test))]
 pub(super) fn confirm_paste(
     cancel: &CancellationToken,
     confirmed: &mut dyn FnMut() -> bool,

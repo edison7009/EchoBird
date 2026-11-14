@@ -1,78 +1,69 @@
 use objc2::{
-    msg_send,
-    runtime::{AnyClass, AnyObject, Bool, ClassBuilder, Sel},
+    ffi, msg_send,
+    runtime::{AnyClass, AnyObject, Bool, Imp, Sel},
     sel,
 };
 use std::sync::OnceLock;
 
-extern "C-unwind" fn no(_: &AnyObject, _: Sel) -> Bool {
-    Bool::NO
-}
+type PanelQuery = unsafe extern "C-unwind" fn(&AnyObject, Sel) -> Bool;
 
-extern "C-unwind" fn yes(_: &AnyObject, _: Sel) -> Bool {
-    Bool::YES
-}
+static PANEL_QUERY: OnceLock<PanelQuery> = OnceLock::new();
+static PANEL_QUERY_INSTALLED: OnceLock<bool> = OnceLock::new();
+static ISLAND_MARKER: u8 = 0;
 
-struct IslandClass {
-    class: &'static AnyClass,
-    event_superclass: &'static AnyClass,
-}
-
-static CLASS: OnceLock<IslandClass> = OnceLock::new();
-
-extern "C-unwind" fn send_event(this: &AnyObject, _: Sel, event: &AnyObject) {
-    // Tao's inherited sendEvent: dynamically asks this window for its superclass.
-    // After subclassing, that resolves back to Tao and re-enters the same method.
-    // Preserve Tao's background dragging, then dispatch to its original parent.
-    let event_type: usize = unsafe { msg_send![event, type] };
-    if event_type == 1 {
-        let movable: Bool = unsafe { msg_send![this, isMovableByWindowBackground] };
-        if movable.as_bool() {
-            let _: () = unsafe { msg_send![this, performWindowDragWithEvent: event] };
-        }
+extern "C-unwind" fn is_nonactivating_panel(window: &AnyObject, selector: Sel) -> Bool {
+    // An association follows this instance through KVO's own subclass changes
+    // and is removed with the window, without retaining the window itself.
+    let marker =
+        unsafe { ffi::objc_getAssociatedObject(window, (&raw const ISLAND_MARKER).cast()) };
+    if !marker.is_null() {
+        return Bool::YES;
     }
-    let parent = CLASS
-        .get()
-        .expect("registered island class")
-        .event_superclass;
-    let _: () = unsafe { msg_send![super(this, parent), sendEvent: event] };
+    let original = PANEL_QUERY.get().expect("installed panel query");
+    unsafe { original(window, selector) }
 }
 
-fn nonactivating_class(
-    superclass: &'static AnyClass,
-    event_superclass: &'static AnyClass,
-) -> &'static AnyClass {
-    CLASS
-        .get_or_init(|| {
-            let mut class = ClassBuilder::new(c"EchoBirdVoiceIslandWindow", superclass).unwrap();
-            // SAFETY: these overrides have the same Objective-C signatures as the
-            // inherited window methods. No ivars are added; dragging, delegates and
-            // the window library's focusable state remain on the original class.
-            unsafe {
-                class.add_method(
-                    sel!(sendEvent:),
-                    send_event as extern "C-unwind" fn(_, _, _),
-                );
-                class.add_method(
-                    sel!(canBecomeKeyWindow),
-                    no as extern "C-unwind" fn(_, _) -> _,
-                );
-                class.add_method(
-                    sel!(canBecomeMainWindow),
-                    no as extern "C-unwind" fn(_, _) -> _,
-                );
-                // AppKit checks this independently of whether a window can become key.
-                class.add_method(
-                    sel!(_isNonactivatingPanel),
-                    yes as extern "C-unwind" fn(_, _) -> _,
-                );
-            }
-            IslandClass {
-                class: class.register(),
-                event_superclass,
-            }
-        })
-        .class
+fn install_panel_query(class: &'static AnyClass) -> bool {
+    *PANEL_QUERY_INSTALLED.get_or_init(|| {
+        let selector = sel!(_isNonactivatingPanel);
+        let Some(method) = class.instance_method(selector) else {
+            return false;
+        };
+        // SAFETY: the inherited AppKit method and our implementation both
+        // take (id, SEL) and return Objective-C BOOL. Copy its type encoding.
+        let original: PanelQuery = unsafe { std::mem::transmute(method.implementation()) };
+        // Publish the fallback before making the override visible to any
+        // other thread querying an ordinary window during installation.
+        PANEL_QUERY
+            .set(original)
+            .expect("panel query initialized once");
+        let replacement: Imp = unsafe {
+            std::mem::transmute(is_nonactivating_panel as extern "C-unwind" fn(_, _) -> Bool)
+        };
+        let installed = unsafe {
+            ffi::class_addMethod(
+                (class as *const AnyClass).cast_mut(),
+                selector,
+                replacement,
+                ffi::method_getTypeEncoding(method),
+            )
+        };
+        installed.as_bool()
+    })
+}
+
+fn mark_island(window: &AnyObject) {
+    let pointer = (window as *const AnyObject).cast_mut();
+    // SAFETY: this non-owning self marker is only read while the receiver is
+    // alive. The runtime owns the association and removes it on deallocation.
+    unsafe {
+        ffi::objc_setAssociatedObject(
+            pointer,
+            (&raw const ISLAND_MARKER).cast(),
+            pointer,
+            ffi::OBJC_ASSOCIATION_ASSIGN,
+        );
+    }
 }
 
 pub(super) fn configure(window: &tauri::WebviewWindow) -> tauri::Result<()> {
@@ -82,20 +73,16 @@ pub(super) fn configure(window: &tauri::WebviewWindow) -> tauri::Result<()> {
             return;
         };
         // SAFETY: the live window is accessed only on AppKit's main thread.
-        // Its replacement class is an ivar-free subclass
-        // of its original class, preserving the allocation and inherited state.
         let island = unsafe { &*(island as *const AnyObject) };
-        // Wry may add another subclass above Tao. Dispatch to AppKit itself,
-        // since skipping just one level can still select Tao's dynamic handler.
-        let class = nonactivating_class(
-            island.class(),
-            AnyClass::get(c"NSWindow").expect("AppKit NSWindow"),
-        );
-        if island.class() != class {
-            unsafe { AnyObject::set_class(island, class) };
+        // Install on the original window class, leaving KVO's runtime subclass
+        // and observation metadata intact. Other windows retain AppKit's query.
+        // The builder's focusable(false) already handles key/main-window refusal.
+        let class: &'static AnyClass = unsafe { msg_send![island, class] };
+        if install_panel_query(class) {
+            mark_island(island);
+        } else {
+            log::warn!("[VoiceInput] the island cannot configure nonactivation");
         }
-        // The window was initialized before the override was installed, so also
-        // update the window server's activation tag before its first display.
         let supported: Bool =
             unsafe { msg_send![island, respondsToSelector: sel!(_setPreventsActivation:)] };
         if supported.as_bool() {
@@ -109,119 +96,144 @@ pub(super) fn configure(window: &tauri::WebviewWindow) -> tauri::Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use objc2::rc::Retained;
+    use objc2::{rc::Retained, runtime::ClassBuilder};
     use std::sync::atomic::{AtomicUsize, Ordering};
 
-    static BASE_EVENTS: AtomicUsize = AtomicUsize::new(0);
-    static NATIVE_EVENTS: AtomicUsize = AtomicUsize::new(0);
-    static DRAGS: AtomicUsize = AtomicUsize::new(0);
-    static EVENT_TYPE: AtomicUsize = AtomicUsize::new(1);
+    static EVENTS: AtomicUsize = AtomicUsize::new(0);
+    static OBSERVATIONS: AtomicUsize = AtomicUsize::new(0);
 
     extern "C-unwind" fn native_event(_: &AnyObject, _: Sel, _: &AnyObject) {
-        NATIVE_EVENTS.fetch_add(1, Ordering::SeqCst);
+        EVENTS.fetch_add(1, Ordering::SeqCst);
     }
 
-    extern "C-unwind" fn window_event(this: &AnyObject, _: Sel, event: &AnyObject) {
-        BASE_EVENTS.fetch_add(1, Ordering::SeqCst);
-        let parent: &AnyClass = unsafe { msg_send![this, superclass] };
-        let _: () = unsafe { msg_send![super(this, parent), sendEvent: event] };
+    extern "C-unwind" fn no(_: &AnyObject, _: Sel) -> Bool {
+        Bool::NO
     }
 
-    extern "C-unwind" fn drag(_: &AnyObject, _: Sel, _: &AnyObject) {
-        DRAGS.fetch_add(1, Ordering::SeqCst);
+    extern "C-unwind" fn saved_state(this: &AnyObject, _: Sel) -> u64 {
+        let state = this.class().instance_variable(c"savedState").unwrap();
+        unsafe { *state.load::<u64>(this) }
     }
 
-    extern "C-unwind" fn event_type(_: &AnyObject, _: Sel) -> usize {
-        EVENT_TYPE.load(Ordering::SeqCst)
+    extern "C-unwind" fn set_saved_state(this: &AnyObject, _: Sel, value: u64) {
+        let state = this.class().instance_variable(c"savedState").unwrap();
+        unsafe { state.load_ptr::<u64>(this).write(value) };
+    }
+
+    extern "C-unwind" fn observe(
+        _: &AnyObject,
+        _: Sel,
+        _: &AnyObject,
+        _: &AnyObject,
+        _: &AnyObject,
+        _: *mut std::ffi::c_void,
+    ) {
+        OBSERVATIONS.fetch_add(1, Ordering::SeqCst);
     }
 
     #[test]
-    fn nonactivating_window_preserves_native_state_and_rejects_keyboard_focus() {
-        let mut native = ClassBuilder::new(
-            c"EchoBirdVoiceIslandTestNativeWindow",
-            AnyClass::get(c"NSObject").unwrap(),
-        )
-        .unwrap();
-        unsafe {
-            native.add_method(
-                sel!(sendEvent:),
-                native_event as extern "C-unwind" fn(_, _, _),
-            );
-        }
-        let native = native.register();
-        let mut base = ClassBuilder::new(c"EchoBirdVoiceIslandTestWindow", native).unwrap();
-        base.add_ivar::<u64>(c"savedState");
-        unsafe {
-            base.add_method(
-                sel!(sendEvent:),
-                window_event as extern "C-unwind" fn(_, _, _),
-            );
-            base.add_method(
-                sel!(isMovableByWindowBackground),
-                yes as extern "C-unwind" fn(_, _) -> _,
-            );
-            base.add_method(
-                sel!(performWindowDragWithEvent:),
-                drag as extern "C-unwind" fn(_, _, _),
-            );
-            base.add_method(
-                sel!(canBecomeKeyWindow),
-                yes as extern "C-unwind" fn(_, _) -> _,
-            );
-            base.add_method(
-                sel!(canBecomeMainWindow),
-                yes as extern "C-unwind" fn(_, _) -> _,
-            );
-            base.add_method(
-                sel!(_isNonactivatingPanel),
-                no as extern "C-unwind" fn(_, _) -> _,
-            );
-        }
-        let base = base.register();
-        let object: Retained<AnyObject> = unsafe { msg_send![base, new] };
-        let mut event_class = ClassBuilder::new(
-            c"EchoBirdVoiceIslandTestEvent",
-            AnyClass::get(c"NSObject").unwrap(),
-        )
-        .unwrap();
-        unsafe {
-            event_class.add_method(sel!(type), event_type as extern "C-unwind" fn(_, _) -> _);
-        }
-        let event: Retained<AnyObject> = unsafe { msg_send![event_class.register(), new] };
-        let _: () = unsafe { msg_send![&*object, sendEvent: &*event] };
-        assert_eq!(BASE_EVENTS.load(Ordering::SeqCst), 1);
-        assert_eq!(NATIVE_EVENTS.load(Ordering::SeqCst), 1);
-        let state = base.instance_variable(c"savedState").unwrap();
-        // SAFETY: this fixture has sole ownership and no outstanding borrows.
-        unsafe { state.load_ptr::<u64>(&object).write(42) };
-        // Positive control: the unmodified window accepts activation and focus.
-        let key: Bool = unsafe { msg_send![&*object, canBecomeKeyWindow] };
-        let panel: Bool = unsafe { msg_send![&*object, _isNonactivatingPanel] };
-        assert!(key.as_bool());
-        assert!(!panel.as_bool());
-        let wrapper = ClassBuilder::new(c"EchoBirdVoiceIslandTestWebviewWindow", base)
-            .unwrap()
-            .register();
-        unsafe { AnyObject::set_class(&object, wrapper) };
-        let class = nonactivating_class(wrapper, native);
-        assert_eq!(class.superclass(), Some(wrapper));
-        assert_eq!(class.instance_size(), base.instance_size());
-        unsafe { AnyObject::set_class(&object, class) };
-        let key: Bool = unsafe { msg_send![&*object, canBecomeKeyWindow] };
-        let main: Bool = unsafe { msg_send![&*object, canBecomeMainWindow] };
-        let panel: Bool = unsafe { msg_send![&*object, _isNonactivatingPanel] };
-        assert!(!key.as_bool());
-        assert!(!main.as_bool());
-        assert!(panel.as_bool());
-        assert_eq!(unsafe { *state.load::<u64>(&object) }, 42);
-        assert_eq!(nonactivating_class(wrapper, native), class);
-        // Mouse-down preserves native dragging and reaches AppKit once, without
-        // re-entering the inherited dynamic-superclass handler. Other events do not drag.
-        let _: () = unsafe { msg_send![&*object, sendEvent: &*event] };
-        EVENT_TYPE.store(2, Ordering::SeqCst);
-        let _: () = unsafe { msg_send![&*object, sendEvent: &*event] };
-        assert_eq!(BASE_EVENTS.load(Ordering::SeqCst), 1);
-        assert_eq!(NATIVE_EVENTS.load(Ordering::SeqCst), 3);
-        assert_eq!(DRAGS.load(Ordering::SeqCst), 1);
+    fn nonactivating_window_preserves_observer_class_and_other_windows() {
+        let result = objc2::exception::catch(|| {
+            let mut native = ClassBuilder::new(
+                c"EchoBirdVoiceIslandTestNativeWindow",
+                AnyClass::get(c"NSObject").unwrap(),
+            )
+            .unwrap();
+            unsafe {
+                native.add_method(
+                    sel!(_isNonactivatingPanel),
+                    no as extern "C-unwind" fn(_, _) -> _,
+                );
+                native.add_method(
+                    sel!(canBecomeKeyWindow),
+                    no as extern "C-unwind" fn(_, _) -> _,
+                );
+                native.add_method(
+                    sel!(canBecomeMainWindow),
+                    no as extern "C-unwind" fn(_, _) -> _,
+                );
+                native.add_method(
+                    sel!(sendEvent:),
+                    native_event as extern "C-unwind" fn(_, _, _),
+                );
+            }
+            let native = native.register();
+            let mut base = ClassBuilder::new(c"EchoBirdVoiceIslandTestWindow", native).unwrap();
+            base.add_ivar::<u64>(c"savedState");
+            unsafe {
+                base.add_method(
+                    sel!(savedState),
+                    saved_state as extern "C-unwind" fn(_, _) -> _,
+                );
+                base.add_method(
+                    sel!(setSavedState:),
+                    set_saved_state as extern "C-unwind" fn(_, _, _),
+                );
+            }
+            let base = base.register();
+            let mut observer_class = ClassBuilder::new(
+                c"EchoBirdVoiceIslandTestObserver",
+                AnyClass::get(c"NSObject").unwrap(),
+            )
+            .unwrap();
+            unsafe {
+                observer_class.add_method(
+                    sel!(observeValueForKeyPath:ofObject:change:context:),
+                    observe as extern "C-unwind" fn(_, _, _, _, _, _),
+                );
+            }
+            let observer_class = observer_class.register();
+            let observer: Retained<AnyObject> = unsafe { msg_send![observer_class, new] };
+            let additional_observer: Retained<AnyObject> =
+                unsafe { msg_send![observer_class, new] };
+            let island: Retained<AnyObject> = unsafe { msg_send![base, new] };
+            let other: Retained<AnyObject> = unsafe { msg_send![base, new] };
+            let key_path = objc2_foundation::ns_string!("savedState");
+            let _: () = unsafe {
+                msg_send![&*island, addObserver: &*observer, forKeyPath: key_path, options: 1usize, context: std::ptr::null_mut::<std::ffi::c_void>()]
+            };
+            let runtime_class = island.class();
+            assert_ne!(runtime_class, base);
+            let state = base.instance_variable(c"savedState").unwrap();
+            unsafe { state.load_ptr::<u64>(&island).write(42) };
+            let before: &'static AnyClass = unsafe { msg_send![&*island, class] };
+            assert_eq!(before, base);
+            let panel: Bool = unsafe { msg_send![&*island, _isNonactivatingPanel] };
+            assert!(!panel.as_bool());
+            assert!(install_panel_query(base));
+            mark_island(&island);
+            assert!(install_panel_query(base));
+            mark_island(&island);
+            assert_eq!(island.class(), runtime_class);
+            let after: &'static AnyClass = unsafe { msg_send![&*island, class] };
+            assert_eq!(after, before);
+            assert_eq!(unsafe { *state.load::<u64>(&island) }, 42);
+            let _: () = unsafe { msg_send![&*island, setSavedState: 43u64] };
+            assert_eq!(OBSERVATIONS.load(Ordering::SeqCst), 1);
+            // Adding another real Foundation observer exercises the system sharing
+            // path that crashed when an extra class was installed above KVO.
+            let _: () = unsafe {
+                msg_send![&*island, addObserver: &*additional_observer, forKeyPath: key_path, options: 1usize, context: std::ptr::null_mut::<std::ffi::c_void>()]
+            };
+            let _: () = unsafe { msg_send![&*island, setSavedState: 44u64] };
+            assert_eq!(OBSERVATIONS.load(Ordering::SeqCst), 3);
+            assert_eq!(unsafe { *state.load::<u64>(&island) }, 44);
+            let panel: Bool = unsafe { msg_send![&*island, _isNonactivatingPanel] };
+            assert!(panel.as_bool());
+            let other_panel: Bool = unsafe { msg_send![&*other, _isNonactivatingPanel] };
+            assert!(!other_panel.as_bool());
+            let key: Bool = unsafe { msg_send![&*island, canBecomeKeyWindow] };
+            let main: Bool = unsafe { msg_send![&*island, canBecomeMainWindow] };
+            assert!(!key.as_bool());
+            assert!(!main.as_bool());
+            let _: () = unsafe { msg_send![&*island, sendEvent: &*other] };
+            assert_eq!(EVENTS.load(Ordering::SeqCst), 1);
+            let _: () =
+                unsafe { msg_send![&*island, removeObserver: &*observer, forKeyPath: key_path] };
+            let _: () = unsafe {
+                msg_send![&*island, removeObserver: &*additional_observer, forKeyPath: key_path]
+            };
+        });
+        assert!(result.is_ok(), "Foundation KVO fixture failed: {result:?}");
     }
 }
