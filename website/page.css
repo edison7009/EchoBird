@@ -1302,6 +1302,7 @@ body:before {
   top: calc(100% + 12px);
   z-index: 100;
   display: grid;
+  row-gap: 4px;
   min-width: 180px;
   max-height: min(65vh, 400px);
   overflow-y: auto;
