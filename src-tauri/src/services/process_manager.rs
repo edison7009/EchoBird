@@ -3654,3 +3654,64 @@ mod system_application_tests {
         std::fs::remove_dir_all(root).unwrap();
     }
 }
+
+#[cfg(all(test, any(target_os = "macos", target_os = "linux")))]
+mod unix_system_application_tests {
+    #[test]
+    #[ignore = "launches an owned temporary application through the native desktop launcher"]
+    fn registered_launch_preserves_arguments() {
+        use std::os::unix::fs::PermissionsExt;
+        let root = std::env::temp_dir().join(format!("echobird-launch-{}", uuid::Uuid::new_v4()));
+        std::fs::create_dir_all(&root).unwrap();
+        let marker = root.join("launched.txt");
+        let script = root.join("Launch fixture.sh");
+        std::fs::write(&script, "#!/bin/sh\nprintf 'launched' > \"$1\"\n").unwrap();
+        std::fs::set_permissions(&script, std::fs::Permissions::from_mode(0o755)).unwrap();
+        #[cfg(target_os = "macos")]
+        let target = {
+            let bundle = root.join("Launch fixture.app");
+            let contents = bundle.join("Contents");
+            std::fs::create_dir_all(contents.join("MacOS")).unwrap();
+            let executable = contents.join("MacOS/fixture");
+            std::fs::write(
+                &executable,
+                format!(
+                    "#!/bin/sh\nexec '{}' '{}'\n",
+                    script.display(),
+                    marker.display()
+                ),
+            )
+            .unwrap();
+            std::fs::set_permissions(&executable, std::fs::Permissions::from_mode(0o755)).unwrap();
+            let mut info = plist::Dictionary::new();
+            info.insert("CFBundleExecutable".into(), "fixture".into());
+            info.insert(
+                "CFBundleIdentifier".into(),
+                format!("ai.echobird.fixture.{}", uuid::Uuid::new_v4()).into(),
+            );
+            info.insert("CFBundlePackageType".into(), "APPL".into());
+            info.insert("LSUIElement".into(), true.into());
+            plist::Value::Dictionary(info)
+                .to_file_xml(contents.join("Info.plist"))
+                .unwrap();
+            bundle
+        };
+        #[cfg(target_os = "linux")]
+        let target = {
+            let desktop = root.join("Launch fixture.desktop");
+            std::fs::write(&desktop, format!("[Desktop Entry]\nType=Application\nName=EchoBird launch fixture\nExec=\"{}\" \"{}\"\nTerminal=false\n", script.display(), marker.display())).unwrap();
+            desktop
+        };
+        super::launch_registered_application(target.to_str().unwrap()).unwrap();
+        let deadline = std::time::Instant::now() + std::time::Duration::from_secs(10);
+        while !marker.exists() && std::time::Instant::now() < deadline {
+            std::thread::sleep(std::time::Duration::from_millis(50));
+        }
+        let result = std::fs::read_to_string(&marker);
+        let missing =
+            super::launch_registered_application(root.join("Missing.app").to_str().unwrap());
+        std::fs::remove_dir_all(&root).unwrap();
+        assert_eq!(result.unwrap(), "launched");
+        assert!(missing.is_err());
+    }
+}

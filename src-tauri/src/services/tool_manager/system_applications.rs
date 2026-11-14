@@ -625,13 +625,16 @@ mod tests {
         let root = std::env::temp_dir().join(format!("echobird-apps-{}", uuid::Uuid::new_v4()));
         std::fs::create_dir_all(&root).unwrap();
         let file = root.join("fixture.desktop");
-        let entry = "[Desktop Entry]\nType=Application\nName=Local app\nExec=\"/opt/Custom App/main\" --open %U\nIcon=fixture\n";
-        std::fs::write(&file, entry).unwrap();
+        // GIO rejects entries whose Exec program is missing or non-executable.
+        use std::os::unix::fs::PermissionsExt;
+        let executable = root.join("Custom App/main");
+        std::fs::create_dir_all(executable.parent().unwrap()).unwrap();
+        std::fs::write(&executable, "#!/bin/sh\nexit 0\n").unwrap();
+        std::fs::set_permissions(&executable, std::fs::Permissions::from_mode(0o755)).unwrap();
+        let entry = format!("[Desktop Entry]\nType=Application\nName=Local app\nExec=\"{}\" --open %U\nIcon=fixture\n", executable.display());
+        std::fs::write(&file, &entry).unwrap();
         let app = gio::DesktopAppInfo::from_filename(&file).unwrap();
-        assert_eq!(
-            app.executable(),
-            std::path::PathBuf::from("/opt/Custom App/main")
-        );
+        assert_eq!(app.executable(), executable);
         assert!(app.should_show());
         std::fs::write(&file, format!("{entry}NoDisplay=true\n")).unwrap();
         assert!(!gio::DesktopAppInfo::from_filename(&file)
@@ -652,7 +655,7 @@ mod tests {
         eprintln!("Found {} registered applications", apps.len());
     }
 
-    #[cfg(windows)]
+    #[cfg(any(windows, target_os = "macos", target_os = "linux"))]
     #[tokio::test]
     #[ignore = "reads local application registration and native icons"]
     async fn live_cached_inventory_and_icons() {
@@ -666,9 +669,14 @@ mod tests {
         let name = std::env::var("ECHOBIRD_TEST_APPLICATION")
             .expect("Set ECHOBIRD_TEST_APPLICATION to an installed application's display name");
         let selected = apps.iter().find(|app| app.name == name).unwrap();
+        // Linux filesystems may omit birth time, which is represented as unknown.
+        #[cfg(not(target_os = "linux"))]
         assert!(selected.created_at.is_some());
         let icon = icon(&selected.id).await.unwrap().unwrap();
-        assert!(icon.starts_with("data:image/png;base64,"));
+        assert!(
+            icon.starts_with("data:image/png;base64,")
+                || icon.starts_with("data:image/svg+xml;base64,")
+        );
         let properties = details(&selected.id).await.unwrap();
         assert!(properties
             .directory
