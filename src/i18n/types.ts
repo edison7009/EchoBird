@@ -220,6 +220,7 @@ export type TKey =
   | 'voice.error.optimizationModel'
   | 'voice.error.focus'
   | 'voice.error.accessibility'
+  | 'voice.error.unconfirmed'
   | 'voice.error.target'
   | 'voice.error.insert'
   | 'voice.error.cancelled'

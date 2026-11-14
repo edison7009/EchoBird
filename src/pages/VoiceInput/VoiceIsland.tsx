@@ -1,5 +1,6 @@
-import { useEffect } from 'react';
-import { LoaderCircle, Mic, Square } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { Check, Copy, LoaderCircle, Mic, Square } from 'lucide-react';
+import { writeText } from '@tauri-apps/plugin-clipboard-manager';
 import { emit, listen } from '@tauri-apps/api/event';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { showMainWindow, voiceIslandReady, type VoiceSnapshot } from '../../api/voiceInput';
@@ -18,6 +19,64 @@ import { VoiceFlow } from './VoiceFlow';
 import { voicePaletteColor } from './voicePalettes';
 import './VoiceInput.css';
 
+function deliveryFailed(snapshot: VoiceSnapshot) {
+  return (
+    snapshot.phase === 'done' &&
+    Boolean(snapshot.text.trim()) &&
+    [
+      'voice.error.target',
+      'voice.error.focus',
+      'voice.error.insert',
+      'voice.error.accessibility',
+      'voice.error.unconfirmed',
+    ].includes(snapshot.error ?? '')
+  );
+}
+
+function IslandCopyButton({ text }: { text: string }) {
+  const { t } = useI18n();
+  const [state, setState] = useState<'idle' | 'pending' | 'copied' | 'error'>('idle');
+  const mounted = useRef(true);
+  const pending = useRef(false);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
+  const copy = async () => {
+    if (pending.current) return;
+    pending.current = true;
+    setState('pending');
+    try {
+      await writeText(text);
+      if (mounted.current) setState('copied');
+    } catch {
+      if (mounted.current) setState('error');
+    } finally {
+      pending.current = false;
+    }
+  };
+  return (
+    <>
+      <button
+        type="button"
+        className="voice-island-control"
+        aria-label={t(state === 'copied' ? 'voice.copied' : 'voice.copy')}
+        disabled={state === 'pending'}
+        onClick={() => void copy()}
+      >
+        {state === 'copied' ? <Check size={16} /> : <Copy size={16} />}
+      </button>
+      {state === 'error' && (
+        <span className="sr-only" role="alert">
+          {t('voice.error.copy')}
+        </span>
+      )}
+    </>
+  );
+}
+
 export function IslandContent({
   snapshot,
   preview = false,
@@ -29,6 +88,7 @@ export function IslandContent({
   const resolvedTheme = useThemeStore((theme) => theme.resolved);
   const systemDark = useSystemDark();
   const state = useVoiceInputStore();
+  const recovery = !preview && deliveryFailed(snapshot);
   const { config } = snapshot;
   const islandTheme =
     config.islandTheme === 'system' ? (systemDark ? 'dark' : 'light') : config.islandTheme;
@@ -50,8 +110,10 @@ export function IslandContent({
       data-active={flowing}
       data-error={Boolean(error)}
       onMouseDown={(event) => {
-        if (preview || event.button !== 0 || (event.target as Element).closest('button')) return;
+        if (preview || event.button !== 0) return;
+        // Keep mouse interaction from moving keyboard focus into the WebView.
         event.preventDefault();
+        if ((event.target as Element).closest('button')) return;
         // Native dragging can consume click events; recognize the second press here.
         const action = event.detail === 2 ? showMainWindow() : getCurrentWindow().startDragging();
         void action.catch(() => {});
@@ -63,7 +125,12 @@ export function IslandContent({
         loading={!preview && snapshot.appIconLoading}
       />
       <div className="voice-island-middle">
-        {speaking ? (
+        {recovery ? (
+          <IslandCopyButton
+            key={`${snapshot.resultAudioId}:${snapshot.text}`}
+            text={snapshot.text}
+          />
+        ) : speaking ? (
           <VoiceFlow
             active={flowing}
             palette={palette}
@@ -155,10 +222,10 @@ export function VoiceIsland() {
   );
 }
 
-/** Live transcript above the floating capsule; only while speech is being recognized. */
+/** Retain failed delivery beside the same capsule used for live transcription. */
 export function IslandTranscript({ snapshot }: { snapshot: VoiceSnapshot }) {
   const live = snapshot.phase === 'recording' || snapshot.phase === 'transcribing';
-  if (!live || !snapshot.text.trim()) return null;
+  if ((!live && !deliveryFailed(snapshot)) || !snapshot.text.trim()) return null;
   return (
     <div className="voice-island-transcript" aria-live="polite">
       <p>{snapshot.text}</p>

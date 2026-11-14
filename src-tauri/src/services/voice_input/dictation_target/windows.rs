@@ -1,4 +1,6 @@
-use super::{confirm_write, native, Edit, InputTarget, MAX_FIELD_BYTES, UNAVAILABLE};
+use super::{
+    confirm_write, insertion_observed, native, Edit, InputTarget, MAX_FIELD_BYTES, UNAVAILABLE,
+};
 use tokio_util::sync::CancellationToken;
 use windows::core::{AgileReference, BSTR};
 use windows::Win32::Foundation::{HWND, LPARAM, WPARAM};
@@ -402,7 +404,28 @@ impl Target {
                 let changed = current != original;
                 log::info!("[VoiceInput] foreground value_changed={changed}");
                 log::info!("[VoiceInput] input route=foreground_automation");
-                native::insert(text, Some(input), cancel)
+                let mut confirmed = || {
+                    unsafe {
+                        element.GetCurrentPatternAs::<IUIAutomationValuePattern>(UIA_ValuePatternId)
+                    }
+                    .and_then(|value| unsafe { value.CurrentValue() })
+                    .is_ok_and(|value| insertion_observed(&current, &value.to_string(), text))
+                };
+                let mut validate = || unsafe {
+                    element
+                        .CurrentHasKeyboardFocus()
+                        .is_ok_and(|value| value.as_bool())
+                        && element
+                            .CurrentIsPassword()
+                            .is_ok_and(|value| !value.as_bool())
+                };
+                super::super::paste_windows::insert_with_confirmation(
+                    text,
+                    Some(input),
+                    cancel,
+                    &mut validate,
+                    Some(&mut confirmed),
+                )
             }
         }
     }

@@ -339,6 +339,16 @@ pub(super) fn insert(
     target: Option<InputTarget>,
     cancel: &CancellationToken,
 ) -> std::result::Result<(), String> {
+    insert_with_confirmation(text, target, cancel, &mut || true, None)
+}
+
+pub(super) fn insert_with_confirmation(
+    text: &str,
+    target: Option<InputTarget>,
+    cancel: &CancellationToken,
+    validate: &mut dyn FnMut() -> bool,
+    mut confirmed: Option<&mut dyn FnMut() -> bool>,
+) -> std::result::Result<(), String> {
     if text.is_empty() {
         return Ok(());
     }
@@ -364,7 +374,7 @@ pub(super) fn insert(
     if modifiers_down() {
         return Err("voice.error.insert".into());
     }
-    if target.is_some_and(|target| !target.matches(native::input_target())) {
+    if !validate() || target.is_some_and(|target| !target.matches(native::input_target())) {
         return Err("voice.error.focus".into());
     }
     let result =
@@ -372,7 +382,12 @@ pub(super) fn insert(
     // Keep the data available while the target processes the single paste.
     // Runtime remains busy until restoration, preventing a second transaction.
     std::thread::sleep(Duration::from_millis(500));
-    result
+    result?;
+    if let Some(confirmed) = &mut confirmed {
+        return super::dictation_target::confirm_paste(cancel, *confirmed);
+    }
+    log::info!("[VoiceInput] paste delivery=dispatched");
+    Ok(())
 }
 
 fn modifiers_down() -> bool {

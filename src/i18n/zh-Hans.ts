@@ -224,6 +224,7 @@ const zhHans: Partial<Translations> = {
   'voice.error.focus': '输入位置已改变，请复制保留的文字后输入。',
   'voice.error.accessibility':
     '需要在“系统设置 → 隐私与安全性 → 辅助功能”中允许 EchoBird，才能写入原来的输入位置。识别结果已保留，可复制后粘贴。',
+  'voice.error.unconfirmed': '无法确认文字已写入，识别结果已保留，可复制后检查粘贴。',
   'voice.error.target': '无法写入原来的输入位置，识别结果已保留，可复制后粘贴。',
   'voice.error.insert': '文字回填失败，已保留识别结果供复制。',
   'voice.error.cancelled': '已取消',

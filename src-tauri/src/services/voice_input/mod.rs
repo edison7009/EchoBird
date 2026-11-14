@@ -725,6 +725,10 @@ async fn stop_capture(app: &AppHandle, shortcut_only: bool) -> Result<Snapshot, 
         (runtime.insert, runtime.target.take())
     };
     if insert && !text.trim().is_empty() {
+        log::info!(
+            "[VoiceInput] delivery generation={generation} target_captured={}",
+            target.is_some()
+        );
         let result = {
             let text = text.clone();
             let cancel = cancel.clone();
@@ -772,7 +776,13 @@ async fn stop_capture(app: &AppHandle, shortcut_only: bool) -> Result<Snapshot, 
         *saved.days.entry(date).or_default() += characters;
         saved.usage.record(characters, audio.duration_ms);
         if config::save(&voice.path, &saved).is_err() {
-            voice.runtime.lock().unwrap().error = Some("voice.error.save".into());
+            log::warn!("[VoiceInput] usage save failed generation={generation}");
+            voice
+                .runtime
+                .lock()
+                .unwrap()
+                .error
+                .get_or_insert_with(|| "voice.error.save".into());
         }
     }
     publish(app);

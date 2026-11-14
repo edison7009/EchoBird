@@ -131,3 +131,55 @@ fn an_app_only_target_types_only_while_that_app_is_still_in_front() {
     })));
     assert!(!original.matches(None));
 }
+
+#[test]
+fn paste_confirmation_requires_new_text_and_normalizes_line_endings() {
+    assert!(insertion_observed("draft", "draft语音🙂", "语音🙂"));
+    assert!(insertion_observed(
+        "one\r\n",
+        "one\r\ntwo\r\nthree",
+        "two\nthree"
+    ));
+    assert!(insertion_observed("repeat", "repeat repeat", "repeat"));
+    assert!(!insertion_observed("already here", "already here", "here"));
+    assert!(!insertion_observed("before", "before par", "partial"));
+    assert!(!insertion_observed("old", "different", "result"));
+    assert!(!insertion_observed("", "", ""));
+    assert!(!insertion_observed("", "  ", "  "));
+}
+
+#[test]
+fn paste_confirmation_polls_reads_without_repeating_the_write() {
+    let mut reads = 0;
+    assert_eq!(
+        confirm_paste(&CancellationToken::new(), &mut || {
+            reads += 1;
+            reads == 3
+        }),
+        Ok(())
+    );
+    assert_eq!(reads, 3);
+}
+
+#[test]
+fn paste_confirmation_cancellation_prevents_further_reads() {
+    let cancel = CancellationToken::new();
+    let mut reads = 0;
+    assert_eq!(
+        confirm_paste(&cancel, &mut || {
+            reads += 1;
+            cancel.cancel();
+            false
+        }),
+        Err("voice.error.cancelled".into())
+    );
+    assert_eq!(reads, 1);
+}
+
+#[test]
+fn missing_paste_confirmation_is_reported_without_retrying_input() {
+    assert_eq!(
+        confirm_paste(&CancellationToken::new(), &mut || false),
+        Err("voice.error.unconfirmed".into())
+    );
+}

@@ -6,6 +6,7 @@ import { useVoiceInputStore as voice } from '../stores/voiceInputStore';
 import { voiceSnapshot } from '../pages/VoiceInput/testFixtures';
 import * as voiceApi from '../api/voiceInput';
 import { useSidebarStore } from '../stores/sidebarStore';
+import { useUsageIslandStore } from '../stores/usageIslandStore';
 import { useNavigationStore } from '../stores/navigationStore';
 import { Mic, RefreshCw, MessagesSquare, Waypoints } from 'lucide-react';
 import { RoutingHint } from './RoutingToggle';
@@ -53,6 +54,34 @@ const sourceConfig = {
 const routerGroups = [{ candidateIds: ['one'], groupEnabled: true }];
 
 describe('Sidebar', () => {
+  it('associates each expanded quick-switch row with a single native control', () => {
+    const usageState = useUsageIslandStore.getState();
+    useNavigationStore.setState({ developerMode: true });
+    useUsageIslandStore.setState({ sources: ['test-source'] });
+    voice.setState({ snapshot: voiceSnapshot({ config: sourceConfig }) });
+    try {
+      act(() => {
+        renderer = create(<Sidebar {...baseProps} smartRouterGroups={routerGroups} />);
+      });
+      const rows = renderer.root.findAllByType('label');
+      expect(rows).toHaveLength(3);
+      expect(rows.map((row) => row.findByType('button').props['aria-label'])).toEqual([
+        'usageIsland.enable',
+        'voice.enableInput',
+        'nav.smartRouter',
+      ]);
+      for (const row of rows) {
+        expect(row.props.className).toContain('hover:bg-cyber-elevated/50');
+        expect(row.findAllByType('button')).toHaveLength(1);
+        expect(row.findByType('button').props.role).toBe('switch');
+        expect(row.findAllByType('span')[0].children).toHaveLength(1);
+        expect(row.props.onClick).toBeUndefined();
+      }
+    } finally {
+      act(() => useUsageIslandStore.setState(usageState));
+    }
+  });
+
   it.each([false, true])(
     'keeps the update download next to footer Settings only when expanded (collapsed=%s)',
     (collapsed) => {

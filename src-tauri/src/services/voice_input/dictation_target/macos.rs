@@ -120,6 +120,33 @@ fn set(element: &Owned, name: &str, value: CFTypeRef) -> Result<(), String> {
     }
 }
 
+pub(super) struct WindowTarget {
+    app: Owned,
+    window: Owned,
+}
+
+pub(super) fn capture_window(input: Option<InputTarget>) -> Option<WindowTarget> {
+    let input = input?;
+    if !trusted() {
+        return None;
+    }
+    let app = unsafe { AXUIElementCreateApplication(input.window as i32) };
+    if app.is_null() {
+        return None;
+    }
+    let app = Owned(app);
+    unsafe { AXUIElementSetMessagingTimeout(app.0, 0.25) };
+    let window = attribute(&app, "AXFocusedWindow")?;
+    Some(WindowTarget { app, window })
+}
+
+impl WindowTarget {
+    pub(super) fn matches(&self) -> bool {
+        attribute(&self.app, "AXFocusedWindow")
+            .is_some_and(|window| unsafe { CFEqual(window.0, self.window.0) } != 0)
+    }
+}
+
 pub(super) struct Target {
     input: InputTarget,
     app: Owned,
@@ -130,9 +157,27 @@ pub(super) struct Target {
     whole_value: bool,
 }
 
+fn focused_control(app: &Owned) -> Option<Owned> {
+    let original = attribute(app, "AXFocusedUIElement");
+    if original.as_ref().is_some_and(|element| {
+        unsafe { AXUIElementSetMessagingTimeout(element.0, 0.25) };
+        attribute(element, "AXSelectedTextRange").is_some()
+    }) {
+        return original;
+    }
+    // Some Chromium hosts expose their editor only after an accessibility
+    // client asks for the enhanced tree. Only set attributes the host supports.
+    for name in ["AXManualAccessibility", "AXEnhancedUserInterface"] {
+        if writable(app, name) {
+            let _ = set(app, name, CFBoolean::true_value().as_CFTypeRef());
+        }
+    }
+    attribute(app, "AXFocusedUIElement").or(original)
+}
+
 pub(super) fn capture(input: Option<InputTarget>) -> Option<Target> {
     let input = input?;
-    if !unsafe { AXIsProcessTrusted() } {
+    if !unsafe { AXIsProcessTrusted() } || unsafe { IsSecureEventInputEnabled() } != 0 {
         return None;
     }
     let app = unsafe { AXUIElementCreateApplication(input.window as i32) };
@@ -141,7 +186,7 @@ pub(super) fn capture(input: Option<InputTarget>) -> Option<Target> {
     }
     let app = Owned(app);
     unsafe { AXUIElementSetMessagingTimeout(app.0, 0.25) };
-    let element = attribute(&app, "AXFocusedUIElement")?;
+    let element = focused_control(&app)?;
     unsafe { AXUIElementSetMessagingTimeout(element.0, 0.25) };
     if attribute(&element, "AXSubrole")
         .and_then(|role| string(&role))
@@ -187,6 +232,13 @@ impl Target {
         if cancel.is_cancelled() {
             return Err("voice.error.cancelled".into());
         }
+        if attribute(&self.element, "AXSubrole")
+            .and_then(|role| string(&role))
+            .as_deref()
+            == Some("AXSecureTextField")
+        {
+            return Err(UNAVAILABLE.into());
+        }
         if let Some(edit) = &self.edit {
             let current = attribute(&self.element, "AXValue")
                 .and_then(|value| string(&value))
@@ -201,6 +253,9 @@ impl Target {
                     "AXSelectedTextRange",
                     self.range.as_ref().ok_or(UNAVAILABLE)?.0,
                 )?;
+                if cancel.is_cancelled() {
+                    return Err("voice.error.cancelled".into());
+                }
                 let text = CFString::new(text);
                 return set(&self.element, "AXSelectedText", text.as_CFTypeRef());
             }
@@ -217,6 +272,9 @@ impl Target {
             || unsafe { CFEqual(focused.0, self.element.0) } == 0
             || unsafe { CFEqual(range.0, self.range.as_ref().ok_or(UNAVAILABLE)?.0) } == 0
         {
+            return Err(UNAVAILABLE.into());
+        }
+        if unsafe { IsSecureEventInputEnabled() } != 0 {
             return Err(UNAVAILABLE.into());
         }
         native::insert(text, Some(self.input), cancel)

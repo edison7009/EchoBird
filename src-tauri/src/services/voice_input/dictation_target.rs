@@ -20,10 +20,18 @@ const MAX_FIELD_BYTES: usize = 1_048_576;
 pub(super) struct Target {
     foreground: Option<InputTarget>,
     background: Option<platform::Target>,
+    #[cfg(target_os = "macos")]
+    window: Option<platform::WindowTarget>,
 }
 
 pub(super) fn capture(foreground: Option<InputTarget>) -> Option<Target> {
     let background = platform::capture(foreground);
+    #[cfg(target_os = "macos")]
+    let window = if background.is_none() {
+        platform::capture_window(foreground)
+    } else {
+        None
+    };
     log::info!(
         "[VoiceInput] input snapshot foreground_known={} control_captured={}",
         foreground.is_some(),
@@ -32,6 +40,8 @@ pub(super) fn capture(foreground: Option<InputTarget>) -> Option<Target> {
     (foreground.is_some() || background.is_some()).then_some(Target {
         foreground,
         background,
+        #[cfg(target_os = "macos")]
+        window,
     })
 }
 
@@ -59,17 +69,26 @@ pub(super) fn insert(
         log::info!("[VoiceInput] input route=captured_control");
         return background.insert(text, cancel);
     }
-    // No editable control was exposed (macOS WeChat, for one): type into the
-    // original app only while it is still in front. On macOS that is the app itself.
+    // Keep keyboard input for hosts that do not expose an editable control.
+    // When macOS exposes the focused window, also reject a window switch inside
+    // the same process instead of relying on its PID alone.
     if target
         .foreground
         .is_some_and(|original| original.matches(native::input_target()))
     {
-        // Never type a transcript into a password field.
         #[cfg(target_os = "macos")]
-        if target.foreground.is_some_and(platform::secure_input) {
-            log::info!("[VoiceInput] input skipped secure_input=true");
-            return Err(UNAVAILABLE.into());
+        {
+            if target.foreground.is_some_and(platform::secure_input) {
+                return Err(UNAVAILABLE.into());
+            }
+            log::info!(
+                "[VoiceInput] foreground window_known={}",
+                target.window.is_some()
+            );
+            if target.window.is_some_and(|window| !window.matches()) {
+                log::info!("[VoiceInput] input skipped reason=window_changed");
+                return Err(UNAVAILABLE.into());
+            }
         }
         log::info!("[VoiceInput] input route=foreground");
         return native::insert(text, target.foreground, cancel);
@@ -80,6 +99,37 @@ pub(super) fn insert(
 struct Edit {
     original: String,
     range: Range<usize>,
+}
+
+#[cfg(any(windows, test))]
+fn insertion_observed(before: &str, after: &str, text: &str) -> bool {
+    let normalize = |value: &str| value.replace("\r\n", "\n").replace('\r', "\n");
+    let text = normalize(text);
+    !text.trim().is_empty()
+        && normalize(after).matches(&text).count() > normalize(before).matches(&text).count()
+}
+
+#[cfg(any(windows, test))]
+pub(super) fn confirm_paste(
+    cancel: &CancellationToken,
+    confirmed: &mut dyn FnMut() -> bool,
+) -> Result<(), String> {
+    use std::time::{Duration, Instant};
+    let started = Instant::now();
+    loop {
+        if cancel.is_cancelled() {
+            return Err("voice.error.cancelled".into());
+        }
+        if confirmed() {
+            log::info!("[VoiceInput] paste delivery=confirmed");
+            return Ok(());
+        }
+        if started.elapsed() >= Duration::from_millis(1500) {
+            log::info!("[VoiceInput] paste delivery=unconfirmed");
+            return Err("voice.error.unconfirmed".into());
+        }
+        std::thread::sleep(Duration::from_millis(40));
+    }
 }
 
 #[cfg(any(windows, test))]

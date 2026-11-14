@@ -16,9 +16,11 @@ import { useNavigationStore } from '../../stores/navigationStore';
 import { loadLocale, translate, type TKey } from '../../i18n';
 import { formatBinding } from './ShortcutRecorder';
 import { copyText } from '../../utils/copyText';
+import { writeText } from '@tauri-apps/plugin-clipboard-manager';
 import { VoiceReplay } from './VoiceReplay';
 
 vi.mock('../../utils/copyText', () => ({ copyText: vi.fn() }));
+vi.mock('@tauri-apps/plugin-clipboard-manager', () => ({ writeText: vi.fn() }));
 
 const themeSync = vi.hoisted(() => vi.fn());
 const appAppearance = vi.hoisted(() => ({ resolved: 'dark' }));
@@ -1053,6 +1055,37 @@ function LiveIsland() {
 }
 
 describe('island speech entry', () => {
+  it.each(['idle', 'recording'] as const)(
+    'keeps mouse focus on the original editor and invokes one action while %s',
+    async (phase) => {
+      const config = { ...voiceSnapshot().config, shortcutEnabled: true };
+      const snapshot = voiceSnapshot({ config, phase });
+      voice.setState({ snapshot });
+      vi.mocked(api.recordVoice).mockResolvedValue(voiceSnapshot({ config, phase: 'recording' }));
+      vi.mocked(api.stopVoice).mockResolvedValue(voiceSnapshot({ config, phase: 'done' }));
+      act(() => {
+        renderer = create(<LiveIsland />);
+      });
+      const event = {
+        button: 0,
+        detail: 1,
+        target: { closest: () => ({ tagName: 'BUTTON' }) },
+        preventDefault: vi.fn(),
+      };
+      act(() => renderer.root.findByProps({ 'data-error': false }).props.onMouseDown(event));
+      expect(event.preventDefault).toHaveBeenCalledOnce();
+      expect(api.recordVoice).not.toHaveBeenCalled();
+      expect(api.stopVoice).not.toHaveBeenCalled();
+      await act(async () =>
+        button(phase === 'idle' ? 'voice.speak' : 'voice.stop').props.onClick()
+      );
+      expect(phase === 'idle' ? api.recordVoice : api.stopVoice).toHaveBeenCalledOnce();
+      expect(phase === 'idle' ? api.stopVoice : api.recordVoice).not.toHaveBeenCalled();
+      expect(startDragging).not.toHaveBeenCalled();
+      expect(api.showMainWindow).not.toHaveBeenCalled();
+    }
+  );
+
   it('allows dragging by default while isolating non-left clicks, preview and the microphone', async () => {
     const config = { ...voiceSnapshot().config, shortcutEnabled: true };
     const mouse = (button = 0, control = false) => ({
@@ -1872,3 +1905,110 @@ describe('live island transcript', () => {
     expect(renderer.toJSON()).toBeNull();
   });
 });
+
+describe('failed island delivery recovery', () => {
+  it.each([
+    'voice.error.target',
+    'voice.error.focus',
+    'voice.error.insert',
+    'voice.error.accessibility',
+    'voice.error.unconfirmed',
+  ])('retains the transcript and copies it without recording on %s', async (error) => {
+    const snapshot = voiceSnapshot({ phase: 'done', text: '保留的识别结果🙂', error });
+    act(() => {
+      renderer = create(
+        <>
+          <IslandTranscript snapshot={snapshot} />
+          <IslandContent snapshot={snapshot} />
+        </>
+      );
+    });
+    expect(renderer.root.findByType('p').children).toEqual([snapshot.text]);
+    expect(
+      renderer.root
+        .findByProps({ className: 'voice-island-middle' })
+        .findByProps({ 'aria-label': 'voice.copy' })
+    ).toBeDefined();
+    expect(writeText).not.toHaveBeenCalled();
+    vi.mocked(writeText).mockResolvedValue(undefined);
+    await act(async () =>
+      renderer.root.findByProps({ 'aria-label': 'voice.copy' }).props.onClick()
+    );
+    expect(writeText).toHaveBeenCalledExactlyOnceWith(snapshot.text);
+    expect(renderer.root.findByProps({ 'aria-label': 'voice.copied' })).toBeDefined();
+    expect(api.recordVoice).not.toHaveBeenCalled();
+    expect(api.showMainWindow).not.toHaveBeenCalled();
+    expect(copyText).not.toHaveBeenCalled();
+  });
+
+  it('keeps text available when copying fails and allows an explicit retry', async () => {
+    const snapshot = voiceSnapshot({
+      phase: 'done',
+      text: 'retry me',
+      error: 'voice.error.target',
+    });
+    act(() => {
+      renderer = create(<IslandContent snapshot={snapshot} />);
+    });
+    vi.mocked(writeText)
+      .mockRejectedValueOnce(new Error('clipboard busy'))
+      .mockResolvedValueOnce(undefined);
+    await act(async () =>
+      renderer.root.findByProps({ 'aria-label': 'voice.copy' }).props.onClick()
+    );
+    expect(renderer.root.findByProps({ role: 'alert' }).children).toEqual(['voice.error.copy']);
+    await act(async () =>
+      renderer.root.findByProps({ 'aria-label': 'voice.copy' }).props.onClick()
+    );
+    expect(writeText).toHaveBeenCalledTimes(2);
+    expect(renderer.root.findByProps({ 'aria-label': 'voice.copied' })).toBeDefined();
+  });
+
+  it('does not copy twice while pending or apply stale feedback to a new session', async () => {
+    let finish!: () => void;
+    vi.mocked(writeText).mockReturnValue(
+      new Promise<void>((resolve) => {
+        finish = resolve;
+      })
+    );
+    const snapshot = voiceSnapshot({
+      phase: 'done',
+      text: 'previous',
+      error: 'voice.error.target',
+    });
+    act(() => {
+      renderer = create(<IslandContent snapshot={snapshot} />);
+    });
+    const copy = renderer.root.findByProps({ 'aria-label': 'voice.copy' });
+    act(() => {
+      copy.props.onClick();
+      copy.props.onClick();
+    });
+    expect(writeText).toHaveBeenCalledOnce();
+    expect(copy.props.disabled).toBe(true);
+    act(() => {
+      renderer.update(<IslandContent snapshot={voiceSnapshot({ phase: 'recording' })} />);
+    });
+    await act(async () => finish());
+    expect(renderer.root.findAllByProps({ 'aria-label': 'voice.copied' })).toHaveLength(0);
+    expect(renderer.root.findAllByProps({ 'aria-label': 'voice.copy' })).toHaveLength(0);
+  });
+});
+
+it.each([null, 'voice.error.plugin', 'voice.error.save'])(
+  'does not offer failed-delivery recovery for a completed result with %s',
+  (error) => {
+    const snapshot = voiceSnapshot({ phase: 'done', text: 'delivered', error });
+    act(() => {
+      renderer = create(
+        <>
+          <IslandTranscript snapshot={snapshot} />
+          <IslandContent snapshot={snapshot} />
+        </>
+      );
+    });
+    expect(renderer.root.findAllByType('p')).toHaveLength(0);
+    expect(renderer.root.findAllByProps({ 'aria-label': 'voice.copy' })).toHaveLength(0);
+    expect(writeText).not.toHaveBeenCalled();
+  }
+);

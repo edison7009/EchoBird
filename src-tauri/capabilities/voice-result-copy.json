@@ -1,0 +1,7 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "voice-result-copy",
+  "description": "Copies a retained voice result from the floating capsule",
+  "windows": ["voice-island"],
+  "permissions": ["clipboard-manager:allow-write-text"]
+}

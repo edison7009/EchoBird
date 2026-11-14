@@ -5,6 +5,9 @@ import museCodeDefinition from '../../../tools/musecode/paths.json';
 import type { ModelConfig } from '../../api/types';
 import { useNavigationStore } from '../../stores/navigationStore';
 import { AppManagerContext, type AppManagerContextType } from './context';
+import { AppManagerPanel, AppManagerBottom } from './AppManagerComponents';
+import { ModelNexusContext } from '../ModelNexus/context';
+import { ConfirmDialogProvider } from '../../components/ConfirmDialog';
 
 vi.hoisted(() => vi.stubGlobal('__APP_EDITION__', 'full'));
 vi.mock('../../components', () => ({
@@ -37,10 +40,7 @@ const models: ModelConfig[] = [
 describe('Muse Code install and model panel', () => {
   it.each([false, true])(
     'uses the existing install or model action without account controls (installed: %s)',
-    async (installed) => {
-      const { AppManagerPanel, AppManagerBottom } = await import('./AppManagerComponents');
-      const { ModelNexusContext } = await import('../ModelNexus/context');
-      const { ConfirmDialogProvider } = await import('../../components/ConfirmDialog');
+    (installed) => {
       useNavigationStore.setState({ activePage: 'apps' });
       const handleLaunch = vi.fn();
       const onGoToMother = vi.fn();

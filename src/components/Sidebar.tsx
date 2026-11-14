@@ -17,7 +17,8 @@ import {
 import { NavItem } from './NavItem';
 import { UpdateDownloadButton } from './UpdateDownloadButton';
 import { useSelfUpdateDownload } from '../hooks/useSelfUpdateDownload';
-import { RoutingHint, RoutingToggle } from './RoutingToggle';
+import { RoutingHint } from './RoutingToggle';
+import { ToggleSwitch } from './ToggleSwitch';
 import { useToast } from './Toast';
 import { useI18n } from '../hooks/useI18n';
 import type { TKey } from '../i18n';
@@ -96,17 +97,19 @@ function SidebarToggle({
       </RoutingHint>
     );
   return (
-    <div className="flex items-center justify-between gap-4 px-2 py-1">
+    <label
+      className={`flex items-center justify-between gap-4 rounded-lg px-2 py-1 transition-colors ${disabled || pending ? '' : 'hover:bg-cyber-elevated/50'}`}
+    >
       <span className="whitespace-nowrap">{label}</span>
-      <RoutingToggle
-        label={ariaLabel}
-        hideLabel
+      <ToggleSwitch
+        ariaLabel={ariaLabel}
         checked={checked}
         disabled={disabled}
         pending={pending}
         onChange={onChange}
+        className={disabled ? 'disabled:opacity-50' : ''}
       />
-    </div>
+    </label>
   );
 }
 
