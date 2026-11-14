@@ -42,7 +42,7 @@ it.each(['pets', 'plugins', 'usageIsland'] as const)(
       'btn.refresh',
       'aiDesktop.desktopView',
       'aiDesktop.installView',
-      'toolCat.all',
+      'aiDesktop.systemView',
       'developer.pets',
       'developer.plugins',
       'developer.usageIsland',
@@ -75,3 +75,13 @@ it.each(['pets', 'plugins', 'usageIsland'] as const)(
     expect(scanTools).toHaveBeenCalledOnce();
   }
 );
+
+it('uses the system label for the existing all-applications view', () => {
+  act(() => {
+    renderer = create(<AppManagerTitleActions />);
+  });
+  act(() => button('aiDesktop.systemView').props.onClick());
+  expect(setViewMode).toHaveBeenCalledExactlyOnceWith('all');
+  expect(scanTools).not.toHaveBeenCalled();
+  expect(api.openToolPathsConfig).not.toHaveBeenCalled();
+});

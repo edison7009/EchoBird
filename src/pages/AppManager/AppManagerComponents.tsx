@@ -133,7 +133,7 @@ export const AppManagerTitleActions: React.FC = () => {
           options={[
             { value: 'desktop', label: t('aiDesktop.desktopView') },
             { value: 'install', label: t('aiDesktop.installView') },
-            { value: 'all', label: t('toolCat.all') },
+            { value: 'all', label: t('aiDesktop.systemView') },
           ]}
         />
       </div>

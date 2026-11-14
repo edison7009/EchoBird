@@ -706,6 +706,7 @@ const zhHant: Partial<Translations> = {
   'aiDesktop.githubRepository': 'GitHub 倉庫：',
   'aiDesktop.desktopView': '我的',
   'aiDesktop.installView': '商店',
+  'aiDesktop.systemView': '系統',
   'aiDesktop.installHint': '選擇應用後，點擊「取得應用」。',
   'aiDesktop.emptyDesktop': '暫無已安裝應用，可切換到「商店」新增應用。',
   'aiDesktop.emptyInstall': '所有應用均已安裝。',

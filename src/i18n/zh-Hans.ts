@@ -670,6 +670,7 @@ const zhHans: Partial<Translations> = {
   'aiDesktop.githubRepository': 'GitHub 仓库：',
   'aiDesktop.desktopView': '我的',
   'aiDesktop.installView': '商店',
+  'aiDesktop.systemView': '系统',
   'aiDesktop.installHint': '选择应用后，点击“获取应用”。',
   'aiDesktop.emptyDesktop': '暂无已安装应用，可切换到“商店”添加应用。',
   'aiDesktop.emptyInstall': '所有应用均已安装。',

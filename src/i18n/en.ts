@@ -584,6 +584,7 @@ const en: Translations = {
   'aiDesktop.githubRepository': 'GitHub repository:',
   'aiDesktop.desktopView': 'Apps',
   'aiDesktop.installView': 'Store',
+  'aiDesktop.systemView': 'System',
   'aiDesktop.installHint': 'Select an app, then click Get App.',
   'aiDesktop.emptyDesktop': 'No apps installed yet. Browse the Store to add apps.',
   'aiDesktop.emptyInstall': 'All apps are installed.',

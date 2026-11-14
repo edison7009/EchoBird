@@ -111,18 +111,34 @@ it('deduplicates visible and background requests and waits for image decoding', 
   expect(getSystemApplicationIcon).toHaveBeenCalledOnce();
 });
 
-it('reuses persisted PNGs after a new application session', async () => {
+it.each([
+  ['PNG', png('one')],
+  ['SVG', 'data:image/svg+xml;base64,PHN2Zy8+'],
+])('reuses persisted %s icons after a new application session', async (_format, src) => {
   const entries = persistentCache();
+  vi.mocked(getSystemApplicationIcon).mockResolvedValueOnce(src);
   const first = await import('./systemApplicationIcons');
   await first.loadSystemApplicationIcon('one');
-  await vi.waitFor(() => expect(entries.has('one')).toBe(true));
+  await vi.waitFor(() => expect(entries.get('one')?.src).toBe(src));
   vi.resetModules();
   vi.mocked(getSystemApplicationIcon).mockClear();
   const second = await import('./systemApplicationIcons');
-  expect(await second.loadSystemApplicationIcon('one')).toBe(png('one'));
+  expect(await second.loadSystemApplicationIcon('one')).toBe(src);
   expect(getSystemApplicationIcon).not.toHaveBeenCalled();
   expect(decode).toHaveBeenCalledTimes(2);
 });
+
+it.each(['https://example.test/icon.png', 'data:text/html;base64,PGgxLz4='])(
+  'ignores unsupported persisted icon sources (%s)',
+  async (src) => {
+    const entries = persistentCache();
+    entries.set('one', { id: 'one', src, updatedAt: Date.now() });
+    const cache = await import('./systemApplicationIcons');
+    expect(await cache.loadSystemApplicationIcon('one')).toBe(png('one'));
+    expect(getSystemApplicationIcon).toHaveBeenCalledExactlyOnceWith('one');
+    expect(decode).toHaveBeenCalledOnce();
+  }
+);
 
 it('rebuilds expired entries and clears persisted icons on explicit refresh', async () => {
   const entries = persistentCache();

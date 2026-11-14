@@ -60,7 +60,8 @@ async function readCache(id: string): Promise<string | null> {
           entry &&
             Date.now() - entry.updatedAt < cacheLifetime &&
             typeof entry.src === 'string' &&
-            entry.src.startsWith('data:image/png;base64,')
+            (entry.src.startsWith('data:image/png;base64,') ||
+              entry.src.startsWith('data:image/svg+xml;base64,'))
             ? entry.src
             : null
         );

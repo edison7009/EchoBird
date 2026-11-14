@@ -742,6 +742,7 @@ const ja: Partial<Translations> = {
   'aiDesktop.githubRepository': 'GitHub リポジトリ：',
   'aiDesktop.desktopView': 'マイアプリ',
   'aiDesktop.installView': 'ストア',
+  'aiDesktop.systemView': 'システム',
   'aiDesktop.installHint': 'アプリを選択して「アプリを入手」を押してください。',
   'aiDesktop.emptyDesktop': 'インストール済みのアプリはありません。「ストア」から追加できます。',
   'aiDesktop.emptyInstall': 'すべてのアプリがインストールされています。',

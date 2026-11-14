@@ -550,6 +550,7 @@ export type TKey =
   | 'aiDesktop.githubRepository'
   | 'aiDesktop.desktopView'
   | 'aiDesktop.installView'
+  | 'aiDesktop.systemView'
   | 'aiDesktop.installHint'
   | 'aiDesktop.emptyDesktop'
   | 'aiDesktop.emptyInstall'
