@@ -191,6 +191,8 @@ export type TKey =
   | 'voice.serviceType'
   | 'voice.apiInput'
   | 'voice.notInstalled'
+  | 'voice.islandCopy'
+  | 'voice.islandCopied'
   | 'voice.copy'
   | 'voice.copied'
   | 'voice.replay'

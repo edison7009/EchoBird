@@ -463,6 +463,16 @@
   border-radius: 50%;
   background: transparent;
 }
+.voice-island-copy {
+  width: 80px;
+  gap: 4px;
+  border-radius: 20px;
+  font-size: 12px;
+  white-space: nowrap;
+}
+.voice-island-copy svg {
+  flex-shrink: 0;
+}
 .voice-island-confirm {
   padding: 4px;
   background-clip: content-box;

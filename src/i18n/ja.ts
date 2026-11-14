@@ -198,6 +198,8 @@ const ja: Partial<Translations> = {
   'voice.serviceType': 'サービスの種類',
   'voice.apiInput': 'モデル接続',
   'voice.notInstalled': 'WorkBuddyがインストールされていません',
+  'voice.islandCopy': 'コピー',
+  'voice.islandCopied': 'コピー済み',
   'voice.copy': 'テキストをコピー',
   'voice.copied': 'コピーしました',
   'voice.replay': '再生',

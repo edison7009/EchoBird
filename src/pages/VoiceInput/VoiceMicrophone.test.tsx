@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { LoaderCircle, Mic, Square } from 'lucide-react';
+import { Check, Copy, LoaderCircle, Mic, Square } from 'lucide-react';
 import { act, create, type ReactTestInstance, type ReactTestRenderer } from 'react-test-renderer';
 import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from 'vitest';
 import { VoiceInputMain } from './VoiceInput';
@@ -1929,13 +1929,16 @@ describe('failed island delivery recovery', () => {
         .findByProps({ className: 'voice-island-middle' })
         .findByProps({ 'aria-label': 'voice.copy' })
     ).toBeDefined();
+    const copyButton = renderer.root.findByProps({ 'aria-label': 'voice.copy' });
+    expect(copyButton.findByType('span').children).toEqual(['voice.islandCopy']);
+    expect(copyButton.findByType(Copy)).toBeDefined();
     expect(writeText).not.toHaveBeenCalled();
     vi.mocked(writeText).mockResolvedValue(undefined);
-    await act(async () =>
-      renderer.root.findByProps({ 'aria-label': 'voice.copy' }).props.onClick()
-    );
+    await act(async () => copyButton.props.onClick());
     expect(writeText).toHaveBeenCalledExactlyOnceWith(snapshot.text);
-    expect(renderer.root.findByProps({ 'aria-label': 'voice.copied' })).toBeDefined();
+    const copiedButton = renderer.root.findByProps({ 'aria-label': 'voice.copied' });
+    expect(copiedButton.findByType('span').children).toEqual(['voice.islandCopied']);
+    expect(copiedButton.findByType(Check)).toBeDefined();
     expect(api.recordVoice).not.toHaveBeenCalled();
     expect(api.showMainWindow).not.toHaveBeenCalled();
     expect(copyText).not.toHaveBeenCalled();

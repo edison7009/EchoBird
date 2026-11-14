@@ -195,6 +195,8 @@ const zhHant: Partial<Translations> = {
   'voice.serviceType': '服務類型',
   'voice.apiInput': '模型接入',
   'voice.notInstalled': '尚未安裝 WorkBuddy',
+  'voice.islandCopy': '複製',
+  'voice.islandCopied': '已複製',
   'voice.copy': '複製文字',
   'voice.copied': '已複製',
   'voice.replay': '回聽',

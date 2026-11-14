@@ -197,6 +197,8 @@ const en: Translations = {
   'voice.serviceType': 'Service type',
   'voice.apiInput': 'Model access',
   'voice.notInstalled': 'WorkBuddy is not installed',
+  'voice.islandCopy': 'Copy',
+  'voice.islandCopied': 'Copied',
   'voice.copy': 'Copy text',
   'voice.copied': 'Copied',
   'voice.replay': 'Replay',

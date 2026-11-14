@@ -194,6 +194,8 @@ const zhHans: Partial<Translations> = {
   'voice.serviceType': '服务类型',
   'voice.apiInput': '模型接入',
   'voice.notInstalled': 'WorkBuddy 未安装',
+  'voice.islandCopy': '复制',
+  'voice.islandCopied': '已复制',
   'voice.copy': '复制文字',
   'voice.copied': '已复制',
   'voice.replay': '回听',

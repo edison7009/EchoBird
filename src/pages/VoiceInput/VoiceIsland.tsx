@@ -61,12 +61,13 @@ function IslandCopyButton({ text }: { text: string }) {
     <>
       <button
         type="button"
-        className="voice-island-control"
+        className="voice-island-control voice-island-copy"
         aria-label={t(state === 'copied' ? 'voice.copied' : 'voice.copy')}
         disabled={state === 'pending'}
         onClick={() => void copy()}
       >
         {state === 'copied' ? <Check size={16} /> : <Copy size={16} />}
+        <span>{t(state === 'copied' ? 'voice.islandCopied' : 'voice.islandCopy')}</span>
       </button>
       {state === 'error' && (
         <span className="sr-only" role="alert">
