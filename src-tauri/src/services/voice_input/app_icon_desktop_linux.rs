@@ -49,7 +49,7 @@ pub(super) fn read_app_id(app_id: &str) -> Option<String> {
     read_names(&[app.app_id])
 }
 
-fn read_names(names: &[String]) -> Option<String> {
+pub(super) fn read_names(names: &[String]) -> Option<String> {
     let app = names
         .iter()
         .find_map(|name| gio::DesktopAppInfo::new(&format!("{name}.desktop")))

@@ -5,6 +5,7 @@ import museDefinition from '../../../tools/muse/paths.json';
 import type { ModelConfig } from '../../api/types';
 import { useNavigationStore } from '../../stores/navigationStore';
 import { AppManagerContext, type AppManagerContextType } from './context';
+import { ApplicationDetailsPanel } from './ApplicationDetailsPanel';
 
 vi.mock('../../components', () => ({
   getModelIcon: () => null,
@@ -38,7 +39,13 @@ describe('Muse install and launch panel', () => {
       const onGoToMother = vi.fn();
       const context = {
         selectedTool: 'muse',
-        selectedToolData: { ...museDefinition, id: 'muse', installed },
+        selectedToolData: {
+          ...museDefinition,
+          id: 'muse',
+          installed,
+          detectedPath: '/custom/muse',
+          version: '1.0',
+        },
         userModels: models,
         toolModelConfig: {},
         viewMode: 'desktop',
@@ -67,7 +74,10 @@ describe('Muse install and launch panel', () => {
         expect(markup).not.toContain('Cloud Model');
         expect(markup).not.toContain('Auto Router');
         expect(markup).not.toContain('agent.addAccount');
-        expect(markup.includes('agent.noModelConfig')).toBe(installed);
+        expect(renderer!.root.findAllByType(ApplicationDetailsPanel)).toHaveLength(
+          installed ? 1 : 0
+        );
+        expect(markup.includes('/custom/muse')).toBe(installed);
         expect(renderer!.root.findAll((node) => node.props.role === 'radio')).toHaveLength(0);
         expect(renderer!.root.findAllByType('a').map((link) => link.props.href)).toEqual(
           installed ? [] : ['https://muse.ai/']

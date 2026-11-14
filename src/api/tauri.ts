@@ -39,6 +39,33 @@ export async function scanTools(): Promise<DetectedTool[]> {
   return invoke('scan_tools');
 }
 
+export async function listSystemApplications(
+  forceRefresh = false
+): Promise<{ id: string; name: string; path: string; createdAt?: number | null }[]> {
+  return invoke('list_system_applications', { forceRefresh });
+}
+
+export async function getSystemApplicationIcon(id: string): Promise<string | null> {
+  return invoke('get_system_application_icon', { id });
+}
+
+export interface SystemApplicationDetails {
+  path: string | null;
+  directory: string | null;
+  version: string | null;
+  fileSize: number | null;
+  modifiedAt: number | null;
+  launchTarget: string;
+}
+
+export async function getSystemApplicationDetails(id: string): Promise<SystemApplicationDetails> {
+  return invoke('get_system_application_details', { id });
+}
+
+export async function launchSystemApplication(id: string): Promise<void> {
+  return invoke('launch_system_application', { id });
+}
+
 export async function applyModelToTool(
   toolId: string,
   modelInfo: ApplyModelInput

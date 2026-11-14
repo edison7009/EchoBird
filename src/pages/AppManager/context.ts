@@ -67,8 +67,8 @@ export interface AppManagerContextType extends AccountDirectoryContextType {
   onGoToMother: (toolId: string, toolName: string) => void;
   // AI-installable tool IDs (from bundled tools/install/index.json)
   aiInstallableIds: string[];
-  viewMode: 'desktop' | 'install';
-  setViewMode: (mode: 'desktop' | 'install') => void;
+  viewMode: 'desktop' | 'install' | 'all';
+  setViewMode: (mode: 'desktop' | 'install' | 'all') => void;
   refreshSelectedTool: () => Promise<void>;
   isRefreshingSelectedTool: boolean;
   claimSelectedTool: () => Promise<void>;

@@ -1755,6 +1755,69 @@ async fn get_manager() -> Arc<Mutex<ProcessManager>> {
 }
 
 /// Start a tool process
+pub async fn launch_system_application(id: &str) -> Result<(), String> {
+    let app = super::tool_manager::system_applications::find(id).await?;
+    tokio::task::spawn_blocking(move || launch_registered_application(&app.path))
+        .await
+        .map_err(|error| error.to_string())?
+}
+
+fn launch_registered_application(path: &str) -> Result<(), String> {
+    #[cfg(windows)]
+    {
+        use windows::core::{w, HSTRING, PCWSTR};
+        use windows::Win32::System::Com::{
+            CoInitializeEx, CoUninitialize, COINIT_APARTMENTTHREADED,
+        };
+        use windows::Win32::UI::Shell::{
+            ShellExecuteExW, SEE_MASK_FLAG_NO_UI, SEE_MASK_NOASYNC, SHELLEXECUTEINFOW,
+        };
+        use windows::Win32::UI::WindowsAndMessaging::SW_SHOWNORMAL;
+        let initialized = unsafe { CoInitializeEx(None, COINIT_APARTMENTTHREADED).is_ok() };
+        let target = HSTRING::from(path);
+        let mut info = SHELLEXECUTEINFOW {
+            cbSize: std::mem::size_of::<SHELLEXECUTEINFOW>() as u32,
+            fMask: SEE_MASK_NOASYNC | SEE_MASK_FLAG_NO_UI,
+            lpVerb: w!("open"),
+            lpFile: PCWSTR(target.as_ptr()),
+            nShow: SW_SHOWNORMAL.0,
+            ..Default::default()
+        };
+        // Complete Shell activation before releasing this worker's COM apartment.
+        let result = unsafe { ShellExecuteExW(&mut info) };
+        if initialized {
+            unsafe { CoUninitialize() }
+        }
+        result.map_err(|error| format!("Cannot launch application: {error}"))
+    }
+    #[cfg(target_os = "macos")]
+    {
+        let output = crate::utils::process::command("open")
+            .arg("-a")
+            .arg(path)
+            .output()
+            .map_err(|error| error.to_string())?;
+        if output.status.success() {
+            Ok(())
+        } else {
+            Err(String::from_utf8_lossy(&output.stderr).into_owned())
+        }
+    }
+    #[cfg(target_os = "linux")]
+    {
+        use gio::prelude::*;
+        let app = gio::DesktopAppInfo::from_filename(path)
+            .ok_or("Application desktop entry is no longer available")?;
+        app.launch(&[], None::<&gio::AppLaunchContext>)
+            .map_err(|error| error.to_string())
+    }
+    #[cfg(not(any(windows, target_os = "macos", target_os = "linux")))]
+    {
+        let _ = path;
+        Err("System applications are unavailable on this platform".into())
+    }
+}
+
 pub async fn start_tool(
     tool_id: &str,
     start_command: Option<&str>,
@@ -3511,6 +3574,83 @@ $result = @{ handles=$handles; cwd=$PWD.ProviderPath; label=$Label; marker=$env:
             vec![1, 2]
         );
         assert!(super::qoder_account_instances("qwenwork", &paths[0], vec![]).is_err());
+        std::fs::remove_dir_all(root).unwrap();
+    }
+}
+
+#[cfg(all(test, windows))]
+mod system_application_tests {
+    #[test]
+    #[ignore = "child entry point for the owned Shell launch fixture"]
+    fn registered_launch_child() {
+        let args: Vec<_> = std::env::args().collect();
+        let Some(marker) = args
+            .windows(2)
+            .find(|pair| pair[0] == "--skip")
+            .map(|pair| std::path::PathBuf::from(&pair[1]))
+        else {
+            return;
+        };
+        assert_eq!(marker.file_name().unwrap(), "launched.txt");
+        assert!(marker.parent().unwrap().starts_with(std::env::temp_dir()));
+        assert!(marker
+            .parent()
+            .unwrap()
+            .file_name()
+            .unwrap()
+            .to_string_lossy()
+            .starts_with("echobird-launch-"));
+        std::fs::write(marker, "launched").unwrap();
+    }
+
+    #[test]
+    #[ignore = "launches an owned hidden process through a temporary Shell shortcut"]
+    fn registered_launch_preserves_shortcut_arguments() {
+        use windows::core::{Interface, HSTRING};
+        use windows::Win32::System::Com::{
+            CoCreateInstance, CoInitializeEx, CoUninitialize, IPersistFile, CLSCTX_INPROC_SERVER,
+            COINIT_APARTMENTTHREADED,
+        };
+        use windows::Win32::UI::Shell::{IShellLinkW, ShellLink};
+        use windows::Win32::UI::WindowsAndMessaging::SW_HIDE;
+        let root = std::env::temp_dir().join(format!("echobird-launch-{}", uuid::Uuid::new_v4()));
+        std::fs::create_dir_all(&root).unwrap();
+        let marker = root.join("launched.txt");
+        let shortcut = root.join("Launch fixture.lnk");
+        let executable = std::env::current_exe().unwrap();
+        let module = module_path!().split_once("::").unwrap().1;
+        let args = format!(
+            "{module}::registered_launch_child --exact --ignored --nocapture --skip \"{}\"",
+            marker.display()
+        );
+        unsafe {
+            CoInitializeEx(None, COINIT_APARTMENTTHREADED).ok().unwrap();
+            let link: IShellLinkW =
+                CoCreateInstance(&ShellLink, None, CLSCTX_INPROC_SERVER).unwrap();
+            link.SetPath(&HSTRING::from(executable.to_string_lossy().as_ref()))
+                .unwrap();
+            link.SetArguments(&HSTRING::from(args)).unwrap();
+            link.SetShowCmd(SW_HIDE).unwrap();
+            let persist: IPersistFile = link.cast().unwrap();
+            persist
+                .Save(&HSTRING::from(shortcut.to_string_lossy().as_ref()), true)
+                .unwrap();
+            drop(persist);
+            drop(link);
+            CoUninitialize();
+        }
+        super::launch_registered_application(shortcut.to_str().unwrap()).unwrap();
+        let deadline = std::time::Instant::now() + std::time::Duration::from_secs(10);
+        while !std::fs::read_to_string(&marker).is_ok_and(|value| value == "launched")
+            && std::time::Instant::now() < deadline
+        {
+            std::thread::sleep(std::time::Duration::from_millis(50));
+        }
+        assert_eq!(std::fs::read_to_string(&marker).unwrap(), "launched");
+        assert!(
+            super::launch_registered_application(root.join("Missing.exe").to_str().unwrap())
+                .is_err()
+        );
         std::fs::remove_dir_all(root).unwrap();
     }
 }

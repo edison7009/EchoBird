@@ -1,3 +1,4 @@
+import { useSystemApplicationsStore } from '../../stores/systemApplicationsStore';
 import { isSmartRouterId } from '../../utils/smartRouter';
 import { isDirectModelAllowedForTool } from '../../utils/directModelPolicy';
 import { accountError } from '../../utils/accountError';
@@ -50,8 +51,8 @@ export const AppManagerProvider: React.FC<AppManagerProviderProps> = ({ children
   const {
     detectedTools: scannedTools,
     setDetectedTools,
-    isScanning,
-    scanTools,
+    isScanning: isScanningTools,
+    scanTools: scanManagedTools,
     usingCachedTools,
   } = useToolsStore();
   const installedPlugins = usePluginsStore((state) => state.installed);
@@ -62,7 +63,7 @@ export const AppManagerProvider: React.FC<AppManagerProviderProps> = ({ children
     () => pluginToolProviders(installedPlugins, developerMode),
     [installedPlugins, developerMode]
   );
-  const detectedTools = useMemo(
+  const managedTools = useMemo(
     () => [
       ...scannedTools.map((tool) => {
         const icon = pluginProviders.find((entry) => entry.application === tool.id)?.icon;
@@ -72,13 +73,30 @@ export const AppManagerProvider: React.FC<AppManagerProviderProps> = ({ children
     ],
     [scannedTools, installedPlugins, developerMode, pluginProviders]
   );
+  const viewMode = useNavigationStore((state) => state.toolTab);
+  const systemApplications = useSystemApplicationsStore();
+  const systemApplicationsActive = useNavigationStore(
+    (state) => state.activePage === 'apps' && state.appsTab === 'all'
+  );
+  const detectedTools = systemApplicationsActive ? systemApplications.applications : managedTools;
+  const isScanning = systemApplicationsActive ? systemApplications.loading : isScanningTools;
+  const loadSystemApplications = systemApplications.load;
+  const scanTools = useCallback(async () => {
+    if (systemApplicationsActive) await loadSystemApplications(true);
+    else await scanManagedTools();
+  }, [systemApplicationsActive, loadSystemApplications, scanManagedTools]);
+  useEffect(() => {
+    if (systemApplicationsActive) {
+      void loadSystemApplications();
+    }
+  }, [systemApplicationsActive, loadSystemApplications]);
   const pluginToolIds = pluginProviders.map((entry) => entry.application).join();
   const scannedPluginTools = useRef(pluginToolIds);
   useEffect(() => {
     if (scannedPluginTools.current === pluginToolIds) return;
     scannedPluginTools.current = pluginToolIds;
-    void scanTools();
-  }, [pluginToolIds, scanTools]);
+    void scanManagedTools();
+  }, [pluginToolIds, scanManagedTools]);
   useEffect(() => {
     if (developerMode) void loadPlugins();
   }, [developerMode, loadPlugins]);
@@ -278,8 +296,7 @@ export const AppManagerProvider: React.FC<AppManagerProviderProps> = ({ children
   const [claudeDesktop1mMode, setClaudeDesktop1mModeRaw] = useState<boolean>(() =>
     readBool('echobird_claudedesktop_1m_mode', false)
   );
-  const viewMode = useNavigationStore((state) => state.toolTab);
-  const setViewMode = (mode: 'desktop' | 'install') => {
+  const setViewMode = (mode: 'desktop' | 'install' | 'all') => {
     useNavigationStore.getState().setAppsTab(mode);
     if (mode === viewMode) return;
     setSelectedTool(null);

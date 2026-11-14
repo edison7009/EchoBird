@@ -42,6 +42,7 @@ it.each(['pets', 'plugins', 'usageIsland'] as const)(
       'btn.refresh',
       'aiDesktop.desktopView',
       'aiDesktop.installView',
+      'toolCat.all',
       'developer.pets',
       'developer.plugins',
       'developer.usageIsland',

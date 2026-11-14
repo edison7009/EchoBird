@@ -4,6 +4,25 @@ use std::io::Cursor;
 
 const ICON_SIZE: u32 = 64;
 
+pub(super) fn application_icon(target: &str) -> Option<String> {
+    #[cfg(windows)]
+    {
+        encode_image(desktop_windows::read_path(target)?)
+    }
+    #[cfg(target_os = "macos")]
+    {
+        objc2::rc::autoreleasepool(|_| {
+            let path = objc2_foundation::NSString::from_str(target);
+            let icon = objc2_app_kit::NSWorkspace::sharedWorkspace().iconForFile(&path);
+            encode_image(render_macos_icon(&icon)?)
+        })
+    }
+    #[cfg(target_os = "linux")]
+    {
+        desktop_linux::read_names(&[target.strip_suffix(".desktop").unwrap_or(target).into()])
+    }
+}
+
 #[derive(Clone, PartialEq, Eq)]
 pub(super) enum Target {
     Window(u64),

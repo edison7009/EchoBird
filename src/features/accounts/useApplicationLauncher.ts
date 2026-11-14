@@ -143,6 +143,19 @@ export function useApplicationLauncher({
   // Launch handler
   const handleLaunch = async () => {
     if (!selectedTool || isLaunching) return;
+    const systemAppId = detectedTools.find((tool) => tool.id === selectedTool)?.systemAppId;
+    if (systemAppId) {
+      setIsLaunching(true);
+      setApplyError(null);
+      try {
+        await api.launchSystemApplication(systemAppId);
+      } catch (error) {
+        setApplyError(String(error));
+      } finally {
+        setIsLaunching(false);
+      }
+      return;
+    }
     if (['cursor', 'cursorcli'].includes(selectedTool) && cursorAccounts.busy) return;
     if (selectedTool === 'codearts' && codeArtsAccounts.busy) return;
     if (selectedTool === 'zcode' && zcodeAccounts.busy) return;

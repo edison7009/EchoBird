@@ -16,7 +16,7 @@ export const isToolIconReady = (src?: string) =>
 
 export const resolvedToolIcon = (src?: string) => (src && !failedImages.has(src) ? src : '');
 
-function loadImage(src: string): Promise<HTMLImageElement | null> {
+export function preloadToolImage(src: string): Promise<HTMLImageElement | null> {
   const decoded = decodedImages.get(src);
   if (decoded) return Promise.resolve(decoded);
   let pending = images.get(src);
@@ -53,7 +53,7 @@ export function preloadDesktopToolIcons(tools: LocalTool[]): Promise<LocalTool[]
   return Promise.all(
     tools.map(async (tool) => {
       if (!tool.icon || typeof Image === 'undefined') return tool;
-      const image = await loadImage(tool.icon);
+      const image = await preloadToolImage(tool.icon);
       return image ? tool : { ...tool, icon: '' };
     })
   );
@@ -70,7 +70,7 @@ export function preloadToolIcons(tools: LocalTool[]): Promise<LocalTool[]> {
         ...(tool.iconBase64 ? [tool.iconBase64] : []),
       ];
       for (const src of sources) {
-        const image = await loadImage(src);
+        const image = await preloadToolImage(src);
         if (image) return { ...tool, icon: src };
       }
       return { ...tool, icon: '' };

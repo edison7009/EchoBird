@@ -15,7 +15,6 @@ import {
   Plus,
   Puzzle,
   RefreshCw,
-  Search,
   ShieldCheck,
   X,
 } from 'lucide-react';
@@ -25,6 +24,7 @@ import { useI18n } from '../hooks/useI18n';
 import type { TKey } from '../i18n/types';
 import { ViewModeTabs } from '../components/ViewModeTabs';
 import { PageActionButton } from '../components/PageActionButton';
+import { SearchField } from '../components/SearchField';
 import { RoutingToggle } from '../components/RoutingToggle';
 import { useConfirm } from '../components/ConfirmDialog';
 import { useToast } from '../components/Toast';
@@ -582,27 +582,12 @@ export function PluginHubMain({ active }: { active: boolean }) {
             </button>
           </div>
         )}
-        <div className="ph-search">
-          <Search size={16} />
-          <input
-            aria-label={t('plugins.search')}
-            placeholder={t('plugins.search')}
-            value={query}
-            onChange={(event) => {
-              setQuery(event.target.value);
-            }}
-          />
-          {query && (
-            <button
-              aria-label={t('plugins.clear')}
-              onClick={() => {
-                setQuery('');
-              }}
-            >
-              <X size={15} />
-            </button>
-          )}
-        </div>
+        <SearchField
+          value={query}
+          onChange={setQuery}
+          label={t('plugins.search')}
+          clearLabel={t('plugins.clear')}
+        />
         <div className="ph-actions">
           <PageActionButton
             icon={RefreshCw}

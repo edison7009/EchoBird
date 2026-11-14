@@ -3,6 +3,7 @@ import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import * as api from '../../api/tauri';
 import { useToolsStore } from '../../stores/toolsStore';
+import { useSystemApplicationsStore } from '../../stores/systemApplicationsStore';
 import { useNavigationStore } from '../../stores/navigationStore';
 import { AppManagerProvider } from './AppManagerProvider';
 import { AppManagerContext, useAppManager } from './context';
@@ -352,6 +353,9 @@ vi.mock('./useDeepSeekAccounts', async () => {
   };
 });
 vi.mock('../../api/tauri', () => ({
+  listSystemApplications: vi.fn().mockResolvedValue([]),
+  launchSystemApplication: vi.fn().mockResolvedValue(undefined),
+  switchCodexAccount: vi.fn(),
   getCliLaunchSettings: vi.fn().mockResolvedValue({}),
   listQoderAccounts: vi.fn().mockResolvedValue([]),
   startQoderLogin: vi.fn(),
@@ -3598,4 +3602,61 @@ describe.each(['dsh'] as const)('%s model capabilities', (tool) => {
       expect(storage.get(`echobird_${tool}_1m_mode`)).toBe('true');
     }
   );
+});
+
+describe('system applications navigation', () => {
+  it('loads once and keeps selection, tab and page navigation free of account actions', async () => {
+    vi.clearAllMocks();
+    useSystemApplicationsStore.setState(useSystemApplicationsStore.getInitialState(), true);
+    useToolsStore
+      .getState()
+      .setDetectedTools([
+        { id: 'managed-fixture', name: 'Managed', category: 'Desktop', installed: true },
+      ]);
+    useNavigationStore.setState(useNavigationStore.getInitialState(), true);
+    useNavigationStore.getState().setAppsTab('all');
+    vi.mocked(api.listSystemApplications).mockResolvedValue([
+      { id: 'system:one', name: 'Custom app', path: '/custom/app' },
+    ]);
+    let context!: ReturnType<typeof useAppManager>;
+    function Harness() {
+      context = useAppManager();
+      return null;
+    }
+    let renderer: ReactTestRenderer | undefined;
+    try {
+      await act(async () => {
+        renderer = create(
+          <AppManagerProvider>
+            <Harness />
+          </AppManagerProvider>
+        );
+      });
+      expect(context.detectedTools).toHaveLength(1);
+      act(() => context.setSelectedTool('system:one'));
+      expect(context.selectedToolData).toMatchObject({ installed: true, noModelConfig: true });
+      act(() => useNavigationStore.getState().setActivePage('accounts'));
+      expect(context.detectedTools.map((tool) => tool.id)).toEqual(['managed-fixture']);
+      act(() => useNavigationStore.getState().setActivePage('models'));
+      act(() => useNavigationStore.getState().setActivePage('apps'));
+      act(() => context.setViewMode('install'));
+      await act(async () => {
+        context.setViewMode('all');
+      });
+      expect(api.listSystemApplications).toHaveBeenCalledExactlyOnceWith(false);
+      expect(api.launchSystemApplication).not.toHaveBeenCalled();
+      expect(api.startTool).not.toHaveBeenCalled();
+      expect(api.startCodexLogin).not.toHaveBeenCalled();
+      expect(api.refreshCodexAccountQuota).not.toHaveBeenCalled();
+      expect(api.switchCodexAccount).not.toHaveBeenCalled();
+      expect(api.applyModelToTool).not.toHaveBeenCalled();
+      expect(openDialog).not.toHaveBeenCalled();
+      expect(context.applyError).toBeNull();
+    } finally {
+      act(() => renderer?.unmount());
+      useSystemApplicationsStore.setState(useSystemApplicationsStore.getInitialState(), true);
+      useToolsStore.getState().setDetectedTools([]);
+      useNavigationStore.setState(useNavigationStore.getInitialState(), true);
+    }
+  });
 });

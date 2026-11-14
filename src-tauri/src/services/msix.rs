@@ -107,6 +107,63 @@ pub(crate) fn resolve_launch_uri(configured: &str) -> Option<String> {
 }
 
 #[cfg(windows)]
+pub(crate) fn application_location(uri: &str) -> Option<(std::path::PathBuf, String)> {
+    use windows::{core::HSTRING, Management::Deployment::PackageManager};
+    let aumid = uri.strip_prefix("shell:AppsFolder\\")?;
+    let family = aumid.split_once('!')?.0;
+    let packages = PackageManager::new()
+        .ok()?
+        .FindPackagesByUserSecurityId(&HSTRING::new())
+        .ok()?;
+    for package in packages {
+        let Ok(id) = package.Id() else { continue };
+        let Ok(installed_family) = id.FamilyName() else {
+            continue;
+        };
+        if installed_family != family {
+            continue;
+        }
+        let version = id.Version().ok()?;
+        return Some((
+            package.InstalledPath().ok()?.to_string().into(),
+            format!(
+                "{}.{}.{}.{}",
+                version.Major, version.Minor, version.Build, version.Revision
+            ),
+        ));
+    }
+    None
+}
+
+#[cfg(windows)]
+pub(crate) fn application_locations(
+    families: &std::collections::HashSet<String>,
+) -> Option<std::collections::HashMap<String, std::path::PathBuf>> {
+    use windows::{core::HSTRING, Management::Deployment::PackageManager};
+    let mut locations = std::collections::HashMap::new();
+    if families.is_empty() {
+        return Some(locations);
+    }
+    let packages = PackageManager::new()
+        .ok()?
+        .FindPackagesByUserSecurityId(&HSTRING::new())
+        .ok()?;
+    for package in packages {
+        let Ok(id) = package.Id() else { continue };
+        let Ok(family) = id.FamilyName() else {
+            continue;
+        };
+        let family = family.to_string();
+        if families.contains(&family) {
+            if let Ok(path) = package.InstalledPath() {
+                locations.insert(family, path.to_string().into());
+            }
+        }
+    }
+    Some(locations)
+}
+
+#[cfg(windows)]
 pub(crate) fn roaming_data_dir(configured: &str, app_name: &str) -> Option<std::path::PathBuf> {
     let uri = resolve_launch_uri(configured)?;
     let family = uri.strip_prefix("shell:AppsFolder\\")?.split_once('!')?.0;

@@ -155,6 +155,33 @@ pub async fn scan_tools() -> Result<Vec<DetectedTool>, String> {
     Ok(tool_manager::scan_tools().await)
 }
 
+#[tauri::command]
+pub async fn list_system_applications(
+    force_refresh: bool,
+) -> Result<Vec<tool_manager::system_applications::SystemApplication>, String> {
+    Ok(tool_manager::system_applications::list(force_refresh)
+        .await?
+        .as_ref()
+        .clone())
+}
+
+#[tauri::command]
+pub async fn get_system_application_icon(id: String) -> Result<Option<String>, String> {
+    tool_manager::system_applications::icon(&id).await
+}
+
+#[tauri::command]
+pub async fn get_system_application_details(
+    id: String,
+) -> Result<tool_manager::system_applications::ApplicationDetails, String> {
+    tool_manager::system_applications::details(&id).await
+}
+
+#[tauri::command]
+pub async fn launch_system_application(id: String) -> Result<(), String> {
+    crate::services::process_manager::launch_system_application(&id).await
+}
+
 /// Apply a model configuration to a tool
 #[tauri::command]
 pub async fn apply_model_to_tool(

@@ -366,7 +366,8 @@ function AppContent() {
   }, [activePage]);
 
   const is = (p: PageType) => activePage === p;
-  const appsToolsActive = is('apps') && (appsTab === 'desktop' || appsTab === 'install');
+  const appsToolsActive =
+    is('apps') && (appsTab === 'desktop' || appsTab === 'install' || appsTab === 'all');
   const routerActive = is('freeModels') && smartAccessTab === 'configuration';
   const feature = (tab: 'pets' | 'plugins' | 'usageIsland' | 'statistics') =>
     featuresReady &&

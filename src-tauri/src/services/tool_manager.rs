@@ -6,6 +6,8 @@ use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
 
+pub mod system_applications;
+
 use crate::models::tool::{
     ConfigMapping, DetectedTool, InstallHints, PathsConfig, ToolCategory, ToolDefinition,
 };
@@ -1208,6 +1210,11 @@ fn find_tool_executable(pc: &PathsConfig, include_hints: bool) -> Option<String>
     paths
         .iter()
         .find_map(|p| resolve(p))
+        .or_else(|| {
+            include_hints
+                .then(|| system_applications::executable(pc))
+                .flatten()
+        })
         .or_else(|| {
             include_hints
                 .then(|| scan_install_hints(pc))
@@ -2859,6 +2866,9 @@ pub fn get_tool_launch_uri(tool_id: &str) -> Option<String> {
 
 /// Scan all installed tools — runs all detections in parallel for fast completion.
 pub async fn scan_tools() -> Vec<DetectedTool> {
+    if let Err(error) = system_applications::list(true).await {
+        log::warn!("[Applications] Keeping previous system inventory: {error}");
+    }
     // Clear cache to pick up newly added tool directories
     {
         let mut cache = TOOL_DEFINITIONS.lock().unwrap();

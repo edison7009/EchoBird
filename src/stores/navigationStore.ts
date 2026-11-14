@@ -7,13 +7,13 @@ import { create } from 'zustand';
 import type { PageType } from '../components';
 import { optionalPagesFromSettings, type OptionalPages } from './optionalPages';
 
-export type AppsTab = 'desktop' | 'install' | 'pets' | 'plugins' | 'usageIsland';
+export type AppsTab = 'desktop' | 'install' | 'all' | 'pets' | 'plugins' | 'usageIsland';
 export type SmartAccessTab = 'configuration' | 'statistics';
 interface Location {
   page: PageType;
   appsTab: AppsTab;
   smartAccessTab: SmartAccessTab;
-  toolTab: 'desktop' | 'install';
+  toolTab: 'desktop' | 'install' | 'all';
 }
 
 export type DeveloperTab = 'pets' | 'plugins' | 'statistics' | 'usageIsland';
@@ -22,7 +22,7 @@ interface NavigationState {
   activePage: PageType;
   appsTab: AppsTab;
   smartAccessTab: SmartAccessTab;
-  toolTab: 'desktop' | 'install';
+  toolTab: 'desktop' | 'install' | 'all';
   backLocations: Location[];
   forwardLocations: Location[];
   setAppsTab: (tab: AppsTab) => void;
@@ -126,7 +126,10 @@ export const useNavigationStore = create<NavigationState>((set) => ({
         ...location(state),
         page: 'apps',
         appsTab,
-        toolTab: appsTab === 'desktop' || appsTab === 'install' ? appsTab : state.toolTab,
+        toolTab:
+          appsTab === 'desktop' || appsTab === 'install' || appsTab === 'all'
+            ? appsTab
+            : state.toolTab,
       })
     ),
   setSmartAccessTab: (smartAccessTab) =>

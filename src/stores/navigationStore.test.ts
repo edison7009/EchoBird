@@ -2,6 +2,16 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { useNavigationStore as navigation } from './navigationStore';
 
 beforeEach(() => navigation.setState(navigation.getInitialState(), true));
+
+it('restores the All applications tab through back and forward navigation', () => {
+  navigation.getState().setAppsTab('all');
+  expect(navigation.getState()).toMatchObject({ appsTab: 'all', toolTab: 'all' });
+  navigation.getState().setAppsTab('install');
+  navigation.getState().goBack();
+  expect(navigation.getState()).toMatchObject({ appsTab: 'all', toolTab: 'all' });
+  navigation.getState().goForward();
+  expect(navigation.getState()).toMatchObject({ appsTab: 'install', toolTab: 'install' });
+});
 afterEach(() => vi.unstubAllGlobals());
 
 it('routes legacy developer destinations into their owning page without a preview setting', () => {

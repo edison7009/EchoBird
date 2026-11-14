@@ -1,3 +1,11 @@
+import { useSystemApplicationsStore } from '../../stores/systemApplicationsStore';
+import {
+  ApplicationDetailsPanel,
+  ApplicationActions,
+  useApplicationDetails,
+} from './ApplicationDetailsPanel';
+import { SearchField } from '../../components/SearchField';
+import { MiniSelect } from '../../components/MiniSelect';
 import {
   DesktopIcon,
   toolDisplayName,
@@ -92,17 +100,19 @@ export const AppManagerTitleActions: React.FC = () => {
   return (
     <div className="ml-auto flex-shrink-0 flex items-center gap-3">
       <div className="flex items-center gap-2">
-        {(appsTab === 'desktop' || appsTab === 'install') && (
+        {(appsTab === 'desktop' || appsTab === 'install' || appsTab === 'all') && (
           <>
-            <PageActionButton
-              icon={Settings}
-              onClick={() => {
-                void api.openToolPathsConfig().catch(() => {});
-              }}
-              aria-label={t('btn.editPaths')}
-            >
-              {t('btn.editPaths')}
-            </PageActionButton>
+            {appsTab !== 'all' && (
+              <PageActionButton
+                icon={Settings}
+                onClick={() => {
+                  void api.openToolPathsConfig().catch(() => {});
+                }}
+                aria-label={t('btn.editPaths')}
+              >
+                {t('btn.editPaths')}
+              </PageActionButton>
+            )}
             <PageActionButton
               icon={RefreshCw}
               spinning={isScanning}
@@ -115,11 +125,14 @@ export const AppManagerTitleActions: React.FC = () => {
         )}
         <ViewModeTabs
           dividers
-          value={appsTab === 'desktop' || appsTab === 'install' ? viewMode : null}
+          value={
+            appsTab === 'desktop' || appsTab === 'install' || appsTab === 'all' ? viewMode : null
+          }
           onChange={setViewMode}
           options={[
             { value: 'desktop', label: t('aiDesktop.desktopView') },
             { value: 'install', label: t('aiDesktop.installView') },
+            { value: 'all', label: t('toolCat.all') },
           ]}
         />
       </div>
@@ -236,12 +249,33 @@ const SortableDesktopIcon: React.FC<DesktopIconProps> = ({ tool, selected, onCli
   );
 };
 
+type ApplicationSort = 'default' | 'name' | 'date';
+const APPLICATION_SORT_KEY = 'echobird_appmgr_all_sort';
+
 export const AppManagerMain: React.FC = () => {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const { detectedTools, isScanning, selectedTool, setSelectedTool, aiInstallableIds, viewMode } =
     useAppManager();
   // Active category tab for the "未安装" section. 'ALL' shows every
   // uninstalled app; the other tabs filter by category.
+  const systemError = useSystemApplicationsStore((state) => state.error);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [applicationSort, setApplicationSort] = useState<ApplicationSort>(() => {
+    try {
+      const saved = localStorage.getItem(APPLICATION_SORT_KEY);
+      return saved === 'name' || saved === 'date' ? saved : 'default';
+    } catch {
+      return 'default';
+    }
+  });
+  const saveApplicationSort = (value: ApplicationSort) => {
+    setApplicationSort(value);
+    try {
+      localStorage.setItem(APPLICATION_SORT_KEY, value);
+    } catch {
+      /* private mode */
+    }
+  };
   const [activeUninstalledCat, setActiveUninstalledCat] = useState('ALL');
   const categoryTabsRef = useRef<HTMLDivElement>(null);
   const categoryUnderlineRef = useRef<HTMLSpanElement>(null);
@@ -250,17 +284,25 @@ export const AppManagerMain: React.FC = () => {
   const orderKeys = {
     desktop: 'echobird_appmgr_tool_order',
     install: 'echobird_appmgr_store_order',
+    all: 'echobird_appmgr_all_order',
   };
   const [toolOrders, setToolOrders] = useState(() => {
     const readOrder = (key: string): string[] => {
       try {
         const v = localStorage.getItem(key);
-        return v ? (JSON.parse(v) as string[]) : [];
+        const saved: unknown = v ? JSON.parse(v) : [];
+        return Array.isArray(saved)
+          ? saved.filter((id): id is string => typeof id === 'string')
+          : [];
       } catch {
         return [];
       }
     };
-    return { desktop: readOrder(orderKeys.desktop), install: readOrder(orderKeys.install) };
+    return {
+      desktop: readOrder(orderKeys.desktop),
+      install: readOrder(orderKeys.install),
+      all: readOrder(orderKeys.all),
+    };
   });
   const saveToolOrder = (ids: string[]) => {
     setToolOrders((prev) => ({ ...prev, [viewMode]: ids }));
@@ -286,12 +328,26 @@ export const AppManagerMain: React.FC = () => {
   // Apply the saved order on top of the default sort: known ids first in
   // saved order, then any freshly-detected tools in default order.
   const installedOrdered = useMemo(() => {
-    const orderIndex = new Map(toolOrders.desktop.map((id, i) => [id, i]));
+    const orderIndex = new Map(
+      toolOrders[viewMode === 'all' ? 'all' : 'desktop'].map((id, i) => [id, i])
+    );
     const known = installed.filter((t) => orderIndex.has(t.id));
     const unknown = installed.filter((t) => !orderIndex.has(t.id));
     known.sort((a, b) => orderIndex.get(a.id)! - orderIndex.get(b.id)!);
     return [...known, ...unknown];
-  }, [installed, toolOrders.desktop]);
+  }, [installed, toolOrders, viewMode]);
+
+  const sortedApplications = useMemo(() => {
+    if (viewMode !== 'all' || applicationSort === 'default') return installedOrdered;
+    const collator = new Intl.Collator(locale, { numeric: true, sensitivity: 'base' });
+    return [...installedOrdered].sort((a, b) => {
+      if (applicationSort === 'date') {
+        const dateDifference = (b.createdAt ?? -1) - (a.createdAt ?? -1);
+        if (dateDifference !== 0) return dateDifference;
+      }
+      return collator.compare(toolDisplayName(a, locale), toolDisplayName(b, locale));
+    });
+  }, [installedOrdered, applicationSort, viewMode, locale]);
 
   // Shared drag-reorder — pointer with a 5px activation so
   // plain clicks still select; keyboard for a11y. On drop, reorder in place
@@ -306,7 +362,7 @@ export const AppManagerMain: React.FC = () => {
   const dropPositions = useRef<Map<string, DOMRect> | null>(null);
   const dropAnimations = useRef<Animation[]>([]);
 
-  const dragScope = `${viewMode}:${activeUninstalledCat}`;
+  const dragScope = `${viewMode}:${activeUninstalledCat}:${viewMode === 'all' ? `${searchQuery}:${applicationSort}` : ''}`;
   const [previousDragScope, setPreviousDragScope] = useState(dragScope);
   if (previousDragScope !== dragScope) {
     setPreviousDragScope(dragScope);
@@ -379,8 +435,17 @@ export const AppManagerMain: React.FC = () => {
     activeUninstalledCat === 'ALL'
       ? uninstalledOrdered
       : uninstalledOrdered.filter((tool) => tool.category === activeUninstalledCat);
-  const orderedTools = viewMode === 'desktop' ? installedOrdered : uninstalledOrdered;
-  const candidateTools = viewMode === 'desktop' ? installedOrdered : visibleUninstalled;
+  const orderedTools = viewMode === 'install' ? uninstalledOrdered : sortedApplications;
+  const searchedTools = useMemo(() => {
+    const query = searchQuery.trim().toLocaleLowerCase();
+    return sortedApplications.filter((tool) => tool.name.toLocaleLowerCase().includes(query));
+  }, [sortedApplications, searchQuery]);
+  const candidateTools =
+    viewMode === 'install'
+      ? visibleUninstalled
+      : viewMode === 'all'
+        ? searchedTools
+        : installedOrdered;
   const preparedDesktop = useDesktopTools(candidateTools, dragScope);
   const visibleTools = preparedDesktop.tools;
   const initialLoading =
@@ -449,6 +514,7 @@ export const AppManagerMain: React.FC = () => {
       )
     );
     const reordered = arrayMove(visibleTools, oldIndex, newIndex).map((tool) => tool.id);
+    if (viewMode === 'all' && applicationSort !== 'default') saveApplicationSort('default');
     const visibleIds = new Set(reordered);
     let index = 0;
     // A category drag replaces only its visible slots in the full Store order.
@@ -492,6 +558,26 @@ export const AppManagerMain: React.FC = () => {
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden" aria-busy={initialLoading || undefined}>
+      {viewMode === 'all' && (
+        <div className="mb-4 flex shrink-0 justify-end gap-2">
+          <SearchField
+            value={searchQuery}
+            onChange={setSearchQuery}
+            label={t('aiDesktop.search')}
+            clearLabel={t('plugins.clear')}
+          />
+          <MiniSelect
+            value={applicationSort}
+            onChange={(value) => saveApplicationSort(value as ApplicationSort)}
+            options={[
+              { id: 'default', label: t('aiDesktop.sortDefault') },
+              { id: 'name', label: t('aiDesktop.sortName') },
+              { id: 'date', label: t('aiDesktop.sortDate') },
+            ]}
+            className="w-[100px] shrink-0 [&>button]:h-9 [&>button]:py-0"
+          />
+        </div>
+      )}
       {initialLoading ? (
         <div
           className={gridClass}
@@ -511,6 +597,16 @@ export const AppManagerMain: React.FC = () => {
         </div>
       ) : (
         <div key={viewMode} className="flex min-h-0 flex-1 flex-col">
+          {viewMode === 'all' && systemError && (
+            <p role="status" className="mb-3 text-sm text-red-400">
+              {systemError}
+            </p>
+          )}
+          {viewMode === 'all' && installed.length > 0 && candidateTools.length === 0 && (
+            <p className="py-10 text-center text-sm text-cyber-text-secondary">
+              {t('aiDesktop.noSearchResults')}
+            </p>
+          )}
           {/* Install view — category tabs filter the uninstalled apps. */}
           {viewMode === 'install' && uninstalled.length > 0 && (
             <div ref={categoryTabsRef} className="relative mb-5 flex shrink-0 flex-wrap gap-1">
@@ -549,11 +645,17 @@ export const AppManagerMain: React.FC = () => {
           )}
           <div className="min-h-0 flex-1 overflow-y-auto">
             {/* Installed — flat draggable grid, no section header (per spec) */}
-            {viewMode === 'desktop' && installedOrdered.length > 0 && <div>{sortableGrid}</div>}
+            {viewMode !== 'install' && installedOrdered.length > 0 && <div>{sortableGrid}</div>}
             {viewMode === 'install' && uninstalled.length > 0 && <section>{sortableGrid}</section>}
-            {(viewMode === 'desktop' ? installed.length === 0 : uninstalled.length === 0) && (
+            {(viewMode === 'install' ? uninstalled.length === 0 : installed.length === 0) && (
               <p className="py-12 text-center text-sm text-cyber-text-secondary">
-                {t(viewMode === 'desktop' ? 'aiDesktop.emptyDesktop' : 'aiDesktop.emptyInstall')}
+                {t(
+                  viewMode === 'all'
+                    ? 'aiDesktop.emptyAll'
+                    : viewMode === 'desktop'
+                      ? 'aiDesktop.emptyDesktop'
+                      : 'aiDesktop.emptyInstall'
+                )}
               </p>
             )}
           </div>
@@ -959,6 +1061,25 @@ export const AppManagerPanel: React.FC = () => {
     selectedToolAction,
   } = useAppManager();
 
+  const applicationDetails = useApplicationDetails(selectedToolData);
+  const [readyApplication, setReadyApplication] = useState<{
+    tool: LocalTool;
+    details: ReturnType<typeof useApplicationDetails>;
+  } | null>(null);
+  if (readyApplication && !selectedToolData?.systemAppId) setReadyApplication(null);
+  if (
+    selectedToolData?.systemAppId &&
+    !applicationDetails.loading &&
+    readyApplication?.tool !== selectedToolData
+  ) {
+    setReadyApplication({ tool: selectedToolData, details: applicationDetails });
+  }
+  // Keep one coherent identity and its values until the next app's details are ready.
+  const pendingApplication = selectedToolData?.systemAppId && applicationDetails.loading;
+  const panelTool =
+    pendingApplication && readyApplication ? readyApplication.tool : selectedToolData;
+  const panelDetails =
+    pendingApplication && readyApplication ? readyApplication.details : applicationDetails;
   const isClaudeDesktopApp = selectedTool === 'claudedesktop';
   const isClaudeCodeApp = selectedTool === 'claudecode';
   const isZCodeApp = selectedTool === 'zcode';
@@ -1087,13 +1208,22 @@ export const AppManagerPanel: React.FC = () => {
   const routingControls = capabilityToggles.length > 0 && (
     <CapabilityToggles toggles={capabilityToggles} disabled={isLaunching} />
   );
+  const applicationActions = panelTool && (
+    <ApplicationActions
+      tool={panelTool}
+      directory={panelDetails.directory}
+      path={panelDetails.data?.path}
+      launchTarget={panelDetails.data?.launchTarget}
+      disabled={isLaunching || applicationDetails.loading}
+    />
+  );
 
   return (
     <div className="flex h-full min-h-0 flex-col">
       {/* Header */}
       <div className="h-10 px-2 flex items-center justify-between bg-transparent">
         <span className="min-w-0 truncate px-3 py-1.5 text-sm font-semibold text-cyber-text">
-          {selectedToolData ? toolDisplayName(selectedToolData, locale) : ''}
+          {panelTool ? toolDisplayName(panelTool, locale) : ''}
         </span>
         <div className="flex shrink-0 items-center gap-1">
           {supportsWarmUp && (
@@ -1118,15 +1248,19 @@ export const AppManagerPanel: React.FC = () => {
               <Gift size={12} className={selectedToolAction === 'claim' ? 'animate-pulse' : ''} />
             </button>
           )}
-          <button
-            type="button"
-            aria-label={t('btn.refresh')}
-            disabled={!selectedToolData || isRefreshingSelectedTool || selectedToolAction !== null}
-            onClick={() => void refreshSelectedTool()}
-            className="account-icon-button flex h-7 w-7 items-center justify-center rounded-full transition-colors hover:bg-cyber-elevated/45 disabled:opacity-40"
-          >
-            <RefreshCw size={12} className={isRefreshingSelectedTool ? 'animate-spin' : ''} />
-          </button>
+          {!selectedToolData?.systemAppId && (
+            <button
+              type="button"
+              aria-label={t('btn.refresh')}
+              disabled={
+                !selectedToolData || isRefreshingSelectedTool || selectedToolAction !== null
+              }
+              onClick={() => void refreshSelectedTool()}
+              className="account-icon-button flex h-7 w-7 items-center justify-center rounded-full transition-colors hover:bg-cyber-elevated/45 disabled:opacity-40"
+            >
+              <RefreshCw size={12} className={isRefreshingSelectedTool ? 'animate-spin' : ''} />
+            </button>
+          )}
         </div>
       </div>
 
@@ -1134,7 +1268,14 @@ export const AppManagerPanel: React.FC = () => {
         {selectedToolData ? (
           // Not installed yet — offer the tool's website or repository
           // alongside the bottom bar's one-click install action.
-          !selectedToolData.installed ? (
+          selectedToolData.systemAppId && panelTool ? (
+            <ApplicationDetailsPanel
+              tool={panelTool}
+              state={{ ...panelDetails, loading: applicationDetails.loading }}
+            >
+              {applicationActions}
+            </ApplicationDetailsPanel>
+          ) : !selectedToolData.installed ? (
             selectedToolData.website && (
               <div className="h-full flex flex-col items-center justify-center gap-2 px-3 text-center">
                 <p className="text-sm text-cyber-text-secondary leading-relaxed">
@@ -1185,12 +1326,7 @@ export const AppManagerPanel: React.FC = () => {
           ) : selectedTool === 'qwenwork' || selectedTool === 'qwenworkcn' ? (
             <QwenWorkAccountSection />
           ) : selectedToolData.noModelConfig ? (
-            <div className="h-full flex flex-col items-center justify-center gap-3 text-center">
-              <BoxIcon size={28} className="text-cyber-text opacity-25" />
-              <p className="text-base text-cyber-text-secondary font-mono leading-relaxed">
-                {t('agent.noModelConfig')}
-              </p>
-            </div>
+            <ApplicationDetailsPanel tool={selectedToolData} state={applicationDetails} />
           ) : (
             <div className="flex h-full flex-col gap-2">
               {selectedTool === 'opendesign' && <OpenDesignAccountSection showDivider />}
@@ -1271,6 +1407,9 @@ export const AppManagerPanel: React.FC = () => {
             <p className="text-cyber-text-secondary text-center">{t('agent.selectTool')}</p>
           </div>
         )}
+        {selectedToolData && !selectedToolData.systemAppId && (
+          <div className="px-3 pt-4">{applicationActions}</div>
+        )}
       </div>
     </div>
   );
@@ -1281,7 +1420,6 @@ export const AppManagerPanel: React.FC = () => {
 export const AppManagerBottom: React.FC = () => {
   const { t, locale } = useI18n();
   const activePage = useNavigationStore((s) => s.activePage);
-  const goToMother = useNavigationStore((s) => s.goToMother);
   const {
     viewMode,
     selectedTool,
@@ -1334,7 +1472,6 @@ export const AppManagerBottom: React.FC = () => {
   const isUninstalled = !!selectedToolData && !selectedToolData.installed;
   const isInstallAction = isUninstalled || (activePage === 'apps' && viewMode === 'install');
   const isPlugin = !!selectedToolData?.plugin;
-  const isBuiltInApp = selectedTool === 'reversi' || selectedTool === 'translator' || isPlugin;
   const showCliSettings =
     selectedToolData?.category === 'CLI Code' && !isCatalogOnly && !isInstallAction && !isPlugin;
   const hasModelSelected = !!(selectedTool && toolModelConfig[selectedTool]);
@@ -1421,13 +1558,6 @@ export const AppManagerBottom: React.FC = () => {
     void handleLaunch();
   };
 
-  const showUninstallHint =
-    activePage === 'apps' &&
-    !isCatalogOnly &&
-    selectedToolData?.installed &&
-    !isInstallAction &&
-    !isBuiltInApp;
-
   return (
     <div className="flex-shrink-0 flex flex-col mt-2">
       <div className="mx-2 border-t border-cyber-border"></div>
@@ -1455,7 +1585,7 @@ export const AppManagerBottom: React.FC = () => {
                 disabled={buttonDisabled}
                 className={`w-full h-14 text-lg font-bold font-mono tracking-widest transition-colors rounded-lg cjk-btn border shadow-lg ${
                   buttonDisabled
-                    ? 'bg-cyber-border text-cyber-text-secondary border-transparent shadow-none cursor-not-allowed'
+                    ? 'bg-cyber-border text-cyber-text-secondary border-transparent shadow-none'
                     : 'bg-cyber-accent text-white border-cyber-accent hover:bg-cyber-accent-secondary hover:border-cyber-accent-secondary shadow-cyber-accent/30'
                 }`}
               >
@@ -1464,25 +1594,6 @@ export const AppManagerBottom: React.FC = () => {
                   : willLaunch
                     ? t('btn.launchApp')
                     : t('btn.modifyOnly')}
-              </button>
-            )}
-            {showUninstallHint && (
-              <button
-                type="button"
-                onClick={() =>
-                  goToMother(
-                    t('mother.hintUninstall').replace(
-                      '{agent}',
-                      toolDisplayName(selectedToolData, locale)
-                    )
-                  )
-                }
-                className="absolute top-full left-1/2 -translate-x-1/2 mt-1 max-w-full whitespace-nowrap text-xs text-cyber-text-secondary hover:text-cyber-accent transition-colors"
-              >
-                {t('mother.hintUninstall').replace(
-                  '{agent}',
-                  toolDisplayName(selectedToolData, locale)
-                )}
               </button>
             )}
           </div>

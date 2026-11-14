@@ -18,7 +18,7 @@
   min-height: 0;
 }
 .ph-toolbar {
-  --ph-control-height: 36px;
+  --ph-control-height: 2.25rem;
   display: flex;
   justify-content: flex-start;
   flex-wrap: wrap;
@@ -78,35 +78,6 @@
 }
 .ph-menu > button:hover {
   background: var(--ph-elevated);
-}
-.ph-search {
-  flex: 1 1 180px;
-  max-width: 320px;
-  margin-left: auto;
-  min-width: 120px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  height: var(--ph-control-height);
-  border: 1px solid var(--ph-line);
-  border-radius: 8px;
-  padding: 0 12px;
-  color: var(--ph-muted);
-}
-.ph-search:focus-within {
-  border-color: rgb(var(--accent-rgb) / 0.7);
-}
-.ph-search input {
-  width: 100%;
-  min-width: 0;
-  color: var(--ph-text);
-  background: none;
-  outline: none;
-  font-size: 14px;
-}
-.ph-search button {
-  display: flex;
-  align-items: center;
 }
 .ph-region {
   display: flex;

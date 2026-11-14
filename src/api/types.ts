@@ -26,6 +26,8 @@ export interface DetectedTool {
 
 // UI-level tool type used by AppManager, MotherAgent, and App shell
 export interface LocalTool extends DetectedTool {
+  systemAppId?: string;
+  createdAt?: number | null;
   plugin?: { id: string; pageId: string };
   path?: string;
   icon?: string;

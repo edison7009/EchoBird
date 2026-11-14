@@ -615,7 +615,9 @@ describe('account launch options', () => {
         // With launching off the primary action reads as modify-only and stays enabled.
         context.launchAfterApply = false;
         act(() => renderer!.update(draw()));
-        const primary = renderer!.root.findAllByType('button')[0];
+        const primary = renderer!.root
+          .findAllByType('button')
+          .find((button) => button.props.children === 'btn.modifyOnly')!;
         expect(primary.props.disabled).toBe(false);
         expect(primary.props.children).toBe('btn.modifyOnly');
         context.launchAfterApply = true;
@@ -858,6 +860,51 @@ describe('AppManager views', () => {
     expect(markup).not.toContain('aria-label="Bundled board game"');
     expect(markup).not.toContain('aria-label="AI Translator"');
     expect(markup).toContain('aria-label="Plugin board game"');
+  });
+
+  it('searches All locally without selecting applications or writing their order', async () => {
+    vi.stubGlobal('__APP_EDITION__', 'full');
+    vi.stubGlobal('document', { addEventListener: vi.fn(), removeEventListener: vi.fn() });
+    const writes = vi.fn();
+    vi.stubGlobal('localStorage', { getItem: () => null, setItem: writes });
+    const { AppManagerMain } = await import('./AppManagerComponents');
+    const { DesktopIcon } = await import('../../components/DesktopToolIcon');
+    const select = vi.fn();
+    const context = {
+      viewMode: 'all',
+      detectedTools: [installedTool, { ...installedTool, id: 'other', name: 'Other app' }],
+      isScanning: false,
+      selectedTool: null,
+      setSelectedTool: select,
+      aiInstallableIds: [],
+    } as unknown as AppManagerContextType;
+    let renderer!: ReactTestRenderer;
+    try {
+      act(() => {
+        renderer = create(
+          <AppManagerContext.Provider value={context}>
+            <AppManagerMain />
+          </AppManagerContext.Provider>
+        );
+      });
+      expect(renderer.root.findAllByType(DesktopIcon)).toHaveLength(2);
+      act(() =>
+        renderer.root.findByType('input').props.onChange({ target: { value: '  OTHER ' } })
+      );
+      expect(renderer.root.findAllByType(DesktopIcon).map((icon) => icon.props.tool.id)).toEqual([
+        'other',
+      ]);
+      act(() => renderer.root.findByType('input').props.onChange({ target: { value: 'missing' } }));
+      expect(renderer.root.findAllByType(DesktopIcon)).toHaveLength(0);
+      expect(JSON.stringify(renderer.toJSON())).toContain('aiDesktop.noSearchResults');
+      act(() => renderer.root.findByType('input').props.onChange({ target: { value: '' } }));
+      expect(renderer.root.findAllByType(DesktopIcon)).toHaveLength(2);
+      expect(select).not.toHaveBeenCalled();
+      expect(writes).not.toHaveBeenCalled();
+    } finally {
+      act(() => renderer?.unmount());
+      vi.unstubAllGlobals();
+    }
   });
 
   it.each([
@@ -1244,7 +1291,8 @@ describe.each(['grokbot', 'cursor', 'manus', 'cue'] as const)('%s account-only p
     expect(markup).not.toContain('Auto Router');
     expect(markup).not.toContain('agent.noModelConfig');
     expect(markup).toContain('btn.modifyOnly');
-    expect(markup.match(/<button[^>]*disabled=""/g)).toHaveLength(1);
+    // The login action and the unavailable file-location action are disabled.
+    expect(markup.match(/<button[^>]*disabled=""/g)).toHaveLength(2);
     expect(markup).toContain('aria-label="btn.cancel"');
   });
 });

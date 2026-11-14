@@ -145,6 +145,11 @@ fn shortcut_matches(path: &Path, executable: &str) -> bool {
     result.unwrap_or(false)
 }
 
+pub(super) fn read_path(path: &str) -> Option<DynamicImage> {
+    let _apartment = Apartment::enter();
+    shell_image(path)
+}
+
 fn shell_image(path: &str) -> Option<DynamicImage> {
     unsafe {
         let factory: IShellItemImageFactory =
