@@ -131,6 +131,9 @@ test('all website languages have complete translated homes and only two document
       locale
     );
     assert.equal((html.match(/data-site-language="/g) || []).length, 16, locale);
+    assert.match(html, /<summary[^>]+aria-label="Language \/ /, locale);
+    assert.match(html, /class="site-language-label" lang="en">Language<\/span>/, locale);
+    assert.match(html, /class="site-language-icon"[^>]+aria-hidden="true"/, locale);
     assert.ok(html.includes(`href="${docPath(locale)}"`), locale);
     assert.ok(
       html.includes(`/demo.html?lang=${locale === 'zh' || locale === 'zh-Hant' ? 'zh' : 'en'}`),

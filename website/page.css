@@ -1291,7 +1291,14 @@ body:before {
   font-size: inherit;
 }
 .site-language-menu summary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
   list-style: none;
+}
+.site-language-icon {
+  flex-shrink: 0;
 }
 .site-language-menu summary::-webkit-details-marker {
   display: none;
@@ -1328,18 +1335,17 @@ html[dir='rtl'] .install-command code {
 
 @media (max-width: 760px) {
   .site-language-menu summary {
-    max-width: 70px;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    min-width: 28px;
+    min-height: 28px;
+  }
+  .site-language-label {
+    display: none;
   }
 }
 
 @media (max-width: 400px) {
   .navlinks {
     gap: 8px;
-  }
-  .site-language-menu summary {
-    max-width: 50px;
   }
 }
 
