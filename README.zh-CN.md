@@ -18,7 +18,6 @@
 <p align="center">
   <a href="https://echobird.ai">官网</a> ·
   <a href="https://github.com/edison7009/EchoBird/releases/latest">下载</a> ·
-  <a href="https://echobird.ai/support/">☕ 请喝咖啡</a> ·
   <a href="README.md">English README</a>
 </p>
 
