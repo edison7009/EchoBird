@@ -6,6 +6,8 @@ import { getDocsArticles } from './docs-locales.js';
 import { resolveDocRoute, searchDocs } from './docs-model.js';
 import { renderHome, renderDocs } from './localized-pages.js';
 import { equivalentLanguageURL, preferredSiteLocale, docPath, homePath } from './site-locale.js';
+import { siteLanguages, siteLocales, docsLocales } from './site-language-config.js';
+import { homeEnglish, homeTranslations } from './site-translations.js';
 import { shouldShowChineseMirrors } from './download.js';
 
 test('every English chapter has a complete translation with the same structure and anchors', () => {
@@ -44,8 +46,8 @@ test('language switching preserves the current page, chapter, anchor and query',
   assert.equal(docPath('zh'), '\/zh/docs/');
   assert.equal(preferredSiteLocale({ language: 'en-US' }, 'zh-CN'), 'zh');
   assert.equal(preferredSiteLocale({ language: 'zh-CN' }, null), 'zh');
-  assert.equal(preferredSiteLocale({ language: 'zh-TW' }, null), 'zh');
-  assert.equal(preferredSiteLocale({ language: 'ja-JP' }, null), 'en');
+  assert.equal(preferredSiteLocale({ language: 'zh-TW' }, null), 'zh-Hant');
+  assert.equal(preferredSiteLocale({ language: 'ja-JP' }, null), 'ja');
   assert.equal(preferredSiteLocale({ language: '' }, null), 'en');
 });
 test('localized document URLs resolve and search the requested language', () => {
@@ -59,6 +61,8 @@ test('localized document URLs resolve and search the requested language', () => 
 test('Chinese mirror visibility follows an explicit URL language before other preferences', () => {
   assert.equal(shouldShowChineseMirrors({ language: 'zh-CN' }, 'zh-CN', 'en'), false);
   assert.equal(shouldShowChineseMirrors({ language: 'en-US' }, 'en', 'zh'), true);
+  assert.equal(shouldShowChineseMirrors({ language: 'zh-CN' }, 'unknown', null), true);
+  assert.equal(shouldShowChineseMirrors({ language: 'zh-CN' }, 'ja', null), false);
 });
 test('server-rendered home and all docs provide correct SEO, translated content and local links', async () => {
   const home = await readFile(new URL('./index.html', import.meta.url), 'utf8'),
@@ -92,9 +96,9 @@ test('server-rendered home and all docs provide correct SEO, translated content 
   assert.ok(en.includes('/docs/'));
   assert.equal(en.includes('/en/'), false);
   assert.equal(en.includes('<select'), false);
-  assert.match(en, /data-site-language href="\/zh\/" lang="zh" hreflang="zh">中文/);
+  assert.match(en, /data-site-language="zh" href="\/zh\/"/);
   const zh = renderHome(home, 'zh');
-  assert.match(zh, /data-site-language href="\/" lang="en" hreflang="en">English/);
+  assert.match(zh, /data-site-language="en" href="\/"/);
   for (const rendered of [zh, en, renderDocs(docs, 'en', 'models')]) {
     assert.match(
       rendered,
@@ -111,4 +115,61 @@ test('HTML localization leaves Vite asset placeholders intact until the bundler 
   assert.ok(html.includes(`href="${token}"`));
   assert.ok(html.includes(`src="${token}"`));
   assert.equal(html.includes(`/${token}`), false);
+});
+
+test('all website languages have complete translated homes and only two document languages', async () => {
+  const source = await readFile(new URL('./index.html', import.meta.url), 'utf8');
+  assert.equal(siteLocales.length, 16);
+  assert.deepEqual(docsLocales, ['zh', 'en']);
+  assert.throws(() => renderDocs(source, 'ja'), /Unsupported document language/);
+  for (const locale of siteLocales) {
+    const html = renderHome(source, locale);
+    assert.ok(html.includes(`lang="${siteLanguages[locale].tag}"`), locale);
+    assert.ok(html.includes(`dir="${locale === 'ar' ? 'rtl' : 'ltr'}"`), locale);
+    assert.ok(
+      html.includes(`rel="canonical" href="https://echobird.ai${homePath(locale)}"`),
+      locale
+    );
+    assert.equal((html.match(/data-site-language="/g) || []).length, 16, locale);
+    assert.ok(html.includes(`href="${docPath(locale)}"`), locale);
+    assert.ok(
+      html.includes(`/demo.html?lang=${locale === 'zh' || locale === 'zh-Hant' ? 'zh' : 'en'}`),
+      locale
+    );
+    if (locale === 'zh') continue;
+    const copy = homeTranslations[locale];
+    for (const key of Object.keys(homeEnglish))
+      assert.ok(typeof copy[key] === 'string' && copy[key].length, `${locale}: ${key}`);
+    assert.ok(html.includes(copy['hero.line1']), locale);
+    assert.ok(html.includes(copy['usage.body']), locale);
+    assert.ok(html.includes(copy['aria.language']), locale);
+    assert.equal(shouldShowChineseMirrors({ language: 'zh-CN' }, 'zh-CN', locale), false, locale);
+  }
+  assert.equal(docPath('ja', 'models'), '/docs/models/');
+  assert.equal(docPath('zh-Hant', 'models'), '/zh/docs/models/');
+});
+
+test('regional and saved language preferences resolve without dropping browser priority', () => {
+  assert.equal(preferredSiteLocale({ languages: ['pt-PT', 'en'] }, null), 'pt-BR');
+  assert.equal(preferredSiteLocale({ languages: ['xx-XX', 'ko-KR', 'en'] }, null), 'ko');
+  assert.equal(preferredSiteLocale({ language: 'en-US' }, 'ar-SA'), 'ar');
+  assert.equal(preferredSiteLocale({ language: 'en-US' }, 'zh-Hans'), 'zh');
+  assert.equal(preferredSiteLocale({ language: 'zh-Hans-TW' }, null), 'zh');
+  assert.equal(preferredSiteLocale({ language: 'en-US' }, 'zh-HK'), 'zh-Hant');
+  assert.equal(preferredSiteLocale({ language: 'fr-CA' }, 'unsupported'), 'fr');
+  assert.equal(
+    equivalentLanguageURL({ pathname: '/ja/', search: '?a=1', hash: '#download' }, 'pt-BR'),
+    '/pt-BR/?a=1#download'
+  );
+});
+
+test('translated homepage copy preserves authored markup, link targets and HTML entities', () => {
+  for (const [locale, copy] of Object.entries(homeTranslations)) {
+    for (const [key, original] of Object.entries(homeEnglish)) {
+      const markup = (text) =>
+        [...text.matchAll(/<[^>]+>|&(?:nbsp|amp|lt|gt|quot);/g)].map((match) => match[0]);
+      assert.deepEqual(markup(copy[key]), markup(original), `${locale}: ${key}`);
+      assert.doesNotMatch(copy[key], /&(?:nbsp|amp|lt|gt|quot)(?!;)/, `${locale}: ${key}`);
+    }
+  }
 });

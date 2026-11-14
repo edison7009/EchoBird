@@ -1,15 +1,24 @@
-export const siteLocales = ['zh', 'en'];
+import {
+  siteLanguages,
+  siteLocales,
+  resolveSiteLanguage,
+  docsLocale,
+} from './site-language-config.js';
+export { siteLocales } from './site-language-config.js';
 export function pathLocale(pathname) {
-  return (
-    /^\/(zh|en)(?:\/|$)/.exec(pathname)?.[1] ??
-    (pathname === '/' || /^\/docs(?:\/|$)/.test(pathname) ? 'en' : null)
-  );
+  const prefix = pathname.split('/')[1];
+  return siteLocales.includes(prefix)
+    ? prefix
+    : pathname === '/' || /^\/docs(?:\/|$)/.test(pathname)
+      ? 'en'
+      : null;
 }
 export function homePath(locale) {
-  return locale === 'en' ? '/' : '/zh/';
+  if (!siteLocales.includes(locale)) throw new Error(`Unknown site language ${locale}`);
+  return locale === 'en' ? '/' : `/${locale}/`;
 }
 export function docPath(locale, id = 'welcome') {
-  return `${homePath(locale)}docs/${id === 'welcome' ? '' : `${id}/`}`;
+  return `${homePath(docsLocale(locale))}docs/${id === 'welcome' ? '' : `${id}/`}`;
 }
 export function siteRoute(pathname, hash = '') {
   const locale = pathLocale(pathname);
@@ -41,9 +50,13 @@ export function equivalentLanguageURL(location, locale) {
   return `${path}${location.search || ''}${route.heading ? `#${route.heading}` : ''}`;
 }
 export function preferredSiteLocale(browser, saved) {
-  if (saved === 'zh-CN' || saved === 'zh') return 'zh';
-  if (saved === 'en') return 'en';
-  return /^zh/i.test(browser.language || '') ? 'zh' : 'en';
+  const selected = resolveSiteLanguage(saved);
+  if (selected) return selected;
+  for (const language of browser.languages?.length ? browser.languages : [browser.language]) {
+    const locale = resolveSiteLanguage(language);
+    if (locale) return locale;
+  }
+  return 'en';
 }
 export function initializeSiteLocale() {
   let saved;
@@ -53,23 +66,24 @@ export function initializeSiteLocale() {
     /* URL and browser preference remain available. */
   }
   const explicit = pathLocale(location.pathname);
-  const locale =
+  const preferred =
     location.pathname === '/'
       ? preferredSiteLocale(navigator, saved)
       : explicit || preferredSiteLocale(navigator, saved);
+  const locale =
+    siteRoute(location.pathname, location.hash).page === 'docs' ? docsLocale(preferred) : preferred;
   if (
     !explicit ||
     /^\/en(?:\/|$)/.test(location.pathname) ||
-    (location.pathname === '/' && locale === 'zh')
+    (location.pathname === '/' && locale !== 'en')
   )
     location.replace(equivalentLanguageURL(location, locale));
-  document.documentElement.lang = locale === 'zh' ? 'zh-CN' : 'en';
+  const language = siteLanguages[locale];
+  document.documentElement.lang = language.tag;
+  document.documentElement.dir = language.dir || 'ltr';
   document.documentElement.dataset.siteLocale = locale;
-  const targetLocale = locale === 'zh' ? 'en' : 'zh';
   for (const link of document.querySelectorAll('[data-site-language]')) {
-    link.textContent = targetLocale === 'en' ? 'English' : '中文';
-    link.lang = targetLocale;
-    link.hreflang = targetLocale;
+    const targetLocale = link.dataset.siteLanguage || (locale === 'zh' ? 'en' : 'zh');
     const updateLink = () => {
       link.href = equivalentLanguageURL(location, targetLocale);
     };
@@ -78,9 +92,21 @@ export function initializeSiteLocale() {
     link.addEventListener('click', () => {
       updateLink();
       try {
-        localStorage.setItem('echobird.lang', targetLocale === 'zh' ? 'zh-CN' : 'en');
+        localStorage.setItem('echobird.lang', targetLocale);
       } catch {
-        /* Language URLs work without storage. */
+        /* URLs remain usable. */
+      }
+    });
+  }
+  const menu = document.querySelector('[data-site-language-menu]');
+  if (menu) {
+    document.addEventListener('click', (event) => {
+      if (!menu.contains(event.target)) menu.open = false;
+    });
+    menu.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape') {
+        menu.open = false;
+        menu.querySelector('summary').focus();
       }
     });
   }

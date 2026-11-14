@@ -3,6 +3,7 @@ import path from 'node:path';
 import { docsArticles } from './docs-content.js';
 import { renderHome, renderDocs } from './localized-pages.js';
 import { siteLocales, pathLocale, siteRoute, homePath, docPath } from './site-locale.js';
+import { docsLocales } from './site-language-config.js';
 export function localizedRoutesPlugin(root) {
   let outDir;
   let isBuild = false;
@@ -12,7 +13,8 @@ export function localizedRoutesPlugin(root) {
     if (!locale) return null;
     if (pathname === '/') return { locale: 'en', page: 'home' };
     if (/^\/docs(?:\/[^/]+)?\/?$/.test(pathname)) return siteRoute(pathname);
-    if (/^\/(zh|en)\/?$/.test(pathname)) return { locale, page: 'home' };
+    if (siteLocales.some((code) => pathname === `/${code}` || pathname === `/${code}/`))
+      return { locale, page: 'home' };
     if (/^\/(zh|en)\/docs(?:\/[^/]+)?\/?$/.test(pathname)) return siteRoute(pathname);
     return { locale, page: 'unknown' };
   };
@@ -41,7 +43,7 @@ export function localizedRoutesPlugin(root) {
       isBuild = config.command === 'build';
     },
     transformIndexHtml(html, ctx) {
-      const locale = /data-site-locale="(zh|en)"/.exec(html)?.[1] || (isBuild ? 'zh' : 'en');
+      const locale = /data-site-locale="([^"]+)"/.exec(html)?.[1] || (isBuild ? 'zh' : 'en');
       if (ctx.filename === path.join(root, 'index.html')) return renderHome(html, locale);
       if (ctx.filename === path.join(root, 'docs.html')) return renderDocs(html, locale, 'welcome');
       return html;
@@ -107,10 +109,12 @@ export function localizedRoutesPlugin(root) {
         path.join(outDir, '404.html'),
         '<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>404 · EchoBird</title><body style="background:#121312;color:#eee;font:18px system-ui;padding:10vh 8vw"><h1>404</h1><p>Page not found · 页面不存在</p><a style="color:#ee936d" href="/zh/">中文首页</a> · <a style="color:#ee936d" href="/">English home</a></body></html>'
       );
-      const sitemapPaths = siteLocales.flatMap((locale) => [
-        homePath(locale),
-        ...docsArticles.map((article) => docPath(locale, article.id)),
-      ]);
+      const sitemapPaths = [
+        ...siteLocales.map(homePath),
+        ...docsLocales.flatMap((locale) =>
+          docsArticles.map((article) => docPath(locale, article.id))
+        ),
+      ];
       await fs.writeFile(
         path.join(outDir, 'sitemap.xml'),
         `<?xml version="1.0" encoding="UTF-8"?>
@@ -118,9 +122,10 @@ export function localizedRoutesPlugin(root) {
 `
       );
       for (const locale of siteLocales) {
-        const dir = path.join(outDir, locale === 'zh' ? 'zh' : '');
+        const dir = path.join(outDir, homePath(locale).slice(1));
         await fs.mkdir(dir, { recursive: true });
         await fs.writeFile(path.join(dir, 'index.html'), renderHome(home, locale));
+        if (!docsLocales.includes(locale)) continue;
         for (const article of docsArticles) {
           const dest = path.join(dir, 'docs', article.id === 'welcome' ? '' : article.id);
           await fs.mkdir(dest, { recursive: true });

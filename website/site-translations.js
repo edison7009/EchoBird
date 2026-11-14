@@ -1,3 +1,17 @@
+import catalog0 from './locales/site-zh-Hant.json' with { type: 'json' };
+import catalog1 from './locales/site-ja.json' with { type: 'json' };
+import catalog2 from './locales/site-ko.json' with { type: 'json' };
+import catalog3 from './locales/site-es.json' with { type: 'json' };
+import catalog4 from './locales/site-pt-BR.json' with { type: 'json' };
+import catalog5 from './locales/site-de.json' with { type: 'json' };
+import catalog6 from './locales/site-fr.json' with { type: 'json' };
+import catalog7 from './locales/site-ru.json' with { type: 'json' };
+import catalog8 from './locales/site-id.json' with { type: 'json' };
+import catalog9 from './locales/site-vi.json' with { type: 'json' };
+import catalog10 from './locales/site-th.json' with { type: 'json' };
+import catalog11 from './locales/site-tr.json' with { type: 'json' };
+import catalog12 from './locales/site-ar.json' with { type: 'json' };
+import catalog13 from './locales/site-hi.json' with { type: 'json' };
 export const homeEnglish = {
   'nav.docs': 'Docs',
   'nav.explore': 'Explore more',
@@ -15,11 +29,13 @@ export const homeEnglish = {
   'hero.star': 'Star',
   'hero.history':
     'Since 2026.01 &nbsp; · &nbsp; Rust rebuild 2026.03 &nbsp; · &nbsp; Smart Routes 2026.08',
-  'relay.sidrune': 'Claude / GPT model access with $3 trial credit on signup. CC Max at about 15% of official pricing, GPT from 1.5%.',
+  'relay.sidrune':
+    'Claude / GPT model access with $3 trial credit on signup. CC Max at about 15% of official pricing, GPT from 1.5%.',
   'relay.ccvibe': 'APIs for Claude, GPT and other coding models',
   'relay.88api': 'Claude Opus 5.5, GPT-6.1 Sol and more',
   'relay.groo': 'GPT-6.1 Sol, Claude Opus 5.5 and more',
-  'relay.contact': 'Become a sponsor: <a href="mailto:hi@echobird.ai">hi@echobird.ai</a> (Ordered by sponsorship date)',
+  'relay.contact':
+    'Become a sponsor: <a href="mailto:hi@echobird.ai">hi@echobird.ai</a> (Ordered by sponsorship date)',
   'usage.title': 'Usage Island<br />Keep usage on your desktop',
   'usage.body':
     'Keep account quotas, model balances, and reset times in a compact Usage Island. Five layouts unfold to fit the way you work, with usage always close at hand.',
@@ -114,3 +130,25 @@ export const uiStrings = {
     },
   },
 };
+
+export const homeTranslations = {
+  en: homeEnglish,
+  'zh-Hant': catalog0,
+  ja: catalog1,
+  ko: catalog2,
+  es: catalog3,
+  'pt-BR': catalog4,
+  de: catalog5,
+  fr: catalog6,
+  ru: catalog7,
+  id: catalog8,
+  vi: catalog9,
+  th: catalog10,
+  tr: catalog11,
+  ar: catalog12,
+  hi: catalog13,
+};
+for (const [locale, copy] of Object.entries(homeTranslations)) {
+  if (locale === 'en') continue;
+  uiStrings[locale] = { copySuccess: copy.copySuccess, copyFailure: copy.copyFailure };
+}

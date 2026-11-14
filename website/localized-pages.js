@@ -1,6 +1,7 @@
-import { homeEnglish, uiStrings } from './site-translations.js';
+import { homeTranslations, uiStrings } from './site-translations.js';
 import { getOrderedArticles, localizedDocBody } from './docs-locales.js';
 import { docPath, homePath } from './site-locale.js';
+import { siteLanguages, siteLocales, docsLocales, docsLocale } from './site-language-config.js';
 const origin = 'https://echobird.ai';
 export const escapeHtml = (value) =>
   String(value)
@@ -24,11 +25,18 @@ function textAt(html, id, value, tag = 'span') {
 function setSeo(html, locale, page, id, title, description) {
   const canonical = page === 'docs' ? docPath(locale, id) : homePath(locale);
   const alternate = (lang) => origin + (page === 'docs' ? docPath(lang, id) : homePath(lang));
-  const tags = `<!--site-seo-start--><link rel="canonical" href="${origin + canonical}" /><link rel="alternate" hreflang="zh-CN" href="${alternate('zh')}" /><link rel="alternate" hreflang="en" href="${alternate('en')}" /><link rel="alternate" hreflang="x-default" href="${alternate('en')}" /><meta property="og:locale" content="${locale === 'zh' ? 'zh_CN' : 'en_US'}" /><meta property="og:title" content="${escapeHtml(title)}" /><meta property="og:description" content="${escapeHtml(description)}" /><!--site-seo-end-->`;
+  const language = siteLanguages[locale];
+  const alternatives = (page === 'docs' ? docsLocales : siteLocales)
+    .map(
+      (code) =>
+        `<link rel="alternate" hreflang="${siteLanguages[code].tag}" href="${alternate(code)}" />`
+    )
+    .join('');
+  const tags = `<!--site-seo-start--><link rel="canonical" href="${origin + canonical}" />${alternatives}<link rel="alternate" hreflang="x-default" href="${alternate('en')}" /><meta property="og:locale" content="${language.og}" /><meta property="og:title" content="${escapeHtml(title)}" /><meta property="og:description" content="${escapeHtml(description)}" /><!--site-seo-end-->`;
   html = html
     .replace(
       /<html[^>]*>/,
-      `<html lang="${locale === 'zh' ? 'zh-CN' : 'en'}" data-site-locale="${locale}"${page === 'home' ? ' data-button-design="a"' : ''}>`
+      `<html lang="${language.tag}" dir="${language.dir || 'ltr'}" data-site-locale="${locale}"${page === 'home' ? ' data-button-design="a"' : ''}>`
     )
     .replace(/<title>[\s\S]*?<\/title>/, `<title>${escapeHtml(title)}</title>`);
   html = html
@@ -42,11 +50,12 @@ function rootAssets(html, locale) {
   return html.replace(/\b(href|src)="([^"]+)"/g, (all, attr, url) => {
     // Vite resolves these placeholders to absolute asset URLs after this hook.
     if (url.startsWith('__VITE_')) return all;
-    if (/^\/(zh|en)(?:\/|$)/.test(url))
-      return `${attr}="${url.replace(/^\/(zh|en)/, locale === 'zh' ? '/zh' : '')}"`;
+    const doc = /^\/(?:zh\/|en\/)?docs(?:\/([^/#?]+))?\/?([#?].*)?$/.exec(url);
+    if (doc) return `${attr}="${docPath(locale, doc[1] || 'welcome')}${doc[2] || ''}"`;
+    if (/^\/(zh|en)\/?$/.test(url)) return `${attr}="${homePath(locale)}"`;
     if (/^\/(demo|usage|features)\.html(?:\?|$)/.test(url)) {
       const next = new URL(url.replaceAll('&amp;', '&'), 'https://example.invalid');
-      next.searchParams.set('lang', locale);
+      next.searchParams.set('lang', docsLocale(locale));
       return `${attr}="${next.pathname + next.search.replaceAll('&', '&amp;')}"`;
     }
     if (/^(?:https?:|mailto:|data:|#|\/)/.test(url)) return all;
@@ -55,33 +64,45 @@ function rootAssets(html, locale) {
     if (raw === 'docs.html') return `${attr}="${docPath(locale)}"`;
     if (/^(demo|usage|features)\.html(?:\?|$)/.test(raw)) {
       const next = new URL(raw, 'https://example.invalid/');
-      next.searchParams.set('lang', locale);
+      next.searchParams.set('lang', docsLocale(locale));
       return `${attr}="${next.pathname + next.search.replaceAll('&', '&amp;')}"`;
     }
     return `${attr}="/${raw}"`;
   });
 }
 function renderLanguageLink(html, locale, article) {
-  const target = locale === 'zh' ? 'en' : 'zh';
-  const href = article ? docPath(target, article) : homePath(target);
+  let control;
+  if (article) {
+    const target = locale === 'zh' ? 'en' : 'zh';
+    control = `<a class="site-language" data-site-language href="${docPath(target, article)}" lang="${target}" hreflang="${target}">${target === 'en' ? 'English' : '中文'}</a>`;
+  } else {
+    control = `<details class="site-language-menu" data-site-language-menu><summary class="site-language" aria-label="${escapeHtml(homeTranslations[locale]?.['aria.language'] || (locale === 'zh' ? '选择语言' : 'Choose language'))}">${siteLanguages[locale].label}</summary><div class="site-language-options">${siteLocales.map((code) => `<a class="site-language" data-site-language="${code}" href="${homePath(code)}" dir="auto" lang="${siteLanguages[code].tag}" hreflang="${siteLanguages[code].tag}"${code === locale ? ' aria-current="true"' : ''}>${siteLanguages[code].label}</a>`).join('')}</div></details>`;
+  }
+  if (html.includes('<!--site-language-start-->'))
+    return html.replace(
+      /<!--site-language-start-->[\s\S]*?<!--site-language-end-->/,
+      `<!--site-language-start-->${control}<!--site-language-end-->`
+    );
   return html.replace(
     /<a[^>]*data-site-language[^>]*>[\s\S]*?<\/a\s*>/g,
-    `<a class="site-language" data-site-language href="${href}" lang="${target}" hreflang="${target}">${target === 'en' ? 'English' : '中文'}</a>`
+    `<!--site-language-start-->${control}<!--site-language-end-->`
   );
 }
+
 export function renderHome(html, locale = 'zh') {
-  if (locale === 'en') {
+  if (locale !== 'zh') {
+    const translated = homeTranslations[locale];
     html = html.replace(
       /(<([a-z][\w-]*)\b[^>]*\bdata-i18n="([^"]+)"[^>]*>)[\s\S]*?(<\/\2\s*>)/g,
       (all, open, tag, key, close) => {
-        if (!Object.hasOwn(homeEnglish, key)) throw new Error(`Untranslated home key ${key}`);
-        return open + homeEnglish[key] + close;
+        if (!Object.hasOwn(translated, key)) throw new Error(`Untranslated home key ${key}`);
+        return open + translated[key] + close;
       }
     );
     html = html.replace(/<[^>]+data-i18n-(?:aria-label|title)="[^"]+"[^>]*>/g, (tag) =>
       tag.replace(/(\s)(aria-label|title)="[^"]*"/g, (attr, space, name) => {
         const key = new RegExp(`data-i18n-${name}="([^"]+)"`).exec(tag)?.[1];
-        return key ? `${space}${name}="${escapeHtml(homeEnglish[key])}"` : attr;
+        return key ? `${space}${name}="${escapeHtml(translated[key])}"` : attr;
       })
     );
   }
@@ -89,7 +110,7 @@ export function renderHome(html, locale = 'zh') {
   html = renderLanguageLink(html, locale);
   if (locale === 'zh')
     html = html.replace(/(<div class="cloud-downloads"[^>]*)\bhidden\b([^>]*>)/, '$1$2');
-  if (locale === 'en')
+  if (locale !== 'zh')
     html = html.replace(/(<div class="cloud-downloads"[^>]*)(>)/, (_, open, end) =>
       open.includes('hidden') ? open + end : open + ' hidden' + end
     );
@@ -99,9 +120,18 @@ export function renderHome(html, locale = 'zh') {
     locale === 'zh'
       ? '集中管理 AI 工具、账号与模型，使用智能接入、AI 助手、语音输入和桌面用量岛。'
       : 'Manage AI tools, accounts and models with Smart Routes, an AI assistant, voice input and desktop usage islands.';
-  return setSeo(html, locale, 'home', null, title, description);
+  const translated = homeTranslations[locale];
+  return setSeo(
+    html,
+    locale,
+    'home',
+    null,
+    translated?.['seo.title'] || title,
+    translated?.['seo.description'] || description
+  );
 }
 export function renderDocs(html, locale = 'zh', id = 'welcome') {
+  if (!docsLocales.includes(locale)) throw new Error(`Unsupported document language ${locale}`);
   const ui = uiStrings[locale],
     articles = getOrderedArticles(locale),
     article = articles.find((a) => a.id === id);

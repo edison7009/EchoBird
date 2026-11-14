@@ -1,4 +1,4 @@
-import{P as Io}from"./features-B-wNbFuY.js";import"./modulepreload-polyfill-B5Qt9EMX.js";import"./index-D7-A9hqD.js";/**
+import{P as Io}from"./features-7Ds5xe67.js";import"./modulepreload-polyfill-B5Qt9EMX.js";import"./index-DTNTiudu.js";/**
  * @license
  * Copyright 2010-2025 Three.js Authors
  * SPDX-License-Identifier: MIT

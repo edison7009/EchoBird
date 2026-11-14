@@ -1,0 +1,580 @@
+<!doctype html>
+<html lang="fr" dir="ltr" data-site-locale="fr" data-button-design="a">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="icon" type="image/png" href="/assets/icon-DOE4HP7g.png" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+
+    <title>EchoBird · Assistant IA tout-en-un</title>
+    <script type="module" crossorigin src="/assets/index-C8jS4aLO.js"></script>
+    <link rel="modulepreload" crossorigin href="/assets/modulepreload-polyfill-B5Qt9EMX.js">
+    <link rel="modulepreload" crossorigin href="/assets/site-translations-Bfu4bNxW.js">
+    <link rel="stylesheet" crossorigin href="/assets/index-DqwTjLdv.css">
+  <!--site-seo-start--><link rel="canonical" href="https://echobird.ai/fr/" /><link rel="alternate" hreflang="en" href="https://echobird.ai/" /><link rel="alternate" hreflang="zh-CN" href="https://echobird.ai/zh/" /><link rel="alternate" hreflang="zh-Hant" href="https://echobird.ai/zh-Hant/" /><link rel="alternate" hreflang="ja" href="https://echobird.ai/ja/" /><link rel="alternate" hreflang="ko" href="https://echobird.ai/ko/" /><link rel="alternate" hreflang="es" href="https://echobird.ai/es/" /><link rel="alternate" hreflang="pt-BR" href="https://echobird.ai/pt-BR/" /><link rel="alternate" hreflang="de" href="https://echobird.ai/de/" /><link rel="alternate" hreflang="fr" href="https://echobird.ai/fr/" /><link rel="alternate" hreflang="ru" href="https://echobird.ai/ru/" /><link rel="alternate" hreflang="id" href="https://echobird.ai/id/" /><link rel="alternate" hreflang="vi" href="https://echobird.ai/vi/" /><link rel="alternate" hreflang="th" href="https://echobird.ai/th/" /><link rel="alternate" hreflang="tr" href="https://echobird.ai/tr/" /><link rel="alternate" hreflang="ar" href="https://echobird.ai/ar/" /><link rel="alternate" hreflang="hi" href="https://echobird.ai/hi/" /><link rel="alternate" hreflang="x-default" href="https://echobird.ai/" /><meta property="og:locale" content="fr_FR" /><meta property="og:title" content="EchoBird · Assistant IA tout-en-un" /><meta property="og:description" content="Gérez vos outils, comptes et modèles d’IA avec le routage intelligent, un assistant IA, la dictée et les îlots de consommation sur le bureau." /><!--site-seo-end--><meta name="description" content="Gérez vos outils, comptes et modèles d’IA avec le routage intelligent, un assistant IA, la dictée et les îlots de consommation sur le bureau." /></head>
+  <body class="b">
+    <nav id="home">
+      <div class="site-brand-area">
+        <a class="brand" href="/fr/"><img src="/brand/bird.png" alt="" />EchoBird</a>
+      </div>
+      <div class="navlinks">
+        <a class="docs-link" href="/docs/" data-i18n="nav.docs">Docs</a
+        ><a class="optional" href="#usage-island" data-i18n="nav.explore">Explorer</a
+        ><a
+          class="optional"
+          href="https://github.com/edison7009/EchoBird"
+          target="_blank"
+          rel="noopener noreferrer"
+          >GitHub</a
+        ><!--site-language-start--><details class="site-language-menu" data-site-language-menu><summary class="site-language" aria-label="Choisir la langue">Français</summary><div class="site-language-options"><a class="site-language" data-site-language="en" href="/" dir="auto" lang="en" hreflang="en">English</a><a class="site-language" data-site-language="zh" href="/zh/" dir="auto" lang="zh-CN" hreflang="zh-CN">简体中文</a><a class="site-language" data-site-language="zh-Hant" href="/zh-Hant/" dir="auto" lang="zh-Hant" hreflang="zh-Hant">繁體中文</a><a class="site-language" data-site-language="ja" href="/ja/" dir="auto" lang="ja" hreflang="ja">日本語</a><a class="site-language" data-site-language="ko" href="/ko/" dir="auto" lang="ko" hreflang="ko">한국어</a><a class="site-language" data-site-language="es" href="/es/" dir="auto" lang="es" hreflang="es">Español</a><a class="site-language" data-site-language="pt-BR" href="/pt-BR/" dir="auto" lang="pt-BR" hreflang="pt-BR">Português (Brasil)</a><a class="site-language" data-site-language="de" href="/de/" dir="auto" lang="de" hreflang="de">Deutsch</a><a class="site-language" data-site-language="fr" href="/fr/" dir="auto" lang="fr" hreflang="fr" aria-current="true">Français</a><a class="site-language" data-site-language="ru" href="/ru/" dir="auto" lang="ru" hreflang="ru">Русский</a><a class="site-language" data-site-language="id" href="/id/" dir="auto" lang="id" hreflang="id">Bahasa Indonesia</a><a class="site-language" data-site-language="vi" href="/vi/" dir="auto" lang="vi" hreflang="vi">Tiếng Việt</a><a class="site-language" data-site-language="th" href="/th/" dir="auto" lang="th" hreflang="th">ไทย</a><a class="site-language" data-site-language="tr" href="/tr/" dir="auto" lang="tr" hreflang="tr">Türkçe</a><a class="site-language" data-site-language="ar" href="/ar/" dir="auto" lang="ar" hreflang="ar">العربية</a><a class="site-language" data-site-language="hi" href="/hi/" dir="auto" lang="hi" hreflang="hi">हिन्दी</a></div></details><!--site-language-end--><a class="navdl" href="#download" data-i18n="nav.download">Télécharger</a>
+      </div>
+    </nav>
+    <div
+      class="section-navigation"
+      role="navigation"
+      aria-label="Navigation de la page"
+      data-i18n-aria-label="aria.sections"
+      hidden
+    >
+      <a href="#home" aria-current="location" data-i18n="section.home">Accueil</a>
+      <a href="#usage-island" data-i18n="section.usage">Îlot de consommation</a>
+      <a href="#smart-access" data-i18n="section.smart">Routage intelligent</a>
+      <a href="#ai-assistant" data-i18n="section.assistant">Assistant IA</a>
+      <a href="#desktop-pets" data-i18n="section.pets">Compagnons de bureau</a>
+      <a href="#download" data-i18n="nav.download">Télécharger</a>
+    </div>
+    <main>
+      <section class="hero">
+        <div class="herocopy">
+          <div class="eyebrow">EchoBird · All-in-one AI Assistant</div>
+          <h1 class="hero-promise">
+            <span data-i18n="hero.line1">Tous vos outils d’IA.</span
+            ><span data-i18n="hero.line2">Un seul bureau.</span>
+          </h1>
+          <p class="intro" data-i18n="hero.intro">Changez de modèles, de routes et d’agents...<br />Installez, lancez et réparez vos outils, exécutez des modèles locaux, gérez des serveurs, dictez du texte, traduisez une sélection ou posez des questions à son sujet, suivez l’actualité de l’IA, explorez les îlots et élevez des compagnons...</p>
+          <div class="actions">
+            <a
+              class="primary download-primary"
+              id="heroDownload"
+              href="https://github.com/edison7009/EchoBird/releases/latest"
+            >
+              <span class="download-content"
+                ><span class="download-platform-icon" data-platform-icon></span
+                ><span class="cta-word" data-download-name data-i18n="hero.download"
+                  >Télécharger EchoBird</span
+                ><span class="download-ext" hidden></span
+              ></span>
+            </a>
+            <a
+              class="secondary github-star"
+              href="https://github.com/edison7009/EchoBird"
+              target="_blank"
+              rel="noopener noreferrer"
+              ><span class="rainbow-star" aria-hidden="true"
+                ><svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.3"
+                  stroke-linejoin="round"
+                >
+                  <path
+                    d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.9-6.2-3.3-6.2 3.3L7 14.2l-5-4.9 6.9-1Z"
+                  /></svg></span
+              ><span class="cta-copy"
+                ><span class="cta-word">GitHub</span>
+                <span class="cta-action" data-i18n="hero.star">Ajouter une étoile</span></span
+              ></a
+            >
+          </div>
+          <div class="platforms" data-i18n="hero.history">Depuis 2026.01 &nbsp; · &nbsp; Réécriture en Rust en 2026.03 &nbsp; · &nbsp; Routage intelligent depuis 2026.08</div>
+        </div>
+        <figure class="visual live-demo">
+          <div class="live-demo-stage">
+            <iframe
+              src="/demo.html?lang=en"
+              title="Démonstration interactive du bureau EchoBird"
+              data-i18n-title="aria.demo"
+              width="1309"
+              height="839"
+            ></iframe>
+          </div>
+        </figure>
+      </section>
+      <section
+        class="tool-marquee"
+        aria-label="Applications d’IA compatibles avec EchoBird"
+        data-i18n-aria-label="aria.apps"
+      >
+        <div class="tool-marquee-viewport">
+          <div class="tool-marquee-track">
+            <ul class="tool-marquee-list">
+              <li>
+                <img
+                  src="/icons/tools/claudecode.svg"
+                  width="30"
+                  height="30"
+                  alt=""
+                  decoding="async"
+                /><span>Claude Code</span>
+              </li>
+              <li>
+                <img
+                  src="/icons/tools/codex.svg"
+                  width="30"
+                  height="30"
+                  alt=""
+                  decoding="async"
+                /><span>Codex CLI</span>
+              </li>
+              <li>
+                <img
+                  src="/icons/tools/chatgptdesktop.svg"
+                  width="30"
+                  height="30"
+                  alt=""
+                  decoding="async"
+                /><span>ChatGPT</span>
+              </li>
+              <li>
+                <img
+                  src="/icons/tools/cursor.svg"
+                  width="30"
+                  height="30"
+                  alt=""
+                  decoding="async"
+                /><span>Cursor</span>
+              </li>
+              <li>
+                <img
+                  src="/icons/tools/dsh.svg"
+                  width="30"
+                  height="30"
+                  alt=""
+                  decoding="async"
+                /><span>DeepSeek Harness</span>
+              </li>
+              <li>
+                <img
+                  src="/icons/tools/kimidesktop.png"
+                  width="30"
+                  height="30"
+                  alt=""
+                  decoding="async"
+                /><span>Kimi</span>
+              </li>
+              <li>
+                <img
+                  src="/icons/tools/minimaxdesktop.svg"
+                  width="30"
+                  height="30"
+                  alt=""
+                  decoding="async"
+                /><span>MiniMax</span>
+              </li>
+              <li>
+                <img
+                  src="/icons/tools/antigravitydesktop.png"
+                  width="30"
+                  height="30"
+                  alt=""
+                  decoding="async"
+                /><span>Antigravity</span>
+              </li>
+              <li>
+                <img
+                  src="/icons/tools/opencode.svg"
+                  width="30"
+                  height="30"
+                  alt=""
+                  decoding="async"
+                /><span>OpenCode</span>
+              </li>
+              <li>
+                <img
+                  src="/icons/tools/traecn.svg"
+                  width="30"
+                  height="30"
+                  alt=""
+                  decoding="async"
+                /><span>TRAE CN</span>
+              </li>
+              <li>
+                <img
+                  src="/icons/tools/coffeecli.png"
+                  width="30"
+                  height="30"
+                  alt=""
+                  decoding="async"
+                /><span>Coffee CLI</span>
+              </li>
+              <li>
+                <img
+                  src="/icons/tools/qoder.svg"
+                  width="30"
+                  height="30"
+                  alt=""
+                  decoding="async"
+                /><span>Qoder</span>
+              </li>
+              <li>
+                <img
+                  src="/icons/tools/workbuddyai.png"
+                  width="30"
+                  height="30"
+                  alt=""
+                  decoding="async"
+                /><span>WorkBuddy</span>
+              </li>
+            </ul>
+            <ul class="tool-marquee-list" aria-hidden="true">
+              <li>
+                <img
+                  src="/icons/tools/claudecode.svg"
+                  width="30"
+                  height="30"
+                  alt=""
+                  decoding="async"
+                /><span>Claude Code</span>
+              </li>
+              <li>
+                <img
+                  src="/icons/tools/codex.svg"
+                  width="30"
+                  height="30"
+                  alt=""
+                  decoding="async"
+                /><span>Codex CLI</span>
+              </li>
+              <li>
+                <img
+                  src="/icons/tools/chatgptdesktop.svg"
+                  width="30"
+                  height="30"
+                  alt=""
+                  decoding="async"
+                /><span>ChatGPT</span>
+              </li>
+              <li>
+                <img
+                  src="/icons/tools/cursor.svg"
+                  width="30"
+                  height="30"
+                  alt=""
+                  decoding="async"
+                /><span>Cursor</span>
+              </li>
+              <li>
+                <img
+                  src="/icons/tools/dsh.svg"
+                  width="30"
+                  height="30"
+                  alt=""
+                  decoding="async"
+                /><span>DeepSeek Harness</span>
+              </li>
+              <li>
+                <img
+                  src="/icons/tools/kimidesktop.png"
+                  width="30"
+                  height="30"
+                  alt=""
+                  decoding="async"
+                /><span>Kimi</span>
+              </li>
+              <li>
+                <img
+                  src="/icons/tools/minimaxdesktop.svg"
+                  width="30"
+                  height="30"
+                  alt=""
+                  decoding="async"
+                /><span>MiniMax</span>
+              </li>
+              <li>
+                <img
+                  src="/icons/tools/antigravitydesktop.png"
+                  width="30"
+                  height="30"
+                  alt=""
+                  decoding="async"
+                /><span>Antigravity</span>
+              </li>
+              <li>
+                <img
+                  src="/icons/tools/opencode.svg"
+                  width="30"
+                  height="30"
+                  alt=""
+                  decoding="async"
+                /><span>OpenCode</span>
+              </li>
+              <li>
+                <img
+                  src="/icons/tools/traecn.svg"
+                  width="30"
+                  height="30"
+                  alt=""
+                  decoding="async"
+                /><span>TRAE CN</span>
+              </li>
+              <li>
+                <img
+                  src="/icons/tools/coffeecli.png"
+                  width="30"
+                  height="30"
+                  alt=""
+                  decoding="async"
+                /><span>Coffee CLI</span>
+              </li>
+              <li>
+                <img
+                  src="/icons/tools/qoder.svg"
+                  width="30"
+                  height="30"
+                  alt=""
+                  decoding="async"
+                /><span>Qoder</span>
+              </li>
+              <li>
+                <img
+                  src="/icons/tools/workbuddyai.png"
+                  width="30"
+                  height="30"
+                  alt=""
+                  decoding="async"
+                /><span>WorkBuddy</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </section>
+      <section class="content" id="features">
+        <div class="relay-recommendations" id="relays">
+          <div class="relay-grid">
+            <a
+              class="relay-card"
+              href="https://88api.ai/sign-up?aff=knFS"
+              target="_blank"
+              rel="noopener noreferrer sponsored"
+            >
+              <img src="/assets/88api-CKrZcMPE.png" width="44" height="44" alt="" loading="lazy" />
+              <div>
+                <h3>88API</h3>
+                <p data-i18n="relay.88api">Claude Opus 5.5, GPT-6.1 Sol et bien plus</p>
+              </div>
+            </a>
+            <a
+              class="relay-card"
+              href="https://grooroute.pro/sign-up?aff=FWGVPMYENJQ8"
+              target="_blank"
+              rel="noopener noreferrer sponsored"
+            >
+              <img src="/assets/grooroute-CKtbQhXY.png" width="44" height="44" alt="" loading="lazy" />
+              <div>
+                <h3>GrooRoute Pro</h3>
+                <p data-i18n="relay.groo">GPT-6.1 Sol, Claude Opus 5.5 et bien plus</p>
+              </div>
+            </a>
+            <a
+              class="relay-card"
+              href="https://cn.sidrune.ai/register?promo=ECHOBIRD_20261112"
+              target="_blank"
+              rel="noopener noreferrer sponsored"
+            >
+              <img src="data:image/svg+xml,%3csvg%20xmlns='http://www.w3.org/2000/svg'%20width='512'%20height='512'%20viewBox='0%200%20140%20140'%3e%3cg%20transform='translate(1.5%200)'%3e%3cpath%20d='M44.2347%204.62018C57.0276%20-0.43905%2071.083%20-1.36991%2084.431%201.95904C102.102%206.45486%20117.272%2017.769%20126.62%2033.4239C134.978%2047.5279%20138.457%2065.8633%20134.342%2081.8546C130.526%2096.2128%20121.258%20108.516%20108.509%20116.146C95.8062%20123.62%2080.8817%20126.1%2066.5404%20122.379C52.5029%20118.74%2040.4673%20109.71%2033.0482%2097.2501C26.3783%2085.8841%2024.5183%2072.3266%2027.8802%2059.584C29.1777%2054.7319%2031.2416%2050.1177%2033.9935%2045.9161C34.7313%2044.7819%2035.4672%2043.8658%2036.2142%2042.7921C35.2072%2043.522%2033.5985%2045.1215%2032.6664%2046.0411C25.2552%2053.469%2020.3974%2063.061%2018.7953%2073.4307C16.6116%2087.0649%2020.3419%20101.499%2028.4154%20112.644C37.2543%20124.995%2050.6793%20133.285%2065.682%20135.653C74.6625%20137.077%2083.8538%20136.328%2092.4857%20133.47C93.3649%20133.172%2095.7627%20132.362%2096.4564%20131.989C96.9329%20132.112%2096.8062%20132.004%2097.0189%20132.348C91.2596%20135.385%2083.3543%20137.791%2076.9213%20138.736C59.4419%20141.385%2041.6299%20136.914%2027.473%20126.325C12.9509%20115.619%203.30635%2099.5561%200.683958%2081.7051C-1.56498%2066.0042%201.67373%2051.0402%2011.267%2038.2637C20.0773%2026.4805%2033.1847%2018.6529%2047.7367%2016.4835C62.4057%2014.368%2077.311%2018.2187%2089.1195%2027.1749C111.458%2044.0575%20116.927%2074.7355%2099.7933%2097.3213C117.364%2083.1494%20122.142%2059.0184%20114.144%2038.3477C108.756%2024.4245%2097.4989%2013.6238%2083.8158%207.87018C68.7226%201.52366%2052.8706%202.23437%2037.8353%208.20221C36.6733%208.83364%2034.6012%209.74871%2033.3715%2010.2823L33.2025%2010.1436C34.1261%209.34667%2036.9955%207.8199%2037.8754%207.47076C39.5438%206.47524%2042.3795%205.35344%2044.2347%204.62018ZM67.8939%2044.0645C67.1758%2049.953%2065.3862%2060.8236%2060.3529%2064.501C55.2976%2068.1945%2047.2639%2068.9488%2041.2269%2070.0674C48.218%2071.3331%2058.6199%2071.9165%2062.8422%2078.2022C65.392%2081.9982%2066.4717%2087.6889%2067.2963%2092.1378C67.4407%2092.9184%2067.8102%2095.7833%2068.014%2096.3096C68.2941%2095.7608%2068.7042%2092.5751%2068.847%2091.7686C69.2216%2089.6792%2069.659%2087.6017%2070.1605%2085.5391C71.579%2079.7282%2073.5437%2075.6382%2079.5863%2073.379C83.9664%2071.7415%2089.9671%2070.69%2094.641%2070.0879C89.253%2069.1546%2080.5709%2067.8881%2076.0795%2064.9053C74.935%2064.1467%2073.9437%2063.1788%2073.1566%2062.0538C70.3089%2058.0512%2069.553%2052.355%2068.6468%2047.6436C68.5423%2047.0995%2068.1918%2044.3505%2067.8939%2044.0645ZM33.1967%2010.3389C33.1144%2010.3586%2033.1703%2010.3523%2033.0277%2010.3106C33.0606%2010.274%2033.1014%2010.2358%2033.1468%2010.1944L33.1967%2010.3389ZM33.2025%2010.1436C33.1828%2010.1606%2033.1647%2010.1781%2033.1468%2010.1944L33.1342%2010.1573L33.1713%2010.1182L33.2025%2010.1436Z'%20fill='white'/%3e%3c/g%3e%3c/svg%3e" width="44" height="44" alt="" loading="lazy" />
+              <div>
+                <h3>Sidrune AI</h3>
+                <p data-i18n="relay.sidrune">Accès aux modèles Claude et GPT avec 3 $ de crédit d’essai à l’inscription. CC Max à environ 15 % du tarif officiel , GPT à partir de 1,5 %.</p>
+              </div>
+            </a>
+            <a
+              class="relay-card"
+              href="https://echobird.ai/ccvibe/"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <img src="/assets/ccvibe-CU4JSgjQ.png" width="44" height="44" alt="" loading="lazy" />
+              <div>
+                <h3>CC Vibe</h3>
+                <p data-i18n="relay.ccvibe">API pour Claude, GPT et d’autres modèles de programmation</p>
+              </div>
+            </a>
+          </div>
+          <p class="relays-contact" data-i18n="relay.contact">Devenir sponsor : <a href="mailto:hi@echobird.ai">hi@echobird.ai</a> (par date de parrainage)</p>
+        </div>
+        <article class="feature feature-usage" id="usage-island">
+          <div class="featuretext">
+            <h3 data-i18n="usage.title">Îlot de consommation<br />Gardez votre consommation sur le bureau</h3>
+            <p data-i18n="usage.body">Consultez les quotas des comptes, les soldes des modèles et les délais de réinitialisation dans un îlot compact. Cinq présentations s’adaptent à votre façon de travailler et gardent la consommation à portée de main.</p>
+          </div>
+          <div class="usage-feature">
+            <iframe
+              data-usage-preview
+              src="/usage.html?lang=en"
+              title="Cinq présentations de l’Îlot de consommation qui se déploient successivement"
+              data-i18n-title="aria.usage"
+              loading="lazy"
+            ></iframe>
+          </div>
+        </article>
+        <article class="feature" id="smart-access">
+          <div class="featuretext">
+            <h3 data-i18n="smart.title">Routage intelligent<br />Vos modèles, votre choix</h3>
+            <p data-i18n="smart.body">Permettez à chaque agent compatible d’utiliser vos modèles disponibles et changez-en en temps réel. Gardez le contrôle et la visibilité.</p>
+          </div>
+          <div class="feature-demo feature-demo-models">
+            <iframe
+              data-feature-preview
+              src="/features.html?mode=models&amp;lang=en"
+              title="Démonstration du routage intelligent : modèles, sélection et routage"
+              data-i18n-title="aria.models"
+              loading="lazy"
+            ></iframe>
+          </div>
+        </article>
+        <article class="feature" id="ai-assistant">
+          <div class="featuretext">
+            <h3 data-i18n="assistant.title">Assistant IA<br />Dites-lui ce que vous souhaitez faire</h3>
+            <p data-i18n="assistant.body">De l’installation des outils à la préparation de l’environnement, confiez la configuration à EchoBird. Décrivez votre objectif et passez plus rapidement de l’idée à l’action.</p>
+          </div>
+          <div class="feature-demo feature-demo-assistant">
+            <iframe
+              data-feature-preview
+              src="/features.html?mode=assistant&amp;lang=en"
+              title="Démonstration de l’Assistant IA : installation, configuration et finalisation"
+              data-i18n-title="aria.assistant"
+              loading="lazy"
+            ></iframe>
+          </div>
+        </article>
+        <article class="feature feature-pets" id="desktop-pets">
+          <div class="featuretext">
+            <h3 data-i18n="pets.title">Compagnons de bureau<br />De la compagnie au travail</h3>
+            <p data-i18n="pets.body">Transformez votre consommation de tokens enregistrée en TokenPet pour faire éclore et grandir vos compagnons. Ajoutez une touche de plaisir à votre quotidien et à votre travail.</p>
+          </div>
+          <div class="feature-demo feature-demo-pets">
+            <iframe
+              src="/features.html?mode=pets&amp;lang=en"
+              title="Six compagnons EchoBird en voxels sur deux rangées"
+              data-i18n-title="aria.pets"
+              loading="lazy"
+            ></iframe>
+          </div>
+        </article>
+      </section>
+      <section class="closing" id="download" aria-labelledby="downloads-title">
+        <div class="download-panel">
+          <h2 id="downloads-title" data-i18n="nav.download">Télécharger</h2>
+          <p class="downloads-intro" data-i18n="download.intro">Choisissez votre plateforme ou votre méthode d’installation préférée.</p>
+          <div class="download-platforms">
+            <div class="platform-card">
+              <div class="platform-heading">
+                <img src="data:image/svg+xml,%3csvg%20xmlns='http://www.w3.org/2000/svg'%20width='20'%20height='20'%20viewBox='0%200%2024%2024'%20fill='currentColor'%20%3e%3cpath%20d='M3%205.5L10%204.45V11.4H3V5.5zM11%204.3L21%203V11.4H11V4.3zM3%2012.6H10V19.55L3%2018.5V12.6zM11%2012.6H21V21L11%2019.7V12.6z'%20/%3e%3c/svg%3e" width="30" height="30" alt="" />
+                <div>
+                  <h3>Windows</h3>
+                  <p>x64</p>
+                </div>
+              </div>
+              <div class="installer-links">
+                <a href="https://echobird.ai/download/windows" data-i18n="download.exe">Télécharger le .exe</a
+                ><a href="https://echobird.ai/download/windows-msi" data-i18n="download.msi"
+                  >Télécharger le .msi</a
+                >
+              </div>
+            </div>
+            <div class="platform-card">
+              <div class="platform-heading">
+                <img src="data:image/svg+xml,%3csvg%20xmlns='http://www.w3.org/2000/svg'%20width='20'%20height='20'%20viewBox='0%200%2024%2024'%20fill='currentColor'%20%3e%3cpath%20d='M17.5%2012.5c-.02-2.4%201.96-3.55%202.05-3.61-1.12-1.64-2.86-1.86-3.48-1.89-1.48-.15-2.89.87-3.64.87-.76%200-1.92-.85-3.16-.83-1.62.02-3.12.94-3.96%202.4-1.69%202.93-.43%207.27%201.21%209.65.8%201.16%201.75%202.46%203%202.42%201.21-.05%201.66-.78%203.13-.78%201.45%200%201.87.78%203.15.75%201.3-.02%202.13-1.18%202.92-2.35.93-1.35%201.31-2.66%201.33-2.73-.03-.01-2.55-.98-2.55-3.9zM15.07%205.32c.66-.81%201.11-1.92.99-3.04-.96.04-2.13.65-2.82%201.45-.61.71-1.16%201.85-1.01%202.93%201.07.08%202.18-.55%202.84-1.34z'%20/%3e%3c/svg%3e" width="30" height="30" alt="" />
+                <div>
+                  <h3>macOS</h3>
+                  <p>.dmg</p>
+                </div>
+              </div>
+              <div class="installer-links">
+                <a href="https://echobird.ai/download/macos-arm">Apple Silicon</a
+                ><a href="https://echobird.ai/download/macos-intel">Intel</a>
+              </div>
+            </div>
+            <div class="platform-card">
+              <div class="platform-heading">
+                <img src="data:image/svg+xml,%3csvg%20xmlns='http://www.w3.org/2000/svg'%20width='20'%20height='20'%20viewBox='-150%20-150%201300%201300'%20fill='currentColor'%20%3e%3cpath%20d='M896,809.4c-25.9-10.6-47.2-27.4-45.7-59.4c1.5-32-22.9-53.2-22.9-53.2s21.3-70.1,1.5-128c-19.8-58-85.3-150.8-135.5-220.9c-50.2-70.1-7.6-150.9-53.2-254.4C594.4-10,475.7-4,411.7,40.2c-64,44.1-44.2,153.8-41.2,205.6c3.1,51.7,1.4,88.6-4.5,102c-6,13.4-47.2,62.5-74.7,103.6c-27.4,41.1-47.2,126.4-67.1,161.5c-19.8,35-6.1,67-6.1,67s-13.7,4.5-24.4,27.5c-10.7,22.8-32,33.4-70.1,41c-38.1,7.6-38.1,32.1-29,59.5c9.2,27.4,0,42.7-10.6,77.6c-10.7,34.9,42.6,45.7,94.4,51.7c51.8,6.2,109.7,39.7,158.5,45.7c48.7,6.1,63.9-33.5,63.9-33.5s54.8-12.3,112.7-13.7c57.9-1.5,112.7,12.2,112.7,12.2s10.7,24.4,30.5,35c19.8,10.7,62.5,12.2,89.9-16.7c27.5-29,100.6-65.5,141.7-88.4C929.5,855,921.9,820,896,809.4z%20M539.6,137.7c26.1,0,47.2,25.9,47.2,57.8c0,22.7-10.6,42.2-26,51.7c-3.9-1.7-8.1-3.5-12.5-5.4c9.3-4.6,15.9-16.4,15.9-30.3c0-18-11.1-32.6-24.9-32.6c-13.6,0-24.8,14.6-24.8,32.6c0,6.7,1.6,13.1,4.3,18.3c-8.1-3.2-15.6-6.2-21.5-8.5c-3.2-7.8-5-16.6-5-25.9C492.3,163.6,513.4,137.7,539.6,137.7z%20M536.2,259.6c13.1,4.5,27.6,13,26.1,21.4c-1.5,8.5-8.4,8.5-26.1,19.3c-17.7,10.7-56,34.5-68.3,36c-12.3,1.5-19.2-5.4-32.3-13.8c-13.1-8.5-37.6-28.5-31.4-39.2c0,0,19.1-14.6,27.5-22.3c8.5-7.7,30-26.1,43-23.7C487.8,239.6,523.1,255,536.2,259.6z%20M418.4,146.8c20.6,0,37.3,24.5,37.3,54.8c0,5.6-0.5,10.7-1.6,15.7c-5,1.7-10.1,4.5-15.1,8.7c-2.5,2.1-4.7,4-6.9,5.9c3.3-6.1,4.6-14.8,3.1-24c-2.8-16.5-13.8-28.6-24.7-26.9c-10.9,1.9-17.5,16.7-14.7,33.4c2.8,16.6,13.8,28.7,24.6,26.9c0.6-0.1,1.2-0.3,1.8-0.5c-5.3,5.1-10.2,9.5-15.2,13.2c-15.1-7-26.1-27.8-26.1-52.4C381.2,171.3,397.9,146.8,418.4,146.8z%20M378.2,916.5c-4.9,21.8-30.4,37.7-30.4,37.7c-23.2,7.3-87.6-20.7-116.8-32.9c-29.2-12.1-103.4-15.9-113.2-26.7c-9.7-11,4.9-35.4,8.6-58.4c3.6-23.2-7.3-37.7-3.7-53.6c3.7-15.8,51.1-15.8,69.3-26.7c18.3-11,21.9-42.6,36.5-51.1c14.6-8.6,41.3,21.8,52.3,39c10.9,16.9,52.3,90,69.3,108.3C367.3,870.2,383.1,894.6,378.2,916.5z%20M647.6,704.2c-4.4,21.5-4.4,99.1-4.4,99.1s-47.2,65.4-120.4,76.1c-73.1,10.7-109.7,3-109.7,3L372,835.3c0,0,31.9-4.6,27.4-36.6c-4.6-32-97.5-76.2-114.2-115.8c-16.7-39.5-3-106.6,18.3-140.2c21.3-33.5,34.9-106.5,56.3-131c21.3-24.3,38-76.1,30.4-99c0,0,45.7,54.9,77.6,45.8c32-9.2,103.7-62.5,114.2-53.3c10.6,9.2,102,210.2,111.1,274.2c9.2,63.9-6.1,112.7-6.1,112.7S652.1,682.9,647.6,704.2z%20M881.4,847.7c-14.2,13.1-93.4,45-117.1,70c-23.6,24.7-54.4,44.9-73.3,39c-19-6-35.5-32-27.2-69.9c8.2-37.8,15.4-79.2,14.2-102.9c-1.2-23.7-6-55.7,0-60.4c5.9-4.6,15.3-2.3,15.3-2.3s-4.6,44.9,22.5,56.8c27.2,11.7,66.2-4.7,78.1-16.7c11.9-11.8,20.2-29.5,20.2-29.5s11.8,6,10.6,24.9c-1.2,18.9,8.2,46.2,26.1,55.6C868.4,821.7,895.6,834.8,881.4,847.7z'%20/%3e%3c/svg%3e" width="30" height="30" alt="" />
+                <div>
+                  <h3>Linux</h3>
+                  <p>x64 / ARM64</p>
+                </div>
+              </div>
+              <div class="installer-links">
+                <a href="https://echobird.ai/download/linux-deb">x64 .deb</a
+                ><a href="https://echobird.ai/download/linux-rpm">x64 .rpm</a
+                ><a href="https://echobird.ai/download/linux-arm64-deb">ARM64 .deb</a
+                ><a href="https://echobird.ai/download/linux-arm64-rpm">ARM64 .rpm</a>
+              </div>
+            </div>
+          </div>
+          <div class="command-downloads">
+            <h3 data-i18n="download.command">Installation en ligne de commande</h3>
+            <div class="command-grid">
+              <div class="install-command">
+                <span>Windows · PowerShell</span>
+                <div>
+                  <code id="install-windows">irm https://echobird.ai/install.ps1 | iex</code
+                  ><button
+                    type="button"
+                    data-copy-command="install-windows"
+                    aria-label="Copier la commande d’installation Windows"
+                    data-i18n-aria-label="aria.copyWindows"
+                    data-i18n="download.copy"
+                  >Copier</button>
+                </div>
+              </div>
+              <div class="install-command">
+                <span>macOS / Linux</span>
+                <div>
+                  <code id="install-unix">curl -fsSL https://echobird.ai/install.sh | sh</code
+                  ><button
+                    type="button"
+                    data-copy-command="install-unix"
+                    aria-label="Copier la commande d’installation macOS et Linux"
+                    data-i18n-aria-label="aria.copyUnix"
+                    data-i18n="download.copy"
+                  >Copier</button>
+                </div>
+              </div>
+            </div>
+            <p class="copy-feedback" role="status" aria-live="polite"></p>
+          </div>
+          <div class="cloud-downloads"  hidden>
+            <h3 data-i18n="download.mirrors">Miroirs de téléchargement</h3>
+            <div>
+              <a
+                href="https://pan.baidu.com/s/1DW6U--mzhRqXyaBaGChK5A?pwd=2wv9"
+                target="_blank"
+                rel="noopener noreferrer"
+                data-i18n="download.baidu"
+                >Baidu Drive</a
+              ><a
+                href="https://pan.quark.cn/s/e481fd96fba7"
+                target="_blank"
+                rel="noopener noreferrer"
+                data-i18n="download.quark"
+                >Quark Drive</a
+              ><a
+                href="https://1842244417.share.123865.com/123pan/rqi0Td-5JhxH"
+                target="_blank"
+                rel="noopener noreferrer"
+                data-i18n="download.123"
+                >123pan</a
+              >
+            </div>
+          </div>
+        </div>
+      </section>
+      <footer>
+        <span>© 2026 EchoBird</span
+        ><a href="https://github.com/edison7009/EchoBird" target="_blank" rel="noopener noreferrer"
+          >GitHub</a
+        >
+      </footer>
+    </main>
+  </body>
+</html>

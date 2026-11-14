@@ -1,3 +1,4 @@
+import { resolveSiteLanguage } from './site-language-config.js';
 const platformIcons = {
   windows: new URL('./assets/platform-windows.svg', import.meta.url).href,
   'macos-arm': new URL('./assets/platform-macos.svg', import.meta.url).href,
@@ -34,7 +35,9 @@ export function configureDownload(button, browser) {
 
 // Match the published site's saved-language preference and browser-language fallback.
 export function shouldShowChineseMirrors(browser, savedLocale, pathLanguage) {
-  if (pathLanguage === 'zh' || pathLanguage === 'en') return pathLanguage === 'zh';
-  if (savedLocale === 'zh-CN' || savedLocale === 'en') return savedLocale === 'zh-CN';
+  const explicit = resolveSiteLanguage(pathLanguage);
+  if (explicit) return explicit === 'zh';
+  const saved = resolveSiteLanguage(savedLocale);
+  if (saved) return saved === 'zh';
   return (browser.language || 'en').toLowerCase().startsWith('zh');
 }

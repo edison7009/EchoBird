@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import { test } from 'node:test';
 import { docsArticles } from './docs-content.js';
+import { siteLocales, docsLocales } from './site-language-config.js';
 import { docPath, homePath } from './site-locale.js';
 const output = new URL('../docs/', import.meta.url);
 const read = (file) => fs.readFile(new URL(file, output), 'utf8');
@@ -9,10 +10,12 @@ const read = (file) => fs.readFile(new URL(file, output), 'utf8');
 test('public release contains indexable localized homes and all chapters with resolvable assets and links', async () => {
   assert.match(await read('index.html'), /<html lang="en"/);
   assert.match(await read('docs.html'), /<html lang="en"/);
-  for (const locale of ['zh', 'en']) {
+  for (const locale of siteLocales) {
     const routes = [
       homePath(locale),
-      ...docsArticles.map((article) => docPath(locale, article.id)),
+      ...(docsLocales.includes(locale)
+        ? docsArticles.map((article) => docPath(locale, article.id))
+        : []),
     ];
     for (const route of routes) {
       const html = await read(`${route.slice(1)}index.html`);
@@ -61,7 +64,7 @@ test('obsolete pages are retired, while CC Vibe and download service resources r
   const routes = JSON.parse(await read('_routes.json'));
   assert.deepEqual(routes.include, ['/download/*']);
   const sitemap = await read('sitemap.xml');
-  assert.equal((sitemap.match(/<loc>/g) || []).length, 43);
+  assert.equal((sitemap.match(/<loc>/g) || []).length, 57);
   assert.ok(sitemap.includes('https://echobird.ai/ccvibe/'));
   assert.equal(sitemap.includes('/en/'), false);
   assert.ok((await read('_redirects')).includes('/en/* /:splat 301'));
@@ -73,4 +76,13 @@ test('the new favicon preserves the previous website icon byte for byte', async 
     await fs.readFile(new URL('./assets/icon.png', import.meta.url)),
     await fs.readFile(new URL('icon.png', output))
   );
+});
+
+test('additional website languages do not generate translated document trees', async () => {
+  for (const locale of siteLocales.filter((code) => !docsLocales.includes(code))) {
+    await fs.access(new URL(`${locale}/index.html`, output));
+    await assert.rejects(fs.access(new URL(`${locale}/docs/index.html`, output)), {
+      code: 'ENOENT',
+    });
+  }
 });
