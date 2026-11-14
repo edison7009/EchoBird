@@ -1,6 +1,6 @@
+use crate::services::voice_input::app_icon_cache::Cache as IconCache;
 use serde::Serialize;
 use sha2::{Digest, Sha256};
-use std::collections::HashMap;
 use std::sync::{Arc, LazyLock, Mutex as SnapshotMutex};
 use tokio::sync::Mutex;
 
@@ -47,8 +47,7 @@ fn creation_time(path: &std::path::Path) -> Option<u64> {
 
 static APPLICATIONS: SnapshotMutex<Option<Arc<Vec<SystemApplication>>>> = SnapshotMutex::new(None);
 static SCAN: Mutex<()> = Mutex::const_new(());
-static ICONS: LazyLock<Mutex<HashMap<String, Option<String>>>> =
-    LazyLock::new(|| Mutex::new(HashMap::new()));
+static ICONS: LazyLock<Mutex<IconCache>> = LazyLock::new(|| Mutex::new(IconCache::default()));
 
 pub(super) fn executable(pc: &crate::models::tool::PathsConfig) -> Option<String> {
     let applications = APPLICATIONS.lock().ok()?.clone()?;
@@ -265,15 +264,15 @@ pub async fn icon(id: &str) -> Result<Option<String>, String> {
     let app = find(id).await?;
     // Serialize native image work and reuse both successful and missing icons.
     let mut cache = ICONS.lock().await;
-    if let Some(icon) = cache.get(id) {
-        return Ok(icon.clone());
+    if let Some(icon) = cache.get(id, std::time::Instant::now()) {
+        return Ok(icon);
     }
     let icon = tokio::task::spawn_blocking(move || {
         crate::services::voice_input::application_icon(&app.icon_target)
     })
     .await
     .map_err(|error| error.to_string())?;
-    cache.insert(id.to_string(), icon.clone());
+    cache.insert(id.to_string(), icon.clone(), std::time::Instant::now());
     Ok(icon)
 }
 
@@ -471,6 +470,15 @@ fn macos_application(path: &std::path::Path) -> Option<SystemApplication> {
 }
 
 #[cfg(target_os = "linux")]
+fn linux_application_executable(desktop: &gio::DesktopAppInfo) -> Option<String> {
+    use gio::prelude::*;
+    // GIO's executable field splits quoted paths at spaces. Reuse the desktop
+    // entry parser used by tool detection, preserving the full Exec program.
+    let command = desktop.commandline()?;
+    super::desktop_exec_program(&command.to_string_lossy())
+}
+
+#[cfg(target_os = "linux")]
 fn enumerate() -> Result<Vec<SystemApplication>, String> {
     use gio::prelude::*;
     Ok(gio::AppInfo::all()
@@ -484,7 +492,7 @@ fn enumerate() -> Result<Vec<SystemApplication>, String> {
             let mut application = SystemApplication::new(
                 desktop.display_name().to_string(),
                 path,
-                Some(desktop.executable().to_string_lossy().into_owned()),
+                linux_application_executable(&desktop),
                 icon,
             );
             application.created_at = created_at;
@@ -634,7 +642,10 @@ mod tests {
         let entry = format!("[Desktop Entry]\nType=Application\nName=Local app\nExec=\"{}\" --open %U\nIcon=fixture\n", executable.display());
         std::fs::write(&file, &entry).unwrap();
         let app = gio::DesktopAppInfo::from_filename(&file).unwrap();
-        assert_eq!(app.executable(), executable);
+        assert_eq!(
+            linux_application_executable(&app).as_deref(),
+            executable.to_str()
+        );
         assert!(app.should_show());
         std::fs::write(&file, format!("{entry}NoDisplay=true\n")).unwrap();
         assert!(!gio::DesktopAppInfo::from_filename(&file)

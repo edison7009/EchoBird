@@ -7,16 +7,51 @@ const MAX_ICON_BYTES: usize = 256 * 1024;
 
 struct Entry {
     key: String,
-    icon: String,
+    icon: Option<String>,
     created: Instant,
 }
 
 #[derive(Default)]
-pub(super) struct Cache {
+pub(crate) struct Cache {
     entries: VecDeque<Entry>,
 }
 
 impl Cache {
+    pub fn get(&mut self, key: &str, now: Instant) -> Option<Option<String>> {
+        let index = self.entries.iter().position(|entry| entry.key == key)?;
+        let entry = self.entries.remove(index).unwrap();
+        if now.duration_since(entry.created) >= TTL {
+            return None;
+        }
+        let icon = entry.icon.clone();
+        self.entries.push_back(entry);
+        Some(icon)
+    }
+
+    pub fn insert(&mut self, key: String, icon: Option<String>, now: Instant) {
+        if let Some(index) = self.entries.iter().position(|entry| entry.key == key) {
+            self.entries.remove(index);
+        }
+        if icon
+            .as_ref()
+            .is_some_and(|icon| icon.len() > MAX_ICON_BYTES)
+        {
+            return;
+        }
+        if self.entries.len() == CAPACITY {
+            self.entries.pop_front();
+        }
+        self.entries.push_back(Entry {
+            key,
+            icon,
+            created: now,
+        });
+    }
+
+    pub fn clear(&mut self) {
+        self.entries.clear();
+    }
+
     pub fn read(
         &mut self,
         key: Option<String>,
@@ -24,25 +59,11 @@ impl Cache {
         load: impl FnOnce() -> Option<String>,
     ) -> Option<String> {
         let Some(key) = key else { return load() };
-        if let Some(index) = self.entries.iter().position(|entry| entry.key == key) {
-            let entry = self.entries.remove(index).unwrap();
-            if now.duration_since(entry.created) < TTL {
-                let icon = entry.icon.clone();
-                self.entries.push_back(entry);
-                return Some(icon);
-            }
+        if let Some(icon) = self.get(&key, now) {
+            return icon;
         }
         let icon = load()?;
-        if icon.len() <= MAX_ICON_BYTES {
-            if self.entries.len() == CAPACITY {
-                self.entries.pop_front();
-            }
-            self.entries.push_back(Entry {
-                key,
-                icon: icon.clone(),
-                created: now,
-            });
-        }
+        self.insert(key, Some(icon.clone()), now);
         Some(icon)
     }
 }
@@ -116,6 +137,26 @@ mod tests {
         }
         assert_eq!(calls.get(), 6);
         assert!(cache.entries.is_empty());
+    }
+
+    #[test]
+    fn explicit_missing_icons_expire_and_refresh_releases_cached_entries() {
+        let mut cache = Cache::default();
+        let now = Instant::now();
+        cache.insert("missing".into(), None, now);
+        assert_eq!(cache.get("missing", now), Some(None));
+        assert_eq!(cache.get("missing", now + TTL), None);
+        cache.insert("ready".into(), Some("icon".into()), now + TTL);
+        assert_eq!(cache.get("ready", now + TTL), Some(Some("icon".into())));
+        cache.clear();
+        assert!(cache.entries.is_empty());
+        assert_eq!(cache.get("ready", now + TTL), None);
+        cache.insert(
+            "large".into(),
+            Some("x".repeat(MAX_ICON_BYTES + 1)),
+            now + TTL,
+        );
+        assert_eq!(cache.get("large", now + TTL), None);
     }
 
     #[test]

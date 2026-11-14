@@ -7,7 +7,11 @@ import { DesktopIcon } from '../../components/DesktopToolIcon';
 import { MiniSelect } from '../../components/MiniSelect';
 import { AppManagerContext, type AppManagerContextType } from './context';
 import { AppManagerMain } from './AppManagerComponents';
+import { useNavigationStore } from '../../stores/navigationStore';
+import * as systemIcons from '../../utils/systemApplicationIcons';
 
+let documentVisible = true;
+vi.mock('../../hooks/useDocumentVisible', () => ({ useDocumentVisible: () => documentVisible }));
 vi.mock('../../components', () => ({ getModelIcon: () => null }));
 vi.mock('../../utils/platform', () => ({ IS_WINDOWS: false, IS_LINUX: true, IS_MACOS: false }));
 vi.mock('@dnd-kit/core', async (original) => ({
@@ -34,6 +38,7 @@ describe('All application sorting', () => {
   const scan = vi.fn();
 
   beforeEach(() => {
+    documentVisible = true;
     storage = new Map([[orderKey, JSON.stringify(['z', 'a10', 'missing', 'a2', 'zero', 'null'])]]);
     writes = vi.fn((key: string, value: string) => storage.set(key, value));
     vi.stubGlobal('__APP_EDITION__', 'full');
@@ -77,6 +82,60 @@ describe('All application sorting', () => {
   const chooseSort = (mode: string) => {
     act(() => renderer!.root.findByType(MiniSelect).props.onChange(mode));
   };
+
+  it('cancels preloading on page exits and restarts for the current filtered view', () => {
+    const preload = vi.spyOn(systemIcons, 'preloadSystemApplicationIcons').mockResolvedValue();
+    const signals: AbortSignal[] = [];
+    preload.mockImplementation(async (_ids, signal) => {
+      signals.push(signal!);
+    });
+    useNavigationStore.setState(useNavigationStore.getInitialState(), true);
+    try {
+      act(() => useNavigationStore.getState().setAppsTab('all'));
+      renderView(
+        'all',
+        tools.map((tool) => ({ ...tool, systemAppId: tool.id }))
+      );
+      expect(preload).toHaveBeenCalledOnce();
+      expect(signals[0].aborted).toBe(false);
+      act(() => useNavigationStore.getState().setActivePage('models'));
+      expect(signals[0].aborted).toBe(true);
+      expect(preload).toHaveBeenCalledOnce();
+      act(() => useNavigationStore.getState().setActivePage('apps'));
+      expect(preload).toHaveBeenCalledTimes(2);
+      act(() => renderer!.root.findByType('input').props.onChange({ target: { value: 'app' } }));
+      expect(signals[1].aborted).toBe(true);
+      expect(preload).toHaveBeenLastCalledWith(['a10', 'a2'], signals[2]);
+      act(() => renderer!.unmount());
+      renderer = undefined;
+      expect(signals[2].aborted).toBe(true);
+    } finally {
+      preload.mockRestore();
+      useNavigationStore.setState(useNavigationStore.getInitialState(), true);
+    }
+  });
+
+  it('pauses background icon work while its native window is hidden', () => {
+    const preload = vi.spyOn(systemIcons, 'preloadSystemApplicationIcons').mockResolvedValue();
+    const entries = tools.map((tool) => ({ ...tool, systemAppId: tool.id }));
+    useNavigationStore.setState(useNavigationStore.getInitialState(), true);
+    try {
+      act(() => useNavigationStore.getState().setAppsTab('all'));
+      renderView('all', entries);
+      const signal = preload.mock.calls[0][1]!;
+      documentVisible = false;
+      renderView('all', entries);
+      expect(signal.aborted).toBe(true);
+      expect(preload).toHaveBeenCalledOnce();
+      documentVisible = true;
+      renderView('all', entries);
+      expect(preload).toHaveBeenCalledTimes(2);
+      expect(preload.mock.calls[1][1]!.aborted).toBe(false);
+    } finally {
+      preload.mockRestore();
+      useNavigationStore.setState(useNavigationStore.getInitialState(), true);
+    }
+  });
 
   it('restores manual order and reuses the compact shared dropdown beside search', () => {
     renderView();

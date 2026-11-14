@@ -1,8 +1,12 @@
 import { getSystemApplicationIcon } from '../api/tauri';
-import { preloadToolImage } from './toolIcons';
+import { getDecodedImage, preloadToolImage, releaseToolImage } from './toolIcons';
 
 const cacheLifetime = 7 * 24 * 60 * 60 * 1000;
-const icons = new Map<string, string | null>();
+const maxCachedIcons = 128;
+const maxCachedBytes = 16 * 1024 * 1024;
+const icons = new Map<string, { src: string | null; bytes: number }>();
+let cachedBytes = 0;
+let backgroundQueue: Promise<void> = Promise.resolve();
 const requests = new Map<string, Promise<string | null>>();
 let generation = 0;
 let database: Promise<IDBDatabase | null> | undefined;
@@ -87,7 +91,33 @@ async function writeCache(entry: CachedIcon): Promise<void> {
   }
 }
 
-export const cachedSystemApplicationIcon = (id: string) => icons.get(id);
+export const cachedSystemApplicationIcon = (id: string) => icons.get(id)?.src;
+
+function releaseUnusedImage(src: string | null | undefined): void {
+  if (src && !Array.from(icons.values()).some((entry) => entry.src === src)) {
+    releaseToolImage(src);
+  }
+}
+
+function rememberIcon(id: string, src: string | null): void {
+  const image = src ? getDecodedImage(src) : undefined;
+  // Budget retained source text and decoded RGBA pixels conservatively.
+  const bytes = src
+    ? src.length * 2 + (image?.naturalWidth || 64) * (image?.naturalHeight || 64) * 4
+    : 0;
+  const previous = icons.get(id);
+  cachedBytes -= previous?.bytes ?? 0;
+  icons.delete(id);
+  icons.set(id, { src, bytes });
+  cachedBytes += bytes;
+  releaseUnusedImage(previous?.src);
+  while (icons.size > maxCachedIcons || cachedBytes > maxCachedBytes) {
+    const oldest = icons.entries().next().value!;
+    icons.delete(oldest[0]);
+    cachedBytes -= oldest[1].bytes;
+    releaseUnusedImage(oldest[1].src);
+  }
+}
 
 async function decodeIcon(src: string | null): Promise<string | null> {
   if (!src || typeof Image === 'undefined') return src;
@@ -95,7 +125,12 @@ async function decodeIcon(src: string | null): Promise<string | null> {
 }
 
 export function loadSystemApplicationIcon(id: string): Promise<string | null> {
-  if (icons.has(id)) return Promise.resolve(icons.get(id)!);
+  const cached = icons.get(id);
+  if (cached) {
+    icons.delete(id);
+    icons.set(id, cached);
+    return Promise.resolve(cached.src);
+  }
   const existing = requests.get(id);
   if (existing) return existing;
   const revision = generation;
@@ -104,8 +139,10 @@ export function loadSystemApplicationIcon(id: string): Promise<string | null> {
     const cached = await decodeIcon(await readCache(id));
     const src = cached || (await decodeIcon(await getSystemApplicationIcon(id)));
     if (revision === generation) {
-      icons.set(id, src);
+      rememberIcon(id, src);
       if (src && !cached) void writeCache({ id, src, updatedAt: Date.now() });
+    } else {
+      releaseUnusedImage(src);
     }
     return src;
   })()
@@ -119,7 +156,10 @@ export function loadSystemApplicationIcon(id: string): Promise<string | null> {
 
 export async function invalidateSystemApplicationIcons(): Promise<void> {
   generation++;
+  const sources = Array.from(icons.values(), (entry) => entry.src);
   icons.clear();
+  cachedBytes = 0;
+  sources.forEach(releaseUnusedImage);
   requests.clear();
   reset = (async () => {
     const db = await openCache();
@@ -137,15 +177,21 @@ export async function invalidateSystemApplicationIcons(): Promise<void> {
   await reset;
 }
 
-/** Keep a small background queue so visible tiles can request icons immediately. */
-export async function preloadSystemApplicationIcons(ids: string[]): Promise<void> {
+/** Warm a bounded nearby set while its page is active; visible tiles load independently. */
+export function preloadSystemApplicationIcons(ids: string[], signal?: AbortSignal): Promise<void> {
   const revision = generation;
-  let next = 0;
-  const worker = async () => {
-    while (revision === generation && next < ids.length) {
-      const id = ids[next++];
-      await loadSystemApplicationIcon(id);
-    }
-  };
-  await Promise.all(Array.from({ length: Math.min(4, ids.length) }, worker));
+  const nearby = ids.slice(0, maxCachedIcons);
+  const work = backgroundQueue.then(async () => {
+    let next = 0;
+    const worker = async () => {
+      while (!signal?.aborted && revision === generation && next < nearby.length) {
+        const id = nearby[next++];
+        await loadSystemApplicationIcon(id);
+      }
+    };
+    await Promise.all(Array.from({ length: Math.min(4, nearby.length) }, worker));
+  });
+  // A new page/query waits for at most the old queue's four in-flight reads.
+  backgroundQueue = work.catch(() => {});
+  return work;
 }

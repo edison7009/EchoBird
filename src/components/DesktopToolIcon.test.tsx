@@ -153,3 +153,35 @@ it('shows an already cached icon on the first commit when the same detail image 
   expect(renderer.root.findAllByType(Box)).toHaveLength(0);
   expect(getSystemApplicationIcon).toHaveBeenCalledTimes(2);
 });
+
+it('unmounts offscreen images and restores a recent decoded icon on return', async () => {
+  vi.mocked(getSystemApplicationIcon).mockResolvedValueOnce('visible-image');
+  render(app('system:viewport'));
+  await act(async () => visible([{ isIntersecting: true }]));
+  act(() => renderer.root.findByType('img').props.onLoad());
+  act(() => visible([{ isIntersecting: false }]));
+  expect(renderer.root.findAllByType('img')).toHaveLength(0);
+  expect(renderer.root.findAllByType(Box)).toHaveLength(0);
+  await act(async () => visible([{ isIntersecting: true }]));
+  expect(renderer.root.findByType('img').props.src).toBe('visible-image');
+  expect(skeleton().props.className).toContain('opacity-0');
+  expect(getSystemApplicationIcon).toHaveBeenCalledOnce();
+});
+
+it('keeps a late native response out of an offscreen tile', async () => {
+  let finish!: (src: string) => void;
+  vi.mocked(getSystemApplicationIcon).mockImplementationOnce(
+    () =>
+      new Promise((resolve) => {
+        finish = resolve;
+      })
+  );
+  render(app('system:offscreen-pending'));
+  await act(async () => visible([{ isIntersecting: true }]));
+  act(() => visible([{ isIntersecting: false }]));
+  await act(async () => finish('late-viewport-image'));
+  expect(renderer.root.findAllByType('img')).toHaveLength(0);
+  await act(async () => visible([{ isIntersecting: true }]));
+  expect(renderer.root.findByType('img').props.src).toBe('late-viewport-image');
+  expect(getSystemApplicationIcon).toHaveBeenCalledOnce();
+});

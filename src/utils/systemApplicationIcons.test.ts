@@ -222,3 +222,106 @@ it('falls back while an upgrade is blocked and closes a late database connection
   expect(await cache.loadSystemApplicationIcon('one')).toBe(png('one'));
   expect(close).toHaveBeenCalledOnce();
 });
+
+it('caps background warming for a large inventory and skips aborted work', async () => {
+  const cache = await import('./systemApplicationIcons');
+  const controller = new AbortController();
+  controller.abort();
+  await cache.preloadSystemApplicationIcons(['aborted'], controller.signal);
+  expect(getSystemApplicationIcon).not.toHaveBeenCalled();
+  await cache.preloadSystemApplicationIcons(
+    Array.from({ length: 1000 }, (_, index) => `bounded-${index}`)
+  );
+  expect(getSystemApplicationIcon).toHaveBeenCalledTimes(128);
+  expect(cache.cachedSystemApplicationIcon('bounded-128')).toBeUndefined();
+});
+
+it('stops the old queue on leaving and serializes a new page behind its in-flight reads', async () => {
+  const pending: Array<() => void> = [];
+  let running = 0;
+  let maximum = 0;
+  vi.mocked(getSystemApplicationIcon).mockImplementation((id) => {
+    running++;
+    maximum = Math.max(maximum, running);
+    return new Promise((resolve) => {
+      pending.push(() => {
+        running--;
+        resolve(png(id));
+      });
+    });
+  });
+  const cache = await import('./systemApplicationIcons');
+  const controller = new AbortController();
+  const old = cache.preloadSystemApplicationIcons(
+    Array.from({ length: 20 }, (_, index) => `old-${index}`),
+    controller.signal
+  );
+  await vi.waitFor(() => expect(getSystemApplicationIcon).toHaveBeenCalledTimes(4));
+  controller.abort();
+  const next = cache.preloadSystemApplicationIcons(['new']);
+  expect(getSystemApplicationIcon).toHaveBeenCalledTimes(4);
+  pending.splice(0).forEach((finish) => finish());
+  await old;
+  await vi.waitFor(() => expect(getSystemApplicationIcon).toHaveBeenCalledTimes(5));
+  expect(getSystemApplicationIcon).toHaveBeenLastCalledWith('new');
+  pending.splice(0).forEach((finish) => finish());
+  await next;
+  expect(maximum).toBe(4);
+});
+
+it('evicts least-recently-used icons and decoded images while retaining the disk cache', async () => {
+  const entries = persistentCache();
+  const cache = await import('./systemApplicationIcons');
+  const images = await import('./toolIcons');
+  await Promise.all(
+    Array.from({ length: 128 }, (_, index) => cache.loadSystemApplicationIcon(`lru-${index}`))
+  );
+  await vi.waitFor(() => expect(entries.size).toBe(128));
+  await cache.loadSystemApplicationIcon('lru-0');
+  await cache.loadSystemApplicationIcon('lru-extra');
+  expect(cache.cachedSystemApplicationIcon('lru-0')).toBe(png('lru-0'));
+  expect(cache.cachedSystemApplicationIcon('lru-1')).toBeUndefined();
+  expect(images.getDecodedImage(png('lru-1'))).toBeUndefined();
+  expect(entries.has('lru-1')).toBe(true);
+  expect(await cache.loadSystemApplicationIcon('lru-1')).toBe(png('lru-1'));
+  expect(getSystemApplicationIcon).toHaveBeenCalledTimes(129);
+});
+
+it('releases oversized decoded images instead of retaining them above the memory budget', async () => {
+  vi.stubGlobal(
+    'Image',
+    class {
+      src = '';
+      naturalWidth = 4096;
+      naturalHeight = 4096;
+      decode = decode;
+    }
+  );
+  const cache = await import('./systemApplicationIcons');
+  const images = await import('./toolIcons');
+  expect(await cache.loadSystemApplicationIcon('large')).toBe(png('large'));
+  expect(cache.cachedSystemApplicationIcon('large')).toBeUndefined();
+  expect(images.getDecodedImage(png('large'))).toBeUndefined();
+});
+
+it('releases decoded images on refresh, including an obsolete request that finishes late', async () => {
+  const cache = await import('./systemApplicationIcons');
+  const images = await import('./toolIcons');
+  await cache.loadSystemApplicationIcon('ready');
+  expect(images.getDecodedImage(png('ready'))).toBeDefined();
+  let finish!: (src: string) => void;
+  vi.mocked(getSystemApplicationIcon).mockImplementationOnce(
+    () =>
+      new Promise((resolve) => {
+        finish = resolve;
+      })
+  );
+  const old = cache.loadSystemApplicationIcon('late');
+  await vi.waitFor(() => expect(getSystemApplicationIcon).toHaveBeenCalledTimes(2));
+  await cache.invalidateSystemApplicationIcons();
+  expect(images.getDecodedImage(png('ready'))).toBeUndefined();
+  finish(png('late'));
+  await old;
+  expect(images.getDecodedImage(png('late'))).toBeUndefined();
+  expect(cache.cachedSystemApplicationIcon('late')).toBeUndefined();
+});

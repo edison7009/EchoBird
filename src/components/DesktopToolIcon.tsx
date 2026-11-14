@@ -47,6 +47,8 @@ export const DesktopToolImage: React.FC<{ tool: LocalTool; className?: string }>
     const src = tool.systemAppId ? cachedSystemApplicationIcon(tool.systemAppId) : undefined;
     return src !== undefined ? { id: tool.systemAppId!, src, preloaded: true } : null;
   });
+  const [visibility, setVisibility] = useState({ id: tool.systemAppId, visible: true });
+  const visible = visibility.id !== tool.systemAppId || visibility.visible;
   const cachedIcon = tool.systemAppId ? cachedSystemApplicationIcon(tool.systemAppId) : undefined;
   const currentIcon =
     systemIcon?.id === tool.systemAppId
@@ -57,8 +59,9 @@ export const DesktopToolImage: React.FC<{ tool: LocalTool; className?: string }>
   const iconSrc = tool.icon || currentIcon?.src;
   const [loadedSrc, setLoadedSrc] = useState<string | null>(null);
   const [failedSrc, setFailedSrc] = useState<string | null>(null);
-  const hasImage = !!iconSrc && failedSrc !== iconSrc;
+  const hasImage = visible && !!iconSrc && failedSrc !== iconSrc;
   const pending =
+    visible &&
     !!tool.systemAppId &&
     ((!tool.icon && !currentIcon) ||
       (hasImage && loadedSrc !== iconSrc && !(!tool.icon && currentIcon?.preloaded)));
@@ -67,6 +70,7 @@ export const DesktopToolImage: React.FC<{ tool: LocalTool; className?: string }>
     const container = imageContainer.current;
     if (!id || tool.icon || !container) return;
     let active = true;
+    let inViewport = true;
     const load = () => {
       const cached = cachedSystemApplicationIcon(id);
       if (cached !== undefined) {
@@ -74,7 +78,7 @@ export const DesktopToolImage: React.FC<{ tool: LocalTool; className?: string }>
         return;
       }
       void loadSystemApplicationIcon(id).then((src) => {
-        if (active) setSystemIcon({ id, src, preloaded: false });
+        if (active && inViewport) setSystemIcon({ id, src, preloaded: false });
       });
     };
     if (typeof IntersectionObserver === 'undefined') {
@@ -83,12 +87,23 @@ export const DesktopToolImage: React.FC<{ tool: LocalTool; className?: string }>
         active = false;
       };
     }
-    const observer = new IntersectionObserver((entries) => {
-      if (entries.some((entry) => entry.isIntersecting)) {
-        observer.disconnect();
-        load();
+    const observer = new IntersectionObserver(
+      (entries) => {
+        inViewport = entries.some((entry) => entry.isIntersecting);
+        setVisibility({ id, visible: inViewport });
+        if (inViewport) {
+          load();
+        } else {
+          setSystemIcon(null);
+          setLoadedSrc(null);
+          setFailedSrc(null);
+        }
+      },
+      {
+        root: container.closest?.('.overflow-y-auto') ?? null,
+        rootMargin: '200px',
       }
-    });
+    );
     observer.observe(container);
     return () => {
       active = false;
@@ -123,7 +138,7 @@ export const DesktopToolImage: React.FC<{ tool: LocalTool; className?: string }>
           onError={() => setFailedSrc(iconSrc)}
           className={`h-full w-full object-contain transition-opacity duration-200 motion-reduce:transition-none ${pending ? 'opacity-0' : 'opacity-100'}`}
         />
-      ) : !pending ? (
+      ) : visible && !pending ? (
         <BoxIcon size={44} className="text-cyber-text-secondary" />
       ) : null}
     </span>

@@ -68,7 +68,7 @@ it('reuses a successful empty inventory and retries an initial failure', async (
   expect(api.listSystemApplications).toHaveBeenCalledTimes(2);
 });
 
-it('warms the entire inventory after publishing it and invalidates icons on explicit refresh', async () => {
+it('leaves icon work to the active page and invalidates icons on explicit refresh', async () => {
   vi.useFakeTimers();
   try {
     vi.mocked(api.listSystemApplications).mockResolvedValue([
@@ -79,13 +79,13 @@ it('warms the entire inventory after publishing it and invalidates icons on expl
     expect(store.getState().applications).toHaveLength(2);
     expect(preloadSystemApplicationIcons).not.toHaveBeenCalled();
     await vi.runAllTimersAsync();
-    expect(preloadSystemApplicationIcons).toHaveBeenCalledExactlyOnceWith(['one', 'two']);
+    expect(preloadSystemApplicationIcons).not.toHaveBeenCalled();
     await store.getState().load();
-    expect(preloadSystemApplicationIcons).toHaveBeenCalledOnce();
+    expect(preloadSystemApplicationIcons).not.toHaveBeenCalled();
     await store.getState().load(true);
     expect(invalidateSystemApplicationIcons).toHaveBeenCalledOnce();
     await vi.runAllTimersAsync();
-    expect(preloadSystemApplicationIcons).toHaveBeenCalledTimes(2);
+    expect(preloadSystemApplicationIcons).not.toHaveBeenCalled();
   } finally {
     vi.useRealTimers();
   }

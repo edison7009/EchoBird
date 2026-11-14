@@ -11,6 +11,13 @@ export const rememberDecodedImage = (src: string, image: HTMLImageElement) => {
   decodedImages.set(src, image);
 };
 
+/** Release strong image references owned by an evicted native application icon. */
+export function releaseToolImage(src: string): void {
+  images.delete(src);
+  decodedImages.delete(src);
+  failedImages.delete(src);
+}
+
 export const isToolIconReady = (src?: string) =>
   !src || typeof Image === 'undefined' || decodedImages.has(src) || failedImages.has(src);
 

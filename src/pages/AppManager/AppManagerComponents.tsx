@@ -1,3 +1,5 @@
+import { useDocumentVisible } from '../../hooks/useDocumentVisible';
+import { preloadSystemApplicationIcons } from '../../utils/systemApplicationIcons';
 import { useSystemApplicationsStore } from '../../stores/systemApplicationsStore';
 import {
   ApplicationDetailsPanel,
@@ -447,6 +449,23 @@ export const AppManagerMain: React.FC = () => {
       : viewMode === 'all'
         ? searchedTools
         : installedOrdered;
+  const systemApplicationsActive = useNavigationStore(
+    (state) => state.activePage === 'apps' && state.appsTab === 'all'
+  );
+  const documentVisible = useDocumentVisible();
+  const systemIconIds = useMemo(
+    () =>
+      viewMode === 'all'
+        ? searchedTools.flatMap((tool) => (tool.systemAppId ? [tool.systemAppId] : []))
+        : [],
+    [viewMode, searchedTools]
+  );
+  useEffect(() => {
+    if (!systemApplicationsActive || !documentVisible || !systemIconIds.length) return;
+    const controller = new AbortController();
+    void preloadSystemApplicationIcons(systemIconIds, controller.signal);
+    return () => controller.abort();
+  }, [systemApplicationsActive, documentVisible, systemIconIds]);
   const preparedDesktop = useDesktopTools(candidateTools, dragScope);
   const visibleTools = preparedDesktop.tools;
   const initialLoading =

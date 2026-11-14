@@ -5,7 +5,7 @@ mod app_icon;
 pub(crate) fn application_icon(target: &str) -> Option<String> {
     app_icon::application_icon(target)
 }
-mod app_icon_cache;
+pub(crate) mod app_icon_cache;
 mod audio;
 pub mod config;
 mod dictation_target;

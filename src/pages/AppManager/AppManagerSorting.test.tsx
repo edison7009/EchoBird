@@ -7,6 +7,7 @@ import { AppManagerMain } from './AppManagerComponents';
 import { DndContext } from '@dnd-kit/core';
 import { useSortable } from '@dnd-kit/sortable';
 
+vi.mock('../../hooks/useDocumentVisible', () => ({ useDocumentVisible: () => true }));
 vi.mock('../../components', () => ({ getModelIcon: () => null }));
 vi.mock('@dnd-kit/core', () => ({
   DndContext: ({ children }: React.PropsWithChildren) => <>{children}</>,
