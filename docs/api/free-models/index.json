@@ -1,7 +1,7 @@
 {
   "$schema-comment": "Remote-updatable free model catalog.",
   "version": 1,
-  "updatedAt": "2026-11-08",
+  "updatedAt": "2026-11-15",
   "models": [
     {
       "id": "kilo:kilo-auto/free",
@@ -2654,6 +2654,22 @@
       "phoneRequired": false,
       "commercialOk": true,
       "verifiedAt": "2026-11-08"
+    },
+    {
+      "id": "nvidia-nim:stepfun-ai/step-5-preview",
+      "providerId": "nvidia-nim",
+      "provider": "NVIDIA NIM",
+      "modelId": "stepfun-ai/step-5-preview",
+      "baseUrl": "https://integrate.api.nvidia.com/v1",
+      "freeType": "trial-credit",
+      "freeTier": "Trial credit, phone verification required",
+      "rateLimits": "Some models have reduced context windows on the free trial",
+      "notes": "\"Evaluation only, not production\" per NVIDIA's own Trial Terms of Service — NVIDIA may discontinue the trial at any time with no continuity obligation",
+      "docsUrl": "https://build.nvidia.com/",
+      "cardRequired": false,
+      "phoneRequired": true,
+      "commercialOk": false,
+      "verifiedAt": "2026-11-15"
     }
   ]
 }
