@@ -104,6 +104,10 @@ cpal = "0.16"
 enigo = { version = "0.6", default-features = false, features = ["x11rb", "wayland"] }
 tauri-plugin-global-shortcut = "=2.3.1"
 http-body-util = "0.1"
+hyper = { version = "1", features = ["server", "http1"] }
+hyper-util = { version = "0.1", features = ["tokio"] }
+tokio-rustls = { version = "0.26", default-features = false, features = ["ring", "tls12"] }
+rcgen = { version = "0.14", default-features = false, features = ["crypto", "pem", "ring"] }
 bytes = "1"
 tokio-stream = "0.1"
 

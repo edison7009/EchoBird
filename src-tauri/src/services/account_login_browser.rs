@@ -15,6 +15,21 @@ pub(crate) struct Login {
 }
 
 impl Login {
+    pub fn start(
+        app: &tauri::AppHandle,
+        title: &'static str,
+        url: &str,
+        domains: &'static [&'static str],
+    ) -> Result<Self, String> {
+        Self::start_with(
+            app,
+            title,
+            url.parse().map_err(|_| "accountError.format")?,
+            domains,
+            None,
+        )
+    }
+
     pub fn start_desktop(
         app: &tauri::AppHandle,
         title: &'static str,
@@ -141,6 +156,21 @@ impl Login {
     }
 
     // Call only from async commands: WebView2 cookie reads deadlock on the UI thread.
+    pub fn cookies(
+        &self,
+        app: &tauri::AppHandle,
+    ) -> Result<Vec<tauri::webview::Cookie<'static>>, String> {
+        self.check()?;
+        let mut cookies = Vec::new();
+        for (label, window) in app.webview_windows() {
+            if label == self.prefix() || label.starts_with(&format!("{}-", self.prefix())) {
+                cookies.extend(window.cookies().map_err(|_| "accountError.read")?);
+            }
+        }
+        self.check()?;
+        Ok(cookies)
+    }
+
     pub fn complete<T>(
         &self,
         app: &tauri::AppHandle,

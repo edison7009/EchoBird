@@ -41,7 +41,13 @@ export interface VoiceBinding {
 }
 export type VoicePalette = 'white' | 'aurora' | 'ocean' | 'sunset' | 'iris';
 
+export interface VoiceTextOutput {
+  enabled: boolean;
+  collapseSpaces: boolean;
+  prefix: string;
+}
 export interface VoiceConfig {
+  textOutput?: VoiceTextOutput;
   channels: VoiceChannel[];
   apiOptions?: Record<string, VoiceApiOptions>;
   microphone: string | null;
@@ -132,3 +138,5 @@ export const getVoiceReplay = async (audioId: number): Promise<ArrayBuffer> => {
   return data instanceof ArrayBuffer ? data : new Uint8Array(data).buffer;
 };
 export const showMainWindow = () => invoke<void>('voice_input_show_main');
+
+export const formatVoiceText = (text: string) => invoke<string>('voice_input_format', { text });

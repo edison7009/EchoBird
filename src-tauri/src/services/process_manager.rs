@@ -221,6 +221,21 @@ impl ProcessManager {
             return Err("MiniMax Desktop is not installed".into());
         }
 
+        // A local identity switch owns native authentication. Claude must be
+        // closed by the user before entering or leaving that identity.
+        if tool_id == "claudedesktop" && desktop_tool_is_running(tool_id).await? {
+            if crate::services::tool_config_manager::claudedesktop::local_mode_enabled() {
+                if crate::services::claude_desktop_local::is_running().await {
+                    return Ok(());
+                }
+                return Err("accountError.closeClient".into());
+            }
+            // An unchanged official client can receive its usual focus request.
+            // Pending identity restoration still requires the user to exit first.
+            crate::services::claude_desktop_accounts::end_local_mode().await?;
+            return self.start_gui_tool(tool_id).await;
+        }
+
         // Desktop apps load provider config at startup, so switching the model
         // while the app is open silently fails. Restore "launch = kill +
         // restart": terminate any running instance (including one the USER
@@ -232,6 +247,7 @@ impl ProcessManager {
         // Claude Science keeps work in a daemon. Reopening its browser must
         // leave that daemon alone unless its model or login actually changed.
         if restart
+            && tool_id != "claudedesktop"
             && crate::services::tool_manager::is_managed_desktop_tool(tool_id)
             && (tool_id != "claudescience"
                 || crate::services::tool_config_manager::claude_science_restart_file().exists())
@@ -254,11 +270,25 @@ impl ProcessManager {
             crate::services::tool_manager::is_vscode_extension(tool_id),
         );
 
+        if tool_id == "claudedesktop" {
+            if crate::services::tool_config_manager::claudedesktop::local_mode_enabled() {
+                crate::services::claude_desktop_accounts::begin_local_mode().await?;
+                let result = self.start_claude_local().await;
+                if result.is_err() {
+                    crate::services::claude_desktop_local::stop().await;
+                    crate::services::claude_desktop_accounts::end_local_mode().await?;
+                }
+                return result;
+            }
+            crate::services::claude_desktop_local::stop().await;
+            crate::services::claude_desktop_accounts::end_local_mode().await?;
+        }
+
         // History preparation must not block a model-switch restart while
         // Claude is still exiting. The plugin rechecks that it is stopped
         // before touching history, including when the host check misses it.
         if tool_id == "claudedesktop" && restart {
-            crate::services::plugin_accounts::prepare_history("claudedesktop", true).await?;
+            crate::services::claude_desktop_history::prepare(None).await?;
         }
         if matches!(tool_id, "codex" | "chatgptdesktop") {
             if let Some(codex_dir) = crate::services::codex_runtime::default_codex_dir() {
@@ -1057,6 +1087,67 @@ impl ProcessManager {
             }
             Err(e) => Err(format!("Failed to launch via shell URI: {}", e)),
         }
+    }
+
+    async fn start_claude_local(&mut self) -> Result<(), String> {
+        let target = crate::services::claude_desktop_local::history_target()?;
+        crate::services::claude_desktop_history::prepare(Some(target)).await?;
+        let executable = crate::services::tool_manager::get_tool_exe_path("claudedesktop")
+            .ok_or("Claude Desktop executable not found")?;
+        let settings = crate::services::claude_desktop_local::ensure_started(format!(
+            "http://127.0.0.1:{}",
+            crate::services::anthropic_proxy::port()
+        ))
+        .await?;
+        let mut command = crate::utils::process::command(&executable);
+        let proxy = format!("http://127.0.0.1:{}", settings.port);
+        let relay_path = dirs::home_dir()
+            .ok_or("Home directory unavailable")?
+            .join(".echobird/claudedesktop.json");
+        let relay: serde_json::Value =
+            serde_json::from_slice(&std::fs::read(relay_path).map_err(|error| error.to_string())?)
+                .map_err(|error| error.to_string())?;
+        if relay["oneMContext"].as_bool() == Some(true) {
+            command.env("CLAUDE_CODE_MAX_CONTEXT_TOKENS", "1000000");
+        } else {
+            command.env_remove("CLAUDE_CODE_MAX_CONTEXT_TOKENS");
+        }
+        command.args([
+            format!("--proxy-server={proxy}"),
+            format!("--ignore-certificate-errors-spki-list={}", settings.spki),
+        ]);
+        for name in [
+            "HTTP_PROXY",
+            "http_proxy",
+            "HTTPS_PROXY",
+            "https_proxy",
+            "ALL_PROXY",
+            "all_proxy",
+            "NODE_OPTIONS",
+            "ELECTRON_RUN_AS_NODE",
+        ] {
+            command.env_remove(name);
+        }
+        command
+            .env("HTTPS_PROXY", &proxy)
+            .env("HTTP_PROXY", &proxy)
+            .env("NO_PROXY", "localhost,127.0.0.1")
+            .env("no_proxy", "localhost,127.0.0.1")
+            .env("NODE_EXTRA_CA_CERTS", &settings.ca_path)
+            .stdin(std::process::Stdio::null())
+            .stdout(std::process::Stdio::null())
+            .stderr(std::process::Stdio::null());
+        let child = command
+            .spawn()
+            .map_err(|error| format!("Cannot launch Claude Desktop: {error}"))?;
+        let pid = child.id();
+        std::thread::spawn(move || {
+            let mut child = child;
+            let _ = child.wait();
+        });
+        self.processes
+            .insert("claudedesktop".into(), ProcessInfo::new(pid));
+        Ok(())
     }
 
     async fn start_gui_tool(&mut self, tool_id: &str) -> Result<(), String> {
@@ -2019,6 +2110,49 @@ pub(crate) fn start_desktop_for_config(tool_id: &str) -> Result<OwnedDesktopConf
     start_desktop_with_config_args(tool_id, &[])
 }
 
+pub(crate) fn start_doubao_account_bridge(
+    tool_id: &str,
+    port: u16,
+) -> Result<OwnedDesktopConfigProcess, String> {
+    let product = match tool_id {
+        "doubaowork" => "DoubaoWork",
+        "dola" => "Cici",
+        _ => return Err("accountError.format".into()),
+    };
+    if port == 0 {
+        return Err("accountError.format".into());
+    }
+    #[cfg(windows)]
+    let data_dir = dirs::data_local_dir().map(|root| root.join(product).join("User Data"));
+    #[cfg(target_os = "macos")]
+    let data_dir = dirs::data_dir().map(|root| root.join(product));
+    #[cfg(not(any(windows, target_os = "macos")))]
+    let data_dir = dirs::config_dir().map(|root| root.join(product));
+    let data_dir = data_dir.ok_or("accountError.initializeClient")?;
+    start_desktop_with_config_args(
+        tool_id,
+        &[
+            "--headless=new".into(),
+            format!("--user-data-dir={}", data_dir.display()),
+            "--remote-debugging-address=127.0.0.1".into(),
+            format!("--remote-debugging-port={port}"),
+        ],
+    )
+}
+
+#[cfg(test)]
+pub(crate) fn start_doubao_account_restart_probe(
+    port: u16,
+) -> Result<OwnedDesktopConfigProcess, String> {
+    start_desktop_with_config_args(
+        "doubaowork",
+        &[
+            "--remote-debugging-address=127.0.0.1".into(),
+            format!("--remote-debugging-port={port}"),
+        ],
+    )
+}
+
 fn start_desktop_with_config_args(
     tool_id: &str,
     arguments: &[String],
@@ -2576,6 +2710,16 @@ mod tests {
     #[test]
     fn two_install_running_fixture_stops_only_the_verified_shared_account_owner() {
         fn worker(executable: &std::path::Path) -> super::OwnedDesktopConfigProcess {
+            // macOS can kill a copied system binary before process validation unless
+            // its new fixture path has a fresh ad-hoc signature.
+            #[cfg(target_os = "macos")]
+            assert!(crate::utils::process::command("/usr/bin/codesign")
+                .args(["--force", "--sign", "-"])
+                .arg(executable)
+                .output()
+                .unwrap()
+                .status
+                .success());
             let mut command = crate::utils::process::command(executable);
             #[cfg(windows)]
             command.args(["/c", "ping -n 60 127.0.0.1 >nul"]);
@@ -2610,7 +2754,17 @@ mod tests {
         let matches = super::qoder_account_instances("qoder", &selected, fixture).unwrap();
         assert_eq!(matches.len(), 1);
         assert_eq!(matches[0].pid, owner.id());
-        assert!(super::stop_qoder_account_instances(&matches));
+        assert!(
+            super::stop_qoder_account_instances(&matches),
+            "fixture owner status {:?}, matched path {:?}, current path {:?}",
+            owner.child.try_wait().unwrap(),
+            matches[0].path,
+            super::qoder_process_snapshot()
+                .unwrap()
+                .into_iter()
+                .find(|process| process.pid == owner.id())
+                .map(|process| process.path),
+        );
         let deadline = std::time::Instant::now() + std::time::Duration::from_secs(3);
         while owner.child.try_wait().unwrap().is_none() {
             assert!(std::time::Instant::now() < deadline);

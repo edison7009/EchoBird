@@ -3,7 +3,12 @@
 import { create } from 'zustand';
 import { emit } from '@tauri-apps/api/event';
 import * as api from '../api/tauri';
-import type { PluginTheme } from '../api/plugins';
+interface PluginTheme {
+  id: string;
+  title: string;
+  light: Record<string, string>;
+  dark: Record<string, string>;
+}
 import {
   getColorTheme,
   isColorThemeId,
@@ -50,6 +55,7 @@ const hexToRgbChannels = (hex: string): string => {
 const applyColorTheme = (id: ColorThemeId, resolved: Resolved) => {
   const theme = getColorTheme(id);
   const variant: ColorThemeVariant = resolved === 'dark' ? theme.dark : theme.light;
+  const fullPalette = pluginTheme ?? theme.palette;
   const root = document.documentElement;
   for (const key of appliedPluginColors) root.style.removeProperty(key);
   appliedPluginColors.clear();
@@ -60,7 +66,7 @@ const applyColorTheme = (id: ColorThemeId, resolved: Resolved) => {
   root.style.setProperty('--bg-deep-rgb', hexToRgbChannels(variant.shell));
   root.style.setProperty('--bg-input-rgb', hexToRgbChannels(variant.input));
   // Tips always use this palette's dark surface, even in light mode.
-  const pluginTooltip = pluginTheme?.dark.surface ?? pluginTheme?.dark.background;
+  const pluginTooltip = fullPalette?.dark.surface ?? fullPalette?.dark.background;
   root.style.setProperty(
     '--tooltip-bg-rgb',
     hexToRgbChannels(
@@ -78,7 +84,7 @@ const applyColorTheme = (id: ColorThemeId, resolved: Resolved) => {
   const emphasis = channels
     .map((channel) => Math.round(90 + (127 * (channel - low)) / (range || 1)))
     .join(' ');
-  const useAccent = neutral || pluginTheme !== null;
+  const useAccent = neutral || fullPalette != null;
   root.style.setProperty('--reasoning-accent-rgb', useAccent ? 'var(--accent-rgb)' : emphasis);
   root.style.setProperty(
     '--reasoning-accent-on-light',
@@ -92,8 +98,8 @@ const applyColorTheme = (id: ColorThemeId, resolved: Resolved) => {
     neutral ? '255 255 255' : 'var(--text-primary-rgb)'
   );
   root.style.setProperty('--view-mode-wave-rgb', 'var(--view-mode-accent-rgb)');
-  if (pluginTheme) {
-    for (const [key, value] of Object.entries(pluginTheme[resolved])) {
+  if (fullPalette) {
+    for (const [key, value] of Object.entries(fullPalette[resolved])) {
       const property = pluginColorKeys[key];
       if (property && /^#[0-9a-f]{6}$/i.test(value)) {
         root.style.setProperty(property, hexToRgbChannels(value));

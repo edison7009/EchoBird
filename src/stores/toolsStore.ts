@@ -1,3 +1,4 @@
+import { isBundledApp } from '../api/builtinApps';
 // Tools store — shared state for detected tools and scanning
 // Used by: App.tsx (init), AppManagerProvider, MotherAgentProvider
 
@@ -54,7 +55,9 @@ function readToolsCache(): LocalTool[] {
       cache.platform === platform &&
       Array.isArray(cache.tools) &&
       cache.tools.every(isCachedTool)
-      ? cache.tools
+      ? cache.tools.map((tool: LocalTool) =>
+          isBundledApp(tool.id) ? { ...tool, installed: false } : tool
+        )
       : [];
   } catch {
     return [];
@@ -96,11 +99,25 @@ export const useToolsStore = create<ToolsState>((set, get) => ({
 
   scanTools: async () => {
     if (get().isScanning) return;
+    const installedAtStart = new Set(
+      get()
+        .detectedTools.filter((tool) => tool.installed)
+        .map((tool) => tool.id)
+    );
     set({ isScanning: true });
     try {
-      const tools = await api.scanTools();
-      // Publish one complete desktop; keep the previous icons visible during refresh.
-      get().setDetectedTools(await preloadToolIcons(tools));
+      const tools = await preloadToolIcons(await api.scanTools());
+      const newlyAcquired = new Set(
+        get()
+          .detectedTools.filter(
+            (tool) => isBundledApp(tool.id) && tool.installed && !installedAtStart.has(tool.id)
+          )
+          .map((tool) => tool.id)
+      );
+      // A scan started before Get must not remove an app acquired while it was pending.
+      get().setDetectedTools(
+        tools.map((tool) => (newlyAcquired.has(tool.id) ? { ...tool, installed: true } : tool))
+      );
     } catch {
       /* ignore */
     }

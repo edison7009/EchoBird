@@ -1,6 +1,6 @@
 use super::audio::Recorder;
 use crate::models::model::{AccountProvider, AccountSource};
-use crate::services::plugin_accounts::stream;
+use crate::services::{account_model_sources, account_proxy::workbuddy_voice::stream};
 use futures_util::{stream::SplitSink, SinkExt, StreamExt};
 use std::time::Duration;
 use tokio::sync::oneshot;
@@ -67,9 +67,18 @@ async fn run(
         provider: AccountProvider::WorkBuddy,
         account_id,
     };
-    let (socket, ready) = stream::connect("workbuddy", &source.account_id)
-        .await
-        .map_err(|_| "voice.error.transcribe".to_string())?;
+    let (socket, ready) = stream::connect_with(|rejected| {
+        let source = &source;
+        async move {
+            if let Some(rejected) = rejected {
+                account_model_sources::credentials_after_rejection(source, &rejected).await
+            } else {
+                account_model_sources::credentials(source, false).await
+            }
+        }
+    })
+    .await
+    .map_err(|_| "voice.error.transcribe".to_string())?;
     transfer(
         socket,
         ready,
@@ -165,24 +174,29 @@ mod tests {
 
     async fn fixture(final_text: &'static str) -> (Value, tokio::task::JoinHandle<Vec<u8>>) {
         let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
-        let endpoint = format!("ws://{}/voice/fixture", listener.local_addr().unwrap());
+        let endpoint = format!("http://{}", listener.local_addr().unwrap());
         #[allow(clippy::result_large_err)] // The websocket callback fixes this signature.
         let task = tokio::spawn(async move {
             let (tcp, _) = listener.accept().await.unwrap();
             let mut socket = tokio_tungstenite::accept_hdr_async(
                 tcp,
                 |request: &Request, response: Response| {
-                    assert_eq!(request.uri().path(), "/voice/fixture");
+                    assert_eq!(request.uri().path(), "/clientcap/v2/asr/stream");
+                    assert_eq!(
+                        request.uri().query(),
+                        Some("source=desktop&interim_results=1")
+                    );
                     assert_eq!(request.headers()["authorization"], "Bearer fixture-token");
+                    assert_eq!(request.headers()["x-user-id"], "fixture-user");
+                    assert_eq!(request.headers()["x-tenant-id"], "fixture-enterprise");
+                    assert_eq!(request.headers()["x-domain"], "fixture-domain");
                     Ok(response)
                 },
             )
             .await
             .unwrap();
             socket
-                .send(Message::Text(
-                    json!({"text":"","finalResult":false}).to_string().into(),
-                ))
+                .send(Message::Text(json!({"code":0}).to_string().into()))
                 .await
                 .unwrap();
             let mut bytes = Vec::new();
@@ -191,7 +205,7 @@ mod tests {
                     Message::Binary(chunk) if chunk.is_empty() => {
                         socket
                             .send(Message::Text(
-                                json!({"text":"修订的中间结果","finalResult":false})
+                                json!({"text":"修订的中间结果","stable":true})
                                     .to_string()
                                     .into(),
                             ))
@@ -199,9 +213,7 @@ mod tests {
                             .unwrap();
                         socket
                             .send(Message::Text(
-                                json!({"text":final_text,"finalResult":true})
-                                    .to_string()
-                                    .into(),
+                                json!({"text":final_text,"final":true}).to_string().into(),
                             ))
                             .await
                             .unwrap();
@@ -220,9 +232,7 @@ mod tests {
                         bytes.extend_from_slice(&chunk);
                         socket
                             .send(Message::Text(
-                                json!({"text":"早期结果","finalResult":false})
-                                    .to_string()
-                                    .into(),
+                                json!({"text":"早期结果","stable":false}).to_string().into(),
                             ))
                             .await
                             .unwrap();
@@ -233,18 +243,18 @@ mod tests {
             }
             bytes
         });
-        (json!({"endpoint":endpoint}), task)
+        (
+            json!({"accessToken":"fixture-token","uid":"fixture-user","enterpriseId":"fixture-enterprise","domain":"fixture-domain","_voice_test_endpoint":endpoint}),
+            task,
+        )
     }
 
     #[tokio::test]
     async fn stream_flushes_tail_and_uses_final_full_text_without_concatenating_revisions() {
         let (credentials, server) = fixture("最终的完整长句，包括最后一句。").await;
-        let (socket, ready) = stream::connect_endpoint(
-            credentials["endpoint"].as_str().unwrap(),
-            "Bearer fixture-token",
-        )
-        .await
-        .unwrap();
+        let (socket, ready) = stream::connect_with(|_| std::future::ready(Ok(credentials.clone())))
+            .await
+            .unwrap();
         let pcm: Vec<_> = (0..10002).map(|index| (index % 251) as u8).collect();
         let expected = pcm.clone();
         let mut chunks = VecDeque::from([pcm[..4000].to_vec(), pcm[4000..8000].to_vec()]);
@@ -275,12 +285,9 @@ mod tests {
     #[tokio::test]
     async fn empty_final_does_not_promote_an_interim_transcript_to_success() {
         let (credentials, server) = fixture("").await;
-        let (socket, ready) = stream::connect_endpoint(
-            credentials["endpoint"].as_str().unwrap(),
-            "Bearer fixture-token",
-        )
-        .await
-        .unwrap();
+        let (socket, ready) = stream::connect_with(|_| std::future::ready(Ok(credentials.clone())))
+            .await
+            .unwrap();
         let (ending, ended) = oneshot::channel();
         ending.send(vec![0; 3200]).unwrap();
         let result = transfer(
@@ -298,12 +305,9 @@ mod tests {
     #[tokio::test]
     async fn dropping_a_cancelled_stream_closes_it_without_a_finish_or_extra_audio() {
         let (credentials, server) = fixture("must not finish").await;
-        let (socket, ready) = stream::connect_endpoint(
-            credentials["endpoint"].as_str().unwrap(),
-            "Bearer fixture-token",
-        )
-        .await
-        .unwrap();
+        let (socket, ready) = stream::connect_with(|_| std::future::ready(Ok(credentials.clone())))
+            .await
+            .unwrap();
         let (_ending, ended) = oneshot::channel();
         let result = tokio::time::timeout(
             Duration::from_millis(50),
@@ -347,9 +351,18 @@ mod tests {
             provider: AccountProvider::WorkBuddy,
             account_id,
         };
-        let (socket, ready) = stream::connect("workbuddy", &source.account_id)
-            .await
-            .unwrap();
+        let (socket, ready) = stream::connect_with(|rejected| {
+            let source = &source;
+            async move {
+                if let Some(rejected) = rejected {
+                    account_model_sources::credentials_after_rejection(source, &rejected).await
+                } else {
+                    account_model_sources::credentials(source, false).await
+                }
+            }
+        })
+        .await
+        .unwrap();
         let pcm = wav[44..].to_vec();
         let mut chunks: VecDeque<_> = pcm.chunks(3200).map(<[u8]>::to_vec).collect();
         let duration = Duration::from_millis(pcm.len() as u64 * 1000 / 32000 + 200);

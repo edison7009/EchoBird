@@ -11,7 +11,7 @@ import {
   type PointerEventHandler,
 } from 'react';
 import { createPortal } from 'react-dom';
-import { accountProxySources } from '../../hooks/useAccountPlugin';
+import { accountProxySources } from '../../hooks/useAccountCapability';
 import {
   DndContext,
   DragOverlay,

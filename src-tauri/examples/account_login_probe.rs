@@ -14,14 +14,14 @@ fn main() {
             tauri::async_runtime::spawn(async move {
                 let result: Result<(), String> = async {
                     let start = if provider == "claude" {
-                        serde_json::to_value(claude_desktop_accounts::start_login(handle.clone(), false).await?).map_err(|e| e.to_string())?
+                        serde_json::to_value(claude_desktop_accounts::start_login(false).await?).map_err(|e| e.to_string())?
                     } else {
                         serde_json::to_value(manus_accounts::start_login(handle.clone()).await?).map_err(|e| e.to_string())?
                     };
                     let id = start["loginId"].as_str().ok_or("missing login ID")?;
                     loop {
                         let result = if provider == "claude" {
-                            serde_json::to_value(claude_desktop_accounts::poll_login(&handle, id).await?).map_err(|e| e.to_string())?
+                            serde_json::to_value(claude_desktop_accounts::poll_login(id).await?).map_err(|e| e.to_string())?
                         } else {
                             serde_json::to_value(manus_accounts::poll_login(&handle, id).await?).map_err(|e| e.to_string())?
                         };

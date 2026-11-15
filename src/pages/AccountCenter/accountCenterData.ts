@@ -1,4 +1,4 @@
-import { accountPluginAvailable, communityAccountApplications } from '../../hooks/useAccountPlugin';
+import { accountAvailable, nativeAccountApplications } from '../../hooks/useAccountCapability';
 import type { AccountDirectoryContextType } from '../../features/accounts/context';
 import type { ManagedAccount } from '../AppManager/useManagedAccounts';
 import type { AntigravityQuota, TraeAccount, WorkBuddyAccount } from '../../api/tauri';
@@ -32,7 +32,6 @@ import {
 } from '../AppManager/dumateAccountDisplay';
 import { devinQuotaLabel } from '../AppManager/devinAccountDisplay';
 import { doubaoRemainingPercent, doubaoWindowLabel } from '../AppManager/doubaoAccountDisplay';
-import { openAccountPlugins } from '../AppManager/openAccountPlugins';
 
 export interface AccountMetric {
   label: string;
@@ -225,7 +224,7 @@ export function accountCenterProviders(
       website: context.detectedTools.find((tool) => toolIds.includes(tool.id) && tool.website)
         ?.website,
       installed,
-      pluginMissing: communityAccountApplications.includes(id) && !accountPluginAvailable(id),
+      pluginMissing: nativeAccountApplications.includes(id) && !accountAvailable(id),
       busy: group.busy,
       loading: group.loading,
       loaded: group.loaded,
@@ -234,9 +233,7 @@ export function accountCenterProviders(
       remainingSeconds: group.remainingSeconds,
       waitingLabel: undefined,
       add: () => {
-        if (communityAccountApplications.includes(id) && !accountPluginAvailable(id)) {
-          void openAccountPlugins().catch((error) => context.setApplyError(String(error)));
-        } else if (!installed && LOGIN_NEEDS_CLIENT.includes(id)) {
+        if (!installed && LOGIN_NEEDS_CLIENT.includes(id)) {
           context.setApplyError(t('accountCenter.installClientFirst').replace('{name}', name));
         } else {
           void group.add();
@@ -331,7 +328,7 @@ export function accountCenterProviders(
           quota(account.sevenDay?.remainingPercent, account.sevenDay?.resetAt, '7d'),
         ],
         warmUp:
-          accountPluginAvailable('claudecode', 'account.warmup') && !isFreePlan(account.plan)
+          accountAvailable('claudecode', 'account.warmup') && !isFreePlan(account.plan)
             ? (onError) => context.claudeCodeAccounts.warmUp(account, onError)
             : undefined,
       })
@@ -352,7 +349,7 @@ export function accountCenterProviders(
             quota(account.sevenDay?.remainingPercent, account.sevenDay?.resetAt, '7d'),
           ],
           warmUp:
-            accountPluginAvailable('claudedesktop', 'account.warmup') && !isFreePlan(account.plan)
+            accountAvailable('claudedesktop', 'account.warmup') && !isFreePlan(account.plan)
               ? (onError) => context.claudeDesktopAccounts.warmUp(account, onError)
               : undefined,
         })
@@ -790,6 +787,22 @@ export function accountCenterProviders(
           ? 'https://www.kimi.com/code/'
           : 'https://www.kimi.ai/code/',
     },
+    ...(context.commandCodeAccounts
+      ? [
+          provider(
+            'commandcode',
+            'CommandCode',
+            '/icons/tools/commandcode.svg',
+            ['commandcode'],
+            context.commandCodeAccounts,
+            (account) => ({
+              identity: account.email || account.name || account.id,
+              plan: account.plan,
+              metrics: [credits(t('agent.credits'), account.remaining, account.total)],
+            })
+          ),
+        ]
+      : []),
     provider(
       'grok',
       'Grok Build',
@@ -813,34 +826,6 @@ export function accountCenterProviders(
         metrics: [quota(account.usage?.remainingPercent, account.usage?.resetAt)],
       })
     ),
-    ...(context.pluginAccounts?.provider
-      ? [
-          provider(
-            `plugin:${context.pluginAccounts.provider.application}`,
-            context.pluginAccounts.provider.name,
-            context.pluginAccounts.provider.icon,
-            context.pluginAccounts.provider.applications,
-            context.pluginAccounts,
-            (account) => ({
-              identity: account.email,
-              plan: account.plan,
-              claim: context.pluginAccounts.claimDaily
-                ? (onError) => context.pluginAccounts.claimDaily!(account, onError)
-                : undefined,
-              warmUp: context.pluginAccounts.warmUp
-                ? (onError) => context.pluginAccounts.warmUp!(account, onError)
-                : undefined,
-              metrics: [
-                credits(
-                  t('model.balance'),
-                  account.remaining ?? undefined,
-                  account.total ?? undefined
-                ),
-              ],
-            })
-          ),
-        ]
-      : []),
     ...(['manus', 'cue'] as const).map((tool) =>
       provider(
         tool,

@@ -2,6 +2,7 @@
 
 // Translation key definitions
 export type TKey =
+  | 'btn.acquire'
   | 'developer.pets'
   | 'developer.plugins'
   | 'developer.statistics'
@@ -193,6 +194,12 @@ export type TKey =
   | 'voice.notInstalled'
   | 'voice.islandCopy'
   | 'voice.islandCopied'
+  | 'voice.cleanOutput'
+  | 'voice.collapseSpaces'
+  | 'voice.outputPrefix'
+  | 'voice.formatInput'
+  | 'voice.formatText'
+  | 'voice.error.format'
   | 'voice.copy'
   | 'voice.copied'
   | 'voice.replay'

@@ -1,0 +1,25 @@
+{
+  "name": "Command Code",
+  "category": "Desktop",
+  "apiProtocol": ["openai", "anthropic"],
+  "docs": "https://commandcode.ai/docs/desktop",
+  "website": "https://commandcode.ai/desktop",
+  "description": "Command Code Desktop. Apply & Launch restarts the app; Modify Only requires a manual restart.",
+  "command": "",
+  "envVar": "COMMAND_CODE_DESKTOP_PATH",
+  "configDir": "~/.commandcode",
+  "configFile": "~/.commandcode/settings.json",
+  "requireConfigFile": false,
+  "paths": {
+    "win32": ["%LOCALAPPDATA%\\Programs\\Command Code\\Command Code.exe"],
+    "darwin": [
+      "/Applications/Command Code.app/Contents/MacOS/Command Code",
+      "~/Applications/Command Code.app/Contents/MacOS/Command Code"
+    ],
+    "linux": ["/opt/Command Code/command-code"]
+  },
+  "installHints": {
+    "windowsDisplayNamePrefixes": ["Command Code"],
+    "macosAppName": "Command Code"
+  }
+}

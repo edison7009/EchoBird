@@ -28,6 +28,8 @@ export function accountProxyStatus(
       return context.doubaoAccountGroups[provider];
     case 'dumate':
       return context.dumateAccounts;
+    case 'commandcode':
+      return context.commandCodeAccounts;
     case 'claudeCode':
       return context.claudeCodeAccounts;
     case 'codex':
@@ -78,6 +80,6 @@ export function accountProxyStatus(
     case 'devin':
       return context.devinAccounts;
     default:
-      return context.pluginAccounts;
+      throw new Error('Unsupported account source');
   }
 }

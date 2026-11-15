@@ -213,14 +213,14 @@ it('preserves the current page and saved selection when disabling fails', async 
     view = create(<SettingsDialog {...props} />);
   });
   useNavigationStore.getState().setActivePage('developer');
-  useNavigationStore.getState().setDeveloperTab('plugins');
+  useNavigationStore.getState().setDeveloperTab('pets');
   mocks.save.mockRejectedValueOnce(new Error('disk full'));
   await act(async () => {
     statisticsSwitch().props.onClick();
   });
   expect(statisticsSwitch().props['aria-checked']).toBe(true);
   expect(useNavigationStore.getState().activePage).toBe('apps');
-  expect(useNavigationStore.getState().developerTab).toBe('plugins');
+  expect(useNavigationStore.getState().developerTab).toBe('pets');
   expect(JSON.stringify(view.toJSON())).toContain('settings.routerStatisticsError');
 });
 
@@ -919,7 +919,7 @@ it('has no update section and does not fetch an update manifest on opening', asy
 
 it('retains legacy recording-off until explicitly enabled without navigating or changing plugin lifetime', async () => {
   mocks.get.mockResolvedValue({ developerMode: false });
-  useNavigationStore.getState().setAppsTab('plugins');
+  useNavigationStore.getState().setAppsTab('pets');
   await act(async () => {
     view = create(<SettingsDialog {...props} />);
   });

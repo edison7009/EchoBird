@@ -1,4 +1,4 @@
-import { useAccountProviderFilter } from '../../hooks/useAccountPlugin';
+import { useAccountProviderFilter } from '../../hooks/useAccountCapability';
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import { listen } from '@tauri-apps/api/event';
 import { useNavigationStore } from '../../stores/navigationStore';

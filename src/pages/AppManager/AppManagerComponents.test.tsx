@@ -1,3 +1,5 @@
+import * as builtinApps from '../../api/builtinApps';
+import { useToolsStore } from '../../stores/toolsStore';
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import {
@@ -546,7 +548,6 @@ describe('account launch options', () => {
     ['an installed CLI', { category: 'CLI Code', installed: true }, true],
     ['an uninstalled CLI', { category: 'CLI Code', installed: false }, false],
     ['a desktop app', { category: 'Desktop', installed: true }, false],
-    ['a plugin CLI', { category: 'CLI Code', installed: true, plugin: {} }, false],
   ])('shows launch settings beside the launch button for %s only', async (_, data, shown) => {
     const { AppManagerBottom } = await import('./AppManagerComponents');
     const context = {
@@ -846,20 +847,15 @@ describe('AppManager views', () => {
     expect(markup).not.toContain(`aria-label="${hidden}"`);
   });
 
-  it('hides bundled app entries while retaining installed plugin entries', async () => {
-    const markup = await renderView('desktop', [
-      { ...installedTool, id: 'reversi', name: 'Bundled board game' },
-      { ...installedTool, id: 'translator', name: 'AI Translator' },
-      {
-        ...installedTool,
-        id: 'plugin:fixture.game:game',
-        name: 'Plugin board game',
-        plugin: { id: 'fixture.game', pageId: 'game' },
-      },
-    ]);
-    expect(markup).not.toContain('aria-label="Bundled board game"');
-    expect(markup).not.toContain('aria-label="AI Translator"');
-    expect(markup).toContain('aria-label="Plugin board game"');
+  it('shows acquired bundled apps in My applications and unacquired apps in the store', async () => {
+    const acquired = { ...installedTool, id: 'reversi', name: 'Bundled board game' };
+    const available = { ...uninstalledTool, id: 'translator', name: 'AI Translator' };
+    const desktop = await renderView('desktop', [acquired, available]);
+    expect(desktop).toContain('aria-label="Bundled board game"');
+    expect(desktop).not.toContain('aria-label="AI Translator"');
+    const store = await renderView('install', [acquired, available]);
+    expect(store).not.toContain('aria-label="Bundled board game"');
+    expect(store).toContain('aria-label="AI Translator"');
   });
 
   it('searches All locally without selecting applications or writing their order', async () => {
@@ -1049,9 +1045,9 @@ describe('PageAwareHint', () => {
     act(() =>
       useNavigationStore.setState({
         activePage: 'apps',
-        appsTab: 'plugins',
+        appsTab: 'pets',
         developerMode: true,
-        developerTab: 'plugins',
+        developerTab: 'pets',
       })
     );
     expect(text()).toBeUndefined();
@@ -1498,3 +1494,117 @@ describe.each(['dsh'])('%s capability controls', (client) => {
     expect(markup).not.toContain('role="tooltip"');
   });
 });
+
+it.each(['translator', 'reversi', 'fixture-software'])(
+  'gets bundled app %s locally while other software retains installation',
+  async (id) => {
+    const acquire = vi.spyOn(builtinApps, 'acquireBuiltinApp').mockResolvedValue(undefined);
+    const { AppManagerBottom } = await import('./AppManagerComponents');
+    const item = { ...tool, id, installed: false };
+    const context = {
+      selectedTool: id,
+      selectedToolData: item,
+      toolModelConfig: {},
+      viewMode: 'install',
+      launchAfterApply: true,
+      agreedConfigPolicy: false,
+      handleLaunch: vi.fn(),
+      setSelectedTool: vi.fn(),
+      setApplyError: vi.fn(),
+      onGoToMother: vi.fn(),
+    } as unknown as AppManagerContextType;
+    useToolsStore.setState({ detectedTools: [item], usingCachedTools: false });
+    useNavigationStore.getState().setAppsTab('install');
+    let renderer: ReactTestRenderer | undefined;
+    try {
+      act(() => {
+        renderer = create(
+          <AppManagerContext.Provider value={context}>
+            <AppManagerBottom />
+          </AppManagerContext.Provider>
+        );
+      });
+      const button = renderer!.root
+        .findAllByType('button')
+        .find((entry) =>
+          entry.children.includes(id === 'fixture-software' ? 'btn.installOneClick' : 'btn.acquire')
+        )!;
+      expect(button).toBeDefined();
+      await act(async () => {
+        button.props.onClick();
+      });
+      if (id === 'fixture-software') {
+        expect(acquire).not.toHaveBeenCalled();
+        expect(context.onGoToMother).toHaveBeenCalledOnce();
+      } else {
+        expect(acquire).toHaveBeenCalledExactlyOnceWith(id);
+        expect(context.onGoToMother).not.toHaveBeenCalled();
+        expect(context.handleLaunch).not.toHaveBeenCalled();
+        expect(useToolsStore.getState().detectedTools[0].installed).toBe(true);
+        expect(useNavigationStore.getState().appsTab).toBe('desktop');
+        expect(context.setSelectedTool).toHaveBeenCalledWith(id);
+      }
+    } finally {
+      act(() => renderer?.unmount());
+      acquire.mockRestore();
+      useToolsStore.setState(useToolsStore.getInitialState(), true);
+    }
+  }
+);
+
+it.each([false, true])(
+  'leaving the store prevents late acquisition navigation on failure=%s',
+  async (fail) => {
+    let finish!: () => void;
+    const acquire = vi.spyOn(builtinApps, 'acquireBuiltinApp').mockImplementation(
+      () =>
+        new Promise((resolve, reject) => {
+          finish = () => (fail ? reject(new Error('delayed failure')) : resolve());
+        })
+    );
+    const { AppManagerBottom } = await import('./AppManagerComponents');
+    const item = { ...tool, id: 'translator', installed: false };
+    const context = {
+      selectedTool: item.id,
+      selectedToolData: item,
+      toolModelConfig: {},
+      viewMode: 'install',
+      launchAfterApply: true,
+      agreedConfigPolicy: false,
+      handleLaunch: vi.fn(),
+      setSelectedTool: vi.fn(),
+      setApplyError: vi.fn(),
+      onGoToMother: vi.fn(),
+    } as unknown as AppManagerContextType;
+    useToolsStore.setState({ detectedTools: [item], usingCachedTools: false });
+    useNavigationStore.getState().setAppsTab('install');
+    let renderer: ReactTestRenderer | undefined;
+    try {
+      act(() => {
+        renderer = create(
+          <AppManagerContext.Provider value={context}>
+            <AppManagerBottom />
+          </AppManagerContext.Provider>
+        );
+      });
+      act(() =>
+        renderer!.root
+          .findAllByType('button')
+          .find((entry) => entry.children.includes('btn.acquire'))!
+          .props.onClick()
+      );
+      act(() => useNavigationStore.getState().setActivePage('accounts'));
+      await act(async () => {
+        finish();
+      });
+      expect(useNavigationStore.getState().activePage).toBe('accounts');
+      expect(context.setSelectedTool).not.toHaveBeenCalled();
+      expect(context.setApplyError).not.toHaveBeenCalled();
+      expect(useToolsStore.getState().detectedTools[0].installed).toBe(!fail);
+    } finally {
+      act(() => renderer?.unmount());
+      acquire.mockRestore();
+      useToolsStore.setState(useToolsStore.getInitialState(), true);
+    }
+  }
+);

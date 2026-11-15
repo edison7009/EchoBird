@@ -71,7 +71,8 @@ it('keeps speech-only providers out of text access and preserves CodeArts saved 
     expect(accountSpeechProviders.map((entry) => entry.id)).toContain(provider);
     expect(accountProxyProviders.map((entry) => entry.id)).not.toContain(provider);
   }
-  expect(accountProxyProviders).toHaveLength(23);
+  expect(accountProxyProviders).toHaveLength(24);
+  expect(accountProxyProviders.map((entry) => entry.id)).toContain('commandcode');
   const hash = 'a'.repeat(64);
   expect(fixedAccountSpeechModels({ provider: 'codeArts', accountId: `codearts:${hash}` })).toEqual(
     [`codearts:${hash}`]

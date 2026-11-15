@@ -819,3 +819,19 @@ export function deleteCursorAccount(accountId: string): Promise<void> {
 export function refreshCursorAccount(accountId: string, tool?: CursorTool): Promise<CursorUsage> {
   return invoke('refresh_cursor_account', { accountId, ...(tool ? { tool } : {}) });
 }
+
+export function launchGame(
+  toolId: string,
+  launchFile: string,
+  modelConfig?: {
+    baseUrl?: string;
+    anthropicUrl?: string;
+    apiKey?: string;
+    model?: string;
+    name?: string;
+    protocol?: string;
+    locale?: string;
+  }
+): Promise<{ success: boolean; message?: string }> {
+  return invoke('launch_game', { toolId, launchFile, modelConfig: modelConfig ?? null });
+}

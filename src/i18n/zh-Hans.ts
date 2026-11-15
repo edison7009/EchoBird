@@ -1,6 +1,7 @@
 // Simplified Chinese translation
 import { Translations } from './types';
 const zhHans: Partial<Translations> = {
+  'btn.acquire': '获取',
   'plugins.themes': '主题',
   'plugins.themeReset': '恢复默认',
   'plugins.themeApply': '应用',
@@ -196,6 +197,12 @@ const zhHans: Partial<Translations> = {
   'voice.notInstalled': 'WorkBuddy 未安装',
   'voice.islandCopy': '复制',
   'voice.islandCopied': '已复制',
+  'voice.cleanOutput': '整理语音输出',
+  'voice.collapseSpaces': '合并连续空格',
+  'voice.outputPrefix': '输出前缀',
+  'voice.formatInput': '待整理文字',
+  'voice.formatText': '整理文字',
+  'voice.error.format': '无法整理文字',
   'voice.copy': '复制文字',
   'voice.copied': '已复制',
   'voice.replay': '回听',

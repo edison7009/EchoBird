@@ -418,7 +418,7 @@ pub async fn list_claude_code_accounts(
 #[tauri::command]
 pub async fn start_claude_code_login(
 ) -> Result<crate::services::claude_code_oauth::LoginStart, String> {
-    crate::services::claude_code_oauth::start().await
+    crate::services::claude_code_oauth::start()
 }
 
 #[tauri::command]
@@ -431,7 +431,7 @@ pub async fn complete_claude_code_login(
 
 #[tauri::command]
 pub async fn cancel_claude_code_login(login_id: String) -> Result<(), String> {
-    crate::services::claude_code_oauth::cancel(&login_id).await
+    crate::services::claude_code_oauth::cancel(&login_id)
 }
 
 #[tauri::command]
@@ -452,7 +452,9 @@ pub async fn refresh_claude_code_account_quota(
 pub async fn warm_up_claude_code_account(
     account_id: String,
 ) -> Result<crate::services::claude_code_accounts::ClaudeCodeAccount, String> {
-    crate::services::claude_code_accounts::warm_up(&account_id).await
+    let executable = crate::services::tool_manager::get_tool_exe_path("claudecode")
+        .ok_or("accountError.claudeCodeRequired")?;
+    crate::services::claude_code_accounts::warm_up(&account_id, &executable).await
 }
 
 #[tauri::command]
@@ -559,7 +561,7 @@ pub async fn poll_workbuddy_login(login_id: String) -> Result<Option<WorkBuddyAc
 
 #[tauri::command]
 pub async fn cancel_workbuddy_login(login_id: String) -> Result<(), String> {
-    workbuddy_accounts::cancel_login(&login_id).await
+    workbuddy_accounts::cancel_login(&login_id)
 }
 
 #[tauri::command]
@@ -621,7 +623,7 @@ pub async fn poll_trae_login(login_id: String) -> Result<Option<TraeAccount>, St
 
 #[tauri::command]
 pub async fn cancel_trae_login(login_id: String) -> Result<(), String> {
-    trae_accounts::cancel_login(&login_id).await
+    trae_accounts::cancel_login(&login_id)
 }
 
 #[tauri::command]
@@ -741,24 +743,24 @@ pub async fn list_claude_desktop_accounts(
 }
 #[tauri::command]
 pub async fn start_claude_desktop_login(
-    app: tauri::AppHandle,
+    _app: tauri::AppHandle,
     next: Option<bool>,
 ) -> Result<crate::services::claude_desktop_accounts::LoginStart, String> {
-    crate::services::claude_desktop_accounts::start_login(app, next.unwrap_or(false)).await
+    crate::services::claude_desktop_accounts::start_login(next.unwrap_or(false)).await
 }
 #[tauri::command]
 pub async fn poll_claude_desktop_login(
-    app: tauri::AppHandle,
+    _app: tauri::AppHandle,
     login_id: String,
 ) -> Result<crate::services::claude_desktop_accounts::LoginPoll, String> {
-    crate::services::claude_desktop_accounts::poll_login(&app, &login_id).await
+    crate::services::claude_desktop_accounts::poll_login(&login_id).await
 }
 #[tauri::command]
 pub async fn cancel_claude_desktop_login(
-    app: tauri::AppHandle,
+    _app: tauri::AppHandle,
     login_id: String,
 ) -> Result<(), String> {
-    crate::services::claude_desktop_accounts::cancel_login(&app, &login_id).await
+    crate::services::claude_desktop_accounts::cancel_login(&login_id).await
 }
 #[tauri::command]
 pub async fn switch_claude_desktop_account(
@@ -776,7 +778,9 @@ pub async fn refresh_claude_desktop_account(
 pub async fn warm_up_claude_desktop_account(
     account_id: String,
 ) -> Result<crate::services::claude_desktop_accounts::Account, String> {
-    crate::services::claude_desktop_accounts::warm_up(&account_id).await
+    let executable = crate::services::tool_manager::get_tool_exe_path("claudecode")
+        .ok_or("accountError.claudeCodeRequired")?;
+    crate::services::claude_desktop_accounts::warm_up(&account_id, &executable).await
 }
 #[tauri::command]
 pub async fn delete_claude_desktop_account(account_id: String) -> Result<(), String> {

@@ -7,7 +7,7 @@ import { create } from 'zustand';
 import type { PageType } from '../components';
 import { optionalPagesFromSettings, type OptionalPages } from './optionalPages';
 
-export type AppsTab = 'desktop' | 'install' | 'all' | 'pets' | 'plugins' | 'usageIsland';
+export type AppsTab = 'desktop' | 'install' | 'all' | 'pets' | 'usageIsland';
 export type SmartAccessTab = 'configuration' | 'statistics';
 interface Location {
   page: PageType;
@@ -16,7 +16,7 @@ interface Location {
   toolTab: 'desktop' | 'install' | 'all';
 }
 
-export type DeveloperTab = 'pets' | 'plugins' | 'statistics' | 'usageIsland';
+export type DeveloperTab = 'pets' | 'statistics' | 'usageIsland';
 
 interface NavigationState {
   activePage: PageType;
@@ -34,8 +34,6 @@ interface NavigationState {
   optionalPagesReady: boolean;
   optionalPagesRevision: number;
   developerTab: DeveloperTab;
-  accountPluginsRequest: number | null;
-  accountPluginsRequestId: number;
   backHistory: PageType[];
   forwardHistory: PageType[];
   motherPrefill: string | undefined;
@@ -50,8 +48,6 @@ interface NavigationState {
   setDeveloperMode: (enabled: boolean) => void;
   setOptionalPages: (pages: Partial<OptionalPages>) => void;
   setDeveloperTab: (tab: DeveloperTab) => void;
-  openAccountPlugins: () => void;
-  consumeAccountPluginsRequest: (requestId: number) => void;
   goBack: () => void;
   goForward: () => void;
   goToMother: (prefill: string, cursor?: number) => void;
@@ -143,8 +139,6 @@ export const useNavigationStore = create<NavigationState>((set) => ({
   optionalPagesReady: false,
   optionalPagesRevision: 0,
   developerTab: 'pets',
-  accountPluginsRequest: null,
-  accountPluginsRequestId: 0,
   backHistory: [],
   forwardHistory: [],
   motherPrefill: undefined,
@@ -198,26 +192,6 @@ export const useNavigationStore = create<NavigationState>((set) => ({
       });
       return { ...(destination === state ? {} : destination), developerTab };
     }),
-  openAccountPlugins: () =>
-    set((state) => {
-      const next = {
-        ...state,
-        developerTab: 'plugins' as const,
-        appsTab: 'plugins' as const,
-        accountPluginsRequestId: state.accountPluginsRequestId + 1,
-        accountPluginsRequest: state.accountPluginsRequestId + 1,
-      };
-      const destination = visitLocation(state, {
-        ...location(state),
-        page: 'apps',
-        appsTab: 'plugins',
-      });
-      return { ...next, ...(destination === state ? {} : destination) };
-    }),
-  consumeAccountPluginsRequest: (requestId) =>
-    set((state) =>
-      state.accountPluginsRequest === requestId ? { accountPluginsRequest: null } : state
-    ),
   goBack: () =>
     set((state) => {
       const page = state.backHistory[state.backHistory.length - 1];

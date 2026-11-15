@@ -156,14 +156,6 @@ pub fn build_embedded_refs_section() -> String {
         }
     }
 
-    for (tool_id, json) in super::plugin_accounts::tool_install_references() {
-        out.push_str(&format!(
-            "#### `{}` install reference\n```json\n{}\n```\n\n",
-            tool_id,
-            json.trim()
-        ));
-    }
-
     out.push_str("### Quick-Action Task Scripts\n\n");
     for name in &[
         "network-info",

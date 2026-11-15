@@ -7,13 +7,8 @@ import { TraeAccountSection } from './TraeAccountSection';
 import type { useTraeAccounts } from './useTraeAccounts';
 import { traeClaimedToday } from './traeDailyCredits';
 import { enableAccountPlugins } from '../../test/accountPlugins';
-import { usePluginsStore } from '../../stores/pluginsStore';
+import { usePluginsStore } from '../../test/accountPlugins';
 import { useNavigationStore } from '../../stores/navigationStore';
-import { openAccountPlugins } from './openAccountPlugins';
-
-vi.mock('./openAccountPlugins', () => ({
-  openAccountPlugins: vi.fn().mockResolvedValue(undefined),
-}));
 
 vi.mock('../../hooks/useI18n', () => ({ useI18n: () => ({ t: (key: string) => key }) }));
 let context: AppManagerContextType;
@@ -71,7 +66,6 @@ describe('TRAE account rows', () => {
       const { content, group } = fixture([{ ...saved, edition }]);
       usePluginsStore.setState({ installed: [] });
       useNavigationStore.setState({ developerMode: true });
-      vi.mocked(openAccountPlugins).mockClear();
       let renderer: ReactTestRenderer;
       act(() => {
         renderer = create(content);
@@ -86,12 +80,10 @@ describe('TRAE account rows', () => {
                 .some((span) => span.props.children === 'plugins.category.account')
             )!;
         await act(async () => login().props.onClick());
-        expect(openAccountPlugins).toHaveBeenCalledOnce();
-        expect(group.add).not.toHaveBeenCalled();
+        expect(group.add).toHaveBeenCalledOnce();
         act(() => enableAccountPlugins());
         await act(async () => login().props.onClick());
-        expect(group.add).toHaveBeenCalledOnce();
-        expect(openAccountPlugins).toHaveBeenCalledOnce();
+        expect(group.add).toHaveBeenCalledTimes(2);
       } finally {
         act(() => renderer!.unmount());
         usePluginsStore.setState(usePluginsStore.getInitialState(), true);

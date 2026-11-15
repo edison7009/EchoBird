@@ -14,11 +14,17 @@ pub mod ai_career;
 pub mod anthropic_proxy;
 pub mod antigravity_accounts;
 pub mod auto_fix;
+pub mod builtin_apps;
 pub mod bundled_assets;
-pub use plugin_accounts::bindings::{
-    claude_code_accounts, claude_code_oauth, claude_desktop_accounts, doubao_accounts,
-    trae_accounts, workbuddy_accounts,
-};
+pub mod claude_code_accounts;
+pub mod claude_code_oauth;
+pub mod claude_desktop_accounts;
+pub mod claude_desktop_history;
+pub mod claude_desktop_local;
+pub mod doubao_accounts;
+pub mod trae_accounts;
+pub mod workbuddy_accounts;
+
 pub mod cli_launch;
 pub mod cline_accounts;
 pub mod cline_native;
@@ -30,6 +36,7 @@ mod codex_keychain;
 #[path = "codex_proxy/mod.rs"]
 pub mod codex_runtime;
 pub mod codex_session_merge;
+pub mod commandcode_accounts;
 pub(crate) mod connection_probe;
 pub mod copilot_accounts;
 pub mod cue_accounts;
@@ -50,6 +57,7 @@ pub mod json_repair;
 pub(crate) mod json_store;
 pub mod kilo_accounts;
 pub mod kiro_accounts;
+pub(crate) mod legacy_features;
 pub mod llm_client;
 pub mod local_llm;
 pub(crate) mod local_proxy;
@@ -63,9 +71,6 @@ pub(crate) mod msix;
 pub mod musecode_proxy;
 pub(crate) mod native_account_files;
 pub mod parasite;
-pub(crate) mod plugin_accounts;
-pub mod plugin_manager;
-pub mod plugin_runtime;
 pub mod process_manager;
 pub mod pulse_archive;
 pub mod qoder_accounts;

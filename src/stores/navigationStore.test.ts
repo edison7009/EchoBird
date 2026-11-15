@@ -25,33 +25,13 @@ it('routes legacy developer destinations into their owning page without a previe
   });
 });
 
-it('opens the complete plugin list from an account entry and preserves back navigation', () => {
-  const { openAccountPlugins, consumeAccountPluginsRequest, goBack } = navigation.getState();
-  openAccountPlugins();
-  expect(navigation.getState()).toMatchObject({
-    developerMode: false,
-    activePage: 'apps',
-    appsTab: 'plugins',
-    developerTab: 'plugins',
-    backHistory: ['apps'],
-    accountPluginsRequest: expect.any(Number),
-  });
-  const requestId = navigation.getState().accountPluginsRequest!;
-  consumeAccountPluginsRequest(requestId + 1);
-  expect(navigation.getState().accountPluginsRequest).toBe(requestId);
-  consumeAccountPluginsRequest(requestId);
-  expect(navigation.getState().accountPluginsRequest).toBeNull();
-  goBack();
-  expect(navigation.getState().activePage).toBe('apps');
-});
-
 it.each(['back', 'forward', 'active'] as const)(
   'removes developer access and %s history when the mode is disabled',
   (position) => {
     const { setActivePage, setDeveloperMode, setDeveloperTab, goBack, goForward } =
       navigation.getState();
     setDeveloperMode(true);
-    setDeveloperTab('plugins');
+    setDeveloperTab('pets');
     setActivePage('developer');
     if (position !== 'active') setActivePage('models');
     if (position === 'forward') {
@@ -66,7 +46,7 @@ it.each(['back', 'forward', 'active'] as const)(
     goForward();
     setActivePage('developer');
     expect(navigation.getState().activePage).not.toBe('developer');
-    expect(navigation.getState().developerTab).toBe('plugins');
+    expect(navigation.getState().developerTab).toBe('pets');
   }
 );
 
@@ -217,7 +197,7 @@ it('restores exact merged tabs and tool view through back and forward without se
   const nav = navigation.getState();
   nav.setAppsTab('install');
   nav.setAppsTab('pets');
-  nav.setAppsTab('plugins');
+  nav.setAppsTab('usageIsland');
   nav.setSmartAccessTab('statistics');
   nav.setSmartAccessTab('configuration');
   nav.goBack();
@@ -226,7 +206,7 @@ it('restores exact merged tabs and tool view through back and forward without se
     smartAccessTab: 'statistics',
   });
   nav.goBack();
-  expect(navigation.getState()).toMatchObject({ activePage: 'apps', appsTab: 'plugins' });
+  expect(navigation.getState()).toMatchObject({ activePage: 'apps', appsTab: 'usageIsland' });
   nav.goBack();
   expect(navigation.getState().appsTab).toBe('pets');
   nav.goBack();
@@ -234,21 +214,9 @@ it('restores exact merged tabs and tool view through back and forward without se
   nav.goForward();
   expect(navigation.getState().appsTab).toBe('pets');
   nav.goForward();
-  expect(navigation.getState().appsTab).toBe('plugins');
-  nav.setAppsTab('usageIsland');
+  expect(navigation.getState().appsTab).toBe('usageIsland');
+  nav.setAppsTab('desktop');
   expect(navigation.getState().forwardHistory).toEqual([]);
   expect(write).not.toHaveBeenCalled();
   expect(fetch).not.toHaveBeenCalled();
-});
-
-it('reissues an explicit marketplace request while already on Plugins without duplicating history', () => {
-  const nav = navigation.getState();
-  nav.openAccountPlugins();
-  const first = navigation.getState().accountPluginsRequest!;
-  nav.consumeAccountPluginsRequest(first);
-  nav.openAccountPlugins();
-  expect(navigation.getState().accountPluginsRequest).toBe(first + 1);
-  expect(navigation.getState().backHistory).toEqual(['apps']);
-  nav.goBack();
-  expect(navigation.getState().appsTab).toBe('desktop');
 });

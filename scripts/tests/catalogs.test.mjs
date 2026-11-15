@@ -16,7 +16,7 @@ test('catalog generation detects drift and rejects invalid install references', 
     mkdirSync(join(root, 'src/data'), { recursive: true });
     put('docs/api/model-directory/index.json', { version: 1, providers: [] });
     put('docs/api/store/models.json', []);
-    put('docs/api/plugins/index.json', { version: 1, plugins: [] });
+    put('docs/api/store/apps.json', { schemaVersion: 1, apps: [] });
     put('docs/api/tools/install/index.json', { ids: ['fixture'] });
     put('docs/api/tools/install/fixture.json', { id: 'fixture' });
     put('tools/fixture/paths.json', { paths: { darwin: ['/fixture'] } });

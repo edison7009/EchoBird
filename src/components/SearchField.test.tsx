@@ -19,16 +19,14 @@ it('shares the plugin search field and sends input and clear actions through one
   }
 });
 
-it('uses the same rem-based toolbar height in apps and plugins and centers the full-height input', async () => {
+it('uses the rem-based toolbar height in apps and centers the full-height input', async () => {
   const { readFileSync } = await vi.importActual<{
     readFileSync: (path: URL, encoding: string) => string;
   }>('node:fs');
   const styles = readFileSync(new URL('../index.css', import.meta.url), 'utf8');
-  const pluginStyles = readFileSync(new URL('../pages/PluginHub.css', import.meta.url), 'utf8');
   const search = styles.match(/\.page-search\s*\{([^}]+)\}/)?.[1];
   const input = styles.match(/\.page-search input\s*\{([^}]+)\}/)?.[1];
   expect(search).toContain('height: 2.25rem;');
-  expect(pluginStyles).toContain('--ph-control-height: 2.25rem;');
   expect(input).toContain('height: 100%;');
   expect(input).toContain('padding: 0;');
   expect(input).toContain('line-height: normal;');

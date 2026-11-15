@@ -1,4 +1,3 @@
-import { useAccountPlugin } from '../../hooks/useAccountPlugin';
 import { Gift } from 'lucide-react';
 import { useI18n } from '../../hooks/useI18n';
 import { useAppManager } from './context';
@@ -12,12 +11,10 @@ import { QuotaCountdown } from './QuotaCountdown';
 import { QuotaPercent } from './QuotaPercent';
 import { quotaTextClass } from '../../utils/quotaColors';
 import { doubaoRemainingPercent } from './doubaoAccountDisplay';
-import { openAccountPlugins } from './openAccountPlugins';
 
 export function DoubaoAccountSection() {
   const { doubaoAccounts: group, selectedTool, isLaunching, setApplyError } = useAppManager();
   const { t, locale } = useI18n();
-  const installed = useAccountPlugin(selectedTool ?? 'doubaowork');
   return (
     <AccountSection>
       <AccountSectionButton
@@ -25,11 +22,7 @@ export function DoubaoAccountSection() {
         busy={group.busy}
         remainingSeconds={group.remainingSeconds}
         idleLabel="plugins.category.account"
-        onClick={() =>
-          void (installed ? group.add() : openAccountPlugins()).catch((error) =>
-            setApplyError(String(error))
-          )
-        }
+        onClick={() => void group.add().catch((error) => setApplyError(String(error)))}
         onCancel={() => group.cancelLogin()}
       />
       <div className="space-y-2">

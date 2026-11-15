@@ -41,13 +41,13 @@ async function mount() {
     view = create(tree());
   });
 }
-async function activate(tab: 'statistics' | 'plugins' = 'statistics') {
+async function activate(tab: 'statistics' | 'pets' = 'statistics') {
   await act(async () =>
     useNavigationStore.setState({
       developerMode: true,
       activePage: tab === 'statistics' ? 'freeModels' : 'apps',
       smartAccessTab: 'statistics',
-      appsTab: 'plugins',
+      appsTab: 'pets',
       developerTab: tab,
     })
   );
@@ -71,7 +71,7 @@ it('reads nothing outside the active statistics tab, and shares one snapshot bet
   await mount();
   expect(mocks.snapshot).not.toHaveBeenCalled();
   expect(mocks.catalog).not.toHaveBeenCalled();
-  await activate('plugins');
+  await activate('pets');
   expect(mocks.snapshot).not.toHaveBeenCalled();
   await activate();
   expect(mocks.snapshot).toHaveBeenCalledExactlyOnceWith(1, '');
@@ -79,7 +79,7 @@ it('reads nothing outside the active statistics tab, and shares one snapshot bet
   expect(view.root.findAllByProps({ className: 'rs-summary' })).toHaveLength(1);
   expect(view.root.findAllByProps({ className: 'rs-table' })).toHaveLength(1);
   expect(view.root.findAllByProps({ className: 'rs-detail' })).toHaveLength(1);
-  await activate('plugins');
+  await activate('pets');
   expect(mocks.snapshot).toHaveBeenCalledOnce();
 });
 it('does not poll while paused, hidden or outside the tab, and prevents overlapping reads', async () => {
@@ -91,7 +91,7 @@ it('does not poll while paused, hidden or outside the tab, and prevents overlapp
   });
   expect(mocks.snapshot).toHaveBeenCalledOnce();
   mocks.snapshot.mockResolvedValue({ ...empty, recording: true, since: 1 });
-  await activate('plugins');
+  await activate('pets');
   await activate();
   const calls = mocks.snapshot.mock.calls.length;
   let finish!: (value: RouterStatisticsSnapshot) => void;
@@ -117,7 +117,7 @@ it('does not poll while paused, hidden or outside the tab, and prevents overlapp
   expect(mocks.snapshot).toHaveBeenCalledTimes(calls + 1);
   mocks.visible = true;
   await act(async () => view.update(tree()));
-  await activate('plugins');
+  await activate('pets');
   const left = mocks.snapshot.mock.calls.length;
   await act(async () => {
     vi.advanceTimersByTime(30_000);
@@ -129,7 +129,7 @@ it('ignores responses after leaving and preserves cached history on passive read
   mocks.snapshot.mockResolvedValue({ ...empty, since: 1, totals: { ...empty.totals, calls: 42 } });
   await mount();
   expect(view.root.findAllByType('strong').some((node) => node.children.includes('42'))).toBe(true);
-  await activate('plugins');
+  await activate('pets');
   mocks.snapshot.mockRejectedValueOnce(new Error('offline'));
   await activate();
   expect(view.root.findAllByType('strong').some((node) => node.children.includes('42'))).toBe(true);
@@ -141,9 +141,9 @@ it('ignores responses after leaving and preserves cached history on passive read
         finish = resolve;
       })
   );
-  await activate('plugins');
+  await activate('pets');
   await activate();
-  await activate('plugins');
+  await activate('pets');
   await act(async () => finish({ ...empty, since: 1, totals: { ...empty.totals, calls: 999 } }));
   expect(view.root.findAllByType('strong').some((node) => node.children.includes('999'))).toBe(
     false
@@ -467,7 +467,7 @@ it('refreshes the visible snapshot after an explicit recording change and stays 
     vi.advanceTimersByTime(10_000);
   });
   expect(mocks.snapshot).toHaveBeenCalledTimes(3);
-  await activate('plugins');
+  await activate('pets');
   await act(async () => {
     document.dispatchEvent(new Event('router-statistics-settings-changed'));
   });

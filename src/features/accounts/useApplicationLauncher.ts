@@ -4,7 +4,6 @@ import type { LocalTool, ModelConfig } from '../../api/types';
 import { accountError } from '../../utils/accountError';
 import { isOfficialModelSentinel } from '../../data/officialEndpoints';
 import { open as openDialog } from '@tauri-apps/plugin-dialog';
-import { launchPlugin } from '../../api/plugins';
 import { switchCodeArtsAccount } from '../../api/codeArtsAccounts';
 import { switchKimiAccount } from '../../api/kimiAccounts';
 import { useNavigationStore } from '../../stores/navigationStore';
@@ -19,6 +18,7 @@ interface LaunchOptions extends Pick<
   | 'accountNavigation'
   | 'isCodexTool'
   | 'claudeCodeAccounts'
+  | 'commandCodeAccounts'
   | 'claudeDesktopAccounts'
   | 'workBuddyEdition'
   | 'workBuddyAccounts'
@@ -45,9 +45,6 @@ interface LaunchOptions extends Pick<
   | 'cursorRevisionRef'
   | 'antigravityAccounts'
   | 'kimiSelectionRevisionRef'
-  | 'pluginAccountProvider'
-  | 'pluginAccountTool'
-  | 'pluginAccounts'
   | 'kimiAccounts'
   | 'zcodeAccounts'
   | 'codeArtsAccounts'
@@ -83,6 +80,7 @@ export function useApplicationLauncher({
   accountNavigation,
   isCodexTool,
   claudeCodeAccounts,
+  commandCodeAccounts,
   claudeDesktopAccounts,
   workBuddyEdition,
   workBuddyAccounts,
@@ -109,9 +107,6 @@ export function useApplicationLauncher({
   cursorRevisionRef,
   antigravityAccounts,
   kimiSelectionRevisionRef,
-  pluginAccountProvider,
-  pluginAccountTool,
-  pluginAccounts,
   kimiAccounts,
   zcodeAccounts,
   codeArtsAccounts,
@@ -160,9 +155,9 @@ export function useApplicationLauncher({
     if (selectedTool === 'codearts' && codeArtsAccounts.busy) return;
     if (selectedTool === 'zcode' && zcodeAccounts.busy) return;
     if (['kimicode', 'kimidesktop'].includes(selectedTool) && kimiAccounts.busy) return;
-    if (selectedTool === pluginAccountTool && pluginAccounts.busy) return;
     if (['devin', 'devincli'].includes(selectedTool ?? '') && devinAccounts.busy) return;
     if (selectedTool === 'opendesign' && openDesignAccounts.busy) return;
+    if (selectedTool === 'commandcode' && commandCodeAccounts.busy) return;
     if (selectedTool === 'claudedesktop' && claudeDesktopAccounts.busy) return;
     if (selectedTool === 'cue' && cueAccounts.busy) return;
     if (['cline', 'clinedesktop'].includes(selectedTool) && clineAccounts.busy) return;
@@ -176,7 +171,6 @@ export function useApplicationLauncher({
     if (['qwenwork', 'qwenworkcn'].includes(selectedTool) && qwenWorkAccounts.busy) return;
     if ((selectedTool === 'kirocrew' || selectedTool === 'kirocli') && kiroAccounts.busy) return;
     const generation = ++launchGeneration.current;
-    const previewGeneration = useNavigationStore.getState().developerGeneration;
     const finishLaunch = () => {
       if (launchGeneration.current === generation) {
         previewLaunch.current = false;
@@ -205,7 +199,6 @@ export function useApplicationLauncher({
       !(selectedTool === 'zcode' && zcodeAccounts.selectedId!) &&
       !(selectedTool === 'codearts' && codeArtsAccounts.selectedId!) &&
       !(['kimicode', 'kimidesktop'].includes(selectedTool) && kimiAccounts.selectedId!) &&
-      !(selectedTool === pluginAccountTool && pluginAccounts.selectedId!) &&
       !(['devin', 'devincli'].includes(selectedTool ?? '') && devinAccounts.selectedId!) &&
       !(selectedTool === 'opendesign' && openDesignAccounts.selectedId!) &&
       !(selectedTool === 'dsh' && deepSeekAccounts.selectedId!) &&
@@ -213,6 +206,7 @@ export function useApplicationLauncher({
       !(['cline', 'clinedesktop'].includes(selectedTool) && clineAccounts.selectedId!) &&
       !(['kilo', 'kilodesktop'].includes(selectedTool) && kiloAccounts.selectedId!) &&
       !(['copilot', 'copilotdesktop'].includes(selectedTool) && copilotAccounts.selectedId!) &&
+      !(selectedTool === 'commandcode' && commandCodeAccounts.selectedId!) &&
       !(selectedTool === 'manus' && manusAccounts.selectedId!) &&
       !(selectedTool === 'cue' && cueAccounts.selectedId!) &&
       !(['cursor', 'cursorcli'].includes(selectedTool) && cursorAccounts.selectedId!) &&
@@ -225,24 +219,8 @@ export function useApplicationLauncher({
       startCooldown();
 
     const toolData = detectedTools.find((t) => t.id === selectedTool);
-    previewLaunch.current = !!toolData?.plugin;
-    if (toolData?.plugin) {
-      try {
-        const model = userModels.find(
-          (model) => model.internalId === toolModelConfig[selectedTool]
-        );
-        await launchPlugin(toolData.plugin.id, toolData.plugin.pageId, model);
-      } catch (error) {
-        if (
-          launchGeneration.current === generation &&
-          previewGeneration === useNavigationStore.getState().developerGeneration
-        )
-          setApplyError(String(error));
-      } finally {
-        finishLaunch();
-      }
-      return;
-    }
+    previewLaunch.current = false;
+    const isLaunchable = !!toolData?.launchFile?.endsWith('.html');
     const noModelConfig = !!toolData?.noModelConfig;
     const pickWorkingDirectory = async () => {
       if (toolData?.category !== 'CLI Code' || toolData.noCwdPrompt) return undefined;
@@ -395,6 +373,21 @@ export function useApplicationLauncher({
           report: (error) => setApplyError(accountError(error, t)),
           finish: finishLaunch,
         }
+      );
+      return;
+    } else if (selectedTool === 'commandcode' && commandCodeAccounts.selectedId) {
+      const selectedAccount = commandCodeAccounts.selectedId;
+      const navigation = accountNavigation.current;
+      const current = () =>
+        launchGeneration.current === generation &&
+        accountNavigation.current === navigation &&
+        commandCodeAccounts.isCurrentSelection(selectedAccount);
+      await runAccountApplication(
+        async () => {
+          await commandCodeAccounts.switchAccount();
+          if (launchAfterApply && current()) await api.startTool('commandcode');
+        },
+        { current, report: (error) => setApplyError(accountError(error, t)), finish: finishLaunch }
       );
       return;
     } else if (selectedTool === 'grok' && grokAccounts.selectedId!) {
@@ -609,41 +602,6 @@ export function useApplicationLauncher({
         }
       );
       return;
-    } else if (selectedTool === pluginAccountTool && pluginAccounts.selectedId!) {
-      const current = () =>
-        accountNavigation.current.tool === selectedTool &&
-        accountNavigation.current.page === activePage;
-      await runAccountApplication(
-        async () => {
-          const cwd = launchAfterApply ? await pickWorkingDirectory() : undefined;
-          if (cwd === null || !current()) return;
-          await pluginAccounts.apply(pluginAccounts.selectedId!);
-          setDetectedTools((prev) =>
-            prev.map((tool) =>
-              pluginAccountProvider?.applications.includes(tool.id)
-                ? { ...tool, activeModel: '' }
-                : tool
-            )
-          );
-          if (current()) {
-            setToolModelConfig((prev) => ({
-              ...prev,
-              ...Object.fromEntries(
-                (pluginAccountProvider?.applications ?? []).map((id) => [id, null])
-              ),
-            }));
-            await pluginAccounts.reload();
-          }
-          if (launchAfterApply && current())
-            await api.startTool(selectedTool, toolData?.startCommand, cwd);
-        },
-        {
-          current: current,
-          report: (error) => setApplyError(accountError(error, t)),
-          finish: finishLaunch,
-        }
-      );
-      return;
     } else if (['kimicode', 'kimidesktop'].includes(selectedTool) && kimiAccounts.selectedId!) {
       const selectionRevision = kimiSelectionRevisionRef.current;
       const current = () =>
@@ -760,7 +718,12 @@ export function useApplicationLauncher({
         finishLaunch();
         return;
       }
-    } else if (!noModelConfig && agreedConfigPolicy && toolModelConfig[selectedTool]) {
+    } else if (
+      !isLaunchable &&
+      !noModelConfig &&
+      agreedConfigPolicy &&
+      toolModelConfig[selectedTool]
+    ) {
       const pending = toolModelConfig[selectedTool]!;
       const applyResult = isOfficialModelSentinel(pending)
         ? await applyRestore(selectedTool)
@@ -770,6 +733,40 @@ export function useApplicationLauncher({
         finishLaunch();
         return;
       }
+    }
+    if (isLaunchable) {
+      const selectedModel = userModels.find(
+        (model) => model.internalId === toolModelConfig[selectedTool]
+      );
+      const modelConfig = selectedModel
+        ? {
+            baseUrl: selectedModel.baseUrl,
+            anthropicUrl: selectedModel.anthropicUrl,
+            apiKey: selectedModel.apiKey,
+            model: selectedModel.modelId || selectedModel.name || 'unknown',
+            name: selectedModel.name,
+            protocol: selectedModel.baseUrl ? 'openai' : 'anthropic',
+            locale,
+          }
+        : { locale };
+      try {
+        const result = await api.launchGame(selectedTool, toolData!.launchFile!, modelConfig);
+        if (!result.success) setApplyError(result.message ?? 'Launch failed');
+        else if (selectedModel) {
+          setDetectedTools((previous) =>
+            previous.map((tool) =>
+              tool.id === selectedTool
+                ? { ...tool, activeModel: selectedModel.modelId || selectedModel.internalId }
+                : tool
+            )
+          );
+        }
+      } catch (error) {
+        setApplyError(String(error));
+      } finally {
+        finishLaunch();
+      }
+      return;
     }
     // Launch tool when "launch directly" is checked, or unconditionally for desktop apps
     if (

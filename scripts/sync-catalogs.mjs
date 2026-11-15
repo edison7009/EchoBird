@@ -5,9 +5,9 @@ import { fileURLToPath } from 'node:url';
 export function syncCatalogs(root, write = false) {
   const read = (path) => JSON.parse(readFileSync(resolve(root, path), 'utf8'));
   const pairs = [
+    ['docs/api/store/apps.json', 'src/data/bundledApps.json'],
     ['docs/api/model-directory/index.json', 'src/data/modelDirectory.json'],
     ['docs/api/store/models.json', 'src/data/localModelStore.json'],
-    ['docs/api/plugins/index.json', 'src/data/pluginIndex.json'],
   ];
   function generated(path, value) {
     if (write) writeFileSync(resolve(root, path), JSON.stringify(value, null, 2) + '\n');

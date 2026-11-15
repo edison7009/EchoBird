@@ -355,7 +355,7 @@ it.each(editions)('uninstalled %s never reads accounts or starts login', async (
   expect(calls('list_doubao_accounts')).toHaveLength(0);
   act(() => useNavigationStore.getState().setActivePage('accounts'));
   await tick();
-  // Plugin-provided accounts keep the install requirement; login says so.
+  // Native account configuration stays unread until the client is installed.
   expect(calls('list_doubao_accounts')).toHaveLength(0);
   const provider = accountCenterProviders(state, (key) => key, 'en').find(
     (item) => item.id === edition

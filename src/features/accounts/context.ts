@@ -1,3 +1,4 @@
+import type { useCommandCodeAccounts } from '../../pages/AppManager/useCommandCodeAccounts';
 import type { useCursorAccounts } from '../../pages/AppManager/useCursorAccounts';
 import type { useAntigravityAccounts } from '../../pages/AppManager/useAntigravityAccounts';
 import type { useDeepSeekAccounts } from '../../pages/AppManager/useDeepSeekAccounts';
@@ -20,13 +21,13 @@ import type { useClaudeCodeAccounts } from '../../pages/AppManager/useClaudeCode
 import type { useClaudeDesktopAccounts } from '../../pages/AppManager/useClaudeDesktopAccounts';
 import type { useCodexAccounts } from '../../pages/AppManager/useCodexAccounts';
 import type { useKiloAccounts, useCopilotAccounts } from '../../pages/AppManager/useClientAccounts';
-import type { usePluginToolAccounts } from '../../pages/AppManager/usePluginToolAccounts';
 import type { CodexAccount } from '../../api/tauri';
 import { createContext, useContext } from 'react';
 import type { LocalTool } from '../../api/types';
 export interface AccountDirectoryContextType {
   accountCardOrder: string[];
   setAccountCardOrder: (order: string[]) => void;
+  commandCodeAccounts: ReturnType<typeof useCommandCodeAccounts>;
   claudeCodeAccounts: ReturnType<typeof useClaudeCodeAccounts>;
   claudeDesktopAccounts: ReturnType<typeof useClaudeDesktopAccounts>;
   workBuddyAccounts: ReturnType<typeof useWorkBuddyAccounts>;
@@ -39,7 +40,6 @@ export interface AccountDirectoryContextType {
   >;
   zcodeAccounts: ReturnType<typeof useZCodeAccounts>;
   kimiAccounts: ReturnType<typeof useKimiAccounts>;
-  pluginAccounts: ReturnType<typeof usePluginToolAccounts>;
   codeArtsAccounts: ReturnType<typeof useCodeArtsAccounts>;
   devinAccounts: ReturnType<typeof useDevinAccounts>;
   openDesignAccounts: ReturnType<typeof useOpenDesignAccounts>;

@@ -5,7 +5,9 @@ import { AppManagerContext, type AppManagerContextType } from './context';
 import type { ClaudeCodeAccount } from '../../api/tauri';
 
 const plugin = vi.hoisted(() => ({ installed: true }));
-vi.mock('../../hooks/useAccountPlugin', () => ({ useAccountPlugin: () => plugin.installed }));
+vi.mock('../../hooks/useAccountCapability', () => ({
+  useAccountCapability: () => plugin.installed,
+}));
 
 function renderAccount(
   quotaPercent: number | null,

@@ -25,6 +25,7 @@ const RELAY_FILENAME_CLAUDESCIENCE: &str = "claudescience.json";
 struct Relay {
     base_url: String,
     api_key: String,
+    web_search: Option<bool>,
     model_name: Option<String>,
     /// Upstream's actual model id (e.g. "mimo-v2.5-pro"). When present
     /// we rewrite Claude Desktop's request model field to this. When
@@ -135,13 +136,26 @@ async fn handle_messages_with(
         }
     };
 
+    if relay.web_search == Some(false) {
+        if let Some(tools) = req_body.get_mut("tools").and_then(Value::as_array_mut) {
+            tools.retain(|tool| {
+                tool["name"] != "WebSearch"
+                    && !tool["type"]
+                        .as_str()
+                        .is_some_and(|kind| kind.starts_with("web_search"))
+            });
+        }
+    }
+
     // Model id rewrite — Claude Desktop hard-codes claude-sonnet-4-* /
     // claude-opus-* / claude-haiku-4-*. Strict upstreams need the
     // real id. Smart upstreams ignore this and use their own.
     if let Some(real) = relay.real_model_id.as_deref() {
         let current = req_body.get("model").and_then(|v| v.as_str()).unwrap_or("");
-        let router_pick = relay_filename == RELAY_FILENAME_CLAUDESCIENCE
-            && crate::services::smart_router::is_router_url(&relay.base_url)
+        let router_pick = matches!(
+            relay_filename,
+            RELAY_FILENAME | RELAY_FILENAME_CLAUDESCIENCE
+        ) && crate::services::smart_router::is_router_url(&relay.base_url)
             && current.starts_with(crate::services::smart_router::catalog::SELECTOR_PREFIX);
         if !real.is_empty() && real != current && !router_pick {
             log::info!("[AnthropicProxy] Model ID rewrite: {} → {}", current, real);
@@ -283,6 +297,7 @@ fn read_relay(filename: &str) -> Option<Relay> {
     Some(Relay {
         base_url,
         api_key,
+        web_search: parsed["webSearch"].as_bool(),
         model_name,
         real_model_id,
     })
@@ -301,6 +316,7 @@ mod tests {
         let relay = Relay {
             base_url: "http://127.0.0.1:53683/v1".into(),
             api_key: "fixture".into(),
+            web_search: None,
             model_name: Some("Auto Router".into()),
             real_model_id: Some("auto".into()),
         };
@@ -324,6 +340,7 @@ mod tests {
         let relay = Relay {
             base_url: "https://example.test/anthropic".into(),
             api_key: "secret".into(),
+            web_search: None,
             model_name: Some("DeepSeek Flash".into()),
             real_model_id: Some("deepseek-flash".into()),
         };

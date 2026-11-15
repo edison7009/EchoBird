@@ -3,8 +3,9 @@
 
 mod aider;
 mod claudecode;
-mod claudedesktop;
+pub(crate) mod claudedesktop;
 mod claudescience;
+pub(crate) mod commandcode;
 
 pub(crate) fn claude_science_restart_file() -> std::path::PathBuf {
     echobird_dir().join(claudescience::RESTART_FILE)
@@ -309,24 +310,6 @@ fn model_input_modalities_for(model_id: &str) -> &'static [&'static str] {
 //  APPLY MODEL �?main entry point
 // ════════════════════════════════════════════════════════════════
 
-/// Plugin applications own their native model configuration.
-async fn plugin_model_operation(
-    tool_id: &str,
-    operation: &str,
-    input: serde_json::Value,
-) -> ApplyResult {
-    match crate::services::plugin_accounts::call(tool_id, operation, input).await {
-        Ok(_) => ApplyResult {
-            success: true,
-            message: String::new(),
-        },
-        Err(message) => ApplyResult {
-            success: false,
-            message,
-        },
-    }
-}
-
 pub async fn apply_model_to_tool(tool_id: &str, model_info: ModelInfo) -> ApplyResult {
     log::info!("[ToolConfigManager] Applying model to {}", tool_id);
     let model_info = normalize_model_info_for_tool(tool_id, model_info);
@@ -335,10 +318,6 @@ pub async fn apply_model_to_tool(tool_id: &str, model_info: ModelInfo) -> ApplyR
             success: false,
             message,
         };
-    }
-    if crate::services::plugin_accounts::provides_tool(tool_id) {
-        let input = serde_json::to_value(&model_info).unwrap_or_default();
-        return plugin_model_operation(tool_id, "model.apply", input).await;
     }
 
     // Dispatch custom tools to their own handlers
@@ -386,13 +365,27 @@ pub async fn apply_model_to_tool(tool_id: &str, model_info: ModelInfo) -> ApplyR
         // Codex CLI and ChatGPT desktop share ~/.codex/config.toml.
         "codex" | "chatgptdesktop" => return apply_codex(tool_id, &model_info),
 
-        // Claude Desktop 3P profile (Anthropic-native providers only)
+        // Claude Desktop Code with a local first-party identity.
+        "commandcode" => return commandcode::apply(&model_info),
         "claudedesktop" => {
+            match super::process_manager::desktop_tool_is_running(tool_id).await {
+                Ok(true) if !super::claude_desktop_local::is_running().await => {
+                    return ApplyResult {
+                        success: false,
+                        message: "accountError.closeClient".into(),
+                    };
+                }
+                Err(message) => {
+                    return ApplyResult {
+                        success: false,
+                        message,
+                    }
+                }
+                _ => {}
+            }
             let mut result = apply_claudedesktop(&model_info);
             if result.success {
-                if let Err(message) =
-                    super::plugin_accounts::prepare_history("claudedesktop", true).await
-                {
+                if let Err(message) = super::claude_desktop_history::prepare_if_stopped().await {
                     result.success = false;
                     result.message = message;
                 }
@@ -449,9 +442,6 @@ pub async fn apply_model_to_tool(tool_id: &str, model_info: ModelInfo) -> ApplyR
 /// the tool itself regenerates a fresh, vendor-default config on next launch.
 /// Used by the App Desktop "restore to official" flow.
 pub async fn restore_tool_to_official(tool_id: &str) -> ApplyResult {
-    if crate::services::plugin_accounts::provides_tool(tool_id) {
-        return plugin_model_operation(tool_id, "model.restore", serde_json::json!({})).await;
-    }
     if tool_id == "hermes" {
         return ApplyResult {
             success: false,
@@ -492,12 +482,29 @@ pub async fn restore_tool_to_official(tool_id: &str) -> ApplyResult {
         let codex_config_path = codex_accounts::codex_home().unwrap_or_default();
         return restore_codex_to_official(tool_id, &codex_config_path.join("config.toml"));
     }
+    if tool_id == "commandcode" {
+        return match commandcode::restore() {
+            Ok(()) => ApplyResult {
+                success: true,
+                message: "CommandCode restored to its account configuration.".into(),
+            },
+            Err(message) => ApplyResult {
+                success: false,
+                message,
+            },
+        };
+    }
     if tool_id == "claudedesktop" {
+        if let Err(message) = super::claude_desktop_accounts::end_local_mode().await {
+            return ApplyResult {
+                success: false,
+                message,
+            };
+        }
+        super::claude_desktop_local::stop().await;
         let mut result = restore_claudedesktop_to_official();
         if result.success {
-            if let Err(message) =
-                super::plugin_accounts::prepare_history("claudedesktop", true).await
-            {
+            if let Err(message) = super::claude_desktop_history::prepare_if_stopped().await {
                 result.success = false;
                 result.message = message;
             }
@@ -603,13 +610,6 @@ pub async fn restore_tool_to_official(tool_id: &str) -> ApplyResult {
 // ════════════════════════════════════════════════════════════════
 
 pub async fn get_tool_model_info(tool_id: &str) -> Option<ModelInfo> {
-    if crate::services::plugin_accounts::provides_tool(tool_id) {
-        let value =
-            crate::services::plugin_accounts::call(tool_id, "model.read", serde_json::json!({}))
-                .await
-                .ok()?;
-        return serde_json::from_value(value).ok();
-    }
     match tool_id {
         "hermes" => return hermes::read(),
         "codearts" => return codearts::read(tool_id),
@@ -631,6 +631,7 @@ pub async fn get_tool_model_info(tool_id: &str) -> Option<ModelInfo> {
         "zcode" => return read_zcode(),
         "opendesign" => return opendesign::read(),
         "codex" | "chatgptdesktop" => return read_codex(),
+        "commandcode" => return commandcode::read(),
         "claudedesktop" => return read_claudedesktop(),
         "claudescience" => return claudescience::read(),
         "claudecode" => return read_claudecode(),

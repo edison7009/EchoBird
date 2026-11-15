@@ -27,7 +27,7 @@ afterEach(() => {
   useNavigationStore.setState(useNavigationStore.getInitialState(), true);
 });
 
-it.each(['pets', 'plugins', 'usageIsland'] as const)(
+it.each(['pets', 'usageIsland'] as const)(
   'selects the Apps %s tab without scanning or writing configuration',
   (tab) => {
     act(() => {
@@ -44,7 +44,6 @@ it.each(['pets', 'plugins', 'usageIsland'] as const)(
       'aiDesktop.installView',
       'aiDesktop.systemView',
       'developer.pets',
-      'developer.plugins',
       'developer.usageIsland',
     ]);
     expect(buttons().flatMap((node) => node.findAllByType('svg'))).toHaveLength(2);

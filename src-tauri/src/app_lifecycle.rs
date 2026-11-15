@@ -46,6 +46,7 @@ pub(crate) fn on_event(app_handle: &tauri::AppHandle, event: tauri::RunEvent) {
             app_handle.exit(0);
         }
         tauri::RunEvent::Exit => {
+            tauri::async_runtime::block_on(services::claude_desktop_local::stop());
             services::smart_router::statistics::shutdown();
             services::voice_input::shutdown(app_handle);
             // Clean up llama-server (our spawned local LLM). The

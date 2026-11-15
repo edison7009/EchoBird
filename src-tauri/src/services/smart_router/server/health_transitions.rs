@@ -85,7 +85,16 @@ pub(super) fn mark_upstream_failure(
     };
     let reset_at_ms = if model_scope
         && candidate.account_source.as_ref().is_some_and(|source| {
-            crate::services::plugin_accounts::application(source.provider).is_some()
+            matches!(
+                source.provider,
+                crate::models::model::AccountProvider::ClaudeCode
+                    | crate::models::model::AccountProvider::WorkBuddy
+                    | crate::models::model::AccountProvider::WorkBuddyAi
+                    | crate::models::model::AccountProvider::DoubaoWork
+                    | crate::models::model::AccountProvider::Dola
+                    | crate::models::model::AccountProvider::Trae
+                    | crate::models::model::AccountProvider::Traecn
+            )
         }) {
         serde_json::from_slice::<Value>(body)
             .ok()

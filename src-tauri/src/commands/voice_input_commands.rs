@@ -154,3 +154,13 @@ pub fn voice_selection_close(app: AppHandle, window: WebviewWindow) -> Result<()
     voice_input::selection::close(&app);
     Ok(())
 }
+
+#[tauri::command]
+pub async fn voice_input_format(
+    app: AppHandle,
+    window: WebviewWindow,
+    text: String,
+) -> Result<String, String> {
+    allowed(&window, true)?;
+    voice_input::format_text(&app, text).await
+}

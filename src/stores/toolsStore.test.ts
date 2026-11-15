@@ -254,3 +254,30 @@ it('remains usable when storage cannot be read or written', async () => {
   expect(store.getState().isScanning).toBe(false);
   expect(store.getState().hasScanned).toBe(true);
 });
+
+it('waits for authoritative acquisition state before showing cached bundled apps in My applications', async () => {
+  await restartWithCache([tool('reversi'), tool('translator'), tool('cursor')]);
+  expect(store.getState().detectedTools.map((entry) => [entry.id, entry.installed])).toEqual([
+    ['reversi', false],
+    ['translator', false],
+    ['cursor', true],
+  ]);
+  expect(api.scanTools).not.toHaveBeenCalled();
+});
+
+it.each([false, true])(
+  'preserves bundled acquisition during a scan=%s while retaining other native results',
+  async (during) => {
+    store.getState().setDetectedTools([tool('translator', !during), tool('cursor', false)]);
+    vi.mocked(api.scanTools).mockResolvedValue([tool('translator', false), tool('cursor', false)]);
+    const scan = store.getState().scanTools();
+    (await image('./icons/tools/translator.svg')).resolve();
+    if (during) store.getState().setDetectedTools([tool('translator', true), tool('cursor', true)]);
+    (await image('./icons/tools/cursor.svg')).resolve();
+    await scan;
+    expect(store.getState().detectedTools.map((entry) => [entry.id, entry.installed])).toEqual([
+      ['translator', during],
+      ['cursor', false],
+    ]);
+  }
+);

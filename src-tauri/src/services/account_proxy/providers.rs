@@ -247,6 +247,31 @@ pub(super) fn cached_free_model_ids(provider: AccountProvider, account_id: &str)
         .unwrap_or_default()
 }
 
+fn workbuddy_free_model_ids(value: &Value, available: &[String]) -> Vec<String> {
+    value["data"]["models"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .filter_map(|row| {
+            let id = row["id"].as_str()?;
+            if !available.iter().any(|model| model == id) {
+                return None;
+            }
+            let credits = row["credits"].as_f64().or_else(|| {
+                let text = row["credits"].as_str()?.trim();
+                text.strip_prefix('x')
+                    .or_else(|| text.strip_prefix('X'))
+                    .unwrap_or(text)
+                    .parse::<f64>()
+                    .ok()
+            })?;
+            (credits.is_finite() && credits >= 0.0 && credits == 0.0).then(|| id.to_string())
+        })
+        .collect::<BTreeSet<_>>()
+        .into_iter()
+        .collect()
+}
+
 pub(super) fn remember_free_model_ids(
     provider: AccountProvider,
     credentials: &Value,
@@ -255,6 +280,18 @@ pub(super) fn remember_free_model_ids(
     let Some(account_id) = credentials["_echobird_saved_account_id"]
         .as_str()
         .filter(|id| !id.is_empty())
+        .or_else(|| {
+            if matches!(
+                provider,
+                AccountProvider::WorkBuddy | AccountProvider::WorkBuddyAi
+            ) {
+                credentials["accountId"]
+                    .as_str()
+                    .filter(|id| !id.is_empty())
+            } else {
+                None
+            }
+        })
     else {
         return;
     };
@@ -286,9 +323,12 @@ pub(super) fn base(provider: AccountProvider, credentials: &Value) -> &str {
     credentials["baseUrl"]
         .as_str()
         .unwrap_or(match provider {
+            AccountProvider::CommandCode => super::super::commandcode_accounts::BASE,
             AccountProvider::Dumate => "https://dumate-svc.baidu.com/gateway/apis/v1",
             AccountProvider::Codex => CODEX_BASE,
             AccountProvider::Kimi => "https://api.kimi.com/coding/v1",
+            AccountProvider::WorkBuddy => "https://copilot.tencent.com",
+            AccountProvider::WorkBuddyAi => "https://www.workbuddy.ai",
             AccountProvider::Antigravity => CODE_ASSIST_BASE,
             AccountProvider::Copilot => "https://api.githubcopilot.com",
             AccountProvider::Kilo => "https://api.kilo.ai/api/openrouter",
@@ -296,12 +336,8 @@ pub(super) fn base(provider: AccountProvider, credentials: &Value) -> &str {
             AccountProvider::QwenWork => "https://gateway.qwenwork.ai",
             AccountProvider::QwenWorkCn => "https://gateway.qwenwork.cn",
             AccountProvider::OpenDesign => super::super::opendesign_accounts::LINK,
-            AccountProvider::ClaudeCode
-            | AccountProvider::WorkBuddy
-            | AccountProvider::WorkBuddyAi => {
-                unreachable!("Account capability is supplied by a plugin")
-            }
-            AccountProvider::Trae | AccountProvider::Traecn | AccountProvider::Plugin(_) => {
+            AccountProvider::ClaudeCode => unreachable!("Claude uses its CLI"),
+            AccountProvider::Trae | AccountProvider::Traecn => {
                 unreachable!("Trae uses its own gateway")
             }
             AccountProvider::Grok
@@ -328,6 +364,9 @@ fn signed(
 ) -> Result<reqwest::RequestBuilder, ProxyError> {
     let mut request = request.bearer_auth(access_token(credentials)?);
     match provider {
+        AccountProvider::CommandCode => {
+            request = request.header("x-api-key", access_token(credentials)?);
+        }
         AccountProvider::QwenWork
         | AccountProvider::QwenWorkCn
         | AccountProvider::Cursor
@@ -347,6 +386,39 @@ fn signed(
                 .header("OpenAI-Beta", "responses=experimental");
             if let Some(account) = credentials["accountId"].as_str() {
                 request = request.header("chatgpt-account-id", account);
+            }
+        }
+        AccountProvider::WorkBuddy | AccountProvider::WorkBuddyAi => {
+            let uid = credentials["uid"].as_str().ok_or_else(|| {
+                ProxyError::new(StatusCode::UNAUTHORIZED, "WorkBuddy account has no user id")
+            })?;
+            request = request
+                .header("X-User-Id", uid)
+                .header("X-Product", "SaaS")
+                .header("X-IDE-Type", "WorkBuddy")
+                .header("user-agent", "WorkBuddy/5.5.6")
+                .header("X-Requested-With", "XMLHttpRequest");
+            if let Some(domain) = credentials["domain"].as_str() {
+                request = request.header("X-Domain", domain);
+            }
+            if let Some(enterprise) = credentials["enterpriseId"].as_str() {
+                request = request.header("X-Enterprise-Id", enterprise);
+            }
+            if provider == AccountProvider::WorkBuddyAi {
+                request = request
+                    .header("X-Requested-With", "XMLHttpRequest")
+                    .header("X-Agent-Intent", "craft")
+                    .header("X-Agent-Type", "main")
+                    .header("X-IDE-Name", "WorkBuddy")
+                    .header("X-IDE-Version", "5.5.6");
+                let conversation = uuid::Uuid::new_v4().to_string();
+                request = request
+                    .header("X-Conversation-ID", &conversation)
+                    .header("X-Conversation-Request-ID", &conversation);
+                let message = uuid::Uuid::new_v4().to_string();
+                request = request
+                    .header("X-Conversation-Message-ID", &message)
+                    .header("X-Request-ID", &message);
             }
         }
         AccountProvider::Antigravity => {
@@ -384,10 +456,8 @@ fn signed(
                     concat!("EchoBird/", env!("CARGO_PKG_VERSION")),
                 );
         }
-        AccountProvider::ClaudeCode | AccountProvider::WorkBuddy | AccountProvider::WorkBuddyAi => {
-            unreachable!("Account capability is supplied by a plugin")
-        }
-        AccountProvider::Trae | AccountProvider::Traecn | AccountProvider::Plugin(_) => {
+        AccountProvider::ClaudeCode => unreachable!("Claude uses its CLI"),
+        AccountProvider::Trae | AccountProvider::Traecn => {
             unreachable!("Trae uses its own gateway")
         }
         AccountProvider::Grok
@@ -486,7 +556,7 @@ pub(super) fn upstream_error(status: StatusCode, headers: &HeaderMap, value: &Va
                 seconds.and_then(|seconds| HeaderValue::from_str(&seconds.to_string()).ok());
         }
     }
-    error
+    super::workbuddy_failure::normalize(error)
 }
 
 pub(crate) fn context_limit_error(code: Option<&str>, message: &str) -> bool {
@@ -602,14 +672,14 @@ mod context_limit_regressions {
 
     #[test]
     fn numeric_quota_codes_and_nested_messages_survive_proxy_and_stream_conversion() {
-        let raw = json!({"code":"rate_limit_exceeded","msg":"Model quota exceeded"});
+        let raw = json!({"code":6004,"msg":"于 2026-10-22 09:00:00 UTC+8 可用"});
         for value in [raw.clone(), json!({"error":raw})] {
             let error = upstream_error(StatusCode::BAD_REQUEST, &HeaderMap::new(), &value);
-            assert_eq!(error.error_code.as_deref(), Some("rate_limit_exceeded"));
-            assert_eq!(error.message, "Model quota exceeded");
+            assert_eq!(error.error_code.as_deref(), Some("6004"));
+            assert!(error.message.contains("UTC+8"));
             let stream = stream_error("error", &value.to_string(), &HeaderMap::new()).unwrap();
-            assert_eq!(stream.error_code.as_deref(), Some("rate_limit_exceeded"));
-            assert_eq!(stream.message, "Model quota exceeded");
+            assert_eq!(stream.error_code.as_deref(), Some("6004"));
+            assert!(stream.message.contains("UTC+8"));
         }
         for code in ["request_incompatible", "unsupported_parameter"] {
             let error = stream_error(
@@ -882,6 +952,49 @@ async fn fetch_models(
             )?)
             .await?
         }
+        AccountProvider::WorkBuddy | AccountProvider::WorkBuddyAi => {
+            let mut headers = reqwest::header::HeaderMap::new();
+            headers.insert(
+                reqwest::header::USER_AGENT,
+                reqwest::header::HeaderValue::from_static("CLI/2.0.0 WorkBuddy/5.5.6"),
+            );
+            headers.insert(
+                "x-requested-with",
+                reqwest::header::HeaderValue::from_static("XMLHttpRequest"),
+            );
+            headers.insert(
+                reqwest::header::ACCEPT,
+                reqwest::header::HeaderValue::from_static("application/json"),
+            );
+            let value = json_upstream(
+                signed(
+                    client.get(format!("{api}/v3/config")),
+                    provider,
+                    credentials,
+                )?
+                .headers(headers),
+            )
+            .await?;
+            if value["code"].as_i64().is_some_and(|c| c != 0) {
+                return Err(ProxyError::new(StatusCode::BAD_GATEWAY, safe_error(&value)));
+            }
+            let models: Vec<String> = value["data"]["agents"]
+                .as_array()
+                .into_iter()
+                .flatten()
+                .filter(|a| a["name"] == "cli")
+                .flat_map(|a| a["models"].as_array().into_iter().flatten())
+                .filter_map(Value::as_str)
+                .map(str::to_string)
+                .collect();
+            let models = nonempty(models)?;
+            remember_free_model_ids(
+                provider,
+                credentials,
+                workbuddy_free_model_ids(&value, &models),
+            );
+            return Ok(models);
+        }
         AccountProvider::Copilot => prepared_copilot_catalog(credentials, client, true).await?,
         AccountProvider::Kimi => kimi_catalog(credentials, client, true).await?,
         AccountProvider::Codex => {
@@ -892,7 +1005,7 @@ async fn fetch_models(
             )?)
             .await?
         }
-        AccountProvider::Kilo | AccountProvider::OpenDesign => {
+        AccountProvider::CommandCode | AccountProvider::Kilo | AccountProvider::OpenDesign => {
             json_upstream(signed(
                 client.get(format!("{api}/models")),
                 provider,
@@ -900,10 +1013,8 @@ async fn fetch_models(
             )?)
             .await?
         }
-        AccountProvider::ClaudeCode | AccountProvider::WorkBuddy | AccountProvider::WorkBuddyAi => {
-            unreachable!("Account capability is supplied by a plugin")
-        }
-        AccountProvider::Trae | AccountProvider::Traecn | AccountProvider::Plugin(_) => {
+        AccountProvider::ClaudeCode => unreachable!("Claude uses its CLI"),
+        AccountProvider::Trae | AccountProvider::Traecn => {
             unreachable!("Trae uses its own gateway")
         }
         AccountProvider::Grok
@@ -1071,8 +1182,21 @@ async fn wire(
             "/v1internal:streamGenerateContent?alt=sse",
         ));
     }
+    if provider == AccountProvider::WorkBuddy && model.to_ascii_lowercase().starts_with("claude-") {
+        return Ok((WireProtocol::Anthropic, "/v1/messages"));
+    }
     if provider != AccountProvider::Copilot {
-        return Ok((WireProtocol::Chat, "/chat/completions"));
+        return Ok((
+            WireProtocol::Chat,
+            if matches!(
+                provider,
+                AccountProvider::WorkBuddy | AccountProvider::WorkBuddyAi
+            ) {
+                "/v2/chat/completions"
+            } else {
+                "/chat/completions"
+            },
+        ));
     }
     let configured = credentials["modelProtocols"][model]
         .as_str()
@@ -1181,6 +1305,35 @@ pub(super) fn anthropic_request(body: &Value, model: &str) -> Value {
     request
 }
 
+fn workbuddy_tool_choice(body: &mut Value) -> Result<(), ProxyError> {
+    let Some(choice) = body.get("tool_choice").filter(|choice| choice.is_object()) else {
+        return Ok(());
+    };
+    let name = choice["function"]["name"]
+        .as_str()
+        .filter(|name| !name.is_empty())
+        .filter(|_| choice["type"] == "function")
+        .ok_or_else(|| ProxyError::new(StatusCode::BAD_REQUEST, "Invalid named tool choice"))?;
+    let tools: Vec<_> = body["tools"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .filter(|tool| tool["type"] == "function" && tool["function"]["name"] == name)
+        .cloned()
+        .collect();
+    if tools.is_empty() {
+        return Err(ProxyError::new(
+            StatusCode::BAD_REQUEST,
+            "Named tool is not declared",
+        ));
+    }
+    // This gateway decodes tool_choice as a string. A name string acts like auto;
+    // required with only that declaration preserves the named-choice contract.
+    body["tools"] = json!(tools);
+    body["tool_choice"] = json!("required");
+    Ok(())
+}
+
 pub(super) async fn route(
     provider: AccountProvider,
     credentials: Value,
@@ -1189,12 +1342,29 @@ pub(super) async fn route(
     client: &reqwest::Client,
 ) -> Result<Response, ProxyError> {
     let streaming = body["stream"].as_bool().unwrap_or(false);
+    if matches!(
+        provider,
+        AccountProvider::WorkBuddy | AccountProvider::WorkBuddyAi
+    ) {
+        workbuddy_tool_choice(&mut body)?;
+        if let Some(tools) = body.get_mut("tools").and_then(Value::as_array_mut) {
+            for tool in tools {
+                if let Some(parameters) = tool
+                    .get_mut("function")
+                    .and_then(|function| function.get_mut("parameters"))
+                {
+                    super::tools::type_object_unions(parameters);
+                }
+            }
+        }
+    }
     let (protocol, path) = wire(provider, &credentials, model, client).await?;
     if matches!(protocol, WireProtocol::CodeAssist | WireProtocol::Anthropic) {
         protocol::reject_structured_output(&body)?;
     }
     let api = base(provider, &credentials);
     let mut request = match protocol {
+        WireProtocol::Trae => unreachable!("Trae uses its own gateway"),
         WireProtocol::Responses => protocol::chat_to_responses(&body, model),
         WireProtocol::CodeAssist => {
             let (project, _) = project(&credentials, client).await?;
@@ -1202,7 +1372,7 @@ pub(super) async fn route(
         }
         WireProtocol::Anthropic => {
             let mut request = anthropic_request(&body, model);
-            if provider == AccountProvider::Kimi {
+            if matches!(provider, AccountProvider::Kimi | AccountProvider::WorkBuddy) {
                 if let Some(effort) = body["reasoning_effort"].as_str() {
                     if effort == "none" {
                         request["thinking"] = json!({"type":"disabled"});
@@ -1212,12 +1382,48 @@ pub(super) async fn route(
                     }
                 }
             }
+            if provider == AccountProvider::WorkBuddy {
+                if let Some(cap) = body
+                    .get("max_completion_tokens")
+                    .filter(|cap| !cap.is_null())
+                {
+                    request["max_tokens"] = cap.clone();
+                }
+                for key in ["temperature", "top_p"] {
+                    if let Some(value) = body.get(key) {
+                        request[key] = value.clone();
+                    }
+                }
+                if let Some(stop) = body.get("stop").filter(|value| !value.is_null()) {
+                    request["stop_sequences"] = if stop.is_string() {
+                        json!([stop])
+                    } else {
+                        stop.clone()
+                    };
+                }
+            }
             request
         }
         WireProtocol::Chat => {
             super::strip_response_metadata(&mut body);
             body["model"] = json!(model);
             body["stream"] = json!(true);
+            if matches!(
+                provider,
+                AccountProvider::WorkBuddy | AccountProvider::WorkBuddyAi
+            ) {
+                if let Some(messages) = body["messages"].as_array_mut() {
+                    if messages
+                        .first()
+                        .is_some_and(|message| message["role"] != "system")
+                    {
+                        messages.insert(
+                            0,
+                            json!({"role":"system","content":"You are a helpful assistant."}),
+                        );
+                    }
+                }
+            }
             body
         }
     };
@@ -1541,7 +1747,7 @@ pub(super) async fn converted(
     protocol: WireProtocol,
     model: &str,
     streaming: bool,
-    _tools_allowed: bool,
+    tools_allowed: bool,
 ) -> Result<Response, ProxyError> {
     let response_headers = response.headers().clone();
     let content_type = response
@@ -1564,9 +1770,18 @@ pub(super) async fn converted(
     // the upstream request, including while it is waiting for its next frame.
     let (tx, rx) = mpsc::channel::<Result<bytes::Bytes, std::io::Error>>(16);
     tokio::spawn(async move {
+        #[cfg(test)]
+        let diagnostics =
+            protocol == WireProtocol::Trae && super::trae::stream_diagnostics_enabled();
+        #[cfg(test)]
+        let started = std::time::Instant::now();
+        #[cfg(test)]
+        let mut event_count = 0usize;
         loop {
             let next = tokio::select! {
                 _=tx.closed()=>{
+                    #[cfg(test)]
+                    if diagnostics { eprintln!("Trae stream cancelled elapsed_ms={}", started.elapsed().as_millis()); }
                     return;
                 },
                 next=upstream.next()=>next
@@ -1575,12 +1790,49 @@ pub(super) async fn converted(
             let frames = match next {
                 Some(Ok(bytes)) => parser.push(&bytes),
                 Some(Err(error)) => {
+                    #[cfg(test)]
+                    if diagnostics {
+                        eprintln!(
+                            "Trae stream transport_error timeout={} connect={} elapsed_ms={}",
+                            error.is_timeout(),
+                            error.is_connect(),
+                            started.elapsed().as_millis()
+                        );
+                    }
                     let _ = tx.send(Err(std::io::Error::other(error))).await;
                     return;
                 }
                 None => parser.finish(),
             };
             for (event, data) in frames {
+                #[cfg(test)]
+                if diagnostics && event_count < 24 {
+                    event_count += 1;
+                    eprintln!(
+                        "Trae stream event ordinal={event_count} elapsed_ms={} shape={}",
+                        started.elapsed().as_millis(),
+                        super::trae::stream_event_shape(&event, &data)
+                    );
+                }
+                if protocol == WireProtocol::Trae
+                    && !tools_allowed
+                    && serde_json::from_str::<Value>(&data)
+                        .ok()
+                        .is_some_and(|value| {
+                            value["tool_calls"]
+                                .as_array()
+                                .is_some_and(|calls| !calls.is_empty())
+                        })
+                {
+                    let mut error = ProxyError::new(
+                        StatusCode::BAD_REQUEST,
+                        "Trae returned a tool call while tool_choice=none",
+                    );
+                    error.error_code = Some("unsupported_parameter".into());
+                    error.model_scope = true;
+                    let _ = tx.send(Err(std::io::Error::other(error))).await;
+                    return;
+                }
                 match decoder.decode(&event, &data) {
                     Ok(chunks) => {
                         if streaming {
@@ -1592,9 +1844,21 @@ pub(super) async fn converted(
                         }
                     }
                     Err(error) => {
-                        let error = stream_error(&event, &data, &response_headers)
-                            .map(std::io::Error::other)
-                            .unwrap_or_else(|| std::io::Error::other(error));
+                        #[cfg(test)]
+                        if diagnostics {
+                            eprintln!(
+                                "Trae stream decoder_error elapsed_ms={} shape={}",
+                                started.elapsed().as_millis(),
+                                super::trae::stream_error_shape(&event, &data, &error)
+                            );
+                        }
+                        let error = if protocol == WireProtocol::Trae {
+                            super::trae::stream_error(&event, &data, &response_headers)
+                        } else {
+                            stream_error(&event, &data, &response_headers)
+                        }
+                        .map(std::io::Error::other)
+                        .unwrap_or_else(|| std::io::Error::other(error));
                         let _ = tx.send(Err(error)).await;
                         return;
                     }
@@ -1609,6 +1873,13 @@ pub(super) async fn converted(
                 return;
             }
             if eof {
+                #[cfg(test)]
+                if diagnostics {
+                    eprintln!(
+                        "Trae stream eof completed=false elapsed_ms={}",
+                        started.elapsed().as_millis()
+                    );
+                }
                 let _ = tx
                     .send(Err(std::io::Error::other(
                         "Account stream ended before completion",
@@ -2319,6 +2590,11 @@ mod tests {
                 &json!({"models":{"gemini-test":{},"image-gen":{},"disabled":{"disabled":true}}}),
             );
         }
+        if path == "/v3/config" {
+            return json_response(
+                &json!({"code":0,"data":{"agents":[{"name":"cli","models":["workbuddy-test"]}]}}),
+            );
+        }
         if path == "/responses" {
             if body["model"] == "quota-stream" {
                 return stream_response(Body::from("event: response.failed\ndata: {\"type\":\"response.failed\",\"response\":{\"error\":{\"type\":\"usage_limit_reached\",\"code\":\"rate_limit_exceeded\",\"message\":\"Account rate limit\",\"scope\":\"model\",\"resets_in_seconds\":90}}}\n\n"));
@@ -2355,7 +2631,7 @@ mod tests {
         if path.starts_with("/v1internal:streamGenerateContent") {
             return stream_response(Body::from("data: {\"response\":{\"candidates\":[{\"content\":{\"parts\":[{\"text\":\"ok\"}]},\"finishReason\":\"STOP\"}]}}\n\n"));
         }
-        if path == "/chat/completions" && body["model"] == "kilo-test" {
+        if path == "/v2/chat/completions" {
             return stream_response(Body::from("data: {\"choices\":[{\"delta\":{\"content\":\"ok\"},\"finish_reason\":null}]}\n\ndata: {\"choices\":[{\"delta\":{},\"finish_reason\":\"stop\"}]}\n\ndata: [DONE]\n\n"));
         }
         if path == "/v1/messages" {
@@ -2508,9 +2784,9 @@ mod tests {
         let input = json!({"model":"auto","input":"Return an answer","text":{"format":{"type":"json_schema","name":"answer","schema":{"type":"object","properties":{"answer":{"type":"string"}},"required":["answer"],"additionalProperties":false},"strict":true}}});
         let chat = super::super::responses_to_chat(&input).unwrap();
         let response = route(
-            AccountProvider::Kilo,
+            AccountProvider::WorkBuddy,
             json!({"accessToken":"fixture","uid":"fixture-user","baseUrl":base}),
-            "kilo-test",
+            "workbuddy-test",
             chat.clone(),
             &client,
         )
@@ -2522,7 +2798,7 @@ mod tests {
         {
             let captured = requests.lock().await;
             assert_eq!(captured.len(), 1);
-            assert_eq!(captured[0].0, "/chat/completions");
+            assert_eq!(captured[0].0, "/v2/chat/completions");
             assert_eq!(captured[0].2["response_format"], chat["response_format"]);
             assert!(captured[0].2.get("text").is_none());
             assert!(captured[0]
@@ -2588,7 +2864,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn codex_sends_identity_and_its_actual_endpoint() {
+    async fn codex_and_workbuddy_send_identity_and_their_actual_endpoints() {
         let (base, requests, server) = fixture().await;
         let client = reqwest::Client::new();
         let body = json!({"stream":false,"messages":[{"role":"user","content":"hello"}]});
@@ -2606,12 +2882,273 @@ mod tests {
             .unwrap();
         let data: Value = serde_json::from_slice(&bytes).unwrap();
         assert_eq!(data["choices"][0]["message"]["content"], "ok");
+        route(AccountProvider::WorkBuddy,json!({"accessToken":"fixture","uid":"own-uid","domain":"fixture-domain","baseUrl":base}),"workbuddy-test",body,&client).await.unwrap();
         let recorded = requests.lock().await;
         assert_eq!(recorded[0].0, "/responses");
         assert_eq!(recorded[0].1["chatgpt-account-id"], "own-account");
         assert!(!recorded[0].1.contains_key("_echobird_saved_account_id"));
         assert_eq!(recorded[0].2["store"], false);
+        assert_eq!(recorded[1].0, "/v2/chat/completions");
+        assert_eq!(recorded[1].1["x-user-id"], "own-uid");
+        assert_eq!(recorded[1].1["x-domain"], "fixture-domain");
+        assert_eq!(recorded[1].2["messages"][0]["role"], "system");
+        assert_eq!(recorded[1].2["messages"][1]["content"], "hello");
         server.abort();
+    }
+
+    #[tokio::test]
+    async fn protocol_regression_workbuddy_claude_uses_messages_and_effort() {
+        let (base, requests, server) = fixture().await;
+        let client = reqwest::Client::new();
+        let credentials = json!({"accessToken":"fixture","uid":"own-uid","baseUrl":base});
+        for (provider, model, effort) in [
+            (AccountProvider::WorkBuddy, "claude-sonnet-test", "max"),
+            (AccountProvider::WorkBuddy, "claude-sonnet-test", "none"),
+            (AccountProvider::WorkBuddyAi, "claude-sonnet-test", "max"),
+            (AccountProvider::WorkBuddy, "kimi-test", "max"),
+        ] {
+            let response = route(
+                provider,
+                credentials.clone(),
+                model,
+                json!({"messages":[{"role":"user","content":"hello"}],"reasoning_effort":effort}),
+                &client,
+            )
+            .await
+            .unwrap();
+            let output: Value = serde_json::from_slice(
+                &axum::body::to_bytes(response.into_body(), 1024 * 1024)
+                    .await
+                    .unwrap(),
+            )
+            .unwrap();
+            assert_eq!(output["choices"][0]["message"]["content"], "ok");
+        }
+        let calls = requests.lock().await;
+        assert_eq!(calls[0].0, "/v1/messages");
+        assert_eq!(calls[0].2["thinking"]["type"], "adaptive");
+        assert_eq!(calls[0].2["output_config"]["effort"], "max");
+        assert_eq!(calls[0].1["x-user-id"], "own-uid");
+        assert_eq!(calls[0].1["anthropic-version"], "2023-06-01");
+        assert_eq!(calls[1].2["thinking"]["type"], "disabled");
+        for call in &calls[2..] {
+            assert_eq!(call.0, "/v2/chat/completions");
+        }
+        server.abort();
+    }
+
+    #[tokio::test]
+    async fn protocol_regression_workbuddy_object_unions() {
+        let (base, requests, server) = fixture().await;
+        let client = reqwest::Client::new();
+        let schema = json!({"type":"object","properties":{"choice":{"oneOf":[{"type":"object"},{"type":"object"}]}},"default":{"oneOf":[{"type":"object"}]}});
+        for provider in [AccountProvider::WorkBuddy, AccountProvider::WorkBuddyAi] {
+            route(provider, json!({"accessToken":"fixture","uid":"fixture","baseUrl":base}), "kimi-test", json!({"messages":[{"role":"user","content":"hello"}],"tools":[{"type":"function","function":{"name":"read","parameters":schema}}]}), &client).await.unwrap();
+        }
+        for call in requests.lock().await.iter() {
+            let actual = &call.2["tools"][0]["function"]["parameters"];
+            assert_eq!(actual["properties"]["choice"]["type"], "object");
+            assert_eq!(actual["default"], schema["default"]);
+        }
+        server.abort();
+    }
+
+    #[tokio::test]
+    async fn protocol_regression_workbuddy_messages_preserve_tools_history_and_controls() {
+        let (base, requests, server) = fixture().await;
+        let client = reqwest::Client::new();
+        let schema = json!({"type":"object","properties":{"choice":{"oneOf":[{"type":"object"},{"type":"object"}]}}});
+        let body = json!({"messages":[{"role":"system","content":"Original instructions"},{"role":"assistant","content":null,"tool_calls":[{"id":"previous","type":"function","function":{"name":"read","arguments":"{}"}}]},{"role":"tool","tool_call_id":"previous","content":"previous result"}],"tools":[{"type":"function","function":{"name":"read","parameters":schema}}],"tool_choice":{"type":"function","function":{"name":"read"}},"max_completion_tokens":4096,"temperature":0.2,"top_p":0.8,"stop":["STOP"],"parallel_tool_calls":false});
+        route(
+            AccountProvider::WorkBuddy,
+            json!({"accessToken":"fixture","uid":"fixture","baseUrl":base}),
+            "claude-sonnet-test",
+            body.clone(),
+            &client,
+        )
+        .await
+        .unwrap();
+        let calls = requests.lock().await;
+        assert_eq!(calls.len(), 1);
+        let actual = &calls[0].2;
+        assert_eq!(actual["system"], "Original instructions");
+        assert_eq!(actual["messages"][0]["content"][0]["id"], "previous");
+        assert_eq!(
+            actual["messages"][1]["content"][0]["tool_use_id"],
+            "previous"
+        );
+        assert_eq!(
+            actual["messages"][1]["content"][0]["content"],
+            "previous result"
+        );
+        assert_eq!(
+            actual["tool_choice"],
+            json!({"type":"any","disable_parallel_tool_use":true})
+        );
+        assert_eq!(
+            actual["tools"][0]["input_schema"]["properties"]["choice"]["type"],
+            "object"
+        );
+        for key in ["temperature", "top_p"] {
+            assert_eq!(actual[key], body[key]);
+        }
+        assert_eq!(actual["max_tokens"], 4096);
+        assert_eq!(actual["stop_sequences"], body["stop"]);
+        assert_eq!(body["tools"][0]["function"]["parameters"], schema);
+        server.abort();
+    }
+
+    #[tokio::test]
+    async fn workbuddy_named_tool_choice_keeps_the_forced_tool_contract() {
+        let (base, requests, server) = fixture().await;
+        let client = reqwest::Client::new();
+        let selected = json!({"type":"function","function":{"name":"echo_probe","parameters":{"type":"object"},"strict":true}});
+        let original = json!({"messages":[{"role":"user","content":"Call another tool."}],"tools":[selected, {"type":"function","function":{"name":"another_probe"}}],"tool_choice":{"type":"function","function":{"name":"echo_probe"}}});
+        for provider in [AccountProvider::WorkBuddy, AccountProvider::WorkBuddyAi] {
+            route(
+                provider,
+                json!({"accessToken":"fixture","uid":"fixture","baseUrl":base}),
+                "test",
+                original.clone(),
+                &client,
+            )
+            .await
+            .unwrap();
+        }
+        assert!(route(
+            AccountProvider::Kilo,
+            json!({"accessToken":"fixture","baseUrl":base}),
+            "test",
+            original.clone(),
+            &client
+        )
+        .await
+        .is_err());
+        let recorded = requests.lock().await;
+        for request in &recorded[..2] {
+            assert_eq!(request.2["tool_choice"], "required");
+            assert_eq!(request.2["tools"], json!([selected]));
+            assert_eq!(request.2["messages"][1], original["messages"][0]);
+        }
+        assert_eq!(recorded[2].2["tool_choice"], original["tool_choice"]);
+        assert_eq!(recorded[2].2["tools"], original["tools"]);
+        server.abort();
+    }
+
+    #[tokio::test]
+    async fn workbuddy_string_choices_keep_tools_and_continuation_history() {
+        let (base, requests, server) = fixture().await;
+        let client = reqwest::Client::new();
+        let history = json!([
+            {"role":"system","content":"Original system"},
+            {"role":"assistant","content":null,"tool_calls":[{"id":"call_a","type":"function","function":{"name":"echo_probe","arguments":"{}"}}]},
+            {"role":"tool","tool_call_id":"call_a","content":"probe-ok"}
+        ]);
+        let tools = json!([{"type":"function","function":{"name":"echo_probe"}},{"type":"function","function":{"name":"another_probe"}}]);
+        for choice in ["auto", "none", "required"] {
+            route(
+                AccountProvider::WorkBuddy,
+                json!({"accessToken":"fixture","uid":"fixture","baseUrl":base}),
+                "test",
+                json!({"messages":history,"tools":tools,"tool_choice":choice}),
+                &client,
+            )
+            .await
+            .unwrap();
+        }
+        for (request, choice) in requests
+            .lock()
+            .await
+            .iter()
+            .zip(["auto", "none", "required"])
+        {
+            assert_eq!(request.2["tool_choice"], choice);
+            assert_eq!(request.2["tools"], tools);
+            assert_eq!(request.2["messages"], history);
+        }
+        server.abort();
+    }
+
+    #[tokio::test]
+    async fn workbuddy_invalid_named_choices_do_not_contact_upstream() {
+        let (base, requests, server) = fixture().await;
+        let client = reqwest::Client::new();
+        for choice in [
+            json!({"type":"function","function":{"name":"missing"}}),
+            json!({"type":"function"}),
+            json!({"type":"custom","name":"echo_probe"}),
+        ] {
+            let error = route(AccountProvider::WorkBuddy, json!({"accessToken":"fixture","uid":"fixture","baseUrl":base}), "test", json!({"messages":[],"tools":[{"type":"function","function":{"name":"echo_probe"}}],"tool_choice":choice}), &client).await.unwrap_err();
+            assert_eq!(error.status, StatusCode::BAD_REQUEST);
+        }
+        assert!(requests.lock().await.is_empty());
+        server.abort();
+    }
+
+    #[tokio::test]
+    async fn workbuddy_ai_catalog_and_chat_keep_required_headers_and_original_prompt() {
+        let (base, requests, server) = fixture().await;
+        let client = reqwest::Client::new();
+        let credentials = json!({"accessToken":"fixture","uid":"own-uid","baseUrl":base});
+        list_models(AccountProvider::WorkBuddyAi, credentials.clone(), &client)
+            .await
+            .unwrap();
+        route(AccountProvider::WorkBuddyAi,credentials,"test",json!({"stream":false,"messages":[{"role":"system","content":"Original client identity"},{"role":"user","content":"hello"}],"_echobird_responses":{"input":"hello"}}),&client).await.unwrap();
+        let recorded = requests.lock().await;
+        assert_eq!(recorded[0].0, "/v3/config");
+        assert_eq!(recorded[0].1["user-agent"], "CLI/2.0.0 WorkBuddy/5.5.6");
+        assert_eq!(recorded[0].1["x-requested-with"], "XMLHttpRequest");
+        assert_eq!(recorded[0].1["accept"], "application/json");
+        assert_eq!(recorded[1].1["x-requested-with"], "XMLHttpRequest");
+        assert_eq!(recorded[1].1["x-agent-intent"], "craft");
+        assert_eq!(
+            recorded[1].2["messages"][0]["content"],
+            "Original client identity"
+        );
+        assert!(recorded[1]
+            .2
+            .get(super::super::tools::RESPONSES_REQUEST)
+            .is_none());
+        server.abort();
+    }
+
+    #[test]
+    fn workbuddy_free_metadata_requires_an_explicit_zero_price_in_the_cli_directory() {
+        let free_prices = [json!(0), json!("0"), json!("x0.00"), json!("X0.00")];
+        let unknown_or_paid = [
+            Value::Null,
+            json!(false),
+            json!(""),
+            json!("unknown"),
+            json!("NaN"),
+            json!("inf"),
+            json!("Infinity"),
+            json!("xNaN"),
+            json!(-1),
+            json!("-0.1"),
+            json!(0.79),
+            json!("x1.62"),
+        ];
+        for credits in free_prices {
+            let value = json!({"data":{"models":[
+                {"id":"allowed","credits":credits},
+                {"id":"unavailable","credits":0},
+                {"id":"allowed","credits":credits},
+                {"id":"missing"}
+            ]}});
+            assert_eq!(
+                workbuddy_free_model_ids(&value, &["allowed".into(), "missing".into()]),
+                ["allowed"]
+            );
+        }
+        for credits in unknown_or_paid {
+            assert!(workbuddy_free_model_ids(
+                &json!({"data":{"models":[{"id":"allowed","credits":credits}]}}),
+                &["allowed".into()]
+            )
+            .is_empty());
+        }
+        assert!(workbuddy_free_model_ids(&json!({"data":{}}), &["allowed".into()]).is_empty());
     }
 
     #[test]
@@ -2670,6 +3207,7 @@ mod tests {
         let native_id = uuid::Uuid::new_v4().to_string();
         let credentials = json!({"_echobird_saved_account_id":account_id,"accountId":native_id});
         for (provider, model) in [
+            (AccountProvider::WorkBuddy, "workbuddy-free"),
             (AccountProvider::Kilo, "kilo-free"),
             (AccountProvider::Cline, "cline-free"),
         ] {
@@ -2678,6 +3216,10 @@ mod tests {
             assert!(cached_free_model_ids(provider, &native_id).is_empty());
             assert!(cached_free_model_ids(provider, &second_id).is_empty());
         }
+        assert_eq!(
+            cached_free_model_ids(AccountProvider::WorkBuddy, &account_id),
+            ["workbuddy-free"]
+        );
         remember_free_model_ids(
             AccountProvider::Codex,
             &json!({"accountId":native_id}),
@@ -2685,9 +3227,155 @@ mod tests {
         );
         assert!(cached_free_model_ids(AccountProvider::Codex, &native_id).is_empty());
         let mut cache = free_models().lock().unwrap();
-        for provider in [AccountProvider::Kilo, AccountProvider::Cline] {
+        for provider in [
+            AccountProvider::WorkBuddy,
+            AccountProvider::Kilo,
+            AccountProvider::Cline,
+        ] {
             cache.remove(&free_model_cache_key(provider, &account_id));
         }
+    }
+
+    #[tokio::test]
+    async fn workbuddy_free_metadata_refreshes_only_after_a_successful_account_directory() {
+        type CatalogState = Arc<Mutex<(StatusCode, Value)>>;
+        async fn catalog(State(state): State<CatalogState>) -> Response {
+            let (status, value) = state.lock().await.clone();
+            let mut response = json_response(&value);
+            *response.status_mut() = status;
+            response
+        }
+        let free = json!({"code":0,"data":{
+            "agents":[{"name":"cli","models":["free-model","paid-model"]}],
+            "models":[{"id":"free-model","credits":"x0.00"},{"id":"paid-model","credits":"x0.79"}],
+            "accessToken":"must-not-be-cached"
+        }});
+        let state = Arc::new(Mutex::new((StatusCode::OK, free.clone())));
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let base = format!("http://{}", listener.local_addr().unwrap());
+        let app = Router::new()
+            .route("/v3/config", axum::routing::get(catalog))
+            .route("/models", axum::routing::get(catalog))
+            .with_state(state.clone());
+        let server = tokio::spawn(async move { axum::serve(listener, app).await.unwrap() });
+        let account_id = uuid::Uuid::new_v4().to_string();
+        let second_id = uuid::Uuid::new_v4().to_string();
+        let credentials = json!({"accountId":account_id,"accessToken":"fixture-secret","uid":"fixture-user","baseUrl":base});
+        let client = reqwest::Client::new();
+        list_models(AccountProvider::WorkBuddy, credentials.clone(), &client)
+            .await
+            .unwrap();
+        assert_eq!(
+            cached_free_model_ids(AccountProvider::WorkBuddy, &account_id),
+            ["free-model"]
+        );
+        assert!(cached_free_model_ids(AccountProvider::WorkBuddyAi, &account_id).is_empty());
+        assert!(cached_free_model_ids(AccountProvider::WorkBuddy, &second_id).is_empty());
+        for (status, value) in [
+            (StatusCode::FORBIDDEN, json!({"error":"rejected"})),
+            (StatusCode::OK, json!({"code":1,"message":"unavailable"})),
+            (
+                StatusCode::OK,
+                json!({"code":0,"data":{"agents":[{"name":"cli","models":[]}]}}),
+            ),
+        ] {
+            *state.lock().await = (status, value);
+            assert!(
+                list_models(AccountProvider::WorkBuddy, credentials.clone(), &client)
+                    .await
+                    .is_err()
+            );
+            assert_eq!(
+                cached_free_model_ids(AccountProvider::WorkBuddy, &account_id),
+                ["free-model"]
+            );
+        }
+        let mut paid = free.clone();
+        paid["data"]["models"][0]["credits"] = json!("x0.79");
+        *state.lock().await = (StatusCode::OK, paid.clone());
+        list_models(AccountProvider::WorkBuddyAi, credentials.clone(), &client)
+            .await
+            .unwrap();
+        let mut second_credentials = credentials.clone();
+        second_credentials["accountId"] = json!(second_id);
+        list_models(AccountProvider::WorkBuddy, second_credentials, &client)
+            .await
+            .unwrap();
+        assert_eq!(
+            cached_free_model_ids(AccountProvider::WorkBuddy, &account_id),
+            ["free-model"]
+        );
+        list_models(AccountProvider::WorkBuddy, credentials.clone(), &client)
+            .await
+            .unwrap();
+        assert!(cached_free_model_ids(AccountProvider::WorkBuddy, &account_id).is_empty());
+        *state.lock().await = (StatusCode::OK, free);
+        list_models(AccountProvider::WorkBuddy, credentials, &client)
+            .await
+            .unwrap();
+
+        let kilo_credentials = json!({"_echobird_saved_account_id":account_id,"accessToken":"fixture-secret","baseUrl":base});
+        *state.lock().await = (
+            StatusCode::OK,
+            json!({"data":[
+                {"id":"kilo-free","isFree":true},
+                {"id":"disabled-free","isFree":true,"policy":{"state":"disabled"}}
+            ]}),
+        );
+        assert_eq!(
+            list_models(AccountProvider::Kilo, kilo_credentials.clone(), &client)
+                .await
+                .unwrap(),
+            ["kilo-free"]
+        );
+        assert_eq!(
+            cached_free_model_ids(AccountProvider::Kilo, &account_id),
+            ["kilo-free"]
+        );
+        assert_eq!(
+            cached_free_model_ids(AccountProvider::WorkBuddy, &account_id),
+            ["free-model"]
+        );
+        *state.lock().await = (StatusCode::FORBIDDEN, json!({"error":"unavailable"}));
+        assert!(
+            list_models(AccountProvider::Kilo, kilo_credentials.clone(), &client)
+                .await
+                .is_err()
+        );
+        assert_eq!(
+            cached_free_model_ids(AccountProvider::Kilo, &account_id),
+            ["kilo-free"]
+        );
+        *state.lock().await = (
+            StatusCode::OK,
+            json!({"data":[{"id":"kilo-free","isFree":false}]}),
+        );
+        list_models(AccountProvider::Kilo, kilo_credentials, &client)
+            .await
+            .unwrap();
+        assert!(cached_free_model_ids(AccountProvider::Kilo, &account_id).is_empty());
+
+        let mut cache = free_models().lock().unwrap();
+        let serialized = serde_json::to_string(&*cache).unwrap();
+        for secret in [
+            "fixture-secret",
+            "fixture-user",
+            "must-not-be-cached",
+            "accessToken",
+            "baseUrl",
+            "credits",
+        ] {
+            assert!(!serialized.contains(secret));
+        }
+        for (provider, id) in [
+            (AccountProvider::WorkBuddy, &account_id),
+            (AccountProvider::WorkBuddyAi, &account_id),
+            (AccountProvider::WorkBuddy, &second_id),
+            (AccountProvider::Kilo, &account_id),
+        ] {
+            cache.remove(&free_model_cache_key(provider, id));
+        }
+        server.abort();
     }
 
     #[tokio::test]
@@ -3394,6 +4082,7 @@ mod tests {
             let (base, requests, server) = fixture().await;
             for provider in [
                 AccountProvider::ClaudeCode,
+                AccountProvider::WorkBuddy,
                 AccountProvider::WorkBuddyAi,
                 AccountProvider::Antigravity,
                 AccountProvider::Kilo,
@@ -4073,5 +4762,38 @@ mod tests {
                 );
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod commandcode_tests {
+    use super::*;
+    #[tokio::test]
+    async fn commandcode_uses_its_api_key_and_openai_chat_endpoint() {
+        let provider = AccountProvider::CommandCode;
+        let credentials = json!({"accessToken":"fixture-commandcode-key"});
+        let client = reqwest::Client::new();
+        assert_eq!(
+            base(provider, &credentials),
+            "https://api.commandcode.ai/provider/v1"
+        );
+        let request = signed(
+            client.post(format!("{}/chat/completions", base(provider, &credentials))),
+            provider,
+            &credentials,
+        )
+        .unwrap()
+        .build()
+        .unwrap();
+        assert_eq!(
+            request.headers()["authorization"],
+            "Bearer fixture-commandcode-key"
+        );
+        assert_eq!(request.headers()["x-api-key"], "fixture-commandcode-key");
+        let (protocol, endpoint) = wire(provider, &credentials, "fixture-model", &client)
+            .await
+            .unwrap();
+        assert_eq!(protocol, WireProtocol::Chat);
+        assert_eq!(endpoint, "/chat/completions");
     }
 }

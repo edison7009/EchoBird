@@ -281,7 +281,7 @@ it.each([
   expect(api.openFolder).toHaveBeenCalledExactlyOnceWith(directory);
 });
 
-it.each([{ installed: false }, { plugin: { id: 'plugin', pageId: 'main' } }, { id: 'claudeduet' }])(
+it.each([{ installed: false }, { id: 'claudeduet' }])(
   'keeps the right-side uninstall action hidden for excluded entries %j',
   (overrides) => {
     act(() => {

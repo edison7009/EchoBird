@@ -185,7 +185,6 @@ export function ApplicationActions({
     activePage !== 'apps' ||
     appsTab === 'install' ||
     !tool.installed ||
-    tool.plugin ||
     ['reversi', 'translator', 'claudeduet'].includes(tool.id)
   )
     return null;

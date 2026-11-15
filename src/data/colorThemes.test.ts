@@ -4,9 +4,9 @@ import { COLOR_THEMES, COLOR_THEME_GRID, getColorTheme, isColorThemeId } from '.
 describe('color themes', () => {
   it('keeps unique ids and valid paired palettes', () => {
     expect(new Set(COLOR_THEMES.map((theme) => theme.id)).size).toBe(COLOR_THEMES.length);
-    expect(COLOR_THEMES.length).toBe(24);
-    expect(COLOR_THEME_GRID).toHaveLength(4);
-    expect(COLOR_THEME_GRID.every((row) => row.length === 6)).toBe(true);
+    expect(COLOR_THEMES.length).toBe(25);
+    expect(COLOR_THEME_GRID).toHaveLength(5);
+    expect(COLOR_THEME_GRID.slice(0, 4).every((row) => row.length === 6)).toBe(true);
     expect(COLOR_THEME_GRID.flat().slice().sort()).toEqual(
       COLOR_THEMES.map((theme) => theme.id).sort()
     );

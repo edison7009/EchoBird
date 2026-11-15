@@ -7,6 +7,7 @@ export const accountProxyProviders: {
   icon: string;
   speechPrefix?: string;
 }[] = [
+  { id: 'commandcode', name: 'CommandCode', icon: 'commandcode.svg' },
   { id: 'claudeCode', name: 'Claude Code', icon: 'claudecode.svg', speechPrefix: 'claudecode' },
   { id: 'codex', name: 'ChatGPT / Codex', icon: 'chatgptdesktop.svg', speechPrefix: 'codex' },
   { id: 'workBuddy', name: 'WorkBuddy', icon: 'workbuddy.png', speechPrefix: 'workbuddy' },

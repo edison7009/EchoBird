@@ -1,3 +1,6 @@
+import { acquireBuiltinApp, isBundledApp } from '../../api/builtinApps';
+import { useToolsStore } from '../../stores/toolsStore';
+import { CommandCodeAccountSection } from './CommandCodeAccountSection';
 import { useDocumentVisible } from '../../hooks/useDocumentVisible';
 import { preloadSystemApplicationIcons } from '../../utils/systemApplicationIcons';
 import { useSystemApplicationsStore } from '../../stores/systemApplicationsStore';
@@ -37,7 +40,6 @@ import { WorkBuddyAccountSection } from './WorkBuddyAccountSection';
 import { TraeAccountSection } from './TraeAccountSection';
 import { KiroAccountSection } from './KiroAccountSection';
 import { ZCodeAccountSection } from './ZCodeAccountSection';
-import { PluginToolAccountSection } from './PluginToolAccountSection';
 import { KimiAccountSection } from './KimiAccountSection';
 import { CodeArtsAccountSection } from './CodeArtsAccountSection';
 import { MinimaxAccountSection } from './MinimaxAccountSection';
@@ -140,7 +142,7 @@ export const AppManagerTitleActions: React.FC = () => {
         />
       </div>
       <div className="flex items-center gap-2">
-        {(['pets', 'plugins', 'usageIsland'] as const).map((tab) => (
+        {(['pets', 'usageIsland'] as const).map((tab) => (
           <ViewModeTabGroup
             key={tab}
             className="view-mode-tabs h-9 overflow-hidden rounded-button border border-cyber-border"
@@ -317,10 +319,7 @@ export const AppManagerMain: React.FC = () => {
   };
 
   const installed = useMemo(
-    () =>
-      detectedTools
-        .filter((tool) => tool.installed && !['reversi', 'translator'].includes(tool.id))
-        .sort(compareTools),
+    () => detectedTools.filter((tool) => tool.installed).sort(compareTools),
     [detectedTools]
   );
   const uninstalled = useMemo(
@@ -1063,7 +1062,6 @@ export const AppManagerPanel: React.FC = () => {
     dsh1mMode,
     setDshCapability,
     isLaunching,
-    pluginAccounts,
     refreshSelectedTool,
     isRefreshingSelectedTool,
     claimSelectedTool,
@@ -1108,13 +1106,8 @@ export const AppManagerPanel: React.FC = () => {
     isQoderTool ||
     isDshTool ||
     isWorkBuddyApp;
-  const pluginWarmUp =
-    selectedTool === pluginAccounts?.provider?.application && !!pluginAccounts.warmUp;
-  const pluginClaim =
-    selectedTool === pluginAccounts?.provider?.application && !!pluginAccounts.claimDaily;
-  const supportsWarmUp = isClaudeCodeApp || isClaudeDesktopApp || pluginWarmUp;
+  const supportsWarmUp = isClaudeCodeApp || isClaudeDesktopApp;
   const supportsClaim =
-    pluginClaim ||
     selectedTool === 'workbuddy' ||
     selectedTool === 'traecn' ||
     isMinimaxTool ||
@@ -1347,6 +1340,9 @@ export const AppManagerPanel: React.FC = () => {
                 <CodexAccountSection showDivider={hasVisibleModels || showWebSearchToggle} />
               )}
               {selectedTool === 'dsh' && <DeepSeekAccountSection showDivider={hasVisibleModels} />}
+              {selectedTool === 'commandcode' && (
+                <CommandCodeAccountSection showDivider={hasVisibleModels} />
+              )}
               {selectedTool === 'grok' && <GrokAccountSection showDivider={hasVisibleModels} />}
               {(selectedTool === 'cline' || selectedTool === 'clinedesktop') && (
                 <ClineAccountSection showDivider={hasVisibleModels} />
@@ -1360,9 +1356,6 @@ export const AppManagerPanel: React.FC = () => {
               {selectedTool === 'zcode' && <ZCodeAccountSection showDivider={hasVisibleModels} />}
               {['kimicode', 'kimidesktop'].includes(selectedTool ?? '') && (
                 <KimiAccountSection showDivider={hasVisibleModels} />
-              )}
-              {selectedTool === pluginAccounts?.provider?.application && (
-                <PluginToolAccountSection showDivider={hasVisibleModels} />
               )}
               {(selectedTool === 'minimaxcode' || selectedTool === 'minimaxdesktop') && (
                 <MinimaxAccountSection showDivider={hasVisibleModels} />
@@ -1437,13 +1430,13 @@ export const AppManagerBottom: React.FC = () => {
     toolModelConfig,
     selectedCodexAccountId,
     claudeCodeAccounts,
+    commandCodeAccounts,
     claudeDesktopAccounts,
     workBuddyAccounts,
     traeAccounts,
     kiroAccounts,
     zcodeAccounts,
     kimiAccounts,
-    pluginAccounts,
     codeArtsAccounts,
     devinAccounts,
     openDesignAccounts,
@@ -1472,6 +1465,38 @@ export const AppManagerBottom: React.FC = () => {
   } = useAppManager();
 
   const [cliSettingsOpen, setCliSettingsOpen] = useState(false);
+  const acquireLocation = `${activePage}/${viewMode}/${selectedTool ?? ''}`;
+  const [acquiringFor, setAcquiringFor] = useState<string | null>(null);
+  const acquiring = acquiringFor === acquireLocation;
+  const acquireGeneration = useRef(0);
+  useEffect(() => {
+    acquireGeneration.current += 1;
+    return () => {
+      acquireGeneration.current += 1;
+    };
+  }, [selectedTool, activePage, viewMode]);
+  const { setApplyError, setSelectedTool } = useAppManager();
+  const bundled = !!selectedTool && isBundledApp(selectedTool);
+  const acquire = async () => {
+    if (!selectedTool || acquiring) return;
+    const generation = acquireGeneration.current;
+    setAcquiringFor(acquireLocation);
+    try {
+      await acquireBuiltinApp(selectedTool);
+      useToolsStore
+        .getState()
+        .setDetectedTools((tools) =>
+          tools.map((tool) => (tool.id === selectedTool ? { ...tool, installed: true } : tool))
+        );
+      if (generation !== acquireGeneration.current) return;
+      useNavigationStore.getState().setAppsTab('desktop');
+      setSelectedTool(selectedTool);
+    } catch (error) {
+      if (generation === acquireGeneration.current) setApplyError(String(error));
+    } finally {
+      setAcquiringFor((pending) => (pending === acquireLocation ? null : pending));
+    }
+  };
   const noModelConfig = !!selectedToolData?.noModelConfig;
   // This preview has no desktop installer or native launch integration yet.
   const isCatalogOnly = selectedTool === 'claudeduet';
@@ -1481,9 +1506,8 @@ export const AppManagerBottom: React.FC = () => {
   // actually on the machine.
   const isUninstalled = !!selectedToolData && !selectedToolData.installed;
   const isInstallAction = isUninstalled || (activePage === 'apps' && viewMode === 'install');
-  const isPlugin = !!selectedToolData?.plugin;
   const showCliSettings =
-    selectedToolData?.category === 'CLI Code' && !isCatalogOnly && !isInstallAction && !isPlugin;
+    selectedToolData?.category === 'CLI Code' && !isCatalogOnly && !isInstallAction;
   const hasModelSelected = !!(selectedTool && toolModelConfig[selectedTool]);
   const codeArtsAccountSelected = selectedTool === 'codearts' && !!codeArtsAccounts.selectedId;
   const hasAccountSelected =
@@ -1496,13 +1520,13 @@ export const AppManagerBottom: React.FC = () => {
     (['qwenwork', 'qwenworkcn'].includes(selectedTool ?? '') && !!qwenWorkAccounts.selectedId) ||
     (selectedTool === 'zcode' && !!zcodeAccounts.selectedId) ||
     (['kimicode', 'kimidesktop'].includes(selectedTool ?? '') && !!kimiAccounts.selectedId) ||
-    (selectedTool === pluginAccounts?.provider?.application && !!pluginAccounts.selectedId) ||
     (['devin', 'devincli'].includes(selectedTool ?? '') && !!devinAccounts.selectedId) ||
     (selectedTool === 'opendesign' && !!openDesignAccounts.selectedId) ||
     ((selectedTool === 'codex' || selectedTool === 'chatgptdesktop') && !!selectedCodexAccountId) ||
     (selectedTool === 'claudecode' && !!claudeCodeAccounts.selectedId) ||
     (selectedTool === 'claudedesktop' && !!claudeDesktopAccounts.selectedId) ||
     (selectedTool === 'dsh' && !!deepSeekAccounts.selectedId) ||
+    (selectedTool === 'commandcode' && !!commandCodeAccounts.selectedId) ||
     (selectedTool === 'grok' && !!grokAccounts.selectedId) ||
     (['cline', 'clinedesktop'].includes(selectedTool ?? '') && !!clineAccounts.selectedId) ||
     ((selectedTool === 'kilo' || selectedTool === 'kilodesktop') && !!kiloAccounts.selectedId) ||
@@ -1526,9 +1550,8 @@ export const AppManagerBottom: React.FC = () => {
   // Many tools already work out of the box, so launching without picking a model must stay enabled —
   // forcing model selection just to start a CLI was the long-standing bug.
   const willApply =
-    hasAccountSelected || (!isPlugin && !noModelConfig && agreedConfigPolicy && hasModelSelected);
+    hasAccountSelected || (!noModelConfig && agreedConfigPolicy && hasModelSelected);
   const willLaunch =
-    isPlugin ||
     launchAfterApply ||
     (!hasAccountSelected &&
       (noModelConfig || ['qoder', 'qodercn', 'claudescience'].includes(selectedTool ?? '')));
@@ -1538,7 +1561,6 @@ export const AppManagerBottom: React.FC = () => {
     (selectedTool === 'codearts' && codeArtsAccounts.busy) ||
     (selectedTool === 'zcode' && zcodeAccounts.busy) ||
     (['kimicode', 'kimidesktop'].includes(selectedTool ?? '') && kimiAccounts.busy) ||
-    (selectedTool === pluginAccounts?.provider?.application && pluginAccounts.busy) ||
     (['devin', 'devincli'].includes(selectedTool ?? '') && devinAccounts.busy) ||
     (selectedTool === 'opendesign' && openDesignAccounts.busy) ||
     (['minimaxcode', 'minimaxdesktop'].includes(selectedTool ?? '') && minimaxAccounts.busy) ||
@@ -1546,6 +1568,7 @@ export const AppManagerBottom: React.FC = () => {
     (selectedTool === 'dumate' && dumateAccounts.busy) ||
     (['doubaowork', 'dola'].includes(selectedTool ?? '') && doubaoAccounts.busy) ||
     (['qwenwork', 'qwenworkcn'].includes(selectedTool ?? '') && qwenWorkAccounts.busy) ||
+    (selectedTool === 'commandcode' && commandCodeAccounts.busy) ||
     (selectedTool === 'grok' && grokAccounts.busy) ||
     (['cline', 'clinedesktop'].includes(selectedTool ?? '') && clineAccounts.busy) ||
     ((selectedTool === 'kilo' || selectedTool === 'kilodesktop') && kiloAccounts.busy) ||
@@ -1561,6 +1584,10 @@ export const AppManagerBottom: React.FC = () => {
 
   // Uninstalled → install flow; otherwise the existing launch/apply flow.
   const handlePrimaryClick = () => {
+    if (isUninstalled && bundled) {
+      void acquire();
+      return;
+    }
     if (isUninstalled && selectedToolData) {
       onGoToMother(selectedTool!, toolDisplayName(selectedToolData, locale));
       return;
@@ -1592,7 +1619,7 @@ export const AppManagerBottom: React.FC = () => {
             {!isCatalogOnly && (
               <button
                 onClick={handlePrimaryClick}
-                disabled={buttonDisabled}
+                disabled={buttonDisabled || acquiring}
                 className={`w-full h-14 text-lg font-bold font-mono tracking-widest transition-colors rounded-lg cjk-btn border shadow-lg ${
                   buttonDisabled
                     ? 'bg-cyber-border text-cyber-text-secondary border-transparent shadow-none'
@@ -1600,7 +1627,9 @@ export const AppManagerBottom: React.FC = () => {
                 }`}
               >
                 {isInstallAction
-                  ? t('btn.installOneClick')
+                  ? bundled
+                    ? t('btn.acquire')
+                    : t('btn.installOneClick')
                   : willLaunch
                     ? t('btn.launchApp')
                     : t('btn.modifyOnly')}
@@ -1612,7 +1641,7 @@ export const AppManagerBottom: React.FC = () => {
             configuration disable both controls. */}
           <div
             className={`flex flex-col gap-2 ${
-              isCatalogOnly || isInstallAction || isPlugin ? 'invisible pointer-events-none' : ''
+              isCatalogOnly || isInstallAction ? 'invisible pointer-events-none' : ''
             }`}
           >
             {/* Apply & Launch checkbox */}

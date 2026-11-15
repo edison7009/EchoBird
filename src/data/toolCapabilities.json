@@ -385,6 +385,28 @@
       }
     },
     {
+      "id": "commandcode",
+      "apiProtocols": ["openai", "anthropic"],
+      "installReference": true,
+      "platforms": {
+        "windows": {
+          "pathHints": ["%LOCALAPPDATA%\\Programs\\Command Code\\Command Code.exe"],
+          "nativeVerified": false
+        },
+        "macos": {
+          "pathHints": [
+            "/Applications/Command Code.app/Contents/MacOS/Command Code",
+            "~/Applications/Command Code.app/Contents/MacOS/Command Code"
+          ],
+          "nativeVerified": false
+        },
+        "linux": {
+          "pathHints": ["/opt/Command Code/command-code"],
+          "nativeVerified": false
+        }
+      }
+    },
+    {
       "id": "copilot",
       "apiProtocols": ["openai", "anthropic"],
       "installReference": true,
@@ -1526,6 +1548,25 @@
       }
     },
     {
+      "id": "reversi",
+      "apiProtocols": ["openai", "anthropic"],
+      "installReference": false,
+      "platforms": {
+        "windows": {
+          "pathHints": [],
+          "nativeVerified": false
+        },
+        "macos": {
+          "pathHints": [],
+          "nativeVerified": false
+        },
+        "linux": {
+          "pathHints": [],
+          "nativeVerified": false
+        }
+      }
+    },
+    {
       "id": "trae",
       "apiProtocols": ["openai", "anthropic"],
       "installReference": true,
@@ -1565,6 +1606,25 @@
         },
         "linux": {
           "pathHints": ["/usr/share/trae-cn/trae-cn", "/usr/bin/trae-cn"],
+          "nativeVerified": false
+        }
+      }
+    },
+    {
+      "id": "translator",
+      "apiProtocols": ["openai", "anthropic"],
+      "installReference": false,
+      "platforms": {
+        "windows": {
+          "pathHints": [],
+          "nativeVerified": false
+        },
+        "macos": {
+          "pathHints": [],
+          "nativeVerified": false
+        },
+        "linux": {
+          "pathHints": [],
           "nativeVerified": false
         }
       }

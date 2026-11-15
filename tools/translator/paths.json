@@ -1,0 +1,26 @@
+{
+  "name": "AI Translate",
+  "names": {
+    "zh-Hans": "AI 翻译",
+    "zh-Hant": "AI 翻譯",
+    "ja": "AI 翻訳"
+  },
+  "category": "Utility",
+  "version": "1.0",
+  "description": "AI-powered translation with your own model",
+  "apiProtocol": [
+    "openai",
+    "anthropic"
+  ],
+  "docs": "",
+  "command": "",
+  "configDir": "~/.echobird",
+  "configFile": "~/.echobird/translator.json",
+  "requireConfigFile": false,
+  "paths": {},
+  "alwaysInstalled": true,
+  "launchable": true,
+  "launchType": "html",
+  "launchFile": "game.html",
+  "storeAppId": "translator"
+}

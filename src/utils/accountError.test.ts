@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import codexSource from '../../src-tauri/src/services/codex_accounts.rs?raw';
-import pluginSource from '../../src-tauri/src/services/plugin_accounts/bindings.rs?raw';
+import nativeSource from '../../src-tauri/src/services/claude_code_accounts.rs?raw';
 import { accountError, isAccountAuthorizationError } from './accountError';
 import { en } from '../i18n/en';
 import zhHans from '../i18n/zh-Hans';
@@ -56,7 +56,7 @@ describe('account errors', () => {
   });
 
   it('has translations in every language for every backend account error', () => {
-    for (const source of [codexSource, pluginSource]) {
+    for (const source of [codexSource, nativeSource]) {
       for (const match of source.matchAll(/accountError\.[A-Za-z]+/g)) {
         const key = match[0] as TKey;
         for (const locale of [en, zhHans, zhHant, ja]) expect(locale[key], key).toBeTruthy();

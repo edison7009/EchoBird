@@ -11,12 +11,9 @@ import {
 } from './AccountSectionPrimitives';
 import { traeClaimUnavailable, useTraeClaimedToday } from './traeDailyCredits';
 import { QuotaCountdown } from './QuotaCountdown';
-import { useAccountPlugin } from '../../hooks/useAccountPlugin';
-import { openAccountPlugins } from './openAccountPlugins';
 
 export const TraeAccountSection: React.FC = () => {
   const { traeAccounts, selectedTool, setApplyError } = useAppManager();
-  const installed = useAccountPlugin(selectedTool ?? 'trae');
   const { t } = useI18n();
   const claimedToday = useTraeClaimedToday(selectedTool === 'traecn');
   const {
@@ -49,11 +46,7 @@ export const TraeAccountSection: React.FC = () => {
         busy={busy}
         remainingSeconds={remainingSeconds}
         idleLabel="plugins.category.account"
-        onClick={() =>
-          void (installed ? traeAccounts.add() : openAccountPlugins()).catch((error) =>
-            setApplyError(String(error))
-          )
-        }
+        onClick={() => void traeAccounts.add().catch((error) => setApplyError(String(error)))}
         onCancel={traeAccounts.cancelLogin}
       />
       {accounts.length > 0 && (

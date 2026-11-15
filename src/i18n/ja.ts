@@ -3,6 +3,7 @@
 // where natural (API / GitHub / Claude / Codex / etc.)
 import { Translations } from './types';
 const ja: Partial<Translations> = {
+  'btn.acquire': '入手',
   'plugins.themes': 'テーマ',
   'plugins.themeReset': '既定に戻す',
   'plugins.themeApply': '適用',
@@ -200,6 +201,12 @@ const ja: Partial<Translations> = {
   'voice.notInstalled': 'WorkBuddyがインストールされていません',
   'voice.islandCopy': 'コピー',
   'voice.islandCopied': 'コピー済み',
+  'voice.cleanOutput': '音声出力を整形',
+  'voice.collapseSpaces': '連続する空白をまとめる',
+  'voice.outputPrefix': '出力の接頭辞',
+  'voice.formatInput': '整形するテキスト',
+  'voice.formatText': 'テキストを整形',
+  'voice.error.format': 'テキストの整形に失敗しました',
   'voice.copy': 'テキストをコピー',
   'voice.copied': 'コピーしました',
   'voice.replay': '再生',

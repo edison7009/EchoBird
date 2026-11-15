@@ -1,4 +1,4 @@
-import { useAccountPlugin } from '../../hooks/useAccountPlugin';
+import { useAccountCapability } from '../../hooks/useAccountCapability';
 import React from 'react';
 import { useAppManager } from './context';
 import { ModelSwitchDivider } from './ModelSwitchDivider';
@@ -12,7 +12,6 @@ import { QuotaCountdown } from './QuotaCountdown';
 import { QuotaPercent } from './QuotaPercent';
 import { quotaTextClass } from '../../utils/quotaColors';
 import { isFreePlan } from './accountPlanLabel';
-import { openAccountPlugins } from './openAccountPlugins';
 import { useI18n } from '../../hooks/useI18n';
 export const ClaudeCodeAccountSection: React.FC<{ showDivider?: boolean; desktop?: boolean }> = ({
   showDivider = true,
@@ -22,8 +21,8 @@ export const ClaudeCodeAccountSection: React.FC<{ showDivider?: boolean; desktop
   const group = desktop ? claudeDesktopAccounts : claudeCodeAccounts;
   const { accounts, selectedId, select, busy, remainingSeconds, refreshing, refresh, remove } =
     group;
-  const installed = useAccountPlugin(desktop ? 'claudedesktop' : 'claudecode');
-  const warmable = useAccountPlugin(desktop ? 'claudedesktop' : 'claudecode', 'account.warmup');
+  const installed = useAccountCapability(desktop ? 'claudedesktop' : 'claudecode');
+  const warmable = useAccountCapability(desktop ? 'claudedesktop' : 'claudecode', 'account.warmup');
   const { t } = useI18n();
   return (
     <AccountSection>
@@ -36,11 +35,7 @@ export const ClaudeCodeAccountSection: React.FC<{ showDivider?: boolean; desktop
         hint={desktop && installed ? t('agent.accountSnapshotHint') : undefined}
         hintLineBreaks={desktop}
         waitingLabel={desktop ? t('agent.accountSnapshotSaving') : undefined}
-        onClick={() =>
-          void (installed ? group.add() : openAccountPlugins()).catch((error) =>
-            setApplyError(String(error))
-          )
-        }
+        onClick={() => void group.add().catch((error) => setApplyError(String(error)))}
         onCancel={() => group.cancelLogin()}
       />
       {desktop && installed && !busy && accounts.length > 0 && (

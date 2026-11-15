@@ -1,6 +1,10 @@
-import type { InstalledPlugin } from '../api/plugins';
-import { usePluginsStore } from '../stores/pluginsStore';
-import { useNavigationStore } from '../stores/navigationStore';
+import type { InstalledPlugin } from './legacyPluginTypes';
+import { create } from 'zustand';
+export const usePluginsStore = create<{
+  installed: InstalledPlugin[];
+  loaded: boolean;
+  load: () => Promise<void>;
+}>(() => ({ installed: [], loaded: true, load: async () => {} }));
 
 export function installedAccountPlugins(): InstalledPlugin[] {
   return [
@@ -51,10 +55,5 @@ export function installedAccountPlugins(): InstalledPlugin[] {
 }
 
 export function enableAccountPlugins() {
-  useNavigationStore.setState({ developerMode: true });
-  usePluginsStore.setState({
-    installed: installedAccountPlugins(),
-    loaded: true,
-    load: async () => {},
-  });
+  // Account services are built in. Older test callers need no plugin setup.
 }

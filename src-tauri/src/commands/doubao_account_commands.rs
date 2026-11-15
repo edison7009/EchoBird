@@ -26,7 +26,7 @@ pub async fn poll_doubao_login(
 }
 #[tauri::command]
 pub async fn cancel_doubao_login(app: tauri::AppHandle, login_id: String) -> Result<(), String> {
-    doubao_accounts::cancel_login(&app, &login_id).await
+    doubao_accounts::cancel_login(&app, &login_id)
 }
 #[tauri::command]
 pub async fn refresh_doubao_account_quota(

@@ -78,6 +78,8 @@ pub struct PathsConfig {
     #[serde(default)]
     pub always_installed: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub store_app_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub version: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,

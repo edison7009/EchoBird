@@ -2,6 +2,8 @@
 
 pub(crate) mod antigravity_voice;
 pub(crate) mod audio_format;
+mod bridge;
+pub(crate) mod claude_voice;
 mod cline;
 mod codearts;
 pub(crate) mod codearts_voice;
@@ -9,6 +11,8 @@ pub(crate) mod codex_voice;
 pub(crate) mod cursor_voice;
 mod devin;
 pub(crate) mod devin_voice;
+mod doubao;
+pub(crate) mod doubao_voice;
 pub(crate) mod dumate_voice;
 mod grok;
 pub(crate) mod grokbot_voice;
@@ -24,7 +28,12 @@ pub(crate) mod qwenwork_voice;
 mod responses;
 mod signatures;
 mod tools;
+mod trae;
+pub(crate) mod trae_global_voice;
+pub(crate) mod trae_voice;
 pub(crate) mod voice;
+mod workbuddy_failure;
+pub(crate) mod workbuddy_voice;
 mod zcode;
 
 use axum::{
@@ -46,17 +55,13 @@ pub(crate) fn connection_base(
     require_text_provider(provider)?;
     use AccountProvider::*;
     match provider {
-        ClaudeCode | WorkBuddy | WorkBuddyAi | DoubaoWork | Dola | Trae | Traecn | Plugin(_) => {
-            Err(ProxyError::new(
-                StatusCode::BAD_REQUEST,
-                "Account capability is supplied by a plugin",
-            ))
-        }
+        ClaudeCode => Ok("https://api.anthropic.com".into()),
         CodeArts => Ok(codearts::api(metadata).into()),
         Devin => Ok(metadata["baseUrl"]
             .as_str()
             .unwrap_or(crate::services::devin_accounts::SERVER)
             .into()),
+        DoubaoWork | Dola => doubao::base(provider, metadata),
         Grok => grok::base(metadata),
         Kiro => kiro::base(metadata, false),
         Minimax => minimax::base(metadata),
@@ -66,6 +71,7 @@ pub(crate) fn connection_base(
         QoderCn => Ok(crate::services::qoder_accounts::Edition::QoderCn
             .gateway()
             .into()),
+        Trae | Traecn => trae::base(provider, metadata),
         Zcode => Ok(zcode::origin(metadata).into()),
         _ => Ok(providers::base(provider, metadata).into()),
     }
@@ -123,6 +129,22 @@ pub(crate) fn cached_kiro_model_labels(
     account_id: &str,
 ) -> std::collections::BTreeMap<String, String> {
     kiro::cached_model_labels(account_id)
+}
+
+pub(crate) fn cached_doubao_model_labels(
+    provider: AccountProvider,
+    account_id: &str,
+) -> std::collections::BTreeMap<String, String> {
+    doubao::cached_model_labels(provider, account_id)
+}
+
+pub(crate) async fn doubao_account_json(
+    provider: AccountProvider,
+    credentials: &Value,
+    path: &str,
+    body: &Value,
+) -> Result<Value, ProxyError> {
+    doubao::account_json(provider, credentials, path, body).await
 }
 
 pub(crate) fn cached_free_model_ids(provider: AccountProvider, account_id: &str) -> Vec<String> {
@@ -219,13 +241,6 @@ impl ProxyError {
         if let Some(code) = self.error_code {
             error["code"] = json!(code);
         }
-        if let Some(retry_after) = self
-            .retry_after
-            .as_ref()
-            .and_then(|value| value.to_str().ok())
-        {
-            error["retry_after"] = json!(retry_after);
-        }
         let mut response = json_response(&json!({"error":error}));
         *response.status_mut() = self.status;
         if let Some(retry_after) = self.retry_after {
@@ -247,6 +262,10 @@ impl ProxyError {
     }
 }
 
+pub(crate) async fn warm_up_claude(credentials: &Value, executable: &str) -> Result<(), String> {
+    bridge::warm_up(credentials, executable).await
+}
+
 pub async fn route(
     provider: AccountProvider,
     credentials: Value,
@@ -255,16 +274,12 @@ pub async fn route(
     client: &reqwest::Client,
 ) -> Result<Response, ProxyError> {
     require_text_provider(provider)?;
-    if let Some(application) = super::plugin_accounts::application(provider) {
-        return super::plugin_accounts::proxy(
-            application,
-            credentials["accountId"].as_str().unwrap_or_default(),
-            model,
-            body,
-        )
-        .await;
-    }
-    if provider == AccountProvider::Devin {
+    if matches!(
+        provider,
+        AccountProvider::DoubaoWork | AccountProvider::Dola
+    ) {
+        doubao::route(provider, credentials, model, body, client).await
+    } else if provider == AccountProvider::Devin {
         devin::route(credentials, model, body, client).await
     } else if provider == AccountProvider::CodeArts {
         codearts::route(credentials, model, body, client).await
@@ -276,6 +291,10 @@ pub async fn route(
         minimax::route(credentials, model, body, client).await
     } else if matches!(provider, AccountProvider::Qoder | AccountProvider::QoderCn) {
         qoder::route(provider, credentials, model, body, client).await
+    } else if matches!(provider, AccountProvider::Trae | AccountProvider::Traecn) {
+        trae::route(provider, credentials, model, body, client).await
+    } else if provider == AccountProvider::ClaudeCode {
+        bridge::route(credentials, model, body).await
     } else if provider == AccountProvider::Zcode {
         zcode::route(credentials, model, body, client).await
     } else {
@@ -305,17 +324,12 @@ pub async fn list_models(
     client: &reqwest::Client,
 ) -> Result<Vec<String>, ProxyError> {
     require_text_provider(provider)?;
-    if let Some(application) = super::plugin_accounts::application(provider) {
-        let value = super::plugin_accounts::call(
-            application,
-            "models",
-            json!({"accountId":credentials["accountId"]}),
-        )
-        .await
-        .map_err(super::account_model_sources::credential_error)?;
-        return serde_json::from_value(value).map_err(ProxyError::upstream);
-    }
-    if provider == AccountProvider::Devin {
+    if matches!(
+        provider,
+        AccountProvider::DoubaoWork | AccountProvider::Dola
+    ) {
+        doubao::list_models(provider, credentials, client).await
+    } else if provider == AccountProvider::Devin {
         devin::list_models(credentials, client).await
     } else if provider == AccountProvider::CodeArts {
         codearts::list_models(credentials, client).await
@@ -329,6 +343,10 @@ pub async fn list_models(
         minimax::list_models(credentials, client).await
     } else if matches!(provider, AccountProvider::Qoder | AccountProvider::QoderCn) {
         qoder::list_models(provider, credentials, client).await
+    } else if matches!(provider, AccountProvider::Trae | AccountProvider::Traecn) {
+        trae::list_models(provider, credentials, client).await
+    } else if provider == AccountProvider::ClaudeCode {
+        bridge::list_models(credentials).await
     } else if provider == AccountProvider::Zcode {
         zcode::list_models(credentials, client).await
     } else {
@@ -405,12 +423,15 @@ mod connection_tests {
     fn connection_targets_cover_all_providers_and_saved_regions_without_authentication() {
         use AccountProvider::*;
         for (provider, metadata, expected) in [
+            (ClaudeCode, Value::Null, "https://api.anthropic.com"),
             (
                 CodeArts,
                 Value::Null,
                 "https://snap-access.cn-north-4.myhuaweicloud.com",
             ),
             (Codex, Value::Null, "https://chatgpt.com/backend-api/codex"),
+            (WorkBuddy, Value::Null, "https://copilot.tencent.com"),
+            (WorkBuddyAi, Value::Null, "https://www.workbuddy.ai"),
             (
                 Antigravity,
                 Value::Null,
@@ -452,11 +473,32 @@ mod connection_tests {
             ),
             (Qoder, Value::Null, "https://api3.qoder.sh"),
             (QoderCn, Value::Null, "https://gateway.qoder.com.cn"),
+            (
+                Trae,
+                json!({"region":"SG"}),
+                "https://coresg-normal.trae.ai",
+            ),
+            (
+                Trae,
+                json!({"region":"US"}),
+                "https://coresg-normal.trae.ai",
+            ),
+            (
+                Trae,
+                json!({"region":"USTTP"}),
+                "https://core-normal.traeapi.us",
+            ),
+            (
+                Traecn,
+                json!({"region":"CN"}),
+                "https://trae-api-cn.mchost.guru",
+            ),
             (Zcode, Value::Null, "https://zcode.z.ai"),
         ] {
             assert_eq!(connection_base(provider, &metadata).unwrap(), expected);
         }
         assert!(connection_base(Kiro, &json!({"region":"invalid"})).is_err());
+        assert!(connection_base(Traecn, &json!({"region":"SG"})).is_err());
         assert!(connection_base(Minimax, &json!({"region":"invalid"})).is_err());
     }
 }

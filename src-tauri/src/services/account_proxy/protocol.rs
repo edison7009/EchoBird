@@ -31,6 +31,7 @@ pub(crate) enum WireProtocol {
     Responses,
     CodeAssist,
     Anthropic,
+    Trae,
 }
 
 pub(crate) fn text(value: &Value) -> String {
@@ -566,6 +567,9 @@ impl ChatDecoder {
         if self.finished {
             return Ok(Vec::new());
         }
+        if self.protocol == WireProtocol::Trae {
+            return self.decode_trae(event, data);
+        }
         if data == "[DONE]" {
             return if self.protocol == WireProtocol::Chat {
                 Ok(self.complete(&self.finish_reason.clone()))
@@ -619,6 +623,7 @@ impl ChatDecoder {
             output.push(self.chunk(json!({"role":"assistant"}), Value::Null));
         }
         match self.protocol {
+            WireProtocol::Trae => unreachable!("Trae uses its named events"),
             WireProtocol::Responses => self.decode_responses(&value, &mut output),
             WireProtocol::CodeAssist => self.decode_code_assist(&value, &mut output)?,
             WireProtocol::Anthropic => self.decode_anthropic(&value, &mut output),
@@ -654,6 +659,142 @@ impl ChatDecoder {
             }
         }
         Ok(output)
+    }
+
+    fn decode_trae(&mut self, event: &str, data: &str) -> Result<Vec<Bytes>, String> {
+        if data == "[DONE]" {
+            return self.finish_trae("stop");
+        }
+        let value: Value =
+            serde_json::from_str(data).map_err(|_| "Invalid Trae event stream".to_string())?;
+        if let Some(error) = super::trae::stream_error(event, data, &axum::http::HeaderMap::new()) {
+            return Err(error.message);
+        }
+        if event == "token_usage" {
+            self.usage = json!({});
+            for (source, target) in [
+                ("prompt_tokens", "prompt_tokens"),
+                ("completion_tokens", "completion_tokens"),
+                ("total_tokens", "total_tokens"),
+            ] {
+                if let Some(tokens) = value[source].as_u64() {
+                    self.usage[target] = json!(tokens);
+                }
+            }
+            if let Some(tokens) = value["reasoning_tokens"].as_u64() {
+                self.usage["completion_tokens_details"] = json!({"reasoning_tokens":tokens});
+            }
+            if let Some(tokens) = value["cache_read_input_tokens"].as_u64() {
+                self.usage["prompt_tokens_details"]["cached_tokens"] = json!(tokens);
+            }
+            if let Some(tokens) = value["cache_creation_input_tokens"].as_u64() {
+                self.usage["prompt_tokens_details"]["cache_write_tokens"] = json!(tokens);
+            }
+            return Ok(Vec::new());
+        }
+        if event == "done" || value["finish_reason"].is_string() && value.get("response").is_none()
+        {
+            return self.finish_trae(value["finish_reason"].as_str().unwrap_or("stop"));
+        }
+        if event != "output"
+            && value.get("response").is_none()
+            && value.get("reasoning_content").is_none()
+            && value.get("tool_calls").is_none()
+        {
+            return Ok(Vec::new());
+        }
+        let mut output = Vec::new();
+        for (field, reasoning) in [("response", false), ("reasoning_content", true)] {
+            if let Some(text) = value[field].as_str().filter(|text| !text.is_empty()) {
+                output.push(self.emit_text(text, reasoning));
+            }
+        }
+        let calls = value["tool_calls"].as_array();
+        for call in calls.into_iter().flatten() {
+            let id = call["id"].as_str().unwrap_or_default();
+            let known_key = self
+                .tools
+                .iter()
+                .find(|(_, tool)| !id.is_empty() && tool.id == id)
+                .map(|(key, _)| key.clone());
+            let key = if let Some(index) = call["index"].as_u64() {
+                let key = index.to_string();
+                if self
+                    .tools
+                    .get(&key)
+                    .is_some_and(|tool| !id.is_empty() && !tool.id.is_empty() && tool.id != id)
+                {
+                    return Err("Trae reused a tool index for a different call".into());
+                }
+                if let Some(previous) = known_key.filter(|previous| *previous != key) {
+                    if self.tools.contains_key(&key) {
+                        return Err("Trae returned conflicting tool identities".into());
+                    }
+                    let state = self.tools.remove(&previous).expect("known tool key");
+                    self.tools.insert(key.clone(), state);
+                }
+                key
+            } else if let Some(key) = known_key {
+                key
+            } else if !id.is_empty() {
+                format!("id:{id}")
+            } else if self.tools.len() == 1 && calls.is_some_and(|calls| calls.len() == 1) {
+                self.tools.keys().next().expect("one tool key").clone()
+            } else {
+                return Err(
+                    "Trae returned an ambiguous tool fragment without an index or id".into(),
+                );
+            };
+            let function = call
+                .get("function_call")
+                .or_else(|| call.get("function"))
+                .unwrap_or(&Value::Null);
+            let mut name = function["name"].as_str().unwrap_or_default().to_string();
+            if let Some(tool) = self.tools.get(&key) {
+                if !name.is_empty() && !tool.name.is_empty() && name != tool.name {
+                    return Err("Trae changed a tool name during a call".into());
+                }
+                if name.is_empty() && !id.is_empty() && tool.id.is_empty() {
+                    name.clone_from(&tool.name);
+                }
+            }
+            let id = if id.is_empty() {
+                self.tools
+                    .get(&key)
+                    .map(|tool| tool.id.clone())
+                    .unwrap_or_default()
+            } else {
+                id.to_string()
+            };
+            output.extend(self.emit_tool(
+                &key,
+                &id,
+                &name,
+                function["arguments"].as_str().unwrap_or_default(),
+                false,
+            ));
+        }
+        if !output.is_empty() && !self.started {
+            self.started = true;
+            output.insert(0, self.chunk(json!({"role":"assistant"}), Value::Null));
+        }
+        Ok(output)
+    }
+
+    fn finish_trae(&mut self, reason: &str) -> Result<Vec<Bytes>, String> {
+        if self.tools.values().any(|tool| {
+            tool.id.is_empty()
+                || tool.name.is_empty()
+                || serde_json::from_str::<Value>(&tool.arguments).is_err()
+        }) {
+            return Err("Trae completed an invalid or incomplete tool call".into());
+        }
+        let reason = if self.tools.is_empty() || matches!(reason, "length" | "content_filter") {
+            reason
+        } else {
+            "tool_calls"
+        };
+        Ok(self.complete(reason))
     }
 
     fn decode_responses(&mut self, value: &Value, output: &mut Vec<Bytes>) {

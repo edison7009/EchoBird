@@ -98,7 +98,7 @@ EchoBird offers **4 scenarios** sharing a **unified model data hub** — **confi
 
 - **Install & Repair Agent** — let an AI install and fix mainstream tools (Claude Code, OpenClaw, Hermes Agent, …); works locally and remotely
 - **One-click local LLM** — bundled vLLM / SGLang / llama.cpp runtimes; pick a quant, hit START
-- **Plugin Hub (Developer Preview)** — install reviewed community plugins or add extensions from a repository or local directory
+- **Built-in app store** — get AI Translator and Reversi locally, with integrated account management for supported clients
 - **App Manager** — one-click launch and management for every AI / Agent app & game
 
 ### Shared foundation

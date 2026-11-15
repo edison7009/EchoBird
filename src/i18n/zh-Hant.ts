@@ -3,6 +3,7 @@
 // (軟體/使用者/設定/預設/影片/伺服器/訊息/檔案/啟動/連線 etc.)
 import { Translations } from './types';
 const zhHant: Partial<Translations> = {
+  'btn.acquire': '取得',
   'plugins.themes': '主題',
   'plugins.themeReset': '恢復預設',
   'plugins.themeApply': '套用',
@@ -197,6 +198,12 @@ const zhHant: Partial<Translations> = {
   'voice.notInstalled': '尚未安裝 WorkBuddy',
   'voice.islandCopy': '複製',
   'voice.islandCopied': '已複製',
+  'voice.cleanOutput': '整理語音輸出',
+  'voice.collapseSpaces': '合併連續空格',
+  'voice.outputPrefix': '輸出前綴',
+  'voice.formatInput': '待整理文字',
+  'voice.formatText': '整理文字',
+  'voice.error.format': '無法整理文字',
   'voice.copy': '複製文字',
   'voice.copied': '已複製',
   'voice.replay': '回聽',

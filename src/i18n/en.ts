@@ -2,6 +2,7 @@
 import { Translations } from './types';
 
 const en: Translations = {
+  'btn.acquire': 'Get',
   'plugins.themes': 'Themes',
   'plugins.themeReset': 'Restore default',
   'plugins.themeApply': 'Apply',
@@ -199,6 +200,12 @@ const en: Translations = {
   'voice.notInstalled': 'WorkBuddy is not installed',
   'voice.islandCopy': 'Copy',
   'voice.islandCopied': 'Copied',
+  'voice.cleanOutput': 'Clean speech output',
+  'voice.collapseSpaces': 'Collapse repeated spaces',
+  'voice.outputPrefix': 'Output prefix',
+  'voice.formatInput': 'Text to format',
+  'voice.formatText': 'Format text',
+  'voice.error.format': 'Unable to format text',
   'voice.copy': 'Copy text',
   'voice.copied': 'Copied',
   'voice.replay': 'Replay',

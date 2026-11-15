@@ -412,7 +412,7 @@ it('cancels and disposes on tab changes and on the developer master switch', asy
   await mount();
   upgrade();
   const old = mock.done!;
-  act(() => nav.getState().setDeveloperTab('plugins'));
+  act(() => nav.getState().setDeveloperTab('usageIsland'));
   expect(mock.dispose).toHaveBeenCalledTimes(1);
   act(() => old());
   expect(pets.getState().items[0].level).toBe(0);

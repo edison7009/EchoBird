@@ -79,6 +79,9 @@ fn settings_path() -> std::path::PathBuf {
 /// Read app settings from ~/.echobird/settings.json
 #[tauri::command]
 pub fn get_settings() -> AppSettings {
+    if let Err(error) = crate::services::legacy_features::migrate_theme(&settings_path()) {
+        log::warn!("[Settings] Legacy theme import failed: {error}");
+    }
     read_settings(&settings_path())
 }
 
@@ -451,5 +454,36 @@ mod tests {
             assert_eq!(std::fs::read_to_string(&path).unwrap(), content);
         }
         std::fs::remove_file(path).unwrap();
+    }
+}
+
+#[cfg(test)]
+mod legacy_theme_tests {
+    #[test]
+    fn app_settings_round_trip_keeps_the_legacy_theme_migration_marker() {
+        let root =
+            std::env::temp_dir().join(format!("echobird-theme-roundtrip-{}", uuid::Uuid::new_v4()));
+        std::fs::create_dir_all(root.join("plugins/data")).unwrap();
+        std::fs::write(
+            root.join("plugins/data/host.json"),
+            r#"{"theme":{"pluginId":"echobird.ocean-theme","id":"ocean"}}"#,
+        )
+        .unwrap();
+        let path = root.join("settings.json");
+        std::fs::write(&path, r#"{"themeMode":"light","future":42}"#).unwrap();
+        crate::services::legacy_features::migrate_theme(&path).unwrap();
+        let loaded = super::read_settings(&path);
+        assert_eq!(loaded.color_theme.as_deref(), Some("ocean"));
+        let mut payload = serde_json::to_value(loaded).unwrap();
+        payload["colorTheme"] = serde_json::json!("aurora");
+        assert!(payload.get("builtinThemeMigrated").is_none());
+        super::patch_settings_at(&path, payload).unwrap();
+        crate::services::legacy_features::migrate_theme(&path).unwrap();
+        let persisted: serde_json::Value =
+            serde_json::from_slice(&std::fs::read(&path).unwrap()).unwrap();
+        assert_eq!(persisted["builtinThemeMigrated"], true);
+        assert_eq!(persisted["colorTheme"], "aurora");
+        assert_eq!(persisted["future"], 42);
+        std::fs::remove_dir_all(root).unwrap();
     }
 }

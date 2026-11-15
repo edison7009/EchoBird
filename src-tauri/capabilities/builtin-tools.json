@@ -1,0 +1,7 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "builtin-tools",
+  "description": "Window controls for built-in utilities",
+  "windows": ["tool-reversi", "tool-translator"],
+  "permissions": ["core:window:allow-minimize", "core:window:allow-close", "core:window:allow-start-dragging"]
+}

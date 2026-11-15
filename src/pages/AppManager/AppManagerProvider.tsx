@@ -6,9 +6,8 @@ import { useApplicationLauncher } from '../../features/accounts/useApplicationLa
 import { AccountDirectoryContext } from '../../features/accounts/context';
 import { useAccountDirectory } from '../../features/accounts/useAccountDirectory';
 import { useModelRepository } from '../../hooks/useModelRepository';
-import { pluginToolProviders } from '../../hooks/useAccountPlugin';
 import { ClaudeCodeLoginDialog } from './ClaudeCodeLoginDialog';
-import React, { useState, useEffect, useLayoutEffect, useCallback, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useCallback, useRef } from 'react';
 import { useI18n } from '../../hooks/useI18n';
 import * as api from '../../api/tauri';
 import { AppManagerContext } from './context';
@@ -19,7 +18,6 @@ import { accountCenterProviders } from '../AccountCenter/accountCenterData';
 import { useRewardClaimStore } from '../../stores/rewardClaimStore';
 import { useOptionalToast } from '../../components/Toast';
 import { getOfficialEndpoint, isOfficialModelSentinel } from '../../data/officialEndpoints';
-import { pluginTools, usePluginsStore } from '../../stores/pluginsStore';
 
 // ===== Provider =====
 
@@ -55,24 +53,9 @@ export const AppManagerProvider: React.FC<AppManagerProviderProps> = ({ children
     scanTools: scanManagedTools,
     usingCachedTools,
   } = useToolsStore();
-  const installedPlugins = usePluginsStore((state) => state.installed);
-  const loadPlugins = usePluginsStore((state) => state.load);
   const developerMode = useNavigationStore((state) => state.developerMode);
   const appsTab = useNavigationStore((state) => state.appsTab);
-  const pluginProviders = useMemo(
-    () => pluginToolProviders(installedPlugins, developerMode),
-    [installedPlugins, developerMode]
-  );
-  const managedTools = useMemo(
-    () => [
-      ...scannedTools.map((tool) => {
-        const icon = pluginProviders.find((entry) => entry.application === tool.id)?.icon;
-        return icon ? { ...tool, icon } : tool;
-      }),
-      ...(developerMode ? pluginTools(installedPlugins) : []),
-    ],
-    [scannedTools, installedPlugins, developerMode, pluginProviders]
-  );
+  const managedTools = scannedTools;
   const viewMode = useNavigationStore((state) => state.toolTab);
   const systemApplications = useSystemApplicationsStore();
   const systemApplicationsActive = useNavigationStore(
@@ -90,16 +73,6 @@ export const AppManagerProvider: React.FC<AppManagerProviderProps> = ({ children
       void loadSystemApplications();
     }
   }, [systemApplicationsActive, loadSystemApplications]);
-  const pluginToolIds = pluginProviders.map((entry) => entry.application).join();
-  const scannedPluginTools = useRef(pluginToolIds);
-  useEffect(() => {
-    if (scannedPluginTools.current === pluginToolIds) return;
-    scannedPluginTools.current = pluginToolIds;
-    void scanManagedTools();
-  }, [pluginToolIds, scanManagedTools]);
-  useEffect(() => {
-    if (developerMode) void loadPlugins();
-  }, [developerMode, loadPlugins]);
   const { activePage, goToMother } = useNavigationStore();
   const isActive = activePage === 'apps' && (appsTab === 'desktop' || appsTab === 'install');
 
@@ -174,12 +147,7 @@ export const AppManagerProvider: React.FC<AppManagerProviderProps> = ({ children
 
   // Internalized state
   const [selectedToolId, setSelectedTool] = useState<string | null>(null);
-  const selectedTool =
-    (isActive && ['reversi', 'translator'].includes(selectedToolId ?? '')) ||
-    (selectedToolId?.startsWith('plugin:') &&
-      !detectedTools.some((tool) => tool.id === selectedToolId))
-      ? null
-      : selectedToolId;
+  const selectedTool = selectedToolId;
   const [isLaunching, setIsLaunching] = useState(false);
   const launchGeneration = useRef(0);
   const previewLaunch = useRef(false);
@@ -311,10 +279,10 @@ export const AppManagerProvider: React.FC<AppManagerProviderProps> = ({ children
   const {
     clineSelectionRevisionRef,
     accountNavigation,
-    pluginAvailable,
     isCodexTool,
     codexManaged,
     claudeCodeAccounts,
+    commandCodeAccounts,
     claudeDesktopAccounts,
     workBuddyEdition,
     workBuddyCnAccounts,
@@ -351,9 +319,6 @@ export const AppManagerProvider: React.FC<AppManagerProviderProps> = ({ children
     cursorRevisionRef,
     antigravityAccounts,
     kimiSelectionRevisionRef,
-    pluginAccountProvider,
-    pluginAccountTool,
-    pluginAccounts,
     kimiAccounts,
     zcodeAccounts,
     codeArtsAccounts,
@@ -384,8 +349,6 @@ export const AppManagerProvider: React.FC<AppManagerProviderProps> = ({ children
     developerMode,
     appsTab,
     detectedTools,
-    installedPlugins,
-    pluginProviders,
     usingCachedTools,
     toolModelConfig,
     setToolModelConfig,
@@ -429,6 +392,8 @@ export const AppManagerProvider: React.FC<AppManagerProviderProps> = ({ children
         case 'codex':
         case 'chatgptdesktop':
           return codexManaged as unknown as RefreshGroup;
+        case 'commandcode':
+          return commandCodeAccounts as unknown as RefreshGroup;
         case 'claudecode':
           return claudeCodeAccounts as unknown as RefreshGroup;
         case 'claudedesktop':
@@ -495,8 +460,6 @@ export const AppManagerProvider: React.FC<AppManagerProviderProps> = ({ children
         case 'opendesign':
           return openDesignAccounts as unknown as RefreshGroup;
         default:
-          if (selectedTool === pluginAccountProvider?.application)
-            return pluginAccounts as unknown as RefreshGroup;
           return undefined;
       }
     })();
@@ -578,6 +541,7 @@ export const AppManagerProvider: React.FC<AppManagerProviderProps> = ({ children
     reloadModels,
     codexManaged,
     claudeCodeAccounts,
+    commandCodeAccounts,
     claudeDesktopAccounts,
     workBuddyAccounts,
     traeAccounts,
@@ -602,8 +566,6 @@ export const AppManagerProvider: React.FC<AppManagerProviderProps> = ({ children
     codeArtsAccounts,
     devinAccounts,
     openDesignAccounts,
-    pluginAccountProvider,
-    pluginAccounts,
     showToast,
     t,
   ]);
@@ -624,7 +586,6 @@ export const AppManagerProvider: React.FC<AppManagerProviderProps> = ({ children
     if (toolId === 'qoder' || toolId === 'qodercn') qoderAccounts.select(null);
     if (toolId === 'zcode') zcodeAccounts.select(null);
     if (toolId === 'kimicode' || toolId === 'kimidesktop') kimiAccounts.select(null);
-    if (toolId === pluginAccounts.provider?.application) pluginAccounts.select(null);
     if (toolId === 'opendesign') openDesignAccounts.select(null);
     if (toolId === 'cursor' || toolId === 'cursorcli') cursorAccounts.select(null);
     if (toolId === 'grokbot') grokBotAccounts.select(null);
@@ -634,6 +595,7 @@ export const AppManagerProvider: React.FC<AppManagerProviderProps> = ({ children
     if (toolId === 'cue') cueAccounts.select(null);
     if (toolId === 'kilo' || toolId === 'kilodesktop') kiloAccounts.select(null);
     if (toolId === 'copilot' || toolId === 'copilotdesktop') copilotAccounts.select(null);
+    if (toolId === 'commandcode') commandCodeAccounts.select(null);
     if (toolId === 'claudecode') claudeCodeAccounts.setSelectedId(null);
     if (toolId === 'claudedesktop') claudeDesktopAccounts.select(null);
     if (toolId === 'workbuddy' || toolId === 'workbuddyai') workBuddyAccounts.select(null);
@@ -1003,6 +965,7 @@ export const AppManagerProvider: React.FC<AppManagerProviderProps> = ({ children
     accountNavigation,
     isCodexTool,
     claudeCodeAccounts,
+    commandCodeAccounts,
     claudeDesktopAccounts,
     workBuddyEdition,
     workBuddyAccounts,
@@ -1029,9 +992,6 @@ export const AppManagerProvider: React.FC<AppManagerProviderProps> = ({ children
     cursorRevisionRef,
     antigravityAccounts,
     kimiSelectionRevisionRef,
-    pluginAccountProvider,
-    pluginAccountTool,
-    pluginAccounts,
     kimiAccounts,
     zcodeAccounts,
     codeArtsAccounts,
@@ -1064,36 +1024,30 @@ export const AppManagerProvider: React.FC<AppManagerProviderProps> = ({ children
   const accountDirectoryView = {
     accountCardOrder,
     setAccountCardOrder,
+    commandCodeAccounts: {
+      ...commandCodeAccounts,
+      accounts: orderedAccounts('commandcode', commandCodeAccounts.accounts),
+    },
     claudeCodeAccounts: {
       ...claudeCodeAccounts,
-      accounts: pluginAvailable('claudecode')
-        ? orderedAccounts('claudecode', claudeCodeAccounts.accounts)
-        : [],
+      accounts: orderedAccounts('claudecode', claudeCodeAccounts.accounts),
     },
     claudeDesktopAccounts: {
       ...claudeDesktopAccounts,
-      accounts: pluginAvailable('claudedesktop')
-        ? orderedAccounts('claudedesktop', claudeDesktopAccounts.accounts)
-        : [],
+      accounts: orderedAccounts('claudedesktop', claudeDesktopAccounts.accounts),
     },
     workBuddyAccounts: {
       ...workBuddyAccounts,
-      accounts: pluginAvailable(workBuddyEdition ?? 'workbuddy')
-        ? orderedAccounts(workBuddyEdition ?? 'workbuddy', workBuddyAccounts.accounts)
-        : [],
+      accounts: orderedAccounts(workBuddyEdition ?? 'workbuddy', workBuddyAccounts.accounts),
     },
     workBuddyAccountGroups: {
       workbuddy: {
         ...workBuddyCnAccounts,
-        accounts: pluginAvailable('workbuddy')
-          ? orderedAccounts('workbuddy', workBuddyCnAccounts.accounts)
-          : [],
+        accounts: orderedAccounts('workbuddy', workBuddyCnAccounts.accounts),
       },
       workbuddyai: {
         ...workBuddyAiAccounts,
-        accounts: pluginAvailable('workbuddyai')
-          ? orderedAccounts('workbuddyai', workBuddyAiAccounts.accounts)
-          : [],
+        accounts: orderedAccounts('workbuddyai', workBuddyAiAccounts.accounts),
       },
     },
     kiroAccounts: {
@@ -1118,7 +1072,6 @@ export const AppManagerProvider: React.FC<AppManagerProviderProps> = ({ children
       ...zcodeAccounts,
       accounts: orderedAccounts('zcode', zcodeAccounts.accounts),
     },
-    pluginAccounts,
     kimiAccounts: {
       ...kimiAccounts,
       accounts: orderedAccounts('kimi', kimiAccounts.accounts),
@@ -1149,20 +1102,16 @@ export const AppManagerProvider: React.FC<AppManagerProviderProps> = ({ children
     },
     doubaoAccounts: {
       ...doubaoAccounts,
-      accounts: pluginAvailable(doubaoEdition)
-        ? orderedAccounts(doubaoEdition, doubaoAccounts.accounts)
-        : [],
+      accounts: orderedAccounts(doubaoEdition, doubaoAccounts.accounts),
     },
     doubaoAccountGroups: {
       doubaowork: {
         ...doubaoWorkAccounts,
-        accounts: pluginAvailable('doubaowork')
-          ? orderedAccounts('doubaowork', doubaoWorkAccounts.accounts)
-          : [],
+        accounts: orderedAccounts('doubaowork', doubaoWorkAccounts.accounts),
       },
       dola: {
         ...dolaAccounts,
-        accounts: pluginAvailable('dola') ? orderedAccounts('dola', dolaAccounts.accounts) : [],
+        accounts: orderedAccounts('dola', dolaAccounts.accounts),
       },
     },
     qwenWorkAccounts: {
@@ -1373,10 +1322,7 @@ export const AppManagerProvider: React.FC<AppManagerProviderProps> = ({ children
           setClaude1mMode,
           handleLaunch,
           onGoToMother: handleGoToMother,
-          aiInstallableIds: [
-            ...aiInstallableIds,
-            ...pluginProviders.map((entry) => entry.application),
-          ],
+          aiInstallableIds: [...aiInstallableIds],
           viewMode,
           setViewMode,
           refreshSelectedTool,

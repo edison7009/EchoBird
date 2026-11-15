@@ -4,10 +4,23 @@ use serde_json::json;
 use std::sync::{Arc, Mutex};
 
 #[tokio::test]
-async fn missing_community_speech_modules_never_load_host_credentials() {
-    for provider in ["trae", "traecn"] {
-        let selector = format!("{provider}:{}", "a".repeat(64));
-        let audio = Bytes::from_static(b"fixture");
+async fn built_in_trae_speech_loads_credentials_before_any_network_request() {
+    for (prefix, expected) in [
+        ("trae", AccountProvider::Trae),
+        ("traecn", AccountProvider::Traecn),
+    ] {
+        let selector = format!("{prefix}:{}", "a".repeat(64));
+        assert_eq!(parse_selector(&selector).unwrap().0.provider, expected);
+        let mut bytes = b"RIFF".to_vec();
+        bytes.extend(40_u32.to_le_bytes());
+        bytes.extend(b"WAVEfmt \x10\0\0\0\x01\0\x01\0");
+        bytes.extend(16000_u32.to_le_bytes());
+        bytes.extend(32000_u32.to_le_bytes());
+        bytes.extend(b"\x02\0\x10\0data");
+        bytes.extend(4_u32.to_le_bytes());
+        bytes.extend([1, 2, 3, 4]);
+        let audio = Bytes::from(bytes);
+        let mut calls = 0;
         let result = transcribe_with(
             &reqwest::Client::new(),
             SpeechRequest {
@@ -16,10 +29,17 @@ async fn missing_community_speech_modules_never_load_host_credentials() {
                 filename: "speech.wav",
                 mime: "audio/wav",
             },
-            |_| async { panic!("community speech must not read host credentials") },
+            |rejected| {
+                calls += 1;
+                assert!(rejected.is_none());
+                std::future::ready(Err("accountError.loginRequired|fixture-credentials".into()))
+            },
         )
         .await;
-        assert_eq!(result.unwrap_err().status, StatusCode::UNAUTHORIZED);
+        let error = result.unwrap_err();
+        assert_eq!(calls, 1);
+        assert_eq!(error.status, StatusCode::UNAUTHORIZED);
+        assert!(error.message.contains("fixture-credentials"));
     }
 }
 

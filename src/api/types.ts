@@ -28,7 +28,6 @@ export interface DetectedTool {
 export interface LocalTool extends DetectedTool {
   systemAppId?: string;
   createdAt?: number | null;
-  plugin?: { id: string; pageId: string };
   path?: string;
   icon?: string;
   displayName?: string;
@@ -42,6 +41,7 @@ export type AccountProvider =
   | 'doubaowork'
   | 'dola'
   | 'dumate'
+  | 'commandcode'
   | 'claudeCode'
   | 'codex'
   | 'workBuddy'
@@ -63,8 +63,7 @@ export type AccountProvider =
   | 'kimi'
   | 'openDesign'
   | 'codeArts'
-  | 'devin'
-  | `plugin:${string}`;
+  | 'devin';
 
 export interface AccountSource {
   provider: AccountProvider;

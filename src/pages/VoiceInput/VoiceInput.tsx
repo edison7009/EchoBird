@@ -39,6 +39,7 @@ import modelDirectory from '../../data/modelDirectory.json';
 import * as modelApi from '../../api/models';
 import {
   getVoiceModels,
+  formatVoiceText,
   selectionLanguages,
   voiceIslandScales,
   voiceProtocols,
@@ -70,6 +71,15 @@ export function VoiceInputMain() {
   const hidden = useAccountPrivacyStore((privacy) => privacy.hidden);
   const active = useNavigationStore((navigation) => navigation.activePage === 'voice');
   const { snapshot, saving, pending, devices, save } = state;
+  const [prefixDraft, setPrefixDraft] = useState('');
+  useEffect(
+    () => setPrefixDraft(snapshot?.config.textOutput?.prefix ?? ''),
+    [snapshot?.config.textOutput?.prefix]
+  );
+  const [formatInput, setFormatInput] = useState('');
+  const [formatResult, setFormatResult] = useState<string | null>(null);
+  const [formatError, setFormatError] = useState<string | null>(null);
+  const [formatPending, setFormatPending] = useState(false);
   const [copyState, setCopyState] = useState<{ text: string; success: boolean } | null>(null);
   const [replayErrorId, setReplayErrorId] = useState<number | null>(null);
   const [activeDragId, setActiveDragId] = useState<string | null>(null);
@@ -137,6 +147,7 @@ export function VoiceInputMain() {
       </div>
     );
   const config = snapshot.config;
+  const textOutput = config.textOutput ?? { enabled: false, collapseSpaces: true, prefix: '' };
   const busy = saving || voiceActive;
   const channelLayoutKey = active && !voiceActive ? 'active' : 'hidden';
   const channels = orderedChannels ?? config.channels;
@@ -333,6 +344,89 @@ export function VoiceInputMain() {
                   ))}
                 </div>
               </div>
+            </fieldset>
+            <fieldset disabled={busy || formatPending} className="voice-island-options">
+              <label className="voice-row">
+                <span>{t('voice.cleanOutput')}</span>
+                <input
+                  type="checkbox"
+                  checked={textOutput.enabled}
+                  onChange={(event) =>
+                    update('textOutput', { ...textOutput, enabled: event.target.checked })
+                  }
+                />
+              </label>
+              <label className="voice-row">
+                <span>{t('voice.collapseSpaces')}</span>
+                <input
+                  type="checkbox"
+                  checked={textOutput.collapseSpaces}
+                  onChange={(event) =>
+                    update('textOutput', { ...textOutput, collapseSpaces: event.target.checked })
+                  }
+                />
+              </label>
+              <label className="voice-row">
+                <span>{t('voice.outputPrefix')}</span>
+                <input
+                  type="text"
+                  value={prefixDraft}
+                  onChange={(event) => setPrefixDraft(event.target.value)}
+                  onBlur={() => {
+                    if (prefixDraft !== textOutput.prefix)
+                      update('textOutput', { ...textOutput, prefix: prefixDraft });
+                  }}
+                />
+              </label>
+              <label>
+                <span>{t('voice.formatInput')}</span>
+                <textarea
+                  className="voice-format-input"
+                  value={formatInput}
+                  onChange={(event) => setFormatInput(event.target.value)}
+                  rows={3}
+                />
+              </label>
+              <button
+                type="button"
+                className="voice-text-button"
+                disabled={!formatInput.trim()}
+                onClick={async () => {
+                  setFormatPending(true);
+                  setFormatError(null);
+                  try {
+                    setFormatResult(await formatVoiceText(formatInput));
+                  } catch {
+                    setFormatError(t('voice.error.format'));
+                  } finally {
+                    setFormatPending(false);
+                  }
+                }}
+              >
+                {t('voice.formatText')}
+              </button>
+              {formatResult !== null && (
+                <div className="voice-result">
+                  <div className="voice-result-content">
+                    <p>{formatResult}</p>
+                  </div>
+                  <button
+                    type="button"
+                    className="voice-text-button"
+                    onClick={async () => {
+                      if (!(await copyText(formatResult))) setFormatError(t('voice.error.copy'));
+                    }}
+                  >
+                    <Copy size={14} />
+                    {t('voice.copy')}
+                  </button>
+                </div>
+              )}
+              {formatError && (
+                <p className="voice-error" role="alert">
+                  {formatError}
+                </p>
+              )}
             </fieldset>
           </section>
           <DndContext

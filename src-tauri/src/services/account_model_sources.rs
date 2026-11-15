@@ -1,12 +1,13 @@
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use serde_json::Value;
 
 use super::{
-    antigravity_accounts, codex_accounts, minimax_accounts, qoder_accounts, zcode_accounts,
+    antigravity_accounts, claude_code_accounts, codex_accounts, minimax_accounts, qoder_accounts,
+    trae_accounts, workbuddy_accounts, zcode_accounts,
 };
 use crate::models::model::{AccountProvider, AccountSource};
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SavedAccountOption {
     pub source: AccountSource,
@@ -41,18 +42,12 @@ fn option(
 
 /// This directory reads only EchoBird's saved accounts; it never probes a native client.
 pub async fn list_accounts(provider: AccountProvider) -> Result<Vec<SavedAccountOption>, String> {
-    if let Some(application) = super::plugin_accounts::application(provider) {
-        if !super::plugin_accounts::available(application) {
-            return Ok(Vec::new());
-        }
-        return serde_json::from_value(
-            super::plugin_accounts::call(application, "accounts.options", serde_json::json!({}))
-                .await?,
-        )
-        .map_err(|_| "Invalid account plugin directory".into());
-    }
     use AccountProvider::*;
     let mut accounts: Vec<SavedAccountOption> = match provider {
+        CommandCode => super::commandcode_accounts::list_saved_accounts()?
+            .into_iter()
+            .map(|account| option(provider, account.id, account.email, account.plan))
+            .collect(),
         Cursor => super::cursor_accounts::speech::list_saved_accounts()
             .await?
             .into_iter()
@@ -94,7 +89,17 @@ pub async fn list_accounts(provider: AccountProvider) -> Result<Vec<SavedAccount
                 )
             })
             .collect(),
-        DoubaoWork | Dola => unreachable!("Account capability is supplied by a plugin"),
+        DoubaoWork | Dola => super::doubao_accounts::list(doubao_edition(provider))
+            .await?
+            .into_iter()
+            .map(|account| {
+                let labels =
+                    super::account_proxy::cached_doubao_model_labels(provider, &account.id);
+                let mut saved = option(provider, account.id, account.name, account.plan);
+                saved.model_labels = labels;
+                saved
+            })
+            .collect(),
         Dumate => super::dumate_accounts::list()
             .await?
             .into_iter()
@@ -115,12 +120,20 @@ pub async fn list_accounts(provider: AccountProvider) -> Result<Vec<SavedAccount
             .into_iter()
             .map(|a| option(provider, a.id, a.email, a.plan))
             .collect(),
-        ClaudeCode => unreachable!("Account capability is supplied by a plugin"),
+        ClaudeCode => claude_code_accounts::list_saved_accounts()
+            .await?
+            .into_iter()
+            .map(|a| option(provider, a.id, a.email, a.plan))
+            .collect(),
         Codex => codex_accounts::list_saved_accounts()?
             .into_iter()
             .map(|a| option(provider, a.id, a.email, a.plan))
             .collect(),
-        WorkBuddy | WorkBuddyAi => unreachable!("Account capability is supplied by a plugin"),
+        WorkBuddy | WorkBuddyAi => workbuddy_accounts::list_saved_accounts(edition(provider))
+            .await?
+            .into_iter()
+            .map(|a| option(provider, a.id, a.name, a.plan))
+            .collect(),
         Antigravity => antigravity_accounts::list_saved_accounts()
             .await?
             .into_iter()
@@ -136,7 +149,11 @@ pub async fn list_accounts(provider: AccountProvider) -> Result<Vec<SavedAccount
             .into_iter()
             .map(|a| option(provider, a.id, a.login, a.plan))
             .collect(),
-        Trae | Traecn | Plugin(_) => unreachable!("Account capability is supplied by a plugin"),
+        Trae | Traecn => trae_accounts::list_saved_accounts(trae_edition(provider))
+            .await?
+            .into_iter()
+            .map(|a| option(provider, a.id, a.name, a.plan))
+            .collect(),
         Minimax => minimax_accounts::list_saved_accounts()
             .await?
             .into_iter()
@@ -227,6 +244,30 @@ pub async fn list_accounts(provider: AccountProvider) -> Result<Vec<SavedAccount
     Ok(accounts)
 }
 
+fn edition(provider: AccountProvider) -> workbuddy_accounts::Edition {
+    if provider == AccountProvider::WorkBuddyAi {
+        workbuddy_accounts::Edition::Ai
+    } else {
+        workbuddy_accounts::Edition::Cn
+    }
+}
+
+fn doubao_edition(provider: AccountProvider) -> super::doubao_accounts::Edition {
+    if provider == AccountProvider::Dola {
+        super::doubao_accounts::Edition::Dola
+    } else {
+        super::doubao_accounts::Edition::DoubaoWork
+    }
+}
+
+fn trae_edition(provider: AccountProvider) -> trae_accounts::Edition {
+    if provider == AccountProvider::Traecn {
+        trae_accounts::Edition::Traecn
+    } else {
+        trae_accounts::Edition::Trae
+    }
+}
+
 fn qoder_edition(provider: AccountProvider) -> qoder_accounts::Edition {
     if provider == AccountProvider::QoderCn {
         qoder_accounts::Edition::QoderCn
@@ -274,18 +315,6 @@ fn validate_saved_source(
 
 /// Resolve only the saved endpoint metadata; connection tests never renew tokens.
 pub(crate) async fn connection_endpoint(source: &AccountSource) -> Result<String, String> {
-    if let Some(application) = super::plugin_accounts::application(source.provider) {
-        validate_source(source).await?;
-        return serde_json::from_value(
-            super::plugin_accounts::call(
-                application,
-                "connection",
-                serde_json::json!({"accountId":source.account_id}),
-            )
-            .await?,
-        )
-        .map_err(|_| "Invalid account plugin endpoint".into());
-    }
     use AccountProvider::*;
     let metadata = match source.provider {
         Dumate | DoubaoWork | Dola => {
@@ -308,7 +337,9 @@ pub(crate) async fn connection_endpoint(source: &AccountSource) -> Result<String
             serde_json::json!({"baseUrl": account.region.base()})
         }
         Kiro => super::kiro_accounts::connection_metadata(&source.account_id)?,
-        Trae | Traecn | Plugin(_) => unreachable!("Account capability is supplied by a plugin"),
+        Trae | Traecn => {
+            trae_accounts::connection_metadata(trae_edition(source.provider), &source.account_id)?
+        }
         Copilot => super::copilot_accounts::proxy_credentials(&source.account_id, false).await?,
         Devin => super::devin_accounts::proxy_credentials(&source.account_id).await?,
         _ => Value::Null,
@@ -322,14 +353,10 @@ pub(crate) async fn credentials(
     source: &AccountSource,
     force_refresh: bool,
 ) -> Result<Value, String> {
-    if let Some(application) = super::plugin_accounts::application(source.provider) {
-        validate_source(source).await?;
-        return Ok(
-            serde_json::json!({"_pluginApplication":application,"accountId":source.account_id}),
-        );
-    }
     use AccountProvider::*;
     match source.provider {
+        CommandCode => super::commandcode_accounts::credentials(&source.account_id)
+            .map(|key| serde_json::json!({"accessToken":key})),
         Cursor => {
             super::cursor_accounts::speech::proxy_credentials(&source.account_id, force_refresh)
                 .await
@@ -346,7 +373,13 @@ pub(crate) async fn credentials(
             )
             .await
         }
-        DoubaoWork | Dola => unreachable!("Account capability is supplied by a plugin"),
+        DoubaoWork | Dola => {
+            super::doubao_accounts::proxy_credentials(
+                doubao_edition(source.provider),
+                &source.account_id,
+            )
+            .await
+        }
         Dumate => {
             super::dumate_accounts::proxy_credentials(&source.account_id, force_refresh).await
         }
@@ -355,9 +388,18 @@ pub(crate) async fn credentials(
         }
         Devin => super::devin_accounts::proxy_credentials(&source.account_id).await,
         OpenDesign => super::opendesign_accounts::proxy_credentials(&source.account_id).await,
-        ClaudeCode => unreachable!("Account capability is supplied by a plugin"),
+        ClaudeCode => {
+            claude_code_accounts::proxy_credentials(&source.account_id, force_refresh).await
+        }
         Codex => codex_accounts::proxy_credentials(&source.account_id, force_refresh).await,
-        WorkBuddy | WorkBuddyAi => unreachable!("Account capability is supplied by a plugin"),
+        WorkBuddy | WorkBuddyAi => {
+            workbuddy_accounts::proxy_credentials(
+                edition(source.provider),
+                &source.account_id,
+                force_refresh,
+            )
+            .await
+        }
         Antigravity => {
             antigravity_accounts::proxy_credentials(&source.account_id, force_refresh).await
         }
@@ -365,7 +407,14 @@ pub(crate) async fn credentials(
         Copilot => {
             super::copilot_accounts::proxy_credentials(&source.account_id, force_refresh).await
         }
-        Trae | Traecn | Plugin(_) => unreachable!("Account capability is supplied by a plugin"),
+        Trae | Traecn => {
+            trae_accounts::proxy_credentials(
+                trae_edition(source.provider),
+                &source.account_id,
+                force_refresh,
+            )
+            .await
+        }
         Minimax => minimax_accounts::proxy_credentials(&source.account_id, force_refresh).await,
         Qoder | QoderCn => {
             qoder_accounts::proxy_credentials(
@@ -388,11 +437,10 @@ pub(crate) async fn credentials_after_rejection(
     source: &AccountSource,
     rejected_credentials: &Value,
 ) -> Result<Value, String> {
-    if super::plugin_accounts::application(source.provider).is_some() {
-        return Err("accountError.loginRequired".into());
-    }
     use AccountProvider::*;
     match source.provider {
+        CommandCode => super::commandcode_accounts::credentials(&source.account_id)
+            .map(|key| serde_json::json!({"accessToken":key})),
         Cursor => {
             super::cursor_accounts::speech::speech_credentials(
                 &source.account_id,
@@ -415,7 +463,17 @@ pub(crate) async fn credentials_after_rejection(
             )
             .await
         }
-        DoubaoWork | Dola => unreachable!("Account capability is supplied by a plugin"),
+        DoubaoWork | Dola => {
+            let current = super::doubao_accounts::proxy_credentials(
+                doubao_edition(source.provider),
+                &source.account_id,
+            )
+            .await?;
+            if current["cookieHeader"] == rejected_credentials["cookieHeader"] {
+                return Err("accountError.loginRequired".into());
+            }
+            Ok(current)
+        }
         Dumate => {
             super::dumate_accounts::proxy_credentials_after_rejection(
                 &source.account_id,
@@ -444,7 +502,13 @@ pub(crate) async fn credentials_after_rejection(
             }
             Ok(current)
         }
-        ClaudeCode => unreachable!("Account capability is supplied by a plugin"),
+        ClaudeCode => {
+            claude_code_accounts::proxy_credentials_after_rejection(
+                &source.account_id,
+                rejected_credentials,
+            )
+            .await
+        }
         Codex => {
             codex_accounts::proxy_credentials_after_rejection(
                 &source.account_id,
@@ -452,7 +516,14 @@ pub(crate) async fn credentials_after_rejection(
             )
             .await
         }
-        WorkBuddy | WorkBuddyAi => unreachable!("Account capability is supplied by a plugin"),
+        WorkBuddy | WorkBuddyAi => {
+            workbuddy_accounts::proxy_credentials_after_rejection(
+                edition(source.provider),
+                &source.account_id,
+                rejected_credentials,
+            )
+            .await
+        }
         Antigravity => {
             antigravity_accounts::proxy_credentials_after_rejection(
                 &source.account_id,
@@ -505,7 +576,14 @@ pub(crate) async fn credentials_after_rejection(
             )
             .await
         }
-        Trae | Traecn | Plugin(_) => unreachable!("Account capability is supplied by a plugin"),
+        Trae | Traecn => {
+            trae_accounts::proxy_credentials_after_rejection(
+                trae_edition(source.provider),
+                &source.account_id,
+                rejected_credentials,
+            )
+            .await
+        }
     }
     .map(|credentials| preparation_credentials(credentials, source))
 }
@@ -887,6 +965,14 @@ mod tests {
 
     #[test]
     fn trae_sources_keep_region_and_saved_identity_separate() {
+        assert_eq!(
+            trae_edition(AccountProvider::Trae),
+            trae_accounts::Edition::Trae
+        );
+        assert_eq!(
+            trae_edition(AccountProvider::Traecn),
+            trae_accounts::Edition::Traecn
+        );
         let saved = vec![option(
             AccountProvider::Trae,
             "saved-id".into(),
@@ -1072,6 +1158,80 @@ mod tests {
             "local router status={} routed=true text=true",
             status.as_u16()
         );
+        Ok(())
+    }
+
+    #[tokio::test]
+    #[ignore = "explicit saved Trae account output-limit verification; inference and native limit flags required"]
+    async fn live_trae_output_limit_probe() -> Result<(), String> {
+        if std::env::var("ECHOBIRD_LIVE_PROXY_INFERENCE").as_deref() != Ok("1") {
+            return Err("live inference flag is required".into());
+        }
+        let provider: AccountProvider =
+            serde_json::from_value(json!(std::env::var("ECHOBIRD_LIVE_PROXY_PROVIDER")
+                .map_err(|_| "provider is required")?))
+            .map_err(|_| "invalid provider")?;
+        if !matches!(provider, AccountProvider::Trae | AccountProvider::Traecn) {
+            return Err("Trae provider is required".into());
+        }
+        let model = std::env::var("ECHOBIRD_LIVE_PROXY_MODEL").map_err(|_| "model is required")?;
+        let limit = std::env::var("ECHOBIRD_LIVE_TRAE_MAX_TOKENS")
+            .ok()
+            .and_then(|value| value.parse::<u64>().ok())
+            .filter(|value| (1..=32).contains(value))
+            .ok_or("native output limit between 1 and 32 is required")?;
+        let source = list_accounts(provider)
+            .await?
+            .first()
+            .ok_or("no saved account")?
+            .source
+            .clone();
+        let secret = credentials(&source, false)
+            .await
+            .map_err(|_| "saved credentials unavailable")?;
+        let client = reqwest::Client::new();
+        for limited in [false, true] {
+            if limited {
+                std::env::set_var("ECHOBIRD_LIVE_TRAE_MAX_TOKENS", limit.to_string());
+            } else {
+                std::env::remove_var("ECHOBIRD_LIVE_TRAE_MAX_TOKENS");
+            }
+            let bytes = tokio::time::timeout(std::time::Duration::from_secs(75), async {
+                let response = super::super::account_proxy::route(
+                    provider,
+                    secret.clone(),
+                    &model,
+                    json!({"stream":false,"messages":[{"role":"user","content":
+                        "Write the integers 1 through 100, one number per line. No introduction or explanation."}]}),
+                    &client,
+                )
+                .await
+                .map_err(|error| format!("output-limit request status={}", error.status.as_u16()))?;
+                to_bytes(response.into_body(), 1024 * 1024)
+                    .await
+                    .map_err(|_| "output-limit response collection failed".to_owned())
+            })
+            .await
+            .map_err(|_| "output-limit request timed out")??;
+            let value: Value =
+                serde_json::from_slice(&bytes).map_err(|_| "output-limit response was not JSON")?;
+            let tokens = value["usage"]["completion_tokens"]
+                .as_u64()
+                .ok_or("output-limit response had no completion token count")?;
+            let text = value["choices"][0]["message"]["content"]
+                .as_str()
+                .filter(|text| !text.is_empty())
+                .ok_or("output-limit response had no assistant text")?;
+            eprintln!("limited={limited} requested_limit={limit} completion_tokens={tokens} text_lines={}", text.lines().count());
+            if !limited && (tokens <= limit || text.lines().count() <= limit as usize) {
+                return Err(
+                    "output-limit positive control did not exceed the requested limit".into(),
+                );
+            }
+            if limited && tokens > limit {
+                return Err("native max_tokens was accepted but not enforced".into());
+            }
+        }
         Ok(())
     }
 

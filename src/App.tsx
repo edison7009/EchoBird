@@ -6,7 +6,6 @@ import { initializeMergedPageFeatures } from './stores/mergedPagesMigration';
 // Providers stay mounted; visited pages retain their state behind CSS.
 
 import { lazy, useState, useEffect } from 'react';
-import { PluginProductBridge } from './components/PluginProductBridge';
 import { getVersion } from '@tauri-apps/api/app';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { listen } from '@tauri-apps/api/event';
@@ -36,7 +35,6 @@ const PetsMain = lazy(() =>
 const PetsPanel = lazy(() =>
   import('./pages/Pets/Pets').then((module) => ({ default: module.PetsPanel }))
 );
-import { PluginHubMain, PluginHubPanel } from './pages/PluginHub';
 import {
   RouterStatisticsProvider,
   RouterStatisticsPanel,
@@ -369,7 +367,7 @@ function AppContent() {
   const appsToolsActive =
     is('apps') && (appsTab === 'desktop' || appsTab === 'install' || appsTab === 'all');
   const routerActive = is('freeModels') && smartAccessTab === 'configuration';
-  const feature = (tab: 'pets' | 'plugins' | 'usageIsland' | 'statistics') =>
+  const feature = (tab: 'pets' | 'usageIsland' | 'statistics') =>
     featuresReady &&
     (tab === 'statistics'
       ? is('freeModels') && smartAccessTab === 'statistics'
@@ -521,11 +519,6 @@ function AppContent() {
                                         <RouterStatisticsMain />
                                       </OnFirstVisit>
                                     </div>
-                                    <div className={pageBlock(feature('plugins'))}>
-                                      <OnFirstVisit active={feature('plugins')}>
-                                        <PluginHubMain active={feature('plugins')} />
-                                      </OnFirstVisit>
-                                    </div>
                                     <div className={pageBlock(feature('usageIsland'))}>
                                       <OnFirstVisit active={feature('usageIsland')}>
                                         <UsageIslandMain />
@@ -584,11 +577,6 @@ function AppContent() {
                                   <div className={page(feature('statistics'))}>
                                     <OnFirstVisit active={feature('statistics')}>
                                       <RouterStatisticsPanel />
-                                    </OnFirstVisit>
-                                  </div>
-                                  <div className={page(feature('plugins'))}>
-                                    <OnFirstVisit active={feature('plugins')}>
-                                      <PluginHubPanel />
                                     </OnFirstVisit>
                                   </div>
                                   <div className={page(feature('usageIsland'))}>
@@ -716,7 +704,6 @@ function App() {
   const newsEnabled = useNavigationStore((s) => s.optionalPagesReady && s.optionalPages.aiNews);
   return (
     <AiPulseProvider enabled={newsEnabled} active={activePage === 'aiNews'}>
-      <PluginProductBridge />
       <AppContent />
     </AiPulseProvider>
   );

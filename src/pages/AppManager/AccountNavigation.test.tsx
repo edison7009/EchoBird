@@ -1,4 +1,4 @@
-import { usePluginsStore } from '../../stores/pluginsStore';
+import { usePluginsStore } from '../../test/accountPlugins';
 import { enableAccountPlugins } from '../../test/accountPlugins';
 import React, { useLayoutEffect } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
@@ -76,6 +76,9 @@ vi.mock('../../api/tauri', () => {
     'getCliLaunchSettings',
     'listDuMateAccounts',
     'listDoubaoAccounts',
+    'startDoubaoLogin',
+    'pollDoubaoLogin',
+    'cancelDoubaoLogin',
     'listOpenDesignAccounts',
     'startOpenDesignLogin',
     'pollOpenDesignLogin',
@@ -3045,7 +3048,7 @@ const communityProviderTools = [
 ] as const;
 
 it.each(communityProviderTools)(
-  'apps: %s account login opens the complete plugin list without starting a login',
+  'apps: %s starts its built-in login without navigating away',
   async (tool) => {
     useNavigationStore.setState({ developerMode: false });
     usePluginsStore.setState({ installed: [] });
@@ -3066,18 +3069,18 @@ it.each(communityProviderTools)(
     expect(useNavigationStore.getState()).toMatchObject({
       developerMode: false,
       activePage: 'apps',
-      appsTab: 'plugins',
-      developerTab: 'plugins',
-      accountPluginsRequest: expect.any(Number),
+      appsTab: 'desktop',
     });
     expect(api.saveSettings).not.toHaveBeenCalled();
-    expect(api.openExternal).not.toHaveBeenCalled();
-    for (const action of [
-      api.startClaudeCodeLogin,
-      api.startClaudeDesktopLogin,
-      api.startWorkBuddyLogin,
-    ])
-      expect(action).not.toHaveBeenCalled();
+    const startName =
+      tool === 'claudecode'
+        ? 'startClaudeCodeLogin'
+        : tool === 'claudedesktop'
+          ? 'startClaudeDesktopLogin'
+          : tool === 'doubaowork' || tool === 'dola'
+            ? 'startDoubaoLogin'
+            : 'startWorkBuddyLogin';
+    expect(api[startName]).toHaveBeenCalledOnce();
     expect(api.startTool).not.toHaveBeenCalled();
   }
 );
@@ -3327,9 +3330,9 @@ it('Account Center: uninstalled clients list saved accounts without other action
   await mount('dsh', false);
   act(() => useNavigationStore.getState().setActivePage('accounts'));
   await tick();
-  // Built-in backends skip client files when uninstalled; plugin-provided
-  // accounts list outside that guard, so they still wait for the client.
-  const pluginLists: string[] = [
+  // Saved-only backends can list cached accounts. Native client-backed groups
+  // wait for client installation before issuing their list request.
+  const nativeLists: string[] = [
     'listClaudeCodeAccounts',
     'listClaudeDesktopAccounts',
     'listWorkBuddyAccounts',
@@ -3337,7 +3340,7 @@ it('Account Center: uninstalled clients list saved accounts without other action
     'listTraeAccounts',
   ];
   for (const list of listNames)
-    if (pluginLists.includes(list)) expect(api[list]).not.toHaveBeenCalled();
+    if (nativeLists.includes(list)) expect(api[list]).not.toHaveBeenCalled();
     else expect(api[list]).toHaveBeenCalled();
   expectPassiveAccountNavigation();
 });

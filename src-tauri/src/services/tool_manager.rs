@@ -525,17 +525,6 @@ fn load_tool_definitions_with_overrides(apply_overrides: bool) -> Vec<ToolDefini
         definitions.extend(load_tool_directory(tool_id, &path, &user_overrides));
     }
 
-    if apply_overrides {
-        for (tool_id, path) in super::plugin_accounts::tool_directories() {
-            if !definitions
-                .iter()
-                .any(|definition| definition.id == tool_id)
-            {
-                definitions.extend(load_tool_directory(tool_id, &path, &user_overrides));
-            }
-        }
-    }
-
     log::info!(
         "[ToolManager] Loaded {} tool definitions",
         definitions.len()
@@ -1559,7 +1548,11 @@ async fn kilo_desktop_stub_file_and_directory_resolve_to_the_same_native_version
 async fn detect_tool(pc: &PathsConfig) -> Option<String> {
     // 0. Built-in tools (always installed)
     if pc.always_installed {
-        return Some("built-in".to_string());
+        return pc
+            .store_app_id
+            .as_deref()
+            .is_none_or(super::builtin_apps::is_acquired)
+            .then(|| "built-in".to_string());
     }
 
     // Both applications use the devin leaf name; PATH alone cannot identify the GUI.
@@ -2783,7 +2776,7 @@ async fn scan_single_tool(def: ToolDefinition) -> DetectedTool {
         None
     };
 
-    let detected_path = if pc.always_installed {
+    let detected_path = if pc.always_installed && installed {
         // Resolve bundle-relative launch paths, falling back to the definition directory.
         if let Some(ref launch) = pc.launch_file {
             let tools_dir = find_tools_dir().unwrap_or_default();

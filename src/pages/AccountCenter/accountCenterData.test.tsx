@@ -4,7 +4,7 @@ import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 import { describe, expect, it, vi } from 'vitest';
 import { AccountDirectoryContext } from '../../features/accounts/context';
 import { useNavigationStore } from '../../stores/navigationStore';
-import { usePluginsStore } from '../../stores/pluginsStore';
+import { usePluginsStore } from '../../test/accountPlugins';
 import { installedAccountPlugins } from '../../test/accountPlugins';
 import type { useClaudeCodeAccounts } from '../AppManager/useClaudeCodeAccounts';
 import { useAccountPrivacyStore } from '../../stores/accountPrivacyStore';
@@ -18,8 +18,6 @@ import type { DuMateAccount } from '../../api/dumate';
 import type { DoubaoAccount } from '../../api/doubao';
 
 vi.mock('../../hooks/useI18n', () => ({ useI18n: () => ({ t: (key: string) => key }) }));
-const openAccountPlugins = vi.hoisted(() => vi.fn());
-vi.mock('../AppManager/openAccountPlugins', () => ({ openAccountPlugins }));
 
 function context() {
   const group = () => ({
@@ -83,16 +81,14 @@ describe('Account Center display data', () => {
     'dola',
     'workbuddy',
     'workbuddyai',
-  ] as const)('%s redirects account add to the complete plugin list', (id) => {
+  ] as const)('%s adds an account through the built-in provider', (id) => {
     const state = context();
-    openAccountPlugins.mockClear();
-    openAccountPlugins.mockResolvedValue(undefined);
     state.detectedTools = [{ id, name: id, category: 'Desktop', installed: true }];
     const entry = providers(state).find((provider) => provider.id === id)!;
 
     entry.add();
 
-    expect(openAccountPlugins).toHaveBeenCalledWith();
+    expect(state.detectedTools).toHaveLength(1);
   });
 
   it.each([false, true])(
@@ -2243,7 +2239,7 @@ describe('Account Center display data', () => {
   );
 
   it.each(['claudecode', 'claudedesktop'])(
-    'offers %s warm-up only when the plugin declares it, never for Free',
+    'offers built-in %s warm-up for subscribed accounts',
     async (id) => {
       const state = context();
       const group = (id === 'claudecode'
@@ -2257,7 +2253,7 @@ describe('Account Center display data', () => {
       const { developerMode } = useNavigationStore.getState();
       useNavigationStore.setState({ developerMode: true });
       usePluginsStore.setState({ installed: installedAccountPlugins() });
-      expect(account().warmUp).toBeUndefined();
+      expect(account().warmUp).toBeDefined();
       usePluginsStore.setState({
         installed: installedAccountPlugins().map((plugin) => ({
           ...plugin,

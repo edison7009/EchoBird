@@ -1,4 +1,5 @@
-import { usePluginToolAccounts } from '../../pages/AppManager/usePluginToolAccounts';
+import { nativeAccountApplications } from '../../hooks/useAccountCapability';
+import { useCommandCodeAccounts } from '../../pages/AppManager/useCommandCodeAccounts';
 import { useCursorAccounts } from '../../pages/AppManager/useCursorAccounts';
 import { useAntigravityAccounts } from '../../pages/AppManager/useAntigravityAccounts';
 import { useDeepSeekAccounts } from '../../pages/AppManager/useDeepSeekAccounts';
@@ -25,12 +26,6 @@ import { useCallback, useEffect, useRef } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
 import type * as api from '../../api/tauri';
 import type { LocalTool } from '../../api/types';
-import {
-  communityAccountApplications,
-  hasAccountPlugin,
-  pluginToolProviders,
-} from '../../hooks/useAccountPlugin';
-import type { usePluginsStore } from '../../stores/pluginsStore';
 import type { useNavigationStore } from '../../stores/navigationStore';
 import { useUsageIslandVisible } from '../../stores/usageIslandStore';
 
@@ -41,8 +36,6 @@ interface DirectoryOptions {
   developerMode: boolean;
   appsTab: string;
   detectedTools: LocalTool[];
-  installedPlugins: ReturnType<typeof usePluginsStore.getState>['installed'];
-  pluginProviders: ReturnType<typeof pluginToolProviders>;
   usingCachedTools: boolean;
   toolModelConfig: Record<string, string | null>;
   setToolModelConfig: Dispatch<SetStateAction<Record<string, string | null>>>;
@@ -53,11 +46,8 @@ export function useAccountDirectory({
   selectedTool,
   activePage,
   isActive,
-  developerMode,
   appsTab,
   detectedTools,
-  installedPlugins,
-  pluginProviders,
   usingCachedTools,
   toolModelConfig,
   setToolModelConfig,
@@ -76,16 +66,11 @@ export function useAccountDirectory({
   const accountDataNeeded = accountPage || usageIslandOpen;
   const accountsEnabled =
     isActive && detectedTools.some((tool) => tool.id === selectedTool && tool.installed);
-  const pluginAvailable = (id: string) => hasAccountPlugin(id, installedPlugins, developerMode);
-  // Account Management lists EchoBird's saved accounts whether or not the
-  // client is installed; the built-in account backends read client files only
-  // when it is. Plugin-provided accounts keep the install requirement because
-  // their list runs in the plugin, outside that guard.
+  // Native client-backed groups stay passive until their client is installed.
   const accountGroupEnabled = (...ids: string[]) =>
-    ids.every((id) => !communityAccountApplications.includes(id) || pluginAvailable(id)) &&
     !usingCachedTools &&
     (accountDataNeeded
-      ? !ids.some((id) => communityAccountApplications.includes(id)) ||
+      ? !ids.some((id) => nativeAccountApplications.includes(id)) ||
         detectedTools.some((tool) => ids.includes(tool.id) && tool.installed)
       : accountsEnabled && ids.includes(selectedTool ?? ''));
   // Groups the open island keeps loaded on other tools' pages share one key, so tool clicks
@@ -118,6 +103,16 @@ export function useAccountDirectory({
     remove: deleteCodexAccount,
     refresh: refreshCodexAccountQuota,
   } = codexManaged;
+
+  const clearCommandCodeModel = useCallback(() => {
+    setToolModelConfig((prev) => ({ ...prev, commandcode: null }));
+  }, [setToolModelConfig]);
+  const commandCodeAccounts = useCommandCodeAccounts(
+    accountGroupEnabled('commandcode'),
+    !!toolModelConfig.commandcode,
+    clearCommandCodeModel,
+    setApplyError
+  );
 
   const clearClaudeCodeModel = useCallback(() => {
     setToolModelConfig((prev) => ({ ...prev, claudecode: null }));
@@ -238,8 +233,7 @@ export function useAccountDirectory({
   const doubaoWorkAccounts = useDoubaoAccounts(
     'doubaowork',
     accountGroupEnabled('doubaowork') ||
-      (pluginAvailable('doubaowork') &&
-        !usingCachedTools &&
+      (!usingCachedTools &&
         activePage === 'freeModels' &&
         detectedTools.some((tool) => tool.id === 'doubaowork' && tool.installed)),
     !!toolModelConfig.doubaowork,
@@ -250,8 +244,7 @@ export function useAccountDirectory({
   const dolaAccounts = useDoubaoAccounts(
     'dola',
     accountGroupEnabled('dola') ||
-      (pluginAvailable('dola') &&
-        !usingCachedTools &&
+      (!usingCachedTools &&
         activePage === 'freeModels' &&
         detectedTools.some((tool) => tool.id === 'dola' && tool.installed)),
     !!toolModelConfig.dola,
@@ -415,22 +408,6 @@ export function useAccountDirectory({
   const kimiTool = selectedTool === 'kimicode' ? 'kimicode' : 'kimidesktop';
   const kimiModel = toolModelConfig[kimiTool];
   const kimiSelectionRevisionRef = useRef(0);
-  const pluginAccountProvider =
-    pluginProviders.find((entry) => entry.application === selectedTool) ?? pluginProviders[0];
-  const pluginAccountTool = pluginAccountProvider?.application ?? '';
-  const pluginAccounts = usePluginToolAccounts(
-    pluginAccountProvider,
-    !!pluginAccountTool &&
-      !usingCachedTools &&
-      detectedTools.some(
-        (tool) => pluginAccountProvider?.applications.includes(tool.id) && tool.installed
-      ) &&
-      (accountDataNeeded || (accountsEnabled && selectedTool === pluginAccountTool)),
-    !!toolModelConfig[pluginAccountTool],
-    () => setToolModelConfig((prev) => ({ ...prev, [pluginAccountTool]: null })),
-    setApplyError,
-    accountPage ? 'plugin' : pluginAccountTool
-  );
   const kimiAccounts = useKimiAccounts(
     accountGroupEnabled('kimicode', 'kimidesktop'),
     !!kimiModel,
@@ -487,10 +464,10 @@ export function useAccountDirectory({
   return {
     clineSelectionRevisionRef,
     accountNavigation,
-    pluginAvailable,
     isCodexTool,
     codexManaged,
     claudeCodeAccounts,
+    commandCodeAccounts,
     claudeDesktopAccounts,
     workBuddyEdition,
     workBuddyCnAccounts,
@@ -527,9 +504,6 @@ export function useAccountDirectory({
     cursorRevisionRef,
     antigravityAccounts,
     kimiSelectionRevisionRef,
-    pluginAccountProvider,
-    pluginAccountTool,
-    pluginAccounts,
     kimiAccounts,
     zcodeAccounts,
     codeArtsAccounts,

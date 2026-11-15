@@ -1,4 +1,4 @@
-import { accountProxySources, useAccountProviderFilter } from '../../hooks/useAccountPlugin';
+import { accountProxySources, useAccountProviderFilter } from '../../hooks/useAccountCapability';
 import { useEffect, useState } from 'react';
 import {
   accountProviderIconSrc,

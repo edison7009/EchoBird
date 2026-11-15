@@ -1,0 +1,27 @@
+{
+  "id": "commandcode",
+  "displayName": "Command Code",
+  "homepage": "https://commandcode.ai/desktop",
+  "docs": "https://commandcode.ai/docs/desktop",
+  "install": {
+    "Windows x64": "Download https://commandcode.ai/download/windows and run the setup file. The installer may be unsigned; only use this official link.",
+    "macOS Apple Silicon": "Download https://commandcode.ai/download/mac?arch=arm64, open the DMG and move Command Code to Applications.",
+    "macOS Intel": "Download https://commandcode.ai/download/mac?arch=x64, open the DMG and move Command Code to Applications.",
+    "Linux .deb": "Download https://commandcode.ai/download/linux, then run sudo apt install ./CommandCode-*.deb.",
+    "note": "Install the desktop app with these downloads. The agent runtime ships inside it. Command Code CLI is a separate tool with its own reference."
+  },
+  "network_requirements": {
+    "test_urls": [
+      "https://commandcode.ai/desktop",
+      "https://github.com/CommandCodeAI/desktop/releases"
+    ],
+    "mirrors": {}
+  },
+  "first_run": {
+    "description": "Open Command Code and sign in, or add an account in EchoBird.",
+    "config_global": "~/.commandcode/settings.json"
+  },
+  "identity_guard": {
+    "description": "Command Code is the desktop app from commandcode.ai/desktop. Do not install it with npm: the npm package is Command Code CLI. It is not Claude Code."
+  }
+}

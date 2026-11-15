@@ -297,6 +297,18 @@ fn publish(app: &AppHandle) {
     let _ = app.emit_to("voice-island", "voice-input-state", &snapshot);
 }
 
+pub async fn format_text(app: &AppHandle, text: String) -> Result<String, String> {
+    let voice = shared(app);
+    let _operation = voice.operation.lock().await;
+    let mut saved = voice.saved.lock().unwrap();
+    let output = saved.config.text_output.format(&text);
+    let mut next = saved.clone();
+    next.format_invocations = next.format_invocations.saturating_add(1);
+    config::save(&voice.path, &next)?;
+    *saved = next;
+    Ok(output)
+}
+
 pub fn devices() -> Result<Vec<String>, String> {
     audio::devices()
 }
@@ -680,12 +692,17 @@ async fn stop_capture(app: &AppHandle, shortcut_only: bool) -> Result<Snapshot, 
                 .await.map_err(|_| "voice.error.transcribe".to_string())?
         }) => result,
     };
-    let mut text = match recognized {
+    let text = match recognized {
         Ok(text) => text,
         Err(error) => {
             fail(app, generation, error, Some(bytes));
             return Ok(snapshot(app));
         }
+    };
+    let text = if config.text_output.enabled {
+        config.text_output.format(&text)
+    } else {
+        text
     };
     log::info!(
         "[VoiceInput] recognized characters={}",
@@ -700,25 +717,6 @@ async fn stop_capture(app: &AppHandle, shortcut_only: bool) -> Result<Snapshot, 
     }
     publish(app);
     let mut warning = None;
-    let extensions = app.try_state::<crate::services::plugin_runtime::PluginRuntime>();
-    if let Some(extensions) = &extensions {
-        match tokio::select! {
-            _=cancel.cancelled()=>return Ok(snapshot(app)),
-            result=extensions.process_text(app,"voice.transcribed",&text)=>result,
-        } {
-            Ok(processed) => text = processed,
-            Err(_) => warning = Some("voice.error.plugin".into()),
-        }
-    }
-    if let Some(extensions) = &extensions {
-        match tokio::select! {
-            _=cancel.cancelled()=>return Ok(snapshot(app)),
-            result=extensions.process_text(app,"voice.output",&text)=>result,
-        } {
-            Ok(processed) => text = processed,
-            Err(_) => warning = Some("voice.error.plugin".into()),
-        }
-    }
     let (insert, target) = {
         let mut runtime = voice.runtime.lock().unwrap();
         if runtime.generation != generation || cancel.is_cancelled() {

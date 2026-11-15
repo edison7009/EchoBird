@@ -11,9 +11,6 @@ import { AppManagerBottom } from './AppManagerComponents';
 import { open as openDialog } from '@tauri-apps/plugin-dialog';
 import museCodeDefinition from '../../../tools/musecode/paths.json';
 import * as devinApi from '../../api/devin';
-import * as pluginApi from '../../api/plugins';
-import { usePluginsStore } from '../../stores/pluginsStore';
-import type { InstalledPlugin } from '../../api/plugins';
 import cursorCliDefinition from '../../../tools/cursorcli/paths.json';
 import { enableAccountPlugins } from '../../test/accountPlugins';
 
@@ -27,11 +24,6 @@ beforeEach(() =>
     forwardLocations: [],
   })
 );
-
-vi.mock('../../api/plugins', () => ({
-  listPlugins: vi.fn().mockResolvedValue([]),
-  launchPlugin: vi.fn().mockResolvedValue(undefined),
-}));
 
 vi.mock('../../api/devin', () => ({
   listDevinAccounts: vi.fn().mockResolvedValue([]),
@@ -152,149 +144,6 @@ describe('Cursor CLI account integration', () => {
       await operation;
     });
     expect(api.startTool).not.toHaveBeenCalled();
-  });
-});
-
-describe('installed plugin desktop lifecycle', () => {
-  let renderer: ReactTestRenderer;
-  let context: ReturnType<typeof useAppManager>;
-  const plugin: InstalledPlugin = {
-    id: 'fixture.game',
-    enabled: true,
-    directory: 'packages/fixture.game/one',
-    icon: null,
-    source: '/fixture',
-    revision: null,
-    manifest: {
-      name: 'game',
-      publisher: 'fixture',
-      version: '1.0.0',
-      displayName: 'Game',
-      description: 'Fixture',
-      license: 'MIT',
-      repository: 'https://example.com/plugin',
-      echobird: {
-        manifestVersion: 1,
-        apiVersion: '0.1-draft',
-        platforms: ['windows', 'macos', 'linux'],
-        permissions: ['model.request'],
-        contributes: { pages: [{ id: 'game', title: 'Game', entry: 'ui/index.html' }] },
-      },
-    },
-  };
-  const id = 'plugin:fixture.game:game';
-  function Harness() {
-    const current = useAppManager();
-    useLayoutEffect(() => {
-      context = current;
-    });
-    return null;
-  }
-  beforeEach(async () => {
-    vi.useFakeTimers();
-    vi.clearAllMocks();
-    vi.stubGlobal('localStorage', { getItem: () => null, setItem: vi.fn() });
-    useNavigationStore.getState().setDeveloperMode(true);
-    useNavigationStore.getState().setActivePage('apps');
-    usePluginsStore.setState(usePluginsStore.getInitialState(), true);
-    vi.mocked(pluginApi.listPlugins).mockResolvedValue([plugin]);
-    vi.mocked(api.getModels).mockResolvedValue([
-      {
-        internalId: 'chosen-model',
-        name: 'Chosen model',
-        modelId: 'fixture',
-        baseUrl: 'http://127.0.0.1:1/v1',
-        apiKey: 'fixture-key',
-      },
-    ]);
-    useToolsStore.getState().setDetectedTools([
-      { id: 'reversi', name: 'Demo', category: 'Game', installed: true },
-      { id: 'translator', name: 'Translator', category: 'Utility', installed: true },
-    ]);
-    await act(async () => {
-      renderer = create(
-        <AppManagerProvider>
-          <Harness />
-        </AppManagerProvider>
-      );
-    });
-  });
-  afterEach(() => {
-    act(() => renderer.unmount());
-    usePluginsStore.setState(usePluginsStore.getInitialState(), true);
-    useNavigationStore.getState().setDeveloperMode(false);
-    vi.mocked(pluginApi.listPlugins).mockResolvedValue([]);
-    vi.clearAllTimers();
-    vi.useRealTimers();
-  });
-
-  it('reuses model selection and launch while leaving native configuration and account operations untouched', async () => {
-    expect(context.detectedTools.some((tool) => tool.id === id)).toBe(true);
-    expect(useToolsStore.getState().detectedTools.some((tool) => tool.id === 'reversi')).toBe(true);
-    act(() => {
-      context.setSelectedTool(id);
-      context.handleSelectModel(id, 'chosen-model');
-    });
-    expect(pluginApi.launchPlugin).not.toHaveBeenCalled();
-    expect(api.applyModelToTool).not.toHaveBeenCalled();
-    expect(api.startTool).not.toHaveBeenCalled();
-    await act(async () => context.handleLaunch());
-    expect(pluginApi.launchPlugin).toHaveBeenCalledExactlyOnceWith(
-      'fixture.game',
-      'game',
-      expect.objectContaining({ internalId: 'chosen-model' })
-    );
-    expect(api.applyModelToTool).not.toHaveBeenCalled();
-    expect(api.startTool).not.toHaveBeenCalled();
-    expect(openDialog).not.toHaveBeenCalled();
-  });
-
-  it('removes disabled plugins from desktop selection and preserves the built-in demo tool', () => {
-    act(() => context.setSelectedTool(id));
-    act(() => usePluginsStore.setState({ installed: [{ ...plugin, enabled: false }] }));
-    expect(context.detectedTools.some((tool) => tool.id === id)).toBe(false);
-    expect(context.selectedTool).toBeNull();
-    expect(useToolsStore.getState().detectedTools.some((tool) => tool.id === 'reversi')).toBe(true);
-  });
-
-  it.each(['reversi', 'translator'])(
-    'keeps the %s project demo while hiding its bundled desktop selection',
-    (tool) => {
-      act(() => context.setSelectedTool(tool));
-      expect(context.selectedTool).toBeNull();
-      expect(useToolsStore.getState().detectedTools.some((entry) => entry.id === tool)).toBe(true);
-      expect(pluginApi.launchPlugin).not.toHaveBeenCalled();
-      expect(api.startTool).not.toHaveBeenCalled();
-    }
-  );
-
-  it('clears a pending developer launch on pause and ignores its late error after reenabling', async () => {
-    act(() => {
-      context.setSelectedTool(id);
-      context.handleSelectModel(id, 'chosen-model');
-    });
-    let fail!: (error: Error) => void;
-    vi.mocked(pluginApi.launchPlugin).mockImplementationOnce(
-      () =>
-        new Promise((_, reject) => {
-          fail = reject;
-        })
-    );
-    let pending!: Promise<void>;
-    await act(async () => {
-      pending = context.handleLaunch();
-    });
-    expect(context.isLaunching).toBe(true);
-    await act(async () => useNavigationStore.getState().setDeveloperMode(false));
-    expect(context.isLaunching).toBe(false);
-    expect(context.detectedTools.some((tool) => tool.id === id)).toBe(false);
-    await act(async () => useNavigationStore.getState().setDeveloperMode(true));
-    await act(async () => {
-      fail(new Error('old launch failed'));
-      await pending;
-    });
-    expect(context.applyError).toBeNull();
-    expect(context.isLaunching).toBe(false);
   });
 });
 
@@ -1183,7 +1032,7 @@ describe.each(['codex', 'chatgptdesktop'])('%s Web Search preference', (tool) =>
     act(() => context.setViewMode('install'));
     act(() => {
       useNavigationStore.getState().setDeveloperMode(true);
-      useNavigationStore.getState().setDeveloperTab('plugins');
+      useNavigationStore.getState().setDeveloperTab('pets');
       useNavigationStore.getState().setActivePage('developer');
     });
     expect(api.applyModelToTool).not.toHaveBeenCalled();
@@ -1511,7 +1360,7 @@ describe.each(['cline', 'clinedesktop'])('%s API model workflow', (tool) => {
     act(() => context.setViewMode('install'));
     act(() => {
       useNavigationStore.getState().setDeveloperMode(true);
-      useNavigationStore.getState().setDeveloperTab('plugins');
+      useNavigationStore.getState().setDeveloperTab('pets');
       useNavigationStore.getState().setActivePage('developer');
     });
     act(() =>
@@ -1762,7 +1611,7 @@ describe('Muse Code API model workflow', () => {
     vi.mocked(api.getModels).mockClear();
     await act(async () => {
       useNavigationStore.getState().setDeveloperMode(true);
-      useNavigationStore.getState().setDeveloperTab('plugins');
+      useNavigationStore.getState().setDeveloperTab('pets');
       useNavigationStore.getState().setActivePage('developer');
     });
     await act(async () => useNavigationStore.getState().setDeveloperTab('statistics'));
@@ -1770,7 +1619,7 @@ describe('Muse Code API model workflow', () => {
     await act(async () => useNavigationStore.getState().setAppsTab('desktop'));
     expect(api.getModels).toHaveBeenCalledOnce();
     expect(context.userModels.some((model) => model.internalId === 'fixture')).toBe(true);
-    await act(async () => useNavigationStore.getState().setDeveloperTab('plugins'));
+    await act(async () => useNavigationStore.getState().setDeveloperTab('pets'));
     await act(async () => useNavigationStore.getState().setDeveloperMode(false));
     expect(useNavigationStore.getState().activePage).toBe('apps');
     expect(api.applyModelToTool).not.toHaveBeenCalled();
@@ -1979,7 +1828,7 @@ describe('VS Code API model workflow', () => {
     act(() => context.setViewMode('install'));
     act(() => {
       useNavigationStore.getState().setDeveloperMode(true);
-      useNavigationStore.getState().setDeveloperTab('plugins');
+      useNavigationStore.getState().setDeveloperTab('pets');
       useNavigationStore.getState().setActivePage('developer');
     });
     act(() =>

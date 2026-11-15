@@ -40,7 +40,6 @@ import {
 } from '../stores/optionalPages';
 import { useLocalServerStatusStore } from '../stores/localServerStatusStore';
 import { useProtectionStore } from '../stores/protectionStore';
-import { usePluginProductStore } from '../stores/pluginProductStore';
 
 // All supported locales
 const LOCALE_OPTIONS = [
@@ -781,18 +780,7 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
                   value={colorTheme}
                   mode={themeMode}
                   locale={locale}
-                  onChange={(id) => {
-                    if (usePluginProductStore.getState().snapshot.theme) {
-                      void usePluginProductStore
-                        .getState()
-                        .manage(null, 'theme', '')
-                        .then(() => {
-                          useThemeStore.getState().setPluginTheme(null);
-                          setColorTheme(id);
-                        })
-                        .catch(() => {});
-                    } else setColorTheme(id);
-                  }}
+                  onChange={setColorTheme}
                 />
               </div>
             ) : (

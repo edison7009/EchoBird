@@ -1,6 +1,5 @@
 use std::future::Future;
 use std::sync::{Mutex, OnceLock};
-use tauri::Manager;
 use tokio_util::sync::CancellationToken;
 
 const PAUSED: &str = "Developer preview is paused";
@@ -73,24 +72,29 @@ pub async fn run<T>(work: impl Future<Output = Result<T, String>>) -> Result<T, 
 }
 
 pub fn command_allowed(command: &str) -> bool {
-    let developer_command = (command.starts_with("plugin_")
-        && !matches!(command, "plugin_cancel" | "plugin_window_control"))
-        || matches!(
-            command,
-            "get_smart_router_statistics"
-                | "get_smart_router_statistics_catalog"
-                | "get_smart_router_token_credits"
-        );
+    let developer_command = matches!(
+        command,
+        "get_smart_router_statistics"
+            | "get_smart_router_statistics_catalog"
+            | "get_smart_router_token_credits"
+    );
     !developer_command || token().is_ok()
 }
 
-pub fn configure(app: &tauri::AppHandle, enabled: bool) {
-    gate().configure(enabled);
-    if !enabled {
-        app.state::<super::plugin_runtime::PluginRuntime>()
-            .pause(app);
-        app.state::<super::plugin_manager::PluginManager>().pause();
+pub fn guard<R: tauri::Runtime, F: Fn(tauri::ipc::Invoke<R>) -> bool + Send + Sync + 'static>(
+    handler: F,
+) -> impl Fn(tauri::ipc::Invoke<R>) -> bool + Send + Sync + 'static {
+    move |invoke| {
+        if !command_allowed(invoke.message.command()) {
+            invoke.resolver.reject("Developer preview is paused");
+            return true;
+        }
+        handler(invoke)
     }
+}
+
+pub fn configure(_app: &tauri::AppHandle, enabled: bool) {
+    gate().configure(enabled);
 }
 
 #[cfg(test)]
@@ -103,11 +107,6 @@ mod tests {
         for command in [
             "get_smart_router_statistics",
             "get_smart_router_statistics_catalog",
-            "plugin_launch",
-            "plugin_preview",
-            "plugin_install",
-            "plugin_registry",
-            "plugin_model_request",
         ] {
             assert!(!command_allowed(command), "{command}");
         }
@@ -116,8 +115,6 @@ mod tests {
             "save_settings",
             "get_models",
             "get_smart_router_config",
-            "plugin_cancel",
-            "plugin_window_control",
         ] {
             assert!(command_allowed(command), "{command}");
         }
