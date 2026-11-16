@@ -101,8 +101,6 @@ const en: Translations = {
   'usageIsland.style.list': 'List',
   'usageIsland.style.dial': 'Dial',
   'usageIsland.style.line': 'Lines',
-  'settings.routerStatistics': 'Record statistics',
-  'settings.routerStatisticsError': 'Unable to load or save statistics recording settings.',
   'settings.developerMode': 'Developer preview',
   'settings.developerModeHint':
     'Developer preview is primarily for development and testing. Some features may not suit everyday use. Turning it off pauses all features on the developer page and reduces resource overhead. Preview features may change or be removed in future versions, and more fun features will be added over time.',
@@ -683,11 +681,10 @@ const en: Translations = {
   'agent.addCurrentAccount': 'Add Account',
   'agent.accountSnapshot': 'Account Snapshot',
   'agent.accountSnapshotHint':
-    'Claude Desktop account management uses snapshot mode: safer and more stable.\n\n1. Add your first account\nStay signed in and quit Claude Desktop completely (right-click the tray icon and quit; do not end it in Task Manager). Wait 30 to 60 seconds, then click Account Snapshot.\n\n2. Add more accounts\nWith the previous account still signed in, quit Claude Desktop the same way and click Reset & Sign In. Claude opens; sign in to the new account. Then stay signed in, quit it completely again, wait 30 to 60 seconds and click Account Snapshot to save it.\n\nNote: do not sign out inside Claude, or the saved account stops working.',
+    'Claude Desktop accounts are saved as snapshots.\n\n1. Save the current account\nStay signed in and quit Claude Desktop completely using its tray menu. Wait 30 to 60 seconds, then click Account Snapshot.\n\n2. Sign in to another account\nSave a snapshot first if you want to keep the current account. Reset & Sign In clears local authentication and opens Claude automatically. Sign in to the new account, stay signed in, quit completely and wait 30 to 60 seconds, then click Account Snapshot to save it.\n\nNote that signing out inside Claude may invalidate the corresponding saved session.',
   'agent.accountSnapshotNoticeTitle': 'Before taking a snapshot',
   'agent.accountSnapshotNext': 'Reset & Sign In',
-  'agent.accountSnapshotNextUnsupported':
-    'The current account was saved, but this plugin version cannot reset the environment. Update the Claude Desktop plugin on the Plugins page first.',
+  'agent.accountResetting': 'Resetting environment',
   'agent.accountSnapshotSaving': 'Saving snapshot',
   'agent.zcodeSwitchProvider': 'Switch login provider (currently {provider})',
   'agent.minimaxRegionCn': 'China',

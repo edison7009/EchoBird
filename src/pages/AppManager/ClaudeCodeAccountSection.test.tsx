@@ -14,20 +14,24 @@ function renderAccount(
   busy = false,
   desktop = false,
   awaitingExit = true,
-  overrides: Partial<ClaudeCodeAccount> = {}
+  overrides: Partial<ClaudeCodeAccount> = {},
+  resetting = false,
+  hasAccounts = true
 ) {
   const context = {
     claudeCodeAccounts: {
-      accounts: [
-        {
-          id: 'test',
-          email: 'test@example.com',
-          plan: 'Max 5X',
-          fiveHour: quotaPercent == null ? null : { remainingPercent: quotaPercent },
-          sevenDay: { remainingPercent: 82 },
-          ...overrides,
-        },
-      ],
+      accounts: hasAccounts
+        ? [
+            {
+              id: 'test',
+              email: 'test@example.com',
+              plan: 'Max 5X',
+              fiveHour: quotaPercent == null ? null : { remainingPercent: quotaPercent },
+              sevenDay: { remainingPercent: 82 },
+              ...overrides,
+            },
+          ]
+        : [],
       selectedId: 'test',
       busy,
       remainingSeconds: 60,
@@ -42,6 +46,8 @@ function renderAccount(
   context.claudeDesktopAccounts = {
     ...context.claudeCodeAccounts,
     awaitingClientExit: desktop && busy && awaitingExit,
+    snapshotBusy: busy && !resetting,
+    resetting,
     addNext: async () => {},
   } as AppManagerContextType['claudeDesktopAccounts'];
   return renderToStaticMarkup(
@@ -125,11 +131,36 @@ describe('Claude Code account card', () => {
     // The hint sits beside, not inside, the button that saves the snapshot.
     expect(desktop).not.toMatch(/<button[^>]*>(?:(?!<\/button>).)*agent\.accountSnapshotHint/s);
     expect(desktop).toContain('agent.accountSnapshotNext');
-    expect(renderAccount(37, true, true)).not.toContain('agent.accountSnapshotNext');
+    expect(renderAccount(37, true, true)).toContain('agent.accountSnapshotNext');
     const code = renderAccount(37);
     expect(code).not.toContain('agent.accountSnapshotNext');
     expect(code).toContain('plugins.category.account');
     expect(code).not.toContain('agent.accountSnapshot');
+  });
+  it('shows reset progress independently and disables both actions while preserving rows', () => {
+    const markup = renderAccount(37, true, true, false, {}, true);
+    expect(markup).toContain('agent.accountResetting');
+    expect(markup).toContain('agent.accountSnapshot');
+    expect(markup).not.toContain('agent.accountSnapshotSaving');
+    expect(markup).not.toContain('agent.waitingForBrowser');
+    expect(markup).not.toContain('aria-label="btn.cancel"');
+    expect(markup).toContain('test@example.com');
+    expect(markup.match(/disabled=""/g)).toHaveLength(2);
+  });
+  it('offers reset independently before any snapshots have been saved', () => {
+    const markup = renderAccount(null, false, true, false, {}, false, false);
+    expect(markup).toContain('agent.accountSnapshotNext');
+    expect(markup).toContain('agent.accountSnapshot');
+    expect(markup).not.toContain('test@example.com');
+  });
+  it('keeps both action lines inside one 48px pill with the shared ZCode typography', () => {
+    const markup = renderAccount(null, false, true, false, {}, false, false);
+    expect(markup.match(/class="account-pill /g)).toHaveLength(1);
+    expect(markup).toContain('h-12');
+    expect(markup).toContain('h-6 w-6');
+    expect(markup).toContain('text-[17px] font-bold leading-6');
+    expect(markup).toContain('text-[12px] font-normal leading-4');
+    expect(markup).toContain('inline-flex h-4 items-center gap-1');
   });
   it('keeps the snapshot label but drops its explanation while the plugin is missing', () => {
     plugin.installed = false;

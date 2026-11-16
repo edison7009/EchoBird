@@ -86,8 +86,7 @@ fn result(value: Result<(), String>) -> ApplyResult {
     }
 }
 
-fn apply_at(info: &ModelInfo, paths: &ClaudeDesktopLayout, relay: &Path) -> Result<(), String> {
-    let _lock = native_account_files::DirectoryLock::acquire(relay)?;
+pub(super) fn model_parameters(info: &ModelInfo) -> Result<(&str, &str, &str), String> {
     let base = info
         .anthropic_url
         .as_deref()
@@ -113,6 +112,12 @@ fn apply_at(info: &ModelInfo, paths: &ClaudeDesktopLayout, relay: &Path) -> Resu
         .ok_or("Select a model first.")?;
     // Resolve a Smart Access catalog before publishing native configuration.
     super::switching::models(info)?;
+    Ok((base, key, model))
+}
+
+fn apply_at(info: &ModelInfo, paths: &ClaudeDesktopLayout, relay: &Path) -> Result<(), String> {
+    let (base, key, model) = model_parameters(info)?;
+    let _lock = native_account_files::DirectoryLock::acquire(relay)?;
     let mut official = native_account_files::object(&paths.cfg_official)?;
     let mut threep = native_account_files::object(&paths.cfg_threep)?;
     let backup = backup_library(paths);
@@ -217,8 +222,8 @@ mod tests {
     use crate::services::tool_config_manager::switching::{test_info, TestDir};
 
     #[tokio::test]
-    #[ignore = "requires an installed, running Claude Desktop and performs no configuration writes"]
-    async fn running_client_requires_manual_exit_before_local_identity_switch() {
+    #[ignore = "explicitly stops an installed, running Claude Desktop without configuration writes"]
+    async fn running_client_is_stopped_before_local_identity_switch() {
         assert!(
             crate::services::process_manager::desktop_tool_is_running("claudedesktop")
                 .await
@@ -228,21 +233,32 @@ mod tests {
         let before = fs::metadata(&relay)
             .ok()
             .and_then(|metadata| metadata.modified().ok());
-        let mut info = test_info();
-        info.base_url = Some("https://fixture.invalid/anthropic".into());
-        info.model = Some("fixture-model".into());
-        let result = super::super::apply_model_to_tool("claudedesktop", info).await;
-        assert!(!result.success);
-        assert_eq!(result.message, "accountError.closeClient");
+        crate::services::process_manager::stop_desktop_for_account("claudedesktop")
+            .await
+            .unwrap();
         let after = fs::metadata(&relay)
             .ok()
             .and_then(|metadata| metadata.modified().ok());
         assert_eq!(before, after);
         assert!(
-            crate::services::process_manager::desktop_tool_is_running("claudedesktop")
+            !crate::services::process_manager::desktop_tool_is_running("claudedesktop")
                 .await
                 .unwrap()
         );
+    }
+
+    #[test]
+    fn model_validation_rejects_invalid_input_before_switch_preparation() {
+        let mut info = test_info();
+        info.base_url = Some("file:///fixture".into());
+        assert!(model_parameters(&info).is_err());
+        info.base_url = Some("https://fixture.invalid".into());
+        info.api_key = None;
+        assert!(model_parameters(&info).is_err());
+        info.base_url = Some("http://127.0.0.1:53683/v1".into());
+        assert!(model_parameters(&info).is_ok());
+        info.model = Some(String::new());
+        assert!(model_parameters(&info).is_err());
     }
 
     #[test]

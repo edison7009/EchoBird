@@ -731,75 +731,74 @@ describe.each(['claudedesktop', 'claudecode'] as const)('%s direct API configura
       webSearch: true,
     });
   });
-  it('keeps 1M independent per client and reports explicit apply failures', async () => {
+  it('stages Claude preferences until explicit launch and restores them on reentry', async () => {
     await mount();
     const setOneM =
       tool === 'claudedesktop' ? context.setClaudeDesktop1mMode : context.setClaude1mMode;
-    await act(async () => setOneM(true));
-    expect(api.applyModelToTool).toHaveBeenLastCalledWith(
-      tool,
-      expect.objectContaining({ oneMContext: true })
-    );
-    expect(tool === 'claudedesktop' ? context.claude1mMode : context.claudeDesktop1mMode).toBe(
-      false
-    );
-    vi.mocked(api.applyModelToTool).mockResolvedValueOnce({
-      success: false,
-      message: 'Apply failed',
-    });
-    await act(async () => setOneM(false));
-    expect(api.applyModelToTool).toHaveBeenLastCalledWith(
-      tool,
-      expect.objectContaining({ oneMContext: false })
-    );
-    expect(context.applyError).toBe('Apply failed');
-  });
-  it('persists a separate search preference and retains it on 1M changes and reentry', async () => {
-    await mount();
-    await act(async () => context.setClaudeWebSearch(tool, false));
-    expect(api.applyModelToTool).toHaveBeenCalledExactlyOnceWith(
-      tool,
-      expect.objectContaining({ webSearch: false })
-    );
-    expect(storage.get(`echobird_${tool}_web_search`)).toBe('false');
+    act(() => context.setClaudeWebSearch(tool, false));
+    act(() => setOneM(true));
+    act(() => setOneM(false));
+    act(() => setOneM(true));
+    expect(context.isLaunching).toBe(false);
     expect(
       tool === 'claudedesktop' ? context.claudeCodeWebSearch : context.claudeDesktopWebSearch
     ).toBe(true);
-    await act(async () =>
-      (tool === 'claudedesktop' ? context.setClaudeDesktop1mMode : context.setClaude1mMode)(true)
+    expect(tool === 'claudedesktop' ? context.claude1mMode : context.claudeDesktop1mMode).toBe(
+      false
     );
-    expect(api.applyModelToTool).toHaveBeenLastCalledWith(
+    expect(storage.get(`echobird_${tool}_web_search`)).toBe('false');
+    expect(storage.get(`echobird_${tool}_1m_mode`)).toBe('true');
+    await act(async () =>
+      context.setSelectedTool(tool === 'claudedesktop' ? 'claudecode' : 'claudedesktop')
+    );
+    await act(async () => context.setSelectedTool(tool));
+    expect(api.applyModelToTool).not.toHaveBeenCalled();
+    expect(api.startTool).not.toHaveBeenCalled();
+    expect(api.restoreToolToOfficial).not.toHaveBeenCalled();
+    expect(api.refreshClaudeDesktopAccount).not.toHaveBeenCalled();
+    expect(openDialog).not.toHaveBeenCalled();
+    await act(async () => {
+      await context.handleLaunch();
+      await vi.advanceTimersByTimeAsync(3000);
+    });
+    expect(api.applyModelToTool).toHaveBeenCalledExactlyOnceWith(
       tool,
       expect.objectContaining({ oneMContext: true, webSearch: false })
     );
+    expect(api.startTool).not.toHaveBeenCalled();
     act(() => renderer.unmount());
     vi.mocked(api.applyModelToTool).mockClear();
     await mount();
+    expect(tool === 'claudedesktop' ? context.claudeDesktop1mMode : context.claude1mMode).toBe(
+      true
+    );
     expect(
       tool === 'claudedesktop' ? context.claudeDesktopWebSearch : context.claudeCodeWebSearch
     ).toBe(false);
     expect(api.applyModelToTool).not.toHaveBeenCalled();
   });
-  it('blocks repeated search changes and apply while pending, and reports failure', async () => {
+  it('reports preference application failure only after explicit launch', async () => {
     await mount();
-    let finish!: (value: { success: boolean; message: string }) => void;
-    vi.mocked(api.applyModelToTool).mockImplementationOnce(
-      () =>
-        new Promise((resolve) => {
-          finish = resolve;
-        })
-    );
     act(() => context.setClaudeWebSearch(tool, false));
-    expect(context.isLaunching).toBe(true);
-    act(() => context.setClaudeWebSearch(tool, true));
+    act(() =>
+      (tool === 'claudedesktop' ? context.setClaudeDesktop1mMode : context.setClaude1mMode)(true)
+    );
+    vi.mocked(api.applyModelToTool).mockResolvedValueOnce({
+      success: false,
+      message: 'Apply failed',
+    });
+    expect(context.applyError).toBeNull();
     await act(async () => context.handleLaunch());
-    expect(api.applyModelToTool).toHaveBeenCalledTimes(1);
-    expect(storage.get(`echobird_${tool}_web_search`)).toBe('false');
-    await act(async () => finish({ success: false, message: 'Search update failed' }));
-    expect(context.isLaunching).toBe(false);
-    expect(context.applyError).toBe('Search update failed');
+    expect(context.applyError).toBe('Apply failed');
+    expect(tool === 'claudedesktop' ? context.claudeDesktop1mMode : context.claude1mMode).toBe(
+      true
+    );
+    expect(
+      tool === 'claudedesktop' ? context.claudeDesktopWebSearch : context.claudeCodeWebSearch
+    ).toBe(false);
+    expect(api.startTool).not.toHaveBeenCalled();
   });
-  it('blocks search, repeated 1M changes and apply while a 1M update is pending', async () => {
+  it('blocks preference changes while explicit launch is pending', async () => {
     await mount();
     let finish!: (value: { success: boolean; message: string }) => void;
     vi.mocked(api.applyModelToTool).mockImplementationOnce(
@@ -811,24 +810,26 @@ describe.each(['claudedesktop', 'claudecode'] as const)('%s direct API configura
     act(() =>
       (tool === 'claudedesktop' ? context.setClaudeDesktop1mMode : context.setClaude1mMode)(true)
     );
-    expect(context.isLaunching).toBe(true);
+    expect(api.applyModelToTool).not.toHaveBeenCalled();
+    let pending!: Promise<void>;
     act(() => {
-      context.setClaudeWebSearch(tool, false);
-      (tool === 'claudedesktop' ? context.setClaudeDesktop1mMode : context.setClaude1mMode)(false);
+      pending = context.handleLaunch();
     });
-    await act(async () => context.handleLaunch());
-    expect(api.applyModelToTool).toHaveBeenCalledExactlyOnceWith(
-      tool,
-      expect.objectContaining({ oneMContext: true, webSearch: true })
+    expect(context.isLaunching).toBe(true);
+    act(() => context.setClaudeWebSearch(tool, false));
+    act(() =>
+      (tool === 'claudedesktop' ? context.setClaudeDesktop1mMode : context.setClaude1mMode)(false)
     );
-    expect(storage.get(`echobird_${tool}_1m_mode`)).toBe('true');
     expect(
       tool === 'claudedesktop' ? context.claudeDesktopWebSearch : context.claudeCodeWebSearch
     ).toBe(true);
-    expect(api.startTool).not.toHaveBeenCalled();
-    await act(async () => finish({ success: false, message: '1M update failed' }));
+    expect(tool === 'claudedesktop' ? context.claudeDesktop1mMode : context.claude1mMode).toBe(
+      true
+    );
+    await act(async () => finish({ success: false, message: 'Launch failed' }));
+    await pending;
+    expect(api.applyModelToTool).toHaveBeenCalledTimes(1);
     expect(context.isLaunching).toBe(false);
-    expect(context.applyError).toBe('1M update failed');
   });
   it.each(['uninstalled', 'missing-model'])(
     'does not write native preference settings for %s',
@@ -971,9 +972,15 @@ describe.each(['codex', 'chatgptdesktop'])('%s Web Search preference', (tool) =>
       expect.objectContaining({ model: 'auto', webSearch: true })
     );
     for (const enabled of [false, true]) {
+      const calls = vi.mocked(api.applyModelToTool).mock.calls.length;
       await act(async () => context.setCodexWebSearch(enabled));
       expect(context.codexWebSearch).toBe(enabled);
       expect(storage.get('echobird_codex_web_search')).toBe(String(enabled));
+      expect(api.applyModelToTool).toHaveBeenCalledTimes(calls);
+      await act(async () => {
+        await context.handleLaunch();
+        await vi.advanceTimersByTimeAsync(3000);
+      });
       expect(api.applyModelToTool).toHaveBeenLastCalledWith(
         tool,
         expect.objectContaining({ model: 'auto', webSearch: enabled })
@@ -1019,10 +1026,7 @@ describe.each(['codex', 'chatgptdesktop'])('%s Web Search preference', (tool) =>
   it('keeps navigation passive and preserves off across repeat apply, tool switches and remounts', async () => {
     await mount();
     await act(async () => context.setCodexWebSearch(false));
-    expect(api.applyModelToTool).toHaveBeenCalledExactlyOnceWith(
-      tool,
-      expect.objectContaining({ webSearch: false })
-    );
+    expect(api.applyModelToTool).not.toHaveBeenCalled();
     vi.mocked(api.applyModelToTool).mockClear();
     const other = tool === 'codex' ? 'chatgptdesktop' : 'codex';
     await act(async () => {
@@ -1060,6 +1064,11 @@ describe.each(['codex', 'chatgptdesktop'])('%s Web Search preference', (tool) =>
     });
     act(() => context.handleSelectModel(other, 'fixture'));
     await act(async () => context.setCodexWebSearch(true));
+    expect(api.applyModelToTool).toHaveBeenCalledTimes(2);
+    await act(async () => {
+      await context.handleLaunch();
+      await vi.advanceTimersByTimeAsync(3000);
+    });
     expect(api.applyModelToTool).toHaveBeenLastCalledWith(
       other,
       expect.objectContaining({ webSearch: true })
@@ -1073,6 +1082,9 @@ describe.each(['codex', 'chatgptdesktop'])('%s Web Search preference', (tool) =>
       message: 'Config unavailable',
     });
     await act(async () => context.setCodexWebSearch(false));
+    expect(api.applyModelToTool).not.toHaveBeenCalled();
+    expect(context.applyError).toBeNull();
+    await act(async () => context.handleLaunch());
     expect(context.applyError).toBe('Config unavailable');
     expect(context.isLaunching).toBe(false);
     expect(context.codexWebSearch).toBe(false);
@@ -1089,12 +1101,23 @@ describe.each(['codex', 'chatgptdesktop'])('%s Web Search preference', (tool) =>
         })
     );
     act(() => context.setCodexWebSearch(false));
+    expect(api.applyModelToTool).not.toHaveBeenCalled();
+    act(() => {
+      context.setAgreedConfigPolicy(true);
+      context.setLaunchAfterApply(false);
+    });
+    let pending!: Promise<void>;
+    act(() => {
+      pending = context.handleLaunch();
+    });
     expect(context.isLaunching).toBe(true);
     act(() => context.setCodexWebSearch(true));
     expect(context.codexWebSearch).toBe(false);
     expect(api.applyModelToTool).toHaveBeenCalledTimes(1);
     await act(async () => {
       resolve({ success: true, message: 'ok' });
+      await vi.advanceTimersByTimeAsync(3000);
+      await pending;
     });
     expect(context.isLaunching).toBe(false);
   });
@@ -1186,7 +1209,8 @@ describe('ZCode model capability preferences', () => {
     expect(context.codexWebSearch).toBe(true);
   });
 
-  it('persists without an API model, applies explicit flips with both values, and isolates tools', async () => {
+  it('stages both values until explicit apply and isolates tools', async () => {
+    vi.useFakeTimers();
     await mount();
     expect(context.zcodeWebSearch).toBe(false);
     expect(context.zcodeImageInput).toBe(true);
@@ -1195,23 +1219,22 @@ describe('ZCode model capability preferences', () => {
     expect(storage.get('echobird_zcode_web_search')).toBe('true');
     act(() => context.handleSelectModel('zcode', 'fixture'));
     await act(async () => context.setZCodeCapability('imageInput', false));
-    expect(api.applyModelToTool).toHaveBeenLastCalledWith(
-      'zcode',
-      expect.objectContaining({
-        model: 'vision/fixture',
-        webSearch: true,
-        imageInput: false,
-      })
-    );
+    expect(api.applyModelToTool).not.toHaveBeenCalled();
     await act(async () => context.setZCodeCapability('webSearch', false));
-    expect(api.applyModelToTool).toHaveBeenLastCalledWith(
-      'zcode',
-      expect.objectContaining({
-        webSearch: false,
-        imageInput: false,
-      })
-    );
+    expect(api.applyModelToTool).not.toHaveBeenCalled();
     expect(storage.get('echobird_zcode_image_input')).toBe('false');
+    act(() => {
+      context.setAgreedConfigPolicy(true);
+      context.setLaunchAfterApply(false);
+    });
+    await act(async () => {
+      await context.handleLaunch();
+      await vi.advanceTimersByTimeAsync(3000);
+    });
+    expect(api.applyModelToTool).toHaveBeenCalledExactlyOnceWith(
+      'zcode',
+      expect.objectContaining({ webSearch: false, imageInput: false })
+    );
     const calls = vi.mocked(api.applyModelToTool).mock.calls.length;
     await act(async () => context.setSelectedTool('codex'));
     act(() => context.setZCodeCapability('imageInput', true));
@@ -1230,6 +1253,14 @@ describe('ZCode model capability preferences', () => {
       })
     );
     act(() => context.setZCodeCapability('webSearch', true));
+    expect(api.applyModelToTool).not.toHaveBeenCalled();
+    act(() => {
+      context.setAgreedConfigPolicy(true);
+      context.setLaunchAfterApply(false);
+    });
+    act(() => {
+      void context.handleLaunch();
+    });
     expect(context.isLaunching).toBe(true);
     act(() => context.setZCodeCapability('imageInput', false));
     expect(api.applyModelToTool).toHaveBeenCalledTimes(1);
@@ -2757,7 +2788,7 @@ describe.each(['workbuddy', 'workbuddyai'] as const)('%s image capability prefer
     expect(context.zcodeImageInput).toBe(true);
     expect(storage.has('echobird_zcode_image_input')).toBe(false);
   });
-  it('passes the saved value through normal apply and explicit flips without launching', async () => {
+  it('passes saved and staged values through explicit apply without launching', async () => {
     vi.useFakeTimers();
     storage.set(`echobird_${tool}_image_input`, 'false');
     storage.set(`echobird_${tool}_1m_mode`, 'true');
@@ -2776,11 +2807,13 @@ describe.each(['workbuddy', 'workbuddyai'] as const)('%s image capability prefer
       expect.objectContaining({ imageInput: false, oneMContext: true })
     );
     await act(async () => context.setWorkBuddyImageInput(true));
-    expect(api.applyModelToTool).toHaveBeenLastCalledWith(
-      tool,
-      expect.objectContaining({ imageInput: true, oneMContext: true })
-    );
+    expect(api.applyModelToTool).toHaveBeenCalledTimes(1);
     await act(async () => context.setWorkBuddy1mMode(false));
+    expect(api.applyModelToTool).toHaveBeenCalledTimes(1);
+    await act(async () => {
+      await context.handleLaunch();
+      await vi.advanceTimersByTimeAsync(3000);
+    });
     expect(api.applyModelToTool).toHaveBeenLastCalledWith(
       tool,
       expect.objectContaining({ imageInput: true, oneMContext: false })
@@ -2801,6 +2834,14 @@ describe.each(['workbuddy', 'workbuddyai'] as const)('%s image capability prefer
       })
     );
     act(() => context.setWorkBuddyImageInput(false));
+    expect(api.applyModelToTool).not.toHaveBeenCalled();
+    act(() => {
+      context.setAgreedConfigPolicy(true);
+      context.setLaunchAfterApply(false);
+    });
+    act(() => {
+      void context.handleLaunch();
+    });
     expect(context.isLaunching).toBe(true);
     act(() => context.setWorkBuddyImageInput(true));
     act(() => context.setWorkBuddy1mMode(true));
@@ -2915,20 +2956,15 @@ describe.each(['mimocode', 'mimodesktop'] as const)('%s model capabilities', (to
     expect(api.applyModelToTool).not.toHaveBeenCalled();
     expect(api.startTool).not.toHaveBeenCalled();
   });
-  it('uses both saved values for explicit flips and the normal apply button', async () => {
+  it('uses both saved values for staged choices and the normal apply button', async () => {
     vi.useFakeTimers();
     await mount();
     act(() => context.handleSelectModel(tool, 'fixture'));
-    await act(async () => context.setMimoCapability('imageInput', false));
-    expect(api.applyModelToTool).toHaveBeenLastCalledWith(
-      tool,
-      expect.objectContaining({ imageInput: false, oneMContext: false })
-    );
-    await act(async () => context.setMimoCapability('oneMContext', true));
-    expect(api.applyModelToTool).toHaveBeenLastCalledWith(
-      tool,
-      expect.objectContaining({ imageInput: false, oneMContext: true })
-    );
+    act(() => {
+      context.setMimoCapability('imageInput', false);
+      context.setMimoCapability('oneMContext', true);
+    });
+    expect(api.applyModelToTool).not.toHaveBeenCalled();
     expect(storage.get(`echobird_${tool}_image_input`)).toBe('false');
     expect(storage.get(`echobird_${tool}_1m_mode`)).toBe('true');
     expect(storage.has(`echobird_${other}_1m_mode`)).toBe(false);
@@ -2956,6 +2992,14 @@ describe.each(['mimocode', 'mimodesktop'] as const)('%s model capabilities', (to
       })
     );
     act(() => context.setMimoCapability('oneMContext', true));
+    expect(api.applyModelToTool).not.toHaveBeenCalled();
+    act(() => {
+      context.setAgreedConfigPolicy(true);
+      context.setLaunchAfterApply(false);
+    });
+    act(() => {
+      void context.handleLaunch();
+    });
     expect(context.isLaunching).toBe(true);
     act(() => context.setMimoCapability('imageInput', false));
     expect(context.mimoImageInput).toBe(true);
@@ -3062,23 +3106,19 @@ describe.each(['minimaxcode', 'minimaxdesktop'] as const)('%s model capabilities
     expect(api.startMinimaxLogin).not.toHaveBeenCalled();
     expect(api.refreshMinimaxAccount).not.toHaveBeenCalled();
   });
-  it('passes both flags on flips and normal apply, including through the other entry', async () => {
+  it('passes both flags on explicit apply, including through the other entry', async () => {
     vi.useFakeTimers();
     await mount();
     act(() => context.handleSelectModel(tool, 'fixture'));
-    await act(async () => context.setMinimaxCapability('imageInput', false));
-    expect(api.applyModelToTool).toHaveBeenLastCalledWith(
-      tool,
-      expect.objectContaining({ imageInput: false, oneMContext: false })
-    );
-    await act(async () => context.setMinimaxCapability('oneMContext', true));
-    expect(api.applyModelToTool).toHaveBeenLastCalledWith(
-      tool,
-      expect.objectContaining({ imageInput: false, oneMContext: true })
-    );
+    act(() => {
+      context.setMinimaxCapability('imageInput', false);
+      context.setMinimaxCapability('oneMContext', true);
+    });
+    expect(api.applyModelToTool).not.toHaveBeenCalled();
     expect(storage.get('echobird_minimax_image_input')).toBe('false');
     expect(storage.get('echobird_minimax_1m_mode')).toBe('true');
     await act(async () => context.setSelectedTool(other));
+    act(() => context.handleSelectModel(other, 'fixture'));
     expect(context.minimax1mMode).toBe(true);
     act(() => {
       context.setAgreedConfigPolicy(true);
@@ -3104,6 +3144,14 @@ describe.each(['minimaxcode', 'minimaxdesktop'] as const)('%s model capabilities
       })
     );
     act(() => context.setMinimaxCapability('oneMContext', true));
+    expect(api.applyModelToTool).not.toHaveBeenCalled();
+    act(() => {
+      context.setAgreedConfigPolicy(true);
+      context.setLaunchAfterApply(false);
+    });
+    act(() => {
+      void context.handleLaunch();
+    });
     expect(context.isLaunching).toBe(true);
     act(() => context.setMinimaxCapability('imageInput', false));
     expect(context.minimaxImageInput).toBe(true);
@@ -3217,20 +3265,15 @@ describe.each(['qoder', 'qodercn'] as const)('%s model capabilities', (tool) => 
     expect(api.applyModelToTool).not.toHaveBeenCalled();
     expect(api.startTool).not.toHaveBeenCalled();
   });
-  it('uses both saved values for explicit flips and the normal apply button', async () => {
+  it('uses both saved values for staged choices and the normal apply button', async () => {
     vi.useFakeTimers();
     await mount();
     act(() => context.handleSelectModel(tool, 'fixture'));
-    await act(async () => context.setQoderCapability('imageInput', false));
-    expect(api.applyModelToTool).toHaveBeenLastCalledWith(
-      tool,
-      expect.objectContaining({ imageInput: false, oneMContext: false })
-    );
-    await act(async () => context.setQoderCapability('oneMContext', true));
-    expect(api.applyModelToTool).toHaveBeenLastCalledWith(
-      tool,
-      expect.objectContaining({ imageInput: false, oneMContext: true })
-    );
+    act(() => {
+      context.setQoderCapability('imageInput', false);
+      context.setQoderCapability('oneMContext', true);
+    });
+    expect(api.applyModelToTool).not.toHaveBeenCalled();
     expect(storage.get(`echobird_${tool}_image_input`)).toBe('false');
     expect(storage.get(`echobird_${tool}_1m_mode`)).toBe('true');
     expect(storage.has(`echobird_${other}_1m_mode`)).toBe(false);
@@ -3258,6 +3301,14 @@ describe.each(['qoder', 'qodercn'] as const)('%s model capabilities', (tool) => 
       })
     );
     act(() => context.setQoderCapability('oneMContext', true));
+    expect(api.applyModelToTool).not.toHaveBeenCalled();
+    act(() => {
+      context.setAgreedConfigPolicy(true);
+      context.setLaunchAfterApply(false);
+    });
+    act(() => {
+      void context.handleLaunch();
+    });
     expect(context.isLaunching).toBe(true);
     act(() => context.setQoderCapability('imageInput', false));
     expect(context.qoderImageInput).toBe(true);
@@ -3374,20 +3425,15 @@ describe.each(['dsh'] as const)('%s model capabilities', (tool) => {
     expect(api.applyModelToTool).not.toHaveBeenCalled();
     expect(api.startTool).not.toHaveBeenCalled();
   });
-  it('uses both saved values for explicit flips and the normal apply button', async () => {
+  it('uses both saved values for staged choices and the normal apply button', async () => {
     vi.useFakeTimers();
     await mount();
     act(() => context.handleSelectModel(tool, 'fixture'));
-    await act(async () => context.setDshCapability('imageInput', false));
-    expect(api.applyModelToTool).toHaveBeenLastCalledWith(
-      tool,
-      expect.objectContaining({ imageInput: false, oneMContext: false })
-    );
-    await act(async () => context.setDshCapability('oneMContext', true));
-    expect(api.applyModelToTool).toHaveBeenLastCalledWith(
-      tool,
-      expect.objectContaining({ imageInput: false, oneMContext: true })
-    );
+    act(() => {
+      context.setDshCapability('imageInput', false);
+      context.setDshCapability('oneMContext', true);
+    });
+    expect(api.applyModelToTool).not.toHaveBeenCalled();
     expect(storage.get(`echobird_${tool}_image_input`)).toBe('false');
     expect(storage.get(`echobird_${tool}_1m_mode`)).toBe('true');
     expect(storage.has(`echobird_${other}_1m_mode`)).toBe(false);
@@ -3415,6 +3461,14 @@ describe.each(['dsh'] as const)('%s model capabilities', (tool) => {
       })
     );
     act(() => context.setDshCapability('oneMContext', true));
+    expect(api.applyModelToTool).not.toHaveBeenCalled();
+    act(() => {
+      context.setAgreedConfigPolicy(true);
+      context.setLaunchAfterApply(false);
+    });
+    act(() => {
+      void context.handleLaunch();
+    });
     expect(context.isLaunching).toBe(true);
     act(() => context.setDshCapability('imageInput', false));
     expect(context.dshImageInput).toBe(true);

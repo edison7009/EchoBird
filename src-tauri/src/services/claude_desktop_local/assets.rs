@@ -1,0 +1,204 @@
+use serde_json::Value;
+use std::{
+    fs::File,
+    io::{Read, Seek, SeekFrom},
+    path::{Path, PathBuf},
+    sync::Arc,
+};
+
+pub(super) struct Archive {
+    pub path: PathBuf,
+    files: Value,
+    start: u64,
+    length: u64,
+    pub build_id: String,
+}
+
+pub(super) fn installed() -> Result<Option<Arc<Archive>>, String> {
+    let Some(executable) = super::super::tool_manager::get_tool_exe_path("claudedesktop") else {
+        return Ok(None);
+    };
+    let executable = std::fs::canonicalize(executable).map_err(|error| error.to_string())?;
+    let directory = executable
+        .parent()
+        .ok_or("Claude executable has no directory")?;
+    #[cfg(target_os = "macos")]
+    let resources = directory.join("../Resources");
+    #[cfg(not(target_os = "macos"))]
+    let resources = directory.join("resources");
+    let path = resources.join("ion-dist.asar");
+    if !path.is_file() {
+        return Ok(None);
+    }
+    Archive::open(path).map(|archive| Some(Arc::new(archive)))
+}
+
+impl Archive {
+    fn open(path: PathBuf) -> Result<Self, String> {
+        let mut file = File::open(&path).map_err(|error| error.to_string())?;
+        let length = file.metadata().map_err(|error| error.to_string())?.len();
+        let mut prefix = [0u8; 16];
+        file.read_exact(&mut prefix)
+            .map_err(|error| error.to_string())?;
+        let header_size = u32::from_le_bytes(prefix[4..8].try_into().unwrap()) as u64;
+        let json_size = u32::from_le_bytes(prefix[12..16].try_into().unwrap()) as u64;
+        let start = 8 + header_size;
+        if !(8..=64 * 1024 * 1024).contains(&header_size)
+            || json_size > header_size - 8
+            || start > length
+        {
+            return Err("Invalid Claude Desktop asset archive header".into());
+        }
+        let mut json = vec![0u8; json_size as usize];
+        file.read_exact(&mut json)
+            .map_err(|error| error.to_string())?;
+        let tree: Value = serde_json::from_slice(&json).map_err(|error| error.to_string())?;
+        let mut archive = Self {
+            path,
+            files: tree["files"].clone(),
+            start,
+            length,
+            build_id: String::new(),
+        };
+        let html = archive
+            .read("/index.html")?
+            .ok_or("Claude Desktop shell is missing")?;
+        let html = std::str::from_utf8(&html).map_err(|error| error.to_string())?;
+        archive.build_id = html
+            .split_once("data-build-id=\"")
+            .and_then(|(_, rest)| rest.split_once('"'))
+            .map(|(id, _)| id.to_owned())
+            .filter(|id| !id.is_empty() && id.len() <= 128)
+            .ok_or("Claude Desktop shell build ID is missing")?;
+        Ok(archive)
+    }
+
+    pub fn read(&self, path: &str) -> Result<Option<Vec<u8>>, String> {
+        let Some(member) = path.strip_prefix('/') else {
+            return Ok(None);
+        };
+        if member.contains(['\\', '%', '\0'])
+            || member
+                .split('/')
+                .any(|part| part.is_empty() || matches!(part, "." | ".."))
+        {
+            return Ok(None);
+        }
+        let public = ["assets/", "audio/", "images/", "i18n/"]
+            .iter()
+            .any(|prefix| member.starts_with(prefix))
+            || matches!(
+                member,
+                "index.html"
+                    | "client-shell-v1.html"
+                    | "frame-connect.html"
+                    | "frame-manage.html"
+                    | "frame-shell.html"
+                    | "favicon.ico"
+                    | "favicon-internal.ico"
+                    | "favicon-staging.ico"
+                    | "robots.txt"
+                    | "scc.json"
+                    | "third-party-notices.txt"
+            );
+        if !public {
+            return Ok(None);
+        }
+        let mut parts = member.split('/');
+        let mut entry = &self.files[parts.next().unwrap()];
+        for part in parts {
+            entry = &entry["files"][part];
+        }
+        if entry.is_null() || entry.get("link").is_some() || entry["unpacked"] == true {
+            return Ok(None);
+        }
+        let size = entry["size"]
+            .as_u64()
+            .filter(|size| *size <= 64 * 1024 * 1024)
+            .ok_or("Invalid Claude asset length")?;
+        let offset = entry["offset"]
+            .as_str()
+            .and_then(|value| value.parse::<u64>().ok())
+            .and_then(|offset| self.start.checked_add(offset))
+            .filter(|offset| {
+                offset
+                    .checked_add(size)
+                    .is_some_and(|end| end <= self.length)
+            })
+            .ok_or("Invalid Claude asset offset")?;
+        let mut file = File::open(&self.path).map_err(|error| error.to_string())?;
+        file.seek(SeekFrom::Start(offset))
+            .map_err(|error| error.to_string())?;
+        let mut bytes = vec![0u8; size as usize];
+        file.read_exact(&mut bytes)
+            .map_err(|error| error.to_string())?;
+        Ok(Some(bytes))
+    }
+}
+
+pub(super) fn content_type(path: &str) -> &'static str {
+    match Path::new(path).extension().and_then(|value| value.to_str()) {
+        Some("html") => "text/html; charset=utf-8",
+        Some("js" | "mjs") => "text/javascript; charset=utf-8",
+        Some("css") => "text/css; charset=utf-8",
+        Some("json") => "application/json; charset=utf-8",
+        Some("svg") => "image/svg+xml",
+        Some("png") => "image/png",
+        Some("jpg" | "jpeg") => "image/jpeg",
+        Some("webp") => "image/webp",
+        Some("gif") => "image/gif",
+        Some("ico") => "image/x-icon",
+        Some("woff") => "font/woff",
+        Some("woff2") => "font/woff2",
+        Some("wasm") => "application/wasm",
+        Some("mp3") => "audio/mpeg",
+        Some("wav") => "audio/wav",
+        Some("mp4") => "video/mp4",
+        Some("txt") => "text/plain; charset=utf-8",
+        _ => "application/octet-stream",
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+
+    #[test]
+    fn archive_serves_public_resources_and_rejects_non_public_or_out_of_bounds_entries() {
+        let directory =
+            std::env::temp_dir().join(format!("claude-assets-{}", uuid::Uuid::new_v4()));
+        std::fs::create_dir(&directory).unwrap();
+        let path = directory.join("ion-dist.asar");
+        let html = b"<html data-build-id=\"fixture-build\"></html>";
+        let tree = json!({"files":{
+            "index.html":{"size":html.len(),"offset":"0"},
+            "assets":{"files":{"app.js":{"size":2,"offset":html.len().to_string()},"invalid.js":{"size":4,"offset":"999999"}}},
+            "private.json":{"size":2,"offset":html.len().to_string()}
+        }});
+        let json = serde_json::to_vec(&tree).unwrap();
+        let mut bytes = Vec::new();
+        bytes.extend_from_slice(&4u32.to_le_bytes());
+        bytes.extend_from_slice(&((json.len() + 8) as u32).to_le_bytes());
+        bytes.extend_from_slice(&0u32.to_le_bytes());
+        bytes.extend_from_slice(&(json.len() as u32).to_le_bytes());
+        bytes.extend_from_slice(&json);
+        bytes.extend_from_slice(html);
+        bytes.extend_from_slice(b"js");
+        std::fs::write(&path, bytes).unwrap();
+        let archive = Archive::open(path).unwrap();
+        assert_eq!(archive.build_id, "fixture-build");
+        assert_eq!(archive.read("/index.html").unwrap().unwrap(), html);
+        assert_eq!(archive.read("/assets/app.js").unwrap().unwrap(), b"js");
+        for path in [
+            "/private.json",
+            "/assets/../private.json",
+            "/assets/%2e%2e/private.json",
+            "/assets\\app.js",
+        ] {
+            assert!(archive.read(path).unwrap().is_none());
+        }
+        assert!(archive.read("/assets/invalid.js").is_err());
+        std::fs::remove_dir_all(directory).unwrap();
+    }
+}

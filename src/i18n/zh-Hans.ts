@@ -100,8 +100,6 @@ const zhHans: Partial<Translations> = {
   'usageIsland.style.list': '列表',
   'usageIsland.style.dial': '圆盘',
   'usageIsland.style.line': '线条',
-  'settings.routerStatistics': '记录统计',
-  'settings.routerStatisticsError': '无法读取或保存统计记录设置，请重试。',
   'settings.developerMode': '开发者预览',
   'settings.developerModeHint':
     '开发者预览主要用于开发与测试，部分功能未必适合日常使用。关闭后，将暂停开发者页面的所有功能，减少资源开销。预览中的功能可能在后续版本中调整或移除，未来也会加入更多有趣的功能。',
@@ -629,11 +627,10 @@ const zhHans: Partial<Translations> = {
   'agent.addCurrentAccount': '添加账号',
   'agent.accountSnapshot': '账号快照',
   'agent.accountSnapshotHint':
-    'Claude桌面端账号管理采用「快照」模式：更安全、更稳定。\n\n1. 首次添加账号\n保持账号已登录，完全退出 Claude 桌面端（右键托盘图标退出，不要用任务管理器强制结束），等待 30 到 60 秒，再点击「账号快照」。\n\n2. 添加更多账号\n在上一个账号已登录的状态下，同样完全退出 Claude 桌面端，点击「重置环境 + 登录」，Claude 会自动打开，登录新账号。登录完成后，保持登录，再次完全退出并等待 30 到 60 秒，点击「账号快照」完成保存。\n\n注意：不要在 Claude 里点「退出登录」，否则已保存的账号会失效。',
+    'Claude 桌面端账号通过快照保存。\n\n1. 保存当前账号\n保持账号已登录，完全退出 Claude 桌面端（右键托盘图标退出），等待 30 到 60 秒，再点击「账号快照」。\n\n2. 登录其他账号\n需要保留当前账号时，请先保存快照。点击「重置环境 + 登录」会清理本地登录并自动打开 Claude。登录新账号后，保持登录，完全退出并等待 30 到 60 秒，再点击「账号快照」保存。\n\n注意：在 Claude 内退出登录可能使对应的已保存会话失效。',
   'agent.accountSnapshotNoticeTitle': '账号快照须知',
   'agent.accountSnapshotNext': '重置环境 + 登录',
-  'agent.accountSnapshotNextUnsupported':
-    '当前账号已保存，但插件版本过旧，无法重置环境。请先在插件页更新 Claude 桌面端插件。',
+  'agent.accountResetting': '正在重置环境',
   'agent.accountSnapshotSaving': '正在保存快照',
   'agent.zcodeSwitchProvider': '切换登录平台（当前为 {provider}）',
   'agent.minimaxRegionCn': '国内版',

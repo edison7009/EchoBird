@@ -98,8 +98,6 @@ pub struct LoginPoll {
     account: Option<Account>,
     awaiting_client_exit: bool,
     expires_at: Option<i64>,
-    /// The sign-in was removed from this device for the next account.
-    cleared: bool,
 }
 
 /// Claude Desktop's data folder. The Microsoft Store app kept it in its
@@ -107,7 +105,8 @@ pub struct LoginPoll {
 /// `%LOCALAPPDATA%\Claude-Data\claude_<publisher>`; the direct download uses
 /// `%APPDATA%\Claude`. Old folders can stay behind without a web session, so
 /// among folders with a cookie store, the one whose config.json changed last
-/// is in use.
+/// is in use. Store file virtualization can keep config.json in its package
+/// overlay while Chromium keeps Cookies and Local State in the ordinary folder.
 pub(crate) fn data_dir() -> Result<PathBuf, String> {
     let default = dirs::config_dir()
         .map(|p| p.join("Claude"))
@@ -146,13 +145,48 @@ fn newest_config_dir(candidates: Vec<PathBuf>) -> Option<PathBuf> {
     candidates
         .into_iter()
         .filter_map(|dir| {
-            let changed = std::fs::metadata(dir.join("config.json"))
+            let changed = std::fs::metadata(native_config_path(&dir))
                 .and_then(|meta| meta.modified())
                 .ok()?;
             Some((changed, dir))
         })
         .max_by_key(|(changed, _)| *changed)
         .map(|(_, dir)| dir)
+}
+
+pub(crate) fn native_config_path(dir: &Path) -> PathBuf {
+    #[cfg(windows)]
+    if dirs::config_dir()
+        .map(|path| path.join("Claude"))
+        .as_deref()
+        == Some(dir)
+    {
+        if let Some(overlay) = store_config_overlay() {
+            return overlay_config_path(dir, &overlay);
+        }
+    }
+    dir.join("config.json")
+}
+
+#[cfg(windows)]
+fn store_config_overlay() -> Option<PathBuf> {
+    let executable = super::tool_manager::get_tool_exe_path("claudedesktop")?;
+    let uri = super::tool_manager::get_tool_launch_uri("claudedesktop")?;
+    let (package, _) = super::msix::application_location(&uri)?;
+    if !Path::new(&executable).starts_with(package) {
+        return None;
+    }
+    super::msix::roaming_data_dir(&uri, "Claude")
+}
+
+#[cfg(any(windows, test))]
+fn overlay_config_path(dir: &Path, overlay: &Path) -> PathBuf {
+    let config = overlay.join("config.json");
+    if config.is_file() && cookie_path(overlay).is_err() {
+        config
+    } else {
+        dir.join("config.json")
+    }
 }
 fn store_path() -> Result<PathBuf, String> {
     Ok(dirs::home_dir()
@@ -230,14 +264,20 @@ fn cookies(db: &Connection) -> Result<Vec<Cookie>, String> {
     result
 }
 fn native_config(dir: &Path) -> Result<Value, String> {
-    if dir.join("config.json").exists() {
-        read(&dir.join("config.json"))
+    config_at(&native_config_path(dir))
+}
+fn config_at(path: &Path) -> Result<Value, String> {
+    if path.exists() {
+        read(path)
     } else {
         Ok(json!({}))
     }
 }
 fn snapshot(dir: &Path) -> Result<Snapshot, String> {
-    let config = native_config(dir)?;
+    snapshot_at(dir, &native_config_path(dir))
+}
+fn snapshot_at(dir: &Path, config_path: &Path) -> Result<Snapshot, String> {
+    let config = config_at(config_path)?;
     let db = cookie_db(dir, false)?;
     let cookie_version = cookie_version(&db);
     Ok(Snapshot {
@@ -458,9 +498,8 @@ fn auth_config(config: &Value) -> BTreeMap<String, Value> {
         })
         .collect()
 }
-/// The user quits Claude Desktop before snapshots and switches: its cookie
-/// store is locked while it runs, and a forced stop would lose the session it
-/// has not written yet.
+/// Native authentication is read or replaced only after Claude releases storage.
+/// Explicit switches stop it first. Account snapshot capture checks user exit.
 async fn require_closed() -> Result<(), String> {
     if super::process_manager::desktop_tool_is_running("claudedesktop").await? {
         return Err("accountError.closeClient".into());
@@ -468,36 +507,23 @@ async fn require_closed() -> Result<(), String> {
     Ok(())
 }
 /// Saves the account Claude Desktop is signed in to and changes nothing else.
-/// With `next`, it then removes that sign-in from this device so the next
-/// account can sign in. Signing out inside Claude Desktop would instead revoke
-/// the session on the server and end the saved snapshot.
-pub async fn start_login(next: bool) -> Result<LoginStart, String> {
+pub async fn start_login() -> Result<LoginStart, String> {
+    let _guard = ACCOUNT_LOCK.lock().await;
     let dir = data_dir()?;
+    let config_path = native_config_path(&dir);
     cookie_path(&dir)?;
-    let uuid = signed_in_account(&native_config(&dir)?).ok_or("accountError.noAccount")?;
+    let uuid = signed_in_account(&config_at(&config_path)?).ok_or("accountError.noAccount")?;
     require_closed().await?;
-    let (snapshot, org) = read_signed_in(&dir, &uuid)?;
+    let (snapshot, org) = read_signed_in(&dir, &config_path, &uuid)?;
     let token = oauth::access_token(&dir, &snapshot.config, &uuid, &org, oauth::PROFILE_SCOPE)?;
     let profile = oauth::profile(&token).await?;
-    let account = {
-        // Switches write the same files; the client may also have been
-        // reopened during the profile request.
-        let _guard = ACCOUNT_LOCK.lock().await;
-        if next {
-            require_closed().await?;
-        }
-        let account = store_snapshot(&store_path()?, &uuid, &org, snapshot, &profile, !next)?;
-        if next {
-            clear_sign_in(&dir)?;
-        }
-        account
-    };
+    require_closed().await?;
+    let account = store_snapshot(&store_path()?, &uuid, &org, snapshot, &profile, true)?;
     let login_id = uuid::Uuid::new_v4().to_string();
     *PENDING.lock().map_err(|_| "accountError.busy")? = Some((
         login_id.clone(),
         LoginPoll {
             account: Some(account),
-            cleared: next,
             ..Default::default()
         },
     ));
@@ -505,6 +531,19 @@ pub async fn start_login(next: bool) -> Result<LoginStart, String> {
         login_id,
         expires_at: chrono::Utc::now().timestamp() + 60,
     })
+}
+
+/// Clears only this device's sign-in. Saved sessions remain available to apply.
+pub async fn reset_login() -> Result<(), String> {
+    // Restore uses the manager lock before ACCOUNT_LOCK, as native launch does.
+    let result = super::tool_config_manager::restore_tool_to_official("claudedesktop").await;
+    if !result.success {
+        return Err(result.message);
+    }
+    let _guard = ACCOUNT_LOCK.lock().await;
+    require_closed().await?;
+    let dir = data_dir()?;
+    clear_sign_in(&dir, &native_config_path(&dir))
 }
 /// The cookie store's schema version; 24 added host-bound cookie values.
 fn cookie_version(db: &Connection) -> i64 {
@@ -516,7 +555,19 @@ fn cookie_version(db: &Connection) -> i64 {
     .unwrap_or(0)
 }
 /// Removes the closed client's sign-in locally, leaving the session valid.
-fn clear_sign_in(dir: &Path) -> Result<(), String> {
+fn clear_sign_in(dir: &Path, config_path: &Path) -> Result<(), String> {
+    if cookie_path(dir).is_err() {
+        let mut config = config_at(config_path)?;
+        let object = config.as_object_mut().ok_or("accountError.format")?;
+        let original = object.clone();
+        for key in AUTH_CONFIG {
+            object.remove(*key);
+        }
+        if *object != original {
+            write(config_path, &config)?;
+        }
+        return Ok(());
+    }
     let mut db = cookie_db(dir, true)?;
     let cookie_version = cookie_version(&db);
     let nothing = Snapshot {
@@ -524,14 +575,18 @@ fn clear_sign_in(dir: &Path) -> Result<(), String> {
         config: BTreeMap::new(),
         cookie_version,
     };
-    restore(&mut db, &dir.join("config.json"), &nothing)
+    restore(&mut db, config_path, &nothing)
 }
 /// Reads the closed client's sign-in as `uuid` and the organization it uses.
-fn read_signed_in(dir: &Path, uuid: &str) -> Result<(Snapshot, String), String> {
-    if signed_in_account(&native_config(dir)?).as_deref() != Some(uuid) {
+fn read_signed_in(
+    dir: &Path,
+    config_path: &Path,
+    uuid: &str,
+) -> Result<(Snapshot, String), String> {
+    if signed_in_account(&config_at(config_path)?).as_deref() != Some(uuid) {
         return Err("accountError.noAccount".into());
     }
-    let mut snapshot = snapshot(dir)?;
+    let mut snapshot = snapshot_at(dir, config_path)?;
     let (_, org) = session_values(dir, &snapshot).map_err(|error| {
         if error == "accountError.loginRequired" {
             "accountError.noAccount".to_string()
@@ -597,7 +652,7 @@ fn restore(db: &mut Connection, config_path: &Path, snapshot: &Snapshot) -> Resu
     if (version >= 24) != (snapshot.cookie_version >= 24) {
         return Err("accountError.format".into());
     }
-    let mut config: Value = read(config_path)?;
+    let mut config = config_at(config_path)?;
     let original = config.clone();
     let object = config.as_object_mut().ok_or("accountError.format")?;
     for name in AUTH_CONFIG {
@@ -658,8 +713,18 @@ struct LocalModeBackup {
     #[serde(default)]
     prepared: bool,
     directory: PathBuf,
+    #[serde(default)]
+    config_path: Option<PathBuf>,
     snapshot: Option<Snapshot>,
     config: BTreeMap<String, Value>,
+}
+
+impl LocalModeBackup {
+    fn config_path(&self) -> PathBuf {
+        self.config_path
+            .clone()
+            .unwrap_or_else(|| self.directory.join("config.json"))
+    }
 }
 
 fn local_mode_backup_path() -> Result<PathBuf, String> {
@@ -672,18 +737,20 @@ pub(crate) async fn begin_local_mode() -> Result<(), String> {
     let _guard = ACCOUNT_LOCK.lock().await;
     require_closed().await?;
     let path = local_mode_backup_path()?;
-    capture_local_mode_at(&data_dir()?, &path)?;
+    let directory = data_dir()?;
+    capture_local_mode_at(&directory, &native_config_path(&directory), &path)?;
     let mut backup: LocalModeBackup = read(&path)?;
     if !backup.prepared {
+        let config_path = backup.config_path();
         if cookie_path(&backup.directory).is_ok() {
-            clear_sign_in(&backup.directory)?;
+            clear_sign_in(&backup.directory, &config_path)?;
         } else {
-            let mut config = native_config(&backup.directory)?;
+            let mut config = config_at(&config_path)?;
             let object = config.as_object_mut().ok_or("accountError.format")?;
             for key in AUTH_CONFIG {
                 object.remove(*key);
             }
-            write(&backup.directory.join("config.json"), &config)?;
+            write(&config_path, &config)?;
         }
         backup.prepared = true;
         write(&path, &backup)?;
@@ -691,14 +758,14 @@ pub(crate) async fn begin_local_mode() -> Result<(), String> {
     Ok(())
 }
 
-fn capture_local_mode_at(directory: &Path, path: &Path) -> Result<(), String> {
+fn capture_local_mode_at(directory: &Path, config_path: &Path, path: &Path) -> Result<(), String> {
     if path.exists() {
         let _: LocalModeBackup = read(path)?;
         return Ok(());
     }
-    let config = auth_config(&native_config(directory)?);
+    let config = auth_config(&config_at(config_path)?);
     let snapshot = if cookie_path(directory).is_ok() {
-        Some(snapshot(directory)?)
+        Some(snapshot_at(directory, config_path)?)
     } else {
         None
     };
@@ -707,6 +774,7 @@ fn capture_local_mode_at(directory: &Path, path: &Path) -> Result<(), String> {
         &LocalModeBackup {
             prepared: false,
             directory: directory.into(),
+            config_path: Some(config_path.into()),
             snapshot,
             config,
         },
@@ -730,7 +798,7 @@ async fn restore_local_mode() -> Result<(), String> {
 
 fn restore_local_mode_at(path: &Path) -> Result<(), String> {
     let backup: LocalModeBackup = read(path)?;
-    let config_path = backup.directory.join("config.json");
+    let config_path = backup.config_path();
     if cookie_path(&backup.directory).is_ok() {
         let mut db = cookie_db(&backup.directory, true)?;
         let snapshot = backup.snapshot.unwrap_or_else(|| Snapshot {
@@ -747,7 +815,7 @@ fn restore_local_mode_at(path: &Path) -> Result<(), String> {
         if backup.snapshot.is_some() {
             return Err("accountError.initializeClient".into());
         }
-        let mut config = native_config(&backup.directory)?;
+        let mut config = config_at(&config_path)?;
         let object = config.as_object_mut().ok_or("accountError.format")?;
         for key in AUTH_CONFIG {
             object.remove(*key);
@@ -759,15 +827,20 @@ fn restore_local_mode_at(path: &Path) -> Result<(), String> {
 }
 
 pub async fn switch(id: &str) -> Result<Account, String> {
+    let directory = data_dir()?;
+    let path = store_path()?;
+    let store = load_store_at(&path)?;
+    let saved = store.get(id).ok_or("accountError.invalidAccount")?;
+    let (_, org) = session_values(&directory, &saved.snapshot)?;
+    validate_saved_identity(saved, id, &org)?;
+    // Launch owns the manager lock before ACCOUNT_LOCK. Stop before acquiring
+    // ACCOUNT_LOCK here so simultaneous explicit operations keep that order.
+    super::process_manager::stop_desktop_for_account("claudedesktop").await?;
     let _guard = ACCOUNT_LOCK.lock().await;
     restore_local_mode().await?;
-    switch_at(
-        id,
-        &data_dir()?,
-        &store_path()?,
-        require_closed(),
-        |target| super::claude_desktop_history::prepare(Some(target)),
-    )
+    switch_at(id, &directory, &path, require_closed(), |target| {
+        super::claude_desktop_history::prepare(Some(target))
+    })
     .await
 }
 async fn switch_at<S, H, HF>(
@@ -806,7 +879,7 @@ where
     } else {
         saved.snapshot.clone()
     };
-    restore(&mut db, &dir.join("config.json"), &snapshot)?;
+    restore(&mut db, &native_config_path(dir), &snapshot)?;
     store
         .get_mut(id)
         .ok_or("accountError.invalidAccount")?
@@ -1354,7 +1427,7 @@ mod tests {
             "organization": {"uuid": org, "organization_type": "claude_pro"}
         });
         let before = std::fs::read(dir.join("Cookies")).unwrap();
-        let (snapshot, read_org) = read_signed_in(&dir, uuid).unwrap();
+        let (snapshot, read_org) = read_signed_in(&dir, &dir.join("config.json"), uuid).unwrap();
         assert_eq!(read_org, org);
         let account = store_snapshot(&store_path, uuid, org, snapshot, &profile, true).unwrap();
         assert_eq!(account.id, account_id(uuid, org));
@@ -1378,16 +1451,109 @@ mod tests {
         assert_eq!(read::<Value>(&dir.join("config.json")).unwrap(), config);
         // Another account signed in meanwhile, or no web session: nothing saved.
         assert_eq!(
-            read_signed_in(&dir, "33333333-3333-4333-8333-333333333333").err(),
+            read_signed_in(
+                &dir,
+                &dir.join("config.json"),
+                "33333333-3333-4333-8333-333333333333",
+            )
+            .err(),
             Some("accountError.noAccount".to_string())
         );
         std::fs::remove_dir_all(&dir).unwrap();
         let dir = snapshot_dir(config, None);
         assert_eq!(
-            read_signed_in(&dir, uuid).err(),
+            read_signed_in(&dir, &dir.join("config.json"), uuid).err(),
             Some("accountError.noAccount".to_string())
         );
         std::fs::remove_dir_all(&dir).unwrap();
+    }
+
+    #[test]
+    fn split_store_profile_reads_saves_and_restores_the_overlay_with_root_cookies() {
+        let uuid = "11111111-1111-4111-8111-111111111111";
+        let org = "22222222-2222-4222-8222-222222222222";
+        let dir = snapshot_dir(
+            json!({"locale":"zh-CN","lastKnownAccountUuid":uuid}),
+            Some(org),
+        );
+        let root_config = dir.join("config.json");
+        let root_before = std::fs::read(&root_config).unwrap();
+        let overlay = dir.join("package-overlay");
+        std::fs::create_dir(&overlay).unwrap();
+        assert_eq!(overlay_config_path(&dir, &overlay), root_config);
+        let overlay_config = overlay.join("config.json");
+        let original = json!({"locale":"zh-Hans","lastKnownAccountUuid":uuid,"oauth:tokenCacheV2":"sealed-fixture","theme":"light"});
+        write(&overlay_config, &original).unwrap();
+        let path = overlay_config_path(&dir, &overlay);
+        assert_eq!(path, overlay_config);
+        assert!(signed_in_account(&config_at(&root_config).unwrap()).is_none());
+        let cookie_before = std::fs::read(cookie_path(&dir).unwrap()).unwrap();
+        let (snapshot, read_org) = read_signed_in(&dir, &path, uuid).unwrap();
+        assert_eq!(read_org, org);
+        assert_eq!(snapshot.config["oauth:tokenCacheV2"], "sealed-fixture");
+        let profile = json!({"account":{"uuid":uuid,"email":"fixture@example.test"},"organization":{"uuid":org,"organization_type":"claude_pro"}});
+        let account = store_snapshot(
+            &dir.join("accounts.json"),
+            uuid,
+            org,
+            snapshot,
+            &profile,
+            true,
+        )
+        .unwrap();
+        assert_eq!(account.id, account_id(uuid, org));
+        assert_eq!(std::fs::read(&root_config).unwrap(), root_before);
+        assert_eq!(config_at(&path).unwrap(), original);
+        assert_eq!(
+            std::fs::read(cookie_path(&dir).unwrap()).unwrap(),
+            cookie_before
+        );
+
+        let backup = dir.join("local-backup.json");
+        capture_local_mode_at(&dir, &path, &backup).unwrap();
+        let captured: LocalModeBackup = read(&backup).unwrap();
+        assert_eq!(captured.config_path(), path);
+        clear_sign_in(&dir, &path).unwrap();
+        assert!(signed_in_account(&config_at(&path).unwrap()).is_none());
+        let mut changed = config_at(&path).unwrap();
+        changed["theme"] = json!("dark");
+        write(&path, &changed).unwrap();
+        restore_local_mode_at(&backup).unwrap();
+        let (restored, restored_org) = read_signed_in(&dir, &path, uuid).unwrap();
+        assert_eq!(restored_org, org);
+        assert_eq!(restored.config["oauth:tokenCacheV2"], "sealed-fixture");
+        assert_eq!(config_at(&path).unwrap()["theme"], "dark");
+        assert_eq!(std::fs::read(&root_config).unwrap(), root_before);
+        std::fs::remove_file(&root_config).unwrap();
+        assert_eq!(overlay_config_path(&dir, &overlay), overlay_config);
+        assert!(read_signed_in(&dir, &path, uuid).is_ok());
+        std::fs::write(overlay.join("Cookies"), b"full-profile").unwrap();
+        assert_eq!(overlay_config_path(&dir, &overlay), root_config);
+        std::fs::remove_dir_all(dir).unwrap();
+    }
+
+    #[tokio::test]
+    #[ignore = "read-only credentials probe requiring a signed-in, closed native Claude Desktop"]
+    async fn installed_native_snapshot_credentials_probe() {
+        require_closed().await.unwrap();
+        let directory = data_dir().unwrap();
+        let config_path = native_config_path(&directory);
+        let account = signed_in_account(&config_at(&config_path).unwrap()).unwrap();
+        let (snapshot, org) = read_signed_in(&directory, &config_path, &account).unwrap();
+        let token = oauth::access_token(
+            &directory,
+            &snapshot.config,
+            &account,
+            &org,
+            oauth::PROFILE_SCOPE,
+        )
+        .unwrap();
+        assert!(!token.is_empty());
+        println!(
+            "Native snapshot credential validation passed. Data: {} Config: {}",
+            directory.display(),
+            config_path.display()
+        );
     }
 
     #[test]
@@ -1509,7 +1675,8 @@ mod tests {
             )
             .unwrap();
             drop(db);
-            let (snapshot, read_org) = read_signed_in(&dir, uuid).unwrap();
+            let (snapshot, read_org) =
+                read_signed_in(&dir, &dir.join("config.json"), uuid).unwrap();
             assert_eq!(read_org, org);
             assert!(fingerprint(&snapshot).is_some());
             std::fs::remove_dir_all(&dir).unwrap();
@@ -1524,7 +1691,11 @@ mod tests {
             json!({"locale": "ja", "lastKnownAccountUuid": uuid, "oauth:tokenCache": "a", "oauth:tokenCacheV2": "b"}),
             Some(org),
         );
-        clear_sign_in(&dir).unwrap();
+        let store = dir.join("saved-accounts.json");
+        let original = b"{\"saved\":{\"snapshot\":\"unchanged\"}}";
+        std::fs::write(&store, original).unwrap();
+        clear_sign_in(&dir, &dir.join("config.json")).unwrap();
+        assert_eq!(std::fs::read(&store).unwrap(), original);
         let config = native_config(&dir).unwrap();
         assert_eq!(config, json!({"locale": "ja"}));
         assert!(signed_in_account(&config).is_none());
@@ -1540,6 +1711,58 @@ mod tests {
         drop(db);
         std::fs::remove_dir_all(&dir).unwrap();
     }
+
+    #[test]
+    fn reset_handles_missing_tokens_cookies_and_configuration_without_saving() {
+        let dir = snapshot_dir(json!({"locale":"zh-Hans","theme":"dark"}), None);
+        let config_path = dir.join("config.json");
+        clear_sign_in(&dir, &config_path).unwrap();
+        assert_eq!(config_at(&config_path).unwrap()["locale"], "zh-Hans");
+        std::fs::remove_file(cookie_path(&dir).unwrap()).unwrap();
+        write(
+            &config_path,
+            &json!({"locale":"zh-Hans","lastKnownAccountUuid":"stale","oauth:tokenCache":"stale"}),
+        )
+        .unwrap();
+        clear_sign_in(&dir, &config_path).unwrap();
+        assert_eq!(
+            config_at(&config_path).unwrap(),
+            json!({"locale":"zh-Hans"})
+        );
+        let before = std::fs::read(&config_path).unwrap();
+        clear_sign_in(&dir, &config_path).unwrap();
+        assert_eq!(std::fs::read(&config_path).unwrap(), before);
+        std::fs::remove_file(&config_path).unwrap();
+        clear_sign_in(&dir, &config_path).unwrap();
+        assert!(!config_path.exists());
+        assert!(cookie_path(&dir).is_err());
+        assert!(!dir.join("saved-accounts.json").exists());
+        std::fs::remove_dir_all(dir).unwrap();
+    }
+
+    #[test]
+    fn reset_with_missing_configuration_clears_cookies_and_preserves_unrelated_state() {
+        let dir = snapshot_dir(json!({}), Some("22222222-2222-4222-8222-222222222222"));
+        let config_path = dir.join("config.json");
+        std::fs::remove_file(&config_path).unwrap();
+        clear_sign_in(&dir, &config_path).unwrap();
+        assert!(snapshot_at(&dir, &config_path).unwrap().cookies.is_empty());
+        assert_eq!(config_at(&config_path).unwrap(), json!({}));
+        std::fs::remove_dir_all(dir).unwrap();
+    }
+
+    #[test]
+    fn failed_reset_keeps_cookie_authentication_and_saved_snapshots() {
+        let dir = snapshot_dir(json!({}), Some("22222222-2222-4222-8222-222222222222"));
+        let config_path = dir.join("config.json");
+        let cookie_path = cookie_path(&dir).unwrap();
+        let before = std::fs::read(&cookie_path).unwrap();
+        std::fs::write(&config_path, b"invalid json").unwrap();
+        assert!(clear_sign_in(&dir, &config_path).is_err());
+        assert_eq!(std::fs::read(cookie_path).unwrap(), before);
+        assert_eq!(std::fs::read(config_path).unwrap(), b"invalid json");
+        std::fs::remove_dir_all(dir).unwrap();
+    }
 }
 
 #[cfg(test)]
@@ -1554,9 +1777,13 @@ mod local_mode_tests {
         let backup = directory.join("saved-auth.json");
         let config = directory.join("config.json");
         write(&config, &json!({"lastKnownAccountUuid":"original", "oauth:tokenCacheV2":"original-token", "theme":"light"})).unwrap();
-        capture_local_mode_at(&directory, &backup).unwrap();
+        capture_local_mode_at(&directory, &config, &backup).unwrap();
+        // Backups from earlier releases recorded only the native data directory.
+        let mut legacy: Value = read(&backup).unwrap();
+        legacy.as_object_mut().unwrap().remove("config_path");
+        write(&backup, &legacy).unwrap();
         write(&config, &json!({"lastKnownAccountUuid":"virtual", "oauth:tokenCacheV2":"local-token", "theme":"dark"})).unwrap();
-        capture_local_mode_at(&directory, &backup).unwrap();
+        capture_local_mode_at(&directory, &config, &backup).unwrap();
         restore_local_mode_at(&backup).unwrap();
         let restored: Value = read(&config).unwrap();
         assert_eq!(restored["lastKnownAccountUuid"], "original");

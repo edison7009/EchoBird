@@ -2,11 +2,13 @@ import { useLayoutEffect } from 'react';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import * as api from '../../api/tauri';
+import { useNavigationStore } from '../../stores/navigationStore';
 import { useClaudeDesktopAccounts } from './useClaudeDesktopAccounts';
 
 vi.mock('../../api/tauri', () => ({
   listClaudeDesktopAccounts: vi.fn(),
   startClaudeDesktopLogin: vi.fn(),
+  resetClaudeDesktopLogin: vi.fn(),
   pollClaudeDesktopLogin: vi.fn(),
   cancelClaudeDesktopLogin: vi.fn(),
   refreshClaudeDesktopAccount: vi.fn(),
@@ -50,6 +52,9 @@ async function mount(enabled = true) {
 beforeEach(() => {
   vi.clearAllMocks();
   vi.useFakeTimers();
+  useNavigationStore.setState({ activePage: 'apps' });
+  vi.mocked(api.resetClaudeDesktopLogin).mockResolvedValue(undefined);
+  vi.mocked(api.startTool).mockResolvedValue(undefined);
   confirm.mockResolvedValue(true);
   vi.mocked(api.listClaudeDesktopAccounts).mockResolvedValue([saved]);
   vi.mocked(api.startClaudeDesktopLogin).mockResolvedValue({
@@ -76,6 +81,7 @@ it('loads installed accounts passively and never loads native state when disable
   expect(state.accounts).toEqual([saved]);
   expect(api.listClaudeDesktopAccounts).toHaveBeenCalledTimes(1);
   expect(api.startClaudeDesktopLogin).not.toHaveBeenCalled();
+  expect(api.resetClaudeDesktopLogin).not.toHaveBeenCalled();
   expect(api.refreshClaudeDesktopAccount).not.toHaveBeenCalled();
   expect(api.deleteClaudeDesktopAccount).not.toHaveBeenCalled();
 });
@@ -180,6 +186,7 @@ it('saves a snapshot within the shared 60-second deadline and never launches the
   expect(state.accounts.map((a) => a.id)).toEqual(['saved', 'new']);
   // A snapshot only reads Claude Desktop's sign-in; the page starts nothing.
   expect(api.startTool).not.toHaveBeenCalled();
+  expect(api.resetClaudeDesktopLogin).not.toHaveBeenCalled();
   expect(api.refreshClaudeDesktopAccount).not.toHaveBeenCalled();
   expect(showError).not.toHaveBeenCalled();
 });
@@ -212,86 +219,30 @@ it('warns before a snapshot and starts nothing unless the user confirms', async 
   });
 });
 
-it('prepares the next account only after a warning and opens Claude once it is saved', async () => {
-  vi.mocked(api.startTool).mockResolvedValue(undefined);
+it('resets local sign-in independently and opens Claude without capturing an account', async () => {
   await mount();
-  confirm.mockResolvedValue(false);
+  vi.mocked(api.listClaudeDesktopAccounts).mockResolvedValue([{ ...saved, active: false }]);
   await act(async () => {
     await state.addNext();
   });
+  expect(confirm).not.toHaveBeenCalled();
+  expect(api.resetClaudeDesktopLogin).toHaveBeenCalledExactlyOnceWith();
   expect(api.startClaudeDesktopLogin).not.toHaveBeenCalled();
-  expect(api.startTool).not.toHaveBeenCalled();
-  confirm.mockResolvedValue(true);
-  vi.mocked(api.pollClaudeDesktopLogin).mockResolvedValue({
-    account: saved,
-    awaitingClientExit: false,
-    expiresAt: null,
-    cleared: true,
-  });
-  let task!: Promise<void>;
-  act(() => {
-    task = state.addNext();
-  });
-  await tick(2000);
-  await act(async () => {
-    await task;
-  });
-  expect(confirm).toHaveBeenLastCalledWith({
-    type: 'warning',
-    title: 'agent.accountSnapshotNoticeTitle',
-    message: 'agent.accountSnapshotHint',
-    preserveLineBreaks: true,
-  });
-  expect(api.startClaudeDesktopLogin).toHaveBeenCalledExactlyOnceWith(true);
+  expect(api.pollClaudeDesktopLogin).not.toHaveBeenCalled();
+  expect(api.refreshClaudeDesktopAccount).not.toHaveBeenCalled();
+  expect(api.deleteClaudeDesktopAccount).not.toHaveBeenCalled();
   expect(api.startTool).toHaveBeenCalledExactlyOnceWith('claudedesktop');
-  // The device is signed out; no saved account may stay selected for Apply.
+  expect(state.accounts).toEqual([{ ...saved, active: false }]);
   expect(state.selectedId).toBeNull();
+  expect(clearModel).toHaveBeenCalledTimes(1);
+  expect(state.busy).toBe(false);
   expect(showError).not.toHaveBeenCalled();
-  act(() => {
-    task = state.add();
-  });
-  await tick(2000);
-  await act(async () => {
-    await task;
-  });
-  expect(api.startClaudeDesktopLogin).toHaveBeenLastCalledWith(false);
-  expect(api.startTool).toHaveBeenCalledTimes(1);
 });
 
-it('leaves Claude closed when preparing the next account fails', async () => {
+it('keeps independent pending state and blocks duplicate reset and snapshot actions', async () => {
   await mount();
-  vi.mocked(api.startClaudeDesktopLogin).mockRejectedValue(new Error('accountError.closeClient'));
-  await act(async () => {
-    await state.addNext();
-  });
-  expect(showError).toHaveBeenCalled();
-  expect(api.startTool).not.toHaveBeenCalled();
-});
-
-it('reports an outdated plugin instead of opening Claude still signed in', async () => {
-  await mount();
-  vi.mocked(api.pollClaudeDesktopLogin).mockResolvedValue({
-    account: saved,
-    awaitingClientExit: false,
-    expiresAt: null,
-  });
-  let task!: Promise<void>;
-  act(() => {
-    task = state.addNext();
-  });
-  await tick(2000);
-  await act(async () => {
-    await task;
-  });
-  expect(api.startTool).not.toHaveBeenCalled();
-  expect(showError).toHaveBeenCalledExactlyOnceWith('agent.accountSnapshotNextUnsupported');
-});
-
-it('never opens Claude for a reset the user cancelled', async () => {
-  vi.mocked(api.startTool).mockResolvedValue(undefined);
-  await mount();
-  let finish!: (value: api.ClaudeDesktopLoginPoll) => void;
-  vi.mocked(api.pollClaudeDesktopLogin).mockReturnValue(
+  let finish!: () => void;
+  vi.mocked(api.resetClaudeDesktopLogin).mockReturnValue(
     new Promise((resolve) => {
       finish = resolve;
     })
@@ -300,14 +251,166 @@ it('never opens Claude for a reset the user cancelled', async () => {
   act(() => {
     task = state.addNext();
   });
-  await tick();
-  act(() => state.cancelLogin());
+  expect(state.resetting).toBe(true);
+  expect(state.busy).toBe(true);
+  expect(state.snapshotBusy).toBe(false);
   await act(async () => {
-    finish({ account: saved, awaitingClientExit: false, expiresAt: null, cleared: true });
+    await state.addNext();
+    await state.add();
+  });
+  expect(api.resetClaudeDesktopLogin).toHaveBeenCalledTimes(1);
+  expect(confirm).not.toHaveBeenCalled();
+  await act(async () => {
+    finish();
     await task;
   });
-  expect(api.cancelClaudeDesktopLogin).toHaveBeenCalledWith('login');
+  expect(state.resetting).toBe(false);
+  expect(api.startTool).toHaveBeenCalledTimes(1);
+});
+
+it('blocks reset while a snapshot confirmation or capture is pending', async () => {
+  await mount();
+  let finish!: (value: boolean) => void;
+  confirm.mockReturnValue(
+    new Promise((resolve) => {
+      finish = resolve;
+    })
+  );
+  let task!: Promise<void>;
+  act(() => {
+    task = state.add();
+  });
+  await act(async () => {
+    await state.addNext();
+  });
+  expect(api.resetClaudeDesktopLogin).not.toHaveBeenCalled();
+  await act(async () => {
+    finish(true);
+  });
+  await tick();
+  expect(state.snapshotBusy).toBe(true);
+  await act(async () => {
+    await state.addNext();
+  });
+  expect(api.resetClaudeDesktopLogin).not.toHaveBeenCalled();
+  act(() => state.cancelLogin());
+  await tick(2000);
+  await task;
+});
+
+it('preserves saved rows and leaves Claude closed when reset fails', async () => {
+  await mount();
+  vi.mocked(api.resetClaudeDesktopLogin).mockRejectedValue(new Error('accountError.write'));
+  await act(async () => {
+    await state.addNext();
+  });
+  expect(showError).toHaveBeenCalledTimes(1);
+  expect(state.accounts).toEqual([saved]);
+  expect(state.resetting).toBe(false);
   expect(api.startTool).not.toHaveBeenCalled();
+  expect(api.startClaudeDesktopLogin).not.toHaveBeenCalled();
+});
+
+it('reports an explicit launch failure without falling back to snapshot capture', async () => {
+  await mount();
+  vi.mocked(api.startTool).mockRejectedValue(new Error('launch failed'));
+  await act(async () => {
+    await state.addNext();
+  });
+  expect(showError).toHaveBeenCalledTimes(1);
+  expect(state.accounts).toEqual([saved]);
+  expect(state.busy).toBe(false);
+  expect(api.startClaudeDesktopLogin).not.toHaveBeenCalled();
+});
+
+it.each(['tool', 'page', 'unmount'] as const)(
+  'suppresses late reset launch after leaving the %s',
+  async (leave) => {
+    await mount();
+    let finish!: () => void;
+    vi.mocked(api.resetClaudeDesktopLogin).mockReturnValue(
+      new Promise((resolve) => {
+        finish = resolve;
+      })
+    );
+    let task!: Promise<void>;
+    act(() => {
+      task = state.addNext();
+    });
+    act(() => {
+      if (leave === 'tool') renderer.update(<Harness enabled={false} />);
+      if (leave === 'page') useNavigationStore.setState({ activePage: 'models' });
+      if (leave === 'unmount') renderer.unmount();
+    });
+    await act(async () => {
+      finish();
+      await task;
+    });
+    expect(api.startTool).not.toHaveBeenCalled();
+    expect(showError).not.toHaveBeenCalled();
+    expect(clearModel).not.toHaveBeenCalled();
+  }
+);
+
+it('never resets or snapshots a disabled client', async () => {
+  await mount(false);
+  await act(async () => {
+    await state.addNext();
+    await state.add();
+  });
+  expect(api.resetClaudeDesktopLogin).not.toHaveBeenCalled();
+  expect(api.startClaudeDesktopLogin).not.toHaveBeenCalled();
+  expect(confirm).not.toHaveBeenCalled();
+});
+
+it('allows an immediate snapshot retry after cancellation while ignoring the old response', async () => {
+  await mount();
+  let finish!: (value: api.ClaudeDesktopLoginPoll) => void;
+  vi.mocked(api.pollClaudeDesktopLogin).mockReturnValueOnce(
+    new Promise((resolve) => {
+      finish = resolve;
+    })
+  );
+  let previous!: Promise<void>;
+  act(() => {
+    previous = state.add();
+  });
+  await tick();
+  act(() => state.cancelLogin());
+  vi.mocked(api.pollClaudeDesktopLogin).mockResolvedValue({
+    account: captured,
+    awaitingClientExit: false,
+    expiresAt: null,
+  });
+  vi.mocked(api.listClaudeDesktopAccounts).mockResolvedValue([saved, captured]);
+  let retry!: Promise<void>;
+  act(() => {
+    retry = state.add();
+  });
+  await tick(2000);
+  await act(async () => {
+    await retry;
+  });
+  expect(api.startClaudeDesktopLogin).toHaveBeenCalledTimes(2);
+  expect(state.accounts).toEqual([saved, captured]);
+  await act(async () => {
+    finish({ account: saved, awaitingClientExit: false, expiresAt: null });
+    await previous;
+  });
+  expect(state.accounts).toEqual([saved, captured]);
+  expect(api.resetClaudeDesktopLogin).not.toHaveBeenCalled();
+});
+
+it('resets a signed-out client while preserving an empty saved-account list', async () => {
+  vi.mocked(api.listClaudeDesktopAccounts).mockResolvedValue([]);
+  await mount();
+  await act(async () => {
+    await state.addNext();
+  });
+  expect(api.resetClaudeDesktopLogin).toHaveBeenCalledTimes(1);
+  expect(api.startTool).toHaveBeenCalledTimes(1);
+  expect(state.accounts).toEqual([]);
+  expect(api.startClaudeDesktopLogin).not.toHaveBeenCalled();
 });
 
 it('warms up only when asked, without selecting and with the refresh pending state', async () => {

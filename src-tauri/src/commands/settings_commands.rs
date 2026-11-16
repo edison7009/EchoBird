@@ -62,8 +62,9 @@ pub struct AppSettings {
 
 impl AppSettings {
     pub fn statistics_recording_enabled(&self) -> bool {
-        self.statistics_recording
-            .unwrap_or(self.developer_mode.unwrap_or(true))
+        // Legacy flags remain readable, while Smart Access usage and pet credits
+        // are always collected together.
+        true
     }
     pub fn developer_mode_enabled(&self) -> bool {
         // Legacy persisted field is retained for compatibility. These features now
@@ -114,7 +115,6 @@ pub async fn save_settings(
         crate::services::local_llm::server::stop_server_if_running().await?;
     }
     crate::services::developer_preview::configure(&app, settings.developer_mode_enabled());
-    crate::services::smart_router::statistics::configure(settings.statistics_recording_enabled());
 
     // Update tray menu locale if locale changed
     if let Some(locale) = &settings.locale {
@@ -335,7 +335,7 @@ mod tests {
         );
         std::fs::write(&path, r#"{"developerMode":false}"#).unwrap();
         assert!(read_settings(&path).developer_mode_enabled());
-        assert!(!read_settings(&path).statistics_recording_enabled());
+        assert!(read_settings(&path).statistics_recording_enabled());
         let mut update = super::AppSettings::default();
         super::preserve_protection_setting(&path, &mut update).unwrap();
         assert!(update.developer_mode_enabled());
@@ -344,7 +344,7 @@ mod tests {
     }
 
     #[test]
-    fn statistics_recording_is_independent_and_preserves_the_previous_effective_off_state() {
+    fn retired_statistics_flags_cannot_pause_usage_or_pet_credits() {
         let root =
             std::env::temp_dir().join(format!("statistics-settings-{}", uuid::Uuid::new_v4()));
         std::fs::create_dir(&root).unwrap();
@@ -369,7 +369,7 @@ mod tests {
         assert_eq!(update.developer_mode, Some(true));
         assert_eq!(update.sensitive_info_protection, Some(false));
         assert_eq!(update.statistics_recording, Some(false));
-        assert!(!update.statistics_recording_enabled());
+        assert!(update.statistics_recording_enabled());
         assert!(update.developer_mode_enabled());
         update.developer_mode = Some(false);
         super::preserve_protection_setting(&path, &mut update).unwrap();

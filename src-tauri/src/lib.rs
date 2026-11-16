@@ -967,6 +967,7 @@ pub fn run() {
                 cline_account_commands::refresh_cline_account,
                 tool_commands::list_claude_desktop_accounts,
                 tool_commands::start_claude_desktop_login,
+                tool_commands::reset_claude_desktop_login,
                 tool_commands::poll_claude_desktop_login,
                 tool_commands::cancel_claude_desktop_login,
                 tool_commands::switch_claude_desktop_account,

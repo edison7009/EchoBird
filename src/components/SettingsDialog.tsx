@@ -1,4 +1,3 @@
-import { ROUTER_STATISTICS_CHANGED } from '../api/routerStatistics';
 // SettingsDialog — Global settings modal (gear button in sidebar)
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
@@ -12,7 +11,6 @@ import {
   Power,
   Monitor,
   Gift,
-  BarChart3,
   ShieldCheck,
   Newspaper,
   Trophy,
@@ -89,10 +87,6 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
       }),
     []
   );
-  const [routerStatistics, setStatisticsEnabled] = useState(true);
-  const [statisticsPending, setStatisticsPending] = useState(false);
-  const [statisticsError, setStatisticsError] = useState(false);
-  const statisticsChange = useRef({ revision: 0, pending: false });
   const optionalPages = useNavigationStore((state) => state.optionalPages);
   const setOptionalPages = useNavigationStore((state) => state.setOptionalPages);
   const optionalChange = useRef({ pending: false });
@@ -151,7 +145,6 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
   // Load backend settings each time the dialog opens.
   useEffect(() => {
     let active = true;
-    const statisticsReadRevision = statisticsChange.current.revision;
     const optionalReadRevision = useNavigationStore.getState().optionalPagesRevision;
     const protectionReadRevision = protectionChange.current.revision;
     const sharedProtectionRevision = useProtectionStore.getState().revision;
@@ -159,7 +152,6 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
       void Promise.resolve().then(() => {
         if (active) {
           setSettingsReady(false);
-          setStatisticsError(false);
           setProtectionError(false);
         }
       });
@@ -172,13 +164,7 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
         .getSettings()
         .then((settings) => {
           if (!active) return;
-          // A reopened dialog can return an older snapshot after an explicit save.
-          if (
-            !statisticsChange.current.pending &&
-            statisticsReadRevision === statisticsChange.current.revision
-          ) {
-            setStatisticsEnabled(settings.statisticsRecording ?? settings.developerMode !== false);
-          }
+          // Ignore stale protection reads after an explicit save.
           if (
             !protectionChange.current.pending &&
             protectionReadRevision === protectionChange.current.revision &&
@@ -207,7 +193,6 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
         })
         .catch(() => {
           if (active) {
-            setStatisticsError(true);
             setProtectionError(true);
           }
         });
@@ -215,13 +200,12 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
     return () => {
       active = false;
     };
-  }, [isOpen, setStatisticsEnabled, setOptionalPages]);
+  }, [isOpen, setOptionalPages]);
 
   const handleOptionalChange = async (page: OptionalPage, value: boolean) => {
     if (
       !settingsReady ||
       useProtectionStore.getState().pending ||
-      statisticsChange.current.pending ||
       protectionChange.current.pending ||
       optionalChange.current.pending
     )
@@ -246,41 +230,12 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
     }
   };
 
-  const handleStatisticsChange = async (value: boolean) => {
-    if (
-      !settingsReady ||
-      optionalChange.current.pending ||
-      useProtectionStore.getState().pending ||
-      statisticsChange.current.pending ||
-      protectionChange.current.pending
-    )
-      return;
-    statisticsChange.current.pending = true;
-    statisticsChange.current.revision++;
-    setProtectionPending(true);
-    setStatisticsPending(true);
-    setStatisticsError(false);
-    try {
-      await api.saveSettings({ statisticsRecording: value });
-      setStatisticsEnabled(value);
-      document.dispatchEvent?.(new Event(ROUTER_STATISTICS_CHANGED));
-    } catch {
-      setStatisticsError(true);
-    } finally {
-      statisticsChange.current.pending = false;
-      statisticsChange.current.revision++;
-      setProtectionPending(false);
-      setStatisticsPending(false);
-    }
-  };
-
   const handleProtectionChange = async (value: boolean) => {
     if (
       !settingsReady ||
       optionalChange.current.pending ||
       useProtectionStore.getState().pending ||
-      protectionChange.current.pending ||
-      statisticsChange.current.pending
+      protectionChange.current.pending
     )
       return;
     protectionChange.current.pending = true;
@@ -637,7 +592,7 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
                         className="flex-row-reverse gap-1.5"
                         hint={t('settings.sensitiveInfoProtectionHint')}
                         checked={protectionEnabled}
-                        disabled={!settingsReady || statisticsPending}
+                        disabled={!settingsReady}
                         pending={protectionPending}
                         onChange={(value) => void handleProtectionChange(value)}
                       />
@@ -660,7 +615,7 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
                       hideLabel
                       dimWhenDisabled={!settingsReady}
                       checked={optionalPages.aiNews}
-                      disabled={!settingsReady || statisticsPending || protectionPending}
+                      disabled={!settingsReady || protectionPending}
                       pending={optionalPending === 'aiNews'}
                       onChange={(value) => void handleOptionalChange('aiNews', value)}
                     />
@@ -677,35 +632,10 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
                       hideLabel
                       dimWhenDisabled={!settingsReady}
                       checked={optionalPages.aiCareer}
-                      disabled={!settingsReady || statisticsPending || protectionPending}
+                      disabled={!settingsReady || protectionPending}
                       pending={optionalPending === 'aiCareer'}
                       onChange={(value) => void handleOptionalChange('aiCareer', value)}
                     />
-                  </div>
-                  <div className="px-2">
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-2">
-                        <BarChart3 size={14} className="text-cyber-text-secondary" />
-                        <span className="text-[14px] font-medium text-cyber-text-secondary">
-                          {t('settings.routerStatistics')}
-                        </span>
-                      </div>
-                      <RoutingToggle
-                        label={t('settings.routerStatistics')}
-                        hideLabel
-                        dimWhenDisabled={!settingsReady}
-                        className="flex-row-reverse gap-1.5"
-                        checked={routerStatistics}
-                        disabled={!settingsReady || protectionPending}
-                        pending={statisticsPending}
-                        onChange={(value) => void handleStatisticsChange(value)}
-                      />
-                    </div>
-                    {statisticsError && (
-                      <p role="alert" className="mt-1 text-xs text-red-400">
-                        {t('settings.routerStatisticsError')}
-                      </p>
-                    )}
                   </div>
                   <div className="flex items-center justify-between gap-2 px-2">
                     <div className="flex items-center gap-2">
@@ -719,7 +649,7 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
                       hideLabel
                       dimWhenDisabled={!settingsReady}
                       checked={optionalPages.localLlm}
-                      disabled={!settingsReady || statisticsPending || protectionPending}
+                      disabled={!settingsReady || protectionPending}
                       pending={optionalPending === 'localLlm'}
                       onChange={(value) => void handleOptionalChange('localLlm', value)}
                     />

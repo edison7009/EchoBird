@@ -1,5 +1,6 @@
 import { useAccountCapability } from '../../hooks/useAccountCapability';
 import React from 'react';
+import { ArrowLeftRight } from 'lucide-react';
 import { useAppManager } from './context';
 import { ModelSwitchDivider } from './ModelSwitchDivider';
 import {
@@ -28,7 +29,8 @@ export const ClaudeCodeAccountSection: React.FC<{ showDivider?: boolean; desktop
     <AccountSection>
       <AccountSectionButton
         iconSrc={desktop ? '/icons/tools/claudedesktop.svg' : '/icons/tools/claudecode.svg'}
-        busy={busy}
+        busy={desktop ? claudeDesktopAccounts.snapshotBusy : busy}
+        disabled={desktop && claudeDesktopAccounts.resetting}
         remainingSeconds={remainingSeconds}
         // Claude Desktop cannot be signed in from here; it saves snapshots instead.
         idleLabel={desktop ? 'agent.accountSnapshot' : 'plugins.category.account'}
@@ -37,18 +39,30 @@ export const ClaudeCodeAccountSection: React.FC<{ showDivider?: boolean; desktop
         waitingLabel={desktop ? t('agent.accountSnapshotSaving') : undefined}
         onClick={() => void group.add().catch((error) => setApplyError(String(error)))}
         onCancel={() => group.cancelLogin()}
+        secondary={
+          desktop && installed ? (
+            <button
+              type="button"
+              aria-label={t('agent.accountSnapshotNext')}
+              disabled={busy}
+              onClick={(event) => {
+                event.stopPropagation();
+                void claudeDesktopAccounts.addNext().catch((error) => setApplyError(String(error)));
+              }}
+              className="inline-flex h-4 items-center gap-1 rounded-sm focus-visible:outline focus-visible:outline-1"
+            >
+              <span>
+                {t(
+                  claudeDesktopAccounts.resetting
+                    ? 'agent.accountResetting'
+                    : 'agent.accountSnapshotNext'
+                )}
+              </span>
+              <ArrowLeftRight size={12} aria-hidden="true" />
+            </button>
+          ) : undefined
+        }
       />
-      {desktop && installed && !busy && accounts.length > 0 && (
-        <AccountSectionButton
-          busy={false}
-          remainingSeconds={0}
-          idleLabel="agent.accountSnapshotNext"
-          onClick={() =>
-            void claudeDesktopAccounts.addNext().catch((error) => setApplyError(String(error)))
-          }
-          onCancel={() => {}}
-        />
-      )}
       {accounts.length > 0 && (
         <div className="space-y-2">
           {accounts.map((account) => (

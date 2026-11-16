@@ -102,8 +102,6 @@ const ja: Partial<Translations> = {
   'usageIsland.style.list': 'リスト',
   'usageIsland.style.dial': 'ダイヤル',
   'usageIsland.style.line': 'ライン',
-  'settings.routerStatistics': '統計を記録',
-  'settings.routerStatisticsError': '統計の記録設定を読み込み、または保存できません。',
   'settings.developerMode': '開発者プレビュー',
   'settings.developerModeHint':
     '開発者プレビューは主に開発・テスト向けで、一部の機能は日常利用に適さない場合があります。オフにすると開発者ページのすべての機能が一時停止し、リソース消費を抑えられます。プレビュー機能は今後のバージョンで変更・削除される場合があり、より楽しい機能も順次追加されます。',
@@ -697,11 +695,10 @@ const ja: Partial<Translations> = {
   'agent.addCurrentAccount': 'アカウントを追加',
   'agent.accountSnapshot': 'スナップショット',
   'agent.accountSnapshotHint':
-    'Claude デスクトップのアカウント管理は「スナップショット」方式を採用：より安全で、より安定しています。\n\n1. 最初のアカウントを追加\nログインしたまま Claude デスクトップを完全に終了し（トレイアイコンを右クリックして終了。タスクマネージャーで強制終了しないでください）、30〜60 秒待ってから「スナップショット」をクリックします。\n\n2. さらにアカウントを追加\n前のアカウントにログインしたまま同様に終了し、「環境リセット + ログイン」をクリックします。Claude が開くので、新しいアカウントでログインします。ログイン後はそのまま再度完全に終了し、30〜60 秒待って「スナップショット」をクリックして保存します。\n\n注意：Claude 内でログアウトすると、保存したアカウントが無効になります。',
+    'Claude デスクトップのアカウントはスナップショットとして保存します。\n\n1. 現在のアカウントを保存\nログインしたままトレイメニューから Claude デスクトップを完全に終了し、30〜60 秒待って「スナップショット」をクリックします。\n\n2. 別のアカウントでログイン\n現在のアカウントを残す場合は、先にスナップショットを保存してください。「環境リセット + ログイン」はローカルの認証情報を消去して Claude を自動的に開きます。新しいアカウントでログイン後、そのまま完全に終了して 30〜60 秒待ち、「スナップショット」で保存します。\n\nClaude 内でログアウトすると、対応する保存済みセッションが無効になる場合があります。',
   'agent.accountSnapshotNoticeTitle': 'スナップショットの前に',
   'agent.accountSnapshotNext': '環境リセット + ログイン',
-  'agent.accountSnapshotNextUnsupported':
-    '現在のアカウントは保存しましたが、このプラグインのバージョンでは環境をリセットできません。先にプラグインページで Claude デスクトップのプラグインを更新してください。',
+  'agent.accountResetting': '環境をリセット中',
   'agent.accountSnapshotSaving': 'スナップショットを保存中',
   'agent.zcodeSwitchProvider': 'ログイン先を切り替え（現在は {provider}）',
   'agent.minimaxRegionCn': '中国版',

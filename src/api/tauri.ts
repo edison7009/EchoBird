@@ -288,8 +288,6 @@ export interface ClaudeDesktopLoginPoll {
   account: ClaudeCodeAccount | null;
   awaitingClientExit: boolean;
   expiresAt: number | null;
-  /** Reported by plugin 0.1.0-preview.10 and later once the sign-in is cleared. */
-  cleared?: boolean;
 }
 // The plugin reports the shared "close the client" error; Claude Desktop must be
 // quit from its tray because closing the window only hides it.
@@ -304,8 +302,11 @@ function withClaudeDesktopQuitError<T>(result: Promise<T>): Promise<T> {
 export function listClaudeDesktopAccounts(): Promise<ClaudeCodeAccount[]> {
   return invoke('list_claude_desktop_accounts');
 }
-export function startClaudeDesktopLogin(next = false): Promise<ClaudeDesktopLogin> {
-  return withClaudeDesktopQuitError(invoke('start_claude_desktop_login', { next }));
+export function startClaudeDesktopLogin(): Promise<ClaudeDesktopLogin> {
+  return withClaudeDesktopQuitError(invoke('start_claude_desktop_login'));
+}
+export function resetClaudeDesktopLogin(): Promise<void> {
+  return withClaudeDesktopQuitError(invoke('reset_claude_desktop_login'));
 }
 export function pollClaudeDesktopLogin(loginId: string): Promise<ClaudeDesktopLoginPoll> {
   return withClaudeDesktopQuitError(invoke('poll_claude_desktop_login', { loginId }));

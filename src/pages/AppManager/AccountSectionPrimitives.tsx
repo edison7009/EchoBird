@@ -72,6 +72,14 @@ export const AccountSectionButton: React.FC<{
     : idleLabel
       ? t(idleLabel)
       : t('agent.addCurrentAccount');
+  const help = hint && (
+    <span className="pointer-events-auto relative flex">
+      <RoutingHint
+        hint={hint}
+        content={hintLineBreaks ? <span className="whitespace-pre-line">{hint}</span> : undefined}
+      />
+    </span>
+  );
   if (busy) {
     return (
       <div
@@ -119,7 +127,16 @@ export const AccountSectionButton: React.FC<{
         <span className="pointer-events-none flex items-center gap-2.5">
           {iconSrc && <img src={iconSrc} alt="" className="h-6 w-6" />}
           <span className="flex flex-col items-center">
-            <span className="text-[17px] font-bold leading-6">{label}</span>
+            <span
+              className={
+                hint
+                  ? 'flex items-center gap-2.5 text-[17px] font-bold leading-6'
+                  : 'text-[17px] font-bold leading-6'
+              }
+            >
+              {label}
+              {help}
+            </span>
             <span className="pointer-events-auto relative flex h-4 items-center text-[12px] font-normal leading-4 text-cyber-text-secondary">
               {secondary}
             </span>
@@ -144,14 +161,7 @@ export const AccountSectionButton: React.FC<{
         <span className="pointer-events-none flex translate-y-px items-center gap-2.5">
           {iconSrc && <img src={iconSrc} alt="" className="h-6 w-6" />}
           <span>{label}</span>
-          <span className="pointer-events-auto relative flex">
-            <RoutingHint
-              hint={hint}
-              content={
-                hintLineBreaks ? <span className="whitespace-pre-line">{hint}</span> : undefined
-              }
-            />
-          </span>
+          {help}
         </span>
       </div>
     );

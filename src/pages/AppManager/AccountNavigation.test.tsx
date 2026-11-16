@@ -168,6 +168,7 @@ vi.mock('../../api/tauri', () => {
     'switchGrokAccount',
     'deleteGrokAccount',
     'startClaudeDesktopLogin',
+    'resetClaudeDesktopLogin',
     'cancelClaudeDesktopLogin',
     'pollClaudeDesktopLogin',
     'refreshClaudeDesktopAccount',
@@ -1256,7 +1257,10 @@ async function mountAccountCenter(tools: Tool[]) {
 
 function expectPassiveAccountNavigation() {
   for (const [key, action] of Object.entries(api))
-    if (/^(start|refresh|switch|delete|claim|restore|apply)/.test(key) && vi.isMockFunction(action))
+    if (
+      /^(start|reset|refresh|switch|delete|claim|restore|apply)/.test(key) &&
+      vi.isMockFunction(action)
+    )
       expect(action, key).not.toHaveBeenCalled();
   expect(folderPicker).not.toHaveBeenCalled();
   expect(shellOpen).not.toHaveBeenCalled();
@@ -3061,10 +3065,15 @@ it.each(communityProviderTools)(
       )
     );
     await act(async () => {
-      expect(renderer.root.findByType(AccountSectionButton).props.idleLabel).toBe(
-        tool === 'claudedesktop' ? 'agent.accountSnapshot' : 'plugins.category.account'
-      );
-      renderer.root.findByType(AccountSectionButton).props.onClick();
+      const loginButton = renderer.root
+        .findAllByType(AccountSectionButton)
+        .find(
+          (button) =>
+            button.props.idleLabel ===
+            (tool === 'claudedesktop' ? 'agent.accountSnapshot' : 'plugins.category.account')
+        );
+      expect(loginButton).toBeDefined();
+      loginButton!.props.onClick();
     });
     expect(useNavigationStore.getState()).toMatchObject({
       developerMode: false,
@@ -3081,6 +3090,7 @@ it.each(communityProviderTools)(
             ? 'startDoubaoLogin'
             : 'startWorkBuddyLogin';
     expect(api[startName]).toHaveBeenCalledOnce();
+    expect(api.resetClaudeDesktopLogin).not.toHaveBeenCalled();
     expect(api.startTool).not.toHaveBeenCalled();
   }
 );

@@ -22,15 +22,14 @@
 //! provider that is then filtered out.
 //!
 //! ## Safety
-//! Learned from CodexPlusPlus #144, where "Provider Sync" made
-//! conversations vanish and become unrecoverable:
+//! Provider retagging must preserve conversation visibility and recovery.
 //!   * Retag ONLY to the currently-active provider — never an arbitrary
-//!     target. The disappearance there was the provider filter hiding
-//!     sessions retagged to a non-active id (e.g. the official lowercase
+//!     target. The provider filter hides sessions retagged to a non-active
+//!     id (e.g. the official lowercase
 //!     `openai`); reading the live config makes that impossible.
 //!   * Touch ONLY the two provider-tag locations. We never write
 //!     `config.toml`, `workspace_roots`, or anything else — that TOML
-//!     mangling was the actual corruption source in #144.
+//!     mangling can corrupt unrelated configuration.
 //!   * Back up each state DB (consistent `VACUUM INTO` snapshot, keep last
 //!     N) BEFORE mutating, and skip the retag entirely if the backup fails.
 //!   * Idempotent (`WHERE model_provider IS NOT ?`): re-running on every

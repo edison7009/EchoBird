@@ -136,6 +136,18 @@ async fn handle_messages_with(
         }
     };
 
+    let deepseek = url::Url::parse(&relay.base_url)
+        .is_ok_and(|url| url.host_str() == Some("api.deepseek.com"))
+        || relay
+            .real_model_id
+            .as_deref()
+            .is_some_and(|model| model.starts_with("deepseek-"));
+    if deepseek {
+        if let Err(message) = filter_deepseek_tools(&mut req_body) {
+            return (StatusCode::BAD_REQUEST, Json(json!({"type":"error","error":{"type":"invalid_request_error","message":message}}))).into_response();
+        }
+    }
+
     if relay.web_search == Some(false) {
         if let Some(tools) = req_body.get_mut("tools").and_then(Value::as_array_mut) {
             tools.retain(|tool| {
@@ -268,6 +280,44 @@ async fn handle_messages_with(
     response
 }
 
+fn filter_deepseek_tools(body: &mut Value) -> Result<(), &'static str> {
+    let forced = (body["tool_choice"]["type"] == "tool")
+        .then(|| body["tool_choice"]["name"].as_str().map(str::to_owned))
+        .flatten();
+    let Some(tools) = body.get_mut("tools").and_then(Value::as_array_mut) else {
+        return Ok(());
+    };
+    let supported = |tool: &Value| {
+        matches!(
+            tool["type"].as_str(),
+            None | Some(
+                "custom"
+                    | "web_search_20250305"
+                    | "web_search_20260209"
+                    | "deepseek_web_search"
+                    | "deepseek_read_url"
+            )
+        )
+    };
+    if forced.as_deref().is_some_and(|name| {
+        tools
+            .iter()
+            .any(|tool| tool["name"] == name && !supported(tool))
+    }) {
+        return Err("The selected DeepSeek API does not support the requested server tool.");
+    }
+    tools.retain(supported);
+    // DeepSeek selects server tools by type. Client functions use an untyped schema.
+    for tool in tools {
+        if tool["type"] == "custom" {
+            tool.as_object_mut()
+                .expect("custom tool is an object")
+                .remove("type");
+        }
+    }
+    Ok(())
+}
+
 fn read_relay(filename: &str) -> Option<Relay> {
     let path = relay_path(filename)?;
     let content = std::fs::read_to_string(&path).ok()?;
@@ -310,6 +360,98 @@ fn relay_path(filename: &str) -> Option<PathBuf> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn deepseek_requests_without_tools_preserve_optional_fields() {
+        let mut body =
+            json!({"model":"deepseek-flash","messages":[{"role":"user","content":"hello"}]});
+        let original = body.clone();
+        filter_deepseek_tools(&mut body).unwrap();
+        assert_eq!(body, original);
+    }
+
+    #[tokio::test]
+    async fn deepseek_relay_removes_unsupported_server_tools_before_network_and_preserves_functions(
+    ) {
+        use axum::{routing::post, Router};
+        use std::sync::{
+            atomic::{AtomicUsize, Ordering},
+            Arc,
+        };
+        let calls = Arc::new(AtomicUsize::new(0));
+        let observed = calls.clone();
+        let app = Router::new().route(
+            "/anthropic/v1/messages",
+            post(move |Json(body): Json<Value>| {
+                let calls = observed.clone();
+                async move {
+                    calls.fetch_add(1, Ordering::SeqCst);
+                    assert_eq!(body["model"], "deepseek-flash");
+                    assert_eq!(body["tools"].as_array().unwrap().len(), 3);
+                    assert_eq!(body["tools"][0]["name"], "Bash");
+                    assert_eq!(body["tools"][1]["type"], "web_search_20260209");
+                    assert_eq!(body["tools"][2]["name"], "advisor");
+                    assert!(body["tools"][2].get("type").is_none());
+                    assert_eq!(body["tools"][2]["input_schema"], json!({"type":"object"}));
+                    Json(json!({"content":[{"type":"text","text":"OK"}]}))
+                }
+            }),
+        );
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let address = listener.local_addr().unwrap();
+        let server = tokio::spawn(async move { axum::serve(listener, app).await.unwrap() });
+        let path =
+            std::env::temp_dir().join(format!("deepseek-relay-{}.json", uuid::Uuid::new_v4()));
+        std::fs::write(&path,serde_json::to_vec(&json!({"baseUrl":format!("http://api.deepseek.com:{}/anthropic",address.port()),"apiKey":"fixture","actualModel":"deepseek-flash","webSearch":true})).unwrap()).unwrap();
+        let state = AppState {
+            http_client: reqwest::Client::builder()
+                .no_proxy()
+                .resolve("api.deepseek.com", address)
+                .build()
+                .unwrap(),
+        };
+        let body = json!({"model":"claude-opus-5-5","messages":[{"role":"user","content":"hello"}],"tools":[
+            {"name":"Bash","input_schema":{"type":"object"}},
+            {"type":"advisor_20260301","name":"native_advisor","model":"claude-opus-5-5"},
+            {"type":"web_search_20260209","name":"web_search"},
+            {"type":"custom","name":"advisor","input_schema":{"type":"object"}},
+            {"type":"web_fetch_20260209","name":"web_fetch"}
+        ]});
+        let response = handle_messages_with(
+            State(state.clone()),
+            Bytes::from(serde_json::to_vec(&body).unwrap()),
+            path.to_str().unwrap(),
+        )
+        .await;
+        assert_eq!(response.status(), StatusCode::OK);
+        let bytes = axum::body::to_bytes(response.into_body(), 4096)
+            .await
+            .unwrap();
+        assert!(std::str::from_utf8(&bytes).unwrap().contains("OK"));
+        assert_eq!(calls.load(Ordering::SeqCst), 1);
+        let mut forced = body.clone();
+        forced["tool_choice"] = json!({"type":"tool","name":"native_advisor"});
+        let response = handle_messages_with(
+            State(state.clone()),
+            Bytes::from(serde_json::to_vec(&forced).unwrap()),
+            path.to_str().unwrap(),
+        )
+        .await;
+        assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+        assert_eq!(calls.load(Ordering::SeqCst), 1);
+        let mut forced_client = body;
+        forced_client["tool_choice"] = json!({"type":"tool","name":"advisor"});
+        let response = handle_messages_with(
+            State(state),
+            Bytes::from(serde_json::to_vec(&forced_client).unwrap()),
+            path.to_str().unwrap(),
+        )
+        .await;
+        assert_eq!(response.status(), StatusCode::OK);
+        assert_eq!(calls.load(Ordering::SeqCst), 2);
+        std::fs::remove_file(path).unwrap();
+        server.abort();
+    }
 
     #[tokio::test]
     async fn smart_switch_science_catalog_exposes_native_picker_names() {

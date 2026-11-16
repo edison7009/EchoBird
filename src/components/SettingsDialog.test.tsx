@@ -66,26 +66,20 @@ async function tab(label: string) {
   });
 }
 
-function statisticsSwitch() {
-  return view.root
-    .findAllByProps({ role: 'switch' })
-    .find((node) => node.props['aria-label'] === 'settings.routerStatistics')!;
-}
-
 function protectionSwitch() {
   return view.root
     .findAllByProps({ role: 'switch' })
     .find((node) => node.props['aria-label'] === 'settings.sensitiveInfoProtection')!;
 }
 
-it('keeps global protection available with statistics recording off and merges only its own explicit change', async () => {
+it('ignores the retired statistics flag and saves only an explicit protection change', async () => {
   const saved = { statisticsRecording: false, sensitiveInfoProtection: true, locale: 'ja' };
   mocks.get.mockResolvedValue(saved);
   await act(async () => {
     view = create(<SettingsDialog {...props} />);
   });
   expect(protectionSwitch().props['aria-checked']).toBe(true);
-  expect(statisticsSwitch().props['aria-checked']).toBe(false);
+  expect(view.root.findAllByProps({ 'aria-label': 'settings.routerStatistics' })).toHaveLength(0);
   expect(mocks.save).not.toHaveBeenCalled();
   await act(async () => protectionSwitch().props.onClick());
   expect(mocks.save).toHaveBeenCalledExactlyOnceWith({ sensitiveInfoProtection: false });
@@ -105,10 +99,8 @@ it('preserves pending protection across reopening and prevents concurrent master
   );
   await act(async () => protectionSwitch().props.onClick());
   expect(protectionSwitch().props.disabled).toBe(true);
-  expect(statisticsSwitch().props.disabled).toBe(true);
   await act(async () => view.update(<SettingsDialog {...props} isOpen={false} />));
   await act(async () => view.update(<SettingsDialog {...props} />));
-  await act(async () => statisticsSwitch().props.onClick());
   expect(mocks.save).toHaveBeenCalledOnce();
   await act(async () => finish());
   expect(protectionSwitch().props['aria-checked']).toBe(false);
@@ -156,116 +148,21 @@ it('preserves protection and shows its existing error when saving fails', async 
   expect(JSON.stringify(view.toJSON())).toContain('settings.sensitiveInfoProtectionError');
 });
 
-it('defaults statistics recording on without writing settings', async () => {
-  await act(async () => {
-    view = create(<SettingsDialog {...props} />);
-  });
-  expect(statisticsSwitch().props['aria-checked']).toBe(true);
-
-  expect(mocks.save).not.toHaveBeenCalled();
-});
-
-it('persists statistics recording only after an explicit change and keeps the control pending until saved', async () => {
-  mocks.get.mockResolvedValue({
-    statisticsRecording: false,
-    locale: 'ja',
-    sensitiveInfoProtection: true,
-  });
-  await act(async () => {
-    view = create(<SettingsDialog {...props} />);
-  });
-  expect(statisticsSwitch().props['aria-checked']).toBe(false);
-  expect(mocks.save).not.toHaveBeenCalled();
-  let finish!: () => void;
-  mocks.save.mockImplementationOnce(
-    () =>
-      new Promise<void>((resolve) => {
-        finish = resolve;
-      })
-  );
-  await act(async () => {
-    statisticsSwitch().props.onClick();
-  });
-  expect(statisticsSwitch().props.disabled).toBe(true);
-
-  expect(mocks.save).toHaveBeenCalledExactlyOnceWith({
-    statisticsRecording: true,
-  });
-  await act(async () => {
-    finish();
-  });
-  expect(statisticsSwitch().props['aria-checked']).toBe(true);
-
-  mocks.get.mockResolvedValue({ statisticsRecording: true });
-  await act(async () => {
-    view.update(<SettingsDialog {...props} isOpen={false} />);
-  });
-  await act(async () => {
-    view.update(<SettingsDialog {...props} />);
-  });
-  expect(statisticsSwitch().props['aria-checked']).toBe(true);
-  expect(mocks.save).toHaveBeenCalledOnce();
-});
-
-it('preserves the current page and saved selection when disabling fails', async () => {
-  mocks.get.mockResolvedValue({ statisticsRecording: true });
-  await act(async () => {
-    view = create(<SettingsDialog {...props} />);
-  });
-  useNavigationStore.getState().setActivePage('developer');
-  useNavigationStore.getState().setDeveloperTab('pets');
-  mocks.save.mockRejectedValueOnce(new Error('disk full'));
-  await act(async () => {
-    statisticsSwitch().props.onClick();
-  });
-  expect(statisticsSwitch().props['aria-checked']).toBe(true);
-  expect(useNavigationStore.getState().activePage).toBe('apps');
-  expect(useNavigationStore.getState().developerTab).toBe('pets');
-  expect(JSON.stringify(view.toJSON())).toContain('settings.routerStatisticsError');
-});
-
 it.each([false, true])(
-  'does not let a stale read undo a saved statistics recording after reopening (initial=%s)',
+  'omits the statistics switch for legacy recording=%s without writes or navigation',
   async (initial) => {
-    const target = !initial;
-    mocks.get.mockResolvedValue({ statisticsRecording: initial });
+    mocks.get.mockResolvedValue({ statisticsRecording: initial, developerMode: false });
+    useNavigationStore.getState().setAppsTab('pets');
     await act(async () => {
       view = create(<SettingsDialog {...props} />);
     });
-    let finishSave!: () => void;
-    mocks.save.mockImplementationOnce(
-      () =>
-        new Promise<void>((resolve) => {
-          finishSave = resolve;
-        })
-    );
-    await act(async () => {
-      statisticsSwitch().props.onClick();
-    });
-    await act(async () => {
-      view.update(<SettingsDialog {...props} isOpen={false} />);
-    });
-    let finishRead!: (settings: { statisticsRecording: boolean }) => void;
-    mocks.get.mockImplementationOnce(
-      () =>
-        new Promise<{ statisticsRecording: boolean }>((resolve) => {
-          finishRead = resolve;
-        })
-    );
-    await act(async () => {
-      view.update(<SettingsDialog {...props} />);
-    });
-    await act(async () => {
-      finishSave();
-    });
-
-    if (target) useNavigationStore.getState().setActivePage('developer');
-    await act(async () => {
-      finishRead({ statisticsRecording: initial });
-    });
-
-    expect(useNavigationStore.getState().activePage).toBe('apps');
-    expect(statisticsSwitch().props['aria-checked']).toBe(target);
+    const before = useNavigationStore.getState();
+    expect(view.root.findAllByProps({ 'aria-label': 'settings.routerStatistics' })).toHaveLength(0);
+    await act(async () => view.update(<SettingsDialog {...props} isOpen={false} />));
+    await act(async () => view.update(<SettingsDialog {...props} />));
+    expect(mocks.save).not.toHaveBeenCalled();
+    expect(document.dispatchEvent).not.toHaveBeenCalled();
+    expect(useNavigationStore.getState()).toBe(before);
   }
 );
 
@@ -399,7 +296,6 @@ it('groups general preferences before optional features and preserves rewards th
     'settings.sensitiveInfoProtection',
     'nav.aiNews',
     'nav.aiCareer',
-    'settings.routerStatistics',
     'nav.localServer',
     'settings.easterEgg',
   ]);
@@ -424,7 +320,7 @@ it('keeps global protection independent in the three-column General preferences'
   await act(async () => {
     view = create(<SettingsDialog {...props} />);
   });
-  expect(view.root.findAllByProps({ role: 'switch' })).toHaveLength(8);
+  expect(view.root.findAllByProps({ role: 'switch' })).toHaveLength(7);
   expect(
     view.root.findAllByProps({ 'aria-label': 'settings.sensitiveInfoProtection' })
   ).toHaveLength(1);
@@ -796,35 +692,9 @@ it('reflects the terminal protection control and locks settings controls while i
   expect(protectionSwitch().props['aria-checked']).toBe(true);
   await act(async () => useProtectionStore.setState({ pending: true }));
   expect(protectionSwitch().props.disabled).toBe(true);
-  expect(statisticsSwitch().props.disabled).toBe(true);
   expect(mocks.save).not.toHaveBeenCalled();
   await act(async () => useProtectionStore.setState({ pending: false }));
 });
-
-it.each([false, true])(
-  'keeps the shared settings lock after closing during a statistics save and releases it on failure=%s',
-  async (fails) => {
-    let finish!: () => void;
-    mocks.save.mockImplementationOnce(
-      () =>
-        new Promise<void>((resolve, reject) => {
-          finish = () => (fails ? reject(new Error('fixture')) : resolve());
-        })
-    );
-    await act(async () => {
-      view = create(<SettingsDialog {...props} />);
-    });
-
-    await act(async () => statisticsSwitch().props.onClick());
-    expect(useProtectionStore.getState().pending).toBe(true);
-    await act(async () => view.update(<SettingsDialog {...props} isOpen={false} />));
-    expect(useProtectionStore.getState().pending).toBe(true);
-    await act(async () => finish());
-    expect(useProtectionStore.getState().pending).toBe(false);
-
-    expect(mocks.save).toHaveBeenCalledExactlyOnceWith({ statisticsRecording: false });
-  }
-);
 
 const optionalSwitch = (page: 'aiNews' | 'aiCareer' | 'localServer') =>
   view.root
@@ -887,7 +757,6 @@ it('serializes optional and master-switch saves and ignores stale reads after re
   );
   await act(async () => optionalSwitch('aiCareer').props.onClick());
   expect(optionalSwitch('aiNews').props.disabled).toBe(true);
-  expect(statisticsSwitch().props.disabled).toBe(true);
   // Saving locks the controls without fading them out and back in.
   for (const control of view.root.findAllByProps({ role: 'switch' })) {
     expect(control.props.className).not.toContain('disabled:opacity-50');
@@ -915,22 +784,4 @@ it('has no update section and does not fetch an update manifest on opening', asy
   });
   expect(JSON.stringify(view.toJSON())).not.toContain('settings.updates');
   expect(fetch).not.toHaveBeenCalled();
-});
-
-it('retains legacy recording-off until explicitly enabled without navigating or changing plugin lifetime', async () => {
-  mocks.get.mockResolvedValue({ developerMode: false });
-  useNavigationStore.getState().setAppsTab('pets');
-  await act(async () => {
-    view = create(<SettingsDialog {...props} />);
-  });
-  const before = useNavigationStore.getState();
-  expect(statisticsSwitch().props['aria-checked']).toBe(false);
-  expect(mocks.save).not.toHaveBeenCalled();
-  await act(async () => statisticsSwitch().props.onClick());
-  expect(mocks.save).toHaveBeenCalledExactlyOnceWith({ statisticsRecording: true });
-  expect(useNavigationStore.getState()).toBe(before);
-  expect(document.dispatchEvent).toHaveBeenCalledWith(
-    expect.objectContaining({ type: 'router-statistics-settings-changed' })
-  );
-  expect(JSON.stringify(view.toJSON())).not.toContain('settings.developerMode');
 });

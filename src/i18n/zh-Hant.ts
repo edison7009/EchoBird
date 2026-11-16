@@ -101,8 +101,6 @@ const zhHant: Partial<Translations> = {
   'usageIsland.style.list': '列表',
   'usageIsland.style.dial': '圓盤',
   'usageIsland.style.line': '線條',
-  'settings.routerStatistics': '記錄統計',
-  'settings.routerStatisticsError': '無法讀取或儲存統計記錄設定，請重試。',
   'settings.developerMode': '開發者預覽',
   'settings.developerModeHint':
     '開發者預覽主要用於開發與測試，部分功能未必適合日常使用。關閉後，將暫停開發者頁面的所有功能，減少資源開銷。預覽中的功能可能在後續版本中調整或移除，未來也會加入更多有趣的功能。',
@@ -665,11 +663,10 @@ const zhHant: Partial<Translations> = {
   'agent.addCurrentAccount': '新增帳號',
   'agent.accountSnapshot': '帳號快照',
   'agent.accountSnapshotHint':
-    'Claude桌面端帳號管理採用「快照」模式：更安全、更穩定。\n\n1. 首次新增帳號\n保持帳號已登入，完全結束 Claude 桌面端（右鍵匣圖示結束，不要用工作管理員強制結束），等待 30 到 60 秒，再點擊「帳號快照」。\n\n2. 新增更多帳號\n在上一個帳號已登入的狀態下，同樣完全結束 Claude 桌面端，點擊「重置環境 + 登入」，Claude 會自動開啟，登入新帳號。登入完成後，保持登入，再次完全結束並等待 30 到 60 秒，點擊「帳號快照」完成儲存。\n\n注意：不要在 Claude 裡點「登出」，否則已儲存的帳號會失效。',
+    'Claude 桌面端帳號透過快照儲存。\n\n1. 儲存目前帳號\n保持帳號已登入，完全結束 Claude 桌面端（右鍵匣圖示結束），等待 30 到 60 秒，再點擊「帳號快照」。\n\n2. 登入其他帳號\n需要保留目前帳號時，請先儲存快照。點擊「重置環境 + 登入」會清理本機登入並自動開啟 Claude。登入新帳號後，保持登入，完全結束並等待 30 到 60 秒，再點擊「帳號快照」儲存。\n\n注意：在 Claude 內登出可能使對應的已儲存工作階段失效。',
   'agent.accountSnapshotNoticeTitle': '帳號快照須知',
   'agent.accountSnapshotNext': '重置環境 + 登入',
-  'agent.accountSnapshotNextUnsupported':
-    '目前帳號已儲存，但外掛版本過舊，無法重置環境。請先在外掛頁更新 Claude 桌面端外掛。',
+  'agent.accountResetting': '正在重置環境',
   'agent.accountSnapshotSaving': '正在儲存快照',
   'agent.zcodeSwitchProvider': '切換登入平台（目前為 {provider}）',
   'agent.minimaxRegionCn': '中國版',

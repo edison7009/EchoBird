@@ -368,12 +368,22 @@ pub async fn apply_model_to_tool(tool_id: &str, model_info: ModelInfo) -> ApplyR
         // Claude Desktop Code with a local first-party identity.
         "commandcode" => return commandcode::apply(&model_info),
         "claudedesktop" => {
+            if let Err(message) = claudedesktop::model_parameters(&model_info) {
+                return ApplyResult {
+                    success: false,
+                    message,
+                };
+            }
             match super::process_manager::desktop_tool_is_running(tool_id).await {
-                Ok(true) if !super::claude_desktop_local::is_running().await => {
-                    return ApplyResult {
-                        success: false,
-                        message: "accountError.closeClient".into(),
-                    };
+                Ok(true) => {
+                    if let Err(message) =
+                        super::process_manager::stop_desktop_for_account(tool_id).await
+                    {
+                        return ApplyResult {
+                            success: false,
+                            message,
+                        };
+                    }
                 }
                 Err(message) => {
                     return ApplyResult {
@@ -495,6 +505,12 @@ pub async fn restore_tool_to_official(tool_id: &str) -> ApplyResult {
         };
     }
     if tool_id == "claudedesktop" {
+        if let Err(message) = super::process_manager::stop_desktop_for_account(tool_id).await {
+            return ApplyResult {
+                success: false,
+                message,
+            };
+        }
         if let Err(message) = super::claude_desktop_accounts::end_local_mode().await {
             return ApplyResult {
                 success: false,

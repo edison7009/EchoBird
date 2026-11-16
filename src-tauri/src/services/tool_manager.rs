@@ -2191,7 +2191,75 @@ pub fn get_tool_start_command(tool_id: &str) -> Option<String> {
 pub fn get_tool_exe_path(tool_id: &str) -> Option<String> {
     let defs = get_definitions();
     let def = defs.iter().find(|d| d.id == tool_id)?;
-    find_tool_executable(&def.paths_config, true)
+    let executable = find_tool_executable(&def.paths_config, true);
+    #[cfg(windows)]
+    if executable.is_none() && tool_id == "claudedesktop" {
+        let configured = def.paths_config.launch_uri.as_deref()?;
+        let uri = super::msix::resolve_launch_uri(configured)?;
+        let (root, _) = super::msix::application_location(&uri)?;
+        return claude_package_executable(&root, &get_platform_paths(&def.paths_config.paths));
+    }
+    executable
+}
+
+#[cfg(windows)]
+fn claude_package_executable(root: &Path, paths: &[String]) -> Option<String> {
+    // Store releases put Electron under app/, while older packages used the root.
+    // Use the catalog's executable names inside the registered package only.
+    resolve_install_directory(&root.join("app"), paths)
+        .or_else(|| resolve_install_directory(root, paths))
+}
+
+#[cfg(windows)]
+#[test]
+fn claude_store_package_resolves_current_and_legacy_layouts() {
+    let root = std::env::temp_dir().join(format!("claude-package-{}", uuid::Uuid::new_v4()));
+    let config: PathsConfig =
+        serde_json::from_str(include_str!("../../../tools/claudedesktop/paths.json")).unwrap();
+    let paths = get_platform_paths(&config.paths);
+    fs::create_dir_all(root.join("app")).unwrap();
+    assert!(claude_package_executable(&root, &paths).is_none());
+    let legacy = root.join("Claude.exe");
+    fs::write(&legacy, b"fixture").unwrap();
+    assert_eq!(
+        claude_package_executable(&root, &paths),
+        Some(legacy.to_string_lossy().into_owned())
+    );
+    let current = root.join("app").join("Claude.exe");
+    fs::write(&current, b"fixture").unwrap();
+    assert_eq!(
+        claude_package_executable(&root, &paths),
+        Some(current.to_string_lossy().into_owned())
+    );
+    fs::remove_file(&legacy).unwrap();
+    assert!(claude_package_executable(&root, &paths).is_some());
+    fs::remove_file(&current).unwrap();
+    assert!(claude_package_executable(&root, &paths).is_none());
+    fs::remove_dir_all(root).unwrap();
+}
+
+#[cfg(windows)]
+#[test]
+#[ignore = "read-only probe requiring an installed Store Claude Desktop"]
+fn installed_claude_store_executable_probe() {
+    let configured = get_definitions()
+        .iter()
+        .find(|def| def.id == "claudedesktop")
+        .unwrap()
+        .paths_config
+        .launch_uri
+        .clone()
+        .unwrap();
+    let uri = super::msix::resolve_launch_uri(&configured).unwrap();
+    let (root, _) = super::msix::application_location(&uri).unwrap();
+    let executable = PathBuf::from(get_tool_exe_path("claudedesktop").unwrap());
+    assert!(executable.is_file());
+    assert!(executable.starts_with(&root));
+    assert_eq!(executable.file_name().unwrap(), "Claude.exe");
+    println!(
+        "Resolved installed Claude Desktop: {}",
+        executable.display()
+    );
 }
 
 /// Whether any of the clients is installed, by executable or Store package.

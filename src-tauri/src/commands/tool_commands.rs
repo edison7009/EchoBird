@@ -744,9 +744,12 @@ pub async fn list_claude_desktop_accounts(
 #[tauri::command]
 pub async fn start_claude_desktop_login(
     _app: tauri::AppHandle,
-    next: Option<bool>,
 ) -> Result<crate::services::claude_desktop_accounts::LoginStart, String> {
-    crate::services::claude_desktop_accounts::start_login(next.unwrap_or(false)).await
+    crate::services::claude_desktop_accounts::start_login().await
+}
+#[tauri::command]
+pub async fn reset_claude_desktop_login() -> Result<(), String> {
+    crate::services::claude_desktop_accounts::reset_login().await
 }
 #[tauri::command]
 pub async fn poll_claude_desktop_login(

@@ -746,184 +746,66 @@ export const AppManagerProvider: React.FC<AppManagerProviderProps> = ({ children
     }
   };
 
-  // Restore the shared Web Search preference and apply it on an explicit flip.
+  // Capability tags stage preferences for the bottom-bar application action.
   const setCodexWebSearch = (value: boolean) => {
     if (isLaunching) return;
     setCodexWebSearchRaw(value);
     writeBool('echobird_codex_web_search', value);
-    if (!isCodexTool || !selectedTool || !selectedToolData?.installed || selectedCodexAccountId)
-      return;
-    const modelId = toolModelConfig[selectedTool];
-    if (!modelId || isOfficialModelSentinel(modelId)) return;
-    setIsLaunching(true);
-    setApplyError(null);
-    void applyModelConfig(selectedTool, modelId, undefined, value)
-      .then((result) => {
-        if (result !== true)
-          setApplyError(typeof result === 'string' ? result : t('key.destroyed'));
-      })
-      .finally(() => setIsLaunching(false));
   };
 
   const setClaudeWebSearch = (tool: 'claudedesktop' | 'claudecode', value: boolean) => {
     if (isLaunching || selectedTool !== tool) return;
-    const desktop = tool === 'claudedesktop';
-    (desktop ? setClaudeDesktopWebSearch : setClaudeCodeWebSearch)(value);
+    (tool === 'claudedesktop' ? setClaudeDesktopWebSearch : setClaudeCodeWebSearch)(value);
     writeBool(`echobird_${tool}_web_search`, value);
-    if (
-      !selectedToolData?.installed ||
-      (desktop ? claudeDesktopAccounts.selectedId : claudeCodeAccounts.selectedId)
-    )
-      return;
-    const modelId = toolModelConfig[tool];
-    if (!modelId || isOfficialModelSentinel(modelId)) return;
-    setIsLaunching(true);
-    setApplyError(null);
-    void applyModelConfig(tool, modelId, undefined, value)
-      .then((result) => {
-        if (result !== true)
-          setApplyError(typeof result === 'string' ? result : t('key.destroyed'));
-      })
-      .finally(() => setIsLaunching(false));
   };
 
   const setZCodeCapability = (capability: 'webSearch' | 'imageInput', value: boolean) => {
     if (isLaunching || selectedTool !== 'zcode') return;
     (capability === 'webSearch' ? setZCodeWebSearch : setZCodeImageInput)(value);
     writeBool(`echobird_zcode_${capability === 'webSearch' ? 'web_search' : 'image_input'}`, value);
-    if (!selectedToolData?.installed || zcodeAccounts.selectedId) return;
-    const modelId = toolModelConfig.zcode;
-    if (!modelId || isOfficialModelSentinel(modelId)) return;
-    setIsLaunching(true);
-    setApplyError(null);
-    void applyModelConfig(
-      'zcode',
-      modelId,
-      undefined,
-      capability === 'webSearch' ? value : zcodeWebSearch,
-      capability === 'imageInput' ? value : zcodeImageInput
-    )
-      .then((result) => {
-        if (result !== true)
-          setApplyError(typeof result === 'string' ? result : t('key.destroyed'));
-      })
-      .finally(() => setIsLaunching(false));
   };
 
   const setWorkBuddyCapability = (capability: 'imageInput' | 'oneMContext', value: boolean) => {
     if (isLaunching || !workBuddyEdition) return;
     const tool = workBuddyEdition;
-    const values = { ...workBuddyCapabilities[tool], [capability]: value };
-    setWorkBuddyCapabilities((prev) => ({ ...prev, [tool]: values }));
+    setWorkBuddyCapabilities((prev) => ({
+      ...prev,
+      [tool]: { ...prev[tool], [capability]: value },
+    }));
     writeBool(`echobird_${tool}_${capability === 'imageInput' ? 'image_input' : '1m_mode'}`, value);
-    if (!selectedToolData?.installed || workBuddyAccounts.selectedId) return;
-    const modelId = toolModelConfig[tool];
-    if (!modelId || isOfficialModelSentinel(modelId)) return;
-    setIsLaunching(true);
-    setApplyError(null);
-    void applyModelConfig(tool, modelId, values.oneMContext, undefined, values.imageInput)
-      .then((result) => {
-        if (result !== true)
-          setApplyError(typeof result === 'string' ? result : t('key.destroyed'));
-      })
-      .finally(() => setIsLaunching(false));
   };
 
   const setMimoCapability = (capability: 'imageInput' | 'oneMContext', value: boolean) => {
     if (isLaunching || !mimoTool) return;
     const tool = mimoTool;
-    const values = { ...mimoCapabilities[tool], [capability]: value };
-    setMimoCapabilities((prev) => ({ ...prev, [tool]: values }));
+    setMimoCapabilities((prev) => ({ ...prev, [tool]: { ...prev[tool], [capability]: value } }));
     writeBool(`echobird_${tool}_${capability === 'imageInput' ? 'image_input' : '1m_mode'}`, value);
-    if (!selectedToolData?.installed) return;
-    const modelId = toolModelConfig[tool];
-    if (!modelId || isOfficialModelSentinel(modelId)) return;
-    setIsLaunching(true);
-    setApplyError(null);
-    void applyModelConfig(tool, modelId, values.oneMContext, undefined, values.imageInput)
-      .then((result) => {
-        if (result !== true)
-          setApplyError(typeof result === 'string' ? result : t('key.destroyed'));
-      })
-      .finally(() => setIsLaunching(false));
   };
 
   const setMinimaxCapability = (capability: 'imageInput' | 'oneMContext', value: boolean) => {
     if (isLaunching || (selectedTool !== 'minimaxcode' && selectedTool !== 'minimaxdesktop'))
       return;
-    const values = { ...minimaxCapabilities, [capability]: value };
-    setMinimaxCapabilities(values);
+    setMinimaxCapabilities((prev) => ({ ...prev, [capability]: value }));
     writeBool(`echobird_minimax_${capability === 'imageInput' ? 'image_input' : '1m_mode'}`, value);
-    if (!selectedToolData?.installed || minimaxAccounts.selectedId) return;
-    const modelId = toolModelConfig[selectedTool];
-    if (!modelId || isOfficialModelSentinel(modelId)) return;
-    setIsLaunching(true);
-    setApplyError(null);
-    void applyModelConfig(selectedTool, modelId, values.oneMContext, undefined, values.imageInput)
-      .then((result) => {
-        if (result !== true)
-          setApplyError(typeof result === 'string' ? result : t('key.destroyed'));
-      })
-      .finally(() => setIsLaunching(false));
   };
 
   const setQoderCapability = (capability: 'imageInput' | 'oneMContext', value: boolean) => {
     if (isLaunching || (selectedTool !== 'qoder' && selectedTool !== 'qodercn')) return;
     const tool = selectedTool;
-    const values = { ...qoderCapabilities[tool], [capability]: value };
-    setQoderCapabilities((prev) => ({ ...prev, [tool]: values }));
+    setQoderCapabilities((prev) => ({ ...prev, [tool]: { ...prev[tool], [capability]: value } }));
     writeBool(`echobird_${tool}_${capability === 'imageInput' ? 'image_input' : '1m_mode'}`, value);
-    if (!selectedToolData?.installed || qoderAccounts.selectedId) return;
-    const modelId = toolModelConfig[tool];
-    if (!modelId || isOfficialModelSentinel(modelId)) return;
-    setIsLaunching(true);
-    setApplyError(null);
-    void applyModelConfig(tool, modelId, values.oneMContext, undefined, values.imageInput)
-      .then((result) => {
-        if (result !== true)
-          setApplyError(typeof result === 'string' ? result : t('key.destroyed'));
-      })
-      .finally(() => setIsLaunching(false));
   };
 
   const setDshCapability = (capability: 'imageInput' | 'oneMContext', value: boolean) => {
     if (isLaunching || selectedTool !== 'dsh') return;
-    const values = { ...dshCapabilities, [capability]: value };
-    setDshCapabilities(values);
+    setDshCapabilities((prev) => ({ ...prev, [capability]: value }));
     writeBool(`echobird_dsh_${capability === 'imageInput' ? 'image_input' : '1m_mode'}`, value);
-    if (!selectedToolData?.installed || deepSeekAccounts.selectedId) return;
-    const modelId = toolModelConfig.dsh;
-    if (!modelId || isOfficialModelSentinel(modelId)) return;
-    setIsLaunching(true);
-    setApplyError(null);
-    void applyModelConfig('dsh', modelId, values.oneMContext, undefined, values.imageInput)
-      .then((result) => {
-        if (result !== true)
-          setApplyError(typeof result === 'string' ? result : t('key.destroyed'));
-      })
-      .finally(() => setIsLaunching(false));
   };
 
   const setClaudeOneM = (tool: 'claudedesktop' | 'claudecode', value: boolean) => {
     if (isLaunching || selectedTool !== tool) return;
-    const desktop = tool === 'claudedesktop';
-    (desktop ? setClaudeDesktop1mModeRaw : setClaude1mModeRaw)(value);
+    (tool === 'claudedesktop' ? setClaudeDesktop1mModeRaw : setClaude1mModeRaw)(value);
     writeBool(`echobird_${tool}_1m_mode`, value);
-    if (
-      !selectedToolData?.installed ||
-      (desktop ? claudeDesktopAccounts.selectedId : claudeCodeAccounts.selectedId)
-    )
-      return;
-    const modelId = toolModelConfig[tool];
-    if (!modelId || isOfficialModelSentinel(modelId)) return;
-    setIsLaunching(true);
-    setApplyError(null);
-    void applyModelConfig(tool, modelId, value)
-      .then((result) => {
-        if (result !== true)
-          setApplyError(typeof result === 'string' ? result : t('key.destroyed'));
-      })
-      .finally(() => setIsLaunching(false));
   };
   const setClaude1mMode = (value: boolean) => setClaudeOneM('claudecode', value);
   const setClaudeDesktop1mMode = (value: boolean) => setClaudeOneM('claudedesktop', value);

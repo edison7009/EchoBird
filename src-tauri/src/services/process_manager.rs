@@ -221,19 +221,26 @@ impl ProcessManager {
             return Err("MiniMax Desktop is not installed".into());
         }
 
-        // A local identity switch owns native authentication. Claude must be
-        // closed by the user before entering or leaving that identity.
+        // Explicit identity switches stop Claude before changing native storage.
+        // Opening an existing local session can keep its current relay process.
         if tool_id == "claudedesktop" && desktop_tool_is_running(tool_id).await? {
             if crate::services::tool_config_manager::claudedesktop::local_mode_enabled() {
-                if crate::services::claude_desktop_local::is_running().await {
+                if !restart && crate::services::claude_desktop_local::is_running().await {
                     return Ok(());
                 }
-                return Err("accountError.closeClient".into());
+                if !restart {
+                    return Err("accountError.closeClient".into());
+                }
+                self.kill_desktop_instances(tool_id);
+                tokio::time::sleep(std::time::Duration::from_millis(800)).await;
+                if desktop_tool_is_running(tool_id).await? {
+                    return Err("accountError.stopClient".into());
+                }
+            } else {
+                // An unchanged official client can receive its usual focus request.
+                crate::services::claude_desktop_accounts::end_local_mode().await?;
+                return self.start_gui_tool(tool_id).await;
             }
-            // An unchanged official client can receive its usual focus request.
-            // Pending identity restoration still requires the user to exit first.
-            crate::services::claude_desktop_accounts::end_local_mode().await?;
-            return self.start_gui_tool(tool_id).await;
         }
 
         // Desktop apps load provider config at startup, so switching the model
@@ -1099,6 +1106,9 @@ impl ProcessManager {
             crate::services::anthropic_proxy::port()
         ))
         .await?;
+        #[cfg(windows)]
+        crate::services::claude_desktop_local::ensure_certificate_trusted(&settings.ca_path)
+            .await?;
         let mut command = crate::utils::process::command(&executable);
         let proxy = format!("http://127.0.0.1:{}", settings.port);
         let relay_path = dirs::home_dir()
@@ -1112,10 +1122,12 @@ impl ProcessManager {
         } else {
             command.env_remove("CLAUDE_CODE_MAX_CONTEXT_TOKENS");
         }
-        command.args([
-            format!("--proxy-server={proxy}"),
-            format!("--ignore-certificate-errors-spki-list={}", settings.spki),
-        ]);
+        command.arg(format!("--proxy-server={proxy}"));
+        #[cfg(not(windows))]
+        command.arg(format!(
+            "--ignore-certificate-errors-spki-list={}",
+            settings.spki
+        ));
         for name in [
             "HTTP_PROXY",
             "http_proxy",
@@ -1137,10 +1149,18 @@ impl ProcessManager {
             .stdin(std::process::Stdio::null())
             .stdout(std::process::Stdio::null())
             .stderr(std::process::Stdio::null());
-        let child = command
+        let mut child = command
             .spawn()
             .map_err(|error| format!("Cannot launch Claude Desktop: {error}"))?;
         let pid = child.id();
+        // Packaged Claude can reject startup arguments after a successful spawn.
+        // Propagate that failure so launch_tool restores the native sign-in.
+        tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+        if let Some(status) = child.try_wait().map_err(|error| error.to_string())? {
+            if !status.success() {
+                return Err(format!("Claude Desktop exited during startup: {status}"));
+            }
+        }
         std::thread::spawn(move || {
             let mut child = child;
             let _ = child.wait();
@@ -1387,6 +1407,22 @@ impl ProcessManager {
                             launch_uri.as_deref(),
                         )
                     })
+                    .collect::<Vec<_>>();
+                stop_qoder_account_instances(&desktop)
+            });
+        }
+
+        #[cfg(not(windows))]
+        if tool_id == "claudedesktop" {
+            let Some(executable) = crate::services::tool_manager::get_tool_exe_path(tool_id)
+                .and_then(|path| std::fs::canonicalize(path).ok())
+            else {
+                return false;
+            };
+            return qoder_process_snapshot().is_ok_and(|processes| {
+                let desktop = processes
+                    .into_iter()
+                    .filter(|process| process.path == executable)
                     .collect::<Vec<_>>();
                 stop_qoder_account_instances(&desktop)
             });

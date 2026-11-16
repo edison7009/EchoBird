@@ -6,11 +6,14 @@ use axum::{
     response::IntoResponse,
     Json,
 };
+#[cfg(not(windows))]
 use base64::{engine::general_purpose::STANDARD, Engine};
 use hyper::{body::Incoming, service::service_fn};
 use hyper_util::rt::TokioIo;
+#[cfg(not(windows))]
 use rcgen::PublicKeyData;
 use serde_json::{json, Value};
+#[cfg(not(windows))]
 use sha2::{Digest, Sha256};
 use std::{
     convert::Infallible,
@@ -24,6 +27,16 @@ use tokio::{
 use tokio_rustls::{rustls, TlsAcceptor};
 use tokio_util::sync::CancellationToken;
 
+mod assets;
+#[cfg(windows)]
+mod certificates;
+mod localization;
+
+#[cfg(windows)]
+pub(crate) async fn ensure_certificate_trusted(path: &std::path::Path) -> Result<(), String> {
+    certificates::ensure_trusted(path).await
+}
+
 const ACCOUNT: &str = "ec40b17d-31cf-4c81-94a9-000000000001";
 const ORGANIZATION: &str = "ec40b17d-31cf-4c81-94a9-000000000002";
 
@@ -31,6 +44,7 @@ const ORGANIZATION: &str = "ec40b17d-31cf-4c81-94a9-000000000002";
 pub struct LaunchSettings {
     pub port: u16,
     pub ca_path: PathBuf,
+    #[cfg(not(windows))]
     pub spki: String,
     pub token: String,
 }
@@ -38,6 +52,8 @@ struct Running {
     settings: LaunchSettings,
     cancelled: CancellationToken,
     upstream: String,
+    assets: Option<Arc<assets::Archive>>,
+    locale: String,
 }
 fn running() -> &'static Mutex<Option<Running>> {
     static RUNNING: OnceLock<Mutex<Option<Running>>> = OnceLock::new();
@@ -52,13 +68,20 @@ struct Context {
     cancelled: CancellationToken,
     selection: Arc<Mutex<Value>>,
     selection_path: PathBuf,
+    assets: Option<Arc<assets::Archive>>,
+    locale: String,
 }
 
 pub async fn ensure_started(upstream: String) -> Result<LaunchSettings, String> {
     let directory = dirs::home_dir()
         .ok_or("Home directory unavailable")?
         .join(".echobird/claude-desktop-local");
-    ensure_started_at(upstream, directory).await
+    let (assets, locale) = tokio::task::spawn_blocking(|| {
+        Ok::<_, String>((assets::installed()?, localization::native_locale()))
+    })
+    .await
+    .map_err(|error| error.to_string())??;
+    ensure_started_at(upstream, directory, assets, locale).await
 }
 
 fn local_token(directory: &std::path::Path) -> Result<String, String> {
@@ -81,7 +104,12 @@ fn local_token(directory: &std::path::Path) -> Result<String, String> {
     Ok(token)
 }
 
-async fn ensure_started_at(upstream: String, directory: PathBuf) -> Result<LaunchSettings, String> {
+async fn ensure_started_at(
+    upstream: String,
+    directory: PathBuf,
+    assets: Option<Arc<assets::Archive>>,
+    locale: String,
+) -> Result<LaunchSettings, String> {
     let url = url::Url::parse(&upstream).map_err(|e| e.to_string())?;
     if url.scheme() != "http" || url.host_str() != Some("127.0.0.1") {
         return Err("Claude local inference relay must be loopback HTTP".into());
@@ -89,13 +117,22 @@ async fn ensure_started_at(upstream: String, directory: PathBuf) -> Result<Launc
     let mut guard = running().lock().await;
     if let Some(current) = guard.as_ref() {
         if current.upstream == upstream
+            && current.locale == locale
             && current.settings.ca_path.parent() == Some(directory.as_path())
+            && current.assets.as_ref().map(|archive| &archive.path)
+                == assets.as_ref().map(|archive| &archive.path)
             && !current.cancelled.is_cancelled()
         {
             return Ok(current.settings.clone());
         }
         current.cancelled.cancel();
     }
+    super::native_account_files::private_dir(&directory)?;
+    #[cfg(windows)]
+    let (identity, ca_path) = certificates::load(&directory)?;
+    #[cfg(windows)]
+    let (certificate, private_key) = (identity.certificate, identity.key);
+    #[cfg(not(windows))]
     let certified = rcgen::generate_simple_self_signed(vec![
         "claude.ai".into(),
         "www.claude.ai".into(),
@@ -104,21 +141,27 @@ async fn ensure_started_at(upstream: String, directory: PathBuf) -> Result<Launc
         "api.claude.ai".into(),
     ])
     .map_err(|e| e.to_string())?;
+    #[cfg(not(windows))]
     let spki = STANDARD.encode(Sha256::digest(
         certified.signing_key.subject_public_key_info(),
     ));
-    super::native_account_files::private_dir(&directory)?;
+    #[cfg(not(windows))]
     let ca_path = directory.join("process-ca.pem");
+    #[cfg(not(windows))]
     std::fs::write(&ca_path, certified.cert.pem()).map_err(|e| e.to_string())?;
+    #[cfg(not(windows))]
+    let (certificate, private_key) = (
+        certified.cert.der().to_vec(),
+        certified.signing_key.serialize_der(),
+    );
     let crypto = Arc::new(rustls::crypto::ring::default_provider());
     let tls = rustls::ServerConfig::builder_with_provider(crypto)
         .with_safe_default_protocol_versions()
         .map_err(|e| e.to_string())?
         .with_no_client_auth()
         .with_single_cert(
-            vec![certified.cert.der().clone()],
-            rustls::pki_types::PrivatePkcs8KeyDer::from(certified.signing_key.serialize_der())
-                .into(),
+            vec![certificate.into()],
+            rustls::pki_types::PrivatePkcs8KeyDer::from(private_key).into(),
         )
         .map_err(|e| e.to_string())?;
     let listener = TcpListener::bind((std::net::Ipv4Addr::LOCALHOST, 0))
@@ -139,6 +182,8 @@ async fn ensure_started_at(upstream: String, directory: PathBuf) -> Result<Launc
         cancelled: cancelled.clone(),
         selection: Arc::new(Mutex::new(read_selection(&directory.join("selector.json")))),
         selection_path: directory.join("selector.json"),
+        assets: assets.clone(),
+        locale: locale.clone(),
     };
     tokio::spawn(async move {
         loop {
@@ -167,6 +212,7 @@ async fn ensure_started_at(upstream: String, directory: PathBuf) -> Result<Launc
     let settings = LaunchSettings {
         port,
         ca_path,
+        #[cfg(not(windows))]
         spki,
         token,
     };
@@ -174,6 +220,8 @@ async fn ensure_started_at(upstream: String, directory: PathBuf) -> Result<Launc
         settings: settings.clone(),
         cancelled,
         upstream,
+        assets,
+        locale,
     });
     Ok(settings)
 }
@@ -250,7 +298,7 @@ fn relay_settings() -> Value {
 }
 fn model_entry(id: &str, name: &str, one_m: bool) -> Value {
     json!({"id":id,"type":"model","name":name,"display_name":name,"description":"Custom API",
-        "supports_1m":one_m,"supports_1m_context":one_m})
+        "section":"main","supports_1m":one_m,"supports_1m_context":one_m})
 }
 fn local_models() -> Vec<Value> {
     models_for_relay(&relay_settings())
@@ -275,7 +323,8 @@ fn models_for_relay(relay: &Value) -> Vec<Value> {
 }
 fn user_access() -> Value {
     json!({"features":[{"feature":"claude_code","status":"available"},
-        {"feature":"claude_code_desktop","status":"available"}]})
+        {"feature":"claude_code_desktop","status":"available"},
+        {"feature":"cowork","status":"blocked_by_platform"}]})
 }
 fn selectable(models: &[Value], selected: &Value) -> bool {
     let Some(id) = selected.as_str() else {
@@ -325,30 +374,33 @@ fn patch_selection(
                 .expect("selection object")
                 .remove("thinking");
         } else {
-            let object = thinking
-                .as_object()
-                .ok_or("Invalid thinking configuration")?;
-            let kind = object
-                .get("type")
-                .and_then(Value::as_str)
-                .ok_or("Invalid thinking type")?;
-            if !matches!(kind, "none" | "effort" | "mode" | "effort_and_mode")
-                || object
-                    .keys()
-                    .any(|key| !matches!(key.as_str(), "type" | "effort" | "mode"))
-            {
-                return Err("Invalid thinking configuration");
-            }
-            if matches!(kind, "effort" | "effort_and_mode") != thinking["effort"].is_string()
-                || matches!(kind, "mode" | "effort_and_mode") != thinking["mode"].is_string()
-            {
-                return Err("Invalid thinking configuration");
-            }
+            validate_thinking(thinking)?;
             next["thinking"] = thinking.clone();
         }
     }
     Ok(next)
 }
+
+fn validate_thinking(thinking: &Value) -> Result<(), &'static str> {
+    let object = thinking
+        .as_object()
+        .ok_or("Invalid thinking configuration")?;
+    let kind = object
+        .get("type")
+        .and_then(Value::as_str)
+        .ok_or("Invalid thinking type")?;
+    if !matches!(kind, "none" | "effort" | "mode" | "effort_and_mode")
+        || object
+            .keys()
+            .any(|key| !matches!(key.as_str(), "type" | "effort" | "mode"))
+        || matches!(kind, "effort" | "effort_and_mode") != thinking["effort"].is_string()
+        || matches!(kind, "mode" | "effort_and_mode") != thinking["mode"].is_string()
+    {
+        return Err("Invalid thinking configuration");
+    }
+    Ok(())
+}
+
 async fn current_selection(context: &Context) -> Value {
     let selected = context.selection.lock().await;
     if selectable(&local_models(), &selected["model"]) {
@@ -358,31 +410,44 @@ async fn current_selection(context: &Context) -> Value {
     }
 }
 fn selector_config() -> Value {
-    json!([{"id":"code","models":local_models()}])
+    use sha2::Digest;
+    let models = local_models();
+    let revision = format!(
+        "{:x}",
+        sha2::Sha256::digest(serde_json::to_vec(&models).expect("model catalog JSON"))
+    );
+    json!([{"id":"code","revision":revision,"models":models}])
 }
 fn selector_state() -> Value {
     json!([{"id":"code","model":"claude-opus-5-5","selection_source":"global_default"}])
 }
-fn identity() -> Value {
+async fn selections(context: &Context) -> Value {
+    json!([current_selection(context).await])
+}
+fn identity(locale: &str) -> Value {
     let created = "2026-01-01T00:00:00Z";
-    let org = json!({"uuid":ORGANIZATION,"id":0,"name":"EchoBird Local","organization_type":"personal",
+    let org = json!({"uuid":ORGANIZATION,"id":0,"name":"EchoBird.ai","organization_type":"personal",
         "capabilities":["chat","claude_pro","claude_code"],"billing_type":"stripe_subscription","plan_display_name":"Custom API",
         "claude_ai_bootstrap_models_config":local_models(),"settings":{}});
     let memberships = json!([{"organization":org,"role":"admin","seat_tier":"full_member","created_at":created,"updated_at":created}]);
-    let account = json!({"uuid":ACCOUNT,"tagged_id":format!("acct_{ACCOUNT}"),"email_address":"local@echobird.local",
-        "email":"local@echobird.local","full_name":"EchoBird Local","display_name":"EchoBird Local",
+    let account = json!({"uuid":ACCOUNT,"tagged_id":format!("acct_{ACCOUNT}"),"email_address":"hi@echobird.ai",
+        "email":"hi@echobird.ai","full_name":"EchoBird.ai","display_name":"EchoBird.ai",
         "created_at":created,"updated_at":created,"is_verified":true,"age_is_verified":true,
-        "accepted_clickwrap_versions":{},"settings":{},"memberships":memberships,"workspace_memberships":[],"invites":[]});
+        "accepted_clickwrap_versions":{},"locale":locale,"settings":{"locale":locale},"memberships":memberships,"workspace_memberships":[],"invites":[]});
+    let mut features = json!({});
+    if locale == "zh-Hans" {
+        features["witty_scone_main"] = json!({"defaultValue":{"released":["zh-Hans"]}});
+    }
     json!({"account":account,"user":account,"organization":org,"activeOrganization":org,"organizations":[org],
         "memberships":memberships,"resolved_org_uuid":ORGANIZATION,"featureFlagsOrgUuid":ORGANIZATION,
-        "current_user_access":user_access(),"locale":null,"install_id":ACCOUNT,
+        "current_user_access":user_access(),"locale":locale,"install_id":ACCOUNT,
         "model_selector_config":selector_config(),"model_selector_state":selector_state(),
         "statsig":{"user":{"userID":ACCOUNT},"values":{},"values_hash":"echobird-local"},
-        "feature_flags":{"user":{"userID":ACCOUNT},"values":{},"values_hash":"echobird-local"},"growthbook":{"features":{}},
+        "feature_flags":{"user":{"userID":ACCOUNT},"values":{},"values_hash":"echobird-local"},"growthbook":{"features":features},
         "bootstrap_push_revision":0,"intercom_account_hash":null,"system_prompts":{}})
 }
-fn oauth_profile() -> Value {
-    let bootstrap = identity();
+fn oauth_profile(locale: &str) -> Value {
+    let bootstrap = identity(locale);
     let mut organization = bootstrap["organization"].clone();
     // The native OAuth parser translates this protocol value to its local Code tier.
     organization["organization_type"] = "claude_pro".into();
@@ -395,11 +460,28 @@ async fn route(
     tunnel_host: Option<String>,
 ) -> Response<Body> {
     let path = request.uri().path().to_owned();
+    if path.contains("bootstrap") || path.contains("model_selector") {
+        log::info!("[ClaudeLocal] {} {path}", request.method());
+    }
     let host = tunnel_host.or_else(|| request.uri().host().map(str::to_owned));
     if let Some(host) = host.as_deref() {
         if !intercepted(host) {
             return StatusCode::FORBIDDEN.into_response();
         }
+    }
+    if path.starts_with("/api/organizations/")
+        && (path
+            .split('/')
+            .nth(4)
+            .is_some_and(|part| matches!(part, "chat_conversations" | "chat_conversations_v2"))
+            || path.ends_with("/model_selector/chat")
+            || path.ends_with("/model_selector_state/chat"))
+    {
+        return (
+            StatusCode::NOT_IMPLEMENTED,
+            Json(json!({"error":{"type":"api_error","message":"API mode supports Claude Code only."}})),
+        )
+            .into_response();
     }
     if path == "/v1/messages" {
         let authenticated = request
@@ -516,6 +598,9 @@ async fn route(
         *current = next.clone();
         return Json(next).into_response();
     }
+    if path.starts_with("/api/organizations/") && path.ends_with("/model_selector/code") {
+        return Json(json!({"model_selector_config":selector_config(),"model_selector_state":selections(&context).await})).into_response();
+    }
     if path.ends_with("/current_user_access") {
         return Json(user_access()).into_response();
     }
@@ -526,29 +611,39 @@ async fn route(
         return Json(selector_config()).into_response();
     }
     if path.ends_with("/model_selector_state") {
-        return Json(json!([current_selection(&context).await])).into_response();
+        return Json(selections(&context).await).into_response();
     }
     if path == "/api/account" || path == "/api/account_profile" {
-        return Json(identity()["account"].clone()).into_response();
+        return Json(identity(&context.locale)["account"].clone()).into_response();
     }
     if path == "/api/bootstrap"
         || path == "/edge-api/bootstrap"
-        || (path.starts_with("/api/bootstrap/") && path.ends_with("/app_start"))
+        || ((path.starts_with("/api/bootstrap/") || path.starts_with("/edge-api/bootstrap/"))
+            && path.ends_with("/app_start"))
     {
-        let mut bootstrap = identity();
-        bootstrap["model_selector_state"] = json!([current_selection(&context).await]);
+        let mut bootstrap = identity(&context.locale);
+        if let Some(assets) = &context.assets {
+            bootstrap["gated_imports_build_id"] = assets.build_id.clone().into();
+        }
+        bootstrap["model_selector_state"] = selections(&context).await;
         let mut response = Json(bootstrap).into_response();
-        let cookie = format!(
-            "sessionKey={}; Path=/; HttpOnly; Secure; SameSite=None",
-            context.token
-        );
-        if let Ok(value) = cookie.parse() {
-            response.headers_mut().insert("set-cookie", value);
+        for cookie in [
+            format!(
+                "sessionKey={}; Path=/; HttpOnly; Secure; SameSite=None",
+                context.token
+            ),
+            format!(
+                "lastActiveOrg={ORGANIZATION}; Domain=.claude.ai; Path=/; Secure; SameSite=None"
+            ),
+        ] {
+            if let Ok(value) = cookie.parse() {
+                response.headers_mut().append("set-cookie", value);
+            }
         }
         return response;
     }
     if path == "/api/oauth/profile" {
-        return Json(oauth_profile()).into_response();
+        return Json(oauth_profile(&context.locale)).into_response();
     }
     if path.starts_with("/api/claude_code/settings") {
         let mut response=Json(json!({"uuid":ORGANIZATION,"settings":{},"content":{"entries":{}},"checksum":"echobird-local-v1"})).into_response();
@@ -566,10 +661,17 @@ async fn route(
         return Json(json!([])).into_response();
     }
     if path == "/api/organizations" {
-        return Json(identity()["organizations"].clone()).into_response();
+        return Json(identity(&context.locale)["organizations"].clone()).into_response();
+    }
+    if path == format!("/api/organizations/{ORGANIZATION}/projects") {
+        return if request.method() == "GET" {
+            Json(json!([])).into_response()
+        } else {
+            (StatusCode::NOT_IMPLEMENTED,Json(json!({"error":{"type":"api_error","message":"Hosted projects are unavailable in API mode."}}))).into_response()
+        };
     }
     if path.starts_with("/api/organizations/") && path.split('/').count() == 4 {
-        return Json(identity()["organization"].clone()).into_response();
+        return Json(identity(&context.locale)["organization"].clone()).into_response();
     }
     if path.starts_with("/api/") || path.starts_with("/edge-api/") {
         return Json(json!({})).into_response();
@@ -577,7 +679,52 @@ async fn route(
     if path.starts_with("/v1/") {
         return (StatusCode::NOT_FOUND, Json(json!({"type":"error","error":{"type":"not_found_error","message":"This local Code endpoint is unavailable"}}))).into_response();
     }
-    // The official shell and its static assets remain supplied by their original host.
+    if matches!(host.as_deref(), Some("claude.ai" | "www.claude.ai"))
+        && matches!(request.method().as_str(), "GET" | "HEAD")
+    {
+        let member = if std::path::Path::new(&path).extension().is_none() {
+            "/index.html".to_owned()
+        } else {
+            path.clone()
+        };
+        let content_type = assets::content_type(&member);
+        let locale = context.locale.clone();
+        let Some(assets) = context.assets.clone() else {
+            return StatusCode::NOT_FOUND.into_response();
+        };
+        let resource = tokio::task::spawn_blocking(move || {
+            if let Some(catalog) = localization::catalog(&member)? {
+                return Ok(Some(catalog));
+            }
+            let bytes = assets.read(&member)?;
+            if content_type.starts_with("text/html") {
+                bytes
+                    .map(|bytes| localization::html(bytes, &locale))
+                    .transpose()
+            } else {
+                Ok(bytes)
+            }
+        })
+        .await;
+        return match resource {
+            Ok(Ok(Some(bytes))) => {
+                let length = bytes.len();
+                let body = if request.method() == "HEAD" {
+                    Body::empty()
+                } else {
+                    Body::from(bytes)
+                };
+                Response::builder()
+                    .header("content-type", content_type)
+                    .header("content-length", length)
+                    .header("cache-control", "no-cache")
+                    .body(body)
+                    .unwrap_or_else(|_| StatusCode::INTERNAL_SERVER_ERROR.into_response())
+            }
+            Ok(Ok(None)) => StatusCode::NOT_FOUND.into_response(),
+            _ => StatusCode::INTERNAL_SERVER_ERROR.into_response(),
+        };
+    }
     let Some(host) = host else {
         return StatusCode::NOT_FOUND.into_response();
     };
@@ -622,19 +769,30 @@ mod tests {
 
     #[test]
     fn virtual_identity_exposes_code_model() {
-        let bootstrap = identity();
-        assert_eq!(bootstrap["account"]["full_name"], "EchoBird Local");
+        let bootstrap = identity("en-US");
+        let chinese = identity("zh-Hans");
+        assert_eq!(chinese["locale"], "zh-Hans");
+        assert_eq!(chinese["account"]["settings"]["locale"], "zh-Hans");
+        assert_eq!(
+            chinese["growthbook"]["features"]["witty_scone_main"]["defaultValue"]["released"],
+            json!(["zh-Hans"])
+        );
+        assert_eq!(bootstrap["account"]["full_name"], "EchoBird.ai");
+        assert_eq!(bootstrap["account"]["display_name"], "EchoBird.ai");
+        assert_eq!(bootstrap["account"]["email_address"], "hi@echobird.ai");
+        assert_eq!(bootstrap["account"]["email"], "hi@echobird.ai");
+        assert_eq!(bootstrap["organization"]["name"], "EchoBird.ai");
         assert_eq!(bootstrap["organization"]["plan_display_name"], "Custom API");
         assert_eq!(
             bootstrap["organization"]["billing_type"],
             "stripe_subscription"
         );
         assert_eq!(
-            oauth_profile()["organization"]["organization_type"],
+            oauth_profile("en-US")["organization"]["organization_type"],
             "claude_pro"
         );
         assert_eq!(
-            oauth_profile()["organization"]["plan_display_name"],
+            oauth_profile("en-US")["organization"]["plan_display_name"],
             "Custom API"
         );
         assert_eq!(
@@ -699,11 +857,11 @@ mod tests {
         });
         let directory =
             std::env::temp_dir().join(format!("echobird-local-test-{}", uuid::Uuid::new_v4()));
-        let settings = ensure_started_at(upstream.clone(), directory.clone())
+        let settings = ensure_started_at(upstream.clone(), directory.clone(), None, "en-US".into())
             .await
             .unwrap();
         assert_eq!(
-            ensure_started_at(upstream.clone(), directory.clone())
+            ensure_started_at(upstream.clone(), directory.clone(), None, "en-US".into())
                 .await
                 .unwrap()
                 .port,
@@ -711,15 +869,32 @@ mod tests {
         );
         let client = reqwest::Client::builder().no_proxy().build().unwrap();
         let base = format!("http://127.0.0.1:{}", settings.port);
-        let bootstrap: Value = client
+        let bootstrap = client
             .get(format!("{base}/edge-api/bootstrap"))
             .send()
             .await
-            .unwrap()
-            .json()
-            .await
             .unwrap();
-        assert_eq!(bootstrap["account"]["full_name"], "EchoBird Local");
+        let cookies = bootstrap
+            .headers()
+            .get_all("set-cookie")
+            .iter()
+            .map(|value| value.to_str().unwrap())
+            .collect::<Vec<_>>();
+        assert_eq!(cookies.len(), 2);
+        assert!(cookies[0].starts_with(&format!("sessionKey={};", settings.token)));
+        assert!(cookies[1].starts_with(&format!("lastActiveOrg={ORGANIZATION};")));
+        let bootstrap: Value = bootstrap.json().await.unwrap();
+        assert_eq!(bootstrap["account"]["full_name"], "EchoBird.ai");
+        assert_eq!(bootstrap["account"]["email_address"], "hi@echobird.ai");
+        assert_eq!(bootstrap["organization"]["name"], "EchoBird.ai");
+        assert_eq!(
+            bootstrap["model_selector_config"].as_array().unwrap().len(),
+            1
+        );
+        assert_eq!(
+            bootstrap["model_selector_state"].as_array().unwrap().len(),
+            1
+        );
         let access: Value = client
             .get(format!("{base}/api/bootstrap/device/current_user_access"))
             .send()
@@ -729,11 +904,20 @@ mod tests {
             .await
             .unwrap();
         assert_eq!(access["features"][0]["feature"], "claude_code");
-        assert_eq!(access["features"].as_array().unwrap().len(), 2);
+        assert_eq!(access["features"].as_array().unwrap().len(), 3);
         assert_eq!(
             access["features"][1],
             json!({"feature":"claude_code_desktop","status":"available"})
         );
+        assert_eq!(
+            access["features"][2],
+            json!({"feature":"cowork","status":"blocked_by_platform"})
+        );
+        assert!(!access["features"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|feature| feature["feature"] == "chat"));
         assert!(access.get("account").is_none());
         let account: Value = client
             .get(format!("{base}/api/account"))
@@ -754,6 +938,60 @@ mod tests {
             .await
             .unwrap();
         assert_eq!(app_start["model_selector_config"][0]["id"], "code");
+        let organization = format!("{base}/api/organizations/{ORGANIZATION}");
+        let old_chat = directory.join("chat/old-conversation.json");
+        super::super::native_account_files::write(&old_chat, b"saved-chat").unwrap();
+        let old_selector = directory.join("chat-selector.json");
+        super::super::native_account_files::write(&old_selector, b"saved-selector").unwrap();
+        for endpoint in [
+            "chat_conversations",
+            "chat_conversations_v2",
+            "chat_conversations/fixture/completion",
+            "model_selector/chat",
+            "model_selector_state/chat",
+        ] {
+            for method in [
+                reqwest::Method::GET,
+                reqwest::Method::POST,
+                reqwest::Method::PATCH,
+            ] {
+                let rejected = client
+                    .request(method, format!("{organization}/{endpoint}"))
+                    .json(&json!({"model":"claude-opus-5-5","prompt":"hello"}))
+                    .send()
+                    .await
+                    .unwrap();
+                assert_eq!(rejected.status(), StatusCode::NOT_IMPLEMENTED);
+            }
+        }
+        assert_eq!(calls.load(Ordering::SeqCst), 0);
+        assert!(!directory.join("selector.json").exists());
+        assert_eq!(std::fs::read(&old_chat).unwrap(), b"saved-chat");
+        assert_eq!(std::fs::read(&old_selector).unwrap(), b"saved-selector");
+        let code_selection: Value = client
+            .patch(format!("{organization}/model_selector_state/code"))
+            .json(&json!({"thinking":{"type":"effort","effort":"high"}}))
+            .send()
+            .await
+            .unwrap()
+            .error_for_status()
+            .unwrap()
+            .json()
+            .await
+            .unwrap();
+        let code_selector: Value = client
+            .get(format!("{organization}/model_selector/code"))
+            .send()
+            .await
+            .unwrap()
+            .json()
+            .await
+            .unwrap();
+        assert_eq!(
+            code_selector["model_selector_state"],
+            json!([code_selection])
+        );
+        assert_eq!(calls.load(Ordering::SeqCst), 0);
         let profile: Value = client
             .get(format!("{base}/api/oauth/profile"))
             .send()
@@ -832,8 +1070,18 @@ mod tests {
             .no_proxy()
             .proxy(reqwest::Proxy::https(&base).unwrap())
             .add_root_certificate(certificate)
+            .timeout(std::time::Duration::from_secs(5))
             .build()
             .unwrap();
+        let missing_shell = tls_client
+            .get("https://claude.ai/epitaxy")
+            .send()
+            .await
+            .unwrap();
+        assert_eq!(missing_shell.status(), StatusCode::NOT_FOUND);
+        assert!(!directory.join("web-shell.html").exists());
+        assert!(!directory.join("web-assets").exists());
+        assert_eq!(calls.load(Ordering::SeqCst), 0);
         let result: Value = tls_client
             .post("https://api.anthropic.com/v1/messages")
             .bearer_auth(token["access_token"].as_str().unwrap())
@@ -848,10 +1096,24 @@ mod tests {
         assert_eq!(result["content"][0]["text"], "fixture reply");
         assert_eq!(calls.load(Ordering::SeqCst), 1);
         stop().await;
-        let restarted = ensure_started_at(upstream, directory.clone())
+        let restarted = ensure_started_at(upstream, directory.clone(), None, "en-US".into())
             .await
             .unwrap();
         assert_eq!(restarted.token, settings.token);
+        let restored: Value = client
+            .get(format!(
+                "http://127.0.0.1:{}/api/organizations/{ORGANIZATION}/model_selector/code",
+                restarted.port
+            ))
+            .send()
+            .await
+            .unwrap()
+            .json()
+            .await
+            .unwrap();
+        assert_eq!(restored["model_selector_state"], json!([code_selection]));
+        assert_eq!(std::fs::read(old_chat).unwrap(), b"saved-chat");
+        assert_eq!(std::fs::read(old_selector).unwrap(), b"saved-selector");
         assert!(directory.join("access-token").exists());
         #[cfg(unix)]
         {
