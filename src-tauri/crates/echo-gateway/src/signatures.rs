@@ -1,3 +1,7 @@
+//! Gemini thought signatures that must survive a tool round: the signature is kept on disk under a short
+//! reference, and the tool-call id carries the reference. Where the files go is the app's choice
+//! (`configure`); until it says, a temporary directory is used.
+
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::Mutex;
@@ -17,27 +21,37 @@ fn reference(value: &Signature) -> String {
     hex::encode(Sha256::digest(bytes))[..32].to_string()
 }
 
-fn directory() -> Result<PathBuf, String> {
-    #[cfg(test)]
-    {
-        static DIRECTORY: std::sync::OnceLock<PathBuf> = std::sync::OnceLock::new();
-        Ok(DIRECTORY
-            .get_or_init(|| {
-                std::env::temp_dir().join(format!("echobird-signatures-{}", uuid::Uuid::new_v4()))
-            })
-            .clone())
-    }
-    #[cfg(not(test))]
-    dirs::home_dir()
-        .map(|home| home.join(".echobird/cache/code-assist-signatures"))
-        .ok_or_else(|| "Could not locate the thought signature cache".into())
+/** Where signatures are kept and how a file is written (the app may want private, synced writes). */
+pub struct Store {
+    pub directory: PathBuf,
+    pub write: fn(&Path, &[u8]) -> Result<(), String>,
 }
 
-pub(super) fn encode(id: &str, signature: &str) -> Result<String, String> {
+static STORE: std::sync::OnceLock<Store> = std::sync::OnceLock::new();
+
+/// Sets where signatures are kept. Call once at startup; later calls are ignored.
+pub fn configure(store: Store) {
+    let _ = STORE.set(store);
+}
+
+fn store() -> &'static Store {
+    STORE.get_or_init(|| Store {
+        directory: std::env::temp_dir()
+            .join(format!("echo-gateway-signatures-{}", std::process::id())),
+        write: |path, bytes| {
+            if let Some(parent) = path.parent() {
+                fs::create_dir_all(parent).map_err(|error| error.to_string())?;
+            }
+            fs::write(path, bytes).map_err(|error| error.to_string())
+        },
+    })
+}
+
+pub fn encode(id: &str, signature: &str) -> Result<String, String> {
     if signature.is_empty() {
         return Ok(id.to_string());
     }
-    encode_at(&directory()?, id, signature)
+    encode_at(&store().directory, id, signature)
 }
 
 fn encode_at(root: &Path, id: &str, signature: &str) -> Result<String, String> {
@@ -47,7 +61,7 @@ fn encode_at(root: &Path, id: &str, signature: &str) -> Result<String, String> {
     };
     let key = reference(&value);
     let path = root.join(format!("{key}.json"));
-    crate::services::native_account_files::write(
+    (store().write)(
         &path,
         &serde_json::to_vec(&value).map_err(|_| "Could not encode a thought signature")?,
     )
@@ -56,8 +70,8 @@ fn encode_at(root: &Path, id: &str, signature: &str) -> Result<String, String> {
     Ok(format!("call_eb_{key}"))
 }
 
-pub(super) fn decode(id: &str) -> Option<(String, String)> {
-    decode_at(&directory().ok()?, id)
+pub fn decode(id: &str) -> Option<(String, String)> {
+    decode_at(&store().directory, id)
 }
 
 fn decode_at(root: &Path, id: &str) -> Option<(String, String)> {
@@ -113,8 +127,11 @@ mod tests {
 
     #[test]
     fn signature_reference_survives_a_fresh_read_and_rejects_corruption() {
-        let root =
-            std::env::temp_dir().join(format!("echobird-signature-test-{}", uuid::Uuid::new_v4()));
+        let root = std::env::temp_dir().join(format!(
+            "echo-gateway-signature-test-{}-{}",
+            std::process::id(),
+            line!()
+        ));
         let signature = "thought".repeat(1024);
         let id = encode_at(&root, "original-call", &signature).unwrap();
         assert!(id.len() <= 64);

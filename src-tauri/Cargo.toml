@@ -8,15 +8,21 @@ repository = "https://echobird.ai/"
 edition = "2021"
 rust-version = "1.93"
 
+# One lock file and one target directory for the app and the gateway crate it shares with Wings.
+[workspace]
+members = [".", "crates/echo-gateway"]
+
 [lib]
 name = "echobird_lib"
-crate-type = ["staticlib", "cdylib", "rlib"]
+crate-type = ["rlib"]
 
 [build-dependencies]
 tauri-build = { version = "2", features = [] }
 serde_json = "1"
 
 [dependencies]
+# The gateway shared with Wings (protocol conversion, provider adapters, routing).
+echo-gateway = { path = "crates/echo-gateway" }
 # Tauri core. `tauri::generate_context!()` (in src/lib.rs) expands against
 # this crate's CARGO_MANIFEST_DIR to find tauri.conf.json; the Builder,
 # Manager, tray, and menu APIs are used throughout services/.

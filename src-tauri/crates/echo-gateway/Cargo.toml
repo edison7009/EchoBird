@@ -1,0 +1,27 @@
+[package]
+name = "echo-gateway"
+version = "0.1.0"
+description = "The model gateway shared by EchoBird and Wings: protocol conversion, provider adapters and routing."
+license = "MIT"
+edition = "2021"
+rust-version = "1.93"
+publish = false
+
+[dependencies]
+serde_json = "1.0"
+chrono = "0.4"
+axum = { version = "0.8", default-features = false }
+serde = { version = "1", features = ["derive"] }
+sha2 = "0.10"
+hex = "0.4"
+base64 = "0.22"
+bytes = "1"
+futures-util = "0.3"
+tokio = { version = "1", features = ["sync", "rt", "macros", "time"] }
+tokio-stream = "0.1"
+uuid = { version = "1", features = ["v4"] }
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls", "stream", "http2"] }
+
+[dev-dependencies]
+axum = { version = "0.8" }
+tokio = { version = "1", features = ["sync", "rt", "macros", "time", "net", "rt-multi-thread", "test-util"] }

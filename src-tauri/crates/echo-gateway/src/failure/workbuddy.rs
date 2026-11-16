@@ -1,7 +1,9 @@
-use super::ProxyError;
+//! WorkBuddy's own error codes, mapped to the shared meanings.
+
+use crate::error::ProxyError;
 use axum::http::{HeaderValue, StatusCode};
 use chrono::{FixedOffset, NaiveDateTime, TimeZone};
-pub(super) fn normalize(mut error: ProxyError) -> ProxyError {
+pub fn normalize(mut error: ProxyError) -> ProxyError {
     match error.error_code.as_deref() {
         Some("11128") => {
             error.error_code = Some("request_incompatible".into());

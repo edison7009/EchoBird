@@ -547,8 +547,14 @@ fn kill_stale_llama_server() {
 /// tray icon PNG, registers the bundled public install-asset table, then
 /// starts the Tauri app. The tray icon bytes are cached in a [`OnceLock`]
 /// so [`rebuild_tray_menu`] can repaint the tray after locale changes.
-#[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    // Gemini thought signatures (shared gateway crate) are cached where EchoBird always kept them.
+    if let Some(home) = dirs::home_dir() {
+        echo_gateway::signatures::configure(echo_gateway::signatures::Store {
+            directory: home.join(".echobird/cache/code-assist-signatures"),
+            write: services::native_account_files::write,
+        });
+    }
     // Hydrate the process PATH from the Windows registry (HKLM + HKCU
     // `Path`) before anything resolves executables — the Windows analog of
     // the Unix login-shell PATH sourcing in `utils::platform::shell_command_path`.

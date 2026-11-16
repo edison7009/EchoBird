@@ -5,15 +5,27 @@ Read this before modifying code.
 
 ## Project shape
 
-Tauri desktop app: React + TypeScript + Vite frontend in `src/`, Rust backend
-in `src-tauri/`. Two-tier tool/feature registries often ship in **both** a
-bundled copy and a remote copy (e.g. `src/data/<x>.json` vs
+EchoBird targets Windows, macOS, and Linux desktop. React + TypeScript + Vite
+frontend lives in `src/`, and the Rust backend lives in `src-tauri/`. The desktop
+binary links `echobird_lib` as an `rlib`; verify native desktop build and packaging
+when changing library output types.
+
+Two-tier tool/feature registries often ship in **both** a bundled copy and a remote copy (e.g. `src/data/<x>.json` vs
 `docs/api/<...>/index.json`) — when adding or editing an entry, update **both**
 files unless told otherwise; they share one schema and the remote wins at
 runtime. Prettier governs the frontend JSON/TS; rustfmt governs `src-tauri/`.
 
 Keep internal development reports, research notes, and integration playbooks
 in the ignored `internal-docs/` directory. `docs/` is the public website.
+
+## Concurrent tasks and worktrees
+
+- Use a separate worktree for each independent task. Resume an existing task in
+  its current worktree and record the branch and pre-existing changes before editing.
+- Record file ownership when agents collaborate on the same task. Coordinate any
+  shared-file edits before applying them.
+- Stage explicit task-owned paths and inspect the staged diff before committing.
+  Each commit must contain the changes for its stated task.
 
 ## Desktop interaction rules
 
@@ -110,9 +122,9 @@ npm test                 # vitest
 
 **Rust** (`src-tauri/`, or pass `--manifest-path src-tauri/Cargo.toml`):
 ```bash
-cargo fmt --check        # FORMAT FIRST. `cargo fmt` to auto-fix.
-cargo clippy --all-targets --all-features -- -D warnings   # CI denies warnings
-cargo test
+cargo fmt --all --check  # FORMAT FIRST. `cargo fmt --all` to auto-fix.
+cargo clippy --workspace --all-targets --all-features -- -D warnings   # CI denies warnings
+cargo test --workspace
 ```
 
 Run **all of them**, every push. A green `cargo check`/`cargo test` does NOT
@@ -131,7 +143,7 @@ clippy/test, not optional.
 
 ## Verification habits
 
-- After writing Rust: `cargo fmt`, then `cargo clippy --all-targets --all-features -- -D warnings`, then `cargo test`.
+- After writing Rust: `cargo fmt --all`, then `cargo clippy --workspace --all-targets --all-features -- -D warnings`, then `cargo test --workspace`.
 - After writing TS/TSX/JSON: `npm run format` (or `format:check`), `npm run typecheck`, `npm run lint`.
 - The `winreg` crate's `FromRegValue for String` does **not** auto-expand
   `REG_EXPAND_SZ` — values like `%USERPROFILE%\...` come back literal. Expand

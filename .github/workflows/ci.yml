@@ -126,14 +126,14 @@ jobs:
           sudo apt-get install -y --no-install-recommends libgtk-3-dev libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf gnome-keyring libsecret-tools libasound2-dev libxkbcommon-dev
 
       - name: Format check
-        run: cargo fmt --check --manifest-path src-tauri/Cargo.toml
+        run: cargo fmt --all --check --manifest-path src-tauri/Cargo.toml
 
       - name: Clippy
-        run: cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets --all-features -- -D warnings
+        run: cargo clippy --manifest-path src-tauri/Cargo.toml --workspace --all-targets --all-features -- -D warnings
 
       - name: Test
         if: runner.os == 'Windows'
-        run: cargo test --manifest-path src-tauri/Cargo.toml
+        run: cargo test --manifest-path src-tauri/Cargo.toml --workspace
 
       - name: Test and capture native fixture executable
         if: runner.os != 'Windows'
@@ -141,7 +141,7 @@ jobs:
         run: |
           set -euo pipefail
           artifact_log="$RUNNER_TEMP/echobird-test-artifacts.jsonl"
-          cargo test --manifest-path src-tauri/Cargo.toml --message-format=json | tee "$artifact_log"
+          cargo test --manifest-path src-tauri/Cargo.toml --workspace --message-format=json | tee "$artifact_log"
           python3 - "$artifact_log" "$GITHUB_ENV" <<'PY'
           import json
           import os
