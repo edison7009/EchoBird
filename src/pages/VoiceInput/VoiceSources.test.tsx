@@ -115,6 +115,32 @@ async function modelTab() {
     renderer.root.findByType(VoiceInputPanel).findByType(ViewModeTabs).props.onChange('model')
   );
 }
+it('keeps one appearance fieldset and saves theme changes through the existing config', async () => {
+  const config = voiceSnapshot().config;
+  vi.mocked(voiceApi.saveVoiceConfig).mockResolvedValue(
+    voiceSnapshot({ config: { ...config, islandTheme: 'light' } })
+  );
+  await act(async () => {
+    renderer = create(<VoiceInputMain />);
+  });
+  const appearances = renderer.root.findAllByProps({ className: 'voice-island-options' });
+  expect(appearances).toHaveLength(1);
+  const tabs = appearances[0].findByType(ViewModeTabs);
+  expect(tabs.props.options.map((option: { value: string }) => option.value)).toEqual([
+    'auto',
+    'iridescent',
+    'dark',
+    'light',
+    'system',
+  ]);
+  expect(renderer.root.findAllByType('textarea')).toHaveLength(0);
+  expect(voiceApi.saveVoiceConfig).not.toHaveBeenCalled();
+  await act(async () => tabs.props.onChange('light'));
+  expect(voiceApi.saveVoiceConfig).toHaveBeenCalledExactlyOnceWith({
+    ...config,
+    islandTheme: 'light',
+  });
+});
 it('has two compact tabs; navigation does not open a form, log in, refresh quota, record or write', async () => {
   await mount();
   expect(

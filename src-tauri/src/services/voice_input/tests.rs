@@ -487,6 +487,13 @@ fn legacy_settings_and_statistics_round_trip_without_retired_options_or_sensitiv
         .unwrap()
         .remove("translationLanguage");
     legacy["config"]["skipSeconds"] = serde_json::json!(60);
+    legacy["builtin_text_tools_migrated"] = serde_json::json!(true);
+    legacy["format_invocations"] = serde_json::json!(7);
+    legacy["config"]["textOutput"] = serde_json::json!({
+        "enabled": true,
+        "collapseSpaces": true,
+        "prefix": "retired-prefix"
+    });
     let legacy = serde_json::to_vec(&legacy).unwrap();
     std::fs::write(&path, &legacy).unwrap();
     let mut restored = config::load(&path).unwrap();
@@ -519,6 +526,9 @@ fn legacy_settings_and_statistics_round_trip_without_retired_options_or_sensitiv
         "translationLanguage",
         "optimizationEnabled",
         "skipSeconds",
+        "textOutput",
+        "builtin_text_tools_migrated",
+        "format_invocations",
         "apiKey",
         "accessToken",
         "audio",

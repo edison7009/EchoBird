@@ -812,15 +812,3 @@ html.voice-translation-window,
     transition: none;
   }
 }
-
-.voice-format-input {
-  display: block;
-  width: 100%;
-  margin-top: 8px;
-  padding: 8px;
-  color: inherit;
-  background: rgb(var(--bg-surface-rgb) / 0.6);
-  border: 1px solid rgb(var(--border-rgb));
-  border-radius: 8px;
-  resize: vertical;
-}

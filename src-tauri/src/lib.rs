@@ -902,7 +902,6 @@ pub fn run() {
             tauri::generate_handler![
                 services::builtin_apps::acquire_builtin_app,
                 commands::builtin_tool_commands::launch_game,
-                commands::voice_input_commands::voice_input_format,
                 commands::commandcode_account_commands::list_commandcode_accounts,
                 commands::commandcode_account_commands::start_commandcode_login,
                 commands::commandcode_account_commands::poll_commandcode_login,

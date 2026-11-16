@@ -297,18 +297,6 @@ fn publish(app: &AppHandle) {
     let _ = app.emit_to("voice-island", "voice-input-state", &snapshot);
 }
 
-pub async fn format_text(app: &AppHandle, text: String) -> Result<String, String> {
-    let voice = shared(app);
-    let _operation = voice.operation.lock().await;
-    let mut saved = voice.saved.lock().unwrap();
-    let output = saved.config.text_output.format(&text);
-    let mut next = saved.clone();
-    next.format_invocations = next.format_invocations.saturating_add(1);
-    config::save(&voice.path, &next)?;
-    *saved = next;
-    Ok(output)
-}
-
 pub fn devices() -> Result<Vec<String>, String> {
     audio::devices()
 }
@@ -698,11 +686,6 @@ async fn stop_capture(app: &AppHandle, shortcut_only: bool) -> Result<Snapshot, 
             fail(app, generation, error, Some(bytes));
             return Ok(snapshot(app));
         }
-    };
-    let text = if config.text_output.enabled {
-        config.text_output.format(&text)
-    } else {
-        text
     };
     log::info!(
         "[VoiceInput] recognized characters={}",
