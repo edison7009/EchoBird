@@ -1065,7 +1065,77 @@ async fn wire(
     })
 }
 
-pub(super) use echo_gateway::protocol::chat_to_anthropic as anthropic_request;
+pub(super) fn anthropic_request(body: &Value, model: &str) -> Value {
+    let mut messages: Vec<Value> = Vec::new();
+    let mut system = Vec::new();
+    for message in super::responses::repaired_chat_messages(body) {
+        let role = message["role"].as_str().unwrap_or("user");
+        if matches!(role, "system" | "developer") {
+            system.push(protocol::text(&message["content"]));
+            continue;
+        }
+        let content = if role == "tool" {
+            let mut result = json!({"type":"tool_result","tool_use_id":message["tool_call_id"],"content":message["content"]});
+            if message["is_error"] == true {
+                result["is_error"] = json!(true);
+            }
+            if let Some(previous) = messages.last_mut().filter(|previous| {
+                previous["role"] == "user"
+                    && previous["content"].as_array().is_some_and(|blocks| {
+                        !blocks.is_empty()
+                            && blocks.iter().all(|block| block["type"] == "tool_result")
+                    })
+            }) {
+                previous["content"].as_array_mut().unwrap().push(result);
+                continue;
+            }
+            json!([result])
+        } else {
+            let value = crate::services::local_llm::proxy::openai_to_anthropic(
+                &json!({"choices":[{"message":message}]}),
+            );
+            let mut blocks = value["content"].as_array().cloned().unwrap_or_default();
+            if role != "assistant" && message["content"].is_array() {
+                blocks=message["content"].as_array().into_iter().flatten().filter_map(|part| {
+                    if part["type"]=="text" { Some(json!({"type":"text","text":part["text"]})) }
+                    else if part["type"]=="image_url" { let url=part["image_url"]["url"].as_str()?;
+                        Some(if let Some(data)=url.strip_prefix("data:") { let (mime,bytes)=data.split_once(";base64,")?;
+                            json!({"type":"image","source":{"type":"base64","media_type":mime,"data":bytes}})
+                        } else { json!({"type":"image","source":{"type":"url","url":url}}) })
+                    } else { None }
+                }).collect();
+            }
+            json!(blocks)
+        };
+        messages.push(
+            json!({"role":if role=="assistant" { "assistant" } else { "user" },"content":content}),
+        );
+    }
+    let tools:Vec<_>=body["tools"].as_array().into_iter().flatten().map(|tool| {
+        let function=&tool["function"];
+        let mut tool=json!({"name":function["name"],"input_schema":function.get("parameters").cloned().unwrap_or(json!({"type":"object","properties":{}}))});
+        if let Some(description)=function.get("description").filter(|value| value.is_string()) { tool["description"]=description.clone(); }
+        tool
+    }).collect();
+    let mut request = json!({"model":model,"system":system.join("\n\n"),"messages":messages,"tools":tools,
+        "max_tokens":body["max_tokens"].as_u64().unwrap_or(8192),"stream":true});
+    let mut choice = body.get("tool_choice").map(|choice| match choice.as_str() {
+        Some("required") => json!({"type":"any"}),
+        Some("none") => json!({"type":"none"}),
+        _ if choice.is_object() => json!({"type":"tool","name":choice["function"]["name"]}),
+        _ => json!({"type":"auto"}),
+    });
+    if body["parallel_tool_calls"] == false {
+        let choice = choice.get_or_insert(json!({"type":"auto"}));
+        if choice["type"] != "none" {
+            choice["disable_parallel_tool_use"] = json!(true);
+        }
+    }
+    if let Some(choice) = choice {
+        request["tool_choice"] = choice;
+    }
+    request
+}
 
 fn workbuddy_tool_choice(body: &mut Value) -> Result<(), ProxyError> {
     let Some(choice) = body.get("tool_choice").filter(|choice| choice.is_object()) else {
