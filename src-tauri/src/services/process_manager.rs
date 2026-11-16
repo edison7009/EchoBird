@@ -232,10 +232,11 @@ impl ProcessManager {
                     return Err("accountError.closeClient".into());
                 }
                 self.kill_desktop_instances(tool_id);
-                tokio::time::sleep(std::time::Duration::from_millis(800)).await;
-                if desktop_tool_is_running(tool_id).await? {
-                    return Err("accountError.stopClient".into());
-                }
+                wait_for_desktop_exit(
+                    || desktop_tool_is_running(tool_id),
+                    std::time::Duration::from_secs(5),
+                )
+                .await?;
             } else {
                 // An unchanged official client can receive its usual focus request.
                 crate::services::claude_desktop_accounts::end_local_mode().await?;
@@ -279,11 +280,18 @@ impl ProcessManager {
 
         if tool_id == "claudedesktop" {
             if crate::services::tool_config_manager::claudedesktop::local_mode_enabled() {
-                crate::services::claude_desktop_accounts::begin_local_mode().await?;
-                let result = self.start_claude_local().await;
-                if result.is_err() {
+                let result = async {
+                    crate::services::claude_desktop_accounts::begin_local_mode().await?;
+                    self.start_claude_local().await
+                }
+                .await;
+                if let Err(error) = &result {
                     crate::services::claude_desktop_local::stop().await;
-                    crate::services::claude_desktop_accounts::end_local_mode().await?;
+                    if let Err(restore) =
+                        crate::services::claude_desktop_accounts::end_local_mode().await
+                    {
+                        return Err(format!("Unable to restore native authentication ({restore}) after local startup failed ({error})"));
+                    }
                 }
                 return result;
             }
@@ -291,9 +299,7 @@ impl ProcessManager {
             crate::services::claude_desktop_accounts::end_local_mode().await?;
         }
 
-        // History preparation must not block a model-switch restart while
-        // Claude is still exiting. The plugin rechecks that it is stopped
-        // before touching history, including when the host check misses it.
+        // History preparation rechecks native process exit before writing pointers.
         if tool_id == "claudedesktop" && restart {
             crate::services::claude_desktop_history::prepare(None).await?;
         }
@@ -1106,49 +1112,19 @@ impl ProcessManager {
             crate::services::anthropic_proxy::port()
         ))
         .await?;
-        #[cfg(windows)]
         crate::services::claude_desktop_local::ensure_certificate_trusted(&settings.ca_path)
             .await?;
-        let mut command = crate::utils::process::command(&executable);
-        let proxy = format!("http://127.0.0.1:{}", settings.port);
         let relay_path = dirs::home_dir()
             .ok_or("Home directory unavailable")?
             .join(".echobird/claudedesktop.json");
         let relay: serde_json::Value =
             serde_json::from_slice(&std::fs::read(relay_path).map_err(|error| error.to_string())?)
                 .map_err(|error| error.to_string())?;
-        if relay["oneMContext"].as_bool() == Some(true) {
-            command.env("CLAUDE_CODE_MAX_CONTEXT_TOKENS", "1000000");
-        } else {
-            command.env_remove("CLAUDE_CODE_MAX_CONTEXT_TOKENS");
-        }
-        command.arg(format!("--proxy-server={proxy}"));
-        #[cfg(not(windows))]
-        command.arg(format!(
-            "--ignore-certificate-errors-spki-list={}",
-            settings.spki
-        ));
-        for name in [
-            "HTTP_PROXY",
-            "http_proxy",
-            "HTTPS_PROXY",
-            "https_proxy",
-            "ALL_PROXY",
-            "all_proxy",
-            "NODE_OPTIONS",
-            "ELECTRON_RUN_AS_NODE",
-        ] {
-            command.env_remove(name);
-        }
-        command
-            .env("HTTPS_PROXY", &proxy)
-            .env("HTTP_PROXY", &proxy)
-            .env("NO_PROXY", "localhost,127.0.0.1")
-            .env("no_proxy", "localhost,127.0.0.1")
-            .env("NODE_EXTRA_CA_CERTS", &settings.ca_path)
-            .stdin(std::process::Stdio::null())
-            .stdout(std::process::Stdio::null())
-            .stderr(std::process::Stdio::null());
+        let mut command = claude_local_command(
+            &executable,
+            &settings,
+            relay["oneMContext"].as_bool() == Some(true),
+        );
         let mut child = command
             .spawn()
             .map_err(|error| format!("Cannot launch Claude Desktop: {error}"))?;
@@ -1283,9 +1259,12 @@ impl ProcessManager {
 
         #[cfg(target_os = "linux")]
         {
-            let child = Command::new(&exe_path)
-                .spawn()
-                .map_err(|e| format!("Spawn error: {}", e))?;
+            let mut command = crate::utils::process::command(&exe_path);
+            if tool_id == "claudedesktop" {
+                use std::os::unix::process::CommandExt;
+                command.process_group(0);
+            }
+            let child = command.spawn().map_err(|e| format!("Spawn error: {}", e))?;
 
             let pid = child.id();
             log::info!(
@@ -1412,7 +1391,7 @@ impl ProcessManager {
             });
         }
 
-        #[cfg(not(windows))]
+        #[cfg(any(target_os = "macos", target_os = "linux"))]
         if tool_id == "claudedesktop" {
             let Some(executable) = crate::services::tool_manager::get_tool_exe_path(tool_id)
                 .and_then(|path| std::fs::canonicalize(path).ok())
@@ -1424,7 +1403,7 @@ impl ProcessManager {
                     .into_iter()
                     .filter(|process| process.path == executable)
                     .collect::<Vec<_>>();
-                stop_qoder_account_instances(&desktop)
+                stop_verified_unix_instances(&desktop, libc::SIGKILL)
             });
         }
 
@@ -2189,6 +2168,51 @@ pub(crate) fn start_doubao_account_restart_probe(
     )
 }
 
+fn claude_local_command(
+    executable: &str,
+    settings: &crate::services::claude_desktop_local::LaunchSettings,
+    one_m_context: bool,
+) -> std::process::Command {
+    let mut command = crate::utils::process::command(executable);
+    #[cfg(unix)]
+    {
+        use std::os::unix::process::CommandExt;
+        command.process_group(0);
+    }
+    if let Some(directory) = std::path::Path::new(executable).parent() {
+        command.current_dir(directory);
+    }
+    if one_m_context {
+        command.env("CLAUDE_CODE_MAX_CONTEXT_TOKENS", "1000000");
+    } else {
+        command.env_remove("CLAUDE_CODE_MAX_CONTEXT_TOKENS");
+    }
+    let proxy = format!("http://127.0.0.1:{}", settings.port);
+    command.arg(format!("--proxy-server={proxy}"));
+    for name in [
+        "HTTP_PROXY",
+        "http_proxy",
+        "HTTPS_PROXY",
+        "https_proxy",
+        "ALL_PROXY",
+        "all_proxy",
+        "NODE_OPTIONS",
+        "ELECTRON_RUN_AS_NODE",
+    ] {
+        command.env_remove(name);
+    }
+    command
+        .env("HTTPS_PROXY", &proxy)
+        .env("HTTP_PROXY", &proxy)
+        .env("NO_PROXY", "localhost,127.0.0.1")
+        .env("no_proxy", "localhost,127.0.0.1")
+        .env("NODE_EXTRA_CA_CERTS", &settings.ca_path)
+        .stdin(std::process::Stdio::null())
+        .stdout(std::process::Stdio::null())
+        .stderr(std::process::Stdio::inherit());
+    command
+}
+
 fn start_desktop_with_config_args(
     tool_id: &str,
     arguments: &[String],
@@ -2333,24 +2357,27 @@ fn qoder_account_instances(
 }
 
 fn stop_qoder_account_instances(processes: &[QoderAccountProcess]) -> bool {
-    let mut stopped = false;
-    for process in processes {
-        #[cfg(windows)]
-        {
+    #[cfg(any(target_os = "macos", target_os = "linux"))]
+    {
+        stop_verified_unix_instances(processes, libc::SIGTERM)
+    }
+    #[cfg(windows)]
+    {
+        let mut stopped = false;
+        for process in processes {
             stopped |= crate::utils::process::command("powershell.exe")
                 .args(["-NoProfile", "-NonInteractive", "-Command", "$ErrorActionPreference='Stop'; $entry=Get-CimInstance Win32_Process -Filter ('ProcessId = '+$env:ECHOBIRD_ACCOUNT_PID) -ErrorAction Stop; if($entry -and $entry.ExecutablePath -eq $env:ECHOBIRD_ACCOUNT_EXE){ & taskkill.exe /PID $entry.ProcessId /T /F >$null 2>&1; exit $LASTEXITCODE }; exit 1"])
                 .env("ECHOBIRD_ACCOUNT_PID", process.pid.to_string())
                 .env("ECHOBIRD_ACCOUNT_EXE", &process.path)
                 .status().is_ok_and(|status| status.success());
         }
-        #[cfg(any(target_os = "macos", target_os = "linux"))]
-        {
-            if qoder_process_path(process.pid).as_ref() == Some(&process.path) {
-                stopped |= unsafe { libc::kill(process.pid as i32, libc::SIGTERM) == 0 };
-            }
-        }
+        stopped
     }
-    stopped
+    #[cfg(not(any(windows, target_os = "macos", target_os = "linux")))]
+    {
+        let _ = processes;
+        false
+    }
 }
 
 #[cfg(any(windows, test))]
@@ -2401,6 +2428,24 @@ fn claude_desktop_windows_process(
         && matches!(relative, "claude.exe" | "app\\claude.exe")
 }
 
+#[cfg(any(target_os = "macos", target_os = "linux"))]
+fn stop_verified_unix_instances(processes: &[QoderAccountProcess], signal: i32) -> bool {
+    let mut stopped = false;
+    for process in processes {
+        if qoder_process_path(process.pid).as_ref() == Some(&process.path) {
+            let pid = process.pid as i32;
+            // A verified group leader owns the inherited Electron/Code helpers.
+            let target = if signal == libc::SIGKILL && unsafe { libc::getpgid(pid) } == pid {
+                -pid
+            } else {
+                pid
+            };
+            stopped |= unsafe { libc::kill(target, signal) == 0 };
+        }
+    }
+    stopped
+}
+
 /// Account storage must not be replaced while its owning desktop app is alive.
 pub async fn desktop_tool_is_running(tool_id: &str) -> Result<bool, String> {
     let path = super::tool_manager::get_tool_exe_path(tool_id).unwrap_or_default();
@@ -2417,6 +2462,16 @@ pub async fn desktop_tool_is_running(tool_id: &str) -> Result<bool, String> {
                     )
                 })
             })
+        })
+        .await
+        .map_err(|_| "accountError.closeClient")?;
+    }
+    #[cfg(any(target_os = "macos", target_os = "linux"))]
+    if tool_id == "claudedesktop" {
+        let executable = std::fs::canonicalize(&path).map_err(|_| "accountError.closeClient")?;
+        return tokio::task::spawn_blocking(move || {
+            qoder_process_snapshot()
+                .map(|processes| processes.iter().any(|process| process.path == executable))
         })
         .await
         .map_err(|_| "accountError.closeClient")?;
@@ -2563,24 +2618,182 @@ pub(crate) async fn stop_desktop_for_config(tool_id: &str) {
 /// Ordinary launch behavior remains governed by is_managed_desktop_tool.
 pub(crate) async fn stop_desktop_for_account(tool_id: &str) -> Result<(), String> {
     stop_desktop_instances(tool_id).await;
-    if desktop_tool_is_running(tool_id)
-        .await
-        .map_err(|_| "accountError.stopClient")?
-    {
-        return Err("accountError.stopClient".into());
+    let timeout = if tool_id == "claudedesktop" {
+        std::time::Duration::from_secs(5)
+    } else {
+        std::time::Duration::ZERO
+    };
+    wait_for_desktop_exit(|| desktop_tool_is_running(tool_id), timeout).await
+}
+
+async fn wait_for_desktop_exit<F, Fut>(
+    mut is_running: F,
+    timeout: std::time::Duration,
+) -> Result<(), String>
+where
+    F: FnMut() -> Fut,
+    Fut: std::future::Future<Output = Result<bool, String>>,
+{
+    let deadline = tokio::time::Instant::now() + timeout;
+    loop {
+        if !is_running().await.map_err(|_| "accountError.stopClient")? {
+            return Ok(());
+        }
+        if tokio::time::Instant::now() >= deadline {
+            return Err("accountError.stopClient".into());
+        }
+        tokio::time::sleep(std::time::Duration::from_millis(100)).await;
     }
-    Ok(())
 }
 
 async fn stop_desktop_instances(tool_id: &str) {
     let mgr = get_manager().await;
-    if mgr.lock().await.kill_desktop_instances(tool_id) {
+    if mgr.lock().await.kill_desktop_instances(tool_id) && tool_id != "claudedesktop" {
         tokio::time::sleep(std::time::Duration::from_millis(800)).await;
     }
 }
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn claude_local_launch_uses_only_proxy_argument_and_explicit_process_environment() {
+        use std::ffi::OsStr;
+        let settings = crate::services::claude_desktop_local::LaunchSettings {
+            port: 34567,
+            ca_path: std::path::PathBuf::from("fixture/local-ca.pem"),
+        };
+        for one_m in [false, true] {
+            let command = super::claude_local_command("fixture/Claude", &settings, one_m);
+            assert_eq!(
+                command.get_args().collect::<Vec<_>>(),
+                [OsStr::new("--proxy-server=http://127.0.0.1:34567")]
+            );
+            let environment = command
+                .get_envs()
+                .collect::<std::collections::HashMap<_, _>>();
+            assert_eq!(
+                environment[OsStr::new("NODE_EXTRA_CA_CERTS")],
+                Some(settings.ca_path.as_os_str())
+            );
+            assert_eq!(environment[OsStr::new("NODE_OPTIONS")], None);
+            assert_eq!(environment[OsStr::new("ELECTRON_RUN_AS_NODE")], None);
+            assert_eq!(
+                environment[OsStr::new("no_proxy")],
+                Some(OsStr::new("localhost,127.0.0.1"))
+            );
+            assert_eq!(
+                environment[OsStr::new("CLAUDE_CODE_MAX_CONTEXT_TOKENS")],
+                one_m.then_some(OsStr::new("1000000"))
+            );
+            assert_eq!(
+                command.get_current_dir(),
+                Some(std::path::Path::new("fixture"))
+            );
+        }
+    }
+
+    #[tokio::test]
+    async fn desktop_exit_wait_handles_delayed_exit_and_reports_live_or_unknown_processes() {
+        let mut replies = std::iter::repeat_n(Ok(true), 9).chain([Ok(false)]);
+        assert!(super::wait_for_desktop_exit(
+            || std::future::ready(replies.next().unwrap()),
+            std::time::Duration::from_secs(2),
+        )
+        .await
+        .is_ok());
+        assert!(replies.next().is_none());
+        for reply in [Ok(true), Err("probe failed".to_owned())] {
+            assert_eq!(
+                super::wait_for_desktop_exit(
+                    || std::future::ready(reply.clone()),
+                    std::time::Duration::ZERO,
+                )
+                .await,
+                Err("accountError.stopClient".to_owned())
+            );
+        }
+        assert!(super::wait_for_desktop_exit(
+            || std::future::ready(Ok(false)),
+            std::time::Duration::ZERO,
+        )
+        .await
+        .is_ok());
+    }
+
+    #[cfg(any(target_os = "macos", target_os = "linux"))]
+    #[test]
+    fn forced_desktop_stop_revalidates_owned_pid_and_leaves_control_alive() {
+        use std::os::unix::process::CommandExt;
+        let executable = which::which("sleep").unwrap();
+        let spawn = || {
+            let child = crate::utils::process::command(&executable)
+                .arg("60")
+                .process_group(0)
+                .spawn()
+                .unwrap();
+            super::OwnedDesktopConfigProcess {
+                child,
+                stopped: false,
+            }
+        };
+        let child = crate::utils::process::command("/bin/sh")
+            .args(["-c", "sleep 60 & printf '%s\n' \"$!\"; wait"])
+            .process_group(0)
+            .stdout(std::process::Stdio::piped())
+            .spawn()
+            .unwrap();
+        let mut owner = super::OwnedDesktopConfigProcess {
+            child,
+            stopped: false,
+        };
+        use std::io::BufRead;
+        let mut line = String::new();
+        std::io::BufReader::new(owner.child.stdout.take().unwrap())
+            .read_line(&mut line)
+            .unwrap();
+        let descendant: u32 = line.trim().parse().unwrap();
+        let mut control = spawn();
+        let actual = super::qoder_process_path(owner.id()).unwrap();
+        let wrong = super::QoderAccountProcess {
+            pid: owner.id(),
+            path: actual.with_file_name("unrelated-cli"),
+        };
+        assert!(!super::stop_verified_unix_instances(
+            &[wrong],
+            libc::SIGKILL
+        ));
+        assert!(owner.child.try_wait().unwrap().is_none());
+        let verified = super::QoderAccountProcess {
+            pid: owner.id(),
+            path: actual,
+        };
+        assert!(super::stop_verified_unix_instances(
+            &[verified],
+            libc::SIGKILL
+        ));
+        use std::os::unix::process::ExitStatusExt;
+        assert_eq!(owner.child.wait().unwrap().signal(), Some(libc::SIGKILL));
+        owner.stopped = true;
+        let deadline = std::time::Instant::now() + std::time::Duration::from_secs(3);
+        loop {
+            let status = crate::utils::process::command("/bin/ps")
+                .args(["-o", "stat=", "-p", &descendant.to_string()])
+                .output()
+                .unwrap();
+            let state = String::from_utf8_lossy(&status.stdout);
+            if state.trim().is_empty() || state.trim_start().starts_with('Z') {
+                break;
+            }
+            assert!(
+                std::time::Instant::now() < deadline,
+                "owned helper survived"
+            );
+            std::thread::sleep(std::time::Duration::from_millis(20));
+        }
+        assert!(control.child.try_wait().unwrap().is_none());
+        control.stop().unwrap();
+    }
+
     #[test]
     fn cursor_cli_rejects_other_product_commands_before_reading_configuration_or_spawning() {
         let mut manager = super::ProcessManager::new();

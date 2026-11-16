@@ -6,15 +6,9 @@ use axum::{
     response::IntoResponse,
     Json,
 };
-#[cfg(not(windows))]
-use base64::{engine::general_purpose::STANDARD, Engine};
 use hyper::{body::Incoming, service::service_fn};
 use hyper_util::rt::TokioIo;
-#[cfg(not(windows))]
-use rcgen::PublicKeyData;
 use serde_json::{json, Value};
-#[cfg(not(windows))]
-use sha2::{Digest, Sha256};
 use std::{
     convert::Infallible,
     path::PathBuf,
@@ -28,15 +22,14 @@ use tokio_rustls::{rustls, TlsAcceptor};
 use tokio_util::sync::CancellationToken;
 
 mod assets;
-#[cfg(windows)]
 mod certificates;
 mod localization;
 
-#[cfg(windows)]
 pub(crate) async fn ensure_certificate_trusted(path: &std::path::Path) -> Result<(), String> {
     certificates::ensure_trusted(path).await
 }
 
+const LOCAL_EMAIL: &str = "hi@echobird.ai";
 const ACCOUNT: &str = "ec40b17d-31cf-4c81-94a9-000000000001";
 const ORGANIZATION: &str = "ec40b17d-31cf-4c81-94a9-000000000002";
 
@@ -44,14 +37,12 @@ const ORGANIZATION: &str = "ec40b17d-31cf-4c81-94a9-000000000002";
 pub struct LaunchSettings {
     pub port: u16,
     pub ca_path: PathBuf,
-    #[cfg(not(windows))]
-    pub spki: String,
-    pub token: String,
 }
 struct Running {
     settings: LaunchSettings,
     cancelled: CancellationToken,
     upstream: String,
+    expires: i64,
     assets: Option<Arc<assets::Archive>>,
     locale: String,
 }
@@ -77,7 +68,9 @@ pub async fn ensure_started(upstream: String) -> Result<LaunchSettings, String> 
         .ok_or("Home directory unavailable")?
         .join(".echobird/claude-desktop-local");
     let (assets, locale) = tokio::task::spawn_blocking(|| {
-        Ok::<_, String>((assets::installed()?, localization::native_locale()))
+        let assets =
+            assets::installed()?.ok_or("Installed Claude Desktop Code resources are missing")?;
+        Ok::<_, String>((Some(assets), localization::native_locale()))
     })
     .await
     .map_err(|error| error.to_string())??;
@@ -119,8 +112,9 @@ async fn ensure_started_at(
         if current.upstream == upstream
             && current.locale == locale
             && current.settings.ca_path.parent() == Some(directory.as_path())
-            && current.assets.as_ref().map(|archive| &archive.path)
-                == assets.as_ref().map(|archive| &archive.path)
+            && current.assets.as_ref().map(|archive| archive.version())
+                == assets.as_ref().map(|archive| archive.version())
+            && current.expires > chrono::Utc::now().timestamp()
             && !current.cancelled.is_cancelled()
         {
             return Ok(current.settings.clone());
@@ -128,32 +122,9 @@ async fn ensure_started_at(
         current.cancelled.cancel();
     }
     super::native_account_files::private_dir(&directory)?;
-    #[cfg(windows)]
     let (identity, ca_path) = certificates::load(&directory)?;
-    #[cfg(windows)]
+    let expires = identity.expires;
     let (certificate, private_key) = (identity.certificate, identity.key);
-    #[cfg(not(windows))]
-    let certified = rcgen::generate_simple_self_signed(vec![
-        "claude.ai".into(),
-        "www.claude.ai".into(),
-        "claude.com".into(),
-        "api.anthropic.com".into(),
-        "api.claude.ai".into(),
-    ])
-    .map_err(|e| e.to_string())?;
-    #[cfg(not(windows))]
-    let spki = STANDARD.encode(Sha256::digest(
-        certified.signing_key.subject_public_key_info(),
-    ));
-    #[cfg(not(windows))]
-    let ca_path = directory.join("process-ca.pem");
-    #[cfg(not(windows))]
-    std::fs::write(&ca_path, certified.cert.pem()).map_err(|e| e.to_string())?;
-    #[cfg(not(windows))]
-    let (certificate, private_key) = (
-        certified.cert.der().to_vec(),
-        certified.signing_key.serialize_der(),
-    );
     let crypto = Arc::new(rustls::crypto::ring::default_provider());
     let tls = rustls::ServerConfig::builder_with_provider(crypto)
         .with_safe_default_protocol_versions()
@@ -172,7 +143,7 @@ async fn ensure_started_at(
     let cancelled = CancellationToken::new();
     let context = Context {
         upstream: upstream.clone(),
-        token: token.clone(),
+        token,
         client: reqwest::Client::builder()
             .redirect(reqwest::redirect::Policy::none())
             .no_proxy()
@@ -209,17 +180,12 @@ async fn ensure_started_at(
             });
         }
     });
-    let settings = LaunchSettings {
-        port,
-        ca_path,
-        #[cfg(not(windows))]
-        spki,
-        token,
-    };
+    let settings = LaunchSettings { port, ca_path };
     *guard = Some(Running {
         settings: settings.clone(),
         cancelled,
         upstream,
+        expires,
         assets,
         locale,
     });
@@ -430,8 +396,8 @@ fn identity(locale: &str) -> Value {
         "capabilities":["chat","claude_pro","claude_code"],"billing_type":"stripe_subscription","plan_display_name":"Custom API",
         "claude_ai_bootstrap_models_config":local_models(),"settings":{}});
     let memberships = json!([{"organization":org,"role":"admin","seat_tier":"full_member","created_at":created,"updated_at":created}]);
-    let account = json!({"uuid":ACCOUNT,"tagged_id":format!("acct_{ACCOUNT}"),"email_address":"hi@echobird.ai",
-        "email":"hi@echobird.ai","full_name":"EchoBird.ai","display_name":"EchoBird.ai",
+    let account = json!({"uuid":ACCOUNT,"tagged_id":format!("acct_{ACCOUNT}"),"email_address":LOCAL_EMAIL,
+        "email":LOCAL_EMAIL,"full_name":"EchoBird.ai","display_name":"EchoBird.ai",
         "created_at":created,"updated_at":created,"is_verified":true,"age_is_verified":true,
         "accepted_clickwrap_versions":{},"locale":locale,"settings":{"locale":locale},"memberships":memberships,"workspace_memberships":[],"invites":[]});
     let mut features = json!({});
@@ -860,6 +826,7 @@ mod tests {
         let settings = ensure_started_at(upstream.clone(), directory.clone(), None, "en-US".into())
             .await
             .unwrap();
+        let expected_token = local_token(&directory).unwrap();
         assert_eq!(
             ensure_started_at(upstream.clone(), directory.clone(), None, "en-US".into())
                 .await
@@ -868,6 +835,12 @@ mod tests {
             settings.port
         );
         let client = reqwest::Client::builder().no_proxy().build().unwrap();
+        running().lock().await.as_mut().unwrap().expires = 0;
+        let renewed = ensure_started_at(upstream.clone(), directory.clone(), None, "en-US".into())
+            .await
+            .unwrap();
+        assert_eq!(local_token(&directory).unwrap(), expected_token);
+        let settings = renewed;
         let base = format!("http://127.0.0.1:{}", settings.port);
         let bootstrap = client
             .get(format!("{base}/edge-api/bootstrap"))
@@ -881,7 +854,7 @@ mod tests {
             .map(|value| value.to_str().unwrap())
             .collect::<Vec<_>>();
         assert_eq!(cookies.len(), 2);
-        assert!(cookies[0].starts_with(&format!("sessionKey={};", settings.token)));
+        assert!(cookies[0].starts_with(&format!("sessionKey={};", expected_token)));
         assert!(cookies[1].starts_with(&format!("lastActiveOrg={ORGANIZATION};")));
         let bootstrap: Value = bootstrap.json().await.unwrap();
         assert_eq!(bootstrap["account"]["full_name"], "EchoBird.ai");
@@ -927,6 +900,8 @@ mod tests {
             .json()
             .await
             .unwrap();
+        assert_eq!(account["full_name"], "EchoBird.ai");
+        assert_eq!(account["display_name"], "EchoBird.ai");
         assert!(account["memberships"].is_array());
         assert!(account.get("account").is_none());
         let app_start: Value = client
@@ -1000,6 +975,8 @@ mod tests {
             .json()
             .await
             .unwrap();
+        assert_eq!(profile["account"]["full_name"], "EchoBird.ai");
+        assert_eq!(profile["account"]["email_address"], "hi@echobird.ai");
         assert_eq!(profile["organization"]["organization_type"], "claude_pro");
         assert_eq!(profile["organization"]["uuid"], ORGANIZATION);
         for callback in [
@@ -1049,7 +1026,7 @@ mod tests {
             .json()
             .await
             .unwrap();
-        assert_eq!(token["access_token"], settings.token);
+        assert_eq!(token["access_token"], expected_token);
         assert!(token["scope"]
             .as_str()
             .unwrap()
@@ -1099,7 +1076,7 @@ mod tests {
         let restarted = ensure_started_at(upstream, directory.clone(), None, "en-US".into())
             .await
             .unwrap();
-        assert_eq!(restarted.token, settings.token);
+        assert_eq!(local_token(&directory).unwrap(), expected_token);
         let restored: Value = client
             .get(format!(
                 "http://127.0.0.1:{}/api/organizations/{ORGANIZATION}/model_selector/code",

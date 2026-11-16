@@ -742,16 +742,7 @@ pub(crate) async fn begin_local_mode() -> Result<(), String> {
     let mut backup: LocalModeBackup = read(&path)?;
     if !backup.prepared {
         let config_path = backup.config_path();
-        if cookie_path(&backup.directory).is_ok() {
-            clear_sign_in(&backup.directory, &config_path)?;
-        } else {
-            let mut config = config_at(&config_path)?;
-            let object = config.as_object_mut().ok_or("accountError.format")?;
-            for key in AUTH_CONFIG {
-                object.remove(*key);
-            }
-            write(&config_path, &config)?;
-        }
+        clear_sign_in(&backup.directory, &config_path)?;
         backup.prepared = true;
         write(&path, &backup)?;
     }
@@ -1768,6 +1759,27 @@ mod tests {
 #[cfg(test)]
 mod local_mode_tests {
     use super::*;
+    #[test]
+    fn incomplete_preparation_retains_a_restorable_original_identity() {
+        let directory = std::env::temp_dir().join(format!(
+            "claude-partial-preparation-{}",
+            uuid::Uuid::new_v4()
+        ));
+        std::fs::create_dir_all(&directory).unwrap();
+        let backup = directory.join("backup.json");
+        let config = directory.join("config.json");
+        write(&config, &json!({"lastKnownAccountUuid":"original", "oauth:tokenCacheV2":"token", "theme":"light"})).unwrap();
+        capture_local_mode_at(&directory, &config, &backup).unwrap();
+        clear_sign_in(&directory, &config).unwrap();
+        assert!(signed_in_account(&config_at(&config).unwrap()).is_none());
+        let pending: LocalModeBackup = read(&backup).unwrap();
+        assert!(!pending.prepared);
+        restore_local_mode_at(&backup).unwrap();
+        assert_eq!(config_at(&config).unwrap()["oauth:tokenCacheV2"], "token");
+        assert_eq!(config_at(&config).unwrap()["theme"], "light");
+        assert!(!backup.exists());
+        std::fs::remove_dir_all(directory).unwrap();
+    }
 
     #[test]
     fn repeated_local_starts_restore_original_auth_and_keep_other_settings() {

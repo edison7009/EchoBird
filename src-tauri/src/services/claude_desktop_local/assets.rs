@@ -11,6 +11,7 @@ pub(super) struct Archive {
     files: Value,
     start: u64,
     length: u64,
+    modified: std::time::SystemTime,
     pub build_id: String,
 }
 
@@ -36,7 +37,9 @@ pub(super) fn installed() -> Result<Option<Arc<Archive>>, String> {
 impl Archive {
     fn open(path: PathBuf) -> Result<Self, String> {
         let mut file = File::open(&path).map_err(|error| error.to_string())?;
-        let length = file.metadata().map_err(|error| error.to_string())?.len();
+        let metadata = file.metadata().map_err(|error| error.to_string())?;
+        let length = metadata.len();
+        let modified = metadata.modified().map_err(|error| error.to_string())?;
         let mut prefix = [0u8; 16];
         file.read_exact(&mut prefix)
             .map_err(|error| error.to_string())?;
@@ -58,6 +61,7 @@ impl Archive {
             files: tree["files"].clone(),
             start,
             length,
+            modified,
             build_id: String::new(),
         };
         let html = archive
@@ -71,6 +75,10 @@ impl Archive {
             .filter(|id| !id.is_empty() && id.len() <= 128)
             .ok_or("Claude Desktop shell build ID is missing")?;
         Ok(archive)
+    }
+
+    pub fn version(&self) -> (&Path, u64, std::time::SystemTime) {
+        (&self.path, self.length, self.modified)
     }
 
     pub fn read(&self, path: &str) -> Result<Option<Vec<u8>>, String> {
@@ -186,7 +194,15 @@ mod tests {
         bytes.extend_from_slice(html);
         bytes.extend_from_slice(b"js");
         std::fs::write(&path, bytes).unwrap();
-        let archive = Archive::open(path).unwrap();
+        let archive = Archive::open(path.clone()).unwrap();
+        assert_eq!(
+            archive.version(),
+            Archive::open(path.clone()).unwrap().version()
+        );
+        let mut updated = std::fs::read(&path).unwrap();
+        updated.extend_from_slice(b"new-release");
+        std::fs::write(&path, &updated).unwrap();
+        assert_ne!(archive.version(), Archive::open(path).unwrap().version());
         assert_eq!(archive.build_id, "fixture-build");
         assert_eq!(archive.read("/index.html").unwrap().unwrap(), html);
         assert_eq!(archive.read("/assets/app.js").unwrap().unwrap(), b"js");
