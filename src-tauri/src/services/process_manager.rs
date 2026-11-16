@@ -2678,6 +2678,12 @@ mod tests {
             assert_eq!(environment[OsStr::new("NODE_OPTIONS")], None);
             assert_eq!(environment[OsStr::new("ELECTRON_RUN_AS_NODE")], None);
             assert_eq!(
+                environment[OsStr::new("NO_PROXY")],
+                Some(OsStr::new("localhost,127.0.0.1"))
+            );
+            // Windows merges these names under the first key's spelling.
+            #[cfg(unix)]
+            assert_eq!(
                 environment[OsStr::new("no_proxy")],
                 Some(OsStr::new("localhost,127.0.0.1"))
             );
