@@ -499,10 +499,10 @@ const en: Translations = {
   'autoImport.description':
     'Find API model and account configurations across your apps for unified management.',
   'autoImport.scanning': 'Scanning configurations',
-  'autoImport.skipped': 'Skipped',
+  'autoImport.skipped': 'Invalid or unavailable',
   'autoImport.models': 'Models added',
   'autoImport.accounts': 'Accounts added',
-  'autoImport.duplicates': 'Duplicates skipped',
+  'autoImport.duplicates': 'Already present',
   'autoImport.readFailed': 'Could not read source',
   'autoImport.saveFailed': 'Could not save item',
   'autoImport.loginRequired': 'Sign in again required',
