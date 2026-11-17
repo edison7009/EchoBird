@@ -96,3 +96,18 @@ describe('ModelListCard', () => {
     expect(onRefreshUsage).not.toHaveBeenCalled();
   });
 });
+
+it('uses a saved router icon and falls back safely for unknown icon names', () => {
+  const render = (routerIcon: string) =>
+    renderToStaticMarkup(
+      <ModelListCard
+        model={{ ...model, internalId: 'smart-router', routerIcon }}
+        selection={null}
+        onSelect={() => {}}
+        t={(key) => key}
+      />
+    );
+  expect(render('rocket')).toContain('lucide-rocket');
+  expect(render('unknown')).toContain('lucide-waypoints');
+  expect(render('__proto__')).toContain('lucide-waypoints');
+});

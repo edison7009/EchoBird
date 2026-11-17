@@ -494,6 +494,7 @@ export function VoiceInputMain() {
                     name: model.name,
                     icon: getModelIcon('', model.modelId),
                     iconKind: isSmartRouterId(model.internalId) ? ('router' as const) : undefined,
+                    routerIcon: model.routerIcon,
                   }))}
                   currentModelId={selectionModel ?? ''}
                   loading={false}

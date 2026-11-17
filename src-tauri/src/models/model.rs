@@ -77,6 +77,8 @@ pub struct AccountSource {
 #[serde(rename_all = "camelCase")]
 pub struct ModelConfig {
     pub internal_id: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub router_icon: Option<String>,
     pub name: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub model_id: Option<String>,
@@ -137,6 +139,7 @@ mod tests {
     fn smart_router_scope_is_serialized() {
         let value = serde_json::to_value(ModelConfig {
             internal_id: "router-model".to_string(),
+            router_icon: None,
             name: "Router Model".to_string(),
             model_id: Some("model-id".to_string()),
             base_url: "https://example.com/v1".to_string(),

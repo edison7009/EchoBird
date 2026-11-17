@@ -495,6 +495,7 @@ function AppContent() {
                                       </OnFirstVisit>
                                     </div>
                                     <div
+                                      data-router-center
                                       className={routerActive ? 'flex-1 overflow-y-auto' : 'hidden'}
                                     >
                                       <OnFirstVisit active={routerActive}>

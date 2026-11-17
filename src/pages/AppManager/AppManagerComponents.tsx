@@ -1,3 +1,4 @@
+import { CustomSwitchEntry } from '../FreeModels/QuickAddAccounts';
 import { DesktopPrimaryButton } from '../../components/DesktopPrimaryButton';
 import { acquireBuiltinApp, isBundledApp } from '../../api/builtinApps';
 import { useToolsStore } from '../../stores/toolsStore';
@@ -1375,6 +1376,15 @@ export const AppManagerPanel: React.FC = () => {
               )}
               {routingControls}
               <div className="flex-1">
+                {selectedTool &&
+                  selectedToolData.installed &&
+                  SMART_ROUTER_SWITCH_TOOLS.has(selectedTool) && (
+                    <CustomSwitchEntry
+                      key={selectedTool}
+                      toolId={selectedTool}
+                      toolName={toolDisplayName(selectedToolData, locale)}
+                    />
+                  )}
                 <ModelListSection
                   smartRouterEnabled={smartRouterEnabled}
                   selectedToolData={selectedToolData}

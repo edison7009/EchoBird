@@ -66,6 +66,8 @@ fn is_loopback_url_on_port(raw: &str, port: u16) -> bool {
 struct StoredConfig {
     #[serde(default = "default_name")]
     name: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    icon: Option<String>,
     #[serde(default = "default_model_id")]
     model_id: String,
     #[serde(default)]
@@ -88,6 +90,7 @@ impl Default for StoredConfig {
     fn default() -> Self {
         Self {
             name: default_name(),
+            icon: None,
             model_id: default_model_id(),
             port: None,
             enabled: true,
@@ -126,6 +129,7 @@ impl StoredConfig {
 pub struct PublicConfig {
     pub id: String,
     pub name: String,
+    pub icon: Option<String>,
     pub master_enabled: bool,
     pub group_enabled: bool,
     pub enabled: bool,
@@ -269,6 +273,7 @@ fn public_config(config: StoredConfig) -> PublicConfig {
     PublicConfig {
         id: profiles::current_id(),
         name: config.name,
+        icon: config.icon,
         master_enabled: profiles::master_enabled(),
         group_enabled: config.enabled,
         enabled: config.enabled && profiles::master_enabled(),
@@ -364,6 +369,7 @@ pub fn get_candidate_models() -> Vec<ModelConfig> {
         if local_server_is_routable(&local_server) {
             models.push(ModelConfig {
                 internal_id: "local-server".to_string(),
+                router_icon: None,
                 name: local_server.model_name.clone(),
                 model_id: Some(local_server.model_name),
                 base_url: format!("http://127.0.0.1:{}/v1", local_server.port),
@@ -587,6 +593,7 @@ pub fn model_config() -> Option<ModelConfig> {
 
     Some(ModelConfig {
         internal_id: profiles::current_id(),
+        router_icon: config.icon,
         name: config.name,
         model_id: Some(config.model_id),
         base_url: format!("http://127.0.0.1:{port}/v1"),
@@ -847,6 +854,7 @@ mod tests {
     fn candidate_requires_model_and_url_but_allows_blank_keys() {
         let mut model = ModelConfig {
             internal_id: "candidate".to_string(),
+            router_icon: None,
             name: "Candidate".to_string(),
             model_id: Some("model-id".to_string()),
             base_url: "https://example.com/v1".to_string(),
@@ -1026,6 +1034,7 @@ mod tests {
     fn router_owns_only_router_scoped_models() {
         let mut model = ModelConfig {
             internal_id: "candidate".to_string(),
+            router_icon: None,
             name: "Candidate".to_string(),
             model_id: Some("model-id".to_string()),
             base_url: "https://example.com/v1".to_string(),

@@ -301,6 +301,8 @@ pub async fn set_master_enabled(enabled: bool) -> Result<PublicConfig, String> {
 pub struct Settings {
     pub id: Option<String>,
     pub name: String,
+    #[serde(default)]
+    pub icon: Option<String>,
     pub model_id: String,
     pub port: u16,
     pub api_key: String,
@@ -316,6 +318,7 @@ pub fn settings(id: String) -> Result<Settings, String> {
         Ok(Settings {
             id: Some(id.clone()),
             name: c.name,
+            icon: c.icon,
             model_id: c.model_id,
             port: port(),
             api_key,
@@ -323,6 +326,11 @@ pub fn settings(id: String) -> Result<Settings, String> {
     })
 }
 fn validate(settings: &Settings, registry: &Registry) -> Result<(), String> {
+    // save() holds the shared server lock while validating and publishing the registry.
+    // Enforce the creation cap here as well as in each UI entry point.
+    if settings.id.is_none() && registry.ids.len() >= 7 {
+        return Err("SMART_ROUTER_GROUP_LIMIT".into());
+    }
     if settings.name.trim().is_empty() || settings.model_id.trim().is_empty() || settings.port == 0
     {
         return Err("Name, model ID and a port between 1 and 65535 are required".into());
@@ -372,6 +380,9 @@ pub async fn save(settings: Settings) -> Result<PublicConfig, String> {
         };
         let mut config = previous.clone().unwrap_or_default();
         config.name = settings.name.trim().into();
+        if let Some(icon) = &settings.icon {
+            config.icon = Some(icon.clone());
+        }
         config.model_id = settings.model_id.trim().into();
         config.port = Some(settings.port);
         config.api_key = crate::services::secret_store::encrypt(&settings.api_key)?;
@@ -399,6 +410,7 @@ pub async fn save(settings: Settings) -> Result<PublicConfig, String> {
                 let _guard = config_lock().lock().map_err(|e| e.to_string())?;
                 let mut current = load_config_unlocked()?;
                 current.name = previous.name.clone();
+                current.icon = previous.icon.clone();
                 current.model_id = previous.model_id.clone();
                 current.port = previous.port;
                 current.api_key = previous.api_key.clone();
@@ -452,6 +464,40 @@ mod tests {
         fn drop(&mut self) {
             let _ = fs::remove_dir_all(&self.0);
         }
+    }
+
+    #[test]
+    fn group_capacity_rejects_creation_but_allows_editing_at_seven() {
+        let fixture = Fixture(
+            std::env::temp_dir().join(format!("echobird-router-capacity-{}", uuid::Uuid::new_v4())),
+        );
+        FIXTURE_ROOT.sync_scope(fixture.0.clone(), || {
+            let ids = std::iter::once(SMART_ROUTER_INTERNAL_ID.to_string())
+                .chain((0..6).map(|_| format!("smart-router-{}", uuid::Uuid::new_v4())))
+                .collect::<Vec<_>>();
+            let mut registry = Registry {
+                enabled: false,
+                ids,
+            };
+            let mut settings = Settings {
+                id: None,
+                name: "Capacity fixture".into(),
+                icon: None,
+                model_id: "auto".into(),
+                port: 54321,
+                api_key: "fixture-key".into(),
+            };
+            assert_eq!(
+                validate(&settings, &registry).unwrap_err(),
+                "SMART_ROUTER_GROUP_LIMIT"
+            );
+            settings.id = Some(SMART_ROUTER_INTERNAL_ID.into());
+            assert!(validate(&settings, &registry).is_ok());
+            settings.id = None;
+            registry.ids.pop();
+            assert!(validate(&settings, &registry).is_ok());
+            assert!(!root().exists(), "capacity validation wrote configuration");
+        });
     }
 
     #[test]
@@ -543,9 +589,12 @@ mod tests {
             let first_port = first_socket.local_addr().unwrap().port();
             let second_port = second_socket.local_addr().unwrap().port();
             drop((first_socket, second_socket));
-            let first = Settings { id: Some(migrated.id.clone()), name: "First".into(), model_id: "first-model".into(), port: first_port, api_key: "first-secret".into() };
+            let first = Settings { id: Some(migrated.id.clone()), name: "First".into(), icon: Some("sparkles".into()), model_id: "first-model".into(), port: first_port, api_key: "first-secret".into() };
             save(first.clone()).await.unwrap();
-            let second_settings = Settings { id: None, name: "Second".into(), model_id: "second-model".into(), port: second_port, api_key: "second-secret".into() };
+            assert_eq!(settings(migrated.id.clone()).unwrap().icon.as_deref(), Some("sparkles"));
+            assert_eq!(list().unwrap()[0].icon.as_deref(), Some("sparkles"));
+            assert_eq!(read_stored(&migrated.id).unwrap().icon.as_deref(), Some("sparkles"));
+            let second_settings = Settings { id: None, name: "Second".into(), icon: None, model_id: "second-model".into(), port: second_port, api_key: "second-secret".into() };
             let second = save(second_settings.clone()).await.unwrap();
             assert!(!second.running);
             assert_eq!(save(Settings { port: first_port, ..second_settings.clone() }).await.err().as_deref(), Some(PORT_IN_USE));

@@ -1,3 +1,4 @@
+import { QuickAddAccounts } from './QuickAddAccounts';
 import { ScanProgress } from '../../components/ScanProgress';
 import {
   useCallback,
@@ -182,7 +183,12 @@ export function FreeModelsTitleActions() {
   return (
     <div className="flex shrink-0 items-center gap-3">
       <div className="flex items-center gap-2">
-        {smartAccessTab === 'configuration' && <AccountPrivacyButton />}
+        {smartAccessTab === 'configuration' && (
+          <>
+            <QuickAddAccounts />
+            <AccountPrivacyButton />
+          </>
+        )}
         <ViewModeTabGroup
           role="group"
           aria-label={t('freeModels.layout.label')}

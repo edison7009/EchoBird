@@ -737,6 +737,41 @@ describe('Independent smart router groups', () => {
     expect(api.listSmartRouters).toHaveBeenCalledTimes(pendingReads);
     expect(api.saveSmartRouter).not.toHaveBeenCalled();
   });
+  it('keeps icon selection in the draft until save and discards it on cancel', async () => {
+    await open();
+    await act(async () => button('freeModels.router.edit First').props.onClick());
+    await act(async () => button('freeModels.router.chooseIcon').props.onClick());
+    await act(async () => button('sparkles').props.onClick());
+    expect(api.saveSmartRouter).not.toHaveBeenCalled();
+    await act(async () =>
+      renderer.root
+        .findAllByType('button')
+        .find((node) => node.props.children === 'model.escCancel')!
+        .props.onClick()
+    );
+    expect(api.saveSmartRouter).not.toHaveBeenCalled();
+    await act(async () => button('freeModels.router.edit First').props.onClick());
+    await act(async () => button('freeModels.router.chooseIcon').props.onClick());
+    expect(button('waypoints').props['aria-pressed']).toBe(true);
+    await act(async () => button('rocket').props.onClick());
+    vi.mocked(api.saveSmartRouter).mockResolvedValueOnce({ ...groups[0], icon: 'rocket' });
+    await act(async () => renderer.root.findByType('form').props.onSubmit({ preventDefault() {} }));
+    expect(api.saveSmartRouter).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({ icon: 'rocket' })
+    );
+  });
+
+  it('shows the translated capacity message if another window fills the last group slot', async () => {
+    await open();
+    await act(async () => addButtons()[0].props.onClick());
+    vi.mocked(api.saveSmartRouter).mockRejectedValueOnce('SMART_ROUTER_GROUP_LIMIT');
+    await act(async () => renderer.root.findByType('form').props.onSubmit({ preventDefault() {} }));
+    expect(renderer.root.findByProps({ role: 'alert' }).children).toEqual([
+      'freeModels.router.limit',
+    ]);
+    expect(renderer.root.findAllByType('form')).toHaveLength(1);
+  });
+
   it('reads the key only on explicit edit and keeps a failed save open for correction', async () => {
     await open();
     await act(async () => button('freeModels.router.edit First').props.onClick());

@@ -72,6 +72,7 @@ export interface AccountSource {
 
 export interface ModelConfig {
   internalId: string;
+  routerIcon?: string;
   name: string;
   modelId?: string;
   baseUrl: string;

@@ -4,6 +4,7 @@ import type { ModelConfig } from './types';
 export interface SmartRouterConfig {
   id: string;
   name: string;
+  icon?: string;
   masterEnabled: boolean;
   groupEnabled: boolean;
   enabled: boolean;
@@ -102,6 +103,7 @@ export async function removeSmartRouterCandidate(
 export interface SmartRouterSettings {
   id?: string;
   name: string;
+  icon?: string;
   modelId: string;
   port: number;
   apiKey: string;

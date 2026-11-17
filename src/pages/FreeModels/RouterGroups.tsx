@@ -1,3 +1,4 @@
+import { SmartRouterIconPicker } from '../../components/SmartRouterIconPicker';
 import {
   useCallback,
   useEffect,
@@ -20,19 +21,42 @@ import { copyText } from '../../utils/copyText';
 import { useFreeModels } from './provider';
 import { useRouterCardFade } from './useRouterCardFade';
 
-const MAX_ROUTER_GROUPS = 7;
+import { MAX_ROUTER_GROUPS } from '../../api/customRouterGroup';
 
 function RouterSettingsModal({
   initial,
+  centerRef,
   onClose,
   onSave,
 }: {
   initial: api.SmartRouterSettings;
+  centerRef: RefObject<HTMLDivElement>;
   onClose: () => void;
   onSave: (settings: api.SmartRouterSettings) => Promise<void>;
 }) {
   const { t } = useI18n();
   const { showToast } = useToast();
+  const [center, setCenter] = useState<{ left: number; top: number; maxWidth: number }>();
+  useLayoutEffect(() => {
+    const pane = centerRef.current?.closest('[data-router-center]');
+    if (!pane) return;
+    const measure = () => {
+      const bounds = pane.getBoundingClientRect();
+      setCenter({
+        left: bounds.left + bounds.width / 2,
+        top: bounds.top + bounds.height / 2,
+        maxWidth: Math.max(0, bounds.width - 32),
+      });
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(pane);
+    window.addEventListener('resize', measure);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener('resize', measure);
+    };
+  }, [centerRef]);
   const [form, setForm] = useState(initial);
   const [port, setPort] = useState(initial.port);
   const [saving, setSaving] = useState(false);
@@ -52,6 +76,7 @@ function RouterSettingsModal({
   );
   const errorMessage = (error: unknown) => {
     const message = error instanceof Error ? error.message : String(error);
+    if (message.includes('SMART_ROUTER_GROUP_LIMIT')) return t('freeModels.router.limit');
     if (message.includes('SMART_ROUTER_PORT_IN_USE')) return t('freeModels.router.portInUse');
     if (message.includes('SMART_ROUTER_PORT_UNAVAILABLE'))
       return t('freeModels.router.portUnavailable');
@@ -119,6 +144,17 @@ function RouterSettingsModal({
         role="dialog"
         aria-modal="true"
         aria-labelledby="router-settings-title"
+        style={
+          center
+            ? {
+                position: 'absolute',
+                left: center.left,
+                top: center.top,
+                maxWidth: center.maxWidth,
+                transform: 'translate(-50%, -50%)',
+              }
+            : undefined
+        }
         aria-busy={busy || undefined}
         className="relative w-[450px] max-w-[90vw] overflow-hidden rounded-xl border border-cyber-border/30 bg-cyber-surface shadow-2xl"
         onSubmit={async (e) => {
@@ -165,15 +201,23 @@ function RouterSettingsModal({
             <label htmlFor="router-name" className="mb-1 block text-xs text-cyber-text-secondary">
               {t('model.name')}
             </label>
-            <input
-              id="router-name"
-              type="text"
-              autoFocus
-              autoComplete="off"
-              value={form.name}
-              onChange={(e) => setForm((current) => ({ ...current, name: e.target.value }))}
-              className="w-full rounded-button border border-cyber-border bg-cyber-input px-2 py-1.5 font-mono text-xs text-cyber-text focus:border-cyber-border focus:outline-none"
-            />
+            <div className="relative">
+              <input
+                id="router-name"
+                type="text"
+                autoFocus
+                autoComplete="off"
+                value={form.name}
+                onChange={(e) => setForm((current) => ({ ...current, name: e.target.value }))}
+                className="w-full rounded-button border border-cyber-border bg-cyber-input py-1.5 pl-10 pr-2 font-mono text-xs text-cyber-text focus:border-cyber-border focus:outline-none"
+              />
+              <div className="absolute left-1 top-1/2 z-20 -translate-y-1/2">
+                <SmartRouterIconPicker
+                  value={form.icon}
+                  onChange={(icon) => setForm((current) => ({ ...current, icon }))}
+                />
+              </div>
+            </div>
           </div>
           {(['OpenAI', 'Anthropic'] as const).map((protocol) => (
             <div key={protocol}>
@@ -709,6 +753,7 @@ export function RouterGroups({
         <RouterSettingsModal
           key={settings.id ?? 'new'}
           initial={settings}
+          centerRef={hubRef}
           onClose={() => setSettings(null)}
           onSave={saveRouter}
         />

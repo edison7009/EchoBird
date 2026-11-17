@@ -324,6 +324,7 @@ fn models_from_user(models: Vec<ModelConfig>) -> Vec<ModelConfig> {
     let local_models: Vec<ModelConfig> = if server_info.running {
         vec![ModelConfig {
             internal_id: "local-server".to_string(),
+            router_icon: None,
             name: server_info.model_name.clone(),
             model_id: Some(server_info.model_name.clone()),
             base_url: format!("http://127.0.0.1:{}/v1", server_info.port),
@@ -449,6 +450,7 @@ fn new_model_from(input: AddModelInput, internal_id: String) -> ModelConfig {
     let auto_type = detect_model_type(&base_url);
     ModelConfig {
         internal_id,
+        router_icon: None,
         name: input.name.unwrap_or_default(),
         model_id: input.model_id,
         base_url,
@@ -1576,6 +1578,7 @@ mod tests {
     fn mk_model(id: &str) -> ModelConfig {
         ModelConfig {
             internal_id: id.to_string(),
+            router_icon: None,
             name: id.to_string(),
             model_id: None,
             base_url: String::new(),

@@ -499,6 +499,7 @@ describe('Smart Router list layout and candidate pause', () => {
     expect(titleGroups[0]).toBe(group);
     const controls = renderer.root.findByType('header').findAllByType('button');
     expect(controls.map((node) => node.props['aria-label'] ?? node.children.join(''))).toEqual([
+      'freeModels.quickAdd',
       'freeModels.hideAccountNames',
       'freeModels.layout.cards',
       'freeModels.layout.list',

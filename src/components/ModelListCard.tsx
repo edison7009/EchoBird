@@ -1,5 +1,6 @@
+import { SmartRouterIcon } from './SmartRouterIcon';
 import type { ReactNode } from 'react';
-import { Box, Waypoints, RefreshCw, Server, SquarePen, Trash2 } from 'lucide-react';
+import { Box, RefreshCw, Server, SquarePen, Trash2 } from 'lucide-react';
 import type { ModelConfig } from '../api/types';
 import type { ModelUsageData } from '../api/tauri';
 import type { TKey } from '../i18n';
@@ -81,7 +82,7 @@ export function ModelListCard({
             className={`${compact ? 'w-8 h-8' : 'w-6 h-6'} flex items-center justify-center ${isLocalModel ? 'text-cyber-accent' : 'text-cyber-text'}`}
           >
             {isSmartRouter ? (
-              <Waypoints size={compact ? 32 : 22} />
+              <SmartRouterIcon name={model.routerIcon} size={compact ? 32 : 22} />
             ) : isLocalModel ? (
               <Server size={compact ? 32 : 22} />
             ) : (

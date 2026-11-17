@@ -3,6 +3,7 @@ import { mountTabCanvas } from '../../components/useTabCanvas';
 import { RoutingHint } from '../../components/RoutingToggle';
 
 export interface CapabilityToggle {
+  id?: string;
   label: string;
   hint: string;
   checked: boolean;
@@ -30,21 +31,13 @@ export function CapabilityToggles({
       className="capability-toggles relative isolate flex items-center gap-2 px-3"
     >
       {toggles.map(({ label, checked, onChange }) => (
-        <button
+        <CapabilityToggleButton
           key={label}
-          type="button"
-          aria-pressed={checked}
-          aria-label={label}
+          label={label}
+          checked={checked}
+          onChange={onChange}
           disabled={disabled}
-          onClick={() => onChange(!checked)}
-          className={`capability-toggle h-[24px] min-w-[44px] rounded-full px-[10px] text-xs font-medium whitespace-nowrap border outline-none transition-[color,background-color] focus-visible:ring-2 focus-visible:ring-cyber-accent disabled:opacity-50 ${
-            checked
-              ? 'border-transparent text-cyber-text'
-              : 'border-cyber-border text-cyber-text-secondary enabled:hover:border-transparent enabled:hover:bg-cyber-elevated enabled:hover:text-cyber-text'
-          }`}
-        >
-          {label}
-        </button>
+        />
       ))}
       <span className="ml-auto inline-flex">
         <RoutingHint
@@ -67,6 +60,50 @@ export function CapabilityToggles({
           }
         />
       </span>
+    </div>
+  );
+}
+
+export function CapabilityToggleButton({
+  label,
+  checked,
+  onChange,
+  disabled = false,
+}: Omit<CapabilityToggle, 'hint'> & { disabled?: boolean }) {
+  return (
+    <button
+      type="button"
+      aria-pressed={checked}
+      aria-label={label}
+      disabled={disabled}
+      onClick={() => onChange(!checked)}
+      className={`capability-toggle h-[24px] min-w-[44px] rounded-full px-[10px] text-xs font-medium whitespace-nowrap border outline-none transition-[color,background-color] focus-visible:ring-2 focus-visible:ring-cyber-accent disabled:opacity-50 ${checked ? 'border-transparent text-cyber-text' : 'border-cyber-border text-cyber-text-secondary enabled:hover:border-transparent enabled:hover:bg-cyber-elevated enabled:hover:text-cyber-text'}`}
+    >
+      {label}
+    </button>
+  );
+}
+
+export function CapabilitySelection({
+  toggles,
+  disabled = false,
+}: {
+  toggles: Omit<CapabilityToggle, 'hint'>[];
+  disabled?: boolean;
+}) {
+  const root = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    if (root.current) return mountTabCanvas(root.current, undefined, true);
+  }, []);
+  return (
+    <div
+      ref={root}
+      data-disabled={disabled}
+      className="capability-toggles relative isolate flex flex-wrap items-center gap-2"
+    >
+      {toggles.map((toggle) => (
+        <CapabilityToggleButton key={toggle.id ?? toggle.label} {...toggle} disabled={disabled} />
+      ))}
     </div>
   );
 }

@@ -13,6 +13,14 @@ vi.hoisted(() => vi.stubGlobal('__APP_EDITION__', 'full'));
 vi.mock('../../components', () => ({
   getModelIcon: () => null,
 }));
+vi.mock('../FreeModels/provider', () => ({
+  useFreeModels: () => ({
+    routers: [{ id: 'smart-router' }],
+    activeRouterId: 'smart-router',
+    groupPending: false,
+    activeDragId: null,
+  }),
+}));
 vi.mock('../../utils/platform', () => ({ IS_WINDOWS: false, IS_LINUX: true, IS_MACOS: false }));
 
 const models: ModelConfig[] = [

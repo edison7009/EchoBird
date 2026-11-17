@@ -371,6 +371,17 @@ const en: Translations = {
   'freeModels.saved.addFailed': 'Could not add this model. Check its configuration and try again.',
   'freeModels.addToRouter': 'Add Model to Smart Router',
   'freeModels.addAccountToRouter': 'Add Account to Smart Router',
+  'agent.addCustomSwitch': 'Custom model switcher',
+  'agent.customSwitch': 'Custom model switcher',
+  'freeModels.router.chooseIcon': 'Choose icon',
+  'freeModels.router.limit':
+    'You can have up to 7 routing groups. Remove a group before adding another.',
+  'freeModels.selectSwitchModels': 'Select switchable models',
+  'freeModels.quickAdd': 'Bulk Select',
+  'freeModels.quickAdd.empty': 'No saved accounts.',
+  'freeModels.quickAdd.noModels': 'No models available',
+  'freeModels.quickAdd.failed': 'Could not add. Please retry.',
+  'freeModels.quickAdd.saving': 'Adding…',
   'freeModels.help': 'How It Works',
   'freeModels.help.routerTitle': 'Why use smart routing?',
   'freeModels.help.routerDesc':

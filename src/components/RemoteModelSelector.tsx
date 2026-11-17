@@ -1,13 +1,15 @@
+import { SmartRouterIcon } from './SmartRouterIcon';
 // RemoteModelSelector — Minimal model dropdown for Mother Agent
 // Text + arrow, no background/border, hover shows soft bg, dropdown opens upward
 import React, { useState, useRef, useEffect, useLayoutEffect } from 'react';
-import { ChevronDown, Loader2, Check, Waypoints } from 'lucide-react';
+import { ChevronDown, Loader2, Check } from 'lucide-react';
 
 export interface ModelOption {
   id: string;
   name: string;
   icon?: string | null; // icon path from getModelIcon()
   iconKind?: 'router';
+  routerIcon?: string;
 }
 
 /** A non-model option appended below the models list (after a divider).
@@ -104,7 +106,11 @@ export const RemoteModelSelector: React.FC<RemoteModelSelectorProps> = ({
 
   const renderIcon = (option: ModelOption, sizeClass: string, iconSize: number) => {
     if (option.iconKind === 'router') {
-      return <Waypoints size={iconSize} className="flex-shrink-0 text-cyber-accent" />;
+      return (
+        <span className="flex-shrink-0 text-cyber-accent">
+          <SmartRouterIcon name={option.routerIcon} size={iconSize} />
+        </span>
+      );
     }
     if (!option.icon) return null;
     return (

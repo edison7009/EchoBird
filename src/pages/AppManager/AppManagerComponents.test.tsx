@@ -23,6 +23,12 @@ import { useNavigationStore } from '../../stores/navigationStore';
 import { AppManagerContext, type AppManagerContextType } from './context';
 import { AccountSectionRow } from './AccountSectionPrimitives';
 
+// This suite isolates the application's account/capability layout; the shared
+// creation workflow and capacity guards are exercised in QuickAddAccounts tests.
+vi.mock('../FreeModels/QuickAddAccounts', () => ({
+  CustomSwitchEntry: ({ toolId }: { toolId: string }) => <div data-custom-switch-tool={toolId} />,
+}));
+
 vi.mock('../../components', () => ({
   getModelIcon: () => null,
 }));
@@ -1100,6 +1106,7 @@ describe.each(['codex', 'chatgptdesktop'])('%s Web Search control', (client) => 
           </ModelNexusContext.Provider>
         </ConfirmDialogProvider>
       );
+      expect(markup.includes(`data-custom-switch-tool="${client}"`)).toBe(installed);
       const toggle = markup.match(/<button[^>]*aria-pressed="[^>]*>/)?.[0];
       if (installed) {
         expect(toggle).toContain('aria-label="agent.codexWebSearchLabel"');
