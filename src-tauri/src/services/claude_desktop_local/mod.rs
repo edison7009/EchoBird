@@ -1,4 +1,4 @@
-//! Process-scoped compatibility service for Claude Desktop's local Code identity.
+//! Process-scoped compatibility service for Claude Desktop's local API identity.
 //! The selected inference provider remains owned by `anthropic_proxy`.
 use axum::{
     body::Body,
@@ -23,10 +23,23 @@ use tokio_util::sync::CancellationToken;
 
 mod assets;
 mod certificates;
+mod desktop;
 mod localization;
+mod workspace_prompt;
 
 pub(crate) async fn ensure_certificate_trusted(path: &std::path::Path) -> Result<(), String> {
     certificates::ensure_trusted(path).await
+}
+
+const MODEL_SURFACES: [&str; 7] = ["code", "chat", "cowork", "cc", "ccr", "ccd", "office_agent"];
+
+fn model_surface(value: &str) -> Option<&'static str> {
+    match value {
+        "code" | "cc" | "ccr" | "ccd" => Some("code"),
+        "chat" => Some("chat"),
+        "cowork" | "office_agent" => Some("cowork"),
+        _ => None,
+    }
 }
 
 const LOCAL_EMAIL: &str = "hi@echobird.ai";
@@ -59,6 +72,7 @@ struct Context {
     cancelled: CancellationToken,
     selection: Arc<Mutex<Value>>,
     selection_path: PathBuf,
+    desktop: Arc<desktop::State>,
     assets: Option<Arc<assets::Archive>>,
     locale: String,
 }
@@ -69,7 +83,7 @@ pub async fn ensure_started(upstream: String) -> Result<LaunchSettings, String> 
         .join(".echobird/claude-desktop-local");
     let (assets, locale) = tokio::task::spawn_blocking(|| {
         let assets =
-            assets::installed()?.ok_or("Installed Claude Desktop Code resources are missing")?;
+            assets::installed()?.ok_or("Installed Claude Desktop resources are missing")?;
         Ok::<_, String>((Some(assets), localization::native_locale()))
     })
     .await
@@ -155,6 +169,7 @@ async fn ensure_started_at(
         selection_path: directory.join("selector.json"),
         assets: assets.clone(),
         locale: locale.clone(),
+        desktop: Arc::new(desktop::State::new(directory.join("device.json"))),
     };
     tokio::spawn(async move {
         loop {
@@ -290,7 +305,12 @@ fn models_for_relay(relay: &Value) -> Vec<Value> {
 fn user_access() -> Value {
     json!({"features":[{"feature":"claude_code","status":"available"},
         {"feature":"claude_code_desktop","status":"available"},
-        {"feature":"cowork","status":"blocked_by_platform"}]})
+        {"feature":"cowork","status":"available"},
+        {"feature":"chat","status":"available"}],
+        "account_features":[],"organization_permissions":[],"core_skill_names":[],
+        "code_execution_network_egress_enabled":false,"code_execution_network_egress_settable":"disabled",
+        "code_execution_network_egress_template":"","artifacts_setting_blocks_classic_sharing":false,
+        "classic_sharing_block_reason":null})
 }
 fn selectable(models: &[Value], selected: &Value) -> bool {
     let Some(id) = selected.as_str() else {
@@ -306,10 +326,28 @@ fn selectable(models: &[Value], selected: &Value) -> bool {
 fn read_selection(path: &std::path::Path) -> Value {
     let saved = std::fs::read(path)
         .ok()
-        .and_then(|bytes| serde_json::from_slice::<Value>(&bytes).ok());
-    saved
-        .filter(|state| selectable(&local_models(), &state["model"]))
-        .unwrap_or_else(|| selector_state()[0].clone())
+        .and_then(|bytes| serde_json::from_slice::<Value>(&bytes).ok())
+        .unwrap_or(Value::Null);
+    let mut states = json!({});
+    for mut state in selector_state()
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|state| matches!(state["id"].as_str(), Some("code" | "chat" | "cowork")))
+        .cloned()
+    {
+        let id = state["id"].as_str().unwrap().to_owned();
+        let candidate = if id == "code" && saved["id"] == "code" {
+            &saved
+        } else {
+            &saved[&id]
+        };
+        if selectable(&local_models(), &candidate["model"]) {
+            state = candidate.clone();
+        }
+        states[id] = state;
+    }
+    states
 }
 fn patch_selection(
     current: &Value,
@@ -367,14 +405,6 @@ fn validate_thinking(thinking: &Value) -> Result<(), &'static str> {
     Ok(())
 }
 
-async fn current_selection(context: &Context) -> Value {
-    let selected = context.selection.lock().await;
-    if selectable(&local_models(), &selected["model"]) {
-        selected.clone()
-    } else {
-        selector_state()[0].clone()
-    }
-}
 fn selector_config() -> Value {
     use sha2::Digest;
     let models = local_models();
@@ -382,34 +412,65 @@ fn selector_config() -> Value {
         "{:x}",
         sha2::Sha256::digest(serde_json::to_vec(&models).expect("model catalog JSON"))
     );
-    json!([{"id":"code","revision":revision,"models":models}])
+    json!(MODEL_SURFACES.map(|id| json!({"id":id,"revision":revision,"models":models})))
 }
 fn selector_state() -> Value {
-    json!([{"id":"code","model":"claude-opus-5-5","selection_source":"global_default"}])
+    json!(MODEL_SURFACES
+        .map(|id| json!({"id":id,"model":"claude-opus-5-5","selection_source":"global_default"})))
 }
 async fn selections(context: &Context) -> Value {
-    json!([current_selection(context).await])
+    let current = context.selection.lock().await;
+    let models = local_models();
+    let defaults = selector_state();
+    let values = MODEL_SURFACES.map(|surface| {
+        let state = &current[model_surface(surface).unwrap()];
+        let mut selected = if selectable(&models, &state["model"]) {
+            state.clone()
+        } else {
+            defaults
+                .as_array()
+                .unwrap()
+                .iter()
+                .find(|value| value["id"] == surface)
+                .unwrap()
+                .clone()
+        };
+        selected["id"] = surface.into();
+        selected
+    });
+    json!(values)
 }
 fn identity(locale: &str) -> Value {
     let created = "2026-01-01T00:00:00Z";
     let org = json!({"uuid":ORGANIZATION,"id":0,"name":"EchoBird.ai","organization_type":"personal",
-        "capabilities":["chat","claude_pro","claude_code"],"billing_type":"stripe_subscription","plan_display_name":"Custom API",
+        "capabilities":["chat","claude_pro","claude_code","cowork"],"billing_type":"stripe_subscription","plan_display_name":"Custom API",
         "claude_ai_bootstrap_models_config":local_models(),"settings":{}});
-    let memberships = json!([{"organization":org,"role":"admin","seat_tier":"full_member","created_at":created,"updated_at":created}]);
+    let memberships = json!([{"uuid":"ec40b17d-31cf-4c81-94a9-000000000003","organization_uuid":ORGANIZATION,
+        "organization":org,"role":"admin","status":"active","seat_tier":"full_member","joined":true,"is_member":true,
+        "created_at":created,"updated_at":created}]);
     let account = json!({"uuid":ACCOUNT,"tagged_id":format!("acct_{ACCOUNT}"),"email_address":LOCAL_EMAIL,
         "email":LOCAL_EMAIL,"full_name":"EchoBird.ai","display_name":"EchoBird.ai",
         "created_at":created,"updated_at":created,"is_verified":true,"age_is_verified":true,
-        "accepted_clickwrap_versions":{},"locale":locale,"settings":{"locale":locale},"memberships":memberships,"workspace_memberships":[],"invites":[]});
-    let mut features = json!({});
+        "accepted_clickwrap_versions":{},"locale":locale,"settings":{"locale":locale},"memberships":memberships,"workspace_memberships":memberships,"invites":[],
+        "is_anonymous":false,"onboarding_complete":true,"memberships_incomplete":false,
+        "capabilities":org["capabilities"],"plan_display_name":"Custom API"});
+    let mut features =
+        json!({"574905726":{"defaultValue":true},"2436273311":{"defaultValue":true}});
     if locale == "zh-Hans" {
         features["witty_scone_main"] = json!({"defaultValue":{"released":["zh-Hans"]}});
     }
     json!({"account":account,"user":account,"organization":org,"activeOrganization":org,"organizations":[org],
         "memberships":memberships,"resolved_org_uuid":ORGANIZATION,"featureFlagsOrgUuid":ORGANIZATION,
+        "org_uuid":ORGANIZATION,"active_org_uuid":ORGANIZATION,"organization_uuid":ORGANIZATION,
         "current_user_access":user_access(),"locale":locale,"install_id":ACCOUNT,
         "model_selector_config":selector_config(),"model_selector_state":selector_state(),
         "statsig":{"user":{"userID":ACCOUNT},"values":{},"values_hash":"echobird-local"},
         "feature_flags":{"user":{"userID":ACCOUNT},"values":{},"values_hash":"echobird-local"},"growthbook":{"features":features},
+        "org_growthbook":{"hashing_algorithm":"djb2","features":{
+            "574905726":{"defaultValue":true},"2436273311":{"defaultValue":true}}},
+        "org_statsig":{"user":{},"values":{},"values_hash":"echobird-local"},
+        "org_feature_flags":{"user":{},"values":{},"values_hash":"echobird-local"},
+        "gated_imports":{},
         "bootstrap_push_revision":0,"intercom_account_hash":null,"system_prompts":{}})
 }
 fn oauth_profile(locale: &str) -> Value {
@@ -435,19 +496,38 @@ async fn route(
             return StatusCode::FORBIDDEN.into_response();
         }
     }
-    if path.starts_with("/api/organizations/")
-        && (path
-            .split('/')
-            .nth(4)
-            .is_some_and(|part| matches!(part, "chat_conversations" | "chat_conversations_v2"))
-            || path.ends_with("/model_selector/chat")
-            || path.ends_with("/model_selector_state/chat"))
+    if path.starts_with("/claudeai-rpc/")
+        || (path.starts_with("/api/organizations/")
+            && matches!(
+                path.split('/').nth(4),
+                Some("chat_conversations" | "chat_conversations_v2")
+            ))
     {
-        return (
-            StatusCode::NOT_IMPLEMENTED,
-            Json(json!({"error":{"type":"api_error","message":"API mode supports Claude Code only."}})),
-        )
-            .into_response();
+        return (StatusCode::NOT_IMPLEMENTED, Json(json!({"error":{"type":"api_error","message":"API conversations use the native unified desktop engine."}}))).into_response();
+    }
+    if path.starts_with("/api/organizations/") && path.ends_with("/cowork/remote_devices") {
+        return desktop::device(request.map(Body::new), context).await;
+    }
+    if path.starts_with("/api/organizations/")
+        && (path.ends_with("/dust/generate_session_title")
+            || path.ends_with("/dust/generate_title_and_branch"))
+    {
+        return desktop::title(request.map(Body::new), context).await;
+    }
+    if path == "/api/account_profile" {
+        let bootstrap = identity(&context.locale);
+        let mut profile = bootstrap["account"].clone();
+        profile["account"] = bootstrap["account"].clone();
+        profile["organization"] = bootstrap["organization"].clone();
+        profile["organization_uuid"] = ORGANIZATION.into();
+        profile["work_function"] = "".into();
+        profile["conversation_preferences"] = Value::Null;
+        profile["cowork_global_instructions"] = Value::Null;
+        profile["cowork_instructions_union"] = false.into();
+        return Json(profile).into_response();
+    }
+    if let Some(response) = desktop::response(&path, request.method().as_str()) {
+        return response;
     }
     if path == "/v1/messages" {
         let authenticated = request
@@ -536,7 +616,7 @@ async fn route(
         return Json(json!({"data":local_models(),"has_more":false})).into_response();
     }
     if path.starts_with("/api/organizations/") && path.contains("/model_selector_state/") {
-        if !path.ends_with("/code") {
+        if path.rsplit('/').next().and_then(model_surface).is_none() {
             return StatusCode::NOT_FOUND.into_response();
         }
         if request.method() != "PATCH" {
@@ -548,9 +628,11 @@ async fn route(
         let Ok(patch) = serde_json::from_slice::<Value>(&body) else {
             return StatusCode::BAD_REQUEST.into_response();
         };
+        let surface = model_surface(path.rsplit('/').next().unwrap()).unwrap();
         let mut current = context.selection.lock().await;
+        let previous = current[surface].clone();
         let next =
-            match patch_selection(&current, &patch, &local_models()) {
+            match patch_selection(&previous, &patch, &local_models()) {
                 Ok(next) => next,
                 Err(message) => return (
                     StatusCode::BAD_REQUEST,
@@ -558,20 +640,40 @@ async fn route(
                 )
                     .into_response(),
             };
-        if super::cursor_auth::write(&context.selection_path, &next).is_err() {
+        let mut updated = current.clone();
+        updated[surface] = next.clone();
+        if super::cursor_auth::write(&context.selection_path, &updated).is_err() {
             return StatusCode::INTERNAL_SERVER_ERROR.into_response();
         }
-        *current = next.clone();
-        return Json(next).into_response();
+        *current = updated;
+        let mut response = next;
+        response["id"] = path.rsplit('/').next().unwrap().into();
+        return Json(response).into_response();
     }
-    if path.starts_with("/api/organizations/") && path.ends_with("/model_selector/code") {
+    if path.starts_with("/api/organizations/")
+        && path.contains("/model_selector/")
+        && path.rsplit('/').next().and_then(model_surface).is_some()
+    {
         return Json(json!({"model_selector_config":selector_config(),"model_selector_state":selections(&context).await})).into_response();
     }
     if path.ends_with("/current_user_access") {
         return Json(user_access()).into_response();
     }
     if path.ends_with("/system_prompts") {
-        return Json(json!({})).into_response();
+        let prompts = desktop::prompt_configuration(
+            context
+                .assets
+                .as_ref()
+                .and_then(|assets| assets.cowork_prompt.as_deref()),
+        );
+        return if prompts.is_null() {
+            (StatusCode::SERVICE_UNAVAILABLE, Json(json!({"error":{"type":"api_error","message":"Installed Claude workspace instructions are unavailable."}}))).into_response()
+        } else {
+            Json(prompts).into_response()
+        };
+    }
+    if path.ends_with("/cowork_sysprompt_map") {
+        return Json(Value::Null).into_response();
     }
     if path.ends_with("/model_selector_config") {
         return Json(selector_config()).into_response();
@@ -579,7 +681,7 @@ async fn route(
     if path.ends_with("/model_selector_state") {
         return Json(selections(&context).await).into_response();
     }
-    if path == "/api/account" || path == "/api/account_profile" {
+    if path == "/api/account" {
         return Json(identity(&context.locale)["account"].clone()).into_response();
     }
     if path == "/api/bootstrap"
@@ -591,6 +693,13 @@ async fn route(
         if let Some(assets) = &context.assets {
             bootstrap["gated_imports_build_id"] = assets.build_id.clone().into();
         }
+        bootstrap["system_prompts"] = desktop::prompt_configuration(
+            context
+                .assets
+                .as_ref()
+                .and_then(|assets| assets.cowork_prompt.as_deref()),
+        );
+        bootstrap["cowork_sysprompt_map"] = Value::Null;
         bootstrap["model_selector_state"] = selections(&context).await;
         let mut response = Json(bootstrap).into_response();
         for cookie in [
@@ -620,7 +729,7 @@ async fn route(
         return response;
     }
     if path.starts_with("/api/claude_code/policy_limits") {
-        return Json(json!({"restrictions":[],"compliance_taints":[],"defaults":{}}))
+        return Json(json!({"restrictions":{},"compliance_taints":[],"defaults":{}}))
             .into_response();
     }
     if path.starts_with("/api/oauth/organizations/") && path.ends_with("/oauth_tokens") {
@@ -786,6 +895,23 @@ mod tests {
     }
 
     #[test]
+    fn legacy_code_selection_loads_without_writes_and_new_surfaces_start_independently() {
+        let root =
+            std::env::temp_dir().join(format!("echobird-selectors-{}", uuid::Uuid::new_v4()));
+        let path = root.join("selector.json");
+        let previous = json!({"id":"code","model":"claude-opus-5-5","thinking":{"type":"effort","effort":"high"}});
+        super::super::native_account_files::write(&path, &serde_json::to_vec(&previous).unwrap())
+            .unwrap();
+        let original = std::fs::read(&path).unwrap();
+        let selected = read_selection(&path);
+        assert_eq!(selected["code"], previous);
+        assert!(selected["chat"]["thinking"].is_null());
+        assert!(selected["cowork"]["thinking"].is_null());
+        assert_eq!(std::fs::read(path).unwrap(), original);
+        std::fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
     fn exposes_router_selectors_and_context_policy() {
         super::super::smart_router::catalog::with_test_models(|| {
             let models = models_for_relay(
@@ -806,15 +932,19 @@ mod tests {
     async fn local_identity_exchange_and_authenticated_model_relay() {
         let calls = Arc::new(AtomicUsize::new(0));
         let observed = calls.clone();
+        let received = Arc::new(Mutex::new(Vec::new()));
+        let observed_bodies = received.clone();
         let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
         let upstream = format!("http://{}", listener.local_addr().unwrap());
         let service = axum::Router::new().route("/v1/messages", post(move |headers: axum::http::HeaderMap, Json(body): Json<Value>| {
             let observed = observed.clone();
+            let received = observed_bodies.clone();
             async move {
                 assert!(headers["authorization"].to_str().unwrap().starts_with("Bearer echobird-local-"));
                 assert!(headers.get("cookie").is_none());
                 assert_eq!(body["model"], "fixture-model");
                 observed.fetch_add(1, Ordering::SeqCst);
+                received.lock().await.push(body);
                 Json(json!({"type":"message","content":[{"type":"text","text":"fixture reply"}]}))
             }
         }));
@@ -862,11 +992,11 @@ mod tests {
         assert_eq!(bootstrap["organization"]["name"], "EchoBird.ai");
         assert_eq!(
             bootstrap["model_selector_config"].as_array().unwrap().len(),
-            1
+            MODEL_SURFACES.len()
         );
         assert_eq!(
             bootstrap["model_selector_state"].as_array().unwrap().len(),
-            1
+            MODEL_SURFACES.len()
         );
         let access: Value = client
             .get(format!("{base}/api/bootstrap/device/current_user_access"))
@@ -877,16 +1007,16 @@ mod tests {
             .await
             .unwrap();
         assert_eq!(access["features"][0]["feature"], "claude_code");
-        assert_eq!(access["features"].as_array().unwrap().len(), 3);
+        assert_eq!(access["features"].as_array().unwrap().len(), 4);
         assert_eq!(
             access["features"][1],
             json!({"feature":"claude_code_desktop","status":"available"})
         );
         assert_eq!(
             access["features"][2],
-            json!({"feature":"cowork","status":"blocked_by_platform"})
+            json!({"feature":"cowork","status":"available"})
         );
-        assert!(!access["features"]
+        assert!(access["features"]
             .as_array()
             .unwrap()
             .iter()
@@ -922,8 +1052,6 @@ mod tests {
             "chat_conversations",
             "chat_conversations_v2",
             "chat_conversations/fixture/completion",
-            "model_selector/chat",
-            "model_selector_state/chat",
         ] {
             for method in [
                 reqwest::Method::GET,
@@ -962,9 +1090,33 @@ mod tests {
             .json()
             .await
             .unwrap();
+        assert_eq!(code_selector["model_selector_state"][0], code_selection);
+        for (surface, effort) in [("chat", "low"), ("office_agent", "medium")] {
+            let selected: Value = client
+                .patch(format!("{organization}/model_selector_state/{surface}"))
+                .json(&json!({"thinking":{"type":"effort","effort":effort}}))
+                .send()
+                .await
+                .unwrap()
+                .error_for_status()
+                .unwrap()
+                .json()
+                .await
+                .unwrap();
+            assert_eq!(selected["id"], surface);
+            assert_eq!(selected["thinking"]["effort"], effort);
+        }
+        let saved_selection = std::fs::read(directory.join("selector.json")).unwrap();
+        let invalid_selection = client
+            .patch(format!("{organization}/model_selector_state/chat"))
+            .json(&json!({"model":"unavailable-model"}))
+            .send()
+            .await
+            .unwrap();
+        assert_eq!(invalid_selection.status(), StatusCode::BAD_REQUEST);
         assert_eq!(
-            code_selector["model_selector_state"],
-            json!([code_selection])
+            std::fs::read(directory.join("selector.json")).unwrap(),
+            saved_selection
         );
         assert_eq!(calls.load(Ordering::SeqCst), 0);
         let profile: Value = client
@@ -1072,10 +1224,37 @@ mod tests {
             .unwrap();
         assert_eq!(result["content"][0]["text"], "fixture reply");
         assert_eq!(calls.load(Ordering::SeqCst), 1);
-        stop().await;
-        let restarted = ensure_started_at(upstream, directory.clone(), None, "en-US".into())
+        let tool_round = json!({"model":"fixture-model","system":[{"type":"text","text":"native task"}],
+            "tools":[{"name":"Read","description":"Read a selected file","input_schema":{"type":"object","properties":{"path":{"type":"string"}}}}],
+            "messages":[{"role":"user","content":"Read the selected file"},
+                {"role":"assistant","content":[{"type":"tool_use","id":"tool-1","name":"Read","input":{"path":"/selected/file"}}]},
+                {"role":"user","content":[{"type":"tool_result","tool_use_id":"tool-1","content":"file contents"}]}],"max_tokens":4096,"stream":false});
+        client
+            .post(format!("{base}/v1/messages"))
+            .bearer_auth(&expected_token)
+            .json(&tool_round)
+            .send()
+            .await
+            .unwrap()
+            .error_for_status()
+            .unwrap();
+        assert_eq!(received.lock().await[1], tool_round);
+        assert_eq!(calls.load(Ordering::SeqCst), 2);
+        let native_profile: Value = client
+            .get(format!("{base}/api/account_profile"))
+            .send()
+            .await
+            .unwrap()
+            .json()
             .await
             .unwrap();
+        assert_eq!(native_profile["email_address"], "hi@echobird.ai");
+        assert_eq!(native_profile["account"]["email_address"], "hi@echobird.ai");
+        stop().await;
+        let restarted =
+            ensure_started_at(upstream.clone(), directory.clone(), None, "en-US".into())
+                .await
+                .unwrap();
         assert_eq!(local_token(&directory).unwrap(), expected_token);
         let restored: Value = client
             .get(format!(
@@ -1088,7 +1267,20 @@ mod tests {
             .json()
             .await
             .unwrap();
-        assert_eq!(restored["model_selector_state"], json!([code_selection]));
+        assert_eq!(restored["model_selector_state"][0], code_selection);
+        assert_eq!(
+            restored["model_selector_state"][1]["thinking"]["effort"],
+            "low"
+        );
+        assert_eq!(
+            restored["model_selector_state"][2]["thinking"]["effort"],
+            "medium"
+        );
+        assert_eq!(restored["model_selector_state"][6]["id"], "office_agent");
+        assert_eq!(
+            restored["model_selector_state"][6]["thinking"]["effort"],
+            "medium"
+        );
         assert_eq!(std::fs::read(old_chat).unwrap(), b"saved-chat");
         assert_eq!(std::fs::read(old_selector).unwrap(), b"saved-selector");
         assert!(directory.join("access-token").exists());
@@ -1104,6 +1296,52 @@ mod tests {
                 0o600
             );
         }
+        let missing = client
+            .get(format!(
+                "http://127.0.0.1:{}/api/bootstrap/{ORGANIZATION}/system_prompts",
+                restarted.port
+            ))
+            .send()
+            .await
+            .unwrap();
+        assert_eq!(missing.status(), StatusCode::SERVICE_UNAVAILABLE);
+        stop().await;
+        let assets = Arc::new(assets::Archive::prompt_fixture(
+            "Fixture workspace instructions",
+        ));
+        let configured =
+            ensure_started_at(upstream, directory.clone(), Some(assets), "en-US".into())
+                .await
+                .unwrap();
+        let configuration: Value = client
+            .get(format!(
+                "http://127.0.0.1:{}/api/bootstrap/{ORGANIZATION}/system_prompts",
+                configured.port
+            ))
+            .send()
+            .await
+            .unwrap()
+            .error_for_status()
+            .unwrap()
+            .json()
+            .await
+            .unwrap();
+        assert_eq!(
+            configuration["cowork_system_prompt"]["value"]["prompt"],
+            "Fixture workspace instructions"
+        );
+        let bootstrap: Value = client
+            .get(format!(
+                "http://127.0.0.1:{}/edge-api/bootstrap",
+                configured.port
+            ))
+            .send()
+            .await
+            .unwrap()
+            .json()
+            .await
+            .unwrap();
+        assert_eq!(bootstrap["system_prompts"], configuration);
         stop().await;
         std::fs::remove_dir_all(directory).unwrap();
         server.abort();
