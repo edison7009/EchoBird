@@ -387,6 +387,10 @@ fn keychain_apply(login: &Credentials) -> Result<(), String> {
     Ok(())
 }
 
+pub(super) fn read_native() -> Result<Option<Credentials>, String> {
+    native_credentials(&config_file()?)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

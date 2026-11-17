@@ -275,6 +275,26 @@ function easterEggSwitch() {
     .parent!.parent!.findByProps({ role: 'switch' });
 }
 
+it('places import in general settings without a separate navigation entry', async () => {
+  await act(async () => {
+    view = create(<SettingsDialog {...props} />);
+  });
+  expect(
+    view.root
+      .findByType('nav')
+      .findAllByType('button')
+      .map((button) => button.props.children[1])
+  ).toEqual(['settings.general', 'settings.appearance', 'settings.language']);
+  expect(view.root.findByProps({ 'aria-label': 'autoImport.title' })).toBeTruthy();
+  expect(
+    view.root
+      .findAllByType('button')
+      .filter((button) => button.props.children === 'settings.autoImport')
+  ).toHaveLength(1);
+  await tab('settings.appearance');
+  expect(view.root.findAllByProps({ 'aria-label': 'autoImport.title' })).toHaveLength(0);
+});
+
 it('groups general preferences before optional features and preserves rewards through reopening', async () => {
   await act(async () => {
     view = create(<SettingsDialog {...props} />);

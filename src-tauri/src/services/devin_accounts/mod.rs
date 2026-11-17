@@ -434,6 +434,46 @@ pub async fn poll_login(login_id: &str) -> Result<Option<Account>, String> {
     })
 }
 
+pub(crate) async fn import_native(cli_only: bool) -> Result<Option<bool>, String> {
+    let candidate = if cli_only {
+        let Some((token, server)) = native::cli_token()? else {
+            return Ok(None);
+        };
+        // Resolve the opaque CLI key with the existing identity/status endpoint;
+        // never query separate quota or refresh the source token.
+        let user = user_status(&token, &server).await?;
+        Some(from_user(&token, &server, &user, false)?)
+    } else {
+        native::read_desktop()?
+    };
+    let Some((c, account)) = candidate else {
+        return Ok(None);
+    };
+    let _guard = LOCK.lock().await;
+    let mut rows = load()?;
+    if rows.accounts.values().any(|s| {
+        super::auto_import::native::same_account(
+            &account.id,
+            &account.email,
+            &s.account.id,
+            &s.account.email,
+        )
+    }) {
+        return Ok(Some(false));
+    }
+    let added = import_snapshot(&mut rows, c, account)?;
+    if added {
+        write(&rows)?;
+    }
+    Ok(Some(added))
+}
+
+pub(crate) fn validate_backup_record(value: &serde_json::Value) -> Result<(), String> {
+    serde_json::from_value::<Saved>(value.clone())
+        .map(|_| ())
+        .map_err(|_| "backupError.format".into())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

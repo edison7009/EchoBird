@@ -405,6 +405,52 @@ pub async fn delete(id: &str) -> Result<(), String> {
     write(&store_path()?, &store)
 }
 
+pub(crate) async fn import_native() -> Result<Option<bool>, String> {
+    let dir = data_dir()?;
+    let Some(token) = native_session(&dir)? else {
+        return Ok(None);
+    };
+    let (mut account, user) = profile_identity(&token).await?;
+    account.active = false;
+    account.credits = None;
+    account.plan = None;
+    account.subscription_end_at = None;
+    let _guard = ACCOUNT_LOCK.lock().await;
+    let mut rows = load_store()?;
+    if rows.values().any(|s| {
+        super::auto_import::native::same_account(
+            &account.id,
+            &account.email,
+            &s.account.base.id,
+            &s.account.base.email,
+        )
+    }) {
+        return Ok(Some(false));
+    }
+    if native_session(&dir)?.as_deref() != Some(&token) {
+        return Err("accountError.invalidAccount".into());
+    }
+    rows.insert(
+        account.id.clone(),
+        Saved {
+            owner: Owner::verified(&token, &user, &account.id)?,
+            account: Account {
+                base: account,
+                weekly: None,
+            },
+            session: account_login_browser::seal(&token)?,
+        },
+    );
+    write(&store_path()?, &rows)?;
+    Ok(Some(true))
+}
+
+pub(crate) fn validate_backup_record(value: &serde_json::Value) -> Result<(), String> {
+    serde_json::from_value::<Saved>(value.clone())
+        .map(|_| ())
+        .map_err(|_| "backupError.format".into())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

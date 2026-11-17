@@ -905,6 +905,17 @@ fn scan_windows_registry_version(hints: &InstallHints) -> Option<String> {
 }
 
 #[cfg(target_os = "macos")]
+pub(super) fn spotlight_output(args: &[&str]) -> std::io::Result<std::process::Output> {
+    let mut command = crate::utils::process::command("mdfind");
+    command.args(args);
+    let result = platform::bounded_process_output(command, std::time::Duration::from_secs(3));
+    if let Err(error) = &result {
+        log::warn!("[ToolManager] Spotlight lookup skipped: {:?}", error.kind());
+    }
+    result
+}
+
+#[cfg(target_os = "macos")]
 fn scan_macos_applications(hints: &InstallHints) -> Option<String> {
     let app_name = hints.macos_app_name.as_ref()?;
     let normalized = if app_name.ends_with(".app") {
@@ -940,10 +951,7 @@ fn scan_macos_applications(hints: &InstallHints) -> Option<String> {
             .map(|path| path.to_string_lossy().into_owned());
     }
     // Fallback: mdfind covers non-/Applications installs (e.g. ~/Tools/Foo.app).
-    if let Ok(out) = crate::utils::process::command("mdfind")
-        .args(["-name", &normalized])
-        .output()
-    {
+    if let Ok(out) = spotlight_output(&["-name", &normalized]) {
         let stdout = String::from_utf8_lossy(&out.stdout);
         for line in stdout.lines() {
             let p = line.trim();
@@ -1974,6 +1982,26 @@ struct DiscoverySnapshot {
 
 tokio::task_local! { static SCAN_DISCOVERY: Arc<DiscoverySnapshot>; }
 
+/// Reuse discovery across an explicit account import, including nested provider reads.
+/// On a stalled Spotlight query, retain standard paths without retrying Spotlight per app.
+pub(crate) async fn with_account_import_discovery<F: std::future::Future>(
+    run: F,
+) -> Result<F::Output, String> {
+    let definitions = get_definitions();
+    let snapshot = tokio::task::spawn_blocking(move || {
+        #[allow(unused_mut)]
+        let mut snapshot = DiscoverySnapshot::capture(&definitions);
+        #[cfg(target_os = "macos")]
+        if snapshot.applications.is_none() {
+            snapshot.applications = Some(Arc::new(Vec::new()));
+        }
+        Arc::new(snapshot)
+    })
+    .await
+    .map_err(|_| "Installation discovery failed")?;
+    Ok(SCAN_DISCOVERY.scope(snapshot, run).await)
+}
+
 impl DiscoverySnapshot {
     fn capture(_definitions: &[ToolDefinition]) -> Self {
         Self {
@@ -1989,19 +2017,19 @@ impl DiscoverySnapshot {
             #[cfg(target_os = "linux")]
             desktop: Arc::new(read_desktop_entries()),
             #[cfg(target_os = "macos")]
-            applications: crate::utils::process::command("mdfind")
-                .arg("kMDItemContentType == 'com.apple.application-bundle'")
-                .output()
-                .ok()
-                .filter(|output| output.status.success())
-                .map(|output| {
-                    Arc::new(
-                        String::from_utf8_lossy(&output.stdout)
-                            .lines()
-                            .map(PathBuf::from)
-                            .collect(),
-                    )
-                }),
+            applications: spotlight_output(&[
+                "kMDItemContentType == 'com.apple.application-bundle'",
+            ])
+            .ok()
+            .filter(|output| output.status.success())
+            .map(|output| {
+                Arc::new(
+                    String::from_utf8_lossy(&output.stdout)
+                        .lines()
+                        .map(PathBuf::from)
+                        .collect(),
+                )
+            }),
         }
     }
 }
@@ -4901,5 +4929,66 @@ mod tests {
                 Some(executable.to_string_lossy().as_ref())
             );
         }
+    }
+}
+
+#[cfg(all(test, target_os = "macos"))]
+mod account_import_discovery_tests {
+    use super::*;
+    #[tokio::test]
+    async fn import_discovery_reuses_nonstandard_application_inventory_and_stays_scoped() {
+        let root = tempfile::tempdir().unwrap();
+        let name = format!("EchoBirdImportFixture-{}", uuid::Uuid::new_v4());
+        let app = root.path().join(format!("{name}.app"));
+        fs::create_dir(&app).unwrap();
+        let snapshot = Arc::new(DiscoverySnapshot {
+            applications: Some(Arc::new(vec![app.clone()])),
+        });
+        let hints: InstallHints =
+            serde_json::from_value(serde_json::json!({"macosAppName":name})).unwrap();
+        SCAN_DISCOVERY
+            .scope(snapshot, async {
+                assert_eq!(
+                    scan_macos_applications(&hints),
+                    Some(app.to_string_lossy().into_owned())
+                );
+                assert_eq!(
+                    scan_macos_applications(&hints),
+                    Some(app.to_string_lossy().into_owned())
+                );
+                let missing: InstallHints = serde_json::from_value(
+                    serde_json::json!({"macosAppName":"EchoBirdNonexistentImportFixture"}),
+                )
+                .unwrap();
+                let started = std::time::Instant::now();
+                assert!(scan_macos_applications(&missing).is_none());
+                assert!(started.elapsed() < std::time::Duration::from_secs(1));
+            })
+            .await;
+        assert!(SCAN_DISCOVERY.try_with(|_| ()).is_err());
+    }
+
+    #[tokio::test]
+    #[ignore = "Read-only installed-client detection probe; no account files or credentials"]
+    async fn installed_import_discovery_is_bounded() {
+        let started = std::time::Instant::now();
+        with_account_import_discovery(async {
+            for id in ["trae", "traecn"] {
+                let stage = std::time::Instant::now();
+                let installed = any_tool_installed(&[id]);
+                eprintln!(
+                    "import detection probe: {id} installed={installed} elapsed_ms={}",
+                    stage.elapsed().as_millis()
+                );
+                assert!(stage.elapsed() < std::time::Duration::from_secs(2));
+            }
+        })
+        .await
+        .unwrap();
+        eprintln!(
+            "import discovery probe total_ms={}",
+            started.elapsed().as_millis()
+        );
+        assert!(started.elapsed() < std::time::Duration::from_secs(6));
     }
 }

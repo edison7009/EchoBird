@@ -189,3 +189,7 @@ pub(super) fn apply_at(dir: &Path, saved: &Saved, catalog: &Value) -> Result<(),
     transaction.commit();
     Ok(())
 }
+
+pub(super) fn discover(dir: &Path, region: Region) -> Option<Token> {
+    token_at(dir, region)
+}

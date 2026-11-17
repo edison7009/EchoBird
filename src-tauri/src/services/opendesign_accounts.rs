@@ -576,5 +576,33 @@ pub(crate) async fn proxy_credentials(id: &str) -> Result<Value, String> {
     Ok(json!({"accessToken":saved.runtime_key}))
 }
 
+pub(crate) async fn import_native() -> Result<Option<bool>, String> {
+    let _guard = ACCOUNTS.lock().await;
+    let Some(saved) = native_at(&native_path()?)? else {
+        return Ok(None);
+    };
+    let path = store_path()?;
+    let mut rows = load_at(&path)?;
+    if rows.values().any(|s| {
+        super::auto_import::native::same_account(
+            &saved.account.id,
+            &saved.account.email,
+            &s.account.id,
+            &s.account.email,
+        )
+    }) {
+        return Ok(Some(false));
+    }
+    rows.insert(saved.account.id.clone(), saved);
+    save_at(&path, &rows)?;
+    Ok(Some(true))
+}
+
+pub(crate) fn validate_backup_record(value: &serde_json::Value) -> Result<(), String> {
+    serde_json::from_value::<Saved>(value.clone())
+        .map(|_| ())
+        .map_err(|_| "backupError.format".into())
+}
+
 #[cfg(test)]
 mod tests;

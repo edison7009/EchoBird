@@ -138,6 +138,20 @@ fn save_at(dir: &std::path::Path, key: &str, auth: &Value) -> Result<Account, St
     Ok(a)
 }
 
+pub(crate) fn validate_backup_record(value: &serde_json::Value) -> Result<(), String> {
+    let account: Account =
+        serde_json::from_value(value["summary"].clone()).map_err(|_| "backupError.format")?;
+    let key = value["key"].as_str().ok_or("backupError.format")?;
+    let auth: Value = serde_json::from_str(value["auth"].as_str().ok_or("backupError.format")?)
+        .map_err(|_| "backupError.format")?;
+    let summary = summary(key, &serde_json::json!({key:auth}), false)?;
+    let legacy = format!("{:x}", Sha256::digest(key));
+    if account.id != summary.id && account.id != legacy {
+        return Err("backupError.format".into());
+    }
+    Ok(())
+}
+
 #[cfg(test)]
 #[path = "grok_account_grade_tests.rs"]
 mod grade_tests;
@@ -427,6 +441,42 @@ async fn refresh_with_native(
     proxy::forget_pending(path);
     Ok(latest.summary)
 }
+pub(crate) fn import_native() -> Result<super::auto_import::native::Counts, String> {
+    let path = auth_path()?;
+    if !path.exists() {
+        return Ok(Default::default());
+    }
+    let auth: Value = super::cursor_auth::read(&path)?;
+    let object = auth.as_object().ok_or("accountError.format")?;
+    let _guard = ACCOUNT_LOCK.lock().map_err(|_| "accountError.busy")?;
+    let dir = store()?;
+    let mut existing = list_at(&dir, Path::new(""))?;
+    let mut counts = super::auto_import::native::Counts::default();
+    for (key, row) in object {
+        counts.record((|| {
+            if row["oidc_issuer"] != "https://auth.x.ai"
+                || row["key"].as_str().is_none_or(str::is_empty)
+            {
+                return Err("accountError.invalidAccount".into());
+            }
+            let account = summary(key, &auth, false)?;
+            if existing.iter().any(|s| {
+                super::auto_import::native::same_account(
+                    &account.id,
+                    &account.email,
+                    &s.id,
+                    &s.email,
+                )
+            }) {
+                return Ok(Some(false));
+            }
+            existing.push(save_at(&dir, key, &auth)?);
+            Ok(Some(true))
+        })());
+    }
+    Ok(counts)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

@@ -1,7 +1,9 @@
+import { invoke } from '@tauri-apps/api/core';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { accountError, isAccountAuthorizationError } from '../../utils/accountError';
 import { useConfirm } from '../../components/ConfirmDialog';
 import { useI18n } from '../../hooks/useI18n';
+import { useAutoImportStore } from '../../stores/autoImportStore';
 import { useNavigationStore } from '../../stores/navigationStore';
 import { useRewardClaimStore } from '../../stores/rewardClaimStore';
 import { useUsageIslandVisible } from '../../stores/usageIslandStore';
@@ -135,29 +137,44 @@ export function useManagedAccounts<A extends ManagedAccount, L extends ManagedLo
       });
   };
 
-  const reload = useCallback(async () => {
-    const current = generation.current;
-    const request = ++listRequest.current;
-    setLoading(true);
-    setListFailed(false);
-    try {
-      const result = await clientRef.current.list();
-      if (current !== generation.current || request !== listRequest.current) return;
-      setRows((prev) => ({ ...prev, [scope]: result }));
-      setLoadedScopes((prev) => (prev.has(scope) ? prev : new Set(prev).add(scope)));
-      return result;
-    } catch (error) {
-      if (current === generation.current && request === listRequest.current) {
-        setListFailed(true);
-        throw error;
+  const reload = useCallback(
+    async (savedOnly = false) => {
+      const current = generation.current;
+      const request = ++listRequest.current;
+      setLoading(true);
+      setListFailed(false);
+      try {
+        const result = savedOnly
+          ? await invoke<A[]>('list_auto_import_accounts', { scope })
+          : await clientRef.current.list();
+        if (current !== generation.current || request !== listRequest.current) return;
+        setRows((prev) => ({ ...prev, [scope]: result }));
+        setLoadedScopes((prev) => (prev.has(scope) ? prev : new Set(prev).add(scope)));
+        return result;
+      } catch (error) {
+        if (current === generation.current && request === listRequest.current) {
+          setListFailed(true);
+          throw error;
+        }
+      } finally {
+        if (current === generation.current && request === listRequest.current) {
+          setLoading(false);
+          setSettledListKey(listKey);
+        }
       }
-    } finally {
-      if (current === generation.current && request === listRequest.current) {
-        setLoading(false);
-        setSettledListKey(listKey);
-      }
-    }
-  }, [scope, listKey]);
+    },
+    [scope, listKey]
+  );
+
+  useEffect(
+    () =>
+      useAutoImportStore.subscribe((state, previous) => {
+        if (state.revision !== previous.revision && enabled) {
+          void reload(true).catch(() => {});
+        }
+      }),
+    [enabled, reload, scope]
+  );
 
   const invalidateList = () => {
     listRequest.current += 1;

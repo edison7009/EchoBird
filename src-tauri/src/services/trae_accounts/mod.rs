@@ -765,6 +765,35 @@ fn business_error(code: &str) -> String {
     format!("{key}|{code}")
 }
 
+pub(crate) async fn import_native(edition: Edition) -> Result<Option<bool>, String> {
+    let _request = REQUEST_LOCK.lock().await;
+    let _guard = ACCOUNT_LOCK.lock().await;
+    let Some(c) = native::read(&native::data_dir(edition)?, edition)? else {
+        return Ok(None);
+    };
+    let account = summary(edition, &c, false)?;
+    let mut rows = load(edition)?;
+    if rows.values().any(|s| {
+        super::auto_import::native::same_account(
+            &account.id,
+            &account.name,
+            &s.account.id,
+            &s.account.name,
+        )
+    }) {
+        return Ok(Some(false));
+    }
+    capture(edition, &c, &mut rows)?;
+    save(edition, &rows)?;
+    Ok(Some(true))
+}
+
+pub(crate) fn validate_backup_record(value: &serde_json::Value) -> Result<(), String> {
+    serde_json::from_value::<Saved>(value.clone())
+        .map(|_| ())
+        .map_err(|_| "backupError.format".into())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

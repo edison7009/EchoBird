@@ -136,6 +136,8 @@ pub(crate) struct Credentials {
     pub device_refresh: String,
     pub device_expires_at: i64,
     pub device_chat: bool,
+    #[serde(default)]
+    pub native_device_only: bool,
 }
 
 #[derive(Clone, Serialize, Deserialize)]
@@ -202,9 +204,12 @@ fn unprotect(saved: &Saved) -> Result<Credentials, String> {
     Ok(credentials)
 }
 fn validate(c: &Credentials) -> Result<(), String> {
+    if !c.native_device_only
+        && (c.access_token.trim().is_empty() || c.refresh_token.trim().is_empty())
+    {
+        return Err("accountError.invalidAccount".into());
+    }
     if [
-        &c.access_token,
-        &c.refresh_token,
         &c.user_id,
         &c.machine_id,
         &c.device_token,
@@ -537,7 +542,7 @@ fn client_owns_rotation(
     rejected: Option<&str>,
     now_ms: i64,
 ) -> Option<&'static str> {
-    if !(c.device_chat && active && running) {
+    if !((c.device_chat && active || c.native_device_only) && running) {
         return None;
     }
     let expired = c.device_expires_at <= now_ms + 300_000;
@@ -557,8 +562,7 @@ async fn proxy_credentials_inner(
         let active = store.get(id).is_some_and(|saved| saved.account.active);
         (selected(&store, edition, id)?, active)
     };
-    let running = current.device_chat
-        && active
+    let running = (current.device_chat && active || current.native_device_only)
         && super::process_manager::desktop_tool_is_running(edition.tool())
             .await
             .unwrap_or(false);
@@ -594,7 +598,11 @@ async fn proxy_credentials_at(
     let _request = lock.lock().await;
     let previous = saved_credentials_at(path, edition, id).await?;
     let force = rejected.is_some_and(|token| token == previous.access_token);
-    let incoming = rotate_at(&previous, previous.device_chat, force, base).await?;
+    let incoming = if previous.native_device_only {
+        oauth::exchange_native(&client()?, &previous, base).await?
+    } else {
+        rotate_at(&previous, previous.device_chat, force, base).await?
+    };
     let _guard = ACCOUNT_LOCK.lock().await;
     let mut store = load_at(path)?;
     let current = save_rotation(&mut store, id, &previous, &incoming)?;
@@ -773,6 +781,12 @@ pub(super) fn client() -> Result<reqwest::Client, String> {
         .map_err(|_| "accountError.network".into())
 }
 
+pub(crate) fn validate_backup_record(value: &serde_json::Value) -> Result<(), String> {
+    serde_json::from_value::<Saved>(value.clone())
+        .map(|_| ())
+        .map_err(|_| "backupError.format".into())
+}
+
 #[cfg(test)]
 mod daily_tests;
 
@@ -811,6 +825,36 @@ mod client_rotation_tests {
         c.device_chat = false;
         assert_eq!(client_owns_rotation(&c, true, true, None, now), None);
     }
+}
+
+pub(crate) async fn import_native(edition: Edition) -> Result<Option<bool>, String> {
+    let Some(c) = super::qoder_native::discover(edition)? else {
+        return Ok(None);
+    };
+    validate(&c)?;
+    let account = summary(&c);
+    let _guard = ACCOUNT_LOCK.lock().await;
+    let path = store_path(edition)?;
+    let mut rows = load_at(&path)?;
+    if rows.values().any(|s| {
+        super::auto_import::native::same_account(
+            &account.id,
+            account.email.as_deref().unwrap_or_default(),
+            &s.account.id,
+            s.account.email.as_deref().unwrap_or_default(),
+        )
+    }) {
+        return Ok(Some(false));
+    }
+    rows.insert(
+        account.id.clone(),
+        Saved {
+            account,
+            credential: protect(&c)?,
+        },
+    );
+    super::cursor_auth::write(&path, &rows)?;
+    Ok(Some(true))
 }
 
 #[cfg(test)]
@@ -913,6 +957,7 @@ mod tests {
             device_refresh: "device-refresh".into(),
             device_expires_at: 200,
             device_chat: false,
+            native_device_only: false,
         };
         let international = summary(&c);
         c.edition = Edition::QoderCn;
@@ -1006,6 +1051,7 @@ mod tests {
             device_refresh: "separate-refresh".into(),
             device_expires_at: i64::MAX,
             device_chat: false,
+            native_device_only: false,
         };
         let lock = request_lock(c.edition, &account_id(&c)).unwrap();
         let renew = || async {
@@ -1049,6 +1095,7 @@ mod tests {
                 device_refresh: "device-refresh".into(),
                 device_expires_at: i64::MAX,
                 device_chat: false,
+                native_device_only: false,
             };
             let credentials = tokio::time::timeout(
                 std::time::Duration::from_millis(100),
@@ -1096,6 +1143,7 @@ mod tests {
                 device_refresh: "single-use-device-refresh".into(),
                 device_expires_at: i64::MAX,
                 device_chat,
+                native_device_only: false,
             };
             let id = account_id(&c);
             let path =

@@ -1,3 +1,4 @@
+import { DesktopPrimaryButton } from '../../components/DesktopPrimaryButton';
 import { acquireBuiltinApp, isBundledApp } from '../../api/builtinApps';
 import { useToolsStore } from '../../stores/toolsStore';
 import { CommandCodeAccountSection } from './CommandCodeAccountSection';
@@ -1617,14 +1618,10 @@ export const AppManagerBottom: React.FC = () => {
           {/* Launch button */}
           <div className="relative w-64 h-14 flex-shrink-0">
             {!isCatalogOnly && (
-              <button
+              <DesktopPrimaryButton
                 onClick={handlePrimaryClick}
                 disabled={buttonDisabled || acquiring}
-                className={`w-full h-14 text-lg font-bold font-mono tracking-widest transition-colors rounded-lg cjk-btn border shadow-lg ${
-                  buttonDisabled
-                    ? 'bg-cyber-border text-cyber-text-secondary border-transparent shadow-none'
-                    : 'bg-cyber-accent text-white border-cyber-accent hover:bg-cyber-accent-secondary hover:border-cyber-accent-secondary shadow-cyber-accent/30'
-                }`}
+                muted={buttonDisabled}
               >
                 {isInstallAction
                   ? bundled
@@ -1633,7 +1630,7 @@ export const AppManagerBottom: React.FC = () => {
                   : willLaunch
                     ? t('btn.launchApp')
                     : t('btn.modifyOnly')}
-              </button>
+              </DesktopPrimaryButton>
             )}
           </div>
           {/* Reserve the controls' space while installing so the action stays aligned.

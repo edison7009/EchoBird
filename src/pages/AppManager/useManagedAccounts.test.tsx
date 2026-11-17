@@ -1,10 +1,16 @@
+import { invoke } from '@tauri-apps/api/core';
 import { useLayoutEffect } from 'react';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { useManagedAccounts, type AccountClient, type ManagedLogin } from './useManagedAccounts';
 import { useNavigationStore } from '../../stores/navigationStore';
+import { useAutoImportStore } from '../../stores/autoImportStore';
 import { useRewardClaimStore } from '../../stores/rewardClaimStore';
 
+vi.mock('@tauri-apps/api/core', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@tauri-apps/api/core')>()),
+  invoke: vi.fn(),
+}));
 vi.mock('../../hooks/useI18n', () => {
   const t = (key: string) => key;
   return { useI18n: () => ({ t }) };
@@ -77,6 +83,31 @@ afterEach(() => {
 });
 
 describe('shared account request boundaries', () => {
+  it('reloads imported accounts for every enabled provider without selecting or refreshing', async () => {
+    await mount();
+    const selected = state.selectedId;
+    const refreshes = vi.mocked(client.refresh).mock.calls.length;
+    const starts = vi.mocked(client.start).mock.calls.length;
+    const saved = { id: 'imported' };
+    vi.mocked(invoke).mockResolvedValue([account, saved]);
+    await act(async () =>
+      useAutoImportStore.setState((state) => ({ revision: state.revision + 1 }))
+    );
+    expect(state.accounts).toEqual([account, saved]);
+    expect(invoke).toHaveBeenCalledWith('list_auto_import_accounts', { scope: 'store' });
+    expect(client.list).toHaveBeenCalledTimes(1);
+    expect(state.selectedId).toBe(selected);
+    expect(client.refresh).toHaveBeenCalledTimes(refreshes);
+    expect(client.start).toHaveBeenCalledTimes(starts);
+    expect(clearModel).not.toHaveBeenCalled();
+    act(() => renderer.update(<Harness enabled={false} />));
+    const reads = vi.mocked(client.list).mock.calls.length;
+    await act(async () =>
+      useAutoImportStore.setState((state) => ({ revision: state.revision + 1 }))
+    );
+    expect(client.list).toHaveBeenCalledTimes(reads);
+  });
+
   it('updates a visible saved account after background claiming with only a local list read', async () => {
     await mount();
     const selected = state.selectedId;

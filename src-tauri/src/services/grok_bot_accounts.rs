@@ -318,6 +318,58 @@ pub async fn switch(id: &str) -> Result<Account, String> {
     write(&path, &saved)?;
     Ok(account)
 }
+pub(crate) async fn import_native() -> Result<super::auto_import::native::Counts, String> {
+    let _guard = ACCOUNT_LOCK.lock().await;
+    let dir = data_dir()?;
+    let current = catalog(&native(&dir)?)?;
+    if current.accounts.is_empty() {
+        return Ok(Default::default());
+    }
+    let key = cipher(&dir)?;
+    let path = store_path()?;
+    let mut rows: Store = if path.exists() {
+        read(&path)?
+    } else {
+        Store::new()
+    };
+    let mut counts = super::auto_import::native::Counts::default();
+    for (id, row) in current.accounts {
+        counts.record((|| {
+            let account = summary(&id, &row, None, &key)?;
+            if rows.iter().any(|(existing_id, s)| {
+                super::auto_import::native::same_account(
+                    &id,
+                    &account.email,
+                    existing_id,
+                    s.email.as_deref().unwrap_or_default(),
+                )
+            }) {
+                return Ok(Some(false));
+            }
+            let mut next = rows.clone();
+            next.insert(
+                id,
+                Saved {
+                    row,
+                    email: Some(account.email),
+                    applied: false,
+                    usage: None,
+                },
+            );
+            write(&path, &next)?;
+            rows = next;
+            Ok(Some(true))
+        })());
+    }
+    Ok(counts)
+}
+
+pub(crate) fn validate_backup_record(value: &serde_json::Value) -> Result<(), String> {
+    serde_json::from_value::<Saved>(value.clone())
+        .map(|_| ())
+        .map_err(|_| "backupError.format".into())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

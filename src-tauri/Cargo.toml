@@ -140,6 +140,7 @@ zstd = "0.14.3"
 
 [dev-dependencies]
 axum = { version = "0.8", features = ["http2"] }
+tempfile = "3"
 
 [target.'cfg(unix)'.dependencies]
 libc = "0.2"

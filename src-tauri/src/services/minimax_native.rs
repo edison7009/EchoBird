@@ -258,6 +258,31 @@ fn write_cli(home: &Path, credentials: &Credentials) -> Result<Transaction, Stri
     Ok(transaction)
 }
 
+pub(crate) fn discover(region: Region) -> Vec<Credentials> {
+    client_homes(region)
+        .iter()
+        .filter_map(|home| {
+            let location = record(home, region);
+            let value = files::object(&location.credential).ok()?;
+            let entry = &value["records"][&location.key];
+            let token = entry["accessToken"].as_str()?;
+            let claims = super::cursor_auth::claims(token).ok()?;
+            let user = claims["account_id"]
+                .as_str()
+                .or_else(|| claims["sub"].as_str())?;
+            Some(Credentials {
+                region,
+                access_token: token.into(),
+                refresh_token: entry["refreshToken"].as_str()?.into(),
+                expires_at: entry["expiresAtMs"].as_i64()? / 1000,
+                user_id: user.into(),
+                email: claims["email"].as_str().unwrap_or(user).into(),
+                name: None,
+            })
+        })
+        .collect()
+}
+
 #[cfg(test)]
 mod tests {
     #[test]

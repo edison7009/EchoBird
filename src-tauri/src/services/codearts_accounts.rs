@@ -20,6 +20,38 @@ use std::{
 use tokio_util::sync::CancellationToken;
 
 pub(crate) mod native;
+pub(crate) async fn import_native() -> Result<Option<bool>, String> {
+    let _guard = ACCOUNTS.lock().await;
+    let Some(native) = native::read()? else {
+        return Ok(None);
+    };
+    let account = account(&native)?;
+    let mut rows = load()?;
+    if rows.values().any(|s| {
+        super::auto_import::native::same_account(
+            &account.id,
+            &account.email,
+            &s.account.id,
+            &s.account.email,
+        )
+    }) {
+        return Ok(Some(false));
+    }
+    rows.insert(account.id.clone(), Saved { account, native });
+    save(&rows)?;
+    Ok(Some(true))
+}
+
+pub(crate) fn validate_backup_record(value: &serde_json::Value) -> Result<(), String> {
+    let saved: Stored = serde_json::from_value(value.clone()).map_err(|_| "backupError.format")?;
+    let native: serde_json::Value =
+        serde_json::from_str(&saved.session).map_err(|_| "backupError.format")?;
+    if account(&native)?.id != saved.account.id {
+        return Err("backupError.format".into());
+    }
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests;
 

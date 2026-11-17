@@ -314,9 +314,83 @@ fn write(directory: &Path, encrypted: &str) -> Result<NativeDesktopTransaction, 
     })
 }
 
+pub(super) fn discover(edition: Edition) -> Result<Option<Credentials>, String> {
+    let directory = data_dir(edition)?;
+    let path = directory.join("User/globalStorage/state.vscdb");
+    if !path.is_file() {
+        return Ok(None);
+    }
+    discover_at(edition, &directory, &cipher(&directory)?)
+}
+fn discover_at(
+    edition: Edition,
+    directory: &Path,
+    key: &electron_storage::Cipher,
+) -> Result<Option<Credentials>, String> {
+    let path = directory.join("User/globalStorage/state.vscdb");
+    let db = Connection::open_with_flags(path, OpenFlags::SQLITE_OPEN_READ_ONLY)
+        .map_err(|_| "accountError.read")?;
+    let bytes: Option<String> = db
+        .query_row("SELECT value FROM ItemTable WHERE key=?1", [USER], |row| {
+            row.get(0)
+        })
+        .optional()
+        .map_err(|_| "accountError.read")?;
+    let Some(bytes) = bytes else {
+        return Ok(None);
+    };
+    let encoded: Value = serde_json::from_str(&bytes).map_err(|_| "accountError.format")?;
+    let bytes: Vec<u8> =
+        serde_json::from_value(encoded["data"].clone()).map_err(|_| "accountError.format")?;
+    let plain = electron_storage::decrypt_bytes(key, &bytes)?;
+    let value: Value = serde_json::from_slice(&plain).map_err(|_| "accountError.format")?;
+    let machine: String = db
+        .query_row(
+            "SELECT value FROM ItemTable WHERE key='storage.serviceMachineId'",
+            [],
+            |r| r.get(0),
+        )
+        .map_err(|_| "accountError.read")?;
+    super::device_credentials(edition, &value, &machine, false).map(Some)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn scanned_ide_device_snapshot_reads_encrypted_text_without_touching_database() {
+        let root = tempfile::tempdir().unwrap();
+        let directory = root.path();
+        std::fs::create_dir_all(directory.join("User/globalStorage")).unwrap();
+        let path = directory.join("User/globalStorage/state.vscdb");
+        for key in electron_storage::test_ciphers() {
+            let db = Connection::open(&path).unwrap();
+            db.execute_batch(
+                "CREATE TABLE IF NOT EXISTS ItemTable(key TEXT PRIMARY KEY,value TEXT);",
+            )
+            .unwrap();
+            let profile = json!({"id":"fixture-user","email":"fixture@example.test","token":"device-access","refreshToken":"device-refresh","expireTime":"4070908800000"});
+            let bytes =
+                electron_storage::encrypt_bytes(&key, profile.to_string().as_bytes()).unwrap();
+            let row = json!({"type":"Buffer","data":bytes}).to_string();
+            db.execute(
+                "INSERT OR REPLACE INTO ItemTable VALUES(?1,?2)",
+                rusqlite::params![USER, row],
+            )
+            .unwrap();
+            db.execute("INSERT OR REPLACE INTO ItemTable VALUES('storage.serviceMachineId','fixture-machine')",[]).unwrap();
+            drop(db);
+            let before = std::fs::read(&path).unwrap();
+            let c = discover_at(Edition::Qoder, directory, &key)
+                .unwrap()
+                .unwrap();
+            assert!(c.native_device_only);
+            assert_eq!(c.device_token, "device-access");
+            assert_eq!(c.machine_id, "fixture-machine");
+            assert_eq!(std::fs::read(&path).unwrap(), before);
+        }
+    }
+
     fn credentials(edition: Edition) -> Credentials {
         Credentials {
             edition,
@@ -331,6 +405,7 @@ mod tests {
             device_refresh: "device-refresh".into(),
             device_expires_at: 2_000_000_000_000,
             device_chat: false,
+            native_device_only: false,
         }
     }
     #[test]

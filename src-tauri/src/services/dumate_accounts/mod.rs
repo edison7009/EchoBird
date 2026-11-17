@@ -282,5 +282,40 @@ pub async fn apply(id: &str) -> Result<Account, String> {
     Ok(account)
 }
 
+pub(crate) async fn import_native() -> Result<Option<bool>, String> {
+    let _guard = STORE_LOCK.lock().await;
+    let Some(c) = native::current()? else {
+        return Ok(None);
+    };
+    c.validate()?;
+    let account = c.summary();
+    let mut rows = load()?;
+    if rows.values().any(|s| {
+        super::auto_import::native::same_account(
+            &account.id,
+            &account.name,
+            &s.account.id,
+            &s.account.name,
+        )
+    }) {
+        return Ok(Some(false));
+    }
+    rows.insert(
+        account.id.clone(),
+        Saved {
+            account,
+            credential: protect(&c)?,
+        },
+    );
+    save(&rows)?;
+    Ok(Some(true))
+}
+
+pub(crate) fn validate_backup_record(value: &serde_json::Value) -> Result<(), String> {
+    serde_json::from_value::<Saved>(value.clone())
+        .map(|_| ())
+        .map_err(|_| "backupError.format".into())
+}
+
 #[cfg(test)]
 mod tests;

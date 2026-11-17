@@ -379,6 +379,19 @@ pub(crate) async fn proxy_credentials_after_rejection(
         .await
 }
 
+pub(crate) fn validate_backup_record(value: &serde_json::Value) -> Result<(), String> {
+    let saved: SavedAccount =
+        serde_json::from_value(value.clone()).map_err(|_| "backupError.format")?;
+    let parsed = snapshot(
+        &json!({"claudeAiOauth":saved.oauth}),
+        &json!({"oauthAccount":saved.identity}),
+    )?;
+    if parsed.summary.id != saved.summary.id {
+        return Err("backupError.format".into());
+    }
+    Ok(())
+}
+
 #[cfg(test)]
 async fn proxy_credentials_at(
     dir: &Path,
@@ -423,6 +436,72 @@ pub(super) fn save_login(credentials: &Value, config: &Value) -> Result<ClaudeCo
         &account.summary.id,
     );
     Ok(account.summary)
+}
+
+pub(crate) async fn import_snapshot(credentials: &Value, config: &Value) -> Result<bool, String> {
+    let _guard = ACCOUNT_LOCK.lock().await;
+    import_snapshot_at(credentials, config, &store()?)
+}
+
+fn import_snapshot_at(credentials: &Value, config: &Value, dir: &Path) -> Result<bool, String> {
+    let account = snapshot(credentials, config)?;
+    if list_saved_at(dir, None)?.iter().any(|saved| {
+        saved.id == account.summary.id || saved.email.eq_ignore_ascii_case(&account.summary.email)
+    }) {
+        return Ok(false);
+    }
+    let temporary = dir.join(format!(".import-{}.json", uuid::Uuid::new_v4()));
+    write_json(&temporary, &account)?;
+    let result = fs::hard_link(&temporary, account_path(dir, &account.summary.id)?);
+    let _ = fs::remove_file(&temporary);
+    match result {
+        Ok(()) => (),
+        Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => return Ok(false),
+        Err(_) => return Err("accountError.write".into()),
+    }
+    Ok(true)
+}
+
+#[cfg(test)]
+mod import_tests {
+    use super::*;
+
+    #[test]
+    fn duplicate_id_or_email_never_replaces_saved_credentials() {
+        let root = tempfile::tempdir().unwrap();
+        let credentials = json!({"claudeAiOauth":{"accessToken":"fixture-first"}});
+        let profile = |id: &str, email: &str| json!({"oauthAccount":{"accountUuid":id,"emailAddress":email,"organizationUuid":"fixture-org"}});
+        assert!(import_snapshot_at(
+            &credentials,
+            &profile("first", "a@example.test"),
+            root.path()
+        )
+        .unwrap());
+        let id = snapshot(&credentials, &profile("first", "a@example.test"))
+            .unwrap()
+            .summary
+            .id;
+        let path = account_path(root.path(), &id).unwrap();
+        let before = fs::read(&path).unwrap();
+        let changed = json!({"claudeAiOauth":{"accessToken":"fixture-changed"}});
+        assert!(!import_snapshot_at(
+            &changed,
+            &profile("first", "different@example.test"),
+            root.path()
+        )
+        .unwrap());
+        assert!(
+            !import_snapshot_at(&changed, &profile("other", "A@example.test"), root.path())
+                .unwrap()
+        );
+        assert_eq!(fs::read(path).unwrap(), before);
+        assert!(import_snapshot_at(
+            &credentials,
+            &profile("second", "b@example.test"),
+            root.path()
+        )
+        .unwrap());
+    }
 }
 
 fn merge_oauth(target: &mut Value, key: &str, value: &Value) -> Result<(), String> {
@@ -675,6 +754,19 @@ pub async fn delete(id: &str) -> Result<(), String> {
         fs::remove_file(path).map_err(|e| format!("accountError.write|{e}"))?;
     }
     Ok(())
+}
+
+pub(crate) async fn import_native() -> Result<Option<bool>, String> {
+    if !config_path()?.exists() {
+        return Ok(None);
+    }
+    let account = current()?;
+    import_snapshot(
+        &json!({"claudeAiOauth":account.oauth}),
+        &json!({"oauthAccount":account.identity}),
+    )
+    .await
+    .map(Some)
 }
 
 #[cfg(test)]

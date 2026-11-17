@@ -257,6 +257,22 @@ pub(crate) async fn apply(
     write(&directory, &cipher, &auth)
 }
 
+pub(super) fn discover(edition: Edition, executable: &Path) -> Result<Option<Credentials>, String> {
+    let product = metadata(executable, edition)?;
+    let directory = data_dir(&product)?;
+    let Some(bytes) = files::read_optional(&directory.join("auth.v1.dat"))? else {
+        return Ok(None);
+    };
+    let plain = electron_storage::decrypt_bytes(&cipher(&directory, &product)?, &bytes)?;
+    let value: Value = serde_json::from_slice(&plain).map_err(|_| "accountError.format")?;
+    if value["schemaVersion"] != 1 {
+        return Err("accountError.format".into());
+    }
+    let machine =
+        fs::read_to_string(directory.join("auth.machine-id")).map_err(|_| "accountError.read")?;
+    super::device_credentials(edition, &value, &machine, true).map(Some)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -295,6 +311,7 @@ mod tests {
             device_refresh: "device-refresh".into(),
             device_expires_at: 2_000_000_000_000,
             device_chat: false,
+            native_device_only: false,
         }
     }
     #[test]

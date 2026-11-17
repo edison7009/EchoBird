@@ -587,9 +587,86 @@ pub async fn proxy_credentials(account_id: &str, force_refresh: bool) -> Result<
     )
 }
 
+fn imported_expiry(auth: &Value) -> Result<i64, String> {
+    if let Some(expires) = auth["expires"].as_i64().filter(|time| *time > 0) {
+        return Ok(expires);
+    }
+    // Native API-key records have no expiry. OAuth records must retain a real deadline.
+    if auth["access"].as_str().is_none() && auth["key"].as_str().is_some_and(valid_token) {
+        return Ok(i64::MAX);
+    }
+    auth["access"]
+        .as_str()
+        .and_then(|token| super::cursor_auth::claims(token).ok())
+        .and_then(|claims| claims["exp"].as_i64())
+        .and_then(|seconds| seconds.checked_mul(1000))
+        .filter(|time| *time > 0)
+        .ok_or("accountError.invalidAccount".into())
+}
+
+pub(crate) async fn import_native() -> Result<Option<bool>, String> {
+    let native = native_auth(&native_auth_path()?)?;
+    let auth = &native["kilo"];
+    let Some(token) = auth["access"]
+        .as_str()
+        .or_else(|| auth["key"].as_str())
+        .filter(|s| valid_token(s))
+    else {
+        return Ok(None);
+    };
+    let expires_at = imported_expiry(auth)?;
+    let profile = profile(token).await?;
+    let email = profile_email(&profile)
+        .ok_or("accountError.authResponse")?
+        .to_owned();
+    let org = auth["accountId"].as_str().map(str::to_owned);
+    let id = account_id(&email, org.as_deref());
+    let _guard = ACCOUNT_LOCK.lock().await;
+    let mut rows = load()?;
+    if rows.iter().any(|(existing_id, s)| {
+        super::auto_import::native::same_account(&id, &email, existing_id, &s.email)
+    }) {
+        return Ok(Some(false));
+    }
+    let model = default_model(token, org.as_deref()).await?;
+    rows.insert(
+        id,
+        Saved {
+            email,
+            credential: protect(token)?,
+            expires_at,
+            default_model: model,
+            organization_id: org,
+            organization_name: None,
+            balance: None,
+        },
+    );
+    save(&rows)?;
+    Ok(Some(true))
+}
+
+pub(crate) fn validate_backup_record(value: &serde_json::Value) -> Result<(), String> {
+    serde_json::from_value::<Saved>(value.clone())
+        .map(|_| ())
+        .map_err(|_| "backupError.format".into())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn imported_keys_and_oauth_keep_their_real_expiry_semantics() {
+        assert_eq!(
+            imported_expiry(&json!({"key":"native-api-key"})).unwrap(),
+            i64::MAX
+        );
+        assert_eq!(
+            imported_expiry(&json!({"access":"oauth","expires":1234})).unwrap(),
+            1234
+        );
+        assert!(imported_expiry(&json!({"access":"opaque-oauth-without-expiry"})).is_err());
+        assert!(imported_expiry(&json!({"key":""})).is_err());
+    }
     use std::fs;
 
     #[tokio::test]

@@ -34,6 +34,7 @@ impl Fixture {
             device_refresh: format!("device-refresh-{nonce}"),
             device_expires_at: i64::MAX,
             device_chat: false,
+            native_device_only: false,
         };
         let mut account = summary(&credentials);
         account.active = true;

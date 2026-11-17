@@ -2,6 +2,35 @@ mod native;
 mod oauth;
 mod proxy;
 mod quota;
+pub(crate) async fn import_native(edition: Edition) -> Result<Option<bool>, String> {
+    let _request = REQUEST_LOCK.lock().await;
+    let _guard = ACCOUNT_LOCK.lock().await;
+    let Some(c) = native::read(edition)? else {
+        return Ok(None);
+    };
+    let mut rows = load()?;
+    let id = current_id(&c, &rows).ok_or("accountError.invalidAccount")?;
+    if rows.values().any(|s| {
+        super::auto_import::native::same_account(
+            &id,
+            c.name.as_deref().unwrap_or_default(),
+            &s.account.id,
+            &s.account.name,
+        )
+    }) {
+        return Ok(Some(false));
+    }
+    capture(edition, &c, &mut rows)?;
+    save(&rows)?;
+    Ok(Some(true))
+}
+
+pub(crate) fn validate_backup_record(value: &serde_json::Value) -> Result<(), String> {
+    serde_json::from_value::<Saved>(value.clone())
+        .map(|_| ())
+        .map_err(|_| "backupError.format".into())
+}
+
 #[cfg(test)]
 mod tests;
 

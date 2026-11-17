@@ -147,6 +147,21 @@ fn capture(
     Ok(account)
 }
 
+pub(crate) async fn import_snapshot(raw: &str) -> Result<bool, String> {
+    let _guard = ACCOUNT_LOCK.lock().await;
+    let (id, email) = identity(raw)?;
+    let mut accounts = load()?;
+    if accounts.contains_key(&id)
+        || accounts
+            .values()
+            .any(|saved| saved.email.eq_ignore_ascii_case(&email))
+    {
+        return Ok(false);
+    }
+    capture(raw, &mut accounts, false)?;
+    Ok(true)
+}
+
 pub async fn list() -> Result<Vec<Account>, String> {
     let _guard = ACCOUNT_LOCK.lock().await;
     let accounts = load()?;
@@ -411,6 +426,19 @@ pub async fn refresh(id: &str) -> Result<Account, String> {
         id,
     );
     Ok(result)
+}
+
+pub(crate) async fn import_native() -> Result<Option<bool>, String> {
+    let Some(raw) = native::read()? else {
+        return Ok(None);
+    };
+    import_snapshot(&raw).await.map(Some)
+}
+
+pub(crate) fn validate_backup_record(value: &serde_json::Value) -> Result<(), String> {
+    serde_json::from_value::<Saved>(value.clone())
+        .map(|_| ())
+        .map_err(|_| "backupError.format".into())
 }
 
 #[cfg(test)]

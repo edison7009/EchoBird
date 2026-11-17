@@ -286,6 +286,66 @@ pub async fn switch(id: &str, locale: &str) -> Result<Account, String> {
     Ok(saved.summary)
 }
 
+pub(crate) fn list_saved_accounts() -> Result<Vec<Account>, String> {
+    let dir = store()?;
+    if !dir.exists() {
+        return Ok(vec![]);
+    }
+    let mut rows = vec![];
+    for entry in fs::read_dir(&dir).map_err(|_| "accountError.read")? {
+        let path = entry.map_err(|_| "accountError.read")?.path();
+        if path.extension().and_then(|s| s.to_str()) != Some("yaml") {
+            continue;
+        }
+        let id = path
+            .file_stem()
+            .and_then(|s| s.to_str())
+            .ok_or("accountError.format")?;
+        rows.push(load_at(&dir, id)?.summary);
+    }
+    Ok(rows)
+}
+
+pub(crate) async fn import_native() -> Result<Option<bool>, String> {
+    let home = dsh::dsh_config_dir();
+    let creds = {
+        let _guard = dsh::CONFIG_LOCK.lock().map_err(|_| "accountError.busy")?;
+        dsh::credentials_at(&home)?
+    };
+    let payload = &creds["records"]["deepseek-account-platform/default"]["payload"];
+    if payload["issuer"] != ORIGIN {
+        return Ok(None);
+    }
+    let Some(token) = payload["token"].as_str().filter(|s| valid_token(s)) else {
+        return Ok(None);
+    };
+    let device = creds["records"]["deepseek-account-platform/device"]["payload"]["id"]
+        .as_str()
+        .filter(|s| uuid::Uuid::parse_str(s).is_ok())
+        .ok_or("accountError.invalidAccount")?;
+    let profile = profile(&client("en")?, token).await?;
+    let saved = snapshot(&profile, token.into(), device.into())?;
+    let _guard = ACCOUNT_LOCK.lock().await;
+    if list()?.iter().any(|a| {
+        super::auto_import::native::same_account(
+            &saved.summary.id,
+            &saved.summary.name,
+            &a.id,
+            &a.name,
+        )
+    }) {
+        return Ok(Some(false));
+    }
+    save_at(&store()?, &saved)?;
+    Ok(Some(true))
+}
+
+pub(crate) fn validate_backup_record(value: &serde_json::Value) -> Result<(), String> {
+    serde_json::from_value::<Saved>(value.clone())
+        .map(|_| ())
+        .map_err(|_| "backupError.format".into())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

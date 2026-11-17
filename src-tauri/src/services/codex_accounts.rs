@@ -324,6 +324,11 @@ fn read_keychain_raw(_base_dir: &Path) -> Result<Option<Vec<u8>>, String> {
     Ok(None)
 }
 
+pub(crate) fn validate_backup_record(value: &serde_json::Value) -> Result<(), String> {
+    let raw = serde_json::to_vec(value).map_err(|_| "backupError.format")?;
+    metadata_from_auth(value, &raw).map(|_| ())
+}
+
 #[cfg(test)]
 thread_local! {
     static TEST_KEYCHAIN_READ: std::cell::RefCell<Option<Result<Option<Vec<u8>>, String>>> = const { std::cell::RefCell::new(None) };
@@ -491,6 +496,83 @@ fn save_snapshot(raw: &[u8], auth: &Value, store_dir: &Path) -> Result<AccountMe
     let metadata = metadata_from_auth(auth, raw)?;
     write_private_file(&store_dir.join(format!("{}.json", metadata.id)), raw)?;
     Ok(metadata)
+}
+
+pub(crate) fn import_snapshot(auth: &Value) -> Result<bool, String> {
+    import_snapshot_at(auth, &account_store_dir()?)
+}
+
+fn import_snapshot_at(auth: &Value, dir: &Path) -> Result<bool, String> {
+    let raw = serde_json::to_vec(auth).map_err(|_| "Invalid account snapshot")?;
+    let metadata = metadata_from_auth(auth, &raw)?;
+    if metadata.email == "OpenAI account" {
+        return Err("accountError.invalidAccount".into());
+    }
+    if list_saved_accounts_at(dir, None)?.iter().any(|account| {
+        account.id == metadata.id || account.email.eq_ignore_ascii_case(&metadata.email)
+    }) {
+        return Ok(false);
+    }
+    let temporary = dir.join(format!(".import-{}", uuid::Uuid::new_v4()));
+    write_private_file(&temporary, &raw)?;
+    let result = fs::hard_link(&temporary, dir.join(format!("{}.json", metadata.id)));
+    let _ = fs::remove_file(&temporary);
+    match result {
+        Ok(()) => (),
+        Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => return Ok(false),
+        Err(_) => return Err("accountError.write".into()),
+    }
+    Ok(true)
+}
+
+#[cfg(test)]
+mod import_tests {
+    use super::*;
+    use base64::engine::general_purpose::URL_SAFE_NO_PAD;
+    use serde_json::json;
+
+    #[test]
+    fn duplicate_id_or_email_never_replaces_saved_tokens() {
+        let root = tempfile::tempdir().unwrap();
+        let account = |id: &str, email: &str, access: &str| {
+            let claims =
+                json!({"email":email,"https://api.openai.com/auth":{"chatgpt_account_id":id}});
+            let token = format!(
+                "e30.{}.signature",
+                URL_SAFE_NO_PAD.encode(claims.to_string())
+            );
+            json!({"tokens":{"access_token":access,"id_token":token,"account_id":id}})
+        };
+        assert!(import_snapshot_at(
+            &account("first", "a@example.test", "first-token"),
+            root.path()
+        )
+        .unwrap());
+        let before = fs::read_dir(root.path())
+            .unwrap()
+            .next()
+            .unwrap()
+            .unwrap()
+            .path();
+        let bytes = fs::read(&before).unwrap();
+        assert!(!import_snapshot_at(
+            &account("first", "different@example.test", "changed-token"),
+            root.path()
+        )
+        .unwrap());
+        assert!(!import_snapshot_at(
+            &account("another-id", "A@example.test", "changed-token"),
+            root.path()
+        )
+        .unwrap());
+        assert_eq!(fs::read(before).unwrap(), bytes);
+        assert!(import_snapshot_at(
+            &account("second", "b@example.test", "second-token"),
+            root.path()
+        )
+        .unwrap());
+        assert_eq!(list_saved_accounts_at(root.path(), None).unwrap().len(), 2);
+    }
 }
 
 fn read_quota_cache(store_dir: &Path, account_id: &str) -> Option<AccountQuotaCache> {
@@ -1365,6 +1447,13 @@ async fn refresh_account_quota_at(
 
     let active_id = active_account_id(&codex_dir.join("auth.json"))?;
     Ok(build_summary(metadata, active_id.as_deref(), store_dir))
+}
+
+pub(crate) fn import_native() -> Result<Option<bool>, String> {
+    let Some((_, auth)) = read_current_oauth_snapshot(&codex_home()?.join("auth.json"))? else {
+        return Ok(None);
+    };
+    import_snapshot(&auth).map(Some)
 }
 
 #[cfg(test)]

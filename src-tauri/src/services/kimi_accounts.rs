@@ -6,6 +6,43 @@ use std::{collections::BTreeMap, path::PathBuf, sync::Mutex, time::Duration};
 use tokio_util::sync::CancellationToken;
 
 mod native;
+pub(crate) async fn import_native(region: Region) -> Result<Option<bool>, String> {
+    let dir = super::tool_config_manager::kimicode::kimicode_dir();
+    let Some(token) = native::discover(&dir, region) else {
+        return Ok(None);
+    };
+    let account = profile(&get(region, "/me", &token).await?, region)?;
+    let claims = super::cursor_auth::claims(&token.access_token)?;
+    let user = claims["user_id"]
+        .as_str()
+        .or_else(|| claims["sub"].as_str())
+        .ok_or("accountError.invalidAccount")?;
+    if account.id != account_id(region, user) {
+        return Err("accountError.invalidAccount".into());
+    }
+    let _guard = ACCOUNTS.lock().await;
+    let mut rows = load()?;
+    if rows.values().any(|s| {
+        super::auto_import::native::same_account(
+            &account.id,
+            &account.email,
+            &s.account.id,
+            &s.account.email,
+        )
+    }) {
+        return Ok(Some(false));
+    }
+    rows.insert(account.id.clone(), Saved { account, token });
+    save(&rows)?;
+    Ok(Some(true))
+}
+
+pub(crate) fn validate_backup_record(value: &serde_json::Value) -> Result<(), String> {
+    serde_json::from_value::<Saved>(value.clone())
+        .map(|_| ())
+        .map_err(|_| "backupError.format".into())
+}
+
 #[cfg(test)]
 mod tests;
 

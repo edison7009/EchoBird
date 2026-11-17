@@ -242,6 +242,7 @@ async fn exchange(
         device_refresh: refresh.into(),
         device_expires_at: token_expiry(device, true, now),
         device_chat,
+        native_device_only: false,
     })
 }
 fn status_error(status: reqwest::StatusCode) -> String {
@@ -296,6 +297,15 @@ pub(super) async fn refresh_at(
         next.expires_at = expiry;
     }
     Ok(next)
+}
+
+pub(super) async fn exchange_native(
+    client: &reqwest::Client,
+    c: &Credentials,
+    base: &str,
+) -> Result<Credentials, String> {
+    // A native device session is not a job token. Derive the latter only on explicit use.
+    exchange(client,c.edition,base,&json!({"token":c.device_token,"refresh_token":c.device_refresh,"user_id":c.user_id,"expires_at":c.device_expires_at / 1000}),&c.machine_id).await
 }
 
 #[cfg(test)]

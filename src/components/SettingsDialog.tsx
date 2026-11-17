@@ -16,6 +16,7 @@ import {
   Trophy,
   Server,
 } from 'lucide-react';
+import { AutoImportSettings } from './AutoImportSettings';
 import { getVersion } from '@tauri-apps/api/app';
 import { enable, disable, isEnabled } from '@tauri-apps/plugin-autostart';
 import { ViewModeTabs } from './ViewModeTabs';
@@ -669,6 +670,8 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
                     {t('settings.optionalFeaturesError')}
                   </p>
                 )}
+                <div className="h-px bg-cyber-border/50" />
+                <AutoImportSettings />
               </div>
             ) : activeTab === 'appearance' ? (
               <div className="space-y-5">

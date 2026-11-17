@@ -88,6 +88,7 @@ pub mod usage_providers;
 #[cfg(windows)]
 pub mod windows_path;
 
+pub mod auto_import;
 pub mod devin_accounts;
 pub(crate) mod devin_protocol;
 pub mod kimi_accounts;
@@ -97,3 +98,5 @@ pub mod usage_island_tooltip;
 pub mod voice_input;
 pub mod zcode_accounts;
 pub(crate) mod zcode_paths;
+
+pub mod config_backup;

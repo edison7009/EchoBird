@@ -377,7 +377,7 @@ fn detect_model_type(url: &str) -> Option<ModelType> {
 }
 
 /// Add a new model
-#[derive(Debug, Default, serde::Deserialize)]
+#[derive(Debug, Clone, Default, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AddModelInput {
     #[serde(default)]
@@ -398,6 +398,38 @@ pub struct AddModelInput {
 
 pub fn add_model(input: AddModelInput) -> Result<ModelConfig, String> {
     add_model_at(&models_config_path(), input)
+}
+
+/// Import never replaces an existing model, including a model in another scope.
+pub(crate) fn import_model(input: AddModelInput) -> Result<bool, String> {
+    import_model_at(&models_config_path(), input)
+}
+
+fn import_model_at(path: &std::path::Path, input: AddModelInput) -> Result<bool, String> {
+    import_model_at_with(path, input, super::secret_store::encrypt)
+}
+
+fn import_model_at_with(
+    path: &std::path::Path,
+    input: AddModelInput,
+    protect: impl Fn(&str) -> Result<String, String>,
+) -> Result<bool, String> {
+    let key = input.api_key.as_deref().unwrap_or_default().trim();
+    if key.is_empty() || input.account_source.is_some() {
+        return Err("Missing API credential".into());
+    }
+    super::json_store::mutate(path, |models: &mut Vec<ModelConfig>| {
+        for model in models.iter().filter(|model| model.account_source.is_none()) {
+            let saved = super::secret_store::decrypt(&model.api_key)?;
+            if saved.trim() == key {
+                return Ok((false, false));
+            }
+        }
+        let mut model = new_model_from(input.clone(), generate_internal_id());
+        model.api_key = protect(key)?;
+        models.push(model);
+        Ok((true, true))
+    })
 }
 
 fn add_model_at(path: &std::path::Path, input: AddModelInput) -> Result<ModelConfig, String> {

@@ -1,3 +1,4 @@
+import { ScanProgress } from '../../components/ScanProgress';
 import {
   useCallback,
   useContext,
@@ -2029,29 +2030,19 @@ export function FreeModelsPanel() {
             </div>
             {refreshing && (
               <div className="px-2 pb-2">
-                <div className="h-1 rounded-full overflow-hidden bg-cyber-border/30">
-                  <div
-                    className="free-model-scan-progress h-full rounded-full bg-cyber-accent"
-                    style={{ width: `${Math.max(scanProgress, 0.04) * 100}%` }}
-                  />
-                </div>
-                <div className="mt-2 text-[11px] text-cyber-text-secondary truncate">
-                  {scanProvider ? (
-                    <>
-                      {t('freeModels.scanning')}
-                      {scanProvider}
-                    </>
-                  ) : (
-                    <>
-                      {t('freeModels.scanConnecting')}
-                      <span className="free-model-scan-dots" aria-hidden="true">
-                        <span>.</span>
-                        <span>.</span>
-                        <span>.</span>
-                      </span>
-                    </>
-                  )}
-                </div>
+                <ScanProgress
+                  progress={scanProgress}
+                  ariaLabel={t('freeModels.scanning')}
+                  label={
+                    scanProvider ? (
+                      <>
+                        {t('freeModels.scanning')}
+                        {scanProvider}
+                      </>
+                    ) : null
+                  }
+                  connectingLabel={t('freeModels.scanConnecting')}
+                />
               </div>
             )}
             <div className="flex-1 p-2">

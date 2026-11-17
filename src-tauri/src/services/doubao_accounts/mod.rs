@@ -1,5 +1,7 @@
 //! Isolated consumer sessions for Doubao Work and Dola.
 mod api;
+mod import;
+pub(crate) use import::scan as import_native;
 mod login;
 mod native;
 mod quota;
@@ -371,6 +373,12 @@ fn credential_metadata(c: &Credentials) -> Result<Value, String> {
     Ok(
         json!({"accountId":c.id(),"baseUrl":c.edition.base(),"cookieHeader":c.cookie_header()?,"deviceId":c.metadata("device_id"),"webId":c.metadata("web_id"),"fingerprint":c.metadata("s_v_web_id").or_else(||c.metadata("fp")),"clientVersion":metadata["version"],"channel":metadata["channel"]}),
     )
+}
+
+pub(crate) fn validate_backup_record(value: &serde_json::Value) -> Result<(), String> {
+    serde_json::from_value::<Saved>(value.clone())
+        .map(|_| ())
+        .map_err(|_| "backupError.format".into())
 }
 
 #[cfg(test)]

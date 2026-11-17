@@ -454,6 +454,53 @@ pub async fn models(id: &str) -> Result<Vec<String>, String> {
         .collect())
 }
 
+pub(crate) async fn import_native() -> Result<Option<bool>, String> {
+    let path = native("auth.json")?;
+    let auth = read_object(&path)?;
+    let Some(key) = auth["apiKey"].as_str().filter(|s| !s.trim().is_empty()) else {
+        return Ok(None);
+    };
+    let id = format!("{:x}", Sha256::digest(key.as_bytes()));
+    if load()?.accounts.iter().any(|s| s.account.id == id) {
+        return Ok(Some(false));
+    }
+    let user = request(&client()?, "/alpha/whoami", key).await?;
+    let email = ["email", "userName", "id"]
+        .iter()
+        .find_map(|k| user["user"][k].as_str())
+        .ok_or("accountError.authResponse")?
+        .to_owned();
+    let _guard = ACCOUNT_LOCK.lock().await;
+    let rows = load()?;
+    if rows.accounts.iter().any(|s| {
+        super::auto_import::native::same_account(&id, &email, &s.account.id, &s.account.email)
+    }) {
+        return Ok(Some(false));
+    }
+    save_to(
+        &store_path()?,
+        Saved {
+            account: Account {
+                id,
+                email,
+                plan: None,
+                remaining: None,
+                total: None,
+                active: false,
+            },
+            key: secret_store::encrypt(key)?,
+        },
+        false,
+    )?;
+    Ok(Some(true))
+}
+
+pub(crate) fn validate_backup_record(value: &serde_json::Value) -> Result<(), String> {
+    serde_json::from_value::<Saved>(value.clone())
+        .map(|_| ())
+        .map_err(|_| "backupError.format".into())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

@@ -245,6 +245,12 @@ fn decrypt(encoded: &str) -> String {
     super::model_manager::decrypt_key_for_use(encoded)
 }
 
+pub(crate) fn validate_backup_record(value: &serde_json::Value) -> Result<(), String> {
+    serde_json::from_value::<Saved>(value.clone())
+        .map(|_| ())
+        .map_err(|_| "backupError.format".into())
+}
+
 #[cfg(test)]
 tokio::task_local! {
     pub(crate) static LIVE_ACCOUNT_CRYPTO: ();
@@ -777,3 +783,39 @@ mod installed_reward_probe {
 
 #[cfg(test)]
 pub(crate) mod test_support;
+
+pub(crate) async fn import_native(
+    region: Region,
+) -> Result<super::auto_import::native::Counts, String> {
+    let candidates = super::minimax_native::discover(region);
+    let _guard = STORE_LOCK.lock().await;
+    let path = store_path()?;
+    let mut rows = load(&path)?;
+    let mut counts = super::auto_import::native::Counts::default();
+    for c in candidates {
+        counts.record((|| {
+            let account = account(&c)?;
+            if rows.values().any(|s| {
+                super::auto_import::native::same_account(
+                    &account.id,
+                    &account.email,
+                    &s.account.id,
+                    &s.account.email,
+                )
+            }) {
+                return Ok(Some(false));
+            }
+            let saved = Saved {
+                account: account.clone(),
+                credential: protect(&c)?,
+            };
+            // Write a candidate copy first, so a failed save cannot count as an existing row.
+            let mut next = rows.clone();
+            next.insert(account.id, saved);
+            super::cursor_auth::write(&path, &next)?;
+            rows = next;
+            Ok(Some(true))
+        })());
+    }
+    Ok(counts)
+}

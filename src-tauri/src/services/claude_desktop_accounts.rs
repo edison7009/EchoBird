@@ -985,6 +985,89 @@ pub async fn delete(id: &str) -> Result<(), String> {
     write(&store_path()?, &store)
 }
 
+pub(crate) async fn list_saved_accounts() -> Result<Vec<Account>, String> {
+    let _guard = ACCOUNT_LOCK.lock().await;
+    Ok(load_store()?.into_values().map(|s| s.account).collect())
+}
+
+pub(crate) async fn import_native() -> Result<Option<bool>, String> {
+    let _guard = ACCOUNT_LOCK.lock().await;
+    let dir = data_dir()?;
+    let config_path = native_config_path(&dir);
+    if !config_path.exists() {
+        return Ok(None);
+    }
+    let Some(uuid) = signed_in_account(&config_at(&config_path)?) else {
+        return Ok(None);
+    };
+    require_closed().await?;
+    let (snapshot, org) = read_signed_in(&dir, &config_path, &uuid)?;
+    let path = store_path()?;
+    let existing = load_store_at(&path)?;
+    let id = account_id(&uuid, &org);
+    if existing.contains_key(&id) {
+        return Ok(Some(false));
+    }
+    let token = oauth::access_token(&dir, &snapshot.config, &uuid, &org, oauth::PROFILE_SCOPE)?;
+    let profile = oauth::profile(&token).await?;
+    let account = oauth::account_from_profile(&profile, &uuid, &org)?;
+    if existing.values().any(|s| {
+        super::auto_import::native::same_account(
+            &account.id,
+            &account.email,
+            &s.account.id,
+            &s.account.email,
+        )
+    }) {
+        return Ok(Some(false));
+    }
+    require_closed().await?;
+    // Re-read after the identity request: never publish a snapshot from a different sign-in.
+    let (snapshot, current_org) = read_signed_in(&dir, &config_path, &uuid)?;
+    if current_org != org {
+        return Err("accountError.invalidAccount".into());
+    }
+    import_snapshot_at(&path, &uuid, &org, snapshot, &profile).map(Some)
+}
+
+fn import_snapshot_at(
+    path: &Path,
+    uuid: &str,
+    org: &str,
+    snapshot: Snapshot,
+    profile: &Value,
+) -> Result<bool, String> {
+    let account = oauth::account_from_profile(profile, uuid, org)?;
+    let mut rows = load_store_at(path)?;
+    if rows.values().any(|s| {
+        super::auto_import::native::same_account(
+            &account.id,
+            &account.email,
+            &s.account.id,
+            &s.account.email,
+        )
+    }) {
+        return Ok(false);
+    }
+    rows.insert(
+        account.id.clone(),
+        Saved {
+            account,
+            account_uuid: uuid.into(),
+            organization_uuid: org.into(),
+            snapshot,
+        },
+    );
+    write(path, &rows)?;
+    Ok(true)
+}
+
+pub(crate) fn validate_backup_record(value: &serde_json::Value) -> Result<(), String> {
+    serde_json::from_value::<Saved>(value.clone())
+        .map(|_| ())
+        .map_err(|_| "backupError.format".into())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1400,6 +1483,43 @@ mod tests {
             .unwrap();
         write(&dir.join("config.json"), &config).unwrap();
         dir
+    }
+
+    #[test]
+    fn imported_desktop_snapshot_is_saved_without_resetting_other_accounts_or_source() {
+        let uuid = "11111111-1111-4111-8111-111111111111";
+        let org = "22222222-2222-4222-8222-222222222222";
+        let dir = snapshot_dir(
+            json!({"lastKnownAccountUuid":uuid,"oauth:tokenCacheV2":"sealed-fixture"}),
+            Some(org),
+        );
+        let config = dir.join("config.json");
+        let cookies = std::fs::read(dir.join("Cookies")).unwrap();
+        let config_bytes = std::fs::read(&config).unwrap();
+        let path = dir.join("saved.json");
+        let profile = json!({"account":{"uuid":uuid,"email":"fixture@example.test"},"organization":{"uuid":org}});
+        let (snapshot, _) = read_signed_in(&dir, &config, uuid).unwrap();
+        assert!(import_snapshot_at(&path, uuid, org, snapshot.clone(), &profile).unwrap());
+        let bytes = std::fs::read(&path).unwrap();
+        assert!(!import_snapshot_at(&path, uuid, org, snapshot.clone(), &profile).unwrap());
+        assert_eq!(std::fs::read(&path).unwrap(), bytes);
+        let other_org = "33333333-3333-4333-8333-333333333333";
+        let mut same_email = profile.clone();
+        same_email["organization"]["uuid"] = json!(other_org);
+        assert!(!import_snapshot_at(&path, uuid, other_org, snapshot, &same_email).unwrap());
+        assert_eq!(std::fs::read(&path).unwrap(), bytes);
+        assert_eq!(std::fs::read(&config).unwrap(), config_bytes);
+        assert_eq!(std::fs::read(dir.join("Cookies")).unwrap(), cookies);
+        assert!(
+            !load_store_at(&path)
+                .unwrap()
+                .values()
+                .next()
+                .unwrap()
+                .account
+                .active
+        );
+        std::fs::remove_dir_all(dir).unwrap();
     }
 
     #[test]

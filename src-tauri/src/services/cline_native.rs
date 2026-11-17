@@ -389,5 +389,37 @@ pub(crate) async fn apply(id: &str, tool: &str) -> Result<Account, String> {
     Ok(account)
 }
 
+pub(crate) fn discover() -> Result<Vec<Credentials>, String> {
+    let Some(path) = existing_installed_config_path()? else {
+        return Ok(vec![]);
+    };
+    let state = cline::load(&path)?;
+    let mut found = vec![];
+    for provider in ["cline", "cline-pass"] {
+        let settings = &state["providers"][provider]["settings"];
+        let auth = &settings["auth"];
+        if !auth.is_object() {
+            continue;
+        }
+        trusted(settings)?;
+        let user_id = auth["accountId"]
+            .as_str()
+            .filter(|s| !s.is_empty())
+            .ok_or("accountError.invalidAccount")?;
+        let info = &auth["metadata"]["userInfo"];
+        let previous = Credentials {
+            access_token: String::new(),
+            refresh_token: String::new(),
+            expires_at: 1,
+            user_id: user_id.into(),
+            email: info["email"].as_str().unwrap_or(user_id).into(),
+            name: info["name"].as_str().map(str::to_owned),
+            user_info: info.clone(),
+        };
+        found.push(native_credentials(auth, &previous)?);
+    }
+    Ok(found)
+}
+
 #[cfg(test)]
 mod tests;

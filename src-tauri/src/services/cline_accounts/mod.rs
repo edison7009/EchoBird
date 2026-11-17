@@ -165,6 +165,12 @@ fn selected(store: &Store, id: &str) -> Result<Credentials, String> {
 }
 #[cfg(not(test))]
 use super::model_manager::{decrypt_key_for_use as decrypt, encrypt_key_for_storage as encrypt};
+pub(crate) fn validate_backup_record(value: &serde_json::Value) -> Result<(), String> {
+    serde_json::from_value::<Saved>(value.clone())
+        .map(|_| ())
+        .map_err(|_| "backupError.format".into())
+}
+
 #[cfg(test)]
 use tests::{decrypt, encrypt};
 
@@ -591,6 +597,44 @@ async fn fetch_summary(base: &str, c: &Credentials) -> Result<(Value, Value, Val
         return Err("accountError.authResponse".into());
     }
     Ok((profile, balance, plan))
+}
+
+pub(crate) async fn import_native() -> Result<super::auto_import::native::Counts, String> {
+    let candidates = super::cline_native::discover()?;
+    let _guard = STORE_LOCK.lock().await;
+    let path = store_path()?;
+    let mut rows = load(&path)?;
+    let mut counts = super::auto_import::native::Counts::default();
+    for c in candidates {
+        counts.record((|| {
+            let account = summary(&c)?;
+            if rows.values().any(|s| {
+                super::auto_import::native::same_account(
+                    &account.id,
+                    &account.email,
+                    &s.account.id,
+                    &s.account.email,
+                )
+            }) {
+                return Ok(Some(false));
+            }
+            let id = account.id.clone();
+            rows.insert(
+                id.clone(),
+                Saved {
+                    account,
+                    credential: protect(&c)?,
+                    native_pair: None,
+                },
+            );
+            if let Err(error) = write(&path, &rows) {
+                rows.remove(&id);
+                return Err(error);
+            }
+            Ok(Some(true))
+        })());
+    }
+    Ok(counts)
 }
 
 #[cfg(test)]

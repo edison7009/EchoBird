@@ -393,6 +393,60 @@ pub async fn switch(id: &str) -> Result<Account, String> {
     write(&path, &store)?;
     summary(&selected, Some(id))
 }
+pub(crate) async fn import_native(cli_only: bool) -> Result<Option<bool>, String> {
+    let _guard = ACCOUNT_LOCK.lock().await;
+    let current = if cli_only {
+        cli::read_native()?
+    } else {
+        let dir = data_dir()?;
+        if !dir.join("User/globalStorage/state.vscdb").is_file() {
+            return Ok(None);
+        }
+        native(&database(&dir, false)?)?
+    };
+    let Some(current) = current else {
+        return Ok(None);
+    };
+    let account = summary(&current, None)?;
+    let path = store_path()?;
+    let mut rows: Store = if path.exists() {
+        read(&path)?
+    } else {
+        Store::new()
+    };
+    if rows.iter().any(|(id, s)| {
+        super::auto_import::native::same_account(
+            &account.id,
+            &account.email,
+            id,
+            s.email.as_deref().unwrap_or_default(),
+        )
+    }) {
+        return Ok(Some(false));
+    }
+    let encrypted = super::secret_store::encrypt(
+        &serde_json::to_string(&current).map_err(|_| "accountError.format")?,
+    )?;
+    rows.insert(
+        account.id,
+        Saved {
+            session: encrypted,
+            applied: false,
+            cli_applied: false,
+            email: Some(account.email),
+            usage: None,
+        },
+    );
+    write(&path, &rows)?;
+    Ok(Some(true))
+}
+
+pub(crate) fn validate_backup_record(value: &serde_json::Value) -> Result<(), String> {
+    serde_json::from_value::<Saved>(value.clone())
+        .map(|_| ())
+        .map_err(|_| "backupError.format".into())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

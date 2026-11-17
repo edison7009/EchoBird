@@ -2,6 +2,23 @@
 mod probe;
 use probe::version_output;
 
+/// Bound synchronous OS discovery using the same output limits and owned-tree
+/// cleanup as version probes. A separate runtime also works from Tauri tasks.
+#[cfg(any(target_os = "macos", all(test, unix)))]
+pub(crate) fn bounded_process_output(
+    command: std::process::Command,
+    timeout: std::time::Duration,
+) -> std::io::Result<std::process::Output> {
+    std::thread::spawn(move || {
+        tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()?
+            .block_on(version_output(command, timeout))
+    })
+    .join()
+    .map_err(|_| std::io::Error::other("Discovery worker failed"))?
+}
+
 /// Check if a command exists on PATH
 pub async fn command_exists(cmd: &str) -> bool {
     get_command_path(cmd).await.is_some()
@@ -464,5 +481,25 @@ mod version_tests {
                 "owned fixture survived timeout/cancellation"
             );
         }
+    }
+}
+
+#[cfg(all(test, unix))]
+mod discovery_output_tests {
+    use super::*;
+    #[tokio::test]
+    async fn synchronous_discovery_inside_runtime_is_bounded_and_keeps_positive_output() {
+        let mut command = crate::utils::process::command("sh");
+        command.args(["-c", "printf discovery-fixture"]);
+        let output = bounded_process_output(command, std::time::Duration::from_secs(2)).unwrap();
+        assert!(output.status.success());
+        assert_eq!(output.stdout, b"discovery-fixture");
+        let mut command = crate::utils::process::command("sh");
+        command.args(["-c", "sleep 30"]);
+        let started = std::time::Instant::now();
+        let error =
+            bounded_process_output(command, std::time::Duration::from_millis(100)).unwrap_err();
+        assert_eq!(error.kind(), std::io::ErrorKind::TimedOut);
+        assert!(started.elapsed() < std::time::Duration::from_secs(2));
     }
 }

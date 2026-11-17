@@ -304,6 +304,15 @@ pub(crate) async fn proxy_credentials_after_rejection(
     .await
 }
 
+pub(crate) fn validate_backup_record(value: &serde_json::Value) -> Result<(), String> {
+    let saved: Saved = serde_json::from_value(value.clone()).map_err(|_| "backupError.format")?;
+    let parsed = snapshot(saved.summary.edition, saved.session)?;
+    if parsed.summary.id != saved.summary.id {
+        return Err("backupError.format".into());
+    }
+    Ok(())
+}
+
 #[cfg(test)]
 async fn proxy_credentials_at(
     edition: Edition,
@@ -891,6 +900,29 @@ async fn close_app(edition: Edition) -> Result<(), String> {
     }
 }
 
+pub(crate) async fn import_native(edition: Edition) -> Result<Option<bool>, String> {
+    let _guard = ACCOUNT_LOCK.lock().await;
+    import_native_at(edition, &edition.auth_path()?, &store()?)
+}
+fn import_native_at(edition: Edition, path: &Path, dir: &Path) -> Result<Option<bool>, String> {
+    if !path.exists() {
+        return Ok(None);
+    }
+    let saved = snapshot(edition, read(path)?)?;
+    if list_saved_accounts_at(edition, dir)?.iter().any(|a| {
+        super::auto_import::native::same_account(
+            &saved.summary.id,
+            &saved.summary.name,
+            &a.id,
+            &a.name,
+        )
+    }) {
+        return Ok(Some(false));
+    }
+    save_at(dir, &saved)?;
+    Ok(Some(true))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -917,6 +949,48 @@ mod tests {
             "rotated-refresh"
         );
         fs::remove_dir_all(dir).unwrap();
+    }
+
+    #[test]
+    fn explicit_native_scan_preserves_source_and_deduplicates_id_and_email() {
+        let root = tempfile::tempdir().unwrap();
+        let path = root.path().join("native.json");
+        let dir = root.path().join("saved");
+        assert_eq!(import_native_at(Edition::Cn, &path, &dir).unwrap(), None);
+        assert!(!dir.exists());
+        let mut value = session();
+        value["account"]["email"] = json!("Fixture@example.test");
+        write(&path, &value).unwrap();
+        let source = fs::read(&path).unwrap();
+        assert_eq!(
+            import_native_at(Edition::Cn, &path, &dir).unwrap(),
+            Some(true)
+        );
+        let rows = list_saved_accounts_at(Edition::Cn, &dir).unwrap();
+        let own = account_path(&dir, &rows[0].id).unwrap();
+        let saved = fs::read(&own).unwrap();
+        value["auth"]["accessToken"] = json!("newer-must-not-overwrite");
+        write(&path, &value).unwrap();
+        assert_eq!(
+            import_native_at(Edition::Cn, &path, &dir).unwrap(),
+            Some(false)
+        );
+        assert_eq!(fs::read(&own).unwrap(), saved);
+        value["account"]["uid"] = json!("different-id");
+        value["account"]["email"] = json!("fixture@EXAMPLE.test");
+        write(&path, &value).unwrap();
+        assert_eq!(
+            import_native_at(Edition::Cn, &path, &dir).unwrap(),
+            Some(false)
+        );
+        assert_eq!(fs::read(&own).unwrap(), saved);
+        fs::write(&path, &source).unwrap();
+        import_native_at(Edition::Cn, &path, &dir).unwrap();
+        assert_eq!(fs::read(&path).unwrap(), source);
+        assert!(import_native_at(Edition::Ai, &path, &dir).is_err());
+        assert!(list_saved_accounts_at(Edition::Ai, &dir)
+            .unwrap()
+            .is_empty());
     }
 
     fn session() -> Value {

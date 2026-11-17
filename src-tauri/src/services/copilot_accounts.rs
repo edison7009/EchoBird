@@ -829,6 +829,80 @@ pub async fn proxy_credentials(id: &str, force_refresh: bool) -> Result<Value, S
     )
 }
 
+pub(crate) async fn scan_native(
+    desktop_only: bool,
+) -> Result<super::auto_import::native::Counts, String> {
+    let mut candidates = vec![];
+    if desktop_only {
+        let path = super::tool_config_manager::copilot_config_dir().join("data.db");
+        if !path.is_file() {
+            return Ok(Default::default());
+        }
+        let db =
+            rusqlite::Connection::open_with_flags(path, rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY)
+                .map_err(|_| "accountError.read")?;
+        let mut query = db
+            .prepare("SELECT login,host,access_token FROM accounts WHERE kind='github'")
+            .map_err(|_| "accountError.read")?;
+        let rows = query
+            .query_map([], |row| {
+                Ok((
+                    row.get::<_, String>(0)?,
+                    row.get::<_, String>(1)?,
+                    row.get::<_, String>(2)?,
+                ))
+            })
+            .map_err(|_| "accountError.read")?;
+        for row in rows {
+            let (login, host, token) = row.map_err(|_| "accountError.read")?;
+            candidates.push(json!({"lastLoggedInUser":{"host":host,"login":login},"copilotTokens":{format!("https://{}:{}",host.trim_start_matches("https://"),login):token}}));
+        }
+    } else {
+        let executable = executable("copilot")?;
+        // Official vault read, explicitly disabling login and updates.
+        let mut runtime = Runtime::start(&executable).await?;
+        let users = runtime.request("account.getAllUsers", json!({})).await?;
+        for row in users["users"].as_array().ok_or("accountError.format")? {
+            let info = &row["authInfo"];
+            if info["type"] != "user" {
+                continue;
+            }
+            let Some(token) = row["token"].as_str() else {
+                continue;
+            };
+            let host = validated_host(info["host"].as_str().unwrap_or("github.com"))?;
+            let login = info["login"].as_str().ok_or("accountError.format")?;
+            candidates.push(json!({"lastLoggedInUser":{"host":host,"login":login},"copilotTokens":{format!("https://{host}:{login}"):token}}));
+        }
+    }
+    let _guard = STORE_LOCK.lock().map_err(|_| "accountError.busy")?;
+    let dir = store()?;
+    let mut existing = list_at(&dir)?;
+    let mut counts = super::auto_import::native::Counts::default();
+    for candidate in candidates {
+        counts.record((|| {
+            let saved = saved_from_native(&candidate)?;
+            if existing.iter().any(|a| {
+                a.id == saved.summary.id
+                    || a.host == saved.summary.host
+                        && a.login.eq_ignore_ascii_case(&saved.summary.login)
+            }) {
+                return Ok(Some(false));
+            }
+            write_saved(&dir.join(format!("{}.json", saved.summary.id)), &saved)?;
+            existing.push(saved.summary);
+            Ok(Some(true))
+        })());
+    }
+    Ok(counts)
+}
+
+pub(crate) fn validate_backup_record(value: &serde_json::Value) -> Result<(), String> {
+    serde_json::from_value::<Saved>(value.clone())
+        .map(|_| ())
+        .map_err(|_| "backupError.format".into())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

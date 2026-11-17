@@ -418,9 +418,8 @@ fn enumerate() -> Result<Vec<SystemApplication>, String> {
     if let Some(home) = dirs::home_dir() {
         collect(&home.join("Applications"), 3, &mut paths);
     }
-    if let Ok(output) = crate::utils::process::command("mdfind")
-        .arg("kMDItemContentType == 'com.apple.application-bundle'")
-        .output()
+    if let Ok(output) =
+        super::spotlight_output(&["kMDItemContentType == 'com.apple.application-bundle'"])
     {
         if output.status.success() {
             paths.extend(

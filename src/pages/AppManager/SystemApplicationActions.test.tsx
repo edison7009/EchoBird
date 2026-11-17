@@ -4,6 +4,7 @@ import { AppManagerContext, type AppManagerContextType } from './context';
 import { AppManagerBottom, AppManagerPanel } from './AppManagerComponents';
 import { useNavigationStore } from '../../stores/navigationStore';
 import { ApplicationActions, ApplicationDetailsPanel } from './ApplicationDetailsPanel';
+import { DesktopPrimaryButton } from '../../components/DesktopPrimaryButton';
 import * as api from '../../api/tauri';
 import type { LocalTool } from '../../api/types';
 
@@ -74,7 +75,9 @@ it.each(['本机应用', 'App $& $`'])(
     });
     const primary = renderer.root.findByType(AppManagerBottom).findAllByType('button');
     expect(primary.map((action) => action.props.children)).toEqual(['启动应用']);
-    expect(primary[0].parent?.props.className).toContain('w-64');
+    expect(renderer.root.findByType(DesktopPrimaryButton).parent?.props.className).toContain(
+      'w-64'
+    );
     const uninstall = renderer.root
       .findByType(AppManagerPanel)
       .findAllByType('button')

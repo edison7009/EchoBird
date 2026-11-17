@@ -938,6 +938,28 @@ pub(crate) async fn proxy_credentials_after_rejection(
     Ok(latest)
 }
 
+pub(crate) async fn import_native() -> Result<Option<bool>, String> {
+    let _guard = ACCOUNT_LOCK.lock().await;
+    let Some(saved) = native_account()? else {
+        return Ok(None);
+    };
+    let mut rows = load()?;
+    if rows.values().any(|s| {
+        super::auto_import::native::same_account(&id(&saved), &saved.email, &id(s), &s.email)
+    }) {
+        return Ok(Some(false));
+    }
+    rows.insert(id(&saved), saved);
+    save(&rows)?;
+    Ok(Some(true))
+}
+
+pub(crate) fn validate_backup_record(value: &serde_json::Value) -> Result<(), String> {
+    serde_json::from_value::<Saved>(value.clone())
+        .map(|_| ())
+        .map_err(|_| "backupError.format".into())
+}
+
 #[cfg(test)]
 mod tests {
     use super::{

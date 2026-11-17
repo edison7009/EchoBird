@@ -6,6 +6,13 @@ use crate::services::upstream_model_catalog::{self, CatalogInput, ModelCatalog};
 use crate::services::usage_providers::{self, UsageResult};
 
 #[tauri::command]
+pub async fn auto_import(
+    on_progress: tauri::ipc::Channel<crate::services::auto_import::Progress>,
+) -> Result<crate::services::auto_import::Progress, String> {
+    crate::services::auto_import::run(on_progress).await
+}
+
+#[tauri::command]
 pub async fn fetch_upstream_model_catalog(input: CatalogInput) -> Result<ModelCatalog, String> {
     upstream_model_catalog::fetch(input).await
 }
@@ -354,4 +361,37 @@ mod tests {
         )
         .is_ok());
     }
+}
+
+#[tauri::command]
+pub async fn list_auto_import_accounts(scope: String) -> Result<serde_json::Value, String> {
+    crate::services::auto_import::saved::list(&scope).await
+}
+
+#[tauri::command]
+pub async fn create_config_backup(
+    directory: String,
+    password: String,
+    ui_preferences: std::collections::BTreeMap<String, String>,
+) -> Result<crate::services::config_backup::Outcome, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        crate::services::config_backup::backup(
+            std::path::Path::new(&directory),
+            &password,
+            ui_preferences,
+        )
+    })
+    .await
+    .map_err(|_| "backupError.write".to_owned())?
+}
+#[tauri::command]
+pub async fn restore_config_backup(
+    file_path: String,
+    password: String,
+) -> Result<crate::services::config_backup::Outcome, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        crate::services::config_backup::restore(std::path::Path::new(&file_path), &password)
+    })
+    .await
+    .map_err(|_| "backupError.read".to_owned())?
 }
