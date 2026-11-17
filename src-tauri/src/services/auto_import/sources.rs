@@ -305,12 +305,14 @@ fn sqlite(source: &str, path: &Path) -> Result<Vec<Value>, String> {
         .map(|path| fingerprint(path))
         .collect::<Result<Vec<_>, _>>()?;
     let directory = std::env::temp_dir().join(format!("echobird-import-{}", uuid::Uuid::new_v4()));
-    let mut builder = fs::DirBuilder::new();
+    let builder = fs::DirBuilder::new();
     #[cfg(unix)]
-    {
+    let builder = {
         use std::os::unix::fs::DirBuilderExt;
+        let mut builder = builder;
         builder.mode(0o700);
-    }
+        builder
+    };
     builder
         .create(&directory)
         .map_err(|_| "Cannot create snapshot")?;
